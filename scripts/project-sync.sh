@@ -11,7 +11,7 @@ set -euo pipefail
 #   1. Every open or closed issue in the repo is on the project.
 #   2. Closed issues  -> Status "Done".
 #   3. Open issues with label "pending" -> Status "Blocked" (waiting on a human).
-#   4. Open issues that were "Blocked" but no longer carry "pending" -> "Backlog".
+#   4. Open issues that are "Blocked" without "pending", or have no status yet -> "Backlog".
 #   5. Prints a summary table.
 #
 # Usage:  ./scripts/project-sync.sh [--dry-run]
@@ -57,7 +57,7 @@ while IFS=$'\t' read -r number url state has_pending; do
     set_status "$item_id" "$OPT_DONE"; done=$((done + 1))
   elif [[ "$state" == "OPEN" && "$has_pending" == "true" && "$current" != "Blocked" ]]; then
     set_status "$item_id" "$OPT_BLOCKED"; blocked=$((blocked + 1))
-  elif [[ "$state" == "OPEN" && "$has_pending" == "false" && "$current" == "Blocked" ]]; then
+  elif [[ "$state" == "OPEN" && "$has_pending" == "false" && ( "$current" == "Blocked" || "$current" == "" || "$current" == "null" ) ]]; then
     set_status "$item_id" "$OPT_BACKLOG"; unblocked=$((unblocked + 1))
   fi
 done < <(jq -r --arg p "$PENDING_LABEL" '.[] | [.number, .url, .state, (any(.labels[]; .name==$p))] | @tsv' <<<"$issues_json")
