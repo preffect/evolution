@@ -15,6 +15,11 @@ Traefik reverse proxy at `*.preffect-ha.preffect-home.net`.
 > - **Host AI / user:** apply those prepared artifacts to the live `ha-router` repo (copy the
 >   route file into `config/<slug>.yml`, paste the landing card, verify the URL).
 
+> **Automated:** `new-game.sh` performs Steps 3–4 against the live repo on the host (route file
+> with priority-100 API/WS routers, landing card via `insert-landing-card.py` with an unused hue),
+> checks DNS (Step 2), and verifies Step 5 through Traefik including that `/api` hit the
+> `<slug>-api@file` router. This guide remains the reference for doing it by hand.
+
 Deliverables in this folder:
 - `route.template.yml` — Traefik route YAML (3 routers: client / api / ws).
 - `landing-card.html` — landing-page game-card snippet.

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+print_help() { awk 'BEGIN{n=0} /^# -{20,}/{n++; next} n==1{sub(/^# ?/,""); print} n==2{exit}' "$0"; }
 
 # ---------------------------------------------------------------------------
 # presetup.sh — instantiate the base-multiplayer-game TEMPLATE into a project.
@@ -26,14 +27,15 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SELF="$(basename "$0")"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/identity.sh" # the one identity-render engine (shared with sync-from-template.sh)
 
 # ---- defaults ----
 PROJECT="$(basename "$ROOT" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-' | sed 's/--*/-/g; s/^-//; s/-$//')"
 SLUG=""
 TITLE=""
-SERVER_PORT="4400"
-CLIENT_PORT="4402"
+SERVER_PORT="$IDENTITY_TEMPLATE_SERVER_PORT"
+CLIENT_PORT="$IDENTITY_TEMPLATE_CLIENT_PORT"
 FORCE=false
 
 # ---- args ----
@@ -44,16 +46,14 @@ while [[ $# -gt 0 ]]; do
     --server-port) SERVER_PORT="$2"; shift 2 ;;
     --client-port) CLIENT_PORT="$2"; shift 2 ;;
     --force)       FORCE=true; shift ;;
-    -h|--help)     sed -n '4,24p' "$0"; exit 0 ;;
+    -h|--help)     print_help; exit 0 ;;
     -*)            echo "Unknown option: $1" >&2; exit 1 ;;
     *)             PROJECT="$1"; shift ;;
   esac
 done
 
 SLUG="${SLUG:-$PROJECT}"
-if [[ -z "$TITLE" ]]; then
-  TITLE="$(echo "$PROJECT" | tr '_-' '  ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')"
-fi
+[[ -n "$TITLE" ]] || TITLE="$(title_case_from_name "$PROJECT")"
 
 # ---- validate ----
 name_ok() { [[ "$1" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; }
@@ -73,28 +73,17 @@ echo "  title   : $TITLE"
 echo "  ports   : server $SERVER_PORT / client $CLIENT_PORT"
 echo
 
-# Replace literal token $1 with $2 across all text files (skipping build/vendor dirs
-# and this script). Pass "word" as $3 to anchor on word boundaries (used for ports).
-replace() {
-  local search="$1" repl="$2" word="${3:-}" files repl_esc
-  repl_esc=$(printf '%s' "$repl" | sed 's/[&|\\]/\\&/g')
-  files=$(grep -rIl --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.angular \
-          --exclude-dir=.pnpm-store --exclude-dir=dist --exclude=pnpm-lock.yaml \
-          --exclude="$SELF" -F "$search" "$ROOT" 2>/dev/null || true)
-  [[ -z "$files" ]] && return 0
-  if [[ "$word" == word ]]; then
-    printf '%s\n' "$files" | xargs -d '\n' sed -i "s|\\b${search}\\b|${repl_esc}|g"
-  else
-    printf '%s\n' "$files" | xargs -d '\n' sed -i "s|${search}|${repl_esc}|g"
-  fi
-}
+# The template's README describes how to CREATE games; a game gets the game-facing README.
+if [[ -f "$ROOT/README.game.md" ]]; then
+  mv -f "$ROOT/README.game.md" "$ROOT/README.md"
+fi
 
-replace 'Base Multiplayer Game' "$TITLE"
-replace 'base-multiplayer-game' "$PROJECT"
-replace 'game-debug' "${SLUG}-debug"
-replace 'base-mp' "$SLUG"
-[[ "$SERVER_PORT" != "4400" ]] && replace '4400' "$SERVER_PORT" word
-[[ "$CLIENT_PORT" != "4402" ]] && replace '4402' "$CLIENT_PORT" word
+# ---- rewrite every file that mentions a template identity token ----
+mapfile -t identity_files < <(grep -rIlE --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.angular \
+  --exclude-dir=.pnpm-store --exclude-dir=dist --exclude=pnpm-lock.yaml \
+  "${IDENTITY_TEMPLATE_TITLE}|${IDENTITY_TEMPLATE_PROJECT}|${IDENTITY_TEMPLATE_MCP}|${IDENTITY_TEMPLATE_SLUG}|\\b${IDENTITY_TEMPLATE_SERVER_PORT}\\b|\\b${IDENTITY_TEMPLATE_CLIENT_PORT}\\b|${IDENTITY_KEEP_TAG}" \
+  "$ROOT" 2>/dev/null || true)
+render_identity "$TITLE" "$PROJECT" "$SLUG" "$SERVER_PORT" "$CLIENT_PORT" "${identity_files[@]}"
 
 # Record the chosen ports + slug so the in-container session reads them instead of
 # guessing (it can't see the host or the live ha-router repo). These values are already
@@ -108,6 +97,7 @@ cat > "$ROOT/PORTS.env" <<EOF
 SERVER_PORT=$SERVER_PORT
 CLIENT_PORT=$CLIENT_PORT
 SLUG=$SLUG
+TITLE=$TITLE
 EOF
 
 echo "Done."

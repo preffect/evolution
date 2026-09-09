@@ -56,10 +56,27 @@
 
 ```bash
 ./dev-container.sh          # start or attach to container
-./dev-container.sh rebuild  # force rebuild
+./dev-container.sh rebuild  # force rebuild (DEVCONTAINER_YES=1 to confirm non-interactively)
 ./dev-container.sh stop     # stop the container
 ./dev-container.sh status   # show container status
 ```
+
+## Project workflow (GitHub issues, board, reviews)
+
+**[`WORKFLOW.md`](./WORKFLOW.md)** is the single source of truth: tickets + labels on GitHub Issues,
+stage on the linked Project board, epics as sub-issues, **assignee = waiting on the human**
+(`pending` label + `Blocked`), PR required with **reviewers run on every PR and every review
+thread resolved before merge**, labels updated as tickets complete. Everything is done via the
+API — the human never clicks in GitHub's UI. Helpers: `scripts/project-sync.sh` (run at session
+start), `scripts/issue-status.sh <N> <Status>`, `.github/PULL_REQUEST_TEMPLATE.md` (review checklist).
+
+## Toolchain inside the devcontainer
+
+Node 24, pnpm 10, Claude Code, `gh` (authenticated via the mounted host `~/.config/gh`), git
+(pushes over HTTPS with `gh` as credential helper — no SSH key inside; identity from the host's
+gh account unless the container already has one), python3, jq, ripgrep, ImageMagick, ffmpeg, and
+Playwright Chromium for the `playwright` MCP (`.mcp.json`). Improvements to the container or the
+process belong upstream in `base-multiplayer-game` so the next game inherits them.
 
 ## Standards & guidelines
 
@@ -132,3 +149,4 @@ change ports inside the container; they are already baked into the integration f
 
 - **evolution-debug** — HTTP MCP endpoint on the game server (`http://localhost:4400/debug-mcp`) for inspecting game state (`debug_get_game_state`, `debug_list_games`, `debug_get_room`), player connections (`debug_get_connections`), and performance (`debug_get_performance`)
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
+- **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`

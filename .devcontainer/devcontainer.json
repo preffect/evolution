@@ -13,10 +13,11 @@
   },
   "mounts": [
     "source=${localWorkspaceFolderBasename}-dind,target=/var/lib/docker,type=volume",
-    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached"
   ],
   "forwardPorts": [4400, 4402],
-  "postCreateCommand": "pnpm install && pnpm exec prettier --write . > /dev/null 2>&1 || true",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
   "customizations": {
     "vscode": {
       "extensions": ["angular.ng-template", "dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],

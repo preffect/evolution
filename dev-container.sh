@@ -44,6 +44,15 @@ yellow() { printf '\033[1;33m%s\033[0m\n' "$*"; }
 blue()   { printf '\033[1;34m%s\033[0m\n' "$*"; }
 
 confirm_rebuild() {
+  if [[ "${DEVCONTAINER_YES:-}" == "1" ]]; then
+    yellow "Rebuilding dev container (DEVCONTAINER_YES=1)."
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    red "A rebuild is needed (build files changed) but this is not an interactive session."
+    red "Re-run with DEVCONTAINER_YES=1 to confirm — it stops the running container and reinstalls."
+    exit 1
+  fi
   yellow "WARNING: Dev container will be rebuilt. This will stop the running container and reinstall dependencies."
   printf '\033[1;33m%s\033[0m' "Continue? [y/N] "
   read -r answer
@@ -117,12 +126,24 @@ do_create() {
 
   blue "Creating container..."
 
-  local claude_mount=""
+  # Host config mounted into the container (mirrors devcontainer.json "mounts"):
+  #   ~/.claude      Claude Code state + plugins (rw)
+  #   ~/.config/gh   GitHub CLI auth — agents open PRs / update issues / push as the host user
+  #                  (rw so gh can refresh tokens; the host stays the source of truth). Pushes go
+  #                  over HTTPS with gh as credential helper (.devcontainer/post-create.sh), so
+  #                  no SSH key is needed inside. Run `gh auth login` on the host first.
+  local host_mounts=""
   local claude_dir="${HOME}/.claude"
   if [[ -d "$claude_dir" ]]; then
-    claude_mount="-v ${claude_dir}:/home/vscode/.claude:cached"
+    host_mounts+=" -v ${claude_dir}:/home/vscode/.claude:cached"
   else
     yellow "Warning: ~/.claude not found, skipping mount"
+  fi
+  if [[ -d "${HOME}/.config/gh" ]]; then
+    host_mounts+=" -v ${HOME}/.config/gh:/home/vscode/.config/gh:cached"
+  else
+    red "~/.config/gh not found — run 'gh auth login' on the host first (agents need it to push and open PRs)."
+    exit 1
   fi
 
   # Pre-flight: our published ports must be free. Give a clear message naming the offender
@@ -149,7 +170,7 @@ do_create() {
     --privileged \
     -v "$SCRIPT_DIR:/workspace:cached" \
     -v "$DIND_VOLUME:/var/lib/docker" \
-    $claude_mount \
+    $host_mounts \
     -p "${SERVER_PORT}:${SERVER_PORT}" \
     -p "${CLIENT_PORT}:${CLIENT_PORT}" \
     -w /workspace \
@@ -158,23 +179,19 @@ do_create() {
     "$IMAGE_NAME" \
     sleep infinity
 
-  blue "Running pnpm install..."
-  docker exec -u vscode -w /workspace "$CONTAINER_NAME" \
-    pnpm install \
-    || yellow "pnpm install had issues — you may need to run it manually inside the container"
-
-  # Normalize formatting after install. presetup.sh's identity rename can shift Prettier
-  # line-wrapping (it runs on the host where Prettier isn't available), so format here in
-  # the container where it is. Idempotent — a no-op once the tree is already clean.
-  blue "Normalizing formatting (prettier --write)..."
-  docker exec -u vscode -w /workspace "$CONTAINER_NAME" \
-    sh -lc 'pnpm exec prettier --write . >/dev/null 2>&1' \
-    || yellow "prettier format skipped (run ./validate.sh lint to check)"
+  # git trust/push setup + pnpm install + prettier — the same script devcontainer.json runs.
+  blue "Running post-create (git setup, pnpm install, prettier)..."
+  docker exec -u vscode -w /workspace "$CONTAINER_NAME" bash .devcontainer/post-create.sh \
+    || yellow "post-create had issues — run 'bash .devcontainer/post-create.sh' inside the container"
 
   green "Container created and ready."
 }
 
 do_exec() {
+  if [[ ! -t 0 || ! -t 1 ]]; then
+    green "Container '$CONTAINER_NAME' is running (no TTY — not attaching)."
+    return 0
+  fi
   blue "Attaching to $CONTAINER_NAME..."
   docker exec -it -u vscode -w /workspace \
     -e "HOME=/home/vscode" \

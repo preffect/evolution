@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tmux \
     curl \
     locales \
+    ripgrep \
+    jq \
+    imagemagick \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && locale-gen en_US.UTF-8
 
@@ -21,6 +25,22 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
 
 # Install pnpm globally
 RUN npm install -g pnpm@10
+
+# GitHub CLI (agents open PRs / update issues from inside the container; auth comes from the
+# host's ~/.config/gh, which dev-container.sh / devcontainer.json bind-mount — see WORKFLOW.md)
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && apt-get install -y --no-install-recommends gh && rm -rf /var/lib/apt/lists/*
+
+# Playwright MCP + Chromium (+ system libs), installed globally so every role can screenshot
+# the running game headlessly without a network fetch at runtime. Chromium is installed by the
+# playwright version bundled INSIDE @playwright/mcp, so the two can never mismatch.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+RUN npm install -g @playwright/mcp@0.0.80 && \
+    cd "$(npm root -g)/@playwright/mcp" && npx playwright install --with-deps chromium && \
+    chmod -R a+rX /opt/playwright && rm -rf /var/lib/apt/lists/*
 
 # Install Claude Code (as vscode user so it lands on their PATH)
 USER vscode
