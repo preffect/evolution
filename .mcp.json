@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "evolution-debug": {
+      "type": "http",
+      "url": "http://localhost:4400/debug-mcp"
+    },
+    "angular": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/angular-mcp"]
+    }
+  }
+}
