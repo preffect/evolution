@@ -44,6 +44,10 @@ yellow() { printf '\033[1;33m%s\033[0m\n' "$*"; }
 blue()   { printf '\033[1;34m%s\033[0m\n' "$*"; }
 
 confirm_rebuild() {
+  if [[ "${DEVCONTAINER_YES:-}" == "1" || ! -t 0 ]]; then
+    yellow "Rebuilding dev container (auto-confirmed: non-interactive)."
+    return 0
+  fi
   yellow "WARNING: Dev container will be rebuilt. This will stop the running container and reinstall dependencies."
   printf '\033[1;33m%s\033[0m' "Continue? [y/N] "
   read -r answer
@@ -117,12 +121,25 @@ do_create() {
 
   blue "Creating container..."
 
-  local claude_mount=""
+  # Host config mounted into the container (mirrors devcontainer.json "mounts"):
+  #   ~/.claude      Claude Code state + plugins (rw)
+  #   ~/.config/gh   GitHub CLI auth — agents open PRs / update issues as the host user (rw so
+  #                  gh can refresh tokens; the host stays the source of truth) — WORKFLOW.md
+  #   ~/.gitconfig   git identity (ro)
+  local host_mounts=""
   local claude_dir="${HOME}/.claude"
   if [[ -d "$claude_dir" ]]; then
-    claude_mount="-v ${claude_dir}:/home/vscode/.claude:cached"
+    host_mounts+=" -v ${claude_dir}:/home/vscode/.claude:cached"
   else
     yellow "Warning: ~/.claude not found, skipping mount"
+  fi
+  if [[ -d "${HOME}/.config/gh" ]]; then
+    host_mounts+=" -v ${HOME}/.config/gh:/home/vscode/.config/gh:cached"
+  else
+    yellow "Warning: ~/.config/gh not found — gh will be unauthenticated inside the container"
+  fi
+  if [[ -f "${HOME}/.gitconfig" ]]; then
+    host_mounts+=" -v ${HOME}/.gitconfig:/home/vscode/.gitconfig:ro"
   fi
 
   # Pre-flight: our published ports must be free. Give a clear message naming the offender
@@ -149,7 +166,7 @@ do_create() {
     --privileged \
     -v "$SCRIPT_DIR:/workspace:cached" \
     -v "$DIND_VOLUME:/var/lib/docker" \
-    $claude_mount \
+    $host_mounts \
     -p "${SERVER_PORT}:${SERVER_PORT}" \
     -p "${CLIENT_PORT}:${CLIENT_PORT}" \
     -w /workspace \
@@ -157,6 +174,9 @@ do_create() {
     -e "HOME=/home/vscode" \
     "$IMAGE_NAME" \
     sleep infinity
+
+  # The workspace is a bind mount owned by the host user; tell git it is safe.
+  docker exec -u root "$CONTAINER_NAME" git config --system --add safe.directory /workspace
 
   blue "Running pnpm install..."
   docker exec -u vscode -w /workspace "$CONTAINER_NAME" \
@@ -175,6 +195,10 @@ do_create() {
 }
 
 do_exec() {
+  if [[ ! -t 0 || ! -t 1 ]]; then
+    green "Container '$CONTAINER_NAME' is running (no TTY — not attaching)."
+    return 0
+  fi
   blue "Attaching to $CONTAINER_NAME..."
   docker exec -it -u vscode -w /workspace \
     -e "HOME=/home/vscode" \

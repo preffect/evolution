@@ -25,6 +25,17 @@ user-specific version. Do not start editing template source files in this sessio
 
 ---
 
+## Where this fits in the process
+
+`new-game.sh` already: registered the game in ha-router, built the devcontainer, verified the
+public URL, and seeded GitHub with the **groundwork epics** (devcontainer verified, tooling/MCP,
+team, quality gates, testing foundations, design, architecture/build plan) plus the project board
+and branch ruleset. Your output — `init-game.md` and the design docs it needs — is the work of the
+"Game design" and "Architecture and build plan" epics; file game-specific design tickets under
+the design epic as the interview reveals them. Follow **`WORKFLOW.md`** for tickets, the board,
+the waiting-on-human rule, and the PR/review rules. **Epics scope one phase of groundwork, never
+the whole game** — later build phases go in the roadmap issue until the user approves them.
+
 ## How the template is wired (READ before interviewing)
 
 - **One Fastify server on port 4400** serves `/api` + `/ws` + `/debug-mcp`. The Angular

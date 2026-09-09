@@ -34,3 +34,6 @@ data/
 
 # Claude personal notes
 CLAUDE.local.md
+
+# QA screenshots (baselines live in qa/baselines and ARE committed)
+.qa/
