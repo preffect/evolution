@@ -65,11 +65,12 @@ const CONSTANT_DEFINITION_FILES = [
   'packages/shared/src/constants/**',
   'packages/client/src/app/game/render/constants.ts',
 ];
-/**
- * The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). The server
- * ticker (#111) joins this list when that ticket creates it.
- */
-const DETERMINISM_CALL_SITES = ['packages/shared/src/random/**', 'packages/shared/src/time/**'];
+/** The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). */
+const DETERMINISM_CALL_SITES = [
+  'packages/shared/src/random/**',
+  'packages/shared/src/time/**',
+  'packages/server/src/lobby/ticker.ts',
+];
 
 /**
  * Template-owned infrastructure (CODE-STANDARDS §5, "Template-owned files"): each entry names the
@@ -81,11 +82,6 @@ const TEMPLATE_FILE_EXEMPTIONS = [
     // #118: 339 lines, grace timers.
     files: ['packages/server/src/lobby/lobby-manager.ts'],
     rules: { 'max-lines': 'off', 'no-restricted-globals': 'off' },
-  },
-  {
-    // #118 / #111: the fixed-step loop still uses setInterval + performance.now until the Ticker lands.
-    files: ['packages/server/src/lobby/game-room.ts'],
-    rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off' },
   },
   {
     // #118: reconnect backoff timer.

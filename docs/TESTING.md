@@ -53,12 +53,12 @@ the opt-in integration run rather than on every save.
 
 Each package keeps its test doubles in `src/testing/`:
 
-| Package  | File                        | Provides                                                                                                                                            |
-| -------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server` | `testing/builders.ts`       | `createTestConnection`, `createSpyGameModule`, `createTestLobby`, `createTestDebugContext`, `createToolCapture` (invoke MCP tools), `parseToolJson` |
-| `server` | `testing/gameplay/` (#75)   | the scenario runner of section 8: `createScenarioDsl`, `player`, the scripts, the fixture helpers, replay and the echo adapter                      |
-| `client` | `testing/fake-websocket.ts` | `FakeWebSocket`: install with `vi.stubGlobal('WebSocket', FakeWebSocket)`, then `open()` / `receive()` / `close()` from the test                    |
-| `shared` | `testing/builders.ts` (#98) | `createTestCell`, `createTestWorld`, `createTestSnapshot` once the simulation lands                                                                 |
+| Package  | File                        | Provides                                                                                                                                                                                                                                                                                                                   |
+| -------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server` | `testing/builders.ts`       | `createTestConnection`, `createSpyGameModule`, `createDebugCapableGameModule(handle)`, `createManualRoomTiming` (`ManualClock` + `ManualTicker`), `createTestLobby(options)`, `createTestDebugContext`, `createActiveRoomFixture` (a started room + tool capture), `createToolCapture` (invoke MCP tools), `parseToolJson` |
+| `server` | `testing/gameplay/` (#75)   | the scenario runner of section 8: `createScenarioDsl`, `player`, the scripts, the fixture helpers, replay and the echo adapter                                                                                                                                                                                             |
+| `client` | `testing/fake-websocket.ts` | `FakeWebSocket`: install with `vi.stubGlobal('WebSocket', FakeWebSocket)`, then `open()` / `receive()` / `close()` from the test                                                                                                                                                                                           |
+| `shared` | `testing/builders.ts` (#98) | `createTestCell`, `createTestWorld`, `createTestSnapshot` once the simulation lands                                                                                                                                                                                                                                        |
 
 Rules: builders take a partial and fill defaults (`createTestCell({ mass: 40 })`); builder
 defaults are the only tolerated inline test numbers; a shape change is one edit in the
@@ -74,7 +74,7 @@ builder's coverage (client) and **fails below the thresholds** in each package's
 | Package  | Target (lines / branches / functions / statements) | Where                                                              | Today                      |
 | -------- | -------------------------------------------------- | ------------------------------------------------------------------ | -------------------------- |
 | `shared` | 95 %                                               | `packages/shared/vitest.config.ts`                                 | 100 % lines                |
-| `server` | 90 %                                               | `packages/server/vitest.config.ts`                                 | 92 % lines, 93 % branches  |
+| `server` | 90 %                                               | `packages/server/vitest.config.ts`                                 | 94 % lines, 96 % branches  |
 | `client` | 80 %                                               | `packages/client/angular.json` → `test.options.coverageThresholds` | 100 % lines, 82 % branches |
 
 - Thresholds are floors that only move up: raise them in the same PR that raises coverage,

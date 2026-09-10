@@ -43,6 +43,17 @@ export class FixedStepAccumulator {
     return this.maxTicksPerAdvance;
   }
 
+  /**
+   * Resyncs to the clock and forgets the backlog: whatever time passed since the last call owes
+   * nothing and counts as nothing dropped. A room calls this when it starts or resumes so the
+   * loop never bursts to catch up on time it was not meant to simulate.
+   */
+  discardElapsed(): void {
+    this.lastMilliseconds = this.clock.nowMilliseconds();
+    this.owedMilliseconds = 0;
+    this.droppedTicks = 0;
+  }
+
   /** Ticks dropped by the cap since the last call; resets the count (reported by `PerfTracker`). */
   takeDroppedTicks(): number {
     const dropped = this.droppedTicks;

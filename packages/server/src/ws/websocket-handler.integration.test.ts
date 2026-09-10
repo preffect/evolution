@@ -9,14 +9,14 @@ import type { ServerMessage } from '@evolution/shared';
 import { registerWebSocketHandler } from './websocket-handler.js';
 import type { Connection } from './connection.js';
 import { LobbyManager } from '../lobby/lobby-manager.js';
-import { spyGameModuleFactory } from '../testing/builders.js';
+import { createManualRoomTiming, spyGameModuleFactory } from '../testing/builders.js';
 
 const EPHEMERAL_PORT = 0;
 
 async function startServer(): Promise<{ server: FastifyInstance; url: string; connections: Map<string, Connection> }> {
   const server = Fastify();
   await server.register(fastifyWebsocket);
-  const lobbyManager = new LobbyManager(spyGameModuleFactory);
+  const lobbyManager = new LobbyManager(spyGameModuleFactory, createManualRoomTiming);
   const connections = new Map<string, Connection>();
   registerWebSocketHandler(server, {
     connections,
