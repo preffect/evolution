@@ -4,8 +4,10 @@
 // tick and whose state depends on the seed and the inputs — what the echo module cannot offer.
 
 import { DEFAULT_BALANCE, hashText, type PlayerId, type StateHash, type Vec2 } from '@evolution/shared';
+import { locateCellThrough } from '../../game/bots/bot-binding.js';
+import type { BotCellView, BotPerception } from '../../game/bots/perception.js';
 import type { GameModule } from '../../game/game-module.js';
-import type { CellLocation, PlayerCommand, ScenarioAdapter } from './adapter.js';
+import type { PlayerCommand, ScenarioAdapter } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
 import { createScenarioDsl } from './scenario.js';
 
@@ -36,6 +38,9 @@ export interface ToyModule extends GameModule<ToyInput, ToySnapshot> {
 
 export const TOY_SPEED_WU_PER_TICK = 1;
 export const TOY_RADIUS_WU = 10;
+/** Every toy point weighs the same and nothing eats, so the perception's engulf rule never fires. */
+const TOY_CELL_MASS = 1;
+const TOY_MEMBRANE_RATIO_BONUS = 0;
 
 function stepToward(cell: ToyCell): ToyCell {
   const deltaX = cell.targetX - cell.x;
@@ -102,16 +107,37 @@ export function createToyModule(playerIds: readonly PlayerId[], seed: number): T
 
 const asToyModule = (module: GameModule<ToyInput, ToySnapshot>): ToyModule => module as ToyModule;
 
+function toyCellView(playerId: string, cell: ToyCell): BotCellView {
+  return {
+    id: playerId,
+    playerId: playerId as PlayerId,
+    x: cell.x,
+    y: cell.y,
+    mass: TOY_CELL_MASS,
+    radius: TOY_RADIUS_WU,
+    membraneRatioBonus: TOY_MEMBRANE_RATIO_BONUS,
+  };
+}
+
+/** The toy world as a bot sees it: every point is a cell of one mass, there are no motes and nothing engulfs. */
+export const toyPerception: BotPerception<ToySnapshot> = {
+  ownCellOf: (snapshot, playerId) => {
+    const cell = snapshot.cells[playerId];
+    return cell === undefined ? undefined : toyCellView(playerId, cell);
+  },
+  cellsOf: (snapshot) => Object.entries(snapshot.cells).map(([playerId, cell]) => toyCellView(playerId, cell)),
+  motesOf: () => [],
+  canEngulf: () => false,
+};
+
 export const toyAdapter: ScenarioAdapter<ToyInput, ToySnapshot, ToyFixture> = {
   name: 'toy',
   createModule: (options) => createToyModule(options.playerIds, options.config.seed),
   readSnapshot: (module) => asToyModule(module).snapshot,
   hashState: (module): StateHash => hashText(JSON.stringify(asToyModule(module).snapshot)),
+  perception: toyPerception,
   toInput: (playerCommand, sequence) => ({ ...playerCommand, sequence }),
-  locateCell: (snapshot, playerId): CellLocation | undefined => {
-    const cell = snapshot.cells[playerId];
-    return cell === undefined ? undefined : { x: cell.x, y: cell.y, radiusWu: TOY_RADIUS_WU };
-  },
+  locateCell: locateCellThrough(toyPerception),
   applyFixture: (module, fixture, context) =>
     asToyModule(module).place(context.playerId(fixture.playerIndex), fixture.at),
 };

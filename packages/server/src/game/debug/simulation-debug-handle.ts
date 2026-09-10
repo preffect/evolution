@@ -4,6 +4,7 @@
 // the Evolution module (#98) implements all of them.
 
 import type { PlayerId, StateHash } from '@evolution/shared';
+import type { BotStrategyName } from '../bots/strategy-constants.js';
 
 /** Axis-aligned world-unit box; both bounds inclusive. */
 export interface BoundingBox {
@@ -39,6 +40,22 @@ export interface DnaGrant {
   readonly tags?: readonly string[];
 }
 
+/** What `debug_spawn_bot` asks for: a catalogue strategy (the tool schema validated the name), driven from a stream forked from `seed`. */
+export interface BotSpawnRequest {
+  readonly behavior: BotStrategyName;
+  readonly seed: number;
+  /** `hunter` only: hunt this player alone. */
+  readonly preyPlayerId?: PlayerId;
+}
+
+/** The synthetic player a spawned bot occupies; what the room enrols and the tool answers with. */
+export interface SpawnedBot {
+  readonly playerId: PlayerId;
+  readonly playerName: string;
+  readonly avatarIndex: number;
+  readonly behavior: BotStrategyName;
+}
+
 /** A nested record whose leaves are numbers: `debug_set_balance` patches number leaves only (docs/CODE-STANDARDS.md §2). */
 export interface BalancePatch {
   readonly [key: string]: number | BalancePatch;
@@ -62,6 +79,15 @@ export interface SimulationDebugHandle {
   patchBalance?(patch: BalancePatch): unknown;
   computeStateHash?(): StateHash;
   exportReplay?(): unknown;
+  /**
+   * Adds a synthetic player driven in-process by a catalogue strategy (docs/TESTING.md §8.4).
+   * `seat` is called with the bot's identity BEFORE the module holds the player; it throws
+   * `DebugRequestError` to refuse the seat (the room refuses an id already in play), and then
+   * the module keeps nothing, so a refused bot can never shadow the player it collided with.
+   */
+  spawnBot?(request: BotSpawnRequest, seat: (bot: SpawnedBot) => void): SpawnedBot;
+  /** Removes a bot this handle spawned; throws for any other player id. */
+  removeBot?(playerId: PlayerId): SpawnedBot;
 }
 
 export type DebugCapability = keyof SimulationDebugHandle;
