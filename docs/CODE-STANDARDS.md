@@ -23,8 +23,9 @@ if (predator.mass >= prey.mass * 1.25) startEngulf(predator, prey, 1.0);
 socket.send(JSON.stringify({ type: 'player_input', payload }));
 
 // right
-const { ENGULF_MASS_RATIO, ENGULF_BASE_DURATION_SECONDS } = context.balance.absorption;
-if (predator.mass >= prey.mass * (ENGULF_MASS_RATIO + prey.modifiers.membraneRatioBonus)) {
+const { ENGULF_BASE_DURATION_SECONDS } = context.balance.absorption;
+if (canEngulf(predator, prey, context.balance.absorption)) {
+  // the ratio rule has one home: shared/simulation/engulf-eligibility.ts (ECOLOGY §6.1)
   startEngulf(predator, prey, ENGULF_BASE_DURATION_SECONDS);
 }
 send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });

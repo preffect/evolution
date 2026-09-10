@@ -46,7 +46,9 @@ Two layers, one direction: the **views** are the wire types in
 owned by the design doc that names it: `CellStage` and its `STAGE_ORDER` / `STAGE_GATE_TRAITS`
 by [`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder), progress and offers by
 [`PROGRESSION.md`](./PROGRESSION.md), food by [`ECOLOGY.md §1`](./ECOLOGY.md#1-food-kinds),
-engulf states by [`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram), the trait definition shape
+engulf states by [`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram), engulf eligibility (`canEngulf`,
+the one predicate the server, HUD and renderer share) by [`ECOLOGY.md §6.1`](./ECOLOGY.md#61-rules),
+the trait definition shape
 (`stage`, `requires`, `unlockedBy`, `exclusionGroup`) by [`TRAITS.md §1`](./TRAITS.md#1-definition-shape).
 
 ```ts
@@ -82,6 +84,7 @@ export interface CellView {
   level: number;
   stage: CellStage; // derived from traits (stageOf), carried for the renderer and HUD
   traits: OwnedTrait[];
+  membraneRatioBonus: number; // modifiers.membraneRatioBonus mirrored at step 1 so canEngulf (ECOLOGY §6.1) reads views on both sides
   states: CellState[]; // 'engulfing' and 'being_engulfed' may coexist
   engulfProgress: number; // 0..1 as prey
   engulfingCellId: EntityId | null;
@@ -292,7 +295,9 @@ prediction reuses them unchanged.
   `constants/`; formulas take numbers. That is what makes `debug_set_balance` live.
 - **Spatial hash** (`world/spatial-hash.ts`): uniform grid rebuilt at step 3, cell size
   `SPATIAL_HASH_CELL_SIZE_WU`; `queryCircle` and `queryPairs` return id-sorted results.
-- **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects.
+- **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. The one thing
+  it shares is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`,
+  ECOLOGY §6.1): the engulf system, the HUD danger chip and the warning ring all call it on views.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
@@ -490,8 +495,9 @@ packages/shared/src/
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,level-costs,state-hasher,state-hash,vector-math}.ts
+  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,state-hasher,state-hash,vector-math}.ts
                                                                 level-costs: levelUpCost(level, balance.progression), shared with the HUD (UI.md §3.1)
+                                                                engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
   audio/sound-events.ts
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
