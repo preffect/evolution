@@ -51,6 +51,17 @@ green()  { printf '\033[1;32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[1;33m%s\033[0m\n' "$*"; }
 blue()   { printf '\033[1;34m%s\033[0m\n' "$*"; }
 
+# Ask a yes/no question (default no). Returns 0 for yes, 1 otherwise.
+ask_yes_no() { # <question>
+  local answer
+  printf '\033[1;33m%s\033[0m' "$1 [y/N] "
+  read -r answer
+  case "$answer" in
+    [yY][eE][sS]|[yY]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Returns 0 to rebuild, 1 to skip the rebuild and continue with the existing image.
 # Exits if the user cancels outright, or the rebuild is needed in a non-interactive session.
 confirm_rebuild() {
@@ -64,26 +75,21 @@ confirm_rebuild() {
     exit 1
   fi
   yellow "WARNING: Dev container will be rebuilt. This will stop the running container and reinstall dependencies."
-  printf '\033[1;33m%s\033[0m' "Continue? [y/N] "
-  read -r answer
-  case "$answer" in
-    [yY][eE][sS]|[yY]) return 0 ;;
-  esac
+  if ask_yes_no "Continue?"; then
+    return 0
+  fi
 
   # Declined. Offer to bypass the rebuild — only possible when there is an image to reuse.
   if ! image_exists; then
     yellow "Rebuild cancelled (no existing image, so it cannot be skipped)."
     exit 0
   fi
-  printf '\033[1;33m%s\033[0m' "Skip the rebuild and continue with the existing image? [y/N] "
-  read -r answer
-  case "$answer" in
-    [yY][eE][sS]|[yY])
-      yellow "Skipping rebuild — using the existing image. Run './dev-container.sh rebuild' when ready."
-      return 1
-      ;;
-    *) yellow "Rebuild cancelled."; exit 0 ;;
-  esac
+  if ask_yes_no "Skip the rebuild and continue with the existing container/image?"; then
+    yellow "Skipping rebuild — continuing with the existing container/image. Run './dev-container.sh rebuild' when ready."
+    return 1
+  fi
+  yellow "Rebuild cancelled."
+  exit 0
 }
 
 compute_checksum() {
