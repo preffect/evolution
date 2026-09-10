@@ -79,9 +79,12 @@ each is checkable. An AI building a game from this template MUST follow every ru
 ### 2.3 What must be covered (template-specific)
 
 - **Shared logic / math / data:** any pure helper, id/branding utilities, config.
-- **The reducer (`reduceGameState`) and `submitInput`:** valid input produces a new state +
-  expected snapshot; invalid input is rejected/ignored; assert **immutability**
-  (`expect(result).not.toBe(prevState)` when state changes).
+- **The reducer (`reduceGameState`) and `submitInput`:** valid input produces the expected
+  state + snapshot; invalid input is rejected/ignored. For reducers that return new state (lobby
+  and room descriptors, the client store) assert **immutability**
+  (`expect(result).not.toBe(prevState)` when state changes); the game simulation mutates its one
+  `WorldState` in place by design (`docs/ARCHITECTURE.md` §3.1), so its tests assert values and
+  state hashes, never object identity.
 - **Message handling / envelope validation (`message-schemas.ts`, `message-router.ts`):**
   each verb routes to the right handler; **invalid JSON, invalid schema, and removed/unknown
   message types produce error responses** — the validation itself is under test.
@@ -161,12 +164,13 @@ project references.
    render container, entity instances). The rule is that _decision logic_ (how state changes)
    lives in pure, testable functions/methods, not buried in IO or the render loop. Prefer
    composition over deep inheritance, but inheritance is fine for a real "is-a" relationship.
-6. **Module size & shape.** Keep modules focused — one responsibility each. Sizes are
-   lint-enforced per `docs/CODE-STANDARDS.md` §5 (300 lines per file, 40 per function,
-   complexity 10, 4 parameters, nesting 3; design target ≈ 250 lines per file). Split along a
-   responsibility seam — never delete, inline, or compress working code just to push a line
-   count down. Orchestrators (the room loop, the game loop) stay thin — a sequence of calls to
-   focused subsystems, not a place for business logic.
+6. **Module size & shape.** Keep modules focused — one responsibility each. Sizes are the
+   numbers in `docs/CODE-STANDARDS.md` §5 (300 lines per file, 40 per function, complexity 10,
+   4 parameters, nesting 3; design target ≈ 250 lines per file), lint-enforced once #69 lands
+   and reviewed by hand until then; template-owned files carry the exemption list in §5. Split
+   along a responsibility seam — never delete, inline, or compress working code just to push a
+   line count down. Orchestrators (the room loop, the game loop) stay thin — a sequence of calls
+   to focused subsystems, not a place for business logic.
 7. **No circular dependencies.** Imports form a DAG; shared types go in a common module both
    sides import.
 8. **Diagrams are ASCII only**, inside a plain code block, ≤~70 columns, one concept each. No

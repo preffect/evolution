@@ -3,6 +3,7 @@ import {
   AVATAR_INDEX_MAX,
   AVATAR_INDEX_MIN,
   CLIENT_MESSAGE_TYPE,
+  GAME_ID_MIN_LENGTH,
   GAME_NAME_MAX_LENGTH,
   GAME_NAME_MIN_LENGTH,
   MAX_PLAYERS_PER_GAME,
@@ -21,7 +22,7 @@ import {
 
 const playerNameSchema = z.string().min(PLAYER_NAME_MIN_LENGTH).max(PLAYER_NAME_MAX_LENGTH);
 const avatarIndexSchema = z.number().int().min(AVATAR_INDEX_MIN).max(AVATAR_INDEX_MAX);
-const gameIdSchema = z.string().min(1);
+const gameIdSchema = z.string().min(GAME_ID_MIN_LENGTH);
 
 const joinLobbySchema = z.object({
   type: z.literal(CLIENT_MESSAGE_TYPE.joinLobby),
