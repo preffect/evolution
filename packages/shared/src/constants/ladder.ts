@@ -23,5 +23,5 @@ export const STAGE_GATE_TRAITS: Record<CellStage, readonly TraitId[]> = {
   specialised: ['amoeba_pseudopods', 'paramecium_cilia', 'euglena_eyespot', 'diatom_shell', 'stentor_trumpet'],
 };
 
-/** Bacteria of one variant eaten to unlock its endosymbiont (docs/ECOLOGY.md §1). */
-export const ENDOSYMBIOSIS_BACTERIA_REQUIRED = 5;
+/** Bacteria of one variant eaten to unlock its endosymbiont: two full clusters (docs/ECOLOGY.md §1, decision #138). */
+export const ENDOSYMBIOSIS_BACTERIA_REQUIRED = 10;
