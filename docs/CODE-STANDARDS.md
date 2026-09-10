@@ -149,12 +149,11 @@ game code. Files the template owns and `scripts/sync-from-template.sh` overwrite
 explicit per-file `overrides` block in `eslint.config.js`, each entry carrying the ticket that
 retires it, so #69 lands without splitting or weakening them. The list today, retired by #118:
 
-| File                                                     | Exempt from                      |
-| -------------------------------------------------------- | -------------------------------- |
-| `packages/server/src/lobby/lobby-manager.ts` (339 lines) | `max-lines`, timers              |
-| `packages/server/src/lobby/game-room.ts`                 | timers, `performance.now` (#111) |
-| `packages/client/src/app/services/websocket.service.ts`  | timers                           |
-| `packages/client/src/app/services/identity.service.ts`   | `Date.now`, `Math.random`        |
+| File                                                     | Exempt from               |
+| -------------------------------------------------------- | ------------------------- |
+| `packages/server/src/lobby/lobby-manager.ts` (339 lines) | `max-lines`, timers       |
+| `packages/client/src/app/services/websocket.service.ts`  | timers                    |
+| `packages/client/src/app/services/identity.service.ts`   | `Date.now`, `Math.random` |
 
 Adding a file to that block needs a ticket number in the entry and a line in #118; a game file
 never goes there.
@@ -211,10 +210,10 @@ under vitest's fake clock, never the wall clock or `Math.random`); the allowed c
 | `packages/shared/src/**`              | `random/` (`Math.random` never; the PRNG), `time/` (`SystemClock` is the one `performance.now`) |
 | `packages/server/src/game/**`         | nothing                                                                                         |
 | `packages/client/src/app/game/**`     | nothing (`Clock` is injected; cosmetics use the seeded stream)                                  |
-| `packages/server/src/lobby/ticker.ts` | `setInterval` (`IntervalTicker`); listed in `eslint.config.js` when #111 creates the file       |
+| `packages/server/src/lobby/ticker.ts` | `setInterval` (`IntervalTicker`); the only timer on the server's game path                      |
 
-Template infrastructure outside those paths (`lobby-manager.ts`, `game-room.ts` until #111,
-`websocket.service.ts`, `identity.service.ts`) is exempt by the per-file list in section 5,
+Template infrastructure outside those paths (`lobby-manager.ts`, `websocket.service.ts`,
+`identity.service.ts`) is exempt by the per-file list in section 5,
 retired by #118. The full contract, including ordering rules, hashing and replay, is
 [`DETERMINISM.md`](./DETERMINISM.md).
 

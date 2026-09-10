@@ -161,6 +161,16 @@ change ports inside the container; they are already baked into the integration f
 
 ### MCP Servers
 
-- **evolution-debug** — HTTP MCP endpoint on the game server (`http://localhost:4400/debug-mcp`) for inspecting game state (`debug_get_game_state`, `debug_list_games`, `debug_get_room`), player connections (`debug_get_connections`), and performance (`debug_get_performance`)
+- **evolution-debug** — HTTP MCP endpoint on the game server (`http://localhost:4400/debug-mcp`). Generic
+  tools: game state (`debug_get_game_state`, `debug_list_games`, `debug_get_room`), player connections
+  (`debug_get_connections`), performance (`debug_get_performance`, `debug_get_room_performance`).
+  Game-specific tools (`docs/ARCHITECTURE.md` §8 is the contract; each answers "not supported by this game
+  module" while the module lacks the capability): inspect `debug_get_entities(gameId, kind?, bbox?)`,
+  `debug_get_player_progress(gameId, playerId)`, `debug_get_state_hash(gameId)`, `debug_get_balance(gameId)`,
+  `debug_export_replay(gameId)`; manipulate `debug_spawn(gameId, kind, x, y, params)`,
+  `debug_grant_dna(gameId, playerId, dna, tags?)`, `debug_set_player(gameId, playerId, {mass?, level?, traits?, position?})`,
+  `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
+  with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
+  every module)
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
 - **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`

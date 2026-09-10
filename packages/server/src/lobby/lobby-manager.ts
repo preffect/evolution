@@ -5,6 +5,7 @@ import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { MessageHandlers } from '../ws/message-router.js';
 import { GameRoom } from './game-room.js';
+import { createSystemRoomTiming, type RoomTimingFactory } from './room-timing.js';
 import type { GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
 
 const GAME_NOT_FOUND = 'Game not found';
@@ -60,7 +61,10 @@ export class LobbyManager {
   /** The shared connections registry (set when handlers are created). */
   private connections: Map<string, Connection> = new Map();
 
-  constructor(private readonly gameFactory: GameModuleFactory) {}
+  constructor(
+    private readonly gameFactory: GameModuleFactory,
+    private readonly createRoomTiming: RoomTimingFactory = createSystemRoomTiming,
+  ) {}
 
   createHandlers(connections: Map<string, Connection>): MessageHandlers {
     this.connections = connections;
@@ -144,7 +148,7 @@ export class LobbyManager {
     }
 
     const options = roomInitOptionsOf(pending);
-    const room = new GameRoom(this.gameFactory(options), options);
+    const room = new GameRoom(this.gameFactory(options), options, this.createRoomTiming());
     for (const playerId of options.playerIds) {
       const playerConnection = this.connections.get(playerId);
       if (playerConnection) room.addPlayer(playerConnection);

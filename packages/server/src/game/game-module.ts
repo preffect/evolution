@@ -1,4 +1,5 @@
 import type { PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
+import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
 
 /**
  * Per-room game logic. ONE instance per active GameRoom. This is THE place the
@@ -18,6 +19,11 @@ export interface GameModule {
   removePlayer(playerId: PlayerId): void;
   /** Free any resources on room teardown. */
   free?(): void;
+  /**
+   * The debug capabilities this module offers the MCP tools (docs/ARCHITECTURE.md §8). A module
+   * without one answers every game-specific tool with "not supported by this game module".
+   */
+  getDebugHandle?(): SimulationDebugHandle;
 }
 
 /** Everything a room is born with: the roster the lobby gathered plus the resolved session config. */

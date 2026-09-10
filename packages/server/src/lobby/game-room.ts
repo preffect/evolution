@@ -1,15 +1,21 @@
 import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
-import { SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
+import type { RoomTiming } from './room-timing.js';
 import type { GameModule, RoomInitOptions } from '../game/game-module.js';
+import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 
 /**
  * A running game session. Owns the connections, the late-join/disconnect
  * bookkeeping, the fixed-tick loop and perf telemetry. All game-specific guts
  * live behind the injected `GameModule` (the 3 tick hooks + add/removePlayer).
+ *
+ * Time flows in through `RoomTiming` only (docs/DETERMINISM.md §2): the ticker wakes the loop,
+ * the accumulator turns the clock into whole ticks, and the debug tools can pause the loop and
+ * step it by hand for deterministic screenshots (docs/ARCHITECTURE.md §8).
  */
 export class GameRoom {
   readonly playerConnections = new Map<string, Connection>();
@@ -23,10 +29,16 @@ export class GameRoom {
   readonly performanceTracker = new PerformanceTracker();
 
   private readonly game: GameModule;
-  private tickInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly timing: RoomTiming;
+  private readonly accumulator;
+  private isLoopPaused = false;
+  private isLoopStarted = false;
+  private tickCount = 0;
 
-  constructor(game: GameModule, options: RoomInitOptions) {
+  constructor(game: GameModule, options: RoomInitOptions, timing: RoomTiming) {
     this.game = game;
+    this.timing = timing;
+    this.accumulator = createSimulationStepAccumulator(timing.clock);
     this.creatorId = options.creatorId;
     this.allPlayerIds = [...options.playerIds];
     this.gameName = options.gameName;
@@ -36,18 +48,53 @@ export class GameRoom {
   }
 
   start(): void {
-    if (!this.tickInterval) {
-      this.tickInterval = setInterval(() => this.tickStep(), TICK_INTERVAL_MS);
-    }
+    if (this.isLoopStarted) return;
+    this.isLoopStarted = true;
+    this.timing.ticker.start(() => this.onTickerFire());
   }
 
   stop(): void {
-    if (this.tickInterval) {
-      clearInterval(this.tickInterval);
-      this.tickInterval = null;
+    if (this.isLoopStarted) {
+      this.timing.ticker.stop();
+      this.isLoopStarted = false;
     }
     this.game.free?.();
   }
+
+  // ---- debug loop control (docs/ARCHITECTURE.md §8) ----------------------
+
+  /** Ticks stepped since the room started; the room's own clock for modules without a world tick. */
+  getTickCount(): number {
+    return this.tickCount;
+  }
+
+  isPaused(): boolean {
+    return this.isLoopPaused;
+  }
+
+  /** Freezes the loop: ticker fires are ignored until `resume()`. */
+  pause(): void {
+    this.isLoopPaused = true;
+  }
+
+  /** Pauses the loop if it is running, then advances exactly `ticks` steps, broadcasting each. */
+  step(ticks: number): void {
+    this.isLoopPaused = true;
+    for (let count = 0; count < ticks; count += 1) this.runTick();
+  }
+
+  /** Unfreezes the loop. The wall time that passed while paused is discarded, never caught up. */
+  resume(): void {
+    this.isLoopPaused = false;
+    this.accumulator.dueTicks();
+    this.accumulator.takeDroppedTicks();
+  }
+
+  getDebugHandle(): SimulationDebugHandle | undefined {
+    return this.game.getDebugHandle?.();
+  }
+
+  // ---- membership --------------------------------------------------------
 
   addPlayer(connection: Connection): void {
     this.playerConnections.set(connection.playerId, connection);
@@ -102,16 +149,28 @@ export class GameRoom {
     if (index >= 0) this.allPlayerIds.splice(index, 1);
   }
 
-  private tickStep(): void {
-    const tickStartMs = performance.now();
-    this.game.reduceGameState(); // TODO(game) hook: advance one tick
-    const snapshot = this.game.serializeRoomState(); // TODO(game) hook: build broadcast payload
+  // ---- the loop ----------------------------------------------------------
+
+  /** One ticker fire: run every tick the clock owes (capped; the surplus is reported, never silent). */
+  private onTickerFire(): void {
+    if (this.isLoopPaused) return;
+    const dueTicks = this.accumulator.dueTicks();
+    const droppedTicks = this.accumulator.takeDroppedTicks();
+    if (droppedTicks > 0) this.performanceTracker.recordDroppedTicks(droppedTicks);
+    for (let count = 0; count < dueTicks; count += 1) this.runTick();
+  }
+
+  private runTick(): void {
+    const tickStartMs = this.timing.clock.nowMilliseconds();
+    this.game.reduceGameState();
+    const snapshot = this.game.serializeRoomState();
     const bytes = broadcastMessage(this.playerConnections.values(), {
       type: SERVER_MESSAGE_TYPE.gameSnapshot,
       snapshot,
     });
+    this.tickCount += 1;
     this.performanceTracker.recordTick({
-      tickMs: performance.now() - tickStartMs,
+      tickMs: this.timing.clock.nowMilliseconds() - tickStartMs,
       snapshotBytes: bytes,
       broadcastClients: this.playerConnections.size,
     });

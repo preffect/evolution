@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { CLIENT_MESSAGE_TYPE } from '@evolution/shared';
 import { registerGameStateTools } from './game-state.js';
-import { createTestLobby, createToolCapture, parseToolJson } from '../../testing/builders.js';
+import {
+  createDebugCapableGameModule,
+  createTestLobby,
+  createToolCapture,
+  parseToolJson,
+  type TestLobbyOptions,
+} from '../../testing/builders.js';
 
-function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown) {
-  const fixture = createTestLobby();
+function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown, options: TestLobbyOptions = {}) {
+  const fixture = createTestLobby(options);
   const alice = fixture.join('alice');
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
@@ -35,6 +41,14 @@ describe('debug_get_game_state', () => {
     const fixture = activeRoomFixture((gameId) => ({ gameId, cells: 3 }));
     const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
     expect(blob).toEqual({ gameId: fixture.gameId, cells: 3 });
+    fixture.stop();
+  });
+
+  it('prefers the full state of a debug-capable module over the wired inspector', async () => {
+    const gameFactory = () => createDebugCapableGameModule({ serializeFullState: () => ({ cells: [1, 2] }) });
+    const fixture = activeRoomFixture(() => ({ summary: true }), { gameFactory });
+    const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
+    expect(blob).toEqual({ cells: [1, 2] });
     fixture.stop();
   });
 
