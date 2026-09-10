@@ -3,12 +3,12 @@
 > # 🟢 START HERE — is this game defined yet?
 >
 > **If this game has NOT been defined yet** — it was just scaffolded with `new-game.sh`,
-> gameplay is still the placeholder **echo** game, and **`docs/GDD.md` does not exist** —
+> gameplay is still the placeholder **echo** game, and **`docs/GAME-DESIGN.md` does not exist** —
 > then your **FIRST action in this session, before anything else**, is:
 >
 > 👉 **Read [`docs/INIT-GAME.md`](./docs/INIT-GAME.md) and follow it.**
 >
-> It interviews the user about the game, then produces `docs/GDD.md` and the game's first
+> It interviews the user about the game, then produces `docs/GAME-DESIGN.md` and the game's first
 > build epic + tickets on GitHub (planning lives in issues, not in files). **Do NOT start
 > editing game source files yet.** When it is done it removes itself and this banner.
 
@@ -67,16 +67,19 @@ stage on the linked Project board, epics as sub-issues, **assignee = waiting on 
 (`pending` label + `Blocked`), PR required with **reviewers run on every PR and every review
 thread resolved before merge**, labels updated as tickets complete. Everything is done via the
 API — the human never clicks in GitHub's UI. Helpers: `scripts/project-sync.sh` (run at session
-start), `scripts/issue-status.sh <N> <Status>`, `.github/PULL_REQUEST_TEMPLATE.md` (review checklist).
-**[`docs/TEAM.md`](docs/TEAM.md)** defines the agent roles (`.claude/roles/`), how to run one inside the
-devcontainer (`scripts/agent.sh`) and the scripted review loop (`scripts/land-pr.sh`).
+start), `scripts/issue-status.sh <Status> <N...>`, `scripts/pr-threads.sh` (batched review threads), `.github/PULL_REQUEST_TEMPLATE.md` (review checklist).
+**[`docs/TEAM.md`](docs/TEAM.md)** defines the agent roles (`.claude/agents/`, spawned with the Agent tool in
+session, or headlessly with `scripts/agent.sh`) and the scripted review loop (`scripts/land-pr.sh`).
 
 ## Toolchain inside the devcontainer
 
 Node 24, pnpm 10, Claude Code, `gh` (authenticated via the mounted host `~/.config/gh`), git
 (pushes over HTTPS with `gh` as credential helper — no SSH key inside; identity from the host's
 gh account unless the container already has one), python3, jq, ripgrep, ImageMagick, ffmpeg, and
-Playwright Chromium for the `playwright` MCP (`.mcp.json`). Improvements to the container or the
+Playwright Chromium for the `playwright` MCP (`.mcp.json`), rsvg-convert + DejaVu fonts for SVG
+rendering; the template checkout is mounted at `/base-multiplayer-game` so template-first fixes and
+`scripts/sync-from-template.sh` work inside too. A host conversation continues inside with
+`scripts/resume-in-container.sh`. Improvements to the container or the
 process belong upstream in `base-multiplayer-game` so the next game inherits them.
 
 ## Standards & guidelines
@@ -114,7 +117,7 @@ pnpm monorepo with three packages:
 - **Shared:** `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`.
 - **Server:** `packages/server/src/game/game-module.ts` — `GameModule` impl (`submitInput` / `reduceGameState` / `serializeRoomState` / `add`/`removePlayer`); wire the factory into `src/index.ts`. MCP game-state visibility via `DebugContext.getRoomGameState(gameId)`.
 - **Client:** `packages/client/src/app/game/game-setup.ts` — the game loop + renderer.
-- **Init:** see `docs/INIT-GAME.md` to interview the user and produce `docs/GDD.md` + the first build epic.
+- **Init:** see `docs/INIT-GAME.md` to interview the user and produce `docs/GAME-DESIGN.md` + the first build epic.
 
 ### Trust model
 
