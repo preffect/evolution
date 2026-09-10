@@ -53,7 +53,7 @@ export interface PlacedCell {
   /** The fixture restores the centre after the movement step every tick. */
   readonly isPinned: boolean;
   readonly traits: readonly PlacedTrait[];
-  /** Fixture-set lifetime DNA ("level 12 with fixture DNA 770", P7, P10); `null` leaves the cell's own. */
+  /** Fixture-set lifetime DNA ("level 12 with fixture DNA 1760", P7, P10); `null` leaves the cell's own. */
   readonly dnaCumulative: number | null;
 }
 

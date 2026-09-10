@@ -320,7 +320,7 @@ oldest, `aria-live="polite"`. Test id `toast` with `data-toast-kind`:
 
 | Kind                    | Trigger                                                                                               | Text                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `late_join`             | first `game_state` with `ownProgress.dnaCatchUpGift > 0`                                              | `Joined late: you start at level 3 with 30 DNA of catch-up. Pick your traits.` |
+| `late_join`             | first `game_state` with `ownProgress.dnaCatchUpGift > 0`                                              | `Joined late: you start at level 2 with 60 DNA of catch-up. Pick your traits.` |
 | `endosymbiont_unlocked` | a `bacteriaEatenByVariant` counter reaches `ENDOSYMBIOSIS_BACTERIA_REQUIRED` for an unowned organelle | `Mitochondrion unlocked: offered at your next level-up.`                       |
 | `bloom`                 | the clock enters bloom                                                                                | `Bloom: food and DNA multiply.`                                                |
 | `stage`                 | `ownCell.stage` changes                                                                               | `You are a eukaryote.`                                                         |
