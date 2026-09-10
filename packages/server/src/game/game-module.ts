@@ -1,5 +1,7 @@
 import type { BalanceConfig, PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
+import { echoBotBinding } from '../testing/bot-client/bot-binding.js';
+import { createInProcessBotRoster } from '../testing/bot-client/in-process-bots.js';
 
 /**
  * Per-room game logic. ONE instance per active GameRoom. This is THE place the
@@ -63,17 +65,22 @@ export type GameModuleFactory = (options: RoomInitOptions) => GameModule;
 /**
  * DEFAULT PLACEHOLDER (TODO(game)): trust-client echo. Stores the latest input per player and
  * echoes `{ players: { [playerId]: lastInput } }` as the snapshot. Replace in the
- * init step with the real game logic.
+ * init step with the real game logic. Its one debug capability is the in-process bot pair
+ * (`spawnBot` / `removeBot`, docs/ARCHITECTURE.md §8): a bot is a player whose input the module
+ * produces itself, before each tick, from the snapshot of the tick before.
  */
 export function createEchoModule(options: RoomInitOptions): GameModule<GameInput, EchoSnapshot> {
   const latestInputByPlayer = new Map<string, GameInput>();
   const players = new Set<string>(options.playerIds);
-  return {
+  const bots = createInProcessBotRoster(echoBotBinding);
+  let tick = 0;
+  const module: GameModule<GameInput, EchoSnapshot> = {
     submitInput: (playerId, payload) => {
       latestInputByPlayer.set(playerId, payload);
     },
     reduceGameState: () => {
-      /* TODO(game): advance world one tick */
+      bots.driveTick(module.serializeRoomState(), tick, module.submitInput);
+      tick += 1; // TODO(game): advance world one tick
     },
     serializeRoomState: () => {
       const inputs: Record<string, GameInput | null> = {};
@@ -87,7 +94,20 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
       players.delete(playerId);
       latestInputByPlayer.delete(playerId);
     },
+    getDebugHandle: () => ({
+      spawnBot: (request) => {
+        const bot = bots.spawn(request);
+        module.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName);
+        return bot;
+      },
+      removeBot: (playerId) => {
+        const bot = bots.remove(playerId);
+        module.removePlayer(playerId);
+        return bot;
+      },
+    }),
   };
+  return module;
 }
 
 /** The echo has no world, so its snapshot is not a `GameSnapshot`; the room broadcasts it opaquely. TODO(game): real module. */

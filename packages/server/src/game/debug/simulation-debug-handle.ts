@@ -39,6 +39,22 @@ export interface DnaGrant {
   readonly tags?: readonly string[];
 }
 
+/** What `debug_spawn_bot` asks for: a strategy by catalogue name, driven from a stream forked from `seed`. */
+export interface BotSpawnRequest {
+  readonly behavior: string;
+  readonly seed: number;
+  /** `hunter` only: hunt this player alone. */
+  readonly preyPlayerId?: PlayerId;
+}
+
+/** The synthetic player a spawned bot occupies; what the room enrols and the tool answers with. */
+export interface SpawnedBot {
+  readonly playerId: PlayerId;
+  readonly playerName: string;
+  readonly avatarIndex: number;
+  readonly behavior: string;
+}
+
 /** A nested record whose leaves are numbers: `debug_set_balance` patches number leaves only (docs/CODE-STANDARDS.md §2). */
 export interface BalancePatch {
   readonly [key: string]: number | BalancePatch;
@@ -63,6 +79,10 @@ export interface SimulationDebugHandle {
   patchBalance?(patch: BalancePatch): unknown;
   computeStateHash?(): StateHash;
   exportReplay?(): unknown;
+  /** Adds a synthetic player driven in-process by a named strategy (docs/TESTING.md §8.4); throws on an unknown name. */
+  spawnBot?(request: BotSpawnRequest): SpawnedBot;
+  /** Removes a bot this handle spawned; throws for any other player id. */
+  removeBot?(playerId: PlayerId): SpawnedBot;
 }
 
 export type DebugCapability = keyof SimulationDebugHandle;
