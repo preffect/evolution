@@ -13,8 +13,9 @@ below hold the numbers for their domain (one fact, one home).
 | [`TRAITS.md`](./TRAITS.md)           | Modifier model, the sixteen build-1 traits (organelles and forms) mapped onto the ladder, later traits | #25           |
 
 Technical contracts and the file plan: [`ARCHITECTURE.md`](./ARCHITECTURE.md) (#112); the build itself is
-epic #96 and its tickets (planning lives in GitHub issues, never in a markdown plan). Still to come under this
-epic: `VISUAL-STYLE.md` (#34), `UI.md` (#30), multi-cell organisms (#28), cross-player fusion decision
+epic #96 and its tickets (planning lives in GitHub issues, never in a markdown plan). The look is
+[`VISUAL-STYLE.md`](./VISUAL-STYLE.md) (#34). Still to come under this
+epic: `UI.md` (#30), multi-cell organisms (#28), cross-player fusion decision
 (#79), audio manifest (#35).
 
 **One fact, one home.** Every number in this document is a named constant whose home is

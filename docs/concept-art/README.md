@@ -2,8 +2,8 @@
 
 Code-drawn concept sheets for Evolution. Every sheet is a hand-authored SVG (gradients, blur and
 turbulence filters, masks, layered shapes, zero raster content) with a 1920 × 1080 PNG render
-committed next to it. The SVG is the source of truth. Sheets feed the planned style guide
-(`docs/VISUAL-STYLE.md`, #34) and the Pixi renderer (#99). Sizes are in **world units (wu)**: 1 wu = 1 px at camera zoom 1.0. Each
+committed next to it. The SVG is the source of truth. Sheets feed the style guide
+([`VISUAL-STYLE.md`](../VISUAL-STYLE.md), #34), which reconciles them with the design docs, and the Pixi renderer (#99). Sizes are in **world units (wu)**: 1 wu = 1 px at camera zoom 1.0. Each
 sheet states the px / wu it is drawn at.
 
 **Rendering.** Sheets 01 and 03 are rendered with Playwright's headless Chromium, sheets 02 and 04
