@@ -108,7 +108,7 @@ export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREA
   bytes mixed with the parent seed), **not** from the parent's sequence, so adding a draw to
   the spawner never changes what `traitDraft` produces. Forks of the same label from the same
   parent are identical.
-- **`moteMotion` is a separate stream** (an architecture refinement of ECOLOGY's list): the
+- **`moteMotion` is a separate stream** (ECOLOGY §1 lists it under the label `mote_motion`): the
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.
 - **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the five server

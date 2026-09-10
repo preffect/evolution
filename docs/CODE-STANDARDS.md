@@ -1,6 +1,6 @@
 # Evolution — Code Standards
 
-The concrete, checkable rules behind [`ENGINEERING.md`](../ENGINEERING.md). Every rule here is
+The concrete, checkable rules behind [`ENGINEERING.md`](./ENGINEERING.md). Every rule here is
 either enforced by `./validate.sh lint` once #69 / #70 land, or checked line-by-line in review
 (`WORKFLOW.md` §6). Where `ENGINEERING.md` gives a principle, this document gives the number,
 the home and an example. Where the two differ, the stricter one wins. Structure is

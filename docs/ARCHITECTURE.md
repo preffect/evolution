@@ -3,10 +3,10 @@
 The technical contract the Build 1 tickets (#97–#103) implement. It is the structural companion
 of the design: every rule, number and scenario is owned by [`GAME-DESIGN.md`](./GAME-DESIGN.md)
 and its companions ([`ECOLOGY.md`](./ECOLOGY.md), [`PROGRESSION.md`](./PROGRESSION.md),
-[`TRAITS.md`](./TRAITS.md)); the build plan is [`init-game.md`](../init-game.md). This document
-decides only **structure**: where state lives, the simulation pipeline, the wire contract, the
-client module plan, the debug surface and the file plan. Engineering rules:
-[`ENGINEERING.md`](../ENGINEERING.md); coding rules: [`CODE-STANDARDS.md`](./CODE-STANDARDS.md);
+[`TRAITS.md`](./TRAITS.md)); the build plan is the Build 1 epic (#96). This document decides
+only **structure**: where state lives, the simulation pipeline, the wire contract, the client
+module plan, the debug surface and the file plan. Engineering rules:
+[`ENGINEERING.md`](./ENGINEERING.md); coding rules: [`CODE-STANDARDS.md`](./CODE-STANDARDS.md);
 seeds, clock, ordering and hashing: [`DETERMINISM.md`](./DETERMINISM.md).
 
 ```text
@@ -41,11 +41,14 @@ seeds, clock, ordering and hashing: [`DETERMINISM.md`](./DETERMINISM.md).
 
 ## 2. Entity model
 
-Two layers, one direction: the **views** are the wire types the design fixes in
-[`init-game.md §2`](../init-game.md#2-shared-type-edits--packagessharedsrctypesmessagests-and-typesgamets)
-(`packages/shared/src/types/game.ts`: `CellView`, `FoodMoteView`, `DnaFragmentView`,
+Two layers, one direction: the **views** are the wire types in
+`packages/shared/src/types/game.ts` (`CellView`, `FoodMoteView`, `DnaFragmentView`,
 `GelPatchView`, `TraitOfferView`, `PlayerProgressView`, `LeaderboardRow`, the `CellStage`,
-`CellState`, `PlayerLifeState`, `BacteriumVariant` unions). The **records** are the server's
+`CellState`, `PlayerLifeState`, `BacteriumVariant` unions); each field's meaning is the design
+doc that names it (`CellStage` and its `STAGE_ORDER` / `STAGE_GATE_TRAITS`:
+[`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder); `PlayerProgressView`:
+[`PROGRESSION.md`](./PROGRESSION.md); `FoodMoteView`: [`ECOLOGY.md §1`](./ECOLOGY.md#1-food-kinds)).
+The **records** are the server's
 supersets in `packages/server/src/game/world/entities.ts`; `serialize.ts` projects records onto
 views and nothing else reads a record outside `packages/server/src/game/`.
 
@@ -68,6 +71,7 @@ export interface PlayerRecord extends PlayerProgressView {
 export interface TraitOffer extends TraitOfferView {
   shownAtTick: number | null; // null while queued behind another offer
   cardWeights: number[]; // for the timeout pick (highest weight, lowest catalog index)
+  // `cards` and `cardWeights` are empty while queued: PROGRESSION §4 builds them when the offer is shown
 }
 export interface FoodMoteRecord extends FoodMoteView {
   mass: number; // ECOLOGY §1 by kind
@@ -135,8 +139,8 @@ state.
 
 `evolution-module.ts` implements the template's `GameModule` seam and stays thin (wiring only):
 it coalesces inputs, calls `stepWorld`, and serialises. All decision logic is in the subsystems
-of [`init-game.md §3`](../init-game.md#3-server-edits), in this fixed step order (the scenario
-tables are computed against it):
+of the file plan (section 10), in this fixed step order (the scenario tables are computed
+against it):
 
 ```text
  stepWorld(world, context): void          context = { balance, streams, effects }
@@ -159,7 +163,8 @@ receive**; `stepWorld` returns nothing and the module keeps one `WorldState` for
 lifetime. Why in place: the pair-wise systems (separation, engulf chains) update two records at
 once, the hash and the spatial hash walk one owned structure, and rebuilding arrays of ~1 500
 entities sixty times a second buys nothing at this scale. What "pure" means here (the word
-`init-game.md` uses): a system reads nothing but its arguments, calls no IO, no clock, no
+the design uses for `progression/ladder.ts`, GAME-DESIGN §3): a system reads nothing but its
+arguments, calls no IO, no clock, no
 `Math.random`, and two worlds that hash equal before a step hash equal after it. Tests therefore
 assert **values and hashes**, never object identity; `ENGINEERING.md §2.3`'s
 `expect(result).not.toBe(prevState)` applies to reducers that return new state (lobby and room
@@ -195,8 +200,8 @@ prediction reuses them unchanged.
 
 ## 4. Wire contract (`packages/shared/src/types/messages.ts`)
 
-The three seams are the design's types (`init-game.md §2`), refined here only where the wire
-needs it. Validated on the server in `ws/message-schemas.ts` (Zod) before any handler sees
+The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their
+one home, and the design docs own the meaning of every field. Validated on the server in `ws/message-schemas.ts` (Zod) before any handler sees
 them; message verbs are the `CLIENT_MESSAGE_TYPE` / `SERVER_MESSAGE_TYPE` objects.
 
 ```ts
@@ -341,20 +346,21 @@ asset is missing, never throwing**. Nothing but the bus imports `AudioService`.
 
 `DebugContext` gains `getRoomDebugHandle(gameId): SimulationDebugHandle | undefined`, which the
 module implements; handlers in `mcp/handlers/` only translate arguments and serialise results.
-The design's tool list (`init-game.md §3`) maps onto the handle:
+This table is the one home of the tool names (the `_room` suffix marks the tools that act on
+the room loop rather than the world):
 
-| Tool                                                             | Handle method                                                      |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `debug_get_game_state(gameId)`                                   | `serializeFullState()` + counts per food kind, variant and zone    |
-| `debug_get_player_progress(gameId, playerId)`                    | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer |
-| `debug_get_entities(gameId, kind?, bbox?)`                       | `listEntities(filter)`                                             |
-| `debug_grant_dna(gameId, playerId, dna, tags?)`                  | `grantDna(playerId, grant)` (logged)                               |
-| `debug_spawn(gameId, kind, x, y, params)`                        | `spawn(request)` through the spawner                               |
-| `debug_pause` / `debug_step(ticks)` / `debug_resume`             | `pause()`, `step(ticks)`, `resume()` on the room loop              |
-| `debug_set_seed(gameId, seed)`                                   | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)         |
-| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)` | `world.balance` read / patch + `balance_updated`                   |
-| `debug_get_state_hash(gameId)`                                   | `computeStateHash(world)`                                          |
-| `debug_export_replay(gameId)`                                    | `ReplayRecorder.export()`                                          |
+| Tool                                                                | Handle method                                                      |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `debug_get_game_state(gameId)`                                      | `serializeFullState()` + counts per food kind, variant and zone    |
+| `debug_get_player_progress(gameId, playerId)`                       | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer |
+| `debug_get_entities(gameId, kind?, bbox?)`                          | `listEntities(filter)`                                             |
+| `debug_grant_dna(gameId, playerId, dna, tags?)`                     | `grantDna(playerId, grant)` (logged)                               |
+| `debug_spawn(gameId, kind, x, y, params)`                           | `spawn(request)` through the spawner                               |
+| `debug_pause_room` / `debug_step_room(ticks)` / `debug_resume_room` | `pause()`, `step(ticks)`, `resume()` on the room loop              |
+| `debug_set_seed(gameId, seed)`                                      | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)         |
+| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`    | `world.balance` read / patch + `balance_updated`                   |
+| `debug_get_state_hash(gameId)`                                      | `computeStateHash(world)`                                          |
+| `debug_export_replay(gameId)`                                       | `ReplayRecorder.export()`                                          |
 
 `getRoomGameState(gameId)` (the template's summary) returns `{ tick, seed, roundPhase,
 roundTimeLeftMs, players, counts, stateHash }`, not the entity dump.
