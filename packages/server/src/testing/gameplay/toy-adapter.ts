@@ -29,7 +29,7 @@ export interface ToyFixture {
   readonly at: Vec2;
 }
 
-export interface ToyModule extends GameModule {
+export interface ToyModule extends GameModule<ToyInput, ToySnapshot> {
   readonly snapshot: ToySnapshot;
   place(playerId: PlayerId, point: Vec2): void;
 }
@@ -75,7 +75,7 @@ export function createToyModule(playerIds: readonly PlayerId[], seed: number): T
       return { tick, cells: Object.fromEntries(cells) };
     },
     submitInput: (playerId, payload) => {
-      cells.set(playerId, retarget(requireCell(playerId), payload as ToyInput));
+      cells.set(playerId, retarget(requireCell(playerId), payload));
     },
     reduceGameState: () => {
       tick += 1;
@@ -96,11 +96,11 @@ export function createToyModule(playerIds: readonly PlayerId[], seed: number): T
   };
 }
 
-const asToyModule = (module: GameModule): ToyModule => module as ToyModule;
+const asToyModule = (module: GameModule<ToyInput, ToySnapshot>): ToyModule => module as ToyModule;
 
 export const toyAdapter: ScenarioAdapter<ToyInput, ToySnapshot, ToyFixture> = {
   name: 'toy',
-  createModule: (options) => createToyModule(options.playerIds, options.seed),
+  createModule: (options) => createToyModule(options.playerIds, options.config.seed),
   readSnapshot: (module) => asToyModule(module).snapshot,
   hashState: (module): StateHash => hashText(JSON.stringify(asToyModule(module).snapshot)),
   toInput: (playerCommand, sequence) => ({ ...playerCommand, sequence }),

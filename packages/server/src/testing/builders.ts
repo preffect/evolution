@@ -4,7 +4,8 @@ import { vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
-import { CLIENT_MESSAGE_TYPE, ManualClock } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, ManualClock, createTestSessionConfig } from '@evolution/shared';
+import type { GameSnapshot } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import type { GameModule, GameModuleFactory } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
@@ -50,7 +51,8 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
     players,
     submitInput: vi.fn(),
     reduceGameState: vi.fn(),
-    serializeRoomState: vi.fn(() => ({ players: [...players] })),
+    // The spy echoes its roster, not a world: the cast is the echo module's own (game-module.ts).
+    serializeRoomState: vi.fn(() => ({ players: [...players] }) as unknown as GameSnapshot),
     addPlayer: vi.fn((playerId: string) => {
       players.add(playerId);
     }),
@@ -110,7 +112,7 @@ export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'A',
-    config: { maxPlayers: 2 },
+    config: createTestSessionConfig({ maxPlayers: 2 }),
   });
   const gameId = fixture.lobby.listGames()[0]!.gameId;
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });

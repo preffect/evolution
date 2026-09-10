@@ -41,15 +41,22 @@ The ladder is the progression spine of build 1. It is a shared enum, and every t
 [`TRAITS.md`](./TRAITS.md) is an organelle or a form that sits on one of its rungs.
 
 ```ts
-// packages/shared/src/constants/ladder.ts
-export type CellStage = 'protocell' | 'prokaryote' | 'endosymbiosis' | 'eukaryote' | 'specialised';
-export const STAGE_ORDER: readonly CellStage[] = [
-  'protocell',
-  'prokaryote',
-  'endosymbiosis',
-  'eukaryote',
-  'specialised',
-];
+// packages/shared/src/types/game.ts: the ids; packages/shared/src/constants/ladder.ts: the order and the gates
+export const CELL_STAGE = {
+  protocell: 'protocell',
+  prokaryote: 'prokaryote',
+  endosymbiosis: 'endosymbiosis',
+  eukaryote: 'eukaryote',
+  specialised: 'specialised',
+} as const;
+export type CellStage = (typeof CELL_STAGE)[keyof typeof CELL_STAGE];
+export const STAGE_ORDER = [
+  CELL_STAGE.protocell,
+  CELL_STAGE.prokaryote,
+  CELL_STAGE.endosymbiosis,
+  CELL_STAGE.eukaryote,
+  CELL_STAGE.specialised,
+] as const satisfies readonly CellStage[];
 export const STAGE_GATE_TRAITS: Record<CellStage, readonly TraitId[]> = {
   protocell: [], // the starting stage has no gate
   prokaryote: ['nucleoid'],
@@ -255,14 +262,14 @@ accounts, anti-cheat, touch-layout polish (pointer events work, nothing more), r
 
 ## 11. Reserved hooks for build 2
 
-| Hook                             | Where                        | Build-1 behaviour                   |
-| -------------------------------- | ---------------------------- | ----------------------------------- |
-| `GameSessionConfig.mode`         | `'free_for_all' \| 'colony'` | server rejects `'colony'`           |
-| `GameSessionConfig.endCondition` | `'timer'` only               | other values rejected               |
-| `Cell.organismId`                | equals the cell's own id     | grouping key for colonies           |
-| `GameInput.split`, `.eject`      | booleans, optional           | validated, ignored                  |
-| `CellState.dividing`             | state in the engulf diagram  | unreachable                         |
-| Mitosis constants                | `growth.ts`                  | declared, unused (see ECOLOGY §5.4) |
+| Hook                                    | Where                        | Build-1 behaviour                   |
+| --------------------------------------- | ---------------------------- | ----------------------------------- |
+| `GameSessionConfig.mode`                | `'free_for_all' \| 'colony'` | server rejects `'colony'`           |
+| `GameSessionConfig.endCondition`        | `'timer'` only               | other values rejected               |
+| `Cell.organismId`                       | equals the cell's own id     | grouping key for colonies           |
+| `GameInput.shouldSplit`, `.shouldEject` | booleans, optional           | validated, ignored                  |
+| `CellState.dividing`                    | state in the engulf diagram  | unreachable                         |
+| Mitosis constants                       | `growth.ts`                  | declared, unused (see ECOLOGY §5.4) |
 
 ## 12. Constants table
 

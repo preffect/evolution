@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { StateHash } from '@evolution/shared';
+import { createTestSessionConfig, type StateHash } from '@evolution/shared';
 import { SCENARIO_REPLAY_FORMAT_VERSION, type ScenarioReplay } from './replay-format.js';
 import {
   createFileReplaySink,
@@ -15,7 +15,7 @@ const REPLAY: ScenarioReplay = {
   version: SCENARIO_REPLAY_FORMAT_VERSION,
   scenarioName: 'E9: A absorbs B (30 ticks)',
   seed: 42,
-  config: { maxPlayers: 8 },
+  config: createTestSessionConfig({ maxPlayers: 8 }),
   roster: [],
   fixtures: [],
   membership: [],

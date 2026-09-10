@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { MAX_TICKS_PER_ADVANCE, SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
+import {
+  MAX_TICKS_PER_ADVANCE,
+  SERVER_MESSAGE_TYPE,
+  TICK_INTERVAL_MS,
+  createTestGameInput,
+  createTestSessionConfig,
+} from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
 import type { RoomInitOptions } from '../game/game-module.js';
@@ -15,7 +21,7 @@ function roomOptions(playerIds: string[]): RoomInitOptions {
     creatorId: playerIds[0] as PlayerId,
     playerIds: playerIds as PlayerId[],
     gameName: 'Test',
-    config: { maxPlayers: 4 },
+    config: createTestSessionConfig({ maxPlayers: 4 }),
     avatarAssignments: Object.fromEntries(playerIds.map((playerId, index) => [playerId, index])),
     playerNames: {},
   };
@@ -133,8 +139,9 @@ describe('game-room: membership and delegation', () => {
   it('submitInput delegates to the game module', () => {
     const gameModule = createSpyGameModule();
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
-    room.submitInput('p1', { jump: true });
-    expect(gameModule.submitInput).toHaveBeenCalledWith('p1', { jump: true });
+    const input = createTestGameInput({ shouldSprint: true });
+    room.submitInput('p1', input);
+    expect(gameModule.submitInput).toHaveBeenCalledWith('p1', input);
   });
 
   it('removePlayer drops the player from the module and roster', () => {

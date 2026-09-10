@@ -23,8 +23,9 @@ dist/
 .game-logs/
 .game.pid
 
-# Game data
-data/
+# Game data (runtime); data/balance.json is generated from the shared constants and committed
+data/*
+!data/balance.json
 
 # Angular cache
 .angular/

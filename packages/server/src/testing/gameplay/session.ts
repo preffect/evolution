@@ -57,7 +57,7 @@ function toReplayPlayer({ playerId, playerName, avatarIndex }: ReplayPlayer): Re
 }
 
 export class ScenarioSession<Input, Snapshot, Fixture> {
-  readonly module: GameModule;
+  readonly module: GameModule<Input, Snapshot>;
   tick = INITIAL_TICK;
   private snapshot: Snapshot;
   private readonly randomRoot: RandomSource;
@@ -83,10 +83,10 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
       creatorId: creator.playerId,
       playerIds: roster.map((player) => player.playerId),
       gameName: setup.scenarioName,
-      config: setup.config,
+      // The scenario's seed is the round seed: one source, stamped onto the config at the seam.
+      config: { ...setup.config, seed: setup.seed },
       avatarAssignments: Object.fromEntries(roster.map((player) => [player.playerId, player.avatarIndex])),
       playerNames: Object.fromEntries(roster.map((player) => [player.playerId, player.playerName])),
-      seed: setup.seed,
     });
     for (const fixture of setup.fixtures) {
       adapter.applyFixture(this.module, fixture, this.fixtureContext(INITIAL_TICK));

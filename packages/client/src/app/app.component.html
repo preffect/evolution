@@ -40,7 +40,20 @@
       Max players
       <input type="number" min="1" max="8" [ngModel]="maxPlayers()" (ngModelChange)="maxPlayers.set(+$event)" />
     </label>
-    <!-- TODO(game): add game-specific create-game config fields here. -->
+    <label>
+      Round length (s)
+      <input
+        type="number"
+        [ngModel]="roundDurationSeconds()"
+        (ngModelChange)="roundDurationSeconds.set(+$event)"
+        data-testid="create-round-seconds"
+      />
+    </label>
+    <label>
+      Seed
+      <input type="number" [ngModel]="seed()" (ngModelChange)="seed.set(+$event)" data-testid="create-seed" />
+      <button type="button" (click)="newSeed()" data-testid="create-seed-new">New seed</button>
+    </label>
     <button [disabled]="!multiplayer.connected()" (click)="createGame()">Create</button>
   </section>
 

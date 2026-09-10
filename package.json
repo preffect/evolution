@@ -14,7 +14,8 @@
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix && prettier --write .",
     "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "generate:balance": "pnpm --filter @evolution/shared build && node scripts/generate-balance.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

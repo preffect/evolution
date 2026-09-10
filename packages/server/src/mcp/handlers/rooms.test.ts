@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, createTestSessionConfig } from '@evolution/shared';
 import { registerRoomTools } from './rooms.js';
 import { createTestLobby, createToolCapture, parseToolJson } from '../../testing/builders.js';
 
@@ -10,12 +10,12 @@ function lobbyWithPendingAndActive() {
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'A',
-    config: { maxPlayers: 2 },
+    config: createTestSessionConfig({ maxPlayers: 2 }),
   });
   fixture.handlers.onCreateGame(bob, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'B',
-    config: { maxPlayers: 3 },
+    config: createTestSessionConfig({ maxPlayers: 3 }),
   });
   const [aliceGame] = fixture.lobby.listGames();
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId: aliceGame!.gameId });

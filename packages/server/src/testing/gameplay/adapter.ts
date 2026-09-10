@@ -31,11 +31,6 @@ export interface PlayerCommand {
   readonly traitChoice?: TraitChoiceCommand | null;
 }
 
-/** `RoomInitOptions` plus the round seed, until #97 folds the seed into `GameSessionConfig`. */
-export interface ScenarioModuleOptions extends RoomInitOptions {
-  readonly seed: number;
-}
-
 /** What the session hands `applyFixture` besides the record: the runner's ids, never the DSL's id scheme. */
 export interface FixtureContext {
   /** The tick the fixture applies before: 0 for a setup fixture, T for `.atTick(T).place…`. */
@@ -56,15 +51,15 @@ export interface FixtureContext {
  */
 export interface ScenarioAdapter<Input, Snapshot, Fixture> {
   readonly name: string;
-  /** Builds the module the way the lobby would (the factory receives no `RandomSource`). */
-  createModule(options: ScenarioModuleOptions): GameModule;
+  /** Builds the module the way the lobby would: the round seed is `options.config.seed`, no `RandomSource` is passed. */
+  createModule(options: RoomInitOptions): GameModule<Input, Snapshot>;
   /**
    * The state the scripts and the expectations see. Called exactly once per tick, after the
    * step, and must not disturb the module (a delta serialiser belongs in the room, not here).
    */
-  readSnapshot(module: GameModule): Snapshot;
+  readSnapshot(module: GameModule<Input, Snapshot>): Snapshot;
   /** The hash replays and determinism checks compare (`computeStateHash` once the world exists). */
-  hashState(module: GameModule): StateHash;
+  hashState(module: GameModule<Input, Snapshot>): StateHash;
   /** Turns a merged command into the input `submitInput` accepts, stamped with `sequence`. */
   toInput(command: PlayerCommand, sequence: number): Input;
   /**
@@ -74,5 +69,5 @@ export interface ScenarioAdapter<Input, Snapshot, Fixture> {
    */
   locateCell(snapshot: Snapshot, playerId: PlayerId): CellLocation | undefined;
   /** Applies a placed cell, mote or fragment before step `context.tick`; throws `ScenarioSetupError` if unsupported. */
-  applyFixture(module: GameModule, fixture: Fixture, context: FixtureContext): void;
+  applyFixture(module: GameModule<Input, Snapshot>, fixture: Fixture, context: FixtureContext): void;
 }

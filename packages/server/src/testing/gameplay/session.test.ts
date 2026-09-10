@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createTestSessionConfig } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
 import { scenarioPlayerId } from './players.js';
@@ -27,7 +28,7 @@ function createSession(
   return new ScenarioSession(adapter, {
     scenarioName: 'session',
     seed: SEED,
-    config: { maxPlayers: 8 },
+    config: createTestSessionConfig({ maxPlayers: 8 }),
     players,
     fixtures,
   });

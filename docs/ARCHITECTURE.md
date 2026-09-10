@@ -61,8 +61,8 @@ export type BacteriumVariant = 'plain' | 'aerobic' | 'photosynthetic'; // the en
 export type DnaTag = 'motile' | 'photic' | 'predatory' | 'armored' | 'toxic' | 'sensory' | 'metabolic';
 export type ZoneId = 'sunlit_shallows' | 'warm_vent' | 'viscous_gel' | 'open_broth';
 export type CellState = 'free' | 'being_engulfed' | 'engulfing' | 'dividing'; // no death state: see below
-export type CellStage = (typeof STAGE_ORDER)[number]; // constants/ladder.ts
-export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts
+export type CellStage = (typeof CELL_STAGE)[keyof typeof CELL_STAGE]; // STAGE_ORDER (constants/ladder.ts) fixes the order
+export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts: the rows are checked as `TraitCatalogRow` (string ids) so the derivation is not circular
 export type TraitTier = 1 | 2 | 3;
 export type PlayerLifeState = 'alive' | 'spectating';
 
@@ -150,6 +150,13 @@ export interface LeaderboardRow {
 }
 ```
 
+Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_PHASE`, `FOOD_KIND`, `BACTERIUM_VARIANT`,
+`DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `ENTITY_KIND`) with the union derived
+from it (`CODE-STANDARDS.md §2`); the trait definition shape and `CellModifiers` live in `types/traits.ts`.
+The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
+world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId }`, `eat { cellId, eatenId,
+eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`.
+
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
 `packages/server/src/game/`.
@@ -208,7 +215,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 - Ids come from a per-world monotonic counter with a kind prefix (`c-17`, `m-2041`, `f-9`),
   never from randomness. `ENTITY_KIND = { cell: 'cell', foodMote: 'food_mote', dnaFragment: 'dna_fragment' }`
   is the debug-tool filter vocabulary; `organismId` (= own id in Build 1), the `dividing` state and
-  the `split` / `eject` inputs are the reserved hooks of GAME-DESIGN §11.
+  the `shouldSplit` / `shouldEject` inputs are the reserved hooks of GAME-DESIGN §11.
 
 ```ts
 // packages/server/src/game/world/world-state.ts
@@ -276,14 +283,14 @@ prediction reuses them unchanged.
 ### 3.2 Input handling
 
 - `submitInput(playerId, input)` **coalesces** into `PlayerRecord.pendingInput`: the newest
-  `sequence`, `targetX/targetY` win; `sprint` and `traitChoice` are OR-merged (a one-shot that
+  `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that
   arrives together with a newer target is never lost). Step 1 applies the pending input, records
   its `sequence` as `appliedInputSequence`, latches the target on the cell, and clears the
   one-shots. An input with a `sequence` ≤ the applied one is dropped and counted in
   `PerformanceTracker.rejectedInputs`.
-- `sprint` starts a sprint only when the cooldown allows (GAME-DESIGN §6); otherwise it is
+- `shouldSprint` starts a sprint only when the cooldown allows (GAME-DESIGN §6); otherwise it is
   ignored and counted. `traitChoice` applies only when `offerId` is the shown offer
-  (PROGRESSION §4); a stale pick is ignored and counted. `split` / `eject` pass the schema and
+  (PROGRESSION §4); a stale pick is ignored and counted. `shouldSplit` / `shouldEject` pass the schema and
   are ignored by the simulation without counting: they are reserved, not invalid (GAME-DESIGN §11).
 - The template's `GameRoom` calls `reduceGameState()` once per tick from the injected ticker
   (`DETERMINISM.md §2`); `reduceGameState` is `stepWorld` plus effect draining, nothing else.
@@ -312,10 +319,10 @@ export interface GameInput {
   sequence: number; // monotonic per client, one per client tick
   targetX: number; // pointer target in world units
   targetY: number;
-  sprint: boolean; // edge-triggered by the client, coalesced by the server (section 3.2)
+  shouldSprint: boolean; // edge-triggered by the client, coalesced by the server (section 3.2); predicate names per CODE-STANDARDS §6
   traitChoice: TraitChoiceInput | null; // { offerId, cardIndex }
-  split?: boolean; // reserved (build 2), validated and ignored
-  eject?: boolean;
+  shouldSplit?: boolean; // reserved (build 2), validated and ignored
+  shouldEject?: boolean;
 }
 export interface GameSessionConfig {
   maxPlayers: number; // MIN_PLAYERS_PER_GAME .. MAX_PLAYERS_PER_GAME
@@ -355,7 +362,8 @@ export interface FoodDelta {
   resync verb. A reconnect is a new `game_state`.
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs: everything rides `player_input`.
-- **`GameModule` seam additions** (#97): `serializeFullState()`, `getDebugHandle()` (section 8).
+- **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
+  carries; a module without it, the echo, gets `serializeRoomState()` and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`DETERMINISM.md §3`); it never receives a `RandomSource`.
@@ -500,7 +508,9 @@ report even for a module without a world tick.
 exactly as the design tables name it (`GAME-DESIGN.md §12`, `ECOLOGY.md §7`, `PROGRESSION.md §6`,
 `TRAITS.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
 `DEFAULT_BALANCE = { world, session, controls, ladder, ecology, growth, absorption, progression, traits }`
-(the domain modules as namespaces) and `BalanceConfig = typeof DEFAULT_BALANCE`.
+(the domain modules spread into plain records) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
+with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
+patched copy holds other numbers).
 `data/balance.json` is **generated** from `DEFAULT_BALANCE` by `scripts/generate-balance.ts`,
 checked in as the diffable reference the debug tools quote, and pinned by
 `balance.test.ts` (file equals `DEFAULT_BALANCE`, so hand edits fail the gate). At runtime each
@@ -515,8 +525,10 @@ packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
   constants/{world,session,controls,ladder,camera,ecology,growth,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
+  constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
-  types/{common,messages,game,effects}.ts
+  types/{common,messages,game,traits,effects}.ts                traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY
+  testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot (+ createTestCell, createTestWorld with #98)
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
@@ -545,7 +557,7 @@ packages/client/src/app/game/
   state/game-state.service.ts   audio/{audio.service,sound-event-bus}.ts
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)
-data/balance.json                                               generated (section 9)
+data/balance.json                                               generated (section 9): `pnpm generate:balance`
 scripts/generate-balance.ts
 ```
 
