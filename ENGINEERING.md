@@ -161,13 +161,12 @@ project references.
    render container, entity instances). The rule is that _decision logic_ (how state changes)
    lives in pure, testable functions/methods, not buried in IO or the render loop. Prefer
    composition over deep inheritance, but inheritance is fine for a real "is-a" relationship.
-6. **Module size & shape.** Keep modules focused — one responsibility each. **~400 lines is a
-   review smell, not a hard limit:** crossing it is a signal to check whether the file has taken
-   on a second responsibility and should be split along that seam. It is **not** a number to
-   game — never delete, inline, or compress working code just to push a line count down. A
-   cohesive 450-line module beats five artificially-split fragments. Orchestrators (the room
-   loop, the game loop) stay thin — a sequence of calls to focused subsystems, not a place for
-   business logic.
+6. **Module size & shape.** Keep modules focused — one responsibility each. Sizes are
+   lint-enforced per `docs/CODE-STANDARDS.md` §5 (300 lines per file, 40 per function,
+   complexity 10, 4 parameters, nesting 3; design target ≈ 250 lines per file). Split along a
+   responsibility seam — never delete, inline, or compress working code just to push a line
+   count down. Orchestrators (the room loop, the game loop) stay thin — a sequence of calls to
+   focused subsystems, not a place for business logic.
 7. **No circular dependencies.** Imports form a DAG; shared types go in a common module both
    sides import.
 8. **Diagrams are ASCII only**, inside a plain code block, ≤~70 columns, one concept each. No
@@ -218,9 +217,12 @@ project references.
       justifying comment. No new magic strings or magic numbers. No `console.log` left behind.
 - [ ] Inbound messages are validated at the boundary; server-owned values are computed in the
       reducer and merged into the snapshot.
-- [ ] No module took on a second responsibility (≈400 lines is a smell to check, not a hard cap
-      — never compress working code just to hit it); orchestrators stayed thin; no circular
+- [ ] No module took on a second responsibility; sizes within `docs/CODE-STANDARDS.md` §5
+      (split along a seam, never compress working code); orchestrators stayed thin; no circular
       imports introduced.
+- [ ] `docs/CODE-STANDARDS.md` holds: no magic values (every constant in its home per its
+      §2), no duplicated logic, full descriptive names, `docs/DETERMINISM.md` preserved (seeded
+      streams, injected clock, stable ordering), structure per `docs/ARCHITECTURE.md`.
 - [ ] No `Math.random()` in shared/simulation code.
 - [ ] Any visual asset added meets `ASSET-GENERATION.md`'s acceptance criteria.
 - [ ] Any audio asset added went through `AUDIO-PIPELINE.md` (`./ai-pipeline.sh check` clean).

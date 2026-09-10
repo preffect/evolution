@@ -66,23 +66,49 @@ export interface LobbyState {
   pending: LobbyGameInfo[];
 }
 
+// ===== Message type ids =====
+// The wire verbs live here as `as const` objects (docs/CODE-STANDARDS.md §2);
+// schemas, routers and clients import them instead of repeating string literals.
+export const CLIENT_MESSAGE_TYPE = {
+  joinLobby: 'join_lobby',
+  updatePlayerInfo: 'update_player_info',
+  createGame: 'create_game',
+  joinGame: 'join_game',
+  startGame: 'start_game',
+  deleteGame: 'delete_game',
+  playerInput: 'player_input',
+  clientPerformance: 'client_performance',
+  // TODO(game): add game-specific client message verbs here.
+} as const;
+
+export const SERVER_MESSAGE_TYPE = {
+  lobbyUpdate: 'lobby_update',
+  gameStarted: 'game_started',
+  gameState: 'game_state',
+  gameSnapshot: 'game_snapshot',
+  playerJoined: 'player_joined',
+  playerDisconnected: 'player_disconnected',
+  error: 'error',
+  // TODO(game): add game-specific server message verbs here.
+} as const;
+
 // ===== Client -> Server =====
 export type ClientMessage =
-  | { type: 'join_lobby'; playerName: string; avatarIndex: number }
-  | { type: 'update_player_info'; playerName: string; avatarIndex: number }
-  | { type: 'create_game'; gameName: string; config: GameSessionConfig }
-  | { type: 'join_game'; gameId: string }
-  | { type: 'start_game'; gameId: string }
-  | { type: 'delete_game'; gameId: string }
-  | { type: 'player_input'; payload: GameInput } // TODO(game): typed input
-  | { type: 'client_performance'; report: ClientPerformanceReport };
+  | { type: typeof CLIENT_MESSAGE_TYPE.joinLobby; playerName: string; avatarIndex: number }
+  | { type: typeof CLIENT_MESSAGE_TYPE.updatePlayerInfo; playerName: string; avatarIndex: number }
+  | { type: typeof CLIENT_MESSAGE_TYPE.createGame; gameName: string; config: GameSessionConfig }
+  | { type: typeof CLIENT_MESSAGE_TYPE.joinGame; gameId: string }
+  | { type: typeof CLIENT_MESSAGE_TYPE.startGame; gameId: string }
+  | { type: typeof CLIENT_MESSAGE_TYPE.deleteGame; gameId: string }
+  | { type: typeof CLIENT_MESSAGE_TYPE.playerInput; payload: GameInput } // TODO(game): typed input
+  | { type: typeof CLIENT_MESSAGE_TYPE.clientPerformance; report: ClientPerformanceReport };
 // TODO(game): add game-specific client message variants here.
 
 // ===== Server -> Client =====
 export type ServerMessage =
-  | { type: 'lobby_update'; games: LobbyGameInfo[] }
+  | { type: typeof SERVER_MESSAGE_TYPE.lobbyUpdate; games: LobbyGameInfo[] }
   | {
-      type: 'game_started';
+      type: typeof SERVER_MESSAGE_TYPE.gameStarted;
       gameId: GameId;
       playerId: PlayerId;
       playerIds: PlayerId[];
@@ -90,7 +116,7 @@ export type ServerMessage =
       config: GameSessionConfig;
     }
   | {
-      type: 'game_state';
+      type: typeof SERVER_MESSAGE_TYPE.gameState;
       gameId: GameId;
       playerId: PlayerId;
       snapshot: GameSnapshot;
@@ -98,10 +124,10 @@ export type ServerMessage =
       playerIds: PlayerId[];
       avatarAssignments: Record<string, number>;
     }
-  | { type: 'game_snapshot'; snapshot: GameSnapshot }
-  | { type: 'player_joined'; playerId: PlayerId; avatarIndex: number }
-  | { type: 'player_disconnected'; playerId: PlayerId }
-  | { type: 'error'; message: string };
+  | { type: typeof SERVER_MESSAGE_TYPE.gameSnapshot; snapshot: GameSnapshot }
+  | { type: typeof SERVER_MESSAGE_TYPE.playerJoined; playerId: PlayerId; avatarIndex: number }
+  | { type: typeof SERVER_MESSAGE_TYPE.playerDisconnected; playerId: PlayerId }
+  | { type: typeof SERVER_MESSAGE_TYPE.error; message: string };
 // TODO(game): add game-specific server message variants here.
 
 // Convenience unions for exhaustive handling.

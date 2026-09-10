@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { CLIENT_ID_STORAGE_KEY } from '@evolution/shared';
 
 /**
  * Stable per-browser client identity. The clientId is persisted in
@@ -8,7 +9,6 @@ import { Injectable } from '@angular/core';
  *
  * Game-agnostic: nothing here is specific to any particular game.
  */
-const STORAGE_KEY = 'evolution.clientId';
 
 @Injectable({ providedIn: 'root' })
 export class IdentityService {
@@ -25,7 +25,7 @@ export class IdentityService {
 
   private read(): string | null {
     try {
-      return localStorage.getItem(STORAGE_KEY);
+      return localStorage.getItem(CLIENT_ID_STORAGE_KEY);
     } catch {
       return null;
     }
@@ -33,7 +33,7 @@ export class IdentityService {
 
   private write(id: string): void {
     try {
-      localStorage.setItem(STORAGE_KEY, id);
+      localStorage.setItem(CLIENT_ID_STORAGE_KEY, id);
     } catch {
       /* localStorage unavailable (private mode, etc.) — ephemeral id is fine. */
     }

@@ -1,7 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subject, type Observable } from 'rxjs';
 import type { ClientMessage, ServerMessage } from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import { IdentityService } from './identity.service';
+
+/** JSON prefix of a `game_snapshot` frame, matched before parsing on the hot path. */
+const SNAPSHOT_FRAME_PREFIX = `{"type":"${SERVER_MESSAGE_TYPE.gameSnapshot}"`;
 
 /**
  * Low-level WebSocket transport. Game-agnostic.
@@ -65,7 +69,7 @@ export class WebSocketService {
       if (!raw) return;
       // Fast-path: coalesce snapshot frames without JSON-parsing on the hot path
       // unless we actually need the object.
-      if (raw.startsWith('{"type":"game_snapshot"')) {
+      if (raw.startsWith(SNAPSHOT_FRAME_PREFIX)) {
         try {
           this.latestSnapshot = JSON.parse(raw) as ServerMessage;
         } catch {
