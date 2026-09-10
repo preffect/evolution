@@ -88,6 +88,11 @@ export interface CellView {
   engulfedByCellId: EntityId | null;
   sprintRemainingTicks: number;
 }
+export interface MotePositionView {
+  id: EntityId;
+  x: number;
+  y: number;
+}
 export interface FoodMoteView {
   id: EntityId;
   kind: FoodKind;
@@ -110,6 +115,10 @@ export interface TraitOfferView {
   offerId: number;
   cards: OwnedTrait[]; // the tier each card would grant
   expiresAtTick: number;
+}
+export interface TraitChoiceInput {
+  offerId: number;
+  cardIndex: number; // 0..TRAIT_OFFER_CARD_COUNT-1; a stale offerId is rejected
 }
 export interface PlayerProgressView {
   playerId: PlayerId;
@@ -475,6 +484,7 @@ packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
   constants/{world,session,controls,ladder,camera,ecology,growth,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
+  constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
   types/{common,messages,game,effects}.ts
   random/{random-source,seeded-random,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
