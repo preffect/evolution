@@ -77,7 +77,8 @@ Rules that keep this honest:
   tunables. Nothing reads `data/balance.json` at runtime.
 - `constants-ledger.test.ts` pins every constant a design table names: the rows are parsed
   from the docs' constants tables (`GAME-DESIGN.md §12`, `ECOLOGY.md §7`, `PROGRESSION.md §6`,
-  `TRAITS.md §5`), one assertion per name, so a rename fails on either side. `balance.test.ts`
+  `TRAITS.md §5`), one assertion per name and the per-doc name count pinned, so a rename or a
+  row added or removed fails on either side until both are updated. `balance.test.ts`
   pins that `data/balance.json` equals `DEFAULT_BALANCE`; a hand edit of the JSON fails the gate.
 - `DEFAULT_BALANCE` is deep-frozen and aliases the module constants. A room patches a
   `structuredClone` of it (`applyBalancePatch` returns a fresh copy), never the default. Tier

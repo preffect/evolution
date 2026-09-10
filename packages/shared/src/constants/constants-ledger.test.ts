@@ -8,12 +8,16 @@ import * as constants from './index.js';
 
 const DOCS_DIRECTORY = new URL('../../../../docs/', import.meta.url);
 
-/** The constants-table section of each design doc, by heading (`## N. Constants table ...`). */
+/**
+ * The constants-table section of each design doc, by heading (`## N. Constants table ...`), and the
+ * number of distinct names its rows carry. The count is pinned so that a row added to or removed
+ * from a doc (or a table the parser silently stopped seeing) is a deliberate edit on both sides.
+ */
 const CONSTANTS_TABLE_SOURCES = [
-  { documentName: 'GAME-DESIGN.md', section: 12 },
-  { documentName: 'ECOLOGY.md', section: 7 },
-  { documentName: 'PROGRESSION.md', section: 6 },
-  { documentName: 'TRAITS.md', section: 5 },
+  { documentName: 'GAME-DESIGN.md', section: 12, expectedNames: 35 },
+  { documentName: 'ECOLOGY.md', section: 7, expectedNames: 70 },
+  { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16 },
+  { documentName: 'TRAITS.md', section: 5, expectedNames: 7 },
 ] as const;
 
 const TABLE_ROW_PATTERN = /^\|\s*(`[^|]*)\|/;
@@ -23,7 +27,6 @@ const TABLE_ROW_PATTERN = /^\|\s*(`[^|]*)\|/;
  * yields the real name.
  */
 const BACKTICKED_NAME_PATTERN = /`([A-Z][A-Z0-9_]*)`/g;
-const MINIMUM_NAMES_PER_DOC = 5;
 /** The ECOLOGY §7 row `\`MITOSIS_*\`, \`EJECT_MASS\``: a glob beside a real name once dropped the whole row. */
 const GLOB_ROW_SOURCE = { documentName: 'ECOLOGY.md', section: 7, globName: 'MITOSIS_*', realName: 'EJECT_MASS' };
 
@@ -57,11 +60,11 @@ describe('constants ledger: the table parser', () => {
 });
 
 describe('constants ledger: every design-table constant is exported', () => {
-  describe.each(CONSTANTS_TABLE_SOURCES)('$documentName §$section', ({ documentName, section }) => {
+  describe.each(CONSTANTS_TABLE_SOURCES)('$documentName §$section', ({ documentName, section, expectedNames }) => {
     const names = namesInConstantsTable(documentName, section);
 
-    it('parses a table', () => {
-      expect(names.length).toBeGreaterThanOrEqual(MINIMUM_NAMES_PER_DOC);
+    it(`parses exactly ${expectedNames} names (a doc row added or removed updates this pin)`, () => {
+      expect(names).toHaveLength(expectedNames);
     });
 
     it.each(names)('%s', (name) => {
