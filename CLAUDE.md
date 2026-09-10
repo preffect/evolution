@@ -121,13 +121,13 @@ Built from the base-multiplayer-game template: client/server, native WebSocket m
 
 pnpm monorepo with three packages:
 
-- **`packages/shared`** — Shared types, constants, and logic (message envelope, branded ids). Pure TypeScript, no framework dependencies. Used by both server and client. Game-specific `GameInput` / `GameSnapshot` types are TODO hooks.
+- **`packages/shared`** — Shared types, constants, and logic (message envelope, branded ids, the game contract: `types/game.ts` views, `types/messages.ts` seams, `constants/<domain>.ts` tunables assembled into `DEFAULT_BALANCE`, `simulation/` pure formulas). Pure TypeScript, no framework dependencies. Used by both server and client.
 - **`packages/server`** — Fastify + WebSocket game server. Handles multiplayer coordination (lobby, rooms, the 60Hz broadcast loop) and exposes a debug MCP endpoint at `/debug-mcp`. The single game seam is `src/game/game-module.ts` (`defaultGameModuleFactory` ships a trust-client echo). No persistence by default.
 - **`packages/client`** — Angular 21 application. Zoneless by default. Proxies `/api`, `/ws`, and `/debug-mcp` to the server via `proxy.conf.json`. The client game seam is `src/app/game/game-setup.ts`.
 
 ### Game extension points (left as TODOs)
 
-- **Shared:** `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`.
+- **Shared:** done (#97): `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`; `data/balance.json` is generated (`pnpm generate:balance`) and pinned by `balance.test.ts`.
 - **Server:** `packages/server/src/game/game-module.ts` — `GameModule` impl (`submitInput` / `reduceGameState` / `serializeRoomState` / `add`/`removePlayer`); wire the factory into `src/index.ts`. MCP game-state visibility via `DebugContext.getRoomGameState(gameId)`.
 - **Client:** `packages/client/src/app/game/game-setup.ts` — the game loop + renderer.
 - **Init:** see `docs/INIT-GAME.md` to interview the user and produce `docs/GAME-DESIGN.md` + the first build epic.

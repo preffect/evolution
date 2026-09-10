@@ -20,6 +20,9 @@ export const gameId = (value: string): GameId => value as GameId;
 export const entityId = (value: string): EntityId => value as EntityId;
 export const tick = (value: number): Tick => value as Tick;
 
+/** The union of a table's values: the shape every `as const` id object derives its union from. */
+export type ValueOf<Table> = Table[keyof Table];
+
 // ===== Pure helpers =====
 
 /** Clamp a number into the inclusive [min, max] range. */

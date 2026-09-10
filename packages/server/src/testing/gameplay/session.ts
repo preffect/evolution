@@ -40,7 +40,7 @@ export function isPlayerPresentAt(player: ScenarioPlayer, stepTick: number): boo
 
 export interface SessionSetup<Fixture> {
   readonly scenarioName: string;
-  readonly seed: number;
+  /** `config.seed` is the round seed: the one home the streams and the module grow from. */
   readonly config: GameSessionConfig;
   readonly players: readonly ScenarioPlayer[];
   readonly fixtures: readonly Fixture[];
@@ -57,7 +57,7 @@ function toReplayPlayer({ playerId, playerName, avatarIndex }: ReplayPlayer): Re
 }
 
 export class ScenarioSession<Input, Snapshot, Fixture> {
-  readonly module: GameModule;
+  readonly module: GameModule<Input, Snapshot>;
   tick = INITIAL_TICK;
   private snapshot: Snapshot;
   private readonly randomRoot: RandomSource;
@@ -78,7 +78,7 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
     if (creator === undefined) {
       throw new ScenarioSetupError(`scenario "${setup.scenarioName}" has no player present at tick 0`);
     }
-    this.randomRoot = createSeededRandom(setup.seed);
+    this.randomRoot = createSeededRandom(setup.config.seed);
     this.module = adapter.createModule({
       creatorId: creator.playerId,
       playerIds: roster.map((player) => player.playerId),
@@ -86,7 +86,6 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
       config: setup.config,
       avatarAssignments: Object.fromEntries(roster.map((player) => [player.playerId, player.avatarIndex])),
       playerNames: Object.fromEntries(roster.map((player) => [player.playerId, player.playerName])),
-      seed: setup.seed,
     });
     for (const fixture of setup.fixtures) {
       adapter.applyFixture(this.module, fixture, this.fixtureContext(INITIAL_TICK));
@@ -95,7 +94,7 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
   }
 
   get seed(): number {
-    return this.setup.seed;
+    return this.setup.config.seed;
   }
 
   player(playerIndex: number): ScenarioPlayer {
@@ -121,7 +120,7 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
   view(): ScenarioView<Snapshot> {
     return {
       tick: this.tick,
-      seed: this.setup.seed,
+      seed: this.setup.config.seed,
       snapshot: this.snapshot,
       playerId: (playerIndex) => this.playerId(playerIndex),
       cell: (playerIndex) => this.adapter.locateCell(this.snapshot, this.playerId(playerIndex)),
@@ -142,7 +141,7 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
       get cell() {
         return adapter.locateCell(snapshot, playerId);
       },
-      seed: this.setup.seed,
+      seed: this.setup.config.seed,
       random: this.randomFor(playerIndex),
     };
   }
@@ -205,7 +204,7 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
     return {
       version: SCENARIO_REPLAY_FORMAT_VERSION,
       scenarioName: this.setup.scenarioName,
-      seed: this.setup.seed,
+      seed: this.setup.config.seed,
       config: this.setup.config,
       roster: this.setup.players.filter((player) => player.joinTick === INITIAL_TICK).map(toReplayPlayer),
       fixtures: [...this.setup.fixtures],

@@ -3,7 +3,12 @@
 // room. Run with `./validate.sh integration`.
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import {
+  CLIENT_MESSAGE_TYPE,
+  SERVER_MESSAGE_TYPE,
+  createTestSessionConfig,
+  createTestSnapshot,
+} from '@evolution/shared';
 import { AppComponent } from './app.component';
 import { IdentityService } from './services/identity.service';
 import { FakeWebSocket } from '../testing/fake-websocket';
@@ -28,10 +33,12 @@ describe('lobby shell + multiplayer services', () => {
     component.connect();
     const socket = FakeWebSocket.latest();
     socket.open();
+    component.seed.set(42);
     component.createGame();
+    const config = createTestSessionConfig({ maxPlayers: 4, seed: 42 });
     expect(socket.sentMessages()).toEqual([
       { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Player', avatarIndex: 0 },
-      { type: CLIENT_MESSAGE_TYPE.createGame, gameName: 'New Game', config: { maxPlayers: 4 } },
+      { type: CLIENT_MESSAGE_TYPE.createGame, gameName: 'New Game', config },
     ]);
 
     socket.receive(
@@ -41,15 +48,16 @@ describe('lobby shell + multiplayer services', () => {
         playerId: 'alice',
         playerIds: ['alice'],
         isHost: true,
-        config: { maxPlayers: 4 },
+        config,
       }),
     );
-    socket.receive(JSON.stringify({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: { tick: 3 } }));
+    const snapshot = createTestSnapshot({ tick: 3 });
+    socket.receive(JSON.stringify({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot }));
     await fixture.whenStable();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(component.multiplayer.inGame()).toBe(true);
     expect(text).toContain('g1');
     expect(text).toContain('(host)');
-    expect(component.multiplayer.latestSnapshot()).toEqual({ tick: 3 });
+    expect(component.multiplayer.latestSnapshot()).toEqual(snapshot);
   });
 });
