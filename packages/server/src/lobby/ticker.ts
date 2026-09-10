@@ -5,7 +5,11 @@
 
 import { TICK_INTERVAL_MS } from '@evolution/shared';
 
-/** Drives `GameRoom`'s loop: real interval in production, hand-cranked in tests. */
+/**
+ * Drives `GameRoom`'s loop: real interval in production, hand-cranked in tests. Both share one
+ * contract: `start` while started is ignored (the first callback stays), `stop` while stopped
+ * is a no-op, and after `stop` a new `start` takes.
+ */
 export interface Ticker {
   start(onTick: () => void): void;
   stop(): void;
@@ -34,6 +38,7 @@ export class ManualTicker implements Ticker {
   private onTick: (() => void) | null = null;
 
   start(onTick: () => void): void {
+    if (this.onTick) return;
     this.onTick = onTick;
   }
 

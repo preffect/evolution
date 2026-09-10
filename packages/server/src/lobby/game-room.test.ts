@@ -66,6 +66,20 @@ describe('game-room: the fixed-step loop', () => {
     expect(room.performanceTracker.getStats().tickPeakMs).toBe(2);
   });
 
+  it('start() discards the time that passed since construction instead of bursting', () => {
+    const gameModule = createSpyGameModule();
+    const timing = createManualRoomTiming();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), timing);
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS * (MAX_TICKS_PER_ADVANCE + 4));
+    room.start();
+    timing.ticker.fire();
+    expect(gameModule.reduceGameState).not.toHaveBeenCalled();
+    expect(room.performanceTracker.getStats().droppedTicks).toBe(0);
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
+    timing.ticker.fire();
+    expect(gameModule.reduceGameState).toHaveBeenCalledTimes(1);
+  });
+
   it('start() is idempotent and stop() halts the loop and frees the module', () => {
     const fixture = startedRoom();
     fixture.room.start();

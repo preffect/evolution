@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
 import { LobbyManager } from './lobby/lobby-manager.js';
+import { createSystemRoomTiming } from './lobby/room-timing.js';
 import { registerWebSocketHandler } from './ws/websocket-handler.js';
 import type { Connection } from './ws/connection.js';
 import { registerMcpEndpoint } from './mcp/mcp-server.js';
@@ -28,7 +29,7 @@ async function main(): Promise<void> {
     },
   });
 
-  const lobbyManager = new LobbyManager(defaultGameModuleFactory);
+  const lobbyManager = new LobbyManager(defaultGameModuleFactory, createSystemRoomTiming);
   const connections = new Map<string, Connection>();
   const handlers = lobbyManager.createHandlers(connections);
 

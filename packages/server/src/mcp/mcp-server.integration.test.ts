@@ -34,12 +34,17 @@ const GAME_SPECIFIC_TOOLS = [
 
 /** Streamable HTTP answers as an SSE stream; the first `data:` line carries the JSON-RPC result. */
 function firstJsonRpcResponse(body: string): {
-  result?: { tools?: { name: string }[]; isError?: boolean };
+  result?: { tools?: { name: string }[]; isError?: boolean; content?: { text?: string }[] };
   error?: unknown;
 } {
   const dataLine = body.split('\n').find((line) => line.startsWith('data:'));
   if (!dataLine) throw new Error(`no data line in ${body}`);
   return JSON.parse(dataLine.slice('data:'.length));
+}
+
+/** The text of a tool result's first block: where the SDK's validation error and the handler's refusal both land. */
+function firstResultText(body: string): string | undefined {
+  return firstJsonRpcResponse(body).result?.content?.[0]?.text;
 }
 
 function postJsonRpc(server: FastifyInstance, method: string, params: unknown) {
@@ -70,11 +75,13 @@ describe('/debug-mcp', () => {
       arguments: { gameId: 'g', ticks: 0 },
     });
     expect(firstJsonRpcResponse(rejected.body).result?.isError).toBe(true);
+    expect(firstResultText(rejected.body)).toMatch(/Input validation error/);
     const unknownGame = await postJsonRpc(server, 'tools/call', {
       name: 'debug_step_room',
       arguments: { gameId: 'g' },
     });
     expect(firstJsonRpcResponse(unknownGame.body).result?.isError).toBe(true);
+    expect(firstResultText(unknownGame.body)).toMatch(/not found/);
     await server.close();
   });
 });

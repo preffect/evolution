@@ -454,25 +454,30 @@ and the handlers in `mcp/handlers/` reach it through the one shared lookup
 (`handlers/capability-tool.ts`), only translating arguments and serialising results. Every
 member of the handle is an optional **capability**: a tool whose capability the module does not
 implement answers `isError` "not supported by this game module" instead of stubbing behaviour
-(the echo module implements none; the Evolution module implements all). A refused request
+(the echo module implements none; the Evolution module implements all). The optionality is
+for the template only: the Evolution handle is declared `implements Required<SimulationDebugHandle>`
+so `tsc` checks completeness (a forgotten member is a type error, never a runtime "not
+supported"), and the Evolution module never wires `DebugContext.getRoomGameState`; there is one
+path to the full state, and the three-level fallback below is template compatibility only. A
+refused request
 (unknown player, unknown kind, a balance path that is not a number leaf) is a
 `DebugRequestError`, which the lookup turns into an `isError` result. This table is the one home
 of the tool names (the `_room` suffix marks the tools that act on the room loop rather than the
 world; they need no capability):
 
-| Tool                                                                      | Handle method                                                      |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `debug_get_game_state(gameId)`                                            | `serializeFullState()` + counts per food kind, variant and zone    |
-| `debug_get_player_progress(gameId, playerId)`                             | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer |
-| `debug_get_entities(gameId, kind?, bbox?)`                                | `listEntities(filter)`                                             |
-| `debug_grant_dna(gameId, playerId, dna, tags?)`                           | `grantDna(playerId, grant)` (logged)                               |
-| `debug_spawn(gameId, kind, x, y, params)`                                 | `spawn(request)` through the spawner                               |
-| `debug_set_player(gameId, playerId, {mass?, level?, traits?, position?})` | `setPlayer(playerId, patch)` (logged)                              |
-| `debug_pause_room` / `debug_step_room(ticks)` / `debug_resume_room`       | `pause()`, `step(ticks)`, `resume()` on the room loop              |
-| `debug_set_seed(gameId, seed)`                                            | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)         |
-| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`          | `getBalance()` / `patchBalance(patch)` + `balance_updated`         |
-| `debug_get_state_hash(gameId)`                                            | `computeStateHash()`                                               |
-| `debug_export_replay(gameId)`                                             | `exportReplay()` (`ReplayRecorder.export()`)                       |
+| Tool                                                                                        | Handle method                                                      |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `debug_get_game_state(gameId)`                                                              | `serializeFullState()` + counts per food kind, variant and zone    |
+| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer |
+| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                             |
+| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                               |
+| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                               |
+| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                              |
+| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop              |
+| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)         |
+| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`         |
+| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                               |
+| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                       |
 
 `debug_get_game_state` prefers `serializeFullState()`, then the template's
 `DebugContext.getRoomGameState(gameId)` summary (`{ tick, seed, roundPhase, roundTimeLeftMs,
@@ -481,10 +486,13 @@ players, counts, stateHash }`, not the entity dump), then the opaque broadcast s
 at paths that exist, validated as a whole before anything is written.
 
 The room loop tools: `pause` makes the room ignore ticker fires; `step(ticks)` pauses a running
-room and runs exactly `ticks` steps (each broadcast; at most `MAX_DEBUG_STEP_TICKS`); `resume`
-discards the wall time that passed while paused, so a resumed room never bursts to catch up.
-`GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools report even for
-a module without a world tick.
+room and runs exactly `ticks` steps (each broadcast; at most `secondsToTicks(DEBUG_STEP_MAX_SECONDS)`,
+converted at the tool's schema, the constant itself stays in seconds); `resume` discards the wall
+time that passed while paused (`FixedStepAccumulator.discardElapsed()`), so a resumed room never
+bursts to catch up. When `SNAPSHOT_EVERY_TICKS` lands inside the tick (#111), `step()` must
+still end with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot shows a
+stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
+report even for a module without a world tick.
 
 ## 9. Constants and balance (decision, one home)
 

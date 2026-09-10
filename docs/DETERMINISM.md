@@ -52,6 +52,8 @@ export class FixedStepAccumulator {
   constructor(clock: Clock, tickDurationMilliseconds: number, maxTicksPerAdvance: number);
   /** How many ticks are due since the last call, capped at maxTicksPerAdvance; the surplus is dropped. */
   dueTicks(): number;
+  /** Resync to the clock and forget the backlog; the room calls it on start() and resume(). */
+  discardElapsed(): void;
   /** Ticks dropped by the cap since the last call (resets); PerfTracker reports them. */
   takeDroppedTicks(): number;
 }

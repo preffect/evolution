@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { MAX_DEBUG_STEP_TICKS } from '@evolution/shared';
+import { DEBUG_STEP_MAX_SECONDS, secondsToTicks } from '@evolution/shared';
 import type { GameRoom } from '../../lobby/game-room.js';
 import type { DebugContext } from '../debug-context.js';
 import { jsonResult, type TextToolResult } from '../tool-result.js';
@@ -31,7 +31,13 @@ export function registerRoomLoopTools(mcp: McpServer, context: DebugContext): vo
     'Advance a game by exactly N ticks (pausing it first if it was running), broadcasting each tick',
     {
       gameId: GAME_ID_ARGUMENT,
-      ticks: z.number().int().min(1).max(MAX_DEBUG_STEP_TICKS).default(1).describe('Ticks to advance'),
+      ticks: z
+        .number()
+        .int()
+        .min(1)
+        .max(secondsToTicks(DEBUG_STEP_MAX_SECONDS))
+        .default(1)
+        .describe('Ticks to advance'),
     },
     (input) => controlRoom(context, input.gameId, (room) => room.step(input.ticks)),
   );

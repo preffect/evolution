@@ -1,6 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { PlayerId } from '@evolution/shared';
 import { DebugRequestError } from '../../game/debug/debug-request-error.js';
 import type { DebugContext } from '../debug-context.js';
 import { GAME_ID_ARGUMENT, PLAYER_ID_ARGUMENT, registerCapabilityTool } from './capability-tool.js';
@@ -15,7 +14,7 @@ function registerGetPlayerProgressTool(mcp: McpServer, context: DebugContext): v
     capability: 'getPlayerDebugState',
     schema: { gameId: GAME_ID_ARGUMENT, playerId: PLAYER_ID_ARGUMENT },
     run: (handle, input) => {
-      const state = handle.getPlayerDebugState(input.playerId as PlayerId);
+      const state = handle.getPlayerDebugState(input.playerId);
       if (state === undefined)
         throw new DebugRequestError(`Player "${input.playerId}" is not in game "${input.gameId}"`);
       return state;
@@ -34,7 +33,7 @@ function registerGrantDnaTool(mcp: McpServer, context: DebugContext): void {
       dna: z.number().positive().describe('DNA points to grant'),
       tags: z.array(z.string()).optional().describe('DNA tags the grant counts toward'),
     },
-    run: (handle, input) => handle.grantDna(input.playerId as PlayerId, { dna: input.dna, tags: input.tags }),
+    run: (handle, input) => handle.grantDna(input.playerId, { dna: input.dna, tags: input.tags }),
   });
 }
 
@@ -52,7 +51,7 @@ function registerSetPlayerTool(mcp: McpServer, context: DebugContext): void {
       position: POSITION_ARGUMENT.optional(),
     },
     run: (handle, input) =>
-      handle.setPlayer(input.playerId as PlayerId, {
+      handle.setPlayer(input.playerId, {
         mass: input.mass,
         level: input.level,
         traits: input.traits,

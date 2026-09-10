@@ -1,6 +1,6 @@
 import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
-import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator } from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator, type FixedStepAccumulator } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
@@ -30,7 +30,7 @@ export class GameRoom {
 
   private readonly game: GameModule;
   private readonly timing: RoomTiming;
-  private readonly accumulator;
+  private readonly accumulator: FixedStepAccumulator;
   private isLoopPaused = false;
   private isLoopStarted = false;
   private tickCount = 0;
@@ -47,9 +47,11 @@ export class GameRoom {
     this.playerNames = { ...options.playerNames };
   }
 
+  /** Starts the loop. Time that passed since construction is discarded, so the first fire never bursts. */
   start(): void {
     if (this.isLoopStarted) return;
     this.isLoopStarted = true;
+    this.accumulator.discardElapsed();
     this.timing.ticker.start(() => this.onTickerFire());
   }
 
@@ -86,8 +88,7 @@ export class GameRoom {
   /** Unfreezes the loop. The wall time that passed while paused is discarded, never caught up. */
   resume(): void {
     this.isLoopPaused = false;
-    this.accumulator.dueTicks();
-    this.accumulator.takeDroppedTicks();
+    this.accumulator.discardElapsed();
   }
 
   getDebugHandle(): SimulationDebugHandle | undefined {

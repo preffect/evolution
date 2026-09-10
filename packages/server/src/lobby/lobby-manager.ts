@@ -5,7 +5,7 @@ import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { MessageHandlers } from '../ws/message-router.js';
 import { GameRoom } from './game-room.js';
-import { createSystemRoomTiming, type RoomTimingFactory } from './room-timing.js';
+import type { RoomTimingFactory } from './room-timing.js';
 import type { GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
 
 const GAME_NOT_FOUND = 'Game not found';
@@ -50,7 +50,9 @@ function roomInitOptionsOf(pending: PendingGame): RoomInitOptions {
 /**
  * Generic lobby + room lifecycle. Owns pending games, active rooms, the
  * player->game index, disconnect grace timers and lobby broadcasting. Game
- * logic is injected via a `GameModuleFactory` (the ONLY game seam here).
+ * logic is injected via a `GameModuleFactory` (the ONLY game seam here) and
+ * room time via a `RoomTimingFactory` (docs/DETERMINISM.md §2): only the
+ * composition root names the production clock and ticker.
  */
 export class LobbyManager {
   private readonly pendingGames = new Map<string, PendingGame>();
@@ -63,7 +65,7 @@ export class LobbyManager {
 
   constructor(
     private readonly gameFactory: GameModuleFactory,
-    private readonly createRoomTiming: RoomTimingFactory = createSystemRoomTiming,
+    private readonly createRoomTiming: RoomTimingFactory,
   ) {}
 
   createHandlers(connections: Map<string, Connection>): MessageHandlers {

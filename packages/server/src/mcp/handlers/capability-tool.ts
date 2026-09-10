@@ -6,6 +6,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js';
 import { z } from 'zod';
+import { playerId } from '@evolution/shared';
 import type { GameRoom } from '../../lobby/game-room.js';
 import { DebugRequestError } from '../../game/debug/debug-request-error.js';
 import { hasDebugCapability, type DebugCapability, type HandleWith } from '../../game/debug/simulation-debug-handle.js';
@@ -14,7 +15,8 @@ import { errorResult, gameNotFoundResult, jsonResult, type TextToolResult } from
 
 /** Every game-specific tool names its room the same way. */
 export const GAME_ID_ARGUMENT = z.string().describe('The game ID');
-export const PLAYER_ID_ARGUMENT = z.string().describe('The player ID');
+/** Branded on the way in, so handlers hand the handle a `PlayerId` without casting. */
+export const PLAYER_ID_ARGUMENT = z.string().describe('The player ID').transform(playerId);
 
 type RoomLookup = { room: GameRoom; result?: undefined } | { room?: undefined; result: TextToolResult };
 
@@ -58,13 +60,15 @@ export function registerCapabilityTool<Name extends DebugCapability, Shape exten
 ): void {
   const schema: z.ZodRawShape = definition.schema;
   mcp.tool(definition.name, definition.description, schema, (input: Record<string, unknown>) => {
-    const lookup = requireRoom(context, GAME_ID_ARGUMENT.parse(input.gameId));
+    // The SDK parsed `input` against `definition.schema` before calling back, so the shape holds
+    // and nothing is re-validated here (an argument the schema rejects never reaches this line).
+    const parsed = input as ShapeOutput<Shape>;
+    const lookup = requireRoom(context, parsed.gameId);
     if (!lookup.room) return lookup.result;
     const handle = lookup.room.getDebugHandle();
     if (!handle || !hasDebugCapability(handle, definition.capability)) {
       return notSupportedResult(definition.name, definition.capability);
     }
-    // The SDK parsed `input` against `definition.schema` before calling back, so the shape holds.
-    return runDebugRequest(() => definition.run(handle, input as ShapeOutput<Shape>, lookup.room));
+    return runDebugRequest(() => definition.run(handle, parsed, lookup.room));
   });
 }

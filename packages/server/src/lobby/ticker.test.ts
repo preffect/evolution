@@ -12,7 +12,6 @@ describe('IntervalTicker', () => {
     const onTick = vi.fn();
     const ticker = new IntervalTicker();
     ticker.start(onTick);
-    ticker.start(onTick);
     vi.advanceTimersByTime(TICK_INTERVAL_MS * 3 + 1);
     const firesWhileStarted = onTick.mock.calls.length;
     expect(firesWhileStarted).toBeGreaterThanOrEqual(3);
@@ -20,6 +19,23 @@ describe('IntervalTicker', () => {
     ticker.stop();
     vi.advanceTimersByTime(TICK_INTERVAL_MS * 10);
     expect(onTick).toHaveBeenCalledTimes(firesWhileStarted);
+  });
+
+  it('ignores start() while started and takes a new start() after stop()', () => {
+    vi.useFakeTimers();
+    const first = vi.fn();
+    const second = vi.fn();
+    const ticker = new IntervalTicker();
+    ticker.start(first);
+    ticker.start(second);
+    vi.advanceTimersByTime(TICK_INTERVAL_MS + 1);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+    ticker.stop();
+    ticker.start(second);
+    vi.advanceTimersByTime(TICK_INTERVAL_MS + 1);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
   });
 
   it('accepts a custom interval', () => {
@@ -46,5 +62,21 @@ describe('ManualTicker', () => {
     ticker.fire();
     expect(ticker.isStarted()).toBe(false);
     expect(onTick).toHaveBeenCalledTimes(4);
+  });
+
+  it('ignores start() while started and takes a new start() after stop(), like IntervalTicker', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const ticker = new ManualTicker();
+    ticker.start(first);
+    ticker.start(second);
+    ticker.fire();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+    ticker.stop();
+    ticker.start(second);
+    ticker.fire();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });
