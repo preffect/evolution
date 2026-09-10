@@ -10,11 +10,12 @@ in [`GAME-DESIGN.md`](./GAME-DESIGN.md) and [`ECOLOGY.md`](./ECOLOGY.md).
 ## 1. The contract
 
 1. **No wall clock in game code.** `Date.now`, `performance.now`, `setTimeout`, `setInterval`
-   are lint-banned in the game paths (`packages/shared/src/**` except `time/`,
-   `packages/server/src/game/**`, `packages/client/src/app/game/**`). Template infrastructure
-   files carry an explicit, ticketed exemption (`CODE-STANDARDS.md §8`). The simulation sees only
-   `world.tick` and the constant `TICK_INTERVAL_S`.
-2. **No `Math.random`.** Lint-banned in the same paths outside `packages/shared/src/random/`.
+   and `requestAnimationFrame` are lint-banned in every `packages/*/src` file; the allowed call
+   sites are `packages/shared/src/time/` (`SystemClock`) and `packages/server/src/lobby/ticker.ts`
+   (`IntervalTicker`). Template infrastructure files carry an explicit, ticketed exemption
+   (`CODE-STANDARDS.md §8`). The simulation sees only `world.tick` and the constant
+   `TICK_INTERVAL_S`.
+2. **No `Math.random`.** Lint-banned in the same files outside `packages/shared/src/random/`.
    Every random decision draws from a named, seeded stream (section 3).
 3. **Fixed timestep.** One `stepWorld` call advances exactly one tick. Never scale a system by
    a measured frame delta.
@@ -67,8 +68,8 @@ export class ManualTicker implements Ticker {
 `GameRoom` takes `{ clock, ticker }` in its constructor (the `LobbyManager` receives them from
 `index.ts`). On each ticker fire it calls `accumulator.dueTicks()` and steps that many times,
 serialising every `SNAPSHOT_EVERY_TICKS` (3) ticks. `MAX_TICKS_PER_ADVANCE` (5) caps catch-up
-after a stall; dropped ticks are reported through `PerfTracker`, never silently. Timing
-measurements (`tickMs`) also come from the injected clock so `PerfTracker` is testable.
+after a stall; dropped ticks are reported through `PerformanceTracker`, never silently. Timing
+measurements (`tickMs`) also come from the injected clock so `PerformanceTracker` is testable.
 
 `TICK_INTERVAL_MS` is fractional (16.67 ms) and timer APIs round to whole milliseconds, so
 `setInterval` alone would not hold 60 Hz; the cadence is correct because the accumulator counts
@@ -190,17 +191,17 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 
 ## 7. What the tests assert
 
-| Test (file)                                             | Asserts                                                                                                                                 |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `random/seeded-random.test.ts`                          | same seed ⇒ same sequence; forks independent; same label ⇒ same fork; `createSeededRandomFromState(getState())` continues identically   |
-| `time/fixed-step-accumulator.test.ts`                   | due ticks for exact, partial and stalled advances; cap applied                                                                          |
-| `simulation/state-hash.test.ts`                         | equal worlds hash equal; any hashed field change or reorder changes the hash; NaN throws; every non-derived field is in `HASHED_FIELDS` |
-| `game/evolution-module.determinism.integration.test.ts` | two rooms, same seed, same scripted inputs under `ManualClock` ⇒ equal hash every 600 ticks and at 10 000 ticks (seed 42)               |
-| `game/simulation/round.test.ts`                         | rematch rebuilds the world with `seed + ROUND_SEED_INCREMENT` and fresh streams (G2)                                                    |
-| `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                               |
-| `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                |
-| `client … cosmetic` (`membrane-mesh.spec.ts`)           | same seed + same tick ⇒ same vertex ring                                                                                                |
-| lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in the game paths; exemptions listed in `CODE-STANDARDS.md §8`           |
+| Test (file)                                             | Asserts                                                                                                                                                  |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `random/seeded-random.test.ts`                          | same seed ⇒ same sequence; forks independent; same label ⇒ same fork; `createSeededRandomFromState(getState())` continues identically                    |
+| `time/fixed-step-accumulator.test.ts`                   | due ticks for exact, partial and stalled advances; cap applied                                                                                           |
+| `simulation/state-hash.test.ts`                         | equal worlds hash equal; any hashed field change or reorder changes the hash; NaN throws; every non-derived field is in `HASHED_FIELDS`                  |
+| `game/evolution-module.determinism.integration.test.ts` | two rooms, same seed, same scripted inputs under `ManualClock` ⇒ equal hash every 600 ticks and at 10 000 ticks (seed 42)                                |
+| `game/simulation/round.test.ts`                         | rematch rebuilds the world with `seed + ROUND_SEED_INCREMENT` and fresh streams (G2)                                                                     |
+| `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                                                |
+| `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                                 |
+| `client … cosmetic` (`membrane-mesh.spec.ts`)           | same seed + same tick ⇒ same vertex ring                                                                                                                 |
+| lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8` |
 
 The determinism integration test runs first against the **echo** module to prove the harness:
 the echo module has no `WorldState`, so there the harness hashes the bytes of

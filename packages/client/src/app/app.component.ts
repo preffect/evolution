@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DEBUG_JSON_INDENT_SPACES, DEFAULT_PLAYERS_PER_GAME } from '@evolution/shared';
 import { MultiplayerService } from './services/multiplayer.service';
 
 /**
@@ -7,7 +8,7 @@ import { MultiplayerService } from './services/multiplayer.service';
  *
  * It exercises the full multiplayer plumbing — connect, join lobby, create /
  * join / start a game, and view the live room state + latest snapshot JSON —
- * without implementing any specific game. The marked TODO area is where the
+ * without implementing any specific game. The marked TODO(game) area is where the
  * real game canvas/board mounts (see `game/game-setup.ts`).
  */
 @Component({
@@ -20,41 +21,41 @@ import { MultiplayerService } from './services/multiplayer.service';
 export class AppComponent {
   readonly title = 'Evolution';
 
-  readonly mp = inject(MultiplayerService);
+  readonly multiplayer = inject(MultiplayerService);
 
   // Local lobby form state.
   readonly playerName = signal('Player');
   readonly newGameName = signal('New Game');
-  readonly maxPlayers = signal(4);
+  readonly maxPlayers = signal(DEFAULT_PLAYERS_PER_GAME);
 
   readonly snapshotJson = computed(() => {
-    const snap = this.mp.snapshot();
-    return snap == null ? '(no snapshot yet)' : JSON.stringify(snap, null, 2);
+    const snapshot = this.multiplayer.snapshot();
+    return snapshot == null ? '(no snapshot yet)' : JSON.stringify(snapshot, null, DEBUG_JSON_INDENT_SPACES);
   });
 
   connect(): void {
-    this.mp.connect();
+    this.multiplayer.connect();
     // Immediately announce ourselves to the lobby (queued until the WS opens).
-    this.mp.joinLobby(this.playerName(), 0);
+    this.multiplayer.joinLobby(this.playerName(), 0);
   }
 
   disconnect(): void {
-    this.mp.disconnect();
+    this.multiplayer.disconnect();
   }
 
   createGame(): void {
-    this.mp.createGame(this.newGameName(), { maxPlayers: this.maxPlayers() });
+    this.multiplayer.createGame(this.newGameName(), { maxPlayers: this.maxPlayers() });
   }
 
   joinGame(id: string): void {
-    this.mp.joinGame(id);
+    this.multiplayer.joinGame(id);
   }
 
   startGame(id: string): void {
-    this.mp.startGame(id);
+    this.multiplayer.startGame(id);
   }
 
   deleteGame(id: string): void {
-    this.mp.deleteGame(id);
+    this.multiplayer.deleteGame(id);
   }
 }

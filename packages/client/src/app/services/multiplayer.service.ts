@@ -28,11 +28,11 @@ export type Phase = 'lobby' | 'in-game';
 
 @Injectable({ providedIn: 'root' })
 export class MultiplayerService {
-  private readonly ws = inject(WebSocketService);
+  private readonly transport = inject(WebSocketService);
 
   // ===== Connection =====
   /** Live WebSocket connection flag (mirrors the transport). */
-  readonly connected = this.ws.connected;
+  readonly connected = this.transport.connected;
 
   // ===== Lobby / room state (generic) =====
   readonly phase = signal<Phase>('lobby');
@@ -55,42 +55,42 @@ export class MultiplayerService {
   readonly inGame = computed(() => this.phase() === 'in-game');
 
   constructor() {
-    this.ws.messages$.subscribe((msg) => this.handle(msg));
+    this.transport.messages$.subscribe((message) => this.handle(message));
   }
 
   // ===== Lifecycle =====
   connect(): void {
-    this.ws.connect();
+    this.transport.connect();
   }
 
   disconnect(): void {
-    this.ws.disconnect();
+    this.transport.disconnect();
   }
 
   // ===== Lobby actions (generic verbs) =====
   joinLobby(playerName: string, avatarIndex = 0): void {
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.joinLobby, playerName, avatarIndex });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinLobby, playerName, avatarIndex });
   }
 
   updatePlayerInfo(playerName: string, avatarIndex: number): void {
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.updatePlayerInfo, playerName, avatarIndex });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.updatePlayerInfo, playerName, avatarIndex });
   }
 
   createGame(gameName: string, config: GameSessionConfig): void {
     // TODO(game): extend `config` with game-specific session fields before send.
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.createGame, gameName, config });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.createGame, gameName, config });
   }
 
   joinGame(id: string): void {
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId: id });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId: id });
   }
 
   startGame(id: string): void {
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.startGame, gameId: id });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.startGame, gameId: id });
   }
 
   deleteGame(id: string): void {
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: id });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: id });
   }
 
   // ===== Gameplay =====
@@ -101,65 +101,65 @@ export class MultiplayerService {
    * TODO(game): call this from your input loop with your typed input shape.
    */
   sendInput(payload: GameInput): void {
-    this.ws.send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });
   }
 
   /** Drain the freshest un-rendered snapshot frame (call once per render frame). */
   latestSnapshot(): GameSnapshot | null {
-    const msg = this.ws.drainLatestSnapshot();
-    if (msg && msg.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
-      this.snapshot.set(msg.snapshot);
-      return msg.snapshot;
+    const message = this.transport.drainLatestSnapshot();
+    if (message && message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
+      this.snapshot.set(message.snapshot);
+      return message.snapshot;
     }
     return null;
   }
 
   // ===== Inbound message handling =====
-  private handle(msg: ServerMessage): void {
-    switch (msg.type) {
+  private handle(message: ServerMessage): void {
+    switch (message.type) {
       case SERVER_MESSAGE_TYPE.lobbyUpdate:
-        this.games.set(msg.games);
+        this.games.set(message.games);
         break;
 
       case SERVER_MESSAGE_TYPE.gameStarted:
-        this.playerId.set(msg.playerId);
-        this.gameId.set(msg.gameId);
-        this.playerIds.set(msg.playerIds);
-        this.isHost.set(msg.isHost);
-        this.sessionConfig.set(msg.config);
+        this.playerId.set(message.playerId);
+        this.gameId.set(message.gameId);
+        this.playerIds.set(message.playerIds);
+        this.isHost.set(message.isHost);
+        this.sessionConfig.set(message.config);
         this.phase.set('in-game');
         break;
 
       case SERVER_MESSAGE_TYPE.gameState:
         // Sent to a (re)joining player: full room state to (re)build the view.
-        this.playerId.set(msg.playerId);
-        this.gameId.set(msg.gameId);
-        this.playerIds.set(msg.playerIds);
-        this.sessionConfig.set(msg.config);
-        this.avatarAssignments.set(msg.avatarAssignments);
-        this.snapshot.set(msg.snapshot);
+        this.playerId.set(message.playerId);
+        this.gameId.set(message.gameId);
+        this.playerIds.set(message.playerIds);
+        this.sessionConfig.set(message.config);
+        this.avatarAssignments.set(message.avatarAssignments);
+        this.snapshot.set(message.snapshot);
         this.phase.set('in-game');
         break;
 
       case SERVER_MESSAGE_TYPE.gameSnapshot:
         // Hot path is normally handled by the coalescing drain in the render
         // loop; this branch covers any snapshot that arrives via messages$.
-        this.snapshot.set(msg.snapshot);
+        this.snapshot.set(message.snapshot);
         break;
 
       case SERVER_MESSAGE_TYPE.playerJoined:
-        this.playerIds.update((ids) => (ids.includes(msg.playerId) ? ids : [...ids, msg.playerId]));
-        this.avatarAssignments.update((a) => ({ ...a, [msg.playerId]: msg.avatarIndex }));
+        this.playerIds.update((ids) => (ids.includes(message.playerId) ? ids : [...ids, message.playerId]));
+        this.avatarAssignments.update((assignments) => ({ ...assignments, [message.playerId]: message.avatarIndex }));
         // TODO(game): react to a player joining mid-game (spawn entity, etc.).
         break;
 
       case SERVER_MESSAGE_TYPE.playerDisconnected:
-        this.playerIds.update((ids) => ids.filter((id) => id !== msg.playerId));
+        this.playerIds.update((ids) => ids.filter((id) => id !== message.playerId));
         // TODO(game): react to a player leaving (remove entity, pause, etc.).
         break;
 
       case SERVER_MESSAGE_TYPE.error:
-        this.lastError.set(msg.message);
+        this.lastError.set(message.message);
         break;
 
       // TODO(game): handle game-specific server message variants here.

@@ -277,7 +277,7 @@ prediction reuses them unchanged.
   arrives together with a newer target is never lost). Step 1 applies the pending input, records
   its `sequence` as `appliedInputSequence`, latches the target on the cell, and clears the
   one-shots. An input with a `sequence` ≤ the applied one is dropped and counted in
-  `PerfTracker.rejectedInputs`.
+  `PerformanceTracker.rejectedInputs`.
 - `sprint` starts a sprint only when the cooldown allows (GAME-DESIGN §6); otherwise it is
   ignored and counted. `traitChoice` applies only when `offerId` is the shown offer
   (PROGRESSION §4); a stale pick is ignored and counted. `split` / `eject` pass the schema and
@@ -293,7 +293,7 @@ prediction reuses them unchanged.
 - **Spatial hash** (`world/spatial-hash.ts`): uniform grid rebuilt at step 3, cell size
   `SPATIAL_HASH_CELL_SIZE_WU`; `queryCircle` and `queryPairs` return id-sorted results.
 - **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects.
-- **Perf budget** (measured by `PerfTracker`, gated in #103): step ≤ 4 ms p95 and serialise
+- **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
 ## 4. Wire contract (`packages/shared/src/types/messages.ts`)
@@ -351,7 +351,7 @@ export interface FoodDelta {
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs: everything rides `player_input`.
 - **`GameModule` seam additions** (#97): `serializeFullState()`, `getDebugHandle()` (section 8).
-  `RoomInitArgs.config` becomes the resolved `GameSessionConfig`; the factory receives
+  `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`DETERMINISM.md §3`); it never receives a `RandomSource`.
 
@@ -375,7 +375,7 @@ Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/
 `perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN.
 Sending static motes in full would add ~50 KB per snapshot, which is why the delta is mandatory;
 sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, which is why
-`moved` is a position list. `PerfTracker.snapshotBytes` is the measurement; #103 records it.
+`moved` is a position list. `PerformanceTracker.snapshotBytes` is the measurement; #103 records it.
 
 ### 4.2 Held levers (in order)
 

@@ -8,10 +8,10 @@ import type { GameInput, ServerMessage } from '@evolution/shared';
  * is where the entire client game loop + renderer lives:
  *
  *   - an input loop that builds the per-tick/turn `GameInput` and sends it via
- *     `opts.send(input)` (-> ws `player_input { payload }`),
- *   - a render loop that calls `opts.drainLatestSnapshot()` each frame to get
+ *     `options.send(input)` (-> ws `player_input { payload }`),
+ *   - a render loop that calls `options.drainLatestSnapshot()` each frame to get
  *     the freshest `game_snapshot` and draws it (canvas / DOM / Pixi / Three / text),
- *   - optional handling of non-snapshot server messages via `opts.messages$`
+ *   - optional handling of non-snapshot server messages via `options.messages$`
  *     (player_joined / player_disconnected / game-specific variants).
  *
  * It returns a teardown function the host component calls on destroy.
@@ -38,20 +38,20 @@ export type GameTeardown = () => void;
  * extension point. The default is an inert no-op so the template runs and the
  * lobby/connection flow can be exercised end-to-end with the echo GameModule.
  */
-export function setupGame(opts: GameSetupOptions): GameTeardown {
-  // TODO(game): subscribe to opts.messages$ for player_joined / player_disconnected
+export function setupGame(options: GameSetupOptions): GameTeardown {
+  // TODO(game): subscribe to options.messages$ for player_joined / player_disconnected
   //             and any game-specific server messages.
-  // TODO(game): start an input loop that calls opts.send(localInput) each tick/turn.
+  // TODO(game): start an input loop that calls options.send(localInput) each tick/turn.
   // TODO(game): start a render loop:
   //   const frame = () => {
-  //     const snap = opts.drainLatestSnapshot();
+  //     const snap = options.drainLatestSnapshot();
   //     if (snap && snap.type === 'game_snapshot') render(snap.snapshot);
   //     raf = requestAnimationFrame(frame);
   //   };
   //   let raf = requestAnimationFrame(frame);
 
   // No-op placeholder so the template is runnable before a game is defined.
-  void opts;
+  void options;
 
   return () => {
     // TODO(game): cancel loops, unsubscribe, release renderer resources here.

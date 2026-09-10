@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, playerId, gameId, isRoomJoinable } from '../types/common.js';
+import { clamp, entityId, gameId, isRoomJoinable, playerId, tick } from './common.js';
 
 describe('clamp', () => {
   it('returns the value when within range', () => {
@@ -24,19 +24,24 @@ describe('branded id factories', () => {
   it('return the underlying string unchanged at runtime', () => {
     expect(playerId('abc')).toBe('abc');
     expect(gameId('room-1')).toBe('room-1');
+    expect(entityId('cell-7')).toBe('cell-7');
+  });
+
+  it('return the underlying tick number unchanged at runtime', () => {
+    expect(tick(42)).toBe(42);
   });
 });
 
 describe('isRoomJoinable', () => {
   it('is joinable when not started and below capacity', () => {
-    expect(isRoomJoinable({ started: false, playerCount: 1, maxPlayers: 4 })).toBe(true);
+    expect(isRoomJoinable({ isStarted: false, playerCount: 1, maxPlayers: 4 })).toBe(true);
   });
 
   it('is not joinable once started', () => {
-    expect(isRoomJoinable({ started: true, playerCount: 1, maxPlayers: 4 })).toBe(false);
+    expect(isRoomJoinable({ isStarted: true, playerCount: 1, maxPlayers: 4 })).toBe(false);
   });
 
   it('is not joinable when at capacity', () => {
-    expect(isRoomJoinable({ started: false, playerCount: 4, maxPlayers: 4 })).toBe(false);
+    expect(isRoomJoinable({ isStarted: false, playerCount: 4, maxPlayers: 4 })).toBe(false);
   });
 });

@@ -1,50 +1,53 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { DebugContext } from '../debug-context.js';
+import { gameNotFoundResult, jsonResult } from '../tool-result.js';
 
-/** Generic, game-agnostic room/lobby visibility tools. */
-export function registerRoomTools(mcp: McpServer, ctx: DebugContext): void {
+function registerListGamesTool(mcp: McpServer, context: DebugContext): void {
   mcp.tool('debug_list_games', 'List all pending (lobby) and active games with player counts', () => {
-    const pending = Array.from(ctx.lobbyManager.listPendingGames().entries()).map(([id, g]) => ({
-      gameId: id,
+    const pending = Array.from(context.lobbyManager.listPendingGames(), ([gameId, game]) => ({
+      gameId,
       status: 'pending' as const,
-      gameName: g.gameName,
-      creatorId: g.creatorId,
-      playerCount: g.players.size,
-      maxPlayers: g.config.maxPlayers,
+      gameName: game.gameName,
+      creatorId: game.creatorId,
+      playerCount: game.players.size,
+      maxPlayers: game.config.maxPlayers,
     }));
-
-    const active = Array.from(ctx.lobbyManager.listActiveRooms().entries()).map(([id, room]) => ({
-      gameId: id,
+    const active = Array.from(context.lobbyManager.listActiveRooms(), ([gameId, room]) => ({
+      gameId,
       status: 'active' as const,
       gameName: room.gameName,
       creatorId: room.creatorId,
       playerCount: room.playerConnections.size,
       maxPlayers: room.sessionConfig.maxPlayers,
     }));
-
-    return { content: [{ type: 'text', text: JSON.stringify([...pending, ...active], null, 2) }] };
+    return jsonResult([...pending, ...active]);
   });
+}
 
+function registerGetRoomTool(mcp: McpServer, context: DebugContext): void {
   mcp.tool(
     'debug_get_room',
     'Get room membership metadata for an active game (connected, disconnected, and all player ids)',
     { gameId: z.string().describe('The game ID to inspect') },
-    (args) => {
-      const room = ctx.lobbyManager.getActiveRoom(args.gameId);
-      if (!room) {
-        return { content: [{ type: 'text', text: `Game "${args.gameId}" not found or not active` }], isError: true };
-      }
-      const state = {
-        gameId: args.gameId,
+    (input) => {
+      const room = context.lobbyManager.getActiveRoom(input.gameId);
+      if (!room) return gameNotFoundResult(input.gameId);
+      return jsonResult({
+        gameId: input.gameId,
         gameName: room.gameName,
         creatorId: room.creatorId,
         maxPlayers: room.sessionConfig.maxPlayers,
         connected: Array.from(room.playerConnections.keys()),
         disconnected: Array.from(room.disconnectedPlayers),
         allPlayerIds: room.allPlayerIds,
-      };
-      return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+      });
     },
   );
+}
+
+/** Generic, game-agnostic room/lobby visibility tools. */
+export function registerRoomTools(mcp: McpServer, context: DebugContext): void {
+  registerListGamesTool(mcp, context);
+  registerGetRoomTool(mcp, context);
 }
