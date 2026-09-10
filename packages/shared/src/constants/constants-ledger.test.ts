@@ -15,7 +15,7 @@ const DOCS_DIRECTORY = new URL('../../../../docs/', import.meta.url);
  */
 const CONSTANTS_TABLE_SOURCES = [
   { documentName: 'GAME-DESIGN.md', section: 12, expectedNames: 35 },
-  { documentName: 'ECOLOGY.md', section: 7, expectedNames: 70 },
+  { documentName: 'ECOLOGY.md', section: 7, expectedNames: 81 },
   { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16 },
   { documentName: 'TRAITS.md', section: 5, expectedNames: 7 },
 ] as const;
