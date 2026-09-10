@@ -10,19 +10,31 @@ import { mergeCommands, type PlayerScript, type ScriptContext } from './scripts.
 export const FIRST_STEP_TICK = 1;
 export const EVERY_TICK = 1;
 
-export interface ScheduledScript<Snapshot> {
-  readonly playerIndex: number;
+export interface ScheduleWindow {
   readonly fromTick: number;
   /** Inclusive; `null` runs to the end of the scenario. */
   readonly toTick: number | null;
   readonly everyTicks: number;
+}
+
+/** What the scenario stores: the script is built per run, so a stateful strategy starts fresh every run. */
+export interface ScheduledScript<Snapshot> extends ScheduleWindow {
+  readonly playerIndex: number;
+  readonly createScript: () => PlayerScript<Snapshot>;
+}
+
+/** One run's instance of a scheduled script. */
+export interface ActiveScript<Snapshot> extends ScheduleWindow {
+  readonly playerIndex: number;
   readonly script: PlayerScript<Snapshot>;
 }
 
+export function instantiateScripts<Snapshot>(entries: readonly ScheduledScript<Snapshot>[]): ActiveScript<Snapshot>[] {
+  return entries.map(({ createScript, ...window }) => ({ ...window, script: createScript() }));
+}
+
 /** Rejects a window that could never fire (tick 0, a reversed range, a non-positive stride). */
-export function validateScheduleWindow(
-  entry: Pick<ScheduledScript<unknown>, 'fromTick' | 'toTick' | 'everyTicks'>,
-): void {
+export function validateScheduleWindow(entry: ScheduleWindow): void {
   if (!Number.isInteger(entry.fromTick) || entry.fromTick < FIRST_STEP_TICK) {
     throw new ScenarioSetupError(
       `inputs apply from tick ${FIRST_STEP_TICK} (before the first step), got tick ${entry.fromTick}`,
@@ -36,7 +48,7 @@ export function validateScheduleWindow(
   }
 }
 
-export function isScriptDueAt<Snapshot>(entry: ScheduledScript<Snapshot>, stepTick: number): boolean {
+export function isScriptDueAt(entry: ScheduleWindow, stepTick: number): boolean {
   if (stepTick < entry.fromTick) {
     return false;
   }
@@ -48,10 +60,10 @@ export function isScriptDueAt<Snapshot>(entry: ScheduledScript<Snapshot>, stepTi
 
 /**
  * Every command due before `stepTick`, merged per player in schedule order (later entries win a
- * field; the sprint flag is OR-merged). Players are visited in index order so replays stay in join order.
+ * field; the one-shots are OR-merged). Players are visited in index order so replays stay in join order.
  */
 export function collectCommandsForTick<Snapshot>(
-  entries: readonly ScheduledScript<Snapshot>[],
+  entries: readonly ActiveScript<Snapshot>[],
   stepTick: number,
   contextFor: (playerIndex: number) => ScriptContext<Snapshot>,
 ): Map<number, PlayerCommand> {

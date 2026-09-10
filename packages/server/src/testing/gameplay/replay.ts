@@ -1,13 +1,21 @@
 // Replay and determinism checks (docs/DETERMINISM.md §5–6). A replay rebuilds the module from
-// the recorded seed, config and fixtures, feeds the recorded joins, leaves and inputs before the
-// ticks they were applied in, and hashes at the recorded checkpoints; the first checkpoint that
-// differs is the divergence, reported with the seed and the tick.
+// the recorded seed, config and fixtures, feeds the recorded joins, leaves, patches and inputs
+// before the ticks they were applied in, and hashes at the recorded checkpoints; the first
+// checkpoint that differs is the divergence, reported with the seed and the tick.
 
 import type { PlayerId, StateHash } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
-import { ScenarioDivergenceError, type HashDivergence } from './errors.js';
-import { MEMBERSHIP_EVENT_KIND, type ReplayCheckpoint, type ScenarioReplay } from './replay-format.js';
-import { runScenario, type RunOptions, type ScenarioDefinition, type ScenarioRun } from './runner.js';
+import { ScenarioDivergenceError, type HashDivergence, type ScenarioIdentity } from './errors.js';
+import {
+  indexByTick,
+  MEMBERSHIP_EVENT_KIND,
+  type ReplayCheckpoint,
+  type ReplayFixturePatch,
+  type ReplayInput,
+  type ReplayMembershipEvent,
+  type ScenarioReplay,
+} from './replay-format.js';
+import { runScenario, type ScenarioRunner } from './runner.js';
 import { ScenarioSession, type ScenarioPlayer } from './session.js';
 import { driveTicks } from './tick-driver.js';
 
@@ -73,20 +81,38 @@ export function playersOfReplay(replay: ScenarioReplay): ScenarioPlayer[] {
   return players;
 }
 
-/** Feeds the joins, leaves and inputs the recording stamped `stepTick`, in log order. */
+/** The recording bucketed by tick once, so feeding a step costs the events of that step only. */
+interface IndexedLog<Fixture> {
+  readonly membership: Map<number, ReplayMembershipEvent[]>;
+  readonly patches: Map<number, ReplayFixturePatch<Fixture>[]>;
+  readonly inputs: Map<number, ReplayInput[]>;
+}
+
+function indexLog<Fixture>(replay: ScenarioReplay<Fixture>): IndexedLog<Fixture> {
+  return {
+    membership: indexByTick(replay.membership),
+    patches: indexByTick(replay.patches),
+    inputs: indexByTick(replay.inputs),
+  };
+}
+
+/** Feeds the joins, leaves, patches and inputs the recording stamped `stepTick`, in log order. */
 function applyRecordedEvents<Input, Snapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
-  replay: ScenarioReplay<Fixture>,
+  log: IndexedLog<Fixture>,
   stepTick: number,
 ): void {
-  for (const event of replay.membership.filter((candidate) => candidate.tick === stepTick)) {
+  for (const event of log.membership.get(stepTick) ?? []) {
     if (event.kind === MEMBERSHIP_EVENT_KIND.join) {
       session.join(event);
     } else {
       session.leave(event);
     }
   }
-  for (const recorded of replay.inputs.filter((candidate) => candidate.tick === stepTick)) {
+  for (const patch of log.patches.get(stepTick) ?? []) {
+    session.patch(patch.fixture);
+  }
+  for (const recorded of log.inputs.get(stepTick) ?? []) {
     session.submitInput(recorded.playerId as PlayerId, recorded.input as Input);
   }
 }
@@ -103,6 +129,7 @@ export function replayScenario<Input, Snapshot, Fixture>(
     players: playersOfReplay(replay),
     fixtures: replay.fixtures,
   });
+  const log = indexLog(replay);
   const checkpointTicks = new Set(replay.checkpoints.map((checkpoint) => checkpoint.tick));
   const observe = (tick: number): void => {
     if (checkpointTicks.has(tick)) {
@@ -111,7 +138,7 @@ export function replayScenario<Input, Snapshot, Fixture>(
   };
   observe(session.tick);
   driveTicks(replay.finalTick, {
-    beforeStep: (stepTick) => applyRecordedEvents(session, replay, stepTick),
+    beforeStep: (stepTick) => applyRecordedEvents(session, log, stepTick),
     step: () => session.step(),
     afterStep: observe,
   });
@@ -123,29 +150,27 @@ export function replayScenario<Input, Snapshot, Fixture>(
   };
 }
 
+function throwIfDiverged(identity: ScenarioIdentity, divergence: HashDivergence | null): void {
+  if (divergence !== null) {
+    throw new ScenarioDivergenceError(identity, divergence);
+  }
+}
+
 /** `replayScenario`, throwing `ScenarioDivergenceError` when the recording is not reproduced. */
 export function verifyReplay<Input, Snapshot, Fixture>(
   replay: ScenarioReplay<Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
 ): ReplayVerdict {
   const verdict = replayScenario(replay, adapter);
-  if (verdict.divergence !== null) {
-    throw new ScenarioDivergenceError({ scenarioName: replay.scenarioName, seed: replay.seed }, verdict.divergence);
-  }
+  throwIfDiverged({ scenarioName: replay.scenarioName, seed: replay.seed }, verdict.divergence);
   return verdict;
 }
 
-/** Runs the scenario twice from scratch; the checkpoints must agree tick for tick. */
-export function assertDeterministic<Input, Snapshot, Fixture>(
-  definition: ScenarioDefinition<Snapshot, Fixture>,
-  adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
-  options: RunOptions = {},
-): ScenarioRun<Snapshot, Fixture> {
+/** Runs the scenario twice from scratch (fresh bots, fresh streams); the checkpoints must agree tick for tick. */
+export const assertDeterministic: ScenarioRunner = (definition, adapter, options = {}) => {
   const firstRun = runScenario(definition, adapter, options);
   const secondRun = runScenario(definition, adapter, options);
   const divergence = findFirstDivergence(firstRun.checkpoints, secondRun.checkpoints);
-  if (divergence !== null) {
-    throw new ScenarioDivergenceError({ scenarioName: definition.name, seed: definition.seed }, divergence);
-  }
+  throwIfDiverged({ scenarioName: definition.name, seed: definition.seed }, divergence);
   return firstRun;
-}
+};

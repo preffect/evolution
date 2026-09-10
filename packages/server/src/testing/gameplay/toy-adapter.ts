@@ -23,15 +23,15 @@ export interface ToySnapshot {
   readonly cells: Readonly<Record<string, ToyCell>>;
 }
 
-/** Puts a player's point somewhere before tick 1. */
+/** Puts a player's point somewhere before the tick it is stamped with (setup or scheduled). */
 export interface ToyFixture {
-  readonly playerId: PlayerId;
+  readonly playerIndex: number;
   readonly at: Vec2;
 }
 
 export interface ToyModule extends GameModule {
   readonly snapshot: ToySnapshot;
-  place(fixture: ToyFixture): void;
+  place(playerId: PlayerId, point: Vec2): void;
 }
 
 export const TOY_SPEED_WU_PER_TICK = 1;
@@ -90,8 +90,8 @@ export function createToyModule(playerIds: readonly PlayerId[], seed: number): T
     removePlayer: (playerId) => {
       cells.delete(playerId);
     },
-    place: (fixture) => {
-      cells.set(fixture.playerId, placed(requireCell(fixture.playerId), fixture.at));
+    place: (playerId, point) => {
+      cells.set(playerId, placed(requireCell(playerId), point));
     },
   };
 }
@@ -108,7 +108,8 @@ export const toyAdapter: ScenarioAdapter<ToyInput, ToySnapshot, ToyFixture> = {
     const cell = snapshot.cells[playerId];
     return cell === undefined ? undefined : { x: cell.x, y: cell.y, radiusWu: TOY_RADIUS_WU };
   },
-  applyFixture: (module, fixture) => asToyModule(module).place(fixture),
+  applyFixture: (module, fixture, context) =>
+    asToyModule(module).place(context.playerId(fixture.playerIndex), fixture.at),
 };
 
 export const toyScenario = createScenarioDsl(toyAdapter);

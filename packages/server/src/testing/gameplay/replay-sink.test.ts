@@ -19,6 +19,7 @@ const REPLAY: ScenarioReplay = {
   roster: [],
   fixtures: [],
   membership: [],
+  patches: [],
   inputs: [],
   checkpoints: [],
   finalTick: 0,

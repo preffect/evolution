@@ -238,8 +238,9 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   `debug_export_replay` exports a live room.
 - Until `game/replay/` lands with the module, the scenario runner (#75) keeps its own record of
   the same shape at the harness level (`packages/server/src/testing/gameplay/replay-format.ts`:
-  seed, config, fixtures, membership and inputs stamped by applied tick, hash checkpoints) and
-  `verifyReplay` replays it through the adapter; `TESTING.md` §8.2.
+  seed, config, setup fixtures, membership, scheduled fixtures as `patches` (this record's
+  `debugPatches`) and inputs stamped by applied tick, hash checkpoints) and `verifyReplay`
+  replays it through the adapter; `TESTING.md` §8.2.
 
 ## 7. What the tests assert
 

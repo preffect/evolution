@@ -18,8 +18,19 @@ export const GAMEPLAY_TEST_GLOBS = ['src/**/*.gameplay.test.ts'];
 /** Everything the opt-in `./validate.sh integration` run executes. */
 export const OPT_IN_TEST_GLOBS = [...INTEGRATION_TEST_GLOBS, ...GAMEPLAY_TEST_GLOBS];
 
-/** Not logic: barrels, the composition roots named `index.ts`, builders, declarations and the tests themselves. */
-export const COVERAGE_EXCLUDE = [...UNIT_TEST_GLOBS, 'src/**/index.ts', 'src/testing/**', 'src/**/*.d.ts'];
+/**
+ * The test doubles under `src/testing/` that hold no logic: the builders, the fake socket and the
+ * gameplay scenario tables (docs/TESTING.md §4). The gameplay framework itself
+ * (`src/testing/gameplay/**`) is real logic and is measured like any other source.
+ */
+export const TEST_DOUBLE_GLOBS = [
+  'src/testing/builders.ts',
+  'src/testing/fake-websocket.ts',
+  'src/testing/scenarios/**',
+];
+
+/** Not logic: barrels, the composition roots named `index.ts`, the test doubles, declarations and the tests themselves. */
+export const COVERAGE_EXCLUDE = [...UNIT_TEST_GLOBS, 'src/**/index.ts', ...TEST_DOUBLE_GLOBS, 'src/**/*.d.ts'];
 
 /** `include` / `exclude` for the tier this run is in. The opt-in tier passes when a package has none yet. */
 export function testTierOptions(): Pick<TestOptions, 'include' | 'exclude' | 'passWithNoTests'> {

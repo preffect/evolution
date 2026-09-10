@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { playerId } from '@evolution/shared';
+import { createSeededRandom, playerId } from '@evolution/shared';
 import type { CellLocation } from './adapter.js';
-import { ScenarioSetupError } from './errors.js';
 import {
   chooseTrait,
   combineScripts,
@@ -15,10 +14,21 @@ import {
   type ScriptContext,
 } from './scripts.js';
 
+const SEED = 42;
 const CELL: CellLocation = { x: 100, y: 50, radiusWu: 10 };
+const PICK = { offerId: 1, cardIndex: 2 };
 
 function contextWith(cell: CellLocation | undefined): ScriptContext<null> {
-  return { tick: 4, stepTick: 5, playerIndex: 0, playerId: playerId('player_0'), snapshot: null, cell };
+  return {
+    tick: 4,
+    stepTick: 5,
+    playerIndex: 0,
+    playerId: playerId('player_0'),
+    snapshot: null,
+    cell,
+    seed: SEED,
+    random: createSeededRandom(SEED),
+  };
 }
 
 describe('mergeCommands', () => {
@@ -33,6 +43,16 @@ describe('mergeCommands', () => {
     });
     expect(mergeCommands({ targetX: 1 }, { isSprinting: true })).toEqual({ targetX: 1, isSprinting: true });
   });
+
+  it('keeps a trait pick from either side; a later pick replaces an earlier one', () => {
+    expect(mergeCommands({ traitChoice: PICK }, { traitChoice: null })).toEqual({ traitChoice: PICK });
+    expect(mergeCommands({ traitChoice: null }, { traitChoice: PICK })).toEqual({ traitChoice: PICK });
+    expect(mergeCommands({ traitChoice: PICK }, { traitChoice: { offerId: 2, cardIndex: 0 } })).toEqual({
+      traitChoice: { offerId: 2, cardIndex: 0 },
+    });
+    expect(mergeCommands({ traitChoice: null }, { targetX: 1 })).toStrictEqual({ traitChoice: null, targetX: 1 });
+    expect(mergeCommands({ targetX: 1 }, { targetY: 2 })).toStrictEqual({ targetX: 1, targetY: 2 });
+  });
 });
 
 describe('scripts', () => {
@@ -40,9 +60,9 @@ describe('scripts', () => {
     expect(targetRadiiEast(5)(contextWith(CELL))).toEqual({ targetX: 150, targetY: 50 });
   });
 
-  it('targetRadiiEast fails the scenario when the player has no cell', () => {
-    expect(() => targetRadiiEast(5)(contextWith(undefined))).toThrow(ScenarioSetupError);
-    expect(() => targetRadiiEast(5)(contextWith(undefined))).toThrow(/player 0 has no cell at tick 4/);
+  it('cell-relative scripts send nothing when the player has no cell this tick', () => {
+    expect(targetRadiiEast(5)(contextWith(undefined))).toBeNull();
+    expect(targetRadiiAwayFrom(2, { x: 0, y: 0 })(contextWith(undefined))).toBeNull();
   });
 
   it('targetRadiiAwayFrom targets N radii along the line away from a point', () => {
@@ -57,9 +77,7 @@ describe('scripts', () => {
   it('targetPoint, sprint, chooseTrait and command are literal', () => {
     expect(targetPoint(1, 2)(contextWith(undefined))).toEqual({ targetX: 1, targetY: 2 });
     expect(sprint()(contextWith(undefined))).toEqual({ isSprinting: true });
-    expect(chooseTrait({ offerId: 1, cardIndex: 2 })(contextWith(undefined))).toEqual({
-      traitChoice: { offerId: 1, cardIndex: 2 },
-    });
+    expect(chooseTrait(PICK)(contextWith(undefined))).toEqual({ traitChoice: PICK });
     expect(command({ targetX: 9 })(contextWith(undefined))).toEqual({ targetX: 9 });
   });
 

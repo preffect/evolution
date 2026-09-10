@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { playerId } from '@evolution/shared';
+import { createSeededRandom, playerId } from '@evolution/shared';
 import { ScenarioSetupError } from './errors.js';
-import { collectCommandsForTick, isScriptDueAt, validateScheduleWindow, type ScheduledScript } from './schedule.js';
+import {
+  collectCommandsForTick,
+  instantiateScripts,
+  isScriptDueAt,
+  validateScheduleWindow,
+  type ActiveScript,
+} from './schedule.js';
 import type { ScriptContext } from './scripts.js';
 
-function entry(overrides: Partial<ScheduledScript<null>>): ScheduledScript<null> {
+const SEED = 42;
+
+function entry(overrides: Partial<ActiveScript<null>>): ActiveScript<null> {
   return { playerIndex: 0, fromTick: 1, toTick: null, everyTicks: 1, script: () => null, ...overrides };
 }
 
@@ -16,6 +24,8 @@ function contextFor(playerIndex: number): ScriptContext<null> {
     playerId: playerId(`player_${playerIndex}`),
     snapshot: null,
     cell: undefined,
+    seed: SEED,
+    random: createSeededRandom(SEED),
   };
 }
 
@@ -42,6 +52,27 @@ describe('isScriptDueAt', () => {
   it('fires from the start tick on a stride, until the end tick inclusive', () => {
     const strided = entry({ fromTick: 10, toTick: 70, everyTicks: 30 });
     expect([9, 10, 40, 70, 100].map((tick) => isScriptDueAt(strided, tick))).toEqual([false, true, true, true, false]);
+  });
+});
+
+describe('instantiateScripts', () => {
+  it('builds every script once per call and keeps the window', () => {
+    let built = 0;
+    const scheduled = {
+      playerIndex: 1,
+      fromTick: 2,
+      toTick: 9,
+      everyTicks: 3,
+      createScript: () => {
+        built += 1;
+        return () => null;
+      },
+    };
+    const [first] = instantiateScripts([scheduled]);
+    instantiateScripts([scheduled]);
+    expect(built).toBe(2);
+    expect(first).toMatchObject({ playerIndex: 1, fromTick: 2, toTick: 9, everyTicks: 3 });
+    expect(first?.script(contextFor(1))).toBeNull();
   });
 });
 

@@ -1,7 +1,8 @@
 // The adapter for the template's echo module (docs/TESTING.md §8): it proves the harness before
 // any rule exists. The echo game has no world, so the hash is the FNV lanes over the bytes of
-// `JSON.stringify(serializeRoomState())` (docs/DETERMINISM.md §7), cells cannot be located and
-// nothing can be placed. #98 replaces this with the Evolution adapter.
+// `JSON.stringify(serializeRoomState())` (docs/DETERMINISM.md §7), cells cannot be located (a
+// script that needs one fails the run, it does not idle) and nothing can be placed. #98 replaces
+// this with the Evolution adapter.
 
 import { hashText, type PlayerId, type StateHash } from '@evolution/shared';
 import { defaultGameModuleFactory, type GameModule } from '../../game/game-module.js';
@@ -20,6 +21,8 @@ export interface EchoSnapshot {
   readonly players: Readonly<Record<string, EchoInput | null>>;
 }
 
+const NO_WORLD = 'the echo module has no world';
+
 export function hashEchoSnapshot(snapshot: EchoSnapshot): StateHash {
   return hashText(JSON.stringify(snapshot));
 }
@@ -30,9 +33,13 @@ export const echoAdapter: ScenarioAdapter<EchoInput, EchoSnapshot, never> = {
   readSnapshot: (module) => module.serializeRoomState() as EchoSnapshot,
   hashState: (module) => hashEchoSnapshot(module.serializeRoomState() as EchoSnapshot),
   toInput: (playerCommand, sequence) => ({ ...playerCommand, sequence }),
-  locateCell: () => undefined,
+  locateCell: (): never => {
+    throw new ScenarioSetupError(
+      `${NO_WORLD}: cells cannot be located; use targetPoint or the Evolution adapter (#98)`,
+    );
+  },
   applyFixture: () => {
-    throw new ScenarioSetupError('the echo module has no world: placed fixtures need the Evolution adapter (#98)');
+    throw new ScenarioSetupError(`${NO_WORLD}: placed fixtures need the Evolution adapter (#98)`);
   },
 };
 

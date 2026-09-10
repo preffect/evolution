@@ -43,9 +43,12 @@ describe('echoAdapter', () => {
     expect(hashEchoSnapshot(snapshot)).toHaveLength(16);
   });
 
-  it('has no cells to locate and no world to place fixtures in', () => {
+  it('says loudly that it has no cells to locate and no world to place fixtures in', () => {
     const module = echoAdapter.createModule(OPTIONS);
-    expect(echoAdapter.locateCell(echoAdapter.readSnapshot(module), OPTIONS.creatorId)).toBeUndefined();
-    expect(() => echoAdapter.applyFixture(module, undefined as never)).toThrow(ScenarioSetupError);
+    const snapshot = echoAdapter.readSnapshot(module);
+    const context = { tick: 0, playerId: () => OPTIONS.creatorId };
+    expect(() => echoAdapter.locateCell(snapshot, OPTIONS.creatorId)).toThrow(ScenarioSetupError);
+    expect(() => echoAdapter.locateCell(snapshot, OPTIONS.creatorId)).toThrow(/the echo module has no world/);
+    expect(() => echoAdapter.applyFixture(module, undefined as never, context)).toThrow(ScenarioSetupError);
   });
 });

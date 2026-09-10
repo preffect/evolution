@@ -9,69 +9,46 @@
 // `createScenarioDsl(adapter)` binds the builder to a module; `echo-adapter.ts` exports the
 // binding for the template's echo game, #98 adds the Evolution one.
 
-import { AVATAR_INDEX_MAX, MAX_PLAYERS_PER_GAME, playerId, type GameSessionConfig } from '@evolution/shared';
+import { MAX_PLAYERS_PER_GAME, type GameSessionConfig } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
-import { strategyScript, type BotStrategy } from './bots.js';
+import { strategyScript, type BotStrategyFactory } from './bots.js';
 import { ScenarioSetupError } from './errors.js';
-import { ExpectationBuilder } from './expectation-builder.js';
-import type { Expectation, Selector } from './expectations.js';
-import {
-  placeCell,
-  placeFragment,
-  placeMote,
-  PLACED_KIND,
-  type PlacedCell,
-  type PlacedFixture,
-  type PlaceCellOptions,
-  type PlaceFragmentOptions,
-  type PlaceMoteOptions,
-} from './fixtures.js';
+import { CaptureBuilder, ExpectationBuilder } from './expectation-builder.js';
+import type { Capture, Expectation, Selector } from './expectations.js';
+import type { PlacedFixture, PlaceCellOptions, PlaceFragmentOptions, PlaceMoteOptions } from './fixtures.js';
+import { FixtureScheduler, type FixtureRegistry } from './placement-builder.js';
+import { createScenarioPlayer, type PlayerScriptEntry } from './players.js';
 import { assertDeterministic } from './replay.js';
-import { runScenario, type RunOptions, type ScenarioDefinition, type ScenarioRun } from './runner.js';
-import { EVERY_TICK, FIRST_STEP_TICK, validateScheduleWindow, type ScheduledScript } from './schedule.js';
-import type { PlayerScript } from './scripts.js';
+import {
+  runScenario,
+  type RunOptions,
+  type ScenarioDefinition,
+  type ScenarioRun,
+  type ScheduledFixture,
+} from './runner.js';
+import { validateDefinition } from './scenario-validation.js';
+import {
+  EVERY_TICK,
+  FIRST_STEP_TICK,
+  validateScheduleWindow,
+  type ScheduledScript,
+  type ScheduleWindow,
+} from './schedule.js';
 import type { ScenarioPlayer } from './session.js';
 
 /** Checkpoint cadence by default; `hashEvery(1)` bisects a divergence to the exact tick. */
 export const DEFAULT_HASH_EVERY_TICKS = 600;
-const PLAYER_ID_PREFIX = 'player_';
-const AVATAR_COUNT = AVATAR_INDEX_MAX + 1;
-
-export interface PlayerScriptEntry<Snapshot> {
-  readonly playerIndex: number;
-  readonly script: PlayerScript<Snapshot>;
-}
-
-export interface PlayerHandle {
-  does<Snapshot>(script: PlayerScript<Snapshot>): PlayerScriptEntry<Snapshot>;
-}
-
-/** `player(1).does(targetRadiiEast(5))` names who a script drives. */
-export function player(playerIndex: number): PlayerHandle {
-  return { does: (script) => ({ playerIndex, script }) };
-}
-
-export function scenarioPlayerId(playerIndex: number) {
-  return playerId(`${PLAYER_ID_PREFIX}${playerIndex}`);
-}
-
-function createScenarioPlayer(playerIndex: number, joinTick: number): ScenarioPlayer {
-  return {
-    playerIndex,
-    playerId: scenarioPlayerId(playerIndex),
-    playerName: `Player ${playerIndex}`,
-    avatarIndex: playerIndex % AVATAR_COUNT,
-    joinTick,
-    leaveTick: null,
-  };
-}
+const SETUP_TICK = 0;
+const MIN_PLAYERS = 1;
 
 export class ScenarioBuilder<Input, Snapshot, Fixture> {
   private seedValue: number | null = null;
   private configValue: GameSessionConfig = { maxPlayers: MAX_PLAYERS_PER_GAME };
   private readonly playerList: ScenarioPlayer[] = [];
   private readonly fixtureList: Fixture[] = [];
+  private readonly scheduledFixtureList: ScheduledFixture<Fixture>[] = [];
   private readonly scriptList: ScheduledScript<Snapshot>[] = [];
+  private readonly captureList: Capture<Snapshot>[] = [];
   private readonly expectationList: Expectation<Snapshot>[] = [];
   private totalTicks = 0;
   private hashEveryTicks = DEFAULT_HASH_EVERY_TICKS;
@@ -94,8 +71,11 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
 
   /** `count` players present from tick 0, indices 0 … count − 1. */
   players(count: number): this {
+    if (!Number.isInteger(count) || count < MIN_PLAYERS) {
+      throw new ScenarioSetupError(`players() takes a whole number of at least ${MIN_PLAYERS}, got ${count}`);
+    }
     for (let index = 0; index < count; index += 1) {
-      this.playerList.push(createScenarioPlayer(this.playerList.length, 0));
+      this.playerList.push(createScenarioPlayer(this.playerList.length, SETUP_TICK));
     }
     return this;
   }
@@ -111,30 +91,41 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
   playerLeavesAt(tick: number, playerIndex: number): this {
     validateScheduleWindow({ fromTick: tick, toTick: null, everyTicks: EVERY_TICK });
     const current = this.requirePlayer(playerIndex);
+    if (tick <= current.joinTick) {
+      throw new ScenarioSetupError(
+        `player ${playerIndex} cannot leave at tick ${tick}: it joins at tick ${current.joinTick}`,
+      );
+    }
     this.playerList[playerIndex] = { ...current, leaveTick: tick };
     return this;
   }
 
+  /** A setup fixture, applied before tick 1. */
   place(fixture: Fixture): this {
-    this.fixtureList.push(fixture);
-    return this;
+    return this.fixturesAt(SETUP_TICK).place(fixture);
   }
 
   placeCell(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>, options: PlaceCellOptions): typeof this {
-    this.requirePlayer(options.playerIndex);
-    return this.place(placeCell(options, this.firstPlacedCell()));
+    return this.fixturesAt(SETUP_TICK).placeCell(options);
   }
 
   placeMote(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>, options: PlaceMoteOptions): typeof this {
-    return this.place(placeMote(options, this.firstPlacedCell()));
+    return this.fixturesAt(SETUP_TICK).placeMote(options);
   }
 
   placeFragment(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>, options: PlaceFragmentOptions): typeof this {
-    return this.place(placeFragment(options, this.firstPlacedCell()));
+    return this.fixturesAt(SETUP_TICK).placeFragment(options);
   }
 
-  /** The script runs once, before step `tick`. */
-  atTick(tick: number, entry: PlayerScriptEntry<Snapshot>): this {
+  /** `.atTick(T).placeMote(...)`: a fixture applied before step `T`, after that tick's joins and leaves. */
+  atTick(tick: number): FixtureScheduler<Fixture, this>;
+  /** `.atTick(T, player(i).does(script))`: the script runs once, before step `T`. */
+  atTick(tick: number, entry: PlayerScriptEntry<Snapshot>): this;
+  atTick(tick: number, entry?: PlayerScriptEntry<Snapshot>): FixtureScheduler<Fixture, this> | this {
+    if (entry === undefined) {
+      validateScheduleWindow({ fromTick: tick, toTick: tick, everyTicks: EVERY_TICK });
+      return this.fixturesAt(tick);
+    }
     return this.schedule({ fromTick: tick, toTick: tick, everyTicks: EVERY_TICK }, entry);
   }
 
@@ -153,9 +144,18 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     return this.schedule({ fromTick, toTick: null, everyTicks }, entry);
   }
 
-  /** A strategy-driven player, deciding every `everyTicks` from tick 1. */
-  bot(playerIndex: number, strategy: BotStrategy<Snapshot>, everyTicks = EVERY_TICK): this {
-    return this.every(everyTicks, { playerIndex, script: strategyScript(strategy) });
+  /** A strategy-driven player, deciding every `everyTicks` from the tick it is present (1, or its join). */
+  bot(playerIndex: number, createStrategy: BotStrategyFactory<Snapshot>, everyTicks = EVERY_TICK): this {
+    const fromTick = Math.max(FIRST_STEP_TICK, this.requirePlayer(playerIndex).joinTick);
+    validateScheduleWindow({ fromTick, toTick: null, everyTicks });
+    this.scriptList.push({
+      fromTick,
+      toTick: null,
+      everyTicks,
+      playerIndex,
+      createScript: () => strategyScript(createStrategy()),
+    });
+    return this;
   }
 
   advance(ticks: number): this {
@@ -181,21 +181,34 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     });
   }
 
+  /** `.capture('mass at removal', selector).atTick(2399)`, read back later as `view.captured(label)`. */
+  capture(label: string, select: Selector<Snapshot, unknown>): CaptureBuilder<Snapshot, this> {
+    return new CaptureBuilder(label, select, (capture) => {
+      this.captureList.push(capture);
+      return this;
+    });
+  }
+
+  /** Throws `ScenarioSetupError` for anything that could never run as written (`scenario-validation.ts`). */
   build(): ScenarioDefinition<Snapshot, Fixture> {
     if (this.seedValue === null) {
       throw new ScenarioSetupError(`scenario "${this.name}" has no seed: every scenario pins one (.seed(42))`);
     }
-    return {
+    const definition: ScenarioDefinition<Snapshot, Fixture> = {
       name: this.name,
       seed: this.seedValue,
       config: this.configValue,
       players: [...this.playerList],
       fixtures: [...this.fixtureList],
+      scheduledFixtures: [...this.scheduledFixtureList],
       scripts: [...this.scriptList],
+      captures: [...this.captureList],
       expectations: [...this.expectationList],
       totalTicks: this.totalTicks,
       hashEveryTicks: this.hashEveryTicks,
     };
+    validateDefinition(definition);
+    return definition;
   }
 
   /** Runs once; throws `ScenarioAssertionError` listing every failed expectation. */
@@ -208,13 +221,10 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     return assertDeterministic(this.build(), this.adapter, this.runOptions);
   }
 
-  private schedule(
-    window: Pick<ScheduledScript<Snapshot>, 'fromTick' | 'toTick' | 'everyTicks'>,
-    entry: PlayerScriptEntry<Snapshot>,
-  ): this {
+  private schedule(window: ScheduleWindow, entry: PlayerScriptEntry<Snapshot>): this {
     validateScheduleWindow(window);
     this.requirePlayer(entry.playerIndex);
-    this.scriptList.push({ ...window, playerIndex: entry.playerIndex, script: entry.script });
+    this.scriptList.push({ ...window, playerIndex: entry.playerIndex, createScript: () => entry.script });
     return this;
   }
 
@@ -228,8 +238,22 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     return found;
   }
 
-  private firstPlacedCell(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>): PlacedCell | undefined {
-    return this.fixtureList.find((fixture): fixture is PlacedCell => fixture.kind === PLACED_KIND.cell);
+  private fixturesAt(tick: number): FixtureScheduler<Fixture, this> {
+    const registry: FixtureRegistry<Fixture, this> = {
+      register: (atTick, fixture) => {
+        if (atTick === SETUP_TICK) {
+          this.fixtureList.push(fixture);
+        } else {
+          this.scheduledFixtureList.push({ tick: atTick, fixture });
+        }
+        return this;
+      },
+      requirePlayer: (playerIndex) => {
+        this.requirePlayer(playerIndex);
+      },
+      fixtures: () => [...this.fixtureList, ...this.scheduledFixtureList.map((scheduled) => scheduled.fixture)],
+    };
+    return new FixtureScheduler(tick, registry);
   }
 }
 
