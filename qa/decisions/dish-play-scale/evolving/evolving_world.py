@@ -93,7 +93,7 @@ def render(sim):
         o.append(f'<rect x="{x_of(a):.1f}" y="{lane_y - 9}" width="{x_of(b) - x_of(a):.1f}" height="18" rx="9" fill="{STAGE_COLOURS[i]}" opacity="0.28"/>')
         label = f"{name} · {pm.mmss(a)}–{pm.mmss(b)}" if x_of(b) - x_of(a) > 160 else name
         o.append(text((x_of(a) + x_of(b)) / 2, lane_y + 4, label, 11, STAGE_COLOURS[i], anchor="middle", weight="bold"))
-    o.append(text(x_of(ROUND_S) + 8, lane_y + 4, "specialised at 12:00 (longer rounds only)", 10, MUTED))
+    o.append(text(x_of(ROUND_S) + 8, lane_y + 4, "specialised at 15:00 (longer rounds only)", 10, MUTED))
     # what the stage drives, one line under the lane
     drives = [
         ("algae 0.75 · clusters plain in the broth · wild cells wander + flee", 0),

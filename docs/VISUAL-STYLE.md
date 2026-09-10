@@ -306,6 +306,12 @@ dish stays the brightest thing on screen.
 
 ## 8. Performance intent: geometry, textures, shaders
 
+> **Superseded in means, not in intent, by [`RENDERING.md`](./RENDERING.md) (#120):** cells are one quad + fragment
+> shader each (the layer stack as distance bands, deformations as terms of `r(θ)`), organelles are sprites mapped
+> through the deformation, cilia and speckle are shader patterns. The rules below that say _what_ is cached and
+> _what_ is never done per frame still hold; the "36-point `Graphics` membrane" and "one shader effect" lines are
+> the pre-#120 plan.
+
 The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes). To hold it:
 
 - **Built once, blitted per frame (render textures):** the dish field with its light pool, caustics,

@@ -6,7 +6,7 @@ with the cell's sweep (radius), a vent / shallows trip after the first draft, ab
 cell is heavy enough to hunt, mass decay, and the bloom. Ladder rungs follow the design rule: one
 rung per level-up once its prerequisite is met (the rung card).
 
-Usage: python3 timeline.py <out-dir>
+Usage: python3 pace_model.py <out-dir>
 """
 import math
 import sys
