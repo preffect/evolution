@@ -126,7 +126,7 @@ mass' = max(CELL_STARTING_MASS, mass − decayPerSecond × TICK_INTERVAL_S − m
 ```
 
 Drained mass is lost to the dish. The step runs after eating and before the engulf update
-([`init-game.md §3`](../init-game.md#3-server-edits), fixed step order), which is why a predator that
+([`ARCHITECTURE.md`](./ARCHITECTURE.md), fixed step order), which is why a predator that
 starts an engulf on tick _t_ first pays the spike drain on tick _t_ + 1.
 
 ## 5. Size, mass and speed
@@ -361,7 +361,7 @@ the design docs (GAME-DESIGN §13, PROGRESSION §7, TRAITS §6):
 - **Decay is never disabled.** Placed cells decay from tick 1 and expected masses include it:
   `decayed(m, n, k = 1) = CELL_STARTING_MASS + (m − CELL_STARTING_MASS) × (1 − MASS_DECAY_RATE_PER_SECOND × k / 60)^n`
   (k = the zone × trait decay multiplier). Mass assertions are ± 0.01 unless the row says otherwise.
-- **Expected values assume the fixed step order** of [`init-game.md §3`](../init-game.md#3-server-edits)
+- **Expected values assume the fixed step order** of [`ARCHITECTURE.md`](./ARCHITECTURE.md)
   (inputs, round, movement, eating, metabolism, engulf, progression, spawners, respawn, leaderboard).
   In particular eating precedes decay within a tick, and metabolism precedes the engulf check, so a
   placed predator has already decayed when its first eligibility check runs.

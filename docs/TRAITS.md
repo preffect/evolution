@@ -81,7 +81,7 @@ give: category, rarity, tags, exclusion group, `stage`, `requires`.
 ### 3.0 What each stage looks like
 
 The protocell is the level-1 baseline; every rung adds something the renderer must show
-(`render/cell-layer.ts`, [`init-game.md §4`](../init-game.md#4-client-edits)):
+(`render/cell-layer.ts`, [`ARCHITECTURE.md`](./ARCHITECTURE.md)):
 
 | Stage / trait      | On screen                                                                                                                                                |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |

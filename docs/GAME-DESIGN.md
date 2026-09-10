@@ -12,7 +12,8 @@ below hold the numbers for their domain (one fact, one home).
 | [`PROGRESSION.md`](./PROGRESSION.md) | DNA, tags, level thresholds, draft rules filtered by the ladder, late-join catch-up                    | #24           |
 | [`TRAITS.md`](./TRAITS.md)           | Modifier model, the sixteen build-1 traits (organelles and forms) mapped onto the ladder, later traits | #25           |
 
-Build plan generated from these: [`../init-game.md`](../init-game.md) (#21). Still to come under this
+Technical contracts and the file plan: [`ARCHITECTURE.md`](./ARCHITECTURE.md) (#112); the build itself is
+epic #96 and its tickets (planning lives in GitHub issues, never in a markdown plan). Still to come under this
 epic: `VISUAL-STYLE.md` (#34), `UI.md` (#30), multi-cell organisms (#28), cross-player fusion decision
 (#79), audio manifest (#35).
 
@@ -268,17 +269,17 @@ build-1 defaults; `data/balance.json` (if #72 adopts it) is generated from these
 other way round. Values that follow from other constants (for example the per-tick steer blend) are
 derived in code and never listed here.
 
-### Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`init-game.md §2`](../init-game.md#2-shared-type-edits--packagessharedsrctypesmessagests-and-typesgamets))
+### Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`ARCHITECTURE.md`](./ARCHITECTURE.md))
 
 The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
 
-| Constant               | File         | Value | Unit    | Meaning                                                                           |
-| ---------------------- | ------------ | ----- | ------- | --------------------------------------------------------------------------------- |
-| `TICK_HZ`              | `network.ts` | 60    | Hz      | Fixed step; `TICK_INTERVAL_MS` is derived beside it.                              |
-| `DISCONNECT_GRACE_MS`  | `network.ts` | 30000 | ms      | Section 5.2.                                                                      |
-| `MAX_PLAYERS_PER_GAME` | `lobby.ts`   | 8     | players | Upper bound for `maxPlayers`; also the palette count.                             |
-| `MIN_PLAYERS_PER_GAME` | `lobby.ts`   | 1     | players | Lower bound for `maxPlayers`.                                                     |
-| `AVATAR_INDEX_MAX`     | `lobby.ts`   | 7     | index   | Was 5; eight archetypes ([`init-game.md §1`](../init-game.md#1-game-definition)). |
+| Constant               | File         | Value | Unit    | Meaning                                               |
+| ---------------------- | ------------ | ----- | ------- | ----------------------------------------------------- |
+| `TICK_HZ`              | `network.ts` | 60    | Hz      | Fixed step; `TICK_INTERVAL_MS` is derived beside it.  |
+| `DISCONNECT_GRACE_MS`  | `network.ts` | 30000 | ms      | Section 5.2.                                          |
+| `MAX_PLAYERS_PER_GAME` | `lobby.ts`   | 8     | players | Upper bound for `maxPlayers`; also the palette count. |
+| `MIN_PLAYERS_PER_GAME` | `lobby.ts`   | 1     | players | Lower bound for `maxPlayers`.                         |
+| `AVATAR_INDEX_MAX`     | `lobby.ts`   | 7     | index   | Was 5; eight archetypes (eight player palettes, §1).  |
 
 ### `world.ts`
 

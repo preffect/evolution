@@ -1,9 +1,9 @@
 # Evolution
 
 > **Status: designed, not yet built.** Evolution still runs the template's placeholder **echo**
-> game. The design is in [`docs/GAME-DESIGN.md`](./docs/GAME-DESIGN.md) (with companions
-> `ECOLOGY.md`, `PROGRESSION.md`, `TRAITS.md`) and the build plan in [`init-game.md`](./init-game.md);
-> groundwork and build phases are GitHub epics (see [`WORKFLOW.md`](./WORKFLOW.md)).
+> game. The design is [`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md) with companions `ECOLOGY.md`,
+> `PROGRESSION.md` and `TRAITS.md`; architecture in `docs/ARCHITECTURE.md`. Build phases are GitHub
+> epics (see [`docs/WORKFLOW.md`](docs/WORKFLOW.md)); build 1 is epic #96.
 > Scaffolded from the `base-multiplayer-game` template; template-level fixes go upstream there.
 
 **The game:** you are a single-cell organism in a 2D petri dish. Eat to grow, absorb DNA from
@@ -26,17 +26,18 @@ Everything runs **inside the devcontainer**; ports come from `PORTS.env`.
 ```
 
 - Local: `http://localhost:<CLIENT_PORT>` — public: `https://evolution.preffect-ha.preffect-home.net`
-  (Traefik route + landing card in the ha-router repo; per-host DNS record required —
-  `ha-router/HA-ROUTER.md`).
+  (Traefik route + landing card in the ha-router repo; per-host DNS record required — see
+  that repo's `HA-ROUTER.md`).
 
 ## How work happens
 
-- **[`WORKFLOW.md`](./WORKFLOW.md)** — GitHub issues, the project board, the waiting-on-human
+- **[`docs/WORKFLOW.md`](docs/WORKFLOW.md)** — GitHub issues, the project board, the waiting-on-human
   rule, PR + review rules, keeping docs in sync. Scripts: `scripts/project-sync.sh`,
-  `scripts/issue-status.sh`, `scripts/github-setup.sh`.
-- **[`ENGINEERING.md`](./ENGINEERING.md)**, **[`ASSET-GENERATION.md`](./ASSET-GENERATION.md)**,
-  **[`AUDIO-PIPELINE.md`](./AUDIO-PIPELINE.md)** — the quality bar every PR is held to.
-- **[`init-game-prompt.md`](./init-game-prompt.md)** → `init-game.md` — how the game gets defined.
+  `scripts/issue-status.sh`, `scripts/pr-threads.sh`, `scripts/github-setup.sh`; the agent team in
+  **[`docs/TEAM.md`](docs/TEAM.md)**.
+- **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)**, **[`docs/ASSET-GENERATION.md`](docs/ASSET-GENERATION.md)**,
+  **[`docs/AUDIO-PIPELINE.md`](docs/AUDIO-PIPELINE.md)** — the quality bar every PR is held to.
+- **[`docs/INIT-GAME.md`](docs/INIT-GAME.md)** — how the game gets defined (`docs/GAME-DESIGN.md` + the first build epic).
 
 ## Layout
 
