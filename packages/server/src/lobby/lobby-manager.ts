@@ -1,11 +1,14 @@
 import { nanoid } from 'nanoid';
 import type { PlayerId, GameId, LobbyGameInfo, LobbyPlayerInfo, GameSessionConfig } from '@evolution/shared';
-import { DISCONNECT_GRACE_MS, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { DISCONNECT_GRACE_MS, GAME_ID_LENGTH, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { MessageHandlers } from '../ws/message-router.js';
 import { GameRoom } from './game-room.js';
-import type { GameModuleFactory } from '../game/game-module.js';
+import type { GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
+
+const GAME_NOT_FOUND = 'Game not found';
+const ONLY_CREATOR_MAY_DELETE = 'Only the creator can delete the game';
 
 /** A game that has been created but not yet started — players gather here. */
 export interface PendingGame {
@@ -15,6 +18,32 @@ export interface PendingGame {
   config: GameSessionConfig;
   /** playerId -> presence. */
   players: Map<string, LobbyPlayerInfo>;
+}
+
+function lobbyPresenceOf(connection: Connection): LobbyPlayerInfo {
+  return {
+    playerId: connection.playerId as PlayerId,
+    playerName: connection.playerName,
+    avatarIndex: connection.avatarIndex,
+  };
+}
+
+/** The roster a pending game hands to its room and game module when it starts. */
+function roomInitOptionsOf(pending: PendingGame): RoomInitOptions {
+  const avatarAssignments: Record<string, number> = {};
+  const playerNames: Record<string, string> = {};
+  for (const [playerId, info] of pending.players) {
+    avatarAssignments[playerId] = info.avatarIndex;
+    playerNames[playerId] = info.playerName;
+  }
+  return {
+    creatorId: pending.creatorId as PlayerId,
+    playerIds: Array.from(pending.players.keys()) as PlayerId[],
+    gameName: pending.gameName,
+    config: pending.config,
+    avatarAssignments,
+    playerNames,
+  };
 }
 
 /**
@@ -36,150 +65,91 @@ export class LobbyManager {
   createHandlers(connections: Map<string, Connection>): MessageHandlers {
     this.connections = connections;
     return {
-      onJoinLobby: (conn, msg) => this.onJoinLobby(conn, msg.playerName, msg.avatarIndex),
-      onUpdatePlayerInfo: (conn, msg) => this.onUpdatePlayerInfo(conn, msg.playerName, msg.avatarIndex),
-      onCreateGame: (conn, msg) => this.onCreateGame(conn, msg.gameName, msg.config),
-      onJoinGame: (conn, msg) => this.onJoinGame(conn, msg.gameId),
-      onStartGame: (conn, msg) => this.onStartGame(conn, msg.gameId),
-      onDeleteGame: (conn, msg) => this.onDeleteGame(conn, msg.gameId),
-      onPlayerInput: (conn, msg) => {
-        const gid = this.playerToGame.get(conn.playerId);
-        if (gid) this.activeRooms.get(gid)?.submitInput(conn.playerId, msg.payload);
+      onJoinLobby: (connection, message) => this.onJoinLobby(connection, message.playerName, message.avatarIndex),
+      onUpdatePlayerInfo: (connection, message) =>
+        this.onUpdatePlayerInfo(connection, message.playerName, message.avatarIndex),
+      onCreateGame: (connection, message) => this.onCreateGame(connection, message.gameName, message.config),
+      onJoinGame: (connection, message) => this.onJoinGame(connection, message.gameId),
+      onStartGame: (connection, message) => this.onStartGame(connection, message.gameId),
+      onDeleteGame: (connection, message) => this.onDeleteGame(connection, message.gameId),
+      onPlayerInput: (connection, message) => {
+        this.roomOfPlayer(connection)?.submitInput(connection.playerId, message.payload);
       },
-      onClientPerformance: (conn, msg) => {
-        const gid = this.playerToGame.get(conn.playerId);
-        if (gid) this.activeRooms.get(gid)?.recordClientPerf(conn.playerId, msg.report);
+      onClientPerformance: (connection, message) => {
+        this.roomOfPlayer(connection)?.recordClientPerformance(connection.playerId, message.report);
       },
     };
   }
 
   // ---- lobby verbs -------------------------------------------------------
 
-  private onJoinLobby(conn: Connection, playerName: string, avatarIndex: number): void {
-    conn.playerName = playerName;
-    conn.avatarIndex = avatarIndex;
-    sendMessage(conn, { type: SERVER_MESSAGE_TYPE.lobbyUpdate, games: this.listGames() });
+  private onJoinLobby(connection: Connection, playerName: string, avatarIndex: number): void {
+    connection.playerName = playerName;
+    connection.avatarIndex = avatarIndex;
+    sendMessage(connection, { type: SERVER_MESSAGE_TYPE.lobbyUpdate, games: this.listGames() });
   }
 
-  private onUpdatePlayerInfo(conn: Connection, playerName: string, avatarIndex: number): void {
-    conn.playerName = playerName;
-    conn.avatarIndex = avatarIndex;
+  private onUpdatePlayerInfo(connection: Connection, playerName: string, avatarIndex: number): void {
+    connection.playerName = playerName;
+    connection.avatarIndex = avatarIndex;
     // Reflect the change in any pending game the player has joined.
-    const gid = this.playerToGame.get(conn.playerId);
-    if (gid) {
-      const pending = this.pendingGames.get(gid);
-      pending?.players.set(conn.playerId, {
-        playerId: conn.playerId as PlayerId,
-        playerName,
-        avatarIndex,
-      });
+    const gameId = this.playerToGame.get(connection.playerId);
+    if (gameId) {
+      this.pendingGames.get(gameId)?.players.set(connection.playerId, lobbyPresenceOf(connection));
     }
     this.broadcastLobbyUpdate();
   }
 
-  private onCreateGame(conn: Connection, gameName: string, config: GameSessionConfig): void {
-    const gameId = nanoid(10);
+  private onCreateGame(connection: Connection, gameName: string, config: GameSessionConfig): void {
+    const gameId = nanoid(GAME_ID_LENGTH);
     const pending: PendingGame = {
       gameId,
       gameName,
-      creatorId: conn.playerId,
+      creatorId: connection.playerId,
       config,
-      players: new Map([
-        [
-          conn.playerId,
-          { playerId: conn.playerId as PlayerId, playerName: conn.playerName, avatarIndex: conn.avatarIndex },
-        ],
-      ]),
+      players: new Map([[connection.playerId, lobbyPresenceOf(connection)]]),
     };
     this.pendingGames.set(gameId, pending);
-    this.playerToGame.set(conn.playerId, gameId);
+    this.playerToGame.set(connection.playerId, gameId);
     this.broadcastLobbyUpdate();
   }
 
-  private onJoinGame(conn: Connection, gameId: string): void {
+  private onJoinGame(connection: Connection, gameId: string): void {
     // Joining an in-progress game = late join.
     const active = this.activeRooms.get(gameId);
     if (active) {
-      this.playerToGame.set(conn.playerId, gameId);
-      active.addLatePlayer(conn, gameId);
+      this.playerToGame.set(connection.playerId, gameId);
+      active.addLatePlayer(connection, gameId);
       this.broadcastLobbyUpdate();
       return;
     }
 
-    const pending = this.pendingGames.get(gameId);
-    if (!pending) {
-      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Game not found' });
-      return;
-    }
+    const pending = this.pendingGameOrReject(connection, gameId);
+    if (!pending) return;
     if (pending.players.size >= pending.config.maxPlayers) {
-      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
+      sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
       return;
     }
-    pending.players.set(conn.playerId, {
-      playerId: conn.playerId as PlayerId,
-      playerName: conn.playerName,
-      avatarIndex: conn.avatarIndex,
-    });
-    this.playerToGame.set(conn.playerId, gameId);
+    pending.players.set(connection.playerId, lobbyPresenceOf(connection));
+    this.playerToGame.set(connection.playerId, gameId);
     this.broadcastLobbyUpdate();
   }
 
-  private onStartGame(conn: Connection, gameId: string): void {
-    const pending = this.pendingGames.get(gameId);
-    if (!pending) {
-      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Game not found' });
-      return;
-    }
-    if (pending.creatorId !== conn.playerId) {
-      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can start the game' });
+  private onStartGame(connection: Connection, gameId: string): void {
+    const pending = this.pendingGameOrReject(connection, gameId);
+    if (!pending) return;
+    if (pending.creatorId !== connection.playerId) {
+      sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can start the game' });
       return;
     }
 
-    const playerIds = Array.from(pending.players.keys());
-    const avatarAssignments: Record<string, number> = {};
-    const playerNames: Record<string, string> = {};
-    for (const [pid, info] of pending.players) {
-      avatarAssignments[pid] = info.avatarIndex;
-      playerNames[pid] = info.playerName;
+    const options = roomInitOptionsOf(pending);
+    const room = new GameRoom(this.gameFactory(options), options);
+    for (const playerId of options.playerIds) {
+      const playerConnection = this.connections.get(playerId);
+      if (playerConnection) room.addPlayer(playerConnection);
     }
-
-    const gameModule = this.gameFactory({
-      creatorId: pending.creatorId as PlayerId,
-      playerIds: playerIds as PlayerId[],
-      gameName: pending.gameName,
-      config: pending.config,
-      avatarAssignments,
-      playerNames,
-    });
-
-    const room = new GameRoom(
-      gameModule,
-      pending.creatorId as PlayerId,
-      playerIds,
-      pending.gameName,
-      pending.config,
-      avatarAssignments,
-      playerNames,
-    );
-
-    for (const pid of playerIds) {
-      const c = this.connections.get(pid);
-      if (c) room.addPlayer(c);
-    }
-
-    // Tell each player the game has begun.
-    for (const pid of playerIds) {
-      const c = this.connections.get(pid);
-      if (!c) continue;
-      sendMessage(c, {
-        type: SERVER_MESSAGE_TYPE.gameStarted,
-        gameId: gameId as GameId,
-        playerId: pid as PlayerId,
-        playerIds: playerIds as PlayerId[],
-        isHost: pid === pending.creatorId,
-        config: pending.config,
-      });
-    }
+    this.notifyGameStarted(gameId, options);
 
     this.pendingGames.delete(gameId);
     this.activeRooms.set(gameId, room);
@@ -187,22 +157,38 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
-  private onDeleteGame(conn: Connection, gameId: string): void {
+  /** Tell each player the game has begun. */
+  private notifyGameStarted(gameId: string, options: RoomInitOptions): void {
+    for (const playerId of options.playerIds) {
+      const playerConnection = this.connections.get(playerId);
+      if (!playerConnection) continue;
+      sendMessage(playerConnection, {
+        type: SERVER_MESSAGE_TYPE.gameStarted,
+        gameId: gameId as GameId,
+        playerId,
+        playerIds: options.playerIds,
+        isHost: playerId === options.creatorId,
+        config: options.config,
+      });
+    }
+  }
+
+  private onDeleteGame(connection: Connection, gameId: string): void {
     const pending = this.pendingGames.get(gameId);
     if (pending) {
-      if (pending.creatorId !== conn.playerId) {
-        sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can delete the game' });
+      if (pending.creatorId !== connection.playerId) {
+        sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: ONLY_CREATOR_MAY_DELETE });
         return;
       }
-      for (const pid of pending.players.keys()) this.playerToGame.delete(pid);
+      for (const playerId of pending.players.keys()) this.playerToGame.delete(playerId);
       this.pendingGames.delete(gameId);
       this.broadcastLobbyUpdate();
       return;
     }
     const active = this.activeRooms.get(gameId);
     if (active) {
-      if (active.creatorId !== conn.playerId) {
-        sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can delete the game' });
+      if (active.creatorId !== connection.playerId) {
+        sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: ONLY_CREATOR_MAY_DELETE });
         return;
       }
       this.teardownRoom(gameId);
@@ -211,24 +197,24 @@ export class LobbyManager {
 
   // ---- connection lifecycle ----------------------------------------------
 
-  handleConnect(conn: Connection, _connections: Map<string, Connection>): void {
+  handleConnect(connection: Connection, _connections: Map<string, Connection>): void {
     // Cancel any pending removal — the player came back within the grace window.
-    const timer = this.pendingRemovals.get(conn.playerId);
+    const timer = this.pendingRemovals.get(connection.playerId);
     if (timer) {
       clearTimeout(timer);
-      this.pendingRemovals.delete(conn.playerId);
+      this.pendingRemovals.delete(connection.playerId);
     }
 
-    const gid = this.playerToGame.get(conn.playerId);
-    if (!gid) return;
-    const room = this.activeRooms.get(gid);
+    const gameId = this.playerToGame.get(connection.playerId);
+    if (!gameId) return;
+    const room = this.activeRooms.get(gameId);
     if (room) {
-      room.reattachPlayer(conn);
+      room.reattachPlayer(connection);
       // Resend the full game state so the reconnected client can resync.
-      sendMessage(conn, {
+      sendMessage(connection, {
         type: SERVER_MESSAGE_TYPE.gameState,
-        gameId: gid as GameId,
-        playerId: conn.playerId as PlayerId,
+        gameId: gameId as GameId,
+        playerId: connection.playerId as PlayerId,
         snapshot: room.getSnapshot(),
         config: room.sessionConfig,
         playerIds: room.allPlayerIds as PlayerId[],
@@ -237,53 +223,60 @@ export class LobbyManager {
     }
   }
 
-  handleDisconnect(conn: Connection): void {
-    const gid = this.playerToGame.get(conn.playerId);
-    if (!gid) return;
+  handleDisconnect(connection: Connection): void {
+    const gameId = this.playerToGame.get(connection.playerId);
+    if (!gameId) return;
 
-    // Pending game: remove immediately (no in-progress state to preserve).
-    const pending = this.pendingGames.get(gid);
+    const pending = this.pendingGames.get(gameId);
     if (pending) {
-      pending.players.delete(conn.playerId);
-      this.playerToGame.delete(conn.playerId);
-      if (pending.players.size === 0) {
-        this.pendingGames.delete(gid);
-      } else if (pending.creatorId === conn.playerId) {
-        // Hand creator role to the next remaining player.
-        const next = pending.players.keys().next().value;
-        if (next) pending.creatorId = next;
-      }
-      this.broadcastLobbyUpdate();
+      this.leavePendingGame(pending, connection.playerId);
       return;
     }
 
     // Active room: keep a grace window for reconnect.
-    const room = this.activeRooms.get(gid);
+    const room = this.activeRooms.get(gameId);
     if (!room) return;
-    room.disconnectedPlayers.add(conn.playerId);
+    room.disconnectedPlayers.add(connection.playerId);
     broadcastMessage(room.playerConnections.values(), {
       type: SERVER_MESSAGE_TYPE.playerDisconnected,
-      playerId: conn.playerId as PlayerId,
+      playerId: connection.playerId as PlayerId,
     });
 
-    const timer = setTimeout(() => {
-      this.pendingRemovals.delete(conn.playerId);
-      const r = this.activeRooms.get(gid);
-      if (!r) return;
-      r.removePlayer(conn.playerId);
-      this.playerToGame.delete(conn.playerId);
-      if (r.playerConnections.size === 0) {
-        this.teardownRoom(gid);
-      }
-    }, DISCONNECT_GRACE_MS);
-    this.pendingRemovals.set(conn.playerId, timer);
+    const timer = setTimeout(() => this.finalizeRemoval(gameId, connection.playerId), DISCONNECT_GRACE_MS);
+    this.pendingRemovals.set(connection.playerId, timer);
+  }
+
+  /** Pending game: remove immediately (no in-progress state to preserve). */
+  private leavePendingGame(pending: PendingGame, playerId: string): void {
+    pending.players.delete(playerId);
+    this.playerToGame.delete(playerId);
+    if (pending.players.size === 0) {
+      this.pendingGames.delete(pending.gameId);
+    } else if (pending.creatorId === playerId) {
+      // Hand creator role to the next remaining player.
+      const next = pending.players.keys().next().value;
+      if (next) pending.creatorId = next;
+    }
+    this.broadcastLobbyUpdate();
+  }
+
+  /** The grace window elapsed without a reconnect. */
+  private finalizeRemoval(gameId: string, playerId: string): void {
+    this.pendingRemovals.delete(playerId);
+    const room = this.activeRooms.get(gameId);
+    if (!room) return;
+    room.removePlayer(playerId);
+    this.playerToGame.delete(playerId);
+    if (room.playerConnections.size === 0) {
+      this.teardownRoom(gameId);
+    }
   }
 
   private teardownRoom(gameId: string): void {
     const room = this.activeRooms.get(gameId);
     if (!room) return;
     room.stop();
-    for (const pid of room.allPlayerIds) this.playerToGame.delete(pid);
+    for (const playerId of room.allPlayerIds) this.playerToGame.delete(playerId);
     this.activeRooms.delete(gameId);
     this.broadcastLobbyUpdate();
   }
@@ -291,32 +284,27 @@ export class LobbyManager {
   // ---- queries (also used by MCP) ----------------------------------------
 
   listGames(): LobbyGameInfo[] {
-    const out: LobbyGameInfo[] = [];
-    for (const p of this.pendingGames.values()) {
-      out.push({
-        gameId: p.gameId as GameId,
-        gameName: p.gameName,
-        players: Array.from(p.players.values()),
-        maxPlayers: p.config.maxPlayers,
-        started: false,
-        creatorId: p.creatorId as PlayerId,
-      });
-    }
-    for (const [gid, room] of this.activeRooms) {
-      out.push({
-        gameId: gid as GameId,
-        gameName: room.gameName,
-        players: room.allPlayerIds.map((pid) => ({
-          playerId: pid as PlayerId,
-          playerName: room.playerNames[pid] ?? '',
-          avatarIndex: room.avatarAssignments[pid] ?? 0,
-        })),
-        maxPlayers: room.sessionConfig.maxPlayers,
-        started: true,
-        creatorId: room.creatorId,
-      });
-    }
-    return out;
+    const pendingInfos = Array.from(this.pendingGames.values(), (pending) => ({
+      gameId: pending.gameId as GameId,
+      gameName: pending.gameName,
+      players: Array.from(pending.players.values()),
+      maxPlayers: pending.config.maxPlayers,
+      isStarted: false,
+      creatorId: pending.creatorId as PlayerId,
+    }));
+    const activeInfos = Array.from(this.activeRooms, ([gameId, room]) => ({
+      gameId: gameId as GameId,
+      gameName: room.gameName,
+      players: room.allPlayerIds.map((playerId) => ({
+        playerId: playerId as PlayerId,
+        playerName: room.playerNames[playerId] ?? '',
+        avatarIndex: room.avatarAssignments[playerId] ?? 0,
+      })),
+      maxPlayers: room.sessionConfig.maxPlayers,
+      isStarted: true,
+      creatorId: room.creatorId,
+    }));
+    return [...pendingInfos, ...activeInfos];
   }
 
   getActiveRoom(gameId: string): GameRoom | undefined {
@@ -330,6 +318,18 @@ export class LobbyManager {
   /** Pending (not-yet-started) games keyed by gameId. Used by MCP + tests. */
   listPendingGames(): ReadonlyMap<string, PendingGame> {
     return this.pendingGames;
+  }
+
+  /** The pending game, or undefined after telling the client it does not exist. */
+  private pendingGameOrReject(connection: Connection, gameId: string): PendingGame | undefined {
+    const pending = this.pendingGames.get(gameId);
+    if (!pending) sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: GAME_NOT_FOUND });
+    return pending;
+  }
+
+  private roomOfPlayer(connection: Connection): GameRoom | undefined {
+    const gameId = this.playerToGame.get(connection.playerId);
+    return gameId ? this.activeRooms.get(gameId) : undefined;
   }
 
   private broadcastLobbyUpdate(): void {

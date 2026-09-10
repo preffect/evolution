@@ -1,0 +1,112 @@
+// Test builders (docs/TESTING.md §4): every server test constructs its fixtures here, so a
+// shape change is one edit. Builder defaults are the only tolerated inline test numbers.
+import { vi } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { WebSocket } from 'ws';
+import type { Connection } from '../ws/connection.js';
+import type { GameModule, GameModuleFactory } from '../game/game-module.js';
+import type { DebugContext } from '../mcp/debug-context.js';
+import { LobbyManager } from '../lobby/lobby-manager.js';
+
+/** Messages a fake socket "sent", decoded, keyed by player id. */
+export type SentLog = Record<string, unknown[]>;
+
+export interface TestConnectionOptions {
+  playerId: string;
+  playerName?: string;
+  avatarIndex?: number;
+  readyState?: number;
+  /** When given, every frame the socket sends is decoded and appended under `playerId`. */
+  sent?: SentLog;
+}
+
+/** A `Connection` over a fake socket that records what it sends instead of writing to the wire. */
+export function createTestConnection(options: TestConnectionOptions): Connection {
+  const { playerId, playerName = playerId, avatarIndex = 0, readyState = WebSocket.OPEN, sent } = options;
+  const log: unknown[] = [];
+  if (sent) sent[playerId] = log;
+  return {
+    playerId,
+    playerName,
+    avatarIndex,
+    socket: {
+      readyState,
+      send: (data: string) => log.push(JSON.parse(data)),
+      close: () => {},
+      on: () => {},
+    } as unknown as Connection['socket'],
+  };
+}
+
+/** A `GameModule` whose every hook is a spy; `players` mirrors add/remove so snapshots are inspectable. */
+export function createSpyGameModule(): GameModule & { players: Set<string> } {
+  const players = new Set<string>();
+  return {
+    players,
+    submitInput: vi.fn(),
+    reduceGameState: vi.fn(),
+    serializeRoomState: vi.fn(() => ({ players: [...players] })),
+    addPlayer: vi.fn((playerId: string) => {
+      players.add(playerId);
+    }),
+    removePlayer: vi.fn((playerId: string) => {
+      players.delete(playerId);
+    }),
+    free: vi.fn(),
+  };
+}
+
+export const spyGameModuleFactory: GameModuleFactory = () => createSpyGameModule();
+
+/** A lobby with its connection registry and handlers, plus a log of everything sent to each player. */
+export function createTestLobby() {
+  const connections = new Map<string, Connection>();
+  const sent: SentLog = {};
+  const lobby = new LobbyManager(spyGameModuleFactory);
+  const handlers = lobby.createHandlers(connections);
+  const join = (playerId: string, playerName = playerId): Connection => {
+    const connection = createTestConnection({ playerId, playerName, sent });
+    connections.set(playerId, connection);
+    return connection;
+  };
+  return { lobby, handlers, connections, sent, join };
+}
+
+export function createTestDebugContext(overrides: Partial<DebugContext> = {}): DebugContext & { sent: SentLog } {
+  const { lobby, connections, sent } = createTestLobby();
+  return { lobbyManager: lobby, connections, sent, ...overrides };
+}
+
+type ToolCallback = (input: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
+
+/**
+ * A fake `McpServer` that records `tool()` registrations so a test can invoke a debug tool by
+ * name without a transport. The SDK's overloads are collapsed: the callback is always last.
+ */
+export function createToolCapture(): {
+  mcp: McpServer;
+  call: (name: string, input?: Record<string, unknown>) => Promise<CallToolResult>;
+} {
+  const tools = new Map<string, ToolCallback>();
+  const mcp = {
+    tool: (name: string, ...rest: unknown[]) => {
+      tools.set(name, rest[rest.length - 1] as ToolCallback);
+    },
+  } as unknown as McpServer;
+  return {
+    mcp,
+    call: async (name, input = {}) => {
+      const callback = tools.get(name);
+      if (!callback) throw new Error(`tool ${name} was not registered`);
+      return callback(input);
+    },
+  };
+}
+
+/** The decoded JSON of a text tool result. */
+export function parseToolJson(result: CallToolResult): unknown {
+  const [first] = result.content;
+  if (!first || first.type !== 'text') throw new Error('tool result has no text block');
+  return JSON.parse(first.text);
+}

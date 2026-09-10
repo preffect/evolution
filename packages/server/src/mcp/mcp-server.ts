@@ -23,18 +23,18 @@ import { registerGameSpecificTools } from './handlers/game-specific.js';
  * McpServer (Protocol) can only be connected to one transport, so both are
  * constructed per request. Tool registration is cheap (Map inserts, << 1ms).
  */
-export function mountDebugMcp(server: FastifyInstance, ctx: DebugContext): void {
+export function mountDebugMcp(server: FastifyInstance, context: DebugContext): void {
   server.all('/debug-mcp', async (request, reply) => {
     const mcp = new McpServer({ name: 'evolution-debug', version: '1.0.0' });
 
     // Generic plumbing tools (always present).
-    registerConnectionTools(mcp, ctx);
-    registerPerformanceTools(mcp, ctx);
-    registerRoomTools(mcp, ctx);
-    registerGameStateTools(mcp, ctx);
+    registerConnectionTools(mcp, context);
+    registerPerformanceTools(mcp, context);
+    registerRoomTools(mcp, context);
+    registerGameStateTools(mcp, context);
 
     // EXTENSION POINT: game-specific tools (no-op until the init step fills it in).
-    registerGameSpecificTools(mcp, ctx);
+    registerGameSpecificTools(mcp, context);
 
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     reply.raw.on('close', () => {
@@ -49,6 +49,6 @@ export function mountDebugMcp(server: FastifyInstance, ctx: DebugContext): void 
 
 /**
  * Back-compat alias matching the BUILD SPEC §C.15 wiring
- * (`registerMcpEndpoint(server, ctx)`). Identical behavior to `mountDebugMcp`.
+ * (`registerMcpEndpoint(server, context)`). Identical behavior to `mountDebugMcp`.
  */
 export const registerMcpEndpoint = mountDebugMcp;

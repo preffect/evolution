@@ -30,7 +30,7 @@ export class WebSocketService {
   private socket: WebSocket | null = null;
   private readonly outbound: string[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private closedByUser = false;
+  private wasClosedByUser = false;
 
   private readonly messages = new Subject<ServerMessage>();
   /** Stream of all decoded inbound server messages. */
@@ -50,58 +50,61 @@ export class WebSocketService {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
-    this.closedByUser = false;
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${proto}://${location.host}/ws?clientId=${encodeURIComponent(this.identity.clientId)}`;
-    const ws = new WebSocket(url);
-    this.socket = ws;
+    this.wasClosedByUser = false;
+    const socket = new WebSocket(this.socketUrl());
+    this.socket = socket;
 
-    ws.onopen = () => {
+    socket.onopen = () => {
       this.connected.set(true);
       // Flush anything queued while we were offline.
       for (const raw of this.outbound.splice(0)) {
-        ws.send(raw);
+        socket.send(raw);
       }
     };
-
-    ws.onmessage = (ev) => {
-      const raw = typeof ev.data === 'string' ? ev.data : '';
-      if (!raw) return;
-      // Fast-path: coalesce snapshot frames without JSON-parsing on the hot path
-      // unless we actually need the object.
-      if (raw.startsWith(SNAPSHOT_FRAME_PREFIX)) {
-        try {
-          this.latestSnapshot = JSON.parse(raw) as ServerMessage;
-        } catch {
-          /* ignore malformed frame */
-        }
-        return;
-      }
-      let msg: ServerMessage;
-      try {
-        msg = JSON.parse(raw) as ServerMessage;
-      } catch {
-        return;
-      }
-      this.messages.next(msg);
-    };
-
-    ws.onclose = () => {
+    socket.onmessage = (event) => this.handleFrame(typeof event.data === 'string' ? event.data : '');
+    socket.onclose = () => {
       this.connected.set(false);
       this.socket = null;
-      if (!this.closedByUser) {
+      if (!this.wasClosedByUser) {
         this.scheduleReconnect();
       }
     };
-
-    ws.onerror = () => {
+    socket.onerror = () => {
       // Let onclose drive reconnection.
-      ws.close();
+      socket.close();
     };
   }
 
+  private socketUrl(): string {
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    return `${protocol}://${location.host}/ws?clientId=${encodeURIComponent(this.identity.clientId)}`;
+  }
+
+  /**
+   * Fast-path: coalesce snapshot frames without JSON-parsing on the hot path
+   * unless we actually need the object; everything else is decoded and published.
+   */
+  private handleFrame(raw: string): void {
+    if (!raw) return;
+    if (raw.startsWith(SNAPSHOT_FRAME_PREFIX)) {
+      try {
+        this.latestSnapshot = JSON.parse(raw) as ServerMessage;
+      } catch {
+        /* ignore malformed frame */
+      }
+      return;
+    }
+    let message: ServerMessage;
+    try {
+      message = JSON.parse(raw) as ServerMessage;
+    } catch {
+      return;
+    }
+    this.messages.next(message);
+  }
+
   disconnect(): void {
-    this.closedByUser = true;
+    this.wasClosedByUser = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -112,8 +115,8 @@ export class WebSocketService {
   }
 
   /** Send a typed client message (queued if currently disconnected). */
-  send(msg: ClientMessage): void {
-    const raw = JSON.stringify(msg);
+  send(message: ClientMessage): void {
+    const raw = JSON.stringify(message);
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(raw);
     } else {
@@ -127,9 +130,9 @@ export class WebSocketService {
    * frame so the UI always renders the latest world state.
    */
   drainLatestSnapshot(): ServerMessage | null {
-    const s = this.latestSnapshot;
+    const snapshot = this.latestSnapshot;
     this.latestSnapshot = null;
-    return s;
+    return snapshot;
   }
 
   private scheduleReconnect(): void {
