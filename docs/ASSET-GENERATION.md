@@ -15,6 +15,10 @@ files** (no png/svg/webp committed). A player or monster or item is built from l
 gradients, and palettes, not a single flat rectangle. This is medium-agnostic: it applies
 equally to Canvas 2D, Pixi/Phaser `Graphics`, SVG, or generated-image workflows.
 
+**Evolution's own look** (dark-field microscopy, palette, cell layer stack, motion language, LOD
+rules and the extended per-asset checklist) is [`VISUAL-STYLE.md`](./VISUAL-STYLE.md); this document
+is the generic bar, that one is what a reviewer compares a screenshot against.
+
 ---
 
 ## 1. Build every asset in layers, back-to-front
