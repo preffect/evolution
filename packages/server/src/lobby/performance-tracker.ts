@@ -20,6 +20,8 @@ export interface PerformanceStats {
   tickP95Ms: number;
   tickPeakMs: number;
   broadcastBytesPerSec: number;
+  /** Ticks the fixed-step cap discarded after stalls (docs/DETERMINISM.md §2); cumulative. */
+  droppedTicks: number;
   worstTick: TickRecord | null;
 }
 
@@ -30,6 +32,7 @@ const EMPTY_STATS: PerformanceStats = Object.freeze({
   tickP95Ms: 0,
   tickPeakMs: 0,
   broadcastBytesPerSec: 0,
+  droppedTicks: 0,
   worstTick: null,
 });
 
@@ -45,6 +48,7 @@ export class PerformanceTracker {
   private readonly ticks: TickRecord[] = [];
   private cursor = 0;
   private worst: TickRecord | null = null;
+  private droppedTickTotal = 0;
   private readonly clientReports = new Map<string, ClientPerformanceReport>();
 
   recordTick(record: TickRecord): void {
@@ -57,6 +61,11 @@ export class PerformanceTracker {
     if (!this.worst || record.tickMs > this.worst.tickMs) {
       this.worst = record;
     }
+  }
+
+  /** A capped catch-up always runs `MAX_TICKS_PER_ADVANCE` ticks too, so drops never precede the first sample. */
+  recordDroppedTicks(count: number): void {
+    this.droppedTickTotal += count;
   }
 
   worstTick(): TickRecord | null {
@@ -89,6 +98,7 @@ export class PerformanceTracker {
       tickP95Ms: roundToHundredths(tickTimes[p95Index] ?? 0),
       tickPeakMs: roundToHundredths(this.worst?.tickMs ?? 0),
       broadcastBytesPerSec: roundToHundredths((totalBytes / sampleCount) * TICK_HZ),
+      droppedTicks: this.droppedTickTotal,
       worstTick: this.worst,
     };
   }

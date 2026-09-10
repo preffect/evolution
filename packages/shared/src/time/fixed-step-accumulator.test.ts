@@ -56,6 +56,18 @@ describe('FixedStepAccumulator', () => {
     expect(accumulator.takeDroppedTicks()).toBe(0);
   });
 
+  it('discardElapsed() forgets the backlog, the partial tick and the dropped count', () => {
+    const { clock, accumulator } = createAccumulator();
+    clock.advanceMilliseconds(TICK_MS * STALL_TICKS + HALF_TICK_MS);
+    accumulator.discardElapsed();
+    expect(accumulator.dueTicks()).toBe(0);
+    expect(accumulator.takeDroppedTicks()).toBe(0);
+    clock.advanceMilliseconds(HALF_TICK_MS);
+    expect(accumulator.dueTicks()).toBe(0);
+    clock.advanceMilliseconds(HALF_TICK_MS);
+    expect(accumulator.dueTicks()).toBe(1);
+  });
+
   it('owes nothing when the clock is rewound', () => {
     const { clock, accumulator } = createAccumulator();
     clock.advanceMilliseconds(TICK_MS);

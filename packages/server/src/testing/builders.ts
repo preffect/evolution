@@ -4,10 +4,14 @@ import { vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
+import { CLIENT_MESSAGE_TYPE, ManualClock } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import type { GameModule, GameModuleFactory } from '../game/game-module.js';
+import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import type { DebugContext } from '../mcp/debug-context.js';
 import { LobbyManager } from '../lobby/lobby-manager.js';
+import type { RoomTiming, RoomTimingFactory } from '../lobby/room-timing.js';
+import { ManualTicker } from '../lobby/ticker.js';
 
 /** Messages a fake socket "sent", decoded, keyed by player id. */
 export type SentLog = Record<string, unknown[]>;
@@ -59,11 +63,32 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
 
 export const spyGameModuleFactory: GameModuleFactory = () => createSpyGameModule();
 
+/** A spy module that also offers `handle` to the debug tools (the "supported" path of every game-specific tool). */
+export function createDebugCapableGameModule(handle: SimulationDebugHandle): GameModule & { players: Set<string> } {
+  return { ...createSpyGameModule(), getDebugHandle: () => handle };
+}
+
+/** A room timing under test control: a `ManualClock` and a `ManualTicker` the test advances and fires. */
+export interface ManualRoomTiming extends RoomTiming {
+  readonly clock: ManualClock;
+  readonly ticker: ManualTicker;
+}
+
+export function createManualRoomTiming(): ManualRoomTiming {
+  return { clock: new ManualClock(), ticker: new ManualTicker() };
+}
+
+export interface TestLobbyOptions {
+  gameFactory?: GameModuleFactory;
+  createRoomTiming?: RoomTimingFactory;
+}
+
 /** A lobby with its connection registry and handlers, plus a log of everything sent to each player. */
-export function createTestLobby() {
+export function createTestLobby(options: TestLobbyOptions = {}) {
+  const { gameFactory = spyGameModuleFactory, createRoomTiming = createManualRoomTiming } = options;
   const connections = new Map<string, Connection>();
   const sent: SentLog = {};
-  const lobby = new LobbyManager(spyGameModuleFactory);
+  const lobby = new LobbyManager(gameFactory, createRoomTiming);
   const handlers = lobby.createHandlers(connections);
   const join = (playerId: string, playerName = playerId): Connection => {
     const connection = createTestConnection({ playerId, playerName, sent });
@@ -76,6 +101,23 @@ export function createTestLobby() {
 export function createTestDebugContext(overrides: Partial<DebugContext> = {}): DebugContext & { sent: SentLog } {
   const { lobby, connections, sent } = createTestLobby();
   return { lobbyManager: lobby, connections, sent, ...overrides };
+}
+
+/** A started room reachable through a debug context: the fixture every game-specific tool test begins from. */
+export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
+  const fixture = createTestLobby(options);
+  const alice = fixture.join('alice');
+  fixture.handlers.onCreateGame(alice, {
+    type: CLIENT_MESSAGE_TYPE.createGame,
+    gameName: 'A',
+    config: { maxPlayers: 2 },
+  });
+  const gameId = fixture.lobby.listGames()[0]!.gameId;
+  fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });
+  const context: DebugContext = { lobbyManager: fixture.lobby, connections: fixture.connections };
+  const room = fixture.lobby.getActiveRoom(gameId)!;
+  const stop = () => room.stop();
+  return { ...fixture, ...createToolCapture(), context, gameId, room, stop };
 }
 
 type ToolCallback = (input: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;

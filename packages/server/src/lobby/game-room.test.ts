@@ -1,9 +1,14 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { TICK_INTERVAL_MS } from '@evolution/shared';
+import { describe, it, expect, vi } from 'vitest';
+import { MAX_TICKS_PER_ADVANCE, SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
 import type { RoomInitOptions } from '../game/game-module.js';
-import { createSpyGameModule, createTestConnection } from '../testing/builders.js';
+import {
+  createDebugCapableGameModule,
+  createManualRoomTiming,
+  createSpyGameModule,
+  createTestConnection,
+} from '../testing/builders.js';
 
 function roomOptions(playerIds: string[]): RoomInitOptions {
   return {
@@ -16,44 +21,125 @@ function roomOptions(playerIds: string[]): RoomInitOptions {
   };
 }
 
-describe('game-room', () => {
-  afterEach(() => {
-    vi.useRealTimers();
+/** A started room under manual timing; `advance(n)` moves the clock n intervals and fires the ticker once. */
+function startedRoom(playerIds = ['p1']) {
+  const gameModule = createSpyGameModule();
+  const timing = createManualRoomTiming();
+  const room = new GameRoom(gameModule, roomOptions(playerIds), timing);
+  room.start();
+  const advance = (intervals: number) => {
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS * intervals);
+    timing.ticker.fire();
+  };
+  const reduceCalls = () => vi.mocked(gameModule.reduceGameState).mock.calls.length;
+  return { gameModule, timing, room, advance, reduceCalls };
+}
+
+describe('game-room: the fixed-step loop', () => {
+  it('steps exactly the ticks the clock owes on each ticker fire', () => {
+    const fixture = startedRoom();
+    fixture.advance(3);
+    expect(fixture.reduceCalls()).toBe(3);
+    expect(fixture.room.getTickCount()).toBe(3);
+    fixture.advance(0.5);
+    expect(fixture.reduceCalls()).toBe(3);
+    fixture.advance(0.5);
+    expect(fixture.reduceCalls()).toBe(4);
+    expect(fixture.gameModule.serializeRoomState).toHaveBeenCalledTimes(4);
   });
 
-  it('runs the tick loop calling reduce + serialize while started', () => {
-    vi.useFakeTimers();
+  it('caps catch-up after a stall and reports the dropped ticks', () => {
+    const fixture = startedRoom();
+    fixture.advance(MAX_TICKS_PER_ADVANCE + 4);
+    expect(fixture.reduceCalls()).toBe(MAX_TICKS_PER_ADVANCE);
+    expect(fixture.room.performanceTracker.getStats().droppedTicks).toBe(4);
+  });
+
+  it('measures tick time with the injected clock', () => {
     const gameModule = createSpyGameModule();
-    const room = new GameRoom(gameModule, roomOptions(['p1']));
+    const timing = createManualRoomTiming();
+    vi.mocked(gameModule.reduceGameState).mockImplementation(() => timing.clock.advanceMilliseconds(2));
+    const room = new GameRoom(gameModule, roomOptions(['p1']), timing);
     room.start();
-    vi.advanceTimersByTime(TICK_INTERVAL_MS * 3 + 1);
-    room.stop();
-    expect(vi.mocked(gameModule.reduceGameState).mock.calls.length).toBeGreaterThanOrEqual(3);
-    expect(gameModule.serializeRoomState).toHaveBeenCalled();
-    expect(gameModule.free).toHaveBeenCalled();
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
+    timing.ticker.fire();
+    expect(room.performanceTracker.getStats().tickPeakMs).toBe(2);
   });
 
-  it('stop() halts the loop', () => {
-    vi.useFakeTimers();
+  it('start() discards the time that passed since construction instead of bursting', () => {
     const gameModule = createSpyGameModule();
-    const room = new GameRoom(gameModule, roomOptions(['p1']));
+    const timing = createManualRoomTiming();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), timing);
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS * (MAX_TICKS_PER_ADVANCE + 4));
     room.start();
-    room.stop();
-    const before = vi.mocked(gameModule.reduceGameState).mock.calls.length;
-    vi.advanceTimersByTime(1000);
-    expect(gameModule.reduceGameState).toHaveBeenCalledTimes(before);
+    timing.ticker.fire();
+    expect(gameModule.reduceGameState).not.toHaveBeenCalled();
+    expect(room.performanceTracker.getStats().droppedTicks).toBe(0);
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
+    timing.ticker.fire();
+    expect(gameModule.reduceGameState).toHaveBeenCalledTimes(1);
   });
 
+  it('start() is idempotent and stop() halts the loop and frees the module', () => {
+    const fixture = startedRoom();
+    fixture.room.start();
+    fixture.room.stop();
+    fixture.advance(3);
+    expect(fixture.reduceCalls()).toBe(0);
+    expect(fixture.timing.ticker.isStarted()).toBe(false);
+    expect(fixture.gameModule.free).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('game-room: pause, step and resume', () => {
+  it('ignores ticker fires while paused', () => {
+    const fixture = startedRoom();
+    fixture.room.pause();
+    fixture.advance(3);
+    expect(fixture.room.isPaused()).toBe(true);
+    expect(fixture.reduceCalls()).toBe(0);
+  });
+
+  it('step() pauses a running room and advances exactly the requested ticks, broadcasting each', () => {
+    const sent: Record<string, unknown[]> = {};
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
+    room.start();
+    room.step(2);
+    expect(room.isPaused()).toBe(true);
+    expect(room.getTickCount()).toBe(2);
+    expect(sent['p1']!.map((message) => (message as { type: string }).type)).toEqual([
+      SERVER_MESSAGE_TYPE.gameSnapshot,
+      SERVER_MESSAGE_TYPE.gameSnapshot,
+    ]);
+  });
+
+  it('resume() discards the time that passed while paused instead of catching up', () => {
+    const fixture = startedRoom();
+    fixture.room.pause();
+    fixture.timing.clock.advanceMilliseconds(TICK_INTERVAL_MS * 3);
+    fixture.room.resume();
+    expect(fixture.room.isPaused()).toBe(false);
+    fixture.timing.ticker.fire();
+    expect(fixture.reduceCalls()).toBe(0);
+    expect(fixture.room.performanceTracker.getStats().droppedTicks).toBe(0);
+    fixture.advance(1);
+    expect(fixture.reduceCalls()).toBe(1);
+  });
+});
+
+describe('game-room: membership and delegation', () => {
   it('submitInput delegates to the game module', () => {
     const gameModule = createSpyGameModule();
-    const room = new GameRoom(gameModule, roomOptions(['p1']));
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
     room.submitInput('p1', { jump: true });
     expect(gameModule.submitInput).toHaveBeenCalledWith('p1', { jump: true });
   });
 
   it('removePlayer drops the player from the module and roster', () => {
     const gameModule = createSpyGameModule();
-    const room = new GameRoom(gameModule, roomOptions(['p1', 'p2']));
+    const room = new GameRoom(gameModule, roomOptions(['p1', 'p2']), createManualRoomTiming());
     room.removePlayer('p2');
     expect(gameModule.removePlayer).toHaveBeenCalledWith('p2');
     expect(room.allPlayerIds).not.toContain('p2');
@@ -62,7 +148,7 @@ describe('game-room', () => {
 
   it('addLatePlayer registers the player and adds them to the module', () => {
     const gameModule = createSpyGameModule();
-    const room = new GameRoom(gameModule, roomOptions(['p1']));
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
     const late = createTestConnection({ playerId: 'p3' });
     room.addLatePlayer(late, 'g1');
     expect(gameModule.addPlayer).toHaveBeenCalledWith('p3', 0, 'p3');
@@ -72,8 +158,16 @@ describe('game-room', () => {
 
   it('copies the roster so the caller cannot mutate the room from outside', () => {
     const options = roomOptions(['p1']);
-    const room = new GameRoom(createSpyGameModule(), options);
+    const room = new GameRoom(createSpyGameModule(), options, createManualRoomTiming());
     options.playerIds.push('p9' as PlayerId);
     expect(room.allPlayerIds).toEqual(['p1']);
+  });
+
+  it('exposes the debug handle of a capable module and nothing for a plain one', () => {
+    const handle = { computeStateHash: vi.fn() };
+    const capable = new GameRoom(createDebugCapableGameModule(handle), roomOptions(['p1']), createManualRoomTiming());
+    const plain = new GameRoom(createSpyGameModule(), roomOptions(['p1']), createManualRoomTiming());
+    expect(capable.getDebugHandle()).toBe(handle);
+    expect(plain.getDebugHandle()).toBeUndefined();
   });
 });
