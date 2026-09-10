@@ -510,7 +510,7 @@ packages/server/src/
   game/replay/{replay-recorder,replay-runner}.ts
   game/debug/simulation-debug-handle.ts
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)
-  testing/{builders,scenarios/*}.ts                             (#75)
+  testing/builders.ts   testing/gameplay/*.ts (the scenario runner, #75)   testing/scenarios/<table>.gameplay.test.ts (#102)
 packages/client/src/app/game/
   game-setup.ts
   net/{snapshot-buffer,prediction,reconciliation,world-store,input-sender}.ts

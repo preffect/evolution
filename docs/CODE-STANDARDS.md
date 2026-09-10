@@ -244,8 +244,8 @@ The full testing standard is [`TESTING.md`](./TESTING.md); the placement rules:
 
 - Co-located: `foo.ts` → `foo.test.ts` (client `foo.spec.ts`), never a `__tests__/` directory; integration
   `foo.integration.test.ts` (`ENGINEERING.md` §2.2). Gameplay scenarios in
-  `packages/server/src/testing/scenarios/`, one file per design table, tests named by row id
-  (`E9`, `P3`, `T4`, `G2`) (#75, #102).
+  `packages/server/src/testing/scenarios/<table>.gameplay.test.ts`, one file per design table,
+  tests named by row id (`E9`, `P3`, `T4`, `G2`), on the runner of `TESTING.md` §8 (#75, #102).
 - Builders, not fixtures files: `createTestCell`, `createTestWorld`, `createTestSnapshot` in
   each package's `src/testing/builders.ts` (`TESTING.md` §4 lists what exists today); defaults
   are the only inline numbers allowed.

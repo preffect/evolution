@@ -41,6 +41,9 @@ CLAUDE.local.md
 # QA screenshots and agent logs (baselines live in qa/baselines and ARE committed)
 .qa/
 
+# Replays written by failing gameplay scenarios (docs/TESTING.md §8); reproduction artifacts, never committed
+qa/replays/
+
 # Agent worktrees (scripts/agent.sh --branch)
 .worktrees/
 
