@@ -9,6 +9,9 @@ set -euo pipefail
 #   ./dev-container.sh rebuild  # Force rebuild
 #   ./dev-container.sh stop     # Stop the container
 #   ./dev-container.sh status   # Show container status
+#
+# When build files changed, the default start asks to rebuild; declining then offers to
+# skip the rebuild and continue with the existing image (only possible if an image exists).
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -48,6 +51,8 @@ green()  { printf '\033[1;32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[1;33m%s\033[0m\n' "$*"; }
 blue()   { printf '\033[1;34m%s\033[0m\n' "$*"; }
 
+# Returns 0 to rebuild, 1 to skip the rebuild and continue with the existing image.
+# Exits if the user cancels outright, or the rebuild is needed in a non-interactive session.
 confirm_rebuild() {
   if [[ "${DEVCONTAINER_YES:-}" == "1" ]]; then
     yellow "Rebuilding dev container (DEVCONTAINER_YES=1)."
@@ -63,6 +68,20 @@ confirm_rebuild() {
   read -r answer
   case "$answer" in
     [yY][eE][sS]|[yY]) return 0 ;;
+  esac
+
+  # Declined. Offer to bypass the rebuild — only possible when there is an image to reuse.
+  if ! image_exists; then
+    yellow "Rebuild cancelled (no existing image, so it cannot be skipped)."
+    exit 0
+  fi
+  printf '\033[1;33m%s\033[0m' "Skip the rebuild and continue with the existing image? [y/N] "
+  read -r answer
+  case "$answer" in
+    [yY][eE][sS]|[yY])
+      yellow "Skipping rebuild — using the existing image. Run './dev-container.sh rebuild' when ready."
+      return 1
+      ;;
     *) yellow "Rebuild cancelled."; exit 0 ;;
   esac
 }
@@ -83,6 +102,10 @@ save_checksum() {
   compute_checksum > "$CHECKSUM_FILE"
 }
 
+image_exists() {
+  docker image inspect "$IMAGE_NAME" &>/dev/null
+}
+
 needs_rebuild() {
   local current stored
   current="$(compute_checksum)"
@@ -93,7 +116,7 @@ needs_rebuild() {
   fi
 
   # Also rebuild if image doesn't exist
-  if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
+  if ! image_exists; then
     return 0
   fi
 
@@ -265,15 +288,15 @@ main() {
       if container_running; then
         if needs_rebuild; then
           yellow "Build files changed since last build."
-          confirm_rebuild
-          do_build
-          do_create
+          if confirm_rebuild; then
+            do_build
+            do_create
+          fi
         fi
         do_exec
       else
         # Need to start (and maybe build)
-        if needs_rebuild; then
-          confirm_rebuild
+        if needs_rebuild && confirm_rebuild; then
           do_build
         fi
         if container_exists; then
