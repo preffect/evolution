@@ -36,6 +36,8 @@ const EXTRA_ABBREVIATIONS = {
   mp: { multiplayer: true },
 };
 const BOOLEAN_PREFIXES = ['is', 'has', 'can', 'should', 'was', 'did', 'will'];
+/** The same predicates on a module-level constant: `IS_LITTLE_ENDIAN`, `HAS_SHARED_ARRAY_BUFFER` (§6). */
+const BOOLEAN_CONSTANT_PREFIXES = BOOLEAN_PREFIXES.map((prefix) => `${prefix.toUpperCase()}_`);
 const NUMERIC_LITERALS_ALLOWED_EVERYWHERE = [0, 1, -1];
 
 // ---- CODE-STANDARDS §8: determinism bans ----------------------------------------------
@@ -55,7 +57,7 @@ const BANNED_WALL_CLOCK_PROPERTIES = [
 
 // ---- File groups ---------------------------------------------------------------------
 const SOURCE_FILES = ['packages/*/src/**/*.ts'];
-const TEST_FILES = ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.spec.ts', 'packages/*/src/**/__tests__/**'];
+const TEST_FILES = ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.spec.ts'];
 /** Builders and scenario fixtures: their defaults are the only tolerated inline numbers (§2, §10). */
 const TEST_SUPPORT_FILES = ['packages/*/src/testing/**'];
 /** The definition sites of constants: a literal here IS the named constant (§1). */
@@ -63,12 +65,11 @@ const CONSTANT_DEFINITION_FILES = [
   'packages/shared/src/constants/**',
   'packages/client/src/app/game/render/constants.ts',
 ];
-/** The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). */
-const DETERMINISM_CALL_SITES = [
-  'packages/shared/src/random/**',
-  'packages/shared/src/time/**',
-  'packages/server/src/lobby/ticker.ts',
-];
+/**
+ * The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). The server
+ * ticker (#111) joins this list when that ticket creates it.
+ */
+const DETERMINISM_CALL_SITES = ['packages/shared/src/random/**', 'packages/shared/src/time/**'];
 
 /**
  * Template-owned infrastructure (CODE-STANDARDS §5, "Template-owned files"): each entry names the
@@ -183,7 +184,15 @@ export default tseslint.config(
         { selector: ['objectLiteralProperty', 'typeProperty'], modifiers: ['requiresQuotes'], format: null },
         // Booleans read as predicates (§6). Object-literal keys are left out: they are mostly options
         // handed to frameworks (`standalone`, `logger`, `websocket`); our own shapes are typed, so
-        // `typeProperty` covers them.
+        // `typeProperty` covers them. A module-level boolean constant keeps the UPPER_SNAKE_CASE of
+        // every other module-level constant, with the predicate as its first word: `IS_LITTLE_ENDIAN`.
+        {
+          selector: 'variable',
+          modifiers: ['const', 'global'],
+          types: ['boolean'],
+          format: ['UPPER_CASE'],
+          prefix: BOOLEAN_CONSTANT_PREFIXES,
+        },
         {
           selector: ['variable', 'parameter', 'classProperty', 'typeProperty'],
           types: ['boolean'],

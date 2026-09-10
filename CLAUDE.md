@@ -24,7 +24,7 @@
 
 ```bash
 ./validate.sh test                    # unit tests with coverage thresholds (vitest for shared/server, ng test for client)
-./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier (opt-in)
+./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier (opt-in; not part of `all`)
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
@@ -34,7 +34,6 @@
 ./validate.sh test -t20               # show last 20 lines
 ./validate.sh typecheck -h50          # show first 50 lines
 ./validate.sh lint -G 'error'         # grep output for pattern
-./validate.sh test -- --filter shared # pass extra args to underlying command
 ```
 
 ### Running the dev servers

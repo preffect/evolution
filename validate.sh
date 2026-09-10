@@ -163,15 +163,18 @@ run_one() {
       local lint_rc=0
       local prettier_rc=0
 
-      local audit_out=""
+      # Each audit is captured on its own: a substitution only reports its last command's status.
+      local directive_out=""
+      local todo_out=""
       local audit_rc=0
 
       lint_out="$(pnpm eslint . "$@" 2>&1)" || lint_rc=$?
       prettier_out="$(pnpm prettier --check . "$@" 2>&1)" || prettier_rc=$?
-      audit_out="$(audit_disable_directives; audit_todo_markers)" || audit_rc=$?
+      directive_out="$(audit_disable_directives)" || audit_rc=1
+      todo_out="$(audit_todo_markers)" || audit_rc=1
 
       output="${lint_out}"
-      for extra in "$prettier_out" "$audit_out"; do
+      for extra in "$prettier_out" "$directive_out" "$todo_out"; do
         if [[ -n "$extra" ]]; then
           output="${output}
 ${extra}"

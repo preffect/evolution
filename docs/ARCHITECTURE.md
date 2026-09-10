@@ -223,7 +223,7 @@ export interface WorldState {
   players: PlayerRecord[]; // join order
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ECOLOGY §3)
-  random: Record<RandomStreamLabel, RandomState>; // the streams' serialisable state (DETERMINISM §3)
+  random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (DETERMINISM §3, §5)
   nextEntityNumber: number;
   effects: GameEffect[]; // this tick's effects, drained by serialize (cell_absorbed, eat, level_up, …)
 }
@@ -486,9 +486,10 @@ packages/shared/src/
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
   types/{common,messages,game,effects}.ts
-  random/{random-source,seeded-random,stream-labels}.ts
+  hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
+  random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,state-hash,vector-math}.ts
+  simulation/{movement-kernel,mass-curves,state-hasher,state-hash,vector-math}.ts
   audio/sound-events.ts
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker

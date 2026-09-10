@@ -16,6 +16,8 @@ export const TICK_HZ = 60;
  * from the injected clock, never from `setInterval(TICK_INTERVAL_MS)` alone (docs/DETERMINISM.md §2).
  */
 export const TICK_INTERVAL_MS = MILLISECONDS_PER_SECOND / TICK_HZ;
+/** The same interval in seconds: the only `dt` the simulation ever sees (docs/DETERMINISM.md §1). */
+export const TICK_INTERVAL_S = 1 / TICK_HZ;
 
 /** Grace window before a disconnected player is fully removed from a room. */
 export const DISCONNECT_GRACE_MS = 30_000;
