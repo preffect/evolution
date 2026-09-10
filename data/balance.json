@@ -1,0 +1,521 @@
+{
+  "world": {
+    "DISH_RADIUS": 3000,
+    "FOOD_EDGE_MARGIN": 40,
+    "SAFE_SPAWN_MAX_ATTEMPTS": 20,
+    "SAFE_SPAWN_RADIUS": 600,
+    "SAFE_SPAWN_THREAT_MASS_RATIO": 2,
+    "SPAWN_EDGE_MARGIN": 300
+  },
+  "session": {
+    "RESPAWN_SPECTATE_SECONDS": 3,
+    "RESULTS_SCREEN_SECONDS": 20,
+    "ROUND_BLOOM_START_FRACTION": 0.8,
+    "ROUND_DURATION_MAX_SECONDS": 1800,
+    "ROUND_DURATION_MIN_SECONDS": 60,
+    "ROUND_DURATION_SECONDS": 600,
+    "ROUND_SEED_INCREMENT": 1,
+    "SCORE_ABSORPTION_BONUS": 25,
+    "SEED_MAX": 4294967295
+  },
+  "controls": {
+    "SPRINT_COOLDOWN_SECONDS": 3,
+    "SPRINT_DURATION_SECONDS": 0.5,
+    "SPRINT_MASS_COST_FRACTION": 0.05,
+    "SPRINT_SPEED_MULTIPLIER": 1.8,
+    "STEER_DEAD_ZONE_RADII": 0.5,
+    "STEER_FULL_THROTTLE_RADII": 2
+  },
+  "ladder": {
+    "ENDOSYMBIOSIS_BACTERIA_REQUIRED": 10,
+    "STAGE_GATE_TRAITS": {
+      "protocell": [],
+      "prokaryote": ["nucleoid"],
+      "endosymbiosis": ["mitochondrion", "chloroplast"],
+      "eukaryote": ["nuclear_envelope"],
+      "specialised": ["amoeba_pseudopods", "paramecium_cilia", "euglena_eyespot", "diatom_shell", "stentor_trumpet"]
+    },
+    "STAGE_ORDER": ["protocell", "prokaryote", "endosymbiosis", "eukaryote", "specialised"],
+    "STARTING_STAGE": "protocell"
+  },
+  "ecology": {
+    "ALGAE_DNA": 0,
+    "ALGAE_MASS": 1,
+    "ALGAE_RADIUS": 6,
+    "BACTERIUM_CLUSTER_RADIUS": 60,
+    "BACTERIUM_CLUSTER_SIZE": 5,
+    "BACTERIUM_DNA": 1,
+    "BACTERIUM_DRIFT_SPEED": 20,
+    "BACTERIUM_MASS": 3,
+    "BACTERIUM_RADIUS": 8,
+    "BACTERIUM_TAG_BY_VARIANT": { "plain": "motile", "aerobic": "metabolic", "photosynthetic": "photic" },
+    "BACTERIUM_VARIANTS": ["plain", "aerobic", "photosynthetic"],
+    "BACTERIUM_VARIANT_WEIGHTS_BY_ZONE": {
+      "warm_vent": { "plain": 0.3, "aerobic": 0.7, "photosynthetic": 0 },
+      "sunlit_shallows": { "plain": 0.3, "aerobic": 0, "photosynthetic": 0.7 },
+      "open_broth": { "plain": 0.6, "aerobic": 0.2, "photosynthetic": 0.2 },
+      "viscous_gel": { "plain": 0.6, "aerobic": 0.2, "photosynthetic": 0.2 }
+    },
+    "DETRITUS_LIFETIME_SECONDS": 30,
+    "DETRITUS_MASS_FRACTION": 0.2,
+    "DETRITUS_MOTE_MASS": 2,
+    "DETRITUS_RADIUS": 7,
+    "DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER": 2,
+    "DNA_FRAGMENT_CAP_BASE": 30,
+    "DNA_FRAGMENT_CAP_PER_PLAYER": 10,
+    "DNA_FRAGMENT_DNA": 5,
+    "DNA_FRAGMENT_DRIFT_SPEED": 10,
+    "DNA_FRAGMENT_INITIAL_FILL_FRACTION": 0.6,
+    "DNA_FRAGMENT_RADIUS": 9,
+    "DNA_FRAGMENT_SPAWN_PER_SECOND_BASE": 0.3,
+    "DNA_FRAGMENT_SPAWN_PER_SECOND_PER_PLAYER": 0.1,
+    "DNA_FRAGMENT_TAG_TABLE_BY_ZONE": {
+      "sunlit_shallows": { "photic": 0.5, "sensory": 0.5 },
+      "warm_vent": { "predatory": 0.4, "toxic": 0.3, "metabolic": 0.3 },
+      "viscous_gel": { "motile": 0.5, "armored": 0.5 },
+      "open_broth": { "motile": 0.5, "armored": 0.5 }
+    },
+    "FOOD_BLOOM_SPAWN_MULTIPLIER": 1.5,
+    "FOOD_CAP_BASE": 600,
+    "FOOD_CAP_PER_PLAYER": 100,
+    "FOOD_INITIAL_FILL_FRACTION": 0.6,
+    "FOOD_KIND_WEIGHTS": { "algae": 0.75, "bacterium": 0.25 },
+    "FOOD_SPAWN_PER_SECOND_BASE": 6,
+    "FOOD_SPAWN_PER_SECOND_PER_PLAYER": 1,
+    "FOOD_ZONE_WEIGHTS_BY_KIND": {
+      "algae": { "sunlit_shallows": 0.7, "open_broth": 0.25, "warm_vent": 0.05 },
+      "bacterium": { "warm_vent": 0.6, "open_broth": 0.3, "sunlit_shallows": 0.1 },
+      "dna_fragment": { "warm_vent": 0.4, "open_broth": 0.4, "sunlit_shallows": 0.2 }
+    },
+    "GEL_PATCH_COUNT": 3,
+    "GEL_PATCH_MIN_SPACING": 900,
+    "GEL_PATCH_RADIUS": 350,
+    "MASS_DECAY_RATE_PER_SECOND": 0.002,
+    "SHALLOWS_WIDTH": 500,
+    "SPAWN_POINT_MAX_ATTEMPTS": 10,
+    "VENT_DECAY_MULTIPLIER": 1.5,
+    "VENT_RADIUS": 500
+  },
+  "growth": {
+    "CELL_ACCELERATION_SECONDS": 0.25,
+    "CELL_BASE_SPEED": 220,
+    "CELL_MAX_MASS": 5000,
+    "CELL_MIN_SPEED": 50,
+    "CELL_RADIUS_SCALE": 4,
+    "CELL_SEPARATION_FRACTION_PER_TICK": 0.2,
+    "CELL_SPEED_MASS_EXPONENT": 0.25,
+    "CELL_STARTING_MASS": 20,
+    "EJECT_MASS": 10,
+    "GEL_MASS_SCALE": 1000,
+    "GEL_MAX_SPEED_FACTOR": 0.9,
+    "GEL_MIN_SPEED_FACTOR": 0.4,
+    "MASS_OVERFLOW_DNA_PER_MASS": 0.1,
+    "MITOSIS_COOLDOWN_SECONDS": 8,
+    "MITOSIS_MAX_CELLS": 4,
+    "MITOSIS_MERGE_SECONDS": 20,
+    "MITOSIS_MIN_MASS": 200
+  },
+  "absorption": {
+    "ENGULF_BASE_DURATION_SECONDS": 1,
+    "ENGULF_COVERAGE_FRACTION": 0.5,
+    "ENGULF_DNA_BASE": 30,
+    "ENGULF_DNA_SHARE": 0.2,
+    "ENGULF_ESCAPE_DECAY_MULTIPLIER": 2,
+    "ENGULF_MASS_RATIO": 1.25,
+    "ENGULF_MASS_YIELD": 0.8,
+    "ENGULF_MIN_DURATION_FACTOR": 0.5,
+    "ENGULF_PREDATORY_TAG_POINTS": 10,
+    "ENGULF_PREDATOR_SPEED_FACTOR": 0.6,
+    "ENGULF_PREY_SPEED_FACTOR": 0.8,
+    "ENGULF_PROGRESS_EPSILON": 0.000001,
+    "ENGULF_RELEASE_RATIO": 1.1,
+    "ENGULF_TAG_SHARE": 0.5,
+    "ENGULF_TRAIT_STEAL_CHANCE": 0
+  },
+  "progression": {
+    "DNA_TAGS": ["motile", "photic", "predatory", "armored", "toxic", "sensory", "metabolic"],
+    "LATE_JOIN_DNA_FRACTION": 0.5,
+    "LATE_JOIN_GRACE_SECONDS": 30,
+    "LATE_JOIN_MASS_FRACTION": 0.25,
+    "LATE_JOIN_MAX_MASS": 200,
+    "LEVEL_UP_COST_BASE_DNA": 40,
+    "LEVEL_UP_COST_PER_LEVEL_DNA": 20,
+    "LEVEL_UP_NO_DRAFT_MASS_BONUS": 10,
+    "MAX_LEVEL": 12,
+    "RARITY_WEIGHT": { "common": 1, "uncommon": 0.5, "rare": 0.2 },
+    "TAG_WEIGHT_MAX_MULTIPLIER": 4,
+    "TAG_WEIGHT_PER_POINT": 0.1,
+    "TRAIT_CHOICE_TIMEOUT_SECONDS": 10,
+    "TRAIT_DRAFT_SIZE": 3,
+    "TRAIT_REROLLS_PER_ROUND": 0,
+    "UPGRADE_CARD_WEIGHT_MULTIPLIER": 1.5
+  },
+  "traits": {
+    "DEFAULT_CELL_MODIFIERS": {
+      "speedMultiplier": 1,
+      "accelerationSecondsMultiplier": 1,
+      "sprintSpeedMultiplierBonus": 0,
+      "sprintCooldownSecondsDelta": 0,
+      "membraneRatioBonus": 0,
+      "engulfDurationMultiplierAsPrey": 1,
+      "engulfDurationMultiplierAsPredator": 1,
+      "engulfMassYieldBonus": 0,
+      "digestionFactorBonus": 0,
+      "decayMultiplier": 1,
+      "photosynthesisMassPerSecond": 0,
+      "spikeDrainFractionPerSecond": 0,
+      "toxinDrainFractionPerSecond": 0,
+      "toxinAuraRangeInRadii": 0,
+      "attractRangeInRadii": 0,
+      "attractSpeed": 0,
+      "dnaGainMultiplier": 1,
+      "dnaKeptOnDeathFraction": 0,
+      "gelSpeedFactorFloor": 0
+    },
+    "EXCLUSION_GROUPS": ["body_plan", "membrane", "primary_locomotion"],
+    "RESERVED_TRAIT_IDS": [
+      "jet_siphon",
+      "sticky_coat",
+      "glass_membrane",
+      "fat_vacuole",
+      "iron_gut",
+      "wide_eyespot",
+      "chemotaxis_trails",
+      "enzyme_cloud",
+      "lunge_reflex",
+      "regenerative_cytoplasm",
+      "emergency_fission",
+      "decoy_vacuole",
+      "split_nucleus",
+      "bond_filaments",
+      "specialisation_node",
+      "colony_chorus"
+    ],
+    "SPRINT_COOLDOWN_FLOOR_SECONDS": 0.5,
+    "TRAIT_CATALOG": [
+      {
+        "id": "nucleoid",
+        "name": "Nucleoid Coil",
+        "stage": "protocell",
+        "requires": [],
+        "category": "genome",
+        "rarity": "common",
+        "tags": ["metabolic"],
+        "tiers": [{ "dnaGainMultiplier": 1.05 }, { "dnaGainMultiplier": 1.1 }, { "dnaGainMultiplier": 1.15 }],
+        "visual": "a loose, brighter tangle of thread in the cytoplasm with no boundary; 1 / 2 / 3 loops",
+        "audioCue": "soft_click"
+      },
+      {
+        "id": "simple_flagellum",
+        "name": "Simple Flagellum",
+        "stage": "protocell",
+        "requires": [],
+        "category": "locomotion",
+        "rarity": "uncommon",
+        "tags": ["motile", "predatory"],
+        "tiers": [
+          { "speedMultiplier": 1.05, "sprintSpeedMultiplierBonus": 0.3, "sprintCooldownSecondsDelta": -0.5 },
+          { "speedMultiplier": 1.05, "sprintSpeedMultiplierBonus": 0.6, "sprintCooldownSecondsDelta": -1 },
+          { "speedMultiplier": 1.05, "sprintSpeedMultiplierBonus": 0.9, "sprintCooldownSecondsDelta": -1.5 }
+        ],
+        "visual": "one long tail trailing opposite the velocity, sine amplitude growing per tier; tier III adds a second tail",
+        "audioCue": "whip_crack"
+      },
+      {
+        "id": "cell_wall",
+        "name": "Cell Wall",
+        "stage": "protocell",
+        "requires": [],
+        "category": "membrane",
+        "rarity": "common",
+        "tags": ["armored"],
+        "exclusionGroup": "membrane",
+        "tiers": [
+          { "membraneRatioBonus": 0.15, "speedMultiplier": 0.95 },
+          { "membraneRatioBonus": 0.3, "speedMultiplier": 0.9 },
+          { "membraneRatioBonus": 0.45, "speedMultiplier": 0.85 }
+        ],
+        "visual": "a second, brighter rim inside the first; rim thickness × 1.5 / 2 / 2.5",
+        "audioCue": "dull_thud"
+      },
+      {
+        "id": "ribosomes",
+        "name": "Ribosome Studs",
+        "stage": "prokaryote",
+        "requires": [],
+        "category": "metabolism",
+        "rarity": "common",
+        "tags": ["metabolic"],
+        "tiers": [{ "digestionFactorBonus": 0.1 }, { "digestionFactorBonus": 0.2 }, { "digestionFactorBonus": 0.3 }],
+        "visual": "a fine stipple of dots along the inside of the membrane, density per tier",
+        "audioCue": "eat_gurgle"
+      },
+      {
+        "id": "mitochondrion",
+        "name": "Mitochondrion",
+        "stage": "prokaryote",
+        "requires": [],
+        "unlockedBy": { "bacteriumVariant": "aerobic", "count": 10 },
+        "category": "metabolism",
+        "rarity": "uncommon",
+        "tags": ["metabolic"],
+        "tiers": [
+          { "decayMultiplier": 0.85, "sprintSpeedMultiplierBonus": 0.1 },
+          { "decayMultiplier": 0.7, "sprintSpeedMultiplierBonus": 0.2 },
+          { "decayMultiplier": 0.55, "sprintSpeedMultiplierBonus": 0.3 }
+        ],
+        "visual": "1 / 2 / 3 orange-red beans with inner folds, pulsing on sprint",
+        "audioCue": "low_thrum"
+      },
+      {
+        "id": "chloroplast",
+        "name": "Chloroplast",
+        "stage": "prokaryote",
+        "requires": [],
+        "unlockedBy": { "bacteriumVariant": "photosynthetic", "count": 10 },
+        "category": "metabolism",
+        "rarity": "common",
+        "tags": ["photic"],
+        "tiers": [
+          { "photosynthesisMassPerSecond": 0.3, "decayMultiplier": 0.9 },
+          { "photosynthesisMassPerSecond": 0.6, "decayMultiplier": 0.8 },
+          { "photosynthesisMassPerSecond": 0.9, "decayMultiplier": 0.7 }
+        ],
+        "visual": "1 / 2 / 3 green lenses of 6 granules, membrane tinted green, brighter inside the shallows",
+        "audioCue": "warm_shimmer"
+      },
+      {
+        "id": "nuclear_envelope",
+        "name": "Nuclear Envelope",
+        "stage": "endosymbiosis",
+        "requires": ["nucleoid"],
+        "category": "genome",
+        "rarity": "common",
+        "tags": ["armored", "metabolic"],
+        "tiers": [
+          { "dnaKeptOnDeathFraction": 0.25 },
+          { "dnaKeptOnDeathFraction": 0.5 },
+          { "dnaKeptOnDeathFraction": 0.75 }
+        ],
+        "visual": "the nucleoid thread gathers into a bounded round nucleus with its own rim; rim brightness per tier",
+        "audioCue": "deep_chime"
+      },
+      {
+        "id": "cytoskeleton",
+        "name": "Cytoskeleton Lattice",
+        "stage": "eukaryote",
+        "requires": [],
+        "category": "locomotion",
+        "rarity": "common",
+        "tags": ["motile", "armored"],
+        "tiers": [
+          { "accelerationSecondsMultiplier": 0.85 },
+          { "accelerationSecondsMultiplier": 0.72 },
+          { "accelerationSecondsMultiplier": 0.61 }
+        ],
+        "visual": "the membrane wobble tightens to a taut outline, sharper contact dents, a faint lattice under the membrane",
+        "audioCue": "taut_snap"
+      },
+      {
+        "id": "cilia",
+        "name": "Cilia Fringe",
+        "stage": "eukaryote",
+        "requires": [],
+        "category": "locomotion",
+        "rarity": "common",
+        "tags": ["motile"],
+        "tiers": [{ "speedMultiplier": 1.1 }, { "speedMultiplier": 1.2 }, { "speedMultiplier": 1.3 }],
+        "visual": "a ring of 24 / 36 / 48 short hairs on the rim beating in a travelling wave that follows velocity",
+        "audioCue": "soft_flutter"
+      },
+      {
+        "id": "food_vacuole",
+        "name": "Food Vacuole",
+        "stage": "eukaryote",
+        "requires": [],
+        "category": "metabolism",
+        "rarity": "uncommon",
+        "tags": ["metabolic", "predatory"],
+        "tiers": [
+          { "engulfDurationMultiplierAsPredator": 0.8, "engulfMassYieldBonus": 0.05 },
+          { "engulfDurationMultiplierAsPredator": 0.64, "engulfMassYieldBonus": 0.1 },
+          { "engulfDurationMultiplierAsPredator": 0.51, "engulfMassYieldBonus": 0.15 }
+        ],
+        "visual": "2 / 3 / 4 bubbling orange digestive vacuoles; prey dissolves visibly faster",
+        "audioCue": "absorb_gurgle"
+      },
+      {
+        "id": "toxin_vacuole",
+        "name": "Toxin Vacuole",
+        "stage": "eukaryote",
+        "requires": [],
+        "category": "offense",
+        "rarity": "rare",
+        "tags": ["toxic"],
+        "tiers": [
+          { "toxinDrainFractionPerSecond": 0.03 },
+          { "toxinDrainFractionPerSecond": 0.05 },
+          { "toxinDrainFractionPerSecond": 0.07 }
+        ],
+        "visual": "one large violet vacuole pulsing near the nucleus",
+        "audioCue": "toxin_hiss"
+      },
+      {
+        "id": "amoeba_pseudopods",
+        "name": "Amoeba Pseudopods",
+        "stage": "eukaryote",
+        "requires": ["cytoskeleton"],
+        "category": "form",
+        "rarity": "uncommon",
+        "tags": ["predatory", "motile"],
+        "exclusionGroup": "body_plan",
+        "tiers": [
+          { "gelSpeedFactorFloor": 0.6, "engulfDurationMultiplierAsPredator": 0.85 },
+          { "gelSpeedFactorFloor": 0.8, "engulfDurationMultiplierAsPredator": 0.75 },
+          { "gelSpeedFactorFloor": 1, "engulfDurationMultiplierAsPredator": 0.65 }
+        ],
+        "visual": "the membrane extrudes 2 / 3 / 4 blunt lobes toward the velocity and any engulfed prey; irregular blob",
+        "audioCue": "wet_stretch"
+      },
+      {
+        "id": "paramecium_cilia",
+        "name": "Paramecium Cilia",
+        "stage": "eukaryote",
+        "requires": ["cilia"],
+        "category": "form",
+        "rarity": "uncommon",
+        "tags": ["motile"],
+        "exclusionGroup": "body_plan",
+        "tiers": [
+          { "speedMultiplier": 1.1, "accelerationSecondsMultiplier": 0.9 },
+          { "speedMultiplier": 1.15, "accelerationSecondsMultiplier": 0.8 },
+          { "speedMultiplier": 1.2, "accelerationSecondsMultiplier": 0.7 }
+        ],
+        "visual": "a slipper (aspect 1.6 / 1.8 / 2.0) fully covered in beating cilia, with an oral groove",
+        "audioCue": "rapid_flutter"
+      },
+      {
+        "id": "euglena_eyespot",
+        "name": "Euglena Eyespot",
+        "stage": "eukaryote",
+        "requires": ["chloroplast"],
+        "category": "form",
+        "rarity": "rare",
+        "tags": ["sensory", "photic"],
+        "exclusionGroup": "body_plan",
+        "tiers": [
+          { "attractRangeInRadii": 3, "attractSpeed": 40 },
+          { "attractRangeInRadii": 4, "attractSpeed": 60 },
+          { "attractRangeInRadii": 5, "attractSpeed": 80 }
+        ],
+        "visual": "a red eyespot at the front, a long leading flagellum, green body; spindle with a red dot",
+        "audioCue": "low_hum"
+      },
+      {
+        "id": "diatom_shell",
+        "name": "Diatom Shell",
+        "stage": "eukaryote",
+        "requires": ["cell_wall"],
+        "category": "form",
+        "rarity": "uncommon",
+        "tags": ["armored"],
+        "exclusionGroup": "body_plan",
+        "tiers": [
+          { "engulfDurationMultiplierAsPrey": 1.4, "spikeDrainFractionPerSecond": 0.02, "speedMultiplier": 0.97 },
+          { "engulfDurationMultiplierAsPrey": 1.8, "spikeDrainFractionPerSecond": 0.04, "speedMultiplier": 0.94 },
+          { "engulfDurationMultiplierAsPrey": 2.2, "spikeDrainFractionPerSecond": 0.06, "speedMultiplier": 0.91 }
+        ],
+        "visual": "a geometric glassy shell with 8 / 12 / 16 bright-tipped radial spines; star",
+        "audioCue": "shell_scrape"
+      },
+      {
+        "id": "stentor_trumpet",
+        "name": "Stentor Trumpet",
+        "stage": "eukaryote",
+        "requires": ["toxin_vacuole"],
+        "category": "form",
+        "rarity": "rare",
+        "tags": ["toxic", "metabolic"],
+        "exclusionGroup": "body_plan",
+        "tiers": [
+          { "toxinAuraRangeInRadii": 1, "digestionFactorBonus": 0.1 },
+          { "toxinAuraRangeInRadii": 1.5, "digestionFactorBonus": 0.2 },
+          { "toxinAuraRangeInRadii": 2, "digestionFactorBonus": 0.3 }
+        ],
+        "visual": "a flared trumpet body with a ciliated rim and a faint violet haze to the aura range",
+        "audioCue": "hiss_drone"
+      }
+    ],
+    "TRAIT_TIERS": {
+      "nucleoid": [{ "dnaGainMultiplier": 1.05 }, { "dnaGainMultiplier": 1.1 }, { "dnaGainMultiplier": 1.15 }],
+      "simple_flagellum": [
+        { "speedMultiplier": 1.05, "sprintSpeedMultiplierBonus": 0.3, "sprintCooldownSecondsDelta": -0.5 },
+        { "speedMultiplier": 1.05, "sprintSpeedMultiplierBonus": 0.6, "sprintCooldownSecondsDelta": -1 },
+        { "speedMultiplier": 1.05, "sprintSpeedMultiplierBonus": 0.9, "sprintCooldownSecondsDelta": -1.5 }
+      ],
+      "cell_wall": [
+        { "membraneRatioBonus": 0.15, "speedMultiplier": 0.95 },
+        { "membraneRatioBonus": 0.3, "speedMultiplier": 0.9 },
+        { "membraneRatioBonus": 0.45, "speedMultiplier": 0.85 }
+      ],
+      "ribosomes": [{ "digestionFactorBonus": 0.1 }, { "digestionFactorBonus": 0.2 }, { "digestionFactorBonus": 0.3 }],
+      "mitochondrion": [
+        { "decayMultiplier": 0.85, "sprintSpeedMultiplierBonus": 0.1 },
+        { "decayMultiplier": 0.7, "sprintSpeedMultiplierBonus": 0.2 },
+        { "decayMultiplier": 0.55, "sprintSpeedMultiplierBonus": 0.3 }
+      ],
+      "chloroplast": [
+        { "photosynthesisMassPerSecond": 0.3, "decayMultiplier": 0.9 },
+        { "photosynthesisMassPerSecond": 0.6, "decayMultiplier": 0.8 },
+        { "photosynthesisMassPerSecond": 0.9, "decayMultiplier": 0.7 }
+      ],
+      "nuclear_envelope": [
+        { "dnaKeptOnDeathFraction": 0.25 },
+        { "dnaKeptOnDeathFraction": 0.5 },
+        { "dnaKeptOnDeathFraction": 0.75 }
+      ],
+      "cytoskeleton": [
+        { "accelerationSecondsMultiplier": 0.85 },
+        { "accelerationSecondsMultiplier": 0.72 },
+        { "accelerationSecondsMultiplier": 0.61 }
+      ],
+      "cilia": [{ "speedMultiplier": 1.1 }, { "speedMultiplier": 1.2 }, { "speedMultiplier": 1.3 }],
+      "food_vacuole": [
+        { "engulfDurationMultiplierAsPredator": 0.8, "engulfMassYieldBonus": 0.05 },
+        { "engulfDurationMultiplierAsPredator": 0.64, "engulfMassYieldBonus": 0.1 },
+        { "engulfDurationMultiplierAsPredator": 0.51, "engulfMassYieldBonus": 0.15 }
+      ],
+      "toxin_vacuole": [
+        { "toxinDrainFractionPerSecond": 0.03 },
+        { "toxinDrainFractionPerSecond": 0.05 },
+        { "toxinDrainFractionPerSecond": 0.07 }
+      ],
+      "amoeba_pseudopods": [
+        { "gelSpeedFactorFloor": 0.6, "engulfDurationMultiplierAsPredator": 0.85 },
+        { "gelSpeedFactorFloor": 0.8, "engulfDurationMultiplierAsPredator": 0.75 },
+        { "gelSpeedFactorFloor": 1, "engulfDurationMultiplierAsPredator": 0.65 }
+      ],
+      "paramecium_cilia": [
+        { "speedMultiplier": 1.1, "accelerationSecondsMultiplier": 0.9 },
+        { "speedMultiplier": 1.15, "accelerationSecondsMultiplier": 0.8 },
+        { "speedMultiplier": 1.2, "accelerationSecondsMultiplier": 0.7 }
+      ],
+      "euglena_eyespot": [
+        { "attractRangeInRadii": 3, "attractSpeed": 40 },
+        { "attractRangeInRadii": 4, "attractSpeed": 60 },
+        { "attractRangeInRadii": 5, "attractSpeed": 80 }
+      ],
+      "diatom_shell": [
+        { "engulfDurationMultiplierAsPrey": 1.4, "spikeDrainFractionPerSecond": 0.02, "speedMultiplier": 0.97 },
+        { "engulfDurationMultiplierAsPrey": 1.8, "spikeDrainFractionPerSecond": 0.04, "speedMultiplier": 0.94 },
+        { "engulfDurationMultiplierAsPrey": 2.2, "spikeDrainFractionPerSecond": 0.06, "speedMultiplier": 0.91 }
+      ],
+      "stentor_trumpet": [
+        { "toxinAuraRangeInRadii": 1, "digestionFactorBonus": 0.1 },
+        { "toxinAuraRangeInRadii": 1.5, "digestionFactorBonus": 0.2 },
+        { "toxinAuraRangeInRadii": 2, "digestionFactorBonus": 0.3 }
+      ]
+    },
+    "TRAIT_TIER_COUNT": 3
+  }
+}

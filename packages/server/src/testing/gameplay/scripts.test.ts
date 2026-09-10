@@ -15,7 +15,7 @@ import {
 } from './scripts.js';
 
 const SEED = 42;
-const CELL: CellLocation = { x: 100, y: 50, radiusWu: 10 };
+const CELL: CellLocation = { x: 100, y: 50, radius: 10 };
 const PICK = { offerId: 1, cardIndex: 2 };
 
 function contextWith(cell: CellLocation | undefined): ScriptContext<null> {

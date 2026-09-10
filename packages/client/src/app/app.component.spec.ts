@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_PLAYERS_PER_GAME } from '@evolution/shared';
+import { DEFAULT_PLAYERS_PER_GAME, SEED_MAX, createTestSessionConfig } from '@evolution/shared';
 import { AppComponent } from './app.component';
 import { MultiplayerService } from './services/multiplayer.service';
 
@@ -53,16 +53,34 @@ describe('AppComponent', () => {
 
   it('forwards the game verbs with the form state', () => {
     const component = TestBed.createComponent(AppComponent).componentInstance;
+    component.seed.set(42);
     component.createGame();
     component.joinGame('g1');
     component.startGame('g1');
     component.deleteGame('g1');
     component.disconnect();
-    expect(multiplayer.createGame).toHaveBeenCalledWith('New Game', { maxPlayers: DEFAULT_PLAYERS_PER_GAME });
+    expect(multiplayer.createGame).toHaveBeenCalledWith(
+      'New Game',
+      createTestSessionConfig({ maxPlayers: DEFAULT_PLAYERS_PER_GAME, seed: 42 }),
+    );
     expect(multiplayer.joinGame).toHaveBeenCalledWith('g1');
     expect(multiplayer.startGame).toHaveBeenCalledWith('g1');
     expect(multiplayer.deleteGame).toHaveBeenCalledWith('g1');
     expect(multiplayer.disconnect).toHaveBeenCalled();
+  });
+
+  it('draws a fresh seed inside the accepted range on request', () => {
+    const component = TestBed.createComponent(AppComponent).componentInstance;
+    const seeds = new Set<number>();
+    for (let draw = 0; draw < 8; draw += 1) {
+      component.newSeed();
+      const seed = component.seed();
+      expect(Number.isInteger(seed)).toBe(true);
+      expect(seed).toBeGreaterThanOrEqual(0);
+      expect(seed).toBeLessThanOrEqual(SEED_MAX);
+      seeds.add(seed);
+    }
+    expect(seeds.size).toBeGreaterThan(1);
   });
 
   it('pretty-prints the latest snapshot or a placeholder', () => {

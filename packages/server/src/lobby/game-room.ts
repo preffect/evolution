@@ -1,12 +1,13 @@
-import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
+import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig, LobbyPlayerInfo } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
 import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator, type FixedStepAccumulator } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
 import type { RoomTiming } from './room-timing.js';
-import type { GameModule, RoomInitOptions } from '../game/game-module.js';
+import type { FullGameState, GameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
+import { DebugRequestError } from '../game/debug/debug-request-error.js';
 
 /**
  * A running game session. Owns the connections, the late-join/disconnect
@@ -118,23 +119,22 @@ export class GameRoom {
     return this.game.serializeRoomState();
   }
 
+  /** The `game_state` payload (docs/ARCHITECTURE.md §4): the module's full snapshot and live balance. */
+  getFullState(): FullGameState {
+    return this.game.serializeFullState();
+  }
+
   /** Player who was never part of the session joins an in-progress game. */
   addLatePlayer(connection: Connection, gameId: string): void {
-    const playerId = connection.playerId;
-    this.allPlayerIds.push(playerId);
-    this.avatarAssignments[playerId] = connection.avatarIndex;
-    this.playerNames[playerId] = connection.playerName;
+    const playerId = connection.playerId as PlayerId;
     this.playerConnections.set(playerId, connection);
-    this.game.addPlayer(playerId as PlayerId, connection.avatarIndex, connection.playerName);
-    broadcastMessage(
-      Array.from(this.playerConnections.values()).filter((other) => other.playerId !== playerId),
-      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId: playerId as PlayerId, avatarIndex: connection.avatarIndex },
-    );
+    this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
+    this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
     sendMessage(connection, {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: gameId as GameId,
       playerId: playerId as PlayerId,
-      snapshot: this.game.serializeRoomState(),
+      ...this.getFullState(),
       config: this.sessionConfig,
       playerIds: this.allPlayerIds as PlayerId[],
       avatarAssignments: this.avatarAssignments,
@@ -146,6 +146,50 @@ export class GameRoom {
     this.disconnectedPlayers.add(playerId);
     this.performanceTracker.removeClient(playerId as PlayerId);
     this.game.removePlayer(playerId as PlayerId);
+    this.dropFromRoster(playerId);
+  }
+
+  /**
+   * A synthetic player the game module drives itself (`debug_spawn_bot`, docs/ARCHITECTURE.md §8):
+   * in the roster and announced like a late joiner, with no connection. The module already holds
+   * the player; this only makes it visible to the lobby and the other clients. An id that is
+   * already in the roster or on a socket is refused with `DebugRequestError`, so a bot can never
+   * shadow a human. `config.maxPlayers` is deliberately not applied: it is the lobby's seat cap
+   * for humans, and a debug spawn is the operator filling the dish past it on purpose.
+   */
+  addSyntheticPlayer(player: LobbyPlayerInfo): void {
+    if (this.allPlayerIds.includes(player.playerId) || this.playerConnections.has(player.playerId)) {
+      throw new DebugRequestError(`"${player.playerId}" is already a player in this game`);
+    }
+    this.enrol(player);
+  }
+
+  /**
+   * Drops a synthetic player from the roster and announces it the way a disconnect is announced.
+   * A player with a live socket is refused: it is a human, and `removePlayer` is the way out for
+   * those. This is the second home of `player_disconnected` (the first is `LobbyManager`, for a
+   * human with the reconnect grace window); they stay apart because a bot gets no grace.
+   */
+  removeSyntheticPlayer(playerId: PlayerId): void {
+    if (this.playerConnections.has(playerId)) {
+      throw new DebugRequestError(`"${playerId}" is a connected player, not a synthetic one`);
+    }
+    this.dropFromRoster(playerId);
+    broadcastMessage(this.playerConnections.values(), { type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId });
+  }
+
+  /** Records a newcomer in the roster and tells everyone else. */
+  private enrol({ playerId, playerName, avatarIndex }: LobbyPlayerInfo): void {
+    this.allPlayerIds.push(playerId);
+    this.avatarAssignments[playerId] = avatarIndex;
+    this.playerNames[playerId] = playerName;
+    broadcastMessage(
+      Array.from(this.playerConnections.values()).filter((other) => other.playerId !== playerId),
+      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId, avatarIndex },
+    );
+  }
+
+  private dropFromRoster(playerId: string): void {
     const index = this.allPlayerIds.indexOf(playerId);
     if (index >= 0) this.allPlayerIds.splice(index, 1);
   }

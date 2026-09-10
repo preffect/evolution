@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { playerId } from '@evolution/shared';
+import { createTestGameInput, createTestSessionConfig, playerId } from '@evolution/shared';
 import { ScenarioSetupError } from './errors.js';
 import { echoAdapter, echoedInput, hashEchoSnapshot, type EchoSnapshot } from './echo-adapter.js';
 
@@ -9,10 +9,9 @@ const OPTIONS = {
   creatorId: FIRST,
   playerIds: [FIRST, SECOND],
   gameName: 'echo',
-  config: { maxPlayers: 8 },
+  config: createTestSessionConfig({ maxPlayers: 8, seed: 42 }),
   avatarAssignments: { [FIRST]: 0, [SECOND]: 1 },
   playerNames: { [FIRST]: 'Player 0', [SECOND]: 'Player 1' },
-  seed: 42,
 };
 
 describe('echoAdapter', () => {
@@ -25,11 +24,9 @@ describe('echoAdapter', () => {
     const module = echoAdapter.createModule(OPTIONS);
     const input = echoAdapter.toInput({ targetX: 1, targetY: 2 }, 7);
     module.submitInput(OPTIONS.creatorId, input);
-    expect(echoedInput(echoAdapter.readSnapshot(module), OPTIONS.creatorId)).toEqual({
-      targetX: 1,
-      targetY: 2,
-      sequence: 7,
-    });
+    expect(echoedInput(echoAdapter.readSnapshot(module), OPTIONS.creatorId)).toEqual(
+      createTestGameInput({ targetX: 1, targetY: 2, sequence: 7 }),
+    );
     expect(echoedInput(echoAdapter.readSnapshot(module), playerId('player_9'))).toBeNull();
   });
 

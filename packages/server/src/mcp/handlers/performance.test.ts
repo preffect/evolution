@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, createTestSessionConfig } from '@evolution/shared';
 import { registerPerformanceTools } from './performance.js';
 import { createTestLobby, createToolCapture, parseToolJson } from '../../testing/builders.js';
 
@@ -9,7 +9,7 @@ function fixtureWithOneActiveRoom() {
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'A',
-    config: { maxPlayers: 2 },
+    config: createTestSessionConfig({ maxPlayers: 2 }),
   });
   const gameId = fixture.lobby.listGames()[0]!.gameId;
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });

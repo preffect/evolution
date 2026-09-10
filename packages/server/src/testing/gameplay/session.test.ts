@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createTestSessionConfig } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
 import { scenarioPlayerId } from './players.js';
@@ -26,8 +27,7 @@ function createSession(
 ) {
   return new ScenarioSession(adapter, {
     scenarioName: 'session',
-    seed: SEED,
-    config: { maxPlayers: 8 },
+    config: createTestSessionConfig({ maxPlayers: 8, seed: SEED }),
     players,
     fixtures,
   });
@@ -52,7 +52,7 @@ describe('ScenarioSession', () => {
     expect(session.tick).toBe(0);
     expect(session.seed).toBe(SEED);
     expect(Object.keys(session.currentSnapshot().cells)).toEqual([scenarioPlayerId(0)]);
-    expect(session.view().cell(0)).toEqual({ x: SEED, y: 0, radiusWu: 10 });
+    expect(session.view().cell(0)).toEqual({ x: SEED, y: 0, radius: 10 });
     expect(session.view().cell(1)).toBeUndefined();
     expect(session.isPresentAt(1, 4)).toBe(false);
     expect(session.isPresentAt(1, 5)).toBe(true);
@@ -106,7 +106,7 @@ describe('ScenarioSession', () => {
     session.step();
     const context = session.scriptContext(0);
     expect(context).toMatchObject({ tick: 1, stepTick: 2, playerIndex: 0, playerId: scenarioPlayerId(0), seed: SEED });
-    expect(context.cell).toEqual({ x: SEED, y: 0, radiusWu: 10 });
+    expect(context.cell).toEqual({ x: SEED, y: 0, radius: 10 });
   });
 
   it('looks the cell up only when a script reads it', () => {

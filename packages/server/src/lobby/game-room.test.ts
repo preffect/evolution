@@ -1,8 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
-import { MAX_TICKS_PER_ADVANCE, SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  MAX_TICKS_PER_ADVANCE,
+  SERVER_MESSAGE_TYPE,
+  TICK_INTERVAL_MS,
+  createTestGameInput,
+  createTestSessionConfig,
+  createTestSnapshot,
+} from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
-import type { RoomInitOptions } from '../game/game-module.js';
+import { DebugRequestError } from '../game/debug/debug-request-error.js';
+import type { FullGameState, RoomInitOptions } from '../game/game-module.js';
 import {
   createDebugCapableGameModule,
   createManualRoomTiming,
@@ -15,7 +24,7 @@ function roomOptions(playerIds: string[]): RoomInitOptions {
     creatorId: playerIds[0] as PlayerId,
     playerIds: playerIds as PlayerId[],
     gameName: 'Test',
-    config: { maxPlayers: 4 },
+    config: createTestSessionConfig({ maxPlayers: 4 }),
     avatarAssignments: Object.fromEntries(playerIds.map((playerId, index) => [playerId, index])),
     playerNames: {},
   };
@@ -133,8 +142,9 @@ describe('game-room: membership and delegation', () => {
   it('submitInput delegates to the game module', () => {
     const gameModule = createSpyGameModule();
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
-    room.submitInput('p1', { jump: true });
-    expect(gameModule.submitInput).toHaveBeenCalledWith('p1', { jump: true });
+    const input = createTestGameInput({ shouldSprint: true });
+    room.submitInput('p1', input);
+    expect(gameModule.submitInput).toHaveBeenCalledWith('p1', input);
   });
 
   it('removePlayer drops the player from the module and roster', () => {
@@ -154,6 +164,75 @@ describe('game-room: membership and delegation', () => {
     expect(gameModule.addPlayer).toHaveBeenCalledWith('p3', 0, 'p3');
     expect(room.allPlayerIds).toContain('p3');
     expect(room.playerConnections.has('p3')).toBe(true);
+  });
+
+  it('addSyntheticPlayer enrols a bot the module already holds and announces it to everyone else', () => {
+    const sent: Record<string, unknown[]> = {};
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
+    room.addSyntheticPlayer({ playerId: 'bot_1_0' as PlayerId, playerName: 'Bot 0', avatarIndex: 3 });
+    expect(gameModule.addPlayer).not.toHaveBeenCalled();
+    expect(room.allPlayerIds).toEqual(['p1', 'bot_1_0']);
+    expect(room.playerNames['bot_1_0']).toBe('Bot 0');
+    expect(room.avatarAssignments['bot_1_0']).toBe(3);
+    expect(room.playerConnections.has('bot_1_0')).toBe(false);
+    expect(sent['p1']).toEqual([{ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: 'bot_1_0', avatarIndex: 3 }]);
+  });
+
+  it('addSyntheticPlayer refuses an id that is already in the roster or on a socket', () => {
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1' }));
+    room.addSyntheticPlayer({ playerId: 'bot_1_0' as PlayerId, playerName: 'Bot 0', avatarIndex: 3 });
+    const asBot = (playerId: string) => ({ playerId: playerId as PlayerId, playerName: 'Bot', avatarIndex: 0 });
+    expect(() => room.addSyntheticPlayer(asBot('p1'))).toThrow(DebugRequestError);
+    expect(() => room.addSyntheticPlayer(asBot('p1'))).toThrow(/"p1" is already a player/);
+    expect(() => room.addSyntheticPlayer(asBot('bot_1_0'))).toThrow(DebugRequestError);
+    expect(room.allPlayerIds).toEqual(['p1', 'bot_1_0']);
+  });
+
+  it('removeSyntheticPlayer refuses a player with a live socket', () => {
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1' }));
+    expect(() => room.removeSyntheticPlayer('p1' as PlayerId)).toThrow(DebugRequestError);
+    expect(() => room.removeSyntheticPlayer('p1' as PlayerId)).toThrow(/"p1" is a connected player/);
+    expect(room.allPlayerIds).toEqual(['p1']);
+  });
+
+  it('removeSyntheticPlayer drops the bot from the roster and announces it like a disconnect', () => {
+    const sent: Record<string, unknown[]> = {};
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
+    room.addSyntheticPlayer({ playerId: 'bot_1_0' as PlayerId, playerName: 'Bot 0', avatarIndex: 3 });
+    room.removeSyntheticPlayer('bot_1_0' as PlayerId);
+    expect(gameModule.removePlayer).not.toHaveBeenCalled();
+    expect(room.allPlayerIds).toEqual(['p1']);
+    expect(room.disconnectedPlayers.has('bot_1_0')).toBe(false);
+    expect(sent['p1']).toContainEqual({ type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId: 'bot_1_0' });
+  });
+
+  it("getFullState returns the module's serializeFullState verbatim", () => {
+    const gameModule = createSpyGameModule();
+    const fullState: FullGameState = { snapshot: createTestSnapshot({ tick: 7 }), balance: DEFAULT_BALANCE };
+    vi.mocked(gameModule.serializeFullState).mockReturnValue(fullState);
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    expect(room.getFullState()).toBe(fullState);
+    expect(gameModule.serializeRoomState).not.toHaveBeenCalled();
+  });
+
+  it("addLatePlayer sends the joiner a game_state carrying the module's full snapshot and balance", () => {
+    const sent: Record<string, unknown[]> = {};
+    const gameModule = createSpyGameModule();
+    const fullState: FullGameState = { snapshot: createTestSnapshot({ tick: 7 }), balance: DEFAULT_BALANCE };
+    vi.mocked(gameModule.serializeFullState).mockReturnValue(fullState);
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addLatePlayer(createTestConnection({ playerId: 'p3', sent }), 'g1');
+    expect(sent['p3']).toEqual([
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, gameId: 'g1', playerId: 'p3', ...fullState }),
+    ]);
   });
 
   it('copies the roster so the caller cannot mutate the room from outside', () => {

@@ -109,8 +109,8 @@ nucleoid glow is the player's rim colour (strand `NUCLEOID_STRAND` stays near-wh
 in those tables is palette-independent so organelles look the same inside every player.
 
 **Player palettes.** `PLAYER_PALETTE_COUNT` is `MAX_PLAYERS_PER_GAME` (8) by construction, and
-`AVATAR_INDEX_MAX` in `constants/lobby.ts` derives from it as `PLAYER_PALETTE_COUNT − 1` (today it is
-a literal 5 and must follow). Six ramps are sheet 01's player-palette table; two are new. Derived
+`AVATAR_INDEX_MAX` in `constants/lobby.ts` derives from it as `PLAYER_PALETTE_COUNT − 1` (both live in
+`constants/lobby.ts`; the renderer's palette table pins its length against `PLAYER_PALETTE_COUNT`). Six ramps are sheet 01's player-palette table; two are new. Derived
 shades (edge, cytoplasm light / dark, nucleus dark) follow sheet 01's HSL rule and are computed in
 `render/palette.ts`, never listed. A new palette's rim and nucleus follow the six drawn ones: rim = the
 base hue at S 100 % / L 85 %, nuc = the base hue at S 85 % / L 70 % (HSL). Palette index is seat order,
@@ -200,14 +200,16 @@ must show; sheet 04 draws it. **The starting radius is `ECOLOGY.md §5.1`'s curv
 
 Organelle placement is seeded from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)`
 ([`ARCHITECTURE.md §6`](./ARCHITECTURE.md#6-client-module-plan-pixi-v8--angular)) so a paused frame
-reproduces; organelles never sit inside the nucleus disc nor within 8 % r of the membrane.
+reproduces; organelle slot centres never sit inside the nucleus disc, inside `DNA_RING_KEEP_OUT_FRACTION` (0.66 r,
+`UI.md §9`: the own cell's DNA ring band, applied to every cell so a slot is one rule) nor within 8 % r of the
+membrane.
 
 ## 4. Organelle vocabulary per trait
 
 The trait's own `visual` string ([`TRAITS.md §3`](./TRAITS.md#3-build-1-catalog-sixteen-traits-fully-specified))
 is the requirement; this table fixes the drawing. Colours are §2 constants; sizes are fractions of `r`.
 The last column is what survives the mid LOD of §6 (the full-LOD tell is the drawing itself); "drops"
-means the trait has no tell below 20 px and is read from the trait strip only.
+means the trait has no tell below 20 px and is read from the menu's trait list only (`UI.md §3.5`).
 
 | Trait               | Drawing                                                                                                                       | Tier progression                     | Mid-LOD tell (§6, 8–20 px)                |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------- |
@@ -266,14 +268,14 @@ Zoom is `GAME-DESIGN.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, v
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Cell LOD             | on-screen radius ≥ `CELL_LOD_FULL_MIN_PX` 20: full stack; `CELL_LOD_FAR_MAX_PX` 8 to 20 px: the mid-LOD set below; < 8 px: sheet 02 far dot                                                                                                                                                                                                                                                                                       |
 | Mid LOD (8–20 px)    | **kept:** halo, body as a flat gradient, rim, outline with its silhouette deformation (forms, stretch, dents, taut wobble), nucleus / nucleoid as one disc, flagellum and cilia (as one band) polylines, `cell_wall` second rim, the 1.39 r trait halo, seat mark, self ring, engulf ring. **dropped:** cytoplasm texture, granules, organelles, envelope pores, filaments, ribosome stipple, nucleolus, prey-through-film redraw |
-| Far dot              | rim-colour dot, `CELL_FAR_DOT_MIN_PX` 3 floor, halo ×3, no interior, no seat mark (§2); the own cell never reaches this LOD (the minimap's own-dot ring is `UI.md`'s)                                                                                                                                                                                                                                                             |
+| Far dot              | rim-colour dot, `CELL_FAR_DOT_MIN_PX` 3 floor, halo ×3, no interior, no seat mark (§2); the own cell never reaches this LOD                                                                                                                                                                                                                                                                                                       |
 | Mote floor           | core never below `MOTE_CORE_MIN_PX` 2, wide halo never below 6 px; below zoom 0.5 the sprite is the pre-rendered small variant (§8)                                                                                                                                                                                                                                                                                               |
 | Silhouette tells     | every rung and form owns one outline change ([`TRAITS.md §3.17`](./TRAITS.md#317-exclusions-and-pairings-at-a-glance)); §4's last column names what each keeps at mid LOD                                                                                                                                                                                                                                                         |
 | Interior-only traits | a doubled rim (`cell_wall`) or a trait-colour halo at 1.39 r (`chloroplast`, `toxin_vacuole`) per sheet 01's trait legibility; the other interior traits drop at mid LOD by design                                                                                                                                                                                                                                                |
 | Player tells         | seat mark and self ring (§2) at every LOD ≥ 8 px; below that, hue and the leaderboard swatch only                                                                                                                                                                                                                                                                                                                                 |
 | Prey through film    | an engulfed prey's rim and nucleus glint are redrawn at 62 % over the predator body (sheet 02, prey row) until the payout                                                                                                                                                                                                                                                                                                         |
 | Food silhouettes     | circle (algae), oily ellipse (detritus), rod (bacterium), helix (DNA): readable at the 2 px floor without colour                                                                                                                                                                                                                                                                                                                  |
-| HUD exclusion        | nothing is drawn inside the `HUD_PLAYER_EXCLUSION_PX` box around the player cell (`UI.md` owns the number)                                                                                                                                                                                                                                                                                                                        |
+| HUD exclusion        | no DOM is drawn inside the `HUD_PLAYER_EXCLUSION_PX` box around the player cell (`UI.md` owns the number); the own cell's progress indicators live inside it by design (`UI.md §3.1`, `RENDERING.md §10`)                                                                                                                                                                                                                         |
 | Contrast             | every rim is ≥ `RIM_MIN_CONTRAST` 4.5:1 against `BG_FIELD` (measured 10.7–16.4); bases range 4.0 (Violet) to 10.1 (Mint) and are held to ≥ 4.0; UI text uses sheet 03's text roles only                                                                                                                                                                                                                                           |
 
 ## 7. UI colours and type
@@ -305,6 +307,12 @@ colours; the rest of the overlay is the `PANEL_TOP` → `PANEL_BOTTOM` panel wit
 dish stays the brightest thing on screen.
 
 ## 8. Performance intent: geometry, textures, shaders
+
+> **Superseded in means, not in intent, by [`RENDERING.md`](./RENDERING.md) (#120):** cells are one quad + fragment
+> shader each (the layer stack as distance bands, deformations as terms of `r(θ)`), organelles are sprites mapped
+> through the deformation, cilia and speckle are shader patterns. The rules below that say _what_ is cached and
+> _what_ is never done per frame still hold; the "36-point `Graphics` membrane" and "one shader effect" lines are
+> the pre-#120 plan.
 
 The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes). To hold it:
 

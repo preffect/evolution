@@ -53,12 +53,14 @@ the opt-in integration run rather than on every save.
 
 Each package keeps its test doubles in `src/testing/`:
 
-| Package  | File                        | Provides                                                                                                                                                                                                                                                                                                                   |
-| -------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server` | `testing/builders.ts`       | `createTestConnection`, `createSpyGameModule`, `createDebugCapableGameModule(handle)`, `createManualRoomTiming` (`ManualClock` + `ManualTicker`), `createTestLobby(options)`, `createTestDebugContext`, `createActiveRoomFixture` (a started room + tool capture), `createToolCapture` (invoke MCP tools), `parseToolJson` |
-| `server` | `testing/gameplay/` (#75)   | the scenario runner of section 8: `createScenarioDsl`, `player`, the scripts, the fixture helpers, replay and the echo adapter                                                                                                                                                                                             |
-| `client` | `testing/fake-websocket.ts` | `FakeWebSocket`: install with `vi.stubGlobal('WebSocket', FakeWebSocket)`, then `open()` / `receive()` / `close()` from the test                                                                                                                                                                                           |
-| `shared` | `testing/builders.ts` (#98) | `createTestCell`, `createTestWorld`, `createTestSnapshot` once the simulation lands                                                                                                                                                                                                                                        |
+| Package  | File                         | Provides                                                                                                                                                                                                                                                                                                                   |
+| -------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server` | `testing/builders.ts`        | `createTestConnection`, `createSpyGameModule`, `createDebugCapableGameModule(handle)`, `createManualRoomTiming` (`ManualClock` + `ManualTicker`), `createTestLobby(options)`, `createTestDebugContext`, `createActiveRoomFixture` (a started room + tool capture), `createToolCapture` (invoke MCP tools), `parseToolJson` |
+| `server` | `testing/gameplay/` (#75)    | the scenario runner of section 8: `createScenarioDsl`, `player`, the scripts, the fixture helpers, replay and the echo adapter; `strategies/` holds the bots of section 8.4                                                                                                                                                |
+| `server` | `testing/bot-builders.ts`    | `createTestScriptContext`, `createTestBotCell`, `createTestWorldView`, `createTestPerception`, `createTestBotIdentity`, `createFakeBotTransport`, `createFakeSocket`, `captureManualTimings` (section 8.4)                                                                                                                 |
+| `server` | `testing/socket-builders.ts` | `startTestWebSocketServer` (Fastify + `/ws` on an ephemeral port over any module and timing), `openTestSocket`, `nextServerMessage`, `whenClosed`; integration tier only                                                                                                                                                   |
+| `client` | `testing/fake-websocket.ts`  | `FakeWebSocket`: install with `vi.stubGlobal('WebSocket', FakeWebSocket)`, then `open()` / `receive()` / `close()` from the test                                                                                                                                                                                           |
+| `shared` | `testing/builders.ts`        | `createTestSessionConfig`, `createTestGameInput`, `createTestSnapshot` (the wire contract, exported from the package so server and client tests share one shape); `createTestCell`, `createTestWorld` join with #98                                                                                                        |
 
 Rules: builders take a partial and fill defaults (`createTestCell({ mass: 40 })`); builder
 defaults are the only tolerated inline test numbers; a shape change is one edit in the
@@ -152,10 +154,10 @@ it('E9: A absorbs B on tick 30', () => {
   (`ZONE.broth`, `ZONE.vent`, `ZONE.shallows`), `insideCellOf(i)` (E12, E15, P2),
   `eastOfCellOf(i, wu)` (E4 against a seeded cell) or `gelPatchCentre(n)` (E8). A cell takes
   `isPinned`, `traits` (`'cilia'` is tier I, `{ traitId: 'nucleoid', tier: 2 }` names the tier,
-  TRAITS §2) and `dnaCumulative` (P7, P10: "level 12 with fixture DNA 770"). A setup placement
+  TRAITS §2) and `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760"). A setup placement
   applies before tick 1; **`.atTick(T).placeMote(...)`** schedules the same record to apply
   between tick T − 1 and tick T, after that tick's joins and leaves and before its scripts
-  (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 5 ticks" is five
+  (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 10 ticks" is ten
   `.atTick(t).placeMote(...)` calls). Scheduled fixtures are recorded in the replay as
   `patches`. Placing anything means the adapter disables the initial fill and both spawners for
   that run, and fails the scenario when a seeded gel patch lies within `GEL_PATCH_CLEARANCE_WU`
@@ -175,8 +177,8 @@ it('E9: A absorbs B on tick 30', () => {
   in one tick are merged (later fields win; the sprint flag and the trait pick are OR-merged,
   `ARCHITECTURE.md` §3.2) and the adapter stamps the sequence.
 - **Bots.** `.bot(index, factory, everyTicks)` drives a player from a `BotStrategy` built by
-  `factory` (`bots.ts`): the interface the `graze` / `hunt` / `flee` / `idle` strategies of #15
-  implement and the headless bot client reuses. The schedule holds the **factory**, not an
+  `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` strategies of
+  section 8.4 implement and the headless bot client reuses. The schedule holds the **factory**, not an
   instance: every run (both runs of `runDeterministic`) gets a fresh strategy, so a strategy may
   keep state across its decisions. Its only other input is `ScriptContext`, and its only source
   of randomness is `context.random`, a stream forked from the scenario seed per player
@@ -248,6 +250,81 @@ pnpm --filter @evolution/server test:integration ecology   # every *.gameplay.te
 
 A framework test never uses the file sink: pass `createMemoryReplaySink()` to
 `createScenarioDsl(adapter, { replaySink })`.
+
+### 8.4 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)
+
+Agents cannot open a second human's browser, so opponents are bots: the same `BotStrategy` runs
+in a scenario (section 8.1), over the wire against a running server, or inside the game module.
+
+**Strategies** (`packages/server/src/game/bots/strategies/`; the seam, perception and catalogue
+beside them in `game/bots/`, re-exported by `testing/gameplay/strategies/index.ts` so a scenario
+imports them from the framework) are pure over the `ScriptContext` and a `BotPerception`; the
+only randomness they may draw is `context.random`.
+
+| Name                           | Behaviour                                                                                                                                                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `idle`                         | Never sends an input: a warm body in the roster.                                                                                                                                                                                         |
+| `wander`                       | A seeded random walk: the heading drifts by a gaussian turn (`WANDER_TURN_SIGMA_RADIANS`) and the bot aims `WANDER_STEP_WU` ahead, from its cell's centre when it has one.                                                               |
+| `grazer`                       | Aims at the nearest mote every decision; sends nothing without a cell or without food.                                                                                                                                                   |
+| `hunter`                       | Commits to the largest cell it can engulf (the shared `canEngulf`, ECOLOGY §6.1) until it is gone or no longer engulfable, then picks again; sprints within `HUNTER_SPRINT_WITHIN_RADII` radii. `preyPlayerId` narrows it to one player. |
+| `createScriptSequenceStrategy` | Scripted: a list of `scripts.ts` steps, each owning a number of decisions, optionally looping; code only, no catalogue name.                                                                                                             |
+
+`createStrategyByName(name, perception, { preyPlayerId })` is the catalogue the CLI and
+`debug_spawn_bot` resolve a name through; both validate the string at their edge
+(`isBotStrategyName` in the CLI parser, `z.enum(BOT_STRATEGY_NAMES)` in the tool schema), and
+`BOT_STRATEGY_NAMES` is the list a wrong name is told. `BotPerception` (`game/bots/perception.ts`)
+is what a strategy sees: `ownCellOf(snapshot, playerId)`, the single self-locator (the one place
+a player identity is assumed; #156's wild cells swap it for an entity-id lookup), `cellsOf`,
+`motesOf` and `canEngulf(predator, prey)`, the shared predicate already closed over the live
+`balance.absorption`, so no bot carries its own ratio rule. A `BotWorldBinding`
+(`game/bots/bot-binding.ts`) adds `locateCell`, derived from `ownCellOf` through
+`locateCellThrough` (a `CellLocation` is the cell's `x`, `y`, `radius`), and `toInput`; a
+`ScenarioAdapter` extends it, so the adapter of a world IS its binding. The echo binding sees
+nothing and locates nothing, so on the echo module `grazer` and `hunter` hold and `wander` and
+`idle` are the strategies that show anything. #98 adds the Evolution binding.
+
+**Determinism.** Every bot is a `BotPilot` (`game/bots/bot-pilot.ts`) on its own stream,
+`bot_<index>` forked from the swarm seed, and stamps its client tick as the input `sequence`.
+Two bots with the same seed and index decide the same way in-process, over the wire and in a
+unit test (`bot-pilot.test.ts`, `bot-client.integration.test.ts` pin it).
+
+**In a scenario:** `.bot(index, createGrazerStrategy(perception), everyTicks)` (section 8.1).
+
+**Against the running game** (the headless bot client, `packages/server/src/testing/bot-client/`):
+
+```bash
+pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy grazer --seed 42
+#   --prey <playerId>    hunter only          --url ws://localhost:4400/ws
+#   --ticks 600          stop after 600 client ticks and print per-bot stats as JSON (default: until Ctrl-C)
+```
+
+Each bot opens its own socket as `?clientId=bot_<seed>_<index>` (`CLIENT_ID_QUERY_PARAMETER`; a
+rerun with the same seed takes the same seats), sends `join_lobby` as `Bot <index>` and `join_game`, and is seated by
+the `game_state` of a late join or the `game_started` of a pending game. From then on it runs
+one client tick per fixed step through the injected `Clock` + `Ticker` (docs/ARCHITECTURE.md §5:
+one `player_input` per tick, `sequence` = tick), deciding from the latest snapshot; it holds
+until the first snapshot arrives. The CLI is the only composition root that names the system
+pair; the integration test drives two bots against a real in-process server for 300 ticks on
+manual clocks, every tick strictly ordered (bots decide, inputs land, the room steps and
+broadcasts), and checks the echoed inputs against an offline pilot with the same seed. A socket
+that cannot open, or a game the server refuses (`Game not found`, `Game is full`), rejects
+`start()` with a `BotClientError` and stops every bot that did connect. A bot whose socket closes
+after it was seated stops ticking, shows `isConnected: false` and rejects whoever waits on it, so
+`--ticks N` exits non-zero (stats still printed) instead of counting inputs into a closed socket.
+Stats per bot: `clientTick`, `decisions`, `inputsSent`, `snapshotsReceived`, `droppedTicks`,
+`errorsReceived`, `lastError`, `isConnected`.
+
+**In-process** (`debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
+`debug_remove_bot(gameId, playerId)`, docs/ARCHITECTURE.md §8): the game module drives the bot
+itself from a `createInProcessBotRoster(binding)` (`game/bots/in-process-bots.ts`) and the room
+seats it as a synthetic player (`sim_bot_<seed>_<index>`, a namespace no wire bot shares; an id
+already in play is refused before the module holds the bot), so the lobby and the other clients
+see a normal `Bot <index>`. The 4-cell dish a QA screenshot needs is one room and three
+`debug_spawn_bot` calls; `debug_pause_room` + `debug_step_room` then freeze the frame.
+
+**Test doubles:** `testing/bot-builders.ts` (strategy contexts and world views, a fake transport,
+a fake socket, captured manual timings) and `testing/socket-builders.ts` (a listening server on
+an ephemeral port and the raw `ws` promises) are excluded from coverage like `builders.ts`.
 
 ### 8.3 Proving scenarios
 

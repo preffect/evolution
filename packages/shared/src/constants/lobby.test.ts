@@ -11,7 +11,12 @@ import {
   MIN_PLAYERS_PER_GAME,
   PLAYER_NAME_MAX_LENGTH,
   PLAYER_NAME_MIN_LENGTH,
+  PLAYER_PALETTE_COUNT,
+  SEAT_MARK_BEADS,
 } from './lobby.js';
+
+/** docs/VISUAL-STYLE.md §2: eight palettes, so the last avatar index is 7. */
+const LAST_AVATAR_INDEX = 7;
 
 describe('lobby constants', () => {
   it('orders every min/max pair', () => {
@@ -28,5 +33,16 @@ describe('lobby constants', () => {
 
   it('mints game ids the schema accepts', () => {
     expect(GAME_ID_LENGTH).toBeGreaterThanOrEqual(GAME_ID_MIN_LENGTH);
+  });
+
+  it('derives the avatar index range from the palette count, one palette per seat', () => {
+    expect(PLAYER_PALETTE_COUNT).toBe(MAX_PLAYERS_PER_GAME);
+    expect(AVATAR_INDEX_MAX).toBe(PLAYER_PALETTE_COUNT - 1);
+    expect(AVATAR_INDEX_MAX).toBe(LAST_AVATAR_INDEX);
+  });
+
+  it('marks seat N with N + 1 beads, one entry per avatar index', () => {
+    expect(SEAT_MARK_BEADS).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(SEAT_MARK_BEADS).toHaveLength(AVATAR_INDEX_MAX + 1);
   });
 });

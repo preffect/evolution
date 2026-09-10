@@ -1,4 +1,7 @@
 export * from './types/common.js';
+export * from './types/game.js';
+export * from './types/traits.js';
+export * from './types/effects.js';
 export * from './types/messages.js';
 export * from './constants/index.js';
 export * from './hashing/fnv1a.js';
@@ -10,5 +13,9 @@ export * from './random/stream-forking.js';
 export * from './time/clock.js';
 export * from './time/fixed-step-accumulator.js';
 export * from './time/units.js';
+export * from './simulation/engulf-eligibility.js';
+export * from './simulation/level-costs.js';
 export * from './simulation/state-hasher.js';
 export * from './simulation/state-hash.js';
+export * from './simulation/vector-math.js';
+export * from './testing/builders.js';

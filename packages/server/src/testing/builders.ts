@@ -4,7 +4,9 @@ import { vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
-import { CLIENT_MESSAGE_TYPE, ManualClock } from '@evolution/shared';
+import { z } from 'zod';
+import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig } from '@evolution/shared';
+import type { GameSnapshot } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import type { GameModule, GameModuleFactory } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
@@ -50,7 +52,12 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
     players,
     submitInput: vi.fn(),
     reduceGameState: vi.fn(),
-    serializeRoomState: vi.fn(() => ({ players: [...players] })),
+    // The spy echoes its roster, not a world: the cast is the echo module's own (game-module.ts).
+    serializeRoomState: vi.fn(() => ({ players: [...players] }) as unknown as GameSnapshot),
+    serializeFullState: vi.fn(() => ({
+      snapshot: { players: [...players] } as unknown as GameSnapshot,
+      balance: DEFAULT_BALANCE,
+    })),
     addPlayer: vi.fn((playerId: string) => {
       players.add(playerId);
     }),
@@ -110,7 +117,7 @@ export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'A',
-    config: { maxPlayers: 2 },
+    config: createTestSessionConfig({ maxPlayers: 2 }),
   });
   const gameId = fixture.lobby.listGames()[0]!.gameId;
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });
@@ -122,26 +129,43 @@ export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
 
 type ToolCallback = (input: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
 
+/** A registered tool: its argument schema (when it declared one) and its callback. */
+interface CapturedTool {
+  readonly schema?: z.ZodRawShape;
+  readonly callback: ToolCallback;
+}
+
+/** What the SDK answers when the arguments fail the tool's schema, so a test sees the same refusal a client would. */
+function invalidArgumentsResult(name: string, error: z.ZodError): CallToolResult {
+  return { isError: true, content: [{ type: 'text', text: `Invalid arguments for tool ${name}: ${error.message}` }] };
+}
+
 /**
  * A fake `McpServer` that records `tool()` registrations so a test can invoke a debug tool by
- * name without a transport. The SDK's overloads are collapsed: the callback is always last.
+ * name without a transport. Like the SDK, it parses the input against the tool's schema before
+ * calling back (defaults filled, transforms applied, a bad argument answered as an error result);
+ * the overloads are collapsed: `(name, description, callback)` or `(name, description, schema, callback)`.
  */
 export function createToolCapture(): {
   mcp: McpServer;
   call: (name: string, input?: Record<string, unknown>) => Promise<CallToolResult>;
 } {
-  const tools = new Map<string, ToolCallback>();
+  const tools = new Map<string, CapturedTool>();
   const mcp = {
     tool: (name: string, ...rest: unknown[]) => {
-      tools.set(name, rest[rest.length - 1] as ToolCallback);
+      const callback = rest[rest.length - 1] as ToolCallback;
+      const schema = rest.length === 3 ? (rest[1] as z.ZodRawShape) : undefined;
+      tools.set(name, { schema, callback });
     },
   } as unknown as McpServer;
   return {
     mcp,
     call: async (name, input = {}) => {
-      const callback = tools.get(name);
-      if (!callback) throw new Error(`tool ${name} was not registered`);
-      return callback(input);
+      const tool = tools.get(name);
+      if (!tool) throw new Error(`tool ${name} was not registered`);
+      if (tool.schema === undefined) return tool.callback(input);
+      const parsed = z.object(tool.schema).safeParse(input);
+      return parsed.success ? tool.callback(parsed.data) : invalidArgumentsResult(name, parsed.error);
     },
   };
 }
