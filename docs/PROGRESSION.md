@@ -165,9 +165,11 @@ live in `ladder.ts` ([`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table
 Given seed S and inputs I, after N ticks assert X. "Greedy bot" is the framework's `graze` behaviour:
 steer toward the nearest DNA fragment, else the nearest food mote, re-evaluated every 30 ticks.
 Conventions as in [`ECOLOGY.md §8`](./ECOLOGY.md#8-acceptance-scenarios). Under decision #138
-(option A) only levels 2–5 are reached inside a `ROUND_DURATION_SECONDS` = 600 round; every scenario
-that needs level 6 or above (P9, P10, TRAITS T12) grants it by fixture, and P1 is the only scenario
-that reaches a level by play.
+(option A) only levels 2–5 are reached inside a `ROUND_DURATION_SECONDS` = 600 round. P1 is the only
+scenario that reaches a level from the seeded world; every other level or stage above the start is set
+by fixture (P2, P5, P6, P7 by placed or granted DNA; P9, P10 and TRAITS T12 by fixture state). Only P10
+(level 12, 1760 DNA) needs a level above 5; T12 is a level-5 player, which play reaches around 9:40,
+and P9 is a pure `buildDraft` call on a eukaryote fixture that needs no level at all.
 
 | #   | Given                                                                                                                                                                                                                                                               | Inputs                         | After        | Assert                                                                                                                                                                                                                                                                                 |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
