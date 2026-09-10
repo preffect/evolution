@@ -68,10 +68,13 @@ describe('/ws route', () => {
 
   it('a second socket with the same clientId takes over and the first close does not unregister it', async () => {
     const first = await openSocket(`${started.url}?clientId=alice`);
+    const firstConnection = started.connections.get('alice');
     const firstClosed = closed(first);
     const second = await openSocket(`${started.url}?clientId=alice`);
     await firstClosed;
-    expect(started.connections.get('alice')?.socket).not.toBe(undefined);
+    expect(firstConnection?.isReplaced).toBe(true);
+    expect(started.connections.get('alice')).toBeDefined();
+    expect(started.connections.get('alice')).not.toBe(firstConnection);
     expect(started.connections.size).toBe(1);
     second.close();
     await closed(second);

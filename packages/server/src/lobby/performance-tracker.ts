@@ -23,14 +23,15 @@ export interface PerformanceStats {
   worstTick: TickRecord | null;
 }
 
-const EMPTY_STATS: PerformanceStats = {
+/** Shared by every empty tracker, so frozen: a caller must not be able to corrupt another room's stats. */
+const EMPTY_STATS: PerformanceStats = Object.freeze({
   sampleCount: 0,
   tickAvgMs: 0,
   tickP95Ms: 0,
   tickPeakMs: 0,
   broadcastBytesPerSec: 0,
   worstTick: null,
-};
+});
 
 function roundToHundredths(value: number): number {
   return Math.round(value * HUNDREDTHS) / HUNDREDTHS;
