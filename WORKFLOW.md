@@ -90,11 +90,10 @@ status.
 
 1. **Design review** (architect) before code: approach, file plan, interfaces, where constants
    and config live, test plan.
-2. **Code review** (code-qa; plus architect for anything in `shared` or the simulation) against
-   the checklist in `.github/PULL_REQUEST_TEMPLATE.md`. Findings are **line-anchored PR review
-   comments**; reviewers request changes rather than fixing silently.
-3. **Domain review** where relevant: gameplay-qa for rules/balance, graphics-qa for visuals
-   (with screenshots).
+2. **Code review** against the checklist in `.github/PULL_REQUEST_TEMPLATE.md`. Findings are
+   **line-anchored PR review comments**; reviewers request changes rather than fixing silently.
+3. **Domain review** where the change is playable or visible (with screenshots for visuals).
+   Which roles review which PR is the table in `TEAM.md`.
 4. The author fixes, **replies on every thread** saying what changed, and the reviewer resolves
    after verifying. The author never resolves their own threads.
 5. Merge only with `./validate.sh all` output in the PR, all threads resolved, all checks green.
@@ -106,16 +105,21 @@ docs that describe it in the same PR — `README.md`, `CLAUDE.md`, `WORKFLOW.md`
 (one fact, one home; the others link to it). A reviewer rejects a PR whose docs drift. Fixes that
 belong to the template are upstreamed to `base-multiplayer-game` so the next game inherits them.
 
+The reviewer table and the scripted review loop that runs these steps with the agent team
+(`scripts/land-pr.sh`) are in `TEAM.md`.
+
 Branch names: `feat/<issue>-<slug>` / `fix/<issue>-<slug>`; PR body contains `Closes #N`.
 Graphics PRs attach before/after screenshots; gameplay PRs list the balance values touched.
 
 ## 7. Scripts
 
-| Script                          | Runs on   | Purpose                                                                                                                                                                                    |
-| ------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `scripts/github-setup.sh`       | host      | Create/push the repo, labels, milestones, Project + views, ruleset, seed groundwork epics.                                                                                                 |
-| `scripts/project-sync.sh`       | host/cont | Reconcile issues ↔ board (section 4).                                                                                                                                                      |
-| `scripts/issue-status.sh`       | host/cont | `issue-status.sh <N> <Status>` — move one ticket without hand-copying ids.                                                                                                                 |
+| Script                          | Runs on   | Purpose                                                                                                                                                        |
+| ------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/github-setup.sh`       | host      | Create/push the repo, labels, milestones, Project + views, ruleset, seed groundwork epics.                                                                     |
+| `scripts/project-sync.sh`       | host/cont | Reconcile issues ↔ board (section 4).                                                                                                                          |
+| `scripts/issue-status.sh`       | host/cont | `issue-status.sh <N> <Status>` — move one ticket without hand-copying ids.                                                                                     |
+| `scripts/agent.sh`              | host/cont | `agent.sh <role> [--ticket N] [--branch B] "<task>"` — run one team role headlessly inside the devcontainer (`TEAM.md`).                                       |
+| `scripts/land-pr.sh`            | host/cont | `land-pr.sh <PR> [--reviewers "roles"]` — reviewer roles review, engineer fixes, re-review, then auto-merge (`TEAM.md`).                                       |
 | `scripts/sync-from-template.sh` | host      | Pull template-owned files (scripts, devcontainer, process docs) from `base-multiplayer-game` into this game, re-applying its identity; land the diff via a PR. |
 
 `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).
