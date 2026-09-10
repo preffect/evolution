@@ -345,7 +345,7 @@ prey; a _tag_ is the DNA family the prey carries)
 | 2    | Prokaryote        | r ≈ 14 wu    | 7.5 px / wu | level 2 · **motile** DNA (eat bacteria)                               | nucleoid loop, ribosome speckle; optional flagellum (motile) and rigid cell wall (armored)          |
 | 3    | Endosymbiosis     | host r 18 wu | 3.7 px / wu | level 3 · **metabolic** DNA → mitochondrion, **photic** → chloroplast | engulf a purple bacterium (becomes a mitochondrion) or a cyanobacterium (becomes a chloroplast)     |
 | 4    | Eukaryote         | r ≈ 24 wu    | 5 px / wu   | level 4 · **predatory** DNA (absorb a whole cell)                     | nuclear envelope with pores, cytoskeleton (shape control), vacuoles, cilia fringe                   |
-| 5    | Specialised forms | 26–70 wu     | 3 px / wu   | level 6+ · a pair of tags per form (below)                            | the silhouette changes first so each form reads at 1 px / wu                                        |
+| 5    | Specialised forms | 26–70 wu     | 3 px / wu   | level 5+ · a pair of tags per form (below)                            | the silhouette changes first so each form reads at 1 px / wu                                        |
 
 **Specialised forms** (top row of panel 5 is the 1 px / wu silhouette the zoom-1.0 camera sees;
 bottom row is the 3 px / wu detail, stentor at 2.7 px / wu because the trumpet is 70 wu tall)

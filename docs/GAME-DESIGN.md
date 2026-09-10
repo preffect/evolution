@@ -82,8 +82,9 @@ Rules (home of the pure functions: `packages/server/src/game/progression/ladder.
   met. Tag weighting still biases the other cards.
 - **Endosymbiosis** is the only rung with an unlock outside the draft: eat
   `ENDOSYMBIOSIS_BACTERIA_REQUIRED` = 10 aerobic bacteria (two full clusters of `BACTERIUM_CLUSTER_SIZE`
-  = 5; they cluster around the warm vent) and the mitochondrion becomes a candidate; eat as many
-  photosynthetic bacteria (the sunlit shallows) and the chloroplast does. Absorbing a player cell that owns an endosymbiont credits that unlock in full.
+  = 5; they cluster around the warm vent) and the mitochondrion becomes a candidate; eat
+  `ENDOSYMBIOSIS_BACTERIA_REQUIRED` = 10 photosynthetic bacteria (the same constant; they cluster in the
+  sunlit shallows) and the chloroplast does. Absorbing a player cell that owns an endosymbiont credits that unlock in full.
 - **The protocell is the baseline.** The mass, radius and speed curves in
   [`ECOLOGY.md §5`](./ECOLOGY.md#5-size-mass-and-speed) and the identity `DEFAULT_CELL_MODIFIERS`
   ([`TRAITS.md §2`](./TRAITS.md#2-modifier-model)) describe the protocell. There is no separate
