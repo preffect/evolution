@@ -35,7 +35,7 @@ describe('levelUpCost', () => {
     expect(total).toBe(cumulative);
   });
 
-  it(`reaches the maximum level at ${MAX_LEVEL_CUMULATIVE_DNA} DNA, so P10 stays at level 12 with 1765`, () => {
+  it(`reaches the maximum level at ${MAX_LEVEL_CUMULATIVE_DNA} DNA, so P10 stays at level 12 with 1760`, () => {
     let total = 0;
     for (let level = 1; level < balance.MAX_LEVEL; level += 1) total += levelUpCost(level, balance);
     expect(total).toBe(MAX_LEVEL_CUMULATIVE_DNA);
