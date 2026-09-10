@@ -1,0 +1,103 @@
+// docs/PROGRESSION.md §5 (P7, P8) and docs/GAME-DESIGN.md §5.2 (G10): joins and leaves between ticks.
+import { describe, expect, it } from 'vitest';
+import { DEFAULT_BALANCE, FOOD_KIND, playerId, secondsToTicks } from '@evolution/shared';
+import { setCellMass } from '../simulation/cell-mass.js';
+import { createTestWorld } from '../testing/builders.js';
+import { createInputRejectionCounters } from '../world/world-state.js';
+import { detritusMoteCount } from './death.js';
+import { addPlayerToWorld, removePlayerFromWorld } from './membership.js';
+
+const { progression, growth } = DEFAULT_BALANCE;
+const joiner = { playerId: playerId('c'), playerName: 'C', avatarIndex: 2 };
+
+function twoPlayerWorld() {
+  const world = createTestWorld({
+    players: [
+      { playerId: playerId('a'), playerName: 'A', avatarIndex: 0 },
+      { playerId: playerId('b'), playerName: 'B', avatarIndex: 1 },
+    ],
+  });
+  for (const player of world.players) player.dnaCumulative = 120;
+  for (const cell of world.cells) setCellMass(cell, 400, DEFAULT_BALANCE);
+  return world;
+}
+
+describe('addPlayerToWorld', () => {
+  it('P8: a join before the grace starts fresh', () => {
+    const world = twoPlayerWorld();
+    world.roundElapsedTicks = secondsToTicks(progression.LATE_JOIN_GRACE_SECONDS);
+    expect(addPlayerToWorld(world, joiner, createInputRejectionCounters())).toBe(true);
+    const player = world.players[2]!;
+    expect(player).toMatchObject({ playerId: 'c', joinOrder: 2, level: 1, dnaCumulative: 0, dnaCatchUpGift: 0 });
+    expect(player.offerQueue).toEqual([]);
+    expect(world.cells[2]!.mass).toBe(growth.CELL_STARTING_MASS);
+  });
+
+  it('P7: a join after the grace gets half the median DNA, a level-2 draft and a quarter of the median mass', () => {
+    const world = twoPlayerWorld();
+    world.roundElapsedTicks = 6000;
+    addPlayerToWorld(world, joiner, createInputRejectionCounters());
+    const player = world.players[2]!;
+    const gift = Math.floor(progression.LATE_JOIN_DNA_FRACTION * 120);
+    expect(player.dnaCumulative).toBe(gift);
+    expect(player.dnaCatchUpGift).toBe(gift);
+    expect(player.score).toBe(0);
+    expect(player.level).toBe(2);
+    expect(player.dnaTowardNextLevel).toBe(0);
+    expect(player.offerQueue).toHaveLength(1);
+    expect(player.offer).toBeNull();
+    expect(world.cells[2]!.mass).toBe(progression.LATE_JOIN_MASS_FRACTION * 400);
+    expect(world.cells[2]!.level).toBe(2);
+  });
+
+  it('writes the placement stream back so a second join lands elsewhere', () => {
+    const world = twoPlayerWorld();
+    addPlayerToWorld(world, joiner, createInputRejectionCounters());
+    addPlayerToWorld(
+      world,
+      { playerId: playerId('d'), playerName: 'D', avatarIndex: 3 },
+      createInputRejectionCounters(),
+    );
+    expect(world.cells[2]!.x).not.toBe(world.cells[3]!.x);
+  });
+
+  it('refuses a player who is already in the world', () => {
+    const world = twoPlayerWorld();
+    expect(
+      addPlayerToWorld(
+        world,
+        { playerId: playerId('a'), playerName: 'A', avatarIndex: 0 },
+        createInputRejectionCounters(),
+      ),
+    ).toBe(false);
+    expect(world.players).toHaveLength(2);
+  });
+});
+
+describe('removePlayerFromWorld', () => {
+  it('G10: dissolves the cell into detritus and drops the player record', () => {
+    const world = twoPlayerWorld();
+    const cell = world.cells[0]!;
+    const expectedMotes = detritusMoteCount(cell.mass, world);
+    expect(removePlayerFromWorld(world, playerId('a'))).toBe(true);
+    expect(world.players.map((player) => player.playerId)).toEqual(['b']);
+    expect(world.cells.map((entry) => entry.playerId)).toEqual(['b']);
+    const detritus = world.food.filter((mote) => mote.kind === FOOD_KIND.detritus);
+    expect(detritus).toHaveLength(expectedMotes);
+    expect(detritus.reduce((sum, mote) => sum + mote.mass, 0)).toBe(
+      expectedMotes * DEFAULT_BALANCE.ecology.DETRITUS_MOTE_MASS,
+    );
+  });
+
+  it('removes a spectating player without a cell', () => {
+    const world = twoPlayerWorld();
+    world.cells = world.cells.filter((cell) => cell.playerId !== 'a');
+    expect(removePlayerFromWorld(world, playerId('a'))).toBe(true);
+    expect(world.food).toEqual([]);
+  });
+
+  it('returns false for an unknown player', () => {
+    const world = twoPlayerWorld();
+    expect(removePlayerFromWorld(world, playerId('nobody'))).toBe(false);
+  });
+});

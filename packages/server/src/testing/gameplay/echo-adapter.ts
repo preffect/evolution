@@ -2,7 +2,7 @@
 // any rule exists. The echo game has no world, so the hash is the FNV lanes over the bytes of
 // `JSON.stringify(serializeRoomState())` (docs/DETERMINISM.md §7), cells cannot be located (a
 // script that needs one fails the run, it does not idle) and nothing can be placed. #98 replaces
-// this with the Evolution adapter.
+// this with the Evolution adapter (`evolution-adapter.ts`).
 
 import { hashText, type GameInput, type PlayerId, type StateHash } from '@evolution/shared';
 import { createEchoModule, type EchoSnapshot } from '../../game/game-module.js';
@@ -10,23 +10,11 @@ import type { PlayerCommand, ScenarioAdapter } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
 import { createFileReplaySink } from './replay-sink.js';
 import { createScenarioDsl } from './scenario.js';
+import { toWireInput } from './wire-input.js';
 
 export type { EchoSnapshot } from '../../game/game-module.js';
 
 const NO_WORLD = 'the echo module has no world';
-/** A command without a target aims at the origin; the Evolution adapter (#98) keeps the latched target instead. */
-const ORIGIN = 0;
-
-/** The wire input for a command: what the echo stores, and what the schema would accept. */
-export function toEchoInput(playerCommand: PlayerCommand, sequence: number): GameInput {
-  return {
-    sequence,
-    targetX: playerCommand.targetX ?? ORIGIN,
-    targetY: playerCommand.targetY ?? ORIGIN,
-    shouldSprint: playerCommand.isSprinting ?? false,
-    traitChoice: playerCommand.traitChoice ?? null,
-  };
-}
 
 export function hashEchoSnapshot(snapshot: EchoSnapshot): StateHash {
   return hashText(JSON.stringify(snapshot));
@@ -37,7 +25,7 @@ export const echoAdapter: ScenarioAdapter<GameInput, EchoSnapshot, never> = {
   createModule: (options) => createEchoModule(options),
   readSnapshot: (module) => module.serializeRoomState(),
   hashState: (module) => hashEchoSnapshot(module.serializeRoomState()),
-  toInput: toEchoInput,
+  toInput: toWireInput,
   locateCell: (): never => {
     throw new ScenarioSetupError(
       `${NO_WORLD}: cells cannot be located; use targetPoint or the Evolution adapter (#98)`,

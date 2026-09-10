@@ -11,7 +11,7 @@ import {
   WEBSOCKET_DEFLATE_LEVEL,
   WEBSOCKET_DEFLATE_THRESHOLD_BYTES,
 } from '@evolution/shared';
-import { defaultGameModuleFactory } from './game/game-module.js'; // TODO(init): swap for real factory
+import { evolutionModuleFactory } from './game/evolution/evolution-module.js';
 
 const PORT = Number(process.env.PORT) || DEFAULT_SERVER_PORT;
 const LISTEN_HOST = '0.0.0.0';
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
     },
   });
 
-  const lobbyManager = new LobbyManager(defaultGameModuleFactory, createSystemRoomTiming);
+  const lobbyManager = new LobbyManager(evolutionModuleFactory, createSystemRoomTiming);
   const connections = new Map<string, Connection>();
   const handlers = lobbyManager.createHandlers(connections);
 
@@ -42,8 +42,9 @@ async function main(): Promise<void> {
 
   server.get('/api/health', async () => ({ status: 'ok' }));
 
-  // The /debug-mcp endpoint surfaces all game state to Claude via MCP.
-  // TODO(init): wire `getRoomGameState` to expose real game state per room.
+  // The /debug-mcp endpoint surfaces all game state to Claude via MCP. The Evolution module
+  // answers through its debug handle (docs/ARCHITECTURE.md §8); `getRoomGameState` stays unwired
+  // so `debug_get_game_state` reads the one full-state path, `GameRoom.getFullState()`.
   registerMcpEndpoint(server, { lobbyManager, connections });
 
   await server.listen({ port: PORT, host: LISTEN_HOST });

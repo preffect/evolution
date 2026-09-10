@@ -95,6 +95,14 @@ export class GameRoom {
     return this.game.getDebugHandle?.();
   }
 
+  /** After `debug_set_balance` (docs/ARCHITECTURE.md §4): every client predicts with the balance the module now simulates. */
+  broadcastBalanceUpdated(): void {
+    broadcastMessage(this.playerConnections.values(), {
+      type: SERVER_MESSAGE_TYPE.balanceUpdated,
+      balance: this.getFullState().balance,
+    });
+  }
+
   // ---- membership --------------------------------------------------------
 
   addPlayer(connection: Connection): void {

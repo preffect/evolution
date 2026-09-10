@@ -7,7 +7,7 @@
 
 import type { GameInput, PlayerId } from '@evolution/shared';
 import type { CellLocation, PlayerCommand } from '../gameplay/adapter.js';
-import { toEchoInput } from '../gameplay/echo-adapter.js';
+import { toWireInput } from '../gameplay/wire-input.js';
 import { NO_WORLD_PERCEPTION, type BotPerception } from '../gameplay/strategies/perception.js';
 
 export interface BotWorldBinding<Input, Snapshot> {
@@ -22,6 +22,6 @@ export interface BotWorldBinding<Input, Snapshot> {
 export const echoBotBinding: BotWorldBinding<GameInput, unknown> = {
   name: 'echo',
   locateCell: () => undefined,
-  toInput: toEchoInput,
+  toInput: toWireInput,
   perception: NO_WORLD_PERCEPTION,
 };

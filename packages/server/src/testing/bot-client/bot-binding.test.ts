@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTestBotCell, createTestBotIdentity } from '../bot-builders.js';
-import { toEchoInput } from '../gameplay/echo-adapter.js';
+import { toWireInput } from '../gameplay/wire-input.js';
 import { echoBotBinding } from './bot-binding.js';
 
 describe('echo bot binding', () => {
@@ -10,7 +10,7 @@ describe('echo bot binding', () => {
 
   it("maps a command with the echo adapter's own input mapping, sequence included", () => {
     const command = { targetX: 3, targetY: 4, isSprinting: true };
-    expect(echoBotBinding.toInput(command, 7)).toEqual(toEchoInput(command, 7));
+    expect(echoBotBinding.toInput(command, 7)).toEqual(toWireInput(command, 7));
   });
 
   it('sees nothing and lets nothing be engulfed', () => {

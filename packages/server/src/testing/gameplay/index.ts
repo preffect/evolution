@@ -1,14 +1,7 @@
 // The gameplay testing framework (docs/TESTING.md §8): what a scenario file imports.
 export type { CellLocation, FixtureContext, PlayerCommand, ScenarioAdapter, TraitChoiceCommand } from './adapter.js';
 export { createScriptedStrategy, strategyScript, type BotStrategy, type BotStrategyFactory } from './bots.js';
-export {
-  echoAdapter,
-  echoedInput,
-  echoScenario,
-  hashEchoSnapshot,
-  toEchoInput,
-  type EchoSnapshot,
-} from './echo-adapter.js';
+export { echoAdapter, echoedInput, echoScenario, hashEchoSnapshot, type EchoSnapshot } from './echo-adapter.js';
 export {
   ScenarioAssertionError,
   ScenarioDivergenceError,
@@ -106,3 +99,4 @@ export {
   type ScriptContext,
 } from './scripts.js';
 export { isPlayerPresentAt, type ScenarioPlayer } from './session.js';
+export { toWireInput } from './wire-input.js';
