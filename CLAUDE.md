@@ -90,6 +90,12 @@ These docs are the enforceable quality bar for any work in this repo. Read and f
   gate is **`./validate.sh all`** (lint + typecheck + test): no task is done until it is green;
   never run the underlying tools directly; never commit red. All new logic needs unit tests;
   cross-subsystem wiring needs `*.integration.test.ts`. See its **Definition of Done** checklist.
+- **[`docs/CODE-STANDARDS.md`](docs/CODE-STANDARDS.md)** — the lint-enforced coding rules:
+  no magic values (and where every constant/enum/config value lives), no duplicated logic, SOLID,
+  size limits, full descriptive names, error handling, test placement.
+- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — entity model, simulation pipeline, wire
+  contract, client module plan, debug MCP surface, file plan. **[`docs/DETERMINISM.md`](docs/DETERMINISM.md)**
+  — seeded random streams, injected clock, fixed step, stable ordering, state hash, replay.
 - **[`docs/ASSET-GENERATION.md`](docs/ASSET-GENERATION.md)** — visual asset quality bar. All visual assets
   are code-drawn (zero bitmaps); every player/monster/item is layered, shaded, palette-disciplined,
   animated, and silhouette-legible. "It renders" is not done — meet the per-asset checklist.

@@ -1,3 +1,4 @@
+import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import type { Connection } from './connection.js';
 import { clientMessageSchema, type ValidatedClientMessage } from './message-schemas.js';
 import { sendMessage } from './connection.js';
@@ -10,14 +11,14 @@ type M<T extends string> = Extract<ValidatedClientMessage, { type: T }>;
  * by extending the schema + this interface + the switch below (see TODO).
  */
 export interface MessageHandlers {
-  onJoinLobby: (c: Connection, m: M<'join_lobby'>) => void;
-  onUpdatePlayerInfo: (c: Connection, m: M<'update_player_info'>) => void;
-  onCreateGame: (c: Connection, m: M<'create_game'>) => void;
-  onJoinGame: (c: Connection, m: M<'join_game'>) => void;
-  onStartGame: (c: Connection, m: M<'start_game'>) => void;
-  onDeleteGame: (c: Connection, m: M<'delete_game'>) => void;
-  onPlayerInput: (c: Connection, m: M<'player_input'>) => void;
-  onClientPerformance: (c: Connection, m: M<'client_performance'>) => void;
+  onJoinLobby: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.joinLobby>) => void;
+  onUpdatePlayerInfo: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.updatePlayerInfo>) => void;
+  onCreateGame: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.createGame>) => void;
+  onJoinGame: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.joinGame>) => void;
+  onStartGame: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.startGame>) => void;
+  onDeleteGame: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.deleteGame>) => void;
+  onPlayerInput: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.playerInput>) => void;
+  onClientPerformance: (c: Connection, m: M<typeof CLIENT_MESSAGE_TYPE.clientPerformance>) => void;
 }
 
 /**
@@ -30,41 +31,41 @@ export function createMessageRouter(h: MessageHandlers) {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      sendMessage(conn, { type: 'error', message: 'Invalid JSON' });
+      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Invalid JSON' });
       return;
     }
     const r = clientMessageSchema.safeParse(parsed);
     if (!r.success) {
       sendMessage(conn, {
-        type: 'error',
+        type: SERVER_MESSAGE_TYPE.error,
         message: `Invalid message: ${r.error.issues[0]?.message ?? 'unknown'}`,
       });
       return;
     }
     const msg = r.data;
     switch (msg.type) {
-      case 'join_lobby':
+      case CLIENT_MESSAGE_TYPE.joinLobby:
         h.onJoinLobby(conn, msg);
         break;
-      case 'update_player_info':
+      case CLIENT_MESSAGE_TYPE.updatePlayerInfo:
         h.onUpdatePlayerInfo(conn, msg);
         break;
-      case 'create_game':
+      case CLIENT_MESSAGE_TYPE.createGame:
         h.onCreateGame(conn, msg);
         break;
-      case 'join_game':
+      case CLIENT_MESSAGE_TYPE.joinGame:
         h.onJoinGame(conn, msg);
         break;
-      case 'start_game':
+      case CLIENT_MESSAGE_TYPE.startGame:
         h.onStartGame(conn, msg);
         break;
-      case 'delete_game':
+      case CLIENT_MESSAGE_TYPE.deleteGame:
         h.onDeleteGame(conn, msg);
         break;
-      case 'player_input':
+      case CLIENT_MESSAGE_TYPE.playerInput:
         h.onPlayerInput(conn, msg);
         break;
-      case 'client_performance':
+      case CLIENT_MESSAGE_TYPE.clientPerformance:
         h.onClientPerformance(conn, msg);
         break;
       // TODO(game): add game-specific message cases here.

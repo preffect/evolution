@@ -1,11 +1,9 @@
 import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerfTracker, type ClientPerfReport } from './perf-tracker.js';
 import type { GameModule } from '../game/game-module.js';
-
-const TICK_HZ = 60;
-const TICK_INTERVAL_MS = 1000 / TICK_HZ;
 
 /**
  * A running game session. Owns the connections, the late-join/disconnect
@@ -89,10 +87,10 @@ export class GameRoom {
     this.game.addPlayer(pid as PlayerId, conn.avatarIndex, conn.playerName);
     broadcastMessage(
       Array.from(this.playerConnections.values()).filter((c) => c.playerId !== pid),
-      { type: 'player_joined', playerId: pid as PlayerId, avatarIndex: conn.avatarIndex },
+      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId: pid as PlayerId, avatarIndex: conn.avatarIndex },
     );
     sendMessage(conn, {
-      type: 'game_state',
+      type: SERVER_MESSAGE_TYPE.gameState,
       gameId: gid as GameId,
       playerId: pid as PlayerId,
       snapshot: this.game.serializeRoomState(),
@@ -116,7 +114,7 @@ export class GameRoom {
     this.game.reduceGameState(); // TODO hook: advance one tick
     const snapshot = this.game.serializeRoomState(); // TODO hook: build broadcast payload
     const bytes = broadcastMessage(this.playerConnections.values(), {
-      type: 'game_snapshot',
+      type: SERVER_MESSAGE_TYPE.gameSnapshot,
       snapshot,
     });
     this.perfTracker.recordTick({

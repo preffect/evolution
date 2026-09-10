@@ -1,12 +1,11 @@
 import { nanoid } from 'nanoid';
 import type { PlayerId, GameId, LobbyGameInfo, LobbyPlayerInfo, GameSessionConfig } from '@evolution/shared';
+import { DISCONNECT_GRACE_MS, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { MessageHandlers } from '../ws/message-router.js';
 import { GameRoom } from './game-room.js';
 import type { GameModuleFactory } from '../game/game-module.js';
-
-const DISCONNECT_GRACE_MS = 30_000;
 
 /** A game that has been created but not yet started — players gather here. */
 export interface PendingGame {
@@ -59,7 +58,7 @@ export class LobbyManager {
   private onJoinLobby(conn: Connection, playerName: string, avatarIndex: number): void {
     conn.playerName = playerName;
     conn.avatarIndex = avatarIndex;
-    sendMessage(conn, { type: 'lobby_update', games: this.listGames() });
+    sendMessage(conn, { type: SERVER_MESSAGE_TYPE.lobbyUpdate, games: this.listGames() });
   }
 
   private onUpdatePlayerInfo(conn: Connection, playerName: string, avatarIndex: number): void {
@@ -109,11 +108,11 @@ export class LobbyManager {
 
     const pending = this.pendingGames.get(gameId);
     if (!pending) {
-      sendMessage(conn, { type: 'error', message: 'Game not found' });
+      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Game not found' });
       return;
     }
     if (pending.players.size >= pending.config.maxPlayers) {
-      sendMessage(conn, { type: 'error', message: 'Game is full' });
+      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
       return;
     }
     pending.players.set(conn.playerId, {
@@ -128,11 +127,11 @@ export class LobbyManager {
   private onStartGame(conn: Connection, gameId: string): void {
     const pending = this.pendingGames.get(gameId);
     if (!pending) {
-      sendMessage(conn, { type: 'error', message: 'Game not found' });
+      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Game not found' });
       return;
     }
     if (pending.creatorId !== conn.playerId) {
-      sendMessage(conn, { type: 'error', message: 'Only the creator can start the game' });
+      sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can start the game' });
       return;
     }
 
@@ -173,7 +172,7 @@ export class LobbyManager {
       const c = this.connections.get(pid);
       if (!c) continue;
       sendMessage(c, {
-        type: 'game_started',
+        type: SERVER_MESSAGE_TYPE.gameStarted,
         gameId: gameId as GameId,
         playerId: pid as PlayerId,
         playerIds: playerIds as PlayerId[],
@@ -192,7 +191,7 @@ export class LobbyManager {
     const pending = this.pendingGames.get(gameId);
     if (pending) {
       if (pending.creatorId !== conn.playerId) {
-        sendMessage(conn, { type: 'error', message: 'Only the creator can delete the game' });
+        sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can delete the game' });
         return;
       }
       for (const pid of pending.players.keys()) this.playerToGame.delete(pid);
@@ -203,7 +202,7 @@ export class LobbyManager {
     const active = this.activeRooms.get(gameId);
     if (active) {
       if (active.creatorId !== conn.playerId) {
-        sendMessage(conn, { type: 'error', message: 'Only the creator can delete the game' });
+        sendMessage(conn, { type: SERVER_MESSAGE_TYPE.error, message: 'Only the creator can delete the game' });
         return;
       }
       this.teardownRoom(gameId);
@@ -227,7 +226,7 @@ export class LobbyManager {
       room.reattachPlayer(conn);
       // Resend the full game state so the reconnected client can resync.
       sendMessage(conn, {
-        type: 'game_state',
+        type: SERVER_MESSAGE_TYPE.gameState,
         gameId: gid as GameId,
         playerId: conn.playerId as PlayerId,
         snapshot: room.getSnapshot(),
@@ -263,7 +262,7 @@ export class LobbyManager {
     if (!room) return;
     room.disconnectedPlayers.add(conn.playerId);
     broadcastMessage(room.playerConnections.values(), {
-      type: 'player_disconnected',
+      type: SERVER_MESSAGE_TYPE.playerDisconnected,
       playerId: conn.playerId as PlayerId,
     });
 
@@ -335,6 +334,6 @@ export class LobbyManager {
 
   private broadcastLobbyUpdate(): void {
     const games = this.listGames();
-    broadcastMessage(this.connections.values(), { type: 'lobby_update', games });
+    broadcastMessage(this.connections.values(), { type: SERVER_MESSAGE_TYPE.lobbyUpdate, games });
   }
 }
