@@ -42,15 +42,104 @@ seeds, clock, ordering and hashing: [`DETERMINISM.md`](./DETERMINISM.md).
 ## 2. Entity model
 
 Two layers, one direction: the **views** are the wire types in
-`packages/shared/src/types/game.ts` (`CellView`, `FoodMoteView`, `DnaFragmentView`,
-`GelPatchView`, `TraitOfferView`, `PlayerProgressView`, `LeaderboardRow`, the `CellStage`,
-`CellState`, `PlayerLifeState`, `BacteriumVariant` unions); each field's meaning is the design
-doc that names it (`CellStage` and its `STAGE_ORDER` / `STAGE_GATE_TRAITS`:
-[`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder); `PlayerProgressView`:
-[`PROGRESSION.md`](./PROGRESSION.md); `FoodMoteView`: [`ECOLOGY.md §1`](./ECOLOGY.md#1-food-kinds)).
-The **records** are the server's
-supersets in `packages/server/src/game/world/entities.ts`; `serialize.ts` projects records onto
-views and nothing else reads a record outside `packages/server/src/game/`.
+`packages/shared/src/types/game.ts`, defined here (their one home) with each field's meaning
+owned by the design doc that names it: `CellStage` and its `STAGE_ORDER` / `STAGE_GATE_TRAITS`
+by [`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder), progress and offers by
+[`PROGRESSION.md`](./PROGRESSION.md), food by [`ECOLOGY.md §1`](./ECOLOGY.md#1-food-kinds),
+engulf states by [`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram), the trait definition shape
+(`stage`, `requires`, `unlockedBy`, `exclusionGroup`) by [`TRAITS.md §1`](./TRAITS.md#1-definition-shape).
+
+```ts
+// packages/shared/src/types/game.ts — the views (imported by messages.ts)
+export type GameMode = 'free_for_all' | 'colony'; // 'colony' reserved for build 2
+export type RoundEndCondition = 'timer'; // dominant-organism / DNA-target reserved
+export type RoundPhase = 'playing' | 'results';
+export type FoodKind = 'algae' | 'bacterium' | 'detritus';
+export type BacteriumVariant = 'plain' | 'aerobic' | 'photosynthetic'; // the endosymbiosis hook
+export type DnaTag = 'motile' | 'photic' | 'predatory' | 'armored' | 'toxic' | 'sensory' | 'metabolic';
+export type ZoneId = 'sunlit_shallows' | 'warm_vent' | 'viscous_gel' | 'open_broth';
+export type CellState = 'free' | 'being_engulfed' | 'engulfing' | 'dividing'; // no death state: see below
+export type CellStage = (typeof STAGE_ORDER)[number]; // constants/ladder.ts
+export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts
+export type TraitTier = 1 | 2 | 3;
+export type PlayerLifeState = 'alive' | 'spectating';
+
+export interface OwnedTrait {
+  traitId: TraitId;
+  tier: TraitTier;
+}
+export interface CellView {
+  id: EntityId;
+  playerId: PlayerId;
+  organismId: EntityId; // == id in build 1 (reserved grouping key, GAME-DESIGN §11)
+  avatarIndex: number;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  mass: number;
+  radius: number;
+  level: number;
+  stage: CellStage; // derived from traits (stageOf), carried for the renderer and HUD
+  traits: OwnedTrait[];
+  states: CellState[]; // 'engulfing' and 'being_engulfed' may coexist
+  engulfProgress: number; // 0..1 as prey
+  engulfingCellId: EntityId | null;
+  engulfedByCellId: EntityId | null;
+  sprintRemainingTicks: number;
+}
+export interface FoodMoteView {
+  id: EntityId;
+  kind: FoodKind;
+  bacteriumVariant: BacteriumVariant | null; // set when kind === 'bacterium'
+  x: number;
+  y: number;
+}
+export interface DnaFragmentView {
+  id: EntityId;
+  x: number;
+  y: number;
+  tag: DnaTag;
+}
+export interface GelPatchView {
+  x: number;
+  y: number;
+  radius: number;
+}
+export interface TraitOfferView {
+  offerId: number;
+  cards: OwnedTrait[]; // the tier each card would grant
+  expiresAtTick: number;
+}
+export interface PlayerProgressView {
+  playerId: PlayerId;
+  playerName: string;
+  level: number;
+  dnaCumulative: number;
+  dnaCatchUpGift: number;
+  dnaTowardNextLevel: number;
+  dnaTagPoints: Record<DnaTag, number>;
+  bacteriaEatenByVariant: Record<BacteriumVariant, number>; // endosymbiosis counters, kept on death
+  absorptions: number;
+  score: number;
+  offer: TraitOfferView | null;
+  lifeState: PlayerLifeState; // the only home of death / respawn
+  spectatingPlayerId: PlayerId | null;
+  respawnInTicks: number;
+}
+export interface LeaderboardRow {
+  rank: number;
+  playerId: PlayerId;
+  score: number;
+  mass: number;
+  level: number;
+  absorptions: number;
+}
+```
+
+The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
+`serialize.ts` projects records onto views and nothing else reads a record outside
+`packages/server/src/game/`.
 
 ```ts
 // packages/server/src/game/world/entities.ts — records extend the views
