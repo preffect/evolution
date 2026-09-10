@@ -34,10 +34,12 @@ The renderer reads **only** what `net/` gives it and never feeds anything back
 
 Every cell is **one instanced quad** whose half-size is the per-instance `quadExtentRadii × r` (§2.3):
 `max(CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII at far LOD, (warningRingPx + WARNING_RING_STROKE_PX) / r_px)`.
-`CELL_QUAD_EXTENT_RADII` 2.3 (new) is the floor: the engulf arm at 1.62 r times the trait halo at 1.39 r, rounded
-up, so no halo is square-clipped at an arm tip or the seal bulge. The two pass-B bands that reach past it stay in
+`CELL_QUAD_EXTENT_RADII` 3.0 (new) is the floor: the engulf arm at 1.62 r times the trait halo at 1.39 r, times the
+moving-wrap worst case (stretch 1.13 at `ENGULF_PREDATOR_SPEED_FACTOR` 0.6 with an eat pulse 1.09 mid-engulf) is
+2.77, 2.99 at k = 1, so 3.0 keeps the halo unclipped at an arm tip or the seal bulge; §9 pins the moving-wrap
+case (`shape-terms` reports the per-instance maximum, and the extent uses it when it exceeds the floor). The two pass-B bands that reach past it stay in
 this shader and raise the extent instead of moving to effect sprites: the far-dot halo (`FAR_DOT_HALO_RADII` 3.0,
-§5) and the warning ring (`ENGULF_WARNING_RING_MIN_PX` exceeds 2.3 r_px below 10.4 px, most of the mid band), both
+§5) and the warning ring (`ENGULF_WARNING_RING_MIN_PX` exceeds 3.0 r_px below 8.7 px, most of the mid band), both
 of which must track the instance's undeformed centre and snap with its LOD (§5). The extra area is discarded
 fragments. The quad carries a fragment shader that evaluates a radial profile `r(θ)` and paints
 sheet 01's layer stack as bands of two coordinates: the normalised radial coordinate **ρ = |p| / r(θ)** (ρ = 1 is
@@ -339,7 +341,7 @@ already carries the report and `debug_get_room_performance` already merges it pe
 game-agnostic. The key list lives beside the type, the way `CLIENT_MESSAGE_TYPE` does, because the server's
 merge and the client's timer must agree on it:
 
-````ts
+```ts
 export const RENDER_STAGE = {
   net: 'net',
   cells: 'cells',
@@ -358,8 +360,9 @@ export interface ClientPerformanceReport {
   visibleCells: number;
   visibleMotes: number;
 }
-``` **Fixed-seed
-scene:** `render/bench/bench-scene.ts` builds a synthetic `GameSnapshot` from `RENDER_BENCH_SEED` (42) with
+```
+
+**Fixed-seed scene:** `render/bench/bench-scene.ts` builds a synthetic `GameSnapshot` from `RENDER_BENCH_SEED` (42) with
 the bench-load cells (table above) across every stage and palette on scripted circular paths, the bench-load
 motes and fragments, fed through the real `WorldStore` by a `ManualClock`; the dev-only route
 `/?bench=<seed>&tick=<n>&zoom=<z>` renders it, paused at tick `n`, with the report in
@@ -381,7 +384,7 @@ food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
-````
+```
 
 `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`). This
 list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points here.
@@ -395,7 +398,7 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   flank (a probe at `|p| = r(θ) + w` reads `d < w` where `r′ ≠ 0`), a seeded rest profile has 5–7 lobes within
   ±2.5–4 % and stays inside ±5 % of `r`, and same seed + same tick ⇒ same profile (`DETERMINISM.md §7`);
   `shape-terms.spec.ts` (view → terms, bump slot assignment including the eight-slot amoeba III mid-engulf and
-  contact / eat dropped while engulfing, sprint scaling); `form-profiles.spec.ts` (every `B` has unit area within
+  contact / eat dropped while engulfing, sprint scaling, and the moving-wrap extent: k = 1 stretch with the wrap frame and an eat pulse reports a maximum of 2.99 r, below `CELL_QUAD_EXTENT_RADII` 3.0); `form-profiles.spec.ts` (every `B` has unit area within
   0.5 %, the sheet-04 aspects, diatom terms all zero); `organelle-layout.spec.ts` (slots inside 0.92, outside the nucleus disc, gap held,
   append-only across tiers, seeded); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
   on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `palette.spec.ts` (HSL derivations, the
