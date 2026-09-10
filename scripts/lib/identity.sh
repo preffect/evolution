@@ -10,6 +10,7 @@
 # Lines carrying the keep tag keep the literal template values (guidance such as "upstream
 # this to base-multiplayer-game"); the tag itself is stripped afterwards.
 # The tag is always spelled via $IDENTITY_KEEP_TAG here so this file cannot mangle itself.
+# Also sourced by dev-container.sh and scripts/agent.sh for the container identity (bottom).
 # ---------------------------------------------------------------------------
 
 IDENTITY_KEEP_TAG="KEEP_TEMPLATE_NAME"
@@ -50,3 +51,19 @@ render_identity() {
   fi
   sed -i -e "s| *<!-- ${IDENTITY_KEEP_TAG} -->||" -e "s| *# ${IDENTITY_KEEP_TAG}||" "$@"
 }
+
+# ---- container identity: the ONE home for what dev-container.sh and scripts/agent.sh assume ----
+# The devcontainer runs as this user with the checkout mounted at this path (devcontainer.json
+# "remoteUser" / "workspaceFolder"; .devcontainer/Dockerfile ends with `USER root`, so every
+# `docker exec` MUST pass `-u "$CONTAINER_USER"` or it runs as root with no gh/claude credentials).
+CONTAINER_USER=vscode
+CONTAINER_HOME="/home/$CONTAINER_USER"
+CONTAINER_WORKSPACE=/workspace
+CONTAINER_NAME_SUFFIX=-dev
+
+# Container/image names are derived from the checkout's folder name so a copied project never
+# clashes with another one.
+project_slug_from_dir() { # <dir>
+  basename "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-' | sed 's/--*/-/g; s/^-//; s/-$//'
+}
+container_name_from_dir() { echo "$(project_slug_from_dir "$1")$CONTAINER_NAME_SUFFIX"; } # <dir>

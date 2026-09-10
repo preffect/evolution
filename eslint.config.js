@@ -3,8 +3,9 @@ import angular from 'angular-eslint';
 
 export default tseslint.config(
   {
-    // Reference artifacts with placeholder syntax — not project source.
-    ignores: ['ha-router/**', 'dist/**', 'packages/*/dist/**'],
+    // Reference artifacts with placeholder syntax — not project source; agent worktrees
+    // (scripts/agent.sh --branch) are other checkouts and validate themselves.
+    ignores: ['ha-router/**', 'dist/**', 'packages/*/dist/**', '.worktrees/**'],
   },
   {
     files: ['**/*.ts'],
