@@ -3,7 +3,7 @@
 // `x = seed`. It gives the tests a module whose snapshot has cells, whose hash moves every
 // tick and whose state depends on the seed and the inputs — what the echo module cannot offer.
 
-import { hashText, type PlayerId, type StateHash, type Vec2 } from '@evolution/shared';
+import { DEFAULT_BALANCE, hashText, type PlayerId, type StateHash, type Vec2 } from '@evolution/shared';
 import type { GameModule } from '../../game/game-module.js';
 import type { CellLocation, PlayerCommand, ScenarioAdapter } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
@@ -56,18 +56,19 @@ function placed(cell: ToyCell, point: Vec2): ToyCell {
   return { ...cell, ...point, targetX: point.x, targetY: point.y };
 }
 
+function requireCell(cells: ReadonlyMap<string, ToyCell>, playerId: PlayerId): ToyCell {
+  const cell = cells.get(playerId);
+  if (cell === undefined) {
+    throw new ScenarioSetupError(`toy module has no cell for player ${playerId}`);
+  }
+  return cell;
+}
+
 export function createToyModule(playerIds: readonly PlayerId[], seed: number): ToyModule {
   let tick = 0;
   const cells = new Map<string, ToyCell>();
   const spawn = (playerId: PlayerId): void => {
     cells.set(playerId, { x: seed, y: 0, targetX: seed, targetY: 0 });
-  };
-  const requireCell = (playerId: PlayerId): ToyCell => {
-    const cell = cells.get(playerId);
-    if (cell === undefined) {
-      throw new ScenarioSetupError(`toy module has no cell for player ${playerId}`);
-    }
-    return cell;
   };
   playerIds.forEach(spawn);
   return {
@@ -75,7 +76,7 @@ export function createToyModule(playerIds: readonly PlayerId[], seed: number): T
       return { tick, cells: Object.fromEntries(cells) };
     },
     submitInput: (playerId, payload) => {
-      cells.set(playerId, retarget(requireCell(playerId), payload));
+      cells.set(playerId, retarget(requireCell(cells, playerId), payload));
     },
     reduceGameState: () => {
       tick += 1;
@@ -86,12 +87,15 @@ export function createToyModule(playerIds: readonly PlayerId[], seed: number): T
     serializeRoomState() {
       return this.snapshot;
     },
+    serializeFullState() {
+      return { snapshot: this.snapshot, balance: DEFAULT_BALANCE };
+    },
     addPlayer: spawn,
     removePlayer: (playerId) => {
       cells.delete(playerId);
     },
     place: (playerId, point) => {
-      cells.set(playerId, placed(requireCell(playerId), point));
+      cells.set(playerId, placed(requireCell(cells, playerId), point));
     },
   };
 }

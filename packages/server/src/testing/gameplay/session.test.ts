@@ -27,8 +27,7 @@ function createSession(
 ) {
   return new ScenarioSession(adapter, {
     scenarioName: 'session',
-    seed: SEED,
-    config: createTestSessionConfig({ maxPlayers: 8 }),
+    config: createTestSessionConfig({ maxPlayers: 8, seed: SEED }),
     players,
     fixtures,
   });

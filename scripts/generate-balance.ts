@@ -20,7 +20,7 @@ async function main(): Promise<void> {
   const json = await format(JSON.stringify(DEFAULT_BALANCE), { ...prettierOptions, filepath: OUTPUT_PATH });
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
   writeFileSync(OUTPUT_PATH, json);
-  console.warn(`wrote ${OUTPUT_PATH}`);
+  process.stdout.write(`wrote ${OUTPUT_PATH}\n`);
 }
 
 await main();

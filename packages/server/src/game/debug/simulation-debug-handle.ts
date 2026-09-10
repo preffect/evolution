@@ -65,8 +65,7 @@ export interface BalancePatch {
  * that does not exist returns `undefined`; a mutation that cannot apply throws `DebugRequestError`.
  */
 export interface SimulationDebugHandle {
-  /** The full state a joining client would receive (`debug_get_game_state`). */
-  serializeFullState?(): unknown;
+  /** No `serializeFullState` here: `debug_get_game_state` reads `GameRoom.getFullState()`, the module's own `game_state` payload. */
   listEntities?(filter: EntityFilter): readonly unknown[];
   getPlayerDebugState?(playerId: PlayerId): unknown;
   grantDna?(playerId: PlayerId, grant: DnaGrant): unknown;

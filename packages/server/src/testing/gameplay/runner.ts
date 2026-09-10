@@ -23,7 +23,7 @@ export interface ScheduledFixture<Fixture> {
 /** Everything `scenario(...)` builds; plain data the runner and the replay consume. */
 export interface ScenarioDefinition<Snapshot, Fixture> {
   readonly name: string;
-  readonly seed: number;
+  /** The round seed is `config.seed`, its one home; `.seed(S)` writes it there. */
   readonly config: GameSessionConfig;
   readonly players: readonly ScenarioPlayer[];
   /** Applied before tick 1. */
@@ -144,6 +144,14 @@ function observeTick<Input, Snapshot, Fixture>(
   failures.push(...collectFailuresAt(session, definition));
 }
 
+/** The scenario name and seed every failure message leads with (`errors.ts`). */
+export function identityOf(definition: { name: string; config: { seed: number } }): {
+  scenarioName: string;
+  seed: number;
+} {
+  return { scenarioName: definition.name, seed: definition.config.seed };
+}
+
 export function runScenario<Input, Snapshot, Fixture>(
   definition: ScenarioDefinition<Snapshot, Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
@@ -151,7 +159,6 @@ export function runScenario<Input, Snapshot, Fixture>(
 ): ScenarioRun<Snapshot, Fixture> {
   const session = new ScenarioSession(adapter, {
     scenarioName: definition.name,
-    seed: definition.seed,
     config: definition.config,
     players: definition.players,
     fixtures: definition.fixtures,
@@ -172,7 +179,7 @@ export function runScenario<Input, Snapshot, Fixture>(
   const replay = session.toReplay();
   if (failures.length > 0) {
     const replayPath = options.replaySink?.write(replay) ?? null;
-    throw new ScenarioAssertionError({ scenarioName: definition.name, seed: definition.seed }, failures, replayPath);
+    throw new ScenarioAssertionError(identityOf(definition), failures, replayPath);
   }
   return {
     replay,

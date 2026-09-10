@@ -7,7 +7,12 @@ import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { canContinueEngulf, canEngulf, type EngulfPrey } from './engulf-eligibility.js';
 
 const balance = DEFAULT_BALANCE.absorption;
-const CELL_WALL_ONE_BONUS = 0.15;
+/** Cell Wall I's bonus as the catalog declares it (TRAITS §3.3), so T3 tracks a retune. */
+const CELL_WALL_ONE_BONUS = DEFAULT_BALANCE.traits.TRAIT_TIERS.cell_wall[0].membraneRatioBonus ?? 0;
+const PREY_MASS = 20;
+const JUST_UNDER = 0.01;
+/** The exact bound of T3 for a walled prey: `PREY_MASS × (ratio + Cell Wall I)`, computed as the predicate does. */
+const walledBound = (ratio: number): number => PREY_MASS * (ratio + CELL_WALL_ONE_BONUS);
 
 const prey = (mass: number, membraneRatioBonus = 0): EngulfPrey => ({ mass, membraneRatioBonus });
 
@@ -25,9 +30,11 @@ describe('canEngulf (canStart)', () => {
     expect(canEngulf({ mass: 20 }, prey(21), balance)).toBe(false);
   });
 
-  it('adds the Cell Wall bonus of the prey: 28 is the exact 1.40 × 20 bound (T3)', () => {
-    expect(canEngulf({ mass: 28 }, prey(20, CELL_WALL_ONE_BONUS), balance)).toBe(true);
-    expect(canEngulf({ mass: 27.99 }, prey(20, CELL_WALL_ONE_BONUS), balance)).toBe(false);
+  it('adds the Cell Wall bonus of the prey: the exact (ratio + Cell Wall I) × 20 bound holds, just under fails (T3)', () => {
+    const bound = walledBound(balance.ENGULF_MASS_RATIO);
+    expect(CELL_WALL_ONE_BONUS).toBeGreaterThan(0);
+    expect(canEngulf({ mass: bound }, prey(PREY_MASS, CELL_WALL_ONE_BONUS), balance)).toBe(true);
+    expect(canEngulf({ mass: bound - JUST_UNDER }, prey(PREY_MASS, CELL_WALL_ONE_BONUS), balance)).toBe(false);
   });
 
   it("ignores the predator's own membrane bonus", () => {
@@ -55,9 +62,10 @@ describe('canContinueEngulf (canContinue, hysteresis)', () => {
     expect(canContinueEngulf({ mass: 21.5 }, prey(20), balance)).toBe(false);
   });
 
-  it('adds the Cell Wall bonus: 25 is the exact 1.25 × 20 release bound for a walled prey (T3)', () => {
-    expect(canContinueEngulf({ mass: 25 }, prey(20, CELL_WALL_ONE_BONUS), balance)).toBe(true);
-    expect(canContinueEngulf({ mass: 24.99 }, prey(20, CELL_WALL_ONE_BONUS), balance)).toBe(false);
+  it('adds the Cell Wall bonus: the exact (release ratio + Cell Wall I) × 20 bound holds, just under releases (T3)', () => {
+    const bound = walledBound(balance.ENGULF_RELEASE_RATIO);
+    expect(canContinueEngulf({ mass: bound }, prey(PREY_MASS, CELL_WALL_ONE_BONUS), balance)).toBe(true);
+    expect(canContinueEngulf({ mass: bound - JUST_UNDER }, prey(PREY_MASS, CELL_WALL_ONE_BONUS), balance)).toBe(false);
   });
 
   it('is never stricter than canEngulf', () => {

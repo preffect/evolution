@@ -1,11 +1,6 @@
 import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig, LobbyPlayerInfo } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
-import {
-  DEFAULT_BALANCE,
-  SERVER_MESSAGE_TYPE,
-  createSimulationStepAccumulator,
-  type FixedStepAccumulator,
-} from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator, type FixedStepAccumulator } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
@@ -123,9 +118,9 @@ export class GameRoom {
     return this.game.serializeRoomState();
   }
 
-  /** The `game_state` payload (docs/ARCHITECTURE.md §4); a module without a full state gets the broadcast one. */
+  /** The `game_state` payload (docs/ARCHITECTURE.md §4): the module's full snapshot and live balance. */
   getFullState(): FullGameState {
-    return this.game.serializeFullState?.() ?? { snapshot: this.game.serializeRoomState(), balance: DEFAULT_BALANCE };
+    return this.game.serializeFullState();
   }
 
   /** Player who was never part of the session joins an in-progress game. */

@@ -35,7 +35,6 @@ describe('scenario builder', () => {
     const definition = toyScenario('defaults').seed(42).players(2).build();
     expect(definition).toMatchObject({
       name: 'defaults',
-      seed: 42,
       config: createTestSessionConfig({ maxPlayers: MAX_PLAYERS_PER_GAME, seed: 42 }),
       totalTicks: 0,
       hashEveryTicks: DEFAULT_HASH_EVERY_TICKS,

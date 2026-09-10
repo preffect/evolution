@@ -9,7 +9,7 @@ import { ENGULF_MASS_RATIO } from './absorption.js';
 import { TRAIT_TIERS } from './traits.js';
 
 const BALANCE_FILE = new URL('../../../../data/balance.json', import.meta.url);
-const GENERATE_COMMAND = 'node scripts/generate-balance.ts';
+const GENERATE_COMMAND = 'pnpm generate:balance';
 
 const EXPECTED_DOMAINS = [
   'world',
@@ -37,6 +37,15 @@ describe('DEFAULT_BALANCE', () => {
   it('is a plain record, not a module namespace, so it clones and compares like its JSON', () => {
     expect(Object.prototype.toString.call(DEFAULT_BALANCE.world)).toBe('[object Object]');
     expect(structuredClone(DEFAULT_BALANCE)).toEqual(DEFAULT_BALANCE);
+  });
+
+  it('is deep-frozen: a room that patches without cloning throws instead of rewriting every room', () => {
+    expect(Object.isFrozen(DEFAULT_BALANCE)).toBe(true);
+    expect(Object.isFrozen(DEFAULT_BALANCE.traits.TRAIT_CATALOG[0]?.tiers[0])).toBe(true);
+    expect(() => {
+      DEFAULT_BALANCE.world.DISH_RADIUS = DISH_RADIUS + 1;
+    }).toThrow(TypeError);
+    expect(DEFAULT_BALANCE.world.DISH_RADIUS).toBe(DISH_RADIUS);
   });
 
   it('types number leaves as patchable numbers, never as their literal defaults', () => {

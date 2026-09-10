@@ -28,9 +28,9 @@ export const BACTERIUM_VARIANTS = [
   BACTERIUM_VARIANT.photosynthetic,
 ] as const satisfies readonly BacteriumVariant[];
 export const BACTERIUM_TAG_BY_VARIANT: Record<BacteriumVariant, DnaTag> = {
-  plain: DNA_TAG.motile,
-  aerobic: DNA_TAG.metabolic,
-  photosynthetic: DNA_TAG.photic,
+  [BACTERIUM_VARIANT.plain]: DNA_TAG.motile,
+  [BACTERIUM_VARIANT.aerobic]: DNA_TAG.metabolic,
+  [BACTERIUM_VARIANT.photosynthetic]: DNA_TAG.photic,
 };
 export const DETRITUS_MOTE_MASS = 2;
 export const DETRITUS_RADIUS = 7;

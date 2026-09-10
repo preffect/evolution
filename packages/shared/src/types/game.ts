@@ -4,10 +4,8 @@
 // the constants files and are pinned complete against these objects. The meaning of each field
 // is owned by the design doc named beside it.
 
-import type { EntityId, PlayerId } from './common.js';
+import type { EntityId, PlayerId, ValueOf } from './common.js';
 import type { TRAIT_CATALOG } from '../constants/traits.js';
-
-type ValueOf<Table> = Table[keyof Table];
 
 // ===== Ids and kinds =====
 

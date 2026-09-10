@@ -331,7 +331,7 @@ The design reads these as they are; there is no alias for the tick rate (`TICK_H
 
 | Constant                          | Value                                  | Unit   | Meaning                                                   |
 | --------------------------------- | -------------------------------------- | ------ | --------------------------------------------------------- |
-| `STAGE_ORDER`                     | the five stages of section 3, in order | stages | Also the source of `CellStage`.                           |
+| `STAGE_ORDER`                     | the five stages of section 3, in order | stages | Walk order of `CELL_STAGE`; pinned complete against it.   |
 | `STAGE_GATE_TRAITS`               | the table in section 3                 | ids    | Owning any listed trait reaches the stage.                |
 | `ENDOSYMBIOSIS_BACTERIA_REQUIRED` | 5                                      | count  | Bacteria of one variant eaten to unlock its endosymbiont. |
 

@@ -6,6 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
 import {
   CLIENT_MESSAGE_TYPE,
+  DEFAULT_BALANCE,
   ManualClock,
   createSeededRandom,
   createTestSessionConfig,
@@ -61,6 +62,10 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
     reduceGameState: vi.fn(),
     // The spy echoes its roster, not a world: the cast is the echo module's own (game-module.ts).
     serializeRoomState: vi.fn(() => ({ players: [...players] }) as unknown as GameSnapshot),
+    serializeFullState: vi.fn(() => ({
+      snapshot: { players: [...players] } as unknown as GameSnapshot,
+      balance: DEFAULT_BALANCE,
+    })),
     addPlayer: vi.fn((playerId: string) => {
       players.add(playerId);
     }),

@@ -1,3 +1,4 @@
+import { DEFAULT_BALANCE } from '@evolution/shared';
 import type { BalanceConfig, PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
 import { echoBotBinding } from '../testing/bot-client/bot-binding.js';
@@ -22,9 +23,11 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
   /**
    * What a joining, late-joining or reconnecting client receives in `game_state`
    * (docs/ARCHITECTURE.md §4): the full snapshot plus the balance the module simulates with.
-   * A module without one (the echo) gets its broadcast snapshot and `DEFAULT_BALANCE`.
+   * Required, unlike the debug capabilities: a delta snapshot or a default balance sent to a
+   * joining client is a silent wire-contract bug, so no fallback exists. The echo returns its
+   * broadcast snapshot and `DEFAULT_BALANCE`.
    */
-  serializeFullState?(): FullGameState<Snapshot>;
+  serializeFullState(): FullGameState<Snapshot>;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */
@@ -74,19 +77,21 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
   const players = new Set<string>(options.playerIds);
   const bots = createInProcessBotRoster(echoBotBinding);
   let tick = 0;
+  const serializeRoomState = (): EchoSnapshot => {
+    const inputs: Record<string, GameInput | null> = {};
+    for (const playerId of players) inputs[playerId] = latestInputByPlayer.get(playerId) ?? null;
+    return { players: inputs };
+  };
   const module: GameModule<GameInput, EchoSnapshot> = {
     submitInput: (playerId, payload) => {
       latestInputByPlayer.set(playerId, payload);
     },
     reduceGameState: () => {
-      bots.driveTick(module.serializeRoomState(), tick, module.submitInput);
+      bots.driveTick(serializeRoomState(), tick, module.submitInput);
       tick += 1; // TODO(game): advance world one tick
     },
-    serializeRoomState: () => {
-      const inputs: Record<string, GameInput | null> = {};
-      for (const playerId of players) inputs[playerId] = latestInputByPlayer.get(playerId) ?? null;
-      return { players: inputs };
-    },
+    serializeRoomState,
+    serializeFullState: () => ({ snapshot: serializeRoomState(), balance: DEFAULT_BALANCE }),
     addPlayer: (playerId) => {
       players.add(playerId);
     },
@@ -110,6 +115,11 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
   return module;
 }
 
-/** The echo has no world, so its snapshot is not a `GameSnapshot`; the room broadcasts it opaquely. TODO(game): real module. */
+/**
+ * TODO(game): #98 deletes this factory with the echo. The echo has no world, so its snapshot is not
+ * a `GameSnapshot` and the room broadcasts it opaquely; the double cast is this placeholder's only
+ * home. Do not add a second cast next to it and do not generalise `GameModuleFactory` over the
+ * snapshot to make it go away: the real module returns a real `GameSnapshot` and needs neither.
+ */
 export const defaultGameModuleFactory: GameModuleFactory = (options) =>
   createEchoModule(options) as unknown as GameModule;
