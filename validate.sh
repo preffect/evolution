@@ -3,10 +3,11 @@
 # Usage: ./validate.sh <command> [options] [-- extra-args...]
 #
 # Commands:
-#   test       Run tests (pnpm -r test)
+#   test       Run unit tests (pnpm -r test)
+#   integration Run integration tests only (RUN_INTEGRATION=1 pnpm -r test)
 #   typecheck  Run type checking (pnpm -r typecheck)
 #   lint       Run linting (eslint + prettier --check)
-#   all        Run all three in sequence
+#   all        Run lint, typecheck and test in sequence (integration stays opt-in)
 #
 # Options:
 #   -tN        Tail N lines of output (e.g. -t20)
@@ -31,7 +32,7 @@ EXTRA_ARGS=()
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    test|typecheck|lint|all)
+    test|integration|typecheck|lint|all)
       COMMAND="$1"
       shift
       ;;
@@ -64,7 +65,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$COMMAND" ]]; then
-  echo "Usage: ./validate.sh <test|typecheck|lint|all> [-tN] [-hN] [-G pattern] [-- extra-args...]" >&2
+  echo "Usage: ./validate.sh <test|integration|typecheck|lint|all> [-tN] [-hN] [-G pattern] [-- extra-args...]" >&2
   exit 1
 fi
 
@@ -104,6 +105,15 @@ run_one() {
         output="$(pnpm -r test "$@" 2>&1)" || rc=$?
       else
         output="$(pnpm -r test 2>&1)" || rc=$?
+      fi
+      ;;
+    integration)
+      # Opt-in cross-subsystem tests (docs/ENGINEERING.md §2.2); each package's vitest config
+      # switches to `*.integration.test.ts` on RUN_INTEGRATION=1.
+      if [[ $# -gt 0 ]]; then
+        output="$(RUN_INTEGRATION=1 pnpm -r test "$@" 2>&1)" || rc=$?
+      else
+        output="$(RUN_INTEGRATION=1 pnpm -r test 2>&1)" || rc=$?
       fi
       ;;
     typecheck)

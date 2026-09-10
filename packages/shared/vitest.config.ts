@@ -1,7 +1,3 @@
-import { defineConfig } from 'vitest/config';
+import { createPackageVitestConfig } from '../../vitest.package-config.js';
 
-export default defineConfig({
-  test: {
-    globals: true,
-  },
-});
+export default createPackageVitestConfig();

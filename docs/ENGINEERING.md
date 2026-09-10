@@ -30,6 +30,7 @@ each is checkable. An AI building a game from this template MUST follow every ru
 
 ```text
 ./validate.sh test        # all unit tests
+./validate.sh integration # cross-subsystem *.integration.test.ts only (opt-in, not in `all`)
 ./validate.sh typecheck   # type check all packages (rebuilds shared first)
 ./validate.sh lint        # eslint + prettier --check
 ./validate.sh all         # lint -> typecheck -> test; prints ALL PASSED / FAILED: <phases>
@@ -72,9 +73,9 @@ each is checkable. An AI building a game from this template MUST follow every ru
    `vitest.config.ts` (default `include` excludes `*.integration.test.ts`; `RUN_INTEGRATION=1`
    flips to include them with `passWithNoTests: true`). Run them only at the **end of a task
    that may have caused a cross-subsystem regression** — never on every save or pre-commit.
-5. **When the game first introduces integration tests, add an `integration` subcommand to
-   `./validate.sh`** (set `RUN_INTEGRATION=1`, run `pnpm -r test`) rather than running vitest
-   directly. This is the one expected extension of the gate.
+5. **`./validate.sh integration`** runs them (sets `RUN_INTEGRATION=1`, runs `pnpm -r test`);
+   never run vitest directly. Every package's `vitest.config.ts` comes from the root
+   `vitest.package-config.ts`, which does the include/exclude switch in one place.
 
 ### 2.3 What must be covered (template-specific)
 
@@ -99,6 +100,21 @@ each is checkable. An AI building a game from this template MUST follow every ru
    simulation is reproducible and tests can assert exact outputs.
 2. Keep the reducer a pure function of `(state, inputs, defs)`; content/config (`GameDefs`,
    `GameSessionConfig`) is a **parameter, never a hidden singleton**.
+
+**Randomness and time.** The full contract is [`docs/DETERMINISM.md`](./DETERMINISM.md); in
+short:
+
+- Randomness comes only from `packages/shared/src/random/`: `createSeededRandom(seed)` and a
+  `fork(label)` per subsystem with a label from `RANDOM_STREAM`. Streams live in the state as
+  `RandomState` and resume with `createSeededRandomFromState`. Formulas take numbers; the
+  calling system draws them.
+- Time comes only from the injected `Clock` (`packages/shared/src/time/`): `SystemClock` in
+  production, `ManualClock` in tests, and `FixedStepAccumulator` turning it into whole ticks.
+  The simulation sees `world.tick` and `TICK_INTERVAL_S`, never a frame delta.
+- Equality is `computeStateHash` (`packages/shared/src/simulation/state-hash.ts`): closed-enum
+  records walk their declared array, never `Object.keys`.
+- `packages/shared/src/__tests__/determinism-guard.test.ts` fails the gate on `Math.random`,
+  `Date.now`, `performance.now` or timers anywhere in shared outside `random/` and `time/`.
 
 ---
 
