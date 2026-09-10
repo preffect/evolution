@@ -17,3 +17,5 @@ export * from './absorption.js';
 export * from './progression.js';
 export * from './traits.js';
 export * from './balance.js';
+export * from './motion.js';
+export * from './netcode.js';

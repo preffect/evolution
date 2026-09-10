@@ -96,12 +96,44 @@ export interface LobbyGameInfo {
   creatorId: PlayerId;
 }
 
+/**
+ * The CPU stages `render/bench/render-stage-timer.ts` brackets (docs/RENDERING.md §7). The list lives
+ * beside the report because the server's merge and the client's timer must agree on it.
+ */
+export const RENDER_STAGE = {
+  net: 'net',
+  cells: 'cells',
+  organelles: 'organelles',
+  food: 'food',
+  effects: 'effects',
+  camera: 'camera',
+  submit: 'submit',
+} as const;
+export type RenderStageName = (typeof RENDER_STAGE)[keyof typeof RENDER_STAGE];
+/** Every stage in the order the frame runs them; the report carries each key. */
+export const RENDER_STAGE_NAMES: readonly RenderStageName[] = [
+  RENDER_STAGE.net,
+  RENDER_STAGE.cells,
+  RENDER_STAGE.organelles,
+  RENDER_STAGE.food,
+  RENDER_STAGE.effects,
+  RENDER_STAGE.camera,
+  RENDER_STAGE.submit,
+];
+
 export interface ClientPerformanceReport {
   fps: number;
   frameTimeAvgMs: number;
   frameTimeP95Ms: number;
   frameTimePeakMs: number;
   heapMb: number | null;
+  /** p95 per stage, ms; every key present (docs/RENDERING.md §7). */
+  renderStagesMs: Readonly<Record<RenderStageName, number>>;
+  /** GPU timer query, null when unsupported. */
+  gpuMs: number | null;
+  drawCalls: number;
+  visibleCells: number;
+  visibleMotes: number;
 }
 
 // ===== Generic room / lobby view models =====

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TICK_HZ } from '@evolution/shared';
+import { TICK_HZ, createTestPerformanceReport } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { PerformanceTracker } from './performance-tracker.js';
 
@@ -51,7 +51,7 @@ describe('PerformanceTracker', () => {
 
   it('stores and forgets client reports by player', () => {
     const tracker = new PerformanceTracker();
-    const report = { fps: 60, frameTimeAvgMs: 16, frameTimeP95Ms: 20, frameTimePeakMs: 30, heapMb: null };
+    const report = createTestPerformanceReport();
     tracker.recordClientReport('p1' as PlayerId, report);
     expect(tracker.clientReportsSnapshot()).toEqual({ p1: report });
     tracker.removeClient('p1' as PlayerId);

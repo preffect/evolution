@@ -5,6 +5,7 @@ import {
   DISCONNECT_GRACE_MS,
   SERVER_MESSAGE_TYPE,
   createTestGameInput,
+  createTestPerformanceReport,
   createTestSessionConfig,
 } from '@evolution/shared';
 import { createTestLobby } from '../testing/builders.js';
@@ -116,7 +117,7 @@ describe('lobby-manager: starting and running games', () => {
     const room = fixture.lobby.getActiveRoom(fixture.gameId)!;
     const inputSpy = vi.spyOn(room, 'submitInput');
     const performanceSpy = vi.spyOn(room, 'recordClientPerformance');
-    const report = { fps: 60, frameTimeAvgMs: 1, frameTimeP95Ms: 2, frameTimePeakMs: 3, heapMb: null };
+    const report = createTestPerformanceReport({ frameTimeAvgMs: 1, frameTimeP95Ms: 2, frameTimePeakMs: 3 });
     const input = createTestGameInput();
     fixture.handlers.onPlayerInput(fixture.alice, { type: CLIENT_MESSAGE_TYPE.playerInput, payload: input });
     fixture.handlers.onClientPerformance(fixture.alice, { type: CLIENT_MESSAGE_TYPE.clientPerformance, report });

@@ -15,9 +15,10 @@ import {
   ROUND_DURATION_MIN_SECONDS,
   ROUND_END_CONDITION,
   SEED_MAX,
+  RENDER_STAGE_NAMES,
   TRAIT_DRAFT_SIZE,
 } from '@evolution/shared';
-import type { GameInput, GameSessionConfig } from '@evolution/shared';
+import type { GameInput, GameSessionConfig, RenderStageName } from '@evolution/shared';
 
 /**
  * Inbound message validation (docs/ARCHITECTURE.md §4): every message is parsed here before a
@@ -88,6 +89,11 @@ const playerInputSchema = z.object({
   payload: gameInputSchema,
 });
 
+/** Every render stage of docs/RENDERING.md §7 is required, so a client that skips one is refused here. */
+const renderStagesSchema = z.object(
+  Object.fromEntries(RENDER_STAGE_NAMES.map((stage) => [stage, z.number()])) as Record<RenderStageName, z.ZodNumber>,
+);
+
 const clientPerformanceSchema = z.object({
   type: z.literal(CLIENT_MESSAGE_TYPE.clientPerformance),
   report: z.object({
@@ -96,6 +102,11 @@ const clientPerformanceSchema = z.object({
     frameTimeP95Ms: z.number(),
     frameTimePeakMs: z.number(),
     heapMb: z.number().nullable(),
+    renderStagesMs: renderStagesSchema,
+    gpuMs: z.number().nullable(),
+    drawCalls: z.number(),
+    visibleCells: z.number(),
+    visibleMotes: z.number(),
   }),
 });
 
