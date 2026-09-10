@@ -26,7 +26,8 @@ document. Read before acting: `CLAUDE.md`, `ENGINEERING.md`, `WORKFLOW.md`, `TEA
 ## Git and PR mechanics
 
 ```bash
-git fetch origin && git rebase origin/main            # before opening / updating a PR
+git fetch origin && git rebase origin/main            # before OPENING a PR
+git fetch origin && git merge origin/main             # on review rounds (a rebase outdates every thread)
 git push -u origin <branch>
 gh pr create -B main -H <branch> -t "<type>: <summary>" -F <body-file>   # body has "Closes #N"
 gh pr view <N> --json number,url,reviewDecision,statusCheckRollup
