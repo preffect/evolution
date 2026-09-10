@@ -113,13 +113,15 @@ Graphics PRs attach before/after screenshots; gameplay PRs list the balance valu
 
 ## 7. Scripts
 
-| Script                          | Runs on   | Purpose                                                                                                                                                        |
-| ------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/github-setup.sh`       | host      | Create/push the repo, labels, milestones, Project + views, ruleset, seed groundwork epics.                                                                     |
-| `scripts/project-sync.sh`       | host/cont | Reconcile issues ↔ board (section 4).                                                                                                                          |
-| `scripts/issue-status.sh`       | host/cont | `issue-status.sh <N> <Status>` — move one ticket without hand-copying ids.                                                                                     |
-| `scripts/agent.sh`              | host/cont | `agent.sh <role> [--ticket N] [--branch B] "<task>"` — run one team role headlessly inside the devcontainer (`TEAM.md`).                                       |
-| `scripts/land-pr.sh`            | host/cont | `land-pr.sh <PR> [--reviewers "roles"]` — reviewer roles review, engineer fixes, re-review, then auto-merge (`TEAM.md`).                                       |
-| `scripts/sync-from-template.sh` | host      | Pull template-owned files (scripts, devcontainer, process docs) from `base-multiplayer-game` into this game, re-applying its identity; land the diff via a PR. |
+| Script                           | Runs on   | Purpose                                                                                                                                                                   |
+| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/github-setup.sh`        | host      | Create/push the repo, labels, milestones, Project + views, ruleset, seed groundwork epics.                                                                                |
+| `scripts/project-sync.sh`        | host/cont | Reconcile issues ↔ board (section 4).                                                                                                                                     |
+| `scripts/issue-status.sh`        | host/cont | `issue-status.sh <Status> <N> [N...]` — move tickets to a Status in two API calls.                                                                                        |
+| `scripts/pr-threads.sh`          | host/cont | `pr-threads.sh list\|unresolved <PR>`; `reply <PR> actions.json` — read and answer/resolve review threads in one request each.                                            |
+| `scripts/agent.sh`               | host/cont | `agent.sh <role> [--ticket N] [--branch B] "<task>"` — run one team role headlessly inside the devcontainer (`TEAM.md`).                                                  |
+| `scripts/land-pr.sh`             | host/cont | `land-pr.sh <PR> [--reviewers "roles"]` — reviewer roles review, engineer fixes, re-review, then auto-merge (`TEAM.md`).                                                  |
+| `scripts/resume-in-container.sh` | host/cont | Copy a Claude Code transcript under the other side's project key so `claude --resume <id>` continues the same conversation inside the devcontainer (or back on the host). |
+| `scripts/sync-from-template.sh`  | host/cont | Pull template-owned files (scripts, devcontainer, process docs) from `base-multiplayer-game` into this game, re-applying its identity; land the diff via a PR.            |
 
 `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).

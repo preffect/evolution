@@ -64,19 +64,21 @@ Review pull request #$pr (round $2) as the $1 role, following your role's proced
 The PR branch is checked out in your working directory. Post exactly one review with
 \`gh api repos/$repo/pulls/$pr/reviews\` using \`event: COMMENT\`, whose body starts with the line
 \`$1 verdict: $VERDICT_APPROVE\` or \`$1 verdict: $VERDICT_REQUEST_CHANGES\`, followed by your
-findings; put line-anchored findings in \`comments\`. In a re-review, first check every unresolved
-thread (yours and Copilot's): resolve the ones that are fixed (GraphQL resolveReviewThread), reply on
-the ones that are not, and only then post your verdict.
+findings; put line-anchored findings in \`comments\`. In a re-review, first
+\`scripts/pr-threads.sh unresolved $pr\` (yours and Copilot's), verify each, then ONE
+\`scripts/pr-threads.sh reply $pr <file>\` call resolving the fixed ones and replying on the rest,
+and only then post your verdict.
 EOF
 }
 
 fix_task() {
   cat <<EOF
-Address every unresolved review thread on pull request #$pr (list them with
-\`gh api graphql\` on pullRequest.reviewThreads, including Copilot's). Fix the code or explain
-in a reply why not, reply on each thread with what changed, keep \`./validate.sh all\` green,
-bring the branch up to date with \`git merge origin/main\` (never rebase on a review round: rewriting
-history marks every review thread outdated), and push. Do not resolve threads yourself and do not merge.
+Address every unresolved review thread on pull request #$pr: run
+\`scripts/pr-threads.sh unresolved $pr\` ONCE (includes Copilot's), fix the code or decide why not,
+then reply to all threads in ONE \`scripts/pr-threads.sh reply $pr <file>\` call (resolve: false),
+keep \`./validate.sh all\` green, bring the branch up to date with \`git merge origin/main\` (never
+rebase on a review round: rewriting history marks every thread outdated), and push. Do not resolve
+threads and do not merge.
 EOF
 }
 

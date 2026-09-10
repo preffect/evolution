@@ -43,6 +43,10 @@ scripts/agent.sh worktree-remove feat/42-food-ecology
   or diverged worktree stops the run instead of reviewing the wrong tree).
 - Every run writes `.qa/agents/<timestamp>-<role>[-pr<N>]-<pid>.prompt.md` and `.log`
   (git-ignored; the pid keeps parallel runs apart).
+- **At most three agents at once.** They share one GitHub account and one 4-core container.
+  GitHub's GraphQL budget is 5,000 points an hour (a query's cost grows with the nested lists it
+  asks for) plus ~80 content-creating calls a minute, so every helper fetches only what it needs
+  and writes in one request (`scripts/pr-threads.sh`, `scripts/issue-status.sh`, `scripts/project-sync.sh`).
 
 ## Landing a PR: the review loop
 

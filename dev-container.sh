@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/lib/identity.sh"
 PROJECT_SLUG="$(project_slug_from_dir "$SCRIPT_DIR")"
 CONTAINER_NAME="$(container_name_from_dir "$SCRIPT_DIR")"
+TEMPLATE_MOUNT=/base-multiplayer-game # where the template checkout appears inside the container
 IMAGE_NAME="${PROJECT_SLUG}-dev-image"
 CHECKSUM_FILE="$SCRIPT_DIR/.devcontainer/.build-checksum"
 DIND_VOLUME="${PROJECT_SLUG}-dind"
@@ -142,6 +143,12 @@ do_create() {
     host_mounts+=" -v ${claude_dir}:${CONTAINER_HOME}/.claude:cached"
   else
     yellow "Warning: ~/.claude not found, skipping mount"
+  fi
+  #   ../base-multiplayer-game  the template checkout (rw), so template-first fixes and
+  #                  scripts/sync-from-template.sh work from inside the container too.
+  local template_dir="$SCRIPT_DIR/../base-multiplayer-game"
+  if [[ -d "$template_dir" && "$(cd "$template_dir" && pwd)" != "$SCRIPT_DIR" ]]; then
+    host_mounts+=" -v $(cd "$template_dir" && pwd):$TEMPLATE_MOUNT:cached"
   fi
   if [[ -d "${HOME}/.config/gh" ]]; then
     host_mounts+=" -v ${HOME}/.config/gh:${CONTAINER_HOME}/.config/gh:cached"
