@@ -87,9 +87,9 @@ describe('placed fixtures', () => {
       { traitId: 'cilia', tier: FIRST_TRAIT_TIER },
       { traitId: 'nucleoid', tier: 2 },
     ]);
-    const levelled = placeCell({ playerIndex: 0, mass: 20, at: ZONE.vent, dnaCumulative: 770 }, first);
+    const levelled = placeCell({ playerIndex: 0, mass: 20, at: ZONE.vent, dnaCumulative: 1760 }, first);
     expect(levelled.at).toBe(ZONE.vent);
-    expect(levelled.dnaCumulative).toBe(770);
+    expect(levelled.dnaCumulative).toBe(1760);
   });
 
   it('rejects a trait tier outside I to III', () => {

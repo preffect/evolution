@@ -154,10 +154,10 @@ it('E9: A absorbs B on tick 30', () => {
   (`ZONE.broth`, `ZONE.vent`, `ZONE.shallows`), `insideCellOf(i)` (E12, E15, P2),
   `eastOfCellOf(i, wu)` (E4 against a seeded cell) or `gelPatchCentre(n)` (E8). A cell takes
   `isPinned`, `traits` (`'cilia'` is tier I, `{ traitId: 'nucleoid', tier: 2 }` names the tier,
-  TRAITS §2) and `dnaCumulative` (P7, P10: "level 12 with fixture DNA 770"). A setup placement
+  TRAITS §2) and `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760"). A setup placement
   applies before tick 1; **`.atTick(T).placeMote(...)`** schedules the same record to apply
   between tick T − 1 and tick T, after that tick's joins and leaves and before its scripts
-  (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 5 ticks" is five
+  (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 10 ticks" is ten
   `.atTick(t).placeMote(...)` calls). Scheduled fixtures are recorded in the replay as
   `patches`. Placing anything means the adapter disables the initial fill and both spawners for
   that run, and fails the scenario when a seeded gel patch lies within `GEL_PATCH_CLEARANCE_WU`
