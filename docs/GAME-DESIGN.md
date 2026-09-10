@@ -12,11 +12,11 @@ below hold the numbers for their domain (one fact, one home).
 | [`PROGRESSION.md`](./PROGRESSION.md)   | DNA, tags, level thresholds, draft rules filtered by the ladder, late-join catch-up                       | #24           |
 | [`TRAITS.md`](./TRAITS.md)             | Modifier model, the sixteen build-1 traits (organelles and forms) mapped onto the ladder, later traits    | #25           |
 | [`VISUAL-STYLE.md`](./VISUAL-STYLE.md) | Palette, cell layer stack, organelle vocabulary, motion language, legibility at play scale, render intent | #34           |
+| [`UI.md`](./UI.md)                     | HUD, overlays, onboarding beats, input mapping, readability rules, Angular component plan                 | #30           |
 
 Technical contracts and the file plan: [`ARCHITECTURE.md`](./ARCHITECTURE.md) (#112); the build itself is
-epic #96 and its tickets (planning lives in GitHub issues, never in a markdown plan). The look is
-[`VISUAL-STYLE.md`](./VISUAL-STYLE.md) (#34). Still to come under this
-epic: `UI.md` (#30), multi-cell organisms (#28), cross-player fusion decision
+epic #96 and its tickets (planning lives in GitHub issues, never in a markdown plan). Still to come under this
+epic: multi-cell organisms (#28), cross-player fusion decision
 (#79), audio manifest (#35).
 
 **One fact, one home.** Every number in this document is a named constant whose home is
