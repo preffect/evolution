@@ -1,7 +1,7 @@
 # Evolution
 
 > **Status: designed, not yet built.** Evolution still runs the template's placeholder **echo**
-> game. The design is in [`docs/GAME-DESIGN.md`](./docs/GAME-DESIGN.md) (index of `GDD.md`,
+> game. The design is in [`docs/GAME-DESIGN.md`](./docs/GAME-DESIGN.md) (with companions
 > `ECOLOGY.md`, `PROGRESSION.md`, `TRAITS.md`) and the build plan in [`init-game.md`](./init-game.md);
 > groundwork and build phases are GitHub epics (see [`WORKFLOW.md`](./WORKFLOW.md)).
 > Scaffolded from the `base-multiplayer-game` template; template-level fixes go upstream there.
