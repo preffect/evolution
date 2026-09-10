@@ -1,11 +1,13 @@
 // How a bot reads a snapshot and speaks to a module (docs/TESTING.md §8.4): the same two
 // duties a `ScenarioAdapter` has (`locateCell`, `toInput`) plus the perception the strategies
-// look through. The echo binding is the template's: no cells, nothing to see, and an input that
-// is the command stamped with its sequence. #98 adds the Evolution binding over its adapter.
+// look through. The echo binding is the template's: no cells, nothing to see, and the echo
+// adapter's own input mapping. It is typed over `unknown` because the echo has no snapshot
+// shape worth naming: the same binding serves the in-process roster (fed `EchoSnapshot`) and
+// the over-the-wire client (fed the wire `GameSnapshot`). #98 adds the Evolution binding.
 
-import type { PlayerId } from '@evolution/shared';
+import type { GameInput, PlayerId } from '@evolution/shared';
 import type { CellLocation, PlayerCommand } from '../gameplay/adapter.js';
-import type { EchoInput, EchoSnapshot } from '../gameplay/echo-adapter.js';
+import { toEchoInput } from '../gameplay/echo-adapter.js';
 import { NO_WORLD_PERCEPTION, type BotPerception } from '../gameplay/strategies/perception.js';
 
 export interface BotWorldBinding<Input, Snapshot> {
@@ -17,9 +19,9 @@ export interface BotWorldBinding<Input, Snapshot> {
   readonly perception: BotPerception<Snapshot>;
 }
 
-export const echoBotBinding: BotWorldBinding<EchoInput, EchoSnapshot> = {
+export const echoBotBinding: BotWorldBinding<GameInput, unknown> = {
   name: 'echo',
   locateCell: () => undefined,
-  toInput: (command, sequence) => ({ ...command, sequence }),
+  toInput: toEchoInput,
   perception: NO_WORLD_PERCEPTION,
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
 import type { PlayerCommand } from '../adapter.js';
-import { createTestScriptContext } from '../../builders.js';
+import { createTestScriptContext } from '../../bot-builders.js';
 import { BOT_STRATEGY_NAME, WANDER_STEP_WU } from './strategy-constants.js';
 import { createWanderStrategy, type WanderOptions } from './wander.js';
 

@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { DEBUG_BOT_DEFAULT_SEED, playerId } from '@evolution/shared';
+import { DEFAULT_BOT_SEED, playerId } from '@evolution/shared';
 import { BOT_STRATEGY_NAMES } from '../../testing/gameplay/strategies/strategy-constants.js';
 import type { DebugContext } from '../debug-context.js';
 import { GAME_ID_ARGUMENT, PLAYER_ID_ARGUMENT, registerCapabilityTool } from './capability-tool.js';
@@ -18,7 +18,7 @@ export function registerBotTools(mcp: McpServer, context: DebugContext): void {
     schema: {
       gameId: GAME_ID_ARGUMENT,
       behavior: z.string().describe(`Strategy name: one of ${BOT_STRATEGY_NAMES.join(', ')}`),
-      seed: z.number().int().default(DEBUG_BOT_DEFAULT_SEED).describe('Seed the bot forks its random stream from'),
+      seed: z.number().int().default(DEFAULT_BOT_SEED).describe('Seed the bot forks its random stream from'),
       preyPlayerId: z.string().optional().describe('hunter only: hunt this player alone'),
     },
     run: (handle, input, room) => {

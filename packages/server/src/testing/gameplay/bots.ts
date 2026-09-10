@@ -3,7 +3,8 @@
 // schedule. A strategy may keep state across its decisions (a `hunt` that commits to a target),
 // which is why the schedule holds a factory: every run of `runDeterministic` builds a fresh
 // instance, and a random choice comes from `context.random`, never from outside the seed. The
-// strategies themselves (`graze`, `hunt`, `flee`, `idle`) arrive with #15; this file is the interface.
+// strategies themselves (`idle`, `wander`, `grazer`, `hunter`, docs/TESTING.md §8.4) live in
+// `strategies/`; this file is the interface.
 
 import type { PlayerCommand } from './adapter.js';
 import type { PlayerScript, ScriptContext } from './scripts.js';

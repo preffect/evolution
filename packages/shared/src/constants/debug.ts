@@ -9,5 +9,8 @@ export const DEBUG_JSON_INDENT_SPACES = 2;
  */
 export const DEBUG_STEP_MAX_SECONDS = 10;
 
-/** The seed `debug_spawn_bot` forks a bot's stream from when the call names none (docs/TESTING.md §8.4). */
-export const DEBUG_BOT_DEFAULT_SEED = 1;
+/**
+ * The seed a bot swarm forks its streams from when neither `debug_spawn_bot` nor the bot client
+ * CLI names one (docs/TESTING.md §8.4). Bot `index` forks `bot_<index>` from it.
+ */
+export const DEFAULT_BOT_SEED = 1;

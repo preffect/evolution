@@ -43,8 +43,8 @@ export const NO_WORLD_PERCEPTION: BotPerception<unknown> = {
   canEngulf: () => false,
 };
 
-export function distanceBetween(from: { x: number; y: number }, to: { x: number; y: number }): number {
-  return Math.hypot(to.x - from.x, to.y - from.y);
+export function distanceBetween(origin: { x: number; y: number }, target: { x: number; y: number }): number {
+  return Math.hypot(target.x - origin.x, target.y - origin.y);
 }
 
 /** The item nearest to `origin`, or `undefined` for an empty list; ties keep the earlier item. */

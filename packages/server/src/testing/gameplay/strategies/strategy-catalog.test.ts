@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { playerId } from '@evolution/shared';
-import { TEST_PLAYER_ID, createTestBotCell, createTestPerception, createTestScriptContext, createTestWorldView } from '../../builders.js';
+import {
+  TEST_PLAYER_ID,
+  createTestBotCell,
+  createTestPerception,
+  createTestScriptContext,
+  createTestWorldView,
+} from '../../bot-builders.js';
 import { UnknownBotStrategyError, createStrategyByName } from './strategy-catalog.js';
 import { BOT_STRATEGY_NAMES, isBotStrategyName } from './strategy-constants.js';
 

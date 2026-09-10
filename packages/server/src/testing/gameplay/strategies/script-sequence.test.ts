@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestScriptContext } from '../../builders.js';
+import { createTestScriptContext } from '../../bot-builders.js';
 import { ScenarioSetupError } from '../errors.js';
 import { sprint, targetPoint } from '../scripts.js';
 import { SCRIPT_SEQUENCE_STRATEGY_NAME, createScriptSequenceStrategy } from './script-sequence.js';
@@ -16,7 +16,13 @@ function decisions(count: number, isLooping = false) {
 
 describe('script sequence strategy', () => {
   it('runs each step for its decisions in order, then idles', () => {
-    expect(decisions(5)).toEqual([{ targetX: 1, targetY: 0 }, { targetX: 1, targetY: 0 }, { isSprinting: true }, null, null]);
+    expect(decisions(5)).toEqual([
+      { targetX: 1, targetY: 0 },
+      { targetX: 1, targetY: 0 },
+      { isSprinting: true },
+      null,
+      null,
+    ]);
   });
 
   it('starts over after the last step when looping', () => {

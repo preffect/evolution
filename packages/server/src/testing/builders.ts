@@ -4,15 +4,8 @@ import { vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
-import {
-  CLIENT_MESSAGE_TYPE,
-  DEFAULT_BALANCE,
-  ManualClock,
-  createSeededRandom,
-  createTestSessionConfig,
-  playerId as brandPlayerId,
-} from '@evolution/shared';
-import type { GameSnapshot, PlayerId } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig } from '@evolution/shared';
+import type { GameSnapshot } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import type { GameModule, GameModuleFactory } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
@@ -20,8 +13,6 @@ import type { DebugContext } from '../mcp/debug-context.js';
 import { LobbyManager } from '../lobby/lobby-manager.js';
 import type { RoomTiming, RoomTimingFactory } from '../lobby/room-timing.js';
 import { ManualTicker } from '../lobby/ticker.js';
-import type { ScriptContext } from './gameplay/scripts.js';
-import type { BotCellView, BotMoteView, BotPerception } from './gameplay/strategies/perception.js';
 
 /** Messages a fake socket "sent", decoded, keyed by player id. */
 export type SentLog = Record<string, unknown[]>;
@@ -167,50 +158,3 @@ export function parseToolJson(result: CallToolResult): unknown {
   if (!first || first.type !== 'text') throw new Error('tool result has no text block');
   return JSON.parse(first.text);
 }
-
-// ---- bot strategies (docs/TESTING.md §8.4) -------------------------------------------
-
-export const TEST_SEED = 42;
-
-/** A `ScriptContext` for a strategy test: tick 0, player 0, no cell, a fresh stream from `TEST_SEED`. */
-export function createTestScriptContext<Snapshot = null>(
-  overrides: Partial<ScriptContext<Snapshot>> & { snapshot?: Snapshot } = {},
-): ScriptContext<Snapshot> {
-  const seed = overrides.seed ?? TEST_SEED;
-  return {
-    tick: 0,
-    stepTick: 1,
-    playerIndex: 0,
-    playerId: brandPlayerId('player_0'),
-    snapshot: null as Snapshot,
-    cell: undefined,
-    seed,
-    random: createSeededRandom(seed),
-    ...overrides,
-  };
-}
-
-export function createTestBotCell(overrides: Partial<BotCellView> = {}): BotCellView {
-  return { id: 'cell_0', playerId: brandPlayerId('player_0'), x: 0, y: 0, mass: 100, radius: 10, membraneRatioBonus: 0, ...overrides };
-}
-
-/** A world the strategies can see: the snapshot IS the list of cells and motes. */
-export interface TestWorldView {
-  readonly cells: readonly BotCellView[];
-  readonly motes: readonly BotMoteView[];
-}
-
-export function createTestWorldView(overrides: Partial<TestWorldView> = {}): TestWorldView {
-  return { cells: [], motes: [], ...overrides };
-}
-
-/** A perception over `TestWorldView` whose engulf rule is a plain mass ratio (the shared predicate's shape). */
-export function createTestPerception(engulfMassRatio = 1.25): BotPerception<TestWorldView> {
-  return {
-    cellsOf: (snapshot) => snapshot.cells,
-    motesOf: (snapshot) => snapshot.motes,
-    canEngulf: (predator, prey) => predator.mass >= prey.mass * (engulfMassRatio + prey.membraneRatioBonus),
-  };
-}
-
-export const TEST_PLAYER_ID: PlayerId = brandPlayerId('player_0');

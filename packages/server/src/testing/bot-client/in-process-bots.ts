@@ -2,13 +2,13 @@
 // of pilots the module steps before each tick. The module owns the players (it adds and removes
 // them); the roster owns the strategies and their streams, and mints the bots' identities.
 
-import { createSeededRandom, type PlayerId } from '@evolution/shared';
+import type { PlayerId } from '@evolution/shared';
 import { DebugRequestError } from '../../game/debug/debug-request-error.js';
 import type { BotSpawnRequest, SpawnedBot } from '../../game/debug/simulation-debug-handle.js';
-import { UnknownBotStrategyError, createStrategyByName } from '../gameplay/strategies/strategy-catalog.js';
+import { UnknownBotStrategyError } from '../gameplay/strategies/strategy-catalog.js';
 import type { BotWorldBinding } from './bot-binding.js';
-import { botStreamLabel, createBotIdentity } from './bot-identity.js';
-import { createBotPilot, type BotPilot } from './bot-pilot.js';
+import { createBotIdentity } from './bot-identity.js';
+import { createNamedBotPilot, type BotPilot } from './bot-pilot.js';
 
 export interface InProcessBotRoster<Input, Snapshot> {
   /** Builds the bot's pilot and identity; the caller adds the player to the module. */
@@ -31,13 +31,9 @@ export function createInProcessBotRoster<Input, Snapshot>(
   const entries = new Map<PlayerId, RosterEntry<Input, Snapshot>>();
   let spawnedCount = 0;
 
-  const buildPilot = (request: BotSpawnRequest, index: number, playerId: PlayerId): BotPilot<Input, Snapshot> => {
+  const buildPilot = (request: BotSpawnRequest, playerIndex: number, playerId: PlayerId): BotPilot<Input, Snapshot> => {
     try {
-      const createStrategy = createStrategyByName(request.behavior, binding.perception, {
-        preyPlayerId: request.preyPlayerId,
-      });
-      const random = createSeededRandom(request.seed).fork(botStreamLabel(index));
-      return createBotPilot({ playerIndex: index, playerId, seed: request.seed, random, binding, createStrategy });
+      return createNamedBotPilot({ ...request, playerIndex, playerId, binding });
     } catch (error) {
       if (error instanceof UnknownBotStrategyError) throw new DebugRequestError(error.message);
       throw error;

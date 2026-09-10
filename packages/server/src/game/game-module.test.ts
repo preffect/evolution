@@ -34,10 +34,49 @@ describe('defaultGameModuleFactory (echo)', () => {
     expect(game.serializeRoomState()).toEqual({ players: { p1: null, p3: null } });
   });
 
-  it('advancing a tick is a no-op for the echo game', () => {
+  it('advancing a tick is a no-op for the echo game without bots', () => {
     const game = defaultGameModuleFactory(options);
     const before = game.serializeRoomState();
     game.reduceGameState();
     expect(game.serializeRoomState()).toEqual(before);
+  });
+});
+
+describe('the echo module drives its own bots (docs/ARCHITECTURE.md §8)', () => {
+  it('offers only the bot pair as debug capabilities', () => {
+    const handle = defaultGameModuleFactory(options).getDebugHandle?.();
+    expect(handle && Object.keys(handle).sort()).toEqual(['removeBot', 'spawnBot']);
+  });
+
+  it('spawnBot adds a player whose input the module produces itself, one per tick from tick 1', () => {
+    const game = defaultGameModuleFactory(options);
+    const bot = game.getDebugHandle!().spawnBot!({ behavior: 'wander', seed: 42 });
+    expect(bot).toMatchObject({ playerId: 'bot_42_0', playerName: 'Bot 0', behavior: 'wander' });
+    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null, [bot.playerId]: null } });
+    game.reduceGameState();
+    game.reduceGameState();
+    expect(game.serializeRoomState()).toMatchObject({
+      players: { [bot.playerId]: expect.objectContaining({ sequence: 2 }) },
+    });
+  });
+
+  it('two modules with the same seed drive their bots identically', () => {
+    const inputAfterTicks = () => {
+      const game = defaultGameModuleFactory(options);
+      game.getDebugHandle!().spawnBot!({ behavior: 'wander', seed: 7 });
+      for (let tick = 0; tick < 5; tick += 1) game.reduceGameState();
+      return (game.serializeRoomState() as unknown as { players: Record<string, unknown> }).players['bot_7_0'];
+    };
+    expect(inputAfterTicks()).toEqual(inputAfterTicks());
+  });
+
+  it('removeBot forgets the bot and its input and refuses a human', () => {
+    const game = defaultGameModuleFactory(options);
+    const handle = game.getDebugHandle!();
+    const bot = handle.spawnBot!({ behavior: 'wander', seed: 42 });
+    game.reduceGameState();
+    expect(handle.removeBot!(bot.playerId)).toEqual(bot);
+    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
+    expect(() => handle.removeBot!('p1' as PlayerId)).toThrow(/not a bot spawned in this game/);
   });
 });

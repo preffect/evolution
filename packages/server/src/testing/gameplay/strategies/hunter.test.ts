@@ -6,7 +6,7 @@ import {
   createTestPerception,
   createTestScriptContext,
   createTestWorldView,
-} from '../../builders.js';
+} from '../../bot-builders.js';
 import { createHunterStrategy } from './hunter.js';
 import { BOT_STRATEGY_NAME, HUNTER_SPRINT_WITHIN_RADII } from './strategy-constants.js';
 
@@ -17,7 +17,10 @@ const biggerPrey = createTestBotCell({ id: 'bigger', playerId: playerId('player_
 const tooBig = createTestBotCell({ id: 'big', playerId: playerId('player_3'), x: 20, y: 0, mass: 90 });
 
 function contextWith(cells: readonly ReturnType<typeof createTestBotCell>[]) {
-  return createTestScriptContext({ snapshot: createTestWorldView({ cells }), cell: { x: self.x, y: self.y, radiusWu: self.radius } });
+  return createTestScriptContext({
+    snapshot: createTestWorldView({ cells }),
+    cell: { x: self.x, y: self.y, radiusWu: self.radius },
+  });
 }
 
 describe('hunter strategy', () => {
@@ -41,7 +44,14 @@ describe('hunter strategy', () => {
   });
 
   it('respects the Cell Wall bonus the perception folds into the predicate', () => {
-    const walled = createTestBotCell({ id: 'walled', playerId: playerId('player_4'), x: 50, y: 50, mass: 70, membraneRatioBonus: 0.5 });
+    const walled = createTestBotCell({
+      id: 'walled',
+      playerId: playerId('player_4'),
+      x: 50,
+      y: 50,
+      mass: 70,
+      membraneRatioBonus: 0.5,
+    });
     expect(createHunterStrategy(perception)().decide(contextWith([self, walled]))).toBeNull();
   });
 
@@ -57,7 +67,10 @@ describe('hunter strategy', () => {
     strategy.decide(contextWith([self, smallPrey]));
     expect(strategy.decide(contextWith([self, biggerPrey]))).toEqual({ targetX: biggerPrey.x, targetY: biggerPrey.y });
     const grown = { ...biggerPrey, mass: 95 };
-    expect(strategy.decide(contextWith([self, grown, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: smallPrey.y });
+    expect(strategy.decide(contextWith([self, grown, smallPrey]))).toEqual({
+      targetX: smallPrey.x,
+      targetY: smallPrey.y,
+    });
   });
 
   it('sprints once the prey is within the sprint range of its own radius', () => {

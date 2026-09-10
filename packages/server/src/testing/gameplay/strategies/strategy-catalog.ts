@@ -8,7 +8,12 @@ import { createGrazerStrategy } from './grazer.js';
 import { createHunterStrategy } from './hunter.js';
 import { createIdleStrategy } from './idle.js';
 import type { BotPerception } from './perception.js';
-import { BOT_STRATEGY_NAME, BOT_STRATEGY_NAMES, isBotStrategyName, type BotStrategyName } from './strategy-constants.js';
+import {
+  BOT_STRATEGY_NAME,
+  BOT_STRATEGY_NAMES,
+  isBotStrategyName,
+  type BotStrategyName,
+} from './strategy-constants.js';
 import { createWanderStrategy } from './wander.js';
 
 export interface CatalogOptions {

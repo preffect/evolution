@@ -2,7 +2,7 @@ import { DEFAULT_BALANCE } from '@evolution/shared';
 import type { BalanceConfig, PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
 import { echoBotBinding } from '../testing/bot-client/bot-binding.js';
-import { createInProcessBotRoster } from '../testing/bot-client/in-process-bots.js';
+import { createInProcessBotRoster, type InProcessBotRoster } from '../testing/bot-client/in-process-bots.js';
 
 /**
  * Per-room game logic. ONE instance per active GameRoom. This is THE place the
@@ -70,7 +70,8 @@ export type GameModuleFactory = (options: RoomInitOptions) => GameModule;
  * echoes `{ players: { [playerId]: lastInput } }` as the snapshot. Replace in the
  * init step with the real game logic. Its one debug capability is the in-process bot pair
  * (`spawnBot` / `removeBot`, docs/ARCHITECTURE.md §8): a bot is a player whose input the module
- * produces itself, before each tick, from the snapshot of the tick before.
+ * produces itself at the start of each tick, from the snapshot of the tick before, stamped with
+ * that tick as its sequence (inputs start at tick 1, docs/TESTING.md §8.1).
  */
 export function createEchoModule(options: RoomInitOptions): GameModule<GameInput, EchoSnapshot> {
   const latestInputByPlayer = new Map<string, GameInput>();
@@ -87,8 +88,8 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
       latestInputByPlayer.set(playerId, payload);
     },
     reduceGameState: () => {
-      bots.driveTick(serializeRoomState(), tick, module.submitInput);
       tick += 1; // TODO(game): advance world one tick
+      bots.driveTick(serializeRoomState(), tick, module.submitInput);
     },
     serializeRoomState,
     serializeFullState: () => ({ snapshot: serializeRoomState(), balance: DEFAULT_BALANCE }),
@@ -99,20 +100,28 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
       players.delete(playerId);
       latestInputByPlayer.delete(playerId);
     },
-    getDebugHandle: () => ({
-      spawnBot: (request) => {
-        const bot = bots.spawn(request);
-        module.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName);
-        return bot;
-      },
-      removeBot: (playerId) => {
-        const bot = bots.remove(playerId);
-        module.removePlayer(playerId);
-        return bot;
-      },
-    }),
+    getDebugHandle: () => echoBotHandle(module, bots),
   };
   return module;
+}
+
+/** The echo's one debug capability: the bot pair. The roster owns the pilot, the module the player. */
+function echoBotHandle(
+  module: GameModule<GameInput, EchoSnapshot>,
+  bots: InProcessBotRoster<GameInput, unknown>,
+): SimulationDebugHandle {
+  return {
+    spawnBot: (request) => {
+      const bot = bots.spawn(request);
+      module.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName);
+      return bot;
+    },
+    removeBot: (playerId) => {
+      const bot = bots.remove(playerId);
+      module.removePlayer(playerId);
+      return bot;
+    },
+  };
 }
 
 /**

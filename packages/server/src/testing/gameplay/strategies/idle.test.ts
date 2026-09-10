@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestScriptContext } from '../../builders.js';
+import { createTestScriptContext } from '../../bot-builders.js';
 import { createIdleStrategy } from './idle.js';
 import { BOT_STRATEGY_NAME } from './strategy-constants.js';
 

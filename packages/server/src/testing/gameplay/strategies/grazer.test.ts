@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestPerception, createTestScriptContext, createTestWorldView } from '../../builders.js';
+import { createTestPerception, createTestScriptContext, createTestWorldView } from '../../bot-builders.js';
 import { createGrazerStrategy } from './grazer.js';
 import { BOT_STRATEGY_NAME } from './strategy-constants.js';
 
@@ -35,7 +35,9 @@ describe('grazer strategy', () => {
 
   it('re-evaluates every decision from the current snapshot (no memory of a mote that was eaten)', () => {
     const strategy = createGrazerStrategy(perception)();
-    strategy.decide(createTestScriptContext({ snapshot: createTestWorldView({ motes: [{ id: 'a', x: 1, y: 0 }] }), cell: CELL }));
+    strategy.decide(
+      createTestScriptContext({ snapshot: createTestWorldView({ motes: [{ id: 'a', x: 1, y: 0 }] }), cell: CELL }),
+    );
     const next = strategy.decide(
       createTestScriptContext({ snapshot: createTestWorldView({ motes: [{ id: 'b', x: 0, y: 9 }] }), cell: CELL }),
     );
