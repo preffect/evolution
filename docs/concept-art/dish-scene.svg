@@ -1,0 +1,1291 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Inter, 'Liberation Sans', 'DejaVu Sans', Helvetica, Arial, sans-serif">
+<title>Evolution — concept sheet 02: the dish</title>
+<desc>Play-scale scene of the petri dish at camera zoom 1.0 (1 px = 1 world unit): dark-field background, dish wall, three ecology zones, three nutrient mote types, DNA fragments, depth particles, vignette, four cells (the player, a rival mid-engulf, its prey and a grazer resting in the shallows) and a zoomed-out inset at high mass. Code-drawn SVG, no raster content. See docs/concept-art/README.md for the palette constants.</desc>
+<style>
+  .h1 { font-size: 26px; font-weight: 700; fill: #cfdbe6; letter-spacing: 0.06em; }
+  .h1b { font-size: 22px; font-weight: 600; fill: #7fe7f5; }
+  .sub { font-size: 12px; fill: #7d8da1; }
+  .lab { font-size: 12.5px; font-weight: 600; fill: #cfdbe6; }
+  .lab-accent { font-size: 12.5px; font-weight: 700; fill: #7fe7f5; letter-spacing: 0.08em; }
+  .mono { font-size: 10.2px; fill: #7d8da1; font-family: 'JetBrains Mono', 'DejaVu Sans Mono', Consolas, Menlo, monospace; }
+  .mono-light { font-size: 10.5px; fill: #a9b8c7; font-family: 'JetBrains Mono', 'DejaVu Sans Mono', Consolas, Menlo, monospace; }
+  .leader { stroke: #4d6a80; stroke-width: 1; fill: none; }
+</style>
+<defs>
+  <!-- ===== field, light, vignette ===== -->
+  <radialGradient id="bg-field" cx="0.5" cy="0.45" r="0.75">
+    <stop offset="0" stop-color="#0b1626"/><stop offset="1" stop-color="#04070d"/>
+  </radialGradient>
+  <radialGradient id="light-pool" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#7fe7f5" stop-opacity="0.09"/><stop offset="0.5" stop-color="#7fe7f5" stop-opacity="0.03"/><stop offset="1" stop-color="#7fe7f5" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#7fe7f5" stop-opacity="0.07"/><stop offset="0.55" stop-color="#7fe7f5" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.72">
+    <stop offset="0.55" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.55"/>
+  </radialGradient>
+  <!-- ===== blurs ===== -->
+  <filter id="blur-1_5" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.5"/></filter>
+  <filter id="blur-3" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3"/></filter>
+  <filter id="blur-6" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="blur-10" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
+  <filter id="blur-16" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="16"/></filter>
+  <filter id="blur-26" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="26"/></filter>
+  <filter id="blur-40" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="40"/></filter>
+  <!-- ===== ecology zones: soft tint + turbulent cloud masked to a disc ===== -->
+  <radialGradient id="zone-sunlit"><stop offset="0" stop-color="#8dffb0" stop-opacity="0.16"/><stop offset="0.55" stop-color="#8dffb0" stop-opacity="0.07"/><stop offset="1" stop-color="#8dffb0" stop-opacity="0"/></radialGradient>
+  <radialGradient id="zone-vent"><stop offset="0" stop-color="#ff9a4d" stop-opacity="0.13"/><stop offset="0.5" stop-color="#ff9a4d" stop-opacity="0.06"/><stop offset="1" stop-color="#ff9a4d" stop-opacity="0"/></radialGradient>
+  <radialGradient id="zone-mire"><stop offset="0" stop-color="#b070ff" stop-opacity="0.14"/><stop offset="0.55" stop-color="#b070ff" stop-opacity="0.06"/><stop offset="1" stop-color="#b070ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="mask-disc"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0.8"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+  <mask id="mask-sunlit"><circle cx="420" cy="250" r="540" fill="url(#mask-disc)"/></mask>
+  <mask id="mask-vent"><circle cx="1250" cy="930" r="430" fill="url(#mask-disc)"/></mask>
+  <mask id="mask-mire"><circle cx="1520" cy="330" r="470" fill="url(#mask-disc)"/></mask>
+  <filter id="cloud-green" x="0" y="0" width="1" height="1">
+    <feTurbulence type="fractalNoise" baseFrequency="0.0035" numOctaves="3" seed="3" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.55  0 0 0 0 1  0 0 0 0 0.69  0 0 0 1.6 -0.6"/>
+  </filter>
+  <filter id="cloud-orange" x="0" y="0" width="1" height="1">
+    <feTurbulence type="fractalNoise" baseFrequency="0.004" numOctaves="3" seed="9" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 0.72  0 0 0 0 0.4  0 0 0 1.6 -0.62"/>
+  </filter>
+  <filter id="cloud-violet" x="0" y="0" width="1" height="1">
+    <feTurbulence type="fractalNoise" baseFrequency="0.003" numOctaves="3" seed="21" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.69  0 0 0 0 0.44  0 0 0 0 1  0 0 0 1.6 -0.6"/>
+  </filter>
+  <!-- ===== cytoplasm texture (play scale: 1 px / wu, so 4x the sheet-01 frequency) ===== -->
+  <filter id="cyto-noise" x="0" y="0" width="1" height="1">
+    <feTurbulence type="fractalNoise" baseFrequency="0.18" numOctaves="3" seed="11" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.62  0 0 0 0 0.93  0 0 0 0 1  1.6 0 0 0 -0.62"/>
+  </filter>
+  <filter id="cyto-noise-fine" x="0" y="0" width="1" height="1">
+    <feTurbulence type="fractalNoise" baseFrequency="0.45" numOctaves="2" seed="5" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.8 0 0 0 -0.95"/>
+  </filter>
+  <!-- ===== nutrient motes (base sizes: algal r 4, lipid 5 x 4.2, mineral 3 x 4.5; halos 3x / 2.8x / 2.5x) ===== -->
+  <radialGradient id="halo-algal"><stop offset="0" stop-color="#7dff8a" stop-opacity="0.22"/><stop offset="0.45" stop-color="#7dff8a" stop-opacity="0.08"/><stop offset="1" stop-color="#7dff8a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="mote-algal-g" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#8dff6a"/><stop offset="1" stop-color="#3f9a2c"/></radialGradient>
+  <g id="mote-algal">
+    <circle r="12" fill="url(#halo-algal)"/>
+    <circle r="6.5" fill="#7dff8a" opacity="0.3" filter="url(#blur-3)"/>
+    <circle r="4" fill="url(#mote-algal-g)"/>
+    <circle r="4" fill="none" stroke="#dcffb0" stroke-width="0.5" opacity="0.6"/>
+    <circle cx="-1.4" cy="-1.4" r="1.1" fill="#ffffff" opacity="0.9"/>
+  </g>
+  <radialGradient id="halo-lipid"><stop offset="0" stop-color="#ffc857" stop-opacity="0.2"/><stop offset="0.45" stop-color="#ffc857" stop-opacity="0.07"/><stop offset="1" stop-color="#ffc857" stop-opacity="0"/></radialGradient>
+  <radialGradient id="mote-lipid-g" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#c88a2a"/><stop offset="0.55" stop-color="#f2c94c"/><stop offset="1" stop-color="#ffe7a3"/></radialGradient>
+  <g id="mote-lipid">
+    <circle r="14" fill="url(#halo-lipid)"/>
+    <ellipse rx="7" ry="5.6" fill="#ffc857" opacity="0.3" filter="url(#blur-3)"/>
+    <ellipse rx="5" ry="4.2" fill="url(#mote-lipid-g)"/>
+    <ellipse rx="5" ry="4.2" fill="none" stroke="#fff8d0" stroke-width="0.6" opacity="0.85"/>
+    <ellipse cx="-1.8" cy="-1.5" rx="1.5" ry="0.8" transform="rotate(-30 -1.8 -1.5)" fill="#ffffff" opacity="0.9"/>
+  </g>
+  <radialGradient id="halo-mineral"><stop offset="0" stop-color="#9ad7ff" stop-opacity="0.22"/><stop offset="0.45" stop-color="#9ad7ff" stop-opacity="0.08"/><stop offset="1" stop-color="#9ad7ff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="mote-mineral-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#9ad7ff"/><stop offset="1" stop-color="#3d7fc4"/></linearGradient>
+  <g id="mote-mineral">
+    <circle r="11" fill="url(#halo-mineral)"/>
+    <polygon points="0,-6.5 4.2,0 0,6.5 -4.2,0" fill="#9ad7ff" opacity="0.32" filter="url(#blur-3)"/>
+    <polygon points="0,-4.5 3,0 0,4.5 -3,0" fill="url(#mote-mineral-g)"/>
+    <polygon points="0,-4.5 3,0 0,4.5 -3,0" fill="none" stroke="#e6f6ff" stroke-width="0.5" opacity="0.8"/>
+    <line x1="0" y1="-4.5" x2="0" y2="4.5" stroke="#ffffff" stroke-width="0.4" opacity="0.5"/>
+    <circle cx="-0.9" cy="-1.8" r="0.8" fill="#ffffff" opacity="0.95"/>
+  </g>
+  <!-- ===== DNA fragment: 22 wu double helix, glow r 14 ===== -->
+  <g id="dna-fragment">
+    <ellipse rx="16" ry="9" fill="#d36bff" opacity="0.2" filter="url(#blur-6)"/>
+    <ellipse rx="12" ry="5.5" fill="#d36bff" opacity="0.3" filter="url(#blur-3)"/>
+    <path d="M-9.5 -2.9 v5.8 M-6.5 -3.5 v7 M-0.5 -2.6 v5.2 M2.5 -3.5 v7 M7.5 -3.3 v6.6 M10 -1.6 v3.2" stroke="#b070ff" stroke-width="1" opacity="0.85"/>
+    <path d="M-11 0 C-9 -4.5 -5 -4.5 -3 0 C-1 4.5 3 4.5 5 0 C7 -4.5 10 -4.5 11 0" fill="none" stroke="#f0b8ff" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M-11 0 C-9 4.5 -5 4.5 -3 0 C-1 -4.5 3 -4.5 5 0 C7 4.5 10 4.5 11 0" fill="none" stroke="#d36bff" stroke-width="1.3" stroke-linecap="round"/>
+    <circle cx="-6.7" cy="-3.3" r="1" fill="#ffffff" opacity="0.9"/>
+    <circle cx="4.6" cy="3.2" r="0.8" fill="#ffffff" opacity="0.7"/>
+    <circle cx="15" cy="-6" r="0.7" fill="#f0b8ff" opacity="0.7"/>
+    <circle cx="-14" cy="5" r="0.6" fill="#f0b8ff" opacity="0.6"/>
+  </g>
+  <!-- ===== air bubble trapped against the glass (unit radius) ===== -->
+  <radialGradient id="bubble-g" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#0b1626" stop-opacity="0.15"/><stop offset="0.7" stop-color="#3d7fc4" stop-opacity="0.12"/><stop offset="1" stop-color="#a6f4ff" stop-opacity="0.55"/></radialGradient>
+  <g id="bubble">
+    <circle r="1.35" fill="#a6f4ff" opacity="0.16" filter="url(#blur-1_5)"/>
+    <circle r="1" fill="url(#bubble-g)"/>
+    <circle r="1" fill="none" stroke="#dff4ff" stroke-width="0.14" opacity="0.75"/>
+    <circle r="0.72" fill="none" stroke="#7fe7f5" stroke-width="0.08" opacity="0.5"/>
+    <ellipse cx="-0.38" cy="-0.42" rx="0.26" ry="0.13" transform="rotate(-40 -0.38 -0.42)" fill="#ffffff" opacity="0.85"/>
+  </g>
+  <!-- ===== dish wall ===== -->
+  <linearGradient id="glass-band" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1f3552"/><stop offset="1" stop-color="#0a1220"/></linearGradient>
+  <!-- ===== cell palettes (sheet 01 constants) ===== -->
+  <radialGradient id="body-cyan" cx="0.42" cy="0.38" r="0.68">
+    <stop offset="0" stop-color="#1d636c" stop-opacity="0.42"/><stop offset="0.55" stop-color="#102426" stop-opacity="0.55"/><stop offset="0.86" stop-color="#22c1d6" stop-opacity="0.55"/><stop offset="1" stop-color="#a6f4ff" stop-opacity="0.85"/>
+  </radialGradient>
+  <linearGradient id="rim-cyan" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#a6f4ff" stop-opacity="0.95"/><stop offset="0.55" stop-color="#22c1d6" stop-opacity="0.55"/><stop offset="1" stop-color="#a6f4ff" stop-opacity="0.55"/>
+  </linearGradient>
+  <radialGradient id="halo-cyan" cx="0.5" cy="0.5" r="0.5"><stop offset="0.62" stop-color="#a6f4ff" stop-opacity="0.34"/><stop offset="1" stop-color="#a6f4ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="body-magenta" cx="0.42" cy="0.38" r="0.68">
+    <stop offset="0" stop-color="#72255f" stop-opacity="0.42"/><stop offset="0.55" stop-color="#291424" stop-opacity="0.55"/><stop offset="0.86" stop-color="#d43fb0" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb3ec" stop-opacity="0.85"/>
+  </radialGradient>
+  <linearGradient id="rim-magenta" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffb3ec" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d43fb0" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb3ec" stop-opacity="0.55"/>
+  </linearGradient>
+  <radialGradient id="nuc-magenta" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffb3ec" stop-opacity="0.95"/><stop offset="0.5" stop-color="#f07ad2" stop-opacity="0.9"/><stop offset="1" stop-color="#8c176e" stop-opacity="0.95"/></radialGradient>
+  <radialGradient id="halo-magenta" cx="0.5" cy="0.5" r="0.5"><stop offset="0.62" stop-color="#ffb3ec" stop-opacity="0.34"/><stop offset="1" stop-color="#ffb3ec" stop-opacity="0"/></radialGradient>
+  <radialGradient id="body-amber" cx="0.42" cy="0.38" r="0.68">
+    <stop offset="0" stop-color="#75571d" stop-opacity="0.42"/><stop offset="0.55" stop-color="#292111" stop-opacity="0.55"/><stop offset="0.86" stop-color="#e0a12a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe7a3" stop-opacity="0.85"/>
+  </radialGradient>
+  <linearGradient id="rim-amber" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffe7a3" stop-opacity="0.95"/><stop offset="0.55" stop-color="#e0a12a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe7a3" stop-opacity="0.55"/>
+  </linearGradient>
+  <radialGradient id="nuc-amber" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffe7a3" stop-opacity="0.95"/><stop offset="0.5" stop-color="#f5c85c" stop-opacity="0.9"/><stop offset="1" stop-color="#88650f" stop-opacity="0.95"/></radialGradient>
+  <radialGradient id="halo-amber" cx="0.5" cy="0.5" r="0.5"><stop offset="0.62" stop-color="#ffe7a3" stop-opacity="0.34"/><stop offset="1" stop-color="#ffe7a3" stop-opacity="0"/></radialGradient>
+  <radialGradient id="body-lime" cx="0.42" cy="0.38" r="0.68">
+    <stop offset="0" stop-color="#3f6d18" stop-opacity="0.42"/><stop offset="0.55" stop-color="#16270c" stop-opacity="0.55"/><stop offset="0.86" stop-color="#7ed321" stop-opacity="0.55"/><stop offset="1" stop-color="#dcffb0" stop-opacity="0.85"/>
+  </radialGradient>
+  <linearGradient id="rim-lime" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#dcffb0" stop-opacity="0.95"/><stop offset="0.55" stop-color="#7ed321" stop-opacity="0.55"/><stop offset="1" stop-color="#dcffb0" stop-opacity="0.55"/>
+  </linearGradient>
+  <radialGradient id="nuc-lime" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#dcffb0" stop-opacity="0.95"/><stop offset="0.5" stop-color="#b5ef62" stop-opacity="0.9"/><stop offset="1" stop-color="#3f7a12" stop-opacity="0.95"/></radialGradient>
+  <radialGradient id="halo-lime" cx="0.5" cy="0.5" r="0.5"><stop offset="0.62" stop-color="#dcffb0" stop-opacity="0.34"/><stop offset="1" stop-color="#dcffb0" stop-opacity="0"/></radialGradient>
+  <!-- ===== organelles (sheet 01 symbols) ===== -->
+  <radialGradient id="mito-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#ffd39a"/><stop offset="0.5" stop-color="#ffb15a"/><stop offset="1" stop-color="#b85c16"/></radialGradient>
+  <radialGradient id="vac-g" cx="0.5" cy="0.5" r="0.5"><stop offset="0.6" stop-color="#a8d8ff" stop-opacity="0.08"/><stop offset="1" stop-color="#a8d8ff" stop-opacity="0.45"/></radialGradient>
+  <radialGradient id="lipid-g" cx="0.35" cy="0.3" r="0.75"><stop offset="0" stop-color="#fff8d0"/><stop offset="1" stop-color="#f2c94c"/></radialGradient>
+  <symbol id="mito" viewBox="-1.3 -1.3 2.6 2.6" overflow="visible">
+    <ellipse rx="1.15" ry="0.6" fill="#ffb15a" opacity="0.45" filter="url(#blur-1_5)"/>
+    <ellipse rx="1" ry="0.48" fill="url(#mito-g)"/>
+    <ellipse rx="1" ry="0.48" fill="none" stroke="#ffd39a" stroke-width="0.07" opacity="0.85"/>
+    <path d="M-0.62 -0.3 q0.08 0.3 0 0.6 M-0.32 -0.36 q0.1 0.36 0 0.72 M0 -0.38 q-0.1 0.38 0 0.76 M0.32 -0.36 q0.1 0.36 0 0.72 M0.62 -0.3 q-0.08 0.3 0 0.6" fill="none" stroke="#ffd39a" stroke-width="0.06" stroke-linecap="round" opacity="0.9"/>
+    <ellipse cx="-0.45" cy="-0.22" rx="0.22" ry="0.09" fill="#ffffff" opacity="0.55"/>
+  </symbol>
+  <symbol id="vacuole" viewBox="-1.2 -1.2 2.4 2.4" overflow="visible">
+    <circle r="1" fill="url(#vac-g)"/>
+    <circle r="1" fill="none" stroke="#dff0ff" stroke-width="0.07" opacity="0.7"/>
+    <ellipse cx="-0.4" cy="-0.42" rx="0.28" ry="0.14" transform="rotate(-35 -0.4 -0.42)" fill="#ffffff" opacity="0.5"/>
+  </symbol>
+  <symbol id="lipid" viewBox="-1.2 -1.2 2.4 2.4" overflow="visible">
+    <circle r="1.25" fill="#f2c94c" opacity="0.4" filter="url(#blur-1_5)"/>
+    <circle r="1" fill="url(#lipid-g)"/>
+    <circle cx="-0.35" cy="-0.35" r="0.22" fill="#ffffff" opacity="0.8"/>
+  </symbol>
+  <radialGradient id="chloro-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#dcffb0"/><stop offset="0.45" stop-color="#8dff6a"/><stop offset="1" stop-color="#2f7a22"/></radialGradient>
+  <symbol id="chloroplast" viewBox="-1.3 -1.3 2.6 2.6" overflow="visible">
+    <ellipse rx="1.15" ry="0.62" fill="#8dff6a" opacity="0.45" filter="url(#blur-1_5)"/>
+    <ellipse rx="1" ry="0.5" fill="url(#chloro-g)"/>
+    <ellipse rx="1" ry="0.5" fill="none" stroke="#dcffb0" stroke-width="0.07" opacity="0.85"/>
+    <path d="M-0.55 -0.12 h0.3 M-0.55 0.06 h0.3 M-0.05 -0.2 h0.32 M-0.05 -0.02 h0.32 M-0.05 0.16 h0.32 M0.4 -0.1 h0.2 M0.4 0.08 h0.2" fill="none" stroke="#2f7a22" stroke-width="0.07" stroke-linecap="round" opacity="0.8"/>
+    <ellipse cx="-0.45" cy="-0.24" rx="0.22" ry="0.09" fill="#ffffff" opacity="0.55"/>
+  </symbol>
+  <!-- ===== membranes (36-point Catmull-Rom loops, Gaussian bumps; see README) ===== -->
+  <path id="membrane-player" d="M32.6 -2.3 C32.7 -0.7 32.3 0.9 32.2 2.6 C32.1 4.2 32.4 6.0 31.8 7.5 C31.3 9.1 29.7 10.3 28.9 11.8 C28.0 13.3 27.6 15.0 26.5 16.3 C25.5 17.7 24.0 18.9 22.5 19.9 C21.1 21.0 19.3 21.7 17.8 22.7 C16.2 23.7 14.8 25.0 13.1 25.7 C11.4 26.3 9.3 26.3 7.5 26.7 C5.6 27.1 3.8 27.9 2.0 28.0 C0.1 28.2 -1.8 27.7 -3.7 27.5 C-5.6 27.3 -7.4 27.0 -9.2 26.7 C-11.1 26.3 -12.9 26.0 -14.7 25.4 C-16.5 24.9 -18.5 24.4 -20.0 23.4 C-21.4 22.4 -22.3 20.7 -23.5 19.5 C-24.7 18.2 -26.0 17.1 -27.1 15.8 C-28.3 14.6 -29.5 13.3 -30.5 11.9 C-31.4 10.4 -32.4 8.9 -32.8 7.3 C-33.2 5.7 -33.1 4.0 -33.0 2.3 C-33.0 0.7 -32.7 -0.9 -32.6 -2.6 C-32.5 -4.3 -33.0 -6.1 -32.4 -7.6 C-31.7 -9.2 -29.7 -10.3 -28.8 -11.8 C-27.9 -13.3 -28.0 -15.3 -27.0 -16.6 C-25.9 -18.0 -23.9 -18.8 -22.4 -19.9 C-20.9 -20.9 -19.4 -21.9 -17.8 -22.8 C-16.2 -23.7 -14.6 -24.4 -12.9 -25.2 C-11.1 -25.9 -9.4 -26.5 -7.6 -27.0 C-5.8 -27.6 -3.9 -28.5 -2.0 -28.6 C-0.1 -28.7 1.8 -27.9 3.7 -27.7 C5.6 -27.4 7.6 -27.7 9.4 -27.3 C11.3 -27.0 13.2 -26.4 14.9 -25.7 C16.5 -24.9 18.0 -23.8 19.5 -22.9 C21.1 -21.9 22.8 -21.1 24.0 -19.9 C25.2 -18.7 26.0 -17.1 26.9 -15.7 C27.9 -14.3 28.8 -13.0 29.6 -11.5 C30.4 -10.1 31.1 -8.6 31.6 -7.0 C32.1 -5.5 32.5 -3.9 32.6 -2.3 Z"/>
+  <path id="membrane-rival" d="M53.9 0.0 C53.9 3.1 53.5 6.3 52.9 9.3 C52.3 12.4 51.4 15.4 50.4 18.3 C49.4 21.3 48.5 24.4 47.0 27.1 C45.5 29.8 43.4 32.4 41.3 34.7 C39.2 37.0 36.7 38.9 34.3 40.9 C32.0 43.0 29.8 45.3 27.1 46.9 C24.4 48.5 21.4 49.7 18.4 50.4 C15.4 51.2 12.2 51.2 9.1 51.6 C6.0 52.0 3.0 52.8 0.0 52.8 C-3.0 52.8 -6.1 52.2 -9.1 51.7 C-12.1 51.2 -15.3 50.9 -18.1 49.9 C-21.0 48.8 -23.8 47.3 -26.3 45.6 C-28.9 43.9 -30.8 41.5 -33.4 39.8 C-35.9 38.0 -39.1 36.9 -41.7 35.0 C-44.4 33.1 -45.7 30.4 -49.2 28.4 C-52.7 26.4 -57.8 25.2 -62.6 22.8 C-67.4 20.3 -74.4 17.5 -77.9 13.7 C-81.3 9.9 -83.7 4.5 -83.5 0.0 C-83.3 -4.5 -80.7 -9.9 -76.9 -13.6 C-73.0 -17.2 -64.6 -19.3 -60.2 -21.9 C-55.8 -24.5 -52.1 -25.8 -50.5 -29.1 C-48.8 -32.5 -50.3 -37.0 -50.2 -42.1 C-50.2 -47.3 -51.6 -54.7 -50.3 -59.9 C-49.0 -65.2 -46.4 -71.4 -42.5 -73.6 C-38.6 -75.9 -31.9 -74.7 -26.7 -73.4 C-21.6 -72.2 -16.1 -68.8 -11.7 -66.2 C-7.2 -63.5 -3.5 -60.0 -0.0 -57.8 C3.5 -55.6 6.3 -54.3 9.3 -52.8 C12.3 -51.4 15.0 -50.3 17.9 -49.1 C20.7 -47.9 23.7 -47.2 26.5 -45.8 C29.2 -44.4 31.9 -42.8 34.2 -40.8 C36.5 -38.7 38.2 -36.1 40.1 -33.7 C42.1 -31.3 44.5 -29.2 45.9 -26.5 C47.4 -23.9 47.7 -20.7 48.9 -17.8 C50.1 -14.9 52.0 -12.3 52.9 -9.3 C53.7 -6.4 53.9 -3.1 53.9 0.0 Z"/>
+  <path id="membrane-prey" d="M15.2 0.0 C15.2 0.9 15.3 1.8 15.1 2.7 C14.9 3.5 14.6 4.4 14.2 5.2 C13.7 5.9 13.1 6.5 12.6 7.3 C12.1 8.0 11.7 8.7 11.2 9.4 C10.7 10.1 10.3 11.0 9.7 11.5 C9.0 12.0 8.0 12.2 7.3 12.6 C6.5 13.1 6.0 13.9 5.2 14.3 C4.4 14.6 3.5 14.7 2.6 14.9 C1.8 15.0 0.9 15.2 0.0 15.2 C-0.9 15.3 -1.7 15.1 -2.7 15.1 C-3.6 15.1 -4.6 15.4 -5.5 15.1 C-6.4 14.8 -7.0 14.0 -7.8 13.5 C-8.5 12.9 -9.4 12.6 -10.1 12.0 C-10.8 11.5 -11.5 10.8 -12.2 10.2 C-12.8 9.6 -13.7 9.0 -14.2 8.2 C-14.6 7.4 -14.4 6.2 -14.7 5.3 C-14.9 4.4 -15.5 3.7 -15.7 2.8 C-15.9 1.9 -16.0 0.9 -16.0 0.0 C-16.1 -0.9 -16.2 -1.9 -16.1 -2.8 C-16.0 -3.8 -15.6 -4.7 -15.3 -5.6 C-15.0 -6.5 -14.7 -7.4 -14.2 -8.2 C-13.6 -8.9 -12.7 -9.5 -12.1 -10.1 C-11.4 -10.8 -10.9 -11.6 -10.2 -12.2 C-9.5 -12.8 -8.7 -13.2 -7.9 -13.7 C-7.2 -14.3 -6.4 -15.0 -5.6 -15.4 C-4.8 -15.8 -3.8 -16.1 -2.9 -16.2 C-1.9 -16.2 -0.9 -15.8 -0.0 -15.7 C0.9 -15.5 1.8 -15.6 2.7 -15.4 C3.6 -15.3 4.5 -15.1 5.4 -14.7 C6.2 -14.4 7.0 -14.0 7.8 -13.5 C8.6 -13.1 9.4 -12.7 10.2 -12.1 C10.9 -11.5 11.6 -10.9 12.1 -10.2 C12.6 -9.4 13.0 -8.5 13.3 -7.7 C13.6 -6.8 13.8 -6.0 14.0 -5.1 C14.3 -4.3 14.7 -3.5 14.9 -2.6 C15.1 -1.8 15.1 -0.9 15.2 0.0 Z"/>
+  <path id="membrane-grazer" d="M43.8 0.0 C43.8 2.5 43.5 5.1 43.2 7.6 C42.9 10.2 42.6 12.8 41.8 15.2 C41.1 17.7 39.8 20.0 38.6 22.3 C37.4 24.6 36.3 27.0 34.7 29.1 C33.2 31.2 31.2 33.2 29.2 34.8 C27.2 36.5 24.9 37.8 22.5 39.1 C20.2 40.3 17.9 41.5 15.4 42.3 C12.9 43.1 10.2 43.2 7.7 43.6 C5.1 43.9 2.5 44.3 0.0 44.2 C-2.5 44.1 -5.1 43.6 -7.6 43.1 C-10.1 42.6 -12.6 41.9 -14.9 41.0 C-17.3 40.1 -19.6 39.1 -21.8 37.8 C-24.0 36.5 -26.2 35.1 -28.0 33.3 C-29.8 31.6 -31.1 29.4 -32.6 27.4 C-34.1 25.4 -35.5 23.4 -36.8 21.2 C-38.1 19.1 -39.4 17.0 -40.4 14.7 C-41.5 12.4 -42.5 10.0 -43.0 7.6 C-43.6 5.1 -43.8 2.5 -43.8 0.0 C-43.8 -2.5 -43.5 -5.1 -43.2 -7.6 C-42.8 -10.1 -42.5 -12.8 -41.7 -15.2 C-40.8 -17.6 -39.2 -19.6 -38.0 -21.9 C-36.8 -24.2 -35.9 -26.7 -34.4 -28.8 C-32.9 -31.0 -31.0 -32.9 -29.0 -34.6 C-27.1 -36.4 -25.0 -38.1 -22.8 -39.4 C-20.5 -40.7 -17.9 -41.7 -15.4 -42.4 C-12.9 -43.1 -10.3 -43.5 -7.7 -43.8 C-5.2 -44.1 -2.5 -44.4 -0.0 -44.3 C2.5 -44.1 5.1 -43.4 7.5 -42.8 C10.0 -42.2 12.5 -41.7 14.9 -40.8 C17.2 -39.9 19.5 -38.8 21.6 -37.4 C23.7 -36.1 25.7 -34.5 27.5 -32.8 C29.4 -31.2 31.3 -29.5 32.9 -27.6 C34.5 -25.7 35.8 -23.5 37.1 -21.4 C38.3 -19.3 39.5 -17.0 40.5 -14.7 C41.4 -12.4 42.3 -10.0 42.8 -7.5 C43.3 -5.1 43.7 -2.5 43.8 0.0 Z"/>
+  <clipPath id="clip-player"><use href="#membrane-player"/></clipPath>
+  <clipPath id="clip-grazer"><use href="#membrane-grazer"/></clipPath>
+  <clipPath id="clip-rival"><use href="#membrane-rival"/></clipPath>
+  <clipPath id="clip-prey"><use href="#membrane-prey"/></clipPath>
+  <!-- ===== inset (zoomed out) ===== -->
+  <clipPath id="clip-inset-dish"><circle cx="1598" cy="936" r="110"/></clipPath>
+  <radialGradient id="inset-dish-bg" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#0d2140"/><stop offset="0.7" stop-color="#081630"/><stop offset="1" stop-color="#040a18"/></radialGradient>
+  <filter id="inset-mote-texture" x="0" y="0" width="1" height="1">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="4" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.75  0 0 0 0 1  0 0 0 0 0.85  0 0 0 2.2 -1.35"/>
+  </filter>
+  <linearGradient id="panel-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e1f33" stop-opacity="0.88"/><stop offset="1" stop-color="#060e1a" stop-opacity="0.88"/></linearGradient>
+</defs>
+
+<!-- ============================================================ 1. dark-field background + condenser light -->
+<rect width="1920" height="1080" fill="url(#bg-field)"/>
+<ellipse cx="380" cy="200" rx="980" ry="760" fill="url(#light-pool)"/>
+<polygon points="0,0 1180,0 0,840" fill="url(#beam)"/>
+<g fill="none" stroke="#7fe7f5" opacity="0.05">
+  <path d="M-40 620 C220 470 520 380 900 -40" stroke-width="3"/>
+  <path d="M-40 760 C260 590 620 470 1080 -40" stroke-width="2"/>
+  <path d="M120 1120 C420 840 760 640 1260 -40" stroke-width="1.5"/>
+</g>
+
+<!-- ============================================================ 2. ecology zones -->
+<g id="zones">
+  <circle cx="420" cy="250" r="540" fill="url(#zone-sunlit)"/>
+  <g mask="url(#mask-sunlit)"><rect x="-120" y="-290" width="1080" height="1080" filter="url(#cloud-green)" opacity="0.4"/></g>
+  <circle cx="1250" cy="930" r="430" fill="url(#zone-vent)"/>
+  <g mask="url(#mask-vent)"><rect x="820" y="500" width="860" height="860" filter="url(#cloud-orange)" opacity="0.32"/></g>
+  <circle cx="1520" cy="330" r="470" fill="url(#zone-mire)"/>
+  <g mask="url(#mask-mire)"><rect x="1050" y="-140" width="940" height="940" filter="url(#cloud-violet)" opacity="0.4"/></g>
+</g>
+
+<!-- ============================================================ 3. zone features: mire filaments, vent fissure + plume -->
+  <g id="mire-filaments" fill="none" stroke="#b070ff" stroke-linecap="round">
+    <path d="M1502.5 203.7 Q1528.4 235.5 1583.4 318.2" stroke-width="2.1" opacity="0.15"/>
+    <path d="M1553.3 407.6 Q1614.3 379.3 1708.1 397.8" stroke-width="1.6" opacity="0.23"/>
+    <path d="M1505.3 382.5 Q1465.7 330.2 1471.4 234.6" stroke-width="1.0" opacity="0.25"/>
+    <path d="M1515.2 303.0 Q1549.4 365.2 1634.5 338.3" stroke-width="2.0" opacity="0.16"/>
+    <path d="M1666.2 218.4 Q1605.9 229.4 1595.1 210.7" stroke-width="1.6" opacity="0.11"/>
+    <path d="M1818.8 352.9 Q1815.9 423.8 1802.4 443.8" stroke-width="1.9" opacity="0.18"/>
+    <path d="M1387.6 400.9 Q1324.7 406.3 1254.8 371.3" stroke-width="1.5" opacity="0.16"/>
+    <path d="M1456.2 381.3 Q1467.4 316.6 1495.5 258.2" stroke-width="1.0" opacity="0.16"/>
+    <path d="M1739.2 12.7 Q1715.2 -70.7 1756.6 -115.3" stroke-width="2.1" opacity="0.12"/>
+    <path d="M1700.1 334.2 Q1673.3 384.6 1614.3 396.0" stroke-width="1.5" opacity="0.10"/>
+    <path d="M1509.8 233.3 Q1510.1 304.4 1547.9 335.4" stroke-width="2.0" opacity="0.24"/>
+    <path d="M1610.8 81.1 Q1664.3 43.5 1659.8 28.7" stroke-width="0.9" opacity="0.20"/>
+  </g>
+<g id="vent-fissure" transform="translate(1250 930) rotate(-18)">
+  <!-- deep heat: wide warm pool, then the hot column rising off the seam -->
+  <ellipse rx="170" ry="80" fill="#ff9a4d" opacity="0.2" filter="url(#blur-40)"/>
+  <ellipse cx="6" cy="-70" rx="60" ry="120" fill="#ffb15a" opacity="0.1" filter="url(#blur-40)"/>
+  <ellipse rx="64" ry="18" fill="#ffb15a" opacity="0.5" filter="url(#blur-10)"/>
+  <!-- basalt crust either side of the crack: dark plates with a warm rim where the seam lights them -->
+  <ellipse rx="118" ry="34" fill="#12080a" opacity="0.5" filter="url(#blur-16)"/>
+  <path d="M-96 -6 C-80 -22 -52 -26 -30 -20 C-10 -14 8 -22 30 -18 C54 -14 76 -20 92 -8 C80 -10 60 -6 42 -8 C22 -10 4 -6 -16 -8 C-40 -10 -70 -4 -96 -6 Z" fill="#12080a" opacity="0.72" filter="url(#blur-1_5)"/>
+  <path d="M-92 8 C-70 20 -46 26 -22 22 C0 18 18 26 40 20 C62 14 78 18 90 6 C74 6 56 10 36 10 C16 10 -2 4 -22 8 C-46 12 -70 6 -92 8 Z" fill="#12080a" opacity="0.72" filter="url(#blur-1_5)"/>
+  <path d="M-92 -8 C-70 -20 -46 -22 -24 -16 C-4 -10 10 -18 32 -14 C54 -10 74 -16 88 -8" fill="none" stroke="#7a3d12" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/>
+  <path d="M-90 6 C-68 16 -44 20 -22 16 C-2 12 16 20 38 14 C60 10 76 12 88 4" fill="none" stroke="#7a3d12" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/>
+  <path d="M-88 -10 C-68 -18 -50 -20 -32 -16 M-8 -12 C10 -16 26 -14 44 -12 M52 -12 C66 -14 78 -12 86 -8" fill="none" stroke="#ffb15a" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/>
+  <!-- branching hairline cracks that glow where they leave the seam -->
+  <g fill="none" stroke="#ffb15a" stroke-linecap="round">
+    <path d="M-52 -2 L-66 -14 L-74 -30" stroke-width="1.1" opacity="0.5"/>
+    <path d="M-30 -3 L-36 -16 L-46 -24" stroke-width="0.9" opacity="0.4"/>
+    <path d="M12 -1 L20 -14 L18 -28" stroke-width="1" opacity="0.45"/>
+    <path d="M38 -3 L54 -12 L70 -14" stroke-width="0.9" opacity="0.4"/>
+    <path d="M-40 4 L-48 18 L-64 24" stroke-width="1" opacity="0.4"/>
+    <path d="M-6 4 L-2 18 L-14 30" stroke-width="0.9" opacity="0.35"/>
+    <path d="M28 3 L40 14 L38 28" stroke-width="1" opacity="0.4"/>
+  </g>
+  <!-- the molten seam: wide glow, hot core, white filament -->
+  <path d="M-58 3 Q-36 -8 -14 -1 T30 -3 T58 -4" fill="none" stroke="#ff9a4d" stroke-width="9" stroke-linecap="round" opacity="0.55" filter="url(#blur-6)"/>
+  <path d="M-58 3 Q-36 -8 -14 -1 T30 -3 T58 -4" fill="none" stroke="#ffd39a" stroke-width="3.2" stroke-linecap="round" opacity="0.95" filter="url(#blur-1_5)"/>
+  <path d="M-44 1 Q-28 -6 -10 -1 T26 -3 T48 -4" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="-22" cy="-3" r="1.6" fill="#ffffff" opacity="0.9"/>
+  <circle cx="18" cy="-2" r="1.3" fill="#ffffff" opacity="0.85"/>
+  <!-- heat shimmer: refraction arcs climbing off the seam, fading with height -->
+  <g fill="none" stroke="#ffb15a" stroke-linecap="round">
+    <path d="M-50 -30 Q0 -48 50 -30" stroke-width="1.3" opacity="0.2"/>
+    <path d="M-68 -56 Q0 -80 68 -56" stroke-width="1.2" opacity="0.14"/>
+    <path d="M-88 -86 Q0 -116 88 -86" stroke-width="1" opacity="0.09"/>
+    <path d="M-106 -120 Q0 -156 106 -120" stroke-width="1" opacity="0.05"/>
+  </g>
+  <!-- vent bubbles: rim-lit, shrinking and fading as they rise -->
+  <g>
+    <use href="#bubble" transform="translate(-14 -22) scale(4.2)"/>
+    <use href="#bubble" transform="translate(8 -44) scale(3.4)" opacity="0.85"/>
+    <use href="#bubble" transform="translate(-4 -70) scale(2.8)" opacity="0.7"/>
+    <use href="#bubble" transform="translate(16 -96) scale(2.4)" opacity="0.55"/>
+    <use href="#bubble" transform="translate(2 -126) scale(2)" opacity="0.4"/>
+    <use href="#bubble" transform="translate(24 -18) scale(2.2)" opacity="0.8"/>
+    <use href="#bubble" transform="translate(-34 -34) scale(2.6)" opacity="0.7"/>
+    <use href="#bubble" transform="translate(-26 -62) scale(2)" opacity="0.5"/>
+  </g>
+</g>
+  <g id="vent-plume">
+    <circle cx="1281.2" cy="778.7" r="2.1" fill="#ffb15a" opacity="0.35" filter="url(#blur-1_5)"/>
+    <circle cx="1290.2" cy="648.6" r="2.0" fill="#ffb15a" opacity="0.14" filter="url(#blur-1_5)"/>
+    <circle cx="1227.9" cy="765.9" r="2.9" fill="#ffb15a" opacity="0.22" filter="url(#blur-1_5)"/>
+    <circle cx="1332.7" cy="774.8" r="2.7" fill="#ffb15a" opacity="0.27" filter="url(#blur-1_5)"/>
+    <circle cx="1366.8" cy="633.6" r="2.0" fill="#ffb15a" opacity="0.11" filter="url(#blur-1_5)"/>
+    <circle cx="1275.9" cy="785.1" r="2.8" fill="#ffb15a" opacity="0.35" filter="url(#blur-1_5)"/>
+    <circle cx="1095.3" cy="661.1" r="2.4" fill="#ffb15a" opacity="0.17" filter="url(#blur-1_5)"/>
+    <circle cx="1271.4" cy="823.2" r="3.3" fill="#ffb15a" opacity="0.34" filter="url(#blur-1_5)"/>
+    <circle cx="1234.1" cy="804.9" r="3.0" fill="#ffb15a" opacity="0.28" filter="url(#blur-1_5)"/>
+    <circle cx="1248.8" cy="763.7" r="2.4" fill="#ffb15a" opacity="0.33" filter="url(#blur-1_5)"/>
+    <circle cx="1231.2" cy="630.5" r="1.9" fill="#ffb15a" opacity="0.14" filter="url(#blur-1_5)"/>
+    <circle cx="1294.4" cy="586.6" r="1.8" fill="#ffb15a" opacity="0.08" filter="url(#blur-1_5)"/>
+    <circle cx="1274.9" cy="608.0" r="1.9" fill="#ffb15a" opacity="0.09" filter="url(#blur-1_5)"/>
+    <circle cx="1317.0" cy="774.3" r="2.7" fill="#ffb15a" opacity="0.23" filter="url(#blur-1_5)"/>
+    <circle cx="1271.2" cy="591.4" r="1.9" fill="#ffb15a" opacity="0.11" filter="url(#blur-1_5)"/>
+    <circle cx="1175.9" cy="811.7" r="3.6" fill="#ffb15a" opacity="0.29" filter="url(#blur-1_5)"/>
+    <circle cx="1201.4" cy="847.0" r="2.8" fill="#ffb15a" opacity="0.46" filter="url(#blur-1_5)"/>
+    <circle cx="1328.6" cy="607.4" r="2.0" fill="#ffb15a" opacity="0.10" filter="url(#blur-1_5)"/>
+    <circle cx="1254.6" cy="857.9" r="2.7" fill="#ffb15a" opacity="0.32" filter="url(#blur-1_5)"/>
+    <circle cx="1138.9" cy="635.4" r="2.0" fill="#ffb15a" opacity="0.11" filter="url(#blur-1_5)"/>
+    <circle cx="1263.5" cy="700.4" r="2.7" fill="#ffb15a" opacity="0.23" filter="url(#blur-1_5)"/>
+    <circle cx="1258.2" cy="871.9" r="3.9" fill="#ffb15a" opacity="0.46" filter="url(#blur-1_5)"/>
+    <circle cx="1325.3" cy="686.0" r="2.3" fill="#ffb15a" opacity="0.21" filter="url(#blur-1_5)"/>
+    <circle cx="1413.3" cy="593.6" r="1.9" fill="#ffb15a" opacity="0.11" filter="url(#blur-1_5)"/>
+    <circle cx="1333.1" cy="706.9" r="2.1" fill="#ffb15a" opacity="0.21" filter="url(#blur-1_5)"/>
+    <circle cx="1184.3" cy="722.9" r="2.3" fill="#ffb15a" opacity="0.18" filter="url(#blur-1_5)"/>
+    <circle cx="1245.0" cy="849.3" r="3.0" fill="#ffb15a" opacity="0.46" filter="url(#blur-1_5)"/>
+    <circle cx="1297.4" cy="748.4" r="2.3" fill="#ffb15a" opacity="0.32" filter="url(#blur-1_5)"/>
+    <circle cx="1232.7" cy="749.3" r="3.1" fill="#ffb15a" opacity="0.25" filter="url(#blur-1_5)"/>
+    <circle cx="1241.9" cy="870.7" r="1.9" fill="#ffb15a" opacity="0.42" filter="url(#blur-1_5)"/>
+    <circle cx="1379.2" cy="582.2" r="1.8" fill="#ffb15a" opacity="0.10" filter="url(#blur-1_5)"/>
+    <circle cx="1235.0" cy="587.3" r="1.8" fill="#ffb15a" opacity="0.08" filter="url(#blur-1_5)"/>
+    <circle cx="1290.8" cy="789.3" r="2.4" fill="#ffb15a" opacity="0.28" filter="url(#blur-1_5)"/>
+    <circle cx="1245.5" cy="872.5" r="2.6" fill="#ffb15a" opacity="0.37" filter="url(#blur-1_5)"/>
+    <circle cx="1231.1" cy="770.7" r="2.0" fill="#ffb15a" opacity="0.29" filter="url(#blur-1_5)"/>
+    <circle cx="1224.9" cy="727.1" r="2.8" fill="#ffb15a" opacity="0.21" filter="url(#blur-1_5)"/>
+    <circle cx="1122.6" cy="629.8" r="2.0" fill="#ffb15a" opacity="0.17" filter="url(#blur-1_5)"/>
+    <circle cx="1257.6" cy="588.9" r="1.8" fill="#ffb15a" opacity="0.09" filter="url(#blur-1_5)"/>
+  </g>
+
+<!-- ============================================================ 4. depth particles (far layer, sharp) -->
+  <g id="depth-far">
+    <circle cx="1239.7" cy="1068.8" r="0.7" fill="#c4f0ff" opacity="0.09"/>
+    <circle cx="937.7" cy="940.7" r="0.8" fill="#7fb8ff" opacity="0.17"/>
+    <circle cx="118.7" cy="581.8" r="1.2" fill="#9fe8f5" opacity="0.20"/>
+    <circle cx="383.1" cy="279.6" r="0.6" fill="#7fb8ff" opacity="0.18"/>
+    <circle cx="1075.0" cy="754.2" r="1.2" fill="#ffffff" opacity="0.18"/>
+    <circle cx="486.7" cy="622.1" r="0.9" fill="#7fb8ff" opacity="0.12"/>
+    <circle cx="1542.9" cy="994.3" r="1.2" fill="#c4f0ff" opacity="0.19"/>
+    <circle cx="708.3" cy="534.4" r="0.7" fill="#7fb8ff" opacity="0.09"/>
+    <circle cx="1228.6" cy="510.4" r="1.2" fill="#ffffff" opacity="0.16"/>
+    <circle cx="1661.9" cy="1030.1" r="1.1" fill="#9fe8f5" opacity="0.12"/>
+    <circle cx="284.5" cy="614.5" r="0.9" fill="#ffffff" opacity="0.08"/>
+    <circle cx="848.8" cy="581.2" r="1.2" fill="#9fe8f5" opacity="0.15"/>
+    <circle cx="498.2" cy="558.6" r="1.2" fill="#ffffff" opacity="0.24"/>
+    <circle cx="786.2" cy="1067.5" r="0.6" fill="#c4f0ff" opacity="0.26"/>
+    <circle cx="402.1" cy="1055.2" r="0.8" fill="#7fb8ff" opacity="0.14"/>
+    <circle cx="650.6" cy="503.9" r="0.5" fill="#9fe8f5" opacity="0.24"/>
+    <circle cx="1366.4" cy="343.6" r="0.7" fill="#7fb8ff" opacity="0.20"/>
+    <circle cx="1441.6" cy="449.1" r="1.0" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="1291.0" cy="55.1" r="1.1" fill="#ffffff" opacity="0.24"/>
+    <circle cx="561.0" cy="671.5" r="0.9" fill="#ffffff" opacity="0.23"/>
+    <circle cx="350.2" cy="771.6" r="0.9" fill="#9fe8f5" opacity="0.27"/>
+    <circle cx="254.5" cy="420.5" r="0.6" fill="#7fb8ff" opacity="0.13"/>
+    <circle cx="683.7" cy="742.8" r="0.8" fill="#c4f0ff" opacity="0.14"/>
+    <circle cx="1090.6" cy="450.8" r="1.2" fill="#9fe8f5" opacity="0.24"/>
+    <circle cx="1620.9" cy="753.6" r="1.0" fill="#c4f0ff" opacity="0.11"/>
+    <circle cx="231.7" cy="212.9" r="0.8" fill="#ffffff" opacity="0.20"/>
+    <circle cx="535.6" cy="610.3" r="1.2" fill="#9fe8f5" opacity="0.27"/>
+    <circle cx="1284.6" cy="627.7" r="0.9" fill="#c4f0ff" opacity="0.18"/>
+    <circle cx="153.7" cy="669.1" r="0.8" fill="#9fe8f5" opacity="0.13"/>
+    <circle cx="1200.6" cy="220.9" r="0.5" fill="#7fb8ff" opacity="0.19"/>
+    <circle cx="904.1" cy="60.9" r="1.2" fill="#7fb8ff" opacity="0.21"/>
+    <circle cx="911.5" cy="875.7" r="0.9" fill="#ffffff" opacity="0.09"/>
+    <circle cx="1014.3" cy="649.4" r="1.1" fill="#ffffff" opacity="0.14"/>
+    <circle cx="1353.8" cy="950.7" r="1.0" fill="#ffffff" opacity="0.12"/>
+    <circle cx="1498.4" cy="64.7" r="0.9" fill="#ffffff" opacity="0.15"/>
+    <circle cx="1051.2" cy="864.5" r="1.1" fill="#c4f0ff" opacity="0.14"/>
+    <circle cx="757.9" cy="666.2" r="0.8" fill="#7fb8ff" opacity="0.11"/>
+    <circle cx="1251.0" cy="62.5" r="0.7" fill="#ffffff" opacity="0.19"/>
+    <circle cx="1653.8" cy="742.0" r="0.7" fill="#9fe8f5" opacity="0.21"/>
+    <circle cx="133.0" cy="72.3" r="0.5" fill="#c4f0ff" opacity="0.12"/>
+    <circle cx="165.4" cy="48.1" r="0.7" fill="#9fe8f5" opacity="0.15"/>
+    <circle cx="495.6" cy="298.5" r="0.6" fill="#9fe8f5" opacity="0.20"/>
+    <circle cx="1091.1" cy="746.6" r="0.7" fill="#c4f0ff" opacity="0.09"/>
+    <circle cx="483.8" cy="1032.6" r="1.2" fill="#c4f0ff" opacity="0.25"/>
+    <circle cx="1617.5" cy="714.1" r="1.1" fill="#c4f0ff" opacity="0.18"/>
+    <circle cx="1484.2" cy="638.2" r="1.0" fill="#c4f0ff" opacity="0.10"/>
+    <circle cx="1295.3" cy="116.7" r="0.5" fill="#ffffff" opacity="0.23"/>
+    <circle cx="1477.7" cy="971.6" r="0.6" fill="#9fe8f5" opacity="0.20"/>
+    <circle cx="216.1" cy="603.9" r="1.0" fill="#c4f0ff" opacity="0.18"/>
+    <circle cx="279.6" cy="1066.3" r="1.3" fill="#9fe8f5" opacity="0.16"/>
+    <circle cx="305.9" cy="738.6" r="1.2" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="634.3" cy="678.9" r="1.1" fill="#9fe8f5" opacity="0.21"/>
+    <circle cx="1080.1" cy="818.5" r="1.0" fill="#ffffff" opacity="0.25"/>
+    <circle cx="610.9" cy="500.3" r="1.2" fill="#7fb8ff" opacity="0.09"/>
+    <circle cx="1092.3" cy="606.9" r="0.7" fill="#7fb8ff" opacity="0.09"/>
+    <circle cx="384.4" cy="580.3" r="1.1" fill="#c4f0ff" opacity="0.10"/>
+    <circle cx="1178.9" cy="295.6" r="0.8" fill="#c4f0ff" opacity="0.22"/>
+    <circle cx="1528.7" cy="256.5" r="0.9" fill="#c4f0ff" opacity="0.23"/>
+    <circle cx="439.9" cy="794.5" r="0.7" fill="#c4f0ff" opacity="0.13"/>
+    <circle cx="1466.9" cy="183.1" r="1.0" fill="#9fe8f5" opacity="0.13"/>
+    <circle cx="13.3" cy="501.2" r="0.5" fill="#7fb8ff" opacity="0.14"/>
+    <circle cx="506.6" cy="993.7" r="1.0" fill="#ffffff" opacity="0.24"/>
+    <circle cx="1034.0" cy="968.6" r="0.8" fill="#9fe8f5" opacity="0.26"/>
+    <circle cx="567.4" cy="130.6" r="0.5" fill="#ffffff" opacity="0.12"/>
+    <circle cx="1023.4" cy="416.0" r="1.1" fill="#ffffff" opacity="0.15"/>
+    <circle cx="760.8" cy="412.3" r="0.7" fill="#7fb8ff" opacity="0.10"/>
+    <circle cx="1254.8" cy="253.5" r="0.8" fill="#ffffff" opacity="0.19"/>
+    <circle cx="31.8" cy="314.8" r="0.9" fill="#ffffff" opacity="0.19"/>
+    <circle cx="1102.6" cy="599.5" r="1.2" fill="#9fe8f5" opacity="0.15"/>
+    <circle cx="1110.0" cy="346.1" r="0.9" fill="#c4f0ff" opacity="0.22"/>
+    <circle cx="312.1" cy="138.1" r="0.8" fill="#c4f0ff" opacity="0.26"/>
+    <circle cx="148.4" cy="537.3" r="0.8" fill="#7fb8ff" opacity="0.14"/>
+    <circle cx="114.1" cy="750.7" r="1.0" fill="#7fb8ff" opacity="0.10"/>
+    <circle cx="1382.7" cy="479.1" r="1.0" fill="#9fe8f5" opacity="0.16"/>
+    <circle cx="341.9" cy="334.5" r="1.2" fill="#ffffff" opacity="0.17"/>
+    <circle cx="657.2" cy="796.3" r="1.1" fill="#ffffff" opacity="0.12"/>
+    <circle cx="246.3" cy="25.1" r="1.3" fill="#7fb8ff" opacity="0.17"/>
+    <circle cx="252.0" cy="621.2" r="0.7" fill="#ffffff" opacity="0.24"/>
+    <circle cx="1595.0" cy="362.5" r="0.7" fill="#c4f0ff" opacity="0.15"/>
+    <circle cx="782.1" cy="404.8" r="0.6" fill="#c4f0ff" opacity="0.23"/>
+    <circle cx="686.9" cy="126.7" r="0.8" fill="#c4f0ff" opacity="0.23"/>
+    <circle cx="1451.5" cy="429.2" r="0.7" fill="#7fb8ff" opacity="0.09"/>
+    <circle cx="15.4" cy="1039.7" r="0.5" fill="#ffffff" opacity="0.22"/>
+    <circle cx="539.9" cy="787.2" r="1.2" fill="#7fb8ff" opacity="0.27"/>
+    <circle cx="1326.6" cy="272.4" r="0.5" fill="#ffffff" opacity="0.15"/>
+    <circle cx="1000.3" cy="108.3" r="1.3" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="771.9" cy="661.9" r="0.5" fill="#c4f0ff" opacity="0.13"/>
+    <circle cx="925.0" cy="137.1" r="0.6" fill="#7fb8ff" opacity="0.20"/>
+    <circle cx="1136.9" cy="942.3" r="0.6" fill="#9fe8f5" opacity="0.19"/>
+    <circle cx="188.6" cy="494.7" r="1.2" fill="#9fe8f5" opacity="0.18"/>
+    <circle cx="859.7" cy="813.1" r="1.1" fill="#c4f0ff" opacity="0.22"/>
+    <circle cx="514.1" cy="149.7" r="0.9" fill="#ffffff" opacity="0.27"/>
+    <circle cx="1338.8" cy="349.9" r="1.0" fill="#9fe8f5" opacity="0.13"/>
+    <circle cx="554.6" cy="127.2" r="0.8" fill="#9fe8f5" opacity="0.18"/>
+    <circle cx="1192.8" cy="850.4" r="1.1" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="1674.5" cy="181.4" r="1.1" fill="#c4f0ff" opacity="0.13"/>
+    <circle cx="1134.4" cy="781.7" r="1.2" fill="#7fb8ff" opacity="0.14"/>
+    <circle cx="970.8" cy="272.8" r="0.8" fill="#7fb8ff" opacity="0.16"/>
+    <circle cx="114.4" cy="1056.6" r="1.1" fill="#c4f0ff" opacity="0.12"/>
+    <circle cx="946.6" cy="23.8" r="1.0" fill="#c4f0ff" opacity="0.10"/>
+    <circle cx="252.7" cy="127.3" r="1.1" fill="#ffffff" opacity="0.26"/>
+    <circle cx="1136.9" cy="894.9" r="0.8" fill="#c4f0ff" opacity="0.18"/>
+    <circle cx="1135.3" cy="1047.1" r="1.3" fill="#c4f0ff" opacity="0.17"/>
+    <circle cx="448.1" cy="617.5" r="1.2" fill="#c4f0ff" opacity="0.17"/>
+    <circle cx="1649.1" cy="194.2" r="0.7" fill="#c4f0ff" opacity="0.28"/>
+    <circle cx="1228.1" cy="789.2" r="0.9" fill="#9fe8f5" opacity="0.21"/>
+    <circle cx="514.6" cy="754.5" r="1.3" fill="#c4f0ff" opacity="0.25"/>
+    <circle cx="1332.1" cy="838.6" r="0.7" fill="#9fe8f5" opacity="0.27"/>
+    <circle cx="1013.8" cy="361.8" r="0.5" fill="#ffffff" opacity="0.17"/>
+    <circle cx="1057.9" cy="106.7" r="0.8" fill="#9fe8f5" opacity="0.17"/>
+    <circle cx="454.5" cy="567.4" r="0.6" fill="#ffffff" opacity="0.12"/>
+    <circle cx="1427.1" cy="1021.5" r="0.9" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="1310.5" cy="1040.1" r="1.0" fill="#9fe8f5" opacity="0.26"/>
+    <circle cx="144.8" cy="661.1" r="0.6" fill="#9fe8f5" opacity="0.17"/>
+    <circle cx="416.7" cy="848.0" r="1.1" fill="#7fb8ff" opacity="0.15"/>
+    <circle cx="440.6" cy="106.8" r="1.3" fill="#c4f0ff" opacity="0.27"/>
+    <circle cx="1144.6" cy="281.0" r="1.2" fill="#ffffff" opacity="0.18"/>
+    <circle cx="1151.6" cy="203.3" r="1.0" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="1033.0" cy="978.1" r="0.5" fill="#ffffff" opacity="0.16"/>
+    <circle cx="1266.6" cy="274.8" r="1.1" fill="#7fb8ff" opacity="0.20"/>
+    <circle cx="931.4" cy="749.5" r="1.2" fill="#c4f0ff" opacity="0.14"/>
+    <circle cx="1226.7" cy="599.3" r="1.0" fill="#ffffff" opacity="0.10"/>
+    <circle cx="1654.0" cy="852.1" r="0.8" fill="#7fb8ff" opacity="0.25"/>
+    <circle cx="1258.4" cy="184.8" r="0.5" fill="#7fb8ff" opacity="0.26"/>
+    <circle cx="3.6" cy="635.4" r="1.2" fill="#7fb8ff" opacity="0.25"/>
+    <circle cx="1051.7" cy="445.0" r="1.2" fill="#ffffff" opacity="0.12"/>
+    <circle cx="184.7" cy="263.0" r="0.6" fill="#9fe8f5" opacity="0.19"/>
+    <circle cx="751.7" cy="355.7" r="1.2" fill="#9fe8f5" opacity="0.16"/>
+    <circle cx="19.8" cy="558.4" r="1.0" fill="#c4f0ff" opacity="0.22"/>
+    <circle cx="1413.1" cy="86.6" r="0.8" fill="#7fb8ff" opacity="0.15"/>
+    <circle cx="266.4" cy="540.1" r="1.2" fill="#ffffff" opacity="0.25"/>
+    <circle cx="1292.7" cy="278.9" r="0.9" fill="#9fe8f5" opacity="0.27"/>
+    <circle cx="1052.8" cy="704.0" r="0.6" fill="#c4f0ff" opacity="0.14"/>
+    <circle cx="1342.3" cy="464.7" r="0.5" fill="#9fe8f5" opacity="0.10"/>
+    <circle cx="750.3" cy="389.5" r="1.2" fill="#ffffff" opacity="0.15"/>
+    <circle cx="83.3" cy="360.7" r="0.8" fill="#c4f0ff" opacity="0.27"/>
+    <circle cx="950.3" cy="137.3" r="0.9" fill="#c4f0ff" opacity="0.13"/>
+    <circle cx="803.4" cy="38.1" r="1.1" fill="#9fe8f5" opacity="0.16"/>
+    <circle cx="395.7" cy="826.9" r="0.9" fill="#c4f0ff" opacity="0.18"/>
+    <circle cx="1640.3" cy="439.0" r="0.9" fill="#c4f0ff" opacity="0.26"/>
+    <circle cx="1328.0" cy="790.6" r="1.1" fill="#c4f0ff" opacity="0.25"/>
+    <circle cx="302.6" cy="144.7" r="1.3" fill="#7fb8ff" opacity="0.25"/>
+    <circle cx="373.7" cy="707.3" r="1.2" fill="#9fe8f5" opacity="0.09"/>
+    <circle cx="472.4" cy="746.1" r="1.2" fill="#ffffff" opacity="0.23"/>
+    <circle cx="583.6" cy="381.8" r="0.6" fill="#ffffff" opacity="0.13"/>
+    <circle cx="1394.0" cy="540.9" r="1.0" fill="#c4f0ff" opacity="0.26"/>
+    <circle cx="570.1" cy="10.6" r="1.1" fill="#7fb8ff" opacity="0.16"/>
+    <circle cx="893.3" cy="148.1" r="0.9" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="1383.6" cy="923.2" r="0.7" fill="#7fb8ff" opacity="0.13"/>
+    <circle cx="1080.1" cy="503.8" r="1.2" fill="#ffffff" opacity="0.18"/>
+    <circle cx="689.3" cy="474.5" r="0.6" fill="#ffffff" opacity="0.17"/>
+    <circle cx="138.7" cy="23.7" r="0.8" fill="#c4f0ff" opacity="0.26"/>
+    <circle cx="1587.3" cy="27.0" r="0.7" fill="#9fe8f5" opacity="0.19"/>
+    <circle cx="1410.0" cy="100.5" r="0.7" fill="#9fe8f5" opacity="0.20"/>
+    <circle cx="78.6" cy="117.3" r="1.2" fill="#ffffff" opacity="0.25"/>
+    <circle cx="1292.8" cy="971.5" r="0.9" fill="#7fb8ff" opacity="0.09"/>
+    <circle cx="731.5" cy="897.8" r="1.0" fill="#7fb8ff" opacity="0.23"/>
+    <circle cx="919.3" cy="102.6" r="0.5" fill="#c4f0ff" opacity="0.19"/>
+    <circle cx="1531.0" cy="789.1" r="1.0" fill="#ffffff" opacity="0.14"/>
+    <circle cx="1551.4" cy="302.6" r="0.6" fill="#7fb8ff" opacity="0.11"/>
+    <circle cx="43.4" cy="7.9" r="0.6" fill="#c4f0ff" opacity="0.20"/>
+    <circle cx="1420.1" cy="122.1" r="0.7" fill="#ffffff" opacity="0.10"/>
+    <circle cx="315.0" cy="963.2" r="1.1" fill="#7fb8ff" opacity="0.17"/>
+    <circle cx="1160.6" cy="764.3" r="1.2" fill="#7fb8ff" opacity="0.22"/>
+    <circle cx="889.4" cy="516.9" r="1.0" fill="#7fb8ff" opacity="0.14"/>
+    <circle cx="485.4" cy="1046.2" r="1.0" fill="#7fb8ff" opacity="0.12"/>
+    <circle cx="1025.2" cy="391.4" r="1.3" fill="#7fb8ff" opacity="0.19"/>
+    <circle cx="1078.9" cy="147.7" r="1.0" fill="#ffffff" opacity="0.26"/>
+    <circle cx="468.7" cy="483.1" r="1.2" fill="#9fe8f5" opacity="0.26"/>
+    <circle cx="709.5" cy="143.4" r="1.2" fill="#9fe8f5" opacity="0.19"/>
+    <circle cx="75.3" cy="475.4" r="0.9" fill="#9fe8f5" opacity="0.15"/>
+    <circle cx="862.1" cy="661.7" r="0.6" fill="#9fe8f5" opacity="0.26"/>
+    <circle cx="794.0" cy="746.3" r="1.3" fill="#9fe8f5" opacity="0.22"/>
+    <circle cx="841.8" cy="602.5" r="0.8" fill="#7fb8ff" opacity="0.23"/>
+    <circle cx="835.3" cy="131.9" r="1.1" fill="#9fe8f5" opacity="0.19"/>
+    <circle cx="845.9" cy="808.1" r="0.9" fill="#c4f0ff" opacity="0.16"/>
+    <circle cx="908.1" cy="525.0" r="1.0" fill="#c4f0ff" opacity="0.12"/>
+    <circle cx="1232.6" cy="792.5" r="0.9" fill="#c4f0ff" opacity="0.25"/>
+    <circle cx="1477.6" cy="619.4" r="0.6" fill="#9fe8f5" opacity="0.08"/>
+    <circle cx="31.7" cy="477.1" r="1.2" fill="#9fe8f5" opacity="0.27"/>
+    <circle cx="105.9" cy="565.6" r="0.7" fill="#ffffff" opacity="0.11"/>
+    <circle cx="338.2" cy="1053.4" r="0.8" fill="#c4f0ff" opacity="0.16"/>
+    <circle cx="1523.3" cy="891.6" r="0.9" fill="#7fb8ff" opacity="0.17"/>
+    <circle cx="322.1" cy="959.7" r="1.2" fill="#9fe8f5" opacity="0.11"/>
+    <circle cx="187.4" cy="1055.2" r="1.1" fill="#c4f0ff" opacity="0.12"/>
+    <circle cx="549.7" cy="157.6" r="1.2" fill="#7fb8ff" opacity="0.20"/>
+    <circle cx="1163.4" cy="566.7" r="1.3" fill="#7fb8ff" opacity="0.16"/>
+    <circle cx="703.9" cy="600.1" r="1.0" fill="#c4f0ff" opacity="0.15"/>
+    <circle cx="390.9" cy="524.2" r="0.8" fill="#c4f0ff" opacity="0.12"/>
+    <circle cx="593.7" cy="649.9" r="0.7" fill="#ffffff" opacity="0.25"/>
+    <circle cx="938.2" cy="734.8" r="0.7" fill="#7fb8ff" opacity="0.25"/>
+    <circle cx="732.2" cy="797.2" r="0.7" fill="#ffffff" opacity="0.18"/>
+    <circle cx="1082.1" cy="287.4" r="1.0" fill="#7fb8ff" opacity="0.12"/>
+    <circle cx="1196.5" cy="957.4" r="0.7" fill="#ffffff" opacity="0.23"/>
+    <circle cx="41.6" cy="407.3" r="0.8" fill="#7fb8ff" opacity="0.22"/>
+    <circle cx="1368.1" cy="782.2" r="0.7" fill="#c4f0ff" opacity="0.20"/>
+    <circle cx="1690.7" cy="883.1" r="0.6" fill="#ffffff" opacity="0.22"/>
+    <circle cx="1205.8" cy="973.9" r="0.6" fill="#ffffff" opacity="0.16"/>
+    <circle cx="352.6" cy="261.6" r="0.7" fill="#9fe8f5" opacity="0.08"/>
+    <circle cx="1110.8" cy="25.7" r="0.8" fill="#ffffff" opacity="0.24"/>
+    <circle cx="1258.3" cy="937.6" r="1.1" fill="#c4f0ff" opacity="0.23"/>
+    <circle cx="390.4" cy="199.1" r="1.2" fill="#9fe8f5" opacity="0.24"/>
+    <circle cx="590.4" cy="165.1" r="1.1" fill="#c4f0ff" opacity="0.21"/>
+    <circle cx="503.6" cy="862.8" r="0.7" fill="#ffffff" opacity="0.19"/>
+    <circle cx="148.9" cy="590.8" r="0.8" fill="#9fe8f5" opacity="0.14"/>
+    <circle cx="1393.1" cy="918.1" r="0.8" fill="#c4f0ff" opacity="0.10"/>
+    <circle cx="616.6" cy="910.8" r="0.7" fill="#7fb8ff" opacity="0.12"/>
+    <circle cx="1135.6" cy="571.2" r="0.8" fill="#9fe8f5" opacity="0.18"/>
+    <circle cx="977.0" cy="48.6" r="0.8" fill="#ffffff" opacity="0.11"/>
+    <circle cx="945.1" cy="725.1" r="0.8" fill="#c4f0ff" opacity="0.15"/>
+    <circle cx="1126.7" cy="983.7" r="0.9" fill="#9fe8f5" opacity="0.10"/>
+    <circle cx="695.7" cy="318.3" r="0.8" fill="#9fe8f5" opacity="0.11"/>
+    <circle cx="606.4" cy="687.7" r="0.7" fill="#c4f0ff" opacity="0.13"/>
+    <circle cx="840.4" cy="904.7" r="1.2" fill="#c4f0ff" opacity="0.08"/>
+    <circle cx="465.0" cy="599.6" r="1.0" fill="#7fb8ff" opacity="0.25"/>
+    <circle cx="33.1" cy="69.1" r="0.7" fill="#9fe8f5" opacity="0.09"/>
+    <circle cx="597.5" cy="326.7" r="1.1" fill="#9fe8f5" opacity="0.12"/>
+    <circle cx="1358.7" cy="725.7" r="0.6" fill="#7fb8ff" opacity="0.18"/>
+    <circle cx="81.8" cy="771.8" r="0.5" fill="#c4f0ff" opacity="0.22"/>
+    <circle cx="1453.4" cy="534.0" r="0.8" fill="#ffffff" opacity="0.26"/>
+    <circle cx="1198.5" cy="772.0" r="0.9" fill="#7fb8ff" opacity="0.25"/>
+    <circle cx="1563.8" cy="70.5" r="0.7" fill="#c4f0ff" opacity="0.10"/>
+    <circle cx="1511.2" cy="517.2" r="1.0" fill="#ffffff" opacity="0.24"/>
+    <circle cx="1267.5" cy="919.2" r="1.0" fill="#ffffff" opacity="0.17"/>
+    <circle cx="884.0" cy="296.5" r="0.6" fill="#9fe8f5" opacity="0.23"/>
+    <circle cx="693.3" cy="246.7" r="0.6" fill="#9fe8f5" opacity="0.14"/>
+    <circle cx="726.2" cy="105.3" r="0.9" fill="#7fb8ff" opacity="0.27"/>
+    <circle cx="481.5" cy="483.2" r="1.2" fill="#c4f0ff" opacity="0.26"/>
+    <circle cx="817.6" cy="435.5" r="1.0" fill="#7fb8ff" opacity="0.16"/>
+    <circle cx="1568.5" cy="874.7" r="0.5" fill="#9fe8f5" opacity="0.26"/>
+    <circle cx="1167.7" cy="117.4" r="0.6" fill="#7fb8ff" opacity="0.22"/>
+    <circle cx="875.4" cy="365.8" r="1.0" fill="#9fe8f5" opacity="0.11"/>
+    <circle cx="1436.0" cy="728.8" r="0.9" fill="#c4f0ff" opacity="0.19"/>
+    <circle cx="684.0" cy="743.8" r="0.6" fill="#ffffff" opacity="0.19"/>
+    <circle cx="1101.2" cy="286.7" r="0.8" fill="#9fe8f5" opacity="0.23"/>
+    <circle cx="1040.5" cy="655.6" r="1.2" fill="#ffffff" opacity="0.14"/>
+    <circle cx="1536.4" cy="618.7" r="0.9" fill="#ffffff" opacity="0.10"/>
+    <circle cx="1373.9" cy="655.6" r="1.0" fill="#ffffff" opacity="0.17"/>
+    <circle cx="1311.2" cy="250.7" r="0.8" fill="#ffffff" opacity="0.27"/>
+    <circle cx="1032.9" cy="97.3" r="1.1" fill="#ffffff" opacity="0.27"/>
+    <circle cx="50.2" cy="847.6" r="0.7" fill="#ffffff" opacity="0.15"/>
+  </g>
+
+<!-- ============================================================ 5. nutrient motes + DNA fragments -->
+  <g id="motes-algal">
+    <use href="#mote-algal" transform="translate(307.7 373.1) rotate(247) scale(1.05)" opacity="0.87"/>
+    <use href="#mote-algal" transform="translate(317.9 463.1) rotate(88) scale(1.01)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(231.0 450.8) rotate(270) scale(1.17)" opacity="0.86"/>
+    <use href="#mote-algal" transform="translate(499.5 129.8) rotate(192) scale(1.23)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(18.0 200.4) rotate(299) scale(1.24)" opacity="0.90"/>
+    <use href="#mote-algal" transform="translate(649.5 260.3) rotate(55) scale(1.22)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(223.4 390.3) rotate(209) scale(1.25)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(1027.6 508.1) rotate(40) scale(1.16)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(692.5 199.2) rotate(216) scale(0.95)" opacity="0.75"/>
+    <use href="#mote-algal" transform="translate(501.1 84.2) rotate(223) scale(0.81)" opacity="0.83"/>
+    <use href="#mote-algal" transform="translate(576.2 485.0) rotate(257) scale(1.04)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(1092.5 67.7) rotate(358) scale(0.86)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(499.5 219.0) rotate(103) scale(0.76)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(612.2 910.6) rotate(130) scale(0.87)" opacity="0.81"/>
+    <use href="#mote-algal" transform="translate(861.0 194.3) rotate(64) scale(1.12)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(1472.7 162.2) rotate(156) scale(1.28)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(176.4 522.4) rotate(206) scale(0.82)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(654.6 423.0) rotate(47) scale(1.10)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(343.0 417.6) rotate(224) scale(1.08)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(547.7 562.5) rotate(131) scale(0.91)" opacity="0.93"/>
+    <use href="#mote-algal" transform="translate(189.8 171.3) rotate(313) scale(1.12)" opacity="0.93"/>
+    <use href="#mote-algal" transform="translate(1178.5 296.2) rotate(43) scale(0.74)" opacity="0.98"/>
+    <use href="#mote-algal" transform="translate(1633.5 573.9) rotate(294) scale(0.87)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(584.7 393.5) rotate(229) scale(0.91)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(378.6 395.2) rotate(58) scale(0.80)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(414.6 483.7) rotate(37) scale(1.01)" opacity="0.75"/>
+    <use href="#mote-algal" transform="translate(758.9 257.8) rotate(212) scale(0.93)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(764.8 648.2) rotate(295) scale(0.97)" opacity="0.86"/>
+    <use href="#mote-algal" transform="translate(356.5 277.2) rotate(115) scale(1.19)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(266.5 506.1) rotate(309) scale(1.28)" opacity="0.86"/>
+    <use href="#mote-algal" transform="translate(503.9 164.1) rotate(115) scale(1.31)" opacity="0.85"/>
+    <use href="#mote-algal" transform="translate(687.6 135.3) rotate(178) scale(0.97)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(563.2 625.3) rotate(320) scale(1.01)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(311.9 440.4) rotate(22) scale(0.87)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(757.8 372.5) rotate(8) scale(1.21)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(591.4 128.5) rotate(189) scale(1.31)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(537.2 121.5) rotate(88) scale(0.70)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(127.6 168.0) rotate(28) scale(0.79)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(263.6 227.0) rotate(231) scale(0.77)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(636.6 339.7) rotate(225) scale(0.96)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(636.8 521.5) rotate(61) scale(1.00)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(191.5 117.4) rotate(44) scale(1.06)" opacity="0.86"/>
+    <use href="#mote-algal" transform="translate(267.1 642.4) rotate(128) scale(1.33)" opacity="0.80"/>
+    <use href="#mote-algal" transform="translate(707.6 115.3) rotate(310) scale(0.93)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(634.0 670.8) rotate(85) scale(1.16)" opacity="0.77"/>
+    <use href="#mote-algal" transform="translate(474.4 269.2) rotate(269) scale(0.99)" opacity="0.78"/>
+    <use href="#mote-algal" transform="translate(1486.2 191.2) rotate(219) scale(1.17)" opacity="0.90"/>
+    <use href="#mote-algal" transform="translate(119.3 474.5) rotate(178) scale(0.73)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(160.8 405.2) rotate(318) scale(0.92)" opacity="0.91"/>
+    <use href="#mote-algal" transform="translate(444.0 637.5) rotate(156) scale(0.88)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(245.4 530.3) rotate(37) scale(0.90)" opacity="0.93"/>
+    <use href="#mote-algal" transform="translate(1264.7 86.0) rotate(296) scale(0.95)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(453.7 689.2) rotate(29) scale(0.87)" opacity="0.87"/>
+    <use href="#mote-algal" transform="translate(785.5 243.8) rotate(337) scale(1.30)" opacity="0.85"/>
+    <use href="#mote-algal" transform="translate(650.3 330.9) rotate(89) scale(0.74)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(511.9 293.2) rotate(310) scale(1.09)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(284.0 608.0) rotate(125) scale(0.84)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(435.7 266.8) rotate(62) scale(0.92)" opacity="0.90"/>
+    <use href="#mote-algal" transform="translate(317.5 149.2) rotate(65) scale(1.08)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(515.9 209.8) rotate(69) scale(1.05)" opacity="0.81"/>
+    <use href="#mote-algal" transform="translate(198.6 250.0) rotate(338) scale(1.32)" opacity="0.93"/>
+    <use href="#mote-algal" transform="translate(166.8 261.1) rotate(82) scale(1.11)" opacity="1.00"/>
+    <use href="#mote-algal" transform="translate(762.7 118.2) rotate(145) scale(1.33)" opacity="0.87"/>
+    <use href="#mote-algal" transform="translate(266.0 704.2) rotate(10) scale(0.98)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(247.9 183.1) rotate(354) scale(0.87)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(731.3 31.3) rotate(131) scale(0.81)" opacity="0.90"/>
+    <use href="#mote-algal" transform="translate(412.4 367.4) rotate(75) scale(0.94)" opacity="0.83"/>
+    <use href="#mote-algal" transform="translate(381.0 197.4) rotate(68) scale(0.93)" opacity="0.91"/>
+    <use href="#mote-algal" transform="translate(584.2 124.5) rotate(203) scale(1.26)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(1407.1 206.0) rotate(152) scale(1.29)" opacity="0.80"/>
+    <use href="#mote-algal" transform="translate(292.7 462.2) rotate(348) scale(1.08)" opacity="0.85"/>
+    <use href="#mote-algal" transform="translate(43.4 107.5) rotate(119) scale(1.22)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(735.2 395.1) rotate(257) scale(0.74)" opacity="0.87"/>
+    <use href="#mote-algal" transform="translate(650.2 504.3) rotate(116) scale(1.34)" opacity="0.86"/>
+    <use href="#mote-algal" transform="translate(637.0 561.5) rotate(300) scale(1.14)" opacity="0.83"/>
+    <use href="#mote-algal" transform="translate(432.7 265.3) rotate(287) scale(0.94)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(205.9 404.6) rotate(82) scale(1.16)" opacity="0.99"/>
+    <use href="#mote-algal" transform="translate(182.6 161.8) rotate(317) scale(1.28)" opacity="0.80"/>
+    <use href="#mote-algal" transform="translate(593.8 86.5) rotate(215) scale(1.32)" opacity="0.81"/>
+    <use href="#mote-algal" transform="translate(1545.0 68.5) rotate(281) scale(0.95)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(1054.0 873.5) rotate(295) scale(1.13)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(85.2 838.9) rotate(32) scale(1.09)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(445.0 679.7) rotate(358) scale(0.79)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(623.4 124.2) rotate(71) scale(0.96)" opacity="0.84"/>
+    <use href="#mote-algal" transform="translate(1657.3 260.9) rotate(298) scale(1.32)" opacity="0.77"/>
+    <use href="#mote-algal" transform="translate(382.9 657.5) rotate(247) scale(0.79)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(575.1 298.4) rotate(218) scale(0.79)" opacity="0.78"/>
+    <use href="#mote-algal" transform="translate(940.4 530.8) rotate(24) scale(1.11)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(541.9 732.9) rotate(28) scale(0.93)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(86.8 390.2) rotate(28) scale(0.70)" opacity="0.93"/>
+    <use href="#mote-algal" transform="translate(1188.2 318.4) rotate(253) scale(1.23)" opacity="0.80"/>
+    <use href="#mote-algal" transform="translate(606.9 146.9) rotate(196) scale(1.03)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(681.4 588.9) rotate(203) scale(1.06)" opacity="0.83"/>
+    <use href="#mote-algal" transform="translate(477.0 377.7) rotate(250) scale(1.10)" opacity="0.78"/>
+    <use href="#mote-algal" transform="translate(429.9 390.6) rotate(93) scale(1.22)" opacity="0.81"/>
+    <use href="#mote-algal" transform="translate(41.9 146.9) rotate(268) scale(1.24)" opacity="0.85"/>
+    <use href="#mote-algal" transform="translate(286.3 655.0) rotate(19) scale(1.24)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(379.6 436.8) rotate(132) scale(1.08)" opacity="0.85"/>
+    <use href="#mote-algal" transform="translate(525.3 499.5) rotate(31) scale(0.88)" opacity="0.77"/>
+    <use href="#mote-algal" transform="translate(824.9 454.6) rotate(293) scale(1.12)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(75.8 245.4) rotate(131) scale(0.88)" opacity="0.99"/>
+    <use href="#mote-algal" transform="translate(103.7 160.8) rotate(248) scale(1.17)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(318.5 399.0) rotate(203) scale(0.74)" opacity="0.78"/>
+    <use href="#mote-algal" transform="translate(1155.0 4.7) rotate(260) scale(1.21)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(651.3 92.6) rotate(162) scale(1.21)" opacity="0.79"/>
+    <use href="#mote-algal" transform="translate(662.3 117.1) rotate(185) scale(0.77)" opacity="0.82"/>
+    <use href="#mote-algal" transform="translate(311.0 418.0) rotate(201) scale(1.13)" opacity="0.80"/>
+    <use href="#mote-algal" transform="translate(661.9 345.3) rotate(198) scale(0.93)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(631.8 109.6) rotate(229) scale(1.08)" opacity="0.79"/>
+    <use href="#mote-algal" transform="translate(525.6 357.9) rotate(278) scale(1.33)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(672.3 1003.5) rotate(311) scale(0.90)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(89.1 396.0) rotate(43) scale(0.82)" opacity="0.99"/>
+    <use href="#mote-algal" transform="translate(1203.2 460.6) rotate(46) scale(1.04)" opacity="1.00"/>
+    <use href="#mote-algal" transform="translate(23.6 375.8) rotate(25) scale(1.10)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(1257.5 771.3) rotate(212) scale(1.02)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(800.8 320.9) rotate(58) scale(1.30)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(475.3 663.5) rotate(224) scale(0.90)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(387.6 203.3) rotate(224) scale(0.89)" opacity="0.77"/>
+    <use href="#mote-algal" transform="translate(416.8 520.6) rotate(208) scale(1.01)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(1290.9 220.7) rotate(90) scale(1.03)" opacity="0.98"/>
+    <use href="#mote-algal" transform="translate(1432.6 607.9) rotate(102) scale(0.96)" opacity="0.86"/>
+    <use href="#mote-algal" transform="translate(556.2 216.7) rotate(171) scale(0.85)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(672.1 48.9) rotate(184) scale(0.94)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(485.7 230.1) rotate(114) scale(0.94)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(1390.2 468.9) rotate(142) scale(0.90)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(261.1 222.6) rotate(230) scale(0.80)" opacity="0.99"/>
+    <use href="#mote-algal" transform="translate(1.3 123.1) rotate(167) scale(1.10)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(370.2 377.0) rotate(151) scale(0.81)" opacity="0.99"/>
+    <use href="#mote-algal" transform="translate(240.9 557.8) rotate(125) scale(0.96)" opacity="0.77"/>
+    <use href="#mote-algal" transform="translate(1445.8 1000.4) rotate(318) scale(1.23)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(236.2 509.4) rotate(27) scale(0.98)" opacity="0.92"/>
+    <use href="#mote-algal" transform="translate(1468.3 42.4) rotate(251) scale(1.25)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(93.8 265.3) rotate(78) scale(1.10)" opacity="0.78"/>
+    <use href="#mote-algal" transform="translate(1110.9 161.3) rotate(65) scale(1.13)" opacity="0.91"/>
+    <use href="#mote-algal" transform="translate(359.8 453.2) rotate(200) scale(0.87)" opacity="0.91"/>
+    <use href="#mote-algal" transform="translate(381.1 415.5) rotate(34) scale(0.78)" opacity="0.85"/>
+    <use href="#mote-algal" transform="translate(432.9 120.0) rotate(102) scale(1.29)" opacity="0.95"/>
+    <use href="#mote-algal" transform="translate(734.2 451.6) rotate(204) scale(0.79)" opacity="0.89"/>
+    <use href="#mote-algal" transform="translate(23.3 340.6) rotate(51) scale(0.94)" opacity="0.77"/>
+    <use href="#mote-algal" transform="translate(845.5 360.2) rotate(239) scale(1.05)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(127.6 211.9) rotate(60) scale(0.85)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(1515.0 380.4) rotate(131) scale(0.79)" opacity="0.94"/>
+    <use href="#mote-algal" transform="translate(460.4 482.9) rotate(265) scale(0.74)" opacity="0.83"/>
+    <use href="#mote-algal" transform="translate(903.8 465.2) rotate(190) scale(0.86)" opacity="0.88"/>
+    <use href="#mote-algal" transform="translate(334.1 541.2) rotate(42) scale(0.90)" opacity="0.97"/>
+    <use href="#mote-algal" transform="translate(212.3 635.3) rotate(249) scale(1.07)" opacity="0.96"/>
+    <use href="#mote-algal" transform="translate(308.4 140.8) rotate(123) scale(1.34)" opacity="0.91"/>
+    <use href="#mote-algal" transform="translate(346.7 479.2) rotate(15) scale(1.07)" opacity="0.98"/>
+    <use href="#mote-algal" transform="translate(14.5 543.9) rotate(234) scale(0.98)" opacity="0.76"/>
+    <use href="#mote-algal" transform="translate(765.0 319.6) rotate(23) scale(0.83)" opacity="0.85"/>
+  </g>
+  <g id="motes-lipid">
+    <use href="#mote-lipid" transform="translate(1299.6 680.4) rotate(344) scale(0.88)" opacity="0.99"/>
+    <use href="#mote-lipid" transform="translate(1386.5 917.6) rotate(276) scale(0.82)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1070.6 463.6) rotate(355) scale(0.95)" opacity="0.77"/>
+    <use href="#mote-lipid" transform="translate(1482.5 594.0) rotate(1) scale(1.32)" opacity="0.82"/>
+    <use href="#mote-lipid" transform="translate(1003.8 1056.6) rotate(302) scale(1.29)" opacity="0.91"/>
+    <use href="#mote-lipid" transform="translate(460.0 753.5) rotate(228) scale(0.82)" opacity="0.85"/>
+    <use href="#mote-lipid" transform="translate(436.8 701.4) rotate(258) scale(1.14)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1406.1 895.9) rotate(85) scale(1.22)" opacity="0.87"/>
+    <use href="#mote-lipid" transform="translate(1245.3 657.9) rotate(142) scale(1.36)" opacity="0.96"/>
+    <use href="#mote-lipid" transform="translate(933.6 277.7) rotate(75) scale(1.07)" opacity="0.81"/>
+    <use href="#mote-lipid" transform="translate(1190.6 911.9) rotate(162) scale(1.12)" opacity="0.91"/>
+    <use href="#mote-lipid" transform="translate(1000.6 1014.5) rotate(167) scale(1.34)" opacity="0.92"/>
+    <use href="#mote-lipid" transform="translate(1041.4 34.4) rotate(349) scale(1.12)" opacity="0.95"/>
+    <use href="#mote-lipid" transform="translate(1374.1 1025.1) rotate(212) scale(0.85)" opacity="0.81"/>
+    <use href="#mote-lipid" transform="translate(1264.8 1024.8) rotate(92) scale(1.26)" opacity="0.90"/>
+    <use href="#mote-lipid" transform="translate(1226.4 1058.0) rotate(117) scale(1.39)" opacity="0.82"/>
+    <use href="#mote-lipid" transform="translate(388.1 672.9) rotate(85) scale(1.08)" opacity="0.79"/>
+    <use href="#mote-lipid" transform="translate(1154.8 1036.1) rotate(24) scale(1.23)" opacity="0.93"/>
+    <use href="#mote-lipid" transform="translate(1274.5 1020.9) rotate(140) scale(0.99)" opacity="1.00"/>
+    <use href="#mote-lipid" transform="translate(1427.1 834.1) rotate(154) scale(1.21)" opacity="0.79"/>
+    <use href="#mote-lipid" transform="translate(1581.8 336.5) rotate(55) scale(1.45)" opacity="0.85"/>
+    <use href="#mote-lipid" transform="translate(1076.4 771.3) rotate(290) scale(0.89)" opacity="0.79"/>
+    <use href="#mote-lipid" transform="translate(722.6 929.3) rotate(318) scale(1.24)" opacity="0.89"/>
+    <use href="#mote-lipid" transform="translate(1078.3 855.9) rotate(190) scale(1.15)" opacity="0.83"/>
+    <use href="#mote-lipid" transform="translate(1177.0 962.0) rotate(318) scale(1.38)" opacity="0.86"/>
+    <use href="#mote-lipid" transform="translate(1079.0 1072.3) rotate(4) scale(0.82)" opacity="0.96"/>
+    <use href="#mote-lipid" transform="translate(1210.0 836.6) rotate(103) scale(1.41)" opacity="0.82"/>
+    <use href="#mote-lipid" transform="translate(699.8 751.9) rotate(96) scale(1.48)" opacity="0.79"/>
+    <use href="#mote-lipid" transform="translate(1401.6 895.1) rotate(175) scale(1.13)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1310.6 448.2) rotate(156) scale(0.85)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1240.8 832.7) rotate(289) scale(1.16)" opacity="0.94"/>
+    <use href="#mote-lipid" transform="translate(968.8 546.1) rotate(95) scale(1.28)" opacity="0.97"/>
+    <use href="#mote-lipid" transform="translate(1110.0 735.1) rotate(277) scale(1.35)" opacity="0.79"/>
+    <use href="#mote-lipid" transform="translate(1131.9 688.6) rotate(310) scale(1.06)" opacity="0.78"/>
+    <use href="#mote-lipid" transform="translate(779.6 836.7) rotate(218) scale(1.09)" opacity="0.81"/>
+    <use href="#mote-lipid" transform="translate(767.7 878.1) rotate(252) scale(1.36)" opacity="0.99"/>
+    <use href="#mote-lipid" transform="translate(1092.3 1073.8) rotate(75) scale(1.31)" opacity="0.93"/>
+    <use href="#mote-lipid" transform="translate(1180.0 685.7) rotate(12) scale(0.97)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1428.3 824.2) rotate(236) scale(1.13)" opacity="0.89"/>
+    <use href="#mote-lipid" transform="translate(1177.3 960.1) rotate(206) scale(1.20)" opacity="0.94"/>
+    <use href="#mote-lipid" transform="translate(1183.4 239.4) rotate(291) scale(1.31)" opacity="0.95"/>
+    <use href="#mote-lipid" transform="translate(294.8 376.6) rotate(217) scale(0.87)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1398.6 986.8) rotate(319) scale(1.39)" opacity="0.76"/>
+    <use href="#mote-lipid" transform="translate(1187.2 1041.6) rotate(160) scale(1.33)" opacity="0.78"/>
+    <use href="#mote-lipid" transform="translate(937.1 804.8) rotate(88) scale(1.06)" opacity="0.78"/>
+    <use href="#mote-lipid" transform="translate(1109.6 905.8) rotate(289) scale(0.92)" opacity="0.90"/>
+    <use href="#mote-lipid" transform="translate(1336.7 871.0) rotate(143) scale(1.42)" opacity="0.77"/>
+    <use href="#mote-lipid" transform="translate(1313.7 739.7) rotate(290) scale(1.47)" opacity="0.87"/>
+    <use href="#mote-lipid" transform="translate(1118.9 537.9) rotate(56) scale(1.03)" opacity="0.95"/>
+    <use href="#mote-lipid" transform="translate(1061.1 930.8) rotate(331) scale(1.40)" opacity="0.96"/>
+    <use href="#mote-lipid" transform="translate(1256.1 903.4) rotate(112) scale(0.91)" opacity="1.00"/>
+    <use href="#mote-lipid" transform="translate(1059.3 838.4) rotate(30) scale(1.50)" opacity="0.80"/>
+    <use href="#mote-lipid" transform="translate(1348.2 1081.1) rotate(100) scale(1.14)" opacity="0.90"/>
+    <use href="#mote-lipid" transform="translate(1310.2 1070.4) rotate(210) scale(1.13)" opacity="0.91"/>
+    <use href="#mote-lipid" transform="translate(1301.0 708.1) rotate(359) scale(1.48)" opacity="1.00"/>
+    <use href="#mote-lipid" transform="translate(989.0 1009.0) rotate(122) scale(1.31)" opacity="0.96"/>
+    <use href="#mote-lipid" transform="translate(1326.1 183.7) rotate(250) scale(1.17)" opacity="0.82"/>
+    <use href="#mote-lipid" transform="translate(401.1 83.5) rotate(315) scale(1.21)" opacity="0.92"/>
+    <use href="#mote-lipid" transform="translate(1183.5 843.6) rotate(258) scale(1.30)" opacity="0.77"/>
+    <use href="#mote-lipid" transform="translate(1143.9 883.5) rotate(80) scale(1.03)" opacity="0.87"/>
+    <use href="#mote-lipid" transform="translate(1427.9 729.4) rotate(130) scale(0.99)" opacity="0.96"/>
+    <use href="#mote-lipid" transform="translate(1234.6 1012.3) rotate(285) scale(1.17)" opacity="0.91"/>
+    <use href="#mote-lipid" transform="translate(1230.3 745.3) rotate(200) scale(1.49)" opacity="0.78"/>
+    <use href="#mote-lipid" transform="translate(1092.1 923.2) rotate(279) scale(1.08)" opacity="0.77"/>
+    <use href="#mote-lipid" transform="translate(1150.9 833.0) rotate(65) scale(0.88)" opacity="0.86"/>
+    <use href="#mote-lipid" transform="translate(1246.5 848.1) rotate(27) scale(1.21)" opacity="0.98"/>
+    <use href="#mote-lipid" transform="translate(1181.9 1075.3) rotate(214) scale(1.19)" opacity="0.78"/>
+    <use href="#mote-lipid" transform="translate(1363.0 961.8) rotate(214) scale(1.40)" opacity="0.86"/>
+    <use href="#mote-lipid" transform="translate(1166.6 706.7) rotate(343) scale(0.81)" opacity="0.87"/>
+    <use href="#mote-lipid" transform="translate(1076.4 833.6) rotate(306) scale(1.36)" opacity="0.97"/>
+  </g>
+  <g id="motes-mineral">
+    <use href="#mote-mineral" transform="translate(1526.2 435.2) rotate(321) scale(0.77)" opacity="0.77"/>
+    <use href="#mote-mineral" transform="translate(1500.1 97.6) rotate(16) scale(1.11)" opacity="0.93"/>
+    <use href="#mote-mineral" transform="translate(1465.6 534.2) rotate(359) scale(1.24)" opacity="0.91"/>
+    <use href="#mote-mineral" transform="translate(1369.5 97.5) rotate(234) scale(1.27)" opacity="1.00"/>
+    <use href="#mote-mineral" transform="translate(1240.4 174.1) rotate(251) scale(1.04)" opacity="0.99"/>
+    <use href="#mote-mineral" transform="translate(1684.9 461.3) rotate(282) scale(1.28)" opacity="0.79"/>
+    <use href="#mote-mineral" transform="translate(1265.1 409.8) rotate(226) scale(1.16)" opacity="0.77"/>
+    <use href="#mote-mineral" transform="translate(1629.0 162.8) rotate(306) scale(0.96)" opacity="0.93"/>
+    <use href="#mote-mineral" transform="translate(1518.8 53.2) rotate(111) scale(1.28)" opacity="0.95"/>
+    <use href="#mote-mineral" transform="translate(1651.0 586.3) rotate(338) scale(1.28)" opacity="0.90"/>
+    <use href="#mote-mineral" transform="translate(1149.1 227.7) rotate(266) scale(1.26)" opacity="0.94"/>
+    <use href="#mote-mineral" transform="translate(92.4 352.5) rotate(147) scale(0.72)" opacity="0.97"/>
+    <use href="#mote-mineral" transform="translate(1635.3 374.1) rotate(57) scale(0.89)" opacity="0.90"/>
+    <use href="#mote-mineral" transform="translate(660.5 11.1) rotate(226) scale(0.93)" opacity="0.87"/>
+    <use href="#mote-mineral" transform="translate(1098.2 286.4) rotate(259) scale(1.15)" opacity="0.84"/>
+    <use href="#mote-mineral" transform="translate(522.5 329.0) rotate(170) scale(0.85)" opacity="0.80"/>
+    <use href="#mote-mineral" transform="translate(490.6 468.8) rotate(62) scale(1.15)" opacity="0.92"/>
+    <use href="#mote-mineral" transform="translate(617.5 772.1) rotate(121) scale(0.94)" opacity="0.85"/>
+    <use href="#mote-mineral" transform="translate(1365.7 320.7) rotate(112) scale(0.91)" opacity="0.77"/>
+    <use href="#mote-mineral" transform="translate(1320.3 346.6) rotate(318) scale(0.78)" opacity="0.76"/>
+    <use href="#mote-mineral" transform="translate(1472.2 224.7) rotate(107) scale(1.23)" opacity="0.99"/>
+    <use href="#mote-mineral" transform="translate(1390.2 488.0) rotate(251) scale(1.11)" opacity="0.88"/>
+    <use href="#mote-mineral" transform="translate(54.8 266.7) rotate(133) scale(0.91)" opacity="0.77"/>
+    <use href="#mote-mineral" transform="translate(1458.4 586.6) rotate(270) scale(1.03)" opacity="0.93"/>
+    <use href="#mote-mineral" transform="translate(1302.0 409.2) rotate(193) scale(0.95)" opacity="0.90"/>
+    <use href="#mote-mineral" transform="translate(1293.4 185.4) rotate(264) scale(0.75)" opacity="0.84"/>
+    <use href="#mote-mineral" transform="translate(1268.7 435.9) rotate(276) scale(0.71)" opacity="0.92"/>
+    <use href="#mote-mineral" transform="translate(1437.4 377.2) rotate(289) scale(1.08)" opacity="0.85"/>
+    <use href="#mote-mineral" transform="translate(1386.7 344.7) rotate(293) scale(1.07)" opacity="0.80"/>
+    <use href="#mote-mineral" transform="translate(1259.2 73.2) rotate(343) scale(0.94)" opacity="0.91"/>
+    <use href="#mote-mineral" transform="translate(1644.8 416.8) rotate(359) scale(1.29)" opacity="0.80"/>
+    <use href="#mote-mineral" transform="translate(1268.1 300.5) rotate(60) scale(0.71)" opacity="0.81"/>
+    <use href="#mote-mineral" transform="translate(1153.8 180.5) rotate(226) scale(1.09)" opacity="0.92"/>
+    <use href="#mote-mineral" transform="translate(1635.7 249.5) rotate(130) scale(1.04)" opacity="0.95"/>
+    <use href="#mote-mineral" transform="translate(1228.0 351.3) rotate(328) scale(0.86)" opacity="0.98"/>
+    <use href="#mote-mineral" transform="translate(1373.4 307.5) rotate(181) scale(1.14)" opacity="0.83"/>
+    <use href="#mote-mineral" transform="translate(1401.5 534.8) rotate(313) scale(1.27)" opacity="0.97"/>
+    <use href="#mote-mineral" transform="translate(1259.5 389.7) rotate(18) scale(0.96)" opacity="0.92"/>
+    <use href="#mote-mineral" transform="translate(1160.4 220.8) rotate(248) scale(1.23)" opacity="0.79"/>
+    <use href="#mote-mineral" transform="translate(1585.4 64.7) rotate(230) scale(0.77)" opacity="0.93"/>
+    <use href="#mote-mineral" transform="translate(1600.2 567.9) rotate(323) scale(0.79)" opacity="0.76"/>
+    <use href="#mote-mineral" transform="translate(1313.7 685.4) rotate(350) scale(0.73)" opacity="0.86"/>
+    <use href="#mote-mineral" transform="translate(1254.9 472.4) rotate(205) scale(1.09)" opacity="0.78"/>
+    <use href="#mote-mineral" transform="translate(1573.5 260.3) rotate(103) scale(0.72)" opacity="0.95"/>
+    <use href="#mote-mineral" transform="translate(1403.5 27.4) rotate(311) scale(1.16)" opacity="0.94"/>
+    <use href="#mote-mineral" transform="translate(1590.0 162.5) rotate(209) scale(1.09)" opacity="0.88"/>
+    <use href="#mote-mineral" transform="translate(1516.8 467.3) rotate(325) scale(1.30)" opacity="0.84"/>
+    <use href="#mote-mineral" transform="translate(1570.8 389.9) rotate(325) scale(0.74)" opacity="0.77"/>
+    <use href="#mote-mineral" transform="translate(1566.7 252.0) rotate(119) scale(1.28)" opacity="0.97"/>
+    <use href="#mote-mineral" transform="translate(671.5 378.8) rotate(350) scale(0.79)" opacity="0.96"/>
+    <use href="#mote-mineral" transform="translate(1175.6 181.8) rotate(206) scale(1.12)" opacity="0.83"/>
+    <use href="#mote-mineral" transform="translate(681.5 689.3) rotate(204) scale(0.84)" opacity="0.84"/>
+    <use href="#mote-mineral" transform="translate(1599.0 71.6) rotate(276) scale(0.98)" opacity="0.83"/>
+    <use href="#mote-mineral" transform="translate(1427.7 171.7) rotate(248) scale(0.88)" opacity="0.82"/>
+    <use href="#mote-mineral" transform="translate(1527.6 437.9) rotate(262) scale(1.08)" opacity="0.98"/>
+    <use href="#mote-mineral" transform="translate(1638.1 122.1) rotate(111) scale(1.17)" opacity="0.89"/>
+    <use href="#mote-mineral" transform="translate(1568.6 612.9) rotate(9) scale(0.81)" opacity="0.90"/>
+    <use href="#mote-mineral" transform="translate(1132.9 1086.7) rotate(276) scale(0.99)" opacity="0.86"/>
+    <use href="#mote-mineral" transform="translate(1640.3 289.0) rotate(285) scale(1.21)" opacity="1.00"/>
+    <use href="#mote-mineral" transform="translate(987.0 643.0) rotate(321) scale(1.24)" opacity="0.95"/>
+  </g>
+  <g id="dna-fragments">
+    <use href="#dna-fragment" transform="translate(1447.2 327.6) rotate(358) scale(0.96)"/>
+    <use href="#dna-fragment" transform="translate(644.0 569.5) rotate(188) scale(1.20)"/>
+    <use href="#dna-fragment" transform="translate(964.0 241.5) rotate(153) scale(1.12)"/>
+    <use href="#dna-fragment" transform="translate(1600.6 332.8) rotate(319) scale(0.86)"/>
+    <use href="#dna-fragment" transform="translate(1589.6 163.6) rotate(30) scale(0.93)"/>
+    <use href="#dna-fragment" transform="translate(1375.2 69.8) rotate(3) scale(1.11)"/>
+    <use href="#dna-fragment" transform="translate(1199.2 321.4) rotate(83) scale(0.96)"/>
+    <use href="#dna-fragment" transform="translate(1398.4 512.1) rotate(145) scale(1.23)"/>
+    <use href="#dna-fragment" transform="translate(1194.4 371.9) rotate(75) scale(1.06)"/>
+  </g>
+
+<!-- ============================================================ 6a. cells: a grazer (lime, r 44, later form: nucleus, mitochondria, chloroplasts) resting in the sunlit shallows -->
+<g id="cell-grazer" transform="translate(318 478) rotate(-12)">
+  <!-- photosynthesis: a faint light-harvest bloom around the body and algal motes drifting in -->
+  <circle r="86" fill="#8dffb0" opacity="0.06" filter="url(#blur-26)"/>
+  <g fill="none" stroke="#8dff6a" stroke-linecap="round" opacity="0.28">
+    <path d="M-92 -38 C-76 -30 -64 -24 -52 -16" stroke-width="0.8" stroke-dasharray="3 5"/>
+    <path d="M70 -58 C60 -44 54 -36 46 -26" stroke-width="0.8" stroke-dasharray="3 5"/>
+    <path d="M-40 84 C-32 70 -28 62 -22 50" stroke-width="0.8" stroke-dasharray="3 5"/>
+  </g>
+  <circle r="56.3" fill="url(#halo-lime)" filter="url(#blur-10)"/>
+  <use href="#membrane-grazer" fill="url(#body-lime)"/>
+  <g clip-path="url(#clip-grazer)">
+    <rect x="-52" y="-52" width="104" height="104" filter="url(#cyto-noise)" opacity="0.2"/>
+    <rect x="-52" y="-52" width="104" height="104" filter="url(#cyto-noise-fine)" opacity="0.16"/>
+    <ellipse cx="12" cy="14" rx="26" ry="20" fill="#16270c" opacity="0.5" filter="url(#blur-10)"/>
+    <ellipse cx="-10" cy="-11" rx="17" ry="13" fill="#dcffb0" opacity="0.14" filter="url(#blur-10)"/>
+    <g fill="#dcffb0">
+      <circle cx="14" cy="-22" r="1.1" opacity="0.5"/><circle cx="24" cy="6" r="1.2" opacity="0.4"/><circle cx="-8" cy="26" r="1" opacity="0.45"/>
+      <circle cx="28" cy="-10" r="0.9" opacity="0.5"/><circle cx="-22" cy="10" r="1.2" opacity="0.4"/><circle cx="4" cy="34" r="1" opacity="0.4"/>
+      <circle cx="-34" cy="-6" r="1.1" opacity="0.45"/><circle cx="20" cy="26" r="1" opacity="0.35"/><circle cx="-12" cy="-32" r="0.9" opacity="0.5"/>
+      <circle cx="34" cy="14" r="0.9" opacity="0.4"/><circle cx="-2" cy="12" r="1.2" opacity="0.35"/>
+    </g>
+    <!-- six chloroplasts ride the inner edge where the light is -->
+    <use href="#chloroplast" x="-6.3" y="-6.3" width="12.6" height="12.6" transform="translate(-30 -20) rotate(-40)"/>
+    <use href="#chloroplast" x="-6.3" y="-6.3" width="12.6" height="12.6" transform="translate(-14 -34) rotate(-10)"/>
+    <use href="#chloroplast" x="-6.3" y="-6.3" width="12.6" height="12.6" transform="translate(10 -34) rotate(20)"/>
+    <use href="#chloroplast" x="-6.3" y="-6.3" width="12.6" height="12.6" transform="translate(-34 8) rotate(-80)"/>
+    <use href="#chloroplast" x="-6.3" y="-6.3" width="12.6" height="12.6" transform="translate(30 -14) rotate(60)"/>
+    <use href="#chloroplast" x="-6.3" y="-6.3" width="12.6" height="12.6" transform="translate(-22 28) rotate(35)"/>
+    <use href="#mito" x="-6.8" y="-6.8" width="13.6" height="13.6" transform="translate(22 20) rotate(-30)"/>
+    <use href="#mito" x="-6.8" y="-6.8" width="13.6" height="13.6" transform="translate(6 30) rotate(15)"/>
+    <use href="#vacuole" x="-7.5" y="-7.5" width="15" height="15" transform="translate(26 4)"/>
+    <use href="#lipid" x="-2.9" y="-2.9" width="5.8" height="5.8" transform="translate(-6 14)"/>
+    <use href="#lipid" x="-2.2" y="-2.2" width="4.4" height="4.4" transform="translate(14 -10)"/>
+    <circle cx="-5" cy="-5" r="17.8" fill="#b5ef62" opacity="0.32" filter="url(#blur-6)"/>
+    <circle cx="-5" cy="-5" r="13.2" fill="url(#nuc-lime)"/>
+    <circle cx="-5" cy="-5" r="13.2" fill="none" stroke="#dcffb0" stroke-width="0.8" opacity="0.75"/>
+    <g fill="#3f7a12" opacity="0.55">
+      <circle cx="-11" cy="-1" r="1.7"/><circle cx="1" cy="-10" r="1.4"/><circle cx="-7" cy="-12" r="1.2"/><circle cx="2" cy="1" r="1.1"/>
+    </g>
+    <circle cx="-2.5" cy="-3.5" r="4.4" fill="#ffffff" opacity="0.35" filter="url(#blur-1_5)"/>
+    <circle cx="-2.5" cy="-3.5" r="2.8" fill="#ffffff" opacity="0.9"/>
+    <circle cx="-3.4" cy="-4.5" r="0.9" fill="#ffffff"/>
+    <ellipse cx="-10" cy="-10" rx="3.3" ry="1.3" transform="rotate(-40 -10 -10)" fill="#ffffff" opacity="0.5"/>
+    <use href="#membrane-grazer" fill="none" stroke="#2f5a12" stroke-width="4.8" opacity="0.55"/>
+  </g>
+  <use href="#membrane-grazer" fill="none" stroke="#020509" stroke-width="0.8" opacity="0.5"/>
+  <use href="#membrane-grazer" fill="none" stroke="#7ed321" stroke-width="4.4" opacity="0.35" filter="url(#blur-3)"/>
+  <use href="#membrane-grazer" fill="none" stroke="url(#rim-lime)" stroke-width="2.2"/>
+  <ellipse cx="-16" cy="-18" rx="9.7" ry="3.5" transform="rotate(-40 -16 -18)" fill="#ffffff" opacity="0.5" filter="url(#blur-1_5)"/>
+</g>
+
+<!-- ============================================================ 6. cells: prey (amber, r 16) under the rival's lobes -->
+<g id="cell-prey" transform="translate(1250 531)">
+  <circle r="20.5" fill="url(#halo-amber)" filter="url(#blur-6)"/>
+  <use href="#membrane-prey" fill="url(#body-amber)"/>
+  <g clip-path="url(#clip-prey)">
+    <rect x="-18" y="-18" width="36" height="36" filter="url(#cyto-noise)" opacity="0.22"/>
+    <rect x="-18" y="-18" width="36" height="36" filter="url(#cyto-noise-fine)" opacity="0.18"/>
+    <ellipse cx="4.5" cy="5" rx="9" ry="7" fill="#292111" opacity="0.5" filter="url(#blur-3)"/>
+    <ellipse cx="-3.5" cy="-4" rx="6" ry="4.5" fill="#ffe7a3" opacity="0.14" filter="url(#blur-3)"/>
+    <circle cx="6" cy="-4" r="0.9" fill="#ffe7a3" opacity="0.5"/>
+    <circle cx="-7" cy="5" r="0.8" fill="#ffe7a3" opacity="0.45"/>
+    <circle cx="2" cy="8" r="1" fill="#ffe7a3" opacity="0.4"/>
+    <circle cx="8" cy="4" r="0.7" fill="#ffe7a3" opacity="0.5"/>
+    <use href="#lipid" x="-1.2" y="-1.2" width="2.4" height="2.4" transform="translate(6.5 2)"/>
+    <use href="#lipid" x="-1" y="-1" width="2" height="2" transform="translate(-6 -7.5)"/>
+    <circle cx="-2" cy="-2" r="6.4" fill="#f5c85c" opacity="0.35" filter="url(#blur-3)"/>
+    <circle cx="-2" cy="-2" r="4.8" fill="url(#nuc-amber)"/>
+    <circle cx="-2" cy="-2" r="4.8" fill="none" stroke="#ffe7a3" stroke-width="0.4" opacity="0.75"/>
+    <circle cx="-1.2" cy="-1.3" r="1.2" fill="#ffffff" opacity="0.9"/>
+    <use href="#membrane-prey" fill="none" stroke="#5d4312" stroke-width="1.8" opacity="0.55"/>
+  </g>
+  <use href="#membrane-prey" fill="none" stroke="#020509" stroke-width="0.8" opacity="0.5"/>
+  <use href="#membrane-prey" fill="none" stroke="#e0a12a" stroke-width="1.6" opacity="0.35" filter="url(#blur-1_5)"/>
+  <use href="#membrane-prey" fill="none" stroke="url(#rim-amber)" stroke-width="0.9"/>
+  <ellipse cx="-6" cy="-6.5" rx="3.6" ry="1.3" transform="rotate(-40 -6 -6.5)" fill="#ffffff" opacity="0.5" filter="url(#blur-1_5)"/>
+</g>
+
+<!-- ============================================================ 7. cells: rival (magenta, r 52) mid-engulf, lobes at 180 / 240 deg -->
+<g id="cell-rival" transform="translate(1300 560)">
+  <circle r="66.5" fill="url(#halo-magenta)" filter="url(#blur-10)"/>
+  <!-- engulf tension ring: faint dish ripple where the lobes push water -->
+  <circle cx="-50" cy="-29" r="34" fill="none" stroke="#ffb3ec" stroke-width="0.8" opacity="0.18"/>
+  <circle cx="-50" cy="-29" r="44" fill="none" stroke="#ffb3ec" stroke-width="0.6" opacity="0.1"/>
+  <use href="#membrane-rival" fill="url(#body-magenta)"/>
+  <g clip-path="url(#clip-rival)">
+    <rect x="-90" y="-80" width="160" height="160" filter="url(#cyto-noise)" opacity="0.22"/>
+    <rect x="-90" y="-80" width="160" height="160" filter="url(#cyto-noise-fine)" opacity="0.18"/>
+    <ellipse cx="14" cy="16" rx="30" ry="23" fill="#291424" opacity="0.5" filter="url(#blur-10)"/>
+    <ellipse cx="-11" cy="-13" rx="20" ry="15" fill="#ffb3ec" opacity="0.14" filter="url(#blur-10)"/>
+    <!-- cytoplasm streaming into the lobes -->
+    <path d="M-30 -8 C-45 -12 -58 -8 -70 -2 M-28 -18 C-40 -30 -44 -44 -46 -58" fill="none" stroke="#ffb3ec" stroke-width="1" opacity="0.16" stroke-linecap="round"/>
+    <g fill="#ffb3ec">
+      <circle cx="16" cy="-24" r="1.2" opacity="0.55"/><circle cx="26" cy="8" r="1.4" opacity="0.4"/><circle cx="-8" cy="30" r="1.1" opacity="0.5"/>
+      <circle cx="30" cy="-10" r="0.9" opacity="0.5"/><circle cx="-24" cy="12" r="1.3" opacity="0.45"/><circle cx="4" cy="38" r="1" opacity="0.4"/>
+      <circle cx="-38" cy="-4" r="1.2" opacity="0.5"/><circle cx="22" cy="28" r="1.1" opacity="0.35"/><circle cx="-14" cy="-36" r="1" opacity="0.5"/>
+      <circle cx="38" cy="14" r="0.9" opacity="0.45"/><circle cx="-56" cy="8" r="1" opacity="0.4"/><circle cx="-42" cy="-30" r="1.1" opacity="0.4"/>
+      <circle cx="10" cy="-42" r="0.8" opacity="0.5"/><circle cx="-2" cy="14" r="1.3" opacity="0.35"/>
+    </g>
+    <use href="#mito" x="-8.3" y="-8.3" width="16.6" height="16.6" transform="translate(20 -18) rotate(28)"/>
+    <use href="#mito" x="-8.3" y="-8.3" width="16.6" height="16.6" transform="translate(-6 26) rotate(-55)"/>
+    <use href="#vacuole" x="-8.9" y="-8.9" width="17.7" height="17.7" transform="translate(26 14)"/>
+    <use href="#lipid" x="-3.6" y="-3.6" width="7.3" height="7.3" transform="translate(-30 20)"/>
+    <use href="#lipid" x="-2.6" y="-2.6" width="5.2" height="5.2" transform="translate(12 34)"/>
+    <use href="#lipid" x="-2.6" y="-2.6" width="5.2" height="5.2" transform="translate(-20 -40)"/>
+    <circle cx="-6" cy="-6" r="21" fill="#f07ad2" opacity="0.35" filter="url(#blur-6)"/>
+    <circle cx="-6" cy="-6" r="15.6" fill="url(#nuc-magenta)"/>
+    <circle cx="-6" cy="-6" r="15.6" fill="none" stroke="#ffb3ec" stroke-width="0.9" opacity="0.75"/>
+    <g fill="#8c176e" opacity="0.55">
+      <circle cx="-13" cy="-1" r="2"/><circle cx="1" cy="-12" r="1.6"/><circle cx="-8" cy="-14" r="1.4"/><circle cx="2" cy="1" r="1.3"/>
+    </g>
+    <path d="M-15 -6 q4 4 8 9" fill="none" stroke="#8c176e" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/>
+    <circle cx="-3" cy="-4" r="5.3" fill="#ffffff" opacity="0.35" filter="url(#blur-1_5)"/>
+    <circle cx="-3" cy="-4" r="3.4" fill="#ffffff" opacity="0.9"/>
+    <circle cx="-4" cy="-5.2" r="1.1" fill="#ffffff"/>
+    <ellipse cx="-11.5" cy="-12" rx="3.9" ry="1.5" transform="rotate(-40 -11.5 -12)" fill="#ffffff" opacity="0.55"/>
+    <use href="#membrane-rival" fill="none" stroke="#5b194b" stroke-width="5.7" opacity="0.55"/>
+  </g>
+  <use href="#membrane-rival" fill="none" stroke="#020509" stroke-width="0.8" opacity="0.5"/>
+  <use href="#membrane-rival" fill="none" stroke="#d43fb0" stroke-width="5.2" opacity="0.35" filter="url(#blur-3)"/>
+  <use href="#membrane-rival" fill="none" stroke="url(#rim-magenta)" stroke-width="2.6"/>
+  <ellipse cx="-19" cy="-21" rx="11.4" ry="4.2" transform="rotate(-40 -19 -21)" fill="#ffffff" opacity="0.5" filter="url(#blur-1_5)"/>
+  <!-- the prey seen through the translucent film: a faint amber body, its rim and nucleus glint redrawn at 62 % -->
+  <g transform="translate(-50 -29)" opacity="0.62">
+    <use href="#membrane-prey" fill="#e0a12a" opacity="0.22"/>
+    <use href="#membrane-prey" fill="none" stroke="url(#rim-amber)" stroke-width="1.4"/>
+    <circle cx="-2" cy="-2" r="4.8" fill="url(#nuc-amber)" opacity="0.6"/>
+    <circle cx="-1.2" cy="-1.3" r="1.2" fill="#ffffff"/>
+  </g>
+</g>
+
+<!-- ============================================================ 8. cells: the player (cyan, r 30, prokaryote stage, moving toward the prey) -->
+<g id="cell-player" transform="translate(860 560)">
+  <!-- wake rings + ghost trail behind (moving right) -->
+  <g fill="none" stroke="#a6f4ff" stroke-linecap="round">
+    <path d="M-44 -16 C-52 -6 -52 6 -44 16" stroke-width="1.2" opacity="0.22"/>
+    <path d="M-58 -22 C-70 -8 -70 8 -58 22" stroke-width="1" opacity="0.12"/>
+    <path d="M-74 -28 C-90 -10 -90 10 -74 28" stroke-width="1" opacity="0.06"/>
+  </g>
+  <path d="M-30 4 C-42 12 -52 -6 -64 4 C-76 14 -86 -4 -98 6" fill="none" stroke="#a6f4ff" stroke-width="3" opacity="0.18" filter="url(#blur-1_5)"/>
+  <path d="M-30 4 C-42 12 -52 -6 -64 4 C-76 14 -86 -4 -98 6" fill="none" stroke="#a6f4ff" stroke-width="1.2" opacity="0.75" stroke-linecap="round"/>
+  <circle r="38.4" fill="url(#halo-cyan)" filter="url(#blur-6)"/>
+  <use href="#membrane-player" fill="url(#body-cyan)"/>
+  <g clip-path="url(#clip-player)">
+    <rect x="-40" y="-36" width="80" height="72" filter="url(#cyto-noise)" opacity="0.22"/>
+    <rect x="-40" y="-36" width="80" height="72" filter="url(#cyto-noise-fine)" opacity="0.18"/>
+    <ellipse cx="8" cy="9" rx="17" ry="13" fill="#102426" opacity="0.5" filter="url(#blur-6)"/>
+    <ellipse cx="-7" cy="-7" rx="11.5" ry="8.6" fill="#a6f4ff" opacity="0.14" filter="url(#blur-6)"/>
+    <g fill="#a6f4ff">
+      <circle cx="12" cy="-12" r="1.1" opacity="0.55"/><circle cx="18" cy="6" r="0.9" opacity="0.45"/><circle cx="-4" cy="16" r="1.2" opacity="0.5"/>
+      <circle cx="-16" cy="-8" r="0.9" opacity="0.5"/><circle cx="4" cy="20" r="0.8" opacity="0.4"/><circle cx="22" cy="-4" r="0.8" opacity="0.5"/>
+      <circle cx="-20" cy="8" r="1" opacity="0.45"/><circle cx="16" cy="14" r="0.9" opacity="0.35"/><circle cx="-8" cy="-18" r="0.8" opacity="0.5"/>
+      <circle cx="8" cy="-20" r="0.7" opacity="0.5"/><circle cx="-14" cy="18" r="0.8" opacity="0.4"/>
+    </g>
+    <!-- nucleoid: no envelope yet, a diffuse tangle lagging 20 % r behind the motion -->
+    <circle cx="-8" cy="-2" r="12" fill="#6fdcef" opacity="0.4" filter="url(#blur-6)"/>
+    <path d="M-15 -6 C-10 -12 -2 -10 -1 -4 C0 2 -6 6 -12 4 C-17 2 -18 -3 -15 -6 Z" fill="#6fdcef" opacity="0.55" filter="url(#blur-1_5)"/>
+    <path d="M-14 -4 C-9 -9 -4 -7 -3 -3 M-13 1 C-9 4 -4 3 -2 -1 M-12 -6 C-11 -1 -8 2 -5 3" fill="none" stroke="#a6f4ff" stroke-width="0.9" opacity="0.75" stroke-linecap="round"/>
+    <circle cx="-9" cy="-5" r="1.4" fill="#ffffff" opacity="0.85"/>
+    <use href="#lipid" x="-2.1" y="-2.1" width="4.2" height="4.2" transform="translate(12 6)"/>
+    <use href="#lipid" x="-1.5" y="-1.5" width="3" height="3" transform="translate(4 -12)"/>
+    <use href="#membrane-player" fill="none" stroke="#124e56" stroke-width="3.3" opacity="0.55"/>
+  </g>
+  <use href="#membrane-player" fill="none" stroke="#020509" stroke-width="0.8" opacity="0.5"/>
+  <use href="#membrane-player" fill="none" stroke="#22c1d6" stroke-width="3" opacity="0.35" filter="url(#blur-1_5)"/>
+  <use href="#membrane-player" fill="none" stroke="url(#rim-cyan)" stroke-width="1.5"/>
+  <ellipse cx="-11" cy="-13" rx="6.6" ry="2.4" transform="rotate(-40 -11 -13)" fill="#ffffff" opacity="0.5" filter="url(#blur-1_5)"/>
+</g>
+
+<!-- ============================================================ 9. depth particles (near layer, out of focus) -->
+  <g id="depth-bokeh" filter="url(#blur-6)">
+    <circle cx="732.6" cy="817.3" r="12.5" fill="#dff4ff" opacity="0.10"/>
+    <circle cx="732.6" cy="817.3" r="12.5" fill="none" stroke="#dff4ff" stroke-width="1.5" opacity="0.16"/>
+    <circle cx="1538.2" cy="453.9" r="6.6" fill="#b070ff" opacity="0.05"/>
+    <circle cx="1538.2" cy="453.9" r="6.6" fill="none" stroke="#b070ff" stroke-width="1.5" opacity="0.09"/>
+    <circle cx="89.8" cy="225.5" r="11.0" fill="#8dffb0" opacity="0.08"/>
+    <circle cx="89.8" cy="225.5" r="11.0" fill="none" stroke="#8dffb0" stroke-width="1.5" opacity="0.12"/>
+    <circle cx="476.5" cy="306.7" r="13.8" fill="#8dffb0" opacity="0.08"/>
+    <circle cx="476.5" cy="306.7" r="13.8" fill="none" stroke="#8dffb0" stroke-width="1.5" opacity="0.12"/>
+    <circle cx="446.3" cy="423.0" r="8.8" fill="#8dffb0" opacity="0.08"/>
+    <circle cx="446.3" cy="423.0" r="8.8" fill="none" stroke="#8dffb0" stroke-width="1.5" opacity="0.13"/>
+    <circle cx="52.5" cy="355.8" r="10.3" fill="#8dffb0" opacity="0.09"/>
+    <circle cx="52.5" cy="355.8" r="10.3" fill="none" stroke="#8dffb0" stroke-width="1.5" opacity="0.15"/>
+    <circle cx="1312.7" cy="975.2" r="6.5" fill="#ffb15a" opacity="0.08"/>
+    <circle cx="1312.7" cy="975.2" r="6.5" fill="none" stroke="#ffb15a" stroke-width="1.5" opacity="0.12"/>
+    <circle cx="617.4" cy="532.8" r="9.4" fill="#8dffb0" opacity="0.06"/>
+    <circle cx="617.4" cy="532.8" r="9.4" fill="none" stroke="#8dffb0" stroke-width="1.5" opacity="0.09"/>
+  </g>
+  <g id="depth-near" filter="url(#blur-3)">
+    <circle cx="1340.1" cy="775.6" r="2.3" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="983.5" cy="900.3" r="2.5" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="9.0" cy="1071.5" r="2.3" fill="#dff4ff" opacity="0.06"/>
+    <circle cx="1562.7" cy="885.0" r="3.8" fill="#dff4ff" opacity="0.12"/>
+    <circle cx="1004.3" cy="1030.6" r="3.3" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="1483.7" cy="1049.8" r="3.2" fill="#dff4ff" opacity="0.11"/>
+    <circle cx="1213.0" cy="763.0" r="3.3" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="476.6" cy="937.6" r="4.2" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="433.0" cy="105.7" r="2.7" fill="#dff4ff" opacity="0.06"/>
+    <circle cx="485.7" cy="642.6" r="4.1" fill="#dff4ff" opacity="0.11"/>
+    <circle cx="274.0" cy="313.8" r="2.4" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="1362.0" cy="766.8" r="4.3" fill="#dff4ff" opacity="0.11"/>
+    <circle cx="778.7" cy="592.6" r="3.0" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="91.4" cy="480.5" r="4.3" fill="#dff4ff" opacity="0.07"/>
+    <circle cx="831.7" cy="540.8" r="2.5" fill="#dff4ff" opacity="0.12"/>
+    <circle cx="1329.7" cy="530.6" r="4.0" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="1664.9" cy="285.9" r="3.2" fill="#dff4ff" opacity="0.12"/>
+    <circle cx="1591.8" cy="358.3" r="3.2" fill="#dff4ff" opacity="0.10"/>
+    <circle cx="933.8" cy="219.6" r="3.9" fill="#dff4ff" opacity="0.11"/>
+    <circle cx="796.1" cy="1064.0" r="2.7" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="1274.9" cy="975.4" r="2.8" fill="#dff4ff" opacity="0.10"/>
+    <circle cx="1306.9" cy="629.6" r="3.1" fill="#dff4ff" opacity="0.06"/>
+    <circle cx="1224.3" cy="131.7" r="2.8" fill="#dff4ff" opacity="0.10"/>
+    <circle cx="929.3" cy="212.7" r="4.1" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="1423.3" cy="191.4" r="2.3" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="228.4" cy="53.5" r="2.7" fill="#dff4ff" opacity="0.06"/>
+    <circle cx="1035.9" cy="495.0" r="4.3" fill="#dff4ff" opacity="0.05"/>
+    <circle cx="445.3" cy="81.4" r="4.2" fill="#dff4ff" opacity="0.07"/>
+    <circle cx="867.9" cy="646.5" r="4.0" fill="#dff4ff" opacity="0.06"/>
+    <circle cx="614.4" cy="194.0" r="2.2" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="1226.5" cy="687.0" r="2.7" fill="#dff4ff" opacity="0.08"/>
+    <circle cx="917.4" cy="215.7" r="2.9" fill="#dff4ff" opacity="0.07"/>
+    <circle cx="1094.4" cy="230.6" r="4.4" fill="#dff4ff" opacity="0.11"/>
+    <circle cx="697.0" cy="567.4" r="3.2" fill="#dff4ff" opacity="0.07"/>
+    <circle cx="9.8" cy="318.3" r="2.5" fill="#dff4ff" opacity="0.11"/>
+    <circle cx="1629.3" cy="725.3" r="3.5" fill="#dff4ff" opacity="0.06"/>
+    <circle cx="99.9" cy="142.6" r="4.3" fill="#dff4ff" opacity="0.10"/>
+    <circle cx="692.8" cy="488.9" r="3.9" fill="#dff4ff" opacity="0.09"/>
+    <circle cx="31.7" cy="758.3" r="3.5" fill="#dff4ff" opacity="0.05"/>
+    <circle cx="758.6" cy="1067.3" r="2.6" fill="#dff4ff" opacity="0.08"/>
+  </g>
+
+<!-- ============================================================ 10. dish wall (centre -1140,540  r 2860): outside, glass band, rim scatter, highlight, bubbles -->
+<g id="dish-wall">
+  <path d="M0 0 H1920 V1080 H0 Z M1720 540 A2860 2860 0 1 0 -4000 540 A2860 2860 0 1 0 1720 540 Z" fill="#02040a" fill-rule="evenodd" opacity="0.92"/>
+  <circle cx="-1140" cy="540" r="2846" fill="none" stroke="#000000" stroke-width="26" opacity="0.35" filter="url(#blur-10)"/>
+  <circle cx="-1140" cy="540" r="2877" fill="none" stroke="#182c46" stroke-width="34"/>
+  <circle cx="-1140" cy="540" r="2866" fill="none" stroke="#2a4a70" stroke-width="12" opacity="0.85"/>
+  <circle cx="-1140" cy="540" r="2894" fill="none" stroke="#4a6a90" stroke-width="1.4" opacity="0.6"/>
+  <circle cx="-1140" cy="540" r="2893" fill="none" stroke="#7fb8ff" stroke-width="3" opacity="0.12" filter="url(#blur-3)"/>
+  <circle cx="-1140" cy="540" r="2862" fill="none" stroke="#7fe7f5" stroke-width="9" opacity="0.28" filter="url(#blur-6)"/>
+  <circle cx="-1140" cy="540" r="2861" fill="none" stroke="#7fe7f5" stroke-width="2.5" opacity="0.55"/>
+  <circle cx="-1140" cy="540" r="2860" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.7"/>
+  <circle cx="-1140" cy="540" r="2861" fill="none" stroke="#ffffff" stroke-width="2.2" opacity="0.9" stroke-dasharray="220 17800" stroke-dashoffset="349" stroke-linecap="round" filter="url(#blur-1_5)"/>
+  <circle cx="-1140" cy="540" r="2880" fill="none" stroke="#a6f4ff" stroke-width="6" opacity="0.18" stroke-dasharray="160 17840" stroke-dashoffset="330" stroke-linecap="round" filter="url(#blur-6)"/>
+  <!-- outside the dish: illuminator ring edge and scratches on the stage glass -->
+  <g fill="none" stroke="#2a3d58" stroke-linecap="round">
+    <path d="M1760 120 l70 190" stroke-width="0.8" opacity="0.35"/>
+    <path d="M1830 610 l50 120" stroke-width="0.6" opacity="0.3"/>
+    <path d="M1790 420 l-10 60" stroke-width="0.6" opacity="0.25"/>
+    <path d="M1870 250 l30 -40" stroke-width="0.5" opacity="0.25"/>
+  </g>
+  <ellipse cx="2100" cy="540" rx="400" ry="700" fill="#0b1626" opacity="0.5" filter="url(#blur-40)"/>
+</g>
+  <g id="edge-bubbles">
+    <use href="#bubble" transform="translate(1646.8 209.1) scale(12.4)"/>
+    <use href="#bubble" transform="translate(1668.4 435.1) scale(6.4)"/>
+    <use href="#bubble" transform="translate(1667.1 594.4) scale(15.7)"/>
+    <use href="#bubble" transform="translate(1660.6 762.7) scale(9.4)"/>
+    <use href="#bubble" transform="translate(1683.0 552.3) scale(8.9)"/>
+    <use href="#bubble" transform="translate(1649.2 762.4) scale(6.6)"/>
+  </g>
+
+<!-- ============================================================ 11. vignette -->
+<rect width="1920" height="1080" fill="url(#vignette)"/>
+
+<!-- ============================================================ 12. annotations -->
+<g id="title">
+  <text x="40" y="44" class="h1">EVOLUTION</text>
+  <text x="196" y="44" class="h1b">· concept sheet 02 — THE DISH</text>
+  <text x="40" y="66" class="sub">Play-scale scene · 1 px = 1 wu at camera zoom 1.0 · dark-field microscopy, light from the top-left · every mote, cell and zone at the size the renderer draws it</text>
+  <text x="1640" y="44" class="sub" text-anchor="end">ticket #105 · feeds VISUAL-STYLE.md (#34) + renderer (#99)</text>
+  <text x="1640" y="62" class="sub" text-anchor="end">code-drawn: gradients, blur, turbulence, masks · zero raster</text>
+</g>
+
+<g id="callout-backings" fill="#04070d" opacity="0.62" filter="url(#blur-6)">
+  <rect x="550" y="112" width="560" height="64" rx="8"/>
+  <rect x="676" y="994" width="446" height="54" rx="8"/>
+  <rect x="1200" y="102" width="370" height="54" rx="8"/>
+  <rect x="1744" y="312" width="152" height="108" rx="8"/>
+  <rect x="490" y="694" width="314" height="50" rx="8"/>
+  <rect x="360" y="588" width="300" height="50" rx="8"/>
+  <rect x="1226" y="684" width="330" height="50" rx="8"/>
+</g>
+<g id="callouts">
+  <!-- sunlit shallows -->
+  <text x="560" y="128" class="lab-accent">SUNLIT SHALLOWS</text>
+  <text x="560" y="144" class="mono">#8dffb0 @16 % → 0 over r 540 wu · algal motes ×4 density · photosynthesis works here</text>
+  <!-- thermal vent -->
+  <path class="leader" d="M1262 926 L1120 1006"/>
+  <circle cx="1262" cy="926" r="2.2" fill="#7fe7f5"/>
+  <text x="1112" y="1010" class="lab-accent" text-anchor="end">THERMAL VENT</text>
+  <text x="1112" y="1026" class="mono" text-anchor="end">#ff9a4d @13 % over r 430 wu · lipid motes ×3 · +speed, −visibility</text>
+  <text x="1112" y="1040" class="mono" text-anchor="end">crust #12080a · seam #ff9a4d → #ffd39a → #fff · plume #ffb15a</text>
+  <!-- viscous mire -->
+  <text x="1560" y="118" class="lab-accent" text-anchor="end">VISCOUS MIRE</text>
+  <text x="1560" y="134" class="mono" text-anchor="end">#b070ff @14 % over r 470 wu · strands #b070ff @10–26 %</text>
+  <text x="1560" y="148" class="mono" text-anchor="end">mineral motes ×3, DNA ×4 · −40 % speed</text>
+  <!-- dish wall -->
+  <path class="leader" d="M1692 350 L1748 330"/>
+  <circle cx="1692" cy="350" r="2.2" fill="#7fe7f5"/>
+  <text x="1754" y="326" class="lab">Dish wall</text>
+  <text x="1754" y="341" class="mono">r 2860 wu · glass 34 wu</text>
+  <text x="1754" y="355" class="mono">band #182c46 / #2a4a70</text>
+  <text x="1754" y="369" class="mono">rim #7fe7f5 @55 %, blur 6</text>
+  <text x="1754" y="383" class="mono">hairline #ffffff @70 %</text>
+  <text x="1754" y="397" class="mono">outside #02040a @92 %</text>
+  <text x="1754" y="411" class="mono">bubbles r 5–16 wu</text>
+  <!-- grazer -->
+  <path class="leader" d="M356 520 L376 592"/>
+  <circle cx="356" cy="520" r="2.2" fill="#7fe7f5"/>
+  <text x="370" y="606" class="lab">Grazer · later form</text>
+  <text x="370" y="621" class="mono">r 44 wu · nucleus 30 % r · 6 chloroplasts, 2 mito, vacuole</text>
+  <text x="370" y="635" class="mono">feeds on light here: bloom #8dffb0 @6 %, r 2×</text>
+  <!-- player -->
+  <path class="leader" d="M862 596 L800 690"/>
+  <circle cx="862" cy="596" r="2.2" fill="#7fe7f5"/>
+  <text x="794" y="708" class="lab" text-anchor="end">You · prokaryote stage</text>
+  <text x="794" y="723" class="mono" text-anchor="end">r 30 wu · nucleoid, no envelope · flagellum</text>
+  <text x="794" y="737" class="mono" text-anchor="end">moving right: stretch 1.10 × 0.94, wake rings</text>
+  <!-- engulf -->
+  <path class="leader" d="M1268 566 L1236 680"/>
+  <circle cx="1268" cy="566" r="2.2" fill="#7fe7f5"/>
+  <text x="1236" y="698" class="lab" text-anchor="start">Engulf in progress · wrap frame</text>
+  <text x="1236" y="713" class="mono">rival r 52 wu, lobes +62 % at ±30° · prey r 16 wu</text>
+  <text x="1236" y="727" class="mono">prey rim stays visible through the 42–55 % film</text>
+  <!-- a mote and a DNA fragment called out inline -->
+  <text x="560" y="166" class="mono">motes: core + soft halo + wide halo + glint (ASSET-GENERATION §1.5)</text>
+</g>
+
+<!-- legend panel -->
+<g id="legend">
+  <rect x="24" y="852" width="536" height="204" rx="8" fill="url(#panel-bg)" stroke="#173250" stroke-width="1"/>
+  <text x="40" y="876" class="lab-accent">PALETTE · SIZES · GLOW</text>
+  <g transform="translate(40 892)">
+    <rect width="12" height="12" rx="2" fill="#0b1626" stroke="#2a3d58" stroke-width="0.6"/>
+    <text x="20" y="10" class="mono-light">field    #04070d → #0b1626 · light pool #7fe7f5 @9 % · vignette #000 0 → 55 %</text>
+  </g>
+  <g transform="translate(40 914)">
+    <rect width="12" height="12" rx="2" fill="#1f3552" stroke="#7fe7f5" stroke-width="0.8"/>
+    <text x="20" y="10" class="mono-light">wall     band #182c46 / #2a4a70 · rim #7fe7f5 · hairline #fff · 34 wu</text>
+  </g>
+  <g transform="translate(40 936)">
+    <use href="#mote-algal" transform="translate(6 6) scale(0.9)"/>
+    <text x="20" y="10" class="mono-light">algal    #8dff6a core · #3f9a2c edge · r 3–5 wu · glow r ×3 @22 %</text>
+  </g>
+  <g transform="translate(40 958)">
+    <use href="#mote-lipid" transform="translate(6 6) rotate(-20) scale(0.85)"/>
+    <text x="20" y="10" class="mono-light">lipid    #f2c94c · #c88a2a centre · #ffe7a3 rim · 4–7 × 3.4–6 wu · glow ×2.8</text>
+  </g>
+  <g transform="translate(40 980)">
+    <use href="#mote-mineral" transform="translate(6 6) rotate(25) scale(0.95)"/>
+    <text x="20" y="10" class="mono-light">mineral  #9ad7ff · #3d7fc4 · #fff facet · 3 × 4.5 wu diamond · glow ×2.5</text>
+  </g>
+  <g transform="translate(40 1002)">
+    <use href="#dna-fragment" transform="translate(6 6) rotate(-15) scale(0.5)"/>
+    <text x="20" y="10" class="mono-light">DNA      #f0b8ff / #d36bff strands · #b070ff rungs · 22 wu · glow r 14 @20–30 %</text>
+  </g>
+  <g transform="translate(40 1024)">
+    <circle cx="3" cy="4" r="1" fill="#ffffff" opacity="0.6"/><circle cx="9" cy="8" r="3" fill="#dff4ff" opacity="0.25" filter="url(#blur-1_5)"/>
+    <text x="20" y="10" class="mono-light">depth    far r 0.5–1.3 wu @8–28 % sharp · near r 2–4 blur 3 @5–13 % · 260 + 46</text>
+  </g>
+</g>
+
+<!-- ============================================================ 13. zoomed-out inset: high mass, camera zoom 0.2, the whole dish fits -->
+<g id="inset">
+  <!-- opaque backing: the panel sits over the dish wall, whose glow must not show through it -->
+  <rect x="1470" y="792" width="428" height="268" rx="8" fill="#04070d"/>
+  <rect x="1470" y="792" width="428" height="268" rx="8" fill="url(#panel-bg)" stroke="#173250" stroke-width="1"/>
+  <text x="1486" y="814" class="lab-accent">ZOOMED OUT · HIGH MASS</text>
+  <text x="1722" y="814" class="mono">zoom 0.2 · mass ≥ 400</text>
+  <!-- the dish -->
+  <circle cx="1598" cy="936" r="118" fill="#02040a" opacity="0.9"/>
+  <circle cx="1598" cy="936" r="110" fill="url(#inset-dish-bg)"/>
+  <g clip-path="url(#clip-inset-dish)">
+    <!-- zones across the whole dish: a sunlit crescent on the lit side, vents on the floor, mire against the far wall -->
+    <ellipse cx="1560" cy="880" rx="72" ry="52" transform="rotate(-30 1560 880)" fill="#8dffb0" opacity="0.18" filter="url(#blur-16)"/>
+    <ellipse cx="1642" cy="923" rx="30" ry="24" fill="#8dffb0" opacity="0.2" filter="url(#blur-6)"/>
+    <ellipse cx="1560" cy="1004" rx="26" ry="18" fill="#ff9a4d" opacity="0.14" filter="url(#blur-6)"/>
+    <ellipse cx="1690" cy="924" rx="22" ry="34" transform="rotate(20 1690 924)" fill="#b070ff" opacity="0.22" filter="url(#blur-10)"/>
+    <ellipse cx="1520" cy="960" rx="20" ry="30" fill="#b070ff" opacity="0.12" filter="url(#blur-10)"/>
+    <!-- this sheet's vent: world (1250, 930) -> inset (1690, 951), inside the dashed view rectangle -->
+    <ellipse cx="1690" cy="951" rx="17" ry="13" fill="#ff9a4d" opacity="0.5" filter="url(#blur-6)"/>
+    <ellipse cx="1690" cy="951" rx="5" ry="3.5" fill="#ffb15a" opacity="0.7" filter="url(#blur-3)"/>
+    <!-- motes fade to a texture -->
+    <rect x="1488" y="826" width="220" height="220" filter="url(#inset-mote-texture)" opacity="0.5"/>
+    <!-- other cells: dots at a 3 px floor, rim colour only -->
+    <g stroke-width="0.8">
+      <circle cx="1548" cy="900" r="8" fill="#291424" stroke="#ffb3ec" opacity="0.9"/>
+      <circle cx="1548" cy="900" r="3" fill="#f07ad2" opacity="0.8"/>
+      <circle cx="1620" cy="990" r="6" fill="#1b2610" stroke="#dcffb0" opacity="0.9"/>
+      <circle cx="1620" cy="990" r="2.2" fill="#b5ef62" opacity="0.8"/>
+      <circle cx="1530" cy="972" r="4.5" fill="#1b1435" stroke="#d2c4ff" opacity="0.9"/>
+      <circle cx="1585" cy="860" r="3.5" fill="#292111" stroke="#ffe7a3" opacity="0.9"/>
+      <circle cx="1660" cy="880" r="3" fill="#3b1511" stroke="#ffd0c8" opacity="0.9"/>
+      <circle cx="1692" cy="937" r="3" fill="#291424" stroke="#ffb3ec" opacity="0.9"/>
+      <circle cx="1602" cy="1020" r="3" fill="#292111" stroke="#ffe7a3" opacity="0.9"/>
+      <circle cx="1510" cy="920" r="3" fill="#1b2610" stroke="#dcffb0" opacity="0.9"/>
+      <circle cx="1640" cy="850" r="3" fill="#1b1435" stroke="#d2c4ff" opacity="0.9"/>
+    </g>
+    <!-- you -->
+    <circle cx="1675" cy="937" r="9" fill="#a6f4ff" opacity="0.25" filter="url(#blur-3)"/>
+    <circle cx="1675" cy="937" r="4" fill="#22c1d6" stroke="#a6f4ff" stroke-width="1"/>
+    <circle cx="1675" cy="937" r="7.5" fill="none" stroke="#a6f4ff" stroke-width="0.8" opacity="0.7"/>
+    <!-- the play-scale view above, to scale (1920 × 1080 wu = 74 × 42 px) -->
+    <rect x="1641.8" y="915.2" width="73.8" height="41.5" fill="none" stroke="#7fe7f5" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.8"/>
+  </g>
+  <!-- wall -->
+  <circle cx="1598" cy="936" r="112" fill="none" stroke="#1f3552" stroke-width="4"/>
+  <circle cx="1598" cy="936" r="110" fill="none" stroke="#7fe7f5" stroke-width="0.8" opacity="0.7"/>
+  <circle cx="1598" cy="936" r="110" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.8" stroke-dasharray="70 622" stroke-dashoffset="230" stroke-linecap="round" filter="url(#blur-1_5)"/>
+  <!-- notes -->
+  <text x="1722" y="846" class="mono-light">dashed rect = this sheet</text>
+  <text x="1722" y="860" class="mono-light">(1920 × 1080 wu → 74 × 42 px)</text>
+  <text x="1722" y="886" class="mono">dish r 2860 wu = 110 px</text>
+  <text x="1722" y="900" class="mono">zoom eases 1.0 → 0.2</text>
+  <text x="1722" y="914" class="mono">over mass 20 → 400</text>
+  <text x="1722" y="940" class="mono">cells: 3 px floor, rim</text>
+  <text x="1722" y="954" class="mono">colour + halo, no interior</text>
+  <text x="1722" y="968" class="mono">you: #22c1d6 + ring r 7.5</text>
+  <text x="1722" y="994" class="mono">motes: no sprites, 1 px</text>
+  <text x="1722" y="1008" class="mono">turbulence texture @50 %</text>
+  <text x="1722" y="1022" class="mono">zones: blurred fields at</text>
+  <text x="1722" y="1036" class="mono">2× play-scale alpha</text>
+  <text x="1722" y="1050" class="mono">wall: 4 px #1f3552 + rim</text>
+</g>
+<text x="1896" y="1070" class="mono" text-anchor="end">Evolution · docs/concept-art/dish-scene.svg · 1920 × 1080</text>
+</svg>
