@@ -11,13 +11,15 @@ import { ManualClock } from '../time/clock.js';
 import { createSimulationStepAccumulator } from '../time/fixed-step-accumulator.js';
 import type { RandomState } from './random-source.js';
 import { createSeededRandom, createSeededRandomFromState } from './seeded-random.js';
-import { RANDOM_STREAM, SERVER_RANDOM_STREAM_LABELS, type RandomStreamLabel } from './stream-labels.js';
+import { forkStreamStates } from './stream-forking.js';
+import { RANDOM_STREAM, SERVER_RANDOM_STREAM_LABELS, type ServerRandomStreamLabel } from './stream-labels.js';
 
 const ACCEPTANCE_SEED = 42;
 const OTHER_SEED = 43;
 const TOTAL_TICKS = 10_000;
 const HASH_EVERY_TICKS = 600;
 const MOTES_PER_TICK = 8;
+const FEWER_MOTES_PER_TICK = 3;
 const SPAWN_INTERVAL_TICKS = 7;
 /** Ticks per ticker fire; divides TOTAL_TICKS and stays under MAX_TICKS_PER_ADVANCE. */
 const STEP_BURST_TICKS = 4;
@@ -27,21 +29,18 @@ interface ToyWorld {
   seed: number;
   headings: number[];
   spawns: number[];
-  random: Record<RandomStreamLabel, RandomState>;
+  random: Record<ServerRandomStreamLabel, RandomState>;
 }
 
 function createToyWorld(seed: number): ToyWorld {
-  const root = createSeededRandom(seed);
-  const random = {} as Record<RandomStreamLabel, RandomState>;
-  for (const label of SERVER_RANDOM_STREAM_LABELS) {
-    random[label] = root.fork(label).getState();
-  }
+  const random = forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS);
   return { tick: 0, seed, headings: [], spawns: [], random };
 }
 
-function stepToyWorld(world: ToyWorld): void {
+/** One tick: every mote draws a heading from its stream; every seventh tick the spawner draws. */
+function stepToyWorld(world: ToyWorld, motesPerTick: number): void {
   const motion = createSeededRandomFromState(world.random[RANDOM_STREAM.moteMotion]);
-  for (let mote = 0; mote < MOTES_PER_TICK; mote += 1) {
+  for (let mote = 0; mote < motesPerTick; mote += 1) {
     world.headings.push(motion.nextFloat());
   }
   world.random[RANDOM_STREAM.moteMotion] = motion.getState();
@@ -70,7 +69,7 @@ function runUnderManualClock(seed: number): StateHash[] {
   while (world.tick < TOTAL_TICKS) {
     clock.advanceMilliseconds(TICK_INTERVAL_MS * STEP_BURST_TICKS);
     for (let due = accumulator.dueTicks(); due > 0; due -= 1) {
-      stepToyWorld(world);
+      stepToyWorld(world, MOTES_PER_TICK);
       if (world.tick % HASH_EVERY_TICKS === 0 || world.tick === TOTAL_TICKS) {
         checkpoints.push(hashToyWorld(world));
       }
@@ -79,6 +78,15 @@ function runUnderManualClock(seed: number): StateHash[] {
   expect(world.tick).toBe(TOTAL_TICKS);
   expect(accumulator.takeDroppedTicks()).toBe(0);
   return checkpoints;
+}
+
+/** Steps a fresh world `ticks` times with `motesPerTick` mote draws per tick. */
+function runToyWorld(seed: number, ticks: number, motesPerTick: number): ToyWorld {
+  const world = createToyWorld(seed);
+  while (world.tick < ticks) {
+    stepToyWorld(world, motesPerTick);
+  }
+  return world;
 }
 
 describe('determinism wire: streams + clock + hash', () => {
@@ -97,12 +105,11 @@ describe('determinism wire: streams + clock + hash', () => {
   });
 
   it('keeps the spawner stream unaffected by how many mote draws happened', () => {
-    const world = createToyWorld(ACCEPTANCE_SEED);
-    const untouched = createSeededRandomFromState(world.random[RANDOM_STREAM.spawner]).nextFloat();
-    while (world.tick < HASH_EVERY_TICKS) {
-      stepToyWorld(world);
-    }
-    const spawnerAfterMotion = createSeededRandom(world.random[RANDOM_STREAM.spawner].seed).nextFloat();
-    expect(spawnerAfterMotion).toBe(untouched);
+    const manyMotes = runToyWorld(ACCEPTANCE_SEED, HASH_EVERY_TICKS, MOTES_PER_TICK);
+    const fewMotes = runToyWorld(ACCEPTANCE_SEED, HASH_EVERY_TICKS, FEWER_MOTES_PER_TICK);
+    expect(fewMotes.headings).not.toEqual(manyMotes.headings);
+    expect(fewMotes.random[RANDOM_STREAM.moteMotion]).not.toEqual(manyMotes.random[RANDOM_STREAM.moteMotion]);
+    expect(fewMotes.spawns).toEqual(manyMotes.spawns);
+    expect(fewMotes.random[RANDOM_STREAM.spawner]).toEqual(manyMotes.random[RANDOM_STREAM.spawner]);
   });
 });

@@ -7,7 +7,8 @@
 export type XoshiroWords = [number, number, number, number];
 
 const UINT32_BITS = 32;
-const WORD_COUNT = 4;
+/** xoshiro128** keeps four 32-bit state words. */
+export const XOSHIRO_WORD_COUNT = 4;
 const SPLITMIX32_INCREMENT = 0x9e3779b9;
 const SPLITMIX32_MULTIPLIER_ONE = 0x21f0aaad;
 const SPLITMIX32_MULTIPLIER_TWO = 0x735a2d97;
@@ -39,7 +40,7 @@ function splitmix32Step(state: number): { nextState: number; output: number } {
 export function expandSeedToWords(seed: number): XoshiroWords {
   let state = seed >>> 0;
   const words: number[] = [];
-  while (words.length < WORD_COUNT) {
+  while (words.length < XOSHIRO_WORD_COUNT) {
     const step = splitmix32Step(state);
     state = step.nextState;
     words.push(step.output);

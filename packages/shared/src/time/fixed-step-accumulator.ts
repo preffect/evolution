@@ -21,7 +21,8 @@ export class FixedStepAccumulator {
   /**
    * How many ticks are due since the last call, capped at `maxTicksPerAdvance`. Ticks beyond
    * the cap are dropped (the backlog is discarded, not deferred) and counted for
-   * `takeDroppedTicks()`.
+   * `takeDroppedTicks()`; the fractional remainder of a capped interval is discarded too, so
+   * the next call starts from a clean tick boundary rather than carrying a partial tick.
    */
   dueTicks(): number {
     const now = this.clock.nowMilliseconds();

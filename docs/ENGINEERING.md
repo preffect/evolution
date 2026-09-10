@@ -73,9 +73,13 @@ each is checkable. An AI building a game from this template MUST follow every ru
    `vitest.config.ts` (default `include` excludes `*.integration.test.ts`; `RUN_INTEGRATION=1`
    flips to include them with `passWithNoTests: true`). Run them only at the **end of a task
    that may have caused a cross-subsystem regression** — never on every save or pre-commit.
-5. **`./validate.sh integration`** runs them (sets `RUN_INTEGRATION=1`, runs `pnpm -r test`);
-   never run vitest directly. Every package's `vitest.config.ts` comes from the root
-   `vitest.package-config.ts`, which does the include/exclude switch in one place.
+5. **`./validate.sh integration`** runs them (sets `RUN_INTEGRATION=1`, runs `pnpm -r test`
+   for every package but the client); never run vitest directly. Every vitest package's
+   `vitest.config.ts` comes from the root `vitest.package-config.ts`, which does the
+   include/exclude switch in one place. The client's `ng test` ignores `RUN_INTEGRATION` and
+   fails when its include glob matches no file, so it is skipped until the first client ticket
+   that adds a `*.integration.spec.ts` wires an `integration` configuration (`include:
+src/**/*.integration.spec.ts`) in `angular.json` and lifts the skip.
 
 ### 2.3 What must be covered (template-specific)
 

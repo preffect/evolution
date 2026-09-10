@@ -8,7 +8,16 @@ import { describe, expect, it } from 'vitest';
 
 const SOURCE_ROOT = join(import.meta.dirname, '..');
 const MINIMUM_FILES_SCANNED = 10;
-const BANNED_PATTERNS = [/Math\.random/, /Date\.now/, /performance\.now/, /\bsetTimeout\(/, /\bsetInterval\(/];
+const BANNED_PATTERNS = [
+  /Math\.random/,
+  /Date\.now/,
+  /performance\.now/,
+  /\bsetTimeout\(/,
+  /\bsetInterval\(/,
+  /\bsetImmediate\(/,
+  /\bqueueMicrotask\(/,
+  /\brequestAnimationFrame\(/,
+];
 const EXEMPT_DIRECTORIES = ['random', 'time'];
 const TEST_FILE_PATTERN = /\.(test|spec)\.ts$/;
 const BLOCK_COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;

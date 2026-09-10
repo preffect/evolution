@@ -6,6 +6,7 @@ export * from './random/random-source.js';
 export * from './random/stream-labels.js';
 export * from './random/label-hash.js';
 export * from './random/seeded-random.js';
+export * from './random/stream-forking.js';
 export * from './time/clock.js';
 export * from './time/fixed-step-accumulator.js';
 export * from './time/units.js';

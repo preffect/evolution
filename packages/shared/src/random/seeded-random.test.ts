@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hashLabel } from './label-hash.js';
 import { RANDOM_STREAM } from './stream-labels.js';
+import type { RandomState } from './random-source.js';
 import { createSeededRandom, createSeededRandomFromState, SeededRandomError } from './seeded-random.js';
 
 const TEST_SEED = 42;
@@ -11,6 +12,8 @@ const GAUSSIAN_TOLERANCE = 0.05;
 const DIE_MIN = 1;
 const DIE_MAX = 6;
 const MEAN_TOLERANCE_RATIO = 0.03;
+/** 2^32: one past the largest unsigned 32-bit word. */
+const UINT32_RANGE = 0x1_0000_0000;
 
 function drawFloats(seed: number, count: number): number[] {
   const random = createSeededRandom(seed);
@@ -176,6 +179,32 @@ describe('createSeededRandomFromState', () => {
     random.nextFloat();
     expect(random.getState()).not.toEqual(before);
     expect(createSeededRandomFromState(before).getState()).toEqual(before);
+  });
+
+  it('rejects words that are not four unsigned 32-bit integers or are all zero', () => {
+    const state = createSeededRandom(TEST_SEED).getState();
+    const corruptWords: unknown[] = [
+      [1, 2, 3],
+      [1, 2, 3, 4, 5],
+      [1.5, 2, 3, 4],
+      [Number.NaN, 2, 3, 4],
+      [-1, 2, 3, 4],
+      [UINT32_RANGE, 2, 3, 4],
+      [0, 0, 0, 0],
+      'nope',
+    ];
+    for (const words of corruptWords) {
+      expect(() => createSeededRandomFromState({ ...state, words: words as RandomState['words'] })).toThrow(
+        SeededRandomError,
+      );
+    }
+  });
+
+  it('rejects a position that is not a non-negative safe integer', () => {
+    const state = createSeededRandom(TEST_SEED).getState();
+    for (const position of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => createSeededRandomFromState({ ...state, position })).toThrow(SeededRandomError);
+    }
   });
 
   it('rejects a corrupt seed in the state', () => {

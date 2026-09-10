@@ -223,7 +223,7 @@ export interface WorldState {
   players: PlayerRecord[]; // join order
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ECOLOGY §3)
-  random: Record<RandomStreamLabel, RandomState>; // the streams' serialisable state (DETERMINISM §3)
+  random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (DETERMINISM §3, §5)
   nextEntityNumber: number;
   effects: GameEffect[]; // this tick's effects, drained by serialize (cell_absorbed, eat, level_up, …)
 }

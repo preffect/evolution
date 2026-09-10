@@ -13,8 +13,8 @@ describe('RANDOM_STREAM', () => {
     }
   });
 
-  it('keeps the cosmetic stream off the server list', () => {
+  it('keeps the cosmetic stream off the server list and nothing else', () => {
     expect(SERVER_RANDOM_STREAM_LABELS).not.toContain(RANDOM_STREAM.cosmetic);
-    expect(SERVER_RANDOM_STREAM_LABELS.length).toBe(RANDOM_STREAM_LABELS.length - 1);
+    expect([...SERVER_RANDOM_STREAM_LABELS, RANDOM_STREAM.cosmetic]).toEqual(RANDOM_STREAM_LABELS);
   });
 });

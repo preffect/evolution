@@ -1,9 +1,10 @@
 // The state hash kernel (docs/DETERMINISM.md §5): two independent 32-bit FNV-1a lanes fed the
 // same canonical byte stream. Scalars carry a type tag so `0`, `false`, `"0"` and `null` never
-// collide; numbers hash by their IEEE-754 bits through one shared DataView; strings by UTF-16
-// code units with a length prefix. The walk order is the caller's job (state-hash.ts).
+// collide; numbers hash by their IEEE-754 bits through one shared DataView; strings by a length
+// prefix then the one UTF-16 encoding `hashing/fnv1a.ts` defines (`hashLabel` shares it). The
+// walk order is the caller's job (state-hash.ts).
 
-import { FNV1A_OFFSET_BASIS, fnv1aFoldByte, fnv1aFoldUint32 } from '../hashing/fnv1a.js';
+import { FNV1A_OFFSET_BASIS, fnv1aFoldByte, fnv1aFoldString, fnv1aFoldUint32 } from '../hashing/fnv1a.js';
 
 /** 16 hexadecimal characters: lane A then lane B. */
 export type StateHash = string & { readonly __brand: 'StateHash' };
@@ -54,9 +55,8 @@ export class StateHasher {
   hashString(value: string): this {
     this.foldByte(SCALAR_TAG.string);
     this.foldUint32(value.length);
-    for (let index = 0; index < value.length; index += 1) {
-      this.foldUint32(value.charCodeAt(index));
-    }
+    this.laneA = fnv1aFoldString(this.laneA, value);
+    this.laneB = fnv1aFoldString(this.laneB, value);
     return this;
   }
 

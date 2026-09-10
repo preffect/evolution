@@ -109,8 +109,16 @@ export const RANDOM_STREAM = {
   cosmetic: 'cosmetic', // client only, never on the server
 } as const;
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
-/** Declared order: the hash walk and the order createWorld forks; SERVER_RANDOM_STREAM_LABELS omits `cosmetic`. */
+export type ServerRandomStreamLabel = Exclude<RandomStreamLabel, 'cosmetic'>;
+/** The server streams in declared order: the order createWorld forks them and the hash walk of world.random. */
+export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[];
+/** Every label: the server streams, then `cosmetic` (client only). */
 export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[];
+/** Forks one child per label from root, keyed by label; what createWorld stores in world.random. */
+export const forkStreamStates: <Label extends string>(
+  root: RandomSource,
+  labels: readonly Label[],
+) => Record<Label, RandomState>;
 ```
 
 - **Algorithm.** xoshiro128** (Blackman & Vigna), 128-bit state, all 32-bit integer
@@ -118,7 +126,15 @@ export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[];
   splitmix32 (`random/xoshiro128-star-star.ts`, known-answer tested against the reference
   sequence from state {1, 2, 3, 4}). `nextFloat` is the 32-bit output over 2^32. The state
   carries the four words, not only `{ seed, position }`: resuming from a position alone would
-  replay every earlier draw, and `step.ts` resumes each stream every tick.
+  replay every earlier draw, and `step.ts` resumes each stream every tick. `nextGaussian`
+  (Box–Muller) and any heading maths downstream use `Math.log` / `Math.sqrt` / `Math.cos`,
+  whose bit-exactness across engines is a libm property, not a language guarantee; that is
+  inside the contract (§1: same Node version, server-authoritative), so a divergence between
+  engines there is not a PRNG bug and the integer core must not be "fixed" for it.
+- `createSeededRandomFromState` rejects a corrupt state as loudly as a corrupt seed: `words`
+  must be exactly four unsigned 32-bit integers and not all zero (the one state xoshiro cannot
+  leave), `position` a non-negative safe integer. Replays, saves and `debug_set_seed` all
+  arrive from JSON.
 - Seeds are non-negative integers reduced modulo 2^32 (`SEED_MAX` is the config-boundary
   bound; the rematch increment past it wraps). A negative, fractional or non-finite seed throws.
 
@@ -133,7 +149,8 @@ export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[];
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.
 - **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the five server
-  streams from the round seed and stores their state in `world.random`; systems obtain a live
+  streams from the round seed (`forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS)`)
+  and stores their state in `world.random`; systems obtain a live
   source per step through `context.streams[label]`, which resumes from the stored state and
   writes it back after the step. Exactly two things re-create the streams: the **auto-rematch**
   (`session/round.ts` rebuilds the world from `seed + ROUND_SEED_INCREMENT`, GAME-DESIGN §5.4;
@@ -173,14 +190,15 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
 
 - Two independent 32-bit FNV-1a lanes over a **canonical walk**: `tick`, `seed`,
   `roundPhase`, `roundTimeLeftMs`, then each array in order (`cells`, `food`, `dnaFragments`,
-  `players`, `gelPatches`, `spawners`, `random` streams in `RANDOM_STREAM` order), each record's
+  `players`, `gelPatches`, `spawners`, `random` streams in `SERVER_RANDOM_STREAM_LABELS` order), each record's
   fields in the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
   (so `0`, `false`, `""` and `null` differ); numbers hash by their IEEE-754 bits (one shared
   `DataView`), strings by a length prefix then UTF-16 code units, booleans as 0/1, `null` as a
   marker byte; arrays and enum records by a length prefix then their items.
 - **No object-key iteration.** `Record<DnaTag, number>` and `Record<BacteriumVariant, number>`
-  are walked in `DNA_TAGS` / `BACTERIUM_VARIANTS` order; `world.random` in `RANDOM_STREAM`
-  order. A record field that is not in `HASHED_FIELDS` is not hashed, so adding a debug-only
+  are walked in `DNA_TAGS` / `BACTERIUM_VARIANTS` order; `world.random` in
+  `SERVER_RANDOM_STREAM_LABELS` order (the client's `cosmetic` stream is never in the hashed
+  world). A record field that is not in `HASHED_FIELDS` is not hashed, so adding a debug-only
   field cannot silently change the hash, and a new gameplay field must be added to the list
   (the test table pins that every non-derived field is listed).
 - Random stream state is included (a run that consumed a different number of draws differs).

@@ -19,20 +19,25 @@ export const RANDOM_STREAM = {
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
 
+/** The server streams: every label except `cosmetic`, which only the client ever forks. */
+export type ServerRandomStreamLabel = Exclude<RandomStreamLabel, typeof RANDOM_STREAM.cosmetic>;
+
 /**
- * The labels in declared order: the walk order for `world.random` in the state hash and the
- * order `createWorld` forks the server streams (never `Object.keys`, DETERMINISM §5).
+ * The streams `createWorld` forks on the server, in declared order: the order they are forked
+ * from the round seed and the walk order of `world.random` in the state hash (never
+ * `Object.keys`, DETERMINISM §3, §5). Declared by hand rather than filtered from
+ * `RANDOM_STREAM_LABELS` so the narrowing is by declaration, not by a type guard.
  */
-export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[] = [
+export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
   RANDOM_STREAM.spawner,
   RANDOM_STREAM.zones,
   RANDOM_STREAM.spawnPlacement,
   RANDOM_STREAM.traitDraft,
   RANDOM_STREAM.moteMotion,
-  RANDOM_STREAM.cosmetic,
 ];
 
-/** The streams `createWorld` forks on the server; `cosmetic` belongs to the client alone. */
-export const SERVER_RANDOM_STREAM_LABELS: readonly RandomStreamLabel[] = RANDOM_STREAM_LABELS.filter(
-  (label) => label !== RANDOM_STREAM.cosmetic,
-);
+/** Every label in declared order: the server streams, then the client's `cosmetic` stream. */
+export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[] = [
+  ...SERVER_RANDOM_STREAM_LABELS,
+  RANDOM_STREAM.cosmetic,
+];

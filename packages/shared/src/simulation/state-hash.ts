@@ -34,24 +34,23 @@ export function hashFields<T>(hasher: StateHasher, record: T, fields: readonly H
   }
 }
 
-/** Hashes a record keyed by a closed enum in the enum's declared order. */
-export function hashEnumRecord<Key extends string>(
-  hasher: StateHasher,
-  record: Readonly<Record<Key, HashableScalar>>,
-  keyOrder: readonly Key[],
-): void {
-  hasher.hashArrayLength(keyOrder.length);
-  for (const key of keyOrder) {
-    hasher.hashScalar(record[key]);
-  }
-}
-
 /** Hashes an array in order, length first, each item through `hashItem`. */
 export function hashArray<T>(hasher: StateHasher, items: readonly T[], hashItem: ValueHasher<T>): void {
   hasher.hashArrayLength(items.length);
   for (const item of items) {
     hashItem(hasher, item);
   }
+}
+
+/** Hashes a record keyed by a closed enum in the enum's declared order. */
+export function hashEnumRecord<Key extends string>(
+  hasher: StateHasher,
+  record: Readonly<Record<Key, HashableScalar>>,
+  keyOrder: readonly Key[],
+): void {
+  hashArray(hasher, keyOrder, (itemHasher, key) => {
+    itemHasher.hashScalar(record[key]);
+  });
 }
 
 /** Hashes an array of scalars in order. */
@@ -66,16 +65,15 @@ export function hashRandomState(hasher: StateHasher, state: RandomState): void {
   hashFields(hasher, state, ['seed', 'position', { key: 'words', hash: hashScalarArray }]);
 }
 
-/** Hashes the record of streams in `labelOrder` (the `RANDOM_STREAM_LABELS` walk). */
+/** Hashes the record of streams in `labelOrder` (the `SERVER_RANDOM_STREAM_LABELS` walk). */
 export function hashRandomStreams<Label extends string>(
   hasher: StateHasher,
   streams: Readonly<Record<Label, RandomState>>,
   labelOrder: readonly Label[],
 ): void {
-  hasher.hashArrayLength(labelOrder.length);
-  for (const label of labelOrder) {
-    hashRandomState(hasher, streams[label]);
-  }
+  hashArray(hasher, labelOrder, (itemHasher, label) => {
+    hashRandomState(itemHasher, streams[label]);
+  });
 }
 
 /** The hash of a text (the echo harness hashes `JSON.stringify(serializeRoomState())`). */

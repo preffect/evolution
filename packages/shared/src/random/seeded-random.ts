@@ -3,7 +3,7 @@
 
 import { hashLabel } from './label-hash.js';
 import type { RandomSource, RandomState } from './random-source.js';
-import { expandSeedToWords, nextUint32, type XoshiroWords } from './xoshiro128-star-star.js';
+import { expandSeedToWords, nextUint32, XOSHIRO_WORD_COUNT, type XoshiroWords } from './xoshiro128-star-star.js';
 
 /** 2^32: an unsigned 32-bit output divided by this is uniform in [0, 1). */
 const UINT32_RANGE = 0x1_0000_0000;
@@ -21,6 +21,26 @@ export class SeededRandomError extends Error {
 function assertSeed(seed: number): void {
   if (!Number.isSafeInteger(seed) || seed < 0) {
     throw new SeededRandomError(`Seed must be a non-negative safe integer, got ${String(seed)}`);
+  }
+}
+
+/** The four words must be unsigned 32-bit integers and not all zero: the one state xoshiro cannot leave. */
+function assertWords(words: unknown): asserts words is XoshiroWords {
+  const isWordList =
+    Array.isArray(words) && words.length === XOSHIRO_WORD_COUNT && words.every((word) => word === word >>> 0);
+  if (!isWordList) {
+    throw new SeededRandomError(
+      `State words must be ${XOSHIRO_WORD_COUNT} unsigned 32-bit integers, got ${String(words)}`,
+    );
+  }
+  if (words.every((word) => word === 0)) {
+    throw new SeededRandomError('State words must not all be zero');
+  }
+}
+
+function assertPosition(position: number): void {
+  if (!Number.isSafeInteger(position) || position < 0) {
+    throw new SeededRandomError(`State position must be a non-negative safe integer, got ${String(position)}`);
   }
 }
 
@@ -50,9 +70,10 @@ class SeededRandom implements RandomSource {
 
   constructor(
     private readonly seed: number,
-    words: XoshiroWords,
+    words: Readonly<XoshiroWords>,
     position: number,
   ) {
+    // The one copy in: `getState()` copies out, so no caller shares the live words.
     this.words = [...words];
     this.position = position;
   }
@@ -131,5 +152,7 @@ export function createSeededRandom(seed: number): RandomSource {
 /** Resumes exactly where `getState()` left off: the next draw equals what the original would have drawn. */
 export function createSeededRandomFromState(state: RandomState): RandomSource {
   assertSeed(state.seed);
-  return new SeededRandom(state.seed, [...state.words], state.position);
+  assertWords(state.words);
+  assertPosition(state.position);
+  return new SeededRandom(state.seed, state.words, state.position);
 }

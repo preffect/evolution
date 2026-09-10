@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createSeededRandom } from '../random/seeded-random.js';
-import { RANDOM_STREAM, RANDOM_STREAM_LABELS, type RandomStreamLabel } from '../random/stream-labels.js';
 import type { RandomState } from '../random/random-source.js';
+import { createSeededRandom } from '../random/seeded-random.js';
+import { forkStreamStates } from '../random/stream-forking.js';
+import { RANDOM_STREAM, SERVER_RANDOM_STREAM_LABELS, type ServerRandomStreamLabel } from '../random/stream-labels.js';
 import {
   type HashedField,
   hashArray,
@@ -108,18 +109,13 @@ describe('hashArray', () => {
 });
 
 describe('hashRandomState / hashRandomStreams', () => {
-  function forkAllStreams(seed: number): Record<RandomStreamLabel, RandomState> {
-    const root = createSeededRandom(seed);
-    const streams = {} as Record<RandomStreamLabel, RandomState>;
-    for (const label of RANDOM_STREAM_LABELS) {
-      streams[label] = root.fork(label).getState();
-    }
-    return streams;
+  function forkAllStreams(seed: number): Record<ServerRandomStreamLabel, RandomState> {
+    return forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS);
   }
 
-  function hashStreams(streams: Record<RandomStreamLabel, RandomState>): string {
+  function hashStreams(streams: Record<ServerRandomStreamLabel, RandomState>): string {
     const hasher = new StateHasher();
-    hashRandomStreams(hasher, streams, RANDOM_STREAM_LABELS);
+    hashRandomStreams(hasher, streams, SERVER_RANDOM_STREAM_LABELS);
     return hasher.digest();
   }
 
