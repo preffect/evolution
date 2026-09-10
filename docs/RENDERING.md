@@ -26,7 +26,7 @@ The renderer reads **only** what `net/` gives it and never feeds anything back
 | `renderTick` (fractional)                                                                                                                                | `net/interpolation.ts` (`ARCHITECTURE.md §5` owns the delay and the lerp; nothing under `render/` computes it); **`timeSeconds = renderTick × TICK_INTERVAL_S`** is the only time the renderer sees. A paused room (`debug_pause_room`) holds `renderTick`, so the frame is identical until it resumes |
 | Cosmetic randomness                                                                                                                                      | `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of `createSeededRandom(snapshot.seed)` (`ARCHITECTURE.md §6`, `DETERMINISM.md §1.8`): per-cell phases and organelle slots; the field noise textures from `fork(RANDOM_STREAM.cosmetic + ':field')`                                                       |
 | `balance` (from `game_state`)                                                                                                                            | `speedRatio = ‖velocity‖ / maxSpeed(mass, balance)` through the shared kernel; `canEngulf(cell, own, balance.absorption)` for the warning ring                                                                                                                                                         |
-| HUD crossings                                                                                                                                            | `previewTraitId`, `reticleVisible` in; `cameraExtent` out; wired in `game-setup.ts` (`UI.md §7`). Pointer target for the reticle comes from `input/`, not the HUD                                                                                                                                      |
+| HUD crossings                                                                                                                                            | `previewTraitId`, `reticleVisible`, `ownCellIndicators` in; `cameraExtent` out; wired in `game-setup.ts` (`UI.md §7`). Pointer target for the reticle comes from `input/`, not the HUD; the indicators record is `UI.md §3.1.4`'s and is drawn per §10                                                 |
 
 `render/` never calls a clock (`CODE-STANDARDS.md §8`): the bench harness (§7) drives `renderTick` from a `ManualClock`.
 
@@ -294,16 +294,16 @@ Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one
 zoom band (VISUAL-STYLE §8); the vent shimmer is the one filter, over the vent sprite only. Draw calls at the
 bench load (§7):
 
-| Layer (`ARCHITECTURE.md §6`) | Container                                                                           | Calls |
-| ---------------------------- | ----------------------------------------------------------------------------------- | ----- |
-| dish                         | field render texture; vent shimmer; vignette (screen-space)                         | 3     |
-| depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                     | 3     |
-| food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants)   | 1     |
-| DNA fragments                | sprite batch: helix + tag-tinted rungs / halo from the glow atlas, 20 °/s           | 1     |
-| cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                         | 4     |
-| effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters    | 2     |
-| debug                        | `Graphics` + text, none when off                                                    | 0–2   |
-| HUD                          | DOM (`UI.md`), nothing inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule, not ours | 0     |
+| Layer (`ARCHITECTURE.md §6`) | Container                                                                                                                                        | Calls |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| dish                         | field render texture; vent shimmer; vignette (screen-space)                                                                                      | 3     |
+| depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                  | 3     |
+| food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants)                                                                | 1     |
+| DNA fragments                | sprite batch: helix + tag-tinted rungs / halo from the glow atlas, 20 °/s                                                                        | 1     |
+| cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                      | 4     |
+| effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters                                                                 | 2     |
+| debug                        | `Graphics` + text, none when off                                                                                                                 | 0–2   |
+| HUD                          | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`) | 0     |
 
 Total **≤ 16 draw calls** (counted by wrapping the GL draw functions in the bench build). Culling: cells whose
 quad misses `cameraExtent` are not uploaded; motes and fragments are all uploaded (the bench load's quads are
@@ -416,3 +416,34 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks; `check.sh`
   renders each through headless Chromium (the concept-art recipe) and compares with ImageMagick
   `compare -metric AE -fuzz 2%`; a baseline moves only in a PR that shows before / after under `qa/evidence/<pr>/`.
+
+## 10. Own-cell indicators and world-anchored labels (#146)
+
+[`UI.md §3.1`](./UI.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns **what**
+the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and the
+nearest-threat label, with their data, states, wording, the reading-floor constants and the `OwnCellIndicators`
+record. This section owns **how** they are drawn and restates none of that; a value or a state named here is a
+link to UI.md, never a copy.
+
+- **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
+  `effects/own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite
+  placements, all in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane
+  or lags the predicted own position. Rings and arcs are tinted glow-atlas arc sprites (one `arc` entry with a
+  `fill` uniform, no per-frame `Graphics`); pips and ghosts are entries of the organelle atlas (§3) at their fixed
+  px size; the numeral and the labels are `BitmapText` in the `value` / `label` roles on a callout-backing sprite.
+  Budget: ≤ 14 sprites and 2 texts inside the `effects` stage's 0.3 ms (§7).
+- **Floors.** `dnaRingRadiusPx`, `ladderOrbitRadiusPx` and `orbitLayout` (pure, in the same file) apply UI.md
+  §3.1.3's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md's geometry
+  table at 24 / 32 / 45 / 102 px and the inequality that keeps the orbit under the picker band. They snap with
+  the self ring's LOD (§5): drawn at every LOD the own cell reaches, never faded.
+- **Sprint state.** The self-ring band (§2.2) is drawn as an arc of `sprintFill`: the instance's spare float
+  (§2.3) becomes `selfRingFill`, 1 for every cell but the own one.
+- **Keep-out.** `cells/organelle-layout.ts` rejects `|q| < DNA_RING_KEEP_OUT_FRACTION` in addition to the nucleus
+  disc, for every cell (one rule, no own-cell branch), so no sprite sits under the ring at full LOD.
+- **Threat label.** `effects/threat-label-placement.ts` (pure): the label's centre is the warning ring's radius
+  plus `THREAT_LABEL_GAP_PX` plus half the box, from the threat's centre **toward the own cell's centre**; text
+  stays upright. The warning rings on every eligible cell remain the pass-B band of §2.2; the label is drawn on
+  the nearest one only, as the record says.
+- **Tests.** `own-cell-indicators.spec.ts` and `threat-label-placement.spec.ts` (unit, no WebGL); the screenshot
+  baselines (§9) gain the own cell at the four sizes with the counters showing, the max-level ring and the escape
+  arc, from `qa/decisions/hud-layout/diegetic/` as the reference look.

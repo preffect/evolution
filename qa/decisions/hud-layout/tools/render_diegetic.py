@@ -183,14 +183,16 @@ def own_indicators(r_px, level, frac, stage, counters=(), sprint_fill=1.0, engul
     return ''.join(o)
 
 
-def threat_label(x, y, r, name='AMOEBOID', below=False):
-    """World-anchored, above the warning ring; flipped below it when the box would enter a chrome panel or leave the viewport."""
+def threat_label(x, y, r, name='AMOEBOID', own=(CX, CY)):
+    """World-anchored on the warning ring, on the side facing the own cell: never off-screen, never in a corner panel."""
     ring = max(r * ENGULF_WARNING_RING_RADII, ENGULF_WARNING_RING_MIN_PX)
     s = f'{name} CAN ENGULF YOU'
-    w = base.text_width(s, 'label') + 16
-    top = (y + ring + THREAT_LABEL_GAP_PX) if below else (y - ring - THREAT_LABEL_GAP_PX - 18)
-    return (f'<rect x="{x - w / 2:.0f}" y="{top:.0f}" width="{w:.0f}" height="18" rx="9" fill="{base.CALLOUT}" opacity="0.75"/>'
-            + base.text(x, top + 13, s, 'label', base.DANGER, 'middle'))
+    w, h = base.text_width(s, 'label') + 16, 18
+    dx, dy = own[0] - x, own[1] - y
+    d = math.hypot(dx, dy) or 1.0
+    cx, cy = x + dx / d * (ring + THREAT_LABEL_GAP_PX + h / 2), y + dy / d * (ring + THREAT_LABEL_GAP_PX + h / 2)
+    return (f'<rect x="{cx - w / 2:.0f}" y="{cy - h / 2:.0f}" width="{w:.0f}" height="{h}" rx="9" fill="{base.CALLOUT}" opacity="0.75"/>'
+            + base.text(cx, cy + 4.5, s, 'label', base.DANGER, 'middle'))
 
 
 # --- scenes ------------------------------------------------------------------------
@@ -224,7 +226,7 @@ def scene(rng, own_r, own_stage, own_inside, own_after, other_scale=1.0, heading
         ax, ay, ar = others[0][:3]
         ring = max(ar * ENGULF_WARNING_RING_RADII, ENGULF_WARNING_RING_MIN_PX)
         o.append(f'<circle cx="{ax}" cy="{ay}" r="{ring:.0f}" fill="none" stroke="{base.DANGER}" stroke-width="2" stroke-dasharray="6 5" opacity="0.85" filter="url(#glow-soft)"/>')
-        o.append(threat_label(ax, ay, ar, below=True))  # its top edge would enter the leaderboard panel
+        o.append(threat_label(ax, ay, ar))
     if own_stage == 'prokaryote':
         o.append(base.flagellum(CX, CY, own_r, heading))
     o.append(base.cell(CX, CY, own_r, 'cyan', own_stage, rng, heading=heading, speed=0.55, extra_inside=own_inside, self_ring=False, extra_after=own_after))

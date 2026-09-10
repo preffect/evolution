@@ -432,8 +432,9 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
 - **View registry**: entity id → view, created/destroyed on snapshot diff; views are dumb.
 - **HUD** reads `WorldStore` through `GameStateService` signals (derived only; the writable UI
   signals live in `hud/hud-state.service.ts`); the renderer never touches the DOM, the HUD never
-  touches Pixi. The three crossings (`previewTraitId`, `reticleVisible` in; `cameraExtent` out)
-  are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7).
+  touches Pixi. The four crossings (`previewTraitId`, `reticleVisible`, `ownCellIndicators` in;
+  `cameraExtent` out) are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7);
+  the own cell's progress indicators are drawn by the renderer from that record (UI.md §3.1, RENDERING §10).
 - **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
   paused screenshot reproduces.
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
