@@ -6,8 +6,8 @@ import { TRAIT_RARITY, type TraitRarity } from '../types/traits.js';
 
 export const MAX_LEVEL = 12;
 /** levelUpCost(level) = LEVEL_UP_COST_BASE_DNA + LEVEL_UP_COST_PER_LEVEL_DNA × level. */
-export const LEVEL_UP_COST_BASE_DNA = 10;
-export const LEVEL_UP_COST_PER_LEVEL_DNA = 10;
+export const LEVEL_UP_COST_BASE_DNA = 40;
+export const LEVEL_UP_COST_PER_LEVEL_DNA = 20;
 /** Cards per draft. */
 export const TRAIT_DRAFT_SIZE = 3;
 /** Draft weight by rarity (docs/PROGRESSION.md §3). */

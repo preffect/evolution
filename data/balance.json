@@ -27,7 +27,7 @@
     "STEER_FULL_THROTTLE_RADII": 2
   },
   "ladder": {
-    "ENDOSYMBIOSIS_BACTERIA_REQUIRED": 5,
+    "ENDOSYMBIOSIS_BACTERIA_REQUIRED": 10,
     "STAGE_GATE_TRAITS": {
       "protocell": [],
       "prokaryote": ["nucleoid"],
@@ -67,7 +67,7 @@
     "DNA_FRAGMENT_DRIFT_SPEED": 10,
     "DNA_FRAGMENT_INITIAL_FILL_FRACTION": 0.6,
     "DNA_FRAGMENT_RADIUS": 9,
-    "DNA_FRAGMENT_SPAWN_PER_SECOND_BASE": 0.5,
+    "DNA_FRAGMENT_SPAWN_PER_SECOND_BASE": 0.3,
     "DNA_FRAGMENT_SPAWN_PER_SECOND_PER_PLAYER": 0.1,
     "DNA_FRAGMENT_TAG_TABLE_BY_ZONE": {
       "sunlit_shallows": { "photic": 0.5, "sensory": 0.5 },
@@ -138,8 +138,8 @@
     "LATE_JOIN_GRACE_SECONDS": 30,
     "LATE_JOIN_MASS_FRACTION": 0.25,
     "LATE_JOIN_MAX_MASS": 200,
-    "LEVEL_UP_COST_BASE_DNA": 10,
-    "LEVEL_UP_COST_PER_LEVEL_DNA": 10,
+    "LEVEL_UP_COST_BASE_DNA": 40,
+    "LEVEL_UP_COST_PER_LEVEL_DNA": 20,
     "LEVEL_UP_NO_DRAFT_MASS_BONUS": 10,
     "MAX_LEVEL": 12,
     "RARITY_WEIGHT": { "common": 1, "uncommon": 0.5, "rare": 0.2 },
@@ -255,7 +255,7 @@
         "name": "Mitochondrion",
         "stage": "prokaryote",
         "requires": [],
-        "unlockedBy": { "bacteriumVariant": "aerobic", "count": 5 },
+        "unlockedBy": { "bacteriumVariant": "aerobic", "count": 10 },
         "category": "metabolism",
         "rarity": "uncommon",
         "tags": ["metabolic"],
@@ -272,7 +272,7 @@
         "name": "Chloroplast",
         "stage": "prokaryote",
         "requires": [],
-        "unlockedBy": { "bacteriumVariant": "photosynthetic", "count": 5 },
+        "unlockedBy": { "bacteriumVariant": "photosynthetic", "count": 10 },
         "category": "metabolism",
         "rarity": "common",
         "tags": ["photic"],

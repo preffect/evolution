@@ -67,7 +67,7 @@ export const FOOD_SPAWN_PER_SECOND_PER_PLAYER = 1;
 export const FOOD_INITIAL_FILL_FRACTION = 0.6;
 export const DNA_FRAGMENT_CAP_BASE = 30;
 export const DNA_FRAGMENT_CAP_PER_PLAYER = 10;
-export const DNA_FRAGMENT_SPAWN_PER_SECOND_BASE = 0.5;
+export const DNA_FRAGMENT_SPAWN_PER_SECOND_BASE = 0.3;
 export const DNA_FRAGMENT_SPAWN_PER_SECOND_PER_PLAYER = 0.1;
 export const DNA_FRAGMENT_INITIAL_FILL_FRACTION = 0.6;
 /** A fragment's tag is drawn at spawn from its zone's row (§2); gel uses the broth row. */
