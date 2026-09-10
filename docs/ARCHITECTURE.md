@@ -466,7 +466,7 @@ and the handlers in `mcp/handlers/` reach it through the one shared lookup
 (`handlers/capability-tool.ts`), only translating arguments and serialising results. Every
 member of the handle is an optional **capability**: a tool whose capability the module does not
 implement answers `isError` "not supported by this game module" instead of stubbing behaviour
-(the echo module implements none; the Evolution module implements all). The optionality is
+(the echo module implements only the bot pair; the Evolution module implements all). The optionality is
 for the template only: the Evolution handle is declared `implements Required<SimulationDebugHandle>`
 so `tsc` checks completeness (a forgotten member is a type error, never a runtime "not
 supported"), and the Evolution module never wires `DebugContext.getRoomGameState`; there is one
@@ -490,6 +490,8 @@ world; they need no capability):
 | `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                       |
 | `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                             |
 | `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                     |
+| `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request)`: a synthetic player the module drives (`TESTING.md §8.4`)    |
+| `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                 |
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
@@ -506,6 +508,19 @@ bursts to catch up. When `SNAPSHOT_EVERY_TICKS` lands inside the tick (#111), `s
 still end with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot shows a
 stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
 report even for a module without a world tick.
+
+**Bots (#15).** `spawnBot` builds a `BotPilot` on the strategy named by `behavior` (the catalogue
+of `TESTING.md §8.4`) from `createInProcessBotRoster(binding)` (`testing/bot-client/in-process-bots.ts`),
+adds the player to the module and answers its `SpawnedBot` identity (`bot_<seed>_<index>`,
+`Bot <index>`, an avatar); the tool then calls `GameRoom.addSyntheticPlayer`, which enrols the
+bot in the roster and broadcasts `player_joined` like a late join, with no connection. `removeBot`
+mirrors it: the module forgets the player, `GameRoom.removeSyntheticPlayer` drops it from the
+roster and broadcasts `player_disconnected`. The module drives its roster at the top of
+`reduceGameState` (`bots.driveTick(snapshot, tick, submitInput)`, before step 1 applies pending
+input), so a bot's input for tick `t` is decided from the snapshot of `t − 1` and stamped
+`sequence = t`, exactly as a wire client's would be. The echo module wires the roster over the
+echo binding; the Evolution module (#98) wires it over the Evolution binding and never spawns a
+bot any other way.
 
 ## 9. Constants and balance (decision, one home)
 

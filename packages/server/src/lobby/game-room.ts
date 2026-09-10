@@ -1,4 +1,4 @@
-import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
+import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig, LobbyPlayerInfo } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
 import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator, type FixedStepAccumulator } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
@@ -125,16 +125,10 @@ export class GameRoom {
 
   /** Player who was never part of the session joins an in-progress game. */
   addLatePlayer(connection: Connection, gameId: string): void {
-    const playerId = connection.playerId;
-    this.allPlayerIds.push(playerId);
-    this.avatarAssignments[playerId] = connection.avatarIndex;
-    this.playerNames[playerId] = connection.playerName;
+    const playerId = connection.playerId as PlayerId;
     this.playerConnections.set(playerId, connection);
-    this.game.addPlayer(playerId as PlayerId, connection.avatarIndex, connection.playerName);
-    broadcastMessage(
-      Array.from(this.playerConnections.values()).filter((other) => other.playerId !== playerId),
-      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId: playerId as PlayerId, avatarIndex: connection.avatarIndex },
-    );
+    this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
+    this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
     sendMessage(connection, {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: gameId as GameId,
@@ -151,6 +145,36 @@ export class GameRoom {
     this.disconnectedPlayers.add(playerId);
     this.performanceTracker.removeClient(playerId as PlayerId);
     this.game.removePlayer(playerId as PlayerId);
+    this.dropFromRoster(playerId);
+  }
+
+  /**
+   * A synthetic player the game module drives itself (`debug_spawn_bot`, docs/ARCHITECTURE.md §8):
+   * in the roster and announced like a late joiner, with no connection. The module already holds
+   * the player; this only makes it visible to the lobby and the other clients.
+   */
+  addSyntheticPlayer(player: LobbyPlayerInfo): void {
+    this.enrol(player);
+  }
+
+  /** Drops a synthetic player from the roster and announces it the way a disconnect is announced. */
+  removeSyntheticPlayer(playerId: PlayerId): void {
+    this.dropFromRoster(playerId);
+    broadcastMessage(this.playerConnections.values(), { type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId });
+  }
+
+  /** Records a newcomer in the roster and tells everyone else. */
+  private enrol({ playerId, playerName, avatarIndex }: LobbyPlayerInfo): void {
+    this.allPlayerIds.push(playerId);
+    this.avatarAssignments[playerId] = avatarIndex;
+    this.playerNames[playerId] = playerName;
+    broadcastMessage(
+      Array.from(this.playerConnections.values()).filter((other) => other.playerId !== playerId),
+      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId, avatarIndex },
+    );
+  }
+
+  private dropFromRoster(playerId: string): void {
     const index = this.allPlayerIds.indexOf(playerId);
     if (index >= 0) this.allPlayerIds.splice(index, 1);
   }

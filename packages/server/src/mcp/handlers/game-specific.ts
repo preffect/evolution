@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { DebugContext } from '../debug-context.js';
 import { registerBalanceTools } from './balance.js';
+import { registerBotTools } from './bots.js';
 import { registerDeterminismTools } from './determinism.js';
 import { registerEntityTools } from './entities.js';
 import { registerPlayerTools } from './player.js';
@@ -19,4 +20,5 @@ export function registerGameSpecificTools(mcp: McpServer, context: DebugContext)
   registerRoomLoopTools(mcp, context);
   registerDeterminismTools(mcp, context);
   registerBalanceTools(mcp, context);
+  registerBotTools(mcp, context);
 }
