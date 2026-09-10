@@ -172,12 +172,13 @@ Three inequalities the spec pins, at the four sizes and as a derivation:
   bead) never dim a bead; the size sheet's Mint tile shows a 4-bead player under them.
 - **DNA keep-out.** Slot rest positions are cell-frame fractions computed once per cell (RENDERING §3), so the
   keep-out cannot be a screen-px floor: a px floor would move or hide organelles as the camera zooms. Instead the
-  fraction is set from the floored ring: `DNA_RING_KEEP_OUT_FRACTION × r_px ≥ dnaRingRadiusPx + DNA_RING_STROKE_PX / 2
-  - DNA_RING_KEEP_OUT_PAD_PX`holds for every`r_px ≥ 31`(the floored edge is 20 px;`20 / 0.66 = 30.3`; above
-39 px the edge is `0.44 r_px + 3`, under `0.66 r_px`from 14 px), which is every size but the reference viewport's
-24 px spawn. There, for the first seconds after a (re)spawn, the ring band overlaps the slot band and reads on
-its track, which is also its backing (§3.1.2); accepted, and the same window in which the band may reach the
-membrane below`CELL_LOD_FULL_MIN_PX` (a 19 px cell on the smallest supported viewport, 1024 × 640).
+  fraction is set from the floored ring. The inequality
+  `DNA_RING_KEEP_OUT_FRACTION × r_px ≥ dnaRingRadiusPx + DNA_RING_STROKE_PX / 2 + DNA_RING_KEEP_OUT_PAD_PX`
+  holds for every `r_px ≥ 31` (the floored edge is 20 px; `20 / 0.66 = 30.3`; above 39 px the edge is
+  `0.44 r_px + 3`, under `0.66 r_px` from 14 px), which is every size but the reference viewport's
+  24 px spawn. There, for the first seconds after a (re)spawn, the ring band overlaps the slot band and reads on
+  its track, which is also its backing (§3.1.2); accepted, and the same window in which the band may reach the
+  membrane below`CELL_LOD_FULL_MIN_PX` (a 19 px cell on the smallest supported viewport, 1024 × 640).
 
 #### 3.1.4 The `OwnCellIndicators` record and the status mirror
 
