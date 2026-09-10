@@ -26,7 +26,8 @@ nothing here uses wall time. Stream labels: [`DETERMINISM.md §3`](./DETERMINISM
   points go to the progression counters ([`PROGRESSION.md`](./PROGRESSION.md#1-dna-and-tags)).
 - **Detritus** is never spawned by the spawner: it drops when a cell dies or dissolves
   (`DETRITUS_MASS_FRACTION` of the cell's mass, split into motes of `DETRITUS_MOTE_MASS`, scattered
-  uniformly within 2 × the dead cell's radius).
+  uniformly within 2 × the dead cell's radius). Rounding: motes = floor(fraction × mass /
+  `DETRITUS_MOTE_MASS`), the remainder is dropped (a 23-mass cell drops 4.6 → two motes, 4 mass).
 - **DNA fragments** are the only mass-free food. Their tag is drawn at spawn from the zone's tag
   table (§2) so where you feed shapes your drafts.
 - **Bacterium variants (the endosymbiosis hook).** Every bacterium carries a `BacteriumVariant`;
@@ -76,15 +77,20 @@ TICK_INTERVAL_S`; while `accumulator ≥ 1` and the population is below the cap,
 - **Initial fill runs after player placement** inside `createWorld`, with the same in-cell rejection
   as a live spawn, and never skips: a rejected point is redrawn until accepted. So at tick 0 no mote
   lies inside any cell and the counts are exactly `fillFraction × cap`.
-- **Kind then zone then point.** A live food spawn first draws a kind (`FOOD_KIND_WEIGHTS`: algae
-  0.75, bacterium 0.25), then a zone from that kind's zone weights, then a uniform point inside that
-  zone, rejecting points within `FOOD_EDGE_MARGIN` of the wall or inside any cell (retry up to
-  `SPAWN_POINT_MAX_ATTEMPTS`, then skip this spawn).
+- **Kind then zone then point.** `FOOD_KIND_WEIGHTS` (algae 0.75, bacterium 0.25) are **per-mote
+  shares**. A bacterium event spawns a whole cluster, so a spawn event draws its kind with the
+  event weights algae 0.75 : bacterium 0.25 / `BACTERIUM_CLUSTER_SIZE` = 0.05 (renormalised
+  0.9375 / 0.0625; derived in code from those two constants, never a third one). The expected mote
+  mix is then 0.75 / 0.25 and the pace estimate below holds. Next a zone from that kind's zone
+  weights, then a uniform point inside that zone, rejecting points within `FOOD_EDGE_MARGIN` of the
+  wall or inside any cell (retry up to `SPAWN_POINT_MAX_ATTEMPTS`, then skip this spawn).
 - **Bacteria spawn as clusters** of `BACTERIUM_CLUSTER_SIZE` within `BACTERIUM_CLUSTER_RADIUS` of
   the drawn point, all of one variant drawn from `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE` for the zone.
   The cluster is truncated to the room left under the cap (never exceeds it) and consumes one
   accumulator unit per member actually spawned (the accumulator may go negative and recovers), so
   over a window the spawner overshoots its accumulated budget by fewer than `BACTERIUM_CLUSTER_SIZE`.
+  The initial fill uses the same kind draw and spawns clusters too, so the vent is clustered at
+  tick 0 (each member is redrawn on rejection, and the last cluster is truncated to the fill count).
 - **Zone weights per kind:** algae shallows 0.70 / broth 0.25 / vent 0.05; bacterium vent 0.60 /
   broth 0.30 / shallows 0.10; DNA fragment vent 0.40 / broth 0.40 / shallows 0.20.
 - **Variant weights per zone** (`BACTERIUM_VARIANT_WEIGHTS_BY_ZONE`): vent plain 0.3 / aerobic 0.7 /
@@ -168,7 +174,9 @@ way through ([`TRAITS.md §3.12`](./TRAITS.md)). Trait and engulf factors: [`TRA
 
 Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the
 centre line by `CELL_SEPARATION_FRACTION_PER_TICK` of the overlap each tick, split by inverse mass
-(the lighter cell moves more). Cells never bounce; the renderer draws the contact dent.
+(the lighter cell moves more). Separation never applies to a predator and its current prey: while an
+engulf is in progress the pair is left alone until payout or release, whatever the mass ratio has
+drifted to (E16). Cells never bounce; the renderer draws the contact dent.
 
 ### 5.4 Growth, cap and mitosis (reserved)
 
@@ -282,7 +290,7 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `DETRITUS_LIFETIME_SECONDS`                                                       | 30                             | s               |
 | `DNA_FRAGMENT_DNA` / `DNA_FRAGMENT_RADIUS`                                        | 5 / 9                          | DNA / wu        |
 | `DNA_FRAGMENT_DRIFT_SPEED`                                                        | 10                             | wu/s            |
-| `FOOD_KIND_WEIGHTS`                                                               | algae 0.75, bacterium 0.25     | weights         |
+| `FOOD_KIND_WEIGHTS`                                                               | algae 0.75, bacterium 0.25     | per-mote shares |
 | `FOOD_ZONE_WEIGHTS_BY_KIND`                                                       | see §3                         | weights         |
 | `FOOD_CAP_BASE` / `FOOD_CAP_PER_PLAYER`                                           | 600 / 100                      | count           |
 | `FOOD_SPAWN_PER_SECOND_BASE` / `FOOD_SPAWN_PER_SECOND_PER_PLAYER`                 | 6 / 1                          | motes/s         |
@@ -339,6 +347,12 @@ the design docs (GAME-DESIGN §13, PROGRESSION §7, TRAITS §6):
 - **Placed** cells, motes and fragments come from the framework's fixture helpers; everything else
   comes from the seed. A row that places anything runs with the initial fill and both spawners
   disabled by the fixture, so no seeded mote interferes with the arithmetic.
+- **Default placement.** A placed cell sits at the broth point (1500, 0) unless the row says
+  otherwise: mid-broth, 1000 wu from both the vent and the shallows, so no wall, vent or light
+  effect reaches an expected value (decay factor k = 1). The helper fails the scenario if a seeded
+  gel patch comes within 350 wu of that point (pick another seed; never tolerate it). A second placed cell
+  sits east of the first on the x axis at the row's centre distance. "In the vent" = the origin;
+  "in the shallows" = (`DISH_RADIUS` − `SHALLOWS_WIDTH` / 2, 0) = (2750, 0).
 - **Fixture-granted traits** bypass the ladder and the draft (a fixture may give a protocell cilia).
 - **Pinned** = the fixture restores the cell's centre after the movement step every tick (movement
   and separation cannot move it).
@@ -355,11 +369,11 @@ the design docs (GAME-DESIGN §13, PROGRESSION §7, TRAITS §6):
 
 | #   | Given                                                                                                                     | Inputs                                                         | After      | Assert                                                                                                                                                                                                                                                                                                                                                                                                   |
 | --- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E1  | seed 42, 1 player (nothing placed: seeded world)                                                                          | idle                                                           | 0 ticks    | food count = 420 (0.6 × 700), fragment count = 24 (0.6 × 40); every mote within `DISH_RADIUS − FOOD_EDGE_MARGIN`; algae share within 0.75 ± 0.06; no mote inside the player cell (initial fill runs after placement, §3).                                                                                                                                                                                |
+| E1  | seed 42, 1 player (nothing placed: seeded world)                                                                          | idle                                                           | 0 ticks    | food count = 420 (0.6 × 700), fragment count = 24 (0.6 × 40); every mote within `DISH_RADIUS − FOOD_EDGE_MARGIN`; algae share of motes within 0.75 ± 0.06 (per-mote shares, §3; the spread across seeds is ≈ 0.05, so this holds for the pinned seed only); no mote inside the player cell (initial fill runs after placement, §3).                                                                      |
 | E2  | seed 42, 1 player (seeded world)                                                                                          | idle                                                           | 600 ticks  | food spawned in ticks 1–600 between 70 (7/s × 10 s) and 74 (cluster overshoot < `BACTERIUM_CLUSTER_SIZE`); fragments spawned = 6 (0.6/s × 10 s). Counters, not populations: the idle cell may eat a drifting mote.                                                                                                                                                                                       |
 | E3  | seed 42, 1 player (seeded world)                                                                                          | idle                                                           | 3000 ticks | food count = 700 (cap) ± 1; fragment count = 40 (cap) ± 1 (a mote eaten this tick is refilled next tick); no cluster ever pushes the count above the cap.                                                                                                                                                                                                                                                |
 | E4  | seed 42, 1 player, algae mote placed 10 wu east of the centre                                                             | idle                                                           | 1 tick     | mass = 21 (± 0.01), mote gone. Same with a `plain` bacterium: mass = 23, DNA = 1, `motile` tag points = 1. With an `aerobic` bacterium: `metabolic` = 1 and `bacteriaEatenByVariant.aerobic` = 1.                                                                                                                                                                                                        |
-| E5  | seed 42, 1 player placed at mass 1020 in the open broth                                                                   | idle                                                           | 60 ticks   | mass = `decayed(1020, 60)` ≈ 1018.00. Placed in the vent (k = 1.5): ≈ 1017.00.                                                                                                                                                                                                                                                                                                                           |
+| E5  | seed 42, 1 player placed at mass 1020 at the default broth point (1500, 0)                                                | idle                                                           | 60 ticks   | mass = `decayed(1020, 60)` ≈ 1018.00. Placed in the vent (k = 1.5): ≈ 1017.00.                                                                                                                                                                                                                                                                                                                           |
 | E6  | seed 42, 1 player placed at mass 320 (then 5000)                                                                          | target 5 radii east                                            | 120 ticks  | speed within 0.5 wu/s of 110.1 (then 55.4): maxSpeed of the decayed mass, blend converged to 99.97 %.                                                                                                                                                                                                                                                                                                    |
 | E7  | seed 42, 1 player placed at mass 80                                                                                       | idle                                                           | 1 tick     | radius = 35.78 (± 0.01).                                                                                                                                                                                                                                                                                                                                                                                 |
 | E8  | seed 42, 1 player placed at mass 500 at the centre of a gel patch                                                         | target 5 radii east                                            | 120 ticks  | speed within 0.5 wu/s of 49.4 (98.5 × gelSpeedFactor 0.502 for the decayed mass 498.1); the cell has travelled ≈ 87 wu and is still inside the patch (`GEL_PATCH_RADIUS` 350).                                                                                                                                                                                                                           |
