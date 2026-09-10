@@ -3,7 +3,7 @@
 Ticket: #25. Epic #2. The ladder the catalog implements: [`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder).
 How traits are offered: [`PROGRESSION.md §3`](./PROGRESSION.md#3-draft-pool-and-weights). Base rules the
 modifiers act on: [`ECOLOGY.md`](./ECOLOGY.md) and [`GAME-DESIGN.md §6`](./GAME-DESIGN.md#6-controls).
-Visual language (colours, membrane, organelles): `docs/VISUAL-STYLE.md` (#34, not yet written) and
+Visual language (colours, membrane, organelles): [`VISUAL-STYLE.md`](./VISUAL-STYLE.md) (#34) and
 the concept sheets (#104–#106); this doc says _what_ each trait must show, not how it is drawn.
 
 **Traits are organelles and forms.** Build 1 ships the sixteen traits in §3 at three tiers each,
