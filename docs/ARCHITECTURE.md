@@ -163,7 +163,7 @@ export interface CellRecord extends CellView {
   modifiers: CellModifiers; // folded at step 1 of the tick (TRAITS §2); the simulation reads only this
   carriedOffsetX: number | null; // set at the seal (ECOLOGY §6.1): the prey rides at this offset from its predator's centre until payout or release
   carriedOffsetY: number | null;
-  spitOutRefractory: { preyCellId: EntityId; untilTick: number } | null; // ECOLOGY §6.1: no restart on that prey until then; separation applies to the pair meanwhile
+  spitOutRefractoryUntilTickByPreyId: Map<EntityId, number>; // ECOLOGY §6.1: one entry per spat-out prey (no restart on it until that tick; separation applies to the pair meanwhile); expired entries pruned at step 1
 }
 export interface PlayerRecord extends PlayerProgressView {
   avatarIndex: number;

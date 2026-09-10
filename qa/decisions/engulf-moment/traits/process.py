@@ -229,5 +229,5 @@ def render():
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "."
-    with open(f"{out}/process-with-trait-hooks.svg", "w") as f:
+    with open(f"{out}/process-with-trait-hooks.svg", "w", encoding="utf-8") as f:
         f.write(render())
