@@ -117,7 +117,7 @@
   },
   "absorption": {
     "ENGULF_ABSORB_SECONDS": 0.6,
-    "ENGULF_BASE_DURATION_SECONDS": 1.2000000000000002,
+    "ENGULF_BASE_DURATION_SECONDS": 1.2,
     "ENGULF_COVERAGE_FRACTION": 0.5,
     "ENGULF_COVER_SECONDS": 0.2,
     "ENGULF_DNA_BASE": 30,
@@ -141,7 +141,7 @@
     "ENGULF_TAG_SHARE": 0.5,
     "ENGULF_TRAIT_STEAL_CHANCE": 0,
     "ENGULF_WRAP_SECONDS": 0.4,
-    "ENGULF_WRAP_START_PROGRESS": 0.16666666666666666
+    "ENGULF_WRAP_START_PROGRESS": 0.16666666666666669
   },
   "progression": {
     "DNA_TAGS": ["motile", "photic", "predatory", "armored", "toxic", "sensory", "metabolic"],

@@ -13,11 +13,15 @@ export const ENGULF_COVERAGE_FRACTION = 0.5;
 export const ENGULF_COVER_SECONDS = 0.2;
 export const ENGULF_WRAP_SECONDS = 0.4;
 export const ENGULF_ABSORB_SECONDS = 0.6;
-/** Duration at exactly the required ratio (s): the three phase seconds summed, never a fourth literal. */
-export const ENGULF_BASE_DURATION_SECONDS = ENGULF_COVER_SECONDS + ENGULF_WRAP_SECONDS + ENGULF_ABSORB_SECONDS;
-/** Progress bands, derived from the phase seconds: wrap starts here, the seal closes here. */
+/**
+ * Duration at exactly the required ratio (s): the three phase seconds summed, never a fourth literal.
+ * Summed absorb-first so the float result is exactly the documented 1.2 (cover-first gives 1.2000000000000002).
+ */
+export const ENGULF_BASE_DURATION_SECONDS = ENGULF_ABSORB_SECONDS + ENGULF_WRAP_SECONDS + ENGULF_COVER_SECONDS;
+/** Progress bands, derived from the phase seconds: wrap starts here, the seal closes here (exactly 0.5). */
 export const ENGULF_WRAP_START_PROGRESS = ENGULF_COVER_SECONDS / ENGULF_BASE_DURATION_SECONDS;
-export const ENGULF_SEAL_PROGRESS = (ENGULF_COVER_SECONDS + ENGULF_WRAP_SECONDS) / ENGULF_BASE_DURATION_SECONDS;
+export const ENGULF_SEAL_PROGRESS =
+  (ENGULF_BASE_DURATION_SECONDS - ENGULF_ABSORB_SECONDS) / ENGULF_BASE_DURATION_SECONDS;
 /** Duration floor as a factor of the base, reached by heavy predators. */
 export const ENGULF_MIN_DURATION_FACTOR = 0.5;
 /** Progress decays this many times faster than it grows while contact is broken. */
