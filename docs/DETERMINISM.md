@@ -251,7 +251,7 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 | `game/simulation/round.test.ts`                         | rematch rebuilds the world with `seed + ROUND_SEED_INCREMENT` and fresh streams (G2)                                                                     |
 | `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                                                |
 | `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                                 |
-| `client … cosmetic` (`membrane-mesh.spec.ts`)           | same seed + same tick ⇒ same vertex ring                                                                                                                 |
+| `client … cosmetic` (`cells/radial-profile.spec.ts`)    | same seed + same tick ⇒ same membrane profile `r(θ)` (`RENDERING.md §9`)                                                                                 |
 | lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8` |
 
 The determinism integration test runs first against the **echo** module to prove the harness:

@@ -419,7 +419,7 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
    stage
    ├─ dishLayer      dark-field background, wall rim, zones, gel patches (cached render texture)
    ├─ foodLayer      algae / detritus / bacteria by variant (ParticleContainer), fragments by tag
-   ├─ cellLayer      CellView: membrane ring mesh (seeded wobble) + stage/organelle sub-views
+   ├─ cellLayer      CellView: one instanced quad + SDF shader per cell, organelle sprites (RENDERING.md)
    │                 (TRAITS §3.0: no nucleus until nuclear_envelope), sorted by radius ascending
    ├─ effectsLayer   eat pulse, engulf stretch, cell_absorbed dissolve, level-up burst, respawn fade
    └─ debugLayer     spatial hash / ids, toggled by the debug MCP
@@ -436,7 +436,8 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
   are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7).
 - **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
   paused screenshot reproduces.
-- **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at 8 cells + 1 400 motes at 1080p.
+- **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at 8 cells + 1 400 motes at 1080p; the per-stage
+  budget, the 100-cell bench scene and how a cell is drawn are [`RENDERING.md`](./RENDERING.md).
 
 ## 7. Audio hook seam (#101)
 
@@ -516,7 +517,7 @@ packages/client/src/app/game/
   net/{snapshot-buffer,prediction,reconciliation,world-store,input-sender}.ts
   input/{input-controller,pointer-input,keyboard-input}.ts
   render/{pixi-app,layers,camera,view-registry,constants,interpolation}.ts
-  render/{dish-layer,food-layer,cell-layer,effects-layer}.ts   render/cells/*.ts
+  render/{dish-layer,food-layer,cell-layer,effects-layer}.ts   render/cells/*.ts (the full render/ plan: RENDERING.md §8)
   state/game-state.service.ts   audio/{audio.service,sound-event-bus}.ts
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)
