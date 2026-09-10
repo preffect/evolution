@@ -17,6 +17,7 @@ DNA is the experience currency. Every player carries:
 | `level`                  | 1 .. `MAX_LEVEL`                   | Current level. Kept on death.                                                        |
 | `dnaTagPoints`           | `Record<DnaTag, number>`           | What you have eaten, by flavour. Drives draft weights (§3).                          |
 | `bacteriaEatenByVariant` | `Record<BacteriumVariant, number>` | Endosymbiosis counters (ECOLOGY §1). Kept on death. Gate the endosymbionts (§3).     |
+| `wildAbsorptions`        | number                             | Wild cells engulfed (ECOLOGY §3.3). Never scores; shown beside `absorptions`.        |
 
 `DnaTag` = `motile | photic | predatory | armored | toxic | sensory | metabolic`. Tag points are not
 spent; they only bias drafts. Sources, with the amounts owned by ECOLOGY: algae (`photic`),
@@ -113,22 +114,33 @@ level-up --> [queued] --> shown (offerId, 3 cards, timer starts) --> pick / time
 - Rerolls: `TRAIT_REROLLS_PER_ROUND` = 0 in build 1 (declared, reserved).
 - Offers survive death: a queued or shown offer stays with the player through spectate and respawn.
 
-## 5. Late-join catch-up
+## 5. Entering the dish: late join and respawn
 
-A player who joins after `LATE_JOIN_GRACE_SECONDS` of round time receives, relative to the living
-players' medians at the moment of joining:
+Every cell that enters the dish after tick 0, by joining late or by respawning, enters no lower than
+the world's current rung: the world clock's average cell
+([`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock), `worldReference` at the entry tick) is the
+floor, and for a late joiner the living players' medians can raise it further. One pure function,
+`entryState(current, medians | null, reference, balance)` in
+`packages/server/src/game/session/entry.ts`, serves both callers:
 
-| Field           | Rule                                                                                                                          |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `dnaCumulative` | `floor(LATE_JOIN_DNA_FRACTION × median dnaCumulative)`; also recorded as `dnaCatchUpGift`.                                    |
-| `level`         | Derived from the threshold table; every level-up above 1 queues a draft, so the joiner climbs the ladder one draft at a time. |
-| mass            | `clamp(LATE_JOIN_MASS_FRACTION × median mass, CELL_STARTING_MASS, LATE_JOIN_MAX_MASS)`.                                       |
-| tag points      | none (their drafts are unbiased until they eat).                                                                              |
+| Field           | Rule                                                                                                                                                                                                                                                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dnaCumulative` | raised to `max(current, floor(ENTRY_DNA_FRACTION × median dnaCumulative), worldDna)`; the raise is added to `dnaCatchUpGift` (score-neutral, [`GAME-DESIGN.md §5.3`](./GAME-DESIGN.md#53-leaderboard-and-score)). The median term exists only for a late join after `ENTRY_GRACE_SECONDS` with another living player; a respawn uses the world floor alone. |
+| `level`         | Derived from the threshold table; every level-up above the current level queues a draft, so the cell climbs the ladder one draft at a time (a player lifted two rungs at once sees the protocell draft first, then the next).                                                                                                                               |
+| mass            | `clamp(ENTRY_MASS_FRACTION × max(median mass, worldMass), CELL_STARTING_MASS, ENTRY_MAX_MASS)`; a respawn reads `worldMass` alone. In the first minutes this is `CELL_STARTING_MASS` (0.25 × 20 = 5 → 20); at 9:00 it is 140.                                                                                                                               |
+| tag points      | unchanged (a joiner has none, so its drafts are unbiased until it eats; a respawn keeps its own).                                                                                                                                                                                                                                                           |
 
-Before the grace period, or when no other living player exists, the joiner starts fresh. Respawn is not
-a late join: it keeps level, traits and stage and keeps only `dnaKeptOnDeathFraction` of
-`dnaTowardNextLevel` ([`GAME-DESIGN.md §5.2`](./GAME-DESIGN.md#52-spawn-death-and-respawn)). Auto-rematch
-resets everyone.
+- **Late join.** Before `ENTRY_GRACE_SECONDS`, or with no other living player, the median term is
+  absent and only the world floor applies; in the first minutes that floor is level 1, so an early
+  joiner starts fresh (P8). At 5:00 solo it is level 2 and mass 80 (GAME-DESIGN G14).
+- **Respawn.** Keeps level, traits and stage, keeps only `dnaKeptOnDeathFraction` of
+  `dnaTowardNextLevel` ([`GAME-DESIGN.md §5.2`](./GAME-DESIGN.md#52-spawn-death-and-respawn)), then
+  runs the entry rule: a player behind the world is lifted to its rung (G13), a player at or above
+  it gets only the entry mass. Dying is never a way past the world: the floor is exactly the average,
+  and the gift never scores.
+- **Wild cells** ([`ECOLOGY.md §3.3`](./ECOLOGY.md#33-wild-cells)) do not use this rule: their ladder
+  and mass are pinned to the world every tick, so they are always exactly the floor.
+- Auto-rematch resets everyone and the world.
 
 ## 6. Constants table — `packages/shared/src/constants/progression.ts`
 
@@ -145,10 +157,10 @@ resets everyone.
 | `TRAIT_CHOICE_TIMEOUT_SECONDS`   | 10                                 | s       |
 | `TRAIT_REROLLS_PER_ROUND`        | 0 (reserved)                       | count   |
 | `LEVEL_UP_NO_DRAFT_MASS_BONUS`   | 10                                 | mass    |
-| `LATE_JOIN_GRACE_SECONDS`        | 30                                 | s       |
-| `LATE_JOIN_DNA_FRACTION`         | 0.5                                | ratio   |
-| `LATE_JOIN_MASS_FRACTION`        | 0.25                               | ratio   |
-| `LATE_JOIN_MAX_MASS`             | 200                                | mass    |
+| `ENTRY_GRACE_SECONDS`            | 30                                 | s       |
+| `ENTRY_DNA_FRACTION`             | 0.5                                | ratio   |
+| `ENTRY_MASS_FRACTION`            | 0.25                               | ratio   |
+| `ENTRY_MAX_MASS`                 | 200                                | mass    |
 | `DNA_TAGS`                       | the seven tags above               | ids     |
 
 The ladder's own constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`)

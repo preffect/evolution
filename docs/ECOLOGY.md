@@ -13,13 +13,13 @@ nothing here uses wall time. Stream labels: [`DETERMINISM.md §3`](./DETERMINISM
 
 ## 1. Food kinds
 
-| Kind          | Constant prefix | Mass | DNA | Tag points           | Motion                                 | Radius (wu) | Lifetime                    |
-| ------------- | --------------- | ---- | --- | -------------------- | -------------------------------------- | ----------- | --------------------------- |
-| Algae mote    | `ALGAE_`        | 1    | 0   | `photic` × 1         | static                                 | 6           | none                        |
-| Bacterium     | `BACTERIUM_`    | 3    | 1   | one tag by variant   | random walk, `BACTERIUM_DRIFT_SPEED`   | 8           | none                        |
-| Detritus mote | `DETRITUS_`     | 2    | 0   | none                 | static                                 | 7           | `DETRITUS_LIFETIME_SECONDS` |
-| DNA fragment  | `DNA_FRAGMENT_` | 0    | 5   | one tag by zone (§2) | slow drift, `DNA_FRAGMENT_DRIFT_SPEED` | 9           | none                        |
-| NPC microbe   | reserved        | —    | —   | —                    | —                                      | —           | build 2                     |
+| Kind          | Constant prefix | Mass | DNA  | Tag points           | Motion                                 | Radius (wu) | Lifetime                    |
+| ------------- | --------------- | ---- | ---- | -------------------- | -------------------------------------- | ----------- | --------------------------- |
+| Algae mote    | `ALGAE_`        | 1    | 0    | `photic` × 1         | static                                 | 6           | none                        |
+| Bacterium     | `BACTERIUM_`    | 3    | 1    | one tag by variant   | random walk, `BACTERIUM_DRIFT_SPEED`   | 8           | none                        |
+| Detritus mote | `DETRITUS_`     | 2    | 0    | none                 | static                                 | 7           | `DETRITUS_LIFETIME_SECONDS` |
+| DNA fragment  | `DNA_FRAGMENT_` | 0    | 5    | one tag by zone (§2) | slow drift, `DNA_FRAGMENT_DRIFT_SPEED` | 9           | none                        |
+| Wild cell     | `WILD_CELL_`    | §3.3 | §3.3 | none                 | steered by the wild strategy (§3.3)    | §5.1        | respawns, §3.3              |
 
 - **Eating rule.** A mote is eaten the tick its centre lies within the cell's radius. Any cell can eat
   any mote; no minimum size. Mass is added instantly (the renderer animates the gulp); DNA and tag
@@ -77,11 +77,12 @@ TICK_INTERVAL_S`; while `accumulator ≥ 1` and the population is below the cap,
 - **Initial fill runs after player placement** inside `createWorld`, with the same in-cell rejection
   as a live spawn, and never skips: a rejected point is redrawn until accepted. So at tick 0 no mote
   lies inside any cell and the counts are exactly `fillFraction × cap`.
-- **Kind then zone then point.** `FOOD_KIND_WEIGHTS` (algae 0.75, bacterium 0.25) are **per-mote
-  shares**. A bacterium event spawns a whole cluster, so a spawn event draws its kind with the
-  event weights algae 0.75 : bacterium 0.25 / `BACTERIUM_CLUSTER_SIZE` = 0.05 (renormalised
-  0.9375 / 0.0625; derived in code from those two constants, never a third one). The expected mote
-  mix is then 0.75 / 0.25 and the pace estimate below holds. Next a zone from that kind's zone
+- **Kind then zone then point.** `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE[worldStage]` (§3.2; the
+  protocell-era row is algae 0.75, bacterium 0.25, and every number in this section quotes that row)
+  are **per-mote shares**. A bacterium event spawns a whole cluster, so a spawn event draws its
+  kind with the event weights algae 0.75 : bacterium 0.25 / `BACTERIUM_CLUSTER_SIZE` = 0.05
+  (renormalised 0.9375 / 0.0625; derived in code from the row and the cluster size, never a third
+  constant). The expected mote mix is then 0.75 / 0.25 and the pace estimate below holds. Next a zone from that kind's zone
   weights, then a uniform point inside that zone, rejecting points within `FOOD_EDGE_MARGIN` of the
   wall or inside any cell (retry up to `SPAWN_POINT_MAX_ATTEMPTS`, then skip this spawn).
 - **Bacteria spawn as clusters** of `BACTERIUM_CLUSTER_SIZE` within `BACTERIUM_CLUSTER_RADIUS` of
@@ -102,6 +103,186 @@ TICK_INTERVAL_S`; while `accumulator ≥ 1` and the population is below the cap,
   ([`PROGRESSION.md`](./PROGRESSION.md#2-level-thresholds)). A grazing player sees on average one
   fragment per viewport and reaches one every 8–10 s (5 DNA), plus a bacterium every ~10 s (1 DNA):
   about 45 s. Acceptance bound: 90 s (scenario P1).
+
+### 3.1 The world clock
+
+The dish has its own place on the ladder. The **world clock** turns round time into the **world's
+average cell**: a reference level, stage and mass that everything non-player in the dish is measured
+against. It is the human's direction on decision #141, quoted: "a fresh cell starts in a world similar
+to itself, and that world evolves as time passes, its up to the players to evolve faster than the
+average if they can" (designed in #147). One pure function, one home:
+`worldReference(elapsedSeconds, balance)` in `packages/shared/src/simulation/world-clock.ts` (shared,
+so the HUD reads the same numbers the server acts on; nothing about the world's clock rides on the
+wire); constants in `constants/world-clock.ts` ([`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table)).
+
+```
+elapsedSeconds = roundDurationSeconds − roundTimeLeftMs / MILLISECONDS_PER_SECOND   (frozen during `results`; 0 again after a rematch)
+worldLevel     = min(1 + elapsedSeconds / WORLD_LEVEL_SECONDS, MAX_LEVEL)            (continuous: 2.5 is halfway from level 2 to 3)
+worldStage     = STAGE_ORDER[min(floor(worldLevel) − 1, STAGE_ORDER.length − 1)]      (one rung per level: the #138 ladder, nucleoid at 2, endosymbiont at 3, envelope at 4, form at 5)
+worldMass      = min(CELL_STARTING_MASS + WORLD_MASS_GAIN_PER_SECOND × elapsedSeconds, CELL_MAX_MASS)
+worldDna       = cumulative DNA of level floor(worldLevel)                             (PROGRESSION §2: 0, 60, 140, 240, 360, …)
+```
+
+| Round time (600 s round) | `worldLevel` | `worldStage`    | `worldMass` | `worldDna` |
+| ------------------------ | ------------ | --------------- | ----------- | ---------- |
+| 0:00                     | 1.00         | `protocell`     | 20          | 0          |
+| 3:00                     | 2.00         | `prokaryote`    | 200         | 60         |
+| 6:00                     | 3.00         | `endosymbiosis` | 380         | 140        |
+| 9:00                     | 4.00         | `eukaryote`     | 560         | 240        |
+| 10:00                    | 4.33         | `eukaryote`     | 620         | 240        |
+| 12:00 (longer rounds)    | 5.00         | `specialised`   | 740         | 360        |
+| 33:00 (longer rounds)    | 12.00 (cap)  | `specialised`   | 2000        | 1760       |
+
+- **Absolute seconds, not a fraction of the round.** Player pace is DNA per second
+  ([`PROGRESSION.md §2`](./PROGRESSION.md#2-level-thresholds)), so the world tracks seconds: a 60 s
+  round never leaves the protocell era, a 1800 s round is specialised from 12:00. The bloom stays a
+  fraction of the round ([`GAME-DESIGN.md §5.1`](./GAME-DESIGN.md#51-round-timeline-and-pace-curve))
+  and is independent of the clock; in a 600 s round it coincides with the eukaryote era.
+- **Calibration.** The world lags the #138 option A player (one active player who takes the trip at
+  the first chance, pace model ± 20 s): nucleoid 2:51 vs the world's 3:00, endosymbiont 5:42 vs 6:00,
+  envelope 8:01 vs 9:00, a form 9:42 vs never; mass 212 vs 200 at 3:00, 507 vs 380 at 6:00, 853 vs
+  620 at 10:00 (`qa/decisions/dish-play-scale/evolving/evolving-world-timeline.png`). That model has
+  no wild-cell absorptions (§3.3), so a player who eats peers runs further ahead; a greedy-bot
+  player is at the world's pace by construction (P1's bound, level 2 by 6:00, is twice the world's
+  3:00). The first playtest of #98 re-tunes `WORLD_LEVEL_SECONDS` and `WORLD_MASS_GAIN_PER_SECOND`
+  and nothing else.
+- **World level-up.** On the tick `floor(worldLevel)` increments (tick `n × WORLD_LEVEL_SECONDS ×
+TICK_HZ`: 10 800, 21 600 and 32 400 in a 600 s round) the round step (step 2) emits a
+  `world_level_up` effect carrying the new level and stage, every wild cell gains its next pick
+  the same tick (§3.3), and the spawn tables switch rows (§3.2). The HUD toasts it
+  ([`UI.md`](./UI.md), #146).
+- **Ahead of the world** (the player's goal). One pure function beside `worldReference`,
+  `standingAgainstWorld(level, mass, reference)` → `'ahead' | 'with' | 'behind'`: the level decides
+  first (`level` above `floor(worldLevel)` is ahead, below is behind); at the world's level the mass
+  decides, with a band of `WORLD_STANDING_MASS_TOLERANCE` × `worldMass` either side of `worldMass`
+  that reads as `with` (at 3:00: 180–220 is with the world, 221 ahead, 179 behind). The HUD reads it
+  ([`GAME-DESIGN.md §5.5`](./GAME-DESIGN.md#55-the-evolving-world)); scenario G12.
+
+### 3.2 What the world stage drives
+
+| `worldStage`    | `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE` algae : bacterium | `BROTH_VARIANT_SHARE_BY_WORLD_STAGE` | Wild cells own (§3.3)                  | Wild behaviour (§3.3) |
+| --------------- | ---------------------------------------------------- | ------------------------------------ | -------------------------------------- | --------------------- |
+| `protocell`     | 0.75 : 0.25                                          | 0                                    | nothing                                | wander, flee          |
+| `prokaryote`    | 0.70 : 0.30                                          | 0.2                                  | `nucleoid`                             | wander, flee          |
+| `endosymbiosis` | 0.60 : 0.40                                          | 0.4                                  | + `mitochondrion` or `chloroplast`     | wander, flee, hunt    |
+| `eukaryote`     | 0.50 : 0.50                                          | 0.6                                  | + `nuclear_envelope`                   | wander, flee, hunt    |
+| `specialised`   | 0.50 : 0.50                                          | 0.6                                  | + a form's prerequisite, then the form | wander, flee, hunt    |
+
+- **Spawn mix.** The kind draw reads the row of the current world stage (a draw on the level-up
+  tick already uses the new row: step 8 runs after step 2). The dish grows heavier, not busier:
+  caps and rates never change, the mean mote mass rises from 1.5 (0.75 × 1 + 0.25 × 3) to 2.0 and
+  bacteria, the only motes that carry DNA, double their share by the eukaryote era.
+- **Zone character.** The vent and shallows rows of `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE` are fixed
+  (the trip is always a trip). The broth and gel row is derived from the share: plain = 1 − share,
+  aerobic = photosynthetic = share / 2, so the plain 0.6 / aerobic 0.2 / photosynthetic 0.2 quoted
+  above is the endosymbiosis-era row; in the protocell era every broth cluster is plain and by the
+  eukaryote era the row is 0.4 / 0.3 / 0.3. Organelles spread through the world as it ages: early,
+  only a trip finds them; late, a laggard stumbles on them in the broth (catch-up). The renderer
+  may key the zone tint peak to the world stage (a `render/constants.ts` number that
+  [`VISUAL-STYLE.md §2`](./VISUAL-STYLE.md#2-palette) would own); nothing in build 1 needs it.
+- **Density is flat over the round.** `FOOD_CAP_*`, `DNA_FRAGMENT_CAP_*` and `WILD_CELL_COUNT` do
+  not vary with the world stage. Sprites at cap, solo: 700 motes + 40 fragments + 24 wild cells + 1
+  player (#141 option A's mote numbers; the human's answer moved the question from motes to peers,
+  §3.4). The dish fills by getting heavier and more dangerous, never by adding sprites.
+
+### 3.3 Wild cells
+
+The world's average made flesh. `WILD_CELL_COUNT` non-player cells live in the dish from tick 0 to
+the end of the round: at 0:00 a fresh protocell drifts among two dozen other protocells; at 9:00 a
+nucleated cell of 560 mass shares the broth with two dozen wild eukaryotes near that mass. They are
+what "a world similar to itself" means, and they are the average the player must outpace: outgrow
+them and they are lunch, fall behind and they are threats.
+
+**A wild cell is the world clock, not a player.** It has no DNA, no tags, no drafts, no leaderboard
+row and no score; it neither eats motes (the eating step skips it) nor decays. Every tick at step 1
+its mass and ladder are pinned to the world reference:
+
+```
+mass             = worldMass × massSpreadFactor        massSpreadFactor ~ uniform[1 − WILD_CELL_MASS_SPREAD, 1 + WILD_CELL_MASS_SPREAD], drawn at each (re)spawn from the wildCells stream
+level            = floor(worldLevel)
+traits           = the first (level − 1) entries of WILD_CELL_BUILDS[seatNumber mod WILD_CELL_BUILDS.length]; the list wraps as tier upgrades (entry 8 = entry 1 at tier II)
+stage            = stageOf(traits)                     (= worldStage by construction; the modifier fold then runs as for any cell)
+dnaCumulative    = worldDna                            (what a predator's ENGULF_DNA_SHARE reads)
+organismId       = WORLD_ORGANISM_ID                   (wild never engulfs wild: §6.3 "same organism")
+```
+
+Half the wild cells are below the world's mass and half above; with a 30 % spread a player at
+exactly `worldMass` can engulf the lightest sixth of them (mass ≤ 0.8 ×) and be engulfed by the
+heaviest twelfth (≥ 1.25 ×); at 1.63 × `worldMass` every wild cell is lunch, at 0.56 × every one is a
+threat. The timeline PNG (§3.1) draws both shares against the #138 player.
+
+`WILD_CELL_BUILDS` (`constants/wild-cells.ts`): three lists, each a valid ladder (every entry's
+`stage` and `requires` are met by the entries before it; the catalog test T10 pattern pins it):
+
+| Build (seat mod 3) | Picks in order                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 0                  | `nucleoid`, `mitochondrion`, `nuclear_envelope`, `cytoskeleton`, `amoeba_pseudopods`, `ribosomes`, `simple_flagellum` |
+| 1                  | `nucleoid`, `chloroplast`, `nuclear_envelope`, `cilia`, `paramecium_cilia`, `ribosomes`, `simple_flagellum`           |
+| 2                  | `nucleoid`, `mitochondrion`, `nuclear_envelope`, `cell_wall`, `diatom_shell`, `ribosomes`, `food_vacuole`             |
+
+**Behaviour** is the #15 bot strategies composed into one wild strategy
+(`packages/server/src/game/wild/wild-strategy.ts`; #15 therefore homes `wander`, `hunt` and `flee`
+under `packages/server/src/game/bots/`, where both this file and the gameplay framework's `.bot()`
+import them, never under `testing/`). A seat decides every `WILD_CELL_DECISION_INTERVAL_SECONDS`,
+staggered by seat (seat _n_ decides on ticks ≡ _n_ mod the interval in ticks), and latches its
+target between decisions exactly as a player's input is latched. Priority flee, then hunt, then
+wander:
+
+| Rule   | When                                                                                                                                                              | Target                                                                                                                                                                                                |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| flee   | any player cell for which `canEngulf(it, self)` holds has its centre within `WILD_CELL_FLEE_RANGE_RADII` × own radius (nearest such cell if several)              | own centre + (own centre − threat centre) unit × `STEER_FULL_THROTTLE_RADII` × own radius                                                                                                             |
+| hunt   | `worldStage` ≥ `WILD_CELL_HUNTS_FROM_STAGE` and the nearest player cell for which `canEngulf(self, it)` holds is within `WILD_CELL_HUNT_RANGE_RADII` × own radius | that cell's centre                                                                                                                                                                                    |
+| wander | otherwise; with probability `WILD_CELL_TURN_CHANCE` per decision draw a new uniform heading from the `wildCells` stream, else keep it                             | own centre + heading × `STEER_FULL_THROTTLE_RADII` × own radius; a target outside the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN` is redrawn (up to `SPAWN_POINT_MAX_ATTEMPTS`, then the origin) |
+
+Wild cells never sprint. They move through the shared kernel (§5.2, gel included), separate
+(§5.3) and engulf (§6) exactly as players do; `canEngulf` reads mass only, so the danger chip and
+the warning ring work on them unchanged (the chip names them `WILD <STAGE>`).
+
+**Engulf outcomes.** Wild eats player: the player dies normally
+([`GAME-DESIGN.md §5.2`](./GAME-DESIGN.md#52-spawn-death-and-respawn)); the wild cell's mass is
+re-pinned next tick (the meal is not kept). Player eats wild (§6.1 payout with these substitutions):
+mass += prey.mass × `ENGULF_MASS_YIELD`; DNA += `ENGULF_DNA_SHARE` × `worldDna` and no
+`ENGULF_DNA_BASE` (the bounty is for beating a player: a wild protocell is worth its mass, a wild
+eukaryote 48 DNA); tag points += `predatory` × `ENGULF_PREDATORY_TAG_POINTS` and no tag share (wild
+cells have none); `wildAbsorptions` += 1, `absorptions` unchanged, so no `SCORE_ABSORPTION_BONUS`;
+detritus as usual. A wild cell that owns an endosymbiont credits the eater's
+`bacteriaEatenByVariant` counter in full, as a player prey does (§1): from the endosymbiosis era,
+eating the world is the third way onto that rung.
+
+**Placement and respawn.** At world creation the `WILD_CELL_COUNT` seats are placed after the
+players and before the initial fill (so E1's "no mote inside any cell" covers them), each from the
+`spawnPlacement` stream with the safe-spawn rule of GAME-DESIGN §5.2 plus "no cell centre within
+`WILD_CELL_MIN_SPACING_WU`" (`SAFE_SPAWN_MAX_ATTEMPTS`, then the farthest candidate). A seat whose
+cell is absorbed or removed respawns after `WILD_CELL_RESPAWN_SECONDS` by the same placement with a
+fresh spread factor; the seat count never changes. `results` freezes wild cells with everything
+else; a rematch recreates them at protocell scale.
+
+**Randomness.** The `wildCells` stream (label `wild_cells`) owns spread factors, wander headings and
+turn rolls, forked from the round seed like every other stream so a wild turn never shifts a mote;
+its state is hashed ([`DETERMINISM.md §3, §5`](./DETERMINISM.md#3-seeded-random-streams-packagessharedsrcrandom-73)).
+
+**Contract (what #97 adds; the architect folds it into `ARCHITECTURE.md` §2, §3 and §10).**
+`WorldState.wildSeats: WildSeatRecord[]` (`seatNumber`, `cellId | null`, `massSpreadFactor`,
+`respawnInTicks`, `headingX`, `headingY`, `decideInTicks`); wild cells are ordinary `CellRecord`s in
+`world.cells` with `ownerPlayerId: null` and `organismId: WORLD_ORGANISM_ID`; `CellView.kind:
+'player' | 'wild'`; `GameEffect` gains `world_level_up`; `PlayerProgressView` gains `wildAbsorptions`;
+`RANDOM_STREAM` gains `wildCells`. The world reference is computed on both sides, never sent. Step
+order: step 1 also runs the wild strategy and the pin; step 4 skips wild cells; step 9 also runs
+wild respawn. The renderer (#99) needs one wild palette (a desaturated, palette-independent rim so a
+wild cell never reads as a player; `VISUAL-STYLE.md §2` owns the value) and draws their organelles
+from `traits` like anyone's. Cost: 24 cells and one decision per 30 ticks each.
+
+### 3.4 What a fresh protocell sees
+
+At 0:00, one player, #141's option A render (seed 96) still describes the motes: 9 algae, 0 bacteria
+and 1 fragment in the spawn camera (1067 × 600 wu). What changed is the company: 24 wild protocells
+of mass 14–26 (radius 15–20 wu) spread over the dish, 0.54 of them in the spawn camera on average
+and the nearest about 540 wu away (half a spawn-camera width), so a peer is in sight within seconds
+of drifting. Four of the 24 (spread ≤ 0.8) are lunch for a 20-mass player, two (spread ≥ 1.25) are
+threats, and all of them wander and flee: the first minute is grazing among peers, the first
+threat hint ([`UI.md §5`](./UI.md#5-onboarding-the-first-two-minutes)) fires early and honestly.
+If the first minute still reads as dark water in the #98 playtest, `FOOD_CAP_BASE` is the one knob
+(#141 option B's 2 × cap looked right at spawn zoom); it is not changed here.
 
 ## 4. Mass decay
 
@@ -294,14 +475,15 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `BACTERIUM_DRIFT_SPEED`                                                           | 20                             | wu/s            |
 | `BACTERIUM_CLUSTER_SIZE` / `BACTERIUM_CLUSTER_RADIUS`                             | 5 / 60                         | count / wu      |
 | `BACTERIUM_VARIANTS`                                                              | plain, aerobic, photosynthetic | ids             |
-| `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE`                                               | see §3                         | weights         |
+| `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE`                                               | §3; broth and gel §3.2         | weights         |
 | `BACTERIUM_TAG_BY_VARIANT`                                                        | see §1                         | tags            |
 | `DETRITUS_MOTE_MASS` / `DETRITUS_RADIUS`                                          | 2 / 7                          | mass / wu       |
 | `DETRITUS_MASS_FRACTION`                                                          | 0.2                            | ratio           |
 | `DETRITUS_LIFETIME_SECONDS`                                                       | 30                             | s               |
 | `DNA_FRAGMENT_DNA` / `DNA_FRAGMENT_RADIUS`                                        | 5 / 9                          | DNA / wu        |
 | `DNA_FRAGMENT_DRIFT_SPEED`                                                        | 10                             | wu/s            |
-| `FOOD_KIND_WEIGHTS`                                                               | algae 0.75, bacterium 0.25     | per-mote shares |
+| `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`                                                | §3.2; protocell 0.75 / 0.25    | shares / stage  |
+| `BROTH_VARIANT_SHARE_BY_WORLD_STAGE`                                              | 0/0.2/0.4/0.6/0.6 (§3.2)       | ratio / stage   |
 | `FOOD_ZONE_WEIGHTS_BY_KIND`                                                       | see §3                         | weights         |
 | `FOOD_CAP_BASE` / `FOOD_CAP_PER_PLAYER`                                           | 600 / 100                      | count           |
 | `FOOD_SPAWN_PER_SECOND_BASE` / `FOOD_SPAWN_PER_SECOND_PER_PLAYER`                 | 6 / 1                          | motes/s         |
@@ -331,6 +513,22 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `GEL_MASS_SCALE` / `GEL_MIN_SPEED_FACTOR` / `GEL_MAX_SPEED_FACTOR` | 1000 / 0.4 / 0.9 | mass / × / × |
 | `MASS_OVERFLOW_DNA_PER_MASS`                                       | 0.1              | DNA/mass     |
 | `MITOSIS_*`, `EJECT_MASS`                                          | §5.4             | reserved     |
+
+### `wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))
+
+| Constant                              | Value                   | Unit                 |
+| ------------------------------------- | ----------------------- | -------------------- |
+| `WILD_CELL_COUNT`                     | 24                      | seats                |
+| `WILD_CELL_MASS_SPREAD`               | 0.3                     | ratio of `worldMass` |
+| `WILD_CELL_BUILDS`                    | the three lists of §3.3 | trait ids            |
+| `WORLD_ORGANISM_ID`                   | `'world'`               | id                   |
+| `WILD_CELL_RESPAWN_SECONDS`           | 10                      | s                    |
+| `WILD_CELL_MIN_SPACING_WU`            | 200                     | wu                   |
+| `WILD_CELL_DECISION_INTERVAL_SECONDS` | 0.5                     | s                    |
+| `WILD_CELL_FLEE_RANGE_RADII`          | 8                       | own radii            |
+| `WILD_CELL_HUNT_RANGE_RADII`          | 10                      | own radii            |
+| `WILD_CELL_HUNTS_FROM_STAGE`          | `endosymbiosis`         | `CellStage`          |
+| `WILD_CELL_TURN_CHANCE`               | 0.25                    | per decision         |
 
 ### `absorption.ts`
 
@@ -396,3 +594,22 @@ the design docs (GAME-DESIGN §13, PROGRESSION §7, TRAITS §6):
 | E14 | seed 42, 1 player (seeded world), run to `ROUND_BLOOM_START_FRACTION` × round with food held at 0 by the fixture          | idle                                                           | +600 ticks | food spawned in those 600 ticks between 105 (7 × 1.5 × 10) and 109 (cluster overshoot); fragments spawned = 12 (0.6 × 2 × 10).                                                                                                                                                                                                                                                                           |
 | E15 | seed 42, 1 player with `nucleoid` I (fixture); one `photosynthetic` bacterium placed inside the cell per tick for 5 ticks | idle                                                           | 5 ticks    | `bacteriaEatenByVariant.photosynthetic` = 5, `.aerobic` = 0, `photic` tag points = 5, `dnaCumulative` = 5.25 (± 0.01: 5 × 1.05, `nucleoid` I's `dnaGainMultiplier` applies to every gain, TRAITS §2); `chloroplast` is a draft candidate (PROGRESSION P12 pins the pure rule at 4 vs 5). Separately: A (level 1, no traits) absorbs B who owns `mitochondrion` I → `bacteriaEatenByVariant.aerobic` ≥ 5. |
 | E16 | seed 42, A placed at mass 30, B at 20, centres 10 wu apart (engulf from tick 1)                                           | fixture sets A.mass = 23 before tick 10, = 21.5 before tick 20 | 20 ticks   | tick 10–19: engulf continues (23 ≥ 22 = `ENGULF_RELEASE_RATIO` × 20 although 23 < 25), progress rising; tick 20: released, both cells `free`, B `engulfProgress` = 0, A absorptions = 0.                                                                                                                                                                                                                 |
+
+### 8.1 The evolving world (§3.1–§3.4)
+
+Same conventions. "Seat 0 pinned at spread _s_" = the fixture sets wild seat 0's `massSpreadFactor`
+to _s_ and places its cell at the stated point (a placed wild cell is still pinned to the world every
+tick, so its mass at tick _t_ is `worldMass(t / TICK_HZ) × s`); the other 23 seats come from the seed.
+`worldMass(t)` = 20 + _t_ for _t_ in seconds.
+
+| #   | Given                                                                                                                                 | Inputs | After                     | Assert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| W1  | pure function `worldReference(elapsedSeconds, balance)`                                                                               | —      | —                         | the §3.1 table: 0 → level 1, `protocell`, mass 20, dna 0; 179.99 → level 1.99994, `protocell`; 180 → 2, `prokaryote`, 200, 60; 300 → 2.6667 (± 1e-6), `prokaryote`, 320, 60; 360 → 3, `endosymbiosis`, 380, 140; 540 → 4, `eukaryote`, 560, 240; 600 → 4.3333, `eukaryote`, 620, 240; 720 → 5, `specialised`, 740, 360; 1980 → 12 (`MAX_LEVEL`), `specialised`, 2000, 1760; 3600 → level 12 still, mass 3620.                                                                                |
+| W2  | seed 42, 1 player (seeded world)                                                                                                      | idle   | 0 ticks                   | exactly 24 wild cells (`kind` `wild`, `organismId` `'world'`), each level 1, no traits, stage `protocell`, mass within [14, 26] (20 × spread); no two cell centres (wild or player) within 200 wu; every wild centre within `DISH_RADIUS − SPAWN_EDGE_MARGIN`; E1's mote and fragment counts unchanged and no mote inside any wild cell (wild placement precedes the fill).                                                                                                                  |
+| W3  | seed 42, 1 player (seeded world)                                                                                                      | idle   | 10 799, then 10 800 ticks | after tick 10 799: every wild cell level 1, no traits, mass = 199.983 × its spread (± 0.01), no `world_level_up` yet. After tick 10 800: every wild cell level 2, owns `nucleoid` I, stage `prokaryote`, mass = 200 × its spread (± 0.01); exactly one `world_level_up` effect this tick, `{ level: 2, stage: 'prokaryote' }`; the first kind draw from tick 10 801 uses the `prokaryote` row (algae 0.70).                                                                                  |
+| W4  | seed 42, A placed at mass 100; seat 0 pinned at spread 1.0, placed 10 wu east of A (mass 20 + _t_/60)                                 | idle   | 30 ticks, then 631        | engulf starts tick 1 (ratio ≈ 5 → duration 0.5 s), pays out tick 30 with prey mass 20.5: A mass = `decayed(100, 30)` + 0.8 × 20.5 ≈ 116.32; A `dnaCumulative` = 0 (`ENGULF_DNA_SHARE` × `worldDna` = 0 in the protocell era, no `ENGULF_DNA_BASE`), `predatory` = 10, `wildAbsorptions` = 1, `absorptions` = 0, score = 0; detritus 2 motes = 4 mass; seat 0 has no cell, `respawnInTicks` = 600. At tick 631 seat 0 is alive again at mass 30.517 × a fresh spread (within [21.36, 39.67]). |
+| W5  | seed 42, B placed at mass 20; seat 0 pinned at spread 5.0 (mass 100 + _t_/12), placed 10 wu east of B                                 | idle   | 31 ticks, then 211        | payout on tick 30: B's cell removed, B `lifeState` `spectating`, `spectatingCellId` = seat 0's cell; at tick 31 seat 0's mass = 5 × (20 + 31/60) ≈ 102.58 (re-pinned: the meal is not kept). At tick 211 B is alive at mass 20 (entry rule: 0.25 × 23.52 < 20) and level 1 (world level 1.02, no lift; GAME-DESIGN §5.2).                                                                                                                                                                    |
+| W6  | seed 42, run to tick 21 600; seat 0 pinned at spread 1.0 (mass 380, radius 77.97); A placed at mass 20, pinned, 390 wu east of seat 0 | idle   | 21 600 + 60 ticks         | seat 0 decides on tick 21 600 (seat 0 ≡ 0 mod 30): world stage `endosymbiosis` ≥ `WILD_CELL_HUNTS_FROM_STAGE`, `canEngulf(seat 0, A)`, distance 5 radii ≤ 10 → target = A's centre; by tick 21 660 its velocity points at A within 5° and the distance has shrunk. The same setup run to tick 21 570 instead (world `prokaryote`): seat 0's target is not A's centre.                                                                                                                        |
+| W7  | seed 42, A placed at mass 100 (radius 40); seat 0 pinned at spread 1.0, placed 89 wu east of A (5 wild radii)                         | idle   | 60 ticks                  | `canEngulf(A, seat 0)` holds and A is within 8 wild radii → on tick 30 seat 0's target = its centre + (1, 0) × 2 × its radius (flee east); by tick 60 its velocity points east within 5°. Seat 0 never sprints (`sprintRemainingTicks` = 0 throughout).                                                                                                                                                                                                                                      |
+| W8  | seed 42, seat 0 pinned at spread 1.0; an algae mote placed inside seat 0's cell                                                       | idle   | 60 ticks                  | the mote is still there (the eating step skips wild cells); seat 0's mass = 21 × 1.0 exactly (pinned, no decay, nothing eaten).                                                                                                                                                                                                                                                                                                                                                              |
+| W9  | seed 42, 1 player (seeded world), run to tick 32 400 (world `eukaryote`), then food held at 0 by the fixture for ticks 32 401–35 400  | idle   | +3 000 ticks              | motes spawned in the window between 525 (7 × 1.5 × 50 s, bloom) and 529; their algae share within 0.50 ± 0.06 (the `eukaryote` row; pinned seed). Pure function `bacteriumVariantWeights(zone, worldStage)`: (`open_broth`, `protocell`) → plain 1 / aerobic 0 / photosynthetic 0; (`open_broth`, `endosymbiosis`) → 0.6 / 0.2 / 0.2; (`viscous_gel`, `eukaryote`) → 0.4 / 0.3 / 0.3; (`warm_vent`, any) → 0.3 / 0.7 / 0.                                                                    |
