@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
-import { CLIENT_MESSAGE_TYPE, ManualClock, createTestSessionConfig } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig } from '@evolution/shared';
 import type { GameSnapshot } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import type { GameModule, GameModuleFactory } from '../game/game-module.js';
@@ -53,6 +53,10 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
     reduceGameState: vi.fn(),
     // The spy echoes its roster, not a world: the cast is the echo module's own (game-module.ts).
     serializeRoomState: vi.fn(() => ({ players: [...players] }) as unknown as GameSnapshot),
+    serializeFullState: vi.fn(() => ({
+      snapshot: { players: [...players] } as unknown as GameSnapshot,
+      balance: DEFAULT_BALANCE,
+    })),
     addPlayer: vi.fn((playerId: string) => {
       players.add(playerId);
     }),

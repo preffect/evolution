@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, createTestSessionConfig } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, createTestSessionConfig } from '@evolution/shared';
 import { registerGameStateTools } from './game-state.js';
-import {
-  createDebugCapableGameModule,
-  createTestLobby,
-  createToolCapture,
-  parseToolJson,
-  type TestLobbyOptions,
-} from '../../testing/builders.js';
+import { defaultGameModuleFactory } from '../../game/game-module.js';
+import { createTestLobby, createToolCapture, parseToolJson, type TestLobbyOptions } from '../../testing/builders.js';
 
 function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown, options: TestLobbyOptions = {}) {
   const fixture = createTestLobby(options);
@@ -30,10 +25,13 @@ function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown, optio
 }
 
 describe('debug_get_game_state', () => {
-  it('falls back to the opaque snapshot plus a note when no inspector is wired', async () => {
-    const fixture = activeRoomFixture();
+  it("returns the room's full state, the game_state payload, when no inspector is wired", async () => {
+    const fixture = activeRoomFixture(undefined, { gameFactory: defaultGameModuleFactory });
     const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
-    expect(blob).toMatchObject({ note: expect.stringContaining('getRoomGameState'), snapshot: { players: [] } });
+    expect(blob).toEqual({
+      snapshot: { players: { alice: null } },
+      balance: JSON.parse(JSON.stringify(DEFAULT_BALANCE)),
+    });
     fixture.stop();
   });
 
@@ -41,14 +39,6 @@ describe('debug_get_game_state', () => {
     const fixture = activeRoomFixture((gameId) => ({ gameId, cells: 3 }));
     const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
     expect(blob).toEqual({ gameId: fixture.gameId, cells: 3 });
-    fixture.stop();
-  });
-
-  it('prefers the full state of a debug-capable module over the wired inspector', async () => {
-    const gameFactory = () => createDebugCapableGameModule({ serializeFullState: () => ({ cells: [1, 2] }) });
-    const fixture = activeRoomFixture(() => ({ summary: true }), { gameFactory });
-    const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
-    expect(blob).toEqual({ cells: [1, 2] });
     fixture.stop();
   });
 

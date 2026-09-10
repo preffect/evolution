@@ -1,7 +1,7 @@
 // Server-owned moments the snapshot carries for the renderer and the sound bus
 // (docs/ARCHITECTURE.md §2, §6, §7). An effect is emitted the tick it happens and drained into the
-// next broadcast; the client never infers one from state diffs. Names are past tense
-// (docs/CODE-STANDARDS.md §6).
+// next broadcast; the client never infers one from state diffs. Names are past tense or the
+// moment they mark (`eat`, `level_up`, `respawn`; docs/CODE-STANDARDS.md §6), pinned in game.test.ts.
 
 import type { EntityId, PlayerId } from './common.js';
 import type { EntityKind } from './game.js';

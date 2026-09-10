@@ -5,6 +5,7 @@ import {
   CLIENT_MESSAGE_TYPE,
   GAME_MODE,
   GAME_NAME_MAX_LENGTH,
+  GAME_NAME_MIN_LENGTH,
   MAX_PLAYERS_PER_GAME,
   MIN_PLAYERS_PER_GAME,
   PLAYER_NAME_MAX_LENGTH,
@@ -57,8 +58,10 @@ describe('clientMessageSchema: lobby bounds', () => {
     expect(isAccepted(joinLobby('a', AVATAR_INDEX_MIN - 1))).toBe(false);
   });
 
-  it('rejects a game name one over the maximum length', () => {
+  it('accepts a game name exactly at the maximum length and rejects one past either end', () => {
+    expect(isAccepted(createGame({}, 'g'.repeat(GAME_NAME_MAX_LENGTH)))).toBe(true);
     expect(isAccepted(createGame({}, 'g'.repeat(GAME_NAME_MAX_LENGTH + 1)))).toBe(false);
+    expect(isAccepted(createGame({}, 'g'.repeat(GAME_NAME_MIN_LENGTH - 1)))).toBe(false);
   });
 
   it('rejects an empty game id', () => {

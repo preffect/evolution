@@ -122,7 +122,7 @@ export interface TraitOfferView {
 }
 export interface TraitChoiceInput {
   offerId: number;
-  cardIndex: number; // 0..TRAIT_OFFER_CARD_COUNT-1; a stale offerId is rejected
+  cardIndex: number; // 0..TRAIT_DRAFT_SIZE-1; a stale offerId is ignored and counted (section 3.2)
 }
 export interface PlayerProgressView {
   playerId: PlayerId;
@@ -150,9 +150,10 @@ export interface LeaderboardRow {
 }
 ```
 
-Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_PHASE`, `FOOD_KIND`, `BACTERIUM_VARIANT`,
-`DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `ENTITY_KIND`) with the union derived
-from it (`CODE-STANDARDS.md §2`); the trait definition shape and `CellModifiers` live in `types/traits.ts`.
+Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_END_CONDITION`, `ROUND_PHASE`, `FOOD_KIND`,
+`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `ENTITY_KIND`) with the
+union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.ts`), `TRAIT_CATEGORY` and
+`TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
 The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
 world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId }`, `eat { cellId, eatenId,
 eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`.
@@ -363,7 +364,7 @@ export interface FoodDelta {
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs: everything rides `player_input`.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
-  carries; a module without it, the echo, gets `serializeRoomState()` and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
+  carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`DETERMINISM.md §3`); it never receives a `RandomSource`.
@@ -466,30 +467,31 @@ implement answers `isError` "not supported by this game module" instead of stubb
 for the template only: the Evolution handle is declared `implements Required<SimulationDebugHandle>`
 so `tsc` checks completeness (a forgotten member is a type error, never a runtime "not
 supported"), and the Evolution module never wires `DebugContext.getRoomGameState`; there is one
-path to the full state, and the three-level fallback below is template compatibility only. A
+path to the full state, and the inspector fallback below is template compatibility only. A
 refused request
 (unknown player, unknown kind, a balance path that is not a number leaf) is a
 `DebugRequestError`, which the lookup turns into an `isError` result. This table is the one home
 of the tool names (the `_room` suffix marks the tools that act on the room loop rather than the
 world; they need no capability):
 
-| Tool                                                                                        | Handle method                                                      |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `debug_get_game_state(gameId)`                                                              | `serializeFullState()` + counts per food kind, variant and zone    |
-| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer |
-| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                             |
-| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                               |
-| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                               |
-| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                              |
-| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop              |
-| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)         |
-| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`         |
-| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                               |
-| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                       |
+| Tool                                                                                        | Handle method                                                                    |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `debug_get_game_state(gameId)`                                                              | `GameRoom.getFullState()`: the module's `serializeFullState()`, no handle member |
+| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer               |
+| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                                           |
+| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                                             |
+| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                                             |
+| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                                            |
+| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                            |
+| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)                       |
+| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                       |
+| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                             |
+| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                     |
 
-`debug_get_game_state` prefers `serializeFullState()`, then the template's
-`DebugContext.getRoomGameState(gameId)` summary (`{ tick, seed, roundPhase, roundTimeLeftMs,
-players, counts, stateHash }`, not the entity dump), then the opaque broadcast snapshot.
+`debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
+the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
+same `{ snapshot, balance }` that `game_state` sends a joining client. The handle has no second
+full-state member, so the Evolution module cannot implement two shapes of one fact.
 `patchBalance` applies `applyBalancePatch` (`game/debug/balance-patch.ts`): number leaves only,
 at paths that exist, validated as a whole before anything is written.
 
@@ -510,13 +512,17 @@ exactly as the design tables name it (`GAME-DESIGN.md §12`, `ECOLOGY.md §7`, `
 `DEFAULT_BALANCE = { world, session, controls, ladder, ecology, growth, absorption, progression, traits }`
 (the domain modules spread into plain records) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
-patched copy holds other numbers).
+patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
+that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
+returns a fresh copy and never writes its input.
 `data/balance.json` is **generated** from `DEFAULT_BALANCE` by `scripts/generate-balance.ts`,
 checked in as the diffable reference the debug tools quote, and pinned by
 `balance.test.ts` (file equals `DEFAULT_BALANCE`, so hand edits fail the gate). At runtime each
-room starts from `DEFAULT_BALANCE`; `debug_set_balance` patches number leaves only and the
-world carries the live copy. Nothing reads `data/balance.json` at runtime. The full rule set is
-`CODE-STANDARDS.md §2`.
+room starts from a copy of `DEFAULT_BALANCE`; `debug_set_balance` patches number leaves only and the
+world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TIERS` only:
+`TRAIT_CATALOG[n].tiers` is structure and is never read for a number (the JSON writes both because a
+catalog row carries its tiers), so a patch has one path. Nothing reads `data/balance.json` at
+runtime. The full rule set is `CODE-STANDARDS.md §2`.
 
 ## 10. File plan (target ≤ 250 lines per file; 300 is the lint cap)
 
@@ -571,7 +577,8 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
   kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip;
   food delta tracker; draft (ladder filter, rung card, weights, timeout pick); `foldModifiers`;
   snapshot buffer / prediction / reconciliation; schemas (`message-schemas.test.ts` bounds);
-  `balance.test.ts` (generated file equals `DEFAULT_BALANCE`; every design table constant exists).
+  `balance.test.ts` (generated file equals `DEFAULT_BALANCE`), `constants-ledger.test.ts` (every design
+  table constant exists).
 - **Integration:** input → step → snapshot through a real `GameRoom` under a `ManualClock`; late
   join gets a full `game_state` then deltas; reconnect resync; replay reproduces the hash; the
   rematch reseed (`seed + ROUND_SEED_INCREMENT`) produces a fresh world.

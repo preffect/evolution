@@ -1,11 +1,14 @@
-// The one balance record (docs/ARCHITECTURE.md §9): the tunable domain modules as namespaces.
-// Each room starts from `DEFAULT_BALANCE`, `debug_set_balance` patches number leaves of the
-// room's copy, and the client predicts with the copy it receives in `game_state`. Nothing here
-// is read by the simulation as a module import; it arrives as `context.balance`.
-// `data/balance.json` is generated from this record by scripts/generate-balance.ts and pinned
-// equal by balance.test.ts. Engineering constants (simulation.ts) are not tunables and stay out.
+// The one balance record (docs/ARCHITECTURE.md §9): the tunable domain modules spread into plain
+// records. Each room starts from a `structuredClone` of `DEFAULT_BALANCE`, `debug_set_balance`
+// patches number leaves of the room's copy, and the client predicts with the copy it receives in
+// `game_state`. Nothing here is read by the simulation as a module import; it arrives as
+// `context.balance`. The record is deep-frozen: it aliases the module constants, so a room that
+// forgot to clone would otherwise rewrite every room and the constants themselves.
+// `data/balance.json` is generated from this record by `pnpm generate:balance` and pinned equal
+// by balance.test.ts. Engineering constants (simulation.ts) are not tunables and stay out.
 
 import * as absorption from './absorption.js';
+import { deepFreeze } from './deep-freeze.js';
 import * as controls from './controls.js';
 import * as ecology from './ecology.js';
 import * as growth from './growth.js';
@@ -42,4 +45,4 @@ const BALANCE_DEFAULTS = {
 
 export type BalanceConfig = WidenNumberLeaves<typeof BALANCE_DEFAULTS>;
 
-export const DEFAULT_BALANCE: BalanceConfig = BALANCE_DEFAULTS;
+export const DEFAULT_BALANCE: BalanceConfig = deepFreeze(BALANCE_DEFAULTS);

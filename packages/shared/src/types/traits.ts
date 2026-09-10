@@ -1,10 +1,9 @@
 // The trait definition shape and the modifier model (docs/TRAITS.md §1, §2). The catalog rows
 // themselves are constants (constants/traits.ts); this file only says what a row looks like.
 
+import type { ValueOf } from './common.js';
 import type { BacteriumVariant, CellStage, DnaTag, TraitId } from './game.js';
 import type { EXCLUSION_GROUPS } from '../constants/traits.js';
-
-type ValueOf<Table> = Table[keyof Table];
 
 /**
  * Every trait tier is a partial of this record; the cell's effective modifiers are folded over

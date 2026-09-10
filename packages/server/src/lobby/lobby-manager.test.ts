@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CLIENT_MESSAGE_TYPE,
+  DEFAULT_BALANCE,
   DISCONNECT_GRACE_MS,
   SERVER_MESSAGE_TYPE,
   createTestGameInput,
@@ -124,11 +125,13 @@ describe('lobby-manager: starting and running games', () => {
     room.stop();
   });
 
-  it('joining an active game is a late join that receives the full game state', () => {
+  it('joining an active game is a late join that receives the full game state with its balance', () => {
     const fixture = lobbyWithActiveGame();
     const bob = fixture.join('bob', 'Bob');
     fixture.handlers.onJoinGame(bob, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
-    expect(fixture.sent['bob']).toContainEqual(expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState }));
+    expect(fixture.sent['bob']).toContainEqual(
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, balance: DEFAULT_BALANCE }),
+    );
     expect(fixture.lobby.getActiveRoom(fixture.gameId)?.allPlayerIds).toEqual(['alice', 'bob']);
     fixture.lobby.getActiveRoom(fixture.gameId)?.stop();
   });
@@ -152,7 +155,9 @@ describe('lobby-manager: starting and running games', () => {
     vi.advanceTimersByTime(DISCONNECT_GRACE_MS);
     const room = fixture.lobby.getActiveRoom(fixture.gameId);
     expect(room?.disconnectedPlayers.has('alice')).toBe(false);
-    expect(typesSentTo(fixture.sent, 'alice')).toContain(SERVER_MESSAGE_TYPE.gameState);
+    expect(fixture.sent['alice']).toContainEqual(
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, balance: DEFAULT_BALANCE }),
+    );
     room?.stop();
   });
 

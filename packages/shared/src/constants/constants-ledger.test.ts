@@ -17,10 +17,15 @@ const CONSTANTS_TABLE_SOURCES = [
 ] as const;
 
 const TABLE_ROW_PATTERN = /^\|\s*(`[^|]*)\|/;
+/**
+ * A backticked UPPER_SNAKE name. A family glob such as `MITOSIS_*` (ECOLOGY §7, reserved) never
+ * matches because `*` is outside the class, so a cell that lists a glob beside a real name still
+ * yields the real name.
+ */
 const BACKTICKED_NAME_PATTERN = /`([A-Z][A-Z0-9_]*)`/g;
-/** `MITOSIS_*` names a family whose members the prose lists; the family row itself is not a constant. */
-const GLOB_NAME_PATTERN = /`[A-Z0-9_]*\*`/;
 const MINIMUM_NAMES_PER_DOC = 5;
+/** The ECOLOGY §7 row `\`MITOSIS_*\`, \`EJECT_MASS\``: a glob beside a real name once dropped the whole row. */
+const GLOB_ROW_SOURCE = { documentName: 'ECOLOGY.md', section: 7, globName: 'MITOSIS_*', realName: 'EJECT_MASS' };
 
 function sectionOf(markdown: string, section: number): string {
   const lines = markdown.split('\n');
@@ -37,11 +42,19 @@ function namesInConstantsTable(documentName: string, section: number): string[] 
   const names = new Set<string>();
   for (const line of sectionOf(markdown, section).split('\n')) {
     const firstCell = TABLE_ROW_PATTERN.exec(line)?.[1];
-    if (!firstCell || GLOB_NAME_PATTERN.test(firstCell)) continue;
+    if (!firstCell) continue;
     for (const match of firstCell.matchAll(BACKTICKED_NAME_PATTERN)) names.add(match[1]!);
   }
   return [...names];
 }
+
+describe('constants ledger: the table parser', () => {
+  it('keeps the real name of a row that also lists a family glob, and never the glob itself', () => {
+    const names = namesInConstantsTable(GLOB_ROW_SOURCE.documentName, GLOB_ROW_SOURCE.section);
+    expect(names).toContain(GLOB_ROW_SOURCE.realName);
+    expect(names).not.toContain(GLOB_ROW_SOURCE.globName);
+  });
+});
 
 describe('constants ledger: every design-table constant is exported', () => {
   describe.each(CONSTANTS_TABLE_SOURCES)('$documentName §$section', ({ documentName, section }) => {

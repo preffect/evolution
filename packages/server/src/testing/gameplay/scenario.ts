@@ -196,7 +196,6 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     }
     const definition: ScenarioDefinition<Snapshot, Fixture> = {
       name: this.name,
-      seed: this.seedValue,
       config: { ...this.configValue, seed: this.seedValue },
       players: [...this.playerList],
       fixtures: [...this.fixtureList],
