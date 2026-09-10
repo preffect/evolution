@@ -273,17 +273,31 @@ Zoom is `GAME-DESIGN.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, v
 | Player tells         | seat mark and self ring (§2) at every LOD ≥ 8 px; below that, hue and the leaderboard swatch only                                                                                                                                                                                                                                                                                                                                 |
 | Prey through film    | an engulfed prey's rim and nucleus glint are redrawn at 62 % over the predator body (sheet 02, prey row) until the payout                                                                                                                                                                                                                                                                                                         |
 | Food silhouettes     | circle (algae), oily ellipse (detritus), rod (bacterium), helix (DNA): readable at the 2 px floor without colour                                                                                                                                                                                                                                                                                                                  |
-| HUD exclusion        | nothing is drawn within ±120 px of the player cell (sheet 03 HUD)                                                                                                                                                                                                                                                                                                                                                                 |
+| HUD exclusion        | nothing is drawn inside the `HUD_PLAYER_EXCLUSION_PX` box around the player cell (`UI.md` owns the number)                                                                                                                                                                                                                                                                                                                        |
 | Contrast             | every rim is ≥ `RIM_MIN_CONTRAST` 4.5:1 against `BG_FIELD` (measured 10.7–16.4); bases range 4.0 (Violet) to 10.1 (Mint) and are held to ≥ 4.0; UI text uses sheet 03's text roles only                                                                                                                                                                                                                                           |
 
 ## 7. UI colours and type
 
-Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts. **This doc
-owns the font families and the colour roles; `UI.md` (#30, `feat/30-ui-design`) owns type sizes, per-element
-placement and per-component tints**, so #100 reads sizes there and colours here. Type is a system stack,
-no web fonts and no font files: `UI_FONT_SANS` = `Inter, "Segoe UI", system-ui, sans-serif` for labels
-and body, `UI_FONT_MONO` = `"JetBrains Mono", ui-monospace, monospace` for numbers that change (mass,
-timer, DNA %), so digits do not jitter; labels are uppercase tracked 0.08 em. Colour roles: the own row
+Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts. **Ownership
+(architect decision on #125): this doc owns every colour (§2) and the type scale and fonts below; `UI.md`
+(#30, `feat/30-ui-design`) cites colour and type roles by name and owns placement, per-element sizes
+other than type, and `HUD_PLAYER_EXCLUSION_PX`.** Type is a system stack, no web fonts and no font files:
+`UI_FONT_SANS` = `Inter, "Segoe UI", system-ui, sans-serif` for labels and body, `UI_FONT_MONO` =
+`"JetBrains Mono", ui-monospace, monospace` for numbers that change (mass, timer, DNA %), so digits do
+not jitter. The type scale (`UI_TYPE_*`, px at HUD scale 1):
+
+| Role        | px  | Face | Used for                                             |
+| ----------- | --- | ---- | ---------------------------------------------------- |
+| `number`    | 28  | mono | level number, mass value                             |
+| `headline`  | 26  | sans | results winner line                                  |
+| `clock`     | 24  | mono | round timer                                          |
+| `title`     | 22  | sans | overlay titles (respawn, menu)                       |
+| `card_name` | 16  | sans | trait card name                                      |
+| `body`      | 14  | sans | body text, hint pill                                 |
+| `label`     | 12  | sans | labels, uppercase tracked 0.08 em; the reading floor |
+| `caption`   | 11  | sans | key hints, muted captions; never carries a fact      |
+
+Colour roles: the own row
 on the leaderboard is tinted with the player's own rim colour @12 %; a player swatch is the palette base
 with a rim-colour ring and the seat-mark bead count of §2; danger, gold and DNA are the only saturated UI
 colours; the rest of the overlay is the `PANEL_TOP` → `PANEL_BOTTOM` panel with the `PANEL_RIM` rim so the
@@ -306,8 +320,8 @@ The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 
 - **Filters (blur, turbulence) run only at texture build time**, never per frame on a cell. The
   wobble, stretch, dents and eat / engulf / level-up deformations are vertex maths on the loop; the
   glow "bloom" of a pulse is a halo sprite scaled up, not a filter.
-- **Shader effects are limited to two:** the vent heat shimmer (a displacement over the cached vent
-  texture) and the trait-picker dim (a full-screen 55 % black quad). Anything else proposed as a
+- **One shader effect:** the vent heat shimmer (a displacement over the cached vent texture). The
+  trait-picker dim is a DOM overlay owned by `UI.md`, not a render effect. Anything else proposed as a
   shader is a ticket, not a PR.
 - Depth particles and bokeh are `ParticleContainer`s with no per-particle state beyond position and
   phase.
