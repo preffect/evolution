@@ -36,7 +36,7 @@ clean; `sync` never runs unsolicited).
   in `docs/VISUAL-STYLE.md`, #34, pending). The template's `AVATAR_INDEX_MAX` becomes 7 and the lobby
   zod schemas read it instead of a literal (#97). No teams in build 1 (`mode: 'colony'` reserved,
   rejected).
-- **Tick model:** real-time fixed step at `SIMULATION_TICK_HZ` = 60 (the template's `TICK_HZ`);
+- **Tick model:** real-time fixed step at the template's `TICK_HZ` = 60 (`constants/network.ts`; no alias);
   `game_snapshot` every tick in build 1 (#32 may lower the broadcast rate; the simulation rate stays).
 - **Win/lose / structure:** free-for-all rounds of `ROUND_DURATION_SECONDS`; winner = highest score;
   death = engulfed → 3 s spectate → respawn; results screen then automatic rematch with the next
@@ -47,8 +47,10 @@ clean; `sync` never runs unsolicited).
   levels, drafts, spawns, respawn and the leaderboard (everything in the snapshot). The client owns
   only its pointer target, sprint and trait-choice intents, plus cosmetic wobble, camera and
   interpolation. Inputs are validated by schema; nothing else is checked.
-- **Determinism:** all simulation randomness comes from the seeded `RandomSource` (#73) forked per
-  subsystem (`spawner`, `zones`, `traitDraft`, `spawnPlacement`); the manual `Clock` (#74) drives tests.
+- **Determinism:** all simulation randomness comes from seeded streams (#73) that the game module
+  forks itself from `config.seed`, one per subsystem (`spawner`, `zones`, `traitDraft`, `spawnPlacement`,
+  `moteMotion`; [`DETERMINISM.md §3`](./docs/DETERMINISM.md#3-seeded-random-streams-packagessharedsrcrandom-73));
+  the manual `Clock` (#74) drives tests.
 
 ---
 
@@ -181,30 +183,30 @@ export interface GameSessionConfig {
 }
 ```
 
-**Constants: the move.** The template ships `packages/shared/src/constants.ts` (`TICK_HZ`,
-`TICK_INTERVAL_MS`, `DISCONNECT_GRACE_MS`, `MIN_PLAYERS_PER_GAME`, `MAX_PLAYERS_PER_GAME`, avatar and
-name bounds). A `constants/` directory beside a `constants.ts` file would be an import ambiguity, so
-#97 does this explicitly: `git mv packages/shared/src/constants.ts packages/shared/src/constants/template.ts`
-(content unchanged apart from `AVATAR_INDEX_MAX` = 7), add `packages/shared/src/constants/index.ts`
-that re-exports `template.ts` and every domain file below, and keep `packages/shared/src/index.ts`
-exporting `./constants` so existing imports keep resolving. `MAX_PLAYERS_PER_GAME` is the one home
-for the room bound (there is no `ROOM_MAX_PLAYERS`). One file per domain:
+**Constants: one file per domain.** The template already ships the split directory
+`packages/shared/src/constants/{index,units,network,lobby,identity}.ts` (`network.ts`: `TICK_HZ`,
+`TICK_INTERVAL_MS`, `DISCONNECT_GRACE_MS`; `lobby.ts`: player bounds, avatar and name bounds;
+`units.ts`: `MILLISECONDS_PER_SECOND`; `identity.ts`: the client-id storage key). #97 leaves those
+files as they are apart from `AVATAR_INDEX_MAX` = 7 in `lobby.ts`, adds the domain files below and
+re-exports each of them from `packages/shared/src/constants/index.ts`, so existing imports keep
+resolving. `MAX_PLAYERS_PER_GAME` (`lobby.ts`) is the one home for the room bound (there is no
+`ROOM_MAX_PLAYERS`). The files:
 
-| File                                           | Owned by doc section                                                                                    |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `packages/shared/src/constants/template.ts`    | the template's file, moved ([`GAME-DESIGN.md §12`](./docs/GAME-DESIGN.md#12-constants-table))           |
-| `packages/shared/src/constants/world.ts`       | GAME-DESIGN §12 `world.ts`                                                                              |
-| `packages/shared/src/constants/session.ts`     | GAME-DESIGN §12 `session.ts`                                                                            |
-| `packages/shared/src/constants/controls.ts`    | GAME-DESIGN §12 `controls.ts`                                                                           |
-| `packages/shared/src/constants/ladder.ts`      | GAME-DESIGN §12 `ladder.ts` (`CellStage`, `STAGE_ORDER`, `STAGE_GATE_TRAITS`, endosymbiosis count)      |
-| `packages/shared/src/constants/camera.ts`      | GAME-DESIGN §12 `camera.ts` (client only, but shared for tests)                                         |
-| `packages/shared/src/constants/ecology.ts`     | [`ECOLOGY.md §7`](./docs/ECOLOGY.md#7-constants-table)                                                  |
-| `packages/shared/src/constants/growth.ts`      | ECOLOGY §7 `growth.ts` (incl. reserved mitosis constants)                                               |
-| `packages/shared/src/constants/absorption.ts`  | ECOLOGY §7 `absorption.ts`                                                                              |
-| `packages/shared/src/constants/progression.ts` | [`PROGRESSION.md §6`](./docs/PROGRESSION.md#6-constants-table--packagessharedsrcconstantsprogressionts) |
-| `packages/shared/src/constants/traits.ts`      | [`TRAITS.md §3, §5`](./docs/TRAITS.md#5-constants-table--packagessharedsrcconstantstraitsts)            |
+| File                                                              | Owned by doc section                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `packages/shared/src/constants/{units,network,lobby,identity}.ts` | the template's files, unchanged ([`GAME-DESIGN.md §12`](./docs/GAME-DESIGN.md#12-constants-table))      |
+| `packages/shared/src/constants/world.ts`                          | GAME-DESIGN §12 `world.ts`                                                                              |
+| `packages/shared/src/constants/session.ts`                        | GAME-DESIGN §12 `session.ts`                                                                            |
+| `packages/shared/src/constants/controls.ts`                       | GAME-DESIGN §12 `controls.ts`                                                                           |
+| `packages/shared/src/constants/ladder.ts`                         | GAME-DESIGN §12 `ladder.ts` (`CellStage`, `STAGE_ORDER`, `STAGE_GATE_TRAITS`, endosymbiosis count)      |
+| `packages/shared/src/constants/camera.ts`                         | GAME-DESIGN §12 `camera.ts` (client only, but shared for tests)                                         |
+| `packages/shared/src/constants/ecology.ts`                        | [`ECOLOGY.md §7`](./docs/ECOLOGY.md#7-constants-table)                                                  |
+| `packages/shared/src/constants/growth.ts`                         | ECOLOGY §7 `growth.ts` (incl. reserved mitosis constants)                                               |
+| `packages/shared/src/constants/absorption.ts`                     | ECOLOGY §7 `absorption.ts`                                                                              |
+| `packages/shared/src/constants/progression.ts`                    | [`PROGRESSION.md §6`](./docs/PROGRESSION.md#6-constants-table--packagessharedsrcconstantsprogressionts) |
+| `packages/shared/src/constants/traits.ts`                         | [`TRAITS.md §3, §5`](./docs/TRAITS.md#5-constants-table--packagessharedsrcconstantstraitsts)            |
 
-`SIMULATION_TICK_HZ` re-exports the template's `TICK_HZ`; do not define a second tick rate. Values
+The simulation rate is the template's `TICK_HZ`; do not define a second tick rate or an alias for it. Values
 the docs mark as derived (the per-tick steer blend, `STARTING_STAGE` = `STAGE_ORDER[0]`) are computed
 in code from their source constants, never declared. A shared test (`constants.test.ts`) pins each
 doc table's values against the exported constants (one assertion per constant, generated from a
@@ -250,7 +252,7 @@ config: z.object({
 Add `message-schemas.test.ts`: accepts the canonical input, rejects NaN targets, out-of-range
 `cardIndex`, `mode: 'colony'`, and a missing seed. `ROUND_DURATION_MIN_SECONDS`,
 `ROUND_DURATION_MAX_SECONDS` and `SEED_MAX` live in `session.ts` (GAME-DESIGN §12); the lobby's
-`avatarIndex` bounds read `AVATAR_INDEX_MIN` / `AVATAR_INDEX_MAX` from `template.ts`.
+`avatarIndex` bounds read `AVATAR_INDEX_MIN` / `AVATAR_INDEX_MAX` from `lobby.ts`.
 
 ### `packages/server/src/ws/message-router.ts`
 
@@ -258,9 +260,11 @@ No new client verbs. Everything rides `player_input`.
 
 ### `packages/server/src/game/` — the `GameModule` (replaces `defaultGameModuleFactory`)
 
-`game-module.ts` keeps the interface and `RoomInitArgs` (widen `config` to `GameSessionConfig` and
-add `random: RandomSource` and `clock: Clock` from #73/#74). The implementation is a thin
-orchestrator over pure subsystems:
+`game-module.ts` keeps the interface; `RoomInitArgs` becomes `{ config, playerIds, clock }` (`config`
+widened to the resolved `GameSessionConfig`, `clock: Clock` from #74). The factory builds the random
+streams itself from `config.seed` and never receives a `RandomSource`
+([`ARCHITECTURE.md §4`](./docs/ARCHITECTURE.md#4-wire-contract-packagessharedsrctypesmessagests), [`DETERMINISM.md §3`](./docs/DETERMINISM.md#3-seeded-random-streams-packagessharedsrcrandom-73)).
+The implementation is a thin orchestrator over in-place systems:
 
 ```
 packages/server/src/game/
@@ -268,7 +272,7 @@ packages/server/src/game/
   world/world-state.ts           WorldState type, createWorld(seed, config, playerIds)
   world/entities.ts              Cell / FoodMote / DnaFragment server records (superset of the views)
   world/spatial-hash.ts          uniform grid for neighbour queries (cell size = 2 × max mote radius + max cell radius bucket)
-  simulation/step.ts             stepWorld(world, inputs): fixed order below
+  simulation/step.ts             stepWorld(world, context): void, fixed order below (context = { balance, streams, effects })
   simulation/movement.ts         throttle, steer blend, wall clamp, gel factor   (ECOLOGY §5.2)
   simulation/contact.ts          soft separation                                 (ECOLOGY §5.3)
   simulation/eating.ts           mote/fragment consumption, variant counters, overflow → DNA (ECOLOGY §1, §5.4)
@@ -306,28 +310,33 @@ Fixed step order inside `stepWorld` (one tick):
 **Expected values in the doc scenarios assume this order** (eating before decay, metabolism before
 the engulf check); the order is a contract, and changing it means recomputing every scenario table.
 
-Every function in `simulation/` and `progression/` is pure (`(state, args) → state | effects`) with a
-co-located `*.test.ts` covering happy / edge / error paths; the acceptance scenarios in each doc
+Every system in `simulation/` and `progression/` is `(world, context) => void` and mutates the one
+`WorldState` in place ([`ARCHITECTURE.md §3.1`](./docs/ARCHITECTURE.md#31-in-place-systems-pure-step)):
+it reads nothing but its arguments, calls no IO, no clock and no `Math.random`, and two worlds that
+hash equal before a step hash equal after it. Tests assert values and hashes, never object identity.
+Shared formulas (`movement-kernel.ts`, `mass-curves.ts`) stay side-effect free and take numbers. Each
+system has a co-located `*.test.ts` covering happy / edge / error paths; the acceptance scenarios in each doc
 (`GAME-DESIGN §13`, `ECOLOGY §8`, `PROGRESSION §7`, `TRAITS §6`) become gameplay-framework tests (#75,
 #102) named by their scenario id (`E9`, `P3`, ...).
 
 ```ts
 // evolution-module.ts (shape)
 export const evolutionGameModuleFactory: GameModuleFactory = (args) => {
-  let world = createWorld(args.config.seed, args.config, args.playerIds, args.random.fork('world'));
+  // args = { config, playerIds, clock }; the streams are forked from config.seed inside createWorld
+  const world = createWorld(args.config.seed, args.config, args.playerIds);
   const pendingInputs = new Map<PlayerId, GameInput>();
   return {
     submitInput: (playerId, payload) => pendingInputs.set(playerId, payload),
     reduceGameState: () => {
-      world = stepWorld(world, pendingInputs, args.random);
+      stepWorld(world, buildStepContext(world, pendingInputs)); // { balance, streams, effects }, ARCHITECTURE §3.1
       pendingInputs.forEach((input) => (input.sprint = false)); // sprint is edge-triggered
     },
     serializeRoomState: () => serializeWorld(world),
     addPlayer: (playerId, avatarIndex, playerName) => {
-      world = addPlayerToWorld(world, { playerId, avatarIndex, playerName });
+      addPlayerToWorld(world, { playerId, avatarIndex, playerName });
     },
     removePlayer: (playerId) => {
-      world = removePlayerFromWorld(world, playerId); // dissolves the cell into detritus
+      removePlayerFromWorld(world, playerId); // dissolves the cell into detritus
     },
   };
 };
@@ -363,7 +372,7 @@ PR) and the concept sheets (#104–#106).
 their teardown:
 
 - `input/input-controller.ts`: pointer (mouse/touch) and keyboard state → `GameInput` at
-  `SIMULATION_TICK_HZ` via `send`; pointer screen → world through the camera; sprint on click / Space
+  `TICK_HZ` via `send`; pointer screen → world through the camera; sprint on click / Space
   (edge-triggered); `1/2/3` and card clicks → `traitChoice` with the shown `offerId`; keyboard
   steering synthesises the target per [`GAME-DESIGN.md §6`](./docs/GAME-DESIGN.md#6-controls).
 - `render/`: `dish-layer.ts` (dark-field background, wall rim, zones, depth particles),

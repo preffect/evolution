@@ -17,6 +17,8 @@ them equal).
 ## 1. Definition shape
 
 ```ts
+type TraitTierModifiers = Partial<CellModifiers>; // one tier's row: only the fields the tier changes
+
 interface TraitDefinition {
   id: TraitId; // snake_case, full words
   name: string; // evocative, two words
@@ -27,7 +29,7 @@ interface TraitDefinition {
   rarity: 'common' | 'uncommon' | 'rare';
   tags: DnaTag[]; // draft weighting, PROGRESSION §3
   exclusionGroup?: 'body_plan' | 'membrane';
-  tiers: [CellModifiers, CellModifiers, CellModifiers]; // partial modifier sets, tier I..III
+  tiers: [TraitTierModifiers, TraitTierModifiers, TraitTierModifiers]; // tier I..III
   visual: string; // what the renderer must show, per tier
   audioCue: SoundEventId; // hook only in build 1 (#101)
 }

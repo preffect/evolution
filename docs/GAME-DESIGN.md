@@ -111,17 +111,17 @@ Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
 
 ## 5. Session structure (#29)
 
-| Decision            | Build 1 value                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.               |
-| Players per room    | 1 to `MAX_PLAYERS_PER_GAME` = 8 (the template's constant, `constants/template.ts`). Solo play is valid. |
-| Round length        | `ROUND_DURATION_SECONDS` = 600, set at create time.                                                     |
-| Round end           | Timer only. Dominant-organism and DNA-target end conditions are reserved (`endCondition`).              |
-| Late join           | Allowed at any time; catch-up rules in [`PROGRESSION.md`](./PROGRESSION.md#5-late-join-catch-up).       |
-| Death               | Engulfed cell spectates `RESPAWN_SPECTATE_SECONDS` = 3, then respawns (section 5.2).                    |
-| Leaderboard         | Ranked by `score` (section 5.3); shows mass, level, absorptions alongside.                              |
-| Results and rematch | Results screen `RESULTS_SCREEN_SECONDS` = 20, then an automatic new round (section 5.4).                |
-| Alliances / teams   | None in build 1. Reserved.                                                                              |
+| Decision            | Build 1 value                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.            |
+| Players per room    | 1 to `MAX_PLAYERS_PER_GAME` = 8 (the template's constant, `constants/lobby.ts`). Solo play is valid. |
+| Round length        | `ROUND_DURATION_SECONDS` = 600, set at create time.                                                  |
+| Round end           | Timer only. Dominant-organism and DNA-target end conditions are reserved (`endCondition`).           |
+| Late join           | Allowed at any time; catch-up rules in [`PROGRESSION.md`](./PROGRESSION.md#5-late-join-catch-up).    |
+| Death               | Engulfed cell spectates `RESPAWN_SPECTATE_SECONDS` = 3, then respawns (section 5.2).                 |
+| Leaderboard         | Ranked by `score` (section 5.3); shows mass, level, absorptions alongside.                           |
+| Results and rematch | Results screen `RESULTS_SCREEN_SECONDS` = 20, then an automatic new round (section 5.4).             |
+| Alliances / teams   | None in build 1. Reserved.                                                                           |
 
 ### 5.1 Round timeline and pace curve
 
@@ -266,14 +266,17 @@ build-1 defaults; `data/balance.json` (if #72 adopts it) is generated from these
 other way round. Values that follow from other constants (for example the per-tick steer blend) are
 derived in code and never listed here.
 
-### `template.ts` (the template's file, moved; see [`init-game.md §2`](../init-game.md#2-shared-type-edits--packagessharedsrctypesmessagests-and-typesgamets))
+### Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`init-game.md §2`](../init-game.md#2-shared-type-edits--packagessharedsrctypesmessagests-and-typesgamets))
 
-| Constant               | Value | Unit    | Meaning                                               |
-| ---------------------- | ----- | ------- | ----------------------------------------------------- |
-| `TICK_HZ`              | 60    | Hz      | Fixed step; `SIMULATION_TICK_HZ` re-exports it.       |
-| `MAX_PLAYERS_PER_GAME` | 8     | players | Upper bound for `maxPlayers`; also the palette count. |
-| `MIN_PLAYERS_PER_GAME` | 1     | players | Lower bound for `maxPlayers`.                         |
-| `DISCONNECT_GRACE_MS`  | 30000 | ms      | Section 5.2.                                          |
+The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
+
+| Constant               | File         | Value | Unit    | Meaning                                                                           |
+| ---------------------- | ------------ | ----- | ------- | --------------------------------------------------------------------------------- |
+| `TICK_HZ`              | `network.ts` | 60    | Hz      | Fixed step; `TICK_INTERVAL_MS` is derived beside it.                              |
+| `DISCONNECT_GRACE_MS`  | `network.ts` | 30000 | ms      | Section 5.2.                                                                      |
+| `MAX_PLAYERS_PER_GAME` | `lobby.ts`   | 8     | players | Upper bound for `maxPlayers`; also the palette count.                             |
+| `MIN_PLAYERS_PER_GAME` | `lobby.ts`   | 1     | players | Lower bound for `maxPlayers`.                                                     |
+| `AVATAR_INDEX_MAX`     | `lobby.ts`   | 7     | index   | Was 5; eight archetypes ([`init-game.md §1`](../init-game.md#1-game-definition)). |
 
 ### `world.ts`
 
