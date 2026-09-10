@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_PLAYERS_PER_GAME, type StateHash } from '@evolution/shared';
+import { MAX_PLAYERS_PER_GAME, createTestSessionConfig, type StateHash } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
 import { createScriptedStrategy } from './bots.js';
 import { ScenarioSetupError } from './errors.js';
@@ -35,8 +35,7 @@ describe('scenario builder', () => {
     const definition = toyScenario('defaults').seed(42).players(2).build();
     expect(definition).toMatchObject({
       name: 'defaults',
-      seed: 42,
-      config: { maxPlayers: MAX_PLAYERS_PER_GAME },
+      config: createTestSessionConfig({ maxPlayers: MAX_PLAYERS_PER_GAME, seed: 42 }),
       totalTicks: 0,
       hashEveryTicks: DEFAULT_HASH_EVERY_TICKS,
       fixtures: [],
@@ -71,7 +70,7 @@ describe('scenario builder', () => {
       .advance(10)
       .advance(5)
       .build();
-    expect(definition.config).toEqual({ maxPlayers: 2 });
+    expect(definition.config).toEqual(createTestSessionConfig({ maxPlayers: 2, seed: 42 }));
     expect(definition.totalTicks).toBe(15);
   });
 

@@ -43,6 +43,7 @@ describe('replayScenario / verifyReplay', () => {
 
   it('diverges from tick 0 when the recording is replayed on another seed', () => {
     const tampered: ScenarioReplay<ToyFixture> = { ...recordedRun().replay, seed: OTHER_SEED };
+    // The record's own seed is the one a replay starts from, whatever its config says.
     const verdict = replayScenario(tampered, toyAdapter);
     expect(verdict.divergence?.tick).toBe(0);
     expect(verdict.divergence?.lastAgreedTick).toBeNull();

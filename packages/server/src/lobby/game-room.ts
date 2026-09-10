@@ -5,7 +5,7 @@ import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
 import type { RoomTiming } from './room-timing.js';
-import type { GameModule, RoomInitOptions } from '../game/game-module.js';
+import type { FullGameState, GameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 
 /**
@@ -118,6 +118,11 @@ export class GameRoom {
     return this.game.serializeRoomState();
   }
 
+  /** The `game_state` payload (docs/ARCHITECTURE.md §4): the module's full snapshot and live balance. */
+  getFullState(): FullGameState {
+    return this.game.serializeFullState();
+  }
+
   /** Player who was never part of the session joins an in-progress game. */
   addLatePlayer(connection: Connection, gameId: string): void {
     const playerId = connection.playerId;
@@ -134,7 +139,7 @@ export class GameRoom {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: gameId as GameId,
       playerId: playerId as PlayerId,
-      snapshot: this.game.serializeRoomState(),
+      ...this.getFullState(),
       config: this.sessionConfig,
       playerIds: this.allPlayerIds as PlayerId[],
       avatarAssignments: this.avatarAssignments,

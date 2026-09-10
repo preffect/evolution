@@ -15,7 +15,7 @@ import {
   type ReplayMembershipEvent,
   type ScenarioReplay,
 } from './replay-format.js';
-import { runScenario, type ScenarioRunner } from './runner.js';
+import { identityOf, runScenario, type ScenarioRunner } from './runner.js';
 import { ScenarioSession, type ScenarioPlayer } from './session.js';
 import { driveTicks } from './tick-driver.js';
 
@@ -124,8 +124,8 @@ export function replayScenario<Input, Snapshot, Fixture>(
 ): ReplayVerdict {
   const session = new ScenarioSession(adapter, {
     scenarioName: replay.scenarioName,
-    seed: replay.seed,
-    config: replay.config,
+    // The record's own seed is the one the recording started from (docs/DETERMINISM.md §6).
+    config: { ...replay.config, seed: replay.seed },
     players: playersOfReplay(replay),
     fixtures: replay.fixtures,
   });
@@ -171,6 +171,6 @@ export const assertDeterministic: ScenarioRunner = (definition, adapter, options
   const firstRun = runScenario(definition, adapter, options);
   const secondRun = runScenario(definition, adapter, options);
   const divergence = findFirstDivergence(firstRun.checkpoints, secondRun.checkpoints);
-  throwIfDiverged({ scenarioName: definition.name, seed: definition.seed }, divergence);
+  throwIfDiverged(identityOf(definition), divergence);
   return firstRun;
 };

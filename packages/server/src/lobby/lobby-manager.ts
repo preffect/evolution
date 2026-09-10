@@ -221,7 +221,7 @@ export class LobbyManager {
         type: SERVER_MESSAGE_TYPE.gameState,
         gameId: gameId as GameId,
         playerId: connection.playerId as PlayerId,
-        snapshot: room.getSnapshot(),
+        ...room.getFullState(),
         config: room.sessionConfig,
         playerIds: room.allPlayerIds as PlayerId[],
         avatarAssignments: room.avatarAssignments,

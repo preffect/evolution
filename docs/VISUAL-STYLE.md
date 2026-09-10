@@ -109,8 +109,8 @@ nucleoid glow is the player's rim colour (strand `NUCLEOID_STRAND` stays near-wh
 in those tables is palette-independent so organelles look the same inside every player.
 
 **Player palettes.** `PLAYER_PALETTE_COUNT` is `MAX_PLAYERS_PER_GAME` (8) by construction, and
-`AVATAR_INDEX_MAX` in `constants/lobby.ts` derives from it as `PLAYER_PALETTE_COUNT − 1` (today it is
-a literal 5 and must follow). Six ramps are sheet 01's player-palette table; two are new. Derived
+`AVATAR_INDEX_MAX` in `constants/lobby.ts` derives from it as `PLAYER_PALETTE_COUNT − 1` (both live in
+`constants/lobby.ts`; the renderer's palette table pins its length against `PLAYER_PALETTE_COUNT`). Six ramps are sheet 01's player-palette table; two are new. Derived
 shades (edge, cytoplasm light / dark, nucleus dark) follow sheet 01's HSL rule and are computed in
 `render/palette.ts`, never listed. A new palette's rim and nucleus follow the six drawn ones: rim = the
 base hue at S 100 % / L 85 %, nuc = the base hue at S 85 % / L 70 % (HSL). Palette index is seat order,

@@ -1,8 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { MAX_TICKS_PER_ADVANCE, SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  MAX_TICKS_PER_ADVANCE,
+  SERVER_MESSAGE_TYPE,
+  TICK_INTERVAL_MS,
+  createTestGameInput,
+  createTestSessionConfig,
+  createTestSnapshot,
+} from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
-import type { RoomInitOptions } from '../game/game-module.js';
+import type { FullGameState, RoomInitOptions } from '../game/game-module.js';
 import {
   createDebugCapableGameModule,
   createManualRoomTiming,
@@ -15,7 +23,7 @@ function roomOptions(playerIds: string[]): RoomInitOptions {
     creatorId: playerIds[0] as PlayerId,
     playerIds: playerIds as PlayerId[],
     gameName: 'Test',
-    config: { maxPlayers: 4 },
+    config: createTestSessionConfig({ maxPlayers: 4 }),
     avatarAssignments: Object.fromEntries(playerIds.map((playerId, index) => [playerId, index])),
     playerNames: {},
   };
@@ -133,8 +141,9 @@ describe('game-room: membership and delegation', () => {
   it('submitInput delegates to the game module', () => {
     const gameModule = createSpyGameModule();
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
-    room.submitInput('p1', { jump: true });
-    expect(gameModule.submitInput).toHaveBeenCalledWith('p1', { jump: true });
+    const input = createTestGameInput({ shouldSprint: true });
+    room.submitInput('p1', input);
+    expect(gameModule.submitInput).toHaveBeenCalledWith('p1', input);
   });
 
   it('removePlayer drops the player from the module and roster', () => {
@@ -154,6 +163,27 @@ describe('game-room: membership and delegation', () => {
     expect(gameModule.addPlayer).toHaveBeenCalledWith('p3', 0, 'p3');
     expect(room.allPlayerIds).toContain('p3');
     expect(room.playerConnections.has('p3')).toBe(true);
+  });
+
+  it("getFullState returns the module's serializeFullState verbatim", () => {
+    const gameModule = createSpyGameModule();
+    const fullState: FullGameState = { snapshot: createTestSnapshot({ tick: 7 }), balance: DEFAULT_BALANCE };
+    vi.mocked(gameModule.serializeFullState).mockReturnValue(fullState);
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    expect(room.getFullState()).toBe(fullState);
+    expect(gameModule.serializeRoomState).not.toHaveBeenCalled();
+  });
+
+  it("addLatePlayer sends the joiner a game_state carrying the module's full snapshot and balance", () => {
+    const sent: Record<string, unknown[]> = {};
+    const gameModule = createSpyGameModule();
+    const fullState: FullGameState = { snapshot: createTestSnapshot({ tick: 7 }), balance: DEFAULT_BALANCE };
+    vi.mocked(gameModule.serializeFullState).mockReturnValue(fullState);
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addLatePlayer(createTestConnection({ playerId: 'p3', sent }), 'g1');
+    expect(sent['p3']).toEqual([
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, gameId: 'g1', playerId: 'p3', ...fullState }),
+    ]);
   });
 
   it('copies the roster so the caller cannot mutate the room from outside', () => {

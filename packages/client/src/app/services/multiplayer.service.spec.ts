@@ -2,7 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import {
+  CLIENT_MESSAGE_TYPE,
+  DEFAULT_BALANCE,
+  SERVER_MESSAGE_TYPE,
+  createTestGameInput,
+  createTestSessionConfig,
+  createTestSnapshot,
+} from '@evolution/shared';
 import type { GameId, PlayerId, ServerMessage } from '@evolution/shared';
 import { MultiplayerService } from './multiplayer.service';
 import { WebSocketService } from './websocket.service';
@@ -10,7 +17,8 @@ import { WebSocketService } from './websocket.service';
 const GAME_ID = 'g1' as GameId;
 const ALICE = 'alice' as PlayerId;
 const BOB = 'bob' as PlayerId;
-const CONFIG = { maxPlayers: 4 };
+const CONFIG = createTestSessionConfig({ maxPlayers: 4 });
+const INPUT = createTestGameInput({ sequence: 5 });
 
 function createTransportStub() {
   const messages = new Subject<ServerMessage>();
@@ -43,7 +51,7 @@ describe('MultiplayerService', () => {
     service.joinGame('g1');
     service.startGame('g1');
     service.deleteGame('g1');
-    service.sendInput({ x: 1 });
+    service.sendInput(INPUT);
     service.disconnect();
     expect(transport.connect).toHaveBeenCalled();
     expect(transport.disconnect).toHaveBeenCalled();
@@ -54,7 +62,7 @@ describe('MultiplayerService', () => {
       { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: 'g1' },
       { type: CLIENT_MESSAGE_TYPE.startGame, gameId: 'g1' },
       { type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: 'g1' },
-      { type: CLIENT_MESSAGE_TYPE.playerInput, payload: { x: 1 } },
+      { type: CLIENT_MESSAGE_TYPE.playerInput, payload: INPUT },
     ]);
   });
 
@@ -84,13 +92,14 @@ describe('MultiplayerService', () => {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: GAME_ID,
       playerId: BOB,
-      snapshot: { tick: 7 },
+      snapshot: createTestSnapshot({ tick: 7 }),
+      balance: DEFAULT_BALANCE,
       config: CONFIG,
       playerIds: [ALICE, BOB],
       avatarAssignments: { alice: 0, bob: 1 },
     });
     expect(service.inGame()).toBe(true);
-    expect(service.snapshot()).toEqual({ tick: 7 });
+    expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 7 }));
     expect(service.avatarAssignments()).toEqual({ alice: 0, bob: 1 });
   });
 
@@ -105,19 +114,19 @@ describe('MultiplayerService', () => {
   });
 
   it('stores a snapshot from the message stream and surfaces errors', () => {
-    transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: { tick: 1 } });
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick: 1 }) });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });
-    expect(service.snapshot()).toEqual({ tick: 1 });
+    expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 1 }));
     expect(service.lastError()).toBe('nope');
   });
 
   it('latestSnapshot drains the transport fast-path and updates the signal', () => {
     transport.drainLatestSnapshot.mockReturnValueOnce({
       type: SERVER_MESSAGE_TYPE.gameSnapshot,
-      snapshot: { tick: 2 },
+      snapshot: createTestSnapshot({ tick: 2 }),
     });
-    expect(service.latestSnapshot()).toEqual({ tick: 2 });
-    expect(service.snapshot()).toEqual({ tick: 2 });
+    expect(service.latestSnapshot()).toEqual(createTestSnapshot({ tick: 2 }));
+    expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 2 }));
     expect(service.latestSnapshot()).toBeNull();
   });
 });

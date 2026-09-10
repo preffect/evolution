@@ -9,7 +9,7 @@
 // `createScenarioDsl(adapter)` binds the builder to a module; `echo-adapter.ts` exports the
 // binding for the template's echo game, #98 adds the Evolution one.
 
-import { MAX_PLAYERS_PER_GAME, type GameSessionConfig } from '@evolution/shared';
+import { MAX_PLAYERS_PER_GAME, createTestSessionConfig, type GameSessionConfig } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
 import { strategyScript, type BotStrategyFactory } from './bots.js';
 import { ScenarioSetupError } from './errors.js';
@@ -43,7 +43,7 @@ const MIN_PLAYERS = 1;
 
 export class ScenarioBuilder<Input, Snapshot, Fixture> {
   private seedValue: number | null = null;
-  private configValue: GameSessionConfig = { maxPlayers: MAX_PLAYERS_PER_GAME };
+  private configValue: GameSessionConfig = createTestSessionConfig({ maxPlayers: MAX_PLAYERS_PER_GAME });
   private readonly playerList: ScenarioPlayer[] = [];
   private readonly fixtureList: Fixture[] = [];
   private readonly scheduledFixtureList: ScheduledFixture<Fixture>[] = [];
@@ -196,8 +196,7 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     }
     const definition: ScenarioDefinition<Snapshot, Fixture> = {
       name: this.name,
-      seed: this.seedValue,
-      config: this.configValue,
+      config: { ...this.configValue, seed: this.seedValue },
       players: [...this.playerList],
       fixtures: [...this.fixtureList],
       scheduledFixtures: [...this.scheduledFixtureList],

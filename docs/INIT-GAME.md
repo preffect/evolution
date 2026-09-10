@@ -69,8 +69,8 @@ the whole game** — later build phases go in the roadmap issue until the user a
   game needs them.
 - **MCP game-state seam:** `packages/server/src/mcp/debug-context.ts` exposes an optional
   `getRoomGameState(gameId): unknown`. The MCP tool `debug_get_game_state`
-  (`packages/server/src/mcp/handlers/game-state.ts`) returns whatever it yields, or a
-  "not wired yet" note. Other MCP tools (`debug_get_connections`, `debug_list_games`,
+  (`packages/server/src/mcp/handlers/game-state.ts`) returns whatever it yields, else the room's
+  full state (the module's `serializeFullState()`, the `game_state` payload). Other MCP tools (`debug_get_connections`, `debug_list_games`,
   `debug_get_room`, `debug_get_performance`, `debug_get_room_performance`) are generic and
   already work. Add game-specific tools as new files under `packages/server/src/mcp/handlers/`.
 - **The ONE client game seam** is `packages/client/src/app/game/game-setup.ts`
