@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Inter, 'Segoe UI', DejaVu Sans, Helvetica, Arial, sans-serif">
-<title>Evolution — concept sheet 03: origins, the single-cell evolution ladder</title>
+<title>Evolution — concept sheet 04: origins, the single-cell evolution ladder</title>
 <desc>Protocell → prokaryote → endosymbiosis → eukaryote → specialised forms, in the dark-field microscopy language of cell-sheet.svg. Code-drawn SVG: gradients, blur and turbulence filters, layered paths, zero raster. Palette constants in docs/concept-art/README.md.</desc>
 <defs>
 <radialGradient id="bg-field" cx="0.5" cy="0.45" r="0.75"><stop offset="0" stop-color="#0b1626"/><stop offset="1" stop-color="#04070d"/></radialGradient>
@@ -128,7 +128,7 @@
 </g>
 <!-- ===== header ===== -->
 <text x="40" y="46" fill="#cfdbe6" font-size="26" font-weight="800" text-anchor="start">EVOLUTION</text>
-<text x="216" y="46" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept sheet 03 — ORIGINS · the single-cell ladder</text>
+<text x="216" y="46" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept sheet 04 — ORIGINS · the single-cell ladder</text>
 <text x="40" y="66" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">You start as a bare protocell and evolve inside one cell: protocell → prokaryote → endosymbiosis → eukaryote → specialised forms · dark-field language of sheet 01 · 1 wu = 1 px at zoom 1.0</text>
 <text x="1880" y="46" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #114 · epic #2 · defines the level-1 look · DNA absorbed from prey unlocks each step</text>
 <text x="1880" y="66" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">all shapes code-drawn: gradients, blur, turbulence · zero raster</text>
@@ -761,7 +761,7 @@
 <line x1="1403" y1="442" x2="1425" y2="442" stroke="#7fe7f5" stroke-width="1.6" opacity="0.6" marker-end="url(#arrow)"/>
 <line x1="1624" y1="442" x2="1646" y2="442" stroke="#7fe7f5" stroke-width="1.6" opacity="0.6" marker-end="url(#arrow)"/>
 <text x="1280" y="547" fill="#7d8da1" font-size="10" font-weight="400" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">drifts in at 20 wu/s</text>
-<text x="1516" y="547" fill="#7d8da1" font-size="10" font-weight="400" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">lobes +50% r · waist −34% · 1.2 s</text>
+<text x="1516" y="547" fill="#7d8da1" font-size="10" font-weight="400" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">lobes +62% · notch −10% · 1.2 s (sheet 03)</text>
 <text x="1752" y="547" fill="#7d8da1" font-size="10" font-weight="400" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">shrinks 44% → 30% r, recolours</text>
 <!-- ===== 4 · eukaryote ===== -->
 <rect x="40" y="570" width="500" height="480" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
