@@ -2,14 +2,17 @@
 
 Code-drawn concept sheets for Evolution. Every sheet is a hand-authored SVG (gradients, blur and
 turbulence filters, masks, layered shapes, zero raster content) with a 1920 × 1080 PNG render
-committed next to it. The SVG is the source of truth. Sheets feed `docs/VISUAL-STYLE.md` (#34) and
-the Pixi renderer (#99). Sizes are in **world units (wu)**: 1 wu = 1 px at camera zoom 1.0. Each
+committed next to it. The SVG is the source of truth. Sheets feed the planned style guide
+(`docs/VISUAL-STYLE.md`, #34) and the Pixi renderer (#99). Sizes are in **world units (wu)**: 1 wu = 1 px at camera zoom 1.0. Each
 sheet states the px / wu it is drawn at.
 
 **Rendering.** Sheets 01 and 03 are rendered with Playwright's headless Chromium, sheets 02 and 04
 with `rsvg-convert`; each PNG in the repo was produced by the command listed for it, so use the
 same one when you re-render (the two renderers differ in filter and font rasterisation). Copy the
-PNG into the PR's `qa/evidence/` folder as review evidence.
+PNG into the PR's `qa/evidence/` folder as review evidence. Sheet 04's SVG is emitted by the seeded
+generator `tools/origins-ladder.py` (run `python3 docs/concept-art/tools/origins-ladder.py` from the
+repo root; it rewrites `origins-ladder.svg` byte-for-byte), so edit the script, re-run it, then
+re-render; never hand-edit that SVG.
 
 ```bash
 CHROME="$(ls -d /opt/playwright/chromium-*/chrome-linux64/chrome | tail -1)"
@@ -380,12 +383,12 @@ the sheet-01 values above)
 
 **Motion** (level 1 and 2)
 
-| State           | Rule                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------- |
-| Protocell drift | random walk at 12 wu/s; mode-2 wobble ±8 % r at 0.7 Hz (rest / wobble + / wobble −)               |
-| Protocell eat   | contact with any food mote                                                                        |
-| Bacterium prey  | drifts in at 20 wu/s; the host engulfs it with sheet 03's engulf keyframes (+62 % lobes, 1200 ms) |
-| Organelle birth | the engulfed bacterium shrinks 44 % → 30 % r and recolours along its ramp in 3 s                  |
+| State           | Rule                                                                                                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Protocell drift | random walk at 12 wu/s; mode-2 wobble ±8 % r at 0.7 Hz (rest / wobble + / wobble −)                                                                                                     |
+| Protocell eat   | contact with any food mote                                                                                                                                                              |
+| Bacterium prey  | drifts in at 20 wu/s; the host engulfs it with sheet 03's wrap frame (arms +62 % at ±30°, σ 16°; notch −10 %; 1200 ms); the film over the engulfed half fades in along x (no hard edge) |
+| Organelle birth | the engulfed bacterium shrinks 44 % → 30 % r and recolours along its ramp in 3 s                                                                                                        |
 
 **Design decisions**
 
