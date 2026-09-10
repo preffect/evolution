@@ -275,13 +275,14 @@ derived in code and never listed here.
 
 The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
 
-| Constant               | File         | Value | Unit    | Meaning                                               |
-| ---------------------- | ------------ | ----- | ------- | ----------------------------------------------------- |
-| `TICK_HZ`              | `network.ts` | 60    | Hz      | Fixed step; `TICK_INTERVAL_MS` is derived beside it.  |
-| `DISCONNECT_GRACE_MS`  | `network.ts` | 30000 | ms      | Section 5.2.                                          |
-| `MAX_PLAYERS_PER_GAME` | `lobby.ts`   | 8     | players | Upper bound for `maxPlayers`; also the palette count. |
-| `MIN_PLAYERS_PER_GAME` | `lobby.ts`   | 1     | players | Lower bound for `maxPlayers`.                         |
-| `AVATAR_INDEX_MAX`     | `lobby.ts`   | 7     | index   | Was 5; eight archetypes (eight player palettes, §1).  |
+| Constant               | File         | Value | Unit    | Meaning                                                                                        |
+| ---------------------- | ------------ | ----- | ------- | ---------------------------------------------------------------------------------------------- |
+| `TICK_HZ`              | `network.ts` | 60    | Hz      | Fixed step; `TICK_INTERVAL_MS` is derived beside it.                                           |
+| `DISCONNECT_GRACE_MS`  | `network.ts` | 30000 | ms      | Section 5.2.                                                                                   |
+| `MAX_PLAYERS_PER_GAME` | `lobby.ts`   | 8     | players | Upper bound for `maxPlayers`; also the palette count.                                          |
+| `MIN_PLAYERS_PER_GAME` | `lobby.ts`   | 1     | players | Lower bound for `maxPlayers`.                                                                  |
+| `AVATAR_INDEX_MAX`     | `lobby.ts`   | 7     | index   | Was 5; eight archetypes (eight player palettes, §1).                                           |
+| `SEAT_MARK_BEADS`      | `lobby.ts`   | 1..8  | beads   | `[index] = index + 1`; the non-colour player tell ([`VISUAL-STYLE.md` §2](./VISUAL-STYLE.md)). |
 
 ### `world.ts`
 

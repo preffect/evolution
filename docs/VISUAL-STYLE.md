@@ -157,7 +157,7 @@ Nearest neighbour per palette (full 28-pair matrix, rims and contrast in
 **Non-colour player tells.** Two marks, both geometry drawn at every LOD of 8 px and above (§6), so hue is
 never the only tell between players; the evidence render shows them at 52, 20 and 8 px:
 
-- **Seat mark** — `SEAT_MARK_BEADS[index]` = index + 1 bright beads (1–8) on the outline at 1.0 r, evenly
+- **Seat mark** — `SEAT_MARK_BEADS[index]` (`packages/shared/src/constants/lobby.ts`, shared with the HUD leaderboard swatch) = index + 1 bright beads (1–8) on the outline at 1.0 r, evenly
   spaced, the first at the light direction (`SEAT_MARK_ANCHOR_DEG` −135°, under the glint), fixed to the
   cell frame (they do not turn with the heading). Bead radius `SEAT_MARK_BEAD_RADIUS_FRACTION` 5 % r with a
   `SEAT_MARK_BEAD_MIN_PX` 2 px floor; core `WHITE` @92 %, halo the palette rim @45 % at 2.2 × the bead

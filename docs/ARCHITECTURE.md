@@ -367,14 +367,14 @@ motes, of which the bacterium share (`FOOD_KIND_WEIGHTS` 0.25) ≈ 350 move ever
 fragments, all drifting; 8 cells. Sizes are JSON with positions quantised to
 `SNAPSHOT_POSITION_DECIMALS` = 1.
 
-| Snapshot part (20 Hz)                          | Count × bytes | Per snapshot |
-| ---------------------------------------------- | ------------- | ------------ |
-| `food.moved` (bacteria `{ id, x, y }`)         | 350 × ~30     | ~10.5 KB     |
-| `dnaFragments` (full)                          | 110 × ~50     | ~5.5 KB      |
-| `cells` (traits, states, engulf fields)        | 8 × ~300      | ~2.4 KB      |
-| `players` + `leaderboard`                      | 8 × ~350 + 80 | ~3.4 KB      |
-| `food.spawned` / `removedIds`, effects, header | ~7/s ÷ 20 Hz  | ~0.5 KB      |
-| **total**                                      |               | **≈ 22 KB**  |
+| Snapshot part (20 Hz)                                         | Count × bytes | Per snapshot |
+| ------------------------------------------------------------- | ------------- | ------------ |
+| `food.moved` (bacteria `{ id, x, y }`)                        | 350 × ~30     | ~10.5 KB     |
+| `dnaFragments` (full)                                         | 110 × ~50     | ~5.5 KB      |
+| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | 8 × ~300      | ~2.4 KB      |
+| `players` + `leaderboard`                                     | 8 × ~350 + 80 | ~3.4 KB      |
+| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz  | ~0.5 KB      |
+| **total**                                                     |               | **≈ 22 KB**  |
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
 `perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN.
