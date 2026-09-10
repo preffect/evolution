@@ -47,7 +47,8 @@ owned by the design doc that names it: `CellStage` and its `STAGE_ORDER` / `STAG
 by [`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder), progress and offers by
 [`PROGRESSION.md`](./PROGRESSION.md), food by [`ECOLOGY.md §1`](./ECOLOGY.md#1-food-kinds),
 engulf states by [`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram), engulf eligibility (`canEngulf`,
-the one predicate the server, HUD and renderer share) by [`ECOLOGY.md §6.1`](./ECOLOGY.md#61-rules),
+the one predicate the server, HUD and renderer share) and the engulf phases (`engulfPhaseOf` over
+`engulfProgress`; no phase field rides on the view) by [`ECOLOGY.md §6.1`](./ECOLOGY.md#61-rules),
 the trait definition shape
 (`stage`, `requires`, `unlockedBy`, `exclusionGroup`) by [`TRAITS.md §1`](./TRAITS.md#1-definition-shape).
 
@@ -160,6 +161,9 @@ export interface CellRecord extends CellView {
   targetX: number; // latest applied input, latched until replaced
   targetY: number;
   modifiers: CellModifiers; // folded at step 1 of the tick (TRAITS §2); the simulation reads only this
+  carriedOffsetX: number | null; // set at the seal (ECOLOGY §6.1): the prey rides at this offset from its predator's centre until payout or release
+  carriedOffsetY: number | null;
+  spitOutRefractory: { preyCellId: EntityId; untilTick: number } | null; // ECOLOGY §6.1: no restart on that prey until then; separation applies to the pair meanwhile
 }
 export interface PlayerRecord extends PlayerProgressView {
   avatarIndex: number;
@@ -295,9 +299,17 @@ prediction reuses them unchanged.
   `constants/`; formulas take numbers. That is what makes `debug_set_balance` live.
 - **Spatial hash** (`world/spatial-hash.ts`): uniform grid rebuilt at step 3, cell size
   `SPATIAL_HASH_CELL_SIZE_WU`; `queryCircle` and `queryPairs` return id-sorted results.
-- **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. The one thing
-  it shares is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`,
-  ECOLOGY §6.1): the engulf system, the HUD danger chip and the warning ring all call it on views.
+- **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. What it shares
+  is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`, ECOLOGY §6.1: the
+  engulf system, the HUD danger chip and the warning ring all call it on views, and its signature is
+  mass-only) and the phase formulas of `shared/simulation/engulf-pace.ts` (`engulfPhaseOf` for the chip's
+  sealed state, `engulfProgressDelta`, the held and predator speed factors, `spitOutChancePerTick`); the
+  hold verdict `resolveEngulfHold` (ratio and spit-out) is called by the server alone. The engulf step is
+  the only consumer of the `engulf` random stream and draws from it only for a wrapped or sealed prey
+  with a positive `spitOutChancePerSecond` (DETERMINISM §3). The prey's struggle reads the movement
+  kernel's `steerCommand(cell)` so the throttle arithmetic has one home. Every release emits
+  `cell_released { cellId, predatorCellId, reason }` (`types/effects.ts`, reasons in ECOLOGY §6.1) beside
+  `cell_absorbed`; a sealed prey is carried (`CellRecord.carriedOffsetX/Y`) after its predator has moved.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
@@ -520,7 +532,7 @@ packages/shared/src/
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,state-hasher,state-hash,vector-math}.ts
+  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ECOLOGY §6.1)
                                                                 level-costs: levelUpCost(level, balance.progression), shared with the HUD (UI.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
   audio/sound-events.ts
