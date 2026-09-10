@@ -214,7 +214,7 @@ advanced tick (an expectation, a capture, a script window, a join, a leave, a sc
 fixture): a test that could never fail is not a test. So "After N ticks" is the run length and
 must cover the largest assertion tick (G7 says "After 2 ticks" but asserts at 31, 100 and 181:
 `.advance(181)`). "Joins before tick 6000 steps" is `playerJoinsAt(6000)` and "join + 1" is
-`.atTick(6000)` (P7's 99.997 is one decay tick after placement, so join + 1 _is_ 6000). "The
+`.atTick(6000)` (P7's 199.994 is one decay tick after placement, so join + 1 _is_ 6000). "The
 fixture calls `removePlayer` at tick 2400" is `playerLeavesAt(2400, i)`; the cell's last
 observable state is tick 2399 (capture it there). "Fixture sets A.mass = 23 before tick 10" is
 `.atTick(10).placeCell({ playerIndex: 0, mass: 23 })`. "Idle" is no script at all.

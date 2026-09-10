@@ -32,6 +32,8 @@ WORLD_MASS_GAIN_PER_SECOND = 1.0
 WILD_CELL_MASS_SPREAD = 0.3
 WILD_CELL_COUNT = 24
 ENGULF_MASS_RATIO = 1.25
+ENTRY_MASS_FRACTION = 0.5  # PROGRESSION §6, decision #141 option B
+ENTRY_MAX_MASS = 200
 MAX_LEVEL = pm.MAX_LEVEL
 STAGES = ["protocell", "prokaryote", "endosymbiosis", "eukaryote", "specialised"]
 STAGE_COLOURS = [MUTED, CYAN_RIM, MITO, DNA, GOLD]
@@ -45,8 +47,13 @@ def world_mass(t):
     return pm.CELL_STARTING_MASS + WORLD_MASS_GAIN_PER_SECOND * t
 
 
+# stage of the world's own picks (ECOLOGY §3.1): build 0 picks nucleoid, endosymbiont, envelope, a form's
+# prerequisite (still eukaryote), then the form; the index is by number of picks = floor(worldLevel) − 1
+STAGE_INDEX_BY_PICKS = [0, 1, 2, 3, 3, 4]
+
+
 def world_stage_index(t):
-    return min(int(world_level(t)) - 1, len(STAGES) - 1)
+    return STAGE_INDEX_BY_PICKS[min(int(world_level(t)) - 1, len(STAGE_INDEX_BY_PICKS) - 1)]
 
 
 # ---- layout ----
@@ -203,14 +210,15 @@ def render(sim):
     o.append(f'<rect x="{lx}" y="{ly + 34}" width="26" height="12" fill="{WILD}" opacity="0.4"/>')
     o.append(text(lx + 32, ly + 44, f"wild-cell mass spread ± {int(WILD_CELL_MASS_SPREAD * 100)} % ({WILD_CELL_COUNT} wild cells)", 11, WILD))
 
-    # footer: constants strip, three lines
+    # footer: constants strip, four lines
     fy = 596
-    o.append(f'<rect x="40" y="{fy - 20}" width="{W - 80}" height="92" rx="8" fill="{PANEL}" opacity="0.85" stroke="{PANEL_RIM}"/>')
-    o.append(text(56, fy - 4, "world clock (constants/world-clock.ts) · wild cells (constants/wild-cells.ts)", 10, MUTED, extra='letter-spacing="1.5"'))
-    o.append(text(56, fy + 14, f"worldLevel = min(1 + elapsed / WORLD_LEVEL_SECONDS {WORLD_LEVEL_SECONDS}, MAX_LEVEL)   worldMass = CELL_STARTING_MASS + WORLD_MASS_GAIN_PER_SECOND {WORLD_MASS_GAIN_PER_SECOND:g} × elapsed   worldStage = STAGE_ORDER[floor(worldLevel) − 1]", 12, TEXT, family="DejaVu Sans Mono"))
-    o.append(text(56, fy + 32, f"WILD_CELL_COUNT {WILD_CELL_COUNT}   WILD_CELL_MASS_SPREAD {WILD_CELL_MASS_SPREAD}   wild cells hunt from the endosymbiosis era   late joiners and respawns enter at the world's level (the entry floor)", 12, TEXT, family="DejaVu Sans Mono"))
+    o.append(f'<rect x="40" y="{fy - 20}" width="{W - 80}" height="110" rx="8" fill="{PANEL}" opacity="0.85" stroke="{PANEL_RIM}"/>')
+    o.append(text(56, fy - 4, "world clock (constants/world-clock.ts) · wild cells (constants/wild-cells.ts) · entry floor (constants/progression.ts)", 10, MUTED, extra='letter-spacing="1.5"'))
+    o.append(text(56, fy + 14, f"worldLevel = min(1 + elapsed / WORLD_LEVEL_SECONDS {WORLD_LEVEL_SECONDS}, MAX_LEVEL)   worldMass = CELL_STARTING_MASS + WORLD_MASS_GAIN_PER_SECOND {WORLD_MASS_GAIN_PER_SECOND:g} × elapsed", 12, TEXT, family="DejaVu Sans Mono"))
+    o.append(text(56, fy + 32, f"worldStage = stageOf(WILD_CELL_BUILDS[0].slice(0, floor(worldLevel) − 1))   late joiners and respawns enter at the world's level, mass ENTRY_MASS_FRACTION {ENTRY_MASS_FRACTION} × worldMass ≤ ENTRY_MAX_MASS {ENTRY_MAX_MASS}", 12, TEXT, family="DejaVu Sans Mono"))
+    o.append(text(56, fy + 50, f"WILD_CELL_COUNT {WILD_CELL_COUNT}   WILD_CELL_MASS_SPREAD {WILD_CELL_MASS_SPREAD}   wild cells hunt from the endosymbiosis era", 12, TEXT, family="DejaVu Sans Mono"))
     lead = {k: pm.mmss(v) for k, v in r.items() if k != "bacteria_met"}
-    o.append(text(56, fy + 52, f"read-out: world level 2 at 3:00 · 3 at 6:00 · 4 at 9:00 · {world_level(600):.2f} at 10:00, mass {world_mass(180):.0f} / {world_mass(360):.0f} / {world_mass(540):.0f} / {world_mass(600):.0f}   |   #138 A player: nucleoid {lead.get('nucleoid')} · endosymbiont {lead.get('endosymbiont')} · envelope {lead.get('envelope')} · form {lead.get('form')} · mass {int(sim['masses'][-1])} at 10:00", 12, TEXT, family="DejaVu Sans Mono"))
+    o.append(text(56, fy + 70, f"read-out: world level 2 at 3:00 · 3 at 6:00 · 4 at 9:00 · {world_level(600):.2f} at 10:00, mass {world_mass(180):.0f} / {world_mass(360):.0f} / {world_mass(540):.0f} / {world_mass(600):.0f}   |   #138 A player: nucleoid {lead.get('nucleoid')} · endosymbiont {lead.get('endosymbiont')} · envelope {lead.get('envelope')} · form {lead.get('form')} · mass {int(sim['masses'][-1])} at 10:00", 12, TEXT, family="DejaVu Sans Mono"))
     o.append("</svg>")
     return "\n".join(o)
 
