@@ -109,6 +109,7 @@ export const RANDOM_STREAM = {
   spawnPlacement: 'spawn_placement', // safe spawn candidates (GAME-DESIGN §5.2)
   traitDraft: 'trait_draft', // draft sampling (PROGRESSION §3)
   moteMotion: 'mote_motion', // bacteria random-walk headings; fragment drift direction at spawn
+  engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0 (ECOLOGY §6.1)
   cosmetic: 'cosmetic', // client only, never on the server
 } as const;
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
@@ -151,7 +152,7 @@ export const forkStreamStates: <Label extends string>(
 - **`moteMotion` is a separate stream** (ECOLOGY §1 lists it under the label `mote_motion`): the
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.
-- **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the five server
+- **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the six server
   streams from the round seed (`forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS)`)
   and stores their state in `world.random`; systems obtain a live
   source per step through `context.streams[label]`, which resumes from the stored state and
