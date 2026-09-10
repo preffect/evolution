@@ -81,7 +81,9 @@ builder's coverage (client) and **fails below the thresholds** in each package's
   never lower them to land a change.
 - A new package starts at its target from its first PR.
 - Excluded from measurement (they are not logic): `**/index.ts` barrels and composition roots,
-  `src/main.ts`, `src/app/app.config.ts`, `src/testing/**`, `*.d.ts`, and the tests themselves.
+  `src/main.ts`, `src/app/app.config.ts`, the test doubles (`src/testing/builders.ts`,
+  `src/testing/fake-websocket.ts`, `src/testing/scenarios/**`), `*.d.ts`, and the tests themselves. The
+  gameplay framework under `src/testing/gameplay/` is logic and is measured (`vitest.tiers.ts`).
   Nothing else is excluded; a hard-to-test file is split, not hidden.
 - Integration runs do not measure coverage; they prove wiring.
 
