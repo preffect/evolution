@@ -113,7 +113,10 @@ pnpm monorepo with three packages:
 - **Shared:** `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`.
 - **Server:** `packages/server/src/game/game-module.ts` — `GameModule` impl (`submitInput` / `reduceGameState` / `serializeRoomState` / `add`/`removePlayer`); wire the factory into `src/index.ts`. MCP game-state visibility via `DebugContext.getRoomGameState(gameId)`.
 - **Client:** `packages/client/src/app/game/game-setup.ts` — the game loop + renderer.
-- **Init:** see `init-game-prompt.md` to interview and generate `init-game.md`.
+- **Init:** `init-game.md` is the generated build plan (from `init-game-prompt.md`); the design it is
+  built from is indexed at `docs/GAME-DESIGN.md` (`GDD.md`, `ECOLOGY.md`, `PROGRESSION.md`, `TRAITS.md`).
+  Every gameplay number is a named constant in `packages/shared/src/constants/<domain>.ts`, owned by
+  the doc that defines it.
 
 ### Trust model
 
