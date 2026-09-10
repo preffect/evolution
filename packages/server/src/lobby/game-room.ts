@@ -1,9 +1,10 @@
 import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
+import type { ClientPerformanceReport } from '@evolution/shared';
 import { SERVER_MESSAGE_TYPE, TICK_INTERVAL_MS } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
-import { PerfTracker, type ClientPerfReport } from './perf-tracker.js';
-import type { GameModule } from '../game/game-module.js';
+import { PerformanceTracker } from './performance-tracker.js';
+import type { GameModule, RoomInitOptions } from '../game/game-module.js';
 
 /**
  * A running game session. Owns the connections, the late-join/disconnect
@@ -19,27 +20,19 @@ export class GameRoom {
   readonly sessionConfig: GameSessionConfig;
   readonly avatarAssignments: Record<string, number>;
   readonly playerNames: Record<string, string>;
-  readonly perfTracker = new PerfTracker();
+  readonly performanceTracker = new PerformanceTracker();
 
   private readonly game: GameModule;
   private tickInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(
-    game: GameModule,
-    creatorId: PlayerId,
-    allPlayerIds: string[],
-    gameName: string,
-    sessionConfig: GameSessionConfig,
-    avatarAssignments: Record<string, number>,
-    playerNames: Record<string, string> = {},
-  ) {
+  constructor(game: GameModule, options: RoomInitOptions) {
     this.game = game;
-    this.creatorId = creatorId;
-    this.allPlayerIds = [...allPlayerIds];
-    this.gameName = gameName;
-    this.sessionConfig = sessionConfig;
-    this.avatarAssignments = { ...avatarAssignments };
-    this.playerNames = { ...playerNames };
+    this.creatorId = options.creatorId;
+    this.allPlayerIds = [...options.playerIds];
+    this.gameName = options.gameName;
+    this.sessionConfig = options.config;
+    this.avatarAssignments = { ...options.avatarAssignments };
+    this.playerNames = { ...options.playerNames };
   }
 
   start(): void {
@@ -56,21 +49,21 @@ export class GameRoom {
     this.game.free?.();
   }
 
-  addPlayer(conn: Connection): void {
-    this.playerConnections.set(conn.playerId, conn);
+  addPlayer(connection: Connection): void {
+    this.playerConnections.set(connection.playerId, connection);
   }
 
-  reattachPlayer(conn: Connection): void {
-    this.playerConnections.set(conn.playerId, conn);
-    this.disconnectedPlayers.delete(conn.playerId);
+  reattachPlayer(connection: Connection): void {
+    this.playerConnections.set(connection.playerId, connection);
+    this.disconnectedPlayers.delete(connection.playerId);
   }
 
-  submitInput(pid: string, payload: GameInput): void {
-    this.game.submitInput(pid as PlayerId, payload);
+  submitInput(playerId: string, payload: GameInput): void {
+    this.game.submitInput(playerId as PlayerId, payload);
   }
 
-  recordClientPerf(pid: string, r: ClientPerfReport): void {
-    this.perfTracker.recordClientReport(pid as PlayerId, r);
+  recordClientPerformance(playerId: string, report: ClientPerformanceReport): void {
+    this.performanceTracker.recordClientReport(playerId as PlayerId, report);
   }
 
   getSnapshot(): GameSnapshot {
@@ -78,21 +71,21 @@ export class GameRoom {
   }
 
   /** Player who was never part of the session joins an in-progress game. */
-  addLatePlayer(conn: Connection, gid: string): void {
-    const pid = conn.playerId;
-    this.allPlayerIds.push(pid);
-    this.avatarAssignments[pid] = conn.avatarIndex;
-    this.playerNames[pid] = conn.playerName;
-    this.playerConnections.set(pid, conn);
-    this.game.addPlayer(pid as PlayerId, conn.avatarIndex, conn.playerName);
+  addLatePlayer(connection: Connection, gameId: string): void {
+    const playerId = connection.playerId;
+    this.allPlayerIds.push(playerId);
+    this.avatarAssignments[playerId] = connection.avatarIndex;
+    this.playerNames[playerId] = connection.playerName;
+    this.playerConnections.set(playerId, connection);
+    this.game.addPlayer(playerId as PlayerId, connection.avatarIndex, connection.playerName);
     broadcastMessage(
-      Array.from(this.playerConnections.values()).filter((c) => c.playerId !== pid),
-      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId: pid as PlayerId, avatarIndex: conn.avatarIndex },
+      Array.from(this.playerConnections.values()).filter((other) => other.playerId !== playerId),
+      { type: SERVER_MESSAGE_TYPE.playerJoined, playerId: playerId as PlayerId, avatarIndex: connection.avatarIndex },
     );
-    sendMessage(conn, {
+    sendMessage(connection, {
       type: SERVER_MESSAGE_TYPE.gameState,
-      gameId: gid as GameId,
-      playerId: pid as PlayerId,
+      gameId: gameId as GameId,
+      playerId: playerId as PlayerId,
       snapshot: this.game.serializeRoomState(),
       config: this.sessionConfig,
       playerIds: this.allPlayerIds as PlayerId[],
@@ -100,25 +93,25 @@ export class GameRoom {
     });
   }
 
-  removePlayer(pid: string): void {
-    this.playerConnections.delete(pid);
-    this.disconnectedPlayers.add(pid);
-    this.perfTracker.removeClient(pid as PlayerId);
-    this.game.removePlayer(pid as PlayerId);
-    const i = this.allPlayerIds.indexOf(pid);
-    if (i >= 0) this.allPlayerIds.splice(i, 1);
+  removePlayer(playerId: string): void {
+    this.playerConnections.delete(playerId);
+    this.disconnectedPlayers.add(playerId);
+    this.performanceTracker.removeClient(playerId as PlayerId);
+    this.game.removePlayer(playerId as PlayerId);
+    const index = this.allPlayerIds.indexOf(playerId);
+    if (index >= 0) this.allPlayerIds.splice(index, 1);
   }
 
   private tickStep(): void {
-    const t0 = performance.now();
-    this.game.reduceGameState(); // TODO hook: advance one tick
-    const snapshot = this.game.serializeRoomState(); // TODO hook: build broadcast payload
+    const tickStartMs = performance.now();
+    this.game.reduceGameState(); // TODO(game) hook: advance one tick
+    const snapshot = this.game.serializeRoomState(); // TODO(game) hook: build broadcast payload
     const bytes = broadcastMessage(this.playerConnections.values(), {
       type: SERVER_MESSAGE_TYPE.gameSnapshot,
       snapshot,
     });
-    this.perfTracker.recordTick({
-      tickMs: performance.now() - t0,
+    this.performanceTracker.recordTick({
+      tickMs: performance.now() - tickStartMs,
       snapshotBytes: bytes,
       broadcastClients: this.playerConnections.size,
     });

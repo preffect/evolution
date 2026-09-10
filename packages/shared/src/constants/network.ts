@@ -21,3 +21,11 @@ export const TICK_INTERVAL_S = 1 / TICK_HZ;
 
 /** Grace window before a disconnected player is fully removed from a room. */
 export const DISCONNECT_GRACE_MS = 30_000;
+
+/**
+ * Per-message deflate for the WebSocket transport (ws `perMessageDeflate` options):
+ * fastest zlib level, only frames above the threshold, bounded concurrent contexts.
+ */
+export const WEBSOCKET_DEFLATE_LEVEL = 1;
+export const WEBSOCKET_DEFLATE_THRESHOLD_BYTES = 256;
+export const WEBSOCKET_DEFLATE_CONCURRENCY_LIMIT = 10;

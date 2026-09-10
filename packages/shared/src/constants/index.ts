@@ -4,4 +4,5 @@ export * from './units.js';
 export * from './network.js';
 export * from './lobby.js';
 export * from './identity.js';
+export * from './debug.js';
 export * from './simulation.js';

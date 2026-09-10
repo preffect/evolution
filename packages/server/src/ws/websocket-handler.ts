@@ -9,57 +9,67 @@ export interface WebSocketContext {
   /** Lobby-provided message handlers. */
   handlers: MessageHandlers;
   /** Called after a connection is registered (cancel removal / reattach). */
-  onConnect?: (conn: Connection) => void;
+  onConnect?: (connection: Connection) => void;
   /** Called when a connection closes for good (not on takeover). */
-  onDisconnect?: (conn: Connection) => void;
+  onDisconnect?: (connection: Connection) => void;
+}
+
+const CLIENT_ID_QUERY_PARAMETER = 'clientId';
+/** Only used to give `new URL` a base so the request path parses; the host is never read. */
+const URL_PARSE_BASE = 'http://localhost';
+
+/** The identity a socket asked for (`?clientId=`), or a freshly minted one. */
+export function resolvePlayerId(requestUrl: string): string {
+  const requestedId = new URL(requestUrl, URL_PARSE_BASE).searchParams.get(CLIENT_ID_QUERY_PARAMETER);
+  return requestedId && requestedId.length > 0 ? requestedId : nanoid();
+}
+
+/** Takeover: a previous connection with the same id is replaced, not removed. */
+export function replaceExistingConnection(existing: Connection | undefined): void {
+  if (!existing) return;
+  existing.isReplaced = true;
+  try {
+    existing.socket.close();
+  } catch {
+    // socket may already be closed
+  }
 }
 
 /**
  * Mount the `/ws` route. Identity comes from `?clientId=` when present (enabling
  * reconnect + multi-tab takeover); otherwise a fresh nanoid is minted. When a
  * second connection arrives with an existing clientId, the previous socket is
- * marked `replaced` and closed so its disconnect handler is a no-op.
+ * marked replaced and closed so its disconnect handler is a no-op.
  */
-export function registerWebSocketHandler(server: FastifyInstance, ctx: WebSocketContext): void {
-  const route = createMessageRouter(ctx.handlers);
+export function registerWebSocketHandler(server: FastifyInstance, context: WebSocketContext): void {
+  const route = createMessageRouter(context.handlers);
 
   server.get('/ws', { websocket: true }, (socket, request) => {
-    const url = new URL(request.url, 'http://localhost');
-    const requestedId = url.searchParams.get('clientId');
-    const playerId = requestedId && requestedId.length > 0 ? requestedId : nanoid();
+    const playerId = resolvePlayerId(request.url);
+    const existing = context.connections.get(playerId);
+    replaceExistingConnection(existing);
 
-    // Takeover: a previous connection with the same id is replaced, not removed.
-    const existing = ctx.connections.get(playerId);
-    if (existing) {
-      existing.replaced = true;
-      try {
-        existing.socket.close();
-      } catch {
-        // socket may already be closed
-      }
-    }
-
-    const conn: Connection = {
+    const connection: Connection = {
       playerId,
       playerName: existing?.playerName ?? '',
       avatarIndex: existing?.avatarIndex ?? 0,
       socket,
     };
-    ctx.connections.set(playerId, conn);
-    ctx.onConnect?.(conn);
+    context.connections.set(playerId, connection);
+    context.onConnect?.(connection);
 
     socket.on('message', (data: Buffer) => {
-      route(conn, data.toString());
+      route(connection, data.toString());
     });
 
     socket.on('close', () => {
       // Only tear down if this is still the active connection for the id and it
       // was not superseded by a takeover.
-      if (conn.replaced) return;
-      if (ctx.connections.get(playerId) === conn) {
-        ctx.connections.delete(playerId);
+      if (connection.isReplaced) return;
+      if (context.connections.get(playerId) === connection) {
+        context.connections.delete(playerId);
       }
-      ctx.onDisconnect?.(conn);
+      context.onDisconnect?.(connection);
     });
 
     socket.on('error', () => {

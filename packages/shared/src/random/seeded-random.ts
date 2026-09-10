@@ -1,6 +1,7 @@
 // The RandomSource implementation (docs/DETERMINISM.md §3): xoshiro128** behind the helpers
 // every subsystem uses, forks by label hash, and exact resume from serialised state.
 
+import { RADIANS_PER_FULL_TURN } from '../constants/units.js';
 import { hashLabel } from './label-hash.js';
 import type { RandomSource, RandomState } from './random-source.js';
 import { expandSeedToWords, nextUint32, XOSHIRO_WORD_COUNT, type XoshiroWords } from './xoshiro128-star-star.js';
@@ -9,7 +10,6 @@ import { expandSeedToWords, nextUint32, XOSHIRO_WORD_COUNT, type XoshiroWords } 
 const UINT32_RANGE = 0x1_0000_0000;
 /** Box–Muller: sqrt(-2 ln u) has this factor and the angle spans a full turn. */
 const BOX_MULLER_SCALE = -2;
-const FULL_TURN_RADIANS = 2 * Math.PI;
 
 export class SeededRandomError extends Error {
   constructor(message: string) {
@@ -92,7 +92,7 @@ class SeededRandom implements RandomSource {
   nextGaussian(): number {
     // 1 − u keeps the argument of the logarithm in (0, 1], so it never hits ln(0).
     const radius = Math.sqrt(BOX_MULLER_SCALE * Math.log(1 - this.nextFloat()));
-    const angleRadians = FULL_TURN_RADIANS * this.nextFloat();
+    const angleRadians = RADIANS_PER_FULL_TURN * this.nextFloat();
     return radius * Math.cos(angleRadians);
   }
 

@@ -8,7 +8,8 @@
     "build": "ng build",
     "test": "ng test",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
-    "clean": "rm -rf dist .angular"
+    "clean": "rm -rf dist .angular",
+    "test:integration": "ng run client:test-integration"
   },
   "dependencies": {
     "@angular/animations": "^21.0.0",

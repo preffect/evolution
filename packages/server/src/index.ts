@@ -4,10 +4,16 @@ import { LobbyManager } from './lobby/lobby-manager.js';
 import { registerWebSocketHandler } from './ws/websocket-handler.js';
 import type { Connection } from './ws/connection.js';
 import { registerMcpEndpoint } from './mcp/mcp-server.js';
-import { DEFAULT_SERVER_PORT } from '@evolution/shared';
+import {
+  DEFAULT_SERVER_PORT,
+  WEBSOCKET_DEFLATE_CONCURRENCY_LIMIT,
+  WEBSOCKET_DEFLATE_LEVEL,
+  WEBSOCKET_DEFLATE_THRESHOLD_BYTES,
+} from '@evolution/shared';
 import { defaultGameModuleFactory } from './game/game-module.js'; // TODO(init): swap for real factory
 
 const PORT = Number(process.env.PORT) || DEFAULT_SERVER_PORT;
+const LISTEN_HOST = '0.0.0.0';
 
 async function main(): Promise<void> {
   const server = Fastify({ logger: true });
@@ -15,9 +21,9 @@ async function main(): Promise<void> {
   await server.register(fastifyWebsocket, {
     options: {
       perMessageDeflate: {
-        zlibDeflateOptions: { level: 1 },
-        threshold: 256,
-        concurrencyLimit: 10,
+        zlibDeflateOptions: { level: WEBSOCKET_DEFLATE_LEVEL },
+        threshold: WEBSOCKET_DEFLATE_THRESHOLD_BYTES,
+        concurrencyLimit: WEBSOCKET_DEFLATE_CONCURRENCY_LIMIT,
       },
     },
   });
@@ -29,8 +35,8 @@ async function main(): Promise<void> {
   registerWebSocketHandler(server, {
     connections,
     handlers,
-    onConnect: (c) => lobbyManager.handleConnect(c, connections),
-    onDisconnect: (c) => lobbyManager.handleDisconnect(c),
+    onConnect: (connection) => lobbyManager.handleConnect(connection, connections),
+    onDisconnect: (connection) => lobbyManager.handleDisconnect(connection),
   });
 
   server.get('/api/health', async () => ({ status: 'ok' }));
@@ -39,10 +45,10 @@ async function main(): Promise<void> {
   // TODO(init): wire `getRoomGameState` to expose real game state per room.
   registerMcpEndpoint(server, { lobbyManager, connections });
 
-  await server.listen({ port: PORT, host: '0.0.0.0' });
+  await server.listen({ port: PORT, host: LISTEN_HOST });
 }
 
-main().catch((err) => {
-  console.error('Server failed to start:', err);
+main().catch((error) => {
+  console.error('Server failed to start:', error);
   process.exit(1);
 });

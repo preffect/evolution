@@ -1,12 +1,12 @@
 // Architecture guard (docs/ENGINEERING.md §2.3, docs/CODE-STANDARDS.md §8): no wall clock and
-// no Math.random in packages/shared outside the modules allowed to hold them. Lint (#69) will
-// enforce the same ban across the game paths; this test keeps shared honest until then.
+// no Math.random in packages/shared outside the modules allowed to hold them. Lint (#69)
+// enforces the same ban per call site; this test proves the package as a whole, comments aside.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const SOURCE_ROOT = join(import.meta.dirname, '..');
+const SOURCE_ROOT = import.meta.dirname;
 const MINIMUM_FILES_SCANNED = 10;
 const BANNED_PATTERNS = [
   /Math\.random/,
