@@ -1,8 +1,9 @@
 # Evolution
 
-> **Status: planning.** Evolution still runs the template's placeholder **echo** game; the design
-> and groundwork are tracked as GitHub epics (see [`docs/WORKFLOW.md`](docs/WORKFLOW.md)). The next step
-> is the init interview — open the devcontainer and follow the **START HERE** banner in `CLAUDE.md`.
+> **Status: designed, not yet built.** Evolution still runs the template's placeholder **echo**
+> game. The design is [`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md) with companions `ECOLOGY.md`,
+> `PROGRESSION.md` and `TRAITS.md`; architecture in `docs/ARCHITECTURE.md`. Build phases are GitHub
+> epics (see [`docs/WORKFLOW.md`](docs/WORKFLOW.md)); build 1 is epic #96.
 > Scaffolded from the `base-multiplayer-game` template; template-level fixes go upstream there.
 
 **The game:** you are a single-cell organism in a 2D petri dish. Eat to grow, absorb DNA from
