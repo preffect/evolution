@@ -291,6 +291,7 @@ not jitter. The type scale (`UI_TYPE_*`, px at HUD scale 1):
 | `number`    | 28  | mono | level number, mass value                             |
 | `headline`  | 26  | sans | results winner line                                  |
 | `clock`     | 24  | mono | round timer                                          |
+| `value`     | 20  | mono | secondary numbers (DNA count, sprint meter, scores)  |
 | `title`     | 22  | sans | overlay titles (respawn, menu)                       |
 | `card_name` | 16  | sans | trait card name                                      |
 | `body`      | 14  | sans | body text, hint pill                                 |
