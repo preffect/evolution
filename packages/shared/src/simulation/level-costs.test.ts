@@ -1,4 +1,5 @@
-// docs/PROGRESSION.md §2: the threshold table, row by row, and its cumulative column.
+// docs/PROGRESSION.md §2: the threshold table, row by row, and its cumulative column
+// (decision #138 option A, "slow dawn").
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
@@ -8,18 +9,20 @@ const balance = DEFAULT_BALANCE.progression;
 
 /** [level reached, cost from the previous level, cumulative DNA]. */
 const THRESHOLD_TABLE: readonly [number, number, number][] = [
-  [2, 20, 20],
-  [3, 30, 50],
-  [4, 40, 90],
-  [5, 50, 140],
-  [6, 60, 200],
-  [7, 70, 270],
-  [8, 80, 350],
-  [9, 90, 440],
-  [10, 100, 540],
-  [11, 110, 650],
-  [12, 120, 770],
+  [2, 60, 60],
+  [3, 80, 140],
+  [4, 100, 240],
+  [5, 120, 360],
+  [6, 140, 500],
+  [7, 160, 660],
+  [8, 180, 840],
+  [9, 200, 1040],
+  [10, 220, 1260],
+  [11, 240, 1500],
+  [12, 260, 1760],
 ];
+/** Cumulative DNA at `MAX_LEVEL`: P10's "level 12 with fixture DNA 1760". */
+const MAX_LEVEL_CUMULATIVE_DNA = 1760;
 
 describe('levelUpCost', () => {
   it.each(THRESHOLD_TABLE)('reaching level %i costs %i DNA from the level before', (levelReached, cost) => {
@@ -32,10 +35,10 @@ describe('levelUpCost', () => {
     expect(total).toBe(cumulative);
   });
 
-  it('reaches the maximum level at 770 DNA, so P10 stays at level 12 with 775', () => {
+  it(`reaches the maximum level at ${MAX_LEVEL_CUMULATIVE_DNA} DNA, so P10 stays at level 12 with 1765`, () => {
     let total = 0;
     for (let level = 1; level < balance.MAX_LEVEL; level += 1) total += levelUpCost(level, balance);
-    expect(total).toBe(770);
+    expect(total).toBe(MAX_LEVEL_CUMULATIVE_DNA);
   });
 
   it('reads its coefficients from the balance it is given', () => {
