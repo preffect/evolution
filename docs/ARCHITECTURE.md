@@ -436,8 +436,9 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
   are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7).
 - **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
   paused screenshot reproduces.
-- **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at 8 cells + 1 400 motes at 1080p; the per-stage
-  budget, the 100-cell bench scene and how a cell is drawn are [`RENDERING.md`](./RENDERING.md).
+- **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
+  110 fragments) at 1080p; the per-stage budget, the 100-cell bench scene that proves headroom above that
+  baseline, and how a cell is drawn are [`RENDERING.md`](./RENDERING.md) §7.
 
 ## 7. Audio hook seam (#101)
 
