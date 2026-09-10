@@ -24,7 +24,7 @@
 
 ```bash
 ./validate.sh test                    # unit tests with coverage thresholds (vitest for shared/server, ng test for client)
-./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier (opt-in; not part of `all`)
+./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (opt-in; not part of `all`)
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)

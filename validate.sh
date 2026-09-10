@@ -4,7 +4,7 @@
 #
 # Commands:
 #   test         Run unit tests with coverage thresholds (pnpm -r test)
-#   integration  Run the *.integration.test.ts / *.integration.spec.ts tier (pnpm -r test:integration)
+#   integration  Run the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (pnpm -r test:integration)
 #   typecheck    Run type checking (pnpm -r typecheck)
 #   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)

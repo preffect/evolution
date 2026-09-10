@@ -238,23 +238,29 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   and returns the final world and hash; callers assert `hash === recording.finalHash`.
 - Failing gameplay scenarios write their replay to `qa/replays/<scenario>.replay.json`;
   `debug_export_replay` exports a live room.
+- Until `game/replay/` lands with the module, the scenario runner (#75) keeps its own record of
+  the same shape at the harness level (`packages/server/src/testing/gameplay/replay-format.ts`:
+  seed, config, setup fixtures, membership, scheduled fixtures as `patches` (this record's
+  `debugPatches`) and inputs stamped by applied tick, hash checkpoints) and `verifyReplay`
+  replays it through the adapter; `TESTING.md` §8.2.
 
 ## 7. What the tests assert
 
-| Test (file)                                             | Asserts                                                                                                                                                  |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `random/seeded-random.test.ts`                          | same seed ⇒ same sequence; forks independent; same label ⇒ same fork; `createSeededRandomFromState(getState())` continues identically                    |
-| `random/xoshiro128-star-star.test.ts`                   | known answers: the reference sequence from state {1, 2, 3, 4}; splitmix32 expansions of seeds 0 and 42; outputs stay unsigned 32-bit                     |
-| `random/determinism.integration.test.ts`                | streams + `ManualClock` + accumulator + hash on a toy world: two 10 000-tick runs of seed 42 hash equal every 600 ticks; seed 43 differs                 |
-| `time/fixed-step-accumulator.test.ts`                   | due ticks for exact, partial and stalled advances; cap applied and dropped ticks reported; 600 fractional intervals owe one tick each                    |
-| `simulation/state-hash.test.ts`                         | equal worlds hash equal; any hashed field change or reorder changes the hash; NaN throws; every non-derived field is in `HASHED_FIELDS`                  |
-| `determinism-guard.test.ts` (shared, package root)      | no `Math.random` / wall clock / timers in `packages/shared/src` outside `random/` and `time/` (code only, comments ignored)                              |
-| `game/evolution-module.determinism.integration.test.ts` | two rooms, same seed, same scripted inputs under `ManualClock` ⇒ equal hash every 600 ticks and at 10 000 ticks (seed 42)                                |
-| `game/simulation/round.test.ts`                         | rematch rebuilds the world with `seed + ROUND_SEED_INCREMENT` and fresh streams (G2)                                                                     |
-| `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                                                |
-| `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                                 |
-| `client … cosmetic` (`membrane-mesh.spec.ts`)           | same seed + same tick ⇒ same vertex ring                                                                                                                 |
-| lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8` |
+| Test (file)                                             | Asserts                                                                                                                                                                                                    |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `random/seeded-random.test.ts`                          | same seed ⇒ same sequence; forks independent; same label ⇒ same fork; `createSeededRandomFromState(getState())` continues identically                                                                      |
+| `random/xoshiro128-star-star.test.ts`                   | known answers: the reference sequence from state {1, 2, 3, 4}; splitmix32 expansions of seeds 0 and 42; outputs stay unsigned 32-bit                                                                       |
+| `random/determinism.integration.test.ts`                | streams + `ManualClock` + accumulator + hash on a toy world: two 10 000-tick runs of seed 42 hash equal every 600 ticks; seed 43 differs                                                                   |
+| `time/fixed-step-accumulator.test.ts`                   | due ticks for exact, partial and stalled advances; cap applied and dropped ticks reported; 600 fractional intervals owe one tick each                                                                      |
+| `simulation/state-hash.test.ts`                         | equal worlds hash equal; any hashed field change or reorder changes the hash; NaN throws; every non-derived field is in `HASHED_FIELDS`                                                                    |
+| `determinism-guard.test.ts` (shared, package root)      | no `Math.random` / wall clock / timers in `packages/shared/src` outside `random/` and `time/` (code only, comments ignored)                                                                                |
+| `game/evolution-module.determinism.integration.test.ts` | two rooms, same seed, same scripted inputs under `ManualClock` ⇒ equal hash every 600 ticks and at 10 000 ticks (seed 42)                                                                                  |
+| `game/simulation/round.test.ts`                         | rematch rebuilds the world with `seed + ROUND_SEED_INCREMENT` and fresh streams (G2)                                                                                                                       |
+| `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                                                                                                  |
+| `testing/scenarios/echo.gameplay.test.ts` (#75)         | the scenario runner on the echo module: two runs of one seed and scripted inputs hash equal at every checkpoint and the replay reproduces them; an unseeded script is reported at the first differing tick |
+| `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                                                                                   |
+| `client … cosmetic` (`membrane-mesh.spec.ts`)           | same seed + same tick ⇒ same vertex ring                                                                                                                                                                   |
+| lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8`                                                   |
 
 The determinism integration test runs first against the **echo** module to prove the harness:
 the echo module has no `WorldState`, so there the harness hashes the bytes of
