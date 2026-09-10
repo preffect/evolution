@@ -515,10 +515,10 @@ packages/server/src/
   testing/{builders,scenarios/*}.ts                             (#75)
 packages/client/src/app/game/
   game-setup.ts
-  net/{snapshot-buffer,prediction,reconciliation,world-store,input-sender}.ts
+  net/{snapshot-buffer,interpolation,prediction,reconciliation,world-store,input-sender}.ts   interpolation owns renderTick (section 5)
   input/{input-controller,pointer-input,keyboard-input}.ts
-  render/{pixi-app,layers,camera,view-registry,constants,interpolation}.ts
-  render/{dish-layer,food-layer,cell-layer,effects-layer}.ts   render/cells/*.ts (the full render/ plan: RENDERING.md §8)
+  render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
+  render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: RENDERING.md §8)
   state/game-state.service.ts   audio/{audio.service,sound-event-bus}.ts
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)

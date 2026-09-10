@@ -19,22 +19,27 @@ functions of `t` and the cosmetic stream) stand, its means are replaced by §2 b
 The renderer reads **only** what `net/` gives it and never feeds anything back
 (`ARCHITECTURE.md §1`, "client-side cosmetic"). The server never knows about wobble.
 
-| Input                                                                                                                                                    | Source                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CellView` (`x`, `y`, `velocityX/Y`, `radius`, `mass`, `stage`, `traits`, `states`, `engulfProgress`, engulf ids, `sprintRemainingTicks`, `avatarIndex`) | `ARCHITECTURE.md §2`, interpolated at `renderTick` (§5) for remote cells, predicted for the own cell                                                                                                                                             |
-| `FoodMoteView`, `MotePositionView`, `DnaFragmentView`, `GelPatchView`, `effects`                                                                         | `ARCHITECTURE.md §4`; a bacterium's heading is not on the wire and is derived as the direction of its interpolated displacement, held when still                                                                                                 |
-| `renderTick` (fractional)                                                                                                                                | `net/interpolation`; **`timeSeconds = renderTick × TICK_INTERVAL_S`** is the only time the renderer sees. A paused room (`debug_pause_room`) holds `renderTick`, so the frame is identical until it resumes                                      |
-| Cosmetic randomness                                                                                                                                      | `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of `createSeededRandom(snapshot.seed)` (`ARCHITECTURE.md §6`, `DETERMINISM.md §1.8`): per-cell phases and organelle slots; the field noise textures from `fork(RANDOM_STREAM.cosmetic + ':field')` |
-| `balance` (from `game_state`)                                                                                                                            | `speedRatio = ‖velocity‖ / maxSpeed(mass, balance)` through the shared kernel; `canEngulf(cell, own, balance.absorption)` for the warning ring                                                                                                   |
-| HUD crossings                                                                                                                                            | `previewTraitId`, `reticleVisible` in; `cameraExtent` out; wired in `game-setup.ts` (`UI.md §7`). Pointer target for the reticle comes from `input/`, not the HUD                                                                                |
+| Input                                                                                                                                                    | Source                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CellView` (`x`, `y`, `velocityX/Y`, `radius`, `mass`, `stage`, `traits`, `states`, `engulfProgress`, engulf ids, `sprintRemainingTicks`, `avatarIndex`) | `ARCHITECTURE.md §2`, interpolated at `renderTick` (§5) for remote cells, predicted for the own cell                                                                                                                                                                                                   |
+| `FoodMoteView`, `MotePositionView`, `DnaFragmentView`, `GelPatchView`, `effects`                                                                         | `ARCHITECTURE.md §4`; a bacterium's heading is not on the wire and is derived as the direction of its interpolated displacement, held when still                                                                                                                                                       |
+| `renderTick` (fractional)                                                                                                                                | `net/interpolation.ts` (`ARCHITECTURE.md §5` owns the delay and the lerp; nothing under `render/` computes it); **`timeSeconds = renderTick × TICK_INTERVAL_S`** is the only time the renderer sees. A paused room (`debug_pause_room`) holds `renderTick`, so the frame is identical until it resumes |
+| Cosmetic randomness                                                                                                                                      | `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of `createSeededRandom(snapshot.seed)` (`ARCHITECTURE.md §6`, `DETERMINISM.md §1.8`): per-cell phases and organelle slots; the field noise textures from `fork(RANDOM_STREAM.cosmetic + ':field')`                                                       |
+| `balance` (from `game_state`)                                                                                                                            | `speedRatio = ‖velocity‖ / maxSpeed(mass, balance)` through the shared kernel; `canEngulf(cell, own, balance.absorption)` for the warning ring                                                                                                                                                         |
+| HUD crossings                                                                                                                                            | `previewTraitId`, `reticleVisible` in; `cameraExtent` out; wired in `game-setup.ts` (`UI.md §7`). Pointer target for the reticle comes from `input/`, not the HUD                                                                                                                                      |
 
 `render/` never calls a clock (`CODE-STANDARDS.md §8`): the bench harness (§7) drives `renderTick` from a `ManualClock`.
 
 ## 2. The cell: one quad, one fragment shader
 
-Every cell is **one instanced quad** of half-size `CELL_QUAD_EXTENT_RADII` (2.3, new: the engulf arm at 1.62 r
-times the trait halo at 1.39 r, rounded up, so no halo is square-clipped at an arm tip or the seal bulge; the
-extra area is discarded fragments) × `r` and a fragment shader that evaluates a radial profile `r(θ)` and paints
+Every cell is **one instanced quad** whose half-size is the per-instance `quadExtentRadii × r` (§2.3):
+`max(CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII at far LOD, (warningRingPx + WARNING_RING_STROKE_PX) / r_px)`.
+`CELL_QUAD_EXTENT_RADII` 2.3 (new) is the floor: the engulf arm at 1.62 r times the trait halo at 1.39 r, rounded
+up, so no halo is square-clipped at an arm tip or the seal bulge. The two pass-B bands that reach past it stay in
+this shader and raise the extent instead of moving to effect sprites: the far-dot halo (`FAR_DOT_HALO_RADII` 3.0,
+§5) and the warning ring (`ENGULF_WARNING_RING_MIN_PX` exceeds 2.3 r_px below 10.4 px, most of the mid band), both
+of which must track the instance's undeformed centre and snap with its LOD (§5). The extra area is discarded
+fragments. The quad carries a fragment shader that evaluates a radial profile `r(θ)` and paints
 sheet 01's layer stack as bands of two coordinates: the normalised radial coordinate **ρ = |p| / r(θ)** (ρ = 1 is
 the membrane) for interior fills, and the **perpendicular membrane distance `d`** (§2.1) for every band measured
 from the membrane. No vertex ring, no per-object hairs, no per-frame `Graphics` for bodies.
@@ -52,28 +57,28 @@ d(p)    = (|p| − r(θ)) / sqrt(1 + (r′(θ) / r(θ))²)                      
 one. Every term is data (the tables below), so a new deformation is a row, not a branch.
 
 **Perpendicular distance.** `ρ` is a radial measure, so a band of width `w` in ρ is only `w · r` thick where the
-outline runs tangentially: on the flank of a +62 % σ 16° engulf arm the slope `r′/r` reaches 1.34 and a ρ band
-thins to 60 %; on a pseudopod, a spindle tip or the stentor stalk (sides nearly radial, ±3° at the far end) it
-vanishes. Sheet 01 panel D and sheet 03 B-02 show a constant-thickness rim around the arms, so every band measured
-from the membrane (inner edge, soft rim, rim light, outline, film, wall, cilia, seat marks) is a band of `d`, and
-only the interior fills use ρ. `r′(θ)` is evaluated alongside `r(θ)`: every term is a sine, a Gaussian or a strip
+outline runs tangentially: on the flank of a +62 % σ 16° engulf arm the slope `r′/r` of the deformed profile peaks
+at ≈ 0.99 (≈ 1.1 σ from the arm centre) and a ρ band thins to ≈ 71 %; on a pseudopod, a spindle tip or the stentor
+stalk (sides nearly radial, ±3° at the far end) it vanishes. Sheet 01 panel D and sheet 03 B-02 show a
+constant-thickness rim around the arms, so every band measured from the membrane (inner edge, soft rim, rim
+light, outline, film, wall, cilia, seat marks) is a band of `d`, and only the interior fills use ρ. `r′(θ)` is evaluated alongside `r(θ)`: every term is a sine, a Gaussian or a strip
 read, so the derivative is closed-form (the strip bakes its own derivatives, see `jitter`) and the TypeScript
 reference pins it (§9). In §2.2 a membrane band written `0.975 → 1.025` means `d / r` in `[−0.025, +0.025]`.
 
-| Term        | Formula                                                                                                                                                                                                      | Values (home)                                                                                                                                                                                                           | Driven by                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `B`         | 1 for the blob; per-form profile (#121, §2.4)                                                                                                                                                                | sheet 04 specialised-forms table                                                                                                                                                                                        | `stage`, form trait                           |
-| `breathing` | `A · sin(2π f t + φ)`                                                                                                                                                                                        | `BREATH_AMPLITUDE` 0.02, `BREATH_HZ` 0.5 (sheet 01 motion table); `WOBBLE_TAUT_SCALE` 0.5 with `cytoskeleton` (VISUAL-STYLE §5)                                                                                         | `t`, φ from the cosmetic fork                 |
-| `wobble`    | `A · sin(m θ + 2π f t + φ)`                                                                                                                                                                                  | protocell m 2, ±0.08, 0.7 Hz (sheet 04); forms m 3, ±0.05 (VISUAL-STYLE §5)                                                                                                                                             | `stage`                                       |
-| `jitter`    | `J · strip.R(θ / 2π + φ)`, `strip` = the 256 × 1 seeded RGBA noise strip (R jitter, G lobes, B and A their `d/dθ`)                                                                                           | `JITTER_AMPLITUDE` 0.008 (sheet 02: ±0.8 %)                                                                                                                                                                             | cosmetic fork                                 |
-| `lobes`     | `strip.G(θ / 2π + φ)`: `REST_LOBE_COUNT` 5–7 fixed Gaussians of `REST_LOBE_AMPLITUDE` ±0.025–0.04, `REST_LOBE_SIGMA_RAD` 0.25–0.4, baked into the strip per cell phase (one texture read, no instance slots) | sheet 02 membranes paragraph, sheet 01 panels A (hero radius 126–131 px = ±2 %), B, D, E, F; × `WOBBLE_TAUT_SCALE` with `cytoskeleton`; 0 for `diatom_shell`                                                            | cosmetic fork, `stage`                        |
-| `stretch`   | `1 + k[(S_ALONG − 1) · max(cos Δ, 0)² − (1 − TAPER) · max(−cos Δ, 0)² − (S_ALONG − 1) · ACROSS · sin²Δ]`; C¹ at the sides                                                                                    | `S_ALONG` 1.22, `TAPER` 0.72 (sheet 01 motion); `STRETCH_ACROSS_PER_ALONG` 0.6 (sheet 02's 1.10 × 0.94); sprint × 1.06 (VISUAL-STYLE §5). k = 1: 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180°; k = 0.45: 1.10 / 0.94 / 0.87 | `k = speedRatio`, sprint                      |
-| contact     | bump −0.12, σ 22° toward the neighbour; σ 14° with `cytoskeleton`                                                                                                                                            | VISUAL-STYLE §5                                                                                                                                                                                                         | `cells/contact-dents.ts` (visible-cell scan)  |
-| eat         | dimple −0.12 σ 22°, wrap +0.14 σ 30°, `pulse` 1.09, stretch 1.07 × 0.95, halo 1.5 R                                                                                                                          | sheet 03, motion clip `eat` (§4)                                                                                                                                                                                        | `eat` effect, angle to the mote               |
-| engulf      | arms +0.62 at prey angle ± 30° σ 16°, notch −0.10, seal +0.60 σ 42° relaxing 0.60 → 0.42 → 0.22                                                                                                              | sheet 03, clip `engulf` (domain = progress, VISUAL-STYLE §5)                                                                                                                                                            | `states`, `engulfProgress`, `engulfingCellId` |
-| level-up    | `pulse` 0.90 (anticipate) → 1.14 (burst) → 1.0                                                                                                                                                               | sheet 03, clip `level_up`                                                                                                                                                                                               | `level_up` effect                             |
-| respawn     | `pulse` 0.6 → 1.0 `ease_out_back`, alpha 0 → 1                                                                                                                                                               | VISUAL-STYLE §5, clip `respawn`                                                                                                                                                                                         | `respawn` effect                              |
-| pseudopods  | 2 / 3 / 4 bumps toward velocity and toward engulfed prey                                                                                                                                                     | sheet 04 amoeba (#121)                                                                                                                                                                                                  | tier, `engulfingCellId`                       |
+| Term        | Formula                                                                                                                                                                                                              | Values (home)                                                                                                                                                                                                           | Driven by                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `B`         | 1 for the blob; per-form profile (#121, §2.4)                                                                                                                                                                        | sheet 04 specialised-forms table                                                                                                                                                                                        | `stage`, form trait                           |
+| `breathing` | `A · sin(2π f t + φ)`                                                                                                                                                                                                | `BREATH_AMPLITUDE` 0.02, `BREATH_HZ` 0.5 (sheet 01 motion table); `WOBBLE_TAUT_SCALE` 0.5 with `cytoskeleton` (VISUAL-STYLE §5)                                                                                         | `t`, φ from the cosmetic fork                 |
+| `wobble`    | `A · sin(m θ + 2π f t + φ)`                                                                                                                                                                                          | protocell m 2, ±0.08, 0.7 Hz (sheet 04); forms m 3, ±0.05 (VISUAL-STYLE §5)                                                                                                                                             | `stage`                                       |
+| `jitter`    | `J · strip.R(θ / 2π + φ)`, `strip` = the 256 × 1 seeded RGBA noise strip (R jitter, G lobes, B and A their `d/dθ`)                                                                                                   | `JITTER_AMPLITUDE` 0.008 (sheet 02: ±0.8 %)                                                                                                                                                                             | cosmetic fork                                 |
+| `lobes`     | `strip.G(θ / 2π + φ)`: `REST_LOBE_COUNT` 5–7 fixed Gaussians of `REST_LOBE_AMPLITUDE` ±0.025–0.04, `REST_LOBE_SIGMA_RAD` 0.25–0.4, baked into the strip per cell phase (one texture read, no instance slots)         | sheet 02 membranes paragraph, sheet 01 panels A (hero radius 126–131 px = ±2 %), B, D, E, F; × `WOBBLE_TAUT_SCALE` with `cytoskeleton`; 0 for `diatom_shell`                                                            | cosmetic fork, `stage`                        |
+| `stretch`   | `1 + k[(S_ALONG − 1) · max(cos Δ, 0)² − (1 − TAPER) · max(−cos Δ, 0)² − (S_ALONG − 1) · ACROSS · sin²Δ]`; C¹ at the sides                                                                                            | `S_ALONG` 1.22, `TAPER` 0.72 (sheet 01 motion); `STRETCH_ACROSS_PER_ALONG` 0.6 (sheet 02's 1.10 × 0.94); sprint × 1.06 (VISUAL-STYLE §5). k = 1: 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180°; k = 0.45: 1.10 / 0.94 / 0.87 | `k = speedRatio`, sprint                      |
+| contact     | bump −0.12, σ 22° toward the neighbour; σ 14° with `cytoskeleton`                                                                                                                                                    | VISUAL-STYLE §5                                                                                                                                                                                                         | `cells/contact-dents.ts` (visible-cell scan)  |
+| eat         | dimple −0.12 σ 22°, wrap +0.14 σ 30°, `pulse` 1.09, stretch 1.07 × 0.95, halo 1.5 R                                                                                                                                  | sheet 03, motion clip `eat` (§4)                                                                                                                                                                                        | `eat` effect, angle to the mote               |
+| engulf      | arms `arm` at prey angle ± 30° σ 16°, notch `notch` at the prey angle σ `ENGULF_NOTCH_SIGMA_DEG` 12°, seal `seal` at the prey angle σ 42°; amplitudes per keyframe in the §4 engulf table (peak 0.62 / −0.10 / 0.60) | sheet 03, clips `engulf` (domain = progress, VISUAL-STYLE §5) and `absorbed` (the seal relax)                                                                                                                           | `states`, `engulfProgress`, `engulfingCellId` |
+| level-up    | `pulse` 0.90 (anticipate) → 1.14 (burst) → 1.0                                                                                                                                                                       | sheet 03, clip `level_up`                                                                                                                                                                                               | `level_up` effect                             |
+| respawn     | `pulse` 0.6 → 1.0 `ease_out_back`, alpha 0 → 1                                                                                                                                                                       | VISUAL-STYLE §5, clip `respawn`                                                                                                                                                                                         | `respawn` effect                              |
+| pseudopods  | 2 / 3 / 4 bumps toward velocity and toward engulfed prey                                                                                                                                                             | sheet 04 amoeba (#121)                                                                                                                                                                                                  | tier, `engulfingCellId`                       |
 
 Bumps occupy `MAX_SHAPE_BUMPS` (8) instance slots, sized for an amoeba III mid-engulf: two arms, notch, seal and
 four pseudopods. Outside an engulf the eat dimple, wrap and one contact dent share the four non-pseudopod slots;
@@ -115,9 +120,9 @@ ring hugging the outline instead).
 | outline                       | `abs(d) ≤ max(0.8 px, 1.2 % r) / 2` at 1.00                                                                                                                                                                                                                                                                                                                                           | `OUTLINE` `#020509` @50 % (sheet 01); protocell @40 % (sheet 04)                                                                                                                                                                                                                                                                                                                                                                                           | B    | ≥ mid                      |
 | cilia                         | 1.00 → 1.12, **leaning hairs** of constant px width: `lean = d / r · tan(CILIA_LEAN_DEG 30° + wave)`, `wave = CILIA_WAVE_AMPLITUDE_DEG 12° · sin(2π θ · CILIA_WAVE_COUNT − 2π f t)`, `θ_h = θ − lean` (the wave modulates the lean angle, so hairs stay rooted at d = 0), `s = fract(N θ_h / 2π)`, mask `abs(s − 0.5) · 2π ‖p‖ / N < CILIA_WIDTH_PX / 2` (1.2 px, fwidth-antialiased) | `CILIA` @75 % × `(1 − d / 0.12 r)` (fade to the tip); N 24 / 36 / 48; `f` = `CILIA_BEAT_HZ` 2.0 while moving, `CILIA_BEAT_IDLE_HZ` 0.5 at rest; hairs stay rooted, the beat is a travelling wave of the lean (sheet 04 fringe: 1.2 px lines leaning 30°, metachronal wave). `CILIA_WAVE_COUNT` 3, `CILIA_WAVE_AMPLITUDE_DEG` 12, `CILIA_BEAT_HZ` 2.0, `CILIA_BEAT_IDLE_HZ` 0.5 are new (no sheet number; graphics-designer accepted). Mid: flat band @40 % | B    | ≥ mid                      |
 | glint                         | ellipse 0.22 × 0.08 r at `GLINT_OFFSET_RADII` 0.74 along `GLINT_ANGLE_DEG` −132°, rotated −40°, edge 1.5 px, undeformed frame like the pools                                                                                                                                                                                                                                          | `WHITE` @50 % (sheet 01 panel A `<ellipse cx=246 cy=245.6 rx=28.2 ry=10.2>`: just inside the membrane, clear of the nucleus disc, which reaches 0.42 r; the nucleus's own highlight at 0.34 r / −136° lives in the baked nucleus sprite, §3)                                                                                                                                                                                                               | B    | ≥ mid                      |
-| seat mark                     | beads at 1.0, `SEAT_MARK_BEADS[avatarIndex]` from −135°                                                                                                                                                                                                                                                                                                                               | VISUAL-STYLE §2 (bead 5 % r, floor 2 px; core `WHITE` @92 %, halo rim @45 % at 2.2 ×)                                                                                                                                                                                                                                                                                                                                                                      | B    | ≥ mid                      |
-| self ring                     | ρ 1.12 (floor 7.5 px), 1.5 px, dash 6 4, 20 °/s                                                                                                                                                                                                                                                                                                                                       | `SELF_RING` (VISUAL-STYLE §2); own cell only                                                                                                                                                                                                                                                                                                                                                                                                               | B    | ≥ mid                      |
-| engulf warning ring           | undeformed `‖p‖ = 1.3 × r_px`, floor 24 px, 2 px, dash 6 5, 12 °/s                                                                                                                                                                                                                                                                                                                    | `DANGER` (VISUAL-STYLE §5, `canEngulf`)                                                                                                                                                                                                                                                                                                                                                                                                                    | B    | ≥ mid                      |
+| seat mark                     | beads centred on `d = 0`, `SEAT_MARK_BEADS[avatarIndex]` from `SEAT_MARK_ANCHOR_DEG`; radius `SEAT_MARK_BEAD_RADIUS_FRACTION` with the `SEAT_MARK_BEAD_MIN_PX` floor (a `d`-band, so beads sit on the deformed outline)                                                                                                                                                               | core, halo and alphas: VISUAL-STYLE §2                                                                                                                                                                                                                                                                                                                                                                                                                     | B    | ≥ mid, snaps (§5)          |
+| self ring                     | undeformed `‖p‖ = SELF_RING_RADIUS_FRACTION × r` with the `SELF_RING_MIN_PX` floor; width, dash and rotation from the same VISUAL-STYLE §2 constants                                                                                                                                                                                                                                  | `SELF_RING` (VISUAL-STYLE §2); own cell only                                                                                                                                                                                                                                                                                                                                                                                                               | B    | ≥ mid, snaps (§5)          |
+| engulf warning ring           | undeformed `‖p‖ = warningRingPx` (the instance value: `ENGULF_WARNING_RING_RADII × r_px` with the `ENGULF_WARNING_RING_MIN_PX` floor, VISUAL-STYLE §5); dash and rotation from the same constants; stroke `WARNING_RING_STROKE_PX` 2 (new)                                                                                                                                            | `DANGER` (VISUAL-STYLE §5, `canEngulf`)                                                                                                                                                                                                                                                                                                                                                                                                                    | B    | ≥ mid, snaps (§5)          |
 | prey under film               | pass B alpha × 0.62 while `engulfedByCellId` is set                                                                                                                                                                                                                                                                                                                                   | VISUAL-STYLE §6 "prey through film"                                                                                                                                                                                                                                                                                                                                                                                                                        | B    | ≥ mid                      |
 
 Layer-major order (all bodies, then all organelles, then all membranes) is what makes the prey's rim show
@@ -125,9 +130,11 @@ through the predator's film for free; separation (`ECOLOGY.md §5.3`) means unre
 
 ### 2.3 Instance layout and passes
 
-`cells/cell-geometry.ts` declares one quad with per-instance attributes (13 `vec4`, WebGL guarantees 16):
-centre, `r`, `h`, `k`, palette index, `lodBlend`, alpha, stage / trait counts (`ciliaCount`, `wallScale`,
-`speckleDensity`, `filamentCount`, `tintMix` toward `CHLORO_BASE`), wobble (`amplitude`, `mode`, `phase`),
+`cells/cell-geometry.ts` declares one quad with per-instance attributes (27 scalars packed in 7 `vec4`, one
+float spare, plus the 6 bump `vec4`s = 13 `vec4`; WebGL guarantees 16):
+centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`, alpha,
+stage / trait counts (`ciliaCount`, `wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward
+`CHLORO_BASE`), wobble (`amplitude`, `mode`, `phase`),
 stretch (`kAlong`, `kSprint`), `pulse`, `nucleusOffset` (vec2, cell frame: the mapped `q′` of the nucleus slot,
 §3, so filaments meet the nucleus sprite), eight bumps × (`amplitude`, `centre`, `sigma`) = 6 `vec4`, halo kind
 (default, trait, protocell), `beadCount`, `isOwn`, `warningRingPx`, `formId`. Global uniforms: `uTimeSeconds`,
@@ -135,7 +142,8 @@ stretch (`kAlong`, `kSprint`), `pulse`, `nucleusOffset` (vec2, cell frame: the m
 × 8 shades, the four body-ramp stops among them, baked by `render/palette.ts`). The same
 mesh is drawn twice with `uPass` (A, B); instance order is radius ascending (`ARCHITECTURE.md §6`), so two
 draw calls cover every visible cell. An absorbed prey keeps drawing as a **ghost instance** built from its last
-view (VISUAL-STYLE §5) until the `absorbed` clip ends.
+view (VISUAL-STYLE §5) until the `absorbed` clip ends; the same clip's `seal` track drives the predator's seal
+bump (the ghost's `engulfedByCellId`), since the predator's `engulfProgress` is gone on the payout tick (§4).
 
 ### 2.4 Forms (#121)
 
@@ -205,7 +213,7 @@ export interface MotionKeyframe {
   readonly easingTo: EasingName;
 }
 export interface MotionClip {
-  readonly id: MotionClipId;
+  readonly id: MotionClipId; // declared below, from MOTION_CLIP
   readonly domain: 'ms' | 'progress'; // engulf is driven by engulfProgress, never the clock
   readonly duration: number;
   readonly isInterruptible: boolean;
@@ -220,6 +228,7 @@ export const MOTION_CLIP = {
   sprintRelease: 'sprint_release',
   organelleBirth: 'organelle_birth',
 } as const;
+export type MotionClipId = (typeof MOTION_CLIP)[keyof typeof MOTION_CLIP];
 export const MOTION_CLIPS: Readonly<Record<MotionClipId, MotionClip>>;
 export const sampleTrack: (
   track: readonly MotionKeyframe[],
@@ -228,15 +237,36 @@ export const sampleTrack: (
 ) => number;
 ```
 
-| Clip              | Domain, length             | Keyframes (sheet 03 strips table; VISUAL-STYLE §5)                                                                                                   | Tracks                                                                                                             |
-| ----------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `eat`             | ms, 300, interruptible     | 0 → 50 contact → 100 wrap → 160 pulse → 220 absorb → 300; `ease_out_quad` · `ease_out_back` · `linear` · `ease_in_out_sine`                          | `dimple`, `wrap`, `pulse`, `stretchAlong`, `stretchAcross`, `haloRadii`                                            |
-| `engulf`          | progress, 1.0              | 0 contact → 0.5 wrap → 1.0 seal; `ease_out_cubic` · `ease_in_out_quad`                                                                               | `arm`, `notch`, `seal`                                                                                             |
-| `absorbed`        | ms, 600                    | 0 seal → 200 dissolve → 400 DNA streams → 600 done; `linear` · `ease_in_quad` · `ease_out_back`                                                      | `rimDash`, `cytoplasmAlpha` (→ 0.5), `streamProgress`                                                              |
-| `level_up`        | ms, 900, not interruptible | 0 → 120 anticipate → 250 burst → 450 nucleus → 700 settle → 900; `ease_in_quad` · `ease_out_expo` · `ease_out_cubic` · `ease_in_out_sine` · `linear` | `pulse` (0.90, 1.14), `rayRadii` (1.2 → 1.95), `shockRingRadii` 1.6, `rippleRadii` 1.7 / 2.1 / 2.5, `nucleusFlash` |
-| `respawn`         | ms, 400                    | scale 0.6 → 1.0 `ease_out_back`, alpha 0 → 1 `ease_out_quad`, halo 2 r → 0                                                                           | `pulse`, `alpha`, `haloRadii`                                                                                      |
-| `sprint_release`  | ms, 200                    | `ease_out_quad` back to rest                                                                                                                         | `stretchSprint`, `rimBrightness`                                                                                   |
-| `organelle_birth` | ms, 3 000                  | ghost 0.44 → 0.30 r, recolour along the ramp                                                                                                         | `ghostSize`, `rampMix`                                                                                             |
+| Clip              | Domain, length             | Keyframes (sheet 03 strips table; VISUAL-STYLE §5)                                                                                                                                                                      | Tracks                                                                                                             |
+| ----------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `eat`             | ms, 300, interruptible     | keyframes at 0 approach → 100 wrap → 160 pulse → 220 absorb → 300 settle (sheet 03's "contact 50" is a label inside the first tween, not a keyframe); `ease_out_quad` · `ease_out_back` · `linear` · `ease_in_out_sine` | `dimple`, `wrap`, `pulse`, `stretchAlong`, `stretchAcross`, `haloRadii`                                            |
+| `engulf`          | progress, 1.0              | 0 contact → 0.5 wrap → 1.0 seal; `ease_out_cubic` · `ease_in_out_quad`; values in the engulf table below                                                                                                                | `arm`, `notch`, `seal`                                                                                             |
+| `absorbed`        | ms, 600                    | 0 seal → 200 dissolve → 400 DNA streams → 600 done; `linear` · `ease_in_quad` · `ease_out_back`                                                                                                                         | `rimDash`, `cytoplasmAlpha` (→ 0.5), `streamProgress` on the ghost; `seal` on the predator (table below)           |
+| `level_up`        | ms, 900, not interruptible | 0 → 120 anticipate → 250 burst → 450 nucleus → 700 settle → 900; `ease_in_quad` · `ease_out_expo` · `ease_out_cubic` · `ease_in_out_sine` · `linear`                                                                    | `pulse` (0.90, 1.14), `rayRadii` (1.2 → 1.95), `shockRingRadii` 1.6, `rippleRadii` 1.7 / 2.1 / 2.5, `nucleusFlash` |
+| `respawn`         | ms, 400                    | scale 0.6 → 1.0 `ease_out_back`, alpha 0 → 1 `ease_out_quad`, halo 2 r → 0                                                                                                                                              | `pulse`, `alpha`, `haloRadii`                                                                                      |
+| `sprint_release`  | ms, 200                    | `ease_out_quad` back to rest                                                                                                                                                                                            | `stretchSprint`, `rimBrightness`                                                                                   |
+| `organelle_birth` | ms, 3 000                  | ghost 0.44 → 0.30 r, recolour along the ramp                                                                                                                                                                            | `ghostSize`, `rampMix`                                                                                             |
+
+**Engulf bump amplitudes per keyframe** (fractions of `r`; centres and σ are fixed: arms at the prey angle ± 30°
+σ 16°, notch and seal at the prey angle, notch σ `ENGULF_NOTCH_SIGMA_DEG` 12°, seal σ 42°; sheet 03 gives the
+notch no σ, so 12° is a design choice, graphics-designer to accept: it puts the notch's 2.5 σ at the arm centres,
+so the dip reads between the arms and its tail at ±30° is −0.004). The arms fold into the seal over wrap → seal,
+so the two never add on the flanks; the `absorbed` row is the sheet's "relaxing 0.60 → 0.42 → 0.22", with a new
+0 at done so the predator is round when the ghost leaves.
+
+| Clip, keyframe          | `arm` | `notch` | `seal` |
+| ----------------------- | ----- | ------- | ------ |
+| `engulf` 0 contact      | 0     | 0       | 0      |
+| `engulf` 0.5 wrap       | 0.62  | −0.10   | 0      |
+| `engulf` 1.0 seal       | 0     | 0       | 0.60   |
+| `absorbed` 0 seal       | —     | —       | 0.60   |
+| `absorbed` 200 dissolve | —     | —       | 0.42   |
+| `absorbed` 400 streams  | —     | —       | 0.22   |
+| `absorbed` 600 done     | —     | —       | 0      |
+
+At the wrap frame (pulse 1, k 0, lobes and jitter zeroed) the profile is therefore
+`1 + 0.62 + 0.62 · e^(−60² / 512) − 0.10 · e^(−30² / 288)` = **1.616 at ±30°** and
+`1 + 2 · 0.62 · e^(−30² / 512) − 0.10` = **1.114 at 0°** (the §9 pins).
 
 ## 5. LOD
 
@@ -247,12 +277,12 @@ the identity and danger tells:** the seat mark, the self ring and the warning ri
 bead at 40 % alpha during a fade is a bead that cannot be counted; VISUAL-STYLE §2 designed 1–4 beads to be
 countable at 8 px).
 
-| On-screen radius                   | Drawn                                                                                                                                                                               |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ≥ `CELL_LOD_FULL_MIN_PX` 20        | every band, sprites, lines                                                                                                                                                          |
-| `CELL_LOD_FAR_MAX_PX` 8 → 20 (mid) | halo, flat body, rim, outline with the full profile, nucleus / nucleoid as one sprite, flagellum line, cilia as a band, `cell_wall`, trait halo, seat mark, self ring, warning ring |
-| < 8 (far dot)                      | body band as a rim-colour dot, floor `CELL_FAR_DOT_MIN_PX` 3, halo band to 3.0; same shader, no sprites, no seat mark (VISUAL-STYLE §2)                                             |
-| Motes                              | core floor `MOTE_CORE_MIN_PX` 2; small sprite variant below zoom 0.5 (VISUAL-STYLE §6, §8)                                                                                          |
+| On-screen radius                   | Drawn                                                                                                                                                                                                                        |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ≥ `CELL_LOD_FULL_MIN_PX` 20        | every band, sprites, lines                                                                                                                                                                                                   |
+| `CELL_LOD_FAR_MAX_PX` 8 → 20 (mid) | the VISUAL-STYLE §6 kept set, nothing else; the outline keeps the full profile (§2.1), the nucleus / nucleoid is one sprite, cilia are a flat band (§2.2)                                                                    |
+| < 8 (far dot)                      | body band as a rim-colour dot, floor `CELL_FAR_DOT_MIN_PX` 3, halo band to `FAR_DOT_HALO_RADII` 3.0 (VISUAL-STYLE §6 "halo ×3", named here for the quad extent, §2); same shader, no sprites, no seat mark (VISUAL-STYLE §2) |
+| Motes                              | core floor `MOTE_CORE_MIN_PX` 2; small sprite variant below zoom 0.5 (VISUAL-STYLE §6, §8)                                                                                                                                   |
 
 ## 6. Batching plan
 
@@ -288,19 +318,47 @@ class: a new assumption stated here, not traced to any doc). The load is stated 
 | baseline    | 8 (one per player)            | 1 400 (`FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER`) | 110           | `ARCHITECTURE.md §6` populations at 8 players, ECOLOGY §3        |
 | bench scene | `RENDER_BENCH_CELL_COUNT` 100 | `RENDER_BENCH_MOTE_COUNT` 1 400                   | 110           | this doc: the superset, same motes and fragments as the baseline |
 
-Budget per stage (ms, p95) at the bench load:
+Budget per stage (ms, p95) at the bench load. The seven `renderStagesMs` keys are the CPU stages
+`render/bench/render-stage-timer.ts` brackets; the three rows below them are not keys:
 
-| Stage (`renderStagesMs` field)                      | Budget | Stage                                        | Budget |
-| --------------------------------------------------- | ------ | -------------------------------------------- | ------ |
-| `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites           | 0.3    |
-| `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent`  | 0.1    |
-| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 16 calls)            | 1.0    |
-| `food` mote and fragment updates                    | 0.6    | `gpuMs` (timer query; `null` if unsupported) | 4.0    |
-| HUD (Angular, outside `render/`, inside the frame)  | 1.0    | headroom                                     | 1.8    |
+| `renderStagesMs` key                                | Budget | `renderStagesMs` key                        | Budget |
+| --------------------------------------------------- | ------ | ------------------------------------------- | ------ |
+| `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites          | 0.3    |
+| `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent` | 0.1    |
+| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 16 calls)           | 1.0    |
+| `food` mote and fragment updates                    | 0.6    |                                             |        |
 
-**Measurement.** `ClientPerformanceReport` (`shared/types/messages.ts`) gains `renderStagesMs` (p95 per stage
-above), `gpuMs`, `drawCalls`, `visibleCells`, `visibleMotes`; the heartbeat already carries the report and
-`debug_get_room_performance` already merges it per room, so the server stays game-agnostic. **Fixed-seed
+| Not a key                                          | Budget | What it is                                                                                               |
+| -------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `gpuMs` (its own field)                            | 4.0    | GPU timer query, `null` when unsupported; budgeted as if serial with the CPU stages (conservative)       |
+| HUD (Angular, outside `render/`, inside the frame) | 1.0    | not measured by the timer: the bench derives it as `frameTimeP95Ms − Σ renderStagesMs` and asserts ≤ 1.0 |
+| headroom                                           | 1.8    | 12 − Σ keys (5.2) − `gpuMs` − HUD; a number in this table, never a field                                 |
+
+**Measurement.** `ClientPerformanceReport` (`shared/types/messages.ts`) gains the fields below; the heartbeat
+already carries the report and `debug_get_room_performance` already merges it per room, so the server stays
+game-agnostic. The key list lives beside the type, the way `CLIENT_MESSAGE_TYPE` does, because the server's
+merge and the client's timer must agree on it:
+
+````ts
+export const RENDER_STAGE = {
+  net: 'net',
+  cells: 'cells',
+  organelles: 'organelles',
+  food: 'food',
+  effects: 'effects',
+  camera: 'camera',
+  submit: 'submit',
+} as const;
+export type RenderStageName = (typeof RENDER_STAGE)[keyof typeof RENDER_STAGE];
+export interface ClientPerformanceReport {
+  // existing: fps, frameTimeAvgMs, frameTimeP95Ms, frameTimePeakMs, heapMb
+  renderStagesMs: Readonly<Record<RenderStageName, number>>; // p95 per stage, ms; every key present
+  gpuMs: number | null;
+  drawCalls: number;
+  visibleCells: number;
+  visibleMotes: number;
+}
+``` **Fixed-seed
 scene:** `render/bench/bench-scene.ts` builds a synthetic `GameSnapshot` from `RENDER_BENCH_SEED` (42) with
 the bench-load cells (table above) across every stage and palette on scripted circular paths, the bench-load
 motes and fragments, fed through the real `WorldStore` by a `ManualClock`; the dev-only route
@@ -311,7 +369,7 @@ numbers in #99's PR body come from a hardware run of the same route.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  easing.ts  interpolation.ts
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×1 RGBA jitter / lobes strip with derivatives, from the cosmetic fork
 textures/{texture-bake,glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts
 cells/{cell-layer,cell-view,cell-geometry,cell-instance-buffer,cell-lod}.ts
@@ -323,15 +381,16 @@ food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
-```
+````
 
-`cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
+`cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`). This
+list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points here.
 
 ## 9. Test plan (`TESTING.md` tiers)
 
 - **Unit (vitest, no WebGL):** `radial-profile.spec.ts` pins `r(θ)` at 36 angles per state against literal
   tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° /
-  180° and k = 0.45 gives 1.10 / 0.94 / 0.87, eat wrap frame, engulf wrap frame gives 1.62 at ± 30°, contact
+  180° and k = 0.45 gives 1.10 / 0.94 / 0.87, eat wrap frame, engulf wrap frame gives 1.616 at ±30° and 1.114 at 0° (§4), contact
   dent, each form), pins `r′(θ)` against a central difference of `r(θ)` (≤ 1e-4 r per rad) and `d(p)` on an arm
   flank (a probe at `|p| = r(θ) + w` reads `d < w` where `r′ ≠ 0`), a seeded rest profile has 5–7 lobes within
   ±2.5–4 % and stays inside ±5 % of `r`, and same seed + same tick ⇒ same profile (`DETERMINISM.md §7`);
