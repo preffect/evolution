@@ -87,6 +87,7 @@ export interface CellView {
   engulfingCellId: EntityId | null;
   engulfedByCellId: EntityId | null;
   sprintRemainingTicks: number;
+  sprintCooldownRemainingTicks: number; // 0 = sprint ready; the HUD meter reads it (UI.md §3.1), never estimates it
 }
 export interface MotePositionView {
   id: EntityId;
@@ -155,7 +156,6 @@ The **records** are the server's supersets in `packages/server/src/game/world/en
 export interface CellRecord extends CellView {
   targetX: number; // latest applied input, latched until replaced
   targetY: number;
-  sprintCooldownRemainingTicks: number;
   modifiers: CellModifiers; // folded at step 1 of the tick (TRAITS §2); the simulation reads only this
 }
 export interface PlayerRecord extends PlayerProgressView {
@@ -418,16 +418,17 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
    │                 (TRAITS §3.0: no nucleus until nuclear_envelope), sorted by radius ascending
    ├─ effectsLayer   eat pulse, engulf stretch, cell_absorbed dissolve, level-up burst, respawn fade
    └─ debugLayer     spatial hash / ids, toggled by the debug MCP
- HTML overlay (Angular, above the canvas, every element with a data-testid; docs/UI.md, #30)
-   hud-mass-level, dna-progress-ring, trait-strip, leaderboard-panel, trait-offer-overlay,
-   respawn-overlay, results-overlay
+ HTML overlay (Angular, above the canvas, every element with a data-testid)
+   components: UI.md §7 (the one home of the HUD component list, #30)
 ```
 
 - **Camera** (`render/camera.ts`) implements GAME-DESIGN §7 from `constants/camera.ts`; render-only
   numbers (`PROTOCELL_GRANULE_COUNT`, palettes, layer z, wobble amplitude) live in `render/constants.ts`.
 - **View registry**: entity id → view, created/destroyed on snapshot diff; views are dumb.
-- **HUD** reads `WorldStore` through signals; the renderer never touches the DOM, the HUD never
-  touches Pixi.
+- **HUD** reads `WorldStore` through `GameStateService` signals (derived only; the writable UI
+  signals live in `hud/hud-state.service.ts`); the renderer never touches the DOM, the HUD never
+  touches Pixi. The three crossings (`previewTraitId`, `reticleVisible` in; `cameraExtent` out)
+  are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7).
 - **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
   paused screenshot reproduces.
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at 8 cells + 1 400 motes at 1080p.
@@ -489,14 +490,15 @@ packages/shared/src/
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,state-hasher,state-hash,vector-math}.ts
+  simulation/{movement-kernel,mass-curves,level-costs,state-hasher,state-hash,vector-math}.ts
+                                                                level-costs: levelUpCost(level, balance.progression), shared with the HUD (UI.md §3.1)
   audio/sound-events.ts
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,spatial-hash}.ts
   game/simulation/{step,movement,contact,eating,metabolism,engulf,spawner,zones,spawn-placement,round}.ts
-  game/progression/{levels,ladder,draft,modifiers,late-join}.ts
+  game/progression/{levels,ladder,draft,modifiers,late-join}.ts levels applies level-ups; the cost formula is shared simulation/level-costs.ts
   game/session/{leaderboard,respawn}.ts
   game/serialize/{serialize,food-delta-tracker}.ts
   game/replay/{replay-recorder,replay-runner}.ts
@@ -509,7 +511,9 @@ packages/client/src/app/game/
   input/{input-controller,pointer-input,keyboard-input}.ts
   render/{pixi-app,layers,camera,view-registry,constants,interpolation}.ts
   render/{dish-layer,food-layer,cell-layer,effects-layer}.ts   render/cells/*.ts
-  state/game-state.service.ts   hud/*.component.ts   audio/{audio.service,sound-event-bus}.ts
+  state/game-state.service.ts   audio/{audio.service,sound-event-bus}.ts
+  hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
+  hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)
 data/balance.json                                               generated (section 9)
 scripts/generate-balance.ts
 ```
