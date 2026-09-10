@@ -1,7 +1,7 @@
 # Evolution
 
 > **Status: planning.** Evolution still runs the template's placeholder **echo** game; the design
-> and groundwork are tracked as GitHub epics (see [`WORKFLOW.md`](./WORKFLOW.md)). The next step
+> and groundwork are tracked as GitHub epics (see [`docs/WORKFLOW.md`](docs/WORKFLOW.md)). The next step
 > is the init interview — open the devcontainer and follow the **START HERE** banner in `CLAUDE.md`.
 > Scaffolded from the `base-multiplayer-game` template; template-level fixes go upstream there.
 
@@ -25,17 +25,18 @@ Everything runs **inside the devcontainer**; ports come from `PORTS.env`.
 ```
 
 - Local: `http://localhost:<CLIENT_PORT>` — public: `https://evolution.preffect-ha.preffect-home.net`
-  (Traefik route + landing card in the ha-router repo; per-host DNS record required —
-  `ha-router/HA-ROUTER.md`).
+  (Traefik route + landing card in the ha-router repo; per-host DNS record required — see
+  that repo's `HA-ROUTER.md`).
 
 ## How work happens
 
-- **[`WORKFLOW.md`](./WORKFLOW.md)** — GitHub issues, the project board, the waiting-on-human
+- **[`docs/WORKFLOW.md`](docs/WORKFLOW.md)** — GitHub issues, the project board, the waiting-on-human
   rule, PR + review rules, keeping docs in sync. Scripts: `scripts/project-sync.sh`,
-  `scripts/issue-status.sh`, `scripts/github-setup.sh`.
-- **[`ENGINEERING.md`](./ENGINEERING.md)**, **[`ASSET-GENERATION.md`](./ASSET-GENERATION.md)**,
-  **[`AUDIO-PIPELINE.md`](./AUDIO-PIPELINE.md)** — the quality bar every PR is held to.
-- **[`init-game-prompt.md`](./init-game-prompt.md)** → `init-game.md` — how the game gets defined.
+  `scripts/issue-status.sh`, `scripts/pr-threads.sh`, `scripts/github-setup.sh`; the agent team in
+  **[`docs/TEAM.md`](docs/TEAM.md)**.
+- **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)**, **[`docs/ASSET-GENERATION.md`](docs/ASSET-GENERATION.md)**,
+  **[`docs/AUDIO-PIPELINE.md`](docs/AUDIO-PIPELINE.md)** — the quality bar every PR is held to.
+- **[`docs/INIT-GAME.md`](docs/INIT-GAME.md)** — how the game gets defined (`docs/GAME-DESIGN.md` + the first build epic).
 
 ## Layout
 

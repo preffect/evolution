@@ -228,6 +228,6 @@ project references.
       §2), no duplicated logic, full descriptive names, `docs/DETERMINISM.md` preserved (seeded
       streams, injected clock, stable ordering), structure per `docs/ARCHITECTURE.md`.
 - [ ] No `Math.random()` in shared/simulation code.
-- [ ] Any visual asset added meets `ASSET-GENERATION.md`'s acceptance criteria.
-- [ ] Any audio asset added went through `AUDIO-PIPELINE.md` (`./ai-pipeline.sh check` clean).
+- [ ] Any visual asset added meets `docs/ASSET-GENERATION.md`'s acceptance criteria.
+- [ ] Any audio asset added went through `docs/AUDIO-PIPELINE.md` (`./ai-pipeline.sh check` clean).
 - [ ] Every task you agreed to is actually done — nothing silently punted.

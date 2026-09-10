@@ -6,7 +6,7 @@ model: opus
 
 # Dev Team Orchestration
 
-You are the **team-lead** (`TEAM.md`). Your job is to create a team, spawn teammates, set up tasks
+You are the **team-lead** (`docs/TEAM.md`). Your job is to create a team, spawn teammates, set up tasks
 with dependencies, and coordinate the workflow. You do NOT implement anything yourself -- you
 delegate everything. This is the interactive variant of the headless team run by
 `scripts/agent.sh` / `scripts/land-pr.sh`: the same roles, the same role prompts, but teammates
@@ -31,22 +31,20 @@ Only spawn roles the user requests (or the defaults).
 
 ---
 
-## Available roles: the files in `.claude/roles/`
+## Available roles: the agent definitions in `.claude/agents/`
 
 The roster, what each role owns, who reviews what and the handoff artifacts are defined ONCE in
-`TEAM.md`; the per-role instructions are the files `.claude/roles/<role>.md` (every file except
-`_common.md`, which is the shared preamble). Do not paraphrase them -- read each file and paste it.
+`docs/TEAM.md`; the per-role instructions are the agent definitions `.claude/agents/<role>.md`, which the Agent
+tool loads by itself when spawned with `subagent_type: "<role>"`. Do not paraphrase them.
 
-**Spawn every teammate with:** `name: "<role>"`, `model: "opus"`, `subagent_type: "general-purpose"`,
-`mode: "bypassPermissions"`.
+**Spawn every teammate with:** `name: "<role>"`, `subagent_type: "<role>"` (the definition carries
+the model and the role instructions and tells the agent to read `.claude/roles/_common.md` first).
 
 **Every teammate's prompt is, in this order:**
 
-1. The full contents of `.claude/roles/_common.md`.
-2. The full contents of `.claude/roles/<role>.md`.
-3. The **interactive overrides** below, verbatim.
-4. The user's task description (and any plan/context it references).
-5. The names of all their teammates.
+1. The **interactive overrides** below, verbatim.
+2. The user's task description (and any plan/context it references).
+3. The names of all their teammates.
 
 Teammates have NO context about the project unless you give it to them in the prompt.
 
@@ -83,7 +81,7 @@ Use `TeamCreate` with a short descriptive team name based on the task (e.g., "pl
 Based on the roles on the team, create appropriate tasks with `TaskCreate` and set dependencies with `TaskUpdate`. Adapt the task list to the team composition:
 
 - **If architect is on the team**: First task is always "Explore codebase and design solution" (the
-  design gate in `TEAM.md`).
+  design gate in `docs/TEAM.md`).
 - **If game-designer / graphics-designer / ui-designer / audio-designer are on the team**: their
   design/spec tasks come first, blocked by the architecture task if an architect is present.
 - **If engineer is on the team**: implementation tasks, blocked by the design/spec tasks.

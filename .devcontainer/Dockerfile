@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep \
     jq \
     imagemagick \
+    librsvg2-bin \
+    fonts-dejavu-core \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && locale-gen en_US.UTF-8
@@ -27,7 +29,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
 RUN npm install -g pnpm@10
 
 # GitHub CLI (agents open PRs / update issues from inside the container; auth comes from the
-# host's ~/.config/gh, which dev-container.sh / devcontainer.json bind-mount — see WORKFLOW.md)
+# host's ~/.config/gh, which dev-container.sh / devcontainer.json bind-mount — see docs/WORKFLOW.md)
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
