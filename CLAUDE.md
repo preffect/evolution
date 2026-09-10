@@ -23,7 +23,8 @@
 ### Validation (always use `./validate.sh` instead of running tools directly)
 
 ```bash
-./validate.sh test                    # run all tests (vitest for shared/server, ng test for client)
+./validate.sh test                    # run all unit tests (vitest for shared/server, ng test for client)
+./validate.sh integration             # run *.integration.test.ts only (opt-in; not part of `all`; client skipped, see ENGINEERING §2.2)
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check
 ./validate.sh all                     # run lint, typecheck, test in sequence
@@ -32,7 +33,6 @@
 ./validate.sh test -t20               # show last 20 lines
 ./validate.sh typecheck -h50          # show first 50 lines
 ./validate.sh lint -G 'error'         # grep output for pattern
-./validate.sh test -- --filter shared # pass extra args to underlying command
 ```
 
 ### Running the dev servers

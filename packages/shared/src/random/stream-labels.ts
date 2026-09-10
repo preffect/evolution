@@ -1,0 +1,43 @@
+// Random stream labels (docs/DETERMINISM.md §3, docs/CODE-STANDARDS.md §2). Each subsystem
+// forks its own stream from the round seed by one of these labels, so adding a draw to one
+// subsystem never changes what another one produces.
+
+export const RANDOM_STREAM = {
+  /** Food and fragment spawns: kind, zone, variant, point (ECOLOGY §3). */
+  spawner: 'spawner',
+  /** Gel patch placement at world creation (ECOLOGY §2). */
+  zones: 'zones',
+  /** Safe spawn candidates (GAME-DESIGN §5.2). */
+  spawnPlacement: 'spawn_placement',
+  /** Draft sampling (PROGRESSION §3). */
+  traitDraft: 'trait_draft',
+  /** Bacteria random-walk headings; fragment drift direction at spawn (ECOLOGY §1). */
+  moteMotion: 'mote_motion',
+  /** Client only, never on the server: wobble and particles. */
+  cosmetic: 'cosmetic',
+} as const;
+
+export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
+
+/** The server streams: every label except `cosmetic`, which only the client ever forks. */
+export type ServerRandomStreamLabel = Exclude<RandomStreamLabel, typeof RANDOM_STREAM.cosmetic>;
+
+/**
+ * The streams `createWorld` forks on the server, in declared order: the order they are forked
+ * from the round seed and the walk order of `world.random` in the state hash (never
+ * `Object.keys`, DETERMINISM §3, §5). Declared by hand rather than filtered from
+ * `RANDOM_STREAM_LABELS` so the narrowing is by declaration, not by a type guard.
+ */
+export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
+  RANDOM_STREAM.spawner,
+  RANDOM_STREAM.zones,
+  RANDOM_STREAM.spawnPlacement,
+  RANDOM_STREAM.traitDraft,
+  RANDOM_STREAM.moteMotion,
+];
+
+/** Every label in declared order: the server streams, then the client's `cosmetic` stream. */
+export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[] = [
+  ...SERVER_RANDOM_STREAM_LABELS,
+  RANDOM_STREAM.cosmetic,
+];
