@@ -1,19 +1,12 @@
 // The gameplay testing framework (docs/TESTING.md §8): what a scenario file imports.
-export type {
-  CellLocation,
-  FixtureContext,
-  PlayerCommand,
-  ScenarioAdapter,
-  ScenarioModuleOptions,
-  TraitChoiceCommand,
-} from './adapter.js';
+export type { CellLocation, FixtureContext, PlayerCommand, ScenarioAdapter, TraitChoiceCommand } from './adapter.js';
 export { createScriptedStrategy, strategyScript, type BotStrategy, type BotStrategyFactory } from './bots.js';
 export {
   echoAdapter,
   echoedInput,
   echoScenario,
   hashEchoSnapshot,
-  type EchoInput,
+  toEchoInput,
   type EchoSnapshot,
 } from './echo-adapter.js';
 export {

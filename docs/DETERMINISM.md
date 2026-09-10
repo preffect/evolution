@@ -165,7 +165,7 @@ export const forkStreamStates: <Label extends string>(
 
 - **Players** are stepped in join order (`world.players`). Late joiners append.
 - **Inputs:** one coalesced input per player per tick; a `sequence` ≤ the applied one is
-  dropped. One-shots (`sprint`, `traitChoice`) apply once.
+  dropped. One-shots (`shouldSprint`, `traitChoice`) apply once.
 - **Entities** are stepped in array order. Removal preserves order (`filter` into a new array
   or `splice`); never swap-remove. Spawns append. Cluster members spawn in draw order.
 - **Spatial hash** results are id-sorted before use. Pair processing (separation, engulf)

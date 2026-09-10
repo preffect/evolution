@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { CLIENT_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, createTestGameInput, createTestSessionConfig } from '@evolution/shared';
 import { createMessageRouter, type MessageHandlers } from './message-router.js';
 import { createTestConnection, type SentLog } from '../testing/builders.js';
 
@@ -30,11 +30,15 @@ function setUp() {
 const FRAME_FOR_VERB: Record<keyof MessageHandlers, Record<string, unknown>> = {
   onJoinLobby: { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Bob', avatarIndex: 2 },
   onUpdatePlayerInfo: { type: CLIENT_MESSAGE_TYPE.updatePlayerInfo, playerName: 'Bobby', avatarIndex: 3 },
-  onCreateGame: { type: CLIENT_MESSAGE_TYPE.createGame, gameName: 'Dish', config: { maxPlayers: 4 } },
+  onCreateGame: {
+    type: CLIENT_MESSAGE_TYPE.createGame,
+    gameName: 'Dish',
+    config: createTestSessionConfig({ maxPlayers: 4 }),
+  },
   onJoinGame: { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: 'game-1' },
   onStartGame: { type: CLIENT_MESSAGE_TYPE.startGame, gameId: 'game-1' },
   onDeleteGame: { type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: 'game-1' },
-  onPlayerInput: { type: CLIENT_MESSAGE_TYPE.playerInput, payload: { anything: [1, 2, 3] } },
+  onPlayerInput: { type: CLIENT_MESSAGE_TYPE.playerInput, payload: createTestGameInput() },
   onClientPerformance: {
     type: CLIENT_MESSAGE_TYPE.clientPerformance,
     report: { fps: 60, frameTimeAvgMs: 16, frameTimeP95Ms: 20, frameTimePeakMs: 33, heapMb: null },

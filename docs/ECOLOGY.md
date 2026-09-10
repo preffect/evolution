@@ -189,7 +189,7 @@ drifted to (E16). Cells never bounce; the renderer draws the contact dent.
   at the cap still progresses the leaderboard.
 - **Mitosis, merge-back and eject are build 2.** Their constants are declared in `growth.ts` so the
   contract is stable: `MITOSIS_MIN_MASS` 200, `MITOSIS_MAX_CELLS` 4, `MITOSIS_COOLDOWN_SECONDS` 8,
-  `MITOSIS_MERGE_SECONDS` 20, `EJECT_MASS` 10. `GameInput.split` / `.eject` are validated and ignored;
+  `MITOSIS_MERGE_SECONDS` 20, `EJECT_MASS` 10. `GameInput.shouldSplit` / `.shouldEject` are validated and ignored;
   the `dividing` cell state is unreachable. #28 will specify the rules; engulf interactions are listed
   in §6.3 as open for that ticket.
 

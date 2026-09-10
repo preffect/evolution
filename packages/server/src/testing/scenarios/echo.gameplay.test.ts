@@ -4,6 +4,7 @@
 // divergence. The real tables (E*, G*, P*, T*) arrive with #102 on the Evolution adapter.
 
 import { describe, expect, it } from 'vitest';
+import { createTestGameInput, type GameInput } from '@evolution/shared';
 import {
   ScenarioAssertionError,
   ScenarioDivergenceError,
@@ -15,7 +16,6 @@ import {
   player,
   targetPoint,
   verifyReplay,
-  type EchoInput,
   type EchoSnapshot,
   type ScenarioView,
 } from '../gameplay/index.js';
@@ -26,7 +26,7 @@ const INPUT_TICK = 3;
 const LATE_INPUT_TICK = 7;
 const JOIN_TICK = 5;
 
-function inputOf(playerIndex: number): (view: ScenarioView<EchoSnapshot>) => EchoInput | null {
+function inputOf(playerIndex: number): (view: ScenarioView<EchoSnapshot>) => GameInput | null {
   return (view) => echoedInput(view.snapshot, view.playerId(playerIndex));
 }
 
@@ -51,13 +51,13 @@ describe('echo module scenarios', () => {
       .toBeNull()
       .expect('player 0 echo', inputOf(0))
       .atTick(INPUT_TICK)
-      .toEqual({ targetX: 10, targetY: 20, sequence: 1 })
+      .toEqual(createTestGameInput({ sequence: 1, targetX: 10, targetY: 20 }))
       .expect('player 1 first echo', inputOf(1))
       .atTick(INPUT_TICK)
-      .toEqual({ targetX: 1, targetY: 2, sequence: 1 })
+      .toEqual(createTestGameInput({ sequence: 1, targetX: 1, targetY: 2 }))
       .expect('player 1 latest echo', inputOf(1))
       .atEnd()
-      .toEqual({ targetX: 3, targetY: 4, sequence: 2 })
+      .toEqual(createTestGameInput({ sequence: 2, targetX: 3, targetY: 4 }))
       .runDeterministic();
     expect(verifyReplay(run.replay, echoAdapter).finalHash).toBe(run.finalHash);
   });
@@ -80,7 +80,7 @@ describe('echo module scenarios', () => {
       .toBeNull()
       .expect('joiner echo', inputOf(2))
       .atTick(LATE_INPUT_TICK)
-      .toEqual({ targetX: 5, targetY: 5, sequence: 1 })
+      .toEqual(createTestGameInput({ sequence: 1, targetX: 5, targetY: 5 }))
       .runDeterministic();
     expect(run.replay.membership).toEqual([
       { tick: JOIN_TICK, kind: 'join', playerId: 'player_2', playerName: 'Player 2', avatarIndex: 2 },
@@ -100,16 +100,17 @@ describe('echo module scenarios that fail on purpose', () => {
       .advance(TICKS)
       .expect('player 0 echo', inputOf(0))
       .atTick(INPUT_TICK)
-      .toEqual({ targetX: 99, targetY: 20, sequence: 1 });
+      .toEqual(createTestGameInput({ sequence: 1, targetX: 99, targetY: 20 }));
     expect(() => failing.run()).toThrow(ScenarioAssertionError);
     expect(() => failing.run()).toThrow(
       'Scenario "wrong echo" failed (seed 42):\n' +
         '  at tick 3: player 0 echo\n' +
-        '    expected {"targetX":99,"targetY":20,"sequence":1}, got {"targetX":10,"targetY":20,"sequence":1}',
+        '    expected {"sequence":1,"targetX":99,"targetY":20,"shouldSprint":false,"traitChoice":null}, ' +
+        'got {"sequence":1,"targetX":10,"targetY":20,"shouldSprint":false,"traitChoice":null}',
     );
     expect(sink.replays).toHaveLength(2);
     expect(sink.replays[0]?.inputs).toEqual([
-      { tick: INPUT_TICK, playerId: 'player_0', input: { targetX: 10, targetY: 20, sequence: 1 } },
+      { tick: INPUT_TICK, playerId: 'player_0', input: createTestGameInput({ sequence: 1, targetX: 10, targetY: 20 }) },
     ]);
   });
 
