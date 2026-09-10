@@ -1,15 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { DebugContext } from '../debug-context.js';
+import { jsonResult } from '../tool-result.js';
 
 /** Generic, game-agnostic connection/player visibility tools. */
-export function registerConnectionTools(mcp: McpServer, ctx: DebugContext): void {
+export function registerConnectionTools(mcp: McpServer, context: DebugContext): void {
   mcp.tool('debug_get_connections', 'List all active WebSocket connections (players currently connected)', () => {
-    const conns = Array.from(ctx.connections.values()).map((c) => ({
-      playerId: c.playerId,
-      playerName: c.playerName,
-      avatarIndex: c.avatarIndex,
-      readyState: c.socket.readyState,
+    const connections = Array.from(context.connections.values(), (connection) => ({
+      playerId: connection.playerId,
+      playerName: connection.playerName,
+      avatarIndex: connection.avatarIndex,
+      readyState: connection.socket.readyState,
     }));
-    return { content: [{ type: 'text', text: JSON.stringify(conns, null, 2) }] };
+    return jsonResult(connections);
   });
 }

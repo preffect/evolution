@@ -23,11 +23,12 @@
 ### Validation (always use `./validate.sh` instead of running tools directly)
 
 ```bash
-./validate.sh test                    # run all unit tests (vitest for shared/server, ng test for client)
-./validate.sh integration             # run *.integration.test.ts only (opt-in; not part of `all`; client skipped, see ENGINEERING §2.2)
+./validate.sh test                    # unit tests with coverage thresholds (vitest for shared/server, ng test for client)
+./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier (opt-in; not part of `all`)
 ./validate.sh typecheck               # type check all packages
-./validate.sh lint                    # eslint + prettier --check
-./validate.sh all                     # run lint, typecheck, test in sequence
+./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
+./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
+./validate.sh all                     # run lint, duplication, typecheck, test in sequence
 
 # Output filters (work with any command):
 ./validate.sh test -t20               # show last 20 lines
@@ -87,9 +88,12 @@ process belong upstream in `base-multiplayer-game` so the next game inherits the
 These docs are the enforceable quality bar for any work in this repo. Read and follow them.
 
 - **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)** — coding, architecture, and testing rules. The single
-  gate is **`./validate.sh all`** (lint + typecheck + test): no task is done until it is green;
-  never run the underlying tools directly; never commit red. All new logic needs unit tests;
+  gate is **`./validate.sh all`** (lint + duplication + typecheck + test): no task is done until it is
+  green; never run the underlying tools directly; never commit red. All new logic needs unit tests;
   cross-subsystem wiring needs `*.integration.test.ts`. See its **Definition of Done** checklist.
+- **[`docs/TESTING.md`](docs/TESTING.md)** — the testing bar: unit / integration / gameplay / UI
+  tiers, naming and placement, `src/testing/` builders, the coverage floors `./validate.sh test`
+  enforces, the flaky-test policy.
 - **[`docs/CODE-STANDARDS.md`](docs/CODE-STANDARDS.md)** — the lint-enforced coding rules:
   no magic values (and where every constant/enum/config value lives), no duplicated logic, SOLID,
   size limits, full descriptive names, error handling, test placement.

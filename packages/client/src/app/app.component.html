@@ -6,16 +6,16 @@
 <header class="app-header">
   <h1>{{ title }}</h1>
   <p class="tagline">Multiplayer lobby</p>
-  <span class="conn" [class.on]="mp.connected()">
-    {{ mp.connected() ? 'connected' : 'disconnected' }}
+  <span class="conn" [class.on]="multiplayer.connected()">
+    {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
   </span>
 </header>
 
-@if (mp.lastError(); as err) {
-  <p class="error">Error: {{ err }}</p>
+@if (multiplayer.lastError(); as errorMessage) {
+  <p class="error">Error: {{ errorMessage }}</p>
 }
 
-@if (!mp.inGame()) {
+@if (!multiplayer.inGame()) {
   <!-- ===== Lobby ===== -->
   <section class="panel">
     <h2>Connection</h2>
@@ -23,7 +23,7 @@
       Name
       <input type="text" [ngModel]="playerName()" (ngModelChange)="playerName.set($event)" />
     </label>
-    @if (!mp.connected()) {
+    @if (!multiplayer.connected()) {
       <button (click)="connect()">Connect & Join Lobby</button>
     } @else {
       <button (click)="disconnect()">Disconnect</button>
@@ -41,20 +41,20 @@
       <input type="number" min="1" max="8" [ngModel]="maxPlayers()" (ngModelChange)="maxPlayers.set(+$event)" />
     </label>
     <!-- TODO(game): add game-specific create-game config fields here. -->
-    <button [disabled]="!mp.connected()" (click)="createGame()">Create</button>
+    <button [disabled]="!multiplayer.connected()" (click)="createGame()">Create</button>
   </section>
 
   <section class="panel">
     <h2>Open Games</h2>
-    @if (mp.games().length === 0) {
+    @if (multiplayer.games().length === 0) {
       <p class="muted">No games yet.</p>
     }
     <ul class="games">
-      @for (game of mp.games(); track game.gameId) {
+      @for (game of multiplayer.games(); track game.gameId) {
         <li>
           <span class="game-name">{{ game.gameName }}</span>
           <span class="muted">{{ game.players.length }}/{{ game.maxPlayers }}</span>
-          @if (game.started) {
+          @if (game.isStarted) {
             <span class="badge">started</span>
           }
           <button (click)="joinGame(game.gameId)">Join</button>
@@ -69,16 +69,16 @@
   <section class="panel">
     <h2>Room</h2>
     <p>
-      Game ID: <code>{{ mp.gameId() }}</code>
+      Game ID: <code>{{ multiplayer.gameId() }}</code>
     </p>
     <p>
-      You: <code>{{ mp.playerId() }}</code> {{ mp.isHost() ? '(host)' : '' }}
+      You: <code>{{ multiplayer.playerId() }}</code> {{ multiplayer.isHost() ? '(host)' : '' }}
     </p>
-    <p>Players ({{ mp.playerIds().length }}):</p>
+    <p>Players ({{ multiplayer.playerIds().length }}):</p>
     <ul class="players">
-      @for (pid of mp.playerIds(); track pid) {
+      @for (playerId of multiplayer.playerIds(); track playerId) {
         <li>
-          <code>{{ pid }}</code>
+          <code>{{ playerId }}</code>
         </li>
       }
     </ul>
@@ -88,8 +88,8 @@
     <h2>Game Area</h2>
     <!--
       TODO(game): mount the real game canvas / board here and wire it to
-      game/game-setup.ts (input loop via mp.sendInput, render loop via
-      mp.latestSnapshot()). Until then we just show the raw snapshot JSON so
+      game/game-setup.ts (input loop via multiplayer.sendInput, render loop via
+      multiplayer.latestSnapshot()). Until then we just show the raw snapshot JSON so
       the snapshot round-trip is observable end-to-end.
     -->
     <pre class="snapshot">{{ snapshotJson() }}</pre>

@@ -1,4 +1,4 @@
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import type { ServerMessage } from '@evolution/shared';
 
 /**
@@ -16,33 +16,31 @@ export interface Connection {
   socket: WebSocket;
   /**
    * Takeover flag. When a second tab connects with the same clientId we mark
-   * the old connection as `replaced` so its close handler does NOT tear down
+   * the old connection as replaced so its close handler does NOT tear down
    * the player's lobby/room presence.
    */
-  replaced?: boolean;
+  isReplaced?: boolean;
 }
 
-/** Send a single message to one connection (no-op if the socket is closed). */
-export function sendMessage(conn: Connection, message: ServerMessage): number {
+/** Write an already-serialised frame if the socket is open; true when it was written. */
+function sendRaw(connection: Connection, data: string): boolean {
+  if (connection.socket.readyState !== WebSocket.OPEN) return false;
+  connection.socket.send(data);
+  return true;
+}
+
+/** Send a single message to one connection (no-op if the socket is closed). Returns bytes sent. */
+export function sendMessage(connection: Connection, message: ServerMessage): number {
   const data = JSON.stringify(message);
-  // 1 === WebSocket.OPEN
-  if (conn.socket.readyState === 1) {
-    conn.socket.send(data);
-    return data.length;
-  }
-  return 0;
+  return sendRaw(connection, data) ? data.length : 0;
 }
 
 /**
  * Broadcast a message to many connections. Serializes once and reuses the
  * string. Returns the byte length sent to a single client (for perf metrics).
  */
-export function broadcastMessage(conns: Iterable<Connection>, message: ServerMessage): number {
+export function broadcastMessage(connections: Iterable<Connection>, message: ServerMessage): number {
   const data = JSON.stringify(message);
-  for (const conn of conns) {
-    if (conn.socket.readyState === 1) {
-      conn.socket.send(data);
-    }
-  }
+  for (const connection of connections) sendRaw(connection, data);
   return data.length;
 }

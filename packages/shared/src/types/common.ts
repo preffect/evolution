@@ -15,10 +15,10 @@ export type GameId = string & { readonly __brand: 'GameId' };
 export type EntityId = string & { readonly __brand: 'EntityId' };
 export type Tick = number & { readonly __brand: 'Tick' };
 
-export const playerId = (s: string): PlayerId => s as PlayerId;
-export const gameId = (s: string): GameId => s as GameId;
-export const entityId = (s: string): EntityId => s as EntityId;
-export const tick = (n: number): Tick => n as Tick;
+export const playerId = (value: string): PlayerId => value as PlayerId;
+export const gameId = (value: string): GameId => value as GameId;
+export const entityId = (value: string): EntityId => value as EntityId;
+export const tick = (value: number): Tick => value as Tick;
 
 // ===== Pure helpers =====
 
@@ -31,5 +31,5 @@ export const clamp = (value: number, min: number, max: number): number =>
  * yet at capacity. Pure helper shared by the lobby (server) and room browser
  * (client) so "joinable" is defined in exactly one place.
  */
-export const isRoomJoinable = (room: { started: boolean; playerCount: number; maxPlayers: number }): boolean =>
-  !room.started && room.playerCount < room.maxPlayers;
+export const isRoomJoinable = (room: { isStarted: boolean; playerCount: number; maxPlayers: number }): boolean =>
+  !room.isStarted && room.playerCount < room.maxPlayers;

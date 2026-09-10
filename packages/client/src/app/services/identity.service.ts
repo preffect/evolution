@@ -10,6 +10,11 @@ import { CLIENT_ID_STORAGE_KEY } from '@evolution/shared';
  * Game-agnostic: nothing here is specific to any particular game.
  */
 
+/** Fallback id shape when `crypto.randomUUID` is unavailable: `c_<time base36>_<8 random base36 chars>`. */
+const BASE36_RADIX = 36;
+const RANDOM_SUFFIX_START = 2;
+const RANDOM_SUFFIX_END = 10;
+
 @Injectable({ providedIn: 'root' })
 export class IdentityService {
   readonly clientId: string;
@@ -43,6 +48,8 @@ export class IdentityService {
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
       return crypto.randomUUID();
     }
-    return `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    const timePart = Date.now().toString(BASE36_RADIX);
+    const randomPart = Math.random().toString(BASE36_RADIX).slice(RANDOM_SUFFIX_START, RANDOM_SUFFIX_END);
+    return `c_${timePart}_${randomPart}`;
   }
 }

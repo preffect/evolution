@@ -1,17 +1,19 @@
 # Evolution — Code Standards
 
 The concrete, checkable rules behind [`ENGINEERING.md`](./ENGINEERING.md). Every rule here is
-either enforced by `./validate.sh lint` once #69 / #70 land, or checked line-by-line in review
-(`WORKFLOW.md` §6). Where `ENGINEERING.md` gives a principle, this document gives the number,
+either enforced by `./validate.sh lint` / `duplication` (`eslint.config.js`, `.jscpd.json`; #69,
+#70) or checked line-by-line in review (`WORKFLOW.md` §6). Where `ENGINEERING.md` gives a principle, this document gives the number,
 the home and an example. Where the two differ, the stricter one wins. Structure is
 [`ARCHITECTURE.md`](./ARCHITECTURE.md); the gameplay numbers themselves are owned by the
 design docs ([`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table) and companions).
 
 ## 1. No magic values
 
-Every literal that carries meaning has a name and a home (section 2). Lint: `no-magic-numbers`
-(ignores `0`, `1`, `-1` and array indexes) in `shared` and `server` fully; client render code
-only inside `render/constants.ts`. Strings: message verbs, entity kinds, trait ids, stage names,
+Every literal that carries meaning has a name and a home (section 2). Lint:
+`@typescript-eslint/no-magic-numbers` (ignores `0`, `1`, `-1`, array indexes, enum members and
+literal types) on every package source file; switched off only where a literal IS the constant
+(`packages/shared/src/constants/**`, the client's `render/constants.ts`) and in tests and
+`testing/` builders. Strings: message verbs, entity kinds, trait ids, stage names,
 stream labels and effect names are `as const` objects or literal unions derived from a constant
 array, never bare literals in logic.
 
@@ -39,7 +41,7 @@ MCP live-tuning tools.** One file per domain, named and owned as the design tabl
 
 | File (`packages/shared/src/constants/`)                           | Owned by                             | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ----------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `units.ts`, `network.ts`, `lobby.ts`, `identity.ts`               | the template (already split in #112) | `MILLISECONDS_PER_SECOND`; `TICK_HZ`, `TICK_INTERVAL_MS`, `DISCONNECT_GRACE_MS`, ports; name/avatar/player bounds; storage key                                                                                                                                                                                                                                                                                                                     |
+| `units.ts`, `network.ts`, `lobby.ts`, `identity.ts`, `debug.ts`   | the template (already split in #112) | `MILLISECONDS_PER_SECOND`, `BYTES_PER_MEBIBYTE`; `TICK_HZ`, `TICK_INTERVAL_MS`, `DISCONNECT_GRACE_MS`, ports, WebSocket deflate settings; name/avatar/player bounds, `GAME_ID_LENGTH`, `DEFAULT_PLAYERS_PER_GAME`; storage key; `DEBUG_JSON_INDENT_SPACES`                                                                                                                                                                                         |
 | `world.ts`, `session.ts`, `controls.ts`, `ladder.ts`, `camera.ts` | `GAME-DESIGN.md §12`                 | dish, spawn safety, round, seed bound, sprint, `STAGE_ORDER`, camera                                                                                                                                                                                                                                                                                                                                                                               |
 | `ecology.ts`, `growth.ts`, `absorption.ts`                        | `ECOLOGY.md §7`                      | food kinds, spawners, zones, decay, curves, engulf                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `progression.ts`                                                  | `PROGRESSION.md §6`                  | levels, draft weights, timeout, late join                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -81,8 +83,11 @@ Rules that keep this honest:
 ## 3. No duplicated logic
 
 Before writing a helper, search (`rg`) for the behaviour. Shared behaviour goes in one module
-both callers import; parallel code paths doing the same thing are a review reject. `jscpd`
-(#70) fails the gate on ≥ 5 duplicated lines / 50 tokens outside test fixtures.
+both callers import; parallel code paths doing the same thing are a review reject.
+`./validate.sh duplication` (`jscpd`, `.jscpd.json`, #70) fails the gate on ≥ 5 duplicated
+lines / 50 tokens anywhere in `packages/*/src` outside tests and `testing/`; import blocks are
+ignored, everything else counts. `sonarjs/no-identical-functions` and
+`sonarjs/no-duplicate-string` (three copies of a string ≥ 10 characters) catch the small cases.
 
 ```ts
 // wrong: server and client each compute radius from mass
@@ -125,14 +130,14 @@ cell.modifiers = foldModifiers(player.ownedTraits, context.balance.traits.TRAIT_
 
 ## 5. Small units (lint-enforced sizes, #69)
 
-| Limit                 | Value | Lint rule                              |
-| --------------------- | ----- | -------------------------------------- |
-| Lines per file        | 300   | `max-lines` (design target ≈ 250)      |
-| Lines per function    | 40    | `max-lines-per-function`               |
-| Cyclomatic complexity | 10    | `complexity`                           |
-| Cognitive complexity  | 15    | `sonarjs/cognitive-complexity`         |
-| Parameters            | 4     | `max-params` (pass an options object)  |
-| Nesting depth         | 3     | `max-depth`, `max-nested-callbacks: 3` |
+| Limit                 | Value | Lint rule                                                                    |
+| --------------------- | ----- | ---------------------------------------------------------------------------- |
+| Lines per file        | 300   | `max-lines` (design target ≈ 250)                                            |
+| Lines per function    | 40    | `max-lines-per-function` (code lines: blank lines and comments do not count) |
+| Cyclomatic complexity | 10    | `complexity`                                                                 |
+| Cognitive complexity  | 15    | `sonarjs/cognitive-complexity`                                               |
+| Parameters            | 4     | `max-params` (pass an options object)                                        |
+| Nesting depth         | 3     | `max-depth`, `max-nested-callbacks: 3`                                       |
 
 Split along a responsibility seam; never suppress the rule in game code and never compress
 working code to dodge a count. The 300-line cap replaces the "≈ 400 lines is a smell" guidance
@@ -157,22 +162,29 @@ never goes there.
 
 - **No abbreviations.** `playerCell` not `pc`, `deltaSeconds` not `dt`, `index` not `i`,
   `connection` not `conn`, `message` not `msg`, `context` not `ctx`. Lint:
-  `unicorn/prevent-abbreviations` with the allow-list below, `id-length` minimum 3 with the
-  same allow-list.
+  `unicorn/name-replacements` (unicorn's default table plus the project's extra entries in
+  `eslint.config.js`, with the allow-list below), `id-length` minimum 3 with the same
+  allow-list (property names are not checked: wire keys such as `x` / `y` stay short).
 - **Allow-list (the whole list; extend it here, never in an inline disable):**
-  - single letters `x`, `y` (coordinates) and `id`;
+  - single letters `x`, `y` (coordinates), `id`, and `z` (zod's namespace import);
   - **unit suffixes** on numbers: `Ms` / `_MS` (milliseconds), `S` / `_SECONDS` (seconds,
     spelled out), `Hz` / `_HZ`, `Wu` / `_WU` (world units — the design's suffix; `_UNITS` is not
     used), `Mb` / `Kb`, `P95` (`frameTimeP95Ms`);
-  - framework-imposed `env`, `params`, `ref`;
+  - framework-imposed `env`, `params`, `ref`, `args`;
   - domain acronyms as words: `Dna`, `Npc`, `Hud`, `Mcp`, `Ffa`, `Ws` (`dnaTagPoints`, `McpServer`).
-- **Booleans read as predicates:** `isEngulfing`, `hasTraitOffer`, `canStart`.
+- **Booleans read as predicates:** `isEngulfing`, `hasTraitOffer`, `canStart` (lint: a
+  boolean-typed variable, parameter, class or interface property carries one of `is`, `has`,
+  `can`, `should`, `was`, `did`, `will`; object literals handed to frameworks are not checked).
+  A module-level boolean constant keeps the constant casing with the predicate as its first
+  word: `IS_LITTLE_ENDIAN`, `HAS_SHARED_ARRAY_BUFFER` (lint: `IS_` / `HAS_` / `CAN_` / ... then
+  `UPPER_SNAKE_CASE`; `LITTLE_ENDIAN` and `isLittleEndian` are both rejected at module level).
 - **Units in names** when a number has one: `radiusWu`, `tickIntervalMs`, `speedWuPerSecond`,
   `decayPerSecond`; a bare unitless name for a dimensioned value is a reject.
 - **Casing** (`@typescript-eslint/naming-convention`): `camelCase` values and functions,
   `PascalCase` types/classes/components, `UPPER_SNAKE_CASE` module-level constants, file names
   `kebab-case.ts` matching the main export (`food-delta-tracker.ts` → `FoodDeltaTracker`);
-  wire and data id values `snake_case` (`'free_for_all'`, `'food_mote'`, `'simple_flagellum'`).
+  wire and data id values `snake_case` (`'free_for_all'`, `'food_mote'`, `'simple_flagellum'`);
+  file and directory names are lint-checked (`unicorn/filename-case`).
 - Functions are verbs (`computeStateHash`, `resolveEngulf`), types are nouns, effects are past
   tense (`cell_absorbed`), handlers are `onX`.
 
@@ -188,16 +200,17 @@ them (#97, #98); they are not to-dos of this repo.
 
 ## 8. Determinism (scope decision)
 
-Game code never calls `Math.random`, `Date.now`, `performance.now`, `setTimeout` or
-`setInterval`. Lint (`no-restricted-globals` / `no-restricted-properties`, #69) applies to the
-game paths, with the allowed call sites inside them:
+Game code never calls `Math.random`, `Date.now`, `performance.now`, `setTimeout`,
+`setInterval` or `requestAnimationFrame`. Lint (`no-restricted-globals` /
+`no-restricted-properties`, #69) applies to every `packages/*/src` file (tests may use timers
+under vitest's fake clock, never the wall clock or `Math.random`); the allowed call sites:
 
 | Path                                  | Allowed inside it                                                                               |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `packages/shared/src/**`              | `random/` (`Math.random` never; the PRNG), `time/` (`SystemClock` is the one `performance.now`) |
 | `packages/server/src/game/**`         | nothing                                                                                         |
 | `packages/client/src/app/game/**`     | nothing (`Clock` is injected; cosmetics use the seeded stream)                                  |
-| `packages/server/src/lobby/ticker.ts` | `setInterval` (`IntervalTicker`)                                                                |
+| `packages/server/src/lobby/ticker.ts` | `setInterval` (`IntervalTicker`); listed in `eslint.config.js` when #111 creates the file       |
 
 Template infrastructure outside those paths (`lobby-manager.ts`, `game-room.ts` until #111,
 `websocket.service.ts`, `identity.service.ts`) is exempt by the per-file list in section 5,
@@ -212,24 +225,29 @@ retired by #118. The full contract, including ordering rules, hashing and replay
   `TraitId` in a table, an entity referenced by a stale id in a system → throw a typed error
   (`errors.ts` per package: `ConfigurationError`, `SimulationInvariantError`). A player input
   that cannot apply (sprint on cooldown, `traitChoice` for an offer that is not the shown one,
-  a stale `sequence`) is ignored and counted in `PerfTracker.rejectedInputs`; it is not an error.
+  a stale `sequence`) is ignored and counted in `PerformanceTracker.rejectedInputs`; it is not an error.
   The reserved `split` / `eject` flags pass the schema and are ignored without counting
   (`ARCHITECTURE.md §3.2`).
 - **Boundaries convert.** The router replies `{ type: 'error', message }`; MCP handlers return
   `isError: true`; the room loop catches, logs through Fastify's logger and keeps ticking.
 - **Never swallow.** No empty `catch`; no `catch` that only logs unless the comment says why
-  continuing is safe. No `console.log`; `server.log` on the server, nothing in `shared`.
+  continuing is safe. No `console.log` (lint `no-console`; `console.error` / `console.warn` are
+  allowed outside `shared` for fatal start-up paths); `server.log` on the server, nothing in
+  `shared`.
 - **Client:** `AudioService` and the renderer degrade silently by design (documented in
   `ARCHITECTURE.md` §7); everything else surfaces through the HUD's error banner.
 
 ## 10. Tests: placement and shape
 
-- Co-located: `foo.ts` → `foo.test.ts` (client `foo.spec.ts`); integration
+The full testing standard is [`TESTING.md`](./TESTING.md); the placement rules:
+
+- Co-located: `foo.ts` → `foo.test.ts` (client `foo.spec.ts`), never a `__tests__/` directory; integration
   `foo.integration.test.ts` (`ENGINEERING.md` §2.2). Gameplay scenarios in
   `packages/server/src/testing/scenarios/`, one file per design table, tests named by row id
   (`E9`, `P3`, `T4`, `G2`) (#75, #102).
 - Builders, not fixtures files: `createTestCell`, `createTestWorld`, `createTestSnapshot` in
-  each package's `src/testing/builders.ts`; defaults are the only inline numbers allowed.
+  each package's `src/testing/builders.ts` (`TESTING.md` §4 lists what exists today); defaults
+  are the only inline numbers allowed.
 - One behaviour per test, named `it('drops an input whose sequence is not newer', …)`.
 - Assert values and hashes, not object identity and not snapshots of large objects
   (`ARCHITECTURE.md §3.1`: the simulation mutates in place; `expect(result).not.toBe(prev)`

@@ -29,7 +29,7 @@ export interface LobbyGameInfo {
   gameName: string;
   players: LobbyPlayerInfo[];
   maxPlayers: number;
-  started: boolean;
+  isStarted: boolean;
   creatorId: PlayerId;
 }
 
@@ -43,14 +43,14 @@ export interface ClientPerformanceReport {
 
 // ===== Generic room / lobby view models =====
 // Game-agnostic snapshots of server-side state, suitable for MCP/debug views
-// and client lobby rendering. The `started` flag is the room lifecycle marker;
+// and client lobby rendering. The `isStarted` flag is the room lifecycle marker;
 // `LobbyGameInfo` (above) is the trimmed form sent over the wire in `lobby_update`.
 export interface RoomState {
   gameId: GameId;
   gameName: string;
   creatorId: PlayerId;
   maxPlayers: number;
-  started: boolean;
+  isStarted: boolean;
   /** Players currently connected to the room. */
   connectedPlayerIds: PlayerId[];
   /** Players in a disconnect grace window (may reattach before removal). */

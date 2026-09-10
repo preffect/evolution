@@ -1,70 +1,64 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { BYTES_PER_MEBIBYTE } from '@evolution/shared';
 import type { DebugContext } from '../debug-context.js';
+import type { GameRoom } from '../../lobby/game-room.js';
+import { errorResult, jsonResult } from '../tool-result.js';
 
-/** Generic server + per-room performance/heartbeat tools. */
-export function registerPerformanceTools(mcp: McpServer, ctx: DebugContext): void {
+function toMebibytes(bytes: number): number {
+  return Math.round(bytes / BYTES_PER_MEBIBYTE);
+}
+
+function registerServerPerformanceTool(mcp: McpServer, context: DebugContext): void {
   mcp.tool(
     'debug_get_performance',
     'Get server-wide performance metrics (uptime, memory, room/connection counts)',
     () => {
-      const mem = process.memoryUsage();
-      const uptime = process.uptime();
-      const activeRooms = ctx.lobbyManager.listActiveRooms().size;
-      const pendingGames = ctx.lobbyManager.listPendingGames().size;
-      const totalConnections = ctx.connections.size;
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                uptimeSeconds: Math.round(uptime),
-                memoryMB: {
-                  rss: Math.round(mem.rss / 1024 / 1024),
-                  heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
-                  heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
-                },
-                activeRooms,
-                pendingGames,
-                totalConnections,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      const memory = process.memoryUsage();
+      return jsonResult({
+        uptimeSeconds: Math.round(process.uptime()),
+        memoryMb: {
+          rss: toMebibytes(memory.rss),
+          heapUsed: toMebibytes(memory.heapUsed),
+          heapTotal: toMebibytes(memory.heapTotal),
+        },
+        activeRooms: context.lobbyManager.listActiveRooms().size,
+        pendingGames: context.lobbyManager.listPendingGames().size,
+        totalConnections: context.connections.size,
+      });
     },
   );
+}
 
+/** The rooms a request names: one when `gameId` is given (empty if unknown), otherwise all. */
+function selectRooms(context: DebugContext, gameId: string | undefined): (readonly [string, GameRoom])[] {
+  if (gameId === undefined) return Array.from(context.lobbyManager.listActiveRooms().entries());
+  const room = context.lobbyManager.getActiveRoom(gameId);
+  return room ? [[gameId, room] as const] : [];
+}
+
+function registerRoomPerformanceTool(mcp: McpServer, context: DebugContext): void {
   mcp.tool(
     'debug_get_room_performance',
     'Get per-room tick timings, snapshot byte sizes, broadcast fan-out, and merged client perf/heartbeat reports. Omit gameId for all active rooms.',
     { gameId: z.string().optional().describe('Optional game ID. If omitted, returns all active rooms.') },
-    (args) => {
-      const rooms = args.gameId
-        ? (() => {
-            const r = ctx.lobbyManager.getActiveRoom(args.gameId!);
-            return r ? [[args.gameId!, r] as const] : [];
-          })()
-        : Array.from(ctx.lobbyManager.listActiveRooms().entries());
-
+    (input) => {
+      const rooms = selectRooms(context, input.gameId);
       if (rooms.length === 0) {
-        return {
-          content: [{ type: 'text', text: args.gameId ? `Room "${args.gameId}" not found` : 'No active rooms' }],
-          isError: !!args.gameId,
-        };
+        return input.gameId ? errorResult(`Room "${input.gameId}" not found`) : jsonResult('No active rooms');
       }
-
-      const result = rooms.map(([gameId, room]) => ({
+      const stats = rooms.map(([gameId, room]) => ({
         gameId,
         playerCount: room.playerConnections.size,
-        ...room.perfTracker.getStats(),
+        ...room.performanceTracker.getStats(),
       }));
-
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      return jsonResult(stats);
     },
   );
+}
+
+/** Generic server + per-room performance/heartbeat tools. */
+export function registerPerformanceTools(mcp: McpServer, context: DebugContext): void {
+  registerServerPerformanceTool(mcp, context);
+  registerRoomPerformanceTool(mcp, context);
 }

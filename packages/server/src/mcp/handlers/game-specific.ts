@@ -11,14 +11,12 @@ import type { DebugContext } from '../debug-context.js';
  *     'debug_get_entities',
  *     'List all entities in a room',
  *     { gameId: z.string().describe('The game ID') },
- *     (args) => {
- *       const room = ctx.lobbyManager.getActiveRoom(args.gameId);
- *       if (!room) {
- *         return { content: [{ type: 'text', text: `Game "${args.gameId}" not found` }], isError: true };
- *       }
+ *     (input) => {
+ *       const room = context.lobbyManager.getActiveRoom(input.gameId);
+ *       if (!room) return gameNotFoundResult(input.gameId); // ../tool-result.js
  *       // TODO(game): read structured game state off the room / GameModule.
  *       const entities = []; // e.g. room.getEntities()
- *       return { content: [{ type: 'text', text: JSON.stringify(entities, null, 2) }] };
+ *       return jsonResult(entities);
  *     },
  *   );
  *
@@ -26,6 +24,6 @@ import type { DebugContext } from '../debug-context.js';
  * Registered by mcp-server.ts after the generic tools, so it is a no-op until
  * you fill it in.
  */
-export function registerGameSpecificTools(_mcp: McpServer, _ctx: DebugContext): void {
+export function registerGameSpecificTools(_mcp: McpServer, _context: DebugContext): void {
   // TODO(game): register game-specific debug tools here (entities, tiles, scores, ...).
 }
