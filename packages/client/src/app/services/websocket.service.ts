@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subject, type Observable } from 'rxjs';
 import type { ClientMessage, ServerMessage } from '@evolution/shared';
-import { SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_ID_QUERY_PARAMETER, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import { IdentityService } from './identity.service';
 
 /** JSON prefix of a `game_snapshot` frame, matched before parsing on the hot path. */
@@ -77,7 +77,7 @@ export class WebSocketService {
 
   private socketUrl(): string {
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${protocol}://${location.host}/ws?clientId=${encodeURIComponent(this.identity.clientId)}`;
+    return `${protocol}://${location.host}/ws?${CLIENT_ID_QUERY_PARAMETER}=${encodeURIComponent(this.identity.clientId)}`;
   }
 
   /**

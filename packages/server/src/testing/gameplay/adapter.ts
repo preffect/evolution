@@ -1,35 +1,18 @@
 // The seam between the scenario runner and a `GameModule` (docs/TESTING.md §8). The runner
 // knows ticks, players, scripts and hashes; everything game-specific (how to build the module,
 // read a snapshot, hash the state, turn a command into the wire input, find a player's cell,
-// place a fixture) lives in an adapter. `echo-adapter.ts` serves the template's echo module;
-// the Evolution module gets its own adapter with #98.
+// place a fixture) lives in an adapter. An adapter extends the bot `BotWorldBinding`
+// (`game/bots/bot-binding.ts`), so the adapter of a world is also what the bot client and
+// `debug_spawn_bot` see through: one perception, one `locateCell`, one `toInput`.
+// `echo-adapter.ts` serves the template's echo module; the Evolution module gets its own with #98.
 
 import type { PlayerId, StateHash } from '@evolution/shared';
+import type { BotWorldBinding } from '../../game/bots/bot-binding.js';
+import type { CellLocation } from '../../game/bots/perception.js';
 import type { GameModule, RoomInitOptions } from '../../game/game-module.js';
 
-/** Where a player's cell is in a snapshot; what "target N radii east" is measured from. */
-export interface CellLocation {
-  readonly x: number;
-  readonly y: number;
-  readonly radiusWu: number;
-}
-
-export interface TraitChoiceCommand {
-  readonly offerId: number;
-  readonly cardIndex: number;
-}
-
-/**
- * What a script asks a player to do this tick, in game terms rather than wire terms. Every field
- * is optional so scripts compose (`mergeCommands`); the adapter turns the merged command into
- * the module's input shape.
- */
-export interface PlayerCommand {
-  readonly targetX?: number;
-  readonly targetY?: number;
-  readonly isSprinting?: boolean;
-  readonly traitChoice?: TraitChoiceCommand | null;
-}
+export type { PlayerCommand, TraitChoiceCommand } from '../../game/bots/bot-strategy.js';
+export type { CellLocation } from '../../game/bots/perception.js';
 
 /** What the session hands `applyFixture` besides the record: the runner's ids, never the DSL's id scheme. */
 export interface FixtureContext {
@@ -49,8 +32,7 @@ export interface FixtureContext {
  * - A scheduled fixture (`context.tick` > 0) is applied between ticks, after that tick's joins and
  *   leaves and before its scripts, exactly as recorded in the replay's `patches`.
  */
-export interface ScenarioAdapter<Input, Snapshot, Fixture> {
-  readonly name: string;
+export interface ScenarioAdapter<Input, Snapshot, Fixture> extends BotWorldBinding<Input, Snapshot> {
   /** Builds the module the way the lobby would: the round seed is `options.config.seed`, no `RandomSource` is passed. */
   createModule(options: RoomInitOptions): GameModule<Input, Snapshot>;
   /**
@@ -60,12 +42,10 @@ export interface ScenarioAdapter<Input, Snapshot, Fixture> {
   readSnapshot(module: GameModule<Input, Snapshot>): Snapshot;
   /** The hash replays and determinism checks compare (`computeStateHash` once the world exists). */
   hashState(module: GameModule<Input, Snapshot>): StateHash;
-  /** Turns a merged command into the input `submitInput` accepts, stamped with `sequence`. */
-  toInput(command: PlayerCommand, sequence: number): Input;
   /**
-   * The player's cell in `snapshot`, or `undefined` when the player is present but has none
-   * (spectating, not yet spawned). An adapter over a module with no world throws
-   * `ScenarioSetupError` instead, so a script that needs a cell fails loudly rather than idles.
+   * As the binding declares it, with one scenario-side difference: an adapter over a module with
+   * no world throws `ScenarioSetupError` instead of answering `undefined`, so a script that needs
+   * a cell fails loudly rather than idles (the echo *binding* the bot hosts use still holds).
    */
   locateCell(snapshot: Snapshot, playerId: PlayerId): CellLocation | undefined;
   /** Applies a placed cell, mote or fragment before step `context.tick`; throws `ScenarioSetupError` if unsupported. */
