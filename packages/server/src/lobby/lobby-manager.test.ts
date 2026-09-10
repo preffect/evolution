@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, DISCONNECT_GRACE_MS, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import {
+  CLIENT_MESSAGE_TYPE,
+  DEFAULT_BALANCE,
+  DISCONNECT_GRACE_MS,
+  SERVER_MESSAGE_TYPE,
+  createTestGameInput,
+  createTestSessionConfig,
+} from '@evolution/shared';
 import { createTestLobby } from '../testing/builders.js';
 
 type Sent = { type: string }[];
@@ -13,7 +20,11 @@ function lobbyWithPendingGame(maxPlayers = 4) {
   const fixture = createTestLobby();
   const alice = fixture.join('alice', 'Alice');
   fixture.handlers.onJoinLobby(alice, { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Alice', avatarIndex: 0 });
-  fixture.handlers.onCreateGame(alice, { type: CLIENT_MESSAGE_TYPE.createGame, gameName: 'G', config: { maxPlayers } });
+  fixture.handlers.onCreateGame(alice, {
+    type: CLIENT_MESSAGE_TYPE.createGame,
+    gameName: 'G',
+    config: createTestSessionConfig({ maxPlayers }),
+  });
   const gameId = fixture.lobby.listGames()[0]!.gameId;
   return { ...fixture, alice, gameId };
 }
@@ -106,18 +117,21 @@ describe('lobby-manager: starting and running games', () => {
     const inputSpy = vi.spyOn(room, 'submitInput');
     const performanceSpy = vi.spyOn(room, 'recordClientPerformance');
     const report = { fps: 60, frameTimeAvgMs: 1, frameTimeP95Ms: 2, frameTimePeakMs: 3, heapMb: null };
-    fixture.handlers.onPlayerInput(fixture.alice, { type: CLIENT_MESSAGE_TYPE.playerInput, payload: { x: 1 } });
+    const input = createTestGameInput();
+    fixture.handlers.onPlayerInput(fixture.alice, { type: CLIENT_MESSAGE_TYPE.playerInput, payload: input });
     fixture.handlers.onClientPerformance(fixture.alice, { type: CLIENT_MESSAGE_TYPE.clientPerformance, report });
-    expect(inputSpy).toHaveBeenCalledWith('alice', { x: 1 });
+    expect(inputSpy).toHaveBeenCalledWith('alice', input);
     expect(performanceSpy).toHaveBeenCalledWith('alice', report);
     room.stop();
   });
 
-  it('joining an active game is a late join that receives the full game state', () => {
+  it('joining an active game is a late join that receives the full game state with its balance', () => {
     const fixture = lobbyWithActiveGame();
     const bob = fixture.join('bob', 'Bob');
     fixture.handlers.onJoinGame(bob, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
-    expect(fixture.sent['bob']).toContainEqual(expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState }));
+    expect(fixture.sent['bob']).toContainEqual(
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, balance: DEFAULT_BALANCE }),
+    );
     expect(fixture.lobby.getActiveRoom(fixture.gameId)?.allPlayerIds).toEqual(['alice', 'bob']);
     fixture.lobby.getActiveRoom(fixture.gameId)?.stop();
   });
@@ -141,7 +155,9 @@ describe('lobby-manager: starting and running games', () => {
     vi.advanceTimersByTime(DISCONNECT_GRACE_MS);
     const room = fixture.lobby.getActiveRoom(fixture.gameId);
     expect(room?.disconnectedPlayers.has('alice')).toBe(false);
-    expect(typesSentTo(fixture.sent, 'alice')).toContain(SERVER_MESSAGE_TYPE.gameState);
+    expect(fixture.sent['alice']).toContainEqual(
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, balance: DEFAULT_BALANCE }),
+    );
     room?.stop();
   });
 

@@ -1,29 +1,22 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { DebugContext } from '../debug-context.js';
+import { registerBalanceTools } from './balance.js';
+import { registerDeterminismTools } from './determinism.js';
+import { registerEntityTools } from './entities.js';
+import { registerPlayerTools } from './player.js';
+import { registerRoomLoopTools } from './room-loop.js';
+import { registerSpawnTools } from './spawn.js';
 
 /**
- * EXTENSION POINT — game-specific MCP tools.
- *
- * This file is intentionally empty plumbing. The init step adds tools here that
- * expose your game's domain state to Claude via the /debug-mcp endpoint, e.g.:
- *
- *   mcp.tool(
- *     'debug_get_entities',
- *     'List all entities in a room',
- *     { gameId: z.string().describe('The game ID') },
- *     (input) => {
- *       const room = context.lobbyManager.getActiveRoom(input.gameId);
- *       if (!room) return gameNotFoundResult(input.gameId); // ../tool-result.js
- *       // TODO(game): read structured game state off the room / GameModule.
- *       const entities = []; // e.g. room.getEntities()
- *       return jsonResult(entities);
- *     },
- *   );
- *
- * Mirror morris's mcp/handlers/{entities,tiles}.ts for richer examples.
- * Registered by mcp-server.ts after the generic tools, so it is a no-op until
- * you fill it in.
+ * The game-specific debug surface (docs/ARCHITECTURE.md §8). Every tool here reaches the
+ * simulation through the room's `SimulationDebugHandle`, so it works with whichever module the
+ * lobby was built with: a module that lacks a capability answers "not supported", never a stub.
  */
-export function registerGameSpecificTools(_mcp: McpServer, _context: DebugContext): void {
-  // TODO(game): register game-specific debug tools here (entities, tiles, scores, ...).
+export function registerGameSpecificTools(mcp: McpServer, context: DebugContext): void {
+  registerEntityTools(mcp, context);
+  registerPlayerTools(mcp, context);
+  registerSpawnTools(mcp, context);
+  registerRoomLoopTools(mcp, context);
+  registerDeterminismTools(mcp, context);
+  registerBalanceTools(mcp, context);
 }

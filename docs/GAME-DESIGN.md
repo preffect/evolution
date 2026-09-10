@@ -41,15 +41,22 @@ The ladder is the progression spine of build 1. It is a shared enum, and every t
 [`TRAITS.md`](./TRAITS.md) is an organelle or a form that sits on one of its rungs.
 
 ```ts
-// packages/shared/src/constants/ladder.ts
-export type CellStage = 'protocell' | 'prokaryote' | 'endosymbiosis' | 'eukaryote' | 'specialised';
-export const STAGE_ORDER: readonly CellStage[] = [
-  'protocell',
-  'prokaryote',
-  'endosymbiosis',
-  'eukaryote',
-  'specialised',
-];
+// packages/shared/src/types/game.ts: the ids; packages/shared/src/constants/ladder.ts: the order and the gates
+export const CELL_STAGE = {
+  protocell: 'protocell',
+  prokaryote: 'prokaryote',
+  endosymbiosis: 'endosymbiosis',
+  eukaryote: 'eukaryote',
+  specialised: 'specialised',
+} as const;
+export type CellStage = (typeof CELL_STAGE)[keyof typeof CELL_STAGE];
+export const STAGE_ORDER = [
+  CELL_STAGE.protocell,
+  CELL_STAGE.prokaryote,
+  CELL_STAGE.endosymbiosis,
+  CELL_STAGE.eukaryote,
+  CELL_STAGE.specialised,
+] as const satisfies readonly CellStage[];
 export const STAGE_GATE_TRAITS: Record<CellStage, readonly TraitId[]> = {
   protocell: [], // the starting stage has no gate
   prokaryote: ['nucleoid'],
@@ -81,9 +88,9 @@ Rules (home of the pure functions: `packages/server/src/game/progression/ladder.
   three draft cards is reserved for it, so the ladder is always climbable when its prerequisites are
   met. Tag weighting still biases the other cards.
 - **Endosymbiosis** is the only rung with an unlock outside the draft: eat
-  `ENDOSYMBIOSIS_BACTERIA_REQUIRED` aerobic bacteria (they cluster around the warm vent) and the
-  mitochondrion becomes a candidate; eat as many photosynthetic bacteria (the sunlit shallows) and the
-  chloroplast does. Absorbing a player cell that owns an endosymbiont credits that unlock in full.
+  `ENDOSYMBIOSIS_BACTERIA_REQUIRED` = 10 aerobic bacteria (two full clusters of `BACTERIUM_CLUSTER_SIZE`
+  = 5; they cluster around the warm vent) and the mitochondrion becomes a candidate; eat as many
+  photosynthetic bacteria (the sunlit shallows) and the chloroplast does. Absorbing a player cell that owns an endosymbiont credits that unlock in full.
 - **The protocell is the baseline.** The mass, radius and speed curves in
   [`ECOLOGY.md §5`](./ECOLOGY.md#5-size-mass-and-speed) and the identity `DEFAULT_CELL_MODIFIERS`
   ([`TRAITS.md §2`](./TRAITS.md#2-modifier-model)) describe the protocell. There is no separate
@@ -92,9 +99,13 @@ Rules (home of the pure functions: `packages/server/src/game/progression/ladder.
   (a wobbly, translucent, nucleus-free blob, [`TRAITS.md §3.0`](./TRAITS.md#30-what-each-stage-looks-like)).
 - **Death keeps the ladder.** Level, traits and therefore stage survive death and respawn
   (section 5.2); only mass and part of the progress toward the next level are lost.
-- **Pace target.** A fast player owns a nucleoid at level 2 (~0:45), an endosymbiont at level 3–4
-  (after a vent or shallows trip), the nuclear envelope at level 4–5 and a form at level 5–6
-  (~3:30). Levels 7–12 deepen tiers and add the remaining organelles.
+- **Pace target** (decision #138, option A "slow dawn"; the #138 pace model, ± 20 s). A fast player
+  is a bare protocell for about three minutes and owns a nucleoid at level 2 (~2:50), an endosymbiont
+  at level 3 (~5:40, after a vent or shallows trip that eats two clusters), the nuclear envelope at
+  level 4 (~8:00) and a form at level 5 (~9:40). Levels 6–12 deepen tiers and add the remaining
+  organelles; they fall outside a `ROUND_DURATION_SECONDS` = 600 round (section 5.1). The mass curve
+  is unchanged by the decision: engulf is gated by mass, not by the ladder, so a three-minute
+  protocell is a fat one (mass ~200, radius ~57 wu) that already hunts.
 - **Build 2** adds colonies and multicellular organisms above `specialised`; they are not stages of
   this enum (a colony is several cells), so the enum is closed for build 1.
 
@@ -128,15 +139,27 @@ Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
 
 ### 5.1 Round timeline and pace curve
 
-| Phase | Round time   | What players are doing                                                                                  |
-| ----- | ------------ | ------------------------------------------------------------------------------------------------------- |
-| Graze | 0:00 – 2:00  | Learn to steer, eat algae, first DNA fragments; nucleoid around 0:45 solo; first bacterium clusters.    |
-| Hunt  | 2:00 – 5:00  | Levels 3–6: endosymbiosis (vent or shallows trip), nuclear envelope, first engulfs, first forms appear. |
-| Apex  | 5:00 – 8:00  | Two or three heavy specialised cells dominate the open broth; small cells live in the gel.              |
-| Bloom | 8:00 – 10:00 | Food and DNA spawn multiply (`ROUND_BLOOM_START_FRACTION` = 0.8): catch-up + chaos.                     |
+Decision #138 (option A, "slow dawn", applied by #144) sets this curve; times are the #138 pace model
+for one active player who takes the trip at the first chance, ± 20 s.
+
+| Phase | Round time   | What players are doing                                                                                                                                                   |
+| ----- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dawn  | 0:00 – 3:00  | A bare protocell: learn to steer, eat algae, the first DNA fragments; grow heavy (mass ~200 by 3:00) and start to hunt by mass alone; nucleoid around 2:50 solo.         |
+| Trip  | 3:00 – 4:30  | The first deliberate decision: the warm vent (mitochondrion) or the sunlit shallows (chloroplast); two clusters of one variant (`ENDOSYMBIOSIS_BACTERIA_REQUIRED` = 10). |
+| Hunt  | 4:30 – 8:00  | Levels 3–4: the endosymbiont around 5:40, the nuclear envelope around 8:00; engulfs decide the leaderboard; nobody is specialised yet.                                   |
+| Bloom | 8:00 – 10:00 | Food and DNA spawn multiply (`ROUND_BLOOM_START_FRACTION` = 0.8): catch-up + chaos; the most active player takes a form at level 5 around 9:40.                          |
 
 Bloom multipliers live in [`ECOLOGY.md`](./ECOLOGY.md#3-spawn-model) (`FOOD_BLOOM_SPAWN_MULTIPLIER`,
 `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`).
+
+**What option A gives up inside 600 s.** The former Apex phase (5:00 – 8:00, two or three heavy
+specialised cells ruling the open broth) no longer exists as designed: a form arrives at ~9:40 for
+the fastest player and levels 6–12 are not reached, so the tier upgrades and the later organelles
+(cytoskeleton, cilia, vacuoles) are content for longer rounds. `ROUND_DURATION_SECONDS` is a separate
+constant (`session.ts`, set at create time) that #138 did not touch; whether to lengthen the round
+so the top rungs are playable is a possible follow-up decision for the human, not a change this
+document makes. Acceptance scenarios that need a specialised cell grant the form by fixture
+([`ECOLOGY.md §8`](./ECOLOGY.md#8-acceptance-scenarios) conventions) rather than reaching it in a round.
 
 ### 5.2 Spawn, death and respawn
 
@@ -240,11 +263,11 @@ wall. The renderer draws the wall as a soft glass rim.
 
 You cannot lose a round, only fall behind: death costs mass and progress toward the next level,
 never score, traits or your place on the ladder. The round is won on score. The intended feel: the
-first minute is a calm protocell grazing; the trip to the vent or the shallows for an endosymbiont
-is the first deliberate decision; from the nuclear envelope onward the dish is a food web where every
-other cell is either lunch or a threat, decided purely by the mass ratio, and the forms give each
-apex cell a readable silhouette and a playstyle; the last two minutes are a bloom that lets a small
-cell climb two levels and punish an overextended giant.
+first three minutes are a calm protocell grazing and growing; the trip to the vent or the shallows for
+an endosymbiont is the first deliberate decision; from there the dish is a food web where every
+other cell is either lunch or a threat, decided purely by the mass ratio; the last two minutes are a
+bloom that lets a small cell climb a level and punish an overextended giant, and hands the fastest
+player a form and its readable silhouette just before the whistle (section 5.1).
 
 ## 10. Explicit non-goals for build 1
 
@@ -255,14 +278,14 @@ accounts, anti-cheat, touch-layout polish (pointer events work, nothing more), r
 
 ## 11. Reserved hooks for build 2
 
-| Hook                             | Where                        | Build-1 behaviour                   |
-| -------------------------------- | ---------------------------- | ----------------------------------- |
-| `GameSessionConfig.mode`         | `'free_for_all' \| 'colony'` | server rejects `'colony'`           |
-| `GameSessionConfig.endCondition` | `'timer'` only               | other values rejected               |
-| `Cell.organismId`                | equals the cell's own id     | grouping key for colonies           |
-| `GameInput.split`, `.eject`      | booleans, optional           | validated, ignored                  |
-| `CellState.dividing`             | state in the engulf diagram  | unreachable                         |
-| Mitosis constants                | `growth.ts`                  | declared, unused (see ECOLOGY §5.4) |
+| Hook                                    | Where                        | Build-1 behaviour                   |
+| --------------------------------------- | ---------------------------- | ----------------------------------- |
+| `GameSessionConfig.mode`                | `'free_for_all' \| 'colony'` | server rejects `'colony'`           |
+| `GameSessionConfig.endCondition`        | `'timer'` only               | other values rejected               |
+| `Cell.organismId`                       | equals the cell's own id     | grouping key for colonies           |
+| `GameInput.shouldSplit`, `.shouldEject` | booleans, optional           | validated, ignored                  |
+| `CellState.dividing`                    | state in the engulf diagram  | unreachable                         |
+| Mitosis constants                       | `growth.ts`                  | declared, unused (see ECOLOGY §5.4) |
 
 ## 12. Constants table
 
@@ -322,11 +345,11 @@ The design reads these as they are; there is no alias for the tick rate (`TICK_H
 
 ### `ladder.ts`
 
-| Constant                          | Value                                  | Unit   | Meaning                                                   |
-| --------------------------------- | -------------------------------------- | ------ | --------------------------------------------------------- |
-| `STAGE_ORDER`                     | the five stages of section 3, in order | stages | Also the source of `CellStage`.                           |
-| `STAGE_GATE_TRAITS`               | the table in section 3                 | ids    | Owning any listed trait reaches the stage.                |
-| `ENDOSYMBIOSIS_BACTERIA_REQUIRED` | 5                                      | count  | Bacteria of one variant eaten to unlock its endosymbiont. |
+| Constant                          | Value                                  | Unit   | Meaning                                                                                 |
+| --------------------------------- | -------------------------------------- | ------ | --------------------------------------------------------------------------------------- |
+| `STAGE_ORDER`                     | the five stages of section 3, in order | stages | Walk order of `CELL_STAGE`; pinned complete against it.                                 |
+| `STAGE_GATE_TRAITS`               | the table in section 3                 | ids    | Owning any listed trait reaches the stage.                                              |
+| `ENDOSYMBIOSIS_BACTERIA_REQUIRED` | 10                                     | count  | Bacteria of one variant eaten to unlock its endosymbiont (two clusters; decision #138). |
 
 ### `camera.ts` (client only)
 

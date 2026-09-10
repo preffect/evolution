@@ -15,8 +15,17 @@ describe('PerformanceTracker', () => {
       tickP95Ms: 0,
       tickPeakMs: 0,
       broadcastBytesPerSec: 0,
+      droppedTicks: 0,
       worstTick: null,
     });
+  });
+
+  it('accumulates dropped ticks across fires', () => {
+    const tracker = new PerformanceTracker();
+    tracker.recordTick(tickOf(1));
+    tracker.recordDroppedTicks(2);
+    tracker.recordDroppedTicks(3);
+    expect(tracker.getStats().droppedTicks).toBe(5);
   });
 
   it('averages tick times, keeps the worst tick and scales bytes by the tick rate', () => {

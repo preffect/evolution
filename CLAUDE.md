@@ -24,7 +24,7 @@
 
 ```bash
 ./validate.sh test                    # unit tests with coverage thresholds (vitest for shared/server, ng test for client)
-./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier (opt-in; not part of `all`)
+./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (opt-in; not part of `all`)
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
@@ -69,6 +69,9 @@ stage on the linked Project board, epics as sub-issues, **assignee = waiting on 
 thread resolved before merge**, labels updated as tickets complete. Everything is done via the
 API — the human never clicks in GitHub's UI. Helpers: `scripts/project-sync.sh` (run at session
 start), `scripts/issue-status.sh <Status> <N...>`, `scripts/pr-threads.sh` (batched review threads), `.github/PULL_REQUEST_TEMPLATE.md` (review checklist).
+**Human dial: 2 (Consulted)** from milestone M2 First playable onward (M0/M1 ran at 1) — taste,
+direction and scope questions are posed to the human as decision tickets with options and mockups;
+see `docs/TEAM.md`.
 **[`docs/TEAM.md`](docs/TEAM.md)** defines the agent roles (`.claude/agents/`, spawned with the Agent tool in
 session, or headlessly with `scripts/agent.sh`) and the scripted review loop (`scripts/land-pr.sh`).
 
@@ -118,13 +121,13 @@ Built from the base-multiplayer-game template: client/server, native WebSocket m
 
 pnpm monorepo with three packages:
 
-- **`packages/shared`** — Shared types, constants, and logic (message envelope, branded ids). Pure TypeScript, no framework dependencies. Used by both server and client. Game-specific `GameInput` / `GameSnapshot` types are TODO hooks.
+- **`packages/shared`** — Shared types, constants, and logic (message envelope, branded ids, the game contract: `types/game.ts` views, `types/messages.ts` seams, `constants/<domain>.ts` tunables assembled into `DEFAULT_BALANCE`, `simulation/` pure formulas). Pure TypeScript, no framework dependencies. Used by both server and client.
 - **`packages/server`** — Fastify + WebSocket game server. Handles multiplayer coordination (lobby, rooms, the 60Hz broadcast loop) and exposes a debug MCP endpoint at `/debug-mcp`. The single game seam is `src/game/game-module.ts` (`defaultGameModuleFactory` ships a trust-client echo). No persistence by default.
 - **`packages/client`** — Angular 21 application. Zoneless by default. Proxies `/api`, `/ws`, and `/debug-mcp` to the server via `proxy.conf.json`. The client game seam is `src/app/game/game-setup.ts`.
 
 ### Game extension points (left as TODOs)
 
-- **Shared:** `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`.
+- **Shared:** done (#97): `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`; `data/balance.json` is generated (`pnpm generate:balance`) and pinned by `balance.test.ts`.
 - **Server:** `packages/server/src/game/game-module.ts` — `GameModule` impl (`submitInput` / `reduceGameState` / `serializeRoomState` / `add`/`removePlayer`); wire the factory into `src/index.ts`. MCP game-state visibility via `DebugContext.getRoomGameState(gameId)`.
 - **Client:** `packages/client/src/app/game/game-setup.ts` — the game loop + renderer.
 - **Init:** see `docs/INIT-GAME.md` to interview the user and produce `docs/GAME-DESIGN.md` + the first build epic.
@@ -161,6 +164,16 @@ change ports inside the container; they are already baked into the integration f
 
 ### MCP Servers
 
-- **evolution-debug** — HTTP MCP endpoint on the game server (`http://localhost:4400/debug-mcp`) for inspecting game state (`debug_get_game_state`, `debug_list_games`, `debug_get_room`), player connections (`debug_get_connections`), and performance (`debug_get_performance`)
+- **evolution-debug** — HTTP MCP endpoint on the game server (`http://localhost:4400/debug-mcp`). Generic
+  tools: game state (`debug_get_game_state`, `debug_list_games`, `debug_get_room`), player connections
+  (`debug_get_connections`), performance (`debug_get_performance`, `debug_get_room_performance`).
+  Game-specific tools (`docs/ARCHITECTURE.md` §8 is the contract; each answers "not supported by this game
+  module" while the module lacks the capability): inspect `debug_get_entities(gameId, kind?, bbox?)`,
+  `debug_get_player_progress(gameId, playerId)`, `debug_get_state_hash(gameId)`, `debug_get_balance(gameId)`,
+  `debug_export_replay(gameId)`; manipulate `debug_spawn(gameId, kind, x, y, params)`,
+  `debug_grant_dna(gameId, playerId, dna, tags?)`, `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`,
+  `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
+  with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
+  every module)
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
 - **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`

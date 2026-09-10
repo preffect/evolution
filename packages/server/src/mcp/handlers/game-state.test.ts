@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, createTestSessionConfig } from '@evolution/shared';
 import { registerGameStateTools } from './game-state.js';
-import { createTestLobby, createToolCapture, parseToolJson } from '../../testing/builders.js';
+import { defaultGameModuleFactory } from '../../game/game-module.js';
+import { createTestLobby, createToolCapture, parseToolJson, type TestLobbyOptions } from '../../testing/builders.js';
 
-function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown) {
-  const fixture = createTestLobby();
+function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown, options: TestLobbyOptions = {}) {
+  const fixture = createTestLobby(options);
   const alice = fixture.join('alice');
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'A',
-    config: { maxPlayers: 2 },
+    config: createTestSessionConfig({ maxPlayers: 2 }),
   });
   const gameId = fixture.lobby.listGames()[0]!.gameId;
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });
@@ -24,10 +25,13 @@ function activeRoomFixture(getRoomGameState?: (gameId: string) => unknown) {
 }
 
 describe('debug_get_game_state', () => {
-  it('falls back to the opaque snapshot plus a note when no inspector is wired', async () => {
-    const fixture = activeRoomFixture();
+  it("returns the room's full state, the game_state payload, when no inspector is wired", async () => {
+    const fixture = activeRoomFixture(undefined, { gameFactory: defaultGameModuleFactory });
     const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
-    expect(blob).toMatchObject({ note: expect.stringContaining('getRoomGameState'), snapshot: { players: [] } });
+    expect(blob).toEqual({
+      snapshot: { players: { alice: null } },
+      balance: JSON.parse(JSON.stringify(DEFAULT_BALANCE)),
+    });
     fixture.stop();
   });
 

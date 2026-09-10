@@ -67,10 +67,11 @@ The full bar — tiers, naming, builders, coverage floors, flaky-test policy —
 
 ### 2.2 Unit vs integration split
 
-| Tier        | Filename suffix                                   | Run via                     | In `all`?      |
-| ----------- | ------------------------------------------------- | --------------------------- | -------------- |
-| Unit        | `*.test.ts` (client `*.spec.ts`)                  | `./validate.sh test`        | yes            |
-| Integration | `*.integration.test.ts` / `*.integration.spec.ts` | `./validate.sh integration` | **no, opt-in** |
+| Tier        | Filename suffix                                                                                                                                                 | Run via                     | In `all`?      |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------- |
+| Unit        | `*.test.ts` (client `*.spec.ts`)                                                                                                                                | `./validate.sh test`        | yes            |
+| Integration | `*.integration.test.ts` / `*.integration.spec.ts`                                                                                                               | `./validate.sh integration` | **no, opt-in** |
+| Gameplay    | `*.gameplay.test.ts` (scenario tables on the runner of [`TESTING.md` §8](./TESTING.md#8-gameplay-tier-the-scenario-runner-packagesserversrctestinggameplay-75)) | `./validate.sh integration` | **no, opt-in** |
 
 1. **Write a unit test when** the change is a single pure function, class, or module in
    isolation — no cross-subsystem orchestration, runs in <100ms. This is almost everything.
@@ -87,7 +88,9 @@ The full bar — tiers, naming, builders, coverage floors, flaky-test policy —
    passes. Run them only at the **end of a task that may have caused a cross-subsystem
    regression** — never on every save or pre-commit.
 5. `./validate.sh integration` is that run (`pnpm -r --if-present test:integration`); never
-   invoke vitest or `ng test` directly.
+   invoke vitest or `ng test` directly. The same run executes the gameplay scenarios
+   (`*.gameplay.test.ts`, `TESTING.md` §8): they step a real module for thousands of ticks, which
+   is integration-tier cost even though nothing crosses a socket.
 
 ### 2.3 What must be covered (template-specific)
 

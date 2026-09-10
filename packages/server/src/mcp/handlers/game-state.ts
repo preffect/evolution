@@ -3,33 +3,22 @@ import { z } from 'zod';
 import type { DebugContext } from '../debug-context.js';
 import { gameNotFoundResult, jsonResult } from '../tool-result.js';
 
-const NO_INSPECTOR_NOTE =
-  'No game-specific state inspector wired yet — implement getRoomGameState in the init step. Falling back to the opaque broadcast snapshot.';
-
 /**
- * Generic per-room game-state dump.
- *
- * This is the opaque-blob extension stub. By default it returns:
- *   1. `context.getRoomGameState(gameId)` if the init step wired it, ELSE
- *   2. the room's opaque snapshot (`room.getSnapshot()`) plus a note that no
- *      game-specific state inspector is wired yet.
- *
- * The init step implements `DebugContext.getRoomGameState` to surface the real,
- * structured game state (entities, scores, tiles, etc.) here.
+ * Per-room game-state dump (docs/ARCHITECTURE.md §8). It returns the template's
+ * `context.getRoomGameState(gameId)` inspector when the init step wired one, ELSE the room's
+ * full state (`GameRoom.getFullState()`: the module's `serializeFullState()`, the same
+ * `{ snapshot, balance }` payload `game_state` sends a joining client). The Evolution module
+ * never wires the inspector, so there is one path to its full state.
  */
 export function registerGameStateTools(mcp: McpServer, context: DebugContext): void {
   mcp.tool(
     'debug_get_game_state',
-    'Get the full game-state blob for an active room (game-specific once wired; otherwise the opaque broadcast snapshot)',
+    'Get the full game state of an active room: the `game_state` payload (snapshot + balance) a joining client receives',
     { gameId: z.string().describe('The game ID') },
     (input) => {
       const room = context.lobbyManager.getActiveRoom(input.gameId);
       if (!room) return gameNotFoundResult(input.gameId);
-      const blob = context.getRoomGameState?.(input.gameId) ?? {
-        note: NO_INSPECTOR_NOTE,
-        snapshot: room.getSnapshot(),
-      };
-      return jsonResult(blob);
+      return jsonResult(context.getRoomGameState?.(input.gameId) ?? room.getFullState());
     },
   );
 }

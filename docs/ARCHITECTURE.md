@@ -61,8 +61,8 @@ export type BacteriumVariant = 'plain' | 'aerobic' | 'photosynthetic'; // the en
 export type DnaTag = 'motile' | 'photic' | 'predatory' | 'armored' | 'toxic' | 'sensory' | 'metabolic';
 export type ZoneId = 'sunlit_shallows' | 'warm_vent' | 'viscous_gel' | 'open_broth';
 export type CellState = 'free' | 'being_engulfed' | 'engulfing' | 'dividing'; // no death state: see below
-export type CellStage = (typeof STAGE_ORDER)[number]; // constants/ladder.ts
-export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts
+export type CellStage = (typeof CELL_STAGE)[keyof typeof CELL_STAGE]; // STAGE_ORDER (constants/ladder.ts) fixes the order
+export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts: the rows are checked as `TraitCatalogRow` (string ids) so the derivation is not circular
 export type TraitTier = 1 | 2 | 3;
 export type PlayerLifeState = 'alive' | 'spectating';
 
@@ -122,7 +122,7 @@ export interface TraitOfferView {
 }
 export interface TraitChoiceInput {
   offerId: number;
-  cardIndex: number; // 0..TRAIT_OFFER_CARD_COUNT-1; a stale offerId is rejected
+  cardIndex: number; // 0..TRAIT_DRAFT_SIZE-1; a stale offerId is ignored and counted (section 3.2)
 }
 export interface PlayerProgressView {
   playerId: PlayerId;
@@ -149,6 +149,14 @@ export interface LeaderboardRow {
   absorptions: number;
 }
 ```
+
+Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_END_CONDITION`, `ROUND_PHASE`, `FOOD_KIND`,
+`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `ENTITY_KIND`) with the
+union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.ts`), `TRAIT_CATEGORY` and
+`TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
+The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
+world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId }`, `eat { cellId, eatenId,
+eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`.
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
@@ -208,7 +216,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 - Ids come from a per-world monotonic counter with a kind prefix (`c-17`, `m-2041`, `f-9`),
   never from randomness. `ENTITY_KIND = { cell: 'cell', foodMote: 'food_mote', dnaFragment: 'dna_fragment' }`
   is the debug-tool filter vocabulary; `organismId` (= own id in Build 1), the `dividing` state and
-  the `split` / `eject` inputs are the reserved hooks of GAME-DESIGN §11.
+  the `shouldSplit` / `shouldEject` inputs are the reserved hooks of GAME-DESIGN §11.
 
 ```ts
 // packages/server/src/game/world/world-state.ts
@@ -276,14 +284,14 @@ prediction reuses them unchanged.
 ### 3.2 Input handling
 
 - `submitInput(playerId, input)` **coalesces** into `PlayerRecord.pendingInput`: the newest
-  `sequence`, `targetX/targetY` win; `sprint` and `traitChoice` are OR-merged (a one-shot that
+  `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that
   arrives together with a newer target is never lost). Step 1 applies the pending input, records
   its `sequence` as `appliedInputSequence`, latches the target on the cell, and clears the
   one-shots. An input with a `sequence` ≤ the applied one is dropped and counted in
   `PerformanceTracker.rejectedInputs`.
-- `sprint` starts a sprint only when the cooldown allows (GAME-DESIGN §6); otherwise it is
+- `shouldSprint` starts a sprint only when the cooldown allows (GAME-DESIGN §6); otherwise it is
   ignored and counted. `traitChoice` applies only when `offerId` is the shown offer
-  (PROGRESSION §4); a stale pick is ignored and counted. `split` / `eject` pass the schema and
+  (PROGRESSION §4); a stale pick is ignored and counted. `shouldSplit` / `shouldEject` pass the schema and
   are ignored by the simulation without counting: they are reserved, not invalid (GAME-DESIGN §11).
 - The template's `GameRoom` calls `reduceGameState()` once per tick from the injected ticker
   (`DETERMINISM.md §2`); `reduceGameState` is `stepWorld` plus effect draining, nothing else.
@@ -312,10 +320,10 @@ export interface GameInput {
   sequence: number; // monotonic per client, one per client tick
   targetX: number; // pointer target in world units
   targetY: number;
-  sprint: boolean; // edge-triggered by the client, coalesced by the server (section 3.2)
+  shouldSprint: boolean; // edge-triggered by the client, coalesced by the server (section 3.2); predicate names per CODE-STANDARDS §6
   traitChoice: TraitChoiceInput | null; // { offerId, cardIndex }
-  split?: boolean; // reserved (build 2), validated and ignored
-  eject?: boolean;
+  shouldSplit?: boolean; // reserved (build 2), validated and ignored
+  shouldEject?: boolean;
 }
 export interface GameSessionConfig {
   maxPlayers: number; // MIN_PLAYERS_PER_GAME .. MAX_PLAYERS_PER_GAME
@@ -355,7 +363,8 @@ export interface FoodDelta {
   resync verb. A reconnect is a new `game_state`.
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs: everything rides `player_input`.
-- **`GameModule` seam additions** (#97): `serializeFullState()`, `getDebugHandle()` (section 8).
+- **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
+  carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`DETERMINISM.md §3`); it never receives a `RandomSource`.
@@ -450,26 +459,52 @@ asset is missing, never throwing**. Nothing but the bus imports `AudioService`.
 
 ## 8. Debug MCP surface (#14)
 
-`DebugContext` gains `getRoomDebugHandle(gameId): SimulationDebugHandle | undefined`, which the
-module implements; handlers in `mcp/handlers/` only translate arguments and serialise results.
-This table is the one home of the tool names (the `_room` suffix marks the tools that act on
-the room loop rather than the world):
+`GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle`
+(`game/debug/simulation-debug-handle.ts`); the room exposes it as `GameRoom.getDebugHandle()`
+and the handlers in `mcp/handlers/` reach it through the one shared lookup
+(`handlers/capability-tool.ts`), only translating arguments and serialising results. Every
+member of the handle is an optional **capability**: a tool whose capability the module does not
+implement answers `isError` "not supported by this game module" instead of stubbing behaviour
+(the echo module implements none; the Evolution module implements all). The optionality is
+for the template only: the Evolution handle is declared `implements Required<SimulationDebugHandle>`
+so `tsc` checks completeness (a forgotten member is a type error, never a runtime "not
+supported"), and the Evolution module never wires `DebugContext.getRoomGameState`; there is one
+path to the full state, and the inspector fallback below is template compatibility only. A
+refused request
+(unknown player, unknown kind, a balance path that is not a number leaf) is a
+`DebugRequestError`, which the lookup turns into an `isError` result. This table is the one home
+of the tool names (the `_room` suffix marks the tools that act on the room loop rather than the
+world; they need no capability):
 
-| Tool                                                                | Handle method                                                      |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `debug_get_game_state(gameId)`                                      | `serializeFullState()` + counts per food kind, variant and zone    |
-| `debug_get_player_progress(gameId, playerId)`                       | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer |
-| `debug_get_entities(gameId, kind?, bbox?)`                          | `listEntities(filter)`                                             |
-| `debug_grant_dna(gameId, playerId, dna, tags?)`                     | `grantDna(playerId, grant)` (logged)                               |
-| `debug_spawn(gameId, kind, x, y, params)`                           | `spawn(request)` through the spawner                               |
-| `debug_pause_room` / `debug_step_room(ticks)` / `debug_resume_room` | `pause()`, `step(ticks)`, `resume()` on the room loop              |
-| `debug_set_seed(gameId, seed)`                                      | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)         |
-| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`    | `world.balance` read / patch + `balance_updated`                   |
-| `debug_get_state_hash(gameId)`                                      | `computeStateHash(world)`                                          |
-| `debug_export_replay(gameId)`                                       | `ReplayRecorder.export()`                                          |
+| Tool                                                                                        | Handle method                                                                    |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `debug_get_game_state(gameId)`                                                              | `GameRoom.getFullState()`: the module's `serializeFullState()`, no handle member |
+| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer               |
+| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                                           |
+| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                                             |
+| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                                             |
+| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                                            |
+| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                            |
+| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)                       |
+| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                       |
+| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                             |
+| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                     |
 
-`getRoomGameState(gameId)` (the template's summary) returns `{ tick, seed, roundPhase,
-roundTimeLeftMs, players, counts, stateHash }`, not the entity dump.
+`debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
+the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
+same `{ snapshot, balance }` that `game_state` sends a joining client. The handle has no second
+full-state member, so the Evolution module cannot implement two shapes of one fact.
+`patchBalance` applies `applyBalancePatch` (`game/debug/balance-patch.ts`): number leaves only,
+at paths that exist, validated as a whole before anything is written.
+
+The room loop tools: `pause` makes the room ignore ticker fires; `step(ticks)` pauses a running
+room and runs exactly `ticks` steps (each broadcast; at most `secondsToTicks(DEBUG_STEP_MAX_SECONDS)`,
+converted at the tool's schema, the constant itself stays in seconds); `resume` discards the wall
+time that passed while paused (`FixedStepAccumulator.discardElapsed()`), so a resumed room never
+bursts to catch up. When `SNAPSHOT_EVERY_TICKS` lands inside the tick (#111), `step()` must
+still end with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot shows a
+stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
+report even for a module without a world tick.
 
 ## 9. Constants and balance (decision, one home)
 
@@ -477,13 +512,19 @@ roundTimeLeftMs, players, counts, stateHash }`, not the entity dump.
 exactly as the design tables name it (`GAME-DESIGN.md §12`, `ECOLOGY.md §7`, `PROGRESSION.md §6`,
 `TRAITS.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
 `DEFAULT_BALANCE = { world, session, controls, ladder, ecology, growth, absorption, progression, traits }`
-(the domain modules as namespaces) and `BalanceConfig = typeof DEFAULT_BALANCE`.
+(the domain modules spread into plain records) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
+with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
+patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
+that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
+returns a fresh copy and never writes its input.
 `data/balance.json` is **generated** from `DEFAULT_BALANCE` by `scripts/generate-balance.ts`,
 checked in as the diffable reference the debug tools quote, and pinned by
 `balance.test.ts` (file equals `DEFAULT_BALANCE`, so hand edits fail the gate). At runtime each
-room starts from `DEFAULT_BALANCE`; `debug_set_balance` patches number leaves only and the
-world carries the live copy. Nothing reads `data/balance.json` at runtime. The full rule set is
-`CODE-STANDARDS.md §2`.
+room starts from a copy of `DEFAULT_BALANCE`; `debug_set_balance` patches number leaves only and the
+world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TIERS` only:
+`TRAIT_CATALOG[n].tiers` is structure and is never read for a number (the JSON writes both because a
+catalog row carries its tiers), so a patch has one path. Nothing reads `data/balance.json` at
+runtime. The full rule set is `CODE-STANDARDS.md §2`.
 
 ## 10. File plan (target ≤ 250 lines per file; 300 is the lint cap)
 
@@ -492,8 +533,10 @@ packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
   constants/{world,session,controls,ladder,camera,ecology,growth,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
+  constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
-  types/{common,messages,game,effects}.ts
+  types/{common,messages,game,traits,effects}.ts                traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY
+  testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot (+ createTestCell, createTestWorld with #98)
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
@@ -512,7 +555,7 @@ packages/server/src/
   game/replay/{replay-recorder,replay-runner}.ts
   game/debug/simulation-debug-handle.ts
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)
-  testing/{builders,scenarios/*}.ts                             (#75)
+  testing/builders.ts   testing/gameplay/*.ts (the scenario runner, #75)   testing/scenarios/<table>.gameplay.test.ts (#102)
 packages/client/src/app/game/
   game-setup.ts
   net/{snapshot-buffer,interpolation,prediction,reconciliation,world-store,input-sender}.ts   interpolation owns renderTick (section 5)
@@ -522,7 +565,7 @@ packages/client/src/app/game/
   state/game-state.service.ts   audio/{audio.service,sound-event-bus}.ts
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)
-data/balance.json                                               generated (section 9)
+data/balance.json                                               generated (section 9): `pnpm generate:balance`
 scripts/generate-balance.ts
 ```
 
@@ -536,7 +579,8 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
   kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip;
   food delta tracker; draft (ladder filter, rung card, weights, timeout pick); `foldModifiers`;
   snapshot buffer / prediction / reconciliation; schemas (`message-schemas.test.ts` bounds);
-  `balance.test.ts` (generated file equals `DEFAULT_BALANCE`; every design table constant exists).
+  `balance.test.ts` (generated file equals `DEFAULT_BALANCE`), `constants-ledger.test.ts` (every design
+  table constant exists).
 - **Integration:** input → step → snapshot through a real `GameRoom` under a `ManualClock`; late
   join gets a full `game_state` then deltas; reconnect resync; replay reproduces the hash; the
   rematch reseed (`seed + ROUND_SEED_INCREMENT`) produces a fresh world.
