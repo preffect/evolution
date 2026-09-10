@@ -4,10 +4,8 @@
 // that has not spawned yet) it advances its own remembered point, so the inputs still change.
 // Every draw comes from `context.random`: two bots with the same stream walk the same path.
 
-import type { PlayerCommand } from '../adapter.js';
-import type { BotStrategy, BotStrategyFactory } from '../bots.js';
-import type { ScriptContext } from '../scripts.js';
-import { BOT_STRATEGY_NAME, WANDER_STEP_WU, WANDER_TURN_SIGMA_RADIANS } from './strategy-constants.js';
+import type { BotStrategy, BotStrategyFactory, PlayerCommand, ScriptContext } from '../bot-strategy.js';
+import { BOT_STRATEGY_NAME, WANDER_STEP_WU, WANDER_TURN_SIGMA_RADIANS } from '../strategy-constants.js';
 
 export interface WanderOptions {
   readonly stepWu?: number;

@@ -4,7 +4,12 @@
 // Pure: no process, no output. Anything unusable throws `BotClientError` carrying the usage text.
 
 import { DEFAULT_BOT_SEED, DEFAULT_SERVER_PORT, playerId, type PlayerId } from '@evolution/shared';
-import { BOT_STRATEGY_NAME, BOT_STRATEGY_NAMES } from '../gameplay/strategies/strategy-constants.js';
+import {
+  BOT_STRATEGY_NAME,
+  BOT_STRATEGY_NAMES,
+  isBotStrategyName,
+  type BotStrategyName,
+} from '../../game/bots/strategy-constants.js';
 import { BotClientError } from './errors.js';
 
 export const BOT_CLI_FLAG = {
@@ -35,7 +40,7 @@ export const BOT_CLI_USAGE = [
 export interface BotCliOptions {
   readonly gameId: string;
   readonly botCount: number;
-  readonly strategy: string;
+  readonly strategy: BotStrategyName;
   readonly seed: number;
   readonly preyPlayerId?: PlayerId;
   readonly url: string;
@@ -74,21 +79,36 @@ function wholeNumber(flag: FlagName, raw: string, minimum: number): number {
   return value;
 }
 
+function strategyName(raw: string): BotStrategyName {
+  if (!isBotStrategyName(raw)) {
+    throw usageError(`${BOT_CLI_FLAG.strategy} must be one of ${BOT_STRATEGY_NAMES.join(', ')}, not "${raw}"`);
+  }
+  return raw;
+}
+
+function socketUrl(raw: string): string {
+  if (!URL.canParse(raw))
+    throw usageError(`${BOT_CLI_FLAG.url} needs a URL such as ${DEFAULT_BOT_CLIENT_URL}, not "${raw}"`);
+  return raw;
+}
+
 export function parseBotCliArguments(commandLineArguments: readonly string[]): BotCliOptions {
   const flags = collectFlags(commandLineArguments);
   const gameId = flags.get(BOT_CLI_FLAG.game);
   if (gameId === undefined) throw usageError(`${BOT_CLI_FLAG.game} is required`);
   const bots = flags.get(BOT_CLI_FLAG.bots);
+  const strategy = flags.get(BOT_CLI_FLAG.strategy);
   const seed = flags.get(BOT_CLI_FLAG.seed);
+  const url = flags.get(BOT_CLI_FLAG.url);
   const prey = flags.get(BOT_CLI_FLAG.prey);
   const ticks = flags.get(BOT_CLI_FLAG.ticks);
   return {
     gameId,
     botCount: bots === undefined ? DEFAULT_BOT_COUNT : wholeNumber(BOT_CLI_FLAG.bots, bots, 1),
-    strategy: flags.get(BOT_CLI_FLAG.strategy) ?? DEFAULT_BOT_STRATEGY,
+    strategy: strategy === undefined ? DEFAULT_BOT_STRATEGY : strategyName(strategy),
     seed: seed === undefined ? DEFAULT_BOT_SEED : wholeNumber(BOT_CLI_FLAG.seed, seed, 0),
     ...(prey === undefined ? {} : { preyPlayerId: playerId(prey) }),
-    url: flags.get(BOT_CLI_FLAG.url) ?? DEFAULT_BOT_CLIENT_URL,
+    url: url === undefined ? DEFAULT_BOT_CLIENT_URL : socketUrl(url),
     ...(ticks === undefined ? {} : { tickLimit: wholeNumber(BOT_CLI_FLAG.ticks, ticks, 1) }),
   };
 }

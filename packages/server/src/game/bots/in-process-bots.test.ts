@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { playerId } from '@evolution/shared';
-import { DebugRequestError } from '../../game/debug/debug-request-error.js';
+import { DebugRequestError } from '../debug/debug-request-error.js';
 import { echoBotBinding } from './bot-binding.js';
 import { createInProcessBotRoster } from './in-process-bots.js';
 
 const SNAPSHOT = { players: {} };
 
 describe('in-process bot roster', () => {
-  it('spawns bots with stable identities in index order and lists them', () => {
+  it('spawns bots with stable in-process identities in index order and lists them', () => {
     const roster = createInProcessBotRoster(echoBotBinding);
     const first = roster.spawn({ behavior: 'wander', seed: 42 });
     const second = roster.spawn({ behavior: 'idle', seed: 42 });
-    expect(first).toEqual({ playerId: 'bot_42_0', playerName: 'Bot 0', avatarIndex: 0, behavior: 'wander' });
-    expect(second).toMatchObject({ playerId: 'bot_42_1', behavior: 'idle' });
+    expect(first).toEqual({ playerId: 'sim_bot_42_0', playerName: 'Bot 0', avatarIndex: 0, behavior: 'wander' });
+    expect(second).toMatchObject({ playerId: 'sim_bot_42_1', behavior: 'idle' });
     expect(roster.list()).toEqual([first, second]);
   });
 
@@ -39,7 +39,7 @@ describe('in-process bot roster', () => {
     expect(inputsOf()).toEqual(inputsOf());
   });
 
-  it('removes a bot it spawned and stops driving it', () => {
+  it('removes a bot it spawned, stops driving it and never reuses its index', () => {
     const roster = createInProcessBotRoster(echoBotBinding);
     const bot = roster.spawn({ behavior: 'wander', seed: 1 });
     expect(roster.remove(bot.playerId)).toEqual(bot);
@@ -47,19 +47,12 @@ describe('in-process bot roster', () => {
     roster.driveTick(SNAPSHOT, 1, submit);
     expect(submit).not.toHaveBeenCalled();
     expect(roster.list()).toEqual([]);
+    expect(roster.spawn({ behavior: 'idle', seed: 1 }).playerId).toBe('sim_bot_1_1');
   });
 
   it('refuses to remove a player it did not spawn', () => {
     const roster = createInProcessBotRoster(echoBotBinding);
     expect(() => roster.remove(playerId('alice'))).toThrow(DebugRequestError);
     expect(() => roster.remove(playerId('alice'))).toThrow(/not a bot spawned in this game/);
-  });
-
-  it('refuses an unknown strategy as a debug request error and spawns nothing', () => {
-    const roster = createInProcessBotRoster(echoBotBinding);
-    expect(() => roster.spawn({ behavior: 'flee', seed: 1 })).toThrow(DebugRequestError);
-    expect(() => roster.spawn({ behavior: 'flee', seed: 1 })).toThrow(/idle, wander, grazer, hunter/);
-    expect(roster.list()).toEqual([]);
-    expect(roster.spawn({ behavior: 'idle', seed: 1 }).playerId).toBe('bot_1_0');
   });
 });

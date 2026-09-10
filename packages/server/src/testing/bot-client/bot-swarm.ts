@@ -4,11 +4,11 @@
 // timing pair. `start()` connects and seats every bot before any of them ticks, so the swarm's
 // first inputs all land on a room that already knows every bot.
 
-import type { GameInput, GameSnapshot, PlayerId } from '@evolution/shared';
-import { CLIENT_ID_QUERY_PARAMETER } from '../../ws/websocket-handler.js';
-import type { BotWorldBinding } from './bot-binding.js';
-import { createBotIdentity } from './bot-identity.js';
-import { createNamedBotPilot } from './bot-pilot.js';
+import { CLIENT_ID_QUERY_PARAMETER, type GameInput, type GameSnapshot, type PlayerId } from '@evolution/shared';
+import type { BotWorldBinding } from '../../game/bots/bot-binding.js';
+import { createBotIdentity } from '../../game/bots/bot-identity.js';
+import { createNamedBotPilot } from '../../game/bots/bot-pilot.js';
+import type { BotStrategyName } from '../../game/bots/strategy-constants.js';
 import { BotSession, type BotSessionStats } from './bot-session.js';
 import type { BotClientTimingFactory } from './bot-timing.js';
 import type { BotTransportFactory } from './bot-transport.js';
@@ -21,7 +21,7 @@ export interface BotSwarmOptions {
   /** A positive whole number of bots. */
   readonly botCount: number;
   /** A catalogue name (`strategy-catalog.ts`); every bot in the swarm runs it. */
-  readonly strategy: string;
+  readonly strategy: BotStrategyName;
   readonly seed: number;
   /** `hunter` only: hunt this player alone. */
   readonly preyPlayerId?: PlayerId;
@@ -33,13 +33,13 @@ export interface BotSwarmOptions {
 
 export interface BotSwarm {
   readonly gameId: string;
-  /** The sessions, in bot index order; empty until `start()` has connected them. */
+  /** The sessions, in bot index order; empty until `start()` has connected them all. */
   bots(): readonly BotSession[];
-  /** Connects, seats and then starts every bot; rejects (and stops what connected) on the first failure. */
+  /** Connects, seats and then starts every bot; rejects on the first failure and stops every bot that did connect. */
   start(): Promise<void>;
   stop(): void;
   stats(): BotSessionStats[];
-  /** Resolves once every bot's client tick has reached `tick`. */
+  /** Resolves once every bot's client tick has reached `tick`; rejects if a bot loses its connection first. */
   whenAllReachedTick(tick: number): Promise<void>;
 }
 
@@ -56,13 +56,25 @@ function validateBotCount(botCount: number): void {
   }
 }
 
+/** Every session whose connect succeeded, in index order; on any failure they are all stopped and the first failure is thrown. */
+async function connectAll(connects: readonly Promise<BotSession>[]): Promise<BotSession[]> {
+  const settled = await Promise.allSettled(connects);
+  const connected = settled.flatMap((outcome) => (outcome.status === 'fulfilled' ? [outcome.value] : []));
+  const failure = settled.find((outcome) => outcome.status === 'rejected');
+  if (failure !== undefined) {
+    for (const session of connected) session.stop();
+    throw failure.reason;
+  }
+  return connected;
+}
+
 export function createBotSwarm(options: BotSwarmOptions): BotSwarm {
   validateBotCount(options.botCount);
   const { url, gameId, botCount, strategy, seed, preyPlayerId, binding, createTiming, connect } = options;
   let sessions: BotSession[] = [];
 
   const connectBot = async (playerIndex: number): Promise<BotSession> => {
-    const identity = createBotIdentity(seed, playerIndex);
+    const identity = createBotIdentity('wire', seed, playerIndex);
     const pilot = createNamedBotPilot({
       behavior: strategy,
       seed,
@@ -83,8 +95,8 @@ export function createBotSwarm(options: BotSwarmOptions): BotSwarm {
     gameId,
     bots: () => sessions,
     async start() {
+      sessions = await connectAll(Array.from({ length: botCount }, (_unused, index) => connectBot(index)));
       try {
-        sessions = await Promise.all(Array.from({ length: botCount }, (_unused, index) => connectBot(index)));
         await Promise.all(sessions.map((session) => session.join()));
       } catch (error) {
         stop();

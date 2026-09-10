@@ -2,8 +2,10 @@
 // (`join_lobby`, `join_game`), then one client tick per fixed step from the injected timing
 // (docs/ARCHITECTURE.md §5: exactly one `player_input` per client tick, `sequence` = tick),
 // each decided by the pilot from the latest snapshot the server sent. A bot that has not seen a
-// snapshot yet holds; a strategy that answers `null` holds. The session never reads the wall
-// clock: the CLI hands it the system pair, a test a manual pair it advances by hand.
+// snapshot yet holds; a strategy that answers `null` holds. A close after the bot is seated
+// stops the tick, marks the stats disconnected and rejects whoever is waiting on a tick or a
+// snapshot, so a server that drops a bot mid-run fails the run instead of counting silent inputs.
+// The session never reads the wall clock: the CLI hands it the system pair, a test a manual pair.
 
 import {
   CLIENT_MESSAGE_TYPE,
@@ -15,8 +17,8 @@ import {
   type PlayerId,
   type ServerMessage,
 } from '@evolution/shared';
-import type { BotIdentity } from './bot-identity.js';
-import type { BotPilot, BotPilotStats } from './bot-pilot.js';
+import type { BotIdentity } from '../../game/bots/bot-identity.js';
+import type { BotPilot, BotPilotStats } from '../../game/bots/bot-pilot.js';
 import type { BotClientTiming } from './bot-timing.js';
 import type { BotTransport } from './bot-transport.js';
 import { BotClientError } from './errors.js';
@@ -41,16 +43,16 @@ export interface BotSessionStats extends BotPilotStats {
   readonly droppedTicks: number;
   readonly errorsReceived: number;
   readonly lastError: string | null;
+  /** `false` once the transport closed, whether the server dropped the bot or `stop()` hung up. */
+  readonly isConnected: boolean;
 }
 
 type SnapshotPredicate = (snapshot: GameSnapshot) => boolean;
-interface SnapshotWaiter {
-  readonly predicate: SnapshotPredicate;
-  readonly resolve: (snapshot: GameSnapshot) => void;
-}
-interface TickWaiter {
-  readonly tick: number;
-  readonly resolve: () => void;
+/** Someone awaiting a value the session will see later: settled when `isDue`, rejected on a close. */
+interface Waiter<Value> {
+  readonly isDue: (value: Value) => boolean;
+  readonly resolve: (value: Value) => void;
+  readonly reject: (error: Error) => void;
 }
 interface JoinOutcome {
   readonly resolve: () => void;
@@ -67,15 +69,16 @@ export class BotSession {
   private droppedTicks = 0;
   private errorsReceived = 0;
   private lastError: string | null = null;
+  private isConnected = true;
   private joinOutcome: JoinOutcome | undefined;
-  private readonly snapshotWaiters: SnapshotWaiter[] = [];
-  private readonly tickWaiters: TickWaiter[] = [];
+  private readonly snapshotWaiters: Waiter<GameSnapshot>[] = [];
+  private readonly tickWaiters: Waiter<number>[] = [];
 
   constructor(private readonly options: BotSessionOptions) {
     this.playerId = options.identity.playerId;
     this.accumulator = createSimulationStepAccumulator(options.timing.clock);
     options.transport.onMessage((message) => this.onServerMessage(message));
-    options.transport.onClose(() => this.failJoin('the connection closed before the game seated the bot'));
+    options.transport.onClose(() => this.onTransportClosed());
   }
 
   /** Announces the bot in the lobby and joins the game; resolves once the server has seated it. */
@@ -103,17 +106,21 @@ export class BotSession {
     this.options.transport.close();
   }
 
-  /** The latest snapshot that satisfies `predicate`, now or when it arrives. */
+  /** The latest snapshot that satisfies `predicate`, now or when it arrives; rejects once the connection is gone. */
   waitForSnapshot(predicate: SnapshotPredicate): Promise<GameSnapshot> {
     const latest = this.latestSnapshot;
     if (latest !== undefined && predicate(latest)) return Promise.resolve(latest);
-    return new Promise((resolve) => this.snapshotWaiters.push({ predicate, resolve }));
+    if (!this.isConnected) return Promise.reject(this.disconnectedError());
+    return new Promise((resolve, reject) => this.snapshotWaiters.push({ isDue: predicate, resolve, reject }));
   }
 
-  /** Resolves once the client tick has reached `tick`. */
+  /** Resolves once the client tick has reached `tick`; rejects once the connection is gone. */
   waitForTick(tick: number): Promise<void> {
     if (this.clientTick >= tick) return Promise.resolve();
-    return new Promise((resolve) => this.tickWaiters.push({ tick, resolve }));
+    if (!this.isConnected) return Promise.reject(this.disconnectedError());
+    return new Promise((resolve, reject) =>
+      this.tickWaiters.push({ isDue: (reached) => reached >= tick, resolve: () => resolve(), reject }),
+    );
   }
 
   stats(): BotSessionStats {
@@ -129,6 +136,7 @@ export class BotSession {
       droppedTicks: this.droppedTicks,
       errorsReceived: this.errorsReceived,
       lastError: this.lastError,
+      isConnected: this.isConnected,
     };
   }
 
@@ -155,11 +163,20 @@ export class BotSession {
   private acceptSnapshot(snapshot: GameSnapshot): void {
     this.latestSnapshot = snapshot;
     this.snapshotsReceived += 1;
-    settleWaiters(
-      this.snapshotWaiters,
-      (waiter) => waiter.predicate(snapshot),
-      (waiter) => waiter.resolve(snapshot),
-    );
+    settleDueWaiters(this.snapshotWaiters, snapshot);
+  }
+
+  /** The transport closed: stop ticking, fail a pending join and reject everyone still waiting. */
+  private onTransportClosed(): void {
+    this.isConnected = false;
+    this.options.timing.ticker.stop();
+    this.failJoin('the connection closed before the game seated the bot');
+    rejectWaiters(this.snapshotWaiters, this.disconnectedError());
+    rejectWaiters(this.tickWaiters, this.disconnectedError());
+  }
+
+  private disconnectedError(): BotClientError {
+    return new BotClientError(`${this.playerId} lost its connection at client tick ${this.clientTick}`);
   }
 
   private onServerError(message: string): void {
@@ -194,24 +211,20 @@ export class BotSession {
         this.inputsSent += 1;
       }
     }
-    const reached = this.clientTick;
-    settleWaiters(
-      this.tickWaiters,
-      (waiter) => waiter.tick <= reached,
-      (waiter) => waiter.resolve(),
-    );
+    settleDueWaiters(this.tickWaiters, this.clientTick);
   }
 }
 
-/** Resolves and removes every waiter `isDue` accepts; the rest keep waiting. */
-function settleWaiters<Waiter>(
-  waiters: Waiter[],
-  isDue: (waiter: Waiter) => boolean,
-  settle: (waiter: Waiter) => void,
-): void {
-  const due = waiters.filter(isDue);
+/** Resolves and removes every waiter `value` is due for; the rest keep waiting. */
+function settleDueWaiters<Value>(waiters: Waiter<Value>[], value: Value): void {
+  const due = waiters.filter((waiter) => waiter.isDue(value));
   for (const waiter of due) {
     waiters.splice(waiters.indexOf(waiter), 1);
-    settle(waiter);
+    waiter.resolve(value);
   }
+}
+
+/** Rejects and removes every waiter: nothing they wait for can arrive any more. */
+function rejectWaiters<Value>(waiters: Waiter<Value>[], error: Error): void {
+  for (const waiter of waiters.splice(0)) waiter.reject(error);
 }

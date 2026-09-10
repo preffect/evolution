@@ -44,6 +44,8 @@ describe('bot client arguments', () => {
     [['--game', 'g1', '--seed', '-1'], /--seed needs a whole number of at least 0/],
     [['--game', 'g1', '--seed', '1.5'], /--seed needs a whole number/],
     [['--game', 'g1', '--ticks', '0'], /--ticks needs a whole number of at least 1/],
+    [['--game', 'g1', '--strategy', 'flee'], /--strategy must be one of idle, wander, grazer, hunter, not "flee"/],
+    [['--game', 'g1', '--url', 'notaurl'], /--url needs a URL such as ws:\/\/localhost:\d+\/ws, not "notaurl"/],
   ])('refuses %j with the usage text', (commandLineArguments, problem) => {
     expect(() => parseBotCliArguments(commandLineArguments)).toThrow(BotClientError);
     expect(() => parseBotCliArguments(commandLineArguments)).toThrow(problem);

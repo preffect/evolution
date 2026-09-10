@@ -1,6 +1,8 @@
 // The `BotTransport` over a real socket: what the CLI and the integration test connect with.
 // The socket is built by an injectable factory so the unit test drives the framing and the
-// listener fan-out with a fake socket; only `openWebSocket` touches the `ws` package.
+// listener fan-out with a fake socket; only `openWebSocket` touches the `ws` package. A frame
+// that is not JSON is dropped rather than thrown from inside the socket's event handler, where
+// it would take the whole process down.
 
 import { WebSocket } from 'ws';
 import type { ClientMessage, ServerMessage } from '@evolution/shared';
@@ -21,11 +23,21 @@ export type SocketFactory = (url: string) => SocketLike;
 
 const openWebSocket: SocketFactory = (url) => new WebSocket(url);
 
+/** The decoded frame, or `undefined` for one that is not JSON. */
+function decodeFrame(frame: string): ServerMessage | undefined {
+  try {
+    return JSON.parse(frame) as ServerMessage;
+  } catch {
+    return undefined;
+  }
+}
+
 function transportOver(socket: SocketLike): BotTransport {
   const messageListeners: ((message: ServerMessage) => void)[] = [];
   const closeListeners: (() => void)[] = [];
   socket.on('message', (data) => {
-    const message = JSON.parse(data.toString()) as ServerMessage;
+    const message = decodeFrame(data.toString());
+    if (message === undefined) return;
     for (const listener of messageListeners) listener(message);
   });
   socket.on('close', () => {
@@ -39,7 +51,7 @@ function transportOver(socket: SocketLike): BotTransport {
   };
 }
 
-/** Resolves once the socket is open; a failure before that rejects with `BotClientError`. */
+/** Resolves once the socket is open; an error or a close before that rejects with `BotClientError`. */
 export function createWebSocketTransport(
   url: string,
   createSocket: SocketFactory = openWebSocket,
@@ -49,6 +61,9 @@ export function createWebSocketTransport(
     let isOpen = false;
     socket.on('error', (error) => {
       if (!isOpen) reject(new BotClientError(`could not connect to ${url}: ${error.message}`));
+    });
+    socket.on('close', () => {
+      if (!isOpen) reject(new BotClientError(`could not connect to ${url}: the socket closed before it opened`));
     });
     socket.on('open', () => {
       isOpen = true;

@@ -6,12 +6,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CLIENT_MESSAGE_TYPE, TICK_INTERVAL_MS, createTestSessionConfig } from '@evolution/shared';
 import type { GameInput, PlayerId } from '@evolution/shared';
+import { echoBotBinding } from '../../game/bots/bot-binding.js';
+import { createNamedBotPilot } from '../../game/bots/bot-pilot.js';
 import { defaultGameModuleFactory, type GameModuleFactory } from '../../game/game-module.js';
 import { captureManualTimings } from '../bot-builders.js';
 import { echoedInput, type EchoSnapshot } from '../gameplay/echo-adapter.js';
 import { nextServerMessage, openTestSocket, startTestWebSocketServer } from '../socket-builders.js';
-import { echoBotBinding } from './bot-binding.js';
-import { createNamedBotPilot } from './bot-pilot.js';
 import type { BotSession } from './bot-session.js';
 import { createBotSwarm, type BotSwarm } from './bot-swarm.js';
 import { BotClientError } from './errors.js';
@@ -157,7 +157,13 @@ describe('bot client against a real server', () => {
     expect(echoedInput(snapshot, botIds[0]!)).not.toEqual(echoedInput(snapshot, botIds[1]!));
     expect(room.getTickCount()).toBe(TICKS);
     for (const stats of bots.stats()) {
-      expect(stats).toMatchObject({ clientTick: TICKS, inputsSent: TICKS, droppedTicks: 0, errorsReceived: 0 });
+      expect(stats).toMatchObject({
+        clientTick: TICKS,
+        inputsSent: TICKS,
+        droppedTicks: 0,
+        errorsReceived: 0,
+        isConnected: true,
+      });
       expect(stats.snapshotsReceived).toBeGreaterThanOrEqual(TICKS);
     }
   });

@@ -6,8 +6,8 @@ import {
   createTestPerception,
   createTestScriptContext,
   createTestWorldView,
-} from '../../bot-builders.js';
-import { UnknownBotStrategyError, createStrategyByName } from './strategy-catalog.js';
+} from '../../testing/bot-builders.js';
+import { createStrategyByName } from './strategy-catalog.js';
 import { BOT_STRATEGY_NAMES, isBotStrategyName } from './strategy-constants.js';
 
 const perception = createTestPerception();
@@ -19,9 +19,8 @@ describe('strategy catalog', () => {
     }
   });
 
-  it('rejects a name that is not in the catalog', () => {
-    expect(() => createStrategyByName('flee', perception)).toThrow(UnknownBotStrategyError);
-    expect(() => createStrategyByName('flee', perception)).toThrow(/idle, wander, grazer, hunter/);
+  it('tells a catalogue name from any other string, which is how the CLI and the tool schema gate the catalogue', () => {
+    expect(BOT_STRATEGY_NAMES).toEqual(['idle', 'wander', 'grazer', 'hunter']);
     expect(isBotStrategyName('grazer')).toBe(true);
     expect(isBotStrategyName('flee')).toBe(false);
   });
@@ -33,7 +32,7 @@ describe('strategy catalog', () => {
     const strategy = createStrategyByName('hunter', perception, { preyPlayerId: prey.playerId })();
     const context = createTestScriptContext({
       snapshot: createTestWorldView({ cells: [self, prey, other] }),
-      cell: { x: 0, y: 0, radiusWu: 10 },
+      cell: { x: 0, y: 0, radius: 10 },
     });
     expect(strategy.decide(context)).toEqual({ targetX: 50, targetY: 0 });
   });

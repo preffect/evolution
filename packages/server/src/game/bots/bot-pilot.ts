@@ -5,11 +5,11 @@
 // strategy answers on, so a coalesced input is never mistaken for a lost one.
 
 import { createSeededRandom, type PlayerId, type RandomSource } from '@evolution/shared';
-import type { BotStrategy, BotStrategyFactory } from '../gameplay/bots.js';
-import type { ScriptContext } from '../gameplay/scripts.js';
-import { createStrategyByName } from '../gameplay/strategies/strategy-catalog.js';
 import type { BotWorldBinding } from './bot-binding.js';
 import { botStreamLabel } from './bot-identity.js';
+import type { BotStrategy, BotStrategyFactory, ScriptContext } from './bot-strategy.js';
+import { createStrategyByName } from './strategy-catalog.js';
+import type { BotStrategyName } from './strategy-constants.js';
 
 export interface BotPilotOptions<Input, Snapshot> {
   readonly playerIndex: number;
@@ -69,8 +69,8 @@ export function createBotPilot<Input, Snapshot>(options: BotPilotOptions<Input, 
 }
 
 export interface NamedBotPilotOptions<Input, Snapshot> {
-  /** A catalogue name (`strategy-catalog.ts`). */
-  readonly behavior: string;
+  /** A catalogue name (`strategy-catalog.ts`); the CLI and the MCP schema validate the string before it gets here. */
+  readonly behavior: BotStrategyName;
   readonly seed: number;
   readonly playerIndex: number;
   readonly playerId: PlayerId;
@@ -82,7 +82,7 @@ export interface NamedBotPilotOptions<Input, Snapshot> {
 /**
  * The pilot both bot hosts build: a catalogue strategy on the bot's own stream, `bot_<index>`
  * forked from the swarm seed (docs/DETERMINISM.md §3), so the same seed and index decide the
- * same way in-process and over the wire. Throws `UnknownBotStrategyError` for a name not in the catalogue.
+ * same way in-process and over the wire.
  */
 export function createNamedBotPilot<Input, Snapshot>(
   options: NamedBotPilotOptions<Input, Snapshot>,

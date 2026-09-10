@@ -1,11 +1,11 @@
 // The bots a game module drives itself (`debug_spawn_bot`, docs/ARCHITECTURE.md §8): a roster
 // of pilots the module steps before each tick. The module owns the players (it adds and removes
-// them); the roster owns the strategies and their streams, and mints the bots' identities.
+// them); the roster owns the strategies and their streams, and mints the bots' identities under
+// the in-process prefix (`sim_bot_<seed>_<index>`), a namespace no wire bot can reach.
 
 import type { PlayerId } from '@evolution/shared';
-import { DebugRequestError } from '../../game/debug/debug-request-error.js';
-import type { BotSpawnRequest, SpawnedBot } from '../../game/debug/simulation-debug-handle.js';
-import { UnknownBotStrategyError } from '../gameplay/strategies/strategy-catalog.js';
+import { DebugRequestError } from '../debug/debug-request-error.js';
+import type { BotSpawnRequest, SpawnedBot } from '../debug/simulation-debug-handle.js';
 import type { BotWorldBinding } from './bot-binding.js';
 import { createBotIdentity } from './bot-identity.js';
 import { createNamedBotPilot, type BotPilot } from './bot-pilot.js';
@@ -29,24 +29,16 @@ export function createInProcessBotRoster<Input, Snapshot>(
   binding: BotWorldBinding<Input, Snapshot>,
 ): InProcessBotRoster<Input, Snapshot> {
   const entries = new Map<PlayerId, RosterEntry<Input, Snapshot>>();
+  /** Indices are never reused, so a removed bot's id stays retired for the life of the room. */
   let spawnedCount = 0;
-
-  const buildPilot = (request: BotSpawnRequest, playerIndex: number, playerId: PlayerId): BotPilot<Input, Snapshot> => {
-    try {
-      return createNamedBotPilot({ ...request, playerIndex, playerId, binding });
-    } catch (error) {
-      if (error instanceof UnknownBotStrategyError) throw new DebugRequestError(error.message);
-      throw error;
-    }
-  };
 
   return {
     spawn(request) {
-      const index = spawnedCount;
-      const identity = createBotIdentity(request.seed, index);
-      const pilot = buildPilot(request, index, identity.playerId);
+      const playerIndex = spawnedCount;
+      const identity = createBotIdentity('inProcess', request.seed, playerIndex);
+      const pilot = createNamedBotPilot({ ...request, playerIndex, playerId: identity.playerId, binding });
       spawnedCount += 1;
-      const bot: SpawnedBot = { ...identity, behavior: pilot.strategyName };
+      const bot: SpawnedBot = { ...identity, behavior: request.behavior };
       entries.set(bot.playerId, { bot, pilot });
       return bot;
     },

@@ -6,9 +6,9 @@ import {
   createTestPerception,
   createTestScriptContext,
   createTestWorldView,
-} from '../../bot-builders.js';
+} from '../../../testing/bot-builders.js';
 import { createHunterStrategy } from './hunter.js';
-import { BOT_STRATEGY_NAME, HUNTER_SPRINT_WITHIN_RADII } from './strategy-constants.js';
+import { BOT_STRATEGY_NAME, HUNTER_SPRINT_WITHIN_RADII } from '../strategy-constants.js';
 
 const perception = createTestPerception();
 const self = createTestBotCell({ id: 'self', playerId: TEST_PLAYER_ID, mass: 100, radius: 10 });
@@ -19,7 +19,7 @@ const tooBig = createTestBotCell({ id: 'big', playerId: playerId('player_3'), x:
 function contextWith(cells: readonly ReturnType<typeof createTestBotCell>[]) {
   return createTestScriptContext({
     snapshot: createTestWorldView({ cells }),
-    cell: { x: self.x, y: self.y, radiusWu: self.radius },
+    cell: { x: self.x, y: self.y, radius: self.radius },
   });
 }
 

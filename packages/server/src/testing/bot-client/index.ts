@@ -1,14 +1,8 @@
-// The headless bot client (docs/TESTING.md §8.4): what a test, the CLI and the echo module import.
-export { echoBotBinding, type BotWorldBinding } from './bot-binding.js';
-export { botStreamLabel, createBotIdentity, type BotIdentity } from './bot-identity.js';
-export {
-  createBotPilot,
-  createNamedBotPilot,
-  type BotPilot,
-  type BotPilotOptions,
-  type BotPilotStats,
-  type NamedBotPilotOptions,
-} from './bot-pilot.js';
+// The headless bot client's wire side (docs/TESTING.md §8.4): the session, the swarm, its timing
+// and transport seams, the CLI parser and the error. The decision stack (strategies, perception,
+// pilot, identity, bindings) lives in `game/bots/`. The `ws` transport is deliberately not here:
+// `cli.ts` and the integration test import `web-socket-transport.ts` directly, so nothing that
+// imports this barrel loads `ws` by accident.
 export { BotSession, type BotSessionOptions, type BotSessionStats } from './bot-session.js';
 export { createBotSwarm, socketUrlFor, type BotSwarm, type BotSwarmOptions } from './bot-swarm.js';
 export { createSystemBotClientTiming, type BotClientTiming, type BotClientTimingFactory } from './bot-timing.js';
@@ -23,5 +17,3 @@ export {
   type BotCliOptions,
 } from './cli-arguments.js';
 export { BotClientError } from './errors.js';
-export { createInProcessBotRoster, type InProcessBotRoster } from './in-process-bots.js';
-export { createWebSocketTransport, type SocketFactory, type SocketLike } from './web-socket-transport.js';

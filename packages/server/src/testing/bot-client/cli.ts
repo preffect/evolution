@@ -4,7 +4,7 @@
 //   pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy grazer --seed 42
 
 import { DEBUG_JSON_INDENT_SPACES } from '@evolution/shared';
-import { echoBotBinding } from './bot-binding.js';
+import { echoBotBinding } from '../../game/bots/bot-binding.js';
 import { createBotSwarm, type BotSwarm } from './bot-swarm.js';
 import { createSystemBotClientTiming } from './bot-timing.js';
 import { parseBotCliArguments } from './cli-arguments.js';
@@ -35,8 +35,12 @@ async function main(commandLineArguments: readonly string[]): Promise<void> {
     process.once('SIGINT', finish);
     return;
   }
-  await swarm.whenAllReachedTick(options.tickLimit);
-  finish();
+  try {
+    await swarm.whenAllReachedTick(options.tickLimit);
+  } finally {
+    // The stats print even when a bot lost its connection first; the error then still exits non-zero.
+    finish();
+  }
 }
 
 main(process.argv.slice(2)).catch((error: unknown) => {

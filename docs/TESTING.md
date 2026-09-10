@@ -256,8 +256,10 @@ A framework test never uses the file sink: pass `createMemoryReplaySink()` to
 Agents cannot open a second human's browser, so opponents are bots: the same `BotStrategy` runs
 in a scenario (section 8.1), over the wire against a running server, or inside the game module.
 
-**Strategies** (`packages/server/src/testing/gameplay/strategies/`) are pure over the
-`ScriptContext` and a `BotPerception`; the only randomness they may draw is `context.random`.
+**Strategies** (`packages/server/src/game/bots/strategies/`; the seam, perception and catalogue
+beside them in `game/bots/`, re-exported by `testing/gameplay/strategies/index.ts` so a scenario
+imports them from the framework) are pure over the `ScriptContext` and a `BotPerception`; the
+only randomness they may draw is `context.random`.
 
 | Name                           | Behaviour                                                                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -268,15 +270,20 @@ in a scenario (section 8.1), over the wire against a running server, or inside t
 | `createScriptSequenceStrategy` | Scripted: a list of `scripts.ts` steps, each owning a number of decisions, optionally looping; code only, no catalogue name.                                                                                                             |
 
 `createStrategyByName(name, perception, { preyPlayerId })` is the catalogue the CLI and
-`debug_spawn_bot` resolve a string through; `BOT_STRATEGY_NAMES` is the list a wrong name is
-told. `BotPerception` (`perception.ts`) is what a strategy sees beyond its own cell: `cellsOf`,
+`debug_spawn_bot` resolve a name through; both validate the string at their edge
+(`isBotStrategyName` in the CLI parser, `z.enum(BOT_STRATEGY_NAMES)` in the tool schema), and
+`BOT_STRATEGY_NAMES` is the list a wrong name is told. `BotPerception` (`game/bots/perception.ts`)
+is what a strategy sees: `ownCellOf(snapshot, playerId)`, the single self-locator (the one place
+a player identity is assumed; #156's wild cells swap it for an entity-id lookup), `cellsOf`,
 `motesOf` and `canEngulf(predator, prey)`, the shared predicate already closed over the live
 `balance.absorption`, so no bot carries its own ratio rule. A `BotWorldBinding`
-(`bot-client/bot-binding.ts`) adds the adapter duties, `locateCell` and `toInput`; the echo
-binding sees nothing and locates nothing, so on the echo module `grazer` and `hunter` hold and
-`wander` and `idle` are the strategies that show anything. #98 adds the Evolution binding.
+(`game/bots/bot-binding.ts`) adds `locateCell`, derived from `ownCellOf` through
+`locateCellThrough` (a `CellLocation` is the cell's `x`, `y`, `radius`), and `toInput`; a
+`ScenarioAdapter` extends it, so the adapter of a world IS its binding. The echo binding sees
+nothing and locates nothing, so on the echo module `grazer` and `hunter` hold and `wander` and
+`idle` are the strategies that show anything. #98 adds the Evolution binding.
 
-**Determinism.** Every bot is a `BotPilot` (`bot-client/bot-pilot.ts`) on its own stream,
+**Determinism.** Every bot is a `BotPilot` (`game/bots/bot-pilot.ts`) on its own stream,
 `bot_<index>` forked from the swarm seed, and stamps its client tick as the input `sequence`.
 Two bots with the same seed and index decide the same way in-process, over the wire and in a
 unit test (`bot-pilot.test.ts`, `bot-client.integration.test.ts` pin it).
@@ -291,25 +298,29 @@ pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy graze
 #   --ticks 600          stop after 600 client ticks and print per-bot stats as JSON (default: until Ctrl-C)
 ```
 
-Each bot opens its own socket as `?clientId=bot_<seed>_<index>` (a rerun with the same seed
-takes the same seats), sends `join_lobby` as `Bot <index>` and `join_game`, and is seated by
+Each bot opens its own socket as `?clientId=bot_<seed>_<index>` (`CLIENT_ID_QUERY_PARAMETER`; a
+rerun with the same seed takes the same seats), sends `join_lobby` as `Bot <index>` and `join_game`, and is seated by
 the `game_state` of a late join or the `game_started` of a pending game. From then on it runs
 one client tick per fixed step through the injected `Clock` + `Ticker` (docs/ARCHITECTURE.md §5:
 one `player_input` per tick, `sequence` = tick), deciding from the latest snapshot; it holds
 until the first snapshot arrives. The CLI is the only composition root that names the system
 pair; the integration test drives two bots against a real in-process server for 300 ticks on
 manual clocks, every tick strictly ordered (bots decide, inputs land, the room steps and
-broadcasts), and checks the echoed inputs against an offline pilot with the same seed. A game
-the server refuses (`Game not found`, `Game is full`) rejects `start()` with a `BotClientError`
-and stops every bot. Stats per bot: `clientTick`, `decisions`, `inputsSent`, `snapshotsReceived`,
-`droppedTicks`, `errorsReceived`, `lastError`.
+broadcasts), and checks the echoed inputs against an offline pilot with the same seed. A socket
+that cannot open, or a game the server refuses (`Game not found`, `Game is full`), rejects
+`start()` with a `BotClientError` and stops every bot that did connect. A bot whose socket closes
+after it was seated stops ticking, shows `isConnected: false` and rejects whoever waits on it, so
+`--ticks N` exits non-zero (stats still printed) instead of counting inputs into a closed socket.
+Stats per bot: `clientTick`, `decisions`, `inputsSent`, `snapshotsReceived`, `droppedTicks`,
+`errorsReceived`, `lastError`, `isConnected`.
 
 **In-process** (`debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
 `debug_remove_bot(gameId, playerId)`, docs/ARCHITECTURE.md §8): the game module drives the bot
-itself from a `createInProcessBotRoster(binding)` and the room enrols it as a synthetic player,
-so the lobby and the other clients see a normal `Bot <index>`. The 4-cell dish a QA screenshot
-needs is one room and three `debug_spawn_bot` calls; `debug_pause_room` + `debug_step_room`
-then freeze the frame.
+itself from a `createInProcessBotRoster(binding)` (`game/bots/in-process-bots.ts`) and the room
+seats it as a synthetic player (`sim_bot_<seed>_<index>`, a namespace no wire bot shares; an id
+already in play is refused before the module holds the bot), so the lobby and the other clients
+see a normal `Bot <index>`. The 4-cell dish a QA screenshot needs is one room and three
+`debug_spawn_bot` calls; `debug_pause_room` + `debug_step_room` then freeze the frame.
 
 **Test doubles:** `testing/bot-builders.ts` (strategy contexts and world views, a fake transport,
 a fake socket, captured manual timings) and `testing/socket-builders.ts` (a listening server on

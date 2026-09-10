@@ -4,12 +4,12 @@
 // test numbers.
 import { createSeededRandom, playerId as brandPlayerId } from '@evolution/shared';
 import type { ClientMessage, PlayerId, ServerMessage } from '@evolution/shared';
+import type { BotIdentity } from '../game/bots/bot-identity.js';
+import type { ScriptContext } from '../game/bots/bot-strategy.js';
+import type { BotCellView, BotMoteView, BotPerception } from '../game/bots/perception.js';
 import { createManualRoomTiming, type ManualRoomTiming } from './builders.js';
-import type { BotIdentity } from './bot-client/bot-identity.js';
 import type { BotTransport } from './bot-client/bot-transport.js';
 import type { SocketLike } from './bot-client/web-socket-transport.js';
-import type { ScriptContext } from './gameplay/scripts.js';
-import type { BotCellView, BotMoteView, BotPerception } from './gameplay/strategies/perception.js';
 
 // ---- strategies ------------------------------------------------------------------------
 
@@ -60,6 +60,7 @@ export function createTestWorldView(overrides: Partial<TestWorldView> = {}): Tes
 /** A perception over `TestWorldView` whose engulf rule is a plain mass ratio (the shared predicate's shape). */
 export function createTestPerception(engulfMassRatio = 1.25): BotPerception<TestWorldView> {
   return {
+    ownCellOf: (snapshot, playerId) => snapshot.cells.find((cell) => cell.playerId === playerId),
     cellsOf: (snapshot) => snapshot.cells,
     motesOf: (snapshot) => snapshot.motes,
     canEngulf: (predator, prey) => predator.mass >= prey.mass * (engulfMassRatio + prey.membraneRatioBonus),

@@ -33,6 +33,25 @@ describe('web socket transport', () => {
     );
   });
 
+  it('rejects with a BotClientError when the socket closes before it opens', async () => {
+    const { transport, socket } = opening();
+    socket.emitClose();
+    await expect(transport).rejects.toThrow(BotClientError);
+    await expect(transport).rejects.toThrow(/closed before it opened/);
+  });
+
+  it('drops a frame that is not JSON instead of throwing from the socket handler', async () => {
+    const { transport, socket } = opening();
+    socket.emitOpen();
+    const opened = await transport;
+    const received: ServerMessage[] = [];
+    opened.onMessage((message) => received.push(message));
+    expect(() => socket.emitMessage('{not json')).not.toThrow();
+    const frame: ServerMessage = { type: SERVER_MESSAGE_TYPE.error, message: 'after' };
+    socket.emitMessage(JSON.stringify(frame));
+    expect(received).toEqual([frame]);
+  });
+
   it('frames outbound messages as JSON and decodes inbound frames for every listener', async () => {
     const { transport, socket } = opening();
     socket.emitOpen();

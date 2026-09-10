@@ -17,4 +17,5 @@ export * from './simulation/engulf-eligibility.js';
 export * from './simulation/level-costs.js';
 export * from './simulation/state-hasher.js';
 export * from './simulation/state-hash.js';
+export * from './simulation/vector-math.js';
 export * from './testing/builders.js';

@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
-import { TEST_PLAYER_ID, TEST_SEED, createTestBotIdentity, createTestPerception } from '../bot-builders.js';
-import { createScriptedStrategy } from '../gameplay/bots.js';
-import { idle, targetPoint } from '../gameplay/scripts.js';
-import { UnknownBotStrategyError } from '../gameplay/strategies/strategy-catalog.js';
+import { TEST_PLAYER_ID, TEST_SEED, createTestBotIdentity, createTestPerception } from '../../testing/bot-builders.js';
+import { targetPoint } from '../../testing/gameplay/scripts.js';
 import { echoBotBinding } from './bot-binding.js';
+import { createScriptedStrategy, idle } from './bot-strategy.js';
 import { createBotPilot, createNamedBotPilot } from './bot-pilot.js';
 
 const SNAPSHOT = { players: {} };
@@ -43,7 +42,7 @@ describe('bot pilot', () => {
       playerId: TEST_PLAYER_ID,
       seed: TEST_SEED,
       random,
-      binding: { ...echoBotBinding, locateCell: () => ({ x: 1, y: 2, radiusWu: 3 }) },
+      binding: { ...echoBotBinding, locateCell: () => ({ x: 1, y: 2, radius: 3 }) },
       createStrategy: () => ({
         name: 'probe',
         decide: (context) => {
@@ -53,7 +52,7 @@ describe('bot pilot', () => {
       }),
     });
     pilot.decide(SNAPSHOT, 1);
-    expect(seen).toEqual([{ cell: { x: 1, y: 2, radiusWu: 3 }, random }]);
+    expect(seen).toEqual([{ cell: { x: 1, y: 2, radius: 3 }, random }]);
   });
 });
 
@@ -101,17 +100,5 @@ describe('named bot pilot', () => {
       preyPlayerId: TEST_PLAYER_ID,
     });
     expect(pilot.strategyName).toBe('hunter');
-  });
-
-  it('rejects a name outside the catalogue before building anything', () => {
-    expect(() =>
-      createNamedBotPilot({
-        behavior: 'flee',
-        seed: 1,
-        playerIndex: 0,
-        playerId: TEST_PLAYER_ID,
-        binding: echoBotBinding,
-      }),
-    ).toThrow(UnknownBotStrategyError);
   });
 });

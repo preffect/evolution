@@ -476,21 +476,21 @@ refused request
 of the tool names (the `_room` suffix marks the tools that act on the room loop rather than the
 world; they need no capability):
 
-| Tool                                                                                        | Handle method                                                                    |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `debug_get_game_state(gameId)`                                                              | `GameRoom.getFullState()`: the module's `serializeFullState()`, no handle member |
-| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer               |
-| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                                           |
-| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                                             |
-| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                                             |
-| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                                            |
-| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                            |
-| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)                       |
-| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                       |
-| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                             |
-| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                     |
-| `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request)`: a synthetic player the module drives (`TESTING.md §8.4`)    |
-| `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                 |
+| Tool                                                                                        | Handle method                                                                       |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `debug_get_game_state(gameId)`                                                              | `GameRoom.getFullState()`: the module's `serializeFullState()`, no handle member    |
+| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer                  |
+| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                                              |
+| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                                                |
+| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                                                |
+| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                                               |
+| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                               |
+| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)                          |
+| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                          |
+| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                                |
+| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                        |
+| `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`TESTING.md §8.4`) |
+| `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                    |
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
@@ -508,18 +508,27 @@ still end with a broadcast regardless of cadence, or a `debug_step_room(1)` scre
 stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
 report even for a module without a world tick.
 
-**Bots (#15).** `spawnBot` builds a `BotPilot` on the strategy named by `behavior` (the catalogue
-of `TESTING.md §8.4`) from `createInProcessBotRoster(binding)` (`testing/bot-client/in-process-bots.ts`),
-adds the player to the module and answers its `SpawnedBot` identity (`bot_<seed>_<index>`,
-`Bot <index>`, an avatar); the tool then calls `GameRoom.addSyntheticPlayer`, which enrols the
-bot in the roster and broadcasts `player_joined` like a late join, with no connection. `removeBot`
-mirrors it: the module forgets the player, `GameRoom.removeSyntheticPlayer` drops it from the
+**Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
+perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);
+only the wire client lives in `testing/bot-client/`. `behavior` is validated once, by the tool's
+`z.enum(BOT_STRATEGY_NAMES)` schema, so the handle and the roster only ever see a `BotStrategyName`.
+`spawnBot(request, seat)` builds a `BotPilot` on that strategy from `createInProcessBotRoster(binding)`
+(`game/bots/in-process-bots.ts`), mints its `SpawnedBot` identity (`sim_bot_<seed>_<index>`,
+`Bot <index>`, an avatar: a prefix of its own, so it can never take a wire bot's `bot_<seed>_<index>`
+seat even from the same seed), then calls `seat(bot)` BEFORE adding the player to the module. The
+tool passes `GameRoom.addSyntheticPlayer` as `seat`: it refuses an id already in the roster or on a
+socket with `DebugRequestError` (the module then holds nothing), else enrols the bot and broadcasts
+`player_joined` like a late join, with no connection; `config.maxPlayers` is deliberately not
+applied to a debug spawn. `removeBot` mirrors it: the module forgets the player,
+`GameRoom.removeSyntheticPlayer` (which refuses a player with a live socket) drops it from the
 roster and broadcasts `player_disconnected`. The module drives its roster at the top of
 `reduceGameState` (`bots.driveTick(snapshot, tick, submitInput)`, before step 1 applies pending
 input), so a bot's input for tick `t` is decided from the snapshot of `t − 1` and stamped
 `sequence = t`, exactly as a wire client's would be. The echo module wires the roster over the
-echo binding; the Evolution module (#98) wires it over the Evolution binding and never spawns a
-bot any other way.
+echo binding; the Evolution module (#152/#98) wires it over the Evolution binding and never spawns a
+bot any other way. Wild cells (#156) are not synthetic players and never go through the roster:
+they are world entities the simulation drives with the same strategies through an entity-id
+`ownCellOf`.
 
 ## 9. Constants and balance (decision, one home)
 
@@ -558,6 +567,7 @@ packages/shared/src/
   simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,state-hasher,state-hash,vector-math}.ts
                                                                 level-costs: levelUpCost(level, balance.progression), shared with the HUD (UI.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
+                                                                vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
   audio/sound-events.ts
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
@@ -569,8 +579,14 @@ packages/server/src/
   game/serialize/{serialize,food-delta-tracker}.ts
   game/replay/{replay-recorder,replay-runner}.ts
   game/debug/simulation-debug-handle.ts
-  mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)
-  testing/builders.ts   testing/gameplay/*.ts (the scenario runner, #75)   testing/scenarios/<table>.gameplay.test.ts (#102)
+  game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
+  game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toEchoInput), the roster a module drives
+  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (TESTING.md §8.4); #156 adds flee
+  mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
+  testing/builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
+  testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)
+  testing/bot-client/{bot-session,bot-swarm,bot-timing,bot-transport,web-socket-transport,cli,cli-arguments,errors}.ts   the headless wire client (#15): one bot's protocol, N bots, its clock + ticker, the transport seam, the `ws` transport, the CLI and its parser, BotClientError
+  testing/scenarios/<table>.gameplay.test.ts (#102)
 packages/client/src/app/game/
   game-setup.ts
   net/{snapshot-buffer,interpolation,prediction,reconciliation,world-store,input-sender}.ts   interpolation owns renderTick (section 5)
@@ -586,7 +602,8 @@ scripts/generate-balance.ts
 
 Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts`
 reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imports the value
-`ENDOSYMBIOSIS_BACTERIA_REQUIRED` from `ladder.ts`, so there is no runtime cycle.
+`ENDOSYMBIOSIS_BACTERIA_REQUIRED` from `ladder.ts`, so there is no runtime cycle. On the server,
+`game/bots` ← `game/*` and `testing/*`, never the reverse: no production file imports `src/testing/`.
 
 ## 11. Test plan (`ENGINEERING.md §2`, `DETERMINISM.md §7`)
 

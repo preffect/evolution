@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createTestBotCell } from '../../bot-builders.js';
-import { NO_WORLD_PERCEPTION, distanceBetween, nearestTo } from './perception.js';
+import { createTestBotCell } from '../../testing/bot-builders.js';
+import { NO_WORLD_PERCEPTION, nearestTo } from './perception.js';
 
 describe('perception helpers', () => {
-  it('measures euclidean distance', () => {
-    expect(distanceBetween({ x: 0, y: 0 }, { x: 3, y: 4 })).toBe(5);
-  });
-
   it('finds the nearest item, keeps the earlier one on a tie and yields undefined for nothing', () => {
     const items = [
       { id: 'a', x: 5, y: 0 },
@@ -18,7 +14,8 @@ describe('perception helpers', () => {
     expect(nearestTo({ x: 0, y: 0 }, [])).toBeUndefined();
   });
 
-  it('the no-world perception sees nothing and lets nothing be engulfed', () => {
+  it('the no-world perception locates no cell, sees nothing and lets nothing be engulfed', () => {
+    expect(NO_WORLD_PERCEPTION.ownCellOf({}, createTestBotCell().playerId)).toBeUndefined();
     expect(NO_WORLD_PERCEPTION.cellsOf({})).toEqual([]);
     expect(NO_WORLD_PERCEPTION.motesOf({})).toEqual([]);
     expect(NO_WORLD_PERCEPTION.canEngulf(createTestBotCell({ mass: 1000 }), createTestBotCell({ mass: 1 }))).toBe(

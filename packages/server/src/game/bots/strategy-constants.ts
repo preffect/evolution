@@ -1,5 +1,8 @@
-// The numbers the build-1 strategies walk and hunt by (docs/TESTING.md §8.4). They tune test
-// opponents, not the game, so they live with the strategies rather than in `constants/`.
+// The numbers the build-1 strategies walk and hunt by (docs/TESTING.md §8.4). They tune bot
+// opponents, not the game, so they live with the strategies rather than in `constants/`; a
+// caller with other numbers passes them through `WanderOptions` / `HunterOptions`. When #156
+// lands, the wild-cell numbers come from `constants/wild-cells.ts` and travel through those
+// same options; the defaults here stay the bot-client defaults.
 
 /** How far ahead of its centre a wandering bot aims each decision, in world units. */
 export const WANDER_STEP_WU = 40;
@@ -17,12 +20,13 @@ export const BOT_STRATEGY_NAME = {
 
 export type BotStrategyName = (typeof BOT_STRATEGY_NAME)[keyof typeof BOT_STRATEGY_NAME];
 
-export const BOT_STRATEGY_NAMES: readonly BotStrategyName[] = [
+/** The catalogue as a tuple, so the MCP schema can be `z.enum(BOT_STRATEGY_NAMES)` and a wrong name is told the list. */
+export const BOT_STRATEGY_NAMES = [
   BOT_STRATEGY_NAME.idle,
   BOT_STRATEGY_NAME.wander,
   BOT_STRATEGY_NAME.grazer,
   BOT_STRATEGY_NAME.hunter,
-];
+] as const satisfies readonly BotStrategyName[];
 
 export function isBotStrategyName(value: string): value is BotStrategyName {
   return (BOT_STRATEGY_NAMES as readonly string[]).includes(value);

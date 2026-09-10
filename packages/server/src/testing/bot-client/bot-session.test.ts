@@ -11,12 +11,12 @@ import {
   playerId,
 } from '@evolution/shared';
 import type { GameSnapshot, ServerMessage } from '@evolution/shared';
+import { echoBotBinding } from '../../game/bots/bot-binding.js';
+import { createBotPilot } from '../../game/bots/bot-pilot.js';
+import { createScriptedStrategy, idle, type PlayerScript } from '../../game/bots/bot-strategy.js';
 import { createTestBotIdentity, createFakeBotTransport, TEST_SEED } from '../bot-builders.js';
 import { createManualRoomTiming } from '../builders.js';
-import { createScriptedStrategy } from '../gameplay/bots.js';
-import { idle, targetPoint, type PlayerScript } from '../gameplay/scripts.js';
-import { echoBotBinding } from './bot-binding.js';
-import { createBotPilot } from './bot-pilot.js';
+import { targetPoint } from '../gameplay/scripts.js';
 import { BotSession } from './bot-session.js';
 import { BotClientError } from './errors.js';
 
@@ -162,6 +162,17 @@ describe('bot session: the client tick', () => {
     expect(inputsSent()).toEqual([]);
     expect(transport.isClosed()).toBe(true);
   });
+
+  it('a close after it is seated stops the tick and shows in the stats', () => {
+    const { session, transport, timing, tick, inputsSent } = seatedSession();
+    tick();
+    expect(session.stats().isConnected).toBe(true);
+    transport.disconnect();
+    tick(2);
+    expect(timing.ticker.isStarted()).toBe(false);
+    expect(inputsSent()).toHaveLength(1);
+    expect(session.stats()).toMatchObject({ isConnected: false, clientTick: 1, inputsSent: 1 });
+  });
 });
 
 describe('bot session: waiting', () => {
@@ -182,6 +193,20 @@ describe('bot session: waiting', () => {
     await expect(session.waitForTick(1)).resolves.toBeUndefined();
     tick();
     await expect(reached).resolves.toBeUndefined();
+  });
+
+  it('rejects every waiter, pending or later, once the connection is gone, so a lost bot cannot pass as reached', async () => {
+    const { session, transport, tick } = seatedSession();
+    tick();
+    const pendingTick = session.waitForTick(5);
+    const pendingSnapshot = session.waitForSnapshot((snapshot) => snapshot.tick === 9);
+    transport.disconnect();
+    await expect(pendingTick).rejects.toThrow(BotClientError);
+    await expect(pendingTick).rejects.toThrow(/bot_42_0 lost its connection at client tick 1/);
+    await expect(pendingSnapshot).rejects.toThrow(/lost its connection/);
+    await expect(session.waitForTick(5)).rejects.toThrow(/lost its connection/);
+    await expect(session.waitForSnapshot((snapshot) => snapshot.tick === 9)).rejects.toThrow(/lost its connection/);
+    await expect(session.waitForTick(1)).resolves.toBeUndefined();
   });
 
   it('ignores server messages that are not its concern', () => {

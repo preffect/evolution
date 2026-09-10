@@ -20,16 +20,16 @@ describe('debug_spawn_bot', () => {
     const fixture = echoFixture();
     const result = await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'wander', seed: 42 });
     expect(parseToolJson(result)).toEqual({
-      playerId: 'bot_42_0',
+      playerId: 'sim_bot_42_0',
       playerName: 'Bot 0',
       avatarIndex: 0,
       behavior: 'wander',
     });
-    expect(fixture.room.allPlayerIds).toContain('bot_42_0');
-    expect(fixture.room.playerNames['bot_42_0']).toBe('Bot 0');
+    expect(fixture.room.allPlayerIds).toContain('sim_bot_42_0');
+    expect(fixture.room.playerNames['sim_bot_42_0']).toBe('Bot 0');
     expect(fixture.messagesTo('bob', SERVER_MESSAGE_TYPE.playerJoined)).toContainEqual({
       type: SERVER_MESSAGE_TYPE.playerJoined,
-      playerId: 'bot_42_0',
+      playerId: 'sim_bot_42_0',
       avatarIndex: 0,
     });
     fixture.room.step(1);
@@ -42,12 +42,25 @@ describe('debug_spawn_bot', () => {
 
   it('forks the bot from the default seed when the call names none', async () => {
     const fixture = echoFixture();
-    const result = await fixture.call('debug_spawn_bot', {
-      gameId: fixture.gameId,
-      behavior: 'idle',
-      seed: DEFAULT_BOT_SEED,
-    });
-    expect(parseToolJson(result)).toMatchObject({ playerId: `bot_${DEFAULT_BOT_SEED}_0`, behavior: 'idle' });
+    const result = await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'idle' });
+    expect(parseToolJson(result)).toMatchObject({ playerId: `sim_bot_${DEFAULT_BOT_SEED}_0`, behavior: 'idle' });
+    fixture.stop();
+  });
+
+  it('refuses a bot whose id is already a player, and leaves the module not driving it', async () => {
+    const fixture = echoFixture();
+    const impostor = fixture.join('sim_bot_42_0');
+    fixture.handlers.onJoinGame(impostor, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
+    const result = await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'wander', seed: 42 });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({ text: expect.stringContaining('"sim_bot_42_0" is already a player') });
+    expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob', 'sim_bot_42_0']);
+    expect(fixture.room.playerConnections.get('sim_bot_42_0')).toBe(impostor);
+    fixture.room.step(1);
+    expect(fixture.room.getSnapshot()).toEqual({ players: { alice: null, bob: null, ['sim_bot_42_0']: null } });
+    const removal = await fixture.call('debug_remove_bot', { gameId: fixture.gameId, playerId: 'sim_bot_42_0' });
+    expect(removal.isError).toBe(true);
+    expect(fixture.room.allPlayerIds).toContain('sim_bot_42_0');
     fixture.stop();
   });
 
@@ -63,12 +76,15 @@ describe('debug_spawn_bot', () => {
     fixture.stop();
   });
 
-  it('refuses a strategy outside the catalogue without touching the roster', async () => {
+  it('refuses a strategy outside the catalogue at the schema, without touching the roster', async () => {
     const fixture = echoFixture();
     const result = await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'flee', seed: 1 });
     expect(result.isError).toBe(true);
-    expect(result.content[0]).toMatchObject({ text: expect.stringContaining('idle, wander, grazer, hunter') });
+    expect(result.content[0]).toMatchObject({
+      text: expect.stringMatching(/'idle' \| 'wander' \| 'grazer' \| 'hunter'/),
+    });
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
+    expect(fixture.room.getSnapshot()).toEqual({ players: { alice: null, bob: null } });
     fixture.stop();
   });
 
@@ -83,13 +99,13 @@ describe('debug_remove_bot', () => {
   it('removes a spawned bot from the module and the roster and announces it like a disconnect', async () => {
     const fixture = echoFixture();
     await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'wander', seed: 42 });
-    const result = await fixture.call('debug_remove_bot', { gameId: fixture.gameId, playerId: 'bot_42_0' });
-    expect(parseToolJson(result)).toMatchObject({ playerId: 'bot_42_0', behavior: 'wander' });
+    const result = await fixture.call('debug_remove_bot', { gameId: fixture.gameId, playerId: 'sim_bot_42_0' });
+    expect(parseToolJson(result)).toMatchObject({ playerId: 'sim_bot_42_0', behavior: 'wander' });
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
     expect(fixture.room.getSnapshot()).toEqual({ players: { alice: null, bob: null } });
     expect(fixture.messagesTo('bob', SERVER_MESSAGE_TYPE.playerDisconnected)).toContainEqual({
       type: SERVER_MESSAGE_TYPE.playerDisconnected,
-      playerId: 'bot_42_0',
+      playerId: 'sim_bot_42_0',
     });
     fixture.stop();
   });

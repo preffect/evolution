@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createTestScriptContext } from '../../bot-builders.js';
+import { createTestScriptContext } from '../../../testing/bot-builders.js';
 import { createIdleStrategy } from './idle.js';
-import { BOT_STRATEGY_NAME } from './strategy-constants.js';
+import { BOT_STRATEGY_NAME } from '../strategy-constants.js';
 
 describe('idle strategy', () => {
   it('is named idle and never sends an input', () => {

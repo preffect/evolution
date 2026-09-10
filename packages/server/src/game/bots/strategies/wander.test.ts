@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
-import type { PlayerCommand } from '../adapter.js';
-import { createTestScriptContext } from '../../bot-builders.js';
-import { BOT_STRATEGY_NAME, WANDER_STEP_WU } from './strategy-constants.js';
+import type { PlayerCommand } from '../bot-strategy.js';
+import { createTestScriptContext } from '../../../testing/bot-builders.js';
+import { BOT_STRATEGY_NAME, WANDER_STEP_WU } from '../strategy-constants.js';
 import { createWanderStrategy, type WanderOptions } from './wander.js';
 
 const DECISIONS = 20;
@@ -44,10 +44,10 @@ describe('wander strategy', () => {
 
   it('anchors each step on the cell when the bot has one, so the target stays one step ahead of the cell', () => {
     const strategy = createWanderStrategy({ turnSigmaRadians: 0 })();
-    const cell = { x: 500, y: 500, radiusWu: 10 };
+    const cell = { x: 500, y: 500, radius: 10 };
     const command = strategy.decide(createTestScriptContext({ cell }));
     expect(command).toEqual({ targetX: 500 + WANDER_STEP_WU, targetY: 500 });
-    const again = strategy.decide(createTestScriptContext({ cell: { x: 600, y: 700, radiusWu: 10 } }));
+    const again = strategy.decide(createTestScriptContext({ cell: { x: 600, y: 700, radius: 10 } }));
     expect(again).toEqual({ targetX: 600 + WANDER_STEP_WU, targetY: 700 });
   });
 

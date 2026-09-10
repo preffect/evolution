@@ -10,6 +10,7 @@ import {
 } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
+import { DebugRequestError } from '../game/debug/debug-request-error.js';
 import type { FullGameState, RoomInitOptions } from '../game/game-module.js';
 import {
   createDebugCapableGameModule,
@@ -177,6 +178,27 @@ describe('game-room: membership and delegation', () => {
     expect(room.avatarAssignments['bot_1_0']).toBe(3);
     expect(room.playerConnections.has('bot_1_0')).toBe(false);
     expect(sent['p1']).toEqual([{ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: 'bot_1_0', avatarIndex: 3 }]);
+  });
+
+  it('addSyntheticPlayer refuses an id that is already in the roster or on a socket', () => {
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1' }));
+    room.addSyntheticPlayer({ playerId: 'bot_1_0' as PlayerId, playerName: 'Bot 0', avatarIndex: 3 });
+    const asBot = (playerId: string) => ({ playerId: playerId as PlayerId, playerName: 'Bot', avatarIndex: 0 });
+    expect(() => room.addSyntheticPlayer(asBot('p1'))).toThrow(DebugRequestError);
+    expect(() => room.addSyntheticPlayer(asBot('p1'))).toThrow(/"p1" is already a player/);
+    expect(() => room.addSyntheticPlayer(asBot('bot_1_0'))).toThrow(DebugRequestError);
+    expect(room.allPlayerIds).toEqual(['p1', 'bot_1_0']);
+  });
+
+  it('removeSyntheticPlayer refuses a player with a live socket', () => {
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1' }));
+    expect(() => room.removeSyntheticPlayer('p1' as PlayerId)).toThrow(DebugRequestError);
+    expect(() => room.removeSyntheticPlayer('p1' as PlayerId)).toThrow(/"p1" is a connected player/);
+    expect(room.allPlayerIds).toEqual(['p1']);
   });
 
   it('removeSyntheticPlayer drops the bot from the roster and announces it like a disconnect', () => {

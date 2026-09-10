@@ -7,6 +7,7 @@ import { PerformanceTracker } from './performance-tracker.js';
 import type { RoomTiming } from './room-timing.js';
 import type { FullGameState, GameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
+import { DebugRequestError } from '../game/debug/debug-request-error.js';
 
 /**
  * A running game session. Owns the connections, the late-join/disconnect
@@ -151,14 +152,28 @@ export class GameRoom {
   /**
    * A synthetic player the game module drives itself (`debug_spawn_bot`, docs/ARCHITECTURE.md §8):
    * in the roster and announced like a late joiner, with no connection. The module already holds
-   * the player; this only makes it visible to the lobby and the other clients.
+   * the player; this only makes it visible to the lobby and the other clients. An id that is
+   * already in the roster or on a socket is refused with `DebugRequestError`, so a bot can never
+   * shadow a human. `config.maxPlayers` is deliberately not applied: it is the lobby's seat cap
+   * for humans, and a debug spawn is the operator filling the dish past it on purpose.
    */
   addSyntheticPlayer(player: LobbyPlayerInfo): void {
+    if (this.allPlayerIds.includes(player.playerId) || this.playerConnections.has(player.playerId)) {
+      throw new DebugRequestError(`"${player.playerId}" is already a player in this game`);
+    }
     this.enrol(player);
   }
 
-  /** Drops a synthetic player from the roster and announces it the way a disconnect is announced. */
+  /**
+   * Drops a synthetic player from the roster and announces it the way a disconnect is announced.
+   * A player with a live socket is refused: it is a human, and `removePlayer` is the way out for
+   * those. This is the second home of `player_disconnected` (the first is `LobbyManager`, for a
+   * human with the reconnect grace window); they stay apart because a bot gets no grace.
+   */
   removeSyntheticPlayer(playerId: PlayerId): void {
+    if (this.playerConnections.has(playerId)) {
+      throw new DebugRequestError(`"${playerId}" is a connected player, not a synthetic one`);
+    }
     this.dropFromRoster(playerId);
     broadcastMessage(this.playerConnections.values(), { type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId });
   }

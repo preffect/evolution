@@ -1,26 +1,19 @@
 // The hunter commits to the largest cell it can engulf (the shared predicate through the
 // perception, ECOLOGY §6.1) and chases it until the prey is gone or no longer engulfable, then
 // picks again; it sprints once the prey is within `HUNTER_SPRINT_WITHIN_RADII` of its own radius.
-// `preyPlayerId` narrows the hunt to one player (`hunt <playerId>` on the CLI). No randomness.
+// It reads its own cell through `perception.ownCellOf` (the same self-locator `context.cell` is
+// derived from) because it needs the mass, not only the location. `preyPlayerId` narrows the
+// hunt to one player (`--prey <playerId>` on the CLI). No randomness.
 
-import type { PlayerId } from '@evolution/shared';
-import type { PlayerCommand } from '../adapter.js';
-import type { BotStrategy, BotStrategyFactory } from '../bots.js';
-import type { ScriptContext } from '../scripts.js';
-import { distanceBetween, type BotCellView, type BotPerception } from './perception.js';
-import { BOT_STRATEGY_NAME, HUNTER_SPRINT_WITHIN_RADII } from './strategy-constants.js';
+import { distanceBetween, type PlayerId } from '@evolution/shared';
+import type { BotStrategy, BotStrategyFactory, PlayerCommand } from '../bot-strategy.js';
+import type { BotCellView, BotPerception } from '../perception.js';
+import { BOT_STRATEGY_NAME, HUNTER_SPRINT_WITHIN_RADII } from '../strategy-constants.js';
 
 export interface HunterOptions {
   /** Hunt only this player's cells; every other player is ignored even when engulfable. */
   readonly preyPlayerId?: PlayerId;
   readonly sprintWithinRadii?: number;
-}
-
-function ownCellOf<Snapshot>(
-  perception: BotPerception<Snapshot>,
-  context: ScriptContext<Snapshot>,
-): BotCellView | undefined {
-  return perception.cellsOf(context.snapshot).find((cell) => cell.playerId === context.playerId);
 }
 
 function largestOf(cells: readonly BotCellView[]): BotCellView | undefined {
@@ -55,7 +48,7 @@ export function createHunterStrategy<Snapshot>(
     return {
       name: BOT_STRATEGY_NAME.hunter,
       decide(context): PlayerCommand | null {
-        const self = ownCellOf(perception, context);
+        const self = perception.ownCellOf(context.snapshot, context.playerId);
         if (self === undefined) {
           return null;
         }

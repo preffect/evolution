@@ -1,8 +1,8 @@
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import type { BalanceConfig, PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
-import { echoBotBinding } from '../testing/bot-client/bot-binding.js';
-import { createInProcessBotRoster, type InProcessBotRoster } from '../testing/bot-client/in-process-bots.js';
+import { echoBotBinding } from './bots/bot-binding.js';
+import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-process-bots.js';
 
 /**
  * Per-room game logic. ONE instance per active GameRoom. This is THE place the
@@ -88,7 +88,7 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
       latestInputByPlayer.set(playerId, payload);
     },
     reduceGameState: () => {
-      tick += 1; // TODO(game): advance world one tick
+      tick += 1; // TODO(game): #152 advances the world one tick here; the echo has no world to step
       bots.driveTick(serializeRoomState(), tick, module.submitInput);
     },
     serializeRoomState,
@@ -105,14 +105,23 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
   return module;
 }
 
-/** The echo's one debug capability: the bot pair. The roster owns the pilot, the module the player. */
+/**
+ * The echo's one debug capability: the bot pair. The roster owns the pilot, the module the
+ * player, and the seat is claimed (`seat`) before either holds anything the room did not accept.
+ */
 function echoBotHandle(
   module: GameModule<GameInput, EchoSnapshot>,
   bots: InProcessBotRoster<GameInput, unknown>,
 ): SimulationDebugHandle {
   return {
-    spawnBot: (request) => {
+    spawnBot: (request, seat) => {
       const bot = bots.spawn(request);
+      try {
+        seat(bot);
+      } catch (error) {
+        bots.remove(bot.playerId);
+        throw error;
+      }
       module.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName);
       return bot;
     },

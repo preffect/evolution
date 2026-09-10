@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createTestPerception, createTestScriptContext, createTestWorldView } from '../../bot-builders.js';
+import { createTestPerception, createTestScriptContext, createTestWorldView } from '../../../testing/bot-builders.js';
 import { createGrazerStrategy } from './grazer.js';
-import { BOT_STRATEGY_NAME } from './strategy-constants.js';
+import { BOT_STRATEGY_NAME } from '../strategy-constants.js';
 
-const CELL = { x: 0, y: 0, radiusWu: 10 };
+const CELL = { x: 0, y: 0, radius: 10 };
 const perception = createTestPerception();
 
 describe('grazer strategy', () => {
