@@ -200,7 +200,9 @@ must show; sheet 04 draws it. **The starting radius is `ECOLOGY.md §5.1`'s curv
 
 Organelle placement is seeded from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)`
 ([`ARCHITECTURE.md §6`](./ARCHITECTURE.md#6-client-module-plan-pixi-v8--angular)) so a paused frame
-reproduces; organelles never sit inside the nucleus disc nor within 8 % r of the membrane.
+reproduces; organelle slot centres never sit inside the nucleus disc, inside `DNA_RING_KEEP_OUT_FRACTION` (0.66 r,
+`UI.md §9`: the own cell's DNA ring band, applied to every cell so a slot is one rule) nor within 8 % r of the
+membrane.
 
 ## 4. Organelle vocabulary per trait
 

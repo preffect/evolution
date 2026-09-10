@@ -176,8 +176,9 @@ bladder's `TOXIN_GLOW` are baked the same way.
 
 - **Slots.** `cells/organelle-layout.ts` draws rest positions `q` (normalised, cell frame, heading-independent)
   from the cell's cosmetic fork: nucleus at 0.12 r toward the light (sheet 01), then organelles in
-  `ORGANELLE_KIND_ORDER` by rejection sampling inside `|q| ≤ 1 − 0.08` (VISUAL-STYLE §3), outside the nucleus
-  disc (0.30 r), with gap `ORGANELLE_MIN_GAP` 0.04 r (new). Slots are appended, never reshuffled, so a tier-up
+  `ORGANELLE_KIND_ORDER` by rejection sampling inside `DNA_RING_KEEP_OUT_FRACTION ≤ |q| ≤ 1 − 0.08` (VISUAL-STYLE
+  §3; the inner bound is `UI.md §9`'s and applies to every cell, so no slot centre sits under the own cell's DNA ring
+  from 31 px up, `UI.md §3.1.3`), outside the nucleus disc (0.30 r), with gap `ORGANELLE_MIN_GAP` 0.04 r (new). Slots are appended, never reshuffled, so a tier-up
   adds a bean without moving the others.
 - **Lag.** `q' = q − LAG · k · ĥ`, `NUCLEUS_LAG` 0.20 (sheet 01 / 03) for every organelle; nucleus rest drift
   2 % r from the strip (VISUAL-STYLE §5).
@@ -228,6 +229,7 @@ export const MOTION_CLIP = {
   levelUp: 'level_up',
   respawn: 'respawn',
   sprintRelease: 'sprint_release',
+  sprintReady: 'sprint_ready',
   organelleBirth: 'organelle_birth',
 } as const;
 export type MotionClipId = (typeof MOTION_CLIP)[keyof typeof MOTION_CLIP];
@@ -239,15 +241,16 @@ export const sampleTrack: (
 ) => number;
 ```
 
-| Clip              | Domain, length             | Keyframes (sheet 03 strips table; VISUAL-STYLE §5)                                                                                                                                                                      | Tracks                                                                                                             |
-| ----------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `eat`             | ms, 300, interruptible     | keyframes at 0 approach → 100 wrap → 160 pulse → 220 absorb → 300 settle (sheet 03's "contact 50" is a label inside the first tween, not a keyframe); `ease_out_quad` · `ease_out_back` · `linear` · `ease_in_out_sine` | `dimple`, `wrap`, `pulse`, `stretchAlong`, `stretchAcross`, `haloRadii`                                            |
-| `engulf`          | progress, 1.0              | 0 contact → 0.5 wrap → 1.0 seal; `ease_out_cubic` · `ease_in_out_quad`; values in the engulf table below                                                                                                                | `arm`, `notch`, `seal`                                                                                             |
-| `absorbed`        | ms, 600                    | 0 seal → 200 dissolve → 400 DNA streams → 600 done; `linear` · `ease_in_quad` · `ease_out_back`                                                                                                                         | `rimDash`, `cytoplasmAlpha` (→ 0.5), `streamProgress` on the ghost; `seal` on the predator (table below)           |
-| `level_up`        | ms, 900, not interruptible | 0 → 120 anticipate → 250 burst → 450 nucleus → 700 settle → 900; `ease_in_quad` · `ease_out_expo` · `ease_out_cubic` · `ease_in_out_sine` · `linear`                                                                    | `pulse` (0.90, 1.14), `rayRadii` (1.2 → 1.95), `shockRingRadii` 1.6, `rippleRadii` 1.7 / 2.1 / 2.5, `nucleusFlash` |
-| `respawn`         | ms, 400                    | scale 0.6 → 1.0 `ease_out_back`, alpha 0 → 1 `ease_out_quad`, halo 2 r → 0                                                                                                                                              | `pulse`, `alpha`, `haloRadii`                                                                                      |
-| `sprint_release`  | ms, 200                    | `ease_out_quad` back to rest                                                                                                                                                                                            | `stretchSprint`, `rimBrightness`                                                                                   |
-| `organelle_birth` | ms, 3 000                  | ghost 0.44 → 0.30 r, recolour along the ramp                                                                                                                                                                            | `ghostSize`, `rampMix`                                                                                             |
+| Clip              | Domain, length             | Keyframes (sheet 03 strips table; VISUAL-STYLE §5)                                                                                                                                                                      | Tracks                                                                                                                                                                                                              |
+| ----------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eat`             | ms, 300, interruptible     | keyframes at 0 approach → 100 wrap → 160 pulse → 220 absorb → 300 settle (sheet 03's "contact 50" is a label inside the first tween, not a keyframe); `ease_out_quad` · `ease_out_back` · `linear` · `ease_in_out_sine` | `dimple`, `wrap`, `pulse`, `stretchAlong`, `stretchAcross`, `haloRadii`                                                                                                                                             |
+| `engulf`          | progress, 1.0              | 0 contact → 0.5 wrap → 1.0 seal; `ease_out_cubic` · `ease_in_out_quad`; values in the engulf table below                                                                                                                | `arm`, `notch`, `seal`                                                                                                                                                                                              |
+| `absorbed`        | ms, 600                    | 0 seal → 200 dissolve → 400 DNA streams → 600 done; `linear` · `ease_in_quad` · `ease_out_back`                                                                                                                         | `rimDash`, `cytoplasmAlpha` (→ 0.5), `streamProgress` on the ghost; `seal` on the predator (table below)                                                                                                            |
+| `level_up`        | ms, 900, not interruptible | 0 → 120 anticipate → 250 burst → 450 nucleus → 700 settle → 900; `ease_in_quad` · `ease_out_expo` · `ease_out_cubic` · `ease_in_out_sine` · `linear`                                                                    | `pulse` (0.90, 1.14), `rayRadii` (1.2 → 1.95), `shockRingRadii` 1.6, `rippleRadii` 1.7 / 2.1 / 2.5, `nucleusFlash`, `ringFlash` (0 → 1 at burst → 0 at settle: the own cell's DNA ring and numeral, `UI.md §3.1.2`) |
+| `respawn`         | ms, 400                    | scale 0.6 → 1.0 `ease_out_back`, alpha 0 → 1 `ease_out_quad`, halo 2 r → 0                                                                                                                                              | `pulse`, `alpha`, `haloRadii`                                                                                                                                                                                       |
+| `sprint_release`  | ms, 200                    | `ease_out_quad` back to rest                                                                                                                                                                                            | `stretchSprint`, `rimBrightness`                                                                                                                                                                                    |
+| `sprint_ready`    | ms, 200                    | 0 → 100 peak → 200 rest; `ease_out_quad` · `ease_in_quad`: the one brighten of the self ring when the cooldown ends (`UI.md §3.1.2`)                                                                                    | `selfRingBrightness` (0.70 → 0.95 → 0.70)                                                                                                                                                                           |
+| `organelle_birth` | ms, 3 000                  | ghost 0.44 → 0.30 r, recolour along the ramp                                                                                                                                                                            | `ghostSize`, `rampMix`                                                                                                                                                                                              |
 
 **Engulf bump amplitudes per keyframe** (fractions of `r`; centres and σ are fixed: arms at the prey angle ± 30°
 σ 16°, notch and seal at the prey angle, notch σ `ENGULF_NOTCH_SIGMA_DEG` 12°, seal σ 42°; sheet 03 gives the
@@ -383,6 +386,7 @@ cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   (#121)
 food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
+effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
 ```
 
@@ -399,7 +403,7 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   ±2.5–4 % and stays inside ±5 % of `r`, and same seed + same tick ⇒ same profile (`DETERMINISM.md §7`);
   `shape-terms.spec.ts` (view → terms, bump slot assignment including the eight-slot amoeba III mid-engulf and
   contact / eat dropped while engulfing, sprint scaling, and the moving-wrap extent: k = 1 stretch with the wrap frame and an eat pulse reports a maximum of 2.99 r, below `CELL_QUAD_EXTENT_RADII` 3.0); `form-profiles.spec.ts` (every `B` has unit area within
-  0.5 %, the sheet-04 aspects, diatom terms all zero); `organelle-layout.spec.ts` (slots inside 0.92, outside the nucleus disc, gap held,
+  0.5 %, the sheet-04 aspects, diatom terms all zero); `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, outside the nucleus disc, gap held,
   append-only across tiers, seeded); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
   on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `palette.spec.ts` (HSL derivations, the
   separability numbers of VISUAL-STYLE §2); `bench-scene.spec.ts` (counts, seed-stable); `motion.test.ts` in
@@ -413,7 +417,9 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   (the perpendicular-distance check); draw-call count ≤ 16 on the bench scene; `renderStagesMs` populated; the
   ghost instance appears on `cell_absorbed` and leaves at 600 ms.
 - **Screenshot baselines (`qa/baselines/`, graphics-qa on every renderer PR, not part of `validate.sh all`):**
-  `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks; `check.sh`
+  `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks, each scene carrying a
+  fixed `ownCellIndicators` record (plain data, §10; `null` for scenes without an own cell), so a baseline never
+  depends on HUD timing or a live threat search; `check.sh`
   renders each through headless Chromium (the concept-art recipe) and compares with ImageMagick
   `compare -metric AE -fuzz 2%`; a baseline moves only in a PR that shows before / after under `qa/evidence/<pr>/`.
 
@@ -421,29 +427,46 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
 
 [`UI.md §3.1`](./UI.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns **what**
 the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and the
-nearest-threat label, with their data, states, wording, the reading-floor constants and the `OwnCellIndicators`
-record. This section owns **how** they are drawn and restates none of that; a value or a state named here is a
-link to UI.md, never a copy.
+nearest-threat label, with their data, states, wording, the reading-floor constants (`UI.md §9`) and the
+`OwnCellIndicators` record. This section owns **how** they are drawn and restates none of that; a value or a state
+named here is a link to UI.md, never a copy. The files are §8's `effects/own-cell-indicators.ts` and
+`effects/threat-label-placement.ts`.
 
 - **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
-  `effects/own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite
-  placements, all in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane
-  or lags the predicted own position. Rings and arcs are tinted glow-atlas arc sprites (one `arc` entry with a
-  `fill` uniform, no per-frame `Graphics`); pips and ghosts are entries of the organelle atlas (§3) at their fixed
-  px size; the numeral and the labels are `BitmapText` in the `value` / `label` roles on a callout-backing sprite.
-  Budget: ≤ 14 sprites and 2 texts inside the `effects` stage's 0.3 ms (§7).
+  `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
+  in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
+  predicted own position. Rings, tracks and arcs are tinted glow-atlas arc sprites (one `arc` entry with a `fill`
+  uniform, no per-frame `Graphics`); ghosts and pip blocks are entries of the organelle atlas (§3) at their fixed
+  px size, the pip blocks baked at startup as one entry per (variant, eaten) from
+  `balance.ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED`, so a counter is two sprites; the numeral and the labels are
+  `BitmapText` in the `value` / `label` roles, the labels on a label-pill sprite (`UI.md §6`). Budget: ≤ 14 sprites
+  and 2 texts inside the `effects` stage's 0.3 ms (§7); the worst case is a prokaryote with both counters, one
+  unlocked, and a threat on screen: DNA track + fill (2), self-ring track + arc (2), two backings, two ghosts, two
+  pip blocks, one unlock ring, the label pill = 13 sprites, the numeral and the label = 2 texts (the escape arc
+  replaces the orbit and hides the label, so it never adds to this).
 - **Floors.** `dnaRingRadiusPx`, `ladderOrbitRadiusPx` and `orbitLayout` (pure, in the same file) apply UI.md
-  §3.1.3's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md's geometry
-  table at 24 / 32 / 45 / 102 px and the inequality that keeps the orbit under the picker band. They snap with
-  the self ring's LOD (§5): drawn at every LOD the own cell reaches, never faded.
-- **Sprint state.** The self-ring band (§2.2) is drawn as an arc of `sprintFill`: the instance's spare float
-  (§2.3) becomes `selfRingFill`, 1 for every cell but the own one.
+  §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md §3.1.3's geometry
+  table at 24 / 32 / 45 / 102 px and its three inequalities (picker band, seat-mark clearance, DNA keep-out). They
+  snap with the self ring's LOD (§5): drawn at every LOD the own cell reaches, never faded.
+- **Clips.** The ring and numeral flash is the `level_up` clip's `ringFlash` track and the sprint-ready brighten is
+  the `sprint_ready` clip (§4), both played by `motion-clip-player.ts` off `renderTick` like every other clip; the
+  DNA fill tweens at `INDICATOR_FILL_TWEEN_MS`. No indicator reads `serverTickEstimate`.
+- **Sprint state.** The self-ring band (§2.2) is drawn as a track plus an arc of `sprintFill`: the instance's spare
+  float (§2.3) becomes `selfRingFill`, 1 for every cell but the own one; the track is the same band at
+  `SELF_RING_TRACK_ALPHA`.
 - **Keep-out.** `cells/organelle-layout.ts` rejects `|q| < DNA_RING_KEEP_OUT_FRACTION` in addition to the nucleus
-  disc, for every cell (one rule, no own-cell branch), so no sprite sits under the ring at full LOD.
-- **Threat label.** `effects/threat-label-placement.ts` (pure): the label's centre is the warning ring's radius
-  plus `THREAT_LABEL_GAP_PX` plus half the box, from the threat's centre **toward the own cell's centre**; text
-  stays upright. The warning rings on every eligible cell remain the pass-B band of §2.2; the label is drawn on
-  the nearest one only, as the record says.
-- **Tests.** `own-cell-indicators.spec.ts` and `threat-label-placement.spec.ts` (unit, no WebGL); the screenshot
-  baselines (§9) gain the own cell at the four sizes with the counters showing, the max-level ring and the escape
-  arc, from `qa/decisions/hud-layout/diegetic/` as the reference look.
+  disc, for every cell (one rule, no own-cell branch, §3); the fraction is set from the floored ring so the rule
+  holds from 31 px up (`UI.md §3.1.3`), and below that the ring's track backs it.
+- **Escape arc.** Drawn from `escape.fill` and `escape.phase` as UI.md §3.1.2 says (draining window, then solid);
+  the pass-B warning ring of §2.2 is suppressed on the cell whose id is `escape.predatorCellId` while the record
+  carries an escape, and on no other cell.
+- **Threat label.** `threat-label-placement.ts` (pure): the pill's centre is the warning ring's radius plus
+  `THREAT_LABEL_GAP_PX` plus half the pill's height from the threat's centre **toward the own cell's centre**; if
+  that pill's box intersects the disc of the own cell's orbit extent (`UI.md §3.1.3`) the centre flips to the far
+  side of the ring (the same distance, away from the own cell); text stays upright. The warning rings on every
+  eligible cell remain the pass-B band of §2.2; the label is drawn on the nearest one only, as the record says.
+- **Tests.** `own-cell-indicators.spec.ts` (the geometry table, the three inequalities, the sprite count of the worst
+  case) and `threat-label-placement.spec.ts` (near side at 200 px for a 30 px predator, far side at 100 px, upright
+  at every angle), unit, no WebGL; the screenshot baselines (§9) gain the own cell at the four sizes with the
+  counters showing, the max-level ring, the escape arc before and after the seal and the far-side label, from
+  `qa/decisions/hud-layout/diegetic/` as the reference look and its fixed indicator records as the scene fixtures.

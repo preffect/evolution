@@ -212,8 +212,8 @@ durationS     = ENGULF_BASE_DURATION_SECONDS
 `packages/shared/src/simulation/engulf-eligibility.ts`, which takes two `CellView`s and reads only
 `predator.mass`, `prey.mass`, `prey.membraneRatioBonus` (folded server-side and carried on the view,
 [`ARCHITECTURE.md §2`](./ARCHITECTURE.md#2-entity-model)) and `ENGULF_MASS_RATIO`. Three callers, no
-copies of the ratio arithmetic: the server engulf system (step 6), the HUD danger chip (`threatsFor`,
-[`UI.md §3.1`](./UI.md#31-hud-elements-visible-while-roundphase--playing-and-lifestate--alive)) and the
+copies of the ratio arithmetic: the server engulf system (step 6), the HUD threat label (`threatsFor`,
+[`UI.md §3.1`](./UI.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive)) and the
 renderer's engulf-warning ring ([`VISUAL-STYLE.md §5`](./VISUAL-STYLE.md#5-membrane-and-motion-language)),
 so the three can never disagree about who can engulf whom. `canContinue` is `canContinueEngulf` in the same
 file (same inputs, `ENGULF_RELEASE_RATIO`); only the server calls it. `inContact` is the server's alone:
