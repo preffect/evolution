@@ -12,7 +12,7 @@ import {
   type ServerMessage,
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
-import { createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
+import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
 import { NO_RETICLE } from './game-renderer';
 import { RenderSession, type RenderSessionDependencies } from './render-session';
 
@@ -47,6 +47,7 @@ function session(overrides: Partial<RenderSessionDependencies> = {}) {
     connectAudio: vi.fn(() => audio),
     hudInputs: () => ({ previewTraitId: null, reticle: NO_RETICLE }),
     shouldPreserveDrawingBuffer: false,
+    noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     ...overrides,
   };
   const subject = new RenderSession(dependencies);

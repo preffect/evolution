@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { DNA_TAGS, PLAYER_PALETTE_COUNT } from '@evolution/shared';
-import { createFakeTextureBaker, createTestRenderTextures } from '../../../testing/fake-pixi-app';
+import { areBytesEqual } from '../../../testing/bytes';
+import {
+  TEST_NOISE_TILE_SIZE_PX,
+  createFakeTextureBaker,
+  createTestRenderTextures,
+} from '../../../testing/fake-pixi-app';
 import {
   FIELD_TEXTURE_PX,
   GLOW_TEXTURE_PX,
   NOISE_STRIP_ROWS,
   NOISE_STRIP_WIDTH,
-  NOISE_TILE_SIZE_PX,
   ORGANELLE_KIND,
   PALETTE_SHADE_COUNT,
   VIGNETTE_ALPHA,
@@ -44,10 +48,13 @@ describe('createRenderTextures', () => {
     expect(new Set(baker.texturedBakes).size).toBe(baker.bakedCanvases.length);
   });
 
-  it('uploads the noise strip and tile as data textures of their sizes', () => {
+  it('uploads the noise strip and tile as data textures of their sizes, the tile at the size asked for', () => {
     const textures = createTestRenderTextures({ seed: 7 });
     expect([textures.stripTexture.width, textures.stripTexture.height]).toEqual([NOISE_STRIP_WIDTH, NOISE_STRIP_ROWS]);
-    expect([textures.tileTexture.width, textures.tileTexture.height]).toEqual([NOISE_TILE_SIZE_PX, NOISE_TILE_SIZE_PX]);
+    expect([textures.tileTexture.width, textures.tileTexture.height]).toEqual([
+      TEST_NOISE_TILE_SIZE_PX,
+      TEST_NOISE_TILE_SIZE_PX,
+    ]);
     expect(textures.strip.rows).toBe(NOISE_STRIP_ROWS);
     expect(textures.stripTexture.style.scaleMode).toBe('nearest');
     expect(textures.tileTexture.style.addressMode).toBe('repeat');
@@ -67,8 +74,8 @@ describe('createRenderTextures', () => {
     const other = createTestRenderTextures({ seed: 43 });
     expect(first.cosmetic.nextFloat()).toBe(second.cosmetic.nextFloat());
     expect(first.cosmetic.nextFloat()).not.toBe(other.cosmetic.nextFloat());
-    expect(first.strip.bytes).toEqual(second.strip.bytes);
-    expect(first.strip.bytes).not.toEqual(other.strip.bytes);
+    expect(areBytesEqual(first.strip.bytes, second.strip.bytes)).toBe(true);
+    expect(areBytesEqual(first.strip.bytes, other.strip.bytes)).toBe(false);
   });
 
   it('destroys every texture', () => {

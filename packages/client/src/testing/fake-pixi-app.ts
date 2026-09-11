@@ -31,6 +31,11 @@ export interface FakePixiApp extends PixiAppHandle {
 
 const DEFAULT_SCREEN = { width: 1280, height: 720 };
 const DEFAULT_TEXTURE_SEED = 1;
+/**
+ * The cytoplasm tile a test bundle bakes: the production 256² tile is the bundle's one CPU-heavy
+ * step (#226) and no unit test samples its bytes, so a session or a layer under test asks for this.
+ */
+export const TEST_NOISE_TILE_SIZE_PX = 8;
 const ONE_PIXEL = 1;
 const RGBA_BYTES = 4;
 
@@ -69,13 +74,14 @@ export function createFakeTextureBaker(): FakeTextureBaker {
   };
 }
 
-/** The texture bundle over a fake baker: no gel patches and a 1× display unless the test says otherwise. */
+/** The texture bundle over a fake baker: no gel patches, a 1× display and the tiny tile unless the test says otherwise. */
 export function createTestRenderTextures(overrides: Partial<RenderTextureOptions> = {}): RenderTextures {
   return createRenderTextures({
     seed: DEFAULT_TEXTURE_SEED,
     baker: createFakeTextureBaker(),
     gelPatches: [],
     devicePixelRatio: 1,
+    noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     ...overrides,
   });
 }
