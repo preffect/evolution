@@ -116,22 +116,22 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Acceptance scenarios** (L745–824): Given seed S and inputs I, after N ticks assert X.
   - **8.1 The evolving world (§3.1–§3.4)** (L801–824): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
 
-## ENGINEERING.md (259 lines)
+## ENGINEERING.md (274 lines)
 
-- **Engineering Standards** (L1–259): These are enforceable rules, not suggestions.
-- **1. The Validation Gate (`./validate.sh`)** (L12–48): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
-- **2. Testing Standards** (L49–123): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
-  - **2.1 Every change is tested** (L54–67): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
-  - **2.2 Unit vs integration split** (L68–94): isolation — no cross-subsystem orchestration, runs in <100ms.
-  - **2.3 What must be covered (template-specific)** (L95–114): state + snapshot; invalid input is rejected/ignored.
-  - **2.4 Determinism** (L115–123): simulation is reproducible and tests can assert exact outputs.
-- **3. TypeScript & Lint Strictness** (L124–170)
-  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L126–141): Do not weaken these.
-  - **3.2 Lint / format rules** (L142–156): means "intentionally unused" — it is not a license to leave a stub instead of real code.
-  - **3.3 Forbidden escape hatches** (L157–170): without a justification.
-- **4. Architecture Conventions (enforce on every change)** (L171–206): imports from `server` or `client`.
-- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L207–237): instead of `./validate.sh`.
-- **6. Definition of Done (checklist — ALL must hold)** (L238–259): path, edge cases, and error cases.
+- **Engineering Standards** (L1–274): These are enforceable rules, not suggestions.
+- **1. The Validation Gate (`./validate.sh`)** (L12–63): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
+- **2. Testing Standards** (L64–138): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
+  - **2.1 Every change is tested** (L69–82): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
+  - **2.2 Unit vs integration split** (L83–109): isolation — no cross-subsystem orchestration, runs in <100ms.
+  - **2.3 What must be covered (template-specific)** (L110–129): state + snapshot; invalid input is rejected/ignored.
+  - **2.4 Determinism** (L130–138): simulation is reproducible and tests can assert exact outputs.
+- **3. TypeScript & Lint Strictness** (L139–185)
+  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L141–156): Do not weaken these.
+  - **3.2 Lint / format rules** (L157–171): means "intentionally unused" — it is not a license to leave a stub instead of real code.
+  - **3.3 Forbidden escape hatches** (L172–185): without a justification.
+- **4. Architecture Conventions (enforce on every change)** (L186–221): imports from `server` or `client`.
+- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L222–252): instead of `./validate.sh`.
+- **6. Definition of Done (checklist — ALL must hold)** (L253–274): path, edge cases, and error cases.
 
 ## GAME-DESIGN.md (446 lines)
 
@@ -208,15 +208,15 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **9. Test plan (`TESTING.md` tiers)** (L402–437): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 - **10. Own-cell indicators and world-anchored labels (#146)** (L438–484): [`UI.md §3.1`](./UI.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows: the DNA …
 
-## TEAM.md (144 lines)
+## TEAM.md (159 lines)
 
-- **The agent team** (L1–144): How work on this game is done by a team of AI agents, each running inside the devcontainer as one role, coordinated through GitHub tickets …
+- **The agent team** (L1–159): How work on this game is done by a team of AI agents, each running inside the devcontainer as one role, coordinated through GitHub tickets …
 - **Roles** (L7–28): `.claude/roles/_common.md` is prepended to every prompt: ground rules, git/PR mechanics, how to finish.
 - **Human dial** (L29–46): How much the human steers, set per game in `CLAUDE.md` ("Human dial: N") and changeable per phase.
 - **Running an agent** (L47–88): The roles are Claude Code agent definitions in `.claude/agents/<role>.md`, so inside the devcontainer the team lead spawns them with the Ag…
-- **Landing a PR: the review loop** (L89–125): In session (Agent tool): spawn each reviewer role with the PR in its prompt, read `scripts/pr-threads.sh state <PR>` (one 1-point query: la…
-- **Handoffs and artifacts** (L126–139): These names supersede the ones in ticket #18: balance lives with the other constants (`data/` is git-ignored runtime state, so `data/balanc…
-- **Definition of Done (per ticket)** (L140–144): `docs/ENGINEERING.md` Definition of Done, plus: the PR closed the ticket, every review thread is resolved, docs describing the behaviour we…
+- **Landing a PR: the review loop** (L89–140): In session (Agent tool): spawn all round-one reviewers together — every reviewer role the table below names, each with the PR in its prom…
+- **Handoffs and artifacts** (L141–154): These names supersede the ones in ticket #18: balance lives with the other constants (`data/` is git-ignored runtime state, so `data/balanc…
+- **Definition of Done (per ticket)** (L155–159): `docs/ENGINEERING.md` Definition of Done, plus: the PR closed the ticket, every review thread is resolved, docs describing the behaviour we…
 
 ## TESTING.md (371 lines)
 
@@ -305,13 +305,13 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Performance intent: geometry, textures, shaders** (L309–337): The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
 - **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L338–351)
 
-## WORKFLOW.md (135 lines)
+## WORKFLOW.md (149 lines)
 
-- **Workflow — GitHub issues, project board, reviews** (L1–135): The single source of truth for how work is tracked and merged in a game built from this template.
+- **Workflow — GitHub issues, project board, reviews** (L1–149): The single source of truth for how work is tracked and merged in a game built from this template.
 - **1. Where things live** (L8–23): GitHub stores Projects under the user/org, not inside the repo; the project is _linked_ to the repo so it appears in the repo's Projects ta…
 - **2. Labels (category), Status (stage), assignee (ball in court)** (L24–43): design, architecture, gameplay, graphics, networking, ui, audio, qa, docs), `role:*` (the agent role that owns it), `priority:p0|p1|p2`, `e…
 - **3. Milestones and epics** (L44–59): gates, testing foundations) and `M1 Design` (design docs, architecture, build plan).
 - **4. Keeping the board in sync (no UI workflows)** (L60–71): The Project's UI-only automations (auto-add, auto-close) are replaced by `scripts/project-sync.sh`, which is idempotent and safe to run any…
 - **5. Branch and PR rules** (L72–95): Every piece of work starts as a ticket — no exceptions, including template and tooling work.
-- **6. Review process (every PR)** (L96–120): and config live, test plan.
-- **7. Scripts** (L121–135): `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).
+- **6. Review process (every PR)** (L96–134): and config live, test plan.
+- **7. Scripts** (L135–149): `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).
