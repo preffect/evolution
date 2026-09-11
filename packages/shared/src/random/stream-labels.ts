@@ -26,8 +26,12 @@ export const RANDOM_STREAM = {
 export const COSMETIC_SUB_STREAM = {
   /** The depth particle fields, one per layer. */
   depth: 'depth',
-  /** The field noise textures (#206). */
+  /** The cytoplasm noise tile (#206). */
   field: 'field',
+  /** The membrane jitter / lobes strip, one row per cell variant (#206). */
+  strip: 'strip',
+  /** The dish field bake: mire strand placement (#206). */
+  dish: 'dish',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];

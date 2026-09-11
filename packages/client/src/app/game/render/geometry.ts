@@ -5,6 +5,8 @@ import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 
 export const DEGREES_PER_TURN = 360;
 export const HALF = 0.5;
+/** A diameter (or a side) from a radius: the factor every bake sizes its canvas by. */
+export const DIAMETER_PER_RADIUS = 2;
 const HALF_TURN = Math.PI;
 /** `d/dx x² = 2x`: the factor every closed-form derivative below carries. */
 export const SQUARE_DERIVATIVE_FACTOR = 2;

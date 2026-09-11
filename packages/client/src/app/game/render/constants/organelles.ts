@@ -1,8 +1,53 @@
 // Organelle atlas, slots and sprite motion (docs/RENDERING.md §3, docs/VISUAL-STYLE.md §3–§4).
 // Sizes are fractions of the cell radius `r`.
 
+import type { ValueOf } from '@evolution/shared';
+
+/** The organelle kinds the atlas bakes one sprite for (RENDERING §3); the layout order joins with #215. */
+export const ORGANELLE_KIND = {
+  nucleus: 'nucleus',
+  nucleoid: 'nucleoid',
+  mitochondrion: 'mitochondrion',
+  chloroplast: 'chloroplast',
+  foodVacuole: 'food_vacuole',
+  toxinVacuole: 'toxin_vacuole',
+  lipid: 'lipid',
+  protocellGranule: 'protocell_granule',
+} as const;
+export type OrganelleKind = ValueOf<typeof ORGANELLE_KIND>;
+
 export const ORGANELLE_ATLAS_PX_PER_R = 128;
 export const ORGANELLE_ATLAS_MAX_DPR = 2;
+/** Every atlas sprite's halo reaches this far past its body, at this alpha; rims and glints as shares of the body. */
+export const ORGANELLE_HALO_REACH = 1.6;
+export const ORGANELLE_HALO_ALPHA = 0.35;
+export const ORGANELLE_RIM_WIDTH_SHARE = 0.1;
+export const ORGANELLE_GLINT_ALPHA = 0.55;
+/** The mitochondrion's matrix (lighter inner bean) and cristae folds, as shares of the body. */
+export const MITO_MATRIX = { widthShare: 0.92, heightShare: 0.85, liftShare: 0.08 } as const;
+export const MITO_CRISTA = { widthShare: 0.06, heightShare: 1.2, alpha: 0.8 } as const;
+/** The chloroplast's lit granules: radius and ring as shares of the body, on the light-side half turn. */
+export const CHLORO_GRANULE = { radiusShare: 0.16, ringShare: 0.55, arcStartTurns: -0.375 } as const;
+/** A vacuole's translucent fill: faint at the centre, denser at the rim. */
+export const VACUOLE_FILL_ALPHA = { inner: 0.25, outer: 0.6 } as const;
+/** The nucleus bake (sheet 01 layer 6): body ramp floor, chromatin wash, nucleolus halo, highlight. */
+export const NUCLEUS_BAKE = {
+  darkAlpha: 0.85,
+  chromatinAlpha: 0.25,
+  chromatinRadiusShare: 0.16,
+  chromatinRingShare: 0.5,
+} as const;
+export const NUCLEOLUS_HALO = { reach: 1.8, alpha: 0.5 } as const;
+export const NUCLEUS_HIGHLIGHT_ALPHA = 0.6;
+/** The nucleoid bake: a wobbling loop of thread with a glow under it. */
+export const NUCLEOID_BAKE = {
+  loopTurns: 3,
+  strandPx: 2,
+  glowPx: 6,
+  glowReach: 1.5,
+  steps: 96,
+  wobbleShare: 0.18,
+} as const;
 /** Slot rejection sampling (§3): inside 1 − 0.08, outside the nucleus disc, this gap between sprites. */
 export const ORGANELLE_MEMBRANE_MARGIN = 0.08;
 export const ORGANELLE_MIN_GAP = 0.04;

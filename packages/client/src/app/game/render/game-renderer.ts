@@ -62,7 +62,7 @@ export class GameRenderer {
     private viewport: ViewportPx,
   ) {
     this.layers = createSceneLayers(stage);
-    this.dish = new DishLayer(textures.glowTexture, textures.cosmetic);
+    this.dish = new DishLayer(textures);
     this.cells = new PlaceholderCellLayer();
     this.vignette = new Sprite(textures.vignetteTexture);
     this.layers.dish.addChild(this.dish.container);

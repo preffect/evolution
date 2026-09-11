@@ -91,7 +91,12 @@ export class RenderSession {
     const pixi = await this.ensurePixiApp();
     if (pixi === null) return;
     this.disposeRenderer();
-    this.textures = createRenderTextures({ seed: snapshot.seed, baker: pixi.textures });
+    this.textures = createRenderTextures({
+      seed: snapshot.seed,
+      baker: pixi.textures,
+      gelPatches: snapshot.gelPatches,
+      devicePixelRatio: this.dependencies.devicePixelRatio,
+    });
     this.renderer = new GameRenderer(pixi.app.stage, this.textures, pixi.app.screen);
   }
 

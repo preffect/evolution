@@ -7,16 +7,15 @@ import {
   createTestCellView,
   createTestRenderFrame,
 } from '../../../testing/builders';
-import { createFakePixiApp } from '../../../testing/fake-pixi-app';
+import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
 import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
-import { createRenderTextures } from './render-textures';
 
 const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
 const VIEWPORT = { width: 800, height: 600 };
 
 function renderer(): { renderer: GameRenderer; stage: Container; submits: { count: number } } {
   const pixi = createFakePixiApp(VIEWPORT);
-  const textures = createRenderTextures({ seed: 3, baker: pixi.textures });
+  const textures = createTestRenderTextures({ seed: 3, baker: pixi.textures });
   const submits = { count: 0 };
   return { renderer: new GameRenderer(pixi.stage, textures, VIEWPORT), stage: pixi.stage, submits };
 }

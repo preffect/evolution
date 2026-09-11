@@ -1,11 +1,13 @@
 // The Pixi `TextureBaker` (docs/RENDERING.md §6): a radial bake spec becomes a Graphics with a
-// radial `FillGradient` over its own bounds, rendered once to a texture. The only file that turns
-// a bake into a Pixi texture in slice A; slice B (#206) adds the Canvas-2D path beside it.
+// radial `FillGradient` over its own bounds, rendered once to a texture; a Canvas-2D bake comes
+// from the canvas factory it wraps and becomes a texture through `textures/pixi-textures.ts`.
 
 import { FillGradient, Graphics, type Container, type Texture } from 'pixi.js';
 import { hexWithAlpha } from './colour';
 import { HALF } from './geometry';
 import { RADIAL_BAKE_SHAPE, type RadialBakeSpec, type TextureBaker } from './render-textures';
+import { textureFromBake } from './textures/pixi-textures';
+import type { BakeCanvasFactory } from './textures/texture-bake';
 
 /** The slice of a Pixi renderer the baker needs: `Renderer.generateTexture` satisfies it. */
 export interface TextureGenerator {
@@ -38,7 +40,7 @@ function bakeShape(spec: RadialBakeSpec): Graphics {
   return graphics.fill(radialGradient(spec));
 }
 
-export function createPixiTextureBaker(generator: TextureGenerator): TextureBaker {
+export function createPixiTextureBaker(generator: TextureGenerator, canvases: BakeCanvasFactory): TextureBaker {
   return {
     bakeRadial(spec) {
       const graphics = bakeShape(spec);
@@ -46,5 +48,7 @@ export function createPixiTextureBaker(generator: TextureGenerator): TextureBake
       graphics.destroy();
       return texture;
     },
+    create: (width, height) => canvases.create(width, height),
+    textureFromBake,
   };
 }

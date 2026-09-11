@@ -1,8 +1,8 @@
 // The renderer smoke (docs/TESTING.md, docs/RENDERING.md §9): a live room from the lobby with a fixed
-// seed, the canvas mounts, the shader-free slice A scene draws on SwiftShader without page errors,
-// the canvas fills the viewport with no page scroll (docs/UI.md §1, #217), the debug hook's pause holds
-// the rendered tick and a step advances it, and a screenshot lands under `.qa/screenshots/` for the PR.
-// Slice D (#208) adds the bench route and the frame-budget report.
+// seed, the canvas mounts, the baked dish field and the depth particles draw on SwiftShader without page
+// errors, the canvas fills the viewport with no page scroll (docs/UI.md §1, #217), the debug hook's pause
+// holds the rendered tick and a step advances it, and a screenshot lands under `.qa/screenshots/` for the
+// PR. Slice D (#208) adds the bench route and the frame-budget report.
 import { expect, test, type Page } from '@playwright/test';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';
@@ -92,7 +92,7 @@ test.describe('renderer smoke on a live room', () => {
     await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.pause());
     await page.waitForTimeout(HOLD_WAIT_MS);
     expect(errors, 'no page or shader errors').toEqual([]);
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/pr205-live-seed${SMOKE_SEED}.png` });
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/render-smoke-live-seed${SMOKE_SEED}.png` });
   });
 
   test('the canvas fills the viewport and the page does not scroll (docs/UI.md §1)', async ({ page }) => {
