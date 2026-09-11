@@ -20,7 +20,7 @@ export interface PixiAppOptions {
 export interface PixiAppHandle {
   readonly app: Application;
   readonly canvas: HTMLCanvasElement;
-  /** Bakes through this app's renderer; the session hands it to `createRenderTextures`. */
+  /** The app's texture baker; the session hands it to `createRenderTextures`. */
   readonly textures: TextureBaker;
   destroy(): void;
 }
@@ -46,7 +46,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
   return {
     app,
     canvas,
-    textures: createPixiTextureBaker(app.renderer, createDomBakeCanvasFactory(options.host.ownerDocument)),
+    textures: createPixiTextureBaker(createDomBakeCanvasFactory(options.host.ownerDocument)),
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

@@ -1,8 +1,8 @@
 // The texture bundle every layer draws from (docs/RENDERING.md §1, §6, §8): the round seed's
 // cosmetic stream plus every texture baked at startup, rebuilt when the seed changes (a rematch).
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
-// since jsdom has no canvas): the radial bakes drawn through Pixi (the soft disc, the vignette)
-// and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish field, the vent sprite).
+// since jsdom has no canvas): the radial bakes sampled into bytes (the soft disc, the vignette;
+// textures/radial-bake.ts) and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish field, the vent sprite).
 // The noise strip, the noise tile and the palette are bytes, uploaded as data textures for the
 // cell shader (cells/cell-mesh.ts).
 
