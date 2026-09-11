@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  EFFECT_KIND,
   PLAYER_LIFE_STATE,
   createTestGameInput,
   createTestSessionConfig,
@@ -16,6 +17,8 @@ import type { Replay } from './replay/replay-format.js';
 const ALICE = playerId('alice');
 const BOB = playerId('bob');
 const BOT_SEED = 5;
+/** Past the world clock's first level: a joiner is lifted to level 2 and its level_up must reach the wire. */
+const LATE_JOIN_TICK = 18_000;
 const TICKS_WITH_BOT = 3;
 
 function createModule(): EvolutionModule {
@@ -63,14 +66,18 @@ describe('createEvolutionModule', () => {
     expect(module.serializeRoomState().appliedInputSequenceByPlayer[ALICE]).toBe(4);
   });
 
-  it('broadcasts deltas after a full first snapshot and carries the effects since the last broadcast', () => {
+  it('broadcasts deltas after a full first snapshot and carries every effect since the last broadcast, between-tick ones included', () => {
     const module = createModule();
     const first = module.serializeRoomState();
     expect(first.food.spawned.length).toBe(module.world.food.length);
+    module.world.tick = LATE_JOIN_TICK;
+    module.addPlayer(BOB, 1, 'Bob');
     module.reduceGameState();
     const second = module.serializeRoomState();
     expect(second.food.spawned.length).toBeLessThan(first.food.spawned.length);
-    expect(second.tick).toBe(1);
+    expect(second.tick).toBe(LATE_JOIN_TICK + 1);
+    expect(second.effects.map((effect) => effect.kind)).toContain(EFFECT_KIND.levelUp);
+    expect(module.serializeRoomState().effects).toEqual([]);
     expect(module.serializeFullState().snapshot.food.spawned.length).toBe(module.world.food.length);
     expect(module.serializeFullState().balance).toBe(module.world.balance);
   });

@@ -1,7 +1,7 @@
 // The Evolution debug handle (docs/ARCHITECTURE.md §8): every capability of the template's seam,
 // declared `Required` so a forgotten member is a type error. Reads project the world; mutations
 // go through debug-operations.ts and are recorded in the replay; a reseed closes the recording;
-// the bot pair adds and removes a player the module's own roster drives (docs/TESTING.md §8.4).
+// the bot pair adds and removes a player the module's own roster drives (docs/TESTING.md §8.3).
 
 import {
   ENTITY_KIND,
@@ -24,8 +24,8 @@ import type {
   SpawnedBot,
   SpawnRequest,
 } from './simulation-debug-handle.js';
-import type { GameModule } from '../game-module.js';
 import type { InProcessBotRoster } from '../bots/in-process-bots.js';
+import { REPLAY_ORIGIN } from '../replay/replay-format.js';
 import type { ReplayRecorder } from '../replay/replay-recorder.js';
 import { toCellView, toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
@@ -33,8 +33,11 @@ import { computeStateHash } from '../world/state-hash.js';
 import type { InputRejectionCounters, WorldState } from '../world/world-state.js';
 import { DEBUG_PATCH_KIND, applyDebugPatch, reseedForDebug, type DebugPatch } from './debug-operations.js';
 
-/** The module's own `addPlayer` / `removePlayer`: a bot joins and leaves exactly like a late joiner. */
-export type ModuleMembership = Pick<GameModule, 'addPlayer' | 'removePlayer'>;
+/** The module's own `addPlayer` / `removePlayer`: a bot joins and leaves exactly like a late joiner; both answer whether the world took it. */
+export interface ModuleMembership {
+  addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): boolean;
+  removePlayer(playerId: PlayerId): boolean;
+}
 
 export interface EvolutionDebugHandleDependencies {
   readonly world: WorldState;
@@ -124,7 +127,7 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
     const { world, recorder } = this.dependencies;
     const closingHash = computeStateHash(world);
     reseedForDebug(world, seed);
-    recorder.startNewRound(world, closingHash);
+    recorder.startNewRound(world, REPLAY_ORIGIN.reseed, closingHash);
   }
 
   getBalance(): BalanceConfig {
@@ -157,7 +160,10 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
       bots.remove(bot.playerId);
       throw error;
     }
-    membership.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName);
+    if (!membership.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName)) {
+      bots.remove(bot.playerId);
+      throw new DebugRequestError(`"${bot.playerId}" is already a player in this world`);
+    }
     return bot;
   }
 

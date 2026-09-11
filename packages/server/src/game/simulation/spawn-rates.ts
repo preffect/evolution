@@ -2,6 +2,7 @@
 // cells in the dish and the bloom flag, so joins, leaves and the bloom take effect immediately.
 
 import { FOOD_KIND, type BalanceConfig, type CellStage } from '@evolution/shared';
+import { isPlayerCell } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { isBloomActive } from './round-clock.js';
 
@@ -10,9 +11,9 @@ export interface SpawnerRates {
   readonly ratePerSecond: number;
 }
 
-/** "players" = cells currently in the dish (connected or in disconnect grace). */
+/** "players" = player cells currently in the dish (connected or in disconnect grace); wild cells never count. */
 export function cellsInDish(world: WorldState): number {
-  return world.cells.length;
+  return world.cells.filter(isPlayerCell).length;
 }
 
 export function foodSpawnerRates(world: WorldState, balance: BalanceConfig): SpawnerRates {

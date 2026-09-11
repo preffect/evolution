@@ -48,7 +48,7 @@
 ./run.sh --install      # run pnpm install before starting
 ```
 
-### Headless bots (`docs/TESTING.md` §8.4)
+### Headless bots (`docs/TESTING.md` §8.3)
 
 ```bash
 pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy grazer --seed 42   # over the wire
@@ -185,6 +185,6 @@ change ports inside the container; they are already baked into the integration f
   `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
   with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
   every module); populate a room with `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
-  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter`, `docs/TESTING.md` §8.4)
+  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter`, `docs/TESTING.md` §8.3)
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
 - **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`

@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { ENTITY_KIND, createTestGameInput, createTestSessionConfig, playerId } from '@evolution/shared';
 import { createEvolutionModule, type EvolutionModule } from '../evolution-module.js';
 import type { Replay } from './replay-format.js';
-import { replay } from './replay-runner.js';
+import { REPLAY_ORIGIN } from './replay-format.js';
+import { replay, ReplayOriginError } from './replay-runner.js';
 
 const ROOM_TICKS = 40;
 const JOIN_TICK = 10;
@@ -86,8 +87,9 @@ describe('replay', () => {
     expect(recording.finalTick).toBe(ROOM_TICKS + 12);
     expect(recording.inputs).toEqual([]);
     // A reseed keeps the running world and rebuilds only the streams, so the recording after it
-    // is not reproducible from seed + roster alone; the closed round is (docs/DETERMINISM.md §6).
-    expect(replay(recording).hash).not.toBe(recording.finalHash);
+    // is not reproducible from seed + roster alone and replay() refuses it (docs/DETERMINISM.md §6).
+    expect(recording.startedBy).toBe(REPLAY_ORIGIN.reseed);
+    expect(() => replay(recording)).toThrow(ReplayOriginError);
   });
 
   it('ignores a recorded input for a player who is not in the world and a stale sequence', () => {

@@ -1,4 +1,4 @@
-// The bot client's command line, parsed into swarm options (docs/TESTING.md §8.4):
+// The bot client's command line, parsed into swarm options (docs/TESTING.md §8.3):
 //   pnpm --filter @evolution/server bot-client --game <id> [--bots 4] [--strategy grazer] [--seed 42]
 //                                              [--prey <playerId>] [--url ws://host:port/ws] [--ticks 600]
 // Pure: no process, no output. Anything unusable throws `BotClientError` carrying the usage text.

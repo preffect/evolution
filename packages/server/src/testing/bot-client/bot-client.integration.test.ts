@@ -1,4 +1,4 @@
-// Integration (docs/TESTING.md §2, §8.4): two bots over real sockets against a real in-process
+// Integration (docs/TESTING.md §2, §8.3): two bots over real sockets against a real in-process
 // server on the echo module, 300 ticks on manual clocks. Every tick is strictly ordered (bots
 // decide → inputs land → the room steps and broadcasts), so the run reads no wall clock and the
 // last echoed inputs are exactly what an offline pilot with the same seed and index decides.

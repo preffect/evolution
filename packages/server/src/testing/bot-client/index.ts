@@ -1,4 +1,4 @@
-// The headless bot client's wire side (docs/TESTING.md §8.4): the session, the swarm, its timing
+// The headless bot client's wire side (docs/TESTING.md §8.3): the session, the swarm, its timing
 // and transport seams, the CLI parser and the error. The decision stack (strategies, perception,
 // pilot, identity, bindings) lives in `game/bots/`. The `ws` transport is deliberately not here:
 // `cli.ts` and the integration test import `web-socket-transport.ts` directly, so nothing that

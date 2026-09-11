@@ -50,6 +50,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     spawners: { food: createSpawnerState(), dnaFragments: createSpawnerState() },
     random: forkServerStreams(options.seed),
     nextEntityNumber: options.nextEntityNumber ?? FIRST_ENTITY_NUMBER,
+    roundFirstEntityNumber: options.nextEntityNumber ?? FIRST_ENTITY_NUMBER,
     effects: [],
   };
   world.roundTimeLeftMs = roundTimeLeftMsAt(world, world.tick);

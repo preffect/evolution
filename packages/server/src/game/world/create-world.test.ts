@@ -31,7 +31,7 @@ function options(overrides: Partial<CreateWorldOptions> = {}): CreateWorldOption
 describe('createWorld', () => {
   const world = createWorld(options());
 
-  it('starts at tick 0 of a playing round with the seed and its five streams', () => {
+  it('starts at tick 0 of a playing round with the seed and its server streams', () => {
     expect(world.tick).toBe(0);
     expect(world.seed).toBe(SEED);
     expect(world.roundPhase).toBe(ROUND_PHASE.playing);

@@ -6,6 +6,7 @@
 import {
   RANDOM_STREAM,
   secondsToTicks,
+  type BalanceConfig,
   type OwnedTrait,
   type TraitChoiceInput,
   type TraitTier,
@@ -46,12 +47,18 @@ export function applyCard(player: PlayerRecord, card: OwnedTrait): void {
   }
 }
 
-function showOffer(offer: TraitOffer, draft: Draft, player: PlayerRecord, world: WorldState): void {
+/** When and under which numbers an offer is shown. */
+interface OfferShowing {
+  readonly tick: number;
+  readonly balance: BalanceConfig;
+}
+
+function showOffer(offer: TraitOffer, draft: Draft, player: PlayerRecord, showing: OfferShowing): void {
   offer.cards = draft.cards;
   offer.cardWeights = draft.cardWeights;
   offer.catalogIndexes = draft.catalogIndexes;
-  offer.shownAtTick = world.tick;
-  offer.expiresAtTick = world.tick + secondsToTicks(world.balance.progression.TRAIT_CHOICE_TIMEOUT_SECONDS);
+  offer.shownAtTick = showing.tick;
+  offer.expiresAtTick = showing.tick + secondsToTicks(showing.balance.progression.TRAIT_CHOICE_TIMEOUT_SECONDS);
   player.offer = {
     offerId: offer.offerId,
     cards: draft.cards.map((card) => ({ ...card })),
@@ -70,7 +77,7 @@ export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, c
   }
   const draft = buildDraft(player, context.streams[RANDOM_STREAM.traitDraft], context.balance);
   if (draft.cards.length > 0) {
-    showOffer(head, draft, player, world);
+    showOffer(head, draft, player, { tick: world.tick, balance: context.balance });
     return;
   }
   const cell = findCellOfPlayer(world, player.playerId);
@@ -81,13 +88,19 @@ export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, c
 }
 
 /** Applies the card and refolds the cell at once (docs/PROGRESSION.md §4): a timeout pick at step 7 shows on the same tick. */
-function closeShownOffer(world: WorldState, player: PlayerRecord, offer: TraitOffer, cardIndex: number): void {
-  applyCard(player, offer.cards[cardIndex] as OwnedTrait);
+/** What closing an offer needs: the card picked and the balance the refold reads. */
+interface OfferClose {
+  readonly balance: BalanceConfig;
+  readonly cardIndex: number;
+}
+
+function closeShownOffer(world: WorldState, player: PlayerRecord, offer: TraitOffer, context: OfferClose): void {
+  applyCard(player, offer.cards[context.cardIndex] as OwnedTrait);
   player.offerQueue.shift();
   player.offer = null;
   const cell = findCellOfPlayer(world, player.playerId);
   if (cell !== undefined) {
-    refreshCellDerivedState(cell, player, world.balance);
+    refreshCellDerivedState(cell, player, context.balance);
   }
 }
 
@@ -103,17 +116,17 @@ export function applyTraitChoice(
     context.rejections.staleTraitChoice += 1;
     return false;
   }
-  closeShownOffer(world, player, offer, choice.cardIndex);
+  closeShownOffer(world, player, offer, { balance: context.balance, cardIndex: choice.cardIndex });
   return true;
 }
 
 /** The timeout: on the tick the shown offer reaches `expiresAtTick`, the heaviest card is picked. */
-export function applyExpiredOffer(world: WorldState, player: PlayerRecord): void {
+export function applyExpiredOffer(world: WorldState, player: PlayerRecord, context: StepContext): void {
   const offer = shownOffer(player);
   if (offer === undefined || world.tick < offer.expiresAtTick) {
     return;
   }
-  closeShownOffer(world, player, offer, timeoutCardIndex(offer));
+  closeShownOffer(world, player, offer, { balance: context.balance, cardIndex: timeoutCardIndex(offer) });
 }
 
 /** The tier a card grants, for callers that build cards by hand (fixtures, debug). */

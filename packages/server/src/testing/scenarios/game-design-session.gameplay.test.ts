@@ -15,6 +15,9 @@ import {
   TICK_HZ,
   TICK_INTERVAL_MS,
   createSeededRandom,
+  entryMass,
+  ticksToSeconds,
+  worldReference,
 } from '@evolution/shared';
 import { drawSpawnCandidate } from '../../game/simulation/spawn-placement.js';
 import {
@@ -141,7 +144,8 @@ describe('GAME-DESIGN §13: the session', () => {
   });
 
   it('G14: a joiner at 5:00 is floored at the world clock, not the idle player', () => {
-    const expectedMass = decayed(0.5 * (growth.CELL_STARTING_MASS + G14_JOIN_TICK / TICK_HZ), 1);
+    const reference = worldReference(ticksToSeconds(G14_JOIN_TICK), DEFAULT_BALANCE);
+    const expectedMass = decayed(entryMass(null, reference, DEFAULT_BALANCE), 1);
     seededSolo('G14')
       .playerJoinsAt(G14_JOIN_TICK)
       .advance(G14_JOIN_TICK)

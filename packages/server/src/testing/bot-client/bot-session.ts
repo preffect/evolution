@@ -1,4 +1,4 @@
-// One bot over the wire (docs/TESTING.md §8.4): the lobby handshake a browser client does
+// One bot over the wire (docs/TESTING.md §8.3): the lobby handshake a browser client does
 // (`join_lobby`, `join_game`), then one client tick per fixed step from the injected timing
 // (docs/ARCHITECTURE.md §5: exactly one `player_input` per client tick, `sequence` = tick),
 // each decided by the pilot from the latest snapshot the server sent. A bot that has not seen a

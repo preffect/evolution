@@ -136,12 +136,14 @@ describe('serializeDeltaSnapshot', () => {
         eatenKind: 'food_mote',
       },
     ];
-    const first = serializeDeltaSnapshot(world, tracker, effects);
+    world.effects.push(...effects);
+    const first = serializeDeltaSnapshot(world, tracker);
     expect(first.food.spawned.map((view) => view.id)).toEqual([mote.id]);
     expect(first.effects).toEqual(effects);
-    expect(first.effects).not.toBe(effects);
+    expect(world.effects).toEqual([]);
     world.food = [];
-    const second = serializeDeltaSnapshot(world, tracker, []);
+    const second = serializeDeltaSnapshot(world, tracker);
     expect(second.food).toEqual({ spawned: [], removedIds: [mote.id], moved: [] });
+    expect(second.effects).toEqual([]);
   });
 });

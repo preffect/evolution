@@ -142,11 +142,12 @@ export function serializeFullSnapshot(world: WorldState, quantize: PositionQuant
   };
 }
 
-/** The `game_snapshot` broadcast: the food delta since the previous broadcast and the effects since it. */
-export function serializeDeltaSnapshot(
-  world: WorldState,
-  tracker: FoodDeltaTracker,
-  effects: readonly GameEffect[],
-): GameSnapshot {
-  return { ...serializeCommon(world, quantizePosition), food: tracker.diff(world.food), effects: [...effects] };
+/**
+ * The `game_snapshot` broadcast: the food delta since the previous broadcast and every effect since
+ * it. This is the one drain of `world.effects` (docs/ARCHITECTURE.md §2): the steps and the
+ * between-tick paths (a join's catch-up level-ups, a debug grant) all push there.
+ */
+export function serializeDeltaSnapshot(world: WorldState, tracker: FoodDeltaTracker): GameSnapshot {
+  const effects: GameEffect[] = world.effects.splice(0);
+  return { ...serializeCommon(world, quantizePosition), food: tracker.diff(world.food), effects };
 }

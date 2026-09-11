@@ -106,10 +106,10 @@ describe('applyExpiredOffer', () => {
     const { world, player, context } = worldWithQueuedOffer(12);
     showQueuedOfferIfNone(world, player, context);
     world.tick = 12 + TIMEOUT_TICKS - 1;
-    applyExpiredOffer(world, player);
+    applyExpiredOffer(world, player, context);
     expect(shownOffer(player)?.offerId).toBe(1);
     world.tick = 12 + TIMEOUT_TICKS;
-    applyExpiredOffer(world, player);
+    applyExpiredOffer(world, player, context);
     expect(shownOffer(player)).toBeUndefined();
     expect(player.ownedTraits).toEqual([{ traitId: 'nucleoid', tier: 1 }]);
   });

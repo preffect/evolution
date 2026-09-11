@@ -22,7 +22,9 @@ import { runSpawners } from './spawner.js';
 
 export function stepWorld(world: WorldState, context: StepContext): RoundStepOutcome {
   world.tick += 1;
-  applyInputs(world, context);
+  if (world.roundPhase === ROUND_PHASE.playing) {
+    applyInputs(world, context); // input is ignored through `results` (docs/GAME-DESIGN.md §5.4)
+  }
   const outcome = advanceRound(world, context);
   if (outcome === ROUND_STEP_OUTCOME.rematched) {
     return outcome;
@@ -45,10 +47,10 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
 /**
  * The step as the module runs it: streams resumed from `world.random`, the world stepped, the
  * streams written back. A rematch rebuilt the world with fresh streams, so nothing is written
- * back over them. Effects of the tick are left in `world.effects` for the module to drain.
+ * back over them. Effects accumulate in `world.effects` (a join or a debug grant between ticks
+ * pushes there too) until the module's broadcast drains them; the step never clears them.
  */
 export function runStep(world: WorldState, balance: BalanceConfig, rejections: InputRejectionCounters): void {
-  world.effects = [];
   const streams = resumeStreams(world);
   const context: StepContext = { balance, streams, effects: world.effects, rejections };
   const outcome = stepWorld(world, context);

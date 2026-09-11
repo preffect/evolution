@@ -14,19 +14,16 @@ import {
 } from '@evolution/shared';
 import type { CellRecord, DnaFragmentRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
+import { foodBoundaryRadius } from './zones.js';
 
 interface Mobile extends Vec2 {
   x: number;
   y: number;
 }
 
-function foodBoundary(balance: BalanceConfig): number {
-  return balance.world.DISH_RADIUS - balance.world.FOOD_EDGE_MARGIN;
-}
-
 /** Pulls a point back onto the food boundary circle when it has drifted past it. */
 function clampToFoodBoundary(mote: Mobile, balance: BalanceConfig): boolean {
-  const reach = foodBoundary(balance);
+  const reach = foodBoundaryRadius(balance);
   const distance = Math.hypot(mote.x, mote.y);
   if (distance <= reach) {
     return false;

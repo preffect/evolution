@@ -271,7 +271,7 @@ against it):
 ```text
  stepWorld(world, context): void          context = { balance, streams, effects }
    1 inputs        apply the coalesced input per player (join order); fold modifiers + stage
-   2 round         timer, bloom flag, results phase (freezes 3–9), auto-rematch reseed
+   2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: GAME-DESIGN §5.4), auto-rematch reseed
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation
    4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA
    5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ECOLOGY §4.1)
@@ -319,7 +319,8 @@ prediction reuses them unchanged.
 - **Tunables** reach the systems as `context.balance` (section 9), never as module imports from
   `constants/`; formulas take numbers. That is what makes `debug_set_balance` live.
 - **Spatial hash** (`world/spatial-hash.ts`): uniform grid rebuilt at step 3, cell size
-  `SPATIAL_HASH_CELL_SIZE_WU`; `queryCircle` and `queryPairs` return id-sorted results.
+  `SPATIAL_HASH_CELL_SIZE_WU`; `queryCircle` returns id-sorted results. Cell pairs (separation, engulf)
+  come from `contact.ts` `cellPairs`: every pair of the few cells, id-sorted, no hash needed.
 - **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. What it shares
   is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`, ECOLOGY §6.1: the
   engulf system, the HUD threat label (`threatsFor`) and the warning ring all call it on views, and its
@@ -416,7 +417,8 @@ quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
 `perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
 evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
-**§4.2 lever 1 is no longer held: it is required before the wild-cell simulation slice ships (#171)**.
+**§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
+wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
 With it the same snapshot is ≈ 20 KB (≈ 400 KB/s), inside budget; culling wild cells outside the
 viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
 and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
@@ -539,7 +541,7 @@ world; they need no capability):
 | `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                          |
 | `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                                |
 | `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                        |
-| `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`TESTING.md §8.4`) |
+| `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`TESTING.md §8.3`) |
 | `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                    |
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
@@ -635,7 +637,7 @@ packages/server/src/
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
   game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
   game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives
-  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (TESTING.md §8.4); #156 adds flee
+  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (TESTING.md §8.3); #156 adds flee
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
   testing/builders.ts   testing/world-builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; createTestWorld / createTestStepContext / createTestPlayerRecord over the records; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
   testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)

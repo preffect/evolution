@@ -1,4 +1,4 @@
-// The headless bot client's composition root (docs/TESTING.md §8.4): the one place the bot
+// The headless bot client's composition root (docs/TESTING.md §8.3): the one place the bot
 // client meets the process, the system clock and a real socket. Everything it wires is unit
 // tested on its own; this file only names the production pieces, like `src/index.ts` does.
 //   pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy grazer --seed 42

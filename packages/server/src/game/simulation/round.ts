@@ -29,6 +29,8 @@ export function resetWorldForRematch(world: WorldState, context: StepContext): v
     startTick: world.tick,
     nextEntityNumber: world.nextEntityNumber,
   });
+  // The tick's effects array stays the one the step context aliases (`step.ts`).
+  fresh.effects = world.effects;
   Object.assign(world, fresh);
 }
 

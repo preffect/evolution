@@ -2,7 +2,7 @@
 // session and world-clock rows are game-design-session.gameplay.test.ts.
 
 import { describe, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_HZ, radiusForMass, secondsToTicks } from '@evolution/shared';
+import { DEFAULT_BALANCE, TICK_HZ, maxSpeedForMass, radiusForMass, secondsToTicks } from '@evolution/shared';
 import type { EvolutionScenarioSnapshot } from '../gameplay/evolution-adapter.js';
 import { cellOf, massOf, speedOf } from '../gameplay/evolution-views.js';
 import { combineScripts, player, sprint, targetPoint, targetRadiiEast, type PlayerScript } from '../gameplay/index.js';
@@ -73,6 +73,12 @@ describe('GAME-DESIGN §13: controls', () => {
 
   it('G7: the sprint costs 5 % once, lasts half a second and honours its cooldown', () => {
     const sprintTicks = secondsToTicks(controls.SPRINT_DURATION_SECONDS);
+    const blend = 1 / (growth.CELL_ACCELERATION_SECONDS * TICK_HZ);
+    /** The kernel blends toward the sprinting cap from rest; the cap follows the decayed mass (1 wu/s of drift over the sprint). */
+    const sprintedSpeedAfter = (ticks: number): number =>
+      controls.SPRINT_SPEED_MULTIPLIER *
+      maxSpeedForMass(decayed(100 * (1 - controls.SPRINT_MASS_COST_FRACTION), ticks), growth) *
+      (1 - (1 - blend) ** ticks);
     const cooldownTicks = secondsToTicks(controls.SPRINT_COOLDOWN_SECONDS);
     const sprintEast = combineScripts([sprint(), targetRadiiEast(FULL_THROTTLE_RADII)]);
     placedSolo('G7')
@@ -88,6 +94,11 @@ describe('GAME-DESIGN §13: controls', () => {
       .expect('sprint active', (view) => cellOf(view, 0)?.sprintRemainingTicks)
       .atTick(2)
       .toBeGreaterThan(0)
+      .expect('speed cap = SPRINT_SPEED_MULTIPLIER × maxSpeed (the blend toward it over the sprint)', (view) =>
+        speedOf(view, 0),
+      )
+      .atTick(sprintTicks)
+      .toBeCloseTo(sprintedSpeedAfter(sprintTicks), SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('sprint over', (view) => cellOf(view, 0)?.sprintRemainingTicks)
       .atTick(sprintTicks + 1)
       .toBe(0)

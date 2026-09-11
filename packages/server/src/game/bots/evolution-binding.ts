@@ -1,4 +1,4 @@
-// The Evolution bot binding (docs/TESTING.md §8.4): how a bot reads a wire `GameSnapshot` and
+// The Evolution bot binding (docs/TESTING.md §8.3): how a bot reads a wire `GameSnapshot` and
 // speaks to the Evolution module. Cells and motes are the snapshot's own views; `canEngulf` is the
 // shared predicate (docs/ECOLOGY.md §6.1) closed over the balance the caller supplies, read at
 // every call so a `debug_set_balance` reaches the bots too. The in-process roster feeds it full

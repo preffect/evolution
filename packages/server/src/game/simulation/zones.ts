@@ -36,6 +36,11 @@ export function zoneBand(zone: SpawnZoneId, balance: BalanceConfig): RadialBand 
   }
 }
 
+/** Food never spawns or drifts nearer than `FOOD_EDGE_MARGIN` to the wall (docs/GAME-DESIGN.md §8). */
+export function foodBoundaryRadius(balance: BalanceConfig): number {
+  return balance.world.DISH_RADIUS - balance.world.FOOD_EDGE_MARGIN;
+}
+
 export function isInsideGelPatch(point: Vec2, gelPatches: readonly GelPatchView[]): boolean {
   return gelPatches.some((patch) => distanceBetween(point, patch) <= patch.radius);
 }

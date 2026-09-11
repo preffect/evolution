@@ -12,36 +12,26 @@ import {
   type FoodKind,
   type OwnedTrait,
   type PlayerId,
-  type TraitId,
 } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
+import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
 import { toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
 import { forkServerStreams } from '../world/streams.js';
+import { SimulationInvariantError } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
+import { DEBUG_PATCH_KIND, type DebugPatch } from '../replay/replay-format.js';
 
-export const DEBUG_PATCH_KIND = {
-  spawn: 'spawn',
-  grantDna: 'grant_dna',
-  setPlayer: 'set_player',
-  setBalance: 'set_balance',
-} as const;
-
-export type DebugPatch =
-  | { readonly kind: typeof DEBUG_PATCH_KIND.spawn; readonly request: SpawnRequest }
-  | { readonly kind: typeof DEBUG_PATCH_KIND.grantDna; readonly playerId: PlayerId; readonly grant: DnaGrant }
-  | { readonly kind: typeof DEBUG_PATCH_KIND.setPlayer; readonly playerId: PlayerId; readonly patch: PlayerPatch }
-  | { readonly kind: typeof DEBUG_PATCH_KIND.setBalance; readonly patch: BalancePatch };
+export { DEBUG_PATCH_KIND, type DebugPatch } from '../replay/replay-format.js';
 
 const NO_DRIFT_TURN = 0;
-const FIRST_TIER = 1;
 
 function requireDebugPlayer(world: WorldState, playerId: PlayerId): PlayerRecord {
   const player = findPlayer(world, playerId);
@@ -108,14 +98,17 @@ export function grantDnaForDebug(world: WorldState, playerId: PlayerId, grant: D
   return toPlayerProgressView(player);
 }
 
+/** Tier I of every listed trait, refused as a `DebugRequestError` when a name is not in the catalog. */
 function ownedTraitsOf(world: WorldState, traitIds: readonly string[]): OwnedTrait[] {
-  const catalogIds = world.balance.traits.TRAIT_CATALOG.map((trait) => trait.id);
-  return traitIds.map((traitId) => {
-    if (!catalogIds.includes(traitId as TraitId)) {
-      throw new DebugRequestError(`"${traitId}" is not a catalog trait`);
-    }
-    return { traitId: traitId as TraitId, tier: FIRST_TIER };
-  });
+  try {
+    return toOwnedTraits(
+      world.balance.traits.TRAIT_CATALOG,
+      traitIds.map((traitId) => ({ traitId })),
+    );
+  } catch (error) {
+    if (error instanceof UnknownTraitError) throw new DebugRequestError(error.message);
+    throw error;
+  }
 }
 
 function patchCell(world: WorldState, cell: CellRecord, patch: PlayerPatch): void {
@@ -170,7 +163,11 @@ export function applyDebugPatch(world: WorldState, patch: DebugPatch): unknown {
       return grantDnaForDebug(world, patch.playerId, patch.grant);
     case DEBUG_PATCH_KIND.setPlayer:
       return setPlayerForDebug(world, patch.playerId, patch.patch);
-    default:
+    case DEBUG_PATCH_KIND.setBalance:
       return setBalanceForDebug(world, patch.patch);
+    default: {
+      const unknownPatch: never = patch;
+      throw new SimulationInvariantError(`unknown debug patch ${JSON.stringify(unknownPatch)}`);
+    }
   }
 }

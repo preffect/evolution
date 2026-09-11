@@ -1,7 +1,8 @@
 // The scenario adapter for the Evolution module (docs/TESTING.md §8): the Evolution bot binding
 // (`game/bots/evolution-binding.ts`) plus the scenario duties. The snapshot the scripts and the
 // expectations see is the full snapshot of the tick plus that tick's effects and the spawners'
-// counters (E2, E14 count spawns, not populations), with exact positions; the hash is `computeStateHash` over the
+// counters (E2, E14 count spawns, not populations), with exact positions, read through the module's
+// broadcast so the effects drain as on the wire; the hash is `computeStateHash` over the
 // world; fixtures are the placed records of `fixtures.ts` and the world fixtures below.
 
 import { DEFAULT_BALANCE, type BalanceConfig, type GameInput, type GameSnapshot } from '@evolution/shared';
@@ -72,11 +73,13 @@ function applyWorldFixture(world: WorldState, fixture: WorldFixture): void {
 /** The module under the runner: the Evolution module whose broadcast snapshot is the scenario one. */
 export interface EvolutionScenarioModule extends GameModule<GameInput, EvolutionScenarioSnapshot> {
   readonly world: WorldState;
+  /** Pins the last snapshot's projections before the world changes between ticks (fixtures do this before they write). */
+  materialiseSnapshot(): void;
 }
 
 /** The module is always the one `createModule` built. */
-function worldOf(module: GameModule<GameInput, EvolutionScenarioSnapshot>): WorldState {
-  return (module as EvolutionScenarioModule).world;
+function scenarioModuleOf(module: GameModule<GameInput, EvolutionScenarioSnapshot>): EvolutionScenarioModule {
+  return module as EvolutionScenarioModule;
 }
 
 /** The snapshot parts a row rarely reads and that cost a projection of the whole dish: built on first access. */
@@ -90,14 +93,22 @@ const LAZY_SNAPSHOT_KEYS = [
   'appliedInputSequenceByPlayer',
 ] as const satisfies readonly (keyof GameSnapshot)[];
 
+/** A scenario snapshot and the hook that pins its entity projections before the world moves on. */
+export interface LazyScenarioSnapshot {
+  readonly snapshot: EvolutionScenarioSnapshot;
+  /** Builds the projections now, from the world as it stands; a no-op once built. */
+  materialise(): void;
+}
+
 /**
  * Positions are exact here (the tables assert ± 0.01 wu); only the wire rounds them. The scalars,
- * the effects and the counters are captured at once; the entity projections are built on first
- * access, because the runner reads a snapshot every tick and a whole-round row (37 200 ticks,
- * twice) observes a handful of them. A snapshot is read inside its own tick (scripts before the
- * next step, expectations and captures right after this one), never across a step.
+ * the counters and this tick's effects (drained here, as the broadcast drains them) are captured
+ * at once; the entity projections are built on first access, because the runner reads a snapshot
+ * every tick and a whole-round row (37 200 ticks, twice) observes a handful of them. The rule:
+ * the projections are pinned before anything changes the world between ticks (a scheduled
+ * fixture, a join or a leave call `materialise`), so a script at the next tick reads this tick.
  */
-export function serializeScenarioSnapshot(world: WorldState): EvolutionScenarioSnapshot {
+export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnapshot {
   let projected: GameSnapshot | undefined;
   const projection = (): GameSnapshot => {
     projected ??= serializeFullSnapshot(world, EXACT_POSITION);
@@ -109,13 +120,18 @@ export function serializeScenarioSnapshot(world: WorldState): EvolutionScenarioS
     roundStartTick: world.roundStartTick,
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
-    effects: [...world.effects],
+    effects: world.effects.splice(0),
     spawnedCounts: { food: world.spawners.food.spawnedCount, dnaFragments: world.spawners.dnaFragments.spawnedCount },
   } as EvolutionScenarioSnapshot;
   for (const key of LAZY_SNAPSHOT_KEYS) {
     Object.defineProperty(snapshot, key, { enumerable: true, get: () => projection()[key] });
   }
-  return snapshot;
+  return {
+    snapshot,
+    materialise: () => {
+      projection();
+    },
+  };
 }
 
 /** Applies a fixture before step `context.tick`; the first placed record switches the seeded spawns off. */
@@ -138,22 +154,46 @@ export function applyEvolutionFixture(world: WorldState, fixture: EvolutionFixtu
 const liveBalance: { balance: BalanceConfig } = { balance: DEFAULT_BALANCE };
 const binding = createEvolutionBotBinding(() => liveBalance.balance);
 
-/** The Evolution module with the scenario snapshot as its broadcast; the runner reads only through the adapter. */
+/**
+ * The Evolution module with the scenario snapshot as its broadcast; the runner reads only through
+ * the adapter. Every between-tick write (a join, a leave, a fixture) pins the last snapshot first.
+ */
 function createScenarioModule(module: EvolutionModule): EvolutionScenarioModule {
   liveBalance.balance = module.world.balance;
+  let latest: LazyScenarioSnapshot | undefined;
+  const serialize = (): EvolutionScenarioSnapshot => {
+    latest = createLazyScenarioSnapshot(module.world);
+    return latest.snapshot;
+  };
+  const materialiseSnapshot = (): void => {
+    latest?.materialise();
+  };
   return {
     ...module,
-    serializeRoomState: () => serializeScenarioSnapshot(module.world),
-    serializeFullState: () => ({ snapshot: serializeScenarioSnapshot(module.world), balance: module.world.balance }),
+    serializeRoomState: serialize,
+    serializeFullState: () => ({ snapshot: serialize(), balance: module.world.balance }),
+    addPlayer: (playerId, avatarIndex, playerName) => {
+      materialiseSnapshot();
+      module.addPlayer(playerId, avatarIndex, playerName);
+    },
+    removePlayer: (playerId) => {
+      materialiseSnapshot();
+      module.removePlayer(playerId);
+    },
+    materialiseSnapshot,
   };
 }
 
 export const evolutionAdapter: ScenarioAdapter<GameInput, EvolutionScenarioSnapshot, EvolutionFixture> = {
   ...binding,
   createModule: (options) => createScenarioModule(createEvolutionModule(options)),
-  readSnapshot: (module) => serializeScenarioSnapshot(worldOf(module)),
-  hashState: (module) => computeStateHash(worldOf(module)),
-  applyFixture: (module, fixture, context) => applyEvolutionFixture(worldOf(module), fixture, context),
+  readSnapshot: (module) => module.serializeRoomState(),
+  hashState: (module) => computeStateHash(scenarioModuleOf(module).world),
+  applyFixture: (module, fixture, context) => {
+    const scenarioModule = scenarioModuleOf(module);
+    scenarioModule.materialiseSnapshot();
+    applyEvolutionFixture(scenarioModule.world, fixture, context);
+  },
 };
 
 /** The DSL bound to the Evolution module; a failing run writes its replay to `qa/replays/`. */

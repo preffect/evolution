@@ -20,7 +20,7 @@ export interface StreamOwner {
   random: StreamStates;
 }
 
-/** Forks the five server streams from a round seed: what `createWorld` and `debug_set_seed` store. */
+/** Forks the server streams (`SERVER_RANDOM_STREAM_LABELS`) from a round seed: what `createWorld` and `debug_set_seed` store. */
 export function forkServerStreams(seed: number): StreamStates {
   return forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS);
 }

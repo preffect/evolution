@@ -195,6 +195,7 @@ export const WORLD_SCALAR_HASHED_FIELDS: readonly HashedField<WorldState>[] = [
   'roundStartTick',
   'roundPhase',
   'roundTimeLeftMs',
+  'roundFirstEntityNumber',
 ];
 
 export function computeStateHash(world: WorldState): StateHash {

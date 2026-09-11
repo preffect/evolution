@@ -1,8 +1,8 @@
-// Level thresholds and level-ups (docs/PROGRESSION.md §2): the cost formula is the shared
-// `levelUpCost`; gains carry over, one gain may produce several level-ups and each queues a
+// Level thresholds and level-ups (docs/PROGRESSION.md §2): the cost formulas are the shared
+// `levelUpCost` / `cumulativeDnaForLevel`; gains carry over, one gain may produce several level-ups and each queues a
 // draft. Step 7 of the tick runs the timeouts, the level-ups and the show-after-level-up.
 
-import { EFFECT_KIND, levelUpCost, type BalanceConfig } from '@evolution/shared';
+import { EFFECT_KIND, cumulativeDnaForLevel, levelUpCost, type BalanceConfig } from '@evolution/shared';
 import type { PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
@@ -10,19 +10,10 @@ import { applyExpiredOffer, queueOffer, showQueuedOfferIfNone } from './offers.j
 
 const FIRST_LEVEL = 1;
 
-/** DNA needed to have reached `level`: the sum of the costs of the levels below it. */
-export function cumulativeDnaForLevel(level: number, balance: BalanceConfig): number {
-  let total = 0;
-  for (let reached = FIRST_LEVEL; reached < level; reached += 1) {
-    total += levelUpCost(reached, balance.progression);
-  }
-  return total;
-}
-
-/** The highest level, at most `MAX_LEVEL`, whose cumulative cost `dna` covers. */
+/** The highest level, at most `MAX_LEVEL`, whose cumulative cost `dna` covers (the shared `cumulativeDnaForLevel`). */
 export function levelForCumulativeDna(dna: number, balance: BalanceConfig): number {
   let level = FIRST_LEVEL;
-  while (level < balance.progression.MAX_LEVEL && dna >= cumulativeDnaForLevel(level + 1, balance)) {
+  while (level < balance.progression.MAX_LEVEL && dna >= cumulativeDnaForLevel(level + 1, balance.progression)) {
     level += 1;
   }
   return level;
@@ -38,7 +29,7 @@ function syncCellLevel(world: WorldState, player: PlayerRecord): void {
 /** Derives level and progress from `dnaCumulative` silently: no offers (fixtures and debug). */
 export function setLevelFromCumulativeDna(world: WorldState, player: PlayerRecord): void {
   player.level = levelForCumulativeDna(player.dnaCumulative, world.balance);
-  player.dnaTowardNextLevel = player.dnaCumulative - cumulativeDnaForLevel(player.level, world.balance);
+  player.dnaTowardNextLevel = player.dnaCumulative - cumulativeDnaForLevel(player.level, world.balance.progression);
   syncCellLevel(world, player);
 }
 
@@ -76,7 +67,7 @@ export function applyLevelUps(world: WorldState, player: PlayerRecord, context: 
 /** Step 7: timeouts, level-ups and the offer a fresh level-up shows, per player in join order. */
 export function runProgression(world: WorldState, context: StepContext): void {
   for (const player of world.players) {
-    applyExpiredOffer(world, player);
+    applyExpiredOffer(world, player, context);
     if (applyLevelUps(world, player, context) > 0) {
       showQueuedOfferIfNone(world, player, context);
     }

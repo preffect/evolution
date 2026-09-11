@@ -36,12 +36,9 @@ function createHandle() {
   const recorder = new ReplayRecorder(world);
   const rejections = createInputRejectionCounters();
   const membership = {
-    addPlayer: (playerId: PlayerId, avatarIndex: number, playerName: string) => {
-      addPlayerToWorld(world, { playerId, playerName, avatarIndex }, rejections);
-    },
-    removePlayer: (playerId: PlayerId) => {
-      removePlayerFromWorld(world, playerId);
-    },
+    addPlayer: (playerId: PlayerId, avatarIndex: number, playerName: string) =>
+      addPlayerToWorld(world, { playerId, playerName, avatarIndex }, rejections),
+    removePlayer: (playerId: PlayerId) => removePlayerFromWorld(world, playerId),
   };
   const bots = createEvolutionBotRoster(world);
   const handle = createEvolutionDebugHandle({ world, recorder, rejections, bots, membership });

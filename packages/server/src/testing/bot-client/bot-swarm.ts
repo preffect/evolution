@@ -1,4 +1,4 @@
-// N bots against one running server (docs/TESTING.md §8.4). Every bot gets its own socket
+// N bots against one running server (docs/TESTING.md §8.3). Every bot gets its own socket
 // (identity `bot_<seed>_<index>` as `?clientId=`, so a rerun with the same seed takes the same
 // seats), its own pilot on the stream `bot_<index>` forked from the swarm seed, and its own
 // timing pair. `start()` connects and seats every bot before any of them ticks, so the swarm's

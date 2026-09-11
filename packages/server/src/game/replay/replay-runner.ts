@@ -1,8 +1,11 @@
 // Runs a recording back (docs/DETERMINISM.md §6): a fresh world from the recorded seed, config,
 // balance and roster, then tick by tick the joins and leaves, the debug patches and the inputs
 // the recording stamped for that tick, each fed exactly the way the module fed them, and the
-// same step. Callers compare the returned hash with `recording.finalHash`. The log is bucketed
-// by tick once (`index-by-tick.ts`, the fold the scenario framework's replay shares).
+// same step, then the events stamped for the tick after the last one (what was pending when the
+// recording was exported: they are already in `finalHash`). Callers compare the returned hash
+// with `recording.finalHash`. The log is bucketed by tick once (`index-by-tick.ts`, the fold the
+// scenario framework's replay shares). Within one tick the order is membership, then debug
+// patches, then inputs, not arrival order (docs/DETERMINISM.md §8, #180).
 
 import type { StateHash } from '@evolution/shared';
 import { applyDebugPatch } from '../debug/debug-operations.js';
@@ -15,6 +18,7 @@ import { createInputRejectionCounters, type InputRejectionCounters, type WorldSt
 import { indexByTick } from './index-by-tick.js';
 import {
   REPLAY_MEMBERSHIP_KIND,
+  REPLAY_ORIGIN,
   type Replay,
   type ReplayDebugPatch,
   type ReplayInput,
@@ -24,6 +28,14 @@ import {
 export interface ReplayResult {
   readonly world: WorldState;
   readonly hash: StateHash;
+}
+
+/** A recording that no fresh world can reproduce: one opened by `debug_set_seed` (docs/DETERMINISM.md §6). */
+export class ReplayOriginError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ReplayOriginError';
+  }
 }
 
 interface IndexedLog {
@@ -57,12 +69,18 @@ function feedStep(world: WorldState, log: IndexedLog, stepTick: number, rejectio
 }
 
 export function replay(recording: Replay): ReplayResult {
+  if (recording.startedBy === REPLAY_ORIGIN.reseed) {
+    throw new ReplayOriginError(
+      `a recording opened by debug_set_seed (seed ${recording.seed} at tick ${recording.startTick}) records a world that kept running and cannot be rebuilt from scratch`,
+    );
+  }
   const world = createWorld({
     seed: recording.seed,
     config: recording.config,
     balance: structuredClone(recording.balance),
     players: recording.roster,
     startTick: recording.startTick,
+    nextEntityNumber: recording.nextEntityNumber,
   });
   const log: IndexedLog = {
     membership: indexByTick(recording.membership),
@@ -74,5 +92,6 @@ export function replay(recording: Replay): ReplayResult {
     feedStep(world, log, stepTick, rejections);
     runStep(world, world.balance, rejections);
   }
+  feedStep(world, log, recording.finalTick + 1, rejections);
   return { world, hash: computeStateHash(world) };
 }

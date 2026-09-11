@@ -1,4 +1,4 @@
-// How a bot reads a snapshot and speaks to a module (docs/TESTING.md §8.4): the perception the
+// How a bot reads a snapshot and speaks to a module (docs/TESTING.md §8.3): the perception the
 // strategies look through, the self-locator derived from it, and the input mapping. A
 // `ScenarioAdapter` extends this, so the adapter of a world IS its binding: one `perception`,
 // one `locateCell`, one `toInput` for the scenario runner, the bot client and `debug_spawn_bot`.

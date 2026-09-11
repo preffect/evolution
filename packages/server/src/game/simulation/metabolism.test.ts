@@ -8,7 +8,7 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
-import { decayPerSecond, isReachedByToxin, metabolise, toxinDrainFraction } from './metabolism.js';
+import { decayPerSecond, isReachedByToxin, metabolise, metabolismInputOf, toxinDrainFraction } from './metabolism.js';
 
 const { growth, ecology, world: worldBalance } = DEFAULT_BALANCE;
 const decayed = createDecayedHelper({
@@ -53,7 +53,7 @@ describe('metabolise', () => {
     const { world, cell } = placedCell(growth.CELL_STARTING_MASS);
     metaboliseFor(world, 600);
     expect(cell.mass).toBe(growth.CELL_STARTING_MASS);
-    expect(decayPerSecond({ cell, massAtStart: cell.mass, zone: 'open_broth' }, DEFAULT_BALANCE)).toBe(0);
+    expect(decayPerSecond(metabolismInputOf(cell, world, DEFAULT_BALANCE), DEFAULT_BALANCE)).toBe(0);
   });
 
   it('T5: chloroplast I gains 0.3 mass/s in the shallows minus the decay of the growing surplus', () => {
@@ -111,6 +111,32 @@ describe('metabolise', () => {
     expect(firstA).toBe(secondA);
     expect(firstB).toBe(secondB);
     expect(firstA).toBe(firstB);
+  });
+
+  it('reads the start-of-step radii: a toxic cell decayed earlier in the loop still reaches a cell it touched', () => {
+    const build = (order: 'toxicFirst' | 'victimFirst') => {
+      const world = createTestWorld({
+        players: [
+          { playerId: playerId('b'), playerName: 'B', avatarIndex: 0 },
+          { playerId: playerId('c'), playerName: 'C', avatarIndex: 1 },
+        ],
+      });
+      const [toxic, victim] = world.cells as [CellRecord, CellRecord];
+      setCellMass(toxic, 400, DEFAULT_BALANCE);
+      setCellMass(victim, 400, DEFAULT_BALANCE);
+      toxic.x = BROTH_POINT.x;
+      toxic.y = BROTH_POINT.y;
+      // Exactly touching at the start of the step: one tick of decay on either radius breaks the contact.
+      victim.x = BROTH_POINT.x + toxic.radius + victim.radius;
+      victim.y = BROTH_POINT.y;
+      toxic.modifiers.toxinDrainFractionPerSecond = 0.05;
+      if (order === 'victimFirst') world.cells = [victim, toxic];
+      metaboliseFor(world, 1);
+      return victim.mass;
+    };
+    const drainedMass = 400 - 400 * 0.05 * (1 / 60);
+    expect(build('toxicFirst')).toBeLessThan(drainedMass + 0.001);
+    expect(build('toxicFirst')).toBe(build('victimFirst'));
   });
 });
 

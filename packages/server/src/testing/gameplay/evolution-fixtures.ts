@@ -11,12 +11,11 @@ import {
   type BacteriumVariant,
   type DnaTag,
   type FoodKind,
-  type TraitId,
-  type TraitTier,
   type Vec2,
 } from '@evolution/shared';
 import { setLevelFromCumulativeDna } from '../../game/progression/levels.js';
 import { refreshCellDerivedState } from '../../game/progression/modifiers.js';
+import { toOwnedTraits, UnknownTraitError } from '../../game/progression/owned-traits.js';
 import { setCellMass } from '../../game/simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../../game/simulation/spawn-mote.js';
 import type { CellRecord, PlayerRecord } from '../../game/world/entities.js';
@@ -102,19 +101,14 @@ export function resolveAnchor(world: WorldState, anchor: PlacementAnchor, contex
   }
 }
 
-function requireTraitId(world: WorldState, traitId: string): TraitId {
-  const isKnown = world.balance.traits.TRAIT_CATALOG.some((trait) => trait.id === traitId);
-  if (!isKnown) {
-    throw new ScenarioSetupError(`"${traitId}" is not a catalog trait`);
-  }
-  return traitId as TraitId;
-}
-
+/** The one catalog check (`progression/owned-traits.ts`), refused as a setup error here. */
 function grantTraits(world: WorldState, player: PlayerRecord, traits: readonly PlacedTrait[]): void {
-  player.ownedTraits = traits.map((trait) => ({
-    traitId: requireTraitId(world, trait.traitId),
-    tier: trait.tier as TraitTier,
-  }));
+  try {
+    player.ownedTraits = toOwnedTraits(world.balance.traits.TRAIT_CATALOG, traits);
+  } catch (error) {
+    if (error instanceof UnknownTraitError) throw new ScenarioSetupError(error.message);
+    throw error;
+  }
 }
 
 function requireFixturePlayer(world: WorldState, playerIndex: number, context: FixtureContext): PlayerRecord {

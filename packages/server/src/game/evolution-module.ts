@@ -4,7 +4,7 @@
 // in place), one live balance copy patched only by `debug_set_balance`, and the streams built
 // from `config.seed` (docs/DETERMINISM.md §3): the factory never receives a `RandomSource`.
 
-import { DEFAULT_BALANCE, type GameEffect, type GameInput, type GameSnapshot, type PlayerId } from '@evolution/shared';
+import { DEFAULT_BALANCE, type GameInput, type GameSnapshot, type PlayerId } from '@evolution/shared';
 import type { GameModule, GameModuleFactory, RoomInitOptions } from './game-module.js';
 import { createEvolutionBotRoster, driveBots } from './bots/evolution-bots.js';
 import {
@@ -20,6 +20,7 @@ import { addPlayerToWorld, removePlayerFromWorld } from './session/membership.js
 import type { PlayerIdentity } from './session/players.js';
 import { submitPlayerInput } from './simulation/input-coalescing.js';
 import { createWorld } from './world/create-world.js';
+import { findPlayer } from './world/lookups.js';
 import { createInputRejectionCounters, type InputRejectionCounters, type WorldState } from './world/world-state.js';
 
 export interface EvolutionModule extends GameModule<GameInput, GameSnapshot> {
@@ -46,14 +47,19 @@ function createRecordedMembership(
   return {
     addPlayer: (playerId, avatarIndex, playerName) => {
       const identity: PlayerIdentity = { playerId, playerName, avatarIndex };
-      if (addPlayerToWorld(world, identity, rejections)) {
+      const isAdded = addPlayerToWorld(world, identity, rejections);
+      if (isAdded) {
         recorder.recordJoin(world, identity);
       }
+      return isAdded;
     },
     removePlayer: (playerId) => {
-      if (removePlayerFromWorld(world, playerId)) {
-        recorder.recordLeave(world, playerId);
+      const identity = findPlayer(world, playerId);
+      const isRemoved = removePlayerFromWorld(world, playerId);
+      if (isRemoved && identity !== undefined) {
+        recorder.recordLeave(world, identity);
       }
+      return isRemoved;
     },
   };
 }
@@ -71,7 +77,6 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
   const bots = createEvolutionBotRoster(world);
   const membership = createRecordedMembership(world, recorder, rejections);
   const debugHandle = createEvolutionDebugHandle({ world, recorder, rejections, bots, membership });
-  let effectsSinceBroadcast: GameEffect[] = [];
 
   const submitInput = (playerId: PlayerId, input: GameInput): void => {
     submitPlayerInput(world, playerId, input, rejections);
@@ -83,13 +88,9 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
     ...membership,
     reduceGameState: () => {
       driveBots(bots, world, submitInput);
-      effectsSinceBroadcast.push(...runRecordedStep(world, recorder, rejections));
+      runRecordedStep(world, recorder, rejections);
     },
-    serializeRoomState: () => {
-      const snapshot = serializeDeltaSnapshot(world, foodDelta, effectsSinceBroadcast);
-      effectsSinceBroadcast = [];
-      return snapshot;
-    },
+    serializeRoomState: () => serializeDeltaSnapshot(world, foodDelta),
     serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
     getDebugHandle: () => debugHandle,
   };

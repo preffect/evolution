@@ -45,7 +45,7 @@ export function eatFoodMote(diner: Diner, mote: FoodMoteRecord, world: WorldStat
   gainMass(cell, player, mote.mass * (1 + cell.modifiers.digestionFactorBonus), context.balance);
   gainDna(player, mote.dna, cell.modifiers.dnaGainMultiplier);
   if (mote.tag !== null) {
-    gainTagPoints(player, mote.tag, 1);
+    gainTagPoints(player, mote.tag, context.balance.ecology.FOOD_TAG_POINTS);
   }
   if (mote.kind === FOOD_KIND.bacterium && mote.bacteriumVariant !== null) {
     player.bacteriaEatenByVariant[mote.bacteriumVariant] += 1;
@@ -61,7 +61,7 @@ export function eatDnaFragment(
 ): void {
   const { cell, player } = diner;
   gainDna(player, context.balance.ecology.DNA_FRAGMENT_DNA, cell.modifiers.dnaGainMultiplier);
-  gainTagPoints(player, fragment.tag, 1);
+  gainTagPoints(player, fragment.tag, context.balance.ecology.FOOD_TAG_POINTS);
   pushEatEffect(world, context, diner, { entity: fragment, kind: ENTITY_KIND.dnaFragment });
 }
 

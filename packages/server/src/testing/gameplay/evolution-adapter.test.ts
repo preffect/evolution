@@ -1,6 +1,6 @@
 // docs/TESTING.md §8: the Evolution adapter's scenario duties on a real module.
 import { describe, expect, it } from 'vitest';
-import { createTestSessionConfig, playerId } from '@evolution/shared';
+import { EFFECT_KIND, createTestSessionConfig, playerId } from '@evolution/shared';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { FixtureContext } from './adapter.js';
 import {
@@ -9,11 +9,11 @@ import {
   clearFood,
   evolutionAdapter,
   resetSpawnerAccumulators,
-  serializeScenarioSnapshot,
+  createLazyScenarioSnapshot,
   type EvolutionScenarioModule,
 } from './evolution-adapter.js';
 import { ScenarioSetupError } from './errors.js';
-import { placeMote } from './fixtures.js';
+import { placeCell, placeMote } from './fixtures.js';
 import { ZONE } from './placement.js';
 
 const alice = playerId('player_0');
@@ -41,8 +41,33 @@ describe('evolutionAdapter', () => {
     expect(snapshot.spawnedCounts.food).toBe(module.world.spawners.food.spawnedCount);
     expect(snapshot.effects).toEqual(module.world.effects);
     expect(snapshot.effects).not.toBe(module.world.effects);
-    expect(module.serializeRoomState()).toEqual(serializeScenarioSnapshot(module.world));
-    expect(module.serializeFullState().snapshot).toEqual(serializeScenarioSnapshot(module.world));
+    expect(module.serializeRoomState()).toEqual(createLazyScenarioSnapshot(module.world).snapshot);
+    expect(module.serializeFullState().snapshot).toEqual(createLazyScenarioSnapshot(module.world).snapshot);
+  });
+
+  it('pins the last snapshot before a fixture, a join or a leave changes the world between ticks', () => {
+    const module = moduleUnderTest();
+    module.reduceGameState();
+    const snapshot = evolutionAdapter.readSnapshot(module);
+    const massBefore = module.world.cells[0]!.mass;
+    evolutionAdapter.applyFixture(module, placeCell({ playerIndex: 0, mass: massBefore + 50 }, undefined), context);
+    expect(snapshot.cells[0]?.mass).toBe(massBefore);
+    const next = evolutionAdapter.readSnapshot(module);
+    expect(next.cells[0]?.mass).toBe(massBefore + 50);
+    module.addPlayer(playerId('bob'), 1, 'Bob');
+    expect(next.cells).toHaveLength(1);
+    module.removePlayer(playerId('bob'));
+    expect(evolutionAdapter.readSnapshot(module).cells).toHaveLength(1);
+  });
+
+  it('drains the effects into the snapshot it hands the runner, as the broadcast would', () => {
+    const module = moduleUnderTest();
+    module.world.tick = 18_000;
+    module.addPlayer(playerId('bob'), 1, 'Bob');
+    module.reduceGameState();
+    const snapshot = evolutionAdapter.readSnapshot(module);
+    expect(snapshot.effects.some((effect) => effect.kind === EFFECT_KIND.levelUp)).toBe(true);
+    expect(evolutionAdapter.readSnapshot(module).effects).toEqual([]);
   });
 
   it('hashes the world through computeStateHash and locates a cell through the binding', () => {

@@ -51,6 +51,8 @@ export interface WorldState {
   /** The server streams' state, walked in `SERVER_RANDOM_STREAM_LABELS` order (docs/DETERMINISM.md §3, §5). */
   random: Record<ServerRandomStreamLabel, RandomState>;
   nextEntityNumber: number;
+  /** The counter this round's world was built from (a rematch continues it): what a replay rebuilds with (docs/DETERMINISM.md §6). */
+  roundFirstEntityNumber: number;
   /** This tick's effects, drained by the module after the step. */
   effects: GameEffect[];
 }

@@ -195,7 +195,7 @@ it('E9: A absorbs B on tick 30', () => {
   `ARCHITECTURE.md` §3.2) and the adapter stamps the sequence.
 - **Bots.** `.bot(index, factory, everyTicks)` drives a player from a `BotStrategy` built by
   `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` strategies of
-  section 8.4 implement and the headless bot client reuses. The schedule holds the **factory**, not an
+  section 8.3 implement and the headless bot client reuses. The schedule holds the **factory**, not an
   instance: every run (both runs of `runDeterministic`) gets a fresh strategy, so a strategy may
   keep state across its decisions. Its only other input is `ScriptContext`, and its only source
   of randomness is `context.random`, a stream forked from the scenario seed per player
@@ -268,7 +268,7 @@ pnpm --filter @evolution/server test:integration ecology   # every *.gameplay.te
 A framework test never uses the file sink: pass `createMemoryReplaySink()` to
 `createScenarioDsl(adapter, { replaySink })`.
 
-### 8.4 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)
+### 8.3 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)
 
 Agents cannot open a second human's browser, so opponents are bots: the same `BotStrategy` runs
 in a scenario (section 8.1), over the wire against a running server, or inside the game module.
@@ -345,7 +345,7 @@ see a normal `Bot <index>`. The 4-cell dish a QA screenshot needs is one room an
 a fake socket, captured manual timings) and `testing/socket-builders.ts` (a listening server on
 an ephemeral port and the raw `ws` promises) are excluded from coverage like `builders.ts`.
 
-### 8.3 Proving scenarios
+### 8.4 Proving scenarios
 
 `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo
 module: inputs echo from the tick they were applied and a late joiner is present from its step,
@@ -356,6 +356,8 @@ because the echo game has no `WorldState`; it cannot locate cells or place fixtu
 `toy-adapter.ts` is a two-rule world used only by the framework's own unit tests; its fixtures go
 through the same `FixtureContext` an adapter over a world receives (`context.playerId(index)`
 resolves a scenario index, so an adapter never hard-codes the DSL's id scheme).
+
+### 8.5 The design tables
 
 The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14),
 `ecology-cells.gameplay.test.ts` (E4–E8, E12, E15), `game-design-session.gameplay.test.ts` (G1–G3,

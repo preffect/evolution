@@ -1,15 +1,9 @@
 // docs/PROGRESSION.md §2 (thresholds, carry-over) and step 7 of the tick.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, EFFECT_KIND, levelUpCost } from '@evolution/shared';
+import { DEFAULT_BALANCE, EFFECT_KIND, cumulativeDnaForLevel, levelUpCost } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { gainDna } from './dna.js';
-import {
-  applyLevelUps,
-  cumulativeDnaForLevel,
-  levelForCumulativeDna,
-  runProgression,
-  setLevelFromCumulativeDna,
-} from './levels.js';
+import { applyLevelUps, levelForCumulativeDna, runProgression, setLevelFromCumulativeDna } from './levels.js';
 import { shownOffer } from './offers.js';
 
 const balance = DEFAULT_BALANCE;
@@ -18,12 +12,12 @@ const cost = (level: number): number => levelUpCost(level, balance.progression);
 
 describe('level thresholds', () => {
   it('sums the costs below a level (the doc table, derived from levelUpCost)', () => {
-    expect(cumulativeDnaForLevel(1, balance)).toBe(0);
-    expect(cumulativeDnaForLevel(2, balance)).toBe(cost(1));
-    expect(cumulativeDnaForLevel(3, balance)).toBe(cost(1) + cost(2));
+    expect(cumulativeDnaForLevel(1, balance.progression)).toBe(0);
+    expect(cumulativeDnaForLevel(2, balance.progression)).toBe(cost(1));
+    expect(cumulativeDnaForLevel(3, balance.progression)).toBe(cost(1) + cost(2));
     let total = 0;
     for (let level = 1; level < MAX_LEVEL; level += 1) total += cost(level);
-    expect(cumulativeDnaForLevel(MAX_LEVEL, balance)).toBe(total);
+    expect(cumulativeDnaForLevel(MAX_LEVEL, balance.progression)).toBe(total);
   });
 
   it('finds the level a cumulative DNA covers, capped at MAX_LEVEL', () => {
@@ -31,7 +25,7 @@ describe('level thresholds', () => {
     expect(levelForCumulativeDna(cost(1) - 1, balance)).toBe(1);
     expect(levelForCumulativeDna(cost(1), balance)).toBe(2);
     expect(levelForCumulativeDna(cost(1) + cost(2), balance)).toBe(3);
-    expect(levelForCumulativeDna(cumulativeDnaForLevel(MAX_LEVEL, balance) * 10, balance)).toBe(MAX_LEVEL);
+    expect(levelForCumulativeDna(cumulativeDnaForLevel(MAX_LEVEL, balance.progression) * 10, balance)).toBe(MAX_LEVEL);
   });
 
   it('sets the level silently from cumulative DNA, syncing the cell', () => {

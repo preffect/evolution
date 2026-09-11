@@ -1,7 +1,7 @@
 // The death seam (docs/GAME-DESIGN.md §5.2, docs/ECOLOGY.md §1, §6.1 payout "Prey" row). The
 // engulf slice calls `absorbCell` at payout; `removePlayer` calls `dissolveCell`. Both drop
 // detritus: `DETRITUS_MASS_FRACTION` of the mass in motes of `DETRITUS_MOTE_MASS` (floor), scattered
-// uniformly within twice the cell's radius from the `spawner` stream.
+// uniformly within `DETRITUS_SCATTER_RADIUS_FACTOR` radii of the centre from the `spawner` stream.
 
 import {
   EFFECT_KIND,
@@ -17,8 +17,6 @@ import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entit
 import { removeFromArray, requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 
-const DETRITUS_SCATTER_RADII = 2;
-
 /** `floor(fraction × mass / moteMass)` motes; the remainder is dropped (docs/ECOLOGY.md §1). */
 export function detritusMoteCount(mass: number, world: WorldState): number {
   const ecology = world.balance.ecology;
@@ -30,7 +28,7 @@ export function dropDetritus(world: WorldState, cell: CellRecord, spawner: Rando
   for (let index = 0; index < count; index += 1) {
     const point = uniformPointInDiscAround(
       cell,
-      cell.radius * DETRITUS_SCATTER_RADII,
+      cell.radius * world.balance.ecology.DETRITUS_SCATTER_RADIUS_FACTOR,
       spawner.nextFloat(),
       spawner.nextFloat(),
     );

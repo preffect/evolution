@@ -131,7 +131,7 @@ describe('ECOLOGY §8: eating, decay, size and speed on placed cells', () => {
 
   it('E15: ten photosynthetic bacteria fill the chloroplast counter, each DNA gain × the nucleoid', () => {
     const bacteria = 10;
-    const nucleoidTierOneDnaGain = 1.05;
+    const nucleoidTierOneDnaGain = DEFAULT_BALANCE.traits.TRAIT_TIERS.nucleoid[0].dnaGainMultiplier!;
     const run = placedSolo('E15')
       .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, traits: ['nucleoid'] })
       .advance(bacteria);

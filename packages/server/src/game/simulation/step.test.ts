@@ -37,13 +37,13 @@ describe('runStep', () => {
     expect(world.effects).toHaveLength(1);
   });
 
-  it('resets the effects every step and writes the streams back', () => {
+  it('keeps the effects array for the broadcast to drain and writes the streams back', () => {
     const world = createTestWorld({ isFilled: true });
     const positionBefore = world.random[RANDOM_STREAM.moteMotion].position;
+    const effects = world.effects;
     runStep(world, world.balance, createInputRejectionCounters());
-    const effectsFirst = world.effects;
     runStep(world, world.balance, createInputRejectionCounters());
-    expect(world.effects).not.toBe(effectsFirst);
+    expect(world.effects).toBe(effects);
     expect(world.random[RANDOM_STREAM.moteMotion].position).toBeGreaterThan(positionBefore);
     expect(world.tick).toBe(2);
     expect(world.leaderboard).toHaveLength(1);

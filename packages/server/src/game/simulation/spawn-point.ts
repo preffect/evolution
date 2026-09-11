@@ -10,7 +10,7 @@ import {
   type Vec2,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
-import { pointInZone } from './zones.js';
+import { foodBoundaryRadius, pointInZone } from './zones.js';
 
 export interface SpawnPointWorld {
   readonly cells: readonly CellRecord[];
@@ -23,8 +23,7 @@ export function isInsideAnyCell(point: Vec2, cells: readonly CellRecord[]): bool
 
 /** Not within `FOOD_EDGE_MARGIN` of the wall and not inside any cell. */
 export function isSpawnablePoint(point: Vec2, world: SpawnPointWorld): boolean {
-  const reach = world.balance.world.DISH_RADIUS - world.balance.world.FOOD_EDGE_MARGIN;
-  return Math.hypot(point.x, point.y) <= reach && !isInsideAnyCell(point, world.cells);
+  return Math.hypot(point.x, point.y) <= foodBoundaryRadius(world.balance) && !isInsideAnyCell(point, world.cells);
 }
 
 /** Redraws `draw` until `isSpawnablePoint` accepts it, at most `maxAttempts` times; `null` when it never does. */

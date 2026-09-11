@@ -3,7 +3,7 @@ import { REPLAY_FORMAT_VERSION, createTestGameInput, playerId } from '@evolution
 import { DEBUG_PATCH_KIND } from '../debug/debug-operations.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { computeStateHash } from '../world/state-hash.js';
-import { REPLAY_MEMBERSHIP_KIND } from './replay-format.js';
+import { REPLAY_MEMBERSHIP_KIND, REPLAY_ORIGIN } from './replay-format.js';
 import { ReplayRecorder } from './replay-recorder.js';
 
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
@@ -33,8 +33,7 @@ describe('ReplayRecorder', () => {
     world.players[0]!.pendingInput = input;
     recorder.recordPendingInputs(world);
     recorder.recordJoin(world, { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 });
-    recorder.recordLeave(world, playerId('p1'));
-    recorder.recordLeave(world, playerId('ghost'));
+    recorder.recordLeave(world, world.players[0]!);
     const patch = { kind: DEBUG_PATCH_KIND.setBalance, patch: { world: { [DISH_RADIUS_LEAF]: 100 } } } as const;
     recorder.recordDebugPatch(world, patch);
     const replay = recorder.export(world);
@@ -42,7 +41,6 @@ describe('ReplayRecorder', () => {
     expect(replay.membership).toEqual([
       { tick: 4, kind: REPLAY_MEMBERSHIP_KIND.join, playerId: 'p2', playerName: 'Bob', avatarIndex: 1 },
       { tick: 4, kind: REPLAY_MEMBERSHIP_KIND.leave, playerId: 'p1', playerName: 'Alice', avatarIndex: 0 },
-      { tick: 4, kind: REPLAY_MEMBERSHIP_KIND.leave, playerId: 'ghost', playerName: 'ghost', avatarIndex: 0 },
     ]);
     expect(replay.debugPatches).toEqual([{ tick: 4, patch }]);
   });
@@ -59,10 +57,11 @@ describe('ReplayRecorder', () => {
     const recorder = new ReplayRecorder(world);
     world.players[0]!.pendingInput = createTestGameInput();
     recorder.recordPendingInputs(world);
+    world.players[0]!.pendingInput = null; // the step applied it
     world.tick = 10;
     const hashAtClose = computeStateHash(world);
     world.seed = 43;
-    recorder.startNewRound(world, hashAtClose);
+    recorder.startNewRound(world, REPLAY_ORIGIN.reseed, hashAtClose);
     expect(recorder.completedRounds).toHaveLength(1);
     expect(recorder.completedRounds[0]!.finalTick).toBe(10);
     expect(recorder.completedRounds[0]!.finalHash).toBe(hashAtClose);
@@ -70,13 +69,16 @@ describe('ReplayRecorder', () => {
     const next = recorder.export(world);
     expect(next.seed).toBe(43);
     expect(next.startTick).toBe(10);
+    expect(next.startedBy).toBe(REPLAY_ORIGIN.reseed);
+    expect(next.nextEntityNumber).toBe(world.roundFirstEntityNumber);
     expect(next.inputs).toEqual([]);
+    expect(recorder.completedRounds[0]!.startedBy).toBe(REPLAY_ORIGIN.worldBuild);
   });
 
   it('closes with the world hash now when no closing hash is given', () => {
     const world = createTestWorld();
     const recorder = new ReplayRecorder(world);
-    recorder.startNewRound(world);
+    recorder.startNewRound(world, REPLAY_ORIGIN.rematch);
     expect(recorder.completedRounds[0]!.finalHash).toBe(computeStateHash(world));
   });
 

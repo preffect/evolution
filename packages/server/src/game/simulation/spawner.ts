@@ -25,6 +25,7 @@ import type { SpawnerState } from '../world/entities.js';
 import { SimulationInvariantError } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { spawnDnaFragment, spawnFoodMote } from './spawn-mote.js';
+import { pickWeighted } from './pick-weighted.js';
 import { drawPointAround, drawPointInZone } from './spawn-point.js';
 import { fragmentSpawnerRates, foodSpawnerRates, spawnEventKindWeights, type SpawnerRates } from './spawn-rates.js';
 import { worldReferenceAt } from './round-clock.js';
@@ -33,17 +34,17 @@ import { zoneAt } from './zones.js';
 /** The zones a kind is drawn in, in one fixed order, with their weights (docs/ECOLOGY.md §3). */
 const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_ID.warmVent, ZONE_ID.openBroth];
 
-/** Index 0 is algae, index 1 a bacterium cluster, matching `spawnEventKindWeights`. */
+/** Index 0 is algae, index 1 a bacterium cluster, the order `spawnEventKindWeights` answers in. */
 const SPAWN_EVENT_KINDS = [FOOD_KIND.algae, FOOD_KIND.bacterium] as const;
 
 function drawZone(kind: SpawnedKind, random: RandomSource, balance: BalanceConfig): SpawnZoneId {
   const weights = balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND[kind];
-  return SPAWN_ZONE_ORDER[random.weightedIndex(SPAWN_ZONE_ORDER.map((zone) => weights[zone]))] as SpawnZoneId;
+  return pickWeighted(random, SPAWN_ZONE_ORDER, (zone) => weights[zone]);
 }
 
 function drawTag(point: Vec2, world: WorldState, random: RandomSource): DnaTag {
   const table = world.balance.ecology.DNA_FRAGMENT_TAG_TABLE_BY_ZONE[zoneAt(point, world.gelPatches, world.balance)];
-  return DNA_TAGS[random.weightedIndex(DNA_TAGS.map((tag) => table[tag] ?? 0))] as DnaTag;
+  return pickWeighted(random, DNA_TAGS, (tag) => table[tag] ?? 0);
 }
 
 /** What bounds a cluster: the room left under the cap and the point redraws per member. */
@@ -62,7 +63,7 @@ function spawnBacteriumCluster(world: WorldState, random: RandomSource, centre: 
   const { ecology } = world.balance;
   const zone = zoneAt(centre, world.gelPatches, world.balance);
   const variantWeights = bacteriumVariantWeightsForZone(zone, limits.worldStage, ecology);
-  const variant = BACTERIUM_VARIANTS[random.weightedIndex(BACTERIUM_VARIANTS.map((name) => variantWeights[name]))]!;
+  const variant = pickWeighted(random, BACTERIUM_VARIANTS, (name) => variantWeights[name]);
   const members = Math.min(ecology.BACTERIUM_CLUSTER_SIZE, limits.room);
   let spawned = 0;
   for (let member = 0; member < members; member += 1) {
@@ -79,7 +80,11 @@ function spawnBacteriumCluster(world: WorldState, random: RandomSource, centre: 
 /** One food spawn event: kind, zone, point, then one algae or a cluster; the motes actually spawned. */
 export function spawnFoodEvent(world: WorldState, random: RandomSource, limits: FoodEventLimits): number {
   const kindWeights = spawnEventKindWeights(world.balance, limits.worldStage);
-  const kind = SPAWN_EVENT_KINDS[random.weightedIndex(kindWeights)] ?? FOOD_KIND.algae;
+  const kind = pickWeighted(
+    random,
+    SPAWN_EVENT_KINDS,
+    (eventKind) => kindWeights[SPAWN_EVENT_KINDS.indexOf(eventKind)] ?? 0,
+  );
   const point = drawPointInZone(world, drawZone(kind, random, world.balance), random, limits.maxAttempts);
   if (point === null) {
     return 0;

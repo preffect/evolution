@@ -1,7 +1,8 @@
 // docs/PROGRESSION.md §5 (P7, P8) and docs/GAME-DESIGN.md §5.2, §13 (G10, G14): joins and leaves between ticks.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, FOOD_KIND, playerId } from '@evolution/shared';
+import { DEFAULT_BALANCE, EFFECT_KIND, FOOD_KIND, playerId } from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';
+import { runStep } from '../simulation/step.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { createInputRejectionCounters } from '../world/world-state.js';
 import { detritusMoteCount } from './death.js';
@@ -52,6 +53,16 @@ describe('addPlayerToWorld', () => {
     expect(player.offer?.offerId).toBe(1);
     expect(world.cells[2]!.mass).toBe(progression.ENTRY_MAX_MASS);
     expect(world.cells[2]!.level).toBe(2);
+  });
+
+  it("keeps a late joiner's level-up effects in world.effects through the next step (the broadcast drains them)", () => {
+    const world = createTestWorld();
+    world.tick = G14_JOIN_TICK - 1;
+    addPlayerToWorld(world, joiner, createInputRejectionCounters());
+    const levelUps = world.effects.filter((effect) => effect.kind === EFFECT_KIND.levelUp);
+    expect(levelUps).toHaveLength(1);
+    runStep(world, world.balance, createInputRejectionCounters());
+    expect(world.effects).toContain(levelUps[0]);
   });
 
   it('G14: the world floor lifts a joiner even when the living player has nothing', () => {
