@@ -14,7 +14,7 @@ seeds, clock, ordering and hashing: [`DETERMINISM.md`](./DETERMINISM.md).
  ┌──────────────────────────────┐          ┌──────────────────────────────┐
  │ input ─► GameInput (60 Hz) ──┼── ws ───►│ router ─► GameRoom           │
  │                              │          │   60 Hz stepWorld()          │
- │ world-store ◄─ snapshots ◄───┼── ws ◄───│   20 Hz serializeRoomState() │
+ │ world-store ◄─ snapshots ◄───┼── ws ◄───│   serializeRoomState() delta │
  │  ├ interpolation (remote)    │          │ MCP /debug-mcp ─► DebugContext│
  │  └ prediction (own cell)     │          └──────────────────────────────┘
  │ Pixi scene ◄─ view registry  │          shared: types, constants, balance,
@@ -24,20 +24,20 @@ seeds, clock, ordering and hashing: [`DETERMINISM.md`](./DETERMINISM.md).
 
 ## 1. Decisions (the short list)
 
-| Decision                        | Choice                                                                                                      |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Simulation rate / snapshot rate | `TICK_HZ` = 60 fixed step; broadcast every `SNAPSHOT_EVERY_TICKS` = 3 ticks (20 Hz)                         |
-| Input rate                      | One `GameInput` per simulation tick, as `GAME-DESIGN.md §6` says; no separate input-rate constant           |
-| Authority                       | Server owns position, mass, eating, engulf, DNA, levels, drafts, spawns, respawn, score                     |
-| Client-side cosmetic            | Membrane wobble, granule drift, particles, camera; never fed back                                           |
-| Renderer (#33, closed)          | WebGL via **Pixi v8**; benchmark numbers land in the renderer PR                                            |
-| Food on the wire                | Static motes (algae, detritus) as spawned/removed deltas; bacteria and fragments move, so they ride in full |
-| State update style              | Systems mutate the one `WorldState` in place inside `stepWorld` (section 3.1)                               |
-| Tunables                        | `packages/shared/src/constants/<domain>.ts` is the source; `data/balance.json` is generated from it         |
-| Interest management             | One snapshot for every client; viewport culling is a held lever (section 4.2)                               |
-| Client prediction               | Own cell predicted with the shared movement kernel, one input per tick, reconciled (section 5)              |
-| Randomness / time               | Seeded streams stored in the state and an injected clock only (`DETERMINISM.md`)                            |
-| Trust model                     | Local-only, client trusted; inputs validated by schema, nothing else checked                                |
+| Decision                        | Choice                                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Simulation rate / snapshot rate | `TICK_HZ` = 60 fixed step; broadcast every `SNAPSHOT_EVERY_TICKS` ticks: 1 today (every tick, 60 Hz), 3 (20 Hz) when #214 lands server-side |
+| Input rate                      | One `GameInput` per simulation tick, as `GAME-DESIGN.md §6` says; no separate input-rate constant                                           |
+| Authority                       | Server owns position, mass, eating, engulf, DNA, levels, drafts, spawns, respawn, score                                                     |
+| Client-side cosmetic            | Membrane wobble, granule drift, particles, camera; never fed back                                                                           |
+| Renderer (#33, closed)          | WebGL via **Pixi v8**; benchmark numbers land in the renderer PR                                                                            |
+| Food on the wire                | Static motes (algae, detritus) as spawned/removed deltas; bacteria and fragments move, so they ride in full                                 |
+| State update style              | Systems mutate the one `WorldState` in place inside `stepWorld` (section 3.1)                                                               |
+| Tunables                        | `packages/shared/src/constants/<domain>.ts` is the source; `data/balance.json` is generated from it                                         |
+| Interest management             | One snapshot for every client; viewport culling is a held lever (section 4.2)                                                               |
+| Client prediction               | Own cell predicted with the shared movement kernel, one input per tick, reconciled (section 5)                                              |
+| Randomness / time               | Seeded streams stored in the state and an injected clock only (`DETERMINISM.md`)                                                            |
+| Trust model                     | Local-only, client trusted; inputs validated by schema, nothing else checked                                                                |
 
 ## 2. Entity model
 
@@ -435,9 +435,10 @@ measurement that confirms the estimate; #103 records it.
 
 ## 5. Client networking policy (`packages/client/src/app/game/net/`)
 
-- **Interpolation.** `SnapshotBuffer` keeps the last `SNAPSHOT_BUFFER_SIZE` = 4 snapshots and
-  renders remote cells, bacteria and fragments at `renderTick = latestTick − INTERPOLATION_DELAY_TICKS`
-  (6 ticks = two snapshot intervals), lerping position, velocity and radius between the bracketing
+- **Interpolation.** `SnapshotBuffer` keeps the last `SNAPSHOT_BUFFER_SIZE` snapshots (derived: the delay
+  plus a bracket each side, 4 at either cadence) and renders remote cells, bacteria and fragments at
+  `renderTick = latestTick − INTERPOLATION_DELAY_TICKS` (`2 × SNAPSHOT_EVERY_TICKS`, two snapshot
+  intervals), lerping position, velocity and radius between the bracketing
   snapshots; a missing bracket extrapolates with velocity for at most `MAX_EXTRAPOLATION_TICKS`.
 - **Prediction: one input per tick.** The client's input controller runs its own tick counter at
   `TICK_HZ` and sends exactly one `GameInput` per client tick with `sequence` = client tick. On a
@@ -560,8 +561,8 @@ The room loop tools: `pause` makes the room ignore ticker fires; `step(ticks)` p
 room and runs exactly `ticks` steps (each broadcast; at most `secondsToTicks(DEBUG_STEP_MAX_SECONDS)`,
 converted at the tool's schema, the constant itself stays in seconds); `resume` discards the wall
 time that passed while paused (`FixedStepAccumulator.discardElapsed()`), so a resumed room never
-bursts to catch up. When `SNAPSHOT_EVERY_TICKS` lands inside the tick (#111), `step()` must
-still end with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot shows a
+bursts to catch up. `runTick` broadcasts every `SNAPSHOT_EVERY_TICKS` ticks and `step()` always
+ends with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot would show a
 stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
 report even for a module without a world tick.
 

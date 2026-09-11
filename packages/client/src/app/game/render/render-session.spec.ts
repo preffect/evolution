@@ -53,10 +53,15 @@ function session(overrides: Partial<RenderSessionDependencies> = {}) {
   return { subject, clock, pixi, audio, dependencies };
 }
 
-function snapshotMessage(tick: number, spawned: FoodMoteView[] = []): ServerMessage {
+function snapshotMessage(tick: number, spawned: FoodMoteView[] = [], seed = 1): ServerMessage {
   return {
     type: SERVER_MESSAGE_TYPE.gameSnapshot,
-    snapshot: createTestSnapshot({ tick, cells: [createTestCellView()], food: { spawned, removedIds: [], moved: [] } }),
+    snapshot: createTestSnapshot({
+      tick,
+      seed,
+      cells: [createTestCellView()],
+      food: { spawned, removedIds: [], moved: [] },
+    }),
   };
 }
 
@@ -79,14 +84,16 @@ describe('RenderSession', () => {
     expect(pixi.bakedSpecs).toHaveLength(2);
   });
 
-  it('rebuilds the renderer when the seed changes (a rematch)', async () => {
+  it('rebuilds the renderer once when a snapshot carries a new round seed (a rematch sends no game_state)', async () => {
     const { subject, pixi } = session();
     subject.onMessage(gameState(1));
     await flush();
-    subject.onMessage(gameState(2));
+    subject.onMessage(snapshotMessage(3, [], 2));
+    subject.onMessage(snapshotMessage(4, [], 2));
     await flush();
     expect(pixi.bakedSpecs).toHaveLength(4);
     expect(pixi.stage.children).toHaveLength(2);
+    expect(subject.store.latestSnapshot()?.tick).toBe(4);
   });
 
   it('applies every snapshot on arrival, in order, so a frame hitch drops no delta; the frame loop only reads', async () => {

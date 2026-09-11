@@ -129,6 +129,30 @@ describe('MultiplayerService', () => {
     ]);
   });
 
+  it('drops the retained game_state on the next game_started, so a new room never replays the old one', () => {
+    transport.messages.next({
+      type: SERVER_MESSAGE_TYPE.gameState,
+      gameId: GAME_ID,
+      playerId: BOB,
+      snapshot: createTestSnapshot({ tick: 3 }),
+      balance: DEFAULT_BALANCE,
+      config: CONFIG,
+      playerIds: [BOB],
+      avatarAssignments: {},
+    });
+    transport.messages.next({
+      type: SERVER_MESSAGE_TYPE.gameStarted,
+      gameId: 'g2' as GameId,
+      playerId: BOB,
+      playerIds: [BOB],
+      isHost: true,
+      config: CONFIG,
+    });
+    const seen: ServerMessage[] = [];
+    service.gameMessages$.subscribe((message) => seen.push(message));
+    expect(seen).toEqual([]);
+  });
+
   it('tracks players joining (once) and leaving', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: ALICE, avatarIndex: 3 });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: ALICE, avatarIndex: 3 });

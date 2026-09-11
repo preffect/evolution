@@ -8,7 +8,12 @@ import type {
   ServerMessage,
 } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
-import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator, type FixedStepAccumulator } from '@evolution/shared';
+import {
+  SERVER_MESSAGE_TYPE,
+  SNAPSHOT_EVERY_TICKS,
+  createSimulationStepAccumulator,
+  type FixedStepAccumulator,
+} from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
@@ -92,6 +97,8 @@ export class GameRoom {
   step(ticks: number): void {
     this.isLoopPaused = true;
     for (let count = 0; count < ticks; count += 1) this.runTick();
+    // A stepped room always ends on a fresh frame, whatever the cadence (docs/ARCHITECTURE.md §8).
+    if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.broadcastSnapshot();
   }
 
   /** Unfreezes the loop. The wall time that passed while paused is discarded, never caught up. */
@@ -229,16 +236,20 @@ export class GameRoom {
   private runTick(): void {
     const tickStartMs = this.timing.clock.nowMilliseconds();
     this.game.reduceGameState();
-    const snapshot = this.game.serializeRoomState();
-    const bytes = broadcastMessage(this.playerConnections.values(), {
-      type: SERVER_MESSAGE_TYPE.gameSnapshot,
-      snapshot,
-    });
     this.tickCount += 1;
+    const isBroadcastTick = this.tickCount % SNAPSHOT_EVERY_TICKS === 0;
     this.performanceTracker.recordTick({
       tickMs: this.timing.clock.nowMilliseconds() - tickStartMs,
-      snapshotBytes: bytes,
+      snapshotBytes: isBroadcastTick ? this.broadcastSnapshot() : 0,
       broadcastClients: this.playerConnections.size,
+    });
+  }
+
+  /** The delta since the previous broadcast, every `SNAPSHOT_EVERY_TICKS` ticks (docs/ARCHITECTURE.md §1). */
+  private broadcastSnapshot(): number {
+    return broadcastMessage(this.playerConnections.values(), {
+      type: SERVER_MESSAGE_TYPE.gameSnapshot,
+      snapshot: this.game.serializeRoomState(),
     });
   }
 }

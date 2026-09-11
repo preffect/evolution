@@ -123,6 +123,8 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameStarted:
+        // The room's own game_state follows in the same burst; a previous room's must not be replayed.
+        this.latestGameStateMessage = null;
         this.playerId.set(message.playerId);
         this.gameId.set(message.gameId);
         this.playerIds.set(message.playerIds);

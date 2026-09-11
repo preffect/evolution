@@ -4,6 +4,7 @@ import {
   INTERPOLATION_DELAY_TICKS,
   MAX_EXTRAPOLATION_TICKS,
   ManualClock,
+  SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_MS,
   TICK_INTERVAL_S,
   createTestSnapshot,
@@ -30,6 +31,8 @@ function storeWithSnapshots(ticks: readonly number[]): { store: WorldStore; cloc
   return { store, clock };
 }
 
+const HALF_TICK = 0.5;
+
 describe('WorldStore', () => {
   it('answers no frame before the first snapshot, nor without a balance', () => {
     expect(new WorldStore(new ManualClock()).nextFrame()).toBeNull();
@@ -52,13 +55,21 @@ describe('WorldStore', () => {
   });
 
   it('releases effects when the render tick reaches them, once, oldest first', () => {
-    const { store, clock } = storeWithSnapshots([60, 63, 66, 69]);
-    clock.setMilliseconds(69 * TICK_INTERVAL_MS);
+    const ticks = [0, 1, 2, 3].map((index) => 60 + index * SNAPSHOT_EVERY_TICKS);
+    const latest = ticks[ticks.length - 1]!;
+    const { store, clock } = storeWithSnapshots(ticks);
+    clock.setMilliseconds(latest * TICK_INTERVAL_MS);
     const first = store.nextFrame()!;
-    expect(first.effects.map((effect) => effect.tick)).toEqual([60, 63]);
+    expect(first.renderTick).toBeCloseTo(latest - INTERPOLATION_DELAY_TICKS, 6);
+    // Due = at or before the render tick as the store computed it (a float: 63 × 16.67 ms ÷ 16.67 ms).
+    const due = ticks.filter((tick) => tick <= first.renderTick);
+    expect(due.length).toBeGreaterThan(0);
+    expect(first.effects.map((effect) => effect.tick)).toEqual(due);
     expect(store.nextFrame()!.effects).toEqual([]);
-    clock.setMilliseconds(80 * TICK_INTERVAL_MS);
-    expect(store.nextFrame()!.effects.map((effect) => effect.tick)).toEqual([66, 69]);
+    clock.setMilliseconds((latest + INTERPOLATION_DELAY_TICKS + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    expect(store.nextFrame()!.effects.map((effect) => effect.tick)).toEqual(
+      ticks.filter((tick) => !due.includes(tick)),
+    );
   });
 
   it('extrapolates past the newest snapshot with the velocity, then holds the frame when snapshots stop', () => {
@@ -97,7 +108,21 @@ describe('WorldStore', () => {
     const { store, clock } = storeWithSnapshots([60, 63]);
     expect(store.applySnapshot(createTestSnapshot({ tick: 62 }))).toBe(false);
     clock.setMilliseconds(63 * TICK_INTERVAL_MS);
-    expect(store.renderLagMs()).toBeCloseTo((63 - 60) * TICK_INTERVAL_MS, 6);
+    const renderTick = Math.max(60, 63 - INTERPOLATION_DELAY_TICKS);
+    expect(store.renderLagMs()).toBeCloseTo((63 - renderTick) * TICK_INTERVAL_MS, 6);
+  });
+
+  it('interpolates strictly between two snapshots at the live broadcast cadence', () => {
+    const first = 10;
+    const ticks = [0, 1, 2, 3].map((index) => first + index * SNAPSHOT_EVERY_TICKS);
+    const { store, clock } = storeWithSnapshots(ticks);
+    const latest = ticks[ticks.length - 1]!;
+    clock.setMilliseconds((latest + HALF_TICK) * TICK_INTERVAL_MS);
+    const frame = store.nextFrame()!;
+    expect(frame.renderTick).toBe(latest + HALF_TICK - INTERPOLATION_DELAY_TICKS);
+    expect(Number.isInteger(frame.renderTick)).toBe(false);
+    // The cell sits at x = its snapshot's tick, so a lerped x equals the fractional render tick.
+    expect(frame.cells[0]!.x).toBeCloseTo(frame.renderTick, 9);
   });
 
   it('reads the render lag without consuming the effects the next frame is owed', () => {

@@ -38,6 +38,8 @@ export class RenderSession {
   private rendererReady: Promise<void> = Promise.resolve();
   /** The error that left the session without a renderer (no WebGL, a failed factory); `null` while healthy. */
   private startupErrorValue: unknown = null;
+  /** The seed of the newest renderer build asked for, so a rematch snapshot asks exactly once. */
+  private requestedSeed: number | null = null;
   /** The tick of the frame on screen: what the debug hook reports, held while paused. */
   private lastRenderedTick: number | null = null;
   private isDestroyed = false;
@@ -62,6 +64,10 @@ export class RenderSession {
       this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
       if (this.store.applySnapshot(message.snapshot)) this.audio?.observe(message.snapshot);
+      // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/ARCHITECTURE.md §4).
+      if (message.snapshot.seed !== this.requestedSeed) {
+        this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
+      }
     } else if (message.type === SERVER_MESSAGE_TYPE.balanceUpdated) {
       this.store.applyBalance(message.balance);
       this.audio?.updateOptions({ balance: message.balance });
@@ -74,6 +80,7 @@ export class RenderSession {
    * disposed only after it was built. Tests await it; `onMessage` records a rejection.
    */
   ensureRenderer(snapshot: GameSnapshot): Promise<void> {
+    this.requestedSeed = snapshot.seed;
     const build = this.rendererReady.then(() => this.buildRenderer(snapshot));
     this.rendererReady = build.catch(() => undefined);
     return build;

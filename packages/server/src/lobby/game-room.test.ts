@@ -3,6 +3,7 @@ import {
   DEFAULT_BALANCE,
   MAX_TICKS_PER_ADVANCE,
   SERVER_MESSAGE_TYPE,
+  SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_MS,
   createTestGameInput,
   createTestSessionConfig,
@@ -109,15 +110,15 @@ describe('game-room: pause, step and resume', () => {
     expect(fixture.reduceCalls()).toBe(0);
   });
 
-  it('step() pauses a running room and advances exactly the requested ticks, broadcasting each', () => {
+  it('step() pauses a running room and advances exactly the requested ticks, broadcasting every SNAPSHOT_EVERY_TICKS', () => {
     const sent: Record<string, unknown[]> = {};
     const gameModule = createSpyGameModule();
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
     room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
     room.start();
-    room.step(2);
+    room.step(2 * SNAPSHOT_EVERY_TICKS);
     expect(room.isPaused()).toBe(true);
-    expect(room.getTickCount()).toBe(2);
+    expect(room.getTickCount()).toBe(2 * SNAPSHOT_EVERY_TICKS);
     expect(sent['p1']!.map((message) => (message as { type: string }).type)).toEqual([
       SERVER_MESSAGE_TYPE.gameSnapshot,
       SERVER_MESSAGE_TYPE.gameSnapshot,

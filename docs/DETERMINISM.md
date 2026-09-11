@@ -73,7 +73,7 @@ export class ManualTicker implements Ticker {
 
 `GameRoom` takes `{ clock, ticker }` in its constructor (the `LobbyManager` receives them from
 `index.ts`). On each ticker fire it calls `accumulator.dueTicks()` and steps that many times,
-serialising every `SNAPSHOT_EVERY_TICKS` (3) ticks. `MAX_TICKS_PER_ADVANCE` (5) caps catch-up
+serialising every `SNAPSHOT_EVERY_TICKS` ticks (1 today; 3 with #214). `MAX_TICKS_PER_ADVANCE` (5) caps catch-up
 after a stall; dropped ticks are reported through `PerformanceTracker`, never silently. Timing
 measurements (`tickMs`) also come from the injected clock so `PerformanceTracker` is testable.
 
