@@ -14,7 +14,7 @@ import {
   type Vec2,
   type ZoneId,
 } from '@evolution/shared';
-import { SimulationInvariantError } from '../world/lookups.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 
 /** The radial band of a spawn zone: the shallows annulus, the vent disc or the broth between them. */
 export interface RadialBand {

@@ -22,7 +22,7 @@ import {
   type Vec2,
 } from '@evolution/shared';
 import type { SpawnerState } from '../world/entities.js';
-import { SimulationInvariantError } from '../world/lookups.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { spawnDnaFragment, spawnFoodMote } from './spawn-mote.js';
 import { pickWeighted } from './pick-weighted.js';

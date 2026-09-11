@@ -24,8 +24,8 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { forkServerStreams } from '../world/streams.js';
-import { SimulationInvariantError } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import { DEBUG_PATCH_KIND, type DebugPatch } from '../replay/replay-format.js';
 

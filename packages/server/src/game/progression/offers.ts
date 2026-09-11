@@ -15,6 +15,7 @@ import { gainMass } from '../simulation/cell-mass.js';
 import { refreshCellDerivedState } from './modifiers.js';
 import type { PlayerRecord, TraitOffer } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { buildDraft, timeoutCardIndex, type Draft } from './draft.js';
 
@@ -87,15 +88,15 @@ export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, c
   }
 }
 
-/** Applies the card and refolds the cell at once (docs/PROGRESSION.md §4): a timeout pick at step 7 shows on the same tick. */
 /** What closing an offer needs: the card picked and the balance the refold reads. */
 interface OfferClose {
   readonly balance: BalanceConfig;
-  readonly cardIndex: number;
+  readonly card: OwnedTrait;
 }
 
-function closeShownOffer(world: WorldState, player: PlayerRecord, offer: TraitOffer, context: OfferClose): void {
-  applyCard(player, offer.cards[context.cardIndex] as OwnedTrait);
+/** Applies the card and refolds the cell at once (docs/PROGRESSION.md §4): a timeout pick at step 7 shows on the same tick. */
+function closeShownOffer(world: WorldState, player: PlayerRecord, context: OfferClose): void {
+  applyCard(player, context.card);
   player.offerQueue.shift();
   player.offer = null;
   const cell = findCellOfPlayer(world, player.playerId);
@@ -104,7 +105,11 @@ function closeShownOffer(world: WorldState, player: PlayerRecord, offer: TraitOf
   }
 }
 
-/** Applies a pick on the shown offer; a stale or out-of-range pick is ignored and counted. */
+/**
+ * Applies a pick on the shown offer; a stale or out-of-range pick (a wrong offer id, a negative,
+ * non-integer or too-large index) is ignored and counted. The wire schema already refuses such
+ * an index, but the replay runner and the in-process bots reach this seam directly.
+ */
 export function applyTraitChoice(
   world: WorldState,
   player: PlayerRecord,
@@ -112,11 +117,12 @@ export function applyTraitChoice(
   context: StepContext,
 ): boolean {
   const offer = shownOffer(player);
-  if (offer === undefined || offer.offerId !== choice.offerId || choice.cardIndex >= offer.cards.length) {
+  const card = offer?.cards[choice.cardIndex];
+  if (offer === undefined || offer.offerId !== choice.offerId || card === undefined) {
     context.rejections.staleTraitChoice += 1;
     return false;
   }
-  closeShownOffer(world, player, offer, { balance: context.balance, cardIndex: choice.cardIndex });
+  closeShownOffer(world, player, { balance: context.balance, card });
   return true;
 }
 
@@ -126,7 +132,11 @@ export function applyExpiredOffer(world: WorldState, player: PlayerRecord, conte
   if (offer === undefined || world.tick < offer.expiresAtTick) {
     return;
   }
-  closeShownOffer(world, player, offer, { balance: context.balance, cardIndex: timeoutCardIndex(offer) });
+  const card = offer.cards[timeoutCardIndex(offer)];
+  if (card === undefined) {
+    throw new SimulationInvariantError(`shown offer ${offer.offerId} of ${player.playerId} has no cards`);
+  }
+  closeShownOffer(world, player, { balance: context.balance, card });
 }
 
 /** The tier a card grants, for callers that build cards by hand (fixtures, debug). */

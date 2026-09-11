@@ -626,7 +626,7 @@ packages/shared/src/
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
-  game/world/{world-state,entities,create-world,entity-ids,lookups,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (DETERMINISM §5)
+  game/world/{world-state,entities,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (DETERMINISM §5)
   game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf lands with the next #98 slice
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits

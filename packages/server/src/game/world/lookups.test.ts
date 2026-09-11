@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { entityId, playerId } from '@evolution/shared';
 import { createTestWorld, TEST_PLAYER } from '../../testing/world-builders.js';
-import {
-  findCell,
-  findCellOfPlayer,
-  findPlayer,
-  removeFromArray,
-  requirePlayer,
-  SimulationInvariantError,
-} from './lookups.js';
+import { findCell, findCellOfPlayer, findPlayer, removeFromArray, requirePlayer } from './lookups.js';
+import { SimulationInvariantError } from './simulation-invariant-error.js';
 
 describe('lookups', () => {
   it('finds a player and its cell by id', () => {

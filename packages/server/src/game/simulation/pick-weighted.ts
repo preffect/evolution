@@ -3,16 +3,20 @@
 // in the spawner needs (kind, zone, variant, tag).
 
 import type { RandomSource } from '@evolution/shared';
-import { SimulationInvariantError } from '../world/lookups.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 
 export function pickWeighted<Item>(
   random: RandomSource,
   items: readonly Item[],
   weightOf: (item: Item) => number,
 ): Item {
-  const picked = items[random.weightedIndex(items.map(weightOf))];
-  if (picked === undefined) {
+  if (items.length === 0) {
     throw new SimulationInvariantError('a weighted draw over an empty list');
+  }
+  const index = random.weightedIndex(items.map(weightOf));
+  const picked = items[index];
+  if (picked === undefined) {
+    throw new SimulationInvariantError(`weightedIndex answered ${index} over ${items.length} items`);
   }
   return picked;
 }

@@ -90,14 +90,17 @@ describe('applyTraitChoice', () => {
     expect(context.rejections.staleTraitChoice).toBe(0);
   });
 
-  it('ignores and counts a stale offer id, an out-of-range card and a pick with nothing shown', () => {
+  it('ignores and counts a stale offer id, an out-of-range, negative or fractional card and a pick with nothing shown', () => {
     const { world, player, context } = worldWithQueuedOffer();
     expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: 0 }, context)).toBe(false);
     showQueuedOfferIfNone(world, player, context);
     expect(applyTraitChoice(world, player, { offerId: 7, cardIndex: 0 }, context)).toBe(false);
     expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: 3 }, context)).toBe(false);
-    expect(context.rejections.staleTraitChoice).toBe(3);
+    expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: -1 }, context)).toBe(false);
+    expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: 0.5 }, context)).toBe(false);
+    expect(context.rejections.staleTraitChoice).toBe(5);
     expect(shownOffer(player)?.offerId).toBe(1);
+    expect(player.ownedTraits).toEqual([]);
   });
 });
 

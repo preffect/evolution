@@ -3,14 +3,8 @@
 
 import type { EntityId, PlayerId } from '@evolution/shared';
 import type { CellRecord, PlayerRecord } from './entities.js';
+import { SimulationInvariantError } from './simulation-invariant-error.js';
 import type { WorldState } from './world-state.js';
-
-export class SimulationInvariantError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'SimulationInvariantError';
-  }
-}
 
 export function findPlayer(world: WorldState, playerId: PlayerId): PlayerRecord | undefined {
   return world.players.find((player) => player.playerId === playerId);

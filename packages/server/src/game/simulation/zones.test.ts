@@ -1,7 +1,7 @@
 // docs/ECOLOGY.md §2: zone geometry, precedence and gel placement.
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, DEFAULT_BALANCE, ZONE_ID, type BalanceConfig, type GelPatchView } from '@evolution/shared';
-import { SimulationInvariantError } from '../world/lookups.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { isInsideGelPatch, placeGelPatches, pointInZone, zoneAt, zoneBand, zoneDecayMultiplier } from './zones.js';
 
 const balance = DEFAULT_BALANCE;
