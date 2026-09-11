@@ -396,33 +396,40 @@ export interface FoodDelta {
 
 ### 4.1 Bandwidth budget
 
-Populations at 8 players from ECOLOGY §3: `FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400
-motes, of which the bacterium share (`FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`, 0.25 in the protocell era and 0.5 by
-the eukaryote era) 350–700 move every tick; 110
-fragments, all drifting; 8 cells. Sizes are JSON with positions quantised to
-`SNAPSHOT_POSITION_DECIMALS` = 1.
+Worst case, at cap with 8 players in the eukaryote era (ECOLOGY §3, §3.2, §3.3):
+`FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400 motes, of which the bacterium share
+(`FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`: 0.25 in the protocell era, 0.5 from the eukaryote era) is up to
+700 moving every tick; 110 fragments, all drifting; 8 player cells plus `WILD_CELL_COUNT` = 24 wild
+cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON with positions
+quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 
-| Snapshot part (20 Hz)                                         | Count × bytes | Per snapshot |
-| ------------------------------------------------------------- | ------------- | ------------ |
-| `food.moved` (bacteria `{ id, x, y }`)                        | 350 × ~30     | ~10.5 KB     |
-| `dnaFragments` (full)                                         | 110 × ~50     | ~5.5 KB      |
-| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | 8 × ~300      | ~2.4 KB      |
-| `players` + `leaderboard`                                     | 8 × ~350 + 80 | ~3.4 KB      |
-| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz  | ~0.5 KB      |
-| **total**                                                     |               | **≈ 22 KB**  |
+| Snapshot part (20 Hz)                                         | Count × bytes   | Per snapshot |
+| ------------------------------------------------------------- | --------------- | ------------ |
+| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30       | ~21 KB       |
+| `dnaFragments` (full)                                         | 110 × ~50       | ~5.5 KB      |
+| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300 | ~9.6 KB      |
+| `players` + `leaderboard`                                     | 8 × ~350 + 80   | ~3.4 KB      |
+| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz    | ~0.5 KB      |
+| **total, uncut**                                              |                 | **≈ 40 KB**  |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 20 KB**  |
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
-`perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN.
-Sending static motes in full would add ~50 KB per snapshot, which is why the delta is mandatory;
-sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, which is why
-`moved` is a position list. `PerformanceTracker.snapshotBytes` is the measurement; #103 records it.
+`perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
+evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
+**§4.2 lever 1 is no longer held: it is required before the wild-cell simulation slice ships (#171)**.
+With it the same snapshot is ≈ 20 KB (≈ 400 KB/s), inside budget; culling wild cells outside the
+viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
+and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
+why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
+~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
+measurement that confirms the estimate; #103 records it.
 
-### 4.2 Held levers (in order)
+### 4.2 Levers (in order)
 
-1. **Viewport culling of `moved` and `dnaFragments`:** `serializeRoomState(viewerPlayerId)`
-   with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots. Cuts the two big rows
-   by ~75 % at the widest zoom.
-2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4); interpolation absorbs it unchanged.
+1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1):
+   `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`,
+   per-player snapshots. Cuts the two big rows by ~75 % at the widest zoom.
+2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4; held); interpolation absorbs it unchanged.
 
 ## 5. Client networking policy (`packages/client/src/app/game/net/`)
 
@@ -602,8 +609,8 @@ packages/server/src/
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,spatial-hash}.ts
   game/simulation/{step,movement,contact,eating,metabolism,engulf,spawner,zones,spawn-placement,round}.ts
-  game/progression/{levels,ladder,draft,modifiers,late-join}.ts levels applies level-ups; the cost formula is shared simulation/level-costs.ts
-  game/session/{leaderboard,respawn}.ts
+  game/progression/{levels,ladder,draft,modifiers}.ts           levels applies level-ups; the cost formula is shared simulation/level-costs.ts
+  game/session/{leaderboard,respawn,entry}.ts                   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,food-delta-tracker}.ts
   game/replay/{replay-recorder,replay-runner}.ts
   game/debug/simulation-debug-handle.ts

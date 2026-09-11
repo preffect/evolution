@@ -4,7 +4,7 @@
 
 import type { BalanceConfig } from '../constants/balance.js';
 import type { TripZoneId } from '../constants/ecology.js';
-import { ZONE_ID, type BacteriumVariant, type CellStage, type ZoneId } from '../types/game.js';
+import type { BacteriumVariant, CellStage, ZoneId } from '../types/game.js';
 
 /** The fixed trip rows and the broth share by stage, taken from `balance.ecology`. */
 export type VariantWeightsBalance = Pick<
@@ -15,8 +15,12 @@ export type VariantWeightsBalance = Pick<
 /** The two organelle variants split the broth share evenly. */
 const ORGANELLE_VARIANT_COUNT = 2;
 
-function isTripZone(zone: ZoneId): zone is TripZoneId {
-  return zone === ZONE_ID.warmVent || zone === ZONE_ID.sunlitShallows;
+/** The trip zones are exactly the keys of the fixed table: one home for the set. */
+function isTripZone(
+  zone: ZoneId,
+  table: VariantWeightsBalance['BACTERIUM_VARIANT_WEIGHTS_BY_ZONE'],
+): zone is TripZoneId {
+  return zone in table;
 }
 
 /** plain = 1 − share, aerobic = photosynthetic = share / 2. */
@@ -30,6 +34,7 @@ export function bacteriumVariantWeightsForZone(
   worldStage: CellStage,
   balance: VariantWeightsBalance,
 ): Record<BacteriumVariant, number> {
-  if (isTripZone(zone)) return balance.BACTERIUM_VARIANT_WEIGHTS_BY_ZONE[zone];
+  if (isTripZone(zone, balance.BACTERIUM_VARIANT_WEIGHTS_BY_ZONE))
+    return balance.BACTERIUM_VARIANT_WEIGHTS_BY_ZONE[zone];
   return brothVariantWeights(balance.BROTH_VARIANT_SHARE_BY_WORLD_STAGE[worldStage]);
 }

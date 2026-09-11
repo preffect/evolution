@@ -2,6 +2,7 @@
 // are pinned to the world clock every tick; these are the seats, the spread, the builds they
 // climb and the behaviour knobs. The clock itself is world-clock.ts.
 
+import { entityId, type EntityId } from '../types/common.js';
 import { CELL_STAGE, type CellStage, type TraitId } from '../types/game.js';
 
 /** Non-player cells in the dish from tick 0 to the end of the round; never varies with the stage. */
@@ -25,8 +26,8 @@ export const WILD_CELL_BUILDS: readonly (readonly TraitId[])[] = [
   ['nucleoid', 'chloroplast', 'nuclear_envelope', 'cilia', 'paramecium_cilia', 'ribosomes', 'simple_flagellum'],
   ['nucleoid', 'mitochondrion', 'nuclear_envelope', 'cell_wall', 'diatom_shell', 'ribosomes', 'food_vacuole'],
 ];
-/** Every wild cell's `organismId`: wild never engulfs wild (docs/ECOLOGY.md §6.3, "same organism"). */
-export const WORLD_ORGANISM_ID = 'world';
+/** Every wild cell's `organismId`, branded here once: wild never engulfs wild (docs/ECOLOGY.md §6.3, "same organism"). */
+export const WORLD_ORGANISM_ID: EntityId = entityId('world');
 /** A seat whose cell was absorbed or removed respawns after this (s). */
 export const WILD_CELL_RESPAWN_SECONDS = 10;
 /** Placement adds "no cell centre within this" (wu) to the safe-spawn rule. */

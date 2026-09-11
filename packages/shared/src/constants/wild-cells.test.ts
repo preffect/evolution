@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, type CellStage, type TraitId } from '../types/game.js';
 import type { TraitDefinition } from '../types/traits.js';
+import { ENGULF_MASS_RATIO } from './absorption.js';
 import { DEFAULT_BALANCE } from './balance.js';
 import { STAGE_ORDER } from './ladder.js';
 import { TRAIT_CATALOG } from './traits.js';
@@ -28,9 +29,6 @@ const STAGE_AFTER_PICKS: readonly CellStage[] = [
   CELL_STAGE.eukaryote,
   CELL_STAGE.specialised,
 ];
-/** docs/ECOLOGY.md §3.3: with a 30 % spread the lightest sixth (≤ 0.8 ×) of the wild cells is lunch at exactly `worldMass`. */
-const LUNCH_SPREAD_BOUND = 0.8;
-const ENGULF_MASS_RATIO = DEFAULT_BALANCE.absorption.ENGULF_MASS_RATIO;
 
 const catalog: readonly TraitDefinition[] = TRAIT_CATALOG;
 const traitById = (id: TraitId): TraitDefinition => catalog.find((trait) => trait.id === id)!;
@@ -66,10 +64,10 @@ describe('WILD_CELL_BUILDS', () => {
 });
 
 describe('wild cell knobs', () => {
-  it('keeps two dozen seats, a spread that makes the lightest wild cells lunch at the world mass', () => {
+  it('spreads the seats so a player at exactly the world mass has both lunch and threats among them (§3.3)', () => {
     expect(WILD_CELL_COUNT).toBeGreaterThan(0);
-    expect(1 - WILD_CELL_MASS_SPREAD).toBeLessThanOrEqual(LUNCH_SPREAD_BOUND);
-    expect((1 + WILD_CELL_MASS_SPREAD) * ENGULF_MASS_RATIO * (1 - WILD_CELL_MASS_SPREAD)).toBeGreaterThan(1);
+    expect(1 - WILD_CELL_MASS_SPREAD).toBeLessThanOrEqual(1 / ENGULF_MASS_RATIO);
+    expect(1 + WILD_CELL_MASS_SPREAD).toBeGreaterThanOrEqual(ENGULF_MASS_RATIO);
   });
 
   it('starts hunting at a stage of the ladder and turns with a proper probability', () => {
