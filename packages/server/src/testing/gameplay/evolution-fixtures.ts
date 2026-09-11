@@ -8,6 +8,9 @@ import {
   BACTERIUM_VARIANTS,
   DNA_TAGS,
   FOOD_KIND,
+  isBacteriumVariant,
+  isDnaTag,
+  isFoodKind,
   type BacteriumVariant,
   type DnaTag,
   type FoodKind,
@@ -144,19 +147,26 @@ export function applyPlacedCell(world: WorldState, fixture: PlacedCell, context:
 }
 
 function requireFoodKind(kind: string): FoodKind {
-  if (!Object.values(FOOD_KIND).includes(kind as FoodKind)) {
+  if (!isFoodKind(kind)) {
     throw new ScenarioSetupError(`"${kind}" is not a food kind (${Object.values(FOOD_KIND).join(', ')})`);
   }
-  return kind as FoodKind;
+  return kind;
 }
 
 function requireVariant(variant: string | null): BacteriumVariant {
-  if (!BACTERIUM_VARIANTS.includes(variant as BacteriumVariant)) {
+  if (!isBacteriumVariant(variant)) {
     throw new ScenarioSetupError(
       `a placed bacterium needs a variant (${BACTERIUM_VARIANTS.join(', ')}), got ${variant}`,
     );
   }
-  return variant as BacteriumVariant;
+  return variant;
+}
+
+function requireDnaTag(tag: string): DnaTag {
+  if (!isDnaTag(tag)) {
+    throw new ScenarioSetupError(`"${tag}" is not a DNA tag (${DNA_TAGS.join(', ')})`);
+  }
+  return tag;
 }
 
 export function applyPlacedMote(world: WorldState, fixture: PlacedMote, context: FixtureContext): void {
@@ -166,12 +176,9 @@ export function applyPlacedMote(world: WorldState, fixture: PlacedMote, context:
 }
 
 export function applyPlacedFragment(world: WorldState, fixture: PlacedFragment, context: FixtureContext): void {
-  if (!DNA_TAGS.includes(fixture.tag as DnaTag)) {
-    throw new ScenarioSetupError(`"${fixture.tag}" is not a DNA tag (${DNA_TAGS.join(', ')})`);
-  }
   spawnDnaFragment(world, {
     at: resolveAnchor(world, fixture.at, context),
-    tag: fixture.tag as DnaTag,
+    tag: requireDnaTag(fixture.tag),
     driftTurn: PLACED_FRAGMENT_DRIFT_TURN,
   });
 }

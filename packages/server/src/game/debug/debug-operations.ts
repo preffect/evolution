@@ -3,13 +3,12 @@
 // one code path. A request the world cannot honour is a `DebugRequestError`.
 
 import {
-  BACTERIUM_VARIANTS,
-  DNA_TAGS,
   ENTITY_KIND,
   FOOD_KIND,
-  type BacteriumVariant,
+  isBacteriumVariant,
+  isDnaTag,
+  isFoodKind,
   type DnaTag,
-  type FoodKind,
   type OwnedTrait,
   type PlayerId,
 } from '@evolution/shared';
@@ -17,6 +16,7 @@ import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
+import { FIRST_LEVEL } from '../progression/levels.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
 import { toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
@@ -39,18 +39,6 @@ function requireDebugPlayer(world: WorldState, playerId: PlayerId): PlayerRecord
     throw new DebugRequestError(`Player "${playerId}" is not in the world`);
   }
   return player;
-}
-
-function isFoodKind(value: unknown): value is FoodKind {
-  return Object.values(FOOD_KIND).includes(value as FoodKind);
-}
-
-function isBacteriumVariant(value: unknown): value is BacteriumVariant {
-  return BACTERIUM_VARIANTS.includes(value as BacteriumVariant);
-}
-
-function isDnaTag(value: unknown): value is DnaTag {
-  return DNA_TAGS.includes(value as DnaTag);
 }
 
 function spawnMoteForDebug(world: WorldState, request: SpawnRequest): unknown {
@@ -84,18 +72,23 @@ export function spawnForDebug(world: WorldState, request: SpawnRequest): unknown
 /** DNA with the cell's gain multiplier (1 without a cell); every listed tag gets `dna` tag points. */
 export function grantDnaForDebug(world: WorldState, playerId: PlayerId, grant: DnaGrant): unknown {
   const player = requireDebugPlayer(world, playerId);
-  const tags = grant.tags ?? [];
-  for (const tag of tags) {
-    if (!isDnaTag(tag)) {
-      throw new DebugRequestError(`"${tag}" is not a DNA tag`);
-    }
-  }
+  const tags = requireDnaTags(grant.tags ?? []);
   const cell = findCellOfPlayer(world, playerId);
   gainDna(player, grant.dna, cell?.modifiers.dnaGainMultiplier ?? 1);
   for (const tag of tags) {
-    gainTagPoints(player, tag as DnaTag, grant.dna);
+    gainTagPoints(player, tag, grant.dna);
   }
   return toPlayerProgressView(player);
+}
+
+/** Every listed tag as a `DnaTag`, refused as a whole when one is not. */
+function requireDnaTags(tags: readonly string[]): DnaTag[] {
+  return tags.map((tag) => {
+    if (!isDnaTag(tag)) {
+      throw new DebugRequestError(`"${tag}" is not a DNA tag`);
+    }
+    return tag;
+  });
 }
 
 /** Tier I of every listed trait, refused as a `DebugRequestError` when a name is not in the catalog. */
@@ -109,6 +102,15 @@ function ownedTraitsOf(world: WorldState, traitIds: readonly string[]): OwnedTra
     if (error instanceof UnknownTraitError) throw new DebugRequestError(error.message);
     throw error;
   }
+}
+
+/** A level the ladder has: whole, from `FIRST_LEVEL` to `MAX_LEVEL` (the MCP schema has no upper bound). */
+function requireLevel(world: WorldState, level: number): number {
+  const maxLevel = world.balance.progression.MAX_LEVEL;
+  if (!Number.isInteger(level) || level < FIRST_LEVEL || level > maxLevel) {
+    throw new DebugRequestError(`level must be a whole number from ${FIRST_LEVEL} to ${maxLevel}, got ${level}`);
+  }
+  return level;
 }
 
 function patchCell(world: WorldState, cell: CellRecord, patch: PlayerPatch): void {
@@ -127,8 +129,9 @@ function patchCell(world: WorldState, cell: CellRecord, patch: PlayerPatch): voi
 export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: PlayerPatch): unknown {
   const player = requireDebugPlayer(world, playerId);
   const traits = patch.traits === undefined ? undefined : ownedTraitsOf(world, patch.traits);
-  if (patch.level !== undefined) {
-    player.level = patch.level;
+  const level = patch.level === undefined ? undefined : requireLevel(world, patch.level);
+  if (level !== undefined) {
+    player.level = level;
     player.dnaTowardNextLevel = 0;
   }
   if (traits !== undefined) {

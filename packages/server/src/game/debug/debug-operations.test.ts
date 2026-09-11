@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_BALANCE,
   ENTITY_KIND,
   FOOD_KIND,
   playerId,
@@ -20,6 +21,7 @@ import {
   spawnForDebug,
 } from './debug-operations.js';
 
+const MAX_LEVEL = DEFAULT_BALANCE.progression.MAX_LEVEL;
 const ALICE = playerId('p1');
 /** Real balance paths, named through constants because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
@@ -123,6 +125,18 @@ describe('setPlayerForDebug', () => {
     expect(() => setPlayerForDebug(world, NOBODY, { mass: 1 })).toThrow(DebugRequestError);
     expect(() => setPlayerForDebug(world, ALICE, { level: 3, traits: ['jet_siphon'] })).toThrow(DebugRequestError);
     expect(world.players[0]!.level).toBe(1);
+  });
+
+  it.each([MAX_LEVEL + 1, 0, 2.5])('refuses level %s without writing anything', (level) => {
+    const world = createTestWorld();
+    expect(() => setPlayerForDebug(world, ALICE, { level, mass: 100 })).toThrow(DebugRequestError);
+    expect(world.players[0]!.level).toBe(1);
+    expect(world.cells[0]!.mass).not.toBe(100);
+  });
+
+  it('accepts the top level', () => {
+    const world = createTestWorld();
+    expect((setPlayerForDebug(world, ALICE, { level: MAX_LEVEL }) as PlayerProgressView).level).toBe(MAX_LEVEL);
   });
 });
 

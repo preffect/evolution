@@ -1,5 +1,6 @@
 export * from './types/common.js';
 export * from './types/game.js';
+export * from './types/game-guards.js';
 export * from './types/traits.js';
 export * from './types/effects.js';
 export * from './types/messages.js';
