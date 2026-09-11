@@ -13,6 +13,7 @@ import {
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
 import { createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
+import { NO_RETICLE } from './game-renderer';
 import { RenderSession, type RenderSessionDependencies } from './render-session';
 
 function gameState(seed = 1): ServerMessage {
@@ -44,7 +45,8 @@ function session(overrides: Partial<RenderSessionDependencies> = {}) {
     devicePixelRatio: 1,
     createPixiApp: vi.fn(() => Promise.resolve(pixi)),
     connectAudio: vi.fn(() => audio),
-    hudInputs: () => ({ previewTraitId: null, reticle: { isVisible: false, x: 0, y: 0 } }),
+    hudInputs: () => ({ previewTraitId: null, reticle: NO_RETICLE }),
+    shouldPreserveDrawingBuffer: false,
     ...overrides,
   };
   const subject = new RenderSession(dependencies);

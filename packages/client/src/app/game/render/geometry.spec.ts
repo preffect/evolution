@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp01, degreesToRadians, gaussianBump, hypot, lerp, smoothstep, wrapAngle } from './geometry';
+import { clamp01, degreesToRadians, gaussianBump, smoothstep, wrapAngle } from './geometry';
 
 describe('geometry helpers', () => {
   it('wraps angles into (−π, π]', () => {
@@ -18,8 +18,6 @@ describe('geometry helpers', () => {
     expect(smoothstep(1, 1, 1.5)).toBe(1);
     expect(clamp01(1.5)).toBe(1);
     expect(clamp01(-2)).toBe(0);
-    expect(lerp(2, 4, 0.25)).toBe(2.5);
-    expect(hypot(3, 4)).toBe(5);
   });
 
   it('gives a Gaussian bump with its derivative', () => {

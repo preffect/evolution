@@ -134,3 +134,13 @@ export const NEW_PALETTE_INDEX = 7;
 /** Every rim against `BG_FIELD` (WCAG ratio); bases are held to 4.0. */
 export const RIM_MIN_CONTRAST = 4.5;
 export const BASE_MIN_CONTRAST = 4.0;
+
+/** The six hue sectors of the HSL wheel, by the primaries each one runs between. */
+export const HUE_SECTOR = {
+  redToYellow: 0,
+  yellowToGreen: 1,
+  greenToCyan: 2,
+  cyanToBlue: 3,
+  blueToMagenta: 4,
+  magentaToRed: 5,
+} as const;

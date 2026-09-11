@@ -7,6 +7,7 @@ import { AudioHooks } from './audio/audio-hooks';
 import { CLOCK } from './clock-provider';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
+import { NO_RETICLE } from './render/game-renderer';
 import { createPixiApp } from './render/pixi-app';
 
 export const GAME_HOST_TEST_ID = 'game-host';
@@ -50,10 +51,10 @@ export class GameHostComponent implements OnInit, OnDestroy {
         connectAudio: (options) => this.audioHooks.connect(options),
         createPixiApp,
         devicePixelRatio: window.devicePixelRatio,
-        debugHost: window as unknown as Record<string, unknown>,
+        debugHost: window,
         isDevMode: isDevMode(),
         previewTraitId: () => null,
-        reticle: () => ({ isVisible: false, x: 0, y: 0 }),
+        reticle: () => NO_RETICLE,
       },
     );
   }

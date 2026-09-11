@@ -13,6 +13,18 @@ export const LAYER_Z = {
   effects: 6,
   debug: 7,
 } as const;
+export type LayerName = keyof typeof LAYER_Z;
+/** Every layer in `LAYER_Z` order; `layers.spec.ts` pins it complete. */
+export const LAYER_NAMES: readonly LayerName[] = [
+  'dish',
+  'depthFar',
+  'food',
+  'fragments',
+  'cells',
+  'depthNear',
+  'effects',
+  'debug',
+];
 
 // ---- field and dish (sheet 02) ----
 export const FIELD_TEXTURE_PX = 2048;

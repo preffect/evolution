@@ -12,7 +12,10 @@ export interface EvolutionDebugApi {
   readonly mode: EvolutionDebugMode;
   pause(): void;
   resume(): void;
-  /** Renders `frames` frames while paused (the bench advances that many ticks); default 1. */
+  /**
+   * Renders `frames` frames (default 1) and leaves the loop paused: a step from a running loop
+   * pauses it first, as `debug_step_room` does (the bench advances that many ticks).
+   */
   step(frames?: number): void;
   /** Bench only: rebuilds the scene from `seed`; `false` in live mode. */
   setSeed(seed: number): boolean;
@@ -23,9 +26,14 @@ export interface EvolutionDebugApi {
 
 export const EVOLUTION_DEBUG_KEY = '__evolutionDebug';
 
-export interface EvolutionDebugHost {
-  [EVOLUTION_DEBUG_KEY]?: EvolutionDebugApi;
+declare global {
+  interface Window {
+    [EVOLUTION_DEBUG_KEY]?: EvolutionDebugApi;
+  }
 }
+
+/** What the hook installs into: `window` in the app, a plain object in tests. */
+export type EvolutionDebugHost = Pick<Window, typeof EVOLUTION_DEBUG_KEY>;
 
 /** Installs the hook when `isDevMode`; returns the uninstaller (a no-op in production). */
 export function installEvolutionDebug(

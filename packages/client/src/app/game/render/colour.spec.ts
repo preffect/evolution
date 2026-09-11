@@ -18,6 +18,15 @@ describe('colour conversions', () => {
     }
   });
 
+  it('folds a negative or over-turn hue before placing it', () => {
+    expect(hslToRgb({ hue: -120, saturation: 1, lightness: 0.5 })).toEqual(
+      hslToRgb({ hue: 240, saturation: 1, lightness: 0.5 }),
+    );
+    expect(hslToRgb({ hue: 480, saturation: 1, lightness: 0.5 })).toEqual(
+      hslToRgb({ hue: 120, saturation: 1, lightness: 0.5 }),
+    );
+  });
+
   it('reads hue sectors for red-, green- and blue-dominant colours', () => {
     expect(rgbToHsl([1, 0, 0]).hue).toBe(0);
     expect(rgbToHsl([0, 1, 0]).hue).toBe(120);

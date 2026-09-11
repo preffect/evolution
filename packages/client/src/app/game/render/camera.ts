@@ -12,8 +12,7 @@ import {
   clamp,
 } from '@evolution/shared';
 import { CAMERA_CULL_MARGIN_RADII } from './constants';
-
-const HALF = 0.5;
+import { HALF } from './geometry';
 
 export interface CameraState {
   /** World centre (wu). */
@@ -42,7 +41,14 @@ export interface CameraExtent {
   readonly maxY: number;
 }
 
+/** A point in screen px. */
 export interface ScreenPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** A point in world units (wu). */
+export interface WorldPoint {
   readonly x: number;
   readonly y: number;
 }
@@ -102,7 +108,7 @@ export function worldToScreen(state: CameraState, viewport: ViewportPx, x: numbe
   return { x: (x - state.x) * zoom + viewport.width * HALF, y: (y - state.y) * zoom + viewport.height * HALF };
 }
 
-export function screenToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): ScreenPoint {
+export function screenToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): WorldPoint {
   const zoom = zoomFor(state, viewport);
   return { x: (x - viewport.width * HALF) / zoom + state.x, y: (y - viewport.height * HALF) / zoom + state.y };
 }

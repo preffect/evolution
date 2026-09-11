@@ -1,24 +1,27 @@
 // Hex ↔ RGB ↔ HSL and Pixi tint conversions shared by the palette, the atlases and the layers.
 
+import { HUE_SECTOR } from './constants/colours';
+import { DEGREES_PER_TURN, HALF } from './geometry';
+
 export type Rgb = readonly [number, number, number];
 
 const HEX_RADIX = 16;
 const HEX_CHANNEL_DIGITS = 2;
-const CHANNEL_MAX = 255;
-const DEGREES_PER_TURN = 360;
+/** 8-bit channel range and the RGB(A) channel indices, shared with the palette bake. */
+export const CHANNEL_MAX = 255;
+export const RED = 0;
+export const GREEN = 1;
+export const BLUE = 2;
+export const ALPHA = 3;
 const HUE_SECTORS = 6;
 /** The HSL sector formula folds the hue into pairs of sectors. */
 const HUE_SECTOR_PAIR = 2;
-const HALF = 0.5;
 const SRGB_LINEAR_THRESHOLD = 0.04045;
 const SRGB_LINEAR_DIVISOR = 12.92;
 const SRGB_OFFSET = 0.055;
 const SRGB_SCALE = 1.055;
 const SRGB_GAMMA = 2.4;
 const LINEAR_SRGB_THRESHOLD = 0.0031308;
-const RED = 0;
-const GREEN = 1;
-const BLUE = 2;
 
 export interface Hsl {
   readonly hue: number;
@@ -84,19 +87,31 @@ export function rgbToHsl(rgb: Rgb): Hsl {
   return { hue, saturation, lightness };
 }
 
+/** The chroma and its secondary placed by hue sector; the wrap past the last sector lands on red again. */
+function sectorRgb(sector: number, chroma: number, second: number): Rgb {
+  switch (Math.floor(sector)) {
+    case HUE_SECTOR.yellowToGreen:
+      return [second, chroma, 0];
+    case HUE_SECTOR.greenToCyan:
+      return [0, chroma, second];
+    case HUE_SECTOR.cyanToBlue:
+      return [0, second, chroma];
+    case HUE_SECTOR.blueToMagenta:
+      return [second, 0, chroma];
+    case HUE_SECTOR.magentaToRed:
+      return [chroma, 0, second];
+    default:
+      return [chroma, second, 0];
+  }
+}
+
+/** Any hue: negative or past a turn, it is folded into [0, 360) first. */
 export function hslToRgb({ hue, saturation, lightness }: Hsl): Rgb {
   const chroma = (1 - Math.abs(HUE_SECTOR_PAIR * lightness - 1)) * saturation;
-  const sector = (hue / (DEGREES_PER_TURN / HUE_SECTORS)) % HUE_SECTORS;
+  const foldedHue = ((hue % DEGREES_PER_TURN) + DEGREES_PER_TURN) % DEGREES_PER_TURN;
+  const sector = foldedHue / (DEGREES_PER_TURN / HUE_SECTORS);
   const second = chroma * (1 - Math.abs((sector % HUE_SECTOR_PAIR) - 1));
   const match = lightness - chroma * HALF;
-  const table: Rgb[] = [
-    [chroma, second, 0],
-    [second, chroma, 0],
-    [0, chroma, second],
-    [0, second, chroma],
-    [second, 0, chroma],
-    [chroma, 0, second],
-  ];
-  const [red, green, blue] = table[Math.floor(sector)] ?? table[0]!;
+  const [red, green, blue] = sectorRgb(sector, chroma, second);
   return [red + match, green + match, blue + match];
 }

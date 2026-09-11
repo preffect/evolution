@@ -12,6 +12,8 @@ export interface PixiAppOptions {
   readonly devicePixelRatio: number;
   /** A fixed canvas size for the bench and screenshots; the host's size otherwise. */
   readonly fixedSize?: { readonly width: number; readonly height: number };
+  /** Keeps the back buffer readable (`canvas.toDataURL` in the smoke); a copy per frame, so dev builds only. */
+  readonly shouldPreserveDrawingBuffer: boolean;
 }
 
 export interface PixiAppHandle {
@@ -35,7 +37,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     resizeTo: options.fixedSize === undefined ? options.host : undefined,
     width: options.fixedSize?.width,
     height: options.fixedSize?.height,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: options.shouldPreserveDrawingBuffer,
   });
   const canvas = app.canvas;
   canvas.dataset['testid'] = GAME_CANVAS_TEST_ID;

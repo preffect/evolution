@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
 import { DEPTH_FAR, DEPTH_FIELD_WU, DEPTH_PARALLAX } from '../constants';
-import { DEPTH_LAYER, depthParticlePosition, depthParticleSpecs } from './depth-particles';
+import { DEPTH_LAYER, DEPTH_TINTS, depthParticlePosition, depthParticleSpecs } from './depth-particles';
 
 const TEST_SEED = 3;
 
@@ -14,7 +14,9 @@ describe('depth particles', () => {
       expect(particle.x).toBeLessThan(DEPTH_FIELD_WU.width);
       expect(particle.radiusWu).toBeGreaterThanOrEqual(DEPTH_FAR.radiusMin);
       expect(particle.alpha).toBeLessThanOrEqual(DEPTH_FAR.alphaMax);
+      expect(DEPTH_TINTS.far).toContain(particle.tint);
     }
+    expect(new Set(specs.map((particle) => particle.tint)).size).toBe(DEPTH_TINTS.far.length);
     expect(depthParticleSpecs(DEPTH_LAYER.far, createSeededRandom(TEST_SEED))).toEqual(specs);
     expect(depthParticleSpecs(DEPTH_LAYER.near, createSeededRandom(TEST_SEED))).not.toEqual(specs);
   });

@@ -46,6 +46,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     createPixiApp: dependencies.createPixiApp,
     connectAudio: dependencies.connectAudio,
     hudInputs: () => ({ previewTraitId: dependencies.previewTraitId(), reticle: dependencies.reticle() }),
+    shouldPreserveDrawingBuffer: dependencies.isDevMode,
   });
   const subscription = options.messages$.subscribe((message) => session.onMessage(message));
   const uninstallDebug = installEvolutionDebug(dependencies.debugHost, session.debugApi(), dependencies.isDevMode);

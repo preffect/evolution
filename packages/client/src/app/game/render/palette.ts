@@ -2,7 +2,7 @@
 // packed into the 8 × 8 palette texture the cell shader reads (docs/RENDERING.md §2.3).
 
 import { PLAYER_PALETTE_COUNT } from '@evolution/shared';
-import { hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from './colour';
+import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from './colour';
 import { CHLORO_BASE, PALETTE_SHADE_COUNT, PLAYER_PALETTE_TABLE, type PlayerPaletteRow } from './constants';
 
 /**
@@ -23,12 +23,7 @@ const NEW_RIM_SATURATION = 1.0;
 const NEW_RIM_LIGHTNESS = 0.85;
 const NEW_NUCLEUS_SATURATION = 0.85;
 const NEW_NUCLEUS_LIGHTNESS = 0.7;
-const CHANNEL_MAX = 255;
 const RGBA_CHANNELS = 4;
-const RED = 0;
-const GREEN = 1;
-const BLUE = 2;
-const ALPHA = 3;
 
 export interface PlayerPalette extends PlayerPaletteRow {
   readonly edge: string;

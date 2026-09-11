@@ -2,8 +2,8 @@
 // no inline cubic-bezier literals anywhere else).
 
 import { EASING, type EasingName } from '@evolution/shared';
+import { HALF } from './geometry';
 
-const HALF = 0.5;
 const QUAD = 2;
 const CUBIC = 3;
 const EXPO_BASE = 2;

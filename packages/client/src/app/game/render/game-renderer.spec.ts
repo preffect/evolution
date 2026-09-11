@@ -8,10 +8,10 @@ import {
   createTestRenderFrame,
 } from '../../../testing/builders';
 import { createFakePixiApp } from '../../../testing/fake-pixi-app';
-import { GameRenderer, type RenderInputs } from './game-renderer';
+import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
 import { createRenderTextures } from './render-textures';
 
-const INPUTS: RenderInputs = { previewTraitId: null, reticle: { isVisible: false, x: 0, y: 0 } };
+const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
 const VIEWPORT = { width: 800, height: 600 };
 
 function renderer(): { renderer: GameRenderer; stage: Container; submits: { count: number } } {

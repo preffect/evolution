@@ -6,11 +6,11 @@
 
 import { DISH_RADIUS, type RandomSource } from '@evolution/shared';
 import { Container, Graphics, Particle, ParticleContainer, type Texture } from 'pixi.js';
+import type { WorldPoint } from '../camera';
 import { hexToNumber } from '../colour';
+import { HALF } from '../geometry';
 import {
   BG_FIELD,
-  DEPTH_FAR_TINTS,
-  DEPTH_NEAR,
   LIGHT_ACCENT,
   WALL_GLASS,
   WALL_GLASS_INNER,
@@ -22,7 +22,6 @@ import {
   WALL_RIM_SCATTER_ALPHA,
   WALL_RIM_SCATTER_WU,
   WHITE,
-  ZONE_GEL,
 } from '../constants';
 import {
   DEPTH_LAYER,
@@ -34,23 +33,21 @@ import {
 
 export interface DishLayerFrame {
   readonly timeSeconds: number;
-  readonly camera: { readonly x: number; readonly y: number };
+  readonly camera: WorldPoint;
+}
+
+interface DepthEntry {
+  readonly spec: DepthParticleSpec;
+  readonly particle: Particle;
 }
 
 interface DepthField {
   readonly layer: DepthLayerKey;
   readonly container: ParticleContainer;
-  readonly specs: readonly DepthParticleSpec[];
-  readonly particles: Particle[];
+  readonly entries: readonly DepthEntry[];
 }
 
-const HALF = 0.5;
 const DIAMETER_PER_RADIUS = 2;
-const DEPTH_TINTS: Readonly<Record<DepthLayerKey, readonly string[]>> = {
-  [DEPTH_LAYER.far]: DEPTH_FAR_TINTS,
-  [DEPTH_LAYER.near]: [DEPTH_NEAR],
-  [DEPTH_LAYER.bokeh]: [ZONE_GEL, LIGHT_ACCENT],
-};
 
 /** The field as one flat disc in the field colour; the wall covers its edge. Slice B (#206) bakes the real field. */
 export function drawDishField(graphics: Graphics): void {
@@ -107,31 +104,29 @@ export class DishLayer {
       dynamicProperties: { position: true, color: false, rotation: false, uvs: false, vertex: false },
       texture,
     });
-    const tints = DEPTH_TINTS[layer];
-    const particles = specs.map((spec) => {
+    const entries = specs.map((spec): DepthEntry => {
       const particle = new Particle({
         texture,
         anchorX: HALF,
         anchorY: HALF,
         alpha: spec.alpha,
-        tint: hexToNumber(tints[spec.tintIndex % tints.length] ?? WHITE),
+        tint: hexToNumber(spec.tint),
         scaleX: (spec.radiusWu * DIAMETER_PER_RADIUS) / texture.width,
         scaleY: (spec.radiusWu * DIAMETER_PER_RADIUS) / texture.height,
       });
       container.addParticle(particle);
-      return particle;
+      return { spec, particle };
     });
-    return { layer, container, specs, particles };
+    return { layer, container, entries };
   }
 
   update(frame: DishLayerFrame): void {
     for (const field of this.depthFields) {
-      field.specs.forEach((spec, index) => {
+      for (const { spec, particle } of field.entries) {
         const position = depthParticlePosition(spec, field.layer, frame.timeSeconds, frame.camera);
-        const particle = field.particles[index]!;
         particle.x = position.x;
         particle.y = position.y;
-      });
+      }
       field.container.update();
     }
   }

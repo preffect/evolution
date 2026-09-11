@@ -3,9 +3,13 @@
 // a 1080p window at zoom 1, wrapping with the camera so the field never runs out. Pure
 // placement; the dish layer applies it to particles.
 
-import { RADIANS_PER_FULL_TURN, type RandomSource } from '@evolution/shared';
+import { COSMETIC_SUB_STREAM, RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import {
   DEPTH_BOKEH,
+  DEPTH_FAR_TINTS,
+  DEPTH_NEAR,
+  LIGHT_ACCENT,
+  ZONE_GEL,
   DEPTH_DRIFT_WU_PER_SECOND_MAX,
   DEPTH_DRIFT_WU_PER_SECOND_MIN,
   DEPTH_FAR,
@@ -13,7 +17,8 @@ import {
   DEPTH_NEAR_PARTICLES,
   DEPTH_PARALLAX,
 } from '../constants';
-import { lerp } from '../geometry';
+import { HALF } from '../geometry';
+import type { WorldPoint } from '../camera';
 
 export interface DepthLayerSpec {
   readonly count: number;
@@ -31,7 +36,8 @@ export interface DepthParticleSpec {
   readonly alpha: number;
   readonly driftAngle: number;
   readonly driftWuPerSecond: number;
-  readonly tintIndex: number;
+  /** One of the layer's `DEPTH_TINTS`, drawn from the seeded stream. */
+  readonly tint: string;
 }
 
 export const DEPTH_LAYER = { far: 'far', near: 'near', bokeh: 'bokeh' } as const;
@@ -43,13 +49,19 @@ export const DEPTH_LAYER_SPECS: Readonly<Record<DepthLayerKey, DepthLayerSpec>> 
   [DEPTH_LAYER.bokeh]: DEPTH_BOKEH,
 };
 
-export const DEPTH_STREAM_LABEL = 'depth';
-const TINT_COUNT = 4;
-const HALF = 0.5;
+/** The tints each layer draws from (sheet 02): the far motes vary, the near discs are one, the bokeh two. */
+/** A layer's tints: never empty, so a drawn index always lands and the first is the typed fallback. */
+type DepthTintList = readonly [string, ...string[]];
+export const DEPTH_TINTS: Readonly<Record<DepthLayerKey, DepthTintList>> = {
+  [DEPTH_LAYER.far]: DEPTH_FAR_TINTS,
+  [DEPTH_LAYER.near]: [DEPTH_NEAR],
+  [DEPTH_LAYER.bokeh]: [ZONE_GEL, LIGHT_ACCENT],
+};
 
 export function depthParticleSpecs(layer: DepthLayerKey, cosmetic: RandomSource): DepthParticleSpec[] {
   const spec = DEPTH_LAYER_SPECS[layer];
-  const random = cosmetic.fork(`${DEPTH_STREAM_LABEL}:${layer}`);
+  const random = cosmetic.fork(`${COSMETIC_SUB_STREAM.depth}:${layer}`);
+  const tints = DEPTH_TINTS[layer];
   return Array.from({ length: spec.count }, () => ({
     x: random.nextFloat() * DEPTH_FIELD_WU.width,
     y: random.nextFloat() * DEPTH_FIELD_WU.height,
@@ -57,7 +69,7 @@ export function depthParticleSpecs(layer: DepthLayerKey, cosmetic: RandomSource)
     alpha: lerp(spec.alphaMin, spec.alphaMax, random.nextFloat()),
     driftAngle: random.nextFloat() * RADIANS_PER_FULL_TURN,
     driftWuPerSecond: lerp(DEPTH_DRIFT_WU_PER_SECOND_MIN, DEPTH_DRIFT_WU_PER_SECOND_MAX, random.nextFloat()),
-    tintIndex: random.nextInt(0, TINT_COUNT - 1),
+    tint: tints[random.nextInt(0, tints.length - 1)] ?? tints[0],
   }));
 }
 
@@ -73,8 +85,8 @@ export function depthParticlePosition(
   particle: DepthParticleSpec,
   layer: DepthLayerKey,
   timeSeconds: number,
-  camera: { x: number; y: number },
-): { x: number; y: number } {
+  camera: WorldPoint,
+): WorldPoint {
   const parallax = DEPTH_PARALLAX[layer];
   const driftX = Math.cos(particle.driftAngle) * particle.driftWuPerSecond * timeSeconds;
   const driftY = Math.sin(particle.driftAngle) * particle.driftWuPerSecond * timeSeconds;

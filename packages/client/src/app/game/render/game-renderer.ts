@@ -17,11 +17,13 @@ import {
   type CameraState,
   type CameraTarget,
   type ViewportPx,
+  type WorldPoint,
 } from './camera';
 import { DishLayer } from './dish/dish-layer';
+import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
 import { PlaceholderCellLayer } from './placeholder-cell-layer';
-import { followTarget } from './render-target';
+import { DISH_CENTRE_TARGET, followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 
 export interface RenderInputs {
@@ -36,7 +38,8 @@ export interface RenderOutputs {
   readonly visibleMotes: number;
 }
 
-const HALF = 0.5;
+/** The HUD's reticle while #100 has not wired the pointer: hidden. */
+export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 0 };
 /** No food layer yet: slice C (#207) counts the motes it uploads. */
 const NO_FOOD_LAYER_MOTES = 0;
 
@@ -95,8 +98,8 @@ export class GameRenderer {
   }
 
   /** The world point under a screen point, through the current camera. */
-  screenToWorld(x: number, y: number): { x: number; y: number } {
-    const camera = this.camera ?? parkCamera({ x: 0, y: 0, radius: 1 });
+  screenToWorld(x: number, y: number): WorldPoint {
+    const camera = this.camera ?? parkCamera(DISH_CENTRE_TARGET);
     return screenToWorld(camera, this.viewport, x, y);
   }
 
@@ -104,7 +107,7 @@ export class GameRenderer {
     const target = followTarget(frame, ownPlayerId);
     const deltaSeconds = this.lastTimeSeconds === null ? 0 : Math.max(0, frame.timeSeconds - this.lastTimeSeconds);
     this.lastTimeSeconds = frame.timeSeconds;
-    if (this.camera === null) return this.withFixedZoom(parkCamera(target ?? { x: 0, y: 0, radius: 1 }));
+    if (this.camera === null) return this.withFixedZoom(parkCamera(target ?? DISH_CENTRE_TARGET));
     return this.withFixedZoom(stepCamera(this.camera, target, deltaSeconds));
   }
 
@@ -116,7 +119,7 @@ export class GameRenderer {
     const extent = cameraExtent(camera, this.viewport);
     applyCameraTransform(this.layers.world, camera, this.viewport);
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
-    const ownCell = ownPlayerId === null ? null : (frame.cells.find((cell) => cell.playerId === ownPlayerId) ?? null);
+    const ownCell = ownCellOf(frame, ownPlayerId);
     this.dish.update({ timeSeconds: frame.timeSeconds, camera });
     const cells = this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId: inputs.previewTraitId });
     submit();

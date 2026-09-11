@@ -5,25 +5,17 @@
 import { Container } from 'pixi.js';
 import type { CameraState, ViewportPx } from './camera';
 import { worldToScreen, zoomFor } from './camera';
-import { LAYER_Z } from './constants';
+import { LAYER_NAMES, LAYER_Z, type LayerName } from './constants';
 
-export interface SceneLayers {
+export interface SceneLayers extends Record<LayerName, Container> {
   readonly world: Container;
   readonly screen: Container;
-  readonly dish: Container;
-  readonly depthFar: Container;
-  readonly food: Container;
-  readonly fragments: Container;
-  readonly cells: Container;
-  readonly depthNear: Container;
-  readonly effects: Container;
-  readonly debug: Container;
 }
 
 export function createSceneLayers(stage: Container): SceneLayers {
   const world = new Container();
   const screen = new Container();
-  const ordered = {
+  const ordered: Record<LayerName, Container> = {
     dish: new Container(),
     depthFar: new Container(),
     food: new Container(),
@@ -32,10 +24,10 @@ export function createSceneLayers(stage: Container): SceneLayers {
     depthNear: new Container(),
     effects: new Container(),
     debug: new Container(),
-  } as const;
-  for (const [name, container] of Object.entries(ordered)) {
-    container.zIndex = LAYER_Z[name as keyof typeof LAYER_Z];
-    world.addChild(container);
+  };
+  for (const name of LAYER_NAMES) {
+    ordered[name].zIndex = LAYER_Z[name];
+    world.addChild(ordered[name]);
   }
   world.sortableChildren = true;
   world.sortChildren();

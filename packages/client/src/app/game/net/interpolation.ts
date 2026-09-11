@@ -9,6 +9,7 @@ import {
   SERVER_TICK_ESTIMATE_SMOOTHING,
   TICK_INTERVAL_MS,
   TICK_INTERVAL_S,
+  lerp,
   type CellView,
   type DnaFragmentView,
   type MotePositionView,
@@ -51,10 +52,6 @@ export function interpolationWeight(olderTick: number, newerTick: number, render
   const span = newerTick - olderTick;
   if (span <= 0) return 1;
   return Math.min(1, Math.max(0, (renderTick - olderTick) / span));
-}
-
-function lerp(fromValue: number, toValue: number, weight: number): number {
-  return fromValue + (toValue - fromValue) * weight;
 }
 
 /** Position, velocity and radius lerp; every other field is the newer snapshot's. */

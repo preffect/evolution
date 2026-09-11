@@ -146,15 +146,15 @@ export class GameRoom {
     this.playerConnections.set(playerId, connection);
     this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
     this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
-    sendMessage(connection, this.gameStateMessageFor(gameId, playerId));
+    sendMessage(connection, this.gameStateMessageFor(gameId as GameId, playerId));
   }
 
   /** The `game_state` a player receives on start, late join and reconnect (docs/ARCHITECTURE.md §4). */
-  gameStateMessageFor(gameId: string, playerId: string): ServerMessage {
+  gameStateMessageFor(gameId: GameId, playerId: PlayerId): ServerMessage {
     return {
       type: SERVER_MESSAGE_TYPE.gameState,
-      gameId: gameId as GameId,
-      playerId: playerId as PlayerId,
+      gameId,
+      playerId,
       ...this.getFullState(),
       config: this.sessionConfig,
       playerIds: this.allPlayerIds as PlayerId[],

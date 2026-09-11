@@ -4,6 +4,7 @@
 
 import { FillGradient, Graphics, type Container, type Texture } from 'pixi.js';
 import { hexWithAlpha } from './colour';
+import { HALF } from './geometry';
 import { RADIAL_BAKE_SHAPE, type RadialBakeSpec, type TextureBaker } from './render-textures';
 
 /** The slice of a Pixi renderer the baker needs: `Renderer.generateTexture` satisfies it. */
@@ -11,7 +12,6 @@ export interface TextureGenerator {
   generateTexture(target: Container): Texture;
 }
 
-const HALF = 0.5;
 const UNIT_SQUARE_CENTRE = { x: HALF, y: HALF } as const;
 /** A gradient in the shape's local (0..1) space reaches the corners at this radius. */
 const HALF_DIAGONAL = HALF * Math.SQRT2;

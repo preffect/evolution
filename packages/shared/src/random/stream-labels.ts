@@ -19,6 +19,17 @@ export const RANDOM_STREAM = {
   cosmetic: 'cosmetic',
 } as const;
 
+/**
+ * Sub-streams the client forks from `cosmetic` (docs/RENDERING.md §1): `fork(COSMETIC_SUB_STREAM.x + ':' + key)`.
+ * Listed here so every stream name has the one home; never forked on the server.
+ */
+export const COSMETIC_SUB_STREAM = {
+  /** The depth particle fields, one per layer. */
+  depth: 'depth',
+  /** The field noise textures (#206). */
+  field: 'field',
+} as const;
+
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
 
 /** The server streams: every label except `cosmetic`, which only the client ever forks. */

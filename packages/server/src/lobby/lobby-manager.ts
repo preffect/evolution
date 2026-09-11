@@ -168,7 +168,7 @@ export class LobbyManager {
   private sendInitialGameState(gameId: string, room: GameRoom, options: RoomInitOptions): void {
     for (const playerId of options.playerIds) {
       const playerConnection = this.connections.get(playerId);
-      if (playerConnection) sendMessage(playerConnection, room.gameStateMessageFor(gameId, playerId));
+      if (playerConnection) sendMessage(playerConnection, room.gameStateMessageFor(gameId as GameId, playerId));
     }
   }
 
@@ -226,7 +226,7 @@ export class LobbyManager {
     if (room) {
       room.reattachPlayer(connection);
       // Resend the full game state so the reconnected client can resync.
-      sendMessage(connection, room.gameStateMessageFor(gameId, connection.playerId));
+      sendMessage(connection, room.gameStateMessageFor(gameId as GameId, connection.playerId as PlayerId));
     }
   }
 

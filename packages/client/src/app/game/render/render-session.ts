@@ -21,6 +21,8 @@ export interface RenderSessionDependencies {
   readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
   readonly connectAudio: (options: TransitionOptions) => AudioHooksHandle;
   readonly hudInputs: () => RenderInputs;
+  /** `true` in dev builds, where the debug hook screenshots the canvas (`pixi-app.ts`). */
+  readonly shouldPreserveDrawingBuffer: boolean;
 }
 
 export class RenderSession {
@@ -99,6 +101,7 @@ export class RenderSession {
     const pixi = await this.dependencies.createPixiApp({
       host: this.dependencies.host,
       devicePixelRatio: this.dependencies.devicePixelRatio,
+      shouldPreserveDrawingBuffer: this.dependencies.shouldPreserveDrawingBuffer,
     });
     if (this.isDestroyed) {
       pixi.destroy();
