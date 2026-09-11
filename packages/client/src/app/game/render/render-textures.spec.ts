@@ -51,6 +51,9 @@ describe('createRenderTextures', () => {
     expect(textures.strip.rows).toBe(NOISE_STRIP_ROWS);
     expect(textures.stripTexture.style.scaleMode).toBe('nearest');
     expect(textures.tileTexture.style.addressMode).toBe('repeat');
+    expect(textures.tileTexture.autoGenerateMipmaps).toBe(true);
+    expect(textures.stripTexture.autoGenerateMipmaps).toBe(false);
+    expect(textures.paletteTexture.autoGenerateMipmaps).toBe(false);
     expect([textures.paletteTexture.width, textures.paletteTexture.height]).toEqual([
       PALETTE_SHADE_COUNT,
       PLAYER_PALETTE_COUNT,

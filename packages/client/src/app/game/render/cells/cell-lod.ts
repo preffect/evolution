@@ -14,6 +14,8 @@ export interface CellLod {
   readonly interiorBlend: number;
   /** Seat mark and self ring: drawn at mid and above, never faded. */
   readonly hasTells: boolean;
+  /** The nucleus / nucleoid sprite: the stage tell, kept through mid (VISUAL-STYLE §6) and gone with the far dot. */
+  readonly nucleusBlend: number;
   /** Below the far threshold the cell is a rim dot with a ×3 halo. */
   readonly isFarDot: boolean;
 }
@@ -23,5 +25,5 @@ export function cellLodFor(screenRadiusPx: number): CellLod {
   const isFarDot = screenRadiusPx < CELL_LOD_FAR_MAX_PX;
   const level = screenRadiusPx >= CELL_LOD_FULL_MIN_PX ? LOD_LEVEL.full : isFarDot ? LOD_LEVEL.far : LOD_LEVEL.mid;
   const interiorBlend = clamp01((screenRadiusPx - (CELL_LOD_FULL_MIN_PX - LOD_FADE_BAND_PX)) / LOD_FADE_BAND_PX);
-  return { level, interiorBlend, hasTells: !isFarDot, isFarDot };
+  return { level, interiorBlend, hasTells: !isFarDot, nucleusBlend: isFarDot ? 0 : 1, isFarDot };
 }

@@ -2,7 +2,8 @@
 // the held heading and the organelle slots (append-only). One `update` per frame turns the
 // interpolated `CellView` into the instance record the shader reads and the mapped organelle
 // placements the sprite layer draws. Pure over its inputs and the frame's time; nothing here
-// touches Pixi. The clips (#207) and the deformation sources (#216) plug into `bumps`.
+// touches Pixi. The clips (#207) and the deformation sources (#216) hand in the cell's
+// `CellDeformation`.
 
 import {
   COSMETIC_SUB_STREAM,
@@ -16,6 +17,7 @@ import {
 } from '@evolution/shared';
 import { HEADING_HOLD_SPEED_RATIO, NOISE_STRIP_ROWS, NUCLEUS_DRIFT_HZ, NUCLEUS_DRIFT_RADII } from '../constants';
 import type { NoiseStrip } from '../noise/noise-strip';
+import type { CellDeformation } from './cell-deformation';
 import { buildCellInstance } from './cell-instance-builder';
 import type { CellInstance } from './cell-instance';
 import { cellLodFor, type CellLod } from './cell-lod';
@@ -23,7 +25,6 @@ import { summariseCellTraits, type CellTraitSummary } from './cell-traits';
 import { NUCLEUS_KINDS } from './organelle-kinds';
 import { layoutOrganelles, type OrganelleSlot } from './organelle-layout';
 import { laggedSlot, mapSlot, type MappedPoint } from './organelle-mapper';
-import type { ShapeBump } from './radial-profile';
 import { buildShapeTerms, headingOf, type ShapeTerms } from './shape-terms';
 
 /** What the frame hands every cell: time, zoom, the live balance, the own cell and the strip. */
@@ -34,8 +35,6 @@ export interface CellFrameContext {
   readonly ownCell: CellView | null;
   readonly strip: NoiseStrip;
   readonly previewTraitId: TraitId | null;
-  /** This cell's bumps this frame (contact dents #216, clip tracks #207). */
-  readonly bumps: readonly ShapeBump[];
 }
 
 export interface OrganellePlacement {
@@ -109,8 +108,8 @@ export class CellRenderState {
     });
   }
 
-  /** One frame: the view, interpolated, plus the frame context, to the instance and the placements. */
-  update(view: CellView, context: CellFrameContext): CellFrameOutput {
+  /** One frame: the view, interpolated, the frame context and this cell's deformation, to the instance and the placements. */
+  update(view: CellView, context: CellFrameContext, deformation: CellDeformation): CellFrameOutput {
     const traits = this.traitsFor(view, context.previewTraitId);
     const speedRatio = this.speedRatioOf(view, context);
     this.heldHeading = headingOf(view, speedRatio, this.heldHeading);
@@ -119,11 +118,11 @@ export class CellRenderState {
       traits,
       timeSeconds: context.timeSeconds,
       speedRatio,
-      heldHeading: this.heldHeading,
+      heading: this.heldHeading,
       phase: this.phase,
       stripRow: this.stripRow,
       strip: context.strip,
-      bumps: context.bumps,
+      deformation,
     });
     const lod = cellLodFor(view.radius * context.zoom);
     const organelles = lod.isFarDot ? [] : this.placeOrganelles(terms, speedRatio, context.timeSeconds);
@@ -138,6 +137,7 @@ export class CellRenderState {
         nucleus === undefined ? ORIGIN : { x: nucleus.point.x / view.radius, y: nucleus.point.y / view.radius },
       isOwn: context.ownCell?.id === view.id,
       cosmetic: { stripRow: this.stripRow, phase: this.phase },
+      alpha: deformation.alpha,
     });
     return { instance, terms, lod, organelles, traits };
   }

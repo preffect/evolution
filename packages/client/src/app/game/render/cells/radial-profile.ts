@@ -16,6 +16,9 @@ export interface ShapeBump {
   readonly sigma: number;
 }
 
+/** An unused bump slot: no amplitude, a unit sigma so the Gaussian stays finite. */
+export const ZERO_BUMP: ShapeBump = { amplitude: 0, centre: 0, sigma: 1 };
+
 export interface WobbleTerm {
   readonly amplitude: number;
   readonly mode: number;

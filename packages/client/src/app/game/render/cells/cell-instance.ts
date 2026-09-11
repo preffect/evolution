@@ -4,7 +4,7 @@
 // The scalar texels come first, then the bump slots (eight bumps × amplitude, centre, sigma).
 
 import { MAX_SHAPE_BUMPS } from '../constants';
-import type { ShapeBump } from './radial-profile';
+import { ZERO_BUMP, type ShapeBump } from './radial-profile';
 
 export interface CellInstance {
   readonly x: number;
@@ -57,8 +57,10 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['stripRow', 'stripPhase', 'lobesScale', 'jitterAmplitude'],
 ];
 
-const TEXEL_FLOATS = 4;
-const BUMP_FLOATS = 3;
+/** One RGBA texel holds four floats; a bump slot is its three channels in this order. */
+export const TEXEL_FLOATS = 4;
+export const BUMP_CHANNELS: readonly (keyof ShapeBump)[] = ['amplitude', 'centre', 'sigma'];
+export const BUMP_FLOATS = BUMP_CHANNELS.length;
 /** The first bump texel; the bumps fill the rest of the row. */
 export const BUMP_TEXEL_START = SCALAR_TEXELS.length;
 const BUMP_TEXELS = Math.ceil((MAX_SHAPE_BUMPS * BUMP_FLOATS) / TEXEL_FLOATS);
@@ -78,11 +80,11 @@ export function packCellInstance(target: Float32Array, row: number, instance: Ce
     });
   });
   for (let slot = 0; slot < MAX_SHAPE_BUMPS; slot += 1) {
-    const bump = instance.bumps[slot];
+    const bump = instance.bumps[slot] ?? ZERO_BUMP;
     const offset = base + BUMP_TEXEL_START * TEXEL_FLOATS + slot * BUMP_FLOATS;
-    target[offset] = bump?.amplitude ?? 0;
-    target[offset + 1] = bump?.centre ?? 0;
-    target[offset + BUMP_FLOATS - 1] = bump?.sigma ?? 1;
+    BUMP_CHANNELS.forEach((channel, index) => {
+      target[offset + index] = bump[channel];
+    });
   }
 }
 

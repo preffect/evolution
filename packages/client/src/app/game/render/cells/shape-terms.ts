@@ -1,7 +1,7 @@
-// View + t → the profile terms of docs/RENDERING.md §2.1 and the eight bump slots: heading held at
-// rest, the speed stretch, the sprint's axial stretch, breathing, the stage wobble, the strip's
-// jitter and lobes, and the bumps their owners hand in (contact dents #216, clip tracks #207),
-// padded to `MAX_SHAPE_BUMPS`. Also the per-instance maximum reach the quad extent needs (§2).
+// View + t → the profile terms of docs/RENDERING.md §2.1 and the eight bump slots: the resolved
+// heading, the speed stretch, the sprint's axial stretch, breathing, the stage wobble, the strip's
+// jitter and lobes, and the cell's deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its
+// pulse). Also the per-instance maximum reach the quad extent needs (§2).
 
 import { RADIANS_PER_FULL_TURN, type CellView } from '@evolution/shared';
 import {
@@ -20,12 +20,10 @@ import {
 } from '../constants';
 import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
+import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
-import type { RadialProfileTerms, ShapeBump, StretchTerm, StripTerm } from './radial-profile';
+import { ZERO_BUMP, type RadialProfileTerms, type ShapeBump, type StretchTerm, type StripTerm } from './radial-profile';
 
-export const ZERO_BUMP: ShapeBump = { amplitude: 0, centre: 0, sigma: 1 };
-/** A living cell at rest: no clip scales the body (#207 plays the level-up, respawn and eat pulses). */
-export const REST_PULSE = 1;
 /** The strip's lobes at full amplitude; `cytoskeleton` halves them with #216. */
 const FULL_LOBES = 1;
 
@@ -34,14 +32,14 @@ export interface ShapeTermsInput {
   readonly traits: CellTraitSummary;
   readonly timeSeconds: number;
   readonly speedRatio: number;
-  /** The heading held from the last moving frame (radians). */
-  readonly heldHeading: number;
+  /** The heading resolved for this frame (`headingOf`: the velocity's, or the held one at rest), radians. */
+  readonly heading: number;
   /** Cosmetic phase in turns and the strip row, from the cell's cosmetic fork. */
   readonly phase: number;
   readonly stripRow: number;
   readonly strip: NoiseStrip | null;
-  /** The bumps their owners built this frame, at most `MAX_SHAPE_BUMPS`. */
-  readonly bumps: readonly ShapeBump[];
+  /** This cell's bumps and pulse this frame (cell-deformation.ts). */
+  readonly deformation: CellDeformation;
 }
 
 export interface ShapeTerms extends RadialProfileTerms {
@@ -121,8 +119,8 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
   const haloOuterRadii = HALO_OUTER_BY_KIND[traits.haloKind] ?? HALO_OUTER_RADII;
   const terms: RadialProfileTerms = {
     radius: input.view.radius,
-    pulse: REST_PULSE,
-    heading: headingOf(input.view, input.speedRatio, input.heldHeading),
+    pulse: input.deformation.pulse,
+    heading: input.heading,
     breathing: BREATH_AMPLITUDE * Math.sin(RADIANS_PER_FULL_TURN * (BREATH_HZ * timeSeconds + input.phase)),
     wobble: {
       amplitude: traits.wobble.amplitude,
@@ -131,7 +129,7 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
     },
     strip: stripTerm(input),
     stretch: stretchTerm(input.speedRatio, isSprinting),
-    bumps: assignBumpSlots(input.bumps),
+    bumps: assignBumpSlots(input.deformation.bumps),
   };
   return { ...terms, haloOuterRadii, maxRadii: maxReachRadii(terms, haloOuterRadii), isSprinting };
 }

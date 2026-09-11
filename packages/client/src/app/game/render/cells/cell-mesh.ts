@@ -119,7 +119,10 @@ export class CellMesh {
     };
   }
 
+  /** Shaders first (they bind the textures; the shared program goes with the first), then the geometry and the instance texture. */
   destroy(): void {
+    this.bodyPass.shader?.destroy(true);
+    this.membranePass.shader?.destroy();
     this.bodyPass.destroy();
     this.membranePass.destroy();
     this.geometry.destroy();

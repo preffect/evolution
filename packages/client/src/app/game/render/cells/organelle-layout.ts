@@ -1,8 +1,9 @@
 // Organelle rest slots (docs/RENDERING.md §3): normalised, heading-independent positions in the
 // cell frame drawn from the cell's cosmetic fork. The nucleus (or the nucleoid) sits 0.12 r toward
 // the light; every other organelle is rejection-sampled in the annulus between the DNA ring
-// keep-out and the membrane margin, outside the nucleus disc and clear of the other slots. Slots
-// are appended, never reshuffled, so a tier-up adds a bean without moving the rest.
+// keep-out and the membrane margin, outside the nucleus disc (measured from the nucleus centre)
+// and clear of every other slot, kept ones of later kinds included. Slots are appended, never
+// reshuffled, so a tier-up adds a bean without moving the rest.
 
 import { RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import {
@@ -74,11 +75,22 @@ function nucleusSlot(kind: OrganelleKind, random: RandomSource): OrganelleSlot {
   };
 }
 
-/** The smallest edge-to-edge gap between a candidate and the placed organelle sprites (the nucleus disc is a bound, not a sprite here). */
+/** The nucleus disc's reach from its own centre: the larger of the nucleus and the nucleoid (VISUAL-STYLE §3). */
+const NUCLEUS_DISC_RADIUS = Math.max(NUCLEUS_RADIUS, NUCLEOID_RADIUS);
+
+/**
+ * The smallest edge-to-edge gap between a candidate and the placed organelle sprites; a candidate
+ * whose centre falls inside the nucleus disc (measured from the nucleus slot, which sits off-centre)
+ * is out of bounds, whatever the sprites say.
+ */
 function smallestGap(candidate: Candidate, placed: readonly OrganelleSlot[]): number {
   let smallest = Number.POSITIVE_INFINITY;
   for (const other of placed) {
-    if (NUCLEUS_KINDS.has(other.kind)) continue;
+    if (NUCLEUS_KINDS.has(other.kind)) {
+      if (Math.hypot(candidate.x - other.x, candidate.y - other.y) < NUCLEUS_DISC_RADIUS)
+        return Number.NEGATIVE_INFINITY;
+      continue;
+    }
     const gap = Math.hypot(candidate.x - other.x, candidate.y - other.y) - candidate.size * HALF - other.size * HALF;
     smallest = Math.min(smallest, gap);
   }
@@ -97,7 +109,7 @@ function sampledSlot(
   placed: readonly OrganelleSlot[],
 ): OrganelleSlot {
   const size = SLOT_SIZE[kind];
-  const innerRadius = Math.max(DNA_RING_KEEP_OUT_FRACTION, NUCLEUS_RADIUS);
+  const innerRadius = DNA_RING_KEEP_OUT_FRACTION;
   const outerRadius = 1 - ORGANELLE_MEMBRANE_MARGIN;
   let best: Candidate = { x: innerRadius, y: 0, size };
   let bestGap = Number.NEGATIVE_INFINITY;
@@ -117,7 +129,8 @@ function sampledSlot(
 /**
  * The slots for `traits`, keeping every slot of `previous` that is still wanted (append-only) and
  * drawing the new ones from `cosmetic.fork('slot:<kind>:<index>')`, so a slot depends only on the
- * cell's seed, its kind and its index, never on when it was added.
+ * cell's seed, its kind and its index, never on when it was added. A new slot is gap-checked
+ * against every kept slot, the later-order ones included, so a tier-up never lands a bean on one.
  */
 export function layoutOrganelles(
   traits: CellTraitSummary,
@@ -125,16 +138,18 @@ export function layoutOrganelles(
   previous: readonly OrganelleSlot[] = [],
 ): OrganelleSlot[] {
   const wanted = organelleCounts(traits);
+  const kept = previous.filter((slot) => slot.index < wanted[slot.kind]);
   const slots: OrganelleSlot[] = [];
   for (const kind of ORGANELLE_KIND_ORDER) {
     for (let index = 0; index < wanted[kind]; index += 1) {
-      const kept = previous.find((slot) => slot.kind === kind && slot.index === index);
-      if (kept !== undefined) {
-        slots.push(kept);
+      const existing = kept.find((slot) => slot.kind === kind && slot.index === index);
+      if (existing !== undefined) {
+        slots.push(existing);
         continue;
       }
       const random = cosmetic.fork(slotLabel(kind, index));
-      slots.push(NUCLEUS_KINDS.has(kind) ? nucleusSlot(kind, random) : sampledSlot(kind, index, random, slots));
+      const placed = [...slots, ...kept.filter((slot) => !slots.includes(slot))];
+      slots.push(NUCLEUS_KINDS.has(kind) ? nucleusSlot(kind, random) : sampledSlot(kind, index, random, placed));
     }
   }
   return slots;

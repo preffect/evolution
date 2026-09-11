@@ -6,6 +6,8 @@ import { hexToNumber } from '../colour';
 import { FOOD_VACUOLE, ORGANELLE_KIND, WHITE } from '../constants';
 import { paletteFor } from '../palette';
 import { buildNoiseStrip } from '../noise/noise-strip';
+import { REST_DEFORMATION } from './cell-deformation';
+import { cellLodFor } from './cell-lod';
 import { CellRenderState, type CellFrameContext } from './cell-render-state';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
 
@@ -20,7 +22,6 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     ownCell: null,
     strip: buildNoiseStrip(createSeededRandom(TEST_SEED)),
     previewTraitId: null,
-    bumps: [],
     ...overrides,
   };
 }
@@ -39,9 +40,10 @@ function draw(overrides: Partial<OrganelleDraw> = {}): OrganelleDraw {
       { traitId: 'food_vacuole', tier: 1 },
     ],
   });
-  const output = new CellRenderState(view.id, textures.cosmetic).update(view, context());
+  const output = new CellRenderState(view.id, textures.cosmetic).update(view, context(), REST_DEFORMATION);
   return {
     instance: output.instance,
+    lod: output.lod,
     organelles: output.organelles,
     palette: paletteFor(1),
     isSprinting: false,
@@ -79,6 +81,19 @@ describe('OrganelleSprites', () => {
     expect(sprites.container.children[0]?.visible).toBe(true);
     expect(sprites.container.children[1]?.visible).toBe(false);
     expect(sprites.update([], 0)).toBe(0);
+    sprites.destroy();
+  });
+
+  it('keeps the nucleus at full alpha through mid LOD while the interior organelles fade', () => {
+    const sprites = new OrganelleSprites(textures.organelles);
+    const cell = draw();
+    const midLod = cellLodFor(10);
+    expect(midLod.interiorBlend).toBe(0);
+    sprites.update([{ ...cell, lod: midLod }], 0);
+    cell.organelles.forEach((placement, index) => {
+      const expected = placement.kind === ORGANELLE_KIND.nucleus ? 1 : 0;
+      expect(sprites.container.children[index]?.alpha).toBe(expected);
+    });
     sprites.destroy();
   });
 

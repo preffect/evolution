@@ -16,6 +16,7 @@ describe('cellLodFor', () => {
   it('fades the interior over the 6 px window under the full threshold', () => {
     expect(cellLodFor(CELL_LOD_FULL_MIN_PX - LOD_FADE_BAND_PX / 2).interiorBlend).toBeCloseTo(0.5, 9);
     expect(cellLodFor(CELL_LOD_FULL_MIN_PX - LOD_FADE_BAND_PX).interiorBlend).toBe(0);
+    expect(cellLodFor(CELL_LOD_FULL_MIN_PX - LOD_FADE_BAND_PX).nucleusBlend).toBe(1);
     expect(cellLodFor(CELL_LOD_FULL_MIN_PX - LOD_FADE_BAND_PX / 2).level).toBe(LOD_LEVEL.mid);
   });
 
@@ -27,5 +28,7 @@ describe('cellLodFor', () => {
     expect(far.isFarDot).toBe(true);
     expect(far.hasTells).toBe(false);
     expect(far.interiorBlend).toBe(0);
+    expect(far.nucleusBlend).toBe(0);
+    expect(cellLodFor(CELL_LOD_FAR_MAX_PX).nucleusBlend).toBe(1);
   });
 });

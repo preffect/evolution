@@ -17,13 +17,11 @@ import {
   STRETCH_TAPER,
 } from '../constants';
 import { HALF } from '../geometry';
-import { BUMP_TEXEL_START, CELL_INSTANCE_TEXELS } from './cell-instance';
+import { BUMP_FLOATS, BUMP_TEXEL_START, CELL_INSTANCE_TEXELS, TEXEL_FLOATS } from './cell-instance';
 import { glslFloat, instanceRead } from './cell-shader-source';
 
 /** The levels of one byte channel, so a hi byte weighs `BYTE_LEVELS` lo bytes. */
 const BYTE_LEVELS = CHANNEL_MAX + 1;
-const TEXEL_CHANNELS = 4;
-const BUMP_FLOATS = 3;
 /** The stretch term's gains (§2.1): `S_ALONG − 1`, `1 − TAPER` and the across share. */
 const STRETCH_ALONG_GAIN = STRETCH_ALONG - 1;
 const STRETCH_TAPER_LOSS = 1 - STRETCH_TAPER;
@@ -84,12 +82,12 @@ Instance readInstance() {
 
 /** Bump 'slot' as (amplitude, centre, sigma): three floats walked across the bump texels. */
 vec3 bumpAt(int slot) {
-  int index = ${BUMP_TEXEL_START} * ${TEXEL_CHANNELS} + slot * ${BUMP_FLOATS};
-  int texel = index / ${TEXEL_CHANNELS};
+  int index = ${BUMP_TEXEL_START} * ${TEXEL_FLOATS} + slot * ${BUMP_FLOATS};
+  int texel = index / ${TEXEL_FLOATS};
   vec4 first = texelFetch(uInstances, ivec2(texel, vInstance), 0);
   vec4 next = texelFetch(uInstances, ivec2(min(texel + 1, ${CELL_INSTANCE_TEXELS - 1}), vInstance), 0);
   float values[8] = float[8](first.x, first.y, first.z, first.w, next.x, next.y, next.z, next.w);
-  int channel = index - texel * ${TEXEL_CHANNELS};
+  int channel = index - texel * ${TEXEL_FLOATS};
   return vec3(values[channel], values[channel + 1], values[channel + 2]);
 }
 

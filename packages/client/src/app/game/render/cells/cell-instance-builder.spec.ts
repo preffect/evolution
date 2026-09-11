@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, SEAT_MARK_BEADS } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII, HALO_KIND, SPRINT_RIM_BRIGHTNESS } from '../constants';
+import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
 import { buildCellInstance, quadExtentRadii, type CellInstanceInput } from './cell-instance-builder';
 import { summariseCellTraits } from './cell-traits';
@@ -15,11 +16,11 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     traits,
     timeSeconds: 0,
     speedRatio: 0,
-    heldHeading: 0,
+    heading: 0,
     phase: 0,
     stripRow: 2,
     strip: null,
-    bumps: [],
+    deformation: REST_DEFORMATION,
   });
   return {
     view,
@@ -30,6 +31,7 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     nucleusOffset: { x: -0.1, y: -0.1 },
     isOwn: false,
     cosmetic: { stripRow: 2, phase: 0.25 },
+    alpha: 1,
     ...overrides,
   };
 }
@@ -66,6 +68,7 @@ describe('buildCellInstance', () => {
     const sprinting = { ...base, terms: { ...base.terms, isSprinting: true } };
     expect(buildCellInstance(sprinting).rimBrightness).toBe(SPRINT_RIM_BRIGHTNESS);
     expect(buildCellInstance({ ...base, isOwn: true }).isOwn).toBe(true);
+    expect(buildCellInstance({ ...base, alpha: 0.5 }).alpha).toBe(0.5);
     const far = { ...base, isOwn: true, lod: cellLodFor(4) };
     const farInstance = buildCellInstance(far);
     expect(farInstance.isOwn).toBe(false);

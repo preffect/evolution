@@ -5,6 +5,7 @@
 import type { CellView, TraitId } from '@evolution/shared';
 import type { RenderFrame } from '../../net/world-store';
 import type { CameraExtent } from '../camera';
+import type { CellDeformations } from './cell-deformation';
 
 export interface CellLayerFrame {
   readonly frame: RenderFrame;
@@ -16,6 +17,8 @@ export interface CellLayerFrame {
   readonly ownCell: CellView | null;
   /** The HUD's hovered trait, previewed on the own cell (docs/UI.md §7). */
   readonly previewTraitId: TraitId | null;
+  /** This frame's per-cell deformations (contact dents #216, clip tracks #207); a missing cell rests. */
+  readonly deformations: CellDeformations;
 }
 
 export interface CellLayerOutputs {

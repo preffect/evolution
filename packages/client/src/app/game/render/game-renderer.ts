@@ -19,6 +19,7 @@ import {
   type ViewportPx,
   type WorldPoint,
 } from './camera';
+import { NO_DEFORMATIONS } from './cells/cell-deformation';
 import { CellLayer } from './cells/cell-layer';
 import { DishLayer } from './dish/dish-layer';
 import { HALF } from './geometry';
@@ -120,7 +121,16 @@ export class GameRenderer {
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
     const ownCell = ownCellOf(frame, ownPlayerId);
     this.dish.update({ timeSeconds: frame.timeSeconds, camera });
-    const cells = this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId: inputs.previewTraitId });
+    const cells = this.cells.update({
+      frame,
+      extent,
+      zoom,
+      nowMs,
+      ownCell,
+      previewTraitId: inputs.previewTraitId,
+      // #207's clips and #216's contact dents write this map; until then every cell rests.
+      deformations: NO_DEFORMATIONS,
+    });
     submit();
     return { cameraExtent: extent, zoom, visibleCells: cells.visibleCells, visibleMotes: NO_FOOD_LAYER_MOTES };
   }

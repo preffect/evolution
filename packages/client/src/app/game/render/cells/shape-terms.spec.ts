@@ -17,8 +17,10 @@ import {
 } from '../constants';
 import { degreesToRadians } from '../geometry';
 import { buildNoiseStrip } from '../noise/noise-strip';
+import { REST_DEFORMATION } from './cell-deformation';
 import { summariseCellTraits } from './cell-traits';
-import { ZERO_BUMP, assignBumpSlots, buildShapeTerms, headingOf, type ShapeTermsInput } from './shape-terms';
+import { ZERO_BUMP } from './radial-profile';
+import { assignBumpSlots, buildShapeTerms, headingOf, type ShapeTermsInput } from './shape-terms';
 
 const TEST_SEED = 42;
 
@@ -29,11 +31,11 @@ function input(overrides: Partial<ShapeTermsInput> = {}): ShapeTermsInput {
     traits: summariseCellTraits(view),
     timeSeconds: 0,
     speedRatio: 0,
-    heldHeading: 0,
+    heading: 0,
     phase: 0,
     stripRow: 0,
     strip: null,
-    bumps: [],
+    deformation: REST_DEFORMATION,
     ...overrides,
   };
 }
@@ -98,21 +100,28 @@ describe('buildShapeTerms', () => {
     const wrap = buildShapeTerms(
       input({
         speedRatio: 1,
-        bumps: [
-          { amplitude: 0.62, centre: degreesToRadians(30), sigma: degreesToRadians(16) },
-          { amplitude: 0.62, centre: degreesToRadians(-30), sigma: degreesToRadians(16) },
-        ],
+        deformation: {
+          ...REST_DEFORMATION,
+          bumps: [
+            { amplitude: 0.62, centre: degreesToRadians(30), sigma: degreesToRadians(16) },
+            { amplitude: 0.62, centre: degreesToRadians(-30), sigma: degreesToRadians(16) },
+          ],
+        },
       }),
     );
     expect(wrap.maxRadii).toBeGreaterThan(rest.maxRadii);
     expect(wrap.maxRadii).toBeLessThan(CELL_QUAD_EXTENT_RADII);
   });
 
-  it('reads the heading from the velocity while moving and holds it at rest', () => {
+  it('reads the heading from the velocity while moving and holds it at rest, and carries the resolved one', () => {
     expect(headingOf({ velocityX: 0, velocityY: 1 }, 0.5, 0)).toBeCloseTo(Math.PI / 2, 9);
     expect(headingOf({ velocityX: 0, velocityY: 1 }, 0, 0.7)).toBe(0.7);
-    const moving = createTestCellView({ velocityX: -1, velocityY: 0 });
-    expect(buildShapeTerms(input({ view: moving, speedRatio: 0.3, heldHeading: 1 })).heading).toBeCloseTo(Math.PI, 9);
-    expect(buildShapeTerms(input({ view: moving, speedRatio: 0, heldHeading: 1 })).heading).toBe(1);
+    expect(buildShapeTerms(input({ heading: 1 })).heading).toBe(1);
+  });
+
+  it('scales the body by the deformation’s pulse', () => {
+    const terms = buildShapeTerms(input({ deformation: { ...REST_DEFORMATION, pulse: 1.09 } }));
+    expect(terms.pulse).toBe(1.09);
+    expect(terms.maxRadii).toBeCloseTo(1.09 * buildShapeTerms(input()).maxRadii, 9);
   });
 });

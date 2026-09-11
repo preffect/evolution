@@ -19,14 +19,14 @@ functions of `t` and the cosmetic stream) stand, its means are replaced by §2 b
 The renderer reads **only** what `net/` gives it and never feeds anything back
 (`ARCHITECTURE.md §1`, "client-side cosmetic"). The server never knows about wobble.
 
-| Input                                                                                                                                                    | Source                                                                                                                                                                                                                                                                                                 |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CellView` (`x`, `y`, `velocityX/Y`, `radius`, `mass`, `stage`, `traits`, `states`, `engulfProgress`, engulf ids, `sprintRemainingTicks`, `avatarIndex`) | `ARCHITECTURE.md §2`, interpolated at `renderTick` (§5) for remote cells, predicted for the own cell                                                                                                                                                                                                   |
-| `FoodMoteView`, `MotePositionView`, `DnaFragmentView`, `GelPatchView`, `effects`                                                                         | `ARCHITECTURE.md §4`; a bacterium's heading is not on the wire and is derived as the direction of its interpolated displacement, held when still                                                                                                                                                       |
-| `renderTick` (fractional)                                                                                                                                | `net/interpolation.ts` (`ARCHITECTURE.md §5` owns the delay and the lerp; nothing under `render/` computes it); **`timeSeconds = renderTick × TICK_INTERVAL_S`** is the only time the renderer sees. A paused room (`debug_pause_room`) holds `renderTick`, so the frame is identical until it resumes |
-| Cosmetic randomness                                                                                                                                      | `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of `createSeededRandom(snapshot.seed)` (`ARCHITECTURE.md §6`, `DETERMINISM.md §1.8`): per-cell phases and organelle slots; the field noise textures from `fork(RANDOM_STREAM.cosmetic + ':field')`                                                       |
-| `balance` (from `game_state`)                                                                                                                            | `speedRatio = ‖velocity‖ / maxSpeed(mass, balance)` through the shared kernel; `canEngulf(cell, own, balance.absorption)` for the warning ring                                                                                                                                                         |
-| HUD crossings                                                                                                                                            | `previewTraitId`, `reticleVisible`, `ownCellIndicators` in; `cameraExtent` out; wired in `game-setup.ts` (`UI.md §7`). Pointer target for the reticle comes from `input/`, not the HUD; the indicators record is `UI.md §3.1.4`'s and is drawn per §10                                                 |
+| Input                                                                                                                                                    | Source                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CellView` (`x`, `y`, `velocityX/Y`, `radius`, `mass`, `stage`, `traits`, `states`, `engulfProgress`, engulf ids, `sprintRemainingTicks`, `avatarIndex`) | `ARCHITECTURE.md §2`, interpolated at `renderTick` (§5) for remote cells, predicted for the own cell                                                                                                                                                                                                                                                                                                                                                                              |
+| `FoodMoteView`, `MotePositionView`, `DnaFragmentView`, `GelPatchView`, `effects`                                                                         | `ARCHITECTURE.md §4`; a bacterium's heading is not on the wire and is derived as the direction of its interpolated displacement, held when still                                                                                                                                                                                                                                                                                                                                  |
+| `renderTick` (fractional)                                                                                                                                | `net/interpolation.ts` (`ARCHITECTURE.md §5` owns the delay and the lerp; nothing under `render/` computes it); **`timeSeconds = renderTick × TICK_INTERVAL_S`** is the only time the renderer sees. A paused room (`debug_pause_room`) holds `renderTick`, so the frame is identical until it resumes                                                                                                                                                                            |
+| Cosmetic randomness                                                                                                                                      | two levels from the root: `createSeededRandom(snapshot.seed).fork(RANDOM_STREAM.cosmetic)` is the round's cosmetic stream (`render-textures.ts`), and every consumer forks a `COSMETIC_SUB_STREAM` label off it: `.fork('cell:' + cellId)` for a cell's phases, strip row and organelle slots (`cells/cell-render-state.ts`), `.fork('field')` / `'strip'` / `'dish'` / `'vent'` / `'organelles'` for the bakes (#206). `ARCHITECTURE.md §6` and `DETERMINISM.md §1.8` point here |
+| `balance` (from `game_state`)                                                                                                                            | `speedRatio = ‖velocity‖ / maxSpeed(mass, balance)` through the shared kernel; `canEngulf(cell, own, balance.absorption)` for the warning ring                                                                                                                                                                                                                                                                                                                                    |
+| HUD crossings                                                                                                                                            | `previewTraitId`, `reticleVisible`, `ownCellIndicators` in; `cameraExtent` out; wired in `game-setup.ts` (`UI.md §7`). Pointer target for the reticle comes from `input/`, not the HUD; the indicators record is `UI.md §3.1.4`'s and is drawn per §10                                                                                                                                                                                                                            |
 
 `render/` never calls a clock (`CODE-STANDARDS.md §8`): the bench harness (§7) drives `renderTick` from a `ManualClock`.
 
@@ -137,14 +137,24 @@ through the predator's film for free; separation (`ECOLOGY.md §5.3`) means unre
 draws one unit quad per row with an instance-index attribute. One table (the scalar texels, then the
 `MAX_SHAPE_BUMPS` bump slots at three floats each) is the whole contract: the packing writes it and
 `cell-shader-source.ts` reads every field through it, so a new field is one entry and never a second attribute
-layout (a texture row also has no 16-`vec4` attribute cap to budget against). Scalars, in texel order:
-centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`,
-wobble (`amplitude`, `mode`, `phase`), stretch (`axialAlong`, `axialAcross`), `pulse`, `rimBrightness`,
-`nucleusOffset` (vec2, cell frame: the mapped `q′` of the nucleus slot, §3, so filaments meet the nucleus sprite),
-halo kind (default, trait, protocell), `beadCount`, `isOwn`, `isFarDot`, `isProtocell`, alpha, the strip row and
-phase, the strip's `lobesScale` and `jitterAmplitude`; #216 appends the stage / trait counts (`ciliaCount`,
-`wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward `CHLORO_BASE`), `warningRingPx` and `formId`,
-#207 the clip-driven pass-B alpha and halo scale. Global uniforms: `uTimeSeconds`, `uZoom`, `uPass`, the
+layout (a texture row also has no 16-`vec4` attribute cap to budget against). **WebGL2 is required**: the
+program is `#version 300 es`, the instance texture is RGBA32F read with `texelFetch` (nearest; linear on a float
+texture would need `OES_texture_float_linear`), and there is no WebGL1 path, so a context that falls back to
+WebGL1 fails at program compile and `RenderSession` rejects. The table holds `CELL_INSTANCE_CAPACITY` (512)
+rows and is re-uploaded whole once per frame (`capacity × CELL_INSTANCE_TEXELS × 16 B` ≈ 106 KB); past the
+capacity the layer drops the **smallest** cells (the sort is radius ascending and it packs from the large end),
+a rule the bounds today (8 players + 24 wild cells + ghosts; the bench's 100) never reach. Scalars, in texel
+order: centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`,
+`breathing`, wobble (`amplitude`, `mode`, `phase`), stretch (`axialAlong`, `axialAcross`), `pulse`,
+`rimBrightness`, `nucleusOffset` (vec2, cell frame: the mapped `q′` of the nucleus slot, §3, so filaments meet
+the nucleus sprite), halo kind (default, trait, protocell), `beadCount`, `isOwn`, `isFarDot`, `isProtocell`,
+alpha, the strip row and phase, the strip's `lobesScale` and `jitterAmplitude`. The per-cell deformation
+sources feed one record, `cells/cell-deformation.ts` `CellDeformation { bumps, pulse, alpha }`, resolved by
+cell id from the frame's map (`REST_DEFORMATION` for every cell without an entry): #216 writes contact dents
+into `bumps`, #207 the eat / engulf bumps, the clip `pulse` and the respawn `alpha`. #216 appends the stage /
+trait counts (`ciliaCount`, `wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward `CHLORO_BASE`),
+`warningRingPx` and `formId`, #207 the clip-driven pass-B alpha and halo scale. Global uniforms:
+`uTimeSeconds`, `uZoom`, `uPass`, the
 two-channel noise tile, the RGBA noise strip and the **palette texture** (8 palettes × 8 shades, the four
 body-ramp stops among them, baked by `render/palette.ts`, uploaded by `render-textures.ts`). The same
 geometry is drawn twice with `uPass` (A, B); instance order is radius ascending (`ARCHITECTURE.md §6`), so two
@@ -281,11 +291,12 @@ At the wrap frame (pulse 1, k 0, lobes and jitter zeroed) the profile is therefo
 ## 5. LOD
 
 Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them). One
-instance attribute, `lodBlend`, fades the **interior bands** in a `LOD_FADE_BAND_PX` 6 (new) window under each
-threshold so nothing pops; organelle sprites and hairs fade in with zoom the same way. **The fade never touches
-the identity and danger tells:** the seat mark, the self ring and the warning ring snap at their threshold (a
-bead at 40 % alpha during a fade is a bead that cannot be counted; VISUAL-STYLE §2 designed 1–4 beads to be
-countable at 8 px).
+instance field, `lodBlend`, fades the **interior bands** in a `LOD_FADE_BAND_PX` 6 (new) window under the full
+threshold so nothing pops; the interior organelle sprites and hairs fade in with zoom the same way, and the
+far-dot swap at `CELL_LOD_FAR_MAX_PX` is a snap by design. **The fade never touches the identity, stage and
+danger tells:** the seat mark, the self ring, the warning ring and the nucleus / nucleoid sprite (the stage tell,
+one disc through the mid band) snap at the far threshold (a bead at 40 % alpha during a fade is a bead that
+cannot be counted; VISUAL-STYLE §2 designed 1–4 beads to be countable at 8 px).
 
 | On-screen radius                   | Drawn                                                                                                                                                                                                                        |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

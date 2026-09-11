@@ -14,6 +14,7 @@ const PASS_BOUNDARY = (CELL_PASS.body + CELL_PASS.membrane) * HALF;
 
 export const CELL_VERTEX_SOURCE = /* glsl */ `#version 300 es
 precision highp float;
+#define HALF ${glslFloat(HALF)}
 in vec2 aPosition;
 in float aInstanceIndex;
 uniform sampler2D uInstances;
@@ -24,7 +25,7 @@ flat out int vInstance;
 out vec2 vLocal;
 
 void main() {
-  vInstance = int(aInstanceIndex + 0.5);
+  vInstance = int(aInstanceIndex + HALF);
   vec2 centre = vec2(${instanceRead('x')}, ${instanceRead('y')});
   float extentWu = ${instanceRead('radius')} * ${instanceRead('quadExtentRadii')};
   vLocal = aPosition * extentWu;

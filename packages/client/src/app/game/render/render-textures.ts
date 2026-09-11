@@ -88,7 +88,7 @@ export interface RenderTextures {
   /** The jitter / lobes strip (noise-strip.ts) and its `texelFetch` table. */
   readonly strip: NoiseStrip;
   readonly stripTexture: TextureSource;
-  /** The cytoplasm mottle, sampled with linear filtering and repeat. */
+  /** The cytoplasm mottle, sampled trilinear with repeat: mipmapped, since it is drawn minified at every zoom under the bake scale. */
   readonly tileTexture: TextureSource;
   /** The 8 × 8 palette shades (palette.ts), one row per palette, read with `texelFetch`. */
   readonly paletteTexture: TextureSource;
@@ -164,11 +164,41 @@ function moteTextures(baker: TextureBaker): MoteAtlasTextures {
   };
 }
 
+/** The cell shader's data textures: the strip and the palette as `texelFetch` tables, the tile sampled trilinear. */
+function cellDataTextures(
+  cosmetic: RandomSource,
+): Pick<RenderTextures, 'strip' | 'stripTexture' | 'tileTexture' | 'paletteTexture'> {
+  const strip = buildNoiseStrip(cosmetic);
+  const tile = buildNoiseTile(cosmetic);
+  return {
+    strip,
+    stripTexture: byteDataTexture(strip.bytes, {
+      width: NOISE_STRIP_WIDTH,
+      height: NOISE_STRIP_ROWS,
+      isFiltered: false,
+      isRepeating: false,
+      hasMipmaps: false,
+    }),
+    tileTexture: byteDataTexture(tile.bytes, {
+      width: NOISE_TILE_SIZE_PX,
+      height: NOISE_TILE_SIZE_PX,
+      isFiltered: true,
+      isRepeating: true,
+      hasMipmaps: true,
+    }),
+    paletteTexture: byteDataTexture(bakePaletteTextureBytes(), {
+      width: PALETTE_SHADE_COUNT,
+      height: PLAYER_PALETTE_COUNT,
+      isFiltered: false,
+      isRepeating: false,
+      hasMipmaps: false,
+    }),
+  };
+}
+
 export function createRenderTextures(options: RenderTextureOptions): RenderTextures {
   const { baker } = options;
   const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
-  const strip = buildNoiseStrip(cosmetic);
-  const tile = buildNoiseTile(cosmetic);
   const dishField = bakeDishField(baker, options.gelPatches, cosmetic);
   const vent = bakeVentSprite(baker, cosmetic);
   return {
@@ -176,25 +206,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
     cosmetic,
     glowTexture: baker.bakeRadial(SOFT_DISC_BAKE),
     vignetteTexture: baker.bakeRadial(VIGNETTE_BAKE),
-    strip,
-    stripTexture: byteDataTexture(strip.bytes, {
-      width: NOISE_STRIP_WIDTH,
-      height: NOISE_STRIP_ROWS,
-      isFiltered: false,
-      isRepeating: false,
-    }),
-    tileTexture: byteDataTexture(tile.bytes, {
-      width: NOISE_TILE_SIZE_PX,
-      height: NOISE_TILE_SIZE_PX,
-      isFiltered: true,
-      isRepeating: true,
-    }),
-    paletteTexture: byteDataTexture(bakePaletteTextureBytes(), {
-      width: PALETTE_SHADE_COUNT,
-      height: PLAYER_PALETTE_COUNT,
-      isFiltered: false,
-      isRepeating: false,
-    }),
+    ...cellDataTextures(cosmetic),
     glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
     motes: moteTextures(baker),
     organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),

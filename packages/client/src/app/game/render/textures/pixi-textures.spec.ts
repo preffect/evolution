@@ -28,14 +28,24 @@ describe('pixi textures', () => {
       height: 1,
       isFiltered: false,
       isRepeating: false,
+      hasMipmaps: false,
     });
     expect([table.width, table.height, table.format]).toEqual([2, 1, 'rgba8unorm']);
+    expect(table.autoGenerateMipmaps).toBe(false);
     expect(table.style.scaleMode).toBe('nearest');
     expect(table.style.addressMode).toBe('clamp-to-edge');
     expect(table.alphaMode).toBe('no-premultiply-alpha');
-    const tile = byteDataTexture(new Uint8Array(4), { width: 1, height: 1, isFiltered: true, isRepeating: true });
+    const tile = byteDataTexture(new Uint8Array(4), {
+      width: 1,
+      height: 1,
+      isFiltered: true,
+      isRepeating: true,
+      hasMipmaps: true,
+    });
     expect(tile.style.scaleMode).toBe('linear');
     expect(tile.style.addressMode).toBe('repeat');
+    expect(tile.autoGenerateMipmaps).toBe(true);
+    expect(tile.style.mipmapFilter).toBe('linear');
     expect(tile.alphaMode).toBe('no-premultiply-alpha');
     table.destroy();
     tile.destroy();

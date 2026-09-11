@@ -14,6 +14,7 @@ import {
   type CellInstance,
   type CellInstanceScalar,
 } from './cell-instance';
+import { ZERO_BUMP } from './radial-profile';
 
 const TEXEL_FLOATS = 4;
 
@@ -78,8 +79,8 @@ describe('packCellInstance', () => {
     packCellInstance(buffer, 0, instance);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     for (let slot = 1; slot < MAX_SHAPE_BUMPS; slot += 1) {
-      expect(buffer[bumpBase + slot * 3]).toBe(0);
-      expect(buffer[bumpBase + slot * 3 + 2]).toBe(1);
+      expect(buffer[bumpBase + slot * 3]).toBe(ZERO_BUMP.amplitude);
+      expect(buffer[bumpBase + slot * 3 + 2]).toBe(ZERO_BUMP.sigma);
     }
     expect(BUMP_TEXEL_START + Math.ceil((MAX_SHAPE_BUMPS * 3) / TEXEL_FLOATS)).toBe(CELL_INSTANCE_TEXELS);
   });

@@ -1,6 +1,7 @@
 // The organelle sprite layer (docs/RENDERING.md §3): one pooled Sprite per placement per frame,
 // positioned through the deformation, scaled by `r × pulse` and its own motion, tinted where the
-// atlas is palette-relative (nucleus, nucleoid). Between pass A and pass B of the cell mesh.
+// atlas is palette-relative (nucleus, nucleoid). Between pass A and pass B of the cell mesh. The
+// interior organelles fade with the LOD's interior blend; the nucleus keeps through mid (§5).
 
 import { Container, Sprite } from 'pixi.js';
 import { hexToNumber } from '../colour';
@@ -9,11 +10,14 @@ import { HALF } from '../geometry';
 import type { PlayerPalette } from '../palette';
 import type { OrganelleSpriteTexture } from '../render-textures';
 import type { CellInstance } from './cell-instance';
+import type { CellLod } from './cell-lod';
 import type { OrganellePlacement } from './cell-render-state';
+import { NUCLEUS_KINDS } from './organelle-kinds';
 import { organelleMotion } from './organelle-motion';
 
 export interface OrganelleDraw {
   readonly instance: CellInstance;
+  readonly lod: CellLod;
   readonly organelles: readonly OrganellePlacement[];
   readonly palette: PlayerPalette;
   readonly isSprinting: boolean;
@@ -56,7 +60,8 @@ export class OrganelleSprites {
     const width = entry.widthRadii * instance.radius * instance.pulse * motion.scale;
     sprite.width = width;
     sprite.height = width;
-    sprite.alpha = instance.lodBlend * instance.alpha * motion.alpha;
+    const lodBlend = NUCLEUS_KINDS.has(placement.kind) ? draw.lod.nucleusBlend : draw.lod.interiorBlend;
+    sprite.alpha = lodBlend * instance.alpha * motion.alpha;
     sprite.tint = this.tintFor(placement.kind, draw.palette);
     sprite.visible = true;
   }

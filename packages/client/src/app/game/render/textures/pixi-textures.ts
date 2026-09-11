@@ -28,6 +28,8 @@ export interface DataTextureOptions {
   /** `nearest` for tables read with texelFetch, `linear` for the sampled noise tile. */
   readonly isFiltered: boolean;
   readonly isRepeating: boolean;
+  /** Mip levels with trilinear filtering, for a sampled texture drawn minified (the noise tile); never for a table. */
+  readonly hasMipmaps: boolean;
 }
 
 /** An RGBA8 table texture from bytes: data, never colour, so the upload leaves every channel untouched. */
@@ -39,8 +41,9 @@ export function byteDataTexture(bytes: Uint8Array, options: DataTextureOptions):
     format: 'rgba8unorm',
     alphaMode: 'no-premultiply-alpha',
     scaleMode: options.isFiltered ? 'linear' : 'nearest',
+    mipmapFilter: options.hasMipmaps ? 'linear' : 'nearest',
     addressMode: options.isRepeating ? 'repeat' : 'clamp-to-edge',
-    autoGenerateMipmaps: false,
+    autoGenerateMipmaps: options.hasMipmaps,
   });
 }
 

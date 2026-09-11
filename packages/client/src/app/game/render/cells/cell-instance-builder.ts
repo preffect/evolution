@@ -19,10 +19,10 @@ export interface CellInstanceInput {
   readonly nucleusOffset: { readonly x: number; readonly y: number };
   readonly isOwn: boolean;
   readonly cosmetic: { readonly stripRow: number; readonly phase: number };
+  /** The whole instance's alpha (cell-deformation.ts). */
+  readonly alpha: number;
 }
 
-/** A living cell is opaque; #207's respawn clip fades one in. */
-const LIVING_ALPHA = 1;
 const REST_RIM_BRIGHTNESS = 1;
 /** A seat with no bead entry still shows one bead (VISUAL-STYLE §2). */
 const DEFAULT_BEADS = 1;
@@ -81,7 +81,7 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     isOwn: input.isOwn && lod.hasTells,
     isFarDot: lod.isFarDot,
     isProtocell: traits.isProtocell,
-    alpha: LIVING_ALPHA,
+    alpha: input.alpha,
     stripRow: input.cosmetic.stripRow,
     stripPhase: input.cosmetic.phase,
     lobesScale: terms.strip?.lobesScale ?? 0,

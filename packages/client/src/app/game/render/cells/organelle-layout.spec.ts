@@ -5,6 +5,7 @@ import { CELL_STAGE, createSeededRandom } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import {
   DNA_RING_KEEP_OUT_FRACTION,
+  NUCLEOID_RADIUS,
   NUCLEUS_OFFSET_TOWARD_LIGHT,
   NUCLEUS_RADIUS,
   ORGANELLE_KIND,
@@ -36,6 +37,22 @@ const eukaryote = (mitochondrionTier: 1 | 2 | 3) =>
 const distanceOf = (slot: OrganelleSlot) => Math.hypot(slot.x, slot.y);
 const isNucleus = (slot: OrganelleSlot) => NUCLEUS_KINDS.has(slot.kind);
 
+/** The smallest edge-to-edge gap between any two organelle sprites (the nucleus excluded). */
+function smallestSpriteGap(slots: readonly OrganelleSlot[]): number {
+  const sprites = slots.filter((slot) => !isNucleus(slot));
+  let smallest = Number.POSITIVE_INFINITY;
+  for (const first of sprites) {
+    for (const second of sprites) {
+      if (first === second) continue;
+      smallest = Math.min(
+        smallest,
+        Math.hypot(first.x - second.x, first.y - second.y) - first.size / 2 - second.size / 2,
+      );
+    }
+  }
+  return smallest;
+}
+
 describe('layoutOrganelles', () => {
   it('places the nucleus 0.12 r toward the light and every organelle in the annulus, clear of the disc', () => {
     const slots = layoutOrganelles(eukaryote(3), createSeededRandom(TEST_SEED));
@@ -46,19 +63,26 @@ describe('layoutOrganelles', () => {
     for (const slot of slots.filter((candidate) => !isNucleus(candidate))) {
       expect(distanceOf(slot)).toBeGreaterThanOrEqual(DNA_RING_KEEP_OUT_FRACTION - TOLERANCE);
       expect(distanceOf(slot)).toBeLessThanOrEqual(1 - ORGANELLE_MEMBRANE_MARGIN + TOLERANCE);
-      expect(distanceOf(slot)).toBeGreaterThan(NUCLEUS_RADIUS);
+      expect(Math.hypot(slot.x - nucleus.x, slot.y - nucleus.y)).toBeGreaterThan(
+        Math.max(NUCLEUS_RADIUS, NUCLEOID_RADIUS),
+      );
+    }
+  });
+
+  it('measures the nucleus disc from the off-centre nucleus, for every seed', () => {
+    const reach = Math.max(NUCLEUS_RADIUS, NUCLEOID_RADIUS);
+    for (let seed = 0; seed < 50; seed += 1) {
+      const slots = layoutOrganelles(eukaryote(3), createSeededRandom(seed));
+      const nucleus = slots.find(isNucleus)!;
+      for (const slot of slots.filter((candidate) => !isNucleus(candidate))) {
+        expect(Math.hypot(slot.x - nucleus.x, slot.y - nucleus.y)).toBeGreaterThan(reach);
+      }
     }
   });
 
   it('holds the gap between organelle sprites', () => {
-    const slots = layoutOrganelles(eukaryote(3), createSeededRandom(TEST_SEED)).filter((slot) => !isNucleus(slot));
-    for (const first of slots) {
-      for (const second of slots) {
-        if (first === second) continue;
-        const gap = Math.hypot(first.x - second.x, first.y - second.y) - first.size / 2 - second.size / 2;
-        expect(gap).toBeGreaterThanOrEqual(ORGANELLE_MIN_GAP - TOLERANCE);
-      }
-    }
+    const slots = layoutOrganelles(eukaryote(3), createSeededRandom(TEST_SEED));
+    expect(smallestSpriteGap(slots)).toBeGreaterThanOrEqual(ORGANELLE_MIN_GAP - TOLERANCE);
   });
 
   it('appends a bean on a tier-up without moving the existing slots', () => {
@@ -67,6 +91,35 @@ describe('layoutOrganelles', () => {
     const after = layoutOrganelles(eukaryote(2), random, before);
     expect(after.filter((slot) => slot.kind === ORGANELLE_KIND.mitochondrion)).toHaveLength(2);
     for (const slot of before) expect(after).toContain(slot);
+  });
+
+  it('gap-checks a new earlier-order slot against the kept later-order ones, for every seed', () => {
+    const green = summariseCellTraits(
+      createTestCellView({ stage: CELL_STAGE.eukaryote, traits: [{ traitId: 'chloroplast', tier: 3 }] }),
+    );
+    const greenWithBeans = summariseCellTraits(
+      createTestCellView({
+        stage: CELL_STAGE.eukaryote,
+        traits: [
+          { traitId: 'chloroplast', tier: 3 },
+          { traitId: 'mitochondrion', tier: 3 },
+        ],
+      }),
+    );
+    for (let seed = 0; seed < 50; seed += 1) {
+      const random = createSeededRandom(seed);
+      const before = layoutOrganelles(green, random);
+      const after = layoutOrganelles(greenWithBeans, random, before);
+      expect(smallestSpriteGap(after)).toBeGreaterThanOrEqual(ORGANELLE_MIN_GAP - TOLERANCE);
+    }
+  });
+
+  it('drops a slot whose kind is no longer wanted and keeps the rest', () => {
+    const random = createSeededRandom(TEST_SEED);
+    const before = layoutOrganelles(eukaryote(3), random);
+    const after = layoutOrganelles(eukaryote(1), random, before);
+    expect(after.filter((slot) => slot.kind === ORGANELLE_KIND.mitochondrion)).toHaveLength(1);
+    for (const slot of after) expect(before).toContain(slot);
   });
 
   it('is seeded: same seed same slots, another seed other slots', () => {

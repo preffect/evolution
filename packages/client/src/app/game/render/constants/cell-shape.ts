@@ -110,7 +110,7 @@ export const CYTO_NOISE_COARSE = {
   alphaGain: 1.6,
   alphaBias: -0.62,
   alpha: 0.22,
-  rimMix: 0.5,
+  rimMix: 0.7,
 } as const;
 export const CYTO_NOISE_FINE = { octaves: 2, cycles: 29, alphaGain: 1.8, alphaBias: -0.95, alpha: 0.18 } as const;
 export const RIBOSOME_BAND_MIN_RADII = 0.55;
