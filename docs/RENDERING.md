@@ -375,7 +375,8 @@ numbers in #99's PR body come from a hardware run of the same route.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
+constants/{colours,cell-shape,organelles,world-render}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×1 RGBA jitter / lobes strip with derivatives, from the cosmetic fork
 textures/{texture-bake,glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts
 cells/{cell-layer,cell-view,cell-geometry,cell-instance-buffer,cell-lod}.ts
@@ -388,6 +389,8 @@ dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
+game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
+pixi-texture-baker.ts  placeholder-cell-layer.ts             the radial bakes of slice A (#205); the flat-disc cell layer `cells/cell-layer.ts` replaces (#206)
 ```
 
 `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`). This
@@ -415,7 +418,12 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   render texture, walk 36 rays, boundary within 1 px of `radial-profile`; on the engulf wrap frame the rim-light
   band measured along the outline normal is 5 % r ± 1 px at every one of the 36 rays, arm flanks included
   (the perpendicular-distance check); draw-call count ≤ 16 on the bench scene; `renderStagesMs` populated; the
-  ghost instance appears on `cell_absorbed` and leaves at 600 ms.
+  ghost instance appears on `cell_absorbed` and leaves at 600 ms. The client's vitest tier runs under jsdom with
+  no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
+  `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
+  seed, asserts no page or shader errors, that the debug hook's pause holds the rendered tick and the canvas and
+  a step advances both, and screenshots the dish; the bench route, the report in the DOM and the shader parity
+  walk join with their slices (#206, #208).
 - **Screenshot baselines (`qa/baselines/`, graphics-qa on every renderer PR, not part of `validate.sh all`):**
   `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks, each scene carrying a
   fixed `ownCellIndicators` record (plain data, §10; `null` for scenes without an own cell), so a baseline never

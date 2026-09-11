@@ -380,7 +380,7 @@ export interface FoodDelta {
 ```
 
 - The dish radius is the constant `DISH_RADIUS` (GAME-DESIGN §8), not a session field.
-- `game_state` (join, late join, reconnect) carries `serializeFullState()`: a `GameSnapshot`
+- `game_state` (start, late join, reconnect: every player receives one right after `game_started`) carries `serializeFullState()`: a `GameSnapshot`
   whose `food.spawned` is every mote, plus `balance: BalanceConfig` so the client predicts with
   the numbers the server simulates. `game_snapshot` carries `serializeRoomState()`: the delta
   since the previous broadcast. The client applies deltas idempotently (upsert `spawned`,
@@ -645,8 +645,9 @@ packages/server/src/
   testing/bot-client/{bot-session,bot-swarm,bot-timing,bot-transport,web-socket-transport,cli,cli-arguments,errors}.ts   the headless wire client (#15): one bot's protocol, N bots, its clock + ticker, the transport seam, the `ws` transport, the CLI and its parser, BotClientError
   testing/scenarios/{ecology-spawn,ecology-cells,game-design-session,game-design-controls,progression}.gameplay.test.ts (+ shared-setups.ts)   the design tables by row (#102)
 packages/client/src/app/game/
-  game-setup.ts
-  net/{snapshot-buffer,interpolation,prediction,reconciliation,world-store,input-sender}.ts   interpolation owns renderTick (section 5)
+  game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
+  debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
+  net/{snapshot-buffer,interpolation,food-store,world-store}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; prediction, reconciliation and input-sender join with #100
   input/{input-controller,pointer-input,keyboard-input}.ts
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: RENDERING.md §8)

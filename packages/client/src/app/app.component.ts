@@ -1,7 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  DEBUG_JSON_INDENT_SPACES,
   DEFAULT_PLAYERS_PER_GAME,
   GAME_MODE,
   MAX_PLAYERS_PER_GAME,
@@ -13,6 +12,7 @@ import {
   SEED_MAX,
 } from '@evolution/shared';
 import type { GameSessionConfig } from '@evolution/shared';
+import { GameHostComponent } from './game/game-host.component';
 import { MultiplayerService } from './services/multiplayer.service';
 
 /**
@@ -27,7 +27,7 @@ import { MultiplayerService } from './services/multiplayer.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, GameHostComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -51,11 +51,6 @@ export class AppComponent {
   readonly maxPlayers = signal(DEFAULT_PLAYERS_PER_GAME);
   readonly roundDurationSeconds = signal(ROUND_DURATION_SECONDS);
   readonly seed = signal(drawSeed());
-
-  readonly snapshotJson = computed(() => {
-    const snapshot = this.multiplayer.snapshot();
-    return snapshot == null ? '(no snapshot yet)' : JSON.stringify(snapshot, null, DEBUG_JSON_INDENT_SPACES);
-  });
 
   connect(): void {
     this.multiplayer.connect();

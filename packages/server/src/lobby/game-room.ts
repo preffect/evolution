@@ -1,4 +1,12 @@
-import type { PlayerId, GameId, GameSnapshot, GameInput, GameSessionConfig, LobbyPlayerInfo } from '@evolution/shared';
+import type {
+  PlayerId,
+  GameId,
+  GameSnapshot,
+  GameInput,
+  GameSessionConfig,
+  LobbyPlayerInfo,
+  ServerMessage,
+} from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
 import { SERVER_MESSAGE_TYPE, createSimulationStepAccumulator, type FixedStepAccumulator } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
@@ -138,7 +146,12 @@ export class GameRoom {
     this.playerConnections.set(playerId, connection);
     this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
     this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
-    sendMessage(connection, {
+    sendMessage(connection, this.gameStateMessageFor(gameId, playerId));
+  }
+
+  /** The `game_state` a player receives on start, late join and reconnect (docs/ARCHITECTURE.md §4). */
+  gameStateMessageFor(gameId: string, playerId: string): ServerMessage {
+    return {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: gameId as GameId,
       playerId: playerId as PlayerId,
@@ -146,7 +159,7 @@ export class GameRoom {
       config: this.sessionConfig,
       playerIds: this.allPlayerIds as PlayerId[],
       avatarAssignments: this.avatarAssignments,
-    });
+    };
   }
 
   removePlayer(playerId: string): void {

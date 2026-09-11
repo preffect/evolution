@@ -64,6 +64,7 @@ const TEST_SUPPORT_FILES = ['packages/*/src/testing/**'];
 const CONSTANT_DEFINITION_FILES = [
   'packages/shared/src/constants/**',
   'packages/client/src/app/game/render/constants.ts',
+  'packages/client/src/app/game/render/constants/**',
 ];
 /** The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). */
 const DETERMINISM_CALL_SITES = [

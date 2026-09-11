@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { concat, defer, of, type Observable } from 'rxjs';
 import type {
   GameId,
   GameInput,
@@ -29,6 +30,8 @@ export type Phase = 'lobby' | 'in-game';
 @Injectable({ providedIn: 'root' })
 export class MultiplayerService {
   private readonly transport = inject(WebSocketService);
+  /** The newest `game_state`, replayed to a composition root that subscribes after it arrived. */
+  private latestGameStateMessage: ServerMessage | null = null;
 
   // ===== Connection =====
   /** Live WebSocket connection flag (mirrors the transport). */
@@ -104,6 +107,23 @@ export class MultiplayerService {
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });
   }
 
+  /**
+   * The message stream the game's composition root (`game/game-setup.ts`) subscribes to: the retained
+   * `game_state` first, if one arrived before the game host mounted (the server sends it right after
+   * `game_started`, before change detection creates the host), then every live message.
+   */
+  get gameMessages$(): Observable<ServerMessage> {
+    return defer(() => {
+      const retained = this.latestGameStateMessage;
+      return retained === null ? this.transport.messages$ : concat(of(retained), this.transport.messages$);
+    });
+  }
+
+  /** The raw freshest snapshot message, for the render loop that owns interpolation. */
+  drainLatestSnapshotMessage(): ServerMessage | null {
+    return this.transport.drainLatestSnapshot();
+  }
+
   /** Drain the freshest un-rendered snapshot frame (call once per render frame). */
   latestSnapshot(): GameSnapshot | null {
     const message = this.transport.drainLatestSnapshot();
@@ -131,7 +151,8 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameState:
-        // Sent to a (re)joining player: full room state to (re)build the view.
+        // Sent on start and to a (re)joining player: full room state to (re)build the view.
+        this.latestGameStateMessage = message;
         this.playerId.set(message.playerId);
         this.gameId.set(message.gameId);
         this.playerIds.set(message.playerIds);

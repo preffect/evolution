@@ -13,6 +13,7 @@ import {
   SOUND_EVENT_IDS,
   STAGE_ORDER,
   ZONE_ID,
+  createTestSnapshot,
   entityId,
   playerId,
   soundEventRule,
@@ -22,6 +23,7 @@ import {
   type LevelUpEffect,
   type RespawnEffect,
 } from '@evolution/shared';
+import type { RenderFrame } from '../app/game/net/world-store';
 import type { TransitionOptions } from '../app/game/state/snapshot-transitions';
 
 export const TEST_OWN_PLAYER_ID = playerId('player-own');
@@ -55,6 +57,22 @@ export function createTestCellView(overrides: Partial<CellView> = {}): CellView 
     engulfedByCellId: null,
     sprintRemainingTicks: 0,
     sprintCooldownRemainingTicks: 0,
+    ...overrides,
+  };
+}
+
+/** A render frame at tick 0 holding `cells`, so a layer test names only the cells it places. */
+export function createTestRenderFrame(overrides: Partial<RenderFrame> = {}): RenderFrame {
+  const cells = overrides.cells ?? [createTestCellView()];
+  return {
+    renderTick: 0,
+    timeSeconds: 0,
+    cells,
+    motes: [],
+    fragments: [],
+    effects: [],
+    latest: createTestSnapshot({ cells: [...cells] }),
+    balance: DEFAULT_BALANCE,
     ...overrides,
   };
 }

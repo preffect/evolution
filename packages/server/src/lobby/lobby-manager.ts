@@ -156,11 +156,20 @@ export class LobbyManager {
       if (playerConnection) room.addPlayer(playerConnection);
     }
     this.notifyGameStarted(gameId, options);
+    this.sendInitialGameState(gameId, room, options);
 
     this.pendingGames.delete(gameId);
     this.activeRooms.set(gameId, room);
     room.start();
     this.broadcastLobbyUpdate();
+  }
+
+  /** The full state every player builds its view from (docs/ARCHITECTURE.md §4): `game_started`, then this. */
+  private sendInitialGameState(gameId: string, room: GameRoom, options: RoomInitOptions): void {
+    for (const playerId of options.playerIds) {
+      const playerConnection = this.connections.get(playerId);
+      if (playerConnection) sendMessage(playerConnection, room.gameStateMessageFor(gameId, playerId));
+    }
   }
 
   /** Tell each player the game has begun. */
@@ -217,15 +226,7 @@ export class LobbyManager {
     if (room) {
       room.reattachPlayer(connection);
       // Resend the full game state so the reconnected client can resync.
-      sendMessage(connection, {
-        type: SERVER_MESSAGE_TYPE.gameState,
-        gameId: gameId as GameId,
-        playerId: connection.playerId as PlayerId,
-        ...room.getFullState(),
-        config: room.sessionConfig,
-        playerIds: room.allPlayerIds as PlayerId[],
-        avatarAssignments: room.avatarAssignments,
-      });
+      sendMessage(connection, room.gameStateMessageFor(gameId, connection.playerId));
     }
   }
 

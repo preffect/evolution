@@ -1,0 +1,82 @@
+// The renderer smoke (docs/TESTING.md, docs/RENDERING.md §9): a live room from the lobby with a fixed
+// seed, the canvas mounts, the shader-free slice A scene draws on SwiftShader without page errors,
+// the debug hook's pause holds the rendered tick and a step advances it, and a screenshot lands under
+// `.qa/screenshots/` for the PR. Slice D (#208) adds the bench route and the frame-budget report.
+import { expect, test, type Page } from '@playwright/test';
+
+const SCREENSHOT_DIR = '../../.qa/screenshots';
+const SMOKE_SEED = 42;
+const GAME_NAME = `render-smoke-${SMOKE_SEED}`;
+/** Long enough for the depth particles to drift a pixel between two stepped frames. */
+const DRIFT_WAIT_MS = 1500;
+const HOLD_WAIT_MS = 500;
+
+interface DebugWindow {
+  __evolutionDebug?: {
+    pause(): void;
+    step(frames?: number): void;
+    renderTick(): number | null;
+    isPaused(): boolean;
+  };
+}
+
+async function openLiveRoom(page: Page): Promise<string[]> {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect & Join Lobby' }).click();
+  await expect(page.locator('.conn')).toHaveText(/connected/);
+  await page.getByLabel('Game name').fill(GAME_NAME);
+  await page.getByTestId('create-seed').fill(String(SMOKE_SEED));
+  await page.getByRole('button', { name: 'Create' }).click();
+  const row = page.locator('.games li', { hasText: GAME_NAME }).first();
+  await row.getByRole('button', { name: 'Start' }).click();
+  await expect(page.locator('canvas[data-testid="game-canvas"]')).toBeVisible();
+  await page.waitForFunction(() => (window as DebugWindow).__evolutionDebug?.renderTick() !== null);
+  return errors;
+}
+
+async function canvasHash(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const canvas = document.querySelector('canvas[data-testid="game-canvas"]') as HTMLCanvasElement;
+    const data = canvas.toDataURL('image/png');
+    let hash = 0;
+    for (let index = 0; index < data.length; index += 1) hash = (hash * 31 + data.charCodeAt(index)) | 0;
+    return `${data.length}:${hash}`;
+  });
+}
+
+function renderTick(page: Page): Promise<number | null | undefined> {
+  return page.evaluate(() => (window as DebugWindow).__evolutionDebug?.renderTick());
+}
+
+test.describe('renderer smoke on a live room', () => {
+  test('draws the dish with the placeholder cell and screenshots it', async ({ page }) => {
+    const errors = await openLiveRoom(page);
+    await page.waitForTimeout(DRIFT_WAIT_MS);
+    await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.pause());
+    await page.waitForTimeout(HOLD_WAIT_MS);
+    expect(errors, 'no page or shader errors').toEqual([]);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/pr205-live-seed${SMOKE_SEED}.png` });
+  });
+
+  test('pause holds the rendered tick and the canvas; a step advances both', async ({ page }) => {
+    await openLiveRoom(page);
+    await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.pause());
+    await page.waitForTimeout(HOLD_WAIT_MS);
+    const heldTick = await renderTick(page);
+    const heldHash = await canvasHash(page);
+    await page.waitForTimeout(HOLD_WAIT_MS);
+    expect(await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.isPaused())).toBe(true);
+    expect(await renderTick(page)).toBe(heldTick);
+    expect(await canvasHash(page)).toBe(heldHash);
+    await page.waitForTimeout(DRIFT_WAIT_MS);
+    await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.step(1));
+    await page.waitForTimeout(HOLD_WAIT_MS);
+    expect(await renderTick(page)).toBeGreaterThan(heldTick ?? Number.POSITIVE_INFINITY);
+    expect(await canvasHash(page)).not.toBe(heldHash);
+  });
+});

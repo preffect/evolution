@@ -103,6 +103,33 @@ describe('MultiplayerService', () => {
     expect(service.avatarAssignments()).toEqual({ alice: 0, bob: 1 });
   });
 
+  it('replays the retained game_state to a composition root that subscribes late, then stays live', () => {
+    const gameState: ServerMessage = {
+      type: SERVER_MESSAGE_TYPE.gameState,
+      gameId: GAME_ID,
+      playerId: BOB,
+      snapshot: createTestSnapshot({ tick: 3 }),
+      balance: DEFAULT_BALANCE,
+      config: CONFIG,
+      playerIds: [ALICE, BOB],
+      avatarAssignments: {},
+    };
+    const seenBefore: ServerMessage[] = [];
+    service.gameMessages$.subscribe((message) => seenBefore.push(message));
+    transport.messages.next(gameState);
+    const seenAfter: ServerMessage[] = [];
+    service.gameMessages$.subscribe((message) => seenAfter.push(message));
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'later' });
+    expect(seenBefore.map((message) => message.type)).toEqual([
+      SERVER_MESSAGE_TYPE.gameState,
+      SERVER_MESSAGE_TYPE.error,
+    ]);
+    expect(seenAfter.map((message) => message.type)).toEqual([
+      SERVER_MESSAGE_TYPE.gameState,
+      SERVER_MESSAGE_TYPE.error,
+    ]);
+  });
+
   it('tracks players joining (once) and leaving', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: ALICE, avatarIndex: 3 });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: ALICE, avatarIndex: 3 });
