@@ -1,4 +1,4 @@
-# Dish baselines (#221, re-shot after #229 in PR #230)
+# Dish baselines (#221, re-shot after #229 in PR #233)
 
 Seed 42, 1920 × 1080, SwiftShader, zoom 1 (the own cell at mass ≈ 125, r 45 wu, so `CAMERA_VIEW_RADII`
 gives 540 wu of half height). Shot with the fixed screen vignette (#229): the centre of the frame is the

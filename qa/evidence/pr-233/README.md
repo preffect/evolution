@@ -1,4 +1,4 @@
-# PR #230 evidence: the screen vignette fades from 0 at the centre to 0.55 at the edge (#229)
+# PR #233 evidence: the screen vignette fades from 0 at the centre to 0.55 at the edge (#229)
 
 Seed 42, 1920 × 1080, SwiftShader, the private stack of the worktree (server 4500, client 4502).
 

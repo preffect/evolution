@@ -1,4 +1,4 @@
-# Cell material baselines (#215, PR #228 at cdd6ba1; re-shot after #229 in PR #230)
+# Cell material baselines (#215, PR #228 at cdd6ba1; re-shot after #229 in PR #233)
 
 Seed 42, 1920 × 1080, SwiftShader, the own cell promoted to level 5 (`nucleoid`, `ribosomes`,
 `mitochondrion`, `nuclear_envelope`) with `debug_set_player`. Shot with the fixed screen vignette (#229):
