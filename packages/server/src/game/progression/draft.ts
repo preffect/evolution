@@ -6,13 +6,14 @@ import {
   STAGE_GATE_TRAITS,
   type BacteriumVariant,
   type BalanceConfig,
+  type CellStage,
   type DnaTag,
   type OwnedTrait,
   type RandomSource,
   type TraitDefinition,
   type TraitTier,
 } from '@evolution/shared';
-import { hasReachedStage, nextStage, ownsTrait, stageOf } from './ladder.js';
+import { hasReachedStage, nextStage, ownsTrait, stageOfOwned } from './ladder.js';
 
 export interface DraftCandidate {
   readonly trait: TraitDefinition;
@@ -43,6 +44,8 @@ export interface Draft {
 interface CandidateContext extends CandidateInput {
   readonly catalog: readonly TraitDefinition[];
   readonly topTier: number;
+  /** The stage the owned traits reach, computed once per draft. */
+  readonly stage: CellStage;
 }
 
 /** The exclusion group of an owned trait, looked up in the catalog it came from. */
@@ -68,7 +71,7 @@ function isCandidate(trait: TraitDefinition, owned: OwnedTrait | undefined, cont
     return false;
   }
   return (
-    hasReachedStage(stageOf(context.ownedTraits), trait.stage) &&
+    hasReachedStage(context.stage, trait.stage) &&
     trait.requires.every((requiredId) => ownsTrait(context.ownedTraits, requiredId)) &&
     isUnlocked(trait, context) &&
     isGroupFree(trait, context)
@@ -78,7 +81,12 @@ function isCandidate(trait: TraitDefinition, owned: OwnedTrait | undefined, cont
 /** Every trait the player could be offered right now, in catalog order. */
 export function listDraftCandidates(input: CandidateInput, balance: BalanceConfig): DraftCandidate[] {
   const catalog: readonly TraitDefinition[] = balance.traits.TRAIT_CATALOG;
-  const context: CandidateContext = { ...input, catalog, topTier: balance.traits.TRAIT_TIER_COUNT };
+  const context: CandidateContext = {
+    ...input,
+    catalog,
+    topTier: balance.traits.TRAIT_TIER_COUNT,
+    stage: stageOfOwned(input.ownedTraits, balance),
+  };
   const candidates: DraftCandidate[] = [];
   catalog.forEach((trait, catalogIndex) => {
     const owned = input.ownedTraits.find((entry) => entry.traitId === trait.id);
@@ -123,8 +131,13 @@ function takeAt(pool: WeightedPool, index: number): DraftCandidate {
 }
 
 /** The rung card: one of the next stage's gates among the candidates, by weight, or nothing. */
-function takeRungCard(pool: WeightedPool, input: DraftInput, random: RandomSource): DraftCandidate | null {
-  const next = nextStage(stageOf(input.ownedTraits));
+function takeRungCard(
+  pool: WeightedPool,
+  input: DraftInput,
+  random: RandomSource,
+  balance: BalanceConfig,
+): DraftCandidate | null {
+  const next = nextStage(stageOfOwned(input.ownedTraits, balance));
   if (next === null) {
     return null;
   }
@@ -144,7 +157,7 @@ export function buildDraft(input: DraftInput, random: RandomSource, balance: Bal
   const weights = computeDraftWeights(candidates, input.dnaTagPoints, balance);
   const pool: WeightedPool = { candidates: [...candidates], weights: [...weights] };
   const drawn: DraftCandidate[] = [];
-  const rungCard = takeRungCard(pool, input, random);
+  const rungCard = takeRungCard(pool, input, random, balance);
   if (rungCard !== null) {
     drawn.push(rungCard);
   }

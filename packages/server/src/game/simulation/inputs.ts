@@ -53,7 +53,7 @@ function applyPlayerInput(world: WorldState, player: PlayerRecord, context: Step
     applyCellInput(cell, input, context);
   }
   if (input.traitChoice !== null) {
-    applyTraitChoice(player, input.traitChoice, context);
+    applyTraitChoice(world, player, input.traitChoice, context);
   }
 }
 

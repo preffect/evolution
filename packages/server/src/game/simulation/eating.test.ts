@@ -39,7 +39,7 @@ describe('eat', () => {
     expect(cell.mass).toBe(growth.CELL_STARTING_MASS + ecology.ALGAE_MASS);
     expect(world.food).toEqual([]);
     expect(player.dnaCumulative).toBe(0);
-    expect(player.dnaTagPoints.photic).toBe(0);
+    expect(player.dnaTagPoints.photic).toBe(1);
   });
 
   it('E4: a plain bacterium gives 3 mass, 1 DNA and a motile point', () => {

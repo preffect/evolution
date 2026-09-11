@@ -43,6 +43,7 @@
     "ALGAE_DNA": 0,
     "ALGAE_MASS": 1,
     "ALGAE_RADIUS": 6,
+    "ALGAE_TAG": "photic",
     "BACTERIUM_CLUSTER_RADIUS": 60,
     "BACTERIUM_CLUSTER_SIZE": 5,
     "BACTERIUM_DNA": 1,

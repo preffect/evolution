@@ -11,6 +11,7 @@ import {
   type TraitTier,
 } from '@evolution/shared';
 import { gainMass } from '../simulation/cell-mass.js';
+import { refreshCellDerivedState } from './modifiers.js';
 import type { PlayerRecord, TraitOffer } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
@@ -79,20 +80,30 @@ export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, c
   }
 }
 
-function closeShownOffer(player: PlayerRecord, offer: TraitOffer, cardIndex: number): void {
+/** Applies the card and refolds the cell at once (docs/PROGRESSION.md §4): a timeout pick at step 7 shows on the same tick. */
+function closeShownOffer(world: WorldState, player: PlayerRecord, offer: TraitOffer, cardIndex: number): void {
   applyCard(player, offer.cards[cardIndex] as OwnedTrait);
   player.offerQueue.shift();
   player.offer = null;
+  const cell = findCellOfPlayer(world, player.playerId);
+  if (cell !== undefined) {
+    refreshCellDerivedState(cell, player, world.balance);
+  }
 }
 
 /** Applies a pick on the shown offer; a stale or out-of-range pick is ignored and counted. */
-export function applyTraitChoice(player: PlayerRecord, choice: TraitChoiceInput, context: StepContext): boolean {
+export function applyTraitChoice(
+  world: WorldState,
+  player: PlayerRecord,
+  choice: TraitChoiceInput,
+  context: StepContext,
+): boolean {
   const offer = shownOffer(player);
   if (offer === undefined || offer.offerId !== choice.offerId || choice.cardIndex >= offer.cards.length) {
     context.rejections.staleTraitChoice += 1;
     return false;
   }
-  closeShownOffer(player, offer, choice.cardIndex);
+  closeShownOffer(world, player, offer, choice.cardIndex);
   return true;
 }
 
@@ -102,7 +113,7 @@ export function applyExpiredOffer(world: WorldState, player: PlayerRecord): void
   if (offer === undefined || world.tick < offer.expiresAtTick) {
     return;
   }
-  closeShownOffer(player, offer, timeoutCardIndex(offer));
+  closeShownOffer(world, player, offer, timeoutCardIndex(offer));
 }
 
 /** The tier a card grants, for callers that build cards by hand (fixtures, debug). */

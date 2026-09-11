@@ -611,7 +611,7 @@ packages/shared/src/
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
   constants/audio.ts                                            SOUND_EVENT_CATALOG and the layering numbers (AUDIO.md §2, §3); cosmetic, not in balance.json
   types/{common,messages,game,traits,effects,audio}.ts          traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY; audio: SOUND_EVENT, AUDIO_BUS, SoundEventRule
-  testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot (+ createTestCell, createTestWorld with #98)
+  testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot, createTestCellView, createTestPlayerProgressView
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
@@ -624,21 +624,24 @@ packages/shared/src/
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
-  game/world/{world-state,entities,spatial-hash}.ts
-  game/simulation/{step,movement,contact,eating,metabolism,engulf,spawner,zones,spawn-placement,round}.ts
-  game/progression/{levels,ladder,draft,modifiers}.ts           levels applies level-ups; the cost formula is shared simulation/level-costs.ts
-  game/session/{leaderboard,respawn,entry}.ts                   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
+  game/world/{world-state,entities,create-world,entity-ids,lookups,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (DETERMINISM §5)
+  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf lands with the next #98 slice
+  game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
+  game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
+  game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,food-delta-tracker}.ts
-  game/replay/{replay-recorder,replay-runner}.ts
-  game/debug/simulation-debug-handle.ts
+  game/replay/{replay-format,replay-recorder,recorded-step,replay-runner,index-by-tick}.ts
+  game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,balance-patch,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
-  game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toEchoInput), the roster a module drives
+  game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
+  game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives
   game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (TESTING.md §8.4); #156 adds flee
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
-  testing/builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
+  testing/builders.ts   testing/world-builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; createTestWorld / createTestStepContext / createTestPlayerRecord over the records; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
   testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)
+  testing/gameplay/{evolution-adapter,evolution-fixtures,evolution-views}.ts   the Evolution ScenarioAdapter (TESTING §8), the placed and world fixtures on a live world, the table selectors
   testing/bot-client/{bot-session,bot-swarm,bot-timing,bot-transport,web-socket-transport,cli,cli-arguments,errors}.ts   the headless wire client (#15): one bot's protocol, N bots, its clock + ticker, the transport seam, the `ws` transport, the CLI and its parser, BotClientError
-  testing/scenarios/<table>.gameplay.test.ts (#102)
+  testing/scenarios/{ecology-spawn,ecology-cells,game-design-session,game-design-controls,progression}.gameplay.test.ts (+ shared-setups.ts)   the design tables by row (#102)
 packages/client/src/app/game/
   game-setup.ts
   net/{snapshot-buffer,interpolation,prediction,reconciliation,world-store,input-sender}.ts   interpolation owns renderTick (section 5)

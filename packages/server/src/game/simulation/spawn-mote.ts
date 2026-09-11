@@ -21,15 +21,21 @@ import type { WorldState } from '../world/world-state.js';
 export interface FoodKindStats {
   readonly mass: number;
   readonly dna: number;
+  /** The tag point the mote credits; a bacterium's comes from its variant, detritus has none. */
+  readonly tag: DnaTag | null;
 }
 
-/** Mass and DNA by kind (docs/ECOLOGY.md §1), read from the live balance. */
-export function foodKindStats(kind: FoodKind, balance: BalanceConfig): FoodKindStats {
+/** Mass, DNA and tag by kind (docs/ECOLOGY.md §1), read from the live balance. */
+export function foodKindStats(kind: FoodKind, variant: BacteriumVariant | null, balance: BalanceConfig): FoodKindStats {
   const { ecology } = balance;
   const byKind: Record<FoodKind, FoodKindStats> = {
-    [FOOD_KIND.algae]: { mass: ecology.ALGAE_MASS, dna: ecology.ALGAE_DNA },
-    [FOOD_KIND.bacterium]: { mass: ecology.BACTERIUM_MASS, dna: ecology.BACTERIUM_DNA },
-    [FOOD_KIND.detritus]: { mass: ecology.DETRITUS_MOTE_MASS, dna: 0 },
+    [FOOD_KIND.algae]: { mass: ecology.ALGAE_MASS, dna: ecology.ALGAE_DNA, tag: ecology.ALGAE_TAG },
+    [FOOD_KIND.bacterium]: {
+      mass: ecology.BACTERIUM_MASS,
+      dna: ecology.BACTERIUM_DNA,
+      tag: variant === null ? null : ecology.BACTERIUM_TAG_BY_VARIANT[variant],
+    },
+    [FOOD_KIND.detritus]: { mass: ecology.DETRITUS_MOTE_MASS, dna: 0, tag: null },
   };
   return byKind[kind];
 }
@@ -44,9 +50,9 @@ export interface FoodMoteSpec {
 /** Appends a mote of `spec.kind` at `spec.at`; a bacterium carries its variant's tag, detritus its expiry. */
 export function spawnFoodMote(world: WorldState, spec: FoodMoteSpec): FoodMoteRecord {
   const { ecology } = world.balance;
-  const stats = foodKindStats(spec.kind, world.balance);
   const isBacterium = spec.kind === FOOD_KIND.bacterium;
   const variant = isBacterium ? spec.variant : null;
+  const stats = foodKindStats(spec.kind, variant, world.balance);
   const mote: FoodMoteRecord = {
     id: mintEntityId(world, ENTITY_KIND.foodMote),
     kind: spec.kind,
@@ -55,7 +61,7 @@ export function spawnFoodMote(world: WorldState, spec: FoodMoteSpec): FoodMoteRe
     y: spec.at.y,
     mass: stats.mass,
     dna: stats.dna,
-    tag: variant === null ? null : ecology.BACTERIUM_TAG_BY_VARIANT[variant],
+    tag: stats.tag,
     headingRadians: 0,
     expiresAtTick:
       spec.kind === FOOD_KIND.detritus ? world.tick + secondsToTicks(ecology.DETRITUS_LIFETIME_SECONDS) : null,

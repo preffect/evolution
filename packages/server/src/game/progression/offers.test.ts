@@ -82,8 +82,9 @@ describe('applyTraitChoice', () => {
     queueOffer(player);
     showQueuedOfferIfNone(world, player, context);
     const card = shownOffer(player)!.cards[1]!;
-    expect(applyTraitChoice(player, { offerId: 1, cardIndex: 1 }, context)).toBe(true);
+    expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: 1 }, context)).toBe(true);
     expect(player.ownedTraits).toEqual([card]);
+    expect(world.cells[0]?.traits).toEqual([card]);
     expect(player.offer).toBeNull();
     expect(player.offerQueue[0]).toMatchObject({ offerId: 2, shownAtTick: null });
     expect(context.rejections.staleTraitChoice).toBe(0);
@@ -91,10 +92,10 @@ describe('applyTraitChoice', () => {
 
   it('ignores and counts a stale offer id, an out-of-range card and a pick with nothing shown', () => {
     const { world, player, context } = worldWithQueuedOffer();
-    expect(applyTraitChoice(player, { offerId: 1, cardIndex: 0 }, context)).toBe(false);
+    expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: 0 }, context)).toBe(false);
     showQueuedOfferIfNone(world, player, context);
-    expect(applyTraitChoice(player, { offerId: 7, cardIndex: 0 }, context)).toBe(false);
-    expect(applyTraitChoice(player, { offerId: 1, cardIndex: 3 }, context)).toBe(false);
+    expect(applyTraitChoice(world, player, { offerId: 7, cardIndex: 0 }, context)).toBe(false);
+    expect(applyTraitChoice(world, player, { offerId: 1, cardIndex: 3 }, context)).toBe(false);
     expect(context.rejections.staleTraitChoice).toBe(3);
     expect(shownOffer(player)?.offerId).toBe(1);
   });

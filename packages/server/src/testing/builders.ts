@@ -6,9 +6,9 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig } from '@evolution/shared';
-import type { GameSnapshot } from '@evolution/shared';
+import type { GameSnapshot, PlayerId } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
-import type { GameModule, GameModuleFactory } from '../game/game-module.js';
+import type { GameModule, GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import type { DebugContext } from '../mcp/debug-context.js';
 import { LobbyManager } from '../lobby/lobby-manager.js';
@@ -42,6 +42,22 @@ export function createTestConnection(options: TestConnectionOptions): Connection
       close: () => {},
       on: () => {},
     } as unknown as Connection['socket'],
+  };
+}
+
+/** What a room is born with (docs/ARCHITECTURE.md §4): the roster in join order, avatars by index, a default config. */
+export function createTestRoomInitOptions(
+  playerIds: readonly string[],
+  overrides: Partial<RoomInitOptions> = {},
+): RoomInitOptions {
+  return {
+    creatorId: playerIds[0] as PlayerId,
+    playerIds: playerIds as PlayerId[],
+    gameName: 'Test',
+    config: createTestSessionConfig({ maxPlayers: 4 }),
+    avatarAssignments: Object.fromEntries(playerIds.map((playerId, index) => [playerId, index])),
+    playerNames: Object.fromEntries(playerIds.map((playerId) => [playerId, playerId])),
+    ...overrides,
   };
 }
 

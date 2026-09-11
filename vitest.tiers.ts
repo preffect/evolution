@@ -37,10 +37,18 @@ export const TEST_DOUBLE_GLOBS = [
 /** Not logic: barrels, the composition roots named `index.ts`, the test doubles, declarations and the tests themselves. */
 export const COVERAGE_EXCLUDE = [...UNIT_TEST_GLOBS, 'src/**/index.ts', ...TEST_DOUBLE_GLOBS, 'src/**/*.d.ts'];
 
+/** A gameplay scenario steps a real module for up to a whole round, twice (docs/TESTING.md §8): far past the unit default. */
+export const OPT_IN_TEST_TIMEOUT_MS = 300_000;
+
 /** `include` / `exclude` for the tier this run is in. The opt-in tier passes when a package has none yet. */
-export function testTierOptions(): Pick<TestOptions, 'include' | 'exclude' | 'passWithNoTests'> {
+export function testTierOptions(): Pick<TestOptions, 'include' | 'exclude' | 'passWithNoTests' | 'testTimeout'> {
   if (IS_INTEGRATION_RUN) {
-    return { include: OPT_IN_TEST_GLOBS, exclude: [...configDefaults.exclude], passWithNoTests: true };
+    return {
+      include: OPT_IN_TEST_GLOBS,
+      exclude: [...configDefaults.exclude],
+      passWithNoTests: true,
+      testTimeout: OPT_IN_TEST_TIMEOUT_MS,
+    };
   }
   return { include: UNIT_TEST_GLOBS, exclude: [...configDefaults.exclude, ...OPT_IN_TEST_GLOBS] };
 }

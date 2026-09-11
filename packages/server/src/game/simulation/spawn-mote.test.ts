@@ -7,21 +7,27 @@ import { foodKindStats, spawnDnaFragment, spawnFoodMote } from './spawn-mote.js'
 const { ecology } = DEFAULT_BALANCE;
 
 describe('foodKindStats', () => {
-  it('reads mass and DNA by kind from the balance', () => {
-    expect(foodKindStats(FOOD_KIND.algae, DEFAULT_BALANCE)).toEqual({
+  it('reads mass, DNA and the tag point by kind (and variant) from the balance', () => {
+    expect(foodKindStats(FOOD_KIND.algae, null, DEFAULT_BALANCE)).toEqual({
       mass: ecology.ALGAE_MASS,
       dna: ecology.ALGAE_DNA,
+      tag: ecology.ALGAE_TAG,
     });
-    expect(foodKindStats(FOOD_KIND.bacterium, DEFAULT_BALANCE)).toEqual({
+    expect(foodKindStats(FOOD_KIND.bacterium, 'aerobic', DEFAULT_BALANCE)).toEqual({
       mass: ecology.BACTERIUM_MASS,
       dna: ecology.BACTERIUM_DNA,
+      tag: ecology.BACTERIUM_TAG_BY_VARIANT.aerobic,
     });
-    expect(foodKindStats(FOOD_KIND.detritus, DEFAULT_BALANCE)).toEqual({ mass: ecology.DETRITUS_MOTE_MASS, dna: 0 });
+    expect(foodKindStats(FOOD_KIND.detritus, null, DEFAULT_BALANCE)).toEqual({
+      mass: ecology.DETRITUS_MOTE_MASS,
+      dna: 0,
+      tag: null,
+    });
   });
 });
 
 describe('spawnFoodMote', () => {
-  it('appends an algae mote with a minted id, no variant, no tag, no expiry', () => {
+  it('appends an algae mote with a minted id, no variant, the photic tag, no expiry', () => {
     const world = createTestWorld();
     const mote = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 10, y: 20 } });
     expect(world.food).toEqual([mote]);
@@ -29,7 +35,7 @@ describe('spawnFoodMote', () => {
     expect(mote).toMatchObject({
       kind: FOOD_KIND.algae,
       bacteriumVariant: null,
-      tag: null,
+      tag: ecology.ALGAE_TAG,
       expiresAtTick: null,
       x: 10,
       y: 20,

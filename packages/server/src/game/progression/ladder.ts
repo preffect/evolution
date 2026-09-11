@@ -1,29 +1,27 @@
-// The evolution ladder's pure rules (docs/GAME-DESIGN.md §3): a cell's stage from its owned
-// traits, and the next rung the draft reserves a card for.
+// The evolution ladder's server-side rules (docs/GAME-DESIGN.md §3): what is owned, the stage
+// order the draft filters by and the rung after a stage. The stage itself has one home, the
+// shared `stageOf` (packages/shared/src/simulation/stage-of.ts); `stageOfOwned` is that function
+// over owned traits and the live balance.
 
-import { STAGE_ORDER, STAGE_GATE_TRAITS, type CellStage, type OwnedTrait, type TraitId } from '@evolution/shared';
+import {
+  STAGE_ORDER,
+  stageOf,
+  type BalanceConfig,
+  type CellStage,
+  type OwnedTrait,
+  type TraitId,
+} from '@evolution/shared';
 
 export function ownsTrait(ownedTraits: readonly OwnedTrait[], traitId: TraitId): boolean {
   return ownedTraits.some((owned) => owned.traitId === traitId);
 }
 
-function hasGateOf(stage: CellStage, ownedTraits: readonly OwnedTrait[]): boolean {
-  return STAGE_GATE_TRAITS[stage].some((gateId) => ownsTrait(ownedTraits, gateId));
-}
-
-/**
- * The last stage `S` in `STAGE_ORDER` such that every stage after `protocell` up to `S` has one
- * of its gate traits owned; the walk stops at the first missing gate.
- */
-export function stageOf(ownedTraits: readonly OwnedTrait[]): CellStage {
-  let reached: CellStage = STAGE_ORDER[0];
-  for (const stage of STAGE_ORDER.slice(1)) {
-    if (!hasGateOf(stage, ownedTraits)) {
-      break;
-    }
-    reached = stage;
-  }
-  return reached;
+/** The cell's stage from its owned traits: the highest gate owned (`stageOf`, docs/PROGRESSION.md P13). */
+export function stageOfOwned(ownedTraits: readonly OwnedTrait[], balance: Pick<BalanceConfig, 'ladder'>): CellStage {
+  return stageOf(
+    ownedTraits.map((owned) => owned.traitId),
+    balance.ladder,
+  );
 }
 
 export function stageIndex(stage: CellStage): number {

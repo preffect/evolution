@@ -21,20 +21,26 @@ import type { FoodDeltaTracker } from './food-delta-tracker.js';
 const DECIMAL_BASE = 10;
 const POSITION_SCALE = DECIMAL_BASE ** SNAPSHOT_POSITION_DECIMALS;
 
+/** How a world coordinate is written: the wire rounds it, a scenario reads it exact. */
+export type PositionQuantizer = (value: number) => number;
+
 /** Rounds a world coordinate to the wire precision. */
 export function quantizePosition(value: number): number {
   return Math.round(value * POSITION_SCALE) / POSITION_SCALE;
 }
 
-export function toCellView(cell: CellRecord): CellView {
+/** Full precision: what the scenario tables read, never the wire. */
+export const EXACT_POSITION: PositionQuantizer = (value) => value;
+
+export function toCellView(cell: CellRecord, quantize: PositionQuantizer = quantizePosition): CellView {
   return {
     id: cell.id,
     kind: cell.kind,
     playerId: cell.playerId,
     organismId: cell.organismId,
     avatarIndex: cell.avatarIndex,
-    x: quantizePosition(cell.x),
-    y: quantizePosition(cell.y),
+    x: quantize(cell.x),
+    y: quantize(cell.y),
     velocityX: cell.velocityX,
     velocityY: cell.velocityY,
     mass: cell.mass,
@@ -52,13 +58,13 @@ export function toCellView(cell: CellRecord): CellView {
   };
 }
 
-export function toFoodMoteView(mote: FoodMoteRecord): FoodMoteView {
+export function toFoodMoteView(mote: FoodMoteRecord, quantize: PositionQuantizer = quantizePosition): FoodMoteView {
   return {
     id: mote.id,
     kind: mote.kind,
     bacteriumVariant: mote.bacteriumVariant,
-    x: quantizePosition(mote.x),
-    y: quantizePosition(mote.y),
+    x: quantize(mote.x),
+    y: quantize(mote.y),
   };
 }
 
@@ -66,8 +72,11 @@ export function toMotePositionView(mote: FoodMoteRecord): MotePositionView {
   return { id: mote.id, x: quantizePosition(mote.x), y: quantizePosition(mote.y) };
 }
 
-export function toDnaFragmentView(fragment: DnaFragmentRecord): DnaFragmentView {
-  return { id: fragment.id, x: quantizePosition(fragment.x), y: quantizePosition(fragment.y), tag: fragment.tag };
+export function toDnaFragmentView(
+  fragment: DnaFragmentRecord,
+  quantize: PositionQuantizer = quantizePosition,
+): DnaFragmentView {
+  return { id: fragment.id, x: quantize(fragment.x), y: quantize(fragment.y), tag: fragment.tag };
 }
 
 function copyOffer(offer: TraitOfferView | null): TraitOfferView | null {
@@ -102,7 +111,7 @@ export function toPlayerProgressView(player: PlayerRecord): PlayerProgressView {
 }
 
 /** Everything but the food and the effects: what the full and the delta snapshot share. */
-function serializeCommon(world: WorldState): Omit<GameSnapshot, 'food' | 'effects'> {
+function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<GameSnapshot, 'food' | 'effects'> {
   const players: Record<string, PlayerProgressView> = {};
   const appliedInputSequenceByPlayer: Record<string, number> = {};
   for (const player of world.players) {
@@ -116,8 +125,8 @@ function serializeCommon(world: WorldState): Omit<GameSnapshot, 'food' | 'effect
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
     gelPatches: world.gelPatches.map((patch) => ({ ...patch })),
-    cells: world.cells.map(toCellView),
-    dnaFragments: world.dnaFragments.map(toDnaFragmentView),
+    cells: world.cells.map((cell) => toCellView(cell, quantize)),
+    dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, quantize)),
     players,
     leaderboard: world.leaderboard.map((row) => ({ ...row })),
     appliedInputSequenceByPlayer,
@@ -125,10 +134,10 @@ function serializeCommon(world: WorldState): Omit<GameSnapshot, 'food' | 'effect
 }
 
 /** The `game_state` snapshot: every mote in `food.spawned`, no effects (docs/ARCHITECTURE.md §4). */
-export function serializeFullSnapshot(world: WorldState): GameSnapshot {
+export function serializeFullSnapshot(world: WorldState, quantize: PositionQuantizer = quantizePosition): GameSnapshot {
   return {
-    ...serializeCommon(world),
-    food: { spawned: world.food.map(toFoodMoteView), removedIds: [], moved: [] },
+    ...serializeCommon(world, quantize),
+    food: { spawned: world.food.map((mote) => toFoodMoteView(mote, quantize)), removedIds: [], moved: [] },
     effects: [],
   };
 }
@@ -139,5 +148,5 @@ export function serializeDeltaSnapshot(
   tracker: FoodDeltaTracker,
   effects: readonly GameEffect[],
 ): GameSnapshot {
-  return { ...serializeCommon(world), food: tracker.diff(world.food), effects: [...effects] };
+  return { ...serializeCommon(world, quantizePosition), food: tracker.diff(world.food), effects: [...effects] };
 }

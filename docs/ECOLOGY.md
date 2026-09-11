@@ -648,36 +648,36 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 
 ### `ecology.ts`
 
-| Constant                                                                          | Value                          | Unit            |
-| --------------------------------------------------------------------------------- | ------------------------------ | --------------- |
-| `ALGAE_MASS` / `ALGAE_DNA` / `ALGAE_RADIUS`                                       | 1 / 0 / 6                      | mass / DNA / wu |
-| `BACTERIUM_MASS` / `BACTERIUM_DNA` / `BACTERIUM_RADIUS`                           | 3 / 1 / 8                      | mass / DNA / wu |
-| `BACTERIUM_DRIFT_SPEED`                                                           | 20                             | wu/s            |
-| `BACTERIUM_CLUSTER_SIZE` / `BACTERIUM_CLUSTER_RADIUS`                             | 5 / 60                         | count / wu      |
-| `BACTERIUM_VARIANTS`                                                              | plain, aerobic, photosynthetic | ids             |
-| `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE`                                               | §3; broth and gel §3.2         | weights         |
-| `BACTERIUM_TAG_BY_VARIANT`                                                        | see §1                         | tags            |
-| `DETRITUS_MOTE_MASS` / `DETRITUS_RADIUS`                                          | 2 / 7                          | mass / wu       |
-| `DETRITUS_MASS_FRACTION`                                                          | 0.2                            | ratio           |
-| `DETRITUS_LIFETIME_SECONDS`                                                       | 30                             | s               |
-| `DNA_FRAGMENT_DNA` / `DNA_FRAGMENT_RADIUS`                                        | 5 / 9                          | DNA / wu        |
-| `DNA_FRAGMENT_DRIFT_SPEED`                                                        | 10                             | wu/s            |
-| `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`                                                | §3.2; protocell 0.75 / 0.25    | shares / stage  |
-| `BROTH_VARIANT_SHARE_BY_WORLD_STAGE`                                              | 0/0.2/0.4/0.6/0.6 (§3.2)       | ratio / stage   |
-| `FOOD_ZONE_WEIGHTS_BY_KIND`                                                       | see §3                         | weights         |
-| `FOOD_CAP_BASE` / `FOOD_CAP_PER_PLAYER`                                           | 600 / 100                      | count           |
-| `FOOD_SPAWN_PER_SECOND_BASE` / `FOOD_SPAWN_PER_SECOND_PER_PLAYER`                 | 6 / 1                          | motes/s         |
-| `FOOD_INITIAL_FILL_FRACTION`                                                      | 0.6                            | ratio           |
-| `DNA_FRAGMENT_CAP_BASE` / `DNA_FRAGMENT_CAP_PER_PLAYER`                           | 30 / 10                        | count           |
-| `DNA_FRAGMENT_SPAWN_PER_SECOND_BASE` / `DNA_FRAGMENT_SPAWN_PER_SECOND_PER_PLAYER` | 0.3 / 0.1                      | fragments/s     |
-| `DNA_FRAGMENT_INITIAL_FILL_FRACTION`                                              | 0.6 (#138 option A: unchanged) | ratio           |
-| `DNA_FRAGMENT_TAG_TABLE_BY_ZONE`                                                  | see §2                         | weights         |
-| `FOOD_BLOOM_SPAWN_MULTIPLIER` / `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`             | 1.5 / 2                        | ×               |
-| `SPAWN_POINT_MAX_ATTEMPTS`                                                        | 10                             | count           |
-| `SHALLOWS_WIDTH` / `VENT_RADIUS`                                                  | 500 / 500                      | wu              |
-| `GEL_PATCH_COUNT` / `GEL_PATCH_RADIUS` / `GEL_PATCH_MIN_SPACING`                  | 3 / 350 / 900                  | count / wu / wu |
-| `VENT_DECAY_MULTIPLIER`                                                           | 1.5                            | ×               |
-| `MASS_DECAY_RATE_PER_SECOND`                                                      | 0.002                          | 1/s             |
+| Constant                                                                          | Value                          | Unit                  |
+| --------------------------------------------------------------------------------- | ------------------------------ | --------------------- |
+| `ALGAE_MASS` / `ALGAE_DNA` / `ALGAE_RADIUS` / `ALGAE_TAG`                         | 1 / 0 / 6 / `photic`           | mass / DNA / wu / tag |
+| `BACTERIUM_MASS` / `BACTERIUM_DNA` / `BACTERIUM_RADIUS`                           | 3 / 1 / 8                      | mass / DNA / wu       |
+| `BACTERIUM_DRIFT_SPEED`                                                           | 20                             | wu/s                  |
+| `BACTERIUM_CLUSTER_SIZE` / `BACTERIUM_CLUSTER_RADIUS`                             | 5 / 60                         | count / wu            |
+| `BACTERIUM_VARIANTS`                                                              | plain, aerobic, photosynthetic | ids                   |
+| `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE`                                               | §3; broth and gel §3.2         | weights               |
+| `BACTERIUM_TAG_BY_VARIANT`                                                        | see §1                         | tags                  |
+| `DETRITUS_MOTE_MASS` / `DETRITUS_RADIUS`                                          | 2 / 7                          | mass / wu             |
+| `DETRITUS_MASS_FRACTION`                                                          | 0.2                            | ratio                 |
+| `DETRITUS_LIFETIME_SECONDS`                                                       | 30                             | s                     |
+| `DNA_FRAGMENT_DNA` / `DNA_FRAGMENT_RADIUS`                                        | 5 / 9                          | DNA / wu              |
+| `DNA_FRAGMENT_DRIFT_SPEED`                                                        | 10                             | wu/s                  |
+| `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`                                                | §3.2; protocell 0.75 / 0.25    | shares / stage        |
+| `BROTH_VARIANT_SHARE_BY_WORLD_STAGE`                                              | 0/0.2/0.4/0.6/0.6 (§3.2)       | ratio / stage         |
+| `FOOD_ZONE_WEIGHTS_BY_KIND`                                                       | see §3                         | weights               |
+| `FOOD_CAP_BASE` / `FOOD_CAP_PER_PLAYER`                                           | 600 / 100                      | count                 |
+| `FOOD_SPAWN_PER_SECOND_BASE` / `FOOD_SPAWN_PER_SECOND_PER_PLAYER`                 | 6 / 1                          | motes/s               |
+| `FOOD_INITIAL_FILL_FRACTION`                                                      | 0.6                            | ratio                 |
+| `DNA_FRAGMENT_CAP_BASE` / `DNA_FRAGMENT_CAP_PER_PLAYER`                           | 30 / 10                        | count                 |
+| `DNA_FRAGMENT_SPAWN_PER_SECOND_BASE` / `DNA_FRAGMENT_SPAWN_PER_SECOND_PER_PLAYER` | 0.3 / 0.1                      | fragments/s           |
+| `DNA_FRAGMENT_INITIAL_FILL_FRACTION`                                              | 0.6 (#138 option A: unchanged) | ratio                 |
+| `DNA_FRAGMENT_TAG_TABLE_BY_ZONE`                                                  | see §2                         | weights               |
+| `FOOD_BLOOM_SPAWN_MULTIPLIER` / `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`             | 1.5 / 2                        | ×                     |
+| `SPAWN_POINT_MAX_ATTEMPTS`                                                        | 10                             | count                 |
+| `SHALLOWS_WIDTH` / `VENT_RADIUS`                                                  | 500 / 500                      | wu                    |
+| `GEL_PATCH_COUNT` / `GEL_PATCH_RADIUS` / `GEL_PATCH_MIN_SPACING`                  | 3 / 350 / 900                  | count / wu / wu       |
+| `VENT_DECAY_MULTIPLIER`                                                           | 1.5                            | ×                     |
+| `MASS_DECAY_RATE_PER_SECOND`                                                      | 0.002                          | 1/s                   |
 
 ### `growth.ts`
 
@@ -716,7 +716,8 @@ Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes fro
 the 1.2 s sum of the three phase seconds (sheet 03's timing; E9 pays out on tick 36, not 30), and the
 eleven names from `ENGULF_COVER_SECONDS` to `ENGULF_SPIT_OUT_REFRACTORY_SECONDS` are new (#167 pinned
 the ledger for this section at 81 names). The evolving world (#161) adds `BROTH_VARIANT_SHARE_BY_WORLD_STAGE`
-and the eleven `wild-cells.ts` rows, so the pin is 93 names.
+and the eleven `wild-cells.ts` rows; the simulation core (#152) adds `ALGAE_TAG` (§1's `photic` point had no
+constant), so the pin is 94 names.
 
 | Constant                                                               | Value     | Unit                                                              |
 | ---------------------------------------------------------------------- | --------- | ----------------------------------------------------------------- |
@@ -752,7 +753,8 @@ the design docs (GAME-DESIGN §13, PROGRESSION §7, TRAITS §6):
 - **Default placement.** A placed cell sits at the broth point (1500, 0) unless the row says
   otherwise: mid-broth, 1000 wu from both the vent and the shallows, so no wall, vent or light
   effect reaches an expected value (decay factor k = 1). The helper fails the scenario if a seeded
-  gel patch comes within 350 wu of that point (pick another seed; never tolerate it). A second placed cell
+  gel patch comes within 600 wu of that point (pick another seed; never tolerate it: E6's 320-mass
+  cell travels 220 wu east, so the point's own 350 wu is not enough). A second placed cell
   sits east of the first on the x axis at the row's centre distance. "In the vent" = the origin;
   "in the shallows" = (`DISH_RADIUS` − `SHALLOWS_WIDTH` / 2, 0) = (2750, 0).
 - **Fixture-granted traits** bypass the ladder and the draft (a fixture may give a protocell cilia).

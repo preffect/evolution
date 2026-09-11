@@ -17,6 +17,8 @@ export type TripZoneId = typeof ZONE_ID.warmVent | typeof ZONE_ID.sunlitShallows
 export const ALGAE_MASS = 1;
 export const ALGAE_DNA = 0;
 export const ALGAE_RADIUS = 6;
+/** Every algae mote credits one `photic` tag point (§1). */
+export const ALGAE_TAG: DnaTag = DNA_TAG.photic;
 export const BACTERIUM_MASS = 3;
 export const BACTERIUM_DNA = 1;
 export const BACTERIUM_RADIUS = 8;

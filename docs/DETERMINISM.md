@@ -180,7 +180,7 @@ export const forkStreamStates: <Label extends string>(
   on them). Identical operation order gives identical results on one Node major version
   (`engines` in `package.json`).
 
-## 5. State hash (`packages/shared/src/simulation/state-hash.ts`)
+## 5. State hash (`packages/shared/src/simulation/state-hash.ts`, `packages/server/src/game/world/state-hash.ts`)
 
 ```ts
 export const computeStateHash: (world: HashableWorldState) => StateHash; // 16-hex-char string
@@ -188,8 +188,9 @@ export const computeStateHash: (world: HashableWorldState) => StateHash; // 16-h
 
 The kernel is split in two: `simulation/state-hasher.ts` (`StateHasher`: the two lanes, the
 scalar encodings, `digest()`) and `simulation/state-hash.ts` (the walk helpers `hashFields`,
-`hashEnumRecord`, `hashArray`, `hashRandomStreams`, `hashText`; `computeStateHash` composes
-them over `HASHED_FIELDS` with #98). Both lanes fold bytes with the one FNV-1a primitive in
+`hashEnumRecord`, `hashArray`, `hashRandomStreams`, `hashText`); `computeStateHash` itself composes
+them over the server records' `HASHED_FIELDS` lists in `packages/server/src/game/world/state-hash.ts`,
+beside the records it walks. Both lanes fold bytes with the one FNV-1a primitive in
 `hashing/fnv1a.ts`, which `hashLabel` shares. A `HashedField<T>` entry is a scalar field name
 or `{ key, hash }` for a nested value, so listing a field with the wrong shape is a type error.
 
@@ -235,7 +236,10 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   simulation saw (not what arrived).
 - **One replay = one round.** The auto-rematch and `debug_set_seed` end the current recording
   (its `finalTick`/`finalHash` are the last tick before the reset) and start a new one from the
-  new seed; a replay never spans a reseed.
+  new seed; a replay never spans a reseed. A recording that starts at a world build (round start,
+  rematch) replays from scratch; one that starts at a `debug_set_seed` records a world that kept
+  running with rebuilt streams, so it is exported for inspection and diffing, not rebuilt by
+  `replay()` (the closed round before it is).
 - `replay()` builds a fresh world from `seed + config + balance`, feeds the log tick by tick,
   and returns the final world and hash; callers assert `hash === recording.finalHash`.
 - Failing gameplay scenarios write their replay to `qa/replays/<scenario>.replay.json`;
@@ -264,10 +268,10 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 | `client … cosmetic` (`cells/radial-profile.spec.ts`)    | same seed + same tick ⇒ same membrane profile `r(θ)` (`RENDERING.md §9`)                                                                                                                                   |
 | lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8`                                                   |
 
-The determinism integration test runs first against the **echo** module to prove the harness:
-the echo module has no `WorldState`, so there the harness hashes the bytes of
-`JSON.stringify(serializeRoomState())` with the same FNV lanes; once #98 lands it hashes
-`WorldState` through `computeStateHash`. A hash mismatch is always a bug in the simulation,
+The determinism integration test runs against the **echo** module to prove the harness (the
+echo module has no `WorldState`, so there the harness hashes the bytes of
+`JSON.stringify(serializeRoomState())` with the same FNV lanes) and against the Evolution module
+through the real room loop, hashing `WorldState` through `computeStateHash`. A hash mismatch is always a bug in the simulation,
 never a flaky test: bisect by hashing every tick and diffing the first divergent tick.
 
 ## 8. Known traps
