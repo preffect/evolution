@@ -103,5 +103,5 @@ if [[ "${1:-}" == "--check" ]]; then
   fi
 else
   generate | format > "$index_file"
-  echo "wrote $index_file ($(grep -c '^- ' "$index_file") sections)"
+  echo "wrote $index_file ($(grep -c '^ *- ' "$index_file") sections)"
 fi
