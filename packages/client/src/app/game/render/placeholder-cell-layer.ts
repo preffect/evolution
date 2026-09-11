@@ -3,10 +3,10 @@
 // camera extent. Slice B (#206) replaces this file with `cells/cell-layer.ts` (the SDF material);
 // the frame input, the `visibleCells` output and the view-registry lifecycle stay as they are here.
 
-import type { CellView, TraitId } from '@evolution/shared';
+import type { CellView } from '@evolution/shared';
 import { Container, Graphics } from 'pixi.js';
-import type { RenderFrame } from '../net/world-store';
-import { isDiscInExtent, type CameraExtent } from './camera';
+import { isDiscInExtent } from './camera';
+import type { CellLayerFrame, CellLayerOutputs } from './cells/cell-layer-frame';
 import { hexToNumber } from './colour';
 import {
   RIM_LIGHT_WIDTH_RADII,
@@ -18,21 +18,7 @@ import {
 import { paletteFor } from './palette';
 import { ViewRegistry } from './view-registry';
 
-export interface CellLayerFrame {
-  readonly frame: RenderFrame;
-  readonly extent: CameraExtent;
-  /** Screen px per wu, for px-sized strokes. */
-  readonly zoom: number;
-  /** The frame's time in ms: the clip clock of the cell effects (slice B). */
-  readonly nowMs: number;
-  readonly ownCell: CellView | null;
-  /** The HUD's hovered trait, previewed on the own cell (slice B; docs/UI.md §7). */
-  readonly previewTraitId: TraitId | null;
-}
-
-export interface CellLayerOutputs {
-  readonly visibleCells: number;
-}
+export type { CellLayerFrame, CellLayerOutputs } from './cells/cell-layer-frame';
 
 interface CellDisc {
   readonly body: Graphics;
@@ -40,6 +26,8 @@ interface CellDisc {
 }
 
 const UNIT_RADIUS = 1;
+/** The placeholder draws no organelle sprites. */
+const NO_ORGANELLE_SPRITES = 0;
 
 function createDisc(cell: CellView): CellDisc {
   const palette = paletteFor(cell.avatarIndex);
@@ -86,7 +74,7 @@ export class PlaceholderCellLayer {
       disc.selfRing.visible = isOwn;
       if (isOwn) drawSelfRing(disc.selfRing, cell.radius, input.zoom);
     }
-    return { visibleCells };
+    return { visibleCells, organelleSprites: NO_ORGANELLE_SPRITES };
   }
 
   destroy(): void {
