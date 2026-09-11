@@ -12,7 +12,8 @@ function portFromPortsEnv(name: string): number {
   return Number(match[1]);
 }
 
-const CLIENT_PORT = portFromPortsEnv('CLIENT_PORT');
+/** `SMOKE_CLIENT_PORT` points the smoke at a second dev stack (a worktree beside a live one); `PORTS.env` otherwise. */
+const CLIENT_PORT = Number(process.env['SMOKE_CLIENT_PORT']) || portFromPortsEnv('CLIENT_PORT');
 const SMOKE_VIEWPORT = { width: 1920, height: 1080 };
 
 export default defineConfig({

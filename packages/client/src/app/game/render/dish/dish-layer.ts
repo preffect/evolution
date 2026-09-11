@@ -1,19 +1,23 @@
-// The dish layer (docs/RENDERING.md §6, docs/VISUAL-STYLE.md §1): the field under everything, the
-// wall's crisp lines as world-scale Graphics (the one hard edge) and the three depth particle
-// layers; the orchestrator keeps the screen-space vignette above everything. Slice A draws the
-// field as the flat dark-field disc; slice B (#206) replaces `drawDishField` with the baked field
-// sprite (light pool, caustics, zone tints, gel strands) and adds the vent shimmer.
+// The dish layer (docs/RENDERING.md §6, docs/VISUAL-STYLE.md §1): the baked field as one sprite
+// scaled to the dish (textures/dish-texture.ts: light pool, caustics, zone tints, gel strands),
+// the vent sprite over it at the vent zone (textures/vent-bake.ts), the wall's crisp lines as
+// world-scale Graphics (the one hard edge) and the three depth particle layers; the orchestrator
+// keeps the screen-space vignette above everything. The vent shimmer (RENDERING §6, the one
+// filter) is deferred.
 
 import { DISH_RADIUS, type RandomSource } from '@evolution/shared';
-import { Container, Graphics, Particle, ParticleContainer, type Texture } from 'pixi.js';
+import { Container, Graphics, Particle, ParticleContainer, Sprite, type Texture } from 'pixi.js';
 import type { WorldPoint } from '../camera';
 import { hexToNumber } from '../colour';
-import { HALF } from '../geometry';
+import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import {
-  BG_FIELD,
   LIGHT_ACCENT,
+  VENT_CENTRE_WU,
   WALL_GLASS,
   WALL_GLASS_INNER,
+  WALL_GLASS_INNER_WU,
+  WALL_GLASS_OUTER,
+  WALL_GLASS_OUTER_WU,
   WALL_GLASS_WU,
   WALL_HAIRLINE_ALPHA,
   WALL_HAIRLINE_WU,
@@ -23,6 +27,7 @@ import {
   WALL_RIM_SCATTER_WU,
   WHITE,
 } from '../constants';
+import type { RenderTextures } from '../render-textures';
 import {
   DEPTH_LAYER,
   depthParticlePosition,
@@ -47,14 +52,28 @@ interface DepthField {
   readonly entries: readonly DepthEntry[];
 }
 
-const DIAMETER_PER_RADIUS = 2;
-
-/** The field as one flat disc in the field colour; the wall covers its edge. Slice B (#206) bakes the real field. */
-export function drawDishField(graphics: Graphics): void {
-  graphics.clear().circle(0, 0, DISH_RADIUS).fill(hexToNumber(BG_FIELD));
+/** The dish field sprite: the bake centred on the origin, stretched to the square of `halfExtentWu` it covers. */
+export function createDishFieldSprite(textures: Pick<RenderTextures, 'dishField' | 'dishTexture'>): Sprite {
+  const sprite = new Sprite(textures.dishTexture);
+  sprite.anchor.set(HALF);
+  const extent = textures.dishField.halfExtentWu * DIAMETER_PER_RADIUS;
+  sprite.width = extent;
+  sprite.height = extent;
+  return sprite;
 }
 
-/** The wall (sheet 02 dish-wall table): glass band, inner glass, rim scatter, rim glow, hairline. */
+/** The vent sprite: the bake centred on the vent zone, stretched to the square of `halfExtentWu` it covers. */
+export function createVentSprite(textures: Pick<RenderTextures, 'vent' | 'ventTexture'>): Sprite {
+  const sprite = new Sprite(textures.ventTexture);
+  sprite.anchor.set(HALF);
+  const extent = textures.vent.halfExtentWu * DIAMETER_PER_RADIUS;
+  sprite.width = extent;
+  sprite.height = extent;
+  sprite.position.set(VENT_CENTRE_WU.x, VENT_CENTRE_WU.y);
+  return sprite;
+}
+
+/** The wall (sheet 02 dish-wall table): glass band with its inner and outer glass, rim scatter, rim glow, hairline. */
 export function drawDishWall(graphics: Graphics): void {
   graphics.clear();
   const glassOuter = DISH_RADIUS + WALL_GLASS_WU;
@@ -62,8 +81,11 @@ export function drawDishWall(graphics: Graphics): void {
     .circle(0, 0, glassOuter)
     .stroke({ width: WALL_GLASS_WU, color: hexToNumber(WALL_GLASS), alpha: 1, alignment: 1 });
   graphics
-    .circle(0, 0, DISH_RADIUS + WALL_GLASS_WU * HALF)
-    .stroke({ width: WALL_GLASS_WU * HALF, color: hexToNumber(WALL_GLASS_INNER), alpha: 1 });
+    .circle(0, 0, DISH_RADIUS)
+    .stroke({ width: WALL_GLASS_INNER_WU, color: hexToNumber(WALL_GLASS_INNER), alpha: 1, alignment: 1 });
+  graphics
+    .circle(0, 0, glassOuter)
+    .stroke({ width: WALL_GLASS_OUTER_WU, color: hexToNumber(WALL_GLASS_OUTER), alpha: 1, alignment: 0 });
   graphics
     .circle(0, 0, DISH_RADIUS)
     .stroke({ width: WALL_RIM_GLOW_WU, color: hexToNumber(LIGHT_ACCENT), alpha: WALL_RIM_GLOW_ALPHA, alignment: 1 });
@@ -83,16 +105,20 @@ export class DishLayer {
   readonly container = new Container();
   /** World-space, above the cells: the near and bokeh particles. */
   readonly nearContainer = new Container();
-  private readonly field = new Graphics();
+  private readonly field: Sprite;
+  private readonly vent: Sprite;
   private readonly wall = new Graphics();
   private readonly depthFields: DepthField[] = [];
 
-  constructor(glowTexture: Texture, cosmetic: RandomSource) {
-    drawDishField(this.field);
+  constructor(
+    textures: Pick<RenderTextures, 'dishField' | 'dishTexture' | 'vent' | 'ventTexture' | 'glowTexture' | 'cosmetic'>,
+  ) {
+    this.field = createDishFieldSprite(textures);
+    this.vent = createVentSprite(textures);
     drawDishWall(this.wall);
-    this.container.addChild(this.field, this.wall);
+    this.container.addChild(this.field, this.vent, this.wall);
     for (const layer of [DEPTH_LAYER.far, DEPTH_LAYER.near, DEPTH_LAYER.bokeh]) {
-      const field = this.createDepthField(layer, glowTexture, cosmetic);
+      const field = this.createDepthField(layer, textures.glowTexture, textures.cosmetic);
       (layer === DEPTH_LAYER.far ? this.container : this.nearContainer).addChild(field.container);
       this.depthFields.push(field);
     }

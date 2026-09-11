@@ -376,9 +376,12 @@ numbers in #99's PR body come from a hardware run of the same route.
 
 ```text
 pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
-constants/{colours,cell-shape,organelles,world-render}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
-noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×1 RGBA jitter / lobes strip with derivatives, from the cosmetic fork
-textures/{texture-bake,glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts
+constants/{colours,cell-shape,organelles,world-render,vent}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
+noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×16 RGBA jitter / lobes strip (16-bit pairs, derivatives from the lerp), from the cosmetic fork (#206)
+textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`BakeContext2D`, the DOM factory, the fill / stroke / halo / glint primitives), the feathered ellipse and soft stroke that stand in for the sheets' blurs, and the one place a bake or a byte table becomes a Pixi texture (#206)
+textures/{glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts   the atlases and the field, each a pure bake over the seam (#206)
+textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
+textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 cells/{cell-layer,cell-view,cell-geometry,cell-instance-buffer,cell-lod}.ts
 cells/{cell-shader,cell-shader-bands,cell-shader-patterns}.ts   GLSL as template strings, one file per pass concern
 cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t
@@ -390,7 +393,7 @@ effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
-pixi-texture-baker.ts  placeholder-cell-layer.ts             the radial bakes of slice A (#205); the flat-disc cell layer `cells/cell-layer.ts` replaces (#206)
+pixi-texture-baker.ts  placeholder-cell-layer.ts             the `TextureBaker` (Pixi radial bakes for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field); the flat-disc cell layer `cells/cell-layer.ts` replaces (#215)
 ```
 
 `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`). This

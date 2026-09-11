@@ -6,6 +6,7 @@ import { Application } from 'pixi.js';
 import { BG_DEEP } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
+import { createDomBakeCanvasFactory } from './textures/texture-bake';
 
 export interface PixiAppOptions {
   readonly host: HTMLElement;
@@ -45,7 +46,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
   return {
     app,
     canvas,
-    textures: createPixiTextureBaker(app.renderer),
+    textures: createPixiTextureBaker(app.renderer, createDomBakeCanvasFactory(options.host.ownerDocument)),
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

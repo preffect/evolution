@@ -5,6 +5,8 @@ import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 
 export const DEGREES_PER_TURN = 360;
 export const HALF = 0.5;
+/** A diameter (or a side) from a radius: the factor every bake sizes its canvas by. */
+export const DIAMETER_PER_RADIUS = 2;
 const HALF_TURN = Math.PI;
 /** `d/dx x² = 2x`: the factor every closed-form derivative below carries. */
 export const SQUARE_DERIVATIVE_FACTOR = 2;
@@ -21,6 +23,16 @@ export function wrapAngle(radians: number): number {
   if (wrapped > HALF_TURN) wrapped -= RADIANS_PER_FULL_TURN;
   if (wrapped <= -HALF_TURN) wrapped += RADIANS_PER_FULL_TURN;
   return wrapped;
+}
+
+/** A position in turns (or any unit period) folded into [0, 1). */
+export function wrapUnit(unit: number): number {
+  return ((unit % 1) + 1) % 1;
+}
+
+/** The cosine ease `(1 − cos(πx)) / 2`: the smooth step of the periodic value noise. */
+export function cosineSmoothstep(fraction: number): number {
+  return (1 - Math.cos(Math.PI * fraction)) * HALF;
 }
 
 export function clamp01(value: number): number {
