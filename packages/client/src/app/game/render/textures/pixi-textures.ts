@@ -1,6 +1,7 @@
 // The one place a baked canvas or a byte buffer becomes a Pixi texture (docs/RENDERING.md §6):
-// sprite textures from bakes, and the RGBA8 data textures the cell shader (#215) reads with
-// `texelFetch` (the noise strip) or samples (the noise tile).
+// sprite textures from bakes, the RGBA8 data textures the cell shader reads with `texelFetch`
+// (the noise strip, the palette) or samples (the noise tile), and the RGBA32F instance texture
+// the cell mesh re-uploads every frame.
 
 import { BufferImageSource, Texture, type TextureSource } from 'pixi.js';
 import type { BakeCanvas } from './texture-bake';
@@ -39,6 +40,20 @@ export function byteDataTexture(bytes: Uint8Array, options: DataTextureOptions):
     alphaMode: 'no-premultiply-alpha',
     scaleMode: options.isFiltered ? 'linear' : 'nearest',
     addressMode: options.isRepeating ? 'repeat' : 'clamp-to-edge',
+    autoGenerateMipmaps: false,
+  });
+}
+
+/** An RGBA32F table texture over `values` (`width × height × 4` floats), read with `texelFetch`; `update()` re-uploads. */
+export function floatDataTexture(values: Float32Array, width: number, height: number): TextureSource {
+  return new BufferImageSource({
+    resource: values,
+    width,
+    height,
+    format: 'rgba32float',
+    alphaMode: 'no-premultiply-alpha',
+    scaleMode: 'nearest',
+    addressMode: 'clamp-to-edge',
     autoGenerateMipmaps: false,
   });
 }

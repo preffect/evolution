@@ -19,10 +19,10 @@ import {
   type ViewportPx,
   type WorldPoint,
 } from './camera';
+import { CellLayer } from './cells/cell-layer';
 import { DishLayer } from './dish/dish-layer';
 import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
-import { PlaceholderCellLayer } from './placeholder-cell-layer';
 import { DISH_CENTRE_TARGET, followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 
@@ -46,8 +46,7 @@ const NO_FOOD_LAYER_MOTES = 0;
 export class GameRenderer {
   private readonly layers: SceneLayers;
   private readonly dish: DishLayer;
-  /** Slice B (#206) replaces this with `cells/cell-layer.ts`. */
-  private readonly cells: PlaceholderCellLayer;
+  private readonly cells: CellLayer;
   // Slice C (#207) adds the food layer, the effects layer and the reticle here, in `layers.food`
   // and `layers.effects`; `inputs.reticle` is carried for it.
   private readonly vignette: Sprite;
@@ -63,7 +62,7 @@ export class GameRenderer {
   ) {
     this.layers = createSceneLayers(stage);
     this.dish = new DishLayer(textures);
-    this.cells = new PlaceholderCellLayer();
+    this.cells = new CellLayer(textures);
     this.vignette = new Sprite(textures.vignetteTexture);
     this.layers.dish.addChild(this.dish.container);
     this.layers.cells.addChild(this.cells.container);

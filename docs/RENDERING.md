@@ -132,17 +132,22 @@ through the predator's film for free; separation (`ECOLOGY.md §5.3`) means unre
 
 ### 2.3 Instance layout and passes
 
-`cells/cell-geometry.ts` declares one quad with per-instance attributes (27 scalars packed in 7 `vec4`, one
-float spare, plus the 6 bump `vec4`s = 13 `vec4`; WebGL guarantees 16):
-centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`, alpha,
-stage / trait counts (`ciliaCount`, `wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward
-`CHLORO_BASE`), wobble (`amplitude`, `mode`, `phase`),
-stretch (`kAlong`, `kSprint`), `pulse`, `nucleusOffset` (vec2, cell frame: the mapped `q′` of the nucleus slot,
-§3, so filaments meet the nucleus sprite), eight bumps × (`amplitude`, `centre`, `sigma`) = 6 `vec4`, halo kind
-(default, trait, protocell), `beadCount`, `isOwn`, `warningRingPx`, `formId`. Global uniforms: `uTimeSeconds`,
-`uZoom`, `uResolution`, the two-channel noise tile, the RGBA noise strip and the **palette texture** (8 palettes
-× 8 shades, the four body-ramp stops among them, baked by `render/palette.ts`). The same
-mesh is drawn twice with `uPass` (A, B); instance order is radius ascending (`ARCHITECTURE.md §6`), so two
+`cells/cell-instance.ts` declares one row per cell in an **RGBA32F instance texture** (`textures/pixi-textures.ts`
+`floatDataTexture`, re-uploaded once per frame), read by both shader stages with `texelFetch`; `cells/cell-mesh.ts`
+draws one unit quad per row with an instance-index attribute. One table (the scalar texels, then the
+`MAX_SHAPE_BUMPS` bump slots at three floats each) is the whole contract: the packing writes it and
+`cell-shader-source.ts` reads every field through it, so a new field is one entry and never a second attribute
+layout (a texture row also has no 16-`vec4` attribute cap to budget against). Scalars, in texel order:
+centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`,
+wobble (`amplitude`, `mode`, `phase`), stretch (`axialAlong`, `axialAcross`), `pulse`, `rimBrightness`,
+`nucleusOffset` (vec2, cell frame: the mapped `q′` of the nucleus slot, §3, so filaments meet the nucleus sprite),
+halo kind (default, trait, protocell), `beadCount`, `isOwn`, `isFarDot`, `isProtocell`, alpha, the strip row and
+phase, the strip's `lobesScale` and `jitterAmplitude`; #216 appends the stage / trait counts (`ciliaCount`,
+`wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward `CHLORO_BASE`), `warningRingPx` and `formId`,
+#207 the clip-driven pass-B alpha and halo scale. Global uniforms: `uTimeSeconds`, `uZoom`, `uPass`, the
+two-channel noise tile, the RGBA noise strip and the **palette texture** (8 palettes × 8 shades, the four
+body-ramp stops among them, baked by `render/palette.ts`, uploaded by `render-textures.ts`). The same
+geometry is drawn twice with `uPass` (A, B); instance order is radius ascending (`ARCHITECTURE.md §6`), so two
 draw calls cover every visible cell. An absorbed prey keeps drawing as a **ghost instance** built from its last
 view (VISUAL-STYLE §5) until the `absorbed` clip ends; the same clip's `seal` track drives the predator's seal
 bump (the ghost's `engulfedByCellId`), since the predator's `engulfProgress` is gone on the payout tick (§4).
@@ -382,10 +387,11 @@ textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`
 textures/{glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts   the atlases and the field, each a pure bake over the seam (#206)
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
-cells/{cell-layer,cell-view,cell-geometry,cell-instance-buffer,cell-lod}.ts
-cells/{cell-shader,cell-shader-bands,cell-shader-patterns}.ts   GLSL as template strings, one file per pass concern
-cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t
-cells/{organelle-layout,organelle-mapper,organelle-sprites,flagellum-lines}.ts
+cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
+cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
+cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-membrane}.ts   GLSL as template strings: the two stages, the shared helpers, the profile, pass A, pass B (#215)
+cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t (dents: #216)
+cells/{organelle-kinds,organelle-layout,organelle-mapper,organelle-motion,organelle-sprites,flagellum-lines}.ts   counts, seeded slots, the mapping through the profile, sprite motion, the pooled sprites (#215); flagella #216
 cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   (#121)
 food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
@@ -393,7 +399,7 @@ effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
-pixi-texture-baker.ts  placeholder-cell-layer.ts             the `TextureBaker` (Pixi radial bakes for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field); the flat-disc cell layer `cells/cell-layer.ts` replaces (#215)
+pixi-texture-baker.ts                                  the `TextureBaker` (Pixi radial bakes for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
 ```
 
 `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`). This

@@ -3,9 +3,11 @@
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
 // since jsdom has no canvas): the radial bakes drawn through Pixi (the soft disc, the vignette)
 // and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish field, the vent sprite).
-// The noise strip and tile are bytes, uploaded as data textures for the cell shader (#215).
+// The noise strip, the noise tile and the palette are bytes, uploaded as data textures for the
+// cell shader (cells/cell-mesh.ts).
 
 import {
+  PLAYER_PALETTE_COUNT,
   RANDOM_STREAM,
   createSeededRandom,
   type DnaTag,
@@ -18,6 +20,7 @@ import {
   NOISE_STRIP_ROWS,
   NOISE_STRIP_WIDTH,
   NOISE_TILE_SIZE_PX,
+  PALETTE_SHADE_COUNT,
   VIGNETTE,
   VIGNETTE_ALPHA,
   VIGNETTE_RADIUS_FRACTION,
@@ -27,6 +30,7 @@ import {
 } from './constants';
 import { buildNoiseStrip, type NoiseStrip } from './noise/noise-strip';
 import { buildNoiseTile } from './noise/noise-tile';
+import { bakePaletteTextureBytes } from './palette';
 import { bakeDishField, type DishField } from './textures/dish-texture';
 import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
 import { bakeMoteAtlas, type MoteSpriteKey } from './textures/mote-atlas';
@@ -86,6 +90,8 @@ export interface RenderTextures {
   readonly stripTexture: TextureSource;
   /** The cytoplasm mottle, sampled with linear filtering and repeat. */
   readonly tileTexture: TextureSource;
+  /** The 8 × 8 palette shades (palette.ts), one row per palette, read with `texelFetch`. */
+  readonly paletteTexture: TextureSource;
   readonly glow: Readonly<Record<GlowSpriteKey, Texture>>;
   readonly motes: MoteAtlasTextures;
   readonly organelles: Readonly<Record<OrganelleKind, OrganelleSpriteTexture>>;
@@ -183,6 +189,12 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
       isFiltered: true,
       isRepeating: true,
     }),
+    paletteTexture: byteDataTexture(bakePaletteTextureBytes(), {
+      width: PALETTE_SHADE_COUNT,
+      height: PLAYER_PALETTE_COUNT,
+      isFiltered: false,
+      isRepeating: false,
+    }),
     glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
     motes: moteTextures(baker),
     organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),
@@ -208,4 +220,5 @@ export function destroyRenderTextures(textures: RenderTextures): void {
   for (const texture of sprites) texture.destroy(true);
   textures.stripTexture.destroy();
   textures.tileTexture.destroy();
+  textures.paletteTexture.destroy();
 }

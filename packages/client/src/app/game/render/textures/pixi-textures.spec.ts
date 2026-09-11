@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeBakeCanvasFactory } from '../../../../testing/fake-bake-canvas';
 import { createOnePixelTexture } from '../../../../testing/fake-pixi-app';
-import { byteDataTexture, textureFromBake, texturesFromBakes } from './pixi-textures';
+import { byteDataTexture, floatDataTexture, textureFromBake, texturesFromBakes } from './pixi-textures';
 
 describe('pixi textures', () => {
   it('refuses a bake with no DOM canvas behind it', () => {
@@ -39,5 +39,16 @@ describe('pixi textures', () => {
     expect(tile.alphaMode).toBe('no-premultiply-alpha');
     table.destroy();
     tile.destroy();
+  });
+
+  it('uploads floats as an RGBA32F table read with texelFetch, re-uploadable in place', () => {
+    const values = new Float32Array(4 * 3 * 2);
+    const table = floatDataTexture(values, 3, 2);
+    expect([table.width, table.height, table.format]).toEqual([3, 2, 'rgba32float']);
+    expect(table.style.scaleMode).toBe('nearest');
+    expect(table.style.addressMode).toBe('clamp-to-edge');
+    expect(table.alphaMode).toBe('no-premultiply-alpha');
+    expect(table.resource).toBe(values);
+    table.destroy();
   });
 });

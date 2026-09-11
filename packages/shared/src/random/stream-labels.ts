@@ -36,6 +36,8 @@ export const COSMETIC_SUB_STREAM = {
   vent: 'vent',
   /** The organelle atlas: chromatin scatter and the nucleoid's loop phases (#206). */
   organelles: 'organelles',
+  /** One cell's cosmetic phases, strip row and organelle slots: `fork(cell + ':' + cellId)` (#215). */
+  cell: 'cell',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
