@@ -626,6 +626,7 @@ packages/client/src/app/game/
   clock-provider.ts                                             the injected Clock token (DETERMINISM §2)
   state/{game-state.service,game-event-bus,snapshot-transitions}.ts   the signal facade; the moment seam of section 6 and its snapshot detector
   state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor, ladderFor (UI.md §3.1.4)
+  audio/audio-hooks.ts                                          AudioHooks.connect(options): the composition root's one audio call (AUDIO.md §5)
   audio/{audio.service,sound-event-bus,cue-scheduler,ambient-mixer,audio-buses,audio-asset-cache}.ts
   audio/{audio-backend,web-audio-backend,audio-tokens}.ts       the Web Audio seam, its production impl, the injection tokens (AUDIO.md §5)
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts

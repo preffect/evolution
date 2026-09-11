@@ -114,6 +114,8 @@ from this manifest, never a second copy.
 ## 5. The client (ARCHITECTURE §6, §7)
 
 ```text
+ game-setup.ts (#99) ─► AudioHooks.connect(options) ─► handle.observe(snapshot) / unlock() / disconnect()
+                                                  │
  snapshot ─► SnapshotTransitionTracker ─► GameEventBus ◄─ renderer (#99): zone_changed, trait_cue
                 (state/snapshot-transitions.ts)   │       ◄─ HUD (#100): trait_picked, ui_click
                                                   ▼
@@ -138,13 +140,17 @@ from this manifest, never a second copy.
 - **Time.** Cooldowns read the injected `Clock` (`CLOCK`, `clock-provider.ts`); crossfade tails and
   deferred loop starts are scheduled on the audio clock (`voice.stop(afterSeconds)`,
   `startAfterSeconds`); there is no `setTimeout` in the audio layer.
-- **Unlock.** Browsers keep audio suspended until a gesture: `game-setup.ts` (the composition root, wired
-  by #99) calls `AudioService.unlock()` from the first pointer event and `initialize()` once (loads the
-  manifest, preloads every file it names), and connects the `SoundEventBus` and the tracker.
+- **Wiring.** `AudioHooks.connect(options)` (`audio/audio-hooks.ts`) is the composition root's one call:
+  it builds the tracker and the `SoundEventBus` over the shared `GameEventBus` and starts `initialize()`
+  (loads the manifest, preloads every file it names). `game-setup.ts` (#99) feeds the handle every
+  rendered snapshot (`observe`), the live balance (`updateOptions` on `balance_updated`), the first
+  pointer event (`unlock`: browsers keep audio suspended until a gesture) and the room's teardown
+  (`disconnect`: stops every sound, leaves the bus, makes the handle inert). The `options` are the
+  own `PlayerId`, the balance and the session's `roundDurationSeconds` (`TransitionOptions`).
 - **Tests.** `FakeAudioBackend` (records buses, decodes, voices; can throw on demand), `FakeAudioContext`
   (the slice of Web Audio the production backend touches) and `createTestAudioManifest` live in
-  `packages/client/src/testing/`. `audio-hooks.integration.spec.ts` proves the chain from a snapshot to
-  a voice on the fake platform.
+  `packages/client/src/testing/`. `audio-hooks.integration.spec.ts` proves the chain from `AudioHooks.connect` and
+  a snapshot to a voice on the fake platform.
 
 ## 6. Extending
 
