@@ -1,7 +1,8 @@
 // The renderer smoke (docs/TESTING.md, docs/RENDERING.md §9): a live room from the lobby with a fixed
 // seed, the canvas mounts, the shader-free slice A scene draws on SwiftShader without page errors,
-// the debug hook's pause holds the rendered tick and a step advances it, and a screenshot lands under
-// `.qa/screenshots/` for the PR. Slice D (#208) adds the bench route and the frame-budget report.
+// the canvas fills the viewport with no page scroll (docs/UI.md §1, #217), the debug hook's pause holds
+// the rendered tick and a step advances it, and a screenshot lands under `.qa/screenshots/` for the PR.
+// Slice D (#208) adds the bench route and the frame-budget report.
 import { expect, test, type Page } from '@playwright/test';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';
@@ -60,6 +61,26 @@ async function canvasHash(page: Page): Promise<string> {
   });
 }
 
+interface ViewportFit {
+  readonly canvas: { readonly width: number; readonly height: number };
+  readonly viewport: { readonly width: number; readonly height: number };
+  readonly pageScrolls: boolean;
+}
+
+/** The canvas's CSS box against the viewport, and whether the document can scroll at all. */
+function viewportFit(page: Page): Promise<ViewportFit> {
+  return page.evaluate(() => {
+    const box = document.querySelector('canvas[data-testid="game-canvas"]')?.getBoundingClientRect();
+    const scroller = document.scrollingElement;
+    return {
+      canvas: { width: box?.width ?? 0, height: box?.height ?? 0 },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      pageScrolls:
+        scroller !== null && (scroller.scrollHeight > window.innerHeight || scroller.scrollWidth > window.innerWidth),
+    };
+  });
+}
+
 function renderTick(page: Page): Promise<number | null | undefined> {
   return page.evaluate(() => (window as DebugWindow).__evolutionDebug?.renderTick());
 }
@@ -72,6 +93,14 @@ test.describe('renderer smoke on a live room', () => {
     await page.waitForTimeout(HOLD_WAIT_MS);
     expect(errors, 'no page or shader errors').toEqual([]);
     await page.screenshot({ path: `${SCREENSHOT_DIR}/pr205-live-seed${SMOKE_SEED}.png` });
+  });
+
+  test('the canvas fills the viewport and the page does not scroll (docs/UI.md §1)', async ({ page }) => {
+    await openLiveRoom(page);
+    const fit = await viewportFit(page);
+    expect(fit.canvas).toEqual(fit.viewport);
+    expect(fit.pageScrolls).toBe(false);
+    expect(await page.locator('.panel').count()).toBe(0);
   });
 
   test('pause holds the rendered tick and the canvas; a step advances both', async ({ page }) => {

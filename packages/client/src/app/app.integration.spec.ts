@@ -1,6 +1,6 @@
 // Integration (docs/TESTING.md §2): the lobby shell wired to the REAL MultiplayerService and
 // WebSocketService over a fake browser socket — create a game, receive game_started, enter the
-// room. Run with `./validate.sh integration`.
+// room, where the game host alone fills the shell. Run with `./validate.sh integration`.
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -54,10 +54,14 @@ describe('lobby shell + multiplayer services', () => {
     const snapshot = createTestSnapshot({ tick: 3 });
     socket.receive(JSON.stringify({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot }));
     await fixture.whenStable();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const element = fixture.nativeElement as HTMLElement;
     expect(component.multiplayer.inGame()).toBe(true);
-    expect(text).toContain('g1');
-    expect(text).toContain('(host)');
+    expect(component.multiplayer.gameId()).toBe('g1');
+    expect(component.multiplayer.isHost()).toBe(true);
     expect(component.multiplayer.snapshot()).toEqual(snapshot);
+    // In play the shell is the game host alone, filling the viewport (#217, docs/UI.md §1).
+    expect(element.classList.contains('in-game')).toBe(true);
+    expect(element.querySelector('.panel')).toBeNull();
+    expect(element.querySelector('app-game-host')).not.toBeNull();
   });
 });

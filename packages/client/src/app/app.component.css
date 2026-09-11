@@ -8,6 +8,20 @@
   color: #1a1a1a;
 }
 
+/*
+ * In play the shell IS the viewport (#217, docs/UI.md §1): the game host fills it edge to edge with
+ * no card and no page scroll. `position: fixed; inset: 0` is the viewport box exactly, where
+ * `100vw` would count a scrollbar gutter; `overflow: hidden` keeps the canvas from ever scrolling it.
+ */
+:host.in-game {
+  position: fixed;
+  inset: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .app-header {
   display: flex;
   align-items: baseline;

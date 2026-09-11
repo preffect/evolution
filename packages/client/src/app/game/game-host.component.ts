@@ -1,6 +1,8 @@
 // The element the game renders into (docs/ARCHITECTURE.md §6): mounts the canvas host, runs
 // `setupGame` with the multiplayer seams and the injected clock and audio hooks, and tears it
-// down with the component. The HUD (#100) wraps this with its overlay.
+// down with the component. It has no size of its own: it fills whatever the shell gives it, and
+// in play the shell is the viewport (docs/UI.md §1, #217), so the Pixi app's `resizeTo` sizes the
+// canvas to the viewport. The HUD (#100) wraps this with its overlay.
 
 import { Component, ElementRef, inject, isDevMode, viewChild, type OnDestroy, type OnInit } from '@angular/core';
 import { AudioHooks } from './audio/audio-hooks';
@@ -26,7 +28,6 @@ export const GAME_HOST_TEST_ID = 'game-host';
       .game-host {
         width: 100%;
         height: 100%;
-        min-height: 480px;
         overflow: hidden;
       }
     `,
