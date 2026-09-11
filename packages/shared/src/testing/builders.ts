@@ -31,6 +31,7 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
   return {
     tick: 0,
     seed: TEST_SEED,
+    roundStartTick: 0,
     roundPhase: ROUND_PHASE.playing,
     roundTimeLeftMs: ROUND_DURATION_SECONDS * MILLISECONDS_PER_SECOND,
     gelPatches: [],

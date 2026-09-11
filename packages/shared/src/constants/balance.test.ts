@@ -14,10 +14,12 @@ const GENERATE_COMMAND = 'pnpm generate:balance';
 const EXPECTED_DOMAINS = [
   'world',
   'session',
+  'worldClock',
   'controls',
   'ladder',
   'ecology',
   'growth',
+  'wildCells',
   'absorption',
   'progression',
   'traits',

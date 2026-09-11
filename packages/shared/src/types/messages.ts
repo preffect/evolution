@@ -64,6 +64,8 @@ export interface GameSnapshot {
   tick: number;
   /** The current round's seed; a rematch increments it. */
   seed: number;
+  /** 0 at creation, the current tick at a rematch: the HUD derives the world clock from `tick − roundStartTick` (docs/ECOLOGY.md §3.1). */
+  roundStartTick: number;
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];

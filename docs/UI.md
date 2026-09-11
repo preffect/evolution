@@ -288,7 +288,8 @@ without copy fails the gate instead of rendering `undefined`.
 
 The camera follows the killer (GAME-DESIGN §7), so the overlay keeps the centre clear: a 30 % dim and a text
 block at top-centre from y 96, 360 wide: `ENGULFED BY AMOEBOID` (`title` role, danger; name from
-`players[spectatingPlayerId].playerName`, `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
+`players[cells[spectatingCellId].playerId].playerName`, `ENGULFED BY A WILD <STAGE>` for a wild killer
+(`cells[spectatingCellId].kind === 'wild'`, ECOLOGY §3.3), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
 role, `ceil(respawnInTicks / TICK_HZ)`, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
 muted). A spectating player has no cell and `PlayerProgressView` carries no traits (ARCHITECTURE §2), so both
 figures come from the `lastAliveOwnCell` signal (§7: the own cell of the last snapshot in which the player was

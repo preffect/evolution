@@ -1,4 +1,4 @@
-// DNA, levels, drafts and late join (docs/PROGRESSION.md §6). The level cost formula has one
+// DNA, levels, drafts and the entry rule (docs/PROGRESSION.md §6). The level cost formula has one
 // home: simulation/level-costs.ts.
 
 import { DNA_TAG, type DnaTag } from '../types/game.js';
@@ -27,11 +27,15 @@ export const TRAIT_CHOICE_TIMEOUT_SECONDS = 10;
 export const TRAIT_REROLLS_PER_ROUND = 0;
 /** Mass granted instead of a draft when no candidate exists. */
 export const LEVEL_UP_NO_DRAFT_MASS_BONUS = 10;
-/** Late join (docs/PROGRESSION.md §5): joining after the grace gets a share of the living medians. */
-export const LATE_JOIN_GRACE_SECONDS = 30;
-export const LATE_JOIN_DNA_FRACTION = 0.5;
-export const LATE_JOIN_MASS_FRACTION = 0.25;
-export const LATE_JOIN_MAX_MASS = 200;
+// The entry rule (docs/PROGRESSION.md §5): every cell entering the dish after tick 0, by late join
+// or respawn, is floored at the world clock's average; the formulas live in simulation/entry-rule.ts.
+/** A late joiner's median term applies only after this long (s) with another living player. */
+export const ENTRY_GRACE_SECONDS = 30;
+/** Share of the living players' median `dnaCumulative` a late joiner is raised to (score-neutral gift). */
+export const ENTRY_DNA_FRACTION = 0.5;
+/** Entry mass = clamp(this × max(median mass, worldMass), CELL_STARTING_MASS, ENTRY_MAX_MASS). */
+export const ENTRY_MASS_FRACTION = 0.5;
+export const ENTRY_MAX_MASS = 200;
 
 /** The seven tags in walk order: records keyed by tag are hashed in this order (docs/DETERMINISM.md §5). */
 export const DNA_TAGS = [

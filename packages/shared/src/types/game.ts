@@ -71,6 +71,14 @@ export type CellStage = ValueOf<typeof CELL_STAGE>;
 export const PLAYER_LIFE_STATE = { alive: 'alive', spectating: 'spectating' } as const;
 export type PlayerLifeState = ValueOf<typeof PLAYER_LIFE_STATE>;
 
+/** A wild cell is the world clock made flesh, never a player (docs/ECOLOGY.md §3.3). */
+export const CELL_KIND = { player: 'player', wild: 'wild' } as const;
+export type CellKind = ValueOf<typeof CELL_KIND>;
+
+/** A player's standing against the world clock's average cell (docs/ECOLOGY.md §3.1, `standingAgainstWorld`). */
+export const WORLD_STANDING = { ahead: 'ahead', with: 'with', behind: 'behind' } as const;
+export type WorldStanding = ValueOf<typeof WORLD_STANDING>;
+
 /** The debug tools' entity filter vocabulary and the id prefixes (docs/ARCHITECTURE.md §2). */
 export const ENTITY_KIND = { cell: 'cell', foodMote: 'food_mote', dnaFragment: 'dna_fragment' } as const;
 export type EntityKind = ValueOf<typeof ENTITY_KIND>;
@@ -88,8 +96,10 @@ export interface OwnedTrait {
 
 export interface CellView {
   id: EntityId;
-  playerId: PlayerId;
-  /** Equals `id` in build 1: the reserved colony grouping key (docs/GAME-DESIGN.md §11). */
+  kind: CellKind;
+  /** Null for a wild cell (docs/ECOLOGY.md §3.3). */
+  playerId: PlayerId | null;
+  /** Equals `id` for a player cell in build 1 (the reserved colony grouping key, docs/GAME-DESIGN.md §11); `WORLD_ORGANISM_ID` for every wild cell. */
   organismId: EntityId;
   avatarIndex: number;
   x: number;
@@ -166,12 +176,16 @@ export interface PlayerProgressView {
   dnaTagPoints: Record<DnaTag, number>;
   /** Endosymbiosis counters, kept on death (docs/ECOLOGY.md §1). */
   bacteriaEatenByVariant: Record<BacteriumVariant, number>;
+  /** Players absorbed: the only absorptions that score (docs/GAME-DESIGN.md §5.3). */
   absorptions: number;
+  /** Wild cells absorbed; never scores (docs/ECOLOGY.md §3.3). */
+  wildAbsorptions: number;
   score: number;
   offer: TraitOfferView | null;
   /** The only home of death and respawn (docs/ECOLOGY.md §6.2). */
   lifeState: PlayerLifeState;
-  spectatingPlayerId: PlayerId | null;
+  /** The killer's cell (a wild killer has no player, docs/GAME-DESIGN.md §5.2); null once it is gone. */
+  spectatingCellId: EntityId | null;
   respawnInTicks: number;
 }
 

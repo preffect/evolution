@@ -6,7 +6,7 @@ import { createSeededRandom, playerId as brandPlayerId } from '@evolution/shared
 import type { ClientMessage, PlayerId, ServerMessage } from '@evolution/shared';
 import type { BotIdentity } from '../game/bots/bot-identity.js';
 import type { ScriptContext } from '../game/bots/bot-strategy.js';
-import type { BotCellView, BotMoteView, BotPerception } from '../game/bots/perception.js';
+import type { BotCellView, BotMoteView, BotPerception, PlayerBotCellView } from '../game/bots/perception.js';
 import { createManualRoomTiming, type ManualRoomTiming } from './builders.js';
 import type { BotTransport } from './bot-client/bot-transport.js';
 import type { SocketLike } from './bot-client/web-socket-transport.js';
@@ -34,7 +34,7 @@ export function createTestScriptContext<Snapshot = null>(
   };
 }
 
-export function createTestBotCell(overrides: Partial<BotCellView> = {}): BotCellView {
+export function createTestBotCell(overrides: Partial<PlayerBotCellView> = {}): PlayerBotCellView {
   return {
     id: 'cell_0',
     playerId: TEST_PLAYER_ID,
