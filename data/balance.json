@@ -43,6 +43,7 @@
     "ALGAE_DNA": 0,
     "ALGAE_MASS": 1,
     "ALGAE_RADIUS": 6,
+    "ALGAE_TAG": "photic",
     "BACTERIUM_CLUSTER_RADIUS": 60,
     "BACTERIUM_CLUSTER_SIZE": 5,
     "BACTERIUM_DNA": 1,
@@ -66,6 +67,7 @@
     "DETRITUS_MASS_FRACTION": 0.2,
     "DETRITUS_MOTE_MASS": 2,
     "DETRITUS_RADIUS": 7,
+    "DETRITUS_SCATTER_RADIUS_FACTOR": 2,
     "DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER": 2,
     "DNA_FRAGMENT_CAP_BASE": 30,
     "DNA_FRAGMENT_CAP_PER_PLAYER": 10,
@@ -94,6 +96,7 @@
     },
     "FOOD_SPAWN_PER_SECOND_BASE": 6,
     "FOOD_SPAWN_PER_SECOND_PER_PLAYER": 1,
+    "FOOD_TAG_POINTS": 1,
     "FOOD_ZONE_WEIGHTS_BY_KIND": {
       "algae": { "sunlit_shallows": 0.7, "open_broth": 0.25, "warm_vent": 0.05 },
       "bacterium": { "warm_vent": 0.6, "open_broth": 0.3, "sunlit_shallows": 0.1 },

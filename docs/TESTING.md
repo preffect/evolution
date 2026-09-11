@@ -117,21 +117,23 @@ feeds joins, leaves, scheduled fixtures and scripted inputs before the step they
 hashes the state at checkpoints and evaluates every expectation at its tick. The framework
 knows nothing about the game: a `ScenarioAdapter` (`adapter.ts`) tells it how to create the
 module, read a snapshot, hash the state, turn a command into the wire input, find a player's
-cell and place a fixture. `echo-adapter.ts` serves the template's echo module today; #98 adds
-the Evolution adapter, and the scenario tables (#102) import that binding.
+cell and place a fixture. `echo-adapter.ts` serves the template's echo module (the proving
+scenarios); `evolution-adapter.ts` serves the Evolution module, and the scenario tables under
+`testing/scenarios/` import that binding.
 
 ### 8.1 Writing a scenario
 
 ```ts
 // packages/server/src/testing/scenarios/ecology.gameplay.test.ts
 import { createDecayedHelper, insideCellOf, player, targetRadiiEast } from '../gameplay/index.js';
-import { evolutionScenario as scenario, massOf } from '../gameplay/evolution-adapter.js'; // #98
+import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
+import { massOf } from '../gameplay/evolution-views.js';
 
 const decayed = createDecayedHelper({ cellStartingMass: ..., massDecayRatePerSecond: ... }); // from DEFAULT_BALANCE
 
 it('E9: A absorbs B on tick 30', () => {
   scenario('E9')
-    .seed(42)
+    .seed(PLACED_ROW_SEED)
     .players(2)
     .placeCell({ playerIndex: 0, mass: 100 })                          // broth point (1500, 0)
     .placeCell({ playerIndex: 1, mass: 20, eastOfFirstCellWu: 10 })    // east of A, centres 10 wu apart
@@ -165,7 +167,18 @@ it('E9: A absorbs B on tick 30', () => {
   **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ECOLOGY §8.1: the W rows
   and G13) sets wild seat `seat`'s spread factor, places or replaces its cell (default: east of
   the first placed cell) and clears the seat's target and velocity as a respawn does, so the seat
-  has no target until its next decision tick; it schedules with `.atTick(T)` like any placement.
+  has no target until its next decision tick; it schedules with `.atTick(T)` like any placement
+  (it lands with the wild-cell slice). An adapter may add fixtures of its own beside the placed
+  records (`.place(fixture)` / `.atTick(T).place(fixture)`): the Evolution adapter's
+  `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures.
+- **Seeds and the Evolution snapshot.** `TABLE_SEED` (42) is what every row names;
+  `PLACED_ROW_SEED` (48) is what the placed rows run on, because only the gel patches come from
+  the seed and seed 42 puts one 73 wu from the broth point (ECOLOGY §8's clearance rule refuses
+  it). The scenario snapshot is the full snapshot with **exact positions** (the tables assert
+  ± 0.01 wu; only the wire rounds to `SNAPSHOT_POSITION_DECIMALS`), plus that tick's `effects`
+  and the spawners' `spawnedCounts` (E2, E14 count spawns, not populations). `evolution-views.ts`
+  holds the selectors a row reads through (`cellOf`, `progressOf`, `massOf`, `speedOf`,
+  `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`).
 - **Inputs.** "At tick T" means submitted between tick T − 1 and tick T, so step T applies it
   (inputs apply at tick boundaries; tick 0 is the initial state, so inputs start at tick 1).
   `.atTick(T, player(i).does(script))` fires once; `.from(T, …)` every step from T;
@@ -182,7 +195,7 @@ it('E9: A absorbs B on tick 30', () => {
   `ARCHITECTURE.md` §3.2) and the adapter stamps the sequence.
 - **Bots.** `.bot(index, factory, everyTicks)` drives a player from a `BotStrategy` built by
   `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` strategies of
-  section 8.4 implement and the headless bot client reuses. The schedule holds the **factory**, not an
+  section 8.3 implement and the headless bot client reuses. The schedule holds the **factory**, not an
   instance: every run (both runs of `runDeterministic`) gets a fresh strategy, so a strategy may
   keep state across its decisions. Its only other input is `ScriptContext`, and its only source
   of randomness is `context.random`, a stream forked from the scenario seed per player
@@ -255,7 +268,7 @@ pnpm --filter @evolution/server test:integration ecology   # every *.gameplay.te
 A framework test never uses the file sink: pass `createMemoryReplaySink()` to
 `createScenarioDsl(adapter, { replaySink })`.
 
-### 8.4 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)
+### 8.3 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)
 
 Agents cannot open a second human's browser, so opponents are bots: the same `BotStrategy` runs
 in a scenario (section 8.1), over the wire against a running server, or inside the game module.
@@ -285,7 +298,9 @@ a player identity is assumed; #156's wild cells swap it for an entity-id lookup)
 `locateCellThrough` (a `CellLocation` is the cell's `x`, `y`, `radius`), and `toInput`; a
 `ScenarioAdapter` extends it, so the adapter of a world IS its binding. The echo binding sees
 nothing and locates nothing, so on the echo module `grazer` and `hunter` hold and `wander` and
-`idle` are the strategies that show anything. #98 adds the Evolution binding.
+`idle` are the strategies that show anything. The Evolution binding (`game/bots/evolution-binding.ts`)
+reads the wire snapshot: every cell, the fragments while any exist else the motes (the greedy
+graze of PROGRESSION §7), and `canEngulf` over the live balance.
 
 **Determinism.** Every bot is a `BotPilot` (`game/bots/bot-pilot.ts`) on its own stream,
 `bot_<index>` forked from the swarm seed, and stamps its client tick as the input `sequence`.
@@ -330,7 +345,7 @@ see a normal `Bot <index>`. The 4-cell dish a QA screenshot needs is one room an
 a fake socket, captured manual timings) and `testing/socket-builders.ts` (a listening server on
 an ephemeral port and the raw `ws` promises) are excluded from coverage like `builders.ts`.
 
-### 8.3 Proving scenarios
+### 8.4 Proving scenarios
 
 `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo
 module: inputs echo from the tick they were applied and a late joiner is present from its step,
@@ -341,3 +356,16 @@ because the echo game has no `WorldState`; it cannot locate cells or place fixtu
 `toy-adapter.ts` is a two-rule world used only by the framework's own unit tests; its fixtures go
 through the same `FixtureContext` an adapter over a world receives (`context.playerId(index)`
 resolves a scenario index, so an adapter never hard-codes the DSL's id scheme).
+
+### 8.5 The design tables
+
+The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14),
+`ecology-cells.gameplay.test.ts` (E4–E8, E12, E15), `game-design-session.gameplay.test.ts` (G1–G3,
+G9–G11, G14; G2 and G11 share one whole-round run), `game-design-controls.gameplay.test.ts` (G4–G7)
+and `progression.gameplay.test.ts` (P1–P3, P6–P8, P10); `shared-setups.ts` holds the seeds bound to
+the DSL, `decayed()`, the tolerances and the P7 world G9 reuses. The pure-function rows are
+pinned beside their functions (P4, P9, P12, P14 in `game/progression/draft.test.ts`, P13 in
+`ladder.test.ts`, G12 and W1 in `shared/src/simulation/world-clock.test.ts`). The rows that need
+an engulf (E9–E11, E13, E16, G8, P5, P11, the T rows) land with the engulf slice of #98; the
+evolving-world rows (W2–W10, G13) with the wild-cell slice. The gameplay tier runs with
+`OPT_IN_TEST_TIMEOUT_MS`: a whole-round row (G2, G11) steps 37 200 ticks twice.

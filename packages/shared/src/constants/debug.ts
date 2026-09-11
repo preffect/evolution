@@ -11,6 +11,6 @@ export const DEBUG_STEP_MAX_SECONDS = 10;
 
 /**
  * The seed a bot swarm forks its streams from when neither `debug_spawn_bot` nor the bot client
- * CLI names one (docs/TESTING.md §8.4). Bot `index` forks `bot_<index>` from it.
+ * CLI names one (docs/TESTING.md §8.3). Bot `index` forks `bot_<index>` from it.
  */
 export const DEFAULT_BOT_SEED = 1;

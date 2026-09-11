@@ -80,7 +80,7 @@ export interface SimulationDebugHandle {
   computeStateHash?(): StateHash;
   exportReplay?(): unknown;
   /**
-   * Adds a synthetic player driven in-process by a catalogue strategy (docs/TESTING.md §8.4).
+   * Adds a synthetic player driven in-process by a catalogue strategy (docs/TESTING.md §8.3).
    * `seat` is called with the bot's identity BEFORE the module holds the player; it throws
    * `DebugRequestError` to refuse the seat (the room refuses an id already in play), and then
    * the module keeps nothing, so a refused bot can never shadow the player it collided with.

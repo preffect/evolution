@@ -17,6 +17,10 @@ export type TripZoneId = typeof ZONE_ID.warmVent | typeof ZONE_ID.sunlitShallows
 export const ALGAE_MASS = 1;
 export const ALGAE_DNA = 0;
 export const ALGAE_RADIUS = 6;
+/** Every algae mote credits one `photic` tag point (§1). */
+export const ALGAE_TAG: DnaTag = DNA_TAG.photic;
+/** Tag points a mote or a fragment credits: the "× 1" of the §1 table. */
+export const FOOD_TAG_POINTS = 1;
 export const BACTERIUM_MASS = 3;
 export const BACTERIUM_DNA = 1;
 export const BACTERIUM_RADIUS = 8;
@@ -41,6 +45,8 @@ export const DETRITUS_RADIUS = 7;
 /** Share of a dead or dissolved cell's mass that drops as detritus. */
 export const DETRITUS_MASS_FRACTION = 0.2;
 export const DETRITUS_LIFETIME_SECONDS = 30;
+/** Detritus scatters uniformly within this many radii of the dead cell's centre (§1). */
+export const DETRITUS_SCATTER_RADIUS_FACTOR = 2;
 export const DNA_FRAGMENT_DNA = 5;
 export const DNA_FRAGMENT_RADIUS = 9;
 /** Slow drift (wu/s). */

@@ -25,6 +25,15 @@ export type ValueOf<Table> = Table[keyof Table];
 
 // ===== Pure helpers =====
 
+/** A record with every listed key at zero: how the per-tag and per-variant counters start. */
+export function zeroRecord<Key extends string>(keys: readonly Key[]): Record<Key, number> {
+  const record: Partial<Record<Key, number>> = {};
+  for (const key of keys) {
+    record[key] = 0;
+  }
+  return record as Record<Key, number>;
+}
+
 /** Clamp a number into the inclusive [min, max] range. */
 export const clamp = (value: number, min: number, max: number): number =>
   value < min ? min : value > max ? max : value;

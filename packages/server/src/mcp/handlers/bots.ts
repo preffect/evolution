@@ -6,7 +6,7 @@ import type { DebugContext } from '../debug-context.js';
 import { GAME_ID_ARGUMENT, PLAYER_ID_ARGUMENT, registerCapabilityTool } from './capability-tool.js';
 
 /**
- * `debug_spawn_bot` / `debug_remove_bot` (docs/ARCHITECTURE.md §8, docs/TESTING.md §8.4): the
+ * `debug_spawn_bot` / `debug_remove_bot` (docs/ARCHITECTURE.md §8, docs/TESTING.md §8.3): the
  * module builds and drives the bot (`spawnBot` / `removeBot`); the room enrols the synthetic
  * player so the lobby and the other clients see a normal player, and claims the seat before the
  * module holds the bot (`seat`), so a refused id leaves nothing behind. The strategy name is

@@ -1,4 +1,4 @@
-// What a strategy may see of the world beyond its own cell (docs/TESTING.md §8.4). The
+// What a strategy may see of the world beyond its own cell (docs/TESTING.md §8.3). The
 // strategies are pure over `ScriptContext` and this seam; the world binding decides how a
 // snapshot yields cells and motes, and closes the shared `canEngulf` (ECOLOGY §6.1,
 // `shared/simulation/engulf-eligibility.ts`) over the live absorption balance so a bot never

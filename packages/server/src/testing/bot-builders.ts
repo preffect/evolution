@@ -1,4 +1,4 @@
-// Test doubles for the bots (docs/TESTING.md §4, §8.4): the strategy contexts and world views
+// Test doubles for the bots (docs/TESTING.md §4, §8.3): the strategy contexts and world views
 // the strategy tests decide over, a fake transport the session tests speak through and a fake
 // socket the `ws` transport test frames over. Builder defaults are the only tolerated inline
 // test numbers.

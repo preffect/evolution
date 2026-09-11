@@ -17,6 +17,7 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/testing/builders.ts",
+    "**/testing/world-builders.ts",
     "**/testing/fake-*.ts",
     "**/testing/scenarios/**",
     "**/*.generated.*",

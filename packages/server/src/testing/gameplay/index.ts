@@ -6,7 +6,7 @@ export {
   echoedInput,
   echoScenario,
   hashEchoSnapshot,
-  toEchoInput,
+  toWireInput,
   type EchoSnapshot,
 } from './echo-adapter.js';
 export {

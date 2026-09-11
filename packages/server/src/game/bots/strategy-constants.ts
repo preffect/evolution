@@ -1,4 +1,4 @@
-// The numbers the build-1 strategies walk and hunt by (docs/TESTING.md §8.4). They tune bot
+// The numbers the build-1 strategies walk and hunt by (docs/TESTING.md §8.3). They tune bot
 // opponents, not the game, so they live with the strategies rather than in `constants/`; a
 // caller with other numbers passes them through `WanderOptions` / `HunterOptions`. When #156
 // lands, the wild-cell numbers come from `constants/wild-cells.ts` and travel through those

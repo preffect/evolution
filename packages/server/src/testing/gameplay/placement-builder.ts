@@ -1,7 +1,9 @@
 // The placement half of the DSL (docs/TESTING.md §8.1): `.placeCell(...)` on the scenario is a
 // setup fixture (applied before tick 1); `.atTick(T).placeCell(...)` schedules the same record
 // to be applied between tick T − 1 and tick T. One scheduler class serves both, bound to the
-// tick it stamps, so the placement convention is written once.
+// tick it stamps, so the placement convention is written once. The placed records are accepted by
+// any adapter whose fixture type includes them (`PlacedFixture | Fixture`), so an adapter may add
+// fixtures of its own beside them.
 
 import { ANCHOR_KIND, type PlacementAnchor } from './placement.js';
 import {
@@ -41,20 +43,20 @@ export class FixtureScheduler<Fixture, Builder> {
     return this.registry.register(this.tick, fixture);
   }
 
-  placeCell(this: FixtureScheduler<PlacedFixture, Builder>, options: PlaceCellOptions): Builder {
+  placeCell(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceCellOptions): Builder {
     this.registry.requirePlayer(options.playerIndex);
     const fixture = placeCell(options, this.firstPlacedCell());
     this.requireAnchorPlayer(fixture.at);
     return this.place(fixture);
   }
 
-  placeMote(this: FixtureScheduler<PlacedFixture, Builder>, options: PlaceMoteOptions): Builder {
+  placeMote(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceMoteOptions): Builder {
     const fixture = placeMote(options, this.firstPlacedCell());
     this.requireAnchorPlayer(fixture.at);
     return this.place(fixture);
   }
 
-  placeFragment(this: FixtureScheduler<PlacedFixture, Builder>, options: PlaceFragmentOptions): Builder {
+  placeFragment(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceFragmentOptions): Builder {
     const fixture = placeFragment(options, this.firstPlacedCell());
     this.requireAnchorPlayer(fixture.at);
     return this.place(fixture);

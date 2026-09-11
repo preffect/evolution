@@ -1,4 +1,4 @@
-// The strategy seam (docs/TESTING.md §8, §8.4): what a bot decides over and what it answers with.
+// The strategy seam (docs/TESTING.md §8, §8.3): what a bot decides over and what it answers with.
 // A strategy sees the same context a scenario script sees, so a scripted player and a
 // strategy-driven one travel the same path through the scenario schedule, the bot client and the
 // in-process roster. A strategy may keep state across its decisions (a `hunter` that commits to

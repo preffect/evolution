@@ -180,7 +180,7 @@ export const forkStreamStates: <Label extends string>(
   on them). Identical operation order gives identical results on one Node major version
   (`engines` in `package.json`).
 
-## 5. State hash (`packages/shared/src/simulation/state-hash.ts`)
+## 5. State hash (`packages/shared/src/simulation/state-hash.ts`, `packages/server/src/game/world/state-hash.ts`)
 
 ```ts
 export const computeStateHash: (world: HashableWorldState) => StateHash; // 16-hex-char string
@@ -188,15 +188,17 @@ export const computeStateHash: (world: HashableWorldState) => StateHash; // 16-h
 
 The kernel is split in two: `simulation/state-hasher.ts` (`StateHasher`: the two lanes, the
 scalar encodings, `digest()`) and `simulation/state-hash.ts` (the walk helpers `hashFields`,
-`hashEnumRecord`, `hashArray`, `hashRandomStreams`, `hashText`; `computeStateHash` composes
-them over `HASHED_FIELDS` with #98). Both lanes fold bytes with the one FNV-1a primitive in
+`hashEnumRecord`, `hashArray`, `hashRandomStreams`, `hashText`); `computeStateHash` itself composes
+them over the server records' `HASHED_FIELDS` lists in `packages/server/src/game/world/state-hash.ts`,
+beside the records it walks. Both lanes fold bytes with the one FNV-1a primitive in
 `hashing/fnv1a.ts`, which `hashLabel` shares. A `HashedField<T>` entry is a scalar field name
 or `{ key, hash }` for a nested value, so listing a field with the wrong shape is a type error.
 
-- Two independent 32-bit FNV-1a lanes over a **canonical walk**: `tick`, `seed`,
-  `roundPhase`, `roundTimeLeftMs`, then each array in order (`cells`, `food`, `dnaFragments`,
-  `players`, `gelPatches`, `spawners`, `random` streams in `SERVER_RANDOM_STREAM_LABELS` order), each record's
-  fields in the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
+- Two independent 32-bit FNV-1a lanes over a **canonical walk**: `tick`, `seed`, `roundStartTick`,
+  `roundPhase`, `roundTimeLeftMs`, `roundFirstEntityNumber`, then each array in order (`cells`,
+  `food`, `dnaFragments`, `players`, `wildSeats`, `gelPatches`), the two `spawners`, the `random`
+  streams in `SERVER_RANDOM_STREAM_LABELS` order, then `nextEntityNumber`; each record's fields in
+  the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
   (so `0`, `false`, `""` and `null` differ); numbers hash by their IEEE-754 bits (one shared
   `DataView`), strings by a length prefix then UTF-16 code units, booleans as 0/1, `null` as a
   marker byte; arrays and enum records by a length prefix then their items.
@@ -218,9 +220,13 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
 ```ts
 export interface Replay {
   version: number; // REPLAY_FORMAT_VERSION
+  startedBy: 'world_build' | 'rematch' | 'reseed'; // REPLAY_ORIGIN: what opened the recording
   seed: number; // the round seed the recording started from
+  startTick: number; // the tick counter continues across a rematch
+  nextEntityNumber: number; // the entity counter the round's world was built from (a rematch continues it)
   config: GameSessionConfig;
   balance: BalanceConfig; // the numbers the run used, so a live-tuned room still replays
+  roster: readonly PlayerIdentity[]; // who was present when the recording started, in join order
   membership: readonly ReplayMembershipEvent[]; // { tick, kind: 'join' | 'leave', playerId, playerName, avatarIndex }
   inputs: readonly ReplayInput[]; // { tick, playerId, input } — the coalesced input applied at that tick
   debugPatches: readonly ReplayDebugPatch[]; // debug_spawn / debug_grant_dna / debug_set_balance, stamped by tick
@@ -234,17 +240,26 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   stamped with the tick at which they were **applied**, so the log is exactly what the
   simulation saw (not what arrived).
 - **One replay = one round.** The auto-rematch and `debug_set_seed` end the current recording
-  (its `finalTick`/`finalHash` are the last tick before the reset) and start a new one from the
-  new seed; a replay never spans a reseed.
-- `replay()` builds a fresh world from `seed + config + balance`, feeds the log tick by tick,
-  and returns the final world and hash; callers assert `hash === recording.finalHash`.
+  and start a new one from the new seed, marked by `startedBy`; a replay never spans a reseed. The
+  rematch round closes at the rematch tick with the rebuilt world's hash (the reset happens inside
+  that step); a reseed closes with the hash of the tick before the streams were rebuilt. A recording
+  opened by a world build or a rematch replays from scratch; one opened by a `debug_set_seed`
+  records a world that kept running with rebuilt streams, so it is exported for inspection and
+  diffing and `replay()` refuses it (`ReplayOriginError`).
+- `replay()` builds a fresh world from `seed + config + balance + roster + nextEntityNumber`, feeds
+  the log tick by tick, then the events stamped for the tick after the last one (what was pending
+  when the recording was exported: they are already in `finalHash`), and returns the final world
+  and hash; callers assert `hash === recording.finalHash`.
+- Within one tick the log replays membership, then debug patches, then inputs, not arrival order:
+  a debug tool used in the same tick window as a join can change that join's entry (§8, #180).
 - Failing gameplay scenarios write their replay to `qa/replays/<scenario>.replay.json`;
   `debug_export_replay` exports a live room.
-- Until `game/replay/` lands with the module, the scenario runner (#75) keeps its own record of
-  the same shape at the harness level (`packages/server/src/testing/gameplay/replay-format.ts`:
-  seed, config, setup fixtures, membership, scheduled fixtures as `patches` (this record's
-  `debugPatches`) and inputs stamped by applied tick, hash checkpoints) and `verifyReplay`
-  replays it through the adapter; `TESTING.md` §8.2.
+- Two record shapes coexist on purpose: the module's `Replay` (rooms, `debug_export_replay`) and
+  the scenario runner's `ScenarioReplay` (`packages/server/src/testing/gameplay/replay-format.ts`:
+  seed, config, setup fixtures, membership, scheduled fixtures as `patches` and inputs stamped by
+  applied tick, hash checkpoints), which `verifyReplay` replays through the adapter (`TESTING.md`
+  §8.2). A scenario's fixtures are harness-level writes no module log records; the two share only
+  `indexByTick`.
 
 ## 7. What the tests assert
 
@@ -264,10 +279,10 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 | `client … cosmetic` (`cells/radial-profile.spec.ts`)    | same seed + same tick ⇒ same membrane profile `r(θ)` (`RENDERING.md §9`)                                                                                                                                   |
 | lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8`                                                   |
 
-The determinism integration test runs first against the **echo** module to prove the harness:
-the echo module has no `WorldState`, so there the harness hashes the bytes of
-`JSON.stringify(serializeRoomState())` with the same FNV lanes; once #98 lands it hashes
-`WorldState` through `computeStateHash`. A hash mismatch is always a bug in the simulation,
+The determinism integration test runs against the **echo** module to prove the harness (the
+echo module has no `WorldState`, so there the harness hashes the bytes of
+`JSON.stringify(serializeRoomState())` with the same FNV lanes) and against the Evolution module
+through the real room loop, hashing `WorldState` through `computeStateHash`. A hash mismatch is always a bug in the simulation,
 never a flaky test: bisect by hashing every tick and diffing the first divergent tick.
 
 ## 8. Known traps
@@ -287,3 +302,7 @@ never a flaky test: bisect by hashing every tick and diffing the first divergent
   kernel a frame delta or more than one input per tick breaks reconciliation.
 - Reading a tunable from `constants/` inside a system instead of `context.balance` makes
   `debug_set_balance` and a replayed `balance` silently disagree with the live run.
+- The module's replay log orders a tick's events by kind (membership, debug patches, inputs), not
+  by arrival: a `debug_set_balance` / `debug_grant_dna` / `debug_set_player` in the same tick
+  window as a late join replays before the join even when it arrived after it, and that join's
+  entry mass, medians and placement can differ. #180 stamps a sequence beside the tick.

@@ -214,6 +214,14 @@ describe('game-room: membership and delegation', () => {
     expect(sent['p1']).toContainEqual({ type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId: 'bot_1_0' });
   });
 
+  it('broadcastBalanceUpdated sends every connection the balance of the full state', () => {
+    const sent: Record<string, unknown[]> = {};
+    const room = new GameRoom(createSpyGameModule(), roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
+    room.broadcastBalanceUpdated();
+    expect(sent['p1']).toEqual([{ type: SERVER_MESSAGE_TYPE.balanceUpdated, balance: DEFAULT_BALANCE }]);
+  });
+
   it("getFullState returns the module's serializeFullState verbatim", () => {
     const gameModule = createSpyGameModule();
     const fullState: FullGameState = { snapshot: createTestSnapshot({ tick: 7 }), balance: DEFAULT_BALANCE };

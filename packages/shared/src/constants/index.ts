@@ -6,6 +6,7 @@ export * from './lobby.js';
 export * from './identity.js';
 export * from './debug.js';
 export * from './simulation.js';
+export * from './netcode.js';
 export * from './world.js';
 export * from './session.js';
 export * from './world-clock.js';

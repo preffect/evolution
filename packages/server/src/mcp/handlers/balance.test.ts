@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import { registerBalanceTools } from './balance.js';
 import { createActiveRoomFixture, createDebugCapableGameModule, parseToolJson } from '../../testing/builders.js';
 
@@ -29,6 +30,14 @@ describe('debug_set_balance', () => {
     const result = await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch });
     expect(parseToolJson(result)).toEqual({ ecology: { foodCapBase: 900 } });
     expect(fixture.handle.patchBalance).toHaveBeenCalledWith(patch);
+    fixture.stop();
+  });
+
+  it("announces the module's live balance to every client as balance_updated", async () => {
+    const fixture = capableFixture();
+    await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch: { ecology: { foodCapBase: 900 } } });
+    const balance = fixture.room.getFullState().balance;
+    expect(fixture.sent['alice']).toContainEqual({ type: SERVER_MESSAGE_TYPE.balanceUpdated, balance });
     fixture.stop();
   });
 });

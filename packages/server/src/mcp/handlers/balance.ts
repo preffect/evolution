@@ -9,7 +9,10 @@ const BALANCE_PATCH_SCHEMA: z.ZodType<BalancePatch> = z.lazy(() =>
   z.record(z.union([z.number(), BALANCE_PATCH_SCHEMA])),
 );
 
-/** Live tuning: read the balance a room simulates with and patch its number leaves. */
+/**
+ * Live tuning: read the balance a room simulates with and patch its number leaves. A patch is
+ * announced to every player as `balance_updated` (docs/ARCHITECTURE.md §4).
+ */
 export function registerBalanceTools(mcp: McpServer, context: DebugContext): void {
   registerCapabilityTool(mcp, context, {
     name: 'debug_get_balance',
@@ -23,6 +26,10 @@ export function registerBalanceTools(mcp: McpServer, context: DebugContext): voi
     description: 'Patch number leaves of the live balance of a game (e.g. { ecology: { FOOD_CAP_BASE: 900 } })',
     capability: 'patchBalance',
     schema: { gameId: GAME_ID_ARGUMENT, patch: BALANCE_PATCH_SCHEMA.describe('Nested record of number leaves') },
-    run: (handle, input) => handle.patchBalance(input.patch),
+    run: (handle, input, room) => {
+      const balance = handle.patchBalance(input.patch);
+      room.broadcastBalanceUpdated();
+      return balance;
+    },
   });
 }

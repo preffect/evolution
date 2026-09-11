@@ -1,4 +1,4 @@
-// The build-1 bot strategies (docs/TESTING.md §8.4), re-exported from their production home
+// The build-1 bot strategies (docs/TESTING.md §8.3), re-exported from their production home
 // (`game/bots/`) plus the scenario-only script sequence: what a scenario file imports.
 export {
   createScriptedStrategy,

@@ -9,7 +9,7 @@ import { ScenarioSetupError } from './errors.js';
 import { eastOfCellOf, toAnchor, ZONE, type PlacementAnchor } from './placement.js';
 
 /** A seeded gel patch this close to the broth point invalidates the seed for placed rows. */
-export const GEL_PATCH_CLEARANCE_WU = 350;
+export const GEL_PATCH_CLEARANCE_WU = 600;
 /** The zone × trait decay multiplier when nothing modifies decay. */
 export const DEFAULT_DECAY_MULTIPLIER = 1;
 /** TRAITS §2: every trait has tiers I, II and III; a fixture-granted trait is tier I unless the row says. */

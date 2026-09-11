@@ -1,0 +1,126 @@
+// docs/DETERMINISM.md §6, §7: a room on the Evolution module records joins, inputs and debug
+// patches as it runs; `debug_export_replay`'s export replayed from scratch reproduces the room's
+// `finalHash`, and `debug_set_seed` closes that round (still replayable) and opens a new recording
+// from the new seed over the running world. Run with `./validate.sh integration`.
+import { describe, expect, it } from 'vitest';
+import {
+  DEFAULT_BALANCE,
+  ENTITY_KIND,
+  TICK_INTERVAL_MS,
+  createTestGameInput,
+  createTestSessionConfig,
+  playerId,
+  secondsToTicks,
+} from '@evolution/shared';
+import { GameRoom } from '../../lobby/game-room.js';
+import { createManualRoomTiming, createTestRoomInitOptions } from '../../testing/builders.js';
+import { createEvolutionModule, type EvolutionModule } from '../evolution-module.js';
+import { REPLAY_ORIGIN, type Replay } from './replay-format.js';
+import { replay, ReplayOriginError } from './replay-runner.js';
+
+const SEED = 42;
+const RESEED = 99;
+const TICKS_BEFORE_RESEED = 120;
+const TICKS_AFTER_RESEED = 90;
+const JOIN_TICK = 30;
+const SPAWN_TICK = 60;
+const GRANT_TICK = 75;
+const INPUT_EVERY_TICKS = 7;
+const ALICE = playerId('alice');
+const BOB = playerId('bob');
+const CID = playerId('cid');
+
+function roomUnderTest() {
+  const options = createTestRoomInitOptions([ALICE, BOB], { config: createTestSessionConfig({ seed: SEED }) });
+  const module: EvolutionModule = createEvolutionModule(options);
+  const timing = createManualRoomTiming();
+  const room = new GameRoom(module, options, timing);
+  room.start();
+  const handle = module.getDebugHandle();
+  const step = (tick: number) => {
+    if (tick === JOIN_TICK) module.addPlayer(CID, 2, 'Cid');
+    if (tick === SPAWN_TICK) handle.spawn({ kind: ENTITY_KIND.foodMote, x: 100, y: 100, params: { kind: 'algae' } });
+    if (tick === GRANT_TICK) handle.grantDna(ALICE, { dna: 30, tags: ['predatory'] });
+    if (tick % INPUT_EVERY_TICKS === 0) {
+      room.submitInput(ALICE, createTestGameInput({ sequence: tick, targetX: 1500, targetY: tick }));
+    }
+    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
+    timing.ticker.fire();
+  };
+  return { module, room, handle, step, stop: () => room.stop() };
+}
+
+/** A round short enough to rematch inside a test: 60 s of play, 20 s of results, then the new round. */
+const SHORT_ROUND_SECONDS = 60;
+const TICKS_INTO_THE_REMATCH = 10;
+
+describe('replaying what a room recorded', () => {
+  it('reproduces a recording exported between ticks, with an input and a join still pending', () => {
+    const { module, room, handle, step, stop } = roomUnderTest();
+    for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) step(tick);
+    room.submitInput(ALICE, createTestGameInput({ sequence: TICKS_BEFORE_RESEED + 1, targetX: 0, targetY: 0 }));
+    module.addPlayer(playerId('dee'), 3, 'Dee');
+    const recording = handle.exportReplay() as Replay;
+    stop();
+    expect(recording.inputs.at(-1)?.tick).toBe(TICKS_BEFORE_RESEED + 1);
+    expect(recording.membership.at(-1)?.tick).toBe(TICKS_BEFORE_RESEED + 1);
+    expect(replay(recording).hash).toBe(recording.finalHash);
+  });
+
+  it('reproduces the recording a rematch opened (the entity counter continues)', () => {
+    const options = createTestRoomInitOptions([ALICE, BOB], {
+      config: createTestSessionConfig({ seed: SEED, roundDurationSeconds: SHORT_ROUND_SECONDS }),
+    });
+    const module = createEvolutionModule(options);
+    const timing = createManualRoomTiming();
+    const room = new GameRoom(module, options, timing);
+    room.start();
+    const roundTicks = secondsToTicks(SHORT_ROUND_SECONDS + DEFAULT_BALANCE.session.RESULTS_SCREEN_SECONDS);
+    for (let tick = 1; tick <= roundTicks + TICKS_INTO_THE_REMATCH; tick += 1) {
+      if (tick % INPUT_EVERY_TICKS === 0)
+        room.submitInput(BOB, createTestGameInput({ sequence: tick, targetX: -tick, targetY: 0 }));
+      timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
+      timing.ticker.fire();
+    }
+    const recording = module.getDebugHandle().exportReplay() as Replay;
+    room.stop();
+    expect(recording.startedBy).toBe(REPLAY_ORIGIN.rematch);
+    expect(recording.startTick).toBe(roundTicks);
+    expect(recording.seed).toBe(SEED + DEFAULT_BALANCE.session.ROUND_SEED_INCREMENT);
+    expect(recording.nextEntityNumber).toBeGreaterThan(1);
+    expect(replay(recording).hash).toBe(recording.finalHash);
+  });
+
+  it('reproduces the final hash of a run with a late join, inputs and debug patches', () => {
+    const { handle, step, stop } = roomUnderTest();
+    for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) step(tick);
+    const recording = handle.exportReplay() as Replay;
+    stop();
+    expect(recording.finalTick).toBe(TICKS_BEFORE_RESEED);
+    expect(recording.membership.map((event) => [event.kind, event.tick])).toEqual([['join', JOIN_TICK]]);
+    expect(recording.debugPatches.map((patch) => patch.tick)).toEqual([SPAWN_TICK, GRANT_TICK]);
+    expect(recording.inputs.length).toBeGreaterThan(0);
+    const replayed = replay(recording);
+    expect(replayed.hash).toBe(recording.finalHash);
+    expect(replayed.world.players.map((player) => player.playerId)).toEqual([ALICE, BOB, CID]);
+  });
+
+  it('a reseed closes the round at the tick before it (replayable) and starts a new recording from the new seed', () => {
+    const { module, handle, step, stop } = roomUnderTest();
+    for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) step(tick);
+    const closed = handle.exportReplay() as Replay;
+    handle.reseed(RESEED);
+    for (let tick = TICKS_BEFORE_RESEED + 1; tick <= TICKS_BEFORE_RESEED + TICKS_AFTER_RESEED; tick += 1) step(tick);
+    const current = handle.exportReplay() as Replay;
+    stop();
+    expect(replay(closed).hash).toBe(closed.finalHash);
+    expect(module.world.seed).toBe(RESEED);
+    expect(current.seed).toBe(RESEED);
+    expect(current.startTick).toBe(TICKS_BEFORE_RESEED);
+    expect(current.membership).toEqual([]);
+    expect(current.finalTick).toBe(TICKS_BEFORE_RESEED + TICKS_AFTER_RESEED);
+    expect(current.finalHash).not.toBe(closed.finalHash);
+    expect(current.startedBy).toBe(REPLAY_ORIGIN.reseed);
+    expect(() => replay(current)).toThrow(ReplayOriginError);
+  });
+});

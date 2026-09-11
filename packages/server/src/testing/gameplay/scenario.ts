@@ -105,15 +105,18 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     return this.fixturesAt(SETUP_TICK).place(fixture);
   }
 
-  placeCell(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>, options: PlaceCellOptions): typeof this {
+  placeCell(this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>, options: PlaceCellOptions): typeof this {
     return this.fixturesAt(SETUP_TICK).placeCell(options);
   }
 
-  placeMote(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>, options: PlaceMoteOptions): typeof this {
+  placeMote(this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>, options: PlaceMoteOptions): typeof this {
     return this.fixturesAt(SETUP_TICK).placeMote(options);
   }
 
-  placeFragment(this: ScenarioBuilder<Input, Snapshot, PlacedFixture>, options: PlaceFragmentOptions): typeof this {
+  placeFragment(
+    this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>,
+    options: PlaceFragmentOptions,
+  ): typeof this {
     return this.fixturesAt(SETUP_TICK).placeFragment(options);
   }
 
