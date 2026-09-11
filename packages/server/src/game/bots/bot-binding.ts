@@ -5,7 +5,7 @@
 // The echo binding is the template's: no cells, nothing to see, and the echo's own input
 // mapping. It is typed over `unknown` because the echo has no snapshot shape worth naming: the
 // same binding serves the in-process roster (fed `EchoSnapshot`) and the over-the-wire client
-// (fed the wire `GameSnapshot`). #98 adds the Evolution binding.
+// (fed the wire `GameSnapshot`). The Evolution binding is `evolution-binding.ts`.
 
 import type { GameInput, PlayerId } from '@evolution/shared';
 import type { PlayerCommand } from './bot-strategy.js';
@@ -34,11 +34,15 @@ export function locateCellThrough<Snapshot>(
   };
 }
 
-/** A command without a target aims at the origin; the Evolution binding (#98) keeps the latched target instead. */
+/**
+ * A command without a target aims at the origin: the wire has no "keep the latched target" input
+ * (`targetX` / `targetY` are required, docs/ARCHITECTURE.md §4), so a script that wants to hold
+ * still targets the cell's own centre.
+ */
 const ORIGIN = 0;
 
-/** The wire input for a command: what the echo stores, and what the schema would accept. */
-export function toEchoInput(playerCommand: PlayerCommand, sequence: number): GameInput {
+/** The one mapping from a game-term command to the wire `GameInput`: both bindings share it. */
+export function toWireInput(playerCommand: PlayerCommand, sequence: number): GameInput {
   return {
     sequence,
     targetX: playerCommand.targetX ?? ORIGIN,
@@ -52,5 +56,5 @@ export const echoBotBinding: BotWorldBinding<GameInput, unknown> = {
   name: 'echo',
   perception: NO_WORLD_PERCEPTION,
   locateCell: locateCellThrough(NO_WORLD_PERCEPTION),
-  toInput: toEchoInput,
+  toInput: toWireInput,
 };

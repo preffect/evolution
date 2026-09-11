@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTestBotCell, createTestBotIdentity, createTestPerception } from '../../testing/bot-builders.js';
-import { echoBotBinding, locateCellThrough, toEchoInput } from './bot-binding.js';
+import { echoBotBinding, locateCellThrough, toWireInput } from './bot-binding.js';
 
 describe('locateCellThrough', () => {
   it("narrows the perception's own cell to a location and passes an absent cell through", () => {
@@ -11,11 +11,11 @@ describe('locateCellThrough', () => {
   });
 });
 
-describe('toEchoInput', () => {
+describe('toWireInput', () => {
   it('maps a command to the wire input, aiming at the origin and holding no choice when unsaid', () => {
-    expect(toEchoInput({}, 3)).toEqual({ sequence: 3, targetX: 0, targetY: 0, shouldSprint: false, traitChoice: null });
+    expect(toWireInput({}, 3)).toEqual({ sequence: 3, targetX: 0, targetY: 0, shouldSprint: false, traitChoice: null });
     const choice = { offerId: 1, cardIndex: 2 };
-    expect(toEchoInput({ targetX: 3, targetY: 4, isSprinting: true, traitChoice: choice }, 7)).toEqual({
+    expect(toWireInput({ targetX: 3, targetY: 4, isSprinting: true, traitChoice: choice }, 7)).toEqual({
       sequence: 7,
       targetX: 3,
       targetY: 4,
@@ -32,7 +32,7 @@ describe('echo bot binding', () => {
 
   it('maps a command with the echo input mapping, sequence included', () => {
     const command = { targetX: 3, targetY: 4, isSprinting: true };
-    expect(echoBotBinding.toInput(command, 7)).toEqual(toEchoInput(command, 7));
+    expect(echoBotBinding.toInput(command, 7)).toEqual(toWireInput(command, 7));
   });
 
   it('sees nothing and lets nothing be engulfed', () => {

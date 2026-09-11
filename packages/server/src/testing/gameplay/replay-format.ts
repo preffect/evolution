@@ -57,16 +57,4 @@ export interface ScenarioReplay<Fixture = unknown> {
   readonly finalHash: StateHash;
 }
 
-/** Buckets tick-stamped events once, so a replay looks a step up in O(1) instead of scanning the log. */
-export function indexByTick<Event extends { readonly tick: number }>(events: readonly Event[]): Map<number, Event[]> {
-  const byTick = new Map<number, Event[]>();
-  for (const event of events) {
-    const bucket = byTick.get(event.tick);
-    if (bucket === undefined) {
-      byTick.set(event.tick, [event]);
-    } else {
-      bucket.push(event);
-    }
-  }
-  return byTick;
-}
+export { indexByTick } from '../../game/replay/index-by-tick.js';

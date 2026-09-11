@@ -13,7 +13,7 @@ import { ScenarioSetupError } from './errors.js';
 import { createFileReplaySink } from './replay-sink.js';
 import { createScenarioDsl } from './scenario.js';
 
-export { toEchoInput } from '../../game/bots/bot-binding.js';
+export { toWireInput } from '../../game/bots/bot-binding.js';
 export type { EchoSnapshot } from '../../game/game-module.js';
 
 const NO_WORLD = 'the echo module has no world';
