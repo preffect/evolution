@@ -6,8 +6,9 @@
 #   scripts/docs-index.sh --check    # exit 1 when the committed docs/INDEX.md is stale (run by ./validate.sh lint)
 #
 # A section's range runs from its heading to the line before the next heading of the same or a higher level.
-# Headings inside fenced code blocks are ignored. Output is passed through prettier when it is installed so the
-# committed file matches `prettier --check`.
+# Headings inside fenced code blocks (``` or ~~~, at any indent) are ignored. Output is passed through prettier so the
+# committed file matches `prettier --check`; without node_modules the generator writes unformatted output and --check
+# reports that it could not check rather than a false stale.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,10 +24,10 @@ index_one_document() {
       for (i = 1; i <= count; i++) {
         end = NR
         for (j = i + 1; j <= count; j++) if (level[j] <= level[i]) { end = line[j] - 1; break }
-        printf "- %s**%s** (L%d–%d)%s\n", indent[i], title[i], line[i], end, (summary[i] == "" ? "" : ": " summary[i])
+        printf "%s- **%s** (L%d–%d)%s\n", indent[i], title[i], line[i], end, (summary[i] == "" ? "" : ": " summary[i])
       }
     }
-    /^```/ { fenced = !fenced; next }
+    /^[[:space:]]*(```|~~~)/ { fenced = !fenced; next }
     fenced { next }
     /^#{1,6} / {
       count++
@@ -79,8 +80,10 @@ generate() {
   done
 }
 
+have_prettier() { (cd "$repo_root" && command -v pnpm >/dev/null && [[ -d node_modules ]]); }
+
 format() {
-  if (cd "$repo_root" && command -v pnpm >/dev/null && [[ -d node_modules ]]); then
+  if have_prettier; then
     (cd "$repo_root" && pnpm --silent exec prettier --stdin-filepath docs/INDEX.md)
   else
     cat
@@ -88,6 +91,10 @@ format() {
 }
 
 if [[ "${1:-}" == "--check" ]]; then
+  if ! have_prettier; then
+    echo "docs/INDEX.md freshness not checked: prettier is not installed here (run pnpm install)" >&2
+    exit 0
+  fi
   if diff -u "$index_file" <(generate | format) >/dev/null 2>&1; then
     echo "docs/INDEX.md is up to date"
   else
