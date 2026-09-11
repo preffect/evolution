@@ -13,3 +13,10 @@ export type LevelCostBalance = Pick<
 export function levelUpCost(level: number, balance: LevelCostBalance): number {
   return balance.LEVEL_UP_COST_BASE_DNA + balance.LEVEL_UP_COST_PER_LEVEL_DNA * level;
 }
+
+/** Cumulative DNA at which `level` is reached: the sum of every cost below it (0 at level 1). */
+export function cumulativeDnaForLevel(level: number, balance: LevelCostBalance): number {
+  let total = 0;
+  for (let reached = 1; reached < level; reached += 1) total += levelUpCost(reached, balance);
+  return total;
+}

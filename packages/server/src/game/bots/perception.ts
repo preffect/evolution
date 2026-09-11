@@ -4,15 +4,17 @@
 // `shared/simulation/engulf-eligibility.ts`) over the live absorption balance so a bot never
 // carries its own copy of the ratio rule. The echo module has no world: `NO_WORLD_PERCEPTION`.
 // The one place a player identity is assumed is `ownCellOf`; #156's wild cells (non-player
-// cells that wander, flee and hunt by era) swap that single function for an entity-id lookup
-// and add `flee` to the catalogue without touching the strategy shape.
+// cells that wander, flee and hunt by era, `playerId: null` on the view) swap that single
+// function for an entity-id lookup and add `flee` to the catalogue without touching the
+// strategy shape.
 
 import { distanceBetween, type PlayerId } from '@evolution/shared';
 
 /** The fields of a cell a strategy reads; a subset of the wire `CellView`, so a view satisfies it as is. */
 export interface BotCellView {
   readonly id: string;
-  readonly playerId: PlayerId;
+  /** Null for a wild cell (ECOLOGY §3.3): a strategy may hunt or flee it, never own it. */
+  readonly playerId: PlayerId | null;
   readonly x: number;
   readonly y: number;
   readonly mass: number;
@@ -20,6 +22,9 @@ export interface BotCellView {
   /** The folded Cell Wall bonus the shared predicate reads on the prey side. */
   readonly membraneRatioBonus: number;
 }
+
+/** A cell a player owns: what `ownCellOf` returns and what a fixture places for a bot. */
+export type PlayerBotCellView = BotCellView & { readonly playerId: PlayerId };
 
 /** Where a player's cell is and how big; what "target N radii east" is measured from. */
 export type CellLocation = Pick<BotCellView, 'x' | 'y' | 'radius'>;

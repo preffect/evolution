@@ -1,13 +1,17 @@
 // Food kinds, spawners, zones and decay (docs/ECOLOGY.md §1–§4, §7). Weight tables are keyed by
 // the ids of types/game.ts; the spawner draws from them by id, never by a switch.
 
-import { BACTERIUM_VARIANT, DNA_TAG, ENTITY_KIND, FOOD_KIND, ZONE_ID } from '../types/game.js';
-import type { BacteriumVariant, DnaTag, ZoneId } from '../types/game.js';
+import { BACTERIUM_VARIANT, CELL_STAGE, DNA_TAG, ENTITY_KIND, FOOD_KIND, ZONE_ID } from '../types/game.js';
+import type { BacteriumVariant, CellStage, DnaTag, ZoneId } from '../types/game.js';
 
 /** Kinds the spawner draws; detritus only drops from dead cells. */
 export type SpawnedKind = typeof FOOD_KIND.algae | typeof FOOD_KIND.bacterium | typeof ENTITY_KIND.dnaFragment;
 /** Zones a spawn point is drawn in; a gel patch is part of the broth for spawning. */
 export type SpawnZoneId = Exclude<ZoneId, typeof ZONE_ID.viscousGel>;
+/** The two kinds the spawner draws between; their shares change with the world stage (§3.2). */
+export type FoodKindWeights = Record<typeof FOOD_KIND.algae | typeof FOOD_KIND.bacterium, number>;
+/** The zones whose variant row never changes: a trip is always a trip (§3.2). */
+export type TripZoneId = typeof ZONE_ID.warmVent | typeof ZONE_ID.sunlitShallows;
 
 // ---- food kinds (§1) ----
 export const ALGAE_MASS = 1;
@@ -42,23 +46,39 @@ export const DNA_FRAGMENT_RADIUS = 9;
 /** Slow drift (wu/s). */
 export const DNA_FRAGMENT_DRIFT_SPEED = 10;
 
-// ---- spawn model (§3) ----
-/** Per-mote shares; the cluster-adjusted event weights are derived in the spawner. */
-export const FOOD_KIND_WEIGHTS: Record<typeof FOOD_KIND.algae | typeof FOOD_KIND.bacterium, number> = {
-  algae: 0.75,
-  bacterium: 0.25,
+// ---- spawn model (§3, by world stage §3.2) ----
+/** Per-mote shares by world stage; the cluster-adjusted event weights are derived in the spawner. */
+export const FOOD_KIND_WEIGHTS_BY_WORLD_STAGE: Record<CellStage, FoodKindWeights> = {
+  [CELL_STAGE.protocell]: { algae: 0.75, bacterium: 0.25 },
+  [CELL_STAGE.prokaryote]: { algae: 0.7, bacterium: 0.3 },
+  [CELL_STAGE.endosymbiosis]: { algae: 0.6, bacterium: 0.4 },
+  [CELL_STAGE.eukaryote]: { algae: 0.5, bacterium: 0.5 },
+  [CELL_STAGE.specialised]: { algae: 0.5, bacterium: 0.5 },
+};
+/**
+ * The broth's (and gel's) share of organelle-carrying bacteria by world stage: plain = 1 − share,
+ * aerobic = photosynthetic = share / 2 (derived in simulation/bacterium-variant-weights.ts).
+ */
+export const BROTH_VARIANT_SHARE_BY_WORLD_STAGE: Record<CellStage, number> = {
+  [CELL_STAGE.protocell]: 0,
+  [CELL_STAGE.prokaryote]: 0.2,
+  [CELL_STAGE.endosymbiosis]: 0.4,
+  [CELL_STAGE.eukaryote]: 0.6,
+  [CELL_STAGE.specialised]: 0.6,
 };
 export const FOOD_ZONE_WEIGHTS_BY_KIND: Record<SpawnedKind, Record<SpawnZoneId, number>> = {
   [FOOD_KIND.algae]: { [ZONE_ID.sunlitShallows]: 0.7, [ZONE_ID.openBroth]: 0.25, [ZONE_ID.warmVent]: 0.05 },
   [FOOD_KIND.bacterium]: { [ZONE_ID.warmVent]: 0.6, [ZONE_ID.openBroth]: 0.3, [ZONE_ID.sunlitShallows]: 0.1 },
   [ENTITY_KIND.dnaFragment]: { [ZONE_ID.warmVent]: 0.4, [ZONE_ID.openBroth]: 0.4, [ZONE_ID.sunlitShallows]: 0.2 },
 };
-/** A vent trip is the mitochondrion, a shallows trip the chloroplast; gel uses the broth row. */
-export const BACTERIUM_VARIANT_WEIGHTS_BY_ZONE: Record<ZoneId, Record<BacteriumVariant, number>> = {
+/**
+ * The fixed trip rows: a vent trip is the mitochondrion, a shallows trip the chloroplast. The
+ * broth and gel rows follow the world stage (`BROTH_VARIANT_SHARE_BY_WORLD_STAGE`), so they are
+ * derived, never declared here.
+ */
+export const BACTERIUM_VARIANT_WEIGHTS_BY_ZONE: Record<TripZoneId, Record<BacteriumVariant, number>> = {
   [ZONE_ID.warmVent]: { plain: 0.3, aerobic: 0.7, photosynthetic: 0 },
   [ZONE_ID.sunlitShallows]: { plain: 0.3, aerobic: 0, photosynthetic: 0.7 },
-  [ZONE_ID.openBroth]: { plain: 0.6, aerobic: 0.2, photosynthetic: 0.2 },
-  [ZONE_ID.viscousGel]: { plain: 0.6, aerobic: 0.2, photosynthetic: 0.2 },
 };
 export const FOOD_CAP_BASE = 600;
 export const FOOD_CAP_PER_PLAYER = 100;

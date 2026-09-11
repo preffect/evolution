@@ -162,6 +162,10 @@ it('E9: A absorbs B on tick 30', () => {
   `patches`. Placing anything means the adapter disables the initial fill and both spawners for
   that run, and fails the scenario when a seeded gel patch lies within `GEL_PATCH_CLEARANCE_WU`
   of the broth point (`isClearOfGelPatches`; pick another seed, never tolerate it).
+  **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ECOLOGY §8.1: the W rows
+  and G13) sets wild seat `seat`'s spread factor, places or replaces its cell (default: east of
+  the first placed cell) and clears the seat's target and velocity as a respawn does, so the seat
+  has no target until its next decision tick; it schedules with `.atTick(T)` like any placement.
 - **Inputs.** "At tick T" means submitted between tick T − 1 and tick T, so step T applies it
   (inputs apply at tick boundaries; tick 0 is the initial state, so inputs start at tick 1).
   `.atTick(T, player(i).does(script))` fires once; `.from(T, …)` every step from T;
@@ -212,7 +216,7 @@ advanced tick (an expectation, a capture, a script window, a join, a leave, a sc
 fixture): a test that could never fail is not a test. So "After N ticks" is the run length and
 must cover the largest assertion tick (G7 says "After 2 ticks" but asserts at 31, 100 and 181:
 `.advance(181)`). "Joins before tick 6000 steps" is `playerJoinsAt(6000)` and "join + 1" is
-`.atTick(6000)` (P7's 99.997 is one decay tick after placement, so join + 1 _is_ 6000). "The
+`.atTick(6000)` (P7's 199.994 is one decay tick after placement, so join + 1 _is_ 6000). "The
 fixture calls `removePlayer` at tick 2400" is `playerLeavesAt(2400, i)`; the cell's last
 observable state is tick 2399 (capture it there). "Fixture sets A.mass = 23 before tick 10" is
 `.atTick(10).placeCell({ playerIndex: 0, mass: 23 })`. "Idle" is no script at all.

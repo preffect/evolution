@@ -9,7 +9,7 @@ below hold the numbers for their domain (one fact, one home).
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------- |
 | this file                              | Core fantasy, the evolution ladder, loop, session model, controls, camera, dish, win/lose, constants      | #22, #29      |
 | [`ECOLOGY.md`](./ECOLOGY.md)           | Food kinds and bacterium variants, zones, spawn model, decay, mass/speed curves, mitosis, absorption      | #23, #26, #27 |
-| [`PROGRESSION.md`](./PROGRESSION.md)   | DNA, tags, level thresholds, draft rules filtered by the ladder, late-join catch-up                       | #24           |
+| [`PROGRESSION.md`](./PROGRESSION.md)   | DNA, tags, level thresholds, draft rules filtered by the ladder, entering the dish (late join, respawn)   | #24           |
 | [`TRAITS.md`](./TRAITS.md)             | Modifier model, the sixteen build-1 traits (organelles and forms) mapped onto the ladder, later traits    | #25           |
 | [`VISUAL-STYLE.md`](./VISUAL-STYLE.md) | Palette, cell layer stack, organelle vocabulary, motion language, legibility at play scale, render intent | #34           |
 | [`UI.md`](./UI.md)                     | HUD, overlays, onboarding beats, input mapping, readability rules, Angular component plan                 | #30           |
@@ -32,8 +32,12 @@ organelles climb biology's own ladder: a nucleoid, a flagellum, a wall; a mitoch
 chloroplast stolen by engulfing the bacterium that carries it; a nuclear envelope, a cytoskeleton,
 vacuoles, cilia; and finally one of the great single-cell forms (amoeba, paramecium, euglena,
 diatom, stentor). What you eat shapes what you become: the traits offered at each level-up are
-weighted by the DNA you absorbed. Bigger cells engulf smaller ones. Build 1 is one cell, one round,
-one leaderboard; colonies and multicellular life are build 2.
+weighted by the DNA you absorbed. Bigger cells engulf smaller ones. You are not alone: the dish is
+populated by **wild cells** at your own scale, and the world they make up evolves on its own clock,
+from a broth of protocells to a food web of nucleated hunters, whether you keep up or not. The round
+is a race against that average: outgrow the world and it is lunch, fall behind and it eats you
+(section 5.5). Build 1 is one cell, one round, one leaderboard; colonies and multicellular life are
+build 2.
 
 ## 3. The evolution ladder
 
@@ -109,6 +113,13 @@ Rules (home of the pure functions: `packages/server/src/game/progression/ladder.
   protocell is a fat one (mass ~200, radius ~57 wu) that already hunts.
 - **Build 2** adds colonies and multicellular organisms above `specialised`; they are not stages of
   this enum (a colony is several cells), so the enum is closed for build 1.
+- **The world climbs the same ladder.** The world clock ([`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock))
+  gives the dish itself a `worldStage` from this enum: the stage of the world's own picks,
+  `stageOf` of wild build 0's first floor(`worldLevel`) − 1 traits (protocell 0:00, prokaryote 3:00,
+  endosymbiosis 6:00, eukaryote 9:00 in a 600 s round; `eukaryote` spans levels 4 and 5, because the
+  fifth pick is a form's prerequisite and the form itself is the sixth); the wild cells wear that
+  stage's organelles, and a player's standing is read against it (section 5.5). Late joiners and
+  respawns enter the ladder no lower than the world's level (section 5.2, [`PROGRESSION.md §5`](./PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)).
 
 ## 4. Moment-to-moment loop
 
@@ -126,17 +137,18 @@ Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
 
 ## 5. Session structure (#29)
 
-| Decision            | Build 1 value                                                                                        |
-| ------------------- | ---------------------------------------------------------------------------------------------------- |
-| Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.            |
-| Players per room    | 1 to `MAX_PLAYERS_PER_GAME` = 8 (the template's constant, `constants/lobby.ts`). Solo play is valid. |
-| Round length        | `ROUND_DURATION_SECONDS` = 600, set at create time.                                                  |
-| Round end           | Timer only. Dominant-organism and DNA-target end conditions are reserved (`endCondition`).           |
-| Late join           | Allowed at any time; catch-up rules in [`PROGRESSION.md`](./PROGRESSION.md#5-late-join-catch-up).    |
-| Death               | Engulfed cell spectates `RESPAWN_SPECTATE_SECONDS` = 3, then respawns (section 5.2).                 |
-| Leaderboard         | Ranked by `score` (section 5.3); shows mass, level, absorptions alongside.                           |
-| Results and rematch | Results screen `RESULTS_SCREEN_SECONDS` = 20, then an automatic new round (section 5.4).             |
-| Alliances / teams   | None in build 1. Reserved.                                                                           |
+| Decision            | Build 1 value                                                                                                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.                                                                 |
+| Players per room    | 1 to `MAX_PLAYERS_PER_GAME` = 8 (the template's constant, `constants/lobby.ts`). Solo play is valid.                                                      |
+| Round length        | `ROUND_DURATION_SECONDS` = 600, set at create time.                                                                                                       |
+| Round end           | Timer only. Dominant-organism and DNA-target end conditions are reserved (`endCondition`).                                                                |
+| Late join           | Allowed at any time; the joiner enters at the world's level at least ([`PROGRESSION.md §5`](./PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)). |
+| Death               | Engulfed cell spectates `RESPAWN_SPECTATE_SECONDS` = 3, then respawns at the world's level at least (section 5.2).                                        |
+| World clock         | The dish climbs the ladder on its own: one world level per `WORLD_LEVEL_SECONDS` = 180 (section 5.5).                                                     |
+| Leaderboard         | Ranked by `score` (section 5.3); shows mass, level, absorptions alongside.                                                                                |
+| Results and rematch | Results screen `RESULTS_SCREEN_SECONDS` = 20, then an automatic new round (section 5.4).                                                                  |
+| Alliances / teams   | None in build 1. Reserved.                                                                                                                                |
 
 ### 5.1 Round timeline and pace curve
 
@@ -170,12 +182,18 @@ document makes. Acceptance scenarios that need a specialised cell grant the form
   cell with mass ≥ `SAFE_SPAWN_THREAT_MASS_RATIO` × `CELL_STARTING_MASS` lies within
   `SAFE_SPAWN_RADIUS`. After `SAFE_SPAWN_MAX_ATTEMPTS` rejections the candidate farthest from the
   nearest threat is used.
-- **Death** = being fully engulfed ([`ECOLOGY.md`](./ECOLOGY.md#6-absorption-and-engulf)). The victim
-  keeps level, traits and stage, loses all mass and `(1 − dnaKeptOnDeathFraction)` of its
-  `dnaTowardNextLevel` (the Nuclear Envelope keeps part of it, [`TRAITS.md §3.7`](./TRAITS.md)),
-  spectates the killer for `RESPAWN_SPECTATE_SECONDS`, then respawns at `CELL_STARTING_MASS` via safe
-  placement. The cell entity is removed the tick it is absorbed; the player's `lifeState` is the only
-  record of death ([`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram)).
+- **Death** = being fully engulfed ([`ECOLOGY.md`](./ECOLOGY.md#6-absorption-and-engulf)), by a
+  player or by a wild cell. The victim keeps level, traits and stage, loses all mass and
+  `(1 − dnaKeptOnDeathFraction)` of its `dnaTowardNextLevel` (the Nuclear Envelope keeps part of it,
+  [`TRAITS.md §3.7`](./TRAITS.md)), spectates the killer (`spectatingCellId`: a wild killer has no
+  player) for `RESPAWN_SPECTATE_SECONDS`, then respawns via safe placement **through the entry rule**
+  ([`PROGRESSION.md §5`](./PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)): a player below
+  the world's level is lifted to it (a score-neutral gift, drafts queued; the stage still needs its gates,
+  [`PROGRESSION.md §5`](./PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)), a player at or above it
+  keeps its own, and the respawn mass is `ENTRY_MASS_FRACTION` of the world's mass clamped to
+  [`CELL_STARTING_MASS`, `ENTRY_MAX_MASS`] (20 in the first minutes, 200 from 6:20 on: 0.5 × 410 clamps to `ENTRY_MAX_MASS` at 6:30 and 0.5 × 560 at 9:00). The
+  cell entity is removed the tick it is absorbed; the player's `lifeState` is the only record of
+  death ([`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram)). Scenarios G8, G13.
 - **Disconnect.** A disconnected player's cell stays in the dish for the template's
   `DISCONNECT_GRACE_MS` (30 s) with no input (it coasts to a stop) and can be eaten. When the room
   removes the player, the cell dissolves into detritus (`DETRITUS_MASS_FRACTION` of its mass).
@@ -187,7 +205,7 @@ score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptio
 ```
 
 `dnaCumulative` never decreases, so dying costs time and mass, not score. The late-join gift
-([`PROGRESSION.md §5`](./PROGRESSION.md#5-late-join-catch-up)) buys levels, not rank. Ties break by current
+([`PROGRESSION.md §5`](./PROGRESSION.md#5-entering-the-dish-late-join-and-respawn), late join and respawn alike) buys levels, not rank. Ties break by current
 mass, then by earliest join. Winner at round end = highest score. The leaderboard row shows: rank,
 name, level, mass, absorptions, score. It is part of the snapshot (every client sees the same list).
 
@@ -200,6 +218,34 @@ world with `seed + ROUND_SEED_INCREMENT` (1), everyone present respawns at level
 changes. Boundary rule: the phase flips on the tick the timer reaches zero (tick 36 000 of a
 10-minute round) and the results screen ends on the tick its elapsed count reaches
 `RESULTS_SCREEN_SECONDS` × `TICK_HZ` (tick 37 200).
+
+### 5.5 The evolving world
+
+The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself,
+and that world evolves as time passes, its up to the players to evolve faster than the average if
+they can." The mechanics have one home, [`ECOLOGY.md §3.1–§3.4`](./ECOLOGY.md#31-the-world-clock):
+
+- **The world clock** turns round time into the world's average cell (`worldLevel`, `worldStage`,
+  `worldMass`, `worldDna`): one world level per `WORLD_LEVEL_SECONDS`, `WORLD_MASS_GAIN_PER_SECOND`
+  of mass per second, in absolute seconds so it tracks player pace, not round length. The world
+  levels up on ticks 10 800, 21 600 and 32 400 of a 600 s round (`world_level_up` effect).
+- **What it drives:** the mote mix (more bacteria as the world ages), the broth's share of
+  organelle-carrying bacteria (zone character), and the wild cells
+  ([`ECOLOGY.md §3.3`](./ECOLOGY.md#33-wild-cells)): 24 non-player cells whose mass and ladder are
+  pinned to the world with a ± 30 % spread, wandering and fleeing from the start, hunting from the
+  endosymbiosis era.
+- **Entering the dish** (late join and respawn) floors the player at the world's level
+  ([`PROGRESSION.md §5`](./PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)).
+- **Standing.** `standingAgainstWorld` reads `'ahead' | 'with' | 'behind'` (level first, then mass
+  within `WORLD_STANDING_MASS_TOLERANCE`). The HUD expresses it as a second, thin marker on the level
+  ring at `worldLevel` and the trait strip's stage caption gaining `· AHEAD OF THE WORLD` / `· WITH
+THE WORLD` / `· BEHIND THE WORLD`; [`UI.md`](./UI.md) (#146) specifies placement, the
+  `world_level_up` toast and the wild-cell name in the danger chip.
+- **Round shape under the clock** (the pace of §5.1 is unchanged; this is the backdrop): 0:00–3:00 a
+  broth of protocells, some lunch and some threats; 3:00–6:00 the wild cells grow nucleoids and the
+  first variant clusters appear in the broth; 6:00–9:00 the world carries endosymbionts and starts
+  to hunt, so a player behind the average is prey; 9:00–10:00 a nucleated world under the bloom.
+  The timeline: `qa/decisions/dish-play-scale/evolving/evolving-world-timeline.png`.
 
 ## 6. Controls
 
@@ -273,9 +319,12 @@ player a form and its readable silhouette just before the whistle (section 5.1).
 ## 10. Explicit non-goals for build 1
 
 Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject,
-NPC microbes, trait stealing, partial absorption (nibbling), viruses, alliances, persistence or
-accounts, anti-cheat, touch-layout polish (pointer events work, nothing more), real audio assets
-(hooks only, #101), spectator-only clients, stages beyond `specialised`.
+NPC microbes with their own progression (cells that eat motes, grow or draft on their own account;
+build 1's wild cells are the world clock made flesh, [`ECOLOGY.md §3.3`](./ECOLOGY.md#33-wild-cells),
+not that), trait stealing, partial absorption
+(nibbling), viruses, alliances, persistence or accounts, anti-cheat, touch-layout polish (pointer
+events work, nothing more), real audio assets (hooks only, #101), spectator-only clients, stages
+beyond `specialised`.
 
 ## 11. Reserved hooks for build 2
 
@@ -331,7 +380,15 @@ The design reads these as they are; there is no alias for the tick rate (`TICK_H
 | `RESULTS_SCREEN_SECONDS`     | 20         | s     | Results overlay before auto-rematch.                  |
 | `ROUND_SEED_INCREMENT`       | 1          | —     | Next round seed = seed + this.                        |
 | `RESPAWN_SPECTATE_SECONDS`   | 3          | s     | Spectate the killer before respawn.                   |
-| `SCORE_ABSORPTION_BONUS`     | 25         | score | Score per player absorbed.                            |
+| `SCORE_ABSORPTION_BONUS`     | 25         | score | Score per player absorbed (wild cells never count).   |
+
+### `world-clock.ts` (section 5.5, [`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock))
+
+| Constant                        | Value | Unit               | Meaning                                                                |
+| ------------------------------- | ----- | ------------------ | ---------------------------------------------------------------------- |
+| `WORLD_LEVEL_SECONDS`           | 180   | s per world level  | `worldLevel = min(1 + elapsed / this, MAX_LEVEL)`.                     |
+| `WORLD_MASS_GAIN_PER_SECOND`    | 1     | mass/s             | `worldMass = min(CELL_STARTING_MASS + this × elapsed, CELL_MAX_MASS)`. |
+| `WORLD_STANDING_MASS_TOLERANCE` | 0.1   | ratio of worldMass | Band around `worldMass` that reads as `with` the world at equal level. |
 
 ### `controls.ts`
 
@@ -371,15 +428,19 @@ Format: given seed S and inputs I, after N ticks assert X. All run on the gamepl
 pinning, decay in expected values, the meaning of "target N radii east") are stated once in
 [`ECOLOGY.md §8`](./ECOLOGY.md#8-acceptance-scenarios) and apply to every table in these docs.
 
-| #   | Given                                                                                                                                                                                                                           | Inputs                                | After        | Assert                                                                                                                                                                                                                                                                |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1  | seed 42, 1 player, default config                                                                                                                                                                                               | idle                                  | 1 tick       | player cell exists, mass = `CELL_STARTING_MASS`, level 1, stage `protocell`, no traits, `roundPhase` = `'playing'`, `roundTimeLeftMs` = 600 000 − `TICK_INTERVAL_MS` (± 1 ms).                                                                                        |
-| G2  | seed 42, 1 player                                                                                                                                                                                                               | idle                                  | 36 000 ticks | `roundPhase` = `'results'` on tick 36 000 exactly (`'playing'` on 35 999); after a further `RESULTS_SCREEN_SECONDS` × 60 ticks (tick 37 200 exactly) `roundPhase` = `'playing'`, world seed = 43, player level 1, stage `protocell`.                                  |
-| G3  | seed 42, 2 players, player B placed by test at mass 100 within 200 wu of A's spawn candidate                                                                                                                                    | idle                                  | 1 tick       | A's spawn is ≥ `SAFE_SPAWN_RADIUS` from B (safe placement rejected the candidate).                                                                                                                                                                                    |
-| G4  | seed 42, 1 player, target 5 radii east                                                                                                                                                                                          | same target every tick                | 60 ticks     | velocity.x ≈ 216.5 (`CELL_BASE_SPEED` × (1 − (1 − 1/15)^60), ± 0.5), velocity.y = 0.                                                                                                                                                                                  |
-| G5  | seed 42, 1 player, pointer target inside `STEER_DEAD_ZONE_RADII`                                                                                                                                                                | same target every tick                | 60 ticks     | speed = 0.                                                                                                                                                                                                                                                            |
-| G6  | seed 42, 1 player at position (2900, 0) with target (4000, 0)                                                                                                                                                                   | same target every tick                | 120 ticks    | centre.x = `DISH_RADIUS` − radius (clamped), velocity.x = 0.                                                                                                                                                                                                          |
-| G7  | seed 42, 1 player placed at mass 100                                                                                                                                                                                            | sprint at tick 1, target 5 radii east | 2 ticks      | mass = `decayed(95, 2)` ≈ 95.00 (the 5 % cost, then two ticks of decay); sprint active, speed cap = `SPRINT_SPEED_MULTIPLIER` × maxSpeed; at tick 31 sprint inactive; sprint at tick 100 ignored (cooldown); sprint at tick 181 accepted (181 − 1 = 180 ticks = 3 s). |
-| G8  | ECOLOGY E9 setup (A absorbs B at tick 36)                                                                                                                                                                                       | idle                                  | 37 ticks     | leaderboard[0] = A with score = A.dnaCumulative + 25 = 55; B `lifeState` = `'spectating'`, `spectatingPlayerId` = A, no cell for B; at tick 217 (36 + 180 + 1) B alive at starting mass, level, traits and stage unchanged.                                           |
-| G9  | PROGRESSION P7 setup (2 players, third joins at tick 6000)                                                                                                                                                                      | idle                                  | join + 1     | joiner's cell exists, placed safely, stage `protocell`, `roundTimeLeftMs` unchanged by the join.                                                                                                                                                                      |
-| G10 | seed 42, 1 player, no input from tick 600; the fixture calls `removePlayer` at tick 2400 (600 + `DISCONNECT_GRACE_MS` / 1000 × 60: the room's wall-clock timer, which the fixture drives; the module never sees the disconnect) | idle                                  | 2401 ticks   | no cell for that player; detritus motes total mass = `DETRITUS_MOTE_MASS` × floor(`DETRITUS_MASS_FRACTION` × the cell's mass at removal / `DETRITUS_MOTE_MASS`) (ECOLOGY §1 rounding).                                                                                |
+| #   | Given                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Inputs                                | After        | Assert                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | seed 42, 1 player, default config                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | idle                                  | 1 tick       | player cell exists, mass = `CELL_STARTING_MASS`, level 1, stage `protocell`, no traits, `roundPhase` = `'playing'`, `roundTimeLeftMs` = 600 000 − `TICK_INTERVAL_MS` (± 1 ms).                                                                                                                                                                                                                                                                                                |
+| G2  | seed 42, 1 player                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | idle                                  | 36 000 ticks | `roundPhase` = `'results'` on tick 36 000 exactly (`'playing'` on 35 999); after a further `RESULTS_SCREEN_SECONDS` × 60 ticks (tick 37 200 exactly) `roundPhase` = `'playing'`, world seed = 43, player level 1, stage `protocell`.                                                                                                                                                                                                                                          |
+| G3  | seed 42, 2 players, player B placed by test at mass 100 within 200 wu of A's spawn candidate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | idle                                  | 1 tick       | A's spawn is ≥ `SAFE_SPAWN_RADIUS` from B (safe placement rejected the candidate).                                                                                                                                                                                                                                                                                                                                                                                            |
+| G4  | seed 42, 1 player, target 5 radii east                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | same target every tick                | 60 ticks     | velocity.x ≈ 216.5 (`CELL_BASE_SPEED` × (1 − (1 − 1/15)^60), ± 0.5), velocity.y = 0.                                                                                                                                                                                                                                                                                                                                                                                          |
+| G5  | seed 42, 1 player, pointer target inside `STEER_DEAD_ZONE_RADII`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | same target every tick                | 60 ticks     | speed = 0.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| G6  | seed 42, 1 player at position (2900, 0) with target (4000, 0)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | same target every tick                | 120 ticks    | centre.x = `DISH_RADIUS` − radius (clamped), velocity.x = 0.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| G7  | seed 42, 1 player placed at mass 100                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | sprint at tick 1, target 5 radii east | 2 ticks      | mass = `decayed(95, 2)` ≈ 95.00 (the 5 % cost, then two ticks of decay); sprint active, speed cap = `SPRINT_SPEED_MULTIPLIER` × maxSpeed; at tick 31 sprint inactive; sprint at tick 100 ignored (cooldown); sprint at tick 181 accepted (181 − 1 = 180 ticks = 3 s).                                                                                                                                                                                                         |
+| G8  | ECOLOGY E9 setup (A absorbs B at tick 36)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | idle                                  | 37 ticks     | leaderboard[0] = A with score = A.dnaCumulative + 25 = 55; B `lifeState` = `'spectating'`, `spectatingCellId` = A's cell, no cell for B; at tick 217 (36 + 180 + 1) B alive at starting mass (entry rule: 0.5 × `worldMass`(3.62 s) = 11.81 < 20), level, traits and stage unchanged (world level 1.02: no lift).                                                                                                                                                             |
+| G9  | PROGRESSION P7 setup (2 players, third joins at tick 6000)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | idle                                  | join + 1     | joiner's cell exists, placed safely, stage `protocell`, `roundTimeLeftMs` unchanged by the join.                                                                                                                                                                                                                                                                                                                                                                              |
+| G10 | seed 42, 1 player, no input from tick 600; the fixture calls `removePlayer` at tick 2400 (600 + `DISCONNECT_GRACE_MS` / 1000 × 60: the room's wall-clock timer, which the fixture drives; the module never sees the disconnect)                                                                                                                                                                                                                                                                                                                                                                      | idle                                  | 2401 ticks   | no cell for that player; detritus motes total mass = `DETRITUS_MOTE_MASS` × floor(`DETRITUS_MASS_FRACTION` × the cell's mass at removal / `DETRITUS_MOTE_MASS`) (ECOLOGY §1 rounding).                                                                                                                                                                                                                                                                                        |
+| G11 | seed 42, 1 player                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | idle                                  | 37 200 ticks | `world_level_up` effects on ticks 10 800 (`{ level: 2, stage: 'prokaryote' }`), 21 600 (3, `endosymbiosis`) and 32 400 (4, `eukaryote`) and on no other tick (`elapsedTicks` is the integer tick in progress, ECOLOGY §3.1: 10 800 / 60 = 180 s exactly at step 1); through `results` (ticks 36 000–37 199) `worldReference` stays at 600 s (level 4.33); at tick 37 200 (rematch, seed 43) elapsed is 0: world level 1, every wild cell a protocell at mass 20 × its spread. |
+| G12 | pure function `standingAgainstWorld(level, mass, worldReference(180))` (world level 2.0, mass 200)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | —                                     | —            | (3, 50) → `ahead`; (1, 900) → `behind`; (2, 221) → `ahead`; (2, 220) → `with`; (2, 200) → `with`; (2, 180) → `with`; (2, 179) → `behind`. At `worldReference(0)`: (1, 20) → `with`.                                                                                                                                                                                                                                                                                           |
+| G13 | seed 42, 1 player A; run to tick 23 365; at tick 23 365 the fixture places A at level 1, mass 20 (no DNA) and wild seat 0 at spread 5.0 (mass ≈ 2047 vs 20: `massFactor` 0.5, 1/36 per tick, ECOLOGY §6.1) 10 wu east of A (the W6 pattern with the ECOLOGY W5 pair: the seeded wild cells never meet an idle A before the fixture does), so seat 0's engulf of A starts on 23 365, seals A on 23 382 (seat 0's hunt decision on 23 370 targets A's centre 0.06 radii away, inside `STEER_DEAD_ZONE_RADII`: throttle 0, it does not move; A is idle, no struggle) and pays out on tick 23 400 (6:30) | idle                                  | 23 581 ticks | A alive on tick 23 581 (23 400 + 180 + 1); `elapsedTicks` 23 581 → 393.017 s → world level 3.18 → A `dnaCumulative` = 140 = `dnaCatchUpGift`, level 3, `dnaTowardNextLevel` = 0, one offer shown (the protocell draft) and one queued, score 0, no tag points; mass = min(0.5 × 413.017, `ENTRY_MAX_MASS`) = 200 exactly (respawn runs at step 9, after this tick's decay). With A placed at `dnaCumulative` 200 (level 3) instead: gift 0, level 3, still mass 200.          |
+| G14 | seed 42, 1 player idle; a second player joins before tick 18 000 steps (5:00)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | idle                                  | join + 1     | median term 0 (the living player has no DNA) but the world floor is level floor(2.667) = 2: joiner `dnaCumulative` = 60 = `dnaCatchUpGift`, level 2, one offer shown; mass = 0.5 × max(20, 320) = 160, then one tick of decay ≈ 160.00 (± 0.01; 159.995); score 0. PROGRESSION P8 holds unchanged (its world floor is level 1); P7's mass moves to the cap (0.5 × 400 clamps to 200, one tick of decay ≈ 199.994).                                                            |
