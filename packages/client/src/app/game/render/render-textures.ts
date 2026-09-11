@@ -19,7 +19,6 @@ import {
   GLOW_TEXTURE_PX,
   NOISE_STRIP_ROWS,
   NOISE_STRIP_WIDTH,
-  NOISE_TILE_SIZE_PX,
   PALETTE_SHADE_COUNT,
   VIGNETTE,
   VIGNETTE_ALPHA,
@@ -110,8 +109,9 @@ export interface RenderTextureOptions {
   readonly gelPatches: readonly GelPatchView[];
   readonly devicePixelRatio: number;
   /**
-   * The cytoplasm tile's edge in texels: `NOISE_TILE_SIZE_PX` in the app. A test shrinks it (the
-   * bake is the one CPU-heavy step of the bundle and its bytes are never sampled without WebGL).
+   * The cytoplasm tile's edge in texels: `buildNoiseTile`'s default (`NOISE_TILE_SIZE_PX`) when
+   * absent. A test shrinks it (the bake is the one CPU-heavy step of the bundle and its bytes are
+   * never sampled without WebGL).
    */
   readonly noiseTileSizePx?: number;
 }
@@ -172,7 +172,7 @@ function moteTextures(baker: TextureBaker): MoteAtlasTextures {
 /** The cell shader's data textures: the strip and the palette as `texelFetch` tables, the tile sampled trilinear. */
 function cellDataTextures(
   cosmetic: RandomSource,
-  noiseTileSizePx: number,
+  noiseTileSizePx: number | undefined,
 ): Pick<RenderTextures, 'strip' | 'stripTexture' | 'tileTexture' | 'paletteTexture'> {
   const strip = buildNoiseStrip(cosmetic);
   const tile = buildNoiseTile(cosmetic, noiseTileSizePx);
@@ -212,7 +212,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
     cosmetic,
     glowTexture: baker.bakeRadial(SOFT_DISC_BAKE),
     vignetteTexture: baker.bakeRadial(VIGNETTE_BAKE),
-    ...cellDataTextures(cosmetic, options.noiseTileSizePx ?? NOISE_TILE_SIZE_PX),
+    ...cellDataTextures(cosmetic, options.noiseTileSizePx),
     glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
     motes: moteTextures(baker),
     organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),
