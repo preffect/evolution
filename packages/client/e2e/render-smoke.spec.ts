@@ -6,7 +6,11 @@ import { expect, test, type Page } from '@playwright/test';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';
 const SMOKE_SEED = 42;
-const GAME_NAME = `render-smoke-${SMOKE_SEED}`;
+const GAME_NAME_PREFIX = 'render-smoke';
+/** Enough of the test id to tell rooms apart while staying under `GAME_NAME_MAX_LENGTH`. */
+const GAME_NAME_SUFFIX_LENGTH = 8;
+/** The audio assets are opt-in (docs/AUDIO-PIPELINE.md); a missing one is a silent cue, not a renderer error. */
+const MISSING_ASSET_CONSOLE_ERROR = /404 \(Not Found\)/;
 /** Long enough for the depth particles to drift a pixel between two stepped frames. */
 const DRIFT_WAIT_MS = 1500;
 const HOLD_WAIT_MS = 500;
@@ -20,19 +24,24 @@ interface DebugWindow {
   };
 }
 
+/** Creates and starts a fresh room named after the test, so reruns never pick an already-started one. */
 async function openLiveRoom(page: Page): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() === 'error' && !MISSING_ASSET_CONSOLE_ERROR.test(message.text())) errors.push(message.text());
   });
+  const gameName = `${GAME_NAME_PREFIX}-${test.info().testId.slice(-GAME_NAME_SUFFIX_LENGTH)}`;
   await page.goto('/');
   await page.getByRole('button', { name: 'Connect & Join Lobby' }).click();
   await expect(page.locator('.conn')).toHaveText(/connected/);
-  await page.getByLabel('Game name').fill(GAME_NAME);
+  await page.getByLabel('Game name').fill(gameName);
   await page.getByTestId('create-seed').fill(String(SMOKE_SEED));
   await page.getByRole('button', { name: 'Create' }).click();
-  const row = page.locator('.games li', { hasText: GAME_NAME }).first();
+  const row = page
+    .locator('.games li', { hasText: gameName })
+    .filter({ hasNot: page.locator('.badge') })
+    .first();
   await row.getByRole('button', { name: 'Start' }).click();
   await expect(page.locator('canvas[data-testid="game-canvas"]')).toBeVisible();
   await page.waitForFunction(() => (window as DebugWindow).__evolutionDebug?.renderTick() !== null);
