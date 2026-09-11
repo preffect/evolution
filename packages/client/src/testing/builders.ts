@@ -3,6 +3,7 @@
 
 import {
   AUDIO_MANIFEST_VERSION,
+  CELL_KIND,
   CELL_STAGE,
   DEFAULT_BALANCE,
   EFFECT_KIND,
@@ -34,6 +35,7 @@ const DEFAULT_RADIUS = 4;
 export function createTestCellView(overrides: Partial<CellView> = {}): CellView {
   return {
     id: TEST_OWN_CELL_ID,
+    kind: CELL_KIND.player,
     playerId: TEST_OWN_PLAYER_ID,
     organismId: TEST_OWN_CELL_ID,
     avatarIndex: 0,

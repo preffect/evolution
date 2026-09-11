@@ -56,7 +56,9 @@ function isInBloom(snapshot: GameSnapshot, options: TransitionOptions): boolean 
 
 /** Whose effect: the own cell's (by cell id, or by player id where the cell is already gone) and whether the own cell was the predator. */
 function effectEvent(effect: GameEffect, ownCell: CellView | null, ownPlayerId: PlayerId): GameEvent {
-  const isOwn = 'playerId' in effect ? effect.playerId === ownPlayerId : effect.cellId === ownCell?.id;
+  // A world-wide effect (`world_level_up`) names no cell: it is nobody's own; the sound bus ignores it for now.
+  const isOwn =
+    'playerId' in effect ? effect.playerId === ownPlayerId : 'cellId' in effect && effect.cellId === ownCell?.id;
   const isOwnPredator = effect.kind === EFFECT_KIND.cellAbsorbed && effect.predatorCellId === ownCell?.id;
   return { kind: GAME_EVENT_KIND.effect, effect, isOwn, isOwnPredator };
 }
