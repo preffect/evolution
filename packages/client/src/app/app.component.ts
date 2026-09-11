@@ -19,10 +19,9 @@ import { MultiplayerService } from './services/multiplayer.service';
  * Minimal, GAME-AGNOSTIC lobby / connection UI stub.
  *
  * It exercises the full multiplayer plumbing — connect, join lobby, create /
- * join / start a game, and view the live room state + latest snapshot JSON —
- * without implementing any specific game. The marked TODO(game) area is where the
- * real game canvas/board mounts (see `game/game-setup.ts`); the create form of
- * docs/UI.md §2 replaces this stub (#30).
+ * join / start a game — without implementing any specific game. Once the room is in play the
+ * game host (`game/game-host.component.ts`) is the only thing rendered and fills the viewport
+ * (#217, docs/UI.md §1); the create form of docs/UI.md §2 replaces this stub (#185).
  */
 @Component({
   selector: 'app-root',
@@ -30,6 +29,8 @@ import { MultiplayerService } from './services/multiplayer.service';
   imports: [FormsModule, GameHostComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
+  // In play the shell fills the viewport and the lobby panels hide (#217, docs/UI.md §1).
+  host: { '[class.in-game]': 'multiplayer.inGame()' },
 })
 export class AppComponent {
   readonly title = 'Evolution';

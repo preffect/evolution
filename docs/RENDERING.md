@@ -421,9 +421,10 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   ghost instance appears on `cell_absorbed` and leaves at 600 ms. The client's vitest tier runs under jsdom with
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
   `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
-  seed, asserts no page or shader errors, that the debug hook's pause holds the rendered tick and the canvas and
-  a step advances both, and screenshots the dish; the bench route, the report in the DOM and the shader parity
-  walk join with their slices (#206, #208).
+  seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
+  panel left (UI §1, #217), that the debug hook's pause holds the rendered tick and the canvas and a step
+  advances both, and screenshots the dish; the bench route, the report in the DOM and the shader parity walk
+  join with their slices (#206, #208).
 - **Screenshot baselines (`qa/baselines/`, graphics-qa on every renderer PR, not part of `validate.sh all`):**
   `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks, each scene carrying a
   fixed `ownCellIndicators` record (plain data, §10; `null` for scenes without an own cell), so a baseline never

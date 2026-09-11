@@ -1,9 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PLAYERS_PER_GAME, SEED_MAX, createTestSessionConfig } from '@evolution/shared';
 import { AppComponent } from './app.component';
+import { GameHostComponent } from './game/game-host.component';
 import { MultiplayerService } from './services/multiplayer.service';
+
+/** Stands in for the game host, which would try to create a WebGL Pixi app under jsdom. */
+@Component({ selector: 'app-game-host', standalone: true, template: '<div data-testid="game-host-stub"></div>' })
+class GameHostStubComponent {}
 
 function createMultiplayerStub() {
   return {
@@ -34,13 +39,38 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [{ provide: MultiplayerService, useValue: multiplayer }],
-    }).compileComponents();
+    })
+      .overrideComponent(AppComponent, {
+        remove: { imports: [GameHostComponent] },
+        add: { imports: [GameHostStubComponent] },
+      })
+      .compileComponents();
   });
 
-  it('renders the lobby shell', () => {
+  function render(): HTMLElement {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent).toContain('Evolution');
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('renders the lobby shell', () => {
+    expect(render().querySelector('h1')?.textContent).toContain('Evolution');
+  });
+
+  it('keeps the lobby panels and no game host before the game starts', () => {
+    const element = render();
+    expect(element.querySelectorAll('.panel').length).toBeGreaterThan(0);
+    expect(element.querySelector('[data-testid="game-host-stub"]')).toBeNull();
+    expect(element.classList.contains('in-game')).toBe(false);
+  });
+
+  it('shows only the game host, filling the viewport, once the room is in play (docs/UI.md §1)', () => {
+    multiplayer.inGame.set(true);
+    const element = render();
+    expect(element.querySelector('[data-testid="game-host-stub"]')).not.toBeNull();
+    expect(element.querySelector('.panel')).toBeNull();
+    expect(element.querySelector('header')).toBeNull();
+    expect(element.classList.contains('in-game')).toBe(true);
   });
 
   it('connect joins the lobby with the chosen name', () => {

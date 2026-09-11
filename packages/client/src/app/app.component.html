@@ -1,22 +1,27 @@
 <!--
   Generic multiplayer lobby / connection UI stub.
   De-branded template shell. No game-specific UI lives here — the game renders inside
-  <app-game-host /> (game/game-host.component.ts → game/game-setup.ts).
+  <app-game-host /> (game/game-host.component.ts → game/game-setup.ts). Once the room is in play
+  the host is the only thing on the page and fills the viewport (#217, docs/UI.md §1); the lobby
+  panels come back when the phase returns to the lobby.
 -->
-<header class="app-header">
-  <h1>{{ title }}</h1>
-  <p class="tagline">Multiplayer lobby</p>
-  <span class="conn" [class.on]="multiplayer.connected()">
-    {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
-  </span>
-</header>
-
-@if (multiplayer.lastError(); as errorMessage) {
-  <p class="error">Error: {{ errorMessage }}</p>
-}
-
-@if (!multiplayer.inGame()) {
+@if (multiplayer.inGame()) {
+  <!-- ===== In game: the host alone, filling the viewport (docs/UI.md §1); the HUD chrome is #189 ===== -->
+  <app-game-host />
+} @else {
   <!-- ===== Lobby ===== -->
+  <header class="app-header">
+    <h1>{{ title }}</h1>
+    <p class="tagline">Multiplayer lobby</p>
+    <span class="conn" [class.on]="multiplayer.connected()">
+      {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
+    </span>
+  </header>
+
+  @if (multiplayer.lastError(); as errorMessage) {
+    <p class="error">Error: {{ errorMessage }}</p>
+  }
+
   <section class="panel">
     <h2>Connection</h2>
     <label>
@@ -94,28 +99,5 @@
         </li>
       }
     </ul>
-  </section>
-} @else {
-  <!-- ===== In game ===== -->
-  <section class="panel">
-    <h2>Room</h2>
-    <p>
-      Game ID: <code>{{ multiplayer.gameId() }}</code>
-    </p>
-    <p>
-      You: <code>{{ multiplayer.playerId() }}</code> {{ multiplayer.isHost() ? '(host)' : '' }}
-    </p>
-    <p>Players ({{ multiplayer.playerIds().length }}):</p>
-    <ul class="players">
-      @for (playerId of multiplayer.playerIds(); track playerId) {
-        <li>
-          <code>{{ playerId }}</code>
-        </li>
-      }
-    </ul>
-  </section>
-
-  <section class="panel game-area">
-    <app-game-host />
   </section>
 }
