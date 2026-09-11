@@ -6,7 +6,7 @@
 #   test         Run unit tests with coverage thresholds (pnpm -r test)
 #   integration  Run the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (pnpm -r test:integration)
 #   typecheck    Run type checking (pnpm -r typecheck)
-#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit)
+#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
 #   all          Run lint, duplication, typecheck, test in sequence
 #
@@ -166,15 +166,17 @@ run_one() {
       # Each audit is captured on its own: a substitution only reports its last command's status.
       local directive_out=""
       local todo_out=""
+      local docs_index_out=""
       local audit_rc=0
 
       lint_out="$(pnpm eslint . "$@" 2>&1)" || lint_rc=$?
       prettier_out="$(pnpm prettier --check . "$@" 2>&1)" || prettier_rc=$?
       directive_out="$(audit_disable_directives)" || audit_rc=1
       todo_out="$(audit_todo_markers)" || audit_rc=1
+      docs_index_out="$(scripts/docs-index.sh --check 2>&1)" || audit_rc=1
 
       output="${lint_out}"
-      for extra in "$prettier_out" "$directive_out" "$todo_out"; do
+      for extra in "$prettier_out" "$directive_out" "$todo_out" "$docs_index_out"; do
         if [[ -n "$extra" ]]; then
           output="${output}
 ${extra}"
