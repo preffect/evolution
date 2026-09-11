@@ -34,6 +34,10 @@ export function zeroRecord<Key extends string>(keys: readonly Key[]): Record<Key
   return record as Record<Key, number>;
 }
 
+/** `fromValue` at weight 0, `toValue` at weight 1; the one lerp every interpolation and ramp uses. */
+export const lerp = (fromValue: number, toValue: number, weight: number): number =>
+  fromValue + (toValue - fromValue) * weight;
+
 /** Clamp a number into the inclusive [min, max] range. */
 export const clamp = (value: number, min: number, max: number): number =>
   value < min ? min : value > max ? max : value;

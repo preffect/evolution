@@ -21,3 +21,4 @@ export * from './progression.js';
 export * from './traits.js';
 export * from './balance.js';
 export * from './audio.js';
+export * from './motion.js';

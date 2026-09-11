@@ -58,6 +58,6 @@ describe('lobby shell + multiplayer services', () => {
     expect(component.multiplayer.inGame()).toBe(true);
     expect(text).toContain('g1');
     expect(text).toContain('(host)');
-    expect(component.multiplayer.latestSnapshot()).toEqual(snapshot);
+    expect(component.multiplayer.snapshot()).toEqual(snapshot);
   });
 });

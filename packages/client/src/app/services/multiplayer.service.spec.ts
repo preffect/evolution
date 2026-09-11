@@ -29,7 +29,6 @@ function createTransportStub() {
     connect: vi.fn(),
     disconnect: vi.fn(),
     send: vi.fn(),
-    drainLatestSnapshot: vi.fn<() => ServerMessage | null>(() => null),
   };
 }
 
@@ -103,6 +102,57 @@ describe('MultiplayerService', () => {
     expect(service.avatarAssignments()).toEqual({ alice: 0, bob: 1 });
   });
 
+  it('replays the retained game_state to a composition root that subscribes late, then stays live', () => {
+    const gameState: ServerMessage = {
+      type: SERVER_MESSAGE_TYPE.gameState,
+      gameId: GAME_ID,
+      playerId: BOB,
+      snapshot: createTestSnapshot({ tick: 3 }),
+      balance: DEFAULT_BALANCE,
+      config: CONFIG,
+      playerIds: [ALICE, BOB],
+      avatarAssignments: {},
+    };
+    const seenBefore: ServerMessage[] = [];
+    service.gameMessages$.subscribe((message) => seenBefore.push(message));
+    transport.messages.next(gameState);
+    const seenAfter: ServerMessage[] = [];
+    service.gameMessages$.subscribe((message) => seenAfter.push(message));
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'later' });
+    expect(seenBefore.map((message) => message.type)).toEqual([
+      SERVER_MESSAGE_TYPE.gameState,
+      SERVER_MESSAGE_TYPE.error,
+    ]);
+    expect(seenAfter.map((message) => message.type)).toEqual([
+      SERVER_MESSAGE_TYPE.gameState,
+      SERVER_MESSAGE_TYPE.error,
+    ]);
+  });
+
+  it('drops the retained game_state on the next game_started, so a new room never replays the old one', () => {
+    transport.messages.next({
+      type: SERVER_MESSAGE_TYPE.gameState,
+      gameId: GAME_ID,
+      playerId: BOB,
+      snapshot: createTestSnapshot({ tick: 3 }),
+      balance: DEFAULT_BALANCE,
+      config: CONFIG,
+      playerIds: [BOB],
+      avatarAssignments: {},
+    });
+    transport.messages.next({
+      type: SERVER_MESSAGE_TYPE.gameStarted,
+      gameId: 'g2' as GameId,
+      playerId: BOB,
+      playerIds: [BOB],
+      isHost: true,
+      config: CONFIG,
+    });
+    const seen: ServerMessage[] = [];
+    service.gameMessages$.subscribe((message) => seen.push(message));
+    expect(seen).toEqual([]);
+  });
+
   it('tracks players joining (once) and leaving', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: ALICE, avatarIndex: 3 });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.playerJoined, playerId: ALICE, avatarIndex: 3 });
@@ -118,15 +168,5 @@ describe('MultiplayerService', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });
     expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 1 }));
     expect(service.lastError()).toBe('nope');
-  });
-
-  it('latestSnapshot drains the transport fast-path and updates the signal', () => {
-    transport.drainLatestSnapshot.mockReturnValueOnce({
-      type: SERVER_MESSAGE_TYPE.gameSnapshot,
-      snapshot: createTestSnapshot({ tick: 2 }),
-    });
-    expect(service.latestSnapshot()).toEqual(createTestSnapshot({ tick: 2 }));
-    expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 2 }));
-    expect(service.latestSnapshot()).toBeNull();
   });
 });

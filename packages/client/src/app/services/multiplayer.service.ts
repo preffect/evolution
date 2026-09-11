@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { concat, defer, of, type Observable } from 'rxjs';
 import type {
   GameId,
   GameInput,
@@ -21,14 +22,16 @@ import { WebSocketService } from './websocket.service';
  *
  * Game-specific code plugs in at two clearly marked seams:
  *   1. `sendInput(payload)` — outbound: wrap your game's input shape (`GameInput`).
- *   2. `snapshot` signal + `latestSnapshot()` — inbound: the opaque
- *      `GameSnapshot` your renderer consumes. See `game/game-setup.ts`.
+ *   2. `gameMessages$` — inbound: every server message in order, which the render session
+ *      applies to its `WorldStore` (`game/game-setup.ts`); the `snapshot` signal mirrors the newest.
  */
 export type Phase = 'lobby' | 'in-game';
 
 @Injectable({ providedIn: 'root' })
 export class MultiplayerService {
   private readonly transport = inject(WebSocketService);
+  /** The newest `game_state`, replayed to a composition root that subscribes after it arrived. */
+  private latestGameStateMessage: ServerMessage | null = null;
 
   // ===== Connection =====
   /** Live WebSocket connection flag (mirrors the transport). */
@@ -45,11 +48,7 @@ export class MultiplayerService {
   readonly sessionConfig = signal<GameSessionConfig | null>(null);
   readonly lastError = signal<string | null>(null);
 
-  /**
-   * Most recent opaque game snapshot received from the server. The template's
-   * default "echo" GameModule fills this in; a real game replaces the
-   * `GameSnapshot` type and renders it. TODO(game): consume in your renderer.
-   */
+  /** The newest `game_snapshot`, for the lobby / HUD facade; the renderer reads `WorldStore` instead. */
   readonly snapshot = signal<GameSnapshot | null>(null);
 
   readonly inGame = computed(() => this.phase() === 'in-game');
@@ -104,14 +103,16 @@ export class MultiplayerService {
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });
   }
 
-  /** Drain the freshest un-rendered snapshot frame (call once per render frame). */
-  latestSnapshot(): GameSnapshot | null {
-    const message = this.transport.drainLatestSnapshot();
-    if (message && message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
-      this.snapshot.set(message.snapshot);
-      return message.snapshot;
-    }
-    return null;
+  /**
+   * The message stream the game's composition root (`game/game-setup.ts`) subscribes to: the retained
+   * `game_state` first, if one arrived before the game host mounted (the server sends it right after
+   * `game_started`, before change detection creates the host), then every live message.
+   */
+  get gameMessages$(): Observable<ServerMessage> {
+    return defer(() => {
+      const retained = this.latestGameStateMessage;
+      return retained === null ? this.transport.messages$ : concat(of(retained), this.transport.messages$);
+    });
   }
 
   // ===== Inbound message handling =====
@@ -122,6 +123,8 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameStarted:
+        // The room's own game_state follows in the same burst; a previous room's must not be replayed.
+        this.latestGameStateMessage = null;
         this.playerId.set(message.playerId);
         this.gameId.set(message.gameId);
         this.playerIds.set(message.playerIds);
@@ -131,7 +134,8 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameState:
-        // Sent to a (re)joining player: full room state to (re)build the view.
+        // Sent on start and to a (re)joining player: full room state to (re)build the view.
+        this.latestGameStateMessage = message;
         this.playerId.set(message.playerId);
         this.gameId.set(message.gameId);
         this.playerIds.set(message.playerIds);
@@ -142,8 +146,7 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameSnapshot:
-        // Hot path is normally handled by the coalescing drain in the render
-        // loop; this branch covers any snapshot that arrives via messages$.
+        // The newest snapshot for the lobby UI; the render session applies every one to its store.
         this.snapshot.set(message.snapshot);
         break;
 

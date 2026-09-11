@@ -100,6 +100,16 @@ describe('lobby-manager: starting and running games', () => {
     fixture.lobby.getActiveRoom(fixture.gameId)?.stop();
   });
 
+  it('start_game follows game_started with the full game_state every player builds its view from', () => {
+    const fixture = lobbyWithActiveGame();
+    const types = typesSentTo(fixture.sent, 'alice');
+    expect(types.indexOf(SERVER_MESSAGE_TYPE.gameState)).toBe(types.indexOf(SERVER_MESSAGE_TYPE.gameStarted) + 1);
+    expect(fixture.sent['alice']).toContainEqual(
+      expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, playerId: 'alice', balance: DEFAULT_BALANCE }),
+    );
+    fixture.lobby.getActiveRoom(fixture.gameId)?.stop();
+  });
+
   it('only the creator may start the game; an unknown game is an error', () => {
     const fixture = lobbyWithPendingGame();
     const bob = fixture.join('bob');

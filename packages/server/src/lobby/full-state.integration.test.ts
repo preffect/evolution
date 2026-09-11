@@ -1,5 +1,5 @@
 // Integration (docs/TESTING.md §2): the `game_state` payload from the echo module through the room
-// and the lobby to the connection, on a late join and on a reconnect. docs/ARCHITECTURE.md §4:
+// and the lobby to the connection, on start, on a late join and on a reconnect. docs/ARCHITECTURE.md §4:
 // `game_state` carries the module's `serializeFullState()`, the full snapshot plus the balance the
 // client must predict with. Run with `./validate.sh integration`.
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -56,14 +56,14 @@ describe('game_state carries the full state and the balance (echo module → roo
     fixture.lobby.handleDisconnect(fixture.alice);
     vi.advanceTimersByTime(DISCONNECT_GRACE_MS - 1);
     fixture.lobby.handleConnect(fixture.alice, fixture.connections);
-    expect(gameStatesSentTo(fixture.sent, 'alice')).toEqual([
-      expect.objectContaining({
-        gameId: fixture.gameId,
-        playerId: 'alice',
-        snapshot: { players: { alice: null } },
-        balance: DEFAULT_BALANCE,
-      }),
-    ]);
+    // One game_state at start (docs/ARCHITECTURE.md §4), one for the resync.
+    const fullState = expect.objectContaining({
+      gameId: fixture.gameId,
+      playerId: 'alice',
+      snapshot: { players: { alice: null } },
+      balance: DEFAULT_BALANCE,
+    });
+    expect(gameStatesSentTo(fixture.sent, 'alice')).toEqual([fullState, fullState]);
     fixture.stop();
   });
 });

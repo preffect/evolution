@@ -1,7 +1,7 @@
 <!--
   Generic multiplayer lobby / connection UI stub.
-  De-branded template shell. No game-specific UI lives here — the actual game
-  renders inside the "game area" TODO below via game/game-setup.ts.
+  De-branded template shell. No game-specific UI lives here — the game renders inside
+  <app-game-host /> (game/game-host.component.ts → game/game-setup.ts).
 -->
 <header class="app-header">
   <h1>{{ title }}</h1>
@@ -116,13 +116,6 @@
   </section>
 
   <section class="panel game-area">
-    <h2>Game Area</h2>
-    <!--
-      TODO(game): mount the real game canvas / board here and wire it to
-      game/game-setup.ts (input loop via multiplayer.sendInput, render loop via
-      multiplayer.latestSnapshot()). Until then we just show the raw snapshot JSON so
-      the snapshot round-trip is observable end-to-end.
-    -->
-    <pre class="snapshot">{{ snapshotJson() }}</pre>
+    <app-game-host />
   </section>
 }
