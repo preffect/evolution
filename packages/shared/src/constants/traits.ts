@@ -4,6 +4,7 @@
 // ids) and the pure catalog test pins that every `requires` id is a row.
 
 import { BACTERIUM_VARIANT, CELL_STAGE, DNA_TAG, type TraitId } from '../types/game.js';
+import { SOUND_EVENT } from '../types/audio.js';
 import { TRAIT_CATEGORY, TRAIT_RARITY, type TraitCatalogRow, type TraitTiers } from '../types/traits.js';
 import { ENDOSYMBIOSIS_BACTERIA_REQUIRED } from './ladder.js';
 import * as tiers from './trait-modifiers.js';
@@ -29,7 +30,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.metabolic],
     tiers: tiers.NUCLEOID_TIERS,
     visual: 'a loose, brighter tangle of thread in the cytoplasm with no boundary; 1 / 2 / 3 loops',
-    audioCue: 'soft_click',
+    audioCue: SOUND_EVENT.softClick,
   },
   {
     id: 'simple_flagellum',
@@ -42,7 +43,7 @@ export const TRAIT_CATALOG = [
     tiers: tiers.SIMPLE_FLAGELLUM_TIERS,
     visual:
       'one long tail trailing opposite the velocity, sine amplitude growing per tier; tier III adds a second tail',
-    audioCue: 'whip_crack',
+    audioCue: SOUND_EVENT.whipCrack,
   },
   {
     id: 'cell_wall',
@@ -55,7 +56,7 @@ export const TRAIT_CATALOG = [
     exclusionGroup: MEMBRANE,
     tiers: tiers.CELL_WALL_TIERS,
     visual: 'a second, brighter rim inside the first; rim thickness × 1.5 / 2 / 2.5',
-    audioCue: 'dull_thud',
+    audioCue: SOUND_EVENT.dullThud,
   },
   {
     id: 'ribosomes',
@@ -67,7 +68,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.metabolic],
     tiers: tiers.RIBOSOMES_TIERS,
     visual: 'a fine stipple of dots along the inside of the membrane, density per tier',
-    audioCue: 'eat_gurgle',
+    audioCue: SOUND_EVENT.eatGurgle,
   },
   {
     id: 'mitochondrion',
@@ -80,7 +81,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.metabolic],
     tiers: tiers.MITOCHONDRION_TIERS,
     visual: '1 / 2 / 3 orange-red beans with inner folds, pulsing on sprint',
-    audioCue: 'low_thrum',
+    audioCue: SOUND_EVENT.lowThrum,
   },
   {
     id: 'chloroplast',
@@ -93,7 +94,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.photic],
     tiers: tiers.CHLOROPLAST_TIERS,
     visual: '1 / 2 / 3 green lenses of 6 granules, membrane tinted green, brighter inside the shallows',
-    audioCue: 'warm_shimmer',
+    audioCue: SOUND_EVENT.warmShimmer,
   },
   {
     id: 'nuclear_envelope',
@@ -105,7 +106,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.armored, DNA_TAG.metabolic],
     tiers: tiers.NUCLEAR_ENVELOPE_TIERS,
     visual: 'the nucleoid thread gathers into a bounded round nucleus with its own rim; rim brightness per tier',
-    audioCue: 'deep_chime',
+    audioCue: SOUND_EVENT.deepChime,
   },
   {
     id: 'cytoskeleton',
@@ -117,7 +118,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.motile, DNA_TAG.armored],
     tiers: tiers.CYTOSKELETON_TIERS,
     visual: 'the membrane wobble tightens to a taut outline, sharper contact dents, a faint lattice under the membrane',
-    audioCue: 'taut_snap',
+    audioCue: SOUND_EVENT.tautSnap,
   },
   {
     id: 'cilia',
@@ -129,7 +130,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.motile],
     tiers: tiers.CILIA_TIERS,
     visual: 'a ring of 24 / 36 / 48 short hairs on the rim beating in a travelling wave that follows velocity',
-    audioCue: 'soft_flutter',
+    audioCue: SOUND_EVENT.softFlutter,
   },
   {
     id: 'food_vacuole',
@@ -141,7 +142,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.metabolic, DNA_TAG.predatory],
     tiers: tiers.FOOD_VACUOLE_TIERS,
     visual: '2 / 3 / 4 bubbling orange digestive vacuoles; prey dissolves visibly faster',
-    audioCue: 'absorb_gurgle',
+    audioCue: SOUND_EVENT.absorbGurgle,
   },
   {
     id: 'toxin_vacuole',
@@ -153,7 +154,7 @@ export const TRAIT_CATALOG = [
     tags: [DNA_TAG.toxic],
     tiers: tiers.TOXIN_VACUOLE_TIERS,
     visual: 'one large violet vacuole pulsing near the nucleus',
-    audioCue: 'toxin_hiss',
+    audioCue: SOUND_EVENT.toxinHiss,
   },
   {
     id: 'amoeba_pseudopods',
@@ -166,7 +167,7 @@ export const TRAIT_CATALOG = [
     exclusionGroup: BODY_PLAN,
     tiers: tiers.AMOEBA_PSEUDOPODS_TIERS,
     visual: 'the membrane extrudes 2 / 3 / 4 blunt lobes toward the velocity and any engulfed prey; irregular blob',
-    audioCue: 'wet_stretch',
+    audioCue: SOUND_EVENT.wetStretch,
   },
   {
     id: 'paramecium_cilia',
@@ -179,7 +180,7 @@ export const TRAIT_CATALOG = [
     exclusionGroup: BODY_PLAN,
     tiers: tiers.PARAMECIUM_CILIA_TIERS,
     visual: 'a slipper (aspect 1.6 / 1.8 / 2.0) fully covered in beating cilia, with an oral groove',
-    audioCue: 'rapid_flutter',
+    audioCue: SOUND_EVENT.rapidFlutter,
   },
   {
     id: 'euglena_eyespot',
@@ -192,7 +193,7 @@ export const TRAIT_CATALOG = [
     exclusionGroup: BODY_PLAN,
     tiers: tiers.EUGLENA_EYESPOT_TIERS,
     visual: 'a red eyespot at the front, a long leading flagellum, green body; spindle with a red dot',
-    audioCue: 'low_hum',
+    audioCue: SOUND_EVENT.lowHum,
   },
   {
     id: 'diatom_shell',
@@ -205,7 +206,7 @@ export const TRAIT_CATALOG = [
     exclusionGroup: BODY_PLAN,
     tiers: tiers.DIATOM_SHELL_TIERS,
     visual: 'a geometric glassy shell with 8 / 12 / 16 bright-tipped radial spines; star',
-    audioCue: 'shell_scrape',
+    audioCue: SOUND_EVENT.shellScrape,
   },
   {
     id: 'stentor_trumpet',
@@ -218,7 +219,7 @@ export const TRAIT_CATALOG = [
     exclusionGroup: BODY_PLAN,
     tiers: tiers.STENTOR_TRUMPET_TIERS,
     visual: 'a flared trumpet body with a ciliated rim and a faint violet haze to the aura range',
-    audioCue: 'hiss_drone',
+    audioCue: SOUND_EVENT.hissDrone,
   },
 ] as const satisfies readonly TraitCatalogRow[];
 

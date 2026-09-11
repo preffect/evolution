@@ -31,7 +31,7 @@ interface TraitDefinition {
   exclusionGroup?: 'body_plan' | 'membrane';
   tiers: [TraitTierModifiers, TraitTierModifiers, TraitTierModifiers]; // tier I..III
   visual: string; // what the renderer must show, per tier
-  audioCue: SoundEventId; // hook only in build 1 (#101)
+  audioCue: SoundEventId; // a SOUND_EVENT id; the renderer raises it as a trait_cue game event (AUDIO.md §2)
 }
 ```
 

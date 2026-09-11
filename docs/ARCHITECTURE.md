@@ -477,6 +477,14 @@ measurement that confirms the estimate; #103 records it.
   touches Pixi. The four crossings (`previewTraitId`, `reticleVisible`, `ownCellIndicators` in;
   `cameraExtent` out) are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7);
   the own cell's progress indicators are drawn by the renderer from that record (UI.md §3.1, RENDERING §10).
+- **Game events** (`state/game-event-bus.ts`, `GameEventBus`, #101): the one client seam for _moments_, as
+  opposed to the state the signals carry. `state/snapshot-transitions.ts` turns each snapshot into them: every
+  server `GameEffect` (tagged `isOwn` / `isOwnPredator`), the own cell's `stage_changed` and `organelle_gained`,
+  `danger_changed` through the shared `canEngulf`, `engulf_progress` / `engulf_ended`, `round_phase_changed` and
+  `bloom_started`. The renderer raises the moments only it knows (`zone_changed` from the dish geometry,
+  `trait_cue` at a trait's keyframe, TRAITS §3) and the HUD raises `trait_picked` and `ui_click`. Subscribers
+  (the sound bus today; the toast and onboarding services, the effects layer) never see each other, and
+  `game-setup.ts` is the only place that feeds the tracker and connects the subscribers (`AUDIO.md` §5).
 - **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
   paused screenshot reproduces.
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
@@ -485,11 +493,19 @@ measurement that confirms the estimate; #103 records it.
 
 ## 7. Audio hook seam (#101)
 
-`packages/shared/src/audio/sound-events.ts` declares the `SOUND_EVENT` catalogue (id, priority,
-cooldown); the ids are the `audioCue` values of TRAITS §3. The client `SoundEventBus` maps
-snapshot effects (server-owned moments) and UI events (local) to sound events; `AudioService`
-resolves each through `assets/audio/manifest.json` and plays via Web Audio, **silent when the
-asset is missing, never throwing**. Nothing but the bus imports `AudioService`.
+The design and the tables are [`AUDIO.md`](./AUDIO.md) (decision #140, option B). The ids are
+`SOUND_EVENT` in `types/audio.ts` (the trait cues are the `audioCue` values of TRAITS §3, typed as
+`SoundEventId`); the rules (priority, cooldown, loop, bus) and the layering numbers are
+`constants/audio.ts`, cosmetic data like `motion.ts`; `audio/sound-events.ts` holds the lookups and
+`audio/audio-manifest.ts` the manifest shape and its one validator. On the client, `SoundEventBus`
+(`audio/sound-event-bus.ts`) subscribes to the `GameEventBus` of section 6 and is the one place that
+knows which moment plays which cue; `AudioService` resolves each through `assets/audio/manifest.json`
+and plays via Web Audio behind the `AudioBackend` seam (`audio-backend.ts`; `web-audio-backend.ts` is
+the only file that knows `AudioContext`), with `CueScheduler` (cooldown, overlap by priority),
+`AmbientMixer` (stem per stage, zone overlay, duck) and `AudioBuses` (`master` → `music`, `sfx`; the
+persisted mute). **Silent when the manifest or an asset is missing, never throwing.** Nothing but the
+sound bus plays through `AudioService`; the HUD's mute toggle is its only other caller. Time is the
+injected `CLOCK` (`clock-provider.ts`) and the audio clock, never a JS timer.
 
 ## 8. Debug MCP surface (#14)
 
@@ -593,7 +609,8 @@ packages/shared/src/
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
-  types/{common,messages,game,traits,effects}.ts                traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY
+  constants/audio.ts                                            SOUND_EVENT_CATALOG and the layering numbers (AUDIO.md §2, §3); cosmetic, not in balance.json
+  types/{common,messages,game,traits,effects,audio}.ts          traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY; audio: SOUND_EVENT, AUDIO_BUS, SoundEventRule
   testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot (+ createTestCell, createTestWorld with #98)
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
@@ -603,7 +620,7 @@ packages/shared/src/
                                                                 level-costs: levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (UI.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
                                                                 vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
-  audio/sound-events.ts
+  audio/{sound-events,audio-manifest}.ts                        catalogue lookups and layering; the manifest shape + parseAudioManifest (AUDIO.md §4)
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
@@ -628,9 +645,16 @@ packages/client/src/app/game/
   input/{input-controller,pointer-input,keyboard-input}.ts
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: RENDERING.md §8)
-  state/game-state.service.ts   state/own-cell-indicators.ts (pure ownCellIndicatorsFor, ladderFor: UI.md §3.1.4)   audio/{audio.service,sound-event-bus}.ts
+  clock-provider.ts                                             the injected Clock token (DETERMINISM §2)
+  state/{game-state.service,game-event-bus,snapshot-transitions}.ts   the signal facade; the moment seam of section 6 and its snapshot detector
+  state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor, ladderFor (UI.md §3.1.4)
+  audio/audio-hooks.ts                                          AudioHooks.connect(options): the composition root's one audio call (AUDIO.md §5)
+  audio/{audio.service,sound-event-bus,cue-scheduler,ambient-mixer,audio-buses,audio-asset-cache}.ts
+  audio/{audio-backend,web-audio-backend,audio-tokens}.ts       the Web Audio seam, its production impl, the injection tokens (AUDIO.md §5)
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)
+  ../testing/{builders,fake-websocket,fake-audio-backend,fake-audio-context}.ts   client test doubles (TESTING.md §4)
+assets/audio/manifest.json                                      event → files, mood, length, prompt hint (AUDIO.md §4); the files are gitignored
 data/balance.json                                               generated (section 9): `pnpm generate:balance`
 scripts/generate-balance.ts
 ```

@@ -51,3 +51,7 @@ qa/replays/
 # Python bytecode (scripts/github)
 __pycache__/
 *.pyc
+# Generated audio (docs/AUDIO-PIPELINE.md §3): the manifest is committed, the files are not
+assets/audio/*.mp3
+assets/audio/*.ogg
+assets/audio/*.wav

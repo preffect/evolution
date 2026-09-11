@@ -17,7 +17,7 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/testing/builders.ts",
-    "**/testing/fake-websocket.ts",
+    "**/testing/fake-*.ts",
     "**/testing/scenarios/**",
     "**/*.generated.*",
     "**/*.d.ts"

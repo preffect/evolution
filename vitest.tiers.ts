@@ -28,6 +28,8 @@ export const TEST_DOUBLE_GLOBS = [
   'src/testing/bot-builders.ts',
   'src/testing/socket-builders.ts',
   'src/testing/fake-websocket.ts',
+  'src/testing/fake-audio-backend.ts',
+  'src/testing/fake-audio-context.ts',
   'src/testing/scenarios/**',
 ];
 
