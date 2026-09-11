@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { EFFECT_KIND } from './effects.js';
 import {
   BACTERIUM_VARIANT,
+  CELL_KIND,
   CELL_STAGE,
   CELL_STATE,
   DNA_TAG,
@@ -13,6 +14,7 @@ import {
   PLAYER_LIFE_STATE,
   ROUND_END_CONDITION,
   ROUND_PHASE,
+  WORLD_STANDING,
   ZONE_ID,
 } from './game.js';
 import { TRAIT_CATEGORY, TRAIT_RARITY } from './traits.js';
@@ -31,6 +33,8 @@ const ID_TABLES: [string, Record<string, string>][] = [
   ['CELL_STATE', CELL_STATE],
   ['CELL_STAGE', CELL_STAGE],
   ['PLAYER_LIFE_STATE', PLAYER_LIFE_STATE],
+  ['CELL_KIND', CELL_KIND],
+  ['WORLD_STANDING', WORLD_STANDING],
   ['ENTITY_KIND', ENTITY_KIND],
   ['EFFECT_KIND', EFFECT_KIND],
   ['TRAIT_CATEGORY', TRAIT_CATEGORY],
@@ -50,6 +54,6 @@ describe('id tables', () => {
   });
 
   it('names effects in the past tense or as the moment they mark', () => {
-    expect(Object.values(EFFECT_KIND)).toEqual(['cell_absorbed', 'eat', 'level_up', 'respawn']);
+    expect(Object.values(EFFECT_KIND)).toEqual(['cell_absorbed', 'eat', 'level_up', 'respawn', 'world_level_up']);
   });
 });

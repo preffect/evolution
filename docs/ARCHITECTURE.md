@@ -66,6 +66,8 @@ export type CellStage = (typeof CELL_STAGE)[keyof typeof CELL_STAGE]; // STAGE_O
 export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts: the rows are checked as `TraitCatalogRow` (string ids) so the derivation is not circular
 export type TraitTier = 1 | 2 | 3;
 export type PlayerLifeState = 'alive' | 'spectating';
+export type CellKind = 'player' | 'wild'; // CELL_KIND: a wild cell is the world clock made flesh (ECOLOGY §3.3)
+export type WorldStanding = 'ahead' | 'with' | 'behind'; // WORLD_STANDING: standingAgainstWorld (ECOLOGY §3.1)
 
 export interface OwnedTrait {
   traitId: TraitId;
@@ -73,8 +75,9 @@ export interface OwnedTrait {
 }
 export interface CellView {
   id: EntityId;
-  playerId: PlayerId;
-  organismId: EntityId; // == id in build 1 (reserved grouping key, GAME-DESIGN §11)
+  kind: CellKind;
+  playerId: PlayerId | null; // null for a wild cell
+  organismId: EntityId; // == id for a player cell in build 1 (reserved grouping key, GAME-DESIGN §11); WORLD_ORGANISM_ID for every wild cell
   avatarIndex: number;
   x: number;
   y: number;
@@ -134,11 +137,12 @@ export interface PlayerProgressView {
   dnaTowardNextLevel: number;
   dnaTagPoints: Record<DnaTag, number>;
   bacteriaEatenByVariant: Record<BacteriumVariant, number>; // endosymbiosis counters, kept on death
-  absorptions: number;
+  absorptions: number; // players absorbed: the only ones that score (GAME-DESIGN §5.3)
+  wildAbsorptions: number; // wild cells absorbed; never scores (ECOLOGY §3.3)
   score: number;
   offer: TraitOfferView | null;
   lifeState: PlayerLifeState; // the only home of death / respawn
-  spectatingPlayerId: PlayerId | null;
+  spectatingCellId: EntityId | null; // the killer's cell (a wild killer has no player, GAME-DESIGN §5.2); null once it is gone
   respawnInTicks: number;
 }
 export interface LeaderboardRow {
@@ -152,12 +156,13 @@ export interface LeaderboardRow {
 ```
 
 Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_END_CONDITION`, `ROUND_PHASE`, `FOOD_KIND`,
-`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `ENTITY_KIND`) with the
+`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `CELL_KIND`, `WORLD_STANDING`, `ENTITY_KIND`) with the
 union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.ts`), `TRAIT_CATEGORY` and
 `TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
 The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
 world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId }`, `eat { cellId, eatenId,
-eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`.
+eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; `world_level_up { level, stage }`
+(ECOLOGY §3.1) happens everywhere and is the one effect without a position.
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
@@ -205,10 +210,16 @@ export interface DnaFragmentRecord extends DnaFragmentView {
   `unlockedBy` counter (`bacteriaEatenByVariant`) exactly as [`PROGRESSION.md §3`](./PROGRESSION.md#3-draft-pool-and-weights)
   states, then reserves the rung card. Trait effects are data (`TRAIT_TIERS`) folded by
   `progression/modifiers.ts` into one `CellModifiers` record; no system ever switches on a trait id.
-- **Death lives on the player.** `PlayerProgressView.lifeState`, `spectatingPlayerId` and
+- **Death lives on the player.** `PlayerProgressView.lifeState`, `spectatingCellId` and
   `respawnInTicks` are the only death/respawn state; an absorbed cell is removed from
   `world.cells` the tick it is absorbed and emitted as a `cell_absorbed` effect (ECOLOGY §6.2).
   A spectating player has no cell record.
+- **Wild cells are cells, not players** (ECOLOGY §3.3): ordinary `CellRecord`s in `world.cells` with
+  `kind: 'wild'`, `playerId: null` and `organismId: WORLD_ORGANISM_ID`, owned by a `WildSeatRecord`
+  (`seatNumber`, `cellId | null`, `massSpreadFactor`, `respawnInTicks`, `headingX`, `headingY`,
+  `decideInTicks`, `drainedMass`) in `world.wildSeats`. The world clock is never sent: the snapshot
+  carries `roundStartTick` and both sides compute `worldReference(worldElapsedSeconds(tick, roundStartTick,
+roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
 - **Score** is computed, never stored twice: `session/leaderboard.ts` implements
   `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions` with ties by
   mass then `joinOrder` (GAME-DESIGN §5.3) and writes `PlayerProgressView.score` and the
@@ -227,6 +238,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 export interface WorldState {
   tick: number;
   seed: number; // the current round's seed (rematch increments it)
+  roundStartTick: number; // 0 at creation, the current tick at a rematch (ECOLOGY §3.1); carried on the snapshot
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   config: GameSessionConfig;
@@ -236,6 +248,7 @@ export interface WorldState {
   food: FoodMoteRecord[];
   dnaFragments: DnaFragmentRecord[];
   players: PlayerRecord[]; // join order
+  wildSeats: WildSeatRecord[]; // seat order (ECOLOGY §3.3)
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ECOLOGY §3)
   random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (DETERMINISM §3, §5)
@@ -383,32 +396,40 @@ export interface FoodDelta {
 
 ### 4.1 Bandwidth budget
 
-Populations at 8 players from ECOLOGY §3: `FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400
-motes, of which the bacterium share (`FOOD_KIND_WEIGHTS` 0.25) ≈ 350 move every tick; 110
-fragments, all drifting; 8 cells. Sizes are JSON with positions quantised to
-`SNAPSHOT_POSITION_DECIMALS` = 1.
+Worst case, at cap with 8 players in the eukaryote era (ECOLOGY §3, §3.2, §3.3):
+`FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400 motes, of which the bacterium share
+(`FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`: 0.25 in the protocell era, 0.5 from the eukaryote era) is up to
+700 moving every tick; 110 fragments, all drifting; 8 player cells plus `WILD_CELL_COUNT` = 24 wild
+cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON with positions
+quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 
-| Snapshot part (20 Hz)                                         | Count × bytes | Per snapshot |
-| ------------------------------------------------------------- | ------------- | ------------ |
-| `food.moved` (bacteria `{ id, x, y }`)                        | 350 × ~30     | ~10.5 KB     |
-| `dnaFragments` (full)                                         | 110 × ~50     | ~5.5 KB      |
-| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | 8 × ~300      | ~2.4 KB      |
-| `players` + `leaderboard`                                     | 8 × ~350 + 80 | ~3.4 KB      |
-| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz  | ~0.5 KB      |
-| **total**                                                     |               | **≈ 22 KB**  |
+| Snapshot part (20 Hz)                                         | Count × bytes   | Per snapshot |
+| ------------------------------------------------------------- | --------------- | ------------ |
+| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30       | ~21 KB       |
+| `dnaFragments` (full)                                         | 110 × ~50       | ~5.5 KB      |
+| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300 | ~9.6 KB      |
+| `players` + `leaderboard`                                     | 8 × ~350 + 80   | ~3.4 KB      |
+| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz    | ~0.5 KB      |
+| **total, uncut**                                              |                 | **≈ 40 KB**  |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 20 KB**  |
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
-`perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN.
-Sending static motes in full would add ~50 KB per snapshot, which is why the delta is mandatory;
-sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, which is why
-`moved` is a position list. `PerformanceTracker.snapshotBytes` is the measurement; #103 records it.
+`perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
+evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
+**§4.2 lever 1 is no longer held: it is required before the wild-cell simulation slice ships (#171)**.
+With it the same snapshot is ≈ 20 KB (≈ 400 KB/s), inside budget; culling wild cells outside the
+viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
+and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
+why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
+~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
+measurement that confirms the estimate; #103 records it.
 
-### 4.2 Held levers (in order)
+### 4.2 Levers (in order)
 
-1. **Viewport culling of `moved` and `dnaFragments`:** `serializeRoomState(viewerPlayerId)`
-   with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots. Cuts the two big rows
-   by ~75 % at the widest zoom.
-2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4); interpolation absorbs it unchanged.
+1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1):
+   `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`,
+   per-player snapshots. Cuts the two big rows by ~75 % at the widest zoom.
+2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4; held); interpolation absorbs it unchanged.
 
 ## 5. Client networking policy (`packages/client/src/app/game/net/`)
 
@@ -548,7 +569,7 @@ they are world entities the simulation drives with the same strategies through a
 `packages/shared/src/constants/<domain>.ts` is the **source of truth** for every tunable, named
 exactly as the design tables name it (`GAME-DESIGN.md §12`, `ECOLOGY.md §7`, `PROGRESSION.md §6`,
 `TRAITS.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
-`DEFAULT_BALANCE = { world, session, controls, ladder, ecology, growth, absorption, progression, traits }`
+`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, absorption, progression, traits }`
 (the domain modules spread into plain records) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
 patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
@@ -568,7 +589,7 @@ runtime. The full rule set is `CODE-STANDARDS.md §2`.
 ```text
 packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
-  constants/{world,session,controls,ladder,camera,ecology,growth,absorption,progression,traits}.ts
+  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
@@ -578,7 +599,8 @@ packages/shared/src/
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
   simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ECOLOGY §6.1)
-                                                                level-costs: levelUpCost(level, balance.progression), shared with the HUD (UI.md §3.1)
+  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ECOLOGY §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ECOLOGY §3.2)
+                                                                level-costs: levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (UI.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
                                                                 vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
   audio/sound-events.ts
@@ -587,8 +609,8 @@ packages/server/src/
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,spatial-hash}.ts
   game/simulation/{step,movement,contact,eating,metabolism,engulf,spawner,zones,spawn-placement,round}.ts
-  game/progression/{levels,ladder,draft,modifiers,late-join}.ts levels applies level-ups; the cost formula is shared simulation/level-costs.ts
-  game/session/{leaderboard,respawn}.ts
+  game/progression/{levels,ladder,draft,modifiers}.ts           levels applies level-ups; the cost formula is shared simulation/level-costs.ts
+  game/session/{leaderboard,respawn,entry}.ts                   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,food-delta-tracker}.ts
   game/replay/{replay-recorder,replay-runner}.ts
   game/debug/simulation-debug-handle.ts
