@@ -16,7 +16,9 @@ import * as ladder from './ladder.js';
 import * as progression from './progression.js';
 import * as session from './session.js';
 import * as traits from './traits.js';
+import * as wildCells from './wild-cells.js';
 import * as world from './world.js';
+import * as worldClock from './world-clock.js';
 
 /**
  * A constant declared as `export const X = 3000` has the literal type `3000`; a patched copy
@@ -34,10 +36,12 @@ type WidenNumberLeaves<Value> = Value extends number
 const BALANCE_DEFAULTS = {
   world: { ...world },
   session: { ...session },
+  worldClock: { ...worldClock },
   controls: { ...controls },
   ladder: { ...ladder },
   ecology: { ...ecology },
   growth: { ...growth },
+  wildCells: { ...wildCells },
   absorption: { ...absorption },
   progression: { ...progression },
   traits: { ...traits },

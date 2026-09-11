@@ -303,9 +303,18 @@ its state is hashed ([`DETERMINISM.md §3, §5`](./DETERMINISM.md#3-seeded-rando
 `tick − roundStartTick`, and the snapshot carries `roundStartTick` so the HUD derives the same number
 from the snapshot's `tick`); `WorldState.wildSeats: WildSeatRecord[]` (`seatNumber`, `cellId | null`,
 `massSpreadFactor`, `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`, `drainedMass`); wild cells are ordinary `CellRecord`s in
-`world.cells` with `ownerPlayerId: null` and `organismId: WORLD_ORGANISM_ID`; `CellView.kind:
-'player' | 'wild'`; `GameEffect` gains `world_level_up`; `PlayerProgressView` gains `wildAbsorptions`;
-`RANDOM_STREAM` gains `wildCells`. The world reference is computed on both sides, never sent. Step
+`world.cells` with `playerId: null` and `organismId: WORLD_ORGANISM_ID`; `CellView.kind:
+'player' | 'wild'` (`CELL_KIND`); `GameEffect` gains `world_level_up { level, stage }` (no position: it
+happens everywhere); `PlayerProgressView` gains `wildAbsorptions` and its `spectatingPlayerId` becomes
+`spectatingCellId` (a wild killer has no player, [`GAME-DESIGN.md §5.2`](./GAME-DESIGN.md#52-spawn-death-and-respawn));
+`RANDOM_STREAM` gains `wildCells`; `DEFAULT_BALANCE` gains the `worldClock` and `wildCells` domains
+([`ARCHITECTURE.md §9`](./ARCHITECTURE.md#9-constants-and-balance-decision-one-home)). The world
+reference is computed on both sides, never sent: `worldElapsedSeconds(tick, roundStartTick,
+roundDurationSeconds)` and `worldReference` (`simulation/world-clock.ts`), with `stageOf`
+(`simulation/stage-of.ts`) and `cumulativeDnaForLevel` (`simulation/level-costs.ts`) beside them; the
+broth variant row of §3.2 is `bacteriumVariantWeightsForZone(zone, worldStage, balance.ecology)`
+(`simulation/bacterium-variant-weights.ts`, the `BACTERIUM_VARIANT_WEIGHTS_BY_ZONE` table keeps only the
+two fixed trip rows). Step
 order: step 1 also runs the wild strategy and the pin; step 4 skips wild cells; step 9 also runs
 wild respawn. The renderer (#99) needs one wild palette (a desaturated, palette-independent rim so a
 wild cell never reads as a player; `VISUAL-STYLE.md §2` owns the value) and draws their organelles
@@ -705,8 +714,9 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 
 Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to
 the 1.2 s sum of the three phase seconds (sheet 03's timing; E9 pays out on tick 36, not 30), and the
-eleven names from `ENGULF_COVER_SECONDS` to `ENGULF_SPIT_OUT_REFRACTORY_SECONDS` are new, so the
-constants-ledger pin for this section moves from 70 to 81 names.
+eleven names from `ENGULF_COVER_SECONDS` to `ENGULF_SPIT_OUT_REFRACTORY_SECONDS` are new (#167 pinned
+the ledger for this section at 81 names). The evolving world (#161) adds `BROTH_VARIANT_SHARE_BY_WORLD_STAGE`
+and the eleven `wild-cells.ts` rows, so the pin is 93 names.
 
 | Constant                                                               | Value     | Unit                                                              |
 | ---------------------------------------------------------------------- | --------- | ----------------------------------------------------------------- |

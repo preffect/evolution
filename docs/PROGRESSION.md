@@ -127,7 +127,9 @@ the world's current level (the stage still needs its gates, below): the world cl
 ([`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock), `worldReference` at the entry tick) is the
 floor, and for a late joiner the living players' medians can raise it further. One pure function,
 `entryState(current, medians | null, reference, balance)` in
-`packages/server/src/game/session/entry.ts`, serves both callers:
+`packages/server/src/game/session/entry.ts`, serves both callers; its two formulas, `entryMass(medianMass |
+null, reference, balance)` and `entryDnaFloor(current, medianDna | null, reference, balance)`, are shared
+(`packages/shared/src/simulation/entry-rule.ts`) so a HUD estimate can never disagree with the server:
 
 | Field           | Rule                                                                                                                                                                                                                                                                                                                                                        |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

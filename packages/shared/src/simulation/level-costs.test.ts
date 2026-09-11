@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
-import { levelUpCost } from './level-costs.js';
+import { cumulativeDnaForLevel, levelUpCost } from './level-costs.js';
 
 const balance = DEFAULT_BALANCE.progression;
 
@@ -30,15 +30,15 @@ describe('levelUpCost', () => {
   });
 
   it.each(THRESHOLD_TABLE)('reaching level %i takes %i cumulative DNA (%i)', (levelReached, _cost, cumulative) => {
-    let total = 0;
-    for (let level = 1; level < levelReached; level += 1) total += levelUpCost(level, balance);
-    expect(total).toBe(cumulative);
+    expect(cumulativeDnaForLevel(levelReached, balance)).toBe(cumulative);
   });
 
   it(`reaches the maximum level at ${MAX_LEVEL_CUMULATIVE_DNA} DNA, so P10 stays at level 12 with 1760`, () => {
-    let total = 0;
-    for (let level = 1; level < balance.MAX_LEVEL; level += 1) total += levelUpCost(level, balance);
-    expect(total).toBe(MAX_LEVEL_CUMULATIVE_DNA);
+    expect(cumulativeDnaForLevel(balance.MAX_LEVEL, balance)).toBe(MAX_LEVEL_CUMULATIVE_DNA);
+  });
+
+  it('starts the ladder at zero cumulative DNA', () => {
+    expect(cumulativeDnaForLevel(1, balance)).toBe(0);
   });
 
   it('reads its coefficients from the balance it is given', () => {

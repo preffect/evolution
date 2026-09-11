@@ -13,6 +13,8 @@ export const RANDOM_STREAM = {
   traitDraft: 'trait_draft',
   /** Bacteria random-walk headings; fragment drift direction at spawn (ECOLOGY §1). */
   moteMotion: 'mote_motion',
+  /** Wild cells: spread factors, wander headings and turn rolls (ECOLOGY §3.3). */
+  wildCells: 'wild_cells',
   /** Client only, never on the server: wobble and particles. */
   cosmetic: 'cosmetic',
 } as const;
@@ -34,6 +36,7 @@ export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
   RANDOM_STREAM.spawnPlacement,
   RANDOM_STREAM.traitDraft,
   RANDOM_STREAM.moteMotion,
+  RANDOM_STREAM.wildCells,
 ];
 
 /** Every label in declared order: the server streams, then the client's `cosmetic` stream. */

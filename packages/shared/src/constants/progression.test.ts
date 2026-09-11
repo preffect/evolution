@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { DNA_TAG } from '../types/game.js';
 import { TRAIT_RARITY } from '../types/traits.js';
-import { DNA_TAGS, RARITY_WEIGHT, TAG_WEIGHT_MAX_MULTIPLIER, TAG_WEIGHT_PER_POINT } from './progression.js';
+import { CELL_STARTING_MASS } from './growth.js';
+import {
+  DNA_TAGS,
+  ENTRY_MASS_FRACTION,
+  ENTRY_MAX_MASS,
+  RARITY_WEIGHT,
+  TAG_WEIGHT_MAX_MULTIPLIER,
+  TAG_WEIGHT_PER_POINT,
+} from './progression.js';
 
 /** docs/PROGRESSION.md §3: a rare with no tag support is 20 % as likely as a common. */
 const RARE_TO_COMMON_RATIO = 0.2;
@@ -22,5 +30,10 @@ describe('progression tables', () => {
 
   it('saturates the tag multiplier at thirty points (P4)', () => {
     expect(1 + TAG_WEIGHT_PER_POINT * SATURATING_TAG_POINTS).toBe(TAG_WEIGHT_MAX_MULTIPLIER);
+  });
+
+  it('enters a fresh world at the starting mass and never above the entry cap (PROGRESSION §5)', () => {
+    expect(ENTRY_MASS_FRACTION * CELL_STARTING_MASS).toBeLessThan(CELL_STARTING_MASS);
+    expect(ENTRY_MAX_MASS).toBeGreaterThan(CELL_STARTING_MASS);
   });
 });
