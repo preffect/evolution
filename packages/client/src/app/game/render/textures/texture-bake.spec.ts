@@ -8,7 +8,6 @@ import {
   fillEllipse,
   fillHalo,
   fillRadial,
-  fillSoftDisc,
   paintGlint,
   paintGlow,
   strokeDisc,
@@ -33,13 +32,12 @@ describe('texture bake primitives', () => {
     expect(context.ops).toEqual(['radialGradient', 'beginPath', 'arc', 'fill']);
   });
 
-  it('builds a halo as centre → clear and a soft disc as flat → feathered → clear', () => {
+  it('builds a halo as centre → clear', () => {
     const context = new FakeBakeContext();
     fillHalo(context, DISC, { colour: RED, alpha: 0.4 });
-    fillSoftDisc(context, DISC, { colour: RED, alpha: 0.4, feather: 0.3 });
     expect(context.gradients[0]!.stops.map((stop) => stop.offset)).toEqual([0, 1]);
-    expect(context.gradients[1]!.stops.map((stop) => stop.offset)).toEqual([0, 0.7, 1]);
-    expect(context.gradients[1]!.stops.at(-1)!.colour).toBe('rgba(255, 84, 112, 0)');
+    expect(context.gradients[0]!.stops[0]!.colour).toBe('rgba(255, 84, 112, 0.4)');
+    expect(context.gradients[0]!.stops.at(-1)!.colour).toBe('rgba(255, 84, 112, 0)');
   });
 
   it('paints a glow as a wide halo under a soft halo, then a glint ellipse toward the top-left', () => {

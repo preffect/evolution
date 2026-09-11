@@ -47,7 +47,7 @@ interface DepthField {
   readonly entries: readonly DepthEntry[];
 }
 
-/** The dish field sprite: the bake centred on the origin, scaled so one texel covers `wuPerPx` wu. */
+/** The dish field sprite: the bake centred on the origin, stretched to the square of `halfExtentWu` it covers. */
 export function createDishFieldSprite(textures: Pick<RenderTextures, 'dishField' | 'dishTexture'>): Sprite {
   const sprite = new Sprite(textures.dishTexture);
   sprite.anchor.set(HALF);

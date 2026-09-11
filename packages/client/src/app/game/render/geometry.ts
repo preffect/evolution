@@ -25,6 +25,16 @@ export function wrapAngle(radians: number): number {
   return wrapped;
 }
 
+/** A position in turns (or any unit period) folded into [0, 1). */
+export function wrapUnit(unit: number): number {
+  return ((unit % 1) + 1) % 1;
+}
+
+/** The cosine ease `(1 − cos(πx)) / 2`: the smooth step of the periodic value noise. */
+export function cosineSmoothstep(fraction: number): number {
+  return (1 - Math.cos(Math.PI * fraction)) * HALF;
+}
+
 export function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value;
 }

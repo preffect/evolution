@@ -56,7 +56,6 @@ describe('bakeDishField', () => {
     expect(field.canvas.width).toBe(FIELD_TEXTURE_PX);
     expect(field.canvas.height).toBe(FIELD_TEXTURE_PX);
     expect(field.halfExtentWu).toBeGreaterThan(DISH_RADIUS);
-    expect(field.wuPerPx * FIELD_TEXTURE_PX).toBeCloseTo(field.halfExtentWu * 2, 6);
   });
 
   it('paints in sheet-02 order: field, light pool and caustics, shallows, vent tint and fissure, then the outside', () => {

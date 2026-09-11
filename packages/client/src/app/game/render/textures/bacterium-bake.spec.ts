@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT } from '@evolution/shared';
 import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/fake-bake-canvas';
-import { BACTERIUM_BAKE, BACTERIUM_BANDS, CHLORO_LIGHT, MITO_BASE, PROTO_FILM } from '../constants';
+import {
+  BACTERIUM_BAKE,
+  BACTERIUM_BANDS,
+  BACTERIUM_HALO_ALPHA,
+  CHLORO_LIGHT,
+  MITO_BASE,
+  PROTO_FILM,
+} from '../constants';
 import { hexWithAlpha } from '../colour';
 import { bakeBacteriumRod } from './bacterium-bake';
 
@@ -33,7 +40,7 @@ describe('bakeBacteriumRod', () => {
     const halo = (variant: (typeof BACTERIUM_VARIANT)[keyof typeof BACTERIUM_VARIANT]) =>
       fakeContextOf(rod(variant)).gradients[0]!.stops[0]!.colour;
     expect(halo(BACTERIUM_VARIANT.plain)).toBe(hexWithAlpha(PROTO_FILM, BACTERIUM_BAKE.plainHaloAlpha));
-    expect(halo(BACTERIUM_VARIANT.aerobic)).toBe(hexWithAlpha(MITO_BASE, 0.3));
-    expect(halo(BACTERIUM_VARIANT.photosynthetic)).toBe(hexWithAlpha(CHLORO_LIGHT, 0.3));
+    expect(halo(BACTERIUM_VARIANT.aerobic)).toBe(hexWithAlpha(MITO_BASE, BACTERIUM_HALO_ALPHA));
+    expect(halo(BACTERIUM_VARIANT.photosynthetic)).toBe(hexWithAlpha(CHLORO_LIGHT, BACTERIUM_HALO_ALPHA));
   });
 });

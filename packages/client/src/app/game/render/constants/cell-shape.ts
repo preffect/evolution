@@ -30,6 +30,8 @@ export const REST_LOBE_AMPLITUDE_MIN = 0.025;
 export const REST_LOBE_AMPLITUDE_MAX = 0.04;
 export const REST_LOBE_SIGMA_RAD_MIN = 0.25;
 export const REST_LOBE_SIGMA_RAD_MAX = 0.4;
+/** Lobe centres sit evenly around the ring and stray by this share of the spacing, so they never pile up. */
+export const REST_LOBE_CENTRE_JITTER = 0.2;
 /** The jitter / lobes strip: samples per row, rows (one per cell variant), value-noise knots. */
 export const NOISE_STRIP_WIDTH = 256;
 export const NOISE_STRIP_ROWS = 16;

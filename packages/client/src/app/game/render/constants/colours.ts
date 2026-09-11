@@ -56,6 +56,8 @@ export const TOXIN_GLOW = '#d05cff';
 export const MAGNET_LIGHT = '#9fb0c4';
 export const MAGNET_BASE = '#4a5866';
 export const MAGNET_DARK = '#141a22';
+/** The chromatin spots: a black wash over the baked nucleus body. */
+export const CHROMATIN_WASH = '#000000';
 export const NUCLEOID_STRAND = '#e4faff';
 export const NUCLEOID_GLOW = '#7fe7f5';
 export const RIBOSOME = '#a6f4ff';

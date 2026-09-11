@@ -6,7 +6,7 @@
 // exactly (a byte-quantised derivative channel could not meet the §9 pin).
 
 import { COSMETIC_SUB_STREAM, RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
-import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED } from '../colour';
+import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS } from '../colour';
 import {
   NOISE_STRIP_JITTER_KNOTS,
   NOISE_STRIP_JITTER_SCALE,
@@ -15,20 +15,18 @@ import {
   NOISE_STRIP_VALUE_LEVELS,
   NOISE_STRIP_WIDTH,
   REST_LOBE_AMPLITUDE_MAX,
+  REST_LOBE_CENTRE_JITTER,
   REST_LOBE_AMPLITUDE_MIN,
   REST_LOBE_COUNT_MAX,
   REST_LOBE_COUNT_MIN,
   REST_LOBE_SIGMA_RAD_MAX,
   REST_LOBE_SIGMA_RAD_MIN,
 } from '../constants';
-import { HALF, gaussianBump, wrapAngle } from '../geometry';
+import { HALF, cosineSmoothstep, gaussianBump, wrapAngle, wrapUnit } from '../geometry';
 
-const RGBA_CHANNELS = 4;
 const BYTE_LEVELS = CHANNEL_MAX + 1;
 /** A uniform draw in [0, 1) maps to a signed unit value by this span. */
 const SIGNED_UNIT_SPAN = 2;
-/** Lobe centres sit evenly around the ring and jitter by this share of the spacing so they never pile up. */
-const LOBE_CENTRE_JITTER = 0.2;
 /** The hi / lo byte of each 16-bit value: jitter in R G, lobes in B A. */
 const JITTER_HI = RED;
 const JITTER_LO = GREEN;
@@ -65,11 +63,6 @@ function signedDraw(random: RandomSource): number {
   return random.nextFloat() * SIGNED_UNIT_SPAN - 1;
 }
 
-/** Wraps a position in turns into [0, 1). */
-function wrapUnit(unit: number): number {
-  return ((unit % 1) + 1) % 1;
-}
-
 function drawLobes(random: RandomSource): RestLobe[] {
   const count = random.nextInt(REST_LOBE_COUNT_MIN, REST_LOBE_COUNT_MAX);
   const spacing = RADIANS_PER_FULL_TURN / count;
@@ -77,7 +70,7 @@ function drawLobes(random: RandomSource): RestLobe[] {
   return Array.from({ length: count }, (_unused, index) => ({
     amplitude:
       lerp(REST_LOBE_AMPLITUDE_MIN, REST_LOBE_AMPLITUDE_MAX, random.nextFloat()) * (random.nextFloat() < HALF ? -1 : 1),
-    centre: phase + index * spacing + signedDraw(random) * LOBE_CENTRE_JITTER * spacing,
+    centre: phase + index * spacing + signedDraw(random) * REST_LOBE_CENTRE_JITTER * spacing,
     sigma: lerp(REST_LOBE_SIGMA_RAD_MIN, REST_LOBE_SIGMA_RAD_MAX, random.nextFloat()),
   }));
 }
@@ -95,7 +88,7 @@ function jitterAt(knots: readonly number[], theta: number): number {
   const fraction = position - index;
   const fromKnot = knots[index % knots.length] ?? 0;
   const toKnot = knots[(index + 1) % knots.length] ?? 0;
-  return lerp(fromKnot, toKnot, (1 - Math.cos(Math.PI * fraction)) * HALF);
+  return lerp(fromKnot, toKnot, cosineSmoothstep(fraction));
 }
 
 /** A signed value in [−scale, scale] as a 16-bit level, split into a hi and a lo byte. */

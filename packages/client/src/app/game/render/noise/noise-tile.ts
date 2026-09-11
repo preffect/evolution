@@ -4,11 +4,10 @@
 // and never scales with it. Bytes for the GPU; the same bytes for a test.
 
 import { COSMETIC_SUB_STREAM, lerp, type RandomSource } from '@evolution/shared';
-import { ALPHA, CHANNEL_MAX, GREEN, RED } from '../colour';
+import { ALPHA, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS } from '../colour';
 import { CYTO_NOISE_COARSE, CYTO_NOISE_FINE, NOISE_TILE_SIZE_PX } from '../constants';
-import { HALF } from '../geometry';
+import { HALF, cosineSmoothstep, wrapUnit } from '../geometry';
 
-const RGBA_CHANNELS = 4;
 /** Each octave doubles the lattice frequency and halves its amplitude. */
 const OCTAVE_LACUNARITY = 2;
 const OCTAVE_GAIN = 0.5;
@@ -32,15 +31,6 @@ function lattice(cycles: number, random: RandomSource): Float32Array {
   return Float32Array.from({ length: cycles * cycles }, () => random.nextFloat());
 }
 
-function smooth(fraction: number): number {
-  return (1 - Math.cos(Math.PI * fraction)) * HALF;
-}
-
-/** Wraps a position in turns into [0, 1). */
-function wrapUnit(unit: number): number {
-  return ((unit % 1) + 1) % 1;
-}
-
 /** Cosine-interpolated value noise on a periodic lattice at `(unitX, unitY)` in turns of the tile. */
 function latticeAt(knots: Float32Array, cycles: number, unitX: number, unitY: number): number {
   const scaledX = wrapUnit(unitX) * cycles;
@@ -49,9 +39,9 @@ function latticeAt(knots: Float32Array, cycles: number, unitX: number, unitY: nu
   const row = Math.floor(scaledY);
   const knot = (knotColumn: number, knotRow: number): number =>
     knots[(knotRow % cycles) * cycles + (knotColumn % cycles)] ?? 0;
-  const top = lerp(knot(column, row), knot(column + 1, row), smooth(scaledX - column));
-  const bottom = lerp(knot(column, row + 1), knot(column + 1, row + 1), smooth(scaledX - column));
-  return lerp(top, bottom, smooth(scaledY - row));
+  const top = lerp(knot(column, row), knot(column + 1, row), cosineSmoothstep(scaledX - column));
+  const bottom = lerp(knot(column, row + 1), knot(column + 1, row + 1), cosineSmoothstep(scaledX - column));
+  return lerp(top, bottom, cosineSmoothstep(scaledY - row));
 }
 
 /** Fractal value noise in [0, 1]: octaves of doubling frequency and halving amplitude, renormalised. */

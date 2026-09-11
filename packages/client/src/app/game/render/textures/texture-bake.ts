@@ -132,21 +132,12 @@ export function fillRadial(context: BakeContext2D, disc: DiscSpec, stops: readon
   context.fill();
 }
 
-/** Stops that hold `alpha` out to `plateau` of the radius (none when 0) and fade to clear at the rim. */
-function fadeToClearStops(paint: Paint, plateau: number): RadialStop[] {
-  const centre = { offset: 0, colour: paint.colour, alpha: paint.alpha };
-  const rim = { offset: 1, colour: paint.colour, alpha: 0 };
-  return plateau > 0 ? [centre, { ...centre, offset: plateau }, rim] : [centre, rim];
-}
-
 /** A gradient from `alpha` at the centre to clear at the rim: the halo every glow is built from. */
 export function fillHalo(context: BakeContext2D, disc: DiscSpec, paint: Paint): void {
-  fillRadial(context, disc, fadeToClearStops(paint, 0));
-}
-
-/** A soft-edged disc: flat to `1 − feather` of the radius, then to clear. */
-export function fillSoftDisc(context: BakeContext2D, disc: DiscSpec, paint: Paint & { feather: number }): void {
-  fillRadial(context, disc, fadeToClearStops(paint, 1 - paint.feather));
+  fillRadial(context, disc, [
+    { offset: 0, colour: paint.colour, alpha: paint.alpha },
+    { offset: 1, colour: paint.colour, alpha: 0 },
+  ]);
 }
 
 export function fillDisc(context: BakeContext2D, disc: DiscSpec, paint: Paint): void {

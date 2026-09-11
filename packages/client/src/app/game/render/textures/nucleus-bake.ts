@@ -6,6 +6,7 @@
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';
 import {
+  CHROMATIN_WASH,
   NUCLEOID_ALPHA_MAX,
   NUCLEOID_BAKE,
   NUCLEOID_RADIUS,
@@ -37,9 +38,6 @@ import {
   type BakedSprite,
 } from './texture-bake';
 
-/** The chromatin spots are the body darkened: a black wash at a low alpha. */
-const CHROMATIN = '#000000';
-
 function paintChromatin(context: BakeContext2D, centre: number, radius: number): void {
   for (let spot = 0; spot < NUCLEUS_CHROMATIN_SPOTS; spot += 1) {
     const angle = (spot / NUCLEUS_CHROMATIN_SPOTS) * RADIANS_PER_FULL_TURN;
@@ -49,7 +47,7 @@ function paintChromatin(context: BakeContext2D, centre: number, radius: number):
       y: centre + Math.sin(angle) * distance,
       radius: radius * NUCLEUS_BAKE.chromatinRadiusShare,
     };
-    fillDisc(context, disc, { colour: CHROMATIN, alpha: NUCLEUS_BAKE.chromatinAlpha });
+    fillDisc(context, disc, { colour: CHROMATIN_WASH, alpha: NUCLEUS_BAKE.chromatinAlpha });
   }
 }
 

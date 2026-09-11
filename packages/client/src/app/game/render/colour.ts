@@ -13,6 +13,7 @@ export const RED = 0;
 export const GREEN = 1;
 export const BLUE = 2;
 export const ALPHA = 3;
+export const RGBA_CHANNELS = 4;
 const HUE_SECTORS = 6;
 /** The HSL sector formula folds the hue into pairs of sectors. */
 const HUE_SECTOR_PAIR = 2;

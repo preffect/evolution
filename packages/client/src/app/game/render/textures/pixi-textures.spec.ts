@@ -32,9 +32,11 @@ describe('pixi textures', () => {
     expect([table.width, table.height, table.format]).toEqual([2, 1, 'rgba8unorm']);
     expect(table.style.scaleMode).toBe('nearest');
     expect(table.style.addressMode).toBe('clamp-to-edge');
+    expect(table.alphaMode).toBe('no-premultiply-alpha');
     const tile = byteDataTexture(new Uint8Array(4), { width: 1, height: 1, isFiltered: true, isRepeating: true });
     expect(tile.style.scaleMode).toBe('linear');
     expect(tile.style.addressMode).toBe('repeat');
+    expect(tile.alphaMode).toBe('no-premultiply-alpha');
     table.destroy();
     tile.destroy();
   });

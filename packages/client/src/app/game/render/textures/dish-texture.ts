@@ -51,8 +51,6 @@ import { paintVent } from './vent-bake';
 
 export interface DishField {
   readonly canvas: BakeCanvas;
-  /** World units per texture px, so the sprite is scaled to the dish. */
-  readonly wuPerPx: number;
   /** The world extent the texture covers: a square of this half-size, centred on the origin. */
   readonly halfExtentWu: number;
 }
@@ -195,5 +193,5 @@ export function bakeDishField(
   paintVent(frame.context, frame.centre, pxPerWu);
   paintGelPatches(frame, patches, cosmetic.fork(COSMETIC_SUB_STREAM.dish));
   paintOutside(frame);
-  return { canvas, wuPerPx: 1 / pxPerWu, halfExtentWu };
+  return { canvas, halfExtentWu };
 }

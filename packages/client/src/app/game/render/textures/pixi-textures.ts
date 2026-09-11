@@ -29,13 +29,14 @@ export interface DataTextureOptions {
   readonly isRepeating: boolean;
 }
 
-/** An RGBA8 table texture from bytes. */
+/** An RGBA8 table texture from bytes: data, never colour, so the upload leaves every channel untouched. */
 export function byteDataTexture(bytes: Uint8Array, options: DataTextureOptions): TextureSource {
   return new BufferImageSource({
     resource: bytes,
     width: options.width,
     height: options.height,
     format: 'rgba8unorm',
+    alphaMode: 'no-premultiply-alpha',
     scaleMode: options.isFiltered ? 'linear' : 'nearest',
     addressMode: options.isRepeating ? 'repeat' : 'clamp-to-edge',
     autoGenerateMipmaps: false,

@@ -4,6 +4,7 @@ import {
   MITO_BASE,
   ORGANELLE_ATLAS_MAX_DPR,
   ORGANELLE_ATLAS_PX_PER_R,
+  ORGANELLE_HALO_ALPHA,
   ORGANELLE_KIND,
   TOXIN_GLOW,
   type OrganelleKind,
@@ -33,8 +34,8 @@ describe('bakeOrganelleAtlas', () => {
   });
 
   it('starts every sprite with its halo in its own colour and ends it with a glint', () => {
-    expect(haloColour(ORGANELLE_KIND.mitochondrion)).toBe(hexWithAlpha(MITO_BASE, 0.35));
-    expect(haloColour(ORGANELLE_KIND.toxinVacuole)).toBe(hexWithAlpha(TOXIN_GLOW, 0.35));
+    expect(haloColour(ORGANELLE_KIND.mitochondrion)).toBe(hexWithAlpha(MITO_BASE, ORGANELLE_HALO_ALPHA));
+    expect(haloColour(ORGANELLE_KIND.toxinVacuole)).toBe(hexWithAlpha(TOXIN_GLOW, ORGANELLE_HALO_ALPHA));
     for (const kind of [ORGANELLE_KIND.chloroplast, ORGANELLE_KIND.lipid, ORGANELLE_KIND.foodVacuole]) {
       expect(fakeContextOf(atlas[kind].canvas).ops.at(-1)).toBe('fill');
       expect(fakeContextOf(atlas[kind].canvas).count('ellipse')).toBe(1);
