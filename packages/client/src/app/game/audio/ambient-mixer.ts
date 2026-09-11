@@ -1,0 +1,128 @@
+// The living broth (#140 option B, docs/AUDIO.md §3): one ambient stem per ladder stage,
+// crossfaded on the stage change; a zone overlay crossfaded on the zone change; both on an
+// ambient sub-bus under `music` that ducks while any reason (the danger drone, an essential cue)
+// holds it, so the drone and the motif themselves are never ducked. Crossfade tails are
+// scheduled on the audio clock (`voice.stop(afterSeconds)`), never on a JS timer.
+
+import {
+  AMBIENT_CROSSFADE_SECONDS,
+  DUCK_DECIBELS,
+  DUCK_RAMP_SECONDS,
+  SOUND_EVENT,
+  ZONE_CROSSFADE_SECONDS,
+  ambientStemForStage,
+  decibelsToGain,
+  nearestAvailableStem,
+  resolveAudioFile,
+  resolveAudioFileAt,
+  type AudioManifest,
+  type CellStage,
+  type ZoneId,
+} from '@evolution/shared';
+import { START_NOW_SECONDS, type AudioBackend, type AudioGainHandle, type AudioVoice } from './audio-backend';
+import type { AudioAssetCache } from './audio-asset-cache';
+
+const SILENT = 0;
+const FULL = 1;
+const UNITY_RATE = 1;
+
+interface Layer {
+  key: string;
+  voice: AudioVoice;
+}
+
+/** Why the music is ducked; the duck lifts when the last reason is released. */
+export type DuckReason = 'danger' | 'essential_cue';
+
+export class AmbientMixer {
+  private manifest: AudioManifest | null = null;
+  private stem: Layer | null = null;
+  private zone: Layer | null = null;
+  private readonly duckReasons = new Set<DuckReason>();
+  private readonly ambientBus: AudioGainHandle;
+
+  constructor(
+    private readonly backend: AudioBackend,
+    private readonly assets: AudioAssetCache,
+    musicBus: AudioGainHandle,
+  ) {
+    this.ambientBus = backend.createBus(musicBus, FULL);
+  }
+
+  setManifest(manifest: AudioManifest | null): void {
+    this.manifest = manifest;
+  }
+
+  /** The stem playing now, by manifest key (a stage id); `null` while silent. */
+  get currentStemKey(): string | null {
+    return this.stem?.key ?? null;
+  }
+
+  get currentZoneKey(): string | null {
+    return this.zone?.key ?? null;
+  }
+
+  get isDucked(): boolean {
+    return this.duckReasons.size > 0;
+  }
+
+  /** Crossfades to the stage's stem, or the nearest one that shipped (docs/AUDIO.md §3). */
+  setStage(stage: CellStage): void {
+    if (!this.manifest) return;
+    const manifest = this.manifest;
+    const wanted = ambientStemForStage(stage);
+    const isShipped = (stem: number) => {
+      const file = resolveAudioFileAt(manifest, SOUND_EVENT.ambientBed, stem);
+      return file !== null && this.assets.peek(file.path) !== null;
+    };
+    const available = nearestAvailableStem(wanted, isShipped);
+    const file = available === null ? null : resolveAudioFileAt(manifest, SOUND_EVENT.ambientBed, available);
+    this.stem = this.crossfade(this.stem, file?.key ?? null, file?.path ?? null, AMBIENT_CROSSFADE_SECONDS);
+  }
+
+  /** The overlay of a zone; a zone without one (the open broth) fades the overlay out. */
+  setZone(zone: ZoneId): void {
+    if (!this.manifest) return;
+    const file = resolveAudioFile(this.manifest, SOUND_EVENT.zoneLayer, zone);
+    this.zone = this.crossfade(this.zone, file?.key ?? null, file?.path ?? null, ZONE_CROSSFADE_SECONDS);
+  }
+
+  duck(reason: DuckReason): void {
+    this.duckReasons.add(reason);
+    this.applyDuck();
+  }
+
+  release(reason: DuckReason): void {
+    this.duckReasons.delete(reason);
+    this.applyDuck();
+  }
+
+  /** Fades both layers out; the next `setStage` starts them again. */
+  stop(): void {
+    this.stem = this.crossfade(this.stem, null, null, AMBIENT_CROSSFADE_SECONDS);
+    this.zone = this.crossfade(this.zone, null, null, ZONE_CROSSFADE_SECONDS);
+  }
+
+  private applyDuck(): void {
+    this.ambientBus.rampGain(this.isDucked ? decibelsToGain(DUCK_DECIBELS) : FULL, DUCK_RAMP_SECONDS);
+  }
+
+  private crossfade(current: Layer | null, key: string | null, fileName: string | null, seconds: number): Layer | null {
+    if (current?.key === key) return current;
+    if (current) {
+      current.voice.rampGain(SILENT, seconds);
+      current.voice.stop(seconds);
+    }
+    const sound = fileName === null ? null : this.assets.peek(fileName);
+    if (key === null || !sound) return null;
+    const voice = this.backend.play(sound, {
+      destination: this.ambientBus,
+      isLoop: true,
+      gain: current ? SILENT : FULL,
+      playbackRate: UNITY_RATE,
+      startAfterSeconds: START_NOW_SECONDS,
+    });
+    if (current) voice.rampGain(FULL, seconds);
+    return { key, voice };
+  }
+}

@@ -116,6 +116,9 @@ These docs are the enforceable quality bar for any work in this repo. Read and f
 - **[`docs/AUDIO-PIPELINE.md`](docs/AUDIO-PIPELINE.md)** — the opt-in music + voice + SFX pipeline.
   **Google/Gemini is the default** for both music (Lyria) and voice (Chirp). `./ai-pipeline.sh check`
   is offline; `sync` spends money and never runs unsolicited.
+- **[`docs/AUDIO.md`](docs/AUDIO.md)** — the sound design (decision #140, option B "living broth"): the
+  event catalogue with priorities and cooldowns, the layering per ladder stage, the asset manifest and
+  the client audio seam.
 
 > **The gate:** after any change, `./validate.sh all` must pass, the Definition of Done in
 > `docs/ENGINEERING.md` must hold, and any new visual/audio asset must meet its doc's criteria.
