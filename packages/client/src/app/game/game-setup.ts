@@ -13,12 +13,10 @@ import { RenderSession } from './render/render-session';
 import type { TransitionOptions } from './state/snapshot-transitions';
 
 export interface GameSetupOptions {
-  /** Send one unit of game input to the server (wraps `player_input`). */
+  /** Send one unit of game input to the server (wraps `player_input`); read by the input controller of #100, unread until then. */
   send: (input: GameInput) => void;
-  /** Stream of non-coalesced server messages (everything except hot snapshots). */
+  /** Every server message in arrival order, snapshots included (docs/ARCHITECTURE.md §5). */
   messages$: Observable<ServerMessage>;
-  /** Drain the freshest un-rendered `game_snapshot` frame, or null. */
-  drainLatestSnapshot: () => ServerMessage | null;
   /** The element the canvas mounts in. */
   host: HTMLElement;
 }
@@ -41,17 +39,14 @@ export interface GameSetupDependencies {
 export type GameTeardown = () => void;
 
 export function setupGame(options: GameSetupOptions, dependencies: GameSetupDependencies): GameTeardown {
-  const session = new RenderSession(
-    {
-      host: options.host,
-      clock: dependencies.clock,
-      devicePixelRatio: dependencies.devicePixelRatio,
-      createPixiApp: dependencies.createPixiApp,
-      connectAudio: dependencies.connectAudio,
-      hudInputs: () => ({ previewTraitId: dependencies.previewTraitId(), reticle: dependencies.reticle() }),
-    },
-    options.drainLatestSnapshot,
-  );
+  const session = new RenderSession({
+    host: options.host,
+    clock: dependencies.clock,
+    devicePixelRatio: dependencies.devicePixelRatio,
+    createPixiApp: dependencies.createPixiApp,
+    connectAudio: dependencies.connectAudio,
+    hudInputs: () => ({ previewTraitId: dependencies.previewTraitId(), reticle: dependencies.reticle() }),
+  });
   const subscription = options.messages$.subscribe((message) => session.onMessage(message));
   const uninstallDebug = installEvolutionDebug(dependencies.debugHost, session.debugApi(), dependencies.isDevMode);
   return () => {

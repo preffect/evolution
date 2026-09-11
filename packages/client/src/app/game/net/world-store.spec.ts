@@ -32,16 +32,16 @@ function storeWithSnapshots(ticks: readonly number[]): { store: WorldStore; cloc
 
 describe('WorldStore', () => {
   it('answers no frame before the first snapshot, nor without a balance', () => {
-    expect(new WorldStore(new ManualClock()).frame()).toBeNull();
+    expect(new WorldStore(new ManualClock()).nextFrame()).toBeNull();
     const withoutBalance = new WorldStore(new ManualClock());
     withoutBalance.applySnapshot(createTestSnapshot({ tick: 1 }));
-    expect(withoutBalance.frame()).toBeNull();
+    expect(withoutBalance.nextFrame()).toBeNull();
   });
 
   it('interpolates cells and fragments at the render tick behind the newest snapshot', () => {
     const { store, clock } = storeWithSnapshots([60, 63, 66, 69]);
     clock.setMilliseconds(69 * TICK_INTERVAL_MS);
-    const frame = store.frame()!;
+    const frame = store.nextFrame()!;
     const renderTick = 69 - INTERPOLATION_DELAY_TICKS;
     expect(frame.renderTick).toBeCloseTo(renderTick, 6);
     expect(frame.timeSeconds).toBeCloseTo(renderTick * TICK_INTERVAL_S, 9);
@@ -54,11 +54,11 @@ describe('WorldStore', () => {
   it('releases effects when the render tick reaches them, once, oldest first', () => {
     const { store, clock } = storeWithSnapshots([60, 63, 66, 69]);
     clock.setMilliseconds(69 * TICK_INTERVAL_MS);
-    const first = store.frame()!;
+    const first = store.nextFrame()!;
     expect(first.effects.map((effect) => effect.tick)).toEqual([60, 63]);
-    expect(store.frame()!.effects).toEqual([]);
+    expect(store.nextFrame()!.effects).toEqual([]);
     clock.setMilliseconds(80 * TICK_INTERVAL_MS);
-    expect(store.frame()!.effects.map((effect) => effect.tick)).toEqual([66, 69]);
+    expect(store.nextFrame()!.effects.map((effect) => effect.tick)).toEqual([66, 69]);
   });
 
   it('extrapolates past the newest snapshot with the velocity, then holds the frame when snapshots stop', () => {
@@ -67,11 +67,11 @@ describe('WorldStore', () => {
       createTestSnapshot({ tick: 66, cells: [createTestCellView({ id: entityId('c'), x: 66, velocityX: 60 })] }),
     );
     clock.setMilliseconds(500 * TICK_INTERVAL_MS);
-    const held = store.frame()!;
+    const held = store.nextFrame()!;
     expect(held.renderTick).toBe(66 + MAX_EXTRAPOLATION_TICKS);
     expect(held.cells[0]!.x).toBeCloseTo(66 + MAX_EXTRAPOLATION_TICKS, 6);
     clock.setMilliseconds(900 * TICK_INTERVAL_MS);
-    const later = store.frame()!;
+    const later = store.nextFrame()!;
     expect([later.renderTick, later.timeSeconds, later.cells]).toEqual([held.renderTick, held.timeSeconds, held.cells]);
   });
 
@@ -88,7 +88,7 @@ describe('WorldStore', () => {
     expect(store.balance).toBe(DEFAULT_BALANCE);
     expect(store.ownPlayerId).toBe(TEST_OWN_PLAYER_ID);
     expect(store.avatarAssignments).toEqual({ [TEST_OWN_PLAYER_ID]: 2 });
-    expect(store.frame()!.cells).toEqual([]);
+    expect(store.nextFrame()!.cells).toEqual([]);
     store.applyBalance({ ...DEFAULT_BALANCE });
     expect(store.balance).not.toBe(DEFAULT_BALANCE);
   });
@@ -98,5 +98,12 @@ describe('WorldStore', () => {
     expect(store.applySnapshot(createTestSnapshot({ tick: 62 }))).toBe(false);
     clock.setMilliseconds(63 * TICK_INTERVAL_MS);
     expect(store.renderLagMs()).toBeCloseTo((63 - 60) * TICK_INTERVAL_MS, 6);
+  });
+
+  it('reads the render lag without consuming the effects the next frame is owed', () => {
+    const { store, clock } = storeWithSnapshots([60, 63]);
+    clock.setMilliseconds(69 * TICK_INTERVAL_MS);
+    expect(store.renderLagMs()).not.toBeNull();
+    expect(store.nextFrame()!.effects.map((effect) => effect.tick)).toEqual([60, 63]);
   });
 });

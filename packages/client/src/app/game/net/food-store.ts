@@ -17,7 +17,11 @@ export class FoodStore {
   private readonly motions = new Map<EntityId, MoteMotion>();
 
   applyDelta(delta: FoodDelta, tick: number): void {
-    for (const mote of delta.spawned) this.motes.set(mote.id, mote);
+    for (const mote of delta.spawned) {
+      this.motes.set(mote.id, mote);
+      // A re-spawn is a full position (docs/ARCHITECTURE.md §4): any motion in flight is stale.
+      this.motions.delete(mote.id);
+    }
     for (const id of delta.removedIds) {
       this.motes.delete(id);
       this.motions.delete(id);

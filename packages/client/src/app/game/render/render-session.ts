@@ -1,7 +1,7 @@
-// One room's rendering, from the first `game_state` to the teardown (docs/ARCHITECTURE.md §6):
+// One room's rendering, from the first `game_state` to the teardown (docs/ARCHITECTURE.md §5, §6):
 // creates the Pixi app and the renderer when the round's seed is known, applies every message
-// to the store, runs the frame loop on the app's ticker, feeds the audio handle and installs the
-// debug hook. `game-setup.ts` builds one and wires the seams. Slice D (#208) adds the frame-budget
+// to the store as it arrives (a snapshot is a delta, so none is skipped), runs the read-only
+// frame loop on the app's ticker, feeds the audio handle and installs the debug hook. `game-setup.ts` builds one and wires the seams. Slice D (#208) adds the frame-budget
 // report (`ClientPerformanceReport`) on top of the frame loop.
 
 import { SERVER_MESSAGE_TYPE, type Clock, type GameSnapshot, type ServerMessage } from '@evolution/shared';
@@ -30,15 +30,22 @@ export class RenderSession {
   private textures: RenderTextures | null = null;
   private renderer: GameRenderer | null = null;
   private audio: AudioHooksHandle | null = null;
+  /** The one in-flight or resolved Pixi app, so two early `game_state`s never create two canvases. */
+  private pixiReady: Promise<PixiAppHandle | null> | null = null;
+  /** Renderer builds queue behind each other: the newest seed wins and no two share the stage. */
+  private rendererReady: Promise<void> = Promise.resolve();
+  /** The error that left the session without a renderer (no WebGL, a failed factory); `null` while healthy. */
+  private startupErrorValue: unknown = null;
   /** The tick of the frame on screen: what the debug hook reports, held while paused. */
   private lastRenderedTick: number | null = null;
   private isDestroyed = false;
 
-  constructor(
-    private readonly dependencies: RenderSessionDependencies,
-    private readonly drainLatestSnapshot: () => ServerMessage | null,
-  ) {
+  constructor(private readonly dependencies: RenderSessionDependencies) {
     this.store = new WorldStore(dependencies.clock);
+  }
+
+  get startupError(): unknown {
+    return this.startupErrorValue;
   }
 
   onMessage(message: ServerMessage): void {
@@ -50,25 +57,45 @@ export class RenderSession {
         balance: message.balance,
         roundDurationSeconds: message.config.roundDurationSeconds,
       });
-      void this.ensureRenderer(message.snapshot);
+      this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
+    } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
+      if (this.store.applySnapshot(message.snapshot)) this.audio?.observe(message.snapshot);
     } else if (message.type === SERVER_MESSAGE_TYPE.balanceUpdated) {
       this.store.applyBalance(message.balance);
       this.audio?.updateOptions({ balance: message.balance });
     }
   }
 
-  /** Resolves once the renderer for the current seed exists (tests await it; the app fires and forgets). */
-  async ensureRenderer(snapshot: GameSnapshot): Promise<void> {
+  /**
+   * Resolves once the renderer for `snapshot.seed` exists; rejects when the Pixi app cannot be
+   * created. Calls queue behind each other, so the last seed wins and an earlier renderer is
+   * disposed only after it was built. Tests await it; `onMessage` records a rejection.
+   */
+  ensureRenderer(snapshot: GameSnapshot): Promise<void> {
+    const build = this.rendererReady.then(() => this.buildRenderer(snapshot));
+    this.rendererReady = build.catch(() => undefined);
+    return build;
+  }
+
+  private async buildRenderer(snapshot: GameSnapshot): Promise<void> {
     if (this.renderer !== null && this.renderer.seed === snapshot.seed) return;
-    this.disposeRenderer();
     const pixi = await this.ensurePixiApp();
     if (pixi === null) return;
+    this.disposeRenderer();
     this.textures = createRenderTextures({ seed: snapshot.seed, baker: pixi.textures });
     this.renderer = new GameRenderer(pixi.app.stage, this.textures, pixi.app.screen);
   }
 
-  private async ensurePixiApp(): Promise<PixiAppHandle | null> {
-    if (this.pixi !== null) return this.pixi;
+  private ensurePixiApp(): Promise<PixiAppHandle | null> {
+    this.pixiReady ??= this.createPixiApp().catch((error: unknown) => {
+      // The next `game_state` may try again (a reconnect after the GPU came back).
+      this.pixiReady = null;
+      throw error;
+    });
+    return this.pixiReady;
+  }
+
+  private async createPixiApp(): Promise<PixiAppHandle | null> {
     const pixi = await this.dependencies.createPixiApp({
       host: this.dependencies.host,
       devicePixelRatio: this.dependencies.devicePixelRatio,
@@ -84,14 +111,16 @@ export class RenderSession {
     return pixi;
   }
 
-  /** One ticker callback: drains the newest snapshot, then renders the store's frame unless the gate holds it. */
+  /** A room without a canvas is fatal for play but not for the lobby: the failure is kept and logged once. */
+  private recordStartupError(error: unknown): void {
+    this.startupErrorValue = error;
+    console.error('The renderer could not start; the room plays without a canvas.', error);
+  }
+
+  /** One ticker callback: renders the store's next frame unless the gate holds it. Reads only. */
   frame(): void {
     if (this.pixi === null || this.renderer === null || !this.gate.claimFrame()) return;
-    const message = this.drainLatestSnapshot();
-    if (message?.type === SERVER_MESSAGE_TYPE.gameSnapshot && this.store.applySnapshot(message.snapshot)) {
-      this.audio?.observe(message.snapshot);
-    }
-    const frame = this.store.frame();
+    const frame = this.store.nextFrame();
     if (frame === null) return;
     this.lastRenderedTick = frame.renderTick;
     const { app } = this.pixi;

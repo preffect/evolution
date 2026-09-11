@@ -29,7 +29,6 @@ function createTransportStub() {
     connect: vi.fn(),
     disconnect: vi.fn(),
     send: vi.fn(),
-    drainLatestSnapshot: vi.fn<() => ServerMessage | null>(() => null),
   };
 }
 
@@ -145,15 +144,5 @@ describe('MultiplayerService', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });
     expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 1 }));
     expect(service.lastError()).toBe('nope');
-  });
-
-  it('latestSnapshot drains the transport fast-path and updates the signal', () => {
-    transport.drainLatestSnapshot.mockReturnValueOnce({
-      type: SERVER_MESSAGE_TYPE.gameSnapshot,
-      snapshot: createTestSnapshot({ tick: 2 }),
-    });
-    expect(service.latestSnapshot()).toEqual(createTestSnapshot({ tick: 2 }));
-    expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 2 }));
-    expect(service.latestSnapshot()).toBeNull();
   });
 });

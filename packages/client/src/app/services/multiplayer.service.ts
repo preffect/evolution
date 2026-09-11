@@ -22,8 +22,8 @@ import { WebSocketService } from './websocket.service';
  *
  * Game-specific code plugs in at two clearly marked seams:
  *   1. `sendInput(payload)` — outbound: wrap your game's input shape (`GameInput`).
- *   2. `snapshot` signal + `latestSnapshot()` — inbound: the opaque
- *      `GameSnapshot` your renderer consumes. See `game/game-setup.ts`.
+ *   2. `gameMessages$` — inbound: every server message in order, which the render session
+ *      applies to its `WorldStore` (`game/game-setup.ts`); the `snapshot` signal mirrors the newest.
  */
 export type Phase = 'lobby' | 'in-game';
 
@@ -48,11 +48,7 @@ export class MultiplayerService {
   readonly sessionConfig = signal<GameSessionConfig | null>(null);
   readonly lastError = signal<string | null>(null);
 
-  /**
-   * Most recent opaque game snapshot received from the server. The template's
-   * default "echo" GameModule fills this in; a real game replaces the
-   * `GameSnapshot` type and renders it. TODO(game): consume in your renderer.
-   */
+  /** The newest `game_snapshot`, for the lobby / HUD facade; the renderer reads `WorldStore` instead. */
   readonly snapshot = signal<GameSnapshot | null>(null);
 
   readonly inGame = computed(() => this.phase() === 'in-game');
@@ -119,21 +115,6 @@ export class MultiplayerService {
     });
   }
 
-  /** The raw freshest snapshot message, for the render loop that owns interpolation. */
-  drainLatestSnapshotMessage(): ServerMessage | null {
-    return this.transport.drainLatestSnapshot();
-  }
-
-  /** Drain the freshest un-rendered snapshot frame (call once per render frame). */
-  latestSnapshot(): GameSnapshot | null {
-    const message = this.transport.drainLatestSnapshot();
-    if (message && message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
-      this.snapshot.set(message.snapshot);
-      return message.snapshot;
-    }
-    return null;
-  }
-
   // ===== Inbound message handling =====
   private handle(message: ServerMessage): void {
     switch (message.type) {
@@ -163,8 +144,7 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameSnapshot:
-        // Hot path is normally handled by the coalescing drain in the render
-        // loop; this branch covers any snapshot that arrives via messages$.
+        // The newest snapshot for the lobby UI; the render session applies every one to its store.
         this.snapshot.set(message.snapshot);
         break;
 

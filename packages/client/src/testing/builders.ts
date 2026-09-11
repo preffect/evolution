@@ -10,6 +10,7 @@ import {
   ENTITY_KIND,
   ROUND_DURATION_SECONDS,
   SOUND_EVENT,
+  FOOD_KIND,
   SOUND_EVENT_IDS,
   STAGE_ORDER,
   ZONE_ID,
@@ -20,10 +21,16 @@ import {
   type CellView,
   type EatEffect,
   type CellAbsorbedEffect,
+  type FoodMoteView,
   type LevelUpEffect,
   type RespawnEffect,
 } from '@evolution/shared';
 import type { RenderFrame } from '../app/game/net/world-store';
+
+/** An algae mote at the origin; a layer or store test names only what it changes. */
+export function createTestFoodMoteView(overrides: Partial<FoodMoteView> = {}): FoodMoteView {
+  return { id: entityId('mote'), kind: FOOD_KIND.algae, bacteriumVariant: null, x: 0, y: 0, ...overrides };
+}
 import type { TransitionOptions } from '../app/game/state/snapshot-transitions';
 
 export const TEST_OWN_PLAYER_ID = playerId('player-own');

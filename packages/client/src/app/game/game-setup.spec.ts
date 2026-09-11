@@ -41,7 +41,7 @@ describe('setupGame', () => {
     const messages$ = new Subject<ServerMessage>();
     const debugHost: EvolutionDebugHost = {};
     const teardown = setupGame(
-      { send: vi.fn(), messages$, drainLatestSnapshot: () => null, host: document.createElement('div') },
+      { send: vi.fn(), messages$, host: document.createElement('div') },
       dependencies({ debugHost }),
     );
     expect(debugHost[EVOLUTION_DEBUG_KEY]?.mode).toBe('live');
@@ -54,10 +54,7 @@ describe('setupGame', () => {
   it('connects the audio hooks once per game_state with the own player, the balance and the round length', () => {
     const messages$ = new Subject<ServerMessage>();
     const injected = dependencies();
-    setupGame(
-      { send: vi.fn(), messages$, drainLatestSnapshot: () => null, host: document.createElement('div') },
-      injected,
-    );
+    setupGame({ send: vi.fn(), messages$, host: document.createElement('div') }, injected);
     const config = createTestSessionConfig({ roundDurationSeconds: 90 });
     messages$.next({
       type: SERVER_MESSAGE_TYPE.gameState,

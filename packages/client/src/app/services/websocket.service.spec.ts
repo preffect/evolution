@@ -42,7 +42,7 @@ describe('WebSocketService', () => {
     expect(socket.sent).toHaveLength(2);
   });
 
-  it('publishes decoded messages and coalesces snapshot frames into the drain fast-path', () => {
+  it('publishes every decoded message in arrival order, snapshots included, and drops malformed frames', () => {
     const received: ServerMessage[] = [];
     service.messages$.subscribe((message) => received.push(message));
     service.connect();
@@ -54,9 +54,11 @@ describe('WebSocketService', () => {
     socket.receive('{"type":"game_snapshot" broken');
     socket.receive('broken');
     socket.receive(new Blob());
-    expect(received).toEqual([{ type: SERVER_MESSAGE_TYPE.error, message: 'x' }]);
-    expect(service.drainLatestSnapshot()).toEqual({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: 2 });
-    expect(service.drainLatestSnapshot()).toBeNull();
+    expect(received).toEqual([
+      { type: SERVER_MESSAGE_TYPE.error, message: 'x' },
+      { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: 1 },
+      { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: 2 },
+    ]);
   });
 
   it('reconnects after an unexpected close but not after a user disconnect', () => {

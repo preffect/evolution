@@ -7,9 +7,11 @@ import {
   createTestSessionConfig,
   createTestSnapshot,
   gameId,
+  entityId,
+  type FoodMoteView,
   type ServerMessage,
 } from '@evolution/shared';
-import { TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
+import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
 import { createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
 import { RenderSession, type RenderSessionDependencies } from './render-session';
 
@@ -26,7 +28,7 @@ function gameState(seed = 1): ServerMessage {
   };
 }
 
-function session(snapshots: ServerMessage[] = []) {
+function session(overrides: Partial<RenderSessionDependencies> = {}) {
   const clock = new ManualClock(0);
   const pixi: FakePixiApp = createFakePixiApp();
   const audio = {
@@ -43,9 +45,17 @@ function session(snapshots: ServerMessage[] = []) {
     createPixiApp: vi.fn(() => Promise.resolve(pixi)),
     connectAudio: vi.fn(() => audio),
     hudInputs: () => ({ previewTraitId: null, reticle: { isVisible: false, x: 0, y: 0 } }),
+    ...overrides,
   };
-  const subject = new RenderSession(dependencies, () => snapshots.shift() ?? null);
+  const subject = new RenderSession(dependencies);
   return { subject, clock, pixi, audio, dependencies };
+}
+
+function snapshotMessage(tick: number, spawned: FoodMoteView[] = []): ServerMessage {
+  return {
+    type: SERVER_MESSAGE_TYPE.gameSnapshot,
+    snapshot: createTestSnapshot({ tick, cells: [createTestCellView()], food: { spawned, removedIds: [], moved: [] } }),
+  };
 }
 
 async function flush(): Promise<void> {
@@ -77,16 +87,53 @@ describe('RenderSession', () => {
     expect(pixi.stage.children).toHaveLength(2);
   });
 
-  it('renders one frame per tick from the drained snapshot and feeds the audio handle', async () => {
-    const snapshot = createTestSnapshot({ tick: 3, cells: [createTestCellView()] });
-    const { subject, pixi, audio, clock } = session([{ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot }]);
+  it('applies every snapshot on arrival, in order, so a frame hitch drops no delta; the frame loop only reads', async () => {
+    const { subject, pixi, audio, clock } = session();
     subject.onMessage(gameState());
     await flush();
-    clock.setMilliseconds(3 * TICK_INTERVAL_MS);
+    const first = snapshotMessage(3, [createTestFoodMoteView({ id: entityId('a') })]);
+    const second = snapshotMessage(6, [createTestFoodMoteView({ id: entityId('b') })]);
+    subject.onMessage(first);
+    subject.onMessage(second);
+    expect(audio.observe).toHaveBeenCalledTimes(2);
+    clock.setMilliseconds(6 * TICK_INTERVAL_MS);
     pixi.tick();
-    expect(audio.observe).toHaveBeenCalledWith(snapshot);
     expect(pixi.renderCalls.count).toBe(1);
     expect(subject.debugApi().renderTick()).not.toBeNull();
+    expect(subject.store.nextFrame()!.motes.map((mote) => mote.id)).toEqual(['a', 'b']);
+  });
+
+  it('creates one Pixi app when two game_state messages arrive before the factory resolves; the last seed wins', async () => {
+    const pixi = createFakePixiApp();
+    let resolveApp: (handle: FakePixiApp) => void = () => undefined;
+    const createPixiApp = vi.fn(() => new Promise<FakePixiApp>((resolve) => (resolveApp = resolve)));
+    const { subject } = session({ createPixiApp });
+    subject.onMessage(gameState(1));
+    subject.onMessage(gameState(2));
+    await flush();
+    resolveApp(pixi);
+    await flush();
+    await flush();
+    expect(createPixiApp).toHaveBeenCalledTimes(1);
+    expect(pixi.bakedSpecs).toHaveLength(4);
+    expect(pixi.stage.children).toHaveLength(2);
+    expect(subject.startupError).toBeNull();
+  });
+
+  it('records a factory rejection as the start-up error, logs it once, and lets the next game_state retry', async () => {
+    const failure = new Error('no WebGL');
+    const createPixiApp = vi.fn(() => Promise.reject(failure));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { subject, pixi } = session({ createPixiApp });
+    subject.onMessage(gameState());
+    await flush();
+    expect(subject.startupError).toBe(failure);
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(pixi.tickerCallbacks).toHaveLength(0);
+    subject.onMessage(gameState());
+    await flush();
+    expect(createPixiApp).toHaveBeenCalledTimes(2);
+    consoleError.mockRestore();
   });
 
   it('holds frames while paused and renders exactly the stepped ones', async () => {

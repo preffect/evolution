@@ -1,6 +1,6 @@
 // The single client model (docs/ARCHITECTURE.md §5): applies `game_state` and `game_snapshot`
 // messages (food deltas idempotently), estimates the server tick through the injected clock and
-// answers one interpolated `RenderFrame` per render call. Framework-free; the Angular facade and
+// answers one interpolated `RenderFrame` per rendered frame (`nextFrame`, which consumes the effects due). Framework-free; the Angular facade and
 // the renderer both read it, nothing else writes it. Prediction and reconciliation of the own
 // cell join with the input ticket (#100): every cell is interpolated here.
 
@@ -99,16 +99,27 @@ export class WorldStore {
     return this.snapshots.latest();
   }
 
-  /** The world at the render tick for the clock's now, or `null` before the first `game_state`. */
-  frame(): RenderFrame | null {
+  /** The render tick for the clock's now against the buffered snapshots, or `null` before the first one. */
+  private renderTickNow(): { renderTick: number; latest: GameSnapshot } | null {
     const latest = this.snapshots.latest();
     const oldest = this.snapshots.oldest();
     const serverTick = this.estimator.serverTickAt(this.clock.nowMilliseconds());
+    if (latest === null || oldest === null || serverTick === null) return null;
+    return { renderTick: renderTickFor(serverTick, oldest.tick, latest.tick), latest };
+  }
+
+  /**
+   * The world at the render tick for the clock's now, or `null` before the first `game_state`.
+   * Consumes the effects due at that tick: the session calls it once per rendered frame, never to peek.
+   */
+  nextFrame(): RenderFrame | null {
+    const position = this.renderTickNow();
     const balance = this.balanceValue;
-    if (latest === null || oldest === null || serverTick === null || balance === null) return null;
-    const renderTick = renderTickFor(serverTick, oldest.tick, latest.tick);
+    if (position === null || balance === null) return null;
+    const { renderTick, latest } = position;
     const { older, newer } = this.snapshots.bracket(renderTick);
-    const from = older ?? newer ?? latest;
+    // `renderTickFor` never answers before the oldest snapshot, so `bracket` always finds an older one.
+    const from = older ?? latest;
     const target = newer ?? latest;
     const weight = interpolationWeight(from.tick, target.tick, renderTick);
     const cells =
@@ -135,10 +146,11 @@ export class WorldStore {
     return due.sort((first, second) => first.tick - second.tick);
   }
 
-  /** Milliseconds the render tick lags the newest snapshot: what a HUD may show as latency. */
+  /** Milliseconds the render tick lags the newest snapshot: what a HUD may show as latency. A read: consumes nothing. */
   renderLagMs(): number | null {
-    const frame = this.frame();
-    return frame === null ? null : (frame.latest.tick - frame.renderTick) * TICK_INTERVAL_S * MILLISECONDS_PER_SECOND;
+    const position = this.renderTickNow();
+    if (position === null) return null;
+    return (position.latest.tick - position.renderTick) * TICK_INTERVAL_S * MILLISECONDS_PER_SECOND;
   }
 
   reset(): void {

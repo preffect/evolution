@@ -37,6 +37,14 @@ describe('FoodStore', () => {
     expect(store.motesAt(100).find((mote) => mote.id === 'm')).toMatchObject({ x: 20, y: 10 });
   });
 
+  it('a re-spawned bacterium drops its stale motion and sits at the spawned position', () => {
+    const store = new FoodStore();
+    store.applyDelta({ spawned: [rod('m', 0)], removedIds: [], moved: [] }, 1);
+    store.applyDelta({ spawned: [], removedIds: [], moved: [{ id: entityId('m'), x: 10, y: 10 }] }, 2);
+    store.applyDelta({ spawned: [rod('m', 50)], removedIds: [], moved: [] }, 3);
+    expect(store.motesAt(3).find((mote) => mote.id === 'm')).toMatchObject({ x: 50 });
+  });
+
   it('ignores a move for an unknown mote and forgets everything on reset', () => {
     const store = new FoodStore();
     store.applyDelta({ spawned: [], removedIds: [], moved: [{ id: entityId('ghost'), x: 1, y: 1 }] }, 3);
