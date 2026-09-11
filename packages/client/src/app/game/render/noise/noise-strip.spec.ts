@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RADIANS_PER_FULL_TURN, RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
+import { areBytesEqual } from '../../../../testing/bytes';
 import {
   NOISE_STRIP_LOBE_SCALE,
   NOISE_STRIP_ROWS,
@@ -19,10 +20,10 @@ function cosmetic(seed = TEST_SEED) {
 describe('noise strip', () => {
   it('bakes the same bytes for the same seed and different bytes for another', () => {
     const first = buildNoiseStrip(cosmetic());
-    expect(first.bytes).toEqual(buildNoiseStrip(cosmetic()).bytes);
+    expect(areBytesEqual(first.bytes, buildNoiseStrip(cosmetic()).bytes)).toBe(true);
     expect(first.bytes).toHaveLength(NOISE_STRIP_WIDTH * NOISE_STRIP_ROWS * RGBA);
     expect([first.width, first.rows]).toEqual([NOISE_STRIP_WIDTH, NOISE_STRIP_ROWS]);
-    expect(buildNoiseStrip(cosmetic(TEST_SEED + 1)).bytes).not.toEqual(first.bytes);
+    expect(areBytesEqual(buildNoiseStrip(cosmetic(TEST_SEED + 1)).bytes, first.bytes)).toBe(false);
   });
 
   it('gives every row 5–7 rest lobes within the amplitude bound', () => {

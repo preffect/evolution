@@ -23,6 +23,8 @@ export interface RenderSessionDependencies {
   readonly hudInputs: () => RenderInputs;
   /** `true` in dev builds, where the debug hook screenshots the canvas (`pixi-app.ts`). */
   readonly shouldPreserveDrawingBuffer: boolean;
+  /** The cytoplasm tile's edge (`RenderTextureOptions`): the production size unless a test shrinks it. */
+  readonly noiseTileSizePx?: number;
 }
 
 export class RenderSession {
@@ -96,6 +98,7 @@ export class RenderSession {
       baker: pixi.textures,
       gelPatches: snapshot.gelPatches,
       devicePixelRatio: this.dependencies.devicePixelRatio,
+      noiseTileSizePx: this.dependencies.noiseTileSizePx,
     });
     this.renderer = new GameRenderer(pixi.app.stage, this.textures, pixi.app.screen);
   }

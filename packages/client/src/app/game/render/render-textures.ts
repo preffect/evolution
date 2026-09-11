@@ -19,7 +19,6 @@ import {
   GLOW_TEXTURE_PX,
   NOISE_STRIP_ROWS,
   NOISE_STRIP_WIDTH,
-  NOISE_TILE_SIZE_PX,
   PALETTE_SHADE_COUNT,
   VIGNETTE,
   VIGNETTE_ALPHA,
@@ -109,6 +108,12 @@ export interface RenderTextureOptions {
   /** The round's gel patches (a `game_state` or rematch snapshot): drawn into the dish field. */
   readonly gelPatches: readonly GelPatchView[];
   readonly devicePixelRatio: number;
+  /**
+   * The cytoplasm tile's edge in texels: `buildNoiseTile`'s default (`NOISE_TILE_SIZE_PX`) when
+   * absent. A test shrinks it (the bake is the one CPU-heavy step of the bundle and its bytes are
+   * never sampled without WebGL).
+   */
+  readonly noiseTileSizePx?: number;
 }
 
 const CLEAR = 0;
@@ -167,9 +172,10 @@ function moteTextures(baker: TextureBaker): MoteAtlasTextures {
 /** The cell shader's data textures: the strip and the palette as `texelFetch` tables, the tile sampled trilinear. */
 function cellDataTextures(
   cosmetic: RandomSource,
+  noiseTileSizePx: number | undefined,
 ): Pick<RenderTextures, 'strip' | 'stripTexture' | 'tileTexture' | 'paletteTexture'> {
   const strip = buildNoiseStrip(cosmetic);
-  const tile = buildNoiseTile(cosmetic);
+  const tile = buildNoiseTile(cosmetic, noiseTileSizePx);
   return {
     strip,
     stripTexture: byteDataTexture(strip.bytes, {
@@ -180,8 +186,8 @@ function cellDataTextures(
       hasMipmaps: false,
     }),
     tileTexture: byteDataTexture(tile.bytes, {
-      width: NOISE_TILE_SIZE_PX,
-      height: NOISE_TILE_SIZE_PX,
+      width: tile.size,
+      height: tile.size,
       isFiltered: true,
       isRepeating: true,
       hasMipmaps: true,
@@ -206,7 +212,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
     cosmetic,
     glowTexture: baker.bakeRadial(SOFT_DISC_BAKE),
     vignetteTexture: baker.bakeRadial(VIGNETTE_BAKE),
-    ...cellDataTextures(cosmetic),
+    ...cellDataTextures(cosmetic, options.noiseTileSizePx),
     glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
     motes: moteTextures(baker),
     organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),

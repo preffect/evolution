@@ -5,13 +5,16 @@ import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { DEPTH_BOKEH, DEPTH_FAR, DEPTH_NEAR_PARTICLES, VENT_CENTRE_WU, WALL_GLASS_WU } from '../constants';
 import { DishLayer, createDishFieldSprite, createVentSprite, drawDishWall } from './dish-layer';
 
-function layer(seed = 1) {
+/** One bundle for the seed-agnostic tests: the bakes are the slow part (#226). */
+const textures = createTestRenderTextures();
+
+function layer(seed: number) {
   return new DishLayer(createTestRenderTextures({ seed }));
 }
 
 describe('DishLayer', () => {
   it('puts the field sprite, the vent over it, the wall and the far particles under the cells and the near ones above', () => {
-    const subject = layer();
+    const subject = new DishLayer(textures);
     const [field, vent, wall, far] = subject.container.children;
     expect(field).toBeInstanceOf(Sprite);
     expect(vent).toBeInstanceOf(Sprite);
@@ -39,7 +42,7 @@ describe('DishLayer', () => {
   });
 
   it('destroys both containers', () => {
-    const subject = layer();
+    const subject = new DishLayer(textures);
     subject.destroy();
     expect(subject.container.destroyed).toBe(true);
     expect(subject.nearContainer.destroyed).toBe(true);
@@ -48,7 +51,6 @@ describe('DishLayer', () => {
 
 describe('createDishFieldSprite / createVentSprite / drawDishWall', () => {
   it('centres the field bake on the origin and scales it to the bake extent, past the wall', () => {
-    const textures = createTestRenderTextures();
     const field = createDishFieldSprite(textures);
     expect(field.anchor.x).toBe(0.5);
     expect(field.anchor.y).toBe(0.5);
@@ -58,7 +60,6 @@ describe('createDishFieldSprite / createVentSprite / drawDishWall', () => {
   });
 
   it('centres the vent sprite on the vent zone and scales it to its bake extent', () => {
-    const textures = createTestRenderTextures();
     const vent = createVentSprite(textures);
     expect(vent.anchor.x).toBe(0.5);
     expect(vent.position.x).toBe(VENT_CENTRE_WU.x);
