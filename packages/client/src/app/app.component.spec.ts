@@ -82,11 +82,4 @@ describe('AppComponent', () => {
     }
     expect(seeds.size).toBeGreaterThan(1);
   });
-
-  it('pretty-prints the latest snapshot or a placeholder', () => {
-    const component = TestBed.createComponent(AppComponent).componentInstance;
-    expect(component.snapshotJson()).toBe('(no snapshot yet)');
-    multiplayer.snapshot.set({ tick: 1 });
-    expect(component.snapshotJson()).toContain('"tick": 1');
-  });
 });

@@ -12,3 +12,5 @@ export const SNAPSHOT_BUFFER_SIZE = 4;
 export const INTERPOLATION_DELAY_TICKS = 6;
 /** A missing bracket extrapolates with velocity for at most this many ticks, then holds. */
 export const MAX_EXTRAPOLATION_TICKS = 3;
+/** The server-tick estimate's EMA weight per snapshot arrival: jitter averages out, drift is tracked. */
+export const SERVER_TICK_ESTIMATE_SMOOTHING = 0.1;

@@ -1,5 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import type { Observable } from 'rxjs';
 import type {
+  ClientPerformanceReport,
   GameId,
   GameInput,
   GameSessionConfig,
@@ -102,6 +104,21 @@ export class MultiplayerService {
    */
   sendInput(payload: GameInput): void {
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });
+  }
+
+  /** Every non-snapshot server message, for the game's composition root (`game/game-setup.ts`). */
+  get messages$(): Observable<ServerMessage> {
+    return this.transport.messages$;
+  }
+
+  /** The renderer's frame budget report (docs/RENDERING.md §7), on the `client_performance` heartbeat. */
+  sendPerformanceReport(report: ClientPerformanceReport): void {
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.clientPerformance, report });
+  }
+
+  /** The raw freshest snapshot message, for the render loop that owns interpolation. */
+  drainLatestSnapshotMessage(): ServerMessage | null {
+    return this.transport.drainLatestSnapshot();
   }
 
   /** Drain the freshest un-rendered snapshot frame (call once per render frame). */

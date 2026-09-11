@@ -3,126 +3,123 @@
   De-branded template shell. No game-specific UI lives here — the actual game
   renders inside the "game area" TODO below via game/game-setup.ts.
 -->
-<header class="app-header">
-  <h1>{{ title }}</h1>
-  <p class="tagline">Multiplayer lobby</p>
-  <span class="conn" [class.on]="multiplayer.connected()">
-    {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
-  </span>
-</header>
-
-@if (multiplayer.lastError(); as errorMessage) {
-  <p class="error">Error: {{ errorMessage }}</p>
-}
-
-@if (!multiplayer.inGame()) {
-  <!-- ===== Lobby ===== -->
-  <section class="panel">
-    <h2>Connection</h2>
-    <label>
-      Name
-      <input type="text" [ngModel]="playerName()" (ngModelChange)="playerName.set($event)" />
-    </label>
-    @if (!multiplayer.connected()) {
-      <button (click)="connect()">Connect & Join Lobby</button>
-    } @else {
-      <button (click)="disconnect()">Disconnect</button>
-    }
-  </section>
-
-  <section class="panel">
-    <h2>Create Game</h2>
-    <label>
-      Game name
-      <input type="text" [ngModel]="newGameName()" (ngModelChange)="newGameName.set($event)" />
-    </label>
-    <label>
-      Max players
-      <input
-        type="number"
-        [min]="bounds.minPlayers"
-        [max]="bounds.maxPlayers"
-        step="1"
-        [ngModel]="maxPlayers()"
-        (ngModelChange)="maxPlayers.set(+$event)"
-      />
-    </label>
-    <label>
-      Round length (s)
-      <input
-        type="number"
-        [min]="bounds.roundMinSeconds"
-        [max]="bounds.roundMaxSeconds"
-        step="1"
-        [ngModel]="roundDurationSeconds()"
-        (ngModelChange)="roundDurationSeconds.set(+$event)"
-        data-testid="create-round-seconds"
-      />
-    </label>
-    <label>
-      Seed
-      <input
-        type="number"
-        min="0"
-        [max]="bounds.seedMax"
-        step="1"
-        [ngModel]="seed()"
-        (ngModelChange)="seed.set(+$event)"
-        data-testid="create-seed"
-      />
-      <button type="button" (click)="newSeed()" data-testid="create-seed-new">New seed</button>
-    </label>
-    <button [disabled]="!multiplayer.connected()" (click)="createGame()">Create</button>
-  </section>
-
-  <section class="panel">
-    <h2>Open Games</h2>
-    @if (multiplayer.games().length === 0) {
-      <p class="muted">No games yet.</p>
-    }
-    <ul class="games">
-      @for (game of multiplayer.games(); track game.gameId) {
-        <li>
-          <span class="game-name">{{ game.gameName }}</span>
-          <span class="muted">{{ game.players.length }}/{{ game.maxPlayers }}</span>
-          @if (game.isStarted) {
-            <span class="badge">started</span>
-          }
-          <button (click)="joinGame(game.gameId)">Join</button>
-          <button (click)="startGame(game.gameId)">Start</button>
-          <button class="danger" (click)="deleteGame(game.gameId)">Delete</button>
-        </li>
-      }
-    </ul>
-  </section>
+@if (isBenchRoute) {
+  <app-render-bench />
 } @else {
-  <!-- ===== In game ===== -->
-  <section class="panel">
-    <h2>Room</h2>
-    <p>
-      Game ID: <code>{{ multiplayer.gameId() }}</code>
-    </p>
-    <p>
-      You: <code>{{ multiplayer.playerId() }}</code> {{ multiplayer.isHost() ? '(host)' : '' }}
-    </p>
-    <p>Players ({{ multiplayer.playerIds().length }}):</p>
-    <ul class="players">
-      @for (playerId of multiplayer.playerIds(); track playerId) {
-        <li>
-          <code>{{ playerId }}</code>
-        </li>
-      }
-    </ul>
-  </section>
+  <header class="app-header">
+    <h1>{{ title }}</h1>
+    <p class="tagline">Multiplayer lobby</p>
+    <span class="conn" [class.on]="multiplayer.connected()">
+      {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
+    </span>
+  </header>
 
-  <section class="panel game-area">
-    <h2>Game Area</h2>
-    <!--
-      TODO(game): mount the real game canvas / board here and wire it to
-      game/game-setup.ts (input loop via multiplayer.sendInput, render loop via
-      multiplayer.latestSnapshot()). Until then we just show the raw snapshot JSON so
-      the snapshot round-trip is observable end-to-end.
-    -->
-    <pre class="snapshot">{{ snapshotJson() }}</pre>
-  </section>
+  @if (multiplayer.lastError(); as errorMessage) {
+    <p class="error">Error: {{ errorMessage }}</p>
+  }
+
+  @if (!multiplayer.inGame()) {
+    <!-- ===== Lobby ===== -->
+    <section class="panel">
+      <h2>Connection</h2>
+      <label>
+        Name
+        <input type="text" [ngModel]="playerName()" (ngModelChange)="playerName.set($event)" />
+      </label>
+      @if (!multiplayer.connected()) {
+        <button (click)="connect()">Connect & Join Lobby</button>
+      } @else {
+        <button (click)="disconnect()">Disconnect</button>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Create Game</h2>
+      <label>
+        Game name
+        <input type="text" [ngModel]="newGameName()" (ngModelChange)="newGameName.set($event)" />
+      </label>
+      <label>
+        Max players
+        <input
+          type="number"
+          [min]="bounds.minPlayers"
+          [max]="bounds.maxPlayers"
+          step="1"
+          [ngModel]="maxPlayers()"
+          (ngModelChange)="maxPlayers.set(+$event)"
+        />
+      </label>
+      <label>
+        Round length (s)
+        <input
+          type="number"
+          [min]="bounds.roundMinSeconds"
+          [max]="bounds.roundMaxSeconds"
+          step="1"
+          [ngModel]="roundDurationSeconds()"
+          (ngModelChange)="roundDurationSeconds.set(+$event)"
+          data-testid="create-round-seconds"
+        />
+      </label>
+      <label>
+        Seed
+        <input
+          type="number"
+          min="0"
+          [max]="bounds.seedMax"
+          step="1"
+          [ngModel]="seed()"
+          (ngModelChange)="seed.set(+$event)"
+          data-testid="create-seed"
+        />
+        <button type="button" (click)="newSeed()" data-testid="create-seed-new">New seed</button>
+      </label>
+      <button [disabled]="!multiplayer.connected()" (click)="createGame()">Create</button>
+    </section>
+
+    <section class="panel">
+      <h2>Open Games</h2>
+      @if (multiplayer.games().length === 0) {
+        <p class="muted">No games yet.</p>
+      }
+      <ul class="games">
+        @for (game of multiplayer.games(); track game.gameId) {
+          <li>
+            <span class="game-name">{{ game.gameName }}</span>
+            <span class="muted">{{ game.players.length }}/{{ game.maxPlayers }}</span>
+            @if (game.isStarted) {
+              <span class="badge">started</span>
+            }
+            <button (click)="joinGame(game.gameId)">Join</button>
+            <button (click)="startGame(game.gameId)">Start</button>
+            <button class="danger" (click)="deleteGame(game.gameId)">Delete</button>
+          </li>
+        }
+      </ul>
+    </section>
+  } @else {
+    <!-- ===== In game ===== -->
+    <section class="panel">
+      <h2>Room</h2>
+      <p>
+        Game ID: <code>{{ multiplayer.gameId() }}</code>
+      </p>
+      <p>
+        You: <code>{{ multiplayer.playerId() }}</code> {{ multiplayer.isHost() ? '(host)' : '' }}
+      </p>
+      <p>Players ({{ multiplayer.playerIds().length }}):</p>
+      <ul class="players">
+        @for (playerId of multiplayer.playerIds(); track playerId) {
+          <li>
+            <code>{{ playerId }}</code>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="panel game-area">
+      <app-game-host />
+    </section>
+  }
 }

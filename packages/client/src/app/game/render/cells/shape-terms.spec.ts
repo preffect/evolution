@@ -2,7 +2,8 @@
 // dropped while engulfing, sprint scaling and the moving-wrap extent under CELL_QUAD_EXTENT_RADII.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, createTestCellView } from '@evolution/shared';
+import { CELL_STAGE } from '@evolution/shared';
+import { createTestCellView } from '../../../../testing/builders';
 import { CELL_QUAD_EXTENT_RADII, HALO_KIND, MAX_SHAPE_BUMPS, TRAIT_HALO_OUTER_RADII } from '../constants';
 import { degreesToRadians } from '../geometry';
 import { summariseCellTraits } from './cell-traits';
@@ -104,9 +105,13 @@ describe('buildShapeTerms', () => {
   });
 
   it('reports a 2.99 r maximum for the moving wrap with a trait halo, under the 3.0 quad floor', () => {
-    const view = createTestCellView({ radius: 40, traits: [{ traitId: 'chloroplast', tier: 1 }] });
+    const view = createTestCellView({
+      radius: 40,
+      stage: CELL_STAGE.endosymbiosis,
+      traits: [{ traitId: 'chloroplast', tier: 1 }],
+    });
     const traits = summariseCellTraits(view);
-    expect(traits.haloKind).toBe(HALO_KIND.trait);
+    expect(traits.haloKind).toBe(HALO_KIND.chloroplast);
     const terms = buildShapeTerms(
       input({
         view,

@@ -125,6 +125,11 @@ export const CAMERA_CULL_MARGIN_RADII = 1;
 
 // ---- bench (docs/RENDERING.md §7) ----
 export const RENDER_BENCH_SEED = 42;
+/** The bench feeds a snapshot every third tick, the server's broadcast cadence. */
+export const RENDER_BENCH_SNAPSHOT_EVERY_TICKS = 3;
+/** Frames rendered before the bench report is taken, then the frames the report covers. */
+export const RENDER_BENCH_WARMUP_FRAMES = 30;
+export const RENDER_BENCH_REPORT_FRAMES = 240;
 export const RENDER_BENCH_CELL_COUNT = 100;
 export const RENDER_BENCH_MOTE_COUNT = 1400;
 export const RENDER_BENCH_FRAGMENT_COUNT = 110;
@@ -134,6 +139,8 @@ export const RENDER_BENCH_ORBIT_RADIUS_WU = { min: 200, max: 1400 } as const;
 export const RENDER_BENCH_ORBIT_SECONDS = { min: 20, max: 60 } as const;
 export const RENDER_BENCH_MASS = { min: 20, max: 1200 } as const;
 export const RENDER_BENCH_ENGULF_PAIRS = 6;
+/** Cells that are absorbed and respawn on the absorb cadence, so the ghost path is exercised. */
+export const RENDER_BENCH_VICTIM_COUNT = 4;
 export const RENDER_BENCH_EATS_PER_SNAPSHOT = 4;
 export const RENDER_BENCH_ABSORB_EVERY_TICKS = 120;
 export const RENDER_BENCH_LEVEL_UP_EVERY_TICKS = 90;

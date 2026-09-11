@@ -6,9 +6,9 @@ export const ORGANELLE_ATLAS_MAX_DPR = 2;
 /** Slot rejection sampling (§3): inside 1 − 0.08, outside the nucleus disc, this gap between sprites. */
 export const ORGANELLE_MEMBRANE_MARGIN = 0.08;
 export const ORGANELLE_MIN_GAP = 0.04;
-export const ORGANELLE_SLOT_MAX_ATTEMPTS = 64;
+export const ORGANELLE_SLOT_MAX_ATTEMPTS = 256;
 /** #146's DNA ring keep-out: slots also reject `|q|` below this, for every cell. */
-export const DNA_RING_KEEP_OUT_FRACTION = 0.56;
+export const DNA_RING_KEEP_OUT_FRACTION = 0.66;
 export const NUCLEUS_LAG = 0.2;
 export const NUCLEUS_DRIFT_RADII = 0.02;
 export const NUCLEUS_DRIFT_HZ = 0.2;

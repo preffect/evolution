@@ -77,7 +77,8 @@ export interface ShapeTerms extends RadialProfileTerms {
 
 const HALO_OUTER_BY_KIND: Readonly<Record<number, number>> = {
   [HALO_KIND.default]: HALO_OUTER_RADII,
-  [HALO_KIND.trait]: TRAIT_HALO_OUTER_RADII,
+  [HALO_KIND.chloroplast]: TRAIT_HALO_OUTER_RADII,
+  [HALO_KIND.toxin]: TRAIT_HALO_OUTER_RADII,
   [HALO_KIND.protocell]: PROTOCELL_HALO_OUTER_RADII,
 };
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createTestCellView, entityId } from '@evolution/shared';
+import { entityId } from '@evolution/shared';
+import { createTestCellView } from '../../../../testing/builders';
 import { computeContactDents } from './contact-dents';
 
 const cell = (id: string, x: number, y: number, radius: number) =>

@@ -56,8 +56,8 @@ describe('radial profile r(θ)', () => {
     [0.45, 0, 1.1],
     [0.45, 90, 0.94],
     [0.45, 180, 0.87],
-  ])('stretches at k = %f to the sheet 01 values (Δ %d° → %f)', (k, delta, expected) => {
-    const terms = restTerms({ stretch: { ...restTerms().stretch, k } });
+  ])('stretches at k = %f to the sheet 01 values (Δ %d° → %f)', (speedRatio, delta, expected) => {
+    const terms = restTerms({ stretch: { ...restTerms().stretch, k: speedRatio } });
     expect(ringAt(terms, delta)).toBeCloseTo(expected, 2);
   });
 
@@ -81,7 +81,8 @@ describe('radial profile r(θ)', () => {
       bumps: [bump(-0.12, 0, 22), bump(0.14, 0, 30)],
     });
     expect(ringAt(terms, 0)).toBeCloseTo(1.09 * 1.07 * (1 - 0.12 + 0.14), 6);
-    expect(ringAt(terms, 90)).toBeCloseTo(1.09 * 0.95, 4);
+    // The wrap bulge's Gaussian tail (σ 30°) still adds 0.16 % at 90°.
+    expect(ringAt(terms, 90)).toBeCloseTo(1.09 * 0.95, 2);
   });
 
   it('pins r′(θ) against a central difference within 1e-4 r per rad on every state', () => {
@@ -98,12 +99,13 @@ describe('radial profile r(θ)', () => {
         },
       }),
     ];
-    const step = 1e-4;
+    // The strip is piecewise linear between texel centres, so the rays sit a hair off them.
+    const step = 1e-6;
     for (const terms of states) {
       for (let ray = 0; ray < RAYS; ray += 1) {
-        const theta = (ray / RAYS) * 2 * Math.PI;
+        const theta = (ray / RAYS) * 2 * Math.PI + 1e-3;
         const numeric = (evaluateProfile(terms, theta + step).r - evaluateProfile(terms, theta - step).r) / (2 * step);
-        expect(Math.abs(evaluateProfile(terms, theta).derivative - numeric)).toBeLessThan(1e-4 * RADIUS * 10);
+        expect(Math.abs(evaluateProfile(terms, theta).derivative - numeric)).toBeLessThan(1e-4 * RADIUS);
       }
     }
   });

@@ -1,7 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  DEBUG_JSON_INDENT_SPACES,
   DEFAULT_PLAYERS_PER_GAME,
   GAME_MODE,
   MAX_PLAYERS_PER_GAME,
@@ -13,6 +12,9 @@ import {
   SEED_MAX,
 } from '@evolution/shared';
 import type { GameSessionConfig } from '@evolution/shared';
+import { GameHostComponent } from './game/game-host.component';
+import { RenderBenchComponent } from './game/render/bench/render-bench.component';
+import { isBenchRoute } from './game/render/bench/bench-session';
 import { MultiplayerService } from './services/multiplayer.service';
 
 /**
@@ -27,7 +29,7 @@ import { MultiplayerService } from './services/multiplayer.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, GameHostComponent, RenderBenchComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -45,17 +47,15 @@ export class AppComponent {
 
   readonly multiplayer = inject(MultiplayerService);
 
+  /** `/?bench=<seed>&tick=<n>&zoom=<z>` renders the fixed-seed bench scene instead of the lobby (docs/RENDERING.md §7). */
+  readonly isBenchRoute = isBenchRoute(window.location.search);
+
   // Local lobby form state.
   readonly playerName = signal('Player');
   readonly newGameName = signal('New Game');
   readonly maxPlayers = signal(DEFAULT_PLAYERS_PER_GAME);
   readonly roundDurationSeconds = signal(ROUND_DURATION_SECONDS);
   readonly seed = signal(drawSeed());
-
-  readonly snapshotJson = computed(() => {
-    const snapshot = this.multiplayer.snapshot();
-    return snapshot == null ? '(no snapshot yet)' : JSON.stringify(snapshot, null, DEBUG_JSON_INDENT_SPACES);
-  });
 
   connect(): void {
     this.multiplayer.connect();

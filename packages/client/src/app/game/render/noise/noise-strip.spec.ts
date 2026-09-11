@@ -16,22 +16,33 @@ describe('noise strip', () => {
 
   it('samples periodically with linear filtering and wraps rows', () => {
     const strip = buildNoiseStrip(createSeededRandom(TEST_SEED));
-    const at = sampleNoiseStrip(strip, 2, 0.3);
-    expect(sampleNoiseStrip(strip, 2, 1.3).jitter).toBeCloseTo(at.jitter, 9);
-    expect(sampleNoiseStrip(strip, 2 + NOISE_STRIP_ROWS, -0.7).lobes).toBeCloseTo(at.lobes, 9);
-    expect(Math.abs(at.jitter)).toBeLessThanOrEqual(1);
-    expect(Math.abs(at.lobes)).toBeLessThanOrEqual(0.05);
+    const sample = sampleNoiseStrip(strip, 2, 0.3);
+    expect(sampleNoiseStrip(strip, 2, 1.3).jitter).toBeCloseTo(sample.jitter, 9);
+    expect(sampleNoiseStrip(strip, 2 + NOISE_STRIP_ROWS, -0.7).lobes).toBeCloseTo(sample.lobes, 9);
+    expect(Math.abs(sample.jitter)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.lobes)).toBeLessThanOrEqual(0.05);
   });
 
-  it('bakes derivatives that match a finite difference of the value channels', () => {
+  it('reports the slope of the lerp between the two texels as the derivative', () => {
     const strip = buildNoiseStrip(createSeededRandom(TEST_SEED));
-    const step = 1 / NOISE_STRIP_WIDTH;
+    const step = 1e-6;
     for (let unit = 0.05; unit < 1; unit += 0.1) {
       const before = sampleNoiseStrip(strip, 1, unit - step);
       const after = sampleNoiseStrip(strip, 1, unit + step);
       const here = sampleNoiseStrip(strip, 1, unit);
       const numericLobes = (after.lobes - before.lobes) / (2 * step * 2 * Math.PI);
-      expect(Math.abs(here.lobesDerivative - numericLobes)).toBeLessThan(0.05);
+      const numericJitter = (after.jitter - before.jitter) / (2 * step * 2 * Math.PI);
+      expect(here.lobesDerivative).toBeCloseTo(numericLobes, 4);
+      expect(here.jitterDerivative).toBeCloseTo(numericJitter, 4);
     }
+  });
+
+  it('keeps 16-bit precision: the lobes channel resolves steps far below a byte', () => {
+    const strip = buildNoiseStrip(createSeededRandom(TEST_SEED));
+    const values = new Set<number>();
+    for (let column = 0; column < NOISE_STRIP_WIDTH; column += 1) {
+      values.add(sampleNoiseStrip(strip, 0, (column + 0.5) / NOISE_STRIP_WIDTH).lobes);
+    }
+    expect(values.size).toBeGreaterThan(200);
   });
 });

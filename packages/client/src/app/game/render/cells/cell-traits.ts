@@ -54,9 +54,11 @@ function tierTable(table: readonly number[], tier: TraitTier | 0): number {
   return tier === 0 ? 0 : (table[tier - 1] ?? 0);
 }
 
-function haloKindFor(isProtocell: boolean, hasTraitHalo: boolean): HaloKind {
+/** One glow colour per body (docs/VISUAL-STYLE.md §1): the chloroplast halo wins over the toxin one. */
+function haloKindFor(isProtocell: boolean, tierOf: (traitId: TraitId) => TraitTier | 0): HaloKind {
   if (isProtocell) return HALO_KIND.protocell;
-  return hasTraitHalo ? HALO_KIND.trait : HALO_KIND.default;
+  if (tierOf('chloroplast') > 0) return HALO_KIND.chloroplast;
+  return tierOf('toxin_vacuole') > 0 ? HALO_KIND.toxin : HALO_KIND.default;
 }
 
 /** Folds `previewTraitId` in at tier I for rendering only when the cell does not own it (docs/RENDERING.md §3). */
@@ -66,13 +68,12 @@ export function summariseCellTraits(view: CellView, previewTraitId: TraitId | nu
   const tierOf = (traitId: TraitId): TraitTier | 0 => tiers.get(traitId) ?? 0;
   const isProtocell = view.stage === CELL_STAGE.protocell;
   const isSpecialised = view.stage === CELL_STAGE.specialised;
-  const hasTraitHalo = tierOf('chloroplast') > 0 || tierOf('toxin_vacuole') > 0;
   return {
     isProtocell,
     isSpecialised,
     hasNucleus: tierOf('nuclear_envelope') > 0,
     isTaut: tierOf('cytoskeleton') > 0,
-    haloKind: haloKindFor(isProtocell, hasTraitHalo),
+    haloKind: haloKindFor(isProtocell, tierOf),
     ciliaCount: tierTable(CILIA_COUNT_BY_TIER, tierOf('cilia')),
     wallScale: tierTable(CELL_WALL_SCALE_BY_TIER, tierOf('cell_wall')),
     speckleDensity: tierTable(RIBOSOME_DENSITY_BY_TIER, tierOf('ribosomes')),

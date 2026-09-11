@@ -1,14 +1,17 @@
-// The 256 × N RGBA jitter / lobes strip (docs/RENDERING.md §2.1): R is seeded value noise (the
-// ±0.8 % jitter), G the sum of 5–7 rest lobes, B and A their derivatives in θ. One row per cell
-// variant; a cell reads its row at `θ / 2π + φ`. Built once per round from the cosmetic fork; the
-// TypeScript profile samples the same bytes the GPU does (noise-strip sampling below).
+// The 256 × N RGBA jitter / lobes strip (docs/RENDERING.md §2.1): a cell reads its row at
+// `θ / 2π + φ` for the ±0.8 % jitter (seeded value noise) and the sum of its 5–7 rest lobes. One
+// row per cell variant, built once per round from the cosmetic fork. Each value is a 16-bit pair
+// (R G = jitter hi lo, B A = lobes hi lo) read with `texelFetch` and lerped by hand on both sides,
+// and the derivative in θ is the slope of that lerp, so the TypeScript profile and the GLSL agree
+// exactly (a byte-quantised derivative channel could not meet the §9 pin).
 
 import { RADIANS_PER_FULL_TURN, RANDOM_STREAM, type RandomSource } from '@evolution/shared';
 import {
-  NOISE_STRIP_DERIVATIVE_SCALE,
   NOISE_STRIP_JITTER_KNOTS,
+  NOISE_STRIP_JITTER_SCALE,
   NOISE_STRIP_LOBE_SCALE,
   NOISE_STRIP_ROWS,
+  NOISE_STRIP_VALUE_LEVELS,
   NOISE_STRIP_WIDTH,
   REST_LOBE_AMPLITUDE_MAX,
   REST_LOBE_AMPLITUDE_MIN,
@@ -20,17 +23,17 @@ import {
 import { gaussianBump, lerp, wrapAngle } from '../geometry';
 
 const RGBA_CHANNELS = 4;
-const BYTE_MAX = 255;
-const HALF_BYTE = 127.5;
+const BYTE_LEVELS = 256;
+const BYTE_MAX = BYTE_LEVELS - 1;
 const HALF = 0.5;
 /** A uniform draw in [0, 1) maps to a signed unit value by this span. */
 const SIGNED_UNIT_SPAN = 2;
 /** Lobe centres sit evenly around the ring and jitter by this share of the spacing so they never pile up. */
 const LOBE_CENTRE_JITTER = 0.2;
-const JITTER_CHANNEL = 0;
-const LOBES_CHANNEL = 1;
-const JITTER_DERIVATIVE_CHANNEL = 2;
-const LOBES_DERIVATIVE_CHANNEL = 3;
+const JITTER_HI = 0;
+const JITTER_LO = 1;
+const LOBES_HI = 2;
+const LOBES_LO = 3;
 
 /** A uniform draw in [0, 1) as a signed value in [−1, 1). */
 function signedDraw(random: RandomSource): number {
@@ -43,7 +46,7 @@ export interface NoiseStripSample {
   readonly jitter: number;
   /** The lobes channel, a radius fraction. */
   readonly lobes: number;
-  /** Derivatives in θ (per radian). */
+  /** Derivatives in θ (per radian): the slope of the lerp between the two texels read. */
   readonly jitterDerivative: number;
   readonly lobesDerivative: number;
 }
@@ -51,7 +54,7 @@ export interface NoiseStripSample {
 export interface NoiseStrip {
   readonly width: number;
   readonly rows: number;
-  /** RGBA bytes, row-major, `width × rows × 4`. */
+  /** RGBA bytes, row-major, `width × rows × 4`: jitter hi, jitter lo, lobes hi, lobes lo. */
   readonly bytes: Uint8Array;
   /** Rest lobes per row (the test's 5–7 pin). */
   readonly lobeCounts: readonly number[];
@@ -75,39 +78,32 @@ function drawLobes(random: RandomSource): RestLobe[] {
   }));
 }
 
-function lobesAt(lobes: readonly RestLobe[], theta: number): { value: number; derivative: number } {
+function lobesAt(lobes: readonly RestLobe[], theta: number): number {
   let value = 0;
-  let derivative = 0;
-  for (const lobe of lobes) {
-    const bump = gaussianBump(lobe.amplitude, wrapAngle(theta - lobe.centre), lobe.sigma);
-    value += bump.value;
-    derivative += bump.derivative;
-  }
-  return { value, derivative };
+  for (const lobe of lobes) value += gaussianBump(lobe.amplitude, wrapAngle(theta - lobe.centre), lobe.sigma).value;
+  return value;
 }
 
-/** Periodic cosine-interpolated value noise on `knots`, with its derivative per radian. */
-function jitterAt(knots: readonly number[], theta: number): { value: number; derivative: number } {
+/** Periodic cosine-interpolated value noise on `knots`. */
+function jitterAt(knots: readonly number[], theta: number): number {
   const unit = (((theta / RADIANS_PER_FULL_TURN) % 1) + 1) % 1;
   const position = unit * knots.length;
   const index = Math.floor(position);
   const fraction = position - index;
   const fromKnot = knots[index % knots.length] ?? 0;
   const toKnot = knots[(index + 1) % knots.length] ?? 0;
-  const blend = (1 - Math.cos(Math.PI * fraction)) * HALF;
-  const blendDerivative = Math.PI * Math.sin(Math.PI * fraction) * HALF;
-  const value = lerp(fromKnot, toKnot, blend);
-  const derivative = ((toKnot - fromKnot) * blendDerivative * knots.length) / RADIANS_PER_FULL_TURN;
-  return { value, derivative };
+  return lerp(fromKnot, toKnot, (1 - Math.cos(Math.PI * fraction)) * HALF);
 }
 
-function encodeSigned(value: number, scale: number): number {
+/** A signed value in [−scale, scale] as a 16-bit level, split into a hi and a lo byte. */
+function encodeSigned(value: number, scale: number): [number, number] {
   const unit = Math.max(-1, Math.min(1, value / scale));
-  return Math.round((unit + 1) * HALF_BYTE);
+  const level = Math.round((unit + 1) * HALF * NOISE_STRIP_VALUE_LEVELS);
+  return [Math.floor(level / BYTE_LEVELS), level % BYTE_LEVELS];
 }
 
-function decodeSigned(byte: number, scale: number): number {
-  return (byte / HALF_BYTE - 1) * scale;
+function decodeSigned(highByte: number, lowByte: number, scale: number): number {
+  return ((highByte * BYTE_LEVELS + lowByte) / NOISE_STRIP_VALUE_LEVELS) * SIGNED_UNIT_SPAN * scale - scale;
 }
 
 /** Bakes every row of the strip from the cosmetic fork; same seed ⇒ same bytes. */
@@ -122,21 +118,21 @@ export function buildNoiseStrip(cosmetic: RandomSource): NoiseStrip {
     lobeCounts.push(lobes.length);
     for (let column = 0; column < NOISE_STRIP_WIDTH; column += 1) {
       const theta = ((column + HALF) / NOISE_STRIP_WIDTH) * RADIANS_PER_FULL_TURN;
-      const jitter = jitterAt(knots, theta);
-      const lobe = lobesAt(lobes, theta);
+      const jitter = encodeSigned(jitterAt(knots, theta), NOISE_STRIP_JITTER_SCALE);
+      const lobe = encodeSigned(lobesAt(lobes, theta), NOISE_STRIP_LOBE_SCALE);
       const offset = (row * NOISE_STRIP_WIDTH + column) * RGBA_CHANNELS;
-      bytes[offset + JITTER_CHANNEL] = encodeSigned(jitter.value, 1);
-      bytes[offset + LOBES_CHANNEL] = encodeSigned(lobe.value, NOISE_STRIP_LOBE_SCALE);
-      bytes[offset + JITTER_DERIVATIVE_CHANNEL] = encodeSigned(jitter.derivative, NOISE_STRIP_DERIVATIVE_SCALE);
-      bytes[offset + LOBES_DERIVATIVE_CHANNEL] = encodeSigned(lobe.derivative, NOISE_STRIP_DERIVATIVE_SCALE);
+      bytes[offset + JITTER_HI] = jitter[0];
+      bytes[offset + JITTER_LO] = jitter[1];
+      bytes[offset + LOBES_HI] = lobe[0];
+      bytes[offset + LOBES_LO] = lobe[1];
     }
   }
   return { width: NOISE_STRIP_WIDTH, rows: NOISE_STRIP_ROWS, bytes, lobeCounts };
 }
 
 /**
- * Samples one row at `unit` (turns) exactly as the GPU's LINEAR / REPEAT read does, so the
- * TypeScript profile and the shader agree to byte precision.
+ * Samples one row at `unit` (turns) exactly as the shader does: two `texelFetch` reads (texel
+ * centres at `(column + 0.5) / width`), a lerp between them and the slope of that lerp per radian.
  */
 export function sampleNoiseStrip(strip: NoiseStrip, row: number, unit: number): NoiseStripSample {
   const wrappedRow = ((row % strip.rows) + strip.rows) % strip.rows;
@@ -145,14 +141,22 @@ export function sampleNoiseStrip(strip: NoiseStrip, row: number, unit: number): 
   const fraction = texel - left;
   const leftColumn = ((left % strip.width) + strip.width) % strip.width;
   const rightColumn = (leftColumn + 1) % strip.width;
-  const read = (column: number, channel: number) =>
-    strip.bytes[(wrappedRow * strip.width + column) * RGBA_CHANNELS + channel] ?? BYTE_MAX * HALF;
-  const channel = (index: number, scale: number) =>
-    lerp(decodeSigned(read(leftColumn, index), scale), decodeSigned(read(rightColumn, index), scale), fraction);
+  const radiansPerTexel = RADIANS_PER_FULL_TURN / strip.width;
+  const read = (column: number, highChannel: number, lowChannel: number, scale: number) => {
+    const offset = (wrappedRow * strip.width + column) * RGBA_CHANNELS;
+    return decodeSigned(strip.bytes[offset + highChannel] ?? 0, strip.bytes[offset + lowChannel] ?? BYTE_MAX, scale);
+  };
+  const channel = (highChannel: number, lowChannel: number, scale: number) => {
+    const fromValue = read(leftColumn, highChannel, lowChannel, scale);
+    const toValue = read(rightColumn, highChannel, lowChannel, scale);
+    return { value: lerp(fromValue, toValue, fraction), derivative: (toValue - fromValue) / radiansPerTexel };
+  };
+  const jitter = channel(JITTER_HI, JITTER_LO, NOISE_STRIP_JITTER_SCALE);
+  const lobes = channel(LOBES_HI, LOBES_LO, NOISE_STRIP_LOBE_SCALE);
   return {
-    jitter: channel(JITTER_CHANNEL, 1),
-    lobes: channel(LOBES_CHANNEL, NOISE_STRIP_LOBE_SCALE),
-    jitterDerivative: channel(JITTER_DERIVATIVE_CHANNEL, NOISE_STRIP_DERIVATIVE_SCALE),
-    lobesDerivative: channel(LOBES_DERIVATIVE_CHANNEL, NOISE_STRIP_DERIVATIVE_SCALE),
+    jitter: jitter.value,
+    lobes: lobes.value,
+    jitterDerivative: jitter.derivative,
+    lobesDerivative: lobes.derivative,
   };
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, createTestCellView } from '@evolution/shared';
+import { CELL_STAGE } from '@evolution/shared';
+import { createTestCellView } from '../../../../testing/builders';
 import { HALO_KIND } from '../constants';
 import { summariseCellTraits } from './cell-traits';
 
@@ -32,8 +33,10 @@ describe('summariseCellTraits', () => {
     expect(protocell.isProtocell).toBe(true);
     expect(protocell.haloKind).toBe(HALO_KIND.protocell);
     expect(protocell.wobble.mode).toBe(2);
-    const green = summariseCellTraits(createTestCellView({ traits: [{ traitId: 'chloroplast', tier: 1 }] }));
-    expect(green.haloKind).toBe(HALO_KIND.trait);
+    const green = summariseCellTraits(
+      createTestCellView({ stage: CELL_STAGE.endosymbiosis, traits: [{ traitId: 'chloroplast', tier: 1 }] }),
+    );
+    expect(green.haloKind).toBe(HALO_KIND.chloroplast);
     expect(green.tintMix).toBe(0.2);
     const specialised = summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised }));
     expect(specialised.wobble.mode).toBe(3);

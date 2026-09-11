@@ -3,6 +3,11 @@
 
 // ---- quad and slots (§2, §2.1) ----
 export const CELL_QUAD_EXTENT_RADII = 3.0;
+/** Instance rows in the instance texture: the bench's 100 cells, their ghosts and a wide margin. */
+export const CELL_INSTANCE_CAPACITY = 512;
+/** The unit quad every cell instance is drawn on: four corners, two triangles. */
+export const CELL_QUAD_POSITIONS = [-1, -1, 1, -1, 1, 1, -1, 1] as const;
+export const CELL_QUAD_INDICES = [0, 1, 2, 0, 2, 3] as const;
 export const MAX_SHAPE_BUMPS = 8;
 /** Slots reserved for pseudopods (#121); the eat, contact and engulf bumps share the rest. */
 export const PSEUDOPOD_SLOT_COUNT = 4;
@@ -29,9 +34,10 @@ export const REST_LOBE_SIGMA_RAD_MAX = 0.4;
 export const NOISE_STRIP_WIDTH = 256;
 export const NOISE_STRIP_ROWS = 16;
 export const NOISE_STRIP_JITTER_KNOTS = 24;
-/** The strip stores signed values scaled by these so a byte holds them. */
+/** The strip stores each signed value as a 16-bit pair (hi, lo) of a unit range scaled by these. */
+export const NOISE_STRIP_JITTER_SCALE = 1;
 export const NOISE_STRIP_LOBE_SCALE = 0.05;
-export const NOISE_STRIP_DERIVATIVE_SCALE = 2.0;
+export const NOISE_STRIP_VALUE_LEVELS = 65535;
 
 // ---- stretch (sheet 01 motion, sheet 02, VISUAL-STYLE §5) ----
 export const STRETCH_ALONG = 1.22;
@@ -78,7 +84,7 @@ export const TRAIT_HALO_PEAK_ALPHA = 0.42;
 export const PROTOCELL_HALO_OUTER_RADII = 1.2;
 export const PROTOCELL_HALO_PEAK_ALPHA = 0.22;
 export const FAR_DOT_HALO_RADII = 3.0;
-export const HALO_KIND = { default: 0, trait: 1, protocell: 2 } as const;
+export const HALO_KIND = { default: 0, chloroplast: 1, toxin: 2, protocell: 3 } as const;
 
 // ---- body ramp, pools, noise, speckle, filaments (§2.2) ----
 export const BODY_RAMP_CENTRE_OFFSET_RADII = 0.3;

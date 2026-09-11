@@ -32,6 +32,6 @@ describe('colour conversions', () => {
 
   it('round-trips the sRGB transfer function', () => {
     for (const value of [0, 0.002, 0.2, 0.5, 1]) expect(linearToSrgb(srgbToLinear(value))).toBeCloseTo(value, 6);
-    expect(linearToSrgb(2)).toBe(1);
+    expect(linearToSrgb(2)).toBeCloseTo(1, 9);
   });
 });

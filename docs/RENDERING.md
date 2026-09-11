@@ -72,7 +72,7 @@ reference pins it (§9). In §2.2 a membrane band written `0.975 → 1.025` mean
 | `B`         | 1 for the blob; per-form profile (#121, §2.4)                                                                                                                                                                        | sheet 04 specialised-forms table                                                                                                                                                                                        | `stage`, form trait                           |
 | `breathing` | `A · sin(2π f t + φ)`                                                                                                                                                                                                | `BREATH_AMPLITUDE` 0.02, `BREATH_HZ` 0.5 (sheet 01 motion table); `WOBBLE_TAUT_SCALE` 0.5 with `cytoskeleton` (VISUAL-STYLE §5)                                                                                         | `t`, φ from the cosmetic fork                 |
 | `wobble`    | `A · sin(m θ + 2π f t + φ)`                                                                                                                                                                                          | protocell m 2, ±0.08, 0.7 Hz (sheet 04); forms m 3, ±0.05 (VISUAL-STYLE §5)                                                                                                                                             | `stage`                                       |
-| `jitter`    | `J · strip.R(θ / 2π + φ)`, `strip` = the 256 × 1 seeded RGBA noise strip (R jitter, G lobes, B and A their `d/dθ`)                                                                                                   | `JITTER_AMPLITUDE` 0.008 (sheet 02: ±0.8 %)                                                                                                                                                                             | cosmetic fork                                 |
+| `jitter`    | `J · strip.jitter(θ / 2π + φ)`, `strip` = the 256 × 16 seeded RGBA noise strip, one row per cell variant (RG = jitter, BA = lobes, each a 16-bit pair; both sides `texelFetch` two texels, lerp, and take the lerp's slope as `d/dθ`: a byte-quantised derivative channel cannot meet §9's pin, #99) | `JITTER_AMPLITUDE` 0.008 (sheet 02: ±0.8 %)                                                                                                                                                                             | cosmetic fork                                 |
 | `lobes`     | `strip.G(θ / 2π + φ)`: `REST_LOBE_COUNT` 5–7 fixed Gaussians of `REST_LOBE_AMPLITUDE` ±0.025–0.04, `REST_LOBE_SIGMA_RAD` 0.25–0.4, baked into the strip per cell phase (one texture read, no instance slots)         | sheet 02 membranes paragraph, sheet 01 panels A (hero radius 126–131 px = ±2 %), B, D, E, F; × `WOBBLE_TAUT_SCALE` with `cytoskeleton`; 0 for `diatom_shell`                                                            | cosmetic fork, `stage`                        |
 | `stretch`   | `1 + k[(S_ALONG − 1) · max(cos Δ, 0)² − (1 − TAPER) · max(−cos Δ, 0)² − (S_ALONG − 1) · ACROSS · sin²Δ]`; C¹ at the sides                                                                                            | `S_ALONG` 1.22, `TAPER` 0.72 (sheet 01 motion); `STRETCH_ACROSS_PER_ALONG` 0.6 (sheet 02's 1.10 × 0.94); sprint × 1.06 (VISUAL-STYLE §5). k = 1: 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180°; k = 0.45: 1.10 / 0.94 / 0.87 | `k = speedRatio`, sprint                      |
 | contact     | bump −0.12, σ 22° toward the neighbour; σ 14° with `cytoskeleton`                                                                                                                                                    | VISUAL-STYLE §5                                                                                                                                                                                                         | `cells/contact-dents.ts` (visible-cell scan)  |
@@ -132,14 +132,20 @@ through the predator's film for free; separation (`ECOLOGY.md §5.3`) means unre
 
 ### 2.3 Instance layout and passes
 
-`cells/cell-geometry.ts` declares one quad with per-instance attributes (27 scalars packed in 7 `vec4`, one
-float spare, plus the 6 bump `vec4`s = 13 `vec4`; WebGL guarantees 16):
+`cells/cell-mesh.ts` declares one quad with one instanced attribute, the instance index; the per-instance
+scalars live in an **instance texture** (`cells/cell-instance.ts`: 20 RGBA32F texels per instance, the scalars
+in the first 14 and the 8 bumps in the last 6, read with `texelFetch` by both stages; #99 chose the texture over
+attributes because 14 `vec4`s of attributes plus their flat varyings sit at the ES 3.00 minimum of 15 and leave
+#121's forms no room). The scalars:
 centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`, alpha,
 stage / trait counts (`ciliaCount`, `wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward
 `CHLORO_BASE`), wobble (`amplitude`, `mode`, `phase`),
 stretch (`kAlong`, `kSprint`), `pulse`, `nucleusOffset` (vec2, cell frame: the mapped `q′` of the nucleus slot,
 §3, so filaments meet the nucleus sprite), eight bumps × (`amplitude`, `centre`, `sigma`) = 6 `vec4`, halo kind
-(default, trait, protocell), `beadCount`, `isOwn`, `warningRingPx`, `formId`. Global uniforms: `uTimeSeconds`,
+(default, chloroplast, toxin, protocell), `beadCount`, `isOwn`, `warningRingPx`, the strip row and phase, the
+sprint rim brightness, the pass-B alpha (prey under film), the far-dot and protocell flags, the cilia beat, the
+halo bloom scale, the strip's lobes scale and jitter amplitude, and the ghost rim dash; `formId` joins with #121.
+Global uniforms: `uTimeSeconds`,
 `uZoom`, `uResolution`, the two-channel noise tile, the RGBA noise strip and the **palette texture** (8 palettes
 × 8 shades, the four body-ramp stops among them, baked by `render/palette.ts`). The same
 mesh is drawn twice with `uPass` (A, B); instance order is radius ascending (`ARCHITECTURE.md §6`), so two
@@ -375,11 +381,15 @@ numbers in #99's PR body come from a hardware run of the same route.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
+constants/{colours,cell-shape,organelles,world-render}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×1 RGBA jitter / lobes strip with derivatives, from the cosmetic fork
-textures/{texture-bake,glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts
-cells/{cell-layer,cell-view,cell-geometry,cell-instance-buffer,cell-lod}.ts
-cells/{cell-shader,cell-shader-bands,cell-shader-patterns}.ts   GLSL as template strings, one file per pass concern
+textures/{texture-bake,glow-atlas,organelle-atlas,nucleus-bake,mote-atlas,bacterium-bake,fragment-bake,dish-texture,vent-bake}.ts
+textures/{pixi-textures,mote-atlas-textures}.ts               the only files that turn a bake or a byte buffer into a Pixi texture
+cells/{cell-layer,cell-lod,cell-traits}.ts
+cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-tells}.ts   GLSL as template strings: assembly, the instance columns + uniform names, the profile and reads, pass A, pass B
+cells/{cell-mesh,cell-instance,cell-instance-builder,cell-render-state,cell-clips,cell-effects}.ts   the GPU objects, the instance row and its packing, the per-cell state, clip values, effects → clips
+cells/{ghost-cells,ghost-instance,organelle-kinds,organelle-motion}.ts
 cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t
 cells/{organelle-layout,organelle-mapper,organelle-sprites,flagellum-lines}.ts
 cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   (#121)
@@ -387,7 +397,9 @@ food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,ghost-cells,reticle}.ts
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
-bench/{bench-scene,render-benchmark,render-stage-timer}.ts
+bench/{bench-scene,bench-traits,bench-motes,bench-fragments,bench-players,bench-effects}.ts   the fixed-seed scene as pure data per tick
+bench/{bench-driver,bench-session,render-bench.component,render-benchmark,render-stage-timer}.ts
+game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
 ```
 
 `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`). This
@@ -415,7 +427,11 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   render texture, walk 36 rays, boundary within 1 px of `radial-profile`; on the engulf wrap frame the rim-light
   band measured along the outline normal is 5 % r ± 1 px at every one of the 36 rays, arm flanks included
   (the perpendicular-distance check); draw-call count ≤ 16 on the bench scene; `renderStagesMs` populated; the
-  ghost instance appears on `cell_absorbed` and leaves at 600 ms.
+  ghost instance appears on `cell_absorbed` and leaves at 600 ms. The client's vitest tier runs under jsdom with
+  no WebGL, so #99 ships the WebGL checks in the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`:
+  the shader compiles on SwiftShader, the same parked tick renders pixel-identically twice, a step changes the
+  frame, the report lands in the DOM) and the ghost lifetime as a unit test; the 36-ray parity walk is a
+  follow-up on the same smoke (see the PR's deferred list).
 - **Screenshot baselines (`qa/baselines/`, graphics-qa on every renderer PR, not part of `validate.sh all`):**
   `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks, each scene carrying a
   fixed `ownCellIndicators` record (plain data, §10; `null` for scenes without an own cell), so a baseline never
