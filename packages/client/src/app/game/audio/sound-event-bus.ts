@@ -40,6 +40,8 @@ const UNITY_RATE = 1;
 export interface SoundBusState {
   stage: CellStage | null;
   organelleCount: number;
+  /** The bloom holds from `bloom_started` until the round phase changes. */
+  isBloom: boolean;
 }
 
 export function motifVariantKey(organelleCount: number): string {
@@ -47,7 +49,7 @@ export function motifVariantKey(organelleCount: number): string {
 }
 
 export class SoundEventBus {
-  private state: SoundBusState = { stage: null, organelleCount: 0 };
+  private state: SoundBusState = { stage: null, organelleCount: 0, isBloom: false };
 
   constructor(
     private readonly events: Pick<GameEventBus, 'subscribe'>,
@@ -94,6 +96,9 @@ export class SoundEventBus {
         this.handleRoundPhase(event.phase === ROUND_PHASE.results);
         return;
       case GAME_EVENT_KIND.bloomStarted:
+        // #140 B: the sting, then the full mix until results.
+        this.state.isBloom = true;
+        this.sink.setBloom(true);
         this.sink.play(SOUND_EVENT.bloomStart);
         return;
       case GAME_EVENT_KIND.traitPicked:
@@ -128,19 +133,30 @@ export class SoundEventBus {
         this.sink.play(SOUND_EVENT.levelUp, motifVariantKey(this.state.organelleCount));
         return;
       case EFFECT_KIND.cellAbsorbed:
-        // The bed drops to the protocell stem for the spectate; `respawn` brings the stage's stem back.
-        this.sink.stopLoop(SOUND_EVENT.engulfProgress);
-        this.sink.setDanger(false);
-        this.sink.play(SOUND_EVENT.engulfed);
-        this.sink.setAmbientStage(STARTING_STAGE);
+        this.handleOwnDeath();
         return;
       case EFFECT_KIND.respawn:
-        this.sink.play(SOUND_EVENT.respawn);
-        if (this.state.stage) this.sink.setAmbientStage(this.state.stage);
+        this.handleOwnRespawn();
     }
   }
 
+  /** The bed drops to the protocell stem for the spectate; `respawn` brings the stage's stem (and the bloom) back. */
+  private handleOwnDeath(): void {
+    this.sink.stopLoop(SOUND_EVENT.engulfProgress);
+    this.sink.setDanger(false);
+    this.sink.play(SOUND_EVENT.engulfed);
+    this.sink.setBloom(false);
+    this.sink.setAmbientStage(STARTING_STAGE);
+  }
+
+  private handleOwnRespawn(): void {
+    this.sink.play(SOUND_EVENT.respawn);
+    if (this.state.stage) this.sink.setAmbientStage(this.state.stage);
+    if (this.state.isBloom) this.sink.setBloom(true);
+  }
+
   private handleRoundPhase(isResults: boolean): void {
+    this.state.isBloom = false;
     if (isResults) {
       this.sink.stopAll();
       this.sink.play(SOUND_EVENT.roundEnd);

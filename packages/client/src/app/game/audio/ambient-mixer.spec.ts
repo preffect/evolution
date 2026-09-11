@@ -124,6 +124,20 @@ describe('AmbientMixer', () => {
     expect(backend.playing).toHaveLength(0);
   });
 
+  it('pins the full mix from the bloom whatever the stage, until released or stopped', () => {
+    mixer.setStage(CELL_STAGE.protocell);
+    mixer.setBloom(true);
+    expect(mixer.currentStemKey).toBe(CELL_STAGE.specialised);
+    mixer.setStage(CELL_STAGE.prokaryote);
+    expect(mixer.currentStemKey).toBe(CELL_STAGE.specialised);
+    mixer.setBloom(false);
+    expect(mixer.currentStemKey).toBe(CELL_STAGE.prokaryote);
+    mixer.setBloom(true);
+    mixer.stop();
+    mixer.setStage(CELL_STAGE.protocell);
+    expect(mixer.currentStemKey).toBe(CELL_STAGE.protocell);
+  });
+
   it('stops both layers and starts again on the next stage', () => {
     mixer.setStage(CELL_STAGE.protocell);
     mixer.setZone(ZONE_ID.viscousGel);

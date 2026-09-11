@@ -6,27 +6,32 @@
       "mood": "warm, submerged, growing",
       "lengthSeconds": 90,
       "isLoop": true,
-      "promptHint": "One template, the instrument list growing per stem (stage order): protocell: \"slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture, seamless 90-second loop, no vocals, original work\" | prokaryote: \"slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse, seamless 90-second loop, no vocals, original work\" | endosymbiosis: \"slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad, seamless 90-second loop, no vocals, original work\" | eukaryote: \"slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad + glassy lead motif, seamless 90-second loop, no vocals, original work\" | specialised: \"slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad + glassy lead motif + full arrangement with light percussion, seamless 90-second loop, no vocals, original work\"",
+      "promptHint": "One template per stem, the instrument list growing in stage order; each file carries its own prompt: slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: {the instruments so far}, seamless 90-second loop, no vocals, original work",
       "files": [
         {
           "key": "protocell",
-          "path": "ambient-bed-protocell.mp3"
+          "path": "ambient-bed-protocell.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture, seamless 90-second loop, no vocals, original work"
         },
         {
           "key": "prokaryote",
-          "path": "ambient-bed-prokaryote.mp3"
+          "path": "ambient-bed-prokaryote.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse, seamless 90-second loop, no vocals, original work"
         },
         {
           "key": "endosymbiosis",
-          "path": "ambient-bed-endosymbiosis.mp3"
+          "path": "ambient-bed-endosymbiosis.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad, seamless 90-second loop, no vocals, original work"
         },
         {
           "key": "eukaryote",
-          "path": "ambient-bed-eukaryote.mp3"
+          "path": "ambient-bed-eukaryote.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad + glassy lead motif, seamless 90-second loop, no vocals, original work"
         },
         {
           "key": "specialised",
-          "path": "ambient-bed-specialised.mp3"
+          "path": "ambient-bed-specialised.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad + glassy lead motif + full arrangement with light percussion, seamless 90-second loop, no vocals, original work"
         }
       ]
     },
@@ -34,19 +39,22 @@
       "mood": "airy, deep, muffled",
       "lengthSeconds": 90,
       "isLoop": true,
-      "promptHint": "sunlit_shallows: \"bright airy choir pad, D minor, seamless loop, no rhythm, original work\" | warm_vent: \"deep sub drone with slow bubbling percussive texture, D minor, seamless loop, original work\" | viscous_gel: \"low-passed tremolo pad, D minor, slow and thick, seamless loop, original work\"; open_broth has no overlay (the bed alone)",
+      "promptHint": "One overlay per zone, each file carrying its own prompt; open_broth has no overlay (the bed alone)",
       "files": [
         {
           "key": "sunlit_shallows",
-          "path": "zone-layer-sunlit-shallows.mp3"
+          "path": "zone-layer-sunlit-shallows.mp3",
+          "prompt": "bright airy choir pad, D minor, seamless loop, no rhythm, original work"
         },
         {
           "key": "warm_vent",
-          "path": "zone-layer-warm-vent.mp3"
+          "path": "zone-layer-warm-vent.mp3",
+          "prompt": "deep sub drone with slow bubbling percussive texture, D minor, seamless loop, original work"
         },
         {
           "key": "viscous_gel",
-          "path": "zone-layer-viscous-gel.mp3"
+          "path": "zone-layer-viscous-gel.mp3",
+          "prompt": "low-passed tremolo pad, D minor, slow and thick, seamless loop, original work"
         }
       ]
     },
@@ -54,27 +62,32 @@
       "mood": "wet, soft, plucked",
       "lengthSeconds": 0.4,
       "isLoop": false,
-      "promptHint": "Five notes round-robin, wet foley under a tonal pluck: \"soft wet plip of a drop into thick liquid under a single plucked harp note, D minor pentatonic scale degree N, dry, no reverb, 0.4 s, no music\"",
+      "promptHint": "Five notes round-robin, wet foley under a tonal pluck, each file carrying its own note: soft wet plip of a drop into thick liquid under a single plucked harp note, the note {D, F, G, A or C} of the D minor pentatonic, dry, no reverb, 0.4 s, no music",
       "files": [
         {
           "key": "note-1",
-          "path": "eat-pluck-note-1.mp3"
+          "path": "eat-pluck-note-1.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note D of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
         },
         {
           "key": "note-2",
-          "path": "eat-pluck-note-2.mp3"
+          "path": "eat-pluck-note-2.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note F of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
         },
         {
           "key": "note-3",
-          "path": "eat-pluck-note-3.mp3"
+          "path": "eat-pluck-note-3.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note G of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
         },
         {
           "key": "note-4",
-          "path": "eat-pluck-note-4.mp3"
+          "path": "eat-pluck-note-4.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note A of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
         },
         {
           "key": "note-5",
-          "path": "eat-pluck-note-5.mp3"
+          "path": "eat-pluck-note-5.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note C of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
         }
       ]
     },
@@ -94,27 +107,32 @@
       "mood": "resolved, warm, growing",
       "lengthSeconds": 3,
       "isLoop": false,
-      "promptHint": "The motif phrase on the newest instrument, one file per instrument index: \"three-second melodic motif in D minor played on {instrument}, warm, resolved, no drums, original work\" for instrument-0: soft sub drone and water texture, instrument-1: muted electric piano pulse, instrument-2: warm analog pad, instrument-3: glassy lead motif, instrument-4: full arrangement with light percussion",
+      "promptHint": "The motif phrase on the newest instrument, one file per instrument index, each carrying its own prompt: three-second melodic motif in D minor played on {the instrument}, warm, resolved, no drums, original work",
       "files": [
         {
           "key": "instrument-0",
-          "path": "level-up-motif-instrument-0.mp3"
+          "path": "level-up-motif-instrument-0.mp3",
+          "prompt": "three-second melodic motif in D minor played on soft sub drone and water texture, warm, resolved, no drums, original work"
         },
         {
           "key": "instrument-1",
-          "path": "level-up-motif-instrument-1.mp3"
+          "path": "level-up-motif-instrument-1.mp3",
+          "prompt": "three-second melodic motif in D minor played on muted electric piano pulse, warm, resolved, no drums, original work"
         },
         {
           "key": "instrument-2",
-          "path": "level-up-motif-instrument-2.mp3"
+          "path": "level-up-motif-instrument-2.mp3",
+          "prompt": "three-second melodic motif in D minor played on warm analog pad, warm, resolved, no drums, original work"
         },
         {
           "key": "instrument-3",
-          "path": "level-up-motif-instrument-3.mp3"
+          "path": "level-up-motif-instrument-3.mp3",
+          "prompt": "three-second melodic motif in D minor played on glassy lead motif, warm, resolved, no drums, original work"
         },
         {
           "key": "instrument-4",
-          "path": "level-up-motif-instrument-4.mp3"
+          "path": "level-up-motif-instrument-4.mp3",
+          "prompt": "three-second melodic motif in D minor played on full arrangement with light percussion, warm, resolved, no drums, original work"
         }
       ]
     },
@@ -134,7 +152,7 @@
       "mood": "low, pulsing, tense",
       "lengthSeconds": 30,
       "isLoop": true,
-      "promptHint": "\"low pulsing sub drone in D, slow four-second pulse, tense but soft, seamless 30-second loop, no melody, original work\"",
+      "promptHint": "\"low pulsing sub drone in D, clear two-second rhythmic pulse, tense, sits above the pad and stays readable under the ducked mix, seamless 30-second loop, no melody, original work\"",
       "files": [
         {
           "key": "default",

@@ -5,7 +5,15 @@
 
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CELL_STAGE, ManualClock, ROUND_PHASE, SOUND_EVENT, createTestSnapshot } from '@evolution/shared';
+import {
+  CELL_STAGE,
+  DEFAULT_BALANCE,
+  MILLISECONDS_PER_SECOND,
+  ManualClock,
+  ROUND_PHASE,
+  SOUND_EVENT,
+  createTestSnapshot,
+} from '@evolution/shared';
 import { AudioHooks, type AudioHooksHandle } from './audio-hooks';
 import { AUDIO_ASSET_LOADER, AUDIO_BACKEND, MUTE_PREFERENCE } from './audio-tokens';
 import { CLOCK } from '../clock-provider';
@@ -22,6 +30,8 @@ import {
 } from '../../../testing/builders';
 
 const PREDATOR_MASS = 100;
+const ROUND_MS = createTestTransitionOptions().roundDurationSeconds * MILLISECONDS_PER_SECOND;
+const BLOOM_MS_LEFT = ROUND_MS * (1 - DEFAULT_BALANCE.session.ROUND_BLOOM_START_FRACTION);
 /** `AudioBuses` creates master, music and sfx; the mixer's ambient sub-bus is the fourth. */
 const AMBIENT_BUS_INDEX = 3;
 
@@ -79,6 +89,16 @@ describe('audio hooks: snapshot → transitions → game events → sound bus �
       `${SOUND_EVENT.dangerWarning}.mp3`,
     ]);
     expect(backend.buses[AMBIENT_BUS_INDEX]!.ramps.at(-1)?.value).toBeLessThan(1);
+  });
+
+  it('crossfades a protocell to the full mix when the bloom starts', async () => {
+    await handle.ready;
+    handle.observe(createTestSnapshot({ cells: [createTestCellView()], roundTimeLeftMs: ROUND_MS }));
+    handle.observe(createTestSnapshot({ cells: [createTestCellView()], roundTimeLeftMs: BLOOM_MS_LEFT }));
+    expect(backend.playing.map((voice) => voice.label)).toEqual([
+      `${SOUND_EVENT.ambientBed}-${CELL_STAGE.specialised}.mp3`,
+      `${SOUND_EVENT.bloomStart}.mp3`,
+    ]);
   });
 
   it('plays the cadence and silences the bed at results', async () => {

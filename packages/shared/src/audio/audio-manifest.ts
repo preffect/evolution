@@ -10,6 +10,8 @@ import { AUDIO_MANIFEST_VERSION } from '../constants/audio.js';
 export interface AudioFileReference {
   key: string;
   path: string;
+  /** This file's own generation prompt where an entry's files differ; the entry's `promptHint` otherwise. */
+  prompt?: string;
 }
 
 export interface AudioManifestEntry {
@@ -17,7 +19,7 @@ export interface AudioManifestEntry {
   mood: string;
   lengthSeconds: number;
   isLoop: boolean;
-  /** The Lyria / curated-SFX prompt sketch the pipeline expands (docs/AUDIO-PIPELINE.md §5). */
+  /** The Lyria / curated-SFX prompt sketch the pipeline expands (docs/AUDIO-PIPELINE.md §5); per file, `file.prompt ?? promptHint`. */
   promptHint: string;
   /** Ordered; index 0 is the default variant. May be empty while nothing has shipped. */
   files: AudioFileReference[];
@@ -33,7 +35,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isFileReference(value: unknown): value is AudioFileReference {
-  return isRecord(value) && typeof value['key'] === 'string' && typeof value['path'] === 'string';
+  if (!isRecord(value)) return false;
+  const { key, path, prompt } = value;
+  return typeof key === 'string' && typeof path === 'string' && (prompt === undefined || typeof prompt === 'string');
+}
+
+/** The prompt the pipeline generates a file from (docs/AUDIO.md §4): the file's own, else the entry's. */
+export function audioFilePrompt(entry: AudioManifestEntry, file: AudioFileReference): string {
+  return file.prompt ?? entry.promptHint;
 }
 
 function isEntry(value: unknown): value is AudioManifestEntry {

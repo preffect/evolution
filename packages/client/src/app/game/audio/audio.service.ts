@@ -44,6 +44,8 @@ export interface SoundSink {
   stopLoop(id: SoundEventId): void;
   setLoopPlaybackRate(id: SoundEventId, rate: number): void;
   setAmbientStage(stage: CellStage): void;
+  /** From the bloom the bed is the full mix (#140 B); off again at results or on the own cell's death. */
+  setBloom(isBloom: boolean): void;
   setZone(zone: ZoneId): void;
   stopAmbient(): void;
   setDanger(isDanger: boolean): void;
@@ -122,6 +124,10 @@ export class AudioService implements SoundSink {
 
   setAmbientStage(stage: CellStage): void {
     this.guard(() => this.ambient.setStage(stage));
+  }
+
+  setBloom(isBloom: boolean): void {
+    this.guard(() => this.ambient.setBloom(isBloom));
   }
 
   setZone(zone: ZoneId): void {

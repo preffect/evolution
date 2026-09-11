@@ -65,9 +65,16 @@ row; the ones that read "while" (`low_thrum`, `soft_flutter`, `toxin_hiss`, `rap
   `instrument-0` … `instrument-4`.
 - **Zones.** `zone_layer` has one overlay per zone except `open_broth`, which is the bed alone; the
   overlay crossfades over `ZONE_CROSSFADE_SECONDS` (2).
+- **Bloom.** From `bloom_start` the bed pins to the top stem (`BLOOM_STEM_INDEX`, the full mix;
+  degrading through `nearestAvailableStem` like every stem) until results, whatever the own stage. A
+  death still drops it to stem 0 for the spectate; the respawn returns to the full mix while the bloom
+  holds.
 - **Duck.** The ambient sub-bus (stem + overlay) ramps to `DUCK_DECIBELS` (−8 dB) over
   `DUCK_RAMP_SECONDS` (0.5) while any reason holds it: the danger drone, or a priority-3 one-shot
-  until it ends. The drone and the motif are not ducked.
+  until it ends. The drone and the motif are not ducked. Danger readability (C's goal, #140's
+  secondary) is judged when the drone lands: its pulse must read above the ducked pad with the threat
+  ring hidden; if the tonal drone reads too soft, C's alarm blip is added as a second `danger_warning`
+  file (the hook needs no change; the manifest gains a file).
 - **Engulf pitch.** The `engulf_progress` loop's playback rate rises linearly from 1 to
   `ENGULF_PROGRESS_MAX_PLAYBACK_RATE` (1.5) with the prey's progress.
 - **Death and respawn.** `engulfed` drops the bed to stem 0 for the spectate; `respawn` returns the
@@ -92,15 +99,18 @@ interface AudioManifest {
       mood: string; // two to five adjectives from #140's palette
       lengthSeconds: number;
       isLoop: boolean; // equals the catalogue rule
-      promptHint: string; // the Lyria / curated-SFX prompt sketch of #140, per AUDIO-PIPELINE §5
-      files: { key: string; path: string }[]; // ordered; key names the variant, path is relative to assets/audio/
+      promptHint: string; // the entry's prompt template (#140, AUDIO-PIPELINE §5); the prompt of a single-file entry
+      files: { key: string; path: string; prompt?: string }[]; // ordered; key names the variant, path is relative to assets/audio/;
+      // prompt is the file's own where an entry's files differ (stems, overlays, instruments, notes)
     }
   >;
 }
 ```
 
 Variant keys: a stage id for the stems, a zone id for the overlays, `instrument-N` for the motif,
-`note-N` for round-robin notes, `default` otherwise. A play without a key takes the files in turn
+`note-N` for round-robin notes, `default` otherwise. The pipeline (#168) generates and cache-keys per
+file with `audioFilePrompt(entry, file)` (`file.prompt ?? entry.promptHint`), never by parsing prose;
+the manifest test pins that every file of a multi-file entry carries its own distinct prompt. A play without a key takes the files in turn
 (round-robin); a play with a key that the entry lacks is silent.
 
 Files live next to the manifest and are **gitignored** (`assets/audio/*.mp3|ogg|wav`, AUDIO-PIPELINE

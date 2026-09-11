@@ -27,6 +27,7 @@ function createSink() {
     stopLoop: vi.fn(),
     setLoopPlaybackRate: vi.fn(),
     setAmbientStage: vi.fn(),
+    setBloom: vi.fn(),
     setZone: vi.fn(),
     stopAmbient: vi.fn(),
     setDanger: vi.fn(),
@@ -129,6 +130,23 @@ describe('SoundEventBus transitions', () => {
     const { events, sink } = wired();
     events.emit({ kind: GAME_EVENT_KIND.roundPhaseChanged, phase: ROUND_PHASE.playing });
     expect(sink.setAmbientStage).not.toHaveBeenCalled();
+  });
+
+  it('pins the full mix from the bloom, drops it for the spectate and brings it back on respawn until results', () => {
+    const { events, sink } = wired();
+    events.emit({ kind: GAME_EVENT_KIND.stageChanged, stage: CELL_STAGE.prokaryote });
+    events.emit({ kind: GAME_EVENT_KIND.bloomStarted });
+    expect(sink.setBloom).toHaveBeenLastCalledWith(true);
+    events.emit(effect(createTestCellAbsorbedEffect(), true));
+    expect(sink.setBloom).toHaveBeenLastCalledWith(false);
+    expect(sink.setAmbientStage).toHaveBeenLastCalledWith(STARTING_STAGE);
+    events.emit(effect(createTestRespawnEffect(), true));
+    expect(sink.setAmbientStage).toHaveBeenLastCalledWith(CELL_STAGE.prokaryote);
+    expect(sink.setBloom).toHaveBeenLastCalledWith(true);
+    events.emit({ kind: GAME_EVENT_KIND.roundPhaseChanged, phase: ROUND_PHASE.results });
+    events.emit({ kind: GAME_EVENT_KIND.roundPhaseChanged, phase: ROUND_PHASE.playing });
+    events.emit(effect(createTestRespawnEffect(), true));
+    expect(sink.setBloom).toHaveBeenCalledTimes(3);
   });
 
   it('plays the bloom sting, the trait pick and the click', () => {

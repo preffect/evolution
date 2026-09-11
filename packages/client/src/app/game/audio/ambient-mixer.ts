@@ -6,6 +6,7 @@
 
 import {
   AMBIENT_CROSSFADE_SECONDS,
+  BLOOM_STEM_INDEX,
   DUCK_DECIBELS,
   DUCK_RAMP_SECONDS,
   SOUND_EVENT,
@@ -43,6 +44,7 @@ export class AmbientMixer {
   /** What the game last asked for; applied as soon as the manifest and its files allow (`refresh`). */
   private wantedStage: CellStage | null = null;
   private wantedZone: ZoneId | null = null;
+  private isBloom = false;
   private readonly duckReasons = new Set<DuckReason>();
   private readonly ambientBus: AudioGainHandle;
 
@@ -77,6 +79,12 @@ export class AmbientMixer {
     this.applyStage();
   }
 
+  /** From the bloom the bed is the full mix whatever the stage (#140 B); released by `stop` or the caller. */
+  setBloom(isBloom: boolean): void {
+    this.isBloom = isBloom;
+    this.applyStage();
+  }
+
   /** The overlay of a zone; a zone without one (the open broth) fades the overlay out. */
   setZone(zone: ZoneId): void {
     this.wantedZone = zone;
@@ -92,7 +100,7 @@ export class AmbientMixer {
   private applyStage(): void {
     if (!this.manifest || this.wantedStage === null) return;
     const manifest = this.manifest;
-    const wanted = ambientStemForStage(this.wantedStage);
+    const wanted = this.isBloom ? BLOOM_STEM_INDEX : ambientStemForStage(this.wantedStage);
     const isShipped = (stem: number) => {
       const file = resolveAudioFileAt(manifest, SOUND_EVENT.ambientBed, stem);
       return file !== null && this.assets.peek(file.path) !== null;
@@ -122,6 +130,7 @@ export class AmbientMixer {
   stop(): void {
     this.wantedStage = null;
     this.wantedZone = null;
+    this.isBloom = false;
     this.stem = this.crossfade(this.stem, null, null, AMBIENT_CROSSFADE_SECONDS);
     this.zone = this.crossfade(this.zone, null, null, ZONE_CROSSFADE_SECONDS);
   }

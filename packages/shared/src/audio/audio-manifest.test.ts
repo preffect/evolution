@@ -5,7 +5,13 @@ import { ZONE_ID } from '../types/game.js';
 import { AMBIENT_STEM_COUNT, AUDIO_MANIFEST_VERSION, MOTIF_INSTRUMENT_COUNT } from '../constants/audio.js';
 import { STAGE_ORDER } from '../constants/ladder.js';
 import { SOUND_EVENT_IDS, soundEventRule } from './sound-events.js';
-import { parseAudioManifest, resolveAudioFile, resolveAudioFileAt, type AudioManifest } from './audio-manifest.js';
+import {
+  audioFilePrompt,
+  parseAudioManifest,
+  resolveAudioFile,
+  resolveAudioFileAt,
+  type AudioManifest,
+} from './audio-manifest.js';
 
 const MANIFEST_URL = new URL('../../../../assets/audio/manifest.json', import.meta.url);
 const AUDIO_FILE_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.(mp3|ogg|wav)$/;
@@ -63,6 +69,19 @@ describe('assets/audio/manifest.json', () => {
   it('gives the eat cue several round-robin notes', () => {
     expect(manifest.events[SOUND_EVENT.eat].files.length).toBeGreaterThan(1);
   });
+
+  it('gives every file of a multi-file entry its own prompt, so the pipeline generates per item without parsing', () => {
+    for (const id of SOUND_EVENT_IDS) {
+      const entry = manifest.events[id];
+      if (entry.files.length === 1) {
+        expect(audioFilePrompt(entry, entry.files[0]!)).toBe(entry.promptHint);
+        continue;
+      }
+      const prompts = entry.files.map((file) => audioFilePrompt(entry, file));
+      for (const prompt of prompts) expect(prompt).not.toBe(entry.promptHint);
+      expect(new Set(prompts).size).toBe(prompts.length);
+    }
+  });
 });
 
 describe('parseAudioManifest', () => {
@@ -83,6 +102,14 @@ describe('parseAudioManifest', () => {
       [SOUND_EVENT.eat]: { ...(json.events[SOUND_EVENT.eat] as object), files: [{ key: 1 }] },
     };
     expect(parseAudioManifest({ ...json, events: badFile })).toBeNull();
+    const badPrompt = {
+      ...json.events,
+      [SOUND_EVENT.eat]: {
+        ...(json.events[SOUND_EVENT.eat] as object),
+        files: [{ key: 'a', path: 'a.mp3', prompt: 1 }],
+      },
+    };
+    expect(parseAudioManifest({ ...json, events: badPrompt })).toBeNull();
   });
 
   it('rejects anything that is not an object with events', () => {

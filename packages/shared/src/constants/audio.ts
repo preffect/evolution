@@ -43,6 +43,8 @@ export const AMBIENT_STEM_BY_STAGE: Record<CellStage, number> = {
   [CELL_STAGE.specialised]: 4,
 };
 export const AMBIENT_STEM_COUNT = STAGE_ORDER.length;
+/** The full mix the bed pins to from the bloom until results (#140 B), whatever the own stage. */
+export const BLOOM_STEM_INDEX = AMBIENT_STEM_COUNT - 1;
 /** The level-up motif gains one instrument per organelle owned, capped at the bed's instrument count. */
 export const MOTIF_INSTRUMENT_COUNT = AMBIENT_STEM_COUNT;
 
