@@ -69,8 +69,11 @@ function expireDetritus(world: WorldState): void {
   }
 }
 
-/** Motes and fragments whose centre is within `attractRangeInRadii × radius` drift toward the cell. */
-function attractToward(cell: CellRecord, motes: readonly Mobile[]): void {
+/**
+ * Motes and fragments whose centre is within `attractRangeInRadii × radius` drift toward the cell,
+ * clamped to the food boundary: a cell's centre may sit inside `FOOD_EDGE_MARGIN`, its food may not.
+ */
+function attractToward(cell: CellRecord, motes: readonly Mobile[], balance: BalanceConfig): void {
   const range = cell.modifiers.attractRangeInRadii * cell.radius;
   const stepWu = cell.modifiers.attractSpeed * TICK_INTERVAL_S;
   for (const mote of motes) {
@@ -80,15 +83,16 @@ function attractToward(cell: CellRecord, motes: readonly Mobile[]): void {
       const direction = unitVectorToward(mote, cell);
       mote.x += direction.x * pull;
       mote.y += direction.y * pull;
+      clampToFoodBoundary(mote, balance);
     }
   }
 }
 
-function attractMotes(world: WorldState): void {
+function attractMotes(world: WorldState, balance: BalanceConfig): void {
   for (const cell of world.cells) {
     if (cell.modifiers.attractRangeInRadii > 0 && cell.modifiers.attractSpeed > 0) {
-      attractToward(cell, world.food);
-      attractToward(cell, world.dnaFragments);
+      attractToward(cell, world.food, balance);
+      attractToward(cell, world.dnaFragments, balance);
     }
   }
 }
@@ -99,5 +103,5 @@ export function moveMotes(world: WorldState, context: StepContext): void {
     driftFragment(fragment, context.balance);
   }
   expireDetritus(world);
-  attractMotes(world);
+  attractMotes(world, context.balance);
 }

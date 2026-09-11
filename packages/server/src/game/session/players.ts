@@ -5,10 +5,12 @@
 import {
   BACTERIUM_VARIANTS,
   CELL_KIND,
+  DEFAULT_CELL_MODIFIERS,
   DNA_TAGS,
   ENTITY_KIND,
   PLAYER_LIFE_STATE,
   STARTING_STAGE,
+  zeroRecord,
   type BacteriumVariant,
   type BalanceConfig,
   type DnaTag,
@@ -16,7 +18,7 @@ import {
   type RandomSource,
   type Vec2,
 } from '@evolution/shared';
-import { DEFAULT_CELL_MODIFIERS } from '@evolution/shared';
+import { FIRST_LEVEL } from '../progression/levels.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { findSafeSpawnPoint } from '../simulation/spawn-placement.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
@@ -27,14 +29,6 @@ export interface PlayerIdentity {
   readonly playerId: PlayerId;
   readonly playerName: string;
   readonly avatarIndex: number;
-}
-
-function zeroRecord<Key extends string>(keys: readonly Key[]): Record<Key, number> {
-  const record: Partial<Record<Key, number>> = {};
-  for (const key of keys) {
-    record[key] = 0;
-  }
-  return record as Record<Key, number>;
 }
 
 export function zeroTagPoints(): Record<DnaTag, number> {
@@ -51,7 +45,7 @@ export function createPlayerRecord(identity: PlayerIdentity, joinOrder: number):
     playerName: identity.playerName,
     avatarIndex: identity.avatarIndex,
     joinOrder,
-    level: 1,
+    level: FIRST_LEVEL,
     dnaCumulative: 0,
     dnaCatchUpGift: 0,
     dnaTowardNextLevel: 0,

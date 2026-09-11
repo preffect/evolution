@@ -2,7 +2,15 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, DEFAULT_BALANCE, ZONE_ID, type BalanceConfig, type GelPatchView } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
-import { isInsideGelPatch, placeGelPatches, pointInZone, zoneAt, zoneBand, zoneDecayMultiplier } from './zones.js';
+import {
+  isInsideGelPatch,
+  placeGelPatches,
+  pointInZone,
+  shallowsInnerRadius,
+  zoneAt,
+  zoneBand,
+  zoneDecayMultiplier,
+} from './zones.js';
 
 const balance = DEFAULT_BALANCE;
 const { ecology, world } = balance;
@@ -11,8 +19,9 @@ const gelPatch: GelPatchView = { x: 1500, y: 0, radius: ecology.GEL_PATCH_RADIUS
 
 describe('zoneBand', () => {
   it('gives the shallows annulus, the vent disc and the broth between them', () => {
+    expect(shallowsInnerRadius(balance)).toBe(world.DISH_RADIUS - ecology.SHALLOWS_WIDTH);
     expect(zoneBand(ZONE_ID.sunlitShallows, balance)).toEqual({
-      innerRadius: world.DISH_RADIUS - ecology.SHALLOWS_WIDTH,
+      innerRadius: shallowsInnerRadius(balance),
       outerRadius: world.DISH_RADIUS,
     });
     expect(zoneBand(ZONE_ID.warmVent, balance)).toEqual({ innerRadius: 0, outerRadius: ecology.VENT_RADIUS });

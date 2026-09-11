@@ -22,17 +22,25 @@ export interface RadialBand {
   readonly outerRadius: number;
 }
 
+/** Where the broth ends and the shallows begin: `DISH_RADIUS − SHALLOWS_WIDTH` (docs/ECOLOGY.md §2). */
+export function shallowsInnerRadius(balance: BalanceConfig): number {
+  return balance.world.DISH_RADIUS - balance.ecology.SHALLOWS_WIDTH;
+}
+
 export function zoneBand(zone: SpawnZoneId, balance: BalanceConfig): RadialBand {
-  const dishRadius = balance.world.DISH_RADIUS;
-  const brothOuterRadius = dishRadius - balance.ecology.SHALLOWS_WIDTH;
+  const brothOuterRadius = shallowsInnerRadius(balance);
   const ventRadius = balance.ecology.VENT_RADIUS;
   switch (zone) {
     case ZONE_ID.sunlitShallows:
-      return { innerRadius: brothOuterRadius, outerRadius: dishRadius };
+      return { innerRadius: brothOuterRadius, outerRadius: balance.world.DISH_RADIUS };
     case ZONE_ID.warmVent:
       return { innerRadius: 0, outerRadius: ventRadius };
-    default:
+    case ZONE_ID.openBroth:
       return { innerRadius: ventRadius, outerRadius: brothOuterRadius };
+    default: {
+      const unknownZone: never = zone;
+      throw new SimulationInvariantError(`no spawn band for zone ${String(unknownZone)}`);
+    }
   }
 }
 
@@ -48,7 +56,7 @@ export function isInsideGelPatch(point: Vec2, gelPatches: readonly GelPatchView[
 /** The first zone in `ZONE_ID` order containing the point (docs/ECOLOGY.md §2). */
 export function zoneAt(point: Vec2, gelPatches: readonly GelPatchView[], balance: BalanceConfig): ZoneId {
   const distance = Math.hypot(point.x, point.y);
-  if (distance >= balance.world.DISH_RADIUS - balance.ecology.SHALLOWS_WIDTH) {
+  if (distance >= shallowsInnerRadius(balance)) {
     return ZONE_ID.sunlitShallows;
   }
   if (distance <= balance.ecology.VENT_RADIUS) {

@@ -23,7 +23,7 @@ export class SpatialHash<Item extends Positioned> {
   constructor(private readonly cellSizeWu: number) {}
 
   insert(item: Item): void {
-    const key = bucketKey(this.columnOf(item.x), this.columnOf(item.y));
+    const key = bucketKey(this.bucketIndexOf(item.x), this.bucketIndexOf(item.y));
     const bucket = this.buckets.get(key);
     if (bucket === undefined) {
       this.buckets.set(key, [item]);
@@ -42,10 +42,10 @@ export class SpatialHash<Item extends Positioned> {
   queryCircle(x: number, y: number, radius: number): Item[] {
     const hits: Item[] = [];
     const radiusSquared = radius * radius;
-    const minColumn = this.columnOf(x - radius);
-    const maxColumn = this.columnOf(x + radius);
-    const minRow = this.columnOf(y - radius);
-    const maxRow = this.columnOf(y + radius);
+    const minColumn = this.bucketIndexOf(x - radius);
+    const maxColumn = this.bucketIndexOf(x + radius);
+    const minRow = this.bucketIndexOf(y - radius);
+    const maxRow = this.bucketIndexOf(y + radius);
     for (let column = minColumn; column <= maxColumn; column += 1) {
       for (let row = minRow; row <= maxRow; row += 1) {
         this.collectWithin(bucketKey(column, row), { x, y, radiusSquared }, hits);
@@ -68,7 +68,8 @@ export class SpatialHash<Item extends Positioned> {
     }
   }
 
-  private columnOf(coordinate: number): number {
+  /** The bucket index along one axis (a column for x, a row for y); negative coordinates floor downward. */
+  private bucketIndexOf(coordinate: number): number {
     return Math.floor(coordinate / this.cellSizeWu);
   }
 }

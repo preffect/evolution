@@ -41,7 +41,7 @@ describe('spawner rates', () => {
 
 describe('spawnEventKindWeights', () => {
   it('is the per-mote algae share of the world stage against the bacterium share over the cluster size', () => {
-    expect(spawnEventKindWeights(DEFAULT_BALANCE, CELL_STAGE.protocell)).toEqual([0.75, 0.05]);
-    expect(spawnEventKindWeights(DEFAULT_BALANCE, CELL_STAGE.eukaryote)).toEqual([0.5, 0.1]);
+    expect(spawnEventKindWeights(DEFAULT_BALANCE, CELL_STAGE.protocell)).toEqual({ algae: 0.75, bacterium: 0.05 });
+    expect(spawnEventKindWeights(DEFAULT_BALANCE, CELL_STAGE.eukaryote)).toEqual({ algae: 0.5, bacterium: 0.1 });
   });
 });

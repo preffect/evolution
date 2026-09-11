@@ -38,9 +38,15 @@ export function steerThrottle(distanceWu: number, radiusWu: number, controls: St
   return clamp((radii - controls.STEER_DEAD_ZONE_RADII) / span, 0, 1);
 }
 
-/** The per-tick steer blend, derived (never declared): `TICK_INTERVAL_S / (CELL_ACCELERATION_SECONDS × multiplier)`. */
+/** A blend of 1 closes the whole velocity gap in one tick; above it the velocity would overshoot and oscillate. */
+const FULL_BLEND = 1;
+
+/**
+ * The per-tick steer blend, derived (never declared): `TICK_INTERVAL_S / (CELL_ACCELERATION_SECONDS × multiplier)`,
+ * capped at 1 for an acceleration shorter than a tick (a small multiplier or a `debug_set_balance`).
+ */
 export function steerBlendPerTick(accelerationSeconds: number, tickIntervalS: number): number {
-  return tickIntervalS / accelerationSeconds;
+  return Math.min(FULL_BLEND, tickIntervalS / accelerationSeconds);
 }
 
 /**

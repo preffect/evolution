@@ -13,6 +13,8 @@ import {
   type TraitDefinition,
   type TraitTier,
 } from '@evolution/shared';
+import { pickWeighted } from '../simulation/pick-weighted.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { hasReachedStage, nextStage, ownsTrait, stageOfOwned } from './ladder.js';
 
 export interface DraftCandidate {
@@ -80,13 +82,13 @@ function isCandidate(trait: TraitDefinition, owned: OwnedTrait | undefined, cont
 
 /** Every trait the player could be offered right now, in catalog order. */
 export function listDraftCandidates(input: CandidateInput, balance: BalanceConfig): DraftCandidate[] {
+  return listCandidatesAtStage(input, stageOfOwned(input.ownedTraits, balance), balance);
+}
+
+/** The candidates once the stage is known: `buildDraft` computes it once for the list and the rung card. */
+function listCandidatesAtStage(input: CandidateInput, stage: CellStage, balance: BalanceConfig): DraftCandidate[] {
   const catalog: readonly TraitDefinition[] = balance.traits.TRAIT_CATALOG;
-  const context: CandidateContext = {
-    ...input,
-    catalog,
-    topTier: balance.traits.TRAIT_TIER_COUNT,
-    stage: stageOfOwned(input.ownedTraits, balance),
-  };
+  const context: CandidateContext = { ...input, catalog, topTier: balance.traits.TRAIT_TIER_COUNT, stage };
   const candidates: DraftCandidate[] = [];
   catalog.forEach((trait, catalogIndex) => {
     const owned = input.ownedTraits.find((entry) => entry.traitId === trait.id);
@@ -98,76 +100,81 @@ export function listDraftCandidates(input: CandidateInput, balance: BalanceConfi
   return candidates;
 }
 
+/** One candidate's weight (docs/PROGRESSION.md §3): rarity × the tag bias (capped) × the upgrade bonus. */
+function draftWeightOf(
+  candidate: DraftCandidate,
+  dnaTagPoints: Record<DnaTag, number>,
+  balance: BalanceConfig,
+): number {
+  const { progression } = balance;
+  let tagScore = 0;
+  for (const tag of candidate.trait.tags) {
+    tagScore += dnaTagPoints[tag];
+  }
+  const tagMultiplier = Math.min(
+    progression.TAG_WEIGHT_MAX_MULTIPLIER,
+    1 + progression.TAG_WEIGHT_PER_POINT * tagScore,
+  );
+  const upgradeMultiplier = candidate.isUpgrade ? progression.UPGRADE_CARD_WEIGHT_MULTIPLIER : 1;
+  return progression.RARITY_WEIGHT[candidate.trait.rarity] * tagMultiplier * upgradeMultiplier;
+}
+
 export function computeDraftWeights(
   candidates: readonly DraftCandidate[],
   dnaTagPoints: Record<DnaTag, number>,
   balance: BalanceConfig,
 ): number[] {
-  const { progression } = balance;
-  return candidates.map((candidate) => {
-    let tagScore = 0;
-    for (const tag of candidate.trait.tags) {
-      tagScore += dnaTagPoints[tag];
-    }
-    const tagMultiplier = Math.min(
-      progression.TAG_WEIGHT_MAX_MULTIPLIER,
-      1 + progression.TAG_WEIGHT_PER_POINT * tagScore,
-    );
-    const upgradeMultiplier = candidate.isUpgrade ? progression.UPGRADE_CARD_WEIGHT_MULTIPLIER : 1;
-    return progression.RARITY_WEIGHT[candidate.trait.rarity] * tagMultiplier * upgradeMultiplier;
-  });
+  return candidates.map((candidate) => draftWeightOf(candidate, dnaTagPoints, balance));
 }
 
-/** The remaining candidates and their weights, parallel; a draw removes from both. */
-interface WeightedPool {
-  readonly candidates: DraftCandidate[];
-  readonly weights: number[];
+/** A candidate with the weight it was drawn under; the pool and the drawn cards are lists of these. */
+interface WeightedCandidate {
+  readonly candidate: DraftCandidate;
+  readonly weight: number;
 }
 
-function takeAt(pool: WeightedPool, index: number): DraftCandidate {
-  const [taken] = pool.candidates.splice(index, 1);
-  pool.weights.splice(index, 1);
-  return taken as DraftCandidate;
+function takeAt(pool: WeightedCandidate[], index: number): WeightedCandidate {
+  const [taken] = pool.splice(index, 1);
+  if (taken === undefined) {
+    throw new SimulationInvariantError(`the draft pool has no candidate at ${index}`);
+  }
+  return taken;
 }
 
 /** The rung card: one of the next stage's gates among the candidates, by weight, or nothing. */
-function takeRungCard(
-  pool: WeightedPool,
-  input: DraftInput,
-  random: RandomSource,
-  balance: BalanceConfig,
-): DraftCandidate | null {
-  const next = nextStage(stageOfOwned(input.ownedTraits, balance));
+function takeRungCard(pool: WeightedCandidate[], stage: CellStage, random: RandomSource): WeightedCandidate | null {
+  const next = nextStage(stage);
   if (next === null) {
     return null;
   }
   const gates = STAGE_GATE_TRAITS[next];
-  const gateIndexes = pool.candidates.flatMap((candidate, index) =>
-    gates.includes(candidate.trait.id) ? [index] : [],
+  const gateEntries = pool.flatMap((entry, index) =>
+    gates.includes(entry.candidate.trait.id) ? [{ entry, index }] : [],
   );
-  if (gateIndexes.length === 0) {
+  if (gateEntries.length === 0) {
     return null;
   }
-  const chosen = gateIndexes[random.weightedIndex(gateIndexes.map((index) => pool.weights[index] as number))] as number;
-  return takeAt(pool, chosen);
+  return takeAt(pool, pickWeighted(random, gateEntries, (gate) => gate.entry.weight).index);
 }
 
 export function buildDraft(input: DraftInput, random: RandomSource, balance: BalanceConfig): Draft {
-  const candidates = listDraftCandidates(input, balance);
-  const weights = computeDraftWeights(candidates, input.dnaTagPoints, balance);
-  const pool: WeightedPool = { candidates: [...candidates], weights: [...weights] };
-  const drawn: DraftCandidate[] = [];
-  const rungCard = takeRungCard(pool, input, random, balance);
+  const stage = stageOfOwned(input.ownedTraits, balance);
+  const pool: WeightedCandidate[] = listCandidatesAtStage(input, stage, balance).map((candidate) => ({
+    candidate,
+    weight: draftWeightOf(candidate, input.dnaTagPoints, balance),
+  }));
+  const drawn: WeightedCandidate[] = [];
+  const rungCard = takeRungCard(pool, stage, random);
   if (rungCard !== null) {
     drawn.push(rungCard);
   }
-  while (drawn.length < balance.progression.TRAIT_DRAFT_SIZE && pool.candidates.length > 0) {
-    drawn.push(takeAt(pool, random.weightedIndex(pool.weights)));
+  while (drawn.length < balance.progression.TRAIT_DRAFT_SIZE && pool.length > 0) {
+    drawn.push(takeAt(pool, random.weightedIndex(pool.map((entry) => entry.weight))));
   }
   return {
-    cards: drawn.map((candidate) => ({ traitId: candidate.trait.id, tier: candidate.tier })),
-    cardWeights: drawn.map((candidate) => weights[candidates.indexOf(candidate)] as number),
-    catalogIndexes: drawn.map((candidate) => candidate.catalogIndex),
+    cards: drawn.map(({ candidate }) => ({ traitId: candidate.trait.id, tier: candidate.tier })),
+    cardWeights: drawn.map((entry) => entry.weight),
+    catalogIndexes: drawn.map(({ candidate }) => candidate.catalogIndex),
   };
 }
 

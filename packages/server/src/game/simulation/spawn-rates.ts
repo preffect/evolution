@@ -1,7 +1,7 @@
 // Caps and rates of the two spawners (docs/ECOLOGY.md §3): re-evaluated every tick from the
 // cells in the dish and the bloom flag, so joins, leaves and the bloom take effect immediately.
 
-import { FOOD_KIND, type BalanceConfig, type CellStage } from '@evolution/shared';
+import { FOOD_KIND, type BalanceConfig, type CellStage, type FoodKindWeights } from '@evolution/shared';
 import { isPlayerCell } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { isBloomActive } from './round-clock.js';
@@ -41,9 +41,12 @@ export function fragmentSpawnerRates(world: WorldState, balance: BalanceConfig):
  * The per-event kind weights: `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE[worldStage]` are per-mote shares
  * and a bacterium event spawns a whole cluster, so its event weight is the share over the cluster
  * size (docs/ECOLOGY.md §3, §3.2: 0.75 : 0.05 in the protocell era, renormalised by the draw).
- * Index 0 is algae, index 1 a bacterium cluster.
+ * Keyed by the two spawned kinds, like every other table the spawner draws from.
  */
-export function spawnEventKindWeights(balance: BalanceConfig, worldStage: CellStage): readonly [number, number] {
+export function spawnEventKindWeights(balance: BalanceConfig, worldStage: CellStage): FoodKindWeights {
   const shares = balance.ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE[worldStage];
-  return [shares[FOOD_KIND.algae], shares[FOOD_KIND.bacterium] / balance.ecology.BACTERIUM_CLUSTER_SIZE];
+  return {
+    [FOOD_KIND.algae]: shares[FOOD_KIND.algae],
+    [FOOD_KIND.bacterium]: shares[FOOD_KIND.bacterium] / balance.ecology.BACTERIUM_CLUSTER_SIZE,
+  };
 }

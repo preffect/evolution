@@ -25,6 +25,8 @@ export interface CreateWorldOptions {
 }
 
 const FIRST_ENTITY_NUMBER = 1;
+/** A room's first round starts at tick 0; a rematch continues the counter. */
+const FIRST_TICK = 0;
 
 function createSpawnerState(): SpawnerState {
   return { accumulator: 0, spawnedCount: 0, isEnabled: true };
@@ -32,10 +34,12 @@ function createSpawnerState(): SpawnerState {
 
 /** An empty world with fresh streams and gel patches: what every cell and mote is added to. */
 function createEmptyWorld(options: CreateWorldOptions): WorldState {
+  const startTick = options.startTick ?? FIRST_TICK;
+  const firstEntityNumber = options.nextEntityNumber ?? FIRST_ENTITY_NUMBER;
   const world: WorldState = {
-    tick: options.startTick ?? 0,
+    tick: startTick,
     seed: options.seed,
-    roundStartTick: options.startTick ?? 0,
+    roundStartTick: startTick,
     roundPhase: ROUND_PHASE.playing,
     roundTimeLeftMs: 0,
     config: options.config,
@@ -49,8 +53,8 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     leaderboard: [],
     spawners: { food: createSpawnerState(), dnaFragments: createSpawnerState() },
     random: forkServerStreams(options.seed),
-    nextEntityNumber: options.nextEntityNumber ?? FIRST_ENTITY_NUMBER,
-    roundFirstEntityNumber: options.nextEntityNumber ?? FIRST_ENTITY_NUMBER,
+    nextEntityNumber: firstEntityNumber,
+    roundFirstEntityNumber: firstEntityNumber,
     effects: [],
   };
   world.roundTimeLeftMs = roundTimeLeftMsAt(world, world.tick);

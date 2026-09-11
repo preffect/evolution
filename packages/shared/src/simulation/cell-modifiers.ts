@@ -7,6 +7,14 @@ import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';
 import type { OwnedTrait, TraitId } from '../types/game.js';
 import type { CellModifiers, TraitTiers } from '../types/traits.js';
 
+/** A fold that cannot happen: an owned tier outside its table or a fold kind without a rule (a bug, never a no-op). */
+export class TraitFoldError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TraitFoldError';
+  }
+}
+
 export const MODIFIER_FOLD = { multiply: 'multiply', add: 'add', max: 'max' } as const;
 export type ModifierFold = (typeof MODIFIER_FOLD)[keyof typeof MODIFIER_FOLD];
 
@@ -51,8 +59,12 @@ function foldOne(current: number, tierValue: number, rule: FoldRule): number {
       const sum = current + tierValue;
       return rule.cap === undefined ? sum : Math.min(rule.cap, sum);
     }
-    default:
+    case MODIFIER_FOLD.max:
       return Math.max(current, tierValue);
+    default: {
+      const unknownFold: never = rule.fold;
+      throw new TraitFoldError(`unknown fold ${String(unknownFold)}`);
+    }
   }
 }
 
@@ -63,8 +75,10 @@ export function foldModifiers(
 ): CellModifiers {
   const folded: CellModifiers = { ...DEFAULT_CELL_MODIFIERS };
   for (const owned of ownedTraits) {
-    // A `TraitTier` is 1..3 and every table has three rows; the index is in range by type.
-    const tier = tierTables[owned.traitId][owned.tier - 1] ?? {};
+    const tier = tierTables[owned.traitId][owned.tier - 1];
+    if (tier === undefined) {
+      throw new TraitFoldError(`trait ${owned.traitId} has no tier ${owned.tier}`);
+    }
     for (const name of MODIFIER_NAMES) {
       const tierValue = tier[name];
       if (tierValue !== undefined) {

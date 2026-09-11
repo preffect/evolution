@@ -4,7 +4,7 @@
 // (upsert spawned, delete-if-present removed, patch moved); a first call reports everything as
 // spawned, which is also what a rematch looks like on the wire.
 
-import type { EntityId, FoodDelta, MotePositionView } from '@evolution/shared';
+import type { EntityId, FoodDelta, FoodMoteView, MotePositionView } from '@evolution/shared';
 import type { FoodMoteRecord } from '../world/entities.js';
 import { toFoodMoteView, toMotePositionView } from './serialize.js';
 
@@ -19,7 +19,7 @@ export class FoodDeltaTracker {
 
   diff(food: readonly FoodMoteRecord[]): FoodDelta {
     const next = new Map<EntityId, KnownPosition>();
-    const spawned = [];
+    const spawned: FoodMoteView[] = [];
     const moved: MotePositionView[] = [];
     for (const mote of food) {
       const position = toMotePositionView(mote);

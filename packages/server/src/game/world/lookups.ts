@@ -23,6 +23,15 @@ export function findCellOfPlayer(world: WorldState, playerId: PlayerId): CellRec
   return world.cells.find((cell) => cell.playerId === playerId);
 }
 
+/** The cell must exist: an alive player without a cell is an invariant break, never a zero. */
+export function requireCellOfPlayer(world: WorldState, playerId: PlayerId): CellRecord {
+  const cell = findCellOfPlayer(world, playerId);
+  if (cell === undefined) {
+    throw new SimulationInvariantError(`player ${playerId} has no cell in the world`);
+  }
+  return cell;
+}
+
 export function findCell(world: WorldState, cellId: EntityId): CellRecord | undefined {
   return world.cells.find((cell) => cell.id === cellId);
 }

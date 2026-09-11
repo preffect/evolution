@@ -16,6 +16,7 @@ import {
   type BalanceConfig,
   type CellStage,
   type DnaTag,
+  type FoodKindWeights,
   type RandomSource,
   type SpawnZoneId,
   type SpawnedKind,
@@ -34,8 +35,8 @@ import { zoneAt } from './zones.js';
 /** The zones a kind is drawn in, in one fixed order, with their weights (docs/ECOLOGY.md §3). */
 const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_ID.warmVent, ZONE_ID.openBroth];
 
-/** Index 0 is algae, index 1 a bacterium cluster, the order `spawnEventKindWeights` answers in. */
-const SPAWN_EVENT_KINDS = [FOOD_KIND.algae, FOOD_KIND.bacterium] as const;
+/** The two kinds a food event draws between, in one fixed order; `spawnEventKindWeights` weighs them. */
+const SPAWN_EVENT_KINDS: readonly (keyof FoodKindWeights)[] = [FOOD_KIND.algae, FOOD_KIND.bacterium];
 
 function drawZone(kind: SpawnedKind, random: RandomSource, balance: BalanceConfig): SpawnZoneId {
   const weights = balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND[kind];
@@ -80,11 +81,7 @@ function spawnBacteriumCluster(world: WorldState, random: RandomSource, centre: 
 /** One food spawn event: kind, zone, point, then one algae or a cluster; the motes actually spawned. */
 export function spawnFoodEvent(world: WorldState, random: RandomSource, limits: FoodEventLimits): number {
   const kindWeights = spawnEventKindWeights(world.balance, limits.worldStage);
-  const kind = pickWeighted(
-    random,
-    SPAWN_EVENT_KINDS,
-    (eventKind) => kindWeights[SPAWN_EVENT_KINDS.indexOf(eventKind)] ?? 0,
-  );
+  const kind = pickWeighted(random, SPAWN_EVENT_KINDS, (eventKind) => kindWeights[eventKind]);
   const point = drawPointInZone(world, drawZone(kind, random, world.balance), random, limits.maxAttempts);
   if (point === null) {
     return 0;
@@ -141,14 +138,22 @@ export function runSpawners(world: WorldState, context: StepContext): void {
   );
 }
 
+/** What one initial fill runs: the target, the population it reads, the event and the spawner it credits. */
+interface Fill {
+  readonly count: number;
+  readonly population: () => number;
+  readonly spawn: SpawnEvent;
+  readonly spawner: SpawnerState;
+  /** The point-draw bound `spawn` runs under, named in the invariant when it is exhausted. */
+  readonly maxAttempts: number;
+}
+
 /** Fills to `count` with the same draws as a live spawn, never skipping (docs/ECOLOGY.md §3). */
-function fill(count: number, population: () => number, spawn: SpawnEvent, spawner: SpawnerState): void {
+function fill({ count, population, spawn, spawner, maxAttempts }: Fill): void {
   while (population() < count) {
     const spawned = spawn(count - population());
     if (spawned === 0) {
-      throw new SimulationInvariantError(
-        `the initial fill found no spawnable point in ${INITIAL_FILL_POINT_MAX_ATTEMPTS} draws`,
-      );
+      throw new SimulationInvariantError(`the initial fill found no spawnable point in ${maxAttempts} draws`);
     }
     spawner.spawnedCount += spawned;
   }
@@ -160,21 +165,19 @@ export function runInitialFill(world: WorldState, context: StepContext): void {
   const food = foodSpawnerRates(world, context.balance);
   const fragments = fragmentSpawnerRates(world, context.balance);
   const { worldStage } = worldReferenceAt(world, world.tick);
-  fill(
-    Math.floor(ecology.FOOD_INITIAL_FILL_FRACTION * food.cap),
-    () => world.food.length,
-    (room) =>
-      spawnFoodEvent(world, context.streams[RANDOM_STREAM.spawner], {
-        room,
-        maxAttempts: INITIAL_FILL_POINT_MAX_ATTEMPTS,
-        worldStage,
-      }),
-    world.spawners.food,
-  );
-  fill(
-    Math.floor(ecology.DNA_FRAGMENT_INITIAL_FILL_FRACTION * fragments.cap),
-    () => world.dnaFragments.length,
-    () => spawnFragmentEvent(world, context, INITIAL_FILL_POINT_MAX_ATTEMPTS),
-    world.spawners.dnaFragments,
-  );
+  const maxAttempts = INITIAL_FILL_POINT_MAX_ATTEMPTS;
+  fill({
+    count: Math.floor(ecology.FOOD_INITIAL_FILL_FRACTION * food.cap),
+    population: () => world.food.length,
+    spawn: (room) => spawnFoodEvent(world, context.streams[RANDOM_STREAM.spawner], { room, maxAttempts, worldStage }),
+    spawner: world.spawners.food,
+    maxAttempts,
+  });
+  fill({
+    count: Math.floor(ecology.DNA_FRAGMENT_INITIAL_FILL_FRACTION * fragments.cap),
+    population: () => world.dnaFragments.length,
+    spawn: () => spawnFragmentEvent(world, context, maxAttempts),
+    spawner: world.spawners.dnaFragments,
+    maxAttempts,
+  });
 }

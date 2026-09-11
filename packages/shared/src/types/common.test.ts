@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, entityId, gameId, isRoomJoinable, playerId, tick } from './common.js';
+import { clamp, entityId, gameId, isRoomJoinable, playerId, tick, zeroRecord } from './common.js';
+
+describe('zeroRecord', () => {
+  it('keys every listed name at zero and nothing else', () => {
+    expect(zeroRecord(['a', 'b'] as const)).toEqual({ a: 0, b: 0 });
+    expect(zeroRecord([])).toEqual({});
+  });
+});
 
 describe('clamp', () => {
   it('returns the value when within range', () => {

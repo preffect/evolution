@@ -55,6 +55,18 @@ describe('SpatialHash.queryCircle', () => {
     expect(empty.queryCircle(10_000, 10_000, 1)).toEqual([]);
   });
 
+  it('spans several buckets and negative coordinates in one query', () => {
+    const spanning = new SpatialHash<Positioned>(SPATIAL_HASH_CELL_SIZE_WU);
+    spanning.insertAll([
+      { id: entityId('m-1'), x: -299, y: -299 },
+      { id: entityId('m-2'), x: 1, y: 1 },
+      { id: entityId('m-3'), x: 899, y: 0 },
+    ]);
+    expect(spanning.queryCircle(0, 0, 500).map((item) => item.id)).toEqual(['m-1', 'm-2']);
+    expect(spanning.queryCircle(500, 0, 500).map((item) => item.id)).toEqual(['m-2', 'm-3']);
+    expect(spanning.queryCircle(-600, -600, 500).map((item) => item.id)).toEqual(['m-1']);
+  });
+
   it('returns hits sorted by id even when inserted out of order', () => {
     const small = new SpatialHash<Positioned>(SPATIAL_HASH_CELL_SIZE_WU);
     small.insert({ id: entityId('m-10'), x: 1, y: 0 });

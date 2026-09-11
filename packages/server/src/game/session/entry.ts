@@ -16,7 +16,7 @@ import { grantCatchUpGift } from '../progression/dna.js';
 import { applyLevelUps } from '../progression/levels.js';
 import { showQueuedOfferIfNone } from '../progression/offers.js';
 import type { PlayerRecord } from '../world/entities.js';
-import { findCellOfPlayer } from '../world/lookups.js';
+import { requireCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { roundElapsedTicksAt } from '../simulation/round-clock.js';
 
@@ -63,14 +63,14 @@ function isAlive(player: PlayerRecord): boolean {
   return player.lifeState === PLAYER_LIFE_STATE.alive;
 }
 
-/** The living players' medians, or null when nobody is alive (a spectating player has no cell). */
+/** The living players' medians, or null when nobody is alive (a spectating player has no cell; an alive one must). */
 export function livingMedians(world: WorldState): EntryMedians | null {
   const living = world.players.filter(isAlive);
   if (living.length === 0) {
     return null;
   }
   return {
-    mass: medianOf(living.map((player) => findCellOfPlayer(world, player.playerId)?.mass ?? 0)),
+    mass: medianOf(living.map((player) => requireCellOfPlayer(world, player.playerId).mass)),
     dnaCumulative: medianOf(living.map((player) => player.dnaCumulative)),
   };
 }

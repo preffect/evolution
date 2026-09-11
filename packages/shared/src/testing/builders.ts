@@ -14,7 +14,9 @@ import {
 } from '../types/game.js';
 import type { CellView, PlayerProgressView } from '../types/game.js';
 import type { GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
-import { entityId, playerId } from '../types/common.js';
+import { entityId, playerId, zeroRecord } from '../types/common.js';
+import { BACTERIUM_VARIANTS } from '../constants/ecology.js';
+import { DNA_TAGS } from '../constants/progression.js';
 import { DEFAULT_PLAYERS_PER_GAME } from '../constants/lobby.js';
 import { ROUND_DURATION_SECONDS } from '../constants/session.js';
 import { MILLISECONDS_PER_SECOND } from '../constants/units.js';
@@ -79,8 +81,8 @@ export function createTestPlayerProgressView(overrides: Partial<PlayerProgressVi
     dnaCumulative: 0,
     dnaCatchUpGift: 0,
     dnaTowardNextLevel: 0,
-    dnaTagPoints: { motile: 0, photic: 0, predatory: 0, armored: 0, toxic: 0, sensory: 0, metabolic: 0 },
-    bacteriaEatenByVariant: { plain: 0, aerobic: 0, photosynthetic: 0 },
+    dnaTagPoints: zeroRecord(DNA_TAGS),
+    bacteriaEatenByVariant: zeroRecord(BACTERIUM_VARIANTS),
     absorptions: 0,
     wildAbsorptions: 0,
     score: 0,

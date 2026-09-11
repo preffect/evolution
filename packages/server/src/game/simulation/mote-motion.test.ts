@@ -113,6 +113,20 @@ describe('moveMotes: attraction (T8)', () => {
     expect(far.x).toBe(cell.x + 4 * cell.radius);
   });
 
+  it('keeps an attracted mote inside the food boundary when the cell sits inside the edge margin', () => {
+    const world = createTestWorld();
+    const cell = world.cells[0]!;
+    cell.x = worldBalance.DISH_RADIUS - cell.radius;
+    cell.y = 0;
+    cell.modifiers.attractRangeInRadii = 3;
+    cell.modifiers.attractSpeed = 4000;
+    const mote = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: FOOD_REACH - 1, y: 0 } });
+    expect(cell.x).toBeGreaterThan(FOOD_REACH);
+    moveMotes(world, createTestStepContext(world));
+    expect(mote.x).toBeCloseTo(FOOD_REACH, 9);
+    expect(mote.y).toBe(0);
+  });
+
   it('never pulls a mote past the centre', () => {
     const world = createTestWorld();
     const cell = world.cells[0]!;

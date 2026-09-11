@@ -2,8 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';
+import type { TraitTier } from '../types/game.js';
 import type { CellModifiers } from '../types/traits.js';
-import { MODIFIER_FOLD_RULES, MODIFIER_NAMES, foldModifiers } from './cell-modifiers.js';
+import { MODIFIER_FOLD_RULES, MODIFIER_NAMES, TraitFoldError, foldModifiers } from './cell-modifiers.js';
 
 const tierTables = DEFAULT_BALANCE.traits.TRAIT_TIERS;
 
@@ -61,6 +62,14 @@ describe('foldModifiers', () => {
       tierTables,
     );
     expect(folded.dnaKeptOnDeathFraction).toBe(1);
+  });
+
+  it('throws on an owned tier outside the table instead of folding nothing', () => {
+    const beyondTable = 4 as TraitTier;
+    expect(() => foldModifiers([{ traitId: 'cilia', tier: beyondTable }], tierTables)).toThrow(TraitFoldError);
+    expect(() => foldModifiers([{ traitId: 'cilia', tier: 0 as TraitTier }], tierTables)).toThrow(
+      'trait cilia has no tier 0',
+    );
   });
 
   it('declares a fold rule for every modifier of the identity record', () => {

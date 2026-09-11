@@ -191,7 +191,12 @@ export function applyPlacedFixture(world: WorldState, fixture: PlacedFixture, co
     case PLACED_KIND.mote:
       applyPlacedMote(world, fixture, context);
       return;
-    default:
+    case PLACED_KIND.fragment:
       applyPlacedFragment(world, fixture, context);
+      return;
+    default: {
+      const unknownFixture: never = fixture;
+      throw new ScenarioSetupError(`unknown placed fixture ${JSON.stringify(unknownFixture)}`);
+    }
   }
 }

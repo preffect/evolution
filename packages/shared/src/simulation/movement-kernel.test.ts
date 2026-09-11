@@ -48,6 +48,11 @@ describe('steerBlendPerTick', () => {
   it('derives 1/15 from a quarter-second acceleration at 60 Hz', () => {
     expect(BLEND).toBeCloseTo(1 / 15, 12);
   });
+
+  it('caps the blend at 1 when the acceleration is shorter than a tick', () => {
+    expect(steerBlendPerTick(TICK_INTERVAL_S, TICK_INTERVAL_S)).toBe(1);
+    expect(steerBlendPerTick(TICK_INTERVAL_S / 4, TICK_INTERVAL_S)).toBe(1);
+  });
 });
 
 describe('stepMovementKernel', () => {
