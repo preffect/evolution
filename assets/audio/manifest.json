@@ -1,0 +1,440 @@
+{
+  "$comment": "Every SOUND_EVENT id → its files, mood, length, loop and prompt hint (docs/AUDIO.md §4; decision #140 option B). Validated by packages/shared/src/audio/audio-manifest.test.ts. The audio files are gitignored; the pipeline (docs/AUDIO-PIPELINE.md) generates them next to this file.",
+  "version": 1,
+  "events": {
+    "ambient_bed": {
+      "mood": "warm, submerged, growing",
+      "lengthSeconds": 90,
+      "isLoop": true,
+      "promptHint": "One template per stem, the instrument list growing in stage order; each file carries its own prompt: slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: {the instruments so far}, seamless 90-second loop, no vocals, original work",
+      "files": [
+        {
+          "key": "protocell",
+          "path": "ambient-bed-protocell.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture, seamless 90-second loop, no vocals, original work"
+        },
+        {
+          "key": "prokaryote",
+          "path": "ambient-bed-prokaryote.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse, seamless 90-second loop, no vocals, original work"
+        },
+        {
+          "key": "endosymbiosis",
+          "path": "ambient-bed-endosymbiosis.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad, seamless 90-second loop, no vocals, original work"
+        },
+        {
+          "key": "eukaryote",
+          "path": "ambient-bed-eukaryote.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad + glassy lead motif, seamless 90-second loop, no vocals, original work"
+        },
+        {
+          "key": "specialised",
+          "path": "ambient-bed-specialised.mp3",
+          "prompt": "slow ambient electronica pad in D minor, 70 BPM feel but no drums, submerged and warm, instruments: soft sub drone and water texture + muted electric piano pulse + warm analog pad + glassy lead motif + full arrangement with light percussion, seamless 90-second loop, no vocals, original work"
+        }
+      ]
+    },
+    "zone_layer": {
+      "mood": "airy, deep, muffled",
+      "lengthSeconds": 90,
+      "isLoop": true,
+      "promptHint": "One overlay per zone, each file carrying its own prompt; open_broth has no overlay (the bed alone)",
+      "files": [
+        {
+          "key": "sunlit_shallows",
+          "path": "zone-layer-sunlit-shallows.mp3",
+          "prompt": "bright airy choir pad, D minor, seamless loop, no rhythm, original work"
+        },
+        {
+          "key": "warm_vent",
+          "path": "zone-layer-warm-vent.mp3",
+          "prompt": "deep sub drone with slow bubbling percussive texture, D minor, seamless loop, original work"
+        },
+        {
+          "key": "viscous_gel",
+          "path": "zone-layer-viscous-gel.mp3",
+          "prompt": "low-passed tremolo pad, D minor, slow and thick, seamless loop, original work"
+        }
+      ]
+    },
+    "eat": {
+      "mood": "wet, soft, plucked",
+      "lengthSeconds": 0.4,
+      "isLoop": false,
+      "promptHint": "Five notes round-robin, wet foley under a tonal pluck, each file carrying its own note: soft wet plip of a drop into thick liquid under a single plucked harp note, the note {D, F, G, A or C} of the D minor pentatonic, dry, no reverb, 0.4 s, no music",
+      "files": [
+        {
+          "key": "note-1",
+          "path": "eat-pluck-note-1.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note D of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
+        },
+        {
+          "key": "note-2",
+          "path": "eat-pluck-note-2.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note F of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
+        },
+        {
+          "key": "note-3",
+          "path": "eat-pluck-note-3.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note G of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
+        },
+        {
+          "key": "note-4",
+          "path": "eat-pluck-note-4.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note A of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
+        },
+        {
+          "key": "note-5",
+          "path": "eat-pluck-note-5.mp3",
+          "prompt": "soft wet plip of a drop into thick liquid under a single plucked harp note, the note C of the D minor pentatonic, dry, no reverb, 0.4 s, no music"
+        }
+      ]
+    },
+    "dna_absorb": {
+      "mood": "bright, rising, glassy",
+      "lengthSeconds": 0.8,
+      "isLoop": false,
+      "promptHint": "\"short rising harp glissando in D minor, glassy, dry, 0.8 s, no rhythm, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "dna-absorb-glissando.mp3"
+        }
+      ]
+    },
+    "level_up": {
+      "mood": "resolved, warm, growing",
+      "lengthSeconds": 3,
+      "isLoop": false,
+      "promptHint": "The motif phrase on the newest instrument, one file per instrument index, each carrying its own prompt: three-second melodic motif in D minor played on {the instrument}, warm, resolved, no drums, original work",
+      "files": [
+        {
+          "key": "instrument-0",
+          "path": "level-up-motif-instrument-0.mp3",
+          "prompt": "three-second melodic motif in D minor played on soft sub drone and water texture, warm, resolved, no drums, original work"
+        },
+        {
+          "key": "instrument-1",
+          "path": "level-up-motif-instrument-1.mp3",
+          "prompt": "three-second melodic motif in D minor played on muted electric piano pulse, warm, resolved, no drums, original work"
+        },
+        {
+          "key": "instrument-2",
+          "path": "level-up-motif-instrument-2.mp3",
+          "prompt": "three-second melodic motif in D minor played on warm analog pad, warm, resolved, no drums, original work"
+        },
+        {
+          "key": "instrument-3",
+          "path": "level-up-motif-instrument-3.mp3",
+          "prompt": "three-second melodic motif in D minor played on glassy lead motif, warm, resolved, no drums, original work"
+        },
+        {
+          "key": "instrument-4",
+          "path": "level-up-motif-instrument-4.mp3",
+          "prompt": "three-second melodic motif in D minor played on full arrangement with light percussion, warm, resolved, no drums, original work"
+        }
+      ]
+    },
+    "trait_pick": {
+      "mood": "held, warm, tonal",
+      "lengthSeconds": 1.5,
+      "isLoop": false,
+      "promptHint": "\"held D minor chord swell on warm analog pad, 1.5 s, soft attack, no rhythm, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-pick-chord.mp3"
+        }
+      ]
+    },
+    "danger_warning": {
+      "mood": "low, pulsing, tense",
+      "lengthSeconds": 30,
+      "isLoop": true,
+      "promptHint": "\"low pulsing sub drone in D, clear two-second rhythmic pulse, tense, sits above the pad and stays readable under the ducked mix, seamless 30-second loop, no melody, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "danger-drone.mp3"
+        }
+      ]
+    },
+    "engulf_progress": {
+      "mood": "wet, straining, rising",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"slow wet slurp swelling and straining, thick liquid, seamless 4-second loop, no music\" (the client raises the playback rate with progress)",
+      "files": [
+        {
+          "key": "default",
+          "path": "engulf-progress-loop.mp3"
+        }
+      ]
+    },
+    "engulf_complete": {
+      "mood": "thick, resolving, satisfying",
+      "lengthSeconds": 2,
+      "isLoop": false,
+      "promptHint": "\"rising tonal swell with sub bass resolving on a D over a thick wet gulp, 2 s, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "engulf-complete.mp3"
+        }
+      ]
+    },
+    "engulfed": {
+      "mood": "falling, dissolving, hushed",
+      "lengthSeconds": 3,
+      "isLoop": false,
+      "promptHint": "\"the D minor motif descending and dissolving into low-passed water, 3 s, no drums, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "engulfed-descend.mp3"
+        }
+      ]
+    },
+    "respawn": {
+      "mood": "swelling, hopeful, warm",
+      "lengthSeconds": 2,
+      "isLoop": false,
+      "promptHint": "\"soft D minor chord swell rising from silence on warm pad, 2 s, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "respawn-swell.mp3"
+        }
+      ]
+    },
+    "bloom_start": {
+      "mood": "opening, full, bright",
+      "lengthSeconds": 3,
+      "isLoop": false,
+      "promptHint": "\"bright opening swell into a full ambient arrangement in D minor, 3 s, light percussion, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "bloom-start.mp3"
+        }
+      ]
+    },
+    "round_end": {
+      "mood": "resolving, complete, calm",
+      "lengthSeconds": 20,
+      "isLoop": false,
+      "promptHint": "\"20-second cadence of the same D minor motif, full arrangement, resolving to the tonic, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "round-end-cadence.mp3"
+        }
+      ]
+    },
+    "ui_click": {
+      "mood": "dry, tiny, wet",
+      "lengthSeconds": 0.1,
+      "isLoop": false,
+      "promptHint": "\"tiny wet tick, single drop, dry, no reverb, 0.1 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "ui-click.mp3"
+        }
+      ]
+    },
+    "soft_click": {
+      "mood": "dry, tiny, organic",
+      "lengthSeconds": 0.3,
+      "isLoop": false,
+      "promptHint": "\"soft organic click, like a seed pod, single hit, dry, 0.3 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-soft-click.mp3"
+        }
+      ]
+    },
+    "whip_crack": {
+      "mood": "wet, sharp, quick",
+      "lengthSeconds": 0.4,
+      "isLoop": false,
+      "promptHint": "\"quick wet whip crack through liquid, single hit, dry, 0.4 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-whip-crack.mp3"
+        }
+      ]
+    },
+    "dull_thud": {
+      "mood": "dull, thick, low",
+      "lengthSeconds": 0.5,
+      "isLoop": false,
+      "promptHint": "\"dull thud of a soft body against a wall through water, single hit, 0.5 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-dull-thud.mp3"
+        }
+      ]
+    },
+    "eat_gurgle": {
+      "mood": "wet, gurgling, short",
+      "lengthSeconds": 0.6,
+      "isLoop": false,
+      "promptHint": "\"short wet gurgle, thick liquid swallowed, 0.6 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-eat-gurgle.mp3"
+        }
+      ]
+    },
+    "low_thrum": {
+      "mood": "low, pulsing, warm",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"low warm thrum, like a heartbeat through water, seamless 4-second loop, tuned to D, no melody\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-low-thrum.mp3"
+        }
+      ]
+    },
+    "warm_shimmer": {
+      "mood": "warm, glittering, bright",
+      "lengthSeconds": 1.5,
+      "isLoop": false,
+      "promptHint": "\"warm glittering shimmer in D minor, glass harmonics, 1.5 s, no rhythm, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-warm-shimmer.mp3"
+        }
+      ]
+    },
+    "deep_chime": {
+      "mood": "deep, resonant, tonal",
+      "lengthSeconds": 2,
+      "isLoop": false,
+      "promptHint": "\"single deep resonant chime on a low D, slow decay, 2 s, original work\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-deep-chime.mp3"
+        }
+      ]
+    },
+    "taut_snap": {
+      "mood": "taut, elastic, quick",
+      "lengthSeconds": 0.3,
+      "isLoop": false,
+      "promptHint": "\"taut elastic snap, single hit, dry, 0.3 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-taut-snap.mp3"
+        }
+      ]
+    },
+    "soft_flutter": {
+      "mood": "soft, fluttering, wet",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"soft fluttering of many tiny hairs through water, seamless 4-second loop, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-soft-flutter.mp3"
+        }
+      ]
+    },
+    "absorb_gurgle": {
+      "mood": "wet, deep, gurgling",
+      "lengthSeconds": 0.8,
+      "isLoop": false,
+      "promptHint": "\"deep wet gurgle of a pocket closing over liquid, 0.8 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-absorb-gurgle.mp3"
+        }
+      ]
+    },
+    "toxin_hiss": {
+      "mood": "hissing, acidic, thin",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"thin acidic hiss of bubbles fizzing in liquid, seamless 4-second loop, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-toxin-hiss.mp3"
+        }
+      ]
+    },
+    "wet_stretch": {
+      "mood": "wet, stretching, slow",
+      "lengthSeconds": 1,
+      "isLoop": false,
+      "promptHint": "\"slow wet stretch of a membrane pulling, 1 s, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-wet-stretch.mp3"
+        }
+      ]
+    },
+    "rapid_flutter": {
+      "mood": "rapid, fluttering, busy",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"rapid fluttering of fine hairs beating through water, seamless 4-second loop, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-rapid-flutter.mp3"
+        }
+      ]
+    },
+    "low_hum": {
+      "mood": "low, steady, tonal",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"low steady hum tuned to D, soft and round, seamless 4-second loop, no melody\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-low-hum.mp3"
+        }
+      ]
+    },
+    "shell_scrape": {
+      "mood": "scraping, brittle, glassy",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"brittle glassy scrape, silica against soft tissue, seamless 4-second loop, no music\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-shell-scrape.mp3"
+        }
+      ]
+    },
+    "hiss_drone": {
+      "mood": "hissing, droning, wide",
+      "lengthSeconds": 4,
+      "isLoop": true,
+      "promptHint": "\"wide hiss over a low drone in D, seamless 4-second loop, no melody\"",
+      "files": [
+        {
+          "key": "default",
+          "path": "trait-hiss-drone.mp3"
+        }
+      ]
+    }
+  }
+}

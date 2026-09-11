@@ -64,6 +64,8 @@ export interface GameSnapshot {
   tick: number;
   /** The current round's seed; a rematch increments it. */
   seed: number;
+  /** 0 at creation, the current tick at a rematch: the HUD derives the world clock from `tick − roundStartTick` (docs/ECOLOGY.md §3.1). */
+  roundStartTick: number;
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];
@@ -127,13 +129,15 @@ export interface ClientPerformanceReport {
   frameTimeP95Ms: number;
   frameTimePeakMs: number;
   heapMb: number | null;
+  // The render report of docs/RENDERING.md §7. Optional until the server's `client_performance`
+  // schema accepts them (#175); the renderer always sends every field, the echo server strips them.
   /** p95 per stage, ms; every key present (docs/RENDERING.md §7). */
-  renderStagesMs: Readonly<Record<RenderStageName, number>>;
+  renderStagesMs?: Readonly<Record<RenderStageName, number>>;
   /** GPU timer query, null when unsupported. */
-  gpuMs: number | null;
-  drawCalls: number;
-  visibleCells: number;
-  visibleMotes: number;
+  gpuMs?: number | null;
+  drawCalls?: number;
+  visibleCells?: number;
+  visibleMotes?: number;
 }
 
 // ===== Generic room / lobby view models =====

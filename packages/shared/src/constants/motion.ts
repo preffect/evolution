@@ -35,6 +35,7 @@ export const MOTION_CLIP = {
   levelUp: 'level_up',
   respawn: 'respawn',
   sprintRelease: 'sprint_release',
+  sprintReady: 'sprint_ready',
   organelleBirth: 'organelle_birth',
 } as const;
 export type MotionClipId = (typeof MOTION_CLIP)[keyof typeof MOTION_CLIP];
@@ -97,6 +98,9 @@ const ABSORBED_DURATION_MS = 600;
 const LEVEL_UP_DURATION_MS = 900;
 const RESPAWN_DURATION_MS = 400;
 const SPRINT_RELEASE_DURATION_MS = 200;
+/** The one brighten of the self ring when the cooldown ends (docs/UI.md §3.1.2): 0 → peak → rest. */
+const SPRINT_READY_AT = [0, 100, 200] as const;
+const SPRINT_READY_EASE: readonly EasingName[] = [EASING.easeOutQuad, EASING.easeInQuad, EASING.linear];
 const ORGANELLE_BIRTH_DURATION_MS = 3000;
 
 export const MOTION_CLIPS: Readonly<Record<MotionClipId, MotionClip>> = {
@@ -148,6 +152,7 @@ export const MOTION_CLIPS: Readonly<Record<MotionClipId, MotionClip>> = {
       shockRingRadii: track(LEVEL_UP_AT, LEVEL_UP_EASE, [1, 1, 1, 1.6, 1.6, 1.6]),
       rippleRadii: track(LEVEL_UP_AT, LEVEL_UP_EASE, [1.7, 1.7, 1.7, 1.7, 2.1, 2.5]),
       nucleusFlash: track(LEVEL_UP_AT, LEVEL_UP_EASE, [0, 0, 1, 1, 0, 0]),
+      ringFlash: track(LEVEL_UP_AT, LEVEL_UP_EASE, [0, 0, 1, 1, 0, 0]),
     },
   },
   [MOTION_CLIP.respawn]: {
@@ -169,6 +174,15 @@ export const MOTION_CLIPS: Readonly<Record<MotionClipId, MotionClip>> = {
     tracks: {
       stretchSprint: tween(SPRINT_RELEASE_DURATION_MS, EASING.easeOutQuad, 1.06, 1),
       rimBrightness: tween(SPRINT_RELEASE_DURATION_MS, EASING.easeOutQuad, 1.2, 1),
+    },
+  },
+  [MOTION_CLIP.sprintReady]: {
+    id: MOTION_CLIP.sprintReady,
+    domain: MOTION_DOMAIN.milliseconds,
+    duration: SPRINT_RELEASE_DURATION_MS,
+    isInterruptible: true,
+    tracks: {
+      selfRingBrightness: track(SPRINT_READY_AT, SPRINT_READY_EASE, [0.7, 0.95, 0.7]),
     },
   },
   [MOTION_CLIP.organelleBirth]: {

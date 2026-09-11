@@ -48,6 +48,13 @@
 ./run.sh --install      # run pnpm install before starting
 ```
 
+### Headless bots (`docs/TESTING.md` §8.4)
+
+```bash
+pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy grazer --seed 42   # over the wire
+# in-process: debug_spawn_bot / debug_remove_bot on the debug MCP
+```
+
 ### Dev container
 
 ```bash
@@ -109,6 +116,9 @@ These docs are the enforceable quality bar for any work in this repo. Read and f
 - **[`docs/AUDIO-PIPELINE.md`](docs/AUDIO-PIPELINE.md)** — the opt-in music + voice + SFX pipeline.
   **Google/Gemini is the default** for both music (Lyria) and voice (Chirp). `./ai-pipeline.sh check`
   is offline; `sync` spends money and never runs unsolicited.
+- **[`docs/AUDIO.md`](docs/AUDIO.md)** — the sound design (decision #140, option B "living broth"): the
+  event catalogue with priorities and cooldowns, the layering per ladder stage, the asset manifest and
+  the client audio seam.
 
 > **The gate:** after any change, `./validate.sh all` must pass, the Definition of Done in
 > `docs/ENGINEERING.md` must hold, and any new visual/audio asset must meet its doc's criteria.
@@ -174,6 +184,7 @@ change ports inside the container; they are already baked into the integration f
   `debug_grant_dna(gameId, playerId, dna, tags?)`, `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`,
   `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
   with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
-  every module)
+  every module); populate a room with `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
+  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter`, `docs/TESTING.md` §8.4)
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
 - **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`

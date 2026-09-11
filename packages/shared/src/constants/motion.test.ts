@@ -27,6 +27,7 @@ const SHEET_03 = {
   [MOTION_CLIP.levelUp]: { domain: MOTION_DOMAIN.milliseconds, duration: 900, at: [0, 120, 250, 450, 700, 900] },
   [MOTION_CLIP.respawn]: { domain: MOTION_DOMAIN.milliseconds, duration: 400, at: [0, 400] },
   [MOTION_CLIP.sprintRelease]: { domain: MOTION_DOMAIN.milliseconds, duration: 200, at: [0, 200] },
+  [MOTION_CLIP.sprintReady]: { domain: MOTION_DOMAIN.milliseconds, duration: 200, at: [0, 100, 200] },
   [MOTION_CLIP.organelleBirth]: { domain: MOTION_DOMAIN.milliseconds, duration: 3000, at: [0, 3000] },
 } as const;
 
@@ -79,6 +80,10 @@ describe('MOTION_CLIPS', () => {
     expect(engulf['notch']!.map((keyframe) => keyframe.value)).toEqual([0, -0.1, 0]);
     expect(engulf['seal']!.map((keyframe) => keyframe.value)).toEqual([0, 0, 0.6]);
     expect(MOTION_CLIPS.absorbed.tracks['seal']!.map((keyframe) => keyframe.value)).toEqual([0.6, 0.42, 0.22, 0]);
+    expect(MOTION_CLIPS.level_up.tracks['ringFlash']!.map((keyframe) => keyframe.value)).toEqual([0, 0, 1, 1, 0, 0]);
+    expect(MOTION_CLIPS.sprint_ready.tracks['selfRingBrightness']!.map((keyframe) => keyframe.value)).toEqual([
+      0.7, 0.95, 0.7,
+    ]);
     expect(MOTION_CLIPS.level_up.isInterruptible).toBe(false);
     expect(MOTION_CLIPS.eat.isInterruptible).toBe(true);
   });

@@ -1,10 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  CLIENT_MESSAGE_TYPE,
-  createTestGameInput,
-  createTestPerformanceReport,
-  createTestSessionConfig,
-} from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, createTestGameInput, createTestSessionConfig } from '@evolution/shared';
 import { createMessageRouter, type MessageHandlers } from './message-router.js';
 import { createTestConnection, type SentLog } from '../testing/builders.js';
 
@@ -46,7 +41,7 @@ const FRAME_FOR_VERB: Record<keyof MessageHandlers, Record<string, unknown>> = {
   onPlayerInput: { type: CLIENT_MESSAGE_TYPE.playerInput, payload: createTestGameInput() },
   onClientPerformance: {
     type: CLIENT_MESSAGE_TYPE.clientPerformance,
-    report: createTestPerformanceReport({ frameTimePeakMs: 33 }),
+    report: { fps: 60, frameTimeAvgMs: 16, frameTimeP95Ms: 20, frameTimePeakMs: 33, heapMb: null },
   },
 };
 

@@ -1,6 +1,11 @@
-// Client netcode engineering constants (docs/ARCHITECTURE.md §5, docs/CODE-STANDARDS.md §2).
-// Not gameplay tunables: excluded from `data/balance.json`.
+// Snapshot encoding constants (docs/CODE-STANDARDS.md §2, docs/ARCHITECTURE.md §4.1). Engineering
+// constants, not tunables: excluded from `data/balance.json`. The client-side netcode numbers
+// (buffer size, interpolation delay, reconciliation) join this file with the client tickets.
 
+/** Positions on the wire are rounded to this many decimals (0.1 wu): what keeps a snapshot under budget. */
+export const SNAPSHOT_POSITION_DECIMALS = 1;
+
+// ---- client interpolation (docs/ARCHITECTURE.md §5, #99) ----
 /** Snapshots the client keeps for interpolation. */
 export const SNAPSHOT_BUFFER_SIZE = 4;
 /** Remote entities render this many ticks behind the newest snapshot: two snapshot intervals. */

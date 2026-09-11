@@ -1,6 +1,8 @@
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import type { BalanceConfig, PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
+import { echoBotBinding } from './bots/bot-binding.js';
+import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-process-bots.js';
 
 /**
  * Per-room game logic. ONE instance per active GameRoom. This is THE place the
@@ -66,22 +68,28 @@ export type GameModuleFactory = (options: RoomInitOptions) => GameModule;
 /**
  * DEFAULT PLACEHOLDER (TODO(game)): trust-client echo. Stores the latest input per player and
  * echoes `{ players: { [playerId]: lastInput } }` as the snapshot. Replace in the
- * init step with the real game logic.
+ * init step with the real game logic. Its one debug capability is the in-process bot pair
+ * (`spawnBot` / `removeBot`, docs/ARCHITECTURE.md §8): a bot is a player whose input the module
+ * produces itself at the start of each tick, from the snapshot of the tick before, stamped with
+ * that tick as its sequence (inputs start at tick 1, docs/TESTING.md §8.1).
  */
 export function createEchoModule(options: RoomInitOptions): GameModule<GameInput, EchoSnapshot> {
   const latestInputByPlayer = new Map<string, GameInput>();
   const players = new Set<string>(options.playerIds);
+  const bots = createInProcessBotRoster(echoBotBinding);
+  let tick = 0;
   const serializeRoomState = (): EchoSnapshot => {
     const inputs: Record<string, GameInput | null> = {};
     for (const playerId of players) inputs[playerId] = latestInputByPlayer.get(playerId) ?? null;
     return { players: inputs };
   };
-  return {
+  const module: GameModule<GameInput, EchoSnapshot> = {
     submitInput: (playerId, payload) => {
       latestInputByPlayer.set(playerId, payload);
     },
     reduceGameState: () => {
-      /* TODO(game): advance world one tick */
+      tick += 1; // TODO(game): #152 advances the world one tick here; the echo has no world to step
+      bots.driveTick(serializeRoomState(), tick, module.submitInput);
     },
     serializeRoomState,
     serializeFullState: () => ({ snapshot: serializeRoomState(), balance: DEFAULT_BALANCE }),
@@ -91,6 +99,36 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
     removePlayer: (playerId) => {
       players.delete(playerId);
       latestInputByPlayer.delete(playerId);
+    },
+    getDebugHandle: () => echoBotHandle(module, bots),
+  };
+  return module;
+}
+
+/**
+ * The echo's one debug capability: the bot pair. The roster owns the pilot, the module the
+ * player, and the seat is claimed (`seat`) before either holds anything the room did not accept.
+ */
+function echoBotHandle(
+  module: GameModule<GameInput, EchoSnapshot>,
+  bots: InProcessBotRoster<GameInput, unknown>,
+): SimulationDebugHandle {
+  return {
+    spawnBot: (request, seat) => {
+      const bot = bots.spawn(request);
+      try {
+        seat(bot);
+      } catch (error) {
+        bots.remove(bot.playerId);
+        throw error;
+      }
+      module.addPlayer(bot.playerId, bot.avatarIndex, bot.playerName);
+      return bot;
+    },
+    removeBot: (playerId) => {
+      const bot = bots.remove(playerId);
+      module.removePlayer(playerId);
+      return bot;
     },
   };
 }

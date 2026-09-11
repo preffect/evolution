@@ -14,8 +14,8 @@ const DOCS_DIRECTORY = new URL('../../../../docs/', import.meta.url);
  * from a doc (or a table the parser silently stopped seeing) is a deliberate edit on both sides.
  */
 const CONSTANTS_TABLE_SOURCES = [
-  { documentName: 'GAME-DESIGN.md', section: 12, expectedNames: 35 },
-  { documentName: 'ECOLOGY.md', section: 7, expectedNames: 70 },
+  { documentName: 'GAME-DESIGN.md', section: 12, expectedNames: 38 },
+  { documentName: 'ECOLOGY.md', section: 7, expectedNames: 93 },
   { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16 },
   { documentName: 'TRAITS.md', section: 5, expectedNames: 7 },
 ] as const;

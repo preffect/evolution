@@ -19,13 +19,17 @@ export const GAMEPLAY_TEST_GLOBS = ['src/**/*.gameplay.test.ts'];
 export const OPT_IN_TEST_GLOBS = [...INTEGRATION_TEST_GLOBS, ...GAMEPLAY_TEST_GLOBS];
 
 /**
- * The test doubles under `src/testing/` that hold no logic: the builders, the fake socket and the
- * gameplay scenario tables (docs/TESTING.md §4). The gameplay framework itself
+ * The test doubles under `src/testing/` that hold no logic: the builders (plain, bot and real-socket),
+ * the fake socket and the gameplay scenario tables (docs/TESTING.md §4). The gameplay framework itself
  * (`src/testing/gameplay/**`) is real logic and is measured like any other source.
  */
 export const TEST_DOUBLE_GLOBS = [
   'src/testing/builders.ts',
+  'src/testing/bot-builders.ts',
+  'src/testing/socket-builders.ts',
   'src/testing/fake-websocket.ts',
+  'src/testing/fake-audio-backend.ts',
+  'src/testing/fake-audio-context.ts',
   'src/testing/scenarios/**',
 ];
 

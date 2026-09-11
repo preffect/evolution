@@ -3,6 +3,7 @@
 
 import type { ValueOf } from './common.js';
 import type { BacteriumVariant, CellStage, DnaTag, TraitId } from './game.js';
+import type { SoundEventId } from './audio.js';
 import type { EXCLUSION_GROUPS } from '../constants/traits.js';
 
 /**
@@ -87,8 +88,8 @@ export interface TraitDefinitionBase {
   tiers: TraitTiers;
   /** What the renderer must show, per tier. */
   visual: string;
-  /** The sound event id; a hook only in build 1 (#101 narrows it to `SoundEventId`). */
-  audioCue: string;
+  /** The trait's cue (docs/TRAITS.md §3): a `SOUND_EVENT` id the renderer raises as a `trait_cue` game event. */
+  audioCue: SoundEventId;
 }
 
 /** A catalog row as written: ids are plain strings until the catalog derives `TraitId`. */

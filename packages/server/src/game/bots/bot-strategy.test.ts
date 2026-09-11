@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, playerId } from '@evolution/shared';
-import { createScriptedStrategy, strategyScript } from './bots.js';
-import type { ScriptContext } from './scripts.js';
+import { createScriptedStrategy, idle, strategyScript, type ScriptContext } from './bot-strategy.js';
 
 const SEED = 42;
 const CONTEXT: ScriptContext<null> = {
@@ -31,5 +30,6 @@ describe('bot strategies', () => {
 
   it('lets a strategy decline to act', () => {
     expect(strategyScript(createScriptedStrategy('idle', () => null)())(CONTEXT)).toBeNull();
+    expect(idle(CONTEXT)).toBeNull();
   });
 });

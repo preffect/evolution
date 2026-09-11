@@ -17,6 +17,7 @@ DNA is the experience currency. Every player carries:
 | `level`                  | 1 .. `MAX_LEVEL`                   | Current level. Kept on death.                                                        |
 | `dnaTagPoints`           | `Record<DnaTag, number>`           | What you have eaten, by flavour. Drives draft weights (§3).                          |
 | `bacteriaEatenByVariant` | `Record<BacteriumVariant, number>` | Endosymbiosis counters (ECOLOGY §1). Kept on death. Gate the endosymbionts (§3).     |
+| `wildAbsorptions`        | number                             | Wild cells engulfed (ECOLOGY §3.3). Never scores; shown beside `absorptions`.        |
 
 `DnaTag` = `motile | photic | predatory | armored | toxic | sensory | metabolic`. Tag points are not
 spent; they only bias drafts. Sources, with the amounts owned by ECOLOGY: algae (`photic`),
@@ -119,22 +120,38 @@ level-up --> [queued] --> shown (offerId, 3 cards, timer starts) --> pick / time
 - Rerolls: `TRAIT_REROLLS_PER_ROUND` = 0 in build 1 (declared, reserved).
 - Offers survive death: a queued or shown offer stays with the player through spectate and respawn.
 
-## 5. Late-join catch-up
+## 5. Entering the dish: late join and respawn
 
-A player who joins after `LATE_JOIN_GRACE_SECONDS` of round time receives, relative to the living
-players' medians at the moment of joining:
+Every cell that enters the dish after tick 0, by joining late or by respawning, enters no lower than
+the world's current level (the stage still needs its gates, below): the world clock's average cell
+([`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock), `worldReference` at the entry tick) is the
+floor, and for a late joiner the living players' medians can raise it further. One pure function,
+`entryState(current, medians | null, reference, balance)` in
+`packages/server/src/game/session/entry.ts`, serves both callers; its two formulas, `entryMass(medianMass |
+null, reference, balance)` and `entryDnaFloor(current, medianDna | null, reference, balance)`, are shared
+(`packages/shared/src/simulation/entry-rule.ts`) so a HUD estimate can never disagree with the server:
 
-| Field           | Rule                                                                                                                          |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `dnaCumulative` | `floor(LATE_JOIN_DNA_FRACTION × median dnaCumulative)`; also recorded as `dnaCatchUpGift`.                                    |
-| `level`         | Derived from the threshold table; every level-up above 1 queues a draft, so the joiner climbs the ladder one draft at a time. |
-| mass            | `clamp(LATE_JOIN_MASS_FRACTION × median mass, CELL_STARTING_MASS, LATE_JOIN_MAX_MASS)`.                                       |
-| tag points      | none (their drafts are unbiased until they eat).                                                                              |
+| Field           | Rule                                                                                                                                                                                                                                                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dnaCumulative` | raised to `max(current, floor(ENTRY_DNA_FRACTION × median dnaCumulative), worldDna)`; the raise is added to `dnaCatchUpGift` (score-neutral, [`GAME-DESIGN.md §5.3`](./GAME-DESIGN.md#53-leaderboard-and-score)). The median term exists only for a late join after `ENTRY_GRACE_SECONDS` with another living player; a respawn uses the world floor alone. |
+| `level`         | Derived from the threshold table; every level-up above the current level queues a draft, so the cell climbs the ladder one draft at a time (a player lifted two rungs at once sees the protocell draft first, then the next).                                                                                                                               |
+| mass            | `clamp(ENTRY_MASS_FRACTION × max(median mass, worldMass), CELL_STARTING_MASS, ENTRY_MAX_MASS)`; a respawn reads `worldMass` alone. In the first minutes this is `CELL_STARTING_MASS` (0.5 × 20 = 10 → 20); from 6:20 (`worldMass` 400) it is the cap, 200.                                                                                                  |
+| tag points      | unchanged (a joiner has none, so its drafts are unbiased until it eats; a respawn keeps its own).                                                                                                                                                                                                                                                           |
 
-Before the grace period, or when no other living player exists, the joiner starts fresh. Respawn is not
-a late join: it keeps level, traits and stage and keeps only `dnaKeptOnDeathFraction` of
-`dnaTowardNextLevel` ([`GAME-DESIGN.md §5.2`](./GAME-DESIGN.md#52-spawn-death-and-respawn)). Auto-rematch
-resets everyone.
+- **Late join.** Before `ENTRY_GRACE_SECONDS`, or with no other living player, the median term is
+  absent and only the world floor applies; in the first minutes that floor is level 1, so an early
+  joiner starts fresh (P8). At 5:00 solo it is level 2 and mass 160 (GAME-DESIGN G14).
+- **Respawn.** Keeps level, traits and stage, keeps only `dnaKeptOnDeathFraction` of
+  `dnaTowardNextLevel` ([`GAME-DESIGN.md §5.2`](./GAME-DESIGN.md#52-spawn-death-and-respawn)), then
+  runs the entry rule: a player behind the world is lifted to the world's level (G13); the stage
+  still needs its gates, because the queued drafts run the candidate rule (§3): the level-1 player
+  of G13 respawns at level 3 with two drafts of protocell and prokaryote picks and stays a prokaryote
+  among endosymbiont hunters until it has eaten its ten bacteria. A player at or above the world's
+  level gets only the entry mass. Dying is never a way past the world: the floor is exactly the average,
+  and the gift never scores.
+- **Wild cells** ([`ECOLOGY.md §3.3`](./ECOLOGY.md#33-wild-cells)) do not use this rule: their ladder
+  and mass are pinned to the world every tick, so they are always exactly the floor.
+- Auto-rematch resets everyone and the world.
 
 ## 6. Constants table — `packages/shared/src/constants/progression.ts`
 
@@ -151,10 +168,10 @@ resets everyone.
 | `TRAIT_CHOICE_TIMEOUT_SECONDS`   | 10                                 | s       |
 | `TRAIT_REROLLS_PER_ROUND`        | 0 (reserved)                       | count   |
 | `LEVEL_UP_NO_DRAFT_MASS_BONUS`   | 10                                 | mass    |
-| `LATE_JOIN_GRACE_SECONDS`        | 30                                 | s       |
-| `LATE_JOIN_DNA_FRACTION`         | 0.5                                | ratio   |
-| `LATE_JOIN_MASS_FRACTION`        | 0.25                               | ratio   |
-| `LATE_JOIN_MAX_MASS`             | 200                                | mass    |
+| `ENTRY_GRACE_SECONDS`            | 30                                 | s       |
+| `ENTRY_DNA_FRACTION`             | 0.5                                | ratio   |
+| `ENTRY_MASS_FRACTION`            | 0.5                                | ratio   |
+| `ENTRY_MAX_MASS`                 | 200                                | mass    |
 | `DNA_TAGS`                       | the seven tags above               | ids     |
 
 The ladder's own constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`)
@@ -177,9 +194,9 @@ and P9 is a pure `buildDraft` call on a eukaryote fixture that needs no level at
 | P2  | seed 42, 1 player, twelve `sensory` DNA fragments placed inside the cell one per tick                                                                                                                                                                               | idle                           | 12 ticks     | after tick 11: level 1, `dnaTowardNextLevel` = 55, no offer. After tick 12: `dnaCumulative` = 60, level = 2, `dnaTowardNextLevel` = 0, one offer shown with `offerId` 1 whose cards are exactly `nucleoid`, `simple_flagellum`, `cell_wall` (the three protocell picks) in some order. |
 | P3  | P2 state (offer shown on tick 12)                                                                                                                                                                                                                                   | no `traitChoice` for 600 ticks | 600 ticks    | offer closed on tick 612 exactly (boundary rule, §4), still open after 611; `nucleoid` owned at tier I (weights 1.0 / 0.5 / 1.0: none of the three picks carries `sensory`, so the twelve tag points change nothing; tie → lowest catalog index); stage `prokaryote`.                  |
 | P4  | pure function `computeDraftWeights` over candidates `cilia`, `simple_flagellum`, `cell_wall` with `motile` tag points 30, none owned                                                                                                                                | —                              | —            | cilia = 4.0 (1.0 × min(4, 1 + 3)), simple_flagellum = 2.0 (0.5 × 4), cell_wall = 1.0.                                                                                                                                                                                                  |
-| P5  | ECOLOGY E9 with A given `dnaCumulative` = `dnaTowardNextLevel` = 40 at setup (A level 1 absorbs B on tick 30; B has no DNA, so the gain is `ENGULF_DNA_BASE` = 30)                                                                                                  | idle                           | 31 ticks     | A `dnaCumulative` = 70, level = 2, `dnaTowardNextLevel` = 10 (70 − 60), exactly one offer shown (opened on tick 30). Without the 40 banked: `dnaCumulative` = 30, level 1, no offer.                                                                                                   |
+| P5  | ECOLOGY E9 with A given `dnaCumulative` = `dnaTowardNextLevel` = 40 at setup (A level 1 absorbs B on tick 36; B has no DNA, so the gain is `ENGULF_DNA_BASE` = 30)                                                                                                  | idle                           | 37 ticks     | A `dnaCumulative` = 70, level = 2, `dnaTowardNextLevel` = 10 (70 − 60), exactly one offer shown (opened on tick 36). Without the 40 banked: `dnaCumulative` = 30, level 1, no offer.                                                                                                   |
 | P6  | seed 42, 1 player granted 140 DNA in one tick by the fixture (exactly the level 3 threshold)                                                                                                                                                                        | picks card 0 at tick 5         | 6 ticks      | level 3, `dnaTowardNextLevel` = 0; offer 1 applied at tick 5, offer 2 shown at tick 6 with its own timer; picking `offerId` 1 again at tick 7 is ignored.                                                                                                                              |
-| P7  | seed 42, 2 players with fixture-set `dnaCumulative` 120 / 120 at setup; the fixture sets mass 400 / 400 after tick 5999 and the third player joins before tick 6000 steps (decay is never disabled: set at setup the median would be `decayed(400, 6000)` = 331.12) | idle                           | join + 1     | joiner `dnaCumulative` = 60, `dnaCatchUpGift` = 60, level 2 (exactly the threshold), `dnaTowardNextLevel` = 0, one offer shown (the protocell draft), mass ≈ 99.997 (0.25 × 400, then one tick of decay; ± 0.01), score = 0.                                                           |
+| P7  | seed 42, 2 players with fixture-set `dnaCumulative` 120 / 120 at setup; the fixture sets mass 400 / 400 after tick 5999 and the third player joins before tick 6000 steps (decay is never disabled: set at setup the median would be `decayed(400, 6000)` = 331.12) | idle                           | join + 1     | joiner `dnaCumulative` = 60, `dnaCatchUpGift` = 60, level 2 (exactly the threshold), `dnaTowardNextLevel` = 0, one offer shown (the protocell draft), mass ≈ 199.994 (0.5 × 400 clamps to `ENTRY_MAX_MASS` 200, then one tick of decay; ± 0.01), score = 0.                            |
 | P8  | as P7 but the third player joins at tick 600                                                                                                                                                                                                                        | idle                           | join + 1     | joiner fresh: mass 20, `dnaCumulative` 0, level 1, no offer.                                                                                                                                                                                                                           |
 | P9  | pure function `buildDraft` for a eukaryote (fixture) owning `amoeba_pseudopods` I and `cytoskeleton` I, seeds 1..100                                                                                                                                                | —                              | —            | no other form ever appears (`body_plan`); `amoeba_pseudopods` appears only as the tier II upgrade card; `cytoskeleton` only as its tier II card.                                                                                                                                       |
 | P10 | seed 42, 1 player at level 12 with fixture DNA 1760 (fixture only: under #138 option A no player reaches level 12 in a 600 s round, GAME-DESIGN §5.1)                                                                                                               | eat 1 placed DNA fragment      | 1 tick       | `dnaCumulative` = 1765, level 12, no offer.                                                                                                                                                                                                                                            |

@@ -47,7 +47,8 @@ owned by the design doc that names it: `CellStage` and its `STAGE_ORDER` / `STAG
 by [`GAME-DESIGN.md §3`](./GAME-DESIGN.md#3-the-evolution-ladder), progress and offers by
 [`PROGRESSION.md`](./PROGRESSION.md), food by [`ECOLOGY.md §1`](./ECOLOGY.md#1-food-kinds),
 engulf states by [`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram), engulf eligibility (`canEngulf`,
-the one predicate the server, HUD and renderer share) by [`ECOLOGY.md §6.1`](./ECOLOGY.md#61-rules),
+the one predicate the server, HUD and renderer share) and the engulf phases (`engulfPhaseOf` over
+`engulfProgress`; no phase field rides on the view) by [`ECOLOGY.md §6.1`](./ECOLOGY.md#61-rules),
 the trait definition shape
 (`stage`, `requires`, `unlockedBy`, `exclusionGroup`) by [`TRAITS.md §1`](./TRAITS.md#1-definition-shape).
 
@@ -65,6 +66,8 @@ export type CellStage = (typeof CELL_STAGE)[keyof typeof CELL_STAGE]; // STAGE_O
 export type TraitId = (typeof TRAIT_CATALOG)[number]['id']; // constants/traits.ts: the rows are checked as `TraitCatalogRow` (string ids) so the derivation is not circular
 export type TraitTier = 1 | 2 | 3;
 export type PlayerLifeState = 'alive' | 'spectating';
+export type CellKind = 'player' | 'wild'; // CELL_KIND: a wild cell is the world clock made flesh (ECOLOGY §3.3)
+export type WorldStanding = 'ahead' | 'with' | 'behind'; // WORLD_STANDING: standingAgainstWorld (ECOLOGY §3.1)
 
 export interface OwnedTrait {
   traitId: TraitId;
@@ -72,8 +75,9 @@ export interface OwnedTrait {
 }
 export interface CellView {
   id: EntityId;
-  playerId: PlayerId;
-  organismId: EntityId; // == id in build 1 (reserved grouping key, GAME-DESIGN §11)
+  kind: CellKind;
+  playerId: PlayerId | null; // null for a wild cell
+  organismId: EntityId; // == id for a player cell in build 1 (reserved grouping key, GAME-DESIGN §11); WORLD_ORGANISM_ID for every wild cell
   avatarIndex: number;
   x: number;
   y: number;
@@ -133,11 +137,12 @@ export interface PlayerProgressView {
   dnaTowardNextLevel: number;
   dnaTagPoints: Record<DnaTag, number>;
   bacteriaEatenByVariant: Record<BacteriumVariant, number>; // endosymbiosis counters, kept on death
-  absorptions: number;
+  absorptions: number; // players absorbed: the only ones that score (GAME-DESIGN §5.3)
+  wildAbsorptions: number; // wild cells absorbed; never scores (ECOLOGY §3.3)
   score: number;
   offer: TraitOfferView | null;
   lifeState: PlayerLifeState; // the only home of death / respawn
-  spectatingPlayerId: PlayerId | null;
+  spectatingCellId: EntityId | null; // the killer's cell (a wild killer has no player, GAME-DESIGN §5.2); null once it is gone
   respawnInTicks: number;
 }
 export interface LeaderboardRow {
@@ -151,12 +156,13 @@ export interface LeaderboardRow {
 ```
 
 Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_END_CONDITION`, `ROUND_PHASE`, `FOOD_KIND`,
-`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `ENTITY_KIND`) with the
+`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `CELL_KIND`, `WORLD_STANDING`, `ENTITY_KIND`) with the
 union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.ts`), `TRAIT_CATEGORY` and
 `TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
 The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
 world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId }`, `eat { cellId, eatenId,
-eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`.
+eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; `world_level_up { level, stage }`
+(ECOLOGY §3.1) happens everywhere and is the one effect without a position.
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
@@ -168,6 +174,9 @@ export interface CellRecord extends CellView {
   targetX: number; // latest applied input, latched until replaced
   targetY: number;
   modifiers: CellModifiers; // folded at step 1 of the tick (TRAITS §2); the simulation reads only this
+  carriedOffsetX: number | null; // set at the seal (ECOLOGY §6.1): the prey rides at this offset from its predator's centre until payout or release
+  carriedOffsetY: number | null;
+  spitOutRefractoryUntilTickByPreyId: Map<EntityId, number>; // ECOLOGY §6.1: one entry per spat-out prey (no restart on it until that tick; separation applies to the pair meanwhile); expired entries pruned at step 1
 }
 export interface PlayerRecord extends PlayerProgressView {
   avatarIndex: number;
@@ -201,10 +210,16 @@ export interface DnaFragmentRecord extends DnaFragmentView {
   `unlockedBy` counter (`bacteriaEatenByVariant`) exactly as [`PROGRESSION.md §3`](./PROGRESSION.md#3-draft-pool-and-weights)
   states, then reserves the rung card. Trait effects are data (`TRAIT_TIERS`) folded by
   `progression/modifiers.ts` into one `CellModifiers` record; no system ever switches on a trait id.
-- **Death lives on the player.** `PlayerProgressView.lifeState`, `spectatingPlayerId` and
+- **Death lives on the player.** `PlayerProgressView.lifeState`, `spectatingCellId` and
   `respawnInTicks` are the only death/respawn state; an absorbed cell is removed from
   `world.cells` the tick it is absorbed and emitted as a `cell_absorbed` effect (ECOLOGY §6.2).
   A spectating player has no cell record.
+- **Wild cells are cells, not players** (ECOLOGY §3.3): ordinary `CellRecord`s in `world.cells` with
+  `kind: 'wild'`, `playerId: null` and `organismId: WORLD_ORGANISM_ID`, owned by a `WildSeatRecord`
+  (`seatNumber`, `cellId | null`, `massSpreadFactor`, `respawnInTicks`, `headingX`, `headingY`,
+  `decideInTicks`, `drainedMass`) in `world.wildSeats`. The world clock is never sent: the snapshot
+  carries `roundStartTick` and both sides compute `worldReference(worldElapsedSeconds(tick, roundStartTick,
+roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
 - **Score** is computed, never stored twice: `session/leaderboard.ts` implements
   `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions` with ties by
   mass then `joinOrder` (GAME-DESIGN §5.3) and writes `PlayerProgressView.score` and the
@@ -223,6 +238,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 export interface WorldState {
   tick: number;
   seed: number; // the current round's seed (rematch increments it)
+  roundStartTick: number; // 0 at creation, the current tick at a rematch (ECOLOGY §3.1); carried on the snapshot
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   config: GameSessionConfig;
@@ -232,6 +248,7 @@ export interface WorldState {
   food: FoodMoteRecord[];
   dnaFragments: DnaFragmentRecord[];
   players: PlayerRecord[]; // join order
+  wildSeats: WildSeatRecord[]; // seat order (ECOLOGY §3.3)
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ECOLOGY §3)
   random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (DETERMINISM §3, §5)
@@ -303,9 +320,17 @@ prediction reuses them unchanged.
   `constants/`; formulas take numbers. That is what makes `debug_set_balance` live.
 - **Spatial hash** (`world/spatial-hash.ts`): uniform grid rebuilt at step 3, cell size
   `SPATIAL_HASH_CELL_SIZE_WU`; `queryCircle` and `queryPairs` return id-sorted results.
-- **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. The one thing
-  it shares is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`,
-  ECOLOGY §6.1): the engulf system, the HUD danger chip and the warning ring all call it on views.
+- **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. What it shares
+  is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`, ECOLOGY §6.1: the
+  engulf system, the HUD threat label (`threatsFor`) and the warning ring all call it on views, and its
+  signature is mass-only) and the phase formulas of `shared/simulation/engulf-pace.ts` (`engulfPhaseOf` for the chip's
+  sealed state, `engulfProgressDelta`, the held and predator speed factors, `spitOutChancePerTick`); the
+  hold verdict `resolveEngulfHold` (ratio and spit-out) is called by the server alone. The engulf step is
+  the only consumer of the `engulf` random stream and draws from it only for a wrapped or sealed prey
+  with a positive `spitOutChancePerSecond` (DETERMINISM §3). The prey's struggle reads the movement
+  kernel's `steerCommand(cell)` so the throttle arithmetic has one home. Every release emits
+  `cell_released { cellId, predatorCellId, reason }` (`types/effects.ts`, reasons in ECOLOGY §6.1) beside
+  `cell_absorbed`; a sealed prey is carried (`CellRecord.carriedOffsetX/Y`) after its predator has moved.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
@@ -371,32 +396,40 @@ export interface FoodDelta {
 
 ### 4.1 Bandwidth budget
 
-Populations at 8 players from ECOLOGY §3: `FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400
-motes, of which the bacterium share (`FOOD_KIND_WEIGHTS` 0.25) ≈ 350 move every tick; 110
-fragments, all drifting; 8 cells. Sizes are JSON with positions quantised to
-`SNAPSHOT_POSITION_DECIMALS` = 1.
+Worst case, at cap with 8 players in the eukaryote era (ECOLOGY §3, §3.2, §3.3):
+`FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400 motes, of which the bacterium share
+(`FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`: 0.25 in the protocell era, 0.5 from the eukaryote era) is up to
+700 moving every tick; 110 fragments, all drifting; 8 player cells plus `WILD_CELL_COUNT` = 24 wild
+cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON with positions
+quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 
-| Snapshot part (20 Hz)                                         | Count × bytes | Per snapshot |
-| ------------------------------------------------------------- | ------------- | ------------ |
-| `food.moved` (bacteria `{ id, x, y }`)                        | 350 × ~30     | ~10.5 KB     |
-| `dnaFragments` (full)                                         | 110 × ~50     | ~5.5 KB      |
-| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | 8 × ~300      | ~2.4 KB      |
-| `players` + `leaderboard`                                     | 8 × ~350 + 80 | ~3.4 KB      |
-| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz  | ~0.5 KB      |
-| **total**                                                     |               | **≈ 22 KB**  |
+| Snapshot part (20 Hz)                                         | Count × bytes   | Per snapshot |
+| ------------------------------------------------------------- | --------------- | ------------ |
+| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30       | ~21 KB       |
+| `dnaFragments` (full)                                         | 110 × ~50       | ~5.5 KB      |
+| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300 | ~9.6 KB      |
+| `players` + `leaderboard`                                     | 8 × ~350 + 80   | ~3.4 KB      |
+| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz    | ~0.5 KB      |
+| **total, uncut**                                              |                 | **≈ 40 KB**  |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 20 KB**  |
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
-`perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN.
-Sending static motes in full would add ~50 KB per snapshot, which is why the delta is mandatory;
-sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, which is why
-`moved` is a position list. `PerformanceTracker.snapshotBytes` is the measurement; #103 records it.
+`perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
+evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
+**§4.2 lever 1 is no longer held: it is required before the wild-cell simulation slice ships (#171)**.
+With it the same snapshot is ≈ 20 KB (≈ 400 KB/s), inside budget; culling wild cells outside the
+viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
+and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
+why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
+~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
+measurement that confirms the estimate; #103 records it.
 
-### 4.2 Held levers (in order)
+### 4.2 Levers (in order)
 
-1. **Viewport culling of `moved` and `dnaFragments`:** `serializeRoomState(viewerPlayerId)`
-   with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots. Cuts the two big rows
-   by ~75 % at the widest zoom.
-2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4); interpolation absorbs it unchanged.
+1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1):
+   `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`,
+   per-player snapshots. Cuts the two big rows by ~75 % at the widest zoom.
+2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4; held); interpolation absorbs it unchanged.
 
 ## 5. Client networking policy (`packages/client/src/app/game/net/`)
 
@@ -441,8 +474,17 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
 - **View registry**: entity id → view, created/destroyed on snapshot diff; views are dumb.
 - **HUD** reads `WorldStore` through `GameStateService` signals (derived only; the writable UI
   signals live in `hud/hud-state.service.ts`); the renderer never touches the DOM, the HUD never
-  touches Pixi. The three crossings (`previewTraitId`, `reticleVisible` in; `cameraExtent` out)
-  are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7).
+  touches Pixi. The four crossings (`previewTraitId`, `reticleVisible`, `ownCellIndicators` in;
+  `cameraExtent` out) are wired in `game-setup.ts` so `render/` never imports from `hud/` (UI.md §7);
+  the own cell's progress indicators are drawn by the renderer from that record (UI.md §3.1, RENDERING §10).
+- **Game events** (`state/game-event-bus.ts`, `GameEventBus`, #101): the one client seam for _moments_, as
+  opposed to the state the signals carry. `state/snapshot-transitions.ts` turns each snapshot into them: every
+  server `GameEffect` (tagged `isOwn` / `isOwnPredator`), the own cell's `stage_changed` and `organelle_gained`,
+  `danger_changed` through the shared `canEngulf`, `engulf_progress` / `engulf_ended`, `round_phase_changed` and
+  `bloom_started`. The renderer raises the moments only it knows (`zone_changed` from the dish geometry,
+  `trait_cue` at a trait's keyframe, TRAITS §3) and the HUD raises `trait_picked` and `ui_click`. Subscribers
+  (the sound bus today; the toast and onboarding services, the effects layer) never see each other, and
+  `game-setup.ts` is the only place that feeds the tracker and connects the subscribers (`AUDIO.md` §5).
 - **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
   paused screenshot reproduces.
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
@@ -451,11 +493,19 @@ sending bacteria as full `FoodMoteView`s instead of positions would add ~18 KB, 
 
 ## 7. Audio hook seam (#101)
 
-`packages/shared/src/audio/sound-events.ts` declares the `SOUND_EVENT` catalogue (id, priority,
-cooldown); the ids are the `audioCue` values of TRAITS §3. The client `SoundEventBus` maps
-snapshot effects (server-owned moments) and UI events (local) to sound events; `AudioService`
-resolves each through `assets/audio/manifest.json` and plays via Web Audio, **silent when the
-asset is missing, never throwing**. Nothing but the bus imports `AudioService`.
+The design and the tables are [`AUDIO.md`](./AUDIO.md) (decision #140, option B). The ids are
+`SOUND_EVENT` in `types/audio.ts` (the trait cues are the `audioCue` values of TRAITS §3, typed as
+`SoundEventId`); the rules (priority, cooldown, loop, bus) and the layering numbers are
+`constants/audio.ts`, cosmetic data like `motion.ts`; `audio/sound-events.ts` holds the lookups and
+`audio/audio-manifest.ts` the manifest shape and its one validator. On the client, `SoundEventBus`
+(`audio/sound-event-bus.ts`) subscribes to the `GameEventBus` of section 6 and is the one place that
+knows which moment plays which cue; `AudioService` resolves each through `assets/audio/manifest.json`
+and plays via Web Audio behind the `AudioBackend` seam (`audio-backend.ts`; `web-audio-backend.ts` is
+the only file that knows `AudioContext`), with `CueScheduler` (cooldown, overlap by priority),
+`AmbientMixer` (stem per stage, zone overlay, duck) and `AudioBuses` (`master` → `music`, `sfx`; the
+persisted mute). **Silent when the manifest or an asset is missing, never throwing.** Nothing but the
+sound bus plays through `AudioService`; the HUD's mute toggle is its only other caller. Time is the
+injected `CLOCK` (`clock-provider.ts`) and the audio clock, never a JS timer.
 
 ## 8. Debug MCP surface (#14)
 
@@ -465,7 +515,7 @@ and the handlers in `mcp/handlers/` reach it through the one shared lookup
 (`handlers/capability-tool.ts`), only translating arguments and serialising results. Every
 member of the handle is an optional **capability**: a tool whose capability the module does not
 implement answers `isError` "not supported by this game module" instead of stubbing behaviour
-(the echo module implements none; the Evolution module implements all). The optionality is
+(the echo module implements only the bot pair; the Evolution module implements all). The optionality is
 for the template only: the Evolution handle is declared `implements Required<SimulationDebugHandle>`
 so `tsc` checks completeness (a forgotten member is a type error, never a runtime "not
 supported"), and the Evolution module never wires `DebugContext.getRoomGameState`; there is one
@@ -476,19 +526,21 @@ refused request
 of the tool names (the `_room` suffix marks the tools that act on the room loop rather than the
 world; they need no capability):
 
-| Tool                                                                                        | Handle method                                                                    |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `debug_get_game_state(gameId)`                                                              | `GameRoom.getFullState()`: the module's `serializeFullState()`, no handle member |
-| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer               |
-| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                                           |
-| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                                             |
-| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                                             |
-| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                                            |
-| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                            |
-| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)                       |
-| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                       |
-| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                             |
-| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                     |
+| Tool                                                                                        | Handle method                                                                       |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `debug_get_game_state(gameId)`                                                              | `GameRoom.getFullState()`: the module's `serializeFullState()`, no handle member    |
+| `debug_get_player_progress(gameId, playerId)`                                               | `getPlayerDebugState(playerId)`: progress, modifiers, stage, offer                  |
+| `debug_get_entities(gameId, kind?, bbox?)`                                                  | `listEntities(filter)`                                                              |
+| `debug_grant_dna(gameId, playerId, dna, tags?)`                                             | `grantDna(playerId, grant)` (logged)                                                |
+| `debug_spawn(gameId, kind, x, y, params)`                                                   | `spawn(request)` through the spawner                                                |
+| `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`                     | `setPlayer(playerId, patch)` (logged)                                               |
+| `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                               |
+| `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`DETERMINISM.md §3`)                          |
+| `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                          |
+| `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                                |
+| `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                        |
+| `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`TESTING.md §8.4`) |
+| `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                    |
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
@@ -506,12 +558,34 @@ still end with a broadcast regardless of cadence, or a `debug_step_room(1)` scre
 stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
 report even for a module without a world tick.
 
+**Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
+perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);
+only the wire client lives in `testing/bot-client/`. `behavior` is validated once, by the tool's
+`z.enum(BOT_STRATEGY_NAMES)` schema, so the handle and the roster only ever see a `BotStrategyName`.
+`spawnBot(request, seat)` builds a `BotPilot` on that strategy from `createInProcessBotRoster(binding)`
+(`game/bots/in-process-bots.ts`), mints its `SpawnedBot` identity (`sim_bot_<seed>_<index>`,
+`Bot <index>`, an avatar: a prefix of its own, so it can never take a wire bot's `bot_<seed>_<index>`
+seat even from the same seed), then calls `seat(bot)` BEFORE adding the player to the module. The
+tool passes `GameRoom.addSyntheticPlayer` as `seat`: it refuses an id already in the roster or on a
+socket with `DebugRequestError` (the module then holds nothing), else enrols the bot and broadcasts
+`player_joined` like a late join, with no connection; `config.maxPlayers` is deliberately not
+applied to a debug spawn. `removeBot` mirrors it: the module forgets the player,
+`GameRoom.removeSyntheticPlayer` (which refuses a player with a live socket) drops it from the
+roster and broadcasts `player_disconnected`. The module drives its roster at the top of
+`reduceGameState` (`bots.driveTick(snapshot, tick, submitInput)`, before step 1 applies pending
+input), so a bot's input for tick `t` is decided from the snapshot of `t − 1` and stamped
+`sequence = t`, exactly as a wire client's would be. The echo module wires the roster over the
+echo binding; the Evolution module (#152/#98) wires it over the Evolution binding and never spawns a
+bot any other way. Wild cells (#156) are not synthetic players and never go through the roster:
+they are world entities the simulation drives with the same strategies through an entity-id
+`ownCellOf`.
+
 ## 9. Constants and balance (decision, one home)
 
 `packages/shared/src/constants/<domain>.ts` is the **source of truth** for every tunable, named
 exactly as the design tables name it (`GAME-DESIGN.md §12`, `ECOLOGY.md §7`, `PROGRESSION.md §6`,
 `TRAITS.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
-`DEFAULT_BALANCE = { world, session, controls, ladder, ecology, growth, absorption, progression, traits }`
+`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, absorption, progression, traits }`
 (the domain modules spread into plain records) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
 patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
@@ -531,47 +605,64 @@ runtime. The full rule set is `CODE-STANDARDS.md §2`.
 ```text
 packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
-  constants/{world,session,controls,ladder,camera,ecology,growth,absorption,progression,traits}.ts
+  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
-  types/{common,messages,game,traits,effects}.ts                traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY
+  constants/audio.ts                                            SOUND_EVENT_CATALOG and the layering numbers (AUDIO.md §2, §3); cosmetic, not in balance.json
+  types/{common,messages,game,traits,effects,audio}.ts          traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY; audio: SOUND_EVENT, AUDIO_BUS, SoundEventRule
   testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot (+ createTestCell, createTestWorld with #98)
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,state-hasher,state-hash,vector-math}.ts
-                                                                level-costs: levelUpCost(level, balance.progression), shared with the HUD (UI.md §3.1)
+  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ECOLOGY §6.1)
+  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ECOLOGY §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ECOLOGY §3.2)
+                                                                level-costs: levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (UI.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
-  audio/sound-events.ts
+                                                                vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
+  audio/{sound-events,audio-manifest}.ts                        catalogue lookups and layering; the manifest shape + parseAudioManifest (AUDIO.md §4)
 packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,spatial-hash}.ts
   game/simulation/{step,movement,contact,eating,metabolism,engulf,spawner,zones,spawn-placement,round}.ts
-  game/progression/{levels,ladder,draft,modifiers,late-join}.ts levels applies level-ups; the cost formula is shared simulation/level-costs.ts
-  game/session/{leaderboard,respawn}.ts
+  game/progression/{levels,ladder,draft,modifiers}.ts           levels applies level-ups; the cost formula is shared simulation/level-costs.ts
+  game/session/{leaderboard,respawn,entry}.ts                   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,food-delta-tracker}.ts
   game/replay/{replay-recorder,replay-runner}.ts
   game/debug/simulation-debug-handle.ts
-  mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)
-  testing/builders.ts   testing/gameplay/*.ts (the scenario runner, #75)   testing/scenarios/<table>.gameplay.test.ts (#102)
+  game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
+  game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toEchoInput), the roster a module drives
+  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (TESTING.md §8.4); #156 adds flee
+  mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
+  testing/builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
+  testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)
+  testing/bot-client/{bot-session,bot-swarm,bot-timing,bot-transport,web-socket-transport,cli,cli-arguments,errors}.ts   the headless wire client (#15): one bot's protocol, N bots, its clock + ticker, the transport seam, the `ws` transport, the CLI and its parser, BotClientError
+  testing/scenarios/<table>.gameplay.test.ts (#102)
 packages/client/src/app/game/
   game-setup.ts
   net/{snapshot-buffer,interpolation,prediction,reconciliation,world-store,input-sender}.ts   interpolation owns renderTick (section 5)
   input/{input-controller,pointer-input,keyboard-input}.ts
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: RENDERING.md §8)
-  state/game-state.service.ts   audio/{audio.service,sound-event-bus}.ts
+  clock-provider.ts                                             the injected Clock token (DETERMINISM §2)
+  state/{game-state.service,game-event-bus,snapshot-transitions}.ts   the signal facade; the moment seam of section 6 and its snapshot detector
+  state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor, ladderFor (UI.md §3.1.4)
+  audio/audio-hooks.ts                                          AudioHooks.connect(options): the composition root's one audio call (AUDIO.md §5)
+  audio/{audio.service,sound-event-bus,cue-scheduler,ambient-mixer,audio-buses,audio-asset-cache}.ts
+  audio/{audio-backend,web-audio-backend,audio-tokens}.ts       the Web Audio seam, its production impl, the injection tokens (AUDIO.md §5)
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: UI.md §7)
+  ../testing/{builders,fake-websocket,fake-audio-backend,fake-audio-context}.ts   client test doubles (TESTING.md §4)
+assets/audio/manifest.json                                      event → files, mood, length, prompt hint (AUDIO.md §4); the files are gitignored
 data/balance.json                                               generated (section 9): `pnpm generate:balance`
 scripts/generate-balance.ts
 ```
 
 Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts`
 reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imports the value
-`ENDOSYMBIOSIS_BACTERIA_REQUIRED` from `ladder.ts`, so there is no runtime cycle.
+`ENDOSYMBIOSIS_BACTERIA_REQUIRED` from `ladder.ts`, so there is no runtime cycle. On the server,
+`game/bots` ← `game/*` and `testing/*`, never the reverse: no production file imports `src/testing/`.
 
 ## 11. Test plan (`ENGINEERING.md §2`, `DETERMINISM.md §7`)
 

@@ -1,0 +1,141 @@
+import { describe, expect, it } from 'vitest';
+import {
+  CLIENT_MESSAGE_TYPE,
+  SERVER_MESSAGE_TYPE,
+  TICK_INTERVAL_MS,
+  createTestSessionConfig,
+  createTestSnapshot,
+  gameId as brandGameId,
+  playerId,
+} from '@evolution/shared';
+import type { ClientMessage } from '@evolution/shared';
+import { echoBotBinding } from '../../game/bots/bot-binding.js';
+import { captureManualTimings, createFakeBotTransport, type FakeBotTransport } from '../bot-builders.js';
+import { createBotSwarm, socketUrlFor, type BotSwarmOptions } from './bot-swarm.js';
+import { BotClientError } from './errors.js';
+
+const URL_UNDER_TEST = 'ws://127.0.0.1:4400/ws';
+const GAME_ID = 'game_1';
+
+/** A fake server that seats every bot on `join_game`, or refuses the named one. */
+function seatingServer(refusedPlayerId?: string) {
+  const opened: { url: string; transport: FakeBotTransport }[] = [];
+  const connect = async (url: string) => {
+    const transport = createFakeBotTransport({
+      onSend: (message: ClientMessage, self) => {
+        if (message.type !== CLIENT_MESSAGE_TYPE.joinGame) return;
+        if (refusedPlayerId !== undefined && url.includes(refusedPlayerId)) {
+          self.receive({ type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
+          return;
+        }
+        self.receive({
+          type: SERVER_MESSAGE_TYPE.gameState,
+          gameId: brandGameId(GAME_ID),
+          playerId: playerId('unused'),
+          snapshot: createTestSnapshot(),
+          balance: {} as never,
+          config: createTestSessionConfig(),
+          playerIds: [],
+          avatarAssignments: {},
+        });
+      },
+    });
+    opened.push({ url, transport });
+    return transport;
+  };
+  return { opened, connect };
+}
+
+function swarmOptions(overrides: Partial<BotSwarmOptions> = {}) {
+  const server = seatingServer();
+  const timings = captureManualTimings();
+  const options: BotSwarmOptions = {
+    url: URL_UNDER_TEST,
+    gameId: GAME_ID,
+    botCount: 2,
+    strategy: 'wander',
+    seed: 42,
+    binding: echoBotBinding,
+    createTiming: timings.createTiming,
+    connect: server.connect,
+    ...overrides,
+  };
+  return { options, server, timings };
+}
+
+describe('socketUrlFor', () => {
+  it('keeps the endpoint and carries the identity as the clientId query', () => {
+    expect(socketUrlFor(URL_UNDER_TEST, playerId('bot_42_0'))).toBe(`${URL_UNDER_TEST}?clientId=bot_42_0`);
+  });
+});
+
+describe('bot swarm', () => {
+  it('refuses a bot count that is not a positive whole number before connecting anything', () => {
+    for (const botCount of [0, -1, 1.5]) {
+      expect(() => createBotSwarm(swarmOptions({ botCount }).options)).toThrow(BotClientError);
+    }
+  });
+
+  it('connects every bot under its own identity, seats them all, then starts every tick', async () => {
+    const { options, server, timings } = swarmOptions();
+    const swarm = createBotSwarm(options);
+    expect(swarm.bots()).toEqual([]);
+    await swarm.start();
+    expect(server.opened.map((entry) => entry.url)).toEqual([
+      `${URL_UNDER_TEST}?clientId=bot_42_0`,
+      `${URL_UNDER_TEST}?clientId=bot_42_1`,
+    ]);
+    expect(swarm.bots().map((bot) => bot.playerId)).toEqual(['bot_42_0', 'bot_42_1']);
+    expect(timings.timings.map((timing) => timing.ticker.isStarted())).toEqual([true, true]);
+    expect(swarm.stats().map((stats) => stats.playerName)).toEqual(['Bot 0', 'Bot 1']);
+  });
+
+  it('drives each bot from its own timing and reports when all have reached a tick', async () => {
+    const { options, server, timings } = swarmOptions();
+    const swarm = createBotSwarm(options);
+    await swarm.start();
+    const reached = swarm.whenAllReachedTick(2);
+    for (const timing of timings.timings) {
+      timing.clock.advanceMilliseconds(TICK_INTERVAL_MS * 2);
+      timing.ticker.fire();
+    }
+    await expect(reached).resolves.toBeUndefined();
+    expect(swarm.stats().map((stats) => stats.isConnected)).toEqual([true, true]);
+    const inputsOf = (index: number) =>
+      server.opened[index]!.transport.sent.filter((message) => message.type === CLIENT_MESSAGE_TYPE.playerInput);
+    expect(inputsOf(0)).toHaveLength(2);
+    expect(inputsOf(1)).toHaveLength(2);
+    expect(inputsOf(0)[0]).not.toEqual(inputsOf(1)[0]);
+  });
+
+  it('closes every transport that did connect when another connect fails, and never starts a tick', async () => {
+    const { options, timings } = swarmOptions();
+    const server = seatingServer();
+    const refused = new BotClientError('could not connect: ECONNREFUSED');
+    const connect = (url: string) => (url.includes('bot_42_1') ? Promise.reject(refused) : server.connect(url));
+    const swarm = createBotSwarm({ ...options, connect });
+    await expect(swarm.start()).rejects.toBe(refused);
+    expect(server.opened.map((entry) => entry.url)).toEqual([`${URL_UNDER_TEST}?clientId=bot_42_0`]);
+    expect(server.opened.map((entry) => entry.transport.isClosed())).toEqual([true]);
+    expect(timings.timings.map((timing) => timing.ticker.isStarted())).toEqual([false]);
+    expect(swarm.bots()).toEqual([]);
+  });
+
+  it('stops every bot when one of them cannot be seated', async () => {
+    const { options, timings } = swarmOptions();
+    const server = seatingServer('bot_42_1');
+    const swarm = createBotSwarm({ ...options, connect: server.connect });
+    await expect(swarm.start()).rejects.toThrow(/bot_42_1 could not join: Game is full/);
+    expect(server.opened.map((entry) => entry.transport.isClosed())).toEqual([true, true]);
+    expect(timings.timings.map((timing) => timing.ticker.isStarted())).toEqual([false, false]);
+  });
+
+  it('stop() closes every transport and halts every tick', async () => {
+    const { options, server, timings } = swarmOptions();
+    const swarm = createBotSwarm(options);
+    await swarm.start();
+    swarm.stop();
+    expect(server.opened.map((entry) => entry.transport.isClosed())).toEqual([true, true]);
+    expect(timings.timings.map((timing) => timing.ticker.isStarted())).toEqual([false, false]);
+  });
+});

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { nanoid } from 'nanoid';
+import { CLIENT_ID_QUERY_PARAMETER } from '@evolution/shared';
 import type { Connection } from './connection.js';
 import { createMessageRouter, type MessageHandlers } from './message-router.js';
 
@@ -14,7 +15,6 @@ export interface WebSocketContext {
   onDisconnect?: (connection: Connection) => void;
 }
 
-const CLIENT_ID_QUERY_PARAMETER = 'clientId';
 /** Only used to give `new URL` a base so the request path parses; the host is never read. */
 const URL_PARSE_BASE = 'http://localhost';
 

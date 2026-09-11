@@ -30,6 +30,8 @@ const GAME_SPECIFIC_TOOLS = [
   'debug_set_balance',
   'debug_get_state_hash',
   'debug_export_replay',
+  'debug_spawn_bot',
+  'debug_remove_bot',
 ];
 
 /** Streamable HTTP answers as an SSE stream; the first `data:` line carries the JSON-RPC result. */
