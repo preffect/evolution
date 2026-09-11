@@ -14,8 +14,10 @@ export const STAGE_SCRATCH = '#2a3d58';
 export const WALL_GLASS = '#182c46';
 export const WALL_GLASS_INNER = '#2a4a70';
 export const WALL_GLASS_OUTER = '#4a6a90';
-export const WALL_FAR = '#1f3552';
-export const VIGNETTE = '#000000';
+/** The one black: the vignette, the wall's inner shadow, the chromatin wash. */
+export const BLACK = '#000000';
+export const VIGNETTE = BLACK;
+export const WALL_INNER_SHADOW = BLACK;
 
 // ---- zones (sheet 02) ----
 export const ZONE_SHALLOWS = '#8dffb0';
@@ -25,6 +27,11 @@ export const VENT_PLUME = '#ffb15a';
 export const VENT_CRUST = '#12080a';
 export const VENT_CRUST_RIM = '#7a3d12';
 export const VENT_SEAM_HOT = '#ffd39a';
+/** The vent bubbles (sheet 02 `bubble`): rim, inner ring and the fill's rim tone. */
+export const BUBBLE_RIM = '#dff4ff';
+export const BUBBLE_INNER_RING = LIGHT_ACCENT;
+export const BUBBLE_FILL_RIM = '#a6f4ff';
+export const BUBBLE_FILL_MID = '#3d7fc4';
 
 // ---- food (sheet 02, VISUAL-STYLE §2) ----
 export const FOOD_MOTE = '#8dff6a';
@@ -57,7 +64,7 @@ export const MAGNET_LIGHT = '#9fb0c4';
 export const MAGNET_BASE = '#4a5866';
 export const MAGNET_DARK = '#141a22';
 /** The chromatin spots: a black wash over the baked nucleus body. */
-export const CHROMATIN_WASH = '#000000';
+export const CHROMATIN_WASH = BLACK;
 export const NUCLEOID_STRAND = '#e4faff';
 export const NUCLEOID_GLOW = '#7fe7f5';
 export const RIBOSOME = '#a6f4ff';

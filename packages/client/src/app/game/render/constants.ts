@@ -4,4 +4,5 @@
 export * from './constants/colours';
 export * from './constants/cell-shape';
 export * from './constants/organelles';
+export * from './constants/vent';
 export * from './constants/world-render';

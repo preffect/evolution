@@ -2,8 +2,9 @@
 // organelle kind, each with its own soft halo, body ramp, detail and glint, at
 // `ORGANELLE_ATLAS_PX_PER_R` px per cell radius times the device pixel ratio (capped), so the own
 // cell never upsamples. Sizes are fractions of `r`; the sprite is `widthRadii × r` wide when drawn.
+// The nucleus and nucleoid bakes scatter from the cosmetic `organelles` sub-stream.
 
-import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { COSMETIC_SUB_STREAM, RADIANS_PER_FULL_TURN, type RandomSource } from '@evolution/shared';
 import {
   CHLOROPLAST,
   CHLORO_BASE,
@@ -184,16 +185,21 @@ function bakeDroplet(factory: BakeCanvasFactory, pxPerRadius: number, style: Dro
   return finishSprite(droplet, pxPerRadius);
 }
 
-export function bakeOrganelleAtlas(factory: BakeCanvasFactory, devicePixelRatio: number): OrganelleAtlasBakes {
+export function bakeOrganelleAtlas(
+  factory: BakeCanvasFactory,
+  devicePixelRatio: number,
+  cosmetic: RandomSource,
+): OrganelleAtlasBakes {
   const pxPerRadius = atlasPxPerRadius(devicePixelRatio);
+  const random = cosmetic.fork(COSMETIC_SUB_STREAM.organelles);
   return {
-    [ORGANELLE_KIND.nucleus]: bakeNucleusSprite(factory, pxPerRadius),
-    [ORGANELLE_KIND.nucleoid]: bakeNucleoidSprite(factory, pxPerRadius),
+    [ORGANELLE_KIND.nucleus]: bakeNucleusSprite(factory, pxPerRadius, random),
+    [ORGANELLE_KIND.nucleoid]: bakeNucleoidSprite(factory, pxPerRadius, random),
     [ORGANELLE_KIND.mitochondrion]: bakeMitochondrion(factory, pxPerRadius),
     [ORGANELLE_KIND.chloroplast]: bakeChloroplast(factory, pxPerRadius),
     [ORGANELLE_KIND.foodVacuole]: bakeBubble(factory, pxPerRadius, {
       bodyRadii: FOOD_VACUOLE.radius,
-      base: MITO_BASE,
+      base: VAC_BASE,
       rim: VAC_RIM,
       glow: VAC_BASE,
     }),

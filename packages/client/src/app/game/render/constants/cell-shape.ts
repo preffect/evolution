@@ -157,7 +157,8 @@ export const GLINT_ROTATION_DEG = -40;
 export const GLINT_EDGE_PX = 1.5;
 export const GLINT_ALPHA = 0.5;
 export const PREY_UNDER_FILM_ALPHA = 0.62;
-export const NUCLEUS_HIGHLIGHT_OFFSET_RADII = 0.34;
+/** The nucleus highlight's centre, in cell radii toward the light: inside the `NUCLEUS_RADIUS` 0.30 body. */
+export const NUCLEUS_HIGHLIGHT_OFFSET_RADII = 0.16;
 export const NUCLEUS_HIGHLIGHT_ANGLE_DEG = -136;
 
 // ---- player tells (VISUAL-STYLE §2, §5) ----

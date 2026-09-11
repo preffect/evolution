@@ -23,11 +23,13 @@ export interface BakeContext2D {
   restore(): void;
   translate(x: number, y: number): void;
   scale(x: number, y: number): void;
+  rotate(radians: number): void;
   beginPath(): void;
   closePath(): void;
   moveTo(x: number, y: number): void;
   lineTo(x: number, y: number): void;
   quadraticCurveTo(controlX: number, controlY: number, x: number, y: number): void;
+  bezierCurveTo(control1X: number, control1Y: number, control2X: number, control2Y: number, x: number, y: number): void;
   arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, anticlockwise?: boolean): void;
   ellipse(x: number, y: number, radiusX: number, radiusY: number, rotation: number, start: number, end: number): void;
   rect(x: number, y: number, width: number, height: number): void;

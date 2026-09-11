@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/fake-bake-canvas';
-import { GLOW_TEXTURE_PX, RAY_TEXTURE_PX, RING_TEXTURE_PX } from '../constants';
+import { GLOW_LAYER_ALPHAS, GLOW_TEXTURE_PX, RAY_TEXTURE_PX, RING_TEXTURE_PX } from '../constants';
 import { GLOW_SPRITE, bakeGlowAtlas } from './glow-atlas';
 
 describe('bakeGlowAtlas', () => {
@@ -16,9 +16,10 @@ describe('bakeGlowAtlas', () => {
     ]);
   });
 
-  it('layers the glow as wide + soft + core, every halo fading to transparent white', () => {
+  it('layers the glow as wide + soft + core + glint, every halo fading to transparent white', () => {
     const context = fakeContextOf(atlas.glow);
-    expect(context.paintCount).toBe(3);
+    expect(context.paintCount).toBe(4);
+    expect(context.gradients.at(-1)!.stops[0]!.colour).toBe(`rgba(255, 255, 255, ${GLOW_LAYER_ALPHAS.glint})`);
     for (const gradient of context.gradients) {
       expect(gradient.stops[0]!.colour).toMatch(/^rgba\(255, 255, 255, /);
       expect(gradient.stops.at(-1)!.colour).toBe('rgba(255, 255, 255, 0)');

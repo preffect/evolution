@@ -30,8 +30,12 @@ export const COSMETIC_SUB_STREAM = {
   field: 'field',
   /** The membrane jitter / lobes strip, one row per cell variant (#206). */
   strip: 'strip',
-  /** The dish field bake: mire strand placement (#206). */
+  /** The dish field bake: mire strand placement, stage scratches (#206). */
   dish: 'dish',
+  /** The vent sprite bake: crack branching, bubble and plume mote placement (#206). */
+  vent: 'vent',
+  /** The organelle atlas: chromatin scatter and the nucleoid's loop phases (#206). */
+  organelles: 'organelles',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];

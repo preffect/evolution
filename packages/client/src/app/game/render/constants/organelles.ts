@@ -30,23 +30,29 @@ export const MITO_CRISTA = { widthShare: 0.06, heightShare: 1.2, alpha: 0.8 } as
 export const CHLORO_GRANULE = { radiusShare: 0.16, ringShare: 0.55, arcStartTurns: -0.375 } as const;
 /** A vacuole's translucent fill: faint at the centre, denser at the rim. */
 export const VACUOLE_FILL_ALPHA = { inner: 0.25, outer: 0.6 } as const;
-/** The nucleus bake (sheet 01 layer 6): body ramp floor, chromatin wash, nucleolus halo, highlight. */
-export const NUCLEUS_BAKE = {
-  darkAlpha: 0.85,
-  chromatinAlpha: 0.25,
-  chromatinRadiusShare: 0.16,
-  chromatinRingShare: 0.5,
+/** The nucleus bake (sheet 01 layer 6): the body ramp, centre to rim, below full white so the highlight reads. */
+export const NUCLEUS_BAKE = { bodyAlpha: 0.72, darkAlpha: 0.58 } as const;
+/** The chromatin spots: seeded around the ring, in angle, distance and size, as shares of the nucleus radius. */
+export const NUCLEUS_CHROMATIN = {
+  alpha: 0.25,
+  ringShareMin: 0.42,
+  ringShareMax: 0.64,
+  radiusShareMin: 0.1,
+  radiusShareMax: 0.17,
+  angleJitterTurns: 0.12,
 } as const;
 export const NUCLEOLUS_HALO = { reach: 1.8, alpha: 0.5 } as const;
 export const NUCLEUS_HIGHLIGHT_ALPHA = 0.6;
-/** The nucleoid bake: a wobbling loop of thread with a glow under it. */
+/** The nucleoid bake: a loop of thread wobbling on two incommensurate terms at seeded phases, a glow under it. */
 export const NUCLEOID_BAKE = {
   loopTurns: 3,
+  secondLoopTurns: 5,
+  wobbleShare: 0.12,
+  secondWobbleShare: 0.07,
   strandPx: 2,
   glowPx: 6,
   glowReach: 1.5,
   steps: 96,
-  wobbleShare: 0.18,
 } as const;
 /** Slot rejection sampling (§3): inside 1 − 0.08, outside the nucleus disc, this gap between sprites. */
 export const ORGANELLE_MEMBRANE_MARGIN = 0.08;

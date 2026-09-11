@@ -40,6 +40,9 @@ export class FakeBakeContext implements BakeContext2D {
   scale(): void {
     this.log('scale');
   }
+  rotate(): void {
+    this.log('rotate');
+  }
   beginPath(): void {
     this.log('beginPath');
   }
@@ -54,6 +57,9 @@ export class FakeBakeContext implements BakeContext2D {
   }
   quadraticCurveTo(): void {
     this.log('quadraticCurveTo');
+  }
+  bezierCurveTo(): void {
+    this.log('bezierCurveTo');
   }
   arc(): void {
     this.log('arc');

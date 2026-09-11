@@ -1,5 +1,5 @@
 // The glow atlas (docs/RENDERING.md §6, docs/ASSET-GENERATION.md §1.5): white radial sprites the
-// effects and the fragments tint at use: a glow (core + soft + wide), a thin ring and a soft ray.
+// effects and the fragments tint at use: a glow (core + soft + wide + glint), a thin ring and a soft ray.
 // The soft disc the depth particles tint is slice A's `SOFT_DISC_BAKE` (render-textures.ts).
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
@@ -24,7 +24,7 @@ export type GlowSpriteKey = (typeof GLOW_SPRITE)[keyof typeof GLOW_SPRITE];
 
 export type GlowAtlasBakes = Readonly<Record<GlowSpriteKey, BakeCanvas>>;
 
-/** Wide under soft under core: three halos of the same white at their §1.5 reaches and alphas. */
+/** Wide under soft under core, then the glint toward the light: the §1.5 layers in the same white. */
 function bakeGlow(factory: BakeCanvasFactory): BakeCanvas {
   const canvas = factory.create(GLOW_TEXTURE_PX, GLOW_TEXTURE_PX);
   const centre = GLOW_TEXTURE_PX * HALF;
@@ -40,6 +40,12 @@ function bakeGlow(factory: BakeCanvasFactory): BakeCanvas {
       { colour: WHITE, alpha: layer.alpha },
     );
   }
+  const glint = centre * GLOW_LAYERS.glintOffset;
+  fillHalo(
+    canvas.context,
+    { x: centre + glint, y: centre + glint, radius: centre * GLOW_LAYERS.glintRadius },
+    { colour: WHITE, alpha: GLOW_LAYER_ALPHAS.glint },
+  );
   return canvas;
 }
 

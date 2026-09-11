@@ -1,9 +1,14 @@
-// The dish field (docs/VISUAL-STYLE.md §1–§2, sheet 02 field and zone tables): one render of the
-// whole dish at a fixed resolution, blitted as a sprite under everything: the field colour, the
-// condenser light pool from the top-left, three caustic arcs, the zone tints (shallows annulus,
-// vent disc with its crust and seam, the gel patches with their strands) and the stage outside
-// the wall. The wall's crisp lines are Graphics at world scale (dish-layer.ts); everything here is
-// soft. The zone noise clouds and the vent shimmer are deferred (see the PR).
+// The dish field (docs/VISUAL-STYLE.md §1–§2, sheet 02 field, zone and dish-wall tables): one render
+// of the whole dish at a fixed resolution, blitted as a sprite under everything: the field colour,
+// the condenser light pool from the top-left with its caustic sweeps, the zone tints (shallows
+// annulus, vent disc, the gel patches with their strands), the wall's inner shadow and the stage
+// outside the wall with its scratches. The wall's crisp lines are Graphics at world scale and the
+// vent fissure is its own sprite over this one (dish-layer.ts); everything here is soft.
+//
+// Resolution: `FIELD_TEXTURE_PX` over the dish is 0.33 px/wu, right for the tints and the pool.
+// Anything with an edge (the vent, and later the strands) belongs in its own sprite at ≥ 1 px/wu
+// (vent-bake.ts; the per-zoom-band textures of VISUAL-STYLE §8 are #223's), never in a bigger field.
+// The zone noise clouds are deferred (see the PR).
 
 import {
   COSMETIC_SUB_STREAM,
@@ -11,18 +16,12 @@ import {
   RADIANS_PER_FULL_TURN,
   SHALLOWS_WIDTH,
   VENT_RADIUS,
-  lerp,
   type GelPatchView,
   type RandomSource,
 } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';
 import {
   BG_FIELD,
-  CAUSTIC_ALPHA,
-  CAUSTIC_ARC,
-  CAUSTIC_ARCS,
-  CAUSTIC_SPACING_WU,
-  CAUSTIC_WIDTH_WU,
   FIELD_OUTSIDE_MARGIN_GLASS,
   FIELD_TEXTURE_PX,
   LIGHT_ACCENT,
@@ -30,14 +29,14 @@ import {
   LIGHT_POOL_MID,
   LIGHT_POOL_OFFSET_FRACTION,
   LIGHT_POOL_SIZE_WU,
-  MIRE_STRAND,
-  MIRE_STRANDS_PER_PATCH,
-  MIRE_STRAND_ALPHA_MAX,
-  MIRE_STRAND_ALPHA_MIN,
   OUTSIDE_DISH,
   OUTSIDE_DISH_ALPHA,
   SHALLOWS_FEATHER_SHARE,
   WALL_GLASS_WU,
+  WALL_INNER_SHADOW,
+  WALL_INNER_SHADOW_ALPHA,
+  WALL_INNER_SHADOW_BLUR_WU,
+  WALL_INNER_SHADOW_WU,
   ZONE_GEL,
   ZONE_SHALLOWS,
   ZONE_TINT_ALPHA,
@@ -46,8 +45,8 @@ import {
   ZONE_VENT,
 } from '../constants';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
+import { paintCaustics, paintMireStrands, paintStageScratches } from './dish-field-details';
 import { fillRadial, type BakeCanvas, type BakeCanvasFactory, type BakeContext2D, type DiscSpec } from './texture-bake';
-import { paintVent } from './vent-bake';
 
 export interface DishField {
   readonly canvas: BakeCanvas;
@@ -61,6 +60,7 @@ interface FieldFrame {
   readonly centre: number;
   readonly pxPerWu: number;
   readonly sizePx: number;
+  readonly halfExtentWu: number;
 }
 
 const IS_ANTICLOCKWISE = true;
@@ -74,6 +74,10 @@ interface ZoneTint {
 const VENT_TINT: ZoneTint = { colour: ZONE_VENT, alpha: ZONE_TINT_ALPHA.vent, midAlpha: ZONE_TINT_MID_ALPHA.vent };
 const GEL_TINT: ZoneTint = { colour: ZONE_GEL, alpha: ZONE_TINT_ALPHA.gel, midAlpha: ZONE_TINT_MID_ALPHA.gel };
 
+function dishDisc(frame: FieldFrame): DiscSpec {
+  return { x: frame.centre, y: frame.centre, radius: DISH_RADIUS * frame.pxPerWu };
+}
+
 /** A zone disc's tint: full at the centre, the sheet's middle stop, clear at the zone radius. */
 function paintZoneTint(context: BakeContext2D, disc: DiscSpec, tint: ZoneTint): void {
   fillRadial(context, disc, [
@@ -83,7 +87,7 @@ function paintZoneTint(context: BakeContext2D, disc: DiscSpec, tint: ZoneTint): 
   ]);
 }
 
-/** The condenser pool (sheet 02 `light-pool`) toward the top-left, and the caustic arcs around it. */
+/** The condenser pool (sheet 02 `light-pool`) toward the top-left, and the caustic sweeps across it. */
 function paintLightPool(frame: FieldFrame): void {
   const { context, pxPerWu } = frame;
   const x = frame.centre - LIGHT_POOL_SIZE_WU.width * LIGHT_POOL_OFFSET_FRACTION * pxPerWu;
@@ -97,23 +101,14 @@ function paintLightPool(frame: FieldFrame): void {
     { offset: 1, colour: LIGHT_ACCENT, alpha: 0 },
   ]);
   context.restore();
-  context.strokeStyle = hexWithAlpha(LIGHT_ACCENT, CAUSTIC_ALPHA);
-  context.lineWidth = CAUSTIC_WIDTH_WU * pxPerWu;
-  context.lineCap = 'round';
-  const start = RADIANS_PER_FULL_TURN * CAUSTIC_ARC.startTurns;
-  const end = start + RADIANS_PER_FULL_TURN * CAUSTIC_ARC.spanTurns;
-  for (let arc = 1; arc <= CAUSTIC_ARCS; arc += 1) {
-    context.beginPath();
-    context.arc(x, y, arc * CAUSTIC_SPACING_WU * pxPerWu, start, end);
-    context.stroke();
-  }
+  paintCaustics(context, { x, y }, frame);
 }
 
 /** The shallows annulus: the tint from its inner edge to the wall, feathered toward the broth. */
 function paintShallows(frame: FieldFrame): void {
   const inner = (DISH_RADIUS - SHALLOWS_WIDTH) / DISH_RADIUS;
   const feather = (1 - inner) * SHALLOWS_FEATHER_SHARE;
-  fillRadial(frame.context, { x: frame.centre, y: frame.centre, radius: DISH_RADIUS * frame.pxPerWu }, [
+  fillRadial(frame.context, dishDisc(frame), [
     { offset: inner - feather, colour: ZONE_SHALLOWS, alpha: 0 },
     { offset: inner, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_MID_ALPHA.shallows },
     { offset: inner + feather, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_ALPHA.shallows },
@@ -121,30 +116,9 @@ function paintShallows(frame: FieldFrame): void {
   ]);
 }
 
-/** One strand: a rounded stroke from a seeded root outward, bent sideways, at a seeded alpha. */
-function paintStrand(context: BakeContext2D, disc: DiscSpec, random: RandomSource): void {
-  const angle = random.nextFloat() * RADIANS_PER_FULL_TURN;
-  const root = random.nextFloat() * MIRE_STRAND.rootShareMax;
-  const reach = Math.min(1, root + lerp(MIRE_STRAND.lengthShareMin, MIRE_STRAND.lengthShareMax, random.nextFloat()));
-  const bend = (random.nextFloat() - HALF) * MIRE_STRAND.bendShare;
-  context.strokeStyle = hexWithAlpha(ZONE_GEL, lerp(MIRE_STRAND_ALPHA_MIN, MIRE_STRAND_ALPHA_MAX, random.nextFloat()));
-  const mid = (root + reach) * HALF;
-  context.beginPath();
-  context.moveTo(disc.x + Math.cos(angle) * disc.radius * root, disc.y + Math.sin(angle) * disc.radius * root);
-  context.quadraticCurveTo(
-    disc.x + Math.cos(angle + bend) * disc.radius * mid,
-    disc.y + Math.sin(angle + bend) * disc.radius * mid,
-    disc.x + Math.cos(angle) * disc.radius * reach,
-    disc.y + Math.sin(angle) * disc.radius * reach,
-  );
-  context.stroke();
-}
-
 /** Each gel patch: the mire tint disc with its strands, placed from the dish sub-stream. */
 function paintGelPatches(frame: FieldFrame, patches: readonly GelPatchView[], random: RandomSource): void {
   const { context, pxPerWu } = frame;
-  context.lineWidth = MIRE_STRAND.widthWu * pxPerWu;
-  context.lineCap = 'round';
   for (const patch of patches) {
     const disc = {
       x: frame.centre + patch.x * pxPerWu,
@@ -152,12 +126,23 @@ function paintGelPatches(frame: FieldFrame, patches: readonly GelPatchView[], ra
       radius: patch.radius * pxPerWu,
     };
     paintZoneTint(context, disc, GEL_TINT);
-    for (let strand = 0; strand < MIRE_STRANDS_PER_PATCH; strand += 1) paintStrand(context, disc, random);
+    paintMireStrands(context, disc, { colour: ZONE_GEL, random, scale: frame });
   }
 }
 
-/** Outside the wall: the stage, darkened (the square minus the dish disc, wall included). */
-function paintOutside(frame: FieldFrame): void {
+/** The wall's inner shadow (sheet 02 dish-wall table): a dark band just inside the wall, blurred on the broth side. */
+function paintWallInnerShadow(frame: FieldFrame): void {
+  const blur = WALL_INNER_SHADOW_BLUR_WU / DISH_RADIUS;
+  const inner = 1 - WALL_INNER_SHADOW_WU / DISH_RADIUS;
+  fillRadial(frame.context, dishDisc(frame), [
+    { offset: inner - blur, colour: WALL_INNER_SHADOW, alpha: 0 },
+    { offset: inner + blur, colour: WALL_INNER_SHADOW, alpha: WALL_INNER_SHADOW_ALPHA },
+    { offset: 1, colour: WALL_INNER_SHADOW, alpha: WALL_INNER_SHADOW_ALPHA },
+  ]);
+}
+
+/** Outside the wall: the stage, darkened (the square minus the dish disc, wall included), then its scratches. */
+function paintOutside(frame: FieldFrame, random: RandomSource): void {
   const { context } = frame;
   context.beginPath();
   context.rect(0, 0, frame.sizePx, frame.sizePx);
@@ -171,9 +156,10 @@ function paintOutside(frame: FieldFrame): void {
   );
   context.fillStyle = hexWithAlpha(OUTSIDE_DISH, OUTSIDE_DISH_ALPHA);
   context.fill();
+  paintStageScratches(context, frame, { random, scale: frame });
 }
 
-/** The field at `FIELD_TEXTURE_PX`, in sheet 02's draw order; strands are placed from the cosmetic stream. */
+/** The field at `FIELD_TEXTURE_PX`, in sheet 02's draw order; strands and scratches are placed from the cosmetic stream. */
 export function bakeDishField(
   factory: BakeCanvasFactory,
   patches: readonly GelPatchView[],
@@ -183,15 +169,15 @@ export function bakeDishField(
   const sizePx = FIELD_TEXTURE_PX;
   const pxPerWu = sizePx / (halfExtentWu * DIAMETER_PER_RADIUS);
   const canvas = factory.create(sizePx, sizePx);
-  const frame: FieldFrame = { context: canvas.context, centre: sizePx * HALF, pxPerWu, sizePx };
+  const frame: FieldFrame = { context: canvas.context, centre: sizePx * HALF, pxPerWu, sizePx, halfExtentWu };
+  const random = cosmetic.fork(COSMETIC_SUB_STREAM.dish);
   frame.context.fillStyle = BG_FIELD;
   frame.context.fillRect(0, 0, sizePx, sizePx);
   paintLightPool(frame);
   paintShallows(frame);
-  const ventDisc = { x: frame.centre, y: frame.centre, radius: VENT_RADIUS * pxPerWu };
-  paintZoneTint(frame.context, ventDisc, VENT_TINT);
-  paintVent(frame.context, frame.centre, pxPerWu);
-  paintGelPatches(frame, patches, cosmetic.fork(COSMETIC_SUB_STREAM.dish));
-  paintOutside(frame);
+  paintZoneTint(frame.context, { x: frame.centre, y: frame.centre, radius: VENT_RADIUS * pxPerWu }, VENT_TINT);
+  paintGelPatches(frame, patches, random);
+  paintWallInnerShadow(frame);
+  paintOutside(frame, random);
   return { canvas, halfExtentWu };
 }

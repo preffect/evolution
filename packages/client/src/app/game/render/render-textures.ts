@@ -2,8 +2,8 @@
 // cosmetic stream plus every texture baked at startup, rebuilt when the seed changes (a rematch).
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
 // since jsdom has no canvas): the radial bakes drawn through Pixi (the soft disc, the vignette)
-// and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish field). The noise
-// strip and tile are bytes, uploaded as data textures for the cell shader (#215).
+// and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish field, the vent sprite).
+// The noise strip and tile are bytes, uploaded as data textures for the cell shader (#215).
 
 import {
   RANDOM_STREAM,
@@ -33,6 +33,7 @@ import { bakeMoteAtlas, type MoteSpriteKey } from './textures/mote-atlas';
 import { bakeOrganelleAtlas } from './textures/organelle-atlas';
 import { byteDataTexture, texturesFromBakes } from './textures/pixi-textures';
 import type { BakeCanvas, BakeCanvasFactory } from './textures/texture-bake';
+import { bakeVentSprite, type VentSprite } from './textures/vent-bake';
 
 export interface RadialStop {
   /** 0 at the centre, 1 at the half-diagonal of the bake. */
@@ -91,6 +92,9 @@ export interface RenderTextures {
   /** The dish field bake and its sprite texture (dish-layer.ts scales it to `halfExtentWu`). */
   readonly dishField: DishField;
   readonly dishTexture: Texture;
+  /** The vent sprite bake and its texture, drawn over the field at the vent zone (dish-layer.ts). */
+  readonly vent: VentSprite;
+  readonly ventTexture: Texture;
 }
 
 export interface RenderTextureOptions {
@@ -129,8 +133,12 @@ export const VIGNETTE_BAKE: RadialBakeSpec = {
   ],
 };
 
-function organelleTextures(baker: TextureBaker, devicePixelRatio: number): RenderTextures['organelles'] {
-  const bakes = bakeOrganelleAtlas(baker, devicePixelRatio);
+function organelleTextures(
+  baker: TextureBaker,
+  devicePixelRatio: number,
+  cosmetic: RandomSource,
+): RenderTextures['organelles'] {
+  const bakes = bakeOrganelleAtlas(baker, devicePixelRatio, cosmetic);
   const textures = {} as Record<OrganelleKind, OrganelleSpriteTexture>;
   for (const kind of Object.keys(bakes) as OrganelleKind[]) {
     textures[kind] = { texture: baker.textureFromBake(bakes[kind].canvas), widthRadii: bakes[kind].widthRadii };
@@ -156,6 +164,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
   const strip = buildNoiseStrip(cosmetic);
   const tile = buildNoiseTile(cosmetic);
   const dishField = bakeDishField(baker, options.gelPatches, cosmetic);
+  const vent = bakeVentSprite(baker, cosmetic);
   return {
     seed: options.seed,
     cosmetic,
@@ -176,9 +185,11 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
     }),
     glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
     motes: moteTextures(baker),
-    organelles: organelleTextures(baker, options.devicePixelRatio),
+    organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),
     dishField,
     dishTexture: baker.textureFromBake(dishField.canvas),
+    vent,
+    ventTexture: baker.textureFromBake(vent.canvas),
   };
 }
 
@@ -187,6 +198,7 @@ export function destroyRenderTextures(textures: RenderTextures): void {
     textures.glowTexture,
     textures.vignetteTexture,
     textures.dishTexture,
+    textures.ventTexture,
     ...Object.values(textures.glow),
     ...Object.values(textures.motes.full),
     ...Object.values(textures.motes.small),

@@ -25,12 +25,14 @@ describe('createRenderTextures', () => {
     expect(textures.glowTexture).not.toBe(textures.vignetteTexture);
   });
 
-  it('bakes the dish field, the glow, mote and organelle atlases on canvases and turns each into a texture', () => {
+  it('bakes the dish field, the vent, the glow, mote and organelle atlases on canvases and turns each into a texture', () => {
     const baker = createFakeTextureBaker();
     const gelPatches = [{ x: 100, y: -200, radius: 350 }];
     const textures = createTestRenderTextures({ seed: 7, baker, gelPatches });
     expect(baker.bakedCanvases[0]!.width).toBe(FIELD_TEXTURE_PX);
     expect(textures.dishField.canvas).toBe(baker.bakedCanvases[0]);
+    expect(textures.vent.canvas).toBe(baker.bakedCanvases[1]);
+    expect(textures.vent.halfExtentWu).toBeGreaterThan(0);
     expect(Object.keys(textures.glow).sort()).toEqual(Object.values(GLOW_SPRITE).sort());
     expect(Object.keys(textures.motes.full).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
     expect(Object.keys(textures.motes.small).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
@@ -66,6 +68,7 @@ describe('createRenderTextures', () => {
     expect(textures.glowTexture.destroyed).toBe(true);
     expect(textures.vignetteTexture.destroyed).toBe(true);
     expect(textures.dishTexture.destroyed).toBe(true);
+    expect(textures.ventTexture.destroyed).toBe(true);
     expect(textures.glow.ring.destroyed).toBe(true);
     expect(textures.motes.small.algae.destroyed).toBe(true);
     expect(textures.motes.fragments.motile.destroyed).toBe(true);
