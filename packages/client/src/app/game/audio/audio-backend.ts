@@ -16,7 +16,7 @@ export interface AudioVoice extends AudioGainHandle {
   setPlaybackRate(rate: number): void;
   /** Stops now, or after `afterSeconds` (a crossfade's tail) without a JS timer. */
   stop(afterSeconds?: number): void;
-  /** Called once when the sound ends by itself or through `stop`. */
+  /** Every subscriber is called once when the sound ends by itself or through `stop` (at once if it already has). */
   onEnded(callback: () => void): void;
 }
 

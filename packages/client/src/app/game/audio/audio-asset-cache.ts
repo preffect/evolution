@@ -19,8 +19,8 @@ export interface AudioAssetLoader {
 
 const PATH_SEPARATOR = '/';
 
-export function audioAssetUrl(fileName: string): string {
-  return `${AUDIO_ASSET_BASE_PATH}${PATH_SEPARATOR}${fileName}`;
+export function audioAssetUrl(path: string): string {
+  return `${AUDIO_ASSET_BASE_PATH}${PATH_SEPARATOR}${path}`;
 }
 
 /** The production loader over `fetch`; never throws. */
@@ -60,37 +60,40 @@ export class AudioAssetCache {
     return parseAudioManifest(await this.loader.fetchJson(audioAssetUrl(AUDIO_MANIFEST_FILE_NAME)));
   }
 
-  /** Decoded and ready, or `null` when missing or not loaded yet. */
-  peek(fileName: string): DecodedAudio | null {
-    return this.decoded.get(fileName) ?? null;
+  /** Decoded and ready, or `null` when missing or not loaded yet; `path` is the manifest's, relative to assets/audio/. */
+  peek(path: string): DecodedAudio | null {
+    return this.decoded.get(path) ?? null;
   }
 
   /** True once the file was fetched, whether or not it exists. */
-  isResolved(fileName: string): boolean {
-    return this.decoded.has(fileName);
+  isResolved(path: string): boolean {
+    return this.decoded.has(path);
   }
 
-  load(fileName: string): Promise<DecodedAudio | null> {
-    if (this.decoded.has(fileName)) return Promise.resolve(this.decoded.get(fileName) ?? null);
-    const inFlight = this.pending.get(fileName);
+  load(path: string): Promise<DecodedAudio | null> {
+    if (this.decoded.has(path)) return Promise.resolve(this.decoded.get(path) ?? null);
+    const inFlight = this.pending.get(path);
     if (inFlight) return inFlight;
-    const request = this.fetchAndDecode(fileName).then((sound) => {
-      this.decoded.set(fileName, sound);
-      this.pending.delete(fileName);
-      return sound;
-    });
-    this.pending.set(fileName, request);
+    // A loader or backend that rejects (none does today) still settles the entry: missing, never pending forever.
+    const request = this.fetchAndDecode(path)
+      .catch(() => null)
+      .then((sound) => {
+        this.decoded.set(path, sound);
+        this.pending.delete(path);
+        return sound;
+      });
+    this.pending.set(path, request);
     return request;
   }
 
   /** Every file the manifest names, so the first play of each cue is on time. */
   async preload(manifest: AudioManifest): Promise<void> {
-    const fileNames = Object.values(manifest.events).flatMap((entry) => entry.files.map((file) => file.path));
-    await Promise.all(fileNames.map((fileName) => this.load(fileName)));
+    const paths = Object.values(manifest.events).flatMap((entry) => entry.files.map((file) => file.path));
+    await Promise.all(paths.map((path) => this.load(path)));
   }
 
-  private async fetchAndDecode(fileName: string): Promise<DecodedAudio | null> {
-    const bytes = await this.loader.fetchBytes(audioAssetUrl(fileName));
+  private async fetchAndDecode(path: string): Promise<DecodedAudio | null> {
+    const bytes = await this.loader.fetchBytes(audioAssetUrl(path));
     return bytes ? this.backend.decode(bytes) : null;
   }
 }

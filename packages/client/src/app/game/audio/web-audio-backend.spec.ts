@@ -79,6 +79,29 @@ describe('WebAudioBackend', () => {
     expect(ended).toHaveBeenCalledTimes(2);
   });
 
+  it('calls every ended subscriber once: the scheduler release and the duck release share a voice', async () => {
+    const backend = new WebAudioBackend();
+    const bus = backend.createBus(null, 1);
+    const sound = (await backend.decode(SOME_BYTES))!;
+    const voice = backend.play(sound, {
+      destination: bus,
+      isLoop: false,
+      gain: 1,
+      playbackRate: 1,
+      startAfterSeconds: 0,
+    });
+    const schedulerRelease = vi.fn();
+    const duckRelease = vi.fn();
+    voice.onEnded(schedulerRelease);
+    voice.onEnded(duckRelease);
+    const source = FakeAudioContext.instances[0]!.sources[0] as FakeBufferSourceNode;
+    source.onended?.();
+    expect(schedulerRelease).toHaveBeenCalledTimes(1);
+    expect(duckRelease).toHaveBeenCalledTimes(1);
+    voice.stop();
+    expect(schedulerRelease).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to a silent voice for a foreign sound or destination', async () => {
     const backend = new WebAudioBackend();
     const bus = backend.createBus(null, 1);

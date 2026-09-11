@@ -29,7 +29,7 @@ class GainNodeHandle implements AudioGainHandle {
 }
 
 class BufferVoice extends GainNodeHandle implements AudioVoice {
-  private endedCallback: (() => void) | null = null;
+  private endedCallbacks: (() => void)[] = [];
   private hasEnded = false;
 
   constructor(
@@ -50,8 +50,11 @@ class BufferVoice extends GainNodeHandle implements AudioVoice {
   }
 
   onEnded(callback: () => void): void {
-    this.endedCallback = callback;
-    if (this.hasEnded) callback();
+    if (this.hasEnded) {
+      callback();
+      return;
+    }
+    this.endedCallbacks.push(callback);
   }
 
   private finish(): void {
@@ -59,7 +62,9 @@ class BufferVoice extends GainNodeHandle implements AudioVoice {
     this.hasEnded = true;
     this.source.disconnect();
     this.node.disconnect();
-    this.endedCallback?.();
+    const callbacks = this.endedCallbacks;
+    this.endedCallbacks = [];
+    for (const callback of callbacks) callback();
   }
 }
 

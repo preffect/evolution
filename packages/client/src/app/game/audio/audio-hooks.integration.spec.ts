@@ -45,10 +45,19 @@ describe('audio hooks: snapshot → transitions → game events → sound bus �
     });
     events = TestBed.inject(GameEventBus);
     handle = TestBed.inject(AudioHooks).connect(createTestTransitionOptions());
-    await handle.ready;
   });
 
-  it('starts the bed on the first snapshot and plays the eat note for the own cell', () => {
+  it('starts the bed for a snapshot that beats the asset load (the production order)', async () => {
+    handle.observe(createTestSnapshot({ cells: [createTestCellView()] }));
+    expect(backend.voices).toHaveLength(0);
+    await handle.ready;
+    expect(backend.playing.map((voice) => voice.label)).toEqual([
+      `${SOUND_EVENT.ambientBed}-${CELL_STAGE.protocell}.mp3`,
+    ]);
+  });
+
+  it('starts the bed on the first snapshot and plays the eat note for the own cell', async () => {
+    await handle.ready;
     handle.observe(createTestSnapshot({ cells: [createTestCellView()], effects: [createTestEatEffect()] }));
     expect(backend.labelsPlayed()).toEqual([
       `${SOUND_EVENT.eat}-note-1.mp3`,
@@ -56,7 +65,8 @@ describe('audio hooks: snapshot → transitions → game events → sound bus �
     ]);
   });
 
-  it('crossfades the bed on a stage change and drones under a threat', () => {
+  it('crossfades the bed on a stage change and drones under a threat', async () => {
+    await handle.ready;
     handle.observe(createTestSnapshot({ cells: [createTestCellView()] }));
     const predator = createTestCellView({
       id: TEST_OTHER_CELL_ID,
@@ -71,18 +81,21 @@ describe('audio hooks: snapshot → transitions → game events → sound bus �
     expect(backend.buses[AMBIENT_BUS_INDEX]!.ramps.at(-1)?.value).toBeLessThan(1);
   });
 
-  it('plays the cadence and silences the bed at results', () => {
+  it('plays the cadence and silences the bed at results', async () => {
+    await handle.ready;
     handle.observe(createTestSnapshot({ cells: [createTestCellView()] }));
     handle.observe(createTestSnapshot({ cells: [createTestCellView()], roundPhase: ROUND_PHASE.results }));
     expect(backend.playing.map((voice) => voice.label)).toEqual([`${SOUND_EVENT.roundEnd}.mp3`]);
   });
 
-  it('plays a HUD click raised straight onto the bus', () => {
+  it('plays a HUD click raised straight onto the bus', async () => {
+    await handle.ready;
     events.emit({ kind: GAME_EVENT_KIND.uiClick });
     expect(backend.labelsPlayed()).toEqual([`${SOUND_EVENT.uiClick}.mp3`]);
   });
 
-  it('leaving the room silences the wire', () => {
+  it('leaving the room silences the wire', async () => {
+    await handle.ready;
     handle.observe(createTestSnapshot({ cells: [createTestCellView()] }));
     handle.disconnect();
     events.emit({ kind: GAME_EVENT_KIND.uiClick });

@@ -136,7 +136,9 @@ from this manifest, never a second copy.
   `AudioService.setMuted`; nothing else outside the sound bus calls the service.
 - **Silent by design.** A missing manifest, a missing or undecodable file, an unknown variant, a platform
   without `AudioContext` or one that throws: every path is a no-op, and the service never throws into
-  the game loop (the first platform error is reported once with `console.warn`).
+  the game loop (the first platform error is reported once with `console.warn`). The first snapshot
+  beats the load: the stage, zone and loops asked for before the manifest and its files land are
+  remembered and started the moment they do (`AmbientMixer.refresh`, the service's wanted loops).
 - **Time.** Cooldowns read the injected `Clock` (`CLOCK`, `clock-provider.ts`); crossfade tails and
   deferred loop starts are scheduled on the audio clock (`voice.stop(afterSeconds)`,
   `startAfterSeconds`); there is no `setTimeout` in the audio layer.

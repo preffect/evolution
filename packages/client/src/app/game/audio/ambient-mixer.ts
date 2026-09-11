@@ -17,6 +17,7 @@ import {
   resolveAudioFileAt,
   type AudioManifest,
   type CellStage,
+  type ValueOf,
   type ZoneId,
 } from '@evolution/shared';
 import { START_NOW_SECONDS, type AudioBackend, type AudioGainHandle, type AudioVoice } from './audio-backend';
@@ -32,12 +33,16 @@ interface Layer {
 }
 
 /** Why the music is ducked; the duck lifts when the last reason is released. */
-export type DuckReason = 'danger' | 'essential_cue';
+export const DUCK_REASON = { danger: 'danger', essentialCue: 'essential_cue' } as const;
+export type DuckReason = ValueOf<typeof DUCK_REASON>;
 
 export class AmbientMixer {
   private manifest: AudioManifest | null = null;
   private stem: Layer | null = null;
   private zone: Layer | null = null;
+  /** What the game last asked for; applied as soon as the manifest and its files allow (`refresh`). */
+  private wantedStage: CellStage | null = null;
+  private wantedZone: ZoneId | null = null;
   private readonly duckReasons = new Set<DuckReason>();
   private readonly ambientBus: AudioGainHandle;
 
@@ -68,9 +73,26 @@ export class AmbientMixer {
 
   /** Crossfades to the stage's stem, or the nearest one that shipped (docs/AUDIO.md §3). */
   setStage(stage: CellStage): void {
-    if (!this.manifest) return;
+    this.wantedStage = stage;
+    this.applyStage();
+  }
+
+  /** The overlay of a zone; a zone without one (the open broth) fades the overlay out. */
+  setZone(zone: ZoneId): void {
+    this.wantedZone = zone;
+    this.applyZone();
+  }
+
+  /** After the manifest and its files landed: the stage and zone asked for meanwhile start now. */
+  refresh(): void {
+    this.applyStage();
+    this.applyZone();
+  }
+
+  private applyStage(): void {
+    if (!this.manifest || this.wantedStage === null) return;
     const manifest = this.manifest;
-    const wanted = ambientStemForStage(stage);
+    const wanted = ambientStemForStage(this.wantedStage);
     const isShipped = (stem: number) => {
       const file = resolveAudioFileAt(manifest, SOUND_EVENT.ambientBed, stem);
       return file !== null && this.assets.peek(file.path) !== null;
@@ -80,10 +102,9 @@ export class AmbientMixer {
     this.stem = this.crossfade(this.stem, file?.key ?? null, file?.path ?? null, AMBIENT_CROSSFADE_SECONDS);
   }
 
-  /** The overlay of a zone; a zone without one (the open broth) fades the overlay out. */
-  setZone(zone: ZoneId): void {
-    if (!this.manifest) return;
-    const file = resolveAudioFile(this.manifest, SOUND_EVENT.zoneLayer, zone);
+  private applyZone(): void {
+    if (!this.manifest || this.wantedZone === null) return;
+    const file = resolveAudioFile(this.manifest, SOUND_EVENT.zoneLayer, this.wantedZone);
     this.zone = this.crossfade(this.zone, file?.key ?? null, file?.path ?? null, ZONE_CROSSFADE_SECONDS);
   }
 
@@ -97,8 +118,10 @@ export class AmbientMixer {
     this.applyDuck();
   }
 
-  /** Fades both layers out; the next `setStage` starts them again. */
+  /** Fades both layers out and forgets what was wanted; the next `setStage` starts them again. */
   stop(): void {
+    this.wantedStage = null;
+    this.wantedZone = null;
     this.stem = this.crossfade(this.stem, null, null, AMBIENT_CROSSFADE_SECONDS);
     this.zone = this.crossfade(this.zone, null, null, ZONE_CROSSFADE_SECONDS);
   }
@@ -107,13 +130,13 @@ export class AmbientMixer {
     this.ambientBus.rampGain(this.isDucked ? decibelsToGain(DUCK_DECIBELS) : FULL, DUCK_RAMP_SECONDS);
   }
 
-  private crossfade(current: Layer | null, key: string | null, fileName: string | null, seconds: number): Layer | null {
+  private crossfade(current: Layer | null, key: string | null, path: string | null, seconds: number): Layer | null {
     if (current?.key === key) return current;
     if (current) {
       current.voice.rampGain(SILENT, seconds);
       current.voice.stop(seconds);
     }
-    const sound = fileName === null ? null : this.assets.peek(fileName);
+    const sound = path === null ? null : this.assets.peek(path);
     if (key === null || !sound) return null;
     const voice = this.backend.play(sound, {
       destination: this.ambientBus,

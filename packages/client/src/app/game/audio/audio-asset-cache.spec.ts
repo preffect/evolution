@@ -48,11 +48,19 @@ describe('AudioAssetCache', () => {
     expect(cache.peek(PRESENT)).toBeNull();
   });
 
+  it('settles a loader that rejects as missing, leaving nothing pending', async () => {
+    const { cache, loader } = createCache();
+    vi.spyOn(loader, 'fetchBytes').mockRejectedValueOnce(new Error('offline'));
+    expect(await cache.load(PRESENT)).toBeNull();
+    expect(cache.isResolved(PRESENT)).toBe(true);
+    expect(cache.peek(PRESENT)).toBeNull();
+  });
+
   it('preloads every file the manifest names', async () => {
     const { cache } = createCache();
     const manifest = parseAudioManifest(createTestAudioManifest())!;
     await cache.preload(manifest);
-    for (const fileName of testManifestFileNames()) expect(cache.isResolved(fileName)).toBe(true);
+    for (const path of testManifestFileNames()) expect(cache.isResolved(path)).toBe(true);
   });
 });
 

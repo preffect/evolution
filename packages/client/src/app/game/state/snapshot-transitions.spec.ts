@@ -168,11 +168,11 @@ describe('detectTransitions', () => {
     expect(eventsAfter(alive, spectating, respawned)).toEqual([]);
   });
 
-  it('drops danger while spectating so the respawn starts calm', () => {
+  it('ends danger when the own cell is gone so the respawn starts calm', () => {
     const threatened = snapshotWith([createTestCellView(), otherCell({ mass: PREDATOR_MASS })]);
     const spectating = snapshotWith([otherCell({ mass: PREDATOR_MASS })]);
     const calm = snapshotWith([createTestCellView()]);
-    expect(eventsAfter(threatened, spectating)).toEqual([]);
+    expect(eventsAfter(threatened, spectating)).toEqual([{ kind: GAME_EVENT_KIND.dangerChanged, isDanger: false }]);
     expect(kindsOf(eventsAfter(threatened, spectating, calm))).not.toContain(GAME_EVENT_KIND.dangerChanged);
   });
 });

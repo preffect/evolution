@@ -93,6 +93,21 @@ describe('AudioService', () => {
     });
   });
 
+  it('starts the bed and the loops asked for before the assets landed once they do', async () => {
+    configure(testManifestFileNames());
+    service.setAmbientStage(CELL_STAGE.protocell);
+    service.setDanger(true);
+    service.startLoop(SOUND_EVENT.engulfProgress);
+    service.stopLoop(SOUND_EVENT.engulfProgress);
+    expect(backend.voices).toHaveLength(0);
+    await service.initialize();
+    expect(backend.playing.map((voice) => voice.label)).toEqual([
+      `${SOUND_EVENT.ambientBed}-${CELL_STAGE.protocell}.mp3`,
+      `${SOUND_EVENT.dangerWarning}.mp3`,
+    ]);
+    expect(backend.voices[1]!.startAfterSeconds).toBe(0);
+  });
+
   it('is silent without a manifest and never throws', async () => {
     configure(testManifestFileNames(), { version: 'nope' });
     await service.initialize();

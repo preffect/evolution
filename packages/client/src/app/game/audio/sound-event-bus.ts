@@ -18,6 +18,19 @@ import {
   type TraitId,
 } from '@evolution/shared';
 import { GAME_EVENT_KIND, type GameEvent, type GameEventBus, type Unsubscribe } from '../state/game-event-bus';
+
+/** The events `handle` does not consume itself; `handleMoment` must name every one of them. */
+type MomentEvent = Exclude<
+  GameEvent,
+  {
+    kind:
+      | typeof GAME_EVENT_KIND.effect
+      | typeof GAME_EVENT_KIND.stageChanged
+      | typeof GAME_EVENT_KIND.organelleGained
+      | typeof GAME_EVENT_KIND.dangerChanged
+      | typeof GAME_EVENT_KIND.zoneChanged;
+  }
+>;
 import type { SoundSink } from './audio.service';
 
 const MOTIF_VARIANT_PREFIX = 'instrument-';
@@ -68,7 +81,7 @@ export class SoundEventBus {
     }
   }
 
-  private handleMoment(event: GameEvent): void {
+  private handleMoment(event: MomentEvent): void {
     switch (event.kind) {
       case GAME_EVENT_KIND.engulfProgress:
         this.sink.startLoop(SOUND_EVENT.engulfProgress);
@@ -89,8 +102,14 @@ export class SoundEventBus {
       case GAME_EVENT_KIND.traitCue:
         this.handleTraitCue(event.traitId, event.isActive);
         return;
-      default:
+      case GAME_EVENT_KIND.uiClick:
         this.sink.play(SOUND_EVENT.uiClick);
+        return;
+      default: {
+        // A new `GameEventKind` fails here at compile time instead of clicking.
+        const unhandled: never = event;
+        return unhandled;
+      }
     }
   }
 

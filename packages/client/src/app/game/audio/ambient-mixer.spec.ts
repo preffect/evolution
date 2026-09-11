@@ -10,7 +10,7 @@ import {
   decibelsToGain,
   parseAudioManifest,
 } from '@evolution/shared';
-import { AmbientMixer } from './ambient-mixer';
+import { AmbientMixer, DUCK_REASON } from './ambient-mixer';
 import { AudioAssetCache } from './audio-asset-cache';
 import { FakeAudioAssetLoader, FakeAudioBackend, FakeGain } from '../../../testing/fake-audio-backend';
 import { createTestAudioManifest, testManifestFileNames } from '../../../testing/builders';
@@ -93,15 +93,35 @@ describe('AmbientMixer', () => {
 
   it('ducks the ambient bus while any reason holds and lifts when the last is released', () => {
     const ambientBus = backend.buses[0]!;
-    mixer.duck('danger');
-    mixer.duck('essential_cue');
+    mixer.duck(DUCK_REASON.danger);
+    mixer.duck(DUCK_REASON.essentialCue);
     expect(mixer.isDucked).toBe(true);
     expect(ambientBus.ramps.at(-1)).toEqual({ value: decibelsToGain(DUCK_DECIBELS), seconds: DUCK_RAMP_SECONDS });
-    mixer.release('danger');
+    mixer.release(DUCK_REASON.danger);
     expect(mixer.isDucked).toBe(true);
-    mixer.release('essential_cue');
+    mixer.release(DUCK_REASON.essentialCue);
     expect(mixer.isDucked).toBe(false);
     expect(ambientBus.ramps.at(-1)).toEqual({ value: 1, seconds: DUCK_RAMP_SECONDS });
+  });
+
+  it('applies the stage and zone asked for before the files landed on refresh', async () => {
+    backend = new FakeAudioBackend();
+    cache = new AudioAssetCache(new FakeAudioAssetLoader(createTestAudioManifest(), testManifestFileNames()), backend);
+    mixer = new AmbientMixer(backend, cache, new FakeGain(1, null));
+    const manifest = parseAudioManifest(createTestAudioManifest())!;
+    mixer.setStage(CELL_STAGE.protocell);
+    mixer.setManifest(manifest);
+    mixer.setZone(ZONE_ID.sunlitShallows);
+    expect(backend.voices).toHaveLength(0);
+    await cache.preload(manifest);
+    mixer.refresh();
+    expect(mixer.currentStemKey).toBe(CELL_STAGE.protocell);
+    expect(mixer.currentZoneKey).toBe(ZONE_ID.sunlitShallows);
+    mixer.refresh();
+    expect(backend.voices).toHaveLength(2);
+    mixer.stop();
+    mixer.refresh();
+    expect(backend.playing).toHaveLength(0);
   });
 
   it('stops both layers and starts again on the next stage', () => {

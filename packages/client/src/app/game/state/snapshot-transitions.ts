@@ -139,6 +139,8 @@ export function detectTransitions(
   const memory = memoryAfter(ownCell, previous, snapshot, options);
   const events = snapshot.effects.map((effect) => effectEvent(effect, ownCell, options.ownPlayerId));
   if (ownCell) events.push(...ladderEvents(ownCell, previous), ...contactEvents(ownCell, previous, memory, snapshot));
+  // A spectator is in no danger: the drone ends here, not only through the `cell_absorbed` effect.
+  if (!ownCell && previous?.isDanger) events.push({ kind: GAME_EVENT_KIND.dangerChanged, isDanger: false });
   if (previous?.isEngulfing && !memory.isEngulfing) events.push({ kind: GAME_EVENT_KIND.engulfEnded });
   events.push(...roundEvents(previous, snapshot, options));
   return { events, memory };

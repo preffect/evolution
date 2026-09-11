@@ -150,9 +150,9 @@ export class FakeAudioAssetLoader {
 
   fetchBytes(url: string): Promise<ArrayBuffer | null> {
     this.requestedUrls.push(url);
-    const fileName = url.slice(url.lastIndexOf('/') + 1);
-    if (!this.existingFiles.has(fileName)) return Promise.resolve(null);
-    return Promise.resolve(new TextEncoder().encode(fileName).buffer as ArrayBuffer);
+    const path = url.slice(url.lastIndexOf('/') + 1);
+    if (!this.existingFiles.has(path)) return Promise.resolve(null);
+    return Promise.resolve(new TextEncoder().encode(path).buffer as ArrayBuffer);
   }
 }
 
