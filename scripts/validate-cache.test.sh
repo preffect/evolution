@@ -5,7 +5,8 @@
 #   cached; `all` stamps its phases and itself (an `all` hit prints ALL PASSED and filters see every
 #   phase's stored log); a worktree at the same content shares the stamp; a Node-major mismatch, a
 #   missing stored log and a run that changes the tree are misses; VALIDATE_CACHE_DIR overrides the
-#   directory; an unwritable directory degrades to no cache with one warning line.
+#   directory; an unwritable directory degrades to no cache with one warning line; two real gates
+#   on one machine run one after the other (gate.lock) while a hit never waits.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -17,6 +18,7 @@ trap 'rm -rf "$sandbox"' EXIT
 CACHED_HIT_SECONDS_MAX=2
 FAKE_PNPM_RC_FILE="$sandbox/fake-pnpm-rc"
 FAKE_PNPM_TOUCH_FILE="$sandbox/fake-pnpm-touch" # when non-empty: a path the fake pnpm creates (a run that changes the tree)
+FAKE_PNPM_SLEEP_FILE="$sandbox/fake-pnpm-sleep" # seconds the fake pnpm sleeps (a slow gate)
 
 # --- fixture: a git repo holding validate.sh, a stub docs-index.sh, and a fake pnpm ------------
 fixture="$sandbox/repo"
@@ -26,6 +28,7 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
 echo "fake pnpm \$*"
+sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
 touch_path="\$(cat "$FAKE_PNPM_TOUCH_FILE")"
 [[ -z "\$touch_path" ]] || echo generated > "\$touch_path"
 exit "\$(cat "$FAKE_PNPM_RC_FILE")"
@@ -33,6 +36,7 @@ PNPM
 chmod +x "$fixture/scripts/docs-index.sh" "$sandbox/bin/pnpm"
 echo 0 > "$FAKE_PNPM_RC_FILE"
 : > "$FAKE_PNPM_TOUCH_FILE"
+echo 0 > "$FAKE_PNPM_SLEEP_FILE"
 git -C "$fixture" init -q
 git -C "$fixture" -c user.name=test -c user.email=test@example.com add -A
 git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m fixture
@@ -159,6 +163,22 @@ warning_count="$(grep -c 'result cache disabled' <<<"$out" || true)"
 error_count="$(grep -c -i 'permission denied\|no such file' <<<"$out" || true)"
 check "an unwritable cache dir degrades to no cache with one warning line ($warning_count warning, $error_count errors)" $(( rc == 0 && $(ran_pnpm; echo $?) == 0 && warning_count == 1 && error_count == 0 ))
 chmod 700 "$readonly_dir"
+
+echo lock-case > "$fixture/untracked.txt"
+echo 2 > "$FAKE_PNPM_SLEEP_FILE"
+first_log="$sandbox/first-gate.log"
+(cd "$fixture" && ./validate.sh test > "$first_log" 2>&1) &
+first_pid=$!
+sleep 0.5
+started_second="$(date +%s)"
+run_validate "$fixture" test
+second_elapsed=$(( $(date +%s) - started_second ))
+wait "$first_pid" && first_rc=0 || first_rc=$?
+echo 0 > "$FAKE_PNPM_SLEEP_FILE"
+check "a second real gate waits for the first (second took ${second_elapsed}s, first rc $first_rc)" $(( rc == 0 && first_rc == 0 && $(grep -q '^waiting for another gate to finish' <<<"$out"; echo $?) == 0 && second_elapsed >= 3 ))
+run_validate "$fixture" test
+check "a cache hit never waits on the gate lock" $(( $(is_cached; echo $?) == 0 && $(grep -q 'waiting for another gate' <<<"$out"; echo $?) != 0 ))
+rm -f "$fixture/untracked.txt"
 
 if [[ $failures -gt 0 ]]; then
   echo "validate-cache.test.sh: $failures failure(s)"

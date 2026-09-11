@@ -37,7 +37,10 @@ each is checkable. An AI building a game from this template MUST follow every ru
      never cached. The stamp names the tree a reviewer cites (`docs/TEAM.md` review loop). Nothing
      prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
      rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
-     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp;
+     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **One real gate
+     at a time per machine** (#234): every non-cached run holds `<cache dir>/gate.lock`, so a second
+     agent's gate prints `waiting for another gate to finish …` and queues instead of both starving
+     the box; a cache hit never waits. `VALIDATE_NO_GATE_LOCK=1` disables it for a sandboxed test;
    - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.
 2. **After ANY task that modifies code, run `./validate.sh all` and make it green before
    considering the work done.** Do not skip this step. Fix every failure before moving on.

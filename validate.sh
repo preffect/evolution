@@ -222,6 +222,26 @@ cache_store() {
 
 append_all_raw() { [[ -z "$ALL_RAW_FILE" ]] || printf '%s\n' "$1" >> "$ALL_RAW_FILE"; }
 
+# One real gate at a time per machine: every non-cached run holds an exclusive lock on
+# <cache dir>/gate.lock (or ${TMPDIR:-/tmp}/<slug>-validate-gate.lock when the cache is disabled),
+# so concurrent agents queue instead of starving each other's tests; a cache hit never takes it.
+GATE_LOCK_FD=""
+gate_lock_path() {
+  if [[ -n "$CACHE_DIR" ]]; then echo "$CACHE_DIR/gate.lock"; else echo "${TMPDIR:-/tmp}/$(cache_slug)-validate-gate.lock"; fi
+}
+gate_lock_acquire() { # <cmd>
+  [[ "${VALIDATE_NO_GATE_LOCK:-0}" == "1" ]] && return 0
+  local path
+  path="$(gate_lock_path)"
+  exec 9>>"$path" || { echo "validate.sh: gate lock unavailable ($path); running unlocked" >&2; return 0; }
+  GATE_LOCK_FD=9
+  if ! flock -n 9; then
+    echo "waiting for another gate to finish before $1 (lock $path)"
+    flock 9
+  fi
+}
+gate_lock_release() { [[ -z "$GATE_LOCK_FD" ]] || { flock -u 9; exec 9>&-; GATE_LOCK_FD=""; }; }
+
 # Runs <cmd> through the cache: a hit prints the stamp (and feeds the stored phase log to the
 # `all` log, so filters on an `all` hit see every phase); a green run is stamped; red never is.
 run_cached() {
@@ -233,7 +253,9 @@ run_cached() {
     return 0
   fi
   local rc=0
+  gate_lock_acquire "$cmd"
   run_one "$cmd" "$@" || rc=$?
+  gate_lock_release
   append_all_raw "$RUN_ONE_OUTPUT"
   if [[ $rc -eq 0 ]]; then
     cache_store "$cmd" "$RUN_ONE_OUTPUT"
