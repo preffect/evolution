@@ -493,8 +493,8 @@ measurement that confirms the estimate; #103 records it.
   `trait_cue` at a trait's keyframe, TRAITS §3) and the HUD raises `trait_picked` and `ui_click`. Subscribers
   (the sound bus today; the toast and onboarding services, the effects layer) never see each other, and
   `game-setup.ts` is the only place that feeds the tracker and connects the subscribers (`AUDIO.md` §5).
-- **Cosmetics** draw from `fork(RANDOM_STREAM.cosmetic + ':' + cellId)` of the round seed so a
-  paused screenshot reproduces.
+- **Cosmetics** draw from the round seed's cosmetic stream and its `COSMETIC_SUB_STREAM` forks
+  (`RENDERING.md §1` owns the derivation) so a paused screenshot reproduces.
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
   110 fragments) at 1080p; the per-stage budget, the 100-cell bench scene that proves headroom above that
   baseline, and how a cell is drawn are [`RENDERING.md`](./RENDERING.md) §7.

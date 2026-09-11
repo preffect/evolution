@@ -81,7 +81,14 @@ export const ENVELOPE_BRIGHTNESS_BY_TIER = [1.0, 1.1, 1.2] as const;
 export const ENVELOPE_PORE_GAP_PX = 3;
 export const MITOCHONDRION = { length: 0.16, width: 0.08, cristae: 3, sprintScale: 1.15 } as const;
 export const CHLOROPLAST = { radius: 0.17, granules: 6, shallowsGlowBoost: 0.4, membraneTint: 0.2 } as const;
-export const FOOD_VACUOLE = { radius: 0.12, cycleSeconds: 2, riseRadii: 0.1 } as const;
+/** A food vacuole grows from `growFromScale` to 1 over a cycle, rises `riseRadii`, and pops over the last `popShare`. */
+export const FOOD_VACUOLE = {
+  radius: 0.12,
+  cycleSeconds: 2,
+  riseRadii: 0.1,
+  growFromScale: 0.5,
+  popShare: 0.15,
+} as const;
 export const TOXIN_VACUOLE = { radius: 0.34, pulseScale: 1.08, pulseHz: 1, wispsByTier: [3, 5, 7] } as const;
 export const LIPID_DROPLET = { radiusMin: 0.05, radiusMax: 0.07, count: 2 } as const;
 export const PROTOCELL_GRANULE_COUNT = 3;

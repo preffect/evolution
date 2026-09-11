@@ -99,9 +99,19 @@ export const POOL_BLUR_RADII = 0.125;
 export const LIGHT_POOL = { alpha: 0.14, radiusX: 0.6, radiusY: 0.45, offset: 0.53, angleDeg: -131 } as const;
 export const DARK_POOL = { alpha: 0.5, radiusX: 0.9, radiusY: 0.7, offset: 0.67, angleDeg: 48 } as const;
 export const CYTO_NOISE_MAX_RADII = 0.89;
+/** The noise band's soft outer edge, inside `CYTO_NOISE_MAX_RADII`. */
+export const CYTO_NOISE_EDGE_BLUR_RADII = 0.05;
 export const NOISE_TILE_SIZE_PX = 256;
 export const NOISE_TILE_WU = 64;
-export const CYTO_NOISE_COARSE = { octaves: 3, cycles: 12, alphaGain: 1.6, alphaBias: -0.62, alpha: 0.22 } as const;
+/** The coarse mottle is white mixed this far toward the palette rim; the fine one is white (§2.2). */
+export const CYTO_NOISE_COARSE = {
+  octaves: 3,
+  cycles: 12,
+  alphaGain: 1.6,
+  alphaBias: -0.62,
+  alpha: 0.22,
+  rimMix: 0.7,
+} as const;
 export const CYTO_NOISE_FINE = { octaves: 2, cycles: 29, alphaGain: 1.8, alphaBias: -0.95, alpha: 0.18 } as const;
 export const RIBOSOME_BAND_MIN_RADII = 0.55;
 export const RIBOSOME_BAND_MAX_RADII = 0.89;
@@ -124,8 +134,6 @@ export const SOFT_RIM_OUTER_RADII = 1.1;
 export const SOFT_RIM_BLUR_RADII = 0.08;
 export const SOFT_RIM_ALPHA = 0.35;
 export const RIM_LIGHT_HALF_WIDTH_RADII = 0.025;
-/** The full rim-light band, the placeholder disc's edge stroke (slice A). */
-export const RIM_LIGHT_WIDTH_RADII = 0.05;
 export const RIM_LIGHT_STOPS = [0, 0.18, 0.55, 1] as const;
 export const RIM_LIGHT_ALPHAS = [0.95, 0.95, 0.55, 0.55] as const;
 export const OUTLINE_MIN_PX = 0.8;

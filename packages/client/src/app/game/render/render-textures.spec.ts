@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DNA_TAGS } from '@evolution/shared';
+import { DNA_TAGS, PLAYER_PALETTE_COUNT } from '@evolution/shared';
 import { createFakeTextureBaker, createTestRenderTextures } from '../../../testing/fake-pixi-app';
 import {
   FIELD_TEXTURE_PX,
@@ -8,6 +8,7 @@ import {
   NOISE_STRIP_WIDTH,
   NOISE_TILE_SIZE_PX,
   ORGANELLE_KIND,
+  PALETTE_SHADE_COUNT,
   VIGNETTE_ALPHA,
   VIGNETTE_RADIUS_FRACTION,
   VIGNETTE_TEXTURE_PX,
@@ -50,6 +51,14 @@ describe('createRenderTextures', () => {
     expect(textures.strip.rows).toBe(NOISE_STRIP_ROWS);
     expect(textures.stripTexture.style.scaleMode).toBe('nearest');
     expect(textures.tileTexture.style.addressMode).toBe('repeat');
+    expect(textures.tileTexture.autoGenerateMipmaps).toBe(true);
+    expect(textures.stripTexture.autoGenerateMipmaps).toBe(false);
+    expect(textures.paletteTexture.autoGenerateMipmaps).toBe(false);
+    expect([textures.paletteTexture.width, textures.paletteTexture.height]).toEqual([
+      PALETTE_SHADE_COUNT,
+      PLAYER_PALETTE_COUNT,
+    ]);
+    expect(textures.paletteTexture.style.scaleMode).toBe('nearest');
   });
 
   it('forks the cosmetic stream from the seed, so the same seed draws the same values', () => {
@@ -75,6 +84,7 @@ describe('createRenderTextures', () => {
     expect(textures.organelles.lipid.texture.destroyed).toBe(true);
     expect(textures.stripTexture.destroyed).toBe(true);
     expect(textures.tileTexture.destroyed).toBe(true);
+    expect(textures.paletteTexture.destroyed).toBe(true);
   });
 });
 
