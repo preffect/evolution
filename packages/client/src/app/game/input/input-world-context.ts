@@ -7,6 +7,15 @@ import { ROUND_PHASE } from '@evolution/shared';
 import type { WorldStore } from '../net/world-store';
 import type { InputWorldContext } from './game-input-builder';
 
+/**
+ * **Invariant the trait-pick retry depends on: the offer and the applied sequence come from one
+ * snapshot.** `trait-pick.ts` compares them against each other, so they have to describe the same
+ * moment of the server's world; read from two snapshots they could say "answered past my send"
+ * and "the offer is still open" about different ticks, and a pick that landed would be resent.
+ * The server half of the same invariant is `applyPlayerInput` (`game/simulation/inputs.ts`).
+ * Pinned by `input-world-context.spec.ts` ("pairs the offer with the applied sequence of the same
+ * snapshot").
+ */
 export function inputWorldContextOf(store: WorldStore): InputWorldContext | null {
   const snapshot = store.latestSnapshot();
   const balance = store.balance;

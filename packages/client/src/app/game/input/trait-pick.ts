@@ -12,6 +12,14 @@
 //     was sent with and the offer it names is *still* open, the pick did not take and is sent
 //     again. Once that offer is gone from the client's model — picked, timed out, or replaced —
 //     the pick is discarded. So it is sent once in the good case and never applied twice.
+//
+// **Case 3 rests on two facts outside this file, and breaks quietly if either is split.** The
+// server records `appliedInputSequence` and resolves `traitChoice` in one tick, in one function
+// (`server/src/game/simulation/inputs.ts`, `applyPlayerInput`), so no snapshot shows a sequence
+// past a pick whose fate is undecided; and `input-world-context.ts` reads the offer and the
+// applied sequence out of the *same* snapshot, so the two facts describe one moment. Either one
+// split, and a pick that was applied would read as rejected and be sent again. Both ends carry
+// the same note, and both are pinned by a test.
 
 import type { TraitOfferView, ValueOf } from '@evolution/shared';
 import type { InputWorldContext } from './game-input-builder';
