@@ -15,7 +15,6 @@ export interface OrganelleMotion {
 
 /** No motion at all: the sprite sits on its slot at full size and alpha (a ghost's draw, #243). */
 export const ORGANELLE_MOTION_AT_REST: OrganelleMotion = { scale: 1, alpha: 1, lift: 0 };
-const REST = ORGANELLE_MOTION_AT_REST;
 
 /** Grows from `growFromScale` to 1 over the cycle, rises, and fades over the last `popShare`. */
 function vacuoleMotion(phase: number, timeSeconds: number): OrganelleMotion {
@@ -28,7 +27,7 @@ function vacuoleMotion(phase: number, timeSeconds: number): OrganelleMotion {
 
 function toxinMotion(phase: number, timeSeconds: number): OrganelleMotion {
   const breath = (Math.sin(RADIANS_PER_FULL_TURN * (timeSeconds * TOXIN_VACUOLE.pulseHz + phase)) + 1) * HALF;
-  return { ...REST, scale: 1 + (TOXIN_VACUOLE.pulseScale - 1) * breath };
+  return { ...ORGANELLE_MOTION_AT_REST, scale: 1 + (TOXIN_VACUOLE.pulseScale - 1) * breath };
 }
 
 export function organelleMotion(
@@ -39,12 +38,12 @@ export function organelleMotion(
 ): OrganelleMotion {
   switch (kind) {
     case ORGANELLE_KIND.mitochondrion:
-      return isSprinting ? { ...REST, scale: MITOCHONDRION.sprintScale } : REST;
+      return isSprinting ? { ...ORGANELLE_MOTION_AT_REST, scale: MITOCHONDRION.sprintScale } : ORGANELLE_MOTION_AT_REST;
     case ORGANELLE_KIND.toxinVacuole:
       return toxinMotion(phase, timeSeconds);
     case ORGANELLE_KIND.foodVacuole:
       return vacuoleMotion(phase, timeSeconds);
     default:
-      return REST;
+      return ORGANELLE_MOTION_AT_REST;
   }
 }

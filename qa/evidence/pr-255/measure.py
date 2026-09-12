@@ -18,10 +18,20 @@ def cyan(p):  # cyan-ish line signal: blue+green above red
 # independent cross-check is R_edge, the cell body's own outer edge (the half-max of the rim-light
 # fall-off against the floor of the gap between the body and the band); it reads a little inside R
 # because the outline's antialiased skirt is counted as body.
+# The spec, mirroring constants/cell-shape.ts: the base band is 1.05 -> 1.095 with the hairline at
+# 1.075, and the thickness and the hairline offset scale per tier off the inner edge.
 CELL_WALL_INNER_RADII = 1.05
-CELL_WALL_OUTER_RADII = 1.05 + 0.045 * 1.5  # tier I: inner + thickness x CELL_WALL_SCALE_BY_TIER[0]
-CELL_WALL_HAIRLINE_RADII = 1.05 + 0.025 * 1.5
+CELL_WALL_BASE_OUTER_RADII = 1.095
+CELL_WALL_BASE_HAIRLINE_RADII = 1.075
+CELL_WALL_TIER_I_SCALE = 1.5  # CELL_WALL_SCALE_BY_TIER[0]
 EDGE_WINDOW = 12  # px inward from the band for the body-edge cross-check
+
+def tierOne(baseRadii):
+    """A base band radius read at tier I: the inner edge plus its scaled offset from it."""
+    return CELL_WALL_INNER_RADII + (baseRadii - CELL_WALL_INNER_RADII) * CELL_WALL_TIER_I_SCALE
+
+CELL_WALL_OUTER_RADII = tierOne(CELL_WALL_BASE_OUTER_RADII)
+CELL_WALL_HAIRLINE_RADII = tierOne(CELL_WALL_BASE_HAIRLINE_RADII)
 
 def crossing(profile, index, value):
     """The sub-pixel d where `profile` crosses `value` between samples `index` and `index + 1`."""
