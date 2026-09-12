@@ -38,6 +38,10 @@ export const COSMETIC_SUB_STREAM = {
   organelles: 'organelles',
   /** One cell's cosmetic phases, strip row and organelle slots: `fork(cell + ':' + cellId)` (#215). */
   cell: 'cell',
+  /** One mote's breath rate and phase and a bacterium's tumble phase: `fork(mote + ':' + moteId)` (#207). */
+  mote: 'mote',
+  /** One DNA fragment's spin phase: `fork(fragment + ':' + fragmentId)` (#207). */
+  fragment: 'fragment',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];

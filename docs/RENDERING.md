@@ -346,16 +346,16 @@ Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one
 (VISUAL-STYLE §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
 the vent shimmer is the one filter, over the vent sprite only. Draw calls at the bench load (§7):
 
-| Layer (`ARCHITECTURE.md §6`) | Container                                                                                                                                        | Calls |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| dish                         | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                             | 4     |
-| depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                  | 3     |
-| food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants)                                                                | 1     |
-| DNA fragments                | sprite batch: helix + tag-tinted rungs / halo from the glow atlas, 20 °/s                                                                        | 1     |
-| cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                      | 4     |
-| effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters                                                                 | 2     |
-| debug                        | `Graphics` + text, none when off                                                                                                                 | 0–2   |
-| HUD                          | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`) | 0     |
+| Layer (`ARCHITECTURE.md §6`) | Container                                                                                                                                                      | Calls |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| dish                         | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                           | 4     |
+| depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                | 3     |
+| food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`) | 1     |
+| DNA fragments                | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s     | 1     |
+| cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                                    | 4     |
+| effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters                                                                               | 2     |
+| debug                        | `Graphics` + text, none when off                                                                                                                               | 0–2   |
+| HUD                          | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`)               | 0     |
 
 Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). Culling: cells whose
 quad misses `cameraExtent` are not uploaded; motes and fragments are all uploaded (the bench load's quads are
@@ -471,12 +471,13 @@ numbers in #99's PR body come from a hardware run of the same route.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index)
 constants/{colours,cell-shape,organelles,world-render,vent}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×16 RGBA jitter / lobes strip (16-bit pairs, derivatives from the lerp), from the cosmetic fork (#206)
 textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`BakeContext2D`, the DOM factory, the fill / stroke / halo / glint primitives), the feathered ellipse and soft stroke that stand in for the sheets' blurs, and the one place a bake or a byte table becomes a Pixi texture (#206)
 textures/radial-bake.ts                              the per-pixel radial sampler behind the soft disc and the vignette: premultiplied bytes a spec can read back (#229)
 textures/{glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts   the atlases and the field, each a pure bake over the seam (#206)
+textures/atlas-layout.ts                             shelf packing of the mote and fragment bakes into the one canvas the food `ParticleContainer` draws from (`TextureBaker.atlasFromBakes`, #207)
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
@@ -487,9 +488,10 @@ cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScri
 cells/{cell-clips,cell-effects,ghost-cells,ghost-instance}.ts  the clip hooks (tracks → deformation), effects → clip starts and ghosts, the absorbed-prey ghosts and their instance rows (#216; #207 drives the first two)
 cells/{organelle-kinds,organelle-layout,organelle-mapper,organelle-motion,organelle-sprites,flagellum-lines}.ts   counts, seeded slots, the mapping through the profile, sprite motion, the pooled sprites (#215); flagella #216
 cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   the registry and aspects (#216); the silhouettes (#192–#196, #121)
-food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts
+food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts   one `ParticleContainer` over the mote atlas and the fragment sprites above it, one render state per mote (cosmetic draws, held heading) in a `ViewRegistry`; the pure appearance rules (#207)
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
-effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts
+effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
+effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows

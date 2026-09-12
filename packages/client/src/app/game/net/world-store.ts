@@ -50,11 +50,27 @@ export interface GameStateApplied {
   readonly avatarAssignments: Readonly<Record<string, number>>;
 }
 
+/** Effects carry no id: the same moment is the same kind, tick and cells (docs/ARCHITECTURE.md §2). */
+export function isSameEffect(first: GameEffect, second: GameEffect): boolean {
+  if (first.kind !== second.kind || first.tick !== second.tick) return false;
+  const firstCell = 'cellId' in first ? first.cellId : null;
+  const secondCell = 'cellId' in second ? second.cellId : null;
+  const firstPredator = 'predatorCellId' in first ? first.predatorCellId : null;
+  const secondPredator = 'predatorCellId' in second ? second.predatorCellId : null;
+  return firstCell === secondCell && firstPredator === secondPredator;
+}
+
 export class WorldStore {
   private readonly snapshots = new SnapshotBuffer();
   private readonly estimator = new ServerTickEstimator();
   private readonly food = new FoodStore();
   private pendingEffects: GameEffect[] = [];
+  /**
+   * The moments already drained from the latest tick onward (#237): a paused room's render tick runs
+   * to `latest + MAX_EXTRAPOLATION_TICKS`, so tick T's effects play before a debug tool republishes T;
+   * the republish must not fire them again. Cleared when a newer tick appends.
+   */
+  private drainedEffects: GameEffect[] = [];
   private balanceValue: BalanceConfig | null = null;
   private ownPlayerIdValue: PlayerId | null = null;
   private avatarAssignmentsValue: Readonly<Record<string, number>> = {};
@@ -77,10 +93,20 @@ export class WorldStore {
   applySnapshot(snapshot: GameSnapshot): boolean {
     const outcome = this.snapshots.push(snapshot);
     if (outcome === SNAPSHOT_PUSH.stale) return false;
-    if (outcome === SNAPSHOT_PUSH.appended) this.estimator.observe(snapshot.tick, this.clock.nowMilliseconds());
+    if (outcome === SNAPSHOT_PUSH.appended) {
+      this.estimator.observe(snapshot.tick, this.clock.nowMilliseconds());
+      this.drainedEffects = [];
+    }
     this.food.applyDelta(snapshot.food, snapshot.tick);
-    this.pendingEffects.push(...snapshot.effects);
+    const fresh = outcome === SNAPSHOT_PUSH.replaced ? this.effectsNotSeen(snapshot.effects) : snapshot.effects;
+    this.pendingEffects.push(...fresh);
     return true;
+  }
+
+  /** A republished tick carries its effects again (#237): the ones neither pending nor already drained. */
+  private effectsNotSeen(effects: readonly GameEffect[]): GameEffect[] {
+    const seen = [...this.pendingEffects, ...this.drainedEffects];
+    return effects.filter((effect) => !seen.some((known) => isSameEffect(known, effect)));
   }
 
   applyBalance(balance: BalanceConfig): void {
@@ -136,17 +162,21 @@ export class WorldStore {
       cells,
       motes: this.food.motesAt(renderTick),
       fragments: interpolateFragments(from.dnaFragments, target.dnaFragments, weight),
-      effects: this.drainEffects(renderTick),
+      effects: this.drainEffects(renderTick, latest.tick),
       latest,
       balance,
     };
   }
 
-  /** Effects fire when the render tick reaches theirs, so a burst lines up with the interpolated cell. */
-  private drainEffects(renderTick: number): GameEffect[] {
+  /**
+   * Effects fire when the render tick reaches theirs, so a burst lines up with the interpolated cell.
+   * The drained ones at or past the latest tick are remembered, so a republish of that tick cannot re-fire them.
+   */
+  private drainEffects(renderTick: number, latestTick: number): GameEffect[] {
     const due = this.pendingEffects.filter((effect) => effect.tick <= renderTick);
     if (due.length === 0) return due;
     this.pendingEffects = this.pendingEffects.filter((effect) => effect.tick > renderTick);
+    this.drainedEffects.push(...due.filter((effect) => effect.tick >= latestTick));
     return due.sort((first, second) => first.tick - second.tick);
   }
 
@@ -162,5 +192,6 @@ export class WorldStore {
     this.estimator.reset();
     this.food.reset();
     this.pendingEffects = [];
+    this.drainedEffects = [];
   }
 }

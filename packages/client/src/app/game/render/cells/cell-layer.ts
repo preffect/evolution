@@ -95,8 +95,8 @@ export class CellLayer {
     };
   }
 
-  /** The last view a cell was drawn with: the ghost's source once the entity is gone. */
-  private lastViewOf(cellId: EntityId): CellView | undefined {
+  /** The last view a cell was drawn with: the ghost's and the effects' source once the entity is gone (until the next sync). */
+  lastViewOf(cellId: EntityId): CellView | undefined {
     return this.registry.get(cellId)?.lastView ?? undefined;
   }
 

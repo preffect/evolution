@@ -3,13 +3,58 @@
 // (the noise strip, the palette) or samples (the noise tile), and the RGBA32F instance texture
 // the cell mesh re-uploads every frame.
 
-import { BufferImageSource, Texture, type TextureSource } from 'pixi.js';
+import { BufferImageSource, CanvasSource, Rectangle, Texture, type TextureSource } from 'pixi.js';
+import { layoutAtlas, type AtlasLayout } from './atlas-layout';
 import type { BakeCanvas } from './texture-bake';
 
 /** A sprite texture from a bake; the bake's element must be a real canvas (the DOM factory's). */
 export function textureFromBake(bake: BakeCanvas): Texture {
+  return Texture.from(requireElement(bake));
+}
+
+/** One texture per key over one shared source: what a `ParticleContainer` needs (docs/RENDERING.md §6). */
+export interface SpriteAtlas<Key extends string> {
+  readonly source: TextureSource;
+  readonly textures: Readonly<Record<Key, Texture>>;
+}
+
+function requireElement(bake: BakeCanvas): HTMLCanvasElement {
   if (bake.element === null) throw new Error('A texture needs a DOM canvas behind the bake.');
-  return Texture.from(bake.element);
+  return bake.element;
+}
+
+/** Paints every bake into one canvas at its frame of `layout` and returns the frame textures over that one source. */
+function paintAtlas<Key extends string>(
+  bakes: Readonly<Record<Key, BakeCanvas>>,
+  layout: AtlasLayout<Key>,
+): SpriteAtlas<Key> {
+  const keys = Object.keys(bakes) as Key[];
+  const first = keys[0];
+  if (first === undefined) throw new Error('An atlas needs at least one bake.');
+  const documentReference = requireElement(bakes[first]).ownerDocument;
+  const canvas = documentReference.createElement('canvas');
+  canvas.width = layout.width;
+  canvas.height = layout.height;
+  const context = canvas.getContext('2d');
+  if (context === null) throw new Error('The atlas canvas has no 2D context.');
+  for (const key of keys) {
+    const frame = layout.frames[key];
+    context.drawImage(requireElement(bakes[key]), frame.x, frame.y);
+  }
+  const source = new CanvasSource({ resource: canvas });
+  const textures = {} as Record<Key, Texture>;
+  for (const key of keys) {
+    const { x, y, width, height } = layout.frames[key];
+    textures[key] = new Texture({ source, frame: new Rectangle(x, y, width, height) });
+  }
+  return { source, textures };
+}
+
+/** Every bake of a record packed into one atlas canvas (`atlas-layout.ts`), each a frame texture of the one source. */
+export function atlasTexturesFromBakes<Key extends string>(bakes: Readonly<Record<Key, BakeCanvas>>): SpriteAtlas<Key> {
+  const sizes = {} as Record<Key, { width: number; height: number }>;
+  for (const key of Object.keys(bakes) as Key[]) sizes[key] = { width: bakes[key].width, height: bakes[key].height };
+  return paintAtlas(bakes, layoutAtlas(sizes));
 }
 
 /** Every bake of a record as a texture, under the same keys. */

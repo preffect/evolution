@@ -3,12 +3,12 @@
 // atlas is palette-relative (nucleus, nucleoid). Between pass A and pass B of the cell mesh. The
 // interior organelles fade with the LOD's interior blend; the nucleus keeps through mid (§5).
 
-import { Container, Sprite } from 'pixi.js';
+import { Container, type Sprite } from 'pixi.js';
 import { hexToNumber } from '../colour';
 import { ORGANELLE_KIND, WHITE, type OrganelleKind } from '../constants';
-import { HALF } from '../geometry';
 import type { PlayerPalette } from '../palette';
 import type { OrganelleSpriteTexture } from '../render-textures';
+import { SpritePool } from '../sprite-pool';
 import type { CellInstance } from './cell-instance';
 import type { CellLod } from './cell-lod';
 import type { OrganellePlacement } from './cell-render-state';
@@ -29,20 +29,9 @@ const UNTINTED = hexToNumber(WHITE);
 
 export class OrganelleSprites {
   readonly container = new Container();
-  private readonly pool: Sprite[] = [];
+  private readonly pool = new SpritePool(this.container);
 
   constructor(private readonly textures: OrganelleTextures) {}
-
-  /** The pooled sprite at `index`, created on first use and kept for the layer's lifetime. */
-  private spriteAt(index: number): Sprite {
-    const existing = this.pool[index];
-    if (existing !== undefined) return existing;
-    const sprite = new Sprite();
-    sprite.anchor.set(HALF);
-    this.pool.push(sprite);
-    this.container.addChild(sprite);
-    return sprite;
-  }
 
   /** The nucleus and nucleoid bakes are white and take the palette's colour here; the rest are baked in colour. */
   private tintFor(kind: OrganelleKind, palette: PlayerPalette): number {
@@ -71,19 +60,16 @@ export class OrganelleSprites {
     let used = 0;
     for (const draw of draws) {
       for (const placement of draw.organelles) {
-        this.place(this.spriteAt(used), draw, placement, timeSeconds);
+        this.place(this.pool.spriteAt(used), draw, placement, timeSeconds);
         used += 1;
       }
     }
-    for (let index = used; index < this.pool.length; index += 1) {
-      const sprite = this.pool[index];
-      if (sprite !== undefined) sprite.visible = false;
-    }
+    this.pool.hideFrom(used);
     return used;
   }
 
   get poolSize(): number {
-    return this.pool.length;
+    return this.pool.size;
   }
 
   destroy(): void {

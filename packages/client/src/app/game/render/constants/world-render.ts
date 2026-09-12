@@ -183,6 +183,10 @@ export const DNA_FRAGMENT_RUNGS = 5;
 export const DNA_FRAGMENT_RUNG_PX = 2;
 export const DNA_FRAGMENT_ROTATION_DEG_PER_SECOND = 20;
 export const DNA_FRAGMENT_HALO = { radius: 14, alpha: 0.2, innerRadius: 12, innerAlpha: 0.3 } as const;
+/** A bacterium that moved less than this between two frames is still: its rod keeps the heading it had (docs/RENDERING.md §1). */
+export const BACTERIUM_HEADING_STILL_WU = 0.05;
+/** Clear texels between two sprites of a packed atlas, so linear sampling never bleeds a neighbour in. */
+export const ATLAS_PADDING_PX = 2;
 
 // ---- glow atlas (ASSET-GENERATION §1.5) ----
 export const GLOW_TEXTURE_PX = 128;
@@ -199,7 +203,11 @@ export const RAY_GRADIENT_STOPS = 3;
 // ---- effects (sheet 03, VISUAL-STYLE §5) ----
 export const LEVEL_UP_RAYS = 16;
 export const LEVEL_UP_RAY_WIDTH_RADII = 0.08;
-export const LEVEL_UP_RIPPLES = 3;
+/** The rays sit outside the body (sheet 03 strip C frame 03): base at the rim, the `rayRadii` track is the tip. */
+export const LEVEL_UP_RAY_BASE_RADII = 1.2;
+/** Three concentric dish ripples at these radii (sheet 03 strip C, RENDERING §4), pushed outward by the `rippleRadii` track. */
+export const LEVEL_UP_RIPPLE_RADII = [1.7, 2.1, 2.5] as const;
+export const LEVEL_UP_RIPPLES = LEVEL_UP_RIPPLE_RADII.length;
 export const EFFECT_RING_ALPHA = 0.6;
 export const EFFECT_HALO_ALPHA = 0.5;
 export const ABSORBED_STREAMS = 3;
@@ -209,6 +217,21 @@ export const RETICLE_RADIUS_PX = 10;
 export const RETICLE_DOT_SPACING_PX = 10;
 export const RETICLE_DOT_RADIUS_PX = 1.5;
 export const RETICLE_ALPHA = 0.55;
+/** The dotted line from the own cell to the pointer stops here: enough for a pointer at the far corner of a 1080p view. */
+export const RETICLE_LINE_MAX_DOTS = 120;
+/** The DNA streams of an absorption, as a share of the prey's radius (sheet 03 strip B). */
+export const ABSORBED_STREAM_RADII = 0.5;
+/** Each ripple of a level-up is this share of the previous one's alpha (sheet 03 strip C: three fading ripples). */
+export const LEVEL_UP_RIPPLE_FALLOFF = 0.6;
+/** The eat strip's halo (sheet 03 A frame 04 "rim flare, halo"): a soft glow at the pulse and a ring that fades at settle. */
+export const EAT_HALO_ALPHA = 0.5;
+export const EAT_HALO_RING_ALPHA = 0.6;
+/**
+ * A running effect whose cell was never drawn (a respawn off screen) sizes its sprites on this radius (wu):
+ * a little under the level-1 protocell (mass 20 → 17.9 wu at the default radius scale), so an unseen bloom
+ * never reads larger than the cell it announces.
+ */
+export const EFFECT_FALLBACK_RADIUS_WU = 12;
 export const ZONE_ENTRY_BRIGHTEN = 0.2;
 export const ZONE_ENTRY_SECONDS = 0.3;
 /** After an eat effect the halo sprite fades over the clip's last tween. */

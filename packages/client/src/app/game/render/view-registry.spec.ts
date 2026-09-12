@@ -39,6 +39,29 @@ describe('ViewRegistry', () => {
     expect(registry.get('c')).toBe(second.created[0]);
   });
 
+  it('forEachSynced visits every item with its view and index, creating and destroying like sync', () => {
+    const { registry, destroy } = createRegistry();
+    const visited: [number, string, number][] = [];
+    registry.forEachSynced([{ id: 'a', value: 1 }], (item, view, index) => visited.push([item.value, view.id, index]));
+    const first = registry.get('a');
+    registry.forEachSynced(
+      [
+        { id: 'b', value: 2 },
+        { id: 'a', value: 3 },
+      ],
+      (item, view, index) => visited.push([item.value, view.id, index]),
+    );
+    expect(visited).toEqual([
+      [1, 'a', 0],
+      [2, 'b', 0],
+      [3, 'a', 1],
+    ]);
+    expect(registry.get('a')).toBe(first);
+    registry.forEachSynced([], () => undefined);
+    expect(destroy).toHaveBeenCalledTimes(2);
+    expect(registry.size).toBe(0);
+  });
+
   it('destroys everything on clear', () => {
     const { registry, destroy } = createRegistry();
     registry.sync([{ id: 'a', value: 1 }]);

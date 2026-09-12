@@ -26,7 +26,7 @@ import {
   MOTE_SMALL_VARIANT_PX_PER_WU,
   WHITE,
 } from '../constants';
-import { bakeBacteriumRod } from './bacterium-bake';
+import { bakeBacteriumRod, bakeRodGlint } from './bacterium-bake';
 import { bakeFragmentSprite } from './fragment-bake';
 import {
   createBodyCanvas,
@@ -50,12 +50,16 @@ export const MOTE_SPRITE = {
 } as const;
 export type MoteSpriteKey = (typeof MOTE_SPRITE)[keyof typeof MOTE_SPRITE];
 
-export interface MoteAtlasBakes {
-  /** Full-size sprites at `MOTE_ATLAS_PX_PER_WU`. */
-  readonly full: Readonly<Record<MoteSpriteKey, BakeCanvas>>;
-  /** The pre-rendered variants for zoom below `MOTE_SMALL_VARIANT_MAX_ZOOM`. */
-  readonly small: Readonly<Record<MoteSpriteKey, BakeCanvas>>;
+/** The two variants of one sprite: full-size at `MOTE_ATLAS_PX_PER_WU`, small below `MOTE_SMALL_VARIANT_MAX_ZOOM`. */
+export interface MoteVariants<Bake> {
+  readonly full: Bake;
+  readonly small: Bake;
+}
+
+export interface MoteAtlasBakes extends MoteVariants<Readonly<Record<MoteSpriteKey, BakeCanvas>>> {
   readonly fragments: Readonly<Record<DnaTag, BakeCanvas>>;
+  /** The rod glint, drawn unrotated over a rod so the light stays top-left (bacterium-bake.ts). */
+  readonly rodGlint: MoteVariants<BakeCanvas>;
   /** Sprite px per world unit, per variant, so a sprite scales to `wu × zoom`. */
   readonly fullPxPerWu: number;
   readonly smallPxPerWu: number;
@@ -112,6 +116,10 @@ export function bakeMoteAtlas(factory: BakeCanvasFactory): MoteAtlasBakes {
     full: bakeSet(factory, MOTE_ATLAS_PX_PER_WU),
     small: bakeSet(factory, MOTE_SMALL_VARIANT_PX_PER_WU),
     fragments,
+    rodGlint: {
+      full: bakeRodGlint(factory, BACTERIUM_RADIUS * MOTE_ATLAS_PX_PER_WU),
+      small: bakeRodGlint(factory, BACTERIUM_RADIUS * MOTE_SMALL_VARIANT_PX_PER_WU),
+    },
     fullPxPerWu: MOTE_ATLAS_PX_PER_WU,
     smallPxPerWu: MOTE_SMALL_VARIANT_PX_PER_WU,
   };
