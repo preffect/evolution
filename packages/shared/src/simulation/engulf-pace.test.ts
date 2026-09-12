@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { TICK_INTERVAL_S } from '../constants/network.js';
 import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';
-import { engulfPredatorPaceModifiersOf, engulfPreyPaceModifiersOf } from './engulf-modifiers.js';
 import {
   ENGULF_PHASE,
   engulfBaseRatePerTick,
@@ -19,8 +18,9 @@ import {
 } from './engulf-pace.js';
 
 const absorption = DEFAULT_BALANCE.absorption;
-const identityPredator: EngulfPredatorPaceModifiers = engulfPredatorPaceModifiersOf(DEFAULT_CELL_MODIFIERS);
-const identityPrey: EngulfPreyPaceModifiers = engulfPreyPaceModifiersOf(DEFAULT_CELL_MODIFIERS);
+/** The folded record of a cell with no traits: every pace term at its identity (docs/TRAITS.md §2). */
+const identityPredator: EngulfPredatorPaceModifiers = DEFAULT_CELL_MODIFIERS;
+const identityPrey: EngulfPreyPaceModifiers = DEFAULT_CELL_MODIFIERS;
 /** docs/ECOLOGY.md §8 E9: a 100-mass predator on a 20-mass prey pays out on tick 36. */
 const E9_PREDATOR_MASS = 100;
 const E9_PREY_MASS = 20;

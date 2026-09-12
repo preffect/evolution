@@ -7,6 +7,7 @@ import {
   CELL_KIND,
   DEFAULT_CELL_MODIFIERS,
   DNA_TAGS,
+  NO_STEER_COMMAND,
   ENTITY_KIND,
   PLAYER_LIFE_STATE,
   STARTING_STAGE,
@@ -99,6 +100,8 @@ export function createCellRecord(world: WorldState, player: PlayerRecord, centre
     carriedOffsetX: null,
     carriedOffsetY: null,
     spitOutRefractories: [],
+    steerCommand: NO_STEER_COMMAND,
+    lastRelease: null,
   };
   refreshCellDerivedState(cell, player, world.balance);
   world.cells.push(cell);

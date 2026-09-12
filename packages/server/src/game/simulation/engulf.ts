@@ -9,84 +9,47 @@ import {
   ENGULF_HOLD,
   ENGULF_PHASE,
   ENGULF_RELEASE_REASON,
-  RANDOM_STREAM,
   canContinueEngulf,
   canEngulf,
   engulfPhaseOf,
-  engulfPredatorPaceModifiersOf,
-  engulfPreyPaceModifiersOf,
   engulfProgressDelta,
   resolveEngulfHold,
-  spitOutChancePerTick,
-  steerCommand,
   type BalanceConfig,
   type EngulfPhase,
-  type EngulfSpitOutDraw,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
 import { payOutEngulf } from './engulf-payout.js';
 import {
-  beginEngulf,
-  engulfingPredatorOf,
   hasSpitOutRefractory,
+  noSpitOutDraw,
   pruneSpitOutRefractories,
   recordSpitOutRefractory,
-  releaseEngulf,
-  sealEngulf,
-  type EngulfPairing,
-} from './engulf-state.js';
+  spitOutDrawFor,
+} from './engulf-spit-out.js';
+import { beginEngulf, releaseEngulf, sealEngulf, type EngulfPairing } from './engulf-state.js';
 
 /** Progress pays out at `1 − ENGULF_PROGRESS_EPSILON`, so thirty-six additions of 1/36 finish on tick 36. */
 const COMPLETE_PROGRESS = 1;
 /** The prey's steering projected away from the predator never counts as help. */
 const NO_AWAY_EFFORT = 0;
-/** A prey with no spines never rolls: chance 0, no draw (docs/DETERMINISM.md §3). */
-const NO_SPIT_OUT_CHANCE_PER_TICK = 0;
-
-/** The draw of a tick where no roll was made, for a prey with no chance or a hold already lost. */
-function noSpitOutDraw(phase: EngulfPhase): EngulfSpitOutDraw {
-  return { phase, spitOutRoll: null, spitOutChancePerTick: NO_SPIT_OUT_CHANCE_PER_TICK };
-}
-
 /**
- * The prey's struggle this tick: its own steer command (the one the movement step used, through
- * the shared kernel) projected onto the line away from the predator (docs/ECOLOGY.md §6.1).
+ * The prey's struggle this tick (docs/ECOLOGY.md §6.1): the steer command the movement step took at
+ * the start of this tick and moved on (`CellRecord.steerCommand`, taken once in `movement.ts`),
+ * projected onto the line away from the predator. Reading the stored command rather than taking a
+ * second one here is what makes "the same direction and throttle the movement step used" true: the
+ * centres have already moved by the time this runs.
  */
-export function awayEffortOf(predator: CellRecord, prey: CellRecord, balance: BalanceConfig): number {
+export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
   const offsetX = prey.x - predator.x;
   const offsetY = prey.y - predator.y;
   const distance = Math.hypot(offsetX, offsetY);
   if (distance === 0) {
     return NO_AWAY_EFFORT;
   }
-  const command = steerCommand(prey, {
-    targetX: prey.targetX,
-    targetY: prey.targetY,
-    radiusWu: prey.radius,
-    controls: balance.controls,
-  });
-  const away = (command.directionX * offsetX + command.directionY * offsetY) / distance;
-  return command.throttle * Math.max(NO_AWAY_EFFORT, away);
-}
-
-/**
- * This tick's spit-out draw. The `engulf` stream is touched only for a wrapped or sealed prey
- * whose chance is positive, so a dish without spiny cells never advances it
- * (docs/DETERMINISM.md §3) and the roll is `null` when no draw was made.
- */
-function spitOutDrawFor(prey: CellRecord, phase: EngulfPhase, context: StepContext): EngulfSpitOutDraw {
-  const chancePerSecond = engulfPreyPaceModifiersOf(prey.modifiers).spitOutChancePerSecond;
-  const spitOutChance = spitOutChancePerTick(chancePerSecond);
-  if (phase === ENGULF_PHASE.cover || chancePerSecond <= NO_SPIT_OUT_CHANCE_PER_TICK) {
-    return noSpitOutDraw(phase);
-  }
-  return {
-    phase,
-    spitOutRoll: context.streams[RANDOM_STREAM.engulf].nextFloat(),
-    spitOutChancePerTick: spitOutChance,
-  };
+  const away = (prey.steerCommand.directionX * offsetX + prey.steerCommand.directionY * offsetY) / distance;
+  return prey.steerCommand.throttle * Math.max(NO_AWAY_EFFORT, away);
 }
 
 /** Can `predator` claim `prey` this tick: neither is already engaged, mass, contact and no refractory. */
@@ -146,7 +109,7 @@ function resolveHold(pairing: EngulfPairing, phase: EngulfPhase, world: WorldSta
   if (verdict === ENGULF_RELEASE_REASON.spatOut) {
     recordSpitOutRefractory(world, pairing, context.balance);
   }
-  releaseEngulf(world, context.effects, pairing, verdict);
+  releaseEngulf(world, pairing, verdict);
   return false;
 }
 
@@ -157,7 +120,7 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
   const isSealed = phase === ENGULF_PHASE.absorb;
   const isInContact = isSealed || isEngulfContact(predator, prey, context.balance);
   if (phase === ENGULF_PHASE.cover && !isInContact) {
-    releaseEngulf(world, context.effects, pairing, ENGULF_RELEASE_REASON.escaped);
+    releaseEngulf(world, pairing, ENGULF_RELEASE_REASON.escaped);
     return;
   }
   prey.engulfProgress += engulfProgressDelta(
@@ -166,15 +129,16 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
       predatorMass: predator.mass,
       preyMass: prey.mass,
       isInContact,
-      awayEffort: isSealed ? NO_AWAY_EFFORT : awayEffortOf(predator, prey, context.balance),
-      predator: engulfPredatorPaceModifiersOf(predator.modifiers),
-      prey: engulfPreyPaceModifiersOf(prey.modifiers),
+      awayEffort: isSealed ? NO_AWAY_EFFORT : awayEffortOf(predator, prey),
+      predator: predator.modifiers,
+      prey: prey.modifiers,
     },
     absorption,
   );
   if (!isInContact) {
-    if (prey.engulfProgress < absorption.ENGULF_WRAP_START_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON) {
-      releaseEngulf(world, context.effects, pairing, ENGULF_RELEASE_REASON.escaped);
+    // The grip is gone the moment the decayed progress falls back into the cover band.
+    if (engulfPhaseOf(prey.engulfProgress, absorption) === ENGULF_PHASE.cover) {
+      releaseEngulf(world, pairing, ENGULF_RELEASE_REASON.escaped);
     }
     return;
   }
@@ -199,44 +163,23 @@ function stepEngulfPair(pair: CellPair, world: WorldState, context: StepContext)
   }
 }
 
+/**
+ * Both cells of a pair are still in the world. The pair list is taken once per step, so a pair taken
+ * before a cell left is stale: from #259 on the payout removes the prey, and a stale pair would let a
+ * later predator claim a cell that has gone. `canStartEngulf` cannot catch that — the payout clears
+ * `engulfedByCellId`, so the removed cell looks free — and the pair never appears again, so nothing
+ * would ever release the predator from `engulfing` a ghost.
+ */
+export function isPairInWorld(pair: CellPair, world: WorldState): boolean {
+  return world.cells.includes(pair.lower) && world.cells.includes(pair.higher);
+}
+
 /** Step 6 of the tick. */
 export function runEngulfs(world: WorldState, context: StepContext): void {
   pruneSpitOutRefractories(world);
   for (const pair of cellPairs(world.cells)) {
-    stepEngulfPair(pair, world, context);
-  }
-}
-
-/** The prey of `predator`, when it is engulfing one that is still in the world. */
-function preyOf(world: WorldState, predator: CellRecord): CellRecord | undefined {
-  if (predator.engulfingCellId === null) {
-    return undefined;
-  }
-  return world.cells.find((cell) => cell.id === predator.engulfingCellId);
-}
-
-/**
- * Ends every engulf a cell is part of, as predator and as prey, with reason `aborted`: what a
- * removed cell does on its way out (a disconnect, `dissolveCell`) so no survivor is left holding
- * or held by a cell that is gone (docs/ECOLOGY.md §6.3).
- */
-export function abortEngulfsOf(world: WorldState, cell: CellRecord): void {
-  const predator = engulfingPredatorOf(world, cell);
-  if (predator !== undefined) {
-    releaseEngulf(world, world.effects, { predator, prey: cell }, ENGULF_RELEASE_REASON.aborted);
-  }
-  const prey = preyOf(world, cell);
-  if (prey !== undefined) {
-    releaseEngulf(world, world.effects, { predator: cell, prey }, ENGULF_RELEASE_REASON.aborted);
-  }
-}
-
-/** The round entering `results` aborts every engulf in the dish, with no payout (docs/ECOLOGY.md §6.3, E13). */
-export function abortAllEngulfs(world: WorldState): void {
-  for (const predator of [...world.cells]) {
-    const prey = preyOf(world, predator);
-    if (prey !== undefined) {
-      releaseEngulf(world, world.effects, { predator, prey }, ENGULF_RELEASE_REASON.aborted);
+    if (isPairInWorld(pair, world)) {
+      stepEngulfPair(pair, world, context);
     }
   }
 }

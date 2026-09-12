@@ -3,24 +3,26 @@
 // separation (contact.ts) and the fixture pins are restored.
 
 import {
+  clampToDish,
   engulfPhaseOf,
-  engulfPredatorPaceModifiersOf,
-  engulfPreyPaceModifiersOf,
   gelSpeedFactor,
   maxSpeedForMass,
   predatorEngulfSpeedFactor,
   preyHeldSpeedFactor,
-  stepMovementKernel,
   steerBlendPerTick,
+  steerCommand,
+  stepMovementFrom,
   TICK_INTERVAL_S,
   ZONE_ID,
   type BalanceConfig,
+  type MovementPose,
+  type MovementStep,
+  type SteerCommand,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
-import { findCell } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { separateOverlappingCells } from './contact.js';
-import { engulfingPredatorOf, isCarried } from './engulf-state.js';
+import { engulfedPreyOf, engulfingPredatorOf, isCarried } from './engulf-state.js';
 import { zoneAt } from './zones.js';
 
 /** `SPRINT_SPEED_MULTIPLIER + sprintSpeedMultiplierBonus` while a sprint runs, 1 otherwise. */
@@ -54,12 +56,12 @@ export function engulfSpeedFactor(cell: CellRecord, world: WorldState, balance: 
   if (predator !== undefined) {
     factor *= preyHeldSpeedFactor(
       engulfPhaseOf(cell.engulfProgress, absorption),
-      engulfPredatorPaceModifiersOf(predator.modifiers).gripStrengthBonus,
-      engulfPreyPaceModifiersOf(cell.modifiers).gripResistanceBonus,
+      predator.modifiers.gripStrengthBonus,
+      cell.modifiers.gripResistanceBonus,
       absorption,
     );
   }
-  const prey = cell.engulfingCellId === null ? undefined : findCell(world, cell.engulfingCellId);
+  const prey = engulfedPreyOf(world, cell);
   if (prey !== undefined) {
     factor *= predatorEngulfSpeedFactor(engulfPhaseOf(prey.engulfProgress, absorption), absorption);
   }
@@ -77,9 +79,20 @@ export function speedCapOf(cell: CellRecord, world: WorldState, balance: Balance
   );
 }
 
-function moveCell(cell: CellRecord, world: WorldState, balance: BalanceConfig): void {
+/** This tick's steer command for one cell, from its start-of-tick pose (docs/ECOLOGY.md §5.2). */
+function steerCommandOf(cell: CellRecord, balance: BalanceConfig): SteerCommand {
+  return steerCommand(cell, {
+    targetX: cell.targetX,
+    targetY: cell.targetY,
+    radiusWu: cell.radius,
+    controls: balance.controls,
+  });
+}
+
+/** The kernel's step for one cell, everything but the command (which the caller has already taken). */
+function movementStepOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): MovementStep {
   const accelerationSeconds = balance.growth.CELL_ACCELERATION_SECONDS * cell.modifiers.accelerationSecondsMultiplier;
-  const pose = stepMovementKernel(cell, {
+  return {
     targetX: cell.targetX,
     targetY: cell.targetY,
     radiusWu: cell.radius,
@@ -88,11 +101,28 @@ function moveCell(cell: CellRecord, world: WorldState, balance: BalanceConfig): 
     tickIntervalS: TICK_INTERVAL_S,
     dishRadiusWu: balance.world.DISH_RADIUS,
     controls: balance.controls,
-  });
+  };
+}
+
+/** The one write-back of a pose onto a record, shared by the moved and the carried paths. */
+function applyPose(cell: CellRecord, pose: MovementPose): void {
   cell.x = pose.x;
   cell.y = pose.y;
   cell.velocityX = pose.velocityX;
   cell.velocityY = pose.velocityY;
+}
+
+function moveCell(cell: CellRecord, world: WorldState, balance: BalanceConfig): void {
+  applyPose(cell, stepMovementFrom(cell, cell.steerCommand, movementStepOf(cell, world, balance)));
+}
+
+/**
+ * The sprint clocks age on every cell, moved or carried (docs/GAME-DESIGN.md §6: they are wall-clock
+ * durations, and `tryStartSprint` charges the mass at step 1 whatever the cell's speed cap turns out
+ * to be). A sealed prey therefore spends the sprint it paid for instead of banking it
+ * (docs/ECOLOGY.md §6.3, the "prey moves away after the seal" row).
+ */
+function ageSprintClocks(cell: CellRecord): void {
   cell.sprintRemainingTicks = Math.max(0, cell.sprintRemainingTicks - 1);
   cell.sprintCooldownRemainingTicks = Math.max(0, cell.sprintCooldownRemainingTicks - 1);
 }
@@ -113,7 +143,7 @@ function restorePins(world: WorldState): void {
  * predator has moved. A carried predator is resolved first, so a sealed B carrying C rides A and
  * carries C from its own carried centre (§6.3, the chain row).
  */
-function placeCarriedCell(cell: CellRecord, world: WorldState, placed: Set<CellRecord>): void {
+function placeCarriedCell(cell: CellRecord, world: WorldState, placed: Set<CellRecord>, balance: BalanceConfig): void {
   if (placed.has(cell)) {
     return;
   }
@@ -122,14 +152,24 @@ function placeCarriedCell(cell: CellRecord, world: WorldState, placed: Set<CellR
   if (predator === undefined || cell.carriedOffsetX === null || cell.carriedOffsetY === null) {
     return;
   }
-  placeCarriedCell(predator, world, placed);
-  cell.x = predator.x + cell.carriedOffsetX;
-  cell.y = predator.y + cell.carriedOffsetY;
-  cell.velocityX = predator.velocityX;
-  cell.velocityY = predator.velocityY;
+  placeCarriedCell(predator, world, placed, balance);
+  // The same wall clamp the kernel applies, so docs/ECOLOGY.md §6.3 "engulf at the wall" ("clamping
+  // only moves centres inward") keeps holding for a carried prey that never goes through the kernel.
+  const carried = {
+    x: predator.x + cell.carriedOffsetX,
+    y: predator.y + cell.carriedOffsetY,
+    velocityX: predator.velocityX,
+    velocityY: predator.velocityY,
+  };
+  applyPose(cell, clampToDish(carried, cell.radius, balance.world.DISH_RADIUS));
 }
 
 export function moveCells(world: WorldState, context: StepContext): void {
+  // The command is taken for every cell from its start-of-tick pose and kept on the record, so the
+  // engulf struggle at step 6 reads the very command this step moved on (docs/ECOLOGY.md §5.2, §6.1).
+  for (const cell of world.cells) {
+    cell.steerCommand = steerCommandOf(cell, context.balance);
+  }
   for (const cell of world.cells) {
     if (!isCarried(cell)) {
       moveCell(cell, world, context.balance);
@@ -138,8 +178,12 @@ export function moveCells(world: WorldState, context: StepContext): void {
   const placed = new Set<CellRecord>();
   for (const cell of world.cells) {
     if (isCarried(cell)) {
-      placeCarriedCell(cell, world, placed);
+      placeCarriedCell(cell, world, placed, context.balance);
     }
+  }
+  // After the move, as it has always been for a moving cell (G7 counts the sprint from there).
+  for (const cell of world.cells) {
+    ageSprintClocks(cell);
   }
   separateOverlappingCells(world, context.balance);
   restorePins(world);

@@ -5,6 +5,7 @@ import {
   DEFAULT_BALANCE,
   ENTITY_KIND,
   FOOD_KIND,
+  ENGULF_RELEASE_REASON,
   playerId,
   type BalanceConfig,
   type PlayerId,
@@ -25,9 +26,16 @@ import { createInputRejectionCounters } from '../world/world-state.js';
 import { computeStateHash } from '../world/state-hash.js';
 import { createEvolutionBotRoster } from '../bots/evolution-bots.js';
 import { addPlayerToWorld, removePlayerFromWorld } from '../session/membership.js';
-import { createEvolutionDebugHandle, type DebugEntity } from './evolution-debug-handle.js';
+import { createEvolutionDebugHandle, type DebugEntity, type EngulfDebugState } from './evolution-debug-handle.js';
+import { beginEngulf, releaseEngulf, sealEngulf } from '../simulation/engulf-state.js';
+import { recordSpitOutRefractory } from '../simulation/engulf-spit-out.js';
+import { requireCellOfPlayer } from '../world/lookups.js';
+import type { CellRecord } from '../world/entities.js';
 
 const ALICE = playerId('p1');
+/** A second player so the prey's own debug state can be read: the release is recorded on the prey. */
+const BOB = playerId('p2');
+const CARRY_OFFSET_WU = 10;
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
 
@@ -77,9 +85,47 @@ describe('EvolutionDebugHandle', () => {
     });
     expect((state.cell as { id: string }).id).toBe(world.cells[0]!.id);
     expect(state.modifiers).toEqual(world.cells[0]!.modifiers);
+    expect(state.engulf).toEqual({
+      carriedOffsetX: null,
+      carriedOffsetY: null,
+      spitOutRefractories: [],
+      lastRelease: null,
+    });
     expect(handle.getPlayerDebugState(playerId('nobody'))).toBeUndefined();
     world.cells = [];
-    expect(handle.getPlayerDebugState(ALICE)).toMatchObject({ cell: null, modifiers: null, stage: null });
+    expect(handle.getPlayerDebugState(ALICE)).toMatchObject({
+      cell: null,
+      modifiers: null,
+      stage: null,
+      engulf: null,
+    });
+  });
+
+  it('reports the carried offset, the refractories and the release reason of an engulf (#258)', () => {
+    const { world, handle } = createHandle();
+    const predator = world.cells[0] as CellRecord;
+    addPlayerToWorld(world, { playerId: BOB, playerName: 'Bob', avatarIndex: 1 }, createInputRejectionCounters());
+    const prey = requireCellOfPlayer(world, BOB);
+    prey.x = predator.x + CARRY_OFFSET_WU;
+    prey.y = predator.y;
+    beginEngulf({ predator, prey });
+    sealEngulf({ predator, prey });
+    recordSpitOutRefractory(world, { predator, prey }, DEFAULT_BALANCE);
+
+    const held = handle.getPlayerDebugState(BOB) as { engulf: EngulfDebugState };
+    expect(held.engulf.carriedOffsetX).toBeCloseTo(CARRY_OFFSET_WU, 9);
+    expect(held.engulf.lastRelease).toBeNull();
+    const hunting = handle.getPlayerDebugState(ALICE) as { engulf: EngulfDebugState };
+    expect(hunting.engulf.spitOutRefractories.map((entry) => entry.preyCellId)).toEqual([prey.id]);
+
+    releaseEngulf(world, { predator, prey }, ENGULF_RELEASE_REASON.escaped);
+    const released = handle.getPlayerDebugState(BOB) as { engulf: EngulfDebugState };
+    expect(released.engulf.carriedOffsetX).toBeNull();
+    expect(released.engulf.lastRelease).toEqual({
+      reason: ENGULF_RELEASE_REASON.escaped,
+      tick: world.tick,
+      predatorCellId: predator.id,
+    });
   });
 
   it('applies and records grants, spawns, player patches and balance patches', () => {

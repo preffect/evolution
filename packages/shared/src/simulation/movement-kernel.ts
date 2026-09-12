@@ -60,7 +60,8 @@ export interface SteerCommand {
 /** What `steerCommand` reads of a step: where the cell is steering and how wide its dead zone is. */
 export type SteerCommandStep = Pick<MovementStep, 'targetX' | 'targetY' | 'radiusWu' | 'controls'>;
 
-const NO_STEER: SteerCommand = { directionX: 0, directionY: 0, throttle: 0 };
+/** No target to steer to: what a cell in its dead zone commands, and what a fresh cell starts with. */
+export const NO_STEER_COMMAND: SteerCommand = { directionX: 0, directionY: 0, throttle: 0 };
 
 /**
  * The direction and throttle this tick's movement uses. The engulf step's struggle
@@ -72,7 +73,7 @@ export function steerCommand(pose: Pick<MovementPose, 'x' | 'y'>, step: SteerCom
   const deltaY = step.targetY - pose.y;
   const distance = Math.hypot(deltaX, deltaY);
   if (distance === 0) {
-    return NO_STEER;
+    return NO_STEER_COMMAND;
   }
   return {
     directionX: deltaX / distance,
@@ -103,9 +104,12 @@ export function clampToDish(pose: MovementPose, radiusWu: number, dishRadiusWu: 
   };
 }
 
-/** One tick of steering: throttle toward the target, blend the velocity, integrate, clamp to the dish. */
-export function stepMovementKernel(pose: MovementPose, step: MovementStep): MovementPose {
-  const command = steerCommand(pose, step);
+/**
+ * One tick of steering from a command already taken: the caller that needs the command for something
+ * else (the engulf struggle, docs/ECOLOGY.md §6.1) takes it once and passes it here, so the movement
+ * and that other reader can never be looking at two different commands.
+ */
+export function stepMovementFrom(pose: MovementPose, command: SteerCommand, step: MovementStep): MovementPose {
   const desiredSpeed = command.throttle * step.speedCapWuPerSecond;
   const desiredX = command.directionX * desiredSpeed;
   const desiredY = command.directionY * desiredSpeed;
@@ -118,4 +122,9 @@ export function stepMovementKernel(pose: MovementPose, step: MovementStep): Move
     velocityY,
   };
   return clampToDish(moved, step.radiusWu, step.dishRadiusWu);
+}
+
+/** One tick of steering: throttle toward the target, blend the velocity, integrate, clamp to the dish. */
+export function stepMovementKernel(pose: MovementPose, step: MovementStep): MovementPose {
+  return stepMovementFrom(pose, steerCommand(pose, step), step);
 }

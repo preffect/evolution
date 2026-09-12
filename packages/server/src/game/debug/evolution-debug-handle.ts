@@ -25,7 +25,7 @@ import type {
   SpawnRequest,
 } from './simulation-debug-handle.js';
 import type { InProcessBotRoster } from '../bots/in-process-bots.js';
-import type { CellRecord } from '../world/entities.js';
+import type { CellRecord, EngulfReleaseRecord, SpitOutRefractoryRecord } from '../world/entities.js';
 import { REPLAY_ORIGIN } from '../replay/replay-format.js';
 import type { ReplayRecorder } from '../replay/replay-recorder.js';
 import { toCellView, toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
@@ -57,17 +57,29 @@ export interface DebugEntity {
 
 const ENTITY_KINDS: readonly EntityKind[] = Object.values(ENTITY_KIND);
 
+/** What `debug_get_player_progress` reports of a cell's engulf record (docs/ARCHITECTURE.md §8). */
+export interface EngulfDebugState {
+  readonly carriedOffsetX: number | null;
+  readonly carriedOffsetY: number | null;
+  readonly spitOutRefractories: readonly SpitOutRefractoryRecord[];
+  readonly lastRelease: EngulfReleaseRecord | null;
+}
+
 /**
  * The engulf record the wire does not carry (docs/ECOLOGY.md §6.1): the carried offset of a sealed
- * prey and the predator's spit-out memories, so a QA agent driving an engulf with
- * `debug_set_player` can see why a restart is refused. The phase itself is derived from
- * `cell.engulfProgress` by the shared `engulfPhaseOf`, so it is not repeated here.
+ * prey, the predator's spit-out memories (so a QA agent driving an engulf with `debug_set_player`
+ * can see why a restart is refused) and the last release with its reason. That reason exists nowhere
+ * else a debug tool can reach: `cell_released` rides the delta broadcast alone, and the full-state
+ * snapshot carries `effects: []` by construction, so `escaped`, `ratio`, `spat_out` and `aborted`
+ * would otherwise be indistinguishable. The phase is derived from `cell.engulfProgress` by the
+ * shared `engulfPhaseOf`, so it is not repeated here.
  */
-function engulfDebugStateOf(cell: CellRecord): unknown {
+function engulfDebugStateOf(cell: CellRecord): EngulfDebugState {
   return {
     carriedOffsetX: cell.carriedOffsetX,
     carriedOffsetY: cell.carriedOffsetY,
     spitOutRefractories: cell.spitOutRefractories.map((refractory) => ({ ...refractory })),
+    lastRelease: cell.lastRelease === null ? null : { ...cell.lastRelease },
   };
 }
 

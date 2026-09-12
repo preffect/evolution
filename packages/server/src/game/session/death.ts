@@ -12,7 +12,7 @@ import {
   uniformPointInDiscAround,
   type RandomSource,
 } from '@evolution/shared';
-import { abortEngulfsOf } from '../simulation/engulf.js';
+import { abortEngulfsOf } from '../simulation/engulf-state.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
 import { removeFromArray, requirePlayer } from '../world/lookups.js';

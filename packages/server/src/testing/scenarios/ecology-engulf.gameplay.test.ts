@@ -1,61 +1,45 @@
-// docs/ECOLOGY.md §8, the engulf rows of the placed table (E9, E10's engulfing half, E11, E13,
-// E16, E16b), each run twice and hash-compared. #258 ships the lifecycle only, so every row here
-// asserts the phases, the seal, the escape and the releases; the mass, DNA, death and leaderboard
-// halves of E9, E10 and E11 belong to the payout ticket #259 and are not asserted yet.
+// docs/ECOLOGY.md §8, the engulf rows a predator wins or holds: E9, E9b, E10's engulfing half, E13,
+// E16 and E16b, each run twice and hash-compared. The rows where the prey gets away — E11, E11b and
+// E11's reaction window — are `ecology-engulf-escape.gameplay.test.ts`. The shared setup, and the row
+// halves both files deliberately leave out, are `engulf-setups.ts`.
 
 import { describe, it } from 'vitest';
-import {
-  CELL_STATE,
-  DEFAULT_BALANCE,
-  EFFECT_KIND,
-  ENGULF_RELEASE_REASON,
-  ROUND_PHASE,
-  TICK_HZ,
-} from '@evolution/shared';
-import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
-import { cellOf, distanceBetweenCells, effectsOfKind, type EvolutionView } from '../gameplay/evolution-views.js';
+import { CELL_STATE, ENGULF_RELEASE_REASON, ROUND_PHASE } from '@evolution/shared';
+import { cellOf, distanceBetweenCells, speedOf } from '../gameplay/evolution-views.js';
+import { ZONE, player } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
-import { ZONE, combineScripts, player, sprint, targetRadiiAwayFrom } from '../gameplay/index.js';
-import { FULL_THROTTLE_RADII } from './shared-setups.js';
-
-const absorption = DEFAULT_BALANCE.absorption;
-const PREDATOR_MASS = 100;
-const PREY_MASS = 20;
-const CENTRE_DISTANCE_WU = 10;
-/** E9: ratio 5 clamps `massFactor` to 0.5, so progress runs at 1/36 a tick. */
-const E9_COVER_END_TICK = 6;
-const E9_SEAL_TICK = 18;
-const E9_PAYOUT_TICK = 36;
-const PROGRESS_TOLERANCE = 0.0001;
-const OFFSET_TOLERANCE_WU = 0.01;
-/** E16: 30 starts the engulf, 23 holds it (over the release ratio), 21.5 drops under it. */
-const E16_START_MASS = 30;
-const E16_HELD_MASS = 23;
-const E16_RELEASED_MASS = 21.5;
-/**
- * E10's "< 0.01 wu of overlap" is unreachable through the whole step: an idle placed cell steers
- * back to its latched target, which balances the separation at a few wu of overlap (#261). The
- * row's engulf half is what this file owns, so it asserts the pair moved well apart instead.
- */
-const SEPARATED_FACTOR = 3;
-/** E13 runs on the shortest legal round so the results tick is reachable in a test. */
-const SHORT_ROUND_SECONDS = 60;
-const SHORT_ROUND_TICKS = SHORT_ROUND_SECONDS * TICK_HZ;
-
-/** "A at mass 100, B at 20, centres 10 wu apart": the setup E9, E11, E13 and E16 share. */
-function engulfPair(name: string, predatorMass = PREDATOR_MASS, preyMass = PREY_MASS) {
-  return scenario(name)
-    .seed(PLACED_ROW_SEED)
-    .players(2)
-    .placeCell({ playerIndex: 0, mass: predatorMass })
-    .placeCell({ playerIndex: 1, mass: preyMass, eastOfFirstCellWu: CENTRE_DISTANCE_WU });
-}
-
-const progressOfPrey = (view: EvolutionView): number | undefined => cellOf(view, 1)?.engulfProgress;
-const statesOfPrey = (view: EvolutionView): string[] | undefined => cellOf(view, 1)?.states;
-const statesOfPredator = (view: EvolutionView): string[] | undefined => cellOf(view, 0)?.states;
-const releaseReasons = (view: EvolutionView): string[] =>
-  effectsOfKind(view, EFFECT_KIND.cellReleased).map((effect) => effect.reason);
+import {
+  APPROXIMATE_DISTANCE_TOLERANCE_WU,
+  CENTRE_DISTANCE_WU,
+  DISTANCE_TOLERANCE_WU,
+  E9B_SEAL_DISTANCE_WU,
+  E9B_SEAL_WESTING_WU,
+  E9B_SPEED_TICK_1,
+  E9B_SPEED_TICK_18,
+  E9B_SPEED_TICK_19,
+  E9B_SPEED_TICK_35,
+  E9_COVER_END_TICK,
+  E9_PAYOUT_TICK,
+  E9_SEAL_TICK,
+  E10_OVER_RATIO_MASS,
+  E10_UNDER_RATIO_MASS,
+  E16_HELD_MASS,
+  E16_RELEASED_MASS,
+  E16_START_MASS,
+  OFFSET_TOLERANCE_WU,
+  PROGRESS_TOLERANCE,
+  SEPARATED_FACTOR,
+  SHORT_ROUND_SECONDS,
+  SHORT_ROUND_TICKS,
+  absorption,
+  awayFromPrey,
+  engulfPair,
+  progressOfPrey,
+  releaseReasons,
+  statesOfPredator,
+  statesOfPrey,
+} from './engulf-setups.js';
+import { SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
 
 describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is #259)', () => {
   it('E9: cover to tick 6, wrap to the seal on tick 18, absorb to the end of the engulf on tick 36', () => {
@@ -89,7 +73,7 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
   });
 
   it('E10: 24 against 20 never starts, 26 against 20 seals on tick 35', () => {
-    engulfPair('E10 under the ratio', 24)
+    engulfPair('E10 under the ratio', E10_UNDER_RATIO_MASS)
       .advance(120)
       .expect('never engulfed', (view) => statesOfPrey(view))
       .atEnd()
@@ -99,7 +83,7 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .toBeGreaterThan(CENTRE_DISTANCE_WU * SEPARATED_FACTOR)
       .runDeterministic();
 
-    engulfPair('E10 over the ratio', 26)
+    engulfPair('E10 over the ratio', E10_OVER_RATIO_MASS)
       .advance(36)
       .expect('cover ends on tick 12', progressOfPrey)
       .atTick(12)
@@ -116,23 +100,39 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .runDeterministic();
   });
 
-  it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', () => {
-    engulfPair('E11')
-      .atTick(10, player(1).does(combineScripts([targetRadiiAwayFrom(FULL_THROTTLE_RADII, BROTH_POINT), sprint()])))
-      .from(11, player(1).does(targetRadiiAwayFrom(FULL_THROTTLE_RADII, BROTH_POINT)))
-      .advance(200)
-      .expect('in the wrap band before the sprint', progressOfPrey)
-      .atTick(9)
-      .toBeCloseTo(9 / E9_PAYOUT_TICK, PROGRESS_TOLERANCE)
-      .expect('released with reason escaped', releaseReasons)
-      .atTick(25)
-      .toEqual([ENGULF_RELEASE_REASON.escaped])
-      .expect('both free after the escape', (view) => [statesOfPredator(view), statesOfPrey(view)])
-      .atTick(25)
-      .toEqual([[], []])
-      .expect('still free at the end of the row', (view) => statesOfPrey(view))
-      .atEnd()
-      .toEqual([])
+  it('E9b: a predator steering away drags its cover, and the speed cap changes at the seal', () => {
+    engulfPair('E9b')
+      .from(1, player(0).does(awayFromPrey))
+      .advance(E9_PAYOUT_TICK)
+      .expect('cover ends at the wrap band on tick 6', progressOfPrey)
+      .atTick(E9_COVER_END_TICK)
+      .toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
+      .expect('sealed on tick 18 although the centres have drifted', progressOfPrey)
+      .atTick(E9_SEAL_TICK)
+      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
+      .expect('centres 22.53 wu apart at the seal, inside the predator reach', (view) =>
+        distanceBetweenCells(view, 0, 1),
+      )
+      .atTick(E9_SEAL_TICK)
+      .toBeCloseTo(E9B_SEAL_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
+      .expect('predator 12.5 wu west of its start on tick 18', (view) => (cellOf(view, 0)?.x ?? 0) - BROTH_POINT.x)
+      .atTick(E9_SEAL_TICK)
+      .toBeCloseTo(-E9B_SEAL_WESTING_WU, APPROXIMATE_DISTANCE_TOLERANCE_WU)
+      .expect('speed 9.8 wu/s on tick 1, before any engulf cap', (view) => speedOf(view, 0))
+      .atTick(1)
+      .toBeCloseTo(E9B_SPEED_TICK_1, SPEED_TOLERANCE_WU_PER_SECOND)
+      .expect('speed 64.0 wu/s on tick 18, still capped at 0.6', (view) => speedOf(view, 0))
+      .atTick(E9_SEAL_TICK)
+      .toBeCloseTo(E9B_SPEED_TICK_18, SPEED_TOLERANCE_WU_PER_SECOND)
+      .expect('speed 69.5 wu/s on tick 19, the first sealed tick', (view) => speedOf(view, 0))
+      .atTick(E9_SEAL_TICK + 1)
+      .toBeCloseTo(E9B_SPEED_TICK_19, SPEED_TOLERANCE_WU_PER_SECOND)
+      .expect('speed 121.4 wu/s on tick 35, uncapped', (view) => speedOf(view, 0))
+      .atTick(E9_PAYOUT_TICK - 1)
+      .toBeCloseTo(E9B_SPEED_TICK_35, SPEED_TOLERANCE_WU_PER_SECOND)
+      .expect('the carried offset held to the end of the engulf', (view) => distanceBetweenCells(view, 0, 1))
+      .atTick(E9_PAYOUT_TICK - 1)
+      .toBeCloseTo(E9B_SEAL_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
       .runDeterministic();
   });
 

@@ -7,12 +7,14 @@ import type {
   CellView,
   DnaFragmentView,
   DnaTag,
+  EngulfReleaseReason,
   EntityId,
   FoodMoteView,
   GameInput,
   OwnedTrait,
   PlayerId,
   PlayerProgressView,
+  SteerCommand,
   TraitOfferView,
 } from '@evolution/shared';
 
@@ -24,6 +26,16 @@ import type {
 export interface SpitOutRefractoryRecord {
   preyCellId: EntityId;
   untilTick: number;
+}
+
+/**
+ * The release a debug reader needs to tell `escaped` from `ratio` from `aborted` (docs/ARCHITECTURE.md
+ * §8): `cell_released` rides the delta broadcast alone, which no debug tool drains.
+ */
+export interface EngulfReleaseRecord {
+  reason: EngulfReleaseReason;
+  tick: number;
+  predatorCellId: EntityId;
 }
 
 export interface CellRecord extends CellView {
@@ -46,6 +58,14 @@ export interface CellRecord extends CellView {
   carriedOffsetY: number | null;
   /** This cell's spit-out memories as a predator; empty for everything that never spat anything out. */
   spitOutRefractories: SpitOutRefractoryRecord[];
+  /**
+   * This tick's steer command, taken from the start-of-tick pose at the top of the movement step
+   * and kept so the engulf struggle reads the command the movement actually used, not a second one
+   * taken after the cell has moved (docs/ECOLOGY.md §5.2, §6.1).
+   */
+  steerCommand: SteerCommand;
+  /** The last engulf this cell was released from, as prey; `null` until one ends (docs/ECOLOGY.md §6.1). */
+  lastRelease: EngulfReleaseRecord | null;
 }
 
 /** A cell a player owns: `playerId` narrowed from the view's `PlayerId | null` (a wild cell has none). */

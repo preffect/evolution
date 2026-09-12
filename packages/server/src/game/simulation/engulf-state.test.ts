@@ -2,7 +2,7 @@
 // absence of both engulf states, so every path out has to leave `states` empty.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STATE, DEFAULT_BALANCE, EFFECT_KIND, ENGULF_RELEASE_REASON, playerId } from '@evolution/shared';
+import { CELL_STATE, EFFECT_KIND, ENGULF_RELEASE_REASON, playerId } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
@@ -10,10 +10,7 @@ import {
   beginEngulf,
   clearEngulfRecords,
   engulfingPredatorOf,
-  hasSpitOutRefractory,
   isCarried,
-  pruneSpitOutRefractories,
-  recordSpitOutRefractory,
   releaseEngulf,
   sealEngulf,
 } from './engulf-state.js';
@@ -71,12 +68,17 @@ describe('releaseEngulf', () => {
     prey.engulfProgress = HALF_PROGRESS;
     sealEngulf({ predator, prey });
     const effects = [...world.effects];
-    releaseEngulf(world, world.effects, { predator, prey }, ENGULF_RELEASE_REASON.ratio);
+    releaseEngulf(world, { predator, prey }, ENGULF_RELEASE_REASON.ratio);
     expect(predator.states).toEqual([]);
     expect(prey.states).toEqual([]);
     expect(prey.engulfProgress).toBe(0);
     expect(isCarried(prey)).toBe(false);
     expect(prey.x).toBe(predator.x + CARRY_OFFSET_WU);
+    expect(prey.lastRelease).toEqual({
+      reason: ENGULF_RELEASE_REASON.ratio,
+      tick: world.tick,
+      predatorCellId: predator.id,
+    });
     expect(world.effects.slice(effects.length)).toEqual([
       {
         kind: EFFECT_KIND.cellReleased,
@@ -107,32 +109,5 @@ describe('engulfingPredatorOf', () => {
     expect(engulfingPredatorOf(world, prey)).toBeUndefined();
     beginEngulf({ predator, prey });
     expect(engulfingPredatorOf(world, prey)).toBe(predator);
-  });
-});
-
-describe('the spit-out refractory', () => {
-  it('blocks on and before its last tick and lapses after it', () => {
-    const { world, predator, prey } = twoCells();
-    recordSpitOutRefractory(world, { predator, prey }, DEFAULT_BALANCE);
-    const untilTick = predator.spitOutRefractories[0]?.untilTick ?? 0;
-    expect(hasSpitOutRefractory(predator, prey.id, untilTick)).toBe(true);
-    expect(hasSpitOutRefractory(predator, prey.id, untilTick + 1)).toBe(false);
-  });
-
-  it('keeps one entry per prey, in the order they were spat out', () => {
-    const { world, predator, prey } = twoCells();
-    recordSpitOutRefractory(world, { predator, prey }, DEFAULT_BALANCE);
-    recordSpitOutRefractory(world, { predator, prey: predator }, DEFAULT_BALANCE);
-    expect(predator.spitOutRefractories.map((refractory) => refractory.preyCellId)).toEqual([prey.id, predator.id]);
-  });
-
-  it('prunes only what has expired', () => {
-    const { world, predator, prey } = twoCells();
-    recordSpitOutRefractory(world, { predator, prey }, DEFAULT_BALANCE);
-    pruneSpitOutRefractories(world);
-    expect(predator.spitOutRefractories).toHaveLength(1);
-    world.tick = (predator.spitOutRefractories[0]?.untilTick ?? 0) + 1;
-    pruneSpitOutRefractories(world);
-    expect(predator.spitOutRefractories).toEqual([]);
   });
 });

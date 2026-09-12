@@ -7,6 +7,7 @@
 import type { BalanceConfig } from '../constants/balance.js';
 import { TICK_INTERVAL_S } from '../constants/network.js';
 import { clamp, type ValueOf } from '../types/common.js';
+import type { CellModifiers } from '../types/traits.js';
 
 /** The three phases of an engulf; the phase is a band of `engulfProgress`, never stored. */
 export const ENGULF_PHASE = { cover: 'cover', wrap: 'wrap', absorb: 'absorb' } as const;
@@ -31,23 +32,16 @@ export type EngulfPaceBalance = Pick<
 >;
 
 /**
- * The predator's half of the pace modifiers (docs/TRAITS.md §2). Declared here with the names
- * `CellModifiers` will carry once #260 splits `engulfDurationMultiplierAsPredator`, so the engulf
- * step never learns a trait id and #260 changes one adapter instead of every call site.
+ * The pace terms of the predator's folded modifiers (docs/ECOLOGY.md §6.1, docs/TRAITS.md §2). Only
+ * what the rate reads: the grip belongs to `preyHeldSpeedFactor`, which takes it as a number.
  */
-export interface EngulfPredatorPaceModifiers {
-  readonly wrapDurationMultiplierAsPredator: number;
-  readonly absorbDurationMultiplierAsPredator: number;
-  readonly gripStrengthBonus: number;
-}
+export type EngulfPredatorPaceModifiers = Pick<
+  CellModifiers,
+  'wrapDurationMultiplierAsPredator' | 'absorbDurationMultiplierAsPredator'
+>;
 
-/** The prey's half of the same set (docs/TRAITS.md §2, #260). */
-export interface EngulfPreyPaceModifiers {
-  readonly absorbDurationMultiplierAsPrey: number;
-  readonly gripResistanceBonus: number;
-  readonly struggleSlowdownBonus: number;
-  readonly spitOutChancePerSecond: number;
-}
+/** The pace terms of the prey's folded modifiers; the spit-out chance is read by the engulf step itself. */
+export type EngulfPreyPaceModifiers = Pick<CellModifiers, 'absorbDurationMultiplierAsPrey' | 'struggleSlowdownBonus'>;
 
 /** What one tick of progress depends on (docs/ECOLOGY.md §6.1, "The process"). */
 export interface EngulfProgressInput {

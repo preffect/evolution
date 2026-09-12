@@ -7,14 +7,12 @@
 import {
   CELL_STATE,
   EFFECT_KIND,
-  secondsToTicks,
-  type BalanceConfig,
+  ENGULF_RELEASE_REASON,
   type CellState,
   type EngulfReleaseReason,
-  type EntityId,
-  type GameEffect,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
+import { findCell } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 
 /** A predator holding its prey: the two records one running engulf spans. */
@@ -40,10 +38,12 @@ function removeState(cell: CellRecord, state: CellState): void {
 
 /** The engulf this cell is the prey of, or `undefined`: a prey is claimed by at most one predator. */
 export function engulfingPredatorOf(world: WorldState, prey: CellRecord): CellRecord | undefined {
-  if (prey.engulfedByCellId === null) {
-    return undefined;
-  }
-  return world.cells.find((cell) => cell.id === prey.engulfedByCellId);
+  return prey.engulfedByCellId === null ? undefined : findCell(world, prey.engulfedByCellId);
+}
+
+/** The prey of `predator`, when it is engulfing one that is still in the world. */
+export function engulfedPreyOf(world: WorldState, predator: CellRecord): CellRecord | undefined {
+  return predator.engulfingCellId === null ? undefined : findCell(world, predator.engulfingCellId);
 }
 
 /** True while `cell` is carried inside its predator (docs/ECOLOGY.md §6.1, from the seal on). */
@@ -78,15 +78,11 @@ export function sealEngulf(pairing: EngulfPairing): void {
  * prey ejected after the seal therefore reappears at its carried offset, docs/ECOLOGY.md §6.3) and
  * one `cell_released` effect. The only path out of an engulf that is not the payout seam.
  */
-export function releaseEngulf(
-  world: WorldState,
-  effects: GameEffect[],
-  pairing: EngulfPairing,
-  reason: EngulfReleaseReason,
-): void {
+export function releaseEngulf(world: WorldState, pairing: EngulfPairing, reason: EngulfReleaseReason): void {
   const { predator, prey } = pairing;
   clearEngulfRecords(pairing);
-  effects.push({
+  prey.lastRelease = { reason, tick: world.tick, predatorCellId: predator.id };
+  world.effects.push({
     kind: EFFECT_KIND.cellReleased,
     tick: world.tick,
     x: prey.x,
@@ -112,33 +108,30 @@ export function clearEngulfRecords(pairing: EngulfPairing): void {
   removeState(prey, CELL_STATE.beingEngulfed);
 }
 
-/** A live refractory blocks this predator from restarting on this prey (docs/ECOLOGY.md §6.1). */
-export function hasSpitOutRefractory(predator: CellRecord, preyCellId: EntityId, tick: number): boolean {
-  return predator.spitOutRefractories.some(
-    (refractory) => refractory.preyCellId === preyCellId && refractory.untilTick >= tick,
-  );
-}
-
-/** One entry per spat-out prey, so a predator that spits out X then Y within the second still remembers X. */
-export function recordSpitOutRefractory(world: WorldState, pairing: EngulfPairing, balance: BalanceConfig): void {
-  const untilTick = world.tick + secondsToTicks(balance.absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS);
-  const existing = pairing.predator.spitOutRefractories.find((refractory) => refractory.preyCellId === pairing.prey.id);
-  if (existing === undefined) {
-    pairing.predator.spitOutRefractories.push({ preyCellId: pairing.prey.id, untilTick });
-    return;
+/**
+ * Ends every engulf a cell is part of, as predator and as prey, with reason `aborted`: what a removed
+ * cell does on its way out (a disconnect, `dissolveCell`) so no survivor is left holding or held by a
+ * cell that is gone (docs/ECOLOGY.md §6.3). It lives here rather than in the step so `session/death.ts`
+ * can reach it without importing the step, which imports the payout seam, which #259 points back at
+ * `session/death.ts`.
+ */
+export function abortEngulfsOf(world: WorldState, cell: CellRecord): void {
+  const predator = engulfingPredatorOf(world, cell);
+  if (predator !== undefined) {
+    releaseEngulf(world, { predator, prey: cell }, ENGULF_RELEASE_REASON.aborted);
   }
-  existing.untilTick = untilTick;
+  const prey = engulfedPreyOf(world, cell);
+  if (prey !== undefined) {
+    releaseEngulf(world, { predator: cell, prey }, ENGULF_RELEASE_REASON.aborted);
+  }
 }
 
-/** Drops expired entries and entries for cells that have left the world, preserving order. */
-export function pruneSpitOutRefractories(world: WorldState): void {
-  for (const cell of world.cells) {
-    if (cell.spitOutRefractories.length === 0) {
-      continue;
+/** The round entering `results` aborts every engulf in the dish, with no payout (docs/ECOLOGY.md §6.3, E13). */
+export function abortAllEngulfs(world: WorldState): void {
+  for (const predator of [...world.cells]) {
+    const prey = engulfedPreyOf(world, predator);
+    if (prey !== undefined) {
+      releaseEngulf(world, { predator, prey }, ENGULF_RELEASE_REASON.aborted);
     }
-    cell.spitOutRefractories = cell.spitOutRefractories.filter(
-      (refractory) =>
-        refractory.untilTick >= world.tick && world.cells.some((other) => other.id === refractory.preyCellId),
-    );
   }
 }

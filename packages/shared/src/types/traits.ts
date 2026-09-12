@@ -18,8 +18,20 @@ export interface CellModifiers {
   sprintCooldownSecondsDelta: number;
   /** Added to `ENGULF_MASS_RATIO` and `ENGULF_RELEASE_RATIO` when this cell is prey (docs/ECOLOGY.md §6.1). */
   membraneRatioBonus: number;
-  engulfDurationMultiplierAsPrey: number;
-  engulfDurationMultiplierAsPredator: number;
+  /** Scales the absorb phase when this cell is prey (docs/ECOLOGY.md §6.1, docs/TRAITS.md §2). */
+  absorbDurationMultiplierAsPrey: number;
+  /** Scales the wrap phase when this cell is the predator. */
+  wrapDurationMultiplierAsPredator: number;
+  /** Scales the absorb phase when this cell is the predator. */
+  absorbDurationMultiplierAsPredator: number;
+  /** Subtracted from the prey's held speed factor during wrap, when this cell is the predator. */
+  gripStrengthBonus: number;
+  /** Added to this cell's held speed factor during wrap, when it is prey. */
+  gripResistanceBonus: number;
+  /** Added to `ENGULF_STRUGGLE_SLOWDOWN` when this cell steers away as prey (cover and wrap). */
+  struggleSlowdownBonus: number;
+  /** Chance per second of breaking out while wrapped or sealed, rolled from the `engulf` stream. */
+  spitOutChancePerSecond: number;
   engulfMassYieldBonus: number;
   digestionFactorBonus: number;
   decayMultiplier: number;

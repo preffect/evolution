@@ -10,7 +10,7 @@ import { canEngulf, distanceBetween, type BalanceConfig } from '@evolution/share
 import type { CellRecord } from '../world/entities.js';
 import { compareEntityIds } from '../world/entity-ids.js';
 import type { WorldState } from '../world/world-state.js';
-import { hasSpitOutRefractory } from './engulf-state.js';
+import { hasSpitOutRefractory } from './engulf-spit-out.js';
 
 export interface CellPair {
   readonly lower: CellRecord;

@@ -10,8 +10,13 @@ export const DEFAULT_CELL_MODIFIERS: CellModifiers = {
   sprintSpeedMultiplierBonus: 0,
   sprintCooldownSecondsDelta: 0,
   membraneRatioBonus: 0,
-  engulfDurationMultiplierAsPrey: 1,
-  engulfDurationMultiplierAsPredator: 1,
+  absorbDurationMultiplierAsPrey: 1,
+  wrapDurationMultiplierAsPredator: 1,
+  absorbDurationMultiplierAsPredator: 1,
+  gripStrengthBonus: 0,
+  gripResistanceBonus: 0,
+  struggleSlowdownBonus: 0,
+  spitOutChancePerSecond: 0,
   engulfMassYieldBonus: 0,
   digestionFactorBonus: 0,
   decayMultiplier: 1,
@@ -73,9 +78,9 @@ export const CYTOSKELETON_TIERS: TraitTiers = [
 ];
 export const CILIA_TIERS: TraitTiers = [{ speedMultiplier: 1.1 }, { speedMultiplier: 1.2 }, { speedMultiplier: 1.3 }];
 export const FOOD_VACUOLE_TIERS: TraitTiers = [
-  { engulfDurationMultiplierAsPredator: 0.8, engulfMassYieldBonus: 0.05 },
-  { engulfDurationMultiplierAsPredator: 0.64, engulfMassYieldBonus: 0.1 },
-  { engulfDurationMultiplierAsPredator: 0.51, engulfMassYieldBonus: 0.15 },
+  { absorbDurationMultiplierAsPredator: 0.8, engulfMassYieldBonus: 0.05 },
+  { absorbDurationMultiplierAsPredator: 0.64, engulfMassYieldBonus: 0.1 },
+  { absorbDurationMultiplierAsPredator: 0.51, engulfMassYieldBonus: 0.15 },
 ];
 export const TOXIN_VACUOLE_TIERS: TraitTiers = [
   { toxinDrainFractionPerSecond: 0.03 },
@@ -83,9 +88,9 @@ export const TOXIN_VACUOLE_TIERS: TraitTiers = [
   { toxinDrainFractionPerSecond: 0.07 },
 ];
 export const AMOEBA_PSEUDOPODS_TIERS: TraitTiers = [
-  { gelSpeedFactorFloor: 0.6, engulfDurationMultiplierAsPredator: 0.85 },
-  { gelSpeedFactorFloor: 0.8, engulfDurationMultiplierAsPredator: 0.75 },
-  { gelSpeedFactorFloor: 1.0, engulfDurationMultiplierAsPredator: 0.65 },
+  { gelSpeedFactorFloor: 0.6, wrapDurationMultiplierAsPredator: 0.85 },
+  { gelSpeedFactorFloor: 0.8, wrapDurationMultiplierAsPredator: 0.75 },
+  { gelSpeedFactorFloor: 1.0, wrapDurationMultiplierAsPredator: 0.65 },
 ];
 export const PARAMECIUM_CILIA_TIERS: TraitTiers = [
   { speedMultiplier: 1.1, accelerationSecondsMultiplier: 0.9 },
@@ -98,9 +103,9 @@ export const EUGLENA_EYESPOT_TIERS: TraitTiers = [
   { attractRangeInRadii: 5, attractSpeed: 80 },
 ];
 export const DIATOM_SHELL_TIERS: TraitTiers = [
-  { engulfDurationMultiplierAsPrey: 1.4, spikeDrainFractionPerSecond: 0.02, speedMultiplier: 0.97 },
-  { engulfDurationMultiplierAsPrey: 1.8, spikeDrainFractionPerSecond: 0.04, speedMultiplier: 0.94 },
-  { engulfDurationMultiplierAsPrey: 2.2, spikeDrainFractionPerSecond: 0.06, speedMultiplier: 0.91 },
+  { absorbDurationMultiplierAsPrey: 1.4, spikeDrainFractionPerSecond: 0.02, speedMultiplier: 0.97 },
+  { absorbDurationMultiplierAsPrey: 1.8, spikeDrainFractionPerSecond: 0.04, speedMultiplier: 0.94 },
+  { absorbDurationMultiplierAsPrey: 2.2, spikeDrainFractionPerSecond: 0.06, speedMultiplier: 0.91 },
 ];
 export const STENTOR_TRUMPET_TIERS: TraitTiers = [
   { toxinAuraRangeInRadii: 1.0, digestionFactorBonus: 0.1 },
