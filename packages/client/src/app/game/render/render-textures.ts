@@ -2,7 +2,8 @@
 // cosmetic stream plus every texture baked at startup, rebuilt when the seed changes (a rematch).
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
 // since jsdom has no canvas): the radial bakes sampled into bytes (the soft disc, the vignette;
-// textures/radial-bake.ts) and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish field, the vent sprite).
+// textures/radial-bake.ts) and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish
+// field, the vent sprite, the view-anchored light pool).
 // The noise strip, the noise tile and the palette are bytes, uploaded as data textures for the
 // cell shader (cells/cell-mesh.ts).
 
@@ -32,6 +33,7 @@ import { buildNoiseTile } from './noise/noise-tile';
 import { bakePaletteTextureBytes } from './palette';
 import { bakeDishField, type DishField } from './textures/dish-texture';
 import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
+import { bakeLightPool } from './textures/light-pool-bake';
 import { bakeMoteAtlas, type MoteSpriteKey } from './textures/mote-atlas';
 import { bakeOrganelleAtlas } from './textures/organelle-atlas';
 import { byteDataTexture, texturesFromBakes } from './textures/pixi-textures';
@@ -100,6 +102,8 @@ export interface RenderTextures {
   /** The vent sprite bake and its texture, drawn over the field at the vent zone (dish-layer.ts). */
   readonly vent: VentSprite;
   readonly ventTexture: Texture;
+  /** The condenser light pool, one sprite the dish layer keeps anchored to the view over the field (RENDERING §6.1). */
+  readonly lightPoolTexture: Texture;
 }
 
 export interface RenderTextureOptions {
@@ -207,6 +211,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
   const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
   const dishField = bakeDishField(baker, options.gelPatches, cosmetic);
   const vent = bakeVentSprite(baker, cosmetic);
+  const lightPool = bakeLightPool(baker);
   return {
     seed: options.seed,
     cosmetic,
@@ -220,6 +225,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
     dishTexture: baker.textureFromBake(dishField.canvas),
     vent,
     ventTexture: baker.textureFromBake(vent.canvas),
+    lightPoolTexture: baker.textureFromBake(lightPool),
   };
 }
 
@@ -229,6 +235,7 @@ export function destroyRenderTextures(textures: RenderTextures): void {
     textures.vignetteTexture,
     textures.dishTexture,
     textures.ventTexture,
+    textures.lightPoolTexture,
     ...Object.values(textures.glow),
     ...Object.values(textures.motes.full),
     ...Object.values(textures.motes.small),

@@ -120,7 +120,7 @@ export class GameRenderer {
     applyCameraTransform(this.layers.world, camera, this.viewport);
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
     const ownCell = ownCellOf(frame, ownPlayerId);
-    this.dish.update({ timeSeconds: frame.timeSeconds, camera });
+    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
     const cells = this.cells.update({
       frame,
       extent,
