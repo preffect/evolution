@@ -11,6 +11,7 @@ import {
   DETRITUS_RADIUS,
   FOOD_KIND,
   RADIANS_PER_FULL_TURN,
+  lerp,
   type EntityId,
   type FoodMoteView,
   type RandomSource,
@@ -28,7 +29,7 @@ import {
   MOTE_SMALL_VARIANT_MAX_ZOOM,
   MOTE_WIDE_HALO_MIN_PX,
 } from '../constants';
-import { degreesToRadians, lerp } from '../geometry';
+import { degreesToRadians } from '../geometry';
 import { MOTE_SPRITE, type MoteSpriteKey } from '../textures/mote-atlas';
 
 /** Drawn once per mote from its cosmetic fork (docs/RENDERING.md §1); phases in turns. */
@@ -38,14 +39,19 @@ export interface MoteCosmetics {
   readonly tumblePhase: number;
 }
 
+/** Mutable on purpose: the food layer fills one scratch per frame for 1 400 motes (`createMoteAppearance`). */
 export interface MoteAppearance {
-  readonly key: MoteSpriteKey;
-  readonly isSmallVariant: boolean;
+  key: MoteSpriteKey;
+  isSmallVariant: boolean;
   /** The body radius to show, world units: the kind's radius with the px floors, breathing. */
-  readonly bodyRadiusWu: number;
+  bodyRadiusWu: number;
   /** `bodyRadiusWu` over the kind's radius: what the baked sprite is scaled by beyond its px/wu. */
-  readonly bodyScale: number;
-  readonly rotation: number;
+  bodyScale: number;
+  rotation: number;
+}
+
+export function createMoteAppearance(): MoteAppearance {
+  return { key: MOTE_SPRITE.algae, isSmallVariant: false, bodyRadiusWu: 0, bodyScale: 1, rotation: 0 };
 }
 
 export interface MoteAppearanceInput {
@@ -111,16 +117,19 @@ function bacteriumTumble(cosmetics: MoteCosmetics, timeSeconds: number): number 
   return degreesToRadians(BACTERIUM_TUMBLE_DEG) * Math.sin(RADIANS_PER_FULL_TURN * turns);
 }
 
-export function moteAppearance(input: MoteAppearanceInput): MoteAppearance {
+/** Writes this frame's appearance of `input.mote` into `out` and returns it. */
+export function moteAppearance(
+  input: MoteAppearanceInput,
+  out: MoteAppearance = createMoteAppearance(),
+): MoteAppearance {
   const { mote, cosmetics, timeSeconds, zoom } = input;
   const key = moteSpriteKey(mote);
   const isBacterium = mote.kind === FOOD_KIND.bacterium;
   const bodyRadiusWu = flooredRadiusWu(key, zoom) * moteBreath(cosmetics, timeSeconds);
-  return {
-    key,
-    isSmallVariant: zoom < MOTE_SMALL_VARIANT_MAX_ZOOM,
-    bodyRadiusWu,
-    bodyScale: bodyRadiusWu / BODY_RADIUS_WU[key],
-    rotation: isBacterium ? input.heading + bacteriumTumble(cosmetics, timeSeconds) : 0,
-  };
+  out.key = key;
+  out.isSmallVariant = zoom < MOTE_SMALL_VARIANT_MAX_ZOOM;
+  out.bodyRadiusWu = bodyRadiusWu;
+  out.bodyScale = bodyRadiusWu / BODY_RADIUS_WU[key];
+  out.rotation = isBacterium ? input.heading + bacteriumTumble(cosmetics, timeSeconds) : 0;
+  return out;
 }

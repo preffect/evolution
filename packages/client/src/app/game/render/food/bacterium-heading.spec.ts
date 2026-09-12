@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_HEADING_STILL_WU } from '../constants';
-import { nextHeading } from './bacterium-heading';
+import { advanceHeading, createHeadingMemory } from './bacterium-heading';
 
-describe('nextHeading', () => {
-  it('starts at zero, then points along the displacement and holds when still', () => {
-    const first = nextHeading(null, 10, 10);
-    expect(first).toEqual({ x: 10, y: 10, heading: 0 });
-    const moved = nextHeading(first, 10, 20);
-    expect(moved.heading).toBeCloseTo(Math.PI / 2, 9);
-    const still = nextHeading(moved, 10, 20 + BACTERIUM_HEADING_STILL_WU / 2);
-    expect(still.heading).toBeCloseTo(Math.PI / 2, 9);
-    expect(still.y).toBeCloseTo(20 + BACTERIUM_HEADING_STILL_WU / 2, 9);
-    expect(nextHeading(still, 0, still.y).heading).toBeCloseTo(Math.PI, 9);
+describe('advanceHeading', () => {
+  it('starts at zero, then points along the displacement and holds when still, in place', () => {
+    const memory = createHeadingMemory();
+    advanceHeading(memory, 10, 10);
+    expect(memory).toEqual({ x: 10, y: 10, heading: 0, hasPosition: true });
+    advanceHeading(memory, 10, 20);
+    expect(memory.heading).toBeCloseTo(Math.PI / 2, 9);
+    advanceHeading(memory, 10, 20 + BACTERIUM_HEADING_STILL_WU / 2);
+    expect(memory.heading).toBeCloseTo(Math.PI / 2, 9);
+    expect(memory.y).toBeCloseTo(20 + BACTERIUM_HEADING_STILL_WU / 2, 9);
+    advanceHeading(memory, 0, memory.y);
+    expect(memory.heading).toBeCloseTo(Math.PI, 9);
   });
 });

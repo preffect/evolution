@@ -16,6 +16,8 @@ export interface ViewRegistryOptions<Item extends { readonly id: string }, View>
 
 export class ViewRegistry<Item extends { readonly id: string }, View> {
   private readonly views = new Map<string, View>();
+  /** Reused by `forEachSynced`, so a per-frame sync of a large field allocates nothing. */
+  private readonly presentScratch = new Set<string>();
 
   constructor(private readonly options: ViewRegistryOptions<Item, View>) {}
 
@@ -40,6 +42,25 @@ export class ViewRegistry<Item extends { readonly id: string }, View> {
     }
     const removed = this.removeMissing(present);
     return { created, kept, removed, pairs };
+  }
+
+  /**
+   * The allocation-free sync for a hot path (the food layer's 1 400 motes): creates a view for every
+   * new id, calls `visit` for every item in order with its index, destroys the views whose id is gone.
+   */
+  forEachSynced(items: readonly Item[], visit: (item: Item, view: View, index: number) => void): void {
+    const present = this.presentScratch;
+    present.clear();
+    items.forEach((item, index) => {
+      present.add(item.id);
+      let view = this.views.get(item.id);
+      if (view === undefined) {
+        view = this.options.create(item);
+        this.views.set(item.id, view);
+      }
+      visit(item, view, index);
+    });
+    this.removeMissing(present);
   }
 
   private removeMissing(present: ReadonlySet<string>): View[] {

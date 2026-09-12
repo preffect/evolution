@@ -19,10 +19,10 @@ describe('FoodLayer', () => {
   it('draws every mote as a particle of one container over the atlas source and every fragment as a sprite above', () => {
     const subject = new FoodLayer(textures);
     const outputs = subject.update(frame());
-    expect(outputs).toEqual({ motes: 2, fragments: 1 });
+    expect(outputs).toEqual({ motes: 2, fragments: 1, particles: 3 });
     const [particles] = subject.container.children;
     expect(particles).toBeInstanceOf(ParticleContainer);
-    expect((particles as ParticleContainer).particleChildren).toHaveLength(2);
+    expect((particles as ParticleContainer).particleChildren).toHaveLength(3);
     expect(subject.moteParticles[0]).toMatchObject({ x: 10, y: 20 });
     expect(subject.moteParticles.every((particle) => particle.texture.source === textures.motes.source)).toBe(true);
     expect(subject.moteParticles[0]!.texture).toBe(textures.motes.full.algae);
@@ -43,16 +43,20 @@ describe('FoodLayer', () => {
     subject.destroy();
   });
 
-  it('turns a rod along its walk, holds the heading when it stops, and never rotates an alga', () => {
+  it('turns a rod along its walk with an unrotated glint over it, holds the heading when it stops, and never rotates an alga', () => {
     const subject = new FoodLayer(textures);
     subject.update(frame({ motes: [rod] }));
     subject.update(frame({ motes: [{ ...rod, x: 0, y: 10 }], timeSeconds: 0.5 }));
-    const walking = subject.moteParticles[0]!.rotation;
+    const [body, glint] = subject.moteParticles;
+    const walking = body!.rotation;
     expect(Math.abs(walking - Math.PI / 2)).toBeLessThan(0.3);
+    expect(glint).toMatchObject({ x: 0, y: 10, rotation: 0, scaleX: body!.scaleX });
+    expect(glint!.texture).toBe(textures.motes.rodGlint.full);
     subject.update(frame({ motes: [{ ...rod, x: 0, y: 10 }], timeSeconds: 0.5 }));
     expect(subject.moteParticles[0]!.rotation).toBe(walking);
     subject.update(frame({ motes: [algae] }));
     expect(subject.moteParticles[0]!.rotation).toBe(0);
+    expect(subject.moteParticles[1]!.scaleX).toBe(0);
     subject.destroy();
   });
 
@@ -63,7 +67,7 @@ describe('FoodLayer', () => {
     subject.update(frame({ timeSeconds: 1 }));
     expect(subject.fragmentSprites[0]!.rotation).toBeGreaterThan(start);
     const outputs = subject.update(frame({ motes: [], fragments: [] }));
-    expect(outputs).toEqual({ motes: 0, fragments: 0 });
+    expect(outputs).toEqual({ motes: 0, fragments: 0, particles: 0 });
     expect(subject.moteParticles.every((particle) => particle.scaleX === 0)).toBe(true);
     expect(subject.fragmentSprites[0]!.visible).toBe(false);
     subject.destroy();

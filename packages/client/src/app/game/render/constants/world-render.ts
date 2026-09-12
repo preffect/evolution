@@ -203,7 +203,11 @@ export const RAY_GRADIENT_STOPS = 3;
 // ---- effects (sheet 03, VISUAL-STYLE §5) ----
 export const LEVEL_UP_RAYS = 16;
 export const LEVEL_UP_RAY_WIDTH_RADII = 0.08;
-export const LEVEL_UP_RIPPLES = 3;
+/** The rays sit outside the body (sheet 03 strip C frame 03): base at the rim, the `rayRadii` track is the tip. */
+export const LEVEL_UP_RAY_BASE_RADII = 1.2;
+/** Three concentric dish ripples at these radii (sheet 03 strip C, RENDERING §4), pushed outward by the `rippleRadii` track. */
+export const LEVEL_UP_RIPPLE_RADII = [1.7, 2.1, 2.5] as const;
+export const LEVEL_UP_RIPPLES = LEVEL_UP_RIPPLE_RADII.length;
 export const EFFECT_RING_ALPHA = 0.6;
 export const EFFECT_HALO_ALPHA = 0.5;
 export const ABSORBED_STREAMS = 3;
@@ -217,9 +221,16 @@ export const RETICLE_ALPHA = 0.55;
 export const RETICLE_LINE_MAX_DOTS = 120;
 /** The DNA streams of an absorption, as a share of the prey's radius (sheet 03 strip B). */
 export const ABSORBED_STREAM_RADII = 0.5;
-/** Each ripple of a level-up is this share of the previous one's alpha and size (sheet 03 strip C: three fading ripples). */
+/** Each ripple of a level-up is this share of the previous one's alpha (sheet 03 strip C: three fading ripples). */
 export const LEVEL_UP_RIPPLE_FALLOFF = 0.6;
-/** A running effect whose cell was never drawn (a respawn off screen) sizes its sprites on this radius (wu). */
+/** The eat strip's halo (sheet 03 A frame 04 "rim flare, halo"): a soft glow at the pulse and a ring that fades at settle. */
+export const EAT_HALO_ALPHA = 0.5;
+export const EAT_HALO_RING_ALPHA = 0.6;
+/**
+ * A running effect whose cell was never drawn (a respawn off screen) sizes its sprites on this radius (wu):
+ * a little under the level-1 protocell (mass 20 → 17.9 wu at the default radius scale), so an unseen bloom
+ * never reads larger than the cell it announces.
+ */
 export const EFFECT_FALLBACK_RADIUS_WU = 12;
 export const ZONE_ENTRY_BRIGHTEN = 0.2;
 export const ZONE_ENTRY_SECONDS = 0.3;

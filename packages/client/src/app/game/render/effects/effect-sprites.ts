@@ -1,10 +1,17 @@
 // The effect sprites (docs/RENDERING.md §4, §6, sheet 03): each clip's placements as data, so the
-// layer only positions glow-atlas sprites. A level-up is `LEVEL_UP_RAYS` rays, a shock ring and
-// `LEVEL_UP_RIPPLES` fading ripples; a respawn a halo bloom from 2 r; an eat a brief halo pulse to
-// 1.5 r; an absorption `ABSORBED_STREAMS` DNA streams from the ghost to its predator. Pure over
-// the clip tracks; every colour is a palette constant or the subject's rim.
+// layer only positions glow-atlas sprites. A level-up is `LEVEL_UP_RAYS` rays outside the body, a
+// shock ring and three concentric ripples, none of them before the burst keyframe (the anticipate
+// frame is the bare squash); a respawn a halo bloom from 2 r; an eat a soft halo at the pulse and
+// a ring that fades at settle; an absorption `ABSORBED_STREAMS` DNA streams from the ghost to its
+// predator. Pure over the clip tracks; every colour is a palette constant or the subject's rim.
 
-import { MOTION_CLIP, RADIANS_PER_FULL_TURN, type MotionClipId } from '@evolution/shared';
+import {
+  LEVEL_UP_KEYFRAME_MS,
+  MOTION_CLIP,
+  MOTION_CLIPS,
+  RADIANS_PER_FULL_TURN,
+  type MotionClipId,
+} from '@evolution/shared';
 import type { ClipTrackValues } from '../cells/cell-clips';
 import {
   ABSORBED_STREAMS,
@@ -12,14 +19,17 @@ import {
   ABSORBED_STREAM_SPREAD_DEG,
   DNA,
   DNA_DEEP,
+  EAT_HALO_ALPHA,
   EAT_HALO_FADE_START,
+  EAT_HALO_RING_ALPHA,
   EFFECT_HALO_ALPHA,
   EFFECT_RING_ALPHA,
   LEVEL_GOLD,
   LEVEL_UP_RAYS,
+  LEVEL_UP_RAY_BASE_RADII,
   LEVEL_UP_RAY_WIDTH_RADII,
-  LEVEL_UP_RIPPLES,
   LEVEL_UP_RIPPLE_FALLOFF,
+  LEVEL_UP_RIPPLE_RADII,
   WHITE,
 } from '../constants';
 import { DIAMETER_PER_RADIUS, HALF, clamp01, degreesToRadians } from '../geometry';
@@ -51,6 +61,8 @@ const NO_ROTATION = 0;
 const RAY_BASE_TO_CELL_TURNS = 0.25;
 /** The middle stream carries the bright DNA colour, the flanks the deep one. */
 const BRIGHT_STREAM_INDEX = 1;
+/** Unit progress of the level-up clip at its burst keyframe: nothing of the burst shows before it. */
+const LEVEL_UP_BURST_PROGRESS = LEVEL_UP_KEYFRAME_MS.burst / MOTION_CLIPS.level_up.duration;
 
 function centred(
   source: EffectSource,
@@ -61,15 +73,18 @@ function centred(
   return { sprite, x: source.x, y: source.y, widthWu: sizeWu, heightWu: sizeWu, rotation: NO_ROTATION, ...paint };
 }
 
+/** The rays sit outside the body: base at `LEVEL_UP_RAY_BASE_RADII`, tip at the `rayRadii` track. */
 function rayPlacements(source: EffectSource, rayRadii: number, alpha: number): EffectSpritePlacement[] {
   const placements: EffectSpritePlacement[] = [];
-  const length = rayRadii * source.radius;
+  const baseWu = LEVEL_UP_RAY_BASE_RADII * source.radius;
+  const length = Math.max(0, rayRadii - LEVEL_UP_RAY_BASE_RADII) * source.radius;
+  const centreWu = baseWu + length * HALF;
   for (let ray = 0; ray < LEVEL_UP_RAYS; ray += 1) {
     const angle = (ray / LEVEL_UP_RAYS) * RADIANS_PER_FULL_TURN;
     placements.push({
       sprite: GLOW_SPRITE.ray,
-      x: source.x + Math.cos(angle) * length * HALF,
-      y: source.y + Math.sin(angle) * length * HALF,
+      x: source.x + Math.cos(angle) * centreWu,
+      y: source.y + Math.sin(angle) * centreWu,
       widthWu: LEVEL_UP_RAY_WIDTH_RADII * source.radius,
       heightWu: length,
       rotation: angle + RAY_BASE_TO_CELL_TURNS * RADIANS_PER_FULL_TURN,
@@ -80,18 +95,25 @@ function rayPlacements(source: EffectSource, rayRadii: number, alpha: number): E
   return placements;
 }
 
+/** The burst sprites are absent through the anticipate frame, then fade from the burst keyframe to the end. */
+function levelUpFade(progress: number): number {
+  if (progress < LEVEL_UP_BURST_PROGRESS) return 0;
+  return 1 - (progress - LEVEL_UP_BURST_PROGRESS) / (1 - LEVEL_UP_BURST_PROGRESS);
+}
+
 function levelUpPlacements(source: EffectSource, tracks: ClipTrackValues, progress: number): EffectSpritePlacement[] {
-  const fade = 1 - progress;
+  const fade = levelUpFade(progress);
+  if (fade <= 0) return [];
   const diameter = source.radius * DIAMETER_PER_RADIUS;
   const shock = (tracks['shockRingRadii'] ?? 0) * diameter;
-  const rippleRadii = tracks['rippleRadii'] ?? 0;
-  const ripples = Array.from({ length: LEVEL_UP_RIPPLES }, (_unused, ripple) => {
-    const falloff = LEVEL_UP_RIPPLE_FALLOFF ** ripple;
-    return centred(source, GLOW_SPRITE.ring, rippleRadii * diameter * falloff, {
+  // The track pushes every ripple outward from its own radius; the falloff dims the outer ones only.
+  const push = (tracks['rippleRadii'] ?? LEVEL_UP_RIPPLE_RADII[0]) - LEVEL_UP_RIPPLE_RADII[0];
+  const ripples = LEVEL_UP_RIPPLE_RADII.map((radii, ripple) =>
+    centred(source, GLOW_SPRITE.ring, (radii + push) * diameter, {
       colour: LEVEL_GOLD,
-      alpha: EFFECT_RING_ALPHA * fade * falloff,
-    });
-  });
+      alpha: EFFECT_RING_ALPHA * fade * LEVEL_UP_RIPPLE_FALLOFF ** ripple,
+    }),
+  );
   return [
     ...rayPlacements(source, tracks['rayRadii'] ?? 0, fade),
     centred(source, GLOW_SPRITE.ring, shock, { colour: WHITE, alpha: EFFECT_RING_ALPHA * fade }),
@@ -104,10 +126,17 @@ function haloPlacement(source: EffectSource, radii: number, alpha: number): Effe
   return [centred(source, GLOW_SPRITE.glow, size, { colour: source.colour, alpha })];
 }
 
-/** The eat halo holds until `EAT_HALO_FADE_START` of the clip, then fades to nothing at the end. */
-function eatHaloAlpha(progress: number): number {
+/** The eat halo (sheet 03 A): a soft glow through the pulse, then a ring at `haloRadii` that fades over the last tween. */
+function eatHaloPlacements(source: EffectSource, tracks: ClipTrackValues, progress: number): EffectSpritePlacement[] {
+  const radii = tracks['haloRadii'] ?? 1;
   const fadeShare = clamp01((progress - EAT_HALO_FADE_START) / (1 - EAT_HALO_FADE_START));
-  return EFFECT_HALO_ALPHA * HALF * (1 - fadeShare);
+  const size = radii * source.radius * DIAMETER_PER_RADIUS;
+  const ring = centred(source, GLOW_SPRITE.ring, size, {
+    colour: source.colour,
+    alpha: EAT_HALO_RING_ALPHA * (1 - fadeShare),
+  });
+  if (fadeShare > 0) return [ring];
+  return [...haloPlacement(source, radii, EAT_HALO_ALPHA), ring];
 }
 
 function absorbedPlacements(source: EffectSource, tracks: ClipTrackValues): EffectSpritePlacement[] {
@@ -147,7 +176,7 @@ export function effectPlacements(
     case MOTION_CLIP.respawn:
       return haloPlacement(source, tracks['haloRadii'] ?? 0, EFFECT_HALO_ALPHA * (1 - progress));
     case MOTION_CLIP.eat:
-      return haloPlacement(source, tracks['haloRadii'] ?? 1, eatHaloAlpha(progress));
+      return eatHaloPlacements(source, tracks, progress);
     case MOTION_CLIP.absorbed:
       return absorbedPlacements(source, tracks);
     default:

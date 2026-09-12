@@ -18,6 +18,7 @@ describe('pixi textures', () => {
   it('refuses to pack an atlas from bakes with no DOM canvas behind them', () => {
     const factory = createFakeBakeCanvasFactory();
     expect(() => atlasTexturesFromBakes({ a: factory.create(4, 4) })).toThrow(/DOM canvas/);
+    expect(() => atlasTexturesFromBakes({})).toThrow(/at least one bake/);
   });
 
   it('maps every bake of a record to a texture under the same key', () => {

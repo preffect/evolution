@@ -29,7 +29,9 @@ function paintAtlas<Key extends string>(
   layout: AtlasLayout<Key>,
 ): SpriteAtlas<Key> {
   const keys = Object.keys(bakes) as Key[];
-  const documentReference = requireElement(bakes[keys[0]!]).ownerDocument;
+  const first = keys[0];
+  if (first === undefined) throw new Error('An atlas needs at least one bake.');
+  const documentReference = requireElement(bakes[first]).ownerDocument;
   const canvas = documentReference.createElement('canvas');
   canvas.width = layout.width;
   canvas.height = layout.height;

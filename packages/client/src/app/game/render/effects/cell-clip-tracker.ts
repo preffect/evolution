@@ -73,9 +73,11 @@ export class CellClipTracker {
     });
   }
 
-  /** This frame's deformation per cell that is playing a clip or engulfing; states of cells no longer in the frame are dropped. */
-  deformations(cells: readonly CellView[], nowMs: number): CellDeformations {
-    const views = cellsById(cells);
+  /**
+   * This frame's deformation per cell that is playing a clip or engulfing; states of cells no longer in
+   * the frame are dropped. `views` is the frame's cells by id (the renderer builds it once per frame).
+   */
+  deformations(cells: readonly CellView[], nowMs: number, views: CellViewsById = cellsById(cells)): CellDeformations {
     for (const cellId of this.states.keys()) if (!views.has(cellId)) this.states.delete(cellId);
     const deformations = new Map<EntityId, CellDeformation>();
     for (const cell of cells) {

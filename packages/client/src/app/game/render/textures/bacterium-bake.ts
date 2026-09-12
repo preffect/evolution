@@ -123,8 +123,18 @@ export function bakeBacteriumRod(factory: BakeCanvasFactory, variant: BacteriumV
   context.strokeStyle = hexWithAlpha(style.rim, 1);
   context.lineWidth = radius * BACTERIUM_BAKE.rimWidthShare;
   context.stroke();
+  return canvas;
+}
+
+/**
+ * The rod's glint on its own canvas of the same extent (VISUAL-STYLE §1: light from the top-left
+ * only): the rod rotates with its heading, so the glint is a second, unrotated particle at the same
+ * place and scale, and the two line up because both bakes share the centre and the px/wu.
+ */
+export function bakeRodGlint(factory: BakeCanvasFactory, radius: number): BakeCanvas {
+  const { canvas, centre } = createBodyCanvas(factory, radius, BACTERIUM_BAKE.haloReach);
   paintGlint(
-    context,
+    canvas.context,
     { x: centre, y: centre, radius: radius * HALF },
     { colour: WHITE, alpha: BACTERIUM_BAKE.glintAlpha },
   );

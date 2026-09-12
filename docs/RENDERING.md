@@ -335,7 +335,7 @@ the vent shimmer is the one filter, over the vent sprite only. Draw calls at the
 | dish                         | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                           | 4     |
 | depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                | 3     |
 | food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`) | 1     |
-| DNA fragments                | sprite batch: helix + tag-tinted rungs / halo from the glow atlas, 20 °/s                                                                                      | 1     |
+| DNA fragments                | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s     | 1     |
 | cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                                    | 4     |
 | effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters                                                                               | 2     |
 | debug                        | `Graphics` + text, none when off                                                                                                                               | 0–2   |
@@ -455,7 +455,7 @@ numbers in #99's PR body come from a hardware run of the same route.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index)
 constants/{colours,cell-shape,organelles,world-render,vent}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×16 RGBA jitter / lobes strip (16-bit pairs, derivatives from the lerp), from the cosmetic fork (#206)
 textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`BakeContext2D`, the DOM factory, the fill / stroke / halo / glint primitives), the feathered ellipse and soft stroke that stand in for the sheets' blurs, and the one place a bake or a byte table becomes a Pixi texture (#206)
@@ -476,7 +476,6 @@ food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts   one `
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
-sprite-pool.ts                                     the pooled centred sprites the organelle, fragment and effect layers place by index
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
 bench/{bench-scene,render-benchmark,render-stage-timer}.ts
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows

@@ -51,6 +51,7 @@ describe('createRenderTextures', () => {
       ...Object.values(textures.motes.full),
       ...Object.values(textures.motes.small),
       ...Object.values(textures.motes.fragments),
+      ...Object.values(textures.motes.rodGlint),
     ];
     expect(new Set(moteFrames.map((texture) => texture.source)).size).toBe(1);
     expect(moteFrames[0]!.source).toBe(textures.motes.source);
@@ -101,6 +102,7 @@ describe('createRenderTextures', () => {
     expect(textures.glow.ring.destroyed).toBe(true);
     expect(textures.motes.small.algae.destroyed).toBe(true);
     expect(textures.motes.fragments.motile.destroyed).toBe(true);
+    expect(textures.motes.rodGlint.small.destroyed).toBe(true);
     expect(textures.motes.source.destroyed).toBe(true);
     expect(textures.organelles.lipid.texture.destroyed).toBe(true);
     expect(textures.stripTexture.destroyed).toBe(true);

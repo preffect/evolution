@@ -11,8 +11,14 @@ import {
   createTestSnapshot,
   entityId,
 } from '@evolution/shared';
-import { TEST_OWN_PLAYER_ID, createTestCellView, createTestEatEffect } from '../../../testing/builders';
-import { WorldStore } from './world-store';
+import {
+  TEST_OWN_PLAYER_ID,
+  createTestCellAbsorbedEffect,
+  createTestCellView,
+  createTestEatEffect,
+  createTestLevelUpEffect,
+} from '../../../testing/builders';
+import { WorldStore, isSameEffect } from './world-store';
 
 function storeWithSnapshots(ticks: readonly number[]): { store: WorldStore; clock: ManualClock } {
   const clock = new ManualClock(0);
@@ -132,6 +138,34 @@ describe('WorldStore', () => {
     clock.setMilliseconds(64 * TICK_INTERVAL_MS);
     store.applySnapshot(createTestSnapshot({ tick: 64, cells: [createTestCellView({ id: entityId('c') })] }));
     expect(store.nextFrame()!.renderTick).toBeCloseTo(64 - INTERPOLATION_DELAY_TICKS, 6);
+  });
+
+  it("queues a republished tick's effects once: the same moment never fires twice", () => {
+    const { store, clock } = storeWithSnapshots([60, 61, 62]);
+    const levelUp = createTestLevelUpEffect({ tick: 63, cellId: entityId('c') });
+    const absorbed = createTestCellAbsorbedEffect({
+      tick: 63,
+      cellId: entityId('prey'),
+      predatorCellId: entityId('c'),
+    });
+    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp, absorbed] }));
+    const otherPrey = createTestCellAbsorbedEffect({
+      tick: 63,
+      cellId: entityId('other'),
+      predatorCellId: entityId('c'),
+    });
+    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp, absorbed, otherPrey] }));
+    clock.setMilliseconds((63 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    const { effects } = store.nextFrame()!;
+    expect(effects.filter((effect) => effect.tick === 63)).toEqual([levelUp, absorbed, otherPrey]);
+    expect(isSameEffect(levelUp, { ...levelUp, tick: 64 })).toBe(false);
+    expect(isSameEffect(levelUp, createTestEatEffect({ tick: 63, cellId: entityId('c') }))).toBe(false);
+    expect(
+      isSameEffect(
+        { kind: 'world_level_up', tick: 63, level: 2, stage: 'prokaryote' },
+        { kind: 'world_level_up', tick: 63, level: 3, stage: 'prokaryote' },
+      ),
+    ).toBe(true);
   });
 
   it('interpolates strictly between two snapshots at the live broadcast cadence', () => {

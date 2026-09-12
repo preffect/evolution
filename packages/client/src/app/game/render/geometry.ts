@@ -35,11 +35,6 @@ export function cosineSmoothstep(fraction: number): number {
   return (1 - Math.cos(Math.PI * fraction)) * HALF;
 }
 
-/** Linear interpolation from `start` to `end` by `fraction` (unclamped). */
-export function lerp(start: number, end: number, fraction: number): number {
-  return start + (end - start) * fraction;
-}
-
 export function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value;
 }

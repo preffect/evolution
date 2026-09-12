@@ -50,6 +50,16 @@ export interface GameStateApplied {
   readonly avatarAssignments: Readonly<Record<string, number>>;
 }
 
+/** Effects carry no id: the same moment is the same kind, tick and cells (docs/ARCHITECTURE.md §2). */
+export function isSameEffect(first: GameEffect, second: GameEffect): boolean {
+  if (first.kind !== second.kind || first.tick !== second.tick) return false;
+  const firstCell = 'cellId' in first ? first.cellId : null;
+  const secondCell = 'cellId' in second ? second.cellId : null;
+  const firstPredator = 'predatorCellId' in first ? first.predatorCellId : null;
+  const secondPredator = 'predatorCellId' in second ? second.predatorCellId : null;
+  return firstCell === secondCell && firstPredator === secondPredator;
+}
+
 export class WorldStore {
   private readonly snapshots = new SnapshotBuffer();
   private readonly estimator = new ServerTickEstimator();
@@ -79,7 +89,12 @@ export class WorldStore {
     if (outcome === SNAPSHOT_PUSH.stale) return false;
     if (outcome === SNAPSHOT_PUSH.appended) this.estimator.observe(snapshot.tick, this.clock.nowMilliseconds());
     this.food.applyDelta(snapshot.food, snapshot.tick);
-    this.pendingEffects.push(...snapshot.effects);
+    // A republished tick carries its effects again (#237): only the ones not already pending are queued.
+    const fresh =
+      outcome === SNAPSHOT_PUSH.replaced
+        ? snapshot.effects.filter((effect) => !this.pendingEffects.some((pending) => isSameEffect(pending, effect)))
+        : snapshot.effects;
+    this.pendingEffects.push(...fresh);
     return true;
   }
 

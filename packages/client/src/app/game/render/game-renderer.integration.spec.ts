@@ -25,7 +25,7 @@ import {
   instanceFieldLocation,
   type CellInstanceScalar,
 } from './cells/cell-instance';
-import { LEVEL_UP_RAYS, LEVEL_UP_RIPPLES } from './constants';
+import { LAYER_Z, LEVEL_UP_RAYS, LEVEL_UP_RIPPLES } from './constants';
 import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
 import type { RenderFrame } from '../net/world-store';
 
@@ -59,12 +59,13 @@ describe('food and effects through the renderer', () => {
     const outputs = subject.render(atMs(0, { motes, fragments }), TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
     expect(outputs).toMatchObject({ visibleMotes: 2, fragments: 1, effectSprites: 0 });
     const world = pixi.stage.children[0]!;
-    const foodLayer = world.children.find((layer) => layer.zIndex === 2)!;
+    const foodLayer = world.children.find((layer) => layer.zIndex === LAYER_Z.food)!;
     const particles = foodLayer.children[0]!.children[0] as ParticleContainer;
     expect(particles).toBeInstanceOf(ParticleContainer);
-    expect(particles.particleChildren).toHaveLength(2);
+    // Two motes plus the rod's unrotated glint particle.
+    expect(particles.particleChildren).toHaveLength(3);
     expect(new Set(particles.particleChildren.map((particle) => particle.texture.source)).size).toBe(1);
-    const fragmentLayer = world.children.find((layer) => layer.zIndex === 3)!;
+    const fragmentLayer = world.children.find((layer) => layer.zIndex === LAYER_Z.fragments)!;
     expect(fragmentLayer.children[0]!.children).toHaveLength(1);
     subject.destroy();
   });
@@ -76,7 +77,7 @@ describe('food and effects through the renderer', () => {
     const eat = createTestEatEffect({ cellId: eater.id, x: 0, y: 20 });
     subject.render(atMs(1000, { cells: [eater], effects: [eat] }), TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
     const atPulse = subject.render(atMs(1160, { cells: [eater] }), TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
-    expect(atPulse.effectSprites).toBe(1);
+    expect(atPulse.effectSprites).toBe(2);
     expect(packed(subject, 0, 'pulse')).toBeCloseTo(1.09, 5);
     const dimpleSlot = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect(subject.cellInstances[dimpleSlot]).toBeCloseTo(-0.12, 5);
@@ -98,10 +99,12 @@ describe('food and effects through the renderer', () => {
       INPUTS,
       NO_SUBMIT,
     );
-    expect(start.effectSprites).toBe(LEVEL_UP_RAYS + 1 + LEVEL_UP_RIPPLES + 1);
+    // Only the respawn bloom at t = 0: the level-up burst waits for its keyframe.
+    expect(start.effectSprites).toBe(1);
     // Rows are radius-ascending: the reborn protocell packs first, the leveller second.
     expect(packed(subject, 0, 'alpha')).toBeCloseTo(0, 5);
-    subject.render(atMs(250, { cells: [leveller, reborn] }), TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
+    const burst = subject.render(atMs(250, { cells: [leveller, reborn] }), TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
+    expect(burst.effectSprites).toBe(LEVEL_UP_RAYS + 1 + LEVEL_UP_RIPPLES + 1);
     expect(packed(subject, 1, 'pulse')).toBeCloseTo(1.14, 5);
     expect(packed(subject, 0, 'alpha')).toBeGreaterThan(0);
     subject.render(

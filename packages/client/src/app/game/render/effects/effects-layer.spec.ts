@@ -27,7 +27,7 @@ describe('EffectsLayer', () => {
     const eater = createTestCellView({ id: entityId('e'), x: 0, y: 0, radius: 10, avatarIndex: 2 });
     expect(subject.start([createTestEatEffect({ cellId: eater.id })], lookup([eater]), 1000)).toBe(1);
     const peak = subject.update(frame([{ ...eater, x: 5 }], 1160));
-    expect(peak).toEqual({ sprites: 1, running: 1 });
+    expect(peak).toEqual({ sprites: 2, running: 1 });
     expect(subject.sprites[0]).toMatchObject({ x: 5, y: 0, visible: true, tint: hexToNumber(paletteFor(2).rim) });
     expect(subject.sprites[0]!.width).toBeCloseTo(1.5 * 10 * 2, 6);
     expect(subject.update(frame([eater], 1300))).toEqual({ sprites: 0, running: 0 });
@@ -43,6 +43,7 @@ describe('EffectsLayer', () => {
       lookup([cell]),
       0,
     );
+    expect(subject.update(frame([cell], 120))).toEqual({ sprites: 1, running: 2 });
     const burst = subject.update(frame([cell], 250));
     expect(burst).toEqual({ sprites: LEVEL_UP_RAYS + 1 + LEVEL_UP_RIPPLES + 1, running: 2 });
     const bloom = subject.sprites[burst.sprites - 1]!;

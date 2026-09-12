@@ -70,7 +70,16 @@ const ENGULF_AT = [0, 0.5, 1.0] as const;
 const ENGULF_EASE: readonly EasingName[] = [EASING.easeOutCubic, EASING.easeInOutQuad, EASING.linear];
 const ABSORBED_AT = [0, 200, 400, 600] as const;
 const ABSORBED_EASE: readonly EasingName[] = [EASING.linear, EASING.easeInQuad, EASING.easeOutBack, EASING.linear];
-const LEVEL_UP_AT = [0, 120, 250, 450, 700, 900] as const;
+/** The level-up strip's named keyframes (ms, sheet 03 strip C): the effects gate their burst sprites on `burst`. */
+export const LEVEL_UP_KEYFRAME_MS = { anticipate: 120, burst: 250, nucleus: 450, settle: 700 } as const;
+const LEVEL_UP_AT = [
+  0,
+  LEVEL_UP_KEYFRAME_MS.anticipate,
+  LEVEL_UP_KEYFRAME_MS.burst,
+  LEVEL_UP_KEYFRAME_MS.nucleus,
+  LEVEL_UP_KEYFRAME_MS.settle,
+  900,
+] as const;
 const LEVEL_UP_EASE: readonly EasingName[] = [
   EASING.easeInQuad,
   EASING.easeOutExpo,

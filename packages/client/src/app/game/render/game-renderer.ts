@@ -24,7 +24,7 @@ import {
 import { cellClipStarts, type LastViewOf } from './cells/cell-effects';
 import { CellLayer } from './cells/cell-layer';
 import { DishLayer } from './dish/dish-layer';
-import { CellClipTracker, cellsById } from './effects/cell-clip-tracker';
+import { CellClipTracker, cellsById, type CellViewsById } from './effects/cell-clip-tracker';
 import { EffectsLayer } from './effects/effects-layer';
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
@@ -129,8 +129,7 @@ export class GameRenderer {
   }
 
   /** This frame's view of a cell, or the one it was last drawn with (a prey on its payout frame). */
-  private viewLookup(frame: RenderFrame): LastViewOf {
-    const views = cellsById(frame.cells);
+  private viewLookup(views: CellViewsById): LastViewOf {
     return (cellId) => views.get(cellId) ?? this.cells.lastViewOf(cellId);
   }
 
@@ -143,7 +142,8 @@ export class GameRenderer {
     applyCameraTransform(this.layers.world, camera, this.viewport);
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
     const ownCell = ownCellOf(frame, ownPlayerId);
-    const viewOf = this.viewLookup(frame);
+    const views = cellsById(frame.cells);
+    const viewOf = this.viewLookup(views);
     this.effects.start(frame.effects, viewOf, nowMs);
     this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
     this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
@@ -160,7 +160,7 @@ export class GameRenderer {
       nowMs,
       ownCell,
       previewTraitId: inputs.previewTraitId,
-      deformations: this.clips.deformations(frame.cells, nowMs),
+      deformations: this.clips.deformations(frame.cells, nowMs, views),
     });
     const effects = this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } });
     submit();

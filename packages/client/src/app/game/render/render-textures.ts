@@ -34,7 +34,7 @@ import { bakePaletteTextureBytes } from './palette';
 import { bakeDishField, type DishField } from './textures/dish-texture';
 import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
 import { bakeLightPool } from './textures/light-pool-bake';
-import { bakeMoteAtlas, type MoteSpriteKey } from './textures/mote-atlas';
+import { bakeMoteAtlas, type MoteSpriteKey, type MoteVariants } from './textures/mote-atlas';
 import { bakeOrganelleAtlas } from './textures/organelle-atlas';
 import { byteDataTexture, texturesFromBakes, type SpriteAtlas } from './textures/pixi-textures';
 import type { BakeCanvas, BakeCanvasFactory } from './textures/texture-bake';
@@ -78,6 +78,8 @@ export interface MoteAtlasTextures {
   readonly full: Readonly<Record<MoteSpriteKey, Texture>>;
   readonly small: Readonly<Record<MoteSpriteKey, Texture>>;
   readonly fragments: Readonly<Record<DnaTag, Texture>>;
+  /** The unrotated glint particle drawn over every rod (textures/bacterium-bake.ts). */
+  readonly rodGlint: MoteVariants<Texture>;
   readonly fullPxPerWu: number;
   readonly smallPxPerWu: number;
 }
@@ -165,7 +167,7 @@ function organelleTextures(
   return textures;
 }
 
-const MOTE_ATLAS_GROUP = { full: 'full', small: 'small', fragment: 'fragment' } as const;
+const MOTE_ATLAS_GROUP = { full: 'full', small: 'small', fragment: 'fragment', glint: 'glint' } as const;
 
 /** `group:key` for every bake of a record, so three records share one atlas. */
 function prefixed<Key extends string>(
@@ -195,13 +197,16 @@ function moteTextures(baker: TextureBaker): MoteAtlasTextures {
     ...prefixed(MOTE_ATLAS_GROUP.full, bakes.full),
     ...prefixed(MOTE_ATLAS_GROUP.small, bakes.small),
     ...prefixed(MOTE_ATLAS_GROUP.fragment, bakes.fragments),
+    ...prefixed(MOTE_ATLAS_GROUP.glint, bakes.rodGlint),
   });
   const moteKeys = Object.keys(bakes.full) as MoteSpriteKey[];
+  const variantKeys: readonly (keyof MoteVariants<Texture>)[] = ['full', 'small'];
   return {
     source: atlas.source,
     full: unprefixed(MOTE_ATLAS_GROUP.full, moteKeys, atlas),
     small: unprefixed(MOTE_ATLAS_GROUP.small, moteKeys, atlas),
     fragments: unprefixed(MOTE_ATLAS_GROUP.fragment, Object.keys(bakes.fragments) as DnaTag[], atlas),
+    rodGlint: unprefixed(MOTE_ATLAS_GROUP.glint, variantKeys, atlas),
     fullPxPerWu: bakes.fullPxPerWu,
     smallPxPerWu: bakes.smallPxPerWu,
   };
@@ -279,6 +284,7 @@ export function destroyRenderTextures(textures: RenderTextures): void {
     ...Object.values(textures.motes.full),
     ...Object.values(textures.motes.small),
     ...Object.values(textures.motes.fragments),
+    ...Object.values(textures.motes.rodGlint),
   ];
   for (const texture of moteFrames) texture.destroy(false);
   textures.motes.source.destroy();

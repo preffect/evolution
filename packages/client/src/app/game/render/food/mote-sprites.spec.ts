@@ -11,7 +11,14 @@ import {
   MOTE_WIDE_HALO_MIN_PX,
 } from '../constants';
 import { MOTE_SPRITE } from '../textures/mote-atlas';
-import { drawMoteCosmetics, flooredRadiusWu, moteAppearance, moteBreath, moteSpriteKey } from './mote-sprites';
+import {
+  createMoteAppearance,
+  drawMoteCosmetics,
+  flooredRadiusWu,
+  moteAppearance,
+  moteBreath,
+  moteSpriteKey,
+} from './mote-sprites';
 
 const algae = createTestFoodMoteView({ id: entityId('m-1') });
 const rod = createTestFoodMoteView({ id: entityId('m-2'), kind: 'bacterium', bacteriumVariant: 'aerobic' });
@@ -74,5 +81,13 @@ describe('mote sprites', () => {
     expect(appearance.bodyRadiusWu).toBeCloseTo(BACTERIUM_RADIUS * moteBreath(cosmetics, 0.3), 9);
     expect(appearance.bodyScale).toBeCloseTo(moteBreath(cosmetics, 0.3), 9);
     expect(moteAppearance({ mote: algae, cosmetics, heading: 1, timeSeconds: 0.3, zoom: 1 }).rotation).toBe(0);
+  });
+
+  it('fills the scratch it is given instead of allocating', () => {
+    const scratch = createMoteAppearance();
+    const filled = moteAppearance({ mote: rod, cosmetics, heading: 0.5, timeSeconds: 0, zoom: 1 }, scratch);
+    expect(filled).toBe(scratch);
+    expect(scratch.key).toBe(MOTE_SPRITE.bacteriumAerobic);
+    expect(scratch.bodyRadiusWu).toBeGreaterThan(0);
   });
 });
