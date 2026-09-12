@@ -3,6 +3,7 @@ import { DISH_RADIUS } from '@evolution/shared';
 import { Graphics, ParticleContainer, Sprite } from 'pixi.js';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { worldToScreen, type CameraState, type ViewportPx } from '../camera';
+import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import {
   DEPTH_BOKEH,
   DEPTH_FAR,
@@ -35,7 +36,7 @@ const FAR_PARTICLES_INDEX = 4;
 
 /** A camera at `zoom` px/wu for `viewport`, centred on `position`. */
 function cameraAt(position: { x: number; y: number }, zoom: number, viewport: ViewportPx): CameraState {
-  return { x: position.x, y: position.y, viewHalfHeightWu: viewport.height / 2 / zoom };
+  return { x: position.x, y: position.y, viewHalfHeightWu: (viewport.height * HALF) / zoom };
 }
 
 function layer(seed: number) {
@@ -114,8 +115,8 @@ describe('placeLightPoolSprite (RENDERING §6.1)', () => {
           const centre = worldToScreen(camera, viewport, sprite.x, sprite.y);
           expect(centre.x).toBeCloseTo(LIGHT_POOL_VIEW_CENTRE.x * viewport.width, 6);
           expect(centre.y).toBeCloseTo(LIGHT_POOL_VIEW_CENTRE.y * viewport.height, 6);
-          expect(sprite.width * zoom).toBeCloseTo(2 * LIGHT_POOL_VIEW_RADII.x * viewport.width, 6);
-          expect(sprite.height * zoom).toBeCloseTo(2 * LIGHT_POOL_VIEW_RADII.y * viewport.height, 6);
+          expect(sprite.width * zoom).toBeCloseTo(DIAMETER_PER_RADIUS * LIGHT_POOL_VIEW_RADII.x * viewport.width, 6);
+          expect(sprite.height * zoom).toBeCloseTo(DIAMETER_PER_RADIUS * LIGHT_POOL_VIEW_RADII.y * viewport.height, 6);
         }
       }
     },
@@ -126,8 +127,8 @@ describe('placeLightPoolSprite (RENDERING §6.1)', () => {
     const camera = cameraAt(CAMERA_POSITIONS[1], 1, VIEWPORT_1080P);
     placeLightPoolSprite(sprite, camera, VIEWPORT_1080P);
     const centre = worldToScreen(camera, VIEWPORT_1080P, sprite.x, sprite.y);
-    expect(centre.x).toBeLessThan(VIEWPORT_1080P.width / 2);
-    expect(centre.y).toBeLessThan(VIEWPORT_1080P.height / 2);
+    expect(centre.x).toBeLessThan(VIEWPORT_1080P.width * HALF);
+    expect(centre.y).toBeLessThan(VIEWPORT_1080P.height * HALF);
     expect(sprite.anchor.x).toBe(0.5);
     expect(sprite.anchor.y).toBe(0.5);
   });
@@ -140,7 +141,7 @@ describe('createDishFieldSprite / createVentSprite / drawDishWall', () => {
     expect(field.anchor.y).toBe(0.5);
     expect(field.width).toBeCloseTo(textures.dishField.halfExtentWu * 2, 6);
     expect(field.height).toBeCloseTo(field.width, 6);
-    expect(field.width / 2).toBeGreaterThan(DISH_RADIUS + WALL_GLASS_WU);
+    expect(field.width * HALF).toBeGreaterThan(DISH_RADIUS + WALL_GLASS_WU);
   });
 
   it('centres the vent sprite on the vent zone and scales it to its bake extent', () => {
@@ -155,6 +156,6 @@ describe('createDishFieldSprite / createVentSprite / drawDishWall', () => {
   it('draws the wall past the dish radius', () => {
     const wall = new Graphics();
     drawDishWall(wall);
-    expect(wall.getLocalBounds().width / 2).toBeGreaterThan(DISH_RADIUS);
+    expect(wall.getLocalBounds().width * HALF).toBeGreaterThan(DISH_RADIUS);
   });
 });

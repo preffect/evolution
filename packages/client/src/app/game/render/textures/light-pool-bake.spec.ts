@@ -11,10 +11,11 @@ import {
   LIGHT_POOL_SHEET_RADII_WU,
   LIGHT_POOL_TEXTURE_PX,
 } from '../constants';
+import { HALF } from '../geometry';
 import { fieldStrokePx } from './dish-field-details';
 import { bakeLightPool, lightPoolBakeScale } from './light-pool-bake';
 
-const HALF_SIZE_PX = LIGHT_POOL_TEXTURE_PX / 2;
+const HALF_SIZE_PX = LIGHT_POOL_TEXTURE_PX * HALF;
 
 function bake() {
   const canvas = bakeLightPool(createFakeBakeCanvasFactory());

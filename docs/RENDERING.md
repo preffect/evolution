@@ -381,7 +381,8 @@ with the vignette: it must sit under the motes, fragments, cells and the vent, a
   layer order: field, light pool, vent, wall, far particles. The shallows tint is under it in the field texture
   and stacks with it; the vignette (screen root) stays above everything and is 0 at the pool's centre
   (VISUAL-STYLE §1).
-- **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame, no allocation.
+- **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame (the one point
+  `screenToWorld` returns; no texture, buffer or bake work per frame).
 - **Tests:** a fake-context spec (`testing/fake-bake-canvas.ts`, the `dish-texture.spec.ts` pattern): the canvas
   is `LIGHT_POOL_TEXTURE_PX` square; the one radial gradient carries the stops (0, `LIGHT_POOL_ALPHA`),
   (`LIGHT_POOL_MID.stop`, `LIGHT_POOL_MID.alpha`), (1, 0) in `LIGHT_ACCENT`; exactly `CAUSTIC_SWEEPS.length`

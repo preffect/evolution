@@ -7,12 +7,12 @@ condenser light pool is anchored to the view: its centre sits at `LIGHT_POOL_VIE
 every 1080p frame and its three caustic arcs cross x = 700 at rows 161 and 320 and x = 1100 at row 172
 whatever the camera does; the pool centre reads `BG_FIELD` + 9 % `LIGHT_ACCENT` (21, 40, 57) over the broth.
 
-| File                         | Pins                                                                                                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field-at-rest-seed42.png`   | the field at the spawn (−2407, 784): the view-anchored pool and its three arcs over the shallows tint, the wall glass reading `#182c46`, the particles   |
+| File                         | Pins                                                                                                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field-at-rest-seed42.png`   | the field at the spawn (−2407, 784): the view-anchored pool and its three arcs over the shallows tint, the wall glass reading `#182c46`, the particles      |
 | `vent-at-zoom1-seed42.png`   | the own cell at (120, 60) beside the vent at the origin: the vent sprite, crust, risers and bubbles drawn over the pool; no world-anchored pool at the vent |
-| `vent-crop-zoom1-seed42.png` | 760 × 480 crop of the vent from the frame above (offset 580, 300)                                                                                       |
-| `bakes-preview-seed42.png`   | the Canvas-2D bakes laid out as a sheet (#221); untouched by #229 and #242 (it still shows the pre-#242 field bake with the pool painted in)              |
+| `vent-crop-zoom1-seed42.png` | 760 × 480 crop of the vent from the frame above (offset 580, 300)                                                                                           |
+| `bakes-preview-seed42.png`   | the Canvas-2D bakes laid out as a sheet (#221); untouched by #229 and #242 (it still shows the pre-#242 field bake with the pool painted in)                |
 
 Not yet pinned: the zones at play scale (shallows, mire, vent at zoom 1.8), the field per zoom band (#223),
 motes and fragments (#207). graphics-qa adds them with those PRs.
