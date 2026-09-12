@@ -58,18 +58,34 @@ export function dissolveCell(world: WorldState, cell: CellRecord, spawner: Rando
   forgetSpectatedCell(world, cell);
 }
 
+/**
+ * The tick the cell died is spectated too (#211, the respawn convention). A death happens at step 6
+ * (the engulf payout) and the countdown runs at step 9 of that same tick, so without this the
+ * spectate would be one tick short of `RESPAWN_SPECTATE_SECONDS`. With it, a death on tick t places
+ * the new cell on t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1, which is what docs/GAME-DESIGN.md
+ * §5.2 (G8, G13) and docs/ECOLOGY.md §8.1 (W4) state.
+ */
+const DEATH_TICK_TICKS = 1;
+
 function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRecord, kept: number): void {
   player.lifeState = PLAYER_LIFE_STATE.spectating;
   player.spectatingCellId = killer.id;
-  player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS);
+  player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS) + DEATH_TICK_TICKS;
   player.dnaTowardNextLevel *= kept;
 }
 
 /**
  * The prey side of an engulf payout: the cell is removed this tick, detritus dropped, the
  * `cell_absorbed` effect emitted and the player spectates the killer's cell (a player's or a
- * wild one) until respawn, keeping `dnaKeptOnDeathFraction` of its progress. A wild prey has no
- * player to spectate: the wild-cell slice removes its cell through `dissolveCell` alone.
+ * wild one) until respawn, keeping `dnaKeptOnDeathFraction` of its progress.
+ *
+ * **A wild prey drops out at the guard below**: it has no player to spectate, so it returns after
+ * `dissolveCell` and emits NO `cell_absorbed` — the renderer therefore gets no absorbed clip, no DNA
+ * streams and no ghost for it (docs/RENDERING.md §9). That is a real gap, not a rule:
+ * `CellAbsorbedEffect.playerId` is `PlayerId` and not nullable, so closing it is a wire change
+ * (`types/effects.ts`) filed against the wild-cell slice, which is also the first slice that can
+ * place a wild cell for it to matter to. Until then no wild cell exists (`world.wildSeats` is
+ * created empty), so nothing observable is lost.
  */
 export function absorbCell(world: WorldState, context: StepContext, prey: CellRecord, predator: CellRecord): void {
   if (!isPlayerCell(prey)) {

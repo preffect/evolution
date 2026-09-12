@@ -75,21 +75,21 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **10. Tests: placement and shape** (L249–266): The full testing standard is [`TESTING.md`](./TESTING.md); the placement rules:
 - **11. Review checklist (what a reviewer cites, with `file:line`)** (L267–277)
 
-## DETERMINISM.md (308 lines)
+## DETERMINISM.md (317 lines)
 
-- **Evolution — Deterministic Simulation Contract** (L1–308): Same seed + same config + same balance + same inputs ⇒ the same state, on every run, on every machine that runs the same Node version.
+- **Evolution — Deterministic Simulation Contract** (L1–317): Same seed + same config + same balance + same inputs ⇒ the same state, on every run, on every machine that runs the same Node version.
 - **1. The contract** (L10–36): and `requestAnimationFrame` are lint-banned in every `packages/*/src` file; the allowed call sites are `packages/shared/src/time/` (`System…
 - **2. Clock and fixed step (`packages/shared/src/time/`, `packages/server/src/lobby/ticker.ts`)** (L37–85): `GameRoom` takes `{ clock, ticker }` in its constructor (the `LobbyManager` receives them from `index.ts`).
-- **3. Seeded random streams (`packages/shared/src/random/`, #73)** (L86–165): arithmetic so every engine agrees; a 32-bit seed is expanded into the four state words with splitmix32 (`random/xoshiro128-star-star.ts`, k…
-- **4. Ordering rules** (L166–182): dropped.
-- **5. State hash (`packages/shared/src/simulation/state-hash.ts`, `packages/server/src/game/world/state-hash.ts`)** (L183–217): The kernel is split in two: `simulation/state-hasher.ts` (`StateHasher`: the two lanes, the scalar encodings, `digest()`) and `simulation/s…
-- **6. Replay (`packages/server/src/game/replay/`)** (L218–263): stamped with the tick at which they were applied, so the log is exactly what the simulation saw (not what arrived).
-- **7. What the tests assert** (L264–287): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
-- **8. Known traps** (L288–308): fall back to insertion order, which differs between a live run and a replay after removals.
+- **3. Seeded random streams (`packages/shared/src/random/`, #73)** (L86–174): arithmetic so every engine agrees; a 32-bit seed is expanded into the four state words with splitmix32 (`random/xoshiro128-star-star.ts`, k…
+- **4. Ordering rules** (L175–191): dropped.
+- **5. State hash (`packages/shared/src/simulation/state-hash.ts`, `packages/server/src/game/world/state-hash.ts`)** (L192–226): The kernel is split in two: `simulation/state-hasher.ts` (`StateHasher`: the two lanes, the scalar encodings, `digest()`) and `simulation/s…
+- **6. Replay (`packages/server/src/game/replay/`)** (L227–272): stamped with the tick at which they were applied, so the log is exactly what the simulation saw (not what arrived).
+- **7. What the tests assert** (L273–296): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
+- **8. Known traps** (L297–317): fall back to insertion order, which differs between a live run and a replay after removals.
 
-## ECOLOGY.md (842 lines)
+## ECOLOGY.md (851 lines)
 
-- **Evolution — Ecology, Growth and Absorption** (L1–842): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
+- **Evolution — Ecology, Growth and Absorption** (L1–851): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
 - **1. Food kinds** (L15–49): any mote; no minimum size.
 - **2. Zones** (L50–64): Geometry is fixed by the dish radius; the three gel patches are placed from the `zones` random stream at world creation and are part of the…
 - **3. Spawn model** (L65–335): Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond × TICK_INTERVAL_S`; while `accumulator �…
@@ -104,17 +104,17 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **5.2 Movement step (server, per tick)** (L385–413): The blend is the only drag: with no input `desired` is zero and the cell coasts to a stop within about a second.
   - **5.3 Cell-to-cell contact** (L414–422): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
   - **5.4 Growth, cap and mitosis (reserved)** (L423–433): at the cap still progresses the leaderboard.
-- **6. Absorption and engulf** (L434–662): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
-  - **6.1 Rules** (L442–609): Eligibility (mass only, one home).
-  - **6.2 State diagram** (L610–642): Two records, two homes.
-  - **6.3 Edge cases (resolved)** (L643–662)
-- **7. Constants table** (L663–762): Home: `packages/shared/src/constants/<domain>.ts`.
-  - **`ecology.ts`** (L667–699)
-  - **`growth.ts`** (L700–714)
-  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))** (L715–730)
-  - **`absorption.ts`** (L731–762): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
-- **8. Acceptance scenarios** (L763–842): Given seed S and inputs I, after N ticks assert X.
-  - **8.1 The evolving world (§3.1–§3.4)** (L819–842): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
+- **6. Absorption and engulf** (L434–671): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
+  - **6.1 Rules** (L442–618): Eligibility (mass only, one home).
+  - **6.2 State diagram** (L619–651): Two records, two homes.
+  - **6.3 Edge cases (resolved)** (L652–671)
+- **7. Constants table** (L672–771): Home: `packages/shared/src/constants/<domain>.ts`.
+  - **`ecology.ts`** (L676–708)
+  - **`growth.ts`** (L709–723)
+  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))** (L724–739)
+  - **`absorption.ts`** (L740–771): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
+- **8. Acceptance scenarios** (L772–851): Given seed S and inputs I, after N ticks assert X.
+  - **8.1 The evolving world (§3.1–§3.4)** (L828–851): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
 
 ## ENGINEERING.md (279 lines)
 
@@ -133,34 +133,34 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L227–257): instead of `./validate.sh`.
 - **6. Definition of Done (checklist — ALL must hold)** (L258–279): path, edge cases, and error cases.
 
-## GAME-DESIGN.md (446 lines)
+## GAME-DESIGN.md (450 lines)
 
-- **Evolution — Game Design** (L1–446): Tickets: #22 (core design), #29 (session model).
+- **Evolution — Game Design** (L1–450): Tickets: #22 (core design), #29 (session model).
 - **1. Companion documents** (L6–25): Technical contracts and the file plan: [`ARCHITECTURE.md`](./ARCHITECTURE.md) (#112); the build itself is epic #96 and its tickets (plannin…
 - **2. Core fantasy** (L26–41): _A single cell that becomes something more._ You begin as a bare protocell: a lipid membrane, a few granules, no nucleus, drifting in a dar…
 - **3. The evolution ladder** (L42–123): The ladder is the progression spine of build 1.
 - **4. Moment-to-moment loop** (L124–137): Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
-- **5. Session structure (#29)** (L138–249)
+- **5. Session structure (#29)** (L138–253)
   - **5.1 Round timeline and pace curve** (L153–176): Decision #138 (option A, "slow dawn", applied by #144) sets this curve; times are the #138 pace model for one active player who takes the t…
-  - **5.2 Spawn, death and respawn** (L177–200): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
-  - **5.3 Leaderboard and score** (L201–211): `dnaCumulative` never decreases, so dying costs time and mass, not score.
-  - **5.4 Round end and rematch** (L212–221): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
-  - **5.5 The evolving world** (L222–249): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
-- **6. Controls** (L250–271): tick.
-- **7. Camera** (L272–285): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
-- **8. The petri dish** (L286–308): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
-- **9. Win / lose and the feel of a round** (L309–318): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
-- **10. Explicit non-goals for build 1** (L319–328): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
-- **11. Reserved hooks for build 2** (L329–339)
-- **12. Constants table** (L340–423): Home: `packages/shared/src/constants/<domain>.ts`.
-  - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`ARCHITECTURE.md`](./ARCHITECTURE.md))** (L347–359): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
-  - **`world.ts`** (L360–370)
-  - **`session.ts`** (L371–384)
-  - **`world-clock.ts` (section 5.5, [`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock))** (L385–392)
-  - **`controls.ts`** (L393–403)
-  - **`ladder.ts`** (L404–411)
-  - **`camera.ts` (client only)** (L412–423): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
-- **13. Acceptance scenarios** (L424–446): Format: given seed S and inputs I, after N ticks assert X.
+  - **5.2 Spawn, death and respawn** (L177–204): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
+  - **5.3 Leaderboard and score** (L205–215): `dnaCumulative` never decreases, so dying costs time and mass, not score.
+  - **5.4 Round end and rematch** (L216–225): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
+  - **5.5 The evolving world** (L226–253): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
+- **6. Controls** (L254–275): tick.
+- **7. Camera** (L276–289): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
+- **8. The petri dish** (L290–312): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
+- **9. Win / lose and the feel of a round** (L313–322): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
+- **10. Explicit non-goals for build 1** (L323–332): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
+- **11. Reserved hooks for build 2** (L333–343)
+- **12. Constants table** (L344–427): Home: `packages/shared/src/constants/<domain>.ts`.
+  - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`ARCHITECTURE.md`](./ARCHITECTURE.md))** (L351–363): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
+  - **`world.ts`** (L364–374)
+  - **`session.ts`** (L375–388)
+  - **`world-clock.ts` (section 5.5, [`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock))** (L389–396)
+  - **`controls.ts`** (L397–407)
+  - **`ladder.ts`** (L408–415)
+  - **`camera.ts` (client only)** (L416–427): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
+- **13. Acceptance scenarios** (L428–450): Format: given seed S and inputs I, after N ticks assert X.
 
 ## INIT-GAME.md (262 lines)
 

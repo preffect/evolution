@@ -193,7 +193,11 @@ document makes. Acceptance scenarios that need a specialised cell grant the form
   keeps its own, and the respawn mass is `ENTRY_MASS_FRACTION` of the world's mass clamped to
   [`CELL_STARTING_MASS`, `ENTRY_MAX_MASS`] (20 in the first minutes, 200 from 6:20 on: 0.5 × 410 clamps to `ENTRY_MAX_MASS` at 6:30 and 0.5 × 560 at 9:00). The
   cell entity is removed the tick it is absorbed; the player's `lifeState` is the only record of
-  death ([`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram)). Scenarios G8, G13.
+  death ([`ECOLOGY.md §6.2`](./ECOLOGY.md#62-state-diagram)). **Tick convention (#211):** the tick the
+  cell died is spectated too — the payout runs at step 6 and the respawn countdown at step 9 of that
+  same tick — so a death on tick _t_ places the new cell on tick _t_ +
+  `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1, the tick G8, G13 and
+  [`ECOLOGY.md §8.1`](./ECOLOGY.md#81-the-evolving-world-3134) W4 state. Scenarios G8, G13.
 - **Disconnect.** A disconnected player's cell stays in the dish for the template's
   `DISCONNECT_GRACE_MS` (30 s) with no input (it coasts to a stop) and can be eaten. When the room
   removes the player, the cell dissolves into detritus (`DETRITUS_MASS_FRACTION` of its mass).
