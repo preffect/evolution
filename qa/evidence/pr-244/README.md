@@ -1,4 +1,4 @@
-# PR #243 evidence: the condenser light pool anchored to the view (#242, #222 option A)
+# PR #244 evidence: the condenser light pool anchored to the view (#242, #222 option A)
 
 Seed 42, SwiftShader, the private stack of the worktree (server 4510, client 4512), the room paused with
 `debug_pause_room` before every shot and the own cell moved with `debug_set_player` (mass sets the zoom:
