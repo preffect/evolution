@@ -118,14 +118,14 @@ afterEach(() => {
 });
 
 describe('the wired input path', () => {
-  it('turns a pointer over the canvas into a world-space steer target', async () => {
+  it('turns a pointer over the canvas into a steer target offset from the own cell', async () => {
     const harness = await startGame();
-    // Half a screen right of centre: the camera is parked on the own cell at the origin.
+    // Half a screen right of centre, on a cell parked at the origin.
     harness.host.dispatchEvent(pointerEvent('pointermove', HOST_BOX.width * 0.75, HOST_BOX.height / 2));
     harness.frame();
     const input = harness.sent.at(-1);
-    expect(input?.targetX).toBeGreaterThan(0);
-    expect(input?.targetY).toBeCloseTo(0);
+    expect(input?.targetX).toBeGreaterThan(OWN_CELL.x);
+    expect(input?.targetY).toBeCloseTo(OWN_CELL.y);
     harness.teardown();
   });
 

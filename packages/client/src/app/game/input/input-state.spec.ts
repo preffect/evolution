@@ -5,9 +5,12 @@ import {
   steerVectorOf,
   withAction,
   withAllKeysReleased,
-  withOneShotsTaken,
+  withPendingPressesDropped,
+  withPickDropped,
+  withPickQueued,
+  withPickSent,
   withPointerAt,
-  withQueuedCardDropped,
+  withSprintTaken,
   type InputState,
 } from './input-state';
 import type { SteerDirection } from './input-constants';
@@ -28,10 +31,6 @@ describe('the input state', () => {
 
   it('queues a sprint on a press', () => {
     expect(withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.sprint }).isSprintQueued).toBe(true);
-  });
-
-  it('queues the card a pick names', () => {
-    expect(withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.pickCard, cardIndex: 2 }).queuedCardIndex).toBe(2);
   });
 
   it('holds and releases the full leaderboard', () => {
@@ -58,25 +57,40 @@ describe('the input state', () => {
 
   it('leaves the state alone for an action it does not own', () => {
     expect(withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.menuKey })).toBe(IDLE_INPUT_STATE);
+    expect(withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.pickCard, cardIndex: 1 })).toBe(IDLE_INPUT_STATE);
   });
 });
 
-describe('taking the one-shots', () => {
+describe('the pending presses', () => {
+  const queuedPick = { offerId: 5, cardIndex: 1, sentAtSequence: null };
+
   it('clears the sprint once it has been sent', () => {
-    const sent = withOneShotsTaken(withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.sprint }), false);
+    const sent = withSprintTaken(withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.sprint }));
     expect(sent.isSprintQueued).toBe(false);
+    expect(withSprintTaken(IDLE_INPUT_STATE)).toBe(IDLE_INPUT_STATE);
   });
 
-  it('keeps a card press that was not sent', () => {
-    const queued = withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.pickCard, cardIndex: 1 });
-    expect(withOneShotsTaken(queued, false).queuedCardIndex).toBe(1);
-    expect(withOneShotsTaken(queued, true).queuedCardIndex).toBeNull();
+  it('holds the queued pick with the offer it answers', () => {
+    expect(withPickQueued(IDLE_INPUT_STATE, queuedPick).queuedPick).toEqual(queuedPick);
   });
 
-  it('drops a card press no offer can answer', () => {
-    const queued = withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.pickCard, cardIndex: 1 });
-    expect(withQueuedCardDropped(queued).queuedCardIndex).toBeNull();
-    expect(withQueuedCardDropped(IDLE_INPUT_STATE)).toBe(IDLE_INPUT_STATE);
+  it('stamps the queued pick with the sequence it was sent with, so a retry can be timed', () => {
+    const sent = withPickSent(withPickQueued(IDLE_INPUT_STATE, queuedPick), 42);
+    expect(sent.queuedPick).toEqual({ ...queuedPick, sentAtSequence: 42 });
+    expect(withPickSent(IDLE_INPUT_STATE, 42)).toBe(IDLE_INPUT_STATE);
+  });
+
+  it('drops the queued pick once its offer is gone', () => {
+    expect(withPickDropped(withPickQueued(IDLE_INPUT_STATE, queuedPick)).queuedPick).toBeNull();
+    expect(withPickDropped(IDLE_INPUT_STATE)).toBe(IDLE_INPUT_STATE);
+  });
+
+  it('drops both pending presses when there is nothing to steer', () => {
+    let state = withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.sprint });
+    state = withPickQueued(state, queuedPick);
+    const dropped = withPendingPressesDropped(state);
+    expect(dropped.isSprintQueued).toBe(false);
+    expect(dropped.queuedPick).toBeNull();
   });
 });
 

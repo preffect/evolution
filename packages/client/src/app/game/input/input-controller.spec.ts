@@ -14,26 +14,23 @@ const OFFER: TraitOfferView = {
   expiresAtTick: 900,
 };
 
+function worldWith(overrides: Partial<InputWorldContext> = {}): InputWorldContext {
+  return { ownCell: OWN_CELL, offer: null, controls: DEFAULT_BALANCE.controls, appliedInputSequence: 0, ...overrides };
+}
+
 function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
   const clock = new ManualClock();
   const sent: GameInput[] = [];
-  const state = {
-    world:
-      worldOverrides === null
-        ? null
-        : {
-            ownCell: OWN_CELL,
-            offer: null,
-            controls: DEFAULT_BALANCE.controls,
-            appliedInputSequence: 0,
-            ...worldOverrides,
-          },
+  const state: { world: InputWorldContext | null } = {
+    world: worldOverrides === null ? null : worldWith(worldOverrides),
   };
   const onMenuKey = vi.fn();
   const controller = new InputController({
     clock,
     send: (input) => sent.push(input),
-    screenToWorld: (point) => ({ x: point.x, y: point.y }),
+    // A camera parked at the origin: the projection and the offset agree, so a test that does
+    // not care about the anchoring can read the pointer straight out of the target.
+    projectPointer: (point) => ({ worldPoint: { ...point }, offsetFromViewCentre: { ...point } }),
     world: () => state.world,
     onMenuKey,
   });
@@ -78,11 +75,11 @@ describe('the input controller', () => {
     expect(harness.sent).toEqual([]);
   });
 
-  it('steers at the latched pointer in world units', () => {
+  it("steers at the pointer's offset from the own cell", () => {
     const harness = createHarness();
     harness.controller.pointerMovedTo({ x: 33, y: 44 });
     harness.tick();
-    expect(harness.sent[0]).toMatchObject({ targetX: 33, targetY: 44 });
+    expect(harness.sent[0]).toMatchObject({ targetX: OWN_CELL.x + 33, targetY: OWN_CELL.y + 44 });
   });
 
   it('keeps the latched pointer after the pointer leaves the canvas', () => {
@@ -90,7 +87,7 @@ describe('the input controller', () => {
     harness.controller.pointerMovedTo({ x: 33, y: 44 });
     harness.tick();
     harness.tick();
-    expect(harness.sent[1]).toMatchObject({ targetX: 33, targetY: 44 });
+    expect(harness.sent[1]).toMatchObject({ targetX: OWN_CELL.x + 33, targetY: OWN_CELL.y + 44 });
   });
 
   it('sprints exactly once per press', () => {
@@ -101,43 +98,67 @@ describe('the input controller', () => {
     expect(harness.sent.map((input) => input.shouldSprint)).toEqual([true, false]);
   });
 
-  it('sends one pick per offer, however often the key is pressed', () => {
+  it('sends the pick once while the send is still in flight', () => {
     const harness = createHarness({ offer: OFFER });
     harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
     harness.tick();
-    harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 0 });
     harness.tick();
     expect(harness.sent[0]?.traitChoice).toEqual({ offerId: 5, cardIndex: 1 });
     expect(harness.sent[1]?.traitChoice).toBeNull();
+  });
+
+  it('stops sending once the offer it answered has closed', () => {
+    const harness = createHarness({ offer: OFFER });
+    harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
+    harness.tick();
+    harness.state.world = worldWith({ offer: null, appliedInputSequence: harness.sent[0]?.sequence ?? 0 });
+    harness.tick();
+    expect(harness.sent[1]?.traitChoice).toBeNull();
+  });
+
+  it('sends the pick again when the server answered past it and the offer is still open', () => {
+    const harness = createHarness({ offer: OFFER });
+    harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
+    harness.tick();
+    harness.state.world = worldWith({ offer: OFFER, appliedInputSequence: harness.sent[0]?.sequence ?? 0 });
+    harness.tick();
+    expect(harness.sent[1]?.traitChoice).toEqual({ offerId: 5, cardIndex: 1 });
+  });
+
+  it('never spends a press on a later offer than the one it was made against', () => {
+    const harness = createHarness({ offer: OFFER });
+    // `3` on a two-card offer is unanswerable, so it is discarded where it was pressed...
+    harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 2 });
+    harness.tick();
+    expect(harness.sent[0]?.traitChoice).toBeNull();
+    // ...and a three-card offer opening next must not inherit it.
+    const threeCards: TraitOfferView = {
+      ...OFFER,
+      offerId: 9,
+      cards: [...OFFER.cards, { traitId: 'cell_wall', tier: 1 }],
+    };
+    harness.state.world = worldWith({ offer: threeCards });
+    harness.tick();
+    expect(harness.sent[1]?.traitChoice).toBeNull();
+  });
+
+  it('drops a card press made with no offer open', () => {
+    const harness = createHarness();
+    harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
+    harness.tick();
+    harness.state.world = worldWith({ offer: OFFER });
+    harness.tick();
+    expect(harness.sent.every((input) => input.traitChoice === null)).toBe(true);
   });
 
   it('answers the next offer after the first was picked', () => {
     const harness = createHarness({ offer: OFFER });
     harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 0 });
     harness.tick();
-    harness.state.world = {
-      ownCell: OWN_CELL,
-      offer: { ...OFFER, offerId: 6 },
-      controls: DEFAULT_BALANCE.controls,
-      appliedInputSequence: 0,
-    };
+    harness.state.world = worldWith({ offer: { ...OFFER, offerId: 6 } });
     harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
     harness.tick();
     expect(harness.sent[1]?.traitChoice).toEqual({ offerId: 6, cardIndex: 1 });
-  });
-
-  it('drops a card press that no offer can answer', () => {
-    const harness = createHarness();
-    harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
-    harness.tick();
-    harness.state.world = {
-      ownCell: OWN_CELL,
-      offer: OFFER,
-      controls: DEFAULT_BALANCE.controls,
-      appliedInputSequence: 0,
-    };
-    harness.tick();
-    expect(harness.sent[1]?.traitChoice).toBeNull();
   });
 
   it('reports the Tab hold to the HUD without sending anything for it', () => {
@@ -163,6 +184,23 @@ describe('the input controller', () => {
     expect(harness.sent[0]).toMatchObject({ targetX: OWN_CELL.x, targetY: OWN_CELL.y });
   });
 
+  it('owes nothing for the time it had no world to steer in', () => {
+    const harness = createHarness(null);
+    harness.tick(600);
+    harness.state.world = worldWith();
+    harness.tick();
+    expect(harness.sent).toHaveLength(1);
+  });
+
+  it('drops a press made while there was nothing to steer', () => {
+    const harness = createHarness(null);
+    harness.controller.apply({ kind: INPUT_ACTION.sprint });
+    harness.tick();
+    harness.state.world = worldWith();
+    harness.tick();
+    expect(harness.sent[0]?.shouldSprint).toBe(false);
+  });
+
   it('reports what it last sent and what it holds, for the debug hook', () => {
     const harness = createHarness();
     harness.controller.pointerMovedTo({ x: 3, y: 4 });
@@ -174,6 +212,8 @@ describe('the input controller', () => {
       isFullLeaderboardHeld: false,
       menuKeyPressCount: 1,
       pointerWorldPoint: { x: 3, y: 4 },
+      queuedPick: null,
+      openOfferId: null,
     });
     expect(harness.controller.debugState().lastSentInput?.sequence).toBe(1);
   });

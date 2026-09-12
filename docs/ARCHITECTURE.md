@@ -670,7 +670,7 @@ packages/client/src/app/game/
   game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
   debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
   net/{snapshot-buffer,interpolation,food-store,world-store}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; prediction and reconciliation are still open (#265)
-  input/{input-constants,keyboard-action,input-state,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state and the GameInput mapping — all pure (UI.md §4)
+  input/{input-constants,keyboard-action,input-state,trait-pick,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state, the trait-pick policy and the GameInput mapping — all pure (UI.md §4)
   input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: RENDERING.md §8)

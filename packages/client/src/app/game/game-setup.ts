@@ -43,13 +43,21 @@ export interface GameSetupDependencies {
 /** Teardown handle returned by `setupGame`. */
 export type GameTeardown = () => void;
 
-/** The renderer's reticle crossing: the HUD owns whether it shows, the input seam where it sits. */
-function reticleFor(isVisible: boolean, controller: InputController): RenderInputs['reticle'] {
-  const point = controller.pointerWorldPoint();
+/**
+ * The renderer's reticle crossing: the HUD owns whether it shows, the input seam where it sits.
+ * The seam is `null` for the moment between the session being constructed and the input being
+ * attached to it, which no frame falls inside today and none may come to depend on.
+ */
+function reticleFor(isVisible: boolean, controller: InputController | null): RenderInputs['reticle'] {
+  const point = controller?.pointerWorldPoint() ?? null;
   return point === null ? NO_RETICLE : { isVisible, x: point.x, y: point.y };
 }
 
 export function setupGame(options: GameSetupOptions, dependencies: GameSetupDependencies): GameTeardown {
+  // The session reads the input seam and the input seam reads the session's camera and store, so
+  // one of the two is late-bound. It is this one, held in a mutable that is assigned on the next
+  // line: nothing may read it during the constructor, and `reticleFor` answers for `null`.
+  let controller: InputController | null = null;
   const session = new RenderSession({
     host: options.host,
     clock: dependencies.clock,
@@ -58,7 +66,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     connectAudio: dependencies.connectAudio,
     hudInputs: () => ({
       previewTraitId: dependencies.previewTraitId(),
-      reticle: reticleFor(dependencies.isReticleVisible(), input.controller),
+      reticle: reticleFor(dependencies.isReticleVisible(), controller),
     }),
     shouldPreserveDrawingBuffer: dependencies.isDevMode,
   });
@@ -67,9 +75,10 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     clock: dependencies.clock,
     send: options.send,
     store: session.store,
-    screenToWorld: (point) => session.screenToWorld(point),
+    projectPointer: (point) => session.projectPointer(point),
     ...(dependencies.onMenuKey === undefined ? {} : { onMenuKey: dependencies.onMenuKey }),
   });
+  controller = input.controller;
   session.setAnimationFrameListener(() => input.controller.pump());
   const subscription = options.messages$.subscribe((message) => session.onMessage(message));
   const uninstallDebug = installEvolutionDebug(

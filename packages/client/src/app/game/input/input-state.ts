@@ -5,6 +5,7 @@
 import type { Vec2 } from '@evolution/shared';
 import { INPUT_ACTION, type InputAction } from './keyboard-action';
 import { STEER_VECTORS, type SteerDirection } from './input-constants';
+import type { QueuedTraitPick } from './trait-pick';
 
 /** A point in CSS px relative to the canvas host's top-left corner. */
 export interface CanvasPoint {
@@ -19,8 +20,8 @@ export interface InputState {
   readonly heldSteerDirections: readonly SteerDirection[];
   /** A sprint press not yet sent: edge-triggered, one per press. */
   readonly isSprintQueued: boolean;
-  /** The card a `1` `2` `3` press asked for and that has not been sent yet. */
-  readonly queuedCardIndex: number | null;
+  /** The `1` `2` `3` press waiting to be answered, bound to the offer it was made against. */
+  readonly queuedPick: QueuedTraitPick | null;
   /** Tab is held, so the full leaderboard is open (docs/UI.md §4). */
   readonly isFullLeaderboardHeld: boolean;
 }
@@ -29,7 +30,7 @@ export const IDLE_INPUT_STATE: InputState = {
   pointerCanvasPoint: null,
   heldSteerDirections: [],
   isSprintQueued: false,
-  queuedCardIndex: null,
+  queuedPick: null,
   isFullLeaderboardHeld: false,
 };
 
@@ -42,7 +43,11 @@ function withSteerKey(state: InputState, direction: SteerDirection, isPressed: b
   return { ...state, heldSteerDirections: isPressed ? [...withoutDirection, direction] : withoutDirection };
 }
 
-/** Folds one decided action into the state; an action the state does not own leaves it as it was. */
+/**
+ * Folds one decided action into the state; an action the state does not own leaves it as it was.
+ * `pick_card` and `menu_key` are among those: a card press has to be resolved against the offer
+ * that is open now before it can be stored (`trait-pick.ts`), and Escape is the HUD's.
+ */
 export function withAction(state: InputState, action: InputAction): InputState {
   switch (action.kind) {
     case INPUT_ACTION.steer: {
@@ -50,9 +55,6 @@ export function withAction(state: InputState, action: InputAction): InputState {
     }
     case INPUT_ACTION.sprint: {
       return { ...state, isSprintQueued: true };
-    }
-    case INPUT_ACTION.pickCard: {
-      return { ...state, queuedCardIndex: action.cardIndex };
     }
     case INPUT_ACTION.holdFullLeaderboard: {
       return { ...state, isFullLeaderboardHeld: true };
@@ -71,14 +73,34 @@ export function withAllKeysReleased(state: InputState): InputState {
   return { ...state, heldSteerDirections: [], isFullLeaderboardHeld: false };
 }
 
-/** Clears the one-shots that were just sent; a card press is kept until the pick actually goes out. */
-export function withOneShotsTaken(state: InputState, wasCardSent: boolean): InputState {
-  return { ...state, isSprintQueued: false, queuedCardIndex: wasCardSent ? null : state.queuedCardIndex };
+/** The queued answer to the offer that was open when the key was pressed (`trait-pick.ts`). */
+export function withPickQueued(state: InputState, pick: QueuedTraitPick): InputState {
+  return { ...state, queuedPick: pick };
 }
 
-/** Drops a card press that no open offer can answer (docs/UI.md §3.2: one send per offer). */
-export function withQueuedCardDropped(state: InputState): InputState {
-  return state.queuedCardIndex === null ? state : { ...state, queuedCardIndex: null };
+/** Stamps the queued pick with the `sequence` it has just been sent with, so a retry can be timed. */
+export function withPickSent(state: InputState, sequence: number): InputState {
+  return state.queuedPick === null
+    ? state
+    : { ...state, queuedPick: { ...state.queuedPick, sentAtSequence: sequence } };
+}
+
+/** Drops the queued pick: the offer it answers is gone (`trait-pick.ts`, case 2 and 3). */
+export function withPickDropped(state: InputState): InputState {
+  return state.queuedPick === null ? state : { ...state, queuedPick: null };
+}
+
+/** Clears the sprint one-shot once it has been sent: one sprint per press (docs/UI.md §4). */
+export function withSprintTaken(state: InputState): InputState {
+  return state.isSprintQueued ? { ...state, isSprintQueued: false } : state;
+}
+
+/**
+ * Everything a press had pending, dropped: what a stretch with nothing to steer means (the lobby,
+ * the results phase). A press made then is not carried into the next round (docs/UI.md §4).
+ */
+export function withPendingPressesDropped(state: InputState): InputState {
+  return withPickDropped(withSprintTaken(state));
 }
 
 /**

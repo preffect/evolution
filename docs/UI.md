@@ -275,7 +275,8 @@ without copy fails the gate instead of rendering `undefined`.
   signal through `game-setup.ts`, draws the trait's organelle ghost on the own cell (RENDERING §3) and hides the
   orbit ghost when the trait is a rung of the next stage (§3.1.2). No card is highlighted until hovered or focused; arrow keys move focus.
 - **Pick.** Click, Enter/Space on the focused card, or keys `1` `2` `3` send `traitChoice: { offerId, cardIndex }`
-  (one send per offer; the overlay closes on the next snapshot without the offer). Timer text right of the bar:
+  for the offer that was on screen when the key went down (§4's pick policy; the overlay closes on the next
+  snapshot without the offer). Timer text right of the bar:
   `6.5 s` (`value` role) from `(offer.expiresAtTick − serverTickEstimate) / TICK_HZ`. **Timeout is the server's pick** (highest
   draft weight, PROGRESSION §4); the footer reads `At 0 s the dish picks for you`. Sheet 03's "auto-picks the
   highlighted card" is superseded by that rule: the client never sends on the player's behalf, and never sends
@@ -372,6 +373,32 @@ lobby screen returns with `lobby-notice` = `You were disconnected from the game.
   and what is held, so a Playwright run can assert that a key reached its handler.
 - The **reticle**'s position is the latched pointer in world units, handed to the renderer by `game-setup.ts`;
   whether it shows is the HUD's `reticleVisible` (the `steer` onboarding beat, §5), which is `false` until #190.
+- **The steer target is an offset, not a projection.** The pointer is sent as its offset from the middle of the
+  view applied to the **newest snapshot's own cell**, never as the absolute world point the camera projects it
+  to. The camera centres on the _interpolated_ cell and then smooths, so it trails the authoritative one by
+  `INTERPOLATION_DELAY_TICKS` + `CAMERA_FOLLOW_SECONDS` ≈ 0.113 s, and an absolute target has that lag distance
+  subtracted from the offset the player aimed for — about 93 % of the throttle ramp of `ECOLOGY.md §5.2` at
+  `CELL_STARTING_MASS`, so a new cell would be full speed or stopped with nothing in between. The reticle keeps
+  the camera projection, because it is drawn on the camera's frame. Prediction of the own cell is #265.
+- **The pick policy** (`input/trait-pick.ts`, the one home of all three cases). A press answers **only the offer
+  it was made against**: it is stamped with that `offerId` on the way in. A press no open offer can answer — none
+  open, or a card index past the cards this offer has, since a late draft carries fewer than `TRAIT_DRAFT_SIZE`
+  (`PROGRESSION.md §4`) — is **discarded where it was pressed**, never carried to a later offer. A press the
+  server rejects as stale is **retried**: the pick stays queued until the world says what became of it, and is
+  sent again once the server has answered a tick at or past the one it was sent with while that offer is still
+  open. Once the offer is gone from the client's model the pick is dropped, so the good case sends exactly once
+  and nothing is ever applied twice.
+- **Presses do not survive a gap with nothing to steer.** While there is no world — before the first snapshot,
+  and through `results` — a queued sprint and a queued pick are dropped rather than carried into the next round,
+  and the client tick accumulator is resynced so the frame the world returns on sends one input, not a burst.
+  Held steer keys keep their latch, because the key is still physically down.
+- **Opposing steer keys hand control back to the pointer.** `A` + `D` (or `W` + `S`) cancel to no direction, and
+  the target falls through to the latched pointer rather than stopping. This is the decision for a
+  pointer-primary game; "both keys to stop" would be a design change, not a bug fix.
+- Three of the focus rules above — the Space-precedence branch, the menu gate and the Tab-vs-overlay rule — are
+  **dormant until the overlays exist** (#188, #189): nothing renders `trait-offer`, `menu-overlay` or
+  `results-overlay` yet, so today Space always sprints and Tab is always `preventDefault`ed. The rules are
+  unit-tested, and are to be re-tested by hand when those tickets land.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:
   inside `trait-offer` it picks (the card's own key handler runs, the sprint path does not); anywhere else it sprints.
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until

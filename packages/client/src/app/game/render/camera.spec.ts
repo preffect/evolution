@@ -9,6 +9,7 @@ import {
 import {
   cameraExtent,
   isDiscInExtent,
+  screenOffsetToWorld,
   screenToWorld,
   parkCamera,
   stepCamera,
@@ -76,6 +77,12 @@ describe('zoom, extent and projections', () => {
     const screen = worldToScreen(state, VIEWPORT, 100, 50);
     expect(screen).toEqual({ x: 960, y: 540 });
     expect(screenToWorld(state, VIEWPORT, 960 + 10, 540 - 10)).toEqual({ x: 110, y: 40 });
+  });
+
+  it('answers the same point as an offset from the middle of the view, free of the centre', () => {
+    expect(screenOffsetToWorld(state, VIEWPORT, 960 + 10, 540 - 10)).toEqual({ x: 10, y: -10 });
+    const moved = { ...state, x: 5000, y: -5000 };
+    expect(screenOffsetToWorld(moved, VIEWPORT, 960 + 10, 540 - 10)).toEqual({ x: 10, y: -10 });
   });
 
   it('culls a disc outside the extent and keeps one that reaches in', () => {

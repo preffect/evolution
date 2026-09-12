@@ -2,8 +2,9 @@
 // adapters and the teardown, so `game-setup.ts` stays a wiring file. Nothing here decides
 // anything — the rules are `keyboard-action.ts`, the mapping `game-input-builder.ts`.
 
-import type { Clock, GameInput, Vec2 } from '@evolution/shared';
+import type { Clock, GameInput } from '@evolution/shared';
 import type { WorldStore } from '../net/world-store';
+import type { PointerProjection } from '../render/render-session';
 import { focusContextOf } from './dom-input-context';
 import { InputController } from './input-controller';
 import type { CanvasPoint } from './input-state';
@@ -18,8 +19,8 @@ export interface AttachInputOptions {
   readonly clock: Clock;
   readonly send: (input: GameInput) => void;
   readonly store: WorldStore;
-  /** Canvas px → world units through the live camera (`RenderSession.screenToWorld`). */
-  readonly screenToWorld: (point: CanvasPoint) => Vec2 | null;
+  /** Canvas px through the live camera (`RenderSession.projectPointer`). */
+  readonly projectPointer: (point: CanvasPoint) => PointerProjection | null;
   /** Escape: the HUD closes the topmost overlay or opens the menu (docs/UI.md §3.5, #189). */
   readonly onMenuKey?: () => void;
 }
@@ -33,7 +34,7 @@ export function attachInput(options: AttachInputOptions): InputSeam {
   const controller = new InputController({
     clock: options.clock,
     send: options.send,
-    screenToWorld: options.screenToWorld,
+    projectPointer: options.projectPointer,
     world: () => inputWorldContextOf(options.store),
     ...(options.onMenuKey === undefined ? {} : { onMenuKey: options.onMenuKey }),
   });
