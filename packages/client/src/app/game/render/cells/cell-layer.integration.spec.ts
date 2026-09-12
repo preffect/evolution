@@ -79,10 +79,13 @@ describe('cell tells through the layer', () => {
     expect(packed(subject, 1, 'paletteIndex')).toBe(3);
     expect(packed(subject, 1, 'x')).toBe(50);
     expect(packed(subject, 1, 'passBAlpha')).toBeCloseTo(PREY_UNDER_FILM_ALPHA, 6);
-    expect(packed(subject, 1, 'rimDash')).toBeGreaterThan(0);
     const sealSlot = BUMP_TEXEL_START * TEXEL_FLOATS;
-    expect(subject.instances[sealSlot]).toBeGreaterThan(0.5);
+    expect(subject.instances[sealSlot]).toBeCloseTo(0.6, 6);
     expect(subject.instances[sealSlot + 1]).toBeCloseTo(0, 6);
+    subject.update(input({ frame: createTestRenderFrame({ cells: [predator] }), nowMs: 300 }));
+    expect(packed(subject, 1, 'rimDash')).toBe(1);
+    expect(packed(subject, 1, 'alpha')).toBeCloseTo(0.5, 6);
+    expect(subject.instances[sealSlot]).toBeCloseTo(0.42, 6);
     const done = subject.update(
       input({ frame: createTestRenderFrame({ cells: [predator] }), nowMs: 100 + MOTION_CLIPS.absorbed.duration }),
     );
