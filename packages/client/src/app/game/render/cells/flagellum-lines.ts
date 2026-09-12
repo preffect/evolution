@@ -106,28 +106,41 @@ const CORE_STROKE: TailStroke = { widthPx: FLAGELLUM_CORE_PX, colour: WHITE, alp
 
 export class FlagellumLines {
   readonly graphics = new Graphics();
+  /** One point array per tail drawn so far, reused every frame (no allocation in the frame path). */
+  private readonly pool: WorldPoint[][] = [];
+
+  private tailPoints(index: number): WorldPoint[] {
+    return this.pool[index] ?? (this.pool[index] = createTailPoints());
+  }
 
   private strokePolylines(polylines: readonly (readonly WorldPoint[])[], stroke: TailStroke, zoom: number): void {
     for (const points of polylines) {
-      const [first, ...rest] = points;
+      const first = points[0];
       if (first === undefined) continue;
       this.graphics.moveTo(first.x, first.y);
-      for (const point of rest) this.graphics.lineTo(point.x, point.y);
+      for (let index = 1; index < points.length; index += 1) {
+        const point = points[index];
+        if (point !== undefined) this.graphics.lineTo(point.x, point.y);
+      }
     }
     this.graphics.stroke({
       width: stroke.widthPx / zoom,
       color: hexToNumber(stroke.colour),
       alpha: stroke.alpha,
       cap: 'round',
+      join: 'round',
     });
   }
 
-  /** Redraws every tail: the outer stroke under the white core, widths in px at `zoom`. */
+  /** Redraws every tail: the outer stroke under the white core, widths in px at `zoom`; returns the tail count. */
   update(specs: readonly FlagellumSpec[], zoom: number): number {
     this.graphics.clear();
-    const polylines = specs.flatMap((spec) =>
-      Array.from({ length: flagellumTailCount(spec.tier) }, (_unused, tail) => flagellumPolyline(spec, tail)),
-    );
+    const polylines: WorldPoint[][] = [];
+    for (const spec of specs) {
+      for (let tail = 0; tail < flagellumTailCount(spec.tier); tail += 1) {
+        polylines.push(flagellumPolyline(spec, tail, this.tailPoints(polylines.length)));
+      }
+    }
     if (polylines.length === 0) return 0;
     this.strokePolylines(polylines, OUTER_STROKE, zoom);
     this.strokePolylines(polylines, CORE_STROKE, zoom);

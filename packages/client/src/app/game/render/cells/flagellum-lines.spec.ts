@@ -1,6 +1,6 @@
 // docs/VISUAL-STYLE.md §4 `simple_flagellum`: 2 r long, two waves opposite velocity, amplitude per tier, two tails at III.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FLAGELLUM_LENGTH_RADII, FLAGELLUM_SEGMENTS } from '../constants';
 import {
   FlagellumLines,
@@ -69,10 +69,26 @@ describe('flagellumPolyline', () => {
 });
 
 describe('FlagellumLines', () => {
-  it('draws one polyline per tail into its graphics and clears with no specs', () => {
+  it('draws one polyline per tail into its graphics with round joins, and clears with no specs', () => {
+    expect(FLAGELLUM_SEGMENTS).toBe(32);
     const lines = new FlagellumLines();
+    const stroke = vi.spyOn(lines.graphics, 'stroke');
     expect(lines.update([spec, { ...spec, tier: 3 }], 1.5)).toBe(3);
+    expect(stroke).toHaveBeenCalledTimes(2);
+    for (const call of stroke.mock.calls) expect(call[0]).toMatchObject({ cap: 'round', join: 'round' });
     expect(lines.update([], 1)).toBe(0);
+    lines.destroy();
+  });
+
+  it('reuses its pooled point arrays across frames instead of allocating per tail', () => {
+    const lines = new FlagellumLines();
+    const polyline = vi.spyOn(lines.graphics, 'moveTo');
+    lines.update([spec], 1);
+    lines.update([{ ...spec, timeSeconds: 0.2 }], 1);
+    const pool = (lines as unknown as { pool: unknown[][] }).pool;
+    expect(pool).toHaveLength(1);
+    expect(pool[0]).toHaveLength(FLAGELLUM_SEGMENTS + 1);
+    expect(polyline).toHaveBeenCalledTimes(4);
     lines.destroy();
   });
 });
