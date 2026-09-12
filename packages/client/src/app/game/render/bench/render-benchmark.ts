@@ -3,8 +3,9 @@
 // verdict names every budget the report breaks.
 //
 // A verdict only judges what the window can support. A p95 needs at least
-// `RENDER_P95_MIN_SAMPLE_FRAMES` samples — below that the estimator degenerates to the maximum — so a
-// shorter window leaves every quantile row `unjudged` instead of comparing a maximum with a p95 budget.
+// `RENDER_P95_MIN_SAMPLE_FRAMES` samples — below that the estimate comes from the window's top one or two
+// samples whatever the estimator — so a shorter window leaves every quantile row `unjudged` rather than
+// comparing a near-maximum with a p95 budget.
 // A `gpuMs` of `null` is an unavailable measurement, never an overrun. The HUD row is the residual the
 // timer measured frame by frame (`frame − Σ its top-level brackets`), not the difference of two p95s, so
 // it can fail; the §7 subtraction is still reported, signed, as `derivedResidualMs` — it goes negative
@@ -24,15 +25,17 @@ import {
   RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
 } from '../constants';
-import type { GpuTimerStatus } from './gpu-timer';
 import type { FrameResidual, FrameTimingReport } from './render-stage-timer';
 
-/** What the verdict needs beyond the wire report: how long the window is and what it left unbracketed. */
+/**
+ * What the verdict needs beyond the wire report: how long the window is and what it left unbracketed. Why
+ * `gpuMs` is absent is not in here — the report's `null` is what the verdict acts on, and the bench report
+ * carries the timer's `gpuStatus` for the reader.
+ */
 export interface FrameEvidence {
   /** Frames the window covers. */
   readonly sampleCount: number;
   readonly residual: FrameResidual;
-  readonly gpuStatus: GpuTimerStatus;
 }
 
 export interface RenderCounters {

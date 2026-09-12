@@ -11,7 +11,6 @@ import {
   RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
 } from '../constants';
-import { GPU_TIMER_STATUS } from './gpu-timer';
 import { BUDGET_ROW, budgetVerdict, buildPerformanceReport, type FrameEvidence } from './render-benchmark';
 
 function stages(fill: number): Record<RenderStageName, number> {
@@ -23,7 +22,6 @@ function evidence(residualP95Ms: number, overrides: Partial<FrameEvidence> = {})
   return {
     sampleCount: RENDER_P95_MIN_SAMPLE_FRAMES,
     residual: { p95Ms: residualP95Ms, peakMs: residualP95Ms, minimumMs: 0 },
-    gpuStatus: GPU_TIMER_STATUS.ok,
     ...overrides,
   };
 }

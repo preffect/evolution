@@ -65,6 +65,20 @@ describe('FrameInstrumentation', () => {
     expect(context.drawElements).toBe(original);
   });
 
+  it('closes the GPU query and records the count when a submit throws', () => {
+    const instrumentation = new FrameInstrumentation(new ManualClock(0));
+    const { app, context } = appWithGl();
+    instrumentation.attach(app);
+    expect(() =>
+      instrumentation.submit(() => {
+        context.drawElements();
+        throw new Error('device lost');
+      }),
+    ).toThrow('device lost');
+    expect(instrumentation.frameCount).toBe(1);
+    expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).drawCalls).toBe(1);
+  });
+
   it('records nothing for a frame the store had nothing for', () => {
     const clock = new ManualClock(0);
     const instrumentation = new FrameInstrumentation(clock);

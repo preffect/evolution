@@ -41,8 +41,9 @@ export const RENDER_HUD_BUDGET_MS = 1.0;
  */
 export const RENDER_GPU_SAMPLE_MAX_FRAME_RATIO = 2;
 /**
- * The shortest window a p95 is estimable in: with fewer samples than `1 / (1 − quantile)` the nearest rank is
- * the maximum, so a shorter window reports no p95 judgement at all (docs/RENDERING.md §7).
+ * The shortest window a p95 is estimable in: with fewer than `1 / (1 − quantile)` samples the estimate is drawn
+ * from the top one or two of them alone, whatever the estimator, so a shorter window reports no p95 judgement at
+ * all (docs/RENDERING.md §7).
  */
 export const RENDER_P95_MIN_SAMPLE_FRAMES = Math.ceil(1 / (1 - P95_QUANTILE));
 /** GL draw calls per frame at the bench load (docs/RENDERING.md §6). */

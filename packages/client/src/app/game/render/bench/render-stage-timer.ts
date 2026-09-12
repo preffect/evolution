@@ -28,9 +28,11 @@ export const UNTIMED_STAGES: StageMeasurer = { measure: (_stage, work) => work()
 
 /**
  * The sample at `quantile` of the window by linear interpolation between the two neighbouring ranks
- * (the estimator Excel's `PERCENTILE.INC` and R's type 7 use); 0 with no samples. A window shorter than
- * `1 / (1 − quantile)` samples cannot support the quantile at all — it degenerates to the maximum — which
- * is why the verdict refuses to judge a p95 below `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/RENDERING.md §7).
+ * (the estimator Excel's `PERCENTILE.INC` and R's type 7 use); 0 with no samples. Interpolating keeps the
+ * estimate off the maximum, but it cannot add information a short window does not hold: under
+ * `1 / (1 − quantile)` samples the value is drawn from the top one or two of them alone, so it says nothing
+ * about a 95th percentile. That is why the verdict refuses to judge a p95 below
+ * `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/RENDERING.md §7).
  */
 export function quantileOf(samples: readonly number[], quantile: number): number {
   if (samples.length === 0) return 0;

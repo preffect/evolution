@@ -81,14 +81,20 @@ export class FrameInstrumentation {
     return { frame, outputs };
   }
 
-  /** The submit stage's body: counts the frame's draw calls and brackets it in a GPU query. */
+  /**
+   * The submit stage's body: counts the frame's draw calls and brackets it in a GPU query. A submit that
+   * throws still closes its query and records its count, the way the stage timer closes its bracket.
+   */
   submit(render: () => void): void {
     this.drawCalls?.reset();
     this.gpu?.begin();
-    render();
-    this.gpu?.end();
-    if (this.drawCalls !== null) this.drawCallsPerFrame.push(this.drawCalls.count());
-    this.frames += 1;
+    try {
+      render();
+    } finally {
+      this.gpu?.end();
+      if (this.drawCalls !== null) this.drawCallsPerFrame.push(this.drawCalls.count());
+      this.frames += 1;
+    }
   }
 
   /** Why `gpuMs` is a number or `null`. */
@@ -98,7 +104,7 @@ export class FrameInstrumentation {
 
   /** What the window says beyond the wire report (the verdict's evidence). */
   evidence(): FrameEvidence {
-    return { sampleCount: this.timer.frameCount, residual: this.timer.residual(), gpuStatus: this.gpuStatus };
+    return { sampleCount: this.timer.frameCount, residual: this.timer.residual() };
   }
 
   report(counts: FrameCounts, heapBytes: number | null): ClientPerformanceReport {
