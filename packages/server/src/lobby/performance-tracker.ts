@@ -1,8 +1,7 @@
 import type { ClientPerformanceReport, PlayerId } from '@evolution/shared';
-import { TICK_HZ } from '@evolution/shared';
+import { P95_QUANTILE, TICK_HZ } from '@evolution/shared';
 
 const SAMPLE_CAPACITY = 300;
-const P95_QUANTILE = 0.95;
 const HUNDREDTHS = 100;
 
 /** One server tick's measurements. Game-agnostic. */

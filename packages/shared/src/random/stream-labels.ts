@@ -42,6 +42,8 @@ export const COSMETIC_SUB_STREAM = {
   mote: 'mote',
   /** One DNA fragment's spin phase: `fork(fragment + ':' + fragmentId)` (#207). */
   fragment: 'fragment',
+  /** The fixed-seed bench scene's specs: cells, motes and fragments (docs/RENDERING.md §7, #208). */
+  bench: 'bench',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];

@@ -6,3 +6,4 @@ export * from './constants/cell-shape';
 export * from './constants/organelles';
 export * from './constants/vent';
 export * from './constants/world-render';
+export * from './constants/bench';

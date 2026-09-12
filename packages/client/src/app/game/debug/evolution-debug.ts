@@ -21,6 +21,8 @@ export interface EvolutionDebugApi {
   setSeed(seed: number): boolean;
   isPaused(): boolean;
   renderTick(): number | null;
+  /** Frames submitted since the session adopted its app: a smoke waits on it where the ticker is slow. */
+  framesRendered(): number;
   performanceReport(): ClientPerformanceReport | null;
 }
 
@@ -45,6 +47,20 @@ export function installEvolutionDebug(
   host[EVOLUTION_DEBUG_KEY] = api;
   return () => {
     if (host[EVOLUTION_DEBUG_KEY] === api) delete host[EVOLUTION_DEBUG_KEY];
+  };
+}
+
+/** The hook members every session answers from its gate and loop: both modes spread these and add their own. */
+export function loopDebugMembers(
+  gate: FrameGate,
+  loop: { renderTick(): number | null; framesRendered(): number },
+): Pick<EvolutionDebugApi, 'pause' | 'resume' | 'isPaused' | 'renderTick' | 'framesRendered'> {
+  return {
+    pause: () => gate.pause(),
+    resume: () => gate.resume(),
+    isPaused: () => gate.isPaused(),
+    renderTick: () => loop.renderTick(),
+    framesRendered: () => loop.framesRendered(),
   };
 }
 

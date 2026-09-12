@@ -1,5 +1,5 @@
 // The renderer smoke (docs/TESTING.md §1, UI tier): headless Chromium against the dev servers (game
-// server + Angular), a live room from the lobby. Run with `pnpm --filter @evolution/client smoke`; not part of `./validate.sh all`.
+// server + Angular), a live room from the lobby and the bench route. Run with `pnpm --filter @evolution/client smoke`; not part of `./validate.sh all`.
 import { readFileSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
@@ -28,7 +28,16 @@ export default defineConfig({
     viewport: SMOKE_VIEWPORT,
     deviceScaleFactor: 1,
     headless: true,
-    launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] },
+    launchOptions: {
+      args: [
+        '--use-angle=swiftshader',
+        '--enable-unsafe-swiftshader',
+        '--ignore-gpu-blocklist',
+        // The bench's heap probe (render/bench/heap-probe.ts): a precise heap counter and an exposed collector.
+        '--enable-precise-memory-info',
+        '--js-flags=--expose-gc',
+      ],
+    },
   },
   webServer: {
     command: 'pnpm -w dev',

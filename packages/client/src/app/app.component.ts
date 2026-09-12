@@ -13,6 +13,8 @@ import {
 } from '@evolution/shared';
 import type { GameSessionConfig } from '@evolution/shared';
 import { GameHostComponent } from './game/game-host.component';
+import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
+import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { MultiplayerService } from './services/multiplayer.service';
 
 /**
@@ -21,16 +23,17 @@ import { MultiplayerService } from './services/multiplayer.service';
  * It exercises the full multiplayer plumbing — connect, join lobby, create /
  * join / start a game — without implementing any specific game. Once the room is in play the
  * game host (`game/game-host.component.ts`) is the only thing rendered and fills the viewport
- * (#217, docs/UI.md §1); the create form of docs/UI.md §2 replaces this stub (#185).
+ * (#217, docs/UI.md §1); the create form of docs/UI.md §2 replaces this stub (#185). A dev build
+ * opened with `?bench` renders the fixed-seed bench route instead (docs/RENDERING.md §7).
  */
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, GameHostComponent],
+  imports: [FormsModule, GameHostComponent, RenderBenchComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/UI.md §1).
-  host: { '[class.in-game]': 'multiplayer.inGame()' },
+  host: { '[class.in-game]': 'multiplayer.inGame() || isBenchRoute' },
 })
 export class AppComponent {
   readonly title = 'Evolution';
@@ -45,6 +48,8 @@ export class AppComponent {
   } as const;
 
   readonly multiplayer = inject(MultiplayerService);
+  /** The dev-only bench route (docs/RENDERING.md §7) replaces the shell for the page's lifetime. */
+  readonly isBenchRoute = inject(IS_BENCH_ROUTE);
 
   // Local lobby form state.
   readonly playerName = signal('Player');

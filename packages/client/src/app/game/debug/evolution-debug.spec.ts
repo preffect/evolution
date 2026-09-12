@@ -16,6 +16,7 @@ const api: EvolutionDebugApi = {
   setSeed: () => false,
   isPaused: () => false,
   renderTick: () => null,
+  framesRendered: () => 0,
   performanceReport: () => null,
 };
 

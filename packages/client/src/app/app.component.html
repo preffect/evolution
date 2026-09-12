@@ -5,7 +5,10 @@
   the host is the only thing on the page and fills the viewport (#217, docs/UI.md §1); the lobby
   panels come back when the phase returns to the lobby.
 -->
-@if (multiplayer.inGame()) {
+@if (isBenchRoute) {
+  <!-- ===== The dev-only bench route (docs/RENDERING.md §7): the fixed-seed scene, no lobby, no room ===== -->
+  <app-render-bench />
+} @else if (multiplayer.inGame()) {
   <!-- ===== In game: the host alone, filling the viewport (docs/UI.md §1); the HUD chrome is #189 ===== -->
   <app-game-host />
 } @else {

@@ -1,0 +1,84 @@
+{
+  "fps": 31.637226434017336,
+  "frameTimeAvgMs": 31.60833336909612,
+  "frameTimeP95Ms": 63.220000123977655,
+  "frameTimePeakMs": 67.30000019073486,
+  "renderStagesMs": {
+    "net": 8.31000022888183,
+    "camera": 0.18500030040740945,
+    "food": 13.495000028610216,
+    "cells": 30.290000081062303,
+    "organelles": 4.390000295639036,
+    "effects": 16.619999647140492,
+    "submit": 17.604999876022333
+  },
+  "heapMb": 23.6495943069458,
+  "gpuMs": null,
+  "drawCalls": 12,
+  "visibleCells": 45,
+  "visibleMotes": 1400,
+  "seed": 42,
+  "tick": 120,
+  "zoom": 1.8,
+  "frames": 24,
+  "isTickAdvancing": false,
+  "heapGrowthBytesPerFrame": 91966.08333333333,
+  "gpuStatus": "implausible",
+  "verdict": {
+    "isWithinBudget": false,
+    "isFullyJudged": false,
+    "overruns": [
+      {
+        "name": "net",
+        "measured": 8.31000022888183,
+        "budget": 1
+      },
+      {
+        "name": "camera",
+        "measured": 0.18500030040740945,
+        "budget": 0.1
+      },
+      {
+        "name": "food",
+        "measured": 13.495000028610216,
+        "budget": 0.6
+      },
+      {
+        "name": "cells",
+        "measured": 30.290000081062303,
+        "budget": 1.2
+      },
+      {
+        "name": "organelles",
+        "measured": 4.390000295639036,
+        "budget": 1
+      },
+      {
+        "name": "effects",
+        "measured": 16.619999647140492,
+        "budget": 0.3
+      },
+      {
+        "name": "submit",
+        "measured": 17.604999876022333,
+        "budget": 1
+      },
+      {
+        "name": "frame",
+        "measured": 63.220000123977655,
+        "budget": 12
+      },
+      {
+        "name": "hud",
+        "measured": 2.0999999046325684,
+        "budget": 1
+      }
+    ],
+    "unjudged": ["gpu"],
+    "stagesTotalMs": 90.89500045776362,
+    "residualP95Ms": 2.0999999046325684,
+    "derivedResidualMs": -27.67500033378596,
+    "sampleCount": 24,
+    "isP95Estimable": true
+  }
+}

@@ -441,16 +441,18 @@ Budget per stage (ms, p95) at the bench load. The seven `renderStagesMs` keys ar
 | `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 17 calls)           | 1.0    |
 | `food` mote and fragment updates                    | 0.6    |                                             |        |
 
-| Not a key                                          | Budget | What it is                                                                                               |
-| -------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| `gpuMs` (its own field)                            | 4.0    | GPU timer query, `null` when unsupported; budgeted as if serial with the CPU stages (conservative)       |
-| HUD (Angular, outside `render/`, inside the frame) | 1.0    | not measured by the timer: the bench derives it as `frameTimeP95Ms − Σ renderStagesMs` and asserts ≤ 1.0 |
-| headroom                                           | 1.8    | 12 − Σ keys (5.2) − `gpuMs` − HUD; a number in this table, never a field                                 |
+| Not a key                                    | Budget | What it is                                                                                             |
+| -------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| `gpuMs` (its own field)                      | 4.0    | GPU timer query; `null` whenever the number is unavailable or implausible (below), and then not judged |
+| HUD (Angular and the dish, inside the frame) | 1.0    | the residual the timer measures per frame as `frame − Σ its top-level brackets`, reported at p95       |
+| headroom                                     | 1.8    | 12 − Σ keys (5.2) − `gpuMs` − HUD; a number in this table, never a field                               |
 
-**Measurement.** `ClientPerformanceReport` (`shared/types/messages.ts`) gains the fields below; the heartbeat
-already carries the report and `debug_get_room_performance` already merges it per room, so the server stays
-game-agnostic. The key list lives beside the type, the way `CLIENT_MESSAGE_TYPE` does, because the server's
-merge and the client's timer must agree on it:
+**Measurement.** `ClientPerformanceReport` (`shared/types/messages.ts`) carries the fields below and the server's
+`clientPerformance` schema accepts them, so the server stays game-agnostic. The key list lives beside the type, the
+way `CLIENT_MESSAGE_TYPE` does, because the server's schema and the client's timer must agree on it (`RENDER_STAGE_NAMES`
+is pinned complete against `RENDER_STAGE`). The client does not send the report yet and `debug_get_room_performance`
+does not list the stored reports: that wire path is a follow-up of #208; today the report is read through the debug
+hook (`window.__evolutionDebug.performanceReport()`) and the bench route's DOM.
 
 ```ts
 export const RENDER_STAGE = {
@@ -473,12 +475,86 @@ export interface ClientPerformanceReport {
 }
 ```
 
+**How the numbers are taken** (`render/bench/`, #208). `render-stage-timer.ts` is the injected `StageMeasurer` the
+renderer and the cell layer bracket their stages with, on the injected wall `Clock`, a `RENDER_SAMPLE_CAPACITY_FRAMES`
+ring per stage and per frame; a stage measured inside another (`organelles` inside `cells`) is taken out of the outer
+sample, so the seven keys add up without double counting, and work done outside the frame is `accrue`d to its stage's
+next sample: the session charges a snapshot applied on arrival to `net` and measures the frame's interpolation as
+`net`; the renderer accrues the effects' start (before the cell sync) to `effects`. `frame-instrumentation.ts` is what
+both sessions wrap around a frame: the timer, `draw-call-counter.ts` (the four GL draw entry points of the app's
+context, wrapped in every build: one increment per call) and `gpu-timer.ts` (`EXT_disjoint_timer_query_webgl2`, one
+query per submit, read back on later frames, every sample checked for plausibility; `null` where the extension is
+missing or the number is not one a frame could have taken, see **Reading a report** below).
+`render-benchmark.ts` builds the report and its **verdict** against the tables above (`budgetVerdict`: every stage,
+the frame, `gpuMs`, the HUD residual, the draw calls). A live session rebuilds the
+report every `RENDER_REPORT_EVERY_FRAMES` frames. Every budget and bench number is a constant of
+`render/constants/bench.ts` (`CODE-STANDARDS.md §2`), and `render-budget-ledger.spec.ts` reads the tables of this
+section and §6 back and pins the constants to them.
+
+The `camera` key is the camera and nothing else — follow, zoom, cull, `cameraExtent`, the world transform. The dish
+(the depth-particle walk, the light-pool placement) is **not** a stage: it runs unbracketed inside the frame and so
+lands in the HUD residual row, together with Angular's HUD. The cell views every later stage reads (`cellsById`, the
+own cell, the last-view lookup) are accrued to `cells`, the stage that consumes them, so no per-frame work sits
+outside every key.
+
+**Reading a report.** The harness reports a number only where it can support one, and the `verdict` says which rule
+applied (`unjudged` names every row the evidence could not judge; `isFullyJudged` is false whenever it is not empty):
+
+- **A p95 needs a window.** Below `RENDER_P95_MIN_SAMPLE_FRAMES` frames (**20**, `⌈1 / (1 − P95_QUANTILE)⌉`) the 95th
+  percentile is not estimable from the window at all — any estimator degenerates towards the maximum — so the verdict
+  judges no quantile row and lists every one of them in `unjudged`; only `drawCalls`, a count, is still judged.
+  `quantileOf` interpolates between the two ranks around the quantile (the `PERCENTILE.INC` / R type-7 estimator)
+  rather than taking a rank outright. `window=` may go under the minimum for a screenshot or a smoke run, never for
+  evidence: **a number quoted against a budget comes from a window of at least 20 frames**, and the report carries
+  its `sampleCount` so a reader can check.
+- **`gpuMs` is a measurement or it is `null`.** Each query is checked against the wall clock between the two submits
+  it brackets: in steady state a frame's GPU time cannot exceed its frame period, so a sample above
+  `RENDER_GPU_SAMPLE_MAX_FRAME_RATIO` (**2×**) that period is not a measurement. The timer drops it, stops trusting
+  that context and reports `gpuMs: null`. The bench report's `gpuStatus` says which of the four cases holds: `ok`,
+  `unsupported` (no `EXT_disjoint_timer_query_webgl2` — SwiftShader, most mobile GPUs, and desktop Chrome unless the
+  extension is exposed), `pending` (no query has resolved yet) or `implausible`. A `null` is never an overrun: the
+  verdict lists `gpu` as unjudged instead. The disjoint flag is read once a frame (reading it clears it) and drops
+  every query then in flight.
+- **The HUD residual is measured, not subtracted.** The timer records, per frame, `frame − Σ its top-level brackets`,
+  and the verdict judges the p95 of that against the HUD budget, so the row can fail. The old subtraction
+  `frameTimeP95Ms − Σ renderStagesMs` is still reported as `derivedResidualMs`, signed and never judged: it goes
+  negative because a sum of seven independent p95s is not the p95 of their sum, and because work accrued from outside
+  a frame (a snapshot applied on arrival) is charged to a stage without ever being inside the frame bracket.
+- **`drawCalls` is the window's worst frame**, not its last, so one arbitrary frame cannot hide a spike.
+- **`heapGrowthBytesPerFrame` is heap residency growth, not allocation.** It is the heap read after the window minus
+  the heap read after a forced collection at the window's start, divided by the frames. A collection inside the
+  window silently subtracts most of it and nothing here detects that, so the same scene reports figures several times
+  apart between runs: quote it as a range over several runs with the run count, never as one number. What it is not
+  is an allocation count; measuring allocation, and attributing it to a call site, needs CDP
+  `HeapProfiler.startSampling` around the window, which this harness does not drive.
+
+The route takes two more flags, both off by default. `advance=1` steps the scene one tick per frame, so the snapshot
+apply and the view-registry churn that §7 budgets as `net` happen inside the window; parked on one tick (the default,
+and what a screenshot needs) the window measures the interpolation half of `net` only. `preserve=1` keeps the WebGL
+backbuffer so `canvas.toDataURL` can read it; production does not set it and it costs a full-framebuffer copy a frame
+on a real GPU, so the report runs without it and only the pixel-determinism test asks for it.
+
 **Fixed-seed scene:** `render/bench/bench-scene.ts` builds a synthetic `GameSnapshot` from `RENDER_BENCH_SEED` (42) with
-the bench-load cells (table above) across every stage and palette on scripted circular paths, the bench-load
-motes and fragments, fed through the real `WorldStore` by a `ManualClock`; the dev-only route
-`/?bench=<seed>&tick=<n>&zoom=<z>` renders it, paused at tick `n`, with the report in
-`data-testid="render-bench-report"`. The container's SwiftShader proves the harness and the baselines; the
-numbers in #99's PR body come from a hardware run of the same route.
+the bench-load cells (table above) across every stage and palette on scripted circular paths (`bench-traits.ts`
+gives each stage its trait set and the player records; three predator / prey pairs mid-engulf, four victims
+absorbed and respawned on a cadence, eats and level-ups scheduled by `bench-effects.ts`; motes by the eukaryote-era
+shares with the bacteria on a tick-driven walk, fragments drifting, `bench-food.ts`), all from the
+`cosmetic:bench` fork of the seed, fed through the real `WorldStore` by a `ManualClock` (`bench-driver.ts`,
+snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1]`
+(`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token, `bench-session.ts` the engine) renders it,
+parked at tick `n` and re-rendered every frame at `zoom` px/wu in a fixed 1920 × 1080 canvas, and after
+`RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames (`window=` shortens the report window where a
+software GPU renders a frame in seconds; the smoke passes 24) writes the **bench report** into
+`data-testid="render-bench-report"`: the wire report plus `seed`, `tick`, `zoom`, `frames`, the `verdict`, and
+`heapGrowthBytesPerFrame` (the heap growth over the window after a forced collection, through Chrome's
+`performance.memory` and `--js-flags=--expose-gc`, `heap-probe.ts`; `null` elsewhere) and `gpuStatus`. The debug hook runs in
+bench mode: `step(n)` advances the scene `n` ticks and renders one frame, `setSeed` rebuilds it. The container's
+SwiftShader proves the harness and the baselines (`e2e/render-bench.spec.ts`: no errors, **fresh-load determinism** —
+two fresh loads of the same `seed`, `tick` and `zoom` draw identical pixels — a step changes them, the report's keys
+and the draw-call ceiling at two zoom bands; never an absolute time, the box's load decides those). Fresh-load
+determinism is the claim the route supports: a page walked to a tick and a page loaded at it are **not** the same
+frame, because effects due at that tick have already drained on the walked page. The numbers in a PR body come from a
+hardware run of the same route, with the machine's load stated.
 
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
@@ -505,8 +581,11 @@ dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
-bench/{bench-scene,render-benchmark,render-stage-timer}.ts
+bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
+bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
+bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
+frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation both sessions share (§7, #208); the one renderer a session holds, built over its textures and disposed with them
 pixi-texture-baker.ts                                  the `TextureBaker` (the per-pixel radial bakes of `textures/radial-bake.ts` for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
 ```
 
@@ -534,7 +613,13 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   with a nucleus at full and mid LOD, 0 for a nucleoid or protocell; a far dot's warning ring is 0 and its quad
   equals the ringless `quadExtentRadii`, #243), `nucleus-bake.spec.ts` (no disc fill: the only
   gradients are the two halos); `palette.spec.ts` (HSL derivations, the
-  separability numbers of VISUAL-STYLE §2); `bench-scene.spec.ts` (counts, seed-stable); `motion.test.ts` in
+  separability numbers of VISUAL-STYLE §2); `bench-scene.spec.ts` (counts, seed-stable, the pairs, the schedule),
+  `bench-driver.spec.ts` (parks and steps the store), `bench-session.spec.ts` (the query and its flags, the report
+  after the window, the hook), `bench-route.spec.ts` (both halves of the production gate),
+  `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
+  `gpu-timer.spec.ts` (the plausibility rule and the four statuses), `render-benchmark.spec.ts` (the verdict rows,
+  a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the
+  constants); `motion.test.ts` in
   `shared` (one snapshot per clip; durations and keyframe times equal sheet 03's; every `pulse` ≤ 1.14; overshoot
   ≤ 3 %; tracks are monotonic in `at`; every `easingTo` is an `EasingName`; no file under `packages/server/src`
   imports it and `balance.json` has no key from it); `constants.spec.ts` (every VISUAL-STYLE §2 hex is present
@@ -548,8 +633,11 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
   seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
   panel left (UI §1, #217), that the debug hook's pause holds the rendered tick and the canvas and a step
-  advances both, and screenshots the dish; the bench route, the report in the DOM and the shader parity walk
-  join with their slices (#206, #208).
+  advances both, and screenshots the dish; slice D (#208, `e2e/render-bench.spec.ts`) opens the bench route at
+  the three zoom bands, asserts no errors, two fresh loads of the same seed, tick and zoom ⇒ the same pixels and a
+  step changes them, the report in the DOM with every stage key and the draw calls under the §6 ceiling at two zoom
+  bands, and writes the reports beside the screenshots; the
+  shader parity walk is still open (#206).
 - **Screenshot baselines (`qa/baselines/`, graphics-qa on every renderer PR, not part of `validate.sh all`):**
   `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks, each scene carrying a
   fixed `ownCellIndicators` record (plain data, §10; `null` for scenes without an own cell), so a baseline never

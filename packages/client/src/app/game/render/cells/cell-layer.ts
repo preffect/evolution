@@ -8,8 +8,9 @@
 // are the ones dropped. Row order is draw order, so a ghost's row goes right before its
 // predator's (the predator paints over its dissolving prey, VISUAL-STYLE §6 "prey through film").
 
-import type { CellView, EntityId, TraitId } from '@evolution/shared';
+import { RENDER_STAGE, type CellView, type EntityId, type TraitId } from '@evolution/shared';
 import { Container } from 'pixi.js';
+import { UNTIMED_STAGES, type StageMeasurer } from '../bench/render-stage-timer';
 import { isDiscInExtent, type CameraExtent } from '../camera';
 import { CELL_INSTANCE_CAPACITY, CELL_QUAD_EXTENT_RADII } from '../constants';
 import { paletteFor } from '../palette';
@@ -49,6 +50,8 @@ export class CellLayer {
   constructor(
     private readonly textures: CellLayerTextures,
     capacity: number = CELL_INSTANCE_CAPACITY,
+    /** Brackets the organelle sprite pass as its own `renderStagesMs` key (docs/RENDERING.md §7). */
+    private readonly stages: StageMeasurer = UNTIMED_STAGES,
   ) {
     this.registry = new ViewRegistry({
       create: (view) => new CellRenderState(view.id, textures.cosmetic),
@@ -150,7 +153,9 @@ export class CellLayer {
     this.mesh.setCount(packedCells + packedGhosts);
     this.mesh.upload();
     this.mesh.setFrame(frame.timeSeconds, input.zoom);
-    const organelleSprites = this.organelles.update(draws, frame.timeSeconds);
+    const organelleSprites = this.stages.measure(RENDER_STAGE.organelles, () =>
+      this.organelles.update(draws, frame.timeSeconds),
+    );
     const flagella = this.flagella.update(tails, input.zoom);
     return { visibleCells: packedCells, ghosts: packedGhosts, organelleSprites, flagella };
   }

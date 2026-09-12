@@ -98,12 +98,50 @@ export interface LobbyGameInfo {
   creatorId: PlayerId;
 }
 
+/**
+ * The seven CPU stages of a client frame (docs/RENDERING.md §7), the keys of `renderStagesMs`. Listed
+ * beside the report because the server's schema and the client's stage timer must agree on them.
+ */
+export const RENDER_STAGE = {
+  net: 'net',
+  cells: 'cells',
+  organelles: 'organelles',
+  food: 'food',
+  effects: 'effects',
+  camera: 'camera',
+  submit: 'submit',
+} as const;
+export type RenderStageName = (typeof RENDER_STAGE)[keyof typeof RENDER_STAGE];
+/** Every stage in the order the frame runs them; the report carries each key (pinned complete in messages.test.ts). */
+export const RENDER_STAGE_NAMES: readonly RenderStageName[] = [
+  RENDER_STAGE.net,
+  RENDER_STAGE.camera,
+  RENDER_STAGE.food,
+  RENDER_STAGE.cells,
+  RENDER_STAGE.organelles,
+  RENDER_STAGE.effects,
+  RENDER_STAGE.submit,
+];
+
+/** The client's frame-budget report (docs/RENDERING.md §7): rolling p95s over the last frames. */
 export interface ClientPerformanceReport {
   fps: number;
   frameTimeAvgMs: number;
   frameTimeP95Ms: number;
   frameTimePeakMs: number;
   heapMb: number | null;
+  /** p95 per stage, ms; every `RENDER_STAGE` key present. */
+  renderStagesMs: Readonly<Record<RenderStageName, number>>;
+  /**
+   * GPU time per frame, ms (timer query), p95 over the same window; `null` when the number is unavailable —
+   * no timer extension, nothing resolved yet, or the extension reported a time no frame could have taken
+   * (docs/RENDERING.md §7). Never a fallback number: an absent measurement is `null`.
+   */
+  gpuMs: number | null;
+  /** The worst frame's GL draw calls over the window (docs/RENDERING.md §6). */
+  drawCalls: number;
+  visibleCells: number;
+  visibleMotes: number;
 }
 
 // ===== Generic room / lobby view models =====

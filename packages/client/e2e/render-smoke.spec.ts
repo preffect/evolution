@@ -2,7 +2,7 @@
 // seed, the canvas mounts, the baked dish field and the depth particles draw on SwiftShader without page
 // errors, the canvas fills the viewport with no page scroll (docs/UI.md §1, #217), the debug hook's pause
 // holds the rendered tick and a step advances it, and a screenshot lands under `.qa/screenshots/` for the
-// PR. Slice D (#208) adds the bench route and the frame-budget report.
+// PR. The bench route and its frame-budget report are `render-bench.spec.ts`.
 import { expect, test, type Page } from '@playwright/test';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';

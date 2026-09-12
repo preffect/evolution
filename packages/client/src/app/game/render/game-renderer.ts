@@ -1,14 +1,16 @@
 // The renderer (docs/RENDERING.md §7, docs/ARCHITECTURE.md §6): owns the camera state and the
 // layers and turns one `RenderFrame` into one Pixi render. The HUD crossings (`previewTraitId`,
 // `reticle` in, `cameraExtent` out) are the only things it exchanges with anything else. The
-// stages run in the §7 order (camera, dish, food, cells, effects, submit); slice D (#208) brackets
-// them with the stage timer that feeds `renderStagesMs`. The effects arrive once, in the frame
-// whose render tick reached them: the effects layer and the clip tracker both start from them
-// before the cell layer syncs, so a prey that just left the frame still resolves to its last view.
+// stages run in the §7 order (camera, food, cells with organelles inside, effects, submit), each
+// bracketed by the injected `StageMeasurer` that feeds `renderStagesMs` (`net` is the session's).
+// The effects arrive once, in the frame whose render tick reached them: the effects layer and the
+// clip tracker both start from them before the cell layer syncs, so a prey that just left the
+// frame still resolves to its last view; that start is accrued to the `effects` stage.
 
-import { MILLISECONDS_PER_SECOND, type TraitId } from '@evolution/shared';
+import { MILLISECONDS_PER_SECOND, RENDER_STAGE, type TraitId } from '@evolution/shared';
 import { Sprite, type Container } from 'pixi.js';
 import type { RenderFrame } from '../net/world-store';
+import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
 import {
   cameraExtent,
   parkCamera,
@@ -67,11 +69,12 @@ export class GameRenderer {
     stage: Container,
     private readonly textures: RenderTextures,
     private viewport: ViewportPx,
+    private readonly stages: StageMeasurer = UNTIMED_STAGES,
   ) {
     this.layers = createSceneLayers(stage);
     this.dish = new DishLayer(textures);
     this.food = new FoodLayer(textures);
-    this.cells = new CellLayer(textures);
+    this.cells = new CellLayer(textures, undefined, stages);
     this.effects = new EffectsLayer(textures);
     this.vignette = new Sprite(textures.vignetteTexture);
     this.layers.dish.addChild(this.dish.container);
@@ -133,37 +136,50 @@ export class GameRenderer {
     return (cellId) => views.get(cellId) ?? this.cells.lastViewOf(cellId);
   }
 
-  /** One frame: the stages in order, then the outputs the HUD reads. */
-  render(frame: RenderFrame, ownPlayerId: string | null, inputs: RenderInputs, submit: () => void): RenderOutputs {
+  /** The camera stage exactly as §7 defines it: follow, zoom, cull, `cameraExtent` — the dish is not in it. */
+  private cameraStage(
+    frame: RenderFrame,
+    ownPlayerId: string | null,
+  ): { camera: CameraState; zoom: number; extent: CameraExtent } {
     const camera = this.stepCamera(frame, ownPlayerId);
     this.camera = camera;
-    const zoom = zoomFor(camera, this.viewport);
-    const extent = cameraExtent(camera, this.viewport);
     applyCameraTransform(this.layers.world, camera, this.viewport);
-    const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
-    const ownCell = ownCellOf(frame, ownPlayerId);
+    return { camera, zoom: zoomFor(camera, this.viewport), extent: cameraExtent(camera, this.viewport) };
+  }
+
+  /** The cell views every later stage reads, charged to the `cells` stage that consumes them (§7). */
+  private cellViews(
+    frame: RenderFrame,
+    ownPlayerId: string | null,
+  ): { ownCell: ReturnType<typeof ownCellOf>; views: CellViewsById; viewOf: LastViewOf } {
     const views = cellsById(frame.cells);
-    const viewOf = this.viewLookup(views);
-    this.effects.start(frame.effects, viewOf, nowMs);
-    this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
+    return { ownCell: ownCellOf(frame, ownPlayerId), views, viewOf: this.viewLookup(views) };
+  }
+
+  /** One frame: the stages in order, then the outputs the HUD reads. */
+  render(frame: RenderFrame, ownPlayerId: string | null, inputs: RenderInputs, submit: () => void): RenderOutputs {
+    const { stages } = this;
+    const { camera, zoom, extent } = stages.measure(RENDER_STAGE.camera, () => this.cameraStage(frame, ownPlayerId));
+    // The depth-particle walk and the light-pool placement are neither the camera nor a stage of their own
+    // (§7): they land in the frame's unbracketed residual, which the HUD budget row judges.
     this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
-    const food = this.food.update({
-      motes: frame.motes,
-      fragments: frame.fragments,
-      timeSeconds: frame.timeSeconds,
-      zoom,
+    const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
+    const { ownCell, views, viewOf } = stages.accrue(RENDER_STAGE.cells, () => this.cellViews(frame, ownPlayerId));
+    const deformations = stages.accrue(RENDER_STAGE.effects, () => {
+      this.effects.start(frame.effects, viewOf, nowMs);
+      this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
+      return this.clips.deformations(frame.cells, nowMs, views);
     });
-    const cells = this.cells.update({
-      frame,
-      extent,
-      zoom,
-      nowMs,
-      ownCell,
-      previewTraitId: inputs.previewTraitId,
-      deformations: this.clips.deformations(frame.cells, nowMs, views),
-    });
-    const effects = this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } });
-    submit();
+    const food = stages.measure(RENDER_STAGE.food, () =>
+      this.food.update({ motes: frame.motes, fragments: frame.fragments, timeSeconds: frame.timeSeconds, zoom }),
+    );
+    const cells = stages.measure(RENDER_STAGE.cells, () =>
+      this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId: inputs.previewTraitId, deformations }),
+    );
+    const effects = stages.measure(RENDER_STAGE.effects, () =>
+      this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } }),
+    );
+    stages.measure(RENDER_STAGE.submit, submit);
     return {
       cameraExtent: extent,
       zoom,

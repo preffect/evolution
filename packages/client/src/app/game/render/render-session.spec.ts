@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_BALANCE,
   ManualClock,
+  RENDER_STAGE_NAMES,
   SERVER_MESSAGE_TYPE,
   TICK_INTERVAL_MS,
   createTestSessionConfig,
@@ -13,6 +14,7 @@ import {
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
+import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { NO_RETICLE } from './game-renderer';
 import { RenderSession, type RenderSessionDependencies } from './render-session';
 
@@ -172,7 +174,23 @@ describe('RenderSession', () => {
     expect(pixi.renderCalls.count).toBe(3);
     expect(api.mode).toBe('live');
     expect(api.setSeed(9)).toBe(false);
+  });
+
+  it('rebuilds the frame-budget report every RENDER_REPORT_EVERY_FRAMES frames with every stage key (docs/RENDERING.md §7)', async () => {
+    const { subject, pixi, clock } = session();
+    subject.onMessage(gameState());
+    await flush();
+    const api = subject.debugApi();
+    for (let frame = 0; frame < RENDER_REPORT_EVERY_FRAMES - 1; frame += 1) {
+      clock.advanceMilliseconds(TICK_INTERVAL_MS);
+      pixi.tick();
+    }
     expect(api.performanceReport()).toBeNull();
+    pixi.tick();
+    const report = api.performanceReport()!;
+    expect(Object.keys(report.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
+    expect(report).toMatchObject({ drawCalls: 0, gpuMs: null, heapMb: null, visibleCells: 1, visibleMotes: 0 });
+    expect(subject.instrumentation.frameCount).toBe(RENDER_REPORT_EVERY_FRAMES);
   });
 
   it('applies balance updates to the store and the audio handle', async () => {
