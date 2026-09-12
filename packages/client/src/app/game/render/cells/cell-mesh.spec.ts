@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { CELL_INSTANCE_FLOATS } from './cell-instance';
 import { CellMesh } from './cell-mesh';
+import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
 import { CELL_PASS, CELL_UNIFORM, CELL_UNIFORM_GROUP } from './cell-shader-source';
 
 /** One bundle for the file: the bakes are the slow part (#226). */
@@ -31,6 +32,19 @@ describe('CellMesh', () => {
     expect(passOf(subject.membranePass)).toBe(CELL_PASS.membrane);
     expect(subject.bodyPass.shader?.resources[CELL_UNIFORM.instances]).toBeDefined();
     expect(subject.bodyPass.shader?.resources[CELL_UNIFORM.palette]).toBeDefined();
+    subject.destroy();
+  });
+
+  it('sets every float and colour uniform the GLSL declares, on both passes (a missing one paints its band black)', () => {
+    const subject = mesh(1);
+    const declared = [...(CELL_VERTEX_SOURCE + CELL_FRAGMENT_SOURCE).matchAll(/uniform (?:float|vec3) (\w+);/g)].map(
+      (match) => match[1],
+    );
+    expect(declared.length).toBeGreaterThan(5);
+    for (const pass of [subject.bodyPass, subject.membranePass]) {
+      const group = pass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
+      for (const name of declared) expect(group.uniforms[name!], name).toBeDefined();
+    }
     subject.destroy();
   });
 

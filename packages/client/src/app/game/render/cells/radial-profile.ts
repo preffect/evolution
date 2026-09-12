@@ -46,10 +46,17 @@ export interface StripTerm {
   readonly lobesScale: number;
 }
 
+/** `B(Δ)` per form (§2.4): the value and `dB/dΔ` at `delta` from the heading; unit area, so mass ∝ area holds. */
+export interface FormProfile {
+  evaluate(delta: number): { readonly value: number; readonly derivative: number };
+}
+
 export interface RadialProfileTerms {
   readonly radius: number;
   readonly pulse: number;
   readonly heading: number;
+  /** `null` is the blob, `B ≡ 1`. */
+  readonly form: FormProfile | null;
   readonly breathing: number;
   readonly wobble: WobbleTerm;
   readonly strip: StripTerm | null;
@@ -114,14 +121,26 @@ export function surfaceTerms(terms: RadialProfileTerms, theta: number): Term {
   return { value, derivative };
 }
 
-/** `r(θ) = r · pulse · stretch(θ − h) · (1 + …)` with `r′(θ)`. */
+const BLOB: Term = { value: 1, derivative: 0 };
+
+/** `B(Δ) · stretch(Δ)` and its derivative: the two heading-relative factors of the profile. */
+function headingTerms(terms: RadialProfileTerms, delta: number): Term {
+  const stretch = stretchAt(terms.stretch, delta);
+  const form = terms.form === null ? BLOB : terms.form.evaluate(delta);
+  return {
+    value: form.value * stretch.value,
+    derivative: form.derivative * stretch.value + form.value * stretch.derivative,
+  };
+}
+
+/** `r(θ) = r · pulse · B(θ − h) · stretch(θ − h) · (1 + …)` with `r′(θ)`. */
 export function evaluateProfile(terms: RadialProfileTerms, theta: number): ProfileSample {
-  const stretch = stretchAt(terms.stretch, wrapAngle(theta - terms.heading));
+  const heading = headingTerms(terms, wrapAngle(theta - terms.heading));
   const surface = surfaceTerms(terms, theta);
   const scale = terms.radius * terms.pulse;
   return {
-    r: scale * stretch.value * surface.value,
-    derivative: scale * (stretch.derivative * surface.value + stretch.value * surface.derivative),
+    r: scale * heading.value * surface.value,
+    derivative: scale * (heading.derivative * surface.value + heading.value * surface.derivative),
   };
 }
 

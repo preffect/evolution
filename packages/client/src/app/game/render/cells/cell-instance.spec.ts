@@ -47,6 +47,16 @@ const instance: CellInstance = {
   stripPhase: 0.3,
   lobesScale: 0.5,
   jitterAmplitude: 0.008,
+  ciliaCount: 24,
+  wallScale: 1.5,
+  speckleDensity: 40,
+  filamentCount: 11,
+  tintMix: 0.2,
+  warningRingPx: 26,
+  formId: 1,
+  passBAlpha: 0.62,
+  rimDash: 1,
+  ciliaPhase: 0.4,
   bumps: [{ amplitude: 0.62, centre: 0.52, sigma: 0.28 }],
 };
 
@@ -68,6 +78,9 @@ describe('packCellInstance', () => {
     expect(channelOf(row, 'isProtocell')).toBe(1);
     expect(channelOf(row, 'alpha')).toBeCloseTo(0.9, 6);
     expect(channelOf(row, 'rimBrightness')).toBeCloseTo(1.2, 6);
+    expect(channelOf(row, 'warningRingPx')).toBe(26);
+    expect(channelOf(row, 'rimDash')).toBe(1);
+    expect(channelOf(row, 'ciliaPhase')).toBeCloseTo(0.4, 6);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect([...row.subarray(bumpBase, bumpBase + 3)].map((value) => Math.round(value * 100) / 100)).toEqual([
       0.62, 0.52, 0.28,

@@ -1,7 +1,8 @@
 // View + t → the profile terms of docs/RENDERING.md §2.1 and the eight bump slots: the resolved
-// heading, the speed stretch, the sprint's axial stretch, breathing, the stage wobble, the strip's
-// jitter and lobes, and the cell's deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its
-// pulse). Also the per-instance maximum reach the quad extent needs (§2).
+// heading, the form, the speed stretch, the sprint's axial stretch, breathing, the stage wobble,
+// the strip's jitter and lobes (halved by `cytoskeleton`, zero on a rigid form), and the cell's
+// deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its pulse). Also the per-instance
+// maximum reach the quad extent needs (§2).
 
 import { RADIANS_PER_FULL_TURN, type CellView } from '@evolution/shared';
 import {
@@ -17,6 +18,8 @@ import {
   STRETCH_ACROSS_PER_ALONG,
   STRETCH_ALONG,
   STRETCH_TAPER,
+  TRAIT_HALO_OUTER_RADII,
+  WOBBLE_TAUT_SCALE,
 } from '../constants';
 import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
@@ -24,8 +27,15 @@ import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
 import { ZERO_BUMP, type RadialProfileTerms, type ShapeBump, type StretchTerm, type StripTerm } from './radial-profile';
 
-/** The strip's lobes at full amplitude; `cytoskeleton` halves them with #216. */
-const FULL_LOBES = 1;
+/** The rest motion at full amplitude; `cytoskeleton` halves breathing and lobes, a rigid form zeroes all three. */
+const FULL = 1;
+const STILL = 0;
+
+interface RestScales {
+  readonly breathing: number;
+  readonly lobes: number;
+  readonly jitter: number;
+}
 
 export interface ShapeTermsInput {
   readonly view: Pick<CellView, 'radius' | 'velocityX' | 'velocityY' | 'sprintRemainingTicks'>;
@@ -54,6 +64,8 @@ export interface ShapeTerms extends RadialProfileTerms {
 
 const HALO_OUTER_BY_KIND: Readonly<Record<number, number>> = {
   [HALO_KIND.default]: HALO_OUTER_RADII,
+  [HALO_KIND.chloroplast]: TRAIT_HALO_OUTER_RADII,
+  [HALO_KIND.toxin]: TRAIT_HALO_OUTER_RADII,
   [HALO_KIND.protocell]: PROTOCELL_HALO_OUTER_RADII,
 };
 
@@ -101,14 +113,21 @@ function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
   };
 }
 
-function stripTerm(input: ShapeTermsInput): StripTerm | null {
+/** Breathing and lobes halve when taut (VISUAL-STYLE §5); a rigid valve does not breathe, jitter or lobe (§2.4). */
+function restScales(traits: CellTraitSummary): RestScales {
+  if (traits.form.isRigid) return { breathing: STILL, lobes: STILL, jitter: STILL };
+  const taut = traits.isTaut ? WOBBLE_TAUT_SCALE : FULL;
+  return { breathing: taut, lobes: taut, jitter: FULL };
+}
+
+function stripTerm(input: ShapeTermsInput, scales: RestScales): StripTerm | null {
   if (input.strip === null) return null;
   return {
     strip: input.strip,
     row: input.stripRow,
     phase: input.phase,
-    jitterAmplitude: JITTER_AMPLITUDE,
-    lobesScale: FULL_LOBES,
+    jitterAmplitude: JITTER_AMPLITUDE * scales.jitter,
+    lobesScale: scales.lobes,
   };
 }
 
@@ -117,17 +136,20 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
   const { traits, timeSeconds } = input;
   const isSprinting = input.view.sprintRemainingTicks > 0;
   const haloOuterRadii = HALO_OUTER_BY_KIND[traits.haloKind] ?? HALO_OUTER_RADII;
+  const scales = restScales(traits);
   const terms: RadialProfileTerms = {
     radius: input.view.radius,
     pulse: input.deformation.pulse,
     heading: input.heading,
-    breathing: BREATH_AMPLITUDE * Math.sin(RADIANS_PER_FULL_TURN * (BREATH_HZ * timeSeconds + input.phase)),
+    form: traits.form.profileAt(traits.formTier),
+    breathing:
+      scales.breathing * BREATH_AMPLITUDE * Math.sin(RADIANS_PER_FULL_TURN * (BREATH_HZ * timeSeconds + input.phase)),
     wobble: {
       amplitude: traits.wobble.amplitude,
       mode: traits.wobble.mode,
       phase: RADIANS_PER_FULL_TURN * (traits.wobble.hz * timeSeconds + input.phase),
     },
-    strip: stripTerm(input),
+    strip: stripTerm(input, scales),
     stretch: stretchTerm(input.speedRatio, isSprinting),
     bumps: assignBumpSlots(input.deformation.bumps),
   };

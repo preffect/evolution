@@ -28,6 +28,14 @@ export const CELL_UNIFORM = {
   pass: 'uPass',
   white: 'uWhite',
   outline: 'uOutline',
+  chloroLight: 'uChloroLight',
+  toxinGlow: 'uToxinGlow',
+  ribosome: 'uRibosome',
+  cytoskeleton: 'uCytoskeleton',
+  cellWall: 'uCellWall',
+  cellWallLight: 'uCellWallLight',
+  cilia: 'uCilia',
+  danger: 'uDanger',
 } as const;
 
 /** The uniform group the mesh's frame values and colours live in. */

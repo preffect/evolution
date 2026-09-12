@@ -4,7 +4,21 @@
 
 import { Geometry, GlProgram, Mesh, Shader, State, UniformGroup, type TextureSource } from 'pixi.js';
 import { hexToRgb } from '../colour';
-import { CELL_INSTANCE_CAPACITY, CELL_QUAD_INDICES, CELL_QUAD_POSITIONS, OUTLINE, WHITE } from '../constants';
+import {
+  CELL_INSTANCE_CAPACITY,
+  CELL_QUAD_INDICES,
+  CELL_QUAD_POSITIONS,
+  CELL_WALL,
+  CELL_WALL_LIGHT,
+  CHLORO_LIGHT,
+  CILIA,
+  CYTOSKELETON,
+  DANGER,
+  OUTLINE,
+  RIBOSOME,
+  TOXIN_GLOW,
+  WHITE,
+} from '../constants';
 import { floatDataTexture } from '../textures/pixi-textures';
 import { CELL_INSTANCE_TEXELS, createInstanceBuffer } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
@@ -26,13 +40,27 @@ function colourUniform(hex: string): { value: readonly number[]; type: typeof CO
   return { value: hexToRgb(hex), type: COLOUR_TYPE };
 }
 
+/** The VISUAL-STYLE §2 colours the bands paint, one uniform each (the palette shades come from the texture). */
+const COLOUR_UNIFORMS: Readonly<Record<string, string>> = {
+  [CELL_UNIFORM.white]: WHITE,
+  [CELL_UNIFORM.outline]: OUTLINE,
+  [CELL_UNIFORM.chloroLight]: CHLORO_LIGHT,
+  [CELL_UNIFORM.toxinGlow]: TOXIN_GLOW,
+  [CELL_UNIFORM.ribosome]: RIBOSOME,
+  [CELL_UNIFORM.cytoskeleton]: CYTOSKELETON,
+  [CELL_UNIFORM.cellWall]: CELL_WALL,
+  [CELL_UNIFORM.cellWallLight]: CELL_WALL_LIGHT,
+  [CELL_UNIFORM.cilia]: CILIA,
+  [CELL_UNIFORM.danger]: DANGER,
+};
+
 function createUniforms(pass: number): UniformGroup {
+  const colours = Object.fromEntries(Object.entries(COLOUR_UNIFORMS).map(([name, hex]) => [name, colourUniform(hex)]));
   return new UniformGroup({
     [CELL_UNIFORM.timeSeconds]: { value: 0, type: FLOAT_TYPE },
     [CELL_UNIFORM.zoom]: { value: REST_ZOOM, type: FLOAT_TYPE },
     [CELL_UNIFORM.pass]: { value: pass, type: FLOAT_TYPE },
-    [CELL_UNIFORM.white]: colourUniform(WHITE),
-    [CELL_UNIFORM.outline]: colourUniform(OUTLINE),
+    ...colours,
   });
 }
 

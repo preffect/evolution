@@ -22,6 +22,7 @@ function restTerms(overrides: Partial<RadialProfileTerms> = {}): RadialProfileTe
     radius: RADIUS,
     pulse: 1,
     heading: 0,
+    form: null,
     breathing: 0,
     wobble: { amplitude: 0, mode: 0, phase: 0 },
     strip: null,

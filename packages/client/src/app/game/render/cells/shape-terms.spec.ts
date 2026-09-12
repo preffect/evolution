@@ -2,11 +2,12 @@
 // the per-instance reach under CELL_QUAD_EXTENT_RADII.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, createSeededRandom } from '@evolution/shared';
+import { CELL_STAGE, createSeededRandom, type CellStage, type TraitId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import {
   BREATH_AMPLITUDE,
   CELL_QUAD_EXTENT_RADII,
+  FORM_WOBBLE_MODE,
   HALO_OUTER_RADII,
   JITTER_AMPLITUDE,
   MAX_SHAPE_BUMPS,
@@ -14,6 +15,8 @@ import {
   PROTOCELL_WOBBLE_MODE,
   SPRINT_STRETCH_SCALE,
   STRETCH_ALONG,
+  TRAIT_HALO_OUTER_RADII,
+  WOBBLE_TAUT_SCALE,
 } from '../constants';
 import { degreesToRadians } from '../geometry';
 import { buildNoiseStrip } from '../noise/noise-strip';
@@ -41,6 +44,43 @@ function input(overrides: Partial<ShapeTermsInput> = {}): ShapeTermsInput {
 }
 
 const activeSlots = (bumps: readonly { amplitude: number }[]) => bumps.filter((slot) => slot.amplitude !== 0).length;
+
+const withTraits = (traits: { traitId: TraitId; tier: 1 | 2 | 3 }[], stage: CellStage = CELL_STAGE.eukaryote) => {
+  const view = createTestCellView({ radius: 40, stage, traits });
+  return input({ view, traits: summariseCellTraits(view), strip: buildNoiseStrip(createSeededRandom(TEST_SEED)) });
+};
+
+describe('rest scales per trait and form', () => {
+  it('halves breathing and lobes with cytoskeleton and keeps the jitter', () => {
+    const plain = buildShapeTerms({ ...withTraits([]), timeSeconds: 0.5 });
+    const taut = buildShapeTerms({ ...withTraits([{ traitId: 'cytoskeleton', tier: 1 }]), timeSeconds: 0.5 });
+    expect(taut.breathing).toBeCloseTo(plain.breathing * WOBBLE_TAUT_SCALE, 12);
+    expect(taut.strip?.lobesScale).toBe(WOBBLE_TAUT_SCALE);
+    expect(taut.strip?.jitterAmplitude).toBe(JITTER_AMPLITUDE);
+  });
+
+  it('stills a rigid diatom valve entirely and gives a slipper the mode-3 wobble', () => {
+    const diatom = buildShapeTerms({
+      ...withTraits([{ traitId: 'diatom_shell', tier: 1 }], CELL_STAGE.specialised),
+      timeSeconds: 0.5,
+    });
+    expect(diatom.breathing).toBe(0);
+    expect(diatom.wobble.amplitude).toBe(0);
+    expect(diatom.strip).toMatchObject({ lobesScale: 0, jitterAmplitude: 0 });
+    const slipper = buildShapeTerms(withTraits([{ traitId: 'paramecium_cilia', tier: 1 }], CELL_STAGE.specialised));
+    expect(slipper.wobble.mode).toBe(FORM_WOBBLE_MODE);
+    expect(slipper.form).toBeNull();
+  });
+
+  it('reaches to the trait halo with a chloroplast or a toxin bladder', () => {
+    expect(buildShapeTerms(withTraits([{ traitId: 'chloroplast', tier: 1 }])).haloOuterRadii).toBe(
+      TRAIT_HALO_OUTER_RADII,
+    );
+    expect(buildShapeTerms(withTraits([{ traitId: 'toxin_vacuole', tier: 1 }])).haloOuterRadii).toBe(
+      TRAIT_HALO_OUTER_RADII,
+    );
+  });
+});
 
 describe('assignBumpSlots', () => {
   it('always fills exactly MAX_SHAPE_BUMPS slots, zero where unused', () => {

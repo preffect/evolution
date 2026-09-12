@@ -1,11 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, entityId } from '@evolution/shared';
-import { TEST_OTHER_CELL_ID, createTestCellView, createTestRenderFrame } from '../../../../testing/builders';
+import {
+  TEST_OTHER_CELL_ID,
+  createTestCellAbsorbedEffect,
+  createTestCellView,
+  createTestRenderFrame,
+} from '../../../../testing/builders';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
+import { Graphics } from 'pixi.js';
 import type { CameraExtent } from '../camera';
 import { HALO_KIND } from '../constants';
 import { NO_DEFORMATIONS, type CellDeformation } from './cell-deformation';
-import { CELL_INSTANCE_FLOATS, TEXEL_FLOATS, instanceFieldLocation, type CellInstanceScalar } from './cell-instance';
+import { CONTACT_DENT_AMPLITUDE } from '../constants';
+import {
+  BUMP_TEXEL_START,
+  CELL_INSTANCE_FLOATS,
+  TEXEL_FLOATS,
+  instanceFieldLocation,
+  type CellInstanceScalar,
+} from './cell-instance';
 import { CellLayer } from './cell-layer';
 import type { CellLayerFrame } from './cell-layer-frame';
 import type { CellPassMesh } from './cell-mesh';
@@ -37,10 +50,11 @@ function packed(subject: CellLayer, row: number, field: CellInstanceScalar): num
 }
 
 describe('CellLayer', () => {
-  it('stacks the body pass, the organelle sprites and the membrane pass in that order', () => {
+  it('stacks the flagella, the body pass, the organelle sprites and the membrane pass in that order', () => {
     const subject = new CellLayer(textures);
-    const [body, organelles, membrane] = subject.container.children;
-    expect(subject.container.children).toHaveLength(3);
+    const [flagella, body, organelles, membrane] = subject.container.children;
+    expect(subject.container.children).toHaveLength(4);
+    expect(flagella).toBeInstanceOf(Graphics);
     expect(body).not.toBe(membrane);
     expect(organelles?.children).toEqual([]);
     subject.destroy();
@@ -120,7 +134,7 @@ describe('CellLayer', () => {
     const outputs = subject.update(input({ frame, ownCell: own, zoom: 1.8 }));
     expect(outputs.organelleSprites).toBeGreaterThan(0);
     expect(packed(subject, 0, 'isOwn')).toBe(1);
-    const membrane = subject.container.children[2] as CellPassMesh;
+    const membrane = subject.container.children[3] as CellPassMesh;
     const uniforms = (membrane.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, number> }).uniforms;
     expect(uniforms[CELL_UNIFORM.timeSeconds]).toBe(2.5);
     expect(uniforms[CELL_UNIFORM.zoom]).toBe(1.8);
@@ -161,7 +175,48 @@ describe('CellLayer', () => {
     const outputs = subject.update(input({ frame: createTestRenderFrame({ cells: [] }) }));
     expect(outputs.visibleCells).toBe(0);
     expect(subject.stateCount).toBe(0);
-    expect(subject.container.children[0]?.visible).toBe(false);
+    expect(subject.container.children[1]?.visible).toBe(false);
+    subject.destroy();
+  });
+
+  it('packs a ghost before its predator, an orphan ghost last, and reserves ghost rows inside the capacity', () => {
+    const subject = new CellLayer(textures, 3);
+    const predator = createTestCellView({ id: entityId('pred'), x: 0, radius: 30 });
+    const prey = createTestCellView({ id: entityId('prey'), x: 40, radius: 5 });
+    const bystander = createTestCellView({ id: entityId('by'), x: -60, radius: 10 });
+    const tiny = createTestCellView({ id: entityId('tiny'), x: 60, radius: 2 });
+    subject.update(input({ frame: createTestRenderFrame({ cells: [predator, prey, bystander, tiny] }) }));
+    const absorbed = createTestCellAbsorbedEffect({ cellId: prey.id, predatorCellId: predator.id, x: 40, y: 0 });
+    const frame = createTestRenderFrame({ cells: [predator, bystander, tiny], effects: [absorbed] });
+    const outputs = subject.update(input({ frame, nowMs: 100 }));
+    expect(outputs).toMatchObject({ visibleCells: 2, ghosts: 1 });
+    expect([0, 1, 2].map((row) => packed(subject, row, 'x'))).toEqual([-60, 40, 0]);
+    const orphaned = createTestRenderFrame({ cells: [bystander, tiny] });
+    subject.update(input({ frame: orphaned, nowMs: 200 }));
+    expect([0, 1, 2].map((row) => packed(subject, row, 'x'))).toEqual([60, -60, 40]);
+    subject.destroy();
+  });
+
+  it('strokes a tail for a flagellate cell and none for a far dot', () => {
+    const subject = new CellLayer(textures);
+    const swimmer = createTestCellView({ radius: 10, traits: [{ traitId: 'simple_flagellum', tier: 3 }] });
+    expect(subject.update(input({ frame: createTestRenderFrame({ cells: [swimmer] }) })).flagella).toBe(2);
+    expect(subject.update(input({ frame: createTestRenderFrame({ cells: [swimmer] }), zoom: 0.1 })).flagella).toBe(0);
+    subject.destroy();
+  });
+
+  it('dents two touching cells toward each other and leaves a lone cell round', () => {
+    const subject = new CellLayer(textures);
+    const left = createTestCellView({ x: 0, radius: 10 });
+    const right = createTestCellView({ id: TEST_OTHER_CELL_ID, x: 15, radius: 10 });
+    subject.update(input({ frame: createTestRenderFrame({ cells: [left, right] }) }));
+    const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
+    expect(subject.instances[bumpBase]).toBeCloseTo(CONTACT_DENT_AMPLITUDE, 6);
+    expect(subject.instances[bumpBase + 1]).toBeCloseTo(0, 6);
+    expect(subject.instances[CELL_INSTANCE_FLOATS + bumpBase]).toBeCloseTo(CONTACT_DENT_AMPLITUDE, 6);
+    expect(Math.abs(subject.instances[CELL_INSTANCE_FLOATS + bumpBase + 1] ?? 0)).toBeCloseTo(Math.PI, 6);
+    subject.update(input({ frame: createTestRenderFrame({ cells: [left] }) }));
+    expect(subject.instances[bumpBase]).toBe(0);
     subject.destroy();
   });
 });

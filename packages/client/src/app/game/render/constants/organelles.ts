@@ -116,5 +116,6 @@ export const FLAGELLUM_AMPLITUDE_BY_TIER = [1, 1.5, 2] as const;
 export const FLAGELLUM_TAILS_BY_TIER = [1, 1, 2] as const;
 export const FLAGELLUM_SPRINT_AMPLITUDE_SCALE = 2;
 export const FLAGELLUM_WAVE_HZ = 3;
-export const FLAGELLUM_SEGMENTS = 16;
+/** 16 per wave: with round joins the two waves read as sine curves, not kinks. */
+export const FLAGELLUM_SEGMENTS = 32;
 export const FLAGELLUM_TAIL_SPREAD_DEG = 18;

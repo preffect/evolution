@@ -1,7 +1,8 @@
 // Pass B of the cell shader (docs/RENDERING.md §2.2, over the organelle sprites): the inner
 // edge, the soft rim, the rim light with the outline through it (or the protocell double film),
-// the glint, and the tells that snap with the LOD: seat-mark beads on the deformed outline and
-// the own cell's self ring in the undeformed frame. Every membrane band is a band of `d`.
+// the cell wall and the cilia (cell-shader-tells.ts), the glint, the prey-under-film alpha, and
+// the tells that snap with the LOD: seat-mark beads on the deformed outline, the own cell's self
+// ring and the engulf-warning ring in the undeformed frame. Every membrane band is a band of `d`.
 
 import {
   GLINT_ALPHA,
@@ -92,7 +93,7 @@ vec4 rimLight(Instance inst, Frame frame, vec4 acc) {
   vec4 colour = rimLightColour(inst, frame);
   float mask = band(frame.dr, 0.0, ${glslFloat(RIM_LIGHT_HALF_WIDTH_RADII)}, frame.aa / inst.r);
   acc = over(acc, colour.rgb * inst.rimBrightness, colour.a * mask);
-  float outline = band(frame.d, 0.0, outlineHalfWidth(inst), frame.aa * HALF);
+  float outline = band(frame.d, 0.0, outlineHalfWidth(inst), frame.aa * HALF) * rimDashMask(inst, frame);
   return over(acc, uOutline, outline * ${glslFloat(OUTLINE_ALPHA)});
 }
 
@@ -153,8 +154,12 @@ vec4 membranePass(Instance inst, Frame frame) {
     acc = softRim(inst, frame, acc);
     acc = rimLight(inst, frame, acc);
   }
+  acc = cellWall(inst, frame, acc);
+  acc = cilia(inst, frame, acc);
   acc = glint(inst, frame, acc);
+  acc *= inst.passBAlpha;
   acc = seatMark(inst, frame, acc);
-  return selfRing(inst, frame, acc);
+  acc = selfRing(inst, frame, acc);
+  return warningRing(inst, frame, acc);
 }
 `;
