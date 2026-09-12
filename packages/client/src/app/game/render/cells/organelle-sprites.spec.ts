@@ -8,7 +8,7 @@ import { paletteFor } from '../palette';
 import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
-import { CellRenderState, type CellFrameContext } from './cell-render-state';
+import { CellRenderState, NO_CELL_CONTACTS, type CellFrameContext } from './cell-render-state';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
 
 const TEST_SEED = 7;
@@ -22,6 +22,7 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     ownCell: null,
     strip: buildNoiseStrip(createSeededRandom(TEST_SEED)),
     previewTraitId: null,
+    ...NO_CELL_CONTACTS,
     ...overrides,
   };
 }

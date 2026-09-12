@@ -41,6 +41,23 @@ export interface CellInstance {
   /** The strip's lobes scale and jitter amplitude; 0 when the strip is off. */
   readonly lobesScale: number;
   readonly jitterAmplitude: number;
+  // ---- the trait tells (#216, VISUAL-STYLE §4): 0 where the trait is not owned ----
+  readonly ciliaCount: number;
+  readonly wallScale: number;
+  readonly speckleDensity: number;
+  readonly filamentCount: number;
+  /** The membrane's mix toward `CHLORO_BASE`. */
+  readonly tintMix: number;
+  /** The engulf-warning ring's radius in px; 0 when this cell cannot engulf the viewer (VISUAL-STYLE §5). */
+  readonly warningRingPx: number;
+  /** `FORM_ID` (forms/form-profiles.ts); the blob is 0. */
+  readonly formId: number;
+  /** Pass B × this: `PREY_UNDER_FILM_ALPHA` while `engulfedByCellId` is set and on a ghost; 1 otherwise. */
+  readonly passBAlpha: number;
+  /** 0 → 1: the outline turns dashed (the absorbed ghost's rim). */
+  readonly rimDash: number;
+  /** The cilia beat's accumulated phase in turns, so the beat rate can change without a jump. */
+  readonly ciliaPhase: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -55,6 +72,9 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['nucleusOffsetX', 'nucleusOffsetY', 'haloKind', 'beadCount'],
   ['isOwn', 'isFarDot', 'isProtocell', 'alpha'],
   ['stripRow', 'stripPhase', 'lobesScale', 'jitterAmplitude'],
+  ['ciliaCount', 'wallScale', 'speckleDensity', 'filamentCount'],
+  ['tintMix', 'warningRingPx', 'formId', 'passBAlpha'],
+  ['rimDash', 'ciliaPhase'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */

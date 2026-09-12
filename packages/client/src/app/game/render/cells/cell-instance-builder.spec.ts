@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, SEAT_MARK_BEADS } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, SEAT_MARK_BEADS, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII, HALO_KIND, SPRINT_RIM_BRIGHTNESS } from '../constants';
+import {
+  CELL_QUAD_EXTENT_RADII,
+  ENGULF_WARNING_RING_MIN_PX,
+  FAR_DOT_HALO_RADII,
+  FORM_ID,
+  HALO_KIND,
+  PREY_UNDER_FILM_ALPHA,
+  SPRINT_RIM_BRIGHTNESS,
+  WARNING_RING_STROKE_PX,
+} from '../constants';
 import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
-import { buildCellInstance, quadExtentRadii, type CellInstanceInput } from './cell-instance-builder';
+import { buildCellInstance, quadExtentRadii, warningRingPxFor, type CellInstanceInput } from './cell-instance-builder';
 import { summariseCellTraits } from './cell-traits';
 import { buildShapeTerms } from './shape-terms';
 
@@ -32,6 +41,9 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     isOwn: false,
     cosmetic: { stripRow: 2, phase: 0.25 },
     alpha: 1,
+    warningRingPx: 0,
+    ciliaPhase: 0.3,
+    rimDash: 0,
     ...overrides,
   };
 }
@@ -58,9 +70,58 @@ describe('buildCellInstance', () => {
       stripPhase: 0.25,
       lobesScale: 0,
       jitterAmplitude: 0,
+      ciliaCount: 0,
+      wallScale: 0,
+      speckleDensity: 0,
+      filamentCount: 0,
+      tintMix: 0,
+      warningRingPx: 0,
+      formId: FORM_ID.blob,
+      passBAlpha: 1,
+      rimDash: 0,
+      ciliaPhase: 0.3,
     });
     expect(instance.beadCount).toBe(SEAT_MARK_BEADS[2]);
     expect(instance.bumps).toHaveLength(8);
+  });
+
+  it('carries the trait tells and the form, snapping the membrane tells off with the far dot', () => {
+    const view = createTestCellView({
+      radius: 40,
+      stage: CELL_STAGE.specialised,
+      traits: [
+        { traitId: 'cilia', tier: 1 },
+        { traitId: 'cell_wall', tier: 2 },
+        { traitId: 'ribosomes', tier: 3 },
+        { traitId: 'cytoskeleton', tier: 1 },
+        { traitId: 'chloroplast', tier: 1 },
+        { traitId: 'diatom_shell', tier: 1 },
+      ],
+    });
+    const traits = summariseCellTraits(view);
+    const full = buildCellInstance(input({ view, traits }));
+    expect(full).toMatchObject({
+      ciliaCount: 24,
+      wallScale: 2,
+      speckleDensity: 60,
+      filamentCount: 11,
+      tintMix: 0.2,
+      formId: FORM_ID.diatom,
+      haloKind: HALO_KIND.chloroplast,
+    });
+    const far = buildCellInstance(input({ view, traits, lod: cellLodFor(4) }));
+    expect(far).toMatchObject({ ciliaCount: 0, wallScale: 0, warningRingPx: 0 });
+  });
+
+  it('films a prey under its predator and a ghost, and keeps the warning ring only with the tells', () => {
+    const prey = createTestCellView({ radius: 40, engulfedByCellId: entityId('p') });
+    expect(buildCellInstance(input({ view: prey })).passBAlpha).toBe(PREY_UNDER_FILM_ALPHA);
+    expect(buildCellInstance(input({ rimDash: 1 })).passBAlpha).toBe(PREY_UNDER_FILM_ALPHA);
+    const ringed = buildCellInstance(input({ warningRingPx: 200 }));
+    expect(ringed.warningRingPx).toBe(200);
+    expect(ringed.quadExtentRadii).toBeCloseTo((200 + WARNING_RING_STROKE_PX) / 40, 9);
+    expect(buildCellInstance(input({ warningRingPx: 60 })).quadExtentRadii).toBe(CELL_QUAD_EXTENT_RADII);
+    expect(buildCellInstance(input({ warningRingPx: 60, lod: cellLodFor(4) })).warningRingPx).toBe(0);
   });
 
   it('brightens the rim on sprint and marks the own cell only while the tells are drawn', () => {
@@ -82,5 +143,21 @@ describe('buildCellInstance', () => {
     expect(quadExtentRadii(base.terms, cellLodFor(4))).toBe(Math.max(CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII));
     const wide = { ...base.terms, maxRadii: CELL_QUAD_EXTENT_RADII + 1 };
     expect(quadExtentRadii(wide, base.lod)).toBe(CELL_QUAD_EXTENT_RADII + 1);
+  });
+});
+
+describe('warningRingPxFor', () => {
+  const own = createTestCellView({ id: entityId('own'), mass: 20, radius: 10 });
+  const giant = createTestCellView({ id: entityId('giant'), mass: 200, radius: 40 });
+
+  it('is the predator’s screen radius × 1.3 with the 24 px floor when it can engulf the own cell', () => {
+    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, 40)).toBe(52);
+    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, 10)).toBe(ENGULF_WARNING_RING_MIN_PX);
+  });
+
+  it('is 0 for the own cell itself, for a cell that cannot engulf it and with no own cell', () => {
+    expect(warningRingPxFor(own, own, DEFAULT_BALANCE, 40)).toBe(0);
+    expect(warningRingPxFor(own, giant, DEFAULT_BALANCE, 40)).toBe(0);
+    expect(warningRingPxFor(giant, null, DEFAULT_BALANCE, 40)).toBe(0);
   });
 });

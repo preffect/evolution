@@ -61,6 +61,22 @@ export const ENGULF_ARM_SIGMA_DEG = 16;
 export const ENGULF_NOTCH_SIGMA_DEG = 12;
 export const ENGULF_SEAL_SIGMA_DEG = 42;
 
+// ---- forms (§2.4, sheet 04): aspects at the sheet's mass, never absolute sizes ----
+/** Slipper length : width per tier (VISUAL-STYLE §4 resolves sheet 04's 2.5). */
+export const SLIPPER_ASPECT_BY_TIER = [1.6, 1.8, 2.0] as const;
+/** Spindle 50 × 16 wu. */
+export const SPINDLE_ASPECT = 3.1;
+/** Trumpet: a 36 wu mouth on a 70 wu height. */
+export const TRUMPET_MOUTH_TO_HEIGHT = 0.51;
+/** Diatom valve r 26 wu: a circle. */
+export const DIATOM_ASPECT = 1;
+/** The instance's `formId` (§2.3): the shader's switch over silhouettes; the blob is 0. */
+export const FORM_ID = { blob: 0, slipper: 1, spindle: 2, trumpet: 3, diatom: 4, amoeba: 5 } as const;
+/** Pseudopod lobes per tier (sheet 04 amoeba). */
+export const PSEUDOPOD_COUNT_BY_TIER = [2, 3, 4] as const;
+/** `∫ B² dΔ / 2π` samples for the unit-area check (§9). */
+export const FORM_AREA_SAMPLES = 720;
+
 // ---- the palette texture (§2.3): one row per palette, one column per shade ----
 export const PALETTE_SHADE = {
   base: 0,
@@ -125,6 +141,14 @@ export const FILAMENT_COUNT_BY_TIER = [11, 15, 19] as const;
 export const FILAMENT_WIDTH_PX = 1.1;
 export const FILAMENT_ALPHA = 0.28;
 export const FILAMENT_MASK_PX = 0.55;
+/** The filaments fade out over this band inside their 0.89 r reach. */
+export const FILAMENT_REACH_BLUR_RADII = 0.04;
+/** The rim takes half the membrane's chloroplast tint (VISUAL-STYLE §4 `chloroplast`). */
+export const RIM_TINT_SHARE = 0.5;
+/** The GLSL 2-D hash (a standard fract-dot hash) and the salts that decorrelate the speckle's per-dot draws. */
+export const HASH_SCALE = 0.1031;
+export const HASH_SHIFT = 33.33;
+export const SPECKLE_HASH_SALT = { palette: 7, row: 13, offsetX: 1.7, offsetY: 9.3, alpha: 4.1 } as const;
 
 // ---- membrane bands (§2.2) ----
 export const INNER_EDGE_WIDTH_RADII = 0.11;
@@ -147,6 +171,10 @@ export const CELL_WALL_INNER_RADII = 1.05;
 export const CELL_WALL_HAIRLINE_RADII = 1.075;
 export const CELL_WALL_OUTER_RADII = 1.095;
 export const CELL_WALL_SCALE_BY_TIER = [1.5, 2, 2.5] as const;
+export const CELL_WALL_ALPHA = 0.8;
+export const CELL_WALL_HAIRLINE_ALPHA = 0.9;
+/** The wall's hairline and its dark outer line, as shares of one px. */
+export const CELL_WALL_LINE_PX = 0.6;
 export const CILIA_OUTER_RADII = 1.12;
 export const CILIA_LEAN_DEG = 30;
 export const CILIA_WAVE_COUNT = 3;
@@ -165,6 +193,8 @@ export const GLINT_ROTATION_DEG = -40;
 export const GLINT_EDGE_PX = 1.5;
 export const GLINT_ALPHA = 0.5;
 export const PREY_UNDER_FILM_ALPHA = 0.62;
+/** The absorbed ghost's dashed rim (VISUAL-STYLE §5 "rim dashes"; no sheet number, graphics-designer to accept). */
+export const GHOST_RIM_DASH_PX = [5, 4] as const;
 /** The nucleus highlight's centre, in cell radii toward the light: inside the `NUCLEUS_RADIUS` 0.30 body. */
 export const NUCLEUS_HIGHLIGHT_OFFSET_RADII = 0.16;
 export const NUCLEUS_HIGHLIGHT_ANGLE_DEG = -136;

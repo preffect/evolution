@@ -6,12 +6,15 @@
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { CHANNEL_MAX } from '../colour';
 import {
+  HASH_SCALE,
+  HASH_SHIFT,
   MAX_SHAPE_BUMPS,
   NOISE_STRIP_JITTER_SCALE,
   NOISE_STRIP_LOBE_SCALE,
   NOISE_STRIP_VALUE_LEVELS,
   NOISE_STRIP_WIDTH,
   PALETTE_SHADE,
+  RIM_TINT_SHARE,
   STRETCH_ACROSS_PER_ALONG,
   STRETCH_ALONG,
   STRETCH_TAPER,
@@ -37,6 +40,8 @@ export const CELL_SHADER_PATTERNS = /* glsl */ `
 #define SHADE_EDGE ${PALETTE_SHADE.edge}
 #define SHADE_CYTO_LIGHT ${PALETTE_SHADE.cytoLight}
 #define SHADE_CYTO_DARK ${PALETTE_SHADE.cytoDark}
+#define SHADE_CHLORO_BASE ${PALETTE_SHADE.chloroBase}
+#define RIM_TINT_SHARE ${glslFloat(RIM_TINT_SHARE)}
 
 uniform sampler2D uInstances;
 uniform sampler2D uStrip;
@@ -47,6 +52,14 @@ uniform float uZoom;
 uniform float uPass;
 uniform vec3 uWhite;
 uniform vec3 uOutline;
+uniform vec3 uChloroLight;
+uniform vec3 uToxinGlow;
+uniform vec3 uRibosome;
+uniform vec3 uCytoskeleton;
+uniform vec3 uCellWall;
+uniform vec3 uCellWallLight;
+uniform vec3 uCilia;
+uniform vec3 uDanger;
 
 flat in int vInstance;
 in vec2 vLocal;
@@ -59,6 +72,9 @@ struct Instance {
   vec2 nucleus; float haloKind; float beadCount;
   float isOwn; float isFarDot; float isProtocell; float alpha;
   float stripRow; float stripPhase; float lobesScale; float jitterAmplitude;
+  float ciliaCount; float wallScale; float speckleDensity; float filamentCount;
+  float tintMix; float warningRingPx; float formId; float passBAlpha;
+  float rimDash; float ciliaPhase;
 };
 
 Instance readInstance() {
@@ -77,6 +93,11 @@ Instance readInstance() {
   inst.isProtocell = ${instanceRead('isProtocell')}; inst.alpha = ${instanceRead('alpha')};
   inst.stripRow = ${instanceRead('stripRow')}; inst.stripPhase = ${instanceRead('stripPhase')};
   inst.lobesScale = ${instanceRead('lobesScale')}; inst.jitterAmplitude = ${instanceRead('jitterAmplitude')};
+  inst.ciliaCount = ${instanceRead('ciliaCount')}; inst.wallScale = ${instanceRead('wallScale')};
+  inst.speckleDensity = ${instanceRead('speckleDensity')}; inst.filamentCount = ${instanceRead('filamentCount')};
+  inst.tintMix = ${instanceRead('tintMix')}; inst.warningRingPx = ${instanceRead('warningRingPx')};
+  inst.formId = ${instanceRead('formId')}; inst.passBAlpha = ${instanceRead('passBAlpha')};
+  inst.rimDash = ${instanceRead('rimDash')}; inst.ciliaPhase = ${instanceRead('ciliaPhase')};
   return inst;
 }
 
@@ -94,8 +115,16 @@ vec3 bumpAt(int slot) {
 vec3 shade(Instance inst, int column) {
   return texelFetch(uPalette, ivec2(column, int(inst.palette + HALF)), 0).rgb;
 }
-vec3 baseColour(Instance inst) { return shade(inst, SHADE_BASE); }
-vec3 rimColour(Instance inst) { return shade(inst, SHADE_RIM); }
+/** The membrane's base and rim, tinted toward the chloroplast base with the trait (VISUAL-STYLE §4). */
+vec3 baseColour(Instance inst) { return mix(shade(inst, SHADE_BASE), shade(inst, SHADE_CHLORO_BASE), inst.tintMix); }
+vec3 rimColour(Instance inst) { return mix(shade(inst, SHADE_RIM), shade(inst, SHADE_CHLORO_BASE), inst.tintMix * RIM_TINT_SHARE); }
+
+/** A stable hash of a 2-D cell (the speckle grid), in [0, 1). */
+float hash21(vec2 point) {
+  vec3 mixed = fract(vec3(point.xyx) * ${glslFloat(HASH_SCALE)});
+  mixed += dot(mixed, mixed.yzx + ${glslFloat(HASH_SHIFT)});
+  return fract((mixed.x + mixed.y) * mixed.z);
+}
 
 float wrapAngle(float radians) {
   return mod(radians + TAU * HALF, TAU) - TAU * HALF;
@@ -122,6 +151,11 @@ vec4 stripSample(Instance inst, float unit) {
   float perRadian = width / TAU;
   return vec4(mix(jitterA, jitterB, fraction), mix(lobesA, lobesB, fraction),
               (jitterB - jitterA) * perRadian, (lobesB - lobesA) * perRadian);
+}
+
+/** 'B(Δ)' per form with dB/dΔ (radial-profile.ts FormProfile): the blob for every id until the silhouettes join (#192–#196). */
+vec2 formAt(Instance inst, float delta) {
+  return vec2(1.0, 0.0);
 }
 
 /** The speed stretch times the axial stretch at 'delta' from the heading, with d/dΔ (radial-profile.ts stretchAt). */
@@ -160,10 +194,13 @@ vec2 surfaceAt(Instance inst, float theta) {
 
 /** 'r(θ)' (x) and 'r′(θ)' (y) in world units: radial-profile.ts evaluateProfile, term for term. */
 vec2 profileAt(Instance inst, float theta) {
-  vec2 stretch = stretchAt(inst, wrapAngle(theta - inst.heading));
+  float delta = wrapAngle(theta - inst.heading);
+  vec2 stretch = stretchAt(inst, delta);
+  vec2 form = formAt(inst, delta);
+  vec2 heading = vec2(form.x * stretch.x, form.y * stretch.x + form.x * stretch.y);
   vec2 surface = surfaceAt(inst, theta);
   float scale = inst.r * inst.pulse;
-  return vec2(scale * stretch.x * surface.x, scale * (stretch.y * surface.x + stretch.x * surface.y));
+  return vec2(scale * heading.x * surface.x, scale * (heading.y * surface.x + heading.x * surface.y));
 }
 
 /** The frame every band reads: the fragment in the cell frame, ρ, the undeformed ρ, d (wu and radii), one px in wu. */

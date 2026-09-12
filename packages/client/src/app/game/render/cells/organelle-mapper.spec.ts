@@ -9,6 +9,7 @@ const terms: RadialProfileTerms = {
   radius: 40,
   pulse: 1,
   heading: 0,
+  form: null,
   breathing: 0,
   wobble: { amplitude: 0, mode: 0, phase: 0 },
   strip: null,

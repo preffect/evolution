@@ -1,10 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, SEAT_MARK_BEADS, createSeededRandom, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { CELL_QUAD_EXTENT_RADII, HALO_KIND, NUCLEUS_OFFSET_TOWARD_LIGHT, ORGANELLE_KIND } from '../constants';
+import {
+  CELL_QUAD_EXTENT_RADII,
+  CILIA_BEAT_HZ,
+  CILIA_BEAT_IDLE_HZ,
+  CONTACT_DENT_AMPLITUDE,
+  CONTACT_DENT_TAUT_SIGMA_DEG,
+  ENGULF_WARNING_RING_MIN_PX,
+  HALO_KIND,
+  NUCLEUS_OFFSET_TOWARD_LIGHT,
+  ORGANELLE_KIND,
+} from '../constants';
+import { degreesToRadians } from '../geometry';
 import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
-import { CellRenderState, type CellFrameContext } from './cell-render-state';
+import { CellRenderState, NO_CELL_CONTACTS, type CellFrameContext } from './cell-render-state';
 import { LOD_LEVEL } from './cell-lod';
 
 const TEST_SEED = 42;
@@ -18,6 +29,7 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     ownCell: null,
     strip,
     previewTraitId: null,
+    ...NO_CELL_CONTACTS,
     ...overrides,
   };
 }
@@ -113,6 +125,49 @@ describe('CellRenderState', () => {
     expect(output.instance.bumps[0]).toEqual(dented.bumps[0]);
     expect(output.instance.bumps).toHaveLength(8);
     expect(output.terms.pulse).toBe(1.09);
+  });
+
+  it('appends the contact dent with the cell’s own σ and drops it while engulfing', () => {
+    const dent = { overlap: 3, angle: 0.5 };
+    const contactDents = new Map([[entityId('e'), dent]]);
+    const dented = state().update(eukaryote(), context({ contactDents }), REST_DEFORMATION);
+    expect(dented.instance.bumps[0]).toMatchObject({ amplitude: CONTACT_DENT_AMPLITUDE, centre: 0.5 });
+    const taut = {
+      ...eukaryote(),
+      traits: [...eukaryote().traits, { traitId: 'cytoskeleton' as const, tier: 1 as const }],
+    };
+    const sharp = state().update(taut, context({ contactDents }), REST_DEFORMATION);
+    expect(sharp.instance.bumps[0]!.sigma).toBeCloseTo(degreesToRadians(CONTACT_DENT_TAUT_SIGMA_DEG), 12);
+    const engulfing = { ...eukaryote(), engulfingCellId: entityId('prey') };
+    expect(state().update(engulfing, context({ contactDents }), REST_DEFORMATION).instance.bumps[0]!.amplitude).toBe(0);
+  });
+
+  it('bulges the seal a ghost hands its predator, at the ghost’s angle', () => {
+    const absorbedSeals = new Map([[entityId('e'), { seal: 0.42, angle: 1.2 }]]);
+    const output = state().update(eukaryote(), context({ absorbedSeals }), REST_DEFORMATION);
+    expect(output.instance.bumps[0]).toMatchObject({ amplitude: 0.42, centre: 1.2 });
+  });
+
+  it('rings a cell that can engulf the own cell and remembers the view it drew', () => {
+    const own = createTestCellView({ id: entityId('own'), mass: 10, radius: 5 });
+    const subject = state();
+    const output = subject.update(eukaryote(), context({ ownCell: own }), REST_DEFORMATION);
+    expect(output.instance.warningRingPx).toBe(Math.max(40 * 1.3, ENGULF_WARNING_RING_MIN_PX));
+    expect(subject.lastView?.id).toBe('e');
+    expect(state().update(eukaryote(), context(), REST_DEFORMATION).instance.warningRingPx).toBe(0);
+  });
+
+  it('beats the cilia at the moving rate while moving and the idle rate at rest, without a jump', () => {
+    const subject = state();
+    subject.update(eukaryote(), context({ timeSeconds: 0 }), REST_DEFORMATION);
+    const rested = subject.update(eukaryote(), context({ timeSeconds: 0.5 }), REST_DEFORMATION);
+    expect(rested.instance.ciliaPhase).toBeCloseTo(CILIA_BEAT_IDLE_HZ * 0.5, 9);
+    const moving = subject.update(
+      { ...eukaryote(), velocityX: 0, velocityY: 50 },
+      context({ timeSeconds: 0.6 }),
+      REST_DEFORMATION,
+    );
+    expect(moving.instance.ciliaPhase).toBeCloseTo(CILIA_BEAT_IDLE_HZ * 0.5 + CILIA_BEAT_HZ * 0.1, 9);
   });
 
   it('draws the same cosmetic phase and slots for the same seed and id', () => {
