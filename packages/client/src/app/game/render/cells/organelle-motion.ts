@@ -13,7 +13,9 @@ export interface OrganelleMotion {
   readonly lift: number;
 }
 
-const REST: OrganelleMotion = { scale: 1, alpha: 1, lift: 0 };
+/** No motion at all: the sprite sits on its slot at full size and alpha (a ghost's draw, #243). */
+export const ORGANELLE_MOTION_AT_REST: OrganelleMotion = { scale: 1, alpha: 1, lift: 0 };
+const REST = ORGANELLE_MOTION_AT_REST;
 
 /** Grows from `growFromScale` to 1 over the cycle, rises, and fades over the last `popShare`. */
 function vacuoleMotion(phase: number, timeSeconds: number): OrganelleMotion {

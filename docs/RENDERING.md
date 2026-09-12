@@ -174,7 +174,7 @@ geometry is drawn twice with `uPass` (A, B); instance order is radius ascending 
 draw calls cover every visible cell. An absorbed prey keeps drawing as a **ghost instance** built from its last
 view (VISUAL-STYLE §5) until the `absorbed` clip ends (`cells/ghost-cells.ts` `GhostRegistry`, started by the
 `cell_absorbed` effect from the prey's last drawn view, packed after the living cells by `cells/ghost-instance.ts`
-at rest with the clip's `cytoplasmAlpha` as its alpha, its row placed right before its predator's so the predator paints over it; an orphan ghost draws last). A ghost is built from what the prey was last drawn with (`GhostSource`: the view, its organelle slots and its `speckleSeed`, from the render state's `ghostSource`), so its organelle sprites keep drawing at their rest slots (no lag, no drift, mapped through the rest profile) and fade with the body through the instance alpha over the dissolve instead of vanishing on the payout tick (#243); the sprites are queued right before the predator's, under every membrane pass. Its `nucleusOffset` is the rest nucleus slot (`NUCLEUS_REST_OFFSET`, `render/light-direction.ts`, the one place the light direction is turned into vectors), so a eukaryote ghost's nucleus sprite, its nucleus disc (#231) and its filaments coincide there, all fading with the cytoplasm; the same clip's `seal` track drives the predator's seal
+at rest with the clip's `cytoplasmAlpha` as its alpha, its row placed right before its predator's so the predator paints over it; an orphan ghost draws last). A ghost is built from what the prey was last drawn with (`GhostSource`: the view, its organelle slots and its `speckleSeed`, from the render state's `ghostSource`), so its organelle sprites keep drawing at their rest slots (no lag, no drift, mapped through the ghost's own profile, and their own idle motion — the vacuole's rise and pop, the bladder's breath — frozen, since a corpse does not fidget) and fade with the body through the instance alpha over the dissolve instead of vanishing on the payout tick (#243); the sprites are queued right before the predator's, under every membrane pass. Its `nucleusOffset` is read off the mapped nucleus placement exactly as the living path reads it, and the rest slot is `NUCLEUS_REST_OFFSET` (`render/light-direction.ts`, the one place the light direction is turned into vectors), so a eukaryote ghost's nucleus sprite, its nucleus disc (#231) and its filaments coincide there for any `B(Δ)`, all fading with the cytoplasm; the same clip's `seal` track drives the predator's seal
 bump at the ghost's angle (`sealByPredator`), since the predator's `engulfProgress` is gone on the payout tick (§4).
 
 ### 2.4 Forms (#121)
@@ -215,7 +215,11 @@ glow and the toxin bladder's `TOXIN_GLOW` are baked the same way.
 - **Slots.** `cells/organelle-layout.ts` draws rest positions `q` (normalised, cell frame, heading-independent)
   from the cell's cosmetic fork: nucleus at 0.12 r toward the light (sheet 01), then organelles in
   `ORGANELLE_KIND_ORDER` by rejection sampling inside `DNA_RING_KEEP_OUT_FRACTION ≤ |q| ≤ 1 − max(0.08, sprite radius)`
-  (`membraneKeepOutRadius`: the sprite body never crosses the membrane, so the 0.34 r toxin bladder sits on the keep-out ring, #243; VISUAL-STYLE
+  (`membraneKeepOutRadius`, clamped so the sprite radius never drives the outer bound inside the DNA ring. What it
+  promises is that the sprite **body** never crosses the membrane, not that the 0.08 r margin survives: the 0.34 r
+  toxin bladder's own radius reaches the ring exactly, so its annulus is degenerate — every bladder sits at
+  `DNA_RING_KEEP_OUT_FRACTION` with only its angle varying, and its body touches the membrane from within with zero
+  clearance, #243; VISUAL-STYLE
   §3; the inner bound is `UI.md §9`'s and applies to every cell, so no slot centre sits under the own cell's DNA ring
   from 31 px up, `UI.md §3.1.3`), outside the nucleus disc (0.30 r), with gap `ORGANELLE_MIN_GAP` 0.04 r (new). Slots are appended, never reshuffled, so a tier-up
   adds a bean without moving the others.
@@ -520,14 +524,15 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   `shape-terms.spec.ts` (view → terms, bump slot assignment including the eight-slot amoeba III mid-engulf and
   contact / eat dropped while engulfing, sprint scaling, and the moving-wrap extent: k = 1 stretch with the wrap frame and an eat pulse reports a maximum of 2.99 r, below `CELL_QUAD_EXTENT_RADII` 3.0); `form-profiles.spec.ts` (every `B` has unit area within
   0.5 %, the sheet-04 aspects, diatom terms all zero); `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, every sprite body inside the membrane, the
-  toxin bladder on the keep-out ring (#243), outside the nucleus disc, gap held, append-only across tiers, seeded); `ghost-instance.spec.ts` (the ghost's sprites at the rest slots, the nucleus
-  sprite on the nucleus disc, none below the far threshold; `cell-layer.spec.ts` queues them before the predator's at the ghost's alpha, #243); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
+  toxin bladder on the keep-out ring (#243), outside the nucleus disc, gap held, append-only across tiers, seeded); `ghost-instance.spec.ts` (the ghost's sprites at the rest slots mapped through its own profile, the shader's
+  nucleus disc anchored on the mapped nucleus sprite, none below the far threshold; `cell-layer.spec.ts` queues them before the predator's at the ghost's alpha and `organelle-sprites.spec.ts` freezes their idle motion, #243); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
   on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `cell-instance.spec.ts` (the §2.3 row stays sixteen texels and
   `nucleusDiscRadii` and `speckleSeed` sit in the last scalar texel), `cell-shader.spec.ts` (every field read from its column, the speckle salt
   is the cell's seed, the filament and cilia masks are ±0.5 px `band`s, the wall band's tier-I reading 1.05 → 1.1175 / 1.0875, the
   `SHADE_NUCLEUS` / `SHADE_NUCLEUS_DARK` defines, the nucleus ramp band's stops, `frame.aa` edge, zero-radius return
   and place at the end of pass A, no `lodBlend`), `cell-instance-builder.spec.ts` (`nucleusDiscRadii` = `NUCLEUS_RADIUS`
-  with a nucleus at full and mid LOD, 0 for a nucleoid or protocell), `nucleus-bake.spec.ts` (no disc fill: the only
+  with a nucleus at full and mid LOD, 0 for a nucleoid or protocell; a far dot's warning ring is 0 and its quad
+  equals the ringless `quadExtentRadii`, #243), `nucleus-bake.spec.ts` (no disc fill: the only
   gradients are the two halos); `palette.spec.ts` (HSL derivations, the
   separability numbers of VISUAL-STYLE §2); `bench-scene.spec.ts` (counts, seed-stable); `motion.test.ts` in
   `shared` (one snapshot per clip; durations and keyframe times equal sheet 03's; every `pulse` ≤ 1.14; overshoot

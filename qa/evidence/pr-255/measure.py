@@ -9,21 +9,68 @@ def region(x,y,w,h):
 def cyan(p):  # cyan-ish line signal: blue+green above red
     r,g,b=p; return max(0,(g+b)/2-r)
 # ---- (c) wall band along four rays, green cell centre (1155,540)
-cx,cy=1155,540
-px=region(cx-110,cy-110,221,221)
-print('WALL BAND (protocell + cell_wall tier I), per ray: outline radius R px, wall band edges / R, hairline / R')
-for deg in (0,90,180,270):
-    a=math.radians(deg); prof=[]
-    for d in range(40,110):
-        x=round(cx+d*math.cos(a)); y=round(cy+d*math.sin(a)); p=px[(x,y)]; prof.append((d,p,cyan(p),sum(p)/3))
-    # outline: darkest pixel between 55 and 95 px
-    seg=[q for q in prof if 55<=q[0]<=95]
-    R=min(seg,key=lambda q:q[3])[0]
-    band=[q for q in prof if q[0]>R]
-    peak=max(q[2] for q in band); half=peak/2
-    on=[q[0] for q in band if q[2]>=half]
-    hair=max(band,key=lambda q:q[3])[0]
-    print(f'  ray {deg:3d}: R={R} px  band {on[0]}..{on[-1]} px = {on[0]/R:.3f}..{(on[-1]+1)/R:.3f} R  brightest (hairline) at {hair/R:.3f} R  peak cyan {peak:.0f}')
+# The wall band is the only cyan feature outside the body, so it is found from the cyan signal
+# alone: sub-pixel half-max edges around the cyan peak, and the light hairline as the luma peak
+# inside the band (parabolic on its neighbours). Everything printed in px needs no radius.
+# The radius is then ANCHORED on the spec: the band's inner edge is CELL_WALL_INNER_RADII 1.05 r
+# (cell-shape.ts), so R = inner / 1.05. That anchor is assumed, not measured, so the "/R" columns
+# test the band's THICKNESS and the hairline's place inside it, never the 1.05 itself. The
+# independent cross-check is R_edge, the cell body's own outer edge (the half-max of the rim-light
+# fall-off against the floor of the gap between the body and the band); it reads a little inside R
+# because the outline's antialiased skirt is counted as body.
+CELL_WALL_INNER_RADII = 1.05
+CELL_WALL_OUTER_RADII = 1.05 + 0.045 * 1.5  # tier I: inner + thickness x CELL_WALL_SCALE_BY_TIER[0]
+CELL_WALL_HAIRLINE_RADII = 1.05 + 0.025 * 1.5
+EDGE_WINDOW = 12  # px inward from the band for the body-edge cross-check
+
+def crossing(profile, index, value):
+    """The sub-pixel d where `profile` crosses `value` between samples `index` and `index + 1`."""
+    (d0, v0), (d1, v1) = profile[index], profile[index + 1]
+    return d0 if v1 == v0 else d0 + (value - v0) * (d1 - d0) / (v1 - v0)
+
+def peak_at(profile, index):
+    """The sub-pixel abscissa of a maximum at `index`, by a parabola through its two neighbours."""
+    if index == 0 or index + 1 == len(profile): return profile[index][0]
+    (_, left), (d, mid), (_, right) = profile[index - 1], profile[index], profile[index + 1]
+    curve = left - 2 * mid + right
+    return d if curve == 0 else d + 0.5 * (left - right) / curve
+
+cx, cy = 1155, 540
+px = region(cx - 130, cy - 130, 261, 261)
+print('WALL BAND (protocell + cell_wall tier I). Band edges and hairline in px, then against the radius')
+print(f'  anchored on the spec inner edge {CELL_WALL_INNER_RADII} r; spec: band -> {CELL_WALL_OUTER_RADII:.4f} r, hairline {CELL_WALL_HAIRLINE_RADII:.4f} r')
+for deg in (0, 90, 180, 270):
+    a = math.radians(deg)
+    prof = []
+    for d in range(40, 120):
+        x = round(cx + d * math.cos(a)); y = round(cy + d * math.sin(a)); p = px[(x, y)]
+        prof.append((d, p, cyan(p), sum(p) / 3))
+    cyanProfile = [(q[0], q[2]) for q in prof]
+    lumaProfile = [(q[0], q[3]) for q in prof]
+    top = max(range(len(prof)), key=lambda i: prof[i][2])
+    floor = sorted(q[2] for q in prof)[len(prof) // 2]
+    half = (prof[top][2] + floor) / 2
+    first = top
+    while first > 0 and prof[first - 1][2] >= half: first -= 1
+    last = top
+    while last + 1 < len(prof) and prof[last + 1][2] >= half: last += 1
+    inner = crossing(cyanProfile, first - 1, half)
+    outer = crossing(cyanProfile, last, half)
+    bright = max(range(first, last + 1), key=lambda i: prof[i][3])
+    hairline = peak_at(lumaProfile, bright)
+    radius = inner / CELL_WALL_INNER_RADII
+    # Cross-check: the body's outer edge, from the rim light down to the floor of the gap.
+    gap = [q for q in prof if inner - 5 <= q[0] <= inner]
+    edgeFloor = min(q[3] for q in gap)
+    window = [i for i, q in enumerate(prof) if inner - EDGE_WINDOW <= q[0] <= inner]
+    edgeHalf = (max(prof[i][3] for i in window) + edgeFloor) / 2
+    fall = max(i for i in window if prof[i][3] >= edgeHalf)
+    edgeRadius = crossing(lumaProfile, fall, edgeHalf)
+    print(
+        f'  ray {deg:3d}: band {inner:.2f}..{outer:.2f} px ({outer - inner:.2f} px thick), hairline {hairline:.2f} px'
+        f'  |  R={radius:.1f} px -> band {inner / radius:.3f}..{outer / radius:.3f} R, hairline {hairline / radius:.3f} R'
+        f'  |  R_edge={edgeRadius:.1f} px ({edgeRadius / radius - 1:+.1%})'
+    )
 # ---- (b) filament width around the purple cell's nucleus
 ncx,ncy=1345-6,540-6
 px=region(ncx-70,ncy-70,141,141)

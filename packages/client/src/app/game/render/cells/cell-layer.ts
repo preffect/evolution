@@ -34,6 +34,9 @@ export type CellLayerTextures = Pick<
 >;
 
 const FLAGELLUM_TRAIT: TraitId = 'simple_flagellum';
+/** `organelleDraw`'s rest flag: a ghost's sprites are frozen, a living cell's keep their idle motion (#243). */
+const IS_AT_REST = true;
+const IS_IN_MOTION = false;
 
 export class CellLayer {
   readonly container = new Container();
@@ -111,7 +114,7 @@ export class CellLayer {
     ghosts.forEach((ghost, index) => {
       const output = ghostFrame(ghost, zoom);
       packCellInstance(this.mesh.instances, firstRow + index, output.instance);
-      draws.push(organelleDraw(ghost.view, output));
+      draws.push(organelleDraw(ghost.view, output, IS_AT_REST));
     });
     return ghosts.length;
   }
@@ -138,7 +141,7 @@ export class CellLayer {
       packCellInstance(this.mesh.instances, row, output.instance);
       row += 1;
       packedCells += 1;
-      draws.push(organelleDraw(view, output));
+      draws.push(organelleDraw(view, output, IS_IN_MOTION));
       const tail = flagellumSpec(view, output, frame.timeSeconds);
       if (tail !== null) tails.push(tail);
     }
@@ -173,13 +176,14 @@ function groupByPredator(ghosts: readonly Ghost[]): Map<EntityId, Ghost[]> {
   return grouped;
 }
 
-function organelleDraw(view: CellView, output: CellFrameOutput): OrganelleDraw {
+function organelleDraw(view: CellView, output: CellFrameOutput, isAtRest: boolean): OrganelleDraw {
   return {
     instance: output.instance,
     lod: output.lod,
     organelles: output.organelles,
     palette: paletteFor(view.avatarIndex),
     isSprinting: output.terms.isSprinting,
+    isAtRest,
   };
 }
 

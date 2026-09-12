@@ -29,6 +29,8 @@ const EXTENT: CameraExtent = { minX: -100, minY: -100, maxX: 100, maxY: 100 };
 const LEVEL_SET_WITH_TRAITS = 5;
 /** One bundle for the file: the bakes are the slow part (#226). */
 const textures = createTestRenderTextures({ seed: 3 });
+/** The layer's child stack, in the order the first spec pins. */
+const LAYER_CHILD = { flagella: 0, body: 1, organelleSprites: 2, membrane: 3 } as const;
 
 function input(overrides: Partial<CellLayerFrame> = {}): CellLayerFrame {
   return {
@@ -52,11 +54,11 @@ function packed(subject: CellLayer, row: number, field: CellInstanceScalar): num
 describe('CellLayer', () => {
   it('stacks the flagella, the body pass, the organelle sprites and the membrane pass in that order', () => {
     const subject = new CellLayer(textures);
-    const [flagella, body, organelles, membrane] = subject.container.children;
-    expect(subject.container.children).toHaveLength(4);
-    expect(flagella).toBeInstanceOf(Graphics);
-    expect(body).not.toBe(membrane);
-    expect(organelles?.children).toEqual([]);
+    const children = subject.container.children;
+    expect(children).toHaveLength(Object.keys(LAYER_CHILD).length);
+    expect(children[LAYER_CHILD.flagella]).toBeInstanceOf(Graphics);
+    expect(children[LAYER_CHILD.body]).not.toBe(children[LAYER_CHILD.membrane]);
+    expect(children[LAYER_CHILD.organelleSprites]?.children).toEqual([]);
     subject.destroy();
   });
 
@@ -134,7 +136,7 @@ describe('CellLayer', () => {
     const outputs = subject.update(input({ frame, ownCell: own, zoom: 1.8 }));
     expect(outputs.organelleSprites).toBeGreaterThan(0);
     expect(packed(subject, 0, 'isOwn')).toBe(1);
-    const membrane = subject.container.children[3] as CellPassMesh;
+    const membrane = subject.container.children[LAYER_CHILD.membrane] as CellPassMesh;
     const uniforms = (membrane.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, number> }).uniforms;
     expect(uniforms[CELL_UNIFORM.timeSeconds]).toBe(2.5);
     expect(uniforms[CELL_UNIFORM.zoom]).toBe(1.8);
@@ -175,7 +177,7 @@ describe('CellLayer', () => {
     const outputs = subject.update(input({ frame: createTestRenderFrame({ cells: [] }) }));
     expect(outputs.visibleCells).toBe(0);
     expect(subject.stateCount).toBe(0);
-    expect(subject.container.children[1]?.visible).toBe(false);
+    expect(subject.container.children[LAYER_CHILD.body]?.visible).toBe(false);
     subject.destroy();
   });
 
@@ -219,7 +221,7 @@ describe('CellLayer', () => {
     subject.update(input({ frame: createTestRenderFrame({ cells: [predator], effects: [absorbed] }), nowMs: 0 }));
     const ghosted = subject.update(input({ frame: createTestRenderFrame({ cells: [predator] }), nowMs: 200 }));
     expect(ghosted).toMatchObject({ visibleCells: 1, ghosts: 1, organelleSprites: both.organelleSprites });
-    const sprites = subject.container.children[2]!.children;
+    const sprites = subject.container.children[LAYER_CHILD.organelleSprites]!.children;
     expect(sprites.slice(0, preySprites).every((sprite) => sprite.alpha > 0 && sprite.alpha < 1)).toBe(true);
     expect(sprites.slice(0, preySprites).map((sprite) => sprite.alpha)).toEqual(
       Array.from({ length: preySprites }, () => packed(subject, 0, 'alpha')),

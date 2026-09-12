@@ -3,13 +3,13 @@
 // its own, no warning ring. Its organelle sprites stay at their rest slots (no lag, no drift,
 // mapped through the rest profile) and fade with the body through the instance alpha (#243), so
 // the nucleus sprite, the nucleus disc (the shader's ramp, #231) and the filaments all sit at the
-// rest nucleus slot.
+// rest nucleus slot. The disc's anchor comes off the mapped nucleus placement, exactly as the
+// living path derives it, so the two cannot separate once a form's `B(Δ)` stops being the circle.
 
-import { NUCLEUS_REST_OFFSET } from '../light-direction';
 import { REST_DEFORMATION } from './cell-deformation';
 import { buildCellInstance } from './cell-instance-builder';
 import { cellLodFor } from './cell-lod';
-import type { CellFrameOutput, OrganellePlacement } from './cell-render-state';
+import { nucleusOffsetOf, type CellFrameOutput, type OrganellePlacement } from './cell-render-state';
 import { summariseCellTraits } from './cell-traits';
 import type { Ghost } from './ghost-cells';
 import { mapSlot } from './organelle-mapper';
@@ -40,13 +40,14 @@ export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
     deformation: REST_DEFORMATION,
   });
   const lod = cellLodFor(view.radius * zoom);
+  const organelles = restPlacements(ghost, terms, lod.isFarDot);
   const instance = buildCellInstance({
     view,
     traits,
     terms,
     lod,
     speedRatio: AT_REST,
-    nucleusOffset: NUCLEUS_REST_OFFSET,
+    nucleusOffset: nucleusOffsetOf(organelles, view.radius),
     isOwn: false,
     cosmetic: { ...NO_STRIP, speckleSeed: ghost.speckleSeed },
     alpha: ghost.tracks['cytoplasmAlpha'] ?? FULL,
@@ -54,5 +55,5 @@ export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
     ciliaPhase: AT_REST,
     rimDash: ghost.tracks['rimDash'] ?? 0,
   });
-  return { instance, terms, lod, organelles: restPlacements(ghost, terms, lod.isFarDot), traits };
+  return { instance, terms, lod, organelles, traits };
 }

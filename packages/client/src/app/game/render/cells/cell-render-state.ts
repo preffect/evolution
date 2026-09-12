@@ -73,6 +73,19 @@ export interface CellFrameOutput {
 
 const ORIGIN = { x: 0, y: 0 } as const;
 
+/**
+ * The anchor the shader's nucleus ramp disc (#231) reads: the mapped nucleus sprite's centre as a
+ * fraction of `r`, so the disc and the sprite always land on the same point; the origin when the
+ * cell has no nucleus sprite (a far dot, or a stage without one).
+ */
+export function nucleusOffsetOf(
+  organelles: readonly OrganellePlacement[],
+  radius: number,
+): { readonly x: number; readonly y: number } {
+  const nucleus = organelles.find((placement) => NUCLEUS_KINDS.has(placement.kind));
+  return nucleus === undefined ? ORIGIN : { x: nucleus.point.x / radius, y: nucleus.point.y / radius };
+}
+
 /** The trait key a layout is valid for: stage, owned tiers and the preview. */
 function traitsKeyOf(view: CellView, previewTraitId: TraitId | null): string {
   const owned = view.traits.map((trait) => `${trait.traitId}:${trait.tier}`).join(',');
@@ -193,15 +206,13 @@ export class CellRenderState {
     });
     const lod = cellLodFor(view.radius * context.zoom);
     const organelles = lod.isFarDot ? [] : this.placeOrganelles(terms, speedRatio, context.timeSeconds);
-    const nucleus = organelles.find((placement) => NUCLEUS_KINDS.has(placement.kind));
     const instance = buildCellInstance({
       view,
       traits,
       terms,
       lod,
       speedRatio,
-      nucleusOffset:
-        nucleus === undefined ? ORIGIN : { x: nucleus.point.x / view.radius, y: nucleus.point.y / view.radius },
+      nucleusOffset: nucleusOffsetOf(organelles, view.radius),
       isOwn: context.ownCell?.id === view.id,
       cosmetic: { stripRow: this.stripRow, phase: this.phase, speckleSeed: this.speckleSeed },
       alpha: deformation.alpha,

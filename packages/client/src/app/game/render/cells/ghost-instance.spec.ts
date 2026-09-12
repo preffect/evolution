@@ -10,15 +10,17 @@ import { GhostRegistry, type Ghost } from './ghost-cells';
 import { ghostFrame } from './ghost-instance';
 import { NUCLEUS_KINDS } from './organelle-kinds';
 import { layoutOrganelles } from './organelle-layout';
+import { mapSlot } from './organelle-mapper';
 
 const TEST_SEED = 7;
+const TEST_RADIUS = 30;
 const TEST_SPECKLE_SEED = 0.41;
 const predator = { id: entityId('p'), x: 40, y: 0 };
 
 const eukaryote = () =>
   createTestCellView({
     id: entityId('e'),
-    radius: 30,
+    radius: TEST_RADIUS,
     stage: CELL_STAGE.eukaryote,
     traits: [
       { traitId: 'nuclear_envelope', tier: 1 },
@@ -65,25 +67,29 @@ describe('ghostFrame', () => {
 
   it('keeps a eukaryote’s organelle sprites and nucleus disc at their rest slots, fading with the cytoplasm (#243)', () => {
     const ghost = midwayGhost();
-    const { instance, organelles, lod } = ghostFrame(ghost, 1);
+    const { instance, organelles, lod, terms } = ghostFrame(ghost, 1);
     expect(instance.nucleusDiscRadii).toBe(NUCLEUS_RADIUS);
-    expect(instance.nucleusOffsetX).toBeCloseTo(NUCLEUS_REST_OFFSET.x, 12);
-    expect(instance.nucleusOffsetY).toBeCloseTo(NUCLEUS_REST_OFFSET.y, 12);
     expect(instance.alpha).toBeCloseTo(0.5, 6);
     expect(lod.nucleusBlend).toBe(1);
     expect(organelles.map((placement) => placement.slot)).toEqual(ghost.slots);
+    // At rest and drift-free: the slot mapped through the ghost's own profile, never the living
+    // path's lag. That holds for any `B(Δ)`, not only today's circle.
     for (const placement of organelles) {
-      expect(placement.point.x).toBeCloseTo(placement.slot.x * 30, 9);
-      expect(placement.point.y).toBeCloseTo(placement.slot.y * 30, 9);
+      expect(placement.point).toEqual(mapSlot(placement.slot.x, placement.slot.y, terms));
     }
     const nucleus = organelles.find((placement) => NUCLEUS_KINDS.has(placement.kind))!;
-    expect(nucleus.point.x / 30).toBeCloseTo(instance.nucleusOffsetX, 9);
-    expect(nucleus.point.y / 30).toBeCloseTo(instance.nucleusOffsetY, 9);
+    expect(nucleus.slot.x).toBeCloseTo(NUCLEUS_REST_OFFSET.x, 12);
+    expect(nucleus.slot.y).toBeCloseTo(NUCLEUS_REST_OFFSET.y, 12);
+    // The shader's ramp disc anchors on the mapped nucleus sprite, so the two cannot separate.
+    expect(instance.nucleusOffsetX).toBeCloseTo(nucleus.point.x / TEST_RADIUS, 12);
+    expect(instance.nucleusOffsetY).toBeCloseTo(nucleus.point.y / TEST_RADIUS, 12);
   });
 
-  it('places no sprites for a ghost below the far threshold', () => {
+  it('places no sprites for a ghost below the far threshold, and no disc for the shader to anchor', () => {
     const { organelles, instance } = ghostFrame(midwayGhost(), 0.1);
     expect(organelles).toEqual([]);
     expect(instance.isFarDot).toBe(true);
+    expect(instance.nucleusOffsetX).toBe(0);
+    expect(instance.nucleusOffsetY).toBe(0);
   });
 });
