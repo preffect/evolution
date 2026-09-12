@@ -335,28 +335,43 @@ container**, between the field sprite and the vent sprite, that the layer re-pla
 camera transform so it stays fixed on screen while everything over it scrolls. It cannot live in the screen root
 with the vignette: it must sit under the motes, fragments, cells and the vent, and the field under it is opaque.
 
-- **Bake** (`textures/light-pool-bake.ts`, once per session, no cosmetic stream): a `LIGHT_POOL_TEXTURE_PX` 256
-  square filled with the `LIGHT_ACCENT` radial `LIGHT_POOL_ALPHA` 0.09 → `LIGHT_POOL_MID` (stop 0.5, alpha 0.03)
-  → 0 at the edge (the ellipse comes from the sprite's non-uniform scale, as the vignette's does), then the three
-  `CAUSTIC_SWEEPS` at `CAUSTIC_ALPHA` painted across it: their control points are wu from the pool centre at the
-  sheet's 1 px/wu, and the bake maps the sheet's x radius (980 wu) to the half-size of the square. It goes through
-  `radial-bake.ts` / `texture-bake.ts` like the vignette and the field; `dish-texture.ts` loses `paintLightPool`
-  and its caustics call, and `LIGHT_POOL_SIZE_WU` / `LIGHT_POOL_OFFSET_FRACTION` are deleted.
-- **Placement** each frame (`DishLayerFrame` gains the viewport and the zoom; `camera.ts` `screenToWorld` is
-  the helper): centre = `screenToWorld(LIGHT_POOL_VIEW_CENTRE × viewport)`, width = 2 × `LIGHT_POOL_VIEW_RADII.x`
-  × viewport width / zoom wu, height = 2 × `LIGHT_POOL_VIEW_RADII.y` × viewport height / zoom wu, anchor 0.5. The
-  constants are cosmetic and live in `render/constants/world-render.ts`, never in `shared`:
-  `LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 }` and `LIGHT_POOL_VIEW_RADII = { x: 0.51, y: 0.7 }` (fractions of
-  the viewport's width and height, so every aspect keeps sheet 02's look), `LIGHT_POOL_TEXTURE_PX = 256`.
+- **Bake** (`textures/light-pool-bake.ts`, once per session, no cosmetic stream, Canvas 2D through
+  `texture-bake.ts` exactly as the field is: `fillRadial` for the gradient, `dish-field-details.ts` `paintCaustics`
+  for the strokes; `radial-bake.ts` is not used, it has no strokes): a `LIGHT_POOL_TEXTURE_PX` **1024** square
+  filled with the `LIGHT_ACCENT` radial `LIGHT_POOL_ALPHA` 0.09 → `LIGHT_POOL_MID` (stop 0.5, alpha 0.03) → 0 at
+  the half-size, then the three `CAUSTIC_SWEEPS` at `CAUSTIC_ALPHA` painted across it. **Per-axis mapping:** the
+  half-size (512 texels) is the pool's radii, so x maps at 512 / 980 = 0.52 texel per wu and y at 512 / 760 = 0.67
+  texel per wu (`FieldScale` grows a `pxPerWuY`, defaulting to `pxPerWu`, so `paintCaustics` places each control
+  point per axis); the ellipse is then exact and the sprite's non-uniform scale restores the sheet's proportions
+  instead of squashing the arcs. Stroke widths take the x factor: 3 / 2 / 1.5 wu → 1.57 / 1.04 / 0.78 texels, and
+  `FIELD_MIN_STROKE_TEXELS` (1) applies, so the thinnest sweep is drawn 1 texel wide. At 1080p and zoom 1 the
+  sprite is 1958 × 1512 px, so one texel is 1.9 × 1.5 px and the three arcs stay separate and crisp as on sheet 02
+  (256 would have been 7.7 wu per texel: sub-texel strokes smeared into one band). The bake extent is the pool's
+  radii, nothing more: the third sweep starts at y = 920 wu, past the 760 wu radius, and that 160 wu of tail is
+  **clipped by design** (the pool is already 0 there, and on the sheet most of it lies below the frame). Cost:
+  one 4 MiB RGBA8 texture (the field is 16 MiB), one gradient fill and three strokes at session start, nothing per
+  frame. `dish-texture.ts` loses `paintLightPool` and its caustics call, and `LIGHT_POOL_SIZE_WU` /
+  `LIGHT_POOL_OFFSET_FRACTION` are deleted.
+- **Placement** each frame (`DishLayerFrame` carries the camera state and the `ViewportPx`, never a separate
+  zoom; `camera.ts` `screenToWorld` and `zoomFor` are the helpers): centre = `screenToWorld(LIGHT_POOL_VIEW_CENTRE
+× viewport)`, width = 2 × `LIGHT_POOL_VIEW_RADII.x` × viewport width / zoom wu, height = 2 ×
+  `LIGHT_POOL_VIEW_RADII.y` × viewport height / zoom wu, anchor 0.5. The constants are cosmetic and live in
+  `render/constants/world-render.ts`, never in `shared`: `LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 }` and
+  `LIGHT_POOL_VIEW_RADII = { x: 0.51, y: 0.7 }` (fractions of the viewport's width and height, so every aspect
+  keeps sheet 02's look), `LIGHT_POOL_TEXTURE_PX = 1024`.
 - **Composition:** normal blend, the alpha lives in the texture; no mask, no filter, no per-frame bake. Dish
   layer order: field, light pool, vent, wall, far particles. The shallows tint is under it in the field texture
-  and stacks with it; the vignette (screen root) stays above everything (VISUAL-STYLE §1).
+  and stacks with it; the vignette (screen root) stays above everything and is 0 at the pool's centre
+  (VISUAL-STYLE §1).
 - **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame, no allocation.
-- **Tests:** the bake spec reads the centre and the half-radius bytes back (`LIGHT_POOL_ALPHA`,
-  `LIGHT_POOL_MID.alpha`); the dish-layer spec pins that `worldToScreen` of the sprite's centre and extent equals
+- **Tests:** a fake-context spec (`testing/fake-bake-canvas.ts`, the `dish-texture.spec.ts` pattern): the canvas
+  is `LIGHT_POOL_TEXTURE_PX` square; the one radial gradient carries the stops (0, `LIGHT_POOL_ALPHA`),
+  (`LIGHT_POOL_MID.stop`, `LIGHT_POOL_MID.alpha`), (1, 0) in `LIGHT_ACCENT`; exactly `CAUSTIC_SWEEPS.length`
+  `bezierCurveTo` calls, their points the sweeps' control points mapped per axis; every `lineWidth` ≥
+  `FIELD_MIN_STROKE_TEXELS`. The dish-layer spec pins that `worldToScreen` of the sprite's centre and extent equals
   `LIGHT_POOL_VIEW_CENTRE` / `LIGHT_POOL_VIEW_RADII` × viewport at both zoom ends (1.8 and 0.36 px/wu) and two
   camera positions; the render smoke screenshots a cell in the shallows with the camera far from the vent and the
-  pool at the top-left (graphics-qa evidence).
+  pool at the top-left, three separate caustic arcs visible at zoom 1 (graphics-qa evidence).
 
 ## 7. Frame budget and the harness #99 ships
 

@@ -24,15 +24,18 @@ The dish is a dark-field microscope stage: a black field, and only what scatters
 - **The condenser pool is anchored to the view, never to the world** (#222, option A; built by #242). A condenser
   lights whatever sits under the objective, so the pool covers the top-left of the _view_ at every
   zoom and follows the camera; a cell in the shallows is lit from the same corner as one at the vent.
-  Sheet 02's ellipse (980 × 760 wu centred (380, 200) in its 1920 × 1080 wu scene) is read as
+  Sheet 02's ellipse (radii 980 × 760 wu, centred (380, 200) in its 1920 × 1080 wu scene) is read as
   fractions of the viewport: centre `LIGHT_POOL_VIEW_CENTRE` (0.20 of the width, 0.185 of the
   height), radii `LIGHT_POOL_VIEW_RADII` (0.51 of the width, 0.70 of the height), `LIGHT_ACCENT` at
   `LIGHT_POOL_ALPHA` 9 % → `LIGHT_POOL_MID` 3 % at half the radius → 0, normal blend, no mask (the
   stage outside the wall is lit too: a condenser lights the stage, not the dish). The three caustic
-  sweeps (`CAUSTIC_SWEEPS`, `CAUSTIC_ALPHA` 5 %) are the light, not the water, and ride with it. The
+  sweeps (`CAUSTIC_SWEEPS`, `CAUSTIC_ALPHA` 5 %) are the light, not the water, and ride with it; the
+  sheet's `#beam` wedge across the top-left corner is sheet dressing, not part of the pool. The
   pool is drawn over the field and under everything that lives in the dish (motes, fragments, cells,
   the vent, the depth particles) so it lights the water and never the bodies; the vignette stays above
-  everything (≈ 7 % where the pool is brightest, 55 % at the corner). Where the shallows annulus
+  everything and is **0 % at the pool's brightest point** (the centre sits at 0.62 of the half-diagonal and
+  `VIGNETTE_BAKE` is clear to 0.72): it dims only the pool's outer top-left quadrant, rising to 55 % at the
+  corner. Where the shallows annulus
   crosses it the zone tint and the pool stack (16 % + 9 % at most) and nothing clamps them: the ≤ 16 %
   rule below is about zone tints alone. A world-anchored pool (PR #221 baked one into the field at a
   fixed spot inside the vent zone, where most players never see it) is the wrong reading and is
