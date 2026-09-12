@@ -229,11 +229,17 @@ describe('aborts (docs/ECOLOGY.md §6.3)', () => {
 
 describe('the branches the E9 pair never reaches', () => {
   it('runs the engulf normally when the higher cell id is the predator', () => {
+    // The masses are swapped, so the pair's higher id hunts its lower one. Stepping past tick 1
+    // matters: tick 1 is the start path, and only tick 2 on reaches `runningEngulfIn`'s second arm.
     const fixture = twoCells(ENGULF_PREY_MASS, ENGULF_PREDATOR_MASS);
-    stepEngulf(fixture);
+    stepEngulf(fixture, E9_SEAL_TICK);
     expect(fixture.prey.engulfingCellId).toBe(fixture.predator.id);
     expect(fixture.predator.engulfedByCellId).toBe(fixture.prey.id);
-    expect(fixture.predator.engulfProgress).toBeCloseTo(1 / E9_PAYOUT_TICK, PROGRESS_TOLERANCE);
+    expect(fixture.predator.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE);
+    expect(fixture.predator.carriedOffsetX).toBeCloseTo(-ENGULF_CENTRE_DISTANCE_WU, PROGRESS_TOLERANCE);
+    stepEngulf(fixture, E9_PAYOUT_TICK - E9_SEAL_TICK);
+    expect(fixture.prey.states).toEqual([]);
+    expect(fixture.predator.states).toEqual([]);
   });
 
   it('gives coincident centres no struggle and still advances the progress', () => {

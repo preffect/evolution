@@ -405,8 +405,10 @@ the seal and 1 after) and reads the engulf state at the end of the previous tick
 `stepMovementFrom(pose, command, step)`; the movement step takes the command once per cell at the top of
 step 3, before anything has moved, stores it on the record and passes it to the kernel, so the engulf
 step's struggle reads the very command the movement used, never a second copy of the throttle arithmetic
-and never the same formula at a different pose. The sprint duration and cooldown count down there too,
-for every cell including a carried one, so a sealed prey spends the sprint it paid for. A carried prey (§6.1
+and never the same formula at a different pose. The sprint duration and cooldown count down in the same
+step **after the move**, for every cell including a carried one: `sprintFactor` reads the duration while
+the cell moves, so a tick of sprint has to be spent before it is counted, and a sealed prey spends the
+sprint it paid for rather than banking it. A carried prey (§6.1
 absorb) skips this step: its centre is set from its predator's after the predator has moved.
 
 ### 5.3 Cell-to-cell contact
@@ -558,7 +560,9 @@ and spits the prey out when `roll < spitOutChancePerSecond × TICK_INTERVAL_S`. 
 with progress 0 at its current centre, `cell_released` with reason `spat_out`, and the predator records a
 **refractory** keyed by that prey (`spitOutRefractoryUntilTickByPreyId.set(preyCellId, tick + ENGULF_SPIT_OUT_REFRACTORY_SECONDS × TICK_HZ)`,
 one entry per spat-out prey, so a predator that spits out X and then Y within the second still remembers X;
-`untilTick` is the **last** blocked tick, so the block spans exactly `ENGULF_SPIT_OUT_REFRACTORY_SECONDS`.
+`untilTick` is the **last** blocked tick and is the tick of the spit-out plus
+`ENGULF_SPIT_OUT_REFRACTORY_SECONDS × TICK_HZ`, so the predator is refused on exactly that many ticks —
+sixty at 1.0 s — and may start again on the next one.
 Two readers: the engulf step's start check at step 6, which also prunes expired entries and entries naming a
 cell that has left the world, and separation at step 3, which treats a pair inside a refractory as one that
 cannot engulf (§5.3)): it cannot start on that prey until the tick after, and the pair is

@@ -30,6 +30,8 @@ const absorption = DEFAULT_BALANCE.absorption;
 const CERTAIN_SPIT_OUT_PER_SECOND = TICK_HZ;
 /** The Diatom Shell I chance #260 will grant (docs/TRAITS.md §3.15): rolled, rarely hit. */
 const DIATOM_ONE_CHANCE_PER_SECOND = 0.4;
+/** A bound on the refused-tick walk so a refractory that never lapses fails instead of hanging. */
+const MAX_REFUSED_TICKS = 200;
 
 type Fixture = EngulfFixture;
 const twoCells = (): Fixture => createEngulfFixture();
@@ -68,17 +70,20 @@ describe('the spit-out (docs/ECOLOGY.md §6.1; no build-1 trait sets the chance 
     expect(fixture.predator.spitOutRefractories.map((entry) => entry.preyCellId)).toEqual([fixture.prey.id]);
   });
 
-  it('will not restart on that prey while the refractory is live, and does once it lapses', () => {
+  it('refuses exactly ENGULF_SPIT_OUT_REFRACTORY_SECONDS of ticks, counted to the first restart', () => {
     const fixture = spinyPrey(CERTAIN_SPIT_OUT_PER_SECOND);
     stepEngulf(fixture, E9_COVER_TICKS + 1);
-    const untilTick = fixture.predator.spitOutRefractories[0]?.untilTick ?? 0;
+    // The spines are put away so the only thing that can refuse a restart is the refractory.
     fixture.prey.modifiers = { ...fixture.prey.modifiers, spitOutChancePerSecond: 0 };
-    fixture.world.tick = untilTick;
-    runEngulfs(fixture.world, fixture.context);
-    expect(fixture.prey.states).toEqual([]);
-    fixture.world.tick = untilTick + 1;
-    runEngulfs(fixture.world, fixture.context);
+    let refusedTicks = 0;
+    while (fixture.prey.states.length === 0 && refusedTicks <= MAX_REFUSED_TICKS) {
+      stepEngulf(fixture);
+      if (fixture.prey.states.length === 0) {
+        refusedTicks += 1;
+      }
+    }
     expect(fixture.prey.states).toEqual([CELL_STATE.beingEngulfed]);
+    expect(refusedTicks).toBe(secondsToTicks(absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS));
   });
 
   it('separates the pair while the refractory is live (docs/ECOLOGY.md §5.3, T4)', () => {
@@ -89,12 +94,14 @@ describe('the spit-out (docs/ECOLOGY.md §6.1; no build-1 trait sets the chance 
     expect(distanceOf(fixture)).toBeGreaterThan(before);
   });
 
-  it('spans exactly ENGULF_SPIT_OUT_REFRACTORY_SECONDS, with untilTick the last blocked tick', () => {
+  it('records untilTick as the spit-out tick plus the constant, the last tick it refuses', () => {
     const fixture = spinyPrey(CERTAIN_SPIT_OUT_PER_SECOND);
     stepEngulf(fixture, E9_COVER_TICKS + 1);
-    const recordedAtTick = fixture.world.tick;
+    const spatOutAtTick = fixture.world.tick;
     const untilTick = fixture.predator.spitOutRefractories[0]?.untilTick ?? 0;
-    expect(untilTick - recordedAtTick + 1).toBe(secondsToTicks(absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS));
+    expect(untilTick - spatOutAtTick).toBe(secondsToTicks(absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS));
+    expect(hasSpitOutRefractory(fixture.predator, fixture.prey.id, untilTick)).toBe(true);
+    expect(hasSpitOutRefractory(fixture.predator, fixture.prey.id, untilTick + 1)).toBe(false);
   });
 });
 

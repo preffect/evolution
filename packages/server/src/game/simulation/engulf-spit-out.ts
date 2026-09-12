@@ -50,9 +50,11 @@ export function spitOutDrawFor(prey: CellRecord, phase: EngulfPhase, context: St
 }
 
 /**
- * `untilTick` is the last tick still blocked, so a refractory recorded on tick T with
- * `ENGULF_SPIT_OUT_REFRACTORY_SECONDS` = 1.0 blocks ticks T + 1 … T + 60 and lapses on T + 61:
- * exactly one second, not one second and a tick.
+ * `untilTick` is the last tick still blocked. A refractory recorded on tick T (the tick the prey was
+ * spat out, whose engulf step has already run, so no restart was possible on it anyway) has
+ * `untilTick` = T + `secondsToTicks(ENGULF_SPIT_OUT_REFRACTORY_SECONDS)` and lapses on the tick after
+ * that: with 1.0 s the predator is refused on the sixty ticks T + 1 … T + 60 and starts again on
+ * T + 61. Sixty refused ticks is exactly the constant's second.
  */
 function hasLapsed(untilTick: number, tick: number): boolean {
   return tick > untilTick;
@@ -67,7 +69,7 @@ export function hasSpitOutRefractory(predator: CellRecord, preyCellId: EntityId,
 
 /** One entry per spat-out prey, so a predator that spits out X then Y within the second still remembers X. */
 export function recordSpitOutRefractory(world: WorldState, pairing: EngulfPairing, balance: BalanceConfig): void {
-  const untilTick = world.tick + secondsToTicks(balance.absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS) - 1;
+  const untilTick = world.tick + secondsToTicks(balance.absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS);
   const existing = pairing.predator.spitOutRefractories.find((refractory) => refractory.preyCellId === pairing.prey.id);
   if (existing === undefined) {
     pairing.predator.spitOutRefractories.push({ preyCellId: pairing.prey.id, untilTick });
