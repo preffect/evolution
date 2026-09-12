@@ -1,7 +1,9 @@
 // A ghost's instance row (docs/RENDERING.md §2.3): the prey's last view at rest, drawn under the
 // film with the `absorbed` clip's dissolve (the cytoplasm alpha) and rim dash, no motion, no
-// clips of its own, no warning ring.
+// clips of its own, no warning ring. A ghost has no organelle sprites, so its nucleus disc (the
+// shader's ramp, #231) and filaments sit at the rest nucleus slot and fade with the cytoplasm.
 
+import { NUCLEUS_REST_OFFSET } from '../light-direction';
 import { REST_DEFORMATION } from './cell-deformation';
 import { buildCellInstance } from './cell-instance-builder';
 import type { CellInstance } from './cell-instance';
@@ -11,7 +13,6 @@ import type { Ghost } from './ghost-cells';
 import { buildShapeTerms } from './shape-terms';
 
 const AT_REST = 0;
-const ORIGIN = { x: 0, y: 0 } as const;
 const NO_STRIP = { stripRow: 0, phase: 0 } as const;
 const FULL = 1;
 
@@ -35,7 +36,7 @@ export function ghostInstance(ghost: Ghost, zoom: number): CellInstance {
     terms,
     lod: cellLodFor(view.radius * zoom),
     speedRatio: AT_REST,
-    nucleusOffset: ORIGIN,
+    nucleusOffset: NUCLEUS_REST_OFFSET,
     isOwn: false,
     cosmetic: NO_STRIP,
     alpha: ghost.tracks['cytoplasmAlpha'] ?? FULL,

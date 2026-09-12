@@ -171,7 +171,7 @@ geometry is drawn twice with `uPass` (A, B); instance order is radius ascending 
 draw calls cover every visible cell. An absorbed prey keeps drawing as a **ghost instance** built from its last
 view (VISUAL-STYLE §5) until the `absorbed` clip ends (`cells/ghost-cells.ts` `GhostRegistry`, started by the
 `cell_absorbed` effect from the prey's last drawn view, packed after the living cells by `cells/ghost-instance.ts`
-at rest with the clip's `cytoplasmAlpha` as its alpha, its row placed right before its predator's so the predator paints over it; an orphan ghost draws last); the same clip's `seal` track drives the predator's seal
+at rest with the clip's `cytoplasmAlpha` as its alpha, its row placed right before its predator's so the predator paints over it; an orphan ghost draws last). A ghost has no organelle sprites, so its `nucleusOffset` is the rest nucleus slot (`NUCLEUS_REST_OFFSET`, `render/light-direction.ts`, the one place the light direction is turned into vectors) and a eukaryote ghost keeps its nucleus disc (#231) and filaments there, fading with the cytoplasm; the same clip's `seal` track drives the predator's seal
 bump at the ghost's angle (`sealByPredator`), since the predator's `engulfProgress` is gone on the payout tick (§4).
 
 ### 2.4 Forms (#121)
@@ -201,10 +201,13 @@ nucleolus, nucleoid 1 / 2 / 3 loops, envelope with 16 / 20 / 24 pores, eyespot),
 `ORGANELLE_ATLAS_PX_PER_R` 128 px per r (sheet 01 panel A's 4 px/wu at r 32) × `min(ceil(devicePixelRatio), 2)`
 at startup, so the 102 px own cell never upsamples at DPR 1 or 2. **Every atlas sprite bakes its own soft halo**
 (`ASSET-GENERATION.md §1.5`'s core + soft + wide + glint, for organelles): the nucleus entry is sheet 01 layer 6
-minus its disc fill, a 0.40 r soft glow @35 % around the 0.30 r disc, the 2.3 px rim @75 %, five chromatin spots,
+minus its disc fill, a 0.40 r soft glow @35 % **cut out inside the 0.30 r disc** (`cutDisc`, `destination-out`,
+so it is an outer glow and never flattens the ramp under it), the 2.3 px rim @75 %, five chromatin spots,
 the white nucleolus with its own halo and the nucleus's own highlight (0.34 r / −136°, 0.075 × 0.03 r), so the
-sprite is ≈ 0.85 r wide; the disc itself is the shader's ramp below (#231), and the mitochondrion's warm glow
-and the toxin bladder's `TOXIN_GLOW` are baked the same way.
+sprite is ≈ 0.85 r wide; the disc itself is the shader's ramp below (#231). The nucleus and nucleoid bakes are
+white and the sprite layer tints both with the palette **rim** (`organelle-sprites.ts`; the nucleus colour would
+land the nucleolus and highlight at the ramp's mid stop, darker than its lit half), and the mitochondrion's warm
+glow and the toxin bladder's `TOXIN_GLOW` are baked the same way.
 
 - **Slots.** `cells/organelle-layout.ts` draws rest positions `q` (normalised, cell frame, heading-independent)
   from the cell's cosmetic fork: nucleus at 0.12 r toward the light (sheet 01), then organelles in
@@ -472,7 +475,7 @@ numbers in #99's PR body come from a hardware run of the same route.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  constants.ts  palette.ts  colour.ts  geometry.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  constants.ts  palette.ts  colour.ts  geometry.ts  light-direction.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index)
 constants/{colours,cell-shape,organelles,world-render,vent}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×16 RGBA jitter / lobes strip (16-bit pairs, derivatives from the lerp), from the cosmetic fork (#206)
 textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`BakeContext2D`, the DOM factory, the fill / stroke / halo / glint primitives), the feathered ellipse and soft stroke that stand in for the sheets' blurs, and the one place a bake or a byte table becomes a Pixi texture (#206)

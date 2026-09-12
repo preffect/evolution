@@ -27,7 +27,6 @@ import {
   HALO_KIND,
   HALO_OUTER_RADII,
   HALO_PEAK_ALPHA,
-  LIGHT_DIRECTION_DEG,
   LIGHT_POOL,
   NOISE_TILE_WU,
   NUCLEUS_RAMP_ALPHA,
@@ -52,12 +51,12 @@ import {
   TRAIT_HALO_PEAK_ALPHA,
 } from '../constants';
 import { degreesToRadians } from '../geometry';
+import { LIGHT_DIRECTION_RADIANS } from '../light-direction';
 import { glslFloat } from './cell-shader-source';
 
 const RAMP_CENTRE = degreesToRadians(BODY_RAMP_CENTRE_ANGLE_DEG);
 const LIGHT_POOL_ANGLE = degreesToRadians(LIGHT_POOL.angleDeg);
 const DARK_POOL_ANGLE = degreesToRadians(DARK_POOL.angleDeg);
-const LIGHT_ANGLE = degreesToRadians(LIGHT_DIRECTION_DEG);
 const NOISE_EDGE_START = CYTO_NOISE_MAX_RADII - CYTO_NOISE_EDGE_BLUR_RADII;
 const FILAMENT_REACH_START = CYTO_NOISE_MAX_RADII - FILAMENT_REACH_BLUR_RADII;
 /** The speckle annulus's area in r², so `pitch = sqrt(area / density)`. */
@@ -175,7 +174,7 @@ vec4 nucleusRamp(Instance inst, Frame frame, vec4 acc) {
   float discWu = inst.nucleusDiscRadii * inst.r * inst.pulse;
   vec2 fromNucleus = frame.p - inst.nucleus * inst.r;
   float disc = 1.0 - smoothstep(discWu - frame.aa, discWu + frame.aa, length(fromNucleus));
-  vec2 focus = vec2(cos(${glslFloat(LIGHT_ANGLE)}), sin(${glslFloat(LIGHT_ANGLE)})) * ${glslFloat(NUCLEUS_RAMP_FOCUS_RADII)} * discWu;
+  vec2 focus = vec2(cos(${glslFloat(LIGHT_DIRECTION_RADIANS)}), sin(${glslFloat(LIGHT_DIRECTION_RADIANS)})) * ${glslFloat(NUCLEUS_RAMP_FOCUS_RADII)} * discWu;
   float t = length(fromNucleus - focus) / (${glslFloat(NUCLEUS_RAMP_REACH_RADII)} * discWu);
   vec3 colour = mix(rimColour(inst), shade(inst, SHADE_NUCLEUS), smoothstep(0.0, ${glslFloat(NUCLEUS_RAMP_MID_STOP)}, t));
   colour = mix(colour, shade(inst, SHADE_NUCLEUS_DARK), smoothstep(${glslFloat(NUCLEUS_RAMP_MID_STOP)}, 1.0, t));

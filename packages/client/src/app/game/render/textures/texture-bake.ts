@@ -5,7 +5,7 @@
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';
-import { BAKE_GLINT } from '../constants';
+import { BAKE_GLINT, WHITE } from '../constants';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 
 export interface BakeGradient {
@@ -19,6 +19,7 @@ export interface BakeContext2D {
   lineWidth: number;
   lineCap: 'butt' | 'round' | 'square';
   globalAlpha: number;
+  globalCompositeOperation: GlobalCompositeOperation;
   save(): void;
   restore(): void;
   translate(x: number, y: number): void;
@@ -146,6 +147,15 @@ export function fillDisc(context: BakeContext2D, disc: DiscSpec, paint: Paint): 
   context.fillStyle = hexWithAlpha(paint.colour, paint.alpha);
   discPath(context, disc);
   context.fill();
+}
+
+/** Erases (`destination-out`) a disc from what is already baked: a halo's interior, so it is an outer glow only. */
+const ERASE_COMPOSITE: GlobalCompositeOperation = 'destination-out';
+export function cutDisc(context: BakeContext2D, disc: DiscSpec): void {
+  context.save();
+  context.globalCompositeOperation = ERASE_COMPOSITE;
+  fillDisc(context, disc, { colour: WHITE, alpha: 1 });
+  context.restore();
 }
 
 export function strokeDisc(context: BakeContext2D, disc: DiscSpec, paint: StrokePaint): void {

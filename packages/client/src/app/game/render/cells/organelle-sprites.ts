@@ -5,7 +5,7 @@
 
 import { Container, type Sprite } from 'pixi.js';
 import { hexToNumber } from '../colour';
-import { ORGANELLE_KIND, WHITE, type OrganelleKind } from '../constants';
+import { WHITE, type OrganelleKind } from '../constants';
 import type { PlayerPalette } from '../palette';
 import type { OrganelleSpriteTexture } from '../render-textures';
 import { SpritePool } from '../sprite-pool';
@@ -33,11 +33,9 @@ export class OrganelleSprites {
 
   constructor(private readonly textures: OrganelleTextures) {}
 
-  /** The nucleus and nucleoid bakes are white and take the palette's colour here; the rest are baked in colour. */
+  /** The nucleus and nucleoid bakes are white and take the palette's rim here (the nucleus disc itself is the shader's ramp, #231); the rest are baked in colour. */
   private tintFor(kind: OrganelleKind, palette: PlayerPalette): number {
-    if (kind === ORGANELLE_KIND.nucleus) return hexToNumber(palette.nucleus);
-    if (kind === ORGANELLE_KIND.nucleoid) return hexToNumber(palette.rim);
-    return UNTINTED;
+    return NUCLEUS_KINDS.has(kind) ? hexToNumber(palette.rim) : UNTINTED;
   }
 
   private place(sprite: Sprite, draw: OrganelleDraw, placement: OrganellePlacement, timeSeconds: number): void {

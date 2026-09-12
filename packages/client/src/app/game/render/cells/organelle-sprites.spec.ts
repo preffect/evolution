@@ -64,7 +64,7 @@ describe('OrganelleSprites', () => {
     expect(nucleus.position.x).toBeCloseTo(100 + placement.point.x, 9);
     expect(nucleus.position.y).toBeCloseTo(50 + placement.point.y, 9);
     expect(nucleus.width).toBeCloseTo(textures.organelles.nucleus.widthRadii * 40, 6);
-    expect((nucleus as { tint: number }).tint).toBe(hexToNumber(paletteFor(1).nucleus));
+    expect((nucleus as { tint: number }).tint).toBe(hexToNumber(paletteFor(1).rim));
     const mitochondrion = sprites.container.children.find(
       (_child, index) => cell.organelles[index]?.kind === ORGANELLE_KIND.mitochondrion,
     ) as { tint: number };

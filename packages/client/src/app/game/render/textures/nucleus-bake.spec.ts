@@ -41,12 +41,18 @@ describe('bakeNucleusSprite', () => {
     expect(sprite.widthRadii).toBeCloseTo(NUCLEUS_GLOW_RADIUS * 2, 9);
   });
 
-  it('layers glow, chromatin spots, rim, nucleolus halo and disc, and the highlight', () => {
-    const fixedLayers = 5;
+  it('layers glow, its disc cut, chromatin spots, rim, nucleolus halo and disc, and the highlight', () => {
+    const fixedLayers = 6;
     expect(context.paintCount).toBe(fixedLayers + NUCLEUS_CHROMATIN_SPOTS);
-    expect(context.gradients[0]!.stops.at(-1)!.colour).toBe('rgba(255, 255, 255, 0)');
     expect(context.count('ellipse')).toBe(1);
     expect(context.count('stroke')).toBe(1);
+  });
+
+  it('cuts the glow out inside the disc right after painting it, so the halo is an outer glow only (#231)', () => {
+    const paints = context.ops.filter((operation) => operation === 'fill' || operation.startsWith('composite:'));
+    expect(paints.slice(0, 3)).toEqual(['fill', 'composite:destination-out', 'fill']);
+    expect(context.argumentsOf('arc')[1]![2]).toBe(NUCLEUS_RADIUS * PX_PER_RADIUS);
+    expect(context.count('composite:destination-out')).toBe(1);
   });
 
   it('bakes no disc fill (#231): the only gradients are the two halos, so the shader ramp shows through', () => {
@@ -68,8 +74,8 @@ describe('bakeNucleusSprite', () => {
   it('scatters the chromatin from the stream: same seed, same spots; another seed, other spots', () => {
     const spots = (seed: number) =>
       arcRadii((factory) => bakeNucleusSprite(factory, PX_PER_RADIUS, random(seed))).slice(
-        1,
-        1 + NUCLEUS_CHROMATIN_SPOTS,
+        2,
+        2 + NUCLEUS_CHROMATIN_SPOTS,
       );
     expect(spots(1)).toEqual(spots(1));
     expect(spots(1)).not.toEqual(spots(2));
