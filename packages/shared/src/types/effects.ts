@@ -3,11 +3,12 @@
 // next broadcast; the client never infers one from state diffs. Names are past tense or the
 // moment they mark (`eat`, `level_up`, `respawn`; docs/CODE-STANDARDS.md §6), pinned in game.test.ts.
 
-import type { EntityId, PlayerId } from './common.js';
+import type { EntityId, PlayerId, ValueOf } from './common.js';
 import type { CellStage, EntityKind } from './game.js';
 
 export const EFFECT_KIND = {
   cellAbsorbed: 'cell_absorbed',
+  cellReleased: 'cell_released',
   eat: 'eat',
   levelUp: 'level_up',
   respawn: 'respawn',
@@ -33,6 +34,29 @@ export interface CellAbsorbedEffect extends EffectBase {
   cellId: EntityId;
   playerId: PlayerId;
   predatorCellId: EntityId;
+}
+
+/**
+ * Why an engulf ended without a payout (docs/ECOLOGY.md §6.1). Its home is here rather than in
+ * `simulation/engulf-eligibility.ts` because the wire carries it: `types` never imports `simulation`
+ * (docs/ARCHITECTURE.md §10). `escaped` is contact lost, `spat_out` a spine roll, `ratio` the
+ * predator falling under `ENGULF_RELEASE_RATIO`, `aborted` the world taking the pair apart (a chain
+ * payout, a removed cell, the results phase).
+ */
+export const ENGULF_RELEASE_REASON = {
+  escaped: 'escaped',
+  spatOut: 'spat_out',
+  ratio: 'ratio',
+  aborted: 'aborted',
+} as const;
+export type EngulfReleaseReason = ValueOf<typeof ENGULF_RELEASE_REASON>;
+
+/** An engulf ended with the prey still alive (docs/ECOLOGY.md §6.1): both cells are free again. */
+export interface CellReleasedEffect extends EffectBase {
+  kind: typeof EFFECT_KIND.cellReleased;
+  cellId: EntityId;
+  predatorCellId: EntityId;
+  reason: EngulfReleaseReason;
 }
 
 /** A mote or a DNA fragment was eaten. */
@@ -64,4 +88,5 @@ export interface WorldLevelUpEffect extends EffectMoment {
   stage: CellStage;
 }
 
-export type GameEffect = CellAbsorbedEffect | EatEffect | LevelUpEffect | RespawnEffect | WorldLevelUpEffect;
+export type GameEffect =
+  CellAbsorbedEffect | CellReleasedEffect | EatEffect | LevelUpEffect | RespawnEffect | WorldLevelUpEffect;

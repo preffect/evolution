@@ -20,14 +20,17 @@ import {
   type HashedField,
   type OwnedTrait,
   type StateHash,
+  type SteerCommand,
   type TraitChoiceInput,
 } from '@evolution/shared';
 import type {
   CellRecord,
   DnaFragmentRecord,
+  EngulfReleaseRecord,
   FoodMoteRecord,
   PlayerRecord,
   SpawnerState,
+  SpitOutRefractoryRecord,
   TraitOffer,
   WildSeatRecord,
 } from './entities.js';
@@ -44,6 +47,30 @@ const OWNED_TRAIT_FIELDS: readonly HashedField<OwnedTrait>[] = ['traitId', 'tier
 
 function hashOwnedTraits(hasher: StateHasher, traits: readonly OwnedTrait[]): void {
   hashArray(hasher, traits, (itemHasher, trait) => hashFields(itemHasher, trait, OWNED_TRAIT_FIELDS));
+}
+
+const SPIT_OUT_REFRACTORY_FIELDS: readonly HashedField<SpitOutRefractoryRecord>[] = ['preyCellId', 'untilTick'];
+
+function hashSpitOutRefractories(hasher: StateHasher, refractories: readonly SpitOutRefractoryRecord[]): void {
+  hashArray(hasher, refractories, (itemHasher, refractory) =>
+    hashFields(itemHasher, refractory, SPIT_OUT_REFRACTORY_FIELDS),
+  );
+}
+
+const STEER_COMMAND_FIELDS: readonly HashedField<SteerCommand>[] = ['directionX', 'directionY', 'throttle'];
+
+function hashSteerCommand(hasher: StateHasher, command: SteerCommand): void {
+  hashFields(hasher, command, STEER_COMMAND_FIELDS);
+}
+
+const ENGULF_RELEASE_FIELDS: readonly HashedField<EngulfReleaseRecord>[] = ['reason', 'tick', 'predatorCellId'];
+
+function hashLastRelease(hasher: StateHasher, release: EngulfReleaseRecord | null): void {
+  if (release === null) {
+    hasher.hashNull();
+  } else {
+    hashFields(hasher, release, ENGULF_RELEASE_FIELDS);
+  }
 }
 
 export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
@@ -72,6 +99,11 @@ export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
   'targetY',
   'pinnedX',
   'pinnedY',
+  'carriedOffsetX',
+  'carriedOffsetY',
+  { key: 'spitOutRefractories', hash: hashSpitOutRefractories },
+  { key: 'steerCommand', hash: hashSteerCommand },
+  { key: 'lastRelease', hash: hashLastRelease },
 ];
 
 export const FOOD_MOTE_HASHED_FIELDS: readonly HashedField<FoodMoteRecord>[] = [

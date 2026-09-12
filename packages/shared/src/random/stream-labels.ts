@@ -15,6 +15,8 @@ export const RANDOM_STREAM = {
   moteMotion: 'mote_motion',
   /** Wild cells: spread factors, wander headings and turn rolls (ECOLOGY §3.3). */
   wildCells: 'wild_cells',
+  /** Spit-out rolls: one draw per tick per wrapped or sealed prey whose `spitOutChancePerSecond` > 0 (ECOLOGY §6.1). */
+  engulf: 'engulf',
   /** Client only, never on the server: wobble and particles. */
   cosmetic: 'cosmetic',
 } as const;
@@ -64,6 +66,7 @@ export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
   RANDOM_STREAM.traitDraft,
   RANDOM_STREAM.moteMotion,
   RANDOM_STREAM.wildCells,
+  RANDOM_STREAM.engulf,
 ];
 
 /** Every label in declared order: the server streams, then the client's `cosmetic` stream. */

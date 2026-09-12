@@ -14,7 +14,15 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
-import { moveCells, speedCapOf, sprintSpeedFactor, zoneSpeedFactor } from './movement.js';
+import {
+  ENGULF_CENTRE_DISTANCE_WU,
+  ENGULF_PREDATOR_MASS,
+  ENGULF_PREY_MASS,
+  createEngulfFixture,
+  type EngulfFixture,
+} from '../../testing/engulf-builders.js';
+import { beginEngulf, sealEngulf } from './engulf-state.js';
+import { engulfSpeedFactor, moveCells, speedCapOf, sprintSpeedFactor, zoneSpeedFactor } from './movement.js';
 
 const { growth, controls, world: worldBalance } = DEFAULT_BALANCE;
 const BLEND = TICK_INTERVAL_S / growth.CELL_ACCELERATION_SECONDS;
@@ -154,5 +162,117 @@ describe('moveCells', () => {
     cell.modifiers.gelSpeedFactorFloor = 0.8;
     expect(zoneSpeedFactor(cell, world, DEFAULT_BALANCE)).toBe(0.8);
     expect(cell.radius).toBeCloseTo(radiusForMass(600, growth), 9);
+  });
+});
+
+/** The sprint clocks a carried prey must keep spending (docs/GAME-DESIGN.md §6). */
+const SPRINT_TICKS = 30;
+const COOLDOWN_TICKS = 180;
+/** C sits just inside B in the chain row; the exact gap only has to be held tick to tick. */
+const CHAIN_OFFSET_WU = 1;
+/** A float comparison on a clamped radius, where the clamp is exact to within rounding. */
+const CLAMP_TOLERANCE_WU = 1e-9;
+
+/** The E9 pair with the prey already sealed and riding: what the carried path is tested on. */
+function carriedPair(): EngulfFixture {
+  const fixture = createEngulfFixture();
+  beginEngulf(fixture);
+  fixture.prey.engulfProgress = DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS;
+  sealEngulf(fixture);
+  return fixture;
+}
+
+describe('the engulf speed factor (docs/ECOLOGY.md §5.2, §6.1)', () => {
+  const absorption = DEFAULT_BALANCE.absorption;
+  const engulfingPair = (): EngulfFixture => {
+    const fixture = createEngulfFixture();
+    beginEngulf(fixture);
+    return fixture;
+  };
+
+  it('is 1 for a cell that is neither engulfing nor engulfed', () => {
+    const { world, cell } = placedCell(ENGULF_PREDATOR_MASS);
+    expect(engulfSpeedFactor(cell, world, DEFAULT_BALANCE)).toBe(1);
+  });
+
+  it('slows the predator before the seal and frees it after (E9b)', () => {
+    const { world, predator, prey } = engulfingPair();
+    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
+    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED);
+  });
+
+  it('leaves the prey free in cover, holds it in wrap and stops it once sealed (E11, E11b)', () => {
+    const { world, prey } = engulfingPair();
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(1);
+    prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
+    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(0);
+  });
+
+  it('multiplies both halves for a cell that is predator and prey at once (a chain)', () => {
+    const { world, predator, prey } = engulfingPair();
+    beginEngulf({ predator: prey, prey: predator });
+    prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBeCloseTo(
+      absorption.ENGULF_PREY_SPEED_FACTOR * absorption.ENGULF_PREDATOR_SPEED_FACTOR,
+      12,
+    );
+  });
+
+  it('carries a sealed prey at its offset with the predator velocity, not the kernel (E11b)', () => {
+    const { world, predator, prey } = engulfingPair();
+    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    sealEngulf({ predator, prey });
+    predator.targetX = predator.x - predator.radius * TARGET_RADII;
+    prey.targetX = prey.x + prey.radius * TARGET_RADII;
+    moveCells(world, createTestStepContext(world));
+    expect(prey.x).toBeCloseTo(predator.x + ENGULF_CENTRE_DISTANCE_WU, 12);
+    expect(prey.velocityX).toBe(predator.velocityX);
+  });
+});
+
+describe('what a carried prey keeps doing (docs/ECOLOGY.md §6.1, §6.3)', () => {
+  it('ages the sprint duration and cooldown although it never goes through the kernel', () => {
+    const { world, predator, prey } = carriedPair();
+    prey.sprintRemainingTicks = SPRINT_TICKS;
+    prey.sprintCooldownRemainingTicks = COOLDOWN_TICKS;
+    predator.sprintRemainingTicks = SPRINT_TICKS;
+    const context = createTestStepContext(world);
+    moveCells(world, context);
+    moveCells(world, context);
+    expect(prey.sprintRemainingTicks).toBe(SPRINT_TICKS - 2);
+    expect(prey.sprintCooldownRemainingTicks).toBe(COOLDOWN_TICKS - 2);
+    expect(prey.sprintRemainingTicks).toBe(predator.sprintRemainingTicks);
+  });
+
+  it('is clamped to the dish like any other cell, so it never rides past the rim', () => {
+    const { world, predator, prey } = carriedPair();
+    const reach = DEFAULT_BALANCE.world.DISH_RADIUS - predator.radius;
+    predator.x = reach;
+    predator.y = 0;
+    predator.targetX = reach;
+    predator.targetY = 0;
+    moveCells(world, createTestStepContext(world));
+    expect(Math.hypot(prey.x, prey.y)).toBeLessThanOrEqual(
+      DEFAULT_BALANCE.world.DISH_RADIUS - prey.radius + CLAMP_TOLERANCE_WU,
+    );
+  });
+
+  it('carries a chain: C rides B while B rides A (docs/ECOLOGY.md §6.3, the chain row)', () => {
+    const { world, predator, prey, third } = carriedPair();
+    setCellMass(third, ENGULF_PREY_MASS / 2, DEFAULT_BALANCE);
+    third.x = prey.x + CHAIN_OFFSET_WU;
+    third.y = prey.y;
+    third.targetX = third.x;
+    third.targetY = third.y;
+    beginEngulf({ predator: prey, prey: third });
+    sealEngulf({ predator: prey, prey: third });
+    predator.targetX = predator.x - predator.radius * TARGET_RADII;
+    moveCells(world, createTestStepContext(world));
+    expect(prey.x).toBeCloseTo(predator.x + ENGULF_CENTRE_DISTANCE_WU, 12);
+    expect(third.x).toBeCloseTo(prey.x + CHAIN_OFFSET_WU, 12);
+    expect(third.velocityX).toBe(prey.velocityX);
   });
 });

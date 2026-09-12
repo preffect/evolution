@@ -4,7 +4,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
-import { canContinueEngulf, canEngulf, type EngulfPrey } from './engulf-eligibility.js';
+import { ENGULF_RELEASE_REASON } from '../types/effects.js';
+import { ENGULF_HOLD, canContinueEngulf, canEngulf, resolveEngulfHold, type EngulfPrey } from './engulf-eligibility.js';
+import { ENGULF_PHASE } from './engulf-pace.js';
 
 const balance = DEFAULT_BALANCE.absorption;
 /** Cell Wall I's bonus as the catalog declares it (TRAITS §3.3), so T3 tracks a retune. */
@@ -72,5 +74,41 @@ describe('canContinueEngulf (canContinue, hysteresis)', () => {
     for (const mass of [20, 22, 24, 25, 30, 100]) {
       if (canEngulf({ mass }, prey(20), balance)) expect(canContinueEngulf({ mass }, prey(20), balance)).toBe(true);
     }
+  });
+});
+
+/** A prey that rolls every wrapped and sealed tick: TRAITS T4's Diatom Shell I, 0.4/s over 60 ticks. */
+const SPINY_CHANCE_PER_TICK = 0.4 / 60;
+
+describe('resolveEngulfHold', () => {
+  const holding = { phase: ENGULF_PHASE.wrap, spitOutRoll: null, spitOutChancePerTick: 0 };
+
+  it('holds while the predator is above the release ratio (E16: 23 holds 20)', () => {
+    expect(resolveEngulfHold({ mass: 23 }, prey(20), holding, balance)).toBe(ENGULF_HOLD);
+  });
+
+  it('releases on the ratio below it, in any phase (E16b: sealed and still released)', () => {
+    const sealed = { ...holding, phase: ENGULF_PHASE.absorb };
+    expect(resolveEngulfHold({ mass: 21.5 }, prey(20), sealed, balance)).toBe(ENGULF_RELEASE_REASON.ratio);
+  });
+
+  it('spits the prey out when the roll lands under the chance (T4)', () => {
+    const draw = { phase: ENGULF_PHASE.wrap, spitOutRoll: 0.001, spitOutChancePerTick: SPINY_CHANCE_PER_TICK };
+    expect(resolveEngulfHold({ mass: 100 }, prey(20), draw, balance)).toBe(ENGULF_RELEASE_REASON.spatOut);
+  });
+
+  it('holds when the roll misses', () => {
+    const draw = { phase: ENGULF_PHASE.wrap, spitOutRoll: 0.5, spitOutChancePerTick: SPINY_CHANCE_PER_TICK };
+    expect(resolveEngulfHold({ mass: 100 }, prey(20), draw, balance)).toBe(ENGULF_HOLD);
+  });
+
+  it('never spits out during cover, even with a roll that would hit', () => {
+    const draw = { phase: ENGULF_PHASE.cover, spitOutRoll: 0, spitOutChancePerTick: SPINY_CHANCE_PER_TICK };
+    expect(resolveEngulfHold({ mass: 100 }, prey(20), draw, balance)).toBe(ENGULF_HOLD);
+  });
+
+  it('answers the ratio before the spit-out, so a lost hold never spends a roll', () => {
+    const draw = { phase: ENGULF_PHASE.wrap, spitOutRoll: 0, spitOutChancePerTick: SPINY_CHANCE_PER_TICK };
+    expect(resolveEngulfHold({ mass: 21 }, prey(20), draw, balance)).toBe(ENGULF_RELEASE_REASON.ratio);
   });
 });

@@ -7,14 +7,36 @@ import type {
   CellView,
   DnaFragmentView,
   DnaTag,
+  EngulfReleaseReason,
   EntityId,
   FoodMoteView,
   GameInput,
   OwnedTrait,
   PlayerId,
   PlayerProgressView,
+  SteerCommand,
   TraitOfferView,
 } from '@evolution/shared';
+
+/**
+ * One predator's memory of a prey it spat out (docs/ECOLOGY.md §6.1): it cannot restart on that
+ * prey until `untilTick`, and separation pushes the pair apart meanwhile (§5.3). One entry per
+ * spat-out prey, in the order they were spat out; expired entries are pruned by the engulf step.
+ */
+export interface SpitOutRefractoryRecord {
+  preyCellId: EntityId;
+  untilTick: number;
+}
+
+/**
+ * The release a debug reader needs to tell `escaped` from `ratio` from `aborted` (docs/ARCHITECTURE.md
+ * §8): `cell_released` rides the delta broadcast alone, which no debug tool drains.
+ */
+export interface EngulfReleaseRecord {
+  reason: EngulfReleaseReason;
+  tick: number;
+  predatorCellId: EntityId;
+}
 
 export interface CellRecord extends CellView {
   /** The latest applied input, latched until replaced. */
@@ -28,6 +50,22 @@ export interface CellRecord extends CellView {
    */
   pinnedX: number | null;
   pinnedY: number | null;
+  /**
+   * A sealed prey rides its predator (docs/ECOLOGY.md §6.1, the seal row): its centre is the
+   * predator's plus this offset after the predator has moved. `null` whenever it is not carried.
+   */
+  carriedOffsetX: number | null;
+  carriedOffsetY: number | null;
+  /** This cell's spit-out memories as a predator; empty for everything that never spat anything out. */
+  spitOutRefractories: SpitOutRefractoryRecord[];
+  /**
+   * This tick's steer command, taken from the start-of-tick pose at the top of the movement step
+   * and kept so the engulf struggle reads the command the movement actually used, not a second one
+   * taken after the cell has moved (docs/ECOLOGY.md §5.2, §6.1).
+   */
+  steerCommand: SteerCommand;
+  /** The last engulf this cell was released from, as prey; `null` until one ends (docs/ECOLOGY.md §6.1). */
+  lastRelease: EngulfReleaseRecord | null;
 }
 
 /** A cell a player owns: `playerId` narrowed from the view's `PlayerId | null` (a wild cell has none). */

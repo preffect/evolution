@@ -54,6 +54,13 @@ describe('id tables', () => {
   });
 
   it('names effects in the past tense or as the moment they mark', () => {
-    expect(Object.values(EFFECT_KIND)).toEqual(['cell_absorbed', 'eat', 'level_up', 'respawn', 'world_level_up']);
+    expect(Object.values(EFFECT_KIND)).toEqual([
+      'cell_absorbed',
+      'cell_released',
+      'eat',
+      'level_up',
+      'respawn',
+      'world_level_up',
+    ]);
   });
 });

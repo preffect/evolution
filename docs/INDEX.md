@@ -87,9 +87,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **7. What the tests assert** (L264–287): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
 - **8. Known traps** (L288–308): fall back to insertion order, which differs between a live run and a replay after removals.
 
-## ECOLOGY.md (824 lines)
+## ECOLOGY.md (842 lines)
 
-- **Evolution — Ecology, Growth and Absorption** (L1–824): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
+- **Evolution — Ecology, Growth and Absorption** (L1–842): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
 - **1. Food kinds** (L15–49): any mote; no minimum size.
 - **2. Zones** (L50–64): Geometry is fixed by the dish radius; the three gel patches are placed from the `zones` random stream at world creation and are part of the…
 - **3. Spawn model** (L65–335): Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond × TICK_INTERVAL_S`; while `accumulator �…
@@ -99,22 +99,22 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.4 What a fresh protocell sees** (L323–335): At 0:00, one player, #141's option A render (seed 96) still describes the motes: 9 algae, 0 bacteria and 1 fragment in the spawn camera (10…
 - **4. Mass decay** (L336–362): Applied every tick in the metabolism step (§4.1).
   - **4.1 The metabolism step (one formula)** (L347–362): Every metabolism term reads the mass at the start of the step, so a test can reproduce a tick exactly:
-- **5. Size, mass and speed** (L363–428)
+- **5. Size, mass and speed** (L363–433)
   - **5.1 Curves** (L365–384): Reviewed for feel: a starting cell crosses its own diameter in 0.16 s, a 1000-mass cell in 3 s.
-  - **5.2 Movement step (server, per tick)** (L385–408): The blend is the only drag: with no input `desired` is zero and the cell coasts to a stop within about a second.
-  - **5.3 Cell-to-cell contact** (L409–417): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
-  - **5.4 Growth, cap and mitosis (reserved)** (L418–428): at the cap still progresses the leaderboard.
-- **6. Absorption and engulf** (L429–644): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
-  - **6.1 Rules** (L437–591): Eligibility (mass only, one home).
-  - **6.2 State diagram** (L592–624): Two records, two homes.
-  - **6.3 Edge cases (resolved)** (L625–644)
-- **7. Constants table** (L645–744): Home: `packages/shared/src/constants/<domain>.ts`.
-  - **`ecology.ts`** (L649–681)
-  - **`growth.ts`** (L682–696)
-  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))** (L697–712)
-  - **`absorption.ts`** (L713–744): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
-- **8. Acceptance scenarios** (L745–824): Given seed S and inputs I, after N ticks assert X.
-  - **8.1 The evolving world (§3.1–§3.4)** (L801–824): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
+  - **5.2 Movement step (server, per tick)** (L385–413): The blend is the only drag: with no input `desired` is zero and the cell coasts to a stop within about a second.
+  - **5.3 Cell-to-cell contact** (L414–422): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
+  - **5.4 Growth, cap and mitosis (reserved)** (L423–433): at the cap still progresses the leaderboard.
+- **6. Absorption and engulf** (L434–662): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
+  - **6.1 Rules** (L442–609): Eligibility (mass only, one home).
+  - **6.2 State diagram** (L610–642): Two records, two homes.
+  - **6.3 Edge cases (resolved)** (L643–662)
+- **7. Constants table** (L663–762): Home: `packages/shared/src/constants/<domain>.ts`.
+  - **`ecology.ts`** (L667–699)
+  - **`growth.ts`** (L700–714)
+  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))** (L715–730)
+  - **`absorption.ts`** (L731–762): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
+- **8. Acceptance scenarios** (L763–842): Given seed S and inputs I, after N ticks assert X.
+  - **8.1 The evolving world (§3.1–§3.4)** (L819–842): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
 
 ## ENGINEERING.md (279 lines)
 
@@ -236,39 +236,39 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **8.4 Proving scenarios** (L348–359): `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo module: inputs echo from the tick they we…
   - **8.5 The design tables** (L360–371): The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14), `ecology-cells.gameplay.test.ts` (E4–E8,…
 
-## TRAITS.md (445 lines)
+## TRAITS.md (452 lines)
 
-- **Evolution — Trait Catalog v1 (the ladder)** (L1–445): Ticket: #25.
+- **Evolution — Trait Catalog v1 (the ladder)** (L1–452): Ticket: #25.
 - **1. Definition shape** (L17–41): There is no `minLevel`: the ladder (`stage`, `requires`, `unlockedBy`) is the pacing.
-- **2. Modifier model** (L42–91): Every trait tier is a partial `CellModifiers`.
-- **3. Build-1 catalog (sixteen traits, fully specified)** (L92–376): Tier columns give the _value of the modifiers this tier sets_; unlisted modifiers stay at default.
-  - **3.0 What each stage looks like** (L98–112): The protocell is the level-1 baseline; every rung adds something the renderer must show (`render/cell-layer.ts`, [`ARCHITECTURE.md`](./ARCH…
-  - **Rung 1 — protocell picks (`stage: 'protocell'`)** (L113–149)
-  - **3.1 Nucleoid Coil `nucleoid` — genome, common, tags `metabolic`, no group, requires none. **Gate → `prokaryote`.**** (L115–124): Your genes are organised: every DNA gain reads a little more.
-  - **3.2 Simple Flagellum `simple_flagellum` — locomotion, uncommon, tags `motile predatory`, no group, requires none** (L125–135): Visual: one long tail trailing opposite the velocity, sine wave with amplitude growing per tier; tier III adds a second tail.
-  - **3.3 Cell Wall `cell_wall` — membrane, common, tags `armored`, group `membrane`, requires none** (L136–149): So a predator needs 1.40 / 1.55 / 1.70 × your mass to start, 1.25 / 1.40 / 1.55 × to continue, and once you are sealed the wall dissolves…
-  - **Rung 2 — prokaryote organelles (`stage: 'prokaryote'`)** (L150–185)
-  - **3.4 Ribosome Studs `ribosomes` — metabolism, common, tags `metabolic`, no group, requires none** (L152–161): Food motes are worth more mass.
-  - **3.5 Mitochondrion `mitochondrion` — metabolism, uncommon, tags `metabolic`, no group, requires none, `unlockedBy: { bacteriumVariant: 'aerobic', count: ENDOSYMBIOSIS_BACTERIA_REQUIRED }`. **Gate → `endosymbiosis`.**** (L162–173): The powerhouse: surplus mass burns slower and bursts are stronger.
-  - **3.6 Chloroplast `chloroplast` — metabolism, common, tags `photic`, no group, requires none, `unlockedBy: { bacteriumVariant: 'photosynthetic', count: ENDOSYMBIOSIS_BACTERIA_REQUIRED }`. **Gate → `endosymbiosis`.**** (L174–185): Unlocked by eating photosynthetic bacteria (shallows clusters).
-  - **Rung 3 — the true nucleus (`stage: 'endosymbiosis'`)** (L186–198)
-  - **3.7 Nuclear Envelope `nuclear_envelope` — genome, common, tags `armored metabolic`, no group, requires `nucleoid`. **Gate → `eukaryote`.**** (L188–198): Your genome is safe behind a membrane: dying keeps part of the progress toward the next level.
-  - **Rung 4 — eukaryote organelles (`stage: 'eukaryote'`)** (L199–256)
-  - **3.8 Cytoskeleton Lattice `cytoskeleton` — locomotion, common, tags `motile armored`, no group, requires none** (L201–213): Shape control: the cell turns and stops faster, and wriggles.
-  - **3.9 Cilia Fringe `cilia` — locomotion, common, tags `motile`, no group, requires none** (L214–227): As prey the beating hairs push against the wrapping membrane: the held speed factor is 0.85 / 0.90 / 0.95 instead of 0.8 (ECOLOGY §6.1), a…
-  - **3.10 Food Vacuole `food_vacuole` — metabolism (offense), uncommon, tags `metabolic predatory`, no group, requires none** (L228–240): Enzymes: once sealed, prey dissolves faster and yields more; the cover and wrap are unchanged (a vacuole digests, it does not grab).
-  - **3.11 Toxin Vacuole `toxin_vacuole` — offense, rare, tags `toxic`, no group, requires none** (L241–256): A predator touching you loses mass every tick, and one that has wrapped you loses it six times as fast (`ENGULF_SWALLOWED_TOXIN_MULTIPLIER`…
-  - **Rung 5 — the specialised forms (`stage: 'eukaryote'`, category `form`, group `body_plan`: one per cell). **Owning any form → `specialised`.**** (L257–329)
-  - **3.12 Amoeba Pseudopods `amoeba_pseudopods` — form, uncommon, tags `predatory motile`, requires `cytoskeleton`** (L259–273): The gel is no shelter from an amoeba, and its pseudopods wrap prey faster and hold it: the wrap runs at 0.85 / 0.75 / 0.65 of its base time…
-  - **3.13 Paramecium Cilia `paramecium_cilia` — form, uncommon, tags `motile`, requires `cilia`** (L274–287): The fastest thing in the dish, and the most agile: as prey it twists against the wrap (struggle slowdown 0.6 / 0.65 / 0.7, stacking with th…
-  - **3.14 Euglena Eyespot `euglena_eyespot` — form, rare, tags `sensory photic`, requires `chloroplast`** (L288–300): The eyespot senses food and the flagellum steers into it: motes and DNA fragments inside the range drift straight toward the centre (server…
-  - **3.15 Diatom Shell `diatom_shell` — form, uncommon, tags `armored`, requires `cell_wall`** (L301–316): A silica frustule: slow to dissolve, it cuts the swallower, and its spines make it hard to keep down.
-  - **3.16 Stentor Trumpet `stentor_trumpet` — form, rare, tags `toxic metabolic`, requires `toxin_vacuole`** (L317–329): A trumpet-shaped giant whose pigment poisons everything nearby and whose funnel feeds it more from every mote.
-  - **3.17 Exclusions and pairings at a glance** (L330–345): The `primary_locomotion` group of §4 has no build-1 member: the simple flagellum and the cilia stack (sprint burst versus cruising speed).
-  - **3.18 Engulf effects at a glance** (L346–376): The direction from decision #139: every trait helps where it plausibly should and nowhere else.
-- **4. Later traits (build 2+, one line each)** (L377–399): Named now so ids, tags and groups are reserved.
-- **5. Constants table — `packages/shared/src/constants/traits.ts`** (L400–414): The ladder constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` ([`GAME-DESIGN.md §12`](.…
-- **6. Acceptance scenarios** (L415–445): Given seed S and inputs I, after N ticks assert X.
+- **2. Modifier model** (L42–98): Every trait tier is a partial `CellModifiers`.
+- **3. Build-1 catalog (sixteen traits, fully specified)** (L99–383): Tier columns give the _value of the modifiers this tier sets_; unlisted modifiers stay at default.
+  - **3.0 What each stage looks like** (L105–119): The protocell is the level-1 baseline; every rung adds something the renderer must show (`render/cell-layer.ts`, [`ARCHITECTURE.md`](./ARCH…
+  - **Rung 1 — protocell picks (`stage: 'protocell'`)** (L120–156)
+  - **3.1 Nucleoid Coil `nucleoid` — genome, common, tags `metabolic`, no group, requires none. **Gate → `prokaryote`.**** (L122–131): Your genes are organised: every DNA gain reads a little more.
+  - **3.2 Simple Flagellum `simple_flagellum` — locomotion, uncommon, tags `motile predatory`, no group, requires none** (L132–142): Visual: one long tail trailing opposite the velocity, sine wave with amplitude growing per tier; tier III adds a second tail.
+  - **3.3 Cell Wall `cell_wall` — membrane, common, tags `armored`, group `membrane`, requires none** (L143–156): So a predator needs 1.40 / 1.55 / 1.70 × your mass to start, 1.25 / 1.40 / 1.55 × to continue, and once you are sealed the wall dissolves…
+  - **Rung 2 — prokaryote organelles (`stage: 'prokaryote'`)** (L157–192)
+  - **3.4 Ribosome Studs `ribosomes` — metabolism, common, tags `metabolic`, no group, requires none** (L159–168): Food motes are worth more mass.
+  - **3.5 Mitochondrion `mitochondrion` — metabolism, uncommon, tags `metabolic`, no group, requires none, `unlockedBy: { bacteriumVariant: 'aerobic', count: ENDOSYMBIOSIS_BACTERIA_REQUIRED }`. **Gate → `endosymbiosis`.**** (L169–180): The powerhouse: surplus mass burns slower and bursts are stronger.
+  - **3.6 Chloroplast `chloroplast` — metabolism, common, tags `photic`, no group, requires none, `unlockedBy: { bacteriumVariant: 'photosynthetic', count: ENDOSYMBIOSIS_BACTERIA_REQUIRED }`. **Gate → `endosymbiosis`.**** (L181–192): Unlocked by eating photosynthetic bacteria (shallows clusters).
+  - **Rung 3 — the true nucleus (`stage: 'endosymbiosis'`)** (L193–205)
+  - **3.7 Nuclear Envelope `nuclear_envelope` — genome, common, tags `armored metabolic`, no group, requires `nucleoid`. **Gate → `eukaryote`.**** (L195–205): Your genome is safe behind a membrane: dying keeps part of the progress toward the next level.
+  - **Rung 4 — eukaryote organelles (`stage: 'eukaryote'`)** (L206–263)
+  - **3.8 Cytoskeleton Lattice `cytoskeleton` — locomotion, common, tags `motile armored`, no group, requires none** (L208–220): Shape control: the cell turns and stops faster, and wriggles.
+  - **3.9 Cilia Fringe `cilia` — locomotion, common, tags `motile`, no group, requires none** (L221–234): As prey the beating hairs push against the wrapping membrane: the held speed factor is 0.85 / 0.90 / 0.95 instead of 0.8 (ECOLOGY §6.1), a…
+  - **3.10 Food Vacuole `food_vacuole` — metabolism (offense), uncommon, tags `metabolic predatory`, no group, requires none** (L235–247): Enzymes: once sealed, prey dissolves faster and yields more; the cover and wrap are unchanged (a vacuole digests, it does not grab).
+  - **3.11 Toxin Vacuole `toxin_vacuole` — offense, rare, tags `toxic`, no group, requires none** (L248–263): A predator touching you loses mass every tick, and one that has wrapped you loses it six times as fast (`ENGULF_SWALLOWED_TOXIN_MULTIPLIER`…
+  - **Rung 5 — the specialised forms (`stage: 'eukaryote'`, category `form`, group `body_plan`: one per cell). **Owning any form → `specialised`.**** (L264–336)
+  - **3.12 Amoeba Pseudopods `amoeba_pseudopods` — form, uncommon, tags `predatory motile`, requires `cytoskeleton`** (L266–280): The gel is no shelter from an amoeba, and its pseudopods wrap prey faster and hold it: the wrap runs at 0.85 / 0.75 / 0.65 of its base time…
+  - **3.13 Paramecium Cilia `paramecium_cilia` — form, uncommon, tags `motile`, requires `cilia`** (L281–294): The fastest thing in the dish, and the most agile: as prey it twists against the wrap (struggle slowdown 0.6 / 0.65 / 0.7, stacking with th…
+  - **3.14 Euglena Eyespot `euglena_eyespot` — form, rare, tags `sensory photic`, requires `chloroplast`** (L295–307): The eyespot senses food and the flagellum steers into it: motes and DNA fragments inside the range drift straight toward the centre (server…
+  - **3.15 Diatom Shell `diatom_shell` — form, uncommon, tags `armored`, requires `cell_wall`** (L308–323): A silica frustule: slow to dissolve, it cuts the swallower, and its spines make it hard to keep down.
+  - **3.16 Stentor Trumpet `stentor_trumpet` — form, rare, tags `toxic metabolic`, requires `toxin_vacuole`** (L324–336): A trumpet-shaped giant whose pigment poisons everything nearby and whose funnel feeds it more from every mote.
+  - **3.17 Exclusions and pairings at a glance** (L337–352): The `primary_locomotion` group of §4 has no build-1 member: the simple flagellum and the cilia stack (sprint burst versus cruising speed).
+  - **3.18 Engulf effects at a glance** (L353–383): The direction from decision #139: every trait helps where it plausibly should and nowhere else.
+- **4. Later traits (build 2+, one line each)** (L384–406): Named now so ids, tags and groups are reserved.
+- **5. Constants table — `packages/shared/src/constants/traits.ts`** (L407–421): The ladder constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` ([`GAME-DESIGN.md §12`](.…
+- **6. Acceptance scenarios** (L422–452): Given seed S and inputs I, after N ticks assert X.
 
 ## UI.md (518 lines)
 

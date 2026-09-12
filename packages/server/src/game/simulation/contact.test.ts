@@ -73,17 +73,17 @@ describe('separateOverlappingCells', () => {
 
   it('leaves an engulf-eligible pair alone', () => {
     const { world, cellA, cellB } = twoCells(100, 20);
-    expect(isEngulfPossible({ lower: cellA, higher: cellB }, DEFAULT_BALANCE)).toBe(true);
+    expect(isEngulfPossible({ lower: cellA, higher: cellB }, world, DEFAULT_BALANCE)).toBe(true);
     const before = [cellA.x, cellB.x];
     separateOverlappingCells(world, DEFAULT_BALANCE);
     expect([cellA.x, cellB.x]).toEqual(before);
   });
 
   it('respects the prey membrane bonus in the eligibility check', () => {
-    const { cellA, cellB } = twoCells(26, 20);
-    expect(isEngulfPossible({ lower: cellA, higher: cellB }, DEFAULT_BALANCE)).toBe(true);
+    const { world, cellA, cellB } = twoCells(26, 20);
+    expect(isEngulfPossible({ lower: cellA, higher: cellB }, world, DEFAULT_BALANCE)).toBe(true);
     cellB.membraneRatioBonus = 0.15;
-    expect(isEngulfPossible({ lower: cellA, higher: cellB }, DEFAULT_BALANCE)).toBe(false);
+    expect(isEngulfPossible({ lower: cellA, higher: cellB }, world, DEFAULT_BALANCE)).toBe(false);
   });
 
   it('does nothing for coincident centres or non-overlapping cells', () => {
