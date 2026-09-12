@@ -10,11 +10,9 @@ import {
   CHLOROPLAST,
   DNA_RING_KEEP_OUT_FRACTION,
   FOOD_VACUOLE,
-  LIGHT_DIRECTION_DEG,
   LIPID_DROPLET,
   MITOCHONDRION,
   NUCLEOID_RADIUS,
-  NUCLEUS_OFFSET_TOWARD_LIGHT,
   NUCLEUS_RADIUS,
   ORGANELLE_KIND,
   ORGANELLE_MEMBRANE_MARGIN,
@@ -24,7 +22,8 @@ import {
   TOXIN_VACUOLE,
   type OrganelleKind,
 } from '../constants';
-import { DIAMETER_PER_RADIUS, HALF, degreesToRadians } from '../geometry';
+import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
+import { NUCLEUS_REST_OFFSET } from '../light-direction';
 import type { CellTraitSummary } from './cell-traits';
 import { NUCLEUS_KINDS, ORGANELLE_KIND_ORDER, organelleCounts } from './organelle-kinds';
 
@@ -64,11 +63,10 @@ function slotLabel(kind: OrganelleKind, index: number): string {
 }
 
 function nucleusSlot(kind: OrganelleKind, random: RandomSource): OrganelleSlot {
-  const angle = degreesToRadians(LIGHT_DIRECTION_DEG);
   return {
     kind,
-    x: Math.cos(angle) * NUCLEUS_OFFSET_TOWARD_LIGHT,
-    y: Math.sin(angle) * NUCLEUS_OFFSET_TOWARD_LIGHT,
+    x: NUCLEUS_REST_OFFSET.x,
+    y: NUCLEUS_REST_OFFSET.y,
     size: SLOT_SIZE[kind],
     phase: random.nextFloat(),
     index: 0,

@@ -40,6 +40,8 @@ export const CELL_SHADER_PATTERNS = /* glsl */ `
 #define SHADE_EDGE ${PALETTE_SHADE.edge}
 #define SHADE_CYTO_LIGHT ${PALETTE_SHADE.cytoLight}
 #define SHADE_CYTO_DARK ${PALETTE_SHADE.cytoDark}
+#define SHADE_NUCLEUS ${PALETTE_SHADE.nucleus}
+#define SHADE_NUCLEUS_DARK ${PALETTE_SHADE.nucleusDark}
 #define SHADE_CHLORO_BASE ${PALETTE_SHADE.chloroBase}
 #define RIM_TINT_SHARE ${glslFloat(RIM_TINT_SHARE)}
 
@@ -74,7 +76,7 @@ struct Instance {
   float stripRow; float stripPhase; float lobesScale; float jitterAmplitude;
   float ciliaCount; float wallScale; float speckleDensity; float filamentCount;
   float tintMix; float warningRingPx; float formId; float passBAlpha;
-  float rimDash; float ciliaPhase;
+  float rimDash; float ciliaPhase; float nucleusDiscRadii;
 };
 
 Instance readInstance() {
@@ -98,6 +100,7 @@ Instance readInstance() {
   inst.tintMix = ${instanceRead('tintMix')}; inst.warningRingPx = ${instanceRead('warningRingPx')};
   inst.formId = ${instanceRead('formId')}; inst.passBAlpha = ${instanceRead('passBAlpha')};
   inst.rimDash = ${instanceRead('rimDash')}; inst.ciliaPhase = ${instanceRead('ciliaPhase')};
+  inst.nucleusDiscRadii = ${instanceRead('nucleusDiscRadii')};
   return inst;
 }
 

@@ -1,9 +1,10 @@
 // Pass A of the cell shader (docs/RENDERING.md §2.2, back → front): the halo (flat under the
 // body, "lit from inside"; the chloroplast / toxin trait halo replaces it), the far dot, the
 // four-stop body ramp and the two pools in the undeformed frame, the cytoplasm noise in world
-// units, the ribosome speckle on a hashed grid and the cytoskeleton filaments from the nucleus.
+// units, the ribosome speckle on a hashed grid, the cytoskeleton filaments from the nucleus and,
+// last, the nucleus ramp (#231): the disc under the nucleus sprite as a three-stop radial ramp.
 // Everything under the organelle sprites. The pools, the noise and the interior tells fade with
-// `lodBlend`; the trait halo does not (it is the mid-LOD tell, VISUAL-STYLE §4).
+// `lodBlend`; the trait halo and the nucleus ramp do not (the mid-LOD tells, VISUAL-STYLE §4, §6).
 
 import {
   BODY_RAMP_ALPHAS,
@@ -28,6 +29,10 @@ import {
   HALO_PEAK_ALPHA,
   LIGHT_POOL,
   NOISE_TILE_WU,
+  NUCLEUS_RAMP_ALPHA,
+  NUCLEUS_RAMP_FOCUS_RADII,
+  NUCLEUS_RAMP_MID_STOP,
+  NUCLEUS_RAMP_REACH_RADII,
   POOL_BLUR_RADII,
   PROTOCELL_BODY_ALPHAS,
   PROTOCELL_HALO_OUTER_RADII,
@@ -46,6 +51,7 @@ import {
   TRAIT_HALO_PEAK_ALPHA,
 } from '../constants';
 import { degreesToRadians } from '../geometry';
+import { LIGHT_DIRECTION_RADIANS } from '../light-direction';
 import { glslFloat } from './cell-shader-source';
 
 const RAMP_CENTRE = degreesToRadians(BODY_RAMP_CENTRE_ANGLE_DEG);
@@ -162,6 +168,19 @@ vec4 cytoskeletonFilaments(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uCytoskeleton, mask * reach * ${glslFloat(FILAMENT_ALPHA)} * inst.lodBlend);
 }
 
+/** The nucleus disc under its sprite (#231): rim at a focus toward the light, nucleus at the mid stop, nucleus dark at the reach; no lodBlend (the stage tell's disc). */
+vec4 nucleusRamp(Instance inst, Frame frame, vec4 acc) {
+  if (inst.nucleusDiscRadii <= 0.0) return acc;
+  float discWu = inst.nucleusDiscRadii * inst.r * inst.pulse;
+  vec2 fromNucleus = frame.p - inst.nucleus * inst.r;
+  float disc = 1.0 - smoothstep(discWu - frame.aa, discWu + frame.aa, length(fromNucleus));
+  vec2 focus = vec2(cos(${glslFloat(LIGHT_DIRECTION_RADIANS)}), sin(${glslFloat(LIGHT_DIRECTION_RADIANS)})) * ${glslFloat(NUCLEUS_RAMP_FOCUS_RADII)} * discWu;
+  float t = length(fromNucleus - focus) / (${glslFloat(NUCLEUS_RAMP_REACH_RADII)} * discWu);
+  vec3 colour = mix(rimColour(inst), shade(inst, SHADE_NUCLEUS), smoothstep(0.0, ${glslFloat(NUCLEUS_RAMP_MID_STOP)}, t));
+  colour = mix(colour, shade(inst, SHADE_NUCLEUS_DARK), smoothstep(${glslFloat(NUCLEUS_RAMP_MID_STOP)}, 1.0, t));
+  return over(acc, colour, disc * ${glslFloat(NUCLEUS_RAMP_ALPHA)});
+}
+
 vec4 bodyPass(Instance inst, Frame frame) {
   vec4 acc = vec4(0.0);
   acc = haloBand(inst, frame, acc);
@@ -171,6 +190,7 @@ vec4 bodyPass(Instance inst, Frame frame) {
   acc = bodyPools(inst, frame, inside, acc);
   acc = cytoplasmNoise(inst, frame, acc);
   acc = ribosomeSpeckle(inst, frame, acc);
-  return cytoskeletonFilaments(inst, frame, acc);
+  acc = cytoskeletonFilaments(inst, frame, acc);
+  return nucleusRamp(inst, frame, acc);
 }
 `;

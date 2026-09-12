@@ -10,6 +10,7 @@ import {
   ENGULF_WARNING_RING_MIN_PX,
   HALO_KIND,
   NUCLEUS_OFFSET_TOWARD_LIGHT,
+  NUCLEUS_RADIUS,
   ORGANELLE_KIND,
 } from '../constants';
 import { degreesToRadians } from '../geometry';
@@ -67,6 +68,7 @@ describe('CellRenderState', () => {
     expect(output.instance.nucleusOffsetX).toBeCloseTo(nucleus.point.x / 40, 9);
     expect(output.instance.nucleusOffsetY).toBeCloseTo(nucleus.point.y / 40, 9);
     expect(Math.hypot(nucleus.point.x, nucleus.point.y) / 40).toBeCloseTo(NUCLEUS_OFFSET_TOWARD_LIGHT, 1);
+    expect(output.instance.nucleusDiscRadii).toBe(NUCLEUS_RADIUS);
   });
 
   it('keeps the slots across frames and appends on a tier-up', () => {
@@ -93,10 +95,12 @@ describe('CellRenderState', () => {
     expect(before.instance.isProtocell).toBe(true);
     expect(before.instance.haloKind).toBe(HALO_KIND.protocell);
     expect(before.organelles.some((placement) => placement.kind === ORGANELLE_KIND.nucleus)).toBe(false);
+    expect(before.instance.nucleusDiscRadii).toBe(0);
     const after = subject.update({ ...eukaryote(), level: 5 }, context({ timeSeconds: 2 }), REST_DEFORMATION);
     expect(after.instance.isProtocell).toBe(false);
     expect(after.instance.haloKind).toBe(HALO_KIND.default);
     expect(after.organelles.some((placement) => placement.kind === ORGANELLE_KIND.nucleus)).toBe(true);
+    expect(after.instance.nucleusDiscRadii).toBe(NUCLEUS_RADIUS);
     expect(after.organelles.some((placement) => placement.kind === ORGANELLE_KIND.protocellGranule)).toBe(false);
   });
 

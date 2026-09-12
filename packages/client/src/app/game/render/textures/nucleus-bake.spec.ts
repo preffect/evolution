@@ -4,7 +4,6 @@ import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/
 import {
   NUCLEOID_BAKE,
   NUCLEOID_RADIUS,
-  NUCLEUS_BAKE,
   NUCLEUS_CHROMATIN_SPOTS,
   NUCLEUS_GLOW_RADIUS,
   NUCLEUS_HIGHLIGHT,
@@ -42,20 +41,30 @@ describe('bakeNucleusSprite', () => {
     expect(sprite.widthRadii).toBeCloseTo(NUCLEUS_GLOW_RADIUS * 2, 9);
   });
 
-  it('layers glow, body ramp, chromatin spots, rim, nucleolus halo and disc, and the highlight', () => {
+  it('layers glow, its disc cut, chromatin spots, rim, nucleolus halo and disc, and the highlight', () => {
     const fixedLayers = 6;
     expect(context.paintCount).toBe(fixedLayers + NUCLEUS_CHROMATIN_SPOTS);
-    expect(context.gradients[0]!.stops.at(-1)!.colour).toBe('rgba(255, 255, 255, 0)');
     expect(context.count('ellipse')).toBe(1);
     expect(context.count('stroke')).toBe(1);
+  });
+
+  it('cuts the glow out inside the disc right after painting it, so the halo is an outer glow only (#231)', () => {
+    const paints = context.ops.filter((operation) => operation === 'fill' || operation.startsWith('composite:'));
+    expect(paints.slice(0, 3)).toEqual(['fill', 'composite:destination-out', 'fill']);
+    expect(context.argumentsOf('arc')[1]![2]).toBe(NUCLEUS_RADIUS * PX_PER_RADIUS);
+    expect(context.count('composite:destination-out')).toBe(1);
+  });
+
+  it('bakes no disc fill (#231): the only gradients are the two halos, so the shader ramp shows through', () => {
+    const halos = 2;
+    expect(context.gradients).toHaveLength(halos);
+    for (const gradient of context.gradients) expect(gradient.stops.at(-1)!.colour).toBe('rgba(255, 255, 255, 0)');
   });
 
   it('bakes white only, below full alpha, so the palette tints it and the highlight reads', () => {
     for (const gradient of context.gradients) {
       for (const stop of gradient.stops) expect(stop.colour).toMatch(/^rgba\(255, 255, 255, /);
     }
-    expect(NUCLEUS_BAKE.bodyAlpha).toBeLessThan(1);
-    expect(NUCLEUS_BAKE.darkAlpha).toBeLessThan(NUCLEUS_BAKE.bodyAlpha);
   });
 
   it('keeps the highlight inside the nucleus disc', () => {

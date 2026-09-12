@@ -125,7 +125,8 @@ card (`UI.md`) is the fallback, never a second fragment shape.
 `RIBOSOME`, `CELL_WALL*`, `FLAGELLUM`, `ENVELOPE` / `PORE`, `CYTOSKELETON`, `CILIA`, `SILICA_*`,
 `DIATOM_PLASTID_*`, `EYESPOT*`). Two of those are the **cyan instance of a palette rule**, not
 constants: the protocell film is the player's rim colour @55 % (film light `WHITE` `#ffffff` @70 %; `WHITE` is the one white constant, shared by glints, the seat-mark cores and the self ring), and the
-nucleoid glow is the player's rim colour (strand `NUCLEOID_STRAND` stays near-white). Everything else
+nucleoid glow and the nucleus sprite (rim, chromatin, nucleolus, highlight; its disc is the shader ramp, §3) are the
+player's rim colour (strand `NUCLEOID_STRAND` stays near-white). Everything else
 in those tables is palette-independent so organelles look the same inside every player.
 
 **Player palettes.** `PLAYER_PALETTE_COUNT` is `MAX_PLAYERS_PER_GAME` (8) by construction, and
@@ -231,9 +232,11 @@ columns, `rim` at the focus → `nucleus` at the middle stop → `nucleusDark` a
 `NUCLEUS_RAMP_FOCUS_RADII` 0.40 r_n (r_n = the 0.30 r nucleus radius) from the nucleus centre toward
 `LIGHT_DIRECTION_DEG` (panel A's −127° focus rounded to the one light direction, §1), the ramp reaches `NUCLEUS_RAMP_REACH_RADII` 1.4 r_n, the middle stop is
 `NUCLEUS_RAMP_MID_STOP` 0.5 and the disc is `NUCLEUS_RAMP_ALPHA` 0.92 over the cytoplasm (panel A's 0.90–0.95).
-The sprite keeps what is per cell or white — the 0.40 r glow, the 2.3 px rim, the five seeded chromatin spots,
-the nucleolus with its halo, the highlight — and loses its disc fill (`NUCLEUS_BAKE` is retired), so the ramp
-shows through it; the constants live in `render/constants/organelles.ts` beside `NUCLEUS_RADIUS`.
+The sprite keeps what is per cell or white — the 0.40 r glow (cut out inside the disc, so it is an outer glow
+only), the 2.3 px rim, the five seeded chromatin spots, the nucleolus with its halo, the highlight — and loses its
+disc fill (the bake has no disc constant any more), so the ramp shows through it; the sprite is tinted the palette
+**rim**, like the nucleoid, so the nucleolus and the highlight stay lighter than the ramp's lit half; the constants
+live in `render/constants/organelles.ts` beside `NUCLEUS_RADIUS`.
 
 Why the tinted bake read flat: a white bake under one multiplicative tint can reach nothing paler than the
 tint and darkens toward grey (`#6fdcef` at 0.45 luminance is `#32636c`, saturation 0.37 against `#167787`'s
