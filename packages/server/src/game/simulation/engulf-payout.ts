@@ -6,13 +6,18 @@
 //
 // A wild cell on either side is not a special case here beyond its own row: a wild predator keeps
 // nothing (its mass is the world clock, re-pinned next tick) and a wild prey pays no DNA base, no
-// tag share and scores no `absorptions` (docs/ECOLOGY.md §3.3).
+// tag share and scores no `absorptions` (docs/ECOLOGY.md §3.3). One thing IS lost on the wild path:
+// `absorbCell` emits no `cell_absorbed` for a prey with no player (`session/death.ts`, the
+// `isPlayerCell` guard), because the effect's `playerId` is not nullable. The wire change that fixes
+// it is filed against the wild-cell slice; until that slice no wild cell exists, so nothing is
+// observably missing yet.
 //
 // The trait steal stays reserved: `ENGULF_TRAIT_STEAL_CHANCE` is 0 in build 1 and the payout table
 // names no trait for it to move (docs/ECOLOGY.md §6.1, the "Reserved" row), so no roll is drawn —
-// the same "no draw when the chance is 0" rule the spit-out follows (`engulf-spit-out.ts`), which
-// keeps the `engulf` stream in step between a dish that engulfs and one that does not. Build 2
-// turns it on by rolling `streams.engulf` here, beside the counters, once it says what is stolen.
+// the same "no draw when the chance is 0" rule the spit-out follows (`engulf-spit-out.ts`). The draw
+// order build 2 must keep when it turns the steal on is the contract in docs/ECOLOGY.md §6.1's
+// Reserved row and docs/DETERMINISM.md §3, not this comment: a draw of `streams.engulf` here, after
+// the tick's spit-out draw, one per completed engulf.
 
 import { DNA_TAG, DNA_TAGS, type BalanceConfig, type TraitDefinition } from '@evolution/shared';
 import { gainDna, gainTagPoints } from '../progression/dna.js';

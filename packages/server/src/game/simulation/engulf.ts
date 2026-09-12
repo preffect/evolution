@@ -28,7 +28,7 @@ import {
   recordSpitOutRefractory,
   spitOutDrawFor,
 } from './engulf-spit-out.js';
-import { beginEngulf, releaseEngulf, sealEngulf, type EngulfPairing } from './engulf-state.js';
+import { beginEngulf, releaseEngulf, sealEngulf, wasAbortedThisTick, type EngulfPairing } from './engulf-state.js';
 
 /** Progress pays out at `1 − ENGULF_PROGRESS_EPSILON`, so thirty-six additions of 1/36 finish on tick 36. */
 const COMPLETE_PROGRESS = 1;
@@ -52,7 +52,11 @@ export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
   return prey.steerCommand.throttle * Math.max(NO_AWAY_EFFORT, away);
 }
 
-/** Can `predator` claim `prey` this tick: neither is already engaged, mass, contact and no refractory. */
+/**
+ * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact, no refractory,
+ * and the prey was not freed by an abort this tick (docs/ECOLOGY.md §6.3, the chain row: a cell the
+ * world dropped inside its next predator may be started on "next tick", never on this one).
+ */
 export function canStartEngulf(
   predator: CellRecord,
   prey: CellRecord,
@@ -63,6 +67,7 @@ export function canStartEngulf(
     predator.engulfingCellId === null &&
     prey.engulfedByCellId === null &&
     canEngulf(predator, prey, balance.absorption) &&
+    !wasAbortedThisTick(prey, world.tick) &&
     !hasSpitOutRefractory(predator, prey.id, world.tick) &&
     isEngulfContact(predator, prey, balance)
   );

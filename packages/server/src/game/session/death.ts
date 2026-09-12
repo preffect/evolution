@@ -77,8 +77,15 @@ function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRe
 /**
  * The prey side of an engulf payout: the cell is removed this tick, detritus dropped, the
  * `cell_absorbed` effect emitted and the player spectates the killer's cell (a player's or a
- * wild one) until respawn, keeping `dnaKeptOnDeathFraction` of its progress. A wild prey has no
- * player to spectate: the wild-cell slice removes its cell through `dissolveCell` alone.
+ * wild one) until respawn, keeping `dnaKeptOnDeathFraction` of its progress.
+ *
+ * **A wild prey drops out at the guard below**: it has no player to spectate, so it returns after
+ * `dissolveCell` and emits NO `cell_absorbed` — the renderer therefore gets no absorbed clip, no DNA
+ * streams and no ghost for it (docs/RENDERING.md §9). That is a real gap, not a rule:
+ * `CellAbsorbedEffect.playerId` is `PlayerId` and not nullable, so closing it is a wire change
+ * (`types/effects.ts`) filed against the wild-cell slice, which is also the first slice that can
+ * place a wild cell for it to matter to. Until then no wild cell exists (`world.wildSeats` is
+ * created empty), so nothing observable is lost.
  */
 export function absorbCell(world: WorldState, context: StepContext, prey: CellRecord, predator: CellRecord): void {
   if (!isPlayerCell(prey)) {

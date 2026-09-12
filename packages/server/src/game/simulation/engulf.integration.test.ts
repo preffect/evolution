@@ -32,6 +32,7 @@ import {
   type SentLog,
 } from '../../testing/builders.js';
 import { createEvolutionModule } from '../evolution-module.js';
+import { decayed } from '../../testing/scenarios/shared-setups.js';
 
 const SEED = 42;
 const PREDATOR = playerId('predator');
@@ -48,6 +49,16 @@ const session = DEFAULT_BALANCE.session;
 /** The respawn convention (#211): a death on tick t places the new cell on t + spectate + 1. */
 const RESPAWN_TICK = END_TICK + secondsToTicks(session.RESPAWN_SPECTATE_SECONDS) + 1;
 const PROGRESS_TOLERANCE = 6;
+/** Two decimals: the §8 rows' "± 0.01" on a mass, as vitest counts digits. */
+const MASS_DIGITS = 2;
+/**
+ * E9's payout arithmetic for this room: the pair is placed at the origin, which is inside the warm
+ * vent, so the predator decays at `VENT_DECAY_MULTIPLIER` where the placed §8 rows (at the broth
+ * point) decay at 1 — the yield itself is the same 0.8 × 20.
+ */
+const PAYOUT_MASS_IN_THE_VENT =
+  decayed(PREDATOR_MASS, END_TICK, DEFAULT_BALANCE.ecology.VENT_DECAY_MULTIPLIER) +
+  PREY_MASS * absorption.ENGULF_MASS_YIELD;
 /** Far enough east that the prey is out of the predator's cover reach within a few ticks. */
 const ESCAPE_TARGET = { x: 2000, y: 0 };
 
@@ -174,8 +185,9 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
     expect(cellOf(snapshot, PREY)).toBeUndefined();
     expect(snapshot.players[PREY]!.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(snapshot.players[PREY]!.spectatingCellId).toBe(predator.id);
-    // The E9 numbers: yield 0.8 × 20 on a decayed 100, the flat DNA base, one absorption.
-    expect(predator.mass).toBeGreaterThan(PREDATOR_MASS + PREY_MASS * absorption.ENGULF_MASS_YIELD - 1);
+    // The E9 numbers, to the scenario table's own tolerance: the yield on the decayed predator,
+    // the flat DNA base, one absorption. `E9_PAYOUT_MASS` is the quantity the §8 rows pin.
+    expect(predator.mass).toBeCloseTo(PAYOUT_MASS_IN_THE_VENT, MASS_DIGITS);
     expect(snapshot.players[PREDATOR]!.dnaCumulative).toBe(absorption.ENGULF_DNA_BASE);
     expect(snapshot.players[PREDATOR]!.absorptions).toBe(1);
   });

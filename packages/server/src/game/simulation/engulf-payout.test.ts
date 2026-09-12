@@ -10,6 +10,7 @@ import {
   ENDOSYMBIOSIS_BACTERIA_REQUIRED,
   FOOD_KIND,
   PLAYER_LIFE_STATE,
+  TICK_HZ,
   secondsToTicks,
 } from '@evolution/shared';
 import { ENGULF_PREY_MASS, createEngulfFixture, type EngulfFixture } from '../../testing/engulf-builders.js';
@@ -25,6 +26,12 @@ const PAYOUT_TICK = 30;
 const PREY_MASS = ENGULF_PREY_MASS;
 const PREY_DNA = 100;
 const PREY_TAG_POINTS = 8;
+/**
+ * The world clock's second level (docs/ECOLOGY.md §3.1, row W1: 180 s → level 2, `worldDna` 60),
+ * which is what a wild prey's `ENGULF_DNA_SHARE` reads (§3.3).
+ */
+const WORLD_LEVEL_2_TICK = DEFAULT_BALANCE.worldClock.WORLD_LEVEL_SECONDS * TICK_HZ;
+const WORLD_DNA_AT_LEVEL_2 = 60;
 
 interface PaidOut extends EngulfFixture {
   predatorPlayer: PlayerRecord;
@@ -171,14 +178,25 @@ describe('payOutEngulf: the prey', () => {
 });
 
 describe('payOutEngulf: a wild cell on either side (docs/ECOLOGY.md §3.3)', () => {
-  it('pays no DNA base, no tag share and counts a wildAbsorption for a wild prey', () => {
-    const { predatorPlayer } = payOut(({ prey }) => {
+  it("pays the world clock's DNA share with no base, no tag share, and counts a wildAbsorption", () => {
+    // On the second world level the share is worth something, so the three ways to get this wrong —
+    // reading nothing, reading the player base, reading the share — give three different numbers.
+    const { predatorPlayer } = payOut(({ prey, world }) => {
       prey.playerId = null; // the wild-cell slice places real ones; the payout rule is the same
+      world.tick = WORLD_LEVEL_2_TICK;
     });
+    expect(predatorPlayer.dnaCumulative).toBe(WORLD_DNA_AT_LEVEL_2 * absorption.ENGULF_DNA_SHARE);
+    expect(predatorPlayer.dnaCumulative).not.toBe(absorption.ENGULF_DNA_BASE);
     expect(predatorPlayer.wildAbsorptions).toBe(1);
     expect(predatorPlayer.absorptions).toBe(0);
-    expect(predatorPlayer.dnaCumulative).toBe(0); // worldDna is 0 in the protocell era
     expect(predatorPlayer.dnaTagPoints[DNA_TAG.predatory]).toBe(absorption.ENGULF_PREDATORY_TAG_POINTS);
+  });
+
+  it('pays a wild prey no DNA at all in the protocell era, where the world has none', () => {
+    const { predatorPlayer } = payOut(({ prey }) => {
+      prey.playerId = null;
+    });
+    expect(predatorPlayer.dnaCumulative).toBe(0); // worldDna is 0 before the first world level-up
   });
 
   it('keeps the mass yield for a wild prey', () => {

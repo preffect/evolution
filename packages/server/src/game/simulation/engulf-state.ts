@@ -46,6 +46,23 @@ export function engulfedPreyOf(world: WorldState, predator: CellRecord): CellRec
   return predator.engulfingCellId === null ? undefined : findCell(world, predator.engulfingCellId);
 }
 
+/**
+ * A cell the world took out of an engulf this tick (docs/ECOLOGY.md §6.1 step 1, §6.3): the chain
+ * payout, a removed predator, the results phase. It is left where its predator was — usually inside
+ * the cell that just ate it — so it is unclaimable for the rest of the tick and gets one movement
+ * step before anyone may start on it. Only `aborted` waits: a prey that escaped, was spat out or was
+ * released on the ratio moved itself out and another predator may start on it at once
+ * (§6.3, "spat out, still overlapping"). Without this the claim would fall to cell-id order — the
+ * freed cell would be re-taken on the same tick whenever the top predator held the lower id.
+ */
+export function wasAbortedThisTick(cell: CellRecord, tick: number): boolean {
+  return (
+    cell.lastRelease !== null &&
+    cell.lastRelease.reason === ENGULF_RELEASE_REASON.aborted &&
+    cell.lastRelease.tick === tick
+  );
+}
+
 /** True while `cell` is carried inside its predator (docs/ECOLOGY.md §6.1, from the seal on). */
 export function isCarried(cell: CellRecord): boolean {
   return cell.carriedOffsetX !== null && cell.carriedOffsetY !== null;
