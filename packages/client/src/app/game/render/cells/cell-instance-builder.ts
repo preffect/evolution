@@ -9,6 +9,7 @@ import {
   ENGULF_WARNING_RING_MIN_PX,
   ENGULF_WARNING_RING_RADII,
   FAR_DOT_HALO_RADII,
+  NUCLEUS_RADIUS,
   PREY_UNDER_FILM_ALPHA,
   SPRINT_RIM_BRIGHTNESS,
   WARNING_RING_STROKE_PX,
@@ -41,6 +42,8 @@ export interface CellInstanceInput {
 const REST_RIM_BRIGHTNESS = 1;
 const NO_WARNING_RING = 0;
 const FULL_PASS_B = 1;
+/** No nucleus ramp: the nucleoid and the protocell have no disc (VISUAL-STYLE §3). */
+const NO_NUCLEUS_DISC = 0;
 /** A seat with no bead entry still shows one bead (VISUAL-STYLE §2). */
 const DEFAULT_BEADS = 1;
 
@@ -132,6 +135,7 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     rimBrightness: terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS,
     nucleusOffsetX: input.nucleusOffset.x,
     nucleusOffsetY: input.nucleusOffset.y,
+    nucleusDiscRadii: traits.hasNucleus ? NUCLEUS_RADIUS : NO_NUCLEUS_DISC,
     haloKind: traits.haloKind,
     beadCount: lod.hasTells ? (SEAT_MARK_BEADS[view.avatarIndex] ?? DEFAULT_BEADS) : 0,
     isOwn: input.isOwn && lod.hasTells,

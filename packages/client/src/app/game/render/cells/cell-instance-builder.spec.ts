@@ -7,6 +7,7 @@ import {
   FAR_DOT_HALO_RADII,
   FORM_ID,
   HALO_KIND,
+  NUCLEUS_RADIUS,
   PREY_UNDER_FILM_ALPHA,
   SPRINT_RIM_BRIGHTNESS,
   WARNING_RING_STROKE_PX,
@@ -80,6 +81,7 @@ describe('buildCellInstance', () => {
       passBAlpha: 1,
       rimDash: 0,
       ciliaPhase: 0.3,
+      nucleusDiscRadii: 0,
     });
     expect(instance.beadCount).toBe(SEAT_MARK_BEADS[2]);
     expect(instance.bumps).toHaveLength(8);
@@ -111,6 +113,24 @@ describe('buildCellInstance', () => {
     });
     const far = buildCellInstance(input({ view, traits, lod: cellLodFor(4) }));
     expect(far).toMatchObject({ ciliaCount: 0, wallScale: 0, warningRingPx: 0 });
+  });
+
+  it('sizes the nucleus ramp disc to NUCLEUS_RADIUS with a nucleus and to 0 for a nucleoid or protocell (#231)', () => {
+    const withNucleus = createTestCellView({
+      radius: 40,
+      stage: CELL_STAGE.eukaryote,
+      traits: [{ traitId: 'nuclear_envelope', tier: 1 }],
+    });
+    const traits = summariseCellTraits(withNucleus);
+    expect(buildCellInstance(input({ view: withNucleus, traits })).nucleusDiscRadii).toBe(NUCLEUS_RADIUS);
+    const mid = buildCellInstance(input({ view: withNucleus, traits, lod: cellLodFor(12) }));
+    expect(mid.nucleusDiscRadii).toBe(NUCLEUS_RADIUS);
+    expect(mid.lodBlend).toBe(0);
+    expect(buildCellInstance(input()).nucleusDiscRadii).toBe(0);
+    const protocell = createTestCellView({ radius: 40, stage: CELL_STAGE.protocell });
+    expect(buildCellInstance(input({ view: protocell, traits: summariseCellTraits(protocell) })).nucleusDiscRadii).toBe(
+      0,
+    );
   });
 
   it('films a prey under its predator and a ghost, and keeps the warning ring only with the tells', () => {

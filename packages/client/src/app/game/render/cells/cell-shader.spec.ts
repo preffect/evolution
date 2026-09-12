@@ -2,9 +2,25 @@
 // what a string can prove: every instance field is read from the column the packing puts it in,
 // every uniform the mesh sets is declared, both passes assemble, and float literals are floats.
 import { describe, expect, it } from 'vitest';
+import {
+  NUCLEUS_RAMP_ALPHA,
+  NUCLEUS_RAMP_FOCUS_RADII,
+  NUCLEUS_RAMP_MID_STOP,
+  NUCLEUS_RAMP_REACH_RADII,
+  PALETTE_SHADE,
+} from '../constants';
 import { instanceFieldLocation, instanceScalarFields } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
 import { CELL_UNIFORM, glslFloat, instanceRead } from './cell-shader-source';
+
+/** The body of one GLSL function in the fragment source, from its signature to its closing brace. */
+function functionBody(name: string): string {
+  const match = new RegExp(`vec4 ${name}\\(Instance inst, Frame frame[^)]*\\) \\{([\\s\\S]*?)\\n\\}`).exec(
+    CELL_FRAGMENT_SOURCE,
+  );
+  if (match === null) throw new Error(`${name} is not in the fragment source`);
+  return match[1]!;
+}
 
 describe('cell shader source', () => {
   it('reads every instance field from the column the packing puts it in', () => {
@@ -25,6 +41,31 @@ describe('cell shader source', () => {
     expect(CELL_FRAGMENT_SOURCE).toContain('fragColour = acc * inst.alpha;');
     expect(CELL_FRAGMENT_SOURCE.startsWith('#version 300 es')).toBe(true);
     expect(CELL_VERTEX_SOURCE.startsWith('#version 300 es')).toBe(true);
+  });
+
+  it('defines the nucleus and nucleus-dark shade columns from the palette table (#231)', () => {
+    expect(CELL_FRAGMENT_SOURCE).toContain(`#define SHADE_NUCLEUS ${PALETTE_SHADE.nucleus}`);
+    expect(CELL_FRAGMENT_SOURCE).toContain(`#define SHADE_NUCLEUS_DARK ${PALETTE_SHADE.nucleusDark}`);
+  });
+
+  it('paints the nucleus ramp last in pass A: rim → nucleus → nucleus dark, anti-aliased, no lodBlend, gone at radius 0', () => {
+    const band = functionBody('nucleusRamp');
+    expect(band).toContain('if (inst.nucleusDiscRadii <= 0.0) return acc;');
+    expect(band).toContain('inst.nucleusDiscRadii * inst.r * inst.pulse');
+    expect(band).toContain('inst.nucleus * inst.r');
+    expect(band).toContain('smoothstep(discWu - frame.aa, discWu + frame.aa, length(fromNucleus))');
+    expect(band).toContain(`${glslFloat(NUCLEUS_RAMP_FOCUS_RADII)} * discWu`);
+    expect(band).toContain(`${glslFloat(NUCLEUS_RAMP_REACH_RADII)} * discWu`);
+    expect(band).toContain(
+      `mix(rimColour(inst), shade(inst, SHADE_NUCLEUS), smoothstep(0.0, ${glslFloat(NUCLEUS_RAMP_MID_STOP)}, t))`,
+    );
+    expect(band).toContain(`shade(inst, SHADE_NUCLEUS_DARK), smoothstep(${glslFloat(NUCLEUS_RAMP_MID_STOP)}, 1.0, t)`);
+    expect(band).toContain(`disc * ${glslFloat(NUCLEUS_RAMP_ALPHA)}`);
+    expect(band).not.toContain('lodBlend');
+    const bodyPass = functionBody('bodyPass');
+    expect(bodyPass.trim().endsWith('return nucleusRamp(inst, frame, acc);')).toBe(true);
+    expect(bodyPass.indexOf('cytoskeletonFilaments')).toBeLessThan(bodyPass.indexOf('nucleusRamp'));
+    expect(bodyPass.indexOf('return farDot')).toBeLessThan(bodyPass.indexOf('nucleusRamp'));
   });
 
   it('never names a variable after a GLSL reserved word (the jsdom tier cannot compile the source)', () => {
