@@ -1,5 +1,5 @@
-// docs/RENDERING.md §9: slot centres inside 0.92 and outside the keep-out, outside the nucleus
-// disc, gap held, append-only across tiers, seeded.
+// docs/RENDERING.md §9: slot centres inside 0.92 and outside the keep-out, the sprite body inside
+// the membrane (#243), outside the nucleus disc, gap held, append-only across tiers, seeded.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, createSeededRandom } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
@@ -15,7 +15,7 @@ import {
 } from '../constants';
 import { summariseCellTraits } from './cell-traits';
 import { NUCLEUS_KINDS } from './organelle-kinds';
-import { layoutOrganelles, type OrganelleSlot } from './organelle-layout';
+import { layoutOrganelles, membraneKeepOutRadius, type OrganelleSlot } from './organelle-layout';
 
 const TEST_SEED = 42;
 const TOLERANCE = 1e-9;
@@ -67,6 +67,26 @@ describe('layoutOrganelles', () => {
         Math.max(NUCLEUS_RADIUS, NUCLEOID_RADIUS),
       );
     }
+  });
+
+  it('keeps every sprite body inside the membrane: centre + own radius ≤ 1 r, for every seed (#243)', () => {
+    for (let seed = 0; seed < 50; seed += 1) {
+      const slots = layoutOrganelles(eukaryote(3), createSeededRandom(seed));
+      for (const slot of slots.filter((candidate) => !isNucleus(candidate))) {
+        expect(distanceOf(slot) + slot.size / 2).toBeLessThanOrEqual(1 + TOLERANCE);
+        expect(distanceOf(slot)).toBeLessThanOrEqual(membraneKeepOutRadius(slot.size) + TOLERANCE);
+      }
+      const bladder = slots.find((slot) => slot.kind === ORGANELLE_KIND.toxinVacuole)!;
+      expect(distanceOf(bladder)).toBeCloseTo(DNA_RING_KEEP_OUT_FRACTION, 9);
+    }
+  });
+
+  it('keeps out by the margin for a small sprite and by the sprite radius for a large one, never inside the DNA ring', () => {
+    expect(membraneKeepOutRadius(0.1)).toBeCloseTo(1 - ORGANELLE_MEMBRANE_MARGIN, 12);
+    expect(membraneKeepOutRadius(2 * ORGANELLE_MEMBRANE_MARGIN)).toBeCloseTo(1 - ORGANELLE_MEMBRANE_MARGIN, 12);
+    expect(membraneKeepOutRadius(0.34)).toBeCloseTo(1 - 0.17, 12);
+    expect(membraneKeepOutRadius(0.68)).toBeCloseTo(DNA_RING_KEEP_OUT_FRACTION, 12);
+    expect(membraneKeepOutRadius(0.9)).toBe(DNA_RING_KEEP_OUT_FRACTION);
   });
 
   it('measures the nucleus disc from the off-centre nucleus, for every seed', () => {

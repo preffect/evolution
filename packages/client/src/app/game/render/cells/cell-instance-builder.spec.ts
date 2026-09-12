@@ -40,7 +40,7 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     speedRatio: 0,
     nucleusOffset: { x: -0.1, y: -0.1 },
     isOwn: false,
-    cosmetic: { stripRow: 2, phase: 0.25 },
+    cosmetic: { stripRow: 2, phase: 0.25, speckleSeed: 0.6 },
     alpha: 1,
     warningRingPx: 0,
     ciliaPhase: 0.3,
@@ -82,6 +82,7 @@ describe('buildCellInstance', () => {
       rimDash: 0,
       ciliaPhase: 0.3,
       nucleusDiscRadii: 0,
+      speckleSeed: 0.6,
     });
     expect(instance.beadCount).toBe(SEAT_MARK_BEADS[2]);
     expect(instance.bumps).toHaveLength(8);
@@ -141,7 +142,6 @@ describe('buildCellInstance', () => {
     expect(ringed.warningRingPx).toBe(200);
     expect(ringed.quadExtentRadii).toBeCloseTo((200 + WARNING_RING_STROKE_PX) / 40, 9);
     expect(buildCellInstance(input({ warningRingPx: 60 })).quadExtentRadii).toBe(CELL_QUAD_EXTENT_RADII);
-    expect(buildCellInstance(input({ warningRingPx: 60, lod: cellLodFor(4) })).warningRingPx).toBe(0);
   });
 
   it('brightens the rim on sprint and marks the own cell only while the tells are drawn', () => {
@@ -171,13 +171,20 @@ describe('warningRingPxFor', () => {
   const giant = createTestCellView({ id: entityId('giant'), mass: 200, radius: 40 });
 
   it('is the predator’s screen radius × 1.3 with the 24 px floor when it can engulf the own cell', () => {
-    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, 40)).toBe(52);
-    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, 10)).toBe(ENGULF_WARNING_RING_MIN_PX);
+    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, cellLodFor(40))).toBe(52);
+    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, cellLodFor(10))).toBe(ENGULF_WARNING_RING_MIN_PX);
   });
 
   it('is 0 for the own cell itself, for a cell that cannot engulf it and with no own cell', () => {
-    expect(warningRingPxFor(own, own, DEFAULT_BALANCE, 40)).toBe(0);
-    expect(warningRingPxFor(own, giant, DEFAULT_BALANCE, 40)).toBe(0);
-    expect(warningRingPxFor(giant, null, DEFAULT_BALANCE, 40)).toBe(0);
+    expect(warningRingPxFor(own, own, DEFAULT_BALANCE, cellLodFor(40))).toBe(0);
+    expect(warningRingPxFor(own, giant, DEFAULT_BALANCE, cellLodFor(40))).toBe(0);
+    expect(warningRingPxFor(giant, null, DEFAULT_BALANCE, cellLodFor(40))).toBe(0);
+  });
+
+  it('gates the ring on the LOD itself, so a far dot never grows its quad for an undrawn ring (#243)', () => {
+    const far = cellLodFor(4);
+    expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, far)).toBe(0);
+    const base = input({ lod: far, warningRingPx: warningRingPxFor(giant, own, DEFAULT_BALANCE, far) });
+    expect(buildCellInstance(base).quadExtentRadii).toBe(quadExtentRadii(base.terms, far));
   });
 });

@@ -25,7 +25,7 @@ export interface CellLayerOutputs {
   /** Living cells packed this frame; the ghosts of absorbed prey are counted apart. */
   readonly visibleCells: number;
   readonly ghosts: number;
-  /** Organelle sprites placed this frame (the bench's sprite count, docs/RENDERING.md §6). */
+  /** Organelle sprites placed this frame, the ghosts' included (the bench's sprite count, docs/RENDERING.md §6). */
   readonly organelleSprites: number;
   /** Flagellum tails stroked this frame (one Graphics, docs/RENDERING.md §3). */
   readonly flagella: number;

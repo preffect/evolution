@@ -4,6 +4,7 @@ import {
   createTestCellAbsorbedEffect,
   createTestCellView,
   createTestEatEffect,
+  createTestGhostSource,
   createTestLevelUpEffect,
   createTestRespawnEffect,
 } from '../../../../testing/builders';
@@ -11,6 +12,12 @@ import { cellClipStarts, startAbsorbedGhosts } from './cell-effects';
 import { GhostRegistry } from './ghost-cells';
 
 const lookup = (views: CellView[]) => (id: string) => views.find((view) => view.id === id);
+/** Every view as a ghost source with the same seed, so a test can tell what the ghost carried over. */
+const TEST_SPECKLE_SEED = 0.37;
+const sourceLookup = (views: CellView[]) => (id: string) => {
+  const view = lookup(views)(id);
+  return view === undefined ? undefined : createTestGhostSource({ view, speckleSeed: TEST_SPECKLE_SEED });
+};
 
 describe('cellClipStarts', () => {
   it('names the eat clip aimed at the mote, the level-up and the respawn clips on their cells', () => {
@@ -44,12 +51,13 @@ describe('startAbsorbedGhosts', () => {
     const predator = createTestCellView({ id: entityId('p'), x: 0, y: 0, radius: 40 });
     const ghosts = new GhostRegistry();
     const absorbed = createTestCellAbsorbedEffect({ cellId: prey.id, predatorCellId: predator.id });
-    expect(startAbsorbedGhosts([absorbed], lookup([prey, predator]), ghosts, 100)).toBe(1);
+    expect(startAbsorbedGhosts([absorbed], sourceLookup([prey, predator]), ghosts, 100)).toBe(1);
     const ghost = ghosts.active(100)[0]!;
     expect(ghost.view.radius).toBe(12);
     expect(ghost.angleFromPredator).toBe(0);
+    expect(ghost.speckleSeed).toBe(TEST_SPECKLE_SEED);
     const unknown = createTestCellAbsorbedEffect({ cellId: entityId('nobody'), predatorCellId: predator.id });
-    expect(startAbsorbedGhosts([unknown, createTestEatEffect()], lookup([predator]), ghosts, 100)).toBe(0);
+    expect(startAbsorbedGhosts([unknown, createTestEatEffect()], sourceLookup([predator]), ghosts, 100)).toBe(0);
     expect(ghosts.size).toBe(1);
   });
 
@@ -57,7 +65,7 @@ describe('startAbsorbedGhosts', () => {
     const prey = createTestCellView({ id: entityId('prey'), x: 0, y: 5 });
     const ghosts = new GhostRegistry();
     const absorbed = createTestCellAbsorbedEffect({ cellId: prey.id, predatorCellId: entityId('gone'), x: 0, y: 0 });
-    startAbsorbedGhosts([absorbed], lookup([prey]), ghosts, 0);
+    startAbsorbedGhosts([absorbed], sourceLookup([prey]), ghosts, 0);
     expect(ghosts.active(0)[0]!.angleFromPredator).toBeCloseTo(Math.PI / 2, 9);
   });
 });

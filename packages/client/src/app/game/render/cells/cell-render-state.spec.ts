@@ -188,13 +188,25 @@ describe('CellRenderState', () => {
     expect(moving.instance.ciliaPhase).toBeCloseTo(CILIA_BEAT_IDLE_HZ * 0.5 + CILIA_BEAT_HZ * 0.1, 9);
   });
 
-  it('draws the same cosmetic phase and slots for the same seed and id', () => {
+  it('draws the same cosmetic phase, speckle seed and slots for the same seed and id', () => {
     const first = state().update(eukaryote(), context(), REST_DEFORMATION);
     const second = state().update(eukaryote(), context(), REST_DEFORMATION);
     expect(second.instance).toEqual(first.instance);
     expect(second.organelles).toEqual(first.organelles);
-    expect(state('other').update(eukaryote(), context(), REST_DEFORMATION).instance.stripPhase).not.toBe(
-      first.instance.stripPhase,
-    );
+    const other = state('other').update(eukaryote(), context(), REST_DEFORMATION).instance;
+    expect(other.stripPhase).not.toBe(first.instance.stripPhase);
+    expect(other.speckleSeed).not.toBe(first.instance.speckleSeed);
+    expect(first.instance.speckleSeed).toBeGreaterThanOrEqual(0);
+    expect(first.instance.speckleSeed).toBeLessThan(1);
+  });
+
+  it('offers what a ghost is built from: the last drawn view, the slots and the speckle seed (#243)', () => {
+    const subject = state();
+    expect(subject.ghostSource).toBeNull();
+    const output = subject.update(eukaryote(), context(), REST_DEFORMATION);
+    const source = subject.ghostSource!;
+    expect(source.view.id).toBe('e');
+    expect(source.slots).toEqual(output.organelles.map((placement) => placement.slot));
+    expect(source.speckleSeed).toBe(output.instance.speckleSeed);
   });
 });

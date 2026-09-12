@@ -28,10 +28,11 @@ export interface CellInstanceInput {
   /** The mapped nucleus slot, fractions of `r`; the origin when the cell has no nucleus sprite. */
   readonly nucleusOffset: { readonly x: number; readonly y: number };
   readonly isOwn: boolean;
-  readonly cosmetic: { readonly stripRow: number; readonly phase: number };
+  /** The strip row, the phase in turns and the speckle seed, drawn once from the cell's cosmetic fork. */
+  readonly cosmetic: { readonly stripRow: number; readonly phase: number; readonly speckleSeed: number };
   /** The whole instance's alpha (cell-deformation.ts). */
   readonly alpha: number;
-  /** The warning ring's px radius (`warningRingPxFor`), 0 for none. */
+  /** The warning ring's px radius (`warningRingPxFor`, already 0 below the far LOD threshold), 0 for none. */
   readonly warningRingPx: number;
   /** The cilia beat's accumulated phase in turns. */
   readonly ciliaPhase: number;
@@ -47,15 +48,21 @@ const NO_NUCLEUS_DISC = 0;
 /** A seat with no bead entry still shows one bead (VISUAL-STYLE §2). */
 const DEFAULT_BEADS = 1;
 
-/** `ENGULF_WARNING_RING_RADII × r_px` with the px floor when `cell` can engulf `own`; 0 otherwise (or at far LOD). */
+/**
+ * `ENGULF_WARNING_RING_RADII × r_px` with the px floor when `cell` can engulf `own` and the LOD still draws
+ * the tells; 0 otherwise. The LOD gate lives here, not in the packing, so the quad never grows for an
+ * undrawn ring (a far dot has no ring and no ring-sized quad).
+ */
 export function warningRingPxFor(
   cell: CellView,
   own: CellView | null,
   balance: Pick<BalanceConfig, 'absorption'>,
-  screenRadiusPx: number,
+  lod: Pick<CellLod, 'hasTells' | 'screenRadiusPx'>,
 ): number {
-  if (own === null || own.id === cell.id || !canEngulf(cell, own, balance.absorption)) return NO_WARNING_RING;
-  return Math.max(ENGULF_WARNING_RING_RADII * screenRadiusPx, ENGULF_WARNING_RING_MIN_PX);
+  if (!lod.hasTells || own === null || own.id === cell.id || !canEngulf(cell, own, balance.absorption)) {
+    return NO_WARNING_RING;
+  }
+  return Math.max(ENGULF_WARNING_RING_RADII * lod.screenRadiusPx, ENGULF_WARNING_RING_MIN_PX);
 }
 
 /** The quad reaches the profile's maximum, the far-dot halo or the warning ring, never less than the §2 floor. */
@@ -110,13 +117,13 @@ function tellFields(
   };
 }
 
-/** The film over an engulfed prey or a ghost, the ghost's dash and the warning ring (only while the tells draw). */
+/** The film over an engulfed prey or a ghost, the ghost's dash and the warning ring (`warningRingPxFor` gated it). */
 function filmFields(input: CellInstanceInput): Pick<CellInstance, 'passBAlpha' | 'rimDash' | 'warningRingPx'> {
   const isFilmed = input.view.engulfedByCellId !== null || input.rimDash > 0;
   return {
     passBAlpha: isFilmed ? PREY_UNDER_FILM_ALPHA : FULL_PASS_B,
     rimDash: input.rimDash,
-    warningRingPx: input.lod.hasTells ? input.warningRingPx : NO_WARNING_RING,
+    warningRingPx: input.warningRingPx,
   };
 }
 
@@ -144,6 +151,7 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     alpha: input.alpha,
     stripRow: input.cosmetic.stripRow,
     stripPhase: input.cosmetic.phase,
+    speckleSeed: input.cosmetic.speckleSeed,
     lobesScale: terms.strip?.lobesScale ?? 0,
     jitterAmplitude: terms.strip?.jitterAmplitude ?? 0,
     ciliaPhase: input.ciliaPhase,

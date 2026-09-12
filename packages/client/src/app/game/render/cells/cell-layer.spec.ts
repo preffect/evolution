@@ -197,6 +197,37 @@ describe('CellLayer', () => {
     subject.destroy();
   });
 
+  it('places a ghost’s organelle sprites before its predator’s, fading with the ghost’s body (#243)', () => {
+    const subject = new CellLayer(textures);
+    const predator = createTestCellView({ id: entityId('pred'), x: 0, radius: 30 });
+    const prey = createTestCellView({
+      id: entityId('prey'),
+      x: 40,
+      radius: 20,
+      stage: CELL_STAGE.eukaryote,
+      level: LEVEL_SET_WITH_TRAITS,
+      traits: [
+        { traitId: 'nuclear_envelope', tier: 1 },
+        { traitId: 'mitochondrion', tier: 2 },
+      ],
+    });
+    const alone = subject.update(input({ frame: createTestRenderFrame({ cells: [predator] }) }));
+    const both = subject.update(input({ frame: createTestRenderFrame({ cells: [predator, prey] }) }));
+    const preySprites = both.organelleSprites - alone.organelleSprites;
+    expect(preySprites).toBeGreaterThan(0);
+    const absorbed = createTestCellAbsorbedEffect({ cellId: prey.id, predatorCellId: predator.id, x: 40, y: 0 });
+    subject.update(input({ frame: createTestRenderFrame({ cells: [predator], effects: [absorbed] }), nowMs: 0 }));
+    const ghosted = subject.update(input({ frame: createTestRenderFrame({ cells: [predator] }), nowMs: 200 }));
+    expect(ghosted).toMatchObject({ visibleCells: 1, ghosts: 1, organelleSprites: both.organelleSprites });
+    const sprites = subject.container.children[2]!.children;
+    expect(sprites.slice(0, preySprites).every((sprite) => sprite.alpha > 0 && sprite.alpha < 1)).toBe(true);
+    expect(sprites.slice(0, preySprites).map((sprite) => sprite.alpha)).toEqual(
+      Array.from({ length: preySprites }, () => packed(subject, 0, 'alpha')),
+    );
+    expect(packed(subject, 0, 'rimDash')).toBe(1);
+    subject.destroy();
+  });
+
   it('strokes a tail for a flagellate cell and none for a far dot', () => {
     const subject = new CellLayer(textures);
     const swimmer = createTestCellView({ radius: 10, traits: [{ traitId: 'simple_flagellum', tier: 3 }] });
