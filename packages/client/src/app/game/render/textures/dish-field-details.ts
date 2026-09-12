@@ -1,7 +1,8 @@
-// The field's line details (sheet 02): the three caustic sweeps across the light pool, the mire
-// strands scattered over each gel patch and the stage scratches outside the wall. All are drawn
-// into the 0.33 px/wu field, so a stroke thinner than `FIELD_MIN_STROKE_TEXELS` is widened to that
-// and read by its alpha alone; the per-band detail sprites of VISUAL-STYLE §8 are #223's.
+// The line details of the field and the light pool (sheet 02): the three caustic sweeps across the
+// pool (light-pool-bake.ts), the mire strands scattered over each gel patch and the stage scratches
+// outside the wall. All are drawn into a coarse bake (the 0.33 px/wu field, the pool at 0.52 × 0.67
+// texel/wu), so a stroke thinner than `FIELD_MIN_STROKE_TEXELS` is widened to that and read by its
+// alpha alone; the per-band detail sprites of VISUAL-STYLE §8 are #223's.
 
 import { DISH_RADIUS, RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';
@@ -27,9 +28,13 @@ export interface FieldPoint {
   readonly y: number;
 }
 
-/** The texture's scale: wu to px, and the widest a hairline can go under the texel floor. */
+/**
+ * The texture's scale: wu to px on x (stroke widths follow it), and on y when the bake maps the axes
+ * apart (the light pool, RENDERING §6.1); `pxPerWuY` defaults to `pxPerWu`.
+ */
 export interface FieldScale {
   readonly pxPerWu: number;
+  readonly pxPerWuY?: number;
 }
 
 /** A stroke width in px for `widthWu`, never thinner than the texel floor. */
@@ -39,12 +44,13 @@ export function fieldStrokePx(widthWu: number, scale: FieldScale): number {
 
 /** The caustics: `CAUSTIC_SWEEPS` as open cubic curves around `pool`, round-capped, at `CAUSTIC_ALPHA`. */
 export function paintCaustics(context: BakeContext2D, pool: FieldPoint, scale: FieldScale): void {
+  const pxPerWuY = scale.pxPerWuY ?? scale.pxPerWu;
   context.strokeStyle = hexWithAlpha(LIGHT_ACCENT, CAUSTIC_ALPHA);
   context.lineCap = 'round';
   for (const sweep of CAUSTIC_SWEEPS) {
     const toField = (point: FieldPoint) => ({
       x: pool.x + point.x * scale.pxPerWu,
-      y: pool.y + point.y * scale.pxPerWu,
+      y: pool.y + point.y * pxPerWuY,
     });
     const [start, control1, control2, end] = [sweep.start, sweep.control1, sweep.control2, sweep.end].map(toField);
     context.lineWidth = fieldStrokePx(sweep.widthWu, scale);

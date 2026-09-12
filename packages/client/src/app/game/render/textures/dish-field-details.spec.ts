@@ -39,6 +39,24 @@ describe('paintCaustics', () => {
     expect(context.lineCap).toBe('round');
     expect(context.lineWidth).toBe(fieldStrokePx(CAUSTIC_SWEEPS.at(-1)!.widthWu, FIELD_SCALE));
   });
+
+  it('maps y through pxPerWuY when the scale carries one and through pxPerWu when it does not', () => {
+    const pool = { x: 100, y: 100 };
+    const uniform = new FakeBakeContext();
+    paintCaustics(uniform, pool, SPRITE_SCALE);
+    const anisotropic = new FakeBakeContext();
+    paintCaustics(anisotropic, pool, { pxPerWu: SPRITE_SCALE.pxPerWu, pxPerWuY: SPRITE_SCALE.pxPerWu * 2 });
+    const [sweep] = CAUSTIC_SWEEPS;
+    expect(uniform.argumentsOf('moveTo')[0]).toEqual([
+      pool.x + sweep.start.x * SPRITE_SCALE.pxPerWu,
+      pool.y + sweep.start.y * SPRITE_SCALE.pxPerWu,
+    ]);
+    expect(anisotropic.argumentsOf('moveTo')[0]).toEqual([
+      pool.x + sweep.start.x * SPRITE_SCALE.pxPerWu,
+      pool.y + sweep.start.y * SPRITE_SCALE.pxPerWu * 2,
+    ]);
+    expect(anisotropic.argumentsOf('stroke')).toEqual(uniform.argumentsOf('stroke'));
+  });
 });
 
 describe('paintMireStrands', () => {

@@ -146,7 +146,7 @@ export class GameRenderer {
     const viewOf = this.viewLookup(frame);
     this.effects.start(frame.effects, viewOf, nowMs);
     this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
-    this.dish.update({ timeSeconds: frame.timeSeconds, camera });
+    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
     const food = this.food.update({
       motes: frame.motes,
       fragments: frame.fragments,

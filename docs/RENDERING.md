@@ -357,7 +357,8 @@ with the vignette: it must sit under the motes, fragments, cells and the vent, a
   for the strokes; `radial-bake.ts` is not used, it has no strokes): a `LIGHT_POOL_TEXTURE_PX` **1024** square
   filled with the `LIGHT_ACCENT` radial `LIGHT_POOL_ALPHA` 0.09 → `LIGHT_POOL_MID` (stop 0.5, alpha 0.03) → 0 at
   the half-size, then the three `CAUSTIC_SWEEPS` at `CAUSTIC_ALPHA` painted across it. **Per-axis mapping:** the
-  half-size (512 texels) is the pool's radii, so x maps at 512 / 980 = 0.52 texel per wu and y at 512 / 760 = 0.67
+  half-size (512 texels) is the pool's radii (`LIGHT_POOL_SHEET_RADII_WU`, sheet 02's 980 × 760 wu, the frame the
+  sweeps' control points are drawn in), so x maps at 512 / 980 = 0.52 texel per wu and y at 512 / 760 = 0.67
   texel per wu (`FieldScale` grows a `pxPerWuY`, defaulting to `pxPerWu`, so `paintCaustics` places each control
   point per axis); the ellipse is then exact and the sprite's non-uniform scale restores the sheet's proportions
   instead of squashing the arcs. Stroke widths take the x factor: 3 / 2 / 1.5 wu → 1.57 / 1.04 / 0.78 texels, and
@@ -375,12 +376,13 @@ with the vignette: it must sit under the motes, fragments, cells and the vent, a
   `LIGHT_POOL_VIEW_RADII.y` × viewport height / zoom wu, anchor 0.5. The constants are cosmetic and live in
   `render/constants/world-render.ts`, never in `shared`: `LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 }` and
   `LIGHT_POOL_VIEW_RADII = { x: 0.51, y: 0.7 }` (fractions of the viewport's width and height, so every aspect
-  keeps sheet 02's look), `LIGHT_POOL_TEXTURE_PX = 1024`.
+  keeps sheet 02's look), `LIGHT_POOL_TEXTURE_PX = 1024`, `LIGHT_POOL_SHEET_RADII_WU = { x: 980, y: 760 }`.
 - **Composition:** normal blend, the alpha lives in the texture; no mask, no filter, no per-frame bake. Dish
   layer order: field, light pool, vent, wall, far particles. The shallows tint is under it in the field texture
   and stacks with it; the vignette (screen root) stays above everything and is 0 at the pool's centre
   (VISUAL-STYLE §1).
-- **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame, no allocation.
+- **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame (the one point
+  `screenToWorld` returns; no texture, buffer or bake work per frame).
 - **Tests:** a fake-context spec (`testing/fake-bake-canvas.ts`, the `dish-texture.spec.ts` pattern): the canvas
   is `LIGHT_POOL_TEXTURE_PX` square; the one radial gradient carries the stops (0, `LIGHT_POOL_ALPHA`),
   (`LIGHT_POOL_MID.stop`, `LIGHT_POOL_MID.alpha`), (1, 0) in `LIGHT_ACCENT`; exactly `CAUSTIC_SWEEPS.length`

@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DISH_RADIUS, RANDOM_STREAM, createSeededRandom, type GelPatchView } from '@evolution/shared';
 import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/fake-bake-canvas';
 import {
-  CAUSTIC_SWEEPS,
   FIELD_TEXTURE_PX,
-  LIGHT_ACCENT,
-  LIGHT_POOL_ALPHA,
   MIRE_STRANDS_PER_PATCH,
   OUTSIDE_DISH,
   OUTSIDE_DISH_ALPHA,
@@ -61,25 +58,21 @@ describe('bakeDishField', () => {
     expect(field.halfExtentWu).toBeGreaterThan(DISH_RADIUS);
   });
 
-  it('paints in sheet-02 order: field, pool and caustics, shallows, vent tint, wall shadow, the outside and its scratches', () => {
+  it('paints in sheet-02 order: field, shallows, vent tint, wall shadow, the outside and its scratches; no pool (§6.1)', () => {
     const { context } = bake([]);
     expect(context.ops[0]).toBe('fillRect');
-    const [pool, shallows, vent, shadow] = context.gradients;
-    expect(pool!.stops[0]!.colour).toBe(hexWithAlpha(LIGHT_ACCENT, LIGHT_POOL_ALPHA));
-    expect(pool!.stops.at(-1)!.colour).toBe(hexWithAlpha(LIGHT_ACCENT, 0));
+    const [shallows, vent, shadow] = context.gradients;
     expect(shallows!.stops[0]!.colour).toBe(hexWithAlpha(ZONE_SHALLOWS, 0));
     expect(shallows!.stops.at(-1)!.colour).toBe(hexWithAlpha(ZONE_SHALLOWS, ZONE_TINT_ALPHA.shallows));
     expect(vent!.stops[0]!.colour).toBe(hexWithAlpha(ZONE_VENT, ZONE_TINT_ALPHA.vent));
     expect(vent!.stops.at(-1)!.colour).toBe(hexWithAlpha(ZONE_VENT, 0));
     expect(shadow!.stops[0]!.colour).toBe(hexWithAlpha(WALL_INNER_SHADOW, 0));
     expect(shadow!.stops.at(-1)!.colour).toBe(hexWithAlpha(WALL_INNER_SHADOW, WALL_INNER_SHADOW_ALPHA));
-    expect(context.gradients).toHaveLength(4);
-    expect(context.count('bezierCurveTo')).toBe(CAUSTIC_SWEEPS.length);
+    expect(context.gradients).toHaveLength(3);
+    expect(context.count('bezierCurveTo')).toBe(0);
     expect(context.count('ellipse')).toBe(0);
     const outsideFill = context.ops.lastIndexOf('fill');
-    expect(context.ops.slice(0, outsideFill).filter((operation) => operation === 'stroke')).toHaveLength(
-      CAUSTIC_SWEEPS.length,
-    );
+    expect(context.ops.slice(0, outsideFill).filter((operation) => operation === 'stroke')).toHaveLength(0);
     expect(context.ops.slice(outsideFill).filter((operation) => operation === 'stroke')).toHaveLength(
       STAGE_SCRATCHES.count,
     );
@@ -89,10 +82,7 @@ describe('bakeDishField', () => {
   it('keeps every zone tint at or under the sheet-02 ceiling and fills the field once, uniformly', () => {
     const { context } = bake();
     const isZoneTint = (colour: string) => !colour.startsWith(`rgba(0, 0, 0`);
-    const zoneStops = context.gradients
-      .slice(1)
-      .flatMap((gradient) => gradient.stops)
-      .filter((stop) => isZoneTint(stop.colour));
+    const zoneStops = context.gradients.flatMap((gradient) => gradient.stops).filter((stop) => isZoneTint(stop.colour));
     expect(zoneStops.length).toBeGreaterThan(0);
     for (const stop of zoneStops) {
       const alpha = Number(/, ([\d.]+)\)$/.exec(stop.colour)?.[1]);
@@ -112,7 +102,7 @@ describe('bakeDishField', () => {
 
   it('places the strands and scratches from the cosmetic stream: same seed, same strokes; another seed, other strokes', () => {
     const first = bakeStrokes(1);
-    expect(first).toHaveLength(CAUSTIC_SWEEPS.length + PATCHES.length * MIRE_STRANDS_PER_PATCH + STAGE_SCRATCHES.count);
+    expect(first).toHaveLength(PATCHES.length * MIRE_STRANDS_PER_PATCH + STAGE_SCRATCHES.count);
     expect(first).toEqual(bakeStrokes(1));
     expect(first).not.toEqual(bakeStrokes(2));
   });

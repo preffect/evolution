@@ -1,5 +1,6 @@
-// A recording Canvas 2D for the texture bakes (docs/TESTING.md §4): every call is logged so a test
-// can count a bake's layers and check its gradients without a DOM canvas.
+// A recording Canvas 2D for the texture bakes (docs/TESTING.md §4): every call is logged with its
+// numeric arguments so a test can count a bake's layers, read where its curves go and check its
+// gradients without a DOM canvas.
 
 import type {
   BakeCanvas,
@@ -10,13 +11,23 @@ import type {
 
 export interface RecordedGradient extends BakeGradient {
   readonly kind: 'radial' | 'linear';
+  /** The `create…Gradient` arguments: `x0, y0, r0, x1, y1, r1` for a radial, `x0, y0, x1, y1` for a linear. */
+  readonly geometry: readonly number[];
   readonly stops: { offset: number; colour: string }[];
+}
+
+/** One logged call: its name and the numbers it was given (a `stroke` records the line width in force). */
+export interface RecordedCall {
+  readonly name: string;
+  readonly args: readonly number[];
 }
 
 const PAINT_OPERATIONS = new Set(['fill', 'stroke', 'fillRect']);
 
 export class FakeBakeContext implements BakeContext2D {
+  /** Every call by name, in order; `calls` carries the same sequence with its arguments. */
   readonly ops: string[] = [];
+  readonly calls: RecordedCall[] = [];
   readonly gradients: RecordedGradient[] = [];
   fillStyle: string | BakeGradient | CanvasPattern = '';
   strokeStyle: string | BakeGradient | CanvasPattern = '';
@@ -24,8 +35,9 @@ export class FakeBakeContext implements BakeContext2D {
   lineCap: 'butt' | 'round' | 'square' = 'butt';
   globalAlpha = 1;
 
-  private log(name: string): void {
+  private log(name: string, args: readonly number[] = []): void {
     this.ops.push(name);
+    this.calls.push({ name, args });
   }
 
   save(): void {
@@ -34,14 +46,14 @@ export class FakeBakeContext implements BakeContext2D {
   restore(): void {
     this.log('restore');
   }
-  translate(): void {
-    this.log('translate');
+  translate(...args: number[]): void {
+    this.log('translate', args);
   }
-  scale(): void {
-    this.log('scale');
+  scale(...args: number[]): void {
+    this.log('scale', args);
   }
-  rotate(): void {
-    this.log('rotate');
+  rotate(...args: number[]): void {
+    this.log('rotate', args);
   }
   beginPath(): void {
     this.log('beginPath');
@@ -49,47 +61,51 @@ export class FakeBakeContext implements BakeContext2D {
   closePath(): void {
     this.log('closePath');
   }
-  moveTo(): void {
-    this.log('moveTo');
+  moveTo(...args: number[]): void {
+    this.log('moveTo', args);
   }
-  lineTo(): void {
-    this.log('lineTo');
+  lineTo(...args: number[]): void {
+    this.log('lineTo', args);
   }
-  quadraticCurveTo(): void {
-    this.log('quadraticCurveTo');
+  quadraticCurveTo(...args: number[]): void {
+    this.log('quadraticCurveTo', args);
   }
-  bezierCurveTo(): void {
-    this.log('bezierCurveTo');
+  bezierCurveTo(...args: number[]): void {
+    this.log('bezierCurveTo', args);
   }
-  arc(): void {
-    this.log('arc');
+  arc(...args: (number | boolean | undefined)[]): void {
+    this.log(
+      'arc',
+      args.map((argument) => Number(argument)),
+    );
   }
-  ellipse(): void {
-    this.log('ellipse');
+  ellipse(...args: number[]): void {
+    this.log('ellipse', args);
   }
-  rect(): void {
-    this.log('rect');
+  rect(...args: number[]): void {
+    this.log('rect', args);
   }
   fill(): void {
     this.log('fill');
   }
   stroke(): void {
-    this.log('stroke');
+    this.log('stroke', [this.lineWidth]);
   }
-  fillRect(): void {
-    this.log('fillRect');
+  fillRect(...args: number[]): void {
+    this.log('fillRect', args);
   }
-  createRadialGradient(): RecordedGradient {
-    return this.gradient('radial');
+  createRadialGradient(...args: number[]): RecordedGradient {
+    return this.gradient('radial', args);
   }
-  createLinearGradient(): RecordedGradient {
-    return this.gradient('linear');
+  createLinearGradient(...args: number[]): RecordedGradient {
+    return this.gradient('linear', args);
   }
 
-  private gradient(kind: RecordedGradient['kind']): RecordedGradient {
-    this.log(`${kind}Gradient`);
+  private gradient(kind: RecordedGradient['kind'], geometry: readonly number[]): RecordedGradient {
+    this.log(`${kind}Gradient`, geometry);
     const gradient: RecordedGradient = {
       kind,
+      geometry,
       stops: [],
       addColorStop: (offset, colour) => gradient.stops.push({ offset, colour }),
     };
@@ -105,6 +121,11 @@ export class FakeBakeContext implements BakeContext2D {
   /** How many times an operation was logged. */
   count(operation: string): number {
     return this.ops.filter((candidate) => candidate === operation).length;
+  }
+
+  /** The arguments of every call of `operation`, in order. */
+  argumentsOf(operation: string): (readonly number[])[] {
+    return this.calls.filter((call) => call.name === operation).map((call) => call.args);
   }
 }
 

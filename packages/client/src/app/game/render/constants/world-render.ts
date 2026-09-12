@@ -29,8 +29,6 @@ export const LAYER_NAMES: readonly LayerName[] = [
 // ---- field and dish (sheet 02) ----
 export const FIELD_TEXTURE_PX = 2048;
 export const LIGHT_POOL_ALPHA = 0.09;
-export const LIGHT_POOL_SIZE_WU = { width: 980, height: 760 } as const;
-export const LIGHT_POOL_OFFSET_FRACTION = 0.3;
 export const CAUSTIC_ALPHA = 0.05;
 export const ZONE_TINT_ALPHA = { shallows: 0.16, vent: 0.13, gel: 0.14 } as const;
 export const ZONE_CLOUD_ALPHA = 0.36;
@@ -63,6 +61,16 @@ export const VENT_GLINT_HZ_MAX = 9;
 // ---- the field bake (sheet 02 field, zone and dish-wall tables; docs/RENDERING.md §6) ----
 /** The light pool's middle stop (sheet 02 `light-pool`: 9 % → 3 % at half the radius → 0). */
 export const LIGHT_POOL_MID = { stop: 0.5, alpha: 0.03 } as const;
+
+// ---- the condenser light pool, anchored to the view (docs/VISUAL-STYLE.md §1, docs/RENDERING.md §6.1) ----
+/** The pool's centre as fractions of the viewport's width and height: sheet 02's (380, 200) in its 1920 × 1080 scene. */
+export const LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 } as const;
+/** The pool's radii as fractions of the viewport's width and height: sheet 02's 980 × 760 wu at zoom 1. */
+export const LIGHT_POOL_VIEW_RADII = { x: 0.51, y: 0.7 } as const;
+/** The pool bake's square edge in texels; its half-size is the pool's radius on each axis. */
+export const LIGHT_POOL_TEXTURE_PX = 1024;
+/** Sheet 02's ellipse radii in wu: the frame `CAUSTIC_SWEEPS` are drawn in, mapped per axis onto the bake's half-size. */
+export const LIGHT_POOL_SHEET_RADII_WU = { x: 980, y: 760 } as const;
 /** The caustics (sheet 02): three open cubic sweeps across the pool, control points in wu from its centre. */
 export const CAUSTIC_SWEEPS = [
   {
