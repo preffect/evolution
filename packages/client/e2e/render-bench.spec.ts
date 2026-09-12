@@ -68,10 +68,19 @@ async function canvasHash(page: Page): Promise<string> {
   });
 }
 
-function stepAndSettle(page: Page, ticks: number): Promise<void> {
-  return page
-    .evaluate((count) => (window as DebugWindow).__evolutionDebug?.step(count), ticks)
-    .then(() => page.waitForTimeout(HOLD_WAIT_MS));
+function framesRendered(page: Page): Promise<number> {
+  return page.evaluate(() => (window as DebugWindow).__evolutionDebug?.framesRendered() ?? 0);
+}
+
+/** Steps the scene and waits for the stepped frame to be submitted (seconds each on SwiftShader), not a fixed delay. */
+async function stepAndSettle(page: Page, ticks: number): Promise<void> {
+  const before = await framesRendered(page);
+  await page.evaluate((count) => (window as DebugWindow).__evolutionDebug?.step(count), ticks);
+  await page.waitForFunction(
+    (count) => ((window as DebugWindow).__evolutionDebug?.framesRendered() ?? 0) > count,
+    before,
+    { timeout: BENCH_TEST_TIMEOUT_MS },
+  );
 }
 
 test.describe('renderer smoke on the bench route', () => {
@@ -97,6 +106,7 @@ test.describe('renderer smoke on the bench route', () => {
     const firstTick = await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.renderTick());
     await stepAndSettle(page, 0);
     expect(await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.isPaused())).toBe(true);
+    expect(await canvasHash(page), 'a re-render of the parked tick').toBe(first);
     await stepAndSettle(page, 30);
     expect(await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.renderTick())).toBe(
       (firstTick ?? 0) + 30,
@@ -107,11 +117,10 @@ test.describe('renderer smoke on the bench route', () => {
     await page.goto(`/?bench=${BENCH_SEED}&tick=${(firstTick ?? 0) + 30}&zoom=1`);
     await page.waitForFunction(() => (window as DebugWindow).__evolutionDebug?.renderTick() !== null);
     await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.pause());
-    await page.waitForTimeout(HOLD_WAIT_MS);
+    await stepAndSettle(page, 0);
     const reloaded = await canvasHash(page);
-    await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.step(1));
-    await page.waitForTimeout(HOLD_WAIT_MS);
-    expect(await canvasHash(page)).toBe(reloaded);
+    await stepAndSettle(page, 0);
+    expect(await canvasHash(page), 'the same tick after a fresh load').toBe(reloaded);
   });
 
   test('reports the frame budget in the DOM after the warm-up, under the draw-call ceiling', async ({ page }) => {
