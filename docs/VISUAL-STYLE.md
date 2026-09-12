@@ -224,6 +224,27 @@ reproduces; organelle slot centres never sit inside the nucleus disc, inside `DN
 `UI.md §9`: the own cell's DNA ring band, applied to every cell so a slot is one rule) nor within 8 % r of the
 membrane.
 
+**Nucleus shading (#231, sheet 01 panel A).** The nucleus disc is not a tinted bitmap: the cell shader paints it
+in the body pass, under the nucleus sprite, as a **three-stop radial ramp** from the palette texture's own
+columns, `rim` at the focus → `nucleus` at the middle stop → `nucleusDark` at the edge (Cyan:
+`#a6f4ff → #6fdcef → #167787`, panel A's `nuc-*` gradient, per palette with no new colour). The focus sits
+`NUCLEUS_RAMP_FOCUS_RADII` 0.40 r_n (r_n = the 0.30 r nucleus radius) from the nucleus centre toward
+`LIGHT_DIRECTION_DEG` (panel A's −127° focus rounded to the one light direction, §1), the ramp reaches `NUCLEUS_RAMP_REACH_RADII` 1.4 r_n, the middle stop is
+`NUCLEUS_RAMP_MID_STOP` 0.5 and the disc is `NUCLEUS_RAMP_ALPHA` 0.92 over the cytoplasm (panel A's 0.90–0.95).
+The sprite keeps what is per cell or white — the 0.40 r glow, the 2.3 px rim, the five seeded chromatin spots,
+the nucleolus with its halo, the highlight — and loses its disc fill (`NUCLEUS_BAKE` is retired), so the ramp
+shows through it; the constants live in `render/constants/organelles.ts` beside `NUCLEUS_RADIUS`.
+
+Why the tinted bake read flat: a white bake under one multiplicative tint can reach nothing paler than the
+tint and darkens toward grey (`#6fdcef` at 0.45 luminance is `#32636c`, saturation 0.37 against `#167787`'s
+0.72), so both ends of panel A's ramp were missing and the disc was one mid tone from 44 px up. Per-palette
+colour bakes (the other candidate) were rejected: eight more textures in the sprite layer (`PLAYER_PALETTE_COUNT`
+8; the nucleus has no tier variants, the envelope's pores do), ≈ 1.5 MB more atlas at DPR 2, a rebake on every
+palette change, and a bitmap that is already upsampled at r 140 px at DPR 1. **How it reads:** at 44 px (r_n
+13 px, the own cell for most of a round) the turn from pale to dark spans the disc and the rim is a separate
+line; at 140 px (r_n 42 px, past panel A's own 128 px scale) the ramp is analytic, so nothing softens it; in the mid band
+(r_n 2–6 px) it collapses to the mid tone and the disc stays the stage tell (§6).
+
 ## 4. Organelle vocabulary per trait
 
 The trait's own `visual` string ([`TRAITS.md §3`](./TRAITS.md#3-build-1-catalog-sixteen-traits-fully-specified))
