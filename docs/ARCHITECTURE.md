@@ -443,7 +443,10 @@ measurement that confirms the estimate; #103 records it.
 - **Prediction: one input per tick.** The client's input controller (`input/input-controller.ts`, #184)
   runs its own tick counter at `TICK_HZ` and sends exactly one `GameInput` per client tick with
   `sequence` = client tick; the ticks come from the injected clock through a `FixedStepAccumulator`
-  pumped once per animation frame, so game code owns no timer (`CODE-STANDARDS.md §8`). The
+  pumped once per animation frame, so game code owns no timer (`CODE-STANDARDS.md §8`). The counter
+  never starts below `appliedInputSequenceByPlayer[me]`: a reconnect gives the page a fresh
+  controller against the server's existing player record, and a counter restarted at 1 would have
+  every input dropped as stale (`isStaleInput`, section 3.2). The
   prediction and reconciliation below are **#265**: today the own cell is interpolated like any
   other. On a
   snapshot at tick `T` carrying `appliedInputSequenceByPlayer[me] = S`, the own cell's

@@ -45,6 +45,12 @@ export interface InputDebugState {
   readonly isFullLeaderboardHeld: boolean;
   readonly menuKeyPressCount: number;
   readonly pointerWorldPoint: Vec2 | null;
+  /** A `1` `2` `3` press waiting for an offer to answer. */
+  readonly queuedCardIndex: number | null;
+  /** The offer this controller has already answered (docs/UI.md §3.2: one send per offer). */
+  readonly answeredOfferId: number | null;
+  /** The offer the client model shows as open, so a QA run can tell "no offer" from "not wired". */
+  readonly openOfferId: number | null;
 }
 
 export class InputController {
@@ -107,7 +113,10 @@ export class InputController {
   }
 
   private sendOneTick(world: InputWorldContext): void {
-    this.sequence += 1;
+    // Never behind what the server has already applied: a reconnect hands the page a fresh
+    // controller against the same player record, whose `appliedInputSequence` is far ahead
+    // (docs/ARCHITECTURE.md §4, §5). Normally the applied sequence trails and this is a no-op.
+    this.sequence = Math.max(this.sequence, world.appliedInputSequence) + 1;
     const input = buildGameInput({
       state: this.state,
       sequence: this.sequence,
@@ -128,6 +137,9 @@ export class InputController {
       isFullLeaderboardHeld: this.state.isFullLeaderboardHeld,
       menuKeyPressCount: this.menuKeyPressCountValue,
       pointerWorldPoint: this.pointerWorldPoint(),
+      queuedCardIndex: this.state.queuedCardIndex,
+      answeredOfferId: this.answeredOfferId,
+      openOfferId: this.dependencies.world()?.offer?.offerId ?? null,
     };
   }
 }

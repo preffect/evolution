@@ -18,5 +18,6 @@ export function inputWorldContextOf(store: WorldStore): InputWorldContext | null
     ownCell: ownCell === null ? null : { x: ownCell.x, y: ownCell.y, radiusWu: ownCell.radius },
     offer: snapshot.players[ownPlayerId]?.offer ?? null,
     controls: balance.controls,
+    appliedInputSequence: snapshot.appliedInputSequenceByPlayer[ownPlayerId] ?? 0,
   };
 }

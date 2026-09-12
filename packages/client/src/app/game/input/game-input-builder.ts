@@ -22,6 +22,12 @@ export interface InputWorldContext {
   readonly offer: TraitOfferView | null;
   /** The live steer tunables from `game_state.balance`; the client never keeps its own copy. */
   readonly controls: SteerBalance;
+  /**
+   * The newest `sequence` the server has applied for this player (docs/ARCHITECTURE.md §4). A
+   * reconnect keeps the server's player record but gives the page a fresh controller, so the
+   * controller starts its counter above this or every input is dropped as stale.
+   */
+  readonly appliedInputSequence: number;
 }
 
 export interface GameInputBuildOptions {

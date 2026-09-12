@@ -36,6 +36,7 @@ describe('inputWorldContextOf', () => {
       ownCell: { x: 7, y: 9, radiusWu: 3 },
       offer: null,
       controls: DEFAULT_BALANCE.controls,
+      appliedInputSequence: 0,
     });
   });
 
@@ -49,6 +50,11 @@ describe('inputWorldContextOf', () => {
       players: { [TEST_OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID, offer: OFFER }) },
     });
     expect(inputWorldContextOf(store)?.offer).toEqual(OFFER);
+  });
+
+  it('carries the sequence the server last applied for this player', () => {
+    const store = storeWith({ appliedInputSequenceByPlayer: { [TEST_OWN_PLAYER_ID]: 412 } });
+    expect(inputWorldContextOf(store)?.appliedInputSequence).toBe(412);
   });
 
   it('is null through the results phase, where the server ignores input', () => {

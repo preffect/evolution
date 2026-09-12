@@ -21,7 +21,13 @@ function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
     world:
       worldOverrides === null
         ? null
-        : { ownCell: OWN_CELL, offer: null, controls: DEFAULT_BALANCE.controls, ...worldOverrides },
+        : {
+            ownCell: OWN_CELL,
+            offer: null,
+            controls: DEFAULT_BALANCE.controls,
+            appliedInputSequence: 0,
+            ...worldOverrides,
+          },
   };
   const onMenuKey = vi.fn();
   const controller = new InputController({
@@ -45,6 +51,13 @@ describe('the input controller', () => {
     harness.tick();
     harness.tick();
     expect(harness.sent.map((input) => input.sequence)).toEqual([1, 2]);
+  });
+
+  it('resumes above what the server has already applied, so a reconnect is not dropped as stale', () => {
+    const harness = createHarness({ appliedInputSequence: 440 });
+    harness.tick();
+    harness.tick();
+    expect(harness.sent.map((input) => input.sequence)).toEqual([441, 442]);
   });
 
   it('sends nothing before a frame is due', () => {
@@ -102,7 +115,12 @@ describe('the input controller', () => {
     const harness = createHarness({ offer: OFFER });
     harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 0 });
     harness.tick();
-    harness.state.world = { ownCell: OWN_CELL, offer: { ...OFFER, offerId: 6 }, controls: DEFAULT_BALANCE.controls };
+    harness.state.world = {
+      ownCell: OWN_CELL,
+      offer: { ...OFFER, offerId: 6 },
+      controls: DEFAULT_BALANCE.controls,
+      appliedInputSequence: 0,
+    };
     harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
     harness.tick();
     expect(harness.sent[1]?.traitChoice).toEqual({ offerId: 6, cardIndex: 1 });
@@ -112,7 +130,12 @@ describe('the input controller', () => {
     const harness = createHarness();
     harness.controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex: 1 });
     harness.tick();
-    harness.state.world = { ownCell: OWN_CELL, offer: OFFER, controls: DEFAULT_BALANCE.controls };
+    harness.state.world = {
+      ownCell: OWN_CELL,
+      offer: OFFER,
+      controls: DEFAULT_BALANCE.controls,
+      appliedInputSequence: 0,
+    };
     harness.tick();
     expect(harness.sent[1]?.traitChoice).toBeNull();
   });

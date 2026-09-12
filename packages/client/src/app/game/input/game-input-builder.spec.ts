@@ -20,7 +20,7 @@ function offer(overrides: Partial<TraitOfferView> = {}): TraitOfferView {
 }
 
 function world(overrides: Partial<InputWorldContext> = {}): InputWorldContext {
-  return { ownCell: OWN_CELL, offer: null, controls: CONTROLS, ...overrides };
+  return { ownCell: OWN_CELL, offer: null, controls: CONTROLS, appliedInputSequence: 0, ...overrides };
 }
 
 function options(state: InputState, pointerWorldPoint: { x: number; y: number } | null = null, context = world()) {
