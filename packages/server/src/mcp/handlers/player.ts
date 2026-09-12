@@ -27,6 +27,7 @@ function registerGrantDnaTool(mcp: McpServer, context: DebugContext): void {
     name: 'debug_grant_dna',
     description: 'Grant DNA to a player (logged in the replay), optionally tagged',
     capability: 'grantDna',
+    isWorldMutation: true,
     schema: {
       gameId: GAME_ID_ARGUMENT,
       playerId: PLAYER_ID_ARGUMENT,
@@ -42,6 +43,7 @@ function registerSetPlayerTool(mcp: McpServer, context: DebugContext): void {
     name: 'debug_set_player',
     description: "Overwrite parts of a player's cell: mass, level, owned traits and/or position",
     capability: 'setPlayer',
+    isWorldMutation: true,
     schema: {
       gameId: GAME_ID_ARGUMENT,
       playerId: PLAYER_ID_ARGUMENT,

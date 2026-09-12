@@ -564,7 +564,14 @@ time that passed while paused (`FixedStepAccumulator.discardElapsed()`), so a re
 bursts to catch up. `runTick` broadcasts every `SNAPSHOT_EVERY_TICKS` ticks and `step()` always
 ends with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot would show a
 stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
-report even for a module without a world tick.
+report even for a module without a world tick. **Every mutating tool republishes the frame** (#236):
+a tool registered with `isWorldMutation` (`debug_spawn`, `debug_grant_dna`, `debug_set_player`,
+`debug_set_balance`, `debug_set_seed`, `debug_spawn_bot`, `debug_remove_bot`) calls
+`GameRoom.republishSnapshot()` after its handle method succeeds, a `game_snapshot` at the current
+tick without a step, so a paused room shows the patched world at once and the stage that
+`debug_get_player_progress` reports is the stage the client draws. The client's `SnapshotBuffer`
+takes a snapshot at its latest tick as a replacement (a republished frame), not as a stale one, and
+the tick estimator is not re-observed for it (§5); a refused request republishes nothing.
 
 **Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
 perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);

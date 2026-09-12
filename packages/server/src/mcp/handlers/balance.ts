@@ -25,6 +25,7 @@ export function registerBalanceTools(mcp: McpServer, context: DebugContext): voi
     name: 'debug_set_balance',
     description: 'Patch number leaves of the live balance of a game (e.g. { ecology: { FOOD_CAP_BASE: 900 } })',
     capability: 'patchBalance',
+    isWorldMutation: true,
     schema: { gameId: GAME_ID_ARGUMENT, patch: BALANCE_PATCH_SCHEMA.describe('Nested record of number leaves') },
     run: (handle, input, room) => {
       const balance = handle.patchBalance(input.patch);

@@ -74,6 +74,20 @@ describe('CellRenderState', () => {
     for (const placement of second.organelles) expect(keptSlots).toContain(placement.slot);
   });
 
+  it('redraws the stack when the same cell climbs from protocell to eukaryote mid-session (#236)', () => {
+    const subject = state();
+    const protocell = { ...eukaryote(), level: 1, stage: CELL_STAGE.protocell, traits: [] };
+    const before = subject.update(protocell, context(), REST_DEFORMATION);
+    expect(before.instance.isProtocell).toBe(true);
+    expect(before.instance.haloKind).toBe(HALO_KIND.protocell);
+    expect(before.organelles.some((placement) => placement.kind === ORGANELLE_KIND.nucleus)).toBe(false);
+    const after = subject.update({ ...eukaryote(), level: 5 }, context({ timeSeconds: 2 }), REST_DEFORMATION);
+    expect(after.instance.isProtocell).toBe(false);
+    expect(after.instance.haloKind).toBe(HALO_KIND.default);
+    expect(after.organelles.some((placement) => placement.kind === ORGANELLE_KIND.nucleus)).toBe(true);
+    expect(after.organelles.some((placement) => placement.kind === ORGANELLE_KIND.protocellGranule)).toBe(false);
+  });
+
   it('reads the heading from the velocity and holds it at rest', () => {
     const subject = state();
     const moving = subject.update({ ...eukaryote(), velocityX: 0, velocityY: 50 }, context(), REST_DEFORMATION);

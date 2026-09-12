@@ -50,6 +50,11 @@ export interface CapabilityToolDefinition<Name extends DebugCapability, Shape ex
   readonly schema: Shape;
   /** Produces the JSON the tool answers with; throw `DebugRequestError` to refuse. */
   readonly run: (handle: HandleWith<Name>, input: ShapeOutput<Shape>, room: GameRoom) => unknown;
+  /**
+   * The tool changes the world: after `run` the room republishes its frame, so a paused room
+   * shows the mutation at once instead of after the next step (docs/ARCHITECTURE.md §8).
+   */
+  readonly isWorldMutation?: boolean;
 }
 
 /** Registers a tool that needs one debug capability of the room's game module. */
@@ -69,6 +74,11 @@ export function registerCapabilityTool<Name extends DebugCapability, Shape exten
     if (!handle || !hasDebugCapability(handle, definition.capability)) {
       return notSupportedResult(definition.name, definition.capability);
     }
-    return runDebugRequest(() => definition.run(handle, parsed, lookup.room));
+    const { room } = lookup;
+    return runDebugRequest(() => {
+      const result = definition.run(handle, parsed, room);
+      if (definition.isWorldMutation === true) room.republishSnapshot();
+      return result;
+    });
   });
 }

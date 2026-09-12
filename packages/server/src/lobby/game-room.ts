@@ -101,6 +101,14 @@ export class GameRoom {
     if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.broadcastSnapshot();
   }
 
+  /**
+   * Sends everyone the frame at the current tick without stepping: a debug mutation calls it so a
+   * paused room shows the patched world instead of the frame from before it (docs/ARCHITECTURE.md §8).
+   */
+  republishSnapshot(): void {
+    this.broadcastSnapshot();
+  }
+
   /** Unfreezes the loop. The wall time that passed while paused is discarded, never caught up. */
   resume(): void {
     this.isLoopPaused = false;
