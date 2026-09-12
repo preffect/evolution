@@ -138,13 +138,13 @@ vec4 cytoplasmNoise(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uWhite, fine * bandMask);
 }
 
-/** One dot per grid cell of pitch sqrt(annulus / density): hashed radius (diameter floored in px), offset across the cell independent of the radius, and alpha; undeformed frame. */
+/** One dot per grid cell of pitch sqrt(annulus / density), salted by the cell's speckle seed: hashed radius (diameter floored in px), offset across the cell independent of the radius, and alpha; undeformed frame. */
 vec4 ribosomeSpeckle(Instance inst, Frame frame, vec4 acc) {
   if (inst.speckleDensity <= 0.0 || inst.lodBlend <= 0.0) return acc;
   float pitch = sqrt(${glslFloat(SPECKLE_ANNULUS_AREA)} / inst.speckleDensity);
   vec2 q = frame.p / (inst.r * inst.pulse);
   vec2 cell = floor(q / pitch);
-  vec2 salt = cell + inst.palette * ${glslFloat(SPECKLE_HASH_SALT.palette)} + inst.stripRow * ${glslFloat(SPECKLE_HASH_SALT.row)};
+  vec2 salt = cell + inst.speckleSeed * ${glslFloat(SPECKLE_HASH_SALT.seed)};
   float radius = max(mix(${glslFloat(RIBOSOME_RADIUS_RADII_MIN)}, ${glslFloat(RIBOSOME_RADIUS_RADII_MAX)}, hash21(salt)), ${glslFloat(RIBOSOME_MIN_PX)} * HALF / frame.rPx);
   vec2 offset = (vec2(hash21(salt + ${glslFloat(SPECKLE_HASH_SALT.offsetX)}), hash21(salt + ${glslFloat(SPECKLE_HASH_SALT.offsetY)})) - HALF) * pitch * ${glslFloat(RIBOSOME_JITTER_SHARE)};
   vec2 dotCentre = (cell + HALF) * pitch + offset;
@@ -156,14 +156,14 @@ vec4 ribosomeSpeckle(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uRibosome, dotMask * alpha * inst.lodBlend);
 }
 
-/** N filaments from the nucleus centre to 0.89 r as a screen-px mask around each spoke (a θ-fraction mask fans out). */
+/** N filaments from the nucleus centre to 0.89 r as a screen-px mask around each spoke (a θ-fraction mask fans out), 1.1 px wide with a ±0.5 px feather. */
 vec4 cytoskeletonFilaments(Instance inst, Frame frame, vec4 acc) {
   if (inst.filamentCount <= 0.0 || inst.lodBlend <= 0.0) return acc;
   vec2 fromNucleus = frame.p / inst.r - inst.nucleus;
   float thetaN = atan(fromNucleus.y, fromNucleus.x);
   float rhoN = length(fromNucleus);
   float spokePx = spokeDistancePx(inst.filamentCount, thetaN, rhoN * frame.rPx);
-  float mask = 1.0 - smoothstep(${glslFloat(FILAMENT_MASK_PX)}, ${glslFloat(FILAMENT_MASK_PX)} + 1.0, spokePx);
+  float mask = band(spokePx, 0.0, ${glslFloat(FILAMENT_MASK_PX)}, HALF);
   float reach = 1.0 - smoothstep(${glslFloat(FILAMENT_REACH_START)}, ${glslFloat(CYTO_NOISE_MAX_RADII)}, frame.rho);
   return over(acc, uCytoskeleton, mask * reach * ${glslFloat(FILAMENT_ALPHA)} * inst.lodBlend);
 }

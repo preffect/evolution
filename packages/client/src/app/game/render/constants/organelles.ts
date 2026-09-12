@@ -61,7 +61,10 @@ export const NUCLEOID_BAKE = {
   glowReach: 1.5,
   steps: 96,
 } as const;
-/** Slot rejection sampling (§3): inside 1 − 0.08, outside the nucleus disc, this gap between sprites. */
+/**
+ * Slot rejection sampling (§3): a slot centre stays inside `1 − max(0.08, sprite radius)` (the sprite
+ * body never crosses the membrane, #243), outside the nucleus disc, this gap between sprites.
+ */
 export const ORGANELLE_MEMBRANE_MARGIN = 0.08;
 export const ORGANELLE_MIN_GAP = 0.04;
 export const ORGANELLE_SLOT_MAX_ATTEMPTS = 256;

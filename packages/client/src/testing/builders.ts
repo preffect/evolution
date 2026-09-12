@@ -26,6 +26,7 @@ import {
   type RespawnEffect,
 } from '@evolution/shared';
 import type { RenderFrame } from '../app/game/net/world-store';
+import type { GhostSource } from '../app/game/render/cells/ghost-cells';
 
 /** An algae mote at the origin; a layer or store test names only what it changes. */
 export function createTestFoodMoteView(overrides: Partial<FoodMoteView> = {}): FoodMoteView {
@@ -117,6 +118,11 @@ export function createTestLevelUpEffect(overrides: Partial<LevelUpEffect> = {}):
     level: 2,
     ...overrides,
   };
+}
+
+/** What a ghost is built from (render/cells/ghost-cells.ts): a bare view, no slots, seed 0 unless named. */
+export function createTestGhostSource(overrides: Partial<GhostSource> = {}): GhostSource {
+  return { view: createTestCellView(), slots: [], speckleSeed: 0, ...overrides };
 }
 
 export function createTestCellAbsorbedEffect(overrides: Partial<CellAbsorbedEffect> = {}): CellAbsorbedEffect {

@@ -1,7 +1,8 @@
 // The cell layer (docs/RENDERING.md §2, §3, §6): one render state per cell in the frame (kept
 // while the cell is off screen, so its slots and held heading survive a cull), the ghosts of
 // absorbed prey, the contact dents of the visible cells, the visible ones packed radius-ascending
-// into the mesh, the organelle sprites between the two passes and the flagella under the body.
+// into the mesh, the organelle sprites between the two passes (a ghost's too, fading with its body,
+// #243) and the flagella under the body.
 // It composes; every decision lives in the pure modules it calls. Culling is against the camera
 // extent the orchestrator passes in, at the quad's reach; past the capacity the smallest cells
 // are the ones dropped. Row order is draw order, so a ghost's row goes right before its
@@ -22,8 +23,8 @@ import { CellMesh } from './cell-mesh';
 import { CellRenderState, type CellFrameContext, type CellFrameOutput } from './cell-render-state';
 import { computeContactDents } from './contact-dents';
 import { FlagellumLines, type FlagellumSpec } from './flagellum-lines';
-import { GhostRegistry, type Ghost } from './ghost-cells';
-import { ghostInstance } from './ghost-instance';
+import { GhostRegistry, type Ghost, type GhostSource } from './ghost-cells';
+import { ghostFrame } from './ghost-instance';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
 import { evaluateProfile } from './radial-profile';
 
@@ -33,6 +34,9 @@ export type CellLayerTextures = Pick<
 >;
 
 const FLAGELLUM_TRAIT: TraitId = 'simple_flagellum';
+/** `organelleDraw`'s rest flag: a ghost's sprites are frozen, a living cell's keep their idle motion (#243). */
+const IS_AT_REST = true;
+const IS_IN_MOTION = false;
 
 export class CellLayer {
   readonly container = new Container();
@@ -95,23 +99,30 @@ export class CellLayer {
     };
   }
 
-  /** The last view a cell was drawn with: the ghost's and the effects' source once the entity is gone (until the next sync). */
+  /** The last view a cell was drawn with: the effects' source once the entity is gone (until the next sync). */
   lastViewOf(cellId: EntityId): CellView | undefined {
     return this.registry.get(cellId)?.lastView ?? undefined;
   }
 
-  /** Packs `ghosts` from `firstRow` on; returns the rows used. Every ghost has a reserved row (the budget), so none is cut. */
-  private packGhosts(ghosts: readonly Ghost[], firstRow: number, zoom: number): number {
-    ghosts.forEach((ghost, index) =>
-      packCellInstance(this.mesh.instances, firstRow + index, ghostInstance(ghost, zoom)),
-    );
+  /** What a cell was last drawn with (view, slots, speckle seed): the ghost's source once the entity is gone. */
+  private ghostSourceOf(cellId: EntityId): GhostSource | undefined {
+    return this.registry.get(cellId)?.ghostSource ?? undefined;
+  }
+
+  /** Packs `ghosts` from `firstRow` on and queues their sprites; returns the rows used. Every ghost has a reserved row (the budget), so none is cut. */
+  private packGhosts(ghosts: readonly Ghost[], firstRow: number, zoom: number, draws: OrganelleDraw[]): number {
+    ghosts.forEach((ghost, index) => {
+      const output = ghostFrame(ghost, zoom);
+      packCellInstance(this.mesh.instances, firstRow + index, output.instance);
+      draws.push(organelleDraw(ghost.view, output, IS_AT_REST));
+    });
     return ghosts.length;
   }
 
   /** One frame: effects, sync every state, cull, sort, update the visible ones, pack the rows, place the sprites and tails. */
   update(input: CellLayerFrame): CellLayerOutputs {
     const { frame } = input;
-    startAbsorbedGhosts(frame.effects, (id) => this.lastViewOf(id), this.ghosts, input.nowMs);
+    startAbsorbedGhosts(frame.effects, (id) => this.ghostSourceOf(id), this.ghosts, input.nowMs);
     this.registry.sync(frame.cells);
     const ghosts = this.ghosts.active(input.nowMs).slice(0, this.mesh.capacity);
     const visible = this.visibleCells(frame.cells, input.extent, this.mesh.capacity - ghosts.length);
@@ -120,26 +131,28 @@ export class CellLayer {
     const draws: OrganelleDraw[] = [];
     const tails: FlagellumSpec[] = [];
     let row = 0;
+    let packedCells = 0;
     for (const view of visible) {
       const state = this.registry.get(view.id);
       if (state === undefined) continue;
-      row += this.packGhosts(ghostsByPredator.get(view.id) ?? [], row, input.zoom);
+      row += this.packGhosts(ghostsByPredator.get(view.id) ?? [], row, input.zoom, draws);
       ghostsByPredator.delete(view.id);
       const output = state.update(view, context, deformationOf(input.deformations, view.id));
       packCellInstance(this.mesh.instances, row, output.instance);
       row += 1;
-      draws.push(organelleDraw(view, output));
+      packedCells += 1;
+      draws.push(organelleDraw(view, output, IS_IN_MOTION));
       const tail = flagellumSpec(view, output, frame.timeSeconds);
       if (tail !== null) tails.push(tail);
     }
     const orphans = [...ghostsByPredator.values()].flat();
-    const packedGhosts = ghosts.length - orphans.length + this.packGhosts(orphans, row, input.zoom);
-    this.mesh.setCount(draws.length + packedGhosts);
+    const packedGhosts = ghosts.length - orphans.length + this.packGhosts(orphans, row, input.zoom, draws);
+    this.mesh.setCount(packedCells + packedGhosts);
     this.mesh.upload();
     this.mesh.setFrame(frame.timeSeconds, input.zoom);
     const organelleSprites = this.organelles.update(draws, frame.timeSeconds);
     const flagella = this.flagella.update(tails, input.zoom);
-    return { visibleCells: draws.length, ghosts: packedGhosts, organelleSprites, flagella };
+    return { visibleCells: packedCells, ghosts: packedGhosts, organelleSprites, flagella };
   }
 
   destroy(): void {
@@ -163,13 +176,14 @@ function groupByPredator(ghosts: readonly Ghost[]): Map<EntityId, Ghost[]> {
   return grouped;
 }
 
-function organelleDraw(view: CellView, output: CellFrameOutput): OrganelleDraw {
+function organelleDraw(view: CellView, output: CellFrameOutput, isAtRest: boolean): OrganelleDraw {
   return {
     instance: output.instance,
     lod: output.lod,
     organelles: output.organelles,
     palette: paletteFor(view.avatarIndex),
     isSprinting: output.terms.isSprinting,
+    isAtRest,
   };
 }
 

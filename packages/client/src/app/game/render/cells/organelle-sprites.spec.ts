@@ -48,6 +48,7 @@ function draw(overrides: Partial<OrganelleDraw> = {}): OrganelleDraw {
     organelles: output.organelles,
     palette: paletteFor(1),
     isSprinting: false,
+    isAtRest: false,
     ...overrides,
   };
 }
@@ -110,6 +111,19 @@ describe('OrganelleSprites', () => {
     const popping = sprites.container.children[vacuoleIndex]!;
     expect(popping.position.y).toBeLessThan(restingY);
     expect(popping.alpha).toBeLessThan(1);
+    sprites.destroy();
+  });
+
+  it('freezes that motion for a ghost’s draw, so a corpse’s vacuole neither lifts nor pops (#243)', () => {
+    const sprites = new OrganelleSprites(textures.organelles);
+    const cell = draw();
+    const vacuoleIndex = cell.organelles.findIndex((placement) => placement.kind === ORGANELLE_KIND.foodVacuole);
+    const phase = cell.organelles[vacuoleIndex]!.slot.phase;
+    const popTime = FOOD_VACUOLE.cycleSeconds * (1 - phase + 1 - FOOD_VACUOLE.popShare / 2);
+    sprites.update([{ ...cell, isAtRest: true }], popTime);
+    const frozen = sprites.container.children[vacuoleIndex]!;
+    expect(frozen.position.y).toBeCloseTo(50 + cell.organelles[vacuoleIndex]!.point.y, 9);
+    expect(frozen.alpha).toBe(cell.lod.interiorBlend * cell.instance.alpha);
     sprites.destroy();
   });
 });

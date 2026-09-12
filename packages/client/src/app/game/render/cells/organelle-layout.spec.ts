@@ -1,5 +1,5 @@
-// docs/RENDERING.md §9: slot centres inside 0.92 and outside the keep-out, outside the nucleus
-// disc, gap held, append-only across tiers, seeded.
+// docs/RENDERING.md §9: slot centres inside 0.92 and outside the keep-out, the sprite body inside
+// the membrane (#243), outside the nucleus disc, gap held, append-only across tiers, seeded.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, createSeededRandom } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
@@ -12,13 +12,17 @@ import {
   ORGANELLE_MEMBRANE_MARGIN,
   ORGANELLE_MIN_GAP,
   PROTOCELL_GRANULE_COUNT,
+  TOXIN_VACUOLE,
 } from '../constants';
+import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import { summariseCellTraits } from './cell-traits';
 import { NUCLEUS_KINDS } from './organelle-kinds';
-import { layoutOrganelles, type OrganelleSlot } from './organelle-layout';
+import { layoutOrganelles, membraneKeepOutRadius, type OrganelleSlot } from './organelle-layout';
 
 const TEST_SEED = 42;
 const TOLERANCE = 1e-9;
+/** The toxin bladder's sprite body diameter in `r`: the widest sprite, and the one that sets the clamp. */
+const TOXIN_BLADDER_SIZE = TOXIN_VACUOLE.radius * DIAMETER_PER_RADIUS;
 
 const eukaryote = (mitochondrionTier: 1 | 2 | 3) =>
   summariseCellTraits(
@@ -67,6 +71,34 @@ describe('layoutOrganelles', () => {
         Math.max(NUCLEUS_RADIUS, NUCLEOID_RADIUS),
       );
     }
+  });
+
+  it('keeps every sprite body inside the membrane: centre + own radius ≤ 1 r, for every seed (#243)', () => {
+    for (let seed = 0; seed < 50; seed += 1) {
+      const slots = layoutOrganelles(eukaryote(3), createSeededRandom(seed));
+      for (const slot of slots.filter((candidate) => !isNucleus(candidate))) {
+        expect(distanceOf(slot) + slot.size / 2).toBeLessThanOrEqual(1 + TOLERANCE);
+        expect(distanceOf(slot)).toBeLessThanOrEqual(membraneKeepOutRadius(slot.size) + TOLERANCE);
+      }
+      const bladder = slots.find((slot) => slot.kind === ORGANELLE_KIND.toxinVacuole)!;
+      expect(bladder.size).toBeCloseTo(TOXIN_BLADDER_SIZE, 12);
+      expect(distanceOf(bladder)).toBeCloseTo(membraneKeepOutRadius(TOXIN_BLADDER_SIZE), 9);
+    }
+  });
+
+  it('keeps out by the margin for a small sprite and by the sprite radius for a large one, never inside the DNA ring', () => {
+    // The three regimes by the sprite's own radius against the margin and the DNA ring, all derived
+    // from the constants: below the margin, between it and the ring, and clamped at the ring (#243).
+    const marginBoundarySize = ORGANELLE_MEMBRANE_MARGIN * DIAMETER_PER_RADIUS;
+    const ringBoundarySize = (1 - DNA_RING_KEEP_OUT_FRACTION) * DIAMETER_PER_RADIUS;
+    const spriteRadiusRegimeSize = (marginBoundarySize + ringBoundarySize) * HALF;
+    expect(membraneKeepOutRadius(marginBoundarySize * HALF)).toBeCloseTo(1 - ORGANELLE_MEMBRANE_MARGIN, 12);
+    expect(membraneKeepOutRadius(marginBoundarySize)).toBeCloseTo(1 - ORGANELLE_MEMBRANE_MARGIN, 12);
+    expect(membraneKeepOutRadius(spriteRadiusRegimeSize)).toBeCloseTo(1 - spriteRadiusRegimeSize * HALF, 12);
+    expect(membraneKeepOutRadius(ringBoundarySize)).toBeCloseTo(DNA_RING_KEEP_OUT_FRACTION, 12);
+    expect(membraneKeepOutRadius(ringBoundarySize + marginBoundarySize)).toBe(DNA_RING_KEEP_OUT_FRACTION);
+    // Today's toxin bladder is exactly the ring-boundary sprite, which is why it sits on the ring.
+    expect(TOXIN_BLADDER_SIZE).toBeCloseTo(ringBoundarySize, 12);
   });
 
   it('measures the nucleus disc from the off-centre nucleus, for every seed', () => {

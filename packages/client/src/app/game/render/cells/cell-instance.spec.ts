@@ -58,6 +58,7 @@ const instance: CellInstance = {
   rimDash: 1,
   ciliaPhase: 0.4,
   nucleusDiscRadii: 0.3,
+  speckleSeed: 0.45,
   bumps: [{ amplitude: 0.62, centre: 0.52, sigma: 0.28 }],
 };
 
@@ -86,6 +87,7 @@ describe('packCellInstance', () => {
     expect(channelOf(row, 'rimDash')).toBe(1);
     expect(channelOf(row, 'ciliaPhase')).toBeCloseTo(0.4, 6);
     expect(channelOf(row, 'nucleusDiscRadii')).toBeCloseTo(0.3, 6);
+    expect(channelOf(row, 'speckleSeed')).toBeCloseTo(0.45, 6);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect([...row.subarray(bumpBase, bumpBase + 3)].map((value) => Math.round(value * 100) / 100)).toEqual([
       0.62, 0.52, 0.28,
@@ -103,10 +105,10 @@ describe('packCellInstance', () => {
     expect(BUMP_TEXEL_START + Math.ceil((MAX_SHAPE_BUMPS * 3) / TEXEL_FLOATS)).toBe(CELL_INSTANCE_TEXELS);
   });
 
-  it('keeps the row at sixteen texels with the nucleus disc in a free channel of the last scalar texel (#231)', () => {
+  it('keeps the row at sixteen texels with the nucleus disc and the speckle seed in the last scalar texel (#231, #243)', () => {
     expect(CELL_INSTANCE_TEXELS).toBe(INSTANCE_ROW_TEXELS);
-    const [texel] = instanceFieldLocation('nucleusDiscRadii');
-    expect(texel).toBe(BUMP_TEXEL_START - 1);
+    expect(instanceFieldLocation('nucleusDiscRadii')[0]).toBe(BUMP_TEXEL_START - 1);
+    expect(instanceFieldLocation('speckleSeed')[0]).toBe(BUMP_TEXEL_START - 1);
   });
 
   it('locates every scalar field in a distinct channel and rejects an unknown one', () => {

@@ -13,7 +13,7 @@ import type { CellInstance } from './cell-instance';
 import type { CellLod } from './cell-lod';
 import type { OrganellePlacement } from './cell-render-state';
 import { NUCLEUS_KINDS } from './organelle-kinds';
-import { organelleMotion } from './organelle-motion';
+import { ORGANELLE_MOTION_AT_REST, organelleMotion } from './organelle-motion';
 
 export interface OrganelleDraw {
   readonly instance: CellInstance;
@@ -21,6 +21,8 @@ export interface OrganelleDraw {
   readonly organelles: readonly OrganellePlacement[];
   readonly palette: PlayerPalette;
   readonly isSprinting: boolean;
+  /** A ghost's draw: the body is dissolving, so the sprites' own idle motion is frozen too (#243). */
+  readonly isAtRest: boolean;
 }
 
 export type OrganelleTextures = Readonly<Record<OrganelleKind, OrganelleSpriteTexture>>;
@@ -40,7 +42,9 @@ export class OrganelleSprites {
 
   private place(sprite: Sprite, draw: OrganelleDraw, placement: OrganellePlacement, timeSeconds: number): void {
     const entry = this.textures[placement.kind];
-    const motion = organelleMotion(placement.kind, placement.slot.phase, timeSeconds, draw.isSprinting);
+    const motion = draw.isAtRest
+      ? ORGANELLE_MOTION_AT_REST
+      : organelleMotion(placement.kind, placement.slot.phase, timeSeconds, draw.isSprinting);
     const { instance } = draw;
     sprite.texture = entry.texture;
     sprite.position.set(instance.x + placement.point.x, instance.y + placement.point.y + motion.lift * instance.radius);
