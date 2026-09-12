@@ -23,8 +23,12 @@ const CEILING_ZOOMS = [1.8, 1] as const;
 const SMOKE_WINDOW_FRAMES = 24;
 /** `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/RENDERING.md §7); the spec runs outside the app's module graph. */
 const MIN_P95_SAMPLE_FRAMES = 20;
-/** Every bench test renders the full load through SwiftShader: minutes on a loaded box, so each gets this. */
-const BENCH_TEST_TIMEOUT_MS = 900_000;
+/**
+ * Every bench test renders the full bench load through SwiftShader, where one 1080p frame takes seconds: the
+ * report tests draw the warm-up plus the window, which is half an hour at zoom 1 on a loaded box. Sized for
+ * that, not for a hardware run.
+ */
+const BENCH_TEST_TIMEOUT_MS = 2_400_000;
 const HOLD_WAIT_MS = 300;
 /** `RENDER_MAX_DRAW_CALLS` (docs/RENDERING.md §6); the spec runs outside the app's module graph, so the number is restated here. */
 const MAX_DRAW_CALLS = 17;
