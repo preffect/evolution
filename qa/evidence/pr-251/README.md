@@ -17,10 +17,10 @@ for the camera to settle) the view is the 1 500 wu ceiling and a 1 600 px tall v
 | `large-tier-vs-sheet01-panelA.png`           | crops       | Cyan render · sheet 01 panel A · Coral render | 148 px (sheet scaled 128 → 148) | the pale-to-dark turn of panel A's `nuc-cyan` gradient, same focus side; the sprite's rim, chromatin and nucleolus sit over the ramp |
 | `play-scale-vs-sheet01-panelA.png`           | crops × 3   | Cyan render · sheet 01 panel A · Coral render | 44 px (sheet scaled 128 → 44)   | the same turn at the size the own cell has for most of a round                                                                       |
 
-Honest notes: the render's dark end (`nucleusDark`, 0.45 lightness of the nucleus colour) is a step lighter than
-panel A's hand-picked `#167787`, and the baked chromatin spots read larger and darker than the sheet's at 148 px;
-both are pre-existing palette / bake values outside this ticket (#231 chose the ramp's stops, the bake's spots are
-`NUCLEUS_CHROMATIN`). Frame time: `docs/RENDERING.md §7`'s bench route and `performanceReport()` are not in main
-yet (#206 / #208), so there is no harness line; the room's server side read `tickP95Ms` 0.51 over 300 samples with
-the two max-mass cells, and the client showed no page or shader errors (console: the opt-in audio 404s and the
-favicon only).
+Round two (head after the review fixes): the four cell shots above are re-shot on a fresh room with the rim-tinted
+sprite, the halo cut out inside the disc and #246's motes in the field. Probes on the Cyan cell at r 148 px (r_n 44 px,
+sRGB luminance): nucleolus centre `#a6f4ff` L 0.90 against the ramp focus `#a3f0fb` L 0.88 (the nucleolus is lighter
+than its surround again), lit edge 0.85 r_n toward the light `#76d9ea` L 0.77, dark edge 0.85 r_n away `#288695` L 0.45
+(`nucleusDark` `#167787` is L 0.39; the residual is the 0.92 alpha over the cytoplasm ramp and the last 0.11 of the
+smoothstep). Frame time: `docs/RENDERING.md §7`'s bench route and `performanceReport()` are not in main yet (#206 /
+#208), so there is no harness line; the client showed no page or shader errors (console: the opt-in audio 404s only).
