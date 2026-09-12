@@ -27,6 +27,67 @@ describe('cell shader source', () => {
     expect(CELL_VERTEX_SOURCE.startsWith('#version 300 es')).toBe(true);
   });
 
+  it('never names a variable after a GLSL reserved word (the jsdom tier cannot compile the source)', () => {
+    // The ES 3.00 keywords a template string is likely to reach for; a match failed a real compile once ('flat').
+    const reserved = [
+      'flat',
+      'smooth',
+      'filter',
+      'sample',
+      'input',
+      'output',
+      'precision',
+      'switch',
+      'default',
+      'invariant',
+      'centroid',
+      'patch',
+      'common',
+      'partition',
+      'active',
+      'class',
+      'union',
+      'enum',
+      'typedef',
+      'template',
+      'this',
+      'resource',
+      'goto',
+      'inline',
+      'noinline',
+      'public',
+      'static',
+      'extern',
+      'external',
+      'interface',
+      'long',
+      'short',
+      'double',
+      'half',
+      'fixed',
+      'unsigned',
+      'superp',
+      'sizeof',
+      'cast',
+      'namespace',
+      'using',
+      'asm',
+      'volatile',
+      'packed',
+      'noperspective',
+      'subroutine',
+      'coherent',
+      'restrict',
+      'readonly',
+      'writeonly',
+      'precise',
+    ];
+    const declaration = new RegExp(`\\b(?:float|int|bool|vec[234]|ivec[234]|mat[234])\\s+(${reserved.join('|')})\\b`);
+    expect(CELL_FRAGMENT_SOURCE).not.toMatch(declaration);
+    expect(CELL_VERTEX_SOURCE).not.toMatch(declaration);
+    expect('float flat = 1.0;').toMatch(declaration);
+  });
+
   it('writes float literals with a decimal point or an exponent', () => {
     expect(glslFloat(3)).toBe('3.0');
     expect(glslFloat(0.5)).toBe('0.5');

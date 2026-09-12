@@ -60,8 +60,8 @@ vec4 cilia(Instance inst, Frame frame, vec4 acc) {
   float halfWidth = ${glslFloat(CILIA_WIDTH_PX)} * HALF;
   float hair = 1.0 - smoothstep(halfWidth - HALF, halfWidth + HALF, s);
   float full = hair * ${glslFloat(CILIA_ALPHA)} * fade;
-  float flat = ${glslFloat(CILIA_MID_ALPHA)} * fade;
-  return over(acc, uCilia, mix(flat, full, inst.lodBlend));
+  float flatBand = ${glslFloat(CILIA_MID_ALPHA)} * fade;
+  return over(acc, uCilia, mix(flatBand, full, inst.lodBlend));
 }
 
 /** The outline goes dashed as the ghost dissolves (VISUAL-STYLE §5 "rim dashes"). */
