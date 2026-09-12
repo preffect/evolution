@@ -8,8 +8,9 @@ import { registerRoomLoopTools } from './room-loop.js';
 import { evolutionModuleFactory } from '../../game/evolution-module.js';
 import { createActiveRoomFixture, parseToolJson } from '../../testing/builders.js';
 
-const EUKARYOTE_LEVEL = 5;
-const EUKARYOTE_TRAITS = ['nucleoid', 'ribosomes', 'mitochondrion', 'nuclear_envelope'];
+/** The level set alongside the traits; the stage comes from the gating trait (`stageOf`), never from the level. */
+const LEVEL_SET_WITH_TRAITS = 5;
+const TRAITS_INCLUDING_THE_EUKARYOTE_GATE = ['nucleoid', 'ribosomes', 'mitochondrion', 'nuclear_envelope'];
 
 function evolutionFixture() {
   const fixture = createActiveRoomFixture({ gameFactory: evolutionModuleFactory });
@@ -32,8 +33,8 @@ describe('debug_set_player on a paused room', () => {
     await fixture.call('debug_set_player', {
       gameId: fixture.gameId,
       playerId: 'alice',
-      level: EUKARYOTE_LEVEL,
-      traits: EUKARYOTE_TRAITS,
+      level: LEVEL_SET_WITH_TRAITS,
+      traits: TRAITS_INCLUDING_THE_EUKARYOTE_GATE,
     });
     const progress = parseToolJson(
       await fixture.call('debug_get_player_progress', { gameId: fixture.gameId, playerId: 'alice' }),
@@ -46,8 +47,8 @@ describe('debug_set_player on a paused room', () => {
     expect(republished.tick).toBe(fixture.room.getTickCount());
     const cell = republished.cells.find((candidate) => candidate.playerId === 'alice')!;
     expect(cell.stage).toBe(CELL_STAGE.eukaryote);
-    expect(cell.level).toBe(EUKARYOTE_LEVEL);
-    expect(cell.traits.map((trait) => trait.traitId)).toEqual(EUKARYOTE_TRAITS);
+    expect(cell.level).toBe(LEVEL_SET_WITH_TRAITS);
+    expect(cell.traits.map((trait) => trait.traitId)).toEqual(TRAITS_INCLUDING_THE_EUKARYOTE_GATE);
     fixture.stop();
   });
 });

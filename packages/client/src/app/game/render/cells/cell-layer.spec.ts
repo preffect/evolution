@@ -12,6 +12,8 @@ import type { CellPassMesh } from './cell-mesh';
 import { CELL_UNIFORM, CELL_UNIFORM_GROUP } from './cell-shader-source';
 
 const EXTENT: CameraExtent = { minX: -100, minY: -100, maxX: 100, maxY: 100 };
+/** The level carried alongside the traits: the stage is the server's `stageOf` of the traits, not of the level. */
+const LEVEL_SET_WITH_TRAITS = 5;
 /** One bundle for the file: the bakes are the slow part (#226). */
 const textures = createTestRenderTextures({ seed: 3 });
 
@@ -135,7 +137,7 @@ describe('CellLayer', () => {
     expect(packed(subject, 0, 'haloKind')).toBe(HALO_KIND.protocell);
     const eukaryote = createTestCellView({
       radius: 30,
-      level: 5,
+      level: LEVEL_SET_WITH_TRAITS,
       stage: CELL_STAGE.eukaryote,
       traits: [
         { traitId: 'nucleoid', tier: 1 },

@@ -453,7 +453,9 @@ measurement that confirms the estimate; #103 records it.
   `RECONCILE_BLEND_SECONDS`; larger ones snap. `WorldStore` is the single client model; the
   Angular `GameStateService` is its signal facade for the HUD, not a second model.
 - **Clock.** `serverTickEstimate` comes from snapshot arrival times (EMA) through the client's
-  injected `Clock`; nothing in `game/` reads `Date.now` (`DETERMINISM.md §1`).
+  injected `Clock`; a republished snapshot at the latest tick (a debug mutation, §8) replaces the
+  frame and is not observed, since it is a new world, not a new arrival; nothing in `game/` reads
+  `Date.now` (`DETERMINISM.md §1`).
 - **Snapshots are applied on arrival, in order.** A `game_snapshot` is a delta (§4), so the
   transport publishes every one on `messages$` and `RenderSession` applies it to `WorldStore`
   as it arrives; the frame loop only reads (`nextFrame()`, which also releases the effects due),

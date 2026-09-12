@@ -78,21 +78,23 @@ describe('registerCapabilityTool', () => {
     fixture.stop();
   });
 
-  it('republishes the paused room’s frame after a mutating tool, not after a read', async () => {
+  it('republishes the paused room’s frame after a mutating tool without stepping', async () => {
+    const fixture = createActiveRoomFixture({ gameFactory: () => createDebugCapableGameModule(hashingHandle()) });
+    fixture.room.pause();
+    registerProbe(fixture, () => 'written', true);
+    await fixture.call(TOOL_NAME, { gameId: fixture.gameId });
+    expect(snapshotsSentTo(fixture, 'alice')).toBe(1);
+    expect(fixture.room.getTickCount()).toBe(0);
+    fixture.stop();
+  });
+
+  it('does not republish after a read', async () => {
     const fixture = createActiveRoomFixture({ gameFactory: () => createDebugCapableGameModule(hashingHandle()) });
     fixture.room.pause();
     registerProbe(fixture, () => 'read');
     await fixture.call(TOOL_NAME, { gameId: fixture.gameId });
     expect(snapshotsSentTo(fixture, 'alice')).toBe(0);
     fixture.stop();
-
-    const mutating = createActiveRoomFixture({ gameFactory: () => createDebugCapableGameModule(hashingHandle()) });
-    mutating.room.pause();
-    registerProbe(mutating, () => 'written', true);
-    await mutating.call(TOOL_NAME, { gameId: mutating.gameId });
-    expect(snapshotsSentTo(mutating, 'alice')).toBe(1);
-    expect(mutating.room.getTickCount()).toBe(0);
-    mutating.stop();
   });
 
   it('does not republish after a refused mutation', async () => {
