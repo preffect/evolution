@@ -143,7 +143,8 @@ right is the same dish zoomed out at high mass.
 **Draw order (back → front)** — the renderer mirrors this list.
 
 1. Field: radial `#0b1626` → `#04070d`, a condenser light pool (`#7fe7f5` 9 % → 0, ellipse
-   980 × 760 wu centred top-left) and three faint caustic arcs at 5 %.
+   980 × 760 wu centred top-left of the view; in-game it is anchored to the view and follows the
+   camera, `VISUAL-STYLE.md §1`, #222) and three faint caustic arcs at 5 % that ride with it.
 2. Zones: a radial tint per zone plus a fractal-noise cloud (base frequency 0.003–0.004, three
    octaves) masked to the zone disc so the edge is organic, never a hard circle.
 3. Zone features: mire filaments, the vent fissure and its rising plume.

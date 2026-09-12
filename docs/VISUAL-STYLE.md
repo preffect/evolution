@@ -21,6 +21,23 @@ The dish is a dark-field microscope stage: a black field, and only what scatters
 - **Light comes from the top-left**, one direction, for everything: the condenser light pool on the
   field, the specular glint on every cell and mote, the light pool / dark pool that gives a body its
   volume (sheet 01, design decisions). Nothing is lit from below or from the right.
+- **The condenser pool is anchored to the view, never to the world** (#222, option A). A condenser
+  lights whatever sits under the objective, so the pool covers the top-left of the _view_ at every
+  zoom and follows the camera; a cell in the shallows is lit from the same corner as one at the vent.
+  Sheet 02's ellipse (980 × 760 wu centred (380, 200) in its 1920 × 1080 wu scene) is read as
+  fractions of the viewport: centre `LIGHT_POOL_VIEW_CENTRE` (0.20 of the width, 0.185 of the
+  height), radii `LIGHT_POOL_VIEW_RADII` (0.51 of the width, 0.70 of the height), `LIGHT_ACCENT` at
+  `LIGHT_POOL_ALPHA` 9 % → `LIGHT_POOL_MID` 3 % at half the radius → 0, normal blend, no mask (the
+  stage outside the wall is lit too: a condenser lights the stage, not the dish). The three caustic
+  sweeps (`CAUSTIC_SWEEPS`, `CAUSTIC_ALPHA` 5 %) are the light, not the water, and ride with it. The
+  pool is drawn over the field and under everything that lives in the dish (motes, fragments, cells,
+  the vent, the depth particles) so it lights the water and never the bodies; the vignette stays above
+  everything (≈ 7 % where the pool is brightest, 55 % at the corner). Where the shallows annulus
+  crosses it the zone tint and the pool stack (16 % + 9 % at most) and nothing clamps them: the ≤ 16 %
+  rule below is about zone tints alone. A world-anchored pool (PR #221 baked one into the field at a
+  fixed spot inside the vent zone, where most players never see it) is the wrong reading and is
+  removed by the implementation ticket. [`RENDERING.md §6.1`](./RENDERING.md#61-the-condenser-light-pool-222)
+  owns the sprite, its bake and the per-frame transform.
 - **Every rim scatters.** A membrane's rim stroke is a white → rim → base → rim gradient: brightest at
   the top-left, never dark on the far side. Glow is always **core + soft halo + wide halo + glint**
   (`ASSET-GENERATION.md §1.5`), never a solid dot and never a blur filter run per frame (§8).
@@ -37,7 +54,7 @@ The dish is a dark-field microscope stage: a black field, and only what scatters
   recolour an interior (sheet 01).
 
 **Never done:** opaque bodies; flat single-colour fills; drop shadows or darkening for depth; light
-from any other direction; outlines heavier than the sheet-01 outline layer; a raster texture or
+from any other direction; a condenser pool pinned to a world position (the light follows the view); outlines heavier than the sheet-01 outline layer; a raster texture or
 bitmap of any kind; text or UI inside the play area (the debug layer excepted); colour as the only
 tell for a stage, trait (§6) or player (the seat mark and self ring of §2); camera shake (a microscope stage does not move); hue-cycling
 or rainbow effects; more than one glow colour on one body except the trait halo of §4.
@@ -316,9 +333,10 @@ dish stays the brightest thing on screen.
 
 The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes). To hold it:
 
-- **Built once, blitted per frame (render textures):** the dish field with its light pool, caustics,
-  zone tints and noise clouds, mire strands, the vent crust and the wall (one texture per zoom band,
-  rebuilt only when the camera crosses a band); the vignette; every glow halo as a radial-gradient
+- **Built once, blitted per frame (render textures):** the dish field with its zone tints and noise
+  clouds, mire strands, the vent crust and the wall (one texture per zoom band, rebuilt only when the
+  camera crosses a band); the condenser light pool with its caustics as one view-anchored sprite over
+  the field (§1, `RENDERING.md §6.1`); the vignette; every glow halo as a radial-gradient
   sprite scaled to size; the cytoplasm noise as one seeded 256 × 256 tile, tinted per palette; every
   mote and bacterium as a pre-rendered sprite at 4 px/wu plus a small variant for zoom < 0.5, in a
   `ParticleContainer`; the eight far-LOD dots.
