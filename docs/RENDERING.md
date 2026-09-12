@@ -326,13 +326,13 @@ cannot be counted; VISUAL-STYLE §2 designed 1–4 beads to be countable at 8 px
 
 Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour
 (core + soft + wide + glint, `ASSET-GENERATION.md §1.5`) for motes, fragments, halos and effect rings; the dish
-(field, light pool, caustics, zone tints and clouds, mire strands, vent crust, wall) is one render texture per
-zoom band (VISUAL-STYLE §8); the vent shimmer is the one filter, over the vent sprite only. Draw calls at the
-bench load (§7):
+(field, zone tints and clouds, mire strands, vent crust, wall) is one render texture per zoom band
+(VISUAL-STYLE §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
+the vent shimmer is the one filter, over the vent sprite only. Draw calls at the bench load (§7):
 
 | Layer (`ARCHITECTURE.md §6`) | Container                                                                                                                                        | Calls |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| dish                         | field render texture; vent shimmer; vignette (screen-space)                                                                                      | 3     |
+| dish                         | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                             | 4     |
 | depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                  | 3     |
 | food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants)                                                                | 1     |
 | DNA fragments                | sprite batch: helix + tag-tinted rungs / halo from the glow atlas, 20 °/s                                                                        | 1     |
@@ -341,9 +341,54 @@ bench load (§7):
 | debug                        | `Graphics` + text, none when off                                                                                                                 | 0–2   |
 | HUD                          | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`) | 0     |
 
-Total **≤ 16 draw calls** (counted by wrapping the GL draw functions in the bench build). Culling: cells whose
+Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). Culling: cells whose
 quad misses `cameraExtent` are not uploaded; motes and fragments are all uploaded (the bench load's quads are
 free) and only bacteria positions change per snapshot.
+
+### 6.1 The condenser light pool (#222)
+
+`VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it. It is **one sprite in the dish layer's world
+container**, between the field sprite and the vent sprite, that the layer re-places every frame with the inverse
+camera transform so it stays fixed on screen while everything over it scrolls. It cannot live in the screen root
+with the vignette: it must sit under the motes, fragments, cells and the vent, and the field under it is opaque.
+
+- **Bake** (`textures/light-pool-bake.ts`, once per session, no cosmetic stream, Canvas 2D through
+  `texture-bake.ts` exactly as the field is: `fillRadial` for the gradient, `dish-field-details.ts` `paintCaustics`
+  for the strokes; `radial-bake.ts` is not used, it has no strokes): a `LIGHT_POOL_TEXTURE_PX` **1024** square
+  filled with the `LIGHT_ACCENT` radial `LIGHT_POOL_ALPHA` 0.09 → `LIGHT_POOL_MID` (stop 0.5, alpha 0.03) → 0 at
+  the half-size, then the three `CAUSTIC_SWEEPS` at `CAUSTIC_ALPHA` painted across it. **Per-axis mapping:** the
+  half-size (512 texels) is the pool's radii, so x maps at 512 / 980 = 0.52 texel per wu and y at 512 / 760 = 0.67
+  texel per wu (`FieldScale` grows a `pxPerWuY`, defaulting to `pxPerWu`, so `paintCaustics` places each control
+  point per axis); the ellipse is then exact and the sprite's non-uniform scale restores the sheet's proportions
+  instead of squashing the arcs. Stroke widths take the x factor: 3 / 2 / 1.5 wu → 1.57 / 1.04 / 0.78 texels, and
+  `FIELD_MIN_STROKE_TEXELS` (1) applies, so the thinnest sweep is drawn 1 texel wide. At 1080p and zoom 1 the
+  sprite is 1958 × 1512 px, so one texel is 1.9 × 1.5 px and the three arcs stay separate and crisp as on sheet 02
+  (256 would have been 7.7 wu per texel: sub-texel strokes smeared into one band). The bake extent is the pool's
+  radii, nothing more: the third sweep starts at y = 920 wu, past the 760 wu radius, and that 160 wu of tail is
+  **clipped by design** (the pool is already 0 there, and on the sheet most of it lies below the frame). Cost:
+  one 4 MiB RGBA8 texture (the field is 16 MiB), one gradient fill and three strokes at session start, nothing per
+  frame. `dish-texture.ts` loses `paintLightPool` and its caustics call, and `LIGHT_POOL_SIZE_WU` /
+  `LIGHT_POOL_OFFSET_FRACTION` are deleted.
+- **Placement** each frame (`DishLayerFrame` carries the camera state and the `ViewportPx`, never a separate
+  zoom; `camera.ts` `screenToWorld` and `zoomFor` are the helpers): centre = `screenToWorld(LIGHT_POOL_VIEW_CENTRE
+× viewport)`, width = 2 × `LIGHT_POOL_VIEW_RADII.x` × viewport width / zoom wu, height = 2 ×
+  `LIGHT_POOL_VIEW_RADII.y` × viewport height / zoom wu, anchor 0.5. The constants are cosmetic and live in
+  `render/constants/world-render.ts`, never in `shared`: `LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 }` and
+  `LIGHT_POOL_VIEW_RADII = { x: 0.51, y: 0.7 }` (fractions of the viewport's width and height, so every aspect
+  keeps sheet 02's look), `LIGHT_POOL_TEXTURE_PX = 1024`.
+- **Composition:** normal blend, the alpha lives in the texture; no mask, no filter, no per-frame bake. Dish
+  layer order: field, light pool, vent, wall, far particles. The shallows tint is under it in the field texture
+  and stacks with it; the vignette (screen root) stays above everything and is 0 at the pool's centre
+  (VISUAL-STYLE §1).
+- **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame, no allocation.
+- **Tests:** a fake-context spec (`testing/fake-bake-canvas.ts`, the `dish-texture.spec.ts` pattern): the canvas
+  is `LIGHT_POOL_TEXTURE_PX` square; the one radial gradient carries the stops (0, `LIGHT_POOL_ALPHA`),
+  (`LIGHT_POOL_MID.stop`, `LIGHT_POOL_MID.alpha`), (1, 0) in `LIGHT_ACCENT`; exactly `CAUSTIC_SWEEPS.length`
+  `bezierCurveTo` calls, their points the sweeps' control points mapped per axis; every `lineWidth` ≥
+  `FIELD_MIN_STROKE_TEXELS`. The dish-layer spec pins that `worldToScreen` of the sprite's centre and extent equals
+  `LIGHT_POOL_VIEW_CENTRE` / `LIGHT_POOL_VIEW_RADII` × viewport at both zoom ends (1.8 and 0.36 px/wu) and two
+  camera positions; the render smoke screenshots a cell in the shallows with the camera far from the vent and the
+  pool at the top-left, three separate caustic arcs visible at zoom 1 (graphics-qa evidence).
 
 ## 7. Frame budget and the harness #99 ships
 
@@ -363,7 +408,7 @@ Budget per stage (ms, p95) at the bench load. The seven `renderStagesMs` keys ar
 | --------------------------------------------------- | ------ | ------------------------------------------- | ------ |
 | `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites          | 0.3    |
 | `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent` | 0.1    |
-| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 16 calls)           | 1.0    |
+| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 17 calls)           | 1.0    |
 | `food` mote and fragment updates                    | 0.6    |                                             |        |
 
 | Not a key                                          | Budget | What it is                                                                                               |
@@ -416,6 +461,7 @@ textures/radial-bake.ts                              the per-pixel radial sample
 textures/{glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts   the atlases and the field, each a pure bake over the seam (#206)
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
+textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
 cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-tells,cell-shader-membrane}.ts   GLSL as template strings: the two stages, the shared helpers, the profile, pass A (with the interior tells), the pass-B tells (wall, cilia, warning ring, rim dash), pass B (#215, #216)
@@ -456,7 +502,7 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
 - **Integration (`*.integration.spec.ts`, WebGL):** shader ↔ TypeScript parity: render one cell per state to a
   render texture, walk 36 rays, boundary within 1 px of `radial-profile`; on the engulf wrap frame the rim-light
   band measured along the outline normal is 5 % r ± 1 px at every one of the 36 rays, arm flanks included
-  (the perpendicular-distance check); draw-call count ≤ 16 on the bench scene; `renderStagesMs` populated; the
+  (the perpendicular-distance check); draw-call count ≤ 17 on the bench scene; `renderStagesMs` populated; the
   ghost instance appears on `cell_absorbed` and leaves at 600 ms. The client's vitest tier runs under jsdom with
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
   `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
