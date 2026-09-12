@@ -125,6 +125,21 @@ describe('game-room: pause, step and resume', () => {
     ]);
   });
 
+  it('republishSnapshot() sends everyone the frame at the current tick without stepping', () => {
+    const sent: Record<string, unknown[]> = {};
+    const gameModule = createSpyGameModule();
+    const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
+    room.start();
+    room.pause();
+    room.republishSnapshot();
+    expect(room.getTickCount()).toBe(0);
+    expect(vi.mocked(gameModule.reduceGameState)).not.toHaveBeenCalled();
+    expect(sent['p1']!.map((message) => (message as { type: string }).type)).toEqual([
+      SERVER_MESSAGE_TYPE.gameSnapshot,
+    ]);
+  });
+
   it('resume() discards the time that passed while paused instead of catching up', () => {
     const fixture = startedRoom();
     fixture.room.pause();

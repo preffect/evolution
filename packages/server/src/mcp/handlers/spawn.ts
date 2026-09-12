@@ -9,6 +9,7 @@ export function registerSpawnTools(mcp: McpServer, context: DebugContext): void 
     name: 'debug_spawn',
     description: 'Spawn an entity (food / NPC / DNA fragment) at a world-unit point, through the spawner',
     capability: 'spawn',
+    isWorldMutation: true,
     schema: {
       gameId: GAME_ID_ARGUMENT,
       kind: z.string().describe('Entity kind id to spawn'),

@@ -25,7 +25,7 @@ import {
   interpolationWeight,
   renderTickFor,
 } from './interpolation';
-import { SnapshotBuffer } from './snapshot-buffer';
+import { SNAPSHOT_PUSH, SnapshotBuffer } from './snapshot-buffer';
 
 /** What the renderer draws for one frame: the interpolated world at `renderTick`. */
 export interface RenderFrame {
@@ -70,10 +70,14 @@ export class WorldStore {
     this.applySnapshot(state.snapshot);
   }
 
-  /** A broadcast delta; a stale tick is ignored so a late frame never rewinds the world. */
+  /**
+   * A broadcast delta; a stale tick is ignored so a late frame never rewinds the world. A republished
+   * tick replaces the latest frame without touching the tick estimate: it is a new world, not a new arrival.
+   */
   applySnapshot(snapshot: GameSnapshot): boolean {
-    if (!this.snapshots.push(snapshot)) return false;
-    this.estimator.observe(snapshot.tick, this.clock.nowMilliseconds());
+    const outcome = this.snapshots.push(snapshot);
+    if (outcome === SNAPSHOT_PUSH.stale) return false;
+    if (outcome === SNAPSHOT_PUSH.appended) this.estimator.observe(snapshot.tick, this.clock.nowMilliseconds());
     this.food.applyDelta(snapshot.food, snapshot.tick);
     this.pendingEffects.push(...snapshot.effects);
     return true;
