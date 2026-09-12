@@ -12,7 +12,6 @@ import {
 } from '@evolution/shared';
 import { EVOLUTION_DEBUG_KEY, type EvolutionDebugHost } from './debug/evolution-debug';
 import { setupGame, type GameSetupDependencies } from './game-setup';
-import { NO_RETICLE } from './render/game-renderer';
 import { createFakePixiApp } from '../../testing/fake-pixi-app';
 import type { TransitionOptions } from './state/snapshot-transitions';
 
@@ -32,7 +31,7 @@ function dependencies(overrides: Partial<GameSetupDependencies> = {}): GameSetup
     debugHost: {},
     isDevMode: true,
     previewTraitId: () => null,
-    reticle: () => NO_RETICLE,
+    isReticleVisible: () => false,
     ...overrides,
   };
 }

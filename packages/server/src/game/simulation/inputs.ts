@@ -41,6 +41,16 @@ function applyCellInput(cell: CellRecord, input: GameInput, context: StepContext
   }
 }
 
+/**
+ * **Invariant the client's trait-pick retry depends on: the sequence and the choice are recorded
+ * in one tick, by this function.** `appliedInputSequence` advances and `applyTraitChoice` resolves
+ * (applies or rejects) without a tick between them, so a snapshot can never show a sequence past a
+ * pick whose fate is still undecided. The client reads "the server answered past my send and the
+ * offer is still open" as *rejected* and resends (`client/src/app/game/input/trait-pick.ts`); split
+ * these two lines across ticks and a successful pick would read as rejected and be sent twice.
+ * Pinned by `inputs.test.ts` ("records the sequence and resolves the choice in the same tick" and
+ * its rejected twin).
+ */
 function applyPlayerInput(world: WorldState, player: PlayerRecord, context: StepContext): void {
   const input = player.pendingInput;
   if (input === null) {

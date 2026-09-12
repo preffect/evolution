@@ -96,6 +96,29 @@ describe('applyInputs', () => {
     expect(shownOffer(player)).toBeUndefined();
   });
 
+  // The invariant `client/src/app/game/input/trait-pick.ts` retries against: one tick decides both
+  // the sequence and the fate of the choice, so a snapshot never shows one without the other.
+  it('records the sequence and resolves the choice in the same tick', () => {
+    const { world, player, context } = fixture();
+    world.tick = 5;
+    queueOffer(player);
+    player.pendingInput = createTestGameInput({ sequence: 4, traitChoice: { offerId: 1, cardIndex: 0 } });
+    applyInputs(world, context);
+    expect(player.appliedInputSequence).toBe(4);
+    expect(shownOffer(player)).toBeUndefined();
+  });
+
+  it('records the sequence and leaves the offer open when the choice is rejected', () => {
+    const { world, player, context } = fixture();
+    world.tick = 5;
+    queueOffer(player);
+    player.pendingInput = createTestGameInput({ sequence: 4, traitChoice: { offerId: 99, cardIndex: 0 } });
+    applyInputs(world, context);
+    expect(player.appliedInputSequence).toBe(4);
+    expect(context.rejections.staleTraitChoice).toBe(1);
+    expect(shownOffer(player)).toBeDefined();
+  });
+
   it('refreshes the fold: a fixture-granted cilia I gives speedMultiplier 1.1', () => {
     const { world, cell, player, context } = fixture();
     player.ownedTraits.push({ traitId: 'cilia', tier: 1 });

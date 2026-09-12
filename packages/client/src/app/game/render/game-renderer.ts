@@ -14,6 +14,7 @@ import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
 import {
   cameraExtent,
   parkCamera,
+  screenOffsetToWorld,
   screenToWorld,
   stepCamera,
   zoomFor,
@@ -49,7 +50,7 @@ export interface RenderOutputs {
   readonly effectSprites: number;
 }
 
-/** The HUD's reticle while #100 has not wired the pointer: hidden. */
+/** No reticle this frame: the pointer has not been over the canvas, or the HUD hides it (docs/UI.md §5). */
 export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 0 };
 
 export class GameRenderer {
@@ -119,8 +120,17 @@ export class GameRenderer {
 
   /** The world point under a screen point, through the current camera. */
   screenToWorld(x: number, y: number): WorldPoint {
-    const camera = this.camera ?? parkCamera(DISH_CENTRE_TARGET);
-    return screenToWorld(camera, this.viewport, x, y);
+    return screenToWorld(this.cameraOrParked(), this.viewport, x, y);
+  }
+
+  /** The same point as a world-space offset from the middle of the view (`camera.ts`). */
+  screenOffsetToWorld(x: number, y: number): WorldPoint {
+    return screenOffsetToWorld(this.cameraOrParked(), this.viewport, x, y);
+  }
+
+  /** The live camera, or one parked on the dish centre before the first frame. */
+  private cameraOrParked(): CameraState {
+    return this.camera ?? parkCamera(DISH_CENTRE_TARGET);
   }
 
   private stepCamera(frame: RenderFrame, ownPlayerId: string | null): CameraState {

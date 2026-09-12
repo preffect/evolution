@@ -108,9 +108,19 @@ export function worldToScreen(state: CameraState, viewport: ViewportPx, x: numbe
   return { x: (x - state.x) * zoom + viewport.width * HALF, y: (y - state.y) * zoom + viewport.height * HALF };
 }
 
-export function screenToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): WorldPoint {
+/**
+ * A screen point as a world-space offset from the middle of the view: what a caller anchors to
+ * something other than the camera's own centre. The steer target hangs the pointer off the newest
+ * snapshot's own cell this way, because the smoothed, interpolated camera trails it (docs/UI.md §4).
+ */
+export function screenOffsetToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): WorldPoint {
   const zoom = zoomFor(state, viewport);
-  return { x: (x - viewport.width * HALF) / zoom + state.x, y: (y - viewport.height * HALF) / zoom + state.y };
+  return { x: (x - viewport.width * HALF) / zoom, y: (y - viewport.height * HALF) / zoom };
+}
+
+export function screenToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): WorldPoint {
+  const offset = screenOffsetToWorld(state, viewport, x, y);
+  return { x: state.x + offset.x, y: state.y + offset.y };
 }
 
 /** Whether a disc of `reachWu` around a centre touches the extent, with the cull margin (RENDERING §6). */

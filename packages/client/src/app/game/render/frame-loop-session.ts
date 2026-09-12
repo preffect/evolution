@@ -20,6 +20,8 @@ export abstract class FrameLoopSession {
   private readonly slot = new RendererSlot();
   /** The tick of the frame on screen: what the debug hook reports, held while paused. */
   private lastRenderedTickValue: number | null = null;
+  /** Runs every animation frame whether or not a frame is drawn; `null` until one is set. */
+  private animationFrameListener: (() => void) | null = null;
 
   protected constructor(clock: Clock, sampleCapacityFrames?: number) {
     this.instrumentation = new FrameInstrumentation(clock, sampleCapacityFrames);
@@ -38,7 +40,19 @@ export abstract class FrameLoopSession {
     this.pixi = pixi;
     this.instrumentation.attach(pixi.app);
     pixi.app.ticker.remove(pixi.app.render, pixi.app);
-    pixi.app.ticker.add(() => this.frame());
+    pixi.app.ticker.add(() => {
+      this.animationFrameListener?.();
+      this.frame();
+    });
+  }
+
+  /**
+   * Called once per animation frame, before the gate: the input controller's pump runs here so it
+   * keeps its own `TICK_HZ` cadence off the injected clock (docs/ARCHITECTURE.md §5) instead of a
+   * timer of its own, which game code may not own (docs/CODE-STANDARDS.md §8).
+   */
+  setAnimationFrameListener(listener: (() => void) | null): void {
+    this.animationFrameListener = listener;
   }
 
   /** Builds the renderer over textures baked from `options` on the adopted app; `null` before one is adopted. */

@@ -21,8 +21,17 @@ import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
+import type { WorldPoint } from './camera';
 import type { GameRenderer, RenderInputs, RenderOutputs } from './game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
+
+/** A canvas point resolved through the live camera, both ways the input layer needs it. */
+export interface PointerProjection {
+  /** The world point under the pointer: where the reticle sits (docs/RENDERING.md §6). */
+  readonly worldPoint: WorldPoint;
+  /** The same point as a world-space offset from the middle of the view. */
+  readonly offsetFromViewCentre: WorldPoint;
+}
 
 export interface RenderSessionDependencies {
   readonly host: HTMLElement;
@@ -59,6 +68,21 @@ export class RenderSession extends FrameLoopSession {
 
   get startupError(): unknown {
     return this.startupErrorValue;
+  }
+
+  /**
+   * A canvas point through the live camera (docs/GAME-DESIGN.md §7); `null` before the renderer
+   * exists. The input layer's one read of the render side (docs/UI.md §4): the absolute world
+   * point is where the reticle is drawn, the offset is what the steer target hangs off the own
+   * cell so the camera's smoothing and interpolation delay stay out of the steering command.
+   */
+  projectPointer(point: { readonly x: number; readonly y: number }): PointerProjection | null {
+    const renderer = this.renderer;
+    if (renderer === null) return null;
+    return {
+      worldPoint: renderer.screenToWorld(point.x, point.y),
+      offsetFromViewCentre: renderer.screenOffsetToWorld(point.x, point.y),
+    };
   }
 
   onMessage(message: ServerMessage): void {

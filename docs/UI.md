@@ -275,7 +275,8 @@ without copy fails the gate instead of rendering `undefined`.
   signal through `game-setup.ts`, draws the trait's organelle ghost on the own cell (RENDERING §3) and hides the
   orbit ghost when the trait is a rung of the next stage (§3.1.2). No card is highlighted until hovered or focused; arrow keys move focus.
 - **Pick.** Click, Enter/Space on the focused card, or keys `1` `2` `3` send `traitChoice: { offerId, cardIndex }`
-  (one send per offer; the overlay closes on the next snapshot without the offer). Timer text right of the bar:
+  for the offer that was on screen when the key went down (§4's pick policy; the overlay closes on the next
+  snapshot without the offer). Timer text right of the bar:
   `6.5 s` (`value` role) from `(offer.expiresAtTick − serverTickEstimate) / TICK_HZ`. **Timeout is the server's pick** (highest
   draft weight, PROGRESSION §4); the footer reads `At 0 s the dish picks for you`. Sheet 03's "auto-picks the
   highlighted card" is superseded by that rule: the client never sends on the player's behalf, and never sends
@@ -348,15 +349,56 @@ lobby screen returns with `lobby-notice` = `You were disconnected from the game.
 | Input                | Pointer / touch                                         | Keyboard                                                           | Sent as (ARCHITECTURE §4)                                                                             |
 | -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | Steer                | pointer position over the canvas → world via the camera | WASD / arrows synthesise a target (GAME-DESIGN §6)                 | `targetX/targetY` every client tick; the pointer's last position is latched when it leaves the canvas |
-| Sprint               | left click / tap on the canvas                          | Space (edge-triggered, no repeat) with focus outside `trait-offer` | `sprint: true` once per press                                                                         |
+| Sprint               | left click / tap on the canvas                          | Space (edge-triggered, no repeat) with focus outside `trait-offer` | `shouldSprint: true` once per press                                                                   |
 | Pick trait           | click a card                                            | `1` `2` `3`; Enter/Space with focus on a card                      | `traitChoice`                                                                                         |
 | Full leaderboard     | click the leaderboard header (toggles)                  | Tab held                                                           | local                                                                                                 |
 | Menu / close overlay | —                                                       | Escape                                                             | local                                                                                                 |
 | Owned traits         | Escape → `Your traits` (§3.5)                           | Escape, then Tab through the list                                  | local                                                                                                 |
 
-- Hotkeys are handled by `input/keyboard-input.ts` on `document` while `mp.inGame()`; they are ignored when focus is
-  in a text field, and all but `1` `2` `3` are ignored while the menu is open (§3.5). Tab is `preventDefault`ed only
-  while no overlay with focusable controls is open, so the trait picker, menu and results remain fully tab-navigable.
+- Hotkeys are handled by `input/keyboard-input.ts` on `document` while the client is in a room; they are ignored when
+  focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5:
+  Escape is what closes it). A **release** never consults focus, so a key pressed over the canvas and released after
+  focus moved still releases, and a window `blur` releases everything. Tab is `preventDefault`ed only
+  while no overlay with focusable controls is open, so the trait picker, menu and results remain fully tab-navigable;
+  which overlays those are is the `FOCUSABLE_OVERLAY_TEST_IDS` list in `input/input-constants.ts`, the one home of the
+  key codes and the selectors (`CODE-STANDARDS.md §2`).
+- **The module list** (the one home; `ARCHITECTURE.md §10`'s file plan repeats it without roles). Pure and
+  unit-tested: `input-constants.ts` (key codes, direction vectors, selectors), `keyboard-action.ts` (the rules of
+  this section, press and release → one action), `input-state.ts` (the latched pointer, the held keys, the two
+  one-shots, the Tab hold), `game-input-builder.ts` (state + world → `GameInput`). Thin adapters:
+  `dom-input-context.ts` (the focus facts), `keyboard-input.ts`, `pointer-input.ts`,
+  `input-world-context.ts` (`WorldStore` → the own cell, the open offer, the live `balance.controls`).
+  `input-controller.ts` owns the client tick counter and the one send per tick; `attach-input.ts` composes them
+  and `game-setup.ts` wires the seam. In dev builds `window.__evolutionDebug.input()` reports what was last sent
+  and what is held, so a Playwright run can assert that a key reached its handler.
+- The **reticle**'s position is the latched pointer in world units, handed to the renderer by `game-setup.ts`;
+  whether it shows is the HUD's `reticleVisible` (the `steer` onboarding beat, §5), which is `false` until #190.
+- **The steer target is an offset, not a projection.** The pointer is sent as its offset from the middle of the
+  view applied to the **newest snapshot's own cell**, never as the absolute world point the camera projects it
+  to. The camera centres on the _interpolated_ cell and then smooths, so it trails the authoritative one by
+  `INTERPOLATION_DELAY_TICKS` + `CAMERA_FOLLOW_SECONDS` ≈ 0.113 s, and an absolute target has that lag distance
+  subtracted from the offset the player aimed for — about 93 % of the throttle ramp of `ECOLOGY.md §5.2` at
+  `CELL_STARTING_MASS`, so a new cell would be full speed or stopped with nothing in between. The reticle keeps
+  the camera projection, because it is drawn on the camera's frame. Prediction of the own cell is #265.
+- **The pick policy** (`input/trait-pick.ts`, the one home of all three cases). A press answers **only the offer
+  it was made against**: it is stamped with that `offerId` on the way in. A press no open offer can answer — none
+  open, or a card index past the cards this offer has, since a late draft carries fewer than `TRAIT_DRAFT_SIZE`
+  (`PROGRESSION.md §4`) — is **discarded where it was pressed**, never carried to a later offer. A press the
+  server rejects as stale is **retried**: the pick stays queued until the world says what became of it, and is
+  sent again once the server has answered a tick at or past the one it was sent with while that offer is still
+  open. Once the offer is gone from the client's model the pick is dropped, so the good case sends exactly once
+  and nothing is ever applied twice.
+- **Presses do not survive a gap with nothing to steer.** While there is no world — before the first snapshot,
+  and through `results` — a queued sprint and a queued pick are dropped rather than carried into the next round,
+  and the client tick accumulator is resynced so the frame the world returns on sends one input, not a burst.
+  Held steer keys keep their latch, because the key is still physically down.
+- **Opposing steer keys hand control back to the pointer.** `A` + `D` (or `W` + `S`) cancel to no direction, and
+  the target falls through to the latched pointer rather than stopping. This is the decision for a
+  pointer-primary game; "both keys to stop" would be a design change, not a bug fix.
+- Three of the focus rules above — the Space-precedence branch, the menu gate and the Tab-vs-overlay rule — are
+  **dormant until the overlays exist** (#188, #189): nothing renders `trait-offer`, `menu-overlay` or
+  `results-overlay` yet, so today Space always sprints and Tab is always `preventDefault`ed. The rules are
+  unit-tested, and are to be re-tested by hand when those tickets land.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:
   inside `trait-offer` it picks (the card's own key handler runs, the sprint path does not); anywhere else it sprints.
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until
