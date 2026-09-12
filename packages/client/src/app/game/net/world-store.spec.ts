@@ -140,6 +140,26 @@ describe('WorldStore', () => {
     expect(store.nextFrame()!.renderTick).toBeCloseTo(64 - INTERPOLATION_DELAY_TICKS, 6);
   });
 
+  it('never re-fires a moment already drained when its tick is republished after the render tick ran past it', () => {
+    const { store, clock } = storeWithSnapshots([60, 61, 62]);
+    const levelUp = createTestLevelUpEffect({ tick: 63, cellId: entityId('c') });
+    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp] }));
+    // The room is paused: the render tick extrapolates past 63 and drains the level-up.
+    clock.setMilliseconds((63 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    expect(store.nextFrame()!.effects).toContainEqual(levelUp);
+    // A debug tool republishes tick 63 with the same effect: nothing fires again.
+    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp] }));
+    expect(store.nextFrame()!.effects).toEqual([]);
+    // A newer tick forgets the drained set: the same moment at 64 is a new moment.
+    clock.setMilliseconds(64 * TICK_INTERVAL_MS);
+    const later = { ...levelUp, tick: 64 };
+    store.applySnapshot(createTestSnapshot({ tick: 64, effects: [later] }));
+    clock.setMilliseconds((64 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    expect(store.nextFrame()!.effects).toEqual([later]);
+    store.reset();
+    expect(store.nextFrame()).toBeNull();
+  });
+
   it("queues a republished tick's effects once: the same moment never fires twice", () => {
     const { store, clock } = storeWithSnapshots([60, 61, 62]);
     const levelUp = createTestLevelUpEffect({ tick: 63, cellId: entityId('c') });
