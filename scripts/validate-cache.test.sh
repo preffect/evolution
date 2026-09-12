@@ -5,7 +5,8 @@
 #   cached; `all` stamps its phases and itself (an `all` hit prints ALL PASSED and filters see every
 #   phase's stored log); a worktree at the same content shares the stamp; a Node-major mismatch, a
 #   missing stored log and a run that changes the tree are misses; VALIDATE_CACHE_DIR overrides the
-#   directory; an unwritable directory degrades to no cache with one warning line.
+#   directory; an unwritable directory degrades to no cache with one warning line; two real gates
+#   on one machine run one after the other (gate.lock) while a hit never waits.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -17,6 +18,7 @@ trap 'rm -rf "$sandbox"' EXIT
 CACHED_HIT_SECONDS_MAX=2
 FAKE_PNPM_RC_FILE="$sandbox/fake-pnpm-rc"
 FAKE_PNPM_TOUCH_FILE="$sandbox/fake-pnpm-touch" # when non-empty: a path the fake pnpm creates (a run that changes the tree)
+FAKE_PNPM_SLEEP_FILE="$sandbox/fake-pnpm-sleep" # seconds the fake pnpm sleeps (a slow gate)
 
 # --- fixture: a git repo holding validate.sh, a stub docs-index.sh, and a fake pnpm ------------
 fixture="$sandbox/repo"
@@ -28,11 +30,13 @@ cat > "$sandbox/bin/pnpm" <<PNPM
 echo "fake pnpm \$*"
 touch_path="\$(cat "$FAKE_PNPM_TOUCH_FILE")"
 [[ -z "\$touch_path" ]] || echo generated > "\$touch_path"
+sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
 exit "\$(cat "$FAKE_PNPM_RC_FILE")"
 PNPM
 chmod +x "$fixture/scripts/docs-index.sh" "$sandbox/bin/pnpm"
 echo 0 > "$FAKE_PNPM_RC_FILE"
 : > "$FAKE_PNPM_TOUCH_FILE"
+echo 0 > "$FAKE_PNPM_SLEEP_FILE"
 git -C "$fixture" init -q
 git -C "$fixture" -c user.name=test -c user.email=test@example.com add -A
 git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m fixture
@@ -159,6 +163,48 @@ warning_count="$(grep -c 'result cache disabled' <<<"$out" || true)"
 error_count="$(grep -c -i 'permission denied\|no such file' <<<"$out" || true)"
 check "an unwritable cache dir degrades to no cache with one warning line ($warning_count warning, $error_count errors)" $(( rc == 0 && $(ran_pnpm; echo $?) == 0 && warning_count == 1 && error_count == 0 ))
 chmod 700 "$readonly_dir"
+
+echo lock-case > "$fixture/untracked.txt"
+echo 2 > "$FAKE_PNPM_SLEEP_FILE"
+first_log="$sandbox/first-gate.log"
+started_marker="$sandbox/first-gate-started"
+echo "$started_marker" > "$FAKE_PNPM_TOUCH_FILE" # the fake pnpm creates it the moment the first gate is inside the lock
+(cd "$fixture" && ./validate.sh test > "$first_log" 2>&1) &
+first_pid=$!
+until [[ -e "$started_marker" ]]; do sleep 0.05; done
+: > "$FAKE_PNPM_TOUCH_FILE"
+started_second="$EPOCHREALTIME"
+run_validate "$fixture" test
+second_elapsed_ms="$(awk -v a="$started_second" -v b="$EPOCHREALTIME" 'BEGIN { printf "%d", (b - a) * 1000 }')"
+wait "$first_pid" && first_rc=0 || first_rc=$?
+echo 0 > "$FAKE_PNPM_SLEEP_FILE"
+rm -f "$started_marker"
+check "a second real gate waits for the first (second took ${second_elapsed_ms} ms, first rc $first_rc)" $(( rc == 0 && first_rc == 0 && $(grep -q '^waiting for another gate to finish' <<<"$out"; echo $?) == 0 && second_elapsed_ms >= 1500 ))
+run_validate "$fixture" test
+check "a cache hit never waits on the gate lock" $(( $(is_cached; echo $?) == 0 && $(grep -q 'waiting for another gate' <<<"$out"; echo $?) != 0 ))
+echo orphan-case > "$fixture/untracked.txt"
+orphan_pid_file="$sandbox/orphan-pid"
+cat > "$sandbox/bin/pnpm" <<PNPM
+#!/usr/bin/env bash
+echo "fake pnpm \$*"
+(sleep 30 & echo \$! > "$orphan_pid_file")
+exit 0
+PNPM
+run_validate "$fixture" test
+orphan_pid="$(cat "$orphan_pid_file")"
+lock_free=0
+flock -n "$HOME/.cache/$(basename "$fixture")-validate/gate.lock" true && lock_free=1
+kill "$orphan_pid" 2>/dev/null || true
+check "a child that outlives the gate does not keep the lock" $(( rc == 0 && lock_free == 1 ))
+cat > "$sandbox/bin/pnpm" <<PNPM
+#!/usr/bin/env bash
+echo "fake pnpm \$*"
+touch_path="\$(cat "$FAKE_PNPM_TOUCH_FILE")"
+[[ -z "\$touch_path" ]] || echo generated > "\$touch_path"
+sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
+exit "\$(cat "$FAKE_PNPM_RC_FILE")"
+PNPM
+rm -f "$fixture/untracked.txt"
 
 if [[ $failures -gt 0 ]]; then
   echo "validate-cache.test.sh: $failures failure(s)"

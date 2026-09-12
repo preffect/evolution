@@ -15,6 +15,7 @@
 #   -hN        Head N lines of output (e.g. -h50)
 #   -G PATTERN Grep output for PATTERN
 #   --fresh    Ignore the result cache and re-run (a green result is still stamped)
+#   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache).
 #
@@ -23,7 +24,8 @@
 # keyed by `git write-tree` of the whole working tree, tracked and untracked, plus the Node major
 # version. A repeat call on the same tree prints `cached green from <time> at tree <hash>` and the
 # stored log path, applies -t/-h/-G to the stored log, and exits 0. Red is never cached. `all`
-# stamps each phase and itself. Shared across worktrees at the same content.
+# stamps each phase and itself. Shared across worktrees at the same content. Real runs hold
+# $HOME/.cache/<slug>-validate/gate.lock so only one gate runs per machine; hits never wait.
 #
 # Examples:
 #   ./validate.sh test                    # run all tests
@@ -222,6 +224,29 @@ cache_store() {
 
 append_all_raw() { [[ -z "$ALL_RAW_FILE" ]] || printf '%s\n' "$1" >> "$ALL_RAW_FILE"; }
 
+# One real gate at a time per machine: every non-cached run holds an exclusive lock on
+# $HOME/.cache/<slug>-validate/gate.lock (falling back to ${TMPDIR:-/tmp}), independent of
+# VALIDATE_CACHE_DIR so a scratch cache still queues behind the machine's gates; the fd is closed
+# for the child (9>&-) so no orphaned worker can keep the lock; a cache hit never takes it.
+GATE_LOCK_FD=""
+gate_lock_path() { # machine-wide per repo: never under VALIDATE_CACHE_DIR, which a CI run points at scratch
+  local dir="$HOME/.cache/$(cache_slug)-validate"
+  if mkdir -p "$dir" 2>/dev/null && [[ -w "$dir" ]]; then echo "$dir/gate.lock"; else echo "${TMPDIR:-/tmp}/$(cache_slug)-validate-gate.lock"; fi
+}
+gate_lock_acquire() { # <cmd>
+  [[ "${VALIDATE_NO_GATE_LOCK:-0}" == "1" ]] && return 0
+  command -v flock >/dev/null 2>&1 || { echo "validate.sh: flock not found; running unlocked" >&2; return 0; }
+  local path
+  path="$(gate_lock_path)"
+  exec 9>>"$path" || { echo "validate.sh: gate lock unavailable ($path); running unlocked" >&2; return 0; }
+  GATE_LOCK_FD=9
+  if ! flock -n 9; then
+    echo "waiting for another gate to finish before $1 (lock $path)"
+    flock 9
+  fi
+}
+gate_lock_release() { [[ -z "$GATE_LOCK_FD" ]] || { flock -u 9; exec 9>&-; GATE_LOCK_FD=""; }; }
+
 # Runs <cmd> through the cache: a hit prints the stamp (and feeds the stored phase log to the
 # `all` log, so filters on an `all` hit see every phase); a green run is stamped; red never is.
 run_cached() {
@@ -233,7 +258,9 @@ run_cached() {
     return 0
   fi
   local rc=0
-  run_one "$cmd" "$@" || rc=$?
+  gate_lock_acquire "$cmd"
+  run_one "$cmd" "$@" 9>&- || rc=$?
+  gate_lock_release
   append_all_raw "$RUN_ONE_OUTPUT"
   if [[ $rc -eq 0 ]]; then
     cache_store "$cmd" "$RUN_ONE_OUTPUT"

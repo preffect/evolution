@@ -116,22 +116,22 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Acceptance scenarios** (L745–824): Given seed S and inputs I, after N ticks assert X.
   - **8.1 The evolving world (§3.1–§3.4)** (L801–824): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
 
-## ENGINEERING.md (274 lines)
+## ENGINEERING.md (279 lines)
 
-- **Engineering Standards** (L1–274): These are enforceable rules, not suggestions.
-- **1. The Validation Gate (`./validate.sh`)** (L12–63): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
-- **2. Testing Standards** (L64–138): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
-  - **2.1 Every change is tested** (L69–82): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
-  - **2.2 Unit vs integration split** (L83–109): isolation — no cross-subsystem orchestration, runs in <100ms.
-  - **2.3 What must be covered (template-specific)** (L110–129): state + snapshot; invalid input is rejected/ignored.
-  - **2.4 Determinism** (L130–138): simulation is reproducible and tests can assert exact outputs.
-- **3. TypeScript & Lint Strictness** (L139–185)
-  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L141–156): Do not weaken these.
-  - **3.2 Lint / format rules** (L157–171): means "intentionally unused" — it is not a license to leave a stub instead of real code.
-  - **3.3 Forbidden escape hatches** (L172–185): without a justification.
-- **4. Architecture Conventions (enforce on every change)** (L186–221): imports from `server` or `client`.
-- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L222–252): instead of `./validate.sh`.
-- **6. Definition of Done (checklist — ALL must hold)** (L253–274): path, edge cases, and error cases.
+- **Engineering Standards** (L1–279): These are enforceable rules, not suggestions.
+- **1. The Validation Gate (`./validate.sh`)** (L12–68): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
+- **2. Testing Standards** (L69–143): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
+  - **2.1 Every change is tested** (L74–87): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
+  - **2.2 Unit vs integration split** (L88–114): isolation — no cross-subsystem orchestration, runs in <100ms.
+  - **2.3 What must be covered (template-specific)** (L115–134): state + snapshot; invalid input is rejected/ignored.
+  - **2.4 Determinism** (L135–143): simulation is reproducible and tests can assert exact outputs.
+- **3. TypeScript & Lint Strictness** (L144–190)
+  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L146–161): Do not weaken these.
+  - **3.2 Lint / format rules** (L162–176): means "intentionally unused" — it is not a license to leave a stub instead of real code.
+  - **3.3 Forbidden escape hatches** (L177–190): without a justification.
+- **4. Architecture Conventions (enforce on every change)** (L191–226): imports from `server` or `client`.
+- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L227–257): instead of `./validate.sh`.
+- **6. Definition of Done (checklist — ALL must hold)** (L258–279): path, edge cases, and error cases.
 
 ## GAME-DESIGN.md (446 lines)
 
