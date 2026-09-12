@@ -27,8 +27,10 @@ import { HALF, degreesToRadians } from '../geometry';
 export interface FlagellumSpec {
   readonly x: number;
   readonly y: number;
-  /** The drawn radius (`r × pulse`): the tail roots on the membrane. */
+  /** The drawn radius (`r × pulse`): the wave's length and amplitude scale. */
   readonly radius: number;
+  /** The membrane radius at the tail's angle (`r(θ)` at the rear, tapered at speed): where the root sits. */
+  readonly rootRadius: number;
   readonly heading: number;
   readonly tier: TraitTier;
   readonly timeSeconds: number;
@@ -38,8 +40,8 @@ export interface FlagellumSpec {
 }
 
 export interface WorldPoint {
-  readonly x: number;
-  readonly y: number;
+  x: number;
+  y: number;
 }
 
 const ONE_TAIL = 1;
@@ -59,25 +61,37 @@ function amplitudeWu(spec: FlagellumSpec): number {
   return FLAGELLUM_AMPLITUDE_RADII * tierScale * sprintScale * spec.radius;
 }
 
-/** The world points of tail `tailIndex`: root on the membrane behind the cell, tip 2 r further, the wave growing toward the tip. */
-export function flagellumPolyline(spec: FlagellumSpec, tailIndex: number): WorldPoint[] {
+/** `FLAGELLUM_SEGMENTS + 1` points, reused frame to frame by the pool. */
+export function createTailPoints(): WorldPoint[] {
+  return Array.from({ length: FLAGELLUM_SEGMENTS + 1 }, () => ({ x: 0, y: 0 }));
+}
+
+/**
+ * The world points of tail `tailIndex`, written into `into` (fresh when omitted): root on the deformed
+ * membrane behind the cell, tip 2 r further, the wave growing toward the tip.
+ */
+export function flagellumPolyline(
+  spec: FlagellumSpec,
+  tailIndex: number,
+  into: WorldPoint[] = createTailPoints(),
+): WorldPoint[] {
   const tails = flagellumTailCount(spec.tier);
   const backward = spec.heading + Math.PI + TAIL_SPREAD * (tailIndex - (tails - 1) * HALF);
   const sideways = backward + QUARTER_TURN;
   const amplitude = amplitudeWu(spec);
   const length = FLAGELLUM_LENGTH_RADII * spec.radius;
-  return Array.from({ length: FLAGELLUM_SEGMENTS + 1 }, (_unused, segment) => {
+  for (let segment = 0; segment <= FLAGELLUM_SEGMENTS; segment += 1) {
     const share = segment / FLAGELLUM_SEGMENTS;
-    const along = spec.radius + share * length;
+    const along = spec.rootRadius + share * length;
     const wave = Math.sin(
       RADIANS_PER_FULL_TURN * (share * FLAGELLUM_WAVES - spec.timeSeconds * FLAGELLUM_WAVE_HZ + spec.phase),
     );
     const across = wave * amplitude * share;
-    return {
-      x: spec.x + Math.cos(backward) * along + Math.cos(sideways) * across,
-      y: spec.y + Math.sin(backward) * along + Math.sin(sideways) * across,
-    };
-  });
+    const point = into[segment] ?? (into[segment] = { x: 0, y: 0 });
+    point.x = spec.x + Math.cos(backward) * along + Math.cos(sideways) * across;
+    point.y = spec.y + Math.sin(backward) * along + Math.sin(sideways) * across;
+  }
+  return into;
 }
 
 interface TailStroke {

@@ -52,6 +52,8 @@ export const HEADING_HOLD_SPEED_RATIO = 0.02;
 
 // ---- bumps (VISUAL-STYLE §5, sheet 03, RENDERING §2.1, §4) ----
 export const CONTACT_DENT_AMPLITUDE = -0.12;
+/** The dent reaches its full amplitude at this overlap, as a share of the smaller cell's radius; it eases in and out with the press. */
+export const CONTACT_DENT_FULL_OVERLAP_RADII = 0.25;
 export const CONTACT_DENT_SIGMA_DEG = 22;
 export const CONTACT_DENT_TAUT_SIGMA_DEG = 14;
 export const EAT_DIMPLE_SIGMA_DEG = 22;
@@ -134,13 +136,17 @@ export const RIBOSOME_BAND_MAX_RADII = 0.89;
 export const RIBOSOME_DENSITY_BY_TIER = [20, 40, 60] as const;
 export const RIBOSOME_RADIUS_RADII_MIN = 0.012;
 export const RIBOSOME_RADIUS_RADII_MAX = 0.022;
+/** The dot's diameter floor in px (VISUAL-STYLE §4 "dots 2 px"). */
 export const RIBOSOME_MIN_PX = 2;
+/** A dot strays this share of the grid pitch from its cell centre, whatever its radius. */
+export const RIBOSOME_JITTER_SHARE = 0.8;
 export const RIBOSOME_ALPHA_MIN = 0.35;
 export const RIBOSOME_ALPHA_MAX = 0.8;
 export const FILAMENT_COUNT_BY_TIER = [11, 15, 19] as const;
 export const FILAMENT_WIDTH_PX = 1.1;
 export const FILAMENT_ALPHA = 0.28;
-export const FILAMENT_MASK_PX = 0.55;
+/** The screen-px half-width of a filament's spoke mask. */
+export const FILAMENT_MASK_PX = FILAMENT_WIDTH_PX / 2;
 /** The filaments fade out over this band inside their 0.89 r reach. */
 export const FILAMENT_REACH_BLUR_RADII = 0.04;
 /** The rim takes half the membrane's chloroplast tint (VISUAL-STYLE §4 `chloroplast`). */

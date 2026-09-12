@@ -1,12 +1,19 @@
 // The contact dent (docs/VISUAL-STYLE.md §5, docs/RENDERING.md §2.1): a −12 % dimple toward a
 // touching neighbour while the separation rule of ECOLOGY §5.3 applies, so never between a
 // predator and its prey. A visible-cell scan, one dent per cell (the deepest overlap wins); the
-// σ is the cell's own (22°, 14° with `cytoskeleton`), and an engulfing cell drops the dent
-// because the arm already dents its membrane (§2.1's slot rule).
+// σ is the cell's own (22°, 14° with `cytoskeleton`), the amplitude grows with the press (0 at
+// first touch, full at `CONTACT_DENT_FULL_OVERLAP_RADII` of the smaller radius, so the server's
+// exponential separation eases it out), and an engulfing cell drops the dent because the arm
+// already dents its membrane (§2.1's slot rule).
 
 import type { CellView, EntityId } from '@evolution/shared';
-import { CONTACT_DENT_AMPLITUDE, CONTACT_DENT_SIGMA_DEG, CONTACT_DENT_TAUT_SIGMA_DEG } from '../constants';
-import { degreesToRadians } from '../geometry';
+import {
+  CONTACT_DENT_AMPLITUDE,
+  CONTACT_DENT_FULL_OVERLAP_RADII,
+  CONTACT_DENT_SIGMA_DEG,
+  CONTACT_DENT_TAUT_SIGMA_DEG,
+} from '../constants';
+import { clamp01, degreesToRadians } from '../geometry';
 import type { CellDeformation } from './cell-deformation';
 import type { ShapeBump } from './radial-profile';
 
@@ -17,6 +24,8 @@ export interface ContactDent {
   readonly overlap: number;
   /** The angle toward the neighbour, cell frame. */
   readonly angle: number;
+  /** 0 at first touch → 1 at the full-amplitude overlap (`CONTACT_DENT_FULL_OVERLAP_RADII` × the smaller radius). */
+  readonly depth: number;
 }
 
 export type ContactDents = ReadonlyMap<EntityId, ContactDent>;
@@ -40,27 +49,36 @@ function keepDeeper(dents: Map<EntityId, ContactDent>, id: EntityId, candidate: 
   if (current === undefined || candidate.overlap > current.overlap) dents.set(id, candidate);
 }
 
-/** The deepest touching neighbour of every cell in `cells`, keyed by cell id; engulf pairs never touch. */
+/** The deepest touching neighbour of every cell in `cells`, keyed by cell id; engulf pairs never touch. No allocation per pair. */
 export function computeContactDents(cells: readonly ContactCell[]): ContactDents {
   const dents = new Map<EntityId, ContactDent>();
-  cells.forEach((first, firstIndex) => {
-    for (const second of cells.slice(firstIndex + 1)) {
+  for (let firstIndex = 0; firstIndex < cells.length; firstIndex += 1) {
+    const first = cells[firstIndex];
+    if (first === undefined) continue;
+    for (let secondIndex = firstIndex + 1; secondIndex < cells.length; secondIndex += 1) {
+      const second = cells[secondIndex];
+      if (second === undefined) continue;
       const deltaX = second.x - first.x;
       const deltaY = second.y - first.y;
       const distance = Math.hypot(deltaX, deltaY);
       const overlap = first.radius + second.radius - distance;
       if (overlap <= 0 || distance === 0 || isEngulfPair(first, second)) continue;
       const angle = Math.atan2(deltaY, deltaX);
-      keepDeeper(dents, first.id, { overlap, angle });
-      keepDeeper(dents, second.id, { overlap, angle: angle + Math.PI });
+      const depth = clamp01(overlap / (CONTACT_DENT_FULL_OVERLAP_RADII * Math.min(first.radius, second.radius)));
+      keepDeeper(dents, first.id, { overlap, angle, depth });
+      keepDeeper(dents, second.id, { overlap, angle: angle + Math.PI, depth });
     }
-  });
+  }
   return dents;
 }
 
-/** The dent as a profile bump: −12 % r toward the neighbour, σ 22° (14° when taut). */
+/** The dent as a profile bump: −12 % r × depth toward the neighbour, σ 22° (14° when taut). */
 export function contactDentBump(dent: ContactDent, isTaut: boolean): ShapeBump {
-  return { amplitude: CONTACT_DENT_AMPLITUDE, centre: dent.angle, sigma: isTaut ? TAUT_SIGMA : CONTACT_SIGMA };
+  return {
+    amplitude: CONTACT_DENT_AMPLITUDE * dent.depth,
+    centre: dent.angle,
+    sigma: isTaut ? TAUT_SIGMA : CONTACT_SIGMA,
+  };
 }
 
 /** `deformation` with the cell's dent appended, unless it is engulfing (the arm dents instead). */

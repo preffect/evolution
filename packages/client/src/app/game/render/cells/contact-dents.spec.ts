@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { CONTACT_DENT_AMPLITUDE } from '../constants';
+import { CONTACT_DENT_AMPLITUDE, CONTACT_DENT_FULL_OVERLAP_RADII } from '../constants';
 import { degreesToRadians } from '../geometry';
 import { REST_DEFORMATION } from './cell-deformation';
 import { computeContactDents, contactDentBump, withContactDent } from './contact-dents';
@@ -17,6 +17,7 @@ describe('computeContactDents', () => {
     expect(dents.size).toBe(2);
     expect(dents.get(entityId('a'))!.angle).toBeCloseTo(0, 9);
     expect(dents.get(entityId('a'))!.overlap).toBe(10);
+    expect(dents.get(entityId('a'))!.depth).toBe(1);
     expect(Math.abs(dents.get(entityId('b'))!.angle)).toBeCloseTo(Math.PI, 9);
   });
 
@@ -34,7 +35,15 @@ describe('computeContactDents', () => {
 });
 
 describe('contactDentBump and withContactDent', () => {
-  const dent = { overlap: 4, angle: 1 };
+  const dent = { overlap: 4, angle: 1, depth: 1 };
+
+  it('eases in with the press: a grazing touch is a shallow dent, a quarter-radius overlap the full one', () => {
+    const grazing = computeContactDents([cell('a', 0, 0, 20), cell('b', 39.9, 0, 20)]).get(entityId('a'))!;
+    expect(grazing.depth).toBeCloseTo(0.1 / (CONTACT_DENT_FULL_OVERLAP_RADII * 20), 9);
+    expect(contactDentBump(grazing, false).amplitude).toBeCloseTo(CONTACT_DENT_AMPLITUDE * grazing.depth, 9);
+    const pressed = computeContactDents([cell('a', 0, 0, 20), cell('b', 30, 0, 40)]).get(entityId('a'))!;
+    expect(pressed.depth).toBe(1);
+  });
 
   it('is −12 % r at the neighbour with σ 22°, sharpened to 14° when taut', () => {
     expect(contactDentBump(dent, false)).toEqual({

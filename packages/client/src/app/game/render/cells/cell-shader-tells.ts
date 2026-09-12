@@ -56,7 +56,7 @@ vec4 cilia(Instance inst, Frame frame, vec4 acc) {
   float fade = 1.0 - frame.dr / ${glslFloat(CILIA_REACH)};
   float wave = ${glslFloat(CILIA_WAVE)} * sin(frame.theta * ${glslFloat(CILIA_WAVE_COUNT)} - TAU * inst.ciliaPhase);
   float thetaHair = frame.theta - frame.dr * tan(${glslFloat(CILIA_LEAN)} + wave);
-  float s = abs(fract(inst.ciliaCount * thetaHair / TAU) - HALF) * TAU * frame.len * uZoom / inst.ciliaCount;
+  float s = spokeDistancePx(inst.ciliaCount, thetaHair, frame.len * uZoom);
   float halfWidth = ${glslFloat(CILIA_WIDTH_PX)} * HALF;
   float hair = 1.0 - smoothstep(halfWidth - HALF, halfWidth + HALF, s);
   float full = hair * ${glslFloat(CILIA_ALPHA)} * fade;

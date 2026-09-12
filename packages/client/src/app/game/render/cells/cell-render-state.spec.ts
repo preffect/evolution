@@ -142,7 +142,7 @@ describe('CellRenderState', () => {
   });
 
   it('appends the contact dent with the cell’s own σ and drops it while engulfing', () => {
-    const dent = { overlap: 3, angle: 0.5 };
+    const dent = { overlap: 3, angle: 0.5, depth: 1 };
     const contactDents = new Map([[entityId('e'), dent]]);
     const dented = state().update(eukaryote(), context({ contactDents }), REST_DEFORMATION);
     expect(dented.instance.bumps[0]).toMatchObject({ amplitude: CONTACT_DENT_AMPLITUDE, centre: 0.5 });

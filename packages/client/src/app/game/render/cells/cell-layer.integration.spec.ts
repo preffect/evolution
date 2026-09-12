@@ -76,21 +76,23 @@ describe('cell tells through the layer', () => {
       input({ frame: createTestRenderFrame({ cells: [predator], effects: [absorbed] }), nowMs: 100 }),
     );
     expect(payout).toMatchObject({ visibleCells: 1, ghosts: 1 });
-    expect(packed(subject, 1, 'paletteIndex')).toBe(3);
-    expect(packed(subject, 1, 'x')).toBe(50);
-    expect(packed(subject, 1, 'passBAlpha')).toBeCloseTo(PREY_UNDER_FILM_ALPHA, 6);
-    const sealSlot = BUMP_TEXEL_START * TEXEL_FLOATS;
+    // Row order is draw order: the ghost's row comes right before its predator's so the predator paints over it.
+    expect(packed(subject, 0, 'paletteIndex')).toBe(3);
+    expect(packed(subject, 0, 'x')).toBe(50);
+    expect(packed(subject, 0, 'passBAlpha')).toBeCloseTo(PREY_UNDER_FILM_ALPHA, 6);
+    expect(packed(subject, 1, 'x')).toBe(0);
+    const sealSlot = CELL_INSTANCE_FLOATS + BUMP_TEXEL_START * TEXEL_FLOATS;
     expect(subject.instances[sealSlot]).toBeCloseTo(0.6, 6);
     expect(subject.instances[sealSlot + 1]).toBeCloseTo(0, 6);
     subject.update(input({ frame: createTestRenderFrame({ cells: [predator] }), nowMs: 300 }));
-    expect(packed(subject, 1, 'rimDash')).toBe(1);
-    expect(packed(subject, 1, 'alpha')).toBeCloseTo(0.5, 6);
+    expect(packed(subject, 0, 'rimDash')).toBe(1);
+    expect(packed(subject, 0, 'alpha')).toBeCloseTo(0.5, 6);
     expect(subject.instances[sealSlot]).toBeCloseTo(0.42, 6);
     const done = subject.update(
       input({ frame: createTestRenderFrame({ cells: [predator] }), nowMs: 100 + MOTION_CLIPS.absorbed.duration }),
     );
     expect(done.ghosts).toBe(0);
-    expect(subject.instances[sealSlot]).toBe(0);
+    expect(subject.instances[BUMP_TEXEL_START * TEXEL_FLOATS]).toBe(0);
     subject.destroy();
   });
 });

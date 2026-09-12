@@ -54,6 +54,11 @@ export interface CellTraitSummary {
 
 const NUCLEUS_TRAIT: TraitId = 'nuclear_envelope';
 const TAUT_TRAIT: TraitId = 'cytoskeleton';
+const CHLOROPLAST_TRAIT: TraitId = 'chloroplast';
+const TOXIN_TRAIT: TraitId = 'toxin_vacuole';
+const CILIA_TRAIT: TraitId = 'cilia';
+const WALL_TRAIT: TraitId = 'cell_wall';
+const RIBOSOME_TRAIT: TraitId = 'ribosomes';
 const PREVIEW_TIER: TraitTier = 1;
 const NO_WOBBLE: WobbleSpec = { mode: 0, amplitude: 0, hz: 0 };
 const PROTOCELL_WOBBLE: WobbleSpec = {
@@ -73,8 +78,8 @@ function tierTable(table: readonly number[], tier: TraitTier | 0): number {
 /** One glow per body (VISUAL-STYLE §1, sheet 01): the chloroplast halo wins over the toxin one. */
 function haloKindFor(isProtocell: boolean, tierOf: TierOf): HaloKind {
   if (isProtocell) return HALO_KIND.protocell;
-  if (tierOf('chloroplast') > 0) return HALO_KIND.chloroplast;
-  return tierOf('toxin_vacuole') > 0 ? HALO_KIND.toxin : HALO_KIND.default;
+  if (tierOf(CHLOROPLAST_TRAIT) > 0) return HALO_KIND.chloroplast;
+  return tierOf(TOXIN_TRAIT) > 0 ? HALO_KIND.toxin : HALO_KIND.default;
 }
 
 /** Protocells wobble on mode 2; forms hold a mode-3 shape unless rigid; a diatom and the blob rest still. */
@@ -91,19 +96,20 @@ export function summariseCellTraits(view: CellView, previewTraitId: TraitId | nu
   const isProtocell = view.stage === CELL_STAGE.protocell;
   const formTraitId = formTraitOf([...tiers.keys()].map((traitId) => ({ traitId })));
   const form = formFor(formTraitId);
+  const formTier = formTraitId === null ? PREVIEW_TIER : (tiers.get(formTraitId) ?? PREVIEW_TIER);
   return {
     isProtocell,
     hasNucleus: tierOf(NUCLEUS_TRAIT) > 0,
     isTaut: tierOf(TAUT_TRAIT) > 0,
     haloKind: haloKindFor(isProtocell, tierOf),
     wobble: wobbleFor(isProtocell, form),
-    ciliaCount: tierTable(CILIA_COUNT_BY_TIER, tierOf('cilia')),
-    wallScale: tierTable(CELL_WALL_SCALE_BY_TIER, tierOf('cell_wall')),
-    speckleDensity: tierTable(RIBOSOME_DENSITY_BY_TIER, tierOf('ribosomes')),
+    ciliaCount: tierTable(CILIA_COUNT_BY_TIER, tierOf(CILIA_TRAIT)),
+    wallScale: tierTable(CELL_WALL_SCALE_BY_TIER, tierOf(WALL_TRAIT)),
+    speckleDensity: tierTable(RIBOSOME_DENSITY_BY_TIER, tierOf(RIBOSOME_TRAIT)),
     filamentCount: tierTable(FILAMENT_COUNT_BY_TIER, tierOf(TAUT_TRAIT)),
-    tintMix: tierOf('chloroplast') > 0 ? CHLOROPLAST.membraneTint : 0,
+    tintMix: tierOf(CHLOROPLAST_TRAIT) > 0 ? CHLOROPLAST.membraneTint : 0,
     form,
-    formTier: formTraitId === null ? PREVIEW_TIER : tierOf(formTraitId) || PREVIEW_TIER,
+    formTier,
     tierOf,
   };
 }

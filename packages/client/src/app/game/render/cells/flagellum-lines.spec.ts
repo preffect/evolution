@@ -2,12 +2,19 @@
 
 import { describe, expect, it } from 'vitest';
 import { FLAGELLUM_LENGTH_RADII, FLAGELLUM_SEGMENTS } from '../constants';
-import { FlagellumLines, flagellumPolyline, flagellumTailCount, type FlagellumSpec } from './flagellum-lines';
+import {
+  FlagellumLines,
+  createTailPoints,
+  flagellumPolyline,
+  flagellumTailCount,
+  type FlagellumSpec,
+} from './flagellum-lines';
 
 const spec: FlagellumSpec = {
   x: 100,
   y: 50,
   radius: 20,
+  rootRadius: 20,
   heading: 0,
   tier: 1,
   timeSeconds: 0,
@@ -18,12 +25,22 @@ const spec: FlagellumSpec = {
 const span = (points: readonly { y: number }[]) => Math.max(...points.map((point) => Math.abs(point.y - 50)));
 
 describe('flagellumPolyline', () => {
-  it('roots the tail on the membrane behind the heading and reaches 2 r behind it', () => {
+  it('roots the tail on the deformed rear membrane behind the heading and reaches 2 r past it', () => {
     const points = flagellumPolyline(spec, 0);
     expect(points).toHaveLength(FLAGELLUM_SEGMENTS + 1);
     expect(points[0]!.x).toBeCloseTo(100 - 20, 9);
     expect(points[0]!.y).toBeCloseTo(50, 9);
     expect(points.at(-1)!.x).toBeCloseTo(100 - 20 - FLAGELLUM_LENGTH_RADII * 20, 6);
+    const tapered = flagellumPolyline({ ...spec, rootRadius: 14.4 }, 0);
+    expect(tapered[0]!.x).toBeCloseTo(100 - 14.4, 9);
+    expect(tapered.at(-1)!.x).toBeCloseTo(100 - 14.4 - FLAGELLUM_LENGTH_RADII * 20, 6);
+  });
+
+  it('writes into the array it is given, so a pooled tail allocates nothing per frame', () => {
+    const into = createTailPoints();
+    const first = into[3];
+    expect(flagellumPolyline(spec, 0, into)).toBe(into);
+    expect(into[3]).toBe(first);
   });
 
   it('waves wider per tier and doubles on sprint', () => {

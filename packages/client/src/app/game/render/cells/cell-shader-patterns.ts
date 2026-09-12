@@ -225,6 +225,11 @@ Frame frameAt(Instance inst) {
   return frame;
 }
 
+/** Screen-px distance from the nearest of 'count' evenly spaced spokes through the origin, at 'angle' and 'radiusPx' out. */
+float spokeDistancePx(float count, float angle, float radiusPx) {
+  return abs(fract(count * angle / TAU) - HALF) * TAU * radiusPx / count;
+}
+
 /** Premultiplied "over": paints 'colour' at 'alpha' onto 'under'. */
 vec4 over(vec4 under, vec3 colour, float alpha) {
   float a = clamp(alpha, 0.0, 1.0);

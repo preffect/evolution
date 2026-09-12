@@ -4,9 +4,10 @@
 // into the mesh, the organelle sprites between the two passes and the flagella under the body.
 // It composes; every decision lives in the pure modules it calls. Culling is against the camera
 // extent the orchestrator passes in, at the quad's reach; past the capacity the smallest cells
-// are the ones dropped, and the ghosts take the rows the living cells leave.
+// are the ones dropped. Row order is draw order, so a ghost's row goes right before its
+// predator's (the predator paints over its dissolving prey, VISUAL-STYLE §6 "prey through film").
 
-import type { CellView, EntityId } from '@evolution/shared';
+import type { CellView, EntityId, TraitId } from '@evolution/shared';
 import { Container } from 'pixi.js';
 import { isDiscInExtent, type CameraExtent } from '../camera';
 import { CELL_INSTANCE_CAPACITY, CELL_QUAD_EXTENT_RADII } from '../constants';
@@ -24,13 +25,14 @@ import { FlagellumLines, type FlagellumSpec } from './flagellum-lines';
 import { GhostRegistry, type Ghost } from './ghost-cells';
 import { ghostInstance } from './ghost-instance';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
+import { evaluateProfile } from './radial-profile';
 
 export type CellLayerTextures = Pick<
   RenderTextures,
   'cosmetic' | 'strip' | 'stripTexture' | 'tileTexture' | 'paletteTexture' | 'organelles'
 >;
 
-const FLAGELLUM_TRAIT = 'simple_flagellum';
+const FLAGELLUM_TRAIT: TraitId = 'simple_flagellum';
 
 export class CellLayer {
   readonly container = new Container();
@@ -68,12 +70,12 @@ export class CellLayer {
     return this.mesh.instances;
   }
 
-  /** The cells whose quad reaches the extent, smallest first (docs/ARCHITECTURE.md §6), cut to the capacity from the small end. */
-  private visibleCells(cells: readonly CellView[], extent: CameraExtent): CellView[] {
+  /** The cells whose quad reaches the extent, smallest first (docs/ARCHITECTURE.md §6), cut to `budget` rows from the small end. */
+  private visibleCells(cells: readonly CellView[], extent: CameraExtent, budget: number): CellView[] {
     const visible = cells
       .filter((cell) => isDiscInExtent(extent, cell.x, cell.y, cell.radius * CELL_QUAD_EXTENT_RADII))
       .sort((first, second) => first.radius - second.radius);
-    return visible.length > this.mesh.capacity ? visible.slice(visible.length - this.mesh.capacity) : visible;
+    return visible.length > budget ? visible.slice(visible.length - budget) : visible;
   }
 
   private frameContext(
@@ -98,15 +100,12 @@ export class CellLayer {
     return this.registry.get(cellId)?.lastView ?? undefined;
   }
 
-  /** The ghosts still dissolving, packed after the living cells while rows remain. */
+  /** Packs `ghosts` from `firstRow` on; returns the rows used. Every ghost has a reserved row (the budget), so none is cut. */
   private packGhosts(ghosts: readonly Ghost[], firstRow: number, zoom: number): number {
-    let row = firstRow;
-    for (const ghost of ghosts) {
-      if (row >= this.mesh.capacity) break;
-      packCellInstance(this.mesh.instances, row, ghostInstance(ghost, zoom));
-      row += 1;
-    }
-    return row - firstRow;
+    ghosts.forEach((ghost, index) =>
+      packCellInstance(this.mesh.instances, firstRow + index, ghostInstance(ghost, zoom)),
+    );
+    return ghosts.length;
   }
 
   /** One frame: effects, sync every state, cull, sort, update the visible ones, pack the rows, place the sprites and tails. */
@@ -114,21 +113,27 @@ export class CellLayer {
     const { frame } = input;
     startAbsorbedGhosts(frame.effects, (id) => this.lastViewOf(id), this.ghosts, input.nowMs);
     this.registry.sync(frame.cells);
-    const visible = this.visibleCells(frame.cells, input.extent);
-    const ghosts = this.ghosts.active(input.nowMs);
+    const ghosts = this.ghosts.active(input.nowMs).slice(0, this.mesh.capacity);
+    const visible = this.visibleCells(frame.cells, input.extent, this.mesh.capacity - ghosts.length);
     const context = this.frameContext(input, visible, ghosts);
+    const ghostsByPredator = groupByPredator(ghosts);
     const draws: OrganelleDraw[] = [];
     const tails: FlagellumSpec[] = [];
-    visible.forEach((view, row) => {
+    let row = 0;
+    for (const view of visible) {
       const state = this.registry.get(view.id);
-      if (state === undefined) return;
+      if (state === undefined) continue;
+      row += this.packGhosts(ghostsByPredator.get(view.id) ?? [], row, input.zoom);
+      ghostsByPredator.delete(view.id);
       const output = state.update(view, context, deformationOf(input.deformations, view.id));
       packCellInstance(this.mesh.instances, row, output.instance);
+      row += 1;
       draws.push(organelleDraw(view, output));
       const tail = flagellumSpec(view, output, frame.timeSeconds);
       if (tail !== null) tails.push(tail);
-    });
-    const packedGhosts = this.packGhosts(ghosts, draws.length, input.zoom);
+    }
+    const orphans = [...ghostsByPredator.values()].flat();
+    const packedGhosts = ghosts.length - orphans.length + this.packGhosts(orphans, row, input.zoom);
     this.mesh.setCount(draws.length + packedGhosts);
     this.mesh.upload();
     this.mesh.setFrame(frame.timeSeconds, input.zoom);
@@ -147,6 +152,17 @@ export class CellLayer {
   }
 }
 
+/** The ghosts each predator still draws over, keyed by the predator; orphans (predator off screen) draw last. */
+function groupByPredator(ghosts: readonly Ghost[]): Map<EntityId, Ghost[]> {
+  const grouped = new Map<EntityId, Ghost[]>();
+  for (const ghost of ghosts) {
+    const group = grouped.get(ghost.predatorCellId);
+    if (group === undefined) grouped.set(ghost.predatorCellId, [ghost]);
+    else group.push(ghost);
+  }
+  return grouped;
+}
+
 function organelleDraw(view: CellView, output: CellFrameOutput): OrganelleDraw {
   return {
     instance: output.instance,
@@ -161,11 +177,13 @@ function organelleDraw(view: CellView, output: CellFrameOutput): OrganelleDraw {
 function flagellumSpec(view: CellView, output: CellFrameOutput, timeSeconds: number): FlagellumSpec | null {
   const tier = output.traits.tierOf(FLAGELLUM_TRAIT);
   if (tier === 0 || output.lod.isFarDot) return null;
+  const heading = output.instance.heading;
   return {
     x: view.x,
     y: view.y,
     radius: view.radius * output.instance.pulse,
-    heading: output.instance.heading,
+    rootRadius: evaluateProfile(output.terms, heading + Math.PI).r,
+    heading,
     tier,
     timeSeconds,
     isSprinting: output.terms.isSprinting,
