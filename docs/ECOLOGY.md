@@ -594,9 +594,13 @@ below, a removed predator, the results phase — cannot be claimed again by anyo
 It is left exactly where its predator was, usually inside the cell that has just eaten that predator,
 so the wait is the one movement step that lets it be somewhere of its own before the next engulf can
 start; without it the claim would fall to cell-id order, since the pair walk reaches some pairs
-before the payout and some after. The other three release reasons do not wait: an `escaped`,
-`spat_out` or `ratio` prey moved itself out, and another predator may start on it at once (§6.3,
-"spat out, still overlapping"; the spat-out prey's own predator is held off by its refractory).
+before the payout and some after. The other three release reasons do not wait, because §6.3 has already resolved where each leaves
+the prey and who may claim it: an `escaped` prey is out of contact by its own movement; a
+`spat_out` one may be started on at once by any other predator, its own being held off by the
+refractory; and a `ratio` one — which past the seal is ejected at its carried offset, still
+overlapping, having moved nothing itself — is pushed clear by separation, because its former
+predator can no longer engulf it. Only `aborted` leaves the prey where no rule chose: inside a
+cell that was not its predator a moment ago.
 
 `massFactor`, the phase multipliers and the held speed factor are recomputed every tick from the
 current masses and the modifiers folded at step 1, so a trait picked this tick affects this tick's

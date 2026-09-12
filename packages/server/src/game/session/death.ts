@@ -64,13 +64,18 @@ export function dissolveCell(world: WorldState, cell: CellRecord, spawner: Rando
  * spectate would be one tick short of `RESPAWN_SPECTATE_SECONDS`. With it, a death on tick t places
  * the new cell on t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1, which is what docs/GAME-DESIGN.md
  * §5.2 (G8, G13) and docs/ECOLOGY.md §8.1 (W4) state.
+ *
+ * It is the step order that makes it right, and only the payout calls `absorbCell` today: a death
+ * reaching `startSpectating` from *outside* a tick, or from a step after 9, would spend no countdown
+ * tick on its own tick and land on t + 181 + 1. A caller added there adjusts this, or moves the
+ * "+ 1" into the countdown where the tick of death can be compared.
  */
-const DEATH_TICK_TICKS = 1;
+const SPECTATED_DEATH_TICK = 1;
 
 function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRecord, kept: number): void {
   player.lifeState = PLAYER_LIFE_STATE.spectating;
   player.spectatingCellId = killer.id;
-  player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS) + DEATH_TICK_TICKS;
+  player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS) + SPECTATED_DEATH_TICK;
   player.dnaTowardNextLevel *= kept;
 }
 

@@ -31,7 +31,8 @@ import {
   E16_HELD_MASS,
   E16_RELEASED_MASS,
   E16_START_MASS,
-  E13_APART_WU,
+  E9_DETRITUS_MASS,
+  FAR_APART_WU,
   OFFSET_TOLERANCE_WU,
   PREDATOR_MASS,
   PREY_MASS,
@@ -39,6 +40,7 @@ import {
   SEPARATED_FACTOR,
   SHORT_ROUND_SECONDS,
   SHORT_ROUND_TICKS,
+  absorbedCellIds,
   absorption,
   absorptionsOfPredator,
   awayFromPrey,
@@ -47,13 +49,14 @@ import {
   engulfPair,
   lifeStateOfPrey,
   massOfPredator,
+  predatoryPointsOfPredator,
   preyCell,
   progressOfPrey,
   releaseReasons,
   statesOfPredator,
   statesOfPrey,
 } from './engulf-setups.js';
-import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND, expectedDetritusMass } from './shared-setups.js';
+import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
 
 describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is #259)', () => {
   it('E9: cover to tick 6, wrap to the seal on tick 18, absorb to the end of the engulf on tick 36', () => {
@@ -100,7 +103,21 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .toBe(1)
       .expect('detritus: two motes of 2', detritusInDish)
       .atTick(E9_PAYOUT_TICK)
-      .toBe(expectedDetritusMass(PREY_MASS))
+      .toBe(E9_DETRITUS_MASS)
+      .capture("B's cell id", (view) => preyCell(view)?.id)
+      .atTick(E9_PAYOUT_TICK - 1)
+      .expect(
+        "the cell_absorbed effect names B's cell",
+        (view) => absorbedCellIds(view).length === 1 && absorbedCellIds(view)[0] === view.captured("B's cell id"),
+      )
+      .atTick(E9_PAYOUT_TICK)
+      .toBe(true)
+      .expect('A gains the flat predatory points (B carried no tags of its own)', predatoryPointsOfPredator)
+      .atTick(E9_PAYOUT_TICK)
+      .toBe(absorption.ENGULF_PREDATORY_TAG_POINTS)
+      .expect('and nothing before the payout', predatoryPointsOfPredator)
+      .atTick(E9_PAYOUT_TICK - 1)
+      .toBe(0)
       .runDeterministic();
   });
 
@@ -192,7 +209,7 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .players(2)
       .config({ roundDurationSeconds: SHORT_ROUND_SECONDS })
       .placeCell({ playerIndex: 0, mass: PREDATOR_MASS })
-      .placeCell({ playerIndex: 1, mass: PREY_MASS, eastOfFirstCellWu: E13_APART_WU })
+      .placeCell({ playerIndex: 1, mass: PREY_MASS, eastOfFirstCellWu: FAR_APART_WU })
       .atTick(SHORT_ROUND_TICKS - E9_SEAL_TICK)
       .placeCell({ playerIndex: 1, mass: PREY_MASS, at: eastOfCellOf(0, CENTRE_DISTANCE_WU) })
       .advance(SHORT_ROUND_TICKS)

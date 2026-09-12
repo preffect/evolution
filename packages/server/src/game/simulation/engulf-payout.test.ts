@@ -199,6 +199,17 @@ describe('payOutEngulf: a wild cell on either side (docs/ECOLOGY.md §3.3)', () 
     expect(predatorPlayer.dnaCumulative).toBe(0); // worldDna is 0 before the first world level-up
   });
 
+  it('credits the endosymbiont of a wild prey too, as a player prey does (docs/ECOLOGY.md §3.3)', () => {
+    // The one rule the wild prey does NOT substitute: eating the world is the third way onto that rung.
+    const { predatorPlayer } = payOut(({ prey, preyPlayer, world }) => {
+      preyPlayer.ownedTraits.push({ traitId: 'mitochondrion', tier: 1 });
+      refreshCellDerivedState(prey, preyPlayer, world.balance);
+      prey.playerId = null; // the traits stay on the cell, which is where a wild cell carries them
+    });
+    expect(predatorPlayer.bacteriaEatenByVariant.aerobic).toBe(ENDOSYMBIOSIS_BACTERIA_REQUIRED);
+    expect(predatorPlayer.wildAbsorptions).toBe(1);
+  });
+
   it('keeps the mass yield for a wild prey', () => {
     const { predator, predatorMassBefore } = payOut(({ prey }) => {
       prey.playerId = null;

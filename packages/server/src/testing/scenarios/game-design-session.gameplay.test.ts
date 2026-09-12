@@ -117,7 +117,7 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
-  it('G8: the absorption scores, and the prey respawns 180 s later at the entry mass', () => {
+  it('G8: the absorption scores, and the prey respawns 180 ticks later at the entry mass', () => {
     const afterPayoutTick = E9_PAYOUT_TICK + 1;
     const respawnTick = E9_PAYOUT_TICK + RESPAWN_TICKS + 1;
     engulfPair('G8')

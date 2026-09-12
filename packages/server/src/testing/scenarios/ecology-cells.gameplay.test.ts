@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, DEFAULT_BALANCE, FOOD_KIND, ZONE_ID, distanceBetween } from '@evolution/shared';
 import { cellOf, foodCount, massOf, progressOf, speedOf } from '../gameplay/evolution-views.js';
 import { ZONE, eastOfCellOf, gelPatchCentre, insideCellOf, player, targetRadiiEast } from '../gameplay/index.js';
-import { E9_PAYOUT_TICK, engulfPair } from './engulf-setups.js';
+import { CENTRE_DISTANCE_WU, E9_PAYOUT_TICK, PREY_MASS, engulfPair } from './engulf-setups.js';
 import {
   FULL_THROTTLE_RADII,
   MASS_TOLERANCE,
@@ -161,8 +161,10 @@ describe('ECOLOGY §8: eating, decay, size and speed on placed cells', () => {
   });
 
   it("E15 (second half): absorbing a cell that owns an endosymbiont fills the eater's counter", () => {
+    // The second `placeCell` re-places the prey `engulfPair` has already placed, at the same mass and
+    // distance: it is the only way to give it a trait, since `engulfPair` takes masses and no traits.
     engulfPair('E15 absorption')
-      .placeCell({ playerIndex: 1, mass: growth.CELL_STARTING_MASS, traits: ['mitochondrion'], eastOfFirstCellWu: 10 })
+      .placeCell({ playerIndex: 1, mass: PREY_MASS, traits: ['mitochondrion'], eastOfFirstCellWu: CENTRE_DISTANCE_WU })
       .advance(E9_PAYOUT_TICK)
       .expect('the eater has eaten no bacteria itself', (view) => progressOf(view, 0)?.bacteriaEatenByVariant.aerobic)
       .atTick(E9_PAYOUT_TICK - 1)

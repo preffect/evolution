@@ -1,5 +1,7 @@
 // docs/PROGRESSION.md §7, the two rows an absorption drives (#259): P5, where the payout's DNA
 // levels the predator up, and P11, where the prey's shown offer survives its death and respawn.
+// P11 is also where the Payout table's tag share is seen end to end: its prey is the only one in the
+// scenario tier that owns tag points when it dies (E9's has eaten nothing).
 // The rest of the table is progression.gameplay.test.ts; the engulf setup is engulf-setups.ts.
 
 import { describe, it } from 'vitest';
@@ -7,16 +9,15 @@ import { DEFAULT_BALANCE, DNA_TAG, PLAYER_LIFE_STATE, TICK_HZ } from '@evolution
 import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
 import { progressOf } from '../gameplay/evolution-views.js';
 import { eastOfCellOf, insideCellOf } from '../gameplay/index.js';
-import { E9_PAYOUT_DNA, E9_PAYOUT_TICK, PREDATOR_MASS, engulfPair } from './engulf-setups.js';
+import { E9_PAYOUT_DNA, E9_PAYOUT_TICK, FAR_APART_WU, PREDATOR_MASS, absorption, engulfPair } from './engulf-setups.js';
 
 const { growth, ecology, progression, session } = DEFAULT_BALANCE;
 const LEVEL_2_DNA = 60;
 const TIMEOUT_TICKS = progression.TRAIT_CHOICE_TIMEOUT_SECONDS * TICK_HZ;
 /** P5: "A given `dnaCumulative` = `dnaTowardNextLevel` = 40 at setup", 20 short of level 2. */
 const P5_BANKED_DNA = 40;
-/** P11: A is far away while B eats its fragments, then the fixture drops it beside B on tick 2. */
+/** P11: A waits `FAR_APART_WU` away while B eats its fragments, then the fixture drops it beside B. */
 const P11_PREDATOR_MASS = PREDATOR_MASS;
-const P11_APART_WU = 700;
 const P11_CENTRE_DISTANCE_WU = 10;
 const P11_CLOSE_TICK = 2;
 /** The engulf starts on the tick the fixture lands and runs E9's 36 ticks. */
@@ -67,7 +68,7 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
       .seed(PLACED_ROW_SEED)
       .players(2)
       .placeCell({ playerIndex: 1, mass: growth.CELL_STARTING_MASS })
-      .placeCell({ playerIndex: 0, mass: P11_PREDATOR_MASS, eastOfFirstCellWu: P11_APART_WU });
+      .placeCell({ playerIndex: 0, mass: P11_PREDATOR_MASS, eastOfFirstCellWu: FAR_APART_WU });
     for (let fragment = 0; fragment < fragments; fragment += 1) {
       run.atTick(1).placeFragment({ tag: DNA_TAG.sensory, at: insideCellOf(1) });
     }
@@ -96,6 +97,17 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
       .expect('the offer has not expired', (view) => progressOf(view, 1)?.offer?.expiresAtTick)
       .atEnd()
       .toBe(1 + TIMEOUT_TICKS)
+      // The tag half of the Payout table, end to end: B ate `sensory`, so A takes
+      // `ENGULF_TAG_SHARE` of it plus the flat `predatory` points (docs/ECOLOGY.md §6.1).
+      .expect("B's own sensory points before it is eaten", (view) => progressOf(view, 1)?.dnaTagPoints.sensory)
+      .atTick(P11_PAYOUT_TICK - 1)
+      .toBe(LEVEL_2_DNA / ecology.DNA_FRAGMENT_DNA)
+      .expect('A takes half of them', (view) => progressOf(view, 0)?.dnaTagPoints.sensory)
+      .atTick(P11_PAYOUT_TICK)
+      .toBe((LEVEL_2_DNA / ecology.DNA_FRAGMENT_DNA) * absorption.ENGULF_TAG_SHARE)
+      .expect('plus the flat predatory points', (view) => progressOf(view, 0)?.dnaTagPoints.predatory)
+      .atTick(P11_PAYOUT_TICK)
+      .toBe(absorption.ENGULF_PREDATORY_TAG_POINTS)
       .runDeterministic();
   });
 });

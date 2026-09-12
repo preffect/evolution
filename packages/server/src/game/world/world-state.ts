@@ -68,6 +68,13 @@ export interface StepContext {
   readonly balance: BalanceConfig;
   /** Live sources resumed from `world.random` for this step and written back after it (step.ts). */
   readonly streams: Record<ServerRandomStreamLabel, RandomSource>;
+  /**
+   * **The same array as `WorldState.effects`**, passed here so a system that already holds the
+   * context need not reach for the world (`step.ts` builds the context from it). Pushing to either
+   * is pushing to the one list the module drains, so the two spellings across the engulf step
+   * (`context.effects` for `cell_absorbed`, `world.effects` for `cell_released`) are one queue,
+   * in push order. Never replace it with a fresh array: the world would keep the old one.
+   */
   readonly effects: GameEffect[];
   readonly rejections: InputRejectionCounters;
 }
