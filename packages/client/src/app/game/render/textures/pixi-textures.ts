@@ -32,7 +32,7 @@ export interface DataTextureOptions {
   readonly hasMipmaps: boolean;
 }
 
-/** An RGBA8 table texture from bytes: data, never colour, so the upload leaves every channel untouched. */
+/** An RGBA8 table texture from bytes: the upload leaves every channel untouched. */
 export function byteDataTexture(bytes: Uint8Array, options: DataTextureOptions): TextureSource {
   return new BufferImageSource({
     resource: bytes,
@@ -45,6 +45,19 @@ export function byteDataTexture(bytes: Uint8Array, options: DataTextureOptions):
     addressMode: options.isRepeating ? 'repeat' : 'clamp-to-edge',
     autoGenerateMipmaps: options.hasMipmaps,
   });
+}
+
+/** A sprite texture over a `sizePx` square of premultiplied RGBA8 bytes (`radial-bake.ts`): sampled linear, clamped, no mips. */
+export function spriteTextureFromBytes(bytes: Uint8Array, sizePx: number): Texture {
+  const source = byteDataTexture(bytes, {
+    width: sizePx,
+    height: sizePx,
+    isFiltered: true,
+    isRepeating: false,
+    hasMipmaps: false,
+  });
+  source.alphaMode = 'premultiplied-alpha';
+  return new Texture({ source });
 }
 
 /** An RGBA32F table texture over `values` (`width × height × 4` floats), read with `texelFetch`; `update()` re-uploads. */
