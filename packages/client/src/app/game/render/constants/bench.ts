@@ -10,6 +10,7 @@ import {
   FOOD_CAP_PER_PLAYER,
   FOOD_KIND,
   MAX_PLAYERS_PER_GAME,
+  P95_QUANTILE,
   type FoodKind,
   type RenderStageName,
 } from '@evolution/shared';
@@ -28,8 +29,22 @@ export const RENDER_STAGE_BUDGET_MS: Readonly<Record<RenderStageName, number>> =
   submit: 1.0,
 };
 export const RENDER_GPU_BUDGET_MS = 4.0;
-/** What is left of a frame outside the timed stages (the HUD, the browser): `frameTimeP95Ms − Σ renderStagesMs`. */
+/**
+ * What is left of a frame outside the timed brackets (the HUD, the dish placement, the browser),
+ * measured per frame as `frame − Σ its top-level brackets` and reported at p95 (docs/RENDERING.md §7).
+ */
 export const RENDER_HUD_BUDGET_MS = 1.0;
+/**
+ * A GPU sample is kept only when it is at most this many times the wall clock between the two submits it
+ * brackets: in steady state a frame's GPU time cannot exceed its frame period, and the factor is the slack
+ * for pipelining and for the query's own resolution (docs/RENDERING.md §7, `gpuMs`).
+ */
+export const RENDER_GPU_SAMPLE_MAX_FRAME_RATIO = 2;
+/**
+ * The shortest window a p95 is estimable in: with fewer samples than `1 / (1 − quantile)` the nearest rank is
+ * the maximum, so a shorter window reports no p95 judgement at all (docs/RENDERING.md §7).
+ */
+export const RENDER_P95_MIN_SAMPLE_FRAMES = Math.ceil(1 / (1 - P95_QUANTILE));
 /** GL draw calls per frame at the bench load (docs/RENDERING.md §6). */
 export const RENDER_MAX_DRAW_CALLS = 17;
 
@@ -73,4 +88,6 @@ export const RENDER_BENCH_VICTIM_COUNT = 4;
 /** Eat effects per snapshot, and the level-up and absorb cadences in ticks (the victims are present at the default tick). */
 export const RENDER_BENCH_EATS_PER_SNAPSHOT = 4;
 export const RENDER_BENCH_LEVEL_UP_EVERY_TICKS = 90;
+/** Ticks an engulf takes to walk the whole wrap strip, so every frame of it shows. */
+export const RENDER_BENCH_ENGULF_CYCLE_TICKS = 90;
 export const RENDER_BENCH_ABSORB_EVERY_TICKS = 300;

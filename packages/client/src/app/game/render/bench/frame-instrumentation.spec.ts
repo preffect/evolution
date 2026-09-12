@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
 import { ManualClock, RENDER_STAGE, RENDER_STAGE_NAMES } from '@evolution/shared';
 import type { Application } from 'pixi.js';
+import { describe, expect, it, vi } from 'vitest';
+import { GPU_TIMER_STATUS } from './gpu-timer';
 import { FrameInstrumentation } from './frame-instrumentation';
 
 /** An app whose renderer exposes a GL context with counted draws and no timer extension. */
@@ -33,7 +34,7 @@ describe('FrameInstrumentation', () => {
     instrumentation.submit(() => context.drawArrays());
     expect(instrumentation.frameCount).toBe(2);
     const report = instrumentation.report({ visibleCells: 3, visibleMotes: 40 }, 2 * 1024 * 1024);
-    expect(report.drawCalls).toBe(1);
+    expect(report.drawCalls, 'the worst frame of the window, not the last').toBe(2);
     expect(report.gpuMs).toBeNull();
     expect(report.heapMb).toBe(2);
     expect(report.visibleCells).toBe(3);
@@ -43,11 +44,46 @@ describe('FrameInstrumentation', () => {
     instrumentation.destroy();
   });
 
-  it('reports zero draw calls and a null GPU time under an app without a GL context', () => {
+  it('reports zero draw calls and an unsupported GPU time under an app without a GL context', () => {
     const instrumentation = new FrameInstrumentation(new ManualClock(0));
     instrumentation.attach({ renderer: {} } as unknown as Application);
     instrumentation.submit(() => undefined);
     const report = instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null);
     expect(report).toMatchObject({ drawCalls: 0, gpuMs: null, heapMb: null });
+    expect(instrumentation.gpuStatus).toBe(GPU_TIMER_STATUS.unsupported);
+  });
+
+  it('wraps a context once however often it is attached, and unwraps it on destroy', () => {
+    const instrumentation = new FrameInstrumentation(new ManualClock(0));
+    const { app, context } = appWithGl();
+    const original = context.drawElements;
+    instrumentation.attach(app);
+    instrumentation.attach(app);
+    instrumentation.submit(() => context.drawElements());
+    expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).drawCalls).toBe(1);
+    instrumentation.destroy();
+    expect(context.drawElements).toBe(original);
+  });
+
+  it('records nothing for a frame the store had nothing for', () => {
+    const clock = new ManualClock(0);
+    const instrumentation = new FrameInstrumentation(clock);
+    const render = vi.fn();
+    const empty = instrumentation.runFrame(
+      () => {
+        clock.advanceMilliseconds(3);
+        return null;
+      },
+      () => {
+        render();
+        return { visibleCells: 0, visibleMotes: 0 } as never;
+      },
+      () => undefined,
+    );
+    expect(empty).toBeNull();
+    expect(render).not.toHaveBeenCalled();
+    const evidence = instrumentation.evidence();
+    expect(evidence.sampleCount).toBe(0);
+    expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).renderStagesMs.net).toBe(0);
   });
 });

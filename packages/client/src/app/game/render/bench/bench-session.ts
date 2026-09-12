@@ -20,21 +20,36 @@ import { NO_RETICLE, type GameRenderer, type RenderInputs, type RenderOutputs } 
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { BenchDriver } from './bench-driver';
 import type { BenchCounts } from './bench-scene';
+import type { GpuTimerStatus } from './gpu-timer';
 import { NO_HEAP_PROBE, type HeapProbe } from './heap-probe';
 import { budgetVerdict, type BudgetVerdict } from './render-benchmark';
 
 export interface BenchQuery {
   readonly seed: number;
   readonly tick: number;
+  /** Always positive: a zero or negative `zoom=` falls back to the default rather than dividing by it. */
   readonly zoom: number;
   /** Frames the report's window covers after the warm-up: `RENDER_BENCH_REPORT_FRAMES` unless `window=` shortens it (a slow software GPU). */
   readonly windowFrames: number;
+  /**
+   * `advance=1`: step the scene one tick per frame, so the snapshot apply and the registry churn §7 budgets as
+   * `net` happen inside the window. Off by default — a parked tick is the steady frame a screenshot needs.
+   */
+  readonly shouldAdvanceTick: boolean;
+  /**
+   * `preserve=1`: keep the WebGL backbuffer, which `canvas.toDataURL` needs. Off by default, because production
+   * does not set it and it costs a full-framebuffer copy a frame on a real GPU (docs/RENDERING.md §7).
+   */
+  readonly shouldPreserveDrawingBuffer: boolean;
 }
 
 const BENCH_PARAMETER = 'bench';
 const TICK_PARAMETER = 'tick';
 const ZOOM_PARAMETER = 'zoom';
 const WINDOW_PARAMETER = 'window';
+const ADVANCE_PARAMETER = 'advance';
+const PRESERVE_PARAMETER = 'preserve';
+const FLAG_ON = '1';
 
 function numberParameter(parameters: URLSearchParams, key: string, fallback: number): number {
   const value = parameters.get(key);
@@ -42,14 +57,24 @@ function numberParameter(parameters: URLSearchParams, key: string, fallback: num
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-/** `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>`, each with its default; `bench` alone selects the route. */
+function positiveParameter(parameters: URLSearchParams, key: string, fallback: number): number {
+  const parsed = numberParameter(parameters, key, fallback);
+  return parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>&advance=1&preserve=1`, each with its default; `bench`
+ * alone selects the route.
+ */
 export function parseBenchQuery(search: string): BenchQuery {
   const parameters = new URLSearchParams(search);
   return {
     seed: Math.trunc(numberParameter(parameters, BENCH_PARAMETER, RENDER_BENCH_SEED)),
     tick: Math.trunc(numberParameter(parameters, TICK_PARAMETER, RENDER_BENCH_DEFAULT_TICK)),
-    zoom: numberParameter(parameters, ZOOM_PARAMETER, RENDER_BENCH_DEFAULT_ZOOM),
+    zoom: positiveParameter(parameters, ZOOM_PARAMETER, RENDER_BENCH_DEFAULT_ZOOM),
     windowFrames: Math.max(1, Math.trunc(numberParameter(parameters, WINDOW_PARAMETER, RENDER_BENCH_REPORT_FRAMES))),
+    shouldAdvanceTick: parameters.get(ADVANCE_PARAMETER) === FLAG_ON,
+    shouldPreserveDrawingBuffer: parameters.get(PRESERVE_PARAMETER) === FLAG_ON,
   };
 }
 
@@ -64,8 +89,17 @@ export interface RenderBenchReport extends ClientPerformanceReport {
   readonly zoom: number;
   /** Frames the report's window covers. */
   readonly frames: number;
-  /** Heap growth over the window after a collection, per frame; `null` without a heap probe. */
-  readonly allocatedBytesPerFrame: number | null;
+  /** Whether the scene advanced a tick per frame (`advance=1`) or the window re-rendered one parked tick. */
+  readonly isTickAdvancing: boolean;
+  /**
+   * Heap **residency** growth over the window after a forced collection, divided by the frames: not an
+   * allocation count. A collection inside the window subtracts most of it and nothing here detects that, so
+   * the number varies severalfold between runs of the same scene — read it as a range over several runs, never
+   * as one figure (docs/RENDERING.md §7). `null` without a heap probe.
+   */
+  readonly heapGrowthBytesPerFrame: number | null;
+  /** Why `gpuMs` is a number or `null` (docs/RENDERING.md §7). */
+  readonly gpuStatus: GpuTimerStatus;
   readonly verdict: BudgetVerdict;
 }
 
@@ -105,7 +139,7 @@ export class BenchSession extends FrameLoopSession {
       host: this.dependencies.host,
       devicePixelRatio: this.dependencies.devicePixelRatio,
       fixedSize: RENDER_BENCH_VIEWPORT_PX,
-      shouldPreserveDrawingBuffer: true,
+      shouldPreserveDrawingBuffer: this.query.shouldPreserveDrawingBuffer,
     });
     this.adoptPixiApp(pixi);
     this.rebuildRenderer();
@@ -120,8 +154,9 @@ export class BenchSession extends FrameLoopSession {
     })?.setFixedZoom(this.query.zoom);
   }
 
-  /** Every frame re-renders the parked tick. */
+  /** Every frame re-renders the parked tick, unless `advance=1` steps the scene a tick first. */
   protected nextFrame(): RenderFrame | null {
+    if (this.query.shouldAdvanceTick) this.driver.step(1);
     return this.driver.frame();
   }
 
@@ -152,8 +187,10 @@ export class BenchSession extends FrameLoopSession {
       tick: this.driver.tick,
       zoom: outputs.zoom,
       frames: this.query.windowFrames,
-      allocatedBytesPerFrame: grownBytes === null ? null : grownBytes / this.query.windowFrames,
-      verdict: budgetVerdict(report),
+      isTickAdvancing: this.query.shouldAdvanceTick,
+      heapGrowthBytesPerFrame: grownBytes === null ? null : grownBytes / this.query.windowFrames,
+      gpuStatus: this.instrumentation.gpuStatus,
+      verdict: budgetVerdict(report, this.instrumentation.evidence()),
     };
   }
 

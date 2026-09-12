@@ -32,9 +32,9 @@ import {
 } from '@evolution/shared';
 import {
   RENDER_BENCH_CELL_COUNT,
+  RENDER_BENCH_ENGULF_CYCLE_TICKS,
   RENDER_BENCH_ENGULF_PAIRS,
   RENDER_BENCH_FRAGMENT_COUNT,
-  RENDER_BENCH_LEVEL_UP_EVERY_TICKS,
   RENDER_BENCH_MASS,
   RENDER_BENCH_MOTE_COUNT,
   RENDER_BENCH_ORBIT_RADIUS_WU,
@@ -155,7 +155,7 @@ function orbitPose(spec: BenchCellSpec, timeSeconds: number): OrbitPose {
 
 /** The prey's engulf progress cycles through the whole strip, so every frame of the wrap shows. */
 export function engulfProgressAt(tick: number): number {
-  return (tick % RENDER_BENCH_LEVEL_UP_EVERY_TICKS) / RENDER_BENCH_LEVEL_UP_EVERY_TICKS;
+  return (tick % RENDER_BENCH_ENGULF_CYCLE_TICKS) / RENDER_BENCH_ENGULF_CYCLE_TICKS;
 }
 
 type EngulfLinks = Pick<CellView, 'states' | 'engulfProgress' | 'engulfingCellId' | 'engulfedByCellId'> & {

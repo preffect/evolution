@@ -132,9 +132,13 @@ export interface ClientPerformanceReport {
   heapMb: number | null;
   /** p95 per stage, ms; every `RENDER_STAGE` key present. */
   renderStagesMs: Readonly<Record<RenderStageName, number>>;
-  /** GPU time per frame, ms (timer query); `null` when the context has no timer extension. */
+  /**
+   * GPU time per frame, ms (timer query), p95 over the same window; `null` when the number is unavailable —
+   * no timer extension, nothing resolved yet, or the extension reported a time no frame could have taken
+   * (docs/RENDERING.md §7). Never a fallback number: an absent measurement is `null`.
+   */
   gpuMs: number | null;
-  /** GL draw calls in the last frame (docs/RENDERING.md §6). */
+  /** The worst frame's GL draw calls over the window (docs/RENDERING.md §6). */
   drawCalls: number;
   visibleCells: number;
   visibleMotes: number;

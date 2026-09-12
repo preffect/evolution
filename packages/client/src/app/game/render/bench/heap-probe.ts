@@ -1,7 +1,8 @@
-// The bench's heap probe (docs/RENDERING.md §7, `allocatedBytesPerFrame`): Chrome's
+// The bench's heap probe (docs/RENDERING.md §7, `heapGrowthBytesPerFrame`): Chrome's
 // `performance.memory` and the `--js-flags=--expose-gc` collector when the page has them, so the
-// bench can collect, render its report window and read how much the window allocated. Any other
-// browser reads `null` and the bench reports the allocation as unmeasured.
+// bench can collect, render its report window and read how much the heap grew across it. That is
+// residency, not allocation — a collection inside the window subtracts most of it and nothing here
+// detects that — so §7 says to read the number as a range over runs. Any other browser reads `null`.
 
 export interface HeapProbe {
   /** The JS heap in use, bytes; `null` where the browser does not expose it. */

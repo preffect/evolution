@@ -136,23 +136,35 @@ export class GameRenderer {
     return (cellId) => views.get(cellId) ?? this.cells.lastViewOf(cellId);
   }
 
-  /** The camera stage: follow, zoom, the extent, the world transform. */
-  private cameraStage(frame: RenderFrame, ownPlayerId: string | null): { zoom: number; extent: CameraExtent } {
+  /** The camera stage exactly as §7 defines it: follow, zoom, cull, `cameraExtent` — the dish is not in it. */
+  private cameraStage(
+    frame: RenderFrame,
+    ownPlayerId: string | null,
+  ): { camera: CameraState; zoom: number; extent: CameraExtent } {
     const camera = this.stepCamera(frame, ownPlayerId);
     this.camera = camera;
     applyCameraTransform(this.layers.world, camera, this.viewport);
-    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
-    return { zoom: zoomFor(camera, this.viewport), extent: cameraExtent(camera, this.viewport) };
+    return { camera, zoom: zoomFor(camera, this.viewport), extent: cameraExtent(camera, this.viewport) };
+  }
+
+  /** The cell views every later stage reads, charged to the `cells` stage that consumes them (§7). */
+  private cellViews(
+    frame: RenderFrame,
+    ownPlayerId: string | null,
+  ): { ownCell: ReturnType<typeof ownCellOf>; views: CellViewsById; viewOf: LastViewOf } {
+    const views = cellsById(frame.cells);
+    return { ownCell: ownCellOf(frame, ownPlayerId), views, viewOf: this.viewLookup(views) };
   }
 
   /** One frame: the stages in order, then the outputs the HUD reads. */
   render(frame: RenderFrame, ownPlayerId: string | null, inputs: RenderInputs, submit: () => void): RenderOutputs {
     const { stages } = this;
-    const { zoom, extent } = stages.measure(RENDER_STAGE.camera, () => this.cameraStage(frame, ownPlayerId));
+    const { camera, zoom, extent } = stages.measure(RENDER_STAGE.camera, () => this.cameraStage(frame, ownPlayerId));
+    // The depth-particle walk and the light-pool placement are neither the camera nor a stage of their own
+    // (§7): they land in the frame's unbracketed residual, which the HUD budget row judges.
+    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
-    const ownCell = ownCellOf(frame, ownPlayerId);
-    const views = cellsById(frame.cells);
-    const viewOf = this.viewLookup(views);
+    const { ownCell, views, viewOf } = stages.accrue(RENDER_STAGE.cells, () => this.cellViews(frame, ownPlayerId));
     const deformations = stages.accrue(RENDER_STAGE.effects, () => {
       this.effects.start(frame.effects, viewOf, nowMs);
       this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);

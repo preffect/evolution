@@ -76,6 +76,9 @@ describe('GameRenderer', () => {
     expect(log).toEqual([
       `measure:${RENDER_STAGE.camera}`,
       `end:${RENDER_STAGE.camera}`,
+      // The dish runs here, bracketed by nothing: §7 charges it to the frame's residual, not to `camera`.
+      `accrue:${RENDER_STAGE.cells}`,
+      `end:${RENDER_STAGE.cells}`,
       `accrue:${RENDER_STAGE.effects}`,
       `end:${RENDER_STAGE.effects}`,
       `measure:${RENDER_STAGE.food}`,

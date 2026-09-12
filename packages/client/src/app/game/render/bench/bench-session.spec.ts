@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
 import { ManualClock, RENDER_STAGE_NAMES } from '@evolution/shared';
+import { describe, expect, it, vi } from 'vitest';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp } from '../../../../testing/fake-pixi-app';
+import type { PixiAppOptions } from '../pixi-app';
 import {
   RENDER_BENCH_DEFAULT_TICK,
   RENDER_BENCH_DEFAULT_ZOOM,
@@ -8,28 +9,40 @@ import {
   RENDER_BENCH_SEED,
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
-import { BenchSession, isBenchRoute, parseBenchQuery, type RenderBenchReport } from './bench-session';
+import { GPU_TIMER_STATUS } from './gpu-timer';
+import { BenchSession, isBenchRoute, parseBenchQuery, type BenchQuery, type RenderBenchReport } from './bench-session';
+
+const DEFAULT_FLAGS = { shouldAdvanceTick: false, shouldPreserveDrawingBuffer: false };
 
 describe('parseBenchQuery', () => {
-  it('reads the seed, tick and zoom with defaults for what is missing or malformed', () => {
-    expect(parseBenchQuery('?bench=7&tick=300&zoom=1.8&window=12')).toEqual({
+  it('reads the seed, tick, zoom and flags with defaults for what is missing or malformed', () => {
+    expect(parseBenchQuery('?bench=7&tick=300&zoom=1.8&window=12&advance=1&preserve=1')).toEqual({
       seed: 7,
       tick: 300,
       zoom: 1.8,
       windowFrames: 12,
+      shouldAdvanceTick: true,
+      shouldPreserveDrawingBuffer: true,
     });
     expect(parseBenchQuery('?bench')).toEqual({
       seed: RENDER_BENCH_SEED,
       tick: RENDER_BENCH_DEFAULT_TICK,
       zoom: RENDER_BENCH_DEFAULT_ZOOM,
       windowFrames: RENDER_BENCH_REPORT_FRAMES,
+      ...DEFAULT_FLAGS,
     });
-    expect(parseBenchQuery('?bench=abc&tick=1.9&zoom=x&window=0')).toEqual({
+    expect(parseBenchQuery('?bench=abc&tick=1.9&zoom=x&window=0&advance=0&preserve=yes')).toEqual({
       seed: RENDER_BENCH_SEED,
       tick: 1,
       zoom: RENDER_BENCH_DEFAULT_ZOOM,
       windowFrames: 1,
+      ...DEFAULT_FLAGS,
     });
+  });
+
+  it('never lets a zoom of zero or less through to the camera', () => {
+    expect(parseBenchQuery('?bench&zoom=0').zoom).toBe(RENDER_BENCH_DEFAULT_ZOOM);
+    expect(parseBenchQuery('?bench&zoom=-2').zoom).toBe(RENDER_BENCH_DEFAULT_ZOOM);
   });
 
   it('selects the bench route only when the bench parameter is present', () => {
@@ -57,24 +70,34 @@ function fakeHeap() {
   };
 }
 
-async function session(
-  query = { seed: RENDER_BENCH_SEED, tick: 60, zoom: SMALL_ZOOM, windowFrames: SMALL_WINDOW_FRAMES },
-) {
+const SMALL_QUERY: BenchQuery = {
+  seed: RENDER_BENCH_SEED,
+  tick: 60,
+  zoom: SMALL_ZOOM,
+  windowFrames: SMALL_WINDOW_FRAMES,
+  ...DEFAULT_FLAGS,
+};
+
+async function session(query: BenchQuery = SMALL_QUERY) {
   const pixi = createFakePixiApp();
   const heap = fakeHeap();
   const reports: RenderBenchReport[] = [];
+  const appOptions: PixiAppOptions[] = [];
   const subject = new BenchSession(query, {
     host: document.createElement('div'),
     clock: new ManualClock(0),
     devicePixelRatio: 1,
-    createPixiApp: () => Promise.resolve(pixi),
+    createPixiApp: (options) => {
+      appOptions.push(options);
+      return Promise.resolve(pixi);
+    },
     heap,
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     counts: SMALL_COUNTS,
     onReport: (report) => reports.push(report),
   });
   await subject.start();
-  return { subject, pixi, heap, reports };
+  return { subject, pixi, heap, reports, appOptions };
 }
 
 describe('BenchSession', () => {
@@ -92,14 +115,35 @@ describe('BenchSession', () => {
     const report = reports[0]!;
     expect(report).toMatchObject({ seed: RENDER_BENCH_SEED, tick: 60, frames: SMALL_WINDOW_FRAMES });
     expect(report.zoom).toBeCloseTo(SMALL_ZOOM);
-    expect(report.allocatedBytesPerFrame).toBe(BYTES_PER_FRAME);
+    expect(report.heapGrowthBytesPerFrame).toBe(BYTES_PER_FRAME);
     expect(report.visibleCells).toBeGreaterThan(0);
+    expect(report.isTickAdvancing).toBe(false);
+    expect(report.gpuStatus).toBe(GPU_TIMER_STATUS.unsupported);
+    expect(report.gpuMs).toBeNull();
     expect(Object.keys(report.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
     expect(report.verdict.isWithinBudget).toBe(true);
+    expect(report.verdict.sampleCount).toBe(SMALL_WINDOW_FRAMES);
+    expect(report.verdict.isP95Estimable, 'a twelve-frame window cannot support a p95').toBe(false);
+    expect(report.verdict.isFullyJudged).toBe(false);
     expect(api.performanceReport()).toBe(report);
     pixi.tick();
     expect(reports).toHaveLength(1);
     expect(pixi.renderCalls.count).toBe(RENDER_BENCH_WARMUP_FRAMES + SMALL_WINDOW_FRAMES + 1);
+  });
+
+  it('renders the production context unless `preserve=1` asks for the readable backbuffer', async () => {
+    const { appOptions } = await session();
+    expect(appOptions[0]).toMatchObject({ shouldPreserveDrawingBuffer: false });
+    const preserved = await session({ ...SMALL_QUERY, shouldPreserveDrawingBuffer: true });
+    expect(preserved.appOptions[0]).toMatchObject({ shouldPreserveDrawingBuffer: true });
+  });
+
+  it('steps the scene a tick a frame under `advance=1`, so the snapshot apply is inside the window', async () => {
+    const { subject, pixi } = await session({ ...SMALL_QUERY, shouldAdvanceTick: true });
+    const api = subject.debugApi();
+    for (let frame = 0; frame < 3; frame += 1) pixi.tick();
+    expect(api.renderTick()).toBeCloseTo(63, 6);
+    expect(subject.driver.tick).toBe(63);
   });
 
   it('holds the frame while paused, steps the scene by ticks and rebuilds it on a new seed', async () => {

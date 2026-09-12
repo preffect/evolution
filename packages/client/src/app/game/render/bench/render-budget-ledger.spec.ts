@@ -11,8 +11,10 @@ import {
   RENDER_BENCH_SEED,
   RENDER_FRAME_BUDGET_P95_MS,
   RENDER_GPU_BUDGET_MS,
+  RENDER_GPU_SAMPLE_MAX_FRAME_RATIO,
   RENDER_HUD_BUDGET_MS,
   RENDER_MAX_DRAW_CALLS,
+  RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
 } from '../constants';
 
@@ -53,6 +55,15 @@ describe('docs/RENDERING.md §7 budgets', () => {
     expect(numberIn(budgetSection, /≤ (\d+) ms p95 frame/)).toBe(RENDER_FRAME_BUDGET_P95_MS);
     expect(numberIn(budgetSection, /\| `gpuMs` \(its own field\)\s*\|\s*([\d.]+)/)).toBe(RENDER_GPU_BUDGET_MS);
     expect(numberIn(budgetSection, /\| HUD \(Angular[^|]*\|\s*([\d.]+)/)).toBe(RENDER_HUD_BUDGET_MS);
+  });
+
+  it('states the two rules that decide whether a number is reportable at all', () => {
+    expect(numberIn(budgetSection, /`RENDER_P95_MIN_SAMPLE_FRAMES` frames \(\*\*(\d+)\*\*/)).toBe(
+      RENDER_P95_MIN_SAMPLE_FRAMES,
+    );
+    expect(numberIn(budgetSection, /`RENDER_GPU_SAMPLE_MAX_FRAME_RATIO` \(\*\*(\d+)×\*\*\)/)).toBe(
+      RENDER_GPU_SAMPLE_MAX_FRAME_RATIO,
+    );
   });
 
   it.each(RENDER_STAGE_NAMES)('budgets the `%s` stage as its table row does', (stage) => {
