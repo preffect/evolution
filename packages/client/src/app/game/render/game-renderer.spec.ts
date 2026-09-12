@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entityId } from '@evolution/shared';
+import { RENDER_STAGE, entityId, type RenderStageName } from '@evolution/shared';
 import { Container } from 'pixi.js';
 import {
   TEST_OTHER_PLAYER_ID,
@@ -8,16 +8,35 @@ import {
   createTestRenderFrame,
 } from '../../../testing/builders';
 import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
+import type { StageMeasurer } from './bench/render-stage-timer';
 import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
 
 const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
 const VIEWPORT = { width: 800, height: 600 };
 
-function renderer(): { renderer: GameRenderer; stage: Container; submits: { count: number } } {
+function renderer(stages?: StageMeasurer): { renderer: GameRenderer; stage: Container; submits: { count: number } } {
   const pixi = createFakePixiApp(VIEWPORT);
   const textures = createTestRenderTextures({ seed: 3, baker: pixi.textures });
   const submits = { count: 0 };
-  return { renderer: new GameRenderer(pixi.stage, textures, VIEWPORT), stage: pixi.stage, submits };
+  return { renderer: new GameRenderer(pixi.stage, textures, VIEWPORT, stages), stage: pixi.stage, submits };
+}
+
+/** Records every bracket in order: `measure:<stage>` and `accrue:<stage>`, with the submit inside its bracket. */
+function recordingStages(): { stages: StageMeasurer; log: string[] } {
+  const log: string[] = [];
+  const bracket = (kind: string, stage: RenderStageName, work: () => unknown): unknown => {
+    log.push(`${kind}:${stage}`);
+    const result = work();
+    log.push(`end:${stage}`);
+    return result;
+  };
+  return {
+    log,
+    stages: {
+      measure: (stage, work) => bracket('measure', stage, work) as ReturnType<typeof work>,
+      accrue: (stage, work) => bracket('accrue', stage, work) as ReturnType<typeof work>,
+    },
+  };
 }
 
 describe('GameRenderer', () => {
@@ -46,6 +65,31 @@ describe('GameRenderer', () => {
     const centre = subject.screenToWorld(VIEWPORT.width / 2, VIEWPORT.height / 2);
     expect(centre.x).toBeCloseTo(40);
     expect(centre.y).toBeCloseTo(30);
+  });
+
+  it('brackets the frame in the seven stages of docs/RENDERING.md §7, in order, with the organelles inside the cells', () => {
+    const { stages, log } = recordingStages();
+    const { renderer: subject } = renderer(stages);
+    subject.render(createTestRenderFrame({ cells: [createTestCellView()] }), TEST_OWN_PLAYER_ID, INPUTS, () =>
+      log.push('submit'),
+    );
+    expect(log).toEqual([
+      `measure:${RENDER_STAGE.camera}`,
+      `end:${RENDER_STAGE.camera}`,
+      `accrue:${RENDER_STAGE.effects}`,
+      `end:${RENDER_STAGE.effects}`,
+      `measure:${RENDER_STAGE.food}`,
+      `end:${RENDER_STAGE.food}`,
+      `measure:${RENDER_STAGE.cells}`,
+      `measure:${RENDER_STAGE.organelles}`,
+      `end:${RENDER_STAGE.organelles}`,
+      `end:${RENDER_STAGE.cells}`,
+      `measure:${RENDER_STAGE.effects}`,
+      `end:${RENDER_STAGE.effects}`,
+      `measure:${RENDER_STAGE.submit}`,
+      'submit',
+      `end:${RENDER_STAGE.submit}`,
+    ]);
   });
 
   it('holds a fixed zoom when asked and releases it', () => {

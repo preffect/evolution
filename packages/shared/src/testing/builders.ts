@@ -13,7 +13,8 @@ import {
   ROUND_PHASE,
 } from '../types/game.js';
 import type { CellView, PlayerProgressView } from '../types/game.js';
-import type { GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
+import { RENDER_STAGE_NAMES } from '../types/messages.js';
+import type { ClientPerformanceReport, GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
 import { entityId, playerId, zeroRecord } from '../types/common.js';
 import { BACTERIUM_VARIANTS } from '../constants/ecology.js';
 import { DNA_TAGS } from '../constants/progression.js';
@@ -110,6 +111,25 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
     leaderboard: [],
     appliedInputSequenceByPlayer: {},
     effects: [],
+    ...overrides,
+  };
+}
+
+/** A client frame report inside every docs/RENDERING.md §7 budget; pass the fields the test reads. */
+export function createTestClientPerformanceReport(
+  overrides: Partial<ClientPerformanceReport> = {},
+): ClientPerformanceReport {
+  return {
+    fps: 60,
+    frameTimeAvgMs: 4,
+    frameTimeP95Ms: 6,
+    frameTimePeakMs: 9,
+    heapMb: null,
+    renderStagesMs: zeroRecord(RENDER_STAGE_NAMES),
+    gpuMs: null,
+    drawCalls: 9,
+    visibleCells: 8,
+    visibleMotes: 1400,
     ...overrides,
   };
 }

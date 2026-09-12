@@ -1,6 +1,6 @@
 // The dish, food, depth, effects, layer order and camera numbers (docs/VISUAL-STYLE.md §1, §2, §5,
 // §8; sheet 02; docs/RENDERING.md §6). Units: wu unless the suffix says px, seconds or degrees.
-// Slice D (#208) adds the bench scene and the frame-budget numbers of docs/RENDERING.md §7 here.
+// The bench scene and the frame-budget numbers of docs/RENDERING.md §7 are the `bench.ts` page.
 
 // ---- layer order (docs/ARCHITECTURE.md §6) ----
 export const LAYER_Z = {

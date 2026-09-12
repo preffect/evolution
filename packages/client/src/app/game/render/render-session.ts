@@ -1,17 +1,28 @@
 // One room's rendering, from the first `game_state` to the teardown (docs/ARCHITECTURE.md §5, §6):
 // creates the Pixi app and the renderer when the round's seed is known, applies every message
 // to the store as it arrives (a snapshot is a delta, so none is skipped), runs the read-only
-// frame loop on the app's ticker, feeds the audio handle and installs the debug hook. `game-setup.ts` builds one and wires the seams. Slice D (#208) adds the frame-budget
-// report (`ClientPerformanceReport`) on top of the frame loop.
+// frame loop on the app's ticker, feeds the audio handle and installs the debug hook. `game-setup.ts`
+// builds one and wires the seams. The frame instrumentation (docs/RENDERING.md §7) brackets the
+// frame: a snapshot applied on arrival is accrued to the `net` stage, the frame's interpolation is
+// measured as `net`, the renderer brackets the rest, and every `RENDER_REPORT_EVERY_FRAMES` frames
+// the `ClientPerformanceReport` the debug hook answers is rebuilt.
 
-import { SERVER_MESSAGE_TYPE, type Clock, type GameSnapshot, type ServerMessage } from '@evolution/shared';
+import {
+  RENDER_STAGE,
+  SERVER_MESSAGE_TYPE,
+  type ClientPerformanceReport,
+  type Clock,
+  type GameSnapshot,
+  type ServerMessage,
+} from '@evolution/shared';
 import type { TransitionOptions } from '../state/snapshot-transitions';
 import type { AudioHooksHandle } from '../audio/audio-hooks';
-import { FrameGate, EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution-debug';
-import { WorldStore } from '../net/world-store';
-import { GameRenderer, type RenderInputs } from './game-renderer';
+import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution-debug';
+import { WorldStore, type RenderFrame } from '../net/world-store';
+import { RENDER_REPORT_EVERY_FRAMES } from './constants';
+import { FrameLoopSession } from './frame-loop-session';
+import type { GameRenderer, RenderInputs, RenderOutputs } from './game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
-import { createRenderTextures, destroyRenderTextures, type RenderTextures } from './render-textures';
 
 export interface RenderSessionDependencies {
   readonly host: HTMLElement;
@@ -27,12 +38,9 @@ export interface RenderSessionDependencies {
   readonly noiseTileSizePx?: number;
 }
 
-export class RenderSession {
+export class RenderSession extends FrameLoopSession {
   readonly store: WorldStore;
-  readonly gate = new FrameGate();
-  private pixi: PixiAppHandle | null = null;
-  private textures: RenderTextures | null = null;
-  private renderer: GameRenderer | null = null;
+  private lastReport: ClientPerformanceReport | null = null;
   private audio: AudioHooksHandle | null = null;
   /** The one in-flight or resolved Pixi app, so two early `game_state`s never create two canvases. */
   private pixiReady: Promise<PixiAppHandle | null> | null = null;
@@ -42,11 +50,10 @@ export class RenderSession {
   private startupErrorValue: unknown = null;
   /** The seed of the newest renderer build asked for, so a rematch snapshot asks exactly once. */
   private requestedSeed: number | null = null;
-  /** The tick of the frame on screen: what the debug hook reports, held while paused. */
-  private lastRenderedTick: number | null = null;
   private isDestroyed = false;
 
   constructor(private readonly dependencies: RenderSessionDependencies) {
+    super(dependencies.clock);
     this.store = new WorldStore(dependencies.clock);
   }
 
@@ -55,8 +62,9 @@ export class RenderSession {
   }
 
   onMessage(message: ServerMessage): void {
+    const { timer } = this.instrumentation;
     if (message.type === SERVER_MESSAGE_TYPE.gameState) {
-      this.store.applyGameState(message);
+      timer.accrue(RENDER_STAGE.net, () => this.store.applyGameState(message));
       this.audio?.disconnect();
       this.audio = this.dependencies.connectAudio({
         ownPlayerId: message.playerId,
@@ -65,7 +73,9 @@ export class RenderSession {
       });
       this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
-      if (this.store.applySnapshot(message.snapshot)) this.audio?.observe(message.snapshot);
+      if (timer.accrue(RENDER_STAGE.net, () => this.store.applySnapshot(message.snapshot))) {
+        this.audio?.observe(message.snapshot);
+      }
       // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/ARCHITECTURE.md §4).
       if (message.snapshot.seed !== this.requestedSeed) {
         this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
@@ -83,24 +93,20 @@ export class RenderSession {
    */
   ensureRenderer(snapshot: GameSnapshot): Promise<void> {
     this.requestedSeed = snapshot.seed;
-    const build = this.rendererReady.then(() => this.buildRenderer(snapshot));
+    const build = this.rendererReady.then(() => this.buildRendererFor(snapshot));
     this.rendererReady = build.catch(() => undefined);
     return build;
   }
 
-  private async buildRenderer(snapshot: GameSnapshot): Promise<void> {
-    if (this.renderer !== null && this.renderer.seed === snapshot.seed) return;
-    const pixi = await this.ensurePixiApp();
-    if (pixi === null) return;
-    this.disposeRenderer();
-    this.textures = createRenderTextures({
+  private async buildRendererFor(snapshot: GameSnapshot): Promise<void> {
+    if (this.renderer?.seed === snapshot.seed) return;
+    if ((await this.ensurePixiApp()) === null) return;
+    this.buildRenderer({
       seed: snapshot.seed,
-      baker: pixi.textures,
       gelPatches: snapshot.gelPatches,
       devicePixelRatio: this.dependencies.devicePixelRatio,
       noiseTileSizePx: this.dependencies.noiseTileSizePx,
     });
-    this.renderer = new GameRenderer(pixi.app.stage, this.textures, pixi.app.screen);
   }
 
   private ensurePixiApp(): Promise<PixiAppHandle | null> {
@@ -122,9 +128,7 @@ export class RenderSession {
       pixi.destroy();
       return null;
     }
-    this.pixi = pixi;
-    pixi.app.ticker.remove(pixi.app.render, pixi.app);
-    pixi.app.ticker.add(() => this.frame());
+    this.adoptPixiApp(pixi);
     pixi.canvas.addEventListener('pointerdown', () => this.audio?.unlock(), { once: true });
     return pixi;
   }
@@ -135,45 +139,36 @@ export class RenderSession {
     console.error('The renderer could not start; the room plays without a canvas.', error);
   }
 
-  /** One ticker callback: renders the store's next frame unless the gate holds it. Reads only. */
-  frame(): void {
-    if (this.pixi === null || this.renderer === null || !this.gate.claimFrame()) return;
-    const frame = this.store.nextFrame();
-    if (frame === null) return;
-    this.lastRenderedTick = frame.renderTick;
-    const { app } = this.pixi;
-    this.renderer.resize(app.screen);
-    this.renderer.render(frame, this.store.ownPlayerId, this.dependencies.hudInputs(), () => app.render());
+  /** The frame loop reads the store only: the next interpolated frame, rendered with the HUD's inputs. */
+  protected nextFrame(): RenderFrame | null {
+    return this.store.nextFrame();
+  }
+
+  protected renderFrame(renderer: GameRenderer, frame: RenderFrame, submit: () => void): RenderOutputs {
+    return renderer.render(frame, this.store.ownPlayerId, this.dependencies.hudInputs(), submit);
+  }
+
+  /** Every `RENDER_REPORT_EVERY_FRAMES` frames the report the debug hook answers is rebuilt. */
+  protected afterFrame(outputs: RenderOutputs): void {
+    if (this.instrumentation.frameCount % RENDER_REPORT_EVERY_FRAMES === 0) {
+      this.lastReport = this.instrumentation.report(outputs, null);
+    }
   }
 
   /** The `window.__evolutionDebug` mirror for a live room. */
   debugApi(): EvolutionDebugApi {
     return {
+      ...this.gateDebugMembers(),
       mode: EVOLUTION_DEBUG_MODE.live,
-      pause: () => this.gate.pause(),
-      resume: () => this.gate.resume(),
       step: (frames) => this.gate.step(frames),
       setSeed: () => false,
-      isPaused: () => this.gate.isPaused(),
-      renderTick: () => this.lastRenderedTick,
-      // Slice D (#208) returns the last frame-budget report here.
-      performanceReport: () => null,
+      performanceReport: () => this.lastReport,
     };
-  }
-
-  private disposeRenderer(): void {
-    this.renderer?.destroy();
-    this.renderer = null;
-    this.lastRenderedTick = null;
-    if (this.textures !== null) destroyRenderTextures(this.textures);
-    this.textures = null;
   }
 
   destroy(): void {
     this.isDestroyed = true;
     this.audio?.disconnect();
-    this.disposeRenderer();
-    this.pixi?.destroy();
-    this.pixi = null;
+    this.disposeLoop();
   }
 }

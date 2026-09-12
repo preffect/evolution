@@ -48,6 +48,19 @@ export function installEvolutionDebug(
   };
 }
 
+/** The hook members every session answers from its gate: both modes spread these and add their own. */
+export function gateDebugMembers(
+  gate: FrameGate,
+  renderTick: () => number | null,
+): Pick<EvolutionDebugApi, 'pause' | 'resume' | 'isPaused' | 'renderTick'> {
+  return {
+    pause: () => gate.pause(),
+    resume: () => gate.resume(),
+    isPaused: () => gate.isPaused(),
+    renderTick,
+  };
+}
+
 /** The pause / step bookkeeping both modes share: a frame runs when not paused, or when stepped. */
 export class FrameGate {
   private isPausedValue = false;

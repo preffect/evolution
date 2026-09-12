@@ -11,13 +11,14 @@ import {
   MIN_PLAYERS_PER_GAME,
   PLAYER_NAME_MAX_LENGTH,
   PLAYER_NAME_MIN_LENGTH,
+  RENDER_STAGE_NAMES,
   ROUND_DURATION_MAX_SECONDS,
   ROUND_DURATION_MIN_SECONDS,
   ROUND_END_CONDITION,
   SEED_MAX,
   TRAIT_DRAFT_SIZE,
 } from '@evolution/shared';
-import type { GameInput, GameSessionConfig } from '@evolution/shared';
+import type { GameInput, GameSessionConfig, RenderStageName } from '@evolution/shared';
 
 /**
  * Inbound message validation (docs/ARCHITECTURE.md §4): every message is parsed here before a
@@ -88,6 +89,12 @@ const playerInputSchema = z.object({
   payload: gameInputSchema,
 });
 
+/** Every `RENDER_STAGE` key, each a number: the record the client's stage timer fills (docs/RENDERING.md §7). */
+const renderStagesSchema = z.object(
+  // `fromEntries` widens the keys to string; the array is pinned complete against `RENDER_STAGE`, so the record is.
+  Object.fromEntries(RENDER_STAGE_NAMES.map((stage) => [stage, z.number()])) as Record<RenderStageName, z.ZodNumber>,
+);
+
 const clientPerformanceSchema = z.object({
   type: z.literal(CLIENT_MESSAGE_TYPE.clientPerformance),
   report: z.object({
@@ -96,6 +103,11 @@ const clientPerformanceSchema = z.object({
     frameTimeP95Ms: z.number(),
     frameTimePeakMs: z.number(),
     heapMb: z.number().nullable(),
+    renderStagesMs: renderStagesSchema,
+    gpuMs: z.number().nullable(),
+    drawCalls: z.number().int().nonnegative(),
+    visibleCells: z.number().int().nonnegative(),
+    visibleMotes: z.number().int().nonnegative(),
   }),
 });
 

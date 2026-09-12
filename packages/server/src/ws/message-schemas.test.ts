@@ -13,7 +13,9 @@ import {
   ROUND_DURATION_MAX_SECONDS,
   ROUND_DURATION_MIN_SECONDS,
   SEED_MAX,
+  RENDER_STAGE,
   TRAIT_DRAFT_SIZE,
+  createTestClientPerformanceReport,
   createTestGameInput,
   createTestSessionConfig,
 } from '@evolution/shared';
@@ -135,5 +137,27 @@ describe('clientMessageSchema: GameInput', () => {
   it('rejects the template echo payloads: an input is not an arbitrary object', () => {
     expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.playerInput, payload: { anything: [1, 2, 3] } })).toBe(false);
     expect(isAccepted(playerInput({ shouldSprint: 'yes' }))).toBe(false);
+  });
+});
+
+describe('clientMessageSchema: ClientPerformanceReport', () => {
+  function performance(report: Record<string, unknown>): unknown {
+    return {
+      type: CLIENT_MESSAGE_TYPE.clientPerformance,
+      report: { ...createTestClientPerformanceReport(), ...report },
+    };
+  }
+
+  it('accepts a full report, with a null GPU time and heap', () => {
+    expect(isAccepted(performance({}))).toBe(true);
+    expect(isAccepted(performance({ gpuMs: 2.5, heapMb: 40 }))).toBe(true);
+  });
+
+  it('requires every render stage key and whole, non-negative draw and visible counts', () => {
+    const stages = Object.entries(createTestClientPerformanceReport().renderStagesMs);
+    const missingSubmit = Object.fromEntries(stages.filter(([stage]) => stage !== RENDER_STAGE.submit));
+    expect(isAccepted(performance({ renderStagesMs: missingSubmit }))).toBe(false);
+    expect(isAccepted(performance({ drawCalls: -1 }))).toBe(false);
+    expect(isAccepted(performance({ visibleCells: 1.5 }))).toBe(false);
   });
 });
