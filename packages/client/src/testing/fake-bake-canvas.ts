@@ -34,6 +34,16 @@ export class FakeBakeContext implements BakeContext2D {
   lineWidth = 1;
   lineCap: 'butt' | 'round' | 'square' = 'butt';
   globalAlpha = 1;
+  private compositeOperation: GlobalCompositeOperation = 'source-over';
+
+  /** Logged as `composite:<operation>` so a bake's erase steps can be pinned in order. */
+  get globalCompositeOperation(): GlobalCompositeOperation {
+    return this.compositeOperation;
+  }
+  set globalCompositeOperation(operation: GlobalCompositeOperation) {
+    this.compositeOperation = operation;
+    this.log(`composite:${operation}`);
+  }
 
   private log(name: string, args: readonly number[] = []): void {
     this.ops.push(name);

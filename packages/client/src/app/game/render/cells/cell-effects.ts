@@ -1,5 +1,5 @@
 // Server effects into the cell layer (docs/RENDERING.md §4): a `cell_absorbed` starts a ghost
-// from the prey's last view; an eat, level-up or respawn names the clip its cell plays and, for
+// from what the prey was last drawn with; an eat, level-up or respawn names the clip its cell plays and, for
 // the eat, where the mote was. Pure over the effects and a lookup of last views; the ghosts are
 // wired here (#216), the clip starts are the hook slice C (#207) drives with its player.
 
@@ -11,7 +11,7 @@ import {
   type GameEffect,
   type MotionClipId,
 } from '@evolution/shared';
-import type { GhostRegistry } from './ghost-cells';
+import type { GhostRegistry, GhostSourceOf } from './ghost-cells';
 
 /** One clip to start on one cell, aimed at the effect's position when the clip has a direction. */
 export interface CellClipStart {
@@ -47,18 +47,18 @@ export function cellClipStarts(effects: readonly GameEffect[], lastViewOf: LastV
   return starts;
 }
 
-/** Starts a ghost for every `cell_absorbed` whose prey was drawn last frame. */
+/** Starts a ghost for every `cell_absorbed` whose prey was drawn last frame, from what it was drawn with. */
 export function startAbsorbedGhosts(
   effects: readonly GameEffect[],
-  lastViewOf: LastViewOf,
+  ghostSourceOf: GhostSourceOf,
   ghosts: GhostRegistry,
   nowMs: number,
 ): number {
   let started = 0;
   for (const effect of effects) {
     if (effect.kind !== EFFECT_KIND.cellAbsorbed) continue;
-    const prey = lastViewOf(effect.cellId);
-    const predator = lastViewOf(effect.predatorCellId);
+    const prey = ghostSourceOf(effect.cellId);
+    const predator = ghostSourceOf(effect.predatorCellId)?.view;
     if (prey === undefined) continue;
     ghosts.add(prey, predator ?? { id: effect.predatorCellId, x: effect.x, y: effect.y }, nowMs);
     started += 1;

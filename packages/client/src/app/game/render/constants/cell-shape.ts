@@ -145,16 +145,19 @@ export const RIBOSOME_ALPHA_MAX = 0.8;
 export const FILAMENT_COUNT_BY_TIER = [11, 15, 19] as const;
 export const FILAMENT_WIDTH_PX = 1.1;
 export const FILAMENT_ALPHA = 0.28;
-/** The screen-px half-width of a filament's spoke mask. */
+/** The screen-px half-width of a filament's spoke mask, feathered ±0.5 px like every px-sized line (#243). */
 export const FILAMENT_MASK_PX = FILAMENT_WIDTH_PX / 2;
 /** The filaments fade out over this band inside their 0.89 r reach. */
 export const FILAMENT_REACH_BLUR_RADII = 0.04;
 /** The rim takes half the membrane's chloroplast tint (VISUAL-STYLE §4 `chloroplast`). */
 export const RIM_TINT_SHARE = 0.5;
-/** The GLSL 2-D hash (a standard fract-dot hash) and the salts that decorrelate the speckle's per-dot draws. */
+/**
+ * The GLSL 2-D hash (a standard fract-dot hash) and the salts that decorrelate the speckle's per-dot draws;
+ * `seed` scales the cell's `speckleSeed` (one cosmetic draw, #243) so every cell has its own lattice.
+ */
 export const HASH_SCALE = 0.1031;
 export const HASH_SHIFT = 33.33;
-export const SPECKLE_HASH_SALT = { palette: 7, row: 13, offsetX: 1.7, offsetY: 9.3, alpha: 4.1 } as const;
+export const SPECKLE_HASH_SALT = { seed: 97.3, offsetX: 1.7, offsetY: 9.3, alpha: 4.1 } as const;
 
 // ---- membrane bands (§2.2) ----
 export const INNER_EDGE_WIDTH_RADII = 0.11;
@@ -173,6 +176,11 @@ export const PROTOCELL_OUTLINE_ALPHA = 0.4;
 export const PROTOCELL_FILM_GAP_RADII = 0.025;
 export const PROTOCELL_FILM_ALPHA = 0.55;
 export const PROTOCELL_FILM_LIGHT_ALPHA = 0.7;
+/**
+ * The base wall band (RENDERING §2.2): 1.05 → 1.095 with the hairline at 1.075; the thickness and the hairline
+ * offset scale per tier from the inner edge, so tier I reads 1.05 → 1.1175 (hairline 1.0875), II 1.05 → 1.14
+ * (1.10), III 1.05 → 1.1625 (1.1125) (#243 pinned the table to the reading).
+ */
 export const CELL_WALL_INNER_RADII = 1.05;
 export const CELL_WALL_HAIRLINE_RADII = 1.075;
 export const CELL_WALL_OUTER_RADII = 1.095;

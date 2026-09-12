@@ -30,8 +30,15 @@ export const MITO_CRISTA = { widthShare: 0.06, heightShare: 1.2, alpha: 0.8 } as
 export const CHLORO_GRANULE = { radiusShare: 0.16, ringShare: 0.55, arcStartTurns: -0.375 } as const;
 /** A vacuole's translucent fill: faint at the centre, denser at the rim. */
 export const VACUOLE_FILL_ALPHA = { inner: 0.25, outer: 0.6 } as const;
-/** The nucleus bake (sheet 01 layer 6): the body ramp, centre to rim, below full white so the highlight reads. */
-export const NUCLEUS_BAKE = { bodyAlpha: 0.72, darkAlpha: 0.58 } as const;
+/**
+ * The nucleus ramp (#231, VISUAL-STYLE §3): the shader's three-stop disc under the nucleus sprite. The
+ * focus and the reach are in nucleus radii (`r_n = NUCLEUS_RADIUS × r`), the focus toward `LIGHT_DIRECTION_DEG`;
+ * the middle stop is where the ramp reaches the palette's nucleus colour on its way from rim to nucleus dark.
+ */
+export const NUCLEUS_RAMP_FOCUS_RADII = 0.4;
+export const NUCLEUS_RAMP_REACH_RADII = 1.4;
+export const NUCLEUS_RAMP_MID_STOP = 0.5;
+export const NUCLEUS_RAMP_ALPHA = 0.92;
 /** The chromatin spots: seeded around the ring, in angle, distance and size, as shares of the nucleus radius. */
 export const NUCLEUS_CHROMATIN = {
   alpha: 0.25,
@@ -54,7 +61,10 @@ export const NUCLEOID_BAKE = {
   glowReach: 1.5,
   steps: 96,
 } as const;
-/** Slot rejection sampling (§3): inside 1 − 0.08, outside the nucleus disc, this gap between sprites. */
+/**
+ * Slot rejection sampling (§3): a slot centre stays inside `1 − max(0.08, sprite radius)` (the sprite
+ * body never crosses the membrane, #243), outside the nucleus disc, this gap between sprites.
+ */
 export const ORGANELLE_MEMBRANE_MARGIN = 0.08;
 export const ORGANELLE_MIN_GAP = 0.04;
 export const ORGANELLE_SLOT_MAX_ATTEMPTS = 256;

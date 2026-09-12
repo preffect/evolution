@@ -1,20 +1,19 @@
 // Organelle rest slots (docs/RENDERING.md §3): normalised, heading-independent positions in the
 // cell frame drawn from the cell's cosmetic fork. The nucleus (or the nucleoid) sits 0.12 r toward
 // the light; every other organelle is rejection-sampled in the annulus between the DNA ring
-// keep-out and the membrane margin, outside the nucleus disc (measured from the nucleus centre)
-// and clear of every other slot, kept ones of later kinds included. Slots are appended, never
-// reshuffled, so a tier-up adds a bean without moving the rest.
+// keep-out and the membrane keep-out (the margin or the sprite's own radius, whichever reaches
+// further in, so the sprite body never crosses the membrane), outside the nucleus disc (measured
+// from the nucleus centre) and clear of every other slot, kept ones of later kinds included. Slots
+// are appended, never reshuffled, so a tier-up adds a bean without moving the rest.
 
 import { RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import {
   CHLOROPLAST,
   DNA_RING_KEEP_OUT_FRACTION,
   FOOD_VACUOLE,
-  LIGHT_DIRECTION_DEG,
   LIPID_DROPLET,
   MITOCHONDRION,
   NUCLEOID_RADIUS,
-  NUCLEUS_OFFSET_TOWARD_LIGHT,
   NUCLEUS_RADIUS,
   ORGANELLE_KIND,
   ORGANELLE_MEMBRANE_MARGIN,
@@ -24,7 +23,8 @@ import {
   TOXIN_VACUOLE,
   type OrganelleKind,
 } from '../constants';
-import { DIAMETER_PER_RADIUS, HALF, degreesToRadians } from '../geometry';
+import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
+import { NUCLEUS_REST_OFFSET } from '../light-direction';
 import type { CellTraitSummary } from './cell-traits';
 import { NUCLEUS_KINDS, ORGANELLE_KIND_ORDER, organelleCounts } from './organelle-kinds';
 
@@ -64,11 +64,10 @@ function slotLabel(kind: OrganelleKind, index: number): string {
 }
 
 function nucleusSlot(kind: OrganelleKind, random: RandomSource): OrganelleSlot {
-  const angle = degreesToRadians(LIGHT_DIRECTION_DEG);
   return {
     kind,
-    x: Math.cos(angle) * NUCLEUS_OFFSET_TOWARD_LIGHT,
-    y: Math.sin(angle) * NUCLEUS_OFFSET_TOWARD_LIGHT,
+    x: NUCLEUS_REST_OFFSET.x,
+    y: NUCLEUS_REST_OFFSET.y,
     size: SLOT_SIZE[kind],
     phase: random.nextFloat(),
     index: 0,
@@ -98,8 +97,17 @@ function smallestGap(candidate: Candidate, placed: readonly OrganelleSlot[]): nu
 }
 
 /**
+ * The furthest a slot centre of a sprite `size` wide may sit: the membrane radius minus the
+ * larger of the margin and the sprite's own radius (#243), never inside the DNA ring keep-out
+ * (the toxin bladder's 0.34 r radius lands it exactly on the keep-out ring).
+ */
+export function membraneKeepOutRadius(size: number): number {
+  return Math.max(DNA_RING_KEEP_OUT_FRACTION, 1 - Math.max(ORGANELLE_MEMBRANE_MARGIN, size * HALF));
+}
+
+/**
  * Rejection sampling of the slot centre in the annulus (docs/VISUAL-STYLE.md §3: centres never
- * inside the keep-out, the nucleus disc or the membrane margin); the first draw clear of every
+ * inside the keep-out, the nucleus disc or the membrane keep-out); the first draw clear of every
  * placed sprite wins, else the best of the attempts, so a slot always exists.
  */
 function sampledSlot(
@@ -110,7 +118,7 @@ function sampledSlot(
 ): OrganelleSlot {
   const size = SLOT_SIZE[kind];
   const innerRadius = DNA_RING_KEEP_OUT_FRACTION;
-  const outerRadius = 1 - ORGANELLE_MEMBRANE_MARGIN;
+  const outerRadius = membraneKeepOutRadius(size);
   let best: Candidate = { x: innerRadius, y: 0, size };
   let bestGap = Number.NEGATIVE_INFINITY;
   for (let attempt = 0; attempt < ORGANELLE_SLOT_MAX_ATTEMPTS && bestGap < ORGANELLE_MIN_GAP; attempt += 1) {

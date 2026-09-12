@@ -14,7 +14,6 @@ import {
   GLINT_ROTATION_DEG,
   INNER_EDGE_ALPHA,
   INNER_EDGE_WIDTH_RADII,
-  LIGHT_DIRECTION_DEG,
   OUTLINE_ALPHA,
   OUTLINE_MIN_PX,
   OUTLINE_WIDTH_RADII,
@@ -42,10 +41,10 @@ import {
   SOFT_RIM_INNER_RADII,
   SOFT_RIM_OUTER_RADII,
 } from '../constants';
+import { LIGHT_DIRECTION_RADIANS } from '../light-direction';
 import { degreesToRadians } from '../geometry';
 import { glslFloat } from './cell-shader-source';
 
-const LIGHT = degreesToRadians(LIGHT_DIRECTION_DEG);
 const GLINT_ANGLE = degreesToRadians(GLINT_ANGLE_DEG);
 const GLINT_ROTATION = degreesToRadians(GLINT_ROTATION_DEG);
 const SEAT_MARK_ANCHOR = degreesToRadians(SEAT_MARK_ANCHOR_DEG);
@@ -73,7 +72,7 @@ vec4 softRim(Instance inst, Frame frame, vec4 acc) {
 
 /** Four stops at t = (1 − cos a) / 2 from the light: white → rim → base → rim, dimmer on the far side. */
 vec4 rimLightColour(Instance inst, Frame frame) {
-  float t = (1.0 - cos(frame.theta - ${glslFloat(LIGHT)})) * HALF;
+  float t = (1.0 - cos(frame.theta - ${glslFloat(LIGHT_DIRECTION_RADIANS)})) * HALF;
   vec4 stops[4];
   stops[0] = vec4(uWhite, ${glslFloat(RIM_LIGHT_ALPHAS[0])});
   stops[1] = vec4(rimColour(inst), ${glslFloat(RIM_LIGHT_ALPHAS[1])});

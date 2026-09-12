@@ -32,7 +32,7 @@ import type { CellInstance } from './cell-instance';
 import { cellLodFor, type CellLod } from './cell-lod';
 import { summariseCellTraits, type CellTraitSummary } from './cell-traits';
 import { NO_CONTACT_DENTS, withContactDent, type ContactDents } from './contact-dents';
-import type { PredatorSeal } from './ghost-cells';
+import type { GhostSource, PredatorSeal } from './ghost-cells';
 import { NUCLEUS_KINDS } from './organelle-kinds';
 import { layoutOrganelles, type OrganelleSlot } from './organelle-layout';
 import { laggedSlot, mapSlot, type MappedPoint } from './organelle-mapper';
@@ -73,6 +73,19 @@ export interface CellFrameOutput {
 
 const ORIGIN = { x: 0, y: 0 } as const;
 
+/**
+ * The anchor the shader's nucleus ramp disc (#231) reads: the mapped nucleus sprite's centre as a
+ * fraction of `r`, so the disc and the sprite always land on the same point; the origin when the
+ * cell has no nucleus sprite (a far dot, or a stage without one).
+ */
+export function nucleusOffsetOf(
+  organelles: readonly OrganellePlacement[],
+  radius: number,
+): { readonly x: number; readonly y: number } {
+  const nucleus = organelles.find((placement) => NUCLEUS_KINDS.has(placement.kind));
+  return nucleus === undefined ? ORIGIN : { x: nucleus.point.x / radius, y: nucleus.point.y / radius };
+}
+
 /** The trait key a layout is valid for: stage, owned tiers and the preview. */
 function traitsKeyOf(view: CellView, previewTraitId: TraitId | null): string {
   const owned = view.traits.map((trait) => `${trait.traitId}:${trait.tier}`).join(',');
@@ -81,9 +94,10 @@ function traitsKeyOf(view: CellView, previewTraitId: TraitId | null): string {
 
 export class CellRenderState {
   private readonly cosmetic: RandomSource;
-  /** Cosmetic phase in turns and the strip row, drawn once from the cell's fork. */
+  /** Cosmetic phase in turns, the strip row and the speckle seed, drawn once from the cell's fork, in this order. */
   private readonly phase: number;
   private readonly stripRow: number;
+  private readonly speckleSeed: number;
   private heldHeading = 0;
   private slots: OrganelleSlot[] = [];
   private traitsKey = '';
@@ -100,6 +114,7 @@ export class CellRenderState {
     this.cosmetic = cosmetic.fork(`${COSMETIC_SUB_STREAM.cell}:${id}`);
     this.phase = this.cosmetic.nextFloat();
     this.stripRow = this.cosmetic.nextInt(0, NOISE_STRIP_ROWS - 1);
+    this.speckleSeed = this.cosmetic.nextFloat();
   }
 
   private traitsFor(view: CellView, previewTraitId: TraitId | null): CellTraitSummary {
@@ -114,6 +129,11 @@ export class CellRenderState {
 
   get lastView(): CellView | null {
     return this.drawnView;
+  }
+
+  /** What a ghost of this cell is built from (ghost-cells.ts): the last drawn view, its slots and its speckle seed. */
+  get ghostSource(): GhostSource | null {
+    return this.drawnView === null ? null : { view: this.drawnView, slots: this.slots, speckleSeed: this.speckleSeed };
   }
 
   /** The beat runs at `CILIA_BEAT_HZ` while moving and `CILIA_BEAT_IDLE_HZ` at rest (VISUAL-STYLE §4). */
@@ -186,19 +206,17 @@ export class CellRenderState {
     });
     const lod = cellLodFor(view.radius * context.zoom);
     const organelles = lod.isFarDot ? [] : this.placeOrganelles(terms, speedRatio, context.timeSeconds);
-    const nucleus = organelles.find((placement) => NUCLEUS_KINDS.has(placement.kind));
     const instance = buildCellInstance({
       view,
       traits,
       terms,
       lod,
       speedRatio,
-      nucleusOffset:
-        nucleus === undefined ? ORIGIN : { x: nucleus.point.x / view.radius, y: nucleus.point.y / view.radius },
+      nucleusOffset: nucleusOffsetOf(organelles, view.radius),
       isOwn: context.ownCell?.id === view.id,
-      cosmetic: { stripRow: this.stripRow, phase: this.phase },
+      cosmetic: { stripRow: this.stripRow, phase: this.phase, speckleSeed: this.speckleSeed },
       alpha: deformation.alpha,
-      warningRingPx: warningRingPxFor(view, context.ownCell, context.balance, lod.screenRadiusPx),
+      warningRingPx: warningRingPxFor(view, context.ownCell, context.balance, lod),
       ciliaPhase: this.stepCiliaPhase(speedRatio, context.timeSeconds),
       rimDash: 0,
     });

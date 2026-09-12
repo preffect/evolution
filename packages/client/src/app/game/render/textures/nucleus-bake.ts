@@ -1,9 +1,11 @@
 // The nucleus and nucleoid sprites (docs/RENDERING.md §3, sheet 01 layer 6): the nucleus is a
-// 0.40 r soft glow under a 0.30 r disc with its rim, chromatin spots scattered from the cosmetic
-// `organelles` sub-stream, a white nucleolus with its own halo and the nucleus's own highlight
-// inside the disc; the nucleoid is a loose glowing loop of thread wobbling on two incommensurate
-// terms at seeded phases. Both are baked white below full alpha so the layer tints them with the
-// palette's nucleus / rim colour and the highlight still reads as a lighter spot.
+// 0.40 r soft glow cut out inside the 0.30 r disc (an outer glow only), the disc's rim, chromatin
+// spots scattered from the cosmetic `organelles` sub-stream, a white nucleolus with its own halo
+// and the nucleus's own highlight inside the disc — and no disc fill: the disc is the cell shader's
+// nucleus ramp under the sprite (#231, VISUAL-STYLE §3), so the palette's own ramp shows through
+// untouched. The nucleoid is a loose glowing loop of thread wobbling on two incommensurate terms at
+// seeded phases. Both are baked white below full alpha and tinted the palette's rim colour by the
+// sprite layer, so the nucleolus and the highlight stay lighter than the ramp's lit half.
 
 import { RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';
@@ -14,7 +16,6 @@ import {
   NUCLEOID_RADIUS,
   NUCLEOLUS_FRACTION,
   NUCLEOLUS_HALO,
-  NUCLEUS_BAKE,
   NUCLEUS_CHROMATIN,
   NUCLEUS_CHROMATIN_SPOTS,
   NUCLEUS_GLOW_ALPHA,
@@ -31,10 +32,10 @@ import {
 import { DIAMETER_PER_RADIUS, HALF, degreesToRadians } from '../geometry';
 import {
   createBodyCanvas,
+  cutDisc,
   fillDisc,
   fillEllipse,
   fillHalo,
-  fillRadial,
   strokeDisc,
   type BakeCanvasFactory,
   type BakeContext2D,
@@ -69,17 +70,14 @@ function paintHighlight(context: BakeContext2D, centre: number, pxPerRadius: num
   fillEllipse(context, ellipse, { colour: WHITE, alpha: NUCLEUS_HIGHLIGHT_ALPHA });
 }
 
-/** Sheet 01 layer 6 in full; tinted by the palette's nucleus colour at draw time. */
+/** Sheet 01 layer 6 minus its disc fill; tinted by the palette's rim colour at draw time. */
 export function bakeNucleusSprite(factory: BakeCanvasFactory, pxPerRadius: number, random: RandomSource): BakedSprite {
   const glowRadius = NUCLEUS_GLOW_RADIUS * pxPerRadius;
   const radius = NUCLEUS_RADIUS * pxPerRadius;
   const { canvas, centre } = createBodyCanvas(factory, glowRadius, 1);
   const { context } = canvas;
   fillHalo(context, { x: centre, y: centre, radius: glowRadius }, { colour: WHITE, alpha: NUCLEUS_GLOW_ALPHA });
-  fillRadial(context, { x: centre, y: centre, radius }, [
-    { offset: 0, colour: WHITE, alpha: NUCLEUS_BAKE.bodyAlpha },
-    { offset: 1, colour: WHITE, alpha: NUCLEUS_BAKE.darkAlpha },
-  ]);
+  cutDisc(context, { x: centre, y: centre, radius });
   paintChromatin(context, centre, radius, random);
   strokeDisc(
     context,

@@ -5,7 +5,7 @@
 
 import { Container, type Sprite } from 'pixi.js';
 import { hexToNumber } from '../colour';
-import { ORGANELLE_KIND, WHITE, type OrganelleKind } from '../constants';
+import { WHITE, type OrganelleKind } from '../constants';
 import type { PlayerPalette } from '../palette';
 import type { OrganelleSpriteTexture } from '../render-textures';
 import { SpritePool } from '../sprite-pool';
@@ -13,7 +13,7 @@ import type { CellInstance } from './cell-instance';
 import type { CellLod } from './cell-lod';
 import type { OrganellePlacement } from './cell-render-state';
 import { NUCLEUS_KINDS } from './organelle-kinds';
-import { organelleMotion } from './organelle-motion';
+import { ORGANELLE_MOTION_AT_REST, organelleMotion } from './organelle-motion';
 
 export interface OrganelleDraw {
   readonly instance: CellInstance;
@@ -21,6 +21,8 @@ export interface OrganelleDraw {
   readonly organelles: readonly OrganellePlacement[];
   readonly palette: PlayerPalette;
   readonly isSprinting: boolean;
+  /** A ghost's draw: the body is dissolving, so the sprites' own idle motion is frozen too (#243). */
+  readonly isAtRest: boolean;
 }
 
 export type OrganelleTextures = Readonly<Record<OrganelleKind, OrganelleSpriteTexture>>;
@@ -33,16 +35,16 @@ export class OrganelleSprites {
 
   constructor(private readonly textures: OrganelleTextures) {}
 
-  /** The nucleus and nucleoid bakes are white and take the palette's colour here; the rest are baked in colour. */
+  /** The nucleus and nucleoid bakes are white and take the palette's rim here (the nucleus disc itself is the shader's ramp, #231); the rest are baked in colour. */
   private tintFor(kind: OrganelleKind, palette: PlayerPalette): number {
-    if (kind === ORGANELLE_KIND.nucleus) return hexToNumber(palette.nucleus);
-    if (kind === ORGANELLE_KIND.nucleoid) return hexToNumber(palette.rim);
-    return UNTINTED;
+    return NUCLEUS_KINDS.has(kind) ? hexToNumber(palette.rim) : UNTINTED;
   }
 
   private place(sprite: Sprite, draw: OrganelleDraw, placement: OrganellePlacement, timeSeconds: number): void {
     const entry = this.textures[placement.kind];
-    const motion = organelleMotion(placement.kind, placement.slot.phase, timeSeconds, draw.isSprinting);
+    const motion = draw.isAtRest
+      ? ORGANELLE_MOTION_AT_REST
+      : organelleMotion(placement.kind, placement.slot.phase, timeSeconds, draw.isSprinting);
     const { instance } = draw;
     sprite.texture = entry.texture;
     sprite.position.set(instance.x + placement.point.x, instance.y + placement.point.y + motion.lift * instance.radius);

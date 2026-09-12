@@ -58,6 +58,10 @@ export interface CellInstance {
   readonly rimDash: number;
   /** The cilia beat's accumulated phase in turns, so the beat rate can change without a jump. */
   readonly ciliaPhase: number;
+  /** The nucleus ramp's disc radius in radii (#231): `NUCLEUS_RADIUS` with a nucleus, 0 for a nucleoid or protocell. */
+  readonly nucleusDiscRadii: number;
+  /** One draw in [0, 1) from the cell's cosmetic fork that salts the ribosome speckle hash (#243), so two cells of one palette never share a lattice. */
+  readonly speckleSeed: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -74,7 +78,7 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['stripRow', 'stripPhase', 'lobesScale', 'jitterAmplitude'],
   ['ciliaCount', 'wallScale', 'speckleDensity', 'filamentCount'],
   ['tintMix', 'warningRingPx', 'formId', 'passBAlpha'],
-  ['rimDash', 'ciliaPhase'],
+  ['rimDash', 'ciliaPhase', 'nucleusDiscRadii', 'speckleSeed'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */
