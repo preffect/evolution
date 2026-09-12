@@ -23,7 +23,8 @@ export interface CellClipStart {
 
 export type LastViewOf = (cellId: EntityId) => CellView | undefined;
 
-const CLIP_BY_EFFECT: Readonly<Partial<Record<GameEffect['kind'], MotionClipId>>> = {
+/** The clip a cell plays per effect kind; an absorption plays on the ghost, not on a living cell. */
+export const CLIP_BY_EFFECT: Readonly<Partial<Record<GameEffect['kind'], MotionClipId>>> = {
   [EFFECT_KIND.eat]: MOTION_CLIP.eat,
   [EFFECT_KIND.levelUp]: MOTION_CLIP.levelUp,
   [EFFECT_KIND.respawn]: MOTION_CLIP.respawn,

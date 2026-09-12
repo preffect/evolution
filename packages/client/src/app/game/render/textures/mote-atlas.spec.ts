@@ -18,8 +18,10 @@ describe('bakeMoteAtlas', () => {
     );
   });
 
-  it('layers each sprite: glow, body, edge or bands, rim and a glint (five or more paints)', () => {
-    for (const canvas of Object.values(atlas.full)) expect(fakeContextOf(canvas).paintCount).toBeGreaterThanOrEqual(5);
+  it('layers each sprite: glow, body, edge or bands and rim (four or more paints); the rod glint is its own frame', () => {
+    for (const canvas of Object.values(atlas.full)) expect(fakeContextOf(canvas).paintCount).toBeGreaterThanOrEqual(4);
+    expect(atlas.rodGlint.full.width).toBe(atlas.full.bacterium_plain.width);
+    expect(atlas.rodGlint.small.width).toBe(atlas.small.bacterium_plain.width);
     expect(fakeContextOf(atlas.full.bacterium_photosynthetic).paintCount).toBeGreaterThan(
       fakeContextOf(atlas.full.bacterium_plain).paintCount,
     );

@@ -6,7 +6,7 @@
 // whole quad (#229).
 
 import type { TextureBaker } from './render-textures';
-import { spriteTextureFromBytes, textureFromBake } from './textures/pixi-textures';
+import { atlasTexturesFromBakes, spriteTextureFromBytes, textureFromBake } from './textures/pixi-textures';
 import { bakeRadialBytes } from './textures/radial-bake';
 import type { BakeCanvasFactory } from './textures/texture-bake';
 
@@ -15,5 +15,6 @@ export function createPixiTextureBaker(canvases: BakeCanvasFactory): TextureBake
     bakeRadial: (spec) => spriteTextureFromBytes(bakeRadialBytes(spec), spec.sizePx),
     create: (width, height) => canvases.create(width, height),
     textureFromBake,
+    atlasFromBakes: atlasTexturesFromBakes,
   };
 }

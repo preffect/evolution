@@ -10,7 +10,7 @@ import {
   PROTO_FILM,
 } from '../constants';
 import { hexWithAlpha } from '../colour';
-import { bakeBacteriumRod } from './bacterium-bake';
+import { bakeBacteriumRod, bakeRodGlint } from './bacterium-bake';
 
 const RADIUS_PX = 32;
 
@@ -22,11 +22,18 @@ describe('bakeBacteriumRod', () => {
     expect(rod(BACTERIUM_VARIANT.plain).width).toBe(Math.ceil(RADIUS_PX * BACTERIUM_BAKE.haloReach * 2));
   });
 
-  it('layers halo, body, sheen, rim and glint on every rod; the photosynthetic one adds its bands', () => {
-    const plainLayers = 5;
+  it('layers halo, body, sheen and rim on every rod (the glint is its own bake); the photosynthetic one adds its bands', () => {
+    const plainLayers = 4;
     expect(fakeContextOf(rod(BACTERIUM_VARIANT.plain)).paintCount).toBe(plainLayers);
     expect(fakeContextOf(rod(BACTERIUM_VARIANT.aerobic)).paintCount).toBe(plainLayers);
     expect(fakeContextOf(rod(BACTERIUM_VARIANT.photosynthetic)).paintCount).toBe(plainLayers + BACTERIUM_BANDS);
+  });
+
+  it('bakes the glint alone on a canvas of the rod extent, so it overlays the rod unrotated', () => {
+    const glint = bakeRodGlint(createFakeBakeCanvasFactory(), RADIUS_PX);
+    expect(glint.width).toBe(rod(BACTERIUM_VARIANT.plain).width);
+    expect(fakeContextOf(glint).paintCount).toBe(1);
+    expect(fakeContextOf(glint).count('ellipse')).toBe(1);
   });
 
   it('draws the rod as two caps joined by straight sides, twice (fill, then rim)', () => {
