@@ -77,8 +77,9 @@ export class BenchDriver {
     this.clock.setMilliseconds((target + INTERPOLATION_DELAY_TICKS) * TICK_INTERVAL_MS);
   }
 
+  /** Advances `ticks` (0 holds the parked tick, so a re-render of the same frame is a step of 0). */
   step(ticks: number): void {
-    this.goToTick(this.tickValue + Math.max(1, Math.floor(ticks)));
+    this.goToTick(this.tickValue + Math.max(0, Math.floor(ticks)));
   }
 
   /** The store's frame at the parked tick; the effects due are consumed, as the session would. */

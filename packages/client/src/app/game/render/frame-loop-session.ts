@@ -5,7 +5,7 @@
 // subclass's; the loop, the gate and the report plumbing are written once here.
 
 import type { Clock } from '@evolution/shared';
-import { FrameGate, gateDebugMembers, type EvolutionDebugApi } from '../debug/evolution-debug';
+import { FrameGate, loopDebugMembers, type EvolutionDebugApi } from '../debug/evolution-debug';
 import type { RenderFrame } from '../net/world-store';
 import { FrameInstrumentation } from './bench/frame-instrumentation';
 import type { GameRenderer, RenderOutputs } from './game-renderer';
@@ -70,9 +70,15 @@ export abstract class FrameLoopSession {
     this.afterFrame(rendered.outputs);
   }
 
-  /** The hook members the gate answers; the subclass adds its mode, `step`, `setSeed` and the report. */
-  protected gateDebugMembers(): Pick<EvolutionDebugApi, 'pause' | 'resume' | 'isPaused' | 'renderTick'> {
-    return gateDebugMembers(this.gate, () => this.lastRenderedTickValue);
+  /** The hook members the gate and the loop answer; the subclass adds its mode, `step`, `setSeed` and the report. */
+  protected loopDebugMembers(): Pick<
+    EvolutionDebugApi,
+    'pause' | 'resume' | 'isPaused' | 'renderTick' | 'framesRendered'
+  > {
+    return loopDebugMembers(this.gate, {
+      renderTick: () => this.lastRenderedTickValue,
+      framesRendered: () => this.instrumentation.frameCount,
+    });
   }
 
   /** Drops the renderer, the instrumentation and the app. */

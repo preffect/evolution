@@ -471,7 +471,7 @@ next sample: the session charges a snapshot applied on arrival to `net` and meas
 `net`; the renderer accrues the effects' start (before the cell sync) to `effects`. `frame-instrumentation.ts` is what
 both sessions wrap around a frame: the timer, `draw-call-counter.ts` (the four GL draw entry points of the app's
 context, wrapped in every build: one increment per call) and `gpu-timer.ts` (`EXT_disjoint_timer_query_webgl2`, one
-query per submit, read back on later frames; `null` where the extension is missing, SwiftShader included).
+query per submit, read back on later frames; `null` where the extension is missing).
 `render-benchmark.ts` builds the report and its **verdict** against the tables above (`budgetVerdict`: every stage,
 the frame, `gpuMs`, the HUD share `frameTimeP95Ms − Σ renderStagesMs`, the draw calls). A live session rebuilds the
 report every `RENDER_REPORT_EVERY_FRAMES` frames. Every budget and bench number is a constant of
@@ -484,10 +484,11 @@ gives each stage its trait set and the player records; three predator / prey pai
 absorbed and respawned on a cadence, eats and level-ups scheduled by `bench-effects.ts`; motes by the eukaryote-era
 shares with the bacteria on a tick-driven walk, fragments drifting, `bench-food.ts`), all from the
 `cosmetic:bench` fork of the seed, fed through the real `WorldStore` by a `ManualClock` (`bench-driver.ts`,
-snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>`
+snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>]`
 (`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token, `bench-session.ts` the engine) renders it,
 parked at tick `n` and re-rendered every frame at `zoom` px/wu in a fixed 1920 × 1080 canvas, and after
-`RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames writes the **bench report** into
+`RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames (`window=` shortens the report window where a
+software GPU renders a frame in seconds; the smoke passes 24) writes the **bench report** into
 `data-testid="render-bench-report"`: the wire report plus `seed`, `tick`, `zoom`, `frames`, the `verdict`, and
 `allocatedBytesPerFrame` (the heap growth over the window after a forced collection, through Chrome's
 `performance.memory` and `--js-flags=--expose-gc`, `heap-probe.ts`; `null` elsewhere). The debug hook runs in

@@ -26,7 +26,7 @@ class FixedFrameSession extends FrameLoopSession {
   }
 
   hook() {
-    return this.gateDebugMembers();
+    return this.loopDebugMembers();
   }
 
   dispose(): void {
@@ -62,6 +62,7 @@ describe('FrameLoopSession', () => {
     expect(session.outputs).toHaveLength(1);
     expect(session.lastRenderedTick).toBe(7);
     expect(session.hook().renderTick()).toBe(7);
+    expect(session.hook().framesRendered()).toBe(1);
     expect(pixi.renderCalls.count).toBe(1);
     expect(session.instrumentation.frameCount).toBe(1);
   });

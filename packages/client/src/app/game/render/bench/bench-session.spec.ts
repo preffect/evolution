@@ -12,16 +12,23 @@ import { BenchSession, isBenchRoute, parseBenchQuery, type RenderBenchReport } f
 
 describe('parseBenchQuery', () => {
   it('reads the seed, tick and zoom with defaults for what is missing or malformed', () => {
-    expect(parseBenchQuery('?bench=7&tick=300&zoom=1.8')).toEqual({ seed: 7, tick: 300, zoom: 1.8 });
+    expect(parseBenchQuery('?bench=7&tick=300&zoom=1.8&window=12')).toEqual({
+      seed: 7,
+      tick: 300,
+      zoom: 1.8,
+      windowFrames: 12,
+    });
     expect(parseBenchQuery('?bench')).toEqual({
       seed: RENDER_BENCH_SEED,
       tick: RENDER_BENCH_DEFAULT_TICK,
       zoom: RENDER_BENCH_DEFAULT_ZOOM,
+      windowFrames: RENDER_BENCH_REPORT_FRAMES,
     });
-    expect(parseBenchQuery('?bench=abc&tick=1.9&zoom=x')).toEqual({
+    expect(parseBenchQuery('?bench=abc&tick=1.9&zoom=x&window=0')).toEqual({
       seed: RENDER_BENCH_SEED,
       tick: 1,
       zoom: RENDER_BENCH_DEFAULT_ZOOM,
+      windowFrames: 1,
     });
   });
 
@@ -34,6 +41,7 @@ describe('parseBenchQuery', () => {
 });
 
 const SMALL_ZOOM = 0.5;
+const SMALL_WINDOW_FRAMES = 12;
 const SMALL_COUNTS = { cells: 12, motes: 30, fragments: 5 };
 const BYTES_PER_FRAME = 16;
 
@@ -44,12 +52,14 @@ function fakeHeap() {
     collectGarbage: vi.fn(),
     readHeapBytes: () => {
       reads += 1;
-      return 1000 + (reads - 1) * BYTES_PER_FRAME * RENDER_BENCH_REPORT_FRAMES;
+      return 1000 + (reads - 1) * BYTES_PER_FRAME * SMALL_WINDOW_FRAMES;
     },
   };
 }
 
-async function session(query = { seed: RENDER_BENCH_SEED, tick: 60, zoom: SMALL_ZOOM }) {
+async function session(
+  query = { seed: RENDER_BENCH_SEED, tick: 60, zoom: SMALL_ZOOM, windowFrames: SMALL_WINDOW_FRAMES },
+) {
   const pixi = createFakePixiApp();
   const heap = fakeHeap();
   const reports: RenderBenchReport[] = [];
@@ -73,14 +83,14 @@ describe('BenchSession', () => {
     expect(pixi.tickerCallbacks).toHaveLength(1);
     const api = subject.debugApi();
     expect(api.mode).toBe('bench');
-    for (let frame = 0; frame < RENDER_BENCH_WARMUP_FRAMES + RENDER_BENCH_REPORT_FRAMES - 1; frame += 1) pixi.tick();
+    for (let frame = 0; frame < RENDER_BENCH_WARMUP_FRAMES + SMALL_WINDOW_FRAMES - 1; frame += 1) pixi.tick();
     expect(reports).toHaveLength(0);
     expect(heap.collectGarbage).toHaveBeenCalledTimes(1);
     expect(api.renderTick()).toBeCloseTo(60, 6);
     pixi.tick();
     expect(reports).toHaveLength(1);
     const report = reports[0]!;
-    expect(report).toMatchObject({ seed: RENDER_BENCH_SEED, tick: 60, frames: RENDER_BENCH_REPORT_FRAMES });
+    expect(report).toMatchObject({ seed: RENDER_BENCH_SEED, tick: 60, frames: SMALL_WINDOW_FRAMES });
     expect(report.zoom).toBeCloseTo(SMALL_ZOOM);
     expect(report.allocatedBytesPerFrame).toBe(BYTES_PER_FRAME);
     expect(report.visibleCells).toBeGreaterThan(0);
@@ -89,7 +99,7 @@ describe('BenchSession', () => {
     expect(api.performanceReport()).toBe(report);
     pixi.tick();
     expect(reports).toHaveLength(1);
-    expect(pixi.renderCalls.count).toBe(RENDER_BENCH_WARMUP_FRAMES + RENDER_BENCH_REPORT_FRAMES + 1);
+    expect(pixi.renderCalls.count).toBe(RENDER_BENCH_WARMUP_FRAMES + SMALL_WINDOW_FRAMES + 1);
   });
 
   it('holds the frame while paused, steps the scene by ticks and rebuilds it on a new seed', async () => {

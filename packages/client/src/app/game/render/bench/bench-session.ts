@@ -27,11 +27,14 @@ export interface BenchQuery {
   readonly seed: number;
   readonly tick: number;
   readonly zoom: number;
+  /** Frames the report's window covers after the warm-up: `RENDER_BENCH_REPORT_FRAMES` unless `window=` shortens it (a slow software GPU). */
+  readonly windowFrames: number;
 }
 
 const BENCH_PARAMETER = 'bench';
 const TICK_PARAMETER = 'tick';
 const ZOOM_PARAMETER = 'zoom';
+const WINDOW_PARAMETER = 'window';
 
 function numberParameter(parameters: URLSearchParams, key: string, fallback: number): number {
   const value = parameters.get(key);
@@ -39,13 +42,14 @@ function numberParameter(parameters: URLSearchParams, key: string, fallback: num
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-/** `?bench=<seed>&tick=<n>&zoom=<z>`, each with its default; `bench` alone selects the route. */
+/** `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>`, each with its default; `bench` alone selects the route. */
 export function parseBenchQuery(search: string): BenchQuery {
   const parameters = new URLSearchParams(search);
   return {
     seed: Math.trunc(numberParameter(parameters, BENCH_PARAMETER, RENDER_BENCH_SEED)),
     tick: Math.trunc(numberParameter(parameters, TICK_PARAMETER, RENDER_BENCH_DEFAULT_TICK)),
     zoom: numberParameter(parameters, ZOOM_PARAMETER, RENDER_BENCH_DEFAULT_ZOOM),
+    windowFrames: Math.max(1, Math.trunc(numberParameter(parameters, WINDOW_PARAMETER, RENDER_BENCH_REPORT_FRAMES))),
   };
 }
 
@@ -90,7 +94,7 @@ export class BenchSession extends FrameLoopSession {
     private readonly query: BenchQuery,
     private readonly dependencies: BenchSessionDependencies,
   ) {
-    super(dependencies.clock, RENDER_BENCH_REPORT_FRAMES);
+    super(dependencies.clock, query.windowFrames);
     this.heap = dependencies.heap ?? NO_HEAP_PROBE;
     this.driver = new BenchDriver(query.seed, dependencies.counts);
     this.driver.goToTick(query.tick);
@@ -131,7 +135,7 @@ export class BenchSession extends FrameLoopSession {
     if (frames === RENDER_BENCH_WARMUP_FRAMES) {
       this.heap.collectGarbage();
       this.heapAtWindowStart = this.heap.readHeapBytes();
-    } else if (frames === RENDER_BENCH_WARMUP_FRAMES + RENDER_BENCH_REPORT_FRAMES) {
+    } else if (frames === RENDER_BENCH_WARMUP_FRAMES + this.query.windowFrames) {
       this.lastReport = this.buildReport(outputs);
       this.dependencies.onReport(this.lastReport);
     }
@@ -147,16 +151,17 @@ export class BenchSession extends FrameLoopSession {
       seed: this.driver.world.seed,
       tick: this.driver.tick,
       zoom: outputs.zoom,
-      frames: RENDER_BENCH_REPORT_FRAMES,
-      allocatedBytesPerFrame: grownBytes === null ? null : grownBytes / RENDER_BENCH_REPORT_FRAMES,
+      frames: this.query.windowFrames,
+      allocatedBytesPerFrame: grownBytes === null ? null : grownBytes / this.query.windowFrames,
       verdict: budgetVerdict(report),
     };
   }
 
   debugApi(): EvolutionDebugApi {
     return {
-      ...this.gateDebugMembers(),
+      ...this.loopDebugMembers(),
       mode: EVOLUTION_DEBUG_MODE.bench,
+      // `step(n)` advances the scene `n` ticks and renders one frame; `step(0)` re-renders the parked tick.
       step: (ticks) => {
         this.driver.step(ticks ?? 1);
         this.gate.step(1);

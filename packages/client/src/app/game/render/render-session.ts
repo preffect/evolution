@@ -158,7 +158,7 @@ export class RenderSession extends FrameLoopSession {
   /** The `window.__evolutionDebug` mirror for a live room. */
   debugApi(): EvolutionDebugApi {
     return {
-      ...this.gateDebugMembers(),
+      ...this.loopDebugMembers(),
       mode: EVOLUTION_DEBUG_MODE.live,
       step: (frames) => this.gate.step(frames),
       setSeed: () => false,

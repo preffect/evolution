@@ -38,6 +38,8 @@ describe('BenchDriver', () => {
     expect(frame.renderTick).toBeCloseTo(63, 6);
     expect(frame.effects.length).toBeGreaterThan(0);
     expect(driver.frame()!.effects).toEqual([]);
+    driver.step(0);
+    expect(driver.tick).toBe(63);
     driver.goToTick(30);
     expect(driver.frame()!.renderTick).toBeCloseTo(30, 6);
   });
