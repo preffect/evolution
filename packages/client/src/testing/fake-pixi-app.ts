@@ -11,6 +11,7 @@ import {
   type RenderTextures,
   type TextureBaker,
 } from '../app/game/render/render-textures';
+import type { SpriteAtlas } from '../app/game/render/textures/pixi-textures';
 import type { BakeCanvas } from '../app/game/render/textures/texture-bake';
 import { createFakeBakeCanvasFactory, type FakeBakeCanvas } from './fake-bake-canvas';
 
@@ -70,6 +71,15 @@ export function createFakeTextureBaker(): FakeTextureBaker {
     textureFromBake(bake) {
       texturedBakes.push(bake);
       return createOnePixelTexture();
+    },
+    atlasFromBakes: <Key extends string>(bakes: Readonly<Record<Key, BakeCanvas>>): SpriteAtlas<Key> => {
+      const { source } = createOnePixelTexture();
+      const textures = {} as Record<Key, Texture>;
+      for (const key of Object.keys(bakes) as Key[]) {
+        texturedBakes.push(bakes[key]);
+        textures[key] = new Texture({ source });
+      }
+      return { source, textures };
     },
   };
 }

@@ -1,12 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeBakeCanvasFactory } from '../../../../testing/fake-bake-canvas';
 import { createOnePixelTexture } from '../../../../testing/fake-pixi-app';
-import { byteDataTexture, floatDataTexture, textureFromBake, texturesFromBakes } from './pixi-textures';
+import {
+  atlasTexturesFromBakes,
+  byteDataTexture,
+  floatDataTexture,
+  textureFromBake,
+  texturesFromBakes,
+} from './pixi-textures';
 
 describe('pixi textures', () => {
   it('refuses a bake with no DOM canvas behind it', () => {
     const bake = createFakeBakeCanvasFactory().create(4, 4);
     expect(() => textureFromBake(bake)).toThrow(/DOM canvas/);
+  });
+
+  it('refuses to pack an atlas from bakes with no DOM canvas behind them', () => {
+    const factory = createFakeBakeCanvasFactory();
+    expect(() => atlasTexturesFromBakes({ a: factory.create(4, 4) })).toThrow(/DOM canvas/);
   });
 
   it('maps every bake of a record to a texture under the same key', () => {

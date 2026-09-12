@@ -42,6 +42,14 @@ describe('createRenderTextures', () => {
     expect(Object.keys(textures.motes.full).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
     expect(Object.keys(textures.motes.small).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
     expect(Object.keys(textures.motes.fragments).sort()).toEqual([...DNA_TAGS].sort());
+    // One source behind every mote and fragment frame: the food ParticleContainer's one texture (RENDERING §6).
+    const moteFrames = [
+      ...Object.values(textures.motes.full),
+      ...Object.values(textures.motes.small),
+      ...Object.values(textures.motes.fragments),
+    ];
+    expect(new Set(moteFrames.map((texture) => texture.source)).size).toBe(1);
+    expect(moteFrames[0]!.source).toBe(textures.motes.source);
     expect(Object.keys(textures.organelles).sort()).toEqual(Object.values(ORGANELLE_KIND).sort());
     expect(textures.organelles.nucleus.widthRadii).toBeGreaterThan(0);
     expect(baker.texturedBakes).toHaveLength(baker.bakedCanvases.length);
@@ -88,6 +96,7 @@ describe('createRenderTextures', () => {
     expect(textures.glow.ring.destroyed).toBe(true);
     expect(textures.motes.small.algae.destroyed).toBe(true);
     expect(textures.motes.fragments.motile.destroyed).toBe(true);
+    expect(textures.motes.source.destroyed).toBe(true);
     expect(textures.organelles.lipid.texture.destroyed).toBe(true);
     expect(textures.stripTexture.destroyed).toBe(true);
     expect(textures.tileTexture.destroyed).toBe(true);

@@ -34,7 +34,7 @@ import { bakeDishField, type DishField } from './textures/dish-texture';
 import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
 import { bakeMoteAtlas, type MoteSpriteKey } from './textures/mote-atlas';
 import { bakeOrganelleAtlas } from './textures/organelle-atlas';
-import { byteDataTexture, texturesFromBakes } from './textures/pixi-textures';
+import { byteDataTexture, texturesFromBakes, type SpriteAtlas } from './textures/pixi-textures';
 import type { BakeCanvas, BakeCanvasFactory } from './textures/texture-bake';
 import { bakeVentSprite, type VentSprite } from './textures/vent-bake';
 
@@ -60,6 +60,8 @@ export interface TextureBaker extends BakeCanvasFactory {
   bakeRadial(spec: RadialBakeSpec): Texture;
   /** A sprite texture from a Canvas-2D bake made by `create`. */
   textureFromBake(bake: BakeCanvas): Texture;
+  /** One frame texture per bake over a single packed source (`textures/atlas-layout.ts`): what a `ParticleContainer` draws from. */
+  atlasFromBakes<Key extends string>(bakes: Readonly<Record<Key, BakeCanvas>>): SpriteAtlas<Key>;
 }
 
 export interface OrganelleSpriteTexture {
@@ -69,6 +71,8 @@ export interface OrganelleSpriteTexture {
 }
 
 export interface MoteAtlasTextures {
+  /** The one source every mote and fragment texture below is a frame of (the food `ParticleContainer`'s texture). */
+  readonly source: TextureSource;
   readonly full: Readonly<Record<MoteSpriteKey, Texture>>;
   readonly small: Readonly<Record<MoteSpriteKey, Texture>>;
   readonly fragments: Readonly<Record<DnaTag, Texture>>;
@@ -157,13 +161,43 @@ function organelleTextures(
   return textures;
 }
 
+const MOTE_ATLAS_GROUP = { full: 'full', small: 'small', fragment: 'fragment' } as const;
+
+/** `group:key` for every bake of a record, so three records share one atlas. */
+function prefixed<Key extends string>(
+  group: string,
+  bakes: Readonly<Record<Key, BakeCanvas>>,
+): Record<string, BakeCanvas> {
+  const result: Record<string, BakeCanvas> = {};
+  for (const key of Object.keys(bakes) as Key[]) result[`${group}:${key}`] = bakes[key];
+  return result;
+}
+
+/** The textures of one group back under their own keys. */
+function unprefixed<Key extends string>(
+  group: string,
+  keys: readonly Key[],
+  atlas: SpriteAtlas<string>,
+): Readonly<Record<Key, Texture>> {
+  const result = {} as Record<Key, Texture>;
+  for (const key of keys) result[key] = atlas.textures[`${group}:${key}`]!;
+  return result;
+}
+
+/** The full and small mote sprites and the fragment helices packed into one atlas (docs/RENDERING.md §6). */
 function moteTextures(baker: TextureBaker): MoteAtlasTextures {
   const bakes = bakeMoteAtlas(baker);
-  const toTexture = (bake: BakeCanvas): Texture => baker.textureFromBake(bake);
+  const atlas = baker.atlasFromBakes({
+    ...prefixed(MOTE_ATLAS_GROUP.full, bakes.full),
+    ...prefixed(MOTE_ATLAS_GROUP.small, bakes.small),
+    ...prefixed(MOTE_ATLAS_GROUP.fragment, bakes.fragments),
+  });
+  const moteKeys = Object.keys(bakes.full) as MoteSpriteKey[];
   return {
-    full: texturesFromBakes(bakes.full, toTexture),
-    small: texturesFromBakes(bakes.small, toTexture),
-    fragments: texturesFromBakes(bakes.fragments, toTexture),
+    source: atlas.source,
+    full: unprefixed(MOTE_ATLAS_GROUP.full, moteKeys, atlas),
+    small: unprefixed(MOTE_ATLAS_GROUP.small, moteKeys, atlas),
+    fragments: unprefixed(MOTE_ATLAS_GROUP.fragment, Object.keys(bakes.fragments) as DnaTag[], atlas),
     fullPxPerWu: bakes.fullPxPerWu,
     smallPxPerWu: bakes.smallPxPerWu,
   };
@@ -230,12 +264,17 @@ export function destroyRenderTextures(textures: RenderTextures): void {
     textures.dishTexture,
     textures.ventTexture,
     ...Object.values(textures.glow),
-    ...Object.values(textures.motes.full),
-    ...Object.values(textures.motes.small),
-    ...Object.values(textures.motes.fragments),
     ...Object.values(textures.organelles).map((sprite) => sprite.texture),
   ];
   for (const texture of sprites) texture.destroy(true);
+  // The mote frames share one source: the frames go first, the source once.
+  const moteFrames = [
+    ...Object.values(textures.motes.full),
+    ...Object.values(textures.motes.small),
+    ...Object.values(textures.motes.fragments),
+  ];
+  for (const texture of moteFrames) texture.destroy(false);
+  textures.motes.source.destroy();
   textures.stripTexture.destroy();
   textures.tileTexture.destroy();
   textures.paletteTexture.destroy();
