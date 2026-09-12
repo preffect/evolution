@@ -25,6 +25,7 @@ import type {
   SpawnRequest,
 } from './simulation-debug-handle.js';
 import type { InProcessBotRoster } from '../bots/in-process-bots.js';
+import type { CellRecord } from '../world/entities.js';
 import { REPLAY_ORIGIN } from '../replay/replay-format.js';
 import type { ReplayRecorder } from '../replay/replay-recorder.js';
 import { toCellView, toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
@@ -55,6 +56,20 @@ export interface DebugEntity {
 }
 
 const ENTITY_KINDS: readonly EntityKind[] = Object.values(ENTITY_KIND);
+
+/**
+ * The engulf record the wire does not carry (docs/ECOLOGY.md §6.1): the carried offset of a sealed
+ * prey and the predator's spit-out memories, so a QA agent driving an engulf with
+ * `debug_set_player` can see why a restart is refused. The phase itself is derived from
+ * `cell.engulfProgress` by the shared `engulfPhaseOf`, so it is not repeated here.
+ */
+function engulfDebugStateOf(cell: CellRecord): unknown {
+  return {
+    carriedOffsetX: cell.carriedOffsetX,
+    carriedOffsetY: cell.carriedOffsetY,
+    spitOutRefractories: cell.spitOutRefractories.map((refractory) => ({ ...refractory })),
+  };
+}
 
 function isInside(entity: DebugEntity, bbox: BoundingBox | undefined): boolean {
   if (bbox === undefined) {
@@ -102,6 +117,7 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
     return {
       progress: toPlayerProgressView(player),
       cell: cell === undefined ? null : toCellView(cell),
+      engulf: cell === undefined ? null : engulfDebugStateOf(cell),
       modifiers: cell === undefined ? null : { ...cell.modifiers },
       stage: cell?.stage ?? null,
       ownedTraits: player.ownedTraits.map((trait) => ({ ...trait })),

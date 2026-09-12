@@ -49,6 +49,38 @@ export function steerBlendPerTick(accelerationSeconds: number, tickIntervalS: nu
   return Math.min(FULL_BLEND, tickIntervalS / accelerationSeconds);
 }
 
+/** This tick's steer command: the unit direction toward the target and the throttle along it. */
+export interface SteerCommand {
+  readonly directionX: number;
+  readonly directionY: number;
+  /** 0..1; 0 also means "no direction", and then both components are 0. */
+  readonly throttle: number;
+}
+
+/** What `steerCommand` reads of a step: where the cell is steering and how wide its dead zone is. */
+export type SteerCommandStep = Pick<MovementStep, 'targetX' | 'targetY' | 'radiusWu' | 'controls'>;
+
+const NO_STEER: SteerCommand = { directionX: 0, directionY: 0, throttle: 0 };
+
+/**
+ * The direction and throttle this tick's movement uses. The engulf step's struggle
+ * (docs/ECOLOGY.md §6.1) reads the prey's command through this, so the throttle arithmetic has one
+ * home and "steering away slows the wrap" can never drift from "steering away moves the cell".
+ */
+export function steerCommand(pose: Pick<MovementPose, 'x' | 'y'>, step: SteerCommandStep): SteerCommand {
+  const deltaX = step.targetX - pose.x;
+  const deltaY = step.targetY - pose.y;
+  const distance = Math.hypot(deltaX, deltaY);
+  if (distance === 0) {
+    return NO_STEER;
+  }
+  return {
+    directionX: deltaX / distance,
+    directionY: deltaY / distance,
+    throttle: steerThrottle(distance, step.radiusWu, step.controls),
+  };
+}
+
 /**
  * Keeps the centre inside `dishRadiusWu − radiusWu`; on contact the outward radial velocity
  * component is zeroed (no bounce), the tangential one is kept.
@@ -73,13 +105,10 @@ export function clampToDish(pose: MovementPose, radiusWu: number, dishRadiusWu: 
 
 /** One tick of steering: throttle toward the target, blend the velocity, integrate, clamp to the dish. */
 export function stepMovementKernel(pose: MovementPose, step: MovementStep): MovementPose {
-  const deltaX = step.targetX - pose.x;
-  const deltaY = step.targetY - pose.y;
-  const distance = Math.hypot(deltaX, deltaY);
-  const throttle = distance === 0 ? 0 : steerThrottle(distance, step.radiusWu, step.controls);
-  const desiredSpeed = throttle * step.speedCapWuPerSecond;
-  const desiredX = distance === 0 ? 0 : (deltaX / distance) * desiredSpeed;
-  const desiredY = distance === 0 ? 0 : (deltaY / distance) * desiredSpeed;
+  const command = steerCommand(pose, step);
+  const desiredSpeed = command.throttle * step.speedCapWuPerSecond;
+  const desiredX = command.directionX * desiredSpeed;
+  const desiredY = command.directionY * desiredSpeed;
   const velocityX = pose.velocityX + (desiredX - pose.velocityX) * step.blendPerTick;
   const velocityY = pose.velocityY + (desiredY - pose.velocityY) * step.blendPerTick;
   const moved = {

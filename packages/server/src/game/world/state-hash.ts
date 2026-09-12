@@ -28,6 +28,7 @@ import type {
   FoodMoteRecord,
   PlayerRecord,
   SpawnerState,
+  SpitOutRefractoryRecord,
   TraitOffer,
   WildSeatRecord,
 } from './entities.js';
@@ -44,6 +45,14 @@ const OWNED_TRAIT_FIELDS: readonly HashedField<OwnedTrait>[] = ['traitId', 'tier
 
 function hashOwnedTraits(hasher: StateHasher, traits: readonly OwnedTrait[]): void {
   hashArray(hasher, traits, (itemHasher, trait) => hashFields(itemHasher, trait, OWNED_TRAIT_FIELDS));
+}
+
+const SPIT_OUT_REFRACTORY_FIELDS: readonly HashedField<SpitOutRefractoryRecord>[] = ['preyCellId', 'untilTick'];
+
+function hashSpitOutRefractories(hasher: StateHasher, refractories: readonly SpitOutRefractoryRecord[]): void {
+  hashArray(hasher, refractories, (itemHasher, refractory) =>
+    hashFields(itemHasher, refractory, SPIT_OUT_REFRACTORY_FIELDS),
+  );
 }
 
 export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
@@ -72,6 +81,9 @@ export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
   'targetY',
   'pinnedX',
   'pinnedY',
+  'carriedOffsetX',
+  'carriedOffsetY',
+  { key: 'spitOutRefractories', hash: hashSpitOutRefractories },
 ];
 
 export const FOOD_MOTE_HASHED_FIELDS: readonly HashedField<FoodMoteRecord>[] = [

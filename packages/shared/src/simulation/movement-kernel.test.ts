@@ -6,6 +6,7 @@ import { TICK_INTERVAL_S } from '../constants/network.js';
 import {
   clampToDish,
   steerBlendPerTick,
+  steerCommand,
   steerThrottle,
   stepMovementKernel,
   type MovementPose,
@@ -41,6 +42,28 @@ describe('steerThrottle', () => {
     expect(steerThrottle(RADIUS * 1.25, RADIUS, controls)).toBeCloseTo(0.5, 12);
     expect(steerThrottle(RADIUS * 2, RADIUS, controls)).toBe(1);
     expect(steerThrottle(RADIUS * 50, RADIUS, controls)).toBe(1);
+  });
+});
+
+describe('steerCommand', () => {
+  it('answers the unit direction toward the target and the throttle along it', () => {
+    const command = steerCommand(REST, { targetX: RADIUS * 2, targetY: 0, radiusWu: RADIUS, controls });
+    expect(command.directionX).toBeCloseTo(1, 12);
+    expect(command.directionY).toBeCloseTo(0, 12);
+    expect(command.throttle).toBe(1);
+  });
+
+  it('is the dead zone at a target on the centre: no direction and no throttle', () => {
+    expect(steerCommand(REST, { targetX: 0, targetY: 0, radiusWu: RADIUS, controls })).toEqual({
+      directionX: 0,
+      directionY: 0,
+      throttle: 0,
+    });
+  });
+
+  it('is the same throttle `steerThrottle` gives, so the engulf struggle and the movement agree', () => {
+    const target = { targetX: RADIUS * 1.25, targetY: 0, radiusWu: RADIUS, controls };
+    expect(steerCommand(REST, target).throttle).toBe(steerThrottle(RADIUS * 1.25, RADIUS, controls));
   });
 });
 

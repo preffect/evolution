@@ -632,7 +632,7 @@ packages/shared/src/
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ECOLOGY §6.1)
+  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,engulf-modifiers,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ECOLOGY §6.1); engulf-modifiers: the one adapter onto the pace's modifier names until #260
   simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ECOLOGY §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ECOLOGY §3.2)
                                                                 level-costs: levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (UI.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ECOLOGY §6.1)
@@ -642,7 +642,7 @@ packages/server/src/
   lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (DETERMINISM §5)
-  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf lands with the next #98 slice
+  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle (#258), engulf-state: the record on a cell, engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn

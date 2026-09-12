@@ -87,9 +87,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **7. What the tests assert** (L264–287): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
 - **8. Known traps** (L288–308): fall back to insertion order, which differs between a live run and a replay after removals.
 
-## ECOLOGY.md (824 lines)
+## ECOLOGY.md (832 lines)
 
-- **Evolution — Ecology, Growth and Absorption** (L1–824): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
+- **Evolution — Ecology, Growth and Absorption** (L1–832): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
 - **1. Food kinds** (L15–49): any mote; no minimum size.
 - **2. Zones** (L50–64): Geometry is fixed by the dish radius; the three gel patches are placed from the `zones` random stream at world creation and are part of the…
 - **3. Spawn model** (L65–335): Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond × TICK_INTERVAL_S`; while `accumulator �…
@@ -104,17 +104,17 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **5.2 Movement step (server, per tick)** (L385–408): The blend is the only drag: with no input `desired` is zero and the cell coasts to a stop within about a second.
   - **5.3 Cell-to-cell contact** (L409–417): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
   - **5.4 Growth, cap and mitosis (reserved)** (L418–428): at the cap still progresses the leaderboard.
-- **6. Absorption and engulf** (L429–644): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
-  - **6.1 Rules** (L437–591): Eligibility (mass only, one home).
-  - **6.2 State diagram** (L592–624): Two records, two homes.
-  - **6.3 Edge cases (resolved)** (L625–644)
-- **7. Constants table** (L645–744): Home: `packages/shared/src/constants/<domain>.ts`.
-  - **`ecology.ts`** (L649–681)
-  - **`growth.ts`** (L682–696)
-  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))** (L697–712)
-  - **`absorption.ts`** (L713–744): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
-- **8. Acceptance scenarios** (L745–824): Given seed S and inputs I, after N ticks assert X.
-  - **8.1 The evolving world (§3.1–§3.4)** (L801–824): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
+- **6. Absorption and engulf** (L429–652): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
+  - **6.1 Rules** (L437–599): Eligibility (mass only, one home).
+  - **6.2 State diagram** (L600–632): Two records, two homes.
+  - **6.3 Edge cases (resolved)** (L633–652)
+- **7. Constants table** (L653–752): Home: `packages/shared/src/constants/<domain>.ts`.
+  - **`ecology.ts`** (L657–689)
+  - **`growth.ts`** (L690–704)
+  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`GAME-DESIGN.md §12`](./GAME-DESIGN.md#12-constants-table))** (L705–720)
+  - **`absorption.ts`** (L721–752): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
+- **8. Acceptance scenarios** (L753–832): Given seed S and inputs I, after N ticks assert X.
+  - **8.1 The evolving world (§3.1–§3.4)** (L809–832): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
 
 ## ENGINEERING.md (279 lines)
 

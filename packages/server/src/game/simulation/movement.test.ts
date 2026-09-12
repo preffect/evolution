@@ -4,6 +4,7 @@ import {
   DEFAULT_BALANCE,
   gelSpeedFactor,
   maxSpeedForMass,
+  playerId,
   radiusForMass,
   TICK_INTERVAL_S,
   type Vec2,
@@ -14,7 +15,8 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
-import { moveCells, speedCapOf, sprintSpeedFactor, zoneSpeedFactor } from './movement.js';
+import { beginEngulf, sealEngulf } from './engulf-state.js';
+import { engulfSpeedFactor, moveCells, speedCapOf, sprintSpeedFactor, zoneSpeedFactor } from './movement.js';
 
 const { growth, controls, world: worldBalance } = DEFAULT_BALANCE;
 const BLEND = TICK_INTERVAL_S / growth.CELL_ACCELERATION_SECONDS;
@@ -154,5 +156,79 @@ describe('moveCells', () => {
     cell.modifiers.gelSpeedFactorFloor = 0.8;
     expect(zoneSpeedFactor(cell, world, DEFAULT_BALANCE)).toBe(0.8);
     expect(cell.radius).toBeCloseTo(radiusForMass(600, growth), 9);
+  });
+});
+
+/** E9's pair: A at 100 covers B at 20, their centres 10 wu apart. */
+const PREDATOR_MASS = 100;
+const PREY_MASS = 20;
+const CARRY_OFFSET_WU = 10;
+
+describe('the engulf speed factor (docs/ECOLOGY.md §5.2, §6.1)', () => {
+  const absorption = DEFAULT_BALANCE.absorption;
+
+  function engulfingPair(): { world: WorldState; predator: CellRecord; prey: CellRecord } {
+    const world = createTestWorld({
+      players: [
+        { playerId: playerId('a'), playerName: 'A', avatarIndex: 0 },
+        { playerId: playerId('b'), playerName: 'B', avatarIndex: 1 },
+      ],
+    });
+    world.gelPatches = [];
+    const [predator, prey] = world.cells as [CellRecord, CellRecord];
+    for (const [cell, mass, offset] of [
+      [predator, PREDATOR_MASS, 0],
+      [prey, PREY_MASS, CARRY_OFFSET_WU],
+    ] as const) {
+      cell.x = BROTH_POINT.x + offset;
+      cell.y = BROTH_POINT.y;
+      cell.targetX = cell.x;
+      cell.targetY = cell.y;
+      setCellMass(cell, mass, DEFAULT_BALANCE);
+    }
+    beginEngulf({ predator, prey });
+    return { world, predator, prey };
+  }
+
+  it('is 1 for a cell that is neither engulfing nor engulfed', () => {
+    const { world, cell } = placedCell(PREDATOR_MASS);
+    expect(engulfSpeedFactor(cell, world, DEFAULT_BALANCE)).toBe(1);
+  });
+
+  it('slows the predator before the seal and frees it after (E9b)', () => {
+    const { world, predator, prey } = engulfingPair();
+    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
+    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED);
+  });
+
+  it('leaves the prey free in cover, holds it in wrap and stops it once sealed (E11, E11b)', () => {
+    const { world, prey } = engulfingPair();
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(1);
+    prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
+    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(0);
+  });
+
+  it('multiplies both halves for a cell that is predator and prey at once (a chain)', () => {
+    const { world, predator, prey } = engulfingPair();
+    beginEngulf({ predator: prey, prey: predator });
+    prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBeCloseTo(
+      absorption.ENGULF_PREY_SPEED_FACTOR * absorption.ENGULF_PREDATOR_SPEED_FACTOR,
+      12,
+    );
+  });
+
+  it('carries a sealed prey at its offset with the predator velocity, not the kernel (E11b)', () => {
+    const { world, predator, prey } = engulfingPair();
+    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    sealEngulf({ predator, prey });
+    predator.targetX = predator.x - predator.radius * TARGET_RADII;
+    prey.targetX = prey.x + prey.radius * TARGET_RADII;
+    moveCells(world, createTestStepContext(world));
+    expect(prey.x).toBeCloseTo(predator.x + CARRY_OFFSET_WU, 12);
+    expect(prey.velocityX).toBe(predator.velocityX);
   });
 });

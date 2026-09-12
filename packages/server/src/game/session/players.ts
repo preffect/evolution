@@ -96,6 +96,9 @@ export function createCellRecord(world: WorldState, player: PlayerRecord, centre
     modifiers: { ...DEFAULT_CELL_MODIFIERS },
     pinnedX: null,
     pinnedY: null,
+    carriedOffsetX: null,
+    carriedOffsetY: null,
+    spitOutRefractories: [],
   };
   refreshCellDerivedState(cell, player, world.balance);
   world.cells.push(cell);
