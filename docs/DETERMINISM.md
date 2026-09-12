@@ -110,7 +110,7 @@ export const RANDOM_STREAM = {
   traitDraft: 'trait_draft', // draft sampling (PROGRESSION §3)
   moteMotion: 'mote_motion', // bacteria random-walk headings; fragment drift direction at spawn
   wildCells: 'wild_cells', // wild cells: spread factors, wander headings, turn rolls (ECOLOGY §3.3)
-  engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0 (ECOLOGY §6.1)
+  engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0; build 2's trait steal draws here too, in the payout (ECOLOGY §6.1)
   cosmetic: 'cosmetic', // client only, never on the server
 } as const;
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
@@ -150,6 +150,15 @@ export const forkStreamStates: <Label extends string>(
   bytes mixed with the parent seed), **not** from the parent's sequence, so adding a draw to
   the spawner never changes what `traitDraft` produces. Forks of the same label from the same
   parent are identical.
+- **The `engulf` stream and its reserved second consumer.** Today only the spit-out draws from it,
+  and only for a prey whose `spitOutChancePerSecond` is above 0 (ECOLOGY §6.1): a chance of 0 makes no
+  draw, so a dish with no spiny cells never advances it. The payout's trait steal
+  (`ENGULF_TRAIT_STEAL_CHANCE`, 0 and unread in build 1) is the second consumer, and when build 2 turns
+  it on it draws here, in the payout, after that tick's spit-out draw and once per completed engulf. Because
+  `fork(label)` seeds each stream from the label and never from another stream's sequence, that new draw
+  can only move later draws inside `engulf`; no other stream's sequence changes, which is what lets a
+  reserved rule be switched on as a balance change rather than a rewrite of every seeded row.
+
 - **`moteMotion` is a separate stream** (ECOLOGY §1 lists it under the label `mote_motion`): the
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.

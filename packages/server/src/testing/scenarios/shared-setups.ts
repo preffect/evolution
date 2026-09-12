@@ -20,6 +20,15 @@ export const decayed = createDecayedHelper({
   massDecayRatePerSecond: ecology.MASS_DECAY_RATE_PER_SECOND,
 });
 
+/**
+ * docs/ECOLOGY.md §1 rounding: motes = floor(fraction × mass / mote mass), the remainder dropped.
+ * The detritus mass a cell of `massAtRemoval` drops when it dies or dissolves.
+ */
+export function expectedDetritusMass(massAtRemoval: number): number {
+  const motes = Math.floor((ecology.DETRITUS_MASS_FRACTION * massAtRemoval) / ecology.DETRITUS_MOTE_MASS);
+  return ecology.DETRITUS_MOTE_MASS * motes;
+}
+
 /** "seed 42, 1 player (seeded world)". */
 export function seededSolo(name: string) {
   return scenario(name).seed(TABLE_SEED).players(1);

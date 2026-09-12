@@ -1,4 +1,7 @@
-// docs/GAME-DESIGN.md §5.2 (G8 timing): spectate, then respawn on the tick after the timer hits zero.
+// docs/GAME-DESIGN.md §5.2 (G8 timing): spectate, then respawn on the tick after the timer hits
+// zero. The tick convention is #211: a death on tick t (step 6) is spectated for the whole of tick
+// t and the countdown runs at step 9 of every tick from t on, so the new cell lands on
+// t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1 — the tick G8, G13 and ECOLOGY W4 name.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, EFFECT_KIND, PLAYER_LIFE_STATE, playerId, secondsToTicks } from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';
@@ -30,7 +33,8 @@ function deadVictim() {
 describe('runRespawns', () => {
   it('counts down during spectate and respawns on the tick after zero, level and traits kept', () => {
     const { world, victim } = deadVictim();
-    for (let tick = DEATH_TICK + 1; tick <= DEATH_TICK + SPECTATE_TICKS; tick += 1) {
+    // From the death tick itself: step 9 runs on the tick the payout (step 6) killed the cell (#211).
+    for (let tick = DEATH_TICK; tick <= DEATH_TICK + SPECTATE_TICKS; tick += 1) {
       world.tick = tick;
       world.effects = [];
       runRespawns(world, createTestStepContext(world));

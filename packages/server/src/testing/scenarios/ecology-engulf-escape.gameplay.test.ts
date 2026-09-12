@@ -3,12 +3,13 @@
 // are `ecology-engulf.gameplay.test.ts`; the shared setup is `engulf-setups.ts`.
 
 import { describe, it } from 'vitest';
-import { ENGULF_RELEASE_REASON } from '@evolution/shared';
+import { ENGULF_RELEASE_REASON, PLAYER_LIFE_STATE } from '@evolution/shared';
 import { distanceBetweenCells, speedOf } from '../gameplay/evolution-views.js';
 import { combineScripts, player, sprint } from '../gameplay/index.js';
 import {
   CENTRE_DISTANCE_WU,
   DISTANCE_TOLERANCE_WU,
+  E9_PAYOUT_MASS,
   E9_PAYOUT_TICK,
   E9_SEAL_TICK,
   E11_LATE_RELEASE_TICK,
@@ -19,16 +20,21 @@ import {
   E11_TOO_LATE_END_TICK,
   E11_TOO_LATE_SEAL_TICK,
   E11_TOO_LATE_SPRINT_TICK,
+  PREY_MASS,
   PROGRESS_TOLERANCE,
   absorption,
+  absorptionsOfPredator,
   awayFromPredator,
   engulfPair,
+  lifeStateOfPrey,
+  massOfPredator,
+  preyCell,
   progressOfPrey,
   releaseReasons,
   statesOfPredator,
   statesOfPrey,
 } from './engulf-setups.js';
-import { SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
+import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
 
 /** "B sprints away at tick t": steers away from t and presses sprint on t (docs/ECOLOGY.md §8). */
 const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair>) =>
@@ -36,7 +42,7 @@ const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair
     .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
     .from(tick + 1, player(1).does(awayFromPredator));
 
-describe('ECOLOGY §8: getting away from an engulf (#258; the payout is #259)', () => {
+describe('ECOLOGY §8: getting away from an engulf, and being carried past the chance', () => {
   it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', () => {
     const row = engulfPair('E11');
     sprintsAwayFrom(E11_SPRINT_TICK)(row)
@@ -53,6 +59,15 @@ describe('ECOLOGY §8: getting away from an engulf (#258; the payout is #259)', 
       .expect('still free at the end of the row', statesOfPrey)
       .atEnd()
       .toEqual([])
+      .expect('B alive at tick 200', lifeStateOfPrey)
+      .atEnd()
+      .toBe(PLAYER_LIFE_STATE.alive)
+      .expect('B mass 20: the sprint cost is floored at the starting mass', (view) => preyCell(view)?.mass)
+      .atEnd()
+      .toBe(PREY_MASS)
+      .expect('A absorptions = 0: an escape pays nothing', absorptionsOfPredator)
+      .atEnd()
+      .toBe(0)
       .runDeterministic();
   });
 
@@ -69,9 +84,12 @@ describe('ECOLOGY §8: getting away from an engulf (#258; the payout is #259)', 
       .expect('never released', releaseReasons)
       .atTick(E9_PAYOUT_TICK - 1)
       .toEqual([])
-      .expect('the engulf ends on tick 36 exactly as E9', statesOfPrey)
+      .expect('absorbed on tick 36 exactly as E9', preyCell)
       .atTick(E9_PAYOUT_TICK)
-      .toEqual([])
+      .toSatisfy((cell) => cell === undefined, 'no cell')
+      .expect("A's payout is E9's: the sprinting prey changed nothing", massOfPredator)
+      .atTick(E9_PAYOUT_TICK)
+      .toBeCloseTo(E9_PAYOUT_MASS, MASS_TOLERANCE)
       .runDeterministic();
   });
 
@@ -94,9 +112,15 @@ describe('ECOLOGY §8: getting away from an engulf (#258; the payout is #259)', 
       .expect('never released', releaseReasons)
       .atTick(E11_TOO_LATE_END_TICK - 1)
       .toEqual([])
-      .expect('the engulf ends on tick 41', statesOfPrey)
+      .expect('B absorbed on tick 41', preyCell)
       .atTick(E11_TOO_LATE_END_TICK)
-      .toEqual([])
+      .toSatisfy((cell) => cell === undefined, 'no cell')
+      .expect('B spectating', lifeStateOfPrey)
+      .atTick(E11_TOO_LATE_END_TICK)
+      .toBe(PLAYER_LIFE_STATE.spectating)
+      .expect('A absorptions', absorptionsOfPredator)
+      .atTick(E11_TOO_LATE_END_TICK)
+      .toBe(1)
       .runDeterministic();
 
     engulfPair('E11 steering away from 10 without sprint')

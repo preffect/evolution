@@ -2,20 +2,21 @@
 // centres 10 wu apart", the numbers those rows name, and the selectors they read through. Not a test
 // file; `ecology-engulf.gameplay.test.ts` and `ecology-engulf-escape.gameplay.test.ts` import it.
 //
-// #258 ships the lifecycle only. What the rows deliberately leave out, and to which ticket:
-//   · the mass, DNA, tag, `absorptions`, detritus and `lifeState` halves of E9, E9b, E10 and E11,
-//     and the payout ticks they name (E10's 70, E11's absorption at 41) — #259, there is no payout.
+// #258 shipped the lifecycle and #259 the payout, so the mass, DNA, tag, `absorptions`, detritus
+// and `lifeState` halves of E9, E9b, E10 and E11 are on. What the rows still leave out, and to
+// which ticket:
 //   · E10's separation half ("< 0.01 wu of overlap"), which the whole step cannot reach — #261.
 //   · every spit-out and refractory row (§6.1 spit-out, §5.3's T4 separation, §6.3 "spat out, still
 //     overlapping"), because no build-1 tier table sets `spitOutChancePerSecond` until #260. The
 //     mechanism is pinned at unit level on a folded modifier instead (`engulf-spit-out.test.ts`).
+//   · the wild rows (W4, W5, W10), which need the wild-cell slice to place a wild cell.
 
-import { DEFAULT_BALANCE, EFFECT_KIND, TICK_HZ } from '@evolution/shared';
+import { DEFAULT_BALANCE, DNA_TAG, EFFECT_KIND, TICK_HZ } from '@evolution/shared';
 import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
-import { cellOf, effectsOfKind, type EvolutionView } from '../gameplay/evolution-views.js';
+import { cellOf, detritusMass, effectsOfKind, progressOf, type EvolutionView } from '../gameplay/evolution-views.js';
 import { targetRadiiAwayFrom } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
-import { FULL_THROTTLE_RADII } from './shared-setups.js';
+import { FULL_THROTTLE_RADII, decayed } from './shared-setups.js';
 
 export const absorption = DEFAULT_BALANCE.absorption;
 export const PREDATOR_MASS = 100;
@@ -29,6 +30,15 @@ export const E9_COVER_END_TICK = 6;
 export const E9_SEAL_TICK = 18;
 export const E9_PAYOUT_TICK = 36;
 export const PROGRESS_TOLERANCE = 0.0001;
+/** E9's payout: the yield on the decayed predator, the flat DNA base and the prey's detritus. */
+/** "detritus motes total mass = 4 (two motes of 2)" (docs/ECOLOGY.md §8, E9), stated, not recomputed. */
+export const E9_DETRITUS_MOTES = 2;
+export const E9_DETRITUS_MASS = E9_DETRITUS_MOTES * DEFAULT_BALANCE.ecology.DETRITUS_MOTE_MASS;
+export const E9_PAYOUT_MASS = decayed(PREDATOR_MASS, E9_PAYOUT_TICK) + PREY_MASS * absorption.ENGULF_MASS_YIELD;
+export const E9_PAYOUT_DNA = absorption.ENGULF_DNA_BASE;
+/** E10's over-ratio pair pays out on tick 70 at ≈ 41.99 mass. */
+export const E10_PAYOUT_TICK = 70;
+export const E10_PAYOUT_MASS = decayed(E10_OVER_RATIO_MASS, E10_PAYOUT_TICK) + PREY_MASS * absorption.ENGULF_MASS_YIELD;
 export const OFFSET_TOLERANCE_WU = 0.01;
 /** E16: 30 starts the engulf, 23 holds it (over the release ratio), 21.5 drops under it. */
 export const E16_START_MASS = 30;
@@ -53,6 +63,11 @@ export const DISTANCE_TOLERANCE_WU = 0.01;
 export const APPROXIMATE_DISTANCE_TOLERANCE_WU = 0.05;
 /** E13 runs on the shortest legal round so the results tick is reachable in a test. */
 export const SHORT_ROUND_SECONDS = 60;
+/**
+ * Far enough apart that no engulf can start, whatever the masses: the distance the rows that want
+ * the pair to meet later (E13, PROGRESSION P11) place them at until the fixture brings them together.
+ */
+export const FAR_APART_WU = 700;
 export const SHORT_ROUND_TICKS = SHORT_ROUND_SECONDS * TICK_HZ;
 /** E11's reaction window: sprinting at 13 still escapes, at 14 the seal closes first. */
 export const E11_SPRINT_TICK = 10;
@@ -64,12 +79,21 @@ export const E11_TOO_LATE_SEAL_TICK = 23;
 export const E11_TOO_LATE_END_TICK = 41;
 export const E11_NO_SPRINT_RELEASE_TICK = 31;
 
-/** "A at mass 100, B at 20, centres 10 wu apart": the setup every engulf row shares. */
-export function engulfPair(name: string, predatorMass = PREDATOR_MASS, preyMass = PREY_MASS) {
+/**
+ * "A at mass 100, B at 20, centres 10 wu apart": the setup every engulf row shares.
+ * `predatorDnaCumulative` is PROGRESSION P5's "A given `dnaCumulative` = 40 at setup"; left out,
+ * A starts the round with no DNA as every other row has it.
+ */
+export function engulfPair(
+  name: string,
+  predatorMass = PREDATOR_MASS,
+  preyMass = PREY_MASS,
+  predatorDnaCumulative?: number,
+) {
   return scenario(name)
     .seed(PLACED_ROW_SEED)
     .players(2)
-    .placeCell({ playerIndex: 0, mass: predatorMass })
+    .placeCell({ playerIndex: 0, mass: predatorMass, dnaCumulative: predatorDnaCumulative })
     .placeCell({ playerIndex: 1, mass: preyMass, eastOfFirstCellWu: CENTRE_DISTANCE_WU });
 }
 
@@ -86,3 +110,16 @@ export const statesOfPrey = (view: EvolutionView): string[] | undefined => cellO
 export const statesOfPredator = (view: EvolutionView): string[] | undefined => cellOf(view, 0)?.states;
 export const releaseReasons = (view: EvolutionView): string[] =>
   effectsOfKind(view, EFFECT_KIND.cellReleased).map((effect) => effect.reason);
+
+/** The payout halves (docs/ECOLOGY.md §6.1): what the predator gained and what became of the prey. */
+export const massOfPredator = (view: EvolutionView): number | undefined => cellOf(view, 0)?.mass;
+export const dnaOfPredator = (view: EvolutionView): number | undefined => progressOf(view, 0)?.dnaCumulative;
+export const absorptionsOfPredator = (view: EvolutionView): number | undefined => progressOf(view, 0)?.absorptions;
+export const predatoryPointsOfPredator = (view: EvolutionView): number | undefined =>
+  progressOf(view, 0)?.dnaTagPoints[DNA_TAG.predatory];
+export const lifeStateOfPrey = (view: EvolutionView): string | undefined => progressOf(view, 1)?.lifeState;
+export const preyCell = (view: EvolutionView) => cellOf(view, 1);
+export const absorbedCellIds = (view: EvolutionView): string[] =>
+  effectsOfKind(view, EFFECT_KIND.cellAbsorbed).map((effect) => effect.cellId);
+export const detritusInDish = (view: EvolutionView): number =>
+  detritusMass(view, DEFAULT_BALANCE.ecology.DETRITUS_MOTE_MASS);
