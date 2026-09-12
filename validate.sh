@@ -355,6 +355,7 @@ run_one() {
       docs_index_out="$(scripts/docs-index.sh --check 2>&1)" || audit_rc=1
 
       output="${lint_out}"
+      local extra
       for extra in "$prettier_out" "$directive_out" "$todo_out" "$docs_index_out"; do
         if [[ -n "$extra" ]]; then
           output="${output}
