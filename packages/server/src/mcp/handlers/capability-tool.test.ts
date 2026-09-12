@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import type { StateHash } from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE, type StateHash } from '@evolution/shared';
 import { DebugRequestError } from '../../game/debug/debug-request-error.js';
 import { createActiveRoomFixture, createDebugCapableGameModule, parseToolJson } from '../../testing/builders.js';
 import {
@@ -15,14 +15,25 @@ const TOOL_NAME = 'debug_probe';
 const PROBE_SCHEMA = { gameId: GAME_ID_ARGUMENT, extra: z.string().optional() };
 type ProbeRun = CapabilityToolDefinition<'computeStateHash', typeof PROBE_SCHEMA>['run'];
 
-function registerProbe(fixture: ReturnType<typeof createActiveRoomFixture>, run: ProbeRun = () => 'ok') {
+function registerProbe(
+  fixture: ReturnType<typeof createActiveRoomFixture>,
+  run: ProbeRun = () => 'ok',
+  isWorldMutation = false,
+) {
   registerCapabilityTool(fixture.mcp, fixture.context, {
     name: TOOL_NAME,
     description: 'probe',
     capability: 'computeStateHash',
     schema: PROBE_SCHEMA,
     run,
+    isWorldMutation,
   });
+}
+
+function snapshotsSentTo(fixture: ReturnType<typeof createActiveRoomFixture>, playerId: string): number {
+  return fixture.sent[playerId]!.filter(
+    (message) => (message as { type: string }).type === SERVER_MESSAGE_TYPE.gameSnapshot,
+  ).length;
 }
 
 function hashingHandle() {
@@ -64,6 +75,40 @@ describe('registerCapabilityTool', () => {
     const fixture = createActiveRoomFixture();
     registerProbe(fixture);
     expect((await fixture.call(TOOL_NAME, { gameId: 'nope' })).isError).toBe(true);
+    fixture.stop();
+  });
+
+  it('republishes the paused room’s frame after a mutating tool without stepping', async () => {
+    const fixture = createActiveRoomFixture({ gameFactory: () => createDebugCapableGameModule(hashingHandle()) });
+    fixture.room.pause();
+    registerProbe(fixture, () => 'written', true);
+    await fixture.call(TOOL_NAME, { gameId: fixture.gameId });
+    expect(snapshotsSentTo(fixture, 'alice')).toBe(1);
+    expect(fixture.room.getTickCount()).toBe(0);
+    fixture.stop();
+  });
+
+  it('does not republish after a read', async () => {
+    const fixture = createActiveRoomFixture({ gameFactory: () => createDebugCapableGameModule(hashingHandle()) });
+    fixture.room.pause();
+    registerProbe(fixture, () => 'read');
+    await fixture.call(TOOL_NAME, { gameId: fixture.gameId });
+    expect(snapshotsSentTo(fixture, 'alice')).toBe(0);
+    fixture.stop();
+  });
+
+  it('does not republish after a refused mutation', async () => {
+    const fixture = createActiveRoomFixture({ gameFactory: () => createDebugCapableGameModule(hashingHandle()) });
+    fixture.room.pause();
+    registerProbe(
+      fixture,
+      () => {
+        throw new DebugRequestError('refused');
+      },
+      true,
+    );
+    expect((await fixture.call(TOOL_NAME, { gameId: fixture.gameId })).isError).toBe(true);
+    expect(snapshotsSentTo(fixture, 'alice')).toBe(0);
     fixture.stop();
   });
 

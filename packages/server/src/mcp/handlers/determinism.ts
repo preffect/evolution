@@ -9,6 +9,7 @@ export function registerDeterminismTools(mcp: McpServer, context: DebugContext):
     name: 'debug_set_seed',
     description: 'Rebuild every random stream of a game from a new seed, for reproducible spawns',
     capability: 'reseed',
+    isWorldMutation: true,
     schema: {
       gameId: GAME_ID_ARGUMENT,
       seed: z.number().int().nonnegative().safe().describe('The new round seed (non-negative integer)'),

@@ -453,7 +453,9 @@ measurement that confirms the estimate; #103 records it.
   `RECONCILE_BLEND_SECONDS`; larger ones snap. `WorldStore` is the single client model; the
   Angular `GameStateService` is its signal facade for the HUD, not a second model.
 - **Clock.** `serverTickEstimate` comes from snapshot arrival times (EMA) through the client's
-  injected `Clock`; nothing in `game/` reads `Date.now` (`DETERMINISM.md §1`).
+  injected `Clock`; a republished snapshot at the latest tick (a debug mutation, §8) replaces the
+  frame and is not observed, since it is a new world, not a new arrival; nothing in `game/` reads
+  `Date.now` (`DETERMINISM.md §1`).
 - **Snapshots are applied on arrival, in order.** A `game_snapshot` is a delta (§4), so the
   transport publishes every one on `messages$` and `RenderSession` applies it to `WorldStore`
   as it arrives; the frame loop only reads (`nextFrame()`, which also releases the effects due),
@@ -564,7 +566,14 @@ time that passed while paused (`FixedStepAccumulator.discardElapsed()`), so a re
 bursts to catch up. `runTick` broadcasts every `SNAPSHOT_EVERY_TICKS` ticks and `step()` always
 ends with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot would show a
 stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
-report even for a module without a world tick.
+report even for a module without a world tick. **Every mutating tool republishes the frame** (#236):
+a tool registered with `isWorldMutation` (`debug_spawn`, `debug_grant_dna`, `debug_set_player`,
+`debug_set_balance`, `debug_set_seed`, `debug_spawn_bot`, `debug_remove_bot`) calls
+`GameRoom.republishSnapshot()` after its handle method succeeds, a `game_snapshot` at the current
+tick without a step, so a paused room shows the patched world at once and the stage that
+`debug_get_player_progress` reports is the stage the client draws. The client's `SnapshotBuffer`
+takes a snapshot at its latest tick as a replacement (a republished frame), not as a stale one, and
+the tick estimator is not re-observed for it (§5); a refused request republishes nothing.
 
 **Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
 perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);

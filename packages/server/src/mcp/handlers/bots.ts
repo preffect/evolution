@@ -17,6 +17,7 @@ export function registerBotTools(mcp: McpServer, context: DebugContext): void {
     name: 'debug_spawn_bot',
     description: `Spawn an in-process bot as a new player driven by a strategy (${BOT_STRATEGY_NAMES.join(', ')})`,
     capability: 'spawnBot',
+    isWorldMutation: true,
     schema: {
       gameId: GAME_ID_ARGUMENT,
       behavior: z.enum(BOT_STRATEGY_NAMES).describe(`Strategy name: one of ${BOT_STRATEGY_NAMES.join(', ')}`),
@@ -33,6 +34,7 @@ export function registerBotTools(mcp: McpServer, context: DebugContext): void {
     name: 'debug_remove_bot',
     description: 'Remove a bot spawned by debug_spawn_bot from the game and its roster',
     capability: 'removeBot',
+    isWorldMutation: true,
     schema: { gameId: GAME_ID_ARGUMENT, playerId: PLAYER_ID_ARGUMENT },
     run: (handle, input, room) => {
       const bot = handle.removeBot(input.playerId);

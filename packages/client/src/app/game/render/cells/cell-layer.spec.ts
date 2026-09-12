@@ -4,6 +4,7 @@ import { TEST_OTHER_CELL_ID, createTestCellView, createTestRenderFrame } from '.
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { Graphics } from 'pixi.js';
 import type { CameraExtent } from '../camera';
+import { HALO_KIND } from '../constants';
 import { NO_DEFORMATIONS, type CellDeformation } from './cell-deformation';
 import { CONTACT_DENT_AMPLITUDE } from '../constants';
 import {
@@ -19,6 +20,8 @@ import type { CellPassMesh } from './cell-mesh';
 import { CELL_UNIFORM, CELL_UNIFORM_GROUP } from './cell-shader-source';
 
 const EXTENT: CameraExtent = { minX: -100, minY: -100, maxX: 100, maxY: 100 };
+/** The level carried alongside the traits: the stage is the server's `stageOf` of the traits, not of the level. */
+const LEVEL_SET_WITH_TRAITS = 5;
 /** One bundle for the file: the bakes are the slow part (#226). */
 const textures = createTestRenderTextures({ seed: 3 });
 
@@ -132,6 +135,31 @@ describe('CellLayer', () => {
     expect(uniforms[CELL_UNIFORM.zoom]).toBe(1.8);
     expect(subject.update(input({ frame, ownCell: null })).organelleSprites).toBe(outputs.organelleSprites);
     expect(packed(subject, 0, 'isOwn')).toBe(0);
+    subject.destroy();
+  });
+
+  it('repacks a cell whose stage changes between frames instead of keeping its first-seen stack (#236)', () => {
+    const subject = new CellLayer(textures);
+    const protocell = createTestCellView({ radius: 30 });
+    const before = subject.update(input({ frame: createTestRenderFrame({ cells: [protocell] }), zoom: 1.8 }));
+    expect(packed(subject, 0, 'isProtocell')).toBe(1);
+    expect(packed(subject, 0, 'haloKind')).toBe(HALO_KIND.protocell);
+    const eukaryote = createTestCellView({
+      radius: 30,
+      level: LEVEL_SET_WITH_TRAITS,
+      stage: CELL_STAGE.eukaryote,
+      traits: [
+        { traitId: 'nucleoid', tier: 1 },
+        { traitId: 'ribosomes', tier: 1 },
+        { traitId: 'mitochondrion', tier: 1 },
+        { traitId: 'nuclear_envelope', tier: 1 },
+      ],
+    });
+    const after = subject.update(input({ frame: createTestRenderFrame({ cells: [eukaryote] }), zoom: 1.8 }));
+    expect(subject.stateCount).toBe(1);
+    expect(packed(subject, 0, 'isProtocell')).toBe(0);
+    expect(packed(subject, 0, 'haloKind')).toBe(HALO_KIND.default);
+    expect(after.organelleSprites).not.toBe(before.organelleSprites);
     subject.destroy();
   });
 

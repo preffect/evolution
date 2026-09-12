@@ -1,26 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { createTestSnapshot } from '@evolution/shared';
-import { SnapshotBuffer } from './snapshot-buffer';
+import { SNAPSHOT_PUSH, SnapshotBuffer } from './snapshot-buffer';
 
 const snapshotAt = (tick: number) => createTestSnapshot({ tick });
 
 describe('SnapshotBuffer', () => {
   it('keeps the newest snapshots up to its capacity, oldest first', () => {
     const buffer = new SnapshotBuffer(2);
-    expect(buffer.push(snapshotAt(3))).toBe(true);
-    expect(buffer.push(snapshotAt(6))).toBe(true);
-    expect(buffer.push(snapshotAt(9))).toBe(true);
+    expect(buffer.push(snapshotAt(3))).toBe(SNAPSHOT_PUSH.appended);
+    expect(buffer.push(snapshotAt(6))).toBe(SNAPSHOT_PUSH.appended);
+    expect(buffer.push(snapshotAt(9))).toBe(SNAPSHOT_PUSH.appended);
     expect(buffer.size()).toBe(2);
     expect(buffer.oldest()?.tick).toBe(6);
     expect(buffer.latest()?.tick).toBe(9);
   });
 
-  it('ignores a stale or repeated tick', () => {
+  it('ignores a stale tick', () => {
     const buffer = new SnapshotBuffer();
     buffer.push(snapshotAt(6));
-    expect(buffer.push(snapshotAt(6))).toBe(false);
-    expect(buffer.push(snapshotAt(3))).toBe(false);
+    expect(buffer.push(snapshotAt(3))).toBe(SNAPSHOT_PUSH.stale);
     expect(buffer.size()).toBe(1);
+    expect(buffer.latest()?.tick).toBe(6);
+  });
+
+  it('replaces the latest snapshot with a republished one at the same tick', () => {
+    const buffer = new SnapshotBuffer();
+    buffer.push(snapshotAt(3));
+    buffer.push(snapshotAt(6));
+    const republished = createTestSnapshot({ tick: 6, roundTimeLeftMs: 1 });
+    expect(buffer.push(republished)).toBe(SNAPSHOT_PUSH.replaced);
+    expect(buffer.size()).toBe(2);
+    expect(buffer.latest()).toBe(republished);
+    expect(buffer.bracket(6)).toMatchObject({ older: republished, newer: republished });
   });
 
   it('brackets a tick between the two snapshots around it', () => {

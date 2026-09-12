@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CELL_STAGE,
   DEFAULT_BALANCE,
   INTERPOLATION_DELAY_TICKS,
   MAX_EXTRAPOLATION_TICKS,
@@ -110,6 +111,27 @@ describe('WorldStore', () => {
     clock.setMilliseconds(63 * TICK_INTERVAL_MS);
     const renderTick = Math.max(60, 63 - INTERPOLATION_DELAY_TICKS);
     expect(store.renderLagMs()).toBeCloseTo((63 - renderTick) * TICK_INTERVAL_MS, 6);
+  });
+
+  it('a republished snapshot at the latest tick replaces the held frame without moving the tick estimate', () => {
+    const { store, clock } = storeWithSnapshots([60, 61, 62, 63]);
+    // The room is paused: the frame extrapolates to the cap and holds the latest snapshot's cell.
+    const heldMs = (63 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS;
+    clock.setMilliseconds(heldMs);
+    expect(store.nextFrame()!.cells[0]!.stage).toBe(CELL_STAGE.protocell);
+    // A debug patch republishes tick 63 much later; the client must show it, not drop it.
+    clock.setMilliseconds(heldMs * 10);
+    const republished = createTestSnapshot({
+      tick: 63,
+      cells: [createTestCellView({ id: entityId('c'), x: 63, y: 0, stage: CELL_STAGE.eukaryote })],
+    });
+    expect(store.applySnapshot(republished)).toBe(true);
+    expect(store.nextFrame()!.cells[0]!.stage).toBe(CELL_STAGE.eukaryote);
+    expect(store.latestSnapshot()).toBe(republished);
+    // The estimate was not re-observed at the late arrival: the next live tick renders at the usual delay.
+    clock.setMilliseconds(64 * TICK_INTERVAL_MS);
+    store.applySnapshot(createTestSnapshot({ tick: 64, cells: [createTestCellView({ id: entityId('c') })] }));
+    expect(store.nextFrame()!.renderTick).toBeCloseTo(64 - INTERPOLATION_DELAY_TICKS, 6);
   });
 
   it('interpolates strictly between two snapshots at the live broadcast cadence', () => {

@@ -58,7 +58,7 @@ each is checkable. An AI building a game from this template MUST follow every ru
 ./validate.sh test         # unit tier with coverage thresholds
 ./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier (opt-in)
 ./validate.sh typecheck    # type check all packages (rebuilds shared first)
-./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit
+./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
 ./validate.sh duplication  # jscpd (.jscpd.json)
 ./validate.sh all          # lint -> duplication -> typecheck -> test; prints ALL PASSED / FAILED: <phases>
 ./validate.sh all --fresh  # same, ignoring the result cache (a green run is still stamped)
