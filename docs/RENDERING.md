@@ -330,7 +330,7 @@ free) and only bacteria positions change per snapshot.
 
 ### 6.1 The condenser light pool (#222)
 
-`VISUAL-STYLE.md §1` anchors the pool to the view (option A). It is **one sprite in the dish layer's world
+`VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it. It is **one sprite in the dish layer's world
 container**, between the field sprite and the vent sprite, that the layer re-places every frame with the inverse
 camera transform so it stays fixed on screen while everything over it scrolls. It cannot live in the screen root
 with the vignette: it must sit under the motes, fragments, cells and the vent, and the field under it is opaque.
@@ -429,7 +429,7 @@ textures/radial-bake.ts                              the per-pixel radial sample
 textures/{glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts   the atlases and the field, each a pure bake over the seam (#206)
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
-textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #222)
+textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
 cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-membrane}.ts   GLSL as template strings: the two stages, the shared helpers, the profile, pass A, pass B (#215)

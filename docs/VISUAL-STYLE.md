@@ -21,7 +21,7 @@ The dish is a dark-field microscope stage: a black field, and only what scatters
 - **Light comes from the top-left**, one direction, for everything: the condenser light pool on the
   field, the specular glint on every cell and mote, the light pool / dark pool that gives a body its
   volume (sheet 01, design decisions). Nothing is lit from below or from the right.
-- **The condenser pool is anchored to the view, never to the world** (#222, option A). A condenser
+- **The condenser pool is anchored to the view, never to the world** (#222, option A; built by #242). A condenser
   lights whatever sits under the objective, so the pool covers the top-left of the _view_ at every
   zoom and follows the camera; a cell in the shallows is lit from the same corner as one at the vent.
   Sheet 02's ellipse (980 × 760 wu centred (380, 200) in its 1920 × 1080 wu scene) is read as
@@ -36,7 +36,7 @@ The dish is a dark-field microscope stage: a black field, and only what scatters
   crosses it the zone tint and the pool stack (16 % + 9 % at most) and nothing clamps them: the ≤ 16 %
   rule below is about zone tints alone. A world-anchored pool (PR #221 baked one into the field at a
   fixed spot inside the vent zone, where most players never see it) is the wrong reading and is
-  removed by the implementation ticket. [`RENDERING.md §6.1`](./RENDERING.md#61-the-condenser-light-pool-222)
+  removed by #242. [`RENDERING.md §6.1`](./RENDERING.md#61-the-condenser-light-pool-222)
   owns the sprite, its bake and the per-frame transform.
 - **Every rim scatters.** A membrane's rim stroke is a white → rim → base → rim gradient: brightest at
   the top-left, never dark on the far side. Glow is always **core + soft halo + wide halo + glint**
