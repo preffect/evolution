@@ -10,3 +10,7 @@ true field colour and only the edges darken toward 0.55 black.
 | `vent-at-zoom1-seed42.png`   | the own cell parked 320 wu below the vent at the origin: the vent sprite, crust, risers and bubbles over the field               |
 | `vent-crop-zoom1-seed42.png` | 760 × 480 crop of the vent from the frame above                                                                                  |
 | `bakes-preview-seed42.png`   | the Canvas-2D bakes laid out as a sheet (#221); untouched by #229, which only covered the rendered frame                         |
+
+Not yet pinned: the zones at play scale (shallows, mire, vent at zoom 1.8), the light pool once #222
+decides its anchoring, the field per zoom band (#223), motes and fragments (#207). graphics-qa adds them
+with those PRs.
