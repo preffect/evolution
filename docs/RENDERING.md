@@ -152,9 +152,10 @@ alpha, the strip row and phase, the strip's `lobesScale` and `jitterAmplitude`, 
 `cells/cell-traits.ts`): `ciliaCount`, `wallScale`, `speckleDensity`, `filamentCount`, `tintMix` toward
 `CHLORO_BASE`, `warningRingPx` (the shared `canEngulf` against the own cell, decided in
 `cell-instance-builder.ts`), `formId` (`FORM_ID`, §2.4), `passBAlpha` (`PREY_UNDER_FILM_ALPHA` while
-`engulfedByCellId` is set and on a ghost, 1 otherwise), `rimDash` (the ghost's dashed outline) and `ciliaPhase`
+`engulfedByCellId` is set and on a ghost, 1 otherwise), `rimDash` (the ghost's dashed outline), `ciliaPhase`
 (the beat's phase in turns, integrated by the render state at `CILIA_BEAT_HZ` moving / `CILIA_BEAT_IDLE_HZ` at
-rest so the rate can change without a jump). The per-cell deformation sources feed one record,
+rest so the rate can change without a jump) and `nucleusDiscRadii` (#231: `NUCLEUS_RADIUS` when the cell has a
+nucleus, 0 for a nucleoid or protocell, in a free channel of the last scalar texel so the row stays 16 texels). The per-cell deformation sources feed one record,
 `cells/cell-deformation.ts` `CellDeformation { bumps, pulse, alpha }`, resolved by cell id from the frame's map
 (`REST_DEFORMATION` for every cell without an entry); the render state then appends the cell's contact dent
 (`cells/contact-dents.ts`, dropped while the cell is engulfing, σ 14° when taut) and the seal it owes a ghost.
@@ -199,10 +200,10 @@ nucleolus, nucleoid 1 / 2 / 3 loops, envelope with 16 / 20 / 24 pores, eyespot),
 `ORGANELLE_ATLAS_PX_PER_R` 128 px per r (sheet 01 panel A's 4 px/wu at r 32) × `min(ceil(devicePixelRatio), 2)`
 at startup, so the 102 px own cell never upsamples at DPR 1 or 2. **Every atlas sprite bakes its own soft halo**
 (`ASSET-GENERATION.md §1.5`'s core + soft + wide + glint, for organelles): the nucleus entry is sheet 01 layer 6
-in full, a 0.40 r soft glow @35 % under the 0.30 r disc, the 2.3 px rim @75 %, five chromatin spots, the white
-nucleolus with its own halo and the nucleus's own highlight (0.34 r / −136°, 0.075 × 0.03 r), so the sprite is
-≈ 0.85 r wide and does not read as a flat disc on the body ramp; the mitochondrion's warm glow and the toxin
-bladder's `TOXIN_GLOW` are baked the same way.
+minus its disc fill, a 0.40 r soft glow @35 % around the 0.30 r disc, the 2.3 px rim @75 %, five chromatin spots,
+the white nucleolus with its own halo and the nucleus's own highlight (0.34 r / −136°, 0.075 × 0.03 r), so the
+sprite is ≈ 0.85 r wide; the disc itself is the shader's ramp below (#231), and the mitochondrion's warm glow
+and the toxin bladder's `TOXIN_GLOW` are baked the same way.
 
 - **Slots.** `cells/organelle-layout.ts` draws rest positions `q` (normalised, cell frame, heading-independent)
   from the cell's cosmetic fork: nucleus at 0.12 r toward the light (sheet 01), then organelles in
@@ -221,6 +222,19 @@ bladder's `TOXIN_GLOW` are baked the same way.
   tails spread `FLAGELLUM_TAIL_SPREAD_DEG`, sprint × 2, phase from the cosmetic fork) and the stentor anchor
   (#121), in one `Graphics` per frame drawn **under pass A** so the root is buried in the membrane. Cilia,
   filaments and speckle are shader patterns (§2.2).
+- **Nucleus ramp (#231, VISUAL-STYLE §3).** The nucleus disc is the last band of pass A (`cell-shader-bands.ts`
+  `nucleusRamp`, after the filaments so their inner ends are buried): a disc of radius `nucleusDiscRadii` × r ×
+  pulse at `inst.nucleus` (the same mapped point the sprite sits on, so the sprite's rim stays concentric
+  through drift, lag and the level-up pulse), filled with a three-stop radial ramp read from the palette texture
+  — `SHADE_RIM` at the focus, `SHADE_NUCLEUS` at `NUCLEUS_RAMP_MID_STOP`, `SHADE_NUCLEUS_DARK` at the edge — whose
+  focus is `NUCLEUS_RAMP_FOCUS_RADII` toward `LIGHT_DIRECTION_DEG` and whose reach is `NUCLEUS_RAMP_REACH_RADII`,
+  at `NUCLEUS_RAMP_ALPHA × inst.alpha`; it takes no `lodBlend` (it is the §5 stage tell's disc through the mid
+  band) and the far dot has already returned. The sprite draws over it with its disc fill removed. **Cost:** one
+  instance float in a free channel (§2.3, still 16 texels), two `SHADE_*` defines the shader already has the
+  columns for (`PALETTE_SHADE.nucleus`, `.nucleusDark`), one distance, two `mix`es and one `smoothstep` per
+  fragment inside the quad, and no new texture; the sprite layer stays at eight textures. **How it reads:**
+  VISUAL-STYLE §3 (44 px: the pale-to-dark turn spans the 13 px disc; 140 px: an analytic gradient at panel A's
+  scale, never upsampled; mid band: the mid tone as one disc).
 - **Preview.** `previewTraitId` is folded into the own cell's trait list at the offered tier for rendering only.
 
 ## 4. Motion tables (`packages/shared/src/constants/motion.ts`)
