@@ -28,9 +28,9 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
 echo "fake pnpm \$*"
-sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
 touch_path="\$(cat "$FAKE_PNPM_TOUCH_FILE")"
 [[ -z "\$touch_path" ]] || echo generated > "\$touch_path"
+sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
 exit "\$(cat "$FAKE_PNPM_RC_FILE")"
 PNPM
 chmod +x "$fixture/scripts/docs-index.sh" "$sandbox/bin/pnpm"
@@ -167,17 +167,43 @@ chmod 700 "$readonly_dir"
 echo lock-case > "$fixture/untracked.txt"
 echo 2 > "$FAKE_PNPM_SLEEP_FILE"
 first_log="$sandbox/first-gate.log"
+started_marker="$sandbox/first-gate-started"
+echo "$started_marker" > "$FAKE_PNPM_TOUCH_FILE" # the fake pnpm creates it the moment the first gate is inside the lock
 (cd "$fixture" && ./validate.sh test > "$first_log" 2>&1) &
 first_pid=$!
-sleep 0.5
-started_second="$(date +%s)"
+until [[ -e "$started_marker" ]]; do sleep 0.05; done
+: > "$FAKE_PNPM_TOUCH_FILE"
+started_second="$EPOCHREALTIME"
 run_validate "$fixture" test
-second_elapsed=$(( $(date +%s) - started_second ))
+second_elapsed_ms="$(awk -v a="$started_second" -v b="$EPOCHREALTIME" 'BEGIN { printf "%d", (b - a) * 1000 }')"
 wait "$first_pid" && first_rc=0 || first_rc=$?
 echo 0 > "$FAKE_PNPM_SLEEP_FILE"
-check "a second real gate waits for the first (second took ${second_elapsed}s, first rc $first_rc)" $(( rc == 0 && first_rc == 0 && $(grep -q '^waiting for another gate to finish' <<<"$out"; echo $?) == 0 && second_elapsed >= 3 ))
+rm -f "$started_marker"
+check "a second real gate waits for the first (second took ${second_elapsed_ms} ms, first rc $first_rc)" $(( rc == 0 && first_rc == 0 && $(grep -q '^waiting for another gate to finish' <<<"$out"; echo $?) == 0 && second_elapsed_ms >= 1500 ))
 run_validate "$fixture" test
 check "a cache hit never waits on the gate lock" $(( $(is_cached; echo $?) == 0 && $(grep -q 'waiting for another gate' <<<"$out"; echo $?) != 0 ))
+echo orphan-case > "$fixture/untracked.txt"
+orphan_pid_file="$sandbox/orphan-pid"
+cat > "$sandbox/bin/pnpm" <<PNPM
+#!/usr/bin/env bash
+echo "fake pnpm \$*"
+(sleep 30 & echo \$! > "$orphan_pid_file")
+exit 0
+PNPM
+run_validate "$fixture" test
+orphan_pid="$(cat "$orphan_pid_file")"
+lock_free=0
+flock -n "$HOME/.cache/$(basename "$fixture")-validate/gate.lock" true && lock_free=1
+kill "$orphan_pid" 2>/dev/null || true
+check "a child that outlives the gate does not keep the lock" $(( rc == 0 && lock_free == 1 ))
+cat > "$sandbox/bin/pnpm" <<PNPM
+#!/usr/bin/env bash
+echo "fake pnpm \$*"
+touch_path="\$(cat "$FAKE_PNPM_TOUCH_FILE")"
+[[ -z "\$touch_path" ]] || echo generated > "\$touch_path"
+sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
+exit "\$(cat "$FAKE_PNPM_RC_FILE")"
+PNPM
 rm -f "$fixture/untracked.txt"
 
 if [[ $failures -gt 0 ]]; then
