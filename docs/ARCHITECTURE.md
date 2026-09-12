@@ -440,8 +440,12 @@ measurement that confirms the estimate; #103 records it.
   `renderTick = latestTick − INTERPOLATION_DELAY_TICKS` (`2 × SNAPSHOT_EVERY_TICKS`, two snapshot
   intervals), lerping position, velocity and radius between the bracketing
   snapshots; a missing bracket extrapolates with velocity for at most `MAX_EXTRAPOLATION_TICKS`.
-- **Prediction: one input per tick.** The client's input controller runs its own tick counter at
-  `TICK_HZ` and sends exactly one `GameInput` per client tick with `sequence` = client tick. On a
+- **Prediction: one input per tick.** The client's input controller (`input/input-controller.ts`, #184)
+  runs its own tick counter at `TICK_HZ` and sends exactly one `GameInput` per client tick with
+  `sequence` = client tick; the ticks come from the injected clock through a `FixedStepAccumulator`
+  pumped once per animation frame, so game code owns no timer (`CODE-STANDARDS.md §8`). The
+  prediction and reconciliation below are **#265**: today the own cell is interpolated like any
+  other. On a
   snapshot at tick `T` carrying `appliedInputSequenceByPlayer[me] = S`, the own cell's
   authoritative pose is "tick `T` after input `S`". The client then re-runs the shared movement
   kernel for its unacknowledged inputs `S + 1 … latest`, assuming input `S + i` was applied at
@@ -662,8 +666,9 @@ packages/server/src/
 packages/client/src/app/game/
   game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
   debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
-  net/{snapshot-buffer,interpolation,food-store,world-store}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; prediction, reconciliation and input-sender join with #100
-  input/{input-controller,pointer-input,keyboard-input}.ts
+  net/{snapshot-buffer,interpolation,food-store,world-store}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; prediction and reconciliation are still open (#265)
+  input/{input-constants,keyboard-action,input-state,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state and the GameInput mapping — all pure (UI.md §4)
+  input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: RENDERING.md §8)
   clock-provider.ts                                             the injected Clock token (DETERMINISM §2)

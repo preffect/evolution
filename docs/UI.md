@@ -348,15 +348,30 @@ lobby screen returns with `lobby-notice` = `You were disconnected from the game.
 | Input                | Pointer / touch                                         | Keyboard                                                           | Sent as (ARCHITECTURE §4)                                                                             |
 | -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | Steer                | pointer position over the canvas → world via the camera | WASD / arrows synthesise a target (GAME-DESIGN §6)                 | `targetX/targetY` every client tick; the pointer's last position is latched when it leaves the canvas |
-| Sprint               | left click / tap on the canvas                          | Space (edge-triggered, no repeat) with focus outside `trait-offer` | `sprint: true` once per press                                                                         |
+| Sprint               | left click / tap on the canvas                          | Space (edge-triggered, no repeat) with focus outside `trait-offer` | `shouldSprint: true` once per press                                                                   |
 | Pick trait           | click a card                                            | `1` `2` `3`; Enter/Space with focus on a card                      | `traitChoice`                                                                                         |
 | Full leaderboard     | click the leaderboard header (toggles)                  | Tab held                                                           | local                                                                                                 |
 | Menu / close overlay | —                                                       | Escape                                                             | local                                                                                                 |
 | Owned traits         | Escape → `Your traits` (§3.5)                           | Escape, then Tab through the list                                  | local                                                                                                 |
 
-- Hotkeys are handled by `input/keyboard-input.ts` on `document` while `mp.inGame()`; they are ignored when focus is
-  in a text field, and all but `1` `2` `3` are ignored while the menu is open (§3.5). Tab is `preventDefault`ed only
-  while no overlay with focusable controls is open, so the trait picker, menu and results remain fully tab-navigable.
+- Hotkeys are handled by `input/keyboard-input.ts` on `document` while the client is in a room; they are ignored when
+  focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5:
+  Escape is what closes it). A **release** never consults focus, so a key pressed over the canvas and released after
+  focus moved still releases, and a window `blur` releases everything. Tab is `preventDefault`ed only
+  while no overlay with focusable controls is open, so the trait picker, menu and results remain fully tab-navigable;
+  which overlays those are is the `FOCUSABLE_OVERLAY_TEST_IDS` list in `input/input-constants.ts`, the one home of the
+  key codes and the selectors (`CODE-STANDARDS.md §2`).
+- **The module list** (the one home; `ARCHITECTURE.md §10`'s file plan repeats it without roles). Pure and
+  unit-tested: `input-constants.ts` (key codes, direction vectors, selectors), `keyboard-action.ts` (the rules of
+  this section, press and release → one action), `input-state.ts` (the latched pointer, the held keys, the two
+  one-shots, the Tab hold), `game-input-builder.ts` (state + world → `GameInput`). Thin adapters:
+  `dom-input-context.ts` (the focus facts), `keyboard-input.ts`, `pointer-input.ts`,
+  `input-world-context.ts` (`WorldStore` → the own cell, the open offer, the live `balance.controls`).
+  `input-controller.ts` owns the client tick counter and the one send per tick; `attach-input.ts` composes them
+  and `game-setup.ts` wires the seam. In dev builds `window.__evolutionDebug.input()` reports what was last sent
+  and what is held, so a Playwright run can assert that a key reached its handler.
+- The **reticle**'s position is the latched pointer in world units, handed to the renderer by `game-setup.ts`;
+  whether it shows is the HUD's `reticleVisible` (the `steer` onboarding beat, §5), which is `false` until #190.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:
   inside `trait-offer` it picks (the card's own key handler runs, the sprint path does not); anywhere else it sprints.
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until

@@ -9,7 +9,6 @@ import { AudioHooks } from './audio/audio-hooks';
 import { CLOCK } from './clock-provider';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
-import { NO_RETICLE } from './render/game-renderer';
 import { createPixiApp } from './render/pixi-app';
 
 export const GAME_HOST_TEST_ID = 'game-host';
@@ -17,7 +16,9 @@ export const GAME_HOST_TEST_ID = 'game-host';
 @Component({
   selector: 'app-game-host',
   standalone: true,
-  template: `<div #host class="game-host" data-testid="${GAME_HOST_TEST_ID}"></div>`,
+  // The host is focusable (docs/UI.md §4): a click on the canvas takes focus out of any field so
+  // the hotkeys reach the document handler.
+  template: `<div #host class="game-host" tabindex="0" data-testid="${GAME_HOST_TEST_ID}"></div>`,
   styles: [
     `
       :host {
@@ -29,6 +30,8 @@ export const GAME_HOST_TEST_ID = 'game-host';
         width: 100%;
         height: 100%;
         overflow: hidden;
+        /* The canvas is not an interactive control: focus is taken for the hotkeys, not shown. */
+        outline: none;
       }
     `,
   ],
@@ -55,7 +58,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
         debugHost: window,
         isDevMode: isDevMode(),
         previewTraitId: () => null,
-        reticle: () => NO_RETICLE,
+        isReticleVisible: () => false,
       },
     );
   }

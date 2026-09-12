@@ -49,7 +49,7 @@ export interface RenderOutputs {
   readonly effectSprites: number;
 }
 
-/** The HUD's reticle while #100 has not wired the pointer: hidden. */
+/** No reticle this frame: the pointer has not been over the canvas, or the HUD hides it (docs/UI.md §5). */
 export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 0 };
 
 export class GameRenderer {

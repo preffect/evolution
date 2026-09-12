@@ -4,6 +4,7 @@
 // resumes; `step` renders exactly that many frames (bench: that many ticks).
 
 import type { ClientPerformanceReport } from '@evolution/shared';
+import type { InputDebugState } from '../input/input-controller';
 
 export const EVOLUTION_DEBUG_MODE = { live: 'live', bench: 'bench' } as const;
 export type EvolutionDebugMode = (typeof EVOLUTION_DEBUG_MODE)[keyof typeof EVOLUTION_DEBUG_MODE];
@@ -24,6 +25,11 @@ export interface EvolutionDebugApi {
   /** Frames submitted since the session adopted its app: a smoke waits on it where the ticker is slow. */
   framesRendered(): number;
   performanceReport(): ClientPerformanceReport | null;
+  /**
+   * Live rooms only: what the input layer last sent and what it is holding (docs/UI.md §4), so a
+   * Playwright run can assert that a key or a click reached its handler without reading the wire.
+   */
+  input?(): InputDebugState;
 }
 
 export const EVOLUTION_DEBUG_KEY = '__evolutionDebug';

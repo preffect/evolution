@@ -21,6 +21,7 @@ import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
+import type { WorldPoint } from './camera';
 import type { GameRenderer, RenderInputs, RenderOutputs } from './game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
 
@@ -59,6 +60,14 @@ export class RenderSession extends FrameLoopSession {
 
   get startupError(): unknown {
     return this.startupErrorValue;
+  }
+
+  /**
+   * The world point under a canvas point through the live camera (docs/GAME-DESIGN.md §7); `null`
+   * before the renderer exists. The input layer's one read of the render side (docs/UI.md §4).
+   */
+  screenToWorld(point: { readonly x: number; readonly y: number }): WorldPoint | null {
+    return this.renderer?.screenToWorld(point.x, point.y) ?? null;
   }
 
   onMessage(message: ServerMessage): void {
