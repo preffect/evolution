@@ -58,10 +58,19 @@ export function dissolveCell(world: WorldState, cell: CellRecord, spawner: Rando
   forgetSpectatedCell(world, cell);
 }
 
+/**
+ * The tick the cell died is spectated too (#211, the respawn convention). A death happens at step 6
+ * (the engulf payout) and the countdown runs at step 9 of that same tick, so without this the
+ * spectate would be one tick short of `RESPAWN_SPECTATE_SECONDS`. With it, a death on tick t places
+ * the new cell on t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1, which is what docs/GAME-DESIGN.md
+ * §5.2 (G8, G13) and docs/ECOLOGY.md §8.1 (W4) state.
+ */
+const DEATH_TICK_TICKS = 1;
+
 function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRecord, kept: number): void {
   player.lifeState = PLAYER_LIFE_STATE.spectating;
   player.spectatingCellId = killer.id;
-  player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS);
+  player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS) + DEATH_TICK_TICKS;
   player.dnaTowardNextLevel *= kept;
 }
 

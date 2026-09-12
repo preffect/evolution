@@ -133,34 +133,34 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L227–257): instead of `./validate.sh`.
 - **6. Definition of Done (checklist — ALL must hold)** (L258–279): path, edge cases, and error cases.
 
-## GAME-DESIGN.md (446 lines)
+## GAME-DESIGN.md (450 lines)
 
-- **Evolution — Game Design** (L1–446): Tickets: #22 (core design), #29 (session model).
+- **Evolution — Game Design** (L1–450): Tickets: #22 (core design), #29 (session model).
 - **1. Companion documents** (L6–25): Technical contracts and the file plan: [`ARCHITECTURE.md`](./ARCHITECTURE.md) (#112); the build itself is epic #96 and its tickets (plannin…
 - **2. Core fantasy** (L26–41): _A single cell that becomes something more._ You begin as a bare protocell: a lipid membrane, a few granules, no nucleus, drifting in a dar…
 - **3. The evolution ladder** (L42–123): The ladder is the progression spine of build 1.
 - **4. Moment-to-moment loop** (L124–137): Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
-- **5. Session structure (#29)** (L138–249)
+- **5. Session structure (#29)** (L138–253)
   - **5.1 Round timeline and pace curve** (L153–176): Decision #138 (option A, "slow dawn", applied by #144) sets this curve; times are the #138 pace model for one active player who takes the t…
-  - **5.2 Spawn, death and respawn** (L177–200): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
-  - **5.3 Leaderboard and score** (L201–211): `dnaCumulative` never decreases, so dying costs time and mass, not score.
-  - **5.4 Round end and rematch** (L212–221): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
-  - **5.5 The evolving world** (L222–249): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
-- **6. Controls** (L250–271): tick.
-- **7. Camera** (L272–285): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
-- **8. The petri dish** (L286–308): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
-- **9. Win / lose and the feel of a round** (L309–318): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
-- **10. Explicit non-goals for build 1** (L319–328): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
-- **11. Reserved hooks for build 2** (L329–339)
-- **12. Constants table** (L340–423): Home: `packages/shared/src/constants/<domain>.ts`.
-  - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`ARCHITECTURE.md`](./ARCHITECTURE.md))** (L347–359): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
-  - **`world.ts`** (L360–370)
-  - **`session.ts`** (L371–384)
-  - **`world-clock.ts` (section 5.5, [`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock))** (L385–392)
-  - **`controls.ts`** (L393–403)
-  - **`ladder.ts`** (L404–411)
-  - **`camera.ts` (client only)** (L412–423): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
-- **13. Acceptance scenarios** (L424–446): Format: given seed S and inputs I, after N ticks assert X.
+  - **5.2 Spawn, death and respawn** (L177–204): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
+  - **5.3 Leaderboard and score** (L205–215): `dnaCumulative` never decreases, so dying costs time and mass, not score.
+  - **5.4 Round end and rematch** (L216–225): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
+  - **5.5 The evolving world** (L226–253): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
+- **6. Controls** (L254–275): tick.
+- **7. Camera** (L276–289): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
+- **8. The petri dish** (L290–312): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
+- **9. Win / lose and the feel of a round** (L313–322): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
+- **10. Explicit non-goals for build 1** (L323–332): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
+- **11. Reserved hooks for build 2** (L333–343)
+- **12. Constants table** (L344–427): Home: `packages/shared/src/constants/<domain>.ts`.
+  - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`ARCHITECTURE.md`](./ARCHITECTURE.md))** (L351–363): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
+  - **`world.ts`** (L364–374)
+  - **`session.ts`** (L375–388)
+  - **`world-clock.ts` (section 5.5, [`ECOLOGY.md §3.1`](./ECOLOGY.md#31-the-world-clock))** (L389–396)
+  - **`controls.ts`** (L397–407)
+  - **`ladder.ts`** (L408–415)
+  - **`camera.ts` (client only)** (L416–427): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
+- **13. Acceptance scenarios** (L428–450): Format: given seed S and inputs I, after N ticks assert X.
 
 ## INIT-GAME.md (262 lines)
 

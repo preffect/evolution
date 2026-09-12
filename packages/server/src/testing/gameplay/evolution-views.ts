@@ -3,6 +3,7 @@
 // death), which every matcher fails with "got undefined".
 
 import {
+  FOOD_KIND,
   distanceBetween,
   type CellView,
   type EffectKind,
@@ -35,6 +36,11 @@ export function speedOf(view: EvolutionView, playerIndex: number): number | unde
 
 export function foodCount(view: EvolutionView): number {
   return view.snapshot.food.spawned.length;
+}
+
+/** The mass now lying in the dish as detritus (docs/ECOLOGY.md §1): what a death dropped. */
+export function detritusMass(view: EvolutionView, moteMass: number): number {
+  return view.snapshot.food.spawned.filter((mote) => mote.kind === FOOD_KIND.detritus).length * moteMass;
 }
 
 export function fragmentCount(view: EvolutionView): number {

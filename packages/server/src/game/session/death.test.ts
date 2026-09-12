@@ -89,7 +89,8 @@ describe('absorbCell', () => {
     ]);
     expect(victim.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(victim.spectatingCellId).toBe(predator.id);
-    expect(victim.respawnInTicks).toBe(secondsToTicks(session.RESPAWN_SPECTATE_SECONDS));
+    // The death tick is spectated too (#211): the countdown runs at step 9 of this same tick.
+    expect(victim.respawnInTicks).toBe(secondsToTicks(session.RESPAWN_SPECTATE_SECONDS) + 1);
     expect(world.food.every((mote) => mote.kind === FOOD_KIND.detritus)).toBe(true);
     expect(world.food).toHaveLength(2);
   });

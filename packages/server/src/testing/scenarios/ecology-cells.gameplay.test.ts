@@ -1,11 +1,12 @@
 // docs/ECOLOGY.md §8, the placed rows on eating, decay, size and speed (E4–E8, E12, E15), each
 // run twice and hash-compared. The seeded spawn rows are ecology-spawn.gameplay.test.ts; the
-// engulf rows (E9–E11, E13, E16) wait for the engulf slice of #98.
+// engulf rows (E9–E11, E13, E16) are the two ecology-engulf files.
 
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, DEFAULT_BALANCE, FOOD_KIND, ZONE_ID, distanceBetween } from '@evolution/shared';
 import { cellOf, foodCount, massOf, progressOf, speedOf } from '../gameplay/evolution-views.js';
 import { ZONE, eastOfCellOf, gelPatchCentre, insideCellOf, player, targetRadiiEast } from '../gameplay/index.js';
+import { E9_PAYOUT_TICK, engulfPair } from './engulf-setups.js';
 import {
   FULL_THROTTLE_RADII,
   MASS_TOLERANCE,
@@ -14,7 +15,7 @@ import {
   placedSolo,
 } from './shared-setups.js';
 
-const { ecology, growth, world: dish } = DEFAULT_BALANCE;
+const { ecology, growth, ladder, world: dish } = DEFAULT_BALANCE;
 
 describe('ECOLOGY §8: eating, decay, size and speed on placed cells', () => {
   it.each([
@@ -156,6 +157,22 @@ describe('ECOLOGY §8: eating, decay, size and speed on placed cells', () => {
       .expect('dna', (view) => progressOf(view, 0)?.dnaCumulative)
       .atTick(bacteria)
       .toBeCloseTo(bacteria * ecology.BACTERIUM_DNA * nucleoidTierOneDnaGain, MASS_TOLERANCE)
+      .runDeterministic();
+  });
+
+  it("E15 (second half): absorbing a cell that owns an endosymbiont fills the eater's counter", () => {
+    engulfPair('E15 absorption')
+      .placeCell({ playerIndex: 1, mass: growth.CELL_STARTING_MASS, traits: ['mitochondrion'], eastOfFirstCellWu: 10 })
+      .advance(E9_PAYOUT_TICK)
+      .expect('the eater has eaten no bacteria itself', (view) => progressOf(view, 0)?.bacteriaEatenByVariant.aerobic)
+      .atTick(E9_PAYOUT_TICK - 1)
+      .toBe(0)
+      .expect('aerobic credited in full on the payout', (view) => progressOf(view, 0)?.bacteriaEatenByVariant.aerobic)
+      .atTick(E9_PAYOUT_TICK)
+      .toBeAtLeast(ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED)
+      .expect('the other counter is untouched', (view) => progressOf(view, 0)?.bacteriaEatenByVariant.photosynthetic)
+      .atTick(E9_PAYOUT_TICK)
+      .toBe(0)
       .runDeterministic();
   });
 

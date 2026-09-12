@@ -1,16 +1,15 @@
-// docs/GAME-DESIGN.md §13, the session and world-clock rows that need no engulf and no wild cell
-// (G1–G3, G9–G11, G14), each run twice and hash-compared. The control rows are
-// game-design-controls.gameplay.test.ts. G8 (an absorption) waits for the engulf slice of #98;
-// G13 (a wild killer) for the wild-cell slice; G12 is the pure `standingAgainstWorld` row, pinned
-// in packages/shared/src/simulation/world-clock.test.ts.
+// docs/GAME-DESIGN.md §13, the session and world-clock rows that need no wild cell (G1–G3, G8–G11,
+// G14), each run twice and hash-compared. The control rows are game-design-controls.gameplay.test.ts.
+// G13 (a wild killer) waits for the wild-cell slice; G12 is the pure `standingAgainstWorld` row,
+// pinned in packages/shared/src/simulation/world-clock.test.ts.
 
 import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
   EFFECT_KIND,
-  FOOD_KIND,
   RANDOM_STREAM,
+  PLAYER_LIFE_STATE,
   ROUND_PHASE,
   TICK_HZ,
   TICK_INTERVAL_MS,
@@ -28,6 +27,7 @@ import {
 } from '../gameplay/evolution-adapter.js';
 import {
   cellOf,
+  detritusMass,
   distanceBetweenCells,
   effectsOfKind,
   massOf,
@@ -35,7 +35,8 @@ import {
   type EvolutionView,
 } from '../gameplay/evolution-views.js';
 import { player, type PlayerScript } from '../gameplay/index.js';
-import { MASS_TOLERANCE, P7_JOIN_TICK, decayed, p7Setup, seededSolo } from './shared-setups.js';
+import { E9_PAYOUT_DNA, E9_PAYOUT_TICK, engulfPair, lifeStateOfPrey, preyCell } from './engulf-setups.js';
+import { MASS_TOLERANCE, P7_JOIN_TICK, decayed, expectedDetritusMass, p7Setup, seededSolo } from './shared-setups.js';
 
 const { growth, ecology, session, world: dish } = DEFAULT_BALANCE;
 const TIME_TOLERANCE_MS = 1;
@@ -43,20 +44,11 @@ const ROUND_TICKS = session.ROUND_DURATION_SECONDS * TICK_HZ;
 const RESULTS_TICKS = session.RESULTS_SCREEN_SECONDS * TICK_HZ;
 const ROUND_MS = session.ROUND_DURATION_SECONDS * 1000;
 const WORLD_LEVEL_TICKS = DEFAULT_BALANCE.worldClock.WORLD_LEVEL_SECONDS * TICK_HZ;
+const RESPAWN_TICKS = session.RESPAWN_SPECTATE_SECONDS * TICK_HZ;
 const G10_LEAVE_TICK = 2400;
 const G14_JOIN_TICK = 18_000;
 
-function detritusMass(view: EvolutionView): number {
-  return view.snapshot.food.spawned
-    .filter((mote) => mote.kind === FOOD_KIND.detritus)
-    .reduce((total) => total + ecology.DETRITUS_MOTE_MASS, 0);
-}
-
-/** docs/ECOLOGY.md §1 rounding: motes = floor(fraction × mass / mote mass), the remainder dropped. */
-function expectedDetritusMass(massAtRemoval: number): number {
-  const motes = Math.floor((ecology.DETRITUS_MASS_FRACTION * massAtRemoval) / ecology.DETRITUS_MOTE_MASS);
-  return ecology.DETRITUS_MOTE_MASS * motes;
-}
+const detritusMassInDish = (view: EvolutionView): number => detritusMass(view, ecology.DETRITUS_MOTE_MASS);
 
 function worldLevelUpAt(tick: number, level: number, stage: (typeof CELL_STAGE)[keyof typeof CELL_STAGE]) {
   return [{ kind: EFFECT_KIND.worldLevelUp, tick, level, stage }];
@@ -125,6 +117,38 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
+  it('G8: the absorption scores, and the prey respawns 180 s later at the entry mass', () => {
+    const afterPayoutTick = E9_PAYOUT_TICK + 1;
+    const respawnTick = E9_PAYOUT_TICK + RESPAWN_TICKS + 1;
+    engulfPair('G8')
+      .advance(respawnTick)
+      .expect('A leads the leaderboard', (view) => view.snapshot.leaderboard[0]?.playerId === view.playerId(0))
+      .atTick(afterPayoutTick)
+      .toBe(true)
+      .expect('score = the DNA base plus the absorption bonus', (view) => view.snapshot.leaderboard[0]?.score)
+      .atTick(afterPayoutTick)
+      .toBe(E9_PAYOUT_DNA + session.SCORE_ABSORPTION_BONUS)
+      .expect('one absorption on the row', (view) => view.snapshot.leaderboard[0]?.absorptions)
+      .atTick(afterPayoutTick)
+      .toBe(1)
+      .expect('B has no cell while it spectates', preyCell)
+      .atTick(afterPayoutTick)
+      .toSatisfy((cell) => cell === undefined, 'no cell')
+      .expect('B spectating A', lifeStateOfPrey)
+      .atTick(afterPayoutTick)
+      .toBe(PLAYER_LIFE_STATE.spectating)
+      .expect('B alive again on tick 36 + 180 + 1', lifeStateOfPrey)
+      .atTick(respawnTick)
+      .toBe(PLAYER_LIFE_STATE.alive)
+      .expect('B respawns at the starting mass (the entry rule floors at it)', (view) => massOf(view, 1))
+      .atTick(respawnTick)
+      .toBe(growth.CELL_STARTING_MASS)
+      .expect("B's level is unchanged", (view) => progressOf(view, 1)?.level)
+      .atTick(respawnTick)
+      .toBe(1)
+      .runDeterministic();
+  });
+
   it('G10: a removed player dissolves into detritus', () => {
     seededSolo('G10')
       .playerLeavesAt(G10_LEAVE_TICK, 0)
@@ -136,7 +160,7 @@ describe('GAME-DESIGN §13: the session', () => {
       .toSatisfy((cell) => cell === undefined, 'no cell')
       .expect(
         'detritus mass equals the rounded share of the mass at removal',
-        (view) => detritusMass(view) === expectedDetritusMass(view.captured('mass at removal') as number),
+        (view) => detritusMassInDish(view) === expectedDetritusMass(view.captured('mass at removal') as number),
       )
       .atEnd()
       .toBe(true)

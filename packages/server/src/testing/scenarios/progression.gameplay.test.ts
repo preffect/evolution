@@ -1,7 +1,7 @@
-// docs/PROGRESSION.md §7: the DNA, level, draft and entry rows that need no engulf, each run twice
-// and hash-compared. P5 and P11 (an absorption) wait for the engulf slice of #98. The pure rows
-// are pinned beside their functions: P4, P9, P12 and P14 in game/progression/draft.test.ts, P13 in
-// game/progression/ladder.test.ts.
+// docs/PROGRESSION.md §7: the DNA, level, draft and entry rows that need no absorption, each run
+// twice and hash-compared. P5 and P11 (an absorption) are progression-absorption.gameplay.test.ts;
+// the pure rows are pinned beside their functions: P4, P9, P12 and P14 in
+// game/progression/draft.test.ts, P13 in game/progression/ladder.test.ts.
 
 import { describe, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, DNA_TAG, TICK_HZ, type TraitId } from '@evolution/shared';
