@@ -23,6 +23,7 @@ import { CellLayer } from './cell-layer';
 import type { CellLayerFrame } from './cell-layer-frame';
 import type { CellPassMesh } from './cell-mesh';
 import { CELL_UNIFORM, CELL_UNIFORM_GROUP } from './cell-shader-source';
+import { REST_OWN_CELL_RING } from './self-ring';
 
 const EXTENT: CameraExtent = { minX: -100, minY: -100, maxX: 100, maxY: 100 };
 /** The level carried alongside the traits: the stage is the server's `stageOf` of the traits, not of the level. */
@@ -41,6 +42,7 @@ function input(overrides: Partial<CellLayerFrame> = {}): CellLayerFrame {
     ownCell: null,
     previewTraitId: null,
     deformations: NO_DEFORMATIONS,
+    ownCellRing: REST_OWN_CELL_RING,
     ...overrides,
   };
 }

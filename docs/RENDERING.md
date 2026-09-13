@@ -124,8 +124,8 @@ ring hugging the outline instead).
 | cilia                         | 1.00 → 1.12, **leaning hairs** of constant px width: `lean = d / r · tan(CILIA_LEAN_DEG 30° + wave)`, `wave = CILIA_WAVE_AMPLITUDE_DEG 12° · sin(2π θ · CILIA_WAVE_COUNT − 2π f t)`, `θ_h = θ − lean` (the wave modulates the lean angle, so hairs stay rooted at d = 0), `s = fract(N θ_h / 2π)`, mask `abs(s − 0.5) · 2π ‖p‖ / N < CILIA_WIDTH_PX / 2` (1.2 px, fwidth-antialiased)                   | `CILIA` @75 % × `(1 − d / 0.12 r)` (fade to the tip); N 24 / 36 / 48; `f` = `CILIA_BEAT_HZ` 2.0 while moving, `CILIA_BEAT_IDLE_HZ` 0.5 at rest; hairs stay rooted, the beat is a travelling wave of the lean (sheet 04 fringe: 1.2 px lines leaning 30°, metachronal wave). `CILIA_WAVE_COUNT` 3, `CILIA_WAVE_AMPLITUDE_DEG` 12, `CILIA_BEAT_HZ` 2.0, `CILIA_BEAT_IDLE_HZ` 0.5 are new (no sheet number; graphics-designer accepted). Mid: flat band @40 %                                              | B    | ≥ mid                             |
 | glint                         | ellipse 0.22 × 0.08 r at `GLINT_OFFSET_RADII` 0.74 along `GLINT_ANGLE_DEG` −132°, rotated −40°, edge 1.5 px, undeformed frame like the pools                                                                                                                                                                                                                                                            | `WHITE` @50 % (sheet 01 panel A `<ellipse cx=246 cy=245.6 rx=28.2 ry=10.2>`: just inside the membrane, clear of the nucleus disc, which reaches 0.42 r; the nucleus's own highlight at 0.34 r / −136° lives in the baked nucleus sprite, §3)                                                                                                                                                                                                                                                            | B    | ≥ mid                             |
 | seat mark                     | beads centred on `d = 0`, `SEAT_MARK_BEADS[avatarIndex]` from `SEAT_MARK_ANCHOR_DEG`; radius `SEAT_MARK_BEAD_RADIUS_FRACTION` with the `SEAT_MARK_BEAD_MIN_PX` floor (a `d`-band, so beads sit on the deformed outline)                                                                                                                                                                                 | core, halo and alphas: VISUAL-STYLE §2                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | B    | ≥ mid, snaps (§5)                 |
-| self ring                     | undeformed `‖p‖ = SELF_RING_RADIUS_FRACTION × r` with the `SELF_RING_MIN_PX` floor; width, dash and rotation from the same VISUAL-STYLE §2 constants                                                                                                                                                                                                                                                    | `SELF_RING` (VISUAL-STYLE §2); own cell only                                                                                                                                                                                                                                                                                                                                                                                                                                                            | B    | ≥ mid, snaps (§5)                 |
-| engulf warning ring           | undeformed `‖p‖ = warningRingPx` (the instance value: `ENGULF_WARNING_RING_RADII × r_px` with the `ENGULF_WARNING_RING_MIN_PX` floor, VISUAL-STYLE §5); dash and rotation from the same constants; stroke `WARNING_RING_STROKE_PX` 2 (new)                                                                                                                                                              | `DANGER` (VISUAL-STYLE §5, `canEngulf`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | B    | ≥ mid, snaps (§5)                 |
+| self ring                     | undeformed `‖p‖ = SELF_RING_RADIUS_FRACTION × r` with the `SELF_RING_MIN_PX` floor; width, dash and rotation from the same VISUAL-STYLE §2 constants; drawn as the **sprint ring** (`UI.md §3.1.2`, §10): recharged from 12 o'clock clockwise to `selfRingFill` turns (`fract(θ / 2π + TWELVE_O_CLOCK_TURNS)`, `cells/self-ring.ts`), the remainder a track, the arc's end feathered over 1 px          | `WHITE` (VISUAL-STYLE §2's `SELF_RING`): the recharged arc at `selfRingBrightness` (`SELF_RING_ALPHA` 0.70, the `sprint_ready` clip's 0.95 peak) × `rimBrightness` (1.2 while sprinting), capped at 1; the track at `SELF_RING_TRACK_ALPHA` (`UI.md §9`); own cell only                                                                                                                                                                                                                                 | B    | ≥ mid, snaps (§5)                 |
+| engulf warning ring           | undeformed `‖p‖ = warningRingPx` (the instance value: `ENGULF_WARNING_RING_RADII × r_px` with the `ENGULF_WARNING_RING_MIN_PX` floor, VISUAL-STYLE §5); dash and rotation from the same constants; stroke `WARNING_RING_STROKE_PX` 2 (new); packed as 0 on the escaping predator once the escape arc draws (§10)                                                                                        | `DANGER` (VISUAL-STYLE §5, `canEngulf`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | B    | ≥ mid, snaps (§5)                 |
 | prey under film               | pass B alpha × 0.62 while `engulfedByCellId` is set                                                                                                                                                                                                                                                                                                                                                     | VISUAL-STYLE §6 "prey through film"                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | B    | ≥ mid                             |
 
 Layer-major order (all bodies, then all organelles, then all membranes) is what makes the prey's rim show
@@ -142,7 +142,7 @@ layout (a texture row also has no 16-`vec4` attribute cap to budget against). **
 program is `#version 300 es`, the instance texture is RGBA32F read with `texelFetch` (nearest; linear on a float
 texture would need `OES_texture_float_linear`), and there is no WebGL1 path, so a context that falls back to
 WebGL1 fails at program compile and `RenderSession` rejects. The table holds `CELL_INSTANCE_CAPACITY` (512)
-rows and is re-uploaded whole once per frame (`capacity × CELL_INSTANCE_TEXELS × 16 B` ≈ 131 KB at 16 texels); past the
+rows and is re-uploaded whole once per frame (`capacity × CELL_INSTANCE_TEXELS × 16 B` ≈ 139 KB at 17 texels, 272 B a row; the sprint ring's texel added 16 B a row, ≈ 8 KB at capacity, #295); past the
 capacity the layer drops the **smallest** cells (the sort is radius ascending and it packs from the large end),
 a rule the bounds today (8 players + 24 wild cells + ghosts; the bench's 100) never reach. Scalars, in texel
 order: centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`,
@@ -158,8 +158,12 @@ never grows for an undrawn ring, #243), `formId` (`FORM_ID`, §2.4), `passBAlpha
 (the beat's phase in turns, integrated by the render state at `CILIA_BEAT_HZ` moving / `CILIA_BEAT_IDLE_HZ` at
 rest so the rate can change without a jump), `nucleusDiscRadii` (#231: `NUCLEUS_RADIUS` when the cell has a
 nucleus, 0 for a nucleoid or protocell) and `speckleSeed` (#243: the third draw from the cell's cosmetic fork after
-the phase and the strip row, the ribosome speckle's hash salt), both in free channels of the last scalar texel so
-the row stays 16 texels. The per-cell deformation sources feed one record,
+the phase and the strip row, the ribosome speckle's hash salt), which fill the tenth scalar texel. That left no
+free scalar channel (ten texels × 4) and the eight bump slots fill six texels exactly, so the sprint ring (#295, §10)
+takes an **eleventh scalar texel** and the row is **17 texels**: `selfRingFill` (the recharged share of the own cell's
+self ring, clockwise from 12 o'clock; 1 on every other cell) and `selfRingBrightness` (the recharged arc's alpha:
+`SELF_RING_ALPHA`, or the `sprint_ready` clip's track while it plays; the rest value elsewhere). Its last two
+channels are free, and the next field takes one of them before it takes a texel. The per-cell deformation sources feed one record,
 `cells/cell-deformation.ts` `CellDeformation { bumps, pulse, alpha }`, resolved by cell id from the frame's map
 (`REST_DEFORMATION` for every cell without an entry); the render state then appends the cell's contact dent
 (`cells/contact-dents.ts`, dropped while the cell is engulfing, σ 14° when taut) and the seal it owes a ghost.
@@ -244,7 +248,7 @@ glow and the toxin bladder's `TOXIN_GLOW` are baked the same way.
   at `NUCLEUS_RAMP_ALPHA` (the instance alpha is `main`'s one multiply over the whole pass, so no band
   applies it twice); it takes no `lodBlend` (it is the §5 stage tell's disc through the mid band) and the far dot has
   already returned. The sprite draws over it with its disc fill removed. **Cost:** one
-  instance float in a free channel (§2.3, still 16 texels), two `SHADE_*` defines the shader already has the
+  instance float in what was then a free channel (§2.3; the row stayed 16 texels until the sprint ring, #295), two `SHADE_*` defines the shader already has the
   columns for (`PALETTE_SHADE.nucleus`, `.nucleusDark`), one distance, two `mix`es and one `smoothstep` per
   fragment inside the quad, and no new texture; the sprite layer stays at eight textures. **How it reads:**
   VISUAL-STYLE §3 (44 px: the pale-to-dark turn spans the 13 px disc; 140 px: an analytic gradient past panel A's
@@ -575,6 +579,7 @@ textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicator
 textures/{indicator-atlas,indicator-textures,bitmap-fonts,mote-textures}.ts   the indicator bakes keyed as `orbit-layout` hands them over, packed on one source with the pill and the fonts beside it; the `value` / `label` BitmapFont installs; the mote atlas's textures (#294)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
+cells/self-ring.ts                                 the sprint ring's input to the cell layer, its clockwise-from-12 arc coordinate (the GLSL's reference) and the escape's warning-ring rule (§10, #295)
 cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-tells,cell-shader-membrane}.ts   GLSL as template strings: the two stages, the shared helpers, the profile, pass A (with the interior tells), the pass-B tells (wall, cilia, warning ring, rim dash), pass B (#215, #216)
 cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t (dents: #216)
 cells/{cell-clips,cell-effects,ghost-cells,ghost-instance}.ts  the clip hooks (tracks → deformation), effects → clip starts and ghosts, the absorbed-prey ghosts and their instance rows (#216; #207 drives the first two)
@@ -586,6 +591,7 @@ effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
 effects/own-cell-indicators.ts                      the own cell's sprite placements from the HUD record, at the top of that chain (§10, #187)
+effects/own-cell-ring.ts                           the sprint ring per frame: the fill, the `sprint_ready` brighten on reaching ready, the escape's predator (§10, #295)
 effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
@@ -612,8 +618,11 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   0.5 %, the sheet-04 aspects, diatom terms all zero); `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, every sprite body inside the membrane, the
   toxin bladder on the keep-out ring (#243), outside the nucleus disc, gap held, append-only across tiers, seeded); `ghost-instance.spec.ts` (the ghost's sprites at the rest slots mapped through its own profile, the shader's
   nucleus disc anchored on the mapped nucleus sprite, none below the far threshold; `cell-layer.spec.ts` queues them before the predator's at the ghost's alpha and `organelle-sprites.spec.ts` freezes their idle motion, #243); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
-  on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `cell-instance.spec.ts` (the §2.3 row stays sixteen texels and
-  `nucleusDiscRadii` and `speckleSeed` sit in the last scalar texel), `cell-shader.spec.ts` (every field read from its column, the speckle salt
+  on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `cell-instance.spec.ts` (the §2.3 row is seventeen texels, 272 B a cell,
+  `nucleusDiscRadii` and `speckleSeed` in the tenth scalar texel and the sprint ring alone in the eleventh, #295), `self-ring.spec.ts` (the arc
+  coordinate at 12 / 3 / 6 / 9 o'clock in the y-down frame, the escape rule), `own-cell-ring.spec.ts` (the fill through
+  `sprintFillFor`, a full ring while sprinting, `sprint_ready` on reaching ready and never on a first frame or a
+  respawn), `cell-shader.spec.ts` (every field read from its column, the sprint ring's turn, track and brightness, the speckle salt
   is the cell's seed, the filament and cilia masks are ±0.5 px `band`s, the wall band's tier-I reading 1.05 → 1.1175 / 1.0875, the
   `SHADE_NUCLEUS` / `SHADE_NUCLEUS_DARK` defines, the nucleus ramp band's stops, `frame.aa` edge, zero-radius return
   and place at the end of pass A, no `lodBlend`), `cell-instance-builder.spec.ts` (`nucleusDiscRadii` = `NUCLEUS_RADIUS`
@@ -635,7 +644,10 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   render texture, walk 36 rays, boundary within 1 px of `radial-profile`; on the engulf wrap frame the rim-light
   band measured along the outline normal is 5 % r ± 1 px at every one of the 36 rays, arm flanks included
   (the perpendicular-distance check); draw-call count ≤ 17 on the bench scene; `renderStagesMs` populated; the
-  ghost instance appears on `cell_absorbed` and leaves at 600 ms. The client's vitest tier runs under jsdom with
+  ghost instance appears on `cell_absorbed` and leaves at 600 ms; `own-cell-ring.integration.spec.ts` takes the own
+  view's cooldown through the renderer to the packed `selfRingFill` and `selfRingBrightness`, and keeps every warning
+  ring, the escaping predator's included, while `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE` is off (#295; the unit specs cover
+  both switch states). The client's vitest tier runs under jsdom with
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
   `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
   seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
@@ -681,7 +693,8 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   worst case being a prokaryote with both counters unlocked and a threat on screen: two ghosts, two pip blocks and
   the label pill = 5 sprites; the DNA track and fill, two backings and two unlock rings = 6 arc rows
   (`ARC_INSTANCE_CAPACITY` 8) in one call; the numeral and the label = 2 texts (the escape track and arc replace the
-  orbit and hide the label, so they never add to this).
+  orbit and hide the label, so they never add to this). The self ring's track and arc cost neither a sprite nor an
+  arc row: the cell shader draws them (Sprint state, below).
 - **Floors.** `dnaRingRadiusPx` and `ladderOrbitRadiusPx` (`effects/own-cell-geometry.ts`) and `orbitLayout` (`effects/orbit-layout.ts`), all pure, apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md §3.1.3's geometry
   table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA
@@ -694,15 +707,24 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
 - **Clips.** The ring and numeral flash is the `level_up` clip's `ringFlash` track and the sprint-ready brighten is
   the `sprint_ready` clip (§4), both played by `motion-clip-player.ts` off `renderTick` like every other clip; the
   DNA fill tweens at `INDICATOR_FILL_TWEEN_MS`. No indicator reads `serverTickEstimate`.
-- **Sprint state.** The self-ring band (§2.2) is drawn as a track plus an arc of `sprintFill`: the instance's spare
-  float (§2.3) becomes `selfRingFill`, 1 for every cell but the own one; the track is the same band at
-  `SELF_RING_TRACK_ALPHA`.
+- **Sprint state.** The self-ring band (§2.2) is drawn as a track plus an arc of `sprintFill` in the cell shader,
+  not as effect sprites: `selfRingFill` and `selfRingBrightness` take the row's eleventh scalar texel (§2.3, #295; the
+  row had no spare channel), both at their rest values on every cell but the own one; the track is the same dashed band at
+  `SELF_RING_TRACK_ALPHA`. `effects/own-cell-ring.ts` resolves them per frame: a full ring while sprinting, the
+  record's fill otherwise, and the `sprint_ready` clip's `selfRingBrightness` track from the frame the fill reaches
+  ready (never on a cell's first frame, so a respawn does not flash). Until the renderer receives the record (#187), the source is read off
+  the own view through the record's own `sprintFillFor`.
 - **Keep-out.** `cells/organelle-layout.ts` rejects `|q| < DNA_RING_KEEP_OUT_FRACTION` in addition to the nucleus
   disc, for every cell (one rule, no own-cell branch, §3); the fraction is set from the floored ring so the rule
   holds from 31 px up (`UI.md §3.1.3`), and below that the ring's track backs it.
 - **Escape arc.** Drawn from `escape.fill` and `escape.phase` as UI.md §3.1.2 says (draining window, then solid);
-  the pass-B warning ring of §2.2 is suppressed on the cell whose id is `escape.predatorCellId` while the record
-  carries an escape, and on no other cell.
+  the pass-B warning ring of §2.2 is suppressed on the cell whose id is `escape.predatorCellId` while the arc shows,
+  and on no other cell. The render state packs that cell's `warningRingPx` as 0 (`cells/self-ring.ts`
+  `isWarningRingHidden`), so its quad also drops back to the ringless extent; no instance channel is spent on it.
+  **Interim state (until #187 draws the arc):** the suppression is gated on one switch,
+  `effects/own-cell-ring.ts` `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE`, which is **off**. So an own cell being engulfed
+  still sees its predator's warning ring, and is never left without a danger tell. The PR that draws the escape
+  arc turns the switch on.
 - **Threat label.** `threat-label-placement.ts` (pure): the pill's centre is the warning ring's radius plus
   `THREAT_LABEL_GAP_PX` plus half the pill's height from the threat's centre **toward the own cell's centre**; if
   that pill's box intersects the disc of the own cell's orbit extent (`UI.md §3.1.3`) the centre flips to the far

@@ -77,6 +77,7 @@ struct Instance {
   float ciliaCount; float wallScale; float speckleDensity; float filamentCount;
   float tintMix; float warningRingPx; float formId; float passBAlpha;
   float rimDash; float ciliaPhase; float nucleusDiscRadii; float speckleSeed;
+  float selfRingFill; float selfRingBrightness;
 };
 
 Instance readInstance() {
@@ -101,6 +102,7 @@ Instance readInstance() {
   inst.formId = ${instanceRead('formId')}; inst.passBAlpha = ${instanceRead('passBAlpha')};
   inst.rimDash = ${instanceRead('rimDash')}; inst.ciliaPhase = ${instanceRead('ciliaPhase')};
   inst.nucleusDiscRadii = ${instanceRead('nucleusDiscRadii')}; inst.speckleSeed = ${instanceRead('speckleSeed')};
+  inst.selfRingFill = ${instanceRead('selfRingFill')}; inst.selfRingBrightness = ${instanceRead('selfRingBrightness')};
   return inst;
 }
 
