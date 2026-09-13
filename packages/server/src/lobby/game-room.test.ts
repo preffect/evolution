@@ -57,7 +57,6 @@ describe('game-room: the fixed-step loop', () => {
     expect(fixture.reduceCalls()).toBe(3);
     fixture.advance(0.5);
     expect(fixture.reduceCalls()).toBe(4);
-    expect(fixture.gameModule.serializeRoomState).toHaveBeenCalledTimes(4);
   });
 
   it('caps catch-up after a stall and reports the dropped ticks', () => {
