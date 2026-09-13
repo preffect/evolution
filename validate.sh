@@ -519,6 +519,21 @@ run_tests() { # <test | integration> <extra args...>
     fi
     rc=1
   fi
+  if [[ "$cmd" == test && -z "$SCOPE_ARG" && $# -eq 0 ]]; then
+    run_script_suites || rc=1
+  fi
+  return $rc
+}
+
+# The tooling's own shell suites (scripts/*.test.sh: this script's cache, run.sh, the deploy watcher)
+# run with an unscoped test phase; they test no package, so a scoped or targeted run skips them.
+run_script_suites() {
+  local suite rc=0
+  for suite in "$SCRIPT_DIR"/scripts/*.test.sh; do
+    [[ -e "$suite" ]] || continue
+    echo "=== ${suite#"$SCRIPT_DIR"/} ==="
+    "$suite" 2>&1 || rc=1
+  done
   return $rc
 }
 

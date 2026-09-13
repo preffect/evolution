@@ -108,6 +108,10 @@ status.
    author runs `all` when the PR is ready for review and after the last commit; reviewers and the
    lead look the stamp up and run nothing (`docs/ENGINEERING.md` §1).
    The author never merges their own PR when a reviewer role exists.
+6. **After merge** the human's running game redeploys itself within a minute (the deploy watcher
+   `./run.sh` starts in `/workspace`); the lead checks `.game-logs/deploy.log` and tells the human to hard-refresh.
+   A stack running without a watcher (started before #291, or with `--no-deploy-watch`) is brought
+   up to date with one `scripts/deploy-main.sh`, which restarts it with the watcher.
 
 **Review rounds** (#224, template #76). Round one runs **in parallel**: every reviewer named on the PR is spawned
 at once (within the account's agent cap; if the cap is two and a builder is running, the reviewers
@@ -147,5 +151,6 @@ Graphics PRs attach before/after screenshots; gameplay PRs list the balance valu
 | `scripts/land-pr.sh`             | host/cont | `land-pr.sh <PR> [--reviewers "roles"]` — reviewer roles review, engineer fixes, re-review, then auto-merge (`docs/TEAM.md`).                                             |
 | `scripts/resume-in-container.sh` | host/cont | Copy a Claude Code transcript under the other side's project key so `claude --resume <id>` continues the same conversation inside the devcontainer (or back on the host). |
 | `scripts/sync-from-template.sh`  | host/cont | Pull template-owned files (scripts, devcontainer, process docs) from `base-multiplayer-game` into this game, re-applying its identity; land the diff via a PR.            |
+| `scripts/deploy-main.sh`         | cont      | Redeploy the running stack from `origin/main` (once, or `--watch` as `./run.sh` starts it); refuses dirty checkouts, logs to `.game-logs/deploy.log`.                     |
 
 `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).
