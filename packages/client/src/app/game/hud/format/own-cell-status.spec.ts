@@ -190,6 +190,24 @@ describe('shouldAnnounce', () => {
     expect(shouldAnnounce(justUnder.announceKey, nextStep)).toBe(true);
   });
 
+  it('speaks again when a different predator becomes the nearest, since the sentence names it', () => {
+    // The regression this pins (#282 review): the key recorded only that *a* threat existed, so a
+    // swap left `data-threat` pointing at one cell while the spoken line still named another.
+    const near = (id: string, name: string): ReturnType<typeof formatOwnCellStatus> =>
+      formatOwnCellStatus(
+        indicatorsWith(createTestCellView(), createTestPlayerProgressView(), [
+          { cellId: entityId(id), name, distanceSquared: 1 },
+        ]),
+      );
+    const first = near('hunter-a', 'Bot 1');
+    const second = near('hunter-b', 'Bot 2');
+    expect(first.text).toContain('Bot 1 can engulf you');
+    expect(second.text).toContain('Bot 2 can engulf you');
+    expect(shouldAnnounce(first.announceKey, second)).toBe(true);
+    // The same predator staying nearest must not re-speak.
+    expect(shouldAnnounce(first.announceKey, near('hunter-a', 'Bot 1'))).toBe(false);
+  });
+
   it('speaks on a level change, a counter change, a threat and a phase change', () => {
     const base = statusAtDna(0);
     const levelled = formatOwnCellStatus(

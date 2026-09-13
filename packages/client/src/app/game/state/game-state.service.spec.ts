@@ -130,6 +130,29 @@ describe('GameStateService', () => {
     expect(gameState.ownCellIndicators()?.nearestThreat?.cellId).toBe(predator.id);
   });
 
+  it('treats an identical camera rectangle as no change, so a still camera stops the cascade', () => {
+    // The regression this pins (#282 review): `cameraExtent(...)` allocates a fresh object every
+    // frame, so with the default `Object.is` a motionless camera re-ran `threatsFor`, rebuilt the
+    // record and dirtied the HUD sixty times a second. Identity of the derived value is the proof
+    // that nothing downstream recomputed.
+    multiplayer.playerId.set(OWN_PLAYER_ID);
+    multiplayer.balance.set(DEFAULT_BALANCE);
+    multiplayer.snapshot.set(
+      createTestSnapshot({
+        cells: [createTestCellView({ playerId: OWN_PLAYER_ID })],
+        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) },
+      }),
+    );
+    gameState.setCameraExtent({ minX: -500, minY: -500, maxX: 500, maxY: 500 });
+    const first = gameState.ownCellIndicators();
+
+    gameState.setCameraExtent({ minX: -500, minY: -500, maxX: 500, maxY: 500 });
+    expect(gameState.ownCellIndicators()).toBe(first);
+
+    gameState.setCameraExtent({ minX: -499, minY: -500, maxX: 500, maxY: 500 });
+    expect(gameState.ownCellIndicators()).not.toBe(first);
+  });
+
   it('mirrors the room’s seats, config and live balance', () => {
     multiplayer.avatarAssignments.set({ [OWN_PLAYER_ID]: 3 });
     multiplayer.sessionConfig.set(createTestSessionConfig({ roundDurationSeconds: 300 }));

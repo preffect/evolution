@@ -84,11 +84,26 @@ describe('OwnCellStatusComponent', () => {
     expect(mirror()?.getAttribute('data-ladder')).toBe('counters');
   });
 
+  // Documentation rather than a guard: mass is not in the sentence, so this holds whether the
+  // announce rule works or not. code-qa proved it by defeating the rule and leaving the suite
+  // green. The test below it is the one that fails on a broken component (#282 review).
   it('holds its sentence while only the mass drifts, so aria-live does not chatter', () => {
     show({ mass: 20 });
     const spoken = mirror()?.textContent?.trim();
     show({ mass: 320 });
     expect(mirror()?.getAttribute('data-mass')).toBe('320');
+    expect(mirror()?.textContent?.trim()).toBe(spoken);
+  });
+
+  it('holds its sentence while DNA climbs inside one announce step', () => {
+    const cost = levelUpCost(1, DEFAULT_BALANCE.progression);
+    show({}, { level: 1, dnaTowardNextLevel: cost * 0.04 });
+    const spoken = mirror()?.textContent?.trim();
+    expect(spoken).toContain('DNA 4 %');
+    show({}, { level: 1, dnaTowardNextLevel: cost * 0.2 });
+    // The attribute moves every snapshot; the sentence must not, because 4 % and 20 % are the
+    // same STATUS_ANNOUNCE_DNA_STEP_PERCENT step and aria-live has nothing new to say.
+    expect(mirror()?.getAttribute('data-dna-percent')).toBe('20');
     expect(mirror()?.textContent?.trim()).toBe(spoken);
   });
 

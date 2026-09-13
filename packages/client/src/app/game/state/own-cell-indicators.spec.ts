@@ -68,6 +68,20 @@ describe('ladderFor', () => {
     expect(photosynthetic).toMatchObject({ eaten: 1, isUnlocked: false });
   });
 
+  it('tops the tally out at the requirement, because the orbit has no eleventh pip', () => {
+    // The regression this pins (#282 review): a counter stays up until the trait is *picked*, so
+    // the raw tally kept climbing while the player was still at the vent — `12/10` in the mirror,
+    // a number §3.1.2's two rows of five cannot draw, and a fresh announce on every bacterium.
+    const ladder = ladderFor(
+      CELL_STAGE.prokaryote,
+      NO_TRAITS,
+      eaten({ aerobic: ENDOSYMBIOSIS_BACTERIA_REQUIRED + 2 }),
+      null,
+    );
+    if (ladder.kind !== LADDER_KIND.counters) throw new Error('expected counters');
+    expect(ladder.counters[0]).toMatchObject({ eaten: ENDOSYMBIOSIS_BACTERIA_REQUIRED, isUnlocked: true });
+  });
+
   it('marks a counter unlocked at the requirement, so the player is told to go and pick it', () => {
     const ladder = ladderFor(
       CELL_STAGE.prokaryote,

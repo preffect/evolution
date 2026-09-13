@@ -11,6 +11,7 @@
 import { BACTERIUM_VARIANT, TRAIT_CATALOG, type BacteriumVariant, type OwnedTrait } from '@evolution/shared';
 import { ENGULF_PHASE } from '@evolution/shared';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
+import { READY } from './sprint-fill';
 import { LADDER_KIND, type LadderCounter, type OwnCellIndicators } from '../../state/own-cell-indicators';
 
 const PERCENT = 100;
@@ -21,7 +22,11 @@ export const SPRINT_STATUS = { ready: 'ready', cooling: 'cooling', sprinting: 's
 /** `ghost:<silhouette>`, `counters` or `none`: what the ladder orbit is showing. */
 export const LADDER_STATUS_NONE = 'none';
 
-/** The counters the mirror exposes by name, so a test can read `data-aerobic` without a lookup. */
+/**
+ * The counters the mirror exposes by name, so a test can read `data-aerobic` without a lookup.
+ * `plain` is here only to keep the record total — no trait's `unlockedBy` names it, so no counter
+ * is ever built for it and `data-plain` cannot reach the DOM.
+ */
 export const COUNTER_ATTRIBUTE_BY_VARIANT: Readonly<Record<BacteriumVariant, string>> = {
   [BACTERIUM_VARIANT.plain]: 'data-plain',
   [BACTERIUM_VARIANT.aerobic]: 'data-aerobic',
@@ -48,7 +53,7 @@ export function dnaPercentOf(dnaFraction: number): number {
 
 function sprintStatusOf(indicators: OwnCellIndicators): string {
   if (indicators.isSprinting) return SPRINT_STATUS.sprinting;
-  return indicators.sprintFill >= 1 ? SPRINT_STATUS.ready : SPRINT_STATUS.cooling;
+  return indicators.sprintFill >= READY ? SPRINT_STATUS.ready : SPRINT_STATUS.cooling;
 }
 
 function ladderStatusOf(indicators: OwnCellIndicators): string {
@@ -99,8 +104,8 @@ function statusTextOf(indicators: OwnCellIndicators): string {
 /**
  * What a change has to move before the mirror speaks again (docs/UI.md §3.1.4): the level, the DNA
  * percent **quantised to `STATUS_ANNOUNCE_DNA_STEP_PERCENT`**, each counter, the sprint word, the
- * engulf phase and whether a threat is present. Mass and the raw percent are deliberately absent:
- * they move every snapshot, and announcing them would drown everything worth hearing.
+ * engulf phase and which cell is the nearest threat. Mass and the raw percent are deliberately
+ * absent: they move every snapshot, and announcing them would drown everything worth hearing.
  */
 function announceKeyOf(indicators: OwnCellIndicators): string {
   const dnaStep = Math.floor(dnaPercentOf(indicators.dnaFraction) / STATUS_ANNOUNCE_DNA_STEP_PERCENT);
@@ -113,7 +118,11 @@ function announceKeyOf(indicators: OwnCellIndicators): string {
     counters,
     sprintStatusOf(indicators),
     indicators.escape?.phase ?? '',
-    indicators.nearestThreat === null ? '' : 'threat',
+    // The threat's **identity**, not its presence: the sentence names the predator, so a swap of
+    // which one is nearest has to rewrite it. Keying on presence alone leaves `data-threat`
+    // pointing at one cell while the spoken line still names another, for as long as any threat
+    // is on screen. It cannot chatter — the nearest threat is stable frame to frame.
+    indicators.nearestThreat?.cellId ?? '',
   ].join('|');
 }
 

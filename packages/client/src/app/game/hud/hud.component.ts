@@ -43,7 +43,8 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
     }
     <app-round-timer />
     <!-- Not phase-gated: the mirror stands down on its own when there is no own cell to mirror,
-         and a screen-reader user is owed the final state rather than sudden silence (§3.1.4). -->
+         so the results phase does not need to gate it. It does unmount on death, which announces
+         nothing; speaking the death is #189's, with the death overlay. -->
     <app-own-cell-status />
   `,
   host: {

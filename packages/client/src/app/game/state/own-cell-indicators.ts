@@ -11,7 +11,6 @@
 import {
   CELL_STAGE,
   CELL_STATE,
-  ENDOSYMBIOSIS_BACTERIA_REQUIRED,
   STAGE_GATE_TRAITS,
   STAGE_ORDER,
   TRAIT_CATALOG,
@@ -139,17 +138,27 @@ function endosymbiosisCounters(
       // Every endosymbiont in the gate has an `unlockedBy`; a future one that does not simply has
       // no tally to show, which is a missing counter rather than a wrong one.
       if (unlock === undefined) return [];
-      const eaten = bacteriaEatenByVariant[unlock.bacteriumVariant];
+      // No angle for this variant means the orbit has nowhere to put it; falling back to the lone
+      // ghost's 180 would stack two counters on one spot with every constant still reading right.
+      // Dropping it is the same treatment as the missing `unlockedBy` above: a missing counter.
       const angleDeg = ORBIT_ANGLE_BY_VARIANT[unlock.bacteriumVariant];
+      if (angleDeg === undefined) return [];
+      // A counter stays on the orbit until the trait is *picked*, not when it unlocks, so the raw
+      // tally keeps climbing while the player is still at the vent. Clamp here rather than in the
+      // display string: §3.1.2 draws exactly `required` pips in rows of five, so an unclamped
+      // number is one the drawing side (#187) has no geometry for, and this record exists so the
+      // two consumers cannot disagree. `isUnlocked` still reads the raw count, so topping out at
+      // `10/10` does not lose the fact that the requirement is met.
+      const rawEaten = bacteriaEatenByVariant[unlock.bacteriumVariant];
       return [
         {
           traitId: trait.id,
           variant: unlock.bacteriumVariant,
-          eaten,
+          eaten: Math.min(rawEaten, unlock.count),
           required: unlock.count,
-          angleDeg: angleDeg ?? LADDER_ORBIT_ANGLE_SINGLE_DEG,
+          angleDeg,
           isGhostHidden: previewTraitId === trait.id,
-          isUnlocked: eaten >= unlock.count,
+          isUnlocked: rawEaten >= unlock.count,
         },
       ];
     });
@@ -180,9 +189,14 @@ export function ladderFor(
     : { kind: LADDER_KIND.ghost, silhouette, angleDeg: LADDER_ORBIT_ANGLE_SINGLE_DEG };
 }
 
+/** The top of the ladder: one predicate, because two copies of it is how they drift (§3 standards). */
+export function isAtMaxLevel(progress: PlayerProgressView, balance: BalanceConfig): boolean {
+  return progress.level >= balance.progression.MAX_LEVEL;
+}
+
 /** 0..1 toward the next level; 1 at `MAX_LEVEL`, where there is no next cost to be a fraction of. */
 export function dnaFractionFor(progress: PlayerProgressView, balance: BalanceConfig): number {
-  if (progress.level >= balance.progression.MAX_LEVEL) return FULL;
+  if (isAtMaxLevel(progress, balance)) return FULL;
   const cost = levelUpCost(progress.level, balance.progression);
   return cost <= EMPTY ? FULL : clamp(progress.dnaTowardNextLevel / cost, EMPTY, FULL);
 }
@@ -230,7 +244,7 @@ export function ownCellIndicatorsFor(input: OwnCellIndicatorsInput): OwnCellIndi
   return {
     level: ownProgress.level,
     dnaFraction: dnaFractionFor(ownProgress, balance),
-    isMaxLevel: ownProgress.level >= balance.progression.MAX_LEVEL,
+    isMaxLevel: isAtMaxLevel(ownProgress, balance),
     ladder: ladderFor(ownCell.stage, ownCell.traits, ownProgress.bacteriaEatenByVariant, previewTraitId),
     sprintFill: sprintFillFor(ownCell, balance.controls),
     isSprinting: ownCell.sprintRemainingTicks > EMPTY,
@@ -241,6 +255,3 @@ export function ownCellIndicatorsFor(input: OwnCellIndicatorsInput): OwnCellIndi
     bacteriaEatenByVariant: ownProgress.bacteriaEatenByVariant,
   };
 }
-
-/** `ENDOSYMBIOSIS_BACTERIA_REQUIRED` re-exported so a consumer need not reach past this record. */
-export { ENDOSYMBIOSIS_BACTERIA_REQUIRED };

@@ -32,6 +32,15 @@ const NO_THREATS: readonly Threat[] = [];
 /** Until the picker lands (#188) nothing is ever previewed, so the ladder's ghost never hides. */
 const NO_PREVIEWED_TRAIT: TraitId | null = null;
 
+/** Two extents that describe the same rectangle; a fresh object per frame is not a new view. */
+function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | null): boolean {
+  if (first === second) return true;
+  if (first === null || second === null) return false;
+  return (
+    first.minX === second.minX && first.maxX === second.maxX && first.minY === second.minY && first.maxY === second.maxY
+  );
+}
+
 @Injectable({ providedIn: 'root' })
 export class GameStateService {
   private readonly multiplayer = inject(MultiplayerService);
@@ -80,7 +89,17 @@ export class GameStateService {
     return this.cells().find((cell) => cell.playerId === id) ?? null;
   });
 
-  private readonly cameraExtentValue = signal<CameraExtent | null>(null);
+  /**
+   * By value, not by identity. `cameraExtent(...)` allocates a fresh object every frame, and the
+   * render loop writes one every frame, so the default `Object.is` would notify 60 times a second
+   * with a still camera — re-running `threatsFor` (a pass over every cell plus a sort), rebuilding
+   * the whole record and the mirror's attributes, and dirtying the OnPush HUD each time. Before
+   * this signal existed that chain ran once per snapshot, and #187 adds a second consumer of it.
+   *
+   * A moving camera still changes the extent every frame and still cascades; that is a real cost
+   * and is #187's to measure, with the renderer's own budget in front of it.
+   */
+  private readonly cameraExtentValue = signal<CameraExtent | null>(null, { equal: isSameCameraExtent });
 
   /**
    * The camera's world rectangle, written by the render loop each frame through `game-setup.ts`
@@ -121,6 +140,10 @@ export class GameStateService {
     const ownProgress = this.ownProgress();
     const balance = this.balance();
     if (ownCell === null || ownProgress === null || balance === null) return null;
+    // Death lands here: `lifeState` has only `alive` and `spectating`, so dying leaves `alive` and
+    // the record goes `null`. The mirror then unmounts, which is silent — an `aria-live` region
+    // that is removed announces nothing. Saying the death itself is #189's, which owns the death
+    // overlay; this slice does not claim to, and `hud.component.ts` no longer says it does.
     if (ownProgress.lifeState !== PLAYER_LIFE_STATE.alive) return null;
     return ownCellIndicatorsFor({
       ownCell,

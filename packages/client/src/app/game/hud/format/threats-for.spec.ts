@@ -83,6 +83,18 @@ describe('threatsFor', () => {
     expect(threatsFor(inputWith([offScreen]))).toEqual([]);
   });
 
+  it('drops a predator just outside the frame, where the draw-cull margin would have kept it', () => {
+    // The regression this pins (#282 review): the renderer's `isDiscInExtent` passes a cell whose
+    // centre is within the viewport plus two of its own radii, so a big predator whose nearest
+    // edge is a full radius outside the frame counted as "on screen" and got named. There is no
+    // warning ring on screen to anchor the label to, so the player is warned about nothing.
+    const radius = 200;
+    const justOutside = predatorAt('lurker', 0, ON_SCREEN.maxY + radius + 1, { radius });
+    const justInside = predatorAt('looming', 0, ON_SCREEN.maxY + radius - 1, { radius });
+    expect(threatsFor(inputWith([justOutside]))).toEqual([]);
+    expect(threatsFor(inputWith([justInside])).map((threat) => threat.cellId)).toEqual([justInside.id]);
+  });
+
   it('answers empty before the renderer has given us a camera', () => {
     expect(threatsFor(inputWith([predatorAt('big', 10, 0)], null))).toEqual([]);
   });

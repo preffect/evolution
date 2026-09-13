@@ -123,6 +123,22 @@ export function screenToWorld(state: CameraState, viewport: ViewportPx, x: numbe
   return { x: state.x + offset.x, y: state.y + offset.y };
 }
 
+/**
+ * Whether any part of a disc is inside the extent — no margin, so this answers "can the player see
+ * it" rather than "should we draw it". The HUD's threat label anchors to a predator's warning ring
+ * (docs/UI.md §3.1.2, "so it is never off-screen"), and a ring that is not on screen is nothing to
+ * anchor to. `isDiscInExtent` below is the draw-cull and is deliberately generous; do not reach for
+ * it when the question is what the player can actually look at.
+ */
+export function isDiscVisibleInExtent(extent: CameraExtent, x: number, y: number, radiusWu: number): boolean {
+  return (
+    x + radiusWu >= extent.minX &&
+    x - radiusWu <= extent.maxX &&
+    y + radiusWu >= extent.minY &&
+    y - radiusWu <= extent.maxY
+  );
+}
+
 /** Whether a disc of `reachWu` around a centre touches the extent, with the cull margin (RENDERING §6). */
 export function isDiscInExtent(extent: CameraExtent, x: number, y: number, reachWu: number): boolean {
   const margin = reachWu * (1 + CAMERA_CULL_MARGIN_RADII);

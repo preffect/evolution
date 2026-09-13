@@ -5,6 +5,11 @@
 // disagree, Cell Wall included. This file only decides which cells to ask about (the ones inside
 // the camera extent, never ourselves, never a cell already holding us) and what order to answer in
 // (nearest first, so the record's `nearestThreat` is a lookup rather than a second search).
+//
+// "On screen" is `isDiscVisibleInExtent`, **not** the renderer's `isDiscInExtent`: the draw-cull
+// carries a margin of two radii, so a predator whose nearest edge is a full radius outside the
+// frame still passes it. That is right for deciding what to draw and wrong here, because §3.1.2
+// anchors the label to the predator's warning ring and an off-screen ring is nothing to anchor to.
 
 import {
   canEngulf,
@@ -13,7 +18,7 @@ import {
   type EntityId,
   type PlayerProgressView,
 } from '@evolution/shared';
-import { isDiscInExtent, type CameraExtent } from '../../render/camera';
+import { isDiscVisibleInExtent, type CameraExtent } from '../../render/camera';
 
 /** A cell that can engulf the own cell, with the name the label speaks. */
 export interface Threat {
@@ -52,7 +57,7 @@ export function threatsFor(input: ThreatsInput): readonly Threat[] {
   const threats: Threat[] = [];
   for (const cell of cells) {
     if (cell.id === ownCell.id) continue;
-    if (!isDiscInExtent(cameraExtent, cell.x, cell.y, cell.radius)) continue;
+    if (!isDiscVisibleInExtent(cameraExtent, cell.x, cell.y, cell.radius)) continue;
     if (!canEngulf(cell, ownCell, balance.absorption)) continue;
     const deltaX = cell.x - ownCell.x;
     const deltaY = cell.y - ownCell.y;

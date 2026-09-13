@@ -5,9 +5,10 @@
 // There is no client-side estimate: the server's `sprintCooldownRemainingTicks` is the only clock,
 // so a cooldown shortened by a folded trait modifier simply starts partly drawn.
 
-import { secondsToTicks, type BalanceConfig, type CellView } from '@evolution/shared';
+import { clamp, secondsToTicks, type BalanceConfig, type CellView } from '@evolution/shared';
 
-const READY = 1;
+/** A full ring: the sprint is ready. Exported because the status mirror reads the same bound. */
+export const READY = 1;
 const EMPTY = 0;
 
 /** The `balance.controls` rows the fill reads; the room's live copy, so `debug_set_balance` is felt. */
@@ -25,5 +26,5 @@ export function sprintFillFor(cell: SprintFillCell, balance: SprintFillBalance):
   if (remaining <= EMPTY) return READY;
   const cooldownTicks = secondsToTicks(balance.SPRINT_COOLDOWN_SECONDS);
   if (cooldownTicks <= EMPTY) return READY;
-  return Math.min(READY, Math.max(EMPTY, READY - remaining / cooldownTicks));
+  return clamp(READY - remaining / cooldownTicks, EMPTY, READY);
 }

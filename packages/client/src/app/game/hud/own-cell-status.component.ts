@@ -10,6 +10,12 @@
 //
 // Never `display: none` and never `hidden`: both take the element out of the accessibility tree,
 // which is the one thing this element exists to be in.
+//
+// The two counter rows in the template are the only ones `COUNTER_ATTRIBUTE_BY_VARIANT` can ever
+// produce a counter for, since only the aerobic and photosynthetic endosymbionts have an
+// `unlockedBy`. Angular cannot spread an attribute map, so they are written out by hand: a third
+// endosymbiont variant would need a row added here as well as an orbit angle, and the format layer
+// would otherwise be right while the DOM quietly lacked the attribute.
 
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal } from '@angular/core';
 import { GameStateService } from '../state/game-state.service';
@@ -69,7 +75,11 @@ export class OwnCellStatusComponent {
 
   protected readonly testId = HUD_TEST_ID;
 
-  /** `null` while spectating or before the first snapshot: nothing to mirror, so nothing renders. */
+  /**
+   * `null` while spectating, on death and before the first snapshot: nothing to mirror, so nothing
+   * renders. Unmounting a live region is silent, so the death announcement is #189's to make with
+   * the overlay that owns it; this element does not pretend to cover it.
+   */
   protected readonly status = computed<OwnCellStatus | null>(() => {
     const indicators = this.gameState.ownCellIndicators();
     return indicators === null ? null : formatOwnCellStatus(indicators);
