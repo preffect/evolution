@@ -1,5 +1,7 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ROUND_PHASE, createTestSnapshot } from '@evolution/shared';
+import { MultiplayerService } from '../../services/multiplayer.service';
 import { HUD_SCALE_MIN, HUD_REFERENCE_VIEWPORT_HEIGHT_PX, HUD_REFERENCE_VIEWPORT_WIDTH_PX } from './hud-constants';
 import { HudComponent } from './hud.component';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
@@ -22,6 +24,7 @@ function stubHostBox(host: HTMLElement, widthPx: number, heightPx: number): void
 
 describe('HudComponent', () => {
   let fixture: ComponentFixture<HudComponent>;
+  let multiplayer: MultiplayerService;
 
   function host(): HTMLElement {
     return fixture.nativeElement as HTMLElement;
@@ -29,6 +32,7 @@ describe('HudComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [HudComponent] });
+    multiplayer = TestBed.inject(MultiplayerService);
     fixture = TestBed.createComponent(HudComponent);
   });
 
@@ -41,6 +45,19 @@ describe('HudComponent', () => {
     expect(host().dataset['testid']).toBe(HUD_TEST_ID.hud);
     expect(host().querySelector('app-leaderboard-panel')).not.toBeNull();
     expect(host().querySelector('app-round-timer')).not.toBeNull();
+    expect(host().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
+  });
+
+  it('stands the board down for the results phase, and brings it back when a round follows', () => {
+    fixture.detectChanges();
+    expect(host().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
+
+    multiplayer.snapshot.set(createTestSnapshot({ roundPhase: ROUND_PHASE.results }));
+    fixture.detectChanges();
+    expect(host().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).toBeNull();
+
+    multiplayer.snapshot.set(createTestSnapshot({ roundPhase: ROUND_PHASE.playing }));
+    fixture.detectChanges();
     expect(host().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
   });
 

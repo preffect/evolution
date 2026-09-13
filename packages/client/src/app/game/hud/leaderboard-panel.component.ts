@@ -13,26 +13,14 @@ import {
   LEADERBOARD_HEADER_HEIGHT_PX,
   LEADERBOARD_LABEL_ROW_HEIGHT_PX,
   LEADERBOARD_ROW_HEIGHT_PX,
-  LEADERBOARD_SWATCH_BEAD_DIAMETER_PX,
-  LEADERBOARD_SWATCH_DIAMETER_PX,
-  LEADERBOARD_SWATCH_RING_WIDTH_PX,
 } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, leaderboardRowTestId } from './test-ids';
 import { leaderboardEntriesFor, type LeaderboardEntry } from './format/leaderboard-rows';
-import { leaderboardSwatchFor, type LeaderboardSwatch } from './format/leaderboard-swatch';
+import { leaderboardSwatchFor, leaderboardSwatchGeometry, type LeaderboardSwatch } from './format/leaderboard-swatch';
 
-const HALF = 2;
-/** The swatch's own square viewBox, centred on the origin, with room for the beads on the rim. */
-const SWATCH_VIEW_BOX_RADIUS = LEADERBOARD_SWATCH_DIAMETER_PX;
-const SWATCH_BODY_RADIUS = LEADERBOARD_SWATCH_DIAMETER_PX / HALF;
-const SWATCH_BEAD_RADIUS = LEADERBOARD_SWATCH_BEAD_DIAMETER_PX / HALF;
-const SWATCH_VIEW_BOX = [
-  -SWATCH_VIEW_BOX_RADIUS,
-  -SWATCH_VIEW_BOX_RADIUS,
-  SWATCH_VIEW_BOX_RADIUS * HALF,
-  SWATCH_VIEW_BOX_RADIUS * HALF,
-].join(' ');
+/** One user unit is one CSS px here, pinned by `leaderboard-swatch.spec.ts`. */
+const SWATCH = leaderboardSwatchGeometry();
 
 /** One rendered row: the ranking fact plus the seat colours it is drawn in. */
 interface LeaderboardViewRow {
@@ -71,9 +59,9 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
       @if (isFull()) {
         <!-- The full list's three numeric columns carry no unit, so they are labelled (docs/UI.md §3.1.1). -->
         <div class="column-labels" aria-hidden="true">
-          <span class="score">Score</span>
-          <span class="mass">Mass</span>
-          <span class="absorptions">Eaten</span>
+          <span class="label-score">Score</span>
+          <span class="label-mass">Mass</span>
+          <span class="label-absorptions">Eaten</span>
         </div>
       }
       <ol class="rows" [attr.data-testid]="isFull() ? testId.leaderboardFull : null">
@@ -116,10 +104,10 @@ export class LeaderboardPanelComponent {
   private readonly hudState = inject(HudStateService);
 
   protected readonly testId = HUD_TEST_ID;
-  protected readonly swatchViewBox = SWATCH_VIEW_BOX;
-  protected readonly swatchBodyRadius = SWATCH_BODY_RADIUS;
-  protected readonly swatchBeadRadius = SWATCH_BEAD_RADIUS;
-  protected readonly swatchRingWidth = LEADERBOARD_SWATCH_RING_WIDTH_PX;
+  protected readonly swatchViewBox = SWATCH.viewBox;
+  protected readonly swatchBodyRadius = SWATCH.bodyRadius;
+  protected readonly swatchBeadRadius = SWATCH.beadRadius;
+  protected readonly swatchRingWidth = SWATCH.ringWidth;
 
   protected readonly isFull = this.hudState.isFullLeaderboardOpen;
 
@@ -136,7 +124,7 @@ export class LeaderboardPanelComponent {
   protected readonly rows = computed<readonly LeaderboardViewRow[]>(() =>
     this.entries().map((entry) => ({
       entry,
-      swatch: leaderboardSwatchFor(entry.avatarIndex, SWATCH_BODY_RADIUS),
+      swatch: leaderboardSwatchFor(entry.avatarIndex, SWATCH.bodyRadius),
       testId: leaderboardRowTestId(entry.playerId),
     })),
   );

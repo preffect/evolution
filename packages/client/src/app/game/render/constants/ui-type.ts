@@ -17,8 +17,9 @@ export interface UiTypeRole {
 }
 
 /**
- * The nine roles of docs/VISUAL-STYLE.md §7. The HUD names a role, never a px size: `caption`
- * never carries a fact, and `label` at 12 px is the reading floor.
+ * The ten roles of docs/VISUAL-STYLE.md §7. The HUD names a role, never a px size: a role is a
+ * size **and** a face together, and half of one borrowed against half of another is how a type
+ * scale stops being a scale. `caption` never carries a fact, and `label` at 12 px is the floor.
  */
 export const UI_TYPE = {
   number: { px: 28, font: UI_FONT_MONO },
@@ -28,6 +29,8 @@ export const UI_TYPE = {
   value: { px: 20, font: UI_FONT_MONO },
   cardName: { px: 16, font: UI_FONT_SANS },
   body: { px: 14, font: UI_FONT_SANS },
+  /** `body`'s size in the mono face: a changing number inside a dense row, at body weight. */
+  figure: { px: 14, font: UI_FONT_MONO },
   label: { px: 12, font: UI_FONT_SANS },
   caption: { px: 11, font: UI_FONT_SANS },
 } as const satisfies Readonly<Record<string, UiTypeRole>>;

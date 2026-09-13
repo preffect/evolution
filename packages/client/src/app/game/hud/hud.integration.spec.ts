@@ -8,12 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_BALANCE,
   MILLISECONDS_PER_SECOND,
+  ROUND_PHASE,
   SERVER_MESSAGE_TYPE,
   createTestPlayerProgressView,
   createTestSessionConfig,
   createTestSnapshot,
   gameId,
   playerId,
+  type BalanceConfig,
   type GameSnapshot,
   type LeaderboardRow,
   type ServerMessage,
@@ -46,6 +48,13 @@ function gameStateMessage(rows: LeaderboardRow[], secondsLeft: number): ServerMe
     playerIds: [OWN_PLAYER_ID, RIVAL],
     avatarAssignments: { [OWN_PLAYER_ID]: 0, [RIVAL]: 1 },
   };
+}
+
+/** The live balance with one number retuned, as `debug_set_balance` would leave it. */
+function balanceWithBloomFrom(bloomStartFraction: number): BalanceConfig {
+  const session = { ...DEFAULT_BALANCE.session };
+  session.ROUND_BLOOM_START_FRACTION = bloomStartFraction;
+  return { ...DEFAULT_BALANCE, session };
 }
 
 function snapshotWith(rows: LeaderboardRow[], secondsLeft: number): GameSnapshot {
@@ -129,6 +138,30 @@ describe('the HUD chrome, end to end', () => {
         .querySelector(testIdSelector(leaderboardRowTestId(OWN_PLAYER_ID)))
         ?.querySelector('.absorptions')?.textContent,
     ).toBe('1');
+  });
+
+  it('re-reads the bloom threshold from balance_updated, the live-retune path the clock depends on', () => {
+    // Sixty seconds left of a sixty-second round is 0 % elapsed, so no fraction short of 0 blooms.
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundPhase))?.textContent).toBe('ROUND');
+
+    // `debug_set_balance` dropping the threshold to zero puts every tick of the round in bloom.
+    receive({ type: SERVER_MESSAGE_TYPE.balanceUpdated, balance: balanceWithBloomFrom(0) });
+
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundPhase))?.textContent).toBe('BLOOM');
+  });
+
+  it('stands the board down for the results phase, where #189’s overlay claims the same corner', () => {
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
+
+    receive({
+      type: SERVER_MESSAGE_TYPE.gameSnapshot,
+      snapshot: { ...snapshotWith([row(1, OWN_PLAYER_ID, 10, 0)], 0), roundPhase: ROUND_PHASE.results },
+    });
+
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).toBeNull();
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundClock))).toBeNull();
   });
 
   it('expands to the full list while the Tab hold is on, and collapses on its release', () => {

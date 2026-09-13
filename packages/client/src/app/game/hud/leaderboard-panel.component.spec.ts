@@ -123,6 +123,22 @@ describe('LeaderboardPanelComponent', () => {
     expect(element().querySelector('.column-labels')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('ScoreMassEaten');
   });
 
+  it('places each label in its own track and keeps the row classes off the strip', () => {
+    showBoard(boardOf(3, 1));
+    hudState.setFullLeaderboardHeld(true);
+    fixture.detectChanges();
+    const labels = element().querySelector<HTMLElement>('.column-labels');
+
+    // Each label sits in a track of its own rather than auto-flowing off one start column, so none
+    // can slide onto its neighbour; the shared fixed track list in the stylesheet does the rest.
+    expect(labels?.querySelector('.label-score')).not.toBeNull();
+    expect(labels?.querySelector('.label-mass')).not.toBeNull();
+    expect(labels?.querySelector('.label-absorptions')).not.toBeNull();
+    // The strip does not carry the row's numeric classes, which would take the row's mono font and
+    // colour over the strip's own caption and split three labels across two colours.
+    expect(labels?.querySelector('.score, .mass, .absorptions')).toBeNull();
+  });
+
   it('toggles the full list from the header, so a pointer reaches what Tab does', () => {
     showBoard(boardOf(8, 1));
     const header = element().querySelector<HTMLButtonElement>(testIdSelector(HUD_TEST_ID.leaderboardHeader));

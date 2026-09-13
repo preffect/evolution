@@ -6,6 +6,7 @@
 import type { Observable } from 'rxjs';
 import type { Clock, GameInput, ServerMessage, TraitId } from '@evolution/shared';
 import type { AudioHooksHandle } from './audio/audio-hooks';
+import { definedEntriesOf } from './defined-entries';
 import { installEvolutionDebug, type EvolutionDebugHost } from './debug/evolution-debug';
 import { attachInput, type AttachInputOptions } from './input/attach-input';
 import type { InputController } from './input/input-controller';
@@ -57,17 +58,12 @@ function reticleFor(isVisible: boolean, controller: InputController | null): Ren
   return point === null ? NO_RETICLE : { isVisible, x: point.x, y: point.y };
 }
 
-/**
- * The optional HUD handlers, as a spreadable record: `exactOptionalPropertyTypes` refuses an
- * explicit `undefined`, so an absent one is an absent key rather than an undefined value.
- */
+/** The optional HUD handlers, as a spreadable record; an absent one is an absent key. */
 function hudHandlersOf(dependencies: GameSetupDependencies): Partial<AttachInputOptions> {
-  return {
-    ...(dependencies.onMenuKey === undefined ? {} : { onMenuKey: dependencies.onMenuKey }),
-    ...(dependencies.onFullLeaderboardHeldChanged === undefined
-      ? {}
-      : { onFullLeaderboardHeldChanged: dependencies.onFullLeaderboardHeldChanged }),
-  };
+  return definedEntriesOf({
+    onMenuKey: dependencies.onMenuKey,
+    onFullLeaderboardHeldChanged: dependencies.onFullLeaderboardHeldChanged,
+  });
 }
 
 export function setupGame(options: GameSetupOptions, dependencies: GameSetupDependencies): GameTeardown {

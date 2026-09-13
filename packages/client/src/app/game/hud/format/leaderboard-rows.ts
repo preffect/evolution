@@ -37,9 +37,15 @@ export interface LeaderboardInput {
   readonly maxRows: number;
 }
 
-/** A name at most `LEADERBOARD_NAME_MAX_CHARS` long, ellipsised rather than clipped mid-glyph. */
+/**
+ * A name at most `LEADERBOARD_NAME_MAX_CHARS` long, ellipsised rather than clipped mid-glyph.
+ * Counted and cut in code points, not UTF-16 units: a `String.slice` at the cut can land inside a
+ * surrogate pair and leave a lone half, which renders as a replacement box.
+ */
 export function truncatePlayerName(name: string): string {
-  return name.length <= LEADERBOARD_NAME_MAX_CHARS ? name : `${name.slice(0, TRUNCATED_NAME_CHARS)}${ELLIPSIS}`;
+  const codePoints = [...name];
+  if (codePoints.length <= LEADERBOARD_NAME_MAX_CHARS) return name;
+  return `${codePoints.slice(0, TRUNCATED_NAME_CHARS).join('')}${ELLIPSIS}`;
 }
 
 function entryFor(row: LeaderboardRow, input: LeaderboardInput): LeaderboardEntry {

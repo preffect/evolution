@@ -1,7 +1,14 @@
-/* The leaderboard panel's stylesheet (docs/UI.md §3.1.1). Every length and colour is a `--hud-…`
-   the shell publishes from the constants (`format/hud-css-variables.ts`), so no number here is a
-   second home for one. A sibling file rather than inline `styles`: with the styles inline the
-   component file runs past the size bar of docs/CODE-STANDARDS.md §5. */
+/* The leaderboard panel's stylesheet (docs/UI.md §3.1.1).
+   The chrome sizes §3.1.1 owns — the panel widths, the header, row and label-strip heights, the
+   column tracks, the swatch, the durations, the type roles and the colour roles — all arrive as
+   `--hud-…` custom properties the shell publishes from the constants (`format/hud-css-variables.ts`),
+   so none of them has a second home here. The `0`s, the `100%`s and the one- and two-pixel borders
+   and focus ring below are this stylesheet's own and are not a restatement of anything.
+
+   The column tracks are **fixed**, never `auto`: `.row` and `.column-labels` are two grid
+   containers, grid tracks are per-container, and an `auto` track would be sized by each one's own
+   content. The label strip has nothing in columns 1-4, so its `auto`s would collapse and every
+   numeric boundary would shift off the numbers it names. Fixed tracks resolve identically in both. */
 
 :host {
   position: absolute;
@@ -14,10 +21,10 @@
   width: calc(var(--hud-leaderboard-width) * var(--hud-scale));
   height: calc(var(--hud-leaderboard-height) * var(--hud-scale));
   border: 1px solid var(--hud-panel-rim);
-  border-radius: calc(4px * var(--hud-scale));
+  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--hud-scale));
   background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
   overflow: hidden;
-  transition: width var(--hud-row-slide-duration) ease-out;
+  transition: width var(--hud-leaderboard-expand-duration) ease-out;
 }
 
 .leaderboard.full {
@@ -32,7 +39,7 @@
   box-sizing: border-box;
   width: 100%;
   height: calc(var(--hud-leaderboard-header-height) * var(--hud-scale));
-  padding: 0 calc(8px * var(--hud-scale));
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
   border: 0;
   border-bottom: 1px solid var(--hud-panel-rim);
   background: transparent;
@@ -58,28 +65,57 @@
   color: var(--hud-text-muted);
 }
 
-/* Sits over the same grid as a row, so a label lands on the column it names. */
-.column-labels {
+/* The one column geometry. Both grids below are laid out from it, so they cannot drift apart. */
+.column-labels,
+.row {
   display: grid;
   grid-template-columns:
-    calc(16px * var(--hud-scale)) calc(14px * var(--hud-scale)) 1fr
-    auto auto auto auto;
+    calc(var(--hud-leaderboard-rank-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
+    1fr
+    calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
   align-items: center;
-  gap: calc(6px * var(--hud-scale));
+  gap: calc(var(--hud-leaderboard-column-gap) * var(--hud-scale));
   box-sizing: border-box;
   width: 100%;
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
+}
+
+.leaderboard.full .column-labels,
+.leaderboard.full .row {
+  grid-template-columns:
+    calc(var(--hud-leaderboard-rank-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
+    1fr
+    calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
+}
+
+/* The full list's numeric columns carry no unit, so they are named (docs/UI.md §3.1.1). Each label
+   is placed in its own track rather than auto-flowed, so none can slide onto its neighbour. */
+.column-labels {
   height: calc(var(--hud-leaderboard-label-row-height) * var(--hud-scale));
-  padding: 0 calc(8px * var(--hud-scale));
   font-family: var(--hud-font-sans);
   font-size: calc(var(--hud-type-caption) * var(--hud-scale));
   text-transform: uppercase;
   letter-spacing: var(--hud-label-tracking);
   color: var(--hud-text-muted);
+  text-align: right;
 }
 
-/* The label row spans the first four grid cells: rank, swatch, name and the level column. */
-.column-labels .score {
+.column-labels .label-score {
   grid-column: 5;
+}
+
+.column-labels .label-mass {
+  grid-column: 6;
+}
+
+.column-labels .label-absorptions {
+  grid-column: 7;
 }
 
 .rows {
@@ -95,56 +131,48 @@
   top: 0;
   left: 0;
   transform: translateY(calc(var(--hud-leaderboard-row-height) * var(--hud-scale) * var(--hud-row-slot)));
-  display: grid;
-  grid-template-columns: calc(16px * var(--hud-scale)) calc(14px * var(--hud-scale)) 1fr auto auto;
-  align-items: center;
-  gap: calc(6px * var(--hud-scale));
-  box-sizing: border-box;
-  width: 100%;
   height: calc(var(--hud-leaderboard-row-height) * var(--hud-scale));
-  padding: 0 calc(8px * var(--hud-scale));
   font-family: var(--hud-font-sans);
   font-size: calc(var(--hud-type-body) * var(--hud-scale));
   color: var(--hud-text);
   transition: transform var(--hud-row-slide-duration) ease-out;
 }
 
-.leaderboard.full .row {
-  grid-template-columns:
-    calc(16px * var(--hud-scale)) calc(14px * var(--hud-scale)) 1fr
-    auto auto auto auto;
-}
-
-.rank,
-.level {
-  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+/* §3.1.1 puts rank, name, level and score at `body`; the numbers take `figure`, which is `body`'s
+   size in the mono face (docs/VISUAL-STYLE.md §7), so the digits are tabular and do not jitter. */
+.row .rank,
+.row .level {
   color: var(--hud-text-label);
 }
 
-.name {
+.row .name {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.score,
-.mass,
-.absorptions {
-  min-width: calc(26px * var(--hud-scale));
-  font-family: var(--hud-font-mono);
-  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+.row .level {
+  text-align: right;
+}
+
+.row .score,
+.row .mass,
+.row .absorptions {
+  font-family: var(--hud-font-figure);
+  font-size: calc(var(--hud-type-figure) * var(--hud-scale));
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.mass,
-.absorptions {
+.row .mass,
+.row .absorptions {
   color: var(--hud-text-label);
 }
 
 .swatch {
   width: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
   height: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
+  /* The beads sit on the disc's outline and are wider than it, so they paint outside the viewBox. */
   overflow: visible;
 }
 

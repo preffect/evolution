@@ -180,6 +180,16 @@ describe('the wired input path', () => {
     harness.teardown();
   });
 
+  it('releases a held Tab when the game is torn down, so the next room does not open expanded', async () => {
+    const harness = await startGame();
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Tab', bubbles: true, cancelable: true }));
+    expect(harness.fullLeaderboardHolds).toEqual([true]);
+    // No keyup: the room ends with the key still down, which teardown has to answer for, since the
+    // HUD state outlives these components and nothing is left to report the release (docs/UI.md §3.1.1).
+    harness.teardown();
+    expect(harness.fullLeaderboardHolds).toEqual([true, false]);
+  });
+
   it('stops sending once the game is torn down', async () => {
     const harness = await startGame();
     harness.frame();

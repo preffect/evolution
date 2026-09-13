@@ -4,6 +4,8 @@
 // the chrome. The layer itself never takes the pointer: only the controls inside it opt back in,
 // so a click always reaches the dish.
 //
+// It also owns the one gate the chrome shares: the round phase (docs/UI.md §3.1).
+//
 // The chrome is the leaderboard and the round clock, nothing else (docs/UI.md §3.1.1); the own-cell
 // status mirror (#186), the picker (#188), the death and results overlays (#189) and the notices
 // (#190) slot in here as they land.
@@ -18,6 +20,8 @@ import {
   type OnDestroy,
   type OnInit,
 } from '@angular/core';
+import { ROUND_PHASE } from '@evolution/shared';
+import { GameStateService } from '../state/game-state.service';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { HUD_TEST_ID } from './test-ids';
@@ -33,7 +37,9 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [LeaderboardPanelComponent, RoundTimerComponent],
   template: `
-    <app-leaderboard-panel />
+    @if (isRoundPlaying()) {
+      <app-leaderboard-panel />
+    }
     <app-round-timer />
   `,
   host: {
@@ -54,11 +60,22 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
   ],
 })
 export class HudComponent implements OnInit, OnDestroy {
+  private readonly gameState = inject(GameStateService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly size = signal<ElementSize>(NO_SIZE);
   private stopObservingSize: (() => void) | null = null;
 
   protected readonly testId = HUD_TEST_ID;
+
+  /**
+   * The in-round chrome stands down for the results phase (docs/UI.md §3.1, §3.1.1), where #189's
+   * overlay claims the screen and would otherwise share the top-right with the board. It does
+   * **not** gate on `lifeState`: the board is §3.1.1's stated exception, because a dead player
+   * watching their killer is exactly who wants to see the ranking. The clock's own `isVisible`
+   * covers more than the phase (it also has no digits to show before the first snapshot), so it
+   * keeps its gate rather than borrowing this one.
+   */
+  protected readonly isRoundPlaying = computed(() => this.gameState.roundPhase() === ROUND_PHASE.playing);
 
   /** `--hud-scale` (docs/UI.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
   protected readonly scale = computed(() => hudScaleFor(this.size().widthPx, this.size().heightPx));
