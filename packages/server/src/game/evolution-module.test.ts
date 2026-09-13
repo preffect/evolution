@@ -8,6 +8,7 @@ import {
   PLAYER_LIFE_STATE,
   createTestGameInput,
   createTestSessionConfig,
+  gameId,
   playerId,
   type GameInput,
 } from '@evolution/shared';
@@ -23,6 +24,7 @@ const TICKS_WITH_BOT = 3;
 
 function createModule(): EvolutionModule {
   return createEvolutionModule({
+    gameId: gameId('g1'),
     creatorId: ALICE,
     playerIds: [ALICE],
     gameName: 'unit',

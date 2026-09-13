@@ -1,7 +1,7 @@
 // docs/DETERMINISM.md §6, §7: recording a run then replaying it reproduces `finalHash`; a reseed
 // starts a new recording that also reproduces.
 import { describe, expect, it } from 'vitest';
-import { ENTITY_KIND, createTestGameInput, createTestSessionConfig, playerId } from '@evolution/shared';
+import { ENTITY_KIND, createTestGameInput, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
 import { createEvolutionModule, type EvolutionModule } from '../evolution-module.js';
 import type { Replay } from './replay-format.js';
 import { REPLAY_ORIGIN } from './replay-format.js';
@@ -14,6 +14,7 @@ const INPUT_TICKS = [3, 7, 25];
 
 function createModule(): EvolutionModule {
   return createEvolutionModule({
+    gameId: gameId('replay-game'),
     creatorId: playerId('p1'),
     playerIds: [playerId('p1'), playerId('p2')],
     gameName: 'replay',

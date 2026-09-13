@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createTestGameInput, createTestSessionConfig, playerId } from '@evolution/shared';
+import { createTestGameInput, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
 import { ScenarioSetupError } from './errors.js';
 import { echoAdapter, echoedInput, hashEchoSnapshot, type EchoSnapshot } from './echo-adapter.js';
 
 const FIRST = playerId('player_0');
 const SECOND = playerId('player_1');
 const OPTIONS = {
+  gameId: gameId('echo-game'),
   creatorId: FIRST,
   playerIds: [FIRST, SECOND],
   gameName: 'echo',

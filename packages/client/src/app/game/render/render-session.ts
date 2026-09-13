@@ -18,6 +18,7 @@ import {
 import type { TransitionOptions } from '../state/snapshot-transitions';
 import type { AudioHooksHandle } from '../audio/audio-hooks';
 import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution-debug';
+import { SnapshotAcknowledger } from '../net/snapshot-acknowledger';
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
@@ -45,10 +46,17 @@ export interface RenderSessionDependencies {
   readonly shouldPreserveDrawingBuffer: boolean;
   /** The cytoplasm tile's edge (`RenderTextureOptions`): the production size unless a test shrinks it. */
   readonly noiseTileSizePx?: number;
+  /**
+   * Tells the server the newest snapshot tick this client has applied (#266,
+   * docs/ARCHITECTURE.md §4). Flow control, not gameplay: the room reads it to see how deep the
+   * queue between them is, and stops sending rather than letting this client fall behind for good.
+   */
+  readonly acknowledgeSnapshot: (tick: number) => void;
 }
 
 export class RenderSession extends FrameLoopSession {
   readonly store: WorldStore;
+  private readonly acknowledger: SnapshotAcknowledger;
   private lastReport: ClientPerformanceReport | null = null;
   private audio: AudioHooksHandle | null = null;
   /** The one in-flight or resolved Pixi app, so two early `game_state`s never create two canvases. */
@@ -64,6 +72,7 @@ export class RenderSession extends FrameLoopSession {
   constructor(private readonly dependencies: RenderSessionDependencies) {
     super(dependencies.clock);
     this.store = new WorldStore(dependencies.clock);
+    this.acknowledger = new SnapshotAcknowledger(dependencies.acknowledgeSnapshot);
   }
 
   get startupError(): unknown {
@@ -89,6 +98,8 @@ export class RenderSession extends FrameLoopSession {
     const { timer } = this.instrumentation;
     if (message.type === SERVER_MESSAGE_TYPE.gameState) {
       timer.accrue(RENDER_STAGE.net, () => this.store.applyGameState(message));
+      // A full state puts the two in step: the room is waiting to hear it before it resumes deltas.
+      this.acknowledger.acknowledgeNow(message.snapshot.tick);
       this.audio?.disconnect();
       this.audio = this.dependencies.connectAudio({
         ownPlayerId: message.playerId,
@@ -99,6 +110,7 @@ export class RenderSession extends FrameLoopSession {
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
       if (timer.accrue(RENDER_STAGE.net, () => this.store.applySnapshot(message.snapshot))) {
         this.audio?.observe(message.snapshot);
+        this.acknowledger.recordApplied(message.snapshot.tick);
       }
       // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/ARCHITECTURE.md §4).
       if (message.snapshot.seed !== this.requestedSeed) {

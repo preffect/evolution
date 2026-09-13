@@ -4,6 +4,7 @@ import {
   ManualClock,
   RENDER_STAGE_NAMES,
   SERVER_MESSAGE_TYPE,
+  SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   TICK_INTERVAL_MS,
   createTestSessionConfig,
   createTestSnapshot,
@@ -41,8 +42,10 @@ function session(overrides: Partial<RenderSessionDependencies> = {}) {
     unlock: vi.fn(),
     disconnect: vi.fn(),
   };
+  const acknowledgeSnapshot = vi.fn();
   const dependencies: RenderSessionDependencies = {
     host: document.createElement('div'),
+    acknowledgeSnapshot,
     clock,
     devicePixelRatio: 1,
     createPixiApp: vi.fn(() => Promise.resolve(pixi)),
@@ -53,7 +56,7 @@ function session(overrides: Partial<RenderSessionDependencies> = {}) {
     ...overrides,
   };
   const subject = new RenderSession(dependencies);
-  return { subject, clock, pixi, audio, dependencies };
+  return { subject, clock, pixi, audio, dependencies, acknowledgeSnapshot };
 }
 
 function snapshotMessage(tick: number, spawned: FoodMoteView[] = [], seed = 1): ServerMessage {
@@ -113,6 +116,34 @@ describe('RenderSession', () => {
     expect(pixi.renderCalls.count).toBe(1);
     expect(subject.debugApi().renderTick()).not.toBeNull();
     expect(subject.store.nextFrame()!.motes.map((mote) => mote.id)).toEqual(['a', 'b']);
+  });
+
+  it('acknowledges a game_state at once and then one snapshot in every SNAPSHOT_ACK_EVERY_SNAPSHOTS (#266)', async () => {
+    const { subject, acknowledgeSnapshot } = session();
+    const state = gameState();
+    subject.onMessage(state);
+    await flush();
+    const stateTick = (state as { snapshot: { tick: number } }).snapshot.tick;
+    expect(acknowledgeSnapshot.mock.calls).toEqual([[stateTick]]);
+
+    const firstDeltaTick = stateTick + 1;
+    for (let index = 0; index < SNAPSHOT_ACK_EVERY_SNAPSHOTS; index += 1) {
+      subject.onMessage(snapshotMessage(firstDeltaTick + index));
+    }
+    expect(acknowledgeSnapshot.mock.calls).toEqual([[stateTick], [firstDeltaTick + SNAPSHOT_ACK_EVERY_SNAPSHOTS - 1]]);
+  });
+
+  it('does not acknowledge a snapshot the store refused as stale (#266)', async () => {
+    const { subject, acknowledgeSnapshot } = session();
+    subject.onMessage(gameState());
+    await flush();
+    const applied = 10;
+    for (let index = 0; index < SNAPSHOT_ACK_EVERY_SNAPSHOTS - 1; index += 1) {
+      subject.onMessage(snapshotMessage(applied + index));
+    }
+    acknowledgeSnapshot.mockClear();
+    subject.onMessage(snapshotMessage(1));
+    expect(acknowledgeSnapshot).not.toHaveBeenCalled();
   });
 
   it('creates one Pixi app when two game_state messages arrive before the factory resolves; the last seed wins', async () => {

@@ -18,6 +18,8 @@ const GAME_ID = 'g1' as GameId;
 const ALICE = 'alice' as PlayerId;
 const BOB = 'bob' as PlayerId;
 const CONFIG = createTestSessionConfig({ maxPlayers: 4 });
+/** Flow control (#266): the newest snapshot tick the client has applied. */
+const ACKNOWLEDGED_TICK = 42;
 const INPUT = createTestGameInput({ sequence: 5 });
 
 function createTransportStub() {
@@ -51,6 +53,7 @@ describe('MultiplayerService', () => {
     service.startGame('g1');
     service.deleteGame('g1');
     service.sendInput(INPUT);
+    service.acknowledgeSnapshot(ACKNOWLEDGED_TICK);
     service.disconnect();
     expect(transport.connect).toHaveBeenCalled();
     expect(transport.disconnect).toHaveBeenCalled();
@@ -62,6 +65,7 @@ describe('MultiplayerService', () => {
       { type: CLIENT_MESSAGE_TYPE.startGame, gameId: 'g1' },
       { type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: 'g1' },
       { type: CLIENT_MESSAGE_TYPE.playerInput, payload: INPUT },
+      { type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: ACKNOWLEDGED_TICK },
     ]);
   });
 

@@ -8,6 +8,7 @@ import {
   createTestGameInput,
   createTestSessionConfig,
   createTestSnapshot,
+  gameId,
 } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
@@ -22,6 +23,7 @@ import {
 
 function roomOptions(playerIds: string[]): RoomInitOptions {
   return {
+    gameId: gameId('g1'),
     creatorId: playerIds[0] as PlayerId,
     playerIds: playerIds as PlayerId[],
     gameName: 'Test',
@@ -176,7 +178,7 @@ describe('game-room: membership and delegation', () => {
     const gameModule = createSpyGameModule();
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
     const late = createTestConnection({ playerId: 'p3' });
-    room.addLatePlayer(late, 'g1');
+    room.addLatePlayer(late);
     expect(gameModule.addPlayer).toHaveBeenCalledWith('p3', 0, 'p3');
     expect(room.allPlayerIds).toContain('p3');
     expect(room.playerConnections.has('p3')).toBe(true);
@@ -253,7 +255,7 @@ describe('game-room: membership and delegation', () => {
     const fullState: FullGameState = { snapshot: createTestSnapshot({ tick: 7 }), balance: DEFAULT_BALANCE };
     vi.mocked(gameModule.serializeFullState).mockReturnValue(fullState);
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
-    room.addLatePlayer(createTestConnection({ playerId: 'p3', sent }), 'g1');
+    room.addLatePlayer(createTestConnection({ playerId: 'p3', sent }));
     expect(sent['p3']).toEqual([
       expect.objectContaining({ type: SERVER_MESSAGE_TYPE.gameState, gameId: 'g1', playerId: 'p3', ...fullState }),
     ]);

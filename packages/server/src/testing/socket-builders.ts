@@ -61,6 +61,21 @@ export function openTestSocket(url: string): Promise<WebSocket> {
   });
 }
 
+/**
+ * A socket whose messages are recorded from the moment it exists. The server speaks first on a
+ * reconnect (`game_state`, docs/ARCHITECTURE.md §4), so a listener attached after `open` resolves
+ * can miss it; this attaches before the socket can receive anything.
+ */
+export function openRecordingTestSocket(url: string): Promise<{ socket: WebSocket; received: ServerMessage[] }> {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(url);
+    const received: ServerMessage[] = [];
+    socket.on('message', (data: Buffer) => received.push(JSON.parse(data.toString()) as ServerMessage));
+    socket.once('open', () => resolve({ socket, received }));
+    socket.once('error', reject);
+  });
+}
+
 export function nextServerMessage(socket: WebSocket): Promise<ServerMessage> {
   return new Promise((resolve) => socket.once('message', (data) => resolve(JSON.parse(data.toString()))));
 }

@@ -161,3 +161,16 @@ describe('clientMessageSchema: ClientPerformanceReport', () => {
     expect(isAccepted(performance({ visibleCells: 1.5 }))).toBe(false);
   });
 });
+
+describe('clientMessageSchema: snapshot_ack (#266)', () => {
+  it('accepts a whole, non-negative tick', () => {
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: 0 })).toBe(true);
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: 1200 })).toBe(true);
+  });
+
+  it('rejects a missing, fractional or negative tick', () => {
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.snapshotAck })).toBe(false);
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: 1.5 })).toBe(false);
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: -1 })).toBe(false);
+  });
+});

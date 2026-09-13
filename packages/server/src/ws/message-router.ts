@@ -21,6 +21,7 @@ export interface MessageHandlers {
   onDeleteGame: MessageHandler<typeof CLIENT_MESSAGE_TYPE.deleteGame>;
   onPlayerInput: MessageHandler<typeof CLIENT_MESSAGE_TYPE.playerInput>;
   onClientPerformance: MessageHandler<typeof CLIENT_MESSAGE_TYPE.clientPerformance>;
+  onSnapshotAck: MessageHandler<typeof CLIENT_MESSAGE_TYPE.snapshotAck>;
 }
 
 /**
@@ -39,6 +40,7 @@ function buildDispatchTable(handlers: MessageHandlers): DispatchTable {
     [CLIENT_MESSAGE_TYPE.deleteGame]: handlers.onDeleteGame,
     [CLIENT_MESSAGE_TYPE.playerInput]: handlers.onPlayerInput,
     [CLIENT_MESSAGE_TYPE.clientPerformance]: handlers.onClientPerformance,
+    [CLIENT_MESSAGE_TYPE.snapshotAck]: handlers.onSnapshotAck,
     // TODO(game): add game-specific verbs here.
   };
 }

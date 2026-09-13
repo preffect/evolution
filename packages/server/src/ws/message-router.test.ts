@@ -9,6 +9,7 @@ import { createMessageRouter, type MessageHandlers } from './message-router.js';
 import { createTestConnection, type SentLog } from '../testing/builders.js';
 
 const PLAYER_ID = 'p1';
+const ACKNOWLEDGED_TICK = 42;
 
 function stubHandlers(): MessageHandlers {
   return {
@@ -20,6 +21,7 @@ function stubHandlers(): MessageHandlers {
     onDeleteGame: vi.fn(),
     onPlayerInput: vi.fn(),
     onClientPerformance: vi.fn(),
+    onSnapshotAck: vi.fn(),
   };
 }
 
@@ -48,6 +50,7 @@ const FRAME_FOR_VERB: Record<keyof MessageHandlers, Record<string, unknown>> = {
     type: CLIENT_MESSAGE_TYPE.clientPerformance,
     report: createTestClientPerformanceReport({ frameTimeAvgMs: 16, frameTimeP95Ms: 20, frameTimePeakMs: 33 }),
   },
+  onSnapshotAck: { type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: ACKNOWLEDGED_TICK },
 };
 
 describe('message-router', () => {

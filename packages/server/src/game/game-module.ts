@@ -1,5 +1,5 @@
 import { DEFAULT_BALANCE } from '@evolution/shared';
-import type { BalanceConfig, PlayerId, GameSnapshot, GameInput, GameSessionConfig } from '@evolution/shared';
+import type { BalanceConfig, GameId, GameInput, GameSessionConfig, GameSnapshot, PlayerId } from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
 import { echoBotBinding } from './bots/bot-binding.js';
 import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-process-bots.js';
@@ -54,6 +54,8 @@ export interface EchoSnapshot {
 
 /** Everything a room is born with: the roster the lobby gathered plus the resolved session config. */
 export interface RoomInitOptions {
+  /** The room's own id: what its `game_state` messages are addressed with (docs/ARCHITECTURE.md §4). */
+  gameId: GameId;
   creatorId: PlayerId;
   playerIds: PlayerId[];
   gameName: string;

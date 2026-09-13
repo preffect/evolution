@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestGameInput, createTestSessionConfig } from '@evolution/shared';
+import { createTestGameInput, createTestSessionConfig, gameId } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { DebugRequestError } from './debug/debug-request-error.js';
 import { defaultGameModuleFactory } from './game-module.js';
@@ -8,6 +8,7 @@ import { defaultGameModuleFactory } from './game-module.js';
 const seatFreely = () => {};
 
 const options = {
+  gameId: gameId('g1'),
   creatorId: 'p1' as PlayerId,
   playerIds: ['p1', 'p2'] as PlayerId[],
   gameName: 'echo',

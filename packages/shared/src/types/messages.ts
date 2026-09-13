@@ -182,6 +182,8 @@ export const CLIENT_MESSAGE_TYPE = {
   deleteGame: 'delete_game',
   playerInput: 'player_input',
   clientPerformance: 'client_performance',
+  /** The newest snapshot tick the client has applied (#266, docs/ARCHITECTURE.md §4): flow control, not gameplay. */
+  snapshotAck: 'snapshot_ack',
 } as const;
 
 export const SERVER_MESSAGE_TYPE = {
@@ -205,7 +207,8 @@ export type ClientMessage =
   | { type: typeof CLIENT_MESSAGE_TYPE.startGame; gameId: string }
   | { type: typeof CLIENT_MESSAGE_TYPE.deleteGame; gameId: string }
   | { type: typeof CLIENT_MESSAGE_TYPE.playerInput; payload: GameInput }
-  | { type: typeof CLIENT_MESSAGE_TYPE.clientPerformance; report: ClientPerformanceReport };
+  | { type: typeof CLIENT_MESSAGE_TYPE.clientPerformance; report: ClientPerformanceReport }
+  | { type: typeof CLIENT_MESSAGE_TYPE.snapshotAck; tick: number };
 
 // ===== Server -> Client =====
 export type ServerMessage =

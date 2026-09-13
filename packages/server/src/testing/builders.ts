@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
-import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig, gameId } from '@evolution/shared';
 import type { GameSnapshot, PlayerId } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import type { GameModule, GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
@@ -23,13 +23,22 @@ export interface TestConnectionOptions {
   playerName?: string;
   avatarIndex?: number;
   readyState?: number;
+  /** Unsent bytes on the socket: what the room's backpressure reads (#266, docs/ARCHITECTURE.md §4). */
+  bufferedAmount?: number;
   /** When given, every frame the socket sends is decoded and appended under `playerId`. */
   sent?: SentLog;
 }
 
 /** A `Connection` over a fake socket that records what it sends instead of writing to the wire. */
 export function createTestConnection(options: TestConnectionOptions): Connection {
-  const { playerId, playerName = playerId, avatarIndex = 0, readyState = WebSocket.OPEN, sent } = options;
+  const {
+    playerId,
+    playerName = playerId,
+    avatarIndex = 0,
+    readyState = WebSocket.OPEN,
+    bufferedAmount = 0,
+    sent,
+  } = options;
   const log: unknown[] = [];
   if (sent) sent[playerId] = log;
   return {
@@ -38,11 +47,17 @@ export function createTestConnection(options: TestConnectionOptions): Connection
     avatarIndex,
     socket: {
       readyState,
+      bufferedAmount,
       send: (data: string) => log.push(JSON.parse(data)),
       close: () => {},
       on: () => {},
     } as unknown as Connection['socket'],
   };
+}
+
+/** Moves a test connection's unsent bytes, the way a real socket drains or backs up (#266). */
+export function setBufferedAmount(connection: Connection, bytes: number): void {
+  (connection.socket as unknown as { bufferedAmount: number }).bufferedAmount = bytes;
 }
 
 /** What a room is born with (docs/ARCHITECTURE.md §4): the roster in join order, avatars by index, a default config. */
@@ -51,6 +66,7 @@ export function createTestRoomInitOptions(
   overrides: Partial<RoomInitOptions> = {},
 ): RoomInitOptions {
   return {
+    gameId: gameId('g1'),
     creatorId: playerIds[0] as PlayerId,
     playerIds: playerIds as PlayerId[],
     gameName: 'Test',

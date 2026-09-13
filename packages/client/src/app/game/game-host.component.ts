@@ -48,6 +48,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
       {
         send: (input) => this.multiplayer.sendInput(input),
         messages$: this.multiplayer.gameMessages$,
+        acknowledgeSnapshot: (tick) => this.multiplayer.acknowledgeSnapshot(tick),
         host: this.host().nativeElement,
       },
       {
