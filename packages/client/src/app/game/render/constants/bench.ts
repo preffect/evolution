@@ -63,6 +63,16 @@ export const RENDER_BENCH_MOTE_COUNT = FOOD_CAP_BASE + MAX_PLAYERS_PER_GAME * FO
 export const RENDER_BENCH_FRAGMENT_COUNT = DNA_FRAGMENT_CAP_BASE + MAX_PLAYERS_PER_GAME * DNA_FRAGMENT_CAP_PER_PLAYER;
 /** The route's canvas: 1080p, the budget's viewport. */
 export const RENDER_BENCH_VIEWPORT_PX = { width: 1920, height: 1080 } as const;
+/** `?bench&sheet=indicators`, the own-cell indicator contact sheet (#294): its layout in px and what it shows. */
+export const INDICATOR_SHEET = {
+  marginPx: 48,
+  itemGapPx: 20,
+  rowGapPx: 28,
+  /** The palette whose rim colour tints the rung ghosts (Cyan, seat 0). */
+  rimPaletteIndex: 0,
+  labelTexts: ['AMOEBOID CAN ENGULF YOU', 'SPRINT TO ESCAPE', 'SEALED'],
+  numeralTexts: ['1', '4', '9', '12'],
+} as const;
 /** `/?bench=<seed>&tick=<n>&zoom=<z>` defaults: two seconds in, at 1 px per wu. */
 export const RENDER_BENCH_DEFAULT_TICK = 120;
 export const RENDER_BENCH_DEFAULT_ZOOM = 1;

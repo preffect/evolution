@@ -190,9 +190,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **6. Constants table — `packages/shared/src/constants/progression.ts`** (L156–179): The ladder's own constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` ([`GAME-DESIGN.md §…
 - **7. Acceptance scenarios** (L180–206): Given seed S and inputs I, after N ticks assert X.
 
-## RENDERING.md (702 lines)
+## RENDERING.md (716 lines)
 
-- **Evolution — Rendering** (L1–702): Ticket #120, epic #85.
+- **Evolution — Rendering** (L1–716): Ticket #120, epic #85.
 - **1. Inputs: the snapshot, the tick, the cosmetic stream** (L17–32): The renderer reads only what `net/` gives it and never feeds anything back (`ARCHITECTURE.md §1`, "client-side cosmetic").
 - **2. The cell: one quad, one fragment shader** (L33–198): Every cell is one instanced quad whose half-size is the per-instance `quadExtentRadii × r` (§2.3): `max(CELL_QUAD_EXTENT_RADII, FAR_DOT_H…
   - **2.1 The profile** (L49–90): `h` is the heading (`atan2(velocityY, velocityX)`, held when ‖velocity‖ ≈ 0).
@@ -205,9 +205,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **6. Batching plan** (L353–422): Everything not a cell is a baked texture: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour (core + soft + wide + glint, `…
   - **6.1 The condenser light pool (#222)** (L376–422): `VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it.
 - **7. Frame budget and the harness #99 ships** (L423–558): Target: 60 fps, ≤ 12 ms p95 frame at 1080p, `devicePixelRatio` 1, on an integrated laptop GPU (Iris Xe class: a new assumption stated her…
-- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L559–595): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
-- **9. Test plan (`TESTING.md` tiers)** (L596–648): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
-- **10. Own-cell indicators and world-anchored labels (#146)** (L649–702): [`UI.md §3.1`](./UI.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows: the DNA …
+- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L559–598): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
+- **9. Test plan (`TESTING.md` tiers)** (L599–651): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
+- **10. Own-cell indicators and world-anchored labels (#146)** (L652–716): [`UI.md §3.1`](./UI.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows: the DNA …
 
 ## TEAM.md (159 lines)
 
@@ -293,18 +293,18 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Acceptance (the Playwright loop #100 drives)** (L541–555): `OC` = `hud-own-cell` (§3.1.4).
 - **9. Constants table (own-cell indicators)** (L556–597): The values this doc owns (§3.1.2, §3.1.3, §6).
 
-## VISUAL-STYLE.md (397 lines)
+## VISUAL-STYLE.md (398 lines)
 
-- **Evolution — Visual Style** (L1–397): Ticket #34, epic #2.
+- **Evolution — Visual Style** (L1–398): Ticket #34, epic #2.
 - **1. Dark-field microscopy: the principles** (L17–64): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
-- **2. Palette** (L65–204): All hex values are named constants; draw code never holds a literal.
-- **3. The cell: layer stack per stage** (L205–250): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
-- **4. Organelle vocabulary per trait** (L251–276): The trait's own `visual` string ([`TRAITS.md §3`](./TRAITS.md#3-build-1-catalog-sixteen-traits-fully-specified)) is the requirement; this …
-- **5. Membrane and motion language** (L277–304): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
-- **6. Legibility at play scale** (L305–324): Zoom is `GAME-DESIGN.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceiling), and the playe…
-- **7. UI colours and type** (L325–353): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
-- **8. Performance intent: geometry, textures, shaders** (L354–383): The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
-- **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L384–397)
+- **2. Palette** (L65–205): All hex values are named constants; draw code never holds a literal.
+- **3. The cell: layer stack per stage** (L206–251): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
+- **4. Organelle vocabulary per trait** (L252–277): The trait's own `visual` string ([`TRAITS.md §3`](./TRAITS.md#3-build-1-catalog-sixteen-traits-fully-specified)) is the requirement; this …
+- **5. Membrane and motion language** (L278–305): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
+- **6. Legibility at play scale** (L306–325): Zoom is `GAME-DESIGN.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceiling), and the playe…
+- **7. UI colours and type** (L326–354): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
+- **8. Performance intent: geometry, textures, shaders** (L355–384): The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
+- **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L385–398)
 
 ## WORKFLOW.md (156 lines)
 

@@ -20,6 +20,8 @@ export interface BakeContext2D {
   lineCap: 'butt' | 'round' | 'square';
   globalAlpha: number;
   globalCompositeOperation: GlobalCompositeOperation;
+  /** Dash then gap lengths for the next strokes; `[]` strokes solid again. */
+  setLineDash(segments: readonly number[]): void;
   save(): void;
   restore(): void;
   translate(x: number, y: number): void;
@@ -51,6 +53,30 @@ export interface BakeCanvas {
 
 export interface BakeCanvasFactory {
   create(width: number, height: number): BakeCanvas;
+}
+
+/** A bake drawn at a fixed screen size (the own-cell indicators): its canvas, and that canvas's size in CSS px. */
+export interface PxBakedSprite {
+  readonly canvas: BakeCanvas;
+  readonly widthPx: number;
+  readonly heightPx: number;
+}
+
+/** Texels per CSS px for a device pixel ratio: rounded up so a sprite never upsamples, capped at `maxRatio`. */
+export function bakeScaleFor(devicePixelRatio: number, maxRatio: number): number {
+  return Math.min(Math.ceil(devicePixelRatio), maxRatio);
+}
+
+/** A canvas at least `widthPx × heightPx` CSS px at `scale` texels per px, its context scaled so the bake draws in CSS px. */
+export function createPxCanvas(
+  factory: BakeCanvasFactory,
+  widthPx: number,
+  heightPx: number,
+  scale: number,
+): PxBakedSprite {
+  const canvas = factory.create(Math.ceil(widthPx * scale), Math.ceil(heightPx * scale));
+  canvas.context.scale(scale, scale);
+  return { canvas, widthPx: canvas.width / scale, heightPx: canvas.height / scale };
 }
 
 const MIN_CANVAS_PX = 1;

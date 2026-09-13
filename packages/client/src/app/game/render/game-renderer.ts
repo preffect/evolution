@@ -34,6 +34,7 @@ import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
 import { DISH_CENTRE_TARGET, followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
+import type { IndicatorTextures } from './textures/indicator-textures';
 
 export interface RenderInputs {
   readonly previewTraitId: TraitId | null;
@@ -90,6 +91,11 @@ export class GameRenderer {
 
   get seed(): number {
     return this.textures.seed;
+  }
+
+  /** The own-cell indicators' textures and fonts (RENDERING §10): the bench's contact sheet reads them. */
+  get indicatorTextures(): IndicatorTextures {
+    return this.textures.indicators;
   }
 
   /** The cell layer's packed rows, read-only: a test or the bench reads what the clips did to a cell. */

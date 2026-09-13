@@ -96,6 +96,8 @@ export const PANEL_TOP = '#0e1f33';
 export const PANEL_BOTTOM = '#060e1a';
 export const PANEL_RIM = '#173250';
 export const UI_ACCENT = LIGHT_ACCENT;
+/** The callout backing role (VISUAL-STYLE §2): text over the dish sits on it; sheet 02's `#04070d` is the deep field. */
+export const CALLOUT_BACKING = BG_DEEP;
 export const TEXT = '#dfeaf2';
 export const TEXT_LABEL = '#8fb3c9';
 export const TEXT_MUTED = '#7f93a8';

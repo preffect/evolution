@@ -11,6 +11,7 @@ import {
   type RenderTextures,
   type TextureBaker,
 } from '../app/game/render/render-textures';
+import type { BitmapFontInstall } from '../app/game/render/textures/bitmap-fonts';
 import type { SpriteAtlas } from '../app/game/render/textures/pixi-textures';
 import type { BakeCanvas } from '../app/game/render/textures/texture-bake';
 import { createFakeBakeCanvasFactory, type FakeBakeCanvas } from './fake-bake-canvas';
@@ -52,6 +53,9 @@ export interface FakeTextureBaker extends TextureBaker {
   readonly bakedCanvases: FakeBakeCanvas[];
   /** The bakes turned into textures, in order. */
   readonly texturedBakes: BakeCanvas[];
+  /** The BitmapFont installs, in order, and the names uninstalled. */
+  readonly installedFonts: BitmapFontInstall[];
+  readonly uninstalledFonts: string[];
 }
 
 /** A `TextureBaker` that records every radial spec and canvas bake and returns fresh 1×1 textures. */
@@ -59,10 +63,16 @@ export function createFakeTextureBaker(): FakeTextureBaker {
   const bakedSpecs: RadialBakeSpec[] = [];
   const canvases = createFakeBakeCanvasFactory();
   const texturedBakes: BakeCanvas[] = [];
+  const installedFonts: BitmapFontInstall[] = [];
+  const uninstalledFonts: string[] = [];
   return {
     bakedSpecs,
     bakedCanvases: canvases.canvases,
     texturedBakes,
+    installedFonts,
+    uninstalledFonts,
+    installBitmapFont: (install) => installedFonts.push(install),
+    uninstallBitmapFont: (name) => uninstalledFonts.push(name),
     bakeRadial(spec) {
       bakedSpecs.push(spec);
       return createOnePixelTexture();
