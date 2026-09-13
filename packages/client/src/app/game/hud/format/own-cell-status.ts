@@ -121,7 +121,14 @@ function announceKeyOf(indicators: OwnCellIndicators): string {
     // The threat's **identity**, not its presence: the sentence names the predator, so a swap of
     // which one is nearest has to rewrite it. Keying on presence alone leaves `data-threat`
     // pointing at one cell while the spoken line still names another, for as long as any threat
-    // is on screen. It cannot chatter — the nearest threat is stable frame to frame.
+    // is on screen.
+    //
+    // On chattering, qualified after gameplay-qa pushed back on an earlier flat claim: two
+    // *equidistant* predators cannot alternate, because `threatsFor` breaks ties on id for exactly
+    // that reason. What can change often is which predator is genuinely nearest, and that is the
+    // announce this key is for. Where two of them share a label the re-announce is redundant, and
+    // harmless — the rendered sentence is unchanged, so the DOM does not mutate. That holds while
+    // the dish is as sparse as it is; #98's wild cells will be the test of it.
     indicators.nearestThreat?.cellId ?? '',
   ].join('|');
 }

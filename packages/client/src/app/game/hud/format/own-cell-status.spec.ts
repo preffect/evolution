@@ -195,10 +195,18 @@ describe('shouldAnnounce', () => {
     // The regression this pins (#282 review): the key recorded only that *a* threat existed, so a
     // swap left `data-threat` pointing at one cell while the spoken line still named another.
     //
-    // Both predators are wild cells, so **both labels read `Wild cell`**. That is deliberate and it
-    // is the whole point of the case: a key built from the label would pass a Bot 1 / Bot 2 test
-    // and still go stale here, which is the commonest swap in a dish full of wild cells. Only a key
-    // built from identity separates these two.
+    // Both predators are wild cells, so both labels read `Wild cell` and the two sentences are
+    // byte-identical. That is what makes this the only case that can tell an identity key from a
+    // label key, and so the only case that pins the choice — a label key handles Bot 1 → Bot 2
+    // correctly, because the label changes with the text.
+    //
+    // To be accurate about what the choice buys, since an earlier version of this comment
+    // overstated it: a label key is not *wrong* here. It would leave the sentence reading
+    // `Wild cell can engulf you`, which is true of the new predator too. The identity key is a
+    // strict refinement — it never misses an announce and may add a redundant one, harmless
+    // because the rendered string is unchanged and so the DOM does not mutate. It is worth pinning
+    // because the day the sentence carries anything predator-specific beyond the label, a label
+    // key becomes wrong silently, and this test is what stops someone simplifying back to one.
     const near = (id: string): ReturnType<typeof formatOwnCellStatus> =>
       formatOwnCellStatus(
         indicatorsWith(createTestCellView(), createTestPlayerProgressView(), [
@@ -207,7 +215,8 @@ describe('shouldAnnounce', () => {
       );
     const first = near('wild-a');
     const second = near('wild-b');
-    // The premise: the sentences are byte-identical, so nothing but the id can tell them apart.
+    // The premise, asserted rather than assumed: the sentences are byte-identical, so nothing but
+    // the id can tell these two apart and a label key cannot pass.
     expect(second.text).toBe(first.text);
     expect(first.text).toContain(`${WILD_CELL_THREAT_NAME} can engulf you`);
     expect(shouldAnnounce(first.announceKey, second)).toBe(true);
