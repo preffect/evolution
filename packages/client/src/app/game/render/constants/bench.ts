@@ -48,6 +48,10 @@ export const RENDER_GPU_SAMPLE_MAX_FRAME_RATIO = 2;
 export const RENDER_P95_MIN_SAMPLE_FRAMES = Math.ceil(1 / (1 - P95_QUANTILE));
 /** GL draw calls per frame at the bench load (docs/RENDERING.md §6). */
 export const RENDER_MAX_DRAW_CALLS = 17;
+/** The effects stage's calls (§6): the glow-atlas sprite batch, the own-cell arc mesh, the `BitmapText`. */
+export const RENDER_EFFECTS_DRAW_CALLS = 3;
+/** Calls the §6 table leaves under the cap at the bench load with debug off. */
+export const RENDER_DRAW_CALL_HEADROOM = 1;
 
 // ---- the report's rolling window ----
 /** Frames each rolling p95 covers: five seconds at 60 fps. */
@@ -72,6 +76,25 @@ export const INDICATOR_SHEET = {
   rimPaletteIndex: 0,
   labelTexts: ['AMOEBOID CAN ENGULF YOU', 'SPRINT TO ESCAPE', 'SEALED'],
   numeralTexts: ['1', '4', '9', '12'],
+  /**
+   * The arc panel (the arc primitive's evidence): the DNA ring at five fills on the cells whose floored ring is 17 px
+   * (spawn) and 44.9 px (max mass), each on a patch of body; an orbit at 32 px whose backings merge around the
+   * envelope ghost with both counters unlocked; the escape arc on a max-mass cell's 126 px orbit.
+   */
+  arcs: {
+    capacity: 48,
+    leftPx: 110,
+    topPx: 380,
+    dnaPitchPx: 160,
+    dnaFills: [0, 0.25, 0.5, 0.75, 1],
+    dnaCellRadiiPx: [24, 102],
+    dnaBodyPadPx: 10,
+    orbitCellRadiusPx: 32,
+    orbitCentre: { x: 1000, y: 460 },
+    escapeCellRadiusPx: 102,
+    escapeCentre: { x: 1450, y: 540 },
+    escapeFill: 0.4,
+  },
 } as const;
 /** `/?bench=<seed>&tick=<n>&zoom=<z>` defaults: two seconds in, at 1 px per wu. */
 export const RENDER_BENCH_DEFAULT_TICK = 120;

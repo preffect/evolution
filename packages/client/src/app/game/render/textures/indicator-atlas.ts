@@ -1,5 +1,5 @@
 // The own-cell indicator atlas (docs/RENDERING.md §10): every ghost the ladder orbit can show, one pip
-// block per (variant, eaten) for every endosymbiont tally, the unlock ring and the label pill, each
+// block per (variant, eaten) for every endosymbiont tally and the label pill (rings are arc rows), each
 // baked once at startup at its fixed px size times the device pixel ratio (rounded up, capped). Keys
 // are what `effects/orbit-layout.ts` hands the drawing: a ghost by `OrbitGhost.key` (the rung's
 // silhouette or the endosymbiont's trait id), a pip block by `pipBlockKey`.
@@ -9,7 +9,7 @@ import { INDICATOR_BAKE_MAX_DPR, INDICATOR_RIM_TINTED_RAMP } from '../constants'
 import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-indicators';
 import { GHOST_SHAPE, bakeGhost, type GhostShape } from './ghost-bake';
 import { bakeLabelPill, type LabelPillBake } from './label-pill-bake';
-import { bakePipBlock, bakeUnlockRing, endosymbiontTallies, pipBlockKey } from './pip-block-bake';
+import { bakePipBlock, endosymbiontTallies, pipBlockKey } from './pip-block-bake';
 import { bakeScaleFor, type BakeCanvasFactory, type PxBakedSprite } from './texture-bake';
 
 /** A ghost's atlas key: the next rung's silhouette, or the endosymbiont a counter unlocks (`OrbitGhost.key`). */
@@ -33,7 +33,6 @@ export interface IndicatorAtlasBakes {
   readonly ghosts: Readonly<Partial<Record<GhostKey, PxBakedSprite>>>;
   /** Keyed by `pipBlockKey(variant, eaten, required)`, `eaten` from 0 to `required`. */
   readonly pipBlocks: Readonly<Record<string, PxBakedSprite>>;
-  readonly unlockRing: PxBakedSprite;
   readonly labelPill: LabelPillBake;
 }
 
@@ -56,5 +55,5 @@ export function bakeIndicatorAtlas(factory: BakeCanvasFactory, devicePixelRatio:
       pipBlocks[pipBlockKey(tally.variant, eaten, tally.required)] = bakePipBlock(factory, scale, tally, eaten);
     }
   }
-  return { ghosts, pipBlocks, unlockRing: bakeUnlockRing(factory, scale), labelPill: bakeLabelPill(factory, scale) };
+  return { ghosts, pipBlocks, labelPill: bakeLabelPill(factory, scale) };
 }

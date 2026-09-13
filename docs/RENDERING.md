@@ -358,18 +358,20 @@ Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one
 (VISUAL-STYLE §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
 the vent shimmer is the one filter, over the vent sprite only. Draw calls at the bench load (§7):
 
-| Layer (`ARCHITECTURE.md §6`) | Container                                                                                                                                                      | Calls |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| dish                         | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                           | 4     |
-| depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                | 3     |
-| food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`) | 1     |
-| DNA fragments                | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s     | 1     |
-| cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                                    | 4     |
-| effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters                                                                               | 2     |
-| debug                        | `Graphics` + text, none when off                                                                                                                               | 0–2   |
-| HUD                          | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`)               | 0     |
+| Layer (`ARCHITECTURE.md §6`) | Container                                                                                                                                                                    | Calls |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| dish                         | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                                         | 4     |
+| depth particles              | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                              | 3     |
+| food                         | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`)               | 1     |
+| DNA fragments                | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s                   | 1     |
+| cells                        | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                                                  | 4     |
+| effects                      | glow-atlas sprites (rays, rings, halos, streams, reticle) with the own-cell ghosts, pip blocks and label pill; the own-cell arc mesh (§10); `BitmapText` floaters and labels | 3     |
+| debug                        | `Graphics` + text, none when off                                                                                                                                             | 0–2   |
+| HUD                          | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`)                             | 0     |
 
-Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). Culling: cells whose
+Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). The rows add up to 16
+with debug off, which leaves **1** call of headroom; the arc mesh is one instanced call at any arc count (§10), so
+the effects row never grows with the indicators. Culling: cells whose
 quad misses `cameraExtent` are not uploaded; motes and fragments are all uploaded (the bench load's quads are
 free) and only bacteria positions change per snapshot.
 
@@ -569,7 +571,7 @@ textures/atlas-layout.ts                             shelf packing of the mote a
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
-textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten) and the unlock ring, the nine-slice label pill (#294)
+textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten), the nine-slice label pill (#294)
 textures/{indicator-atlas,indicator-textures,bitmap-fonts,mote-textures}.ts   the indicator bakes keyed as `orbit-layout` hands them over, packed on one source with the pill and the fonts beside it; the `value` / `label` BitmapFont installs; the mote atlas's textures (#294)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
@@ -584,6 +586,7 @@ effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
 effects/own-cell-indicators.ts                      the own cell's sprite placements from the HUD record, at the top of that chain (§10, #187)
+effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
@@ -660,8 +663,13 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
 - **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
   `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
   in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
-  predicted own position. Rings, tracks and arcs are tinted glow-atlas arc sprites (one `arc` entry with a `fill`
-  uniform, no per-frame `Graphics`); ghosts, pip blocks and the unlock ring are entries of the indicator atlas
+  predicted own position. The rings, tracks and arcs (the DNA track and fill, the ladder backings as merged spans
+  with round caps, the unlock rings, the escape track and arc) are rows of the arc primitive (`effects/arc-mesh.ts`):
+  one instanced quad per row whose fragment stage measures the distance to the stroke, so a fill is exact at any
+  share, the stroke keeps its px width at any radius and every arc of the frame is one draw call
+  (`draw(arcs, zoom)`, start angles through `screenRadiansOf`, no per-frame `Graphics`). The sprint state of the
+  self ring is **not** an arc row: pass B draws it from `selfRingFill` (§2.2, #295). Ghosts and pip blocks are
+  entries of the indicator atlas
   (`textures/indicator-atlas.ts`, one packed source) baked at their fixed px size times the device pixel ratio
   (rounded up, capped at `INDICATOR_BAKE_MAX_DPR`), keyed by `OrbitGhost.key` and `pipBlockKey(variant, eaten,
 required)`; the pip blocks are one entry per (variant, eaten) from each endosymbiont's `unlockedBy.count` in
@@ -669,11 +677,11 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   ghosts bake white for the rim-colour tint, the counters' in their organelle colour. The numeral and the labels are
   `BitmapText` in the `value` / `label` roles over one shared install per texture bundle
   (`textures/bitmap-fonts.ts`, names in `textures.indicators.fonts`), the labels on the label pill, a nine-slice
-  sprite that stretches only its middle column (`UI.md §6`). Budget: ≤ 14 sprites
-  and 2 texts inside the `effects` stage's 0.3 ms (§7); the worst case is a prokaryote with both counters, one
-  unlocked, and a threat on screen: DNA track + fill (2), self-ring track + arc (2), two backings, two ghosts, two
-  pip blocks, one unlock ring, the label pill = 13 sprites, the numeral and the label = 2 texts (the escape arc
-  replaces the orbit and hides the label, so it never adds to this).
+  sprite that stretches only its middle column (`UI.md §6`). Budget inside the `effects` stage's 0.3 ms (§7), the
+  worst case being a prokaryote with both counters unlocked and a threat on screen: two ghosts, two pip blocks and
+  the label pill = 5 sprites; the DNA track and fill, two backings and two unlock rings = 6 arc rows
+  (`ARC_INSTANCE_CAPACITY` 8) in one call; the numeral and the label = 2 texts (the escape track and arc replace the
+  orbit and hide the label, so they never add to this).
 - **Floors.** `dnaRingRadiusPx` and `ladderOrbitRadiusPx` (`effects/own-cell-geometry.ts`) and `orbitLayout` (`effects/orbit-layout.ts`), all pure, apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md §3.1.3's geometry
   table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA

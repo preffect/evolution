@@ -1,4 +1,4 @@
-// The endosymbiosis counters' pip blocks and the unlock ring (docs/UI.md §3.1.2, docs/RENDERING.md §10).
+// The endosymbiosis counters' pip blocks (docs/UI.md §3.1.2, docs/RENDERING.md §10; the unlock ring is an arc row).
 // A pip block is one sprite per (variant, eaten): `required` pips in rows of `LADDER_PIP_ROW_MAX`, ⌀
 // `LADDER_PIP_PX` with `LADDER_PIP_GAP_PX` between, laid along x (the orbit's clockwise tangent) and
 // lit in that order, the row nearest the cell first. A sprite rotated to the tangent points its +y at
@@ -19,18 +19,13 @@ import { hexWithAlpha } from '../colour';
 import {
   CALLOUT_BACKING,
   INDICATOR_VARIANT_RAMP,
-  LADDER_GHOST_PX,
   LADDER_PIP_GAP_PX,
   LADDER_PIP_LIT_ALPHA,
   LADDER_PIP_PX,
   LADDER_PIP_ROW_MAX,
   LADDER_PIP_STROKE_PX,
   LADDER_PIP_UNLIT_ALPHA,
-  LADDER_UNLOCK_RING_PAD_PX,
-  LADDER_UNLOCK_RING_STROKE_PX,
-  LEVEL_GOLD,
   PIP_BAKE,
-  UNLOCK_RING_BAKE,
   WHITE,
   type IndicatorRamp,
 } from '../constants';
@@ -41,7 +36,6 @@ import {
   createPxCanvas,
   fillDisc,
   fillHalo,
-  fillRadial,
   paintGlint,
   strokeDisc,
   type BakeCanvasFactory,
@@ -136,42 +130,5 @@ export function bakePipBlock(
     else paintUnlitPip(context, pip, tally.ramp);
   }
   context.restore();
-  return sprite;
-}
-
-/** The unlock ring's radius: `LADDER_UNLOCK_RING_PAD_PX` outside the ghost's square. */
-export function unlockRingRadiusPx(): number {
-  return LADDER_GHOST_PX * HALF + LADDER_UNLOCK_RING_PAD_PX;
-}
-
-/** The level-gold ring a full counter's ghost wears until the trait is picked, centred on its own canvas. */
-export function bakeUnlockRing(factory: BakeCanvasFactory, scale: number): PxBakedSprite {
-  const ringRadius = unlockRingRadiusPx();
-  const stroke = LADDER_UNLOCK_RING_STROKE_PX;
-  const outer = ringRadius + stroke * HALF + UNLOCK_RING_BAKE.haloPx;
-  const sprite = createPxCanvas(factory, outer * DIAMETER_PER_RADIUS, outer * DIAMETER_PER_RADIUS, scale);
-  const { context } = sprite.canvas;
-  const ring = { x: sprite.widthPx * HALF, y: sprite.heightPx * HALF, radius: ringRadius };
-  fillRadial(context, { ...ring, radius: outer }, [
-    { offset: (ringRadius - UNLOCK_RING_BAKE.haloPx) / outer, colour: LEVEL_GOLD, alpha: 0 },
-    { offset: ringRadius / outer, colour: LEVEL_GOLD, alpha: UNLOCK_RING_BAKE.haloAlpha },
-    { offset: 1, colour: LEVEL_GOLD, alpha: 0 },
-  ]);
-  const edgeWidth = stroke + UNLOCK_RING_BAKE.edgePx * DIAMETER_PER_RADIUS;
-  strokeDisc(context, ring, { colour: CALLOUT_BACKING, alpha: UNLOCK_RING_BAKE.edgeAlpha, width: edgeWidth });
-  strokeDisc(context, ring, { colour: LEVEL_GOLD, alpha: 1, width: stroke });
-  const halfArc = UNLOCK_RING_BAKE.litArcTurns * HALF * RADIANS_PER_FULL_TURN;
-  context.strokeStyle = hexWithAlpha(WHITE, UNLOCK_RING_BAKE.litArcAlpha);
-  context.lineWidth = stroke * HALF;
-  context.lineCap = 'round';
-  context.beginPath();
-  context.arc(ring.x, ring.y, ringRadius, LIGHT_DIRECTION_RADIANS - halfArc, LIGHT_DIRECTION_RADIANS + halfArc);
-  context.stroke();
-  const glint = {
-    x: ring.x + Math.cos(LIGHT_DIRECTION_RADIANS) * ringRadius,
-    y: ring.y + Math.sin(LIGHT_DIRECTION_RADIANS) * ringRadius,
-    radius: UNLOCK_RING_BAKE.glintPx,
-  };
-  fillHalo(context, glint, { colour: WHITE, alpha: UNLOCK_RING_BAKE.glintAlpha });
   return sprite;
 }

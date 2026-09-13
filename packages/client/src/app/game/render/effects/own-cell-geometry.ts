@@ -14,7 +14,9 @@ import {
   DNA_RING_MIN_RADIUS_PX,
   DNA_RING_RADIUS_FRACTION,
   LADDER_BACKING_PX,
+  LADDER_GHOST_PX,
   LADDER_ORBIT_GAP_PX,
+  LADDER_UNLOCK_RING_PAD_PX,
   SEAT_MARK_BEAD_MIN_PX,
   SEAT_MARK_BEAD_RADIUS_FRACTION,
   SEAT_MARK_HALO_SCALE,
@@ -47,6 +49,11 @@ export function selfRingRadiusPx(rPx: number): number {
 
 export function ladderOrbitRadiusPx(rPx: number): number {
   return selfRingRadiusPx(rPx) + LADDER_ORBIT_GAP_PX;
+}
+
+/** A full counter's level-gold ring around its ghost: `LADDER_UNLOCK_RING_PAD_PX` outside the ghost's square. */
+export function unlockRingRadiusPx(): number {
+  return LADDER_GHOST_PX * HALF + LADDER_UNLOCK_RING_PAD_PX;
 }
 
 /** The outer edge of the orbit's backing: what the picker band and the threat label keep clear of. */
