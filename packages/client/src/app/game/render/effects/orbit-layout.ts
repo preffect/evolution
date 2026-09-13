@@ -17,7 +17,7 @@ import {
 import { HALF } from '../geometry';
 import type { Ladder, LadderCounter, LadderGhost, LadderSilhouette } from '../../state/own-cell-indicators';
 import { orientedBoxGapPx, type OrientedBox } from './oriented-box';
-import { ladderOrbitRadiusPx, orbitDegreesOf, orbitPointPx, type OrbitPoint } from './own-cell-indicators';
+import { ladderOrbitRadiusPx, orbitDegreesOf, orbitPointPx, type OrbitPoint } from './own-cell-geometry';
 
 const NO_PIPS = 0;
 /** Which way a counter turns away from a rung ghost, in degrees clockwise from 12 o'clock. */

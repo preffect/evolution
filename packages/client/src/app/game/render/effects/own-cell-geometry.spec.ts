@@ -1,11 +1,12 @@
 // Pins docs/UI.md §3.1.3 — the geometry table at 24 / 32 / 45 / 102 px and its three inequalities —
 // and the one turn from the record's angles to the screen. The table and the HUD numbers are read
 // from the doc rather than copied, so the doc and these functions cannot drift apart without this
-// file going red.
+// file going red. Two of the table's columns (one counter's span, the gap between the two backings)
+// are the layout's, so this spec deliberately calls `orbitLayout` for them: the table is one pin.
 
 import { describe, expect, it } from 'vitest';
 import { markdownSection, readRepoDocument, tableCells } from '../../../../testing/repo-document';
-import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-counters';
+import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-builders';
 import {
   DNA_RING_KEEP_OUT_FRACTION,
   DNA_RING_KEEP_OUT_PAD_PX,
@@ -27,7 +28,7 @@ import {
   seatMarkHaloPx,
   selfRingRadiusPx,
   type OrbitPoint,
-} from './own-cell-indicators';
+} from './own-cell-geometry';
 
 const UI_DOCUMENT = readRepoDocument('docs/UI.md');
 /** Any radius will do for the angle turn; a round one keeps the expected points readable. */

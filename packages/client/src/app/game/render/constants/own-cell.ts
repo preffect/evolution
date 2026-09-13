@@ -41,7 +41,7 @@ export const LADDER_UNLOCK_RING_PAD_PX = 2;
 export const LADDER_UNLOCK_RING_STROKE_PX = 1.5;
 
 // The orbit angles are **degrees, clockwise from 12 o'clock** (docs/UI.md §3.1.2), which is not
-// what a trigonometry function expects. `effects/own-cell-indicators.ts` `screenRadiansOf` is the
+// what a trigonometry function expects. `effects/own-cell-geometry.ts` `screenRadiansOf` is the
 // one turn between the two, and its spec pins where each of these angles lands on screen: a wrong
 // turn is silent, the counters simply appear elsewhere with every constant here still correct.
 

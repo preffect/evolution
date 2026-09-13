@@ -7,8 +7,8 @@ import {
   THREAT_LABEL_GAP_PX,
 } from '../constants';
 import { HALF } from '../geometry';
-import { ladderOrbitExtentPx } from './own-cell-indicators';
-import { UPRIGHT, boxIntersectsDisc, threatLabelPlacement, type ThreatLabelInput } from './threat-label-placement';
+import { ladderOrbitExtentPx } from './own-cell-geometry';
+import { UPRIGHT, threatLabelPlacement, type ThreatLabelInput } from './threat-label-placement';
 
 /** docs/RENDERING.md §10's case: a 30 px predator, the own cell at the 1080p spawn size. */
 const PREDATOR_RADIUS_PX = 30;
@@ -67,17 +67,5 @@ describe('threatLabelPlacement', () => {
     const placement = placeWithThreatAt(0, 0);
     expect(Number.isFinite(placement.x) && Number.isFinite(placement.y)).toBe(true);
     expect(Math.hypot(placement.x, placement.y)).toBeCloseTo(OFFSET_PX);
-  });
-});
-
-describe('boxIntersectsDisc', () => {
-  const disc = { x: 0, y: 0, radius: 10 };
-
-  it('sees a box whose edge reaches inside the disc', () => {
-    expect(boxIntersectsDisc({ x: 14, y: 0, halfWidth: 5, halfHeight: 1 }, disc)).toBe(true);
-  });
-
-  it('does not count a corner that only reaches the disc’s bounding square', () => {
-    expect(boxIntersectsDisc({ x: 10, y: 10, halfWidth: 2, halfHeight: 2 }, disc)).toBe(false);
   });
 });

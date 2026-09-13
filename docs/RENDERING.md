@@ -580,7 +580,8 @@ food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts   one `
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
-effects/{own-cell-indicators,orbit-layout,oriented-box,threat-label-placement}.ts   the own cell's indicators from the HUD record (§10): the radii and the angle turn, the ladder orbit's layout, the gap between drawn boxes, the threat label; pure placement
+effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
+effects/own-cell-indicators.ts                      the own cell's sprite placements from the HUD record, at the top of that chain (§10, #187)
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
@@ -651,8 +652,7 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
 the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and the
 nearest-threat label, with their data, states, wording, the reading-floor constants (`UI.md §9`) and the
 `OwnCellIndicators` record. This section owns **how** they are drawn and restates none of that; a value or a state
-named here is a link to UI.md, never a copy. The files are §8's `effects/own-cell-indicators.ts` and
-`effects/threat-label-placement.ts`.
+named here is a link to UI.md, never a copy. The files are §8's `effects/` indicator files.
 
 - **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
   `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
@@ -666,7 +666,7 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/own-ce
   unlocked, and a threat on screen: DNA track + fill (2), self-ring track + arc (2), two backings, two ghosts, two
   pip blocks, one unlock ring, the label pill = 13 sprites, the numeral and the label = 2 texts (the escape arc
   replaces the orbit and hides the label, so it never adds to this).
-- **Floors.** `dnaRingRadiusPx`, `ladderOrbitRadiusPx` (pure, in the same file) and `orbitLayout` (`effects/orbit-layout.ts`) apply UI.md
+- **Floors.** `dnaRingRadiusPx` and `ladderOrbitRadiusPx` (`effects/own-cell-geometry.ts`) and `orbitLayout` (`effects/orbit-layout.ts`), all pure, apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md §3.1.3's geometry
   table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA
   keep-out) and the ghost-beside-a-counter case. `orbitLayout` centres each counter on its angle, ghost first and
@@ -692,7 +692,8 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/own-ce
   that pill's box intersects the disc of the own cell's orbit extent (`UI.md §3.1.3`) the centre flips to the far
   side of the ring (the same distance, away from the own cell); text stays upright. The warning rings on every
   eligible cell remain the pass-B band of §2.2; the label is drawn on the nearest one only, as the record says.
-- **Tests.** `own-cell-indicators.spec.ts` (the geometry table, the three inequalities, the sprite count of the worst
+- **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),
+  `oriented-box.spec.ts`, `own-cell-indicators.spec.ts` (#187: the sprite count of the worst
   case), `orbit-layout.spec.ts` (the counter layout and the ghost-beside-a-counter clearance) and
   `threat-label-placement.spec.ts` (near side at 200 px above a 30 px predator, far side at 100 px, the
   pill's whole box tested against the orbit extent so a wide pill beside the cell flips, upright at every angle),

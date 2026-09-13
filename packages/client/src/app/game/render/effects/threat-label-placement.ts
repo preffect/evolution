@@ -3,15 +3,10 @@
 // on the far side of the ring instead when that pill would cross the own cell's orbit extent, so
 // the label never covers the counters or the numeral. Pure, in screen px; the text is always upright.
 
-import { clamp } from '@evolution/shared';
+import type { ScreenPoint } from '../camera';
 import { LABEL_PILL_HEIGHT_PX, THREAT_LABEL_GAP_PX } from '../constants';
-import { HALF } from '../geometry';
-import { ladderOrbitExtentPx } from './own-cell-indicators';
-
-export interface ScreenPoint {
-  readonly x: number;
-  readonly y: number;
-}
+import { HALF, boxIntersectsDisc } from '../geometry';
+import { ladderOrbitExtentPx } from './own-cell-geometry';
 
 export interface ThreatLabelInput {
   readonly threatCentre: ScreenPoint;
@@ -43,16 +38,6 @@ function unitDirection(from: ScreenPoint, target: ScreenPoint): ScreenPoint {
   const deltaY = target.y - from.y;
   const length = Math.hypot(deltaX, deltaY);
   return length === 0 ? COINCIDENT_DIRECTION : { x: deltaX / length, y: deltaY / length };
-}
-
-/** Whether an upright box of half-size `halfWidth` × `halfHeight` around `centre` reaches inside the disc. */
-export function boxIntersectsDisc(
-  box: ScreenPoint & { readonly halfWidth: number; readonly halfHeight: number },
-  disc: ScreenPoint & { readonly radius: number },
-): boolean {
-  const nearestX = clamp(disc.x, box.x - box.halfWidth, box.x + box.halfWidth);
-  const nearestY = clamp(disc.y, box.y - box.halfHeight, box.y + box.halfHeight);
-  return Math.hypot(nearestX - disc.x, nearestY - disc.y) < disc.radius;
 }
 
 export function threatLabelPlacement(input: ThreatLabelInput): ThreatLabelPlacement {

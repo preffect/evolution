@@ -166,7 +166,7 @@ ring's `ENGULF_WARNING_RING_MIN_PX`. Sizes tied to the cell use `max(fraction ×
 px. Nothing here scales with `--hud-scale`, and nothing here falls back to chrome at any size. The constants are
 §9's (home `render/constants.ts`, CODE-STANDARDS §2); RENDERING §10 applies them.
 
-Geometry at the sizes that matter (what `own-cell-indicators.spec.ts` pins, RENDERING §10; px, angles in °):
+Geometry at the sizes that matter (what `own-cell-geometry.spec.ts` pins, RENDERING §10; px, angles in °):
 
 | Own cell `r_px` | When                            | DNA ring ρ  | Keep-out (slot centres from) vs ring edge + pad | Self ring | Ladder orbit | One counter spans | Between the two backings | Orbit extent (backing edge) | Backing to seat-mark halo |
 | --------------- | ------------------------------- | ----------- | ----------------------------------------------- | --------- | ------------ | ----------------- | ------------------------ | --------------------------- | ------------------------- |
