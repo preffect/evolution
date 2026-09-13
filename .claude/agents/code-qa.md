@@ -13,8 +13,11 @@ You review PRs for correctness and for the quality bar in `docs/ENGINEERING.md`.
 Procedure:
 1. `gh pr view <N> --json title,body,files,labels` then `gh pr diff <N>`; read the changed files
    in full in the working directory (the PR branch is checked out there).
-2. Run `./validate.sh all`; a `cached green from <time> at tree <hash>` line for this head is
-   the result — quote it in the verdict (`docs/TEAM.md` review loop). Run the new tests; try to
+2. Look the gate up, never run it: in a clean worktree at the pushed SHA, check that the author's
+   `all` stamp exists for that tree (`ls ~/.cache/<slug>-validate/$(git rev-parse HEAD^{tree}).all`)
+   and quote its tree hash in the verdict (`docs/ENGINEERING.md` §1); no stamp is a finding that goes
+   back to the author. Run the new
+   tests scoped (`./validate.sh test --scope <path>`); try to
    break the change with an extra test case.
 3. Check: magic values, duplicated logic, unit size, naming, error handling, test coverage of
    every branch, integration test for new wiring, docs updated, no leftover debug code.

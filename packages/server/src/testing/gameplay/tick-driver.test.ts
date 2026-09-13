@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_TICKS_PER_ADVANCE } from '@evolution/shared';
 import { ScenarioSetupError } from './errors.js';
 import { driveTicks, type TickHooks } from './tick-driver.js';
 
@@ -38,9 +39,9 @@ function countingHooks(): TickHooks & { steps: number; lastTick: number } {
 }
 
 describe('driveTicks', () => {
-  it('runs before, step, after for every tick in order', () => {
+  it('runs before, step, after for every tick in order', async () => {
     const hooks = recordingHooks();
-    driveTicks(3, hooks);
+    await driveTicks(3, hooks);
     expect(hooks.events).toEqual([
       'before 1',
       'step',
@@ -54,35 +55,42 @@ describe('driveTicks', () => {
     ]);
   });
 
-  it('steps exactly the requested count when it is not a multiple of the burst cap', () => {
+  it('steps exactly the requested count when it is not a multiple of the burst cap', async () => {
     const hooks = recordingHooks();
-    driveTicks(23, hooks);
+    await driveTicks(23, hooks);
     expect(hooks.events.filter((event) => event === 'step')).toHaveLength(23);
     expect(hooks.events.at(-1)).toBe('after 23');
   });
 
-  it('steps exactly 23 152 ticks, where relative clock advances would over-step by one', () => {
+  it('steps exactly 23 152 ticks, where relative clock advances would over-step by one', async () => {
     const hooks = countingHooks();
-    driveTicks(OVERSTEP_TICK, hooks);
+    await driveTicks(OVERSTEP_TICK, hooks);
     expect(hooks.steps).toBe(OVERSTEP_TICK);
     expect(hooks.lastTick).toBe(OVERSTEP_TICK);
   });
 
-  it('drives the 37 200-tick G2 row with no dropped tick', () => {
+  it('drives the 37 200-tick G2 row with no dropped tick', async () => {
     const hooks = countingHooks();
-    expect(() => driveTicks(G2_TICKS, hooks)).not.toThrow();
+    await expect(driveTicks(G2_TICKS, hooks)).resolves.toBeUndefined();
     expect(hooks.steps).toBe(G2_TICKS);
     expect(hooks.lastTick).toBe(G2_TICKS);
   });
 
-  it('does nothing for zero ticks', () => {
+  it('does nothing for zero ticks', async () => {
     const hooks = recordingHooks();
-    driveTicks(0, hooks);
+    await driveTicks(0, hooks);
     expect(hooks.events).toEqual([]);
   });
 
-  it('rejects a negative or fractional tick count', () => {
-    expect(() => driveTicks(-1, recordingHooks())).toThrow(ScenarioSetupError);
-    expect(() => driveTicks(1.5, recordingHooks())).toThrow(ScenarioSetupError);
+  it('rejects a negative or fractional tick count', async () => {
+    await expect(driveTicks(-1, recordingHooks())).rejects.toThrow(ScenarioSetupError);
+    await expect(driveTicks(1.5, recordingHooks())).rejects.toThrow(ScenarioSetupError);
+  });
+
+  it('returns to the event loop after every burst, so a whole round never holds the test worker (#262)', async () => {
+    const hooks = recordingHooks();
+    setImmediate(() => hooks.events.push('queued callback'));
+    await driveTicks(MAX_TICKS_PER_ADVANCE + 1, hooks);
+    expect(hooks.events.indexOf('queued callback')).toBe(hooks.events.indexOf(`after ${MAX_TICKS_PER_ADVANCE}`) + 1);
   });
 });

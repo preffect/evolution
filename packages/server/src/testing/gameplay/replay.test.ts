@@ -13,7 +13,7 @@ const PATCH_TICK = 3;
 /** Run plus replay of 24 000 inputs takes well under a second when the log is indexed once. */
 const LINEAR_REPLAY_TIMEOUT_MS = 2000;
 
-function recordedRun() {
+async function recordedRun() {
   return toyScenario('recorded')
     .seed(SEED)
     .players(2)
@@ -33,48 +33,48 @@ function checkpoint(tick: number, hash: string): ReplayCheckpoint {
 }
 
 describe('replayScenario / verifyReplay', () => {
-  it('reproduces every checkpoint and the final hash of a recording', () => {
-    const run = recordedRun();
-    const verdict = verifyReplay(run.replay, toyAdapter);
+  it('reproduces every checkpoint and the final hash of a recording', async () => {
+    const run = await recordedRun();
+    const verdict = await verifyReplay(run.replay, toyAdapter);
     expect(verdict.divergence).toBeNull();
     expect(verdict.finalHash).toBe(run.finalHash);
     expect(verdict.checkpoints).toEqual(run.checkpoints);
   });
 
-  it('diverges from tick 0 when the recording is replayed on another seed', () => {
-    const tampered: ScenarioReplay<ToyFixture> = { ...recordedRun().replay, seed: OTHER_SEED };
+  it('diverges from tick 0 when the recording is replayed on another seed', async () => {
+    const tampered: ScenarioReplay<ToyFixture> = { ...(await recordedRun()).replay, seed: OTHER_SEED };
     // The record's own seed is the one a replay starts from, whatever its config says.
-    const verdict = replayScenario(tampered, toyAdapter);
+    const verdict = await replayScenario(tampered, toyAdapter);
     expect(verdict.divergence?.tick).toBe(0);
     expect(verdict.divergence?.lastAgreedTick).toBeNull();
-    expect(() => verifyReplay(tampered, toyAdapter)).toThrow(ScenarioDivergenceError);
-    expect(() => verifyReplay(tampered, toyAdapter)).toThrow(
+    await expect(verifyReplay(tampered, toyAdapter)).rejects.toThrow(ScenarioDivergenceError);
+    await expect(verifyReplay(tampered, toyAdapter)).rejects.toThrow(
       /diverged \(seed 43\): first differing checkpoint at tick 0/,
     );
   });
 
-  it('names the exact tick when an input is missing from the recording', () => {
-    const replay = recordedRun().replay;
+  it('names the exact tick when an input is missing from the recording', async () => {
+    const replay = (await recordedRun()).replay;
     const tampered: ScenarioReplay<ToyFixture> = {
       ...replay,
       inputs: replay.inputs.filter((input) => input.tick !== 2),
     };
-    const verdict = replayScenario(tampered, toyAdapter);
+    const verdict = await replayScenario(tampered, toyAdapter);
     expect(verdict.divergence).toMatchObject({ tick: 2, lastAgreedTick: 1 });
   });
 
-  it('replays scheduled fixtures and names the tick when a patch is missing', () => {
-    const replay = recordedRun().replay;
+  it('replays scheduled fixtures and names the tick when a patch is missing', async () => {
+    const replay = (await recordedRun()).replay;
     expect(replay.patches).toEqual([{ tick: PATCH_TICK, fixture: { playerIndex: 0, at: { x: 0, y: 0 } } }]);
     const tampered: ScenarioReplay<ToyFixture> = { ...replay, patches: [] };
-    expect(replayScenario(tampered, toyAdapter).divergence).toMatchObject({
+    expect((await replayScenario(tampered, toyAdapter)).divergence).toMatchObject({
       tick: PATCH_TICK,
       lastAgreedTick: PATCH_TICK - 1,
     });
   });
 
-  it('rebuilds the player list from the roster and the joins', () => {
-    const players = playersOfReplay(recordedRun().replay);
+  it('rebuilds the player list from the roster and the joins', async () => {
+    const players = playersOfReplay((await recordedRun()).replay);
     expect(players.map((member) => [member.playerIndex, member.playerId, member.joinTick])).toEqual([
       [0, scenarioPlayerId(0), 0],
       [1, scenarioPlayerId(1), 0],
@@ -85,9 +85,9 @@ describe('replayScenario / verifyReplay', () => {
   it(
     'replays a per-tick input log in time linear in the log (a per-step rescan took 3 s at this size)',
     { timeout: LINEAR_REPLAY_TIMEOUT_MS },
-    () => {
+    async () => {
       const ticks = 12_000;
-      const run = toyScenario('per-tick inputs')
+      const run = await toyScenario('per-tick inputs')
         .seed(SEED)
         .players(2)
         .from(1, player(0).does(targetPoint(0, 0)))
@@ -95,7 +95,7 @@ describe('replayScenario / verifyReplay', () => {
         .advance(ticks)
         .run();
       expect(run.replay.inputs).toHaveLength(2 * ticks);
-      expect(verifyReplay(run.replay, toyAdapter).divergence).toBeNull();
+      expect((await verifyReplay(run.replay, toyAdapter)).divergence).toBeNull();
     },
   );
 });
@@ -150,12 +150,12 @@ describe('findFirstDivergence', () => {
 });
 
 describe('assertDeterministic', () => {
-  it('passes when two runs agree on every checkpoint', () => {
+  it('passes when two runs agree on every checkpoint', async () => {
     const definition = toyScenario('stable').seed(SEED).players(1).hashEvery(1).advance(4).build();
-    expect(assertDeterministic(definition, toyAdapter).replay.finalTick).toBe(4);
+    expect((await assertDeterministic(definition, toyAdapter)).replay.finalTick).toBe(4);
   });
 
-  it('passes for a stateful strategy and one that draws from its own stream: each run starts fresh', () => {
+  it('passes for a stateful strategy and one that draws from its own stream: each run starts fresh', async () => {
     const huntWithMemory = () => {
       let lastTarget = 0;
       return {
@@ -181,7 +181,7 @@ describe('assertDeterministic', () => {
       .bot(1, wander)
       .advance(30)
       .build();
-    const run = assertDeterministic(definition, toyAdapter);
+    const run = await assertDeterministic(definition, toyAdapter);
     expect(
       run.replay.inputs.filter((input) => input.playerId === scenarioPlayerId(0)).map((input) => input.input),
     ).toEqual(
@@ -189,7 +189,7 @@ describe('assertDeterministic', () => {
     );
   });
 
-  it('throws at the first differing checkpoint when a script draws from outside the seed', () => {
+  it('throws at the first differing checkpoint when a script draws from outside the seed', async () => {
     let callsAcrossRuns = 0;
     const definition = toyScenario('unseeded')
       .seed(SEED)
@@ -204,10 +204,10 @@ describe('assertDeterministic', () => {
       })
       .advance(3)
       .build();
-    expect(() => assertDeterministic(definition, toyAdapter)).toThrow(ScenarioDivergenceError);
+    await expect(assertDeterministic(definition, toyAdapter)).rejects.toThrow(ScenarioDivergenceError);
   });
 
-  it('throws for a strategy instance shared across runs through a factory that returns the same object', () => {
+  it('throws for a strategy instance shared across runs through a factory that returns the same object', async () => {
     let lastTarget = 0;
     const shared = { name: 'shared', decide: () => ({ targetX: (lastTarget += 1), targetY: 0 }) };
     const definition = toyScenario('shared instance')
@@ -217,6 +217,6 @@ describe('assertDeterministic', () => {
       .bot(0, () => shared)
       .advance(3)
       .build();
-    expect(() => assertDeterministic(definition, toyAdapter)).toThrow(ScenarioDivergenceError);
+    await expect(assertDeterministic(definition, toyAdapter)).rejects.toThrow(ScenarioDivergenceError);
   });
 });

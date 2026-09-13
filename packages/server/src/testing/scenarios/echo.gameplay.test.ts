@@ -35,8 +35,8 @@ function roster(view: ScenarioView<EchoSnapshot>): string[] {
 }
 
 describe('echo module scenarios', () => {
-  it('echoes the latest input per player from the tick it was applied, identically across two runs', () => {
-    const run = echoScenario('inputs echo')
+  it('echoes the latest input per player from the tick it was applied, identically across two runs', async () => {
+    const run = await echoScenario('inputs echo')
       .seed(SEED)
       .players(2)
       .atTick(INPUT_TICK, player(0).does(targetPoint(10, 20)))
@@ -59,11 +59,11 @@ describe('echo module scenarios', () => {
       .atEnd()
       .toEqual(createTestGameInput({ sequence: 2, targetX: 3, targetY: 4 }))
       .runDeterministic();
-    expect(verifyReplay(run.replay, echoAdapter).finalHash).toBe(run.finalHash);
+    expect((await verifyReplay(run.replay, echoAdapter)).finalHash).toBe(run.finalHash);
   });
 
-  it('adds a late joiner before its step and echoes its input afterwards', () => {
-    const run = echoScenario('late join')
+  it('adds a late joiner before its step and echoes its input afterwards', async () => {
+    const run = await echoScenario('late join')
       .seed(SEED)
       .players(2)
       .playerJoinsAt(JOIN_TICK)
@@ -85,12 +85,12 @@ describe('echo module scenarios', () => {
     expect(run.replay.membership).toEqual([
       { tick: JOIN_TICK, kind: 'join', playerId: 'player_2', playerName: 'Player 2', avatarIndex: 2 },
     ]);
-    expect(verifyReplay(run.replay, echoAdapter).divergence).toBeNull();
+    expect((await verifyReplay(run.replay, echoAdapter)).divergence).toBeNull();
   });
 });
 
 describe('echo module scenarios that fail on purpose', () => {
-  it('reports the seed, the tick and the divergence when an expectation misses', () => {
+  it('reports the seed, the tick and the divergence when an expectation misses', async () => {
     const sink = createMemoryReplaySink();
     const scenario = createScenarioDsl(echoAdapter, { replaySink: sink });
     const failing = scenario('wrong echo')
@@ -101,8 +101,8 @@ describe('echo module scenarios that fail on purpose', () => {
       .expect('player 0 echo', inputOf(0))
       .atTick(INPUT_TICK)
       .toEqual(createTestGameInput({ sequence: 1, targetX: 99, targetY: 20 }));
-    expect(() => failing.run()).toThrow(ScenarioAssertionError);
-    expect(() => failing.run()).toThrow(
+    await expect(failing.run()).rejects.toThrow(ScenarioAssertionError);
+    await expect(failing.run()).rejects.toThrow(
       'Scenario "wrong echo" failed (seed 42):\n' +
         '  at tick 3: player 0 echo\n' +
         '    expected {"sequence":1,"targetX":99,"targetY":20,"shouldSprint":false,"traitChoice":null}, ' +
@@ -114,7 +114,7 @@ describe('echo module scenarios that fail on purpose', () => {
     ]);
   });
 
-  it('reports the first differing checkpoint when a script draws from outside the seed', () => {
+  it('reports the first differing checkpoint when a script draws from outside the seed', async () => {
     let callsAcrossRuns = 0;
     const diverging = echoScenario('unseeded script')
       .seed(SEED)
@@ -128,8 +128,8 @@ describe('echo module scenarios that fail on purpose', () => {
         },
       })
       .advance(TICKS);
-    expect(() => diverging.runDeterministic()).toThrow(ScenarioDivergenceError);
-    expect(() => diverging.runDeterministic()).toThrow(
+    await expect(diverging.runDeterministic()).rejects.toThrow(ScenarioDivergenceError);
+    await expect(diverging.runDeterministic()).rejects.toThrow(
       /Scenario "unseeded script" diverged \(seed 42\): first differing checkpoint at tick 3: expected [0-9a-f]{16}, got [0-9a-f]{16} \(identical through tick 2\)/,
     );
   });

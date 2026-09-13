@@ -43,9 +43,9 @@ const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair
     .from(tick + 1, player(1).does(awayFromPredator));
 
 describe('ECOLOGY §8: getting away from an engulf, and being carried past the chance', () => {
-  it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', () => {
+  it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', async () => {
     const row = engulfPair('E11');
-    sprintsAwayFrom(E11_SPRINT_TICK)(row)
+    await sprintsAwayFrom(E11_SPRINT_TICK)(row)
       .advance(200)
       .expect('in the wrap band before the sprint', progressOfPrey)
       .atTick(E11_SPRINT_TICK - 1)
@@ -71,9 +71,9 @@ describe('ECOLOGY §8: getting away from an engulf, and being carried past the c
       .runDeterministic();
   });
 
-  it('E11b: a prey sealed before it reacts is carried, its speed 0, and the engulf still ends on tick 36', () => {
+  it('E11b: a prey sealed before it reacts is carried, its speed 0, and the engulf still ends on tick 36', async () => {
     const row = engulfPair('E11b');
-    sprintsAwayFrom(E9_SEAL_TICK + 1)(row)
+    await sprintsAwayFrom(E9_SEAL_TICK + 1)(row)
       .advance(E9_PAYOUT_TICK)
       .expect('speed 0 from the tick after the seal', (view) => speedOf(view, 1))
       .atTick(E9_SEAL_TICK + 2)
@@ -93,15 +93,15 @@ describe('ECOLOGY §8: getting away from an engulf, and being carried past the c
       .runDeterministic();
   });
 
-  it('E11 reaction window: sprinting at tick 13 still escapes, at tick 14 the seal closes first', () => {
-    sprintsAwayFrom(E11_LATE_SPRINT_TICK)(engulfPair('E11 sprint at 13'))
+  it('E11 reaction window: sprinting at tick 13 still escapes, at tick 14 the seal closes first', async () => {
+    await sprintsAwayFrom(E11_LATE_SPRINT_TICK)(engulfPair('E11 sprint at 13'))
       .advance(E11_TOO_LATE_END_TICK)
       .expect('released on tick 29', releaseReasons)
       .atTick(E11_LATE_RELEASE_TICK)
       .toEqual([ENGULF_RELEASE_REASON.escaped])
       .runDeterministic();
 
-    sprintsAwayFrom(E11_TOO_LATE_SPRINT_TICK)(engulfPair('E11 sprint at 14'))
+    await sprintsAwayFrom(E11_TOO_LATE_SPRINT_TICK)(engulfPair('E11 sprint at 14'))
       .advance(E11_TOO_LATE_END_TICK)
       .expect('sealed on tick 23', progressOfPrey)
       .atTick(E11_TOO_LATE_SEAL_TICK)
@@ -123,7 +123,7 @@ describe('ECOLOGY §8: getting away from an engulf, and being carried past the c
       .toBe(1)
       .runDeterministic();
 
-    engulfPair('E11 steering away from 10 without sprint')
+    await engulfPair('E11 steering away from 10 without sprint')
       .from(E11_SPRINT_TICK, player(1).does(awayFromPredator))
       .advance(E11_TOO_LATE_END_TICK)
       .expect('released on tick 31', releaseReasons)

@@ -58,9 +58,10 @@ fix_task() {
 Address every unresolved review thread on pull request #$pr: run
 \`scripts/pr-threads.sh unresolved $pr\` ONCE (includes Copilot's), fix the code or decide why not,
 then reply to all threads in ONE \`scripts/pr-threads.sh reply $pr <file>\` call (resolve: false),
-keep \`./validate.sh all\` green, bring the branch up to date with \`git merge origin/main\` (never
-rebase on a review round: rewriting history marks every thread outdated), and push. Do not resolve
-threads and do not merge.
+bring the branch up to date with \`git merge origin/main\` (never rebase on a review round: rewriting
+history marks every thread outdated), iterate on scoped runs (\`./validate.sh test --scope ...\`), run
+\`./validate.sh all\` once on the final tree (in the background, judged by its exit code), post its
+gate line with the tree hash on the PR, and push. Do not resolve threads and do not merge.
 EOF
 }
 

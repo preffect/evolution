@@ -5,6 +5,8 @@
 // burst ends on, never advanced by a fractional delta, so no float residue builds up across
 // thousands of bursts (relative 83.33 ms advances over-step around tick 23 152 and drop a tick
 // from 36 000 on); a burst that owes anything but its own length is a setup error, never a drift.
+// After every burst the driver returns to the event loop, as the room loop does between ticker
+// fires, so a whole-round scenario never holds its test worker's thread for a minute (#262).
 
 import {
   createSimulationStepAccumulator,
@@ -12,6 +14,7 @@ import {
   MAX_TICKS_PER_ADVANCE,
   ticksToMilliseconds,
 } from '@evolution/shared';
+import { yieldToEventLoop } from '../event-loop.js';
 import { ScenarioSetupError } from './errors.js';
 
 export interface TickHooks {
@@ -23,8 +26,8 @@ export interface TickHooks {
   afterStep(tick: number): void;
 }
 
-/** Steps from tick 0 to `totalTicks` under a manual clock and the production accumulator. */
-export function driveTicks(totalTicks: number, hooks: TickHooks): void {
+/** Steps from tick 0 to `totalTicks` under a manual clock and the production accumulator, yielding between bursts. */
+export async function driveTicks(totalTicks: number, hooks: TickHooks): Promise<void> {
   if (!Number.isInteger(totalTicks) || totalTicks < 0) {
     throw new ScenarioSetupError(`a scenario runs a non-negative whole number of ticks, got ${totalTicks}`);
   }
@@ -47,5 +50,6 @@ export function driveTicks(totalTicks: number, hooks: TickHooks): void {
       hooks.step();
       hooks.afterStep(tick);
     }
+    await yieldToEventLoop();
   }
 }

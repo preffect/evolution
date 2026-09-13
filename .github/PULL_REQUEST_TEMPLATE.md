@@ -7,7 +7,8 @@ Closes #<!-- required: the ticket this PR completes; the pr-links-issue check bl
 ## Validation
 
 ```
-./validate.sh all   →  paste the summary lines here
+./validate.sh all   →  paste the wall times / ALL PASSED lines and the `cached green ... at tree <hash>` line
+                       (the author runs it when the PR is ready for review and after the last commit)
 ```
 
 ## Review checklist (author fills in; reviewers verify — see docs/WORKFLOW.md §6)

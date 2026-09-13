@@ -26,8 +26,8 @@ const P11_PAYOUT_TICK = P11_CLOSE_TICK + E9_PAYOUT_TICK - 1;
 const P11_RESPAWN_TICK = P11_PAYOUT_TICK + session.RESPAWN_SPECTATE_SECONDS * TICK_HZ + 1;
 
 describe('PROGRESSION §7: what an absorption does to the progression', () => {
-  it('P5: the absorption DNA levels the predator up and opens exactly one draft', () => {
-    engulfPair('P5', PREDATOR_MASS, undefined, P5_BANKED_DNA)
+  it('P5: the absorption DNA levels the predator up and opens exactly one draft', async () => {
+    await engulfPair('P5', PREDATOR_MASS, undefined, P5_BANKED_DNA)
       .advance(E9_PAYOUT_TICK + 1)
       .expect('banked DNA before the payout', (view) => progressOf(view, 0)?.dnaCumulative)
       .atTick(E9_PAYOUT_TICK - 1)
@@ -46,7 +46,7 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
       .toBe(1)
       .runDeterministic();
 
-    engulfPair('P5 without the banked DNA')
+    await engulfPair('P5 without the banked DNA')
       .advance(E9_PAYOUT_TICK)
       .expect('dna', (view) => progressOf(view, 0)?.dnaCumulative)
       .atEnd()
@@ -60,7 +60,7 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
       .runDeterministic();
   });
 
-  it('P11: a prey absorbed with an offer shown still has it when it respawns', () => {
+  it('P11: a prey absorbed with an offer shown still has it when it respawns', async () => {
     // B is placed first and alone, so the fragments inside it are B's: a cell sitting inside a
     // predator's radius would have them eaten by the predator, which eats first (docs/ECOLOGY.md §1).
     const fragments = LEVEL_2_DNA / ecology.DNA_FRAGMENT_DNA;
@@ -72,7 +72,7 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
     for (let fragment = 0; fragment < fragments; fragment += 1) {
       run.atTick(1).placeFragment({ tag: DNA_TAG.sensory, at: insideCellOf(1) });
     }
-    run
+    await run
       .atTick(P11_CLOSE_TICK)
       .placeCell({ playerIndex: 0, mass: P11_PREDATOR_MASS, at: eastOfCellOf(1, P11_CENTRE_DISTANCE_WU) })
       .advance(P11_RESPAWN_TICK + 1)
