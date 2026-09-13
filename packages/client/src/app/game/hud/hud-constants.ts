@@ -62,13 +62,18 @@ export const LEADERBOARD_ROW_SLIDE_MS = 200;
 export const LEADERBOARD_EXPAND_MS = 200;
 /** The own row is tinted with the player's own rim colour at this alpha (docs/VISUAL-STYLE.md §7). */
 export const LEADERBOARD_OWN_ROW_TINT_ALPHA = 0.12;
-/** Diameter of the player swatch at scale 1. */
+/**
+ * Diameter of the player swatch at scale 1 (docs/UI.md §3.1.1 owns the value). Do not change this
+ * or the bead below to make more seats countable: whether the swatch should grow for that is the
+ * seat-identity question on #279, not a HUD-layout one.
+ */
 export const LEADERBOARD_SWATCH_DIAMETER_PX = 10;
 /**
  * The seat-mark beads sit on the swatch's outline (docs/VISUAL-STYLE.md §2); this is their own
- * diameter at scale 1. Wider than the ring on purpose: on a 10 px disc a bead much narrower than
- * this antialiases into the rim and the non-colour tell stops being readable, which is its whole
- * job. `leaderboardSwatchGeometry` pins one user unit to one CSS px so this size is what renders.
+ * diameter at scale 1. Wider than the ring on purpose: a bead much narrower than this antialiases
+ * into the rim and the non-colour tell stops being readable, which is its whole job.
+ * `leaderboardSwatchGeometry` pins one user unit to one CSS px, so this size is what renders — if
+ * a bead ever looks wrong on screen, check that pin before touching the value.
  */
 export const LEADERBOARD_SWATCH_BEAD_DIAMETER_PX = 3;
 /** The swatch's rim-colour ring width at scale 1. */
