@@ -14,14 +14,14 @@ function scenario(name: string) {
 }
 
 describe('build() refuses what could never run', () => {
-  it('an expectation stamped past the last advanced tick', () => {
+  it('an expectation stamped past the last advanced tick', async () => {
     const builder = scenario('late expectation')
       .expect('sprint inactive', () => 1)
       .atTick(PAST_END)
       .toBe(-999);
     expect(() => builder.build()).toThrow(ScenarioSetupError);
     expect(() => builder.build()).toThrow(/"sprint inactive" is stamped tick 6/);
-    expect(() => builder.run()).toThrow(PAST_END_MESSAGE);
+    await expect(builder.run()).rejects.toThrow(PAST_END_MESSAGE);
   });
 
   it('a capture stamped past the last advanced tick', () => {

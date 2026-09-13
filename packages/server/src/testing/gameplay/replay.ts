@@ -118,10 +118,10 @@ function applyRecordedEvents<Input, Snapshot, Fixture>(
 }
 
 /** Runs the recording back through a fresh module and compares every recorded checkpoint. */
-export function replayScenario<Input, Snapshot, Fixture>(
+export async function replayScenario<Input, Snapshot, Fixture>(
   replay: ScenarioReplay<Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
-): ReplayVerdict {
+): Promise<ReplayVerdict> {
   const session = new ScenarioSession(adapter, {
     scenarioName: replay.scenarioName,
     // The record's own seed is the one the recording started from (docs/DETERMINISM.md §6).
@@ -137,7 +137,7 @@ export function replayScenario<Input, Snapshot, Fixture>(
     }
   };
   observe(session.tick);
-  driveTicks(replay.finalTick, {
+  await driveTicks(replay.finalTick, {
     beforeStep: (stepTick) => applyRecordedEvents(session, log, stepTick),
     step: () => session.step(),
     afterStep: observe,
@@ -157,19 +157,19 @@ function throwIfDiverged(identity: ScenarioIdentity, divergence: HashDivergence 
 }
 
 /** `replayScenario`, throwing `ScenarioDivergenceError` when the recording is not reproduced. */
-export function verifyReplay<Input, Snapshot, Fixture>(
+export async function verifyReplay<Input, Snapshot, Fixture>(
   replay: ScenarioReplay<Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
-): ReplayVerdict {
-  const verdict = replayScenario(replay, adapter);
+): Promise<ReplayVerdict> {
+  const verdict = await replayScenario(replay, adapter);
   throwIfDiverged({ scenarioName: replay.scenarioName, seed: replay.seed }, verdict.divergence);
   return verdict;
 }
 
 /** Runs the scenario twice from scratch (fresh bots, fresh streams); the checkpoints must agree tick for tick. */
-export const assertDeterministic: ScenarioRunner = (definition, adapter, options = {}) => {
-  const firstRun = runScenario(definition, adapter, options);
-  const secondRun = runScenario(definition, adapter, options);
+export const assertDeterministic: ScenarioRunner = async (definition, adapter, options = {}) => {
+  const firstRun = await runScenario(definition, adapter, options);
+  const secondRun = await runScenario(definition, adapter, options);
   const divergence = findFirstDivergence(firstRun.checkpoints, secondRun.checkpoints);
   throwIfDiverged(identityOf(definition), divergence);
   return firstRun;

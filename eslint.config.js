@@ -209,6 +209,12 @@ export default tseslint.config(
     rules: { 'no-console': 'error' },
   },
   {
+    // §9 error handling: a promise is awaited, returned or handled. The scenario runner is async
+    // (#262), and an unawaited `.runDeterministic()` would pass a row before it ran.
+    files: ['packages/server/src/**/*.ts', 'packages/shared/src/**/*.ts'],
+    rules: { '@typescript-eslint/no-floating-promises': 'error' },
+  },
+  {
     // ---- Where a literal IS the constant --------------------------------------------
     files: [...CONSTANT_DEFINITION_FILES, ...TEST_SUPPORT_FILES],
     rules: { '@typescript-eslint/no-magic-numbers': 'off' },

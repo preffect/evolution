@@ -103,7 +103,10 @@ status.
    Which roles review which PR is the table in `docs/TEAM.md`.
 4. The author fixes, **replies on every thread** saying what changed, and the reviewer resolves
    after verifying. The author never resolves their own threads.
-5. Merge only with `./validate.sh all` output in the PR, all threads resolved, all checks green.
+5. Merge only with the author's green `./validate.sh all` gate line (with its tree hash) for the
+   head in the PR, all threads resolved, all checks green. Builders iterate on scoped runs; the
+   author runs `all` when the PR is ready for review and after the last commit; reviewers and the
+   lead look the stamp up and run nothing (`docs/ENGINEERING.md` §1).
    The author never merges their own PR when a reviewer role exists.
 
 **Review rounds** (#224, template #76). Round one runs **in parallel**: every reviewer named on the PR is spawned
@@ -113,10 +116,9 @@ still start together as soon as a slot frees), each posts one verdict review, an
 round-two reviewer re-reads only the diff since its previous verdict (`git diff <r1-head>..<head>`)
 and the replies on its own threads — it does not re-review the whole PR and does not re-read the
 docs — resolves or re-opens its threads on that basis, and its verdict comment says
-`round 2 (diff-only)`. **Trust a posted green gate for the same head**: a reviewer whose PR head
-already carries a green `./validate.sh all` result — the author's gate line in the PR body, or the
-`cached green ... at tree <hash>` stamp from the result cache (`docs/ENGINEERING.md` §1) — cites it
-instead of re-running, and re-runs only when it changed files or the head moved. The **lead
+`round 2 (diff-only)`. **Look the gate up, never run it**: in a clean worktree at the pushed SHA
+the reviewer checks that the author's `all` stamp exists for that tree and cites its tree hash; a
+missing stamp goes back to the author (`docs/ENGINEERING.md` §1). The **lead
 resolves purely mechanical round-two threads** (a rename, a moved constant, deleted dead code,
 verified by diff) itself instead of a further reviewer pass.
 

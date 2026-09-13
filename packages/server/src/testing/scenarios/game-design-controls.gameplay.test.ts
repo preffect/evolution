@@ -23,11 +23,11 @@ const G6_TARGET_X = 4000;
 const G7_COOLDOWN_PRESS_TICK = 100;
 
 describe('GAME-DESIGN §13: controls', () => {
-  it('G4: full throttle east reaches 216.5 wu/s in a second', () => {
+  it('G4: full throttle east reaches 216.5 wu/s in a second', async () => {
     // The row's number is the starting cell's speed cap: on the seeded world the cell of seed 42
     // eats an algae on its way east (mass 21, cap 217.4), so the row runs placed at the starting mass.
     const blend = 1 / (growth.CELL_ACCELERATION_SECONDS * TICK_HZ);
-    placedSolo('G4')
+    await placedSolo('G4')
       .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS })
       .from(1, player(0).does(targetRadiiEast(FULL_THROTTLE_RADII)))
       .advance(60)
@@ -40,7 +40,7 @@ describe('GAME-DESIGN §13: controls', () => {
       .runDeterministic();
   });
 
-  it('G5: a target inside the dead zone moves nothing', () => {
+  it('G5: a target inside the dead zone moves nothing', async () => {
     const insideDeadZone: PlayerScript<EvolutionScenarioSnapshot> = (context) =>
       context.cell === undefined
         ? null
@@ -48,7 +48,7 @@ describe('GAME-DESIGN §13: controls', () => {
             targetX: context.cell.x + (controls.STEER_DEAD_ZONE_RADII / 2) * context.cell.radius,
             targetY: context.cell.y,
           };
-    seededSolo('G5')
+    await seededSolo('G5')
       .from(1, player(0).does(insideDeadZone))
       .advance(60)
       .expect('speed', (view) => speedOf(view, 0))
@@ -57,8 +57,8 @@ describe('GAME-DESIGN §13: controls', () => {
       .runDeterministic();
   });
 
-  it('G6: the wall clamps the centre and zeroes the outward velocity', () => {
-    placedSolo('G6')
+  it('G6: the wall clamps the centre and zeroes the outward velocity', async () => {
+    await placedSolo('G6')
       .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, at: { x: G6_START_X, y: 0 } })
       .from(1, player(0).does(targetPoint(G6_TARGET_X, 0)))
       .advance(120)
@@ -71,7 +71,7 @@ describe('GAME-DESIGN §13: controls', () => {
       .runDeterministic();
   });
 
-  it('G7: the sprint costs 5 % once, lasts half a second and honours its cooldown', () => {
+  it('G7: the sprint costs 5 % once, lasts half a second and honours its cooldown', async () => {
     const sprintTicks = secondsToTicks(controls.SPRINT_DURATION_SECONDS);
     const blend = 1 / (growth.CELL_ACCELERATION_SECONDS * TICK_HZ);
     /** The kernel blends toward the sprinting cap from rest; the cap follows the decayed mass (1 wu/s of drift over the sprint). */
@@ -81,7 +81,7 @@ describe('GAME-DESIGN §13: controls', () => {
       (1 - (1 - blend) ** ticks);
     const cooldownTicks = secondsToTicks(controls.SPRINT_COOLDOWN_SECONDS);
     const sprintEast = combineScripts([sprint(), targetRadiiEast(FULL_THROTTLE_RADII)]);
-    placedSolo('G7')
+    await placedSolo('G7')
       .placeCell({ playerIndex: 0, mass: 100 })
       .from(1, player(0).does(targetRadiiEast(FULL_THROTTLE_RADII)))
       .atTick(1, player(0).does(sprintEast))

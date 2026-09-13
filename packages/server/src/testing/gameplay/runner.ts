@@ -54,7 +54,7 @@ export type ScenarioRunner = <Input, Snapshot, Fixture>(
   definition: ScenarioDefinition<Snapshot, Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
   options?: RunOptions,
-) => ScenarioRun<Snapshot, Fixture>;
+) => Promise<ScenarioRun<Snapshot, Fixture>>;
 
 /** What one run instantiates from the definition before the first tick. */
 interface PreparedRun<Snapshot, Fixture> {
@@ -152,11 +152,11 @@ export function identityOf(definition: { name: string; config: { seed: number } 
   return { scenarioName: definition.name, seed: definition.config.seed };
 }
 
-export function runScenario<Input, Snapshot, Fixture>(
+export async function runScenario<Input, Snapshot, Fixture>(
   definition: ScenarioDefinition<Snapshot, Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
   options: RunOptions = {},
-): ScenarioRun<Snapshot, Fixture> {
+): Promise<ScenarioRun<Snapshot, Fixture>> {
   const session = new ScenarioSession(adapter, {
     scenarioName: definition.name,
     config: definition.config,
@@ -170,7 +170,7 @@ export function runScenario<Input, Snapshot, Fixture>(
   const failures: ExpectationFailure[] = [];
 
   observeTick(session, definition, failures);
-  driveTicks(definition.totalTicks, {
+  await driveTicks(definition.totalTicks, {
     beforeStep: (stepTick) => feedStep(session, definition, prepared, stepTick),
     step: () => session.step(),
     afterStep: () => observeTick(session, definition, failures),

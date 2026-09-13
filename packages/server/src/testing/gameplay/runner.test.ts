@@ -21,8 +21,8 @@ function presentPlayers(view: ScenarioView<ToySnapshot>): string[] {
 }
 
 describe('runScenario', () => {
-  it('sees the initial state at tick 0 and applies an input in the step it is stamped with', () => {
-    toyScenario('input timing')
+  it('sees the initial state at tick 0 and applies an input in the step it is stamped with', async () => {
+    await toyScenario('input timing')
       .seed(SEED)
       .players(1)
       .atTick(3, player(0).does(targetPoint(SEED + 10, 0)))
@@ -42,8 +42,8 @@ describe('runScenario', () => {
       .run();
   });
 
-  it('re-evaluates "target N radii east" from the current centre every tick', () => {
-    const run = toyScenario('radii east')
+  it('re-evaluates "target N radii east" from the current centre every tick', async () => {
+    const run = await toyScenario('radii east')
       .seed(SEED)
       .players(1)
       .from(1, player(0).does(targetRadiiEast(5)))
@@ -61,8 +61,8 @@ describe('runScenario', () => {
     expect(run.replay.inputs.at(-1)?.input).toEqual({ targetX: SEED + 59, targetY: 0, sequence: 10 });
   });
 
-  it('applies setup fixtures before tick 1', () => {
-    toyScenario('fixture')
+  it('applies setup fixtures before tick 1', async () => {
+    await toyScenario('fixture')
       .seed(SEED)
       .players(1)
       .place({ playerIndex: 0, at: { x: 7, y: 7 } })
@@ -72,9 +72,9 @@ describe('runScenario', () => {
       .run();
   });
 
-  it('applies a scheduled fixture before its step, after that step joins, and records it as a patch', () => {
+  it('applies a scheduled fixture before its step, after that step joins, and records it as a patch', async () => {
     const fixture = { playerIndex: 1, at: { x: PLACED_X, y: 0 } };
-    const run = toyScenario('scheduled fixture')
+    const run = await toyScenario('scheduled fixture')
       .seed(SEED)
       .players(1)
       .playerJoinsAt(3)
@@ -91,8 +91,8 @@ describe('runScenario', () => {
     expect(run.replay.patches).toEqual([{ tick: 3, fixture }]);
   });
 
-  it('adds a late joiner before its step and removes a leaver before its step', () => {
-    toyScenario('membership')
+  it('adds a late joiner before its step and removes a leaver before its step', async () => {
+    await toyScenario('membership')
       .seed(SEED)
       .players(1)
       .playerJoinsAt(3)
@@ -110,8 +110,8 @@ describe('runScenario', () => {
       .run();
   });
 
-  it('records the join and the leave in the replay at the ticks they applied', () => {
-    const run = toyScenario('membership log')
+  it('records the join and the leave in the replay at the ticks they applied', async () => {
+    const run = await toyScenario('membership log')
       .seed(SEED)
       .players(1)
       .playerJoinsAt(3)
@@ -125,8 +125,8 @@ describe('runScenario', () => {
     expect(run.replay.roster.map((member) => member.playerId)).toEqual(['player_0']);
   });
 
-  it('neither runs nor logs a script once its player has left (the toy module would throw)', () => {
-    const run = toyScenario('script after leave')
+  it('neither runs nor logs a script once its player has left (the toy module would throw)', async () => {
+    const run = await toyScenario('script after leave')
       .seed(SEED)
       .players(2)
       .playerLeavesAt(3, 1)
@@ -139,8 +139,8 @@ describe('runScenario', () => {
     ]);
   });
 
-  it('starts a late joiner bot on its join tick', () => {
-    const run = toyScenario('late bot')
+  it('starts a late joiner bot on its join tick', async () => {
+    const run = await toyScenario('late bot')
       .seed(SEED)
       .players(1)
       .playerJoinsAt(3)
@@ -150,35 +150,35 @@ describe('runScenario', () => {
     expect(run.replay.inputs.map((input) => input.tick)).toEqual([3, 4, 5]);
   });
 
-  it('checkpoints tick 0, every hashEvery ticks and the final tick', () => {
-    const run = toyScenario('checkpoints').seed(SEED).players(1).hashEvery(2).advance(TICKS).run();
+  it('checkpoints tick 0, every hashEvery ticks and the final tick', async () => {
+    const run = await toyScenario('checkpoints').seed(SEED).players(1).hashEvery(2).advance(TICKS).run();
     expect(run.checkpoints.map((checkpoint) => checkpoint.tick)).toEqual([0, 2, 4, 5]);
     expect(run.finalHash).toBe(run.checkpoints.at(-1)?.hash);
     expect(run.replay.finalTick).toBe(TICKS);
   });
 
-  it('asks a bot to decide on its stride only', () => {
+  it('asks a bot to decide on its stride only', async () => {
     let decisions = 0;
     const strategy = createScriptedStrategy<ToySnapshot>('counting', () => {
       decisions += 1;
       return null;
     });
-    toyScenario('bot stride').seed(SEED).players(1).bot(0, strategy, 2).advance(TICKS).run();
+    await toyScenario('bot stride').seed(SEED).players(1).bot(0, strategy, 2).advance(TICKS).run();
     expect(decisions).toBe(3);
   });
 
-  it('gives every player its own stream forked from the seed', () => {
+  it('gives every player its own stream forked from the seed', async () => {
     const draws = new Map<number, number>();
     const drawing = createScriptedStrategy<ToySnapshot>('drawing', (context) => {
       draws.set(context.playerIndex, context.random.nextInt(0, 1_000_000));
       return null;
     });
-    toyScenario('streams').seed(SEED).players(2).bot(0, drawing).bot(1, drawing).advance(1).run();
+    await toyScenario('streams').seed(SEED).players(2).bot(0, drawing).bot(1, drawing).advance(1).run();
     expect(draws.get(0)).not.toBe(draws.get(1));
   });
 
-  it('captures a value at one tick for an expectation at a later one', () => {
-    toyScenario('capture')
+  it('captures a value at one tick for an expectation at a later one', async () => {
+    await toyScenario('capture')
       .seed(SEED)
       .players(1)
       .from(1, player(0).does(targetRadiiEast(5)))
@@ -191,7 +191,7 @@ describe('runScenario', () => {
       .run();
   });
 
-  it('fails an expectation that reads a capture not taken yet', () => {
+  it('fails an expectation that reads a capture not taken yet', async () => {
     const scenario = createScenarioDsl(toyAdapter, { replaySink: createMemoryReplaySink() });
     const early = scenario('early read')
       .seed(SEED)
@@ -202,10 +202,10 @@ describe('runScenario', () => {
       .expect('x from the capture', (view) => view.captured('x'))
       .atTick(2)
       .toBe(SEED);
-    expect(() => early.run()).toThrow(/expected 42, got undefined/);
+    await expect(early.run()).rejects.toThrow(/expected 42, got undefined/);
   });
 
-  it('reports every failed expectation with the seed, the tick and both values, and stores the replay', () => {
+  it('reports every failed expectation with the seed, the tick and both values, and stores the replay', async () => {
     const sink = createMemoryReplaySink();
     const scenario = createScenarioDsl(toyAdapter, { replaySink: sink });
     const failing = scenario('two misses')
@@ -221,9 +221,9 @@ describe('runScenario', () => {
       .expect('x holds', xOf(0))
       .atTick(1)
       .toBe(SEED);
-    expect(() => failing.run()).toThrow(ScenarioAssertionError);
+    await expect(failing.run()).rejects.toThrow(ScenarioAssertionError);
     try {
-      failing.run();
+      await failing.run();
     } catch (error) {
       const assertion = error as ScenarioAssertionError;
       expect(assertion.failures.map((failure) => failure.tick)).toEqual([2, TICKS]);

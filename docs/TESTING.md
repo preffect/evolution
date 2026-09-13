@@ -133,8 +133,8 @@ import { massOf } from '../gameplay/evolution-views.js';
 
 const decayed = createDecayedHelper({ cellStartingMass: ..., massDecayRatePerSecond: ... }); // from DEFAULT_BALANCE
 
-it('E9: A absorbs B on tick 30', () => {
-  scenario('E9')
+it('E9: A absorbs B on tick 30', async () => {
+  await scenario('E9')
     .seed(PLACED_ROW_SEED)
     .players(2)
     .placeCell({ playerIndex: 0, mass: 100 })                          // broth point (1500, 0)
@@ -215,15 +215,17 @@ it('E9: A absorbs B on tick 30', () => {
   `playerId(index)`, `cell(index)` and `captured(label)`. A selector that yields `undefined` (a
   cell that is gone, `?.lifeState` on a missing player) fails every matcher with `got undefined`;
   `toBeNull` accepts `null` only. Failures are collected, not thrown one at a time: `.run()`
-  throws one `ScenarioAssertionError` listing every miss.
+  rejects with one `ScenarioAssertionError` listing every miss.
 - **Captures.** `.capture(label, selector).atTick(T)` stores the selected value before that
   tick's expectations run; a later selector reads it as `view.captured(label)` (G10: detritus
   mass from the cell's mass at tick 2399; G7: the speed cap from the mass at that tick). Reading
   a label not captured yet yields `undefined` and fails the expectation.
-- **Run.** `.run()` executes once and returns the replay, the final snapshot and hash and the
-  checkpoints. `.runDeterministic()` runs twice and throws `ScenarioDivergenceError` at the first
-  checkpoint the runs disagree on; every table row uses it, so a rule that reads the wall clock or
-  an unseeded draw fails the row that exercises it.
+- **Run.** `.run()` executes once and resolves to the replay, the final snapshot and hash and the
+  checkpoints. `.runDeterministic()` runs twice and rejects with `ScenarioDivergenceError` at the
+  first checkpoint the runs disagree on; every table row uses it, so a rule that reads the wall
+  clock or an unseeded draw fails the row that exercises it. Both are async and a row awaits them:
+  the tick driver returns to the event loop after every burst, as the room loop does, because a
+  whole round held synchronously starved the test worker's RPC past its 60 s timeout (#262).
 
 **Table wording → tick stamp.** Expectation and script ticks are absolute across accumulated
 `.advance()` calls, and `build()` throws `ScenarioSetupError` for anything stamped past the last
@@ -259,12 +261,12 @@ Scenario "E9" diverged (seed 42): first differing checkpoint at tick 600: expect
 
 `toBeCloseTo` prints the expected value as computed and "off by" rounded to the tolerance's
 decimals. A divergence is bisected by lowering `.hashEvery(1)` on that scenario: the report then
-names the exact tick (`DETERMINISM.md` §7). To run one scenario file on its own (the gameplay
-tier is opt-in and `./validate.sh integration` runs every package), filter the server package
-directly:
+names the exact tick (`DETERMINISM.md` §7). To run one scenario file on its own, scope the
+integration tier to it (`ENGINEERING.md` §1):
 
 ```bash
-pnpm --filter @evolution/server test:integration ecology   # every *.gameplay.test.ts whose path contains "ecology"
+./validate.sh integration --scope packages/server/src/testing/scenarios/ecology-engulf.gameplay.test.ts
+./validate.sh integration --scope server -- ecology   # every server opt-in file whose path contains "ecology"
 ```
 
 A framework test never uses the file sink: pass `createMemoryReplaySink()` to

@@ -55,8 +55,8 @@ function worldLevelUpAt(tick: number, level: number, stage: (typeof CELL_STAGE)[
 }
 
 describe('GAME-DESIGN §13: the session', () => {
-  it('G1: the first tick of a round', () => {
-    seededSolo('G1')
+  it('G1: the first tick of a round', async () => {
+    await seededSolo('G1')
       .advance(1)
       .expect('mass', (view) => massOf(view, 0))
       .atTick(1)
@@ -79,12 +79,12 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
-  it('G3: a joiner whose first candidate lies on a threat is placed a safe radius away', () => {
+  it('G3: a joiner whose first candidate lies on a threat is placed a safe radius away', async () => {
     // The joiner's first candidate is the placement stream's second draw: the seeded player took the first.
     const placement = createSeededRandom(PLACED_ROW_SEED).fork(RANDOM_STREAM.spawnPlacement);
     drawSpawnCandidate(placement, DEFAULT_BALANCE);
     const candidate = drawSpawnCandidate(placement, DEFAULT_BALANCE);
-    scenario('G3')
+    await scenario('G3')
       .seed(PLACED_ROW_SEED)
       .players(1)
       .placeCell({ playerIndex: 0, mass: 100, at: candidate })
@@ -96,8 +96,8 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
-  it('G9: a late joiner gets a safely placed protocell and the round clock ignores the join', () => {
-    p7Setup('G9')
+  it('G9: a late joiner gets a safely placed protocell and the round clock ignores the join', async () => {
+    await p7Setup('G9')
       .advance(P7_JOIN_TICK)
       .expect('cell exists', (view) => cellOf(view, 2))
       .atTick(P7_JOIN_TICK)
@@ -117,10 +117,10 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
-  it('G8: the absorption scores, and the prey respawns 180 ticks later at the entry mass', () => {
+  it('G8: the absorption scores, and the prey respawns 180 ticks later at the entry mass', async () => {
     const afterPayoutTick = E9_PAYOUT_TICK + 1;
     const respawnTick = E9_PAYOUT_TICK + RESPAWN_TICKS + 1;
-    engulfPair('G8')
+    await engulfPair('G8')
       .advance(respawnTick)
       .expect('A leads the leaderboard', (view) => view.snapshot.leaderboard[0]?.playerId === view.playerId(0))
       .atTick(afterPayoutTick)
@@ -149,8 +149,8 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
-  it('G10: a removed player dissolves into detritus', () => {
-    seededSolo('G10')
+  it('G10: a removed player dissolves into detritus', async () => {
+    await seededSolo('G10')
       .playerLeavesAt(G10_LEAVE_TICK, 0)
       .advance(G10_LEAVE_TICK + 1)
       .capture('mass at removal', (view) => massOf(view, 0))
@@ -167,10 +167,10 @@ describe('GAME-DESIGN §13: the session', () => {
       .runDeterministic();
   });
 
-  it('G14: a joiner at 5:00 is floored at the world clock, not the idle player', () => {
+  it('G14: a joiner at 5:00 is floored at the world clock, not the idle player', async () => {
     const reference = worldReference(ticksToSeconds(G14_JOIN_TICK), DEFAULT_BALANCE);
     const expectedMass = decayed(entryMass(null, reference, DEFAULT_BALANCE), 1);
-    seededSolo('G14')
+    await seededSolo('G14')
       .playerJoinsAt(G14_JOIN_TICK)
       .advance(G14_JOIN_TICK)
       .expect('dna', (view) => progressOf(view, 1)?.dnaCumulative)
@@ -196,7 +196,7 @@ describe('GAME-DESIGN §13: the session', () => {
 });
 
 describe('GAME-DESIGN §13: the whole round (G2 and G11 share one seeded, idle 37 200-tick run)', () => {
-  it('G2 + G11: results when the timer reaches zero, world_level_up on the level ticks only, a rematch with seed + 1', () => {
+  it('G2 + G11: results when the timer reaches zero, world_level_up on the level ticks only, a rematch with seed + 1', async () => {
     const seen: number[] = [];
     const recordLevelUps: PlayerScript<EvolutionScenarioSnapshot> = (context) => {
       for (const effect of context.snapshot.effects) {
@@ -204,7 +204,7 @@ describe('GAME-DESIGN §13: the whole round (G2 and G11 share one seeded, idle 3
       }
       return null;
     };
-    seededSolo('G2 + G11')
+    await seededSolo('G2 + G11')
       .from(1, player(0).does(recordLevelUps))
       .advance(ROUND_TICKS + RESULTS_TICKS)
       .expect('playing at 35 999', (view) => view.snapshot.roundPhase)
