@@ -17,6 +17,7 @@ import {
 import type { CellInstance } from './cell-instance';
 import type { CellLod } from './cell-lod';
 import type { CellTraitSummary } from './cell-traits';
+import { REST_OWN_CELL_RING, type OwnCellRing } from './self-ring';
 import type { ShapeTerms } from './shape-terms';
 
 export interface CellInstanceInput {
@@ -38,6 +39,8 @@ export interface CellInstanceInput {
   readonly ciliaPhase: number;
   /** The absorbed ghost's dash, 0 for a living cell. */
   readonly rimDash: number;
+  /** The sprint ring (self-ring.ts); read only when `isOwn`, every other cell packs the rest ring. */
+  readonly ownCellRing: OwnCellRing;
 }
 
 const REST_RIM_BRIGHTNESS = 1;
@@ -127,12 +130,19 @@ function filmFields(input: CellInstanceInput): Pick<CellInstance, 'passBAlpha' |
   };
 }
 
+/** The own cell's sprint ring (docs/UI.md §3.1.2); the shader draws no self ring elsewhere, so they pack the rest ring. */
+function selfRingFields(input: CellInstanceInput): Pick<CellInstance, 'selfRingFill' | 'selfRingBrightness'> {
+  const ring = input.isOwn ? input.ownCellRing : REST_OWN_CELL_RING;
+  return { selfRingFill: ring.fill, selfRingBrightness: ring.brightness };
+}
+
 export function buildCellInstance(input: CellInstanceInput): CellInstance {
   const { view, traits, lod, terms } = input;
   return {
     ...surfaceFields(terms, input.speedRatio),
     ...tellFields(traits, lod),
     ...filmFields(input),
+    ...selfRingFields(input),
     x: view.x,
     y: view.y,
     radius: view.radius,

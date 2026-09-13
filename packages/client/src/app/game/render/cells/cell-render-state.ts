@@ -36,6 +36,7 @@ import type { GhostSource, PredatorSeal } from './ghost-cells';
 import { NUCLEUS_KINDS } from './organelle-kinds';
 import { layoutOrganelles, type OrganelleSlot } from './organelle-layout';
 import { laggedSlot, mapSlot, type MappedPoint } from './organelle-mapper';
+import { isWarningRingHidden, type OwnCellRing } from './self-ring';
 import { buildShapeTerms, headingOf, type ShapeTerms } from './shape-terms';
 
 /** What the frame hands every cell: time, zoom, the live balance, the own cell, the strip, the dents and the seals. */
@@ -50,6 +51,8 @@ export interface CellFrameContext {
   readonly contactDents: ContactDents;
   /** The seal each predator owes the ghost it just absorbed (ghost-cells.ts). */
   readonly absorbedSeals: ReadonlyMap<EntityId, PredatorSeal>;
+  /** The own cell's sprint ring and the predator whose warning ring hides during an escape (self-ring.ts). */
+  readonly ownCellRing: OwnCellRing;
 }
 
 export const NO_ABSORBED_SEALS: ReadonlyMap<EntityId, PredatorSeal> = new Map();
@@ -172,6 +175,15 @@ export class CellRenderState {
     return ratio < HEADING_HOLD_SPEED_RATIO ? 0 : Math.min(1, ratio);
   }
 
+  /**
+   * `warningRingPxFor`, except on the predator the own cell is escaping once the escape arc replaces its ring; while
+   * `shouldHidePredatorRing` is off (until #187 draws the arc) that predator keeps its ring (docs/RENDERING.md §10).
+   */
+  private warningRingPxOf(view: CellView, context: CellFrameContext, lod: CellLod): number {
+    if (isWarningRingHidden(view.id, context.ownCellRing)) return 0;
+    return warningRingPxFor(view, context.ownCell, context.balance, lod);
+  }
+
   private placeOrganelles(terms: ShapeTerms, speedRatio: number, timeSeconds: number): OrganellePlacement[] {
     const driftAngle = (timeSeconds * NUCLEUS_DRIFT_HZ + this.phase) * RADIANS_PER_FULL_TURN;
     return this.slots.map((slot) => {
@@ -216,9 +228,10 @@ export class CellRenderState {
       isOwn: context.ownCell?.id === view.id,
       cosmetic: { stripRow: this.stripRow, phase: this.phase, speckleSeed: this.speckleSeed },
       alpha: deformation.alpha,
-      warningRingPx: warningRingPxFor(view, context.ownCell, context.balance, lod),
+      warningRingPx: this.warningRingPxOf(view, context, lod),
       ciliaPhase: this.stepCiliaPhase(speedRatio, context.timeSeconds),
       rimDash: 0,
+      ownCellRing: context.ownCellRing,
     });
     return { instance, terms, lod, organelles, traits };
   }

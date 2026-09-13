@@ -62,6 +62,10 @@ export interface CellInstance {
   readonly nucleusDiscRadii: number;
   /** One draw in [0, 1) from the cell's cosmetic fork that salts the ribosome speckle hash (#243), so two cells of one palette never share a lattice. */
   readonly speckleSeed: number;
+  /** The recharged share of the own cell's self ring, clockwise from 12 o'clock (docs/UI.md §3.1.2); 1 on every other cell. */
+  readonly selfRingFill: number;
+  /** The recharged arc's alpha: `SELF_RING_ALPHA` at rest, the `sprint_ready` clip's `selfRingBrightness` while it plays. */
+  readonly selfRingBrightness: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -79,6 +83,8 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['ciliaCount', 'wallScale', 'speckleDensity', 'filamentCount'],
   ['tintMix', 'warningRingPx', 'formId', 'passBAlpha'],
   ['rimDash', 'ciliaPhase', 'nucleusDiscRadii', 'speckleSeed'],
+  // #295: the ten texels above were full, so the sprint ring grew the row to seventeen; two channels are free.
+  ['selfRingFill', 'selfRingBrightness'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */

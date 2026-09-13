@@ -18,6 +18,7 @@ import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
 import { CellRenderState, NO_CELL_CONTACTS, type CellFrameContext } from './cell-render-state';
 import { LOD_LEVEL } from './cell-lod';
+import { REST_OWN_CELL_RING } from './self-ring';
 
 const TEST_SEED = 42;
 const strip = buildNoiseStrip(createSeededRandom(TEST_SEED));
@@ -31,6 +32,7 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     strip,
     previewTraitId: null,
     ...NO_CELL_CONTACTS,
+    ownCellRing: REST_OWN_CELL_RING,
     ...overrides,
   };
 }
@@ -173,6 +175,25 @@ describe('CellRenderState', () => {
     expect(output.instance.warningRingPx).toBe(Math.max(40 * 1.3, ENGULF_WARNING_RING_MIN_PX));
     expect(subject.lastView?.id).toBe('e');
     expect(state().update(eukaryote(), context(), REST_DEFORMATION).instance.warningRingPx).toBe(0);
+  });
+
+  it('with the switch on, hides the warning ring of the predator the own cell is escaping, and of no other cell (#295)', () => {
+    const own = createTestCellView({ id: entityId('own'), mass: 10, radius: 5 });
+    const switchOn = { ...REST_OWN_CELL_RING, shouldHidePredatorRing: true };
+    const escapingThis = { ...switchOn, escapePredatorCellId: entityId('e') };
+    const escapingAnother = { ...switchOn, escapePredatorCellId: entityId('someone-else') };
+    const hidden = state().update(eukaryote(), context({ ownCell: own, ownCellRing: escapingThis }), REST_DEFORMATION);
+    expect(hidden.instance.warningRingPx).toBe(0);
+    expect(hidden.instance.quadExtentRadii).toBe(CELL_QUAD_EXTENT_RADII);
+    const kept = state().update(eukaryote(), context({ ownCell: own, ownCellRing: escapingAnother }), REST_DEFORMATION);
+    expect(kept.instance.warningRingPx).toBe(Math.max(40 * 1.3, ENGULF_WARNING_RING_MIN_PX));
+  });
+
+  it('with the switch off (until the escape arc draws, #187), keeps the escaping predator’s warning ring', () => {
+    const own = createTestCellView({ id: entityId('own'), mass: 10, radius: 5 });
+    const escapingThis = { ...REST_OWN_CELL_RING, escapePredatorCellId: entityId('e'), shouldHidePredatorRing: false };
+    const kept = state().update(eukaryote(), context({ ownCell: own, ownCellRing: escapingThis }), REST_DEFORMATION);
+    expect(kept.instance.warningRingPx).toBe(Math.max(40 * 1.3, ENGULF_WARNING_RING_MIN_PX));
   });
 
   it('beats the cilia at the moving rate while moving and the idle rate at rest, without a jump', () => {

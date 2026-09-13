@@ -6,6 +6,7 @@ import type { CellView, TraitId } from '@evolution/shared';
 import type { RenderFrame } from '../../net/world-store';
 import type { CameraExtent } from '../camera';
 import type { CellDeformations } from './cell-deformation';
+import type { OwnCellRing } from './self-ring';
 
 export interface CellLayerFrame {
   readonly frame: RenderFrame;
@@ -19,6 +20,8 @@ export interface CellLayerFrame {
   readonly previewTraitId: TraitId | null;
   /** This frame's per-cell deformations (contact dents #216, clip tracks #207); a missing cell rests. */
   readonly deformations: CellDeformations;
+  /** The own cell's sprint ring and the escape's predator (self-ring.ts); `REST_OWN_CELL_RING` without an own cell. */
+  readonly ownCellRing: OwnCellRing;
 }
 
 export interface CellLayerOutputs {

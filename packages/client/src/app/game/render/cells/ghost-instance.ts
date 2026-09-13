@@ -13,6 +13,7 @@ import { nucleusOffsetOf, type CellFrameOutput, type OrganellePlacement } from '
 import { summariseCellTraits } from './cell-traits';
 import type { Ghost } from './ghost-cells';
 import { mapSlot } from './organelle-mapper';
+import { REST_OWN_CELL_RING } from './self-ring';
 import { buildShapeTerms, type ShapeTerms } from './shape-terms';
 
 const AT_REST = 0;
@@ -54,6 +55,7 @@ export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
     warningRingPx: 0,
     ciliaPhase: AT_REST,
     rimDash: ghost.tracks['rimDash'] ?? 0,
+    ownCellRing: REST_OWN_CELL_RING,
   });
   return { instance, terms, lod, organelles, traits };
 }

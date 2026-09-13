@@ -23,6 +23,7 @@ import {
 } from './cell-instance';
 import { CellLayer } from './cell-layer';
 import type { CellLayerFrame } from './cell-layer-frame';
+import { REST_OWN_CELL_RING } from './self-ring';
 
 const textures = createTestRenderTextures({ seed: 5 });
 const EXTENT = { minX: -500, minY: -500, maxX: 500, maxY: 500 };
@@ -36,6 +37,7 @@ function input(overrides: Partial<CellLayerFrame>): CellLayerFrame {
     ownCell: null,
     previewTraitId: null,
     deformations: NO_DEFORMATIONS,
+    ownCellRing: REST_OWN_CELL_RING,
     ...overrides,
   };
 }

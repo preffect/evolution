@@ -99,6 +99,7 @@ export class CellLayer {
       previewTraitId: input.previewTraitId,
       contactDents: computeContactDents(visible),
       absorbedSeals: GhostRegistry.sealByPredator(ghosts),
+      ownCellRing: input.ownCellRing,
     };
   }
 

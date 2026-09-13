@@ -29,6 +29,7 @@ import { CellLayer } from './cells/cell-layer';
 import { DishLayer } from './dish/dish-layer';
 import { CellClipTracker, cellsById, type CellViewsById } from './effects/cell-clip-tracker';
 import { EffectsLayer } from './effects/effects-layer';
+import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
@@ -60,6 +61,7 @@ export class GameRenderer {
   private readonly cells: CellLayer;
   private readonly effects: EffectsLayer;
   private readonly clips = new CellClipTracker();
+  private readonly ownCellRing = new OwnCellRingTracker();
   private readonly vignette: Sprite;
   private camera: CameraState | null = null;
   private lastTimeSeconds: number | null = null;
@@ -175,16 +177,21 @@ export class GameRenderer {
     this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
     const { ownCell, views, viewOf } = stages.accrue(RENDER_STAGE.cells, () => this.cellViews(frame, ownPlayerId));
-    const deformations = stages.accrue(RENDER_STAGE.effects, () => {
+    const { deformations, ownCellRing } = stages.accrue(RENDER_STAGE.effects, () => {
       this.effects.start(frame.effects, viewOf, nowMs);
       this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
-      return this.clips.deformations(frame.cells, nowMs, views);
+      const ringSource = ownCellRingSourceOf(ownCell, frame.balance);
+      return {
+        deformations: this.clips.deformations(frame.cells, nowMs, views),
+        ownCellRing: this.ownCellRing.update(ownCell?.id ?? null, ringSource, nowMs),
+      };
     });
     const food = stages.measure(RENDER_STAGE.food, () =>
       this.food.update({ motes: frame.motes, fragments: frame.fragments, timeSeconds: frame.timeSeconds, zoom }),
     );
+    const { previewTraitId } = inputs;
     const cells = stages.measure(RENDER_STAGE.cells, () =>
-      this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId: inputs.previewTraitId, deformations }),
+      this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId, deformations, ownCellRing }),
     );
     const effects = stages.measure(RENDER_STAGE.effects, () =>
       this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } }),

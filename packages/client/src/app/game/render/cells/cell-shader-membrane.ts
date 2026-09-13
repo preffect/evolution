@@ -2,7 +2,8 @@
 // edge, the soft rim, the rim light with the outline through it (or the protocell double film),
 // the cell wall and the cilia (cell-shader-tells.ts), the glint, the prey-under-film alpha, and
 // the tells that snap with the LOD: seat-mark beads on the deformed outline, the own cell's self
-// ring and the engulf-warning ring in the undeformed frame. Every membrane band is a band of `d`.
+// ring (drawn as the sprint ring, #295) and the engulf-warning ring in the undeformed frame. Every
+// membrane band is a band of `d`.
 
 import {
   GLINT_ALPHA,
@@ -30,11 +31,11 @@ import {
   SEAT_MARK_CORE_ALPHA,
   SEAT_MARK_HALO_ALPHA,
   SEAT_MARK_HALO_SCALE,
-  SELF_RING_ALPHA,
   SELF_RING_DASH_PX,
   SELF_RING_MIN_PX,
   SELF_RING_RADIUS_FRACTION,
   SELF_RING_ROTATION_DEG_PER_SECOND,
+  SELF_RING_TRACK_ALPHA,
   SELF_RING_WIDTH_PX,
   SOFT_RIM_ALPHA,
   SOFT_RIM_BLUR_RADII,
@@ -44,6 +45,7 @@ import {
 import { LIGHT_DIRECTION_RADIANS } from '../light-direction';
 import { degreesToRadians } from '../geometry';
 import { glslFloat } from './cell-shader-source';
+import { FULL_SELF_RING, TWELVE_O_CLOCK_TURNS } from './self-ring';
 
 const GLINT_ANGLE = degreesToRadians(GLINT_ANGLE_DEG);
 const GLINT_ROTATION = degreesToRadians(GLINT_ROTATION_DEG);
@@ -132,14 +134,28 @@ vec4 seatMark(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uWhite, core * ${glslFloat(SEAT_MARK_CORE_ALPHA)});
 }
 
-/** The own cell's dashed, slowly rotating ring in the undeformed frame, px-sized with a floor. */
+/**
+ * The sprint ring's alpha here (UI.md §3.1.2): recharged from 12 o'clock clockwise to 'selfRingFill' turns at
+ * 'selfRingBrightness' (× the sprint rim brightness), the rest a track; the arc's end is feathered over one px.
+ */
+float selfRingAlpha(Instance inst, Frame frame, float radiusWu) {
+  float turns = fract(frame.theta / TAU + ${glslFloat(TWELVE_O_CLOCK_TURNS)});
+  float endPx = (inst.selfRingFill - turns) * TAU * radiusWu * uZoom;
+  float recharged = smoothstep(-HALF, HALF, endPx);
+  if (inst.selfRingFill >= ${glslFloat(FULL_SELF_RING)}) recharged = 1.0;
+  if (inst.selfRingFill <= 0.0) recharged = 0.0;
+  float lit = min(inst.selfRingBrightness * inst.rimBrightness, 1.0);
+  return mix(${glslFloat(SELF_RING_TRACK_ALPHA)}, lit, recharged);
+}
+
+/** The own cell's dashed, slowly rotating ring in the undeformed frame, px-sized with a floor; its alpha is the sprint ring. */
 vec4 selfRing(Instance inst, Frame frame, vec4 acc) {
   if (inst.isOwn < HALF) return acc;
   float radiusWu = max(${glslFloat(SELF_RING_RADIUS_FRACTION)} * inst.r, ${glslFloat(SELF_RING_MIN_PX)} / uZoom);
   float ring = band(frame.len, radiusWu, ${glslFloat(SELF_RING_WIDTH_PX)} * HALF / uZoom, frame.aa * HALF);
   float arcPx = (frame.theta - ${glslFloat(SELF_RING_ROTATION_RAD_PER_SECOND)} * uTimeSeconds) * radiusWu * uZoom;
   float mask = ring * dash(arcPx, ${glslFloat(SELF_RING_DASH_PX[0])}, ${glslFloat(SELF_RING_DASH_PX[1])});
-  return over(acc, uWhite, mask * ${glslFloat(SELF_RING_ALPHA)});
+  return over(acc, uWhite, mask * selfRingAlpha(inst, frame, radiusWu));
 }
 
 vec4 membranePass(Instance inst, Frame frame) {
