@@ -6,9 +6,9 @@
 //
 // It also owns the one gate the chrome shares: the round phase (docs/UI.md §3.1).
 //
-// The chrome is the leaderboard and the round clock, nothing else (docs/UI.md §3.1.1); the own-cell
-// status mirror (#186), the picker (#188), the death and results overlays (#189) and the notices
-// (#190) slot in here as they land.
+// The chrome is the leaderboard and the round clock (docs/UI.md §3.1.1), plus the own cell's status
+// mirror (§3.1.4), which carries no pixels of its own; the picker (#188), the death and results
+// overlays (#189) and the notices (#190) slot in here as they land.
 
 import {
   ChangeDetectionStrategy,
@@ -23,6 +23,7 @@ import {
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
+import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { HUD_TEST_ID } from './test-ids';
 import { hudScaleFor } from './format/hud-scale';
@@ -35,12 +36,16 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
   selector: 'app-hud',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LeaderboardPanelComponent, RoundTimerComponent],
+  imports: [LeaderboardPanelComponent, OwnCellStatusComponent, RoundTimerComponent],
   template: `
     @if (isRoundPlaying()) {
       <app-leaderboard-panel />
     }
     <app-round-timer />
+    <!-- Not phase-gated: the mirror stands down on its own when there is no own cell to mirror,
+         so the results phase does not need to gate it. It does unmount on death, which announces
+         nothing; speaking the death is #189's, with the death overlay. -->
+    <app-own-cell-status />
   `,
   host: {
     '[attr.data-testid]': 'testId.hud',

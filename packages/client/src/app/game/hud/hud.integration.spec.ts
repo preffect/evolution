@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_BALANCE,
   MILLISECONDS_PER_SECOND,
+  CELL_STAGE,
   ROUND_PHASE,
   SERVER_MESSAGE_TYPE,
   createTestPlayerProgressView,
@@ -16,10 +17,13 @@ import {
   gameId,
   playerId,
   type BalanceConfig,
+  type CellView,
   type GameSnapshot,
+  type PlayerProgressView,
   type LeaderboardRow,
   type ServerMessage,
 } from '@evolution/shared';
+import { createTestCellView } from '../../../testing/builders';
 import { FakeWebSocket } from '../../../testing/fake-websocket';
 import { IdentityService } from '../../services/identity.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
@@ -57,12 +61,18 @@ function balanceWithBloomFrom(bloomStartFraction: number): BalanceConfig {
   return { ...DEFAULT_BALANCE, session };
 }
 
-function snapshotWith(rows: LeaderboardRow[], secondsLeft: number): GameSnapshot {
+function snapshotWith(
+  rows: LeaderboardRow[],
+  secondsLeft: number,
+  ownProgress: Partial<PlayerProgressView> = {},
+  ownCell: Partial<CellView> = {},
+): GameSnapshot {
   return createTestSnapshot({
     roundTimeLeftMs: secondsLeft * MILLISECONDS_PER_SECOND,
     leaderboard: rows,
+    cells: [createTestCellView({ playerId: OWN_PLAYER_ID, ...ownCell })],
     players: {
-      [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, playerName: 'Me' }),
+      [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, playerName: 'Me', ...ownProgress }),
       [RIVAL]: createTestPlayerProgressView({ playerId: RIVAL, playerName: 'Rival' }),
     },
   });
@@ -162,6 +172,29 @@ describe('the HUD chrome, end to end', () => {
 
     expect(element().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).toBeNull();
     expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundClock))).toBeNull();
+  });
+
+  it('mirrors the own cell off the wire, so a WebGL-only indicator has a DOM a test can read', () => {
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
+    const mirror = (): Element | null => element().querySelector(testIdSelector(HUD_TEST_ID.ownCell));
+    expect(mirror()?.getAttribute('data-level')).toBe('1');
+    expect(mirror()?.getAttribute('data-ladder')).toBe('ghost:nucleoid');
+
+    // A vent trip: the cell is a prokaryote and four aerobic bacteria are in. Nothing on screen
+    // says so except the ladder counter, which is the requirement gameplay-qa flagged as hidden.
+    receive({
+      type: SERVER_MESSAGE_TYPE.gameSnapshot,
+      snapshot: snapshotWith(
+        [row(1, OWN_PLAYER_ID, 10, 0)],
+        ROUND_SECONDS,
+        { bacteriaEatenByVariant: { plain: 0, aerobic: 4, photosynthetic: 0 } },
+        { stage: CELL_STAGE.prokaryote },
+      ),
+    });
+
+    expect(mirror()?.getAttribute('data-ladder')).toBe('counters');
+    expect(mirror()?.getAttribute('data-aerobic')).toBe('4/10');
+    expect(mirror()?.textContent).toContain('Aerobic 4 of 10');
   });
 
   it('expands to the full list while the Tab hold is on, and collapses on its release', () => {

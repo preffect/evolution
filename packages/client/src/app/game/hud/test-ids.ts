@@ -2,14 +2,15 @@
 // input layer's focus rules query them and the Playwright acceptance loop (§8) asserts on them, so
 // no id literal is typed twice. Keys are camelCase, values are the id strings docs/UI.md names.
 //
-// Only the ids the chrome (#185) and the already-wired focus rules need are listed; #186–#190 add
-// their own as they land.
+// Only the ids shipped so far are listed; #187–#190 add their own as they land.
 
 import type { PlayerId } from '@evolution/shared';
 
 export const HUD_TEST_ID = {
   /** The HUD shell: the overlay layer over the canvas (docs/UI.md §7). */
   hud: 'hud',
+  /** The own cell's status mirror: the accessibility and test surface of §3.1.2's indicators. */
+  ownCell: 'hud-own-cell',
   /** The leaderboard panel, compact or expanded (docs/UI.md §3.1.1). */
   leaderboard: 'leaderboard',
   /** The panel's header: `LEADERBOARD` with the `TAB` hint; clicking it toggles the full list. */

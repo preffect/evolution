@@ -3,6 +3,7 @@
 // `render/constants`. A literal in those files IS the constant; nowhere else in render/ holds one.
 export * from './constants/colours';
 export * from './constants/ui-type';
+export * from './constants/own-cell';
 export * from './constants/cell-shape';
 export * from './constants/organelles';
 export * from './constants/vent';
