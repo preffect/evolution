@@ -8,19 +8,29 @@
 // The own-cell signals of docs/UI.md §7 (`ownCell`, `ownProgress`, `ownCellIndicators`, `threats`,
 // `cameraExtent`) arrive with #186/#187 and read the store through the render seam.
 
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  PLAYER_LIFE_STATE,
   ROUND_PHASE,
   type BalanceConfig,
+  type CellView,
   type LeaderboardRow,
   type PlayerId,
   type PlayerProgressView,
   type RoundPhase,
+  type TraitId,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
+import { threatsFor, type Threat } from '../hud/format/threats-for';
+import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
+import type { CameraExtent } from '../render/camera';
 
 const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerProgressView>> = {};
+const NO_CELLS: readonly CellView[] = [];
+const NO_THREATS: readonly Threat[] = [];
+/** Until the picker lands (#188) nothing is ever previewed, so the ladder's ghost never hides. */
+const NO_PREVIEWED_TRAIT: TraitId | null = null;
 
 @Injectable({ providedIn: 'root' })
 export class GameStateService {
@@ -53,4 +63,71 @@ export class GameStateService {
 
   /** The live balance of `game_state` / `balance_updated`; `null` before the room's arrives. */
   readonly balance = computed<BalanceConfig | null>(() => this.multiplayer.balance());
+
+  /** Every cell in the newest snapshot: what `threatsFor` asks `canEngulf` about. */
+  private readonly cells = computed<readonly CellView[]>(() => this.multiplayer.snapshot()?.cells ?? NO_CELLS);
+
+  /** Our own progress record, or `null` before the room names us (docs/UI.md §1's `ownProgress`). */
+  readonly ownProgress = computed<PlayerProgressView | null>(() => {
+    const id = this.ownPlayerId();
+    return id === null ? null : (this.players()[id] ?? null);
+  });
+
+  /** The cell we are steering; absent while spectating, which is what makes the mirror stand down. */
+  readonly ownCell = computed<CellView | null>(() => {
+    const id = this.ownPlayerId();
+    if (id === null) return null;
+    return this.cells().find((cell) => cell.playerId === id) ?? null;
+  });
+
+  private readonly cameraExtentValue = signal<CameraExtent | null>(null);
+
+  /**
+   * The camera's world rectangle, written by the render loop each frame through `game-setup.ts`
+   * (docs/UI.md §7). The one render-side fact the HUD consumes, and the only thing that makes
+   * "on screen" mean anything to `threatsFor`.
+   */
+  readonly cameraExtent = this.cameraExtentValue.asReadonly();
+
+  setCameraExtent(extent: CameraExtent): void {
+    this.cameraExtentValue.set(extent);
+  }
+
+  /** On-screen cells that can engulf us, nearest first (docs/UI.md §3.1.2). */
+  readonly threats = computed<readonly Threat[]>(() => {
+    const ownCell = this.ownCell();
+    const balance = this.balance();
+    if (ownCell === null || balance === null) return NO_THREATS;
+    return threatsFor({
+      cells: this.cells(),
+      ownCell,
+      cameraExtent: this.cameraExtent(),
+      players: this.players(),
+      balance,
+    });
+  });
+
+  /**
+   * The one truth two consumers read (docs/UI.md §3.1.4): the renderer draws it and the status
+   * mirror speaks it. `null` while spectating or before the first snapshot, which is exactly when
+   * there is no own cell to say anything about.
+   *
+   * The ladder's ghost-hide rule already takes a previewed trait, but the signal that carries one
+   * is `HudStateService.previewTraitId` and belongs to the picker (#188, docs/UI.md §7). Passing
+   * `null` keeps this slice honest: no dead signal here, and that slice is one argument away.
+   */
+  readonly ownCellIndicators = computed<OwnCellIndicators | null>(() => {
+    const ownCell = this.ownCell();
+    const ownProgress = this.ownProgress();
+    const balance = this.balance();
+    if (ownCell === null || ownProgress === null || balance === null) return null;
+    if (ownProgress.lifeState !== PLAYER_LIFE_STATE.alive) return null;
+    return ownCellIndicatorsFor({
+      ownCell,
+      ownProgress,
+      balance,
+      threats: this.threats(),
+      previewTraitId: NO_PREVIEWED_TRAIT,
+    });
+  });
 }

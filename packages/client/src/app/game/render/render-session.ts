@@ -22,7 +22,7 @@ import { SnapshotAcknowledger } from '../net/snapshot-acknowledger';
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
-import type { WorldPoint } from './camera';
+import type { CameraExtent, WorldPoint } from './camera';
 import type { GameRenderer, RenderInputs, RenderOutputs } from './game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
 
@@ -42,6 +42,11 @@ export interface RenderSessionDependencies {
   readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
   readonly connectAudio: (options: TransitionOptions) => AudioHooksHandle;
   readonly hudInputs: () => RenderInputs;
+  /**
+   * The camera's world rectangle after each frame: the fourth HUD crossing (docs/UI.md §7), and the
+   * only fact that travels render-side to HUD-side. `threatsFor` needs it to mean "on screen".
+   */
+  readonly onCameraExtent?: (extent: CameraExtent) => void;
   /** `true` in dev builds, where the debug hook screenshots the canvas (`pixi-app.ts`). */
   readonly shouldPreserveDrawingBuffer: boolean;
   /** The cytoplasm tile's edge (`RenderTextureOptions`): the production size unless a test shrinks it. */
@@ -186,6 +191,7 @@ export class RenderSession extends FrameLoopSession {
 
   /** Every `RENDER_REPORT_EVERY_FRAMES` frames the report the debug hook answers is rebuilt. */
   protected afterFrame(outputs: RenderOutputs): void {
+    this.dependencies.onCameraExtent?.(outputs.cameraExtent);
     if (this.instrumentation.frameCount % RENDER_REPORT_EVERY_FRAMES === 0) {
       this.lastReport = this.instrumentation.report(outputs, null);
     }

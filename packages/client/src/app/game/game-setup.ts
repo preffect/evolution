@@ -12,6 +12,7 @@ import { attachInput, type AttachInputOptions } from './input/attach-input';
 import type { InputController } from './input/input-controller';
 import { NO_RETICLE, type RenderInputs } from './render/game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './render/pixi-app';
+import type { CameraExtent } from './render/camera';
 import { RenderSession } from './render/render-session';
 import type { TransitionOptions } from './state/snapshot-transitions';
 
@@ -39,6 +40,8 @@ export interface GameSetupDependencies {
   readonly previewTraitId: () => TraitId | null;
   /** The onboarding `steer` beat shows the reticle (docs/UI.md §5); its position is the input seam's. */
   readonly isReticleVisible: () => boolean;
+  /** The camera's world rectangle each frame, handed to `GameStateService` (docs/UI.md §7, §3.1.2). */
+  readonly onCameraExtent?: (extent: CameraExtent) => void;
   /** Escape, handed to the HUD's overlay state (docs/UI.md §3.5, #189). */
   readonly onMenuKey?: () => void;
   /** Tab held / released, handed to the HUD's overlay state (docs/UI.md §3.1.1, §4, #185). */
@@ -81,6 +84,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
       previewTraitId: dependencies.previewTraitId(),
       reticle: reticleFor(dependencies.isReticleVisible(), controller),
     }),
+    ...definedEntriesOf({ onCameraExtent: dependencies.onCameraExtent }),
     acknowledgeSnapshot: options.acknowledgeSnapshot,
     shouldPreserveDrawingBuffer: dependencies.isDevMode,
   });

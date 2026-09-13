@@ -79,6 +79,14 @@ export const LEADERBOARD_SWATCH_BEAD_DIAMETER_PX = 3;
 /** The swatch's rim-colour ring width at scale 1. */
 export const LEADERBOARD_SWATCH_RING_WIDTH_PX = 1.2;
 
+// ---- own-cell status mirror (docs/UI.md §1, §3.1.4) ----
+
+/**
+ * The mirror re-announces DNA only at multiples of this, so `aria-live` speaks a meaningful step
+ * instead of every snapshot's percent (docs/UI.md §1's table owns the value).
+ */
+export const STATUS_ANNOUNCE_DNA_STEP_PERCENT = 25;
+
 // ---- round clock (docs/UI.md §3.1.1) ----
 
 /** Inside the last this many seconds the clock pulses once per second. */
