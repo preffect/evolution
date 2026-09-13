@@ -14,7 +14,6 @@ import {
 import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { GameStateService } from './game-state.service';
-import { LADDER_KIND } from './own-cell-indicators';
 
 const OWN_PLAYER_ID = playerId('player-me');
 
@@ -87,7 +86,7 @@ describe('GameStateService', () => {
     expect(gameState.ownCellIndicators()).toBeNull();
 
     multiplayer.balance.set(DEFAULT_BALANCE);
-    expect(gameState.ownCellIndicators()?.ladder.kind).toBe(LADDER_KIND.counters);
+    expect(gameState.ownCellIndicators()?.ladder.counters).toHaveLength(2);
   });
 
   it('has no indicators while spectating, which is what stands the mirror down', () => {

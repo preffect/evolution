@@ -2,8 +2,23 @@
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
+import { STAGE_ORDER } from '../constants/ladder.js';
 import { CELL_STAGE } from '../types/game.js';
-import { stageOf } from './stage-of.js';
+import { hasReachedStage, nextStage, stageIndex, stageOf } from './stage-of.js';
+
+describe('the climb order', () => {
+  it('orders stages by STAGE_ORDER', () => {
+    expect(stageIndex(CELL_STAGE.protocell)).toBe(0);
+    expect(hasReachedStage(CELL_STAGE.eukaryote, CELL_STAGE.prokaryote)).toBe(true);
+    expect(hasReachedStage(CELL_STAGE.prokaryote, CELL_STAGE.eukaryote)).toBe(false);
+    expect(hasReachedStage(CELL_STAGE.prokaryote, CELL_STAGE.prokaryote)).toBe(true);
+  });
+
+  it('names the next rung and null at the top', () => {
+    expect(nextStage(CELL_STAGE.protocell)).toBe(CELL_STAGE.prokaryote);
+    expect(nextStage(STAGE_ORDER[STAGE_ORDER.length - 1]!)).toBeNull();
+  });
+});
 
 const balance = DEFAULT_BALANCE.ladder;
 

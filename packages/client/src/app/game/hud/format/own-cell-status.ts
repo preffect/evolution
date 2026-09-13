@@ -12,7 +12,7 @@ import { BACTERIUM_VARIANT, TRAIT_CATALOG, type BacteriumVariant, type OwnedTrai
 import { ENGULF_PHASE } from '@evolution/shared';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
 import { READY } from './sprint-fill';
-import { LADDER_KIND, type LadderCounter, type OwnCellIndicators } from '../../state/own-cell-indicators';
+import type { LadderCounter, OwnCellIndicators } from '../../state/own-cell-indicators';
 
 const PERCENT = 100;
 
@@ -21,6 +21,8 @@ export const SPRINT_STATUS = { ready: 'ready', cooling: 'cooling', sprinting: 's
 
 /** `ghost:<silhouette>`, `counters` or `none`: what the ladder orbit is showing. */
 export const LADDER_STATUS_NONE = 'none';
+export const LADDER_STATUS_COUNTERS = 'counters';
+const LADDER_STATUS_GHOST_PREFIX = 'ghost:';
 
 /**
  * The counters the mirror exposes by name, so a test can read `data-aerobic` without a lookup.
@@ -56,16 +58,19 @@ function sprintStatusOf(indicators: OwnCellIndicators): string {
   return indicators.sprintFill >= READY ? SPRINT_STATUS.ready : SPRINT_STATUS.cooling;
 }
 
+/**
+ * The rung ghost names the ladder whenever one shows. A counter beside it (decision #285 B: the
+ * envelope ghost and the unclaimed endosymbiont's tally) is read from its own attribute instead.
+ */
 function ladderStatusOf(indicators: OwnCellIndicators): string {
-  const { ladder } = indicators;
-  if (ladder.kind === LADDER_KIND.ghost) return `ghost:${ladder.silhouette}`;
-  if (ladder.kind === LADDER_KIND.counters) return LADDER_KIND.counters;
-  return LADDER_STATUS_NONE;
+  const { ghost, counters } = indicators.ladder;
+  if (ghost !== null) return `${LADDER_STATUS_GHOST_PREFIX}${ghost.silhouette}`;
+  return counters.length > 0 ? LADDER_STATUS_COUNTERS : LADDER_STATUS_NONE;
 }
 
 /** The counters on the ladder right now, by variant; a hidden counter has no attribute (§3.1.4). */
 function visibleCounters(indicators: OwnCellIndicators): readonly LadderCounter[] {
-  return indicators.ladder.kind === LADDER_KIND.counters ? indicators.ladder.counters : [];
+  return indicators.ladder.counters;
 }
 
 /** `nucleoid:1 flagellum:2` in catalog order, so two equal loadouts always read the same. */

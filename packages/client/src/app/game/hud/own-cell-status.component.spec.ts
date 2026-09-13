@@ -85,6 +85,20 @@ describe('OwnCellStatusComponent', () => {
     expect(mirror()?.getAttribute('data-ladder')).toBe('counters');
   });
 
+  it('keeps the unclaimed counter on a cell one endosymbiont promoted, beside the envelope ghost (#285 B)', () => {
+    const nucleoidAndChloroplast = [
+      { traitId: 'nucleoid', tier: 1 },
+      { traitId: 'chloroplast', tier: 1 },
+    ] as const;
+    show(
+      { stage: CELL_STAGE.endosymbiosis, traits: [...nucleoidAndChloroplast] },
+      { bacteriaEatenByVariant: { ...NOTHING_EATEN, aerobic: 10 } },
+    );
+    expect(mirror()?.getAttribute('data-ladder')).toBe('ghost:envelope');
+    expect(mirror()?.getAttribute('data-aerobic')).toBe('10/10');
+    expect(mirror()?.hasAttribute('data-photosynthetic')).toBe(false);
+  });
+
   // Documentation rather than a guard: mass is not in the sentence, so this holds whether the
   // announce rule works or not. code-qa proved it by defeating the rule and leaving the suite
   // green. The test below it is the one that fails on a broken component (#282 review).

@@ -580,7 +580,7 @@ food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts   one `
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
-effects/{own-cell-indicators,threat-label-placement}.ts        the own cell's indicators from the HUD record (§10); pure placement
+effects/{own-cell-indicators,orbit-layout,threat-label-placement}.ts   the own cell's indicators from the HUD record (§10): the radii and the angle turn, the ladder orbit's layout, the threat label; pure placement
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
@@ -666,9 +666,13 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/own-ce
   unlocked, and a threat on screen: DNA track + fill (2), self-ring track + arc (2), two backings, two ghosts, two
   pip blocks, one unlock ring, the label pill = 13 sprites, the numeral and the label = 2 texts (the escape arc
   replaces the orbit and hides the label, so it never adds to this).
-- **Floors.** `dnaRingRadiusPx`, `ladderOrbitRadiusPx` and `orbitLayout` (pure, in the same file) apply UI.md
+- **Floors.** `dnaRingRadiusPx`, `ladderOrbitRadiusPx` (pure, in the same file) and `orbitLayout` (`effects/orbit-layout.ts`) apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md §3.1.3's geometry
-  table at 24 / 32 / 45 / 102 px and its three inequalities (picker band, seat-mark clearance, DNA keep-out). They
+  table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA
+  keep-out) and the ghost-beside-a-counter case. `orbitLayout` centres each counter on its angle, ghost first and
+  pips after, clockwise, turns a counter away from a rung ghost it would crowd (UI.md §3.1.3), and merges
+  backings whose pads meet. The record's angles are degrees clockwise from 12
+  o'clock; `screenRadiansOf` is the one turn to screen radians, pinned against the §9 angles. They
   snap with the self ring's LOD (§5): drawn at every LOD the own cell reaches, never faded.
 - **Clips.** The ring and numeral flash is the `level_up` clip's `ringFlash` track and the sprint-ready brighten is
   the `sprint_ready` clip (§4), both played by `motion-clip-player.ts` off `renderTick` like every other clip; the
@@ -688,7 +692,9 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/own-ce
   side of the ring (the same distance, away from the own cell); text stays upright. The warning rings on every
   eligible cell remain the pass-B band of §2.2; the label is drawn on the nearest one only, as the record says.
 - **Tests.** `own-cell-indicators.spec.ts` (the geometry table, the three inequalities, the sprite count of the worst
-  case) and `threat-label-placement.spec.ts` (near side at 200 px for a 30 px predator, far side at 100 px, upright
-  at every angle), unit, no WebGL; the screenshot baselines (§9) gain the own cell at the four sizes with the
+  case), `orbit-layout.spec.ts` (the counter layout and the ghost-beside-a-counter clearance) and
+  `threat-label-placement.spec.ts` (near side at 200 px above a 30 px predator, far side at 100 px, the
+  pill's whole box tested against the orbit extent so a wide pill beside the cell flips, upright at every angle),
+  unit, no WebGL; the screenshot baselines (§9) gain the own cell at the four sizes with the
   counters showing, the max-level ring, the escape arc before and after the seal and the far-side label, from
   `qa/decisions/hud-layout/diegetic/` as the reference look and its fixed indicator records as the scene fixtures.

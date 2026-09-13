@@ -1,8 +1,6 @@
 // The budget ledger (docs/CODE-STANDARDS.md §2): every number of docs/RENDERING.md §6–§7 that the
 // bench asserts is read from the doc's own tables here and pinned against the constants, so the
 // doc and the code cannot drift silently.
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RENDER_STAGE_NAMES } from '@evolution/shared';
 import {
@@ -17,28 +15,12 @@ import {
   RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
 } from '../constants';
+import { markdownSection, readRepoDocument } from '../../../../testing/repo-document';
 
-const RENDERING_DOCUMENT_PATH = join('docs', 'RENDERING.md');
-
-/** The repo root: the test runner's cwd is a package or the root, so walk up to the doc. */
-function renderingDocumentPath(): string {
-  let directory = process.cwd();
-  while (!existsSync(join(directory, RENDERING_DOCUMENT_PATH))) {
-    const parent = dirname(directory);
-    if (parent === directory) throw new Error(`${RENDERING_DOCUMENT_PATH} not found above ${process.cwd()}`);
-    directory = parent;
-  }
-  return join(directory, RENDERING_DOCUMENT_PATH);
-}
-
-const rendering = readFileSync(renderingDocumentPath(), 'utf8');
+const rendering = readRepoDocument('docs/RENDERING.md');
 
 function section(heading: string): string {
-  const start = rendering.indexOf(`\n## ${heading}`);
-  expect(start, heading).toBeGreaterThanOrEqual(0);
-  const rest = rendering.slice(start + 1);
-  const end = rest.indexOf('\n## ');
-  return end < 0 ? rest : rest.slice(0, end);
+  return markdownSection(rendering, heading);
 }
 
 /** The digits of a doc number, whatever the thousands separator ("1 400"). */
