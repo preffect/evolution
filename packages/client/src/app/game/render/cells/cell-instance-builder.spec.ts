@@ -9,6 +9,7 @@ import {
   HALO_KIND,
   NUCLEUS_RADIUS,
   PREY_UNDER_FILM_ALPHA,
+  SELF_RING_ALPHA,
   SPRINT_RIM_BRIGHTNESS,
   WARNING_RING_STROKE_PX,
 } from '../constants';
@@ -16,6 +17,7 @@ import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
 import { buildCellInstance, quadExtentRadii, warningRingPxFor, type CellInstanceInput } from './cell-instance-builder';
 import { summariseCellTraits } from './cell-traits';
+import { REST_OWN_CELL_RING } from './self-ring';
 import { buildShapeTerms } from './shape-terms';
 
 function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
@@ -45,6 +47,7 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     warningRingPx: 0,
     ciliaPhase: 0.3,
     rimDash: 0,
+    ownCellRing: REST_OWN_CELL_RING,
     ...overrides,
   };
 }
@@ -83,6 +86,8 @@ describe('buildCellInstance', () => {
       ciliaPhase: 0.3,
       nucleusDiscRadii: 0,
       speckleSeed: 0.6,
+      selfRingFill: 1,
+      selfRingBrightness: SELF_RING_ALPHA,
     });
     expect(instance.beadCount).toBe(SEAT_MARK_BEADS[2]);
     expect(instance.bumps).toHaveLength(8);
@@ -155,6 +160,18 @@ describe('buildCellInstance', () => {
     expect(farInstance.isOwn).toBe(false);
     expect(farInstance.isFarDot).toBe(true);
     expect(farInstance.beadCount).toBe(0);
+  });
+
+  it('packs the sprint ring on the own cell only; every other cell carries the full rest ring (#295)', () => {
+    const cooling = { fill: 0.4, brightness: 0.95, escapePredatorCellId: null, shouldHidePredatorRing: false };
+    expect(buildCellInstance(input({ isOwn: true, ownCellRing: cooling }))).toMatchObject({
+      selfRingFill: 0.4,
+      selfRingBrightness: 0.95,
+    });
+    expect(buildCellInstance(input({ isOwn: false, ownCellRing: cooling }))).toMatchObject({
+      selfRingFill: 1,
+      selfRingBrightness: SELF_RING_ALPHA,
+    });
   });
 
   it('sizes the quad to the §2 floor at rest and to the far-dot halo when the LOD asks', () => {

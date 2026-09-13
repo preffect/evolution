@@ -10,6 +10,7 @@ import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
 import { CellRenderState, NO_CELL_CONTACTS, type CellFrameContext } from './cell-render-state';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
+import { REST_OWN_CELL_RING } from './self-ring';
 
 const TEST_SEED = 7;
 const textures = createTestRenderTextures({ seed: TEST_SEED });
@@ -23,6 +24,7 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     strip: buildNoiseStrip(createSeededRandom(TEST_SEED)),
     previewTraitId: null,
     ...NO_CELL_CONTACTS,
+    ownCellRing: REST_OWN_CELL_RING,
     ...overrides,
   };
 }
