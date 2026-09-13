@@ -4,7 +4,12 @@
 // last echoed inputs are exactly what an offline pilot with the same seed and index decides.
 // Run with `./validate.sh integration`.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, TICK_INTERVAL_MS, createTestSessionConfig } from '@evolution/shared';
+import {
+  CLIENT_MESSAGE_TYPE,
+  SNAPSHOT_EVERY_TICKS,
+  TICK_INTERVAL_MS,
+  createTestSessionConfig,
+} from '@evolution/shared';
 import type { GameInput, PlayerId } from '@evolution/shared';
 import { echoBotBinding } from '../../game/bots/bot-binding.js';
 import { createNamedBotPilot } from '../../game/bots/bot-pilot.js';
@@ -17,6 +22,7 @@ import { createBotSwarm, type BotSwarm } from './bot-swarm.js';
 import { BotClientError } from './errors.js';
 import { createWebSocketTransport } from './web-socket-transport.js';
 
+/** Ticks the run drives. A whole number of broadcast intervals, so the last input is echoed on the wire. */
 const TICKS = 300;
 const BOT_COUNT = 2;
 const SEED = 42;
@@ -164,7 +170,8 @@ describe('bot client against a real server', () => {
         errorsReceived: 0,
         isConnected: true,
       });
-      expect(stats.snapshotsReceived).toBeGreaterThanOrEqual(TICKS);
+      // One snapshot per broadcast, not per tick (docs/ARCHITECTURE.md §1).
+      expect(stats.snapshotsReceived).toBeGreaterThanOrEqual(Math.floor(TICKS / SNAPSHOT_EVERY_TICKS));
     }
   });
 

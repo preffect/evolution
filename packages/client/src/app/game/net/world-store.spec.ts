@@ -39,6 +39,16 @@ function storeWithSnapshots(ticks: readonly number[]): { store: WorldStore; cloc
 }
 
 const HALF_TICK = 0.5;
+/**
+ * Clock offset past the newest snapshot at which the render tick reaches the extrapolation cap and
+ * the frame holds: the interpolation delay first, then the cap. A paused room's tests wait this long.
+ */
+const HELD_FRAME_LOOKAHEAD_TICKS = INTERPOLATION_DELAY_TICKS + MAX_EXTRAPOLATION_TICKS;
+
+/** `count` snapshot ticks from `first` at the live broadcast cadence, the way the room sends them. */
+function cadenceTicks(first: number, count: number): number[] {
+  return Array.from({ length: count }, (_unused, index) => first + index * SNAPSHOT_EVERY_TICKS);
+}
 
 describe('WorldStore', () => {
   it('answers no frame before the first snapshot, nor without a balance', () => {
@@ -62,7 +72,7 @@ describe('WorldStore', () => {
   });
 
   it('releases effects when the render tick reaches them, once, oldest first', () => {
-    const ticks = [0, 1, 2, 3].map((index) => 60 + index * SNAPSHOT_EVERY_TICKS);
+    const ticks = cadenceTicks(60, 4);
     const latest = ticks[ticks.length - 1]!;
     const { store, clock } = storeWithSnapshots(ticks);
     clock.setMilliseconds(latest * TICK_INTERVAL_MS);
@@ -120,66 +130,74 @@ describe('WorldStore', () => {
   });
 
   it('a republished snapshot at the latest tick replaces the held frame without moving the tick estimate', () => {
-    const { store, clock } = storeWithSnapshots([60, 61, 62, 63]);
+    const ticks = cadenceTicks(60, 4);
+    const latest = ticks[ticks.length - 1]!;
+    const { store, clock } = storeWithSnapshots(ticks);
     // The room is paused: the frame extrapolates to the cap and holds the latest snapshot's cell.
-    const heldMs = (63 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS;
+    const heldMs = (latest + HELD_FRAME_LOOKAHEAD_TICKS) * TICK_INTERVAL_MS;
     clock.setMilliseconds(heldMs);
     expect(store.nextFrame()!.cells[0]!.stage).toBe(CELL_STAGE.protocell);
-    // A debug patch republishes tick 63 much later; the client must show it, not drop it.
+    // A debug patch republishes the latest tick much later; the client must show it, not drop it.
     clock.setMilliseconds(heldMs * 10);
     const republished = createTestSnapshot({
-      tick: 63,
-      cells: [createTestCellView({ id: entityId('c'), x: 63, y: 0, stage: CELL_STAGE.eukaryote })],
+      tick: latest,
+      cells: [createTestCellView({ id: entityId('c'), x: latest, y: 0, stage: CELL_STAGE.eukaryote })],
     });
     expect(store.applySnapshot(republished)).toBe(true);
     expect(store.nextFrame()!.cells[0]!.stage).toBe(CELL_STAGE.eukaryote);
     expect(store.latestSnapshot()).toBe(republished);
     // The estimate was not re-observed at the late arrival: the next live tick renders at the usual delay.
-    clock.setMilliseconds(64 * TICK_INTERVAL_MS);
-    store.applySnapshot(createTestSnapshot({ tick: 64, cells: [createTestCellView({ id: entityId('c') })] }));
-    expect(store.nextFrame()!.renderTick).toBeCloseTo(64 - INTERPOLATION_DELAY_TICKS, 6);
+    const next = latest + SNAPSHOT_EVERY_TICKS;
+    clock.setMilliseconds(next * TICK_INTERVAL_MS);
+    store.applySnapshot(createTestSnapshot({ tick: next, cells: [createTestCellView({ id: entityId('c') })] }));
+    expect(store.nextFrame()!.renderTick).toBeCloseTo(next - INTERPOLATION_DELAY_TICKS, 6);
   });
 
   it('never re-fires a moment already drained when its tick is republished after the render tick ran past it', () => {
-    const { store, clock } = storeWithSnapshots([60, 61, 62]);
-    const levelUp = createTestLevelUpEffect({ tick: 63, cellId: entityId('c') });
-    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp] }));
-    // The room is paused: the render tick extrapolates past 63 and drains the level-up.
-    clock.setMilliseconds((63 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    const ticks = cadenceTicks(60, 3);
+    const paused = ticks[ticks.length - 1]! + SNAPSHOT_EVERY_TICKS;
+    const { store, clock } = storeWithSnapshots(ticks);
+    const levelUp = createTestLevelUpEffect({ tick: paused, cellId: entityId('c') });
+    store.applySnapshot(createTestSnapshot({ tick: paused, effects: [levelUp] }));
+    // The room is paused: the render tick extrapolates past the latest tick and drains the level-up.
+    clock.setMilliseconds((paused + HELD_FRAME_LOOKAHEAD_TICKS) * TICK_INTERVAL_MS);
     expect(store.nextFrame()!.effects).toContainEqual(levelUp);
-    // A debug tool republishes tick 63 with the same effect: nothing fires again.
-    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp] }));
+    // A debug tool republishes the same tick with the same effect: nothing fires again.
+    store.applySnapshot(createTestSnapshot({ tick: paused, effects: [levelUp] }));
     expect(store.nextFrame()!.effects).toEqual([]);
-    // A newer tick forgets the drained set: the same moment at 64 is a new moment.
-    clock.setMilliseconds(64 * TICK_INTERVAL_MS);
-    const later = { ...levelUp, tick: 64 };
-    store.applySnapshot(createTestSnapshot({ tick: 64, effects: [later] }));
-    clock.setMilliseconds((64 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    // A newer tick forgets the drained set: the same moment one snapshot on is a new moment.
+    const resumed = paused + SNAPSHOT_EVERY_TICKS;
+    clock.setMilliseconds(resumed * TICK_INTERVAL_MS);
+    const later = { ...levelUp, tick: resumed };
+    store.applySnapshot(createTestSnapshot({ tick: resumed, effects: [later] }));
+    clock.setMilliseconds((resumed + HELD_FRAME_LOOKAHEAD_TICKS) * TICK_INTERVAL_MS);
     expect(store.nextFrame()!.effects).toEqual([later]);
     store.reset();
     expect(store.nextFrame()).toBeNull();
   });
 
   it("queues a republished tick's effects once: the same moment never fires twice", () => {
-    const { store, clock } = storeWithSnapshots([60, 61, 62]);
-    const levelUp = createTestLevelUpEffect({ tick: 63, cellId: entityId('c') });
+    const ticks = cadenceTicks(60, 3);
+    const paused = ticks[ticks.length - 1]! + SNAPSHOT_EVERY_TICKS;
+    const { store, clock } = storeWithSnapshots(ticks);
+    const levelUp = createTestLevelUpEffect({ tick: paused, cellId: entityId('c') });
     const absorbed = createTestCellAbsorbedEffect({
-      tick: 63,
+      tick: paused,
       cellId: entityId('prey'),
       predatorCellId: entityId('c'),
     });
-    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp, absorbed] }));
+    store.applySnapshot(createTestSnapshot({ tick: paused, effects: [levelUp, absorbed] }));
     const otherPrey = createTestCellAbsorbedEffect({
-      tick: 63,
+      tick: paused,
       cellId: entityId('other'),
       predatorCellId: entityId('c'),
     });
-    store.applySnapshot(createTestSnapshot({ tick: 63, effects: [levelUp, absorbed, otherPrey] }));
-    clock.setMilliseconds((63 + MAX_EXTRAPOLATION_TICKS) * TICK_INTERVAL_MS);
+    store.applySnapshot(createTestSnapshot({ tick: paused, effects: [levelUp, absorbed, otherPrey] }));
+    clock.setMilliseconds((paused + HELD_FRAME_LOOKAHEAD_TICKS) * TICK_INTERVAL_MS);
     const { effects } = store.nextFrame()!;
-    expect(effects.filter((effect) => effect.tick === 63)).toEqual([levelUp, absorbed, otherPrey]);
-    expect(isSameEffect(levelUp, { ...levelUp, tick: 64 })).toBe(false);
-    expect(isSameEffect(levelUp, createTestEatEffect({ tick: 63, cellId: entityId('c') }))).toBe(false);
+    expect(effects.filter((effect) => effect.tick === paused)).toEqual([levelUp, absorbed, otherPrey]);
+    expect(isSameEffect(levelUp, { ...levelUp, tick: paused + 1 })).toBe(false);
+    expect(isSameEffect(levelUp, createTestEatEffect({ tick: paused, cellId: entityId('c') }))).toBe(false);
     expect(
       isSameEffect(
         { kind: 'world_level_up', tick: 63, level: 2, stage: 'prokaryote' },
@@ -189,8 +207,7 @@ describe('WorldStore', () => {
   });
 
   it('interpolates strictly between two snapshots at the live broadcast cadence', () => {
-    const first = 10;
-    const ticks = [0, 1, 2, 3].map((index) => first + index * SNAPSHOT_EVERY_TICKS);
+    const ticks = cadenceTicks(10, 4);
     const { store, clock } = storeWithSnapshots(ticks);
     const latest = ticks[ticks.length - 1]!;
     clock.setMilliseconds((latest + HALF_TICK) * TICK_INTERVAL_MS);
