@@ -48,9 +48,21 @@
 ./run.sh --client-only  # start only the Angular dev server
 ./run.sh --stop         # stop all running processes
 ./run.sh --status       # check what's running
-./run.sh --logs         # tail server and client logs
+./run.sh --logs         # tail the server, client and deploy logs
 ./run.sh --install      # run pnpm install before starting
+./run.sh --no-deploy-watch   # start without the deploy watcher (below)
+scripts/deploy-main.sh  # redeploy the MAIN checkout (/workspace, the human's game) from origin/main once, even when run from a worktree
 ```
+
+`./run.sh` also starts `scripts/deploy-main.sh --watch` for its own checkout: it polls `origin/main`
+every 60 s and redeploys on every merge — fast-forward, `pnpm install` only when the lockfile changed,
+shared build, then `./run.sh --clear-prebundle --wait-ready` in the mode and ports the stack was started
+with (the Angular prebundle is deleted between stop and start, since a stale one breaks new shared
+exports; the deploy counts only once the server and client listen again). A one-shot
+`scripts/deploy-main.sh` restarts the same way and starts the watcher if none is running. Hard-refresh
+the browser afterwards. Only a checkout on `main` tracking `origin/main`, without tracked changes, that
+can fast-forward is deployed (a watcher anywhere else stops); every step goes to
+`.game-logs/deploy.log`; `./run.sh --stop` stops the watcher.
 
 ### Headless bots (`docs/TESTING.md` §8.3)
 
