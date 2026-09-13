@@ -5,6 +5,7 @@
 
 import {
   createSeededRandom,
+  gameId,
   type GameSessionConfig,
   type PlayerId,
   type RandomSource,
@@ -80,6 +81,8 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
     }
     this.randomRoot = createSeededRandom(setup.config.seed);
     this.module = adapter.createModule({
+      // A scenario has no room, so the scenario names itself: the id is only ever echoed back.
+      gameId: gameId(setup.scenarioName),
       creatorId: creator.playerId,
       playerIds: roster.map((player) => player.playerId),
       gameName: setup.scenarioName,

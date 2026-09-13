@@ -38,6 +38,7 @@ function roomInitOptionsOf(pending: PendingGame): RoomInitOptions {
     playerNames[playerId] = info.playerName;
   }
   return {
+    gameId: pending.gameId as GameId,
     creatorId: pending.creatorId as PlayerId,
     playerIds: Array.from(pending.players.keys()) as PlayerId[],
     gameName: pending.gameName,
@@ -84,6 +85,9 @@ export class LobbyManager {
       onClientPerformance: (connection, message) => {
         this.roomOfPlayer(connection)?.recordClientPerformance(connection.playerId, message.report);
       },
+      onSnapshotAck: (connection, message) => {
+        this.roomOfPlayer(connection)?.recordSnapshotAck(connection.playerId, message.tick);
+      },
     };
   }
 
@@ -125,7 +129,7 @@ export class LobbyManager {
     const active = this.activeRooms.get(gameId);
     if (active) {
       this.playerToGame.set(connection.playerId, gameId);
-      active.addLatePlayer(connection, gameId);
+      active.addLatePlayer(connection);
       this.broadcastLobbyUpdate();
       return;
     }
@@ -176,7 +180,7 @@ export class LobbyManager {
         isHost: playerId === options.creatorId,
         config: options.config,
       });
-      sendMessage(playerConnection, room.gameStateMessageFor(gameId as GameId, playerId));
+      sendMessage(playerConnection, room.gameStateMessageFor(playerId));
     }
   }
 
@@ -218,7 +222,7 @@ export class LobbyManager {
     if (room) {
       room.reattachPlayer(connection);
       // Resend the full game state so the reconnected client can resync.
-      sendMessage(connection, room.gameStateMessageFor(gameId as GameId, connection.playerId as PlayerId));
+      sendMessage(connection, room.gameStateMessageFor(connection.playerId as PlayerId));
     }
   }
 

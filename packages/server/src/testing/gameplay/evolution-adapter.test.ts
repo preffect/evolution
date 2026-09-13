@@ -1,6 +1,6 @@
 // docs/TESTING.md §8: the Evolution adapter's scenario duties on a real module.
 import { describe, expect, it } from 'vitest';
-import { EFFECT_KIND, createTestSessionConfig, playerId } from '@evolution/shared';
+import { EFFECT_KIND, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { FixtureContext } from './adapter.js';
 import {
@@ -21,6 +21,7 @@ const context: FixtureContext = { tick: 0, playerId: () => alice };
 
 function moduleUnderTest(): EvolutionScenarioModule {
   return evolutionAdapter.createModule({
+    gameId: gameId('adapter-game'),
     creatorId: alice,
     playerIds: [alice],
     gameName: 'adapter',
@@ -95,6 +96,7 @@ describe('evolutionAdapter', () => {
 
   it('refuses a placed record on a seed whose gel patch reaches the broth point', () => {
     const module = evolutionAdapter.createModule({
+      gameId: gameId('blocked-game'),
       creatorId: alice,
       playerIds: [alice],
       gameName: 'blocked',

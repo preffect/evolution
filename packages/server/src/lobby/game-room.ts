@@ -17,6 +17,7 @@ import {
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
+import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
 import type { RoomTiming } from './room-timing.js';
 import type { FullGameState, GameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
@@ -32,6 +33,7 @@ import { DebugRequestError } from '../game/debug/debug-request-error.js';
  * step it by hand for deterministic screenshots (docs/ARCHITECTURE.md §8).
  */
 export class GameRoom {
+  readonly gameId: GameId;
   readonly playerConnections = new Map<string, Connection>();
   readonly disconnectedPlayers = new Set<string>();
   readonly allPlayerIds: string[];
@@ -41,6 +43,8 @@ export class GameRoom {
   readonly avatarAssignments: Record<string, number>;
   readonly playerNames: Record<string, string>;
   readonly performanceTracker = new PerformanceTracker();
+  /** Who is behind on the wire and owes a `game_state` (#266, docs/ARCHITECTURE.md §4). */
+  readonly snapshotBacklog = new SnapshotBacklog();
 
   private readonly game: GameModule;
   private readonly timing: RoomTiming;
@@ -53,6 +57,7 @@ export class GameRoom {
     this.game = game;
     this.timing = timing;
     this.accumulator = createSimulationStepAccumulator(timing.clock);
+    this.gameId = options.gameId;
     this.creatorId = options.creatorId;
     this.allPlayerIds = [...options.playerIds];
     this.gameName = options.gameName;
@@ -133,9 +138,11 @@ export class GameRoom {
     this.playerConnections.set(connection.playerId, connection);
   }
 
+  /** A reconnect is a new `game_state` (docs/ARCHITECTURE.md §4), so it settles any resync owed. */
   reattachPlayer(connection: Connection): void {
     this.playerConnections.set(connection.playerId, connection);
     this.disconnectedPlayers.delete(connection.playerId);
+    this.snapshotBacklog.forget(connection.playerId);
   }
 
   submitInput(playerId: string, payload: GameInput): void {
@@ -144,6 +151,11 @@ export class GameRoom {
 
   recordClientPerformance(playerId: string, report: ClientPerformanceReport): void {
     this.performanceTracker.recordClientReport(playerId as PlayerId, report);
+  }
+
+  /** The newest snapshot tick a client has applied (#266, docs/ARCHITECTURE.md §4): its flow control. */
+  recordSnapshotAck(playerId: string, tick: number): void {
+    this.snapshotBacklog.recordAcknowledgedTick(playerId, tick);
   }
 
   getSnapshot(): GameSnapshot {
@@ -156,19 +168,22 @@ export class GameRoom {
   }
 
   /** Player who was never part of the session joins an in-progress game. */
-  addLatePlayer(connection: Connection, gameId: string): void {
+  addLatePlayer(connection: Connection): void {
     const playerId = connection.playerId as PlayerId;
     this.playerConnections.set(playerId, connection);
     this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
     this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
-    sendMessage(connection, this.gameStateMessageFor(gameId as GameId, playerId));
+    sendMessage(connection, this.gameStateMessageFor(playerId));
   }
 
-  /** The `game_state` a player receives on start, late join and reconnect (docs/ARCHITECTURE.md §4). */
-  gameStateMessageFor(gameId: GameId, playerId: PlayerId): ServerMessage {
+  /**
+   * The `game_state` a player receives on start, late join, reconnect and resync
+   * (docs/ARCHITECTURE.md §4): the one message that rebuilds a client's whole view.
+   */
+  gameStateMessageFor(playerId: PlayerId): ServerMessage {
     return {
       type: SERVER_MESSAGE_TYPE.gameState,
-      gameId,
+      gameId: this.gameId,
       playerId,
       ...this.getFullState(),
       config: this.sessionConfig,
@@ -179,6 +194,7 @@ export class GameRoom {
 
   removePlayer(playerId: string): void {
     this.playerConnections.delete(playerId);
+    this.snapshotBacklog.forget(playerId);
     this.disconnectedPlayers.add(playerId);
     this.performanceTracker.removeClient(playerId as PlayerId);
     this.game.removePlayer(playerId as PlayerId);
@@ -253,11 +269,26 @@ export class GameRoom {
     });
   }
 
-  /** The delta since the previous broadcast, every `SNAPSHOT_EVERY_TICKS` ticks (docs/ARCHITECTURE.md §1). */
+  /**
+   * The delta since the previous broadcast, every `SNAPSHOT_EVERY_TICKS` ticks
+   * (docs/ARCHITECTURE.md §1). `serializeRoomState` runs on every broadcast tick whatever the
+   * connections are doing: it is the one drain of the effects and the one step of the food delta
+   * tracker. Who receives it is then per connection (#266, docs/ARCHITECTURE.md §4) — a client
+   * that has not caught up with what it was already sent is skipped rather than queued deeper, and
+   * is sent one `game_state` in place of the next delta once it has.
+   */
   private broadcastSnapshot(): number {
-    return broadcastMessage(this.playerConnections.values(), {
-      type: SERVER_MESSAGE_TYPE.gameSnapshot,
-      snapshot: this.game.serializeRoomState(),
-    });
+    const snapshot = this.game.serializeRoomState();
+    const deltaTargets: Connection[] = [];
+    for (const connection of this.playerConnections.values()) {
+      const delivery = this.snapshotBacklog.nextFor(connection, snapshot.tick);
+      if (delivery === SNAPSHOT_DELIVERY.delta) {
+        deltaTargets.push(connection);
+      } else if (delivery === SNAPSHOT_DELIVERY.resync) {
+        sendMessage(connection, this.gameStateMessageFor(connection.playerId as PlayerId));
+      }
+    }
+    if (deltaTargets.length === 0) return 0;
+    return broadcastMessage(deltaTargets, { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot });
   }
 }

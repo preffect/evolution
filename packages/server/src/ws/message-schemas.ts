@@ -111,6 +111,12 @@ const clientPerformanceSchema = z.object({
   }),
 });
 
+/** Flow control (#266, docs/ARCHITECTURE.md §4): the newest snapshot tick the client has applied. */
+const snapshotAckSchema = z.object({
+  type: z.literal(CLIENT_MESSAGE_TYPE.snapshotAck),
+  tick: z.number().int().nonnegative(),
+});
+
 export const clientMessageSchema = z.discriminatedUnion('type', [
   joinLobbySchema,
   updatePlayerInfoSchema,
@@ -120,6 +126,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   deleteGameSchema,
   playerInputSchema,
   clientPerformanceSchema,
+  snapshotAckSchema,
 ]);
 
 export type ValidatedClientMessage = z.infer<typeof clientMessageSchema>;

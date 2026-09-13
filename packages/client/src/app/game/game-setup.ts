@@ -19,6 +19,8 @@ export interface GameSetupOptions {
   send: (input: GameInput) => void;
   /** Every server message in arrival order, snapshots included (docs/ARCHITECTURE.md §5). */
   messages$: Observable<ServerMessage>;
+  /** Tells the server which snapshot tick this client has applied (#266, docs/ARCHITECTURE.md §4). */
+  acknowledgeSnapshot: (tick: number) => void;
   /** The element the canvas mounts in, and the element the pointer is read against. */
   host: HTMLElement;
 }
@@ -68,6 +70,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
       previewTraitId: dependencies.previewTraitId(),
       reticle: reticleFor(dependencies.isReticleVisible(), controller),
     }),
+    acknowledgeSnapshot: options.acknowledgeSnapshot,
     shouldPreserveDrawingBuffer: dependencies.isDevMode,
   });
   const input = attachInput({

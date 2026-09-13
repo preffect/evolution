@@ -385,10 +385,35 @@ export interface FoodDelta {
   the numbers the server simulates. `game_snapshot` carries `serializeRoomState()`: the delta
   since the previous broadcast. The client applies deltas idempotently (upsert `spawned`,
   delete-if-present `removedIds`, patch `moved`) and resets its food store on every
-  `game_state`; WebSocket ordering makes this sufficient, so there is no base-tick check and no
-  resync verb. A reconnect is a new `game_state`.
+  `game_state`; WebSocket ordering makes this sufficient, so there is no base-tick check. A
+  reconnect is a new `game_state`, and so is a resync: there is no separate verb for one.
+- **Flow control: a client is never queued deeper than it is keeping up** (#266). The room
+  broadcasts every `SNAPSHOT_EVERY_TICKS` whatever the clients are doing, so one that cannot
+  consume the cadence — a page rebuilding its renderer after a reload is the ordinary way to get
+  there — would be queued every snapshot the room ever sent it. Nothing in a delta stream lets a
+  client skip ahead, so its view then falls behind **for good**: it is not a hitch, it is a
+  divergence that grows for as long as the room runs. So:
+  - the client sends **`snapshot_ack { tick }`** — the newest tick it has applied — on every
+    `game_state` and every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas (`net/snapshot-acknowledger.ts`);
+  - the room subtracts it from the newest tick it sent that client. That difference is the depth of
+    the queue between them **wherever the queue actually sits** — the room's socket, a dev proxy,
+    the kernel, or the browser's own event loop — which is why the measurement is end-to-end and
+    not `bufferedAmount`. Past `SNAPSHOT_BACKLOG_LIMIT_TICKS` the connection is sent nothing, and
+    the first broadcast after it catches up carries a `game_state` in place of the delta
+    (`lobby/snapshot-backlog.ts`). `SNAPSHOT_BACKLOG_LIMIT_BYTES` of unsent bytes on the socket is
+    the same decision from the other side, for a socket that has stopped writing at all.
+  - A client that acknowledges nothing is never skipped (the headless bot client): silence is not
+    evidence of a backlog.
+
+  `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
+  is the one drain of the effects and the one step of the food delta tracker — so a skipped client
+  loses that window's effects and rejoins the stream whole. The resync exists because `food` is the
+  only relative part of a snapshot: everything else (`cells`, `players`, `leaderboard`,
+  `dnaFragments`, the round) is full in every one.
+
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
-  verbs: everything rides `player_input`.
+  verbs for the _game_: everything a player does rides `player_input`. The transport's own verbs are
+  separate and generic — `client_performance` and `snapshot_ack` carry no gameplay.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
@@ -431,7 +456,11 @@ measurement that confirms the estimate; #103 records it.
 1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1):
    `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`,
    per-player snapshots. Cuts the two big rows by ~75 % at the widest zoom.
-2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4; held); interpolation absorbs it unchanged.
+2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4; held, #214); interpolation absorbs it
+   unchanged. Measured against a starved client (#266, #238): at 60 Hz a headless client under load
+   consumed ~35 of the 60 snapshots a second and diverged without bound; at 15 Hz it consumed ~12 of
+   15 and still slipped, so the cadence narrows the gap but does not close it on its own — the flow
+   control of §4 is what bounds how stale any client can get.
 
 ## 5. Client networking policy (`packages/client/src/app/game/net/`)
 
@@ -468,6 +497,10 @@ measurement that confirms the estimate; #103 records it.
   as it arrives; the frame loop only reads (`nextFrame()`, which also releases the effects due),
   so a frame hitch or a background tab never loses a spawn, a removal or an effect. Nothing
   coalesces snapshots.
+- **Every applied snapshot is acknowledged** (#266, §4). `RenderSession` tells the room the tick it
+  has just applied — at once for a `game_state`, every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` for a delta —
+  and a `game_state` that arrives mid-stream is the room's resync: `applyGameState` already replaces
+  the whole view, so the client needs no new behaviour to recover from falling behind.
 
 ## 6. Client module plan (Pixi v8 + Angular)
 
@@ -646,7 +679,7 @@ packages/shared/src/
                                                                 vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
   audio/{sound-events,audio-manifest}.ts                        catalogue lookups and layering; the manifest shape + parseAudioManifest (AUDIO.md §4)
 packages/server/src/
-  lobby/{game-room,ticker}.ts                                   room drives the accumulator via Ticker
+  lobby/{game-room,ticker,snapshot-backlog}.ts                   room drives the accumulator via Ticker; snapshot-backlog: per-client flow control on the acknowledged tick and the resync it owes (§4, #266)
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (DETERMINISM §5)
   game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
@@ -669,7 +702,7 @@ packages/server/src/
 packages/client/src/app/game/
   game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
   debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
-  net/{snapshot-buffer,interpolation,food-store,world-store}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; prediction and reconciliation are still open (#265)
+  net/{snapshot-buffer,interpolation,food-store,world-store,snapshot-acknowledger}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; snapshot-acknowledger tells the room which tick this client has applied (§4, #266); prediction and reconciliation are still open (#265)
   input/{input-constants,keyboard-action,input-state,trait-pick,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state, the trait-pick policy and the GameInput mapping — all pure (UI.md §4)
   input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
