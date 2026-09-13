@@ -2,7 +2,7 @@
 
 You are running this prompt against a game scaffolded from **`base-multiplayer-game`** — a
 working multiplayer TEMPLATE whose game definition is **DEFERRED**. Connect / reconnect /
-identity, the lobby, rooms, the 60 Hz broadcast loop, MCP game-state visibility, and ha-router
+identity, the lobby, rooms, the fixed-tick broadcast loop, MCP game-state visibility, and ha-router
 integration ALL work today against a placeholder **echo** game.
 
 Your job in this session is **NOT to write game code**. It is to:
@@ -109,7 +109,7 @@ ALL of them, and `docs/GAME-DESIGN.md` must make each concrete.
    just confirm those files agree with `PORTS.env`. Use the slug + ports to _prepare_ the
    ha-router route YAML + landing card (see Identity for the icon hue).
 3. **Player model** — max players; avatars (indexed 0–5) vs named characters; teams/roles.
-4. **Tick model** — real-time fixed-tick (keep 60 Hz `game_snapshot`) vs turn-based
+4. **Tick model** — real-time fixed-tick (keep the 60 Hz step and its `game_snapshot` cadence) vs turn-based
    (lower / event-driven broadcast).
 5. **`GameInput` shape** — what a player sends each tick/turn
    (`message-schemas.ts` payload schema + `messages.ts GameInput`).

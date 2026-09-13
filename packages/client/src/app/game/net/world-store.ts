@@ -100,7 +100,33 @@ export class WorldStore {
     this.food.applyDelta(snapshot.food, snapshot.tick);
     const fresh = outcome === SNAPSHOT_PUSH.replaced ? this.effectsNotSeen(snapshot.effects) : snapshot.effects;
     this.pendingEffects.push(...fresh);
+    this.dropOvertakenEffects();
     return true;
+  }
+
+  /**
+   * Bounds the pending list on the ingest path (docs/ARCHITECTURE.md §5): effects are drained by the
+   * render tick, and `renderTickFor` never answers before the oldest buffered snapshot, so a moment
+   * older than that one is already overtaken — the next frame would fire it in a lump, long after it
+   * happened. A client that ingests faster than it renders (a background tab, a starved renderer)
+   * would otherwise pile these up without limit; dropping them holds the list to the effects of one
+   * buffer span of the wire, whatever the frame rate.
+   */
+  private dropOvertakenEffects(): void {
+    // Only once the buffer is full. While it is filling, its oldest snapshot is where this store
+    // started, not a tick the world has moved past, and a delta's older ticks are still drawable.
+    // A page joining a game is not the case this protects: `game_state` carries no effects and
+    // arrives before the room starts ticking, and reconnect and resync send that same message. It is
+    // a store fed deltas with no `game_state` before them — a test fixture today, any other consumer
+    // later. Filling costs at most `SNAPSHOT_BUFFER_SIZE - 1` broadcasts of effects, so the list
+    // stays bounded throughout.
+    if (!this.snapshots.isFull()) return;
+    const oldest = this.snapshots.oldest();
+    if (oldest === null) return;
+    // Read, never computed as `latest - (SNAPSHOT_BUFFER_SIZE - 1) x SNAPSHOT_EVERY_TICKS`: #274
+    // skips broadcasts to a connection that is behind, so a real buffer can span more than the
+    // nominal window and the computed form would drop effects this one still owes a frame.
+    this.pendingEffects = this.pendingEffects.filter((effect) => effect.tick >= oldest.tick);
   }
 
   /** A republished tick carries its effects again (#237): the ones neither pending nor already drained. */

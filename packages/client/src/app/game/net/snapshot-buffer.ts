@@ -52,6 +52,11 @@ export class SnapshotBuffer {
     return this.snapshots.length;
   }
 
+  /** True once the buffer spans its whole interpolation window, so `oldest()` is a bound and not just a start. */
+  isFull(): boolean {
+    return this.snapshots.length === this.capacity;
+  }
+
   /** The snapshots at or around `tick`: equal ticks return the same snapshot on both sides. */
   bracket(tick: number): SnapshotBracket {
     let older: GameSnapshot | null = null;

@@ -20,6 +20,7 @@ import {
 } from '@evolution/shared';
 import { evolutionModuleFactory } from '../game/evolution-module.js';
 import { createManualRoomTiming, type ManualRoomTiming } from '../testing/builders.js';
+import { broadcastTickAtOrBefore } from '../testing/cadence-builders.js';
 import {
   openRecordingTestSocket,
   startTestWebSocketServer,
@@ -33,9 +34,6 @@ const INTERVALS_BEFORE_RELOAD = 5;
 const INTERVALS_AFTER_RELOAD = 5;
 const TICKS_BEFORE_RELOAD = INTERVALS_BEFORE_RELOAD * SNAPSHOT_EVERY_TICKS;
 const TICKS_AFTER_RELOAD = INTERVALS_AFTER_RELOAD * SNAPSHOT_EVERY_TICKS;
-/** The last broadcast tick at or before `tick`: what the room actually put on the wire. */
-const broadcastTickAtOrBefore = (tick: number): number =>
-  Math.floor(tick / SNAPSHOT_EVERY_TICKS) * SNAPSHOT_EVERY_TICKS;
 /** The room's own `bufferedAmount` reading for a socket nobody is reading. */
 const SATURATED_BYTES = SNAPSHOT_BACKLOG_LIMIT_BYTES + 1;
 
