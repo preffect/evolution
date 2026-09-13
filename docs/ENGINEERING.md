@@ -25,7 +25,8 @@ each is checkable. An AI building a game from this template MUST follow every ru
      anywhere in `packages/*/src` outside tests and `testing/` fails (`docs/CODE-STANDARDS.md`
      §3); import blocks are ignored; the offending file pairs are printed with line ranges;
    - runs the unit tier **with coverage thresholds** (`docs/TESTING.md` §5), so a drop below a
-     package's floor fails `test`;
+     package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
+     (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
      package (its tests keep the package's coverage floor; typecheck still builds shared first);
      `--scope <file or directory under packages/<package>/src>` runs only the tests that path

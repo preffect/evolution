@@ -4,12 +4,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PID_FILE="$SCRIPT_DIR/.game.pid"
 LOG_DIR="$SCRIPT_DIR/.game-logs"
+PACKAGES_DIR="$SCRIPT_DIR/packages"
 # The deploy watcher's PID lives in its own file, which stop_processes never reads: a deploy restarts
 # the stack through this script and must not stop the watcher that is running the deploy (#291).
 DEPLOY_WATCH_PID_FILE="$LOG_DIR/deploy-watch.pid"
-SERVER_PACKAGE_DIR="$SCRIPT_DIR/packages/server"
-CLIENT_PROXY_TEMPLATE="$SCRIPT_DIR/packages/client/proxy.conf.json"
+DEPLOY_WATCH_COMMAND="$SCRIPT_DIR/scripts/deploy-main.sh --watch"
+# What this run started (ports and mode), for scripts/deploy-main.sh to restart the same stack
+RUN_ENV_FILE="$LOG_DIR/run.env"
+CLIENT_PROXY_TEMPLATE="$PACKAGES_DIR/client/proxy.conf.json"
 CLIENT_PROXY_FILE="$LOG_DIR/proxy.conf.json"
+ANGULAR_PREBUNDLE_CACHE_DIR="$PACKAGES_DIR/client/.angular/cache"
+DEFAULT_READY_TIMEOUT_SECONDS=300
+READY_TIMEOUT_SECONDS="${RUN_READY_TIMEOUT_SECONDS:-$DEFAULT_READY_TIMEOUT_SECONDS}"
+READY_POLL_SECONDS=1
+READY_LOG_TAIL_LINES=20
 
 SERVER_PORT="${PORT:-4400}"
 CLIENT_PORT="${CLIENT_PORT:-4402}"
@@ -79,13 +87,16 @@ Options:
   --client-only      Start only the client dev server
   --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
                      which redeploys this checkout whenever origin/main moves)
+  --clear-prebundle  Delete the Angular prebundle cache after stopping and before starting
+  --wait-ready       Exit non-zero unless the started ports listen within the ready timeout
   --stop             Stop running processes and the deploy watcher
   --status           Check if services are running
   --logs             Tail the server, client and deploy logs
 
 Environment variables:
-  PORT            Game server port    (default: 4400)
-  CLIENT_PORT     Angular client port (default: 4402)
+  PORT                       Game server port    (default: 4400)
+  CLIENT_PORT                Angular client port (default: 4402)
+  RUN_READY_TIMEOUT_SECONDS  --wait-ready timeout (default: ${DEFAULT_READY_TIMEOUT_SECONDS})
 
 EOF
   exit 0
@@ -104,41 +115,63 @@ kill_tree() {
   fi
 }
 
-stop_processes() {
-  local any_stopped=false
+# True when the process runs in one of this checkout's packages. Never the checkout root, where
+# agents' shells sit, and never a nested worktree (/workspace/.worktrees/... is another checkout).
+owned_by_this_checkout() { # <pid>
+  local cwd package
+  cwd="$(readlink "/proc/$1/cwd" 2>/dev/null)" || return 1
+  package="${cwd#"$PACKAGES_DIR"/}"
+  [[ "$package" != "$cwd" && -n "$package" && "$package" != */* ]]
+}
 
-  # 1. Kill recorded PIDs and their entire process trees
-  if [[ -f "$PID_FILE" ]]; then
-    while read -r pid; do
-      if kill -0 "$pid" 2>/dev/null; then
-        kill_tree "$pid"
-        echo "    Stopped process tree for PID $pid"
-        any_stopped=true
-      fi
-    done < "$PID_FILE"
-    rm -f "$PID_FILE"
-  fi
+stop_recorded_processes() { # kill recorded PIDs and their entire process trees
+  local pid stopped=1
+  [[ -f "$PID_FILE" ]] || return 1
+  while read -r pid; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill_tree "$pid"
+      echo "    Stopped process tree for PID $pid"
+      stopped=0
+    fi
+  done < "$PID_FILE"
+  rm -f "$PID_FILE"
+  return $stopped
+}
 
-  # 2. Kill orphaned tsx watch servers started from THIS checkout (other checkouts on the box run their own)
-  local orphans
+stop_orphaned_servers() { # tsx watch servers of THIS checkout only (other checkouts on the box run their own)
+  local pid orphans stopped=1
   orphans=$(pgrep -f 'tsx.*watch.*src/index\.ts' 2>/dev/null) || true
   for pid in $orphans; do
-    [[ "$(readlink "/proc/$pid/cwd" 2>/dev/null)" == "$SERVER_PACKAGE_DIR" ]] || continue
+    owned_by_this_checkout "$pid" || continue
     kill_tree "$pid"
     echo "    Stopped orphaned server process $pid"
-    any_stopped=true
+    stopped=0
   done
+  return $stopped
+}
 
-  # 3. Kill whatever still listens on our ports. Listeners only: a bare `lsof -ti :PORT` also
-  #    matches every client connected to the port, and has killed Claude's own connections.
-  local port port_pids
+# Listeners only: a bare `lsof -ti :PORT` also matches every client connected to the port, and has
+# killed Claude's own connections. And only this checkout's: the port may be another checkout's stack.
+stop_port_listeners() {
+  local port pid stopped=1
   for port in "$SERVER_PORT" "$CLIENT_PORT"; do
-    port_pids=$(lsof -ti :"$port" -sTCP:LISTEN 2>/dev/null) || true
-    for pid in $port_pids; do
+    for pid in $(lsof -ti :"$port" -sTCP:LISTEN 2>/dev/null || true); do
+      if ! owned_by_this_checkout "$pid"; then
+        echo "    Port $port is held by PID $pid ($(readlink "/proc/$pid/cwd" 2>/dev/null || echo 'cwd unknown')), not this checkout; leaving it"
+        continue
+      fi
       kill "$pid" 2>/dev/null && echo "    Stopped process $pid listening on port $port"
-      any_stopped=true
+      stopped=0
     done
   done
+  return $stopped
+}
+
+stop_processes() {
+  local any_stopped=false
+  stop_recorded_processes && any_stopped=true
+  stop_orphaned_servers && any_stopped=true
+  stop_port_listeners && any_stopped=true
 
   if $any_stopped; then
     # Give processes a moment to exit
@@ -148,12 +181,12 @@ stop_processes() {
   return 1
 }
 
-running_deploy_watch_pid() { # prints the watcher's PID when its PID file names a live watcher
+running_deploy_watch_pid() { # prints the watcher's PID when its PID file names THIS checkout's live watcher
   [[ -f "$DEPLOY_WATCH_PID_FILE" ]] || return 1
   local pid
   pid="$(cat "$DEPLOY_WATCH_PID_FILE")"
   [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/cmdline" ]] || return 1
-  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q 'deploy-main\.sh --watch' || return 1
+  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -qF " $DEPLOY_WATCH_COMMAND" || return 1
   echo "$pid"
 }
 
@@ -164,8 +197,7 @@ start_deploy_watch() {
     return 0
   fi
   echo "==> Starting deploy watcher (redeploys from origin/main, log: .game-logs/deploy.log)..."
-  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup "$SCRIPT_DIR/scripts/deploy-main.sh" --watch \
-    > /dev/null 2>> "$LOG_DIR/deploy.log" &
+  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup $DEPLOY_WATCH_COMMAND > /dev/null 2>> "$LOG_DIR/deploy.log" &
   echo $! > "$DEPLOY_WATCH_PID_FILE"
 }
 
@@ -175,6 +207,38 @@ stop_deploy_watch() {
   kill_tree "$pid"
   rm -f "$DEPLOY_WATCH_PID_FILE"
   echo "    Stopped deploy watcher PID $pid"
+}
+
+listening_here() { # <port> — a listener on the port that belongs to this checkout
+  local pid
+  for pid in $(lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null || true); do
+    owned_by_this_checkout "$pid" && return 0
+  done
+  return 1
+}
+
+wait_ready() {
+  local ports=() pending=() port log waited=0
+  if $RUN_SERVER; then ports+=("$SERVER_PORT"); fi
+  if $RUN_CLIENT; then ports+=("$CLIENT_PORT"); fi
+  while true; do
+    pending=()
+    for port in "${ports[@]}"; do listening_here "$port" || pending+=("$port"); done
+    if [[ ${#pending[@]} -eq 0 ]]; then
+      echo "==> Ready: this checkout listens on ${ports[*]}"
+      return 0
+    fi
+    (( waited < READY_TIMEOUT_SECONDS )) || break
+    sleep "$READY_POLL_SECONDS"
+    waited=$((waited + READY_POLL_SECONDS))
+  done
+  echo "restart failed: nothing from this checkout listens on port ${pending[*]} after ${READY_TIMEOUT_SECONDS}s"
+  for log in "$LOG_DIR/server.log" "$LOG_DIR/client.log"; do
+    [[ -f "$log" ]] || continue
+    echo "--- last $READY_LOG_TAIL_LINES lines of $log"
+    tail -n "$READY_LOG_TAIL_LINES" "$log"
+  done
+  return 1
 }
 
 do_stop() {
@@ -230,7 +294,10 @@ do_logs() {
 DO_INSTALL=false
 RUN_SERVER=true
 RUN_CLIENT=true
+RUN_MODE=""
 DEPLOY_WATCH=true
+CLEAR_PREBUNDLE=false
+WAIT_READY=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -239,9 +306,11 @@ for arg in "$@"; do
     --status)          do_status ;;
     --logs)            do_logs ;;
     --install)         DO_INSTALL=true ;;
-    --server-only)     RUN_CLIENT=false ;;
-    --client-only)     RUN_SERVER=false ;;
+    --server-only)     RUN_CLIENT=false; RUN_MODE="$arg" ;;
+    --client-only)     RUN_SERVER=false; RUN_MODE="$arg" ;;
     --no-deploy-watch) DEPLOY_WATCH=false ;;
+    --clear-prebundle) CLEAR_PREBUNDLE=true ;;
+    --wait-ready)      WAIT_READY=true ;;
     *)
       echo "Unknown option: $arg"
       echo "Run ./run.sh --help for usage."
@@ -259,6 +328,12 @@ if stop_processes; then
   echo "    Cleaned up old processes."
 fi
 
+if $CLEAR_PREBUNDLE; then
+  # After the old stack is down, so no old dev server writes into the fresh cache
+  rm -rf "$ANGULAR_PREBUNDLE_CACHE_DIR"
+  echo "==> Cleared the Angular prebundle cache"
+fi
+
 if $DO_INSTALL; then
   echo "==> Installing dependencies..."
   pnpm install
@@ -273,6 +348,7 @@ fi
 
 mkdir -p "$LOG_DIR"
 > "$PID_FILE"
+printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=%s\n' "$SERVER_PORT" "$CLIENT_PORT" "$RUN_MODE" > "$RUN_ENV_FILE"
 
 if $RUN_SERVER; then
   echo "==> Starting game server on port ${SERVER_PORT}..."
@@ -290,6 +366,10 @@ fi
 
 if $DEPLOY_WATCH; then
   start_deploy_watch
+fi
+
+if $WAIT_READY; then
+  wait_ready || exit 1
 fi
 
 echo ""
