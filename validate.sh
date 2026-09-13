@@ -18,12 +18,12 @@
 #   --scope S  Narrow every phase to a package (shared | server | client) or to a file or directory
 #              under packages/<package>/src. A package scope keeps the coverage floors; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
-#              typechecks its package (tsc checks whole projects).
+#              typechecks its package (tsc checks whole projects). An empty scope is refused.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache).
-# test and integration print a `selected <package>: N test files, M tests` line per package; a
-# targeted run (a path scope, or extra args) that selects no test file fails (#289).
+# test and integration print a `selected <package>: N test files, M tests run[, K skipped]` line per
+# package; a targeted run (a path scope, or extra args) that runs no test fails (#289).
 #
 # Result cache (docs/ENGINEERING.md §1): a green run is stamped under
 # $HOME/.cache/<slug>-validate/<tree>.<command>[.scope-<scope>] (override the directory with
@@ -49,6 +49,7 @@ COMMAND=""
 EXTRA_ARGS=()
 FRESH=0
 SCOPE_ARG=""
+SCOPE_GIVEN=0
 USAGE="Usage: ./validate.sh <test|integration|typecheck|lint|duplication|all> [-tN] [-hN] [-G pattern] [--fresh] [--scope <shared|server|client|path>] [-- extra-args...]"
 
 # Parse arguments
@@ -81,10 +82,12 @@ while [[ $# -gt 0 ]]; do
     --scope)
       [[ $# -ge 2 ]] || { echo "$USAGE" >&2; exit 1; }
       SCOPE_ARG="$2"
+      SCOPE_GIVEN=1
       shift 2
       ;;
     --scope=*)
       SCOPE_ARG="${1#--scope=}"
+      SCOPE_GIVEN=1
       shift
       ;;
     --)
@@ -161,7 +164,13 @@ narrow_to_package() {
 
 # A package name, `packages/<package>[/src]` (the same as the name), or a path below that src.
 resolve_scope() {
-  [[ -n "$SCOPE_ARG" ]] || return 0
+  [[ $SCOPE_GIVEN -eq 1 ]] || return 0
+  if [[ -z "$SCOPE_ARG" ]]; then
+    # An unset variable (`--scope "$TOUCHED"`) must not silently become a repo-wide run.
+    echo "validate.sh: --scope needs a package or a path, not an empty value" >&2
+    echo "$USAGE" >&2
+    exit 1
+  fi
   if is_package "$SCOPE_ARG"; then
     narrow_to_package "$SCOPE_ARG"
     return 0
@@ -430,14 +439,27 @@ audit_todo_markers() {
 # ---------------------------------------------------------------------------
 PNPM_LINE_PREFIX_PATTERN='^packages/([^ ]+) [^ ]+:(.*)$'
 TEST_FILES_SUMMARY_PATTERN='^[[:space:]]*Test Files[[:space:]].*\(([0-9]+)\)[[:space:]]*$'
-TESTS_SUMMARY_PATTERN='^[[:space:]]*Tests[[:space:]].*\(([0-9]+)\)[[:space:]]*$'
+TESTS_SUMMARY_PATTERN='^[[:space:]]*Tests[[:space:]].*\([0-9]+\)[[:space:]]*$'
 NO_TEST_FILES_MARKERS=('No test files found' 'No tests found matching')
-SELECTED_LINE_PATTERN='^selected [^:]+: ([0-9]+) test files'
+RUN_OUTCOMES=(passed failed)    # a test that ran
+NOT_RUN_OUTCOMES=(skipped todo) # a test that was selected and never ran
+SELECTED_LINE_PATTERN='^selected [^:]+: [0-9]+ test files, ([0-9]+) tests run'
 
-# One `selected <package>: N test files, M tests` line per package the runner reported on.
+# The sum of the `N <outcome>` counts on a vitest summary line, for the outcomes named.
+outcome_count() { # <summary line> <outcome...>
+  local line="$1" outcome total=0
+  shift
+  for outcome in "$@"; do
+    [[ ! "$line" =~ ([0-9]+)\ $outcome ]] || total=$((total + BASH_REMATCH[1]))
+  done
+  echo "$total"
+}
+
+# One `selected <package>: N test files, M tests run[, K skipped]` line per package the runner
+# reported on. A skipped or todo test was selected but never ran, so it never counts as run.
 summarize_selection() { # <runner output>
-  local line package rest marker
-  local -A files=() tests=()
+  local line package rest marker skipped_note
+  local -A files=() tests_run=() tests_not_run=()
   while IFS= read -r line; do
     package="$SCOPE_PACKAGE"
     rest="$line"
@@ -449,18 +471,22 @@ summarize_selection() { # <runner output>
     if [[ "$rest" =~ $TEST_FILES_SUMMARY_PATTERN ]]; then
       files[$package]="${BASH_REMATCH[1]}"
     elif [[ "$rest" =~ $TESTS_SUMMARY_PATTERN ]]; then
-      tests[$package]="${BASH_REMATCH[1]}"
+      tests_run[$package]="$(outcome_count "$rest" "${RUN_OUTCOMES[@]}")"
+      tests_not_run[$package]="$(outcome_count "$rest" "${NOT_RUN_OUTCOMES[@]}")"
     fi
     for marker in "${NO_TEST_FILES_MARKERS[@]}"; do
       [[ "$rest" != *"$marker"* ]] || files[$package]=0
     done
   done <<< "$1"
   for package in "${PACKAGES[@]}"; do
-    [[ -z "${files[$package]+set}" ]] || echo "selected $package: ${files[$package]} test files, ${tests[$package]:-0} tests"
+    [[ -n "${files[$package]+set}" ]] || continue
+    skipped_note=""
+    [[ "${tests_not_run[$package]:-0}" -eq 0 ]] || skipped_note=", ${tests_not_run[$package]} skipped"
+    echo "selected $package: ${files[$package]} test files, ${tests_run[$package]:-0} tests run$skipped_note"
   done
 }
 
-total_selected_files() { # <summary lines>
+total_tests_run() { # <summary lines>
   local line total=0
   while IFS= read -r line; do
     [[ ! "$line" =~ $SELECTED_LINE_PATTERN ]] || total=$((total + BASH_REMATCH[1]))
@@ -469,7 +495,7 @@ total_selected_files() { # <summary lines>
 }
 
 # test | integration in the scope, then the selection report; a targeted run (a path scope or
-# extra args) that selected no test file fails. A tier-wide run over a package with none passes.
+# extra args) that ran no test fails. A tier-wide run over a package with none passes.
 run_tests() { # <test | integration> <extra args...>
   local cmd="$1"
   shift
@@ -485,8 +511,12 @@ run_tests() { # <test | integration> <extra args...>
   summary="$(summarize_selection "$output")"
   printf '%s\n' "$output"
   [[ -z "$summary" ]] || printf '%s\n' "$summary"
-  if [[ -n "$SCOPE_PATH" || $# -gt 0 ]] && [[ "$(total_selected_files "$summary")" -eq 0 ]]; then
-    echo "validate.sh: this targeted $cmd run selected no test files (${SCOPE_PATH:-$*}); a run that tests nothing is not a pass"
+  if [[ -n "$SCOPE_PATH" || $# -gt 0 ]] && [[ "$(total_tests_run "$summary")" -eq 0 ]]; then
+    # A runner that failed without reporting an empty selection (a crash, an unknown option)
+    # keeps its own error as the reason.
+    if [[ $rc -eq 0 || "$summary" == *": 0 test files"* ]]; then
+      echo "validate.sh: this targeted $cmd run ran no tests (${SCOPE_PATH:-$*}): nothing was selected, or every selected test was skipped; a run that tests nothing is not a pass"
+    fi
     rc=1
   fi
   return $rc

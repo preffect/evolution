@@ -60,9 +60,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **7. `.env.example` keys to add** (L203–228): Add these to the template's `.env.example` (copy to `.env`, which is gitignored).
 - **8. Pipeline invariants (enforce)** (L229–237): and ask before `sync`.
 
-## CODE-STANDARDS.md (277 lines)
+## CODE-STANDARDS.md (280 lines)
 
-- **Evolution — Code Standards** (L1–277): The concrete, checkable rules behind [`ENGINEERING.md`](./ENGINEERING.md).
+- **Evolution — Code Standards** (L1–280): The concrete, checkable rules behind [`ENGINEERING.md`](./ENGINEERING.md).
 - **1. No magic values** (L10–36): Every literal that carries meaning has a name and a home (section 2).
 - **2. Where every constant, enum and config value lives** (L37–92): Decision (#72): `packages/shared/src/constants/<domain>.ts` is the single source of truth for every tunable; `data/balance.json` is generat…
 - **3. No duplicated logic** (L93–110): Before writing a helper, search (`rg`) for the behaviour.
@@ -71,9 +71,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **6. Full descriptive names** (L170–199): `connection` not `conn`, `message` not `msg`, `context` not `ctx`.
 - **7. Simplicity** (L200–209): Prefer pure functions and plain data; classes for genuinely stateful things (`ENGINEERING.md` §4.5).
 - **8. Determinism (scope decision)** (L210–228): Game code never calls `Math.random`, `Date.now`, `performance.now`, `setTimeout`, `setInterval` or `requestAnimationFrame`.
-- **9. Error handling** (L229–248): with Zod; inside the simulation, types are the guarantee.
-- **10. Tests: placement and shape** (L249–266): The full testing standard is [`TESTING.md`](./TESTING.md); the placement rules:
-- **11. Review checklist (what a reviewer cites, with `file:line`)** (L267–277)
+- **9. Error handling** (L229–251): with Zod; inside the simulation, types are the guarantee.
+- **10. Tests: placement and shape** (L252–269): The full testing standard is [`TESTING.md`](./TESTING.md); the placement rules:
+- **11. Review checklist (what a reviewer cites, with `file:line`)** (L270–280)
 
 ## DETERMINISM.md (317 lines)
 
@@ -116,22 +116,22 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Acceptance scenarios** (L776–855): Given seed S and inputs I, after N ticks assert X.
   - **8.1 The evolving world (§3.1–§3.4)** (L832–855): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](./TESTING.md#81-w…
 
-## ENGINEERING.md (310 lines)
+## ENGINEERING.md (316 lines)
 
-- **Engineering Standards** (L1–310): These are enforceable rules, not suggestions.
-- **1. The Validation Gate (`./validate.sh`)** (L12–95): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
-- **2. Testing Standards** (L96–174): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
-  - **2.1 Every change is tested** (L101–114): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
-  - **2.2 Unit vs integration split** (L115–145): isolation — no cross-subsystem orchestration, runs in <100ms.
-  - **2.3 What must be covered (template-specific)** (L146–165): state + snapshot; invalid input is rejected/ignored.
-  - **2.4 Determinism** (L166–174): simulation is reproducible and tests can assert exact outputs.
-- **3. TypeScript & Lint Strictness** (L175–221)
-  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L177–192): Do not weaken these.
-  - **3.2 Lint / format rules** (L193–207): means "intentionally unused" — it is not a license to leave a stub instead of real code.
-  - **3.3 Forbidden escape hatches** (L208–221): without a justification.
-- **4. Architecture Conventions (enforce on every change)** (L222–257): imports from `server` or `client`.
-- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L258–288): instead of `./validate.sh`.
-- **6. Definition of Done (checklist — ALL must hold)** (L289–310): path, edge cases, and error cases.
+- **Engineering Standards** (L1–316): These are enforceable rules, not suggestions.
+- **1. The Validation Gate (`./validate.sh`)** (L13–99): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
+- **2. Testing Standards** (L100–179): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
+  - **2.1 Every change is tested** (L105–118): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
+  - **2.2 Unit vs integration split** (L119–150): isolation — no cross-subsystem orchestration, runs in <100ms.
+  - **2.3 What must be covered (template-specific)** (L151–170): state + snapshot; invalid input is rejected/ignored.
+  - **2.4 Determinism** (L171–179): simulation is reproducible and tests can assert exact outputs.
+- **3. TypeScript & Lint Strictness** (L180–226)
+  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L182–197): Do not weaken these.
+  - **3.2 Lint / format rules** (L198–212): means "intentionally unused" — it is not a license to leave a stub instead of real code.
+  - **3.3 Forbidden escape hatches** (L213–226): without a justification.
+- **4. Architecture Conventions (enforce on every change)** (L227–262): imports from `server` or `client`.
+- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L263–293): instead of `./validate.sh`.
+- **6. Definition of Done (checklist — ALL must hold)** (L294–316): path, edge cases, and error cases.
 
 ## GAME-DESIGN.md (450 lines)
 
@@ -306,13 +306,13 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Performance intent: geometry, textures, shaders** (L354–383): The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
 - **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L384–397)
 
-## WORKFLOW.md (152 lines)
+## WORKFLOW.md (151 lines)
 
-- **Workflow — GitHub issues, project board, reviews** (L1–152): The single source of truth for how work is tracked and merged in a game built from this template.
+- **Workflow — GitHub issues, project board, reviews** (L1–151): The single source of truth for how work is tracked and merged in a game built from this template.
 - **1. Where things live** (L8–23): GitHub stores Projects under the user/org, not inside the repo; the project is _linked_ to the repo so it appears in the repo's Projects ta…
 - **2. Labels (category), Status (stage), assignee (ball in court)** (L24–43): design, architecture, gameplay, graphics, networking, ui, audio, qa, docs), `role:*` (the agent role that owns it), `priority:p0|p1|p2`, `e…
 - **3. Milestones and epics** (L44–59): gates, testing foundations) and `M1 Design` (design docs, architecture, build plan).
 - **4. Keeping the board in sync (no UI workflows)** (L60–71): The Project's UI-only automations (auto-add, auto-close) are replaced by `scripts/project-sync.sh`, which is idempotent and safe to run any…
 - **5. Branch and PR rules** (L72–95): Every piece of work starts as a ticket — no exceptions, including template and tooling work.
-- **6. Review process (every PR)** (L96–137): and config live, test plan.
-- **7. Scripts** (L138–152): `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).
+- **6. Review process (every PR)** (L96–136): and config live, test plan.
+- **7. Scripts** (L137–151): `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).

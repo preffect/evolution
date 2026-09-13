@@ -243,6 +243,9 @@ retired by #118. The full contract, including ordering rules, hashing and replay
   continuing is safe. No `console.log` (lint `no-console`; `console.error` / `console.warn` are
   allowed outside `shared` for fatal start-up paths); `server.log` on the server, nothing in
   `shared`.
+- **No floating promises** (`@typescript-eslint/no-floating-promises`, server and shared): a promise
+  is awaited, returned or handled. An unawaited async call returns before its work runs, so an
+  unawaited scenario row passes without testing anything and its rejection lands nowhere (#281).
 - **Client:** `AudioService` and the renderer degrade silently by design (documented in
   `ARCHITECTURE.md` §7); everything else surfaces through the HUD's error banner.
 

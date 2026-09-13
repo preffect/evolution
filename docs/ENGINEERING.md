@@ -5,7 +5,8 @@ each is checkable. An AI building a game from this template MUST follow every ru
 "It compiles" and "it renders" are never sufficient — the gate below is.
 
 > **THE GATE:** `./validate.sh all` (lint + duplication + typecheck + test) is the single source
-> of truth for whether work is done. No task is complete until it is green. Never commit red.
+> of truth for whether work is done. Nothing is reviewed or merged without a green `all` stamp for
+> its head, run by the author (§1 item 2). Never commit red.
 
 ---
 
@@ -30,16 +31,18 @@ each is checkable. An AI building a game from this template MUST follow every ru
      `--scope <file or directory under packages/<package>/src>` runs only the tests that path
      selects (a directory: the tests under it; a source file: the tests named after it) **without**
      coverage floors, lints, formats and scans that path, and typechecks its package. No `--scope`
-     is the whole repo, exactly as before. `test` and `integration` print
-     `selected <package>: N test files, M tests`, and a targeted run (a path scope or
-     `-- extra-args`) that selects no test file **fails** (#289); a tier-wide run over a package
-     with no file in that tier still passes;
+     is the whole repo, exactly as before; an empty `--scope` is refused. `test` and `integration`
+     print `selected <package>: N test files, M tests run[, K skipped]`, and a targeted run (a path
+     scope or `-- extra-args`) that runs no test — nothing selected, or every selected test skipped
+     — **fails** (#289); a tier-wide run over a package with no file in that tier still passes, and
+     a runner that crashes keeps its own error;
    - runs `all` as lint → duplication → typecheck → test, each phase with its own exit code and
      stamp, and ends with a `wall times:` line (run concurrently the phases measured no faster on
      the shared container, #281);
    - **caches green results by content** (#224, template #75): a green run is stamped under
-     `$HOME/.cache/<slug>-validate/<tree>.<command>` (fields: `exit`, ISO `time`, `log` path,
-     `node` major, `command`, `tree`; the raw log under `logs/`), keyed by `git write-tree` of the
+     `$HOME/.cache/<slug>-validate/<tree>.<command>[.scope-<scope>]` (the scope with `/` as `_`;
+     fields: `exit`, ISO `time`, `log` path, `node` major, `command`, `scope`, `tree`; the raw log
+     under `logs/`), keyed by `git write-tree` of the
      whole working tree — tracked and untracked, via a temporary index — plus the Node major
      version. **"Same tree" includes untracked files**: a worktree at the author's commit misses
      the author's stamp when either side has any untracked, non-ignored file. A repeat call on the
@@ -57,18 +60,19 @@ each is checkable. An AI building a game from this template MUST follow every ru
      cache hit never waits; the lock fd is closed for the child so no orphaned worker keeps it.
      `VALIDATE_NO_GATE_LOCK=1` disables it for a sandboxed test; without `flock` it runs unlocked;
    - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.
-2. **Who runs which gate** (#281). A full `all` costs minutes (§2.2), so it runs once, not on
-   every change. This applies to direct work AND delegated work (teams, agents).
-   - **Build loop:** scoped runs on what you touched — `./validate.sh test --scope <scope>` with a
-     package or a path, and `lint` / `typecheck` in the same scope. Fix every failure before moving on.
-   - **Pre-merge only:** the full `./validate.sh all` plus `./validate.sh integration`, once, by
-     the lead, on the head that merges. No work is done until both are green; never merge red.
-   - **Reviewers:** verify the gate by tree hash — cut a clean worktree at the pushed SHA (the hash
-     covers untracked files, so only a clean tree can match) and run `./validate.sh all` there:
-     `cached green from <time> at tree <hash>` matching the author's gate line proves that run
-     happened on this exact tree. Do not re-run the gate every round. A hit is the author's run, not
-     a second observation: a question about a flaky or load-dependent failure takes `--fresh`, and a
-     red tier is never cached, so it has nothing to match.
+2. **Who runs which gate** (#281). A full `all` costs minutes (§2.2), so the author runs it at two
+   points and nobody else runs it. This applies to direct work AND delegated work (teams, agents).
+   - **Build loop:** scoped runs only — `./validate.sh test --scope <scope>` with a package or a
+     path, and `lint` / `typecheck` in the same scope. Fix every failure before moving on.
+   - **Author:** runs the full `./validate.sh all` once when the PR is ready for review and again
+     after the last commit before merge, and posts the gate line with its tree hash
+     (`cached green from <time> at tree <hash>`); runs `./validate.sh integration` too when the
+     change crosses subsystems.
+   - **Reviewer:** looks the stamp up by tree hash in a clean worktree at the pushed SHA —
+     `ls ~/.cache/<slug>-validate/$(git rev-parse HEAD^{tree}).all` (a clean checkout's tree is the
+     commit's tree) — a lookup, never a run. No stamp goes back to the author. A stamp is the
+     author's run, not a second observation, and red is never stamped.
+   - **Lead:** checks that a stamp exists for the merge head, and runs nothing.
    - **Long gates:** a real `all` or `integration` runs in the background (the agent's
      `run_in_background`), with `set -o pipefail` before any pipe; the verdict is the command's own
      exit code, never a `tail` of its output.
@@ -136,8 +140,9 @@ The full bar — tiers, naming, builders, coverage floors, flaky-test policy —
    `test-integration` target): the default `include` excludes `*.integration.*`, the
    integration run includes only them, with `passWithNoTests` so a package without any still
    passes (a targeted run that selects nothing fails, §1). Run them only at the **end of a task
-   that may have caused a cross-subsystem regression**, scoped to what it touched, and once
-   pre-merge (§1) — never on every save or pre-commit.
+   that may have caused a cross-subsystem regression**, scoped to what it touched, and in full by
+   the author with the review-ready `all` when the change crosses subsystems (§1) — never on every
+   save or pre-commit.
 5. `./validate.sh integration` is that run (`pnpm -r --if-present test:integration`); never
    invoke vitest or `ng test` directly. The same run executes the gameplay scenarios
    (`*.gameplay.test.ts`, `TESTING.md` §8): they step a real module for thousands of ticks, which
@@ -259,8 +264,8 @@ project references.
 
 1. Running raw tools (`pnpm test`, `npx tsc`, `pnpm eslint`, `pnpm --filter ... exec vitest`)
    instead of `./validate.sh`.
-2. Declaring work done without `./validate.sh all` green. Committing red. Moving on with
-   failures.
+2. Asking for review or merge without a green `./validate.sh all` stamp for the head (§1 item 2).
+   Committing red. Moving on with failures.
 3. `.skip`-ing, `.only`-ing, deleting, or weakening a test to get a green run. (Deleting an
    architecture-guard test is exactly the regression those guards exist to catch.)
 4. Dumping slow / cross-subsystem setup into a `*.test.ts` to avoid an `*.integration.test.ts`
@@ -292,8 +297,9 @@ project references.
       path, edge cases, and error cases.
 - [ ] Cross-subsystem wiring (if any) has a `*.integration.test.ts` and it passes via
       `./validate.sh integration`; coverage floors (`docs/TESTING.md` §5) did not go down.
-- [ ] `./validate.sh all` is green (lint + duplication + typecheck + unit tests). No test was skipped,
-      `.only`-ed, deleted, or weakened to achieve it.
+- [ ] `./validate.sh all` is green for the head (lint + duplication + typecheck + unit tests), run
+      by the author, with its gate line and tree hash in the PR. No test was skipped, `.only`-ed,
+      deleted, or weakened to achieve it.
 - [ ] No `any` / `@ts-ignore` / `@ts-expect-error` / inline `eslint-disable` without a
       justifying comment. No new magic strings or magic numbers. No `console.log` left behind.
 - [ ] Inbound messages are validated at the boundary; server-owned values are computed in the

@@ -7,8 +7,9 @@
 #   missing stored log and a run that changes the tree are misses; VALIDATE_CACHE_DIR overrides the
 #   directory; an unwritable directory degrades to no cache with one warning line; --scope narrows
 #   each phase to a package or a path and stamps per scope (a scoped stamp never answers an unscoped
-#   call, nor the reverse); a targeted run that selects no test file fails while a tier-wide one
-#   passes; `all` prints its phases in a fixed order with a wall-times line and keeps each phase's
+#   call, nor the reverse) and an empty scope is refused; a targeted run that runs no test (none
+#   selected, or all skipped) fails while a tier-wide one passes, and a runner crash keeps its own
+#   error; `all` prints its phases in a fixed order with a wall-times line and keeps each phase's
 #   exit code and stamp; two real gates on one machine run one after the other (gate.lock) while a
 #   hit never waits.
 #
@@ -209,7 +210,7 @@ check "packages/<package> is the package scope" $(( $(grep -q '^fake pnpm --filt
 printf ' Test Files  2 passed (2)\n      Tests  5 passed (5)\n' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" test --scope packages/server/src/game
 check "a directory scope filters the package's tests and drops coverage" $(( rc == 0 && $(grep -q '^fake pnpm --filter @evolution/server test src/game/ --coverage.enabled=false$' <<<"$out"; echo $?) == 0 ))
-check "test prints the selection per package" $(( $(grep -q '^selected server: 2 test files, 5 tests$' <<<"$out"; echo $?) == 0 ))
+check "test prints the selection per package" $(( $(grep -q '^selected server: 2 test files, 5 tests run$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" test --scope packages/server/src/game
 check "a path-scoped green is stamped for that path" $(( $(is_cached; echo $?) == 0 ))
 run_validate "$fixture" test --scope packages/server/src/game/world.ts
@@ -232,16 +233,32 @@ check "a path scope that does not exist is refused" $(( rc != 0 && $(grep -q 'no
 # --- selection (#289): a targeted run that tests nothing is not a pass ----------------------------
 printf ' No test files found, exiting with code 0\n' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" integration --scope packages/server/src/game/world.test.ts
-check "a path-scoped run that selects no test file fails" $(( rc != 0 && $(grep -q 'selected no test files' <<<"$out"; echo $?) == 0 && $(grep -q '^selected server: 0 test files, 0 tests$' <<<"$out"; echo $?) == 0 ))
+check "a path-scoped run that selects no test file fails" $(( rc != 0 && $(grep -q 'ran no tests' <<<"$out"; echo $?) == 0 && $(grep -q '^selected server: 0 test files, 0 tests run$' <<<"$out"; echo $?) == 0 ))
+printf ' Test Files  1 skipped (1)\n      Tests  1 skipped (1)\n' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" test --scope packages/server/src/game/world.test.ts -- -t no-such-test
+check "a targeted run whose every selected test is skipped fails, and skipped never counts as run" $(( rc != 0 && $(grep -q 'ran no tests' <<<"$out"; echo $?) == 0 && $(grep -q '^selected server: 1 test files, 0 tests run, 1 skipped$' <<<"$out"; echo $?) == 0 ))
+printf ' Test Files  1 passed (1)\n      Tests  2 passed | 3 skipped (5)\n' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" test --scope packages/server/src/game/world.test.ts -- -t some-tests
+check "a targeted run that ran some of its tests passes and names the skipped ones" $(( rc == 0 && $(grep -q '^selected server: 1 test files, 2 tests run, 3 skipped$' <<<"$out"; echo $?) == 0 ))
+printf 'CACError: Unknown option -G\n' > "$FAKE_PNPM_OUTPUT_FILE"
+echo 1 > "$FAKE_PNPM_RC_FILE"
+run_validate "$fixture" integration --scope server -- -G ecology
+echo 0 > "$FAKE_PNPM_RC_FILE"
+check "a runner that crashes keeps its own error and is not blamed on the selection" $(( rc != 0 && $(grep -q 'CACError' <<<"$out"; echo $?) == 0 && $(grep -q 'ran no tests' <<<"$out"; echo $?) != 0 ))
+: > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" typecheck --scope ""
+check "an empty --scope is refused, not a repo-wide run" $(( rc != 0 && $(ran_pnpm; echo $?) != 0 && $(grep -q 'not an empty value' <<<"$out"; echo $?) == 0 ))
+run_validate "$fixture" typecheck --scope=
+check "so is an empty --scope=" $(( rc != 0 && $(ran_pnpm; echo $?) != 0 ))
 printf '%s\n' 'packages/shared test:integration:  No test files found, exiting with code 0' \
   'packages/server test:integration:  Test Files  3 passed (3)' 'packages/server test:integration:       Tests  9 passed (9)' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" integration
-check "a tier-wide run passes over a package with no files in the tier" $(( rc == 0 && $(grep -q '^selected shared: 0 test files, 0 tests$' <<<"$out"; echo $?) == 0 && $(grep -q '^selected server: 3 test files, 9 tests$' <<<"$out"; echo $?) == 0 ))
+check "a tier-wide run passes over a package with no files in the tier" $(( rc == 0 && $(grep -q '^selected shared: 0 test files, 0 tests run$' <<<"$out"; echo $?) == 0 && $(grep -q '^selected server: 3 test files, 9 tests run$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" integration -- ecology
 check "extra args that select files in any package pass" $(( rc == 0 ))
 printf '%s\n' 'packages/shared test:integration:  No test files found, exiting with code 0' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" integration -- nothing-matches
-check "extra args that select no file anywhere fail" $(( rc != 0 && $(grep -q 'selected no test files' <<<"$out"; echo $?) == 0 ))
+check "extra args that select no file anywhere fail" $(( rc != 0 && $(grep -q 'ran no tests' <<<"$out"; echo $?) == 0 ))
 : > "$FAKE_PNPM_OUTPUT_FILE"
 
 # --- all: fixed order, per-phase exit codes and stamps, wall times (#281) ---------------------------
