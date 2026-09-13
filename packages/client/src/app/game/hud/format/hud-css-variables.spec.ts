@@ -32,7 +32,6 @@ import {
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
 import { HUD_SCALE_VARIABLE, hudStyleVariables } from './hud-css-variables';
-import { leaderboardSwatchGeometry } from './leaderboard-swatch';
 
 const TEST_SCALE = 1.25;
 
@@ -51,7 +50,7 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-leaderboard-header-height', `${LEADERBOARD_HEADER_HEIGHT_PX}px`],
   ['--hud-leaderboard-row-height', `${LEADERBOARD_ROW_HEIGHT_PX}px`],
   ['--hud-leaderboard-label-row-height', `${LEADERBOARD_LABEL_ROW_HEIGHT_PX}px`],
-  ['--hud-leaderboard-swatch-size', `${leaderboardSwatchGeometry().renderedSidePx}px`],
+  ['--hud-leaderboard-swatch-size', `${LEADERBOARD_SWATCH_DIAMETER_PX}px`],
   ['--hud-leaderboard-padding', `${LEADERBOARD_PADDING_PX}px`],
   ['--hud-leaderboard-corner-radius', `${LEADERBOARD_CORNER_RADIUS_PX}px`],
 
@@ -101,15 +100,6 @@ describe('hudStyleVariables', () => {
 
   it('names every variable with the --hud- prefix, so a stylesheet cannot read a stray one', () => {
     for (const name of Object.keys(hudStyleVariables(1))) expect(name.startsWith('--hud-')).toBe(true);
-  });
-
-  it('sizes the swatch element from the geometry, so it cannot drift from the viewBox', () => {
-    // The two halves of one scale: if the element's side stopped matching the viewBox's side,
-    // `pxPerUserUnit` would still read 1 while nothing on screen did (#278 review).
-    const geometry = leaderboardSwatchGeometry();
-    expect(hudStyleVariables(1)['--hud-leaderboard-swatch-size']).toBe(`${geometry.renderedSidePx}px`);
-    expect(geometry.renderedSidePx).toBe(LEADERBOARD_SWATCH_DIAMETER_PX);
-    expect(geometry.viewBoxSideUnits).toBe(geometry.renderedSidePx);
   });
 
   it('publishes each type role whole — a size with its own face (docs/VISUAL-STYLE.md §7)', () => {

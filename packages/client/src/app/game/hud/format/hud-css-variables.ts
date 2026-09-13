@@ -39,10 +39,10 @@ import {
   LEADERBOARD_ROW_HEIGHT_PX,
   LEADERBOARD_ROW_SLIDE_MS,
   LEADERBOARD_SWATCH_COLUMN_PX,
+  LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
-import { leaderboardSwatchGeometry } from './leaderboard-swatch';
 
 /** The custom property `hud.component.ts` sets from the live box; every length multiplies by it. */
 export const HUD_SCALE_VARIABLE = '--hud-scale';
@@ -59,9 +59,7 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
     '--hud-leaderboard-header-height': `${LEADERBOARD_HEADER_HEIGHT_PX}px`,
     '--hud-leaderboard-row-height': `${LEADERBOARD_ROW_HEIGHT_PX}px`,
     '--hud-leaderboard-label-row-height': `${LEADERBOARD_LABEL_ROW_HEIGHT_PX}px`,
-    // From the geometry rather than from the constant: the element's rendered side and the viewBox
-    // are two halves of one scale, and `pxPerUserUnit` is only true while they agree (#278 review).
-    '--hud-leaderboard-swatch-size': `${leaderboardSwatchGeometry().renderedSidePx}px`,
+    '--hud-leaderboard-swatch-size': `${LEADERBOARD_SWATCH_DIAMETER_PX}px`,
     '--hud-leaderboard-padding': `${LEADERBOARD_PADDING_PX}px`,
     '--hud-leaderboard-corner-radius': `${LEADERBOARD_CORNER_RADIUS_PX}px`,
 
