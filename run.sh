@@ -22,6 +22,9 @@ READY_LOG_TAIL_LINES=20
 SERVER_PORT="${PORT:-4400}"
 CLIENT_PORT="${CLIENT_PORT:-4402}"
 
+# PIDs already listening on this run's ports once the old stack is stopped: never the new stack
+LISTENERS_BEFORE_START=" "
+
 # ================================================
 # Dependency checks
 # ================================================
@@ -88,7 +91,8 @@ Options:
   --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
                      which redeploys this checkout whenever origin/main moves)
   --clear-prebundle  Delete the Angular prebundle cache after stopping and before starting
-  --wait-ready       Exit non-zero unless the started ports listen within the ready timeout
+  --wait-ready       Exit non-zero unless NEW listeners from this checkout appear on the started
+                     ports within the ready timeout
   --stop             Stop running processes and the deploy watcher
   --status           Check if services are running
   --logs             Tail the server, client and deploy logs
@@ -124,6 +128,18 @@ owned_by_this_checkout() { # <pid>
   [[ "$package" != "$cwd" && -n "$package" && "$package" != */* ]]
 }
 
+# PIDs listening on a port. `ss -ltnp` is the source; lsof is only the fallback when ss is missing,
+# because lsof silently skips some listeners: it never reported the live `ng serve (client)` on 4402
+# that ss shows, not even with `-p <pid>`.
+listener_pids() { # <port>
+  local listing
+  if listing="$(ss -Hltnp "sport = :$1" 2>/dev/null)"; then
+    grep -o 'pid=[0-9]*' <<<"$listing" | cut -d= -f2 | sort -un || true
+  else
+    lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null || true
+  fi
+}
+
 stop_recorded_processes() { # kill recorded PIDs and their entire process trees
   local pid stopped=1
   [[ -f "$PID_FILE" ]] || return 1
@@ -155,7 +171,7 @@ stop_orphaned_servers() { # tsx watch servers of THIS checkout only (other check
 stop_port_listeners() {
   local port pid stopped=1
   for port in "$SERVER_PORT" "$CLIENT_PORT"; do
-    for pid in $(lsof -ti :"$port" -sTCP:LISTEN 2>/dev/null || true); do
+    for pid in $(listener_pids "$port"); do
       if ! owned_by_this_checkout "$pid"; then
         echo "    Port $port is held by PID $pid ($(readlink "/proc/$pid/cwd" 2>/dev/null || echo 'cwd unknown')), not this checkout; leaving it"
         continue
@@ -209,9 +225,18 @@ stop_deploy_watch() {
   echo "    Stopped deploy watcher PID $pid"
 }
 
-listening_here() { # <port> — a listener on the port that belongs to this checkout
+record_listeners_before_start() {
+  local port
+  LISTENERS_BEFORE_START=" "
+  for port in "$SERVER_PORT" "$CLIENT_PORT"; do
+    LISTENERS_BEFORE_START+="$(listener_pids "$port" | tr '\n' ' ')"
+  done
+}
+
+new_listener_here() { # <port> — a listener from this checkout that was not already there before the start
   local pid
-  for pid in $(lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null || true); do
+  for pid in $(listener_pids "$1"); do
+    [[ "$LISTENERS_BEFORE_START" != *" $pid "* ]] || continue
     owned_by_this_checkout "$pid" && return 0
   done
   return 1
@@ -223,7 +248,7 @@ wait_ready() {
   if $RUN_CLIENT; then ports+=("$CLIENT_PORT"); fi
   while true; do
     pending=()
-    for port in "${ports[@]}"; do listening_here "$port" || pending+=("$port"); done
+    for port in "${ports[@]}"; do new_listener_here "$port" || pending+=("$port"); done
     if [[ ${#pending[@]} -eq 0 ]]; then
       echo "==> Ready: this checkout listens on ${ports[*]}"
       return 0
@@ -232,7 +257,10 @@ wait_ready() {
     sleep "$READY_POLL_SECONDS"
     waited=$((waited + READY_POLL_SECONDS))
   done
-  echo "restart failed: nothing from this checkout listens on port ${pending[*]} after ${READY_TIMEOUT_SECONDS}s"
+  echo "restart failed: no new listener from this checkout on port ${pending[*]} after ${READY_TIMEOUT_SECONDS}s"
+  for port in "${pending[@]}"; do
+    echo "    port $port listeners now: $(listener_pids "$port" | tr '\n' ' ')(already there before the start:${LISTENERS_BEFORE_START})"
+  done
   for log in "$LOG_DIR/server.log" "$LOG_DIR/client.log"; do
     [[ -f "$log" ]] || continue
     echo "--- last $READY_LOG_TAIL_LINES lines of $log"
@@ -349,6 +377,7 @@ fi
 mkdir -p "$LOG_DIR"
 > "$PID_FILE"
 printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=%s\n' "$SERVER_PORT" "$CLIENT_PORT" "$RUN_MODE" > "$RUN_ENV_FILE"
+record_listeners_before_start
 
 if $RUN_SERVER; then
   echo "==> Starting game server on port ${SERVER_PORT}..."

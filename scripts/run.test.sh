@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # run.test.sh — exercises run.sh's process ownership (#291) on a throwaway stack: a clone of a local bare
-# origin on main, with this run.sh and scripts/deploy-main.sh copied in and a fake pnpm whose dev
-# servers are python listeners in packages/server and packages/client. Covered: the orphan sweep reaps
-# this checkout's tsx server and spares another checkout's; the port kill stops this checkout's stale
-# listener and spares another checkout's listener and a process merely connected to the port;
-# --clear-prebundle runs after the stop and before the start; --wait-ready passes when both ports listen
-# and fails with the log tails when they do not; the watcher starts, is not in .game.pid, survives the
-# restart a deploy runs and is never started twice; --stop stops it but not another checkout's watcher
-# behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT; run.env records the run; a
-# one-shot scripts/deploy-main.sh of a stack without a watcher leaves exactly one.
+# origin on main, with this run.sh and scripts/deploy-main.sh copied in, a fake pnpm whose dev servers
+# are python listeners in packages/server and packages/client, and a fake `ss` that passes through to the
+# real one and can add stubbed listener lines (a listener lsof cannot see) or fail (to force the lsof
+# fallback). Covered: the orphan sweep reaps this checkout's tsx server and spares another checkout's;
+# the port kill finds listeners through ss, stops this checkout's stale and lsof-invisible listeners and
+# spares another checkout's listener and a process merely connected to the port; lsof is the fallback
+# without ss; --clear-prebundle runs after the stop and before the start; --wait-ready passes when both
+# ports get NEW listeners and fails with the log tails when they do not, including when only a listener
+# from before the start (one that ignored the stop) holds the port; the watcher starts, is not in
+# .game.pid, survives the restart a deploy runs and is never started twice; --stop stops it but not
+# another checkout's watcher behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT;
+# run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -23,12 +26,14 @@ READY_TIMEOUT_SECONDS=30
 FAILED_READY_TIMEOUT_SECONDS=2
 LONG_WATCH_INTERVAL_SECONDS=3600
 PROBE_LIFETIME_SECONDS=120
+REAL_SS="$(command -v ss)"
 
+ss_pids() { "$REAL_SS" -Hltnp "sport = :$1" | grep -o 'pid=[0-9]*' | cut -d= -f2 || true; } # <port>
 for port in "$STACK_SERVER_PORT" "$STACK_CLIENT_PORT"; do
-  if lsof -ti :"$port" -sTCP:LISTEN >/dev/null 2>&1; then echo "run.test.sh: port $port is in use; not running"; exit 1; fi
+  if [[ -n "$(ss_pids "$port")" ]]; then echo "run.test.sh: port $port is in use; not running"; exit 1; fi
 done
 
-# --- fixture: the stack checkout, another checkout, a fake pnpm ---------------------------------
+# --- fixture: the stack checkout, another checkout, a fake pnpm and a fake ss --------------------
 make_origin
 stack="$sandbox/stack"
 other="$sandbox/other"
@@ -40,6 +45,9 @@ cp "$repo_root/scripts/deploy-main.sh" "$stack/scripts/deploy-main.sh"
 cp "$repo_root/packages/client/proxy.conf.json" "$stack/packages/client/proxy.conf.json"
 pnpm_args="$sandbox/pnpm-args"
 no_listen_file="$sandbox/fake-pnpm-no-listen" # when present: the fake dev servers never listen
+ss_stub_file="$sandbox/ss-stub"               # "<port> <pid>" lines the fake ss reports as listeners
+ss_fail_file="$sandbox/ss-fail"               # when present: the fake ss fails, as if missing
+: > "$ss_stub_file"
 cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
 [[ "\$1" != -v ]] || { echo 10.0.0; exit 0; }
@@ -51,8 +59,19 @@ esac
 [[ ! -e "$no_listen_file" ]] || exec sleep $PROBE_LIFETIME_SECONDS
 exec python3 -m http.server "\$port" --bind 127.0.0.1
 PNPM
+cat > "$sandbox/bin/ss" <<SS
+#!/usr/bin/env bash
+[[ ! -e "$ss_fail_file" ]] || exit 1
+"$REAL_SS" "\$@"
+port="\${!#}"
+port="\${port##*:}"
+while read -r stub_port stub_pid; do
+  [[ "\$stub_port" != "\$port" ]] || echo "LISTEN 0 511 0.0.0.0:\$stub_port 0.0.0.0:* users:((\"stub\",pid=\$stub_pid,fd=3))"
+done < "$ss_stub_file"
+exit 0
+SS
 printf '#!/usr/bin/env bash\nexec sleep %s\n' "$PROBE_LIFETIME_SECONDS" > "$other/scripts/deploy-main.sh"
-chmod +x "$sandbox/bin/pnpm" "$other/scripts/deploy-main.sh"
+chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$other/scripts/deploy-main.sh"
 
 export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT"
 export RUN_READY_TIMEOUT_SECONDS="$READY_TIMEOUT_SECONDS" DEPLOY_WATCH_INTERVAL_SECONDS="$LONG_WATCH_INTERVAL_SECONDS"
@@ -62,8 +81,10 @@ unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT
 probe_pids=()
 cleanup() {
   local pid
+  rm -f "$ss_fail_file"
+  : > "$ss_stub_file"
   (cd "$stack" && ./run.sh --stop) > /dev/null 2>&1 || true
-  for pid in "${probe_pids[@]}"; do kill "$pid" 2>/dev/null || true; done
+  for pid in "${probe_pids[@]}"; do kill -9 "$pid" 2>/dev/null || true; done
   rm -rf "$sandbox"
 }
 trap cleanup EXIT
@@ -86,8 +107,9 @@ start_fake_tsx() { # <cwd> -> $probe_pid, a process whose command line looks lik
   probe_pids+=("$probe_pid")
 }
 alive() { kill -0 "$1" 2>/dev/null; }
-listening() { lsof -ti :"$1" -sTCP:LISTEN >/dev/null 2>&1; }
+listening() { [[ -n "$(ss_pids "$1")" ]]; }
 connected() { lsof -a -p "$1" -i TCP -sTCP:ESTABLISHED >/dev/null 2>&1; }
+lsof_sees() { lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null | grep -qx "$2"; } # <port> <pid>
 watcher_pid() { cat "$stack/.game-logs/deploy-watch.pid"; }
 stack_watchers() { pgrep -fc " $stack/scripts/deploy-main.sh --watch" || true; }
 line_of() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; } # <fixed text> -> its line number in $out
@@ -119,7 +141,7 @@ run_stack --wait-ready
 check "./run.sh with a live watcher does not start a second one" $(( rc == 0 && $(holds grep -q 'Deploy watcher already running' <<<"$out") && $(stack_watchers) == 1 ))
 
 # --- stop: connected clients and other checkouts are spared -------------------------------------
-server_listener="$(lsof -ti :"$STACK_SERVER_PORT" -sTCP:LISTEN)"
+server_listener="$(ss_pids "$STACK_SERVER_PORT")"
 start_probe "$stack/packages/client" python3 -c "import socket, time; s = socket.create_connection(('127.0.0.1', $STACK_SERVER_PORT)); time.sleep($PROBE_LIFETIME_SECONDS)"
 connected_client="$probe_pid"
 wait_for connected "$connected_client"
@@ -139,10 +161,40 @@ check "--stop spares another checkout's listener on the port and says so" $(( $(
 check "--stop spares another checkout's watcher behind a stale PID file" $(holds alive "$foreign_watcher")
 kill "$foreign_listener" "$foreign_watcher"
 
-# --- wait-ready failure -------------------------------------------------------------------------
+# --- the listener source: ss first, lsof only without ss -----------------------------------------
+start_probe "$stack/packages/client" sleep "$PROBE_LIFETIME_SECONDS"
+invisible_listener="$probe_pid"
+start_probe "$other" sleep "$PROBE_LIFETIME_SECONDS"
+invisible_foreign_listener="$probe_pid"
+printf '%s %s\n%s %s\n' "$STACK_CLIENT_PORT" "$invisible_listener" "$STACK_SERVER_PORT" "$invisible_foreign_listener" > "$ss_stub_file"
+run_stack --stop
+check "a listener only ss reports (lsof cannot see it) is stopped when it is this checkout's" $(( ! $(holds lsof_sees "$STACK_CLIENT_PORT" "$invisible_listener") && ! $(holds alive "$invisible_listener") ))
+check "a listener only ss reports is spared when it is another checkout's" $(( $(holds alive "$invisible_foreign_listener") && $(holds grep -q "held by PID $invisible_foreign_listener" <<<"$out") ))
+: > "$ss_stub_file"
+kill "$invisible_foreign_listener"
+
+start_probe "$stack/packages/server" python3 -m http.server "$STACK_SERVER_PORT" --bind 127.0.0.1
+fallback_listener="$probe_pid"
+wait_for listening "$STACK_SERVER_PORT"
+touch "$ss_fail_file"
+run_stack --stop
+rm "$ss_fail_file"
+check "without ss, lsof is the fallback that still finds this checkout's listener" $(( ! $(holds alive "$fallback_listener") ))
+
+# --- wait-ready failures ------------------------------------------------------------------------
 touch "$no_listen_file"
 RUN_READY_TIMEOUT_SECONDS="$FAILED_READY_TIMEOUT_SECONDS" run_stack --no-deploy-watch --wait-ready
-check "--wait-ready fails with the log tails when the stack does not listen (rc $rc)" $(( rc != 0 && $(holds grep -q 'restart failed: nothing from this checkout listens' <<<"$out") && $(holds grep -q 'lines of .*server.log' <<<"$out") ))
+check "--wait-ready fails with the log tails when the stack does not listen (rc $rc)" $(( rc != 0 && $(holds grep -q 'restart failed: no new listener from this checkout' <<<"$out") && $(holds grep -q 'lines of .*server.log' <<<"$out") ))
+run_stack --stop
+
+start_probe "$stack/packages/client" bash -c "trap '' TERM; exec sleep $PROBE_LIFETIME_SECONDS"
+old_listener="$probe_pid"
+echo "$STACK_CLIENT_PORT $old_listener" > "$ss_stub_file"
+RUN_READY_TIMEOUT_SECONDS="$FAILED_READY_TIMEOUT_SECONDS" run_stack --client-only --no-deploy-watch --wait-ready
+check "--wait-ready is not satisfied by this checkout's listener from before the start (rc $rc)" $(( rc != 0 && $(holds alive "$old_listener") && $(holds grep -q "restart failed: no new listener from this checkout on port $STACK_CLIENT_PORT" <<<"$out") ))
+: > "$ss_stub_file"
+kill -9 "$old_listener"
+wait "$old_listener" 2>/dev/null || true # reap it here, so bash prints no job-control "Killed" line
 rm "$no_listen_file"
 run_stack --stop
 
