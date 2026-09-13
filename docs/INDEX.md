@@ -306,13 +306,13 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Performance intent: geometry, textures, shaders** (L354–383): The frame budget is `ARCHITECTURE.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
 - **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L384–397)
 
-## WORKFLOW.md (149 lines)
+## WORKFLOW.md (152 lines)
 
-- **Workflow — GitHub issues, project board, reviews** (L1–149): The single source of truth for how work is tracked and merged in a game built from this template.
+- **Workflow — GitHub issues, project board, reviews** (L1–152): The single source of truth for how work is tracked and merged in a game built from this template.
 - **1. Where things live** (L8–23): GitHub stores Projects under the user/org, not inside the repo; the project is _linked_ to the repo so it appears in the repo's Projects ta…
 - **2. Labels (category), Status (stage), assignee (ball in court)** (L24–43): design, architecture, gameplay, graphics, networking, ui, audio, qa, docs), `role:*` (the agent role that owns it), `priority:p0|p1|p2`, `e…
 - **3. Milestones and epics** (L44–59): gates, testing foundations) and `M1 Design` (design docs, architecture, build plan).
 - **4. Keeping the board in sync (no UI workflows)** (L60–71): The Project's UI-only automations (auto-add, auto-close) are replaced by `scripts/project-sync.sh`, which is idempotent and safe to run any…
 - **5. Branch and PR rules** (L72–95): Every piece of work starts as a ticket — no exceptions, including template and tooling work.
-- **6. Review process (every PR)** (L96–134): and config live, test plan.
-- **7. Scripts** (L135–149): `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).
+- **6. Review process (every PR)** (L96–136): and config live, test plan.
+- **7. Scripts** (L137–152): `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).

@@ -4,6 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PID_FILE="$SCRIPT_DIR/.game.pid"
 LOG_DIR="$SCRIPT_DIR/.game-logs"
+# The deploy watcher's PID lives in its own file, which stop_processes never reads: a deploy restarts
+# the stack through this script and must not stop the watcher that is running the deploy (#291).
+DEPLOY_WATCH_PID_FILE="$LOG_DIR/deploy-watch.pid"
+SERVER_PACKAGE_DIR="$SCRIPT_DIR/packages/server"
+CLIENT_PROXY_TEMPLATE="$SCRIPT_DIR/packages/client/proxy.conf.json"
+CLIENT_PROXY_FILE="$LOG_DIR/proxy.conf.json"
 
 SERVER_PORT="${PORT:-4400}"
 CLIENT_PORT="${CLIENT_PORT:-4402}"
@@ -67,13 +73,15 @@ Evolution - run.sh
 Usage: ./run.sh [OPTIONS]
 
 Options:
-  --help          Show this help message
-  --install       Run pnpm install before starting
-  --server-only   Start only the game server
-  --client-only   Start only the client dev server
-  --stop          Stop running processes
-  --status        Check if services are running
-  --logs          Tail the server and client logs
+  --help             Show this help message
+  --install          Run pnpm install before starting
+  --server-only      Start only the game server
+  --client-only      Start only the client dev server
+  --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
+                     which redeploys this checkout whenever origin/main moves)
+  --stop             Stop running processes and the deploy watcher
+  --status           Check if services are running
+  --logs             Tail the server, client and deploy logs
 
 Environment variables:
   PORT            Game server port    (default: 4400)
@@ -111,21 +119,25 @@ stop_processes() {
     rm -f "$PID_FILE"
   fi
 
-  # 2. Kill any orphaned tsx watch processes for the server
+  # 2. Kill orphaned tsx watch servers started from THIS checkout (other checkouts on the box run their own)
   local orphans
   orphans=$(pgrep -f 'tsx.*watch.*src/index\.ts' 2>/dev/null) || true
   for pid in $orphans; do
+    [[ "$(readlink "/proc/$pid/cwd" 2>/dev/null)" == "$SERVER_PACKAGE_DIR" ]] || continue
     kill_tree "$pid"
     echo "    Stopped orphaned server process $pid"
     any_stopped=true
   done
 
-  # 3. Kill anything still listening on the server port
-  local port_pids
-  port_pids=$(lsof -ti :"$SERVER_PORT" 2>/dev/null) || true
-  for pid in $port_pids; do
-    kill "$pid" 2>/dev/null && echo "    Stopped process $pid on port $SERVER_PORT"
-    any_stopped=true
+  # 3. Kill whatever still listens on our ports. Listeners only: a bare `lsof -ti :PORT` also
+  #    matches every client connected to the port, and has killed Claude's own connections.
+  local port port_pids
+  for port in "$SERVER_PORT" "$CLIENT_PORT"; do
+    port_pids=$(lsof -ti :"$port" -sTCP:LISTEN 2>/dev/null) || true
+    for pid in $port_pids; do
+      kill "$pid" 2>/dev/null && echo "    Stopped process $pid listening on port $port"
+      any_stopped=true
+    done
   done
 
   if $any_stopped; then
@@ -136,9 +148,41 @@ stop_processes() {
   return 1
 }
 
+running_deploy_watch_pid() { # prints the watcher's PID when its PID file names a live watcher
+  [[ -f "$DEPLOY_WATCH_PID_FILE" ]] || return 1
+  local pid
+  pid="$(cat "$DEPLOY_WATCH_PID_FILE")"
+  [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/cmdline" ]] || return 1
+  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q 'deploy-main\.sh --watch' || return 1
+  echo "$pid"
+}
+
+start_deploy_watch() {
+  local pid
+  if pid="$(running_deploy_watch_pid)"; then
+    echo "==> Deploy watcher already running (PID $pid)"
+    return 0
+  fi
+  echo "==> Starting deploy watcher (redeploys from origin/main, log: .game-logs/deploy.log)..."
+  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup "$SCRIPT_DIR/scripts/deploy-main.sh" --watch \
+    > /dev/null 2>> "$LOG_DIR/deploy.log" &
+  echo $! > "$DEPLOY_WATCH_PID_FILE"
+}
+
+stop_deploy_watch() {
+  local pid
+  pid="$(running_deploy_watch_pid)" || { rm -f "$DEPLOY_WATCH_PID_FILE"; return 1; }
+  kill_tree "$pid"
+  rm -f "$DEPLOY_WATCH_PID_FILE"
+  echo "    Stopped deploy watcher PID $pid"
+}
+
 do_stop() {
   echo "==> Stopping Evolution..."
-  if stop_processes; then
+  local stopped=false
+  stop_processes && stopped=true
+  stop_deploy_watch && stopped=true
+  if $stopped; then
     echo "    Done."
   else
     echo "Evolution is not running."
@@ -147,6 +191,11 @@ do_stop() {
 }
 
 do_status() {
+  local watch_pid
+  if watch_pid="$(running_deploy_watch_pid)"; then
+    echo "Deploy watcher: PID $watch_pid"
+  fi
+
   if [[ ! -f "$PID_FILE" ]]; then
     echo "Evolution is not running."
     exit 0
@@ -181,16 +230,18 @@ do_logs() {
 DO_INSTALL=false
 RUN_SERVER=true
 RUN_CLIENT=true
+DEPLOY_WATCH=true
 
 for arg in "$@"; do
   case "$arg" in
-    --help)        usage ;;
-    --stop)        do_stop ;;
-    --status)      do_status ;;
-    --logs)        do_logs ;;
-    --install)     DO_INSTALL=true ;;
-    --server-only) RUN_CLIENT=false ;;
-    --client-only) RUN_SERVER=false ;;
+    --help)            usage ;;
+    --stop)            do_stop ;;
+    --status)          do_status ;;
+    --logs)            do_logs ;;
+    --install)         DO_INSTALL=true ;;
+    --server-only)     RUN_CLIENT=false ;;
+    --client-only)     RUN_SERVER=false ;;
+    --no-deploy-watch) DEPLOY_WATCH=false ;;
     *)
       echo "Unknown option: $arg"
       echo "Run ./run.sh --help for usage."
@@ -202,7 +253,7 @@ done
 # Verify required tools are available before starting
 check_deps
 
-# Always clean up any existing server processes before starting
+# Always clean up any existing server processes before starting (never the deploy watcher)
 echo "==> Cleaning up old processes..."
 if stop_processes; then
   echo "    Cleaned up old processes."
@@ -231,8 +282,14 @@ fi
 
 if $RUN_CLIENT; then
   echo "==> Starting Angular client on port ${CLIENT_PORT}..."
-  pnpm dev:client > "$LOG_DIR/client.log" 2>&1 &
+  # The proxy targets this run's server port rather than the one baked into proxy.conf.json
+  sed -E "s#localhost:[0-9]+#localhost:${SERVER_PORT}#g" "$CLIENT_PROXY_TEMPLATE" > "$CLIENT_PROXY_FILE"
+  pnpm dev:client --port "$CLIENT_PORT" --proxy-config "$CLIENT_PROXY_FILE" > "$LOG_DIR/client.log" 2>&1 &
   echo $! >> "$PID_FILE"
+fi
+
+if $DEPLOY_WATCH; then
+  start_deploy_watch
 fi
 
 echo ""

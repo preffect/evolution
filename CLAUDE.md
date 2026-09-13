@@ -48,7 +48,15 @@
 ./run.sh --status       # check what's running
 ./run.sh --logs         # tail server and client logs
 ./run.sh --install      # run pnpm install before starting
+./run.sh --no-deploy-watch   # start without the deploy watcher (below)
+scripts/deploy-main.sh  # redeploy this stack from origin/main once (no-op when already deployed)
 ```
+
+`./run.sh` also starts `scripts/deploy-main.sh --watch`, which polls `origin/main` every 60 s and
+redeploys the checkout on every merge: fast-forward, `pnpm install` only when the lockfile changed,
+shared build, delete `packages/client/.angular/cache` (a stale prebundle breaks new shared exports),
+restart. Hard-refresh the browser afterwards. It refuses a dirty or diverged checkout, or one not
+tracking `origin/main`, and logs every step to `.game-logs/deploy.log`; `./run.sh --stop` stops it.
 
 ### Headless bots (`docs/TESTING.md` §8.3)
 
