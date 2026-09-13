@@ -7,7 +7,10 @@ import {
   createTestPlayerProgressView,
   entityId,
   levelUpCost,
+  stageOf,
   type BacteriumVariant,
+  type CellView,
+  type TraitId,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { WILD_CELL_THREAT_NAME } from './threats-for';
@@ -20,6 +23,14 @@ import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
 import { SPRINT_STATUS, dnaPercentOf, formatOwnCellStatus, formatTraits, shouldAnnounce } from './own-cell-status';
 
 const NOTHING_EATEN: Record<BacteriumVariant, number> = { plain: 0, aerobic: 0, photosynthetic: 0 };
+
+/** A cell owning `traitIds` at the stage they really reach, so a fixture never pairs traits with a stage the server would not send. */
+function promotedCell(...traitIds: TraitId[]): CellView {
+  return createTestCellView({
+    stage: stageOf(traitIds, DEFAULT_BALANCE.ladder),
+    traits: traitIds.map((traitId) => ({ traitId, tier: 1 })),
+  });
+}
 
 function indicatorsWith(
   ownCell = createTestCellView(),
@@ -76,18 +87,26 @@ describe('formatOwnCellStatus attributes', () => {
     expect(formatOwnCellStatus(indicatorsWith()).attributes['data-ladder']).toBe('ghost:nucleoid');
     const prokaryote = createTestCellView({ stage: CELL_STAGE.prokaryote });
     expect(formatOwnCellStatus(indicatorsWith(prokaryote)).attributes['data-ladder']).toBe('counters');
+    const top = promotedCell('nucleoid', 'mitochondrion', 'chloroplast', 'nuclear_envelope', 'euglena_eyespot');
+    expect(formatOwnCellStatus(indicatorsWith(top)).attributes['data-ladder']).toBe('none');
   });
 
-  it('writes a counter attribute per visible counter and omits a hidden one', () => {
-    const prokaryote = createTestCellView({
-      stage: CELL_STAGE.prokaryote,
-      traits: [{ traitId: 'chloroplast', tier: 1 }],
+  it('keeps the unclaimed counter beside the envelope ghost on a cell one endosymbiont promoted (#285 B)', () => {
+    // The state the decision was about, built as the server sends it: the chloroplast took the cell
+    // to `endosymbiosis` with a full aerobic tally already banked toward the mitochondrion.
+    const promoted = promotedCell('nucleoid', 'chloroplast');
+    expect(promoted.stage).toBe(CELL_STAGE.endosymbiosis);
+    const banked = createTestPlayerProgressView({
+      bacteriaEatenByVariant: { ...NOTHING_EATEN, aerobic: ENDOSYMBIOSIS_BACTERIA_REQUIRED },
     });
-    const progress = createTestPlayerProgressView({ bacteriaEatenByVariant: { ...NOTHING_EATEN, aerobic: 2 } });
-    const status = formatOwnCellStatus(indicatorsWith(prokaryote, progress));
-    expect(status.attributes['data-aerobic']).toBe(`2/${ENDOSYMBIOSIS_BACTERIA_REQUIRED}`);
+    const status = formatOwnCellStatus(indicatorsWith(promoted, banked));
+    expect(status.attributes['data-ladder']).toBe('ghost:envelope');
+    expect(status.attributes['data-aerobic']).toBe(
+      `${ENDOSYMBIOSIS_BACTERIA_REQUIRED}/${ENDOSYMBIOSIS_BACTERIA_REQUIRED}`,
+    );
     // The owned chloroplast has no counter left, so the attribute is absent rather than `0/10`.
     expect(status.attributes['data-photosynthetic']).toBeUndefined();
+    expect(status.text).toContain(`Aerobic ${ENDOSYMBIOSIS_BACTERIA_REQUIRED} of ${ENDOSYMBIOSIS_BACTERIA_REQUIRED}`);
   });
 
   it('omits every engulf and threat attribute while nothing is happening', () => {
@@ -192,8 +211,9 @@ describe('shouldAnnounce', () => {
   });
 
   it('speaks again when a different predator becomes the nearest, even with an identical label', () => {
-    // The regression this pins (#282 review): the key recorded only that *a* threat existed, so a
-    // swap left `data-threat` pointing at one cell while the spoken line still named another.
+    // This pins two things: a regression, and the identity-versus-label choice explained below.
+    // The regression (#282 review): the key recorded only that *a* threat existed, so a swap left
+    // `data-threat` pointing at one cell while the spoken line still named another.
     //
     // Both predators are wild cells, so both labels read `Wild cell` and the two sentences are
     // byte-identical. That is what makes this the only case that can tell an identity key from a

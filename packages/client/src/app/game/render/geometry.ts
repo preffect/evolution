@@ -1,7 +1,7 @@
 // Small pure helpers every render module shares: angles, ramps, and the unit factors (`HALF`, the
 // degrees of a turn) so no render module declares its own copy (docs/CODE-STANDARDS.md §2).
 
-import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { RADIANS_PER_FULL_TURN, clamp } from '@evolution/shared';
 
 export const DEGREES_PER_TURN = 360;
 export const HALF = 0.5;
@@ -44,6 +44,28 @@ export function smoothstep(edge0: number, edge1: number, value: number): number 
   if (edge1 === edge0) return value < edge0 ? 0 : 1;
   const unit = clamp01((value - edge0) / (edge1 - edge0));
   return unit * unit * (SMOOTHSTEP_CUBIC - SQUARE_DERIVATIVE_FACTOR * unit);
+}
+
+/** An upright box by its centre and half-extents, in any one unit. */
+export interface UprightBox {
+  readonly x: number;
+  readonly y: number;
+  readonly halfWidth: number;
+  readonly halfHeight: number;
+}
+
+/** A disc by its centre and radius, in the box's unit. */
+export interface Disc {
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
+}
+
+/** Whether an upright box reaches inside a disc: its nearest point to the disc's centre lies within the radius. */
+export function boxIntersectsDisc(box: UprightBox, disc: Disc): boolean {
+  const nearestX = clamp(disc.x, box.x - box.halfWidth, box.x + box.halfWidth);
+  const nearestY = clamp(disc.y, box.y - box.halfHeight, box.y + box.halfHeight);
+  return Math.hypot(nearestX - disc.x, nearestY - disc.y) < disc.radius;
 }
 
 /** A Gaussian bump `amplitude · exp(−Δ² / (2 σ²))` and its derivative in Δ. */

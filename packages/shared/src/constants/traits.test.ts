@@ -2,7 +2,8 @@
 // tier tables, the identity record and the catalog one structure.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, type CellStage, type TraitId } from '../types/game.js';
+import { stageIndex } from '../simulation/stage-of.js';
+import { CELL_STAGE, type TraitId } from '../types/game.js';
 import { TRAIT_CATEGORY, type TraitDefinition } from '../types/traits.js';
 import { ENDOSYMBIOSIS_BACTERIA_REQUIRED, STAGE_GATE_TRAITS, STAGE_ORDER } from './ladder.js';
 import {
@@ -22,7 +23,6 @@ const SNAKE_CASE_ID = /^[a-z]+(_[a-z]+)*$/;
 /** The rows as consumers see them; the assignment itself pins that every `requires` id is a `TraitId`. */
 const catalog: readonly TraitDefinition[] = TRAIT_CATALOG;
 const catalogIds = catalog.map((trait) => trait.id);
-const stageIndex = (stage: CellStage): number => STAGE_ORDER.indexOf(stage);
 const traitById = (id: TraitId): TraitDefinition => catalog.find((trait) => trait.id === id)!;
 
 describe('T10: the catalog', () => {

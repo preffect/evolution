@@ -4,6 +4,8 @@
 
 import {
   STAGE_GATE_TRAITS,
+  hasReachedStage,
+  nextStage,
   type BacteriumVariant,
   type BalanceConfig,
   type CellStage,
@@ -15,7 +17,7 @@ import {
 } from '@evolution/shared';
 import { pickWeighted } from '../simulation/pick-weighted.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
-import { hasReachedStage, nextStage, ownsTrait, stageOfOwned } from './ladder.js';
+import { ownsTrait, stageOfOwned } from './ladder.js';
 
 export interface DraftCandidate {
   readonly trait: TraitDefinition;

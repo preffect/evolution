@@ -3,14 +3,17 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
+  ENDOSYMBIOSIS_BACTERIA_REQUIRED,
   PLAYER_LIFE_STATE,
   createTestPlayerProgressView,
   createTestSnapshot,
   levelUpCost,
   playerId,
+  stageOf,
   type BacteriumVariant,
   type CellView,
   type PlayerProgressView,
+  type TraitId,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
@@ -83,6 +86,19 @@ describe('OwnCellStatusComponent', () => {
     show({ stage: CELL_STAGE.prokaryote }, { bacteriaEatenByVariant: { ...NOTHING_EATEN, aerobic: 4 } });
     expect(mirror()?.getAttribute('data-aerobic')).toBe('4/10');
     expect(mirror()?.getAttribute('data-ladder')).toBe('counters');
+  });
+
+  it('keeps the unclaimed counter on a cell one endosymbiont promoted, beside the envelope ghost (#285 B)', () => {
+    const traitIds: TraitId[] = ['nucleoid', 'chloroplast'];
+    const traits = traitIds.map((traitId) => ({ traitId, tier: 1 as const }));
+    show(
+      { stage: stageOf(traitIds, DEFAULT_BALANCE.ladder), traits },
+      { bacteriaEatenByVariant: { ...NOTHING_EATEN, aerobic: ENDOSYMBIOSIS_BACTERIA_REQUIRED } },
+    );
+    expect(mirror()?.getAttribute('data-ladder')).toBe('ghost:envelope');
+    const full = `${ENDOSYMBIOSIS_BACTERIA_REQUIRED}/${ENDOSYMBIOSIS_BACTERIA_REQUIRED}`;
+    expect(mirror()?.getAttribute('data-aerobic')).toBe(full);
+    expect(mirror()?.hasAttribute('data-photosynthetic')).toBe(false);
   });
 
   // Documentation rather than a guard: mass is not in the sentence, so this holds whether the

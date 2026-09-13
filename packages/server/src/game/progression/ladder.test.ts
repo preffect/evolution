@@ -1,7 +1,7 @@
 // docs/GAME-DESIGN.md §3 and docs/PROGRESSION.md §7 P13: the ladder rules over owned traits.
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, DEFAULT_BALANCE, STAGE_ORDER, type OwnedTrait, type TraitId } from '@evolution/shared';
-import { hasReachedStage, nextStage, ownsTrait, stageIndex, stageOfOwned } from './ladder.js';
+import { CELL_STAGE, DEFAULT_BALANCE, type OwnedTrait, type TraitId } from '@evolution/shared';
+import { ownsTrait, stageOfOwned } from './ladder.js';
 
 function owned(...ids: TraitId[]): OwnedTrait[] {
   return ids.map((traitId) => ({ traitId, tier: 1 }));
@@ -36,17 +36,5 @@ describe('the rest of the ladder', () => {
   it('knows what is owned', () => {
     expect(ownsTrait(owned('nucleoid'), 'nucleoid')).toBe(true);
     expect(ownsTrait(owned('nucleoid'), 'cilia')).toBe(false);
-  });
-
-  it('orders stages by STAGE_ORDER', () => {
-    expect(stageIndex(CELL_STAGE.protocell)).toBe(0);
-    expect(hasReachedStage(CELL_STAGE.eukaryote, CELL_STAGE.prokaryote)).toBe(true);
-    expect(hasReachedStage(CELL_STAGE.prokaryote, CELL_STAGE.eukaryote)).toBe(false);
-    expect(hasReachedStage(CELL_STAGE.prokaryote, CELL_STAGE.prokaryote)).toBe(true);
-  });
-
-  it('names the next rung and null at the top', () => {
-    expect(nextStage(CELL_STAGE.protocell)).toBe(CELL_STAGE.prokaryote);
-    expect(nextStage(STAGE_ORDER[STAGE_ORDER.length - 1]!)).toBeNull();
   });
 });
