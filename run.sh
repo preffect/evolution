@@ -8,7 +8,8 @@ PACKAGES_DIR="$SCRIPT_DIR/packages"
 # The deploy watcher's PID lives in its own file, which stop_processes never reads: a deploy restarts
 # the stack through this script and must not stop the watcher that is running the deploy (#291).
 DEPLOY_WATCH_PID_FILE="$LOG_DIR/deploy-watch.pid"
-DEPLOY_WATCH_COMMAND="$SCRIPT_DIR/scripts/deploy-main.sh --watch"
+DEPLOY_WATCH_SCRIPT="$SCRIPT_DIR/scripts/deploy-main.sh" # one word: the checkout path may contain a space
+DEPLOY_WATCH_FLAG=--watch
 # What this run started (ports and mode), for scripts/deploy-main.sh to restart the same stack
 RUN_ENV_FILE="$LOG_DIR/run.env"
 CLIENT_PROXY_TEMPLATE="$PACKAGES_DIR/client/proxy.conf.json"
@@ -199,11 +200,18 @@ stop_processes() {
 
 running_deploy_watch_pid() { # prints the watcher's PID when its PID file names THIS checkout's live watcher
   [[ -f "$DEPLOY_WATCH_PID_FILE" ]] || return 1
-  local pid
+  local pid argument previous=""
   pid="$(cat "$DEPLOY_WATCH_PID_FILE")"
   [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/cmdline" ]] || return 1
-  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -qF " $DEPLOY_WATCH_COMMAND" || return 1
-  echo "$pid"
+  # Whole NUL-separated arguments, so a checkout path containing a space still matches exactly
+  while IFS= read -r -d '' argument; do
+    if [[ "$previous" == "$DEPLOY_WATCH_SCRIPT" && "$argument" == "$DEPLOY_WATCH_FLAG" ]]; then
+      echo "$pid"
+      return 0
+    fi
+    previous="$argument"
+  done < "/proc/$pid/cmdline"
+  return 1
 }
 
 start_deploy_watch() {
@@ -213,7 +221,7 @@ start_deploy_watch() {
     return 0
   fi
   echo "==> Starting deploy watcher (redeploys from origin/main, log: .game-logs/deploy.log)..."
-  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup $DEPLOY_WATCH_COMMAND > /dev/null 2>> "$LOG_DIR/deploy.log" &
+  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup "$DEPLOY_WATCH_SCRIPT" "$DEPLOY_WATCH_FLAG" > /dev/null 2>> "$LOG_DIR/deploy.log" &
   echo $! > "$DEPLOY_WATCH_PID_FILE"
 }
 

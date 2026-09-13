@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # run.test.sh — exercises run.sh's process ownership (#291) on a throwaway stack: a clone of a local bare
-# origin on main, with this run.sh and scripts/deploy-main.sh copied in, a fake pnpm whose dev servers
-# are python listeners in packages/server and packages/client, and a fake `ss` that passes through to the
-# real one and can add stubbed listener lines (a listener lsof cannot see) or fail (to force the lsof
-# fallback). Covered: the orphan sweep reaps this checkout's tsx server and spares another checkout's;
-# the port kill finds listeners through ss, stops this checkout's stale and lsof-invisible listeners and
-# spares another checkout's listener and a process merely connected to the port; lsof is the fallback
-# without ss; --clear-prebundle runs after the stop and before the start; --wait-ready passes when both
-# ports get NEW listeners and fails with the log tails when they do not, including when only a listener
-# from before the start (one that ignored the stop) holds the port; the watcher starts, is not in
+# origin on main, in a directory whose path contains a space, with this run.sh and scripts/deploy-main.sh
+# copied in. A fake pnpm runs python listeners in packages/server and packages/client. A fake `ss` passes
+# through to the real one and can add stubbed listener lines or fail (to force the lsof fallback). A fake
+# `lsof` is BLIND to listeners, as this box's lsof is to the human's live `ng serve`, except in the
+# fallback case, so every port kill and --wait-ready below finds real listeners through ss alone.
+# Covered: the watcher starts from a path containing a space; the orphan sweep reaps this checkout's tsx
+# server and spares another checkout's; the port kill stops this checkout's stale and lsof-invisible
+# listeners and spares another checkout's listener and a process merely connected to the port; lsof is
+# the fallback without ss; --clear-prebundle runs after the stop and before the start; --wait-ready
+# passes when both ports get NEW listeners and fails with the log tails when they do not, including when
+# only a listener from before the start (one that ignored the stop) holds the port; the watcher is not in
 # .game.pid, survives the restart a deploy runs and is never started twice; --stop stops it but not
 # another checkout's watcher behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT;
 # run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one.
@@ -27,15 +29,16 @@ FAILED_READY_TIMEOUT_SECONDS=2
 LONG_WATCH_INTERVAL_SECONDS=3600
 PROBE_LIFETIME_SECONDS=120
 REAL_SS="$(command -v ss)"
+REAL_LSOF="$(command -v lsof)"
 
 ss_pids() { "$REAL_SS" -Hltnp "sport = :$1" | grep -o 'pid=[0-9]*' | cut -d= -f2 || true; } # <port>
 for port in "$STACK_SERVER_PORT" "$STACK_CLIENT_PORT"; do
   if [[ -n "$(ss_pids "$port")" ]]; then echo "run.test.sh: port $port is in use; not running"; exit 1; fi
 done
 
-# --- fixture: the stack checkout, another checkout, a fake pnpm and a fake ss --------------------
+# --- fixture: the stack checkout, another checkout, fake pnpm / ss / lsof -----------------------
 make_origin
-stack="$sandbox/stack"
+stack="$sandbox/stack checkout" # the space is deliberate: run.sh must quote the checkout path
 other="$sandbox/other"
 git clone -q "$origin" "$stack"
 mkdir -p "$stack/scripts" "$stack/packages/server" "$stack/packages/client" "$stack/node_modules" \
@@ -47,6 +50,7 @@ pnpm_args="$sandbox/pnpm-args"
 no_listen_file="$sandbox/fake-pnpm-no-listen" # when present: the fake dev servers never listen
 ss_stub_file="$sandbox/ss-stub"               # "<port> <pid>" lines the fake ss reports as listeners
 ss_fail_file="$sandbox/ss-fail"               # when present: the fake ss fails, as if missing
+lsof_sees_file="$sandbox/lsof-sees"           # when present: the fake lsof sees listeners (the fallback case)
 : > "$ss_stub_file"
 cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
@@ -70,8 +74,13 @@ while read -r stub_port stub_pid; do
 done < "$ss_stub_file"
 exit 0
 SS
+cat > "$sandbox/bin/lsof" <<LSOF
+#!/usr/bin/env bash
+[[ ! -e "$lsof_sees_file" ]] || exec "$REAL_LSOF" "\$@"
+exit 1
+LSOF
 printf '#!/usr/bin/env bash\nexec sleep %s\n' "$PROBE_LIFETIME_SECONDS" > "$other/scripts/deploy-main.sh"
-chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$other/scripts/deploy-main.sh"
+chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$sandbox/bin/lsof" "$other/scripts/deploy-main.sh"
 
 export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT"
 export RUN_READY_TIMEOUT_SECONDS="$READY_TIMEOUT_SECONDS" DEPLOY_WATCH_INTERVAL_SECONDS="$LONG_WATCH_INTERVAL_SECONDS"
@@ -108,10 +117,13 @@ start_fake_tsx() { # <cwd> -> $probe_pid, a process whose command line looks lik
 }
 alive() { kill -0 "$1" 2>/dev/null; }
 listening() { [[ -n "$(ss_pids "$1")" ]]; }
-connected() { lsof -a -p "$1" -i TCP -sTCP:ESTABLISHED >/dev/null 2>&1; }
-lsof_sees() { lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null | grep -qx "$2"; } # <port> <pid>
+connected() { "$REAL_LSOF" -a -p "$1" -i TCP -sTCP:ESTABLISHED >/dev/null 2>&1; }
+# grep without -q in a pipe: under pipefail, -q exits at the first match and the SIGPIPE'd writer fails the pipe
+real_lsof_sees() { "$REAL_LSOF" -ti :"$1" -sTCP:LISTEN 2>/dev/null | grep -x "$2" > /dev/null; } # <port> <pid>
+fake_lsof_sees_a_listener() { [[ -n "$(lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null)" ]]; } # <port>
 watcher_pid() { cat "$stack/.game-logs/deploy-watch.pid"; }
 stack_watchers() { pgrep -fc " $stack/scripts/deploy-main.sh --watch" || true; }
+runs_script() { tr '\0' '\n' < "/proc/$1/cmdline" | grep -xF -- "$2" > /dev/null; } # <pid> <whole argument>
 line_of() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; } # <fixed text> -> its line number in $out
 
 # --- start: sweep, port kill, prebundle, ready ---------------------------------------------------
@@ -123,22 +135,24 @@ own_orphan="$probe_pid"
 start_fake_tsx "$other/packages/server"
 foreign_orphan="$probe_pid"
 mkdir -p "$stack/packages/client/.angular/cache/deps"
+check "the fake lsof is blind to a real listener that ss sees" $(( ! $(holds fake_lsof_sees_a_listener "$STACK_SERVER_PORT") && $(holds listening "$STACK_SERVER_PORT") ))
 
 run_stack --clear-prebundle --wait-ready
-check "./run.sh --wait-ready starts the stack and waits for both ports (rc $rc)" $(( rc == 0 && $(holds grep -q 'Ready: this checkout listens' <<<"$out") ))
+check "./run.sh --wait-ready starts the stack and finds both new listeners through ss alone (rc $rc)" $(( rc == 0 && $(holds grep -q 'Ready: this checkout listens' <<<"$out") ))
 check "the orphan sweep reaps this checkout's tsx server" $(( ! $(holds alive "$own_orphan") ))
 check "the orphan sweep spares another checkout's tsx server" $(holds alive "$foreign_orphan")
-check "the port kill stops this checkout's stale listener" $(( ! $(holds alive "$stale_listener") ))
+check "the port kill stops this checkout's stale listener that lsof cannot see" $(( ! $(holds alive "$stale_listener") ))
 check "the prebundle cache is cleared after the stop and before the start" $(( ! $(holds test -e "$stack/packages/client/.angular/cache") && $(line_of 'Cleaning up old processes') < $(line_of 'Cleared the Angular prebundle') && $(line_of 'Cleared the Angular prebundle') < $(line_of 'Starting game server') ))
-check "the client is served on CLIENT_PORT with a proxy to PORT" $(( $(holds grep -q "dev:client --port $STACK_CLIENT_PORT --proxy-config $stack/.game-logs/proxy.conf.json" "$pnpm_args") && $(holds grep -q "localhost:$STACK_SERVER_PORT" "$stack/.game-logs/proxy.conf.json") ))
+check "the client is served on CLIENT_PORT with a proxy to PORT" $(( $(holds grep -qF "dev:client --port $STACK_CLIENT_PORT --proxy-config $stack/.game-logs/proxy.conf.json" "$pnpm_args") && $(holds grep -q "localhost:$STACK_SERVER_PORT" "$stack/.game-logs/proxy.conf.json") ))
 check "run.env records the ports and the mode" $(( $(holds grep -qx "PORT=$STACK_SERVER_PORT" "$stack/.game-logs/run.env") && $(holds grep -qx 'RUN_MODE=' "$stack/.game-logs/run.env") ))
 first_watcher="$(watcher_pid)"
 check "./run.sh starts the deploy watcher, and its PID is not in .game.pid" $(( $(holds alive "$first_watcher") && ! $(holds grep -qx "$first_watcher" "$stack/.game.pid") ))
+check "the watcher runs the script at a checkout path containing a space, as one argument" $(( $(holds runs_script "$first_watcher" "$stack/scripts/deploy-main.sh") && $(holds runs_script "$first_watcher" --watch) ))
 
 run_stack --no-deploy-watch --wait-ready
 check "the restart a deploy's watcher runs leaves that watcher alone" $(( rc == 0 && $(holds alive "$first_watcher") && $(holds test "$(watcher_pid)" = "$first_watcher") ))
 run_stack --wait-ready
-check "./run.sh with a live watcher does not start a second one" $(( rc == 0 && $(holds grep -q 'Deploy watcher already running' <<<"$out") && $(stack_watchers) == 1 ))
+check "./run.sh with a live watcher (at a path with a space) does not start a second one" $(( rc == 0 && $(holds grep -q 'Deploy watcher already running' <<<"$out") && $(stack_watchers) == 1 ))
 
 # --- stop: connected clients and other checkouts are spared -------------------------------------
 server_listener="$(ss_pids "$STACK_SERVER_PORT")"
@@ -168,7 +182,7 @@ start_probe "$other" sleep "$PROBE_LIFETIME_SECONDS"
 invisible_foreign_listener="$probe_pid"
 printf '%s %s\n%s %s\n' "$STACK_CLIENT_PORT" "$invisible_listener" "$STACK_SERVER_PORT" "$invisible_foreign_listener" > "$ss_stub_file"
 run_stack --stop
-check "a listener only ss reports (lsof cannot see it) is stopped when it is this checkout's" $(( ! $(holds lsof_sees "$STACK_CLIENT_PORT" "$invisible_listener") && ! $(holds alive "$invisible_listener") ))
+check "a listener only ss reports is stopped when it is this checkout's" $(( ! $(holds real_lsof_sees "$STACK_CLIENT_PORT" "$invisible_listener") && ! $(holds alive "$invisible_listener") ))
 check "a listener only ss reports is spared when it is another checkout's" $(( $(holds alive "$invisible_foreign_listener") && $(holds grep -q "held by PID $invisible_foreign_listener" <<<"$out") ))
 : > "$ss_stub_file"
 kill "$invisible_foreign_listener"
@@ -176,9 +190,9 @@ kill "$invisible_foreign_listener"
 start_probe "$stack/packages/server" python3 -m http.server "$STACK_SERVER_PORT" --bind 127.0.0.1
 fallback_listener="$probe_pid"
 wait_for listening "$STACK_SERVER_PORT"
-touch "$ss_fail_file"
+touch "$ss_fail_file" "$lsof_sees_file"
 run_stack --stop
-rm "$ss_fail_file"
+rm "$ss_fail_file" "$lsof_sees_file"
 check "without ss, lsof is the fallback that still finds this checkout's listener" $(( ! $(holds alive "$fallback_listener") ))
 
 # --- wait-ready failures ------------------------------------------------------------------------
