@@ -59,11 +59,17 @@ const instance: CellInstance = {
   ciliaPhase: 0.4,
   nucleusDiscRadii: 0.3,
   speckleSeed: 0.45,
+  selfRingFill: 0.35,
+  selfRingBrightness: 0.95,
   bumps: [{ amplitude: 0.62, centre: 0.52, sigma: 0.28 }],
 };
 
-/** The §2.3 row: the scalars plus the bump slots fit sixteen texels; a new field takes a free channel, never a texel. */
-const INSTANCE_ROW_TEXELS = 16;
+/**
+ * The §2.3 row: eleven scalar texels plus the six bump texels. It grew from sixteen for the sprint ring (#295), whose
+ * texel still has two free channels: a new field takes one of those before it takes a texel.
+ */
+const INSTANCE_ROW_TEXELS = 17;
+const INSTANCE_ROW_BYTES_PER_CELL = INSTANCE_ROW_TEXELS * TEXEL_FLOATS * Float32Array.BYTES_PER_ELEMENT;
 
 function channelOf(row: Float32Array, field: CellInstanceScalar): number {
   const [texel, channel] = instanceFieldLocation(field);
@@ -88,6 +94,8 @@ describe('packCellInstance', () => {
     expect(channelOf(row, 'ciliaPhase')).toBeCloseTo(0.4, 6);
     expect(channelOf(row, 'nucleusDiscRadii')).toBeCloseTo(0.3, 6);
     expect(channelOf(row, 'speckleSeed')).toBeCloseTo(0.45, 6);
+    expect(channelOf(row, 'selfRingFill')).toBeCloseTo(0.35, 6);
+    expect(channelOf(row, 'selfRingBrightness')).toBeCloseTo(0.95, 6);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect([...row.subarray(bumpBase, bumpBase + 3)].map((value) => Math.round(value * 100) / 100)).toEqual([
       0.62, 0.52, 0.28,
@@ -105,10 +113,23 @@ describe('packCellInstance', () => {
     expect(BUMP_TEXEL_START + Math.ceil((MAX_SHAPE_BUMPS * 3) / TEXEL_FLOATS)).toBe(CELL_INSTANCE_TEXELS);
   });
 
-  it('keeps the row at sixteen texels with the nucleus disc and the speckle seed in the last scalar texel (#231, #243)', () => {
+  it('grows the row to seventeen texels, 272 bytes a cell, with the sprint ring alone in the last scalar texel (#295)', () => {
     expect(CELL_INSTANCE_TEXELS).toBe(INSTANCE_ROW_TEXELS);
-    expect(instanceFieldLocation('nucleusDiscRadii')[0]).toBe(BUMP_TEXEL_START - 1);
-    expect(instanceFieldLocation('speckleSeed')[0]).toBe(BUMP_TEXEL_START - 1);
+    expect(CELL_INSTANCE_FLOATS * Float32Array.BYTES_PER_ELEMENT).toBe(INSTANCE_ROW_BYTES_PER_CELL);
+    expect(INSTANCE_ROW_BYTES_PER_CELL).toBe(272);
+    expect(instanceFieldLocation('nucleusDiscRadii')[0]).toBe(BUMP_TEXEL_START - 2);
+    expect(instanceFieldLocation('speckleSeed')[0]).toBe(BUMP_TEXEL_START - 2);
+    expect(instanceFieldLocation('selfRingFill')).toEqual([BUMP_TEXEL_START - 1, 0]);
+    expect(instanceFieldLocation('selfRingBrightness')).toEqual([BUMP_TEXEL_START - 1, 1]);
+  });
+
+  it('never writes the two free channels of the last scalar texel', () => {
+    const buffer = createInstanceBuffer(1);
+    buffer.fill(Number.NaN);
+    packCellInstance(buffer, 0, instance);
+    const lastScalarTexel = (BUMP_TEXEL_START - 1) * TEXEL_FLOATS;
+    expect(Number.isNaN(buffer[lastScalarTexel + 2])).toBe(true);
+    expect(Number.isNaN(buffer[lastScalarTexel + 3])).toBe(true);
   });
 
   it('locates every scalar field in a distinct channel and rejects an unknown one', () => {

@@ -14,16 +14,19 @@ import {
   NUCLEUS_RAMP_MID_STOP,
   NUCLEUS_RAMP_REACH_RADII,
   PALETTE_SHADE,
+  SELF_RING_ALPHA,
+  SELF_RING_TRACK_ALPHA,
   SPECKLE_HASH_SALT,
 } from '../constants';
 import { HALF } from '../geometry';
 import { instanceFieldLocation, instanceScalarFields } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
 import { CELL_UNIFORM, glslFloat, instanceRead } from './cell-shader-source';
+import { FULL_SELF_RING, TWELVE_O_CLOCK_TURNS } from './self-ring';
 
 /** The body of one GLSL function in the fragment source, from its signature to its closing brace. */
 function functionBody(name: string): string {
-  const match = new RegExp(`vec4 ${name}\\(Instance inst, Frame frame[^)]*\\) \\{([\\s\\S]*?)\\n\\}`).exec(
+  const match = new RegExp(`(?:vec4|float) ${name}\\(Instance inst, Frame frame[^)]*\\) \\{([\\s\\S]*?)\\n\\}`).exec(
     CELL_FRAGMENT_SOURCE,
   );
   if (match === null) throw new Error(`${name} is not in the fragment source`);
@@ -74,6 +77,25 @@ describe('cell shader source', () => {
     expect(bodyPass.trim().endsWith('return nucleusRamp(inst, frame, acc);')).toBe(true);
     expect(bodyPass.indexOf('cytoskeletonFilaments')).toBeLessThan(bodyPass.indexOf('nucleusRamp'));
     expect(bodyPass.indexOf('return farDot')).toBeLessThan(bodyPass.indexOf('nucleusRamp'));
+  });
+
+  it('draws the self ring as the sprint ring: recharged clockwise from 12 o’clock, the rest a track (#295)', () => {
+    // The turn is the TypeScript reference's (self-ring.ts): atan(y, x) in a y-down frame plus a quarter turn.
+    expect(CELL_FRAGMENT_SOURCE).toContain('frame.theta = atan(vLocal.y, vLocal.x);');
+    const alpha = functionBody('selfRingAlpha');
+    expect(alpha).toContain(`float turns = fract(frame.theta / TAU + ${glslFloat(TWELVE_O_CLOCK_TURNS)});`);
+    expect(alpha).toContain('float endPx = (inst.selfRingFill - turns) * TAU * radiusWu * uZoom;');
+    expect(alpha).toContain('float recharged = smoothstep(-HALF, HALF, endPx);');
+    expect(alpha).toContain(`if (inst.selfRingFill >= ${glslFloat(FULL_SELF_RING)}) recharged = 1.0;`);
+    expect(alpha).toContain('if (inst.selfRingFill <= 0.0) recharged = 0.0;');
+    expect(alpha).toContain('float lit = min(inst.selfRingBrightness * inst.rimBrightness, 1.0);');
+    expect(alpha).toContain(`return mix(${glslFloat(SELF_RING_TRACK_ALPHA)}, lit, recharged);`);
+    const ring = functionBody('selfRing');
+    expect(ring).toContain('return over(acc, uWhite, mask * selfRingAlpha(inst, frame, radiusWu));');
+    expect(ring).not.toContain(glslFloat(SELF_RING_ALPHA));
+    expect(CELL_FRAGMENT_SOURCE.indexOf('float selfRingAlpha(')).toBeLessThan(
+      CELL_FRAGMENT_SOURCE.indexOf('vec4 selfRing('),
+    );
   });
 
   it('salts the ribosome speckle with the cell’s own seed, never the palette or the strip row (#243)', () => {
