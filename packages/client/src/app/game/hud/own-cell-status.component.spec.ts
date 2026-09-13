@@ -15,6 +15,7 @@ import {
 import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { OwnCellStatusComponent } from './own-cell-status.component';
+import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from './hud-constants';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
@@ -96,14 +97,28 @@ describe('OwnCellStatusComponent', () => {
   });
 
   it('holds its sentence while DNA climbs inside one announce step', () => {
+    // Both percents are derived from STATUS_ANNOUNCE_DNA_STEP_PERCENT rather than written out, so
+    // retuning that step cannot quietly turn this into a test of nothing — which is the exact
+    // failure this whole must-fix is about. The two asserts below state the premise, so a step
+    // that breaks the construction fails loudly here instead of passing for the wrong reason.
+    const step = STATUS_ANNOUNCE_DNA_STEP_PERCENT;
+    const lowPercent = Math.floor(step / 5);
+    const highPercent = step - 1;
+    expect(lowPercent).not.toBe(highPercent);
+    expect(Math.floor(lowPercent / step)).toBe(Math.floor(highPercent / step));
+
+    // Half a percent past the integer, so `dnaPercentOf`'s floor lands on it whatever the float does.
     const cost = levelUpCost(1, DEFAULT_BALANCE.progression);
-    show({}, { level: 1, dnaTowardNextLevel: cost * 0.04 });
+    const dnaFor = (percent: number): number => (cost * (percent + 0.5)) / 100;
+
+    show({}, { level: 1, dnaTowardNextLevel: dnaFor(lowPercent) });
     const spoken = mirror()?.textContent?.trim();
-    expect(spoken).toContain('DNA 4 %');
-    show({}, { level: 1, dnaTowardNextLevel: cost * 0.2 });
-    // The attribute moves every snapshot; the sentence must not, because 4 % and 20 % are the
+    expect(spoken).toContain(`DNA ${lowPercent} %`);
+
+    show({}, { level: 1, dnaTowardNextLevel: dnaFor(highPercent) });
+    // The attribute moves every snapshot; the sentence must not, because both percents are in the
     // same STATUS_ANNOUNCE_DNA_STEP_PERCENT step and aria-live has nothing new to say.
-    expect(mirror()?.getAttribute('data-dna-percent')).toBe('20');
+    expect(mirror()?.getAttribute('data-dna-percent')).toBe(String(highPercent));
     expect(mirror()?.textContent?.trim()).toBe(spoken);
   });
 

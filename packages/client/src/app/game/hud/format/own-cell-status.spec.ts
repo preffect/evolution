@@ -10,6 +10,7 @@ import {
   type BacteriumVariant,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
+import { WILD_CELL_THREAT_NAME } from './threats-for';
 import {
   ownCellIndicatorsFor,
   type OwnCellIndicators,
@@ -190,9 +191,31 @@ describe('shouldAnnounce', () => {
     expect(shouldAnnounce(justUnder.announceKey, nextStep)).toBe(true);
   });
 
-  it('speaks again when a different predator becomes the nearest, since the sentence names it', () => {
+  it('speaks again when a different predator becomes the nearest, even with an identical label', () => {
     // The regression this pins (#282 review): the key recorded only that *a* threat existed, so a
     // swap left `data-threat` pointing at one cell while the spoken line still named another.
+    //
+    // Both predators are wild cells, so **both labels read `Wild cell`**. That is deliberate and it
+    // is the whole point of the case: a key built from the label would pass a Bot 1 / Bot 2 test
+    // and still go stale here, which is the commonest swap in a dish full of wild cells. Only a key
+    // built from identity separates these two.
+    const near = (id: string): ReturnType<typeof formatOwnCellStatus> =>
+      formatOwnCellStatus(
+        indicatorsWith(createTestCellView(), createTestPlayerProgressView(), [
+          { cellId: entityId(id), name: WILD_CELL_THREAT_NAME, distanceSquared: 1 },
+        ]),
+      );
+    const first = near('wild-a');
+    const second = near('wild-b');
+    // The premise: the sentences are byte-identical, so nothing but the id can tell them apart.
+    expect(second.text).toBe(first.text);
+    expect(first.text).toContain(`${WILD_CELL_THREAT_NAME} can engulf you`);
+    expect(shouldAnnounce(first.announceKey, second)).toBe(true);
+    // The same predator staying nearest must not re-speak.
+    expect(shouldAnnounce(first.announceKey, near('wild-a'))).toBe(false);
+  });
+
+  it('speaks again when a named predator is replaced by another, the case with distinct labels', () => {
     const near = (id: string, name: string): ReturnType<typeof formatOwnCellStatus> =>
       formatOwnCellStatus(
         indicatorsWith(createTestCellView(), createTestPlayerProgressView(), [
@@ -204,8 +227,6 @@ describe('shouldAnnounce', () => {
     expect(first.text).toContain('Bot 1 can engulf you');
     expect(second.text).toContain('Bot 2 can engulf you');
     expect(shouldAnnounce(first.announceKey, second)).toBe(true);
-    // The same predator staying nearest must not re-speak.
-    expect(shouldAnnounce(first.announceKey, near('hunter-a', 'Bot 1'))).toBe(false);
   });
 
   it('speaks on a level change, a counter change, a threat and a phase change', () => {
