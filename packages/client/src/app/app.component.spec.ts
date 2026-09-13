@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PLAYERS_PER_GAME, SEED_MAX, createTestSessionConfig } from '@evolution/shared';
 import { AppComponent } from './app.component';
 import { GameHostComponent } from './game/game-host.component';
+import { HUD_TEST_ID } from './game/hud/test-ids';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { MultiplayerService } from './services/multiplayer.service';
@@ -23,6 +24,9 @@ function createMultiplayerStub() {
     inGame: signal(false),
     games: signal([]),
     snapshot: signal<unknown>(null),
+    balance: signal(null),
+    avatarAssignments: signal({}),
+    sessionConfig: signal(null),
     gameId: signal(null),
     playerId: signal(null),
     playerIds: signal([]),
@@ -75,10 +79,11 @@ describe('AppComponent', () => {
     expect(element.classList.contains('in-game')).toBe(false);
   });
 
-  it('shows only the game host, filling the viewport, once the room is in play (docs/UI.md §1)', () => {
+  it('shows the game host with the HUD over it, filling the viewport, in play (docs/UI.md §1)', () => {
     multiplayer.inGame.set(true);
     const element = render();
     expect(element.querySelector('[data-testid="game-host-stub"]')).not.toBeNull();
+    expect(element.querySelector(`[data-testid="${HUD_TEST_ID.hud}"]`)).not.toBeNull();
     expect(element.querySelector('.panel')).toBeNull();
     expect(element.querySelector('header')).toBeNull();
     expect(element.classList.contains('in-game')).toBe(true);
@@ -90,6 +95,7 @@ describe('AppComponent', () => {
     const element = render();
     expect(element.querySelector('[data-testid="render-bench-stub"]')).not.toBeNull();
     expect(element.querySelector('[data-testid="game-host-stub"]')).toBeNull();
+    expect(element.querySelector(`[data-testid="${HUD_TEST_ID.hud}"]`)).toBeNull();
     expect(element.querySelector('.panel')).toBeNull();
     expect(element.classList.contains('in-game')).toBe(true);
   });

@@ -28,3 +28,12 @@ export const SEAT_MARK_BEADS: readonly number[] = Array.from(
   { length: PLAYER_PALETTE_COUNT },
   (_unused, index) => index + 1,
 );
+
+/**
+ * An arbitrary avatar index folded into the seat range, so a palette and a bead count exist for
+ * every value a snapshot can carry. The renderer's palette lookup and the HUD's leaderboard swatch
+ * both wrap here rather than each owning the arithmetic (docs/VISUAL-STYLE.md §2).
+ */
+export function wrapAvatarIndex(avatarIndex: number): number {
+  return ((avatarIndex % PLAYER_PALETTE_COUNT) + PLAYER_PALETTE_COUNT) % PLAYER_PALETTE_COUNT;
+}

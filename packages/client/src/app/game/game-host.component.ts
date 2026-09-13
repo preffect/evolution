@@ -7,6 +7,7 @@
 import { Component, ElementRef, inject, isDevMode, viewChild, type OnDestroy, type OnInit } from '@angular/core';
 import { AudioHooks } from './audio/audio-hooks';
 import { CLOCK } from './clock-provider';
+import { HudStateService } from './hud/hud-state.service';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
 import { createPixiApp } from './render/pixi-app';
@@ -40,6 +41,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
   private readonly multiplayer = inject(MultiplayerService);
   private readonly audioHooks = inject(AudioHooks);
   private readonly clock = inject(CLOCK);
+  private readonly hudState = inject(HudStateService);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
   private teardown: GameTeardown | null = null;
 
@@ -60,6 +62,8 @@ export class GameHostComponent implements OnInit, OnDestroy {
         isDevMode: isDevMode(),
         previewTraitId: () => null,
         isReticleVisible: () => false,
+        // Tab (docs/UI.md §4) reaches the HUD through the input layer's one keyboard listener.
+        onFullLeaderboardHeldChanged: (isHeld) => this.hudState.setFullLeaderboardHeld(isHeld),
       },
     );
   }

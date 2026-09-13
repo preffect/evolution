@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { concat, defer, of, type Observable } from 'rxjs';
 import type {
+  BalanceConfig,
   GameId,
   GameInput,
   GameSessionConfig,
@@ -50,6 +51,12 @@ export class MultiplayerService {
 
   /** The newest `game_snapshot`, for the lobby / HUD facade; the renderer reads `WorldStore` instead. */
   readonly snapshot = signal<GameSnapshot | null>(null);
+
+  /**
+   * The live balance the server simulates with (`game_state`, then every `balance_updated`), for
+   * the HUD facade; the renderer reads the same numbers off its own `WorldStore`.
+   */
+  readonly balance = signal<BalanceConfig | null>(null);
 
   readonly inGame = computed(() => this.phase() === 'in-game');
 
@@ -125,6 +132,19 @@ export class MultiplayerService {
   }
 
   // ===== Inbound message handling =====
+  /** Sent on start and to a (re)joining player: full room state to (re)build the view. */
+  private applyGameState(message: Extract<ServerMessage, { type: typeof SERVER_MESSAGE_TYPE.gameState }>): void {
+    this.latestGameStateMessage = message;
+    this.playerId.set(message.playerId);
+    this.gameId.set(message.gameId);
+    this.playerIds.set(message.playerIds);
+    this.sessionConfig.set(message.config);
+    this.avatarAssignments.set(message.avatarAssignments);
+    this.balance.set(message.balance);
+    this.snapshot.set(message.snapshot);
+    this.phase.set('in-game');
+  }
+
   private handle(message: ServerMessage): void {
     switch (message.type) {
       case SERVER_MESSAGE_TYPE.lobbyUpdate:
@@ -143,20 +163,17 @@ export class MultiplayerService {
         break;
 
       case SERVER_MESSAGE_TYPE.gameState:
-        // Sent on start and to a (re)joining player: full room state to (re)build the view.
-        this.latestGameStateMessage = message;
-        this.playerId.set(message.playerId);
-        this.gameId.set(message.gameId);
-        this.playerIds.set(message.playerIds);
-        this.sessionConfig.set(message.config);
-        this.avatarAssignments.set(message.avatarAssignments);
-        this.snapshot.set(message.snapshot);
-        this.phase.set('in-game');
+        this.applyGameState(message);
         break;
 
       case SERVER_MESSAGE_TYPE.gameSnapshot:
         // The newest snapshot for the lobby UI; the render session applies every one to its store.
         this.snapshot.set(message.snapshot);
+        break;
+
+      case SERVER_MESSAGE_TYPE.balanceUpdated:
+        // `debug_set_balance`: the HUD must read the same numbers the server now simulates with.
+        this.balance.set(message.balance);
         break;
 
       case SERVER_MESSAGE_TYPE.playerJoined:

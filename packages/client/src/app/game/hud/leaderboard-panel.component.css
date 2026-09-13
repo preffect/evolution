@@ -1,0 +1,161 @@
+/* The leaderboard panel's stylesheet (docs/UI.md §3.1.1). Every length and colour is a `--hud-…`
+   the shell publishes from the constants (`format/hud-css-variables.ts`), so no number here is a
+   second home for one. A sibling file rather than inline `styles`: with the styles inline the
+   component file runs past the size bar of docs/CODE-STANDARDS.md §5. */
+
+:host {
+  position: absolute;
+  top: calc(var(--hud-margin) * var(--hud-scale));
+  right: calc(var(--hud-margin) * var(--hud-scale));
+}
+
+.leaderboard {
+  box-sizing: border-box;
+  width: calc(var(--hud-leaderboard-width) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-height) * var(--hud-scale));
+  border: 1px solid var(--hud-panel-rim);
+  border-radius: calc(4px * var(--hud-scale));
+  background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
+  overflow: hidden;
+  transition: width var(--hud-row-slide-duration) ease-out;
+}
+
+.leaderboard.full {
+  width: calc(var(--hud-leaderboard-full-width) * var(--hud-scale));
+}
+
+/* The header is the one part of the chrome a pointer can reach (docs/UI.md §4). */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--hud-leaderboard-header-height) * var(--hud-scale));
+  padding: 0 calc(8px * var(--hud-scale));
+  border: 0;
+  border-bottom: 1px solid var(--hud-panel-rim);
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  font-family: var(--hud-font-sans);
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+}
+
+.header:focus-visible {
+  outline: 2px solid var(--hud-text);
+  outline-offset: -2px;
+}
+
+.header-title {
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  color: var(--hud-text-label);
+}
+
+.header-hint {
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  color: var(--hud-text-muted);
+}
+
+/* Sits over the same grid as a row, so a label lands on the column it names. */
+.column-labels {
+  display: grid;
+  grid-template-columns:
+    calc(16px * var(--hud-scale)) calc(14px * var(--hud-scale)) 1fr
+    auto auto auto auto;
+  align-items: center;
+  gap: calc(6px * var(--hud-scale));
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--hud-leaderboard-label-row-height) * var(--hud-scale));
+  padding: 0 calc(8px * var(--hud-scale));
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-text-muted);
+}
+
+/* The label row spans the first four grid cells: rank, swatch, name and the level column. */
+.column-labels .score {
+  grid-column: 5;
+}
+
+.rows {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The slot, not the document order, places a row: a re-sort then slides (docs/UI.md §3.1.1). */
+.row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateY(calc(var(--hud-leaderboard-row-height) * var(--hud-scale) * var(--hud-row-slot)));
+  display: grid;
+  grid-template-columns: calc(16px * var(--hud-scale)) calc(14px * var(--hud-scale)) 1fr auto auto;
+  align-items: center;
+  gap: calc(6px * var(--hud-scale));
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--hud-leaderboard-row-height) * var(--hud-scale));
+  padding: 0 calc(8px * var(--hud-scale));
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-body) * var(--hud-scale));
+  color: var(--hud-text);
+  transition: transform var(--hud-row-slide-duration) ease-out;
+}
+
+.leaderboard.full .row {
+  grid-template-columns:
+    calc(16px * var(--hud-scale)) calc(14px * var(--hud-scale)) 1fr
+    auto auto auto auto;
+}
+
+.rank,
+.level {
+  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+  color: var(--hud-text-label);
+}
+
+.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.score,
+.mass,
+.absorptions {
+  min-width: calc(26px * var(--hud-scale));
+  font-family: var(--hud-font-mono);
+  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mass,
+.absorptions {
+  color: var(--hud-text-label);
+}
+
+.swatch {
+  width: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
+  overflow: visible;
+}
+
+/* The seat-mark bead core is the one white (docs/VISUAL-STYLE.md §2). */
+.bead {
+  fill: var(--hud-white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard,
+  .row {
+    transition: none;
+  }
+}

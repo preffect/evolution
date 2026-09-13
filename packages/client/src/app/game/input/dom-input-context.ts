@@ -7,8 +7,8 @@ import {
   MENU_OVERLAY_TEST_ID,
   TEXT_ENTRY_SELECTOR,
   TRAIT_OFFER_TEST_ID,
-  testIdSelector,
 } from './input-constants';
+import { testIdSelector } from '../hud/test-ids';
 import type { FocusContext } from './keyboard-action';
 
 function isOverlayOpen(ownerDocument: Document, testId: string): boolean {

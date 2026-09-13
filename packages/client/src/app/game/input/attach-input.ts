@@ -23,6 +23,8 @@ export interface AttachInputOptions {
   readonly projectPointer: (point: CanvasPoint) => PointerProjection | null;
   /** Escape: the HUD closes the topmost overlay or opens the menu (docs/UI.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /** Tab held / released: the HUD opens the full leaderboard while it is (docs/UI.md §4, #185). */
+  readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 
 export interface InputSeam {
@@ -37,6 +39,9 @@ export function attachInput(options: AttachInputOptions): InputSeam {
     projectPointer: options.projectPointer,
     world: () => inputWorldContextOf(options.store),
     ...(options.onMenuKey === undefined ? {} : { onMenuKey: options.onMenuKey }),
+    ...(options.onFullLeaderboardHeldChanged === undefined
+      ? {}
+      : { onFullLeaderboardHeldChanged: options.onFullLeaderboardHeldChanged }),
   });
   const ownerDocument = options.host.ownerDocument;
   const detachKeyboard = attachKeyboardInput({

@@ -41,6 +41,12 @@ export interface InputControllerDependencies {
   readonly world: () => InputWorldContext | null;
   /** Escape: the HUD closes the topmost overlay or opens the menu (docs/UI.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /**
+   * Tab pressed or released (docs/UI.md §4): the HUD opens the full leaderboard while it is held.
+   * Reported rather than polled, and only on a change, so the one keyboard listener of #184 stays
+   * the only one on the document and the HUD adds no second handler for the same key.
+   */
+  readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 
 /** What the dev-only debug hook reports about the input layer (docs/TESTING.md §8.3). */
@@ -84,7 +90,19 @@ export class InputController {
       if (pick !== null) this.state = withPickQueued(this.state, pick);
       return;
     }
-    this.state = withAction(this.state, action);
+    this.setState(withAction(this.state, action));
+  }
+
+  /**
+   * The one write to `state`, so the Tab hold is reported exactly when it changes — every
+   * transition that can clear it (a release, a lost window focus) runs through here.
+   */
+  private setState(next: InputState): void {
+    const wasHeld = this.state.isFullLeaderboardHeld;
+    this.state = next;
+    if (next.isFullLeaderboardHeld !== wasHeld) {
+      this.dependencies.onFullLeaderboardHeldChanged?.(next.isFullLeaderboardHeld);
+    }
   }
 
   pointerMovedTo(point: CanvasPoint): void {
@@ -92,7 +110,7 @@ export class InputController {
   }
 
   releaseAllKeys(): void {
-    this.state = withAllKeysReleased(this.state);
+    this.setState(withAllKeysReleased(this.state));
   }
 
   /** Tab held (docs/UI.md §4): the HUD opens the full leaderboard while this is true. */
