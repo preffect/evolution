@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
 import * as constants from './constants';
+import * as ownCellConstants from './constants/own-cell';
 
 const UI_DOCUMENT = readRepoDocument('docs/UI.md');
 const CONSTANTS_SECTION = markdownSection(UI_DOCUMENT, '9. Constants table');
@@ -55,6 +56,13 @@ describe('docs/UI.md §9 constants ledger', () => {
       return numbersOf(exported[name]);
     });
     expect(actual).toEqual(values);
+  });
+
+  it('names every export of constants/own-cell.ts in a §9 row, so a new floor cannot land undocumented', () => {
+    // The rows above are checked against the code; this is the other direction. A subset, not an
+    // equality: §9 also carries `DNA_RING_KEEP_OUT_FRACTION`, whose page is `organelles.ts`.
+    const documented = new Set(rows.flatMap((row) => row.names));
+    expect(Object.keys(ownCellConstants).filter((name) => !documented.has(name))).toEqual([]);
   });
 
   it('keys the angle pair by the variant §3.1.2 puts at each angle, not just in the right order', () => {

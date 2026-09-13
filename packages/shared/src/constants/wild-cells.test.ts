@@ -9,7 +9,7 @@ import { ENGULF_MASS_RATIO } from './absorption.js';
 import { DEFAULT_BALANCE } from './balance.js';
 import { STAGE_ORDER } from './ladder.js';
 import { TRAIT_CATALOG } from './traits.js';
-import { stageOf } from '../simulation/stage-of.js';
+import { stageIndex, stageOf } from '../simulation/stage-of.js';
 import {
   WILD_CELL_BUILDS,
   WILD_CELL_COUNT,
@@ -32,7 +32,6 @@ const STAGE_AFTER_PICKS: readonly CellStage[] = [
 
 const catalog: readonly TraitDefinition[] = TRAIT_CATALOG;
 const traitById = (id: TraitId): TraitDefinition => catalog.find((trait) => trait.id === id)!;
-const stageIndex = (stage: CellStage): number => STAGE_ORDER.indexOf(stage);
 
 describe('WILD_CELL_BUILDS', () => {
   it('holds three builds of the same length', () => {

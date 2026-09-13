@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENDOSYMBIOSIS_BACTERIA_REQUIRED, RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { ENDOSYMBIOSIS_BACTERIA_REQUIRED } from '@evolution/shared';
 import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-counters';
 import {
   LADDER_BACKING_END_PAD_PX,
@@ -9,9 +9,18 @@ import {
   LADDER_ORBIT_ANGLES_PAIR_DEG,
   LADDER_ORBIT_ANGLE_SINGLE_DEG,
 } from '../constants';
-import { DEGREES_PER_TURN, HALF } from '../geometry';
+import { HALF } from '../geometry';
 import { LADDER_SILHOUETTE, type Ladder, type LadderCounter } from '../../state/own-cell-indicators';
-import { counterLengthPx, orbitLayout, pipBlockSizePx, type OrbitArc, type OrbitLayout } from './orbit-layout';
+import {
+  counterLengthPx,
+  ghostBoxOf,
+  orbitLayout,
+  pipBlockBoxOf,
+  pipBlockSizePx,
+  type OrbitArc,
+  type OrbitLayout,
+} from './orbit-layout';
+import { orientedBoxGapPx } from './oriented-box';
 import { ladderOrbitRadiusPx, orbitDegreesOf } from './own-cell-indicators';
 
 const REQUIRED = ENDOSYMBIOSIS_BACTERIA_REQUIRED;
@@ -28,11 +37,33 @@ function centreOf(arc: OrbitArc | undefined): number {
   return (arc.startDeg + arc.endDeg) * HALF;
 }
 
-/** The px between the two spans of a layout, negative when they overlap. */
-function spanGapPx(layout: OrbitLayout): number {
-  const [first, second] = [...layout.spans].sort((one, other) => one.startDeg - other.startDeg);
-  if (first === undefined || second === undefined) throw new Error('expected two spans');
-  return ((second.startDeg - first.endDeg) / DEGREES_PER_TURN) * RADIANS_PER_FULL_TURN * layout.radiusPx;
+interface DrawnGaps {
+  /** The rung ghost's box to the counter's ghost box. */
+  readonly ghostToGhost: number;
+  /** The rung ghost's box to the counter's pip block box. */
+  readonly pipsToGhost: number;
+}
+
+/**
+ * The gaps between the boxes as drawn, each laid tangent to the orbit: what the player sees, and what
+ * an arc-length gap overstates, since a tangent box's inner corners reach past its arc angle.
+ */
+function drawnGapsPx(layout: OrbitLayout): DrawnGaps {
+  const [rungGhost, counterGhost] = layout.ghosts;
+  const [pipBlock] = layout.pipBlocks;
+  if (rungGhost === undefined || counterGhost === undefined || pipBlock === undefined) {
+    throw new Error('expected a rung ghost beside a counter');
+  }
+  const rungBox = ghostBoxOf(rungGhost);
+  return {
+    ghostToGhost: orientedBoxGapPx(rungBox, ghostBoxOf(counterGhost)),
+    pipsToGhost: orientedBoxGapPx(rungBox, pipBlockBoxOf(pipBlock)),
+  };
+}
+
+function nearestDrawnGapPx(layout: OrbitLayout): number {
+  const gaps = drawnGapsPx(layout);
+  return Math.min(gaps.ghostToGhost, gaps.pipsToGhost);
 }
 
 describe('orbitLayout', () => {
@@ -101,10 +132,17 @@ describe('a rung ghost beside a counter (decision #285 B)', () => {
   const counterCentreOf = (layout: OrbitLayout): number => centreOf(layout.spans[1]);
 
   it.each(TABLE_SIZES_PX)(
-    'keeps either remaining counter at least the item clearance from the ghost at %s px',
+    'keeps the drawn boxes the item clearance apart at %s px, ghost to ghost and pips to ghost',
     (rPx) => {
-      expect(spanGapPx(beside(AEROBIC, rPx))).toBeGreaterThanOrEqual(LADDER_ITEM_CLEARANCE_PX - FLOAT_SLACK);
-      expect(spanGapPx(beside(PHOTOSYNTHETIC, rPx))).toBeGreaterThanOrEqual(LADDER_ITEM_CLEARANCE_PX - FLOAT_SLACK);
+      for (const remaining of [AEROBIC, PHOTOSYNTHETIC]) {
+        const gaps = drawnGapsPx(beside(remaining, rPx));
+        expect(gaps.ghostToGhost, `${remaining.variant} ghost`).toBeGreaterThanOrEqual(
+          LADDER_ITEM_CLEARANCE_PX - FLOAT_SLACK,
+        );
+        expect(gaps.pipsToGhost, `${remaining.variant} pips`).toBeGreaterThanOrEqual(
+          LADDER_ITEM_CLEARANCE_PX - FLOAT_SLACK,
+        );
+      }
     },
   );
 
@@ -117,15 +155,20 @@ describe('a rung ghost beside a counter (decision #285 B)', () => {
     expect(counterCentreOf(photosynthetic)).toBeLessThan(LADDER_ORBIT_ANGLES_PAIR_DEG.photosynthetic);
   });
 
-  it('turns it only as far as the clearance needs: exactly that clear, not further', () => {
-    expect(spanGapPx(beside(AEROBIC, 24))).toBeCloseTo(LADDER_ITEM_CLEARANCE_PX);
-    expect(spanGapPx(beside(PHOTOSYNTHETIC, 24))).toBeCloseTo(LADDER_ITEM_CLEARANCE_PX);
+  it.each([24, 32])('turns it only as far as the drawn clearance needs at %s px: exactly that far apart', (rPx) => {
+    // Aerobic's nearer box is its ghost, photosynthetic's its pip block (it runs clockwise into the ghost).
+    expect(drawnGapsPx(beside(AEROBIC, rPx)).ghostToGhost).toBeCloseTo(LADDER_ITEM_CLEARANCE_PX);
+    expect(drawnGapsPx(beside(PHOTOSYNTHETIC, rPx)).pipsToGhost).toBeCloseTo(LADDER_ITEM_CLEARANCE_PX);
+    expect(nearestDrawnGapPx(beside(AEROBIC, rPx))).toBeCloseTo(LADDER_ITEM_CLEARANCE_PX);
   });
 
-  it('turns a counter only below 31 px, as §3.1.3 says, and never when no ghost shares the orbit', () => {
-    expect(counterCentreOf(beside(AEROBIC, 30))).toBeGreaterThan(LADDER_ORBIT_ANGLES_PAIR_DEG.aerobic);
-    expect(counterCentreOf(beside(AEROBIC, 31))).toBeCloseTo(LADDER_ORBIT_ANGLES_PAIR_DEG.aerobic);
-    expect(counterCentreOf(beside(AEROBIC, 45))).toBeCloseTo(LADDER_ORBIT_ANGLES_PAIR_DEG.aerobic);
+  it('turns counters at 32 px and not from 34 px up, as §3.1.3 says, and never with no ghost on the orbit', () => {
+    expect(counterCentreOf(beside(AEROBIC, 32))).toBeGreaterThan(LADDER_ORBIT_ANGLES_PAIR_DEG.aerobic);
+    expect(counterCentreOf(beside(PHOTOSYNTHETIC, 32))).toBeLessThan(LADDER_ORBIT_ANGLES_PAIR_DEG.photosynthetic);
+    for (const rPx of [34, 45]) {
+      expect(counterCentreOf(beside(AEROBIC, rPx))).toBeCloseTo(LADDER_ORBIT_ANGLES_PAIR_DEG.aerobic);
+      expect(counterCentreOf(beside(PHOTOSYNTHETIC, rPx))).toBeCloseTo(LADDER_ORBIT_ANGLES_PAIR_DEG.photosynthetic);
+    }
     const alone = orbitLayout(BOTH_COUNTERS, 24);
     BOTH_COUNTERS.counters.forEach((expected, index) => {
       expect(centreOf(alone.spans[index])).toBeCloseTo(expected.angleDeg);

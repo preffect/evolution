@@ -29,7 +29,10 @@ export const LADDER_PIP_STROKE_PX = 1;
 export const LADDER_PIP_LIT_ALPHA = 0.95;
 export const LADDER_PIP_UNLIT_ALPHA = 0.7;
 export const LADDER_ITEM_GAP_PX = 4;
-/** A rung ghost to a counter sharing the orbit (#285 B): the counter turns away until it is this clear. */
+/**
+ * A rung ghost to a counter sharing the orbit (#285 B): the counter turns away until the drawn boxes
+ * (the ghost's square, the counter's ghost and pip block, each laid tangent) are this far apart.
+ */
 export const LADDER_ITEM_CLEARANCE_PX = 4;
 export const LADDER_BACKING_PX = 16;
 export const LADDER_BACKING_END_PAD_PX = 4;
