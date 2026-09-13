@@ -177,14 +177,22 @@ describe('CellRenderState', () => {
     expect(state().update(eukaryote(), context(), REST_DEFORMATION).instance.warningRingPx).toBe(0);
   });
 
-  it('hides the warning ring of the predator the own cell is escaping, and of no other cell (#295)', () => {
+  it('with the switch on, hides the warning ring of the predator the own cell is escaping, and of no other cell (#295)', () => {
     const own = createTestCellView({ id: entityId('own'), mass: 10, radius: 5 });
-    const escapingThis = { ...REST_OWN_CELL_RING, escapePredatorCellId: entityId('e') };
-    const escapingAnother = { ...REST_OWN_CELL_RING, escapePredatorCellId: entityId('someone-else') };
+    const switchOn = { ...REST_OWN_CELL_RING, shouldHidePredatorRing: true };
+    const escapingThis = { ...switchOn, escapePredatorCellId: entityId('e') };
+    const escapingAnother = { ...switchOn, escapePredatorCellId: entityId('someone-else') };
     const hidden = state().update(eukaryote(), context({ ownCell: own, ownCellRing: escapingThis }), REST_DEFORMATION);
     expect(hidden.instance.warningRingPx).toBe(0);
     expect(hidden.instance.quadExtentRadii).toBe(CELL_QUAD_EXTENT_RADII);
     const kept = state().update(eukaryote(), context({ ownCell: own, ownCellRing: escapingAnother }), REST_DEFORMATION);
+    expect(kept.instance.warningRingPx).toBe(Math.max(40 * 1.3, ENGULF_WARNING_RING_MIN_PX));
+  });
+
+  it('with the switch off (until the escape arc draws, #187), keeps the escaping predator’s warning ring', () => {
+    const own = createTestCellView({ id: entityId('own'), mass: 10, radius: 5 });
+    const escapingThis = { ...REST_OWN_CELL_RING, escapePredatorCellId: entityId('e'), shouldHidePredatorRing: false };
+    const kept = state().update(eukaryote(), context({ ownCell: own, ownCellRing: escapingThis }), REST_DEFORMATION);
     expect(kept.instance.warningRingPx).toBe(Math.max(40 * 1.3, ENGULF_WARNING_RING_MIN_PX));
   });
 

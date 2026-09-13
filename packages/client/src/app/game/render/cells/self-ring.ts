@@ -15,6 +15,11 @@ export interface OwnCellRing {
   readonly brightness: number;
   /** The engulfing predator while the own cell is escaping (the record's `escape.predatorCellId`); `null` otherwise. */
   readonly escapePredatorCellId: EntityId | null;
+  /**
+   * Whether the escape arc replaces that predator's warning ring (docs/UI.md §3.1.2). The arc is #187's, so until it
+   * draws this stays false and the predator keeps its ring: the own cell is never left without a danger tell.
+   */
+  readonly shouldHidePredatorRing: boolean;
 }
 
 /** A whole ring: the sprint is ready, or running. */
@@ -25,6 +30,7 @@ export const REST_OWN_CELL_RING: OwnCellRing = {
   fill: FULL_SELF_RING,
   brightness: SELF_RING_ALPHA,
   escapePredatorCellId: null,
+  shouldHidePredatorRing: false,
 };
 
 /**
@@ -38,7 +44,7 @@ export function selfRingTurnsFromTwelve(x: number, y: number): number {
   return wrapUnit(Math.atan2(y, x) / RADIANS_PER_FULL_TURN + TWELVE_O_CLOCK_TURNS);
 }
 
-/** The engulfing predator's warning ring hides while the escape arc shows; every other cell keeps its ring. */
+/** The engulfing predator's warning ring hides only while the escape arc replaces it; every other cell keeps its ring. */
 export function isWarningRingHidden(cellId: EntityId, ring: OwnCellRing): boolean {
-  return ring.escapePredatorCellId !== null && ring.escapePredatorCellId === cellId;
+  return ring.shouldHidePredatorRing && ring.escapePredatorCellId !== null && ring.escapePredatorCellId === cellId;
 }

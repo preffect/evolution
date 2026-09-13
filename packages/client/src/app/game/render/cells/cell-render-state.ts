@@ -175,7 +175,10 @@ export class CellRenderState {
     return ratio < HEADING_HOLD_SPEED_RATIO ? 0 : Math.min(1, ratio);
   }
 
-  /** `warningRingPxFor`, except on the predator the own cell is escaping: the escape arc replaces its ring (docs/RENDERING.md §10). */
+  /**
+   * `warningRingPxFor`, except on the predator the own cell is escaping once the escape arc replaces its ring; while
+   * `shouldHidePredatorRing` is off (until #187 draws the arc) that predator keeps its ring (docs/RENDERING.md §10).
+   */
   private warningRingPxOf(view: CellView, context: CellFrameContext, lod: CellLod): number {
     if (isWarningRingHidden(view.id, context.ownCellRing)) return 0;
     return warningRingPxFor(view, context.ownCell, context.balance, lod);

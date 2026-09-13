@@ -125,7 +125,7 @@ ring hugging the outline instead).
 | glint                         | ellipse 0.22 × 0.08 r at `GLINT_OFFSET_RADII` 0.74 along `GLINT_ANGLE_DEG` −132°, rotated −40°, edge 1.5 px, undeformed frame like the pools                                                                                                                                                                                                                                                            | `WHITE` @50 % (sheet 01 panel A `<ellipse cx=246 cy=245.6 rx=28.2 ry=10.2>`: just inside the membrane, clear of the nucleus disc, which reaches 0.42 r; the nucleus's own highlight at 0.34 r / −136° lives in the baked nucleus sprite, §3)                                                                                                                                                                                                                                                            | B    | ≥ mid                             |
 | seat mark                     | beads centred on `d = 0`, `SEAT_MARK_BEADS[avatarIndex]` from `SEAT_MARK_ANCHOR_DEG`; radius `SEAT_MARK_BEAD_RADIUS_FRACTION` with the `SEAT_MARK_BEAD_MIN_PX` floor (a `d`-band, so beads sit on the deformed outline)                                                                                                                                                                                 | core, halo and alphas: VISUAL-STYLE §2                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | B    | ≥ mid, snaps (§5)                 |
 | self ring                     | undeformed `‖p‖ = SELF_RING_RADIUS_FRACTION × r` with the `SELF_RING_MIN_PX` floor; width, dash and rotation from the same VISUAL-STYLE §2 constants; drawn as the **sprint ring** (`UI.md §3.1.2`, §10): recharged from 12 o'clock clockwise to `selfRingFill` turns (`fract(θ / 2π + TWELVE_O_CLOCK_TURNS)`, `cells/self-ring.ts`), the remainder a track, the arc's end feathered over 1 px          | `WHITE` (VISUAL-STYLE §2's `SELF_RING`): the recharged arc at `selfRingBrightness` (`SELF_RING_ALPHA` 0.70, the `sprint_ready` clip's 0.95 peak) × `rimBrightness` (1.2 while sprinting), capped at 1; the track at `SELF_RING_TRACK_ALPHA` (`UI.md §9`); own cell only                                                                                                                                                                                                                                 | B    | ≥ mid, snaps (§5)                 |
-| engulf warning ring           | undeformed `‖p‖ = warningRingPx` (the instance value: `ENGULF_WARNING_RING_RADII × r_px` with the `ENGULF_WARNING_RING_MIN_PX` floor, VISUAL-STYLE §5); dash and rotation from the same constants; stroke `WARNING_RING_STROKE_PX` 2 (new); packed as 0 on the predator the own cell is escaping (§10)                                                                                                  | `DANGER` (VISUAL-STYLE §5, `canEngulf`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | B    | ≥ mid, snaps (§5)                 |
+| engulf warning ring           | undeformed `‖p‖ = warningRingPx` (the instance value: `ENGULF_WARNING_RING_RADII × r_px` with the `ENGULF_WARNING_RING_MIN_PX` floor, VISUAL-STYLE §5); dash and rotation from the same constants; stroke `WARNING_RING_STROKE_PX` 2 (new); packed as 0 on the escaping predator once the escape arc draws (§10)                                                                                        | `DANGER` (VISUAL-STYLE §5, `canEngulf`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | B    | ≥ mid, snaps (§5)                 |
 | prey under film               | pass B alpha × 0.62 while `engulfedByCellId` is set                                                                                                                                                                                                                                                                                                                                                     | VISUAL-STYLE §6 "prey through film"                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | B    | ≥ mid                             |
 
 Layer-major order (all bodies, then all organelles, then all membranes) is what makes the prey's rim show
@@ -639,8 +639,9 @@ list is the one home of the `render/` file plan; `ARCHITECTURE.md §10` points h
   band measured along the outline normal is 5 % r ± 1 px at every one of the 36 rays, arm flanks included
   (the perpendicular-distance check); draw-call count ≤ 17 on the bench scene; `renderStagesMs` populated; the
   ghost instance appears on `cell_absorbed` and leaves at 600 ms; `own-cell-ring.integration.spec.ts` takes the own
-  view's cooldown through the renderer to the packed `selfRingFill` and `selfRingBrightness`, and packs the escape's
-  predator ringless while another threat keeps its ring (#295). The client's vitest tier runs under jsdom with
+  view's cooldown through the renderer to the packed `selfRingFill` and `selfRingBrightness`, and keeps every warning
+  ring, the escaping predator's included, while `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE` is off (#295; the unit specs cover
+  both switch states). The client's vitest tier runs under jsdom with
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
   `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
   seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
@@ -674,9 +675,10 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
   `balance.ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED`, so a counter is two sprites; the numeral and the labels are
   `BitmapText` in the `value` / `label` roles, the labels on a label-pill sprite (`UI.md §6`). Budget: ≤ 14 sprites
   and 2 texts inside the `effects` stage's 0.3 ms (§7); the worst case is a prokaryote with both counters, one
-  unlocked, and a threat on screen: DNA track + fill (2), self-ring track + arc (2), two backings, two ghosts, two
-  pip blocks, one unlock ring, the label pill = 13 sprites, the numeral and the label = 2 texts (the escape arc
-  replaces the orbit and hides the label, so it never adds to this).
+  unlocked, and a threat on screen: DNA track + fill (2), two backings, two ghosts, two pip blocks, one unlock ring,
+  the label pill = 11 sprites, the numeral and the label = 2 texts (the escape arc replaces the orbit and hides the
+  label, so it never adds to this). The self ring's track and arc cost no sprite: the cell shader draws them (Sprint
+  state, below).
 - **Floors.** `dnaRingRadiusPx` and `ladderOrbitRadiusPx` (`effects/own-cell-geometry.ts`) and `orbitLayout` (`effects/orbit-layout.ts`), all pure, apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins UI.md §3.1.3's geometry
   table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA
@@ -700,10 +702,13 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
   disc, for every cell (one rule, no own-cell branch, §3); the fraction is set from the floored ring so the rule
   holds from 31 px up (`UI.md §3.1.3`), and below that the ring's track backs it.
 - **Escape arc.** Drawn from `escape.fill` and `escape.phase` as UI.md §3.1.2 says (draining window, then solid);
-  the pass-B warning ring of §2.2 is suppressed on the cell whose id is `escape.predatorCellId` while the record
-  carries an escape, and on no other cell. The render state packs that cell's `warningRingPx` as 0
-  (`cells/self-ring.ts` `isWarningRingHidden`), so its quad also drops back to the ringless extent; no instance
-  channel is spent on it.
+  the pass-B warning ring of §2.2 is suppressed on the cell whose id is `escape.predatorCellId` while the arc shows,
+  and on no other cell. The render state packs that cell's `warningRingPx` as 0 (`cells/self-ring.ts`
+  `isWarningRingHidden`), so its quad also drops back to the ringless extent; no instance channel is spent on it.
+  **Interim state (until #187 draws the arc):** the suppression is gated on one switch,
+  `effects/own-cell-ring.ts` `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE`, which is **off**. So an own cell being engulfed
+  still sees its predator's warning ring, and is never left without a danger tell. The PR that draws the escape
+  arc turns the switch on.
 - **Threat label.** `threat-label-placement.ts` (pure): the pill's centre is the warning ring's radius plus
   `THREAT_LABEL_GAP_PX` plus half the pill's height from the threat's centre **toward the own cell's centre**; if
   that pill's box intersects the disc of the own cell's orbit extent (`UI.md §3.1.3`) the centre flips to the far

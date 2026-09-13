@@ -1,20 +1,23 @@
 // The cross-module wiring of the sprint ring and the escape (docs/RENDERING.md §10, #295): the own
 // view's cooldown reaches the own cell's packed `selfRingFill` through the renderer, the fill reaching
 // ready plays `sprint_ready` into `selfRingBrightness` off the render clock, and while the own cell is
-// being engulfed its predator's warning ring is packed as 0 while another threat keeps its ring.
-// Frames come through the renderer's real contract, never its parts.
+// being engulfed every threat keeps its warning ring, the predator's included, because the switch that
+// lets the escape arc replace it stays off until the arc draws (#187). Frames come through the
+// renderer's real contract, never its parts.
 
 import { describe, expect, it } from 'vitest';
 import {
   CELL_STATE,
   DEFAULT_BALANCE,
   MILLISECONDS_PER_SECOND,
+  MOTION_CLIPS,
   entityId,
   secondsToTicks,
   type CellView,
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestRenderFrame } from '../../../testing/builders';
 import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
+import { peakKeyframe } from '../../../testing/motion-keyframes';
 import {
   CELL_INSTANCE_FLOATS,
   TEXEL_FLOATS,
@@ -22,14 +25,15 @@ import {
   type CellInstanceScalar,
 } from './cells/cell-instance';
 import { SELF_RING_ALPHA } from './constants';
+import { SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE } from './effects/own-cell-ring';
 import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
 
 const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
 const VIEWPORT = { width: 800, height: 600 };
 const NO_SUBMIT = (): undefined => undefined;
 const COOLDOWN_TICKS = secondsToTicks(DEFAULT_BALANCE.controls.SPRINT_COOLDOWN_SECONDS);
-/** `sprint_ready`'s peak (docs/RENDERING.md §4). */
-const READY_PEAK_MS = 100;
+/** `sprint_ready`'s peak, read from the clip table (docs/RENDERING.md §4). */
+const READY_PEAK = peakKeyframe(MOTION_CLIPS.sprint_ready.tracks['selfRingBrightness']);
 
 function renderer(): GameRenderer {
   const pixi = createFakePixiApp(VIEWPORT);
@@ -57,12 +61,13 @@ describe('the sprint ring and the escape through the renderer', () => {
     const ready = { ...cooling, sprintCooldownRemainingTicks: 0 };
     renderAt(subject, 1000, [ready]);
     expect(packed(subject, 0, 'selfRingFill')).toBe(1);
-    renderAt(subject, 1000 + READY_PEAK_MS, [ready]);
-    expect(packed(subject, 0, 'selfRingBrightness')).toBeCloseTo(0.95, 6);
+    renderAt(subject, 1000 + READY_PEAK.at, [ready]);
+    expect(packed(subject, 0, 'selfRingBrightness')).toBeCloseTo(READY_PEAK.value, 6);
     subject.destroy();
   });
 
-  it('hides the engulfing predator’s warning ring while the own cell is held, and keeps another threat’s', () => {
+  it('keeps every warning ring, the engulfing predator’s included, while the escape arc is not drawn (#187)', () => {
+    expect(SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE).toBe(false);
     const subject = renderer();
     const predator = createTestCellView({ id: entityId('predator'), playerId: null, x: 30, mass: 200, radius: 40 });
     const bystander = createTestCellView({ id: entityId('bystander'), playerId: null, x: -60, mass: 220, radius: 42 });
@@ -75,10 +80,8 @@ describe('the sprint ring and the escape through the renderer', () => {
     });
     // Rows are radius ascending: the own cell, the predator, the bystander.
     renderAt(subject, 0, [held, predator, bystander]);
-    expect(packed(subject, 1, 'warningRingPx')).toBe(0);
-    expect(packed(subject, 2, 'warningRingPx')).toBeGreaterThan(0);
-    renderAt(subject, 16, [{ ...held, states: [], engulfedByCellId: null, engulfProgress: 0 }, predator, bystander]);
     expect(packed(subject, 1, 'warningRingPx')).toBeGreaterThan(0);
+    expect(packed(subject, 2, 'warningRingPx')).toBeGreaterThan(0);
     subject.destroy();
   });
 });

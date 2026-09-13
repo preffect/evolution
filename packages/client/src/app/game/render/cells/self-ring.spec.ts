@@ -49,13 +49,28 @@ describe('the own-cell ring', () => {
       fill: FULL_SELF_RING,
       brightness: SELF_RING_ALPHA,
       escapePredatorCellId: null,
+      shouldHidePredatorRing: false,
     });
     expect(isWarningRingHidden(entityId('anyone'), REST_OWN_CELL_RING)).toBe(false);
   });
 
-  it('hides the warning ring of the escape’s predator only', () => {
-    const escaping = { ...REST_OWN_CELL_RING, escapePredatorCellId: entityId('predator') };
+  it('with the switch on, hides the warning ring of the escape’s predator only', () => {
+    const escaping = {
+      ...REST_OWN_CELL_RING,
+      escapePredatorCellId: entityId('predator'),
+      shouldHidePredatorRing: true,
+    };
     expect(isWarningRingHidden(entityId('predator'), escaping)).toBe(true);
+    expect(isWarningRingHidden(entityId('bystander'), escaping)).toBe(false);
+  });
+
+  it('with the switch off (until the escape arc draws, #187), hides no ring, the predator’s included', () => {
+    const escaping = {
+      ...REST_OWN_CELL_RING,
+      escapePredatorCellId: entityId('predator'),
+      shouldHidePredatorRing: false,
+    };
+    expect(isWarningRingHidden(entityId('predator'), escaping)).toBe(false);
     expect(isWarningRingHidden(entityId('bystander'), escaping)).toBe(false);
   });
 });

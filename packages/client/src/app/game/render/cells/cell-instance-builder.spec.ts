@@ -163,7 +163,7 @@ describe('buildCellInstance', () => {
   });
 
   it('packs the sprint ring on the own cell only; every other cell carries the full rest ring (#295)', () => {
-    const cooling = { fill: 0.4, brightness: 0.95, escapePredatorCellId: null };
+    const cooling = { fill: 0.4, brightness: 0.95, escapePredatorCellId: null, shouldHidePredatorRing: false };
     expect(buildCellInstance(input({ isOwn: true, ownCellRing: cooling }))).toMatchObject({
       selfRingFill: 0.4,
       selfRingBrightness: 0.95,

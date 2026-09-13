@@ -17,15 +17,24 @@ import { SELF_RING_ALPHA } from '../constants';
 import { FULL_SELF_RING, REST_OWN_CELL_RING, type OwnCellRing } from '../cells/self-ring';
 import { MotionClipPlayer } from './motion-clip-player';
 
-/** The record's fields the ring reads: `sprintFill`, `isSprinting` and `escape?.predatorCellId`. */
+/** The record's fields the ring reads: `sprintFill`, `isSprinting` and `escape?.predatorCellId`, plus the escape switch. */
 export interface OwnCellRingSource {
   readonly sprintFill: number;
   readonly isSprinting: boolean;
   readonly escapePredatorCellId: EntityId | null;
+  /** `OwnCellRing.shouldHidePredatorRing`: whether the escape arc replaces the predator's warning ring. */
+  readonly shouldHidePredatorRing: boolean;
 }
 
 /** The `sprint_ready` track the recharged arc's alpha follows (docs/RENDERING.md §4). */
 const BRIGHTNESS_TRACK = 'selfRingBrightness';
+/** No sprint ticks left: the same bound the record's `ownCellIndicatorsFor` reads `isSprinting` against. */
+const EMPTY = 0;
+
+// TODO(#187): flip to true in the PR that draws the escape arc. UI.md §3.1.2 hides the predator's warning ring only while
+// the arc shows, so until the arc draws, hiding the ring would leave an engulfed own cell with no danger tell at all.
+/** The one switch that lets the escape arc replace the engulfing predator's warning ring (docs/RENDERING.md §10). */
+export const SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE = false;
 
 // TODO(#187): take this from `RenderInputs.ownCellIndicators` once the HUD crossing lands, and delete the derivation.
 /** The ring's source read off the own view; `null` without an own cell. */
@@ -37,8 +46,9 @@ export function ownCellRingSourceOf(
   const isEscaping = ownCell.states.includes(CELL_STATE.beingEngulfed);
   return {
     sprintFill: sprintFillFor(ownCell, balance.controls),
-    isSprinting: ownCell.sprintRemainingTicks > 0,
+    isSprinting: ownCell.sprintRemainingTicks > EMPTY,
     escapePredatorCellId: isEscaping ? ownCell.engulfedByCellId : null,
+    shouldHidePredatorRing: SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE,
   };
 }
 
@@ -61,6 +71,7 @@ export class OwnCellRingTracker {
       fill,
       brightness: this.player.sample(nowMs)[BRIGHTNESS_TRACK] ?? SELF_RING_ALPHA,
       escapePredatorCellId: source.escapePredatorCellId,
+      shouldHidePredatorRing: source.shouldHidePredatorRing,
     };
   }
 
