@@ -39,8 +39,8 @@ function fragmentsSpawnedSince(label: string): (view: EvolutionView) => number {
 }
 
 describe('ECOLOGY §8: the spawn model on the seeded world', () => {
-  it('E1: the initial fill', () => {
-    seededSolo('E1')
+  it('E1: the initial fill', async () => {
+    await seededSolo('E1')
       .expect('food count', foodCount)
       .atTick(0)
       .toBe(Math.floor(ecology.FOOD_INITIAL_FILL_FRACTION * SOLO_FOOD_CAP))
@@ -62,8 +62,8 @@ describe('ECOLOGY §8: the spawn model on the seeded world', () => {
       .runDeterministic();
   });
 
-  it('E2: spawns counted over 610 ticks', () => {
-    seededSolo('E2')
+  it('E2: spawns counted over 610 ticks', async () => {
+    await seededSolo('E2')
       .advance(COUNT_WINDOW_TICKS)
       .capture('food at start', (view) => view.snapshot.spawnedCounts.food)
       .atTick(0)
@@ -78,8 +78,8 @@ describe('ECOLOGY §8: the spawn model on the seeded world', () => {
       .runDeterministic();
   });
 
-  it('E3: both populations sit at the cap after 3000 ticks', () => {
-    seededSolo('E3')
+  it('E3: both populations sit at the cap after 3000 ticks', async () => {
+    await seededSolo('E3')
       .advance(3000)
       .expect('food count', foodCount)
       .atEnd()
@@ -90,7 +90,7 @@ describe('ECOLOGY §8: the spawn model on the seeded world', () => {
       .runDeterministic();
   });
 
-  it('E14: the bloom multiplies the rates over a 610-tick window with the populations held at 0', () => {
+  it('E14: the bloom multiplies the rates over a 610-tick window with the populations held at 0', async () => {
     const bloomStart = session.ROUND_BLOOM_START_FRACTION * session.ROUND_DURATION_SECONDS * TICK_HZ;
     const run = seededSolo('E14')
       .advance(bloomStart + COUNT_WINDOW_TICKS)
@@ -99,7 +99,7 @@ describe('ECOLOGY §8: the spawn model on the seeded world', () => {
     for (let tick = bloomStart + 1; tick <= bloomStart + COUNT_WINDOW_TICKS; tick += 1) {
       run.atTick(tick).place(clearFood);
     }
-    run
+    await run
       .capture('food at window start', (view) => view.snapshot.spawnedCounts.food)
       .atTick(bloomStart)
       .capture('fragments at window start', (view) => view.snapshot.spawnedCounts.dnaFragments)

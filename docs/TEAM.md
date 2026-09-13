@@ -103,12 +103,12 @@ scripts/land-pr.sh 57 --reviewers "architect gameplay-qa"    # code-qa is always
 
 1. **Round one, in parallel:** every reviewer reviews the same head at once and posts one review
    whose first line is its verdict (`<role> verdict: APPROVE` or `REQUEST_CHANGES`) with
-   line-anchored comments. **Trust a posted green gate for the same head:** a reviewer whose PR
-   head already carries a green `./validate.sh all` result — the author's gate line in the PR body,
-   or the `cached green from <time> at tree <hash>` stamp `./validate.sh all` prints on the
-   checked-out head when that exact tree was already gated (`docs/ENGINEERING.md` §1; shared across
-   worktrees) — cites it in the verdict instead of re-running, and re-runs only when it changed
-   files or the head moved.
+   line-anchored comments. **Verify the gate by tree hash, never re-run it every round:** the
+   reviewer runs `./validate.sh all` in a clean worktree at the pushed SHA; the
+   `cached green from <time> at tree <hash>` line matching the author's gate line (the stamp is
+   shared across worktrees) is cited in the verdict (`docs/ENGINEERING.md` §1). A hit is the
+   author's run, so a question about a flaky failure takes `--fresh`. Builders iterate on scoped
+   runs (`--scope`); the full `all` plus `integration` runs once, pre-merge, by the lead.
 2. If anyone objects, or any thread (including Copilot's) is unresolved, ONE engineer run fixes
    every reviewer's threads together, replies on every thread and merges `origin/main` into the
    branch (no rebase: it would mark every thread outdated). Authors never resolve their own threads.

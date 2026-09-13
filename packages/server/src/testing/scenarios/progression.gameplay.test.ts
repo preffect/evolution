@@ -41,8 +41,8 @@ function p2Setup(name: string) {
 }
 
 describe('PROGRESSION §7: levels and offers', () => {
-  it('P1: a greedy bot reaches level 2 inside six minutes of the seeded world', () => {
-    scenario('P1')
+  it('P1: a greedy bot reaches level 2 inside six minutes of the seeded world', async () => {
+    await scenario('P1')
       .seed(TABLE_SEED)
       .players(1)
       .bot(0, createGrazerStrategy(evolutionAdapter.perception), GREEDY_BOT_DECISION_TICKS)
@@ -53,9 +53,9 @@ describe('PROGRESSION §7: levels and offers', () => {
       .runDeterministic();
   });
 
-  it('P2: the twelfth fragment reaches level 2 and shows the protocell draft', () => {
+  it('P2: the twelfth fragment reaches level 2 and shows the protocell draft', async () => {
     const { run, levelTick } = p2Setup('P2');
-    run
+    await run
       .advance(levelTick)
       .expect('level before', (view) => progressOf(view, 0)?.level)
       .atTick(levelTick - 1)
@@ -88,10 +88,10 @@ describe('PROGRESSION §7: levels and offers', () => {
       .runDeterministic();
   });
 
-  it('P3: an offer left alone times out on the tick its count reaches the timeout, picking the heaviest card', () => {
+  it('P3: an offer left alone times out on the tick its count reaches the timeout, picking the heaviest card', async () => {
     const { run, levelTick } = p2Setup('P3');
     const closeTick = levelTick + TIMEOUT_TICKS;
-    run
+    await run
       .advance(closeTick)
       .expect('still open the tick before', (view) => progressOf(view, 0)?.offer?.offerId)
       .atTick(closeTick - 1)
@@ -108,13 +108,13 @@ describe('PROGRESSION §7: levels and offers', () => {
       .runDeterministic();
   });
 
-  it('P6: a 140-DNA gain queues two drafts; a pick shows the next one and a stale pick is ignored', () => {
+  it('P6: a 140-DNA gain queues two drafts; a pick shows the next one and a stale pick is ignored', async () => {
     const fragments = LEVEL_3_DNA / ecology.DNA_FRAGMENT_DNA;
     const run = placedSolo('P6');
     for (let fragment = 0; fragment < fragments; fragment += 1) {
       run.atTick(1).placeFragment({ tag: DNA_TAG.sensory, at: insideCellOf(0) });
     }
-    run
+    await run
       .atTick(P6_PICK_TICK, player(0).does(chooseTrait({ offerId: 1, cardIndex: 0 })))
       .atTick(P6_PICK_TICK + 2, player(0).does(chooseTrait({ offerId: 1, cardIndex: 1 })))
       .advance(P6_PICK_TICK + 2)
@@ -145,8 +145,8 @@ describe('PROGRESSION §7: levels and offers', () => {
       .runDeterministic();
   });
 
-  it('P10: at the max level DNA keeps counting and no draft opens', () => {
-    placedSolo('P10')
+  it('P10: at the max level DNA keeps counting and no draft opens', async () => {
+    await placedSolo('P10')
       .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, dnaCumulative: LEVEL_12_DNA })
       .atTick(1)
       .placeFragment({ tag: DNA_TAG.motile, at: insideCellOf(0) })
@@ -165,8 +165,8 @@ describe('PROGRESSION §7: levels and offers', () => {
 });
 
 describe('PROGRESSION §7: entering the dish', () => {
-  it('P7: a joiner past the grace gets half the median DNA (a level-2 draft) and the capped entry mass', () => {
-    p7Setup('P7')
+  it('P7: a joiner past the grace gets half the median DNA (a level-2 draft) and the capped entry mass', async () => {
+    await p7Setup('P7')
       .advance(P7_JOIN_TICK)
       .expect('dna', (view) => progressOf(view, 2)?.dnaCumulative)
       .atTick(P7_JOIN_TICK)
@@ -196,8 +196,8 @@ describe('PROGRESSION §7: entering the dish', () => {
       .runDeterministic();
   });
 
-  it('P8: a joiner inside the grace starts fresh', () => {
-    scenario('P8')
+  it('P8: a joiner inside the grace starts fresh', async () => {
+    await scenario('P8')
       .seed(PLACED_ROW_SEED)
       .players(2)
       .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, dnaCumulative: 120 })

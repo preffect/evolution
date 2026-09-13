@@ -25,6 +25,18 @@ each is checkable. An AI building a game from this template MUST follow every ru
      §3); import blocks are ignored; the offending file pairs are printed with line ranges;
    - runs the unit tier **with coverage thresholds** (`docs/TESTING.md` §5), so a drop below a
      package's floor fails `test`;
+   - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
+     package (its tests keep the package's coverage floor; typecheck still builds shared first);
+     `--scope <file or directory under packages/<package>/src>` runs only the tests that path
+     selects (a directory: the tests under it; a source file: the tests named after it) **without**
+     coverage floors, lints, formats and scans that path, and typechecks its package. No `--scope`
+     is the whole repo, exactly as before. `test` and `integration` print
+     `selected <package>: N test files, M tests`, and a targeted run (a path scope or
+     `-- extra-args`) that selects no test file **fails** (#289); a tier-wide run over a package
+     with no file in that tier still passes;
+   - runs `all` as lint → duplication → typecheck → test, each phase with its own exit code and
+     stamp, and ends with a `wall times:` line (run concurrently the phases measured no faster on
+     the shared container, #281);
    - **caches green results by content** (#224, template #75): a green run is stamped under
      `$HOME/.cache/<slug>-validate/<tree>.<command>` (fields: `exit`, ISO `time`, `log` path,
      `node` major, `command`, `tree`; the raw log under `logs/`), keyed by `git write-tree` of the
@@ -34,7 +46,8 @@ each is checkable. An AI building a game from this template MUST follow every ru
      same tree prints `cached green from <time> at tree <hash>` and the stored log path and exits
      0 in well under a second; the filters apply to the stored log. Red is never cached, `all`
      stamps each phase and itself, `--fresh` bypasses the stamp, and `-- extra-args` calls are
-     never cached. The stamp names the tree a reviewer cites (`docs/TEAM.md` review loop). Nothing
+     never cached. The scope is part of the stamp: a scoped green never answers an unscoped call,
+     nor the reverse. The stamp names the tree a reviewer cites (`docs/TEAM.md` review loop). Nothing
      prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
      rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
      sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **One real gate
@@ -44,9 +57,21 @@ each is checkable. An AI building a game from this template MUST follow every ru
      cache hit never waits; the lock fd is closed for the child so no orphaned worker keeps it.
      `VALIDATE_NO_GATE_LOCK=1` disables it for a sandboxed test; without `flock` it runs unlocked;
    - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.
-2. **After ANY task that modifies code, run `./validate.sh all` and make it green before
-   considering the work done.** Do not skip this step. Fix every failure before moving on.
-   This applies to direct work AND delegated work (teams, agents).
+2. **Who runs which gate** (#281). A full `all` costs minutes (§2.2), so it runs once, not on
+   every change. This applies to direct work AND delegated work (teams, agents).
+   - **Build loop:** scoped runs on what you touched — `./validate.sh test --scope <scope>` with a
+     package or a path, and `lint` / `typecheck` in the same scope. Fix every failure before moving on.
+   - **Pre-merge only:** the full `./validate.sh all` plus `./validate.sh integration`, once, by
+     the lead, on the head that merges. No work is done until both are green; never merge red.
+   - **Reviewers:** verify the gate by tree hash — cut a clean worktree at the pushed SHA (the hash
+     covers untracked files, so only a clean tree can match) and run `./validate.sh all` there:
+     `cached green from <time> at tree <hash>` matching the author's gate line proves that run
+     happened on this exact tree. Do not re-run the gate every round. A hit is the author's run, not
+     a second observation: a question about a flaky or load-dependent failure takes `--fresh`, and a
+     red tier is never cached, so it has nothing to match.
+   - **Long gates:** a real `all` or `integration` runs in the background (the agent's
+     `run_in_background`), with `set -o pipefail` before any pipe; the verdict is the command's own
+     exit code, never a `tail` of its output.
 3. **If `./validate.sh` does not support what you need** (a flag, a scope, an output mode),
    **STOP and extend the script (or prompt the user to)** — never route around it with a raw
    tool invocation.
@@ -60,8 +85,10 @@ each is checkable. An AI building a game from this template MUST follow every ru
 ./validate.sh typecheck    # type check all packages (rebuilds shared first)
 ./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
 ./validate.sh duplication  # jscpd (.jscpd.json)
-./validate.sh all          # lint -> duplication -> typecheck -> test; prints ALL PASSED / FAILED: <phases>
+./validate.sh all          # lint -> duplication -> typecheck -> test; prints wall times and ALL PASSED / FAILED: <phases>
 ./validate.sh all --fresh  # same, ignoring the result cache (a green run is still stamped)
+./validate.sh test --scope server                          # one package, with its coverage floor
+./validate.sh test --scope packages/server/src/game/world  # only the tests under a path, no coverage floor
 ```
 
 ---
@@ -98,15 +125,19 @@ The full bar — tiers, naming, builders, coverage floors, flaky-test policy —
 2. **Write an integration test when** the change wires two or more subsystems together and
    the value of the test is proving the wire (e.g. input → reduce → snapshot round-trip;
    lobby → room → broadcast; save → load → replay).
-3. **Keep `./validate.sh all` fast (target under ~20s)** so it can run on every save. Do NOT
-   dump slow or cross-subsystem setup into a `*.test.ts` to dodge writing an integration
-   test — **rename the file to `*.integration.test.ts` instead.**
+3. **Keep the unit tier lean.** A fresh `./validate.sh all` takes about five minutes on the
+   shared 4-core container (#281: 278 s at load 4, 298 s at load 7–8), three quarters of it `test`
+   and nearly all of that per-file startup (jsdom, TestBed, module collection), not test bodies.
+   That is why the build loop runs scoped (§1). Do NOT dump slow or cross-subsystem setup into a
+   `*.test.ts` to dodge writing an integration test — **rename the file to
+   `*.integration.test.ts` instead.**
 4. Integration tests are selected by each package's `test:integration` script
    (`RUN_INTEGRATION=1` for vitest via the shared `vitest.tiers.ts`; the client's
    `test-integration` target): the default `include` excludes `*.integration.*`, the
    integration run includes only them, with `passWithNoTests` so a package without any still
-   passes. Run them only at the **end of a task that may have caused a cross-subsystem
-   regression** — never on every save or pre-commit.
+   passes (a targeted run that selects nothing fails, §1). Run them only at the **end of a task
+   that may have caused a cross-subsystem regression**, scoped to what it touched, and once
+   pre-merge (§1) — never on every save or pre-commit.
 5. `./validate.sh integration` is that run (`pnpm -r --if-present test:integration`); never
    invoke vitest or `ng test` directly. The same run executes the gameplay scenarios
    (`*.gameplay.test.ts`, `TESTING.md` §8): they step a real module for thousands of ticks, which

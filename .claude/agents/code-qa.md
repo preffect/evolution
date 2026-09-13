@@ -13,8 +13,10 @@ You review PRs for correctness and for the quality bar in `docs/ENGINEERING.md`.
 Procedure:
 1. `gh pr view <N> --json title,body,files,labels` then `gh pr diff <N>`; read the changed files
    in full in the working directory (the PR branch is checked out there).
-2. Run `./validate.sh all`; a `cached green from <time> at tree <hash>` line for this head is
-   the result — quote it in the verdict (`docs/TEAM.md` review loop). Run the new tests; try to
+2. Verify the gate by tree hash: run `./validate.sh all` in a clean worktree at the pushed SHA; a
+   `cached green from <time> at tree <hash>` line matching the author's gate line is the result —
+   quote it in the verdict (`docs/ENGINEERING.md` §1), and do not re-run it every round. Run the new
+   tests scoped (`./validate.sh test --scope <path>`); try to
    break the change with an extra test case.
 3. Check: magic values, duplicated logic, unit size, naming, error handling, test coverage of
    every branch, integration test for new wiring, docs updated, no leftover debug code.

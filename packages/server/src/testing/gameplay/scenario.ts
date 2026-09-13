@@ -1,6 +1,6 @@
 // The scenario DSL (docs/TESTING.md §8): typed builders, no string parsing. A table row reads
 //
-//   scenario('E9: A absorbs B').seed(42).players(2)
+//   await scenario('E9: A absorbs B').seed(42).players(2)
 //     .placeCell({ playerIndex: 0, mass: 100 }).placeCell({ playerIndex: 1, mass: 20, eastOfFirstCellWu: 10 })
 //     .advance(30)
 //     .expect('A mass', (view) => massOf(view, 0)).atTick(30).toBeCloseTo(decayed(100, 30) + 16, 0.01)
@@ -213,13 +213,13 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
     return definition;
   }
 
-  /** Runs once; throws `ScenarioAssertionError` listing every failed expectation. */
-  run(): ScenarioRun<Snapshot, Fixture> {
+  /** Runs once; rejects with `ScenarioAssertionError` listing every failed expectation. */
+  async run(): Promise<ScenarioRun<Snapshot, Fixture>> {
     return runScenario(this.build(), this.adapter, this.runOptions);
   }
 
-  /** Runs twice; throws `ScenarioDivergenceError` at the first checkpoint the runs disagree on. */
-  runDeterministic(): ScenarioRun<Snapshot, Fixture> {
+  /** Runs twice; rejects with `ScenarioDivergenceError` at the first checkpoint the runs disagree on. */
+  async runDeterministic(): Promise<ScenarioRun<Snapshot, Fixture>> {
     return assertDeterministic(this.build(), this.adapter, this.runOptions);
   }
 

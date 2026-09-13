@@ -28,7 +28,9 @@
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
-./validate.sh all                     # run lint, duplication, typecheck, test in sequence
+./validate.sh all                     # lint, duplication, typecheck, test in sequence (pre-merge, once, by the lead)
+./validate.sh test --scope server     # build loop: one package (shared|server|client), coverage floor kept
+./validate.sh test --scope packages/server/src/game/world   # build loop: only that path's tests, no coverage floor
 
 # Output filters (work with any command):
 ./validate.sh test -t20               # show last 20 lines

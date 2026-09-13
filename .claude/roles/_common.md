@@ -15,7 +15,8 @@ range) and read only those ranges; read a whole document only when your task cha
    or `fix/<ticket>-<slug>`; the PR body contains `Closes #<ticket>` for each ticket it finishes.
 2. **Quality bar is `docs/ENGINEERING.md`** (no magic values, no duplicated logic, SOLID, small files
    and functions, full descriptive names, unit + integration tests, seeded randomness only).
-   `./validate.sh all` must be green before you commit; never commit red.
+   Iterate on scoped runs (`./validate.sh test --scope <package or path>`) and never commit red;
+   the full `./validate.sh all` plus `integration` runs once, pre-merge, by the lead (`docs/ENGINEERING.md` §1).
 3. **Board hygiene through scripts only:** `scripts/issue-status.sh <N> "In progress"` when you
    start, `"In review"` when your PR is open. Never edit anything in the GitHub UI.
 4. **Docs stay in sync** in the same PR (`docs/WORKFLOW.md` section 6).
@@ -24,10 +25,11 @@ range) and read only those ranges; read a whole document only when your task cha
    Reviewers: round one runs in parallel with the other reviewers on the same head and the author
    answers all of you in one fix round; a round-two review re-reads only the diff since your
    previous verdict (`git diff <r1-head>..<head>`) and the replies on your own threads — not the
-   whole PR, not the docs — and its verdict comment says `round 2 (diff-only)`; a green
-   `./validate.sh all` already posted for the head you review (the author's gate line in the PR
-   body, or the `cached green ... at tree <hash>` stamp) is cited, not re-run, unless you changed
-   files or the head moved. The lead resolves purely mechanical round-two threads itself
+   whole PR, not the docs — and its verdict comment says `round 2 (diff-only)`; the gate is
+   verified by tree hash, never re-run every round: run `./validate.sh all` in a clean worktree at
+   the pushed SHA and cite the `cached green ... at tree <hash>` line matching the author's gate
+   line (a hit is the author's run; a question about a flaky failure takes `--fresh`). The lead
+   resolves purely mechanical round-two threads itself
    (`docs/WORKFLOW.md` section 6).
 6. **Small, complete work.** Finish the task fully or say exactly what is left in the PR body.
    Do not widen scope; file a new ticket (`gh issue create`) for anything you discover instead.

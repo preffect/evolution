@@ -15,6 +15,7 @@ import {
 } from '@evolution/shared';
 import { GameRoom } from '../lobby/game-room.js';
 import { createManualRoomTiming, createTestRoomInitOptions } from '../testing/builders.js';
+import { yieldToEventLoop } from '../testing/event-loop.js';
 import { createEvolutionModule } from './evolution-module.js';
 
 const TOTAL_TICKS = 10_000;
@@ -57,30 +58,35 @@ function startRoom(seed: number) {
   return { room, hash, stepOne, stop: () => room.stop() };
 }
 
-/** Runs `ticks` ticks and returns the hash at every checkpoint (tick 0 included) and the final one. */
-function hashesOver(seed: number, ticks: number): StateHash[] {
+/**
+ * Runs `ticks` ticks and returns the hash at every checkpoint (tick 0 included) and the final one.
+ * Returns to the event loop after every ticker fire, as the live room does, so the two 10 000-tick
+ * runs never hold the test worker's thread past its RPC timeout (#262).
+ */
+async function hashesOver(seed: number, ticks: number): Promise<StateHash[]> {
   const { hash, stepOne, stop } = startRoom(seed);
   const hashes = [hash()];
   for (let tick = 1; tick <= ticks; tick += 1) {
     stepOne();
     if (tick % CHECKPOINT_EVERY_TICKS === 0 || tick === ticks) hashes.push(hash());
+    await yieldToEventLoop();
   }
   stop();
   return hashes;
 }
 
 describe('Evolution module determinism through the room loop', () => {
-  it('two rooms with one seed and one script hash equal at every 600 ticks and at 10 000', () => {
-    const first = hashesOver(SEED, TOTAL_TICKS);
-    const second = hashesOver(SEED, TOTAL_TICKS);
+  it('two rooms with one seed and one script hash equal at every 600 ticks and at 10 000', async () => {
+    const first = await hashesOver(SEED, TOTAL_TICKS);
+    const second = await hashesOver(SEED, TOTAL_TICKS);
     expect(first).toHaveLength(Math.floor(TOTAL_TICKS / CHECKPOINT_EVERY_TICKS) + 2);
     expect(second).toEqual(first);
     expect(new Set(first).size).toBe(first.length);
   });
 
-  it('a different seed diverges from the first checkpoint on', () => {
-    const first = hashesOver(SEED, CHECKPOINT_EVERY_TICKS);
-    const other = hashesOver(OTHER_SEED, CHECKPOINT_EVERY_TICKS);
+  it('a different seed diverges from the first checkpoint on', async () => {
+    const first = await hashesOver(SEED, CHECKPOINT_EVERY_TICKS);
+    const other = await hashesOver(OTHER_SEED, CHECKPOINT_EVERY_TICKS);
     expect(other[0]).not.toBe(first[0]);
     expect(other[1]).not.toBe(first[1]);
   });

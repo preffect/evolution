@@ -59,8 +59,8 @@ import {
 import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
 
 describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is #259)', () => {
-  it('E9: cover to tick 6, wrap to the seal on tick 18, absorb to the end of the engulf on tick 36', () => {
-    engulfPair('E9')
+  it('E9: cover to tick 6, wrap to the seal on tick 18, absorb to the end of the engulf on tick 36', async () => {
+    await engulfPair('E9')
       .advance(E9_PAYOUT_TICK)
       .expect('claimed on tick 1', (view) => statesOfPrey(view))
       .atTick(1)
@@ -121,8 +121,8 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .runDeterministic();
   });
 
-  it('E10: 24 against 20 never starts, 26 against 20 seals on tick 35', () => {
-    engulfPair('E10 under the ratio', E10_UNDER_RATIO_MASS)
+  it('E10: 24 against 20 never starts, 26 against 20 seals on tick 35', async () => {
+    await engulfPair('E10 under the ratio', E10_UNDER_RATIO_MASS)
       .advance(120)
       .expect('never engulfed', (view) => statesOfPrey(view))
       .atEnd()
@@ -132,7 +132,7 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .toBeGreaterThan(CENTRE_DISTANCE_WU * SEPARATED_FACTOR)
       .runDeterministic();
 
-    engulfPair('E10 over the ratio', E10_OVER_RATIO_MASS)
+    await engulfPair('E10 over the ratio', E10_OVER_RATIO_MASS)
       .advance(E10_PAYOUT_TICK)
       .expect('cover ends on tick 12', progressOfPrey)
       .atTick(12)
@@ -158,8 +158,8 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .runDeterministic();
   });
 
-  it('E9b: a predator steering away drags its cover, and the speed cap changes at the seal', () => {
-    engulfPair('E9b')
+  it('E9b: a predator steering away drags its cover, and the speed cap changes at the seal', async () => {
+    await engulfPair('E9b')
       .from(1, player(0).does(awayFromPrey))
       .advance(E9_PAYOUT_TICK)
       .expect('cover ends at the wrap band on tick 6', progressOfPrey)
@@ -200,11 +200,11 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .runDeterministic();
   });
 
-  it('E13: the results phase aborts an engulf in progress, with no payout', () => {
+  it('E13: the results phase aborts an engulf in progress, with no payout', async () => {
     // The row places "A engulfing B at progress 0.5": the pair is apart all round and only meets
     // `E9_SEAL_TICK` ticks before the results tick, so the seal lands the tick before it (#259: a
     // pair left in contact from tick 1 would have paid out and respawned long before the round ends).
-    scenario('E13')
+    await scenario('E13')
       .seed(PLACED_ROW_SEED)
       .players(2)
       .config({ roundDurationSeconds: SHORT_ROUND_SECONDS })
@@ -237,8 +237,8 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .runDeterministic();
   });
 
-  it('E16: the engulf holds between the release and the required ratio, then releases on the ratio', () => {
-    engulfPair('E16', E16_START_MASS)
+  it('E16: the engulf holds between the release and the required ratio, then releases on the ratio', async () => {
+    await engulfPair('E16', E16_START_MASS)
       .atTick(10)
       .placeCell({ playerIndex: 0, mass: E16_HELD_MASS, at: ZONE.broth })
       .atTick(20)
@@ -262,8 +262,8 @@ describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is
       .runDeterministic();
   });
 
-  it('E16b: a sealed prey released on the ratio reappears at its carried offset', () => {
-    engulfPair('E16b', E16_START_MASS)
+  it('E16b: a sealed prey released on the ratio reappears at its carried offset', async () => {
+    await engulfPair('E16b', E16_START_MASS)
       .atTick(10)
       .placeCell({ playerIndex: 0, mass: E16_HELD_MASS, at: ZONE.broth })
       .atTick(40)
