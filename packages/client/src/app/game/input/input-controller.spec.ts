@@ -25,6 +25,7 @@ function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
     world: worldOverrides === null ? null : worldWith(worldOverrides),
   };
   const onMenuKey = vi.fn();
+  const onFullLeaderboardHeldChanged = vi.fn();
   const controller = new InputController({
     clock,
     send: (input) => sent.push(input),
@@ -33,13 +34,14 @@ function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
     projectPointer: (point) => ({ worldPoint: { ...point }, offsetFromViewCentre: { ...point } }),
     world: () => state.world,
     onMenuKey,
+    onFullLeaderboardHeldChanged,
   });
   /** Moves the clock one client tick and runs one animation frame. */
   const tick = (ticks = 1): void => {
     clock.advanceMilliseconds(TICK_INTERVAL_MS * ticks);
     controller.pump();
   };
-  return { clock, sent, state, controller, onMenuKey, tick };
+  return { clock, sent, state, controller, onMenuKey, onFullLeaderboardHeldChanged, tick };
 }
 
 describe('the input controller', () => {
@@ -166,8 +168,28 @@ describe('the input controller', () => {
     expect(harness.controller.isFullLeaderboardHeld()).toBe(false);
     harness.controller.apply({ kind: INPUT_ACTION.holdFullLeaderboard });
     expect(harness.controller.isFullLeaderboardHeld()).toBe(true);
+    expect(harness.onFullLeaderboardHeldChanged).toHaveBeenLastCalledWith(true);
     harness.controller.apply({ kind: INPUT_ACTION.releaseFullLeaderboard });
     expect(harness.controller.isFullLeaderboardHeld()).toBe(false);
+    expect(harness.onFullLeaderboardHeldChanged).toHaveBeenLastCalledWith(false);
+    expect(harness.sent).toEqual([]);
+  });
+
+  it('reports the Tab hold only when it changes, so the HUD is not rewritten on every repeat', () => {
+    const harness = createHarness();
+    harness.controller.apply({ kind: INPUT_ACTION.holdFullLeaderboard });
+    harness.controller.apply({ kind: INPUT_ACTION.holdFullLeaderboard });
+    harness.controller.apply({ kind: INPUT_ACTION.releaseFullLeaderboard });
+    harness.controller.apply({ kind: INPUT_ACTION.releaseFullLeaderboard });
+    expect(harness.onFullLeaderboardHeldChanged.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('closes the full leaderboard when the window loses focus with Tab still down', () => {
+    const harness = createHarness();
+    harness.controller.apply({ kind: INPUT_ACTION.holdFullLeaderboard });
+    harness.controller.releaseAllKeys();
+    expect(harness.controller.isFullLeaderboardHeld()).toBe(false);
+    expect(harness.onFullLeaderboardHeldChanged).toHaveBeenLastCalledWith(false);
   });
 
   it('hands Escape to its handler', () => {

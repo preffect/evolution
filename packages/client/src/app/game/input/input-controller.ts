@@ -41,6 +41,12 @@ export interface InputControllerDependencies {
   readonly world: () => InputWorldContext | null;
   /** Escape: the HUD closes the topmost overlay or opens the menu (docs/UI.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /**
+   * Tab pressed or released (docs/UI.md §4): the HUD opens the full leaderboard while it is held.
+   * Reported rather than polled, and only on a change, so the one keyboard listener of #184 stays
+   * the only one on the document and the HUD adds no second handler for the same key.
+   */
+  readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 
 /** What the dev-only debug hook reports about the input layer (docs/TESTING.md §8.3). */
@@ -81,18 +87,31 @@ export class InputController {
     }
     if (action.kind === INPUT_ACTION.pickCard) {
       const pick = traitPickFor(action.cardIndex, this.dependencies.world()?.offer ?? null);
-      if (pick !== null) this.state = withPickQueued(this.state, pick);
+      if (pick !== null) this.setState(withPickQueued(this.state, pick));
       return;
     }
-    this.state = withAction(this.state, action);
+    this.setState(withAction(this.state, action));
+  }
+
+  /**
+   * The one write to `state`, and the only one: every transition in this class goes through here,
+   * so the Tab hold is reported exactly when it changes and a future `with*` helper that clears it
+   * cannot silently stop reporting it.
+   */
+  private setState(next: InputState): void {
+    const wasHeld = this.state.isFullLeaderboardHeld;
+    this.state = next;
+    if (next.isFullLeaderboardHeld !== wasHeld) {
+      this.dependencies.onFullLeaderboardHeldChanged?.(next.isFullLeaderboardHeld);
+    }
   }
 
   pointerMovedTo(point: CanvasPoint): void {
-    this.state = withPointerAt(this.state, point);
+    this.setState(withPointerAt(this.state, point));
   }
 
   releaseAllKeys(): void {
-    this.state = withAllKeysReleased(this.state);
+    this.setState(withAllKeysReleased(this.state));
   }
 
   /** Tab held (docs/UI.md §4): the HUD opens the full leaderboard while this is true. */
@@ -120,12 +139,12 @@ export class InputController {
   pump(): void {
     const world = this.dependencies.world();
     if (world === null) {
-      this.state = withPendingPressesDropped(this.state);
+      this.setState(withPendingPressesDropped(this.state));
       this.accumulator.discardElapsed();
       return;
     }
     if (this.state.queuedPick !== null && traitPickStatus(this.state.queuedPick, world) === TRAIT_PICK_STATUS.discard) {
-      this.state = withPickDropped(this.state);
+      this.setState(withPickDropped(this.state));
     }
     const dueTicks = this.accumulator.dueTicks();
     // One projection for the whole frame: the camera does not move between the ticks it owes.
@@ -144,8 +163,8 @@ export class InputController {
     // empty, while our own counter is always ahead of anything we have sent.
     this.sequence = Math.max(this.sequence, world.appliedInputSequence) + 1;
     const input = buildGameInput({ state: this.state, sequence: this.sequence, world, pointer });
-    this.state = withSprintTaken(this.state);
-    if (input.traitChoice !== null) this.state = withPickSent(this.state, this.sequence);
+    this.setState(withSprintTaken(this.state));
+    if (input.traitChoice !== null) this.setState(withPickSent(this.state, this.sequence));
     this.lastSentInputValue = input;
     this.dependencies.send(input);
   }

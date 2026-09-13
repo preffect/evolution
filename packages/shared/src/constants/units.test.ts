@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, MILLISECONDS_PER_SECOND } from './units.js';
+import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, MILLISECONDS_PER_SECOND, SECONDS_PER_MINUTE } from './units.js';
 
 describe('unit factors', () => {
   it('derives the mebibyte from the kibibyte', () => {
@@ -8,5 +8,9 @@ describe('unit factors', () => {
 
   it('keeps the SI second', () => {
     expect(MILLISECONDS_PER_SECOND).toBe(1000);
+  });
+
+  it('keeps the minute the HUD clock formats against', () => {
+    expect(SECONDS_PER_MINUTE).toBe(60);
   });
 });

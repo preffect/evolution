@@ -6,8 +6,9 @@
 import type { Observable } from 'rxjs';
 import type { Clock, GameInput, ServerMessage, TraitId } from '@evolution/shared';
 import type { AudioHooksHandle } from './audio/audio-hooks';
+import { definedEntriesOf } from './defined-entries';
 import { installEvolutionDebug, type EvolutionDebugHost } from './debug/evolution-debug';
-import { attachInput } from './input/attach-input';
+import { attachInput, type AttachInputOptions } from './input/attach-input';
 import type { InputController } from './input/input-controller';
 import { NO_RETICLE, type RenderInputs } from './render/game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './render/pixi-app';
@@ -40,6 +41,8 @@ export interface GameSetupDependencies {
   readonly isReticleVisible: () => boolean;
   /** Escape, handed to the HUD's overlay state (docs/UI.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /** Tab held / released, handed to the HUD's overlay state (docs/UI.md §3.1.1, §4, #185). */
+  readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 
 /** Teardown handle returned by `setupGame`. */
@@ -53,6 +56,14 @@ export type GameTeardown = () => void;
 function reticleFor(isVisible: boolean, controller: InputController | null): RenderInputs['reticle'] {
   const point = controller?.pointerWorldPoint() ?? null;
   return point === null ? NO_RETICLE : { isVisible, x: point.x, y: point.y };
+}
+
+/** The optional HUD handlers, as a spreadable record; an absent one is an absent key. */
+function hudHandlersOf(dependencies: GameSetupDependencies): Partial<AttachInputOptions> {
+  return definedEntriesOf({
+    onMenuKey: dependencies.onMenuKey,
+    onFullLeaderboardHeldChanged: dependencies.onFullLeaderboardHeldChanged,
+  });
 }
 
 export function setupGame(options: GameSetupOptions, dependencies: GameSetupDependencies): GameTeardown {
@@ -79,7 +90,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     send: options.send,
     store: session.store,
     projectPointer: (point) => session.projectPointer(point),
-    ...(dependencies.onMenuKey === undefined ? {} : { onMenuKey: dependencies.onMenuKey }),
+    ...hudHandlersOf(dependencies),
   });
   controller = input.controller;
   session.setAnimationFrameListener(() => input.controller.pump());

@@ -13,6 +13,7 @@ import {
 } from '@evolution/shared';
 import type { GameSessionConfig } from '@evolution/shared';
 import { GameHostComponent } from './game/game-host.component';
+import { HudComponent } from './game/hud/hud.component';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { MultiplayerService } from './services/multiplayer.service';
@@ -22,14 +23,14 @@ import { MultiplayerService } from './services/multiplayer.service';
  *
  * It exercises the full multiplayer plumbing — connect, join lobby, create /
  * join / start a game — without implementing any specific game. Once the room is in play the
- * game host (`game/game-host.component.ts`) is the only thing rendered and fills the viewport
- * (#217, docs/UI.md §1); the create form of docs/UI.md §2 replaces this stub (#185). A dev build
+ * game host (`game/game-host.component.ts`) fills the viewport with the HUD overlay
+ * (`game/hud/hud.component.ts`) over it (#217, #185, docs/UI.md §1). A dev build
  * opened with `?bench` renders the fixed-seed bench route instead (docs/RENDERING.md §7).
  */
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, GameHostComponent, RenderBenchComponent],
+  imports: [FormsModule, GameHostComponent, HudComponent, RenderBenchComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/UI.md §1).

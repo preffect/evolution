@@ -64,6 +64,8 @@ function gameState(): ServerMessage {
 interface Harness {
   readonly host: HTMLElement;
   readonly sent: GameInput[];
+  /** Every Tab hold / release the HUD would have been handed (docs/UI.md §3.1.1, #185). */
+  readonly fullLeaderboardHolds: boolean[];
   readonly debugHost: EvolutionDebugHost;
   readonly pixi: ReturnType<typeof createFakePixiApp>;
   frame(): void;
@@ -77,6 +79,7 @@ async function startGame(): Promise<Harness> {
   const messages$ = new Subject<ServerMessage>();
   const pixi = createFakePixiApp({ width: HOST_BOX.width, height: HOST_BOX.height });
   const debugHost: EvolutionDebugHost = {};
+  const fullLeaderboardHolds: boolean[] = [];
   const audio = {
     ready: Promise.resolve(),
     observe: vi.fn(),
@@ -95,6 +98,7 @@ async function startGame(): Promise<Harness> {
       isDevMode: true,
       previewTraitId: () => null,
       isReticleVisible: () => true,
+      onFullLeaderboardHeldChanged: (isHeld) => fullLeaderboardHolds.push(isHeld),
     },
   );
   messages$.next(gameState());
@@ -102,6 +106,7 @@ async function startGame(): Promise<Harness> {
   return {
     host,
     sent,
+    fullLeaderboardHolds,
     debugHost,
     pixi,
     frame: () => {
@@ -164,6 +169,25 @@ describe('the wired input path', () => {
       menuKeyPressCount: 1,
     });
     harness.teardown();
+  });
+
+  it('hands the Tab hold and its release to the HUD, from the one keyboard listener (#185)', async () => {
+    const harness = await startGame();
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Tab', bubbles: true, cancelable: true }));
+    expect(harness.fullLeaderboardHolds).toEqual([true]);
+    document.dispatchEvent(new KeyboardEvent('keyup', { code: 'Tab', bubbles: true, cancelable: true }));
+    expect(harness.fullLeaderboardHolds).toEqual([true, false]);
+    harness.teardown();
+  });
+
+  it('releases a held Tab when the game is torn down, so the next room does not open expanded', async () => {
+    const harness = await startGame();
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Tab', bubbles: true, cancelable: true }));
+    expect(harness.fullLeaderboardHolds).toEqual([true]);
+    // No keyup: the room ends with the key still down, which teardown has to answer for, since the
+    // HUD state outlives these components and nothing is left to report the release (docs/UI.md §3.1.1).
+    harness.teardown();
+    expect(harness.fullLeaderboardHolds).toEqual([true, false]);
   });
 
   it('stops sending once the game is torn down', async () => {

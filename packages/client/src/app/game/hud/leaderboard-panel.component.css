@@ -1,0 +1,189 @@
+/* The leaderboard panel's stylesheet (docs/UI.md §3.1.1).
+   The chrome sizes §3.1.1 owns — the panel widths, the header, row and label-strip heights, the
+   column tracks, the swatch, the durations, the type roles and the colour roles — all arrive as
+   `--hud-…` custom properties the shell publishes from the constants (`format/hud-css-variables.ts`),
+   so none of them has a second home here. The `0`s, the `100%`s and the one- and two-pixel borders
+   and focus ring below are this stylesheet's own and are not a restatement of anything.
+
+   The column tracks are **fixed**, never `auto`: `.row` and `.column-labels` are two grid
+   containers, grid tracks are per-container, and an `auto` track would be sized by each one's own
+   content. The label strip has nothing in columns 1-4, so its `auto`s would collapse and every
+   numeric boundary would shift off the numbers it names. Fixed tracks resolve identically in both. */
+
+:host {
+  position: absolute;
+  top: calc(var(--hud-margin) * var(--hud-scale));
+  right: calc(var(--hud-margin) * var(--hud-scale));
+}
+
+.leaderboard {
+  box-sizing: border-box;
+  width: calc(var(--hud-leaderboard-width) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-height) * var(--hud-scale));
+  border: 1px solid var(--hud-panel-rim);
+  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--hud-scale));
+  background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
+  overflow: hidden;
+  transition: width var(--hud-leaderboard-expand-duration) ease-out;
+}
+
+.leaderboard.full {
+  width: calc(var(--hud-leaderboard-full-width) * var(--hud-scale));
+}
+
+/* The header is the one part of the chrome a pointer can reach (docs/UI.md §4). */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--hud-leaderboard-header-height) * var(--hud-scale));
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
+  border: 0;
+  border-bottom: 1px solid var(--hud-panel-rim);
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  font-family: var(--hud-font-sans);
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+}
+
+.header:focus-visible {
+  outline: 2px solid var(--hud-text);
+  outline-offset: -2px;
+}
+
+.header-title {
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  color: var(--hud-text-label);
+}
+
+.header-hint {
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  color: var(--hud-text-muted);
+}
+
+/* The one column geometry. Both grids below are laid out from it, so they cannot drift apart. */
+.column-labels,
+.row {
+  display: grid;
+  grid-template-columns:
+    calc(var(--hud-leaderboard-rank-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
+    1fr
+    calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
+  align-items: center;
+  gap: calc(var(--hud-leaderboard-column-gap) * var(--hud-scale));
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
+}
+
+.leaderboard.full .column-labels,
+.leaderboard.full .row {
+  grid-template-columns:
+    calc(var(--hud-leaderboard-rank-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
+    1fr
+    calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
+}
+
+/* The full list's numeric columns carry no unit, so they are named (docs/UI.md §3.1.1). Each label
+   is placed in its own track rather than auto-flowed, so none can slide onto its neighbour. */
+.column-labels {
+  height: calc(var(--hud-leaderboard-label-row-height) * var(--hud-scale));
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-text-muted);
+  text-align: right;
+}
+
+.column-labels .label-score {
+  grid-column: 5;
+}
+
+.column-labels .label-mass {
+  grid-column: 6;
+}
+
+.column-labels .label-absorptions {
+  grid-column: 7;
+}
+
+.rows {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The slot, not the document order, places a row: a re-sort then slides (docs/UI.md §3.1.1). */
+.row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateY(calc(var(--hud-leaderboard-row-height) * var(--hud-scale) * var(--hud-row-slot)));
+  height: calc(var(--hud-leaderboard-row-height) * var(--hud-scale));
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-body) * var(--hud-scale));
+  color: var(--hud-text);
+  transition: transform var(--hud-row-slide-duration) ease-out;
+}
+
+/* §3.1.1 puts rank, name, level and score at `body`; the numbers take `figure`, which is `body`'s
+   size in the mono face (docs/VISUAL-STYLE.md §7), so the digits are tabular and do not jitter. */
+.row .rank,
+.row .level {
+  color: var(--hud-text-label);
+}
+
+.row .name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row .level {
+  text-align: right;
+}
+
+.row .score,
+.row .mass,
+.row .absorptions {
+  font-family: var(--hud-font-figure);
+  font-size: calc(var(--hud-type-figure) * var(--hud-scale));
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.row .mass,
+.row .absorptions {
+  color: var(--hud-text-label);
+}
+
+.swatch {
+  width: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
+  /* The beads sit on the disc's outline and are wider than it, so they paint outside the viewBox. */
+  overflow: visible;
+}
+
+/* The seat-mark bead core is the one white (docs/VISUAL-STYLE.md §2). */
+.bead {
+  fill: var(--hud-white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard,
+  .row {
+    transition: none;
+  }
+}

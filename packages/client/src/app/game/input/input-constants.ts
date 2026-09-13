@@ -4,6 +4,7 @@
 // live `game_state.balance`; nothing here is a copy of one.
 
 import { TRAIT_DRAFT_SIZE, type Vec2 } from '@evolution/shared';
+import { HUD_TEST_ID } from '../hud/test-ids';
 
 /** The four steer directions (docs/GAME-DESIGN.md §6), in a fixed order so a test can walk them. */
 export const STEER_DIRECTIONS = ['up', 'down', 'left', 'right'] as const;
@@ -38,12 +39,14 @@ export const TRAIT_CARD_KEY_CODES: readonly string[] = Array.from(
 /** Focus in one of these swallows every hotkey: a player typing is not steering (docs/UI.md §4). */
 export const TEXT_ENTRY_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
 
+// The three overlay ids the hotkey rules query. They are the HUD's, so they are read from
+// `hud/test-ids.ts` (docs/UI.md §7) rather than spelled a second time here.
 /** The trait picker's container: Space with focus inside it picks and never sprints (docs/UI.md §3.2, §4). */
-export const TRAIT_OFFER_TEST_ID = 'trait-offer';
+export const TRAIT_OFFER_TEST_ID = HUD_TEST_ID.traitOffer;
 /** The Escape menu's panel (docs/UI.md §3.5): while it is open only the trait keys and Escape act. */
-export const MENU_OVERLAY_TEST_ID = 'menu-overlay';
+export const MENU_OVERLAY_TEST_ID = HUD_TEST_ID.menuOverlay;
 /** The results panel (docs/UI.md §3.4). */
-export const RESULTS_OVERLAY_TEST_ID = 'results-overlay';
+export const RESULTS_OVERLAY_TEST_ID = HUD_TEST_ID.resultsOverlay;
 
 /** Overlays with focusable controls: Tab stays native while one of them is open (docs/UI.md §4). */
 export const FOCUSABLE_OVERLAY_TEST_IDS: readonly string[] = [
@@ -57,8 +60,3 @@ export const PRIMARY_POINTER_BUTTON = 0;
 
 /** The dish centre: where a target points before there is an own cell or a camera to read. */
 export const DISH_CENTRE_POINT: Vec2 = { x: 0, y: 0 };
-
-/** `[data-testid="…"]`, the one place the attribute name is spelled. */
-export function testIdSelector(testId: string): string {
-  return `[data-testid="${testId}"]`;
-}

@@ -332,17 +332,18 @@ other than type, and `HUD_PLAYER_EXCLUSION_PX`.** Type is a system stack, no web
 `"JetBrains Mono", ui-monospace, monospace` for numbers that change (mass, timer, DNA %), so digits do
 not jitter. The type scale (`UI_TYPE_*`, px at HUD scale 1):
 
-| Role        | px  | Face | Used for                                             |
-| ----------- | --- | ---- | ---------------------------------------------------- |
-| `number`    | 28  | mono | level number, mass value                             |
-| `headline`  | 26  | sans | results winner line                                  |
-| `clock`     | 24  | mono | round timer                                          |
-| `value`     | 20  | mono | secondary numbers (DNA count, sprint meter, scores)  |
-| `title`     | 22  | sans | overlay titles (respawn, menu)                       |
-| `card_name` | 16  | sans | trait card name                                      |
-| `body`      | 14  | sans | body text, hint pill                                 |
-| `label`     | 12  | sans | labels, uppercase tracked 0.08 em; the reading floor |
-| `caption`   | 11  | sans | key hints, muted captions; never carries a fact      |
+| Role        | px  | Face | Used for                                                                                                                                                                                                                                               |
+| ----------- | --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `number`    | 28  | mono | level number, mass value                                                                                                                                                                                                                               |
+| `headline`  | 26  | sans | results winner line                                                                                                                                                                                                                                    |
+| `clock`     | 24  | mono | round timer                                                                                                                                                                                                                                            |
+| `value`     | 20  | mono | secondary numbers (DNA count, sprint meter, scores)                                                                                                                                                                                                    |
+| `title`     | 22  | sans | overlay titles (respawn, menu)                                                                                                                                                                                                                         |
+| `card_name` | 16  | sans | trait card name                                                                                                                                                                                                                                        |
+| `body`      | 14  | sans | body text, hint pill                                                                                                                                                                                                                                   |
+| `figure`    | 14  | mono | `body`'s size in the mono face: a changing number inside a dense row — the leaderboard's score, mass and absorptions columns (`UI.md` §3.1.1), which need `body`'s weight and tabular digits at a 24 px row height, where `value`'s 28 px does not fit |
+| `label`     | 12  | sans | labels, uppercase tracked 0.08 em; the reading floor                                                                                                                                                                                                   |
+| `caption`   | 11  | sans | key hints, muted captions; never carries a fact                                                                                                                                                                                                        |
 
 Colour roles: the own row
 on the leaderboard is tinted with the player's own rim colour @12 %; a player swatch is the palette base

@@ -1,7 +1,7 @@
 // The eight player palettes and their derived shades (docs/VISUAL-STYLE.md §2; sheet 01's HSL rule),
 // packed into the 8 × 8 palette texture the cell shader reads (docs/RENDERING.md §2.3).
 
-import { PLAYER_PALETTE_COUNT } from '@evolution/shared';
+import { PLAYER_PALETTE_COUNT, wrapAvatarIndex } from '@evolution/shared';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS, hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from './colour';
 import { CHLORO_BASE, PALETTE_SHADE_COUNT, PLAYER_PALETTE_TABLE, type PlayerPaletteRow } from './constants';
 
@@ -61,7 +61,7 @@ export function newPaletteAccents(base: string): { rim: string; nucleus: string 
 export const PLAYER_PALETTES: readonly PlayerPalette[] = PLAYER_PALETTE_TABLE.map(derivePalette);
 
 export function paletteFor(avatarIndex: number): PlayerPalette {
-  return PLAYER_PALETTES[((avatarIndex % PLAYER_PALETTE_COUNT) + PLAYER_PALETTE_COUNT) % PLAYER_PALETTE_COUNT]!;
+  return PLAYER_PALETTES[wrapAvatarIndex(avatarIndex)]!;
 }
 
 /** The shades of one palette in `PALETTE_SHADE` column order. */
