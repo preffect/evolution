@@ -561,7 +561,7 @@ hardware run of the same route, with the machine's load stated.
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  constants.ts  palette.ts  colour.ts  geometry.ts  light-direction.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  instanced-quad.ts  constants.ts  palette.ts  colour.ts  geometry.ts  light-direction.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index; instanced-quad: the unit quad with an instance index the cell mesh and the arc mesh draw)
 constants/{colours,cell-shape,organelles,world-render,vent}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×16 RGBA jitter / lobes strip (16-bit pairs, derivatives from the lerp), from the cosmetic fork (#206)
 textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`BakeContext2D`, the DOM factory, the fill / stroke / halo / glint primitives), the feathered ellipse and soft stroke that stand in for the sheets' blurs, and the one place a bake or a byte table becomes a Pixi texture (#206)

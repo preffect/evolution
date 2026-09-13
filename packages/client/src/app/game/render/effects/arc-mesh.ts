@@ -5,7 +5,8 @@
 // its container and calls `draw` once per frame.
 
 import { Geometry, GlProgram, Mesh, Shader, State, UniformGroup, type TextureSource } from 'pixi.js';
-import { ARC_INSTANCE_CAPACITY, ARC_INSTANCE_TEXELS, CELL_QUAD_INDICES, CELL_QUAD_POSITIONS } from '../constants';
+import { ARC_INSTANCE_CAPACITY, ARC_INSTANCE_TEXELS } from '../constants';
+import { createInstancedQuadGeometry } from '../instanced-quad';
 import { floatDataTexture } from '../textures/pixi-textures';
 import { ARC_INSTANCE_FLOATS, packArcInstances, type ArcInstance } from './arc-instance';
 import { ARC_FRAGMENT_SOURCE, ARC_UNIFORM, ARC_UNIFORM_GROUP, ARC_VERTEX_SOURCE } from './arc-shader';
@@ -24,15 +25,7 @@ export class ArcMesh {
   constructor(readonly capacity: number = ARC_INSTANCE_CAPACITY) {
     this.instances = new Float32Array(capacity * ARC_INSTANCE_FLOATS);
     this.instanceSource = floatDataTexture(this.instances, ARC_INSTANCE_TEXELS, capacity);
-    const indices = Float32Array.from({ length: capacity }, (_unused, index) => index);
-    this.geometry = new Geometry({
-      attributes: {
-        aPosition: { buffer: new Float32Array(CELL_QUAD_POSITIONS), format: 'float32x2' },
-        aInstanceIndex: { buffer: indices, format: 'float32', instance: true },
-      },
-      indexBuffer: new Uint16Array(CELL_QUAD_INDICES),
-      instanceCount: 0,
-    });
+    this.geometry = createInstancedQuadGeometry(capacity);
     this.uniforms = new UniformGroup({ [ARC_UNIFORM.zoom]: { value: REST_ZOOM, type: FLOAT_TYPE } });
     const shader = new Shader({
       glProgram: new GlProgram({ vertex: ARC_VERTEX_SOURCE, fragment: ARC_FRAGMENT_SOURCE }),
