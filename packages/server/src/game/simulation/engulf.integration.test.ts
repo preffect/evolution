@@ -12,7 +12,6 @@ import {
   EFFECT_KIND,
   ENGULF_RELEASE_REASON,
   PLAYER_LIFE_STATE,
-  SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_MS,
   createTestGameInput,
   createTestSessionConfig,
@@ -32,6 +31,7 @@ import {
   createTestRoomInitOptions,
   type SentLog,
 } from '../../testing/builders.js';
+import { broadcastTickAtOrAfter } from '../../testing/cadence-builders.js';
 import { createEvolutionModule } from '../evolution-module.js';
 import { decayed } from '../../testing/scenarios/shared-setups.js';
 
@@ -169,11 +169,6 @@ function runToTick(room: DrivenRoom, throughTick: number): GameSnapshot {
     room.stepOne();
   }
   return room.snapshot();
-}
-
-/** The first tick at or after `tick` on which the room broadcasts (docs/ARCHITECTURE.md §1). */
-function broadcastTickAtOrAfter(tick: number): number {
-  return Math.ceil(tick / SNAPSHOT_EVERY_TICKS) * SNAPSHOT_EVERY_TICKS;
 }
 
 /**

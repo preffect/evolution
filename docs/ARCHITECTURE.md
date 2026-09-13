@@ -396,12 +396,13 @@ export interface FoodDelta {
   divergence that grows for as long as the room runs. So:
   - the client sends **`snapshot_ack { tick }`** — the newest tick it has applied — on every
     `game_state` and every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas (`net/snapshot-acknowledger.ts`).
-    That count is derived from a duration, `SNAPSHOT_ACK_INTERVAL_MS` = 100, and not fixed
-    (#277 item 3, landed with #214): the room measures the queue in ticks, so a fixed count of
-    snapshots moves the floor of that measurement every time `SNAPSHOT_EVERY_TICKS` moves, and one
-    lever eats the other's headroom. Against the same 60-tick limit, a fixed 5 snapshots is 5 ticks
-    at 60 Hz, 15 at 20 Hz and 20 at 15 Hz; derived, it is 6, 6 and 4. It rounds **down**, so the gap
-    is never longer than the interval at a cadence that does not divide it;
+    That count is derived from a tick budget, `SNAPSHOT_ACK_INTERVAL_TICKS` = `TICK_HZ / 10` = 6,
+    and not fixed (#277 item 3, landed with #214): the room measures the queue in ticks, so a fixed
+    count of snapshots moves the floor of that measurement every time `SNAPSHOT_EVERY_TICKS` moves,
+    and one lever eats the other's headroom. Against the same 60-tick limit, a fixed 5 snapshots is
+    5 ticks at 60 Hz, 15 at 20 Hz and 20 at 15 Hz; derived, it is 6, 6 and 4. A budget in ticks
+    rather than milliseconds keeps the division exact integer arithmetic at every cadence, and it
+    rounds **down**, so the gap is never longer than the budget at a cadence that does not divide it;
   - the room subtracts it from the newest tick it sent that client. That difference is the depth of
     the queue between them **wherever the queue actually sits** — the room's socket, a dev proxy,
     the kernel, or the browser's own event loop — which is why the measurement is end-to-end and
@@ -489,8 +490,8 @@ before #214 landed and what made a remote client run out of memory (#238).
   Two intervals is 6 ticks at the landed cadence, so the world is drawn **100 ms** behind the newest
   snapshot rather than the 33 ms it was while the room broadcast every tick (#214). That is the
   cadence's one cost on the client: an effect fires when the render tick reaches its tick, so it
-  fires 100 ms after the moment it marks. Nothing is dropped for it — `pendingEffects` holds every
-  effect until a frame reaches it, which is the unbounded growth #238 owns.
+  fires 100 ms after the moment it marks. What a frame can no longer reach is dropped rather than
+  queued; the two bullets below own that rule and the deadline it puts on the client.
 - **Prediction: one input per tick.** The client's input controller (`input/input-controller.ts`, #184)
   runs its own tick counter at `TICK_HZ` and sends exactly one `GameInput` per client tick with
   `sequence` = client tick; the ticks come from the injected clock through a `FixedStepAccumulator`
@@ -519,6 +520,54 @@ before #214 landed and what made a remote client run out of memory (#238).
   as it arrives; the frame loop only reads (`nextFrame()`, which also releases the effects due),
   so a frame hitch or a background tab never loses a spawn, a removal or an effect. Nothing
   coalesces snapshots.
+- **Nothing on the ingest path grows without bound.** A client can ingest far faster than it draws,
+  and a background tab draws nothing at all while its socket keeps delivering. #274's flow control
+  does not reach this case: the acknowledgement is sent from `RenderSession.onMessage`, on ingest, so
+  a client that ingests fine and draws slowly acknowledges promptly, the room measures a shallow
+  queue and keeps streaming. Every structure a snapshot feeds is therefore bounded by construction
+  and not by the frame rate: `SnapshotBuffer` by `SNAPSHOT_BUFFER_SIZE`, `FoodStore` by the motes
+  alive in the world, and `WorldStore.pendingEffects` by the rule below. This does not weaken the
+  arrival rule above — a snapshot is still never dropped or merged, only what a frame can still use
+  is kept.
+- **Effects older than the buffer are dropped, not queued.** An effect waits in `pendingEffects`
+  until the render tick reaches its tick. `renderTickFor` never answers before the oldest buffered
+  snapshot, so an effect older than that has been overtaken; `applySnapshot` drops those on arrival.
+  Measured: 8 000 snapshots ingested with no frame drawn retained 8 000 effects before this rule and
+  4 after.
+- **The window, and the deadline it puts on the client.** _A client that draws at least one frame
+  every `EFFECT_DRAW_WINDOW_TICKS` sees every effect; one that draws slower misses some, and a missed
+  effect is never drawn rather than drawn late._ The window is `(SNAPSHOT_BUFFER_SIZE − 1) ×
+SNAPSHOT_EVERY_TICKS − INTERPOLATION_DELAY_TICKS + 1` (`netcode.ts`), which is **4 ticks, 67 ms, a
+  15 fps obligation at `SNAPSHOT_EVERY_TICKS` = 3**. Every frame-rate figure here is that cadence's;
+  the window is not cadence-invariant and neither are they.
+
+  It is the _worst_ effect phase, not the typical one. The render tick advances continuously, but the
+  drop lands on a broadcast, so an effect's window depends on `T mod SNAPSHOT_EVERY_TICKS`: 6 ticks at
+  phase 0, 5 at phase 1, 4 at phase 2. `serializeDelta` splices a whole interval of ticks into each
+  delta, so the wire carries all three phases and only the guaranteed one is worth publishing.
+  Measured on the real `WorldStore` over 300 broadcasts carrying every phase, frames on their own
+  clock:
+
+  | frame every | fps at this cadence | effects fired of 900 |
+  | ----------- | ------------------- | -------------------- |
+  | 1–4 ticks   | 60–15               | 900 (100 %)          |
+  | 5 ticks     | 12                  | 840 (93.3 %)         |
+  | 6 ticks     | 10                  | 598 (66.4 %)         |
+  | 12 ticks    | 5                   | 303 (33.7 %)         |
+  | 30 ticks    | 2                   | 126 (14.0 %)         |
+
+  The cliff lands exactly on the window, and the loss just past it is steep rather than gradual
+  because the drop is half-open: it runs inside the `applySnapshot` that carries the buffer past the
+  effect, and a frame at that same instant runs after it.
+
+  **The direction is the surprising part.** The expression reduces to `(BRACKET_SNAPSHOTS − 1) ×
+SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster** cadence buys a
+  **tighter** deadline: 2 ticks and a 30 fps obligation at 60 Hz, against 4 ticks and 15 fps at 20 Hz.
+  §4.2 lever 2 has to carry `BRACKET_SNAPSHOTS` with it if the floor is ever too high, and
+  `netcode.test.ts` gates that rather than describing it. The cross-cadence numbers are a simulation
+  (`window2.mjs`, on the #284 review), not a test: the constants compile at one cadence, so a spec
+  cannot execute another — #287 is the extraction that would change that.
+
 - **Every applied snapshot is acknowledged** (#266, §4). `RenderSession` tells the room the tick it
   has just applied — at once for a `game_state`, every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` for a delta —
   and a `game_state` that arrives mid-stream is the room's resync: `applyGameState` already replaces
@@ -627,7 +676,9 @@ converted at the tool's schema, the constant itself stays in seconds); `resume` 
 time that passed while paused (`FixedStepAccumulator.discardElapsed()`), so a resumed room never
 bursts to catch up. `runTick` broadcasts every `SNAPSHOT_EVERY_TICKS` ticks and `step()` always
 ends with a broadcast regardless of cadence, or a `debug_step_room(1)` screenshot would show a
-stale frame. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
+stale frame. That trailing broadcast goes through `SnapshotBacklog.nextFor` like any other (#274),
+so a connection over the limit is sent nothing and can still be left on a stale frame; a paused
+room's client is normally current, so this is theoretical rather than seen. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
 report even for a module without a world tick. **Every mutating tool republishes the frame** (#236):
 a tool registered with `isWorldMutation` (`debug_spawn`, `debug_grant_dna`, `debug_set_player`,
 `debug_set_balance`, `debug_set_seed`, `debug_spawn_bot`, `debug_remove_bot`) calls

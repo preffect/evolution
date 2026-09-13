@@ -25,6 +25,12 @@ import {
 const ROOM_PLAYER_ID = 'p1';
 /** How many times over the backlog limit a flow-control test runs the room. */
 const RUNS_OF_THE_LIMIT = 3;
+/** Broadcast intervals a cadence test runs, in the units the test reasons in. */
+const INTERVALS_TO_COUNT_BROADCASTS = 4;
+const INTERVALS_TO_SPAN_SKIPPED_TICKS = 3;
+const INTERVALS_TO_SAMPLE_BYTES = 2;
+/** Ticks past a boundary `step()` is asked for: deliberately not a whole interval. */
+const TICKS_PAST_A_BOUNDARY = 1;
 const roomOptions = () => createTestRoomInitOptions([ROOM_PLAYER_ID]);
 
 /**
@@ -70,7 +76,7 @@ describe('game-room: the broadcast cadence (docs/ARCHITECTURE.md §1, #214)', ()
     const room = new GameRoom(gameModule, roomOptions(), timing);
     room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
     room.start();
-    const ticks = 4 * SNAPSHOT_EVERY_TICKS;
+    const ticks = INTERVALS_TO_COUNT_BROADCASTS * SNAPSHOT_EVERY_TICKS;
     for (let fire = 0; fire < ticks; fire += 1) {
       timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
       timing.ticker.fire();
@@ -86,7 +92,7 @@ describe('game-room: the broadcast cadence (docs/ARCHITECTURE.md §1, #214)', ()
     const room = new GameRoom(createDrainingGameModule(), roomOptions(), timing);
     room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
     room.start();
-    const ticks = 3 * SNAPSHOT_EVERY_TICKS;
+    const ticks = INTERVALS_TO_SPAN_SKIPPED_TICKS * SNAPSHOT_EVERY_TICKS;
     for (let fire = 0; fire < ticks; fire += 1) {
       timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
       timing.ticker.fire();
@@ -101,7 +107,7 @@ describe('game-room: the broadcast cadence (docs/ARCHITECTURE.md §1, #214)', ()
     const room = new GameRoom(createSpyGameModule(), roomOptions(), timing);
     room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
     room.start();
-    const ticks = 2 * SNAPSHOT_EVERY_TICKS;
+    const ticks = INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS;
     for (let fire = 0; fire < ticks; fire += 1) {
       timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
       timing.ticker.fire();
@@ -119,10 +125,10 @@ describe('game-room: the broadcast cadence (docs/ARCHITECTURE.md §1, #214)', ()
     const room = new GameRoom(createDrainingGameModule(), roomOptions(), createManualRoomTiming());
     room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
     room.start();
-    room.step(SNAPSHOT_EVERY_TICKS + 1);
-    expect(room.getTickCount()).toBe(SNAPSHOT_EVERY_TICKS + 1);
+    room.step(SNAPSHOT_EVERY_TICKS + TICKS_PAST_A_BOUNDARY);
+    expect(room.getTickCount()).toBe(SNAPSHOT_EVERY_TICKS + TICKS_PAST_A_BOUNDARY);
     expect(broadcastMoments(sent, ROOM_PLAYER_ID)).toEqual(
-      Array.from({ length: SNAPSHOT_EVERY_TICKS + 1 }, (_unused, index) => index + 1),
+      Array.from({ length: SNAPSHOT_EVERY_TICKS + TICKS_PAST_A_BOUNDARY }, (_unused, index) => index + 1),
     );
   });
 });

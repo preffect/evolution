@@ -5,6 +5,7 @@ import {
   INTERPOLATION_DELAY_TICKS,
   MAX_EXTRAPOLATION_TICKS,
   ManualClock,
+  SNAPSHOT_BUFFER_SIZE,
   SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_MS,
   TICK_INTERVAL_S,
@@ -223,5 +224,76 @@ describe('WorldStore', () => {
     clock.setMilliseconds(69 * TICK_INTERVAL_MS);
     expect(store.renderLagMs()).not.toBeNull();
     expect(store.nextFrame()!.effects.map((effect) => effect.tick)).toEqual([60, 63]);
+  });
+});
+
+/**
+ * The window the derivation owes the stalest effect on the wire, repeated rather than imported: a
+ * spec that feeds back the constant it is meant to guard passes whatever that constant says, which
+ * is how a window of 6 survived a round of review. `netcode.test.ts` pins the constant to this.
+ */
+const EXPECTED_DRAW_WINDOW_TICKS = 4;
+/** Broadcasts a streaming test feeds, and how much longer the long starve runs than the brief one. */
+const STREAM_SNAPSHOTS = 300;
+const BRIEF_STARVE_SNAPSHOTS = SNAPSHOT_BUFFER_SIZE * 4;
+const LONG_STARVE_MULTIPLE = 100;
+/**
+ * Effects the store may still hold once it has settled: one buffer span of the wire, every tick of
+ * it. Not `SNAPSHOT_BUFFER_SIZE` — the wire carries `SNAPSHOT_EVERY_TICKS` effects per broadcast.
+ */
+const RETAINED_EFFECTS_BOUND = (SNAPSHOT_BUFFER_SIZE - 1) * SNAPSHOT_EVERY_TICKS + 1;
+
+describe('WorldStore: a client that ingests faster than it renders (#238, the survival half)', () => {
+  /**
+   * Streams the wire the server really sends — a delta every `SNAPSHOT_EVERY_TICKS` ticks carrying
+   * the effects of `tick − SNAPSHOT_EVERY_TICKS + 1 … tick`, so every effect phase is covered by
+   * construction — while drawing a frame every `frameEveryTicks` on a clock of its own. Frames on
+   * snapshot arrivals would pin one phase and hide the rest, which is the error this replaces.
+   */
+  function streamWhileDrawing(broadcastCount: number, frameEveryTicks: number | null) {
+    const clock = new ManualClock(0);
+    const store = new WorldStore(clock);
+    store.applyBalance(DEFAULT_BALANCE);
+    // Deliberately no `applyGameState` first, which is a wire shape the server cannot send: a real
+    // client always gets a `game_state` (carrying no effects) before any delta. That prologue is the
+    // only thing pinning the full-buffer guard in `dropOvertakenEffects` — remove it here to "match
+    // the wire" and these tests still pass while the guard silently stops being tested.
+    let fired = 0;
+    let emitted = 0;
+    const lastTick = broadcastCount * SNAPSHOT_EVERY_TICKS;
+    for (let tick = 1; tick <= lastTick; tick += 1) {
+      clock.setMilliseconds(tick * TICK_INTERVAL_MS);
+      if (tick % SNAPSHOT_EVERY_TICKS === 0) {
+        const carried = Array.from({ length: SNAPSHOT_EVERY_TICKS }, (_unused, back) =>
+          createTestEatEffect({ tick: tick - back }),
+        ).reverse();
+        emitted += carried.length;
+        store.applySnapshot(createTestSnapshot({ tick, effects: carried }));
+      }
+      if (frameEveryTicks !== null && tick % frameEveryTicks === 0) {
+        fired += store.nextFrame()?.effects.length ?? 0;
+      }
+    }
+    clock.setMilliseconds((lastTick + HELD_FRAME_LOOKAHEAD_TICKS) * TICK_INTERVAL_MS);
+    const held = store.nextFrame()!.effects.length;
+    return { fired: fired + held, held, emitted };
+  }
+
+  it('stops accumulating: a starve a hundred times longer holds no more', () => {
+    const brief = streamWhileDrawing(BRIEF_STARVE_SNAPSHOTS, null).held;
+    const long = streamWhileDrawing(BRIEF_STARVE_SNAPSHOTS * LONG_STARVE_MULTIPLE, null).held;
+    // The growth assertion first, and on its own: it is the property, and without the bound the two
+    // differ by the whole starve. The size assertion below only says which bound it settled at.
+    expect(long).toBe(brief);
+    expect(long).toBeLessThanOrEqual(RETAINED_EFFECTS_BOUND);
+  });
+
+  it('fires every effect at one frame per EFFECT_DRAW_WINDOW_TICKS, and misses one slower', () => {
+    // Exact, both ways. Lossless alone is satisfied by a window of 1, and lossy-one-slower alone by
+    // a window of anything; the pair is the contract, and a tolerance hides a whole interval of error.
+    const atWindow = streamWhileDrawing(STREAM_SNAPSHOTS, EXPECTED_DRAW_WINDOW_TICKS);
+    expect(atWindow.fired).toBe(atWindow.emitted);
+    const slower = streamWhileDrawing(STREAM_SNAPSHOTS, EXPECTED_DRAW_WINDOW_TICKS + 1);
+    expect(slower.fired).toBeLessThan(slower.emitted);
   });
 });
