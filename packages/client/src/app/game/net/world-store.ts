@@ -100,7 +100,24 @@ export class WorldStore {
     this.food.applyDelta(snapshot.food, snapshot.tick);
     const fresh = outcome === SNAPSHOT_PUSH.replaced ? this.effectsNotSeen(snapshot.effects) : snapshot.effects;
     this.pendingEffects.push(...fresh);
+    this.dropOvertakenEffects();
     return true;
+  }
+
+  /**
+   * Bounds the pending list on the ingest path (docs/ARCHITECTURE.md §5): effects are drained by the
+   * render tick, and `renderTickFor` never answers before the oldest buffered snapshot, so a moment
+   * older than that one is already overtaken — the next frame would fire it in a lump, long after it
+   * happened. A client that ingests faster than it renders (a background tab, a starved renderer)
+   * would otherwise pile these up without limit; dropping them holds the list to the effects of one
+   * buffer span of the wire, whatever the frame rate.
+   */
+  private dropOvertakenEffects(): void {
+    const oldest = this.snapshots.oldest();
+    if (oldest === null) return;
+    const isStillReachable = (effect: GameEffect): boolean => effect.tick >= oldest.tick;
+    if (this.pendingEffects.every(isStillReachable)) return;
+    this.pendingEffects = this.pendingEffects.filter(isStillReachable);
   }
 
   /** A republished tick carries its effects again (#237): the ones neither pending nor already drained. */

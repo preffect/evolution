@@ -31,6 +31,7 @@ import {
   createTestRoomInitOptions,
   type SentLog,
 } from '../../testing/builders.js';
+import { broadcastTickAtOrAfter } from '../../testing/cadence-builders.js';
 import { createEvolutionModule } from '../evolution-module.js';
 import { decayed } from '../../testing/scenarios/shared-setups.js';
 
@@ -152,6 +153,7 @@ describe('an engulf through the room loop and onto the snapshot', () => {
     for (let tick = 1; tick <= END_TICK; tick += 1) {
       room.stepOne(ESCAPE_TARGET);
     }
+    runToWire(room, END_TICK);
     const reasons = room.releaseReasons();
     const prey = cellOf(room.snapshot(), PREY);
     room.stop();
@@ -169,10 +171,21 @@ function runToTick(room: DrivenRoom, throughTick: number): GameSnapshot {
   return room.snapshot();
 }
 
+/**
+ * Steps the room from `throughTick` on to the next broadcast tick, so the moments of the ticks up to
+ * it have reached the wire and `effectsOfKind` / `releaseReasons` can see them. Every test that reads
+ * the wire calls this; it is a no-op when `throughTick` is already a broadcast tick, which is a fact
+ * about today's numbers and not something those tests may rest on.
+ */
+function runToWire(room: DrivenRoom, throughTick: number): void {
+  for (let tick = throughTick; tick < broadcastTickAtOrAfter(throughTick); tick += 1) room.stepOne();
+}
+
 describe('the payout, from the completed engulf to the respawn and the leaderboard (#259)', () => {
   it('broadcasts cell_absorbed, pays the predator and leaves the prey spectating its killer', () => {
     const room = startRoom(SEED);
     const snapshot = runToTick(room, END_TICK);
+    runToWire(room, END_TICK);
     const absorbed = room.effectsOfKind(EFFECT_KIND.cellAbsorbed);
     room.stop();
 
@@ -215,6 +228,7 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
     const beforeRespawn = room.snapshot();
     room.stepOne();
     const afterRespawn = room.snapshot();
+    runToWire(room, RESPAWN_TICK);
     const respawns = room.effectsOfKind(EFFECT_KIND.respawn);
     room.stop();
 

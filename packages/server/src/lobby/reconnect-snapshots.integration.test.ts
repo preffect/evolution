@@ -12,6 +12,7 @@ import {
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_BACKLOG_LIMIT_BYTES,
   SNAPSHOT_BACKLOG_LIMIT_TICKS,
+  SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_MS,
   createTestSessionConfig,
   type GameSnapshot,
@@ -19,6 +20,7 @@ import {
 } from '@evolution/shared';
 import { evolutionModuleFactory } from '../game/evolution-module.js';
 import { createManualRoomTiming, type ManualRoomTiming } from '../testing/builders.js';
+import { broadcastTickAtOrBefore } from '../testing/cadence-builders.js';
 import {
   openRecordingTestSocket,
   startTestWebSocketServer,
@@ -27,8 +29,11 @@ import {
 } from '../testing/socket-builders.js';
 
 const CLIENT_ID = 'reloader';
-const TICKS_BEFORE_RELOAD = 5;
-const TICKS_AFTER_RELOAD = 5;
+/** The room broadcasts once per `SNAPSHOT_EVERY_TICKS`, so a test counts intervals and steps ticks. */
+const INTERVALS_BEFORE_RELOAD = 5;
+const INTERVALS_AFTER_RELOAD = 5;
+const TICKS_BEFORE_RELOAD = INTERVALS_BEFORE_RELOAD * SNAPSHOT_EVERY_TICKS;
+const TICKS_AFTER_RELOAD = INTERVALS_AFTER_RELOAD * SNAPSHOT_EVERY_TICKS;
 /** The room's own `bufferedAmount` reading for a socket nobody is reading. */
 const SATURATED_BYTES = SNAPSHOT_BACKLOG_LIMIT_BYTES + 1;
 
@@ -123,7 +128,7 @@ describe('a client that reloads into a running room (#266)', () => {
   it('is sent a game_state and then a delta stream that carries on past the tick it reconnected at', async () => {
     const before = await startedRoomWithOnePlayer();
     advance(TICKS_BEFORE_RELOAD);
-    await waitFor(() => snapshotTicks(before.received).length >= TICKS_BEFORE_RELOAD);
+    await waitFor(() => snapshotTicks(before.received).length >= INTERVALS_BEFORE_RELOAD);
     expect(snapshotTicks(before.received).at(-1)).toBe(TICKS_BEFORE_RELOAD);
 
     // The reload: the page's socket goes, a new one arrives with the same clientId.
@@ -136,7 +141,7 @@ describe('a client that reloads into a running room (#266)', () => {
     expect((resumed as { snapshot: GameSnapshot }).snapshot.tick).toBe(TICKS_BEFORE_RELOAD);
 
     advance(TICKS_AFTER_RELOAD);
-    await waitFor(() => snapshotTicks(after.received).length >= TICKS_AFTER_RELOAD);
+    await waitFor(() => snapshotTicks(after.received).length >= INTERVALS_AFTER_RELOAD);
     expect(snapshotTicks(after.received).at(-1)).toBe(TICKS_BEFORE_RELOAD + TICKS_AFTER_RELOAD);
 
     after.socket.close();
@@ -171,11 +176,13 @@ describe('a client that reloads into a running room (#266)', () => {
     expect(snapshotTicks(client.received).length).toBe(snapshotsBefore);
 
     pretendBufferedAmount(connection.socket, 0);
-    advance(2);
+    // The next broadcast resyncs it with a `game_state`; the one after that is a delta again.
+    const drainedTicks = SNAPSHOT_EVERY_TICKS * 2;
+    advance(drainedTicks);
     await waitFor(() => messagesOfType(client.received, SERVER_MESSAGE_TYPE.gameState).length > 1);
 
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
-    expect(snapshotTicks(client.received).at(-1)).toBe(TICKS_BEFORE_RELOAD + 2);
+    expect(snapshotTicks(client.received).at(-1)).toBe(TICKS_BEFORE_RELOAD + drainedTicks);
 
     client.socket.close();
     await whenClosed(client.socket);
@@ -184,22 +191,25 @@ describe('a client that reloads into a running room (#266)', () => {
   it('stops sending to a client whose acknowledgements fall a limit behind, and resyncs it when they catch up', async () => {
     const client = await startedRoomWithOnePlayer();
     const room = activeRoom();
-    const acknowledgedTick = 1;
-    advance(1);
+    const acknowledgedTick = SNAPSHOT_EVERY_TICKS;
+    advance(SNAPSHOT_EVERY_TICKS);
     await waitFor(() => snapshotTicks(client.received).length > 0);
     client.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: acknowledgedTick }));
     await waitFor(() => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) !== null);
 
     // The client says nothing more: the room keeps sending until the in-flight depth passes the limit.
     advance(SNAPSHOT_BACKLOG_LIMIT_TICKS * 2);
-    const lastTickSent = acknowledgedTick + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
-    await waitFor(() => snapshotTicks(client.received).length >= lastTickSent);
+    // The room sends one more broadcast after the depth reaches the limit, then skips.
+    const lastTickSent = broadcastTickAtOrBefore(
+      acknowledgedTick + SNAPSHOT_BACKLOG_LIMIT_TICKS + SNAPSHOT_EVERY_TICKS,
+    );
+    await waitFor(() => snapshotTicks(client.received).at(-1) === lastTickSent);
     expect(snapshotTicks(client.received).at(-1)).toBe(lastTickSent);
     expect(room.snapshotBacklog.owedCount()).toBe(1);
 
     client.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: lastTickSent }));
     await waitFor(() => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) === 0);
-    advance(1);
+    advance(SNAPSHOT_EVERY_TICKS);
     await waitFor(() => messagesOfType(client.received, SERVER_MESSAGE_TYPE.gameState).length > 1);
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
 

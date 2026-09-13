@@ -53,7 +53,8 @@ export interface WorldState {
   nextEntityNumber: number;
   /** The counter this round's world was built from (a rematch continues it): what a replay rebuilds with (docs/DETERMINISM.md §6). */
   roundFirstEntityNumber: number;
-  /** This tick's effects, drained by the module after the step. */
+  /** Effects since the last broadcast, drained by the module then — every `SNAPSHOT_EVERY_TICKS` ticks,
+   * not every tick, so a skipped tick's moments ride the next delta (docs/ARCHITECTURE.md §1). */
   effects: GameEffect[];
 }
 
