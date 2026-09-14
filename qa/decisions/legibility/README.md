@@ -10,6 +10,9 @@ bigger Amoeboid nearby and 1:48 of bloom left.
 - `legibility-camera-lever.png`: the camera lever (1280 × 660), which works with any option. It compares
   today's size lock with Z1, partial zoom, and Z2, slow zoom.
 
+B is drawn at today's camera (own cell 33 px), A and C at Z1, partial zoom (47 px). Every text is set at its
+type role's size. A and C's centre cues fall inside #143's exclusion box; `audit.md` states what that costs.
+
 The frames are code-drawn SVG, seeded, and reuse the #143 kit in `../hud-layout/tools/render.py`. To re-render,
 run from the repo root:
 

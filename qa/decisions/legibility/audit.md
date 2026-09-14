@@ -26,7 +26,7 @@ Mitochondrion I owned.
 | Gel                       | Gel slows big cells (a 600-mass cell to 40 %) and barely slows small ones          | In gel                         | Purple tint only                                                                                               | Zone name on entry; `SLOWED` on the cell                                                   |
 | Shallows / photosynthesis | Chloroplast gains mass only in the sunlit ring                                     | Owning Chloroplast             | Green tint only                                                                                                | `+1 SUN` floater; zone name on entry                                                       |
 | Food by zone              | Orange rods at the vent, green in the shallows, count toward organelles            | The trip (3:00–4:30)           | Ladder pips count; nothing says where to go                                                                    | Zone name carries its food: `WARM VENT · orange rods`                                      |
-| Bloom                     | From 80 % of the round: food ×1.5, DNA fragments ×2                                | Last 2 minutes                 | Clock turns gold, caption `BLOOM`                                                                              | Caption says the effect: `BLOOM · DNA ×2`                                                  |
+| Bloom                     | From 80 % of the round: food ×1.5, DNA fragments ×2                                | Last 2 minutes                 | Clock turns gold, caption `BLOOM`                                                                              | Caption says the effect: `BLOOM · FOOD ×1.5 · DNA DROPS ×2`                                |
 | Toxin drain               | Touching a toxic cell drains mass/s (3–7 % of your mass); swallowed toxin ×6       | Contact, engulfing toxic prey  | Nothing                                                                                                        | `−9 TOXIN` floater; toxic cells ringed and labelled                                        |
 | Spine drain               | Engulfing a Diatom Shell cell drains you while it lasts                            | Engulfing                      | Nothing                                                                                                        | `−N SPINES` floater                                                                        |
 | Who can eat whom          | Need 1.25× the prey's mass (more against Cell Wall); hold down to 1.1×             | Every encounter                | Danger ring and `X CAN ENGULF YOU` on threats; prey unmarked                                                   | Prey ring on edible cells; mass thresholds in a panel                                      |
@@ -54,12 +54,39 @@ Mitochondrion I owned.
   - **Z1 · partial zoom:** half-height ∝ √radius instead of ∝ radius (about 71 × √r, same clamps). The own cell
     grows on screen from 24 px at spawn to 34 px at mass 80, 47 px at 312, 62 px at 900 and 95 px at the cap.
     Cost: a big cell sees fewer of its own radii ahead (6.5 at mass 900, against 12 today). The px floors of
-    `docs/ui/hud.md` §3.1.3 still hold, but its geometry table changes.
-  - **Z2 · slow zoom:** keep the lock, raise `CAMERA_ZOOM_SECONDS` from 0.6 to about 6 s. A +60 engulf at mass
-    312 swells the cell only from 33 to 36 px before the view catches up, and decay stays invisible. It shows
-    only big jumps.
+    `docs/ui/hud.md` §3.1.3 still hold, but Z1 breaks its **picker-band ceiling**: the orbit's outer edge at the
+    cap must stay under `HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX` (136 px). Z1 raises the cap radius from 75
+    to 95 px at 1280 × 800, and from about 102 to 128 px at 1080p, which puts the orbit edge near 163 px. The
+    geometry table must be redone, and the picker band moves down or Z1's growth is capped.
+  - **Z2 · slow zoom:** keep the lock, raise `CAMERA_ZOOM_SECONDS` from 0.6 to about 6 s. The peak is the same as
+    today's: right after a +60 engulf at mass 312 the cell is 36 px under either time constant. Only the duration
+    changes: today it is back to 33 px within about 2 s, under Z2 it is still 35 px at 3 s. Decay stays invisible.
   - Either way, a mass number with its trend near the cell is the direct cue.
 - **Trait picker timer** goes to 20 s in #323; none of these mockups show the picker.
-- **Colour roles.** A prey ring needs a palette role; `docs/visual-style/principles-and-palette.md` §2 allows
-  only danger, gold and DNA as saturated UI colours. The mockups borrow `FOOD_MOTE` green, which a build ticket
-  would add as a named role.
+- **Scale in the frames.** B is drawn at today's camera (own cell 33 px). A and C are drawn at Z1 (47 px), since
+  their cues assume the cell reads its size. Other cells are sized from their masses at the same zoom.
+
+## What A and C cost
+
+- **The exclusion box.** `docs/ui/layout.md` §1 and `docs/ui/input-and-onboarding.md` §6 keep the 240 × 240 box
+  around the own cell free of everything but the cell and its indicators. A and C put the floaters, the mass
+  chip, the zone pill and the `EDIBLE · TOXIC` label inside it, so they relax #143's rule. Those cues must be
+  renderer-drawn indicators under `docs/ui/hud.md` §3.1.2 (world-anchored, with the §3.1.3 floors), never DOM.
+- **Type.** Every text in the frames is set at its role size: numbers in `value`, causes and facts in `label`,
+  nothing carrying a fact in `caption`. That is why A and C's centre is as busy as it looks.
+- **Chrome.** B's DOM chrome is 15.4 % of the viewport at 1280 × 800 (strip, effect row, board, clock), against
+  `input-and-onboarding.md` §6's 8 % ceiling; A is 5.6 %. C is A's 5.6 % during play and 26.6 % while Tab is
+  held (the panel, the full board and the coach pill).
+
+## Colour roles
+
+`docs/visual-style/ui-type.md` §7 allows only danger, gold and DNA (plus the UI accent) as saturated UI colours.
+Text in the frames is `WHITE` or the text role; colour sits on rims, dots, rings and glyphs. The toxin cue uses
+`DANGER`, as `principles-and-palette.md` §2 assigns the toxin damage flash; toxin violet stays world art. The
+frames still borrow three colours, which would need new named roles in §2:
+
+| Borrowed colour    | Used for                                                                 | Options |
+| ------------------ | ------------------------------------------------------------------------ | ------- |
+| `FOOD_MOTE` green  | gain floater rim, prey ring, "you eat" marker, food cause dot            | A, B, C |
+| `ZONE_VENT` orange | zone pill dot, vent floater rim, vent cause dot and icon, coach pill rim | A, B, C |
+| `MITO_BASE` orange | trait glyphs (as on the picker's medallions)                             | A, B, C |
