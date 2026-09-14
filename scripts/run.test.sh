@@ -13,7 +13,11 @@
 # only a listener from before the start (one that ignored the stop) holds the port; the watcher is not in
 # .game.pid, survives the restart a deploy runs and is never started twice; --stop stops it but not
 # another checkout's watcher behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT;
-# run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one.
+# run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one;
+# a checkout without node_modules or a shared build is installed and built before the start, and a ready
+# one is neither (#329); that setup runs before the cleanup, so a failed install leaves the running stack
+# serving; a deploy whose setup has work completes while another checkout holds the machine-wide gate lock;
+# a setup waiting on this checkout's own setup lock past its timeout fails loudly and leaves the stack up.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -28,6 +32,7 @@ READY_TIMEOUT_SECONDS=30
 FAILED_READY_TIMEOUT_SECONDS=2
 LONG_WATCH_INTERVAL_SECONDS=3600
 PROBE_LIFETIME_SECONDS=120
+SETUP_LOCK_TIMEOUT_SECONDS=1
 REAL_SS="$(command -v ss)"
 REAL_LSOF="$(command -v lsof)"
 
@@ -41,13 +46,16 @@ make_origin
 stack="$sandbox/stack checkout" # the space is deliberate: run.sh must quote the checkout path
 other="$sandbox/other"
 git clone -q "$origin" "$stack"
-mkdir -p "$stack/scripts" "$stack/packages/server" "$stack/packages/client" "$stack/node_modules" \
+mkdir -p "$stack/scripts/lib" "$stack/packages/server" "$stack/packages/client" "$stack/node_modules/.pnpm" \
   "$other/packages/server" "$other/scripts" "$sandbox/bin"
+cp "$stack/pnpm-lock.yaml" "$stack/node_modules/.pnpm/lock.yaml" # installed from the lockfile
 cp "$repo_root/run.sh" "$stack/run.sh"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$stack/scripts/lib/workspace-ready.sh"
 cp "$repo_root/scripts/deploy-main.sh" "$stack/scripts/deploy-main.sh"
 cp "$repo_root/packages/client/proxy.conf.json" "$stack/packages/client/proxy.conf.json"
 pnpm_args="$sandbox/pnpm-args"
 no_listen_file="$sandbox/fake-pnpm-no-listen" # when present: the fake dev servers never listen
+install_fail_file="$sandbox/fake-pnpm-install-fails" # when present: the fake pnpm install fails
 ss_stub_file="$sandbox/ss-stub"               # "<port> <pid>" lines the fake ss reports as listeners
 ss_fail_file="$sandbox/ss-fail"               # when present: the fake ss fails, as if missing
 lsof_sees_file="$sandbox/lsof-sees"           # when present: the fake lsof sees listeners (the fallback case)
@@ -56,6 +64,10 @@ cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
 [[ "\$1" != -v ]] || { echo 10.0.0; exit 0; }
 echo "\$*" >> "$pnpm_args"
+case "\$1" in
+  install) [[ ! -e "$install_fail_file" ]] || exit 1; mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml; exit 0 ;;
+  --filter) mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts packages/shared/tsconfig.build.tsbuildinfo; exit 0 ;;
+esac
 case "\$1" in
   dev:server) cd "$stack/packages/server"; port="\$PORT" ;;
   dev:client) cd "$stack/packages/client"; port="\$3" ;;
@@ -82,10 +94,10 @@ LSOF
 printf '#!/usr/bin/env bash\nexec sleep %s\n' "$PROBE_LIFETIME_SECONDS" > "$other/scripts/deploy-main.sh"
 chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$sandbox/bin/lsof" "$other/scripts/deploy-main.sh"
 
-export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT"
+mkdir -p "$sandbox/home" # the gate lock lives under $HOME/.cache
+export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT" HOME="$sandbox/home"
 export RUN_READY_TIMEOUT_SECONDS="$READY_TIMEOUT_SECONDS" DEPLOY_WATCH_INTERVAL_SECONDS="$LONG_WATCH_INTERVAL_SECONDS"
-export DEPLOY_INSTALL_COMMAND=true DEPLOY_BUILD_COMMAND=true
-unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT
+unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT DEPLOY_SETUP_COMMAND WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS # the real setup, on the fake pnpm
 
 probe_pids=()
 cleanup() {
@@ -224,5 +236,56 @@ merge_to_main game.txt v3
 rc=0
 out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
 check "a one-shot deploy with a watcher running does not start a second (rc $rc)" $(( rc == 0 && $(holds test "$(watcher_pid)" = "$deployed_watcher") && $(stack_watchers) == 1 ))
+
+# --- a fresh worktree (#329): install and shared build before the start, nothing once ready -------
+mkdir -p "$stack/packages/shared/src"
+touch "$stack/packages/shared/src/index.ts"
+rm -rf "$stack/node_modules"
+: > "$pnpm_args"
+run_stack --server-only --no-deploy-watch --wait-ready
+check "a checkout without node_modules or a shared build installs, then builds, before the start (rc $rc)" $(( rc == 0 && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") && $(holds grep -qx -- '--filter @evolution/shared build' "$pnpm_args") && $(line_of 'installing dependencies') < $(line_of 'building @evolution/shared (no packages/shared/dist/index.d.ts)') && $(line_of 'building @evolution/shared') < $(line_of 'Starting game server') ))
+: > "$pnpm_args"
+run_stack --server-only --no-deploy-watch --wait-ready
+check "a ready checkout starts without installing or building (rc $rc)" $(( rc == 0 && ! $(holds grep -q 'install\|--filter' "$pnpm_args") ))
+
+running_server="$(ss_pids "$STACK_SERVER_PORT")"
+rm "$stack/node_modules/.pnpm/lock.yaml"
+touch "$install_fail_file"
+run_stack --server-only --no-deploy-watch --wait-ready
+rm "$install_fail_file"
+check "a failed setup exits before the cleanup and leaves the running stack serving (rc $rc)" $(( rc != 0 && $(holds grep -q 'the dependency install failed' <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$running_server") ))
+
+lock_held() { ! flock -n "$1" true; } # <lock file>
+hold_lock() { # <lock file> -> $probe_pid, a process holding the lock until killed
+  start_probe "$sandbox" bash -c 'exec 8>>"$1"; flock 8; exec sleep "$2"' _ "$1" "$PROBE_LIFETIME_SECONDS"
+  wait_for lock_held "$1"
+}
+
+# Another checkout's validate.sh holds the machine-wide gate lock: a deploy's setup and restart never wait on it.
+gate_lock="$HOME/.cache/$(basename "$stack")-validate/gate.lock"
+mkdir -p "$(dirname "$gate_lock")"
+hold_lock "$gate_lock"
+gate_holder="$probe_pid"
+merge_to_main game.txt v4
+: > "$pnpm_args"
+rc=0
+out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
+check "a deploy whose setup has work completes while another checkout holds the gate lock (rc $rc)" $(( rc == 0 && $(holds test "$(cat "$stack/.game-logs/deployed-sha")" = "$(origin_head)") && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") && ! $(holds grep -q 'waiting for another' "$stack/.game-logs/deploy.log") ))
+kill "$gate_holder"
+
+# Another setup of THIS checkout holds its setup lock: the wait is bounded and fails loudly.
+setup_lock="$(git -C "$stack" rev-parse --absolute-git-dir)/workspace-setup.lock"
+hold_lock "$setup_lock"
+setup_holder="$probe_pid"
+rm "$stack/node_modules/.pnpm/lock.yaml"
+running_server="$(ss_pids "$STACK_SERVER_PORT")"
+WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS="$SETUP_LOCK_TIMEOUT_SECONDS" run_stack --server-only --no-deploy-watch --wait-ready
+check "a setup waiting past its timeout on this checkout's setup lock fails loudly and leaves the stack serving (rc $rc)" $(( rc != 0 && $(holds grep -q "waiting for another setup of this checkout" <<<"$out") && $(holds grep -q "timed out after ${SETUP_LOCK_TIMEOUT_SECONDS}s waiting for another setup of this checkout" <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$running_server") ))
+kill "$setup_holder"
+wait_for eval '! lock_held "$setup_lock"'
+: > "$pnpm_args"
+run_stack --server-only --no-deploy-watch --wait-ready
+check "once the other setup is done the next start installs and starts (rc $rc)" $(( rc == 0 && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") ))
+run_stack --stop
 
 finish_suite run.test.sh

@@ -78,6 +78,9 @@ gh pr create -B main -H <branch> -t "<type>: <summary>" -F <body-file>   # body 
 gh pr view <N> --json number,url,reviewDecision,statusCheckRollup
 ```
 
+A new worktree needs no setup: `./validate.sh` and `./run.sh` install dependencies and build
+`@evolution/shared` when they are missing or stale (#329), so skip the manual `pnpm install` and shared build.
+
 The PR body follows `.github/PULL_REQUEST_TEMPLATE.md` (list the scoped checks you ran; the full gate runs at merge).
 Graphics PRs attach screenshots (`.qa/screenshots/` → commit copies under `qa/evidence/<pr>/`).
 

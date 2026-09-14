@@ -70,7 +70,8 @@ scripts/agent.sh code-qa --pr 57 --branch feat/42-food-ecology "Review PR #57"
   parallel without touching each other's files; the main checkout stays free for running the game
   (`./run.sh`) during QA. An existing local branch is reused untouched; an existing worktree is
   fast-forwarded to `origin/<branch>` so reviewers see what the author pushed (dirty or diverged
-  stops the run).
+  stops the run). A fresh worktree needs no setup: `./validate.sh` and `./run.sh` install and build
+  `@evolution/shared` themselves when either is missing or stale (#329).
 - **Tickets and briefs cite spec files, not documents.** The design specs are topic files under
   `docs/<domain>/` (#306). Every ticket and brief carries a `Spec files:` line (`docs/ecology/constants.md §7`),
   and the agent reads only those files, naming in its report any other file it had to open. `docs/INDEX.md`

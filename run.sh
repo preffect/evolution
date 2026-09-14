@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
 PID_FILE="$SCRIPT_DIR/.game.pid"
 LOG_DIR="$SCRIPT_DIR/.game-logs"
 PACKAGES_DIR="$SCRIPT_DIR/packages"
@@ -86,7 +87,8 @@ Usage: ./run.sh [OPTIONS]
 
 Options:
   --help             Show this help message
-  --install          Run pnpm install before starting
+  --install          Run pnpm install before starting (without it, a checkout whose node_modules does
+                     not match pnpm-lock.yaml is installed, and a stale @evolution/shared is built)
   --server-only      Start only the game server
   --client-only      Start only the client dev server
   --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
@@ -358,6 +360,16 @@ done
 # Verify required tools are available before starting
 check_deps
 
+if $DO_INSTALL; then
+  echo "==> Installing dependencies..."
+  pnpm install
+fi
+
+# A fresh worktree or a merge: install when node_modules does not match the lockfile, build shared when
+# stale. Before the cleanup, so the running stack keeps serving meanwhile and a failure (or a timed-out
+# wait on this checkout's setup lock) leaves it up. Never waits on another worktree's gate.
+workspace_ensure_ready "$SCRIPT_DIR" "==>" continue || exit 1
+
 # Always clean up any existing server processes before starting (never the deploy watcher)
 echo "==> Cleaning up old processes..."
 if stop_processes; then
@@ -368,18 +380,6 @@ if $CLEAR_PREBUNDLE; then
   # After the old stack is down, so no old dev server writes into the fresh cache
   rm -rf "$ANGULAR_PREBUNDLE_CACHE_DIR"
   echo "==> Cleared the Angular prebundle cache"
-fi
-
-if $DO_INSTALL; then
-  echo "==> Installing dependencies..."
-  pnpm install
-fi
-
-if [[ ! -d "$SCRIPT_DIR/node_modules" ]]; then
-  echo "ERROR: node_modules not found. Dependencies have not been installed."
-  echo "  Run: pnpm install"
-  echo "  Or:  ./run.sh --install"
-  exit 1
 fi
 
 mkdir -p "$LOG_DIR"

@@ -17,9 +17,10 @@
 #   -G PATTERN Grep output for PATTERN
 #   --fresh    Ignore the result cache and re-run (a green result is still stamped)
 #   --scope S  Narrow every phase to a package (shared | server | client) or to a file or directory
-#              under packages/<package>/src. A package scope keeps the coverage floors; a path scope
+#              under packages/<package>/src. A package scope keeps the coverage floors unless extra args filter it; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
-#              typechecks its package (tsc checks whole projects). An empty scope is refused.
+#              typechecks its package (tsc checks whole projects). An empty scope is refused. A scoped
+#              lint also prettier-checks the docs (*.md outside packages/) changed against origin/main.
 #   --affected With `all` only, never with --scope: the merge gate. Checks what the branch changed
 #              against origin/main (committed, uncommitted, untracked): the changed packages and their
 #              dependents (a shared change selects every package); lint alone for docs (*.md, docs/,
@@ -27,7 +28,18 @@
 #              file. Prints each selection and why, and is stamped per affected set.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
 #
-# Extra args after -- are passed to the underlying command (and disable the result cache).
+# Extra args after -- are passed to the underlying command (and disable the result cache). For test and
+# integration they reach one package's runner, so a selection that mixes the client (the Angular builder)
+# with vitest packages refuses them: add --scope. For the client, an extra arg that is not an option is a
+# file filter as vitest reads one (a substring of the spec's repo- or package-relative path), passed as
+# one --include per matching spec of the tier (under a file scope, only the spec that file selects);
+# options pass through (#329). A word right after an option written without `=` is that option's value,
+# never a filter (--reporter verbose), so give file filters before options. A filtered `test` (a filter, -t,
+# --testNamePattern or --filter) is a slice of its package, so like a path scope it has no coverage floor.
+#
+# Before a real run (never a cache hit) the checkout is made runnable (scripts/lib/workspace-ready.sh,
+# #329): pnpm install --frozen-lockfile when node_modules does not match pnpm-lock.yaml, and the
+# @evolution/shared build when its dist is missing or older than its sources, one line each.
 # test and integration print a `selected <package>: N test files, M tests run[, K skipped]` line per
 # package; a targeted run (a path scope, or extra args) that runs no test fails (#289).
 #
@@ -145,6 +157,8 @@ apply_filters() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
+source "$SCRIPT_DIR/scripts/lib/gate-lock.sh"
 
 # ---------------------------------------------------------------------------
 # Scope (--scope, see the header): resolved once, before anything runs; every phase reads these.
@@ -152,12 +166,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES=(shared server client)
 PACKAGE_NAME_PREFIX="@evolution/"
 CLIENT_PACKAGE="client"
-SHARED_PACKAGE="shared"
 # Source files the standards apply to (docs/CODE-STANDARDS.md); tests included.
 PACKAGE_SOURCES=()
 for package in "${PACKAGES[@]}"; do PACKAGE_SOURCES+=("packages/$package/src"); done
 TEST_FILE_PATTERN='\.(test|spec)\.ts$'
+CLIENT_SPEC_SUFFIX=".spec.ts"
 CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
+CLIENT_NO_COVERAGE_ARGUMENT="--no-coverage"
+VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
+# The options that narrow a test run to some tests (vitest's test-name filter, the Angular builder's).
+NARROWING_OPTION_PATTERN='^(-t|--testNamePattern|--filter)(=.*)?$'
 
 SCOPE_NAME=""                          # what a stamp records: the package or the path; empty unscoped
 SCOPE_PACKAGE=""                       # the package a scoped run is narrowed to
@@ -243,6 +261,26 @@ affected_changed_paths() {
     | sort -u
 }
 
+# A changed doc outside the packages that prettier formats and that still exists.
+is_prettier_doc() { # <repo-relative path>
+  [[ ! "$1" =~ $PACKAGE_PATH_PATTERN && "$1" =~ $DOCS_PATH_PATTERN && "$1" =~ $PRETTIER_DOC_PATTERN && -e "$SCRIPT_DIR/$1" ]]
+}
+
+# A scoped lint also prettier-checks the docs the branch changed (#329): a package or path scope reads
+# no docs/, so an author's scoped lint was green over unformatted docs that only the merge gate caught.
+# Without a merge base with origin/main there is nothing to compare, and the scope stays as it is.
+add_changed_docs_to_scoped_lint() {
+  [[ $SCOPE_GIVEN -eq 1 ]] || return 0
+  local paths path docs=()
+  paths="$(affected_changed_paths)" || return 0
+  while IFS= read -r path; do
+    [[ -z "$path" ]] || ! is_prettier_doc "$path" || docs+=("$path")
+  done <<< "$paths"
+  [[ ${#docs[@]} -gt 0 ]] || return 0
+  LINT_PATHS+=("${docs[@]}")
+  [[ ! "$COMMAND" =~ ^(lint|all)$ ]] || echo "lint also prettier-checks the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+}
+
 # Sorts each changed path into a package, the docs, the scripts, or "everything" (a root file).
 classify_affected_path() { # <repo-relative path>
   local path="$1" package
@@ -252,7 +290,7 @@ classify_affected_path() { # <repo-relative path>
     CHANGED_PACKAGE_EXAMPLE[$package]="${CHANGED_PACKAGE_EXAMPLE[$package]:-$path}"
   elif [[ "$path" =~ $DOCS_PATH_PATTERN ]]; then
     IS_DOCS_AFFECTED=1
-    [[ ! "$path" =~ $PRETTIER_DOC_PATTERN || ! -e "$SCRIPT_DIR/$path" ]] || AFFECTED_DOC_FILES+=("$path")
+    ! is_prettier_doc "$path" || AFFECTED_DOC_FILES+=("$path")
   elif [[ "$path" =~ $SHELL_PATH_PATTERN ]]; then
     IS_SCRIPTS_AFFECTED=1
   else
@@ -359,10 +397,132 @@ path_scope_runner_args() { # <test | integration>
   local package_relative="${SCOPE_PATH#packages/"$SCOPE_PACKAGE"/}"
   if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" ]]; then
     printf '%s\n' --include "$(client_include "$1" "$package_relative")"
-    [[ "$1" != test ]] || echo "--no-coverage"
   else
     vitest_path_filter "$package_relative"
-    [[ "$1" != test ]] || echo "--coverage.enabled=false"
+  fi
+  [[ "$1" != test ]] || coverage_off_argument
+}
+
+coverage_off_argument() { # the scoped package's runner switch that drops the coverage floor
+  if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" ]]; then echo "$CLIENT_NO_COVERAGE_ARGUMENT"; else echo "$VITEST_NO_COVERAGE_ARGUMENT"; fi
+}
+
+# Splits extra args into EXTRA_FILTERS and EXTRA_OPTIONS. A word right after an option written without
+# `=` is that option's value (--reporter verbose, -t name) and stays with it, never a filter.
+EXTRA_FILTERS=()
+EXTRA_OPTIONS=()
+split_extra_args() { # <extra args...>
+  local argument follows_option=0
+  EXTRA_FILTERS=()
+  EXTRA_OPTIONS=()
+  for argument in "$@"; do
+    if [[ "$argument" == -* ]]; then
+      EXTRA_OPTIONS+=("$argument")
+      follows_option=1
+      [[ "$argument" != *=* ]] || follows_option=0
+    elif [[ $follows_option -eq 1 ]]; then
+      EXTRA_OPTIONS+=("$argument")
+      follows_option=0
+    else
+      EXTRA_FILTERS+=("$argument")
+    fi
+  done
+}
+
+# Whether the split extra args narrow the run: a file filter or a test-name filter. An option such as
+# --reporter verbose narrows nothing.
+extra_args_narrow() {
+  local option
+  [[ ${#EXTRA_FILTERS[@]} -eq 0 ]] || return 0
+  for option in "${EXTRA_OPTIONS[@]}"; do
+    [[ ! "$option" =~ $NARROWING_OPTION_PATTERN ]] || return 0
+  done
+  return 1
+}
+
+# `-- extra args` reach one runner, and vitest (shared, server) and the Angular builder (client) read
+# different arguments: test and integration refuse them on a selection holding the client and more.
+refuse_mixed_runner_args() {
+  [[ ${#EXTRA_ARGS[@]} -gt 0 && "$COMMAND" =~ ^(test|integration|all)$ ]] || return 0
+  [[ "$SCOPE_PACKAGE" != "$CLIENT_PACKAGE" ]] || return 0
+  local selection=" ${PNPM_SELECTION[*]} " package_choices
+  [[ "$selection" == *" -r "* || "$selection" == *" $PACKAGE_NAME_PREFIX$CLIENT_PACKAGE "* ]] || return 0
+  printf -v package_choices '%s|' "${PACKAGES[@]}"
+  echo "validate.sh: -- ${EXTRA_ARGS[*]}: extra args for test and integration reach one package's runner; add --scope ${package_choices%|} (the client runs the Angular builder, the others vitest)" >&2
+  exit 1
+}
+
+# RUNNER_ARGS: what the <test | integration> runner gets for the scope and the extra args. The Angular
+# builder rejects a positional file filter (#329), so for the client each extra arg that is not an
+# option becomes one --include per matching spec (client_filter_includes), replacing the path scope's
+# own --include; options pass through. Fails when a filter matches no spec.
+RUNNER_ARGS=()
+resolve_runner_args() { # <test | integration> <extra args...>
+  local cmd="$1" client_filtered=0
+  shift
+  RUNNER_ARGS=()
+  split_extra_args "$@"
+  if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" && ${#EXTRA_FILTERS[@]} -gt 0 ]]; then
+    client_filter_includes "$cmd" "${EXTRA_FILTERS[@]}" || return 1
+    RUNNER_ARGS+=("${EXTRA_OPTIONS[@]}")
+    client_filtered=1
+  else
+    mapfile -t RUNNER_ARGS < <(path_scope_runner_args "$cmd")
+    RUNNER_ARGS+=("$@")
+  fi
+  # A filtered run is a slice of its package and cannot meet the package's floor; a path scope's own
+  # arguments already drop it, unless client filters replaced them.
+  if [[ "$cmd" == test ]] && extra_args_narrow && [[ -z "$SCOPE_PATH" || $client_filtered -eq 1 ]]; then
+    RUNNER_ARGS+=("$(coverage_off_argument)")
+  fi
+}
+
+# Appends `--include <spec>` to RUNNER_ARGS for each candidate spec of the tier (integration:
+# *.integration.spec.ts, test: the other *.spec.ts) whose repo- or package-relative path contains one
+# of the filters.
+client_filter_includes() { # <test | integration> <filter...>
+  local cmd="$1" spec package_relative filter wants_integration=0 is_integration matched=0
+  shift
+  [[ "$cmd" != integration ]] || wants_integration=1
+  while IFS= read -r spec; do
+    is_integration=0
+    [[ "$spec" != *"$CLIENT_INTEGRATION_SPEC_SUFFIX" ]] || is_integration=1
+    [[ $is_integration -eq $wants_integration ]] || continue
+    package_relative="${spec#packages/"$CLIENT_PACKAGE"/}"
+    for filter in "$@"; do
+      if [[ "$package_relative" == *"$filter"* || "$spec" == *"$filter"* ]]; then
+        RUNNER_ARGS+=(--include "$package_relative")
+        matched=1
+        break
+      fi
+    done
+  done < <(client_candidate_specs "$cmd")
+  [[ $matched -eq 0 ]] || return 0
+  echo "validate.sh: no client $cmd spec under ${SCOPE_PATH:-packages/$CLIENT_PACKAGE/src} has a path containing: $*"
+  return 1
+}
+
+# Repo-relative spec paths, one per line: the one spec a file path scope selects (when it exists),
+# else every spec under the directory path scope or the client's src.
+client_candidate_specs() { # <test | integration>
+  local package_dir="packages/$CLIENT_PACKAGE" spec
+  if [[ -n "$SCOPE_PATH" && ! -d "$SCRIPT_DIR/$SCOPE_PATH" ]]; then
+    spec="$package_dir/$(client_file_scope_spec "$1" "${SCOPE_PATH#"$package_dir"/}")"
+    [[ ! -f "$SCRIPT_DIR/$spec" ]] || echo "$spec"
+    return 0
+  fi
+  (cd "$SCRIPT_DIR" && find "${SCOPE_PATH:-$package_dir/src}" -name "*$CLIENT_SPEC_SUFFIX" | sort)
+}
+
+# The spec a file scope selects: its integration spec for the integration tier; for test, the file
+# itself when it is a spec, else the spec named after it.
+client_file_scope_spec() { # <test | integration> <package-relative file>
+  if [[ "$1" == integration ]]; then
+    client_include "$1" "$2"
+  elif [[ "$2" == *"$CLIENT_SPEC_SUFFIX" ]]; then
+    echo "$2"
+  else
+    echo "${2%.ts}$CLIENT_SPEC_SUFFIX"
   fi
 }
 
@@ -383,20 +543,6 @@ CACHE_HIT_LOG=""
 cleanup_temp_files() { rm -f "${TEMP_INDEX:+$TEMP_INDEX}" "${TEMP_INDEX:+$TEMP_INDEX.lock}"; }
 trap cleanup_temp_files EXIT
 trap 'cleanup_temp_files; exit 130' INT TERM
-
-# The cache name: SLUG from PORTS.env, else the main checkout's directory name (the same for
-# every worktree of the repo), else this directory's name.
-cache_slug() {
-  local slug
-  slug="$(sed -n 's/^SLUG=//p' "$SCRIPT_DIR/PORTS.env" 2>/dev/null | head -n 1)"
-  if [[ -z "$slug" ]]; then
-    local common_dir
-    common_dir="$(git -C "$SCRIPT_DIR" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-    [[ -n "$common_dir" ]] && slug="$(basename "$(dirname "$common_dir")")"
-  fi
-  [[ -n "$slug" ]] || slug="$(basename "$SCRIPT_DIR")"
-  echo "$slug"
-}
 
 # One hash for the exact working tree, tracked and untracked (ignored files excluded), without
 # touching the real index: copy it (so unchanged files are not re-hashed), `git add -A` into the
@@ -422,7 +568,7 @@ cache_init() {
   TREE_HASH="$(cache_tree_hash)"
   [[ -n "$TREE_HASH" ]] || return 0
   NODE_MAJOR="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
-  CACHE_DIR="${VALIDATE_CACHE_DIR:-$HOME/.cache/$(cache_slug)-validate}"
+  CACHE_DIR="${VALIDATE_CACHE_DIR:-$HOME/.cache/$(repo_slug "$SCRIPT_DIR")-validate}"
   if ! mkdir -p "$CACHE_DIR/logs" 2>/dev/null || [[ ! -w "$CACHE_DIR/logs" ]]; then
     echo "validate.sh: result cache disabled: cannot write $CACHE_DIR" >&2
     CACHE_DIR=""
@@ -488,28 +634,10 @@ cache_store() {
   fi
 }
 
-# One real gate at a time per machine: every non-cached run holds an exclusive lock on
-# $HOME/.cache/<slug>-validate/gate.lock (falling back to ${TMPDIR:-/tmp}), independent of
-# VALIDATE_CACHE_DIR so a scratch cache still queues behind the machine's gates; the fd is closed
-# for the child (9>&-) so no orphaned worker can keep the lock; a cache hit never takes it.
-GATE_LOCK_FD=""
-gate_lock_path() { # machine-wide per repo: never under VALIDATE_CACHE_DIR, which a CI run points at scratch
-  local dir="$HOME/.cache/$(cache_slug)-validate"
-  if mkdir -p "$dir" 2>/dev/null && [[ -w "$dir" ]]; then echo "$dir/gate.lock"; else echo "${TMPDIR:-/tmp}/$(cache_slug)-validate-gate.lock"; fi
-}
-gate_lock_acquire() { # <cmd>
-  [[ "${VALIDATE_NO_GATE_LOCK:-0}" == "1" ]] && return 0
-  command -v flock >/dev/null 2>&1 || { echo "validate.sh: flock not found; running unlocked" >&2; return 0; }
-  local path
-  path="$(gate_lock_path)"
-  exec 9>>"$path" || { echo "validate.sh: gate lock unavailable ($path); running unlocked" >&2; return 0; }
-  GATE_LOCK_FD=9
-  if ! flock -n 9; then
-    echo "waiting for another gate to finish before $1 (lock $path)"
-    flock 9
-  fi
-}
-gate_lock_release() { [[ -z "$GATE_LOCK_FD" ]] || { flock -u 9; exec 9>&-; GATE_LOCK_FD=""; }; }
+# One real gate at a time per machine (scripts/lib/gate-lock.sh): every non-cached run holds
+# $HOME/.cache/<slug>-validate/gate.lock, independent of VALIDATE_CACHE_DIR so a scratch cache still
+# queues behind the machine's gates; the fd is closed for the child (9>&-) so no orphaned worker can
+# keep the lock; a cache hit never takes it. The workspace setup runs before it, under a per-checkout lock.
 
 # Runs <cmd> through the cache: a hit prints the stamp; a green run is stamped; red never is.
 # PHASE_OUTPUT and PHASE_WAS_CACHED tell `all` what goes in its own log.
@@ -524,7 +652,9 @@ run_cached() {
   fi
   local rc=0
   PHASE_WAS_CACHED=0
-  gate_lock_acquire "$cmd"
+  # The setup takes this checkout's own lock, not the machine's gate: another worktree's gate never waits it.
+  workspace_ensure_ready "$SCRIPT_DIR" "validate.sh:" continue || return 1
+  gate_lock_acquire "$SCRIPT_DIR" "$cmd"
   PHASE_OUTPUT="$(run_one "$cmd" "$@" 9>&-)" || rc=$?
   gate_lock_release
   printf '%s\n' "$PHASE_OUTPUT" | apply_filters
@@ -532,11 +662,6 @@ run_cached() {
     cache_store "$cmd" "$PHASE_OUTPUT"
   fi
   return $rc
-}
-
-build_shared() {
-  # Build shared package so downstream .d.ts references are fresh
-  pnpm --filter "$PACKAGE_NAME_PREFIX$SHARED_PACKAGE" build > /dev/null 2>&1 || true
 }
 
 # docs/engineering/testing-and-typescript.md §3.3: an eslint-disable needs a justification on the directive
@@ -648,14 +773,13 @@ run_tests() { # <test | integration> <extra args...>
 run_package_tests() { # <test | integration> <extra args...>
   local cmd="$1"
   shift
-  local output summary rc=0 runner_args=()
-  mapfile -t runner_args < <(path_scope_runner_args "$cmd")
+  local output summary rc=0
+  resolve_runner_args "$cmd" "$@" || return 1
   if [[ "$cmd" == test ]]; then
-    output="$(pnpm "${PNPM_SELECTION[@]}" test "${runner_args[@]}" "$@" 2>&1)" || rc=$?
+    output="$(pnpm "${PNPM_SELECTION[@]}" test "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
   else
     # Each package's test:integration script selects the *.integration.* tier (docs/testing/tiers-and-builders.md §2).
-    build_shared
-    output="$(pnpm "${PNPM_SELECTION[@]}" --if-present test:integration "${runner_args[@]}" "$@" 2>&1)" || rc=$?
+    output="$(pnpm "${PNPM_SELECTION[@]}" --if-present test:integration "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
   fi
   summary="$(summarize_selection "$output")"
   printf '%s\n' "$output"
@@ -697,7 +821,6 @@ run_one() {
       return $rc
       ;;
     typecheck)
-      [[ "$SCOPE_PACKAGE" == "$SHARED_PACKAGE" ]] || build_shared
       [[ -z "$SCOPE_PATH" ]] || echo "typecheck covers the whole $SCOPE_PACKAGE package (tsc checks a project, not a path)"
       output="$(pnpm "${PNPM_SELECTION[@]}" typecheck "$@" 2>&1)" || rc=$?
       ;;
@@ -823,6 +946,8 @@ ALL PASSED"
 
 resolve_scope
 resolve_affected
+add_changed_docs_to_scoped_lint
+refuse_mixed_runner_args
 cd "$SCRIPT_DIR" || exit 1
 cache_init
 

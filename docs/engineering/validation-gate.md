@@ -7,8 +7,14 @@
 1. **Always use `./validate.sh`. Never run the underlying tools directly.** Do not reach for
    `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`,
    or `pnpm --filter ... exec vitest` as a shortcut. The wrapper:
-   - pre-builds `@evolution/shared` before typecheck (`build_shared`) so downstream
-     `.d.ts` project references are fresh — running `tsc` directly gives stale/false results;
+   - makes the checkout runnable before every real run (never a cache hit; `scripts/lib/workspace-ready.sh`,
+     #329, which `./run.sh` also runs before it stops the running stack, and the deploy before its
+     restart): under a per-checkout setup lock, never the machine-wide gate lock, waiting at most
+     `WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS` (300) and failing loudly after, `pnpm install --frozen-lockfile` when
+     `node_modules/.pnpm/lock.yaml` is missing or differs from `pnpm-lock.yaml`, and the
+     `@evolution/shared` build when `dist/index.d.ts` is missing or a shared source or config is newer
+     than its tsbuildinfo, one line each, so a fresh worktree needs no manual step and downstream
+     `.d.ts` references are fresh — running `tsc` directly gives stale/false results;
    - runs **eslint AND prettier `--check` as a pair** — running only eslint silently misses
      formatting failures — then audits the source for `eslint-disable` directives without a
      `-- reason` and for `TODO`s without a ticket (`docs/CODE-STANDARDS.md` §7), printing the
@@ -20,10 +26,13 @@
      package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
      (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
-     package (its tests keep the package's coverage floor; typecheck still builds shared first);
+     package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
+     filtered or path-scoped `test` has no coverage floor; typecheck builds shared first when stale);
      `--scope <file or directory under packages/<package>/src>` runs only the tests that path
      selects (a directory: the tests under it; a source file: the tests named after it) **without**
-     coverage floors, lints, formats and scans that path, and typechecks its package. No `--scope`
+     coverage floors, lints, formats and scans that path, and typechecks its package. Either scope's
+     `lint` also prettier-checks the docs (`*.md` outside `packages/`) the branch changed against
+     `origin/main` and names them (#329), so a scoped lint is never green over unformatted docs. No `--scope`
      is the whole repo, exactly as before; an empty `--scope` is refused. `test` and `integration`
      print `selected <package>: N test files, M tests run[, K skipped]`, and a targeted run (a path
      scope or `-- extra-args`) that runs no test — nothing selected, or every selected test skipped
@@ -80,12 +89,20 @@
    tool invocation.
 4. Use the output filters instead of dumping full logs: `-tN` (tail), `-hN` (head),
    `-G PATTERN` (grep), `-- extra-args` (passthrough). Example: `./validate.sh test -G 'fail'`.
+   For `test` and `integration` the extra args reach one package's runner, so they need a one-package
+   `--scope` (vitest and the Angular builder read different arguments). For the client (#329) an
+   extra arg that is not an option is a file filter as vitest reads one, a substring of the spec's
+   repo- or package-relative path, passed as one `--include` per matching spec of the tier (under a
+   file path scope, only the spec that file selects); options pass through, and a word right after an
+   option written without `=` is its value (`--reporter verbose`), never a filter, so give filters first.
+   A filtered `test` (a non-option extra arg, `-t`, `--testNamePattern` or `--filter`) runs without
+   the coverage floor, in every package.
    `--fresh` re-runs regardless of the result cache.
 
 ```text
 ./validate.sh test         # unit tier with coverage thresholds
 ./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier (opt-in)
-./validate.sh typecheck    # type check all packages (rebuilds shared first)
+./validate.sh typecheck    # type check all packages (builds shared first when stale)
 ./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
 ./validate.sh duplication  # jscpd (.jscpd.json)
 ./validate.sh all          # lint -> duplication -> typecheck -> test, stopping at the first red phase; prints wall times and ALL PASSED / FAILED: <phase>
