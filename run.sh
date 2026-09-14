@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
 PID_FILE="$SCRIPT_DIR/.game.pid"
 LOG_DIR="$SCRIPT_DIR/.game-logs"
 PACKAGES_DIR="$SCRIPT_DIR/packages"
@@ -86,7 +87,8 @@ Usage: ./run.sh [OPTIONS]
 
 Options:
   --help             Show this help message
-  --install          Run pnpm install before starting
+  --install          Run pnpm install before starting (without it, a checkout whose node_modules does
+                     not match pnpm-lock.yaml is installed, and a stale @evolution/shared is built)
   --server-only      Start only the game server
   --client-only      Start only the client dev server
   --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
@@ -375,12 +377,8 @@ if $DO_INSTALL; then
   pnpm install
 fi
 
-if [[ ! -d "$SCRIPT_DIR/node_modules" ]]; then
-  echo "ERROR: node_modules not found. Dependencies have not been installed."
-  echo "  Run: pnpm install"
-  echo "  Or:  ./run.sh --install"
-  exit 1
-fi
+# A fresh worktree or a merge: install when node_modules does not match the lockfile, build shared when stale
+workspace_ensure_ready "$SCRIPT_DIR" "==>" || exit 1
 
 mkdir -p "$LOG_DIR"
 > "$PID_FILE"

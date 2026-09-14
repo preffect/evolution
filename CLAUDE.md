@@ -37,9 +37,15 @@
 ./validate.sh test -t20               # show last 20 lines
 ./validate.sh typecheck -h50          # show first 50 lines
 ./validate.sh lint -G 'error'         # grep output for pattern
-./validate.sh integration --scope server -- ecology   # extra args reach the runner (here a vitest file filter; never cached)
+./validate.sh integration --scope server -- ecology   # extra args reach one package's runner (a vitest file filter; never cached)
+./validate.sh integration --scope client -- app.integration   # the client: a spec path filter, passed as --include; options as --option=value
 ./validate.sh all --fresh             # ignore the content-addressed result cache (docs/engineering/validation-gate.md §1)
 ```
+
+A fresh worktree needs no setup: before a real run `./validate.sh` (and `./run.sh` before it starts) runs
+`pnpm install --frozen-lockfile` when `node_modules` does not match `pnpm-lock.yaml`, and builds
+`@evolution/shared` when its `dist` is missing or older than its sources (`scripts/lib/workspace-ready.sh`).
+For `test` and `integration`, `-- extra args` need a one-package `--scope`.
 
 ### Running the dev servers
 

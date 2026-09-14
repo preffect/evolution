@@ -14,7 +14,13 @@
 #   hit never waits; `all` stops at the first failing phase (a red lint never runs test); and
 #   `all --affected`, against a fixture origin/main, selects client alone for a client change, all
 #   three packages for a shared change, lint alone for docs, the shell suites for scripts and the
-#   plain `all` for a root file, and stamps per affected set.
+#   plain `all` for a root file, and stamps per affected set. Readiness (#329): a real run installs
+#   when node_modules does not match the lockfile and builds shared when its dist is missing (deleting
+#   the build record) or older than its sources, one line each; a ready checkout and a cache hit do
+#   neither; a failed install stops the run, a failed build does not. Client filters (#329): a
+#   non-option extra arg becomes one --include per matching spec of the tier (under a path scope, in
+#   place of its include), options pass through, no match fails, and extra args on a selection that
+#   mixes the client with other packages are refused.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -29,15 +35,25 @@ FAKE_PNPM_TOUCH_FILE="$sandbox/fake-pnpm-touch" # when non-empty: a path the fak
 FAKE_PNPM_SLEEP_FILE="$sandbox/fake-pnpm-sleep" # seconds the fake pnpm sleeps (a slow gate)
 FAKE_PNPM_OUTPUT_FILE="$sandbox/fake-pnpm-output" # what the fake pnpm prints after its command line (a runner summary)
 FAKE_PNPM_FAIL_PATTERN_FILE="$sandbox/fake-pnpm-fail-pattern" # when non-empty: a command line matching it exits 1
+FAKE_BUILD_SAW_FILE="$sandbox/fake-build-saw" # the fake shared build writes whether the build record was kept or deleted
 
 # --- fixture: a git repo holding validate.sh, a stub docs-index.sh, package dirs and a fake pnpm --
 fixture="$sandbox/repo"
-mkdir -p "$fixture/scripts" "$sandbox/bin" "$sandbox/home" \
-  "$fixture/packages/shared/src" "$fixture/packages/server/src/game" "$fixture/packages/client/src/app"
+mkdir -p "$fixture/scripts/lib" "$sandbox/bin" "$sandbox/home" \
+  "$fixture/packages/shared/src" "$fixture/packages/shared/dist" "$fixture/node_modules/.pnpm" \
+  "$fixture/packages/server/src/game" "$fixture/packages/client/src/app"
 cp "$repo_root/validate.sh" "$fixture/validate.sh"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$fixture/scripts/lib/workspace-ready.sh"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 touch "$fixture/packages/shared/src/index.ts" "$fixture/packages/server/src/game/world.ts" \
-  "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts"
+  "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts" \
+  "$fixture/packages/client/src/app/app.integration.spec.ts"
+# A ready checkout (#329): node_modules installed from the lockfile, shared built after its sources.
+printf 'node_modules/\ndist/\n*.tsbuildinfo\n' > "$fixture/.gitignore"
+echo 'lockfileVersion: fixture' > "$fixture/pnpm-lock.yaml"
+cp "$fixture/pnpm-lock.yaml" "$fixture/node_modules/.pnpm/lock.yaml"
+touch -d '-1 hour' "$fixture/packages/shared/src/index.ts" "$fixture/packages/shared/src"
+touch "$fixture/packages/shared/dist/index.d.ts" "$fixture/packages/shared/tsconfig.build.tsbuildinfo"
 FIXTURE_SUITE_MARKER="fixture shell suite ran"
 printf '#!/usr/bin/env bash\necho "%s"\n' "$FIXTURE_SUITE_MARKER" > "$fixture/scripts/fixture-suite.test.sh"
 chmod +x "$fixture/scripts/fixture-suite.test.sh"
@@ -51,6 +67,13 @@ touch_path="\$(cat "$FAKE_PNPM_TOUCH_FILE")"
 sleep "\$(cat "$FAKE_PNPM_SLEEP_FILE")"
 fail_pattern="\$(cat "$FAKE_PNPM_FAIL_PATTERN_FILE")"
 [[ -z "\$fail_pattern" ]] || ! grep -qE -- "\$fail_pattern" <<<"\$*" || exit 1
+case "\$*" in
+  'install --frozen-lockfile --prefer-offline') mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml ;;
+  '--filter @evolution/shared build')
+    if [[ -e packages/shared/tsconfig.build.tsbuildinfo ]]; then echo kept; else echo deleted; fi > "$FAKE_BUILD_SAW_FILE"
+    mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts packages/shared/tsconfig.build.tsbuildinfo
+    ;;
+esac
 exit "\$(cat "$FAKE_PNPM_RC_FILE")"
 PNPM
   chmod +x "$sandbox/bin/pnpm"
@@ -80,6 +103,7 @@ run_validate() { # <dir> <args...>  -> stdout in $out, exit code in $rc
 }
 is_cached() { grep -q '^cached green from .* at tree [0-9a-f]\{40\}$' <<<"$out"; }
 ran_pnpm() { grep -q '^fake pnpm' <<<"$out"; }
+ran() { grep -q -- "$1" <<<"$out"; } # <pattern>: whether the last run's output matches
 
 # --- cases --------------------------------------------------------------------------------------
 run_validate "$fixture" test
@@ -225,6 +249,16 @@ run_validate "$fixture" test --scope packages/client/src/app
 check "a client path scope passes --include without coverage" $(( $(grep -q '^fake pnpm --filter @evolution/client test --include src/app --no-coverage$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" integration --scope packages/client/src/app
 check "a client integration path scope keeps the integration spec selection" $(( $(grep -q '^fake pnpm --filter @evolution/client --if-present test:integration --include src/app/\*\*/\*\.integration\.spec\.ts$' <<<"$out"; echo $?) == 0 ))
+printf ' Test Files  1 passed (1)\n      Tests  2 passed (2)\n' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" integration --scope client -- app.integration
+check "a client filter becomes one --include per matching integration spec (#329)" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client --if-present test:integration --include src/app/app\.integration\.spec\.ts$'; echo $?) == 0 ))
+run_validate "$fixture" integration --scope client -- app --filter=^App
+check "a client filter selects only its tier's specs, and an option passes through" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client --if-present test:integration --include src/app/app\.integration\.spec\.ts --filter=^App$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope packages/client/src/app -- hud
+check "a client filter under a path scope replaces the directory include and drops coverage" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client test --include src/app/hud\.spec\.ts --no-coverage$'; echo $?) == 0 ))
+run_validate "$fixture" integration --scope client -- nothing-matches
+check "a client filter that matches no spec fails without running the runner" $(( rc != 0 && $(ran 'no client integration spec under packages/client/src has a path containing: nothing-matches'; echo $?) == 0 && $(ran 'test:integration'; echo $?) != 0 ))
+: > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" lint --scope packages/server/src/game
 check "a path scope lints and formats only that path" $(( $(grep -q '^fake pnpm eslint packages/server/src/game$' <<<"$out"; echo $?) == 0 && $(grep -q '^fake pnpm prettier --check packages/server/src/game$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" duplication --scope client
@@ -260,12 +294,9 @@ printf '%s\n' 'packages/shared test:integration:  No test files found, exiting w
   'packages/server test:integration:  Test Files  3 passed (3)' 'packages/server test:integration:       Tests  9 passed (9)' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" integration
 check "a tier-wide run passes over a package with no files in the tier" $(( rc == 0 && $(grep -q '^selected shared: 0 test files, 0 tests run$' <<<"$out"; echo $?) == 0 && $(grep -q '^selected server: 3 test files, 9 tests run$' <<<"$out"; echo $?) == 0 ))
-run_validate "$fixture" integration -- ecology
-check "extra args that select files in any package pass" $(( rc == 0 ))
-printf '%s\n' 'packages/shared test:integration:  No test files found, exiting with code 0' > "$FAKE_PNPM_OUTPUT_FILE"
-run_validate "$fixture" integration -- nothing-matches
-check "extra args that select no file anywhere fail" $(( rc != 0 && $(grep -q 'ran no tests' <<<"$out"; echo $?) == 0 ))
 : > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" integration -- ecology
+check "extra args on a selection that mixes the client with vitest packages are refused, naming --scope" $(( rc != 0 && $(ran 'add --scope shared|server|client'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 ))
 
 # --- all: fixed order, per-phase exit codes and stamps, wall times (#281) ---------------------------
 echo phases > "$fixture/untracked.txt"
@@ -323,6 +354,45 @@ run_validate "$fixture" all
 check "all stops at a red lint: FAILED: lint, and no later phase runs" $(( rc != 0 && $(grep -q '^FAILED: lint$' <<<"$out"; echo $?) == 0 && $(grep -q '^=== \(duplication\|typecheck\|test\) ===$' <<<"$out"; echo $?) != 0 && $(grep -q '^fake pnpm .*test' <<<"$out"; echo $?) != 0 ))
 rm -f "$fixture/untracked.txt"
 
+# --- readiness (#329): install and shared build before a real run, never on a hit -----------------
+readiness_line='installing dependencies\|building @evolution/shared'
+echo readiness > "$fixture/untracked.txt"
+run_validate "$fixture" test
+check "a ready checkout installs nothing and builds nothing" $(( rc == 0 && $(ran "$readiness_line"; echo $?) != 0 ))
+rm -rf "$fixture/node_modules"
+run_validate "$fixture" test
+check "a cache hit never installs, even without node_modules" $(( $(is_cached; echo $?) == 0 && $(ran "$readiness_line"; echo $?) != 0 ))
+run_validate "$fixture" test --fresh
+check "a real run without node_modules installs from the lockfile first, in one line" $(( rc == 0 && $(grep -c '^validate.sh: installing dependencies (node_modules does not match pnpm-lock.yaml): pnpm install --frozen-lockfile --prefer-offline$' <<<"$out") == 1 && $(test -f "$fixture/node_modules/.pnpm/lock.yaml"; echo $?) == 0 ))
+echo 'lockfileVersion: changed' > "$fixture/pnpm-lock.yaml"
+run_validate "$fixture" test
+check "a lockfile that no longer matches node_modules installs again" $(( rc == 0 && $(ran '^validate.sh: installing dependencies'; echo $?) == 0 ))
+git -C "$fixture" checkout -q -- pnpm-lock.yaml
+cp "$fixture/pnpm-lock.yaml" "$fixture/node_modules/.pnpm/lock.yaml"
+
+rm -rf "$fixture/packages/shared/dist"
+run_validate "$fixture" test --fresh
+check "a missing shared dist is built first, its build record deleted so tsc re-emits" $(( rc == 0 && $(ran '^validate.sh: building @evolution/shared (no packages/shared/dist/index.d.ts)$'; echo $?) == 0 && $(grep -qx deleted "$FAKE_BUILD_SAW_FILE"; echo $?) == 0 ))
+run_validate "$fixture" test --fresh
+check "once built the checkout is ready: the next real run builds nothing" $(( rc == 0 && $(ran "$readiness_line"; echo $?) != 0 ))
+touch -d '+1 minute' "$fixture/packages/shared/src/index.ts"
+run_validate "$fixture" test --fresh
+touch -d '-1 hour' "$fixture/packages/shared/src/index.ts"
+check "a shared source newer than the last build rebuilds, keeping the build record" $(( rc == 0 && $(ran '^validate.sh: building @evolution/shared (packages/shared/src/index.ts changed since the last build)$'; echo $?) == 0 && $(grep -qx kept "$FAKE_BUILD_SAW_FILE"; echo $?) == 0 ))
+
+rm -rf "$fixture/node_modules"
+echo '^install' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" test --fresh
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "a failed install fails the run before any phase runs" $(( rc != 0 && $(ran '^validate.sh: the dependency install failed$'; echo $?) == 0 && $(ran '^fake pnpm -r test$'; echo $?) != 0 ))
+rm -rf "$fixture/packages/shared/dist"
+echo 'shared build$' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" test --fresh
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "a failed shared build is reported and the phase still runs" $(( rc == 0 && $(ran 'the @evolution/shared build failed; continuing'; echo $?) == 0 && $(ran '^fake pnpm -r test$'; echo $?) == 0 ))
+run_validate "$fixture" test --fresh # rebuilds, so the cases below start from a ready checkout
+rm -f "$fixture/untracked.txt"
+
 # --- all --affected (#304): branches off a fixture origin/main ------------------------------------
 affected_base="$(git -C "$fixture" rev-parse HEAD)"
 git -C "$fixture" update-ref refs/remotes/origin/main "$affected_base"
@@ -333,7 +403,6 @@ affected_branch() { # <branch> <path>: a branch off origin/main whose one commit
   git -C "$fixture" add -A
   git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m "$1"
 }
-ran() { grep -q -- "$1" <<<"$out"; } # <pattern>: whether the last run's output matches
 
 affected_branch affected-client packages/client/src/app/hud.spec.ts
 run_validate "$fixture" all --affected

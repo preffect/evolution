@@ -7,8 +7,12 @@
 1. **Always use `./validate.sh`. Never run the underlying tools directly.** Do not reach for
    `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`,
    or `pnpm --filter ... exec vitest` as a shortcut. The wrapper:
-   - pre-builds `@evolution/shared` before typecheck (`build_shared`) so downstream
-     `.d.ts` project references are fresh — running `tsc` directly gives stale/false results;
+   - makes the checkout runnable before every real run (never a cache hit; `scripts/lib/workspace-ready.sh`,
+     #329, which `./run.sh` also runs before it starts): `pnpm install --frozen-lockfile` when
+     `node_modules/.pnpm/lock.yaml` is missing or differs from `pnpm-lock.yaml`, and the
+     `@evolution/shared` build when `dist/index.d.ts` is missing or a shared source or config is newer
+     than its tsbuildinfo, one line each, so a fresh worktree needs no manual step and downstream
+     `.d.ts` references are fresh — running `tsc` directly gives stale/false results;
    - runs **eslint AND prettier `--check` as a pair** — running only eslint silently misses
      formatting failures — then audits the source for `eslint-disable` directives without a
      `-- reason` and for `TODO`s without a ticket (`docs/CODE-STANDARDS.md` §7), printing the
@@ -80,12 +84,17 @@
    tool invocation.
 4. Use the output filters instead of dumping full logs: `-tN` (tail), `-hN` (head),
    `-G PATTERN` (grep), `-- extra-args` (passthrough). Example: `./validate.sh test -G 'fail'`.
+   For `test` and `integration` the extra args reach one package's runner, so they need a one-package
+   `--scope` (vitest and the Angular builder read different arguments). For the client (#329) an
+   extra arg that is not an option is a file filter as vitest reads one, a substring of the spec's
+   package-relative path, passed as one `--include` per matching spec of the tier; options pass
+   through, written `--option=value`.
    `--fresh` re-runs regardless of the result cache.
 
 ```text
 ./validate.sh test         # unit tier with coverage thresholds
 ./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier (opt-in)
-./validate.sh typecheck    # type check all packages (rebuilds shared first)
+./validate.sh typecheck    # type check all packages (builds shared first when stale)
 ./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
 ./validate.sh duplication  # jscpd (.jscpd.json)
 ./validate.sh all          # lint -> duplication -> typecheck -> test, stopping at the first red phase; prints wall times and ALL PASSED / FAILED: <phase>

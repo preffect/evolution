@@ -13,7 +13,9 @@
 # only a listener from before the start (one that ignored the stop) holds the port; the watcher is not in
 # .game.pid, survives the restart a deploy runs and is never started twice; --stop stops it but not
 # another checkout's watcher behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT;
-# run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one.
+# run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one;
+# a checkout without node_modules or a shared build is installed and built before the start, and a ready
+# one is neither (#329).
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -41,9 +43,11 @@ make_origin
 stack="$sandbox/stack checkout" # the space is deliberate: run.sh must quote the checkout path
 other="$sandbox/other"
 git clone -q "$origin" "$stack"
-mkdir -p "$stack/scripts" "$stack/packages/server" "$stack/packages/client" "$stack/node_modules" \
+mkdir -p "$stack/scripts/lib" "$stack/packages/server" "$stack/packages/client" "$stack/node_modules/.pnpm" \
   "$other/packages/server" "$other/scripts" "$sandbox/bin"
+cp "$stack/pnpm-lock.yaml" "$stack/node_modules/.pnpm/lock.yaml" # installed from the lockfile
 cp "$repo_root/run.sh" "$stack/run.sh"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$stack/scripts/lib/workspace-ready.sh"
 cp "$repo_root/scripts/deploy-main.sh" "$stack/scripts/deploy-main.sh"
 cp "$repo_root/packages/client/proxy.conf.json" "$stack/packages/client/proxy.conf.json"
 pnpm_args="$sandbox/pnpm-args"
@@ -56,6 +60,10 @@ cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
 [[ "\$1" != -v ]] || { echo 10.0.0; exit 0; }
 echo "\$*" >> "$pnpm_args"
+case "\$1" in
+  install) mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml; exit 0 ;;
+  --filter) mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts packages/shared/tsconfig.build.tsbuildinfo; exit 0 ;;
+esac
 case "\$1" in
   dev:server) cd "$stack/packages/server"; port="\$PORT" ;;
   dev:client) cd "$stack/packages/client"; port="\$3" ;;
@@ -224,5 +232,17 @@ merge_to_main game.txt v3
 rc=0
 out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
 check "a one-shot deploy with a watcher running does not start a second (rc $rc)" $(( rc == 0 && $(holds test "$(watcher_pid)" = "$deployed_watcher") && $(stack_watchers) == 1 ))
+
+# --- a fresh worktree (#329): install and shared build before the start, nothing once ready -------
+mkdir -p "$stack/packages/shared/src"
+touch "$stack/packages/shared/src/index.ts"
+rm -rf "$stack/node_modules"
+: > "$pnpm_args"
+run_stack --server-only --no-deploy-watch --wait-ready
+check "a checkout without node_modules or a shared build installs, then builds, before the start (rc $rc)" $(( rc == 0 && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") && $(holds grep -qx -- '--filter @evolution/shared build' "$pnpm_args") && $(line_of 'installing dependencies') < $(line_of 'building @evolution/shared (no packages/shared/dist/index.d.ts)') && $(line_of 'building @evolution/shared') < $(line_of 'Starting game server') ))
+: > "$pnpm_args"
+run_stack --server-only --no-deploy-watch --wait-ready
+check "a ready checkout starts without installing or building (rc $rc)" $(( rc == 0 && ! $(holds grep -q 'install\|--filter' "$pnpm_args") ))
+run_stack --stop
 
 finish_suite run.test.sh

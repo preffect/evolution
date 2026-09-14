@@ -27,7 +27,15 @@
 #              file. Prints each selection and why, and is stamped per affected set.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
 #
-# Extra args after -- are passed to the underlying command (and disable the result cache).
+# Extra args after -- are passed to the underlying command (and disable the result cache). For test and
+# integration they reach one package's runner, so a selection that mixes the client (the Angular builder)
+# with vitest packages refuses them: add --scope. For the client, an extra arg that is not an option is a
+# file filter as vitest reads one (a substring of the spec's package-relative path), passed as one
+# --include per matching spec of the tier; options pass through, written --option=value (#329).
+#
+# Before a real run (never a cache hit) the checkout is made runnable (scripts/lib/workspace-ready.sh,
+# #329): pnpm install --frozen-lockfile when node_modules does not match pnpm-lock.yaml, and the
+# @evolution/shared build when its dist is missing or older than its sources, one line each.
 # test and integration print a `selected <package>: N test files, M tests run[, K skipped]` line per
 # package; a targeted run (a path scope, or extra args) that runs no test fails (#289).
 #
@@ -145,6 +153,7 @@ apply_filters() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
 
 # ---------------------------------------------------------------------------
 # Scope (--scope, see the header): resolved once, before anything runs; every phase reads these.
@@ -152,11 +161,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES=(shared server client)
 PACKAGE_NAME_PREFIX="@evolution/"
 CLIENT_PACKAGE="client"
-SHARED_PACKAGE="shared"
 # Source files the standards apply to (docs/CODE-STANDARDS.md); tests included.
 PACKAGE_SOURCES=()
 for package in "${PACKAGES[@]}"; do PACKAGE_SOURCES+=("packages/$package/src"); done
 TEST_FILE_PATTERN='\.(test|spec)\.ts$'
+CLIENT_SPEC_SUFFIX=".spec.ts"
 CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
 
 SCOPE_NAME=""                          # what a stamp records: the package or the path; empty unscoped
@@ -366,6 +375,72 @@ path_scope_runner_args() { # <test | integration>
   fi
 }
 
+# `-- extra args` reach one runner, and vitest (shared, server) and the Angular builder (client) read
+# different arguments: test and integration refuse them on a selection holding the client and more.
+refuse_mixed_runner_args() {
+  [[ ${#EXTRA_ARGS[@]} -gt 0 && "$COMMAND" =~ ^(test|integration|all)$ ]] || return 0
+  [[ "$SCOPE_PACKAGE" != "$CLIENT_PACKAGE" ]] || return 0
+  local selection=" ${PNPM_SELECTION[*]} " package_choices
+  [[ "$selection" == *" -r "* || "$selection" == *" $PACKAGE_NAME_PREFIX$CLIENT_PACKAGE "* ]] || return 0
+  printf -v package_choices '%s|' "${PACKAGES[@]}"
+  echo "validate.sh: -- ${EXTRA_ARGS[*]}: extra args for test and integration reach one package's runner; add --scope ${package_choices%|} (the client runs the Angular builder, the others vitest)" >&2
+  exit 1
+}
+
+# RUNNER_ARGS: what the <test | integration> runner gets for the scope and the extra args. The Angular
+# builder rejects a positional file filter (#329), so for the client each extra arg that is not an
+# option becomes one --include per matching spec (client_filter_includes), replacing the path scope's
+# own --include; options pass through. Fails when a filter matches no spec.
+RUNNER_ARGS=()
+resolve_runner_args() { # <test | integration> <extra args...>
+  local cmd="$1" argument filters=() options=()
+  shift
+  RUNNER_ARGS=()
+  if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" ]]; then
+    for argument in "$@"; do
+      if [[ "$argument" == -* ]]; then options+=("$argument"); else filters+=("$argument"); fi
+    done
+  fi
+  if [[ ${#filters[@]} -eq 0 ]]; then
+    mapfile -t RUNNER_ARGS < <(path_scope_runner_args "$cmd")
+    RUNNER_ARGS+=("$@")
+    return 0
+  fi
+  client_filter_includes "$cmd" "${filters[@]}" || return 1
+  [[ "$cmd" != test || -z "$SCOPE_PATH" ]] || RUNNER_ARGS+=(--no-coverage)
+  RUNNER_ARGS+=("${options[@]}")
+}
+
+# Appends `--include <spec>` to RUNNER_ARGS for each spec of the tier (integration: *.integration.spec.ts,
+# test: the other *.spec.ts) under the path scope's directory, or the client's src, whose
+# package-relative path contains one of the filters.
+client_filter_includes() { # <test | integration> <filter...>
+  local cmd="$1" search_root="packages/$CLIENT_PACKAGE/src" spec package_relative filter
+  local wants_integration=0 is_integration matched=0
+  shift
+  [[ "$cmd" != integration ]] || wants_integration=1
+  if [[ -n "$SCOPE_PATH" ]]; then
+    search_root="$SCOPE_PATH"
+    [[ -d "$SCRIPT_DIR/$search_root" ]] || search_root="$(dirname "$search_root")"
+  fi
+  while IFS= read -r spec; do
+    is_integration=0
+    [[ "$spec" != *"$CLIENT_INTEGRATION_SPEC_SUFFIX" ]] || is_integration=1
+    [[ $is_integration -eq $wants_integration ]] || continue
+    package_relative="${spec#packages/"$CLIENT_PACKAGE"/}"
+    for filter in "$@"; do
+      if [[ "$package_relative" == *"$filter"* ]]; then
+        RUNNER_ARGS+=(--include "$package_relative")
+        matched=1
+        break
+      fi
+    done
+  done < <(cd "$SCRIPT_DIR" && find "$search_root" -name "*$CLIENT_SPEC_SUFFIX" | sort)
+  [[ $matched -eq 0 ]] || return 0
+  echo "validate.sh: no client $cmd spec under $search_root has a path containing: $*"
+  return 1
+}
+
 # ---------------------------------------------------------------------------
 # Result cache (see the header). Only green runs are stamped; a stamp is
 # key=value lines: exit, time, log, node, command, scope, tree.
@@ -525,6 +600,10 @@ run_cached() {
   local rc=0
   PHASE_WAS_CACHED=0
   gate_lock_acquire "$cmd"
+  if ! workspace_ensure_ready "$SCRIPT_DIR" "validate.sh:" 9>&-; then
+    gate_lock_release
+    return 1
+  fi
   PHASE_OUTPUT="$(run_one "$cmd" "$@" 9>&-)" || rc=$?
   gate_lock_release
   printf '%s\n' "$PHASE_OUTPUT" | apply_filters
@@ -532,11 +611,6 @@ run_cached() {
     cache_store "$cmd" "$PHASE_OUTPUT"
   fi
   return $rc
-}
-
-build_shared() {
-  # Build shared package so downstream .d.ts references are fresh
-  pnpm --filter "$PACKAGE_NAME_PREFIX$SHARED_PACKAGE" build > /dev/null 2>&1 || true
 }
 
 # docs/engineering/testing-and-typescript.md §3.3: an eslint-disable needs a justification on the directive
@@ -648,14 +722,13 @@ run_tests() { # <test | integration> <extra args...>
 run_package_tests() { # <test | integration> <extra args...>
   local cmd="$1"
   shift
-  local output summary rc=0 runner_args=()
-  mapfile -t runner_args < <(path_scope_runner_args "$cmd")
+  local output summary rc=0
+  resolve_runner_args "$cmd" "$@" || return 1
   if [[ "$cmd" == test ]]; then
-    output="$(pnpm "${PNPM_SELECTION[@]}" test "${runner_args[@]}" "$@" 2>&1)" || rc=$?
+    output="$(pnpm "${PNPM_SELECTION[@]}" test "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
   else
     # Each package's test:integration script selects the *.integration.* tier (docs/testing/tiers-and-builders.md §2).
-    build_shared
-    output="$(pnpm "${PNPM_SELECTION[@]}" --if-present test:integration "${runner_args[@]}" "$@" 2>&1)" || rc=$?
+    output="$(pnpm "${PNPM_SELECTION[@]}" --if-present test:integration "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
   fi
   summary="$(summarize_selection "$output")"
   printf '%s\n' "$output"
@@ -697,7 +770,6 @@ run_one() {
       return $rc
       ;;
     typecheck)
-      [[ "$SCOPE_PACKAGE" == "$SHARED_PACKAGE" ]] || build_shared
       [[ -z "$SCOPE_PATH" ]] || echo "typecheck covers the whole $SCOPE_PACKAGE package (tsc checks a project, not a path)"
       output="$(pnpm "${PNPM_SELECTION[@]}" typecheck "$@" 2>&1)" || rc=$?
       ;;
@@ -823,6 +895,7 @@ ALL PASSED"
 
 resolve_scope
 resolve_affected
+refuse_mixed_runner_args
 cd "$SCRIPT_DIR" || exit 1
 cache_init
 
