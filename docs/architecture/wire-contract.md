@@ -109,15 +109,15 @@ Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.m
 cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON with positions
 quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 
-| Snapshot part (20 Hz)                                         | Count × bytes   | Per snapshot |
-| ------------------------------------------------------------- | --------------- | ------------ |
-| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30       | ~21 KB       |
-| `dnaFragments` (full)                                         | 110 × ~50       | ~5.5 KB      |
-| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300 | ~9.6 KB      |
-| `players` (`ownedTraits`, `stage`, offer) + `leaderboard`     | 8 × ~860–1 020 + 80 | ~7–8 KB  |
-| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz    | ~0.5 KB      |
-| **total, uncut**                                              |                 | **≈ 44–45 KB** |
-| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 24–25 KB** |
+| Snapshot part (20 Hz)                                         | Count × bytes       | Per snapshot   |
+| ------------------------------------------------------------- | ------------------- | -------------- |
+| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30           | ~21 KB         |
+| `dnaFragments` (full)                                         | 110 × ~50           | ~5.5 KB        |
+| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300     | ~9.6 KB        |
+| `players` (`ownedTraits`, `stage`, offer) + `leaderboard`     | 8 × ~860–1 020 + 80 | ~7–8 KB        |
+| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz        | ~0.5 KB        |
+| **total, uncut**                                              |                     | **≈ 44–45 KB** |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + …     | **≈ 24–25 KB** |
 
 The `players` row is measured, not estimated (#330's review, `JSON.stringify` of a level-12
 `PlayerProgressView`): 471 B with no owned traits, 858 B with 11 (the eukaryote era), 1 017 B with 11 and a shown
