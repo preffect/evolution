@@ -1,9 +1,21 @@
 // The renderer smoke (docs/TESTING.md, docs/rendering/files-and-tests.md §9): a live room from the lobby with a fixed
 // seed, the canvas mounts, the baked dish field and the depth particles draw on SwiftShader without page
-// errors, the canvas fills the viewport with no page scroll (docs/ui/layout.md §1, #217), the debug hook's pause
-// holds the rendered tick and a step advances it, and a screenshot lands under `.qa/screenshots/` for the
-// PR. The bench route and its frame-budget report are `render-bench.spec.ts`.
+// errors, the canvas fills the viewport with no page scroll at the config's viewport and at the 1024 × 640 minimum
+// (docs/ui/layout.md §1, #217, #220), the debug hook's pause holds the rendered tick and a step advances it, and a
+// screenshot lands under `.qa/screenshots/` for the PR. The bench route and its frame-budget report are
+// `render-bench.spec.ts`.
 import { expect, test, type Page } from '@playwright/test';
+import {
+  HUD_REFERENCE_VIEWPORT_HEIGHT_PX,
+  HUD_REFERENCE_VIEWPORT_WIDTH_PX,
+  HUD_SCALE_MIN,
+} from '../src/app/game/hud/hud-constants';
+
+/** The smallest viewport the layout frame targets (docs/ui/layout.md §1): the reference frame at the scale floor. */
+const MINIMUM_VIEWPORT = {
+  width: Math.round(HUD_REFERENCE_VIEWPORT_WIDTH_PX * HUD_SCALE_MIN),
+  height: Math.round(HUD_REFERENCE_VIEWPORT_HEIGHT_PX * HUD_SCALE_MIN),
+};
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';
 const SMOKE_SEED = 42;
@@ -81,6 +93,14 @@ function viewportFit(page: Page): Promise<ViewportFit> {
   });
 }
 
+/** The fill rule of docs/ui/layout.md §1: the canvas is exactly the viewport, nothing scrolls, no lobby panel is left. */
+async function expectCanvasFillsViewport(page: Page): Promise<void> {
+  const fit = await viewportFit(page);
+  expect(fit.canvas).toEqual(fit.viewport);
+  expect(fit.pageScrolls).toBe(false);
+  expect(await page.locator('.panel').count()).toBe(0);
+}
+
 function renderTick(page: Page): Promise<number | null | undefined> {
   return page.evaluate(() => (window as DebugWindow).__evolutionDebug?.renderTick());
 }
@@ -97,10 +117,7 @@ test.describe('renderer smoke on a live room', () => {
 
   test('the canvas fills the viewport and the page does not scroll (docs/ui/layout.md §1)', async ({ page }) => {
     await openLiveRoom(page);
-    const fit = await viewportFit(page);
-    expect(fit.canvas).toEqual(fit.viewport);
-    expect(fit.pageScrolls).toBe(false);
-    expect(await page.locator('.panel').count()).toBe(0);
+    await expectCanvasFillsViewport(page);
   });
 
   test('pause holds the rendered tick and the canvas; a step advances both', async ({ page }) => {
@@ -118,5 +135,18 @@ test.describe('renderer smoke on a live room', () => {
     await page.waitForTimeout(HOLD_WAIT_MS);
     expect(await renderTick(page)).toBeGreaterThan(heldTick ?? Number.POSITIVE_INFINITY);
     expect(await canvasHash(page)).not.toBe(heldHash);
+  });
+});
+
+// Where HUD chrome (#189) is most likely to break the fill rule: the smallest viewport the layout frame targets.
+test.describe('renderer smoke at the minimum viewport', () => {
+  test.use({ viewport: MINIMUM_VIEWPORT });
+
+  test('the canvas fills the 1024 × 640 viewport and the page does not scroll (docs/ui/layout.md §1)', async ({
+    page,
+  }) => {
+    await openLiveRoom(page);
+    expect(page.viewportSize()).toEqual(MINIMUM_VIEWPORT);
+    await expectCanvasFillsViewport(page);
   });
 });

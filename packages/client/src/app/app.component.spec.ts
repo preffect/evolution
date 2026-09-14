@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
+import { Component, signal, type OnDestroy } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PLAYERS_PER_GAME, SEED_MAX, createTestSessionConfig } from '@evolution/shared';
 import { AppComponent } from './app.component';
@@ -9,9 +9,18 @@ import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
 
-/** Stands in for the game host, which would try to create a WebGL Pixi app under jsdom. */
+/**
+ * Stands in for the game host, which would try to create a WebGL Pixi app under jsdom. It counts its
+ * destructions: the real host's `ngOnDestroy` is what tears the Pixi app down.
+ */
 @Component({ selector: 'app-game-host', standalone: true, template: '<div data-testid="game-host-stub"></div>' })
-class GameHostStubComponent {}
+class GameHostStubComponent implements OnDestroy {
+  static destroyedCount = 0;
+
+  ngOnDestroy(): void {
+    GameHostStubComponent.destroyedCount += 1;
+  }
+}
 
 /** Stands in for the bench route, which would create a WebGL Pixi app under jsdom. */
 @Component({ selector: 'app-render-bench', standalone: true, template: '<div data-testid="render-bench-stub"></div>' })
@@ -49,6 +58,7 @@ describe('AppComponent', () => {
   beforeEach(async () => {
     multiplayer = createMultiplayerStub();
     isBenchRoute.value = false;
+    GameHostStubComponent.destroyedCount = 0;
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
@@ -88,6 +98,23 @@ describe('AppComponent', () => {
     expect(element.querySelector('.panel')).toBeNull();
     expect(element.querySelector('header')).toBeNull();
     expect(element.classList.contains('in-game')).toBe(true);
+  });
+
+  it('brings the header and lobby panels back and destroys the game host when play ends (#220)', () => {
+    multiplayer.inGame.set(true);
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[data-testid="game-host-stub"]')).not.toBeNull();
+
+    multiplayer.inGame.set(false);
+    fixture.detectChanges();
+    expect(element.querySelector('header')).not.toBeNull();
+    expect(element.querySelectorAll('.panel').length).toBeGreaterThan(0);
+    expect(element.querySelector('[data-testid="game-host-stub"]')).toBeNull();
+    expect(element.querySelector(`[data-testid="${HUD_TEST_ID.hud}"]`)).toBeNull();
+    expect(element.classList.contains('in-game')).toBe(false);
+    expect(GameHostStubComponent.destroyedCount).toBe(1);
   });
 
   it('renders the bench route alone, filling the viewport, in place of the lobby and the room (docs/rendering/budget.md §7)', () => {
