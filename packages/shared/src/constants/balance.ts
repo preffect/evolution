@@ -6,6 +6,9 @@
 // forgot to clone would otherwise rewrite every room and the constants themselves.
 // `data/balance.json` is generated from this record by `pnpm generate:balance` and pinned equal
 // by balance.test.ts. Engineering constants (simulation.ts) are not tunables and stay out.
+// One ladder constant stays out too: `ENDOSYMBIOSIS_BACTERIA_REQUIRED` reaches a room only as the
+// catalog's `unlockedBy.count` (traits.ts), the number the draft gate and the ladder orbit read. A
+// second copy under `ladder` would be read by nobody, agreeing with the catalog only by coincidence (#286).
 
 import * as absorption from './absorption.js';
 import { deepFreeze } from './deep-freeze.js';
@@ -31,6 +34,11 @@ type WidenNumberLeaves<Value> = Value extends number
     ? Value
     : { [Key in keyof Value]: WidenNumberLeaves<Value[Key]> };
 
+/** `source` as a plain record without `key`: the spread every other domain gets, less one constant. */
+function omitConstant<Source extends object, Key extends keyof Source>(source: Source, key: Key): Omit<Source, Key> {
+  return Object.fromEntries(Object.entries(source).filter(([name]) => name !== key)) as Omit<Source, Key>;
+}
+
 // Module namespaces are exotic objects (their `toString` tag is `Module`); spreading them makes
 // plain records that serialise, compare and clone like the JSON they generate.
 const BALANCE_DEFAULTS = {
@@ -38,7 +46,7 @@ const BALANCE_DEFAULTS = {
   session: { ...session },
   worldClock: { ...worldClock },
   controls: { ...controls },
-  ladder: { ...ladder },
+  ladder: omitConstant(ladder, 'ENDOSYMBIOSIS_BACTERIA_REQUIRED'),
   ecology: { ...ecology },
   growth: { ...growth },
   wildCells: { ...wildCells },

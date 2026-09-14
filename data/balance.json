@@ -28,7 +28,6 @@
     "STEER_FULL_THROTTLE_RADII": 2
   },
   "ladder": {
-    "ENDOSYMBIOSIS_BACTERIA_REQUIRED": 10,
     "STAGE_GATE_TRAITS": {
       "protocell": [],
       "prokaryote": ["nucleoid"],

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type BalanceConfig } from './balance.js';
 import { DISH_RADIUS } from './world.js';
 import { ENGULF_MASS_RATIO } from './absorption.js';
+import * as ladder from './ladder.js';
 import { TRAIT_TIERS } from './traits.js';
 
 const BALANCE_FILE = new URL('../../../../data/balance.json', import.meta.url);
@@ -34,6 +35,13 @@ describe('DEFAULT_BALANCE', () => {
     expect(DEFAULT_BALANCE.world.DISH_RADIUS).toBe(DISH_RADIUS);
     expect(DEFAULT_BALANCE.absorption.ENGULF_MASS_RATIO).toBe(ENGULF_MASS_RATIO);
     expect(DEFAULT_BALANCE.traits.TRAIT_TIERS).toBe(TRAIT_TIERS);
+  });
+
+  // The catalog side (both endosymbionts' `unlockedBy.count` equals the constant) is traits.test.ts T11.
+  it('carries every ladder constant but the endosymbiosis count, which travels only in the catalog (#286)', () => {
+    const catalogCarried: keyof typeof ladder = 'ENDOSYMBIOSIS_BACTERIA_REQUIRED';
+    const ladderConstants = Object.keys(ladder).filter((name) => name !== catalogCarried);
+    expect(Object.keys(DEFAULT_BALANCE.ladder).sort()).toEqual(ladderConstants.sort());
   });
 
   it('is a plain record, not a module namespace, so it clones and compares like its JSON', () => {

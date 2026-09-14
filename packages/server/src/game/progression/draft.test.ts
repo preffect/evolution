@@ -1,6 +1,13 @@
 // docs/PROGRESSION.md §3 and §7 P4, P9, P12, P14: the pure draft rules.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TRAIT_CATEGORY, createSeededRandom, type OwnedTrait, type TraitId } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ENDOSYMBIOSIS_BACTERIA_REQUIRED,
+  TRAIT_CATEGORY,
+  createSeededRandom,
+  type OwnedTrait,
+  type TraitId,
+} from '@evolution/shared';
 import { zeroBacteriaCounters, zeroTagPoints } from '../session/players.js';
 import {
   buildDraft,
@@ -12,7 +19,7 @@ import {
 } from './draft.js';
 
 const balance = DEFAULT_BALANCE;
-const REQUIRED = balance.ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED;
+const REQUIRED = ENDOSYMBIOSIS_BACTERIA_REQUIRED;
 const SEEDS = Array.from({ length: 100 }, (_unused, index) => index + 1);
 const FORM_IDS: TraitId[] = balance.traits.TRAIT_CATALOG.filter((trait) => trait.category === TRAIT_CATEGORY.form).map(
   (trait) => trait.id,
