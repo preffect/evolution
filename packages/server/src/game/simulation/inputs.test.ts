@@ -1,6 +1,6 @@
 // docs/architecture/server-simulation.md §3.2 step 1, docs/game-design/controls-and-scope.md §6 (G7, T9) and docs/traits/model.md §2.
 import { describe, expect, it } from 'vitest';
-import { createTestGameInput, DEFAULT_BALANCE, secondsToTicks } from '@evolution/shared';
+import { CELL_STAGE, createTestGameInput, DEFAULT_BALANCE, secondsToTicks } from '@evolution/shared';
 import { queueOffer, shownOffer } from '../progression/offers.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { applyInputs, sprintCooldownTicks, tryStartSprint } from './inputs.js';
@@ -125,6 +125,15 @@ describe('applyInputs', () => {
     applyInputs(world, context);
     expect(cell.modifiers.speedMultiplier).toBeCloseTo(1.1, 12);
     expect(cell.traits).toEqual([{ traitId: 'cilia', tier: 1 }]);
+  });
+
+  it('refreshes every player’s carried stage, cell or not, so a direct ownedTraits write is on the wire next step', () => {
+    const { world, player, context } = fixture();
+    world.cells = [];
+    player.ownedTraits = [{ traitId: 'nucleoid', tier: 1 }];
+    expect(player.stage).toBe(CELL_STAGE.protocell);
+    applyInputs(world, context);
+    expect(player.stage).toBe(CELL_STAGE.prokaryote);
   });
 
   it('applies an input for a spectating player without a cell and still records the sequence', () => {

@@ -1,19 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_BALANCE, ManualClock, TICK_INTERVAL_MS, type GameInput, type TraitOfferView } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ManualClock,
+  TICK_INTERVAL_MS,
+  createTestTraitOfferView,
+  type GameInput,
+  type TraitOfferView,
+} from '@evolution/shared';
 import type { InputWorldContext } from './game-input-builder';
 import { InputController } from './input-controller';
 import { INPUT_ACTION } from './keyboard-action';
 
 const OWN_CELL = { x: 10, y: 20, radiusWu: 4 };
-const OFFER: TraitOfferView = {
+const OFFER = createTestTraitOfferView({
   offerId: 5,
-  level: 2,
   cards: [
     { traitId: 'nucleoid', tier: 1 },
     { traitId: 'simple_flagellum', tier: 1 },
   ],
   expiresAtTick: 900,
-};
+});
 
 function worldWith(overrides: Partial<InputWorldContext> = {}): InputWorldContext {
   return { ownCell: OWN_CELL, offer: null, controls: DEFAULT_BALANCE.controls, appliedInputSequence: 0, ...overrides };

@@ -114,17 +114,24 @@ quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 | `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30       | ~21 KB       |
 | `dnaFragments` (full)                                         | 110 × ~50       | ~5.5 KB      |
 | `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300 | ~9.6 KB      |
-| `players` (`ownedTraits`, `stage`, offer) + `leaderboard`     | 8 × ~620 + 80   | ~5.0 KB      |
+| `players` (`ownedTraits`, `stage`, offer) + `leaderboard`     | 8 × ~860–1 020 + 80 | ~7–8 KB  |
 | `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz    | ~0.5 KB      |
-| **total, uncut**                                              |                 | **≈ 42 KB**  |
-| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 22 KB**  |
+| **total, uncut**                                              |                 | **≈ 44–45 KB** |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 24–25 KB** |
+
+The `players` row is measured, not estimated (#330's review, `JSON.stringify` of a level-12
+`PlayerProgressView`): 471 B with no owned traits, 858 B with 11 (the eukaryote era), 1 017 B with 11 and a shown
+offer, 1 053–1 212 B with all 16.
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
 `perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
 evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
 **§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
 wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
-With it the same snapshot is ≈ 22 KB (≈ 440 KB/s; #317's owned traits on `players` added ~2 KB), inside budget; culling wild cells outside the
+With it the same snapshot is ≈ 24–25 KB (≈ 480–500 KB/s): **at or just over the 24 KB budget, with no headroom**,
+since #317 put every player's `ownedTraits` on `players`. #331 measures it with `PerformanceTracker.snapshotBytes`
+at 8 bots in the eukaryote era and, if it reads over, takes the next lever: `ownedTraits` on the viewer's own row
+only, through `serializeRoomState(viewerPlayerId)` (~7 × 400 B saved); culling wild cells outside the
 viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
 and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add

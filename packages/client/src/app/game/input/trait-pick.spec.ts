@@ -1,18 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, type TraitOfferView } from '@evolution/shared';
+import { DEFAULT_BALANCE, createTestTraitOfferView, type TraitOfferView } from '@evolution/shared';
 import type { InputWorldContext } from './game-input-builder';
 import { TRAIT_PICK_STATUS, traitPickFor, traitPickStatus, type QueuedTraitPick } from './trait-pick';
 
-const THREE_CARDS: TraitOfferView = {
+const THREE_CARDS = createTestTraitOfferView({
   offerId: 5,
-  level: 2,
   cards: [
     { traitId: 'nucleoid', tier: 1 },
     { traitId: 'cell_wall', tier: 1 },
     { traitId: 'simple_flagellum', tier: 1 },
   ],
   expiresAtTick: 900,
-};
+});
 
 /** A late draft with fewer cards than `TRAIT_DRAFT_SIZE` (docs/PROGRESSION.md §4). */
 const TWO_CARDS: TraitOfferView = { ...THREE_CARDS, offerId: 8, cards: THREE_CARDS.cards.slice(0, 2) };

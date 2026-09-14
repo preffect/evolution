@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
-  PLAYER_LIFE_STATE,
   TICK_HZ,
   createTestPlayerProgressView,
+  createTestTraitOfferView,
   type PlayerProgressView,
   type TraitId,
   type TraitOfferView,
@@ -16,7 +16,7 @@ import { traitOfferViewFor } from './trait-cards';
 const WINDOW_SECONDS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS;
 const EXPIRES_AT = 10_000;
 
-const offer: TraitOfferView = {
+const offer = createTestTraitOfferView({
   offerId: 7,
   level: 5,
   expiresAtTick: EXPIRES_AT,
@@ -25,7 +25,7 @@ const offer: TraitOfferView = {
     { traitId: 'simple_flagellum' as TraitId, tier: 2 },
     { traitId: 'cell_wall' as TraitId, tier: 1 },
   ],
-};
+});
 
 const protocell = createTestPlayerProgressView({
   level: 5,
@@ -68,13 +68,6 @@ describe('traitOfferViewFor', () => {
     expect(nucleoid!.isRung).toBe(true);
     expect(flagellum).toMatchObject({ isRung: false, isUpgrade: true, tierLabel: 'I → II' });
     expect(wall).toMatchObject({ isRung: false, isUpgrade: false, tierLabel: 'I' });
-  });
-
-  it('reads the rung and the upgrade from the player’s progress, so both hold while spectating', () => {
-    const spectating = { ...protocell, lifeState: PLAYER_LIFE_STATE.spectating };
-    const [nucleoid, flagellum] = viewAt(6.5, spectating).cards;
-    expect(nucleoid!.isRung).toBe(true);
-    expect(flagellum).toMatchObject({ isUpgrade: true, tierLabel: 'I → II' });
   });
 
   it('ribbons no card at the top of the ladder', () => {

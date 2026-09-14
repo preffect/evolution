@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, type TraitOfferView } from '@evolution/shared';
+import { DEFAULT_BALANCE, createTestTraitOfferView, type TraitOfferView } from '@evolution/shared';
 import { buildGameInput, steerTargetFor, traitChoiceFor, type InputWorldContext } from './game-input-builder';
 import { IDLE_INPUT_STATE, withAction, withPickQueued, withPointerAt, type InputState } from './input-state';
 import { INPUT_ACTION } from './keyboard-action';
@@ -9,16 +9,15 @@ const CONTROLS = DEFAULT_BALANCE.controls;
 const OWN_CELL = { x: 100, y: 50, radiusWu: 4 };
 
 function offer(overrides: Partial<TraitOfferView> = {}): TraitOfferView {
-  return {
+  return createTestTraitOfferView({
     offerId: 7,
-    level: 2,
     cards: [
       { traitId: 'nucleoid', tier: 1 },
       { traitId: 'simple_flagellum', tier: 1 },
     ],
     expiresAtTick: 600,
     ...overrides,
-  };
+  });
 }
 
 function world(overrides: Partial<InputWorldContext> = {}): InputWorldContext {

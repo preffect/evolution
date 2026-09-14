@@ -2,6 +2,7 @@
 // game-specific tool answers real data on the Evolution module.
 import { describe, expect, it } from 'vitest';
 import {
+  CELL_STAGE,
   DEFAULT_BALANCE,
   ENTITY_KIND,
   FOOD_KIND,
@@ -73,13 +74,14 @@ describe('EvolutionDebugHandle', () => {
     expect(() => handle.listEntities({ kind: 'npc' })).toThrow(DebugRequestError);
   });
 
-  it('reports a player state with progress, cell, modifiers, stage, traits, queue and rejections', () => {
+  it('reports a player state with progress (stage and traits included), cell, modifiers, queue and rejections', () => {
     const { world, handle, rejections } = createHandle();
     rejections.staleSequence = 2;
     const state = handle.getPlayerDebugState(ALICE) as Record<string, unknown>;
+    expect(state).not.toHaveProperty('stage');
+    expect(state).not.toHaveProperty('ownedTraits');
     expect(state).toMatchObject({
-      stage: 'protocell',
-      ownedTraits: [],
+      progress: { stage: CELL_STAGE.protocell, ownedTraits: [] },
       offerQueue: [],
       rejections: { staleSequence: 2 },
     });
@@ -94,9 +96,9 @@ describe('EvolutionDebugHandle', () => {
     expect(handle.getPlayerDebugState(playerId('nobody'))).toBeUndefined();
     world.cells = [];
     expect(handle.getPlayerDebugState(ALICE)).toMatchObject({
+      progress: { stage: CELL_STAGE.protocell },
       cell: null,
       modifiers: null,
-      stage: null,
       engulf: null,
     });
   });
@@ -204,7 +206,7 @@ describe('the game-specific MCP tools on the Evolution module', () => {
     const progress = parseToolJson(
       await fixture.call('debug_get_player_progress', { gameId: fixture.gameId, playerId: 'alice' }),
     );
-    expect(progress).toMatchObject({ progress: { playerId: 'alice', level: 1 }, stage: 'protocell' });
+    expect(progress).toMatchObject({ progress: { playerId: 'alice', level: 1, stage: CELL_STAGE.protocell } });
     fixture.stop();
   });
 

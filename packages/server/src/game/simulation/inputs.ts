@@ -1,8 +1,11 @@
 // Step 1 (docs/architecture/server-simulation.md §3.2): per player in join order, show a queued offer, apply the
 // coalesced input (target latched, sprint and trait choice as one-shots), then fold the cell's
-// modifiers and stage so a pick affects this tick's movement and metabolism (docs/traits/model.md §2).
+// modifiers and stage so a pick affects this tick's movement and metabolism (docs/traits/model.md §2). The player's
+// carried stage is refreshed here for every player, cell or not, so no writer of `ownedTraits` can leave it stale
+// past one tick.
 
 import { secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
+import { refreshPlayerStage } from '../progression/ladder.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { applyTraitChoice, showQueuedOfferIfNone } from '../progression/offers.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
@@ -71,6 +74,7 @@ export function applyInputs(world: WorldState, context: StepContext): void {
   for (const player of world.players) {
     showQueuedOfferIfNone(world, player, context);
     applyPlayerInput(world, player, context);
+    refreshPlayerStage(player, context.balance);
     const cell = findCellOfPlayer(world, player.playerId);
     if (cell !== undefined) {
       refreshCellDerivedState(cell, player, context.balance);

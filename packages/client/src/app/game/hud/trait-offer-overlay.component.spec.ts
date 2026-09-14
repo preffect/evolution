@@ -7,6 +7,7 @@ import {
   TICK_HZ,
   createTestPlayerProgressView,
   createTestSnapshot,
+  createTestTraitOfferView,
   playerId,
   type PlayerProgressView,
   type TraitId,
@@ -21,19 +22,11 @@ import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 const OWN_PLAYER_ID = playerId('player-me');
 const SNAPSHOT_TICK = 5000;
 
-const offer: TraitOfferView = {
-  offerId: 3,
-  level: 2,
-  expiresAtTick: SNAPSHOT_TICK + 6.5 * TICK_HZ,
-  cards: [
-    { traitId: 'nucleoid' as TraitId, tier: 1 },
-    { traitId: 'simple_flagellum' as TraitId, tier: 1 },
-    { traitId: 'cell_wall' as TraitId, tier: 1 },
-  ],
-};
+/** Nucleoid, flagellum and wall at tier I, level 2. */
+const offer = createTestTraitOfferView({ offerId: 3, expiresAtTick: SNAPSHOT_TICK + 6.5 * TICK_HZ });
 
 /** The next queued offer, replacing the cards in place with no snapshot between that lacks an offer. */
-const nextOffer: TraitOfferView = {
+const nextOffer = createTestTraitOfferView({
   ...offer,
   offerId: 4,
   level: 3,
@@ -42,7 +35,7 @@ const nextOffer: TraitOfferView = {
     { traitId: 'cell_wall' as TraitId, tier: 2 },
     { traitId: 'simple_flagellum' as TraitId, tier: 2 },
   ],
-};
+});
 
 describe('TraitOfferOverlayComponent', () => {
   let fixture: ComponentFixture<TraitOfferOverlayComponent>;
