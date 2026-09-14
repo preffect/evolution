@@ -2,7 +2,7 @@
 // the in-process bots, runs the recorded step, serialises and exposes the debug handle; every
 // decision lives in the subsystems. One `WorldState` for the room's lifetime (a rematch resets it
 // in place), one live balance copy patched only by `debug_set_balance`, and the streams built
-// from `config.seed` (docs/DETERMINISM.md §3): the factory never receives a `RandomSource`.
+// from `config.seed` (docs/determinism/random-streams.md §3): the factory never receives a `RandomSource`.
 
 import { DEFAULT_BALANCE, type GameInput, type GameSnapshot, type PlayerId } from '@evolution/shared';
 import type { GameModule, GameModuleFactory, RoomInitOptions } from './game-module.js';

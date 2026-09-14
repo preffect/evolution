@@ -74,7 +74,7 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
     '--hud-leaderboard-expand-duration': `${LEADERBOARD_EXPAND_MS}ms`,
     '--hud-clock-pulse-duration': `${ROUND_CLOCK_PULSE_PERIOD_MS}ms`,
 
-    // Type roles, each published whole — a size with its own face (docs/VISUAL-STYLE.md §7).
+    // Type roles, each published whole — a size with its own face (docs/visual-style/ui-type.md §7).
     '--hud-font-sans': UI_TYPE.body.font,
     '--hud-font-mono': UI_TYPE.clock.font,
     '--hud-font-figure': UI_TYPE.figure.font,
@@ -84,7 +84,7 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
     '--hud-type-caption': `${UI_TYPE.caption.px}px`,
     '--hud-label-tracking': `${UI_LABEL_TRACKING_EM}em`,
 
-    // Colour roles (docs/VISUAL-STYLE.md §2, §7).
+    // Colour roles (docs/visual-style/principles-and-palette.md §2, docs/visual-style/ui-type.md §7).
     '--hud-text': TEXT,
     '--hud-text-label': TEXT_LABEL,
     '--hud-text-muted': TEXT_MUTED,

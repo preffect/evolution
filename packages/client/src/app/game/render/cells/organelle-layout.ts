@@ -46,7 +46,7 @@ interface Candidate {
   readonly size: number;
 }
 
-/** Sprite body diameters in `r` per kind (docs/VISUAL-STYLE.md §4, sheet 01). */
+/** Sprite body diameters in `r` per kind (docs/visual-style/cells-and-organelles.md §4, sheet 01). */
 const SLOT_SIZE: Readonly<Record<OrganelleKind, number>> = {
   [ORGANELLE_KIND.nucleus]: NUCLEUS_RADIUS * DIAMETER_PER_RADIUS,
   [ORGANELLE_KIND.nucleoid]: NUCLEOID_RADIUS * DIAMETER_PER_RADIUS,
@@ -74,7 +74,7 @@ function nucleusSlot(kind: OrganelleKind, random: RandomSource): OrganelleSlot {
   };
 }
 
-/** The nucleus disc's reach from its own centre: the larger of the nucleus and the nucleoid (VISUAL-STYLE §3). */
+/** The nucleus disc's reach from its own centre: the larger of the nucleus and the nucleoid (visual-style/cells-and-organelles.md §3). */
 const NUCLEUS_DISC_RADIUS = Math.max(NUCLEUS_RADIUS, NUCLEOID_RADIUS);
 
 /**
@@ -106,7 +106,7 @@ export function membraneKeepOutRadius(size: number): number {
 }
 
 /**
- * Rejection sampling of the slot centre in the annulus (docs/VISUAL-STYLE.md §3: centres never
+ * Rejection sampling of the slot centre in the annulus (docs/visual-style/cells-and-organelles.md §3: centres never
  * inside the keep-out, the nucleus disc or the membrane keep-out); the first draw clear of every
  * placed sprite wins, else the best of the attempts, so a slot always exists.
  */

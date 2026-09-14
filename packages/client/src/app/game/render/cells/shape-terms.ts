@@ -113,7 +113,7 @@ function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
   };
 }
 
-/** Breathing and lobes halve when taut (VISUAL-STYLE §5); a rigid valve does not breathe, jitter or lobe (§2.4). */
+/** Breathing and lobes halve when taut (visual-style/motion-and-legibility.md §5); a rigid valve does not breathe, jitter or lobe (§2.4). */
 function restScales(traits: CellTraitSummary): RestScales {
   if (traits.form.isRigid) return { breathing: STILL, lobes: STILL, jitter: STILL };
   const taut = traits.isTaut ? WOBBLE_TAUT_SCALE : FULL;

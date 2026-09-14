@@ -1,4 +1,4 @@
-// The chrome end to end (docs/TESTING.md §2.2): real server messages off a real socket, through
+// The chrome end to end (docs/testing/tiers-and-builders.md §2.2): real server messages off a real socket, through
 // the multiplayer service and `GameStateService`, to the rows and digits a player reads. What each
 // piece decides is unit-tested; this pins that they are wired, including the Tab hold the input
 // layer hands over (`input/input.integration.spec.ts` pins the other half of that crossing).

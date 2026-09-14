@@ -139,7 +139,7 @@ export class CellRenderState {
     return this.drawnView === null ? null : { view: this.drawnView, slots: this.slots, speckleSeed: this.speckleSeed };
   }
 
-  /** The beat runs at `CILIA_BEAT_HZ` while moving and `CILIA_BEAT_IDLE_HZ` at rest (VISUAL-STYLE §4). */
+  /** The beat runs at `CILIA_BEAT_HZ` while moving and `CILIA_BEAT_IDLE_HZ` at rest (visual-style/cells-and-organelles.md §4). */
   private stepCiliaPhase(speedRatio: number, timeSeconds: number): number {
     const elapsed = this.lastTimeSeconds === null ? 0 : Math.max(0, timeSeconds - this.lastTimeSeconds);
     this.lastTimeSeconds = timeSeconds;

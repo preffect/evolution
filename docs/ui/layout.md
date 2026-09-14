@@ -66,7 +66,7 @@ custom property (`hud/format/hud-css-variables.ts`) and the stylesheets read `va
 has exactly one home. That indirection is only worth anything if it is enforced, so its spec is exhaustive rather
 than a sample: it pins every published entry against its constant **and** asserts the published keys are exactly
 that set, which is what stops a hand-typed number joining the map unnoticed. The type scale and the two font stacks are
-VISUAL-STYLE §7's and live beside the colours it owns, in `render/constants/ui-type.ts`.
+visual-style/ui-type.md §7's and live beside the colours it owns, in `render/constants/ui-type.ts`.
 
 The on-cell reading-floor constants are §3.1.3's table; their home is `render/constants.ts` because the renderer
 applies them, and this doc owns their values. `SNAPSHOT_STALE_MS` (2000 ms: no snapshot for this long while

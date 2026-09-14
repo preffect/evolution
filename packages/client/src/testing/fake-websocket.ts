@@ -1,4 +1,4 @@
-// Test double (docs/TESTING.md §4): a stand-in for the browser WebSocket that records sends and
+// Test double (docs/testing/tiers-and-builders.md §4): a stand-in for the browser WebSocket that records sends and
 // lets a test drive open / message / close from outside. Install with `vi.stubGlobal('WebSocket', FakeWebSocket)`.
 export class FakeWebSocket {
   static readonly CONNECTING = 0;

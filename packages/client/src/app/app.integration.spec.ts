@@ -1,4 +1,4 @@
-// Integration (docs/TESTING.md §2): the lobby shell wired to the REAL MultiplayerService and
+// Integration (docs/testing/tiers-and-builders.md §2): the lobby shell wired to the REAL MultiplayerService and
 // WebSocketService over a fake browser socket — create a game, receive game_started, enter the
 // room, where the game host alone fills the shell. Run with `./validate.sh integration`.
 import { TestBed } from '@angular/core/testing';

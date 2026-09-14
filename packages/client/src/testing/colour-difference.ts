@@ -1,5 +1,5 @@
 // CIEDE2000, WCAG contrast and the Viénot / Brettel / Mollon (1999) dichromacy simulation, the
-// arithmetic behind docs/VISUAL-STYLE.md §2's separability acceptance (render/palette.spec.ts pins
+// arithmetic behind docs/visual-style/principles-and-palette.md §2's separability acceptance (render/palette.spec.ts pins
 // it). Test support only, mirroring qa/evidence/34/tools/colour_separability.py; the literals are
 // the standards' coefficients.
 

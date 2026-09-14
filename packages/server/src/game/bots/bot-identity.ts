@@ -15,7 +15,7 @@ export const BOT_ID_PREFIX = {
 export type BotHost = keyof typeof BOT_ID_PREFIX;
 
 const BOT_NAME_PREFIX = 'Bot ';
-/** Each bot forks its own stream from the seed by this label plus its index (docs/DETERMINISM.md §3). */
+/** Each bot forks its own stream from the seed by this label plus its index (docs/determinism/random-streams.md §3). */
 const BOT_STREAM_LABEL_PREFIX = 'bot_';
 const AVATAR_COUNT = AVATAR_INDEX_MAX - AVATAR_INDEX_MIN + 1;
 

@@ -1,4 +1,4 @@
-// The leaderboard swatch's seat mark (docs/ui/hud.md §3.1.1, docs/VISUAL-STYLE.md §2): the palette base
+// The leaderboard swatch's seat mark (docs/ui/hud.md §3.1.1, docs/visual-style/principles-and-palette.md §2): the palette base
 // with a rim-colour ring and `SEAT_MARK_BEADS[avatarIndex]` beads, so a player can match a row to
 // the cell on the dish. The bead count is the shared constant the renderer's seat mark reads; only
 // the swatch's geometry is this file's, and it is pure so it is tested without a DOM.

@@ -2,7 +2,7 @@
 // 0.40 r soft glow cut out inside the 0.30 r disc (an outer glow only), the disc's rim, chromatin
 // spots scattered from the cosmetic `organelles` sub-stream, a white nucleolus with its own halo
 // and the nucleus's own highlight inside the disc — and no disc fill: the disc is the cell shader's
-// nucleus ramp under the sprite (#231, VISUAL-STYLE §3), so the palette's own ramp shows through
+// nucleus ramp under the sprite (#231, visual-style/cells-and-organelles.md §3), so the palette's own ramp shows through
 // untouched. The nucleoid is a loose glowing loop of thread wobbling on two incommensurate terms at
 // seeded phases. Both are baked white below full alpha and tinted the palette's rim colour by the
 // sprite layer, so the nucleolus and the highlight stay lighter than the ramp's lit half.

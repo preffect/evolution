@@ -29,7 +29,7 @@ export const BACTERIUM_DRIFT_SPEED = 20;
 /** Bacteria spawn as clusters of this many within this radius (wu) of the drawn point. */
 export const BACTERIUM_CLUSTER_SIZE = 5;
 export const BACTERIUM_CLUSTER_RADIUS = 60;
-/** The three variants in walk order (docs/DETERMINISM.md §5). */
+/** The three variants in walk order (docs/determinism/ordering-and-state-hash.md §5). */
 export const BACTERIUM_VARIANTS = [
   BACTERIUM_VARIANT.plain,
   BACTERIUM_VARIANT.aerobic,

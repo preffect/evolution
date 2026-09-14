@@ -1,4 +1,4 @@
-// Broadcast-cadence arithmetic for tests (docs/architecture/entity-model.md §1, docs/TESTING.md §4). The room
+// Broadcast-cadence arithmetic for tests (docs/architecture/entity-model.md §1, docs/testing/tiers-and-builders.md §4). The room
 // broadcasts every `SNAPSHOT_EVERY_TICKS` ticks, so a test that reads the wire has to know which
 // ticks reached it; both directions live here rather than being redefined per test file.
 

@@ -1,5 +1,5 @@
 // The engulf lifecycle and its payout end to end (docs/architecture/server-simulation.md §3, docs/architecture/wire-contract.md §4, docs/architecture/debug-mcp.md §8;
-// docs/DETERMINISM.md §7): two
+// docs/determinism/replay-tests-and-traps.md §7): two
 // players in a real `GameRoom` on the Evolution module, placed through the debug handle the way a
 // QA agent drives one (`debug_set_player`: mass and position), stepped under manual timing, and
 // read back off the broadcast snapshot — not off the records. Two runs of the same seed and the
@@ -242,7 +242,7 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
   });
 });
 
-describe('engulf determinism (docs/DETERMINISM.md §7)', () => {
+describe('engulf determinism (docs/determinism/replay-tests-and-traps.md §7)', () => {
   function hashesThrough(seed: number, preyTarget?: { x: number; y: number }): StateHash[] {
     const room = startRoom(seed);
     const hashes = [room.hash()];

@@ -1,4 +1,4 @@
-// The Ticker seam (docs/DETERMINISM.md §2): what wakes a GameRoom's fixed-step loop. The
+// The Ticker seam (docs/determinism/contract-and-clock.md §2): what wakes a GameRoom's fixed-step loop. The
 // production ticker is the one `setInterval` allowed on the server; tests hand-crank a
 // ManualTicker. Cadence never comes from the interval itself: the room counts due ticks from
 // the injected Clock through the FixedStepAccumulator.

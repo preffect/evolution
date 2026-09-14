@@ -1,4 +1,4 @@
-// How an organelle sprite moves on its slot (docs/VISUAL-STYLE.md §4): the mitochondrion pulses
+// How an organelle sprite moves on its slot (docs/visual-style/cells-and-organelles.md §4): the mitochondrion pulses
 // on sprint, the toxin bladder breathes at 1 Hz, the vacuoles rise and pop every two seconds.
 // Pure: kind, phase and time in; scale, alpha and lift out.
 

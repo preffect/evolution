@@ -1,4 +1,4 @@
-// The gameplay testing framework (docs/TESTING.md §8): what a scenario file imports.
+// The gameplay testing framework (docs/testing/scenario-runner.md §8): what a scenario file imports.
 export type { CellLocation, FixtureContext, PlayerCommand, ScenarioAdapter, TraitChoiceCommand } from './adapter.js';
 export { createScriptedStrategy, strategyScript, type BotStrategy, type BotStrategyFactory } from './bots.js';
 export {

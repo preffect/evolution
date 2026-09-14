@@ -64,7 +64,7 @@ export class GameStateService {
     () => this.multiplayer.snapshot()?.players ?? NO_PLAYERS,
   );
 
-  /** Seat index per player: the palette and the seat-mark bead count (docs/VISUAL-STYLE.md §2). */
+  /** Seat index per player: the palette and the seat-mark bead count (docs/visual-style/principles-and-palette.md §2). */
   readonly avatarAssignments = this.multiplayer.avatarAssignments.asReadonly();
 
   /** The room's config: the round length the clock's bloom threshold is a fraction of. */

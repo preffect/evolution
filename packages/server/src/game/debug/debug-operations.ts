@@ -152,7 +152,7 @@ export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unkn
   return world.balance;
 }
 
-/** Rebuilds every stream from `seed` (docs/DETERMINISM.md §3); the caller starts a new recording. */
+/** Rebuilds every stream from `seed` (docs/determinism/random-streams.md §3); the caller starts a new recording. */
 export function reseedForDebug(world: WorldState, seed: number): void {
   world.seed = seed;
   world.random = forkServerStreams(seed);

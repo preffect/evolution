@@ -14,14 +14,14 @@ export const MIN_PLAYERS_PER_GAME = 1;
 export const MAX_PLAYERS_PER_GAME = 8;
 /** What the create-game form proposes before the creator changes it. */
 export const DEFAULT_PLAYERS_PER_GAME = 4;
-/** One player palette per seat, by construction (docs/VISUAL-STYLE.md §2). */
+/** One player palette per seat, by construction (docs/visual-style/principles-and-palette.md §2). */
 export const PLAYER_PALETTE_COUNT = MAX_PLAYERS_PER_GAME;
 /** Inclusive avatar index range: an avatar index is a palette index. */
 export const AVATAR_INDEX_MIN = 0;
 export const AVATAR_INDEX_MAX = PLAYER_PALETTE_COUNT - 1;
 /**
  * The non-colour player tell: `SEAT_MARK_BEADS[avatarIndex]` beads on the cell's outline and on
- * the leaderboard swatch (docs/VISUAL-STYLE.md §2, docs/ui/hud.md §3.1); shared because the renderer
+ * the leaderboard swatch (docs/visual-style/principles-and-palette.md §2, docs/ui/hud.md §3.1); shared because the renderer
  * and the HUD both read it.
  */
 export const SEAT_MARK_BEADS: readonly number[] = Array.from(
@@ -32,7 +32,7 @@ export const SEAT_MARK_BEADS: readonly number[] = Array.from(
 /**
  * An arbitrary avatar index folded into the seat range, so a palette and a bead count exist for
  * every value a snapshot can carry. The renderer's palette lookup and the HUD's leaderboard swatch
- * both wrap here rather than each owning the arithmetic (docs/VISUAL-STYLE.md §2).
+ * both wrap here rather than each owning the arithmetic (docs/visual-style/principles-and-palette.md §2).
  */
 export function wrapAvatarIndex(avatarIndex: number): number {
   return ((avatarIndex % PLAYER_PALETTE_COUNT) + PLAYER_PALETTE_COUNT) % PLAYER_PALETTE_COUNT;

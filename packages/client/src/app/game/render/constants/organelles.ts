@@ -1,4 +1,4 @@
-// Organelle atlas, slots and sprite motion (docs/rendering/contents-and-motion.md §3, docs/VISUAL-STYLE.md §3–§4).
+// Organelle atlas, slots and sprite motion (docs/rendering/contents-and-motion.md §3, docs/visual-style/cells-and-organelles.md §3–§4).
 // Sizes are fractions of the cell radius `r`.
 
 import type { ValueOf } from '@evolution/shared';
@@ -31,7 +31,7 @@ export const CHLORO_GRANULE = { radiusShare: 0.16, ringShare: 0.55, arcStartTurn
 /** A vacuole's translucent fill: faint at the centre, denser at the rim. */
 export const VACUOLE_FILL_ALPHA = { inner: 0.25, outer: 0.6 } as const;
 /**
- * The nucleus ramp (#231, VISUAL-STYLE §3): the shader's three-stop disc under the nucleus sprite. The
+ * The nucleus ramp (#231, visual-style/cells-and-organelles.md §3): the shader's three-stop disc under the nucleus sprite. The
  * focus and the reach are in nucleus radii (`r_n = NUCLEUS_RADIUS × r`), the focus toward `LIGHT_DIRECTION_DEG`;
  * the middle stop is where the ramp reaches the palette's nucleus colour on its way from rim to nucleus dark.
  */
@@ -108,14 +108,14 @@ export const PROTOCELL_GRANULE_DRIFT_RADII = 0.06;
 export const PROTOCELL_GRANULE_DRIFT_HZ = 0.15;
 export const EYESPOT_RADIUS = 0.08;
 
-/** Count per tier for the tiered organelles (VISUAL-STYLE §4). */
+/** Count per tier for the tiered organelles (visual-style/cells-and-organelles.md §4). */
 export const NUCLEOID_LOOPS_BY_TIER = [1, 2, 3] as const;
 export const MITOCHONDRIA_BY_TIER = [1, 2, 3] as const;
 export const CHLOROPLASTS_BY_TIER = [1, 2, 3] as const;
 export const FOOD_VACUOLES_BY_TIER = [2, 3, 4] as const;
 export const TOXIN_VACUOLES_BY_TIER = [1, 1, 1] as const;
 
-// ---- flagella (VISUAL-STYLE §4, sheet 04) ----
+// ---- flagella (visual-style/cells-and-organelles.md §4, sheet 04) ----
 export const FLAGELLUM_LENGTH_RADII = 2;
 export const FLAGELLUM_WAVES = 2;
 export const FLAGELLUM_CORE_PX = 3;

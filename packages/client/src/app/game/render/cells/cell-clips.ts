@@ -70,7 +70,7 @@ function eatBumps(input: CellClipInput): ShapeBump[] {
   return [bump(dimple, input.moteAngle, EAT_DIMPLE_SIGMA), bump(wrap, input.moteAngle, EAT_WRAP_SIGMA)];
 }
 
-/** The arms at ±30°, the notch and the seal at the prey angle, from `engulfProgress` (VISUAL-STYLE §5). */
+/** The arms at ±30°, the notch and the seal at the prey angle, from `engulfProgress` (visual-style/motion-and-legibility.md §5). */
 function engulfBumps(input: CellClipInput): ShapeBump[] {
   if (input.preyAngle === null || input.engulfProgress === null) return [];
   const tracks = sampleClipTracks(MOTION_CLIPS.engulf, input.engulfProgress);

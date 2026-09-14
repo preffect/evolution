@@ -1,4 +1,4 @@
-// docs/TESTING.md §8: the Evolution adapter's scenario duties on a real module.
+// docs/testing/scenario-runner.md §8: the Evolution adapter's scenario duties on a real module.
 import { describe, expect, it } from 'vitest';
 import { EFFECT_KIND, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
 import { computeStateHash } from '../../game/world/state-hash.js';

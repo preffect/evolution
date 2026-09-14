@@ -1,4 +1,4 @@
-// The renderer smoke (docs/TESTING.md §1, UI tier): headless Chromium against the dev servers (game
+// The renderer smoke (docs/testing/tiers-and-builders.md §1, UI tier): headless Chromium against the dev servers (game
 // server + Angular), a live room from the lobby and the bench route. Run with `pnpm --filter @evolution/client smoke`; not part of `./validate.sh all`.
 import { readFileSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';

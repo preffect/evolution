@@ -1,5 +1,5 @@
 // The `.expect(label, select).atTick(tick).toBeCloseTo(value, tolerance)` chain and its
-// `.capture(label, select).atTick(tick)` sibling (docs/TESTING.md §8). Each matcher registers
+// `.capture(label, select).atTick(tick)` sibling (docs/testing/scenario-runner.md §8). Each matcher registers
 // one `Expectation` with the scenario and hands the builder back, so a row's asserts read top
 // to bottom in the order the table states them.
 

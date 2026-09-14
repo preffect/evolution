@@ -1,7 +1,7 @@
 // The engulf pace formulas (docs/ecology/absorption.md §6.1): numbers in, numbers out, no state and no
 // randomness (docs/architecture/server-simulation.md §3.1). Shared because the HUD's escape arc and the renderer's
 // membrane read `engulfPhaseOf` on the same thresholds the server advances progress with
-// (docs/ui/hud.md §3.1, docs/VISUAL-STYLE.md §5); everything that needs more than a phase is the
+// (docs/ui/hud.md §3.1, docs/visual-style/motion-and-legibility.md §5); everything that needs more than a phase is the
 // server's alone. The ratio predicates live next door in `engulf-eligibility.ts`.
 
 import type { BalanceConfig } from '../constants/balance.js';

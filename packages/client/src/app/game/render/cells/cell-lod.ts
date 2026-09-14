@@ -1,4 +1,4 @@
-// The LOD rule (docs/rendering/contents-and-motion.md §5, docs/VISUAL-STYLE.md §6): interior bands and sprites fade
+// The LOD rule (docs/rendering/contents-and-motion.md §5, docs/visual-style/motion-and-legibility.md §6): interior bands and sprites fade
 // in a window under the full threshold; the identity tells snap at the far threshold; below it
 // the cell is a rim-colour dot with a wide halo.
 
@@ -16,7 +16,7 @@ export interface CellLod {
   readonly interiorBlend: number;
   /** Seat mark and self ring: drawn at mid and above, never faded. */
   readonly hasTells: boolean;
-  /** The nucleus / nucleoid sprite: the stage tell, kept through mid (VISUAL-STYLE §6) and gone with the far dot. */
+  /** The nucleus / nucleoid sprite: the stage tell, kept through mid (visual-style/motion-and-legibility.md §6) and gone with the far dot. */
   readonly nucleusBlend: number;
   /** Below the far threshold the cell is a rim dot with a ×3 halo. */
   readonly isFarDot: boolean;

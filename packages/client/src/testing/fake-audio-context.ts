@@ -1,4 +1,4 @@
-// Test double (docs/TESTING.md §4): the slice of the Web Audio API `WebAudioBackend` touches.
+// Test double (docs/testing/tiers-and-builders.md §4): the slice of the Web Audio API `WebAudioBackend` touches.
 // Install with `vi.stubGlobal('AudioContext', FakeAudioContext)`.
 
 export class FakeAudioParameter {

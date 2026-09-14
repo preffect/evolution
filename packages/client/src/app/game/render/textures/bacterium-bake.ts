@@ -1,4 +1,4 @@
-// The bacterium rods (docs/VISUAL-STYLE.md §2): a rounded rod 2 × 1 collision radii, body, rim,
+// The bacterium rods (docs/visual-style/principles-and-palette.md §2): a rounded rod 2 × 1 collision radii, body, rim,
 // one glint; the aerobic rod is mitochondrion-coloured with a hot rim and halo, the
 // photosynthetic one chloroplast-coloured with three dark bands.
 
@@ -127,7 +127,7 @@ export function bakeBacteriumRod(factory: BakeCanvasFactory, variant: BacteriumV
 }
 
 /**
- * The rod's glint on its own canvas of the same extent (VISUAL-STYLE §1: light from the top-left
+ * The rod's glint on its own canvas of the same extent (visual-style/principles-and-palette.md §1: light from the top-left
  * only): the rod rotates with its heading, so the glint is a second, unrotated particle at the same
  * place and scale, and the two line up because both bakes share the centre and the px/wu.
  */

@@ -1,4 +1,4 @@
-// Test builders for the wire contract (docs/TESTING.md §4): every server and client test that
+// Test builders for the wire contract (docs/testing/tiers-and-builders.md §4): every server and client test that
 // needs a session config, an input, a snapshot or a view builds it here, so a shape change is
 // one edit. Builder defaults are the only tolerated inline test numbers. The server's records
 // (`createTestWorld`, `createTestPlayerRecord`) are built in the server package beside the

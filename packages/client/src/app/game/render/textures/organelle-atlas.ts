@@ -1,4 +1,4 @@
-// The organelle atlas (docs/rendering/contents-and-motion.md §3, docs/VISUAL-STYLE.md §3–§4): one code-baked sprite per
+// The organelle atlas (docs/rendering/contents-and-motion.md §3, docs/visual-style/cells-and-organelles.md §3–§4): one code-baked sprite per
 // organelle kind, each with its own soft halo, body ramp, detail and glint, at
 // `ORGANELLE_ATLAS_PX_PER_R` px per cell radius times the device pixel ratio (capped), so the own
 // cell never upsamples. Sizes are fractions of `r`; the sprite is `widthRadii × r` wide when drawn.

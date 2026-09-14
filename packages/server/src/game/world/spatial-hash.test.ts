@@ -1,4 +1,4 @@
-// docs/DETERMINISM.md §7: query results equal brute force and are id-sorted, on seeded populations.
+// docs/determinism/replay-tests-and-traps.md §7: query results equal brute force and are id-sorted, on seeded populations.
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, entityId, SPATIAL_HASH_CELL_SIZE_WU, type EntityId } from '@evolution/shared';
 import { compareEntityIds } from './entity-ids.js';

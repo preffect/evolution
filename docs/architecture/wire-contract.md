@@ -98,7 +98,7 @@ export interface FoodDelta {
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
-  (`DETERMINISM.md §3`); it never receives a `RandomSource`.
+  (`determinism/random-streams.md §3`); it never receives a `RandomSource`.
 
 ### 4.1 Bandwidth budget
 

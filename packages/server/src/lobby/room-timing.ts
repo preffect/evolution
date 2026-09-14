@@ -1,4 +1,4 @@
-// The time sources a GameRoom is born with (docs/DETERMINISM.md §2): the clock the accumulator
+// The time sources a GameRoom is born with (docs/determinism/contract-and-clock.md §2): the clock the accumulator
 // and the perf timings read, and the ticker that wakes the loop. Rooms never touch wall time.
 
 import { SystemClock, type Clock } from '@evolution/shared';

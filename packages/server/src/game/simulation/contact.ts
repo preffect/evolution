@@ -1,7 +1,7 @@
 // Cell-to-cell contact (docs/ecology/mass-and-movement.md §5.3): two overlapping cells where neither can engulf the
 // other are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_PER_TICK` of the
 // overlap, split by inverse mass (the lighter cell moves more). Pairs are walked id-sorted
-// (docs/DETERMINISM.md §4). A predator and its current prey are left alone until payout or release
+// (docs/determinism/ordering-and-state-hash.md §4). A predator and its current prey are left alone until payout or release
 // (E16), and a pair inside a spit-out refractory is separated as if neither could engulf the other,
 // so a spat-out prey is pushed clear (T4). Engulf contact lives here too: it is the one geometric
 // test the engulf step shares with nothing else.

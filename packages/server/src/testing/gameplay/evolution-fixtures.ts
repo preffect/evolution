@@ -1,5 +1,5 @@
 // The placed fixtures of the design tables applied to a live Evolution world (docs/ecology/acceptance.md §8,
-// docs/TESTING.md §8.1): a placed cell, mote or fragment, the anchors that need the world (a cell
+// docs/testing/scenario-runner.md §8.1): a placed cell, mote or fragment, the anchors that need the world (a cell
 // centre, a gel patch), the "placing anything disables the seeded motes and both spawners" rule
 // and the gel-patch clearance of the broth point. Everything a fixture writes goes through the
 // simulation's own record factories, never a second copy of a record.

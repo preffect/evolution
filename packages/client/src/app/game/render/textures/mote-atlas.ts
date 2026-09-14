@@ -1,4 +1,4 @@
-// The mote atlas (docs/VISUAL-STYLE.md §2 food table, sheet 02 mote table): the algae circle, the
+// The mote atlas (docs/visual-style/principles-and-palette.md §2 food table, sheet 02 mote table): the algae circle, the
 // oily detritus ellipse, the three bacterium rods and the DNA helix per tag, each with its core +
 // edge + rim + glow + glint, at 4 px/wu plus a small variant at 1 px/wu for the far zoom.
 

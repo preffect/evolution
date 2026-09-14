@@ -1,4 +1,4 @@
-// The state hash kernel (docs/DETERMINISM.md §5): two independent 32-bit FNV-1a lanes fed the
+// The state hash kernel (docs/determinism/ordering-and-state-hash.md §5): two independent 32-bit FNV-1a lanes fed the
 // same canonical byte stream. Scalars carry a type tag so `0`, `false`, `"0"` and `null` never
 // collide; numbers hash by their IEEE-754 bits through one shared DataView; strings by a length
 // prefix then the one UTF-16 encoding `hashing/fnv1a.ts` defines (`hashLabel` shares it). The

@@ -181,7 +181,7 @@ worldDna       = cumulative DNA of level floor(worldLevel)                      
   eukaryote era the row is 0.4 / 0.3 / 0.3. Organelles spread through the world as it ages: early,
   only a trip finds them; late, a laggard stumbles on them in the broth (catch-up). The renderer
   may key the zone tint peak to the world stage (a `render/constants.ts` number that
-  [`VISUAL-STYLE.md §2`](../VISUAL-STYLE.md#2-palette) would own); nothing in build 1 needs it.
+  [`visual-style/principles-and-palette.md §2`](../visual-style/principles-and-palette.md#2-palette) would own); nothing in build 1 needs it.
 - **Density is flat over the round.** `FOOD_CAP_*`, `DNA_FRAGMENT_CAP_*` and `WILD_CELL_COUNT` do
   not vary with the world stage. Sprites at cap, solo: 700 motes + 40 fragments + 24 wild cells + 1
   player (#141 option A's mote numbers; the human's answer moved the question from motes to peers,

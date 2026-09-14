@@ -1,4 +1,4 @@
-// What `build()` refuses (docs/TESTING.md §8.1): anything stamped past the last advanced tick
+// What `build()` refuses (docs/testing/scenario-runner.md §8.1): anything stamped past the last advanced tick
 // would never run, and a test that cannot fail is worse than no test; a script for a player who
 // is not in the room at that tick would be fed to the module as if they were. Every message
 // names the offender and the run length so the fix is the tick or an `.advance()`.

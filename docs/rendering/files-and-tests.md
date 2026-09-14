@@ -55,7 +55,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   180° and k = 0.45 gives 1.10 / 0.94 / 0.87, eat wrap frame, engulf wrap frame gives 1.616 at ±30° and 1.114 at 0° (§4), contact
   dent, each form), pins `r′(θ)` against a central difference of `r(θ)` (≤ 1e-4 r per rad) and `d(p)` on an arm
   flank (a probe at `|p| = r(θ) + w` reads `d < w` where `r′ ≠ 0`), a seeded rest profile has 5–7 lobes within
-  ±2.5–4 % and stays inside ±5 % of `r`, and same seed + same tick ⇒ same profile (`DETERMINISM.md §7`);
+  ±2.5–4 % and stays inside ±5 % of `r`, and same seed + same tick ⇒ same profile (`determinism/replay-tests-and-traps.md §7`);
   `shape-terms.spec.ts` (view → terms, bump slot assignment including the eight-slot amoeba III mid-engulf and
   contact / eat dropped while engulfing, sprint scaling, and the moving-wrap extent: k = 1 stretch with the wrap frame and an eat pulse reports a maximum of 2.99 r, below `CELL_QUAD_EXTENT_RADII` 3.0); `form-profiles.spec.ts` (every `B` has unit area within
   0.5 %, the sheet-04 aspects, diatom terms all zero); `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, every sprite body inside the membrane, the
@@ -72,7 +72,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   with a nucleus at full and mid LOD, 0 for a nucleoid or protocell; a far dot's warning ring is 0 and its quad
   equals the ringless `quadExtentRadii`, #243), `nucleus-bake.spec.ts` (no disc fill: the only
   gradients are the two halos); `palette.spec.ts` (HSL derivations, the
-  separability numbers of VISUAL-STYLE §2); `bench-scene.spec.ts` (counts, seed-stable, the pairs, the schedule),
+  separability numbers of visual-style/principles-and-palette.md §2); `bench-scene.spec.ts` (counts, seed-stable, the pairs, the schedule),
   `bench-driver.spec.ts` (parks and steps the store), `bench-session.spec.ts` (the query and its flags, the report
   after the window, the hook), `bench-route.spec.ts` (both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
@@ -81,7 +81,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   constants); `motion.test.ts` in
   `shared` (one snapshot per clip; durations and keyframe times equal sheet 03's; every `pulse` ≤ 1.14; overshoot
   ≤ 3 %; tracks are monotonic in `at`; every `easingTo` is an `EasingName`; no file under `packages/server/src`
-  imports it and `balance.json` has no key from it); `constants.spec.ts` (every VISUAL-STYLE §2 hex is present
+  imports it and `balance.json` has no key from it); `constants.spec.ts` (every visual-style/principles-and-palette.md §2 hex is present
   once).
 - **Integration (`*.integration.spec.ts`, WebGL):** shader ↔ TypeScript parity: render one cell per state to a
   render texture, walk 36 rays, boundary within 1 px of `radial-profile`; on the engulf wrap frame the rim-light
@@ -101,7 +101,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   bands, and writes the reports beside the screenshots; the
   shader parity walk is still open (#206).
 - **Screenshot baselines (`qa/baselines/`, graphics-qa on every renderer PR, not part of `validate.sh all`):**
-  `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (VISUAL-STYLE §9) × ticks, each scene carrying a
+  `qa/baselines/scenes.json` lists bench scenes × zoom 1.8 / 1.0 / 0.36 (visual-style/performance-and-checklist.md §9) × ticks, each scene carrying a
   fixed `ownCellIndicators` record (plain data, §10; `null` for scenes without an own cell), so a baseline never
   depends on HUD timing or a live threat search; `check.sh`
   renders each through headless Chromium (the concept-art recipe) and compares with ImageMagick

@@ -1,5 +1,5 @@
 // One colour decision the HUD makes: a palette hex at an alpha, for the own leaderboard row's tint
-// (docs/VISUAL-STYLE.md §7, rim colour @ 12 %). The hex values are `render/constants` and the
+// (docs/visual-style/ui-type.md §7, rim colour @ 12 %). The hex values are `render/constants` and the
 // channel split is `render/colour.ts`; this only names the operation so a component never builds a
 // colour string inline.
 

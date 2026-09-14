@@ -1,4 +1,4 @@
-// Integration (docs/TESTING.md §2): the `game_state` payload from the echo module through the room
+// Integration (docs/testing/tiers-and-builders.md §2): the `game_state` payload from the echo module through the room
 // and the lobby to the connection, on start, on a late join and on a reconnect. docs/architecture/wire-contract.md §4:
 // `game_state` carries the module's `serializeFullState()`, the full snapshot plus the balance the
 // client must predict with. Run with `./validate.sh integration`.

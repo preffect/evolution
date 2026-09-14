@@ -1,5 +1,5 @@
-// Integration (docs/TESTING.md §2): the pause / step / resume tools against a real GameRoom that
-// the lobby started, driven by the injected ManualClock + ManualTicker (docs/DETERMINISM.md §2).
+// Integration (docs/testing/tiers-and-builders.md §2): the pause / step / resume tools against a real GameRoom that
+// the lobby started, driven by the injected ManualClock + ManualTicker (docs/determinism/contract-and-clock.md §2).
 import { describe, expect, it } from 'vitest';
 import { SERVER_MESSAGE_TYPE, SNAPSHOT_EVERY_TICKS, TICK_INTERVAL_MS } from '@evolution/shared';
 import { registerRoomLoopTools } from './room-loop.js';

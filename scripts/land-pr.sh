@@ -64,7 +64,7 @@ no full gate: it runs once, at merge), and push. Do not resolve threads and do n
 EOF
 }
 
-# The one full gate (docs/ENGINEERING.md §1): `all --affected` on the final head, right before the
+# The one full gate (docs/engineering/validation-gate.md §1): `all --affected` on the final head, right before the
 # merge, in the PR's worktree fast-forwarded to what was pushed.
 merge_gate() {
   local worktree="$ROOT/.worktrees/$head_branch"

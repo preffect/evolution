@@ -1,4 +1,4 @@
-// What the design-table files share (docs/TESTING.md §8.1): the two seeds bound to the DSL, the
+// What the design-table files share (docs/testing/scenario-runner.md §8.1): the two seeds bound to the DSL, the
 // `decayed()` helper over the live balance, the tolerances the tables state, and PROGRESSION P7's
 // late-join world, which GAME-DESIGN G9 reuses. Not a test file: the scenario files import it.
 

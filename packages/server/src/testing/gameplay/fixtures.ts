@@ -1,6 +1,6 @@
 // Fixture helpers the scenario tables share (docs/ecology/acceptance.md §8): the `decayed()` mass formula,
 // the gel-patch clearance and the placed-entity records an adapter applies before tick 1 (or
-// before a scheduled tick, docs/TESTING.md §8.1). The literals here ARE the convention the design
+// before a scheduled tick, docs/testing/scenario-runner.md §8.1). The literals here ARE the convention the design
 // states; the balance numbers themselves are injected, because `constants/ecology.ts` and
 // `constants/world.ts` land with #98 and this file must not grow a second copy of them.
 

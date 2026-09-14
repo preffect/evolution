@@ -38,7 +38,7 @@
 ./validate.sh typecheck -h50          # show first 50 lines
 ./validate.sh lint -G 'error'         # grep output for pattern
 ./validate.sh integration --scope server -- ecology   # extra args reach the runner (here a vitest file filter; never cached)
-./validate.sh all --fresh             # ignore the content-addressed result cache (docs/ENGINEERING.md §1)
+./validate.sh all --fresh             # ignore the content-addressed result cache (docs/engineering/validation-gate.md §1)
 ```
 
 ### Running the dev servers
@@ -65,7 +65,7 @@ the browser afterwards. Only a checkout on `main` tracking `origin/main`, withou
 can fast-forward is deployed (a watcher anywhere else stops); every step goes to
 `.game-logs/deploy.log`; `./run.sh --stop` stops the watcher.
 
-### Headless bots (`docs/TESTING.md` §8.3)
+### Headless bots (`docs/testing/bots-and-design-tables.md` §8.3)
 
 ```bash
 pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy grazer --seed 42   # over the wire
@@ -114,8 +114,8 @@ process belong upstream in `base-multiplayer-game` so the next game inherits the
 
 These docs are the enforceable quality bar for any work in this repo. Do not read them front to back: look up
 the file you need and read only the spec files your ticket or brief cites (its **Spec files:** line). The large
-design specs are split into topic files under `docs/<domain>/` (`ecology`, `architecture`, `rendering`, `ui`,
-`traits`, `game-design`); each old `docs/<NAME>.md` lists its files, and `docs/INDEX.md` lists every heading of
+design and standards docs are split into topic files under `docs/<domain>/` (`ecology`, `architecture`, `rendering`,
+`ui`, `traits`, `game-design`, `visual-style`, `testing`, `engineering`, `determinism`); each old `docs/<NAME>.md` lists its files, and `docs/INDEX.md` lists every heading of
 every file with its line range.
 
 - **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)** — coding, architecture, and testing rules. The single
@@ -142,8 +142,8 @@ every file with its line range.
   the client audio seam.
 
 > **The gate:** scoped checks green after each change, and `./validate.sh all --affected` green on the
-> final head, run once by whoever merges (`docs/ENGINEERING.md` §1); the Definition of Done in
-> `docs/ENGINEERING.md` must hold, and any new visual/audio asset must meet its doc's criteria.
+> final head, run once by whoever merges (`docs/engineering/validation-gate.md` §1); the Definition of Done in
+> `docs/engineering/conventions-and-done.md` §6 must hold, and any new visual/audio asset must meet its doc's criteria.
 
 ## Architecture
 
@@ -207,6 +207,6 @@ change ports inside the container; they are already baked into the integration f
   `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
   with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
   every module); populate a room with `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
-  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter`, `docs/TESTING.md` §8.3)
+  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter`, `docs/testing/bots-and-design-tables.md` §8.3)
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
 - **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`

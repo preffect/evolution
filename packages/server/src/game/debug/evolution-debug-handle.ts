@@ -1,7 +1,7 @@
 // The Evolution debug handle (docs/architecture/debug-mcp.md §8): every capability of the template's seam,
 // declared `Required` so a forgotten member is a type error. Reads project the world; mutations
 // go through debug-operations.ts and are recorded in the replay; a reseed closes the recording;
-// the bot pair adds and removes a player the module's own roster drives (docs/TESTING.md §8.3).
+// the bot pair adds and removes a player the module's own roster drives (docs/testing/bots-and-design-tables.md §8.3).
 
 import {
   ENTITY_KIND,
@@ -150,7 +150,7 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
     return this.applyAndRecord({ kind: DEBUG_PATCH_KIND.setPlayer, playerId, patch });
   }
 
-  /** The closed recording ends at the hash before the streams are rebuilt (docs/DETERMINISM.md §6). */
+  /** The closed recording ends at the hash before the streams are rebuilt (docs/determinism/replay-tests-and-traps.md §6). */
   reseed(seed: number): void {
     const { world, recorder } = this.dependencies;
     const closingHash = computeStateHash(world);

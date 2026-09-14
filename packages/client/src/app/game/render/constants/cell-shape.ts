@@ -1,4 +1,5 @@
-// The cell profile, bands and LOD numbers (docs/rendering/cells.md §2, docs/rendering/contents-and-motion.md §5; docs/VISUAL-STYLE.md §3–§6).
+// The cell profile, bands and LOD numbers (docs/rendering/cells.md §2, docs/rendering/contents-and-motion.md §5;
+// docs/visual-style/cells-and-organelles.md §3–§4, docs/visual-style/motion-and-legibility.md §5–§6).
 // Sizes are fractions of the cell radius `r` unless the suffix says px or degrees.
 
 // ---- quad and slots (§2, §2.1) ----
@@ -12,7 +13,7 @@ export const MAX_SHAPE_BUMPS = 8;
 /** Slots reserved for pseudopods (#121); the eat, contact and engulf bumps share the rest. */
 export const PSEUDOPOD_SLOT_COUNT = 4;
 
-// ---- rest motion (sheet 01 / 04, VISUAL-STYLE §5) ----
+// ---- rest motion (sheet 01 / 04, visual-style/motion-and-legibility.md §5) ----
 export const BREATH_AMPLITUDE = 0.02;
 export const BREATH_HZ = 0.5;
 export const PROTOCELL_WOBBLE_MODE = 2;
@@ -41,7 +42,7 @@ export const NOISE_STRIP_JITTER_SCALE = 1;
 export const NOISE_STRIP_LOBE_SCALE = 0.05;
 export const NOISE_STRIP_VALUE_LEVELS = 65535;
 
-// ---- stretch (sheet 01 motion, sheet 02, VISUAL-STYLE §5) ----
+// ---- stretch (sheet 01 motion, sheet 02, visual-style/motion-and-legibility.md §5) ----
 export const STRETCH_ALONG = 1.22;
 export const STRETCH_TAPER = 0.72;
 export const STRETCH_ACROSS_PER_ALONG = 0.6;
@@ -50,7 +51,7 @@ export const SPRINT_RIM_BRIGHTNESS = 1.2;
 /** Below this speed ratio the heading is held rather than read from the velocity. */
 export const HEADING_HOLD_SPEED_RATIO = 0.02;
 
-// ---- bumps (VISUAL-STYLE §5, sheet 03, rendering/cells.md §2.1, rendering/contents-and-motion.md §4) ----
+// ---- bumps (visual-style/motion-and-legibility.md §5, sheet 03, rendering/cells.md §2.1, rendering/contents-and-motion.md §4) ----
 export const CONTACT_DENT_AMPLITUDE = -0.12;
 /** The dent reaches its full amplitude at this overlap, as a share of the smaller cell's radius; it eases in and out with the press. */
 export const CONTACT_DENT_FULL_OVERLAP_RADII = 0.25;
@@ -64,7 +65,7 @@ export const ENGULF_NOTCH_SIGMA_DEG = 12;
 export const ENGULF_SEAL_SIGMA_DEG = 42;
 
 // ---- forms (§2.4, sheet 04): aspects at the sheet's mass, never absolute sizes ----
-/** Slipper length : width per tier (VISUAL-STYLE §4 resolves sheet 04's 2.5). */
+/** Slipper length : width per tier (visual-style/cells-and-organelles.md §4 resolves sheet 04's 2.5). */
 export const SLIPPER_ASPECT_BY_TIER = [1.6, 1.8, 2.0] as const;
 /** Spindle 50 × 16 wu. */
 export const SPINDLE_ASPECT = 3.1;
@@ -136,7 +137,7 @@ export const RIBOSOME_BAND_MAX_RADII = 0.89;
 export const RIBOSOME_DENSITY_BY_TIER = [20, 40, 60] as const;
 export const RIBOSOME_RADIUS_RADII_MIN = 0.012;
 export const RIBOSOME_RADIUS_RADII_MAX = 0.022;
-/** The dot's diameter floor in px (VISUAL-STYLE §4 "dots 2 px"). */
+/** The dot's diameter floor in px (visual-style/cells-and-organelles.md §4 "dots 2 px"). */
 export const RIBOSOME_MIN_PX = 2;
 /** A dot strays this share of the grid pitch from its cell centre, whatever its radius. */
 export const RIBOSOME_JITTER_SHARE = 0.8;
@@ -149,7 +150,7 @@ export const FILAMENT_ALPHA = 0.28;
 export const FILAMENT_MASK_PX = FILAMENT_WIDTH_PX / 2;
 /** The filaments fade out over this band inside their 0.89 r reach. */
 export const FILAMENT_REACH_BLUR_RADII = 0.04;
-/** The rim takes half the membrane's chloroplast tint (VISUAL-STYLE §4 `chloroplast`). */
+/** The rim takes half the membrane's chloroplast tint (visual-style/cells-and-organelles.md §4 `chloroplast`). */
 export const RIM_TINT_SHARE = 0.5;
 /**
  * The GLSL 2-D hash (a standard fract-dot hash) and the salts that decorrelate the speckle's per-dot draws;
@@ -207,13 +208,13 @@ export const GLINT_ROTATION_DEG = -40;
 export const GLINT_EDGE_PX = 1.5;
 export const GLINT_ALPHA = 0.5;
 export const PREY_UNDER_FILM_ALPHA = 0.62;
-/** The absorbed ghost's dashed rim (VISUAL-STYLE §5 "rim dashes"; no sheet number, graphics-designer to accept). */
+/** The absorbed ghost's dashed rim (visual-style/motion-and-legibility.md §5 "rim dashes"; no sheet number, graphics-designer to accept). */
 export const GHOST_RIM_DASH_PX = [5, 4] as const;
 /** The nucleus highlight's centre, in cell radii toward the light: inside the `NUCLEUS_RADIUS` 0.30 body. */
 export const NUCLEUS_HIGHLIGHT_OFFSET_RADII = 0.16;
 export const NUCLEUS_HIGHLIGHT_ANGLE_DEG = -136;
 
-// ---- player tells (VISUAL-STYLE §2, §5) ----
+// ---- player tells (visual-style/principles-and-palette.md §2, visual-style/motion-and-legibility.md §5) ----
 export const SEAT_MARK_ANCHOR_DEG = -135;
 export const SEAT_MARK_BEAD_RADIUS_FRACTION = 0.05;
 export const SEAT_MARK_BEAD_MIN_PX = 2;
@@ -232,7 +233,7 @@ export const WARNING_RING_STROKE_PX = 2;
 export const WARNING_RING_DASH_PX = [6, 5] as const;
 export const WARNING_RING_ROTATION_DEG_PER_SECOND = 12;
 
-// ---- LOD (VISUAL-STYLE §6, rendering/contents-and-motion.md §5) ----
+// ---- LOD (visual-style/motion-and-legibility.md §6, rendering/contents-and-motion.md §5) ----
 export const CELL_LOD_FULL_MIN_PX = 20;
 export const CELL_LOD_FAR_MAX_PX = 8;
 export const LOD_FADE_BAND_PX = 6;

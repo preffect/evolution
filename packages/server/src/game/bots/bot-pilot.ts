@@ -81,7 +81,7 @@ export interface NamedBotPilotOptions<Input, Snapshot> {
 
 /**
  * The pilot both bot hosts build: a catalogue strategy on the bot's own stream, `bot_<index>`
- * forked from the swarm seed (docs/DETERMINISM.md §3), so the same seed and index decide the
+ * forked from the swarm seed (docs/determinism/random-streams.md §3), so the same seed and index decide the
  * same way in-process and over the wire.
  */
 export function createNamedBotPilot<Input, Snapshot>(

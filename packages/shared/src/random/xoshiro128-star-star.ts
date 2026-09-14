@@ -1,5 +1,5 @@
 // xoshiro128** (Blackman & Vigna, 2018): the PRNG behind every seeded stream
-// (docs/DETERMINISM.md §3). 128 bits of state, period 2^128 − 1, all 32-bit integer
+// (docs/determinism/random-streams.md §3). 128 bits of state, period 2^128 − 1, all 32-bit integer
 // arithmetic, so the same seed yields the same sequence on every JavaScript engine.
 // A 32-bit seed is expanded into the four state words with splitmix32 (the algorithm the
 // authors recommend for seeding).

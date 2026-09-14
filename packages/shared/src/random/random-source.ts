@@ -1,4 +1,4 @@
-// The seeded random contract every subsystem draws from (docs/DETERMINISM.md §3).
+// The seeded random contract every subsystem draws from (docs/determinism/random-streams.md §3).
 // Implementations: seeded-random.ts (xoshiro128**). Nothing in game code calls Math.random.
 
 /**

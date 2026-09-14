@@ -43,15 +43,23 @@ const NUMERIC_LITERALS_ALLOWED_EVERYWHERE = [0, 1, -1];
 // ---- CODE-STANDARDS §8: determinism bans ----------------------------------------------
 const BANNED_TIMER_GLOBALS = ['setTimeout', 'setInterval', 'requestAnimationFrame'].map((name) => ({
   name,
-  message: `Time flows through the injected Clock / Ticker only (docs/DETERMINISM.md §1). ${name} is banned in game code.`,
+  message: `Time flows through the injected Clock / Ticker only (docs/determinism/contract-and-clock.md §1). ${name} is banned in game code.`,
 }));
 const BANNED_WALL_CLOCK_PROPERTIES = [
-  { object: 'Math', property: 'random', message: 'Draw from a named seeded stream (docs/DETERMINISM.md §3).' },
-  { object: 'Date', property: 'now', message: 'Read time through the injected Clock (docs/DETERMINISM.md §2).' },
+  {
+    object: 'Math',
+    property: 'random',
+    message: 'Draw from a named seeded stream (docs/determinism/random-streams.md §3).',
+  },
+  {
+    object: 'Date',
+    property: 'now',
+    message: 'Read time through the injected Clock (docs/determinism/contract-and-clock.md §2).',
+  },
   {
     object: 'performance',
     property: 'now',
-    message: 'SystemClock is the one allowed call site (docs/DETERMINISM.md §2).',
+    message: 'SystemClock is the one allowed call site (docs/determinism/contract-and-clock.md §2).',
   },
 ];
 

@@ -1,4 +1,4 @@
-// Test double (docs/TESTING.md §4): an `AudioBackend` that records every bus, decode and play and
+// Test double (docs/testing/tiers-and-builders.md §4): an `AudioBackend` that records every bus, decode and play and
 // lets a test end a voice by hand. Nothing here makes a sound.
 
 import type {

@@ -1,4 +1,4 @@
-// One bot over the wire (docs/TESTING.md §8.3): the lobby handshake a browser client does
+// One bot over the wire (docs/testing/bots-and-design-tables.md §8.3): the lobby handshake a browser client does
 // (`join_lobby`, `join_game`), then one client tick per fixed step from the injected timing
 // (docs/architecture/client.md §5: exactly one `player_input` per client tick, `sequence` = tick),
 // each decided by the pilot from the latest snapshot the server sent. A bot that has not seen a
@@ -39,7 +39,7 @@ export interface BotSessionStats extends BotPilotStats {
   readonly clientTick: number;
   readonly snapshotsReceived: number;
   readonly inputsSent: number;
-  /** Ticks the accumulator dropped after a stall (docs/DETERMINISM.md §2), never made up. */
+  /** Ticks the accumulator dropped after a stall (docs/determinism/contract-and-clock.md §2), never made up. */
   readonly droppedTicks: number;
   readonly errorsReceived: number;
   readonly lastError: string | null;

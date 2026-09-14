@@ -1,4 +1,4 @@
-// The contact dent (docs/VISUAL-STYLE.md §5, docs/rendering/cells.md §2.1): a −12 % dimple toward a
+// The contact dent (docs/visual-style/motion-and-legibility.md §5, docs/rendering/cells.md §2.1): a −12 % dimple toward a
 // touching neighbour while the separation rule of ecology/mass-and-movement.md §5.3 applies, so never between a
 // predator and its prey. A visible-cell scan, one dent per cell (the deepest overlap wins); the
 // σ is the cell's own (22°, 14° with `cytoskeleton`), the amplitude grows with the press (0 at

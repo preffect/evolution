@@ -42,7 +42,7 @@ export function dnaRingRadiusPx(rPx: number): number {
   return Math.max(DNA_RING_RADIUS_FRACTION * rPx, DNA_RING_MIN_RADIUS_PX);
 }
 
-/** VISUAL-STYLE §2's identity ring, the same rule `cell-shader-membrane.ts` draws it by. */
+/** visual-style/principles-and-palette.md §2's identity ring, the same rule `cell-shader-membrane.ts` draws it by. */
 export function selfRingRadiusPx(rPx: number): number {
   return Math.max(SELF_RING_RADIUS_FRACTION * rPx, SELF_RING_MIN_PX);
 }
@@ -61,7 +61,7 @@ export function ladderOrbitExtentPx(rPx: number): number {
   return ladderOrbitRadiusPx(rPx) + LADDER_BACKING_PX * HALF;
 }
 
-/** The seat mark's bead halo, the same rule `cell-shader-membrane.ts` draws it by (VISUAL-STYLE §2). */
+/** The seat mark's bead halo, the same rule `cell-shader-membrane.ts` draws it by (visual-style/principles-and-palette.md §2). */
 export function seatMarkHaloPx(rPx: number): number {
   return SEAT_MARK_HALO_SCALE * Math.max(SEAT_MARK_BEAD_RADIUS_FRACTION * rPx, SEAT_MARK_BEAD_MIN_PX);
 }

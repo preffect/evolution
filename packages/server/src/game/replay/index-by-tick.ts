@@ -1,4 +1,4 @@
-// Buckets tick-stamped events once (docs/DETERMINISM.md §6): a replay looks a step up in O(1)
+// Buckets tick-stamped events once (docs/determinism/replay-tests-and-traps.md §6): a replay looks a step up in O(1)
 // instead of scanning the log per tick. The module's replay runner and the scenario framework's
 // replay share this one fold.
 

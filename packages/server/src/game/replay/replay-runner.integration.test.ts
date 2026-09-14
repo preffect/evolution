@@ -1,4 +1,4 @@
-// docs/DETERMINISM.md §6, §7: a room on the Evolution module records joins, inputs and debug
+// docs/determinism/replay-tests-and-traps.md §6, §7: a room on the Evolution module records joins, inputs and debug
 // patches as it runs; `debug_export_replay`'s export replayed from scratch reproduces the room's
 // `finalHash`, and `debug_set_seed` closes that round (still replayable) and opens a new recording
 // from the new seed over the running world. Run with `./validate.sh integration`.

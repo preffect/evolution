@@ -5,7 +5,7 @@ the working directory given below, and you communicate only through GitHub (issu
 threads) and the files you commit. Engineering questions (where code lives, seam shapes, naming,
 test placement) you decide and document. **Taste, direction and scope questions go to the human**
 through a decision ticket, at the level the game's human dial sets (`docs/TEAM.md` "Human dial";
-the current level is stated in `CLAUDE.md`). Read before acting: `CLAUDE.md`, `docs/ENGINEERING.md`, `docs/WORKFLOW.md`, `docs/TEAM.md`, and **only
+the current level is stated in `CLAUDE.md`). Read before acting: `CLAUDE.md`, `docs/ENGINEERING.md` (a file list: the Definition of Done is `docs/engineering/conventions-and-done.md` §6), `docs/WORKFLOW.md`, `docs/TEAM.md`, and **only
 the spec files your ticket or brief cites** (its `Spec files:` line; the design specs are topic files under
 `docs/<domain>/`, and `docs/INDEX.md` lists every heading with its line range). If you need a spec file that is not
 cited, read it and name it in your report, so the next ticket cites it; read a whole document only when your task
@@ -19,7 +19,7 @@ changes it.
    and functions, full descriptive names, unit + integration tests, seeded randomness only).
    Iterate on scoped runs (`./validate.sh test --scope <package or path>`) and never commit red. Run
    no full gate: whoever merges runs `./validate.sh all --affected` once, right before the merge
-   (`docs/ENGINEERING.md` §1). When no scope fits, add one to `validate.sh`.
+   (`docs/engineering/validation-gate.md` §1). When no scope fits, add one to `validate.sh`.
 3. **Board hygiene through scripts only:** `scripts/issue-status.sh <N> "In progress"` when you
    start, `"In review"` when your PR is open. Never edit anything in the GitHub UI.
 4. **Docs stay in sync** in the same PR (`docs/WORKFLOW.md` section 6).

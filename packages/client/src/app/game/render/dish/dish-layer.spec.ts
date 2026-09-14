@@ -26,7 +26,7 @@ import {
 const textures = createTestRenderTextures();
 const VIEWPORT_1080P: ViewportPx = { width: 1920, height: 1080 };
 const VIEWPORT_SMALL: ViewportPx = { width: 640, height: 400 };
-/** The camera's zoom ends (VISUAL-STYLE §6): the spawn floor and the view ceiling, in px/wu at 1080p. */
+/** The camera's zoom ends (visual-style/motion-and-legibility.md §6): the spawn floor and the view ceiling, in px/wu at 1080p. */
 const ZOOM_ENDS = [1.8, 0.36] as const;
 const CAMERA_POSITIONS = [
   { x: 0, y: 0 },

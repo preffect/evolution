@@ -1,4 +1,4 @@
-// Real-socket test support (docs/TESTING.md §4): a Fastify server with the `/ws` route on an
+// Real-socket test support (docs/testing/tiers-and-builders.md §4): a Fastify server with the `/ws` route on an
 // ephemeral port, and the three promises a raw `ws` client needs. Used by the integration tier
 // only; the unit tier fakes the socket (`bot-builders.ts`).
 import Fastify, { type FastifyInstance } from 'fastify';

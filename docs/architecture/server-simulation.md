@@ -33,7 +33,7 @@ entities sixty times a second buys nothing at this scale. What "pure" means here
 the design uses for `progression/ladder.ts`, game-design/core.md §3): a system reads nothing but its
 arguments, calls no IO, no clock, no
 `Math.random`, and two worlds that hash equal before a step hash equal after it. Tests therefore
-assert **values and hashes**, never object identity; `ENGINEERING.md §2.3`'s
+assert **values and hashes**, never object identity; `engineering/testing-and-typescript.md §2.3`'s
 `expect(result).not.toBe(prevState)` applies to reducers that return new state (lobby and room
 descriptors, the client `WorldStore`), not to the simulation. Formulas in `packages/shared`
 (`movement-kernel.ts`, `mass-curves.ts`) stay side-effect free and take numbers, so the client
@@ -52,7 +52,7 @@ prediction reuses them unchanged.
   (PROGRESSION §4); a stale pick is ignored and counted. `shouldSplit` / `shouldEject` pass the schema and
   are ignored by the simulation without counting: they are reserved, not invalid (game-design/controls-and-scope.md §11).
 - The template's `GameRoom` calls `reduceGameState()` once per tick from the injected ticker
-  (`DETERMINISM.md §2`); `reduceGameState` is `stepWorld` plus effect draining, nothing else.
+  (`determinism/contract-and-clock.md §2`); `reduceGameState` is `stepWorld` plus effect draining, nothing else.
 
 ### 3.3 Other structural rules
 
@@ -69,7 +69,7 @@ prediction reuses them unchanged.
   sealed state, `engulfProgressDelta`, the held and predator speed factors, `spitOutChancePerTick`); the
   hold verdict `resolveEngulfHold` (ratio and spit-out) is called by the server alone. The engulf step is
   the only consumer of the `engulf` random stream and draws from it only for a wrapped or sealed prey
-  with a positive `spitOutChancePerSecond` (DETERMINISM §3). The prey's struggle reads the movement
+  with a positive `spitOutChancePerSecond` (determinism/random-streams.md §3). The prey's struggle reads the movement
   kernel's `steerCommand(cell)` so the throttle arithmetic has one home. Every release emits
   `cell_released { cellId, predatorCellId, reason }` (`types/effects.ts`, reasons in ecology/absorption.md §6.1) beside
   `cell_absorbed`; a sealed prey is carried (`CellRecord.carriedOffsetX/Y`) after its predator has moved.

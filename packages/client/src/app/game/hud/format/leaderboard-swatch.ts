@@ -30,7 +30,7 @@ export interface LeaderboardSwatchGeometry {
   readonly renderedSidePx: number;
   /**
    * CSS px per user unit. **Pinned at 1**: the beads and the ring are a couple of px wide, so any
-   * other value rounds the seat mark away and the non-colour tell of docs/VISUAL-STYLE.md §2 stops
+   * other value rounds the seat mark away and the non-colour tell of docs/visual-style/principles-and-palette.md §2 stops
    * reaching the screen. The beads sit on the disc's outline and are wider than it, so they paint
    * outside the viewBox — the element carries `overflow: visible` for exactly that.
    */
@@ -61,7 +61,7 @@ export interface LeaderboardSwatch {
   readonly rim: string;
   /** Bead centres in the swatch's own units, from the radius passed in. */
   readonly beads: readonly SeatMarkBead[];
-  /** The own row's background: the same rim colour at 12 % (docs/VISUAL-STYLE.md §7). */
+  /** The own row's background: the same rim colour at 12 % (docs/visual-style/ui-type.md §7). */
   readonly ownRowTint: string;
 }
 

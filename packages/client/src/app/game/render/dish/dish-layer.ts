@@ -1,4 +1,4 @@
-// The dish layer (docs/rendering/budget.md §6, §6.1, docs/VISUAL-STYLE.md §1): the baked field as one
+// The dish layer (docs/rendering/budget.md §6, §6.1, docs/visual-style/principles-and-palette.md §1): the baked field as one
 // sprite scaled to the dish (textures/dish-texture.ts: zone tints, gel strands), the condenser light
 // pool over it as one sprite re-placed every frame with the inverse camera transform so it stays
 // fixed to the top-left of the view (textures/light-pool-bake.ts), the vent sprite at the vent zone

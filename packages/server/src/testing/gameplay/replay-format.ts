@@ -1,4 +1,4 @@
-// The scenario replay record (docs/DETERMINISM.md §6, at the harness level): the seed, the
+// The scenario replay record (docs/determinism/replay-tests-and-traps.md §6, at the harness level): the seed, the
 // config, the setup fixtures, every join and leave, every scheduled fixture and every applied
 // input stamped with the tick it was applied in, plus the hash checkpoints a replay compares
 // against. Plain JSON: a failing scenario writes it to `qa/replays/` and `replayScenario` reads it back.

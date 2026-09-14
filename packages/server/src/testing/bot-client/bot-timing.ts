@@ -1,4 +1,4 @@
-// The time sources a bot client is born with (docs/DETERMINISM.md §2): the same pair a room
+// The time sources a bot client is born with (docs/determinism/contract-and-clock.md §2): the same pair a room
 // gets, because a bot's client tick is the room's fixed step seen from the other end of the
 // wire (docs/architecture/client.md §5: one input per client tick at `TICK_HZ`). Only the CLI names
 // the system pair; the integration test hands every bot a manual clock and ticker.
