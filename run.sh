@@ -3,7 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
-source "$SCRIPT_DIR/scripts/lib/gate-lock.sh"
 PID_FILE="$SCRIPT_DIR/.game.pid"
 LOG_DIR="$SCRIPT_DIR/.game-logs"
 PACKAGES_DIR="$SCRIPT_DIR/packages"
@@ -367,15 +366,9 @@ if $DO_INSTALL; then
 fi
 
 # A fresh worktree or a merge: install when node_modules does not match the lockfile, build shared when
-# stale. Before the cleanup, so the running stack keeps serving meanwhile and a failure leaves it up; under
-# validate.sh's gate lock so the two never install in one checkout at once, taken only when there is work.
-if workspace_ready_needed "$SCRIPT_DIR"; then
-  gate_lock_acquire "$SCRIPT_DIR" "the workspace setup"
-  ready_rc=0
-  workspace_ensure_ready "$SCRIPT_DIR" "==>" || ready_rc=$?
-  gate_lock_release
-  [[ $ready_rc -eq 0 ]] || exit 1
-fi
+# stale. Before the cleanup, so the running stack keeps serving meanwhile and a failure (or a timed-out
+# wait on this checkout's setup lock) leaves it up. Never waits on another worktree's gate.
+workspace_ensure_ready "$SCRIPT_DIR" "==>" continue || exit 1
 
 # Always clean up any existing server processes before starting (never the deploy watcher)
 echo "==> Cleaning up old processes..."

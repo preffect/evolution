@@ -24,7 +24,8 @@
 #   branch changed, and only those (#329). A filtered test run (a non-option extra arg or a test-name
 #   filter) drops the coverage floor in every package while an option that narrows nothing keeps it;
 #   a client filter matches repo-relative paths and stays on a file scope's spec; a shared source saved
-#   during the build is rebuilt by the next run.
+#   during the build is rebuilt by the next run; a setup waiting on the checkout's setup lock past its
+#   timeout fails loudly; a word after an option written with a space is its value, never a filter.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -276,6 +277,10 @@ run_validate "$fixture" test --scope shared -- -t name
 check "a shared test narrowed by a test-name filter has no coverage floor either" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/shared test -t name --coverage\.enabled=false$'; echo $?) == 0 ))
 run_validate "$fixture" test --scope server -- --reporter=verbose
 check "an option that narrows nothing keeps the coverage floor" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server test --reporter=verbose$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope server -- --reporter verbose
+check "so does one written with a space: its value is not a filter" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server test --reporter verbose$'; echo $?) == 0 ))
+run_validate "$fixture" integration --scope client -- --filter ^App app
+check "a client option's spaced value passes through with it, and the filter after it still selects" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client --if-present test:integration --include src/app/app\.integration\.spec\.ts --filter ^App$'; echo $?) == 0 ))
 run_validate "$fixture" integration --scope server -- world
 check "a filtered integration run takes no coverage switch" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server --if-present test:integration world$'; echo $?) == 0 ))
 run_validate "$fixture" integration --scope client -- nothing-matches
@@ -410,6 +415,16 @@ touch -d '-1 hour' "$fixture/packages/shared/src/index.ts"
 check "a shared source saved during the build is rebuilt by the next run (the record has the start time)" $(( rc == 0 && $(ran '^validate.sh: building @evolution/shared (packages/shared/src/index.ts changed since the last build)$'; echo $?) == 0 ))
 
 rm -rf "$fixture/node_modules"
+setup_lock="$fixture/.git/workspace-setup.lock"
+(exec 8>>"$setup_lock"; flock 8; exec sleep 60) &
+setup_holder=$!
+until ! flock -n "$setup_lock" true; do sleep 0.05; done
+export WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS=1
+run_validate "$fixture" test --fresh
+unset WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS
+kill "$setup_holder"
+wait "$setup_holder" 2>/dev/null || true
+check "a setup waiting past its timeout on the checkout's setup lock fails loudly, before any phase" $(( rc != 0 && $(ran '^validate.sh: timed out after 1s waiting for another setup of this checkout'; echo $?) == 0 && $(ran '^fake pnpm -r test$'; echo $?) != 0 ))
 echo '^install' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
 run_validate "$fixture" test --fresh
 : > "$FAKE_PNPM_FAIL_PATTERN_FILE"

@@ -44,10 +44,12 @@
 
 A fresh worktree needs no setup: before a real run `./validate.sh` runs `pnpm install --frozen-lockfile`
 when `node_modules` does not match `pnpm-lock.yaml`, and builds `@evolution/shared` when its `dist` is
-missing or older than its sources (`scripts/lib/workspace-ready.sh`); `./run.sh` does the same before it
-stops the running stack, under the same gate lock. For `test` and `integration`, `-- extra args` need a
-one-package `--scope`; a filtered (`-- <file filter>`, `-t`, `--testNamePattern`, `--filter`) or
-path-scoped `test` has no coverage floor. A scoped `lint` also prettier-checks the docs (`*.md` outside
+missing or older than its sources (`scripts/lib/workspace-ready.sh`); `./run.sh` and the deploy do the same,
+`./run.sh` before it stops the running stack. The setup holds a per-checkout lock (never the machine-wide
+gate lock), waiting at most `WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS` (300) before failing. For `test` and
+`integration`, `-- extra args` need a one-package `--scope`; give file filters before options, since a word
+after an option written with a space is its value. A filtered (`-- <file filter>`, `-t`, `--testNamePattern`,
+`--filter`) or path-scoped `test` has no coverage floor. A scoped `lint` also prettier-checks the docs (`*.md` outside
 `packages/`) the branch changed against `origin/main`.
 
 ### Running the dev servers
@@ -65,8 +67,8 @@ scripts/deploy-main.sh  # redeploy the MAIN checkout (/workspace, the human's ga
 ```
 
 `./run.sh` also starts `scripts/deploy-main.sh --watch` for its own checkout: it polls `origin/main`
-every 60 s and redeploys on every merge — fast-forward, `pnpm install` only when the lockfile changed,
-shared build, then `./run.sh --clear-prebundle --wait-ready` in the mode and ports the stack was started
+every 60 s and redeploys on every merge — fast-forward, the workspace setup (`pnpm install` when
+`node_modules` does not match the lockfile, the shared build when stale), then `./run.sh --clear-prebundle --wait-ready` in the mode and ports the stack was started
 with (the Angular prebundle is deleted between stop and start, since a stale one breaks new shared
 exports; the deploy counts only once the server and client listen again). A one-shot
 `scripts/deploy-main.sh` restarts the same way and starts the watcher if none is running. Hard-refresh

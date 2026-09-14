@@ -16,7 +16,8 @@
 # run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one;
 # a checkout without node_modules or a shared build is installed and built before the start, and a ready
 # one is neither (#329); that setup runs before the cleanup, so a failed install leaves the running stack
-# serving, and with work to do it waits for the gate lock validate.sh holds, while a ready start never waits.
+# serving; a deploy whose setup has work completes while another checkout holds the machine-wide gate lock;
+# a setup waiting on this checkout's own setup lock past its timeout fails loudly and leaves the stack up.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -31,7 +32,7 @@ READY_TIMEOUT_SECONDS=30
 FAILED_READY_TIMEOUT_SECONDS=2
 LONG_WATCH_INTERVAL_SECONDS=3600
 PROBE_LIFETIME_SECONDS=120
-LOCK_HOLD_SECONDS=2
+SETUP_LOCK_TIMEOUT_SECONDS=1
 REAL_SS="$(command -v ss)"
 REAL_LSOF="$(command -v lsof)"
 
@@ -49,7 +50,7 @@ mkdir -p "$stack/scripts/lib" "$stack/packages/server" "$stack/packages/client" 
   "$other/packages/server" "$other/scripts" "$sandbox/bin"
 cp "$stack/pnpm-lock.yaml" "$stack/node_modules/.pnpm/lock.yaml" # installed from the lockfile
 cp "$repo_root/run.sh" "$stack/run.sh"
-cp "$repo_root/scripts/lib/workspace-ready.sh" "$repo_root/scripts/lib/gate-lock.sh" "$stack/scripts/lib/"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$stack/scripts/lib/workspace-ready.sh"
 cp "$repo_root/scripts/deploy-main.sh" "$stack/scripts/deploy-main.sh"
 cp "$repo_root/packages/client/proxy.conf.json" "$stack/packages/client/proxy.conf.json"
 pnpm_args="$sandbox/pnpm-args"
@@ -96,8 +97,7 @@ chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$sandbox/bin/lsof" "$other/scrip
 mkdir -p "$sandbox/home" # the gate lock lives under $HOME/.cache
 export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT" HOME="$sandbox/home"
 export RUN_READY_TIMEOUT_SECONDS="$READY_TIMEOUT_SECONDS" DEPLOY_WATCH_INTERVAL_SECONDS="$LONG_WATCH_INTERVAL_SECONDS"
-export DEPLOY_INSTALL_COMMAND=true DEPLOY_BUILD_COMMAND=true
-unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT
+unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT DEPLOY_SETUP_COMMAND WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS # the real setup, on the fake pnpm
 
 probe_pids=()
 cleanup() {
@@ -255,22 +255,37 @@ run_stack --server-only --no-deploy-watch --wait-ready
 rm "$install_fail_file"
 check "a failed setup exits before the cleanup and leaves the running stack serving (rc $rc)" $(( rc != 0 && $(holds grep -q 'the dependency install failed' <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$running_server") ))
 
+lock_held() { ! flock -n "$1" true; } # <lock file>
+hold_lock() { # <lock file> -> $probe_pid, a process holding the lock until killed
+  start_probe "$sandbox" bash -c 'exec 8>>"$1"; flock 8; exec sleep "$2"' _ "$1" "$PROBE_LIFETIME_SECONDS"
+  wait_for lock_held "$1"
+}
+
+# Another checkout's validate.sh holds the machine-wide gate lock: a deploy's setup and restart never wait on it.
 gate_lock="$HOME/.cache/$(basename "$stack")-validate/gate.lock"
 mkdir -p "$(dirname "$gate_lock")"
-lock_held() { ! flock -n "$gate_lock" true; }
-flock -o "$gate_lock" sleep "$LOCK_HOLD_SECONDS" &
-lock_holder=$!
-wait_for lock_held
+hold_lock "$gate_lock"
+gate_holder="$probe_pid"
+merge_to_main game.txt v4
+: > "$pnpm_args"
+rc=0
+out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
+check "a deploy whose setup has work completes while another checkout holds the gate lock (rc $rc)" $(( rc == 0 && $(holds test "$(cat "$stack/.game-logs/deployed-sha")" = "$(origin_head)") && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") && ! $(holds grep -q 'waiting for another' "$stack/.game-logs/deploy.log") ))
+kill "$gate_holder"
+
+# Another setup of THIS checkout holds its setup lock: the wait is bounded and fails loudly.
+setup_lock="$(git -C "$stack" rev-parse --absolute-git-dir)/workspace-setup.lock"
+hold_lock "$setup_lock"
+setup_holder="$probe_pid"
+rm "$stack/node_modules/.pnpm/lock.yaml"
+running_server="$(ss_pids "$STACK_SERVER_PORT")"
+WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS="$SETUP_LOCK_TIMEOUT_SECONDS" run_stack --server-only --no-deploy-watch --wait-ready
+check "a setup waiting past its timeout on this checkout's setup lock fails loudly and leaves the stack serving (rc $rc)" $(( rc != 0 && $(holds grep -q "waiting for another setup of this checkout" <<<"$out") && $(holds grep -q "timed out after ${SETUP_LOCK_TIMEOUT_SECONDS}s waiting for another setup of this checkout" <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$running_server") ))
+kill "$setup_holder"
+wait_for eval '! lock_held "$setup_lock"'
 : > "$pnpm_args"
 run_stack --server-only --no-deploy-watch --wait-ready
-check "a setup with work to do waits for the gate lock, then installs and starts (rc $rc)" $(( rc == 0 && $(holds grep -q 'waiting for another gate to finish before the workspace setup' <<<"$out") && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") ))
-wait "$lock_holder"
-flock -o "$gate_lock" sleep "$LOCK_HOLD_SECONDS" &
-lock_holder=$!
-wait_for lock_held
-run_stack --server-only --no-deploy-watch --wait-ready
-check "a ready start never waits for the gate lock (rc $rc)" $(( rc == 0 && ! $(holds grep -q 'waiting for another gate' <<<"$out") ))
-wait "$lock_holder"
+check "once the other setup is done the next start installs and starts (rc $rc)" $(( rc == 0 && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") ))
 run_stack --stop
 
 finish_suite run.test.sh

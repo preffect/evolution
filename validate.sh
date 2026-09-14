@@ -33,7 +33,8 @@
 # with vitest packages refuses them: add --scope. For the client, an extra arg that is not an option is a
 # file filter as vitest reads one (a substring of the spec's repo- or package-relative path), passed as
 # one --include per matching spec of the tier (under a file scope, only the spec that file selects);
-# options pass through, written --option=value (#329). A filtered `test` (a non-option extra arg, -t,
+# options pass through (#329). A word right after an option written without `=` is that option's value,
+# never a filter (--reporter verbose), so give file filters before options. A filtered `test` (a filter, -t,
 # --testNamePattern or --filter) is a slice of its package, so like a path scope it has no coverage floor.
 #
 # Before a real run (never a cache hit) the checkout is made runnable (scripts/lib/workspace-ready.sh,
@@ -406,12 +407,35 @@ coverage_off_argument() { # the scoped package's runner switch that drops the co
   if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" ]]; then echo "$CLIENT_NO_COVERAGE_ARGUMENT"; else echo "$VITEST_NO_COVERAGE_ARGUMENT"; fi
 }
 
-# Whether extra args narrow the run: a non-option (a file filter, or an option's value) or a
-# test-name filter. An option such as --reporter=verbose narrows nothing.
-extra_args_narrow() { # <extra args...>
-  local argument
+# Splits extra args into EXTRA_FILTERS and EXTRA_OPTIONS. A word right after an option written without
+# `=` is that option's value (--reporter verbose, -t name) and stays with it, never a filter.
+EXTRA_FILTERS=()
+EXTRA_OPTIONS=()
+split_extra_args() { # <extra args...>
+  local argument follows_option=0
+  EXTRA_FILTERS=()
+  EXTRA_OPTIONS=()
   for argument in "$@"; do
-    [[ "$argument" == -* && ! "$argument" =~ $NARROWING_OPTION_PATTERN ]] || return 0
+    if [[ "$argument" == -* ]]; then
+      EXTRA_OPTIONS+=("$argument")
+      follows_option=1
+      [[ "$argument" != *=* ]] || follows_option=0
+    elif [[ $follows_option -eq 1 ]]; then
+      EXTRA_OPTIONS+=("$argument")
+      follows_option=0
+    else
+      EXTRA_FILTERS+=("$argument")
+    fi
+  done
+}
+
+# Whether the split extra args narrow the run: a file filter or a test-name filter. An option such as
+# --reporter verbose narrows nothing.
+extra_args_narrow() {
+  local option
+  [[ ${#EXTRA_FILTERS[@]} -eq 0 ]] || return 0
+  for option in "${EXTRA_OPTIONS[@]}"; do
+    [[ ! "$option" =~ $NARROWING_OPTION_PATTERN ]] || return 0
   done
   return 1
 }
@@ -434,24 +458,21 @@ refuse_mixed_runner_args() {
 # own --include; options pass through. Fails when a filter matches no spec.
 RUNNER_ARGS=()
 resolve_runner_args() { # <test | integration> <extra args...>
-  local cmd="$1" argument filters=() options=()
+  local cmd="$1" client_filtered=0
   shift
   RUNNER_ARGS=()
-  if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" ]]; then
-    for argument in "$@"; do
-      if [[ "$argument" == -* ]]; then options+=("$argument"); else filters+=("$argument"); fi
-    done
-  fi
-  if [[ ${#filters[@]} -gt 0 ]]; then
-    client_filter_includes "$cmd" "${filters[@]}" || return 1
-    RUNNER_ARGS+=("${options[@]}")
+  split_extra_args "$@"
+  if [[ "$SCOPE_PACKAGE" == "$CLIENT_PACKAGE" && ${#EXTRA_FILTERS[@]} -gt 0 ]]; then
+    client_filter_includes "$cmd" "${EXTRA_FILTERS[@]}" || return 1
+    RUNNER_ARGS+=("${EXTRA_OPTIONS[@]}")
+    client_filtered=1
   else
     mapfile -t RUNNER_ARGS < <(path_scope_runner_args "$cmd")
     RUNNER_ARGS+=("$@")
   fi
   # A filtered run is a slice of its package and cannot meet the package's floor; a path scope's own
   # arguments already drop it, unless client filters replaced them.
-  if [[ "$cmd" == test ]] && extra_args_narrow "$@" && [[ -z "$SCOPE_PATH" || ${#filters[@]} -gt 0 ]]; then
+  if [[ "$cmd" == test ]] && extra_args_narrow && [[ -z "$SCOPE_PATH" || $client_filtered -eq 1 ]]; then
     RUNNER_ARGS+=("$(coverage_off_argument)")
   fi
 }
@@ -616,7 +637,7 @@ cache_store() {
 # One real gate at a time per machine (scripts/lib/gate-lock.sh): every non-cached run holds
 # $HOME/.cache/<slug>-validate/gate.lock, independent of VALIDATE_CACHE_DIR so a scratch cache still
 # queues behind the machine's gates; the fd is closed for the child (9>&-) so no orphaned worker can
-# keep the lock; a cache hit never takes it. run.sh takes the same lock for its workspace setup.
+# keep the lock; a cache hit never takes it. The workspace setup runs before it, under a per-checkout lock.
 
 # Runs <cmd> through the cache: a hit prints the stamp; a green run is stamped; red never is.
 # PHASE_OUTPUT and PHASE_WAS_CACHED tell `all` what goes in its own log.
@@ -631,11 +652,9 @@ run_cached() {
   fi
   local rc=0
   PHASE_WAS_CACHED=0
+  # The setup takes this checkout's own lock, not the machine's gate: another worktree's gate never waits it.
+  workspace_ensure_ready "$SCRIPT_DIR" "validate.sh:" continue || return 1
   gate_lock_acquire "$SCRIPT_DIR" "$cmd"
-  if ! workspace_ensure_ready "$SCRIPT_DIR" "validate.sh:" 9>&-; then
-    gate_lock_release
-    return 1
-  fi
   PHASE_OUTPUT="$(run_one "$cmd" "$@" 9>&-)" || rc=$?
   gate_lock_release
   printf '%s\n' "$PHASE_OUTPUT" | apply_filters

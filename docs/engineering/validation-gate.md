@@ -8,8 +8,9 @@
    `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`,
    or `pnpm --filter ... exec vitest` as a shortcut. The wrapper:
    - makes the checkout runnable before every real run (never a cache hit; `scripts/lib/workspace-ready.sh`,
-     #329, which `./run.sh` also runs before it stops the running stack, under the gate lock when there
-     is work): `pnpm install --frozen-lockfile` when
+     #329, which `./run.sh` also runs before it stops the running stack, and the deploy before its
+     restart): under a per-checkout setup lock, never the machine-wide gate lock, waiting at most
+     `WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS` (300) and failing loudly after, `pnpm install --frozen-lockfile` when
      `node_modules/.pnpm/lock.yaml` is missing or differs from `pnpm-lock.yaml`, and the
      `@evolution/shared` build when `dist/index.d.ts` is missing or a shared source or config is newer
      than its tsbuildinfo, one line each, so a fresh worktree needs no manual step and downstream
@@ -92,7 +93,8 @@
    `--scope` (vitest and the Angular builder read different arguments). For the client (#329) an
    extra arg that is not an option is a file filter as vitest reads one, a substring of the spec's
    repo- or package-relative path, passed as one `--include` per matching spec of the tier (under a
-   file path scope, only the spec that file selects); options pass through, written `--option=value`.
+   file path scope, only the spec that file selects); options pass through, and a word right after an
+   option written without `=` is its value (`--reporter verbose`), never a filter, so give filters first.
    A filtered `test` (a non-option extra arg, `-t`, `--testNamePattern` or `--filter`) runs without
    the coverage floor, in every package.
    `--fresh` re-runs regardless of the result cache.

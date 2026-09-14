@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# gate-lock.sh — the repo's slug and its one-gate-at-a-time lock, shared by validate.sh and run.sh (#329).
-# Sourced.
+# gate-lock.sh — the repo's slug and validate.sh's one-gate-at-a-time lock (#329). Sourced. The workspace
+# setup never takes it: it has its own per-checkout lock (scripts/lib/workspace-ready.sh).
 #
 #   repo_slug <root>                  SLUG from PORTS.env, else the main checkout's directory name (the same
 #                                     for every worktree of the repo), else the root's own name

@@ -2,8 +2,10 @@
 # ---------------------------------------------------------------------------
 # deploy-main.sh — redeploy a running checkout from origin/main (#291).
 #
-# A deploy fast-forwards the target to origin/main, runs `pnpm install --frozen-lockfile` only when
-# pnpm-lock.yaml changed in the deployed range, builds the shared package, then restarts the stack
+# A deploy fast-forwards the target to origin/main, makes it runnable through the workspace setup
+# (scripts/lib/workspace-ready.sh: `pnpm install --frozen-lockfile` when node_modules does not match
+# pnpm-lock.yaml, the shared build when it is stale, stamping the build record so the restart's own setup
+# finds nothing to do; a failed install or build fails the deploy before the restart), then restarts the stack
 # with `./run.sh --clear-prebundle --wait-ready` in the mode and on the ports the stack was started
 # with (.game-logs/run.env, written by run.sh). run.sh deletes the Angular dependency prebundle
 # (packages/client/.angular/cache, built from the OLD shared package) after stopping the old stack and
@@ -22,8 +24,8 @@
 # Environment:
 #   DEPLOY_TARGET_DIR              checkout to deploy (default: the main checkout of this repository)
 #   DEPLOY_WATCH_INTERVAL_SECONDS  --watch poll interval (default 60)
-#   DEPLOY_INSTALL_COMMAND, DEPLOY_BUILD_COMMAND, DEPLOY_RUN_SCRIPT
-#                                  replace a step's command or run.sh (the tests stub them)
+#   DEPLOY_SETUP_COMMAND, DEPLOY_RUN_SCRIPT
+#                                  replace the setup step's command or run.sh (the tests stub them)
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -33,7 +35,6 @@ UPSTREAM_REMOTE=origin
 UPSTREAM_BRANCH=main
 UPSTREAM="$UPSTREAM_REMOTE/$UPSTREAM_BRANCH"
 DEFAULT_WATCH_INTERVAL_SECONDS=60
-LOCKFILE_PATH=pnpm-lock.yaml
 RUN_ENV_PATH=.game-logs/run.env # written by run.sh: PORT, CLIENT_PORT, RUN_MODE
 SHORT_SHA_LENGTH=12
 EXIT_USAGE=1
@@ -53,8 +54,8 @@ main_checkout_dir() { # the parent of the shared .git directory: the main checko
 
 TARGET_DIR="${DEPLOY_TARGET_DIR:-$(main_checkout_dir)}"
 WATCH_INTERVAL_SECONDS="${DEPLOY_WATCH_INTERVAL_SECONDS:-$DEFAULT_WATCH_INTERVAL_SECONDS}"
-INSTALL_COMMAND="${DEPLOY_INSTALL_COMMAND:-pnpm install --frozen-lockfile}"
-BUILD_COMMAND="${DEPLOY_BUILD_COMMAND:-pnpm --filter @evolution/shared build}"
+# Run by run_step in the target, from the deployed checkout's own copy of the library.
+SETUP_COMMAND="${DEPLOY_SETUP_COMMAND:-source scripts/lib/workspace-ready.sh && workspace_ensure_ready \"\$PWD\" setup: fail}"
 RUN_SCRIPT="${DEPLOY_RUN_SCRIPT:-./run.sh}"
 
 LOG_DIR="$TARGET_DIR/.game-logs"
@@ -99,12 +100,7 @@ restart_command() { # run.sh again, in the stack's recorded mode and ports
 
 deploy_steps() { # <from-sha> <to-sha>
   run_step fast-forward "git merge --ff-only --quiet $2" || return
-  if git -C "$TARGET_DIR" diff --quiet "$1" "$2" -- "$LOCKFILE_PATH" 2>/dev/null; then
-    log "step install: skipped, $LOCKFILE_PATH unchanged"
-  else
-    run_step install "$INSTALL_COMMAND" || return
-  fi
-  run_step build-shared "$BUILD_COMMAND" || return
+  run_step setup "$SETUP_COMMAND" || return
   if ! run_step restart "$(restart_command)"; then
     log "restart failed: the stack is not serving again (run.sh's output and the log tails are above)"
     return 1

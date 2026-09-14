@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # deploy-main.test.sh — exercises scripts/deploy-main.sh (#291) against a throwaway target clone of a
 # local bare "origin", with install / build / run.sh stubbed to append to a calls file so no server
-# starts: a no-op on the same SHA; a fast-forward that builds and restarts through run.sh with
+# starts: a no-op on the same SHA; a fast-forward that runs the setup step and restarts through run.sh with
 # --clear-prebundle --wait-ready (no --no-deploy-watch when one-shot), in the recorded mode and ports,
-# logging every step with an ISO timestamp; install only when the lockfile changed; untracked files
-# allowed; refusal on tracked changes, a feature branch tracking origin/main, detached HEAD, main without
+# logging every step with an ISO timestamp; with the real workspace setup (#329, a fake pnpm), a lockfile
+# change installs, a shared package.json-only change builds and leaves the restart's setup nothing to do,
+# and a failed build fails the deploy before the restart; untracked files allowed; refusal on tracked changes, a feature branch tracking origin/main, detached HEAD, main without
 # the upstream, and a diverged branch; a failed build or restart not recorded and retried; an unreachable
 # origin; a held lock skips; a server the restart leaves running does not keep the lock; --watch deploys
 # with --no-deploy-watch, re-executes itself, logs a repeated refusal or fetch failure once and stops
@@ -36,9 +37,19 @@ RECORDED_CLIENT_PORT=45003
 
 # --- fixture: origin + author (lib), the target checkout, stubs --------------------------------
 make_origin
+# The deployed checkout's own setup library and a shared package, as the real repository has them.
+mkdir -p "$author/scripts/lib" "$author/packages/shared/src"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$author/scripts/lib/workspace-ready.sh"
+echo '{}' > "$author/packages/shared/package.json"
+touch "$author/packages/shared/src/index.ts"
+printf 'dist/\n*.tsbuildinfo\n' >> "$author/.gitignore"
+git -C "$author" add -A
+git_as_test -C "$author" commit -q -m 'setup library and shared package'
+git -C "$author" push -q origin main
 target="$sandbox/target"
 git clone -q "$origin" "$target"
 calls="$sandbox/calls"
+build_fail_file="$sandbox/fake-pnpm-build-fails" # when present: the fake shared build fails
 restart_rc_file="$sandbox/restart-rc"
 restart_spawn_file="$sandbox/restart-spawn" # when non-empty: the stub leaves a background process and writes its PID here
 echo 0 > "$restart_rc_file"
@@ -52,10 +63,21 @@ spawn_pid_file="\$(cat "$restart_spawn_file")"
 exit "\$(cat "$restart_rc_file")"
 STUB
 chmod +x "$sandbox/bin/run-stub"
+# The real setup's pnpm: an install copies the lockfile as pnpm does; a build emits the types entry but,
+# like tsc when the emitted content is unchanged, leaves the build record alone.
+cat > "$sandbox/bin/pnpm" <<PNPM
+#!/usr/bin/env bash
+echo "pnpm \$*" >> "$calls"
+case "\$*" in
+  install*) mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml ;;
+  *' build') [[ ! -e "$build_fail_file" ]] || exit 1; mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts ;;
+esac
+PNPM
+chmod +x "$sandbox/bin/pnpm"
 
+export PATH="$sandbox/bin:$PATH"
 export DEPLOY_TARGET_DIR="$target"
-export DEPLOY_INSTALL_COMMAND="echo install >> '$calls'"
-export DEPLOY_BUILD_COMMAND="echo build >> '$calls'"
+export DEPLOY_SETUP_COMMAND="echo setup >> '$calls'"
 export DEPLOY_RUN_SCRIPT="$sandbox/bin/run-stub"
 deploy_log="$target/.game-logs/deploy.log"
 deployed_sha_file="$target/.game-logs/deployed-sha"
@@ -86,19 +108,15 @@ check "same SHA is a no-op (rc $rc)" $(( rc == 0 && $(holds has "$out" 'already 
 merge_to_main game.txt v2
 run_deploy
 check "a new commit fast-forwards the target (rc $rc)" $(( rc == 0 && $(holds test "$(target_head)" = "$(origin_head)") ))
-check "it builds and restarts, and skips install when the lockfile is unchanged" $(( $(holds called build) && $(holds restarted_with '') && ! $(holds called install) ))
+check "it runs the setup step, then restarts" $(( $(holds called setup) && $(holds restarted_with '') && $(holds test "$(head -n 1 "$calls")" = setup) ))
 check "the restart clears the prebundle between stop and start and waits for the stack" $(( $(holds restarted_with ' --clear-prebundle --wait-ready$') ))
 check "a one-shot deploy lets run.sh start the watcher (no --no-deploy-watch)" $(( ! $(holds restarted_with '--no-deploy-watch') ))
 check "the deployed SHA is recorded" $(( $(holds test "$(deployed_sha)" = "$(origin_head)") ))
-step_lines="$(grep -cE "${ISO_TIMESTAMP_PATTERN}step (fast-forward|install|build-shared|restart)" "$deploy_log")"
-check "deploy.log has every step with an ISO timestamp ($step_lines step lines)" $(( step_lines == 4 ))
+step_lines="$(grep -cE "${ISO_TIMESTAMP_PATTERN}step (fast-forward|setup|restart)" "$deploy_log")"
+check "deploy.log has every step with an ISO timestamp ($step_lines step lines)" $(( step_lines == 3 ))
 
 run_deploy
 check "running it again on the same SHA does nothing" $(( rc == 0 && $(holds has "$out" 'already deployed') && $(holds no_calls) ))
-
-merge_to_main pnpm-lock.yaml 'lockfileVersion: 2'
-run_deploy
-check "a lockfile change runs install" $(( rc == 0 && $(holds called install) ))
 
 printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=--server-only\n' "$RECORDED_SERVER_PORT" "$RECORDED_CLIENT_PORT" > "$target/.game-logs/run.env"
 merge_to_main game.txt v3
@@ -138,15 +156,15 @@ run_deploy
 check "a diverged branch is refused, never reset (rc $rc)" $(( rc == EXIT_REFUSED && $(holds refused_with 'cannot fast-forward') && $(holds test "$(target_head)" = "$diverged") ))
 git -C "$target" reset -q --hard "$before"
 
-DEPLOY_BUILD_COMMAND="echo build >> '$calls'; exit $STUB_FAILURE_EXIT" run_deploy
-check "a failing build fails the deploy before the restart (rc $rc)" $(( rc == EXIT_FAILED && $(holds has "$out" "step build-shared failed \\(exit $STUB_FAILURE_EXIT\\)") && ! $(holds restarted_with '') ))
+DEPLOY_SETUP_COMMAND="echo setup >> '$calls'; exit $STUB_FAILURE_EXIT" run_deploy
+check "a failing setup fails the deploy before the restart (rc $rc)" $(( rc == EXIT_FAILED && $(holds has "$out" "step setup failed \\(exit $STUB_FAILURE_EXIT\\)") && ! $(holds restarted_with '') ))
 check "a failed deploy is not recorded as deployed" $(( $(holds test "$(deployed_sha)" = "$before") ))
 echo "$STUB_FAILURE_EXIT" > "$restart_rc_file"
 run_deploy
 check "a restart whose stack does not come up fails as 'restart failed' (rc $rc)" $(( rc == EXIT_FAILED && $(holds has "$out" 'restart failed') && $(holds test "$(deployed_sha)" = "$before") ))
 echo 0 > "$restart_rc_file"
 run_deploy
-check "the next run retries it to completion" $(( rc == 0 && $(holds called build) && $(holds restarted_with '') && $(holds test "$(deployed_sha)" = "$(origin_head)") ))
+check "the next run retries it to completion" $(( rc == 0 && $(holds called setup) && $(holds restarted_with '') && $(holds test "$(deployed_sha)" = "$(origin_head)") ))
 
 merge_to_main game.txt v6
 exec 8>>"$target/.game-logs/deploy.lock"
@@ -167,6 +185,32 @@ git clone -q "$origin" "$unreachable"
 git -C "$unreachable" remote set-url origin "$sandbox/missing.git"
 DEPLOY_TARGET_DIR="$unreachable" run_deploy
 check "an unreachable origin fails the run and says so (rc $rc)" $(( rc == EXIT_FAILED && $(holds has "$out" 'fetch of origin/main failed') && $(holds no_calls) ))
+
+# --- the real workspace setup (#329): scripts/lib/workspace-ready.sh with a fake pnpm -------------
+# A ready target: installed from its lockfile, shared built after its sources.
+mkdir -p "$target/node_modules/.pnpm" "$target/packages/shared/dist"
+cp "$target/pnpm-lock.yaml" "$target/node_modules/.pnpm/lock.yaml"
+find "$target/packages/shared" -exec touch -d '-1 hour' {} +
+touch "$target/packages/shared/dist/index.d.ts" "$target/packages/shared/tsconfig.build.tsbuildinfo"
+setup_work_left() { (source "$target/scripts/lib/workspace-ready.sh" && workspace_ready_needed "$target"); }
+check "the ready target has no setup work" $(( ! $(holds setup_work_left) ))
+
+merge_to_main pnpm-lock.yaml 'lockfileVersion: 2'
+DEPLOY_SETUP_COMMAND='' run_deploy
+check "a lockfile change installs through the setup, builds nothing, then restarts (rc $rc)" $(( rc == 0 && $(holds called 'pnpm install --frozen-lockfile --prefer-offline') && ! $(holds grep -q 'build$' "$calls") && $(holds restarted_with '') ))
+
+merge_to_main packages/shared/package.json '{"version": 2}'
+DEPLOY_SETUP_COMMAND='' run_deploy
+check "a shared package.json-only change builds through the setup, then restarts (rc $rc)" $(( rc == 0 && $(holds called 'pnpm --filter @evolution/shared build') && $(holds restarted_with '') ))
+check "and leaves the restart's own setup nothing to do, though tsc left the build record alone" $(( ! $(holds setup_work_left) ))
+
+merge_to_main packages/shared/src/index.ts 'export {};'
+touch "$build_fail_file"
+DEPLOY_SETUP_COMMAND='' run_deploy
+rm "$build_fail_file"
+check "a failed shared build fails the deploy before the restart (rc $rc)" $(( rc == EXIT_FAILED && $(holds has "$out" 'step setup failed') && $(holds grep -q 'setup: the @evolution/shared build failed$' "$deploy_log") && ! $(holds restarted_with '') ))
+DEPLOY_SETUP_COMMAND='' run_deploy
+check "the next deploy rebuilds and restarts (rc $rc)" $(( rc == 0 && $(holds restarted_with '') && ! $(holds setup_work_left) ))
 
 # --- deploy --watch -----------------------------------------------------------------------------
 : > "$calls"
