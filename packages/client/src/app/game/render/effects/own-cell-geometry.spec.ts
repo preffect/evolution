@@ -12,9 +12,11 @@ import {
   DNA_RING_KEEP_OUT_PAD_PX,
   DNA_RING_STROKE_PX,
   LADDER_BACKING_PX,
+  LADDER_GHOST_PX,
   LADDER_ORBIT_ANGLES_PAIR_DEG,
   LADDER_ORBIT_ANGLE_SINGLE_DEG,
   LADDER_SEAT_MARK_CLEARANCE_PX,
+  LADDER_UNLOCK_RING_PAD_PX,
 } from '../constants';
 import { HALF } from '../geometry';
 import type { Ladder } from '../../state/own-cell-indicators';
@@ -27,6 +29,7 @@ import {
   screenRadiansOf,
   seatMarkHaloPx,
   selfRingRadiusPx,
+  unlockRingRadiusPx,
   type OrbitPoint,
 } from './own-cell-geometry';
 
@@ -210,5 +213,12 @@ describe('docs/ui/hud.md §3.1.3 inequalities', () => {
     for (const rPx of sweep(31, CAP_R_PX)) expect(margin(rPx), `${rPx} px`).toBeGreaterThanOrEqual(0);
     expect(margin(30)).toBeLessThan(0);
     expect(margin(24)).toBeLessThan(0);
+  });
+});
+
+describe('unlockRingRadiusPx', () => {
+  it('rings the ghost square LADDER_UNLOCK_RING_PAD_PX out: 9 px at the §9 values', () => {
+    expect(unlockRingRadiusPx()).toBe(LADDER_GHOST_PX / 2 + LADDER_UNLOCK_RING_PAD_PX);
+    expect(unlockRingRadiusPx()).toBe(9);
   });
 });

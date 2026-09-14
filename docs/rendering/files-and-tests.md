@@ -5,7 +5,7 @@
 ## 8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)
 
 ```text
-pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  constants.ts  palette.ts  colour.ts  geometry.ts  light-direction.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index)
+pixi-app.ts  layers.ts  camera.ts  view-registry.ts  sprite-pool.ts  instanced-quad.ts  constants.ts  palette.ts  colour.ts  geometry.ts  light-direction.ts  easing.ts   (renderTick: net/interpolation.ts, §1; sprite-pool: the pooled centred sprites the organelle, fragment and effect layers place by index; instanced-quad: the unit quad with an instance index the cell mesh and the arc mesh draw)
 constants/{colours,cell-shape,organelles,world-render,vent}.ts   the pages of constants.ts (a barrel), each under the 300-line cap; the lint exemption covers the directory
 noise/{noise-tile,noise-strip}.ts                 256² two-channel cytoplasm tile (64 wu period), 256×16 RGBA jitter / lobes strip (16-bit pairs, derivatives from the lerp), from the cosmetic fork (#206)
 textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`BakeContext2D`, the DOM factory, the fill / stroke / halo / glint primitives), the feathered ellipse and soft stroke that stand in for the sheets' blurs, and the one place a bake or a byte table becomes a Pixi texture (#206)
@@ -15,7 +15,7 @@ textures/atlas-layout.ts                             shelf packing of the mote a
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
-textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten) and the unlock ring, the nine-slice label pill (#294)
+textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten), the nine-slice label pill (#294)
 textures/{indicator-atlas,indicator-textures,bitmap-fonts,mote-textures}.ts   the indicator bakes keyed as `orbit-layout` hands them over, packed on one source with the pill and the fonts beside it; the `value` / `label` BitmapFont installs; the mote atlas's textures (#294)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
@@ -32,6 +32,8 @@ effects/cell-clip-tracker.ts                       one clip player per cell, sta
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
 effects/own-cell-indicators.ts                      the own cell's sprite placements from the HUD record, at the top of that chain (§10, #187)
 effects/own-cell-ring.ts                           the sprint ring per frame: the fill, the `sprint_ready` brighten on reaching ready, the escape's predator (§10, #295)
+effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`, a round or butt cap per row), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
+effects/orbit-backing-arcs.ts                       the ladder orbit's backings as butt-ended arc rows over `orbitLayout`'s padded, merged spans (§10, #294)
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)

@@ -13,8 +13,16 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
 - **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
   `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
   in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
-  predicted own position. Rings, tracks and arcs are tinted glow-atlas arc sprites (one `arc` entry with a `fill`
-  uniform, no per-frame `Graphics`); ghosts, pip blocks and the unlock ring are entries of the indicator atlas
+  predicted own position. The rings, tracks and arcs (the DNA track and fill, the ladder backings, the unlock rings,
+  the escape track and arc) are rows of the arc primitive (`effects/arc-mesh.ts`). Each row carries its cap: the DNA
+  fill and the escape arc are round, the backings (`effects/orbit-backing-arcs.ts`, `orbitLayout`'s padded, merged
+  spans) are **butt**, so a backing ends exactly `LADDER_BACKING_END_PAD_PX` past its items and two unmerged backings
+  never overlap (a round cap would add half the 16 px stroke to each end). The primitive is
+  one instanced quad per row whose fragment stage measures the distance to the stroke, so a fill is exact at any
+  share, the stroke keeps its px width at any radius and every arc of the frame is one draw call
+  (`draw(arcs, zoom)`, start angles through `screenRadiansOf`, no per-frame `Graphics`). The sprint state of the
+  self ring is **not** an arc row: pass B draws it from `selfRingFill` (§2.2, #295). Ghosts and pip blocks are
+  entries of the indicator atlas
   (`textures/indicator-atlas.ts`, one packed source) baked at their fixed px size times the device pixel ratio
   (rounded up, capped at `INDICATOR_BAKE_MAX_DPR`), keyed by `OrbitGhost.key` and `pipBlockKey(variant, eaten,
 required)`; the pip blocks are one entry per (variant, eaten) from each endosymbiont's `unlockedBy.count` in
@@ -22,12 +30,12 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   ghosts bake white for the rim-colour tint, the counters' in their organelle colour. The numeral and the labels are
   `BitmapText` in the `value` / `label` roles over one shared install per texture bundle
   (`textures/bitmap-fonts.ts`, names in `textures.indicators.fonts`), the labels on the label pill, a nine-slice
-  sprite that stretches only its middle column (`ui/input-and-onboarding.md §6`). Budget: ≤ 14 sprites
-  and 2 texts inside the `effects` stage's 0.3 ms (§7); the worst case is a prokaryote with both counters, one
-  unlocked, and a threat on screen: DNA track + fill (2), two backings, two ghosts, two pip blocks, one unlock ring,
-  the label pill = 11 sprites, the numeral and the label = 2 texts (the escape arc replaces the orbit and hides the
-  label, so it never adds to this). The self ring's track and arc cost no sprite: the cell shader draws them (Sprint
-  state, below).
+  sprite that stretches only its middle column (`ui/input-and-onboarding.md §6`). Budget inside the `effects` stage's 0.3 ms (§7), the
+  worst case being a prokaryote with both counters unlocked and a threat on screen: two ghosts, two pip blocks and
+  the label pill = 5 sprites; the DNA track and fill, two backings and two unlock rings = 6 arc rows
+  (`ARC_INSTANCE_CAPACITY` 8) in one call; the numeral and the label = 2 texts (the escape track and arc replace the
+  orbit and hide the label, so they never add to this). The self ring's track and arc cost neither a sprite nor an
+  arc row: the cell shader draws them (Sprint state, below).
 - **Floors.** `dnaRingRadiusPx` and `ladderOrbitRadiusPx` (`effects/own-cell-geometry.ts`) and `orbitLayout` (`effects/orbit-layout.ts`), all pure, apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins ui/hud.md §3.1.3's geometry
   table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA

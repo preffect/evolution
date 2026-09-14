@@ -8,9 +8,9 @@ import { flowSheetRows, indicatorSheetRows } from './indicator-sheet';
 const TALLIES = endosymbiontTallies();
 
 describe('indicatorSheetRows', () => {
-  it('shows every ghost (and each counter ghost in its ring), every pip block, the pills and the numerals', () => {
+  it('shows every ghost, every pip block, the pills and the numerals (the rings are the arc panel)', () => {
     const [ghosts, ...rest] = indicatorSheetRows(createTestRenderTextures().indicators);
-    expect(ghosts).toHaveLength(Object.values(LADDER_SILHOUETTE).length + TALLIES.length * 2);
+    expect(ghosts).toHaveLength(Object.values(LADDER_SILHOUETTE).length + TALLIES.length);
     const pipRows = rest.slice(0, TALLIES.length);
     expect(pipRows.map((row) => row.length)).toEqual(TALLIES.map((tally) => tally.required + 1));
     expect(rest.at(-2)).toEqual(INDICATOR_SHEET.labelTexts.map((text) => ({ kind: 'pill', text })));

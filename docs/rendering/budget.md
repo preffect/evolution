@@ -10,18 +10,20 @@ Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one
 (VISUAL-STYLE §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
 the vent shimmer is the one filter, over the vent sprite only. Draw calls at the bench load (§7):
 
-| Layer (`architecture/client.md §6`) | Container                                                                                                                                                      | Calls |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| dish                                | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                           | 4     |
-| depth particles                     | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                | 3     |
-| food                                | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`) | 1     |
-| DNA fragments                       | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s     | 1     |
-| cells                               | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                                    | 4     |
-| effects                             | glow-atlas sprites (rays, rings, halos, streams, reticle); `BitmapText` floaters                                                                               | 2     |
-| debug                               | `Graphics` + text, none when off                                                                                                                               | 0–2   |
-| HUD                                 | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`)               | 0     |
+| Layer (`architecture/client.md §6`) | Container                                                                                                                                                                    | Calls |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| dish                                | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                                         | 4     |
+| depth particles                     | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                              | 3     |
+| food                                | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`)               | 1     |
+| DNA fragments                       | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s                   | 1     |
+| cells                               | pass A; organelle sprite batch; flagella `Graphics`; pass B                                                                                                                  | 4     |
+| effects                             | glow-atlas sprites (rays, rings, halos, streams, reticle) with the own-cell ghosts, pip blocks and label pill; the own-cell arc mesh (§10); `BitmapText` floaters and labels | 3     |
+| debug                               | `Graphics` + text, none when off                                                                                                                                             | 0–2   |
+| HUD                                 | DOM (`UI.md`); no DOM inside `HUD_PLAYER_EXCLUSION_PX` is the HUD's rule; the own-cell indicators inside it are ours (§10, counted in `effects`)                             | 0     |
 
-Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). Culling: cells whose
+Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). The rows add up to 16
+with debug off, which leaves **1** call of headroom; the arc mesh is one instanced call at any arc count (§10), so
+the effects row never grows with the indicators. Culling: cells whose
 quad misses `cameraExtent` are not uploaded; motes and fragments are all uploaded (the bench load's quads are
 free) and only bacteria positions change per snapshot.
 

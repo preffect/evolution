@@ -336,12 +336,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **5.4 Round end and rematch** (L83–92): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
   - **5.5 The evolving world** (L93–119): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
 
-## rendering/budget.md (209 lines)
+## rendering/budget.md (211 lines)
 
-- **Evolution — Rendering: batching plan and frame budget** (L1–209): §6–§7 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
-- **6. Batching plan** (L5–74): Everything not a cell is a baked texture: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour (core + soft + wide + glint, `…
-  - **6.1 The condenser light pool (#222)** (L28–74): `VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it.
-- **7. Frame budget and the harness #99 ships** (L75–209): Target: 60 fps, ≤ 12 ms p95 frame at 1080p, `devicePixelRatio` 1, on an integrated laptop GPU (Iris Xe class: a new assumption stated her…
+- **Evolution — Rendering: batching plan and frame budget** (L1–211): §6–§7 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **6. Batching plan** (L5–76): Everything not a cell is a baked texture: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour (core + soft + wide + glint, `…
+  - **6.1 The condenser light pool (#222)** (L30–76): `VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it.
+- **7. Frame budget and the harness #99 ships** (L77–211): Target: 60 fps, ≤ 12 ms p95 frame at 1080p, `devicePixelRatio` 1, on an integrated laptop GPU (Iris Xe class: a new assumption stated her…
 
 ## rendering/cells.md (189 lines)
 
@@ -360,16 +360,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **4. Motion tables (`packages/shared/src/constants/motion.ts`)** (L60–141): Sheet 03's strips become data; the renderer tweens, the HUD opens the picker at the end of `level_up` (`ui/overlays.md §3.2`) and the soun…
 - **5. LOD** (L142–157): Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them).
 
-## rendering/files-and-tests.md (104 lines)
+## rendering/files-and-tests.md (106 lines)
 
-- **Evolution — Rendering: file plan and test plan** (L1–104): §8–§9 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
-- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–46): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
-- **9. Test plan (`TESTING.md` tiers)** (L47–104): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
+- **Evolution — Rendering: file plan and test plan** (L1–106): §8–§9 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–48): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
+- **9. Test plan (`TESTING.md` tiers)** (L49–106): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 
-## rendering/own-cell-indicators.md (79 lines)
+## rendering/own-cell-indicators.md (87 lines)
 
-- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–79): §10 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
-- **10. Own-cell indicators and world-anchored labels (#146)** (L5–79): [`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows:…
+- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–87): §10 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **10. Own-cell indicators and world-anchored labels (#146)** (L5–87): [`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows:…
 
 ## traits/catalog-forms.md (123 lines)
 
