@@ -12,6 +12,8 @@
 // `calc(var(--hud-…) * var(--hud-scale))`, so hit-testing stays in real pixels (docs/ui/layout.md §1).
 
 import {
+  CALLOUT_BACKING,
+  DANGER,
   DNA_RING_STROKE_PX,
   LEVEL_GOLD,
   OUTLINE,
@@ -26,7 +28,13 @@ import {
   WHITE,
 } from '../../render/constants';
 import {
+  CONNECTION_LOST_DIM_ALPHA,
   HUD_MARGIN_PX,
+  NOTICE_GAP_PX,
+  NOTICE_PADDING_INLINE_PX,
+  NOTICE_RIM_PX,
+  NOTICE_ROW_HEIGHT_PX,
+  NOTICE_STACK_MAX_Y_PX,
   LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_CORNER_RADIUS_PX,
   LEADERBOARD_EXPAND_MS,
@@ -121,6 +129,20 @@ function pickerVariables(): StyleVariables {
   };
 }
 
+/** The notices along the top edge (docs/ui/overlays.md §3.6): the connection banner and the server-error line. */
+function noticeVariables(): StyleVariables {
+  return {
+    '--hud-notice-row-height': `${NOTICE_ROW_HEIGHT_PX}px`,
+    '--hud-notice-stack-max-y': `${NOTICE_STACK_MAX_Y_PX}px`,
+    '--hud-notice-padding-inline': `${NOTICE_PADDING_INLINE_PX}px`,
+    '--hud-notice-gap': `${NOTICE_GAP_PX}px`,
+    '--hud-notice-rim': `${NOTICE_RIM_PX}px`,
+    '--hud-connection-lost-dim-alpha': String(CONNECTION_LOST_DIM_ALPHA),
+    '--hud-danger': DANGER,
+    '--hud-callout-backing': CALLOUT_BACKING,
+  };
+}
+
 /**
  * Type roles, each published whole — a size with its own face — and the colour roles
  * (docs/visual-style/principles-and-palette.md §2, docs/visual-style/ui-type.md §7).
@@ -152,12 +174,24 @@ function typeAndColourVariables(): StyleVariables {
   };
 }
 
+/**
+ * The custom property the shell sets from the live notice count (docs/ui/overlays.md §3.6): like the scale
+ * it is state, not a constant, so it is published beside the map rather than inside it.
+ */
+export const HUD_NOTICE_ROWS_VARIABLE = '--hud-notice-rows';
+
+/** The notice rows up along the top edge, unitless, so a top-anchored length can multiply by it. */
+export function noticeRowsVariable(noticeRows: number): StyleVariables {
+  return { [HUD_NOTICE_ROWS_VARIABLE]: String(noticeRows) };
+}
+
 /** Every `--hud-…` a HUD stylesheet may read, by name, at scale 1. */
 export function hudStyleVariables(hudScale: number): StyleVariables {
   return {
     [HUD_SCALE_VARIABLE]: String(hudScale),
     ...chromeVariables(),
     ...pickerVariables(),
+    ...noticeVariables(),
     ...typeAndColourVariables(),
   };
 }

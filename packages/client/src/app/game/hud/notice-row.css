@@ -1,0 +1,41 @@
+/*
+ * One notice row along the top edge (docs/ui/overlays.md §3.6): full width, `body` on the callout backing,
+ * a rim in its tone's colour under it. Shared by the connection banner and the server-error line so the
+ * two rows stack as one strip.
+ */
+:host {
+  display: block;
+}
+
+.notice-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  /* `safe`: a row wider than the viewport keeps its start on screen instead of clipping both ends. */
+  justify-content: safe center;
+  gap: calc(var(--hud-notice-gap) * var(--hud-scale));
+  width: 100%;
+  height: calc(var(--hud-notice-row-height) * var(--hud-scale));
+  padding-inline: calc(var(--hud-notice-padding-inline) * var(--hud-scale));
+  background: var(--hud-callout-backing);
+  border-bottom: calc(var(--hud-notice-rim) * var(--hud-scale)) solid var(--hud-panel-rim);
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-body) * var(--hud-scale));
+  line-height: 1;
+  color: var(--hud-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The text gives way first: it truncates with an ellipsis rather than pushing anything off the row. */
+.message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Danger is a colour and a text tell at once: the words say what went wrong (docs/ui/input-and-onboarding.md §6). */
+.notice-row.danger {
+  border-bottom-color: var(--hud-danger);
+  color: var(--hud-danger);
+}

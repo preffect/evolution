@@ -1,7 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { Subject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CLIENT_MESSAGE_TYPE,
   DEFAULT_BALANCE,
@@ -11,6 +9,7 @@ import {
   createTestSnapshot,
 } from '@evolution/shared';
 import type { GameId, PlayerId, ServerMessage } from '@evolution/shared';
+import { createTransportStub, type TransportStub } from '../../testing/transport-stub';
 import { MultiplayerService } from './multiplayer.service';
 import { WebSocketService } from './websocket.service';
 
@@ -22,20 +21,8 @@ const CONFIG = createTestSessionConfig({ maxPlayers: 4 });
 const ACKNOWLEDGED_TICK = 42;
 const INPUT = createTestGameInput({ sequence: 5 });
 
-function createTransportStub() {
-  const messages = new Subject<ServerMessage>();
-  return {
-    messages,
-    connected: signal(false),
-    messages$: messages.asObservable(),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    send: vi.fn(),
-  };
-}
-
 describe('MultiplayerService', () => {
-  let transport: ReturnType<typeof createTransportStub>;
+  let transport: TransportStub;
   let service: MultiplayerService;
 
   beforeEach(() => {
@@ -167,10 +154,43 @@ describe('MultiplayerService', () => {
     expect(service.playerIds()).toEqual([BOB]);
   });
 
-  it('stores a snapshot from the message stream and surfaces errors', () => {
+  it('drops a lobby error when a room starts, so it never shows as a danger row in play', () => {
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
+    transport.messages.next({
+      type: SERVER_MESSAGE_TYPE.gameStarted,
+      gameId: GAME_ID,
+      playerId: ALICE,
+      playerIds: [ALICE],
+      isHost: false,
+      config: CONFIG,
+    });
+    expect(service.lastError()).toBeNull();
+  });
+
+  it('keeps an undismissed in-play error through a mid-round resync', () => {
+    const resync: ServerMessage = {
+      type: SERVER_MESSAGE_TYPE.gameState,
+      gameId: GAME_ID,
+      playerId: ALICE,
+      snapshot: createTestSnapshot({ tick: 4 }),
+      balance: DEFAULT_BALANCE,
+      config: CONFIG,
+      playerIds: [ALICE],
+      avatarAssignments: {},
+    };
+    transport.messages.next(resync);
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'Invalid message' });
+    transport.messages.next(resync);
+    expect(service.inGame()).toBe(true);
+    expect(service.lastError()).toBe('Invalid message');
+  });
+
+  it('stores a snapshot from the message stream and surfaces errors until dismissed', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick: 1 }) });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });
     expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 1 }));
     expect(service.lastError()).toBe('nope');
+    service.dismissError();
+    expect(service.lastError()).toBeNull();
   });
 });

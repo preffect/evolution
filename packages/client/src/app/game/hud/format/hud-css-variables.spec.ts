@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CALLOUT_BACKING,
+  DANGER,
   DNA_RING_STROKE_PX,
   LEVEL_GOLD,
   OUTLINE,
@@ -14,7 +16,13 @@ import {
   WHITE,
 } from '../../render/constants';
 import {
+  CONNECTION_LOST_DIM_ALPHA,
   HUD_MARGIN_PX,
+  NOTICE_GAP_PX,
+  NOTICE_PADDING_INLINE_PX,
+  NOTICE_RIM_PX,
+  NOTICE_ROW_HEIGHT_PX,
+  NOTICE_STACK_MAX_Y_PX,
   LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_CORNER_RADIUS_PX,
   LEADERBOARD_EXPAND_MS,
@@ -50,7 +58,19 @@ import {
   HUD_PLAYER_EXCLUSION_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
-import { HUD_SCALE_VARIABLE, hudStyleVariables } from './hud-css-variables';
+import {
+  HUD_NOTICE_ROWS_VARIABLE,
+  HUD_SCALE_VARIABLE,
+  hudStyleVariables,
+  noticeRowsVariable,
+} from './hud-css-variables';
+
+describe('noticeRowsVariable', () => {
+  it('publishes the live notice row count, unitless, beside the constant map', () => {
+    expect(noticeRowsVariable(2)).toEqual({ [HUD_NOTICE_ROWS_VARIABLE]: '2' });
+    expect(HUD_NOTICE_ROWS_VARIABLE in hudStyleVariables(1)).toBe(false);
+  });
+});
 
 const TEST_SCALE = 1.25;
 
@@ -102,6 +122,15 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-picker-card-glow', `${PICKER_CARD_GLOW_PX}px`],
   ['--hud-picker-highlight-duration', `${PICKER_CARD_HIGHLIGHT_MS}ms`],
   ['--hud-picker-ribbon-padding-inline', `${PICKER_RIBBON_PADDING_INLINE_PX}px`],
+
+  ['--hud-notice-row-height', `${NOTICE_ROW_HEIGHT_PX}px`],
+  ['--hud-notice-stack-max-y', `${NOTICE_STACK_MAX_Y_PX}px`],
+  ['--hud-notice-padding-inline', `${NOTICE_PADDING_INLINE_PX}px`],
+  ['--hud-notice-gap', `${NOTICE_GAP_PX}px`],
+  ['--hud-notice-rim', `${NOTICE_RIM_PX}px`],
+  ['--hud-connection-lost-dim-alpha', String(CONNECTION_LOST_DIM_ALPHA)],
+  ['--hud-danger', DANGER],
+  ['--hud-callout-backing', CALLOUT_BACKING],
 
   ['--hud-font-sans', UI_TYPE.body.font],
   ['--hud-font-mono', UI_TYPE.clock.font],

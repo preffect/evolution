@@ -14,9 +14,15 @@ import {
 import type { GameSessionConfig } from '@evolution/shared';
 import { GameHostComponent } from './game/game-host.component';
 import { HudComponent } from './game/hud/hud.component';
+import { SERVER_ERROR_CAPTION } from './game/hud/server-error-notice.component';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
-import { MultiplayerService } from './services/multiplayer.service';
+import { LOBBY_NOTICE, MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
+
+/** The lobby's words for why it came back on its own (docs/ui/overlays.md §3.6). */
+export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
+  [LOBBY_NOTICE.disconnectedFromGame]: 'You were disconnected from the game.',
+};
 
 /**
  * Minimal, GAME-AGNOSTIC lobby / connection UI stub.
@@ -49,6 +55,9 @@ export class AppComponent {
   } as const;
 
   readonly multiplayer = inject(MultiplayerService);
+  readonly lobbyNoticeText = LOBBY_NOTICE_TEXT;
+  /** The same caption the in-play error line uses, so the two cannot drift. */
+  readonly serverErrorCaption = SERVER_ERROR_CAPTION;
   /** The dev-only bench route (docs/rendering/budget.md §7) replaces the shell for the page's lifetime. */
   readonly isBenchRoute = inject(IS_BENCH_ROUTE);
 

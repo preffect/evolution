@@ -1,17 +1,11 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { concat, defer, of, type Observable } from 'rxjs';
-import type {
-  BalanceConfig,
-  GameId,
-  GameInput,
-  GameSessionConfig,
-  GameSnapshot,
-  LobbyGameInfo,
-  PlayerId,
-  ServerMessage,
-} from '@evolution/shared';
+import type { GameInput, GameSessionConfig, LobbyGameInfo, ServerMessage, ValueOf } from '@evolution/shared';
 import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
-import { WebSocketService } from './websocket.service';
+import { LeftRoomFilter } from './left-room-filter';
+import { RoomState } from './room-state';
+import { SEAT_RECOVERY_OUTCOME, SeatRecovery } from './seat-recovery';
+import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
 
 /**
  * Generic, GAME-AGNOSTIC multiplayer networking + state service.
@@ -28,11 +22,29 @@ import { WebSocketService } from './websocket.service';
  */
 export type Phase = 'lobby' | 'in-game';
 
+/** Why the lobby came back on its own (docs/ui/overlays.md §3.6); the lobby screen words it. */
+export const LOBBY_NOTICE = {
+  /** The socket dropped mid-round and the server no longer held the seat when it reopened. */
+  disconnectedFromGame: 'disconnected_from_game',
+} as const;
+
+export type LobbyNotice = ValueOf<typeof LOBBY_NOTICE>;
+
+interface LobbyAnnouncement {
+  readonly playerName: string;
+  readonly avatarIndex: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MultiplayerService {
   private readonly transport = inject(WebSocketService);
   /** The newest `game_state`, replayed to a composition root that subscribes after it arrived. */
   private latestGameStateMessage: ServerMessage | null = null;
+  private readonly room = new RoomState();
+  private readonly seatRecovery = new SeatRecovery();
+  private readonly leftRoom = new LeftRoomFilter();
+  /** The newest name and avatar this client announced, re-announced when a dropped socket reopens. */
+  private lobbyAnnouncement: LobbyAnnouncement | null = null;
 
   // ===== Connection =====
   /** Live WebSocket connection flag (mirrors the transport). */
@@ -41,27 +53,23 @@ export class MultiplayerService {
   // ===== Lobby / room state (generic) =====
   readonly phase = signal<Phase>('lobby');
   readonly games = signal<LobbyGameInfo[]>([]);
-  readonly playerId = signal<PlayerId | null>(null);
-  readonly gameId = signal<GameId | null>(null);
-  readonly playerIds = signal<PlayerId[]>([]);
-  readonly isHost = signal(false);
-  readonly avatarAssignments = signal<Record<string, number>>({});
-  readonly sessionConfig = signal<GameSessionConfig | null>(null);
+  readonly playerId = this.room.playerId;
+  readonly gameId = this.room.gameId;
+  readonly playerIds = this.room.playerIds;
+  readonly isHost = this.room.isHost;
+  readonly avatarAssignments = this.room.avatarAssignments;
+  readonly sessionConfig = this.room.sessionConfig;
+  readonly snapshot = this.room.snapshot;
+  readonly balance = this.room.balance;
   readonly lastError = signal<string | null>(null);
-
-  /** The newest `game_snapshot`, for the lobby / HUD facade; the renderer reads `WorldStore` instead. */
-  readonly snapshot = signal<GameSnapshot | null>(null);
-
-  /**
-   * The live balance the server simulates with (`game_state`, then every `balance_updated`), for
-   * the HUD facade; the renderer reads the same numbers off its own `WorldStore`.
-   */
-  readonly balance = signal<BalanceConfig | null>(null);
+  /** Set when the lobby returned without the player asking; cleared by the next room. */
+  readonly lobbyNotice = signal<LobbyNotice | null>(null);
 
   readonly inGame = computed(() => this.phase() === 'in-game');
 
   constructor() {
-    this.transport.messages$.subscribe((message) => this.handle(message));
+    this.transport.messages$.subscribe((message) => this.receive(message));
+    this.transport.lifecycle$.subscribe((event) => this.onSocketLifecycle(event));
   }
 
   // ===== Lifecycle =====
@@ -71,14 +79,31 @@ export class MultiplayerService {
 
   disconnect(): void {
     this.transport.disconnect();
+    this.returnToLobby(null);
+  }
+
+  /**
+   * Back to the lobby from a room (the menu's and the results screen's `leave()`,
+   * docs/ui/components-and-constants.md §7). The wire has no leave verb yet (#319): the server keeps
+   * the seat, so that room's frames are dropped until another room starts (`left-room-filter.ts`).
+   */
+  leave(): void {
+    this.leftRoom.left(this.gameId());
+    this.returnToLobby(null);
+  }
+
+  dismissError(): void {
+    this.lastError.set(null);
   }
 
   // ===== Lobby actions (generic verbs) =====
   joinLobby(playerName: string, avatarIndex = 0): void {
+    this.lobbyAnnouncement = { playerName, avatarIndex };
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinLobby, playerName, avatarIndex });
   }
 
   updatePlayerInfo(playerName: string, avatarIndex: number): void {
+    this.lobbyAnnouncement = { playerName, avatarIndex };
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.updatePlayerInfo, playerName, avatarIndex });
   }
 
@@ -88,6 +113,7 @@ export class MultiplayerService {
   }
 
   joinGame(id: string): void {
+    this.leftRoom.joiningRoom(id);
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId: id });
   }
 
@@ -131,17 +157,47 @@ export class MultiplayerService {
     });
   }
 
+  // ===== Connection loss (docs/ui/overlays.md §3.6) =====
+  /**
+   * A user's close ends the room at once. A dropped socket does not: the round stays on screen
+   * under the connection banner while the transport reconnects, and the seat recovery decides from
+   * the server's first answer whether the room comes back (`seat-recovery.ts`).
+   */
+  private onSocketLifecycle(event: SocketLifecycleEvent): void {
+    if (event.kind === SOCKET_LIFECYCLE.closed) {
+      if (event.isUserInitiated) this.returnToLobby(null);
+      else this.seatRecovery.socketDropped(this.inGame());
+      return;
+    }
+    const action = this.seatRecovery.socketReopened(this.lobbyAnnouncement !== null);
+    if (action.isSeatLost) this.returnToLobby(LOBBY_NOTICE.disconnectedFromGame);
+    // The server answers this to the sender alone, so a frame always follows the reopen.
+    if (action.shouldReannounce && this.lobbyAnnouncement !== null) {
+      this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinLobby, ...this.lobbyAnnouncement });
+    }
+  }
+
+  private returnToLobby(notice: LobbyNotice | null): void {
+    this.seatRecovery.cancel();
+    this.latestGameStateMessage = null;
+    this.room.clear();
+    this.lobbyNotice.set(notice);
+    this.phase.set('lobby');
+  }
+
   // ===== Inbound message handling =====
-  /** Sent on start and to a (re)joining player: full room state to (re)build the view. */
-  private applyGameState(message: Extract<ServerMessage, { type: typeof SERVER_MESSAGE_TYPE.gameState }>): void {
-    this.latestGameStateMessage = message;
-    this.playerId.set(message.playerId);
-    this.gameId.set(message.gameId);
-    this.playerIds.set(message.playerIds);
-    this.sessionConfig.set(message.config);
-    this.avatarAssignments.set(message.avatarAssignments);
-    this.balance.set(message.balance);
-    this.snapshot.set(message.snapshot);
+  private receive(message: ServerMessage): void {
+    if (this.seatRecovery.frameReceived(message) === SEAT_RECOVERY_OUTCOME.seatLost) {
+      this.returnToLobby(LOBBY_NOTICE.disconnectedFromGame);
+    }
+    if (this.leftRoom.admits(message)) this.handle(message);
+  }
+
+  /** Lobby to play: a lobby notice or error stays behind. A resync mid-round keeps an undismissed in-play error. */
+  private enterRoom(): void {
+    if (this.inGame()) return;
+    this.lobbyNotice.set(null);
+    this.lastError.set(null);
     this.phase.set('in-game');
   }
 
@@ -154,16 +210,14 @@ export class MultiplayerService {
       case SERVER_MESSAGE_TYPE.gameStarted:
         // The room's own game_state follows in the same burst; a previous room's must not be replayed.
         this.latestGameStateMessage = null;
-        this.playerId.set(message.playerId);
-        this.gameId.set(message.gameId);
-        this.playerIds.set(message.playerIds);
-        this.isHost.set(message.isHost);
-        this.sessionConfig.set(message.config);
-        this.phase.set('in-game');
+        this.room.applyGameStarted(message);
+        this.enterRoom();
         break;
 
       case SERVER_MESSAGE_TYPE.gameState:
-        this.applyGameState(message);
+        this.latestGameStateMessage = message;
+        this.room.applyGameState(message);
+        this.enterRoom();
         break;
 
       case SERVER_MESSAGE_TYPE.gameSnapshot:

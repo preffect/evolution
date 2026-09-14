@@ -27,7 +27,8 @@ import { createTestCellView } from '../../../testing/builders';
 import { FakeWebSocket } from '../../../testing/fake-websocket';
 import { IdentityService } from '../../services/identity.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
-import { WebSocketService } from '../../services/websocket.service';
+import { RECONNECT_DELAY_MS, WebSocketService } from '../../services/websocket.service';
+import { CONNECTION_BANNER_TEXT, CONNECTION_STATE } from './format/connection-banner';
 import { HudComponent } from './hud.component';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from './test-ids';
@@ -107,6 +108,7 @@ describe('the HUD chrome, end to end', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -195,6 +197,44 @@ describe('the HUD chrome, end to end', () => {
     expect(mirror()?.getAttribute('data-ladder')).toBe('counters');
     expect(mirror()?.getAttribute('data-aerobic')).toBe('4/10');
     expect(mirror()?.textContent).toContain('Aerobic 4 of 10');
+  });
+
+  it('dims the round under the connection banner while the socket is down, and clears it on the resync (#219)', () => {
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
+    const banner = (): Element | null => element().querySelector(testIdSelector(HUD_TEST_ID.connectionBanner));
+    const dim = (): Element | null => element().querySelector('.connection-lost-dim');
+    expect(banner()).toBeNull();
+    // The lobby announced a name, which is what the reopen re-sends to learn whether the seat survived.
+    TestBed.inject(MultiplayerService).joinLobby('Me');
+
+    vi.useFakeTimers();
+    FakeWebSocket.latest().close();
+    fixture.detectChanges();
+    expect(banner()?.getAttribute('data-connection-state')).toBe(CONNECTION_STATE.disconnected);
+    expect(banner()?.textContent?.trim()).toBe(CONNECTION_BANNER_TEXT.disconnected);
+    expect(dim()).not.toBeNull();
+    // The last snapshot stays: the round is still on screen under the banner.
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundClock))?.textContent).toBe('1:00');
+
+    // The transport's own reconnect timer, then the server's connect-time game_state for the seat it kept.
+    vi.advanceTimersByTime(RECONNECT_DELAY_MS);
+    vi.useRealTimers();
+    FakeWebSocket.latest().open();
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], 30));
+    expect(banner()).toBeNull();
+    expect(dim()).toBeNull();
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundClock))?.textContent).toBe('0:30');
+  });
+
+  it('surfaces a server error in play, where the lobby’s error line is not rendered, until dismissed (#219)', () => {
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
+    receive({ type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
+    const notice = (): Element | null => element().querySelector(testIdSelector(HUD_TEST_ID.serverError));
+    expect(notice()?.textContent).toContain('Game is full');
+
+    element().querySelector<HTMLElement>(testIdSelector(HUD_TEST_ID.serverErrorDismiss))?.click();
+    fixture.detectChanges();
+    expect(notice()).toBeNull();
   });
 
   it('expands to the full list while the Tab hold is on, and collapses on its release', () => {

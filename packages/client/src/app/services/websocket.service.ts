@@ -13,10 +13,23 @@ import { IdentityService } from './identity.service';
  *  - Queue outbound messages while disconnected and flush on (re)connect.
  *  - Expose every inbound `ServerMessage` via `messages$`, `game_snapshot` included: a snapshot
  *    is a delta (docs/architecture/wire-contract.md §4, docs/architecture/client.md §5), so none may be coalesced away.
+ *  - Report every open and close via `lifecycle$`, so the room layer can tell a dropped socket
+ *    from the user's own disconnect (docs/ui/overlays.md §3.6).
  *
  * Higher-level lobby/room/game state lives in MultiplayerService.
  */
-const RECONNECT_DELAY_MS = 500;
+/** How long after an unexpected close the transport opens a new socket. */
+export const RECONNECT_DELAY_MS = 500;
+
+export const SOCKET_LIFECYCLE = {
+  opened: 'opened',
+  closed: 'closed',
+} as const;
+
+export type SocketLifecycleEvent =
+  | { readonly kind: typeof SOCKET_LIFECYCLE.opened }
+  /** `isUserInitiated`: `disconnect()` closed it, so no reconnect follows. */
+  | { readonly kind: typeof SOCKET_LIFECYCLE.closed; readonly isUserInitiated: boolean };
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
@@ -26,11 +39,14 @@ export class WebSocketService {
   private socket: WebSocket | null = null;
   private readonly outbound: string[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private wasClosedByUser = false;
 
   private readonly messages = new Subject<ServerMessage>();
   /** Stream of all decoded inbound server messages. */
   readonly messages$: Observable<ServerMessage> = this.messages.asObservable();
+
+  private readonly lifecycle = new Subject<SocketLifecycleEvent>();
+  /** Every open and close, in order, after `connected` has been updated for it. */
+  readonly lifecycle$: Observable<SocketLifecycleEvent> = this.lifecycle.asObservable();
 
   private readonly identity = inject(IdentityService);
 
@@ -38,26 +54,34 @@ export class WebSocketService {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
-    this.wasClosedByUser = false;
     const socket = new WebSocket(this.socketUrl());
     this.socket = socket;
 
+    // Every handler belongs to this one socket. Its events arrive asynchronously, so once `disconnect()`
+    // or a reconnect has replaced it, a late one must not touch the new socket or report a false drop.
     socket.onopen = () => {
+      if (this.socket !== socket) return;
       this.connected.set(true);
       // Flush anything queued while we were offline.
       for (const raw of this.outbound.splice(0)) {
         socket.send(raw);
       }
+      this.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
     };
-    socket.onmessage = (event) => this.handleFrame(typeof event.data === 'string' ? event.data : '');
+    socket.onmessage = (event) => {
+      if (this.socket !== socket) return;
+      this.handleFrame(typeof event.data === 'string' ? event.data : '');
+    };
     socket.onclose = () => {
+      if (this.socket !== socket) return;
       this.connected.set(false);
       this.socket = null;
-      if (!this.wasClosedByUser) {
-        this.scheduleReconnect();
-      }
+      this.scheduleReconnect();
+      // `disconnect()` detaches its socket before closing it, so a close that reaches here is always a drop.
+      this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
     };
     socket.onerror = () => {
+      if (this.socket !== socket) return;
       // Let onclose drive reconnection.
       socket.close();
     };
@@ -81,14 +105,16 @@ export class WebSocketService {
   }
 
   disconnect(): void {
-    this.wasClosedByUser = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    this.socket?.close();
+    const socket = this.socket;
+    // Detached first, so the socket's own close event is a stale one and changes nothing.
     this.socket = null;
+    socket?.close();
     this.connected.set(false);
+    if (socket !== null) this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: true });
   }
 
   /** Send a typed client message (queued if currently disconnected). */

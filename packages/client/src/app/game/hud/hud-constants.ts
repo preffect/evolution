@@ -138,6 +138,21 @@ export const PICKER_CARD_HIGHLIGHT_MS = 120;
 /** The `RUNG` ribbon's padding either side of its word. */
 export const PICKER_RIBBON_PADDING_INLINE_PX = 6;
 
+// ---- notices (docs/ui/overlays.md §3.6, docs/ui/input-and-onboarding.md §6) ----
+
+/** The connection banner and the server-error line under it: full width, this tall at scale 1. */
+export const NOTICE_ROW_HEIGHT_PX = 32;
+/** The notices stack down from the top of the viewport and never past this y at scale 1. */
+export const NOTICE_STACK_MAX_Y_PX = 96;
+/** While the socket is down the last snapshot stays on screen, dimmed by this much. */
+export const CONNECTION_LOST_DIM_ALPHA = 0.2;
+/** The notices' text inset from the viewport's left and right edges. */
+export const NOTICE_PADDING_INLINE_PX = 16;
+/** Gap between a notice's message and its dismiss control. */
+export const NOTICE_GAP_PX = 16;
+/** The rim under a notice row, in its tone's colour. */
+export const NOTICE_RIM_PX = 2;
+
 // ---- controls (docs/ui/input-and-onboarding.md §4) ----
 
 /** Every interactive element's visible focus ring, in the text colour; never scaled. */
