@@ -188,3 +188,98 @@ describe('lobby-manager: starting and running games', () => {
     expect(fixture.sent['stranger']).toEqual([]);
   });
 });
+
+/** A started game alice hosts and bob plays in. */
+function lobbyWithTwoPlayerGame() {
+  const fixture = lobbyWithPendingGame();
+  const bob = fixture.join('bob');
+  fixture.handlers.onJoinGame(bob, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
+  fixture.handlers.onStartGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId: fixture.gameId });
+  const leave = { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: fixture.gameId };
+  const rejoin = { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId };
+  return { ...fixture, bob, leave, rejoin, room: fixture.lobby.getActiveRoom(fixture.gameId)! };
+}
+
+function playerDisconnectedCount(sent: Record<string, unknown[]>, playerId: string): number {
+  return typesSentTo(sent, playerId).filter((type) => type === SERVER_MESSAGE_TYPE.playerDisconnected).length;
+}
+
+describe('lobby-manager: leave_game (#319)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('removes the player from the active room at once and tells everyone', () => {
+    const fixture = lobbyWithTwoPlayerGame();
+    const removeSpy = vi.spyOn(fixture.room, 'removePlayer');
+    const inputSpy = vi.spyOn(fixture.room, 'submitInput');
+    fixture.handlers.onLeaveGame(fixture.bob, fixture.leave);
+    fixture.handlers.onPlayerInput(fixture.bob, {
+      type: CLIENT_MESSAGE_TYPE.playerInput,
+      payload: createTestGameInput(),
+    });
+    expect(removeSpy).toHaveBeenCalledWith('bob');
+    expect(inputSpy).not.toHaveBeenCalled();
+    expect(fixture.room.playerConnections.has('bob')).toBe(false);
+    expect(fixture.lobby.listGames()[0]?.players.map((player) => player.playerId)).toEqual(['alice']);
+    expect(fixture.sent['alice']).toContainEqual({ type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId: 'bob' });
+    expect(typesSentTo(fixture.sent, 'bob').at(-1)).toBe(SERVER_MESSAGE_TYPE.lobbyUpdate);
+    fixture.room.stop();
+  });
+
+  it('tears down a room its last player leaves', () => {
+    const fixture = lobbyWithActiveGame();
+    fixture.handlers.onLeaveGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: fixture.gameId });
+    expect(fixture.lobby.getActiveRoom(fixture.gameId)).toBeUndefined();
+    expect(fixture.lobby.listGames()).toHaveLength(0);
+  });
+
+  it('leaves a pending game the way a disconnect does', () => {
+    const fixture = lobbyWithPendingGame();
+    const bob = fixture.join('bob');
+    fixture.handlers.onJoinGame(bob, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
+    fixture.handlers.onLeaveGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: fixture.gameId });
+    expect(fixture.lobby.listGames()[0]).toMatchObject({ creatorId: 'bob', players: [{ playerId: 'bob' }] });
+  });
+
+  it('is a no-op for a room the player is not seated in and for an unknown room', () => {
+    const fixture = lobbyWithTwoPlayerGame();
+    const stranger = fixture.join('stranger');
+    const sentToBob = fixture.sent['bob']!.length;
+    fixture.handlers.onLeaveGame(stranger, { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: fixture.gameId });
+    fixture.handlers.onLeaveGame(fixture.bob, { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: 'nope' });
+    expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
+    expect(fixture.sent['stranger']).toEqual([]);
+    expect(fixture.sent['bob']).toHaveLength(sentToBob);
+    fixture.room.stop();
+  });
+
+  it('lets the player join the room it left again, as a connected late joiner', () => {
+    const fixture = lobbyWithTwoPlayerGame();
+    fixture.handlers.onLeaveGame(fixture.bob, fixture.leave);
+    fixture.handlers.onJoinGame(fixture.bob, fixture.rejoin);
+    expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
+    expect(fixture.room.disconnectedPlayers.has('bob')).toBe(false);
+    fixture.room.stop();
+  });
+
+  it('holds no seat afterwards: a later close starts no grace window', () => {
+    vi.useFakeTimers();
+    const fixture = lobbyWithTwoPlayerGame();
+    fixture.handlers.onLeaveGame(fixture.bob, fixture.leave);
+    fixture.lobby.handleDisconnect(fixture.bob);
+    expect(playerDisconnectedCount(fixture.sent, 'alice')).toBe(1);
+    fixture.room.stop();
+  });
+
+  it('cancels the grace timer of an earlier drop, so it cannot remove the player after a rejoin', () => {
+    vi.useFakeTimers();
+    const fixture = lobbyWithTwoPlayerGame();
+    fixture.lobby.handleDisconnect(fixture.bob);
+    fixture.handlers.onLeaveGame(fixture.bob, fixture.leave);
+    fixture.handlers.onJoinGame(fixture.bob, fixture.rejoin);
+    vi.advanceTimersByTime(DISCONNECT_GRACE_MS + 1);
+    expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
+    fixture.room.stop();
+  });
+});

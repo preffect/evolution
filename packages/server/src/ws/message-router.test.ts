@@ -19,6 +19,7 @@ function stubHandlers(): MessageHandlers {
     onJoinGame: vi.fn(),
     onStartGame: vi.fn(),
     onDeleteGame: vi.fn(),
+    onLeaveGame: vi.fn(),
     onPlayerInput: vi.fn(),
     onClientPerformance: vi.fn(),
     onSnapshotAck: vi.fn(),
@@ -45,6 +46,7 @@ const FRAME_FOR_VERB: Record<keyof MessageHandlers, Record<string, unknown>> = {
   onJoinGame: { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: 'game-1' },
   onStartGame: { type: CLIENT_MESSAGE_TYPE.startGame, gameId: 'game-1' },
   onDeleteGame: { type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: 'game-1' },
+  onLeaveGame: { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: 'game-1' },
   onPlayerInput: { type: CLIENT_MESSAGE_TYPE.playerInput, payload: createTestGameInput() },
   onClientPerformance: {
     type: CLIENT_MESSAGE_TYPE.clientPerformance,
