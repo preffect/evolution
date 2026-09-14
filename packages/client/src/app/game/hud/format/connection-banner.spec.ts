@@ -4,7 +4,17 @@ import {
   CONNECTION_BANNER_TONE,
   CONNECTION_STATE,
   connectionBannerFor,
+  noticeRowCountFor,
 } from './connection-banner';
+
+describe('noticeRowCountFor', () => {
+  it('counts the banner and the error line, each one row', () => {
+    expect(noticeRowCountFor(CONNECTION_STATE.connected, null)).toBe(0);
+    expect(noticeRowCountFor(CONNECTION_STATE.disconnected, null)).toBe(1);
+    expect(noticeRowCountFor(CONNECTION_STATE.connected, 'nope')).toBe(1);
+    expect(noticeRowCountFor(CONNECTION_STATE.disconnected, 'nope')).toBe(2);
+  });
+});
 
 describe('connectionBannerFor', () => {
   it('shows nothing while connected', () => {

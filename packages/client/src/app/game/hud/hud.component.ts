@@ -23,7 +23,7 @@ import {
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
-import { CONNECTION_STATE } from './format/connection-banner';
+import { CONNECTION_STATE, noticeRowCountFor } from './format/connection-banner';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
 import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
@@ -31,7 +31,7 @@ import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
 import { hudScaleFor } from './format/hud-scale';
-import { hudStyleVariables } from './format/hud-css-variables';
+import { hudStyleVariables, noticeRowsVariable } from './format/hud-css-variables';
 import { observeElementSize, type ElementSize } from './element-size';
 
 const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
@@ -129,7 +129,10 @@ export class HudComponent implements OnInit, OnDestroy {
   protected readonly scale = computed(() => hudScaleFor(this.size().widthPx, this.size().heightPx));
 
   /** The scale plus every constant the child stylesheets read, as one style map. */
-  protected readonly styleVariables = computed(() => hudStyleVariables(this.scale()));
+  protected readonly styleVariables = computed(() => ({
+    ...hudStyleVariables(this.scale()),
+    ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),
+  }));
 
   ngOnInit(): void {
     this.stopObservingSize = observeElementSize(this.host.nativeElement as HTMLElement, (size) => this.size.set(size));

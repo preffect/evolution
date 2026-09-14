@@ -12,7 +12,8 @@
 
 :host {
   position: absolute;
-  top: calc(var(--hud-margin) * var(--hud-scale));
+  /* Drops under the notice rows while any are up (docs/ui/overlays.md §3.6), so the banner never covers the header. */
+  top: calc((var(--hud-margin) + var(--hud-notice-row-height) * var(--hud-notice-rows, 0)) * var(--hud-scale));
   right: calc(var(--hud-margin) * var(--hud-scale));
 }
 

@@ -57,7 +57,19 @@ import {
   HUD_PLAYER_EXCLUSION_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
-import { HUD_SCALE_VARIABLE, hudStyleVariables } from './hud-css-variables';
+import {
+  HUD_NOTICE_ROWS_VARIABLE,
+  HUD_SCALE_VARIABLE,
+  hudStyleVariables,
+  noticeRowsVariable,
+} from './hud-css-variables';
+
+describe('noticeRowsVariable', () => {
+  it('publishes the live notice row count, unitless, beside the constant map', () => {
+    expect(noticeRowsVariable(2)).toEqual({ [HUD_NOTICE_ROWS_VARIABLE]: '2' });
+    expect(HUD_NOTICE_ROWS_VARIABLE in hudStyleVariables(1)).toBe(false);
+  });
+});
 
 const TEST_SCALE = 1.25;
 

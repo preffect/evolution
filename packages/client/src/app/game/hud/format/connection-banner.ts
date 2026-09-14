@@ -33,3 +33,13 @@ export function connectionBannerFor(state: ConnectionState): ConnectionBanner {
   if (state === CONNECTION_STATE.connected) return NO_BANNER;
   return { isVisible: true, text: CONNECTION_BANNER_TEXT.disconnected, tone: CONNECTION_BANNER_TONE.danger };
 }
+
+/**
+ * How many notice rows are up along the top edge: the banner, the server-error line, both or neither.
+ * The top-anchored chrome drops by this many rows so a notice never covers it.
+ */
+export function noticeRowCountFor(state: ConnectionState, serverError: string | null): number {
+  const bannerRows = connectionBannerFor(state).isVisible ? 1 : 0;
+  const errorRows = serverError === null ? 0 : 1;
+  return bannerRows + errorRows;
+}

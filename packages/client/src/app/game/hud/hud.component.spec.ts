@@ -5,7 +5,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { HUD_SCALE_MIN, HUD_REFERENCE_VIEWPORT_HEIGHT_PX, HUD_REFERENCE_VIEWPORT_WIDTH_PX } from './hud-constants';
 import { HudComponent } from './hud.component';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
-import { HUD_SCALE_VARIABLE } from './format/hud-css-variables';
+import { HUD_NOTICE_ROWS_VARIABLE, HUD_SCALE_VARIABLE } from './format/hud-css-variables';
 
 /** jsdom lays nothing out, so the host's box is the one fact the shell needs stubbed. */
 function stubHostBox(host: HTMLElement, widthPx: number, heightPx: number): void {
@@ -77,6 +77,18 @@ describe('HudComponent', () => {
     stubHostBox(host(), 400, 300);
     fixture.detectChanges();
     expect(host().style.getPropertyValue(HUD_SCALE_VARIABLE)).toBe(String(HUD_SCALE_MIN));
+  });
+
+  it('publishes how many notice rows are up, so the top-anchored chrome drops under them (#219)', () => {
+    multiplayer.connected.set(true);
+    fixture.detectChanges();
+    expect(host().style.getPropertyValue(HUD_NOTICE_ROWS_VARIABLE)).toBe('0');
+
+    multiplayer.connected.set(false);
+    multiplayer.lastError.set('nope');
+    fixture.detectChanges();
+    expect(host().style.getPropertyValue(HUD_NOTICE_ROWS_VARIABLE)).toBe('2');
+    expect(host().querySelector('.connection-lost-dim')).not.toBeNull();
   });
 
   it('stops observing its box on destroy', () => {

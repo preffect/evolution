@@ -127,4 +127,5 @@ the reopen decides: `game_state` resyncs the round, anything else means the seat
 the notice above (`services/seat-recovery.ts`). The user's own disconnect and `leave()` return to the lobby at once.
 A server `error` in play shows as a second notice row under the banner (`hud-server-error`, `body`, danger rim, the
 same 32 px row, `server-error-notice.component.ts`), with a dismiss control; the two rows are the whole stack and stay
-above y 96.
+above y 96. The top-anchored chrome (the leaderboard) drops by the rows that are up (`--hud-notice-rows`), so a notice
+never covers it.

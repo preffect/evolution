@@ -172,6 +172,17 @@ function typeAndColourVariables(): StyleVariables {
   };
 }
 
+/**
+ * The custom property the shell sets from the live notice count (docs/ui/overlays.md §3.6): like the scale
+ * it is state, not a constant, so it is published beside the map rather than inside it.
+ */
+export const HUD_NOTICE_ROWS_VARIABLE = '--hud-notice-rows';
+
+/** The notice rows up along the top edge, unitless, so a top-anchored length can multiply by it. */
+export function noticeRowsVariable(noticeRows: number): StyleVariables {
+  return { [HUD_NOTICE_ROWS_VARIABLE]: String(noticeRows) };
+}
+
 /** Every `--hud-…` a HUD stylesheet may read, by name, at scale 1. */
 export function hudStyleVariables(hudScale: number): StyleVariables {
   return {
