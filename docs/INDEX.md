@@ -187,12 +187,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Input handling** (L42–56): `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together with a newer target is …
   - **3.3 Other structural rules** (L57–77): `constants/`; formulas take numbers.
 
-## architecture/wire-contract.md (163 lines)
+## architecture/wire-contract.md (168 lines)
 
-- **Evolution — Architecture: wire contract** (L1–163): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–163): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
-  - **4.1 Bandwidth budget** (L112–152): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
-  - **4.2 Levers (in order)** (L153–163): `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots.
+- **Evolution — Architecture: wire contract** (L1–168): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–168): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
+  - **4.1 Bandwidth budget** (L117–157): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
+  - **4.2 Levers (in order)** (L158–168): `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots.
 
 ## concept-art/README.md (408 lines)
 
@@ -336,15 +336,15 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **3. The evolution ladder** (L41–122): The ladder is the progression spine of build 1.
 - **4. Moment-to-moment loop** (L123–135): Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
 
-## game-design/session.md (122 lines)
+## game-design/session.md (124 lines)
 
-- **Evolution — Game Design: session structure** (L1–122): §5 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
-- **5. Session structure (#29)** (L5–122)
+- **Evolution — Game Design: session structure** (L1–124): §5 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
+- **5. Session structure (#29)** (L5–124)
   - **5.1 Round timeline and pace curve** (L20–43): Decision #138 (option A, "slow dawn", applied by #144) sets this curve; times are the #138 pace model for one active player who takes the t…
-  - **5.2 Spawn, death and respawn** (L44–74): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
-  - **5.3 Leaderboard and score** (L75–85): `dnaCumulative` never decreases, so dying costs time and mass, not score.
-  - **5.4 Round end and rematch** (L86–95): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
-  - **5.5 The evolving world** (L96–122): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
+  - **5.2 Spawn, death and respawn** (L44–76): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
+  - **5.3 Leaderboard and score** (L77–87): `dnaCumulative` never decreases, so dying costs time and mass, not score.
+  - **5.4 Round end and rematch** (L88–97): At `roundTimeLeftMs` = 0 the room enters `roundPhase: 'results'` for `RESULTS_SCREEN_SECONDS`.
+  - **5.5 The evolving world** (L98–124): The human's direction on decision #141, quoted: "a fresh cell starts in a world similar to itself, and that world evolves as time passes, i…
 
 ## rendering/budget.md (211 lines)
 

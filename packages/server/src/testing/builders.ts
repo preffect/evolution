@@ -137,6 +137,57 @@ export function createTestLobby(options: TestLobbyOptions = {}) {
   return { lobby, handlers, connections, sent, join };
 }
 
+export type TestLobby = ReturnType<typeof createTestLobby>;
+
+/** The message types a fake socket sent, in order. */
+export function sentTypesTo(sent: SentLog, playerId: string): string[] {
+  return (sent[playerId] as { type: string }[]).map((message) => message.type);
+}
+
+/** `host` creates a game named `gameName` (and starts it when `isStarted`); returns its id. */
+export function hostTestGame(
+  fixture: TestLobby,
+  host: Connection,
+  {
+    gameName = 'G',
+    maxPlayers = 4,
+    isStarted = false,
+  }: { gameName?: string; maxPlayers?: number; isStarted?: boolean },
+): string {
+  const config = createTestSessionConfig({ maxPlayers });
+  fixture.handlers.onCreateGame(host, { type: CLIENT_MESSAGE_TYPE.createGame, gameName, config });
+  const hostedGameId = fixture.lobby.listGames().find((game) => game.gameName === gameName)!.gameId;
+  if (isStarted) fixture.handlers.onStartGame(host, { type: CLIENT_MESSAGE_TYPE.startGame, gameId: hostedGameId });
+  return hostedGameId;
+}
+
+/** A lobby where alice created a pending game. */
+export function createPendingGameLobby(maxPlayers = 4) {
+  const fixture = createTestLobby();
+  const alice = fixture.join('alice', 'Alice');
+  fixture.handlers.onJoinLobby(alice, { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Alice', avatarIndex: 0 });
+  const gameId = hostTestGame(fixture, alice, { maxPlayers });
+  return { ...fixture, alice, gameId };
+}
+
+/** A lobby where alice created and started a game. */
+export function createActiveGameLobby() {
+  const fixture = createPendingGameLobby();
+  fixture.handlers.onStartGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId: fixture.gameId });
+  return fixture;
+}
+
+/** A started game alice hosts and bob plays in, with the `leave_game` and `join_game` frames for it. */
+export function createTwoPlayerGameLobby() {
+  const fixture = createPendingGameLobby();
+  const bob = fixture.join('bob');
+  fixture.handlers.onJoinGame(bob, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
+  fixture.handlers.onStartGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId: fixture.gameId });
+  const leave = { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: fixture.gameId };
+  const rejoin = { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId };
+  return { ...fixture, bob, leave, rejoin, room: fixture.lobby.getActiveRoom(fixture.gameId)! };
+}
+
 export function createTestDebugContext(overrides: Partial<DebugContext> = {}): DebugContext & { sent: SentLog } {
   const { lobby, connections, sent } = createTestLobby();
   return { lobbyManager: lobby, connections, sent, ...overrides };

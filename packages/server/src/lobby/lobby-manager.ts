@@ -1,57 +1,22 @@
 import { nanoid } from 'nanoid';
-import type { PlayerId, GameId, LobbyGameInfo, LobbyPlayerInfo, GameSessionConfig } from '@evolution/shared';
-import { DISCONNECT_GRACE_MS, GAME_ID_LENGTH, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import type { PlayerId, GameId, LobbyGameInfo, GameSessionConfig } from '@evolution/shared';
+import { GAME_ID_LENGTH, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { MessageHandlers } from '../ws/message-router.js';
 import { GameRoom } from './game-room.js';
 import type { RoomTimingFactory } from './room-timing.js';
 import type { GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
+import { lobbyPresenceOf, roomInitOptionsOf, type PendingGame } from './pending-game.js';
+import { SeatLifecycle } from './seat-lifecycle.js';
 
 const GAME_NOT_FOUND = 'Game not found';
 const ONLY_CREATOR_MAY_DELETE = 'Only the creator can delete the game';
 
-/** A game that has been created but not yet started — players gather here. */
-export interface PendingGame {
-  gameId: string;
-  gameName: string;
-  creatorId: string;
-  config: GameSessionConfig;
-  /** playerId -> presence. */
-  players: Map<string, LobbyPlayerInfo>;
-}
-
-function lobbyPresenceOf(connection: Connection): LobbyPlayerInfo {
-  return {
-    playerId: connection.playerId as PlayerId,
-    playerName: connection.playerName,
-    avatarIndex: connection.avatarIndex,
-  };
-}
-
-/** The roster a pending game hands to its room and game module when it starts. */
-function roomInitOptionsOf(pending: PendingGame): RoomInitOptions {
-  const avatarAssignments: Record<string, number> = {};
-  const playerNames: Record<string, string> = {};
-  for (const [playerId, info] of pending.players) {
-    avatarAssignments[playerId] = info.avatarIndex;
-    playerNames[playerId] = info.playerName;
-  }
-  return {
-    gameId: pending.gameId as GameId,
-    creatorId: pending.creatorId as PlayerId,
-    playerIds: Array.from(pending.players.keys()) as PlayerId[],
-    gameName: pending.gameName,
-    config: pending.config,
-    avatarAssignments,
-    playerNames,
-  };
-}
-
 /**
- * Generic lobby + room lifecycle. Owns pending games, active rooms, the
- * player->game index, disconnect grace timers and lobby broadcasting. Game
- * logic is injected via a `GameModuleFactory` (the ONLY game seam here) and
+ * Generic lobby + room lifecycle. Owns pending games, active rooms, the player->game index and lobby
+ * broadcasting; how a seat is freed (disconnect grace, `leave_game`, a seat taken elsewhere) is the
+ * `SeatLifecycle`'s. Game logic is injected via a `GameModuleFactory` (the ONLY game seam here) and
  * room time via a `RoomTimingFactory` (docs/determinism/contract-and-clock.md §2): only the
  * composition root names the production clock and ticker.
  */
@@ -59,8 +24,10 @@ export class LobbyManager {
   private readonly pendingGames = new Map<string, PendingGame>();
   private readonly activeRooms = new Map<string, GameRoom>();
   private readonly playerToGame = new Map<string, string>();
-  /** playerId -> timer that will finalize their removal after the grace period. */
-  private readonly pendingRemovals = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly seats = new SeatLifecycle(
+    { pendingGames: this.pendingGames, activeRooms: this.activeRooms, playerToGame: this.playerToGame },
+    () => this.broadcastLobbyUpdate(),
+  );
   /** The shared connections registry (set when handlers are created). */
   private connections: Map<string, Connection> = new Map();
 
@@ -79,7 +46,7 @@ export class LobbyManager {
       onJoinGame: (connection, message) => this.onJoinGame(connection, message.gameId),
       onStartGame: (connection, message) => this.onStartGame(connection, message.gameId),
       onDeleteGame: (connection, message) => this.onDeleteGame(connection, message.gameId),
-      onLeaveGame: (connection, message) => this.onLeaveGame(connection, message.gameId),
+      onLeaveGame: (connection, message) => this.seats.leave(connection.playerId, message.gameId),
       onPlayerInput: (connection, message) => {
         this.roomOfPlayer(connection)?.submitInput(connection.playerId, message.payload);
       },
@@ -113,6 +80,7 @@ export class LobbyManager {
 
   private onCreateGame(connection: Connection, gameName: string, config: GameSessionConfig): void {
     const gameId = nanoid(GAME_ID_LENGTH);
+    this.seats.leaveOtherSeat(connection.playerId, gameId);
     const pending: PendingGame = {
       gameId,
       gameName,
@@ -125,10 +93,12 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
+  /** A seat held in another room is left only once the join is accepted (#334), so a refused join keeps it. */
   private onJoinGame(connection: Connection, gameId: string): void {
     // Joining an in-progress game = late join.
     const active = this.activeRooms.get(gameId);
     if (active) {
+      this.seats.leaveOtherSeat(connection.playerId, gameId);
       this.playerToGame.set(connection.playerId, gameId);
       active.addLatePlayer(connection);
       this.broadcastLobbyUpdate();
@@ -141,6 +111,7 @@ export class LobbyManager {
       sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
       return;
     }
+    this.seats.leaveOtherSeat(connection.playerId, gameId);
     pending.players.set(connection.playerId, lobbyPresenceOf(connection));
     this.playerToGame.set(connection.playerId, gameId);
     this.broadcastLobbyUpdate();
@@ -203,7 +174,7 @@ export class LobbyManager {
         sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: ONLY_CREATOR_MAY_DELETE });
         return;
       }
-      this.teardownRoom(gameId);
+      this.seats.teardownRoom(gameId);
     }
   }
 
@@ -211,7 +182,7 @@ export class LobbyManager {
 
   handleConnect(connection: Connection, _connections: Map<string, Connection>): void {
     // The player came back within the grace window.
-    this.cancelPendingRemoval(connection.playerId);
+    this.seats.cancelPendingRemoval(connection.playerId);
 
     const gameId = this.playerToGame.get(connection.playerId);
     if (!gameId) return;
@@ -224,99 +195,7 @@ export class LobbyManager {
   }
 
   handleDisconnect(connection: Connection): void {
-    const gameId = this.playerToGame.get(connection.playerId);
-    if (!gameId) return;
-
-    const pending = this.pendingGames.get(gameId);
-    if (pending) {
-      this.leavePendingGame(pending, connection.playerId);
-      return;
-    }
-
-    // Active room: keep a grace window for reconnect.
-    const room = this.activeRooms.get(gameId);
-    if (!room) return;
-    room.disconnectedPlayers.add(connection.playerId);
-    this.announcePlayerGone(room, connection.playerId);
-
-    const timer = setTimeout(() => this.finalizeRemoval(gameId, connection.playerId), DISCONNECT_GRACE_MS);
-    this.pendingRemovals.set(connection.playerId, timer);
-  }
-
-  /** Pending game: remove immediately (no in-progress state to preserve). */
-  private leavePendingGame(pending: PendingGame, playerId: string): void {
-    pending.players.delete(playerId);
-    this.playerToGame.delete(playerId);
-    if (pending.players.size === 0) {
-      this.pendingGames.delete(pending.gameId);
-    } else if (pending.creatorId === playerId) {
-      // Hand creator role to the next remaining player.
-      const next = pending.players.keys().next().value;
-      if (next) pending.creatorId = next;
-    }
-    this.broadcastLobbyUpdate();
-  }
-
-  /**
-   * `leave_game` (#319, docs/architecture/wire-contract.md §4): off the room at once, with no grace. A pending game
-   * frees the seat at once, as a disconnect from it does; an active room removes the player the way the end of the
-   * grace does and tells the players left behind. A room the player is not seated in (the lobby, an unknown or
-   * another room) is a no-op.
-   */
-  private onLeaveGame(connection: Connection, gameId: string): void {
-    const playerId = connection.playerId;
-    if (this.playerToGame.get(playerId) !== gameId) return;
-    const pending = this.pendingGames.get(gameId);
-    if (pending) {
-      this.leavePendingGame(pending, playerId);
-      return;
-    }
-    // Defensive: `handleConnect` already cancels a drop's timer before any frame arrives.
-    this.cancelPendingRemoval(playerId);
-    const room = this.activeRooms.get(gameId);
-    if (!room) return;
-    this.removeFromActiveRoom(gameId, playerId);
-    this.announcePlayerGone(room, playerId);
-  }
-
-  /** What the players still in the room hear when one drops or leaves. */
-  private announcePlayerGone(room: GameRoom, playerId: string): void {
-    broadcastMessage(room.playerConnections.values(), {
-      type: SERVER_MESSAGE_TYPE.playerDisconnected,
-      playerId: playerId as PlayerId,
-    });
-  }
-
-  /** The grace window elapsed without a reconnect. */
-  private finalizeRemoval(gameId: string, playerId: string): void {
-    this.pendingRemovals.delete(playerId);
-    this.removeFromActiveRoom(gameId, playerId);
-  }
-
-  /** Off the room for good (the module dissolves the cell into detritus); an empty room is torn down. */
-  private removeFromActiveRoom(gameId: string, playerId: string): void {
-    const room = this.activeRooms.get(gameId);
-    if (!room) return;
-    room.removePlayer(playerId);
-    this.playerToGame.delete(playerId);
-    if (room.playerConnections.size === 0) this.teardownRoom(gameId);
-    else this.broadcastLobbyUpdate();
-  }
-
-  private cancelPendingRemoval(playerId: string): void {
-    const timer = this.pendingRemovals.get(playerId);
-    if (!timer) return;
-    clearTimeout(timer);
-    this.pendingRemovals.delete(playerId);
-  }
-
-  private teardownRoom(gameId: string): void {
-    const room = this.activeRooms.get(gameId);
-    if (!room) return;
-    room.stop();
-    for (const playerId of room.allPlayerIds) this.playerToGame.delete(playerId);
-    this.activeRooms.delete(gameId);
-    this.broadcastLobbyUpdate();
+    this.seats.dropConnection(connection.playerId);
   }
 
   // ---- queries (also used by MCP) ----------------------------------------
