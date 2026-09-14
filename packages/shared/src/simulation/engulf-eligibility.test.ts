@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §6.1 and the boundary rows of its scenarios: E10 (exact ratio), E16
+// docs/ecology/absorption.md §6.1 and the boundary rows of its scenarios: E10 (exact ratio), E16
 // (hysteresis) and TRAITS T3 (the Cell Wall bonus). Cell views are reduced to what the
 // predicates read; the numbers are the design's.
 
@@ -9,7 +9,7 @@ import { ENGULF_HOLD, canContinueEngulf, canEngulf, resolveEngulfHold, type Engu
 import { ENGULF_PHASE } from './engulf-pace.js';
 
 const balance = DEFAULT_BALANCE.absorption;
-/** Cell Wall I's bonus as the catalog declares it (TRAITS §3.3), so T3 tracks a retune. */
+/** Cell Wall I's bonus as the catalog declares it (traits/catalog-organelles.md §3.3), so T3 tracks a retune. */
 const CELL_WALL_ONE_BONUS = DEFAULT_BALANCE.traits.TRAIT_TIERS.cell_wall[0].membraneRatioBonus ?? 0;
 const PREY_MASS = 20;
 const JUST_UNDER = 0.01;

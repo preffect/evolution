@@ -1,4 +1,4 @@
-// The evolution ladder (docs/GAME-DESIGN.md §3, §12). `CELL_STAGE` (types/game.ts) names the
+// The evolution ladder (docs/game-design/core.md §3, docs/game-design/constants-and-acceptance.md §12). `CELL_STAGE` (types/game.ts) names the
 // stages; this file fixes their order and their gates.
 
 import { CELL_STAGE, type CellStage, type TraitId } from '../types/game.js';
@@ -23,5 +23,5 @@ export const STAGE_GATE_TRAITS: Record<CellStage, readonly TraitId[]> = {
   specialised: ['amoeba_pseudopods', 'paramecium_cilia', 'euglena_eyespot', 'diatom_shell', 'stentor_trumpet'],
 };
 
-/** Bacteria of one variant eaten to unlock its endosymbiont: two full clusters (docs/ECOLOGY.md §1, decision #138). */
+/** Bacteria of one variant eaten to unlock its endosymbiont: two full clusters (docs/ecology/food-and-spawn.md §1, decision #138). */
 export const ENDOSYMBIOSIS_BACTERIA_REQUIRED = 10;

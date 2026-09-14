@@ -1,4 +1,4 @@
-// The round clock as numbers (docs/GAME-DESIGN.md §5.1, §5.4; docs/ECOLOGY.md §3.1): whole ticks
+// The round clock as numbers (docs/game-design/session.md §5.1, §5.4; docs/ecology/food-and-spawn.md §3.1): whole ticks
 // from the integer counter (`tick − roundStartTick`), never accumulated milliseconds, so the
 // boundaries land on exact ticks; and the world reference the tick reads, computed here from the
 // shared clock exactly as the HUD computes it from the snapshot.
@@ -52,7 +52,7 @@ export function roundTimeLeftMsAt(world: Pick<WorldState, 'roundStartTick' | 'co
 }
 
 /**
- * The world's average cell at `tick` (docs/ECOLOGY.md §3.1): the shared formula over the shared
+ * The world's average cell at `tick` (docs/ecology/food-and-spawn.md §3.1): the shared formula over the shared
  * elapsed seconds, so the server and the HUD read one clock. Frozen through `results` by the cap.
  */
 export function worldReferenceAt(world: RoundClockWorld, tick: number): WorldReference {

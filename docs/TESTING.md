@@ -44,7 +44,7 @@ the opt-in integration run rather than on every save.
 - `describe` names the unit (`'PerformanceTracker'`, `'debug_get_room'`); `it` states one
   behaviour in the present tense: `it('drops an input whose sequence is not newer', …)`.
 - One behaviour per test. Assert values and hashes; never snapshot a large object, never
-  assert object identity on the in-place simulation state (`ARCHITECTURE.md` §3.1).
+  assert object identity on the in-place simulation state (`architecture/server-simulation.md` §3.1).
 - A test that needs randomness seeds it (`createSeededRandom(TEST_SEED)`); a test that needs
   time uses `ManualClock` or vitest fake timers. `Math.random`, `Date.now` and
   `performance.now` are lint-banned in tests too (`CODE-STANDARDS.md` §8).
@@ -109,7 +109,7 @@ the wall-clock read; a hash mismatch in a simulation test is bisected by hashing
 
 ## 8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)
 
-The design tables (`ECOLOGY.md` §8, `GAME-DESIGN.md` §13, `PROGRESSION.md` §7, `TRAITS.md` §6)
+The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and-acceptance.md` §6)
 read "given seed S and inputs I, after N ticks assert X". The runner turns one row into one test
 without a server, a socket or a browser: it builds the room's `GameModule` the way the lobby
 would, drives it under a `ManualClock` through the production `FixedStepAccumulator`
@@ -151,14 +151,14 @@ it('E9: A absorbs B on tick 30', async () => {
   `.playerJoinsAt(tick)` adds a late joiner (its index is the count before the call, G9/P7);
   `.playerLeavesAt(tick, index)` removes one before that step (G10: the fixture drives the room's
   grace timer) and must come after the join. `.config({...})` overrides the session config.
-- **Placement.** `.placeCell`, `.placeMote` and `.placeFragment` follow `ECOLOGY.md` §8
+- **Placement.** `.placeCell`, `.placeMote` and `.placeFragment` follow `ecology/acceptance.md` §8
   (`fixtures.ts`, `placement.ts`): the first cell sits at the broth point, anything after it is
   placed `eastOfFirstCellWu` (the row's centre distance) or at an explicit `at`. `at` is an
   **anchor**, resolved by the adapter once the world exists: a bare `{ x, y }`, a zone
   (`ZONE.broth`, `ZONE.vent`, `ZONE.shallows`), `insideCellOf(i)` (E12, E15, P2),
   `eastOfCellOf(i, wu)` (E4 against a seeded cell) or `gelPatchCentre(n)` (E8). A cell takes
   `isPinned`, `traits` (`'cilia'` is tier I, `{ traitId: 'nucleoid', tier: 2 }` names the tier,
-  TRAITS §2) and `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760"). A setup placement
+  traits/model.md §2) and `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760"). A setup placement
   applies before tick 1; **`.atTick(T).placeMote(...)`** schedules the same record to apply
   between tick T − 1 and tick T, after that tick's joins and leaves and before its scripts
   (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 10 ticks" is ten
@@ -166,7 +166,7 @@ it('E9: A absorbs B on tick 30', async () => {
   `patches`. Placing anything means the adapter disables the initial fill and both spawners for
   that run, and fails the scenario when a seeded gel patch lies within `GEL_PATCH_CLEARANCE_WU`
   of the broth point (`isClearOfGelPatches`; pick another seed, never tolerate it).
-  **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ECOLOGY §8.1: the W rows
+  **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ecology/acceptance.md §8.1: the W rows
   and G13) sets wild seat `seat`'s spread factor, places or replaces its cell (default: east of
   the first placed cell) and clears the seat's target and velocity as a respawn does, so the seat
   has no target until its next decision tick; it schedules with `.atTick(T)` like any placement
@@ -175,7 +175,7 @@ it('E9: A absorbs B on tick 30', async () => {
   `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures.
 - **Seeds and the Evolution snapshot.** `TABLE_SEED` (42) is what every row names;
   `PLACED_ROW_SEED` (48) is what the placed rows run on, because only the gel patches come from
-  the seed and seed 42 puts one 73 wu from the broth point (ECOLOGY §8's clearance rule refuses
+  the seed and seed 42 puts one 73 wu from the broth point (ecology/acceptance.md §8's clearance rule refuses
   it). The scenario snapshot is the full snapshot with **exact positions** (the tables assert
   ± 0.01 wu; only the wire rounds to `SNAPSHOT_POSITION_DECIMALS`), plus that tick's `effects`
   and the spawners' `spawnedCounts` (E2, E14 count spawns, not populations). `evolution-views.ts`
@@ -194,7 +194,7 @@ it('E9: A absorbs B on tick 30', async () => {
   cell-relative script whose player has no cell this tick (absorbed, spectating, the tick it
   joins) sends nothing; an adapter with no world (echo) throws instead. Commands for one player
   in one tick are merged (later fields win; the sprint flag and the trait pick are OR-merged,
-  `ARCHITECTURE.md` §3.2) and the adapter stamps the sequence.
+  `architecture/server-simulation.md` §3.2) and the adapter stamps the sequence.
 - **Bots.** `.bot(index, factory, everyTicks)` drives a player from a `BotStrategy` built by
   `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` strategies of
   section 8.3 implement and the headless bot client reuses. The schedule holds the **factory**, not an
@@ -282,13 +282,13 @@ beside them in `game/bots/`, re-exported by `testing/gameplay/strategies/index.t
 imports them from the framework) are pure over the `ScriptContext` and a `BotPerception`; the
 only randomness they may draw is `context.random`.
 
-| Name                           | Behaviour                                                                                                                                                                                                                                |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `idle`                         | Never sends an input: a warm body in the roster.                                                                                                                                                                                         |
-| `wander`                       | A seeded random walk: the heading drifts by a gaussian turn (`WANDER_TURN_SIGMA_RADIANS`) and the bot aims `WANDER_STEP_WU` ahead, from its cell's centre when it has one.                                                               |
-| `grazer`                       | Aims at the nearest mote every decision; sends nothing without a cell or without food.                                                                                                                                                   |
-| `hunter`                       | Commits to the largest cell it can engulf (the shared `canEngulf`, ECOLOGY §6.1) until it is gone or no longer engulfable, then picks again; sprints within `HUNTER_SPRINT_WITHIN_RADII` radii. `preyPlayerId` narrows it to one player. |
-| `createScriptSequenceStrategy` | Scripted: a list of `scripts.ts` steps, each owning a number of decisions, optionally looping; code only, no catalogue name.                                                                                                             |
+| Name                           | Behaviour                                                                                                                                                                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `idle`                         | Never sends an input: a warm body in the roster.                                                                                                                                                                                                       |
+| `wander`                       | A seeded random walk: the heading drifts by a gaussian turn (`WANDER_TURN_SIGMA_RADIANS`) and the bot aims `WANDER_STEP_WU` ahead, from its cell's centre when it has one.                                                                             |
+| `grazer`                       | Aims at the nearest mote every decision; sends nothing without a cell or without food.                                                                                                                                                                 |
+| `hunter`                       | Commits to the largest cell it can engulf (the shared `canEngulf`, ecology/absorption.md §6.1) until it is gone or no longer engulfable, then picks again; sprints within `HUNTER_SPRINT_WITHIN_RADII` radii. `preyPlayerId` narrows it to one player. |
+| `createScriptSequenceStrategy` | Scripted: a list of `scripts.ts` steps, each owning a number of decisions, optionally looping; code only, no catalogue name.                                                                                                                           |
 
 `createStrategyByName(name, perception, { preyPlayerId })` is the catalogue the CLI and
 `debug_spawn_bot` resolve a name through; both validate the string at their edge
@@ -324,7 +324,7 @@ pnpm --filter @evolution/server bot-client --game <id> --bots 4 --strategy graze
 Each bot opens its own socket as `?clientId=bot_<seed>_<index>` (`CLIENT_ID_QUERY_PARAMETER`; a
 rerun with the same seed takes the same seats), sends `join_lobby` as `Bot <index>` and `join_game`, and is seated by
 the `game_state` of a late join or the `game_started` of a pending game. From then on it runs
-one client tick per fixed step through the injected `Clock` + `Ticker` (docs/ARCHITECTURE.md §5:
+one client tick per fixed step through the injected `Clock` + `Ticker` (docs/architecture/client.md §5:
 one `player_input` per tick, `sequence` = tick), deciding from the latest snapshot; it holds
 until the first snapshot arrives. The CLI is the only composition root that names the system
 pair; the integration test drives two bots against a real in-process server for 300 ticks on
@@ -338,7 +338,7 @@ Stats per bot: `clientTick`, `decisions`, `inputsSent`, `snapshotsReceived`, `dr
 `errorsReceived`, `lastError`, `isConnected`.
 
 **In-process** (`debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
-`debug_remove_bot(gameId, playerId)`, docs/ARCHITECTURE.md §8): the game module drives the bot
+`debug_remove_bot(gameId, playerId)`, docs/architecture/debug-mcp.md §8): the game module drives the bot
 itself from a `createInProcessBotRoster(binding)` (`game/bots/in-process-bots.ts`) and the room
 seats it as a synthetic player (`sim_bot_<seed>_<index>`, a namespace no wire bot shares; an id
 already in play is refused before the module holds the bot), so the lobby and the other clients

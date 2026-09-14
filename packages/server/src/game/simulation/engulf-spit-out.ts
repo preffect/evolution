@@ -1,10 +1,10 @@
-// The spit-out half of the engulf (docs/ECOLOGY.md §6.1, "Spit-out"): the per-tick roll a spiny prey
+// The spit-out half of the engulf (docs/ecology/absorption.md §6.1, "Spit-out"): the per-tick roll a spiny prey
 // makes from the `engulf` stream, and the refractory its predator keeps afterwards. Two readers of
 // that refractory, both here: the engulf step's start check and its prune at step 6, and separation
 // at step 3 through `contact.ts`, which treats a pair inside one as a pair that cannot engulf (§5.3).
 //
 // No build-1 tier table sets `spitOutChancePerSecond` yet — the Diatom Shell's 0.4 / 0.7 / 1.0 arrives
-// with #260 (docs/TRAITS.md §3.15) — so in play today every prey takes the no-draw branch and the
+// with #260 (docs/traits/catalog-forms.md §3.15) — so in play today every prey takes the no-draw branch and the
 // stream is never advanced. The path itself is live: a folded modifier with a positive chance runs it,
 // which is how `engulf-spit-out.test.ts` reaches it.
 
@@ -60,7 +60,7 @@ function hasLapsed(untilTick: number, tick: number): boolean {
   return tick > untilTick;
 }
 
-/** A live refractory blocks this predator from restarting on this prey (docs/ECOLOGY.md §6.1). */
+/** A live refractory blocks this predator from restarting on this prey (docs/ecology/absorption.md §6.1). */
 export function hasSpitOutRefractory(predator: CellRecord, preyCellId: EntityId, tick: number): boolean {
   return predator.spitOutRefractories.some(
     (refractory) => refractory.preyCellId === preyCellId && !hasLapsed(refractory.untilTick, tick),

@@ -1,4 +1,4 @@
-// The own-cell indicators' textures (docs/RENDERING.md §10): the indicator atlas's ghosts and pip blocks
+// The own-cell indicators' textures (docs/rendering/own-cell-indicators.md §10): the indicator atlas's ghosts and pip blocks
 // packed into one source (they draw in one sprite batch), the label pill as a texture of its
 // own (a nine-slice sprite stretches it), and the two BitmapFonts installed once for the bundle. Built and
 // destroyed with the texture bundle (`render-textures.ts`), so a rematch rebakes and reinstalls them.

@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §5.1, §5.4: whole-tick boundaries from the integer counter.
+// docs/game-design/session.md §5.1, §5.4: whole-tick boundaries from the integer counter.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, TICK_HZ, TICK_INTERVAL_MS } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';

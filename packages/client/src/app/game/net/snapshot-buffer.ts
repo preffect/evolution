@@ -1,4 +1,4 @@
-// The last few snapshots, by tick (docs/ARCHITECTURE.md §5): the interpolation brackets a
+// The last few snapshots, by tick (docs/architecture/client.md §5): the interpolation brackets a
 // fractional render tick between two of them. Framework-free; the store owns one.
 
 import { SNAPSHOT_BUFFER_SIZE, type GameSnapshot } from '@evolution/shared';
@@ -26,7 +26,7 @@ export class SnapshotBuffer {
   /**
    * Keeps a newer snapshot and drops the oldest past the capacity; a stale tick is ignored. The
    * latest tick again is a republished frame (a debug mutation on a paused room,
-   * docs/ARCHITECTURE.md §8) and replaces the one it supersedes.
+   * docs/architecture/debug-mcp.md §8) and replaces the one it supersedes.
    */
   push(snapshot: GameSnapshot): SnapshotPushOutcome {
     const latest = this.latest();

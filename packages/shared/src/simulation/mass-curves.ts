@@ -1,6 +1,6 @@
-// The size, speed and gel curves (docs/ECOLOGY.md §5.1, §5.2): one home, read by the server
+// The size, speed and gel curves (docs/ecology/mass-and-movement.md §5.1, §5.2): one home, read by the server
 // movement step and by the client prediction and HUD. Formulas take numbers from
-// `balance.growth`, never module constants (docs/ARCHITECTURE.md §3.3).
+// `balance.growth`, never module constants (docs/architecture/server-simulation.md §3.3).
 
 import type { BalanceConfig } from '../constants/balance.js';
 import { clamp } from '../types/common.js';

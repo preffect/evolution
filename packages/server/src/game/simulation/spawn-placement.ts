@@ -1,4 +1,4 @@
-// Safe spawn placement (docs/GAME-DESIGN.md §5.2): candidates from the `spawnPlacement` stream,
+// Safe spawn placement (docs/game-design/session.md §5.2): candidates from the `spawnPlacement` stream,
 // rejected while a threat lies within `SAFE_SPAWN_RADIUS`; after `SAFE_SPAWN_MAX_ATTEMPTS`
 // rejections the candidate farthest from the nearest threat is used.
 

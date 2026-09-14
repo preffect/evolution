@@ -1,4 +1,4 @@
-// Writes data/balance.json from DEFAULT_BALANCE (docs/ARCHITECTURE.md §9, docs/CODE-STANDARDS.md §2).
+// Writes data/balance.json from DEFAULT_BALANCE (docs/architecture/constants-files-tests.md §9, docs/CODE-STANDARDS.md §2).
 // The file is the diffable reference the debug tools quote; nothing reads it at runtime, and
 // balance.test.ts fails the gate when it drifts from the constants.
 //

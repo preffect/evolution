@@ -24,7 +24,7 @@ import { orientedBoxGapPx } from './oriented-box';
 import { ladderOrbitRadiusPx, orbitDegreesOf } from './own-cell-geometry';
 
 const REQUIRED = ENDOSYMBIOSIS_BACTERIA_REQUIRED;
-/** UI.md §3.1.3's four sizes (its table, pinned in `own-cell-geometry.spec.ts`). */
+/** ui/hud.md §3.1.3's four sizes (its table, pinned in `own-cell-geometry.spec.ts`). */
 const TABLE_SIZES_PX = [24, 32, 45, 102] as const;
 const FLOAT_SLACK = 1e-9;
 const AEROBIC = createTestAerobicCounter();

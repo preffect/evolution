@@ -1,5 +1,5 @@
-// The movement step (docs/ECOLOGY.md §5.2, docs/GAME-DESIGN.md §6, §8), shared by the server's
-// movement system and the client's prediction (docs/ARCHITECTURE.md §5). Pure: one pose in, one
+// The movement step (docs/ecology/mass-and-movement.md §5.2, docs/game-design/controls-and-scope.md §6, §8), shared by the server's
+// movement system and the client's prediction (docs/architecture/client.md §5). Pure: one pose in, one
 // pose out, every number passed in. The caller computes the speed cap (mass curve, sprint, zone,
 // trait and engulf factors) and the blend; the kernel only steers, integrates and clamps.
 
@@ -65,7 +65,7 @@ export const NO_STEER_COMMAND: SteerCommand = { directionX: 0, directionY: 0, th
 
 /**
  * The direction and throttle this tick's movement uses. The engulf step's struggle
- * (docs/ECOLOGY.md §6.1) reads the prey's command through this, so the throttle arithmetic has one
+ * (docs/ecology/absorption.md §6.1) reads the prey's command through this, so the throttle arithmetic has one
  * home and "steering away slows the wrap" can never drift from "steering away moves the cell".
  */
 export function steerCommand(pose: Pick<MovementPose, 'x' | 'y'>, step: SteerCommandStep): SteerCommand {
@@ -106,7 +106,7 @@ export function clampToDish(pose: MovementPose, radiusWu: number, dishRadiusWu: 
 
 /**
  * One tick of steering from a command already taken: the caller that needs the command for something
- * else (the engulf struggle, docs/ECOLOGY.md §6.1) takes it once and passes it here, so the movement
+ * else (the engulf struggle, docs/ecology/absorption.md §6.1) takes it once and passes it here, so the movement
  * and that other reader can never be looking at two different commands.
  */
 export function stepMovementFrom(pose: MovementPose, command: SteerCommand, step: MovementStep): MovementPose {

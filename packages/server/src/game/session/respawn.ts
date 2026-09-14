@@ -1,4 +1,4 @@
-// Step 9 (docs/GAME-DESIGN.md §5.2, docs/PROGRESSION.md §5): a spectating player's timer counts
+// Step 9 (docs/game-design/session.md §5.2, docs/PROGRESSION.md §5): a spectating player's timer counts
 // down, this tick included even when the death happened at step 6 of it (`session/death.ts` sets
 // the timer for that, #211); on the tick after it reaches zero a new cell is placed by safe placement through the entry
 // rule (the world clock's mass, a lift to the world's level with drafts queued), level, traits and

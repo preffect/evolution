@@ -1,4 +1,4 @@
-// The nucleus and nucleoid sprites (docs/RENDERING.md §3, sheet 01 layer 6): the nucleus is a
+// The nucleus and nucleoid sprites (docs/rendering/contents-and-motion.md §3, sheet 01 layer 6): the nucleus is a
 // 0.40 r soft glow cut out inside the 0.30 r disc (an outer glow only), the disc's rim, chromatin
 // spots scattered from the cosmetic `organelles` sub-stream, a white nucleolus with its own halo
 // and the nucleus's own highlight inside the disc — and no disc fill: the disc is the cell shader's

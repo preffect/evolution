@@ -36,7 +36,7 @@ describe('endosymbiontTallies', () => {
 
 describe('pipBlockKey', () => {
   it('clamps the tally into the atlas: past required reads the full block, below zero the empty one', () => {
-    // The record clamps too, but a raw tally keeps climbing until the trait is picked (UI.md §3.1.4).
+    // The record clamps too, but a raw tally keeps climbing until the trait is picked (ui/hud.md §3.1.4).
     expect(pipBlockKey(BACTERIUM_VARIANT.aerobic, REQUIRED + 2, REQUIRED)).toBe(`aerobic:${REQUIRED}`);
     expect(pipBlockKey(BACTERIUM_VARIANT.aerobic, -1, REQUIRED)).toBe('aerobic:0');
     expect(pipBlockKey(BACTERIUM_VARIANT.photosynthetic, 3, REQUIRED)).toBe('photosynthetic:3');

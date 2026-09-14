@@ -1,8 +1,8 @@
-// The own-cell indicators' constants (docs/UI.md §9, whose table owns every value and whose
+// The own-cell indicators' constants (docs/ui/components-and-constants.md §9, whose table owns every value and whose
 // rationale column says why each one is what it is; the home is `render/constants.ts` because the
 // renderer applies them). `render/constants-ledger.spec.ts` parses that table and pins every row
 // here by name and value. `DNA_RING_KEEP_OUT_FRACTION` is §9's too, but its page is `organelles.ts`
-// beside the slot rules that read it. Every px value is a screen px floor (UI.md §3.1.3): nothing
+// beside the slot rules that read it. Every px value is a screen px floor (ui/hud.md §3.1.3): nothing
 // here scales with the camera or with `--hud-scale`.
 
 // ---- the DNA ring and the level numeral ----
@@ -40,7 +40,7 @@ export const LADDER_BACKING_ALPHA = 0.45;
 export const LADDER_UNLOCK_RING_PAD_PX = 2;
 export const LADDER_UNLOCK_RING_STROKE_PX = 1.5;
 
-// The orbit angles are **degrees, clockwise from 12 o'clock** (docs/UI.md §3.1.2), which is not
+// The orbit angles are **degrees, clockwise from 12 o'clock** (docs/ui/hud.md §3.1.2), which is not
 // what a trigonometry function expects. `effects/own-cell-geometry.ts` `screenRadiansOf` is the
 // one turn between the two, and its spec pins where each of these angles lands on screen: a wrong
 // turn is silent, the counters simply appear elsewhere with every constant here still correct.

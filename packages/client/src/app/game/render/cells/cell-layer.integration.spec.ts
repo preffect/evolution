@@ -1,4 +1,4 @@
-// The cross-module wiring of the cell tells (docs/RENDERING.md §9): the warning ring agrees with
+// The cross-module wiring of the cell tells (docs/rendering/files-and-tests.md §9): the warning ring agrees with
 // the shared `canEngulf` on the live balance, an absorbed prey draws as a ghost from the
 // `cell_absorbed` effect through the packed rows and leaves at 600 ms, and the predator wears the
 // ghost's seal meanwhile. Frames come through the layer's real contract, not its parts.

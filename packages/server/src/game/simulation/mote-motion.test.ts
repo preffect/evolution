@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §1 (motion column) and docs/TRAITS.md §3.14, §6 (T8).
+// docs/ecology/food-and-spawn.md §1 (motion column) and docs/traits/catalog-forms.md §3.14, docs/traits/constants-and-acceptance.md §6 (T8).
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, DEFAULT_BALANCE, DNA_TAG, FOOD_KIND, RANDOM_STREAM, TICK_HZ } from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';

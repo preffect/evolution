@@ -207,7 +207,7 @@ describe('RenderSession', () => {
     expect(api.setSeed(9)).toBe(false);
   });
 
-  it('rebuilds the frame-budget report every RENDER_REPORT_EVERY_FRAMES frames with every stage key (docs/RENDERING.md §7)', async () => {
+  it('rebuilds the frame-budget report every RENDER_REPORT_EVERY_FRAMES frames with every stage key (docs/rendering/budget.md §7)', async () => {
     const { subject, pixi, clock } = session();
     subject.onMessage(gameState());
     await flush();

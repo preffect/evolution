@@ -1,4 +1,4 @@
-// The one place a cell's mass changes and its radius follows (docs/ECOLOGY.md §5.1, §5.4). Mass
+// The one place a cell's mass changes and its radius follows (docs/ecology/mass-and-movement.md §5.1, §5.4). Mass
 // gained past `CELL_MAX_MASS` converts to DNA at `MASS_OVERFLOW_DNA_PER_MASS`, so eating at the
 // cap still progresses the leaderboard.
 

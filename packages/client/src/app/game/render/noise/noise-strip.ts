@@ -1,4 +1,4 @@
-// The 256 × N RGBA jitter / lobes strip (docs/RENDERING.md §2.1): a cell reads its row at
+// The 256 × N RGBA jitter / lobes strip (docs/rendering/cells.md §2.1): a cell reads its row at
 // `θ / 2π + φ` for the ±0.8 % jitter (seeded value noise) and the sum of its 5–7 rest lobes. One
 // row per cell variant, built once per round from the cosmetic fork. Each value is a 16-bit pair
 // (R G = jitter hi lo, B A = lobes hi lo) read with `texelFetch` and lerped by hand on both sides,

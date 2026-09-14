@@ -1,4 +1,4 @@
-// The endosymbiosis counters' pip blocks (docs/UI.md §3.1.2, docs/RENDERING.md §10; the unlock ring is an arc row).
+// The endosymbiosis counters' pip blocks (docs/ui/hud.md §3.1.2, docs/rendering/own-cell-indicators.md §10; the unlock ring is an arc row).
 // A pip block is one sprite per (variant, eaten): `required` pips in rows of `LADDER_PIP_ROW_MAX`, ⌀
 // `LADDER_PIP_PX` with `LADDER_PIP_GAP_PX` between, laid along x (the orbit's clockwise tangent) and
 // lit in that order, the row nearest the cell first. A sprite rotated to the tangent points its +y at
@@ -67,7 +67,7 @@ export function endosymbiontTallies(): readonly EndosymbiontTally[] {
 
 /**
  * The atlas key of a pip block. `eaten` is clamped to `[0, required]` here too: the atlas has no entry
- * past either end, and a raw tally keeps climbing until the trait is picked (UI.md §3.1.4).
+ * past either end, and a raw tally keeps climbing until the trait is picked (ui/hud.md §3.1.4).
  */
 export function pipBlockKey(variant: BacteriumVariant, eaten: number, required: number): string {
   return `${variant}:${clamp(Math.round(eaten), 0, required)}`;

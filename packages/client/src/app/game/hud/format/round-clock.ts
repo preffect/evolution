@@ -1,4 +1,4 @@
-// The round clock's every decision (docs/UI.md §3.1.1), as one pure function: what the digits read,
+// The round clock's every decision (docs/ui/hud.md §3.1.1), as one pure function: what the digits read,
 // whether the bloom has started, whether the last-ten-seconds pulse runs and whether the clock is
 // shown at all. `round-timer.component.ts` only binds the record this answers.
 
@@ -25,7 +25,7 @@ export interface RoundClockInput {
 export interface RoundClockState {
   /** `m:ss`, floored: `1:00` at sixty seconds left, `0:09` at nine. */
   readonly text: string;
-  /** `ROUND`, or `BLOOM` from the bloom's start (docs/ECOLOGY.md §3.1). */
+  /** `ROUND`, or `BLOOM` from the bloom's start (docs/ecology/food-and-spawn.md §3.1). */
   readonly caption: string;
   /** In bloom the digits turn level gold. */
   readonly isBloom: boolean;

@@ -23,7 +23,7 @@ function bake() {
 }
 
 describe('lightPoolBakeScale', () => {
-  it('maps each axis so the half-size is the sheet radius on that axis (RENDERING §6.1: 0.52 and 0.67 texel/wu)', () => {
+  it('maps each axis so the half-size is the sheet radius on that axis (rendering/budget.md §6.1: 0.52 and 0.67 texel/wu)', () => {
     const scale = lightPoolBakeScale();
     expect(scale.pxPerWu).toBeCloseTo(HALF_SIZE_PX / LIGHT_POOL_SHEET_RADII_WU.x, 6);
     expect(scale.pxPerWuY).toBeCloseTo(HALF_SIZE_PX / LIGHT_POOL_SHEET_RADII_WU.y, 6);

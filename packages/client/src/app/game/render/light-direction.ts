@@ -1,6 +1,6 @@
-// The one light direction (docs/VISUAL-STYLE.md §1, docs/RENDERING.md §2.2) in radians, and the
+// The one light direction (docs/VISUAL-STYLE.md §1, docs/rendering/cells.md §2.2) in radians, and the
 // vectors every module derives from it: the unit vector toward the light and the nucleus rest slot
-// (`NUCLEUS_OFFSET_TOWARD_LIGHT` along it, cell frame, fractions of `r`, RENDERING §3). Derived
+// (`NUCLEUS_OFFSET_TOWARD_LIGHT` along it, cell frame, fractions of `r`, rendering/contents-and-motion.md §3). Derived
 // once here so the shader bands, the membrane pass, the organelle layout and the ghost agree.
 
 import { LIGHT_DIRECTION_DEG, NUCLEUS_OFFSET_TOWARD_LIGHT } from './constants';

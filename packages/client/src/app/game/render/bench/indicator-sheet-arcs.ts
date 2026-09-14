@@ -1,4 +1,4 @@
-// The arc panel of the indicator contact sheet (docs/RENDERING.md §10, #294 evidence): what the arc primitive
+// The arc panel of the indicator contact sheet (docs/rendering/own-cell-indicators.md §10, #294 evidence): what the arc primitive
 // draws, at the sizes review asked for. The DNA ring at 0 / 25 / 50 / 75 / 100 % on the floored 17 px ring and on
 // a max-mass cell's 44.9 px ring; two ladder orbits with both counters full, so each counter ghost wears its ring:
 // at 32 px beside the envelope ghost, where the backings merge, and a 24 px prokaryote, whose two backings stay

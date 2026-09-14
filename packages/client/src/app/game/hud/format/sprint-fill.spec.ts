@@ -18,7 +18,7 @@ describe('sprintFillFor', () => {
 
   it('starts partly drawn when a modifier left less cooldown than the balance names', () => {
     // A trait that shortens the cooldown hands back a remaining that is already under the full
-    // length; the ring shows that rather than restarting from empty (docs/UI.md §3.1.2).
+    // length; the ring shows that rather than restarting from empty (docs/ui/hud.md §3.1.2).
     const shortened = Math.floor(COOLDOWN_TICKS / 4);
     expect(sprintFillFor({ sprintCooldownRemainingTicks: shortened }, DEFAULT_BALANCE.controls)).toBeCloseTo(0.75, 1);
   });

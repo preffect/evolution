@@ -1,4 +1,4 @@
-// The typed sound-event catalogue (docs/ARCHITECTURE.md §7, docs/AUDIO.md §2, §3): lookups over
+// The typed sound-event catalogue (docs/architecture/client.md §7, docs/AUDIO.md §2, §3): lookups over
 // the ids of types/audio.ts and the numbers of constants/audio.ts, plus the layering rules the
 // client's ambient mixer and level-up motif follow. Pure; the server never imports this.
 
@@ -20,7 +20,7 @@ export function soundEventRule(id: SoundEventId): SoundEventRule {
   return SOUND_EVENT_CATALOG[id];
 }
 
-/** The trait cue of docs/TRAITS.md §3 by trait id, read from the catalog so the two cannot drift. */
+/** The trait cue of docs/traits/catalog-organelles.md §3 by trait id, read from the catalog so the two cannot drift. */
 export const TRAIT_CUE_BY_TRAIT: Readonly<Record<TraitId, SoundEventId>> = Object.fromEntries(
   TRAIT_CATALOG.map((trait) => [trait.id, trait.audioCue]),
 ) as Record<TraitId, SoundEventId>;

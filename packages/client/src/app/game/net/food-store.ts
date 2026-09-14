@@ -1,4 +1,4 @@
-// The client's mote store (docs/ARCHITECTURE.md §4): `spawned` upserts, `removedIds` deletes if
+// The client's mote store (docs/architecture/wire-contract.md §4): `spawned` upserts, `removedIds` deletes if
 // present, `moved` patches a bacterium's position and remembers the one before it, so a frame
 // between two snapshots lerps the random walk instead of stepping it. Reset on every `game_state`.
 
@@ -19,7 +19,7 @@ export class FoodStore {
   applyDelta(delta: FoodDelta, tick: number): void {
     for (const mote of delta.spawned) {
       this.motes.set(mote.id, mote);
-      // A re-spawn is a full position (docs/ARCHITECTURE.md §4): any motion in flight is stale.
+      // A re-spawn is a full position (docs/architecture/wire-contract.md §4): any motion in flight is stale.
       this.motions.delete(mote.id);
     }
     for (const id of delta.removedIds) {

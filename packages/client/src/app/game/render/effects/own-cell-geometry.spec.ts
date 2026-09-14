@@ -1,4 +1,4 @@
-// Pins docs/UI.md §3.1.3 — the geometry table at 24 / 32 / 45 / 102 px and its three inequalities —
+// Pins docs/ui/hud.md §3.1.3 — the geometry table at 24 / 32 / 45 / 102 px and its three inequalities —
 // and the one turn from the record's angles to the screen. The table and the HUD numbers are read
 // from the doc rather than copied, so the doc and these functions cannot drift apart without this
 // file going red. Two of the table's columns (one counter's span, the gap between the two backings)
@@ -33,7 +33,8 @@ import {
   type OrbitPoint,
 } from './own-cell-geometry';
 
-const UI_DOCUMENT = readRepoDocument('docs/UI.md');
+const UI_DOCUMENT = readRepoDocument('docs/ui/hud.md');
+const LAYOUT_DOCUMENT = readRepoDocument('docs/ui/layout.md');
 /** Any radius will do for the angle turn; a round one keeps the expected points readable. */
 const PROBE_RADIUS_PX = 10;
 const FLOAT_SLACK = 1e-9;
@@ -76,7 +77,7 @@ function printedNumbersIn(cell: string): PrintedNumber[] {
 
 function printedAt(row: PrintedRow | undefined, column: number, index = 0): PrintedNumber {
   const printed = row?.[column]?.[index];
-  if (printed === undefined) throw new Error(`UI.md §3.1.3 table: nothing printed in column ${column}`);
+  if (printed === undefined) throw new Error(`ui/hud.md §3.1.3 table: nothing printed in column ${column}`);
   return printed;
 }
 
@@ -96,7 +97,7 @@ function geometryTable(): PrintedRow[] {
 
 /** A px value from a row of the doc's §1 constants table. */
 function hudConstant(name: string): number {
-  const match = new RegExp(`\\| \`${name}\`\\s*\\|\\s*(\\d+)`).exec(UI_DOCUMENT);
+  const match = new RegExp(`\\| \`${name}\`\\s*\\|\\s*(\\d+)`).exec(LAYOUT_DOCUMENT);
   expect(match, name).not.toBeNull();
   return Number(match?.[1]);
 }
@@ -166,9 +167,9 @@ describe('the angle turn from clockwise-from-12 degrees to the screen', () => {
   });
 });
 
-// ---- UI.md §3.1.3 ----
+// ---- ui/hud.md §3.1.3 ----
 
-describe('docs/UI.md §3.1.3 geometry table', () => {
+describe('docs/ui/hud.md §3.1.3 geometry table', () => {
   it('has the four sizes that matter', () => {
     expect(TABLE.map((row) => printedAt(row, COLUMN.size).value)).toEqual([24, 32, 45, 102]);
   });
@@ -193,7 +194,7 @@ describe('docs/UI.md §3.1.3 geometry table', () => {
   });
 });
 
-describe('docs/UI.md §3.1.3 inequalities', () => {
+describe('docs/ui/hud.md §3.1.3 inequalities', () => {
   it('keeps the orbit under the picker band at the cap', () => {
     const bandTopPx = hudConstant('HUD_PLAYER_EXCLUSION_PX') + hudConstant('PICKER_BAND_GAP_PX');
     expect(ladderOrbitExtentPx(CAP_R_PX)).toBeLessThan(bandTopPx);

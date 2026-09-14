@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8, the engulf rows where the prey gets away or is carried past its chance: E11b,
+// docs/ecology/acceptance.md §8, the engulf rows where the prey gets away or is carried past its chance: E11b,
 // E11 and E11's reaction window, each run twice and hash-compared. The rows a predator wins or holds
 // are `ecology-engulf.gameplay.test.ts`; the shared setup is `engulf-setups.ts`.
 
@@ -36,13 +36,13 @@ import {
 } from './engulf-setups.js';
 import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
 
-/** "B sprints away at tick t": steers away from t and presses sprint on t (docs/ECOLOGY.md §8). */
+/** "B sprints away at tick t": steers away from t and presses sprint on t (docs/ecology/acceptance.md §8). */
 const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair>) =>
   builder
     .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
     .from(tick + 1, player(1).does(awayFromPredator));
 
-describe('ECOLOGY §8: getting away from an engulf, and being carried past the chance', () => {
+describe('ecology/acceptance.md §8: getting away from an engulf, and being carried past the chance', () => {
   it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', async () => {
     const row = engulfPair('E11');
     await sprintsAwayFrom(E11_SPRINT_TICK)(row)

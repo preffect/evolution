@@ -1,4 +1,4 @@
-// The one balance record (docs/ARCHITECTURE.md §9): the tunable domain modules spread into plain
+// The one balance record (docs/architecture/constants-files-tests.md §9): the tunable domain modules spread into plain
 // records. Each room starts from a `structuredClone` of `DEFAULT_BALANCE`, `debug_set_balance`
 // patches number leaves of the room's copy, and the client predicts with the copy it receives in
 // `game_state`. Nothing here is read by the simulation as a module import; it arrives as

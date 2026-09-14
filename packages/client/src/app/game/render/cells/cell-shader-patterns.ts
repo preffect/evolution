@@ -1,4 +1,4 @@
-// The fragment shader's shared functions (docs/RENDERING.md §2.1): the instance reads, the
+// The fragment shader's shared functions (docs/rendering/cells.md §2.1): the instance reads, the
 // palette read, the 16-bit strip read, the profile `r(θ)` with its derivative (the same
 // expression as `radial-profile.ts`, term for term), the perpendicular membrane distance, and
 // the compositing helpers every band uses. GLSL ES 3.00, as a template string.

@@ -26,7 +26,7 @@ export interface FixtureContext {
  * Duties of an adapter over a world (#98), stated here so the seam cannot be met without them:
  * - `applyFixture` resolves the record's `PlacementAnchor` (`placement.ts`): `resolveFixedAnchor`
  *   for a point or a named zone, the world for a cell centre or a gel patch.
- * - ECOLOGY §8: placing anything disables the initial fill and both spawners for the run, and the
+ * - ecology/acceptance.md §8: placing anything disables the initial fill and both spawners for the run, and the
  *   scenario fails (`ScenarioSetupError`) when a seeded gel patch lies within `GEL_PATCH_CLEARANCE_WU`
  *   of the broth point (`isClearOfGelPatches`); never tolerate it, pick another seed.
  * - A scheduled fixture (`context.tick` > 0) is applied between ticks, after that tick's joins and

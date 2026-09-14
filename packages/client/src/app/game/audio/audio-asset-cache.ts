@@ -1,6 +1,6 @@
 // Fetches and decodes the manifest's files once each (docs/AUDIO.md §4). A file that is missing,
 // unreachable or undecodable is remembered as `null`, so a cue whose asset never shipped costs one
-// request and is silent from then on (docs/ARCHITECTURE.md §7). Playback never waits on a load:
+// request and is silent from then on (docs/architecture/client.md §7). Playback never waits on a load:
 // `peek` answers what is decoded now, `load` fills the cache for later.
 
 import {
@@ -30,7 +30,7 @@ export class FetchAudioAssetLoader implements AudioAssetLoader {
       const response = await fetch(url);
       return response.ok ? await response.json() : null;
     } catch {
-      // No manifest is the same as an empty one: the game plays silent (docs/ARCHITECTURE.md §7).
+      // No manifest is the same as an empty one: the game plays silent (docs/architecture/client.md §7).
       return null;
     }
   }

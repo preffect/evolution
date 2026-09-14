@@ -1,4 +1,4 @@
-// The arc primitive's instance rows (docs/RENDERING.md §10): every ring, track and arc the own-cell
+// The arc primitive's instance rows (docs/rendering/own-cell-indicators.md §10): every ring, track and arc the own-cell
 // indicators draw — the DNA track and fill, the ladder backings, the unlock rings, the escape track and
 // arc — as one row each in a small float table the arc shader reads (`arc-shader.ts`). A row is a centre
 // in the layer's world units, a radius and a stroke in screen px turned into world units by the zoom, a
@@ -7,7 +7,7 @@
 // backings, whose padded, merged spans already say where they end). A sweep of a whole turn or more is the
 // full ring. Pure.
 //
-// `startDeg` is the record's convention, **degrees clockwise from 12 o'clock** (UI.md §3.1.2); the row
+// `startDeg` is the record's convention, **degrees clockwise from 12 o'clock** (ui/hud.md §3.1.2); the row
 // holds screen radians from 3 o'clock, and `screenRadiansOf` is the one turn between the two.
 
 import { RADIANS_PER_FULL_TURN, type ValueOf } from '@evolution/shared';

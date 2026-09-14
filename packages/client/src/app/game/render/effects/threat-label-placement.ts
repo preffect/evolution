@@ -1,4 +1,4 @@
-// Where the nearest threat's label sits (docs/RENDERING.md §10, docs/UI.md §3.1.2): on the
+// Where the nearest threat's label sits (docs/rendering/own-cell-indicators.md §10, docs/ui/hud.md §3.1.2): on the
 // predator's warning ring, `THREAT_LABEL_GAP_PX` off it on the side that faces the own cell, and
 // on the far side of the ring instead when that pill would cross the own cell's orbit extent, so
 // the label never covers the counters or the numeral. Pure, in screen px; the text is always upright.

@@ -1,4 +1,4 @@
-// The one instanced quad every cell is drawn with (docs/RENDERING.md §2.3): a unit quad plus an
+// The one instanced quad every cell is drawn with (docs/rendering/cells.md §2.3): a unit quad plus an
 // instance-index attribute, the instance rows in a float texture, and the two passes as two
 // meshes over one program. The layer packs the rows; this class owns the GPU objects.
 

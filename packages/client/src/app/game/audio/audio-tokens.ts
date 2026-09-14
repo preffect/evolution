@@ -1,4 +1,4 @@
-// The injection seams of the audio layer (docs/ARCHITECTURE.md §7): the platform backend, the
+// The injection seams of the audio layer (docs/architecture/client.md §7): the platform backend, the
 // asset loader and the mute store. Production factories here; tests pass the fakes directly.
 
 import { InjectionToken } from '@angular/core';

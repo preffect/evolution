@@ -1,4 +1,4 @@
-// The own cell's self ring as the sprint ring (docs/UI.md §3.1.2, docs/RENDERING.md §10): what the
+// The own cell's self ring as the sprint ring (docs/ui/hud.md §3.1.2, docs/rendering/own-cell-indicators.md §10): what the
 // cell layer is told about it — the recharged share, the `sprint_ready` brighten and the predator
 // whose warning ring hides while the own cell escapes — and the arc's coordinate. The coordinate is
 // the TypeScript reference of the GLSL in `cell-shader-membrane.ts`, which reads the same constant,
@@ -16,7 +16,7 @@ export interface OwnCellRing {
   /** The engulfing predator while the own cell is escaping (the record's `escape.predatorCellId`); `null` otherwise. */
   readonly escapePredatorCellId: EntityId | null;
   /**
-   * Whether the escape arc replaces that predator's warning ring (docs/UI.md §3.1.2). The arc is #187's, so until it
+   * Whether the escape arc replaces that predator's warning ring (docs/ui/hud.md §3.1.2). The arc is #187's, so until it
    * draws this stays false and the predator keeps its ring: the own cell is never left without a danger tell.
    */
   readonly shouldHidePredatorRing: boolean;

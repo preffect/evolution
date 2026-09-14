@@ -1,4 +1,4 @@
-// The single client model (docs/ARCHITECTURE.md §5): applies `game_state` and `game_snapshot`
+// The single client model (docs/architecture/client.md §5): applies `game_state` and `game_snapshot`
 // messages (food deltas idempotently), estimates the server tick through the injected clock and
 // answers one interpolated `RenderFrame` per rendered frame (`nextFrame`, which consumes the effects due). Framework-free; the Angular facade and
 // the renderer both read it, nothing else writes it. Prediction and reconciliation of the own
@@ -30,7 +30,7 @@ import { SNAPSHOT_PUSH, SnapshotBuffer } from './snapshot-buffer';
 /** What the renderer draws for one frame: the interpolated world at `renderTick`. */
 export interface RenderFrame {
   readonly renderTick: number;
-  /** `renderTick × TICK_INTERVAL_S`: the only time the renderer sees (docs/RENDERING.md §1). */
+  /** `renderTick × TICK_INTERVAL_S`: the only time the renderer sees (docs/rendering/cells.md §1). */
   readonly timeSeconds: number;
   readonly cells: readonly CellView[];
   readonly motes: readonly FoodMoteView[];
@@ -50,7 +50,7 @@ export interface GameStateApplied {
   readonly avatarAssignments: Readonly<Record<string, number>>;
 }
 
-/** Effects carry no id: the same moment is the same kind, tick and cells (docs/ARCHITECTURE.md §2). */
+/** Effects carry no id: the same moment is the same kind, tick and cells (docs/architecture/entity-model.md §2). */
 export function isSameEffect(first: GameEffect, second: GameEffect): boolean {
   if (first.kind !== second.kind || first.tick !== second.tick) return false;
   const firstCell = 'cellId' in first ? first.cellId : null;
@@ -77,7 +77,7 @@ export class WorldStore {
 
   constructor(private readonly clock: Clock) {}
 
-  /** Join, late join and reconnect: the full state replaces everything (docs/ARCHITECTURE.md §4). */
+  /** Join, late join and reconnect: the full state replaces everything (docs/architecture/wire-contract.md §4). */
   applyGameState(state: GameStateApplied): void {
     this.reset();
     this.balanceValue = state.balance;
@@ -105,7 +105,7 @@ export class WorldStore {
   }
 
   /**
-   * Bounds the pending list on the ingest path (docs/ARCHITECTURE.md §5): effects are drained by the
+   * Bounds the pending list on the ingest path (docs/architecture/client.md §5): effects are drained by the
    * render tick, and `renderTickFor` never answers before the oldest buffered snapshot, so a moment
    * older than that one is already overtaken — the next frame would fire it in a lump, long after it
    * happened. A client that ingests faster than it renders (a background tab, a starved renderer)

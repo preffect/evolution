@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §5.2 (G3): safe placement.
+// docs/game-design/session.md §5.2 (G3): safe placement.
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, DEFAULT_BALANCE, type RandomSource } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';

@@ -1,4 +1,4 @@
-// Fixture helpers the scenario tables share (docs/ECOLOGY.md §8): the `decayed()` mass formula,
+// Fixture helpers the scenario tables share (docs/ecology/acceptance.md §8): the `decayed()` mass formula,
 // the gel-patch clearance and the placed-entity records an adapter applies before tick 1 (or
 // before a scheduled tick, docs/TESTING.md §8.1). The literals here ARE the convention the design
 // states; the balance numbers themselves are injected, because `constants/ecology.ts` and
@@ -12,7 +12,7 @@ import { eastOfCellOf, toAnchor, ZONE, type PlacementAnchor } from './placement.
 export const GEL_PATCH_CLEARANCE_WU = 600;
 /** The zone × trait decay multiplier when nothing modifies decay. */
 export const DEFAULT_DECAY_MULTIPLIER = 1;
-/** TRAITS §2: every trait has tiers I, II and III; a fixture-granted trait is tier I unless the row says. */
+/** traits/model.md §2: every trait has tiers I, II and III; a fixture-granted trait is tier I unless the row says. */
 export const FIRST_TRAIT_TIER = 1;
 export const LAST_TRAIT_TIER = 3;
 
@@ -39,7 +39,7 @@ export function createDecayedHelper(constants: DecayConstants) {
 
 export const PLACED_KIND = { cell: 'cell', mote: 'mote', fragment: 'fragment' } as const;
 
-/** A fixture-granted trait at a tier (TRAITS §2): bypasses the ladder and the draft. */
+/** A fixture-granted trait at a tier (traits/model.md §2): bypasses the ladder and the draft. */
 export interface PlacedTrait {
   readonly traitId: string;
   readonly tier: number;
@@ -129,7 +129,7 @@ export function toPlacedTrait(option: PlacedTraitOption): PlacedTrait {
   const tier = trait.tier ?? FIRST_TRAIT_TIER;
   if (!Number.isInteger(tier) || tier < FIRST_TRAIT_TIER || tier > LAST_TRAIT_TIER) {
     throw new ScenarioSetupError(
-      `trait ${trait.traitId} has tiers ${FIRST_TRAIT_TIER} to ${LAST_TRAIT_TIER} (TRAITS §2), got tier ${tier}`,
+      `trait ${trait.traitId} has tiers ${FIRST_TRAIT_TIER} to ${LAST_TRAIT_TIER} (traits/model.md §2), got tier ${tier}`,
     );
   }
   return { traitId: trait.traitId, tier };

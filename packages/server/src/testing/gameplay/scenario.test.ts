@@ -166,7 +166,7 @@ describe('scenario builder', () => {
     expect(() => builder.capture('x', () => 1).atTick(-1)).toThrow(ScenarioSetupError);
   });
 
-  it('places cells, motes and fragments by the ECOLOGY §8 convention, as anchors', () => {
+  it('places cells, motes and fragments by the ecology/acceptance.md §8 convention, as anchors', () => {
     const { fixtures } = placingScenario('E9')
       .seed(42)
       .players(2)

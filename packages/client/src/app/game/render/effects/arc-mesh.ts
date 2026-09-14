@@ -1,4 +1,4 @@
-// The arc primitive's GPU objects (docs/RENDERING.md §10): one unit quad drawn once per arc row with an
+// The arc primitive's GPU objects (docs/rendering/own-cell-indicators.md §10): one unit quad drawn once per arc row with an
 // instance-index attribute, the rows in a small float texture, and one mesh over one program — the
 // cell mesh's pattern (`cells/cell-mesh.ts`). Every arc of a frame is one instanced draw call whatever
 // the count; at zero rows the mesh hides and draws nothing. The layer that owns the mesh adds `mesh` to

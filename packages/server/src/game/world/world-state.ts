@@ -1,4 +1,4 @@
-// The one world a room owns (docs/ARCHITECTURE.md §2) and the context every system receives
+// The one world a room owns (docs/architecture/entity-model.md §2) and the context every system receives
 // (§3). Plain data throughout (docs/DETERMINISM.md §1): arrays in insertion order, the random
 // streams as serialisable state, no class instances.
 
@@ -27,7 +27,7 @@ export interface WorldState {
   /** The current round's seed; a rematch increments it. */
   seed: number;
   /**
-   * 0 at creation, the current tick at a rematch (docs/ECOLOGY.md §3.1): `tick − roundStartTick`
+   * 0 at creation, the current tick at a rematch (docs/ecology/food-and-spawn.md §3.1): `tick − roundStartTick`
    * is the integer the timer boundaries and the world clock read; carried on the snapshot.
    */
   roundStartTick: number;
@@ -44,7 +44,7 @@ export interface WorldState {
   dnaFragments: DnaFragmentRecord[];
   /** Join order. */
   players: PlayerRecord[];
-  /** Seat order (docs/ECOLOGY.md §3.3); empty until the wild-cell slice. */
+  /** Seat order (docs/ecology/wild-cells.md §3.3); empty until the wild-cell slice. */
   wildSeats: WildSeatRecord[];
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState };
@@ -57,7 +57,7 @@ export interface WorldState {
   effects: GameEffect[];
 }
 
-/** Player inputs the simulation ignored, by reason (docs/ARCHITECTURE.md §3.2); reported by the debug handle. */
+/** Player inputs the simulation ignored, by reason (docs/architecture/server-simulation.md §3.2); reported by the debug handle. */
 export interface InputRejectionCounters {
   staleSequence: number;
   sprintOnCooldown: number;

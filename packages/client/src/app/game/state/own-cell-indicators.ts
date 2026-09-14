@@ -1,4 +1,4 @@
-// The `OwnCellIndicators` record (docs/UI.md §3.1.4): everything the player's own cell has to say
+// The `OwnCellIndicators` record (docs/ui/hud.md §3.1.4): everything the player's own cell has to say
 // about itself, derived once from the snapshot and read by two consumers — the renderer draws it
 // (#187) and the status mirror speaks it (`hud/own-cell-status.component.ts`). One truth, so a
 // phase or a counter can never disagree between what is drawn and what a screen reader hears.
@@ -6,7 +6,7 @@
 // Pure and DOM-free. Every rule that could be re-derived downstream is settled here instead:
 // `escape.phase` through the shared `engulfPhaseOf`, the escape window's fill, the ladder's stage
 // rung, and the picker's ghost-hide. The renderer computes geometry from this record and nothing
-// else (docs/RENDERING.md §10).
+// else (docs/rendering/own-cell-indicators.md §10).
 
 import {
   CELL_STAGE,
@@ -37,10 +37,10 @@ import type { Threat } from '../hud/format/threats-for';
 const FULL = 1;
 const EMPTY = 0;
 
-/** The pair angles of docs/UI.md §9, reachable by any variant; `plain` has no counter of its own. */
+/** The pair angles of docs/ui/components-and-constants.md §9, reachable by any variant; `plain` has no counter of its own. */
 const ORBIT_ANGLE_BY_VARIANT: Partial<Record<BacteriumVariant, number>> = LADDER_ORBIT_ANGLES_PAIR_DEG;
 
-/** What the next rung draws, by stage (docs/UI.md §3.1.4). */
+/** What the next rung draws, by stage (docs/ui/hud.md §3.1.4). */
 export const LADDER_SILHOUETTE = { nucleoid: 'nucleoid', envelope: 'envelope', form: 'form' } as const;
 export type LadderSilhouette = ValueOf<typeof LADDER_SILHOUETTE>;
 
@@ -50,7 +50,7 @@ export interface LadderCounter {
   readonly variant: BacteriumVariant;
   readonly eaten: number;
   readonly required: number;
-  /** From `LADDER_ORBIT_ANGLES_PAIR_DEG`; clockwise from 12 o'clock (docs/UI.md §3.1.2). */
+  /** From `LADDER_ORBIT_ANGLES_PAIR_DEG`; clockwise from 12 o'clock (docs/ui/hud.md §3.1.2). */
   readonly angleDeg: number;
   /** The picker is previewing this endosymbiont, so its ghost hides and its pips stay. */
   readonly isGhostHidden: boolean;
@@ -65,7 +65,7 @@ export interface LadderGhost {
 }
 
 /**
- * The ladder orbit (docs/UI.md §3.1.2): the next rung's ghost when that rung draws one, and a
+ * The ladder orbit (docs/ui/hud.md §3.1.2): the next rung's ghost when that rung draws one, and a
  * counter for every endosymbiont the cell could still be offered. The two are independent
  * (decision #285 B): a cell promoted by one endosymbiont keeps the other's tally beside the
  * envelope ghost, and up the ladder, until it owns that one too. Both empty is the top.
@@ -79,7 +79,7 @@ export interface OwnCellEscape {
   /** `ownCell.engulfProgress`, 0..1. */
   readonly progress: number;
   readonly phase: EngulfPhase;
-  /** The escape window, draining to 0 at the seal; 0 from the seal on (docs/UI.md §3.1.2). */
+  /** The escape window, draining to 0 at the seal; 0 from the seal on (docs/ui/hud.md §3.1.2). */
   readonly fill: number;
   readonly predatorCellId: EntityId;
 }
@@ -187,7 +187,7 @@ function rungGhostFor(stage: CellStage, previewTraitId: TraitId | null): LadderG
   return isPreviewingThisRung ? null : { silhouette, angleDeg: LADDER_ORBIT_ANGLE_SINGLE_DEG };
 }
 
-/** The ladder orbit for a stage (docs/UI.md §3.1.2): the rung ghost and the open counters. */
+/** The ladder orbit for a stage (docs/ui/hud.md §3.1.2): the rung ghost and the open counters. */
 export function ladderFor(
   stage: CellStage,
   traits: readonly OwnedTrait[],
@@ -213,7 +213,7 @@ export function dnaFractionFor(progress: PlayerProgressView, balance: BalanceCon
 }
 
 /**
- * The escape window while `being_engulfed` (docs/UI.md §3.1.2): full at first contact, drained at
+ * The escape window while `being_engulfed` (docs/ui/hud.md §3.1.2): full at first contact, drained at
  * the seal, and locked at zero from the seal on, where only a spit-out or the ratio frees the prey.
  */
 function escapeFor(ownCell: CellView, balance: BalanceConfig): OwnCellEscape | null {

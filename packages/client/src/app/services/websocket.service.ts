@@ -12,7 +12,7 @@ import { IdentityService } from './identity.service';
  *  - Auto-reconnect with a small backoff.
  *  - Queue outbound messages while disconnected and flush on (re)connect.
  *  - Expose every inbound `ServerMessage` via `messages$`, `game_snapshot` included: a snapshot
- *    is a delta (docs/ARCHITECTURE.md §4, §5), so none may be coalesced away.
+ *    is a delta (docs/architecture/wire-contract.md §4, docs/architecture/client.md §5), so none may be coalesced away.
  *
  * Higher-level lobby/room/game state lives in MultiplayerService.
  */

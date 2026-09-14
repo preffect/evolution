@@ -1,4 +1,4 @@
-// The cross-module wiring of the sprint ring and the escape (docs/RENDERING.md §10, #295): the own
+// The cross-module wiring of the sprint ring and the escape (docs/rendering/own-cell-indicators.md §10, #295): the own
 // view's cooldown reaches the own cell's packed `selfRingFill` through the renderer, the fill reaching
 // ready plays `sprint_ready` into `selfRingBrightness` off the render clock, and while the own cell is
 // being engulfed every threat keeps its warning ring, the predator's included, because the switch that
@@ -32,7 +32,7 @@ const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
 const VIEWPORT = { width: 800, height: 600 };
 const NO_SUBMIT = (): undefined => undefined;
 const COOLDOWN_TICKS = secondsToTicks(DEFAULT_BALANCE.controls.SPRINT_COOLDOWN_SECONDS);
-/** `sprint_ready`'s peak, read from the clip table (docs/RENDERING.md §4). */
+/** `sprint_ready`'s peak, read from the clip table (docs/rendering/contents-and-motion.md §4). */
 const READY_PEAK = peakKeyframe(MOTION_CLIPS.sprint_ready.tracks['selfRingBrightness']);
 
 function renderer(): GameRenderer {

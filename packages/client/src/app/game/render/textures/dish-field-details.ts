@@ -30,7 +30,7 @@ export interface FieldPoint {
 
 /**
  * The texture's scale: wu to px on x (stroke widths follow it), and on y when the bake maps the axes
- * apart (the light pool, RENDERING §6.1); `pxPerWuY` defaults to `pxPerWu`.
+ * apart (the light pool, rendering/budget.md §6.1); `pxPerWuY` defaults to `pxPerWu`.
  */
 export interface FieldScale {
   readonly pxPerWu: number;

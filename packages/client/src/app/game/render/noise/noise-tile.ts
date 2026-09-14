@@ -1,4 +1,4 @@
-// The 256² two-channel cytoplasm tile (docs/RENDERING.md §2.2): R is the coarse mottle (3 octaves,
+// The 256² two-channel cytoplasm tile (docs/rendering/cells.md §2.2): R is the coarse mottle (3 octaves,
 // 12 cycles per tile), G the fine one (2 octaves, 29 cycles), both periodic value noise from the
 // field fork of the cosmetic stream, sampled in world units so the mottle translates with a cell
 // and never scales with it. Bytes for the GPU; the same bytes for a test.

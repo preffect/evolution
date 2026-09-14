@@ -1,4 +1,4 @@
-// One tick (docs/ARCHITECTURE.md §3): the fixed step order every scenario table assumes
+// One tick (docs/architecture/server-simulation.md §3): the fixed step order every scenario table assumes
 // (docs/DETERMINISM.md §1). `stepWorld` mutates the world in place and returns what happened to
 // the round; `runStep` wraps it with the one resume-and-write-back of the random streams.
 //
@@ -25,14 +25,14 @@ import { runSpawners } from './spawner.js';
 export function stepWorld(world: WorldState, context: StepContext): RoundStepOutcome {
   world.tick += 1;
   if (world.roundPhase === ROUND_PHASE.playing) {
-    applyInputs(world, context); // input is ignored through `results` (docs/GAME-DESIGN.md §5.4)
+    applyInputs(world, context); // input is ignored through `results` (docs/game-design/session.md §5.4)
   }
   const outcome = advanceRound(world, context);
   if (outcome === ROUND_STEP_OUTCOME.rematched) {
     return outcome;
   }
   if (world.roundPhase === ROUND_PHASE.results) {
-    abortAllEngulfs(world); // no payout in results (docs/ECOLOGY.md §6.3, E13); a no-op on later results ticks
+    abortAllEngulfs(world); // no payout in results (docs/ecology/absorption.md §6.3, E13); a no-op on later results ticks
     updateLeaderboard(world);
     return outcome;
   }

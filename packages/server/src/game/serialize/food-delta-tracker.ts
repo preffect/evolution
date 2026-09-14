@@ -1,4 +1,4 @@
-// The food delta (docs/ARCHITECTURE.md §4, §4.1): static motes ride as spawned / removed deltas
+// The food delta (docs/architecture/wire-contract.md §4, §4.1): static motes ride as spawned / removed deltas
 // and the ones that moved (bacteria every tick, attracted motes) as position patches. The
 // tracker remembers the previous broadcast so the client can apply each delta idempotently
 // (upsert spawned, delete-if-present removed, patch moved); a first call reports everything as

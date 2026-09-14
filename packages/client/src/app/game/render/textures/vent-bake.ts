@@ -1,11 +1,11 @@
-// The thermal vent sprite (sheet 02 vent table, docs/RENDERING.md §6 "the vent sprite"): baked on
+// The thermal vent sprite (sheet 02 vent table, docs/rendering/budget.md §6 "the vent sprite"): baked on
 // its own canvas at `VENT_SPRITE_PX_PER_WU` and drawn by the dish layer over the field at the vent
 // zone, so its hairlines survive every zoom. Back to front in the fissure's rotated frame: heat
 // pool, hot column, seam bed, crust shadow, the two basalt plates with their rims, the branching
 // cracks, the molten seam (glow, hot line, white core) and its glints; then vent-risers-bake.ts adds
 // the refraction arcs, the bubbles and, in the world frame, the plume. The seam's wave phase, the
 // cracks, bubbles and plume are placed from the cosmetic `vent` sub-stream; the shimmer filter over
-// this sprite is deferred (RENDERING §6, the one filter).
+// this sprite is deferred (rendering/budget.md §6, the one filter).
 
 import { COSMETIC_SUB_STREAM, RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';

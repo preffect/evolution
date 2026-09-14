@@ -46,7 +46,7 @@ describe('createRenderTextures', () => {
     expect(Object.keys(textures.motes.full).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
     expect(Object.keys(textures.motes.small).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
     expect(Object.keys(textures.motes.fragments).sort()).toEqual([...DNA_TAGS].sort());
-    // One source behind every mote and fragment frame: the food ParticleContainer's one texture (RENDERING §6).
+    // One source behind every mote and fragment frame: the food ParticleContainer's one texture (rendering/budget.md §6).
     const moteFrames = [
       ...Object.values(textures.motes.full),
       ...Object.values(textures.motes.small),

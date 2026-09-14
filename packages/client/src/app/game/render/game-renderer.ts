@@ -1,4 +1,4 @@
-// The renderer (docs/RENDERING.md §7, docs/ARCHITECTURE.md §6): owns the camera state and the
+// The renderer (docs/rendering/budget.md §7, docs/architecture/client.md §6): owns the camera state and the
 // layers and turns one `RenderFrame` into one Pixi render. The HUD crossings (`previewTraitId`,
 // `reticle` in, `cameraExtent` out) are the only things it exchanges with anything else. The
 // stages run in the §7 order (camera, food, cells with organelles inside, effects, submit), each
@@ -48,11 +48,11 @@ export interface RenderOutputs {
   readonly visibleCells: number;
   readonly visibleMotes: number;
   readonly fragments: number;
-  /** Effect and reticle sprites placed this frame (docs/RENDERING.md §6). */
+  /** Effect and reticle sprites placed this frame (docs/rendering/budget.md §6). */
   readonly effectSprites: number;
 }
 
-/** No reticle this frame: the pointer has not been over the canvas, or the HUD hides it (docs/UI.md §5). */
+/** No reticle this frame: the pointer has not been over the canvas, or the HUD hides it (docs/ui/input-and-onboarding.md §5). */
 export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 0 };
 
 export class GameRenderer {
@@ -95,7 +95,7 @@ export class GameRenderer {
     return this.textures.seed;
   }
 
-  /** The own-cell indicators' textures and fonts (RENDERING §10): the bench's contact sheet reads them. */
+  /** The own-cell indicators' textures and fonts (rendering/own-cell-indicators.md §10): the bench's contact sheet reads them. */
   get indicatorTextures(): IndicatorTextures {
     return this.textures.indicators;
   }

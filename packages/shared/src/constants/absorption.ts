@@ -1,4 +1,4 @@
-// Absorption and engulf (docs/ECOLOGY.md §6, §7). The ratio rules have one home:
+// Absorption and engulf (docs/ecology/absorption.md §6, docs/ecology/constants.md §7). The ratio rules have one home:
 // simulation/engulf-eligibility.ts; the numbers live here.
 
 /** predator.mass ≥ prey.mass × (this + prey.membraneRatioBonus) starts an engulf. */
@@ -9,7 +9,7 @@ export const ENGULF_RELEASE_RATIO = 1.1;
 export const ENGULF_PROGRESS_EPSILON = 1e-6;
 /** Contact: centre distance ≤ predator.radius − prey.radius × this. */
 export const ENGULF_COVERAGE_FRACTION = 0.5;
-/** Phase durations at exactly the required ratio (s): cover → wrap → absorb (ECOLOGY §6.3). */
+/** Phase durations at exactly the required ratio (s): cover → wrap → absorb (ecology/absorption.md §6.3). */
 export const ENGULF_COVER_SECONDS = 0.2;
 export const ENGULF_WRAP_SECONDS = 0.4;
 export const ENGULF_ABSORB_SECONDS = 0.6;

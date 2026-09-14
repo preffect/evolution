@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §13, the session and world-clock rows that need no wild cell (G1–G3, G8–G11,
+// docs/game-design/constants-and-acceptance.md §13, the session and world-clock rows that need no wild cell (G1–G3, G8–G11,
 // G14), each run twice and hash-compared. The control rows are game-design-controls.gameplay.test.ts.
 // G13 (a wild killer) waits for the wild-cell slice; G12 is the pure `standingAgainstWorld` row,
 // pinned in packages/shared/src/simulation/world-clock.test.ts.
@@ -54,7 +54,7 @@ function worldLevelUpAt(tick: number, level: number, stage: (typeof CELL_STAGE)[
   return [{ kind: EFFECT_KIND.worldLevelUp, tick, level, stage }];
 }
 
-describe('GAME-DESIGN §13: the session', () => {
+describe('game-design/constants-and-acceptance.md §13: the session', () => {
   it('G1: the first tick of a round', async () => {
     await seededSolo('G1')
       .advance(1)
@@ -195,7 +195,7 @@ describe('GAME-DESIGN §13: the session', () => {
   });
 });
 
-describe('GAME-DESIGN §13: the whole round (G2 and G11 share one seeded, idle 37 200-tick run)', () => {
+describe('game-design/constants-and-acceptance.md §13: the whole round (G2 and G11 share one seeded, idle 37 200-tick run)', () => {
   it('G2 + G11: results when the timer reaches zero, world_level_up on the level ticks only, a rematch with seed + 1', async () => {
     const seen: number[] = [];
     const recordLevelUps: PlayerScript<EvolutionScenarioSnapshot> = (context) => {

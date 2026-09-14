@@ -1,4 +1,4 @@
-// The client's composition root (docs/ARCHITECTURE.md §6, docs/AUDIO.md §5): wires the net
+// The client's composition root (docs/architecture/client.md §6, docs/AUDIO.md §5): wires the net
 // seams the host hands in, the render session, the input seam, the one `AudioHooks.connect` call,
 // the HUD crossings and the dev-only debug hook. Under 100 lines by design; every decision lives
 // in the modules it composes.
@@ -19,9 +19,9 @@ import type { TransitionOptions } from './state/snapshot-transitions';
 export interface GameSetupOptions {
   /** Send one unit of game input to the server (wraps `player_input`); the input seam's send. */
   send: (input: GameInput) => void;
-  /** Every server message in arrival order, snapshots included (docs/ARCHITECTURE.md §5). */
+  /** Every server message in arrival order, snapshots included (docs/architecture/client.md §5). */
   messages$: Observable<ServerMessage>;
-  /** Tells the server which snapshot tick this client has applied (#266, docs/ARCHITECTURE.md §4). */
+  /** Tells the server which snapshot tick this client has applied (#266, docs/architecture/wire-contract.md §4). */
   acknowledgeSnapshot: (tick: number) => void;
   /** The element the canvas mounts in, and the element the pointer is read against. */
   host: HTMLElement;
@@ -36,15 +36,15 @@ export interface GameSetupDependencies {
   readonly devicePixelRatio: number;
   readonly debugHost: EvolutionDebugHost;
   readonly isDevMode: boolean;
-  /** The HUD → renderer crossings (docs/UI.md §7); #185–#190 feed them from their signals. */
+  /** The HUD → renderer crossings (docs/ui/components-and-constants.md §7); #185–#190 feed them from their signals. */
   readonly previewTraitId: () => TraitId | null;
-  /** The onboarding `steer` beat shows the reticle (docs/UI.md §5); its position is the input seam's. */
+  /** The onboarding `steer` beat shows the reticle (docs/ui/input-and-onboarding.md §5); its position is the input seam's. */
   readonly isReticleVisible: () => boolean;
-  /** The camera's world rectangle each frame, handed to `GameStateService` (docs/UI.md §7, §3.1.2). */
+  /** The camera's world rectangle each frame, handed to `GameStateService` (docs/ui/components-and-constants.md §7, docs/ui/hud.md §3.1.2). */
   readonly onCameraExtent?: (extent: CameraExtent) => void;
-  /** Escape, handed to the HUD's overlay state (docs/UI.md §3.5, #189). */
+  /** Escape, handed to the HUD's overlay state (docs/ui/overlays.md §3.5, #189). */
   readonly onMenuKey?: () => void;
-  /** Tab held / released, handed to the HUD's overlay state (docs/UI.md §3.1.1, §4, #185). */
+  /** Tab held / released, handed to the HUD's overlay state (docs/ui/hud.md §3.1.1, docs/ui/input-and-onboarding.md §4, #185). */
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 

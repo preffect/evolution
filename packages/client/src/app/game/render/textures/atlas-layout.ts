@@ -1,4 +1,4 @@
-// Shelf packing for a sprite atlas (docs/RENDERING.md §6): the food `ParticleContainer` draws every
+// Shelf packing for a sprite atlas (docs/rendering/budget.md §6): the food `ParticleContainer` draws every
 // mote from one texture source, so the mote and fragment bakes are placed side by side in one canvas
 // and each sprite becomes a frame of it. Pure: sizes in, frames out; `pixi-textures.ts` paints it.
 

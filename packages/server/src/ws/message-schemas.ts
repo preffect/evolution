@@ -21,11 +21,11 @@ import {
 import type { GameInput, GameSessionConfig, RenderStageName } from '@evolution/shared';
 
 /**
- * Inbound message validation (docs/ARCHITECTURE.md §4): every message is parsed here before a
+ * Inbound message validation (docs/architecture/wire-contract.md §4): every message is parsed here before a
  * handler sees it, and this is the only check inputs get (local-only play, client trusted).
  * Every bound comes from `@evolution/shared` constants, never a literal here. The reserved
  * `mode: 'colony'` and the non-timer end conditions are rejected until build 2
- * (docs/GAME-DESIGN.md §11); the reserved `shouldSplit` / `shouldEject` flags pass and are ignored.
+ * (docs/game-design/controls-and-scope.md §11); the reserved `shouldSplit` / `shouldEject` flags pass and are ignored.
  */
 
 const playerNameSchema = z.string().min(PLAYER_NAME_MIN_LENGTH).max(PLAYER_NAME_MAX_LENGTH);
@@ -89,7 +89,7 @@ const playerInputSchema = z.object({
   payload: gameInputSchema,
 });
 
-/** Every `RENDER_STAGE` key, each a number: the record the client's stage timer fills (docs/RENDERING.md §7). */
+/** Every `RENDER_STAGE` key, each a number: the record the client's stage timer fills (docs/rendering/budget.md §7). */
 const renderStagesSchema = z.object(
   // `fromEntries` widens the keys to string; the array is pinned complete against `RENDER_STAGE`, so the record is.
   Object.fromEntries(RENDER_STAGE_NAMES.map((stage) => [stage, z.number()])) as Record<RenderStageName, z.ZodNumber>,
@@ -111,7 +111,7 @@ const clientPerformanceSchema = z.object({
   }),
 });
 
-/** Flow control (#266, docs/ARCHITECTURE.md §4): the newest snapshot tick the client has applied. */
+/** Flow control (#266, docs/architecture/wire-contract.md §4): the newest snapshot tick the client has applied. */
 const snapshotAckSchema = z.object({
   type: z.literal(CLIENT_MESSAGE_TYPE.snapshotAck),
   tick: z.number().int().nonnegative(),

@@ -1,11 +1,11 @@
-// The HUD's own numbers (docs/CODE-STANDARDS.md §2): the layout frame of docs/UI.md §1 and the
+// The HUD's own numbers (docs/CODE-STANDARDS.md §2): the layout frame of docs/ui/layout.md §1 and the
 // chrome sizes of §3.1.1, which that doc owns and this file declares exactly once. Colours and the
 // type scale are docs/VISUAL-STYLE.md's and live in `render/constants`; gameplay numbers are the
 // shared balance, reached through the live `game_state.balance` — nothing here is a copy of one.
 //
 // Only the constants the chrome (#185) needs are declared; #186–#190 add their own rows as they land.
 
-// ---- layout frame (docs/UI.md §1) ----
+// ---- layout frame (docs/ui/layout.md §1) ----
 
 /** Viewport width at which `--hud-scale` is 1. */
 export const HUD_REFERENCE_VIEWPORT_WIDTH_PX = 1280;
@@ -18,7 +18,7 @@ export const HUD_SCALE_MAX = 1.5;
 /** Corner margin at scale 1: every chrome element anchors to its corner with this. */
 export const HUD_MARGIN_PX = 16;
 
-// ---- leaderboard (docs/UI.md §3.1.1) ----
+// ---- leaderboard (docs/ui/hud.md §3.1.1) ----
 
 /** Compact panel width at scale 1. */
 export const LEADERBOARD_WIDTH_PX = 240;
@@ -63,7 +63,7 @@ export const LEADERBOARD_EXPAND_MS = 200;
 /** The own row is tinted with the player's own rim colour at this alpha (docs/VISUAL-STYLE.md §7). */
 export const LEADERBOARD_OWN_ROW_TINT_ALPHA = 0.12;
 /**
- * Diameter of the player swatch at scale 1 (docs/UI.md §3.1.1 owns the value). Do not change this
+ * Diameter of the player swatch at scale 1 (docs/ui/hud.md §3.1.1 owns the value). Do not change this
  * or the bead below to make more seats countable: whether the swatch should grow for that is the
  * seat-identity question on #279, not a HUD-layout one.
  */
@@ -79,15 +79,15 @@ export const LEADERBOARD_SWATCH_BEAD_DIAMETER_PX = 3;
 /** The swatch's rim-colour ring width at scale 1. */
 export const LEADERBOARD_SWATCH_RING_WIDTH_PX = 1.2;
 
-// ---- own-cell status mirror (docs/UI.md §1, §3.1.4) ----
+// ---- own-cell status mirror (docs/ui/layout.md §1, docs/ui/hud.md §3.1.4) ----
 
 /**
  * The mirror re-announces DNA only at multiples of this, so `aria-live` speaks a meaningful step
- * instead of every snapshot's percent (docs/UI.md §1's table owns the value).
+ * instead of every snapshot's percent (docs/ui/layout.md §1's table owns the value).
  */
 export const STATUS_ANNOUNCE_DNA_STEP_PERCENT = 25;
 
-// ---- round clock (docs/UI.md §3.1.1) ----
+// ---- round clock (docs/ui/hud.md §3.1.1) ----
 
 /** Inside the last this many seconds the clock pulses once per second. */
 export const ROUND_CLOCK_PULSE_LAST_SECONDS = 10;

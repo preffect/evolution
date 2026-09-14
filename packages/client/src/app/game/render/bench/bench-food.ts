@@ -1,4 +1,4 @@
-// The bench scene's motes and DNA fragments (docs/RENDERING.md §7): motes by the eukaryote-era
+// The bench scene's motes and DNA fragments (docs/rendering/budget.md §7): motes by the eukaryote-era
 // shares with the bacteria on a walk that is a function of the tick (never a draw per snapshot),
 // fragments at seeded rest points with a slow oscillating drift, one tag each so every tag tint
 // appears. Everything inside the dish, nothing from the clock.

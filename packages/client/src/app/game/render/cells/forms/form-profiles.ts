@@ -1,4 +1,4 @@
-// `B(Δ)` per form (docs/RENDERING.md §2.4): the registry keyed by the form trait, the sheet-04
+// `B(Δ)` per form (docs/rendering/cells.md §2.4): the registry keyed by the form trait, the sheet-04
 // aspects each silhouette is drawn to, and the unit-area rule every profile obeys
 // (`∫ B² dΔ = 2π`, so the drawn area equals the blob's `π r²` and mass ∝ area holds for forms as
 // for the blob). #216 ships the registry with the blob (`B ≡ 1`) and the aspects; the five

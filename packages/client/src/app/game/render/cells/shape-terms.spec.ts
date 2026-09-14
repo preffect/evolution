@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: view → terms, the eight bump slots, sprint scaling, the held heading and
+// docs/rendering/files-and-tests.md §9: view → terms, the eight bump slots, sprint scaling, the held heading and
 // the per-instance reach under CELL_QUAD_EXTENT_RADII.
 
 import { describe, expect, it } from 'vitest';

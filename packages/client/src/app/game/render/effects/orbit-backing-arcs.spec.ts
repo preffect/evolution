@@ -1,6 +1,6 @@
 // The backings as drawn (graphics-qa round one on #303): a round cap reaches half the 16 px stroke past the
 // pad, so the band overshot its items by 12 px and the prokaryote's two backings, 5 px apart at 24 px
-// (UI.md §3.1.3), overlapped into a double-alpha seam. These pin the drawn extents, caps included, at the
+// (ui/hud.md §3.1.3), overlapped into a double-alpha seam. These pin the drawn extents, caps included, at the
 // table's four sizes: a round cap would fail both.
 import { describe, expect, it } from 'vitest';
 import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-builders';
@@ -12,7 +12,7 @@ import { orbitBackingArcs } from './orbit-backing-arcs';
 import { orbitLayout } from './orbit-layout';
 import { orbitDegreesOf } from './own-cell-geometry';
 
-/** UI.md §3.1.3's geometry table rows. */
+/** ui/hud.md §3.1.3's geometry table rows. */
 const TABLE_SIZES_PX = [24, 32, 45, 102];
 const CENTRE = { x: 0, y: 0 };
 const FLOAT_SLACK_DEG = 1e-9;

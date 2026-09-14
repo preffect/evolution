@@ -1,4 +1,4 @@
-// The arc shader (docs/RENDERING.md §10): one instanced quad per arc, sized to the ring plus its stroke
+// The arc shader (docs/rendering/own-cell-indicators.md §10): one instanced quad per arc, sized to the ring plus its stroke
 // and an edge feather, and a fragment stage that measures the signed distance to the stroke — to the
 // ring inside the sweep, to the nearer round cap outside it — and covers one screen px across the edge.
 // So a fill is exact at any share, the stroke keeps its px width at any radius, and every arc of the

@@ -1,7 +1,7 @@
-// The one adapter between the client model and the input layer (docs/ARCHITECTURE.md §5): reads
+// The one adapter between the client model and the input layer (docs/architecture/client.md §5): reads
 // `WorldStore` and answers what one client tick needs — the own cell, the open offer and the live
 // steer tunables. `null` means "nothing to steer": before the first `game_state`, and through the
-// results phase, where the server ignores input anyway (docs/GAME-DESIGN.md §5.4).
+// results phase, where the server ignores input anyway (docs/game-design/session.md §5.4).
 
 import { ROUND_PHASE } from '@evolution/shared';
 import type { WorldStore } from '../net/world-store';

@@ -1,4 +1,4 @@
-// The pointer adapter (docs/UI.md §4, docs/GAME-DESIGN.md §10): pointer events on the canvas host
+// The pointer adapter (docs/ui/input-and-onboarding.md §4, docs/game-design/controls-and-scope.md §10): pointer events on the canvas host
 // become a canvas-relative point and a sprint press. Touch rides the same events, so there is no
 // second path. It holds no state: the controller latches the last point it was given.
 
@@ -9,7 +9,7 @@ export interface PointerInputOptions {
   /** The element the canvas fills (`game-host.component.ts`); points are relative to its box. */
   readonly host: HTMLElement;
   readonly onPointerMoved: (point: CanvasPoint) => void;
-  /** A left click or a tap on the canvas: one sprint (docs/UI.md §4). */
+  /** A left click or a tap on the canvas: one sprint (docs/ui/input-and-onboarding.md §4). */
   readonly onSprint: () => void;
 }
 
@@ -25,7 +25,7 @@ export function attachPointerInput(options: PointerInputOptions): () => void {
     options.onPointerMoved(canvasPointOf(options.host, event));
   };
   const onPointerDown = (event: PointerEvent): void => {
-    // The canvas host takes focus on click so the hotkeys leave whatever field had it (docs/UI.md §4).
+    // The canvas host takes focus on click so the hotkeys leave whatever field had it (docs/ui/input-and-onboarding.md §4).
     options.host.focus();
     options.onPointerMoved(canvasPointOf(options.host, event));
     if (event.button === PRIMARY_POINTER_BUTTON) options.onSprint();

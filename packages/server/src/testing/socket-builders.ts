@@ -63,7 +63,7 @@ export function openTestSocket(url: string): Promise<WebSocket> {
 
 /**
  * A socket whose messages are recorded from the moment it exists. The server speaks first on a
- * reconnect (`game_state`, docs/ARCHITECTURE.md §4), so a listener attached after `open` resolves
+ * reconnect (`game_state`, docs/architecture/wire-contract.md §4), so a listener attached after `open` resolves
  * can miss it; this attaches before the socket can receive anything.
  */
 export function openRecordingTestSocket(url: string): Promise<{ socket: WebSocket; received: ServerMessage[] }> {

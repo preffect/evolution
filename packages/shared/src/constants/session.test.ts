@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §12 (`session.ts`): the seed bound is the unsigned 32-bit range, which is
+// docs/game-design/constants-and-acceptance.md §12 (`session.ts`): the seed bound is the unsigned 32-bit range, which is
 // why the client's seed draw (`app.component.ts`) reads one unsigned 32-bit value and clamps nothing.
 
 import { describe, expect, it } from 'vitest';

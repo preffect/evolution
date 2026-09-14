@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §13, the control rows (G4–G7), each run twice and hash-compared. The
+// docs/game-design/constants-and-acceptance.md §13, the control rows (G4–G7), each run twice and hash-compared. The
 // session and world-clock rows are game-design-session.gameplay.test.ts.
 
 import { describe, it } from 'vitest';
@@ -22,7 +22,7 @@ const G6_TARGET_X = 4000;
 /** G7 presses sprint again on tick 100, inside the cooldown. */
 const G7_COOLDOWN_PRESS_TICK = 100;
 
-describe('GAME-DESIGN §13: controls', () => {
+describe('game-design/constants-and-acceptance.md §13: controls', () => {
   it('G4: full throttle east reaches 216.5 wu/s in a second', async () => {
     // The row's number is the starting cell's speed cap: on the seeded world the cell of seed 42
     // eats an algae on its way east (mass 21, cap 217.4), so the row runs placed at the starting mass.

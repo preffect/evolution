@@ -1,4 +1,4 @@
-// The unit quad every instanced mesh draws (docs/RENDERING.md §2.3, §10): four corners at ±1, two
+// The unit quad every instanced mesh draws (docs/rendering/cells.md §2.3, docs/rendering/own-cell-indicators.md §10): four corners at ±1, two
 // triangles, and a per-instance index attribute the vertex stage reads its row by, so one draw call
 // covers every instance. The cell mesh and the arc mesh share it; the instance count starts at 0.
 

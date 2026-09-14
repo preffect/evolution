@@ -4,7 +4,7 @@
 // shadow and the stage outside the wall with its scratches. The wall's crisp lines are Graphics at
 // world scale and the vent fissure is its own sprite over this one (dish-layer.ts); everything here
 // is soft. The condenser light pool is not here: it is anchored to the view, not the world, so it
-// is its own sprite the dish layer keeps fixed on screen (light-pool-bake.ts, RENDERING §6.1).
+// is its own sprite the dish layer keeps fixed on screen (light-pool-bake.ts, rendering/budget.md §6.1).
 //
 // Resolution: `FIELD_TEXTURE_PX` over the dish is 0.33 px/wu, right for the tints.
 // Anything with an edge (the vent, and later the strands) belongs in its own sprite at ≥ 1 px/wu

@@ -4,7 +4,7 @@ import type { DebugContext } from '../debug-context.js';
 import { gameNotFoundResult, jsonResult } from '../tool-result.js';
 
 /**
- * Per-room game-state dump (docs/ARCHITECTURE.md §8). It returns the template's
+ * Per-room game-state dump (docs/architecture/debug-mcp.md §8). It returns the template's
  * `context.getRoomGameState(gameId)` inspector when the init step wired one, ELSE the room's
  * full state (`GameRoom.getFullState()`: the module's `serializeFullState()`, the same
  * `{ snapshot, balance }` payload `game_state` sends a joining client). The Evolution module

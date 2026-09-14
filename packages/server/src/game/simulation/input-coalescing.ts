@@ -1,4 +1,4 @@
-// Input coalescing (docs/ARCHITECTURE.md §3.2): between two ticks the newest `sequence` and
+// Input coalescing (docs/architecture/server-simulation.md §3.2): between two ticks the newest `sequence` and
 // target win, the one-shots (`shouldSprint`, `traitChoice`) are OR-merged so a pick or a sprint
 // that arrives together with a newer target is never lost. Applied at step 1 (inputs.ts).
 

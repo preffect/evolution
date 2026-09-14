@@ -1,4 +1,4 @@
-// The Penner curves behind the `EasingName`s of docs/RENDERING.md §4 (docs/VISUAL-STYLE.md preamble:
+// The Penner curves behind the `EasingName`s of docs/rendering/contents-and-motion.md §4 (docs/VISUAL-STYLE.md preamble:
 // no inline cubic-bezier literals anywhere else).
 
 import { EASING, type EasingName } from '@evolution/shared';

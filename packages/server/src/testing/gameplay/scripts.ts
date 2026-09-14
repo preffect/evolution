@@ -1,4 +1,4 @@
-// Scripted inputs (docs/TESTING.md §8, docs/ECOLOGY.md §8). A script sees the state before the
+// Scripted inputs (docs/TESTING.md §8, docs/ecology/acceptance.md §8). A script sees the state before the
 // step it feeds and answers with a `PlayerCommand`; the runner merges the commands one player
 // produced for one tick and hands the adapter the result. "Target N radii east" is measured
 // from the cell's *current* centre every tick, exactly as the fixture convention says. A script
@@ -13,7 +13,7 @@ export { idle, type PlayerScript, type ScriptContext } from '../../game/bots/bot
 
 /**
  * Later fields win; the one-shots are OR-merged the way the module coalesces inputs
- * (docs/ARCHITECTURE.md §3.2): a sprint from either side survives, and a later `traitChoice:
+ * (docs/architecture/server-simulation.md §3.2): a sprint from either side survives, and a later `traitChoice:
  * null` never drops an earlier pick (a later pick replaces it).
  */
 export function mergeCommands(base: PlayerCommand, next: PlayerCommand): PlayerCommand {

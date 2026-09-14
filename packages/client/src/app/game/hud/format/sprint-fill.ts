@@ -1,4 +1,4 @@
-// The sprint ring's fill (docs/UI.md §3.1.2). The ring is the own cell's identity ring: it is
+// The sprint ring's fill (docs/ui/hud.md §3.1.2). The ring is the own cell's identity ring: it is
 // always drawn, and this is how much of it has recharged. Pure, so the rule is tested without a
 // camera; the renderer turns it into an arc (#187) and the status mirror turns it into a word.
 //

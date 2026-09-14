@@ -1,4 +1,4 @@
-// The bench scene's effect schedule (docs/RENDERING.md §7): eats on every snapshot, a level-up on
+// The bench scene's effect schedule (docs/rendering/budget.md §7): eats on every snapshot, a level-up on
 // its cadence, and the victims' absorb and respawn at the middle and the end of every absorb
 // cycle, so every clip of §4 plays in a bench run.
 

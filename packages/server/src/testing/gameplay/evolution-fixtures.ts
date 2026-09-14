@@ -1,4 +1,4 @@
-// The placed fixtures of the design tables applied to a live Evolution world (docs/ECOLOGY.md §8,
+// The placed fixtures of the design tables applied to a live Evolution world (docs/ecology/acceptance.md §8,
 // docs/TESTING.md §8.1): a placed cell, mote or fragment, the anchors that need the world (a cell
 // centre, a gel patch), the "placing anything disables the seeded motes and both spawners" rule
 // and the gel-patch clearance of the broth point. Everything a fixture writes goes through the
@@ -50,7 +50,7 @@ const PLACED_FRAGMENT_DRIFT_TURN = 0;
 
 /**
  * Placing anything means the seeded motes are gone and both spawners are off for the run
- * (docs/ECOLOGY.md §8), and the seed is refused when a gel patch reaches the broth point.
+ * (docs/ecology/acceptance.md §8), and the seed is refused when a gel patch reaches the broth point.
  */
 export function prepareWorldForPlacement(world: WorldState): void {
   if (!isClearOfGelPatches(BROTH_POINT, world.gelPatches, GEL_PATCH_CLEARANCE_WU)) {

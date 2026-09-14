@@ -18,10 +18,10 @@ import {
 } from './engulf-pace.js';
 
 const absorption = DEFAULT_BALANCE.absorption;
-/** The folded record of a cell with no traits: every pace term at its identity (docs/TRAITS.md §2). */
+/** The folded record of a cell with no traits: every pace term at its identity (docs/traits/model.md §2). */
 const identityPredator: EngulfPredatorPaceModifiers = DEFAULT_CELL_MODIFIERS;
 const identityPrey: EngulfPreyPaceModifiers = DEFAULT_CELL_MODIFIERS;
-/** docs/ECOLOGY.md §8 E9: a 100-mass predator on a 20-mass prey pays out on tick 36. */
+/** docs/ecology/acceptance.md §8 E9: a 100-mass predator on a 20-mass prey pays out on tick 36. */
 const E9_PREDATOR_MASS = 100;
 const E9_PREY_MASS = 20;
 const E9_TICKS = 36;

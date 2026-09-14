@@ -1,4 +1,4 @@
-// The server records (docs/ARCHITECTURE.md §2): supersets of the wire views. `serialize.ts`
+// The server records (docs/architecture/entity-model.md §2): supersets of the wire views. `serialize.ts`
 // projects them onto views; nothing outside `game/` reads a record.
 
 import type {
@@ -19,7 +19,7 @@ import type {
 } from '@evolution/shared';
 
 /**
- * One predator's memory of a prey it spat out (docs/ECOLOGY.md §6.1): it cannot restart on that
+ * One predator's memory of a prey it spat out (docs/ecology/absorption.md §6.1): it cannot restart on that
  * prey until `untilTick`, and separation pushes the pair apart meanwhile (§5.3). One entry per
  * spat-out prey, in the order they were spat out; expired entries are pruned by the engulf step.
  */
@@ -42,16 +42,16 @@ export interface CellRecord extends CellView {
   /** The latest applied input, latched until replaced. */
   targetX: number;
   targetY: number;
-  /** Folded at step 1 of the tick (docs/TRAITS.md §2); the simulation reads only this. */
+  /** Folded at step 1 of the tick (docs/traits/model.md §2); the simulation reads only this. */
   modifiers: CellModifiers;
   /**
-   * A fixture pin (docs/ECOLOGY.md §8): the centre is restored after the movement step every
+   * A fixture pin (docs/ecology/acceptance.md §8): the centre is restored after the movement step every
    * tick. `null` in play; only the scenario adapter sets it.
    */
   pinnedX: number | null;
   pinnedY: number | null;
   /**
-   * A sealed prey rides its predator (docs/ECOLOGY.md §6.1, the seal row): its centre is the
+   * A sealed prey rides its predator (docs/ecology/absorption.md §6.1, the seal row): its centre is the
    * predator's plus this offset after the predator has moved. `null` whenever it is not carried.
    */
   carriedOffsetX: number | null;
@@ -61,10 +61,10 @@ export interface CellRecord extends CellView {
   /**
    * This tick's steer command, taken from the start-of-tick pose at the top of the movement step
    * and kept so the engulf struggle reads the command the movement actually used, not a second one
-   * taken after the cell has moved (docs/ECOLOGY.md §5.2, §6.1).
+   * taken after the cell has moved (docs/ecology/mass-and-movement.md §5.2, docs/ecology/absorption.md §6.1).
    */
   steerCommand: SteerCommand;
-  /** The last engulf this cell was released from, as prey; `null` until one ends (docs/ECOLOGY.md §6.1). */
+  /** The last engulf this cell was released from, as prey; `null` until one ends (docs/ecology/absorption.md §6.1). */
   lastRelease: EngulfReleaseRecord | null;
 }
 
@@ -76,7 +76,7 @@ export function isPlayerCell(cell: CellRecord): cell is PlayerCellRecord {
 }
 
 /**
- * A wild seat (docs/ECOLOGY.md §3.3, docs/ARCHITECTURE.md §2): the world clock made flesh. The
+ * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the world clock made flesh. The
  * seats are declared with the state shape so the hash walk and the snapshot never change when the
  * wild-cell slice fills them; build 1's simulation core leaves `world.wildSeats` empty.
  */
@@ -109,14 +109,14 @@ export interface PlayerRecord extends PlayerProgressView {
   /** FIFO; `offerQueue[0]` is the shown offer once `shownAtTick` is set (docs/PROGRESSION.md §4). */
   offerQueue: TraitOffer[];
   nextOfferId: number;
-  /** Echoed in the snapshot for prediction (docs/ARCHITECTURE.md §5). */
+  /** Echoed in the snapshot for prediction (docs/architecture/client.md §5). */
   appliedInputSequence: number;
-  /** Coalesced by `submitInput` (docs/ARCHITECTURE.md §3.2). */
+  /** Coalesced by `submitInput` (docs/architecture/server-simulation.md §3.2). */
   pendingInput: GameInput | null;
 }
 
 export interface FoodMoteRecord extends FoodMoteView {
-  /** docs/ECOLOGY.md §1 by kind. */
+  /** docs/ecology/food-and-spawn.md §1 by kind. */
   mass: number;
   dna: number;
   /** By variant for bacteria, `null` otherwise. */
@@ -133,12 +133,12 @@ export interface DnaFragmentRecord extends DnaFragmentView {
   driftY: number;
 }
 
-/** A fractional spawner accumulator (docs/ECOLOGY.md §3) plus what the scenarios count. */
+/** A fractional spawner accumulator (docs/ecology/food-and-spawn.md §3) plus what the scenarios count. */
 export interface SpawnerState {
   accumulator: number;
   /** Entities this spawner has spawned since the world was created (E2, E14 count spawns, not populations). */
   spawnedCount: number;
-  /** Placed scenarios switch the spawners off (docs/ECOLOGY.md §8). */
+  /** Placed scenarios switch the spawners off (docs/ecology/acceptance.md §8). */
   isEnabled: boolean;
 }
 

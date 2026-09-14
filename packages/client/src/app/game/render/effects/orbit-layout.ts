@@ -1,4 +1,4 @@
-// The ladder orbit's layout (docs/UI.md §3.1.2–§3.1.3, docs/RENDERING.md §10): where the rung ghost,
+// The ladder orbit's layout (docs/ui/hud.md §3.1.2–§3.1.3, docs/rendering/own-cell-indicators.md §10): where the rung ghost,
 // each counter's ghost and pip block, and the callout backings under them sit on the orbit of the own
 // cell at `r_px`, as angles and px offsets from its centre. A counter is centred on its §9 angle,
 // ghost first and pips after, clockwise; beside a rung ghost it turns away until the drawn boxes are
@@ -43,7 +43,7 @@ export interface OrbitGhost extends OrbitPoint {
 
 export interface OrbitPipBlock extends OrbitPoint {
   readonly variant: BacteriumVariant;
-  /** Clamped to `required` again here: the pip atlas has no entry past it (UI.md §3.1.2). */
+  /** Clamped to `required` again here: the pip atlas has no entry past it (ui/hud.md §3.1.2). */
   readonly eaten: number;
   readonly required: number;
 }
@@ -195,7 +195,7 @@ function mergedBackings(spans: readonly OrbitArc[], radiusPx: number): OrbitArc[
   return merged;
 }
 
-/** The ladder orbit for the own cell at `rPx` (UI.md §3.1.2): the rung ghost, then the counters. */
+/** The ladder orbit for the own cell at `rPx` (ui/hud.md §3.1.2): the rung ghost, then the counters. */
 export function orbitLayout(ladder: Ladder, rPx: number): OrbitLayout {
   const radiusPx = ladderOrbitRadiusPx(rPx);
   const ghostGroup = ladder.ghost === null ? null : rungGhostGroup(ladder.ghost, radiusPx);

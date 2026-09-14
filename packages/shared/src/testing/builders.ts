@@ -115,7 +115,7 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
   };
 }
 
-/** A client frame report inside every docs/RENDERING.md §7 budget; pass the fields the test reads. */
+/** A client frame report inside every docs/rendering/budget.md §7 budget; pass the fields the test reads. */
 export function createTestClientPerformanceReport(
   overrides: Partial<ClientPerformanceReport> = {},
 ): ClientPerformanceReport {

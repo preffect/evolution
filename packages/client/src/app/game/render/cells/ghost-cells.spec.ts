@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: the ghost appears on `cell_absorbed` and leaves at 600 ms; its clip drives the predator seal.
+// docs/rendering/files-and-tests.md §9: the ghost appears on `cell_absorbed` and leaves at 600 ms; its clip drives the predator seal.
 
 import { describe, expect, it } from 'vitest';
 import { MOTION_CLIPS, entityId } from '@evolution/shared';

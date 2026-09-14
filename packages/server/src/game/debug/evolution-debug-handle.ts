@@ -1,4 +1,4 @@
-// The Evolution debug handle (docs/ARCHITECTURE.md §8): every capability of the template's seam,
+// The Evolution debug handle (docs/architecture/debug-mcp.md §8): every capability of the template's seam,
 // declared `Required` so a forgotten member is a type error. Reads project the world; mutations
 // go through debug-operations.ts and are recorded in the replay; a reseed closes the recording;
 // the bot pair adds and removes a player the module's own roster drives (docs/TESTING.md §8.3).
@@ -57,7 +57,7 @@ export interface DebugEntity {
 
 const ENTITY_KINDS: readonly EntityKind[] = Object.values(ENTITY_KIND);
 
-/** What `debug_get_player_progress` reports of a cell's engulf record (docs/ARCHITECTURE.md §8). */
+/** What `debug_get_player_progress` reports of a cell's engulf record (docs/architecture/debug-mcp.md §8). */
 export interface EngulfDebugState {
   readonly carriedOffsetX: number | null;
   readonly carriedOffsetY: number | null;
@@ -66,7 +66,7 @@ export interface EngulfDebugState {
 }
 
 /**
- * The engulf record the wire does not carry (docs/ECOLOGY.md §6.1): the carried offset of a sealed
+ * The engulf record the wire does not carry (docs/ecology/absorption.md §6.1): the carried offset of a sealed
  * prey, the predator's spit-out memories (so a QA agent driving an engulf with `debug_set_player`
  * can see why a restart is refused) and the last release with its reason. That reason exists nowhere
  * else a debug tool can reach: `cell_released` rides the delta broadcast alone, and the full-state
@@ -177,7 +177,7 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
 
   /**
    * The roster builds the pilot and the identity, the room claims the seat, then the module adds
-   * the player (recorded as a join); a refused seat leaves nothing behind (docs/ARCHITECTURE.md §8).
+   * the player (recorded as a join); a refused seat leaves nothing behind (docs/architecture/debug-mcp.md §8).
    */
   spawnBot(request: BotSpawnRequest, seat: (bot: SpawnedBot) => void): SpawnedBot {
     const { bots, membership } = this.dependencies;

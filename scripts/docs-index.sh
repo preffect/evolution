@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# docs-index.sh — generate docs/INDEX.md: every heading of every docs/*.md with its line range and first sentence,
-# so a brief can cite "ECOLOGY.md §7 (L540–610)" and an agent reads only that range (docs/TEAM.md).
+# docs-index.sh — generate docs/INDEX.md: every heading of every docs/*.md and docs/*/*.md with its line range and first
+# sentence, so a brief can cite "ecology/constants.md §7 (L5–103)" and an agent reads only that range (docs/TEAM.md).
 #
 #   scripts/docs-index.sh            # rewrite docs/INDEX.md
 #   scripts/docs-index.sh --check    # exit 1 when the committed docs/INDEX.md is stale (run by ./validate.sh lint)
@@ -34,7 +34,7 @@ index_one_document() {
       match($0, /^#+/)
       level[count] = RLENGTH
       indent[count] = (level[count] <= 2 ? "" : "  ")
-      title[count] = substr($0, RLENGTH + 2)
+      title[count] = link_text(substr($0, RLENGTH + 2))
       line[count] = NR
       summary[count] = ""
       want = count
@@ -53,11 +53,20 @@ index_one_document() {
     function finish() {
       s = buffer
       gsub(/\*\*/, "", s)
+      s = link_text(s)
       if (match(s, /[.!?]( |$)/)) s = substr(s, 1, RSTART)
       if (length(s) > max) s = substr(s, 1, max - 1) "…"
       summary[want] = s
       want = 0
       buffer = ""
+    }
+    # The index keeps the text of a link, not its target: the target is relative to the source file, not to INDEX.md.
+    function link_text(s, link) {
+      while (match(s, /\[[^]]*\]\([^)]*\)/)) {
+        link = substr(s, RSTART, RLENGTH)
+        s = substr(s, 1, RSTART - 1) substr(link, 2, index(link, "](") - 2) substr(s, RSTART + RLENGTH)
+      }
+      return s
     }
     END { flush() }
   ' "$path"
@@ -70,8 +79,8 @@ generate() {
   echo "and read only that line range (\`sed -n 'start,endp' docs/FILE.md\`). Regenerate after editing any doc; \`./validate.sh lint\` checks it."
   echo
   local path name
-  for path in "$docs_dir"/*.md; do
-    name="$(basename "$path")"
+  for path in "$docs_dir"/*.md "$docs_dir"/*/*.md; do
+    name="${path#"$docs_dir"/}"
     [[ "$name" == "INDEX.md" ]] && continue
     echo "## $name ($(wc -l < "$path") lines)"
     echo

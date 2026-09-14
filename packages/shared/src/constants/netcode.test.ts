@@ -49,7 +49,7 @@ describe('netcode constants', () => {
     expect(TICK_HZ / SNAPSHOT_EVERY_TICKS).toBe(LANDED_SNAPSHOT_HZ);
   });
 
-  it('derives the interpolation delay and the buffer from the cadence (docs/ARCHITECTURE.md §5)', () => {
+  it('derives the interpolation delay and the buffer from the cadence (docs/architecture/client.md §5)', () => {
     expect(INTERPOLATION_DELAY_TICKS).toBe(2 * SNAPSHOT_EVERY_TICKS);
     expect(SNAPSHOT_BUFFER_SIZE * SNAPSHOT_EVERY_TICKS).toBeGreaterThan(
       INTERPOLATION_DELAY_TICKS + SNAPSHOT_EVERY_TICKS,

@@ -1,4 +1,4 @@
-// The mote and fragment record factories (docs/ECOLOGY.md §1): one home for "what a mote of
+// The mote and fragment record factories (docs/ecology/food-and-spawn.md §1): one home for "what a mote of
 // this kind is worth", shared by the spawners, the detritus drop, the debug `spawn` tool and the
 // scenario fixtures. Stats come from `balance.ecology` by kind, never from a switch.
 
@@ -25,7 +25,7 @@ export interface FoodKindStats {
   readonly tag: DnaTag | null;
 }
 
-/** Mass, DNA and tag by kind (docs/ECOLOGY.md §1), read from the live balance. */
+/** Mass, DNA and tag by kind (docs/ecology/food-and-spawn.md §1), read from the live balance. */
 export function foodKindStats(kind: FoodKind, variant: BacteriumVariant | null, balance: BalanceConfig): FoodKindStats {
   const { ecology } = balance;
   const byKind: Record<FoodKind, FoodKindStats> = {

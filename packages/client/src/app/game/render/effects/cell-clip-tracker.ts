@@ -1,4 +1,4 @@
-// Which clips each cell is playing (docs/RENDERING.md §4, §2.1): one `MotionClipPlayer` per cell,
+// Which clips each cell is playing (docs/rendering/contents-and-motion.md §4, docs/rendering/cells.md §2.1): one `MotionClipPlayer` per cell,
 // started from the frame's effects (`cells/cell-effects.ts` names the clip and the mote angle),
 // sampled into the frame's `CellDeformations` through `cells/cell-clips.ts` together with the
 // engulf terms read off the views (`engulfProgress`, never the clock). The cell layer merges the

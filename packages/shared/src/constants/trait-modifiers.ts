@@ -1,9 +1,9 @@
-// The modifier model's numbers (docs/TRAITS.md §2, §3): the identity record and every tier
+// The modifier model's numbers (docs/traits/model.md §2, docs/traits/catalog-organelles.md §3): the identity record and every tier
 // table. `traits.ts` re-exports them beside the catalog so `traits` stays the one domain.
 
 import type { CellModifiers, TraitTiers } from '../types/traits.js';
 
-/** The protocell baseline: every modifier at its identity (docs/TRAITS.md §2). */
+/** The protocell baseline: every modifier at its identity (docs/traits/model.md §2). */
 export const DEFAULT_CELL_MODIFIERS: CellModifiers = {
   speedMultiplier: 1,
   accelerationSecondsMultiplier: 1,
@@ -34,7 +34,7 @@ export const DEFAULT_CELL_MODIFIERS: CellModifiers = {
 /** `SPRINT_COOLDOWN_SECONDS + sprintCooldownSecondsDelta` never goes below this (s). */
 export const SPRINT_COOLDOWN_FLOOR_SECONDS = 0.5;
 
-// Tier I..III of every build-1 trait (docs/TRAITS.md §3). The catalog row of each trait references
+// Tier I..III of every build-1 trait (docs/traits/catalog-organelles.md §3). The catalog row of each trait references
 // its table, and `TRAIT_TIERS` (traits.ts) is derived from the catalog, keyed by id.
 export const NUCLEOID_TIERS: TraitTiers = [
   { dnaGainMultiplier: 1.05 },

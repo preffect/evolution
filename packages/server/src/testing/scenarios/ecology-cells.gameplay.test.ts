@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8, the placed rows on eating, decay, size and speed (E4–E8, E12, E15), each
+// docs/ecology/acceptance.md §8, the placed rows on eating, decay, size and speed (E4–E8, E12, E15), each
 // run twice and hash-compared. The seeded spawn rows are ecology-spawn.gameplay.test.ts; the
 // engulf rows (E9–E11, E13, E16) are the two ecology-engulf files.
 
@@ -17,7 +17,7 @@ import {
 
 const { ecology, growth, ladder, world: dish } = DEFAULT_BALANCE;
 
-describe('ECOLOGY §8: eating, decay, size and speed on placed cells', () => {
+describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cells', () => {
   it.each([
     [FOOD_KIND.algae, undefined, { mass: growth.CELL_STARTING_MASS + ecology.ALGAE_MASS, dna: 0, tag: 'photic' }],
     [

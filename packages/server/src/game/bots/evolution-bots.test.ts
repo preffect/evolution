@@ -1,4 +1,4 @@
-// docs/ARCHITECTURE.md §8: the roster the Evolution module drives, fed the full snapshot of the
+// docs/architecture/debug-mcp.md §8: the roster the Evolution module drives, fed the full snapshot of the
 // tick before and stamping the coming tick as the sequence.
 import { describe, expect, it, vi } from 'vitest';
 import { BOT_STRATEGY_NAME } from './strategy-constants.js';

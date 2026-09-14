@@ -111,7 +111,11 @@ process belong upstream in `base-multiplayer-game` so the next game inherits the
 
 ## Standards & guidelines
 
-These docs are the enforceable quality bar for any work in this repo. Read and follow them.
+These docs are the enforceable quality bar for any work in this repo. Do not read them front to back: look up
+the file you need and read only the spec files your ticket or brief cites (its **Spec files:** line). The large
+design specs are split into topic files under `docs/<domain>/` (`ecology`, `architecture`, `rendering`, `ui`,
+`traits`, `game-design`); each old `docs/<NAME>.md` lists its files, and `docs/INDEX.md` lists every heading of
+every file with its line range.
 
 - **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)** — coding, architecture, and testing rules. The single
   gate is **`./validate.sh all`** (lint + duplication + typecheck + test): the build loop runs scoped
@@ -156,7 +160,7 @@ pnpm monorepo with three packages:
 ### Game extension points (left as TODOs)
 
 - **Shared:** done (#97): `packages/shared/src/types/messages.ts` — `GameInput`, `GameSnapshot`, `GameSessionConfig`; `data/balance.json` is generated (`pnpm generate:balance`) and pinned by `balance.test.ts`.
-- **Server:** done (#152): `packages/server/src/game/evolution-module.ts` is the `GameModule` on the simulation under `src/game/{world,simulation,progression,session,serialize,replay,debug}` (docs/ARCHITECTURE.md §3, §10); `src/index.ts` wires `evolutionModuleFactory`. The echo module in `game-module.ts` stays as the template placeholder the framework's proving scenarios run on. Engulf and the wild cells are the next #98 slices.
+- **Server:** done (#152): `packages/server/src/game/evolution-module.ts` is the `GameModule` on the simulation under `src/game/{world,simulation,progression,session,serialize,replay,debug}` (docs/architecture/server-simulation.md §3, docs/architecture/constants-files-tests.md §10); `src/index.ts` wires `evolutionModuleFactory`. The echo module in `game-module.ts` stays as the template placeholder the framework's proving scenarios run on. Engulf and the wild cells are the next #98 slices.
 - **Client:** `packages/client/src/app/game/game-setup.ts` — the game loop + renderer.
 - **Init:** see `docs/INIT-GAME.md` to interview the user and produce `docs/GAME-DESIGN.md` + the first build epic.
 
@@ -195,7 +199,7 @@ change ports inside the container; they are already baked into the integration f
 - **evolution-debug** — HTTP MCP endpoint on the game server (`http://localhost:4400/debug-mcp`). Generic
   tools: game state (`debug_get_game_state`, `debug_list_games`, `debug_get_room`), player connections
   (`debug_get_connections`), performance (`debug_get_performance`, `debug_get_room_performance`).
-  Game-specific tools (`docs/ARCHITECTURE.md` §8 is the contract; the Evolution module implements every
+  Game-specific tools (`docs/architecture/debug-mcp.md` §8 is the contract; the Evolution module implements every
   capability, the echo only the bot pair, and a missing one answers "not supported by this game module"): inspect `debug_get_entities(gameId, kind?, bbox?)`,
   `debug_get_player_progress(gameId, playerId)`, `debug_get_state_hash(gameId)`, `debug_get_balance(gameId)`,
   `debug_export_replay(gameId)`; manipulate `debug_spawn(gameId, kind, x, y, params)`,

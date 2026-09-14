@@ -1,8 +1,8 @@
 // The dish, food, depth, effects, layer order and camera numbers (docs/VISUAL-STYLE.md §1, §2, §5,
-// §8; sheet 02; docs/RENDERING.md §6). Units: wu unless the suffix says px, seconds or degrees.
-// The bench scene and the frame-budget numbers of docs/RENDERING.md §7 are the `bench.ts` page.
+// §8; sheet 02; docs/rendering/budget.md §6). Units: wu unless the suffix says px, seconds or degrees.
+// The bench scene and the frame-budget numbers of docs/rendering/budget.md §7 are the `bench.ts` page.
 
-// ---- layer order (docs/ARCHITECTURE.md §6) ----
+// ---- layer order (docs/architecture/client.md §6) ----
 export const LAYER_Z = {
   dish: 0,
   depthFar: 1,
@@ -58,11 +58,11 @@ export const VENT_SHIMMER_SPEED_WU_PER_SECOND = 40;
 export const VENT_GLINT_HZ_MIN = 6;
 export const VENT_GLINT_HZ_MAX = 9;
 
-// ---- the field bake (sheet 02 field, zone and dish-wall tables; docs/RENDERING.md §6) ----
+// ---- the field bake (sheet 02 field, zone and dish-wall tables; docs/rendering/budget.md §6) ----
 /** The light pool's middle stop (sheet 02 `light-pool`: 9 % → 3 % at half the radius → 0). */
 export const LIGHT_POOL_MID = { stop: 0.5, alpha: 0.03 } as const;
 
-// ---- the condenser light pool, anchored to the view (docs/VISUAL-STYLE.md §1, docs/RENDERING.md §6.1) ----
+// ---- the condenser light pool, anchored to the view (docs/VISUAL-STYLE.md §1, docs/rendering/budget.md §6.1) ----
 /** The pool's centre as fractions of the viewport's width and height: sheet 02's (380, 200) in its 1920 × 1080 scene. */
 export const LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 } as const;
 /** The pool's radii as fractions of the viewport's width and height: sheet 02's 980 × 760 wu at zoom 1. */
@@ -183,7 +183,7 @@ export const DNA_FRAGMENT_RUNGS = 5;
 export const DNA_FRAGMENT_RUNG_PX = 2;
 export const DNA_FRAGMENT_ROTATION_DEG_PER_SECOND = 20;
 export const DNA_FRAGMENT_HALO = { radius: 14, alpha: 0.2, innerRadius: 12, innerAlpha: 0.3 } as const;
-/** A bacterium that moved less than this between two frames is still: its rod keeps the heading it had (docs/RENDERING.md §1). */
+/** A bacterium that moved less than this between two frames is still: its rod keeps the heading it had (docs/rendering/cells.md §1). */
 export const BACTERIUM_HEADING_STILL_WU = 0.05;
 /** Clear texels between two sprites of a packed atlas, so linear sampling never bleeds a neighbour in. */
 export const ATLAS_PADDING_PX = 2;
@@ -205,7 +205,7 @@ export const LEVEL_UP_RAYS = 16;
 export const LEVEL_UP_RAY_WIDTH_RADII = 0.08;
 /** The rays sit outside the body (sheet 03 strip C frame 03): base at the rim, the `rayRadii` track is the tip. */
 export const LEVEL_UP_RAY_BASE_RADII = 1.2;
-/** Three concentric dish ripples at these radii (sheet 03 strip C, RENDERING §4), pushed outward by the `rippleRadii` track. */
+/** Three concentric dish ripples at these radii (sheet 03 strip C, rendering/contents-and-motion.md §4), pushed outward by the `rippleRadii` track. */
 export const LEVEL_UP_RIPPLE_RADII = [1.7, 2.1, 2.5] as const;
 export const LEVEL_UP_RIPPLES = LEVEL_UP_RIPPLE_RADII.length;
 export const EFFECT_RING_ALPHA = 0.6;
@@ -237,6 +237,6 @@ export const ZONE_ENTRY_SECONDS = 0.3;
 /** After an eat effect the halo sprite fades over the clip's last tween. */
 export const EAT_HALO_FADE_START = 0.55;
 
-// ---- camera (render side of GAME-DESIGN §7) ----
+// ---- camera (render side of game-design/controls-and-scope.md §7) ----
 export const CAMERA_REFERENCE_VIEWPORT_HEIGHT_PX = 1080;
 export const CAMERA_CULL_MARGIN_RADII = 1;

@@ -1,4 +1,4 @@
-// The own-cell indicator atlas (docs/RENDERING.md §10): every ghost the ladder orbit can show, one pip
+// The own-cell indicator atlas (docs/rendering/own-cell-indicators.md §10): every ghost the ladder orbit can show, one pip
 // block per (variant, eaten) for every endosymbiont tally and the label pill (rings are arc rows), each
 // baked once at startup at its fixed px size times the device pixel ratio (rounded up, capped). Keys
 // are what `effects/orbit-layout.ts` hands the drawing: a ghost by `OrbitGhost.key` (the rung's
@@ -15,7 +15,7 @@ import { bakeScaleFor, type BakeCanvasFactory, type PxBakedSprite } from './text
 /** A ghost's atlas key: the next rung's silhouette, or the endosymbiont a counter unlocks (`OrbitGhost.key`). */
 export type GhostKey = LadderSilhouette | TraitId;
 
-/** The rung ghosts' shapes (UI.md §3.1.2): the nucleoid loop, the envelope circle, the form's slipper. */
+/** The rung ghosts' shapes (ui/hud.md §3.1.2): the nucleoid loop, the envelope circle, the form's slipper. */
 export const GHOST_SHAPE_BY_SILHOUETTE: Readonly<Record<LadderSilhouette, GhostShape>> = {
   [LADDER_SILHOUETTE.nucleoid]: GHOST_SHAPE.loop,
   [LADDER_SILHOUETTE.envelope]: GHOST_SHAPE.envelope,

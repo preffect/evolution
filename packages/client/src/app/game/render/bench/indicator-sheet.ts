@@ -1,4 +1,4 @@
-// The own-cell indicator contact sheet (docs/RENDERING.md §10, #294 evidence): `?bench&sheet=indicators`
+// The own-cell indicator contact sheet (docs/rendering/own-cell-indicators.md §10, #294 evidence): `?bench&sheet=indicators`
 // draws every baked indicator texture through the real Pixi path at its px floor size over the field
 // colour — the five ghosts (the rung ghosts tinted a player's rim colour), both pip block series from empty
 // to full, the label pills with `label` text and `value` numerals — and, below them, the arc primitive's panel

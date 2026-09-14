@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8 E1 and docs/DETERMINISM.md §3: the seeded world at tick 0.
+// docs/ecology/acceptance.md §8 E1 and docs/DETERMINISM.md §3: the seeded world at tick 0.
 import { describe, expect, it } from 'vitest';
 import {
   createTestSessionConfig,

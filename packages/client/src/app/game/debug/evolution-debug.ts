@@ -1,4 +1,4 @@
-// The deterministic screenshot hook (docs/TESTING.md, docs/RENDERING.md §1): `window.__evolutionDebug`
+// The deterministic screenshot hook (docs/TESTING.md, docs/rendering/cells.md §1): `window.__evolutionDebug`
 // in dev builds only, mirroring the debug MCP's pause / step / resume for the client loop and
 // the bench's seed. A paused loop holds the render tick, so every frame is identical until it
 // resumes; `step` renders exactly that many frames (bench: that many ticks).
@@ -26,7 +26,7 @@ export interface EvolutionDebugApi {
   framesRendered(): number;
   performanceReport(): ClientPerformanceReport | null;
   /**
-   * Live rooms only: what the input layer last sent and what it is holding (docs/UI.md §4), so a
+   * Live rooms only: what the input layer last sent and what it is holding (docs/ui/input-and-onboarding.md §4), so a
    * Playwright run can assert that a key or a click reached its handler without reading the wire.
    */
   input?(): InputDebugState;

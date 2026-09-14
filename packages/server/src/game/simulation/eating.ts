@@ -1,4 +1,4 @@
-// Step 4 (docs/ECOLOGY.md §1): a mote or fragment is eaten the tick its centre lies within a
+// Step 4 (docs/ecology/food-and-spawn.md §1): a mote or fragment is eaten the tick its centre lies within a
 // cell's radius. Cells eat in array order, hits in id order (the spatial hash), and a mote eaten
 // by an earlier cell is gone for the later ones; wild cells are skipped. Mass arrives through `gainMass` (digestion
 // bonus, cap overflow to DNA); DNA and tag points through the progression counters.
@@ -73,7 +73,7 @@ export function eat(world: WorldState, context: StepContext): void {
   const eaten = new Set<EntityId>();
   for (const cell of world.cells) {
     if (!isPlayerCell(cell)) {
-      continue; // a wild cell never eats (docs/ECOLOGY.md §3.3)
+      continue; // a wild cell never eats (docs/ecology/wild-cells.md §3.3)
     }
     const diner: Diner = { cell, player: requirePlayer(world, cell.playerId) };
     for (const mote of foodHash.queryCircle(cell.x, cell.y, cell.radius)) {

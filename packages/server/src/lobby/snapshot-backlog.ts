@@ -1,4 +1,4 @@
-// Per-connection snapshot flow control (#266, docs/ARCHITECTURE.md §4): the room broadcasts a delta
+// Per-connection snapshot flow control (#266, docs/architecture/wire-contract.md §4): the room broadcasts a delta
 // every `SNAPSHOT_EVERY_TICKS`, and a client that cannot drain that cadence would otherwise be
 // queued every snapshot the room ever sent it — its view falls behind for good and never catches
 // up, because nothing in the stream lets it skip ahead. This decides, per connection and per
@@ -96,7 +96,7 @@ export class SnapshotBacklog {
     return this.owedResync.size;
   }
 
-  /** Resyncs this room has sent: how often a client fell behind the cadence (docs/ARCHITECTURE.md §4). */
+  /** Resyncs this room has sent: how often a client fell behind the cadence (docs/architecture/wire-contract.md §4). */
   resyncCount(): number {
     return this.resyncTotal;
   }

@@ -1,4 +1,4 @@
-// What the leaderboard panel shows (docs/UI.md §3.1.1), decided here so the component only binds:
+// What the leaderboard panel shows (docs/ui/hud.md §3.1.1), decided here so the component only binds:
 // which rows make the cut, what each one reads, and the rule that the own row is always among them.
 // Pure and DOM-free; the panel passes the signals in and renders the records out.
 
@@ -33,7 +33,7 @@ export interface LeaderboardInput {
   readonly avatarAssignments: Readonly<Record<string, number>>;
   /** `MultiplayerService.playerId()`; `null` before the room names us. */
   readonly ownPlayerId: PlayerId | null;
-  /** How many rows fit: compact or full (docs/UI.md §3.1.1). */
+  /** How many rows fit: compact or full (docs/ui/hud.md §3.1.1). */
   readonly maxRows: number;
 }
 
@@ -64,7 +64,7 @@ function entryFor(row: LeaderboardRow, input: LeaderboardInput): LeaderboardEntr
 
 /**
  * The rows the panel draws, in rank order. The server ranks; this only cuts to the panel's height
- * and applies docs/UI.md §3.1.1's one exception: **the own row is always present** — outside the
+ * and applies docs/ui/hud.md §3.1.1's one exception: **the own row is always present** — outside the
  * cut it replaces the last row, so the player's level is legible as text at every rank.
  */
 export function leaderboardEntriesFor(input: LeaderboardInput): readonly LeaderboardEntry[] {

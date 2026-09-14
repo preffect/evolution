@@ -48,7 +48,8 @@ decision is applied; close the ticket when it is done; never leave a closed tick
   Later build phases live in a single `roadmap` issue until the human approves them; they then
   become their own epics. **Epics scope one phase of groundwork, never the whole game.**
 - Epics carry the `epic` label and own their tickets as sub-issues. Every ticket body starts
-  with `**Epic:** #N`.
+  with `**Epic:** #N` and carries a `**Spec files:**` line naming the `docs/<domain>/<topic>.md` files (with §)
+  the work needs; agents read only those (`.claude/roles/_common.md`).
 - **One subsystem per ticket.** A ticket names one subsystem, and its PR is readable in one
   sitting: about 40 files at most, tests included. A title that lists several subsystems
   ("world, ecology, movement, growth, …") is an epic, not a ticket: give it the `epic` label and

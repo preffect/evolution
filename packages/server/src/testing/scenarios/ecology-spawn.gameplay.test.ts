@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8, the spawn-model rows on the seeded world (E1–E3, E14), each run twice and
+// docs/ecology/acceptance.md §8, the spawn-model rows on the seeded world (E1–E3, E14), each run twice and
 // hash-compared (`runDeterministic`). The placed rows are ecology-cells.gameplay.test.ts; the
 // engulf rows (E9–E11, E13, E16) wait for the engulf slice of #98 and the evolving-world rows
 // (§8.1, W1–W10) for the wild-cell slice.
@@ -38,7 +38,7 @@ function fragmentsSpawnedSince(label: string): (view: EvolutionView) => number {
   return (view) => view.snapshot.spawnedCounts.dnaFragments - (view.captured(label) as number);
 }
 
-describe('ECOLOGY §8: the spawn model on the seeded world', () => {
+describe('ecology/acceptance.md §8: the spawn model on the seeded world', () => {
   it('E1: the initial fill', async () => {
     await seededSolo('E1')
       .expect('food count', foodCount)

@@ -62,7 +62,7 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
 
   it('P11: a prey absorbed with an offer shown still has it when it respawns', async () => {
     // B is placed first and alone, so the fragments inside it are B's: a cell sitting inside a
-    // predator's radius would have them eaten by the predator, which eats first (docs/ECOLOGY.md §1).
+    // predator's radius would have them eaten by the predator, which eats first (docs/ecology/food-and-spawn.md §1).
     const fragments = LEVEL_2_DNA / ecology.DNA_FRAGMENT_DNA;
     const run = scenario('P11')
       .seed(PLACED_ROW_SEED)
@@ -98,7 +98,7 @@ describe('PROGRESSION §7: what an absorption does to the progression', () => {
       .atEnd()
       .toBe(1 + TIMEOUT_TICKS)
       // The tag half of the Payout table, end to end: B ate `sensory`, so A takes
-      // `ENGULF_TAG_SHARE` of it plus the flat `predatory` points (docs/ECOLOGY.md §6.1).
+      // `ENGULF_TAG_SHARE` of it plus the flat `predatory` points (docs/ecology/absorption.md §6.1).
       .expect("B's own sensory points before it is eaten", (view) => progressOf(view, 1)?.dnaTagPoints.sensory)
       .atTick(P11_PAYOUT_TICK - 1)
       .toBe(LEVEL_2_DNA / ecology.DNA_FRAGMENT_DNA)

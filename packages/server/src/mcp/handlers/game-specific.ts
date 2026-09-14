@@ -9,7 +9,7 @@ import { registerRoomLoopTools } from './room-loop.js';
 import { registerSpawnTools } from './spawn.js';
 
 /**
- * The game-specific debug surface (docs/ARCHITECTURE.md §8). Every tool here reaches the
+ * The game-specific debug surface (docs/architecture/debug-mcp.md §8). Every tool here reaches the
  * simulation through the room's `SimulationDebugHandle`, so it works with whichever module the
  * lobby was built with: a module that lacks a capability answers "not supported", never a stub.
  */

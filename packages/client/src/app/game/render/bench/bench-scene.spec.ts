@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: counts and seed-stability of the bench scene.
+// docs/rendering/files-and-tests.md §9: counts and seed-stability of the bench scene.
 import { describe, expect, it } from 'vitest';
 import {
   CELL_STATE,

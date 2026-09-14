@@ -1,4 +1,4 @@
-// The E9 pair every engulf test starts from (docs/ECOLOGY.md §8: A at 100, B at 20, centres 10 wu
+// The E9 pair every engulf test starts from (docs/ecology/acceptance.md §8: A at 100, B at 20, centres 10 wu
 // apart) and the step driver that walks it. Shared so `engulf.test.ts`, `engulf-spit-out.test.ts`
 // and `movement.test.ts` state the same setup once (docs/TESTING.md §8: builders live here).
 

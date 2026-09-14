@@ -1,4 +1,4 @@
-// The ladder ghosts (docs/UI.md §3.1.2, docs/RENDERING.md §10): the dashed silhouette of what the next
+// The ladder ghosts (docs/ui/hud.md §3.1.2, docs/rendering/own-cell-indicators.md §10): the dashed silhouette of what the next
 // rung draws — the nucleoid loop, the nuclear envelope with its pores, the form's slipper — and of the
 // endosymbiont a counter unlocks — the mitochondrion's bean with cristae, the chloroplast's pointed
 // lens with granules. Each is `LADDER_GHOST_PX` long with its long axis along x, the way the orbit

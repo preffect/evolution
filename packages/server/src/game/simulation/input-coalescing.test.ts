@@ -1,4 +1,4 @@
-// docs/ARCHITECTURE.md §3.2: coalescing between ticks.
+// docs/architecture/server-simulation.md §3.2: coalescing between ticks.
 import { describe, expect, it } from 'vitest';
 import { createTestGameInput } from '@evolution/shared';
 import { coalesceInput, isStaleInput } from './input-coalescing.js';

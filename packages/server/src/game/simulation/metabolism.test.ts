@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §4, §4.1 (E5) and docs/TRAITS.md §6 (T5, T7).
+// docs/ecology/mass-and-movement.md §4, §4.1 (E5) and docs/traits/constants-and-acceptance.md §6 (T5, T7).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, playerId, type Vec2 } from '@evolution/shared';
 import { createDecayedHelper } from '../../testing/gameplay/fixtures.js';

@@ -1,4 +1,4 @@
-// docs/ARCHITECTURE.md §3 and docs/DETERMINISM.md §3: the step order by its observable consequences.
+// docs/architecture/server-simulation.md §3 and docs/DETERMINISM.md §3: the step order by its observable consequences.
 import { describe, expect, it } from 'vitest';
 import { createTestGameInput, DEFAULT_BALANCE, FOOD_KIND, RANDOM_STREAM, ROUND_PHASE } from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';

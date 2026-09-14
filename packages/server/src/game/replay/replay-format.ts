@@ -7,7 +7,7 @@ import type { BalanceConfig, GameInput, GameSessionConfig, PlayerId, StateHash }
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from '../debug/simulation-debug-handle.js';
 import type { PlayerIdentity } from '../session/players.js';
 
-/** The debug mutations a recording carries (docs/ARCHITECTURE.md §8): the recording owns this vocabulary, `debug/` applies it. */
+/** The debug mutations a recording carries (docs/architecture/debug-mcp.md §8): the recording owns this vocabulary, `debug/` applies it. */
 export const DEBUG_PATCH_KIND = {
   spawn: 'spawn',
   grantDna: 'grant_dna',

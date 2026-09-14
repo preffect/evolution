@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: one snapshot per clip; durations and keyframe times equal sheet 03's; every
+// docs/rendering/files-and-tests.md §9: one snapshot per clip; durations and keyframe times equal sheet 03's; every
 // pulse ≤ 1.14; tracks are monotonic in `at`; every easing is an EasingName; the server never imports
 // the file and `balance.json` carries no key from it.
 
@@ -74,7 +74,7 @@ describe('MOTION_CLIPS', () => {
     }
   });
 
-  it('pins the engulf amplitudes and the absorbed seal relax of RENDERING §4', () => {
+  it('pins the engulf amplitudes and the absorbed seal relax of rendering/contents-and-motion.md §4', () => {
     const engulf = MOTION_CLIPS.engulf.tracks;
     expect(engulf['arm']!.map((keyframe) => keyframe.value)).toEqual([0, 0.62, 0]);
     expect(engulf['notch']!.map((keyframe) => keyframe.value)).toEqual([0, -0.1, 0]);

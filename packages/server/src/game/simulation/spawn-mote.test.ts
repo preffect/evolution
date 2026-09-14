@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §1: what a mote of each kind is worth.
+// docs/ecology/food-and-spawn.md §1: what a mote of each kind is worth.
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, DEFAULT_BALANCE, DNA_TAG, FOOD_KIND, secondsToTicks } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';

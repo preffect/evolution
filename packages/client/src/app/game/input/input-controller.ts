@@ -1,4 +1,4 @@
-// The client's input controller (docs/ARCHITECTURE.md §5, docs/UI.md §4): it owns the input
+// The client's input controller (docs/architecture/client.md §5, docs/ui/input-and-onboarding.md §4): it owns the input
 // state, the client tick counter and the one send per client tick. The adapters feed it decided
 // actions, the world seam tells it what is alive and what is offered, and `pump()` — called once
 // per animation frame — turns the elapsed time into whole `TICK_HZ` ticks through the injected
@@ -39,10 +39,10 @@ export interface InputControllerDependencies {
   readonly projectPointer: (point: CanvasPoint) => PointerProjection | null;
   /** The own cell, the open offer and the live steer tunables; `null` before the first snapshot. */
   readonly world: () => InputWorldContext | null;
-  /** Escape: the HUD closes the topmost overlay or opens the menu (docs/UI.md §3.5, #189). */
+  /** Escape: the HUD closes the topmost overlay or opens the menu (docs/ui/overlays.md §3.5, #189). */
   readonly onMenuKey?: () => void;
   /**
-   * Tab pressed or released (docs/UI.md §4): the HUD opens the full leaderboard while it is held.
+   * Tab pressed or released (docs/ui/input-and-onboarding.md §4): the HUD opens the full leaderboard while it is held.
    * Reported rather than polled, and only on a change, so the one keyboard listener of #184 stays
    * the only one on the document and the HUD adds no second handler for the same key.
    */
@@ -114,7 +114,7 @@ export class InputController {
     this.setState(withAllKeysReleased(this.state));
   }
 
-  /** Tab held (docs/UI.md §4): the HUD opens the full leaderboard while this is true. */
+  /** Tab held (docs/ui/input-and-onboarding.md §4): the HUD opens the full leaderboard while this is true. */
   isFullLeaderboardHeld(): boolean {
     return this.state.isFullLeaderboardHeld;
   }
@@ -125,7 +125,7 @@ export class InputController {
     return point === null ? null : this.dependencies.projectPointer(point);
   }
 
-  /** The latched pointer in world units, for the renderer's reticle (docs/RENDERING.md §7). */
+  /** The latched pointer in world units, for the renderer's reticle (docs/rendering/budget.md §7). */
   pointerWorldPoint(): Vec2 | null {
     return this.projectedPointer()?.worldPoint ?? null;
   }
@@ -157,7 +157,7 @@ export class InputController {
   private sendOneTick(world: InputWorldContext, pointer: PointerProjection | null): void {
     // Never behind what the server has already applied: a reconnect hands the page a fresh
     // controller against the same player record, whose `appliedInputSequence` is far ahead
-    // (docs/ARCHITECTURE.md §4, §5). Normally the applied sequence trails and this is a no-op.
+    // (docs/architecture/wire-contract.md §4, docs/architecture/client.md §5). Normally the applied sequence trails and this is a no-op.
     // `isStaleInput` also rejects against the server's pending input, which is not on the wire;
     // that half needs no handling here, since pending drains every tick and a reconnect finds it
     // empty, while our own counter is always ahead of anything we have sent.
