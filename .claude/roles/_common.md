@@ -15,10 +15,9 @@ range) and read only those ranges; read a whole document only when your task cha
    or `fix/<ticket>-<slug>`; the PR body contains `Closes #<ticket>` for each ticket it finishes.
 2. **Quality bar is `docs/ENGINEERING.md`** (no magic values, no duplicated logic, SOLID, small files
    and functions, full descriptive names, unit + integration tests, seeded randomness only).
-   Iterate on scoped runs (`./validate.sh test --scope <package or path>`) and never commit red. As
-   the author, run the full `./validate.sh all` when the PR is ready for review and after the last
-   commit, and post its gate line with the tree hash (plus `integration` when the change crosses
-   subsystems; `docs/ENGINEERING.md` §1).
+   Iterate on scoped runs (`./validate.sh test --scope <package or path>`) and never commit red. Run
+   no full gate: whoever merges runs `./validate.sh all --affected` once, right before the merge
+   (`docs/ENGINEERING.md` §1). When no scope fits, add one to `validate.sh`.
 3. **Board hygiene through scripts only:** `scripts/issue-status.sh <N> "In progress"` when you
    start, `"In review"` when your PR is open. Never edit anything in the GitHub UI.
 4. **Docs stay in sync** in the same PR (`docs/WORKFLOW.md` section 6).
@@ -27,10 +26,8 @@ range) and read only those ranges; read a whole document only when your task cha
    Reviewers: round one runs in parallel with the other reviewers on the same head and the author
    answers all of you in one fix round; a round-two review re-reads only the diff since your
    previous verdict (`git diff <r1-head>..<head>`) and the replies on your own threads — not the
-   whole PR, not the docs — and its verdict comment says `round 2 (diff-only)`; the gate is
-   looked up, never run: in a clean worktree at the pushed SHA check that the author's `all` stamp
-   exists for that tree (`ls ~/.cache/<slug>-validate/$(git rev-parse HEAD^{tree}).all`) and cite its
-   tree hash; a missing stamp goes back to the author. The lead
+   whole PR, not the docs — and its verdict comment says `round 2 (diff-only)`; reviewers run
+   scoped checks on what they review and never need a stamp or a full gate. The lead
    resolves purely mechanical round-two threads itself
    (`docs/WORKFLOW.md` section 6).
 6. **Small, complete work.** Finish the task fully or say exactly what is left in the PR body.
@@ -79,7 +76,7 @@ gh pr create -B main -H <branch> -t "<type>: <summary>" -F <body-file>   # body 
 gh pr view <N> --json number,url,reviewDecision,statusCheckRollup
 ```
 
-The PR body follows `.github/PULL_REQUEST_TEMPLATE.md` (paste the `./validate.sh all` summary).
+The PR body follows `.github/PULL_REQUEST_TEMPLATE.md` (list the scoped checks you ran; the full gate runs at merge).
 Graphics PRs attach screenshots (`.qa/screenshots/` → commit copies under `qa/evidence/<pr>/`).
 
 ## When you are done

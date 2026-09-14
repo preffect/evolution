@@ -8,7 +8,8 @@
 #   typecheck    Run type checking (pnpm -r typecheck)
 #   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
-#   all          Run lint, duplication, typecheck, test in sequence, then one line of per-phase wall times
+#   all          Run lint, duplication, typecheck, test in sequence, stopping at the first failing phase
+#                (FAILED: <phase>), then one line of per-phase wall times
 #
 # Options:
 #   -tN        Tail N lines of output (e.g. -t20)
@@ -19,6 +20,11 @@
 #              under packages/<package>/src. A package scope keeps the coverage floors; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
 #              typechecks its package (tsc checks whole projects). An empty scope is refused.
+#   --affected With `all` only, never with --scope: the merge gate. Checks what the branch changed
+#              against origin/main (committed, uncommitted, untracked): the changed packages and their
+#              dependents (a shared change selects every package); lint alone for docs (*.md, docs/,
+#              qa/); the shell suites for scripts/ and root *.sh; the plain `all` for any other root
+#              file. Prints each selection and why, and is stamped per affected set.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache).
@@ -41,6 +47,7 @@
 #   ./validate.sh typecheck -t20                              # typecheck, show last 20 lines
 #   ./validate.sh lint -G 'error'                             # lint, grep for pattern
 #   ./validate.sh all -t30                                    # run all, tail 30 lines each
+#   ./validate.sh all --affected                              # the merge gate: only what the branch changed
 
 TAIL_N=""
 HEAD_N=""
@@ -50,7 +57,8 @@ EXTRA_ARGS=()
 FRESH=0
 SCOPE_ARG=""
 SCOPE_GIVEN=0
-USAGE="Usage: ./validate.sh <test|integration|typecheck|lint|duplication|all> [-tN] [-hN] [-G pattern] [--fresh] [--scope <shared|server|client|path>] [-- extra-args...]"
+AFFECTED=0
+USAGE="Usage: ./validate.sh <test|integration|typecheck|lint|duplication|all> [-tN] [-hN] [-G pattern] [--fresh] [--scope <shared|server|client|path> | --affected] [-- extra-args...]"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -90,6 +98,10 @@ while [[ $# -gt 0 ]]; do
       SCOPE_GIVEN=1
       shift
       ;;
+    --affected)
+      AFFECTED=1
+      shift
+      ;;
     --)
       shift
       EXTRA_ARGS=("$@")
@@ -103,6 +115,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$COMMAND" ]]; then
+  echo "$USAGE" >&2
+  exit 1
+fi
+
+if [[ $AFFECTED -eq 1 && ( "$COMMAND" != all || $SCOPE_GIVEN -eq 1 ) ]]; then
+  echo "validate.sh: --affected works with \`all\` only, and never with --scope" >&2
   echo "$USAGE" >&2
   exit 1
 fi
@@ -144,9 +162,11 @@ CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
 SCOPE_NAME=""                          # what a stamp records: the package or the path; empty unscoped
 SCOPE_PACKAGE=""                       # the package a scoped run is narrowed to
 SCOPE_PATH=""                          # the repo-relative file or directory of a path scope
-PNPM_SELECTION=(-r)                    # every package, or --filter <the scoped package>
-LINT_PATHS=(.)                         # what eslint and prettier read
-SOURCE_PATHS=("${PACKAGE_SOURCES[@]}") # what jscpd and the audits read
+PNPM_SELECTION=(-r)                    # every package, or --filter <each selected package>; empty: none
+ESLINT_PATHS=(.)                       # what eslint reads; empty: eslint does not run
+LINT_PATHS=(.)                         # what prettier reads; empty: prettier does not run
+SOURCE_PATHS=("${PACKAGE_SOURCES[@]}") # what jscpd and the audits read; empty: the audits do not run
+SHELL_SUITES_SELECTED=1                # whether `test` runs the tooling's shell suites (scripts/*.test.sh)
 
 is_package() {
   local name
@@ -158,8 +178,10 @@ narrow_to_package() {
   SCOPE_NAME="$1"
   SCOPE_PACKAGE="$1"
   PNPM_SELECTION=(--filter "$PACKAGE_NAME_PREFIX$1")
+  ESLINT_PATHS=("packages/$1")
   LINT_PATHS=("packages/$1")
   SOURCE_PATHS=("packages/$1/src")
+  SHELL_SUITES_SELECTED=0
 }
 
 # A package name, `packages/<package>[/src]` (the same as the name), or a path below that src.
@@ -184,12 +206,124 @@ resolve_scope() {
     narrow_to_package "${BASH_REMATCH[1]}"
     SCOPE_NAME="$relative"
     SCOPE_PATH="$relative"
+    ESLINT_PATHS=("$relative")
     LINT_PATHS=("$relative")
     SOURCE_PATHS=("$relative")
   else
     echo "validate.sh: --scope $SCOPE_ARG: expected ${PACKAGES[*]} or a path under packages/<package>/src" >&2
     exit 1
   fi
+}
+
+# ---------------------------------------------------------------------------
+# Affected (--affected, #304): what the branch changed against origin/main decides what `all` checks.
+# Resolved once, after the scope; it narrows the same globals a scope does and names the stamp.
+# ---------------------------------------------------------------------------
+AFFECTED_BASE_REF="origin/main"
+AFFECTED_SCOPE_PREFIX="affected-"
+declare -A PACKAGE_DEPENDENTS=([shared]="server client") # the workspace dependencies in package.json
+PACKAGE_PATH_PATTERN='^packages/([^/]+)/'
+DOCS_PATH_PATTERN='(\.md$|^docs/|^qa/)'
+SHELL_PATH_PATTERN='(^scripts/|^[^/]+\.sh$)'
+PRETTIER_DOC_PATTERN='\.md$'
+AFFECTED_PACKAGES=()      # the selected packages, in PACKAGES order
+AFFECTED_DOC_FILES=()     # changed docs that still exist, for prettier
+AFFECTED_EVERYTHING_BY="" # the first changed path outside packages, docs and scripts
+IS_DOCS_AFFECTED=0
+IS_SCRIPTS_AFFECTED=0
+AFFECTED_REPORT="" # the `affected ...` lines, printed before the phases and kept in the `all` log
+declare -A CHANGED_PACKAGE_COUNT=() CHANGED_PACKAGE_EXAMPLE=()
+
+# Every path the branch changed against its merge base with origin/main — committed, uncommitted
+# and untracked, the same tree the stamp hashes. Fails when the merge base cannot be found.
+affected_changed_paths() {
+  local base
+  base="$(git -C "$SCRIPT_DIR" merge-base HEAD "$AFFECTED_BASE_REF" 2>/dev/null)" || return 1
+  { git -C "$SCRIPT_DIR" diff --name-only "$base" && git -C "$SCRIPT_DIR" ls-files --others --exclude-standard; } \
+    | sort -u
+}
+
+# Sorts each changed path into a package, the docs, the scripts, or "everything" (a root file).
+classify_affected_path() { # <repo-relative path>
+  local path="$1" package
+  if [[ "$path" =~ $PACKAGE_PATH_PATTERN ]] && is_package "${BASH_REMATCH[1]}"; then
+    package="${BASH_REMATCH[1]}"
+    CHANGED_PACKAGE_COUNT[$package]=$((${CHANGED_PACKAGE_COUNT[$package]:-0} + 1))
+    CHANGED_PACKAGE_EXAMPLE[$package]="${CHANGED_PACKAGE_EXAMPLE[$package]:-$path}"
+  elif [[ "$path" =~ $DOCS_PATH_PATTERN ]]; then
+    IS_DOCS_AFFECTED=1
+    [[ ! "$path" =~ $PRETTIER_DOC_PATTERN || ! -e "$SCRIPT_DIR/$path" ]] || AFFECTED_DOC_FILES+=("$path")
+  elif [[ "$path" =~ $SHELL_PATH_PATTERN ]]; then
+    IS_SCRIPTS_AFFECTED=1
+  else
+    AFFECTED_EVERYTHING_BY="${AFFECTED_EVERYTHING_BY:-$path}"
+  fi
+}
+
+report_affected() { AFFECTED_REPORT+="affected $1"$'\n'; }
+
+# The changed packages and their dependents, in PACKAGES order, each reported with its reason.
+select_affected_packages() {
+  local package dependent
+  local -A reason=()
+  for package in "${!CHANGED_PACKAGE_COUNT[@]}"; do
+    reason[$package]="changed (${CHANGED_PACKAGE_COUNT[$package]} files, e.g. ${CHANGED_PACKAGE_EXAMPLE[$package]})"
+  done
+  for package in "${!CHANGED_PACKAGE_COUNT[@]}"; do
+    for dependent in ${PACKAGE_DEPENDENTS[$package]:-}; do
+      reason[$dependent]="${reason[$dependent]:-depends on $package}"
+    done
+  done
+  for package in "${PACKAGES[@]}"; do
+    [[ -n "${reason[$package]:-}" ]] || continue
+    AFFECTED_PACKAGES+=("$package")
+    report_affected "$package: ${reason[$package]}"
+  done
+}
+
+# Narrows the phase globals to the affected set and names its stamp scope.
+apply_affected_selection() {
+  local package tokens=() joined
+  PNPM_SELECTION=()
+  ESLINT_PATHS=()
+  LINT_PATHS=()
+  SOURCE_PATHS=()
+  for package in "${AFFECTED_PACKAGES[@]}"; do
+    tokens+=("$package")
+    PNPM_SELECTION+=(--filter "$PACKAGE_NAME_PREFIX$package")
+    ESLINT_PATHS+=("packages/$package")
+    LINT_PATHS+=("packages/$package")
+    SOURCE_PATHS+=("packages/$package/src")
+  done
+  [[ ${#AFFECTED_PACKAGES[@]} -ne 1 ]] || SCOPE_PACKAGE="${AFFECTED_PACKAGES[0]}"
+  LINT_PATHS+=("${AFFECTED_DOC_FILES[@]}")
+  [[ $IS_DOCS_AFFECTED -eq 0 ]] || { tokens+=(docs); report_affected "docs: lint only (prettier on ${#AFFECTED_DOC_FILES[@]} changed docs, the docs index)"; }
+  SHELL_SUITES_SELECTED=$IS_SCRIPTS_AFFECTED
+  [[ $IS_SCRIPTS_AFFECTED -eq 0 ]] || { tokens+=(scripts); report_affected "scripts: the shell suites (scripts/*.test.sh)"; }
+  [[ ${#tokens[@]} -gt 0 ]] || { tokens+=(nothing); report_affected "nothing: no change against $AFFECTED_BASE_REF; lint only"; }
+  printf -v joined '%s+' "${tokens[@]}"
+  SCOPE_NAME="$AFFECTED_SCOPE_PREFIX${joined%+}"
+}
+
+resolve_affected() {
+  [[ $AFFECTED -eq 1 ]] || return 0
+  local paths path
+  if ! paths="$(affected_changed_paths)"; then
+    echo "validate.sh: --affected cannot find the merge base with $AFFECTED_BASE_REF (git fetch origin first)" >&2
+    exit 1
+  fi
+  while IFS= read -r path; do
+    [[ -z "$path" ]] || classify_affected_path "$path"
+  done <<< "$paths"
+  if [[ -n "$AFFECTED_EVERYTHING_BY" ]]; then
+    # A root file (config, lockfile, validate.sh's neighbours) can change any phase: the plain `all`.
+    AFFECTED_PACKAGES=("${PACKAGES[@]}")
+    report_affected "everything: $AFFECTED_EVERYTHING_BY is outside packages/, the docs and scripts/"
+  else
+    select_affected_packages
+    apply_affected_selection
+  fi
+  printf '%s' "$AFFECTED_REPORT"
 }
 
 # vitest's positional filter is a substring of the test file's path: a directory selects the tests
@@ -494,9 +628,24 @@ total_tests_run() { # <summary lines>
   echo "$total"
 }
 
-# test | integration in the scope, then the selection report; a targeted run (a path scope or
-# extra args) that ran no test fails. A tier-wide run over a package with none passes.
+# test | integration: the selected packages' runner, then the shell suites when they are selected
+# (`test` with no extra args). `all --affected` over scripts alone selects no package.
 run_tests() { # <test | integration> <extra args...>
+  local cmd="$1"
+  shift
+  local rc=0
+  if [[ ${#PNPM_SELECTION[@]} -gt 0 ]]; then
+    run_package_tests "$cmd" "$@" || rc=$?
+  fi
+  if [[ "$cmd" == test && $SHELL_SUITES_SELECTED -eq 1 && $# -eq 0 ]]; then
+    run_script_suites || rc=1
+  fi
+  return $rc
+}
+
+# The package runner in the scope, then the selection report; a targeted run (a path scope or
+# extra args) that ran no test fails. A tier-wide run over a package with none passes.
+run_package_tests() { # <test | integration> <extra args...>
   local cmd="$1"
   shift
   local output summary rc=0 runner_args=()
@@ -519,14 +668,12 @@ run_tests() { # <test | integration> <extra args...>
     fi
     rc=1
   fi
-  if [[ "$cmd" == test && -z "$SCOPE_ARG" && $# -eq 0 ]]; then
-    run_script_suites || rc=1
-  fi
   return $rc
 }
 
 # The tooling's own shell suites (scripts/*.test.sh: this script's cache, run.sh, the deploy watcher)
-# run with an unscoped test phase; they test no package, so a scoped or targeted run skips them.
+# run with an unscoped test phase and with `all --affected` over scripts; they test no package, so a
+# scoped or targeted run skips them.
 run_script_suites() {
   local suite rc=0
   for suite in "$SCRIPT_DIR"/scripts/*.test.sh; do
@@ -570,10 +717,18 @@ run_one() {
       local docs_index_out=""
       local audit_rc=0
 
-      lint_out="$(pnpm eslint "${LINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
-      prettier_out="$(pnpm prettier --check "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
-      directive_out="$(audit_disable_directives)" || audit_rc=1
-      todo_out="$(audit_todo_markers)" || audit_rc=1
+      # An empty path list (`all --affected` over docs or scripts alone) skips that tool: eslint with
+      # no path lints the whole repo, and grep with no path reads stdin.
+      if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
+        lint_out="$(pnpm eslint "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
+      fi
+      if [[ ${#LINT_PATHS[@]} -gt 0 ]]; then
+        prettier_out="$(pnpm prettier --check "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
+      fi
+      if [[ ${#SOURCE_PATHS[@]} -gt 0 ]]; then
+        directive_out="$(audit_disable_directives)" || audit_rc=1
+        todo_out="$(audit_todo_markers)" || audit_rc=1
+      fi
       docs_index_out="$(scripts/docs-index.sh --check 2>&1)" || audit_rc=1
 
       output="${lint_out}"
@@ -597,45 +752,77 @@ ${extra}"
 
 # ---------------------------------------------------------------------------
 # `all`: the phases in ALL_PHASES order, each through the cache with its own exit code and stamp,
-# then one line of wall times. They stay sequential: run concurrently on the shared 4-core
-# container they measured 290 s against 298 s back to back (#281), every phase slowed by the others.
+# stopping at the first failing phase (#304: a red lint never pays for the test phase), then one
+# line of wall times. They stay sequential: run concurrently on the shared 4-core container they
+# measured 290 s against 298 s back to back (#281), every phase slowed by the others.
 # ---------------------------------------------------------------------------
+
+# Why `all --affected` skips <cmd>, or nothing when the phase runs.
+phase_skip_reason() { # <cmd>
+  [[ $AFFECTED -eq 1 ]] || return 0
+  case "$1" in
+    duplication|typecheck)
+      [[ ${#AFFECTED_PACKAGES[@]} -gt 0 ]] || echo "no package affected"
+      ;;
+    test)
+      [[ ${#AFFECTED_PACKAGES[@]} -gt 0 || $SHELL_SUITES_SELECTED -eq 1 ]] || echo "no package and no script affected"
+      ;;
+  esac
+}
+
+wall_times_line() { # <started seconds> <phase times...>
+  local started="$1" joined
+  shift
+  printf -v joined '%s, ' "$@"
+  echo "wall times: ${joined%, }; all $((SECONDS - started)) s"
+}
+
 run_all() {
   if cache_hit all; then
     print_cache_hit
     echo "ALL PASSED"
     exit 0
   fi
-  local cmd started=$SECONDS phase_started failed=() wall_times=() all_log=""
+  local cmd started=$SECONDS phase_started phase_rc skip_reason wall_times=() all_log="$AFFECTED_REPORT"
   for cmd in "${ALL_PHASES[@]}"; do
     echo "=== $cmd ==="
+    skip_reason="$(phase_skip_reason "$cmd")"
     phase_started=$SECONDS
-    run_cached "$cmd" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" || failed+=("$cmd")
-    if [[ $PHASE_WAS_CACHED -eq 1 ]]; then
-      wall_times+=("$cmd cached")
+    phase_rc=0
+    if [[ -n "$skip_reason" ]]; then
+      PHASE_OUTPUT="skipped: $skip_reason"
+      echo "$PHASE_OUTPUT"
+      wall_times+=("$cmd skipped")
     else
-      wall_times+=("$cmd $((SECONDS - phase_started)) s")
+      run_cached "$cmd" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" || phase_rc=$?
+      if [[ $PHASE_WAS_CACHED -eq 1 ]]; then
+        wall_times+=("$cmd cached")
+      else
+        wall_times+=("$cmd $((SECONDS - phase_started)) s")
+      fi
     fi
     echo ""
+    if [[ $phase_rc -ne 0 ]]; then
+      wall_times_line "$started" "${wall_times[@]}"
+      echo "stopped at the first failing phase; the phases after $cmd did not run"
+      echo "FAILED: $cmd"
+      exit 1
+    fi
     all_log+="=== $cmd ===
 $PHASE_OUTPUT
 
 "
   done
-  local joined
-  printf -v joined '%s, ' "${wall_times[@]}"
-  local wall_line="wall times: ${joined%, }; all $((SECONDS - started)) s"
+  local wall_line
+  wall_line="$(wall_times_line "$started" "${wall_times[@]}")"
   echo "$wall_line"
-  if [[ ${#failed[@]} -gt 0 ]]; then
-    echo "FAILED: ${failed[*]}"
-    exit 1
-  fi
   echo "ALL PASSED"
   cache_store all "$all_log$wall_line
 ALL PASSED"
 }
 
 resolve_scope
+resolve_affected
 cd "$SCRIPT_DIR" || exit 1
 cache_init
 

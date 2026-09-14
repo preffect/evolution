@@ -68,9 +68,9 @@ Teammates have NO context about the project unless you give it to them in the pr
 > - Reviewer roles (code-qa, gameplay-qa, graphics-qa) start only when the architect (or the
 >   team-lead when there is no architect) signals that the implementation is ready. They report
 >   pass/fail, bugs with reproduction steps, and screenshots/evidence paths.
-> - Iterate on scoped runs (`./validate.sh test --scope ...`). The author runs `./validate.sh all`
->   when the work is ready for review and after the last commit, and reports its gate line with the
->   tree hash; nothing is done without that green stamp (`docs/ENGINEERING.md` §1).
+> - Iterate on scoped runs (`./validate.sh test --scope ...`) and report what they covered. Nobody
+>   runs the full gate before merge: whoever merges runs `./validate.sh all --affected` once, right
+>   before the merge (`docs/ENGINEERING.md` §1).
 
 ---
 
