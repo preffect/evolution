@@ -11,7 +11,6 @@ import type {
   EntityId,
   FoodMoteView,
   GameInput,
-  OwnedTrait,
   PlayerId,
   PlayerProgressView,
   SteerCommand,
@@ -104,8 +103,6 @@ export interface PlayerRecord extends PlayerProgressView {
   avatarIndex: number;
   /** Tie-break for the leaderboard and the input drain order. */
   joinOrder: number;
-  /** Survive death; the cell's `traits` mirrors them. */
-  ownedTraits: OwnedTrait[];
   /** FIFO; `offerQueue[0]` is the shown offer once `shownAtTick` is set (docs/PROGRESSION.md §4). */
   offerQueue: TraitOffer[];
   nextOfferId: number;

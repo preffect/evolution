@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { FOOD_KIND, ROUND_PHASE, SNAPSHOT_POSITION_DECIMALS, type GameEffect, EFFECT_KIND } from '@evolution/shared';
+import {
+  CELL_STAGE,
+  FOOD_KIND,
+  ROUND_PHASE,
+  SNAPSHOT_POSITION_DECIMALS,
+  type GameEffect,
+  EFFECT_KIND,
+} from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { FoodDeltaTracker } from './food-delta-tracker.js';
@@ -78,13 +85,17 @@ describe('view projections', () => {
     expect(toDnaFragmentView(fragment)).toEqual({ id: fragment.id, x: 5.6, y: 6, tag: 'motile' });
   });
 
-  it('projects a player onto the view fields with copied records and offer', () => {
+  it('projects a player onto the view fields with copied records, owned traits and offer', () => {
     const world = createTestWorld();
     const player = world.players[0]!;
-    player.offer = { offerId: 1, cards: [{ traitId: 'nucleoid', tier: 1 }], expiresAtTick: 600 };
+    player.offer = { offerId: 1, level: 3, cards: [{ traitId: 'nucleoid', tier: 1 }], expiresAtTick: 600 };
+    player.ownedTraits = [{ traitId: 'nucleoid', tier: 2 }];
+    player.stage = CELL_STAGE.prokaryote;
     const view = toPlayerProgressView(player);
     expect(view.offer).toEqual(player.offer);
     expect(view.offer).not.toBe(player.offer);
+    expect(view).toMatchObject({ ownedTraits: player.ownedTraits, stage: CELL_STAGE.prokaryote });
+    expect(view.ownedTraits[0]).not.toBe(player.ownedTraits[0]);
     expect(view.dnaTagPoints).not.toBe(player.dnaTagPoints);
     expect(view).not.toHaveProperty('offerQueue');
     expect(view).not.toHaveProperty('pendingInput');

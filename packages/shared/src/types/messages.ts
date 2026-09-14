@@ -180,6 +180,8 @@ export const CLIENT_MESSAGE_TYPE = {
   joinGame: 'join_game',
   startGame: 'start_game',
   deleteGame: 'delete_game',
+  /** Back to the lobby from `gameId` (#319, docs/architecture/wire-contract.md §4): the server drops the seat at once. */
+  leaveGame: 'leave_game',
   playerInput: 'player_input',
   clientPerformance: 'client_performance',
   /** The newest snapshot tick the client has applied (#266, docs/architecture/wire-contract.md §4): flow control, not gameplay. */
@@ -206,6 +208,7 @@ export type ClientMessage =
   | { type: typeof CLIENT_MESSAGE_TYPE.joinGame; gameId: string }
   | { type: typeof CLIENT_MESSAGE_TYPE.startGame; gameId: string }
   | { type: typeof CLIENT_MESSAGE_TYPE.deleteGame; gameId: string }
+  | { type: typeof CLIENT_MESSAGE_TYPE.leaveGame; gameId: string }
   | { type: typeof CLIENT_MESSAGE_TYPE.playerInput; payload: GameInput }
   | { type: typeof CLIENT_MESSAGE_TYPE.clientPerformance; report: ClientPerformanceReport }
   | { type: typeof CLIENT_MESSAGE_TYPE.snapshotAck; tick: number };

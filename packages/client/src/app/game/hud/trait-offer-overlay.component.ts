@@ -93,8 +93,7 @@ export class TraitOfferOverlayComponent {
     if (progress === null || offer === null || balance === null) return null;
     return traitOfferViewFor({
       offer,
-      level: progress.level,
-      ownCell: this.gameState.ownCell(),
+      progress,
       serverTick: this.gameState.serverTickEstimate() ?? offer.expiresAtTick,
       balance,
     });

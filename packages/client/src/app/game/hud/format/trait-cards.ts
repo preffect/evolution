@@ -10,8 +10,9 @@ import {
   clamp,
   nextStage,
   type BalanceConfig,
-  type CellView,
+  type CellStage,
   type OwnedTrait,
+  type PlayerProgressView,
   type TraitCategory,
   type TraitDefinition,
   type TraitId,
@@ -37,7 +38,7 @@ export interface TraitCardView {
   /** `II`, or `I → II` for an upgrade of an owned trait. */
   readonly tierLabel: string;
   readonly isUpgrade: boolean;
-  /** The trait is a gate of the own cell's next stage: the card carries the `RUNG` ribbon. */
+  /** The trait is a gate of the player's next stage: the card carries the `RUNG` ribbon. */
   readonly isRung: boolean;
   readonly category: TraitCategory;
   /** The medallion's letter until #312's glyphs replace it. */
@@ -62,9 +63,8 @@ export interface TraitOfferViewModel {
 
 export interface TraitOfferInput {
   readonly offer: TraitOfferView;
-  readonly level: number;
-  /** The own cell for the rung and upgrade marks; `null` while spectating, when neither can be known. */
-  readonly ownCell: CellView | null;
+  /** The owned tiers and stage for the upgrade and rung marks: the player's, so they hold while spectating. */
+  readonly progress: Pick<PlayerProgressView, 'ownedTraits' | 'stage'>;
   /** The newest snapshot's tick: the countdown's clock. */
   readonly serverTick: number;
   readonly balance: Pick<BalanceConfig, 'progression'>;
@@ -86,14 +86,14 @@ function numeral(tier: number): string {
   return tierNumeral;
 }
 
-function isRungFor(traitId: TraitId, ownCell: CellView | null): boolean {
-  const rung = ownCell === null ? null : nextStage(ownCell.stage);
+function isRungFor(traitId: TraitId, stage: CellStage): boolean {
+  const rung = nextStage(stage);
   return rung !== null && STAGE_GATE_TRAITS[rung].includes(traitId);
 }
 
-function cardView(card: OwnedTrait, index: number, ownCell: CellView | null): TraitCardView {
+function cardView(card: OwnedTrait, index: number, progress: TraitOfferInput['progress']): TraitCardView {
   const definition = definitionOf(card.traitId);
-  const owned = ownCell?.traits.find((trait) => trait.traitId === card.traitId);
+  const owned = progress.ownedTraits.find((trait) => trait.traitId === card.traitId);
   const isUpgrade = owned !== undefined && card.tier > owned.tier;
   const { category } = definition;
   return {
@@ -102,7 +102,7 @@ function cardView(card: OwnedTrait, index: number, ownCell: CellView | null): Tr
     name: definition.name,
     tierLabel: isUpgrade ? `${numeral(owned.tier)} ${UPGRADE_ARROW} ${numeral(card.tier)}` : numeral(card.tier),
     isUpgrade,
-    isRung: isRungFor(card.traitId, ownCell),
+    isRung: isRungFor(card.traitId, progress.stage),
     category,
     categoryInitial: category.charAt(0).toUpperCase(),
     rarity: definition.rarity,
@@ -117,8 +117,8 @@ export function traitOfferViewFor(input: TraitOfferInput): TraitOfferViewModel {
   const secondsLeft = clamp((offer.expiresAtTick - input.serverTick) / TICK_HZ, NO_TIME, windowSeconds);
   return {
     offerId: offer.offerId,
-    title: `LEVEL ${input.level} · CHOOSE A TRAIT`,
-    cards: offer.cards.map((card, index) => cardView(card, index, input.ownCell)),
+    title: `LEVEL ${offer.level} · CHOOSE A TRAIT`,
+    cards: offer.cards.map((card, index) => cardView(card, index, input.progress)),
     secondsLeft,
     secondsText: `${secondsLeft.toFixed(TIMER_DECIMALS)} s`,
     timerFraction: windowSeconds > NO_TIME ? clamp(secondsLeft / windowSeconds, NO_TIME, FULL) : NO_TIME,

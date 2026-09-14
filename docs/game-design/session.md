@@ -68,6 +68,9 @@ document makes. Acceptance scenarios that need a specialised cell grant the form
 - **Disconnect.** A disconnected player's cell stays in the dish for the template's
   `DISCONNECT_GRACE_MS` (30 s) with no input (it coasts to a stop) and can be eaten. When the room
   removes the player, the cell dissolves into detritus (`DETRITUS_MASS_FRACTION` of its mass).
+- **Leave.** A player who leaves the room for the lobby (`leave_game`,
+  [`architecture/wire-contract.md §4`](../architecture/wire-contract.md#4-wire-contract-packagessharedsrctypesmessagests))
+  gets no grace: the room removes the player at once, and the cell dissolves into detritus the same way.
 
 ### 5.3 Leaderboard and score
 

@@ -84,11 +84,13 @@ export class MultiplayerService {
 
   /**
    * Back to the lobby from a room (the menu's and the results screen's `leave()`,
-   * docs/ui/components-and-constants.md §7). The wire has no leave verb yet (#319): the server keeps
-   * the seat, so that room's frames are dropped until another room starts (`left-room-filter.ts`).
+   * docs/ui/components-and-constants.md §7). `leave_game` drops the seat on the server (#319); that room's
+   * frames already in flight are dropped until another room starts (`left-room-filter.ts`).
    */
   leave(): void {
-    this.leftRoom.left(this.gameId());
+    const leftGameId = this.gameId();
+    if (leftGameId !== null) this.transport.send({ type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: leftGameId });
+    this.leftRoom.left(leftGameId);
     this.returnToLobby(null);
   }
 

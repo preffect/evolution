@@ -1,7 +1,7 @@
 // `MultiplayerService` back to the lobby (#219, docs/ui/overlays.md §3.6): on leave, on the user's own
 // disconnect, and on a dropped socket only once the server's first answer after the reopen shows the
-// seat is gone. A room that was left stays left while the server still seats the player (#319). The
-// transport is a stub, so each lifecycle event is driven by hand.
+// seat is gone. `leave()` sends `leave_game` (#319), and a room that was left stays left through the frames it
+// had already sent. The transport is a stub, so each lifecycle event is driven by hand.
 
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
@@ -70,6 +70,22 @@ describe('MultiplayerService returning to the lobby', () => {
     expect(service.lobbyNotice()).toBeNull();
   });
 
+  it('tells the server which room it left, once, before forgetting the room (#319)', () => {
+    const { transport, service } = serviceInRoom();
+    transport.send.mockClear();
+    service.leave();
+    expect(transport.send).toHaveBeenCalledTimes(1);
+    expect(transport.send).toHaveBeenCalledWith({ type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: ROOM });
+  });
+
+  it('sends no leave_game when no room is named', () => {
+    const { transport, service } = serviceInRoom();
+    service.leave();
+    transport.send.mockClear();
+    service.leave();
+    expect(transport.send).not.toHaveBeenCalled();
+  });
+
   it('returns to the lobby on the user’s own disconnect', () => {
     const { service } = serviceInRoom();
     service.disconnect();
@@ -131,7 +147,7 @@ describe('MultiplayerService returning to the lobby', () => {
     expect(service.lobbyNotice()).toBeNull();
   });
 
-  describe('a room that was left stays left while the server still seats the player (#319)', () => {
+  describe('a room that was left stays left through the frames it had already sent (#219, #319)', () => {
     it('ignores the left room’s game_state (probe A)', () => {
       const { transport, service } = serviceInRoom();
       service.leave();

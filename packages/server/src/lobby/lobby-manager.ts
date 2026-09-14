@@ -79,6 +79,7 @@ export class LobbyManager {
       onJoinGame: (connection, message) => this.onJoinGame(connection, message.gameId),
       onStartGame: (connection, message) => this.onStartGame(connection, message.gameId),
       onDeleteGame: (connection, message) => this.onDeleteGame(connection, message.gameId),
+      onLeaveGame: (connection, message) => this.onLeaveGame(connection, message.gameId),
       onPlayerInput: (connection, message) => {
         this.roomOfPlayer(connection)?.submitInput(connection.playerId, message.payload);
       },
@@ -209,12 +210,8 @@ export class LobbyManager {
   // ---- connection lifecycle ----------------------------------------------
 
   handleConnect(connection: Connection, _connections: Map<string, Connection>): void {
-    // Cancel any pending removal — the player came back within the grace window.
-    const timer = this.pendingRemovals.get(connection.playerId);
-    if (timer) {
-      clearTimeout(timer);
-      this.pendingRemovals.delete(connection.playerId);
-    }
+    // The player came back within the grace window.
+    this.cancelPendingRemoval(connection.playerId);
 
     const gameId = this.playerToGame.get(connection.playerId);
     if (!gameId) return;
@@ -240,10 +237,7 @@ export class LobbyManager {
     const room = this.activeRooms.get(gameId);
     if (!room) return;
     room.disconnectedPlayers.add(connection.playerId);
-    broadcastMessage(room.playerConnections.values(), {
-      type: SERVER_MESSAGE_TYPE.playerDisconnected,
-      playerId: connection.playerId as PlayerId,
-    });
+    this.announcePlayerGone(room, connection.playerId);
 
     const timer = setTimeout(() => this.finalizeRemoval(gameId, connection.playerId), DISCONNECT_GRACE_MS);
     this.pendingRemovals.set(connection.playerId, timer);
@@ -263,16 +257,57 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
+  /**
+   * `leave_game` (#319, docs/architecture/wire-contract.md §4): off the room at once, with no grace. A pending game
+   * frees the seat at once, as a disconnect from it does; an active room removes the player the way the end of the
+   * grace does and tells the players left behind. A room the player is not seated in (the lobby, an unknown or
+   * another room) is a no-op.
+   */
+  private onLeaveGame(connection: Connection, gameId: string): void {
+    const playerId = connection.playerId;
+    if (this.playerToGame.get(playerId) !== gameId) return;
+    const pending = this.pendingGames.get(gameId);
+    if (pending) {
+      this.leavePendingGame(pending, playerId);
+      return;
+    }
+    // Defensive: `handleConnect` already cancels a drop's timer before any frame arrives.
+    this.cancelPendingRemoval(playerId);
+    const room = this.activeRooms.get(gameId);
+    if (!room) return;
+    this.removeFromActiveRoom(gameId, playerId);
+    this.announcePlayerGone(room, playerId);
+  }
+
+  /** What the players still in the room hear when one drops or leaves. */
+  private announcePlayerGone(room: GameRoom, playerId: string): void {
+    broadcastMessage(room.playerConnections.values(), {
+      type: SERVER_MESSAGE_TYPE.playerDisconnected,
+      playerId: playerId as PlayerId,
+    });
+  }
+
   /** The grace window elapsed without a reconnect. */
   private finalizeRemoval(gameId: string, playerId: string): void {
     this.pendingRemovals.delete(playerId);
+    this.removeFromActiveRoom(gameId, playerId);
+  }
+
+  /** Off the room for good (the module dissolves the cell into detritus); an empty room is torn down. */
+  private removeFromActiveRoom(gameId: string, playerId: string): void {
     const room = this.activeRooms.get(gameId);
     if (!room) return;
     room.removePlayer(playerId);
     this.playerToGame.delete(playerId);
-    if (room.playerConnections.size === 0) {
-      this.teardownRoom(gameId);
-    }
+    if (room.playerConnections.size === 0) this.teardownRoom(gameId);
+    else this.broadcastLobbyUpdate();
+  }
+
+  private cancelPendingRemoval(playerId: string): void {
+    const timer = this.pendingRemovals.get(playerId);
+    if (!timer) return;
+    clearTimeout(timer);
+    this.pendingRemovals.delete(playerId);
   }
 
   private teardownRoom(gameId: string): void {

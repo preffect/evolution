@@ -131,8 +131,6 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
       cell: cell === undefined ? null : toCellView(cell),
       engulf: cell === undefined ? null : engulfDebugStateOf(cell),
       modifiers: cell === undefined ? null : { ...cell.modifiers },
-      stage: cell?.stage ?? null,
-      ownedTraits: player.ownedTraits.map((trait) => ({ ...trait })),
       offerQueue: structuredClone(player.offerQueue),
       rejections: { ...rejections },
     };

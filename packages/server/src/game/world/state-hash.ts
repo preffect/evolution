@@ -2,8 +2,9 @@
 // through the shared hasher. Every non-derived record field is listed (the test pins it); the
 // derived ones are excluded and named here so a debug-only field can never move the hash:
 // `leaderboard` (a function of the players), `effects` (transient), `balance` and `config`
-// (replay inputs), `CellRecord.modifiers` (folded at step 1), `PlayerRecord.score` (step 10) and
-// `PlayerRecord.offer` (the shown offer mirror of `offerQueue[0]`).
+// (replay inputs), `CellRecord.modifiers` (folded at step 1), `PlayerRecord.score` (step 10),
+// `PlayerRecord.stage` (`stageOf` the hashed `ownedTraits`) and `PlayerRecord.offer` (the shown offer
+// mirror of `offerQueue[0]`).
 
 import {
   BACTERIUM_VARIANTS,
@@ -40,7 +41,7 @@ import type { WorldState } from './world-state.js';
 export const DERIVED_FIELDS = {
   world: ['config', 'balance', 'leaderboard', 'effects'],
   cell: ['modifiers'],
-  player: ['score', 'offer'],
+  player: ['score', 'stage', 'offer'],
 } as const;
 
 const OWNED_TRAIT_FIELDS: readonly HashedField<OwnedTrait>[] = ['traitId', 'tier'];
@@ -163,6 +164,7 @@ function hashPendingInput(hasher: StateHasher, input: GameInput | null): void {
 
 export const TRAIT_OFFER_HASHED_FIELDS: readonly HashedField<TraitOffer>[] = [
   'offerId',
+  'level',
   { key: 'cards', hash: hashOwnedTraits },
   'expiresAtTick',
   'shownAtTick',

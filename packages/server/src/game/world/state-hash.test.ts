@@ -1,7 +1,7 @@
 // docs/determinism/ordering-and-state-hash.md §5, docs/determinism/replay-tests-and-traps.md §7: equal worlds hash equal, any hashed field change moves the hash, NaN
 // throws, and every non-derived record field is listed.
 import { describe, expect, it } from 'vitest';
-import { FOOD_KIND, StateHashError, createTestGameInput } from '@evolution/shared';
+import { CELL_STAGE, FOOD_KIND, StateHashError, createTestGameInput } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import type { WorldState } from './world-state.js';
@@ -55,6 +55,7 @@ describe('computeStateHash', () => {
       (world) =>
         world.players[0]!.offerQueue.push({
           offerId: 1,
+          level: 2,
           cards: [],
           expiresAtTick: 0,
           shownAtTick: null,
@@ -80,7 +81,8 @@ describe('computeStateHash', () => {
     world.leaderboard = [];
     world.effects.push({ kind: 'respawn', tick: 0, x: 0, y: 0, cellId: world.cells[0]!.id, playerId: 'p1' as never });
     world.players[0]!.score = 99;
-    world.players[0]!.offer = { offerId: 1, cards: [], expiresAtTick: 0 };
+    world.players[0]!.stage = CELL_STAGE.eukaryote;
+    world.players[0]!.offer = { offerId: 1, level: 2, cards: [], expiresAtTick: 0 };
     world.cells[0]!.modifiers = { ...world.cells[0]!.modifiers, speedMultiplier: 2 };
     expect(computeStateHash(world)).toBe(base);
   });
