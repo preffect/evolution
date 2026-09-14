@@ -174,3 +174,11 @@ describe('clientMessageSchema: snapshot_ack (#266)', () => {
     expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: -1 })).toBe(false);
   });
 });
+
+describe('clientMessageSchema: leave_game (#319)', () => {
+  it('names the room it leaves', () => {
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: 'g1' })).toBe(true);
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.leaveGame })).toBe(false);
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.leaveGame, gameId: '' })).toBe(false);
+  });
+});

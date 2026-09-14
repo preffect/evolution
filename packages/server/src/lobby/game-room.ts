@@ -195,7 +195,8 @@ export class GameRoom {
   removePlayer(playerId: string): void {
     this.playerConnections.delete(playerId);
     this.snapshotBacklog.forget(playerId);
-    this.disconnectedPlayers.add(playerId);
+    // Removed, not disconnected: the player is no longer in the room at all.
+    this.disconnectedPlayers.delete(playerId);
     this.performanceTracker.removeClient(playerId as PlayerId);
     this.game.removePlayer(playerId as PlayerId);
     this.dropFromRoster(playerId);

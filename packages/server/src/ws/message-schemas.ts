@@ -64,6 +64,7 @@ const createGameSchema = z.object({
 const joinGameSchema = z.object({ type: z.literal(CLIENT_MESSAGE_TYPE.joinGame), gameId: gameIdSchema });
 const startGameSchema = z.object({ type: z.literal(CLIENT_MESSAGE_TYPE.startGame), gameId: gameIdSchema });
 const deleteGameSchema = z.object({ type: z.literal(CLIENT_MESSAGE_TYPE.deleteGame), gameId: gameIdSchema });
+const leaveGameSchema = z.object({ type: z.literal(CLIENT_MESSAGE_TYPE.leaveGame), gameId: gameIdSchema });
 
 const traitChoiceSchema = z.object({
   offerId: z.number().int().min(0),
@@ -124,6 +125,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   joinGameSchema,
   startGameSchema,
   deleteGameSchema,
+  leaveGameSchema,
   playerInputSchema,
   clientPerformanceSchema,
   snapshotAckSchema,

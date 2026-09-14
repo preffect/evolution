@@ -164,13 +164,14 @@ describe('game-room: membership and delegation', () => {
     expect(gameModule.submitInput).toHaveBeenCalledWith('p1', input);
   });
 
-  it('removePlayer drops the player from the module and roster', () => {
+  it('removePlayer drops the player from the module and roster, and no longer lists it as disconnected', () => {
     const gameModule = createSpyGameModule();
     const room = new GameRoom(gameModule, roomOptions(['p1', 'p2']), createManualRoomTiming());
+    room.disconnectedPlayers.add('p2');
     room.removePlayer('p2');
     expect(gameModule.removePlayer).toHaveBeenCalledWith('p2');
     expect(room.allPlayerIds).not.toContain('p2');
-    expect(room.disconnectedPlayers.has('p2')).toBe(true);
+    expect(room.disconnectedPlayers.has('p2')).toBe(false);
   });
 
   it('addLatePlayer registers the player and adds them to the module', () => {

@@ -19,6 +19,7 @@ export interface MessageHandlers {
   onJoinGame: MessageHandler<typeof CLIENT_MESSAGE_TYPE.joinGame>;
   onStartGame: MessageHandler<typeof CLIENT_MESSAGE_TYPE.startGame>;
   onDeleteGame: MessageHandler<typeof CLIENT_MESSAGE_TYPE.deleteGame>;
+  onLeaveGame: MessageHandler<typeof CLIENT_MESSAGE_TYPE.leaveGame>;
   onPlayerInput: MessageHandler<typeof CLIENT_MESSAGE_TYPE.playerInput>;
   onClientPerformance: MessageHandler<typeof CLIENT_MESSAGE_TYPE.clientPerformance>;
   onSnapshotAck: MessageHandler<typeof CLIENT_MESSAGE_TYPE.snapshotAck>;
@@ -38,6 +39,7 @@ function buildDispatchTable(handlers: MessageHandlers): DispatchTable {
     [CLIENT_MESSAGE_TYPE.joinGame]: handlers.onJoinGame,
     [CLIENT_MESSAGE_TYPE.startGame]: handlers.onStartGame,
     [CLIENT_MESSAGE_TYPE.deleteGame]: handlers.onDeleteGame,
+    [CLIENT_MESSAGE_TYPE.leaveGame]: handlers.onLeaveGame,
     [CLIENT_MESSAGE_TYPE.playerInput]: handlers.onPlayerInput,
     [CLIENT_MESSAGE_TYPE.clientPerformance]: handlers.onClientPerformance,
     [CLIENT_MESSAGE_TYPE.snapshotAck]: handlers.onSnapshotAck,

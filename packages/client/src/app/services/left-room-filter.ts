@@ -1,7 +1,7 @@
-// The room this client left while the server still seats it (#219). The wire has no leave verb yet (#319), so
-// the server keeps sending that room's frames, and a reconnect inside its grace answers with that room's
-// `game_state`. Until another room starts, those frames are dropped, so a `leave()` stays left. #319's verb
-// makes this filter unnecessary.
+// The room this client left (#219). `leave()` sends `leave_game` and the server drops the seat at once (#319),
+// but frames that room sent before the verb arrived are still in flight, and a leave during a drop reaches the
+// server only after the reopen's `game_state`. Until another room starts, those frames are dropped, so a
+// `leave()` stays left.
 
 import { SERVER_MESSAGE_TYPE, type GameId, type ServerMessage } from '@evolution/shared';
 

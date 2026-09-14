@@ -94,6 +94,15 @@ export interface FoodDelta {
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs for the _game_: everything a player does rides `player_input`. The transport's own verbs are
   separate and generic — `client_performance` and `snapshot_ack` carry no gameplay.
+- **`leave_game { gameId }`** (#319): the lobby verb behind the client's `leave()`. The server takes the player
+  off an active room at once, on the path the end of the disconnect grace takes (the cell dissolves into
+  detritus, game-design/session.md §5.2), then sends `player_disconnected` to the players left behind and
+  `lobby_update` to every connection (so does the removal at the end of a disconnect grace, #319); an empty
+  room is torn down. A pending game frees the seat at once, as a disconnect from a pending game does (the
+  creator role passes on). There is no grace, so a later close of that socket finds no seat,
+  and the socket can `join_game` any room at once. A `leave_game` for a room the player is not seated in
+  (the lobby, an unknown or another room) is a no-op. The client still drops the frames that room had
+  already sent (`services/left-room-filter.ts`).
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
