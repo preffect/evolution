@@ -5,11 +5,17 @@
 // broadcast so the effects drain as on the wire; the hash is `computeStateHash` over the
 // world; fixtures are the placed records of `fixtures.ts` and the world fixtures below.
 
-import { DEFAULT_BALANCE, type BalanceConfig, type GameInput, type GameSnapshot } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  type BalanceConfig,
+  type GameInput,
+  type GameSnapshot,
+  type PlayerProgressView,
+} from '@evolution/shared';
 import { createEvolutionBotBinding } from '../../game/bots/evolution-binding.js';
 import { createEvolutionModule, type EvolutionModule } from '../../game/evolution-module.js';
 import type { GameModule } from '../../game/game-module.js';
-import { EXACT_POSITION, serializeFullSnapshot } from '../../game/serialize/serialize.js';
+import { EXACT_POSITION, serializeFullSnapshot, toPlayerProgressView } from '../../game/serialize/serialize.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -36,6 +42,8 @@ export interface SpawnedCounts {
 /** The wire snapshot plus what the tables count that never rides the wire. */
 export interface EvolutionScenarioSnapshot extends GameSnapshot {
   readonly spawnedCounts: SpawnedCounts;
+  /** Every player's full progress: the wire sends each player only its own (docs/architecture/wire-contract.md §4.1), a table reads anyone's. */
+  readonly progressByPlayer: Readonly<Record<string, PlayerProgressView>>;
 }
 
 export const WORLD_FIXTURE_KIND = {
@@ -114,6 +122,13 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     projected ??= serializeFullSnapshot(world, EXACT_POSITION);
     return projected;
   };
+  let projectedProgress: Record<string, PlayerProgressView> | undefined;
+  const progressByPlayer = (): Record<string, PlayerProgressView> => {
+    projectedProgress ??= Object.fromEntries(
+      world.players.map((player) => [player.playerId, toPlayerProgressView(player)]),
+    );
+    return projectedProgress;
+  };
   const snapshot = {
     tick: world.tick,
     seed: world.seed,
@@ -126,10 +141,12 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
   for (const key of LAZY_SNAPSHOT_KEYS) {
     Object.defineProperty(snapshot, key, { enumerable: true, get: () => projection()[key] });
   }
+  Object.defineProperty(snapshot, 'progressByPlayer', { enumerable: true, get: progressByPlayer });
   return {
     snapshot,
     materialise: () => {
       projection();
+      progressByPlayer();
     },
   };
 }

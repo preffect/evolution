@@ -109,9 +109,13 @@ export interface TraitChoiceInput {
   offerId: number;
   cardIndex: number; // 0..TRAIT_DRAFT_SIZE-1; a stale offerId is ignored and counted (section 3.2)
 }
-export interface PlayerProgressView {
+export interface PlayerRosterView {
+  // GameSnapshot.players: what every client is sent of every player (#331, architecture/wire-contract.md §4.1)
   playerId: PlayerId;
   playerName: string;
+}
+export interface PlayerProgressView extends PlayerRosterView {
+  // GameSnapshot.ownProgress: sent to its own player only; the records extend it and the debug tools return it
   level: number;
   dnaCumulative: number;
   dnaCatchUpGift: number;

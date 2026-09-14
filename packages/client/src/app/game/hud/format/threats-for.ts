@@ -11,13 +11,7 @@
 // frame still passes it. That is right for deciding what to draw and wrong here, because §3.1.2
 // anchors the label to the predator's warning ring and an off-screen ring is nothing to anchor to.
 
-import {
-  canEngulf,
-  type BalanceConfig,
-  type CellView,
-  type EntityId,
-  type PlayerProgressView,
-} from '@evolution/shared';
+import { canEngulf, type BalanceConfig, type CellView, type EntityId, type PlayerRosterView } from '@evolution/shared';
 import { isDiscVisibleInExtent, type CameraExtent } from '../../render/camera';
 
 /** A cell that can engulf the own cell, with the name the label speaks. */
@@ -37,11 +31,11 @@ export interface ThreatsInput {
   readonly ownCell: CellView;
   /** The live camera rectangle; `null` before the renderer has drawn a frame, which answers empty. */
   readonly cameraExtent: CameraExtent | null;
-  readonly players: Readonly<Record<string, PlayerProgressView>>;
+  readonly players: Readonly<Record<string, PlayerRosterView>>;
   readonly balance: BalanceConfig;
 }
 
-function threatName(cell: CellView, players: Readonly<Record<string, PlayerProgressView>>): string {
+function threatName(cell: CellView, players: Readonly<Record<string, PlayerRosterView>>): string {
   if (cell.playerId === null) return WILD_CELL_THREAT_NAME;
   return players[cell.playerId]?.playerName ?? cell.playerId;
 }

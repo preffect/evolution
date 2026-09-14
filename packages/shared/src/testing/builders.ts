@@ -125,6 +125,7 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
     dnaFragments: [],
     food: { spawned: [], removedIds: [], moved: [] },
     players: {},
+    ownProgress: null,
     leaderboard: [],
     appliedInputSequenceByPlayer: {},
     effects: [],

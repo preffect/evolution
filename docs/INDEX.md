@@ -173,11 +173,11 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **8. Debug MCP surface (#14)** (L5–85): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
 
-## architecture/entity-model.md (247 lines)
+## architecture/entity-model.md (251 lines)
 
-- **Evolution — Architecture: decisions and the entity model** (L1–247): §1–§2 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **Evolution — Architecture: decisions and the entity model** (L1–251): §1–§2 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **1. Decisions (the short list)** (L5–21)
-- **2. Entity model** (L22–247): Two layers, one direction: the views are the wire types in `packages/shared/src/types/game.ts`, defined here (their one home) with each fie…
+- **2. Entity model** (L22–251): Two layers, one direction: the views are the wire types in `packages/shared/src/types/game.ts`, defined here (their one home) with each fie…
 
 ## architecture/server-simulation.md (77 lines)
 
@@ -187,12 +187,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Input handling** (L42–56): `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together with a newer target is …
   - **3.3 Other structural rules** (L57–77): `constants/`; formulas take numbers.
 
-## architecture/wire-contract.md (168 lines)
+## architecture/wire-contract.md (217 lines)
 
-- **Evolution — Architecture: wire contract** (L1–168): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–168): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
-  - **4.1 Bandwidth budget** (L117–157): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
-  - **4.2 Levers (in order)** (L158–168): `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots.
+- **Evolution — Architecture: wire contract** (L1–217): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–217): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
+  - **4.1 Bandwidth budget** (L128–199): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
+  - **4.2 Levers (in order)** (L200–217): plus `INTEREST_MARGIN_WU`, on the per-viewer seam #331 landed (§4).
 
 ## concept-art/README.md (408 lines)
 
@@ -476,11 +476,11 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **5. Onboarding: the first two minutes** (L72–89): Diegetic and text hints, no modal tutorial.
 - **6. Readability during play** (L90–120): and the connection banner stack from the top, never downward past y 96.
 
-## ui/layout.md (88 lines)
+## ui/layout.md (89 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–88): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
-- **1. Layout frame** (L5–76): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
-- **2. Screens (lobby)** (L77–88): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
+- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–89): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
+- **1. Layout frame** (L5–77): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
+- **2. Screens (lobby)** (L78–89): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
 
 ## ui/overlays.md (136 lines)
 

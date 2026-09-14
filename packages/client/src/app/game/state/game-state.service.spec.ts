@@ -65,7 +65,7 @@ describe('GameStateService', () => {
           createTestCellView({ playerId: OWN_PLAYER_ID, mass: 64 }),
           createTestCellView({ id: entityId('other') }),
         ],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, level: 2 }) },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, level: 2 }),
       }),
     );
     expect(gameState.ownCell()).toBeNull();
@@ -81,7 +81,7 @@ describe('GameStateService', () => {
     multiplayer.snapshot.set(
       createTestSnapshot({
         cells: [createTestCellView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.prokaryote })],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
       }),
     );
     // No balance yet: nothing to compute a DNA fraction or an engulf phase against.
@@ -97,7 +97,7 @@ describe('GameStateService', () => {
     multiplayer.snapshot.set(
       createTestSnapshot({
         cells: [createTestCellView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.protocell })],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
       }),
     );
     expect(gameState.ownCellIndicators()?.ladder.ghost).not.toBeNull();
@@ -113,12 +113,7 @@ describe('GameStateService', () => {
     multiplayer.snapshot.set(
       createTestSnapshot({
         cells: [createTestCellView({ playerId: OWN_PLAYER_ID })],
-        players: {
-          [OWN_PLAYER_ID]: createTestPlayerProgressView({
-            playerId: OWN_PLAYER_ID,
-            lifeState: PLAYER_LIFE_STATE.spectating,
-          }),
-        },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, lifeState: PLAYER_LIFE_STATE.spectating }),
       }),
     );
     expect(gameState.ownCellIndicators()).toBeNull();
@@ -137,7 +132,7 @@ describe('GameStateService', () => {
     multiplayer.snapshot.set(
       createTestSnapshot({
         cells: [createTestCellView({ playerId: OWN_PLAYER_ID }), predator],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
       }),
     );
     expect(gameState.threats()).toEqual([]);
@@ -157,7 +152,7 @@ describe('GameStateService', () => {
     multiplayer.snapshot.set(
       createTestSnapshot({
         cells: [createTestCellView({ playerId: OWN_PLAYER_ID })],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
       }),
     );
     gameState.setCameraExtent({ minX: -500, minY: -500, maxX: 500, maxY: 500 });

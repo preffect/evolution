@@ -11,10 +11,13 @@ import {
   type GameEffect,
   type GameSnapshot,
   type MotePositionView,
+  type PlayerId,
   type PlayerProgressView,
+  type PlayerRosterView,
   type TraitOfferView,
 } from '@evolution/shared';
 import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from '../world/entities.js';
+import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import type { FoodDeltaTracker } from './food-delta-tracker.js';
 
@@ -113,12 +116,37 @@ export function toPlayerProgressView(player: PlayerRecord): PlayerProgressView {
   };
 }
 
-/** Everything but the food and the effects: what the full and the delta snapshot share. */
+/** What every client is sent of every player (docs/architecture/wire-contract.md §4.1). */
+export function toPlayerRosterView(player: PlayerRecord): PlayerRosterView {
+  return { playerId: player.playerId, playerName: player.playerName };
+}
+
+/**
+ * What `viewerPlayerId` alone is sent of its own progress (docs/architecture/wire-contract.md §4.1): `null` for a
+ * viewer with no player in the world.
+ */
+export function ownProgressOf(world: WorldState, viewerPlayerId: PlayerId): PlayerProgressView | null {
+  const viewer = findPlayer(world, viewerPlayerId);
+  return viewer === undefined ? null : toPlayerProgressView(viewer);
+}
+
+/** The snapshot members only their viewer is sent (docs/architecture/wire-contract.md §4.1), in the order the room appends them. */
+export const VIEWER_SNAPSHOT_KEYS = ['ownProgress'] as const satisfies readonly (keyof GameSnapshot)[];
+
+/** One viewer's values for `VIEWER_SNAPSHOT_KEYS`. */
+export function serializeViewerState(
+  world: WorldState,
+  viewerPlayerId: PlayerId,
+): Pick<GameSnapshot, (typeof VIEWER_SNAPSHOT_KEYS)[number]> {
+  return { ownProgress: ownProgressOf(world, viewerPlayerId) };
+}
+
+/** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */
 function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<GameSnapshot, 'food' | 'effects'> {
-  const players: Record<string, PlayerProgressView> = {};
+  const players: Record<string, PlayerRosterView> = {};
   const appliedInputSequenceByPlayer: Record<string, number> = {};
   for (const player of world.players) {
-    players[player.playerId] = toPlayerProgressView(player);
+    players[player.playerId] = toPlayerRosterView(player);
     appliedInputSequenceByPlayer[player.playerId] = player.appliedInputSequence;
   }
   return {
@@ -131,6 +159,7 @@ function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<G
     cells: world.cells.map((cell) => toCellView(cell, quantize)),
     dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, quantize)),
     players,
+    ownProgress: null,
     leaderboard: world.leaderboard.map((row) => ({ ...row })),
     appliedInputSequenceByPlayer,
   };

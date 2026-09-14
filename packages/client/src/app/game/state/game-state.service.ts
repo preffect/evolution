@@ -17,6 +17,7 @@ import {
   type LeaderboardRow,
   type PlayerId,
   type PlayerProgressView,
+  type PlayerRosterView,
   type RoundPhase,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
@@ -27,7 +28,7 @@ import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicat
 import type { CameraExtent } from '../render/camera';
 
 const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
-const NO_PLAYERS: Readonly<Record<string, PlayerProgressView>> = {};
+const NO_PLAYERS: Readonly<Record<string, PlayerRosterView>> = {};
 const NO_CELLS: readonly CellView[] = [];
 const NO_THREATS: readonly Threat[] = [];
 
@@ -76,8 +77,8 @@ export class GameStateService {
     () => this.multiplayer.snapshot()?.leaderboard ?? NO_LEADERBOARD,
   );
 
-  /** Every player's progress by id: where the leaderboard's names come from. */
-  readonly players = computed<Readonly<Record<string, PlayerProgressView>>>(
+  /** Every player's roster row by id: where the leaderboard's and the threat label's names come from. */
+  readonly players = computed<Readonly<Record<string, PlayerRosterView>>>(
     () => this.multiplayer.snapshot()?.players ?? NO_PLAYERS,
   );
 
@@ -93,11 +94,13 @@ export class GameStateService {
   /** Every cell in the newest snapshot: what `threatsFor` asks `canEngulf` about. */
   private readonly cells = computed<readonly CellView[]>(() => this.multiplayer.snapshot()?.cells ?? NO_CELLS);
 
-  /** Our own progress record, or `null` before the room names us (docs/ui/layout.md §1's `ownProgress`). */
-  readonly ownProgress = computed<PlayerProgressView | null>(() => {
-    const id = this.ownPlayerId();
-    return id === null ? null : (this.players()[id] ?? null);
-  });
+  /**
+   * Our own progress record, or `null` before the room names us (docs/ui/layout.md §1's `ownProgress`). The
+   * server sends it to us alone, as the snapshot's `ownProgress` (docs/architecture/wire-contract.md §4.1).
+   */
+  readonly ownProgress = computed<PlayerProgressView | null>(() =>
+    this.ownPlayerId() === null ? null : (this.multiplayer.snapshot()?.ownProgress ?? null),
+  );
 
   /** The cell we are steering; absent while spectating, which is what makes the mirror stand down. */
   readonly ownCell = computed<CellView | null>(() => {

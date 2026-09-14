@@ -7,6 +7,7 @@ const HUNDREDTHS = 100;
 /** One server tick's measurements. Game-agnostic. */
 export interface TickRecord {
   tickMs: number;
+  /** One client's `game_snapshot` bytes: the mean over the clients when each is sent its own (`viewer-snapshots.ts`). */
   snapshotBytes: number;
   broadcastClients: number;
   /** Optional free-form counts a game may report (e.g. { entities: 12 }). */

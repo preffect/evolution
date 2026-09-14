@@ -36,7 +36,7 @@ it('E9: A absorbs B on tick 30', async () => {
     .placeCell({ playerIndex: 1, mass: 20, eastOfFirstCellWu: 10 })    // east of A, centres 10 wu apart
     .advance(30)
     .expect('A mass', (view) => massOf(view, 0)).atTick(30).toBeCloseTo(decayed(100, 30) + 16, 0.01)
-    .expect('B spectating', (view) => view.snapshot.players[view.playerId(1)]?.lifeState).atEnd().toBe('spectating')
+    .expect('B spectating', (view) => progressOf(view, 1)?.lifeState).atEnd().toBe('spectating') // the snapshot's progressByPlayer
     .runDeterministic();
 });
 ```

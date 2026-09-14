@@ -168,9 +168,17 @@ export interface TraitChoiceInput {
   cardIndex: number;
 }
 
-export interface PlayerProgressView {
+/**
+ * What every client receives of every player (`GameSnapshot.players`): who sits in the room. The rest of a
+ * player's progress is read only by that player, so it rides in the viewer's own `GameSnapshot.ownProgress`
+ * (docs/architecture/wire-contract.md §4.1).
+ */
+export interface PlayerRosterView {
   playerId: PlayerId;
   playerName: string;
+}
+
+export interface PlayerProgressView extends PlayerRosterView {
   level: number;
   dnaCumulative: number;
   dnaCatchUpGift: number;
