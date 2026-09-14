@@ -29,6 +29,17 @@ const offer: TraitOfferView = {
   ],
 };
 
+/** The next queued offer, replacing the cards in place with no snapshot between that lacks an offer. */
+const nextOffer: TraitOfferView = {
+  ...offer,
+  offerId: 4,
+  cards: [
+    { traitId: 'cytoskeleton' as TraitId, tier: 1 },
+    { traitId: 'cell_wall' as TraitId, tier: 2 },
+    { traitId: 'simple_flagellum' as TraitId, tier: 2 },
+  ],
+};
+
 describe('TraitOfferOverlayComponent', () => {
   let fixture: ComponentFixture<TraitOfferOverlayComponent>;
   let multiplayer: MultiplayerService;
@@ -42,6 +53,19 @@ describe('TraitOfferOverlayComponent', () => {
     return root().querySelector(testIdSelector(testId));
   }
 
+  function pickButton(cardIndex: number): HTMLElement {
+    return query(traitCardPickTestId(cardIndex))!;
+  }
+
+  function highlightedCards(): number[] {
+    return offer.cards.flatMap((_card, index) => (pickButton(index).classList.contains('highlighted') ? [index] : []));
+  }
+
+  /** Runs the effects a card event or a snapshot starts, then renders. */
+  function settle(): void {
+    TestBed.tick();
+  }
+
   function showOffer(open: TraitOfferView | null): void {
     multiplayer.playerId.set(OWN_PLAYER_ID);
     multiplayer.balance.set(DEFAULT_BALANCE);
@@ -53,6 +77,7 @@ describe('TraitOfferOverlayComponent', () => {
       }),
     );
     fixture.detectChanges();
+    settle();
   }
 
   beforeEach(() => {
@@ -84,31 +109,68 @@ describe('TraitOfferOverlayComponent', () => {
     expect(query(traitCardTestId(1))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardRung))).toBeNull();
   });
 
-  it('previews a card’s trait while it is hovered or focused, and lets it go after', () => {
+  it('highlights and previews no card until one is hovered or focused', () => {
     showOffer(offer);
-    const second = query(traitCardPickTestId(1))!;
-    second.dispatchEvent(new MouseEvent('mouseenter'));
-    expect(hudState.previewTraitId()).toBe('simple_flagellum');
-    second.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(highlightedCards()).toEqual([]);
     expect(hudState.previewTraitId()).toBeNull();
-    second.dispatchEvent(new FocusEvent('focus'));
-    expect(hudState.previewTraitId()).toBe('simple_flagellum');
+  });
+
+  it('highlights and previews the hovered card, else the focused one, and only ever one', () => {
+    showOffer(offer);
+    pickButton(0).dispatchEvent(new FocusEvent('focus'));
+    settle();
+    expect([highlightedCards(), hudState.previewTraitId()]).toEqual([[0], 'nucleoid']);
+
+    pickButton(1).dispatchEvent(new MouseEvent('mouseenter'));
+    settle();
+    expect([highlightedCards(), hudState.previewTraitId()]).toEqual([[1], 'simple_flagellum']);
+
+    // The pointer leaves while card 0 still has focus: the highlight and the preview fall back to it.
+    pickButton(1).dispatchEvent(new MouseEvent('mouseleave'));
+    settle();
+    expect([highlightedCards(), hudState.previewTraitId()]).toEqual([[0], 'nucleoid']);
+
+    pickButton(0).dispatchEvent(new FocusEvent('blur'));
+    settle();
+    expect([highlightedCards(), hudState.previewTraitId()]).toEqual([[], null]);
   });
 
   it('picks through the room’s input seam on a click, the same path as the 1 2 3 keys', () => {
     const pick = vi.fn();
     hudState.setTraitCardPick(pick);
     showOffer(offer);
-    query(traitCardPickTestId(2))!.click();
+    pickButton(2).click();
     expect(pick).toHaveBeenCalledExactlyOnceWith(2);
   });
 
   it('lets the preview go when the offer closes, so no ghost outlives the band', () => {
     showOffer(offer);
-    query(traitCardPickTestId(0))!.dispatchEvent(new MouseEvent('mouseenter'));
+    pickButton(0).dispatchEvent(new MouseEvent('mouseenter'));
+    settle();
     expect(hudState.previewTraitId()).toBe('nucleoid');
     showOffer(null);
-    TestBed.tick();
     expect(hudState.previewTraitId()).toBeNull();
+  });
+
+  it('lets the preview go when a queued offer replaces the cards in place, with no leave or blur', () => {
+    showOffer(offer);
+    pickButton(0).dispatchEvent(new MouseEvent('mouseenter'));
+    settle();
+    expect(hudState.previewTraitId()).toBe('nucleoid');
+    showOffer(nextOffer);
+    expect(query(HUD_TEST_ID.traitOffer)).not.toBeNull();
+    expect([highlightedCards(), hudState.previewTraitId()]).toEqual([[], null]);
+  });
+
+  it('gives focus back to the canvas host when the offer closes with focus inside the band', () => {
+    const canvasHost = document.createElement('div');
+    canvasHost.tabIndex = 0;
+    document.body.append(canvasHost);
+    showOffer(offer);
+    pickButton(0).focus();
+    pickButton(0).dispatchEvent(new FocusEvent('focusin', { bubbles: true, relatedTarget: canvasHost }));
+    showOffer(null);
+    expect(document.activeElement).toBe(canvasHost);
+    canvasHost.remove();
   });
 });

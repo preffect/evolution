@@ -42,6 +42,14 @@ import {
   LEADERBOARD_SWATCH_COLUMN_PX,
   LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
+  HUD_FOCUS_RING_PX,
+  PICKER_CARD_CONTENT_GAP_PX,
+  PICKER_CARD_GLOW_PX,
+  PICKER_CARD_HIGHLIGHT_MS,
+  PICKER_CARD_PADDING_BLOCK_PX,
+  PICKER_CARD_PADDING_INLINE_PX,
+  PICKER_DIM_SOFT_EDGE_FRACTION,
+  PICKER_RIBBON_PADDING_INLINE_PX,
   PICKER_CARD_GAP_PX,
   PICKER_CARD_HEIGHT_PX,
   PICKER_CARD_LIFT_PX,
@@ -84,6 +92,9 @@ function chromeVariables(): StyleVariables {
     '--hud-row-slide-duration': `${LEADERBOARD_ROW_SLIDE_MS}ms`,
     '--hud-leaderboard-expand-duration': `${LEADERBOARD_EXPAND_MS}ms`,
     '--hud-clock-pulse-duration': `${ROUND_CLOCK_PULSE_PERIOD_MS}ms`,
+
+    // Every control's focus ring (docs/ui/input-and-onboarding.md §4).
+    '--hud-focus-ring': `${HUD_FOCUS_RING_PX}px`,
   };
 }
 
@@ -102,6 +113,13 @@ function pickerVariables(): StyleVariables {
     '--hud-picker-card-lift': `${PICKER_CARD_LIFT_PX}px`,
     '--hud-picker-timer-height': `${DNA_RING_STROKE_PX}px`,
     '--hud-picker-dim-alpha': String(PICKER_DIM_ALPHA),
+    '--hud-picker-dim-soft-edge': String(PICKER_DIM_SOFT_EDGE_FRACTION),
+    '--hud-picker-card-content-gap': `${PICKER_CARD_CONTENT_GAP_PX}px`,
+    '--hud-picker-card-padding-block': `${PICKER_CARD_PADDING_BLOCK_PX}px`,
+    '--hud-picker-card-padding-inline': `${PICKER_CARD_PADDING_INLINE_PX}px`,
+    '--hud-picker-card-glow': `${PICKER_CARD_GLOW_PX}px`,
+    '--hud-picker-highlight-duration': `${PICKER_CARD_HIGHLIGHT_MS}ms`,
+    '--hud-picker-ribbon-padding-inline': `${PICKER_RIBBON_PADDING_INLINE_PX}px`,
   };
 }
 

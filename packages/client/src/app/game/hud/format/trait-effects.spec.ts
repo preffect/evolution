@@ -25,13 +25,22 @@ describe('describeTierModifiers', () => {
     expect(describeTierModifiers('nuclear_envelope' as TraitId, 3)).toEqual(['Keeps 75 % DNA on death']);
   });
 
+  it('reads a gel floor below full speed as a floor, and one at full speed as no slowdown at all', () => {
+    expect(describeTierModifiers('amoeba_pseudopods' as TraitId, 1)).toContain('Gel slows you to no less than 60 %');
+    expect(describeTierModifiers('amoeba_pseudopods' as TraitId, 3)).toContain('Gel no longer slows you');
+  });
+
   it('gives every catalog trait at every tier one or two readable lines and never a raw number or undefined', () => {
     for (const trait of TRAIT_CATALOG) {
       for (const tier of TIERS) {
         const lines = describeTierModifiers(trait.id, tier);
         expect(lines.length, `${trait.id} ${tier}`).toBeGreaterThan(0);
         expect(lines.length).toBeLessThanOrEqual(PICKER_CARD_EFFECT_LINES_MAX);
-        for (const line of lines) expect(line).not.toMatch(/undefined|NaN/);
+        for (const line of lines) {
+          expect(line).not.toMatch(/undefined|NaN/);
+          // A word as well as the figure: `+15 %` alone would be a raw number.
+          expect(line, `${trait.id} ${tier}`).toMatch(/[A-Za-z]{2,}/);
+        }
       }
     }
   });

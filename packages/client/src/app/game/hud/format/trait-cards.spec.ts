@@ -6,6 +6,7 @@ import {
   type CellView,
   type TraitId,
   type TraitOfferView,
+  type TraitTier,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { describeTierModifiers } from './trait-effects';
@@ -29,9 +30,9 @@ const protocell = createTestCellView({
   traits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }],
 });
 
-function viewAt(secondsLeft: number, ownCell: CellView | null = protocell) {
+function viewAt(secondsLeft: number, ownCell: CellView | null = protocell, open: TraitOfferView = offer) {
   return traitOfferViewFor({
-    offer,
+    offer: open,
     level: 5,
     ownCell,
     serverTick: EXPIRES_AT - secondsLeft * TICK_HZ,
@@ -70,6 +71,15 @@ describe('traitOfferViewFor', () => {
     const view = viewAt(6.5);
     expect(view.secondsText).toBe('6.5 s');
     expect(view.timerFraction).toBeCloseTo(6.5 / WINDOW_SECONDS, 9);
+  });
+
+  it('refuses a trait the catalog does not know, and a tier with no numeral: both break the server contract', () => {
+    const unknownTrait: TraitOfferView = { ...offer, cards: [{ traitId: 'no_such_trait' as TraitId, tier: 1 }] };
+    expect(() => viewAt(6.5, protocell, unknownTrait)).toThrow(/no_such_trait/);
+    // A tier past the table can only arrive over the wire, so the type has to be talked past to build one.
+    const tierPastTable = Number('4') as TraitTier;
+    const tierFour: TraitOfferView = { ...offer, cards: [{ traitId: 'nucleoid' as TraitId, tier: tierPastTable }] };
+    expect(() => viewAt(6.5, protocell, tierFour)).toThrow(/tier 4/);
   });
 
   it('never counts below zero or above the window', () => {

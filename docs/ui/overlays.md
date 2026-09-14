@@ -17,7 +17,7 @@ without copy fails the gate instead of rendering `undefined`.
   `PICKER_ROW_GAP_PX` under the title row (level gold on the timer-bar track, drains left to right); three cards
   150 × 184 with 10 px gaps `PICKER_ROW_GAP_PX` under the bar, centred on `centreX`; key chips `1` `2` `3`
   (`caption`) centred 8 px under each card. Every row is exactly its own height (the title at line height 1, the
-  timer row the bar alone), so worked example at 1280 × 800: centre (640, 400), title y 536 (the 22 px `title`
+  timer row the bar alone), so the worked example at 1280 × 800 is: centre (640, 400), title y 536 (the 22 px `title`
   row), bar y 570, cards y 586–770 at x 405–875, key chips to y 791. At 1280 × 1000 (scale still 1, capped by width) the band starts at y 636
   and still clears the box; on a viewport shorter than the reference at `HUD_SCALE_MIN` the key chips may touch
   the bottom edge, which is accepted: the cards never enter the box, and the own cell's orbit never reaches the
@@ -34,10 +34,15 @@ without copy fails the gate instead of rendering `undefined`.
   ribbon (the rung card of PROGRESSION §3, which reserves the first card for it; the ribbon text and the test id
   share the one word); its silhouette is the one the ladder orbit has been showing as a ghost (§3.1.2), which is
   the whole point of the ghost. An upgrade card (trait already owned) shows `I → II` in place of the tier.
-- **Highlight = hover = keyboard focus = preview.** Exactly one card is highlighted at a time (lift 8 px, accent
-  glow); hovering or focusing it writes `HudStateService.previewTraitId` (§7) and the renderer, which receives that
-  signal through `game-setup.ts`, draws the trait's organelle ghost on the own cell (rendering/contents-and-motion.md §3) and hides the
-  orbit ghost when the trait is a rung of the next stage (§3.1.2). No card is highlighted until hovered or focused; arrow keys move focus.
+- **Highlight = hover or keyboard focus = preview.** Exactly one card is highlighted at a time (lift 8 px, accent
+  glow): the hovered card, else the focused one, so a pointer leaving a card hands the highlight back to the card
+  that has focus (`hud/format/card-highlight.ts`). The highlighted card's trait is `HudStateService.previewTraitId`
+  (§7) and the renderer, which receives that signal through `game-setup.ts`, draws the trait's organelle ghost on the own cell (rendering/contents-and-motion.md §3) and hides the
+  orbit ghost when the trait is a rung of the next stage (§3.1.2). No card is highlighted until hovered or focused,
+  and a queued offer that replaces the cards in place starts with none, its preview cleared. Tab moves focus
+  between the cards; the arrow keys are steer keys and never move focus (§4). The picker is **non-modal**: it traps
+  no focus, because the cell keeps steering, and when it closes with focus inside it, focus returns to the element
+  it came from (the canvas host).
 - **Pick.** Click, Enter/Space on the focused card, or keys `1` `2` `3` send `traitChoice: { offerId, cardIndex }`
   for the offer that was on screen when the key went down (§4's pick policy; the overlay closes on the next
   snapshot without the offer). Timer text right of the bar:

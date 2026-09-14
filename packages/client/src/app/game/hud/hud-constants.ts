@@ -119,3 +119,27 @@ export const PICKER_CARD_LIFT_PX = 8;
 export const PICKER_DIM_ALPHA = 0.55;
 /** Effect lines a card shows at most. */
 export const PICKER_CARD_EFFECT_LINES_MAX = 2;
+/** Where the dim's clear disc starts to fade, as a share of its radius: the soft edge. */
+export const PICKER_DIM_SOFT_EDGE_FRACTION = 0.85;
+/** Gap between a card's medallion, category, name, effect lines and rarity. */
+export const PICKER_CARD_CONTENT_GAP_PX = 4;
+/** A card's inner padding, top and bottom. */
+export const PICKER_CARD_PADDING_BLOCK_PX = 10;
+/** A card's inner padding, left and right. */
+export const PICKER_CARD_PADDING_INLINE_PX = 8;
+/** The highlighted card's accent glow. */
+export const PICKER_CARD_GLOW_PX = 12;
+/** How long a card takes to lift into, or settle out of, the highlight. */
+export const PICKER_CARD_HIGHLIGHT_MS = 120;
+/** The `RUNG` ribbon's padding either side of its word. */
+export const PICKER_RIBBON_PADDING_INLINE_PX = 6;
+
+// ---- controls (docs/ui/input-and-onboarding.md §4) ----
+
+/** Every interactive element's visible focus ring, in the text colour; never scaled. */
+export const HUD_FOCUS_RING_PX = 2;
+
+// ---- units ----
+
+/** A share (0..1) shown as a percentage. */
+export const PERCENT = 100;

@@ -1,0 +1,96 @@
+:host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* A DOM dim, never a Pixi quad; the own cell's exclusion disc stays clear (docs/ui/overlays.md §3.2). */
+.dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / var(--hud-picker-dim-alpha));
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent calc(var(--hud-exclusion) * var(--hud-picker-dim-soft-edge) * var(--hud-scale)),
+    black calc(var(--hud-exclusion) * var(--hud-scale))
+  );
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent calc(var(--hud-exclusion) * var(--hud-picker-dim-soft-edge) * var(--hud-scale)),
+    black calc(var(--hud-exclusion) * var(--hud-scale))
+  );
+}
+
+/* Hung from the exclusion box's bottom edge, centred on the own cell: never an absolute y. */
+.band {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + (var(--hud-exclusion) + var(--hud-picker-band-gap)) * var(--hud-scale));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--hud-picker-row-gap) * var(--hud-scale));
+  margin: 0;
+}
+
+/* Each row is exactly its own height, so the cards land where §3.2's worked example puts them. */
+.title {
+  margin: 0;
+  line-height: 1;
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-title) * var(--hud-scale));
+  font-weight: 600;
+  color: var(--hud-level-gold);
+}
+
+/*
+ * The row is the bar: the timer text sits right of it and the footer left of it, both out of flow, so the
+ * row adds no height and nothing hangs under the key chips (docs/ui/overlays.md §3.2).
+ */
+.timer-row {
+  position: relative;
+}
+
+.timer-text,
+.footer {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.timer-track {
+  width: calc(var(--hud-picker-timer-width) * var(--hud-scale));
+  height: calc(var(--hud-picker-timer-height) * var(--hud-scale));
+  background: var(--hud-panel-bottom);
+}
+
+.timer-fill {
+  height: 100%;
+  background: var(--hud-level-gold);
+}
+
+.timer-text {
+  left: 100%;
+  padding-left: calc(var(--hud-picker-row-gap) * var(--hud-scale));
+  font-family: var(--hud-font-mono);
+  font-size: calc(var(--hud-type-value) * var(--hud-scale));
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-text);
+}
+
+.cards {
+  display: flex;
+  gap: calc(var(--hud-picker-card-gap) * var(--hud-scale));
+}
+
+.footer {
+  right: 100%;
+  padding-right: calc(var(--hud-picker-row-gap) * var(--hud-scale));
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  color: var(--hud-text-muted);
+}

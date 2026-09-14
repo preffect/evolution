@@ -5,12 +5,13 @@
 // `PICKER_CARD_EFFECT_LINES_MAX` that differ are the card's lines, in the tier row's own order. Pure.
 
 import { DEFAULT_CELL_MODIFIERS, TRAIT_TIERS, type CellModifiers, type TraitId } from '@evolution/shared';
-import { PICKER_CARD_EFFECT_LINES_MAX } from '../hud-constants';
+import { PERCENT, PICKER_CARD_EFFECT_LINES_MAX } from '../hud-constants';
 
 type ModifierKey = keyof CellModifiers;
 
-const PERCENT = 100;
 const FIRST_TIER = 1;
+/** A gel speed floor at or above full speed means gel does not slow the cell at all. */
+const FULL_SPEED_FACTOR = 1;
 /** A plain number on a card shows at most this many decimals. */
 const MAX_DECIMALS = 2;
 const MINUS = '−';
@@ -69,7 +70,8 @@ export const MODIFIER_LABELS: Readonly<Record<ModifierKey, (value: number) => st
   attractSpeed: (value) => `Food drifts in at ${trimmed(value)} u/s`,
   dnaGainMultiplier: (value) => `${fromOne(value)} DNA`,
   dnaKeptOnDeathFraction: (value) => `Keeps ${plainPercent(value)} DNA on death`,
-  gelSpeedFactorFloor: (value) => `Gel slows you to no less than ${plainPercent(value)}`,
+  gelSpeedFactorFloor: (value) =>
+    value >= FULL_SPEED_FACTOR ? 'Gel no longer slows you' : `Gel slows you to no less than ${plainPercent(value)}`,
 };
 
 /** The card's effect lines for `traitId` at `tier` (1..3): the modifiers that differ from identity, at most two. */

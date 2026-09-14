@@ -60,9 +60,11 @@
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:
   inside `trait-offer` it picks (the card's own key handler runs, the sprint path does not); anywhere else it sprints.
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until
-  they Tab or arrow into a card.
-- Every interactive element is a native `<button>` or form control with a visible focus ring (2 px, text colour);
-  overlays trap focus and restore it on close; the canvas host has `tabindex="0"` and takes focus on click. The
+  they Tab into a card (the arrow keys steer, so they never move focus).
+- Every interactive element is a native `<button>` or form control with a visible focus ring (`HUD_FOCUS_RING_PX`
+  2 px, text colour); the menu and results overlays trap focus and restore it on close, and the trait picker is
+  non-modal (overlays.md §3.2): it traps nothing, because the cell keeps steering, and gives focus back to the
+  element it came from when it closes; the canvas host has `tabindex="0"` and takes focus on click. The
   own-cell indicators are not interactive; their facts reach keyboard and screen-reader users through the status
   mirror (§3.1.4) and the menu (§3.5).
 - Touch: pointer events only (game-design/controls-and-scope.md §10); no layout changes beyond the sprint hint's text.

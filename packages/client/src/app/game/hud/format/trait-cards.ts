@@ -27,6 +27,7 @@ const NO_TIME = 0;
 const FULL = 1;
 const TIMER_DECIMALS = 1;
 const FIRST_KEY = 1;
+const FIRST_TIER = 1;
 const UPGRADE_ARROW = '→';
 
 export interface TraitCardView {
@@ -69,13 +70,20 @@ export interface TraitOfferInput {
   readonly balance: Pick<BalanceConfig, 'progression'>;
 }
 
-function definitionOf(traitId: TraitId): TraitDefinition | undefined {
+// Every offered card comes from the server's catalog and tier table, so a miss is a broken contract: the band
+// refuses it loudly rather than drawing a plausible card for a trait nobody can pick.
+
+function definitionOf(traitId: TraitId): TraitDefinition {
   const catalog: readonly TraitDefinition[] = TRAIT_CATALOG;
-  return catalog.find((trait) => trait.id === traitId);
+  const definition = catalog.find((trait) => trait.id === traitId);
+  if (definition === undefined) throw new Error(`Offered trait ${traitId} is not in TRAIT_CATALOG`);
+  return definition;
 }
 
 function numeral(tier: number): string {
-  return TIER_NUMERALS[clamp(tier, FIRST_KEY, TIER_NUMERALS.length) - 1] ?? String(tier);
+  const tierNumeral = TIER_NUMERALS[tier - FIRST_TIER];
+  if (tierNumeral === undefined) throw new Error(`Offered trait tier ${tier} has no numeral`);
+  return tierNumeral;
 }
 
 function isRungFor(traitId: TraitId, ownCell: CellView | null): boolean {
@@ -87,17 +95,17 @@ function cardView(card: OwnedTrait, index: number, ownCell: CellView | null): Tr
   const definition = definitionOf(card.traitId);
   const owned = ownCell?.traits.find((trait) => trait.traitId === card.traitId);
   const isUpgrade = owned !== undefined && card.tier > owned.tier;
-  const category = definition?.category ?? ('genome' as TraitCategory);
+  const { category } = definition;
   return {
     index,
     traitId: card.traitId,
-    name: definition?.name ?? card.traitId,
+    name: definition.name,
     tierLabel: isUpgrade ? `${numeral(owned.tier)} ${UPGRADE_ARROW} ${numeral(card.tier)}` : numeral(card.tier),
     isUpgrade,
     isRung: isRungFor(card.traitId, ownCell),
     category,
     categoryInitial: category.charAt(0).toUpperCase(),
-    rarity: definition?.rarity ?? ('common' as TraitRarity),
+    rarity: definition.rarity,
     effects: describeTierModifiers(card.traitId, card.tier),
     keyLabel: String(index + FIRST_KEY),
   };

@@ -10,8 +10,10 @@ import {
   createTestSnapshot,
   entityId,
   playerId,
+  type TraitId,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
+import { HudStateService } from '../hud/hud-state.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { GameStateService } from './game-state.service';
 
@@ -87,6 +89,22 @@ describe('GameStateService', () => {
 
     multiplayer.balance.set(DEFAULT_BALANCE);
     expect(gameState.ownCellIndicators()?.ladder.counters).toHaveLength(2);
+  });
+
+  it('feeds the picker’s previewed trait into the record, so a previewed rung card hides the orbit ghost', () => {
+    multiplayer.playerId.set(OWN_PLAYER_ID);
+    multiplayer.balance.set(DEFAULT_BALANCE);
+    multiplayer.snapshot.set(
+      createTestSnapshot({
+        cells: [createTestCellView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.protocell })],
+        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) },
+      }),
+    );
+    expect(gameState.ownCellIndicators()?.ladder.ghost).not.toBeNull();
+
+    // The nucleoid is the protocell's gate to prokaryote: the card shows the real organelle instead.
+    TestBed.inject(HudStateService).setPreviewTraitId('nucleoid' as TraitId);
+    expect(gameState.ownCellIndicators()?.ladder.ghost).toBeNull();
   });
 
   it('has no indicators while spectating, which is what stands the mirror down', () => {

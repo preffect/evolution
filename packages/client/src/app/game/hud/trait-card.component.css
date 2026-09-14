@@ -1,0 +1,89 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--hud-picker-key-chip-gap) * var(--hud-scale));
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--hud-picker-card-content-gap) * var(--hud-scale));
+  width: calc(var(--hud-picker-card-width) * var(--hud-scale));
+  height: calc(var(--hud-picker-card-height) * var(--hud-scale));
+  padding: calc(var(--hud-picker-card-padding-block) * var(--hud-scale))
+    calc(var(--hud-picker-card-padding-inline) * var(--hud-scale));
+  box-sizing: border-box;
+  border: 1px solid var(--hud-panel-rim);
+  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--hud-scale));
+  background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
+  color: var(--hud-text);
+  font-family: var(--hud-font-sans);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform var(--hud-picker-highlight-duration) ease-out,
+    box-shadow var(--hud-picker-highlight-duration) ease-out;
+}
+
+/* Highlight = preview: exactly one card, the one the overlay names (docs/ui/overlays.md §3.2). */
+.card.highlighted {
+  transform: translateY(calc(var(--hud-picker-card-lift) * -1 * var(--hud-scale)));
+  box-shadow: 0 0 calc(var(--hud-picker-card-glow) * var(--hud-scale)) var(--hud-level-gold);
+}
+
+/* The focus ring is every control's (docs/ui/input-and-onboarding.md §4), highlighted or not. */
+.card:focus-visible {
+  outline: var(--hud-focus-ring) solid var(--hud-text);
+  outline-offset: var(--hud-focus-ring);
+}
+
+.ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0 calc(var(--hud-picker-ribbon-padding-inline) * var(--hud-scale));
+  background: var(--hud-level-gold);
+  color: var(--hud-panel-bottom);
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+}
+
+.medallion {
+  display: grid;
+  place-items: center;
+  width: calc(var(--hud-picker-medallion) * var(--hud-scale));
+  height: calc(var(--hud-picker-medallion) * var(--hud-scale));
+  border-radius: 50%;
+  border: 1px solid var(--hud-panel-rim);
+  font-size: calc(var(--hud-type-title) * var(--hud-scale));
+  color: var(--hud-level-gold);
+}
+
+.category,
+.rarity {
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+  color: var(--hud-text-label);
+}
+
+.name {
+  font-size: calc(var(--hud-type-card-name) * var(--hud-scale));
+  font-weight: 700;
+  text-align: center;
+}
+
+.effect {
+  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+  color: var(--hud-text);
+  text-align: center;
+}
+
+.key-chip {
+  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  color: var(--hud-text-muted);
+}
