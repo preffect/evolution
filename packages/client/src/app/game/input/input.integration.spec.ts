@@ -97,6 +97,7 @@ async function startGame(): Promise<Harness> {
       debugHost,
       isDevMode: true,
       previewTraitId: () => null,
+      ownCellIndicators: () => null,
       isReticleVisible: () => true,
       onFullLeaderboardHeldChanged: (isHeld) => fullLeaderboardHolds.push(isHeld),
     },

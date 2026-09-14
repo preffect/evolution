@@ -1,9 +1,8 @@
-// The cross-module wiring of the sprint ring and the escape (docs/rendering/own-cell-indicators.md §10, #295): the own
-// view's cooldown reaches the own cell's packed `selfRingFill` through the renderer, the fill reaching
-// ready plays `sprint_ready` into `selfRingBrightness` off the render clock, and while the own cell is
-// being engulfed every threat keeps its warning ring, the predator's included, because the switch that
-// lets the escape arc replace it stays off until the arc draws (#187). Frames come through the
-// renderer's real contract, never its parts.
+// The cross-module wiring of the sprint ring and the escape (docs/rendering/own-cell-indicators.md §10, #295, #187): the
+// HUD's own-cell record reaches the own cell's packed `selfRingFill` through the renderer, the fill reaching ready
+// plays `sprint_ready` into `selfRingBrightness` off the render clock, and while the own cell is being engulfed the
+// escape arc replaces the engulfing predator's warning ring — the bystanders keep theirs — until the release, when
+// the predator's ring comes back. Frames and the record come through the renderer's real contract, never its parts.
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -11,13 +10,16 @@ import {
   DEFAULT_BALANCE,
   MILLISECONDS_PER_SECOND,
   MOTION_CLIPS,
+  createTestPlayerProgressView,
   entityId,
   secondsToTicks,
   type CellView,
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestRenderFrame } from '../../../testing/builders';
+import { createFakeIndicatorText } from '../../../testing/fake-indicator-text';
 import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
 import { peakKeyframe } from '../../../testing/motion-keyframes';
+import { ownCellIndicatorsFor } from '../state/own-cell-indicators';
 import {
   CELL_INSTANCE_FLOATS,
   TEXEL_FLOATS,
@@ -26,9 +28,8 @@ import {
 } from './cells/cell-instance';
 import { SELF_RING_ALPHA } from './constants';
 import { SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE } from './effects/own-cell-ring';
-import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
+import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
 
-const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
 const VIEWPORT = { width: 800, height: 600 };
 const NO_SUBMIT = (): undefined => undefined;
 const COOLDOWN_TICKS = secondsToTicks(DEFAULT_BALANCE.controls.SPRINT_COOLDOWN_SECONDS);
@@ -37,7 +38,10 @@ const READY_PEAK = peakKeyframe(MOTION_CLIPS.sprint_ready.tracks['selfRingBright
 
 function renderer(): GameRenderer {
   const pixi = createFakePixiApp(VIEWPORT);
-  return new GameRenderer(pixi.stage, createTestRenderTextures({ seed: 13, baker: pixi.textures }), VIEWPORT);
+  const textures = createTestRenderTextures({ seed: 13, baker: pixi.textures });
+  const subject = new GameRenderer(pixi.stage, textures, VIEWPORT);
+  subject.useIndicatorText(createFakeIndicatorText().factory);
+  return subject;
 }
 
 function packed(subject: GameRenderer, row: number, field: CellInstanceScalar): number {
@@ -45,13 +49,25 @@ function packed(subject: GameRenderer, row: number, field: CellInstanceScalar): 
   return subject.cellInstances[row * CELL_INSTANCE_FLOATS + texel * TEXEL_FLOATS + channel] ?? Number.NaN;
 }
 
+/** The HUD's inputs for this own view: the record `GameStateService` derives from it. */
+function inputsFor(ownCell: CellView): RenderInputs {
+  const ownCellIndicators = ownCellIndicatorsFor({
+    ownCell,
+    ownProgress: createTestPlayerProgressView(),
+    balance: DEFAULT_BALANCE,
+    threats: [],
+    previewTraitId: null,
+  });
+  return { ...NO_HUD_INPUTS, ownCellIndicators };
+}
+
 function renderAt(subject: GameRenderer, nowMs: number, cells: readonly CellView[]): void {
   const frame = createTestRenderFrame({ timeSeconds: nowMs / MILLISECONDS_PER_SECOND, cells });
-  subject.render(frame, TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
+  subject.render(frame, TEST_OWN_PLAYER_ID, inputsFor(cells[0]!), NO_SUBMIT);
 }
 
 describe('the sprint ring and the escape through the renderer', () => {
-  it('packs the own cell’s recharged share, then brightens the ring as the cooldown ends', () => {
+  it('packs the own cell’s recharged share from the record, then brightens the ring as the cooldown ends', () => {
     const subject = renderer();
     const cooling = createTestCellView({ sprintCooldownRemainingTicks: COOLDOWN_TICKS / 2, radius: 20 });
     renderAt(subject, 0, [cooling]);
@@ -66,8 +82,8 @@ describe('the sprint ring and the escape through the renderer', () => {
     subject.destroy();
   });
 
-  it('keeps every warning ring, the engulfing predator’s included, while the escape arc is not drawn (#187)', () => {
-    expect(SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE).toBe(false);
+  it('hides only the engulfing predator’s warning ring while the escape arc shows, and brings it back on release', () => {
+    expect(SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE).toBe(true);
     const subject = renderer();
     const predator = createTestCellView({ id: entityId('predator'), playerId: null, x: 30, mass: 200, radius: 40 });
     const bystander = createTestCellView({ id: entityId('bystander'), playerId: null, x: -60, mass: 220, radius: 42 });
@@ -80,8 +96,27 @@ describe('the sprint ring and the escape through the renderer', () => {
     });
     // Rows are radius ascending: the own cell, the predator, the bystander.
     renderAt(subject, 0, [held, predator, bystander]);
-    expect(packed(subject, 1, 'warningRingPx')).toBeGreaterThan(0);
+    expect(packed(subject, 1, 'warningRingPx')).toBe(0);
     expect(packed(subject, 2, 'warningRingPx')).toBeGreaterThan(0);
+    const released = { ...held, states: [], engulfedByCellId: null, engulfProgress: 0 };
+    renderAt(subject, 16, [released, predator, bystander]);
+    expect(packed(subject, 1, 'warningRingPx')).toBeGreaterThan(0);
+    subject.destroy();
+  });
+
+  it('draws the escape window and its label in the effects layer while being engulfed', () => {
+    const subject = renderer();
+    const predator = createTestCellView({ id: entityId('predator'), playerId: null, x: 30, mass: 200, radius: 40 });
+    const held = createTestCellView({
+      radius: 10,
+      mass: 20,
+      states: [CELL_STATE.beingEngulfed],
+      engulfedByCellId: predator.id,
+      engulfProgress: 0.2,
+    });
+    const frame = createTestRenderFrame({ cells: [held, predator] });
+    // The escape replaces the orbit: no atlas sprites, only the label pill.
+    expect(subject.render(frame, TEST_OWN_PLAYER_ID, inputsFor(held), NO_SUBMIT).effectSprites).toBe(1);
     subject.destroy();
   });
 });

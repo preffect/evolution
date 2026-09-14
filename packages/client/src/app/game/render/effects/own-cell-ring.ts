@@ -1,18 +1,11 @@
 // The own cell's sprint ring, per frame (docs/ui/hud.md §3.1.2, docs/rendering/own-cell-indicators.md §10): the recharged
 // share, the `sprint_ready` brighten played off the render clock on the frame the fill reaches
 // ready, and the predator whose warning ring hides while the own cell escapes. The fill and the
-// escape belong to the `OwnCellIndicators` record; until the renderer receives it (#187) the source
-// is read off the own view through the same `sprintFillFor` the record calls, so the two agree.
+// escape are the HUD's `OwnCellIndicators` record's (the fourth HUD crossing, #187), so what the
+// ring draws and what the status mirror speaks can never disagree.
 
-import {
-  CELL_STATE,
-  MOTION_CLIP,
-  MOTION_CLIPS,
-  type BalanceConfig,
-  type CellView,
-  type EntityId,
-} from '@evolution/shared';
-import { sprintFillFor } from '../../hud/format/sprint-fill';
+import { MOTION_CLIP, MOTION_CLIPS, type EntityId } from '@evolution/shared';
+import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import { SELF_RING_ALPHA } from '../constants';
 import { FULL_SELF_RING, REST_OWN_CELL_RING, type OwnCellRing } from '../cells/self-ring';
 import { MotionClipPlayer } from './motion-clip-player';
@@ -28,26 +21,19 @@ export interface OwnCellRingSource {
 
 /** The `sprint_ready` track the recharged arc's alpha follows (docs/rendering/contents-and-motion.md §4). */
 const BRIGHTNESS_TRACK = 'selfRingBrightness';
-/** No sprint ticks left: the same bound the record's `ownCellIndicatorsFor` reads `isSprinting` against. */
-const EMPTY = 0;
+/**
+ * The escape arc replaces the engulfing predator's warning ring (docs/ui/hud.md §3.1.2): on, now that
+ * `own-cell-indicators-layer.ts` draws the arc, so the own cell always has exactly one danger tell.
+ */
+export const SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE = true;
 
-// TODO(#187): flip to true in the PR that draws the escape arc. ui/hud.md §3.1.2 hides the predator's warning ring only while
-// the arc shows, so until the arc draws, hiding the ring would leave an engulfed own cell with no danger tell at all.
-/** The one switch that lets the escape arc replace the engulfing predator's warning ring (docs/rendering/own-cell-indicators.md §10). */
-export const SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE = false;
-
-// TODO(#187): take this from `RenderInputs.ownCellIndicators` once the HUD crossing lands, and delete the derivation.
-/** The ring's source read off the own view; `null` without an own cell. */
-export function ownCellRingSourceOf(
-  ownCell: CellView | null,
-  balance: Pick<BalanceConfig, 'controls'>,
-): OwnCellRingSource | null {
-  if (ownCell === null) return null;
-  const isEscaping = ownCell.states.includes(CELL_STATE.beingEngulfed);
+/** The ring's source from the HUD's record; `null` without one (spectating, before the first snapshot). */
+export function ownCellRingSourceOf(indicators: OwnCellIndicators | null): OwnCellRingSource | null {
+  if (indicators === null) return null;
   return {
-    sprintFill: sprintFillFor(ownCell, balance.controls),
-    isSprinting: ownCell.sprintRemainingTicks > EMPTY,
-    escapePredatorCellId: isEscaping ? ownCell.engulfedByCellId : null,
+    sprintFill: indicators.sprintFill,
+    isSprinting: indicators.isSprinting,
+    escapePredatorCellId: indicators.escape?.predatorCellId ?? null,
     shouldHidePredatorRing: SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE,
   };
 }

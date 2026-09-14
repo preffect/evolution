@@ -32,6 +32,7 @@ function dependencies(overrides: Partial<GameSetupDependencies> = {}): GameSetup
     isDevMode: true,
     previewTraitId: () => null,
     isReticleVisible: () => false,
+    ownCellIndicators: () => null,
     ...overrides,
   };
 }

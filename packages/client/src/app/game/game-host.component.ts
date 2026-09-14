@@ -64,6 +64,8 @@ export class GameHostComponent implements OnInit, OnDestroy {
         isDevMode: isDevMode(),
         previewTraitId: () => null,
         isReticleVisible: () => false,
+        // The fourth crossing (docs/ui/hud.md §3.1.4): the record the status mirror speaks is the one the renderer draws.
+        ownCellIndicators: () => this.gameState.ownCellIndicators(),
         // Tab (docs/ui/input-and-onboarding.md §4) reaches the HUD through the input layer's one keyboard listener.
         onFullLeaderboardHeldChanged: (isHeld) => this.hudState.setFullLeaderboardHeld(isHeld),
         // The one render-side fact the HUD reads (docs/ui/components-and-constants.md §7): what is on screen right now.

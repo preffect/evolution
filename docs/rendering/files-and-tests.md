@@ -30,7 +30,9 @@ dish/{dish-layer,depth-particles,vent-shimmer}.ts
 effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
-effects/own-cell-indicators.ts                      the own cell's sprite placements from the HUD record, at the top of that chain (§10, #187)
+effects/own-cell-indicators.ts                      the own cell's arc rows, sprite placements and texts from the HUD record, at the top of that chain; `threatAnchorFor` (§10, #187)
+effects/own-cell-indicators-layer.ts                the layer that draws them: one arc mesh, one pooled sprite batch, the texts; the DNA fill tween and the level-up flash (§10, #187)
+effects/{indicator-fill-tween,indicator-text}.ts    the DNA fill's linear tween; the numeral and label text views behind a factory, so specs need no `BitmapText` (§10, #187)
 effects/own-cell-ring.ts                           the sprint ring per frame: the fill, the `sprint_ready` brighten on reaching ready, the escape's predator (§10, #295)
 effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`, a round or butt cap per row), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
 effects/orbit-backing-arcs.ts                       the ladder orbit's backings as butt-ended arc rows over `orbitLayout`'s padded, merged spans (§10, #294)

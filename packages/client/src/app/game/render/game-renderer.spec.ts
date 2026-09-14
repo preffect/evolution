@@ -9,9 +9,9 @@ import {
 } from '../../../testing/builders';
 import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
 import type { StageMeasurer } from './bench/render-stage-timer';
-import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
+import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
 
-const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
+const INPUTS: RenderInputs = NO_HUD_INPUTS;
 const VIEWPORT = { width: 800, height: 600 };
 
 function renderer(stages?: StageMeasurer): { renderer: GameRenderer; stage: Container; submits: { count: number } } {

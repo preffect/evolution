@@ -16,7 +16,7 @@ import {
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
-import { NO_RETICLE } from './game-renderer';
+import { NO_HUD_INPUTS } from './game-renderer';
 import { RenderSession, type RenderSessionDependencies } from './render-session';
 
 function gameState(seed = 1): ServerMessage {
@@ -50,7 +50,7 @@ function session(overrides: Partial<RenderSessionDependencies> = {}) {
     devicePixelRatio: 1,
     createPixiApp: vi.fn(() => Promise.resolve(pixi)),
     connectAudio: vi.fn(() => audio),
-    hudInputs: () => ({ previewTraitId: null, reticle: NO_RETICLE }),
+    hudInputs: () => NO_HUD_INPUTS,
     shouldPreserveDrawingBuffer: false,
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     ...overrides,

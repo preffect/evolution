@@ -1,13 +1,13 @@
 // The renderer (docs/rendering/budget.md §7, docs/architecture/client.md §6): owns the camera state and the
 // layers and turns one `RenderFrame` into one Pixi render. The HUD crossings (`previewTraitId`,
-// `reticle` in, `cameraExtent` out) are the only things it exchanges with anything else. The
+// `reticle`, `ownCellIndicators` in, `cameraExtent` out) are the only things it exchanges with anything else. The
 // stages run in the §7 order (camera, food, cells with organelles inside, effects, submit), each
 // bracketed by the injected `StageMeasurer` that feeds `renderStagesMs` (`net` is the session's).
 // The effects arrive once, in the frame whose render tick reached them: the effects layer and the
 // clip tracker both start from them before the cell layer syncs, so a prey that just left the
 // frame still resolves to its last view; that start is accrued to the `effects` stage.
 
-import { MILLISECONDS_PER_SECOND, RENDER_STAGE, type TraitId } from '@evolution/shared';
+import { MILLISECONDS_PER_SECOND, RENDER_STAGE, type CellView, type TraitId } from '@evolution/shared';
 import { Sprite, type Container } from 'pixi.js';
 import type { RenderFrame } from '../net/world-store';
 import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
@@ -29,6 +29,9 @@ import { CellLayer } from './cells/cell-layer';
 import { DishLayer } from './dish/dish-layer';
 import { CellClipTracker, cellsById, type CellViewsById } from './effects/cell-clip-tracker';
 import { EffectsLayer } from './effects/effects-layer';
+import type { IndicatorTextFactory } from './effects/indicator-text';
+import { threatAnchorFor } from './effects/own-cell-indicators';
+import { OwnCellIndicatorsLayer } from './effects/own-cell-indicators-layer';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
@@ -36,10 +39,13 @@ import { applyCameraTransform, createSceneLayers, type SceneLayers } from './lay
 import { DISH_CENTRE_TARGET, followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 import type { IndicatorTextures } from './textures/indicator-textures';
+import type { OwnCellIndicators } from '../state/own-cell-indicators';
 
 export interface RenderInputs {
   readonly previewTraitId: TraitId | null;
   readonly reticle: { readonly isVisible: boolean; readonly x: number; readonly y: number };
+  /** The HUD's own-cell record (docs/ui/hud.md §3.1.4): the indicators draw it and the sprint ring reads it; `null` draws none. */
+  readonly ownCellIndicators: OwnCellIndicators | null;
 }
 
 export interface RenderOutputs {
@@ -48,12 +54,15 @@ export interface RenderOutputs {
   readonly visibleCells: number;
   readonly visibleMotes: number;
   readonly fragments: number;
-  /** Effect and reticle sprites placed this frame (docs/rendering/budget.md §6). */
+  /** Effect, reticle and own-cell indicator sprites placed this frame (docs/rendering/budget.md §6). */
   readonly effectSprites: number;
 }
 
 /** No reticle this frame: the pointer has not been over the canvas, or the HUD hides it (docs/ui/input-and-onboarding.md §5). */
 export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 0 };
+
+/** The crossings with nothing to say: no preview, no reticle, no own-cell record (the bench, a test). */
+export const NO_HUD_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE, ownCellIndicators: null };
 
 export class GameRenderer {
   private readonly layers: SceneLayers;
@@ -61,6 +70,7 @@ export class GameRenderer {
   private readonly food: FoodLayer;
   private readonly cells: CellLayer;
   private readonly effects: EffectsLayer;
+  private readonly indicators: OwnCellIndicatorsLayer;
   private readonly clips = new CellClipTracker();
   private readonly ownCellRing = new OwnCellRingTracker();
   private readonly vignette: Sprite;
@@ -80,13 +90,15 @@ export class GameRenderer {
     this.food = new FoodLayer(textures);
     this.cells = new CellLayer(textures, undefined, stages);
     this.effects = new EffectsLayer(textures);
+    this.indicators = new OwnCellIndicatorsLayer(textures.indicators);
     this.vignette = new Sprite(textures.vignetteTexture);
     this.layers.dish.addChild(this.dish.container);
     this.layers.food.addChild(this.food.container);
     this.layers.fragments.addChild(this.food.fragmentContainer);
     this.layers.cells.addChild(this.cells.container);
     this.layers.depthNear.addChild(this.dish.nearContainer);
-    this.layers.effects.addChild(this.effects.container);
+    // The indicators under the effects, so an eat halo or a level-up burst reads over the ring it starts on.
+    this.layers.effects.addChild(this.indicators.container, this.effects.container);
     this.layers.screen.addChild(this.vignette);
     this.resize(viewport);
   }
@@ -98,6 +110,11 @@ export class GameRenderer {
   /** The own-cell indicators' textures and fonts (rendering/own-cell-indicators.md §10): the bench's contact sheet reads them. */
   get indicatorTextures(): IndicatorTextures {
     return this.textures.indicators;
+  }
+
+  /** The indicator texts' factory, before the first frame that draws them: a test passes a fake (`BitmapText` wants a real canvas). */
+  useIndicatorText(factory: IndicatorTextFactory): void {
+    this.indicators.useText(factory);
   }
 
   /** The cell layer's packed rows, read-only: a test or the bench reads what the clips did to a cell. */
@@ -186,7 +203,7 @@ export class GameRenderer {
     const { deformations, ownCellRing } = stages.accrue(RENDER_STAGE.effects, () => {
       this.effects.start(frame.effects, viewOf, nowMs);
       this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
-      const ringSource = ownCellRingSourceOf(ownCell, frame.balance);
+      const ringSource = ownCellRingSourceOf(inputs.ownCellIndicators);
       return {
         deformations: this.clips.deformations(frame.cells, nowMs, views),
         ownCellRing: this.ownCellRing.update(ownCell?.id ?? null, ringSource, nowMs),
@@ -199,8 +216,8 @@ export class GameRenderer {
     const cells = stages.measure(RENDER_STAGE.cells, () =>
       this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId, deformations, ownCellRing }),
     );
-    const effects = stages.measure(RENDER_STAGE.effects, () =>
-      this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } }),
+    const effectSprites = stages.measure(RENDER_STAGE.effects, () =>
+      this.effectsStage(frame, inputs, { ownCell, viewOf, zoom, nowMs }),
     );
     stages.measure(RENDER_STAGE.submit, submit);
     return {
@@ -209,13 +226,28 @@ export class GameRenderer {
       visibleCells: cells.visibleCells,
       visibleMotes: food.motes,
       fragments: food.fragments,
-      effectSprites: effects.sprites,
+      effectSprites,
     };
+  }
+
+  /** The effects stage (§7): the own-cell indicators under the effect and reticle sprites; the sprites placed. */
+  private effectsStage(
+    frame: RenderFrame,
+    inputs: RenderInputs,
+    context: { ownCell: CellView | null; viewOf: LastViewOf; zoom: number; nowMs: number },
+  ): number {
+    const { ownCell, viewOf, zoom, nowMs } = context;
+    const { ownCellIndicators } = inputs;
+    const threat = threatAnchorFor({ indicators: ownCellIndicators, viewOf, ownCell, balance: frame.balance, zoom });
+    const indicators = this.indicators.update({ indicators: ownCellIndicators, ownCell, zoom, nowMs, threat });
+    const effects = this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } });
+    return indicators.sprites + effects.sprites;
   }
 
   destroy(): void {
     this.clips.clear();
     this.effects.destroy();
+    this.indicators.destroy();
     this.cells.destroy();
     this.food.destroy();
     this.dish.destroy();

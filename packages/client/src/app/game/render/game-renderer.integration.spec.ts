@@ -26,10 +26,10 @@ import {
   type CellInstanceScalar,
 } from './cells/cell-instance';
 import { LAYER_Z, LEVEL_UP_RAYS, LEVEL_UP_RIPPLES } from './constants';
-import { GameRenderer, NO_RETICLE, type RenderInputs } from './game-renderer';
+import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
 import type { RenderFrame } from '../net/world-store';
 
-const INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
+const INPUTS: RenderInputs = NO_HUD_INPUTS;
 const VIEWPORT = { width: 800, height: 600 };
 const NO_SUBMIT = (): undefined => undefined;
 

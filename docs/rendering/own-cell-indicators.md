@@ -10,9 +10,12 @@ nearest-threat label, with their data, states, wording, the reading-floor consta
 `OwnCellIndicators` record. This section owns **how** they are drawn and restates none of that; a value or a state
 named here is a link to UI.md, never a copy. The files are §8's `effects/` indicator files.
 
-- **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
-  `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
-  in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
+- **Where.** The effects layer (§6), above pass B and under the effect sprites, from the `ownCellIndicators` signal
+  (§1), the fourth HUD crossing (`RenderInputs.ownCellIndicators`, #187), and nothing else: `own-cell-indicators.ts`
+  turns the record plus the own view's centre and `r_px` into arc rows, sprite placements and texts, and
+  `own-cell-indicators-layer.ts` applies them (the DNA fill's `INDICATOR_FILL_TWEEN_MS` tween and the `level_up`
+  flash are its two clocks); the texts come from a factory (`indicator-text.ts`) so a spec can stand in for
+  `BitmapText`. All of it sits in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
   predicted own position. The rings, tracks and arcs (the DNA track and fill, the ladder backings, the unlock rings,
   the escape track and arc) are rows of the arc primitive (`effects/arc-mesh.ts`). Each row carries its cap: the DNA
   fill and the escape arc are round, the backings (`effects/orbit-backing-arcs.ts`, `orbitLayout`'s padded, merged
@@ -53,8 +56,8 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   row had no spare channel), both at their rest values on every cell but the own one; the track is the same dashed band at
   `SELF_RING_TRACK_ALPHA`. `effects/own-cell-ring.ts` resolves them per frame: a full ring while sprinting, the
   record's fill otherwise, and the `sprint_ready` clip's `selfRingBrightness` track from the frame the fill reaches
-  ready (never on a cell's first frame, so a respawn does not flash). Until the renderer receives the record (#187), the source is read off
-  the own view through the record's own `sprintFillFor`.
+  ready (never on a cell's first frame, so a respawn does not flash). The source is the record's `sprintFill`,
+  `isSprinting` and `escape` (`ownCellRingSourceOf`), so the ring and the status mirror read one truth.
 - **Keep-out.** `cells/organelle-layout.ts` rejects `|q| < DNA_RING_KEEP_OUT_FRACTION` in addition to the nucleus
   disc, for every cell (one rule, no own-cell branch, §3); the fraction is set from the floored ring so the rule
   holds from 31 px up (`ui/hud.md §3.1.3`), and below that the ring's track backs it.
@@ -62,18 +65,19 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   the pass-B warning ring of §2.2 is suppressed on the cell whose id is `escape.predatorCellId` while the arc shows,
   and on no other cell. The render state packs that cell's `warningRingPx` as 0 (`cells/self-ring.ts`
   `isWarningRingHidden`), so its quad also drops back to the ringless extent; no instance channel is spent on it.
-  **Interim state (until #187 draws the arc):** the suppression is gated on one switch,
-  `effects/own-cell-ring.ts` `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE`, which is **off**. So an own cell being engulfed
-  still sees its predator's warning ring, and is never left without a danger tell. The PR that draws the escape
-  arc turns the switch on.
+  The suppression is gated on one switch, `effects/own-cell-ring.ts` `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE`, which
+  is **on** since #187 draws the arc: the own cell always has exactly one danger tell for its predator, and the ring
+  returns on the release frame.
 - **Threat label.** `threat-label-placement.ts` (pure): the pill's centre is the warning ring's radius plus
   `THREAT_LABEL_GAP_PX` plus half the pill's height from the threat's centre **toward the own cell's centre**; if
   that pill's box intersects the disc of the own cell's orbit extent (`ui/hud.md §3.1.3`) the centre flips to the far
   side of the ring (the same distance, away from the own cell); text stays upright. The warning rings on every
   eligible cell remain the pass-B band of §2.2; the label is drawn on the nearest one only, as the record says.
 - **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),
-  `oriented-box.spec.ts`, `own-cell-indicators.spec.ts` (#187: the sprite count of the worst
-  case), `orbit-layout.spec.ts` (the counter layout and the ghost-beside-a-counter clearance) and
+  `oriented-box.spec.ts`, `own-cell-indicators.spec.ts` (#187: the worst case at 5 sprites, 6 arc rows and 2 texts,
+  the DNA fill and its gold, the orbit in world units, the escape window and its two labels, the threat label
+  through `threatLabelPlacement`, `threatAnchorFor`), `own-cell-indicators-layer.spec.ts` (the fill tween, the
+  level-up flash never on a first frame, hiding and a fresh respawn), `indicator-fill-tween.spec.ts`, `orbit-layout.spec.ts` (the counter layout and the ghost-beside-a-counter clearance) and
   `threat-label-placement.spec.ts` (near side at 200 px above a 30 px predator, far side at 100 px, the
   pill's whole box tested against the orbit extent so a wide pill beside the cell flips, upright at every angle),
   and for the textures (#294) `ghost-bake.spec.ts` (every silhouette inside the `LADDER_GHOST_PX` square, the

@@ -18,11 +18,10 @@ import {
 import { Container, type Sprite } from 'pixi.js';
 import { sampleClipTracks } from '../cells/cell-clips';
 import { CLIP_BY_EFFECT, type LastViewOf } from '../cells/cell-effects';
-import { hexToNumber } from '../colour';
 import { EFFECT_FALLBACK_RADIUS_WU, LIGHT_ACCENT } from '../constants';
 import { paletteFor } from '../palette';
 import type { RenderTextures } from '../render-textures';
-import { SpritePool } from '../sprite-pool';
+import { SpritePool, placeSprite } from '../sprite-pool';
 import { effectPlacements, type EffectSource, type EffectSpritePlacement } from './effect-sprites';
 import { clipProgress, isClipFinished, type ClipInstance } from './motion-clip-player';
 import { reticlePlacements, type ReticleFrame } from './reticle';
@@ -105,14 +104,7 @@ export class EffectsLayer {
   }
 
   private apply(sprite: Sprite, placement: EffectSpritePlacement): void {
-    sprite.texture = this.textures.glow[placement.sprite];
-    sprite.position.set(placement.x, placement.y);
-    sprite.width = placement.widthWu;
-    sprite.height = placement.heightWu;
-    sprite.rotation = placement.rotation;
-    sprite.tint = hexToNumber(placement.colour);
-    sprite.alpha = placement.alpha;
-    sprite.visible = true;
+    placeSprite(sprite, this.textures.glow[placement.sprite], { ...placement, tint: placement.colour });
   }
 
   /** Advances the running effects, places their sprites and the reticle's, parks the rest. */

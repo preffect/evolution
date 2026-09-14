@@ -17,7 +17,7 @@ import {
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
 import { FrameLoopSession } from '../frame-loop-session';
-import { NO_RETICLE, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
+import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { BenchDriver } from './bench-driver';
 import { attachIndicatorSheet } from './indicator-sheet';
@@ -127,7 +127,7 @@ export interface BenchSessionDependencies {
   readonly attachSheet?: typeof attachIndicatorSheet;
 }
 
-const BENCH_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
+const BENCH_INPUTS: RenderInputs = NO_HUD_INPUTS;
 
 export class BenchSession extends FrameLoopSession {
   readonly driver: BenchDriver;
