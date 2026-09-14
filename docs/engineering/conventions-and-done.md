@@ -76,7 +76,7 @@
 - [ ] Cross-subsystem wiring (if any) has a `*.integration.test.ts` and it passes via
       `./validate.sh integration`; coverage floors (`docs/testing/tiers-and-builders.md` §5) did not go down.
 - [ ] Scoped checks are green on everything touched, and `./validate.sh all --affected` (lint +
-      duplication + typecheck + unit tests) is green on the final head, run once by whoever merges.
+      duplication + typecheck + unit tests + the integration tier) is green on the final head, run once by whoever merges.
       No test was skipped, `.only`-ed, deleted, or weakened to achieve it.
 - [ ] No `any` / `@ts-ignore` / `@ts-expect-error` / inline `eslint-disable` without a
       justifying comment. No new magic strings or magic numbers. No `console.log` left behind.
