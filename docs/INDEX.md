@@ -360,16 +360,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **4. Motion tables (`packages/shared/src/constants/motion.ts`)** (L60–141): Sheet 03's strips become data; the renderer tweens, the HUD opens the picker at the end of `level_up` (`ui/overlays.md §3.2`) and the soun…
 - **5. LOD** (L142–157): Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them).
 
-## rendering/files-and-tests.md (106 lines)
+## rendering/files-and-tests.md (108 lines)
 
-- **Evolution — Rendering: file plan and test plan** (L1–106): §8–§9 of the split `RENDERING.md`, which keeps the shared context and the file list.
-- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–48): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
-- **9. Test plan (`TESTING.md` tiers)** (L49–106): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
+- **Evolution — Rendering: file plan and test plan** (L1–108): §8–§9 of the split `RENDERING.md`, which keeps the shared context and the file list.
+- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–50): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
+- **9. Test plan (`TESTING.md` tiers)** (L51–108): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 
-## rendering/own-cell-indicators.md (87 lines)
+## rendering/own-cell-indicators.md (91 lines)
 
-- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–87): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
-- **10. Own-cell indicators and world-anchored labels (#146)** (L5–87): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
+- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–91): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
+- **10. Own-cell indicators and world-anchored labels (#146)** (L5–91): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
 
 ## traits/catalog-forms.md (123 lines)
 

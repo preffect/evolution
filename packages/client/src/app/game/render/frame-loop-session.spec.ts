@@ -3,7 +3,7 @@ import { ManualClock } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestRenderFrame } from '../../../testing/builders';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp } from '../../../testing/fake-pixi-app';
 import { FrameLoopSession } from './frame-loop-session';
-import { NO_RETICLE, type GameRenderer, type RenderOutputs } from './game-renderer';
+import { NO_HUD_INPUTS, type GameRenderer, type RenderOutputs } from './game-renderer';
 import type { RenderFrame } from '../net/world-store';
 
 /** The smallest loop: one fixed frame, counting what came after each render. */
@@ -38,7 +38,7 @@ class FixedFrameSession extends FrameLoopSession {
   }
 
   protected renderFrame(renderer: GameRenderer, frame: RenderFrame, submit: () => void): RenderOutputs {
-    return renderer.render(frame, TEST_OWN_PLAYER_ID, { previewTraitId: null, reticle: NO_RETICLE }, submit);
+    return renderer.render(frame, TEST_OWN_PLAYER_ID, NO_HUD_INPUTS, submit);
   }
 
   protected afterFrame(outputs: RenderOutputs): void {

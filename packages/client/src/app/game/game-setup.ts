@@ -14,6 +14,7 @@ import { NO_RETICLE, type RenderInputs } from './render/game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './render/pixi-app';
 import type { CameraExtent } from './render/camera';
 import { RenderSession } from './render/render-session';
+import type { OwnCellIndicators } from './state/own-cell-indicators';
 import type { TransitionOptions } from './state/snapshot-transitions';
 
 export interface GameSetupOptions {
@@ -40,6 +41,8 @@ export interface GameSetupDependencies {
   readonly previewTraitId: () => TraitId | null;
   /** The onboarding `steer` beat shows the reticle (docs/ui/input-and-onboarding.md §5); its position is the input seam's. */
   readonly isReticleVisible: () => boolean;
+  /** The fourth crossing: the own-cell record the indicators draw (docs/ui/hud.md §3.1.4, #187). */
+  readonly ownCellIndicators: () => OwnCellIndicators | null;
   /** The camera's world rectangle each frame, handed to `GameStateService` (docs/ui/components-and-constants.md §7, docs/ui/hud.md §3.1.2). */
   readonly onCameraExtent?: (extent: CameraExtent) => void;
   /** Escape, handed to the HUD's overlay state (docs/ui/overlays.md §3.5, #189). */
@@ -69,6 +72,15 @@ function hudHandlersOf(dependencies: GameSetupDependencies): Partial<AttachInput
   });
 }
 
+/** The four HUD → renderer crossings this frame (docs/ui/components-and-constants.md §7). */
+function hudInputsOf(dependencies: GameSetupDependencies, controller: InputController | null): RenderInputs {
+  return {
+    previewTraitId: dependencies.previewTraitId(),
+    reticle: reticleFor(dependencies.isReticleVisible(), controller),
+    ownCellIndicators: dependencies.ownCellIndicators(),
+  };
+}
+
 export function setupGame(options: GameSetupOptions, dependencies: GameSetupDependencies): GameTeardown {
   // The session reads the input seam and the input seam reads the session's camera and store, so
   // one of the two is late-bound. It is this one, held in a mutable that is assigned on the next
@@ -80,10 +92,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     devicePixelRatio: dependencies.devicePixelRatio,
     createPixiApp: dependencies.createPixiApp,
     connectAudio: dependencies.connectAudio,
-    hudInputs: () => ({
-      previewTraitId: dependencies.previewTraitId(),
-      reticle: reticleFor(dependencies.isReticleVisible(), controller),
-    }),
+    hudInputs: () => hudInputsOf(dependencies, controller),
     ...definedEntriesOf({ onCameraExtent: dependencies.onCameraExtent }),
     acknowledgeSnapshot: options.acknowledgeSnapshot,
     shouldPreserveDrawingBuffer: dependencies.isDevMode,

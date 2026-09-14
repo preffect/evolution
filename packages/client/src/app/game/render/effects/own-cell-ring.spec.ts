@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_STATE, DEFAULT_BALANCE, MOTION_CLIPS, entityId, secondsToTicks } from '@evolution/shared';
+import {
+  CELL_STATE,
+  DEFAULT_BALANCE,
+  MOTION_CLIPS,
+  createTestPlayerProgressView,
+  entityId,
+  secondsToTicks,
+  type CellView,
+} from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { peakKeyframe } from '../../../../testing/motion-keyframes';
-import { sprintFillFor } from '../../hud/format/sprint-fill';
+import { ownCellIndicatorsFor } from '../../state/own-cell-indicators';
 import { SELF_RING_ALPHA } from '../constants';
 import { REST_OWN_CELL_RING } from '../cells/self-ring';
 import {
@@ -22,35 +30,45 @@ function source(overrides: Partial<OwnCellRingSource> = {}): OwnCellRingSource {
 }
 
 describe('ownCellRingSourceOf', () => {
-  it('reads the fill through the record’s own sprintFillFor, and nothing without an own cell', () => {
+  const recordFor = (cell: CellView) =>
+    ownCellIndicatorsFor({
+      ownCell: cell,
+      ownProgress: createTestPlayerProgressView(),
+      balance: DEFAULT_BALANCE,
+      threats: [],
+      previewTraitId: null,
+    });
+
+  it('reads the fill and the sprint off the HUD’s record, and nothing without one', () => {
     const cooling = createTestCellView({ id: OWN, sprintCooldownRemainingTicks: COOLDOWN_TICKS / 4 });
-    expect(ownCellRingSourceOf(cooling, DEFAULT_BALANCE)).toEqual({
-      sprintFill: sprintFillFor(cooling, DEFAULT_BALANCE.controls),
+    expect(ownCellRingSourceOf(recordFor(cooling))).toEqual({
+      sprintFill: recordFor(cooling).sprintFill,
       isSprinting: false,
       escapePredatorCellId: null,
       shouldHidePredatorRing: SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE,
     });
-    expect(ownCellRingSourceOf(cooling, DEFAULT_BALANCE)?.sprintFill).toBeCloseTo(0.75, 9);
-    expect(ownCellRingSourceOf(null, DEFAULT_BALANCE)).toBeNull();
+    expect(ownCellRingSourceOf(recordFor(cooling))?.sprintFill).toBeCloseTo(0.75, 9);
+    expect(ownCellRingSourceOf(recordFor(createTestCellView({ id: OWN, sprintRemainingTicks: 5 })))?.isSprinting).toBe(
+      true,
+    );
+    expect(ownCellRingSourceOf(null)).toBeNull();
   });
 
-  it('marks a sprint and names the predator only while being engulfed', () => {
-    const sprinting = createTestCellView({ id: OWN, sprintRemainingTicks: 5 });
-    expect(ownCellRingSourceOf(sprinting, DEFAULT_BALANCE)?.isSprinting).toBe(true);
+  it('names the predator only while the record carries an escape', () => {
     const held = createTestCellView({
       id: OWN,
       states: [CELL_STATE.beingEngulfed],
       engulfedByCellId: entityId('predator'),
     });
-    expect(ownCellRingSourceOf(held, DEFAULT_BALANCE)?.escapePredatorCellId).toBe('predator');
+    expect(ownCellRingSourceOf(recordFor(held))?.escapePredatorCellId).toBe('predator');
     const released = createTestCellView({ id: OWN, engulfedByCellId: entityId('predator') });
-    expect(ownCellRingSourceOf(released, DEFAULT_BALANCE)?.escapePredatorCellId).toBeNull();
+    expect(ownCellRingSourceOf(recordFor(released))?.escapePredatorCellId).toBeNull();
   });
 
-  it('keeps the predator’s warning ring while the escape arc is not drawn: the switch is off until #187', () => {
-    expect(SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE).toBe(false);
+  it('lets the escape arc replace the predator’s warning ring now that the arc draws (#187)', () => {
+    expect(SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE).toBe(true);
     const held = createTestCellView({ id: OWN, states: [CELL_STATE.beingEngulfed], engulfedByCellId: entityId('p') });
-    expect(ownCellRingSourceOf(held, DEFAULT_BALANCE)?.shouldHidePredatorRing).toBe(false);
+    expect(ownCellRingSourceOf(recordFor(held))?.shouldHidePredatorRing).toBe(true);
   });
 });
 
