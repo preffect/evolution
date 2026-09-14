@@ -71,6 +71,8 @@ document makes. Acceptance scenarios that need a specialised cell grant the form
 - **Leave.** A player who leaves the room for the lobby (`leave_game`,
   [`architecture/wire-contract.md §4`](../architecture/wire-contract.md#4-wire-contract-packagessharedsrctypesmessagests))
   gets no grace: the room removes the player at once, and the cell dissolves into detritus the same way.
+  Joining or creating another room while still seated in one (a second tab shares the player's identity) leaves
+  the old room this way first (#334), so a player is seated in one room at most.
 
 ### 5.3 Leaderboard and score
 

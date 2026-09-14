@@ -88,9 +88,9 @@ const DETERMINISM_CALL_SITES = [
  */
 const TEMPLATE_FILE_EXEMPTIONS = [
   {
-    // #118: 377 lines, grace timers.
-    files: ['packages/server/src/lobby/lobby-manager.ts'],
-    rules: { 'max-lines': 'off', 'no-restricted-globals': 'off' },
+    // #118: the disconnect grace timers (#334 split them out of lobby-manager.ts, which is under the size cap).
+    files: ['packages/server/src/lobby/seat-lifecycle.ts'],
+    rules: { 'no-restricted-globals': 'off' },
   },
   {
     // #118: reconnect backoff timer.
