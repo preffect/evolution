@@ -1,4 +1,4 @@
-// Pass A of the cell shader (docs/RENDERING.md §2.2, back → front): the halo (flat under the
+// Pass A of the cell shader (docs/rendering/cells.md §2.2, back → front): the halo (flat under the
 // body, "lit from inside"; the chloroplast / toxin trait halo replaces it), the far dot, the
 // four-stop body ramp and the two pools in the undeformed frame, the cytoplasm noise in world
 // units, the ribosome speckle on a hashed grid, the cytoskeleton filaments from the nucleus and,

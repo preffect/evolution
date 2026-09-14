@@ -1,5 +1,5 @@
 // Unit (docs/TESTING.md §2): `GameRoom`'s side of the snapshot backpressure of
-// docs/ARCHITECTURE.md §4 (#266) — who is sent this broadcast's delta, who is sent a `game_state`
+// docs/architecture/wire-contract.md §4 (#266) — who is sent this broadcast's delta, who is sent a `game_state`
 // instead, and who is sent nothing. The decision itself is `snapshot-backlog.test.ts`; the wire is
 // `reconnect-snapshots.integration.test.ts`.
 import { describe, expect, it, vi } from 'vitest';
@@ -51,7 +51,7 @@ function tickingGameModule() {
   return module;
 }
 
-describe('game-room: snapshot flow control by acknowledged tick (#266, docs/ARCHITECTURE.md §4)', () => {
+describe('game-room: snapshot flow control by acknowledged tick (#266, docs/architecture/wire-contract.md §4)', () => {
   /** A started room whose one player acknowledges ticks by hand. */
   function tickingRoom() {
     const sent: Record<string, unknown[]> = {};
@@ -111,7 +111,7 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/ARCH
   });
 });
 
-describe('game-room: snapshot backpressure on unsent bytes (#266, docs/ARCHITECTURE.md §4)', () => {
+describe('game-room: snapshot backpressure on unsent bytes (#266, docs/architecture/wire-contract.md §4)', () => {
   /** A started room with one player whose socket the test drains or backs up. */
   function roomWithOnePlayer() {
     const sent: Record<string, unknown[]> = {};
@@ -171,7 +171,7 @@ describe('game-room: snapshot backpressure on unsent bytes (#266, docs/ARCHITECT
     room.addPlayer(connection);
     room.start();
     room.step(SNAPSHOT_EVERY_TICKS * 2);
-    // The one drain of the effects and the one step of the food delta tracker (docs/ARCHITECTURE.md §4).
+    // The one drain of the effects and the one step of the food delta tracker (docs/architecture/wire-contract.md §4).
     expect(gameModule.serializeRoomState).toHaveBeenCalledTimes(2);
     expect(sent['p1']).toEqual([]);
     expect(room.performanceTracker.getStats().broadcastBytesPerSec).toBe(0);

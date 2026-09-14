@@ -23,7 +23,7 @@ export interface TestConnectionOptions {
   playerName?: string;
   avatarIndex?: number;
   readyState?: number;
-  /** Unsent bytes on the socket: what the room's backpressure reads (#266, docs/ARCHITECTURE.md §4). */
+  /** Unsent bytes on the socket: what the room's backpressure reads (#266, docs/architecture/wire-contract.md §4). */
   bufferedAmount?: number;
   /** When given, every frame the socket sends is decoded and appended under `playerId`. */
   sent?: SentLog;
@@ -60,7 +60,7 @@ export function setBufferedAmount(connection: Connection, bytes: number): void {
   (connection.socket as unknown as { bufferedAmount: number }).bufferedAmount = bytes;
 }
 
-/** What a room is born with (docs/ARCHITECTURE.md §4): the roster in join order, avatars by index, a default config. */
+/** What a room is born with (docs/architecture/wire-contract.md §4): the roster in join order, avatars by index, a default config. */
 export function createTestRoomInitOptions(
   playerIds: readonly string[],
   overrides: Partial<RoomInitOptions> = {},

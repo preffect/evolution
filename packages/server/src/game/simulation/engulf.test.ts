@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §6.1, §6.2 and §6.3 rule by rule, on the E9 pair from `testing/engulf-builders.ts`
+// docs/ecology/absorption.md §6.1, §6.2 and §6.3 rule by rule, on the E9 pair from `testing/engulf-builders.ts`
 // (A 100 / B 20, or A 30 / B 20 for E16). The step is driven directly so each rule is observed alone;
 // the same rules seen through the whole tick are the gameplay rows in
 // `testing/scenarios/ecology-engulf.gameplay.test.ts`, and the spit-out is `engulf-spit-out.test.ts`.
@@ -42,7 +42,7 @@ const twoCells = (predatorMass = ENGULF_PREDATOR_MASS, preyMass = ENGULF_PREY_MA
 
 const releaseReasons = (fixture: EngulfFixture): unknown[] => releaseReasonsOf(fixture.context.effects);
 
-describe('starting an engulf (docs/ECOLOGY.md §6.1 step 1)', () => {
+describe('starting an engulf (docs/ecology/absorption.md §6.1 step 1)', () => {
   it('claims the prey and advances on the same tick', () => {
     const fixture = twoCells();
     stepEngulf(fixture);
@@ -75,7 +75,7 @@ describe('starting an engulf (docs/ECOLOGY.md §6.1 step 1)', () => {
   });
 });
 
-describe('phases and the seal (docs/ECOLOGY.md §6.1)', () => {
+describe('phases and the seal (docs/ecology/absorption.md §6.1)', () => {
   it('E9: cover for six ticks, seal on tick 18, payout on tick 36', () => {
     const fixture = twoCells();
     stepEngulf(fixture, E9_COVER_TICKS);
@@ -106,7 +106,7 @@ describe('phases and the seal (docs/ECOLOGY.md §6.1)', () => {
   });
 });
 
-describe('escape (docs/ECOLOGY.md §6.1, §6.3 "prey moves away before the seal")', () => {
+describe('escape (docs/ecology/absorption.md §6.1, §6.3 "prey moves away before the seal")', () => {
   it('releases a cover the tick contact breaks, with progress 0', () => {
     const fixture = twoCells();
     stepEngulf(fixture);
@@ -142,7 +142,7 @@ describe('escape (docs/ECOLOGY.md §6.1, §6.3 "prey moves away before the seal"
   });
 });
 
-describe('the struggle (docs/ECOLOGY.md §6.1)', () => {
+describe('the struggle (docs/ecology/absorption.md §6.1)', () => {
   it('is zero for an idle prey and full for one steering straight away', () => {
     const fixture = twoCells();
     expect(awayEffortOf(fixture.predator, fixture.prey)).toBe(0);
@@ -169,7 +169,7 @@ describe('the struggle (docs/ECOLOGY.md §6.1)', () => {
   });
 });
 
-describe('the ratio release (docs/ECOLOGY.md §6.1 hysteresis, E16)', () => {
+describe('the ratio release (docs/ecology/absorption.md §6.1 hysteresis, E16)', () => {
   it('holds between the release and the required ratio', () => {
     const fixture = twoCells(E16_START_MASS, ENGULF_PREY_MASS);
     stepEngulf(fixture);
@@ -199,7 +199,7 @@ describe('the ratio release (docs/ECOLOGY.md §6.1 hysteresis, E16)', () => {
   });
 });
 
-describe('aborts (docs/ECOLOGY.md §6.3)', () => {
+describe('aborts (docs/ecology/absorption.md §6.3)', () => {
   it('frees both sides when the prey leaves the world', () => {
     const fixture = twoCells();
     stepEngulf(fixture, E9_SEAL_TICK);

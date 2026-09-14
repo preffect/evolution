@@ -1,5 +1,5 @@
 // What both sessions (a live room, the bench route) wrap around a frame to fill a
-// `ClientPerformanceReport` (docs/RENDERING.md §7): the stage timer the renderer brackets its
+// `ClientPerformanceReport` (docs/rendering/budget.md §7): the stage timer the renderer brackets its
 // stages with, the draw-call counter and the GPU timer query on the app's GL context, and the
 // report built from the three plus the renderer's counts. The session decides when to report.
 

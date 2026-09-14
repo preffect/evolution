@@ -1,4 +1,4 @@
-// Snapshot encoding constants (docs/CODE-STANDARDS.md §2, docs/ARCHITECTURE.md §4.1). Engineering
+// Snapshot encoding constants (docs/CODE-STANDARDS.md §2, docs/architecture/wire-contract.md §4.1). Engineering
 // constants, not tunables: excluded from `data/balance.json`. The client-side netcode numbers
 // (buffer size, interpolation delay, reconciliation) live here too.
 
@@ -9,14 +9,14 @@ import { TICK_HZ } from './network.js';
 export const SNAPSHOT_POSITION_DECIMALS = 1;
 
 /**
- * Ticks between two `game_snapshot` broadcasts (docs/ARCHITECTURE.md §1): the one home of the
+ * Ticks between two `game_snapshot` broadcasts (docs/architecture/entity-model.md §1): the one home of the
  * cadence, read by `GameRoom.runTick`. 3 at `TICK_HZ` = 60, so the wire runs at 20 Hz — a third
  * of the bytes the room sent while it broadcast every tick, which is what §4.1 budgets (#214).
  */
 export const SNAPSHOT_EVERY_TICKS = 3;
 
 /**
- * What a room may push to one client (docs/ARCHITECTURE.md §4.1): the *budgeted* per-client wire,
+ * What a room may push to one client (docs/architecture/wire-contract.md §4.1): the *budgeted* per-client wire,
  * which assumes §4.2 lever 1 (viewport culling, #171). The uncut contract is about 800 KB/s at the
  * 20 Hz cadence, so the byte limit below is nearer two thirds of a second of today's worst-case
  * traffic than the whole second it names; it becomes a true second once lever 1 lands.
@@ -27,7 +27,7 @@ const SNAPSHOT_BACKLOG_LIMIT_SECONDS = 1;
 
 /**
  * Ticks of snapshots that may be in flight to one client before the room stops adding to them
- * (#266, docs/ARCHITECTURE.md §4): the client acknowledges the newest tick it has applied, and the
+ * (#266, docs/architecture/wire-contract.md §4): the client acknowledges the newest tick it has applied, and the
  * difference from the newest tick the room sent it is the depth of the queue between them —
  * wherever that queue actually sits (the room's socket, a dev proxy, the kernel, the browser).
  * A healthy client's depth is the ack cadence plus the round trip — 6 ticks of cadence at 60 and
@@ -72,14 +72,14 @@ export const SNAPSHOT_ACK_EVERY_TICKS = SNAPSHOT_ACK_EVERY_SNAPSHOTS * SNAPSHOT_
 
 /**
  * Unsent bytes on a connection at which the room stops queueing deltas for it (#266,
- * docs/ARCHITECTURE.md §4). A client that cannot drain the cadence would otherwise be queued every
+ * docs/architecture/wire-contract.md §4). A client that cannot drain the cadence would otherwise be queued every
  * snapshot the room ever sent it, so its view falls behind for good and the server holds the
  * backlog. Above the limit the connection is sent nothing; when it drains it is sent one
  * `game_state` in place of the next delta, and is current again.
  */
 export const SNAPSHOT_BACKLOG_LIMIT_BYTES = CLIENT_WIRE_BUDGET_BYTES_PER_SECOND * SNAPSHOT_BACKLOG_LIMIT_SECONDS;
 
-// ---- client interpolation (docs/ARCHITECTURE.md §5, #99), derived from the cadence ----
+// ---- client interpolation (docs/architecture/client.md §5, #99), derived from the cadence ----
 /** Remote entities render this many snapshot intervals behind the newest snapshot. */
 const INTERPOLATION_DELAY_INTERVALS = 2;
 export const INTERPOLATION_DELAY_TICKS = INTERPOLATION_DELAY_INTERVALS * SNAPSHOT_EVERY_TICKS;
@@ -99,7 +99,7 @@ export const SERVER_TICK_ESTIMATE_SMOOTHING = 0.1;
 
 /**
  * Ticks a client is guaranteed to have to draw a frame in for an effect to fire, the price of
- * bounding `pendingEffects` on the ingest path (#238, docs/ARCHITECTURE.md §5).
+ * bounding `pendingEffects` on the ingest path (#238, docs/architecture/client.md §5).
  *
  * An effect at tick `T` becomes due when the render tick reaches it, which happens continuously at
  * `T + INTERPOLATION_DELAY_TICKS` because the render tick follows the smoothed server-tick estimate

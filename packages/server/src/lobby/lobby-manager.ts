@@ -167,7 +167,7 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
-  /** Each player hears `game_started`, then the full `game_state` it builds its view from (docs/ARCHITECTURE.md §4). */
+  /** Each player hears `game_started`, then the full `game_state` it builds its view from (docs/architecture/wire-contract.md §4). */
   private notifyGameStarted(gameId: string, room: GameRoom, options: RoomInitOptions): void {
     for (const playerId of options.playerIds) {
       const playerConnection = this.connections.get(playerId);

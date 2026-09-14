@@ -11,7 +11,7 @@ const BALANCE_PATCH_SCHEMA: z.ZodType<BalancePatch> = z.lazy(() =>
 
 /**
  * Live tuning: read the balance a room simulates with and patch its number leaves. A patch is
- * announced to every player as `balance_updated` (docs/ARCHITECTURE.md §4).
+ * announced to every player as `balance_updated` (docs/architecture/wire-contract.md §4).
  */
 export function registerBalanceTools(mcp: McpServer, context: DebugContext): void {
   registerCapabilityTool(mcp, context, {

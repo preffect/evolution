@@ -20,7 +20,7 @@ describe('message type ids', () => {
 });
 
 describe('RENDER_STAGE_NAMES', () => {
-  it('lists every RENDER_STAGE key exactly once (docs/RENDERING.md §7)', () => {
+  it('lists every RENDER_STAGE key exactly once (docs/rendering/budget.md §7)', () => {
     expect([...RENDER_STAGE_NAMES].sort()).toEqual(Object.values(RENDER_STAGE).sort());
     expect(new Set(RENDER_STAGE_NAMES).size).toBe(RENDER_STAGE_NAMES.length);
   });

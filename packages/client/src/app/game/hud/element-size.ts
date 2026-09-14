@@ -1,4 +1,4 @@
-// The HUD's one DOM measurement (docs/UI.md §1): the host's box, now and whenever it changes.
+// The HUD's one DOM measurement (docs/ui/layout.md §1): the host's box, now and whenever it changes.
 // Thin by design so `hud.component.ts` holds no observer wiring and every scale rule stays in the
 // pure `hudScaleFor`. A host without `ResizeObserver` (a unit-test DOM) still gets the first read.
 

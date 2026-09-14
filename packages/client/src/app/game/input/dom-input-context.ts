@@ -1,4 +1,4 @@
-// The one place the input layer touches the DOM to answer "where is focus?" (docs/UI.md §4).
+// The one place the input layer touches the DOM to answer "where is focus?" (docs/ui/input-and-onboarding.md §4).
 // Thin by design: it reads the document and returns the four facts `keyboard-action.ts` decides
 // on, so every rule stays unit-testable without a browser.
 

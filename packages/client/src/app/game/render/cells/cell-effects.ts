@@ -1,4 +1,4 @@
-// Server effects into the cell layer (docs/RENDERING.md §4): a `cell_absorbed` starts a ghost
+// Server effects into the cell layer (docs/rendering/contents-and-motion.md §4): a `cell_absorbed` starts a ghost
 // from what the prey was last drawn with; an eat, level-up or respawn names the clip its cell plays and, for
 // the eat, where the mote was. Pure over the effects and a lookup of last views; the ghosts are
 // wired here (#216), the clip starts are the hook slice C (#207) drives with its player.

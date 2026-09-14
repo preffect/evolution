@@ -64,7 +64,7 @@ function gameState(): ServerMessage {
 interface Harness {
   readonly host: HTMLElement;
   readonly sent: GameInput[];
-  /** Every Tab hold / release the HUD would have been handed (docs/UI.md §3.1.1, #185). */
+  /** Every Tab hold / release the HUD would have been handed (docs/ui/hud.md §3.1.1, #185). */
   readonly fullLeaderboardHolds: boolean[];
   readonly debugHost: EvolutionDebugHost;
   readonly pixi: ReturnType<typeof createFakePixiApp>;
@@ -185,7 +185,7 @@ describe('the wired input path', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Tab', bubbles: true, cancelable: true }));
     expect(harness.fullLeaderboardHolds).toEqual([true]);
     // No keyup: the room ends with the key still down, which teardown has to answer for, since the
-    // HUD state outlives these components and nothing is left to report the release (docs/UI.md §3.1.1).
+    // HUD state outlives these components and nothing is left to report the release (docs/ui/hud.md §3.1.1).
     harness.teardown();
     expect(harness.fullLeaderboardHolds).toEqual([true, false]);
   });

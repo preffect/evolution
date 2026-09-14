@@ -1,4 +1,4 @@
-// Records → views (docs/ARCHITECTURE.md §2, §4): the one projection from the server records onto
+// Records → views (docs/architecture/entity-model.md §2, docs/architecture/wire-contract.md §4): the one projection from the server records onto
 // the wire types. Positions are quantised to `SNAPSHOT_POSITION_DECIMALS`; every array and
 // record is copied so a snapshot never aliases the world. Full snapshots carry every mote;
 // delta snapshots carry the food delta of a tracker and the effects since the last broadcast.
@@ -133,7 +133,7 @@ function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<G
   };
 }
 
-/** The `game_state` snapshot: every mote in `food.spawned`, no effects (docs/ARCHITECTURE.md §4). */
+/** The `game_state` snapshot: every mote in `food.spawned`, no effects (docs/architecture/wire-contract.md §4). */
 export function serializeFullSnapshot(world: WorldState, quantize: PositionQuantizer = quantizePosition): GameSnapshot {
   return {
     ...serializeCommon(world, quantize),
@@ -144,7 +144,7 @@ export function serializeFullSnapshot(world: WorldState, quantize: PositionQuant
 
 /**
  * The `game_snapshot` broadcast: the food delta since the previous broadcast and every effect since
- * it. This is the one drain of `world.effects` (docs/ARCHITECTURE.md §2): the steps and the
+ * it. This is the one drain of `world.effects` (docs/architecture/entity-model.md §2): the steps and the
  * between-tick paths (a join's catch-up level-ups, a debug grant) all push there.
  */
 export function serializeDeltaSnapshot(world: WorldState, tracker: FoodDeltaTracker): GameSnapshot {

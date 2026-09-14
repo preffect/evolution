@@ -22,7 +22,7 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
   serializeRoomState(): Snapshot;
   /**
    * What a joining, late-joining or reconnecting client receives in `game_state`
-   * (docs/ARCHITECTURE.md §4): the full snapshot plus the balance the module simulates with.
+   * (docs/architecture/wire-contract.md §4): the full snapshot plus the balance the module simulates with.
    * Required, unlike the debug capabilities: a delta snapshot or a default balance sent to a
    * joining client is a silent wire-contract bug, so no fallback exists. The echo returns its
    * broadcast snapshot and `DEFAULT_BALANCE`.
@@ -35,7 +35,7 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
   /** Free any resources on room teardown. */
   free?(): void;
   /**
-   * The debug capabilities this module offers the MCP tools (docs/ARCHITECTURE.md §8). A module
+   * The debug capabilities this module offers the MCP tools (docs/architecture/debug-mcp.md §8). A module
    * without one answers every game-specific tool with "not supported by this game module".
    */
   getDebugHandle?(): SimulationDebugHandle;
@@ -54,7 +54,7 @@ export interface EchoSnapshot {
 
 /** Everything a room is born with: the roster the lobby gathered plus the resolved session config. */
 export interface RoomInitOptions {
-  /** The room's own id: what its `game_state` messages are addressed with (docs/ARCHITECTURE.md §4). */
+  /** The room's own id: what its `game_state` messages are addressed with (docs/architecture/wire-contract.md §4). */
   gameId: GameId;
   creatorId: PlayerId;
   playerIds: PlayerId[];
@@ -71,7 +71,7 @@ export type GameModuleFactory = (options: RoomInitOptions) => GameModule;
  * DEFAULT PLACEHOLDER (TODO(game)): trust-client echo. Stores the latest input per player and
  * echoes `{ players: { [playerId]: lastInput } }` as the snapshot. Replace in the
  * init step with the real game logic. Its one debug capability is the in-process bot pair
- * (`spawnBot` / `removeBot`, docs/ARCHITECTURE.md §8): a bot is a player whose input the module
+ * (`spawnBot` / `removeBot`, docs/architecture/debug-mcp.md §8): a bot is a player whose input the module
  * produces itself at the start of each tick, from the snapshot of the tick before, stamped with
  * that tick as its sequence (inputs start at tick 1, docs/TESTING.md §8.1).
  */

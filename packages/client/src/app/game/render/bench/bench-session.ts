@@ -1,4 +1,4 @@
-// The bench route's engine (docs/RENDERING.md §7), framework-free: parses the query, drives the
+// The bench route's engine (docs/rendering/budget.md §7), framework-free: parses the query, drives the
 // `BenchDriver` and a `GameRenderer` on the app's ticker, and once the report window has run
 // hands the frame-budget report to the component. Frames re-render the parked tick, so the report
 // measures a steady frame and a screenshot never changes between frames; the debug hook's `step`
@@ -38,7 +38,7 @@ export interface BenchQuery {
   readonly shouldAdvanceTick: boolean;
   /**
    * `preserve=1`: keep the WebGL backbuffer, which `canvas.toDataURL` needs. Off by default, because production
-   * does not set it and it costs a full-framebuffer copy a frame on a real GPU (docs/RENDERING.md §7).
+   * does not set it and it costs a full-framebuffer copy a frame on a real GPU (docs/rendering/budget.md §7).
    */
   readonly shouldPreserveDrawingBuffer: boolean;
 }
@@ -95,10 +95,10 @@ export interface RenderBenchReport extends ClientPerformanceReport {
    * Heap **residency** growth over the window after a forced collection, divided by the frames: not an
    * allocation count. A collection inside the window subtracts most of it and nothing here detects that, so
    * the number varies severalfold between runs of the same scene — read it as a range over several runs, never
-   * as one figure (docs/RENDERING.md §7). `null` without a heap probe.
+   * as one figure (docs/rendering/budget.md §7). `null` without a heap probe.
    */
   readonly heapGrowthBytesPerFrame: number | null;
-  /** Why `gpuMs` is a number or `null` (docs/RENDERING.md §7). */
+  /** Why `gpuMs` is a number or `null` (docs/rendering/budget.md §7). */
   readonly gpuStatus: GpuTimerStatus;
   readonly verdict: BudgetVerdict;
 }

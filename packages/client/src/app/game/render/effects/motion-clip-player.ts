@@ -1,4 +1,4 @@
-// Plays the sheet-03 millisecond clips (docs/RENDERING.md §4) off the render tick: a clip is a
+// Plays the sheet-03 millisecond clips (docs/rendering/contents-and-motion.md §4) off the render tick: a clip is a
 // start time and a table, the player samples every active track and prunes finished clips.
 // Progress-domain clips (`engulf`) are never played here: `cells/cell-clips.ts` samples them from
 // `engulfProgress` directly.

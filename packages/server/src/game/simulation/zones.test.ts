@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §2: zone geometry, precedence and gel placement.
+// docs/ecology/food-and-spawn.md §2: zone geometry, precedence and gel placement.
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, DEFAULT_BALANCE, ZONE_ID, type BalanceConfig, type GelPatchView } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';

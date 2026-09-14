@@ -1,4 +1,4 @@
-// The debug seam between the game module and the MCP tools (docs/ARCHITECTURE.md §8). Every
+// The debug seam between the game module and the MCP tools (docs/architecture/debug-mcp.md §8). Every
 // member is a capability the module MAY implement; a tool whose capability is missing answers
 // "not supported by this game module" instead of pretending. The echo module implements none;
 // the Evolution module (#98) implements all of them.

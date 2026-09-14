@@ -1,4 +1,4 @@
-// The broadcast cadence (docs/ARCHITECTURE.md §1, §4.1, #214): the room steps at `TICK_HZ` and
+// The broadcast cadence (docs/architecture/entity-model.md §1, docs/architecture/wire-contract.md §4.1, #214): the room steps at `TICK_HZ` and
 // serialises every `SNAPSHOT_EVERY_TICKS` ticks. Its own file because `game-room.test.ts` owns the
 // loop, membership and the debug controls and is already at the size limit.
 
@@ -68,7 +68,7 @@ function broadcastMoments(sent: SentLog, playerId: string): number[] {
     .flatMap((message) => (message as { snapshot: { moments: number[] } }).snapshot.moments);
 }
 
-describe('game-room: the broadcast cadence (docs/ARCHITECTURE.md §1, #214)', () => {
+describe('game-room: the broadcast cadence (docs/architecture/entity-model.md §1, #214)', () => {
   it('steps every tick but serialises and broadcasts once per SNAPSHOT_EVERY_TICKS ticks', () => {
     const sent: SentLog = {};
     const gameModule = createSpyGameModule();

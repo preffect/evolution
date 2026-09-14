@@ -1,4 +1,4 @@
-// The texture bundle every layer draws from (docs/RENDERING.md §1, §6, §8): the round seed's
+// The texture bundle every layer draws from (docs/rendering/cells.md §1, docs/rendering/budget.md §6, docs/rendering/files-and-tests.md §8): the round seed's
 // cosmetic stream plus every texture baked at startup, rebuilt when the seed changes (a rematch).
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
 // since jsdom has no canvas): the radial bakes sampled into bytes (the soft disc, the vignette;
@@ -86,7 +86,7 @@ export interface MoteAtlasTextures {
 
 export interface RenderTextures {
   readonly seed: number;
-  /** `fork(RANDOM_STREAM.cosmetic)` of the round seed: every cosmetic phase derives from it (RENDERING §1). */
+  /** `fork(RANDOM_STREAM.cosmetic)` of the round seed: every cosmetic phase derives from it (rendering/cells.md §1). */
   readonly cosmetic: RandomSource;
   /** A white soft disc the depth particles (and later the effects) tint at use. */
   readonly glowTexture: Texture;
@@ -108,7 +108,7 @@ export interface RenderTextures {
   /** The vent sprite bake and its texture, drawn over the field at the vent zone (dish-layer.ts). */
   readonly vent: VentSprite;
   readonly ventTexture: Texture;
-  /** The condenser light pool, one sprite the dish layer keeps anchored to the view over the field (RENDERING §6.1). */
+  /** The condenser light pool, one sprite the dish layer keeps anchored to the view over the field (rendering/budget.md §6.1). */
   readonly lightPoolTexture: Texture;
 }
 
@@ -190,7 +190,7 @@ function unprefixed<Key extends string>(
   return result;
 }
 
-/** The full and small mote sprites and the fragment helices packed into one atlas (docs/RENDERING.md §6). */
+/** The full and small mote sprites and the fragment helices packed into one atlas (docs/rendering/budget.md §6). */
 function moteTextures(baker: TextureBaker): MoteAtlasTextures {
   const bakes = bakeMoteAtlas(baker);
   const atlas = baker.atlasFromBakes({

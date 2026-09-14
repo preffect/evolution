@@ -1,4 +1,4 @@
-// The trait definition shape and the modifier model (docs/TRAITS.md §1, §2). The catalog rows
+// The trait definition shape and the modifier model (docs/traits/model.md §1, §2). The catalog rows
 // themselves are constants (constants/traits.ts); this file only says what a row looks like.
 
 import type { ValueOf } from './common.js';
@@ -9,16 +9,16 @@ import type { EXCLUSION_GROUPS } from '../constants/traits.js';
 /**
  * Every trait tier is a partial of this record; the cell's effective modifiers are folded over
  * all owned traits: multipliers multiply, bonuses and deltas add, floors take the max
- * (docs/TRAITS.md §2). `DEFAULT_CELL_MODIFIERS` (constants/traits.ts) is the identity.
+ * (docs/traits/model.md §2). `DEFAULT_CELL_MODIFIERS` (constants/traits.ts) is the identity.
  */
 export interface CellModifiers {
   speedMultiplier: number;
   accelerationSecondsMultiplier: number;
   sprintSpeedMultiplierBonus: number;
   sprintCooldownSecondsDelta: number;
-  /** Added to `ENGULF_MASS_RATIO` and `ENGULF_RELEASE_RATIO` when this cell is prey (docs/ECOLOGY.md §6.1). */
+  /** Added to `ENGULF_MASS_RATIO` and `ENGULF_RELEASE_RATIO` when this cell is prey (docs/ecology/absorption.md §6.1). */
   membraneRatioBonus: number;
-  /** Scales the absorb phase when this cell is prey (docs/ECOLOGY.md §6.1, docs/TRAITS.md §2). */
+  /** Scales the absorb phase when this cell is prey (docs/ecology/absorption.md §6.1, docs/traits/model.md §2). */
   absorbDurationMultiplierAsPrey: number;
   /** Scales the wrap phase when this cell is the predator. */
   wrapDurationMultiplierAsPredator: number;
@@ -51,7 +51,7 @@ export interface CellModifiers {
   dnaGainMultiplier: number;
   /** Share of `dnaTowardNextLevel` kept on death (adds, cap 1). */
   dnaKeptOnDeathFraction: number;
-  /** Floor (max) on `gelSpeedFactor(mass)` (docs/ECOLOGY.md §5.2). */
+  /** Floor (max) on `gelSpeedFactor(mass)` (docs/ecology/mass-and-movement.md §5.2). */
   gelSpeedFactorFloor: number;
 }
 
@@ -89,7 +89,7 @@ export interface TraitUnlock {
 export interface TraitDefinitionBase {
   /** Evocative, two words. */
   name: string;
-  /** The cell must have reached this stage to be offered the trait (docs/GAME-DESIGN.md §3). */
+  /** The cell must have reached this stage to be offered the trait (docs/game-design/core.md §3). */
   stage: CellStage;
   unlockedBy?: TraitUnlock;
   category: TraitCategory;
@@ -100,7 +100,7 @@ export interface TraitDefinitionBase {
   tiers: TraitTiers;
   /** What the renderer must show, per tier. */
   visual: string;
-  /** The trait's cue (docs/TRAITS.md §3): a `SOUND_EVENT` id the renderer raises as a `trait_cue` game event. */
+  /** The trait's cue (docs/traits/catalog-organelles.md §3): a `SOUND_EVENT` id the renderer raises as a `trait_cue` game event. */
   audioCue: SoundEventId;
 }
 

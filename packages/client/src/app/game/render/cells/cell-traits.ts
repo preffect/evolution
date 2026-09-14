@@ -88,7 +88,7 @@ function wobbleFor(isProtocell: boolean, form: FormDefinition): WobbleSpec {
   return form === BLOB_FORM || form.isRigid ? NO_WOBBLE : FORM_WOBBLE;
 }
 
-/** Folds `previewTraitId` in at tier I for rendering only when the cell does not own it (docs/RENDERING.md §3). */
+/** Folds `previewTraitId` in at tier I for rendering only when the cell does not own it (docs/rendering/contents-and-motion.md §3). */
 export function summariseCellTraits(view: CellView, previewTraitId: TraitId | null = null): CellTraitSummary {
   const tiers = new Map<TraitId, TraitTier>(view.traits.map((owned) => [owned.traitId, owned.tier]));
   if (previewTraitId !== null && !tiers.has(previewTraitId)) tiers.set(previewTraitId, PREVIEW_TIER);

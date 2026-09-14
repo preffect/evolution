@@ -1,4 +1,4 @@
-// Round and session rules (docs/GAME-DESIGN.md §5, §12).
+// Round and session rules (docs/game-design/session.md §5, docs/game-design/constants-and-acceptance.md §12).
 
 /** Default round length (s). */
 export const ROUND_DURATION_SECONDS = 600;
@@ -15,5 +15,5 @@ export const RESULTS_SCREEN_SECONDS = 20;
 export const ROUND_SEED_INCREMENT = 1;
 /** Spectate the killer this long before respawning (s). */
 export const RESPAWN_SPECTATE_SECONDS = 3;
-/** Score per player absorbed (docs/GAME-DESIGN.md §5.3). */
+/** Score per player absorbed (docs/game-design/session.md §5.3). */
 export const SCORE_ABSORPTION_BONUS = 25;

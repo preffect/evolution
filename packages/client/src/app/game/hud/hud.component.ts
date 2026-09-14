@@ -1,12 +1,12 @@
-// The HUD shell (docs/UI.md §1, §7): the overlay layer over the canvas. It owns two things —
+// The HUD shell (docs/ui/layout.md §1, docs/ui/components-and-constants.md §7): the overlay layer over the canvas. It owns two things —
 // `--hud-scale`, read from its own box through the pure `hudScaleFor`, and the rest of the
 // `--hud-…` custom properties every child stylesheet reads (`hud-css-variables.ts`) — and hosts
 // the chrome. The layer itself never takes the pointer: only the controls inside it opt back in,
 // so a click always reaches the dish.
 //
-// It also owns the one gate the chrome shares: the round phase (docs/UI.md §3.1).
+// It also owns the one gate the chrome shares: the round phase (docs/ui/hud.md §3.1).
 //
-// The chrome is the leaderboard and the round clock (docs/UI.md §3.1.1), plus the own cell's status
+// The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own; the picker (#188), the death and results
 // overlays (#189) and the notices (#190) slot in here as they land.
 
@@ -73,7 +73,7 @@ export class HudComponent implements OnInit, OnDestroy {
   protected readonly testId = HUD_TEST_ID;
 
   /**
-   * The in-round chrome stands down for the results phase (docs/UI.md §3.1, §3.1.1), where #189's
+   * The in-round chrome stands down for the results phase (docs/ui/hud.md §3.1, §3.1.1), where #189's
    * overlay claims the screen and would otherwise share the top-right with the board. It does
    * **not** gate on `lifeState`: the board is §3.1.1's stated exception, because a dead player
    * watching their killer is exactly who wants to see the ranking. The clock's own `isVisible`
@@ -82,7 +82,7 @@ export class HudComponent implements OnInit, OnDestroy {
    */
   protected readonly isRoundPlaying = computed(() => this.gameState.roundPhase() === ROUND_PHASE.playing);
 
-  /** `--hud-scale` (docs/UI.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
+  /** `--hud-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
   protected readonly scale = computed(() => hudScaleFor(this.size().widthPx, this.size().heightPx));
 
   /** The scale plus every constant the child stylesheets read, as one style map. */

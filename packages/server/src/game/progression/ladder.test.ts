@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §3 and docs/PROGRESSION.md §7 P13: the ladder rules over owned traits.
+// docs/game-design/core.md §3 and docs/PROGRESSION.md §7 P13: the ladder rules over owned traits.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, type OwnedTrait, type TraitId } from '@evolution/shared';
 import { ownsTrait, stageOfOwned } from './ladder.js';

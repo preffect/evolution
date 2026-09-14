@@ -1,4 +1,4 @@
-// The trait tells of pass B (docs/RENDERING.md §2.2, docs/VISUAL-STYLE.md §4): the rigid cell
+// The trait tells of pass B (docs/rendering/cells.md §2.2, docs/VISUAL-STYLE.md §4): the rigid cell
 // wall outside the membrane, the leaning cilia hairs (a flat band at mid LOD), the engulf-warning
 // ring in the undeformed frame (VISUAL-STYLE §5) and the absorbed ghost's dashed outline. Every
 // membrane band is a band of `d`; the ring tracks the instance's centre and snaps with the LOD.

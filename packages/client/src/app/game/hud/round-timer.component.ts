@@ -1,4 +1,4 @@
-// The round clock (docs/UI.md §3.1.1): `m:ss` bottom-right with its caption under it, level gold
+// The round clock (docs/ui/hud.md §3.1.1): `m:ss` bottom-right with its caption under it, level gold
 // through the bloom, pulsing once a second inside the last ten, and away through the results phase.
 // It decides nothing: `roundClockStateFor` does, and this binds the record it answers. Every length
 // and colour below is a `--hud-…` the shell publishes from the constants (`hud-css-variables.ts`).
@@ -52,13 +52,13 @@ import { roundClockStateFor } from './format/round-clock';
         color: var(--hud-text-label);
       }
 
-      /* The bloom (docs/ECOLOGY.md §3.1): the one saturated colour the clock ever takes. */
+      /* The bloom (docs/ecology/food-and-spawn.md §3.1): the one saturated colour the clock ever takes. */
       .round-timer.bloom .digits,
       .round-timer.bloom .caption {
         color: var(--hud-level-gold);
       }
 
-      /* One pulse per second through the last ten seconds (docs/UI.md §3.1.1). */
+      /* One pulse per second through the last ten seconds (docs/ui/hud.md §3.1.1). */
       .round-timer.pulsing .digits {
         animation: round-clock-pulse var(--hud-clock-pulse-duration) ease-out infinite;
       }

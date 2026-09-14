@@ -39,7 +39,7 @@
     "M0 Setup": "Devcontainer verified, tooling/MCP, team definition, quality gates, testing foundations. Nothing game-specific ships until this is green.",
     "M1 Design": "Design docs, architecture, first build epic (docs/INIT-GAME.md). Later build phases live in the roadmap issue until approved."
   },
-  "footer": "\n\n---\n**Standards:** every PR passes `./validate.sh all`, meets the Definition of Done in `docs/ENGINEERING.md`, and follows `docs/WORKFLOW.md` (PR required, reviewers run, every thread resolved). Work happens INSIDE the devcontainer.",
+  "footer": "\n\n---\n**Spec files:** the `docs/<domain>/<topic>.md` files (with §) this ticket needs; agents read only these.\n\n**Standards:** every PR passes `./validate.sh all`, meets the Definition of Done in `docs/ENGINEERING.md`, and follows `docs/WORKFLOW.md` (PR required, reviewers run, every thread resolved). Work happens INSIDE the devcontainer.",
   "issues": [
     {
       "key": "E1",

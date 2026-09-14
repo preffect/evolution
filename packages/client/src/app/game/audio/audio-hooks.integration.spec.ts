@@ -1,4 +1,4 @@
-// The audio wire (docs/ARCHITECTURE.md §7): `AudioHooks.connect` is the composition root's one
+// The audio wire (docs/architecture/client.md §7): `AudioHooks.connect` is the composition root's one
 // call; a snapshot fed to its handle goes through the transition tracker onto the game event bus,
 // the sound bus maps it, and the audio service plays the manifest's file on the fake platform.
 // Proves the seam the renderer (#99) and the HUD (#100) will call into.

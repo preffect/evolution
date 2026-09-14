@@ -1,4 +1,4 @@
-// The clip hooks (docs/RENDERING.md §4, §2.1): sampling a sheet-03 clip's tracks at a position,
+// The clip hooks (docs/rendering/contents-and-motion.md §4, docs/rendering/cells.md §2.1): sampling a sheet-03 clip's tracks at a position,
 // and turning the tracks a cell is playing into its `CellDeformation` — the eat dimple and wrap at
 // the mote, the engulf arms, notch and seal at the prey (from `engulfProgress`, never the clock),
 // the predator's seal relaxing from the ghost's `absorbed` clip, the pulse of level-up / respawn /

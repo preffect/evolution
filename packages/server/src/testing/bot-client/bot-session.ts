@@ -1,6 +1,6 @@
 // One bot over the wire (docs/TESTING.md §8.3): the lobby handshake a browser client does
 // (`join_lobby`, `join_game`), then one client tick per fixed step from the injected timing
-// (docs/ARCHITECTURE.md §5: exactly one `player_input` per client tick, `sequence` = tick),
+// (docs/architecture/client.md §5: exactly one `player_input` per client tick, `sequence` = tick),
 // each decided by the pilot from the latest snapshot the server sent. A bot that has not seen a
 // snapshot yet holds; a strategy that answers `null` holds. A close after the bot is seated
 // stops the tick, marks the stats disconnected and rejects whoever is waiting on a tick or a

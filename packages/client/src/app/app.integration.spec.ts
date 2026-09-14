@@ -59,7 +59,7 @@ describe('lobby shell + multiplayer services', () => {
     expect(component.multiplayer.gameId()).toBe('g1');
     expect(component.multiplayer.isHost()).toBe(true);
     expect(component.multiplayer.snapshot()).toEqual(snapshot);
-    // In play the shell is the canvas with the HUD over it, filling the viewport (#217, #185, docs/UI.md §1).
+    // In play the shell is the canvas with the HUD over it, filling the viewport (#217, #185, docs/ui/layout.md §1).
     expect(element.classList.contains('in-game')).toBe(true);
     expect(element.querySelector('.panel')).toBeNull();
     expect(element.querySelector('app-game-host')).not.toBeNull();

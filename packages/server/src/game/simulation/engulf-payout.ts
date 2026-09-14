@@ -1,4 +1,4 @@
-// The payout of a completed engulf (docs/ECOLOGY.md §6.1, the "Payout" table; §3.3 "Engulf
+// The payout of a completed engulf (docs/ecology/absorption.md §6.1, the "Payout" table; §3.3 "Engulf
 // outcomes" for the wild substitutions). `runEngulfs` calls this and only this on completion: the
 // pair is unhooked, the predator is paid (mass yield with the cap overflow, DNA, tag points, the
 // endosymbiont credit and the absorption counter) and the prey dies through `session/death.ts`,
@@ -6,16 +6,16 @@
 //
 // A wild cell on either side is not a special case here beyond its own row: a wild predator keeps
 // nothing (its mass is the world clock, re-pinned next tick) and a wild prey pays no DNA base, no
-// tag share and scores no `absorptions` (docs/ECOLOGY.md §3.3). One thing IS lost on the wild path:
+// tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3). One thing IS lost on the wild path:
 // `absorbCell` emits no `cell_absorbed` for a prey with no player (`session/death.ts`, the
 // `isPlayerCell` guard), because the effect's `playerId` is not nullable. The wire change that fixes
 // it is filed against the wild-cell slice; until that slice no wild cell exists, so nothing is
 // observably missing yet.
 //
 // The trait steal stays reserved: `ENGULF_TRAIT_STEAL_CHANCE` is 0 in build 1 and the payout table
-// names no trait for it to move (docs/ECOLOGY.md §6.1, the "Reserved" row), so no roll is drawn —
+// names no trait for it to move (docs/ecology/absorption.md §6.1, the "Reserved" row), so no roll is drawn —
 // the same "no draw when the chance is 0" rule the spit-out follows (`engulf-spit-out.ts`). The draw
-// order build 2 must keep when it turns the steal on is the contract in docs/ECOLOGY.md §6.1's
+// order build 2 must keep when it turns the steal on is the contract in docs/ecology/absorption.md §6.1's
 // Reserved row and docs/DETERMINISM.md §3, not this comment: a draw of `streams.engulf` here, after
 // the tick's spit-out draw, one per completed engulf.
 
@@ -34,7 +34,7 @@ const ONE_ABSORPTION = 1;
 
 /**
  * The prey's lifetime DNA the predator takes a share of: a player's own, and for a wild cell the
- * world's `worldDna` — the wild cell is the world clock made flesh (docs/ECOLOGY.md §3.3).
+ * world's `worldDna` — the wild cell is the world clock made flesh (docs/ecology/wild-cells.md §3.3).
  */
 function preyDnaOf(world: WorldState, prey: CellRecord): number {
   return isPlayerCell(prey)
@@ -42,7 +42,7 @@ function preyDnaOf(world: WorldState, prey: CellRecord): number {
     : worldReferenceAt(world, world.tick).worldDna;
 }
 
-/** `ENGULF_DNA_BASE` + the prey's share; a wild prey carries no base (docs/ECOLOGY.md §3.3). */
+/** `ENGULF_DNA_BASE` + the prey's share; a wild prey carries no base (docs/ecology/wild-cells.md §3.3). */
 function engulfDnaFor(world: WorldState, prey: CellRecord, balance: BalanceConfig): number {
   const absorption = balance.absorption;
   const base = isPlayerCell(prey) ? absorption.ENGULF_DNA_BASE : 0;
@@ -63,7 +63,7 @@ function payTagPoints(eater: PlayerRecord, prey: CellRecord, world: WorldState, 
 
 /**
  * Eating a cell that owns an endosymbiont credits the eater's counter for that variant in full —
- * you ate the whole organelle (docs/ECOLOGY.md §1, §3.3). The requirement is the catalog's own
+ * you ate the whole organelle (docs/ecology/food-and-spawn.md §1, docs/ecology/wild-cells.md §3.3). The requirement is the catalog's own
  * `unlockedBy`, so the rule can never disagree with the draft's gate (`progression/draft.ts`).
  */
 function creditEndosymbionts(eater: PlayerRecord, prey: CellRecord, balance: BalanceConfig): void {
@@ -79,7 +79,7 @@ function creditEndosymbionts(eater: PlayerRecord, prey: CellRecord, balance: Bal
 
 /**
  * The predator's half of the table, for a player predator (a wild one keeps nothing). Mass first,
- * so the part above `CELL_MAX_MASS` becomes DNA in the same gain (docs/ECOLOGY.md §5.4); the prey
+ * so the part above `CELL_MAX_MASS` becomes DNA in the same gain (docs/ecology/mass-and-movement.md §5.4); the prey
  * is still in the world, so its mass and traits are read here before `absorbCell` removes it.
  */
 function payPredator(world: WorldState, context: StepContext, predator: PlayerCellRecord, prey: CellRecord): void {
@@ -98,7 +98,7 @@ function payPredator(world: WorldState, context: StepContext, predator: PlayerCe
 
 /**
  * A completed engulf. The records are cleared first so the prey's own death does not read the pair
- * as a running engulf and abort it (docs/ECOLOGY.md §6.3, the chain row: only the prey's engulf of
+ * as a running engulf and abort it (docs/ecology/absorption.md §6.3, the chain row: only the prey's engulf of
  * a third cell is aborted, by `dissolveCell`). Nothing writes `lastRelease`: a payout is not a
  * release, and the two must stay distinguishable.
  */

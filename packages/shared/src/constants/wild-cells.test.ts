@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §3.3: every wild build is a valid ladder (the T10 pattern: each entry's stage
+// docs/ecology/wild-cells.md §3.3: every wild build is a valid ladder (the T10 pattern: each entry's stage
 // and `requires` are met by the entries before it), all three climb the stages in step with
 // build 0 (which defines `worldStage`), and the seat and behaviour knobs hold their bounds.
 
@@ -20,7 +20,7 @@ import {
 } from './wild-cells.js';
 
 const BUILD_COUNT = 3;
-/** docs/ECOLOGY.md §3.3: the stage the world reaches after each pick, the same for every build. */
+/** docs/ecology/wild-cells.md §3.3: the stage the world reaches after each pick, the same for every build. */
 const STAGE_AFTER_PICKS: readonly CellStage[] = [
   CELL_STAGE.protocell,
   CELL_STAGE.prokaryote,

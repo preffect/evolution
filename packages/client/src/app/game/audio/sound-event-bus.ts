@@ -1,4 +1,4 @@
-// Maps game events to sound events (docs/ARCHITECTURE.md §7, docs/AUDIO.md §2): the one place
+// Maps game events to sound events (docs/architecture/client.md §7, docs/AUDIO.md §2): the one place
 // that knows which moment plays which cue. Server effects are filtered to the own cell; the bed
 // follows the stage; the level-up motif picks its instrument from the organelle count. Nothing
 // but this bus calls the audio layer.

@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §3: caps, rates, the bloom and the cluster-adjusted event weights.
+// docs/ecology/food-and-spawn.md §3: caps, rates, the bloom and the cluster-adjusted event weights.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';

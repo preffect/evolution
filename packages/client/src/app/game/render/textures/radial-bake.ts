@@ -1,4 +1,4 @@
-// A radial bake sampled per pixel (docs/RENDERING.md §6): the alpha of a `RadialBakeSpec`'s stops
+// A radial bake sampled per pixel (docs/rendering/budget.md §6): the alpha of a `RadialBakeSpec`'s stops
 // by each pixel's distance from the centre over the half-diagonal, written as premultiplied RGBA8
 // bytes. The one radial sampler in the app: a canvas radial gradient cannot be read back in tests,
 // and Pixi's `FillGradient` floods its gradient with the last stop before painting, which turned a

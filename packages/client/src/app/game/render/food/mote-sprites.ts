@@ -32,7 +32,7 @@ import {
 import { degreesToRadians } from '../geometry';
 import { MOTE_SPRITE, type MoteSpriteKey } from '../textures/mote-atlas';
 
-/** Drawn once per mote from its cosmetic fork (docs/RENDERING.md §1); phases in turns. */
+/** Drawn once per mote from its cosmetic fork (docs/rendering/cells.md §1); phases in turns. */
 export interface MoteCosmetics {
   readonly breathHz: number;
   readonly breathPhase: number;

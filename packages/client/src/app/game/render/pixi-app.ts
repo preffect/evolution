@@ -1,4 +1,4 @@
-// The Pixi application (docs/ARCHITECTURE.md §6): one canvas in the host, resolution = device
+// The Pixi application (docs/architecture/client.md §6): one canvas in the host, resolution = device
 // pixel ratio, the dark field as the clear colour, sized to the host. The one file that creates
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 

@@ -1,4 +1,4 @@
-// The effects layer (docs/RENDERING.md §6, §4): the four catalogued moments as glow-atlas sprites
+// The effects layer (docs/rendering/budget.md §6, docs/rendering/contents-and-motion.md §4): the four catalogued moments as glow-atlas sprites
 // — the eat halo pulse, the absorption's DNA streams, the level-up burst and the respawn bloom —
 // plus the pointer reticle, all in one sprite batch. Every server effect starts one clip on a
 // source built from the subject's view (its last view for a prey that is already gone); the
@@ -35,7 +35,7 @@ export interface EffectsLayerFrame {
 }
 
 export interface EffectsLayerOutputs {
-  /** Sprites placed this frame (the bench's effects count, docs/RENDERING.md §6). */
+  /** Sprites placed this frame (the bench's effects count, docs/rendering/budget.md §6). */
   readonly sprites: number;
   readonly running: number;
 }

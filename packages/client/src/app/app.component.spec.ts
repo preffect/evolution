@@ -79,7 +79,7 @@ describe('AppComponent', () => {
     expect(element.classList.contains('in-game')).toBe(false);
   });
 
-  it('shows the game host with the HUD over it, filling the viewport, in play (docs/UI.md §1)', () => {
+  it('shows the game host with the HUD over it, filling the viewport, in play (docs/ui/layout.md §1)', () => {
     multiplayer.inGame.set(true);
     const element = render();
     expect(element.querySelector('[data-testid="game-host-stub"]')).not.toBeNull();
@@ -89,7 +89,7 @@ describe('AppComponent', () => {
     expect(element.classList.contains('in-game')).toBe(true);
   });
 
-  it('renders the bench route alone, filling the viewport, in place of the lobby and the room (docs/RENDERING.md §7)', () => {
+  it('renders the bench route alone, filling the viewport, in place of the lobby and the room (docs/rendering/budget.md §7)', () => {
     isBenchRoute.value = true;
     multiplayer.inGame.set(true);
     const element = render();

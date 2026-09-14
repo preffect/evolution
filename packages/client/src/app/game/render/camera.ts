@@ -1,4 +1,4 @@
-// The camera (docs/GAME-DESIGN.md §7): centred on the followed cell, zoomed out as it grows, both
+// The camera (docs/game-design/controls-and-scope.md §7): centred on the followed cell, zoomed out as it grows, both
 // smoothed client-side and purely cosmetic. Pure functions over a small state; the render loop
 // owns the state and the injected clock's delta.
 
@@ -111,7 +111,7 @@ export function worldToScreen(state: CameraState, viewport: ViewportPx, x: numbe
 /**
  * A screen point as a world-space offset from the middle of the view: what a caller anchors to
  * something other than the camera's own centre. The steer target hangs the pointer off the newest
- * snapshot's own cell this way, because the smoothed, interpolated camera trails it (docs/UI.md §4).
+ * snapshot's own cell this way, because the smoothed, interpolated camera trails it (docs/ui/input-and-onboarding.md §4).
  */
 export function screenOffsetToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): WorldPoint {
   const zoom = zoomFor(state, viewport);
@@ -126,7 +126,7 @@ export function screenToWorld(state: CameraState, viewport: ViewportPx, x: numbe
 /**
  * Whether any part of a disc is inside the extent — no margin, so this answers "can the player see
  * it" rather than "should we draw it". The HUD's threat label anchors to a predator's warning ring
- * (docs/UI.md §3.1.2, "so it is never off-screen"), and a ring that is not on screen is nothing to
+ * (docs/ui/hud.md §3.1.2, "so it is never off-screen"), and a ring that is not on screen is nothing to
  * anchor to. `isDiscInExtent` below is the draw-cull and is deliberately generous; do not reach for
  * it when the question is what the player can actually look at.
  */
@@ -139,7 +139,7 @@ export function isDiscVisibleInExtent(extent: CameraExtent, x: number, y: number
   );
 }
 
-/** Whether a disc of `reachWu` around a centre touches the extent, with the cull margin (RENDERING §6). */
+/** Whether a disc of `reachWu` around a centre touches the extent, with the cull margin (rendering/budget.md §6). */
 export function isDiscInExtent(extent: CameraExtent, x: number, y: number, reachWu: number): boolean {
   const margin = reachWu * (1 + CAMERA_CULL_MARGIN_RADII);
   return (

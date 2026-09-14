@@ -1,4 +1,4 @@
-// The glow atlas (docs/RENDERING.md §6, docs/ASSET-GENERATION.md §1.5): white radial sprites the
+// The glow atlas (docs/rendering/budget.md §6, docs/ASSET-GENERATION.md §1.5): white radial sprites the
 // effects and the fragments tint at use: a glow (core + soft + wide + glint), a thin ring and a soft ray.
 // The soft disc the depth particles tint is slice A's `SOFT_DISC_BAKE` (render-textures.ts).
 

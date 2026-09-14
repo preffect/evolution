@@ -1,4 +1,4 @@
-// The two spawners (docs/ECOLOGY.md §3): fractional accumulators, kind → zone → point, bacteria
+// The two spawners (docs/ecology/food-and-spawn.md §3): fractional accumulators, kind → zone → point, bacteria
 // as clusters truncated to the room under the cap, and the initial fill that never skips. Every
 // draw comes from the `spawner` stream except a fragment's drift direction (`moteMotion`).
 
@@ -32,7 +32,7 @@ import { fragmentSpawnerRates, foodSpawnerRates, spawnEventKindWeights, type Spa
 import { worldReferenceAt } from './round-clock.js';
 import { zoneAt } from './zones.js';
 
-/** The zones a kind is drawn in, in one fixed order, with their weights (docs/ECOLOGY.md §3). */
+/** The zones a kind is drawn in, in one fixed order, with their weights (docs/ecology/food-and-spawn.md §3). */
 const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_ID.warmVent, ZONE_ID.openBroth];
 
 /** The two kinds a food event draws between, in one fixed order; `spawnEventKindWeights` weighs them. */
@@ -54,7 +54,7 @@ interface ClusterLimits {
   readonly maxAttempts: number;
 }
 
-/** What a food event reads of the world clock: the stage that picks the kind row and the broth variant row (docs/ECOLOGY.md §3.2). */
+/** What a food event reads of the world clock: the stage that picks the kind row and the broth variant row (docs/ecology/food-and-spawn.md §3.2). */
 interface FoodEventLimits extends ClusterLimits {
   readonly worldStage: CellStage;
 }
@@ -120,7 +120,7 @@ function runSpawner(spawner: SpawnerState, rates: SpawnerRates, population: () =
   }
 }
 
-/** Step 8: both spawners for one tick; the kind row is the current world stage's (docs/ECOLOGY.md §3.2). */
+/** Step 8: both spawners for one tick; the kind row is the current world stage's (docs/ecology/food-and-spawn.md §3.2). */
 export function runSpawners(world: WorldState, context: StepContext): void {
   const maxAttempts = context.balance.ecology.SPAWN_POINT_MAX_ATTEMPTS;
   const { worldStage } = worldReferenceAt(world, world.tick);
@@ -148,7 +148,7 @@ interface Fill {
   readonly maxAttempts: number;
 }
 
-/** Fills to `count` with the same draws as a live spawn, never skipping (docs/ECOLOGY.md §3). */
+/** Fills to `count` with the same draws as a live spawn, never skipping (docs/ecology/food-and-spawn.md §3). */
 function fill({ count, population, spawn, spawner, maxAttempts }: Fill): void {
   while (population() < count) {
     const spawned = spawn(count - population());

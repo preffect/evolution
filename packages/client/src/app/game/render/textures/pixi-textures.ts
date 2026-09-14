@@ -1,4 +1,4 @@
-// The one place a baked canvas or a byte buffer becomes a Pixi texture (docs/RENDERING.md §6):
+// The one place a baked canvas or a byte buffer becomes a Pixi texture (docs/rendering/budget.md §6):
 // sprite textures from bakes, the RGBA8 data textures the cell shader reads with `texelFetch`
 // (the noise strip, the palette) or samples (the noise tile), and the RGBA32F instance texture
 // the cell mesh re-uploads every frame.
@@ -12,7 +12,7 @@ export function textureFromBake(bake: BakeCanvas): Texture {
   return Texture.from(requireElement(bake));
 }
 
-/** One texture per key over one shared source: what a `ParticleContainer` needs (docs/RENDERING.md §6). */
+/** One texture per key over one shared source: what a `ParticleContainer` needs (docs/rendering/budget.md §6). */
 export interface SpriteAtlas<Key extends string> {
   readonly source: TextureSource;
   readonly textures: Readonly<Record<Key, Texture>>;

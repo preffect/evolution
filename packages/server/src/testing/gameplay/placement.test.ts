@@ -14,7 +14,7 @@ import {
   ZONE,
 } from './placement.js';
 
-// ECOLOGY §2 values, passed in because the constants land with #98.
+// ecology/food-and-spawn.md §2 values, passed in because the constants land with #98.
 const DISH = { dishRadiusWu: 3000, shallowsWidthWu: 500 };
 
 describe('placement points', () => {

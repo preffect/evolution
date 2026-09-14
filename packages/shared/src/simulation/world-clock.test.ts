@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §3.1 (the reference table, W1), the tick arithmetic of the level-up ticks (G11)
+// docs/ecology/food-and-spawn.md §3.1 (the reference table, W1), the tick arithmetic of the level-up ticks (G11)
 // and the standing rows of GAME-DESIGN G12.
 
 import { describe, expect, it } from 'vitest';

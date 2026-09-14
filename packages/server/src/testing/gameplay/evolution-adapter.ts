@@ -18,11 +18,11 @@ import { PLACED_KIND, type PlacedFixture } from './fixtures.js';
 import { createFileReplaySink } from './replay-sink.js';
 import { createScenarioDsl } from './scenario.js';
 
-/** The seed every design table row names (docs/ECOLOGY.md §8). */
+/** The seed every design table row names (docs/ecology/acceptance.md §8). */
 export const TABLE_SEED = 42;
 /**
  * The seed the placed rows run on: only the gel patches come from it, and seed 42 puts one 73 wu
- * from the broth point (docs/ECOLOGY.md §8: pick another seed, never tolerate it); 48 keeps every
+ * from the broth point (docs/ecology/acceptance.md §8: pick another seed, never tolerate it); 48 keeps every
  * patch over 2300 wu away, clear of the placed rows' eastward travel too.
  */
 export const PLACED_ROW_SEED = 48;

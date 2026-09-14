@@ -1,4 +1,4 @@
-// The pointer reticle (docs/UI.md §3.3 spawn hint, docs/RENDERING.md §6): while onboarding asks
+// The pointer reticle (docs/ui/overlays.md §3.3 spawn hint, docs/rendering/budget.md §6): while onboarding asks
 // for it, a small ring at the pointer's world position and a dotted line from the own cell's rim
 // toward it, both glow-atlas sprites in the light accent so the effects batch draws them. Pure
 // placements; the effects layer positions the sprites.

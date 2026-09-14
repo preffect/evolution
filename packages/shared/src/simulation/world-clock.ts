@@ -1,4 +1,4 @@
-// The world clock (docs/ECOLOGY.md §3.1): round time turned into the world's average cell, and a
+// The world clock (docs/ecology/food-and-spawn.md §3.1): round time turned into the world's average cell, and a
 // player's standing against it. Computed on both sides from the snapshot's `tick` and
 // `roundStartTick`; nothing about the clock rides on the wire.
 

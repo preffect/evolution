@@ -170,7 +170,7 @@ describe('bot client against a real server', () => {
         errorsReceived: 0,
         isConnected: true,
       });
-      // One snapshot per broadcast, not per tick (docs/ARCHITECTURE.md §1).
+      // One snapshot per broadcast, not per tick (docs/architecture/entity-model.md §1).
       expect(stats.snapshotsReceived).toBeGreaterThanOrEqual(Math.floor(TICKS / SNAPSHOT_EVERY_TICKS));
     }
   });

@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8, the engulf rows a predator wins or holds: E9, E9b, E10's engulfing half, E13,
+// docs/ecology/acceptance.md §8, the engulf rows a predator wins or holds: E9, E9b, E10's engulfing half, E13,
 // E16 and E16b, each run twice and hash-compared, payout halves included (#259). The rows where the
 // prey gets away — E11, E11b and E11's reaction window — are `ecology-engulf-escape.gameplay.test.ts`.
 // The shared setup, and the row halves both files deliberately leave out, are `engulf-setups.ts`.
@@ -58,7 +58,7 @@ import {
 } from './engulf-setups.js';
 import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
 
-describe('ECOLOGY §8: the engulf lifecycle on placed cells (#258; the payout is #259)', () => {
+describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258; the payout is #259)', () => {
   it('E9: cover to tick 6, wrap to the seal on tick 18, absorb to the end of the engulf on tick 36', async () => {
     await engulfPair('E9')
       .advance(E9_PAYOUT_TICK)

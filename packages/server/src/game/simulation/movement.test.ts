@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §5.2 (E6, E8), docs/GAME-DESIGN.md §6, §8 (G4–G6) and docs/TRAITS.md §6 (T2).
+// docs/ecology/mass-and-movement.md §5.2 (E6, E8), docs/game-design/controls-and-scope.md §6, §8 (G4–G6) and docs/traits/constants-and-acceptance.md §6 (T2).
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
@@ -42,7 +42,7 @@ function placedCell(mass: number, centre: Vec2 = BROTH_POINT): { world: WorldSta
   return { world, cell };
 }
 
-/** "Target N radii east" measured from the current centre every tick (docs/ECOLOGY.md §8). */
+/** "Target N radii east" measured from the current centre every tick (docs/ecology/acceptance.md §8). */
 function moveEastFor(world: WorldState, cell: CellRecord, ticks: number): void {
   const context = createTestStepContext(world);
   for (let tick = 0; tick < ticks; tick += 1) {
@@ -165,7 +165,7 @@ describe('moveCells', () => {
   });
 });
 
-/** The sprint clocks a carried prey must keep spending (docs/GAME-DESIGN.md §6). */
+/** The sprint clocks a carried prey must keep spending (docs/game-design/controls-and-scope.md §6). */
 const SPRINT_TICKS = 30;
 const COOLDOWN_TICKS = 180;
 /** C sits just inside B in the chain row; the exact gap only has to be held tick to tick. */
@@ -182,7 +182,7 @@ function carriedPair(): EngulfFixture {
   return fixture;
 }
 
-describe('the engulf speed factor (docs/ECOLOGY.md §5.2, §6.1)', () => {
+describe('the engulf speed factor (docs/ecology/mass-and-movement.md §5.2, docs/ecology/absorption.md §6.1)', () => {
   const absorption = DEFAULT_BALANCE.absorption;
   const engulfingPair = (): EngulfFixture => {
     const fixture = createEngulfFixture();
@@ -233,7 +233,7 @@ describe('the engulf speed factor (docs/ECOLOGY.md §5.2, §6.1)', () => {
   });
 });
 
-describe('what a carried prey keeps doing (docs/ECOLOGY.md §6.1, §6.3)', () => {
+describe('what a carried prey keeps doing (docs/ecology/absorption.md §6.1, §6.3)', () => {
   it('ages the sprint duration and cooldown although it never goes through the kernel', () => {
     const { world, predator, prey } = carriedPair();
     prey.sprintRemainingTicks = SPRINT_TICKS;
@@ -260,7 +260,7 @@ describe('what a carried prey keeps doing (docs/ECOLOGY.md §6.1, §6.3)', () =>
     );
   });
 
-  it('carries a chain: C rides B while B rides A (docs/ECOLOGY.md §6.3, the chain row)', () => {
+  it('carries a chain: C rides B while B rides A (docs/ecology/absorption.md §6.3, the chain row)', () => {
     const { world, predator, prey, third } = carriedPair();
     setCellMass(third, ENGULF_PREY_MASS / 2, DEFAULT_BALANCE);
     third.x = prey.x + CHAIN_OFFSET_WU;

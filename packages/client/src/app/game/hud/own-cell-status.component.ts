@@ -1,4 +1,4 @@
-// The status mirror (docs/UI.md §3.1.4): one visually hidden element that carries everything the
+// The status mirror (docs/ui/hud.md §3.1.4): one visually hidden element that carries everything the
 // own cell is saying, as `data-*` attributes a Playwright run reads and as a sentence assistive
 // technology hears. It is the accessibility half of indicators that are otherwise drawn in WebGL,
 // where a screen reader and a DOM assertion can both see nothing at all.
@@ -87,7 +87,7 @@ export class OwnCellStatusComponent {
 
   /**
    * The sentence in the DOM. The attributes above update every snapshot; this changes only when
-   * `shouldAnnounce` says something a player would want told has moved (docs/UI.md §3.1.4), so
+   * `shouldAnnounce` says something a player would want told has moved (docs/ui/hud.md §3.1.4), so
    * `aria-live` fires on a level, a counter, a threat or a phase, and never on drifting mass.
    *
    * A `linkedSignal` rather than an effect: the decision needs the previous value, which a plain

@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8 conventions on a live world: placement anchors, the placed records, the
+// docs/ecology/acceptance.md §8 conventions on a live world: placement anchors, the placed records, the
 // spawner switch-off and the gel clearance.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, FOOD_KIND, playerId } from '@evolution/shared';
@@ -24,7 +24,7 @@ import {
   shallowsPoint,
 } from './placement.js';
 
-/** Seed 48 keeps every gel patch far from the broth point (docs/ECOLOGY.md §8). */
+/** Seed 48 keeps every gel patch far from the broth point (docs/ecology/acceptance.md §8). */
 const CLEAR_SEED = 48;
 /** Seed 42 puts a gel patch 73 wu from it. */
 const BLOCKED_SEED = 42;

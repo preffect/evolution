@@ -18,7 +18,7 @@ function controlRoom(context: DebugContext, gameId: string, control: (room: Game
   return jsonResult(loopStateOf(gameId, lookup.room));
 }
 
-/** The `_room` tools act on the room loop, not the world (docs/ARCHITECTURE.md §8, §3). */
+/** The `_room` tools act on the room loop, not the world (docs/architecture/debug-mcp.md §8, docs/architecture/server-simulation.md §3). */
 export function registerRoomLoopTools(mcp: McpServer, context: DebugContext): void {
   mcp.tool(
     'debug_pause_room',

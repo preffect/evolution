@@ -10,7 +10,7 @@ Homes: ids in `packages/shared/src/types/audio.ts` (`SOUND_EVENT`, `AUDIO_BUS`),
 `packages/shared/src/constants/audio.ts` (`SOUND_EVENT_CATALOG` and the layering constants), lookups
 in `packages/shared/src/audio/sound-events.ts`, the manifest shape in
 `packages/shared/src/audio/audio-manifest.ts`, the data in `assets/audio/manifest.json`, the client in
-`packages/client/src/app/game/audio/` (ARCHITECTURE §7).
+`packages/client/src/app/game/audio/` (architecture/client.md §7).
 
 ## 1. The sound in one paragraph
 
@@ -25,23 +25,23 @@ submerged, tonal, growing, dreamy.
 `SOUND_EVENT_CATALOG` (`constants/audio.ts`) is the source of truth; `sound-events.test.ts` pins that
 every `SOUND_EVENT` id has a row and that every value is in range. This table is the readable copy.
 
-| Event                      | Raised by (trigger)                                                             | Priority | Cooldown ms | Loop    | Bus   |
-| -------------------------- | ------------------------------------------------------------------------------- | -------- | ----------- | ------- | ----- |
-| `ambient_bed`              | state layer: first snapshot, own stage change (one stem per stage)              | 3        | 0           | yes     | music |
-| `zone_layer`               | renderer (#99): own cell changes zone                                           | 1        | 2000        | yes     | music |
-| `eat`                      | state layer: `eat` effect on the own cell, a mote (5 notes round-robin)         | 0        | 150         | no      | sfx   |
-| `dna_absorb`               | state layer: `eat` effect on the own cell, a fragment                           | 1        | 300         | no      | sfx   |
-| `level_up`                 | state layer: `level_up` effect on the own cell (motif on the newest instrument) | 3        | 0           | no      | music |
-| `trait_pick`               | HUD (#100): a card chosen                                                       | 2        | 0           | no      | sfx   |
-| `danger_warning`           | state layer: a cell that `canEngulf` the own cell appears / disappears          | 2        | 1000        | yes     | music |
-| `engulf_progress`          | state layer: the own cell is engulfing (rate follows the prey's progress)       | 2        | 0           | yes     | sfx   |
-| `engulf_complete`          | state layer: `cell_absorbed` effect whose predator is the own cell              | 3        | 0           | no      | sfx   |
-| `engulfed`                 | state layer: `cell_absorbed` effect on the own cell (bed drops to stem 0)       | 3        | 0           | no      | sfx   |
-| `respawn`                  | state layer: `respawn` effect on the own cell (stem returns)                    | 2        | 0           | no      | sfx   |
-| `bloom_start`              | state layer: `roundTimeLeftMs` crosses `ROUND_BLOOM_START_FRACTION`             | 2        | 0           | no      | sfx   |
-| `round_end`                | state layer: `roundPhase` becomes `results` (everything else stops)             | 3        | 0           | no      | music |
-| `ui_click`                 | HUD (#100): any interaction                                                     | 0        | 60          | no      | sfx   |
-| trait cues (16, TRAITS §3) | renderer (#99): the trait's moment; `isActive: false` ends a looping cue        | 1        | 300         | per cue | sfx   |
+| Event                                            | Raised by (trigger)                                                             | Priority | Cooldown ms | Loop    | Bus   |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- | -------- | ----------- | ------- | ----- |
+| `ambient_bed`                                    | state layer: first snapshot, own stage change (one stem per stage)              | 3        | 0           | yes     | music |
+| `zone_layer`                                     | renderer (#99): own cell changes zone                                           | 1        | 2000        | yes     | music |
+| `eat`                                            | state layer: `eat` effect on the own cell, a mote (5 notes round-robin)         | 0        | 150         | no      | sfx   |
+| `dna_absorb`                                     | state layer: `eat` effect on the own cell, a fragment                           | 1        | 300         | no      | sfx   |
+| `level_up`                                       | state layer: `level_up` effect on the own cell (motif on the newest instrument) | 3        | 0           | no      | music |
+| `trait_pick`                                     | HUD (#100): a card chosen                                                       | 2        | 0           | no      | sfx   |
+| `danger_warning`                                 | state layer: a cell that `canEngulf` the own cell appears / disappears          | 2        | 1000        | yes     | music |
+| `engulf_progress`                                | state layer: the own cell is engulfing (rate follows the prey's progress)       | 2        | 0           | yes     | sfx   |
+| `engulf_complete`                                | state layer: `cell_absorbed` effect whose predator is the own cell              | 3        | 0           | no      | sfx   |
+| `engulfed`                                       | state layer: `cell_absorbed` effect on the own cell (bed drops to stem 0)       | 3        | 0           | no      | sfx   |
+| `respawn`                                        | state layer: `respawn` effect on the own cell (stem returns)                    | 2        | 0           | no      | sfx   |
+| `bloom_start`                                    | state layer: `roundTimeLeftMs` crosses `ROUND_BLOOM_START_FRACTION`             | 2        | 0           | no      | sfx   |
+| `round_end`                                      | state layer: `roundPhase` becomes `results` (everything else stops)             | 3        | 0           | no      | music |
+| `ui_click`                                       | HUD (#100): any interaction                                                     | 0        | 60          | no      | sfx   |
+| trait cues (16, traits/catalog-organelles.md §3) | renderer (#99): the trait's moment; `isActive: false` ends a looping cue        | 1        | 300         | per cue | sfx   |
 
 Legend. **Priority** is #140's scale: 3 never dropped and ducks the pad; 2 dropped only for a 3; 1
 dropped when more than `MAX_OVERLAPPING_CUES` (4) one-shots overlap; 0 first to go. **Cooldown** is the
@@ -121,7 +121,7 @@ Files live next to the manifest and are **gitignored** (`assets/audio/*.mp3|ogg|
 `tools/` scaffold and the generation run are their own ticket, and its track and sound lists are derived
 from this manifest, never a second copy.
 
-## 5. The client (ARCHITECTURE §6, §7)
+## 5. The client (architecture/client.md §6, §7)
 
 ```text
  game-setup.ts (#99) ─► AudioHooks.connect(options) ─► handle.observe(snapshot) / unlock() / disconnect()

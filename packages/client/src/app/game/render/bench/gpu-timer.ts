@@ -1,4 +1,4 @@
-// The GPU time of a frame through `EXT_disjoint_timer_query_webgl2` (docs/RENDERING.md §7,
+// The GPU time of a frame through `EXT_disjoint_timer_query_webgl2` (docs/rendering/budget.md §7,
 // `gpuMs`): one query brackets each submit, results are read back on later frames (a query resolves
 // asynchronously), and the p95 of the resolved ones is the report's number.
 //
@@ -31,7 +31,7 @@ export type GpuTimerSource = Pick<
   | 'QUERY_RESULT'
 >;
 
-/** Why `gpuMs` is what it is (docs/RENDERING.md §7). Only `ok` carries a number. */
+/** Why `gpuMs` is what it is (docs/rendering/budget.md §7). Only `ok` carries a number. */
 export const GPU_TIMER_STATUS = {
   /** The window holds at least one plausible sample. */
   ok: 'ok',

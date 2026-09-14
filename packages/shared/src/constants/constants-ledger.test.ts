@@ -43,21 +43,26 @@ function shippingSourceFiles(): URL[] {
  * from a doc (or a table the parser silently stopped seeing) is a deliberate edit on both sides.
  */
 const CONSTANTS_TABLE_SOURCES = [
-  { documentName: 'GAME-DESIGN.md', section: 12, expectedNames: 38 },
-  { documentName: 'ECOLOGY.md', section: 7, expectedNames: 96 },
+  { documentName: 'game-design/constants-and-acceptance.md', section: 12, expectedNames: 38 },
+  { documentName: 'ecology/constants.md', section: 7, expectedNames: 96 },
   { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16 },
-  { documentName: 'TRAITS.md', section: 5, expectedNames: 7 },
+  { documentName: 'traits/constants-and-acceptance.md', section: 5, expectedNames: 7 },
 ] as const;
 
 const TABLE_ROW_PATTERN = /^\|\s*(`[^|]*)\|/;
 /**
- * A backticked UPPER_SNAKE name. A family glob such as `MITOSIS_*` (ECOLOGY §7, reserved) never
+ * A backticked UPPER_SNAKE name. A family glob such as `MITOSIS_*` (ecology/constants.md §7, reserved) never
  * matches because `*` is outside the class, so a cell that lists a glob beside a real name still
  * yields the real name.
  */
 const BACKTICKED_NAME_PATTERN = /`([A-Z][A-Z0-9_]*)`/g;
-/** The ECOLOGY §7 row `\`MITOSIS_*\`, \`EJECT_MASS\``: a glob beside a real name once dropped the whole row. */
-const GLOB_ROW_SOURCE = { documentName: 'ECOLOGY.md', section: 7, globName: 'MITOSIS_*', realName: 'EJECT_MASS' };
+/** The ecology/constants.md §7 row `\`MITOSIS_*\`, \`EJECT_MASS\``: a glob beside a real name once dropped the whole row. */
+const GLOB_ROW_SOURCE = {
+  documentName: 'ecology/constants.md',
+  section: 7,
+  globName: 'MITOSIS_*',
+  realName: 'EJECT_MASS',
+};
 
 function sectionOf(markdown: string, section: number): string {
   const lines = markdown.split('\n');

@@ -1,11 +1,11 @@
-// The HUD's one view of the world (docs/UI.md §7): derived signals only, never a second model.
+// The HUD's one view of the world (docs/ui/components-and-constants.md §7): derived signals only, never a second model.
 // Every component reads facts from here rather than reaching into a service of its own, so what the
 // chrome shows and what the wire said can never drift apart.
 //
 // The facts the chrome needs are the newest snapshot's and the room's, both of which
 // `MultiplayerService` already mirrors as signals — `WorldStore` (`net/world-store.ts`) owns the
 // *interpolated* world the renderer draws per frame, and nothing on the chrome is interpolated.
-// The own-cell signals of docs/UI.md §7 (`ownCell`, `ownProgress`, `ownCellIndicators`, `threats`,
+// The own-cell signals of docs/ui/components-and-constants.md §7 (`ownCell`, `ownProgress`, `ownCellIndicators`, `threats`,
 // `cameraExtent`) arrive with #186/#187 and read the store through the render seam.
 
 import { Injectable, computed, inject, signal } from '@angular/core';
@@ -45,7 +45,7 @@ function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | n
 export class GameStateService {
   private readonly multiplayer = inject(MultiplayerService);
 
-  /** `MultiplayerService.playerId()`: who we are (docs/UI.md §1's `me`), `null` before the room names us. */
+  /** `MultiplayerService.playerId()`: who we are (docs/ui/layout.md §1's `me`), `null` before the room names us. */
   readonly ownPlayerId = computed<PlayerId | null>(() => this.multiplayer.playerId());
 
   /** The round's phase; `playing` until the snapshot says otherwise, so the chrome shows on join. */
@@ -54,7 +54,7 @@ export class GameStateService {
   /** Milliseconds left in the round, or `null` before the first snapshot. */
   readonly roundTimeLeftMs = computed<number | null>(() => this.multiplayer.snapshot()?.roundTimeLeftMs ?? null);
 
-  /** The server's ranking, newest snapshot (docs/UI.md §3.1.1). */
+  /** The server's ranking, newest snapshot (docs/ui/hud.md §3.1.1). */
   readonly leaderboard = computed<readonly LeaderboardRow[]>(
     () => this.multiplayer.snapshot()?.leaderboard ?? NO_LEADERBOARD,
   );
@@ -76,7 +76,7 @@ export class GameStateService {
   /** Every cell in the newest snapshot: what `threatsFor` asks `canEngulf` about. */
   private readonly cells = computed<readonly CellView[]>(() => this.multiplayer.snapshot()?.cells ?? NO_CELLS);
 
-  /** Our own progress record, or `null` before the room names us (docs/UI.md §1's `ownProgress`). */
+  /** Our own progress record, or `null` before the room names us (docs/ui/layout.md §1's `ownProgress`). */
   readonly ownProgress = computed<PlayerProgressView | null>(() => {
     const id = this.ownPlayerId();
     return id === null ? null : (this.players()[id] ?? null);
@@ -103,7 +103,7 @@ export class GameStateService {
 
   /**
    * The camera's world rectangle, written by the render loop each frame through `game-setup.ts`
-   * (docs/UI.md §7). The one render-side fact the HUD consumes, and the only thing that makes
+   * (docs/ui/components-and-constants.md §7). The one render-side fact the HUD consumes, and the only thing that makes
    * "on screen" mean anything to `threatsFor`.
    */
   readonly cameraExtent = this.cameraExtentValue.asReadonly();
@@ -112,7 +112,7 @@ export class GameStateService {
     this.cameraExtentValue.set(extent);
   }
 
-  /** On-screen cells that can engulf us, nearest first (docs/UI.md §3.1.2). */
+  /** On-screen cells that can engulf us, nearest first (docs/ui/hud.md §3.1.2). */
   readonly threats = computed<readonly Threat[]>(() => {
     const ownCell = this.ownCell();
     const balance = this.balance();
@@ -127,12 +127,12 @@ export class GameStateService {
   });
 
   /**
-   * The one truth two consumers read (docs/UI.md §3.1.4): the renderer draws it and the status
+   * The one truth two consumers read (docs/ui/hud.md §3.1.4): the renderer draws it and the status
    * mirror speaks it. `null` while spectating or before the first snapshot, which is exactly when
    * there is no own cell to say anything about.
    *
    * The ladder's ghost-hide rule already takes a previewed trait, but the signal that carries one
-   * is `HudStateService.previewTraitId` and belongs to the picker (#188, docs/UI.md §7). Passing
+   * is `HudStateService.previewTraitId` and belongs to the picker (#188, docs/ui/components-and-constants.md §7). Passing
    * `null` keeps this slice honest: no dead signal here, and that slice is one argument away.
    */
   readonly ownCellIndicators = computed<OwnCellIndicators | null>(() => {

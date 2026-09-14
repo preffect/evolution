@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §5.2 and docs/GAME-DESIGN.md §6, §8 on the pure kernel (G4, G5, G6 are the same
+// docs/ecology/mass-and-movement.md §5.2 and docs/game-design/controls-and-scope.md §6, §8 on the pure kernel (G4, G5, G6 are the same
 // rules through the whole module).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';

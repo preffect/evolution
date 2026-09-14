@@ -1,4 +1,4 @@
-// Camera (docs/GAME-DESIGN.md §7, §12). Read by the client only, but gameplay-visible, so it is
+// Camera (docs/game-design/controls-and-scope.md §7, docs/game-design/constants-and-acceptance.md §12). Read by the client only, but gameplay-visible, so it is
 // a design constant here and not a render constant (docs/CODE-STANDARDS.md §2).
 
 /** Half the view height in cell radii. */

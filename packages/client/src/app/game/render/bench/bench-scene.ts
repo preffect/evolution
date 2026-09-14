@@ -1,4 +1,4 @@
-// The fixed-seed bench scene (docs/RENDERING.md §7): a synthetic world built once from a seed and
+// The fixed-seed bench scene (docs/rendering/budget.md §7): a synthetic world built once from a seed and
 // a pure `GameSnapshot` for any tick, so the bench route, the Playwright smoke and the unit tests
 // all draw the same frame for the same seed and tick. Cells cover every stage and palette on
 // scripted circular paths; a few pairs engulf, a few victims are absorbed and respawn, eats and
@@ -53,7 +53,7 @@ import {
 } from './bench-food';
 import { BENCH_STAGE_TRAITS, benchCellLevel, benchCellStage, benchPlayers } from './bench-traits';
 
-/** The bench's own fork of the cosmetic stream: `cosmetic:bench`, the pattern of docs/RENDERING.md §1. */
+/** The bench's own fork of the cosmetic stream: `cosmetic:bench`, the pattern of docs/rendering/cells.md §1. */
 export const BENCH_STREAM_LABEL = `${RANDOM_STREAM.cosmetic}:${COSMETIC_SUB_STREAM.bench}`;
 export const BENCH_OWN_PLAYER_ID: PlayerId = playerId('bench-player-0');
 
@@ -86,7 +86,7 @@ export interface BenchCounts {
   readonly fragments: number;
 }
 
-/** The bench load of docs/RENDERING.md §7. */
+/** The bench load of docs/rendering/budget.md §7. */
 export const BENCH_COUNTS: BenchCounts = {
   cells: RENDER_BENCH_CELL_COUNT,
   motes: RENDER_BENCH_MOTE_COUNT,

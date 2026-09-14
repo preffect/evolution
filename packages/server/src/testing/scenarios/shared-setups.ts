@@ -8,7 +8,7 @@ import { ZONE, createDecayedHelper } from '../gameplay/index.js';
 
 const { growth, ecology } = DEFAULT_BALANCE;
 
-/** "Mass assertions are ± 0.01 unless the row says otherwise" (docs/ECOLOGY.md §8). */
+/** "Mass assertions are ± 0.01 unless the row says otherwise" (docs/ecology/acceptance.md §8). */
 export const MASS_TOLERANCE = 0.01;
 /** "Speed within 0.5 wu/s" (E6, E8, G4). */
 export const SPEED_TOLERANCE_WU_PER_SECOND = 0.5;
@@ -21,7 +21,7 @@ export const decayed = createDecayedHelper({
 });
 
 /**
- * docs/ECOLOGY.md §1 rounding: motes = floor(fraction × mass / mote mass), the remainder dropped.
+ * docs/ecology/food-and-spawn.md §1 rounding: motes = floor(fraction × mass / mote mass), the remainder dropped.
  * The detritus mass a cell of `massAtRemoval` drops when it dies or dissolves.
  */
 export function expectedDetritusMass(massAtRemoval: number): number {

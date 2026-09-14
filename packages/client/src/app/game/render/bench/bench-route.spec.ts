@@ -1,4 +1,4 @@
-// The production gate of the bench route (docs/RENDERING.md §7): `?bench` decides it, and only in a
+// The production gate of the bench route (docs/rendering/budget.md §7): `?bench` decides it, and only in a
 // dev build. The token is read once per page, so these cases are what the shell can ever see.
 import { DOCUMENT } from '@angular/common';
 import { isDevMode } from '@angular/core';

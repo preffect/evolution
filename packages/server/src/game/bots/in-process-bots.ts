@@ -1,4 +1,4 @@
-// The bots a game module drives itself (`debug_spawn_bot`, docs/ARCHITECTURE.md §8): a roster
+// The bots a game module drives itself (`debug_spawn_bot`, docs/architecture/debug-mcp.md §8): a roster
 // of pilots the module steps before each tick. The module owns the players (it adds and removes
 // them); the roster owns the strategies and their streams, and mints the bots' identities under
 // the in-process prefix (`sim_bot_<seed>_<index>`), a namespace no wire bot can reach.

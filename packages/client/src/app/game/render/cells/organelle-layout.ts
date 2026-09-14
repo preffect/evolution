@@ -1,4 +1,4 @@
-// Organelle rest slots (docs/RENDERING.md §3): normalised, heading-independent positions in the
+// Organelle rest slots (docs/rendering/contents-and-motion.md §3): normalised, heading-independent positions in the
 // cell frame drawn from the cell's cosmetic fork. The nucleus (or the nucleoid) sits 0.12 r toward
 // the light; every other organelle is rejection-sampled in the annulus between the DNA ring
 // keep-out and the membrane keep-out (the margin or the sprite's own radius, whichever reaches

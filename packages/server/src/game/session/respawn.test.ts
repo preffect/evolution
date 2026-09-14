@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §5.2 (G8 timing): spectate, then respawn on the tick after the timer hits
+// docs/game-design/session.md §5.2 (G8 timing): spectate, then respawn on the tick after the timer hits
 // zero. The tick convention is #211: a death on tick t (step 6) is spectated for the whole of tick
 // t and the countdown runs at step 9 of every tick from t on, so the new cell lands on
 // t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1 — the tick G8, G13 and ECOLOGY W4 name.

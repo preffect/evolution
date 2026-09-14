@@ -1,4 +1,4 @@
-// The setup the two engulf scenario files share (docs/ECOLOGY.md §8): "A at mass 100, B at 20,
+// The setup the two engulf scenario files share (docs/ecology/acceptance.md §8): "A at mass 100, B at 20,
 // centres 10 wu apart", the numbers those rows name, and the selectors they read through. Not a test
 // file; `ecology-engulf.gameplay.test.ts` and `ecology-engulf-escape.gameplay.test.ts` import it.
 //
@@ -31,7 +31,7 @@ export const E9_SEAL_TICK = 18;
 export const E9_PAYOUT_TICK = 36;
 export const PROGRESS_TOLERANCE = 0.0001;
 /** E9's payout: the yield on the decayed predator, the flat DNA base and the prey's detritus. */
-/** "detritus motes total mass = 4 (two motes of 2)" (docs/ECOLOGY.md §8, E9), stated, not recomputed. */
+/** "detritus motes total mass = 4 (two motes of 2)" (docs/ecology/acceptance.md §8, E9), stated, not recomputed. */
 export const E9_DETRITUS_MOTES = 2;
 export const E9_DETRITUS_MASS = E9_DETRITUS_MOTES * DEFAULT_BALANCE.ecology.DETRITUS_MOTE_MASS;
 export const E9_PAYOUT_MASS = decayed(PREDATOR_MASS, E9_PAYOUT_TICK) + PREY_MASS * absorption.ENGULF_MASS_YIELD;
@@ -57,7 +57,7 @@ export const E9B_SPEED_TICK_1 = 9.8;
 export const E9B_SPEED_TICK_18 = 64.0;
 export const E9B_SPEED_TICK_19 = 69.5;
 export const E9B_SPEED_TICK_35 = 121.4;
-/** "± 0.01 wu" (docs/ECOLOGY.md §8) for a centre distance the row states to two decimals. */
+/** "± 0.01 wu" (docs/ecology/acceptance.md §8) for a centre distance the row states to two decimals. */
 export const DISTANCE_TOLERANCE_WU = 0.01;
 /** E9b states the predator's westing as "≈ 12.5 wu"; the step gives 12.532, inside its own rounding. */
 export const APPROXIMATE_DISTANCE_TOLERANCE_WU = 0.05;
@@ -111,7 +111,7 @@ export const statesOfPredator = (view: EvolutionView): string[] | undefined => c
 export const releaseReasons = (view: EvolutionView): string[] =>
   effectsOfKind(view, EFFECT_KIND.cellReleased).map((effect) => effect.reason);
 
-/** The payout halves (docs/ECOLOGY.md §6.1): what the predator gained and what became of the prey. */
+/** The payout halves (docs/ecology/absorption.md §6.1): what the predator gained and what became of the prey. */
 export const massOfPredator = (view: EvolutionView): number | undefined => cellOf(view, 0)?.mass;
 export const dnaOfPredator = (view: EvolutionView): number | undefined => progressOf(view, 0)?.dnaCumulative;
 export const absorptionsOfPredator = (view: EvolutionView): number | undefined => progressOf(view, 0)?.absorptions;

@@ -1,4 +1,4 @@
-// Cell-to-cell contact (docs/ECOLOGY.md §5.3): two overlapping cells where neither can engulf the
+// Cell-to-cell contact (docs/ecology/mass-and-movement.md §5.3): two overlapping cells where neither can engulf the
 // other are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_PER_TICK` of the
 // overlap, split by inverse mass (the lighter cell moves more). Pairs are walked id-sorted
 // (docs/DETERMINISM.md §4). A predator and its current prey are left alone until payout or release
@@ -30,7 +30,7 @@ export function cellPairs(cells: readonly CellRecord[]): CellPair[] {
 }
 
 /**
- * Engulf contact (docs/ECOLOGY.md §6.1): the predator's membrane lies over the prey's centre, at
+ * Engulf contact (docs/ecology/absorption.md §6.1): the predator's membrane lies over the prey's centre, at
  * `|centres| ≤ predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`. Directional: covering is
  * not being covered.
  */
@@ -44,7 +44,7 @@ function couldEngulf(predator: CellRecord, prey: CellRecord, world: WorldState, 
   return canEngulf(predator, prey, balance.absorption) && !hasSpitOutRefractory(predator, prey.id, world.tick);
 }
 
-/** Either cell could start on the other: the pair separation leaves alone (docs/ECOLOGY.md §5.3). */
+/** Either cell could start on the other: the pair separation leaves alone (docs/ecology/mass-and-movement.md §5.3). */
 export function isEngulfPossible(pair: CellPair, world: WorldState, balance: BalanceConfig): boolean {
   return couldEngulf(pair.lower, pair.higher, world, balance) || couldEngulf(pair.higher, pair.lower, world, balance);
 }

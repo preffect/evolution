@@ -1,7 +1,7 @@
 // One bot's brain: a strategy instance, its own random stream and its input sequence. Both the
 // over-the-wire client and the in-process bots hand it the latest snapshot and the client tick
 // and get back the input to send, so a strategy behaves the same whichever way it reaches the
-// module. The sequence is the client tick (docs/ARCHITECTURE.md §5), stamped only on ticks the
+// module. The sequence is the client tick (docs/architecture/client.md §5), stamped only on ticks the
 // strategy answers on, so a coalesced input is never mistaken for a lost one.
 
 import { createSeededRandom, type PlayerId, type RandomSource } from '@evolution/shared';

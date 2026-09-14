@@ -1,4 +1,4 @@
-// Caps and rates of the two spawners (docs/ECOLOGY.md §3): re-evaluated every tick from the
+// Caps and rates of the two spawners (docs/ecology/food-and-spawn.md §3): re-evaluated every tick from the
 // cells in the dish and the bloom flag, so joins, leaves and the bloom take effect immediately.
 
 import { FOOD_KIND, type BalanceConfig, type CellStage, type FoodKindWeights } from '@evolution/shared';
@@ -40,7 +40,7 @@ export function fragmentSpawnerRates(world: WorldState, balance: BalanceConfig):
 /**
  * The per-event kind weights: `FOOD_KIND_WEIGHTS_BY_WORLD_STAGE[worldStage]` are per-mote shares
  * and a bacterium event spawns a whole cluster, so its event weight is the share over the cluster
- * size (docs/ECOLOGY.md §3, §3.2: 0.75 : 0.05 in the protocell era, renormalised by the draw).
+ * size (docs/ecology/food-and-spawn.md §3, §3.2: 0.75 : 0.05 in the protocell era, renormalised by the draw).
  * Keyed by the two spawned kinds, like every other table the spawner draws from.
  */
 export function spawnEventKindWeights(balance: BalanceConfig, worldStage: CellStage): FoodKindWeights {

@@ -1,4 +1,4 @@
-// The audio facade (docs/ARCHITECTURE.md §7, docs/AUDIO.md §5): resolves a sound event through
+// The audio facade (docs/architecture/client.md §7, docs/AUDIO.md §5): resolves a sound event through
 // the manifest and plays it through the buses under the catalogue's cooldown and priority. Silent
 // when the manifest or a file is missing; never throws into the game loop. What the game asks for
 // before the assets land (the first snapshot beats the load) is remembered and started then. Only
@@ -237,7 +237,7 @@ export class AudioService implements SoundSink {
     return resolveAudioFileAt(this.manifest, id, index)?.path ?? null;
   }
 
-  /** Audio degrades silently by design (docs/ARCHITECTURE.md §7); the first failure is reported once. */
+  /** Audio degrades silently by design (docs/architecture/client.md §7); the first failure is reported once. */
   private guard(action: () => void): void {
     try {
       action();

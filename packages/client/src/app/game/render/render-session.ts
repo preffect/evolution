@@ -1,8 +1,8 @@
-// One room's rendering, from the first `game_state` to the teardown (docs/ARCHITECTURE.md §5, §6):
+// One room's rendering, from the first `game_state` to the teardown (docs/architecture/client.md §5, §6):
 // creates the Pixi app and the renderer when the round's seed is known, applies every message
 // to the store as it arrives (a snapshot is a delta, so none is skipped), runs the read-only
 // frame loop on the app's ticker, feeds the audio handle and installs the debug hook. `game-setup.ts`
-// builds one and wires the seams. The frame instrumentation (docs/RENDERING.md §7) brackets the
+// builds one and wires the seams. The frame instrumentation (docs/rendering/budget.md §7) brackets the
 // frame: a snapshot applied on arrival is accrued to the `net` stage, the frame's interpolation is
 // measured as `net`, the renderer brackets the rest, and every `RENDER_REPORT_EVERY_FRAMES` frames
 // the `ClientPerformanceReport` the debug hook answers is rebuilt.
@@ -28,7 +28,7 @@ import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
 
 /** A canvas point resolved through the live camera, both ways the input layer needs it. */
 export interface PointerProjection {
-  /** The world point under the pointer: where the reticle sits (docs/RENDERING.md §6). */
+  /** The world point under the pointer: where the reticle sits (docs/rendering/budget.md §6). */
   readonly worldPoint: WorldPoint;
   /** The same point as a world-space offset from the middle of the view. */
   readonly offsetFromViewCentre: WorldPoint;
@@ -43,7 +43,7 @@ export interface RenderSessionDependencies {
   readonly connectAudio: (options: TransitionOptions) => AudioHooksHandle;
   readonly hudInputs: () => RenderInputs;
   /**
-   * The camera's world rectangle after each frame: the fourth HUD crossing (docs/UI.md §7), and the
+   * The camera's world rectangle after each frame: the fourth HUD crossing (docs/ui/components-and-constants.md §7), and the
    * only fact that travels render-side to HUD-side. `threatsFor` needs it to mean "on screen".
    */
   readonly onCameraExtent?: (extent: CameraExtent) => void;
@@ -53,7 +53,7 @@ export interface RenderSessionDependencies {
   readonly noiseTileSizePx?: number;
   /**
    * Tells the server the newest snapshot tick this client has applied (#266,
-   * docs/ARCHITECTURE.md §4). Flow control, not gameplay: the room reads it to see how deep the
+   * docs/architecture/wire-contract.md §4). Flow control, not gameplay: the room reads it to see how deep the
    * queue between them is, and stops sending rather than letting this client fall behind for good.
    */
   readonly acknowledgeSnapshot: (tick: number) => void;
@@ -85,8 +85,8 @@ export class RenderSession extends FrameLoopSession {
   }
 
   /**
-   * A canvas point through the live camera (docs/GAME-DESIGN.md §7); `null` before the renderer
-   * exists. The input layer's one read of the render side (docs/UI.md §4): the absolute world
+   * A canvas point through the live camera (docs/game-design/controls-and-scope.md §7); `null` before the renderer
+   * exists. The input layer's one read of the render side (docs/ui/input-and-onboarding.md §4): the absolute world
    * point is where the reticle is drawn, the offset is what the steer target hangs off the own
    * cell so the camera's smoothing and interpolation delay stay out of the steering command.
    */
@@ -117,7 +117,7 @@ export class RenderSession extends FrameLoopSession {
         this.audio?.observe(message.snapshot);
         this.acknowledger.recordApplied(message.snapshot.tick);
       }
-      // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/ARCHITECTURE.md §4).
+      // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/architecture/wire-contract.md §4).
       if (message.snapshot.seed !== this.requestedSeed) {
         this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
       }

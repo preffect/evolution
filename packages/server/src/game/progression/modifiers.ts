@@ -1,4 +1,4 @@
-// The per-tick fold (docs/TRAITS.md §2, docs/ARCHITECTURE.md §2): a cell's modifiers, stage,
+// The per-tick fold (docs/traits/model.md §2, docs/architecture/entity-model.md §2): a cell's modifiers, stage,
 // trait mirror and the `membraneRatioBonus` the shared engulf predicate reads, refreshed at step
 // 1 right after trait choices apply. The fold itself is the shared `foldModifiers`.
 

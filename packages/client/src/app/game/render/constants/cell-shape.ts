@@ -1,4 +1,4 @@
-// The cell profile, bands and LOD numbers (docs/RENDERING.md §2, §5; docs/VISUAL-STYLE.md §3–§6).
+// The cell profile, bands and LOD numbers (docs/rendering/cells.md §2, docs/rendering/contents-and-motion.md §5; docs/VISUAL-STYLE.md §3–§6).
 // Sizes are fractions of the cell radius `r` unless the suffix says px or degrees.
 
 // ---- quad and slots (§2, §2.1) ----
@@ -50,7 +50,7 @@ export const SPRINT_RIM_BRIGHTNESS = 1.2;
 /** Below this speed ratio the heading is held rather than read from the velocity. */
 export const HEADING_HOLD_SPEED_RATIO = 0.02;
 
-// ---- bumps (VISUAL-STYLE §5, sheet 03, RENDERING §2.1, §4) ----
+// ---- bumps (VISUAL-STYLE §5, sheet 03, rendering/cells.md §2.1, rendering/contents-and-motion.md §4) ----
 export const CONTACT_DENT_AMPLITUDE = -0.12;
 /** The dent reaches its full amplitude at this overlap, as a share of the smaller cell's radius; it eases in and out with the press. */
 export const CONTACT_DENT_FULL_OVERLAP_RADII = 0.25;
@@ -177,7 +177,7 @@ export const PROTOCELL_FILM_GAP_RADII = 0.025;
 export const PROTOCELL_FILM_ALPHA = 0.55;
 export const PROTOCELL_FILM_LIGHT_ALPHA = 0.7;
 /**
- * The base wall band (RENDERING §2.2): 1.05 → 1.095 with the hairline at 1.075; the thickness and the hairline
+ * The base wall band (rendering/cells.md §2.2): 1.05 → 1.095 with the hairline at 1.075; the thickness and the hairline
  * offset scale per tier from the inner edge, so tier I reads 1.05 → 1.1175 (hairline 1.0875), II 1.05 → 1.14
  * (1.10), III 1.05 → 1.1625 (1.1125) (#243 pinned the table to the reading).
  */
@@ -232,7 +232,7 @@ export const WARNING_RING_STROKE_PX = 2;
 export const WARNING_RING_DASH_PX = [6, 5] as const;
 export const WARNING_RING_ROTATION_DEG_PER_SECOND = 12;
 
-// ---- LOD (VISUAL-STYLE §6, RENDERING §5) ----
+// ---- LOD (VISUAL-STYLE §6, rendering/contents-and-motion.md §5) ----
 export const CELL_LOD_FULL_MIN_PX = 20;
 export const CELL_LOD_FAR_MAX_PX = 8;
 export const LOD_FADE_BAND_PX = 6;

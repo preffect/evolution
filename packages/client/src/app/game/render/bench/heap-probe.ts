@@ -1,4 +1,4 @@
-// The bench's heap probe (docs/RENDERING.md §7, `heapGrowthBytesPerFrame`): Chrome's
+// The bench's heap probe (docs/rendering/budget.md §7, `heapGrowthBytesPerFrame`): Chrome's
 // `performance.memory` and the `--js-flags=--expose-gc` collector when the page has them, so the
 // bench can collect, render its report window and read how much the heap grew across it. That is
 // residency, not allocation — a collection inside the window subtracts most of it and nothing here

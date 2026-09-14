@@ -1,4 +1,4 @@
-// The build-1 trait catalog (docs/TRAITS.md §3, §5) in rung order. Trait effects are the tier
+// The build-1 trait catalog (docs/traits/catalog-organelles.md §3, docs/traits/constants-and-acceptance.md §5) in rung order. Trait effects are the tier
 // tables in trait-modifiers.ts; no system ever switches on a trait id. `TraitId` (types/game.ts)
 // is derived from these rows, so the rows are checked against `TraitCatalogRow` (plain string
 // ids) and the pure catalog test pins that every `requires` id is a row.
@@ -13,7 +13,7 @@ export { DEFAULT_CELL_MODIFIERS, SPRINT_COOLDOWN_FLOOR_SECONDS } from './trait-m
 
 export const TRAIT_TIER_COUNT = 3;
 
-/** `primary_locomotion` has no build-1 member (docs/TRAITS.md §3.17). */
+/** `primary_locomotion` has no build-1 member (docs/traits/catalog-forms.md §3.17). */
 export const EXCLUSION_GROUPS = ['body_plan', 'membrane', 'primary_locomotion'] as const;
 
 const BODY_PLAN = EXCLUSION_GROUPS[0];
@@ -229,7 +229,7 @@ export const TRAIT_TIERS = Object.fromEntries(TRAIT_CATALOG.map((trait) => [trai
   TraitTiers
 >;
 
-/** Ids reserved for later traits (docs/TRAITS.md §4): never in the catalog, never offered in build 1. */
+/** Ids reserved for later traits (docs/traits/constants-and-acceptance.md §4): never in the catalog, never offered in build 1. */
 export const RESERVED_TRAIT_IDS = [
   'jet_siphon',
   'sticky_coat',

@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: the HSL derivations of sheet 01 and the separability numbers of VISUAL-STYLE §2.
+// docs/rendering/files-and-tests.md §9: the HSL derivations of sheet 01 and the separability numbers of VISUAL-STYLE §2.
 
 import { describe, expect, it } from 'vitest';
 import { DNA_TAGS, PLAYER_PALETTE_COUNT, SEAT_MARK_BEADS } from '@evolution/shared';

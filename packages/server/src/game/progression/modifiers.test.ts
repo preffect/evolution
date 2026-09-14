@@ -1,4 +1,4 @@
-// docs/TRAITS.md §2, docs/ARCHITECTURE.md §2: the step-1 refresh of a cell's derived state.
+// docs/traits/model.md §2, docs/architecture/entity-model.md §2: the step-1 refresh of a cell's derived state.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, DEFAULT_CELL_MODIFIERS } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';

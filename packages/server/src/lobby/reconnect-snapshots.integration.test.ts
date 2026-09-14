@@ -2,7 +2,7 @@
 // and the real game module (its snapshots carry the world tick this asserts on),
 // through the /ws route and the lobby into the room's broadcast loop. #266 measured a reconnected
 // client whose view stopped tracking the server; what the room owes it is a `game_state` and then a
-// delta stream that carries on past the tick it reconnected at (docs/ARCHITECTURE.md §4, §5), and
+// delta stream that carries on past the tick it reconnected at (docs/architecture/wire-contract.md §4, docs/architecture/client.md §5), and
 // a socket that is not draining must be skipped rather than queued deeper.
 // Run with `./validate.sh integration`.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';

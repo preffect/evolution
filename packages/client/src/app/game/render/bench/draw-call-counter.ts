@@ -1,5 +1,5 @@
 // Counts a frame's GL draw calls by wrapping the four draw entry points of the context
-// (docs/RENDERING.md §6: "counted by wrapping the GL draw functions"). One increment per call; the
+// (docs/rendering/budget.md §6: "counted by wrapping the GL draw functions"). One increment per call; the
 // session resets it before each submit and reads it after, so every frame contributes one count and
 // the report carries the window's worst frame. `restore` puts the context's own methods back, so a
 // counter is never wrapped over another.

@@ -1,7 +1,7 @@
-// The modifier fold (docs/TRAITS.md §2): the cell's effective modifiers over its owned traits at
+// The modifier fold (docs/traits/model.md §2): the cell's effective modifiers over its owned traits at
 // their tiers. Multipliers multiply, bonuses and deltas add, floors and scalars take the max;
 // the defaults are the identity. Shared so the HUD's trait preview folds the same way the server
-// does (docs/UI.md §3); no system ever switches on a trait id.
+// does (docs/ui/hud.md §3); no system ever switches on a trait id.
 
 import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';
 import type { OwnedTrait, TraitId } from '../types/game.js';

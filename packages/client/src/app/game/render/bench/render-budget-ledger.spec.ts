@@ -1,4 +1,4 @@
-// The budget ledger (docs/CODE-STANDARDS.md §2): every number of docs/RENDERING.md §6–§7 that the
+// The budget ledger (docs/CODE-STANDARDS.md §2): every number of docs/rendering/budget.md §6–§7 that the
 // bench asserts is read from the doc's own tables here and pinned against the constants, so the
 // doc and the code cannot drift silently.
 import { describe, expect, it } from 'vitest';
@@ -17,7 +17,7 @@ import {
 } from '../constants';
 import { markdownSection, readRepoDocument } from '../../../../testing/repo-document';
 
-const rendering = readRepoDocument('docs/RENDERING.md');
+const rendering = readRepoDocument('docs/rendering/budget.md');
 
 function section(heading: string): string {
   return markdownSection(rendering, heading);
@@ -30,7 +30,7 @@ function numberIn(text: string, pattern: RegExp): number {
   return Number(match![1]!.replace(/[^\d.]/g, ''));
 }
 
-describe('docs/RENDERING.md §7 budgets', () => {
+describe('docs/rendering/budget.md §7 budgets', () => {
   const budgetSection = section('7. Frame budget');
 
   it('names the frame target, the GPU and the HUD budgets the verdict applies', () => {
@@ -67,7 +67,7 @@ describe('docs/RENDERING.md §7 budgets', () => {
   });
 });
 
-describe('docs/RENDERING.md §6 draw calls', () => {
+describe('docs/rendering/budget.md §6 draw calls', () => {
   it('caps the draw calls at the total the batching table adds up to', () => {
     expect(numberIn(section('6. Batching plan'), /Total \*\*≤ (\d+) draw calls\*\*/)).toBe(RENDER_MAX_DRAW_CALLS);
   });

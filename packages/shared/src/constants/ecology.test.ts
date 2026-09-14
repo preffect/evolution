@@ -1,6 +1,6 @@
-// Structural pins of the ecology tables (docs/ECOLOGY.md §1–§3): the walk-order arrays cover
+// Structural pins of the ecology tables (docs/ecology/food-and-spawn.md §1–§3): the walk-order arrays cover
 // their enums, every weight row is a distribution, and the populations match the bandwidth
-// budget of docs/ARCHITECTURE.md §4.1.
+// budget of docs/architecture/wire-contract.md §4.1.
 
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, DNA_TAG, ZONE_ID } from '../types/game.js';

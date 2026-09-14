@@ -1,6 +1,6 @@
-// docs/ECOLOGY.md §6.1's spit-out and the refractory it leaves, driven at step level on a folded
+// docs/ecology/absorption.md §6.1's spit-out and the refractory it leaves, driven at step level on a folded
 // modifier the test writes: no build-1 tier table sets `spitOutChancePerSecond` until #260
-// (docs/TRAITS.md §3.15), so this is the only way the branch, the `engulf` random stream and the
+// (docs/traits/catalog-forms.md §3.15), so this is the only way the branch, the `engulf` random stream and the
 // refractory run at all. The rest of the lifecycle is `engulf.test.ts`.
 
 import { describe, expect, it } from 'vitest';
@@ -28,7 +28,7 @@ import { hasSpitOutRefractory, recordSpitOutRefractory } from './engulf-spit-out
 const absorption = DEFAULT_BALANCE.absorption;
 /** `spitOutChancePerSecond` = `TICK_HZ` is one chance per tick: every roll lands under it. */
 const CERTAIN_SPIT_OUT_PER_SECOND = TICK_HZ;
-/** The Diatom Shell I chance #260 will grant (docs/TRAITS.md §3.15): rolled, rarely hit. */
+/** The Diatom Shell I chance #260 will grant (docs/traits/catalog-forms.md §3.15): rolled, rarely hit. */
 const DIATOM_ONE_CHANCE_PER_SECOND = 0.4;
 /** A bound on the refused-tick walk so a refractory that never lapses fails instead of hanging. */
 const MAX_REFUSED_TICKS = 200;
@@ -38,7 +38,7 @@ const twoCells = (): Fixture => createEngulfFixture();
 const releaseReasons = (fixture: Fixture): unknown[] => releaseReasonsOf(fixture.context.effects);
 const distanceOf = (fixture: Fixture): number => distanceBetween(fixture.predator, fixture.prey);
 
-describe('the spit-out (docs/ECOLOGY.md §6.1; no build-1 trait sets the chance until #260)', () => {
+describe('the spit-out (docs/ecology/absorption.md §6.1; no build-1 trait sets the chance until #260)', () => {
   function spinyPrey(chancePerSecond: number): Fixture {
     const fixture = twoCells();
     fixture.prey.modifiers = { ...fixture.prey.modifiers, spitOutChancePerSecond: chancePerSecond };
@@ -86,7 +86,7 @@ describe('the spit-out (docs/ECOLOGY.md §6.1; no build-1 trait sets the chance 
     expect(refusedTicks).toBe(secondsToTicks(absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS));
   });
 
-  it('separates the pair while the refractory is live (docs/ECOLOGY.md §5.3, T4)', () => {
+  it('separates the pair while the refractory is live (docs/ecology/mass-and-movement.md §5.3, T4)', () => {
     const fixture = spinyPrey(CERTAIN_SPIT_OUT_PER_SECOND);
     stepEngulf(fixture, E9_COVER_TICKS + 1);
     const before = distanceOf(fixture);
@@ -105,7 +105,7 @@ describe('the spit-out (docs/ECOLOGY.md §6.1; no build-1 trait sets the chance 
   });
 });
 
-describe('the spit-out refractory (docs/ECOLOGY.md §6.1, §6.3)', () => {
+describe('the spit-out refractory (docs/ecology/absorption.md §6.1, §6.3)', () => {
   it('keeps one entry per spat-out prey and prunes it when it expires', () => {
     const fixture = twoCells();
     recordSpitOutRefractory(fixture.world, { predator: fixture.predator, prey: fixture.prey }, DEFAULT_BALANCE);

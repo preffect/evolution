@@ -156,7 +156,7 @@ The full bar — tiers, naming, builders, coverage floors, flaky-test policy —
   state + snapshot; invalid input is rejected/ignored. For reducers that return new state (lobby
   and room descriptors, the client store) assert **immutability**
   (`expect(result).not.toBe(prevState)` when state changes); the game simulation mutates its one
-  `WorldState` in place by design (`docs/ARCHITECTURE.md` §3.1), so its tests assert values and
+  `WorldState` in place by design (`docs/architecture/server-simulation.md` §3.1), so its tests assert values and
   state hashes, never object identity.
 - **Message handling / envelope validation (`message-schemas.ts`, `message-router.ts`):**
   each verb routes to the right handler; **invalid JSON, invalid schema, and removed/unknown

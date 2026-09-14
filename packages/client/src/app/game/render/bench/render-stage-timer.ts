@@ -1,4 +1,4 @@
-// Brackets the seven CPU stages of a frame (docs/RENDERING.md §7) on the injected clock and keeps
+// Brackets the seven CPU stages of a frame (docs/rendering/budget.md §7) on the injected clock and keeps
 // a ring of samples per stage, per frame and for the frame's unbracketed residual, so every p95
 // comes from the last few hundred frames. The timer knows nothing about Pixi: the session and the
 // renderer call `measure` around each stage. Work done between frames (a snapshot applied on
@@ -32,7 +32,7 @@ export const UNTIMED_STAGES: StageMeasurer = { measure: (_stage, work) => work()
  * estimate off the maximum, but it cannot add information a short window does not hold: under
  * `1 / (1 − quantile)` samples the value is drawn from the top one or two of them alone, so it says nothing
  * about a 95th percentile. That is why the verdict refuses to judge a p95 below
- * `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/RENDERING.md §7).
+ * `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/rendering/budget.md §7).
  */
 export function quantileOf(samples: readonly number[], quantile: number): number {
   if (samples.length === 0) return 0;

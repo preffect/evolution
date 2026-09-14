@@ -1,4 +1,4 @@
-// docs/ARCHITECTURE.md §3.2 step 1, docs/GAME-DESIGN.md §6 (G7, T9) and docs/TRAITS.md §2.
+// docs/architecture/server-simulation.md §3.2 step 1, docs/game-design/controls-and-scope.md §6 (G7, T9) and docs/traits/model.md §2.
 import { describe, expect, it } from 'vitest';
 import { createTestGameInput, DEFAULT_BALANCE, secondsToTicks } from '@evolution/shared';
 import { queueOffer, shownOffer } from '../progression/offers.js';

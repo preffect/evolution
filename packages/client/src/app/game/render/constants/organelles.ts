@@ -1,9 +1,9 @@
-// Organelle atlas, slots and sprite motion (docs/RENDERING.md §3, docs/VISUAL-STYLE.md §3–§4).
+// Organelle atlas, slots and sprite motion (docs/rendering/contents-and-motion.md §3, docs/VISUAL-STYLE.md §3–§4).
 // Sizes are fractions of the cell radius `r`.
 
 import type { ValueOf } from '@evolution/shared';
 
-/** The organelle kinds the atlas bakes one sprite for (RENDERING §3); the layout order joins with #215. */
+/** The organelle kinds the atlas bakes one sprite for (rendering/contents-and-motion.md §3); the layout order joins with #215. */
 export const ORGANELLE_KIND = {
   nucleus: 'nucleus',
   nucleoid: 'nucleoid',

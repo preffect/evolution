@@ -1,4 +1,4 @@
-/* The leaderboard panel's stylesheet (docs/UI.md §3.1.1).
+/* The leaderboard panel's stylesheet (docs/ui/hud.md §3.1.1).
    The chrome sizes §3.1.1 owns — the panel widths, the header, row and label-strip heights, the
    column tracks, the swatch, the durations, the type roles and the colour roles — all arrive as
    `--hud-…` custom properties the shell publishes from the constants (`format/hud-css-variables.ts`),
@@ -31,7 +31,7 @@
   width: calc(var(--hud-leaderboard-full-width) * var(--hud-scale));
 }
 
-/* The header is the one part of the chrome a pointer can reach (docs/UI.md §4). */
+/* The header is the one part of the chrome a pointer can reach (docs/ui/input-and-onboarding.md §4). */
 .header {
   display: flex;
   align-items: center;
@@ -94,7 +94,7 @@
     calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
 }
 
-/* The full list's numeric columns carry no unit, so they are named (docs/UI.md §3.1.1). Each label
+/* The full list's numeric columns carry no unit, so they are named (docs/ui/hud.md §3.1.1). Each label
    is placed in its own track rather than auto-flowed, so none can slide onto its neighbour. */
 .column-labels {
   height: calc(var(--hud-leaderboard-label-row-height) * var(--hud-scale));
@@ -125,7 +125,7 @@
   list-style: none;
 }
 
-/* The slot, not the document order, places a row: a re-sort then slides (docs/UI.md §3.1.1). */
+/* The slot, not the document order, places a row: a re-sort then slides (docs/ui/hud.md §3.1.1). */
 .row {
   position: absolute;
   top: 0;

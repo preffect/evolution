@@ -1,4 +1,4 @@
-// Zones (docs/ECOLOGY.md §2): geometry fixed by the dish radius, gel patches placed from the
+// Zones (docs/ecology/food-and-spawn.md §2): geometry fixed by the dish radius, gel patches placed from the
 // `zones` stream at world creation. A point belongs to the first zone, in `ZONE_ID` order, that
 // contains it; gel patches never overlap the vent or the shallows by construction.
 
@@ -22,7 +22,7 @@ export interface RadialBand {
   readonly outerRadius: number;
 }
 
-/** Where the broth ends and the shallows begin: `DISH_RADIUS − SHALLOWS_WIDTH` (docs/ECOLOGY.md §2). */
+/** Where the broth ends and the shallows begin: `DISH_RADIUS − SHALLOWS_WIDTH` (docs/ecology/food-and-spawn.md §2). */
 export function shallowsInnerRadius(balance: BalanceConfig): number {
   return balance.world.DISH_RADIUS - balance.ecology.SHALLOWS_WIDTH;
 }
@@ -44,7 +44,7 @@ export function zoneBand(zone: SpawnZoneId, balance: BalanceConfig): RadialBand 
   }
 }
 
-/** Food never spawns or drifts nearer than `FOOD_EDGE_MARGIN` to the wall (docs/GAME-DESIGN.md §8). */
+/** Food never spawns or drifts nearer than `FOOD_EDGE_MARGIN` to the wall (docs/game-design/controls-and-scope.md §8). */
 export function foodBoundaryRadius(balance: BalanceConfig): number {
   return balance.world.DISH_RADIUS - balance.world.FOOD_EDGE_MARGIN;
 }
@@ -53,7 +53,7 @@ export function isInsideGelPatch(point: Vec2, gelPatches: readonly GelPatchView[
   return gelPatches.some((patch) => distanceBetween(point, patch) <= patch.radius);
 }
 
-/** The first zone in `ZONE_ID` order containing the point (docs/ECOLOGY.md §2). */
+/** The first zone in `ZONE_ID` order containing the point (docs/ecology/food-and-spawn.md §2). */
 export function zoneAt(point: Vec2, gelPatches: readonly GelPatchView[], balance: BalanceConfig): ZoneId {
   const distance = Math.hypot(point.x, point.y);
   if (distance >= shallowsInnerRadius(balance)) {
@@ -65,7 +65,7 @@ export function zoneAt(point: Vec2, gelPatches: readonly GelPatchView[], balance
   return isInsideGelPatch(point, gelPatches) ? ZONE_ID.viscousGel : ZONE_ID.openBroth;
 }
 
-/** `VENT_DECAY_MULTIPLIER` in the vent, 1 elsewhere (docs/ECOLOGY.md §4). */
+/** `VENT_DECAY_MULTIPLIER` in the vent, 1 elsewhere (docs/ecology/mass-and-movement.md §4). */
 export function zoneDecayMultiplier(zone: ZoneId, balance: BalanceConfig): number {
   return zone === ZONE_ID.warmVent ? balance.ecology.VENT_DECAY_MULTIPLIER : 1;
 }

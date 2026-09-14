@@ -1,4 +1,4 @@
-// Entity id → view, created and destroyed on the snapshot diff (docs/ARCHITECTURE.md §6). Views
+// Entity id → view, created and destroyed on the snapshot diff (docs/architecture/client.md §6). Views
 // are dumb; the registry only knows ids. Generic, framework-free.
 
 export interface ViewRegistrySync<Item, View> {

@@ -210,7 +210,7 @@ describe('ownCellIndicatorsFor', () => {
       engulfedByCellId: entityId('predator'),
     });
     const indicators = indicatorsOf(held);
-    // Half way to the seal is inside `wrap`: cover ends at 1/6 (ECOLOGY §6.1), well before it.
+    // Half way to the seal is inside `wrap`: cover ends at 1/6 (ecology/absorption.md §6.1), well before it.
     expect(indicators.escape).toMatchObject({ phase: ENGULF_PHASE.wrap, predatorCellId: entityId('predator') });
     expect(indicators.escape?.fill).toBeCloseTo(0.5);
   });

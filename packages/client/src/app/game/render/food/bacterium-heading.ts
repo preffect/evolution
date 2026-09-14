@@ -1,4 +1,4 @@
-// A bacterium's heading is not on the wire (docs/RENDERING.md §1): it is the direction of its
+// A bacterium's heading is not on the wire (docs/rendering/cells.md §1): it is the direction of its
 // interpolated displacement, held when still, so a rod points where it walks and never snaps
 // back between random-walk steps. The memory is updated in place: the food layer keeps one per
 // mote and advances 1 400 of them per frame without allocating.

@@ -1,4 +1,4 @@
-// A ghost's frame (docs/RENDERING.md §2.3): the prey's last view at rest, drawn under the film
+// A ghost's frame (docs/rendering/cells.md §2.3): the prey's last view at rest, drawn under the film
 // with the `absorbed` clip's dissolve (the cytoplasm alpha) and rim dash, no motion, no clips of
 // its own, no warning ring. Its organelle sprites stay at their rest slots (no lag, no drift,
 // mapped through the rest profile) and fade with the body through the instance alpha (#243), so

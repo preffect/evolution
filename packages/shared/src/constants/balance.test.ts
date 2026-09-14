@@ -1,4 +1,4 @@
-// docs/ARCHITECTURE.md §9: `data/balance.json` is generated from `DEFAULT_BALANCE` and pinned
+// docs/architecture/constants-files-tests.md §9: `data/balance.json` is generated from `DEFAULT_BALANCE` and pinned
 // equal here, so a hand edit of the JSON (or a constant changed without regenerating) fails the gate.
 
 import { readFileSync } from 'node:fs';
@@ -26,7 +26,7 @@ const EXPECTED_DOMAINS = [
 ];
 
 describe('DEFAULT_BALANCE', () => {
-  it('has exactly the tunable domains of ARCHITECTURE §9, in order', () => {
+  it('has exactly the tunable domains of architecture/constants-files-tests.md §9, in order', () => {
     expect(Object.keys(DEFAULT_BALANCE)).toEqual(EXPECTED_DOMAINS);
   });
 

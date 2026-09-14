@@ -1,4 +1,4 @@
-// Pure 2-D helpers the simulation and the client share (docs/ARCHITECTURE.md §10). Every function
+// Pure 2-D helpers the simulation and the client share (docs/architecture/constants-files-tests.md §10). Every function
 // takes numbers and returns plain data; a random draw is passed in as the number it produced,
 // never as a source (docs/DETERMINISM.md §3).
 

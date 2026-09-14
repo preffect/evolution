@@ -14,7 +14,7 @@ import {
 } from './fixtures.js';
 import { atPoint, BROTH_POINT, eastOfCellOf, VENT_POINT, ZONE } from './placement.js';
 
-// ECOLOGY §7 values, passed in because the constants land with #98.
+// ecology/constants.md §7 values, passed in because the constants land with #98.
 const ECOLOGY = { cellStartingMass: 20, massDecayRatePerSecond: 0.002 };
 const MASS_TOLERANCE = 0.01;
 

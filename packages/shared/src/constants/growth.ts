@@ -1,8 +1,8 @@
-// Size, mass, speed and the growth cap (docs/ECOLOGY.md §4, §5, §7).
+// Size, mass, speed and the growth cap (docs/ecology/mass-and-movement.md §4, §5, docs/ecology/constants.md §7).
 
 /** Mass of a fresh cell; decay and drains never go below it. */
 export const CELL_STARTING_MASS = 20;
-/** Mass beyond this converts to DNA (docs/ECOLOGY.md §5.4). */
+/** Mass beyond this converts to DNA (docs/ecology/mass-and-movement.md §5.4). */
 export const CELL_MAX_MASS = 5000;
 /** radius = CELL_RADIUS_SCALE × sqrt(mass) (wu per √mass). */
 export const CELL_RADIUS_SCALE = 4;
@@ -22,7 +22,7 @@ export const GEL_MAX_SPEED_FACTOR = 0.9;
 /** DNA per unit of mass gained at the cap. */
 export const MASS_OVERFLOW_DNA_PER_MASS = 0.1;
 
-// Mitosis, merge-back and eject are build 2 (docs/ECOLOGY.md §5.4, #28): declared so the
+// Mitosis, merge-back and eject are build 2 (docs/ecology/mass-and-movement.md §5.4, #28): declared so the
 // contract is stable, unused by the build-1 simulation.
 export const MITOSIS_MIN_MASS = 200;
 export const MITOSIS_MAX_CELLS = 4;

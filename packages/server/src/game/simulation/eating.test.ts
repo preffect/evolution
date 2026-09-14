@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §1 (E4), docs/TRAITS.md §6 (T6 ribosomes) and the step-4 ordering rules.
+// docs/ecology/food-and-spawn.md §1 (E4), docs/traits/constants-and-acceptance.md §6 (T6 ribosomes) and the step-4 ordering rules.
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,

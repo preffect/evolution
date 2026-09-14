@@ -1,5 +1,5 @@
 // The eight player palettes and their derived shades (docs/VISUAL-STYLE.md §2; sheet 01's HSL rule),
-// packed into the 8 × 8 palette texture the cell shader reads (docs/RENDERING.md §2.3).
+// packed into the 8 × 8 palette texture the cell shader reads (docs/rendering/cells.md §2.3).
 
 import { PLAYER_PALETTE_COUNT, wrapAvatarIndex } from '@evolution/shared';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS, hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from './colour';

@@ -1,4 +1,4 @@
-// Keyframe lookups for specs that time a clip (docs/RENDERING.md §4): a spec reads the moment and the
+// Keyframe lookups for specs that time a clip (docs/rendering/contents-and-motion.md §4): a spec reads the moment and the
 // value it asserts from `MOTION_CLIPS`, so retuning a clip moves the table and never a restated number.
 
 import type { MotionKeyframe } from '@evolution/shared';

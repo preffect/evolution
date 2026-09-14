@@ -10,7 +10,7 @@ import { HALF } from '../geometry';
 import { ladderOrbitExtentPx } from './own-cell-geometry';
 import { UPRIGHT, threatLabelPlacement, type ThreatLabelInput } from './threat-label-placement';
 
-/** docs/RENDERING.md §10's case: a 30 px predator, the own cell at the 1080p spawn size. */
+/** docs/rendering/own-cell-indicators.md §10's case: a 30 px predator, the own cell at the 1080p spawn size. */
 const PREDATOR_RADIUS_PX = 30;
 const OWN_RADIUS_PX = 32;
 const WARNING_RING_PX = Math.max(ENGULF_WARNING_RING_RADII * PREDATOR_RADIUS_PX, ENGULF_WARNING_RING_MIN_PX);

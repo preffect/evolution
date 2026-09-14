@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: r(θ) pinned per state against literal tables, r′ against a central
+// docs/rendering/files-and-tests.md §9: r(θ) pinned per state against literal tables, r′ against a central
 // difference, d(p) on a bump flank, the seeded rest profile's lobes, and same seed ⇒ same profile.
 
 import { describe, expect, it } from 'vitest';

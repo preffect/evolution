@@ -1,4 +1,4 @@
-// The dev-only bench route (docs/RENDERING.md §7): `/?bench=<seed>&tick=<n>&zoom=<z>` renders the
+// The dev-only bench route (docs/rendering/budget.md §7): `/?bench=<seed>&tick=<n>&zoom=<z>` renders the
 // fixed-seed scene through the real WorldStore on a ManualClock, parked at tick `n`, and after the
 // warm-up writes the frame-budget report into `data-testid="render-bench-report"`. The debug
 // hook's `step` and `setSeed` drive the bench, so a screenshot can walk the scene tick by tick.

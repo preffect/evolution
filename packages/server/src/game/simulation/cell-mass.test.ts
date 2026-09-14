@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §5.4 (E12) on the mass cap.
+// docs/ecology/mass-and-movement.md §5.4 (E12) on the mass cap.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';

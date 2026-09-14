@@ -1,5 +1,5 @@
 // Engineering constants of the fixed-step loop and the simulation's data structures
-// (docs/CODE-STANDARDS.md §2, docs/ARCHITECTURE.md §3). Not gameplay tunables: excluded from
+// (docs/CODE-STANDARDS.md §2, docs/architecture/server-simulation.md §3). Not gameplay tunables: excluded from
 // `data/balance.json`. Netcode constants (snapshot encoding) live in netcode.ts.
 
 /**
@@ -17,7 +17,7 @@ export const MAX_TICKS_PER_ADVANCE = 5;
 export const FIXED_STEP_ROUNDING_TOLERANCE_TICKS = 1e-9;
 
 /**
- * The same tolerance for the spawners' fractional accumulators (docs/ECOLOGY.md §3): 600
+ * The same tolerance for the spawners' fractional accumulators (docs/ecology/food-and-spawn.md §3): 600
  * additions of `0.4 / 60` land a few ULPs under 4, and the fourth fragment of E2 would spawn a
  * tick late without it.
  */
@@ -34,7 +34,7 @@ export const SPATIAL_HASH_CELL_SIZE_WU = 300;
 export const GEL_PATCH_PLACEMENT_MAX_ATTEMPTS = 100;
 
 /**
- * The initial fill never skips a spawn (docs/ECOLOGY.md §3): a rejected point is redrawn until
+ * The initial fill never skips a spawn (docs/ecology/food-and-spawn.md §3): a rejected point is redrawn until
  * accepted. This bounds the redraw so a dish full of cells surfaces as an invariant error rather
  * than a hang.
  */

@@ -9,7 +9,7 @@
 // nothing may be published that no stylesheet reads.
 //
 // Lengths are emitted with their unit and are at HUD scale 1; a stylesheet scales one with
-// `calc(var(--hud-…) * var(--hud-scale))`, so hit-testing stays in real pixels (docs/UI.md §1).
+// `calc(var(--hud-…) * var(--hud-scale))`, so hit-testing stays in real pixels (docs/ui/layout.md §1).
 
 import {
   LEVEL_GOLD,
@@ -52,7 +52,7 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
   return {
     [HUD_SCALE_VARIABLE]: String(hudScale),
 
-    // Layout frame (docs/UI.md §1) and the chrome's sizes (§3.1.1).
+    // Layout frame (docs/ui/layout.md §1) and the chrome's sizes (§3.1.1).
     '--hud-margin': `${HUD_MARGIN_PX}px`,
     '--hud-leaderboard-width': `${LEADERBOARD_WIDTH_PX}px`,
     '--hud-leaderboard-full-width': `${LEADERBOARD_FULL_WIDTH_PX}px`,

@@ -1,4 +1,4 @@
-// View + t → the profile terms of docs/RENDERING.md §2.1 and the eight bump slots: the resolved
+// View + t → the profile terms of docs/rendering/cells.md §2.1 and the eight bump slots: the resolved
 // heading, the form, the speed stretch, the sprint's axial stretch, breathing, the stage wobble,
 // the strip's jitter and lobes (halved by `cytoskeleton`, zero on a rigid form), and the cell's
 // deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its pulse). Also the per-instance

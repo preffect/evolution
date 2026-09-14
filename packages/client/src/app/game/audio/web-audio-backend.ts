@@ -1,6 +1,6 @@
 // The production `AudioBackend` over the browser's `AudioContext`. The context is created lazily
 // on the first bus and resumed by `unlock()` from a user gesture. Any platform error degrades to
-// the inert path: the game never stops for audio (docs/ARCHITECTURE.md §7).
+// the inert path: the game never stops for audio (docs/architecture/client.md §7).
 
 import type { AudioBackend, AudioGainHandle, AudioVoice, DecodedAudio, PlayOptions } from './audio-backend';
 import { SilentAudioBackend } from './audio-backend';
@@ -94,7 +94,7 @@ export class WebAudioBackend implements AudioBackend {
       const decoded: DecodedBuffer = { buffer, durationSeconds: buffer.duration };
       return decoded;
     } catch {
-      // An undecodable file is a missing asset (docs/ARCHITECTURE.md §7): the cue stays silent.
+      // An undecodable file is a missing asset (docs/architecture/client.md §7): the cue stays silent.
       return null;
     }
   }

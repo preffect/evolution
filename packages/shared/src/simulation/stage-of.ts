@@ -1,4 +1,4 @@
-// The ladder's one derivation (docs/GAME-DESIGN.md §3): a cell's stage is the highest stage whose
+// The ladder's one derivation (docs/game-design/core.md §3): a cell's stage is the highest stage whose
 // gate it owns a trait of. Shared because the world clock (world-clock.ts) and the server's
 // modifier fold both read it, and the renderer trusts the `stage` it is sent. The climb order
 // helpers live here too, because the server's draft and the client's ladder orbit (docs/UI.md

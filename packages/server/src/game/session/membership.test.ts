@@ -1,4 +1,4 @@
-// docs/PROGRESSION.md §5 (P7, P8) and docs/GAME-DESIGN.md §5.2, §13 (G10, G14): joins and leaves between ticks.
+// docs/PROGRESSION.md §5 (P7, P8) and docs/game-design/session.md §5.2, docs/game-design/constants-and-acceptance.md §13 (G10, G14): joins and leaves between ticks.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, EFFECT_KIND, FOOD_KIND, playerId } from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';

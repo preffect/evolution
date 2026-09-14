@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: the LOD thresholds and the fade window under the full threshold.
+// docs/rendering/files-and-tests.md §9: the LOD thresholds and the fade window under the full threshold.
 
 import { describe, expect, it } from 'vitest';
 import { CELL_LOD_FAR_MAX_PX, CELL_LOD_FULL_MIN_PX, LOD_FADE_BAND_PX } from '../constants';

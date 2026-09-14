@@ -1,4 +1,4 @@
-// The one shared room lookup behind every game-specific debug tool (docs/ARCHITECTURE.md §8,
+// The one shared room lookup behind every game-specific debug tool (docs/architecture/debug-mcp.md §8,
 // §10). A tool declares the debug capability it needs; this resolves the room and its handle,
 // answers "not supported" when the module lacks the capability, and converts a refused request
 // into an `isError` result (docs/CODE-STANDARDS.md §9).
@@ -52,7 +52,7 @@ export interface CapabilityToolDefinition<Name extends DebugCapability, Shape ex
   readonly run: (handle: HandleWith<Name>, input: ShapeOutput<Shape>, room: GameRoom) => unknown;
   /**
    * The tool changes the world: after `run` the room republishes its frame, so a paused room
-   * shows the mutation at once instead of after the next step (docs/ARCHITECTURE.md §8).
+   * shows the mutation at once instead of after the next step (docs/architecture/debug-mcp.md §8).
    */
   readonly isWorldMutation?: boolean;
 }

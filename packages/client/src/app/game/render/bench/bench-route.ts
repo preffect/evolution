@@ -1,4 +1,4 @@
-// Whether this page is the dev-only bench route (docs/RENDERING.md §7): `?bench` in the query of a
+// Whether this page is the dev-only bench route (docs/rendering/budget.md §7): `?bench` in the query of a
 // dev build. Read once through a token so the shell and its tests decide it without touching
 // `window`; production builds never render the bench, whatever the query says.
 

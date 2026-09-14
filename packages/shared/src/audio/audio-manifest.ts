@@ -1,7 +1,7 @@
 // The asset manifest shape (docs/AUDIO.md §4): `assets/audio/manifest.json` maps every sound
 // event to its files, mood, length and generation prompt. `parseAudioManifest` is the one
 // validator, shared by the manifest test and the client loader; the loader treats an invalid
-// manifest as "no assets" (docs/ARCHITECTURE.md §7: silent, never throwing).
+// manifest as "no assets" (docs/architecture/client.md §7: silent, never throwing).
 
 import { SOUND_EVENT, type SoundEventId } from '../types/audio.js';
 import { AUDIO_MANIFEST_VERSION } from '../constants/audio.js';

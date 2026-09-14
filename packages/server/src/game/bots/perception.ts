@@ -1,6 +1,6 @@
 // What a strategy may see of the world beyond its own cell (docs/TESTING.md §8.3). The
 // strategies are pure over `ScriptContext` and this seam; the world binding decides how a
-// snapshot yields cells and motes, and closes the shared `canEngulf` (ECOLOGY §6.1,
+// snapshot yields cells and motes, and closes the shared `canEngulf` (ecology/absorption.md §6.1,
 // `shared/simulation/engulf-eligibility.ts`) over the live absorption balance so a bot never
 // carries its own copy of the ratio rule. The echo module has no world: `NO_WORLD_PERCEPTION`.
 // The one place a player identity is assumed is `ownCellOf`; #156's wild cells (non-player
@@ -13,7 +13,7 @@ import { distanceBetween, type PlayerId } from '@evolution/shared';
 /** The fields of a cell a strategy reads; a subset of the wire `CellView`, so a view satisfies it as is. */
 export interface BotCellView {
   readonly id: string;
-  /** Null for a wild cell (ECOLOGY §3.3): a strategy may hunt or flee it, never own it. */
+  /** Null for a wild cell (ecology/wild-cells.md §3.3): a strategy may hunt or flee it, never own it. */
   readonly playerId: PlayerId | null;
   readonly x: number;
   readonly y: number;

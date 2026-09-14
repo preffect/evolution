@@ -38,7 +38,7 @@ export function foodCount(view: EvolutionView): number {
   return view.snapshot.food.spawned.length;
 }
 
-/** The mass now lying in the dish as detritus (docs/ECOLOGY.md §1): what a death dropped. */
+/** The mass now lying in the dish as detritus (docs/ecology/food-and-spawn.md §1): what a death dropped. */
 export function detritusMass(view: EvolutionView, moteMass: number): number {
   return view.snapshot.food.spawned.filter((mote) => mote.kind === FOOD_KIND.detritus).length * moteMass;
 }

@@ -1,4 +1,4 @@
-// The world clock (docs/GAME-DESIGN.md §5.5, §12; docs/ECOLOGY.md §3.1): round time turned into
+// The world clock (docs/game-design/session.md §5.5, docs/game-design/constants-and-acceptance.md §12; docs/ecology/food-and-spawn.md §3.1): round time turned into
 // the world's average cell. The formulas have one home, simulation/world-clock.ts.
 
 /** Seconds per world level: worldLevel = min(1 + elapsedSeconds / this, MAX_LEVEL). */

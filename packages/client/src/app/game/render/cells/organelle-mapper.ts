@@ -1,4 +1,4 @@
-// Slots through the deformation (docs/RENDERING.md §3): lag against the heading, then
+// Slots through the deformation (docs/rendering/contents-and-motion.md §3): lag against the heading, then
 // `p = c + |q′| · r(θ_q′) · û(q′)` with the same radial profile the shader draws, so cytoplasm
 // flows into a bump in proportion to ρ and stretches with the body.
 

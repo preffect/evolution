@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §6.3, the chain row: B engulfs C while A engulfs B. Driven through `runEngulfs`
+// docs/ecology/absorption.md §6.3, the chain row: B engulfs C while A engulfs B. Driven through `runEngulfs`
 // rather than through the payout seam, because what is under test is what the rest of the pair walk
 // does with the cell the payout frees — which the seam cannot see (the payout's own rules are
 // `engulf-payout.test.ts`).
@@ -21,7 +21,7 @@ import { setCellMass } from './cell-mass.js';
 import { beginEngulf } from './engulf-state.js';
 
 /**
- * The chain of docs/ECOLOGY.md §6.3: A is about to finish B, and B is engulfing C. C is freed
+ * The chain of docs/ecology/absorption.md §6.3: A is about to finish B, and B is engulfing C. C is freed
  * `aborted` at B's last centre, inside A. The roles are assigned by cell id so the row can be
  * driven in both orders: the bug this pins let A re-claim C on the same tick whenever A held the
  * lower id, and made it wait a tick when it held the higher one.
@@ -54,7 +54,7 @@ function chainAboutToPayOut(
   return { ...fixture, top, chained };
 }
 
-describe('the chain: what happens to the cell the payout frees (docs/ECOLOGY.md §6.3)', () => {
+describe('the chain: what happens to the cell the payout frees (docs/ecology/absorption.md §6.3)', () => {
   it.each([
     ['the top predator holds the lower id', 0, 2],
     ['the top predator holds the higher id', 2, 0],

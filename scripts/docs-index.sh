@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# docs-index.sh — generate docs/INDEX.md: every heading of every docs/*.md with its line range and first sentence,
-# so a brief can cite "ECOLOGY.md §7 (L540–610)" and an agent reads only that range (docs/TEAM.md).
+# docs-index.sh — generate docs/INDEX.md: every heading of every docs/*.md and docs/*/*.md with its line range and first
+# sentence, so a brief can cite "ecology/constants.md §7 (L5–103)" and an agent reads only that range (docs/TEAM.md).
 #
 #   scripts/docs-index.sh            # rewrite docs/INDEX.md
 #   scripts/docs-index.sh --check    # exit 1 when the committed docs/INDEX.md is stale (run by ./validate.sh lint)
@@ -70,8 +70,8 @@ generate() {
   echo "and read only that line range (\`sed -n 'start,endp' docs/FILE.md\`). Regenerate after editing any doc; \`./validate.sh lint\` checks it."
   echo
   local path name
-  for path in "$docs_dir"/*.md; do
-    name="$(basename "$path")"
+  for path in "$docs_dir"/*.md "$docs_dir"/*/*.md; do
+    name="${path#"$docs_dir"/}"
     [[ "$name" == "INDEX.md" ]] && continue
     echo "## $name ($(wc -l < "$path") lines)"
     echo

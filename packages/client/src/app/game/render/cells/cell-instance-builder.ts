@@ -1,5 +1,5 @@
 // From one frame's view, traits, terms, LOD and placements to the instance record the shader
-// reads (docs/RENDERING.md §2.3). Pure: a table of assignments, kept out of the render state so
+// reads (docs/rendering/cells.md §2.3). Pure: a table of assignments, kept out of the render state so
 // that class stays small. The engulf-warning ring (VISUAL-STYLE §5) is decided here from the
 // shared `canEngulf`, the same call the server and the HUD chip make.
 
@@ -130,7 +130,7 @@ function filmFields(input: CellInstanceInput): Pick<CellInstance, 'passBAlpha' |
   };
 }
 
-/** The own cell's sprint ring (docs/UI.md §3.1.2); the shader draws no self ring elsewhere, so they pack the rest ring. */
+/** The own cell's sprint ring (docs/ui/hud.md §3.1.2); the shader draws no self ring elsewhere, so they pack the rest ring. */
 function selfRingFields(input: CellInstanceInput): Pick<CellInstance, 'selfRingFill' | 'selfRingBrightness'> {
   const ring = input.isOwn ? input.ownCellRing : REST_OWN_CELL_RING;
   return { selfRingFill: ring.fill, selfRingBrightness: ring.brightness };

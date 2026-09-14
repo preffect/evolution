@@ -1,9 +1,9 @@
-// The own-cell indicators' geometry (docs/RENDERING.md §10, docs/UI.md §3.1.2–§3.1.3): the floored
+// The own-cell indicators' geometry (docs/rendering/own-cell-indicators.md §10, docs/ui/hud.md §3.1.2–§3.1.3): the floored
 // radii every indicator sits on and the one turn from the record's angles to the screen, as px in
 // the own cell's undeformed screen frame (offsets from its centre, y down). The ladder orbit's
 // layout (`orbit-layout.ts`) is built on these; the drawing computes no geometry of its own.
 //
-// The record's angles are degrees **clockwise from 12 o'clock** (UI.md §3.1.2). The screen measures
+// The record's angles are degrees **clockwise from 12 o'clock** (ui/hud.md §3.1.2). The screen measures
 // radians from 3 o'clock toward +y, which on a y-down screen is also clockwise, so the one turn
 // between the two is a quarter turn back: `screenRadiansOf`. A sprite laid along the orbit is a
 // further quarter turn on from its radius (`OrbitPoint.rotation`). Both are pinned against the §9

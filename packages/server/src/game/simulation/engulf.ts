@@ -1,4 +1,4 @@
-// Step 6 (docs/ECOLOGY.md §6.1, §6.2, §6.3): the engulf lifecycle. Every pair of cells is walked
+// Step 6 (docs/ecology/absorption.md §6.1, §6.2, §6.3): the engulf lifecycle. Every pair of cells is walked
 // id-sorted (docs/DETERMINISM.md §4), so "two predators reach one prey" resolves to the lower cell
 // id without a tie-break of its own. Per pair, in the order §6.1 fixes: start, ratio, phase,
 // spit-out, progress, then seal or payout. The formulas are shared and pure
@@ -35,7 +35,7 @@ const COMPLETE_PROGRESS = 1;
 /** The prey's steering projected away from the predator never counts as help. */
 const NO_AWAY_EFFORT = 0;
 /**
- * The prey's struggle this tick (docs/ECOLOGY.md §6.1): the steer command the movement step took at
+ * The prey's struggle this tick (docs/ecology/absorption.md §6.1): the steer command the movement step took at
  * the start of this tick and moved on (`CellRecord.steerCommand`, taken once in `movement.ts`),
  * projected onto the line away from the predator. Reading the stored command rather than taking a
  * second one here is what makes "the same direction and throttle the movement step used" true: the
@@ -54,7 +54,7 @@ export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
 
 /**
  * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact, no refractory,
- * and the prey was not freed by an abort this tick (docs/ECOLOGY.md §6.3, the chain row: a cell the
+ * and the prey was not freed by an abort this tick (docs/ecology/absorption.md §6.3, the chain row: a cell the
  * world dropped inside its next predator may be started on "next tick", never on this one).
  */
 export function canStartEngulf(
@@ -156,7 +156,7 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
   }
 }
 
-/** One pair of cells, in the order docs/ECOLOGY.md §6.1 fixes; a start continues on the same tick. */
+/** One pair of cells, in the order docs/ecology/absorption.md §6.1 fixes; a start continues on the same tick. */
 function stepEngulfPair(pair: CellPair, world: WorldState, context: StepContext): void {
   const pairing = runningEngulfIn(pair) ?? startEngulfIn(pair, world, context);
   if (pairing === undefined) {

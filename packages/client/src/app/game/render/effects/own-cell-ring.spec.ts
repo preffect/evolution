@@ -14,7 +14,7 @@ import {
 
 const OWN = entityId('own');
 const COOLDOWN_TICKS = secondsToTicks(DEFAULT_BALANCE.controls.SPRINT_COOLDOWN_SECONDS);
-/** The `sprint_ready` peak, read from the clip table (docs/RENDERING.md §4), never restated. */
+/** The `sprint_ready` peak, read from the clip table (docs/rendering/contents-and-motion.md §4), never restated. */
 const READY_PEAK = peakKeyframe(MOTION_CLIPS.sprint_ready.tracks['selfRingBrightness']);
 
 function source(overrides: Partial<OwnCellRingSource> = {}): OwnCellRingSource {

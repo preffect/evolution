@@ -1,4 +1,4 @@
-// The payout table, rule by rule (docs/ECOLOGY.md §6.1 "Payout", §3.3 for a wild side): mass
+// The payout table, rule by rule (docs/ecology/absorption.md §6.1 "Payout", §3.3 for a wild side): mass
 // yield, DNA, tag points, the endosymbiont credit, the counters, and the prey's death. The whole
 // engulf running into a payout is `engulf.test.ts`; the tick-accurate rows are the §8 scenarios.
 
@@ -27,7 +27,7 @@ const PREY_MASS = ENGULF_PREY_MASS;
 const PREY_DNA = 100;
 const PREY_TAG_POINTS = 8;
 /**
- * The world clock's second level (docs/ECOLOGY.md §3.1, row W1: 180 s → level 2, `worldDna` 60),
+ * The world clock's second level (docs/ecology/food-and-spawn.md §3.1, row W1: 180 s → level 2, `worldDna` 60),
  * which is what a wild prey's `ENGULF_DNA_SHARE` reads (§3.3).
  */
 const WORLD_LEVEL_2_TICK = DEFAULT_BALANCE.worldClock.WORLD_LEVEL_SECONDS * TICK_HZ;
@@ -64,10 +64,10 @@ describe('payOutEngulf: the predator', () => {
     expect(predator.mass).toBeCloseTo(predatorMassBefore + PREY_MASS * absorption.ENGULF_MASS_YIELD, 6);
     expect(predator.engulfingCellId).toBeNull();
     expect(predator.states).toEqual([]);
-    expect(prey.lastRelease).toBeNull(); // a payout is not a release (docs/ECOLOGY.md §6.1)
+    expect(prey.lastRelease).toBeNull(); // a payout is not a release (docs/ecology/absorption.md §6.1)
   });
 
-  it('converts the yield above CELL_MAX_MASS into DNA (docs/ECOLOGY.md §5.4)', () => {
+  it('converts the yield above CELL_MAX_MASS into DNA (docs/ecology/mass-and-movement.md §5.4)', () => {
     const { predatorPlayer } = payOut(({ predator }) => {
       predator.mass = growth.CELL_MAX_MASS;
     });
@@ -109,7 +109,7 @@ describe('payOutEngulf: the predator', () => {
     expect(predatorPlayer.wildAbsorptions).toBe(0);
   });
 
-  it('credits the endosymbiont counter of a prey that owns the organelle (docs/ECOLOGY.md §1)', () => {
+  it('credits the endosymbiont counter of a prey that owns the organelle (docs/ecology/food-and-spawn.md §1)', () => {
     const { predatorPlayer } = payOut(({ prey, preyPlayer, world }) => {
       preyPlayer.ownedTraits.push({ traitId: 'mitochondrion', tier: 1 });
       refreshCellDerivedState(prey, preyPlayer, world.balance);
@@ -177,7 +177,7 @@ describe('payOutEngulf: the prey', () => {
   });
 });
 
-describe('payOutEngulf: a wild cell on either side (docs/ECOLOGY.md §3.3)', () => {
+describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md §3.3)', () => {
   it("pays the world clock's DNA share with no base, no tag share, and counts a wildAbsorption", () => {
     // On the second world level the share is worth something, so the three ways to get this wrong —
     // reading nothing, reading the player base, reading the share — give three different numbers.
@@ -199,7 +199,7 @@ describe('payOutEngulf: a wild cell on either side (docs/ECOLOGY.md §3.3)', () 
     expect(predatorPlayer.dnaCumulative).toBe(0); // worldDna is 0 before the first world level-up
   });
 
-  it('credits the endosymbiont of a wild prey too, as a player prey does (docs/ECOLOGY.md §3.3)', () => {
+  it('credits the endosymbiont of a wild prey too, as a player prey does (docs/ecology/wild-cells.md §3.3)', () => {
     // The one rule the wild prey does NOT substitute: eating the world is the third way onto that rung.
     const { predatorPlayer } = payOut(({ prey, preyPlayer, world }) => {
       preyPlayer.ownedTraits.push({ traitId: 'mitochondrion', tier: 1 });
