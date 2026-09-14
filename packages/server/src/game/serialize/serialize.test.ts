@@ -78,13 +78,17 @@ describe('view projections', () => {
     expect(toDnaFragmentView(fragment)).toEqual({ id: fragment.id, x: 5.6, y: 6, tag: 'motile' });
   });
 
-  it('projects a player onto the view fields with copied records and offer', () => {
+  it('projects a player onto the view fields with copied records, owned traits and offer', () => {
     const world = createTestWorld();
     const player = world.players[0]!;
-    player.offer = { offerId: 1, cards: [{ traitId: 'nucleoid', tier: 1 }], expiresAtTick: 600 };
+    player.offer = { offerId: 1, level: 3, cards: [{ traitId: 'nucleoid', tier: 1 }], expiresAtTick: 600 };
+    player.ownedTraits = [{ traitId: 'nucleoid', tier: 2 }];
+    player.stage = 'prokaryote';
     const view = toPlayerProgressView(player);
     expect(view.offer).toEqual(player.offer);
     expect(view.offer).not.toBe(player.offer);
+    expect(view).toMatchObject({ ownedTraits: player.ownedTraits, stage: 'prokaryote' });
+    expect(view.ownedTraits[0]).not.toBe(player.ownedTraits[0]);
     expect(view.dnaTagPoints).not.toBe(player.dnaTagPoints);
     expect(view).not.toHaveProperty('offerQueue');
     expect(view).not.toHaveProperty('pendingInput');

@@ -7,6 +7,7 @@ import { INPUT_ACTION } from './keyboard-action';
 const OWN_CELL = { x: 10, y: 20, radiusWu: 4 };
 const OFFER: TraitOfferView = {
   offerId: 5,
+  level: 2,
   cards: [
     { traitId: 'nucleoid', tier: 1 },
     { traitId: 'simple_flagellum', tier: 1 },

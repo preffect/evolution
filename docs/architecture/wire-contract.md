@@ -114,17 +114,17 @@ quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 | `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30       | ~21 KB       |
 | `dnaFragments` (full)                                         | 110 × ~50       | ~5.5 KB      |
 | `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300 | ~9.6 KB      |
-| `players` + `leaderboard`                                     | 8 × ~350 + 80   | ~3.4 KB      |
+| `players` (`ownedTraits`, `stage`, offer) + `leaderboard`     | 8 × ~620 + 80   | ~5.0 KB      |
 | `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz    | ~0.5 KB      |
-| **total, uncut**                                              |                 | **≈ 40 KB**  |
-| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 20 KB**  |
+| **total, uncut**                                              |                 | **≈ 42 KB**  |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + … | **≈ 22 KB**  |
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
 `perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
 evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
 **§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
 wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
-With it the same snapshot is ≈ 20 KB (≈ 400 KB/s), inside budget; culling wild cells outside the
+With it the same snapshot is ≈ 22 KB (≈ 440 KB/s; #317's owned traits on `players` added ~2 KB), inside budget; culling wild cells outside the
 viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
 and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add

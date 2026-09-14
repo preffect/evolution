@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
+  PLAYER_LIFE_STATE,
   TICK_HZ,
   createTestPlayerProgressView,
   createTestSnapshot,
   playerId,
+  type PlayerProgressView,
   type TraitId,
   type TraitOfferView,
 } from '@evolution/shared';
@@ -21,6 +23,7 @@ const SNAPSHOT_TICK = 5000;
 
 const offer: TraitOfferView = {
   offerId: 3,
+  level: 2,
   expiresAtTick: SNAPSHOT_TICK + 6.5 * TICK_HZ,
   cards: [
     { traitId: 'nucleoid' as TraitId, tier: 1 },
@@ -33,6 +36,7 @@ const offer: TraitOfferView = {
 const nextOffer: TraitOfferView = {
   ...offer,
   offerId: 4,
+  level: 3,
   cards: [
     { traitId: 'cytoskeleton' as TraitId, tier: 1 },
     { traitId: 'cell_wall' as TraitId, tier: 2 },
@@ -66,14 +70,23 @@ describe('TraitOfferOverlayComponent', () => {
     TestBed.tick();
   }
 
-  function showOffer(open: TraitOfferView | null): void {
+  /** A snapshot with the own protocell alive, or with no own cell and `progress` spectating. */
+  function showOffer(open: TraitOfferView | null, progress: Partial<PlayerProgressView> = {}): void {
+    const isSpectating = progress.lifeState === PLAYER_LIFE_STATE.spectating;
     multiplayer.playerId.set(OWN_PLAYER_ID);
     multiplayer.balance.set(DEFAULT_BALANCE);
     multiplayer.snapshot.set(
       createTestSnapshot({
         tick: SNAPSHOT_TICK,
-        cells: [createTestCellView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.protocell })],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, level: 2, offer: open }) },
+        cells: isSpectating ? [] : [createTestCellView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.protocell })],
+        players: {
+          [OWN_PLAYER_ID]: createTestPlayerProgressView({
+            playerId: OWN_PLAYER_ID,
+            level: 3,
+            offer: open,
+            ...progress,
+          }),
+        },
       }),
     );
     fixture.detectChanges();
@@ -103,10 +116,29 @@ describe('TraitOfferOverlayComponent', () => {
     expect(band.textContent).toContain('At 0 s the dish picks for you');
   });
 
+  it('titles back-to-back offers with the level each was earned at, after a double level-up', () => {
+    showOffer(offer);
+    expect(query(HUD_TEST_ID.traitOffer)!.querySelector('h2')!.textContent).toBe('LEVEL 2 · CHOOSE A TRAIT');
+    showOffer(nextOffer);
+    expect(query(HUD_TEST_ID.traitOffer)!.querySelector('h2')!.textContent).toBe('LEVEL 3 · CHOOSE A TRAIT');
+  });
+
   it('ribbons the rung card: the nucleoid climbs a protocell to prokaryote', () => {
     showOffer(offer);
     expect(query(traitCardTestId(0))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardRung))).not.toBeNull();
     expect(query(traitCardTestId(1))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardRung))).toBeNull();
+  });
+
+  it('keeps the rung ribbon and the upgrade mark while spectating, when the own cell is gone', () => {
+    const stillOpen: TraitOfferView = { ...offer, cards: [offer.cards[0]!, { ...offer.cards[1]!, tier: 2 }] };
+    showOffer(stillOpen, {
+      lifeState: PLAYER_LIFE_STATE.spectating,
+      stage: CELL_STAGE.protocell,
+      ownedTraits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }],
+    });
+    expect(query(traitCardTestId(0))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardRung))).not.toBeNull();
+    const upgrade = query(traitCardTestId(1))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardUpgrade));
+    expect(upgrade!.textContent!.trim()).toBe('I → II');
   });
 
   it('highlights and previews no card until one is hovered or focused', () => {

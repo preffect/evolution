@@ -12,7 +12,12 @@ import { createTestCellView, TEST_OWN_PLAYER_ID } from '../../../testing/builder
 import { WorldStore } from '../net/world-store';
 import { inputWorldContextOf } from './input-world-context';
 
-const OFFER: TraitOfferView = { offerId: 2, cards: [{ traitId: 'nucleoid', tier: 1 }], expiresAtTick: 400 };
+const OFFER: TraitOfferView = {
+  offerId: 2,
+  level: 2,
+  cards: [{ traitId: 'nucleoid', tier: 1 }],
+  expiresAtTick: 400,
+};
 
 function storeWith(snapshotOverrides: Parameters<typeof createTestSnapshot>[0] = {}): WorldStore {
   const store = new WorldStore(new ManualClock());

@@ -87,6 +87,8 @@ export function createTestPlayerProgressView(overrides: Partial<PlayerProgressVi
     absorptions: 0,
     wildAbsorptions: 0,
     score: 0,
+    ownedTraits: [],
+    stage: CELL_STAGE.protocell,
     offer: null,
     lifeState: PLAYER_LIFE_STATE.alive,
     spectatingCellId: null,

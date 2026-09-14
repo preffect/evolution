@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
+  PLAYER_LIFE_STATE,
   TICK_HZ,
-  type CellView,
+  createTestPlayerProgressView,
+  type PlayerProgressView,
   type TraitId,
   type TraitOfferView,
   type TraitTier,
 } from '@evolution/shared';
-import { createTestCellView } from '../../../../testing/builders';
 import { describeTierModifiers } from './trait-effects';
 import { traitOfferViewFor } from './trait-cards';
 
@@ -17,6 +18,7 @@ const EXPIRES_AT = 10_000;
 
 const offer: TraitOfferView = {
   offerId: 7,
+  level: 5,
   expiresAtTick: EXPIRES_AT,
   cards: [
     { traitId: 'nucleoid' as TraitId, tier: 1 },
@@ -25,16 +27,16 @@ const offer: TraitOfferView = {
   ],
 };
 
-const protocell = createTestCellView({
+const protocell = createTestPlayerProgressView({
+  level: 5,
   stage: CELL_STAGE.protocell,
-  traits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }],
+  ownedTraits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }],
 });
 
-function viewAt(secondsLeft: number, ownCell: CellView | null = protocell, open: TraitOfferView = offer) {
+function viewAt(secondsLeft: number, progress: PlayerProgressView = protocell, open: TraitOfferView = offer) {
   return traitOfferViewFor({
     offer: open,
-    level: 5,
-    ownCell,
+    progress,
     serverTick: EXPIRES_AT - secondsLeft * TICK_HZ,
     balance: DEFAULT_BALANCE,
   });
@@ -55,6 +57,12 @@ describe('traitOfferViewFor', () => {
     expect(view.cards[0]!.effects).toEqual(describeTierModifiers('nucleoid' as TraitId, 1));
   });
 
+  it('titles a queued offer with the level that earned it, not the level the player has reached since', () => {
+    const afterDoubleLevelUp = { ...protocell, level: 6 };
+    expect(viewAt(6.5, afterDoubleLevelUp).title).toBe('LEVEL 5 · CHOOSE A TRAIT');
+    expect(viewAt(6.5, afterDoubleLevelUp, { ...offer, offerId: 8, level: 6 }).title).toBe('LEVEL 6 · CHOOSE A TRAIT');
+  });
+
   it('ribbons the card that is the next stage’s gate, and marks an owned trait’s card as its upgrade', () => {
     const [nucleoid, flagellum, wall] = viewAt(6.5).cards;
     expect(nucleoid!.isRung).toBe(true);
@@ -62,9 +70,16 @@ describe('traitOfferViewFor', () => {
     expect(wall).toMatchObject({ isRung: false, isUpgrade: false, tierLabel: 'I' });
   });
 
-  it('knows neither the rung nor the upgrade while spectating', () => {
-    const cards = viewAt(6.5, null).cards;
-    expect(cards.some((card) => card.isRung || card.isUpgrade)).toBe(false);
+  it('reads the rung and the upgrade from the player’s progress, so both hold while spectating', () => {
+    const spectating = { ...protocell, lifeState: PLAYER_LIFE_STATE.spectating };
+    const [nucleoid, flagellum] = viewAt(6.5, spectating).cards;
+    expect(nucleoid!.isRung).toBe(true);
+    expect(flagellum).toMatchObject({ isUpgrade: true, tierLabel: 'I → II' });
+  });
+
+  it('ribbons no card at the top of the ladder', () => {
+    const top = { ...protocell, stage: CELL_STAGE.specialised };
+    expect(viewAt(6.5, top).cards.some((card) => card.isRung)).toBe(false);
   });
 
   it('counts down from the newest snapshot tick and fills the bar by the share of the window left', () => {

@@ -101,6 +101,7 @@ export interface GelPatchView {
 }
 export interface TraitOfferView {
   offerId: number;
+  level: number; // the level-up that queued it: back-to-back offers keep their own levels (PROGRESSION §4, ui/overlays.md §3.2)
   cards: OwnedTrait[]; // the tier each card would grant
   expiresAtTick: number;
 }
@@ -120,6 +121,8 @@ export interface PlayerProgressView {
   absorptions: number; // players absorbed: the only ones that score (game-design/session.md §5.3)
   wildAbsorptions: number; // wild cells absorbed; never scores (ecology/wild-cells.md §3.3)
   score: number;
+  ownedTraits: OwnedTrait[]; // survive death; a live cell's `traits` mirrors them
+  stage: CellStage; // stageOf(ownedTraits), carried so the HUD reads the ladder without a cell (ui/overlays.md §3.2)
   offer: TraitOfferView | null;
   lifeState: PlayerLifeState; // the only home of death / respawn
   spectatingCellId: EntityId | null; // the killer's cell (a wild killer has no player, game-design/session.md §5.2); null once it is gone
@@ -161,7 +164,6 @@ export interface CellRecord extends CellView {
 export interface PlayerRecord extends PlayerProgressView {
   avatarIndex: number;
   joinOrder: number; // tie-break for the leaderboard and the input drain order
-  ownedTraits: OwnedTrait[]; // survive death; the cell's `traits` mirrors them
   offerQueue: TraitOffer[]; // FIFO; offerQueue[0] is the shown offer (PROGRESSION §4)
   appliedInputSequence: number; // echoed in the snapshot for prediction (section 5)
   pendingInput: GameInput | null; // coalesced by submitInput (section 3.2)
@@ -185,7 +187,10 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 ```
 
 - **Cell stage and traits.** `CellView.stage` is derived by `progression/ladder.ts` `stageOf`
-  from the player's owned traits and recomputed with the modifiers at step 1; the draft
+  from the player's owned traits and recomputed with the modifiers at step 1;
+  `PlayerProgressView.stage` is the same derivation, rewritten by `refreshPlayerStage` wherever
+  `ownedTraits` changes (a pick or timeout, `debug_set_player`, a scenario fixture), so it survives
+  death and the state hash leaves it out as derived; the draft
   (`progression/draft.ts`) filters candidates by stage reached, `requires` owned and the
   `unlockedBy` counter (`bacteriaEatenByVariant`) exactly as [`PROGRESSION.md §3`](../PROGRESSION.md#3-draft-pool-and-weights)
   states, then reserves the rung card. Trait effects are data (`TRAIT_TIERS`) folded by

@@ -11,6 +11,7 @@ const OWN_CELL = { x: 100, y: 50, radiusWu: 4 };
 function offer(overrides: Partial<TraitOfferView> = {}): TraitOfferView {
   return {
     offerId: 7,
+    level: 2,
     cards: [
       { traitId: 'nucleoid', tier: 1 },
       { traitId: 'simple_flagellum', tier: 1 },

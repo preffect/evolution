@@ -1,6 +1,6 @@
 // docs/PROGRESSION.md §4: the offer lifecycle.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_HZ } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, TICK_HZ } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import {
   applyCard,
@@ -34,6 +34,15 @@ describe('queueOffer / showQueuedOfferIfNone', () => {
     expect(player.offer).toBeNull();
   });
 
+  it('stamps each offer with the level that queued it, so back-to-back level-ups keep their own levels', () => {
+    const player = createTestWorld().players[0]!;
+    player.level = 4;
+    queueOffer(player);
+    player.level = 5;
+    queueOffer(player);
+    expect(player.offerQueue.map((offer) => offer.level)).toEqual([4, 5]);
+  });
+
   it('builds the cards when shown, starts the timer and mirrors the view', () => {
     const { world, player, context } = worldWithQueuedOffer();
     showQueuedOfferIfNone(world, player, context);
@@ -43,7 +52,7 @@ describe('queueOffer / showQueuedOfferIfNone', () => {
     expect(offer.cards.map((card) => card.traitId).sort()).toEqual(['cell_wall', 'nucleoid', 'simple_flagellum']);
     expect(offer.cardWeights).toHaveLength(3);
     expect(offer.catalogIndexes).toHaveLength(3);
-    expect(player.offer).toEqual({ offerId: 1, cards: offer.cards, expiresAtTick: offer.expiresAtTick });
+    expect(player.offer).toEqual({ offerId: 1, level: 1, cards: offer.cards, expiresAtTick: offer.expiresAtTick });
     expect(player.offer?.cards).not.toBe(offer.cards);
   });
 
@@ -115,6 +124,7 @@ describe('applyExpiredOffer', () => {
     applyExpiredOffer(world, player, context);
     expect(shownOffer(player)).toBeUndefined();
     expect(player.ownedTraits).toEqual([{ traitId: 'nucleoid', tier: 1 }]);
+    expect(player.stage).toBe(CELL_STAGE.prokaryote);
   });
 });
 

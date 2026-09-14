@@ -55,6 +55,7 @@ describe('computeStateHash', () => {
       (world) =>
         world.players[0]!.offerQueue.push({
           offerId: 1,
+          level: 2,
           cards: [],
           expiresAtTick: 0,
           shownAtTick: null,
@@ -80,7 +81,8 @@ describe('computeStateHash', () => {
     world.leaderboard = [];
     world.effects.push({ kind: 'respawn', tick: 0, x: 0, y: 0, cellId: world.cells[0]!.id, playerId: 'p1' as never });
     world.players[0]!.score = 99;
-    world.players[0]!.offer = { offerId: 1, cards: [], expiresAtTick: 0 };
+    world.players[0]!.stage = 'eukaryote';
+    world.players[0]!.offer = { offerId: 1, level: 2, cards: [], expiresAtTick: 0 };
     world.cells[0]!.modifiers = { ...world.cells[0]!.modifiers, speedMultiplier: 2 };
     expect(computeStateHash(world)).toBe(base);
   });

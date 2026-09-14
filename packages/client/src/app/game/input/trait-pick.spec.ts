@@ -5,6 +5,7 @@ import { TRAIT_PICK_STATUS, traitPickFor, traitPickStatus, type QueuedTraitPick 
 
 const THREE_CARDS: TraitOfferView = {
   offerId: 5,
+  level: 2,
   cards: [
     { traitId: 'nucleoid', tier: 1 },
     { traitId: 'cell_wall', tier: 1 },

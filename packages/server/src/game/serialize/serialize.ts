@@ -85,6 +85,7 @@ function copyOffer(offer: TraitOfferView | null): TraitOfferView | null {
   }
   return {
     offerId: offer.offerId,
+    level: offer.level,
     cards: offer.cards.map((card) => ({ ...card })),
     expiresAtTick: offer.expiresAtTick,
   };
@@ -103,6 +104,8 @@ export function toPlayerProgressView(player: PlayerRecord): PlayerProgressView {
     absorptions: player.absorptions,
     wildAbsorptions: player.wildAbsorptions,
     score: player.score,
+    ownedTraits: player.ownedTraits.map((trait) => ({ ...trait })),
+    stage: player.stage,
     offer: copyOffer(player.offer),
     lifeState: player.lifeState,
     spectatingCellId: player.spectatingCellId,

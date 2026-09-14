@@ -16,6 +16,7 @@ import {
   type FoodKind,
   type Vec2,
 } from '@evolution/shared';
+import { refreshPlayerStage } from '../../game/progression/ladder.js';
 import { setLevelFromCumulativeDna } from '../../game/progression/levels.js';
 import { refreshCellDerivedState } from '../../game/progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../../game/progression/owned-traits.js';
@@ -108,6 +109,7 @@ export function resolveAnchor(world: WorldState, anchor: PlacementAnchor, contex
 function grantTraits(world: WorldState, player: PlayerRecord, traits: readonly PlacedTrait[]): void {
   try {
     player.ownedTraits = toOwnedTraits(world.balance.traits.TRAIT_CATALOG, traits);
+    refreshPlayerStage(player, world.balance);
   } catch (error) {
     if (error instanceof UnknownTraitError) throw new ScenarioSetupError(error.message);
     throw error;

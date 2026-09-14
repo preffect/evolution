@@ -12,6 +12,7 @@ import {
   type TraitTier,
 } from '@evolution/shared';
 import { gainMass } from '../simulation/cell-mass.js';
+import { refreshPlayerStage } from './ladder.js';
 import { refreshCellDerivedState } from './modifiers.js';
 import type { PlayerRecord, TraitOffer } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
@@ -19,10 +20,11 @@ import { SimulationInvariantError } from '../world/simulation-invariant-error.js
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { buildDraft, timeoutCardIndex, type Draft } from './draft.js';
 
-/** Appends an unshown offer; its cards are built when it is shown. */
+/** Appends an unshown offer stamped with the level just reached; its cards are built when it is shown. */
 export function queueOffer(player: PlayerRecord): void {
   player.offerQueue.push({
     offerId: player.nextOfferId,
+    level: player.level,
     cards: [],
     expiresAtTick: 0,
     shownAtTick: null,
@@ -62,6 +64,7 @@ function showOffer(offer: TraitOffer, draft: Draft, player: PlayerRecord, showin
   offer.expiresAtTick = showing.tick + secondsToTicks(showing.balance.progression.TRAIT_CHOICE_TIMEOUT_SECONDS);
   player.offer = {
     offerId: offer.offerId,
+    level: offer.level,
     cards: draft.cards.map((card) => ({ ...card })),
     expiresAtTick: offer.expiresAtTick,
   };
@@ -97,6 +100,7 @@ interface OfferClose {
 /** Applies the card and refolds the cell at once (docs/PROGRESSION.md §4): a timeout pick at step 7 shows on the same tick. */
 function closeShownOffer(world: WorldState, player: PlayerRecord, context: OfferClose): void {
   applyCard(player, context.card);
+  refreshPlayerStage(player, context.balance);
   player.offerQueue.shift();
   player.offer = null;
   const cell = findCellOfPlayer(world, player.playerId);
