@@ -2,7 +2,7 @@
 // session and world-clock rows are game-design-session.gameplay.test.ts.
 
 import { describe, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_HZ, maxSpeedForMass, radiusForMass, secondsToTicks } from '@evolution/shared';
+import { DEFAULT_BALANCE, maxSpeedForMass, radiusForMass, secondsToTicks } from '@evolution/shared';
 import type { EvolutionScenarioSnapshot } from '../gameplay/evolution-adapter.js';
 import { cellOf, massOf, speedOf } from '../gameplay/evolution-views.js';
 import { combineScripts, player, sprint, targetPoint, targetRadiiEast, type PlayerScript } from '../gameplay/index.js';
@@ -10,6 +10,7 @@ import {
   FULL_THROTTLE_RADII,
   MASS_TOLERANCE,
   SPEED_TOLERANCE_WU_PER_SECOND,
+  blendedSpeed,
   decayed,
   placedSolo,
   seededSolo,
@@ -26,14 +27,13 @@ describe('game-design/constants-and-acceptance.md §13: controls', () => {
   it('G4: full throttle east reaches 216.5 wu/s in a second', async () => {
     // The row's number is the starting cell's speed cap: on the seeded world the cell of seed 42
     // eats an algae on its way east (mass 21, cap 217.4), so the row runs placed at the starting mass.
-    const blend = 1 / (growth.CELL_ACCELERATION_SECONDS * TICK_HZ);
     await placedSolo('G4')
       .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS })
       .from(1, player(0).does(targetRadiiEast(FULL_THROTTLE_RADII)))
       .advance(60)
       .expect('velocity x', (view) => cellOf(view, 0)?.velocityX)
       .atTick(60)
-      .toBeCloseTo(growth.CELL_BASE_SPEED * (1 - (1 - blend) ** 60), SPEED_TOLERANCE_WU_PER_SECOND)
+      .toBeCloseTo(blendedSpeed(growth.CELL_BASE_SPEED, 60), SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('velocity y', (view) => cellOf(view, 0)?.velocityY)
       .atTick(60)
       .toBe(0)
@@ -73,12 +73,13 @@ describe('game-design/constants-and-acceptance.md §13: controls', () => {
 
   it('G7: the sprint costs 5 % once, lasts half a second and honours its cooldown', async () => {
     const sprintTicks = secondsToTicks(controls.SPRINT_DURATION_SECONDS);
-    const blend = 1 / (growth.CELL_ACCELERATION_SECONDS * TICK_HZ);
     /** The kernel blends toward the sprinting cap from rest; the cap follows the decayed mass (1 wu/s of drift over the sprint). */
     const sprintedSpeedAfter = (ticks: number): number =>
-      controls.SPRINT_SPEED_MULTIPLIER *
-      maxSpeedForMass(decayed(100 * (1 - controls.SPRINT_MASS_COST_FRACTION), ticks), growth) *
-      (1 - (1 - blend) ** ticks);
+      blendedSpeed(
+        controls.SPRINT_SPEED_MULTIPLIER *
+          maxSpeedForMass(decayed(100 * (1 - controls.SPRINT_MASS_COST_FRACTION), ticks), growth),
+        ticks,
+      );
     const cooldownTicks = secondsToTicks(controls.SPRINT_COOLDOWN_SECONDS);
     const sprintEast = combineScripts([sprint(), targetRadiiEast(FULL_THROTTLE_RADII)]);
     await placedSolo('G7')

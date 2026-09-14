@@ -6,10 +6,14 @@ import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
   DEFAULT_BALANCE,
+  DEFAULT_CELL_MODIFIERS,
   ENDOSYMBIOSIS_BACTERIA_REQUIRED,
   FOOD_KIND,
   ZONE_ID,
   distanceBetween,
+  gelSpeedFactor,
+  maxSpeedForMass,
+  radiusForMass,
 } from '@evolution/shared';
 import { cellOf, foodCount, massOf, progressOf, speedOf } from '../gameplay/evolution-views.js';
 import { ZONE, eastOfCellOf, gelPatchCentre, insideCellOf, player, targetRadiiEast } from '../gameplay/index.js';
@@ -18,11 +22,17 @@ import {
   FULL_THROTTLE_RADII,
   MASS_TOLERANCE,
   SPEED_TOLERANCE_WU_PER_SECOND,
+  blendedSpeed,
+  blendedTravelWu,
   decayed,
   placedSolo,
 } from './shared-setups.js';
 
 const { ecology, growth, world: dish } = DEFAULT_BALANCE;
+/** E6 and E8 run "120 ticks": the steer blend has closed 99.97 % of the gap by then. */
+const FULL_THROTTLE_TICKS = 120;
+/** Movement (step 3) runs before metabolism (step 5): tick 120's move reads the mass decayed 119 times. */
+const CAP_MASS_DECAY_TICKS = FULL_THROTTLE_TICKS - 1;
 
 describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cells', () => {
   it.each([
@@ -76,49 +86,52 @@ describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cel
       .runDeterministic();
   });
 
-  it.each([
-    [320, 110.1],
-    [5000, 55.4],
-  ])('E6: a %d-mass cell at full throttle converges on %f wu/s', async (mass, speed) => {
+  it.each([320, 5000])('E6: a %d-mass cell at full throttle converges on its decayed speed cap', async (mass) => {
+    const speedCapWuPerSecond = maxSpeedForMass(decayed(mass, CAP_MASS_DECAY_TICKS), growth);
     await placedSolo(`E6 ${mass}`)
       .placeCell({ playerIndex: 0, mass })
       .from(1, player(0).does(targetRadiiEast(FULL_THROTTLE_RADII)))
-      .advance(120)
+      .advance(FULL_THROTTLE_TICKS)
       .expect('speed', (view) => speedOf(view, 0))
-      .atTick(120)
-      .toBeCloseTo(speed, SPEED_TOLERANCE_WU_PER_SECOND)
+      .atTick(FULL_THROTTLE_TICKS)
+      .toBeCloseTo(blendedSpeed(speedCapWuPerSecond, FULL_THROTTLE_TICKS), SPEED_TOLERANCE_WU_PER_SECOND)
       .runDeterministic();
   });
 
   it('E7: radius follows the square root of the decayed mass', async () => {
+    const placedMass = 80;
     await placedSolo('E7')
-      .placeCell({ playerIndex: 0, mass: 80 })
+      .placeCell({ playerIndex: 0, mass: placedMass })
       .advance(1)
       .expect('radius', (view) => cellOf(view, 0)?.radius)
       .atTick(1)
-      .toBeCloseTo(35.78, MASS_TOLERANCE)
+      .toBeCloseTo(radiusForMass(decayed(placedMass, 1), growth), MASS_TOLERANCE)
       .runDeterministic();
   });
 
-  it('E8: the gel cuts a 500-mass cell to 49.4 wu/s and it stays inside the patch', async () => {
-    const gelTravelWu = 87;
+  it('E8: the gel cuts a 500-mass cell by its gel factor and it stays inside the patch', async () => {
+    const placedMass = 500;
+    // The cap is held at the last move's mass: the 2 mass of decay over the run moves the travel by under 0.3 wu.
+    const decayedMass = decayed(placedMass, CAP_MASS_DECAY_TICKS);
+    const gelFactor = gelSpeedFactor(decayedMass, growth, DEFAULT_CELL_MODIFIERS.gelSpeedFactorFloor);
+    const speedCapWuPerSecond = maxSpeedForMass(decayedMass, growth) * gelFactor;
     const travelToleranceWu = 2;
     await placedSolo('E8')
-      .placeCell({ playerIndex: 0, mass: 500, at: gelPatchCentre(0) })
+      .placeCell({ playerIndex: 0, mass: placedMass, at: gelPatchCentre(0) })
       .from(1, player(0).does(targetRadiiEast(FULL_THROTTLE_RADII)))
-      .advance(120)
+      .advance(FULL_THROTTLE_TICKS)
       .capture('start', (view) => cellOf(view, 0))
       .atTick(0)
       .expect('speed', (view) => speedOf(view, 0))
-      .atTick(120)
-      .toBeCloseTo(49.4, SPEED_TOLERANCE_WU_PER_SECOND)
+      .atTick(FULL_THROTTLE_TICKS)
+      .toBeCloseTo(blendedSpeed(speedCapWuPerSecond, FULL_THROTTLE_TICKS), SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('travelled', (view) =>
         distanceBetween(view.captured('start') as { x: number; y: number }, cellOf(view, 0)!),
       )
-      .atTick(120)
-      .toBeCloseTo(gelTravelWu, travelToleranceWu)
+      .atTick(FULL_THROTTLE_TICKS)
+      .toBeCloseTo(blendedTravelWu(speedCapWuPerSecond, FULL_THROTTLE_TICKS), travelToleranceWu)
       .expect('still inside the patch', (view) => distanceBetween(view.snapshot.gelPatches[0]!, cellOf(view, 0)!))
-      .atTick(120)
+      .atTick(FULL_THROTTLE_TICKS)
       .toBeLessThan(ecology.GEL_PATCH_RADIUS)
       .runDeterministic();
   });
