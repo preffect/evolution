@@ -88,7 +88,7 @@ const DETERMINISM_CALL_SITES = [
  */
 const TEMPLATE_FILE_EXEMPTIONS = [
   {
-    // #118: 374 lines, grace timers.
+    // #118: 377 lines, grace timers.
     files: ['packages/server/src/lobby/lobby-manager.ts'],
     rules: { 'max-lines': 'off', 'no-restricted-globals': 'off' },
   },

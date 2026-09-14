@@ -187,12 +187,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Input handling** (L42–56): `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together with a newer target is …
   - **3.3 Other structural rules** (L57–77): `constants/`; formulas take numbers.
 
-## architecture/wire-contract.md (162 lines)
+## architecture/wire-contract.md (163 lines)
 
-- **Evolution — Architecture: wire contract** (L1–162): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–162): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
-  - **4.1 Bandwidth budget** (L111–151): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
-  - **4.2 Levers (in order)** (L152–162): `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots.
+- **Evolution — Architecture: wire contract** (L1–163): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–163): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
+  - **4.1 Bandwidth budget** (L112–152): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
+  - **4.2 Levers (in order)** (L153–163): `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots.
 
 ## concept-art/README.md (408 lines)
 

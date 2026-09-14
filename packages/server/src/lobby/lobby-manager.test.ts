@@ -204,7 +204,7 @@ function playerDisconnectedCount(sent: Record<string, unknown[]>, playerId: stri
   return typesSentTo(sent, playerId).filter((type) => type === SERVER_MESSAGE_TYPE.playerDisconnected).length;
 }
 
-describe('lobby-manager: leave_game (#319)', () => {
+describe('lobby-manager: leaving a room, by leave_game or at the end of the grace (#319)', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -213,11 +213,9 @@ describe('lobby-manager: leave_game (#319)', () => {
     const fixture = lobbyWithTwoPlayerGame();
     const removeSpy = vi.spyOn(fixture.room, 'removePlayer');
     const inputSpy = vi.spyOn(fixture.room, 'submitInput');
+    const input = { type: CLIENT_MESSAGE_TYPE.playerInput, payload: createTestGameInput() };
     fixture.handlers.onLeaveGame(fixture.bob, fixture.leave);
-    fixture.handlers.onPlayerInput(fixture.bob, {
-      type: CLIENT_MESSAGE_TYPE.playerInput,
-      payload: createTestGameInput(),
-    });
+    fixture.handlers.onPlayerInput(fixture.bob, input);
     expect(removeSpy).toHaveBeenCalledWith('bob');
     expect(inputSpy).not.toHaveBeenCalled();
     expect(fixture.room.playerConnections.has('bob')).toBe(false);
@@ -272,7 +270,8 @@ describe('lobby-manager: leave_game (#319)', () => {
     fixture.room.stop();
   });
 
-  it('cancels the grace timer of an earlier drop, so it cannot remove the player after a rejoin', () => {
+  // Defensive: over the wire `handleConnect` cancels a drop's timer before any frame arrives.
+  it('cancels a pending grace timer, so it cannot remove the player after a rejoin', () => {
     vi.useFakeTimers();
     const fixture = lobbyWithTwoPlayerGame();
     fixture.lobby.handleDisconnect(fixture.bob);
@@ -280,6 +279,21 @@ describe('lobby-manager: leave_game (#319)', () => {
     fixture.handlers.onJoinGame(fixture.bob, fixture.rejoin);
     vi.advanceTimersByTime(DISCONNECT_GRACE_MS + 1);
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
+    fixture.room.stop();
+  });
+
+  it('at the end of a grace window tells the player left behind, with a lobby_update listing only them', () => {
+    vi.useFakeTimers();
+    const fixture = lobbyWithTwoPlayerGame();
+    fixture.lobby.handleDisconnect(fixture.bob);
+    expect(fixture.sent['alice']).toContainEqual({ type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId: 'bob' });
+    vi.advanceTimersByTime(DISCONNECT_GRACE_MS + 1);
+    expect(fixture.room.allPlayerIds).toEqual(['alice']);
+    expect(fixture.room.disconnectedPlayers.has('bob')).toBe(false);
+    expect(fixture.sent['alice']!.at(-1)).toMatchObject({
+      type: SERVER_MESSAGE_TYPE.lobbyUpdate,
+      games: [{ gameId: fixture.gameId, players: [{ playerId: 'alice' }] }],
+    });
     fixture.room.stop();
   });
 });

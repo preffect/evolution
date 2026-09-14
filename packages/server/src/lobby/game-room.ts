@@ -171,8 +171,6 @@ export class GameRoom {
   addLatePlayer(connection: Connection): void {
     const playerId = connection.playerId as PlayerId;
     this.playerConnections.set(playerId, connection);
-    // A player who left this room (`leave_game`) may join it again.
-    this.disconnectedPlayers.delete(playerId);
     this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
     this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
     sendMessage(connection, this.gameStateMessageFor(playerId));
@@ -197,7 +195,8 @@ export class GameRoom {
   removePlayer(playerId: string): void {
     this.playerConnections.delete(playerId);
     this.snapshotBacklog.forget(playerId);
-    this.disconnectedPlayers.add(playerId);
+    // Removed, not disconnected: the player is no longer in the room at all.
+    this.disconnectedPlayers.delete(playerId);
     this.performanceTracker.removeClient(playerId as PlayerId);
     this.game.removePlayer(playerId as PlayerId);
     this.dropFromRoster(playerId);

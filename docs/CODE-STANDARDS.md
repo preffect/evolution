@@ -160,7 +160,7 @@ retires it, so #69 lands without splitting or weakening them. The list today, re
 
 | File                                                     | Exempt from               |
 | -------------------------------------------------------- | ------------------------- |
-| `packages/server/src/lobby/lobby-manager.ts` (339 lines) | `max-lines`, timers       |
+| `packages/server/src/lobby/lobby-manager.ts` (377 lines) | `max-lines`, timers       |
 | `packages/client/src/app/services/websocket.service.ts`  | timers                    |
 | `packages/client/src/app/services/identity.service.ts`   | `Date.now`, `Math.random` |
 

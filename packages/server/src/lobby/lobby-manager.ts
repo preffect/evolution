@@ -237,10 +237,7 @@ export class LobbyManager {
     const room = this.activeRooms.get(gameId);
     if (!room) return;
     room.disconnectedPlayers.add(connection.playerId);
-    broadcastMessage(room.playerConnections.values(), {
-      type: SERVER_MESSAGE_TYPE.playerDisconnected,
-      playerId: connection.playerId as PlayerId,
-    });
+    this.announcePlayerGone(room, connection.playerId);
 
     const timer = setTimeout(() => this.finalizeRemoval(gameId, connection.playerId), DISCONNECT_GRACE_MS);
     this.pendingRemovals.set(connection.playerId, timer);
@@ -261,9 +258,10 @@ export class LobbyManager {
   }
 
   /**
-   * `leave_game` (#319, docs/architecture/wire-contract.md §4): off the room at once, with no grace. A pending game is
-   * left the way a disconnect leaves it; an active room removes the player the way the end of the grace does and
-   * tells the players left behind. A room the player is not seated in (the lobby, an unknown or another room) is a no-op.
+   * `leave_game` (#319, docs/architecture/wire-contract.md §4): off the room at once, with no grace. A pending game
+   * frees the seat at once, as a disconnect from it does; an active room removes the player the way the end of the
+   * grace does and tells the players left behind. A room the player is not seated in (the lobby, an unknown or
+   * another room) is a no-op.
    */
   private onLeaveGame(connection: Connection, gameId: string): void {
     const playerId = connection.playerId;
@@ -273,11 +271,16 @@ export class LobbyManager {
       this.leavePendingGame(pending, playerId);
       return;
     }
-    // A timer left by an earlier drop would otherwise remove the player again after a rejoin.
+    // Defensive: `handleConnect` already cancels a drop's timer before any frame arrives.
     this.cancelPendingRemoval(playerId);
     const room = this.activeRooms.get(gameId);
     if (!room) return;
     this.removeFromActiveRoom(gameId, playerId);
+    this.announcePlayerGone(room, playerId);
+  }
+
+  /** What the players still in the room hear when one drops or leaves. */
+  private announcePlayerGone(room: GameRoom, playerId: string): void {
     broadcastMessage(room.playerConnections.values(), {
       type: SERVER_MESSAGE_TYPE.playerDisconnected,
       playerId: playerId as PlayerId,
