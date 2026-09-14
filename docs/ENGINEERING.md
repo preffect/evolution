@@ -6,7 +6,7 @@ each is checkable. An AI building a game from this template MUST follow every ru
 
 > **THE GATE:** `./validate.sh all` (lint + duplication + typecheck + test) is the single source
 > of truth for whether work may merge. Whoever merges runs it once, as `./validate.sh all --affected`
-> on the final head right before the merge (§1 item 2); everyone else runs scoped checks. Never commit red.
+> on the final head right before the merge ([`engineering/validation-gate.md`](./engineering/validation-gate.md) §1 item 2); everyone else runs scoped checks. Never commit red.
 
 ## Files
 

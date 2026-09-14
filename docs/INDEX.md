@@ -390,7 +390,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## testing/scenario-runner.md (168 lines)
 
-- **Evolution — Testing Standards: gameplay tier: the scenario runner and replay** (L1–168): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
+- **Evolution — Testing Standards: the gameplay scenario runner and replay** (L1–168): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
 - **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L5–168): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
   - **8.1 Writing a scenario** (L21–135): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
   - **8.2 Replay and the failure output** (L136–168): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
@@ -521,5 +521,5 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## visual-style/ui-type.md (32 lines)
 
-- **Evolution — Visual Style: uI colours and type** (L1–32): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **Evolution — Visual Style: UI colours and type** (L1–32): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
 - **7. UI colours and type** (L5–32): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.

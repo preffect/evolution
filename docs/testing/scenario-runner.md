@@ -1,4 +1,4 @@
-# Evolution — Testing Standards: gameplay tier: the scenario runner and replay
+# Evolution — Testing Standards: the gameplay scenario runner and replay
 
 §8–§8.2 of the split [`TESTING.md`](../TESTING.md), which keeps the shared context and the file list.
 

@@ -1,4 +1,4 @@
-# Evolution — Visual Style: uI colours and type
+# Evolution — Visual Style: UI colours and type
 
 §7 of the split [`VISUAL-STYLE.md`](../VISUAL-STYLE.md), which keeps the shared context and the file list.
 
