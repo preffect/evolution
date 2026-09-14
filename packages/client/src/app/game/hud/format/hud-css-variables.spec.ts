@@ -18,6 +18,7 @@ import {
 import {
   CONNECTION_LOST_DIM_ALPHA,
   HUD_MARGIN_PX,
+  NOTICE_GAP_PX,
   NOTICE_PADDING_INLINE_PX,
   NOTICE_RIM_PX,
   NOTICE_ROW_HEIGHT_PX,
@@ -125,6 +126,7 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-notice-row-height', `${NOTICE_ROW_HEIGHT_PX}px`],
   ['--hud-notice-stack-max-y', `${NOTICE_STACK_MAX_Y_PX}px`],
   ['--hud-notice-padding-inline', `${NOTICE_PADDING_INLINE_PX}px`],
+  ['--hud-notice-gap', `${NOTICE_GAP_PX}px`],
   ['--hud-notice-rim', `${NOTICE_RIM_PX}px`],
   ['--hud-connection-lost-dim-alpha', String(CONNECTION_LOST_DIM_ALPHA)],
   ['--hud-danger', DANGER],

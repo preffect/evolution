@@ -11,8 +11,9 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: calc(var(--hud-notice-padding-inline) * var(--hud-scale));
+  /* `safe`: a row wider than the viewport keeps its start on screen instead of clipping both ends. */
+  justify-content: safe center;
+  gap: calc(var(--hud-notice-gap) * var(--hud-scale));
   width: 100%;
   height: calc(var(--hud-notice-row-height) * var(--hud-scale));
   padding-inline: calc(var(--hud-notice-padding-inline) * var(--hud-scale));
@@ -24,6 +25,13 @@
   color: var(--hud-text);
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* The text gives way first: it truncates with an ellipsis rather than pushing anything off the row. */
+.message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Danger is a colour and a text tell at once: the words say what went wrong (docs/ui/input-and-onboarding.md §6). */

@@ -1,7 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { concat, defer, of, type Observable } from 'rxjs';
-import type { GameInput, GameSessionConfig, LobbyGameInfo, ServerMessage } from '@evolution/shared';
+import type { GameInput, GameSessionConfig, LobbyGameInfo, ServerMessage, ValueOf } from '@evolution/shared';
 import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { LeftRoomFilter } from './left-room-filter';
 import { RoomState } from './room-state';
 import { SEAT_RECOVERY_OUTCOME, SeatRecovery } from './seat-recovery';
 import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
@@ -27,7 +28,7 @@ export const LOBBY_NOTICE = {
   disconnectedFromGame: 'disconnected_from_game',
 } as const;
 
-export type LobbyNotice = (typeof LOBBY_NOTICE)[keyof typeof LOBBY_NOTICE];
+export type LobbyNotice = ValueOf<typeof LOBBY_NOTICE>;
 
 interface LobbyAnnouncement {
   readonly playerName: string;
@@ -41,6 +42,7 @@ export class MultiplayerService {
   private latestGameStateMessage: ServerMessage | null = null;
   private readonly room = new RoomState();
   private readonly seatRecovery = new SeatRecovery();
+  private readonly leftRoom = new LeftRoomFilter();
   /** The newest name and avatar this client announced, re-announced when a dropped socket reopens. */
   private lobbyAnnouncement: LobbyAnnouncement | null = null;
 
@@ -83,9 +85,10 @@ export class MultiplayerService {
   /**
    * Back to the lobby from a room (the menu's and the results screen's `leave()`,
    * docs/ui/components-and-constants.md §7). The wire has no leave verb yet (#319): the server keeps
-   * the seat until this socket closes, so the room's frames still arrive and are only mirrored.
+   * the seat, so that room's frames are dropped until another room starts (`left-room-filter.ts`).
    */
   leave(): void {
+    this.leftRoom.left(this.gameId());
     this.returnToLobby(null);
   }
 
@@ -110,6 +113,8 @@ export class MultiplayerService {
   }
 
   joinGame(id: string): void {
+    // Asking for a room, even the one just left, is asking for its frames again.
+    this.leftRoom.forget();
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId: id });
   }
 
@@ -160,18 +165,17 @@ export class MultiplayerService {
    * the server's first answer whether the room comes back (`seat-recovery.ts`).
    */
   private onSocketLifecycle(event: SocketLifecycleEvent): void {
-    if (event.kind === SOCKET_LIFECYCLE.opened) {
-      // The server answers this to the sender alone, so a frame always follows the reopen.
-      if (this.seatRecovery.socketReopened() && this.lobbyAnnouncement !== null) {
-        this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinLobby, ...this.lobbyAnnouncement });
-      }
+    if (event.kind === SOCKET_LIFECYCLE.closed) {
+      if (event.isUserInitiated) this.returnToLobby(null);
+      else this.seatRecovery.socketDropped(this.inGame());
       return;
     }
-    if (event.isUserInitiated) {
-      this.returnToLobby(null);
-      return;
+    const action = this.seatRecovery.socketReopened(this.lobbyAnnouncement !== null);
+    if (action.isSeatLost) this.returnToLobby(LOBBY_NOTICE.disconnectedFromGame);
+    // The server answers this to the sender alone, so a frame always follows the reopen.
+    if (action.shouldReannounce && this.lobbyAnnouncement !== null) {
+      this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinLobby, ...this.lobbyAnnouncement });
     }
-    this.seatRecovery.socketDropped(this.inGame());
   }
 
   private returnToLobby(notice: LobbyNotice | null): void {
@@ -187,12 +191,13 @@ export class MultiplayerService {
     if (this.seatRecovery.frameReceived(message) === SEAT_RECOVERY_OUTCOME.seatLost) {
       this.returnToLobby(LOBBY_NOTICE.disconnectedFromGame);
     }
-    this.handle(message);
+    if (this.leftRoom.admits(message)) this.handle(message);
   }
 
-  /** A room message puts this client in play, and a notice from a previous room no longer applies. */
+  /** A room message puts this client in play; a notice or an error raised in the lobby belongs to the lobby. */
   private enterRoom(): void {
     this.lobbyNotice.set(null);
+    this.lastError.set(null);
     this.phase.set('in-game');
   }
 

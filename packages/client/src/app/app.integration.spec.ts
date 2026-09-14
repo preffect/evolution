@@ -12,6 +12,7 @@ import {
 import { AppComponent, LOBBY_NOTICE_TEXT } from './app.component';
 import { IdentityService } from './services/identity.service';
 import { LOBBY_NOTICE } from './services/multiplayer.service';
+import { RECONNECT_DELAY_MS } from './services/websocket.service';
 import { FakeWebSocket } from '../testing/fake-websocket';
 
 describe('lobby shell + multiplayer services', () => {
@@ -25,6 +26,7 @@ describe('lobby shell + multiplayer services', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -87,12 +89,15 @@ describe('lobby shell + multiplayer services', () => {
     expect(component.multiplayer.inGame()).toBe(true);
 
     // The server restarted: the socket drops and the room stays on screen while it is down.
+    vi.useFakeTimers();
     socket.close();
     expect(component.multiplayer.inGame()).toBe(true);
 
-    // The reopen is answered without a game_state: the seat is gone.
-    component.multiplayer.connect();
+    // The transport's own reconnect timer opens the new socket; the reopen is answered without a game_state.
+    vi.advanceTimersByTime(RECONNECT_DELAY_MS);
+    vi.useRealTimers();
     const reopened = FakeWebSocket.latest();
+    expect(reopened).not.toBe(socket);
     reopened.open();
     expect(reopened.sentMessages()).toEqual([
       { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Player', avatarIndex: 0 },

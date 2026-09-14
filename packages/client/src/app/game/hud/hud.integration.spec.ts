@@ -27,7 +27,7 @@ import { createTestCellView } from '../../../testing/builders';
 import { FakeWebSocket } from '../../../testing/fake-websocket';
 import { IdentityService } from '../../services/identity.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
-import { WebSocketService } from '../../services/websocket.service';
+import { RECONNECT_DELAY_MS, WebSocketService } from '../../services/websocket.service';
 import { CONNECTION_BANNER_TEXT, CONNECTION_STATE } from './format/connection-banner';
 import { HudComponent } from './hud.component';
 import { HudStateService } from './hud-state.service';
@@ -108,6 +108,7 @@ describe('the HUD chrome, end to end', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -203,7 +204,10 @@ describe('the HUD chrome, end to end', () => {
     const banner = (): Element | null => element().querySelector(testIdSelector(HUD_TEST_ID.connectionBanner));
     const dim = (): Element | null => element().querySelector('.connection-lost-dim');
     expect(banner()).toBeNull();
+    // The lobby announced a name, which is what the reopen re-sends to learn whether the seat survived.
+    TestBed.inject(MultiplayerService).joinLobby('Me');
 
+    vi.useFakeTimers();
     FakeWebSocket.latest().close();
     fixture.detectChanges();
     expect(banner()?.getAttribute('data-connection-state')).toBe(CONNECTION_STATE.disconnected);
@@ -212,8 +216,9 @@ describe('the HUD chrome, end to end', () => {
     // The last snapshot stays: the round is still on screen under the banner.
     expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundClock))?.textContent).toBe('1:00');
 
-    // The reconnect, then the server's connect-time game_state for the seat it kept.
-    TestBed.inject(WebSocketService).connect();
+    // The transport's own reconnect timer, then the server's connect-time game_state for the seat it kept.
+    vi.advanceTimersByTime(RECONNECT_DELAY_MS);
+    vi.useRealTimers();
     FakeWebSocket.latest().open();
     receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], 30));
     expect(banner()).toBeNull();

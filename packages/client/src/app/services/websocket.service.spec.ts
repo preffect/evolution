@@ -106,6 +106,34 @@ describe('WebSocketService', () => {
     service.disconnect();
   });
 
+  it('ignores a replaced socket’s late events: no false drop, no second reconnect, the new socket stays', () => {
+    vi.useFakeTimers();
+    service.connect();
+    const first = FakeWebSocket.instances[0]!;
+    first.open();
+    service.disconnect();
+    service.connect();
+    const second = FakeWebSocket.latest();
+    second.open();
+    const events: SocketLifecycleEvent[] = [];
+    const received: ServerMessage[] = [];
+    service.lifecycle$.subscribe((event) => events.push(event));
+    service.messages$.subscribe((message) => received.push(message));
+
+    // A real close event is asynchronous: the old socket's arrives after the new socket opened.
+    first.onclose?.();
+    first.onerror?.();
+    first.receive(JSON.stringify({ type: SERVER_MESSAGE_TYPE.error, message: 'stale' }));
+    vi.runAllTimers();
+
+    expect(events).toEqual([]);
+    expect(received).toEqual([]);
+    expect(service.connected()).toBe(true);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    service.send(JOIN);
+    expect(second.sent).toEqual([JSON.stringify(JOIN)]);
+  });
+
   it('disconnect cancels a pending reconnect', () => {
     vi.useFakeTimers();
     service.connect();

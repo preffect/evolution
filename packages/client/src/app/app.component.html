@@ -27,7 +27,7 @@
   }
 
   @if (multiplayer.lastError(); as errorMessage) {
-    <p class="error">Error: {{ errorMessage }}</p>
+    <p class="error">{{ serverErrorCaption }} {{ errorMessage }}</p>
   }
 
   <section class="panel">

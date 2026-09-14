@@ -21,7 +21,7 @@ import { GameStateService } from '../state/game-state.service';
         [attr.data-testid]="testId.connectionBanner"
         [attr.data-connection-state]="state()"
       >
-        {{ banner().text }}
+        <span class="message">{{ banner().text }}</span>
       </div>
     }
   `,

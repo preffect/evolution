@@ -148,6 +148,8 @@ export const NOTICE_STACK_MAX_Y_PX = 96;
 export const CONNECTION_LOST_DIM_ALPHA = 0.2;
 /** The notices' text inset from the viewport's left and right edges. */
 export const NOTICE_PADDING_INLINE_PX = 16;
+/** Gap between a notice's message and its dismiss control. */
+export const NOTICE_GAP_PX = 16;
 /** The rim under a notice row, in its tone's colour. */
 export const NOTICE_RIM_PX = 2;
 

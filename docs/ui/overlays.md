@@ -124,7 +124,10 @@ A dropped socket is not the end of the round (#219): the phase stays in play und
 reconnects, and the client re-announces itself (`join_lobby`) the moment the socket reopens. The server answers a
 reconnect inside the grace with the room's `game_state` before it reads any client frame, so the **first** frame after
 the reopen decides: `game_state` resyncs the round, anything else means the seat is gone and the lobby returns with
-the notice above (`services/seat-recovery.ts`). The user's own disconnect and `leave()` return to the lobby at once.
+the notice above (`services/seat-recovery.ts`). The user's own disconnect and `leave()` return to the lobby at once. Until #319 gives the wire a leave verb the
+server still seats a player who left, so that room's frames are dropped until another room starts
+(`services/left-room-filter.ts`). A drop in the lobby re-announces the name too, since the server keeps it per
+connection.
 A server `error` in play shows as a second notice row under the banner (`hud-server-error`, `body`, danger rim, the
 same 32 px row, `server-error-notice.component.ts`), with a dismiss control; the two rows are the whole stack and stay
 above y 96. The top-anchored chrome (the leaderboard) drops by the rows that are up (`--hud-notice-rows`), so a notice

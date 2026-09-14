@@ -7,7 +7,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { GameStateService } from '../state/game-state.service';
 import { HUD_TEST_ID } from './test-ids';
 
-/** The caption before the server's own words, as the lobby prints it. */
+/** The caption before the server's own words, in play and in the lobby alike. */
 export const SERVER_ERROR_CAPTION = 'Error:';
 /** The dismiss control's accessible name; the control itself shows only a cross. */
 export const SERVER_ERROR_DISMISS_LABEL = 'Dismiss error';
@@ -19,7 +19,7 @@ export const SERVER_ERROR_DISMISS_LABEL = 'Dismiss error';
   template: `
     @if (message(); as errorMessage) {
       <div class="notice-row danger" role="alert" [attr.data-testid]="testId.serverError">
-        <span>{{ caption }} {{ errorMessage }}</span>
+        <span class="message">{{ caption }} {{ errorMessage }}</span>
         <button
           type="button"
           class="dismiss"
@@ -35,8 +35,18 @@ export const SERVER_ERROR_DISMISS_LABEL = 'Dismiss error';
   styleUrls: ['./notice-row.css'],
   styles: [
     `
-      /* The one control in the strip opts back into the pointer the HUD layer gives up. */
+      /*
+       * The one control in the strip opts back into the pointer the HUD layer gives up. Its hit area is the
+       * row's full height and square, and it never shrinks, so a long message truncates before the control
+       * would leave the screen.
+       */
       .dismiss {
+        flex-shrink: 0;
+        align-self: stretch;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: calc(var(--hud-notice-row-height) * var(--hud-scale));
         pointer-events: auto;
         cursor: pointer;
         padding: 0;
@@ -46,8 +56,10 @@ export const SERVER_ERROR_DISMISS_LABEL = 'Dismiss error';
         color: inherit;
       }
 
+      /* Inset, so the ring stays inside the row's clip (as on the leaderboard header). */
       .dismiss:focus-visible {
         outline: var(--hud-focus-ring) solid var(--hud-text);
+        outline-offset: calc(var(--hud-focus-ring) * -1);
       }
     `,
   ],

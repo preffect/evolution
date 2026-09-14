@@ -154,6 +154,19 @@ describe('MultiplayerService', () => {
     expect(service.playerIds()).toEqual([BOB]);
   });
 
+  it('drops a lobby error when a room starts, so it never shows as a danger row in play', () => {
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
+    transport.messages.next({
+      type: SERVER_MESSAGE_TYPE.gameStarted,
+      gameId: GAME_ID,
+      playerId: ALICE,
+      playerIds: [ALICE],
+      isHost: false,
+      config: CONFIG,
+    });
+    expect(service.lastError()).toBeNull();
+  });
+
   it('stores a snapshot from the message stream and surfaces errors until dismissed', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick: 1 }) });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });
