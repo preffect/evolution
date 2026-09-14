@@ -8,7 +8,9 @@
 exactly as the design tables name it (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
 `traits/constants-and-acceptance.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
 `DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, absorption, progression, traits }`
-(the domain modules spread into plain records) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
+(the domain modules spread into plain records; `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
+room only as the endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the number the draft gate and the
+ladder orbit read, so there is one copy on the wire, #286) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
 patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
 that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
