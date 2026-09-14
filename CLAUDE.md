@@ -28,7 +28,8 @@
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
-./validate.sh all                     # lint, duplication, typecheck, test in sequence (author: when the PR is ready, and after the last commit)
+./validate.sh all                     # lint, duplication, typecheck, test in sequence; stops at the first red phase
+./validate.sh all --affected          # the merge gate (once, by whoever merges): only what the branch changed vs origin/main
 ./validate.sh test --scope server     # build loop: one package (shared|server|client), coverage floor kept
 ./validate.sh test --scope packages/server/src/game/world   # build loop: only that path's tests, no coverage floor
 
@@ -118,9 +119,8 @@ design specs are split into topic files under `docs/<domain>/` (`ecology`, `arch
 every file with its line range.
 
 - **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)** — coding, architecture, and testing rules. The single
-  gate is **`./validate.sh all`** (lint + duplication + typecheck + test): the build loop runs scoped
-  (`--scope`), the author runs `all` when the PR is ready and after the last commit, and nothing merges
-  without its green stamp; never run the underlying tools directly; never commit red. All new logic needs unit tests;
+  gate is **`./validate.sh all`** (lint + duplication + typecheck + test): builders and reviewers run scoped
+  checks (`--scope`), and whoever merges runs `./validate.sh all --affected` once, right before the merge; never run the underlying tools directly; never commit red. All new logic needs unit tests;
   cross-subsystem wiring needs `*.integration.test.ts`. See its **Definition of Done** checklist.
 - **[`docs/TESTING.md`](docs/TESTING.md)** — the testing bar: unit / integration / gameplay / UI
   tiers, naming and placement, `src/testing/` builders, the coverage floors `./validate.sh test`
@@ -141,8 +141,8 @@ every file with its line range.
   event catalogue with priorities and cooldowns, the layering per ladder stage, the asset manifest and
   the client audio seam.
 
-> **The gate:** scoped runs green after each change, and a green `./validate.sh all` stamp for the
-> PR head, run by the author (`docs/ENGINEERING.md` §1), before review and merge; the Definition of Done in
+> **The gate:** scoped checks green after each change, and `./validate.sh all --affected` green on the
+> final head, run once by whoever merges (`docs/ENGINEERING.md` §1); the Definition of Done in
 > `docs/ENGINEERING.md` must hold, and any new visual/audio asset must meet its doc's criteria.
 
 ## Architecture

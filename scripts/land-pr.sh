@@ -59,10 +59,18 @@ Address every unresolved review thread on pull request #$pr: run
 \`scripts/pr-threads.sh unresolved $pr\` ONCE (includes Copilot's), fix the code or decide why not,
 then reply to all threads in ONE \`scripts/pr-threads.sh reply $pr <file>\` call (resolve: false),
 bring the branch up to date with \`git merge origin/main\` (never rebase on a review round: rewriting
-history marks every thread outdated), iterate on scoped runs (\`./validate.sh test --scope ...\`), run
-\`./validate.sh all\` once on the final tree (in the background, judged by its exit code), post its
-gate line with the tree hash on the PR, and push. Do not resolve threads and do not merge.
+history marks every thread outdated), check the fixes with scoped runs only (\`./validate.sh test --scope ...\`;
+no full gate: it runs once, at merge), and push. Do not resolve threads and do not merge.
 EOF
+}
+
+# The one full gate (docs/ENGINEERING.md §1): `all --affected` on the final head, right before the
+# merge, in the PR's worktree fast-forwarded to what was pushed.
+merge_gate() {
+  local worktree="$ROOT/.worktrees/$head_branch"
+  git -C "$worktree" fetch -q origin \
+    && git -C "$worktree" merge -q --ff-only "origin/$head_branch" \
+    && (cd "$worktree" && ./validate.sh all --affected)
 }
 
 run_role() { # <role> <task> — one agent run; a failed run is reported, not fatal (the state check decides)
@@ -83,6 +91,10 @@ for ((round = 1; round <= rounds; round++)); do
   done
   echo "   verdicts: $(jq -c .verdicts <<<"$state"); unresolved threads: $unresolved"
   if [[ -z "$missing" && "$unresolved" == "0" ]]; then
+    if ! merge_gate; then
+      echo "== PR #$pr approved by [$reviewers], but ./validate.sh all --affected failed on the final head; not merged." >&2
+      exit 1
+    fi
     gh pr merge "$pr" --squash --auto --delete-branch >/dev/null
     "$AGENT" worktree-remove "$head_branch" >/dev/null
     echo "== PR #$pr approved by [$reviewers]; auto-merge armed."

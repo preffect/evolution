@@ -104,10 +104,10 @@ status.
    Which roles review which PR is the table in `docs/TEAM.md`.
 4. The author fixes, **replies on every thread** saying what changed, and the reviewer resolves
    after verifying. The author never resolves their own threads.
-5. Merge only with the author's green `./validate.sh all` gate line (with its tree hash) for the
-   head in the PR, all threads resolved, all checks green. Builders iterate on scoped runs; the
-   author runs `all` when the PR is ready for review and after the last commit; reviewers and the
-   lead look the stamp up and run nothing (`docs/ENGINEERING.md` §1).
+5. Merge only after `./validate.sh all --affected` passes on the final head, run once by whoever
+   merges right before the merge, with all threads resolved and all checks green. Builders and
+   reviewers run scoped checks only: no gate when a PR is ready, no re-gate after review fixes, and
+   no stamp for a reviewer (`docs/ENGINEERING.md` §1).
    The author never merges their own PR when a reviewer role exists.
 6. **After merge** the human's running game redeploys itself within a minute (the deploy watcher
    `./run.sh` starts in `/workspace`); the lead checks `.game-logs/deploy.log` and tells the human to hard-refresh.
@@ -121,9 +121,9 @@ still start together as soon as a slot frees), each posts one verdict review, an
 round-two reviewer re-reads only the diff since its previous verdict (`git diff <r1-head>..<head>`)
 and the replies on its own threads — it does not re-review the whole PR and does not re-read the
 docs — resolves or re-opens its threads on that basis, and its verdict comment says
-`round 2 (diff-only)`. **Look the gate up, never run it**: in a clean worktree at the pushed SHA
-the reviewer checks that the author's `all` stamp exists for that tree and cites its tree hash; a
-missing stamp goes back to the author (`docs/ENGINEERING.md` §1). The **lead
+`round 2 (diff-only)`. **Reviewers run scoped checks, never the gate**: a reviewer runs
+`./validate.sh <phase> --scope <package or path>` on what it reviews and never needs a stamp
+(`docs/ENGINEERING.md` §1). The **lead
 resolves purely mechanical round-two threads** (a rename, a moved constant, deleted dead code,
 verified by diff) itself instead of a further reviewer pass.
 

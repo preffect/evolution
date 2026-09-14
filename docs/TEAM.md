@@ -96,7 +96,8 @@ builder holds a slot they still start together as soon as it frees) — read
 `scripts/pr-threads.sh state <PR>` (one 1-point query: latest verdict per role + unresolved
 threads), spawn ONE engineer for the consolidated fixes across every reviewer's threads, re-spawn
 only the objecting reviewers for a diff-only round two, resolve the purely mechanical round-two
-threads yourself, then `gh pr merge --squash --auto`. Headless, `land-pr.sh` runs the same rounds
+threads yourself, then run `./validate.sh all --affected` on the final head and, on `ALL PASSED`,
+`gh pr merge --squash --auto`. Headless, `land-pr.sh` runs the same rounds
 (its reviewers run one after another on the one container, with the same round semantics):
 
 ```bash
@@ -105,12 +106,11 @@ scripts/land-pr.sh 57 --reviewers "architect gameplay-qa"    # code-qa is always
 
 1. **Round one, in parallel:** every reviewer reviews the same head at once and posts one review
    whose first line is its verdict (`<role> verdict: APPROVE` or `REQUEST_CHANGES`) with
-   line-anchored comments. **Look the gate up, never run it:** in a clean worktree at the pushed SHA the
-   reviewer checks that the author's `all` stamp exists for that tree (the stamp is shared across
-   worktrees) and cites its tree hash in the verdict; a missing stamp goes back to the author
-   (`docs/ENGINEERING.md` §1). Builders iterate on scoped runs (`--scope`); the author runs `all`
-   when the PR is ready for review and after the last commit; the lead checks the merge head's
-   stamp and runs nothing.
+   line-anchored comments. **Scoped checks only:** a reviewer runs
+   `./validate.sh <phase> --scope ...` on what it reviews and never needs a stamp; builders iterate
+   the same way, with no gate when the PR is ready and no re-gate after fixes; whoever merges runs
+   `./validate.sh all --affected` once on the final head, right before the merge
+   (`docs/ENGINEERING.md` §1).
 2. If anyone objects, or any thread (including Copilot's) is unresolved, ONE engineer run fixes
    every reviewer's threads together, replies on every thread and merges `origin/main` into the
    branch (no rebase: it would mark every thread outdated). Authors never resolve their own threads.

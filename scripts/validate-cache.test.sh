@@ -11,7 +11,10 @@
 #   selected, or all skipped) fails while a tier-wide one passes, and a runner crash keeps its own
 #   error; `all` prints its phases in a fixed order with a wall-times line and keeps each phase's
 #   exit code and stamp; two real gates on one machine run one after the other (gate.lock) while a
-#   hit never waits.
+#   hit never waits; `all` stops at the first failing phase (a red lint never runs test); and
+#   `all --affected`, against a fixture origin/main, selects client alone for a client change, all
+#   three packages for a shared change, lint alone for docs, the shell suites for scripts and the
+#   plain `all` for a root file, and stamps per affected set.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -35,6 +38,9 @@ cp "$repo_root/validate.sh" "$fixture/validate.sh"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 touch "$fixture/packages/shared/src/index.ts" "$fixture/packages/server/src/game/world.ts" \
   "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts"
+FIXTURE_SUITE_MARKER="fixture shell suite ran"
+printf '#!/usr/bin/env bash\necho "%s"\n' "$FIXTURE_SUITE_MARKER" > "$fixture/scripts/fixture-suite.test.sh"
+chmod +x "$fixture/scripts/fixture-suite.test.sh"
 write_standard_fake_pnpm() {
   cat > "$sandbox/bin/pnpm" <<PNPM
 #!/usr/bin/env bash
@@ -267,8 +273,8 @@ echo ' typecheck$' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
 run_validate "$fixture" all
 : > "$FAKE_PNPM_FAIL_PATTERN_FILE"
 phase_order="$(sed -n 's/^=== \(.*\) ===$/\1/p' <<<"$out" | tr '\n' ' ')"
-check "all prints the phases in the fixed order (got: $phase_order)" $(( $(grep -q '^lint duplication typecheck test $' <<<"$phase_order"; echo $?) == 0 ))
-check "a failing phase keeps its own exit code, and all ends with each phase's wall time" $(( rc != 0 && $(grep -q '^FAILED: typecheck$' <<<"$out"; echo $?) == 0 && $(grep -q '^wall times: lint [0-9]* s, duplication [0-9]* s, typecheck [0-9]* s, test [0-9]* s; all [0-9]* s$' <<<"$out"; echo $?) == 0 ))
+check "all prints the phases in the fixed order and stops at the failing one (got: $phase_order)" $(( $(grep -q '^lint duplication typecheck $' <<<"$phase_order"; echo $?) == 0 ))
+check "a failing phase keeps its own exit code, and all ends with the wall time of each phase that ran" $(( rc != 0 && $(grep -q '^FAILED: typecheck$' <<<"$out"; echo $?) == 0 && $(grep -q '^wall times: lint [0-9]* s, duplication [0-9]* s, typecheck [0-9]* s; all [0-9]* s$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" lint
 check "the green phases of a red all are still stamped" $(( $(is_cached; echo $?) == 0 ))
 run_validate "$fixture" typecheck
@@ -308,6 +314,56 @@ kill "$orphan_pid" 2>/dev/null || true
 check "a child that outlives the gate does not keep the lock" $(( rc == 0 && lock_free == 1 ))
 write_standard_fake_pnpm
 rm -f "$fixture/untracked.txt"
+
+# --- fail fast (#304) -----------------------------------------------------------------------------
+echo fail-fast > "$fixture/untracked.txt"
+echo '^eslint' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" all
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "all stops at a red lint: FAILED: lint, and no later phase runs" $(( rc != 0 && $(grep -q '^FAILED: lint$' <<<"$out"; echo $?) == 0 && $(grep -q '^=== \(duplication\|typecheck\|test\) ===$' <<<"$out"; echo $?) != 0 && $(grep -q '^fake pnpm .*test' <<<"$out"; echo $?) != 0 ))
+rm -f "$fixture/untracked.txt"
+
+# --- all --affected (#304): branches off a fixture origin/main ------------------------------------
+affected_base="$(git -C "$fixture" rev-parse HEAD)"
+git -C "$fixture" update-ref refs/remotes/origin/main "$affected_base"
+affected_branch() { # <branch> <path>: a branch off origin/main whose one commit changes <path>
+  git -C "$fixture" checkout -q -B "$1" "$affected_base"
+  mkdir -p "$(dirname "$fixture/$2")"
+  echo "$1" >> "$fixture/$2"
+  git -C "$fixture" add -A
+  git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m "$1"
+}
+ran() { grep -q -- "$1" <<<"$out"; } # <pattern>: whether the last run's output matches
+
+affected_branch affected-client packages/client/src/app/hud.spec.ts
+run_validate "$fixture" all --affected
+check "a client-only branch selects client, and says why" $(( rc == 0 && $(ran '^affected client: changed (1 files, e.g. packages/client/src/app/hud.spec.ts)$'; echo $?) == 0 ))
+check "a client-only branch typechecks, lints and tests client alone" $(( $(ran '^fake pnpm --filter @evolution/client typecheck$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/client test$'; echo $?) == 0 && $(ran '^fake pnpm eslint packages/client$'; echo $?) == 0 && $(ran '@evolution/server\|-r test\|-r typecheck\|^affected server\|^affected shared'; echo $?) != 0 ))
+run_validate "$fixture" all --affected
+check "all --affected is stamped per affected set" $(( rc == 0 && $(is_cached; echo $?) == 0 && $(ran '^scope: affected-client$'; echo $?) == 0 ))
+run_validate "$fixture" all
+check "an affected stamp never answers the plain all" $(( $(is_cached; echo $?) != 0 && $(ran '^fake pnpm -r test$'; echo $?) == 0 ))
+
+affected_branch affected-shared packages/shared/src/index.ts
+run_validate "$fixture" all --affected
+check "a shared change selects all three packages, the dependents with their reason" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/shared --filter @evolution/server --filter @evolution/client test$'; echo $?) == 0 && $(ran '^affected server: depends on shared$'; echo $?) == 0 && $(ran '^affected client: depends on shared$'; echo $?) == 0 ))
+
+affected_branch affected-docs docs/NOTE.md
+run_validate "$fixture" all --affected
+check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran '^fake pnpm prettier --check docs/NOTE.md$'; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 3 ))
+
+affected_branch affected-scripts scripts/tool.sh
+run_validate "$fixture" all --affected
+check "a scripts change runs the shell suites and no package phase" $(( rc == 0 && $(ran "$FIXTURE_SUITE_MARKER"; echo $?) == 0 && $(ran '^fake pnpm .*test$\|typecheck$'; echo $?) != 0 && $(ran '^affected scripts:'; echo $?) == 0 ))
+
+affected_branch affected-root eslint.config.js
+run_validate "$fixture" all --affected
+check "a root file outside packages, docs and scripts runs the plain all" $(( rc == 0 && $(ran '^affected everything: eslint.config.js is outside'; echo $?) == 0 && $(ran '^fake pnpm -r test$'; echo $?) == 0 ))
+
+run_validate "$fixture" test --affected
+check "--affected is refused outside all" $(( rc != 0 && $(ran 'works with `all` only'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 ))
+run_validate "$fixture" all --affected --scope server
+check "--affected is refused with --scope" $(( rc != 0 && $(ran_pnpm; echo $?) != 0 ))
 
 if [[ $failures -gt 0 ]]; then
   echo "validate-cache.test.sh: $failures failure(s)"
