@@ -11,8 +11,8 @@ them; message verbs are the `CLIENT_MESSAGE_TYPE` / `SERVER_MESSAGE_TYPE` object
 ```ts
 export interface GameInput {
   sequence: number; // monotonic per client, one per client tick
-  targetX: number; // pointer target in world units
-  targetY: number;
+  targetX: number | null; // pointer target in world units; null: this input does not steer, the latched target stands (sent while the client has no own cell, #346)
+  targetY: number | null;
   shouldSprint: boolean; // edge-triggered by the client, coalesced by the server (section 3.2); predicate names per CODE-STANDARDS §6
   traitChoice: TraitChoiceInput | null; // { offerId, cardIndex }
   shouldSplit?: boolean; // reserved (build 2), validated and ignored

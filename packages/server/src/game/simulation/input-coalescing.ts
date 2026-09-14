@@ -1,18 +1,24 @@
 // Input coalescing (docs/architecture/server-simulation.md §3.2): between two ticks the newest `sequence` and
-// target win, the one-shots (`shouldSprint`, `traitChoice`) are OR-merged so a pick or a sprint
+// the newest target win, the one-shots (`shouldSprint`, `traitChoice`) are OR-merged so a pick or a sprint
 // that arrives together with a newer target is never lost. Applied at step 1 (inputs.ts).
 
-import type { GameInput, PlayerId } from '@evolution/shared';
+import { hasSteerTarget, type GameInput, type PlayerId } from '@evolution/shared';
 import { findPlayer } from '../world/lookups.js';
 import type { InputRejectionCounters, WorldState } from '../world/world-state.js';
 
-/** Merges `incoming` over `pending`; the caller has already checked that `incoming` is newer. */
+/**
+ * Merges `incoming` over `pending`; the caller has already checked that `incoming` is newer. A newer
+ * input without a target keeps the pending one, exactly as applying the two in turn would.
+ */
 export function coalesceInput(pending: GameInput | null, incoming: GameInput): GameInput {
   if (pending === null) {
     return incoming;
   }
+  const target = hasSteerTarget(incoming) ? incoming : pending;
   return {
     ...incoming,
+    targetX: target.targetX,
+    targetY: target.targetY,
     shouldSprint: pending.shouldSprint || incoming.shouldSprint,
     traitChoice: incoming.traitChoice ?? pending.traitChoice,
   };

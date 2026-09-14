@@ -15,6 +15,26 @@ describe('coalesceInput', () => {
     expect(coalesceInput(pending, incoming)).toMatchObject({ sequence: 2, targetX: 30, targetY: 40 });
   });
 
+  it('keeps the pending target when the newer input carries none, and the one-shots riding on it (#346)', () => {
+    const pending = createTestGameInput({ sequence: 1, targetX: 10, targetY: 20 });
+    const pick = { offerId: 3, cardIndex: 1 };
+    const incoming = createTestGameInput({
+      sequence: 2,
+      targetX: null,
+      targetY: null,
+      shouldSprint: true,
+      traitChoice: pick,
+    });
+    expect(coalesceInput(pending, incoming)).toEqual({
+      sequence: 2,
+      targetX: 10,
+      targetY: 20,
+      shouldSprint: true,
+      traitChoice: pick,
+    });
+    expect(coalesceInput(null, incoming)).toMatchObject({ targetX: null, targetY: null });
+  });
+
   it('OR-merges the sprint flag', () => {
     const pending = createTestGameInput({ sequence: 1, shouldSprint: true });
     expect(coalesceInput(pending, createTestGameInput({ sequence: 2 })).shouldSprint).toBe(true);

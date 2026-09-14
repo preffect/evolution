@@ -57,6 +57,3 @@ export const FOCUSABLE_OVERLAY_TEST_IDS: readonly string[] = [
 
 /** The only pointer button that sprints: a left click or a tap (docs/ui/input-and-onboarding.md §4). */
 export const PRIMARY_POINTER_BUTTON = 0;
-
-/** The dish centre: where a target points before there is an own cell or a camera to read. */
-export const DISH_CENTRE_POINT: Vec2 = { x: 0, y: 0 };

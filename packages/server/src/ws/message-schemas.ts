@@ -75,15 +75,20 @@ const traitChoiceSchema = z.object({
     .max(TRAIT_DRAFT_SIZE - 1),
 });
 
-export const gameInputSchema: z.ZodType<GameInput> = z.object({
-  sequence: z.number().int().min(0),
-  targetX: worldCoordinateSchema,
-  targetY: worldCoordinateSchema,
-  shouldSprint: z.boolean(),
-  traitChoice: traitChoiceSchema.nullable(),
-  shouldSplit: z.boolean().optional(),
-  shouldEject: z.boolean().optional(),
-});
+// A target is both coordinates or neither: a half target would steer nowhere without a rejection.
+export const gameInputSchema: z.ZodType<GameInput> = z
+  .object({
+    sequence: z.number().int().min(0),
+    targetX: worldCoordinateSchema.nullable(),
+    targetY: worldCoordinateSchema.nullable(),
+    shouldSprint: z.boolean(),
+    traitChoice: traitChoiceSchema.nullable(),
+    shouldSplit: z.boolean().optional(),
+    shouldEject: z.boolean().optional(),
+  })
+  .refine((input) => (input.targetX === null) === (input.targetY === null), {
+    message: 'targetX and targetY are both set or both null',
+  });
 
 const playerInputSchema = z.object({
   type: z.literal(CLIENT_MESSAGE_TYPE.playerInput),
