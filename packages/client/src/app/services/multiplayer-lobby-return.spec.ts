@@ -159,6 +159,16 @@ describe('MultiplayerService returning to the lobby', () => {
       expect(service.lobbyNotice()).toBeNull();
     });
 
+    it('keeps filtering the left room through a failed join to another room', () => {
+      const { transport, service } = serviceInRoom();
+      service.leave();
+      service.joinGame('g2');
+      transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'Game not found' });
+      transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick: 22 }) });
+      transport.messages.next(gameStateMessage(23));
+      expectRoomCleared(service);
+    });
+
     it('lets the next room in: a game_started, or a join back into the room that was left', () => {
       const { transport, service } = serviceInRoom();
       service.leave();

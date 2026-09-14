@@ -167,6 +167,24 @@ describe('MultiplayerService', () => {
     expect(service.lastError()).toBeNull();
   });
 
+  it('keeps an undismissed in-play error through a mid-round resync', () => {
+    const resync: ServerMessage = {
+      type: SERVER_MESSAGE_TYPE.gameState,
+      gameId: GAME_ID,
+      playerId: ALICE,
+      snapshot: createTestSnapshot({ tick: 4 }),
+      balance: DEFAULT_BALANCE,
+      config: CONFIG,
+      playerIds: [ALICE],
+      avatarAssignments: {},
+    };
+    transport.messages.next(resync);
+    transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'Invalid message' });
+    transport.messages.next(resync);
+    expect(service.inGame()).toBe(true);
+    expect(service.lastError()).toBe('Invalid message');
+  });
+
   it('stores a snapshot from the message stream and surfaces errors until dismissed', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick: 1 }) });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });

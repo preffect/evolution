@@ -113,8 +113,7 @@ export class MultiplayerService {
   }
 
   joinGame(id: string): void {
-    // Asking for a room, even the one just left, is asking for its frames again.
-    this.leftRoom.forget();
+    this.leftRoom.joiningRoom(id);
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId: id });
   }
 
@@ -194,8 +193,9 @@ export class MultiplayerService {
     if (this.leftRoom.admits(message)) this.handle(message);
   }
 
-  /** A room message puts this client in play; a notice or an error raised in the lobby belongs to the lobby. */
+  /** Lobby to play: a lobby notice or error stays behind. A resync mid-round keeps an undismissed in-play error. */
   private enterRoom(): void {
+    if (this.inGame()) return;
     this.lobbyNotice.set(null);
     this.lastError.set(null);
     this.phase.set('in-game');

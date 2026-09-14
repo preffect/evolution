@@ -81,9 +81,15 @@ describe('LeftRoomFilter', () => {
     expect(filter.admits(gameStateFor(LEFT_ROOM))).toBe(true);
   });
 
-  it('ends when the player asks for a room again', () => {
+  it('holds while the player asks to join another room, which releases it only by starting or naming itself', () => {
     const filter = filterThatLeft();
-    filter.forget();
+    filter.joiningRoom(OTHER_ROOM);
+    expect(filter.admits(gameStateFor(LEFT_ROOM))).toBe(false);
+  });
+
+  it('ends when the player asks to join the room that was left', () => {
+    const filter = filterThatLeft();
+    filter.joiningRoom(LEFT_ROOM);
     expect(filter.admits(gameStateFor(LEFT_ROOM))).toBe(true);
   });
 });

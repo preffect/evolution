@@ -13,9 +13,12 @@ export class LeftRoomFilter {
     this.leftGameId = gameId;
   }
 
-  /** The player asked for a room again: nothing is filtered any more. */
-  forget(): void {
-    this.leftGameId = null;
+  /**
+   * The player asked to join `gameId`. Joining the room that was left asks for its frames again; any other
+   * room releases the filter through its own `game_started` or `game_state`, so a failed join elsewhere keeps it.
+   */
+  joiningRoom(gameId: string): void {
+    if (gameId === this.leftGameId) this.forget();
   }
 
   /** Whether the frame may reach the room state. A frame that starts or names another room ends the filter. */
@@ -38,5 +41,9 @@ export class LeftRoomFilter {
       default:
         return true;
     }
+  }
+
+  private forget(): void {
+    this.leftGameId = null;
   }
 }
