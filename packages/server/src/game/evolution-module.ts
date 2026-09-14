@@ -15,7 +15,7 @@ import {
 import { runRecordedStep } from './replay/recorded-step.js';
 import { ReplayRecorder } from './replay/replay-recorder.js';
 import { FoodDeltaTracker } from './serialize/food-delta-tracker.js';
-import { serializeDeltaSnapshot, serializeFullSnapshot } from './serialize/serialize.js';
+import { serializeDeltaSnapshot, serializeFullSnapshot, withOwnProgress } from './serialize/serialize.js';
 import { addPlayerToWorld, removePlayerFromWorld } from './session/membership.js';
 import type { PlayerIdentity } from './session/players.js';
 import { submitPlayerInput } from './simulation/input-coalescing.js';
@@ -27,6 +27,8 @@ export interface EvolutionModule extends GameModule<GameInput, GameSnapshot> {
   /** The room's one world; reset in place on a rematch, so the reference is stable. */
   readonly world: WorldState;
   readonly rejections: InputRejectionCounters;
+  /** Adds the viewer's own progress: the one part of a snapshot no other client is sent. */
+  snapshotForViewer(snapshot: GameSnapshot, viewerPlayerId: PlayerId): GameSnapshot;
   getDebugHandle(): EvolutionDebugHandle;
 }
 
@@ -92,6 +94,7 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
     },
     serializeRoomState: () => serializeDeltaSnapshot(world, foodDelta),
     serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
+    snapshotForViewer: (snapshot, viewerPlayerId) => withOwnProgress(snapshot, world, viewerPlayerId),
     getDebugHandle: () => debugHandle,
   };
 }

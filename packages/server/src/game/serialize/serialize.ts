@@ -11,10 +11,13 @@ import {
   type GameEffect,
   type GameSnapshot,
   type MotePositionView,
+  type PlayerId,
   type PlayerProgressView,
+  type PlayerRosterView,
   type TraitOfferView,
 } from '@evolution/shared';
 import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from '../world/entities.js';
+import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import type { FoodDeltaTracker } from './food-delta-tracker.js';
 
@@ -113,12 +116,26 @@ export function toPlayerProgressView(player: PlayerRecord): PlayerProgressView {
   };
 }
 
-/** Everything but the food and the effects: what the full and the delta snapshot share. */
+/** What every client is sent of every player (docs/architecture/wire-contract.md §4.1). */
+export function toPlayerRosterView(player: PlayerRecord): PlayerRosterView {
+  return { playerId: player.playerId, playerName: player.playerName };
+}
+
+/**
+ * `snapshot` as `viewerPlayerId` receives it (docs/architecture/wire-contract.md §4.1): the same snapshot plus that
+ * player's own progress, which no other client is sent. A viewer with no player in the world gets none.
+ */
+export function withOwnProgress(snapshot: GameSnapshot, world: WorldState, viewerPlayerId: PlayerId): GameSnapshot {
+  const viewer = findPlayer(world, viewerPlayerId);
+  return { ...snapshot, ownProgress: viewer === undefined ? null : toPlayerProgressView(viewer) };
+}
+
+/** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */
 function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<GameSnapshot, 'food' | 'effects'> {
-  const players: Record<string, PlayerProgressView> = {};
+  const players: Record<string, PlayerRosterView> = {};
   const appliedInputSequenceByPlayer: Record<string, number> = {};
   for (const player of world.players) {
-    players[player.playerId] = toPlayerProgressView(player);
+    players[player.playerId] = toPlayerRosterView(player);
     appliedInputSequenceByPlayer[player.playerId] = player.appliedInputSequence;
   }
   return {
@@ -131,6 +148,7 @@ function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<G
     cells: world.cells.map((cell) => toCellView(cell, quantize)),
     dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, quantize)),
     players,
+    ownProgress: null,
     leaderboard: world.leaderboard.map((row) => ({ ...row })),
     appliedInputSequenceByPlayer,
   };

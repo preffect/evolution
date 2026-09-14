@@ -6,6 +6,7 @@ import {
   SNAPSHOT_POSITION_DECIMALS,
   type GameEffect,
   EFFECT_KIND,
+  playerId,
 } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
@@ -19,6 +20,8 @@ import {
   toFoodMoteView,
   toMotePositionView,
   toPlayerProgressView,
+  toPlayerRosterView,
+  withOwnProgress,
 } from './serialize.js';
 
 describe('quantizePosition', () => {
@@ -102,6 +105,30 @@ describe('view projections', () => {
     expect(view).not.toHaveProperty('joinOrder');
     expect(toPlayerProgressView({ ...player, offer: null }).offer).toBeNull();
   });
+
+  it('projects a player onto a roster row of its id and name only', () => {
+    const player = createTestWorld().players[0]!;
+    player.ownedTraits = [{ traitId: 'nucleoid', tier: 2 }];
+    expect(toPlayerRosterView(player)).toEqual({ playerId: player.playerId, playerName: player.playerName });
+  });
+});
+
+describe('withOwnProgress', () => {
+  it('adds the viewer’s own progress and leaves every other row a roster row', () => {
+    const world = createTestWorld();
+    const viewer = world.players[0]!;
+    viewer.ownedTraits = [{ traitId: 'nucleoid', tier: 1 }];
+    const snapshot = serializeFullSnapshot(world);
+    const viewed = withOwnProgress(snapshot, world, viewer.playerId);
+    expect(viewed.ownProgress).toEqual(toPlayerProgressView(viewer));
+    expect(viewed.players).toBe(snapshot.players);
+    expect(snapshot.ownProgress).toBeNull();
+  });
+
+  it('gives a viewer with no player in the world no progress', () => {
+    const world = createTestWorld();
+    expect(withOwnProgress(serializeFullSnapshot(world), world, playerId('nobody')).ownProgress).toBeNull();
+  });
 });
 
 describe('serializeFullSnapshot', () => {
@@ -120,7 +147,8 @@ describe('serializeFullSnapshot', () => {
     expect(snapshot.food.removedIds).toEqual([]);
     expect(snapshot.food.moved).toEqual([]);
     expect(snapshot.effects).toEqual([]);
-    expect(Object.keys(snapshot.players)).toEqual(['p1']);
+    expect(snapshot.players).toEqual({ p1: toPlayerRosterView(world.players[0]!) });
+    expect(snapshot.ownProgress).toBeNull();
     expect(snapshot.appliedInputSequenceByPlayer).toEqual({ p1: 0 });
     expect(snapshot.roundPhase).toBe(ROUND_PHASE.playing);
     expect(snapshot.seed).toBe(world.seed);

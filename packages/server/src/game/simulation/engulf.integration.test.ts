@@ -64,7 +64,8 @@ const PAYOUT_MASS_IN_THE_VENT =
 const ESCAPE_TARGET = { x: 2000, y: 0 };
 
 interface DrivenRoom {
-  snapshot(): GameSnapshot;
+  /** The full snapshot as `viewer` (the predator by default) is sent it: its own progress included. */
+  snapshot(viewer?: PlayerId): GameSnapshot;
   /** Every broadcast effect of one kind so far, in broadcast order. */
   effectsOfKind<Kind extends EffectKind>(kind: Kind): Extract<GameEffect, { kind: Kind }>[];
   /** Every `cell_released` reason the room has broadcast so far, in broadcast order. */
@@ -98,7 +99,7 @@ function startRoom(seed: number): DrivenRoom {
       );
     });
   return {
-    snapshot: () => room.getFullState().snapshot as GameSnapshot,
+    snapshot: (viewer = PREDATOR) => module.snapshotForViewer(room.getFullState().snapshot, viewer),
     effectsOfKind,
     releaseReasons: () => effectsOfKind(EFFECT_KIND.cellReleased).map((effect) => effect.reason),
     hash: () => handle.computeStateHash!(),
@@ -185,6 +186,7 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
   it('broadcasts cell_absorbed, pays the predator and leaves the prey spectating its killer', () => {
     const room = startRoom(SEED);
     const snapshot = runToTick(room, END_TICK);
+    const preyView = room.snapshot(PREY);
     runToWire(room, END_TICK);
     const absorbed = room.effectsOfKind(EFFECT_KIND.cellAbsorbed);
     room.stop();
@@ -196,13 +198,13 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
     expect(killer.playerId).toBe(PREY);
     expect(killer.predatorCellId).toBe(predator.id);
     expect(cellOf(snapshot, PREY)).toBeUndefined();
-    expect(snapshot.players[PREY]!.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
-    expect(snapshot.players[PREY]!.spectatingCellId).toBe(predator.id);
+    expect(preyView.ownProgress!.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
+    expect(preyView.ownProgress!.spectatingCellId).toBe(predator.id);
     // The E9 numbers, to the scenario table's own tolerance: the yield on the decayed predator,
     // the flat DNA base, one absorption. `E9_PAYOUT_MASS` is the quantity the §8 rows pin.
     expect(predator.mass).toBeCloseTo(PAYOUT_MASS_IN_THE_VENT, MASS_DIGITS);
-    expect(snapshot.players[PREDATOR]!.dnaCumulative).toBe(absorption.ENGULF_DNA_BASE);
-    expect(snapshot.players[PREDATOR]!.absorptions).toBe(1);
+    expect(snapshot.ownProgress!.dnaCumulative).toBe(absorption.ENGULF_DNA_BASE);
+    expect(snapshot.ownProgress!.absorptions).toBe(1);
   });
 
   it('ranks the predator first on the leaderboard, absorption bonus included', () => {
@@ -225,20 +227,20 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
   it('respawns the prey RESPAWN_SPECTATE_SECONDS after the payout, keeping its level', () => {
     const room = startRoom(SEED);
     runToTick(room, RESPAWN_TICK - 1);
-    const beforeRespawn = room.snapshot();
+    const beforeRespawn = room.snapshot(PREY);
     room.stepOne();
-    const afterRespawn = room.snapshot();
+    const afterRespawn = room.snapshot(PREY);
     runToWire(room, RESPAWN_TICK);
     const respawns = room.effectsOfKind(EFFECT_KIND.respawn);
     room.stop();
 
     expect(cellOf(beforeRespawn, PREY)).toBeUndefined();
-    expect(beforeRespawn.players[PREY]!.respawnInTicks).toBe(0);
+    expect(beforeRespawn.ownProgress!.respawnInTicks).toBe(0);
     expect(respawns).toHaveLength(1);
     expect(respawns[0]!.tick).toBe(RESPAWN_TICK);
-    expect(afterRespawn.players[PREY]!.lifeState).toBe(PLAYER_LIFE_STATE.alive);
+    expect(afterRespawn.ownProgress!.lifeState).toBe(PLAYER_LIFE_STATE.alive);
     expect(cellOf(afterRespawn, PREY)?.mass).toBe(DEFAULT_BALANCE.growth.CELL_STARTING_MASS);
-    expect(cellOf(afterRespawn, PREY)?.level).toBe(beforeRespawn.players[PREY]!.level);
+    expect(cellOf(afterRespawn, PREY)?.level).toBe(beforeRespawn.ownProgress!.level);
   });
 });
 

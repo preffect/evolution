@@ -28,6 +28,12 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
    * broadcast snapshot and `DEFAULT_BALANCE`.
    */
   serializeFullState(): FullGameState<Snapshot>;
+  /**
+   * A snapshot of this tick (`serializeRoomState`'s or `serializeFullState`'s) as one connection receives it
+   * (docs/architecture/wire-contract.md §4.1): what only that player reads rides here, so the room serialises
+   * once per broadcast and projects per viewer. Optional: without it every connection receives the snapshot as is.
+   */
+  snapshotForViewer?(snapshot: Snapshot, viewerPlayerId: PlayerId): Snapshot;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */

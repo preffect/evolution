@@ -73,9 +73,10 @@ function snapshotWith(
     leaderboard: rows,
     cells: [createTestCellView({ playerId: OWN_PLAYER_ID, ...ownCell })],
     players: {
-      [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, playerName: 'Me', ...ownProgress }),
-      [RIVAL]: createTestPlayerProgressView({ playerId: RIVAL, playerName: 'Rival' }),
+      [OWN_PLAYER_ID]: { playerId: OWN_PLAYER_ID, playerName: 'Me' },
+      [RIVAL]: { playerId: RIVAL, playerName: 'Rival' },
     },
+    ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, playerName: 'Me', ...ownProgress }),
   });
 }
 

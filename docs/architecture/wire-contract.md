@@ -34,7 +34,8 @@ export interface GameSnapshot {
   cells: CellView[];
   dnaFragments: DnaFragmentView[]; // full every snapshot: they drift
   food: FoodDelta; // wire refinement of the design's FoodMoteView[] (section 4.1)
-  players: Record<string, PlayerProgressView>; // built from the join-ordered array
+  players: Record<string, PlayerRosterView>; // { playerId, playerName }, built from the join-ordered array
+  ownProgress: PlayerProgressView | null; // the receiver's own progress (section 4.1); null in a snapshot built for no viewer
   leaderboard: LeaderboardRow[];
   appliedInputSequenceByPlayer: Record<string, number>; // prediction (section 5)
   effects: GameEffect[]; // this broadcast window's cell_absorbed, eat, level_up, respawn, …
@@ -110,6 +111,12 @@ export interface FoodDelta {
   for the room already held is not a leave. The server code is `lobby/seat-lifecycle.ts`.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
+  `snapshotForViewer(snapshot, viewerPlayerId)` (#331, optional): a snapshot of this tick as one connection
+  receives it. The room calls `serializeRoomState()` once per broadcast (the drain) and then projects it per
+  delta target (`lobby/viewer-snapshots.ts`), and projects each `game_state` for the player it is addressed to;
+  the Evolution module adds `ownProgress` there. A module without it (the echo) is broadcast as before,
+  serialised once. `debug_get_game_state` reads the unprojected full state, so `ownProgress` is `null` there;
+  `debug_get_player_progress` is the read of one player's.
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`determinism/random-streams.md §3`); it never receives a `RandomSource`.
@@ -123,31 +130,51 @@ Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.m
 cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON with positions
 quantised to `SNAPSHOT_POSITION_DECIMALS` = 1.
 
-| Snapshot part (20 Hz)                                         | Count × bytes       | Per snapshot   |
-| ------------------------------------------------------------- | ------------------- | -------------- |
-| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30           | ~21 KB         |
-| `dnaFragments` (full)                                         | 110 × ~50           | ~5.5 KB        |
-| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300     | ~9.6 KB        |
-| `players` (`ownedTraits`, `stage`, offer) + `leaderboard`     | 8 × ~860–1 020 + 80 | ~7–8 KB        |
-| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz        | ~0.5 KB        |
-| **total, uncut**                                              |                     | **≈ 44–45 KB** |
-| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + …     | **≈ 24–25 KB** |
+| Snapshot part (20 Hz)                                         | Count × bytes               | Per snapshot   |
+| ------------------------------------------------------------- | --------------------------- | -------------- |
+| `food.moved` (bacteria `{ id, x, y }`)                        | 700 × ~30                   | ~21 KB         |
+| `dnaFragments` (full)                                         | 110 × ~50                   | ~5.5 KB        |
+| `cells` (traits, states, engulf fields, `membraneRatioBonus`) | (8 + 24) × ~300             | ~9.6 KB        |
+| `players` (roster rows) + `ownProgress` + `leaderboard`       | 8 × ~47 + ~850–1 010 + ~850 | ~2.2–2.3 KB    |
+| `food.spawned` / `removedIds`, effects, header                | ~7/s ÷ 20 Hz                | ~0.5 KB        |
+| **total, uncut**                                              |                             | **≈ 39 KB**    |
+| **total with lever 1** (−75 % on `moved` and `dnaFragments`)  | ~5.3 + ~1.4 + …             | **≈ 19–20 KB** |
 
-The `players` row is measured, not estimated (#330's review, `JSON.stringify` of a level-12
-`PlayerProgressView`): 471 B with no owned traits, 858 B with 11 (the eukaryote era), 1 017 B with 11 and a shown
-offer, 1 053–1 212 B with all 16.
+The `players`, `ownProgress` and `leaderboard` figures are measured (#331). Until #331 every client was sent every
+player's whole `PlayerProgressView` (#330's review: 471 B with no owned traits, 858 B with 11, 1 017 B with 11 and a
+shown offer, 1 053–1 212 B with all 16), and the `leaderboard` estimate of 80 B read ~850 B. Now each client is sent
+its own progress as `ownProgress` and every player as a `{ playerId, playerName }` roster row of 45–48 B.
+
+**Measured (#331)** on a private server: 8 players over the wire (7 `bot-client` bots and one recording client
+that breaks every `game_snapshot` it receives down by part), each set to level 11 with 11 owned traits (the
+eukaryote stage) by `debug_set_player`, `WORLD_LEVEL_SECONDS` patched to 5 so the world era arrives within a
+minute, and offers opened with `debug_grant_dna`. Means over 60 snapshots; bytes per client from
+`PerformanceTracker.snapshotBytes` (`debug_get_room_performance`). There are no wild cells yet (#176), and the dish
+at its food cap held 1 010–1 152 algae and 248–390 bacteria, not the 700 bacteria the table above assumes.
+
+| Room (8 players, eukaryote stage)                          | Before: message / `players` | After: message / `players` + `ownProgress` | After, per client |
+| ---------------------------------------------------------- | --------------------------- | ------------------------------------------ | ----------------- |
+| grazer bots (~250 bacteria, 16 fragments), one offer shown | 25 432 B / 7 380 B          | 20 791 B / 468 + 1 007 B                   | 413 KB/s (509)    |
+| idle bots, food and fragments at cap, no offer             | 26 043 B / 5 664 B          | 29 267 B / 468 + 843 B                     | 586 KB/s (521)    |
+| idle bots, at cap, every player's offer shown              | 30 783 B / 8 162 B          | 29 366 B / 468 + 1 009 B                   | 587 KB/s (615)    |
+
+The players part falls by 4.4–6.7 KB per snapshot, which is up to 134 KB/s per client at 20 Hz. The two idle
+rooms are not the same dish: the after room held 390 bacteria against 248, so `moved` read 14.2 KB against 9.1 KB.
+On the same dish, the offers-shown row would be 30 783 − 8 162 + 1 477 ≈ 24.1 KB. Sending each viewer its own
+serialisation did not show in the tick time at 8 clients: p95 1.5–4.0 ms after, against 3.6–3.8 ms before.
+The per-client column gives the before figure in brackets; it moves with the bacteria as well as with the rows.
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120 KB/s after
 `perMessageDeflate`, already enabled); 8 clients ≈ 4 MB/s raw server egress, fine on a LAN. The
 evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
 **§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
 wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
-With it the same snapshot is ≈ 24–25 KB (≈ 480–500 KB/s): **at or just over the 24 KB budget, with no headroom**,
-since #317 put every player's `ownedTraits` on `players`. #331 measures it with `PerformanceTracker.snapshotBytes`
-at 8 bots in the eukaryote era and, if it reads over, takes the next lever: `ownedTraits` on the viewer's own row
-only, through `serializeRoomState(viewerPlayerId)` (~7 × 400 B saved); culling wild cells outside the
-viewport by the same `serializeRoomState(viewerPlayerId)` path takes the `cells` row down further
-and #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
+With it the same snapshot is ≈ 19–20 KB (≈ 380–400 KB/s): **inside the 24 KB budget, with about 4 KB of headroom**.
+Before #331 it was ≈ 24–25 KB, at or just over the budget, because #317 put every player's `ownedTraits` on `players`;
+#331 sends each player's progress only to that player. Measured without lever 1 and without wild cells, the
+8-player eukaryote-stage room above reads 21–29 KB. Lever 1 is still what brings `moved` and `dnaFragments` down.
+Culling wild cells outside the viewport through the same `snapshotForViewer` seam (§4) would take the `cells` row
+down further; #171 decides whether to. Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
 ~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
 measurement that confirms the estimate; #103 records it. Every row above is per snapshot at the
@@ -158,8 +185,8 @@ before #214 landed and what made a remote client run out of memory (#238).
 ### 4.2 Levers (in order)
 
 1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1):
-   `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`,
-   per-player snapshots. Cuts the two big rows by ~75 % at the widest zoom.
+   the module's `snapshotForViewer(snapshot, viewerPlayerId)` (the per-viewer seam #331 landed, §4) with the
+   camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots. Cuts the two big rows by ~75 % at the widest zoom.
 2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4, up from the landed 3; held, #214);
    interpolation absorbs it unchanged, but `MAX_EXTRAPOLATION_TICKS` (3) would then cover less than
    one snapshot interval and has to rise with it. Measured against a starved client (#266, #238): at

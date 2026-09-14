@@ -72,14 +72,7 @@ describe('TraitOfferOverlayComponent', () => {
       createTestSnapshot({
         tick: SNAPSHOT_TICK,
         cells: isSpectating ? [] : [createTestCellView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.protocell })],
-        players: {
-          [OWN_PLAYER_ID]: createTestPlayerProgressView({
-            playerId: OWN_PLAYER_ID,
-            level: 3,
-            offer: open,
-            ...progress,
-          }),
-        },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, level: 3, offer: open, ...progress }),
       }),
     );
     fixture.detectChanges();

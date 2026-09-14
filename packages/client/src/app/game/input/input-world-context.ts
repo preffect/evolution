@@ -25,7 +25,7 @@ export function inputWorldContextOf(store: WorldStore): InputWorldContext | null
   const ownCell = snapshot.cells.find((cell) => cell.playerId === ownPlayerId) ?? null;
   return {
     ownCell: ownCell === null ? null : { x: ownCell.x, y: ownCell.y, radiusWu: ownCell.radius },
-    offer: snapshot.players[ownPlayerId]?.offer ?? null,
+    offer: snapshot.ownProgress?.offer ?? null,
     controls: balance.controls,
     appliedInputSequence: snapshot.appliedInputSequenceByPlayer[ownPlayerId] ?? 0,
   };

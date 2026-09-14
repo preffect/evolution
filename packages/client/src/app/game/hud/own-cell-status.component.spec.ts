@@ -38,7 +38,7 @@ describe('OwnCellStatusComponent', () => {
     multiplayer.snapshot.set(
       createTestSnapshot({
         cells: [createTestCellView({ playerId: OWN_PLAYER_ID, ...cell })],
-        players: { [OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, ...progress }) },
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, ...progress }),
       }),
     );
     fixture.detectChanges();
