@@ -77,8 +77,8 @@ const traitChoiceSchema = z.object({
 
 export const gameInputSchema: z.ZodType<GameInput> = z.object({
   sequence: z.number().int().min(0),
-  targetX: worldCoordinateSchema,
-  targetY: worldCoordinateSchema,
+  targetX: worldCoordinateSchema.nullable(),
+  targetY: worldCoordinateSchema.nullable(),
   shouldSprint: z.boolean(),
   traitChoice: traitChoiceSchema.nullable(),
   shouldSplit: z.boolean().optional(),

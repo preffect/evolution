@@ -49,10 +49,13 @@ describe('steerTargetFor', () => {
     });
   });
 
-  it('falls back to the camera projection when there is no cell to anchor to', () => {
-    const state = withPointerAt(IDLE_INPUT_STATE, { x: 640, y: 400 });
-    const pointer = pointerAt(30, -18);
-    expect(steerTargetFor(options(state, pointer, world({ ownCell: null })))).toEqual(pointer.worldPoint);
+  it('has no target without an own cell, whatever the pointer or the keys say (#346)', () => {
+    const noCell = world({ ownCell: null });
+    const pointed = withPointerAt(IDLE_INPUT_STATE, { x: 640, y: 400 });
+    const steered = withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.steer, direction: 'right', isPressed: true });
+    expect(steerTargetFor(options(pointed, pointerAt(30, -18), noCell))).toBeNull();
+    expect(steerTargetFor(options(steered, pointerAt(30, -18), noCell))).toBeNull();
+    expect(steerTargetFor(options(IDLE_INPUT_STATE, null, noCell))).toBeNull();
   });
 
   it('synthesises a full-throttle target ahead of the cell for a held key', () => {
@@ -61,18 +64,8 @@ describe('steerTargetFor', () => {
     expect(steerTargetFor(options(state, pointerAt(30, -18)))).toEqual({ x: OWN_CELL.x + reachWu, y: OWN_CELL.y });
   });
 
-  it('falls back to the pointer when a held key has no cell to steer from', () => {
-    const state = withAction(IDLE_INPUT_STATE, { kind: INPUT_ACTION.steer, direction: 'right', isPressed: true });
-    const pointer = pointerAt(30, -18);
-    expect(steerTargetFor(options(state, pointer, world({ ownCell: null })))).toEqual(pointer.worldPoint);
-  });
-
   it('stands still on the cell itself when nothing steers it', () => {
     expect(steerTargetFor(options(IDLE_INPUT_STATE))).toEqual({ x: OWN_CELL.x, y: OWN_CELL.y });
-  });
-
-  it('points at the dish centre before there is a cell or a pointer', () => {
-    expect(steerTargetFor(options(IDLE_INPUT_STATE, null, world({ ownCell: null })))).toEqual({ x: 0, y: 0 });
   });
 });
 
@@ -108,6 +101,20 @@ describe('buildGameInput', () => {
       targetX: OWN_CELL.x + 20,
       targetY: OWN_CELL.y + 30,
       shouldSprint: true,
+      traitChoice: { offerId: 7, cardIndex: 0 },
+    });
+  });
+
+  it('sends no target and no sprint while spectating, but still the pick (#346)', () => {
+    let state = withPointerAt(IDLE_INPUT_STATE, { x: 1, y: 2 });
+    state = withAction(state, { kind: INPUT_ACTION.sprint });
+    state = withPickQueued(state, { offerId: 7, cardIndex: 0, sentAtSequence: null });
+    const input = buildGameInput(options(state, pointerAt(20, 30), world({ ownCell: null, offer: offer() })));
+    expect(input).toEqual({
+      sequence: 3,
+      targetX: null,
+      targetY: null,
+      shouldSprint: false,
       traitChoice: { offerId: 7, cardIndex: 0 },
     });
   });

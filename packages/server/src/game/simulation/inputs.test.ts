@@ -61,6 +61,23 @@ describe('applyInputs', () => {
     expect(player.pendingInput).toBeNull();
   });
 
+  it('keeps the latched target, null included, when the input carries none (#346)', () => {
+    const { world, cell, player, context } = fixture();
+    cell.targetX = null;
+    cell.targetY = null;
+    player.pendingInput = createTestGameInput({ sequence: 2, targetX: null, targetY: null });
+    applyInputs(world, context);
+    expect(cell.targetX).toBeNull();
+    expect(cell.targetY).toBeNull();
+    expect(player.appliedInputSequence).toBe(2);
+    cell.targetX = 9;
+    cell.targetY = -3;
+    player.pendingInput = createTestGameInput({ sequence: 3, targetX: null, targetY: null });
+    applyInputs(world, context);
+    expect(cell.targetX).toBe(9);
+    expect(cell.targetY).toBe(-3);
+  });
+
   it('keeps the latched target when no input is pending', () => {
     const { world, cell, context } = fixture();
     cell.targetX = 9;

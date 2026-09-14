@@ -15,6 +15,13 @@ describe('coalesceInput', () => {
     expect(coalesceInput(pending, incoming)).toMatchObject({ sequence: 2, targetX: 30, targetY: 40 });
   });
 
+  it('keeps the pending target when the newer input carries none (#346)', () => {
+    const pending = createTestGameInput({ sequence: 1, targetX: 10, targetY: 20 });
+    const incoming = createTestGameInput({ sequence: 2, targetX: null, targetY: null });
+    expect(coalesceInput(pending, incoming)).toMatchObject({ sequence: 2, targetX: 10, targetY: 20 });
+    expect(coalesceInput(null, incoming)).toMatchObject({ targetX: null, targetY: null });
+  });
+
   it('OR-merges the sprint flag', () => {
     const pending = createTestGameInput({ sequence: 1, shouldSprint: true });
     expect(coalesceInput(pending, createTestGameInput({ sequence: 2 })).shouldSprint).toBe(true);

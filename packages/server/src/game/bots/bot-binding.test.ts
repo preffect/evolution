@@ -12,8 +12,14 @@ describe('locateCellThrough', () => {
 });
 
 describe('toWireInput', () => {
-  it('maps a command to the wire input, aiming at the origin and holding no choice when unsaid', () => {
-    expect(toWireInput({}, 3)).toEqual({ sequence: 3, targetX: 0, targetY: 0, shouldSprint: false, traitChoice: null });
+  it('maps a command to the wire input, sending no target and no choice when unsaid', () => {
+    expect(toWireInput({}, 3)).toEqual({
+      sequence: 3,
+      targetX: null,
+      targetY: null,
+      shouldSprint: false,
+      traitChoice: null,
+    });
     const choice = { offerId: 1, cardIndex: 2 };
     expect(toWireInput({ targetX: 3, targetY: 4, isSprinting: true, traitChoice: choice }, 7)).toEqual({
       sequence: 7,

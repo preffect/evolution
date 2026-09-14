@@ -29,9 +29,13 @@ import type { BalanceConfig } from '../constants/balance.js';
 export interface GameInput {
   /** Monotonic per client, one per client tick; echoed back for prediction (§5). */
   sequence: number;
-  /** Pointer target in world units. */
-  targetX: number;
-  targetY: number;
+  /**
+   * Pointer target in world units, or `null` for an input that does not steer: the cell keeps its
+   * latched target. The client sends `null` while it has no own cell, so an input built while
+   * spectating never steers the respawned cell before the client has seen it (#346).
+   */
+  targetX: number | null;
+  targetY: number | null;
   /** Edge-triggered by the client: start a sprint this tick if the cooldown allows. */
   shouldSprint: boolean;
   traitChoice: TraitChoiceInput | null;

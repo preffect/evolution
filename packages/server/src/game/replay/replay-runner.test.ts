@@ -66,7 +66,7 @@ describe('replay', () => {
       ...recording,
       inputs: recording.inputs.map((entry) => ({
         ...entry,
-        input: { ...entry.input, targetY: entry.input.targetY + 50 },
+        input: { ...entry.input, targetY: (entry.input.targetY ?? 0) + 50 },
       })),
     };
     expect(replay(altered).hash).not.toBe(recording.finalHash);

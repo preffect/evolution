@@ -12,6 +12,7 @@ import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { loseMassToFloor } from './cell-mass.js';
+import { hasSteerTarget } from './input-coalescing.js';
 
 /** The cooldown a sprint starts with: `SPRINT_COOLDOWN_SECONDS + delta`, floored (docs/traits/model.md §2). */
 export function sprintCooldownTicks(cell: CellRecord, balance: BalanceConfig): number {
@@ -36,9 +37,15 @@ export function tryStartSprint(cell: CellRecord, balance: BalanceConfig): boolea
   return true;
 }
 
+/**
+ * An input without a target leaves the latch alone, so a respawned cell keeps its null target through
+ * the inputs its client built while spectating (docs/ecology/mass-and-movement.md §5.2, #346).
+ */
 function applyCellInput(cell: CellRecord, input: GameInput, context: StepContext): void {
-  cell.targetX = input.targetX;
-  cell.targetY = input.targetY;
+  if (hasSteerTarget(input)) {
+    cell.targetX = input.targetX;
+    cell.targetY = input.targetY;
+  }
   if (input.shouldSprint && !tryStartSprint(cell, context.balance)) {
     context.rejections.sprintOnCooldown += 1;
   }
