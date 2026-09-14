@@ -36,10 +36,13 @@
   box-shadow: 0 0 calc(var(--hud-picker-card-glow) * var(--hud-scale)) var(--hud-level-gold);
 }
 
-/* The focus ring is every control's (docs/ui/input-and-onboarding.md §4), highlighted or not. */
+/*
+ * The focus ring is every control's (docs/ui/input-and-onboarding.md §4), highlighted or not. It is drawn inside
+ * the card, as the leaderboard header's is: the cards end at the reference viewport's bottom edge.
+ */
 .card:focus-visible {
   outline: var(--hud-focus-ring) solid var(--hud-text);
-  outline-offset: var(--hud-focus-ring);
+  outline-offset: calc(var(--hud-focus-ring) * -1);
 }
 
 .ribbon {

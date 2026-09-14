@@ -66,12 +66,16 @@ describe('setupGame', () => {
       },
       dependencies({ onTraitCardPickReady }),
     );
-    const pick = onTraitCardPickReady.mock.calls[0]?.[0];
-    pick?.(2);
-    expect(apply).toHaveBeenCalledExactlyOnceWith({ kind: INPUT_ACTION.pickCard, cardIndex: 2 });
-    teardown();
-    expect(onTraitCardPickReady).toHaveBeenLastCalledWith(null);
-    apply.mockRestore();
+    try {
+      const pick = onTraitCardPickReady.mock.calls[0]?.[0];
+      pick?.(2);
+      expect(apply).toHaveBeenCalledExactlyOnceWith({ kind: INPUT_ACTION.pickCard, cardIndex: 2 });
+      teardown();
+      expect(onTraitCardPickReady).toHaveBeenLastCalledWith(null);
+    } finally {
+      // A failed assertion must not leave the prototype spied for the tests after it.
+      apply.mockRestore();
+    }
   });
 
   it('connects the audio hooks once per game_state with the own player, the balance and the round length', () => {
