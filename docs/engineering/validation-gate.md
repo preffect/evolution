@@ -53,7 +53,7 @@
      (`*.integration.test.ts`, `*.integration.spec.ts`, `*.gameplay.test.ts`; #344) of each selected
      package that has one, fail-fast and stamped like the other phases, and prints
      `affected integration: <package> (N files) …`; a docs-only or scripts-only branch skips it. With
-     more than one integration package (a shared change selects server and client) pnpm runs their
+     more than one integration package (a shared change selects shared, server and client) pnpm runs their
      runners side by side, and a gameplay scenario may use up to its 300 s timeout
      (`OPT_IN_TEST_TIMEOUT_MS` in `vitest.tiers.ts`): a timeout in this phase on a busy box is re-run with
      `./validate.sh integration --scope <package> -- <file>` before anyone calls it flaky. It
