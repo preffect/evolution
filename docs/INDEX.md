@@ -161,12 +161,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **6. Client module plan (Pixi v8 + Angular)** (L98–136): numbers (`PROTOCELL_GRANULE_COUNT`, palettes, layer z, wobble amplitude) live in `render/constants.ts`.
 - **7. Audio hook seam (#101)** (L137–151): The design and the tables are `AUDIO.md` (decision #140, option B).
 
-## architecture/constants-files-tests.md (106 lines)
+## architecture/constants-files-tests.md (111 lines)
 
-- **Evolution — Architecture: constants, file plan and test plan** (L1–106): §9–§11 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **9. Constants and balance (decision, one home)** (L5–24): `packages/shared/src/constants/<domain>.ts` is the source of truth for every tunable, named exactly as the design tables name it (`game-des…
-- **10. File plan (target ≤ 250 lines per file; 300 is the lint cap)** (L25–93): Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts` reference each other only as types (`Trait…
-- **11. Test plan (`engineering/testing-and-typescript.md §2`, `determinism/replay-tests-and-traps.md §7`)** (L94–106): kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip; food delta tracker; draft (ladder filter, run…
+- **Evolution — Architecture: constants, file plan and test plan** (L1–111): §9–§11 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **9. Constants and balance (decision, one home)** (L5–29): `packages/shared/src/constants/<domain>.ts` is the source of truth for every tunable, named exactly as the design tables name it (`game-des…
+- **10. File plan (target ≤ 250 lines per file; 300 is the lint cap)** (L30–98): Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts` reference each other only as types (`Trait…
+- **11. Test plan (`engineering/testing-and-typescript.md §2`, `determinism/replay-tests-and-traps.md §7`)** (L99–111): kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip; food delta tracker; draft (ladder filter, run…
 
 ## architecture/debug-mcp.md (85 lines)
 
@@ -452,12 +452,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Definition shape** (L5–29): There is no `minLevel`: the ladder (`stage`, `requires`, `unlockedBy`) is the pacing.
 - **2. Modifier model** (L30–85): Every trait tier is a partial `CellModifiers`.
 
-## ui/components-and-constants.md (113 lines)
+## ui/components-and-constants.md (114 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance and constants** (L1–113): §7–§9 of the split `UI.md`, which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance and constants** (L1–114): §7–§9 of the split `UI.md`, which keeps the shared context and the file list.
 - **7. Angular component plan** (L5–56): Standalone, `OnPush`, signal inputs, no game logic: components format and lay out; every decision is a pure function under `hud/format/` (o…
 - **8. Acceptance (the Playwright loop #100 drives)** (L57–71): `OC` = `hud-own-cell` (§3.1.4).
-- **9. Constants table (own-cell indicators)** (L72–113): The values this doc owns (§3.1.2, §3.1.3, §6).
+- **9. Constants table (own-cell indicators)** (L72–114): The values this doc owns (§3.1.2, §3.1.3, §6).
 
 ## ui/hud.md (160 lines)
 

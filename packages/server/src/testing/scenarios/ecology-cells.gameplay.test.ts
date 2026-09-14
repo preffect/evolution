@@ -3,7 +3,14 @@
 // engulf rows (E9–E11, E13, E16) are the two ecology-engulf files.
 
 import { describe, expect, it } from 'vitest';
-import { BACTERIUM_VARIANT, DEFAULT_BALANCE, FOOD_KIND, ZONE_ID, distanceBetween } from '@evolution/shared';
+import {
+  BACTERIUM_VARIANT,
+  DEFAULT_BALANCE,
+  ENDOSYMBIOSIS_BACTERIA_REQUIRED,
+  FOOD_KIND,
+  ZONE_ID,
+  distanceBetween,
+} from '@evolution/shared';
 import { cellOf, foodCount, massOf, progressOf, speedOf } from '../gameplay/evolution-views.js';
 import { ZONE, eastOfCellOf, gelPatchCentre, insideCellOf, player, targetRadiiEast } from '../gameplay/index.js';
 import { CENTRE_DISTANCE_WU, E9_PAYOUT_TICK, PREY_MASS, engulfPair } from './engulf-setups.js';
@@ -15,7 +22,7 @@ import {
   placedSolo,
 } from './shared-setups.js';
 
-const { ecology, growth, ladder, world: dish } = DEFAULT_BALANCE;
+const { ecology, growth, world: dish } = DEFAULT_BALANCE;
 
 describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cells', () => {
   it.each([
@@ -171,7 +178,7 @@ describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cel
       .toBe(0)
       .expect('aerobic credited in full on the payout', (view) => progressOf(view, 0)?.bacteriaEatenByVariant.aerobic)
       .atTick(E9_PAYOUT_TICK)
-      .toBeAtLeast(ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED)
+      .toBeAtLeast(ENDOSYMBIOSIS_BACTERIA_REQUIRED)
       .expect('the other counter is untouched', (view) => progressOf(view, 0)?.bacteriaEatenByVariant.photosynthetic)
       .atTick(E9_PAYOUT_TICK)
       .toBe(0)
