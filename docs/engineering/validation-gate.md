@@ -8,7 +8,8 @@
    `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`,
    or `pnpm --filter ... exec vitest` as a shortcut. The wrapper:
    - makes the checkout runnable before every real run (never a cache hit; `scripts/lib/workspace-ready.sh`,
-     #329, which `./run.sh` also runs before it starts): `pnpm install --frozen-lockfile` when
+     #329, which `./run.sh` also runs before it stops the running stack, under the gate lock when there
+     is work): `pnpm install --frozen-lockfile` when
      `node_modules/.pnpm/lock.yaml` is missing or differs from `pnpm-lock.yaml`, and the
      `@evolution/shared` build when `dist/index.d.ts` is missing or a shared source or config is newer
      than its tsbuildinfo, one line each, so a fresh worktree needs no manual step and downstream
@@ -24,7 +25,8 @@
      package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
      (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
-     package (its tests keep the package's coverage floor; typecheck still builds shared first);
+     package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
+     filtered or path-scoped `test` has no coverage floor; typecheck builds shared first when stale);
      `--scope <file or directory under packages/<package>/src>` runs only the tests that path
      selects (a directory: the tests under it; a source file: the tests named after it) **without**
      coverage floors, lints, formats and scans that path, and typechecks its package. Either scope's
@@ -89,8 +91,10 @@
    For `test` and `integration` the extra args reach one package's runner, so they need a one-package
    `--scope` (vitest and the Angular builder read different arguments). For the client (#329) an
    extra arg that is not an option is a file filter as vitest reads one, a substring of the spec's
-   package-relative path, passed as one `--include` per matching spec of the tier; options pass
-   through, written `--option=value`.
+   repo- or package-relative path, passed as one `--include` per matching spec of the tier (under a
+   file path scope, only the spec that file selects); options pass through, written `--option=value`.
+   A filtered `test` (a non-option extra arg, `-t`, `--testNamePattern` or `--filter`) runs without
+   the coverage floor, in every package.
    `--fresh` re-runs regardless of the result cache.
 
 ```text

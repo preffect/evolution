@@ -8,9 +8,12 @@
 #   workspace_ensure_ready <root> <log prefix>
 #     installs (pnpm install --frozen-lockfile) when node_modules/.pnpm/lock.yaml, pnpm's copy of the
 #     lockfile it installed, is missing or differs from pnpm-lock.yaml; then builds @evolution/shared
-#     when its types entry is missing or a source or config file is newer than its tsbuildinfo.
+#     when its types entry is missing or a source or config file is newer than its tsbuildinfo, which a
+#     build stamps with its start time (a source saved during the build is rebuilt next time).
 #     One line per step taken, none when the checkout is ready. Fails only when the install fails;
 #     a failed build prints its output and returns 0, so the phases report the errors themselves.
+#   workspace_ready_needed <root>
+#     whether workspace_ensure_ready has anything to do (run.sh takes the gate lock only then)
 # ---------------------------------------------------------------------------
 
 WORKSPACE_LOCKFILE=pnpm-lock.yaml
@@ -49,8 +52,12 @@ workspace_shared_stale_reason() { # <root>
   [[ -z "$newer" ]] || echo "${newer#"$1"/} changed since the last build"
 }
 
+workspace_ready_needed() { # <root>
+  workspace_install_needed "$1" || [[ -n "$(workspace_shared_stale_reason "$1")" ]]
+}
+
 workspace_ensure_ready() { # <root> <log prefix>
-  local root="$1" prefix="$2" shared="$1/$WORKSPACE_SHARED_DIR" reason output
+  local root="$1" prefix="$2" shared="$1/$WORKSPACE_SHARED_DIR" reason output started
   if workspace_install_needed "$root"; then
     echo "$prefix installing dependencies (node_modules does not match $WORKSPACE_LOCKFILE): ${WORKSPACE_INSTALL_COMMAND[*]}"
     if ! output="$(cd "$root" && "${WORKSPACE_INSTALL_COMMAND[@]}" 2>&1)"; then
@@ -63,9 +70,11 @@ workspace_ensure_ready() { # <root> <log prefix>
   [[ -n "$reason" ]] || return 0
   echo "$prefix building $WORKSPACE_SHARED_PACKAGE ($reason)"
   [[ -f "$shared/$WORKSPACE_SHARED_TYPES" ]] || rm -f "$shared/$WORKSPACE_SHARED_BUILD_INFO"
+  started="$(date +%s.%N)"
   if output="$(cd "$root" && pnpm --filter "$WORKSPACE_SHARED_PACKAGE" build 2>&1)"; then
-    # tsc leaves the record untouched when no content changed (a file merely rewritten): mark it fresh.
-    touch -c "$shared/$WORKSPACE_SHARED_BUILD_INFO"
+    # tsc leaves the record untouched when no content changed (a file merely rewritten), so stamp it,
+    # with the start time: a source saved while tsc ran stays newer than the record.
+    touch -c -d "@$started" "$shared/$WORKSPACE_SHARED_BUILD_INFO"
     return 0
   fi
   printf '%s\n' "$output"

@@ -42,11 +42,13 @@
 ./validate.sh all --fresh             # ignore the content-addressed result cache (docs/engineering/validation-gate.md §1)
 ```
 
-A fresh worktree needs no setup: before a real run `./validate.sh` (and `./run.sh` before it starts) runs
-`pnpm install --frozen-lockfile` when `node_modules` does not match `pnpm-lock.yaml`, and builds
-`@evolution/shared` when its `dist` is missing or older than its sources (`scripts/lib/workspace-ready.sh`).
-For `test` and `integration`, `-- extra args` need a one-package `--scope`. A scoped `lint` also
-prettier-checks the docs (`*.md` outside `packages/`) the branch changed against `origin/main`.
+A fresh worktree needs no setup: before a real run `./validate.sh` runs `pnpm install --frozen-lockfile`
+when `node_modules` does not match `pnpm-lock.yaml`, and builds `@evolution/shared` when its `dist` is
+missing or older than its sources (`scripts/lib/workspace-ready.sh`); `./run.sh` does the same before it
+stops the running stack, under the same gate lock. For `test` and `integration`, `-- extra args` need a
+one-package `--scope`; a filtered (`-- <file filter>`, `-t`, `--testNamePattern`, `--filter`) or
+path-scoped `test` has no coverage floor. A scoped `lint` also prettier-checks the docs (`*.md` outside
+`packages/`) the branch changed against `origin/main`.
 
 ### Running the dev servers
 

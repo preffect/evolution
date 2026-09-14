@@ -15,7 +15,8 @@
 # another checkout's watcher behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT;
 # run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one;
 # a checkout without node_modules or a shared build is installed and built before the start, and a ready
-# one is neither (#329).
+# one is neither (#329); that setup runs before the cleanup, so a failed install leaves the running stack
+# serving, and with work to do it waits for the gate lock validate.sh holds, while a ready start never waits.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -30,6 +31,7 @@ READY_TIMEOUT_SECONDS=30
 FAILED_READY_TIMEOUT_SECONDS=2
 LONG_WATCH_INTERVAL_SECONDS=3600
 PROBE_LIFETIME_SECONDS=120
+LOCK_HOLD_SECONDS=2
 REAL_SS="$(command -v ss)"
 REAL_LSOF="$(command -v lsof)"
 
@@ -47,11 +49,12 @@ mkdir -p "$stack/scripts/lib" "$stack/packages/server" "$stack/packages/client" 
   "$other/packages/server" "$other/scripts" "$sandbox/bin"
 cp "$stack/pnpm-lock.yaml" "$stack/node_modules/.pnpm/lock.yaml" # installed from the lockfile
 cp "$repo_root/run.sh" "$stack/run.sh"
-cp "$repo_root/scripts/lib/workspace-ready.sh" "$stack/scripts/lib/workspace-ready.sh"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$repo_root/scripts/lib/gate-lock.sh" "$stack/scripts/lib/"
 cp "$repo_root/scripts/deploy-main.sh" "$stack/scripts/deploy-main.sh"
 cp "$repo_root/packages/client/proxy.conf.json" "$stack/packages/client/proxy.conf.json"
 pnpm_args="$sandbox/pnpm-args"
 no_listen_file="$sandbox/fake-pnpm-no-listen" # when present: the fake dev servers never listen
+install_fail_file="$sandbox/fake-pnpm-install-fails" # when present: the fake pnpm install fails
 ss_stub_file="$sandbox/ss-stub"               # "<port> <pid>" lines the fake ss reports as listeners
 ss_fail_file="$sandbox/ss-fail"               # when present: the fake ss fails, as if missing
 lsof_sees_file="$sandbox/lsof-sees"           # when present: the fake lsof sees listeners (the fallback case)
@@ -61,7 +64,7 @@ cat > "$sandbox/bin/pnpm" <<PNPM
 [[ "\$1" != -v ]] || { echo 10.0.0; exit 0; }
 echo "\$*" >> "$pnpm_args"
 case "\$1" in
-  install) mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml; exit 0 ;;
+  install) [[ ! -e "$install_fail_file" ]] || exit 1; mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml; exit 0 ;;
   --filter) mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts packages/shared/tsconfig.build.tsbuildinfo; exit 0 ;;
 esac
 case "\$1" in
@@ -90,7 +93,8 @@ LSOF
 printf '#!/usr/bin/env bash\nexec sleep %s\n' "$PROBE_LIFETIME_SECONDS" > "$other/scripts/deploy-main.sh"
 chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$sandbox/bin/lsof" "$other/scripts/deploy-main.sh"
 
-export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT"
+mkdir -p "$sandbox/home" # the gate lock lives under $HOME/.cache
+export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT" HOME="$sandbox/home"
 export RUN_READY_TIMEOUT_SECONDS="$READY_TIMEOUT_SECONDS" DEPLOY_WATCH_INTERVAL_SECONDS="$LONG_WATCH_INTERVAL_SECONDS"
 export DEPLOY_INSTALL_COMMAND=true DEPLOY_BUILD_COMMAND=true
 unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT
@@ -243,6 +247,30 @@ check "a checkout without node_modules or a shared build installs, then builds, 
 : > "$pnpm_args"
 run_stack --server-only --no-deploy-watch --wait-ready
 check "a ready checkout starts without installing or building (rc $rc)" $(( rc == 0 && ! $(holds grep -q 'install\|--filter' "$pnpm_args") ))
+
+running_server="$(ss_pids "$STACK_SERVER_PORT")"
+rm "$stack/node_modules/.pnpm/lock.yaml"
+touch "$install_fail_file"
+run_stack --server-only --no-deploy-watch --wait-ready
+rm "$install_fail_file"
+check "a failed setup exits before the cleanup and leaves the running stack serving (rc $rc)" $(( rc != 0 && $(holds grep -q 'the dependency install failed' <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$running_server") ))
+
+gate_lock="$HOME/.cache/$(basename "$stack")-validate/gate.lock"
+mkdir -p "$(dirname "$gate_lock")"
+lock_held() { ! flock -n "$gate_lock" true; }
+flock -o "$gate_lock" sleep "$LOCK_HOLD_SECONDS" &
+lock_holder=$!
+wait_for lock_held
+: > "$pnpm_args"
+run_stack --server-only --no-deploy-watch --wait-ready
+check "a setup with work to do waits for the gate lock, then installs and starts (rc $rc)" $(( rc == 0 && $(holds grep -q 'waiting for another gate to finish before the workspace setup' <<<"$out") && $(holds grep -qx 'install --frozen-lockfile --prefer-offline' "$pnpm_args") ))
+wait "$lock_holder"
+flock -o "$gate_lock" sleep "$LOCK_HOLD_SECONDS" &
+lock_holder=$!
+wait_for lock_held
+run_stack --server-only --no-deploy-watch --wait-ready
+check "a ready start never waits for the gate lock (rc $rc)" $(( rc == 0 && ! $(holds grep -q 'waiting for another gate' <<<"$out") ))
+wait "$lock_holder"
 run_stack --stop
 
 finish_suite run.test.sh

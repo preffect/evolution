@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
+source "$SCRIPT_DIR/scripts/lib/gate-lock.sh"
 PID_FILE="$SCRIPT_DIR/.game.pid"
 LOG_DIR="$SCRIPT_DIR/.game-logs"
 PACKAGES_DIR="$SCRIPT_DIR/packages"
@@ -360,6 +361,22 @@ done
 # Verify required tools are available before starting
 check_deps
 
+if $DO_INSTALL; then
+  echo "==> Installing dependencies..."
+  pnpm install
+fi
+
+# A fresh worktree or a merge: install when node_modules does not match the lockfile, build shared when
+# stale. Before the cleanup, so the running stack keeps serving meanwhile and a failure leaves it up; under
+# validate.sh's gate lock so the two never install in one checkout at once, taken only when there is work.
+if workspace_ready_needed "$SCRIPT_DIR"; then
+  gate_lock_acquire "$SCRIPT_DIR" "the workspace setup"
+  ready_rc=0
+  workspace_ensure_ready "$SCRIPT_DIR" "==>" || ready_rc=$?
+  gate_lock_release
+  [[ $ready_rc -eq 0 ]] || exit 1
+fi
+
 # Always clean up any existing server processes before starting (never the deploy watcher)
 echo "==> Cleaning up old processes..."
 if stop_processes; then
@@ -371,14 +388,6 @@ if $CLEAR_PREBUNDLE; then
   rm -rf "$ANGULAR_PREBUNDLE_CACHE_DIR"
   echo "==> Cleared the Angular prebundle cache"
 fi
-
-if $DO_INSTALL; then
-  echo "==> Installing dependencies..."
-  pnpm install
-fi
-
-# A fresh worktree or a merge: install when node_modules does not match the lockfile, build shared when stale
-workspace_ensure_ready "$SCRIPT_DIR" "==>" || exit 1
 
 mkdir -p "$LOG_DIR"
 > "$PID_FILE"

@@ -21,7 +21,10 @@
 #   non-option extra arg becomes one --include per matching spec of the tier (under a path scope, in
 #   place of its include), options pass through, no match fails, and extra args on a selection that
 #   mixes the client with other packages are refused. A scoped lint also prettier-checks the docs the
-#   branch changed, and only those (#329).
+#   branch changed, and only those (#329). A filtered test run (a non-option extra arg or a test-name
+#   filter) drops the coverage floor in every package while an option that narrows nothing keeps it;
+#   a client filter matches repo-relative paths and stays on a file scope's spec; a shared source saved
+#   during the build is rebuilt by the next run.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -37,6 +40,7 @@ FAKE_PNPM_SLEEP_FILE="$sandbox/fake-pnpm-sleep" # seconds the fake pnpm sleeps (
 FAKE_PNPM_OUTPUT_FILE="$sandbox/fake-pnpm-output" # what the fake pnpm prints after its command line (a runner summary)
 FAKE_PNPM_FAIL_PATTERN_FILE="$sandbox/fake-pnpm-fail-pattern" # when non-empty: a command line matching it exits 1
 FAKE_BUILD_SAW_FILE="$sandbox/fake-build-saw" # the fake shared build writes whether the build record was kept or deleted
+FAKE_BUILD_EDIT_FILE="$sandbox/fake-build-edit" # when non-empty: the fake shared build saves a shared source mid-build
 
 # --- fixture: a git repo holding validate.sh, a stub docs-index.sh, package dirs and a fake pnpm --
 fixture="$sandbox/repo"
@@ -44,11 +48,12 @@ mkdir -p "$fixture/scripts/lib" "$sandbox/bin" "$sandbox/home" \
   "$fixture/packages/shared/src" "$fixture/packages/shared/dist" "$fixture/node_modules/.pnpm" \
   "$fixture/packages/server/src/game" "$fixture/packages/client/src/app"
 cp "$repo_root/validate.sh" "$fixture/validate.sh"
-cp "$repo_root/scripts/lib/workspace-ready.sh" "$fixture/scripts/lib/workspace-ready.sh"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$repo_root/scripts/lib/gate-lock.sh" "$fixture/scripts/lib/"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 touch "$fixture/packages/shared/src/index.ts" "$fixture/packages/server/src/game/world.ts" \
   "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts" \
-  "$fixture/packages/client/src/app/app.integration.spec.ts"
+  "$fixture/packages/client/src/app/app.integration.spec.ts" "$fixture/packages/client/src/app/hud.ts" \
+  "$fixture/packages/client/src/app/hud-layout.spec.ts"
 # A ready checkout (#329): node_modules installed from the lockfile, shared built after its sources.
 printf 'node_modules/\ndist/\n*.tsbuildinfo\n' > "$fixture/.gitignore"
 echo 'lockfileVersion: fixture' > "$fixture/pnpm-lock.yaml"
@@ -72,6 +77,7 @@ case "\$*" in
   'install --frozen-lockfile --prefer-offline') mkdir -p node_modules/.pnpm && cp pnpm-lock.yaml node_modules/.pnpm/lock.yaml ;;
   '--filter @evolution/shared build')
     if [[ -e packages/shared/tsconfig.build.tsbuildinfo ]]; then echo kept; else echo deleted; fi > "$FAKE_BUILD_SAW_FILE"
+    [[ ! -s "$FAKE_BUILD_EDIT_FILE" ]] || { sleep 0.1; touch packages/shared/src/index.ts; sleep 0.1; }
     mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts packages/shared/tsconfig.build.tsbuildinfo
     ;;
 esac
@@ -86,6 +92,7 @@ echo 0 > "$FAKE_PNPM_RC_FILE"
 echo 0 > "$FAKE_PNPM_SLEEP_FILE"
 : > "$FAKE_PNPM_OUTPUT_FILE"
 : > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+: > "$FAKE_BUILD_EDIT_FILE"
 git -C "$fixture" init -q
 git -C "$fixture" -c user.name=test -c user.email=test@example.com add -A
 git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m fixture
@@ -256,7 +263,21 @@ check "a client filter becomes one --include per matching integration spec (#329
 run_validate "$fixture" integration --scope client -- app --filter=^App
 check "a client filter selects only its tier's specs, and an option passes through" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client --if-present test:integration --include src/app/app\.integration\.spec\.ts --filter=^App$'; echo $?) == 0 ))
 run_validate "$fixture" test --scope packages/client/src/app -- hud
-check "a client filter under a path scope replaces the directory include and drops coverage" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client test --include src/app/hud\.spec\.ts --no-coverage$'; echo $?) == 0 ))
+check "a client filter under a directory scope replaces the directory include and drops coverage" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client test --include src/app/hud-layout\.spec\.ts --include src/app/hud\.spec\.ts --no-coverage$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope packages/client/src/app/hud.ts -- hud
+check "a client filter under a file scope stays on the spec that file selects" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client test --include src/app/hud\.spec\.ts --no-coverage$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope packages/client/src/app/hud.ts -- layout
+check "a client filter that misses the file scope's spec fails" $(( rc != 0 && $(ran 'no client test spec under packages/client/src/app/hud.ts has a path containing: layout'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 ))
+run_validate "$fixture" test --scope client -- packages/client/src/app/hud.spec.ts
+check "a client filter matches a repo-relative path, and a filtered package-scope test drops the floor" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/client test --include src/app/hud\.spec\.ts --no-coverage$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope server -- world
+check "a filtered server test has no coverage floor" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server test world --coverage\.enabled=false$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope shared -- -t name
+check "a shared test narrowed by a test-name filter has no coverage floor either" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/shared test -t name --coverage\.enabled=false$'; echo $?) == 0 ))
+run_validate "$fixture" test --scope server -- --reporter=verbose
+check "an option that narrows nothing keeps the coverage floor" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server test --reporter=verbose$'; echo $?) == 0 ))
+run_validate "$fixture" integration --scope server -- world
+check "a filtered integration run takes no coverage switch" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server --if-present test:integration world$'; echo $?) == 0 ))
 run_validate "$fixture" integration --scope client -- nothing-matches
 check "a client filter that matches no spec fails without running the runner" $(( rc != 0 && $(ran 'no client integration spec under packages/client/src has a path containing: nothing-matches'; echo $?) == 0 && $(ran 'test:integration'; echo $?) != 0 ))
 : > "$FAKE_PNPM_OUTPUT_FILE"
@@ -380,6 +401,13 @@ touch -d '+1 minute' "$fixture/packages/shared/src/index.ts"
 run_validate "$fixture" test --fresh
 touch -d '-1 hour' "$fixture/packages/shared/src/index.ts"
 check "a shared source newer than the last build rebuilds, keeping the build record" $(( rc == 0 && $(ran '^validate.sh: building @evolution/shared (packages/shared/src/index.ts changed since the last build)$'; echo $?) == 0 && $(grep -qx kept "$FAKE_BUILD_SAW_FILE"; echo $?) == 0 ))
+echo 1 > "$FAKE_BUILD_EDIT_FILE"
+rm -rf "$fixture/packages/shared/dist"
+run_validate "$fixture" test --fresh
+: > "$FAKE_BUILD_EDIT_FILE"
+run_validate "$fixture" test --fresh
+touch -d '-1 hour' "$fixture/packages/shared/src/index.ts"
+check "a shared source saved during the build is rebuilt by the next run (the record has the start time)" $(( rc == 0 && $(ran '^validate.sh: building @evolution/shared (packages/shared/src/index.ts changed since the last build)$'; echo $?) == 0 ))
 
 rm -rf "$fixture/node_modules"
 echo '^install' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
