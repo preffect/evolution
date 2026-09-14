@@ -20,6 +20,7 @@ import {
   type RoundPhase,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
+import { CONNECTION_STATE, type ConnectionState } from '../hud/format/connection-banner';
 import { threatsFor, type Threat } from '../hud/format/threats-for';
 import { HudStateService } from '../hud/hud-state.service';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
@@ -49,6 +50,17 @@ export class GameStateService {
 
   /** The round's phase; `playing` until the snapshot says otherwise, so the chrome shows on join. */
   readonly roundPhase = computed<RoundPhase>(() => this.multiplayer.snapshot()?.roundPhase ?? ROUND_PHASE.playing);
+
+  /**
+   * The connection banner's state (docs/ui/overlays.md §3.6). `stale` (connected, no snapshot for
+   * `SNAPSHOT_STALE_MS`) is #190's, with the clock-driven notices.
+   */
+  readonly connectionState = computed<ConnectionState>(() =>
+    this.multiplayer.connected() ? CONNECTION_STATE.connected : CONNECTION_STATE.disconnected,
+  );
+
+  /** The server's newest `error` message, until dismissed; `null` when there is none. */
+  readonly serverError = this.multiplayer.lastError.asReadonly();
 
   /**
    * The newest snapshot's tick: the picker counts its offer down from it (docs/ui/overlays.md §3.2). The chrome is

@@ -11,8 +11,8 @@ import {
   createTestSnapshot,
 } from '@evolution/shared';
 import type { GameId, PlayerId, ServerMessage } from '@evolution/shared';
-import { MultiplayerService } from './multiplayer.service';
-import { WebSocketService } from './websocket.service';
+import { LOBBY_NOTICE, MultiplayerService } from './multiplayer.service';
+import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
 
 const GAME_ID = 'g1' as GameId;
 const ALICE = 'alice' as PlayerId;
@@ -24,10 +24,13 @@ const INPUT = createTestGameInput({ sequence: 5 });
 
 function createTransportStub() {
   const messages = new Subject<ServerMessage>();
+  const lifecycle = new Subject<SocketLifecycleEvent>();
   return {
     messages,
+    lifecycle,
     connected: signal(false),
     messages$: messages.asObservable(),
+    lifecycle$: lifecycle.asObservable(),
     connect: vi.fn(),
     disconnect: vi.fn(),
     send: vi.fn(),
@@ -167,10 +170,111 @@ describe('MultiplayerService', () => {
     expect(service.playerIds()).toEqual([BOB]);
   });
 
-  it('stores a snapshot from the message stream and surfaces errors', () => {
+  it('stores a snapshot from the message stream and surfaces errors until dismissed', () => {
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick: 1 }) });
     transport.messages.next({ type: SERVER_MESSAGE_TYPE.error, message: 'nope' });
     expect(service.snapshot()).toEqual(createTestSnapshot({ tick: 1 }));
     expect(service.lastError()).toBe('nope');
+    service.dismissError();
+    expect(service.lastError()).toBeNull();
+  });
+
+  describe('returning to the lobby (#219)', () => {
+    const lobbyUpdateMessage: ServerMessage = { type: SERVER_MESSAGE_TYPE.lobbyUpdate, games: [] };
+
+    function enterRoom(): void {
+      transport.messages.next(gameStateMessage(7));
+      expect(service.inGame()).toBe(true);
+    }
+
+    function expectRoomCleared(): void {
+      expect(service.phase()).toBe('lobby');
+      expect(service.gameId()).toBeNull();
+      expect(service.playerId()).toBeNull();
+      expect(service.playerIds()).toEqual([]);
+      expect(service.snapshot()).toBeNull();
+      expect(service.balance()).toBeNull();
+      expect(service.sessionConfig()).toBeNull();
+      expect(service.avatarAssignments()).toEqual({});
+      const replayed: ServerMessage[] = [];
+      service.gameMessages$.subscribe((message) => replayed.push(message));
+      expect(replayed).toEqual([]);
+    }
+
+    it('leaves the room for the lobby and forgets every room fact', () => {
+      enterRoom();
+      service.leave();
+      expectRoomCleared();
+      expect(service.lobbyNotice()).toBeNull();
+    });
+
+    it('returns to the lobby on the user’s own disconnect', () => {
+      enterRoom();
+      service.disconnect();
+      expectRoomCleared();
+    });
+
+    it('returns to the lobby when the transport reports a user-initiated close', () => {
+      enterRoom();
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: true });
+      expectRoomCleared();
+    });
+
+    it('keeps the round through a dropped socket, and plays on when the reopen resends the room', () => {
+      service.joinLobby('Alice', 2);
+      enterRoom();
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+      expect(service.inGame()).toBe(true);
+
+      transport.send.mockClear();
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
+      // Re-announced, so the server's answer is guaranteed to follow its connect-time game_state.
+      expect(transport.send).toHaveBeenCalledWith({
+        type: CLIENT_MESSAGE_TYPE.joinLobby,
+        playerName: 'Alice',
+        avatarIndex: 2,
+      });
+      transport.messages.next(gameStateMessage(9));
+      transport.messages.next(lobbyUpdateMessage);
+      expect(service.inGame()).toBe(true);
+      expect(service.snapshot()?.tick).toBe(9);
+      expect(service.lobbyNotice()).toBeNull();
+    });
+
+    it('returns to the lobby with a notice when the reopen answers without the room', () => {
+      service.joinLobby('Alice');
+      enterRoom();
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
+      transport.messages.next(lobbyUpdateMessage);
+      expectRoomCleared();
+      expect(service.lobbyNotice()).toBe(LOBBY_NOTICE.disconnectedFromGame);
+      // The next room clears the notice.
+      enterRoom();
+      expect(service.lobbyNotice()).toBeNull();
+    });
+
+    it('re-announces nothing after a drop in the lobby, where there is no seat to recover', () => {
+      service.joinLobby('Alice');
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+      transport.send.mockClear();
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
+      expect(transport.send).not.toHaveBeenCalled();
+      transport.messages.next(lobbyUpdateMessage);
+      expect(service.lobbyNotice()).toBeNull();
+    });
   });
 });
+
+function gameStateMessage(tick: number): ServerMessage {
+  return {
+    type: SERVER_MESSAGE_TYPE.gameState,
+    gameId: GAME_ID,
+    playerId: ALICE,
+    snapshot: createTestSnapshot({ tick }),
+    balance: DEFAULT_BALANCE,
+    config: CONFIG,
+    playerIds: [ALICE],
+    avatarAssignments: { alice: 0 },
+  };
+}

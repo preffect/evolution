@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import type { ServerMessage } from '@evolution/shared';
 import { IdentityService } from './identity.service';
-import { WebSocketService } from './websocket.service';
+import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
 import { FakeWebSocket } from '../../testing/fake-websocket';
 
 const JOIN = { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'A', avatarIndex: 0 } as const;
@@ -73,6 +73,37 @@ describe('WebSocketService', () => {
     service.disconnect();
     vi.runAllTimers();
     expect(FakeWebSocket.instances).toHaveLength(2);
+  });
+
+  it('reports every open and close, telling a dropped socket from the user’s own disconnect', () => {
+    vi.useFakeTimers();
+    const events: SocketLifecycleEvent[] = [];
+    service.lifecycle$.subscribe((event) => events.push(event));
+    service.connect();
+    const first = FakeWebSocket.instances[0]!;
+    first.open();
+    first.close();
+    vi.runAllTimers();
+    FakeWebSocket.latest().open();
+    service.disconnect();
+    expect(events).toEqual([
+      { kind: SOCKET_LIFECYCLE.opened },
+      { kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false },
+      { kind: SOCKET_LIFECYCLE.opened },
+      { kind: SOCKET_LIFECYCLE.closed, isUserInitiated: true },
+    ]);
+  });
+
+  it('has already cleared the connected flag when it reports a close', () => {
+    const connectedAtClose: boolean[] = [];
+    service.lifecycle$.subscribe((event) => {
+      if (event.kind === SOCKET_LIFECYCLE.closed) connectedAtClose.push(service.connected());
+    });
+    service.connect();
+    FakeWebSocket.latest().open();
+    FakeWebSocket.latest().close();
+    expect(connectedAtClose).toEqual([false]);
+    service.disconnect();
   });
 
   it('disconnect cancels a pending reconnect', () => {

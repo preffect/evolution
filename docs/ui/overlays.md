@@ -119,3 +119,12 @@ cell coasts for `DISCONNECT_GRACE_MS`, game-design/session.md §5.2); `stale` (l
 snapshot has arrived for `SNAPSHOT_STALE_MS` (§1, `constants/netcode.ts`) while connected (also what a `debug_pause_room` looks like). Input keeps
 being sent in both states; the HUD shows the last snapshot, dimmed 20 %. When the server removes the player the
 lobby screen returns with `lobby-notice` = `You were disconnected from the game.`
+
+A dropped socket is not the end of the round (#219): the phase stays in play under the banner while the transport
+reconnects, and the client re-announces itself (`join_lobby`) the moment the socket reopens. The server answers a
+reconnect inside the grace with the room's `game_state` before it reads any client frame, so the **first** frame after
+the reopen decides: `game_state` resyncs the round, anything else means the seat is gone and the lobby returns with
+the notice above (`services/seat-recovery.ts`). The user's own disconnect and `leave()` return to the lobby at once.
+A server `error` in play shows as a second notice row under the banner (`hud-server-error`, `body`, danger rim, the
+same 32 px row, `server-error-notice.component.ts`), with a dismiss control; the two rows are the whole stack and stay
+above y 96.

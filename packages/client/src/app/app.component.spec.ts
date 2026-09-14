@@ -7,7 +7,7 @@ import { GameHostComponent } from './game/game-host.component';
 import { HUD_TEST_ID } from './game/hud/test-ids';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
-import { MultiplayerService } from './services/multiplayer.service';
+import { MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
 
 /** Stands in for the game host, which would try to create a WebGL Pixi app under jsdom. */
 @Component({ selector: 'app-game-host', standalone: true, template: '<div data-testid="game-host-stub"></div>' })
@@ -21,6 +21,7 @@ function createMultiplayerStub() {
   return {
     connected: signal(false),
     lastError: signal<string | null>(null),
+    lobbyNotice: signal<LobbyNotice | null>(null),
     inGame: signal(false),
     games: signal([]),
     snapshot: signal<unknown>(null),

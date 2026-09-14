@@ -22,6 +22,10 @@
     </span>
   </header>
 
+  @if (multiplayer.lobbyNotice(); as notice) {
+    <p class="notice" role="status" data-testid="lobby-notice">{{ lobbyNoticeText[notice] }}</p>
+  }
+
   @if (multiplayer.lastError(); as errorMessage) {
     <p class="error">Error: {{ errorMessage }}</p>
   }

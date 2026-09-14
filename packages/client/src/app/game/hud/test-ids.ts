@@ -33,6 +33,12 @@ export const HUD_TEST_ID = {
   menuOverlay: 'menu-overlay',
   /** The results panel (docs/ui/overlays.md §3.4, #189). */
   resultsOverlay: 'results-overlay',
+  /** The connection banner, with `data-connection-state` (docs/ui/overlays.md §3.6, #219). */
+  connectionBanner: 'connection-banner',
+  /** The server's newest `error` message in play, under the banner (#219). */
+  serverError: 'hud-server-error',
+  /** The control that dismisses it. */
+  serverErrorDismiss: 'hud-server-error-dismiss',
 } as const;
 
 /** One leaderboard row, by the player it names (docs/ui/hud.md §3.1.1). */

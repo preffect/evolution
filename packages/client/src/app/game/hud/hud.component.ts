@@ -22,7 +22,10 @@ import {
 } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
+import { ConnectionBannerComponent } from './connection-banner.component';
+import { CONNECTION_STATE } from './format/connection-banner';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
+import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
@@ -37,7 +40,14 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
   selector: 'app-hud',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LeaderboardPanelComponent, OwnCellStatusComponent, RoundTimerComponent, TraitOfferOverlayComponent],
+  imports: [
+    ConnectionBannerComponent,
+    LeaderboardPanelComponent,
+    OwnCellStatusComponent,
+    RoundTimerComponent,
+    ServerErrorNoticeComponent,
+    TraitOfferOverlayComponent,
+  ],
   template: `
     @if (isRoundPlaying()) {
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
@@ -49,6 +59,15 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
          so the results phase does not need to gate it. It does unmount on death, which announces
          nothing; speaking the death is #189's, with the death overlay. -->
     <app-own-cell-status />
+    <!-- Last, so they paint over the chrome (docs/ui/overlays.md §3.6): the dish stays, dimmed, under
+         the banner while the socket is down, and the notices stack from the top edge. -->
+    @if (isConnectionLost()) {
+      <div class="connection-lost-dim"></div>
+    }
+    <div class="notices">
+      <app-connection-banner />
+      <app-server-error-notice />
+    </div>
   `,
   host: {
     '[attr.data-testid]': 'testId.hud',
@@ -63,6 +82,22 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
         /* The layer never eats a click: the controls inside it set their own pointer-events. */
         pointer-events: none;
         user-select: none;
+      }
+
+      .connection-lost-dim {
+        position: absolute;
+        inset: 0;
+        background: rgb(0 0 0 / var(--hud-connection-lost-dim-alpha));
+      }
+
+      /* Never downward past y 96 (docs/ui/input-and-onboarding.md §6), however many rows are up. */
+      .notices {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-height: calc(var(--hud-notice-stack-max-y) * var(--hud-scale));
+        overflow: hidden;
       }
     `,
   ],
@@ -84,6 +119,11 @@ export class HudComponent implements OnInit, OnDestroy {
    * keeps its gate rather than borrowing this one.
    */
   protected readonly isRoundPlaying = computed(() => this.gameState.roundPhase() === ROUND_PHASE.playing);
+
+  /** The socket is down: the last snapshot stays on screen, dimmed, under the banner (docs/ui/overlays.md §3.6). */
+  protected readonly isConnectionLost = computed(
+    () => this.gameState.connectionState() === CONNECTION_STATE.disconnected,
+  );
 
   /** `--hud-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
   protected readonly scale = computed(() => hudScaleFor(this.size().widthPx, this.size().heightPx));

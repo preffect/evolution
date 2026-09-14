@@ -13,10 +13,22 @@ import { IdentityService } from './identity.service';
  *  - Queue outbound messages while disconnected and flush on (re)connect.
  *  - Expose every inbound `ServerMessage` via `messages$`, `game_snapshot` included: a snapshot
  *    is a delta (docs/architecture/wire-contract.md §4, docs/architecture/client.md §5), so none may be coalesced away.
+ *  - Report every open and close via `lifecycle$`, so the room layer can tell a dropped socket
+ *    from the user's own disconnect (docs/ui/overlays.md §3.6).
  *
  * Higher-level lobby/room/game state lives in MultiplayerService.
  */
 const RECONNECT_DELAY_MS = 500;
+
+export const SOCKET_LIFECYCLE = {
+  opened: 'opened',
+  closed: 'closed',
+} as const;
+
+export type SocketLifecycleEvent =
+  | { readonly kind: typeof SOCKET_LIFECYCLE.opened }
+  /** `isUserInitiated`: `disconnect()` closed it, so no reconnect follows. */
+  | { readonly kind: typeof SOCKET_LIFECYCLE.closed; readonly isUserInitiated: boolean };
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
@@ -31,6 +43,10 @@ export class WebSocketService {
   private readonly messages = new Subject<ServerMessage>();
   /** Stream of all decoded inbound server messages. */
   readonly messages$: Observable<ServerMessage> = this.messages.asObservable();
+
+  private readonly lifecycle = new Subject<SocketLifecycleEvent>();
+  /** Every open and close, in order, after `connected` has been updated for it. */
+  readonly lifecycle$: Observable<SocketLifecycleEvent> = this.lifecycle.asObservable();
 
   private readonly identity = inject(IdentityService);
 
@@ -48,6 +64,7 @@ export class WebSocketService {
       for (const raw of this.outbound.splice(0)) {
         socket.send(raw);
       }
+      this.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
     };
     socket.onmessage = (event) => this.handleFrame(typeof event.data === 'string' ? event.data : '');
     socket.onclose = () => {
@@ -56,6 +73,8 @@ export class WebSocketService {
       if (!this.wasClosedByUser) {
         this.scheduleReconnect();
       }
+      // The room layer decides what a close means: a dropped socket keeps the seat, a user's does not.
+      this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: this.wasClosedByUser });
     };
     socket.onerror = () => {
       // Let onclose drive reconnection.
