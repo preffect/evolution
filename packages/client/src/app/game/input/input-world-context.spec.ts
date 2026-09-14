@@ -47,7 +47,7 @@ describe('inputWorldContextOf', () => {
 
   it('carries the own player open offer', () => {
     const store = storeWith({
-      players: { [TEST_OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID, offer: OFFER }) },
+      ownProgress: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID, offer: OFFER }),
     });
     expect(inputWorldContextOf(store)?.offer).toEqual(OFFER);
   });
@@ -62,14 +62,14 @@ describe('inputWorldContextOf', () => {
   it('pairs the offer with the applied sequence of the same snapshot', () => {
     const store = storeWith({
       tick: 10,
-      players: { [TEST_OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID, offer: OFFER }) },
+      ownProgress: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID, offer: OFFER }),
       appliedInputSequenceByPlayer: { [TEST_OWN_PLAYER_ID]: 5 },
     });
     expect(inputWorldContextOf(store)).toMatchObject({ offer: OFFER, appliedInputSequence: 5 });
     store.applySnapshot(
       createTestSnapshot({
         tick: 11,
-        players: { [TEST_OWN_PLAYER_ID]: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID }) },
+        ownProgress: createTestPlayerProgressView({ playerId: TEST_OWN_PLAYER_ID }),
         appliedInputSequenceByPlayer: { [TEST_OWN_PLAYER_ID]: 9 },
       }),
     );

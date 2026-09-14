@@ -28,6 +28,12 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
    * broadcast snapshot and `DEFAULT_BALANCE`.
    */
   serializeFullState(): FullGameState<Snapshot>;
+  /**
+   * What each connection is sent for itself alone (docs/architecture/wire-contract.md §4.1): declared snapshot members
+   * and one viewer's values for them, appended after a single shared stringify per broadcast and set on each
+   * `game_state`. Optional: without it every connection receives the snapshot as is, serialised once.
+   */
+  readonly viewerState?: ViewerStateSerializer<Snapshot>;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */
@@ -39,6 +45,18 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
    * without one answers every game-specific tool with "not supported by this game module".
    */
   getDebugHandle?(): SimulationDebugHandle;
+}
+
+/**
+ * The snapshot members each connection is sent for itself alone (docs/architecture/wire-contract.md §4): the room
+ * stringifies the snapshot once per broadcast without `keys`, then appends every viewer's own values for them in
+ * this order (`lobby/viewer-snapshots.ts`). The module declares the members; the lobby names none.
+ */
+export interface ViewerStateSerializer<Snapshot = GameSnapshot> {
+  /** The per-viewer members, in the order the room appends them; the shared stringify leaves them out. */
+  readonly keys: readonly (keyof Snapshot & string)[];
+  /** One viewer's values for `keys`; a key it leaves out is sent as `null`. */
+  serialize(viewerPlayerId: PlayerId): Partial<Snapshot>;
 }
 
 /** The `game_state` payload: a full snapshot and the live balance the client must predict with. */

@@ -18,6 +18,7 @@ import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import { PerformanceTracker } from './performance-tracker.js';
 import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
+import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
 import type { RoomTiming } from './room-timing.js';
 import type { FullGameState, GameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
@@ -181,11 +182,13 @@ export class GameRoom {
    * (docs/architecture/wire-contract.md §4): the one message that rebuilds a client's whole view.
    */
   gameStateMessageFor(playerId: PlayerId): ServerMessage {
+    const { snapshot, balance } = this.getFullState();
     return {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: this.gameId,
       playerId,
-      ...this.getFullState(),
+      snapshot: snapshotForViewer(this.game, snapshot, playerId),
+      balance,
       config: this.sessionConfig,
       playerIds: this.allPlayerIds as PlayerId[],
       avatarAssignments: this.avatarAssignments,
@@ -289,7 +292,6 @@ export class GameRoom {
         sendMessage(connection, this.gameStateMessageFor(connection.playerId as PlayerId));
       }
     }
-    if (deltaTargets.length === 0) return 0;
-    return broadcastMessage(deltaTargets, { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot });
+    return sendSnapshotToViewers(this.game, deltaTargets, snapshot);
   }
 }

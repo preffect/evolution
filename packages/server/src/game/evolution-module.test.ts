@@ -84,6 +84,26 @@ describe('createEvolutionModule', () => {
     expect(module.serializeFullState().balance).toBe(module.world.balance);
   });
 
+  it('serialises every player as a roster row and each viewer its own progress apart', () => {
+    const module = createModule();
+    module.addPlayer(BOB, 1, 'Bob');
+    const broadcast = module.serializeRoomState();
+    expect(broadcast.ownProgress).toBeNull();
+    expect(module.serializeFullState().snapshot.ownProgress).toBeNull();
+    expect(broadcast.players).toEqual({
+      [ALICE]: { playerId: ALICE, playerName: 'Alice' },
+      [BOB]: { playerId: BOB, playerName: 'Bob' },
+    });
+    expect(module.viewerState.keys).toEqual(['ownProgress']);
+    expect(module.viewerState.serialize(ALICE).ownProgress).toMatchObject({
+      playerId: ALICE,
+      playerName: 'Alice',
+      level: 1,
+    });
+    expect(module.viewerState.serialize(BOB).ownProgress?.playerId).toBe(BOB);
+    expect(module.viewerState.serialize(playerId('nobody'))).toEqual({ ownProgress: null });
+  });
+
   it('adds a late joiner to the world and the replay, and removes them again', () => {
     const module = createModule();
     module.addPlayer(BOB, 1, 'Bob');

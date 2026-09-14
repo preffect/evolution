@@ -27,7 +27,12 @@ function viewOf(snapshot: Partial<EvolutionScenarioSnapshot>): EvolutionView {
   return {
     tick: 5,
     seed: 42,
-    snapshot: { ...createTestSnapshot(), spawnedCounts: { food: 0, dnaFragments: 0 }, ...snapshot },
+    snapshot: {
+      ...createTestSnapshot(),
+      spawnedCounts: { food: 0, dnaFragments: 0 },
+      progressByPlayer: {},
+      ...snapshot,
+    },
     playerId: (index) => playerId(`player_${index}`),
     cell: () => undefined,
     captured: () => undefined,
@@ -40,7 +45,7 @@ describe('evolution views', () => {
       createTestCellView({ id: entityId('c-1'), playerId: alice, x: 0, y: 0, mass: 50, velocityX: 3, velocityY: 4 }),
       createTestCellView({ id: entityId('c-2'), playerId: bob, x: 30, y: 40 }),
     ],
-    players: { [alice]: createTestPlayerProgressView({ playerId: alice, level: 3 }) },
+    progressByPlayer: { [alice]: createTestPlayerProgressView({ playerId: alice, level: 3 }) },
     dnaFragments: [{ id: entityId('f-1'), x: 1, y: 1, tag: 'motile' }],
     food: {
       spawned: [{ id: entityId('m-1'), kind: 'algae', bacteriumVariant: null, x: 0, y: 0 }],

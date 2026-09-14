@@ -2,7 +2,7 @@
 // which rows make the cut, what each one reads, and the rule that the own row is always among them.
 // Pure and DOM-free; the panel passes the signals in and renders the records out.
 
-import type { LeaderboardRow, PlayerId, PlayerProgressView } from '@evolution/shared';
+import type { LeaderboardRow, PlayerId, PlayerRosterView } from '@evolution/shared';
 import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
 
 const ELLIPSIS = '…';
@@ -29,7 +29,7 @@ export interface LeaderboardEntry {
 
 export interface LeaderboardInput {
   readonly rows: readonly LeaderboardRow[];
-  readonly players: Readonly<Record<string, PlayerProgressView>>;
+  readonly players: Readonly<Record<string, PlayerRosterView>>;
   readonly avatarAssignments: Readonly<Record<string, number>>;
   /** `MultiplayerService.playerId()`; `null` before the room names us. */
   readonly ownPlayerId: PlayerId | null;

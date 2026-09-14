@@ -17,14 +17,13 @@ const killer = createTestCellView({ id: entityId('k'), playerId: playerId('other
 function frameWith(cells: RenderFrame['cells'], spectatingCellId: string | null): RenderFrame {
   const latest = createTestSnapshot({
     cells: [...cells],
-    players: {
-      [ownId]: createTestPlayerProgressView({
-        playerId: ownId,
-        playerName: 'own',
-        lifeState: spectatingCellId === null ? PLAYER_LIFE_STATE.alive : PLAYER_LIFE_STATE.spectating,
-        spectatingCellId: spectatingCellId === null ? null : entityId(spectatingCellId),
-      }),
-    },
+    players: { [ownId]: { playerId: ownId, playerName: 'own' } },
+    ownProgress: createTestPlayerProgressView({
+      playerId: ownId,
+      playerName: 'own',
+      lifeState: spectatingCellId === null ? PLAYER_LIFE_STATE.alive : PLAYER_LIFE_STATE.spectating,
+      spectatingCellId: spectatingCellId === null ? null : entityId(spectatingCellId),
+    }),
   });
   return {
     renderTick: 0,

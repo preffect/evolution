@@ -21,7 +21,8 @@ may enter it while the player is alive and the round is `playing`. The rule hold
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the
 dish are the own cell's indicators (§3.1), drawn by the renderer in world space**; they are not subject to the box
 and do not scale with `--hud-scale` (they follow the cell's on-screen size with the px floors of §3.1.3). `me` =
-`MultiplayerService.playerId()`, `ownProgress` = `snapshot.players[me]`, `ownCell` = the cell whose `playerId` is
+`MultiplayerService.playerId()`, `ownProgress` = `snapshot.ownProgress` (sent to `me` alone; `snapshot.players[id]`
+is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md §4.1), `ownCell` = the cell whose `playerId` is
 `me` (absent while spectating).
 
 ```

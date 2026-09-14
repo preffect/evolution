@@ -15,6 +15,7 @@ import type {
   LeaderboardRow,
   MotePositionView,
   PlayerProgressView,
+  PlayerRosterView,
   RoundEndCondition,
   RoundPhase,
   TraitChoiceInput,
@@ -73,8 +74,14 @@ export interface GameSnapshot {
   /** Full every snapshot: they drift. */
   dnaFragments: DnaFragmentView[];
   food: FoodDelta;
-  /** Built from the join-ordered array. */
-  players: Record<string, PlayerProgressView>;
+  /** Every player's roster row, built from the join-ordered array. */
+  players: Record<string, PlayerRosterView>;
+  /**
+   * The receiving player's own progress: `ownedTraits`, the offer, the DNA and the death state are read by
+   * that player alone, so no other client is sent them (docs/architecture/wire-contract.md §4.1). `null`
+   * in a snapshot built for no viewer (a debug read, a scenario) or for one without a seat.
+   */
+  ownProgress: PlayerProgressView | null;
   leaderboard: LeaderboardRow[];
   /** Prediction (docs/architecture/client.md §5). */
   appliedInputSequenceByPlayer: Record<string, number>;

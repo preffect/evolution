@@ -221,6 +221,7 @@ export function benchSnapshotAt(world: BenchWorld, tick: number): GameSnapshot {
   const players = world.cells
     .filter((spec) => spec.playerId !== null)
     .map((spec) => ({ index: spec.index, playerId: spec.playerId! }));
+  const progressByPlayer = benchPlayers(players, tick);
   return {
     tick,
     seed: world.seed,
@@ -231,7 +232,8 @@ export function benchSnapshotAt(world: BenchWorld, tick: number): GameSnapshot {
     cells,
     dnaFragments: world.fragments.map((spec) => benchFragmentView(spec, tick)),
     food: { spawned: tick === 0 ? motes : [], removedIds: [], moved },
-    players: benchPlayers(players, tick),
+    players: progressByPlayer,
+    ownProgress: progressByPlayer[BENCH_OWN_PLAYER_ID] ?? null,
     leaderboard: [],
     appliedInputSequenceByPlayer: {},
     effects: scheduledBenchEffects({ cells, victims, creditedPlayerId: BENCH_OWN_PLAYER_ID }, tick),

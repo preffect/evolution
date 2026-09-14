@@ -21,7 +21,7 @@ export function cellOf(view: EvolutionView, playerIndex: number): CellView | und
 }
 
 export function progressOf(view: EvolutionView, playerIndex: number): PlayerProgressView | undefined {
-  return view.snapshot.players[view.playerId(playerIndex)];
+  return view.snapshot.progressByPlayer[view.playerId(playerIndex)];
 }
 
 export function massOf(view: EvolutionView, playerIndex: number): number | undefined {

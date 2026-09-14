@@ -6,6 +6,7 @@ import {
   SNAPSHOT_POSITION_DECIMALS,
   type GameEffect,
   EFFECT_KIND,
+  playerId,
 } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
@@ -19,6 +20,10 @@ import {
   toFoodMoteView,
   toMotePositionView,
   toPlayerProgressView,
+  toPlayerRosterView,
+  ownProgressOf,
+  serializeViewerState,
+  VIEWER_SNAPSHOT_KEYS,
 } from './serialize.js';
 
 describe('quantizePosition', () => {
@@ -102,6 +107,35 @@ describe('view projections', () => {
     expect(view).not.toHaveProperty('joinOrder');
     expect(toPlayerProgressView({ ...player, offer: null }).offer).toBeNull();
   });
+
+  it('projects a player onto a roster row of its id and name only', () => {
+    const player = createTestWorld().players[0]!;
+    player.ownedTraits = [{ traitId: 'nucleoid', tier: 2 }];
+    expect(toPlayerRosterView(player)).toEqual({ playerId: player.playerId, playerName: player.playerName });
+  });
+});
+
+describe('ownProgressOf', () => {
+  it('is the viewer’s own progress view', () => {
+    const world = createTestWorld();
+    const viewer = world.players[0]!;
+    viewer.ownedTraits = [{ traitId: 'nucleoid', tier: 1 }];
+    expect(ownProgressOf(world, viewer.playerId)).toEqual(toPlayerProgressView(viewer));
+  });
+
+  it('is null for a viewer with no player in the world', () => {
+    expect(ownProgressOf(createTestWorld(), playerId('nobody'))).toBeNull();
+  });
+});
+
+describe('serializeViewerState', () => {
+  it('answers exactly the declared viewer members: the viewer’s own progress', () => {
+    const world = createTestWorld();
+    const viewer = world.players[0]!;
+    const state = serializeViewerState(world, viewer.playerId);
+    expect(Object.keys(state)).toEqual([...VIEWER_SNAPSHOT_KEYS]);
+    expect(state.ownProgress).toEqual(toPlayerProgressView(viewer));
+  });
 });
 
 describe('serializeFullSnapshot', () => {
@@ -120,7 +154,8 @@ describe('serializeFullSnapshot', () => {
     expect(snapshot.food.removedIds).toEqual([]);
     expect(snapshot.food.moved).toEqual([]);
     expect(snapshot.effects).toEqual([]);
-    expect(Object.keys(snapshot.players)).toEqual(['p1']);
+    expect(snapshot.players).toEqual({ p1: toPlayerRosterView(world.players[0]!) });
+    expect(snapshot.ownProgress).toBeNull();
     expect(snapshot.appliedInputSequenceByPlayer).toEqual({ p1: 0 });
     expect(snapshot.roundPhase).toBe(ROUND_PHASE.playing);
     expect(snapshot.seed).toBe(world.seed);

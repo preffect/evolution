@@ -18,7 +18,7 @@ export function followTarget(frame: RenderFrame, ownPlayerId: string | null): Ca
   if (ownPlayerId === null) return null;
   const own = ownCellOf(frame, ownPlayerId);
   if (own !== null) return { x: own.x, y: own.y, radius: own.radius };
-  const spectatingCellId = frame.latest.players[ownPlayerId]?.spectatingCellId ?? null;
+  const spectatingCellId = frame.latest.ownProgress?.spectatingCellId ?? null;
   const killer = spectatingCellId === null ? undefined : frame.cells.find((cell) => cell.id === spectatingCellId);
   return killer === undefined ? null : { x: killer.x, y: killer.y, radius: killer.radius };
 }
