@@ -143,7 +143,7 @@ worst case.
 | `cells`: wild cells (#176; estimated, not measurable yet)                      | 24 × ~300 bare, ~650 with a 7-pick build | ~7.2–15.6 KB     |
 | `players` (8 roster rows) + `ownProgress` + `leaderboard`                      | 468 + ~840–1 010 + ~850                  | ~2.2–2.3 KB      |
 | `appliedInputSequenceByPlayer`, effects, `food.spawned` / `removedIds`, header |                                          | ~0.7 KB          |
-| **total, uncut**                                                               |                                          | **≈ 48–57 KB**   |
+| **total, uncut**                                                               |                                          | **≈ 48–56.4 KB** |
 | **total with lever 1** (−75 % on `moved` and `dnaFragments`)                   | ~6.4 + ~1.5 + …                          | **≈ 24.5–33 KB** |
 
 Until #331 every client was sent every player's whole `PlayerProgressView` (#330's review: 471 B with no owned traits,
@@ -176,11 +176,12 @@ offers-shown row would be 30 783 − 8 162 + 1 477 ≈ 24.1 KB. The CPU cost of 
 is not measured here: the room reads `tickMs` before the broadcast runs, so its tick p95 excludes serialisation and
 sending (#340). The splice (§4) is what keeps that cost flat in the client count.
 
-JSON length is the budget unit: `perMessageDeflate` (already enabled, level 1) shrinks a `game_snapshot` by only
-~1.5 % (14.0 → 13.8 KB, #331's review), since ids and positions are close to random text. Compression is not a lever.
+Raw JSON length stays the budget unit. `perMessageDeflate` (already enabled, level 1) cuts the bytes on the wire by
+about 70–75 %: with real sequential ids a `game_snapshot` of 31 689 B deflates to 7 658 B (#331's review). #331's own
+saving, measured after deflate, is 1.5–1.7 % of the wire bytes.
 
-Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client**; 8 clients ≈ 4 MB/s raw server egress, fine on a
-LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
+Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120–150 KB/s after `perMessageDeflate`); 8 clients
+≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
 **§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
 wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
 With lever 1 the worst case above is ≈ 24.5 KB (≈ 490 KB/s) with bare wild cells and ≈ 33 KB if they carry their
