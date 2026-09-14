@@ -300,10 +300,10 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Lint / format rules** (L103–117): means "intentionally unused" — it is not a license to leave a stub instead of real code.
   - **3.3 Forbidden escape hatches** (L118–128): without a justification.
 
-## engineering/validation-gate.md (122 lines)
+## engineering/validation-gate.md (128 lines)
 
-- **Engineering Standards: the validation gate** (L1–122): §1 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
-- **1. The Validation Gate (`./validate.sh`)** (L5–122): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
+- **Engineering Standards: the validation gate** (L1–128): §1 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
+- **1. The Validation Gate (`./validate.sh`)** (L5–128): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
 
 ## game-design/constants-and-acceptance.md (111 lines)
 

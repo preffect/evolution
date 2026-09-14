@@ -55,7 +55,7 @@ mkdir -p "$fixture/scripts/lib" "$sandbox/bin" "$sandbox/home" \
   "$fixture/packages/shared/src" "$fixture/packages/shared/dist" "$fixture/node_modules/.pnpm" \
   "$fixture/packages/server/src/game" "$fixture/packages/client/src/app"
 cp "$repo_root/validate.sh" "$fixture/validate.sh"
-cp "$repo_root/scripts/lib/workspace-ready.sh" "$repo_root/scripts/lib/gate-lock.sh" "$fixture/scripts/lib/"
+cp "$repo_root/scripts/lib/workspace-ready.sh" "$repo_root/scripts/lib/gate-lock.sh" "$repo_root/scripts/lib/behind-base.sh" "$fixture/scripts/lib/"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 touch "$fixture/packages/shared/src/index.ts" "$fixture/packages/server/src/game/world.ts" \
   "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts" \
@@ -516,7 +516,7 @@ git -C "$fixture" checkout -q affected-behind
 behind_head="$(git -C "$fixture" rev-parse HEAD)"
 behind_status="$(git -C "$fixture" status --porcelain)"
 run_validate "$fixture" all --affected
-check "a branch behind origin/main is refused, naming the merge, even with a green stamp on its tree" $(( rc != 0 && $(ran 'is 1 commits behind origin/main'; echo $?) == 0 && $(ran 'git merge origin/main'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 && $(is_cached; echo $?) != 0 && $(ran '^ALL PASSED$'; echo $?) != 0 ))
+check "a branch behind origin/main is refused, naming the merge, even with a green stamp on its tree" $(( rc != 0 && $(ran 'is 1 commit behind origin/main'; echo $?) == 0 && $(ran 'git merge origin/main'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 && $(is_cached; echo $?) != 0 && $(ran '^ALL PASSED$'; echo $?) != 0 ))
 check "the refusal leaves the branch, the tree and the stash as they were" $(( $(test "$(git -C "$fixture" rev-parse HEAD)" == "$behind_head"; echo $?) == 0 && $(test "$(git -C "$fixture" status --porcelain)" == "$behind_status"; echo $?) == 0 &&$(git -C "$fixture" stash list | wc -l) == 0 ))
 git -C "$fixture" -c user.name=test -c user.email=test@example.com merge -q --no-edit origin/main
 run_validate "$fixture" all --affected

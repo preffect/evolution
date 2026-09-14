@@ -162,6 +162,7 @@ apply_filters() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
 source "$SCRIPT_DIR/scripts/lib/gate-lock.sh"
+source "$SCRIPT_DIR/scripts/lib/behind-base.sh"
 
 # ---------------------------------------------------------------------------
 # Scope (--scope, see the header): resolved once, before anything runs; every phase reads these.
@@ -397,9 +398,9 @@ refresh_affected_base() {
 # green stamp on the same tree cannot pass it either. It changes nothing: merging is the author's step.
 refuse_branch_behind_base() {
   local behind
-  behind="$(git -C "$SCRIPT_DIR" rev-list --count "HEAD..$AFFECTED_BASE_REF" 2>/dev/null)" || behind=0
+  behind="$(commits_behind "$SCRIPT_DIR" "$AFFECTED_BASE_REF")"
   [[ "$behind" -gt 0 ]] || return 0
-  echo "validate.sh: --affected: this branch is $behind commits behind $AFFECTED_BASE_REF, so a green gate would not check the tree that merges; run \`git merge $AFFECTED_BASE_REF\` first, then re-run" >&2
+  echo "validate.sh: --affected: $(behind_base_message "$behind" "$AFFECTED_BASE_REF")" >&2
   exit 1
 }
 
