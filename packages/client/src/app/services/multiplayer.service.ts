@@ -1,16 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { concat, defer, of, type Observable } from 'rxjs';
-import type {
-  BalanceConfig,
-  GameId,
-  GameInput,
-  GameSessionConfig,
-  GameSnapshot,
-  LobbyGameInfo,
-  PlayerId,
-  ServerMessage,
-} from '@evolution/shared';
+import type { GameInput, GameSessionConfig, LobbyGameInfo, ServerMessage } from '@evolution/shared';
 import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { RoomState } from './room-state';
 import { SEAT_RECOVERY_OUTCOME, SeatRecovery } from './seat-recovery';
 import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
 
@@ -47,6 +39,7 @@ export class MultiplayerService {
   private readonly transport = inject(WebSocketService);
   /** The newest `game_state`, replayed to a composition root that subscribes after it arrived. */
   private latestGameStateMessage: ServerMessage | null = null;
+  private readonly room = new RoomState();
   private readonly seatRecovery = new SeatRecovery();
   /** The newest name and avatar this client announced, re-announced when a dropped socket reopens. */
   private lobbyAnnouncement: LobbyAnnouncement | null = null;
@@ -58,24 +51,17 @@ export class MultiplayerService {
   // ===== Lobby / room state (generic) =====
   readonly phase = signal<Phase>('lobby');
   readonly games = signal<LobbyGameInfo[]>([]);
-  readonly playerId = signal<PlayerId | null>(null);
-  readonly gameId = signal<GameId | null>(null);
-  readonly playerIds = signal<PlayerId[]>([]);
-  readonly isHost = signal(false);
-  readonly avatarAssignments = signal<Record<string, number>>({});
-  readonly sessionConfig = signal<GameSessionConfig | null>(null);
+  readonly playerId = this.room.playerId;
+  readonly gameId = this.room.gameId;
+  readonly playerIds = this.room.playerIds;
+  readonly isHost = this.room.isHost;
+  readonly avatarAssignments = this.room.avatarAssignments;
+  readonly sessionConfig = this.room.sessionConfig;
+  readonly snapshot = this.room.snapshot;
+  readonly balance = this.room.balance;
   readonly lastError = signal<string | null>(null);
   /** Set when the lobby returned without the player asking; cleared by the next room. */
   readonly lobbyNotice = signal<LobbyNotice | null>(null);
-
-  /** The newest `game_snapshot`, for the lobby / HUD facade; the renderer reads `WorldStore` instead. */
-  readonly snapshot = signal<GameSnapshot | null>(null);
-
-  /**
-   * The live balance the server simulates with (`game_state`, then every `balance_updated`), for
-   * the HUD facade; the renderer reads the same numbers off its own `WorldStore`.
-   */
-  readonly balance = signal<BalanceConfig | null>(null);
 
   readonly inGame = computed(() => this.phase() === 'in-game');
 
@@ -188,18 +174,10 @@ export class MultiplayerService {
     this.seatRecovery.socketDropped(this.inGame());
   }
 
-  /** Every room fact goes, so the next room starts from nothing a previous one left behind. */
   private returnToLobby(notice: LobbyNotice | null): void {
     this.seatRecovery.cancel();
     this.latestGameStateMessage = null;
-    this.playerId.set(null);
-    this.gameId.set(null);
-    this.playerIds.set([]);
-    this.isHost.set(false);
-    this.avatarAssignments.set({});
-    this.sessionConfig.set(null);
-    this.snapshot.set(null);
-    this.balance.set(null);
+    this.room.clear();
     this.lobbyNotice.set(notice);
     this.phase.set('lobby');
   }
@@ -212,16 +190,8 @@ export class MultiplayerService {
     this.handle(message);
   }
 
-  /** Sent on start and to a (re)joining player: full room state to (re)build the view. */
-  private applyGameState(message: Extract<ServerMessage, { type: typeof SERVER_MESSAGE_TYPE.gameState }>): void {
-    this.latestGameStateMessage = message;
-    this.playerId.set(message.playerId);
-    this.gameId.set(message.gameId);
-    this.playerIds.set(message.playerIds);
-    this.sessionConfig.set(message.config);
-    this.avatarAssignments.set(message.avatarAssignments);
-    this.balance.set(message.balance);
-    this.snapshot.set(message.snapshot);
+  /** A room message puts this client in play, and a notice from a previous room no longer applies. */
+  private enterRoom(): void {
     this.lobbyNotice.set(null);
     this.phase.set('in-game');
   }
@@ -235,17 +205,14 @@ export class MultiplayerService {
       case SERVER_MESSAGE_TYPE.gameStarted:
         // The room's own game_state follows in the same burst; a previous room's must not be replayed.
         this.latestGameStateMessage = null;
-        this.playerId.set(message.playerId);
-        this.gameId.set(message.gameId);
-        this.playerIds.set(message.playerIds);
-        this.isHost.set(message.isHost);
-        this.sessionConfig.set(message.config);
-        this.lobbyNotice.set(null);
-        this.phase.set('in-game');
+        this.room.applyGameStarted(message);
+        this.enterRoom();
         break;
 
       case SERVER_MESSAGE_TYPE.gameState:
-        this.applyGameState(message);
+        this.latestGameStateMessage = message;
+        this.room.applyGameState(message);
+        this.enterRoom();
         break;
 
       case SERVER_MESSAGE_TYPE.gameSnapshot:
