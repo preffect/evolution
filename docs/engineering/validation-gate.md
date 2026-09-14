@@ -48,7 +48,19 @@
      `docs/`, `qa/`: prettier on the changed docs plus the docs index); the shell suites for a
      `scripts/` or root `*.sh` change; the plain `all` for any other root file. It prints
      `affected <what>: <why>` for each selection, skips the phases with nothing to check, and is
-     stamped per affected set (`scope=affected-<set>`);
+     stamped per affected set (`scope=affected-<set>`; a root-file change is `affected-everything`, so a
+     plain `all` stamp never answers it). After the unit tests it runs the **integration tier**
+     (`*.integration.test.ts`, `*.integration.spec.ts`, `*.gameplay.test.ts`; #344) of each selected
+     package that has one, fail-fast and stamped like the other phases, and prints
+     `affected integration: <package> (N files) …`; a docs-only or scripts-only branch skips it. With
+     more than one integration package (a shared change selects shared, server and client) pnpm runs their
+     runners side by side, and a gameplay scenario may use up to its 300 s timeout
+     (`OPT_IN_TEST_TIMEOUT_MS` in `vitest.tiers.ts`): a timeout in this phase on a busy box is re-run with
+     `./validate.sh integration --scope <package> -- <file>` before anyone calls it flaky. It
+     checks the tree that will merge: it first fetches `origin main` (best effort: a failed fetch says so
+     and compares against the local copy), then **refuses a branch behind `origin/main`**
+     (`run git merge origin/main first`) before reading any stamp, so a green stamp from an old base
+     cannot pass. It never merges, rebases or stashes on its own;
    - **caches green results by content** (#224, template #75): a green run is stamped under
      `$HOME/.cache/<slug>-validate/<tree>.<command>[.scope-<scope>]` (the scope with `/` as `_`;
      fields: `exit`, ISO `time`, `log` path, `node` major, `command`, `scope`, `tree`; the raw log
@@ -79,8 +91,11 @@
    - **Reviewers:** scoped checks on what they review. A reviewer never needs a stamp and never
      runs `all`.
    - **Whoever merges:** runs `./validate.sh all --affected` once on the final head, right before
-     the merge, and merges only on its `ALL PASSED`; when the change crosses subsystems, also runs
-     `./validate.sh integration --scope <package>` on the packages it touches.
+     the merge, and merges only on its `ALL PASSED`; the integration tier is part of it. When it
+     refuses a branch behind `origin/main`, merge `origin/main` into the branch (never rebase a
+     reviewed PR), push, and run the gate on that head. `scripts/land-pr.sh` refuses a behind PR itself
+     before running the PR's gate (`scripts/lib/behind-base.sh`), because a PR branched earlier carries
+     a `validate.sh` without the refusal or the integration phase; it never merges main in for the author.
    - **Long gates:** a real `all` or `integration` runs in the background (the agent's
      `run_in_background`), with `set -o pipefail` before any pipe; the verdict is the command's own
      exit code, never a `tail` of its output.
@@ -101,12 +116,12 @@
 
 ```text
 ./validate.sh test         # unit tier with coverage thresholds
-./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier (opt-in)
+./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier + *.gameplay.test.ts (opt-in; all --affected runs it)
 ./validate.sh typecheck    # type check all packages (builds shared first when stale)
 ./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
 ./validate.sh duplication  # jscpd (.jscpd.json)
 ./validate.sh all          # lint -> duplication -> typecheck -> test, stopping at the first red phase; prints wall times and ALL PASSED / FAILED: <phase>
-./validate.sh all --affected  # the merge gate: only what the branch changed against origin/main
+./validate.sh all --affected  # the merge gate: only what the branch changed against origin/main, then its integration tier; refuses a branch behind origin/main
 ./validate.sh all --fresh  # same, ignoring the result cache (a green run is still stamped)
 ./validate.sh test --scope server                          # one package, with its coverage floor
 ./validate.sh test --scope packages/server/src/game/world  # only the tests under a path, no coverage floor

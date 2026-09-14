@@ -9,7 +9,7 @@
 #   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
 #   all          Run lint, duplication, typecheck, test in sequence, stopping at the first failing phase
-#                (FAILED: <phase>), then one line of per-phase wall times
+#                (FAILED: <phase>), then one line of per-phase wall times; `all --affected` adds integration last
 #
 # Options:
 #   -tN        Tail N lines of output (e.g. -t20)
@@ -25,7 +25,10 @@
 #              against origin/main (committed, uncommitted, untracked): the changed packages and their
 #              dependents (a shared change selects every package); lint alone for docs (*.md, docs/,
 #              qa/); the shell suites for scripts/ and root *.sh; the plain `all` for any other root
-#              file. Prints each selection and why, and is stamped per affected set.
+#              file. After the unit tests it runs the integration tier (integration and gameplay tests)
+#              of each selected package that has any (#344). Fetches origin main first (best effort) and
+#              refuses a branch behind origin/main: merge it first. Prints each selection and why, and
+#              is stamped per affected set.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache). For test and
@@ -159,6 +162,7 @@ apply_filters() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/lib/workspace-ready.sh"
 source "$SCRIPT_DIR/scripts/lib/gate-lock.sh"
+source "$SCRIPT_DIR/scripts/lib/behind-base.sh"
 
 # ---------------------------------------------------------------------------
 # Scope (--scope, see the header): resolved once, before anything runs; every phase reads these.
@@ -237,14 +241,21 @@ resolve_scope() {
 # Affected (--affected, #304): what the branch changed against origin/main decides what `all` checks.
 # Resolved once, after the scope; it narrows the same globals a scope does and names the stamp.
 # ---------------------------------------------------------------------------
-AFFECTED_BASE_REF="origin/main"
+AFFECTED_REMOTE="origin"
+AFFECTED_BASE_BRANCH="main"
+AFFECTED_BASE_REF="$AFFECTED_REMOTE/$AFFECTED_BASE_BRANCH"
+AFFECTED_FETCH_TIMEOUT_SECONDS=60
 AFFECTED_SCOPE_PREFIX="affected-"
+AFFECTED_EVERYTHING_TOKEN="everything"
+# The opt-in tier's file names: vitest.tiers.ts OPT_IN_TEST_GLOBS and the client's test-integration target.
+OPT_IN_TEST_SUFFIXES=(.integration.test.ts .integration.spec.ts .gameplay.test.ts)
 declare -A PACKAGE_DEPENDENTS=([shared]="server client") # the workspace dependencies in package.json
 PACKAGE_PATH_PATTERN='^packages/([^/]+)/'
 DOCS_PATH_PATTERN='(\.md$|^docs/|^qa/)'
 SHELL_PATH_PATTERN='(^scripts/|^[^/]+\.sh$)'
 PRETTIER_DOC_PATTERN='\.md$'
 AFFECTED_PACKAGES=()      # the selected packages, in PACKAGES order
+INTEGRATION_PACKAGES=()   # the selected packages that have integration or gameplay tests
 AFFECTED_DOC_FILES=()     # changed docs that still exist, for prettier
 AFFECTED_EVERYTHING_BY="" # the first changed path outside packages, docs and scripts
 IS_DOCS_AFFECTED=0
@@ -343,24 +354,79 @@ apply_affected_selection() {
   SCOPE_NAME="$AFFECTED_SCOPE_PREFIX${joined%+}"
 }
 
+opt_in_test_count() { # <package>: its integration and gameplay test files
+  local names=() suffix
+  for suffix in "${OPT_IN_TEST_SUFFIXES[@]}"; do names+=(-o -name "*$suffix"); done
+  find "$SCRIPT_DIR/packages/$1/src" -type f \( "${names[@]:1}" \) 2>/dev/null | wc -l
+}
+
+# The integration phase runs only where there is something to run: a docs or scripts branch, or a
+# package without the tier, skips it.
+select_integration_packages() {
+  local package count found=() joined
+  for package in "${AFFECTED_PACKAGES[@]}"; do
+    count="$(opt_in_test_count "$package")"
+    [[ "$count" -gt 0 ]] || continue
+    INTEGRATION_PACKAGES+=("$package")
+    found+=("$package ($count files)")
+  done
+  [[ ${#found[@]} -gt 0 ]] || return 0
+  printf -v joined '%s, ' "${found[@]}"
+  report_affected "integration: ${joined%, } with integration or gameplay tests"
+}
+
+# The integration phase's selection: the integration packages alone, not every affected one.
+narrow_to_integration_packages() {
+  local package
+  PNPM_SELECTION=()
+  for package in "${INTEGRATION_PACKAGES[@]}"; do PNPM_SELECTION+=(--filter "$PACKAGE_NAME_PREFIX$package"); done
+  SCOPE_PACKAGE=""
+  [[ ${#INTEGRATION_PACKAGES[@]} -ne 1 ]] || SCOPE_PACKAGE="${INTEGRATION_PACKAGES[0]}"
+}
+
+# Best effort: the merge gate compares against origin/main as it is now, not as of the last fetch. A
+# checkout without the remote, or a fetch that fails, compares against the local copy.
+refresh_affected_base() {
+  git -C "$SCRIPT_DIR" remote get-url "$AFFECTED_REMOTE" >/dev/null 2>&1 || return 0
+  GIT_TERMINAL_PROMPT=0 timeout "$AFFECTED_FETCH_TIMEOUT_SECONDS" \
+    git -C "$SCRIPT_DIR" fetch --quiet "$AFFECTED_REMOTE" "$AFFECTED_BASE_BRANCH" 2>/dev/null \
+    || echo "validate.sh: could not fetch $AFFECTED_BASE_REF; comparing against the local copy" >&2
+}
+
+# A branch behind origin/main was green on an old base, and main may have broken it since (#344: #343's
+# scenarios failed only once main was merged in). The gate refuses it before any stamp is read, so an old
+# green stamp on the same tree cannot pass it either. It changes nothing: merging is the author's step.
+refuse_branch_behind_base() {
+  local behind
+  behind="$(commits_behind "$SCRIPT_DIR" "$AFFECTED_BASE_REF")"
+  [[ "$behind" -gt 0 ]] || return 0
+  echo "validate.sh: --affected: $(behind_base_message "$behind" "$AFFECTED_BASE_REF")" >&2
+  exit 1
+}
+
 resolve_affected() {
   [[ $AFFECTED -eq 1 ]] || return 0
   local paths path
+  refresh_affected_base
   if ! paths="$(affected_changed_paths)"; then
     echo "validate.sh: --affected cannot find the merge base with $AFFECTED_BASE_REF (git fetch origin first)" >&2
     exit 1
   fi
+  refuse_branch_behind_base
   while IFS= read -r path; do
     [[ -z "$path" ]] || classify_affected_path "$path"
   done <<< "$paths"
   if [[ -n "$AFFECTED_EVERYTHING_BY" ]]; then
-    # A root file (config, lockfile, validate.sh's neighbours) can change any phase: the plain `all`.
+    # A root file (config, lockfile, validate.sh's neighbours) can change any phase: the plain `all`,
+    # stamped apart from it, since the affected gate adds the integration phase.
     AFFECTED_PACKAGES=("${PACKAGES[@]}")
+    SCOPE_NAME="$AFFECTED_SCOPE_PREFIX$AFFECTED_EVERYTHING_TOKEN"
     report_affected "everything: $AFFECTED_EVERYTHING_BY is outside packages/, the docs and scripts/"
   else
     select_affected_packages
     apply_affected_selection
   fi
+  select_integration_packages
   printf '%s' "$AFFECTED_REPORT"
 }
 
@@ -531,6 +597,7 @@ client_file_scope_spec() { # <test | integration> <package-relative file>
 # key=value lines: exit, time, log, node, command, scope, tree.
 # ---------------------------------------------------------------------------
 ALL_PHASES=(lint duplication typecheck test)
+AFFECTED_PHASES=("${ALL_PHASES[@]}" integration) # the merge gate adds the integration tier (#344)
 CACHE_DIR=""
 TREE_HASH=""
 NODE_MAJOR=""
@@ -890,6 +957,13 @@ phase_skip_reason() { # <cmd>
     test)
       [[ ${#AFFECTED_PACKAGES[@]} -gt 0 || $SHELL_SUITES_SELECTED -eq 1 ]] || echo "no package and no script affected"
       ;;
+    integration)
+      if [[ ${#AFFECTED_PACKAGES[@]} -eq 0 ]]; then
+        echo "no package affected"
+      elif [[ ${#INTEGRATION_PACKAGES[@]} -eq 0 ]]; then
+        echo "no affected package has integration or gameplay tests"
+      fi
+      ;;
   esac
 }
 
@@ -907,11 +981,15 @@ run_all() {
     exit 0
   fi
   local cmd started=$SECONDS phase_started phase_rc skip_reason wall_times=() all_log="$AFFECTED_REPORT"
-  for cmd in "${ALL_PHASES[@]}"; do
+  local phases=("${ALL_PHASES[@]}")
+  [[ $AFFECTED -eq 0 ]] || phases=("${AFFECTED_PHASES[@]}")
+  for cmd in "${phases[@]}"; do
     echo "=== $cmd ==="
     skip_reason="$(phase_skip_reason "$cmd")"
     phase_started=$SECONDS
     phase_rc=0
+    # The last phase, so narrowing the selection for it leaves the earlier phases as they were.
+    [[ "$cmd" != integration || -n "$skip_reason" ]] || narrow_to_integration_packages
     if [[ -n "$skip_reason" ]]; then
       PHASE_OUTPUT="skipped: $skip_reason"
       echo "$PHASE_OUTPUT"

@@ -16,7 +16,9 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AGENT="$ROOT/scripts/agent.sh"
+source "$ROOT/scripts/lib/behind-base.sh"
 cd "$ROOT"
+BASE_REF="origin/main"
 ALWAYS_REVIEWER="code-qa"
 DEFAULT_REVIEWERS="architect"
 DEFAULT_ROUNDS=3
@@ -65,12 +67,18 @@ EOF
 }
 
 # The one full gate (docs/engineering/validation-gate.md §1): `all --affected` on the final head, right before the
-# merge, in the PR's worktree fast-forwarded to what was pushed.
+# merge, in the PR's worktree fast-forwarded to what was pushed. A PR behind origin/main is refused here
+# first, by this (main checkout's) copy: the PR's own validate.sh may predate that refusal and the integration
+# phase (#344). land-pr.sh never merges main in itself, since that would land a head nobody reviewed.
 merge_gate() {
-  local worktree="$ROOT/.worktrees/$head_branch"
-  git -C "$worktree" fetch -q origin \
-    && git -C "$worktree" merge -q --ff-only "origin/$head_branch" \
-    && (cd "$worktree" && ./validate.sh all --affected)
+  local worktree="$ROOT/.worktrees/$head_branch" behind
+  git -C "$worktree" fetch -q origin && git -C "$worktree" merge -q --ff-only "origin/$head_branch" || return 1
+  behind="$(commits_behind "$worktree" "$BASE_REF")"
+  if [[ "$behind" -gt 0 ]]; then
+    echo "== PR #$pr: $(behind_base_message "$behind" "$BASE_REF")" >&2
+    return 1
+  fi
+  (cd "$worktree" && ./validate.sh all --affected)
 }
 
 run_role() { # <role> <task> — one agent run; a failed run is reported, not fatal (the state check decides)
@@ -92,7 +100,7 @@ for ((round = 1; round <= rounds; round++)); do
   echo "   verdicts: $(jq -c .verdicts <<<"$state"); unresolved threads: $unresolved"
   if [[ -z "$missing" && "$unresolved" == "0" ]]; then
     if ! merge_gate; then
-      echo "== PR #$pr approved by [$reviewers], but ./validate.sh all --affected failed on the final head; not merged." >&2
+      echo "== PR #$pr approved by [$reviewers], but the merge gate refused or failed the final head (above); not merged." >&2
       exit 1
     fi
     gh pr merge "$pr" --squash --auto --delete-branch >/dev/null
