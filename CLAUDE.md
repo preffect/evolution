@@ -45,7 +45,8 @@
 A fresh worktree needs no setup: before a real run `./validate.sh` (and `./run.sh` before it starts) runs
 `pnpm install --frozen-lockfile` when `node_modules` does not match `pnpm-lock.yaml`, and builds
 `@evolution/shared` when its `dist` is missing or older than its sources (`scripts/lib/workspace-ready.sh`).
-For `test` and `integration`, `-- extra args` need a one-package `--scope`.
+For `test` and `integration`, `-- extra args` need a one-package `--scope`. A scoped `lint` also
+prettier-checks the docs (`*.md` outside `packages/`) the branch changed against `origin/main`.
 
 ### Running the dev servers
 

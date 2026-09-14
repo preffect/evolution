@@ -20,7 +20,8 @@
 #   neither; a failed install stops the run, a failed build does not. Client filters (#329): a
 #   non-option extra arg becomes one --include per matching spec of the tier (under a path scope, in
 #   place of its include), options pass through, no match fails, and extra args on a selection that
-#   mixes the client with other packages are refused.
+#   mixes the client with other packages are refused. A scoped lint also prettier-checks the docs the
+#   branch changed, and only those (#329).
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -408,6 +409,8 @@ affected_branch affected-client packages/client/src/app/hud.spec.ts
 run_validate "$fixture" all --affected
 check "a client-only branch selects client, and says why" $(( rc == 0 && $(ran '^affected client: changed (1 files, e.g. packages/client/src/app/hud.spec.ts)$'; echo $?) == 0 ))
 check "a client-only branch typechecks, lints and tests client alone" $(( $(ran '^fake pnpm --filter @evolution/client typecheck$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/client test$'; echo $?) == 0 && $(ran '^fake pnpm eslint packages/client$'; echo $?) == 0 && $(ran '@evolution/server\|-r test\|-r typecheck\|^affected server\|^affected shared'; echo $?) != 0 ))
+run_validate "$fixture" lint --scope client
+check "a scoped lint on a branch that changed no doc prettier-checks its scope alone" $(( rc == 0 && $(ran '^fake pnpm prettier --check packages/client$'; echo $?) == 0 && $(ran '^lint also prettier-checks'; echo $?) != 0 ))
 run_validate "$fixture" all --affected
 check "all --affected is stamped per affected set" $(( rc == 0 && $(is_cached; echo $?) == 0 && $(ran '^scope: affected-client$'; echo $?) == 0 ))
 run_validate "$fixture" all
@@ -420,6 +423,8 @@ check "a shared change selects all three packages, the dependents with their rea
 affected_branch affected-docs docs/NOTE.md
 run_validate "$fixture" all --affected
 check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran '^fake pnpm prettier --check docs/NOTE.md$'; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 3 ))
+run_validate "$fixture" lint --scope client
+check "a scoped lint also prettier-checks the docs the branch changed, and says so (#329)" $(( rc == 0 && $(ran '^fake pnpm prettier --check packages/client docs/NOTE.md$'; echo $?) == 0 && $(ran '^lint also prettier-checks the 1 docs changed on the branch: docs/NOTE.md$'; echo $?) == 0 ))
 
 affected_branch affected-scripts scripts/tool.sh
 run_validate "$fixture" all --affected

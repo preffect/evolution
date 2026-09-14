@@ -27,7 +27,9 @@
      package (its tests keep the package's coverage floor; typecheck still builds shared first);
      `--scope <file or directory under packages/<package>/src>` runs only the tests that path
      selects (a directory: the tests under it; a source file: the tests named after it) **without**
-     coverage floors, lints, formats and scans that path, and typechecks its package. No `--scope`
+     coverage floors, lints, formats and scans that path, and typechecks its package. Either scope's
+     `lint` also prettier-checks the docs (`*.md` outside `packages/`) the branch changed against
+     `origin/main` and names them (#329), so a scoped lint is never green over unformatted docs. No `--scope`
      is the whole repo, exactly as before; an empty `--scope` is refused. `test` and `integration`
      print `selected <package>: N test files, M tests run[, K skipped]`, and a targeted run (a path
      scope or `-- extra-args`) that runs no test — nothing selected, or every selected test skipped

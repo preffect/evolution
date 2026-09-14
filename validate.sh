@@ -19,7 +19,8 @@
 #   --scope S  Narrow every phase to a package (shared | server | client) or to a file or directory
 #              under packages/<package>/src. A package scope keeps the coverage floors; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
-#              typechecks its package (tsc checks whole projects). An empty scope is refused.
+#              typechecks its package (tsc checks whole projects). An empty scope is refused. A scoped
+#              lint also prettier-checks the docs (*.md outside packages/) changed against origin/main.
 #   --affected With `all` only, never with --scope: the merge gate. Checks what the branch changed
 #              against origin/main (committed, uncommitted, untracked): the changed packages and their
 #              dependents (a shared change selects every package); lint alone for docs (*.md, docs/,
@@ -252,6 +253,26 @@ affected_changed_paths() {
     | sort -u
 }
 
+# A changed doc outside the packages that prettier formats and that still exists.
+is_prettier_doc() { # <repo-relative path>
+  [[ ! "$1" =~ $PACKAGE_PATH_PATTERN && "$1" =~ $DOCS_PATH_PATTERN && "$1" =~ $PRETTIER_DOC_PATTERN && -e "$SCRIPT_DIR/$1" ]]
+}
+
+# A scoped lint also prettier-checks the docs the branch changed (#329): a package or path scope reads
+# no docs/, so an author's scoped lint was green over unformatted docs that only the merge gate caught.
+# Without a merge base with origin/main there is nothing to compare, and the scope stays as it is.
+add_changed_docs_to_scoped_lint() {
+  [[ $SCOPE_GIVEN -eq 1 ]] || return 0
+  local paths path docs=()
+  paths="$(affected_changed_paths)" || return 0
+  while IFS= read -r path; do
+    [[ -z "$path" ]] || ! is_prettier_doc "$path" || docs+=("$path")
+  done <<< "$paths"
+  [[ ${#docs[@]} -gt 0 ]] || return 0
+  LINT_PATHS+=("${docs[@]}")
+  [[ ! "$COMMAND" =~ ^(lint|all)$ ]] || echo "lint also prettier-checks the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+}
+
 # Sorts each changed path into a package, the docs, the scripts, or "everything" (a root file).
 classify_affected_path() { # <repo-relative path>
   local path="$1" package
@@ -261,7 +282,7 @@ classify_affected_path() { # <repo-relative path>
     CHANGED_PACKAGE_EXAMPLE[$package]="${CHANGED_PACKAGE_EXAMPLE[$package]:-$path}"
   elif [[ "$path" =~ $DOCS_PATH_PATTERN ]]; then
     IS_DOCS_AFFECTED=1
-    [[ ! "$path" =~ $PRETTIER_DOC_PATTERN || ! -e "$SCRIPT_DIR/$path" ]] || AFFECTED_DOC_FILES+=("$path")
+    ! is_prettier_doc "$path" || AFFECTED_DOC_FILES+=("$path")
   elif [[ "$path" =~ $SHELL_PATH_PATTERN ]]; then
     IS_SCRIPTS_AFFECTED=1
   else
@@ -895,6 +916,7 @@ ALL PASSED"
 
 resolve_scope
 resolve_affected
+add_changed_docs_to_scoped_lint
 refuse_mixed_runner_args
 cd "$SCRIPT_DIR" || exit 1
 cache_init
