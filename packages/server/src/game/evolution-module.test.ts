@@ -94,9 +94,14 @@ describe('createEvolutionModule', () => {
       [ALICE]: { playerId: ALICE, playerName: 'Alice' },
       [BOB]: { playerId: BOB, playerName: 'Bob' },
     });
-    expect(module.serializeOwnProgress(ALICE)).toMatchObject({ playerId: ALICE, playerName: 'Alice', level: 1 });
-    expect(module.serializeOwnProgress(BOB)?.playerId).toBe(BOB);
-    expect(module.serializeOwnProgress(playerId('nobody'))).toBeNull();
+    expect(module.viewerState.keys).toEqual(['ownProgress']);
+    expect(module.viewerState.serialize(ALICE).ownProgress).toMatchObject({
+      playerId: ALICE,
+      playerName: 'Alice',
+      level: 1,
+    });
+    expect(module.viewerState.serialize(BOB).ownProgress?.playerId).toBe(BOB);
+    expect(module.viewerState.serialize(playerId('nobody'))).toEqual({ ownProgress: null });
   });
 
   it('adds a late joiner to the world and the replay, and removes them again', () => {

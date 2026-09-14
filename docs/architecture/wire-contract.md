@@ -111,15 +111,16 @@ export interface FoodDelta {
   for the room already held is not a leave. The server code is `lobby/seat-lifecycle.ts`.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
-  `serializeOwnProgress(viewerPlayerId)` (#331, optional): the one part of a tick's snapshot a connection is sent
-  for itself alone, the viewer's `PlayerProgressView` (`null` without a player). The room calls
-  `serializeRoomState()` once per broadcast (the drain), stringifies that message once with `ownProgress` left open
-  at its end, and closes it per delta target with the viewer's own progress (`lobby/viewer-snapshots.ts`, built from
-  structural JSON pieces, never a replace on player data); each `game_state` is given its player's. A whole
-  stringify per viewer measured 1.8 ms at 8 clients and 14.6 ms at 64 on a 36 KB snapshot, against 0.27 ms and
-  0.57 ms spliced (#331's review). A module without it (the echo) is broadcast as before, serialised once.
-  `debug_get_game_state` reads the full state for no viewer, so `ownProgress` is `null` there;
-  `debug_get_player_progress` is the read of one player's.
+  `viewerState: { keys, serialize(viewerPlayerId) }` (#331, optional, `ViewerStateSerializer`): the snapshot
+  members each connection is sent for itself alone, declared by the module in the order they are written, and one
+  viewer's values for them (a key left out is sent as `null`). The room calls `serializeRoomState()` once per
+  broadcast (the drain), stringifies that message once without the declared keys, and closes it per delta target
+  with that viewer's members in declared order (`lobby/viewer-snapshots.ts`, built from structural JSON pieces,
+  never a replace on player data); each `game_state` is given its player's members. The lobby names no member: the
+  Evolution module declares `VIEWER_SNAPSHOT_KEYS` = `['ownProgress']`. A whole stringify per viewer measured
+  1.8 ms at 8 clients and 14.6 ms at 64 on a 36 KB snapshot, against 0.27 ms and 0.57 ms spliced (#331's review). A
+  module without it (the echo) is broadcast as before, serialised once. `debug_get_game_state` reads the full state
+  for no viewer, so `ownProgress` is `null` there; `debug_get_player_progress` is the read of one player's.
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`determinism/random-streams.md §3`); it never receives a `RandomSource`.
@@ -199,10 +200,10 @@ before #214 landed and what made a remote client run out of memory (#238).
 ### 4.2 Levers (in order)
 
 1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1): per-player rows with the camera extent
-   plus `INTEREST_MARGIN_WU`, on the per-viewer seam #331 landed (§4). Culled rows differ per viewer, so they join
-   `ownProgress` in the spliced tail of each viewer's frame instead of the once-stringified shared part, and
-   `appliedInputSequenceByPlayer` (~130–240 B at 8 players, read only for the viewer's own id,
-   `input-world-context.ts`) moves into the same per-viewer part with them. Cuts the two big rows by ~75 % at the
+   plus `INTEREST_MARGIN_WU`, on the per-viewer seam #331 landed (§4). Culled members differ per viewer, so they are
+   just more declared viewer keys: the module adds them (`food`, `dnaFragments`) to `VIEWER_SNAPSHOT_KEYS` beside
+   `ownProgress`, and `appliedInputSequenceByPlayer` (~130–240 B at 8 players, read only for the viewer's own id,
+   `input-world-context.ts`) joins them; the lobby splice needs no change. Cuts the two big rows by ~75 % at the
    widest zoom.
 2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4, up from the landed 3; held, #214);
    interpolation absorbs it unchanged, but `MAX_EXTRAPOLATION_TICKS` (3) would then cover less than
