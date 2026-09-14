@@ -26,6 +26,12 @@
 #   a client filter matches repo-relative paths and stays on a file scope's spec; a shared source saved
 #   during the build is rebuilt by the next run; a setup waiting on the checkout's setup lock past its
 #   timeout fails loudly; a word after an option written with a space is its value, never a filter.
+#   The merge gate's integration tier (#344): `all --affected` runs integration last, only in the selected
+#   packages that have integration or gameplay tests (a shared change runs its dependents', docs and
+#   scripts skip it); a red integration fails the gate and is never stamped; a red unit phase never
+#   reaches it; a plain `all` stamp never answers the affected gate on a root-file branch; a branch behind
+#   origin/main is refused before any stamp is read, leaving the branch, tree and stash untouched; the
+#   gate fetches origin main first and falls back to the local copy when the fetch fails.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -54,7 +60,7 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 touch "$fixture/packages/shared/src/index.ts" "$fixture/packages/server/src/game/world.ts" \
   "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts" \
   "$fixture/packages/client/src/app/app.integration.spec.ts" "$fixture/packages/client/src/app/hud.ts" \
-  "$fixture/packages/client/src/app/hud-layout.spec.ts"
+  "$fixture/packages/client/src/app/hud-layout.spec.ts" "$fixture/packages/server/src/game/round.gameplay.test.ts"
 # A ready checkout (#329): node_modules installed from the lockfile, shared built after its sources.
 printf 'node_modules/\ndist/\n*.tsbuildinfo\n' > "$fixture/.gitignore"
 echo 'lockfileVersion: fixture' > "$fixture/pnpm-lock.yaml"
@@ -452,6 +458,7 @@ affected_branch affected-client packages/client/src/app/hud.spec.ts
 run_validate "$fixture" all --affected
 check "a client-only branch selects client, and says why" $(( rc == 0 && $(ran '^affected client: changed (1 files, e.g. packages/client/src/app/hud.spec.ts)$'; echo $?) == 0 ))
 check "a client-only branch typechecks, lints and tests client alone" $(( $(ran '^fake pnpm --filter @evolution/client typecheck$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/client test$'; echo $?) == 0 && $(ran '^fake pnpm eslint packages/client$'; echo $?) == 0 && $(ran '@evolution/server\|-r test\|-r typecheck\|^affected server\|^affected shared'; echo $?) != 0 ))
+check "a client-only branch runs client's integration tier after its unit tests (#344)" $(( $(ran '^fake pnpm --filter @evolution/client --if-present test:integration$'; echo $?) == 0 && $(ran '^affected integration: client (1 files) with integration or gameplay tests$'; echo $?) == 0 ))
 run_validate "$fixture" lint --scope client
 check "a scoped lint on a branch that changed no doc prettier-checks its scope alone" $(( rc == 0 && $(ran '^fake pnpm prettier --check packages/client$'; echo $?) == 0 && $(ran '^lint also prettier-checks'; echo $?) != 0 ))
 run_validate "$fixture" all --affected
@@ -462,20 +469,77 @@ check "an affected stamp never answers the plain all" $(( $(is_cached; echo $?) 
 affected_branch affected-shared packages/shared/src/index.ts
 run_validate "$fixture" all --affected
 check "a shared change selects all three packages, the dependents with their reason" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/shared --filter @evolution/server --filter @evolution/client test$'; echo $?) == 0 && $(ran '^affected server: depends on shared$'; echo $?) == 0 && $(ran '^affected client: depends on shared$'; echo $?) == 0 ))
+check "a shared change runs the integration tier of every selected package that has one: server and client" $(( $(ran '^fake pnpm --filter @evolution/server --filter @evolution/client --if-present test:integration$'; echo $?) == 0 ))
 
 affected_branch affected-docs docs/NOTE.md
 run_validate "$fixture" all --affected
-check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran '^fake pnpm prettier --check docs/NOTE.md$'; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 3 ))
+check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran '^fake pnpm prettier --check docs/NOTE.md$'; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$\|test:integration'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 4 ))
 run_validate "$fixture" lint --scope client
 check "a scoped lint also prettier-checks the docs the branch changed, and says so (#329)" $(( rc == 0 && $(ran '^fake pnpm prettier --check packages/client docs/NOTE.md$'; echo $?) == 0 && $(ran '^lint also prettier-checks the 1 docs changed on the branch: docs/NOTE.md$'; echo $?) == 0 ))
 
 affected_branch affected-scripts scripts/tool.sh
 run_validate "$fixture" all --affected
-check "a scripts change runs the shell suites and no package phase" $(( rc == 0 && $(ran "$FIXTURE_SUITE_MARKER"; echo $?) == 0 && $(ran '^fake pnpm .*test$\|typecheck$'; echo $?) != 0 && $(ran '^affected scripts:'; echo $?) == 0 ))
+check "a scripts change runs the shell suites and no package phase" $(( rc == 0 && $(ran "$FIXTURE_SUITE_MARKER"; echo $?) == 0 && $(ran '^fake pnpm .*test$\|typecheck$\|test:integration'; echo $?) != 0 && $(ran '^affected scripts:'; echo $?) == 0 ))
 
 affected_branch affected-root eslint.config.js
+run_validate "$fixture" all
 run_validate "$fixture" all --affected
 check "a root file outside packages, docs and scripts runs the plain all" $(( rc == 0 && $(ran '^affected everything: eslint.config.js is outside'; echo $?) == 0 && $(ran '^fake pnpm -r test$'; echo $?) == 0 ))
+check "a plain all stamp never answers the affected gate on a root-file branch, which adds integration" $(( rc == 0 && $(is_cached; echo $?) != 0 && $(ran '^fake pnpm --filter @evolution/server --filter @evolution/client --if-present test:integration$'; echo $?) == 0 && $(ran '^ALL PASSED$'; echo $?) == 0 ))
+
+# --- the merge gate's integration tier and base (#344) ---------------------------------------------
+affected_branch affected-server packages/server/src/game/world.ts
+echo 'test:integration' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" all --affected
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "a failing integration test fails the gate: FAILED: integration, after the unit tests ran" $(( rc != 0 && $(ran '^FAILED: integration$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/server test$'; echo $?) == 0 ))
+run_validate "$fixture" all --affected
+phase_order="$(sed -n 's/^=== \(.*\) ===$/\1/p' <<<"$out" | tr '\n' ' ')"
+check "a red integration phase is never stamped: the next gate on the same tree runs it again" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server --if-present test:integration$'; echo $?) == 0 && $(ran '^ALL PASSED$'; echo $?) == 0 ))
+check "a server-affected gate runs integration last, for the package with gameplay tests (got: $phase_order)" $(( $(grep -q '^lint duplication typecheck test integration $' <<<"$phase_order"; echo $?) == 0 && $(ran '^affected integration: server (1 files) with integration or gameplay tests$'; echo $?) == 0 && $(ran '^wall times: lint cached, duplication cached, typecheck cached, test cached, integration [0-9]* s; all [0-9]* s$'; echo $?) == 0 ))
+
+affected_branch affected-server-red packages/server/src/game/world.ts
+echo '@evolution/server test$' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" all --affected
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "a red unit phase stops the gate before integration" $(( rc != 0 && $(ran '^FAILED: test$'; echo $?) == 0 && $(ran '^=== integration ===$\|test:integration'; echo $?) != 0 ))
+
+affected_branch affected-behind packages/server/src/game/world.ts
+run_validate "$fixture" all --affected
+git -C "$fixture" checkout -q -B main-moved "$affected_base"
+mkdir -p "$fixture/docs"
+echo moved > "$fixture/docs/MOVED.md"
+git -C "$fixture" add -A
+git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m main-moved
+git -C "$fixture" update-ref refs/remotes/origin/main HEAD
+git -C "$fixture" checkout -q affected-behind
+behind_head="$(git -C "$fixture" rev-parse HEAD)"
+behind_status="$(git -C "$fixture" status --porcelain)"
+run_validate "$fixture" all --affected
+check "a branch behind origin/main is refused, naming the merge, even with a green stamp on its tree" $(( rc != 0 && $(ran 'is 1 commits behind origin/main'; echo $?) == 0 && $(ran 'git merge origin/main'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 && $(is_cached; echo $?) != 0 && $(ran '^ALL PASSED$'; echo $?) != 0 ))
+check "the refusal leaves the branch, the tree and the stash as they were" $(( $(test "$(git -C "$fixture" rev-parse HEAD)" == "$behind_head"; echo $?) == 0 && $(test "$(git -C "$fixture" status --porcelain)" == "$behind_status"; echo $?) == 0 &&$(git -C "$fixture" stash list | wc -l) == 0 ))
+git -C "$fixture" -c user.name=test -c user.email=test@example.com merge -q --no-edit origin/main
+run_validate "$fixture" all --affected
+check "once origin/main is merged in, the gate runs, integration included" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server --if-present test:integration$'; echo $?) == 0 && $(ran '^ALL PASSED$'; echo $?) == 0 ))
+
+remote_repo="$sandbox/origin.git"
+git init -q --bare "$remote_repo"
+git -C "$fixture" checkout -q -B main-fetched origin/main
+mkdir -p "$fixture/docs"
+echo fetched > "$fixture/docs/FETCHED.md"
+git -C "$fixture" add -A
+git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m main-fetched
+fetched_head="$(git -C "$fixture" rev-parse HEAD)"
+git -C "$fixture" push -q "$remote_repo" HEAD:refs/heads/main
+git -C "$fixture" checkout -q affected-behind
+git -C "$fixture" remote add origin "$remote_repo"
+run_validate "$fixture" all --affected
+check "the gate fetches origin main first, so an out-of-date local origin/main never hides a behind branch" $(( rc != 0 && $(ran 'behind origin/main'; echo $?) == 0 && $(test "$(git -C "$fixture" rev-parse origin/main)" == "$fetched_head"; echo $?) == 0 ))
+git -C "$fixture" -c user.name=test -c user.email=test@example.com merge -q --no-edit origin/main
+git -C "$fixture" remote set-url origin "$sandbox/no-such-origin.git"
+run_validate "$fixture" all --affected
+check "a fetch that fails says so and compares against the local copy" $(( rc == 0 && $(ran '^validate.sh: could not fetch origin/main; comparing against the local copy$'; echo $?) == 0 && $(ran '^ALL PASSED$'; echo $?) == 0 ))
+git -C "$fixture" remote remove origin
 
 run_validate "$fixture" test --affected
 check "--affected is refused outside all" $(( rc != 0 && $(ran 'works with `all` only'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 ))

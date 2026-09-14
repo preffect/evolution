@@ -24,12 +24,12 @@
 
 ```bash
 ./validate.sh test                    # unit tests with coverage thresholds (vitest for shared/server, ng test for client)
-./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (opt-in; not part of `all`)
+./validate.sh integration             # the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (opt-in; not part of the plain `all`)
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
 ./validate.sh all                     # lint, duplication, typecheck, test in sequence; stops at the first red phase
-./validate.sh all --affected          # the merge gate (once, by whoever merges): only what the branch changed vs origin/main
+./validate.sh all --affected          # the merge gate (once, by whoever merges): only what the branch changed vs origin/main, then its integration tier; refuses a branch behind origin/main (merge it first)
 ./validate.sh test --scope server     # build loop: one package (shared|server|client), coverage floor kept
 ./validate.sh test --scope packages/server/src/game/world   # build loop: only that path's tests, no coverage floor
 
