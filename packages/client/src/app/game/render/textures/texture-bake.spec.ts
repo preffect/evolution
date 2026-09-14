@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { FakeBakeContext, createFakeBakeCanvasFactory } from '../../../../testing/fake-bake-canvas';
 import { WHITE } from '../constants';
 import {
+  bakeScaleFor,
   createBodyCanvas,
   createDomBakeCanvasFactory,
+  createPxCanvas,
   fillDisc,
   fillEllipse,
   fillHalo,
@@ -86,5 +88,21 @@ describe('texture bake primitives', () => {
       createElement: () => ({ getContext: () => null }) as unknown as HTMLCanvasElement,
     } as unknown as Document;
     expect(() => createDomBakeCanvasFactory(broken).create(1, 1)).toThrow(/Canvas 2D/);
+  });
+});
+
+describe('px bakes (the own-cell indicators)', () => {
+  it('rounds the device pixel ratio up to whole texels per px and caps it', () => {
+    expect(bakeScaleFor(1, 2)).toBe(1);
+    expect(bakeScaleFor(1.1, 2)).toBe(2);
+    expect(bakeScaleFor(3, 2)).toBe(2);
+  });
+
+  it('creates a canvas in whole texels at the scale, scales its context so the bake draws in px, and reports px back', () => {
+    const factory = createFakeBakeCanvasFactory();
+    const sprite = createPxCanvas(factory, 10.2, 4, 2);
+    expect([sprite.canvas.width, sprite.canvas.height]).toEqual([21, 8]);
+    expect([sprite.widthPx, sprite.heightPx]).toEqual([10.5, 4]);
+    expect(factory.canvases[0]!.context.argumentsOf('scale')).toEqual([[2, 2]]);
   });
 });

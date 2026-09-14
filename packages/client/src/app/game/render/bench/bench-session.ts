@@ -4,7 +4,8 @@
 // measures a steady frame and a screenshot never changes between frames; the debug hook's `step`
 // advances the tick and `setSeed` rebuilds the scene.
 
-import type { ClientPerformanceReport, Clock } from '@evolution/shared';
+import type { ClientPerformanceReport, Clock, ValueOf } from '@evolution/shared';
+import type { Container } from 'pixi.js';
 import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../../debug/evolution-debug';
 import type { RenderFrame } from '../../net/world-store';
 import {
@@ -19,6 +20,7 @@ import { FrameLoopSession } from '../frame-loop-session';
 import { NO_RETICLE, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { BenchDriver } from './bench-driver';
+import { attachIndicatorSheet } from './indicator-sheet';
 import type { BenchCounts } from './bench-scene';
 import type { GpuTimerStatus } from './gpu-timer';
 import { NO_HEAP_PROBE, type HeapProbe } from './heap-probe';
@@ -41,8 +43,14 @@ export interface BenchQuery {
    * does not set it and it costs a full-framebuffer copy a frame on a real GPU (docs/RENDERING.md §7).
    */
   readonly shouldPreserveDrawingBuffer: boolean;
+  /** `sheet=indicators`: the own-cell indicator textures' contact sheet over the scene (`indicator-sheet.ts`). */
+  readonly sheet: BenchSheet | null;
 }
 
+export const BENCH_SHEET = { indicators: 'indicators' } as const;
+export type BenchSheet = ValueOf<typeof BENCH_SHEET>;
+
+const SHEET_PARAMETER = 'sheet';
 const BENCH_PARAMETER = 'bench';
 const TICK_PARAMETER = 'tick';
 const ZOOM_PARAMETER = 'zoom';
@@ -75,6 +83,7 @@ export function parseBenchQuery(search: string): BenchQuery {
     windowFrames: Math.max(1, Math.trunc(numberParameter(parameters, WINDOW_PARAMETER, RENDER_BENCH_REPORT_FRAMES))),
     shouldAdvanceTick: parameters.get(ADVANCE_PARAMETER) === FLAG_ON,
     shouldPreserveDrawingBuffer: parameters.get(PRESERVE_PARAMETER) === FLAG_ON,
+    sheet: parameters.get(SHEET_PARAMETER) === BENCH_SHEET.indicators ? BENCH_SHEET.indicators : null,
   };
 }
 
@@ -114,6 +123,8 @@ export interface BenchSessionDependencies {
   /** The bench load unless a test shrinks it. */
   readonly counts?: BenchCounts;
   readonly onReport: (report: RenderBenchReport) => void;
+  /** Builds the `sheet=indicators` contact sheet; `attachIndicatorSheet` unless a test stands in (BitmapText needs a canvas). */
+  readonly attachSheet?: typeof attachIndicatorSheet;
 }
 
 const BENCH_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE };
@@ -123,6 +134,7 @@ export class BenchSession extends FrameLoopSession {
   private readonly heap: HeapProbe;
   private heapAtWindowStart: number | null = null;
   private lastReport: RenderBenchReport | null = null;
+  private sheet: Container | null = null;
 
   constructor(
     private readonly query: BenchQuery,
@@ -146,12 +158,24 @@ export class BenchSession extends FrameLoopSession {
   }
 
   private rebuildRenderer(): void {
-    this.buildRenderer({
+    this.detachSheet();
+    const renderer = this.buildRenderer({
       seed: this.driver.world.seed,
       gelPatches: this.driver.store.latestSnapshot()?.gelPatches ?? [],
       devicePixelRatio: this.dependencies.devicePixelRatio,
       noiseTileSizePx: this.dependencies.noiseTileSizePx,
-    })?.setFixedZoom(this.query.zoom);
+    });
+    renderer?.setFixedZoom(this.query.zoom);
+    if (renderer !== null && this.pixi !== null && this.query.sheet === BENCH_SHEET.indicators) {
+      const attachSheet = this.dependencies.attachSheet ?? attachIndicatorSheet;
+      this.sheet = attachSheet(this.pixi.app.stage, renderer.indicatorTextures, RENDER_BENCH_VIEWPORT_PX);
+    }
+  }
+
+  /** The sheet's sprites go before the textures they draw are rebuilt or disposed. */
+  private detachSheet(): void {
+    this.sheet?.destroy({ children: true });
+    this.sheet = null;
   }
 
   /** Every frame re-renders the parked tick, unless `advance=1` steps the scene a tick first. */
@@ -214,6 +238,7 @@ export class BenchSession extends FrameLoopSession {
   }
 
   destroy(): void {
+    this.detachSheet();
     this.disposeLoop();
   }
 }

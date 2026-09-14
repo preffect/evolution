@@ -573,6 +573,8 @@ textures/atlas-layout.ts                             shelf packing of the mote a
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
+textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten) and the unlock ring, the nine-slice label pill (#294)
+textures/{indicator-atlas,indicator-textures,bitmap-fonts,mote-textures}.ts   the indicator bakes keyed as `orbit-layout` hands them over, packed on one source with the pill and the fonts beside it; the `value` / `label` BitmapFont installs; the mote atlas's textures (#294)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
 cells/self-ring.ts                                 the sprint ring's input to the cell layer, its clockwise-from-12 arc coordinate (the GLSL's reference) and the escape's warning-ring rule (§10, #295)
@@ -591,6 +593,7 @@ effects/own-cell-ring.ts                           the sprint ring per frame: th
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
+bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
 frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation both sessions share (§7, #208); the one renderer a session holds, built over its textures and disposed with them
 pixi-texture-baker.ts                                  the `TextureBaker` (the per-pixel radial bakes of `textures/radial-bake.ts` for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
@@ -670,10 +673,15 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
   `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
   in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
   predicted own position. Rings, tracks and arcs are tinted glow-atlas arc sprites (one `arc` entry with a `fill`
-  uniform, no per-frame `Graphics`); ghosts and pip blocks are entries of the organelle atlas (§3) at their fixed
-  px size, the pip blocks baked at startup as one entry per (variant, eaten) from
-  `balance.ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED`, so a counter is two sprites; the numeral and the labels are
-  `BitmapText` in the `value` / `label` roles, the labels on a label-pill sprite (`UI.md §6`). Budget: ≤ 14 sprites
+  uniform, no per-frame `Graphics`); ghosts, pip blocks and the unlock ring are entries of the indicator atlas
+  (`textures/indicator-atlas.ts`, one packed source) baked at their fixed px size times the device pixel ratio
+  (rounded up, capped at `INDICATOR_BAKE_MAX_DPR`), keyed by `OrbitGhost.key` and `pipBlockKey(variant, eaten,
+required)`; the pip blocks are one entry per (variant, eaten) from each endosymbiont's `unlockedBy.count` in
+  `TRAIT_CATALOG` (UI.md §3.1.2's source), and the key clamps `eaten` again, so a counter is two sprites. The rung
+  ghosts bake white for the rim-colour tint, the counters' in their organelle colour. The numeral and the labels are
+  `BitmapText` in the `value` / `label` roles over one shared install per texture bundle
+  (`textures/bitmap-fonts.ts`, names in `textures.indicators.fonts`), the labels on the label pill, a nine-slice
+  sprite that stretches only its middle column (`UI.md §6`). Budget: ≤ 14 sprites
   and 2 texts inside the `effects` stage's 0.3 ms (§7); the worst case is a prokaryote with both counters, one
   unlocked, and a threat on screen: DNA track + fill (2), two backings, two ghosts, two pip blocks, one unlock ring,
   the label pill = 11 sprites, the numeral and the label = 2 texts (the escape arc replaces the orbit and hides the
@@ -719,6 +727,12 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
   case), `orbit-layout.spec.ts` (the counter layout and the ghost-beside-a-counter clearance) and
   `threat-label-placement.spec.ts` (near side at 200 px above a 30 px predator, far side at 100 px, the
   pill's whole box tested against the orbit extent so a wide pill beside the cell flips, upright at every angle),
-  unit, no WebGL; the screenshot baselines (§9) gain the own cell at the four sizes with the
+  and for the textures (#294) `ghost-bake.spec.ts` (every silhouette inside the `LADDER_GHOST_PX` square, the
+  layer order, the rung ghosts white), `pip-block-bake.spec.ts` (the clamped key, the first row nearest the cell
+  and lit clockwise under the orbit tangent, exactly `eaten` lit), `label-pill-bake.spec.ts` (caps and stretch
+  column make up the bake), `bitmap-fonts.spec.ts` (the roles' faces, sizes, outline and glyphs),
+  `indicator-atlas.spec.ts` (a ghost for every `OrbitGhost.key`, a pip block for every clamped lookup) and
+  `indicator-textures.spec.ts` (one source, fonts installed once and uninstalled on destroy), unit, no WebGL;
+  `?bench&sheet=indicators` draws the baked sheet for review (`bench/indicator-sheet.ts`); the screenshot baselines (§9) gain the own cell at the four sizes with the
   counters showing, the max-level ring, the escape arc before and after the seal and the far-side label, from
   `qa/decisions/hud-layout/diegetic/` as the reference look and its fixed indicator records as the scene fixtures.

@@ -50,6 +50,9 @@ export class FakeBakeContext implements BakeContext2D {
     this.calls.push({ name, args });
   }
 
+  setLineDash(segments: readonly number[]): void {
+    this.log('setLineDash', segments);
+  }
   save(): void {
     this.log('save');
   }
