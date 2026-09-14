@@ -6,8 +6,6 @@ import { Geometry, GlProgram, Mesh, Shader, State, UniformGroup, type TextureSou
 import { hexToRgb } from '../colour';
 import {
   CELL_INSTANCE_CAPACITY,
-  CELL_QUAD_INDICES,
-  CELL_QUAD_POSITIONS,
   CELL_WALL,
   CELL_WALL_LIGHT,
   CHLORO_LIGHT,
@@ -19,6 +17,7 @@ import {
   TOXIN_GLOW,
   WHITE,
 } from '../constants';
+import { createInstancedQuadGeometry } from '../instanced-quad';
 import { floatDataTexture } from '../textures/pixi-textures';
 import { CELL_INSTANCE_TEXELS, createInstanceBuffer } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
@@ -82,15 +81,7 @@ export class CellMesh {
   ) {
     this.instances = createInstanceBuffer(capacity);
     this.instanceSource = floatDataTexture(this.instances, CELL_INSTANCE_TEXELS, capacity);
-    const indices = Float32Array.from({ length: capacity }, (_unused, index) => index);
-    this.geometry = new Geometry({
-      attributes: {
-        aPosition: { buffer: new Float32Array(CELL_QUAD_POSITIONS), format: 'float32x2' },
-        aInstanceIndex: { buffer: indices, format: 'float32', instance: true },
-      },
-      indexBuffer: new Uint16Array(CELL_QUAD_INDICES),
-      instanceCount: 0,
-    });
+    this.geometry = createInstancedQuadGeometry(capacity);
     const program = new GlProgram({ vertex: CELL_VERTEX_SOURCE, fragment: CELL_FRAGMENT_SOURCE });
     this.bodyUniforms = createUniforms(CELL_PASS.body);
     this.membraneUniforms = createUniforms(CELL_PASS.membrane);

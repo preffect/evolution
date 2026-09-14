@@ -1,9 +1,9 @@
 // The own-cell indicator contact sheet (docs/RENDERING.md §10, #294 evidence): `?bench&sheet=indicators`
 // draws every baked indicator texture through the real Pixi path at its px floor size over the field
-// colour — the five ghosts (the rung ghosts tinted a player's rim colour, each counter's ghost also in its
-// unlock ring), both pip block series from empty to full, the label pills with `label` text and `value`
-// numerals. A screenshot enlarged nearest-neighbour shows the texels as baked. Dev evidence only: the live
-// renderer never builds it.
+// colour — the five ghosts (the rung ghosts tinted a player's rim colour), both pip block series from empty
+// to full, the label pills with `label` text and `value` numerals — and, below them, the arc primitive's panel
+// (`indicator-sheet-arcs.ts`) through one `ArcMesh`. A screenshot enlarged nearest-neighbour shows the texels
+// and the anti-aliased edges as drawn. Dev evidence only: the live renderer never builds it.
 
 import { BitmapText, Container, NineSliceSprite, Sprite, Texture } from 'pixi.js';
 import type { ViewportPx } from '../camera';
@@ -14,6 +14,11 @@ import { LADDER_SILHOUETTE } from '../../state/own-cell-indicators';
 import type { IndicatorSpriteTexture, IndicatorTextures } from '../textures/indicator-textures';
 import { labelPillSpriteSizePx, labelPillWidthPx } from '../textures/label-pill-bake';
 import { endosymbiontTallies, pipBlockKey } from '../textures/pip-block-bake';
+import { ArcMesh } from '../effects/arc-mesh';
+import { indicatorSheetArcs } from './indicator-sheet-arcs';
+
+/** The sheet is drawn in screen px on the stage root: one px per world unit. */
+const SHEET_ZOOM = 1;
 
 export interface SheetLayer {
   readonly texture: IndicatorSpriteTexture;
@@ -44,10 +49,8 @@ function ghostRow(textures: IndicatorTextures): SheetItem[] {
   const row = Object.values(LADDER_SILHOUETTE).map((silhouette) =>
     sprites({ texture: textures.ghosts[silhouette]!, tint: rim }),
   );
-  for (const tally of endosymbiontTallies()) {
-    const ghost = { texture: textures.ghosts[tally.traitId]!, tint: WHITE };
-    row.push(sprites(ghost), sprites(ghost, { texture: textures.unlockRing, tint: WHITE }));
-  }
+  for (const tally of endosymbiontTallies())
+    row.push(sprites({ texture: textures.ghosts[tally.traitId]!, tint: WHITE }));
   return row;
 }
 
@@ -130,13 +133,37 @@ function itemView(textures: IndicatorTextures, item: SheetItem): Container {
   return textView(item.text, textures.fonts.value, UI_TYPE.value.px);
 }
 
-/** Adds the sheet over everything on `stage`: the field colour, then every row at its px floor size. */
+/** The sheet container owns its arc mesh, whose shader and instance texture go before the children do. */
+class IndicatorSheetContainer extends Container {
+  readonly arcMesh = new ArcMesh(INDICATOR_SHEET.arcs.capacity);
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.arcMesh.destroy();
+    super.destroy(options);
+  }
+}
+
+/** The arc panel: every arc row in one draw at zoom 1, then the orbit's ghosts and pip blocks over their backings. */
+function addArcPanel(sheet: IndicatorSheetContainer, textures: IndicatorTextures): void {
+  const { arcs, sprites } = indicatorSheetArcs(textures);
+  sheet.addChild(sheet.arcMesh.mesh);
+  sheet.arcMesh.draw(arcs, SHEET_ZOOM);
+  for (const placed of sprites) {
+    const view = spritesView([placed]);
+    view.position.set(placed.x, placed.y);
+    view.rotation = placed.rotation;
+    sheet.addChild(view);
+  }
+}
+
+/** Adds the sheet over everything on `stage`: the field colour, every texture row at its px floor size, the arc panel. */
 export function attachIndicatorSheet(stage: Container, textures: IndicatorTextures, viewport: ViewportPx): Container {
-  const sheet = new Container();
+  const sheet = new IndicatorSheetContainer();
   const field = new Sprite(Texture.WHITE);
   field.setSize(viewport.width, viewport.height);
   field.tint = BG_FIELD;
   sheet.addChild(field);
+  addArcPanel(sheet, textures);
   const views = indicatorSheetRows(textures).map((row) => row.map((item) => itemView(textures, item)));
   const origin = { x: INDICATOR_SHEET.marginPx, y: INDICATOR_SHEET.marginPx };
   const centres = flowSheetRows(

@@ -42,7 +42,8 @@ describe('bakeIndicatorAtlas', () => {
     expect(indicatorBakeScale(3)).toBe(INDICATOR_BAKE_MAX_DPR);
     const retina = bakeIndicatorAtlas(createFakeBakeCanvasFactory(), 2);
     // Two texels per px, and the same px size to within the one-texel round-up of each canvas.
-    expect(retina.unlockRing.canvas.width / 2).toBe(retina.unlockRing.widthPx);
-    expect(Math.abs(retina.unlockRing.widthPx - atlas.unlockRing.widthPx)).toBeLessThanOrEqual(1);
+    const nucleoid = LADDER_SILHOUETTE.nucleoid;
+    expect(retina.ghosts[nucleoid]!.canvas.width / 2).toBe(retina.ghosts[nucleoid]!.widthPx);
+    expect(Math.abs(retina.ghosts[nucleoid]!.widthPx - atlas.ghosts[nucleoid]!.widthPx)).toBeLessThanOrEqual(1);
   });
 });
