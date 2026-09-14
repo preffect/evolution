@@ -94,7 +94,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
   `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
   seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
-  panel left (ui/layout.md §1, #217), that the debug hook's pause holds the rendered tick and the canvas and a step
+  panel left, at the config's viewport and at the 1024 × 640 minimum (ui/layout.md §1, #217, #220), that the debug hook's pause holds the rendered tick and the canvas and a step
   advances both, and screenshots the dish; slice D (#208, `e2e/render-bench.spec.ts`) opens the bench route at
   the three zoom bands, asserts no errors, two fresh loads of the same seed, tick and zoom ⇒ the same pixels and a
   step changes them, the report in the DOM with every stage key and the draw calls under the §6 ceiling at two zoom
