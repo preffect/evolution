@@ -144,7 +144,7 @@ def relation_ring(x, y, r, relation, labelled):
     if relation == 'toxic':
         o = [f'<circle cx="{x}" cy="{y}" r="{r * 1.35:.1f}" fill="none" stroke="{TOXIN}" stroke-width="1.6" stroke-dasharray="3 3" opacity="0.9"/>']
         if labelled:
-            o.append(pill(x + 26, y + r * 1.35 + 18, 'EDIBLE · TOXIC', 'label', WHITE, rim=TOXIN))
+            o.append(pill(x + 34, y + 30, 'EDIBLE · TOXIC', 'label', WHITE, rim=TOXIN, anchor='start'))
         return ''.join(o)
     return ''
 
@@ -195,7 +195,67 @@ def world(cues):
         o.append(floater(770, 404, '−9', 'TOXIN', TOXIN))
         o.append(floater(620, 262, '+5', 'DNA', DNA, opacity=0.9))
         o.append(pill(CX, 510, 'WARM VENT · DECAY ×1.5 · ORANGE RODS', 'label', WHITE, dot=ZONE_VENT))
+        o.append(mass_chip(586, 470))
     return ''.join(o)
+
+
+def mass_chip(cx, cy):
+    """Own mass with its trend, beside the cell while the mass is changing."""
+    width = 104
+    return (f'<rect x="{cx - width / 2}" y="{cy - 12}" width="{width}" height="24" rx="12" fill="{CALLOUT}" opacity="0.8"/>'
+            f'<text x="{cx - width / 2 + 10}" y="{cy + 6}" font-family="{kit.MONO}" font-size="16" font-weight="bold" fill="{TEXT}">{OWN_MASS}</text>'
+            f'<path d="M{cx - 4},{cy - 4} l5,8 l5,-8 z" fill="{DANGER}"/>'
+            f'<text x="{cx + 12}" y="{cy + 5}" font-family="{kit.MONO}" font-size="13" fill="{TEXT}">9/s</text>')
+
+
+# --- the camera lever --------------------------------------------------------------------------
+STRIP_W, STRIP_H = 1280, 660
+VIEWPORT_HALF_PX = 400  # half of the 800 px reference viewport
+SQRT_ZOOM_SCALE = 300 / math.sqrt(4 * math.sqrt(20))  # Z1: 300 wu half-height at the starting radius
+
+
+def radius_wu(mass):
+    return 4 * math.sqrt(mass)  # CELL_RADIUS_SCALE × √mass
+
+
+def px_today(mass):
+    r = radius_wu(mass)
+    return r * VIEWPORT_HALF_PX / min(max(12 * r, 300), 1500)
+
+
+def px_partial(mass):
+    r = radius_wu(mass)
+    return r * VIEWPORT_HALF_PX / min(max(SQRT_ZOOM_SCALE * math.sqrt(r), 300), 1500)
+
+
+def px_slow(seconds, before=312, after=372, zoom_seconds=6.0):
+    old_half, new_half = 12 * radius_wu(before), 12 * radius_wu(after)
+    half = new_half + (old_half - new_half) * math.exp(-seconds / zoom_seconds)
+    return radius_wu(after if seconds > 0 else before) * VIEWPORT_HALF_PX / half
+
+
+def camera_strip():
+    rng = random.Random(5)
+    o = [f'<rect width="{STRIP_W}" height="{STRIP_H}" fill="url(#bg-field)"/>',
+         text(24, 40, 'Own cell on screen at 1280 × 800 · dashed ring = 33 px, today', 'label', LABEL)]
+    rows = [
+        ('TODAY', 'zoom locked to size', [(f'mass {m}', px_today(m)) for m in (20, 80, 312, 900)]),
+        ('Z1 · PARTIAL ZOOM', 'view grows with √radius', [(f'mass {m}', px_partial(m)) for m in (20, 80, 312, 900)]),
+        ('Z2 · SLOW ZOOM', '6 s ease, lock kept', [('mass 312', px_slow(0)), ('+60 at 0.3 s', px_slow(0.3)),
+                                                  ('3 s', px_slow(3)), ('10 s', px_slow(10))]),
+    ]
+    for row_index, (title, caption, tiles) in enumerate(rows):
+        centre_y = 162 + row_index * 200
+        o.append(text(24, centre_y - 4, title, 'label', TEXT))
+        o.append(text(24, centre_y + 16, caption, 'body', MUTED, upper=False))
+        for tile_index, (tile_caption, px) in enumerate(tiles):
+            centre_x = 360 + tile_index * 240
+            o.append(panel(centre_x - 110, centre_y - 92, 220, 184))
+            o.append(f'<circle cx="{centre_x}" cy="{centre_y - 14}" r="33.3" fill="none" stroke="{MUTED}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>')
+            o.append(kit.cell(centre_x, centre_y - 14, px, 'cyan', 'euk', rng, heading=-28, speed=0.2, self_ring=True))
+            o.append(text(centre_x, centre_y + 80, f'{tile_caption} · {px:.0f} px', 'label', TEXT, 'middle', upper=False))
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{STRIP_W}" height="{STRIP_H}" viewBox="0 0 {STRIP_W} {STRIP_H}">'
+            f'{kit.defs()}{"".join(o)}</svg>')
 
 
 # --- chrome ------------------------------------------------------------------------
@@ -395,6 +455,8 @@ def main(out_dir):
     for name, build in frames.items():
         (out / f'{name}.svg').write_text(kit.frame(build()), encoding='utf-8')
         print('wrote', out / f'{name}.svg')
+    (out / 'legibility-camera-lever.svg').write_text(camera_strip(), encoding='utf-8')
+    print('wrote', out / 'legibility-camera-lever.svg')
 
 
 if __name__ == '__main__':
