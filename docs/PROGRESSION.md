@@ -108,7 +108,8 @@ level-up --> [queued] --> shown (offerId, 3 cards, timer starts) --> pick / time
 - Offers are shown one at a time per player, FIFO. The `TRAIT_CHOICE_TIMEOUT_SECONDS` timer starts
   when an offer is shown, not when it was queued. An offer's candidate cards and weights are also
   built when it is shown, so the second of two back-to-back offers sees the first pick (P6) and a
-  late joiner climbs the ladder one draft at a time.
+  late joiner climbs the ladder one draft at a time. Each offer carries the `level` of the level-up
+  that queued it, so the second of two back-to-back offers is titled with its own level, not the first's.
 - The client sends `traitChoice: { offerId, cardIndex }` in `GameInput`. A choice whose `offerId` is
   not the currently shown offer is ignored (stale pick after a timeout).
 - **Timeout** picks the card with the highest draft weight; ties break by lowest catalog index. The

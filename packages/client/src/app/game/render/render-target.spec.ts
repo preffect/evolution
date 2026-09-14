@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, PLAYER_LIFE_STATE, createTestSnapshot, entityId, playerId } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  PLAYER_LIFE_STATE,
+  createTestPlayerProgressView,
+  createTestSnapshot,
+  entityId,
+  playerId,
+} from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
 import type { RenderFrame } from '../net/world-store';
 import { followTarget } from './render-target';
@@ -11,23 +18,12 @@ function frameWith(cells: RenderFrame['cells'], spectatingCellId: string | null)
   const latest = createTestSnapshot({
     cells: [...cells],
     players: {
-      [ownId]: {
+      [ownId]: createTestPlayerProgressView({
         playerId: ownId,
         playerName: 'own',
-        level: 1,
-        dnaCumulative: 0,
-        dnaCatchUpGift: 0,
-        dnaTowardNextLevel: 0,
-        dnaTagPoints: { motile: 0, photic: 0, predatory: 0, armored: 0, toxic: 0, sensory: 0, metabolic: 0 },
-        bacteriaEatenByVariant: { plain: 0, aerobic: 0, photosynthetic: 0 },
-        absorptions: 0,
-        wildAbsorptions: 0,
-        score: 0,
-        offer: null,
         lifeState: spectatingCellId === null ? PLAYER_LIFE_STATE.alive : PLAYER_LIFE_STATE.spectating,
         spectatingCellId: spectatingCellId === null ? null : entityId(spectatingCellId),
-        respawnInTicks: 0,
-      },
+      }),
     },
   });
   return {

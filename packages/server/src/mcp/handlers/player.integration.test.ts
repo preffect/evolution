@@ -36,10 +36,10 @@ describe('debug_set_player on a paused room', () => {
       level: LEVEL_SET_WITH_TRAITS,
       traits: TRAITS_INCLUDING_THE_EUKARYOTE_GATE,
     });
-    const progress = parseToolJson(
+    const state = parseToolJson(
       await fixture.call('debug_get_player_progress', { gameId: fixture.gameId, playerId: 'alice' }),
-    ) as { stage: string };
-    expect(progress.stage).toBe(CELL_STAGE.eukaryote);
+    ) as { progress: { stage: string } };
+    expect(state.progress.stage).toBe(CELL_STAGE.eukaryote);
 
     const snapshots = fixture.snapshotsSentToAlice();
     expect(snapshots).toHaveLength(before + 1);

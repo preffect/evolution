@@ -74,6 +74,7 @@ export interface BenchPlayerSpec {
 export function benchPlayers(players: readonly BenchPlayerSpec[], tick: number): Record<string, PlayerProgressView> {
   const records: Record<string, PlayerProgressView> = {};
   for (const player of players) {
+    const stage = benchCellStage(player.index);
     records[player.playerId] = {
       playerId: player.playerId,
       playerName: `Bench ${player.index}`,
@@ -86,6 +87,8 @@ export function benchPlayers(players: readonly BenchPlayerSpec[], tick: number):
       absorptions: 0,
       wildAbsorptions: 0,
       score: player.index,
+      ownedTraits: BENCH_STAGE_TRAITS[stage].map((trait) => ({ ...trait })),
+      stage,
       offer: null,
       lifeState: PLAYER_LIFE_STATE.alive,
       spectatingCellId: null,

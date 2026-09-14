@@ -12,7 +12,7 @@ import {
   ROUND_END_CONDITION,
   ROUND_PHASE,
 } from '../types/game.js';
-import type { CellView, PlayerProgressView } from '../types/game.js';
+import type { CellView, PlayerProgressView, TraitOfferView } from '../types/game.js';
 import { RENDER_STAGE_NAMES } from '../types/messages.js';
 import type { ClientPerformanceReport, GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
 import { entityId, playerId, zeroRecord } from '../types/common.js';
@@ -87,10 +87,27 @@ export function createTestPlayerProgressView(overrides: Partial<PlayerProgressVi
     absorptions: 0,
     wildAbsorptions: 0,
     score: 0,
+    ownedTraits: [],
+    stage: CELL_STAGE.protocell,
     offer: null,
     lifeState: PLAYER_LIFE_STATE.alive,
     spectatingCellId: null,
     respawnInTicks: 0,
+    ...overrides,
+  };
+}
+
+/** A shown level-2 offer of three tier-I protocell cards; pass the fields the test reads. */
+export function createTestTraitOfferView(overrides: Partial<TraitOfferView> = {}): TraitOfferView {
+  return {
+    offerId: 1,
+    level: 2,
+    cards: [
+      { traitId: 'nucleoid', tier: 1 },
+      { traitId: 'simple_flagellum', tier: 1 },
+      { traitId: 'cell_wall', tier: 1 },
+    ],
+    expiresAtTick: 0,
     ...overrides,
   };
 }

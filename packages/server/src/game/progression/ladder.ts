@@ -4,6 +4,7 @@
 // `stageOf` over owned traits and the live balance.
 
 import { stageOf, type BalanceConfig, type CellStage, type OwnedTrait, type TraitId } from '@evolution/shared';
+import type { PlayerRecord } from '../world/entities.js';
 
 export function ownsTrait(ownedTraits: readonly OwnedTrait[], traitId: TraitId): boolean {
   return ownedTraits.some((owned) => owned.traitId === traitId);
@@ -15,4 +16,9 @@ export function stageOfOwned(ownedTraits: readonly OwnedTrait[], balance: Pick<B
     ownedTraits.map((owned) => owned.traitId),
     balance.ladder,
   );
+}
+
+/** Rewrites the player's carried `stage` from `ownedTraits`: call it wherever the owned traits change. */
+export function refreshPlayerStage(player: PlayerRecord, balance: Pick<BalanceConfig, 'ladder'>): void {
+  player.stage = stageOfOwned(player.ownedTraits, balance);
 }

@@ -155,6 +155,8 @@ export interface GelPatchView {
 
 export interface TraitOfferView {
   offerId: number;
+  /** The level-up that queued the offer: back-to-back offers keep their own levels (docs/PROGRESSION.md §4). */
+  level: number;
   /** The tier each card would grant. */
   cards: OwnedTrait[];
   expiresAtTick: number;
@@ -181,6 +183,10 @@ export interface PlayerProgressView {
   /** Wild cells absorbed; never scores (docs/ecology/wild-cells.md §3.3). */
   wildAbsorptions: number;
   score: number;
+  /** Kept through death and respawn; a live cell's `traits` mirrors them (docs/PROGRESSION.md §4). */
+  ownedTraits: OwnedTrait[];
+  /** Derived from `ownedTraits` (`stageOf`), carried so the HUD reads the ladder without a cell. */
+  stage: CellStage;
   offer: TraitOfferView | null;
   /** The only home of death and respawn (docs/ecology/absorption.md §6.2). */
   lifeState: PlayerLifeState;

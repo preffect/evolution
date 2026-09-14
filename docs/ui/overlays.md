@@ -16,7 +16,8 @@ without copy fails the gate instead of rendering `undefined`.
 - **Placement.** The band hangs from the exclusion box, so it is placed relative to the viewport centre
   (`centreX`, `centreY` = half the host size, the own cell's screen position), never at an absolute y. With `s` =
   `--hud-scale`: title row top at `centreY + (HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) × s`
-  (`LEVEL 5 · CHOOSE A TRAIT`, `title` role, level gold, centred on `centreX`); timer bar 470 × 4
+  (`LEVEL 5 · CHOOSE A TRAIT`, `title` role, level gold, centred on `centreX`; the level is `offer.level`, the
+  level-up that queued the offer, so after a double level-up the first offer still reads the earlier level); timer bar 470 × 4
   `PICKER_ROW_GAP_PX` under the title row (level gold on the timer-bar track, drains left to right); three cards
   170 × 214 with 10 px gaps `PICKER_ROW_GAP_PX` under the bar, centred on `centreX`; each card's key chip `1` `2`
   `3` (`caption`) sits inside its bottom-right corner, so nothing hangs under the cards. Every row is exactly its own height (the title at line height 1, the
@@ -36,10 +37,12 @@ without copy fails the gate instead of rendering `undefined`.
   by the overlay (`pointer-events: none` on everything but the cards).
 - **Card.** Glyph medallion 56 px, category in `caption`, name in `card_name` bold with tier numeral
   (`Cilia Fringe II`), up to three effect lines in `label` (mixed case), rarity chip in `caption` (`COMMON` / `UNCOMMON` /
-  `RARE`, text as well as colour). A card whose trait is in `STAGE_GATE_TRAITS[next stage]` carries a `RUNG`
-  ribbon (the rung card of PROGRESSION §3, which reserves the first card for it; the ribbon text and the test id
-  share the one word); its silhouette is the one the ladder orbit has been showing as a ghost (§3.1.2), which is
-  the whole point of the ghost. An upgrade card (trait already owned) shows `I → II` in place of the tier.
+  `RARE`, text as well as colour). A card whose trait is in `STAGE_GATE_TRAITS[nextStage(ownProgress.stage)]`
+  carries a `RUNG` ribbon (the rung card of PROGRESSION §3, which reserves the first card for it; the ribbon text
+  and the test id share the one word); its silhouette is the one the ladder orbit has been showing as a ghost
+  (§3.1.2), which is the whole point of the ghost. An upgrade card (trait in `ownProgress.ownedTraits`) shows
+  `I → II` in place of the tier. Both marks read the player's progress, never the own cell, so an offer still open
+  while spectating (§3.3) keeps them.
 - **Highlight = hover or keyboard focus = preview.** Exactly one card is highlighted at a time (lift 8 px, accent
   glow): the hovered card, else the focused one, so a pointer leaving a card hands the highlight back to the card
   that has focus (`hud/format/card-highlight.ts`). The highlighted card's trait is `HudStateService.previewTraitId`
@@ -68,10 +71,9 @@ block at top-centre from y 96, 360 wide: `ENGULFED BY AMOEBOID` (`title` role, d
 `players[cells[spectatingCellId].playerId].playerName`, `ENGULFED BY A WILD <STAGE>` for a wild killer
 (`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
 role, `ceil(respawnInTicks / TICK_HZ)`, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
-muted). A spectating player has no cell and `PlayerProgressView` carries no traits (architecture/entity-model.md §2), so both
-figures come from the `lastAliveOwnCell` signal (§7: the own cell of the last snapshot in which the player was
-alive): traits kept = `lastAliveOwnCell.traits.length`, DNA lost = the drop in `dnaTowardNextLevel` between that
-snapshot and this one. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
+muted). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
+spectating player has no cell, so DNA lost comes from the `lastAliveOwnCell` signal (§7: the own cell of the last
+snapshot in which the player was alive): the drop in `dnaTowardNextLevel` between that snapshot and this one. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
 so there are no own-cell indicators (`ownCellIndicators` is `null` and the mirror reads `data-level` with
 `data-spectating="true"`); leaderboard and timer stay. On respawn the indicators return with the `respawn` clip
 (visual-style/motion-and-legibility.md §5). Test ids: `respawn-overlay`, `respawn-killer`, `respawn-countdown`, `respawn-kept`.

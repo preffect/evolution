@@ -1,23 +1,24 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, type TraitId } from '@evolution/shared';
-import { createTestCellView } from '../../../testing/builders';
+import {
+  DEFAULT_BALANCE,
+  createTestPlayerProgressView,
+  createTestTraitOfferView,
+  type TraitId,
+} from '@evolution/shared';
 import { CARD_POINTER, type CardPointerEvent } from './format/card-highlight';
 import { traitOfferViewFor, type TraitCardView } from './format/trait-cards';
 import { HUD_TEST_ID, testIdSelector, traitCardPickTestId } from './test-ids';
 import { TraitCardComponent } from './trait-card.component';
 
 const [FRESH_CARD, UPGRADE_CARD] = traitOfferViewFor({
-  offer: {
-    offerId: 1,
-    expiresAtTick: 0,
+  offer: createTestTraitOfferView({
     cards: [
       { traitId: 'cell_wall' as TraitId, tier: 1 },
       { traitId: 'simple_flagellum' as TraitId, tier: 2 },
     ],
-  },
-  level: 3,
-  ownCell: createTestCellView({ traits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }] }),
+  }),
+  progress: createTestPlayerProgressView({ ownedTraits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }] }),
   serverTick: 0,
   balance: DEFAULT_BALANCE,
 }).cards;

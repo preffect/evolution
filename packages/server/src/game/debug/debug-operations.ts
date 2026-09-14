@@ -16,6 +16,7 @@ import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
+import { refreshPlayerStage } from '../progression/ladder.js';
 import { FIRST_LEVEL } from '../progression/levels.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
@@ -136,6 +137,7 @@ export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: 
   }
   if (traits !== undefined) {
     player.ownedTraits = traits;
+    refreshPlayerStage(player, world.balance);
   }
   const cell = findCellOfPlayer(world, playerId);
   if (cell !== undefined) {
