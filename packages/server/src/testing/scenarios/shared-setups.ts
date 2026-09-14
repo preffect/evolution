@@ -55,8 +55,11 @@ export function placedSolo(name: string) {
 
 /** "The third player joins before tick 6000 steps": the join is stamped 6000, the mass fixture the tick before it. */
 export const P7_JOIN_TICK = 6000;
-/** The joiner's gift is `ENTRY_DNA_FRACTION` of the median: this median lands it exactly on the level-2 threshold. */
-export const P7_FIXTURE_DNA = cumulativeDnaForLevel(2, progression) / progression.ENTRY_DNA_FRACTION;
+/**
+ * The joiner's gift is `floor(ENTRY_DNA_FRACTION × median)`: this median lands it exactly on the level-2 threshold.
+ * The ceiling keeps the fixture whole and adds under 1 DNA, so the floored gift never comes back one short.
+ */
+export const P7_FIXTURE_DNA = Math.ceil(cumulativeDnaForLevel(2, progression) / progression.ENTRY_DNA_FRACTION);
 export const P7_FIXTURE_MASS = 400;
 /** B sits east of A far enough that neither placement nor separation touches the other. */
 const B_EAST_OF_A_WU = 700;
