@@ -25,6 +25,7 @@ const PERCENT = 100;
       <section class="band" role="dialog" aria-label="Choose a trait" [attr.data-testid]="testId.traitOffer">
         <h2 class="title">{{ offer.title }}</h2>
         <div class="timer-row">
+          <p class="footer">At 0 s the dish picks for you</p>
           <div class="timer-track" aria-hidden="true">
             <div class="timer-fill" [style.width.%]="offer.timerFraction * percent"></div>
           </div>
@@ -37,7 +38,6 @@ const PERCENT = 100;
             <app-trait-card [card]="card" (previewed)="preview($event)" (picked)="pick($event)" />
           }
         </div>
-        <p class="footer">At 0 s the dish picks for you</p>
       </section>
     }
   `,
@@ -79,8 +79,10 @@ const PERCENT = 100;
         margin: 0;
       }
 
+      /* Each row is exactly its own height, so the cards land where §3.2's worked example puts them. */
       .title {
         margin: 0;
+        line-height: 1;
         font-family: var(--hud-font-sans);
         font-size: calc(var(--hud-type-title) * var(--hud-scale));
         font-weight: 600;
@@ -88,10 +90,22 @@ const PERCENT = 100;
         text-shadow: 0 1px 3px var(--hud-outline);
       }
 
+      /*
+       * The row is the bar: the timer text sits right of it and the footer left of it, both out of flow, so the
+       * row adds no height and nothing hangs under the key chips (docs/ui/overlays.md §3.2).
+       */
       .timer-row {
-        display: flex;
-        align-items: center;
-        gap: calc(8px * var(--hud-scale));
+        position: relative;
+      }
+
+      .timer-text,
+      .footer {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
       }
 
       .timer-track {
@@ -106,6 +120,8 @@ const PERCENT = 100;
       }
 
       .timer-text {
+        left: 100%;
+        padding-left: calc(var(--hud-picker-row-gap) * var(--hud-scale));
         font-family: var(--hud-font-mono);
         font-size: calc(var(--hud-type-value) * var(--hud-scale));
         font-variant-numeric: tabular-nums;
@@ -118,7 +134,8 @@ const PERCENT = 100;
       }
 
       .footer {
-        margin: 0;
+        right: 100%;
+        padding-right: calc(var(--hud-picker-row-gap) * var(--hud-scale));
         font-family: var(--hud-font-sans);
         font-size: calc(var(--hud-type-caption) * var(--hud-scale));
         color: var(--hud-text-muted);

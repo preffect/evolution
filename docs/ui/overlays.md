@@ -16,8 +16,9 @@ without copy fails the gate instead of rendering `undefined`.
   (`LEVEL 5 · CHOOSE A TRAIT`, `title` role, level gold, centred on `centreX`); timer bar 470 × 4
   `PICKER_ROW_GAP_PX` under the title row (level gold on the timer-bar track, drains left to right); three cards
   150 × 184 with 10 px gaps `PICKER_ROW_GAP_PX` under the bar, centred on `centreX`; key chips `1` `2` `3`
-  (`caption`) centred 8 px under each card. Worked example at 1280 × 800: centre (640, 400), title y 536, bar
-  y 564, cards y 580–764 at x 405–875. At 1280 × 1000 (scale still 1, capped by width) the band starts at y 636
+  (`caption`) centred 8 px under each card. Every row is exactly its own height (the title at line height 1, the
+  timer row the bar alone), so worked example at 1280 × 800: centre (640, 400), title y 536 (the 22 px `title`
+  row), bar y 570, cards y 586–770 at x 405–875, key chips to y 791. At 1280 × 1000 (scale still 1, capped by width) the band starts at y 636
   and still clears the box; on a viewport shorter than the reference at `HUD_SCALE_MIN` the key chips may touch
   the bottom edge, which is accepted: the cards never enter the box, and the own cell's orbit never reaches the
   band (§3.1.3). The hint pill is hidden while the offer is open; the own-cell indicators, timer and leaderboard
@@ -41,7 +42,8 @@ without copy fails the gate instead of rendering `undefined`.
   for the offer that was on screen when the key went down (§4's pick policy; the overlay closes on the next
   snapshot without the offer). Timer text right of the bar:
   `6.5 s` (`value` role) from `(offer.expiresAtTick − serverTickEstimate) / TICK_HZ`. **Timeout is the server's pick** (highest
-  draft weight, PROGRESSION §4); the footer reads `At 0 s the dish picks for you`. Sheet 03's "auto-picks the
+  draft weight, PROGRESSION §4); the footer reads `At 0 s the dish picks for you` (`caption`, left of the bar,
+  mirroring the timer text on the right; a row under the key chips would leave the reference viewport). Sheet 03's "auto-picks the
   highlighted card" is superseded by that rule: the client never sends on the player's behalf, and never sends
   after its local timer reaches 0. Space while focus is inside `trait-offer` picks the focused card and does not
   sprint (§4).
