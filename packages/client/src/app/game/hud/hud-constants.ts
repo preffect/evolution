@@ -104,27 +104,31 @@ export const PICKER_BAND_GAP_PX = 16;
 export const PICKER_ROW_GAP_PX = 12;
 /** The timer bar's width at scale 1; its height is `DNA_RING_STROKE_PX`, the width of every chrome fill bar. */
 export const PICKER_TIMER_BAR_WIDTH_PX = 470;
-/** One card at scale 1. */
-export const PICKER_CARD_WIDTH_PX = 150;
-export const PICKER_CARD_HEIGHT_PX = 184;
+/**
+ * One card at scale 1. The height is the catalog's measured worst case in the 1280 × 800 band: Simple Flagellum
+ * `II → III`, whose name wraps to three lines over three effect lines, is 214 px tall. Its key chip sits inside it.
+ */
+export const PICKER_CARD_WIDTH_PX = 170;
+export const PICKER_CARD_HEIGHT_PX = 214;
 /** Gap between two cards. */
 export const PICKER_CARD_GAP_PX = 10;
 /** The glyph medallion at the top of a card (its glyph is #312's; a category initial until then). */
 export const PICKER_CARD_MEDALLION_PX = 56;
-/** A key chip sits this far under its card. */
-export const PICKER_KEY_CHIP_GAP_PX = 8;
 /** The highlighted card lifts this far. */
 export const PICKER_CARD_LIFT_PX = 8;
 /** The dim over the dish while an offer is open; the exclusion disc stays clear. */
 export const PICKER_DIM_ALPHA = 0.55;
-/** Effect lines a card shows at most. */
-export const PICKER_CARD_EFFECT_LINES_MAX = 2;
+/**
+ * Effect lines a card has room for: the catalog's longest tier row (the diatom shell's speed cost, the simple
+ * flagellum's sprint cooldown). Lines are never cut; the spec fails the gate when a row outgrows this.
+ */
+export const PICKER_CARD_EFFECT_LINES_MAX = 3;
 /** Where the dim's clear disc starts to fade, as a share of its radius: the soft edge. */
 export const PICKER_DIM_SOFT_EDGE_FRACTION = 0.85;
 /** Gap between a card's medallion, category, name, effect lines and rarity. */
-export const PICKER_CARD_CONTENT_GAP_PX = 4;
+export const PICKER_CARD_CONTENT_GAP_PX = 2;
 /** A card's inner padding, top and bottom. */
-export const PICKER_CARD_PADDING_BLOCK_PX = 10;
+export const PICKER_CARD_PADDING_BLOCK_PX = 8;
 /** A card's inner padding, left and right. */
 export const PICKER_CARD_PADDING_INLINE_PX = 8;
 /** The highlighted card's accent glow. */

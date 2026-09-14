@@ -46,7 +46,7 @@
 
 /*
  * The row is the bar: the timer text sits right of it and the footer left of it, both out of flow, so the
- * row adds no height and nothing hangs under the key chips (docs/ui/overlays.md §3.2).
+ * row adds no height and nothing hangs under the cards (docs/ui/overlays.md §3.2).
  */
 .timer-row {
   position: relative;

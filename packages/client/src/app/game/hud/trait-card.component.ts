@@ -1,7 +1,7 @@
 // One trait card (docs/ui/overlays.md §3.2): a native button, so a click, Enter or Space on the focused card picks
 // it. It reports its hover and focus changes and draws the highlight it is handed: the overlay owns the one highlight
 // and the preview (`format/card-highlight.ts`). It decides nothing: `traitOfferViewFor` built the record it binds.
-// The key chip under it is a label, not a control.
+// The key chip in its bottom-right corner is a label, not a control.
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { CARD_POINTER, type CardPointer, type CardPointerEvent } from './format/card-highlight';
@@ -42,8 +42,8 @@ import { HUD_TEST_ID, traitCardPickTestId, traitCardTestId } from './test-ids';
         <span class="effect">{{ line }}</span>
       }
       <span class="rarity">{{ card().rarity }}</span>
+      <span class="key-chip" aria-hidden="true">{{ card().keyLabel }}</span>
     </button>
-    <span class="key-chip" aria-hidden="true">{{ card().keyLabel }}</span>
   `,
 })
 export class TraitCardComponent {

@@ -1,8 +1,5 @@
 :host {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(var(--hud-picker-key-chip-gap) * var(--hud-scale));
+  display: block;
 }
 
 .card {
@@ -26,6 +23,11 @@
   transition:
     transform var(--hud-picker-highlight-duration) ease-out,
     box-shadow var(--hud-picker-highlight-duration) ease-out;
+}
+
+/* No row ever shrinks to fit: the card height is sized for the catalog's worst case, so a squash is a bug. */
+.card > * {
+  flex-shrink: 0;
 }
 
 /* Highlight = preview: exactly one card, the one the overlay names (docs/ui/overlays.md §3.2). */
@@ -83,7 +85,12 @@
   text-align: center;
 }
 
+/* Inside the card's bottom-right corner, so nothing hangs under the cards. */
 .key-chip {
+  position: absolute;
+  right: calc(var(--hud-picker-card-padding-inline) * var(--hud-scale));
+  bottom: calc(var(--hud-picker-card-padding-block) * var(--hud-scale));
+  line-height: 1;
   font-size: calc(var(--hud-type-caption) * var(--hud-scale));
   color: var(--hud-text-muted);
 }
