@@ -37,7 +37,8 @@ import {
   PREDATOR_MASS,
   PREY_MASS,
   PROGRESS_TOLERANCE,
-  E10_SEPARATED_OVERLAP_WU,
+  E10_DECAY_GAP_WU,
+  E10_OVERLAP_BOUND_WU,
   E10_SEPARATION_TICKS,
   SHORT_ROUND_SECONDS,
   SHORT_ROUND_TICKS,
@@ -123,15 +124,18 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .runDeterministic();
   });
 
-  it('E10: 24 against 20 never starts and is separated to overlap × 0.8^120, 26 against 20 seals on tick 35', async () => {
+  it('E10: 24 against 20 never starts and is separated under 0.01 wu of overlap, 26 against 20 seals on tick 35', async () => {
     await engulfPair('E10 under the ratio', E10_UNDER_RATIO_MASS)
       .advance(E10_SEPARATION_TICKS)
       .expect('never engulfed', (view) => statesOfPrey(view))
       .atEnd()
       .toEqual([])
-      .expect('separation leaves overlap × 0.8^120 (< 0.01 wu): nothing steers the idle pair back', overlapOfPair)
+      .expect('separated under 0.01 wu of overlap: nothing steers the idle pair back', overlapOfPair)
       .atEnd()
-      .toBeCloseTo(E10_SEPARATED_OVERLAP_WU, DISTANCE_TOLERANCE_WU)
+      .toBeLessThan(E10_OVERLAP_BOUND_WU)
+      .expect('never pushed past touching: only the radii decaying opens a gap', overlapOfPair)
+      .atEnd()
+      .toBeAtLeast(-E10_DECAY_GAP_WU)
       .runDeterministic();
 
     await engulfPair('E10 over the ratio', E10_OVER_RATIO_MASS)

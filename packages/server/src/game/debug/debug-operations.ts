@@ -121,8 +121,9 @@ function patchCell(world: WorldState, cell: CellRecord, patch: PlayerPatch): voi
   if (patch.position !== undefined) {
     cell.x = patch.position.x;
     cell.y = patch.position.y;
-    cell.targetX = patch.position.x;
-    cell.targetY = patch.position.y;
+    // At rest, as a fixture places a cell: no target until the player's next input (mass-and-movement.md §5.2).
+    cell.targetX = null;
+    cell.targetY = null;
   }
 }
 

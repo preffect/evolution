@@ -52,16 +52,20 @@ export const E16_HELD_MASS = 23;
 export const E16_RELEASED_MASS = 21.5;
 /** E10's under-ratio pair runs 120 ticks. */
 export const E10_SEPARATION_TICKS = 120;
+/** E10's stated bound: `A.radius + B.radius − distance` < 0.01 wu (docs/ecology/acceptance.md §8). */
+export const E10_OVERLAP_BOUND_WU = 0.01;
 /**
- * E10's "overlap × 0.8^120": the placed overlap shrunk by `CELL_SEPARATION_FRACTION_PER_TICK` every
- * tick. An idle placed cell has no target (docs/ecology/mass-and-movement.md §5.2), so nothing steers
- * it back against the separation (#261).
+ * How far apart decay can leave E10's pair: the rims' total shrink over the row. An idle placed cell has
+ * no target (docs/ecology/mass-and-movement.md §5.2), so separation closes the overlap to touching and
+ * never pushes past it (#261); after that only the radii decaying opens a gap.
  */
-export const E10_SEPARATED_OVERLAP_WU =
-  (radiusForMass(E10_UNDER_RATIO_MASS, DEFAULT_BALANCE.growth) +
-    radiusForMass(PREY_MASS, DEFAULT_BALANCE.growth) -
-    CENTRE_DISTANCE_WU) *
-  (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** E10_SEPARATION_TICKS;
+export const E10_DECAY_GAP_WU = [E10_UNDER_RATIO_MASS, PREY_MASS].reduce(
+  (shrink, mass) =>
+    shrink +
+    radiusForMass(mass, DEFAULT_BALANCE.growth) -
+    radiusForMass(decayed(mass, E10_SEPARATION_TICKS), DEFAULT_BALANCE.growth),
+  0,
+);
 /** E9b: A steers 5 radii away from B from tick 1 and drags it along; the numbers the row states. */
 export const E9B_SEAL_DISTANCE_WU = 22.53;
 export const E9B_SEAL_WESTING_WU = 12.5;

@@ -11,6 +11,9 @@ import { cellPairs, isEngulfPossible, separateOverlappingCells } from './contact
 import { moveCells } from './movement.js';
 
 const CENTRE_DISTANCE = 10;
+/** E10's run length and its stated bound, `A.radius + B.radius − distance` < 0.01 wu. */
+const SEPARATION_TICKS = 120;
+const OVERLAP_BOUND_WU = 0.01;
 
 function twoCells(massA: number, massB: number): { world: WorldState; cellA: CellRecord; cellB: CellRecord } {
   const world = createTestWorld({
@@ -34,16 +37,17 @@ function twoCells(massA: number, massB: number): { world: WorldState; cellA: Cel
 const overlapOf = (cellA: CellRecord, cellB: CellRecord): number =>
   cellA.radius + cellB.radius - Math.hypot(cellA.x - cellB.x, cellA.y - cellB.y);
 
+/** What `SEPARATION_TICKS` of separation alone leave of an overlap: `× (1 − CELL_SEPARATION_FRACTION_PER_TICK)` a tick. */
+const separatedOverlapOf = (initialOverlap: number): number =>
+  initialOverlap * (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** SEPARATION_TICKS;
+
 describe('separateOverlappingCells', () => {
   it('E10: 120 ticks of separation push a 24 / 20 pair apart to under 0.01 wu of overlap (masses held)', () => {
     const { world, cellA, cellB } = twoCells(24, 20);
     const initialOverlap = overlapOf(cellA, cellB);
-    for (let tick = 0; tick < 120; tick += 1) separateOverlappingCells(world, DEFAULT_BALANCE);
-    expect(overlapOf(cellA, cellB)).toBeLessThan(0.01);
-    expect(overlapOf(cellA, cellB)).toBeCloseTo(
-      initialOverlap * (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** 120,
-      6,
-    );
+    for (let tick = 0; tick < SEPARATION_TICKS; tick += 1) separateOverlappingCells(world, DEFAULT_BALANCE);
+    expect(overlapOf(cellA, cellB)).toBeLessThan(OVERLAP_BOUND_WU);
+    expect(overlapOf(cellA, cellB)).toBeCloseTo(separatedOverlapOf(initialOverlap), 6);
   });
 
   it('E10 through the whole step: an idle pair with no target is pushed apart and nothing steers it back', () => {
@@ -51,12 +55,9 @@ describe('separateOverlappingCells', () => {
     expect([cellA.targetX, cellB.targetX]).toEqual([null, null]);
     const initialOverlap = overlapOf(cellA, cellB);
     const context = createTestStepContext(world);
-    for (let tick = 0; tick < 120; tick += 1) moveCells(world, context);
-    expect(overlapOf(cellA, cellB)).toBeLessThan(0.01);
-    expect(overlapOf(cellA, cellB)).toBeCloseTo(
-      initialOverlap * (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** 120,
-      6,
-    );
+    for (let tick = 0; tick < SEPARATION_TICKS; tick += 1) moveCells(world, context);
+    expect(overlapOf(cellA, cellB)).toBeLessThan(OVERLAP_BOUND_WU);
+    expect(overlapOf(cellA, cellB)).toBeCloseTo(separatedOverlapOf(initialOverlap), 6);
     expect([cellA.velocityX, cellB.velocityX]).toEqual([0, 0]);
   });
 
@@ -68,8 +69,8 @@ describe('separateOverlappingCells', () => {
       cell.targetY = cell.y;
     }
     const context = createTestStepContext(world);
-    for (let tick = 0; tick < 120; tick += 1) moveCells(world, context);
-    expect(overlapOf(cellA, cellB)).toBeGreaterThan(0.01);
+    for (let tick = 0; tick < SEPARATION_TICKS; tick += 1) moveCells(world, context);
+    expect(overlapOf(cellA, cellB)).toBeGreaterThan(OVERLAP_BOUND_WU);
     expect(cellB.x - placedXOfB).toBeGreaterThan(DEFAULT_BALANCE.controls.STEER_DEAD_ZONE_RADII * cellB.radius);
   });
 
