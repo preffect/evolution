@@ -2,10 +2,18 @@
 // record on the own cell each frame — every ring, track and arc as rows of one `ArcMesh` (one draw call), the
 // ladder's ghosts and pip blocks from one pooled sprite batch over the indicator atlas, the level numeral and the
 // label as text. It keeps the two per-cell clocks the record cannot: the DNA fill's tween, and the `level_up`
-// clip whose `ringFlash` track flashes the ring and the numeral gold on the frame the level rises. Placements are
+// clip whose `ringFlash` track flashes the ring and the numeral gold from the frame the own cell's `level_up` effect
+// arrives — the server's moment, never a diff of the record (docs/architecture/client.md §6). Placements are
 // `own-cell-indicators.ts`'s data; this class only applies them. Nothing is drawn without a record or an own cell.
 
-import { MOTION_CLIP, MOTION_CLIPS, type CellView, type EntityId } from '@evolution/shared';
+import {
+  EFFECT_KIND,
+  MOTION_CLIP,
+  MOTION_CLIPS,
+  type CellView,
+  type EntityId,
+  type GameEffect,
+} from '@evolution/shared';
 import { Container, type Sprite } from 'pixi.js';
 import { SpritePool, placeSprite } from '../sprite-pool';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
@@ -22,6 +30,8 @@ export interface OwnCellIndicatorsLayerFrame {
   readonly zoom: number;
   readonly nowMs: number;
   readonly threat: ThreatAnchor | null;
+  /** The effects this frame's render tick reached; the own cell's `level_up` among them starts the flash. */
+  readonly effects: readonly GameEffect[];
 }
 
 export interface OwnCellIndicatorsLayerOutputs {
@@ -53,7 +63,6 @@ export class OwnCellIndicatorsLayer {
   /** Built on the first frame with something to say: `BitmapText` wants a real canvas (`indicator-text.ts`). */
   private text: IndicatorText | null = null;
   private cellId: EntityId | null = null;
-  private lastLevel: number | null = null;
 
   constructor(
     private readonly textures: IndicatorTextures,
@@ -74,7 +83,7 @@ export class OwnCellIndicatorsLayer {
       return NOTHING_DRAWN;
     }
     const text = this.textView();
-    const clocks = this.advanceClocks(ownCell.id, indicators, frame.nowMs);
+    const clocks = this.advanceClocks(ownCell.id, indicators, frame);
     const placements = ownCellIndicatorPlacements({
       indicators,
       ownCell,
@@ -103,18 +112,18 @@ export class OwnCellIndicatorsLayer {
     return this.arcMesh.instances;
   }
 
-  /** The fill's tween and the level-up flash: a new cell starts both fresh, a level rise flashes and jumps the fill. */
+  /** The fill's tween and the level-up flash: a new cell starts both fresh, its own `level_up` flashes and jumps the fill. */
   private advanceClocks(
     cellId: EntityId,
     indicators: OwnCellIndicators,
-    nowMs: number,
+    frame: Pick<OwnCellIndicatorsLayerFrame, 'nowMs' | 'effects'>,
   ): { readonly dnaFill: number; readonly ringFlash: number } {
+    const { nowMs } = frame;
     const isNewCell = cellId !== this.cellId;
-    const isLevelUp = !isNewCell && this.lastLevel !== null && indicators.level > this.lastLevel;
+    const isLevelUp = frame.effects.some((effect) => effect.kind === EFFECT_KIND.levelUp && effect.cellId === cellId);
     if (isNewCell) this.flash.clear();
     if (isLevelUp) this.flash.play(MOTION_CLIPS[MOTION_CLIP.levelUp], nowMs);
     this.cellId = cellId;
-    this.lastLevel = indicators.level;
     return {
       dnaFill: this.fill.update(indicators.dnaFraction, nowMs, isNewCell || isLevelUp),
       ringFlash: this.flash.sample(nowMs)[RING_FLASH_TRACK] ?? NO_FLASH,
@@ -136,7 +145,6 @@ export class OwnCellIndicatorsLayer {
     this.text?.hideNumeral();
     this.text?.hideLabel();
     this.cellId = null;
-    this.lastLevel = null;
     this.fill.reset();
     this.flash.clear();
   }

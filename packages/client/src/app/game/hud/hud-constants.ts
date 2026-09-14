@@ -93,3 +93,29 @@ export const STATUS_ANNOUNCE_DNA_STEP_PERCENT = 25;
 export const ROUND_CLOCK_PULSE_LAST_SECONDS = 10;
 /** One pulse per second. */
 export const ROUND_CLOCK_PULSE_PERIOD_MS = 1000;
+
+// ---- trait picker (docs/ui/layout.md §1, docs/ui/overlays.md §3.2) ----
+
+/** Half-side of the exclusion box around the own cell at scale 1; also the picker dim's spotlight radius. */
+export const HUD_PLAYER_EXCLUSION_PX = 120;
+/** Gap between the exclusion box's bottom edge and the picker's title row. */
+export const PICKER_BAND_GAP_PX = 16;
+/** Gap between the picker's title row, timer bar and card row. */
+export const PICKER_ROW_GAP_PX = 12;
+/** The timer bar's width at scale 1; its height is `DNA_RING_STROKE_PX`, the width of every chrome fill bar. */
+export const PICKER_TIMER_BAR_WIDTH_PX = 470;
+/** One card at scale 1. */
+export const PICKER_CARD_WIDTH_PX = 150;
+export const PICKER_CARD_HEIGHT_PX = 184;
+/** Gap between two cards. */
+export const PICKER_CARD_GAP_PX = 10;
+/** The glyph medallion at the top of a card (its glyph is #312's; a category initial until then). */
+export const PICKER_CARD_MEDALLION_PX = 56;
+/** A key chip sits this far under its card. */
+export const PICKER_KEY_CHIP_GAP_PX = 8;
+/** The highlighted card lifts this far. */
+export const PICKER_CARD_LIFT_PX = 8;
+/** The dim over the dish while an offer is open; the exclusion disc stays clear. */
+export const PICKER_DIM_ALPHA = 0.55;
+/** Effect lines a card shows at most. */
+export const PICKER_CARD_EFFECT_LINES_MAX = 2;

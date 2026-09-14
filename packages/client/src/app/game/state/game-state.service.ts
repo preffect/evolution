@@ -18,10 +18,10 @@ import {
   type PlayerId,
   type PlayerProgressView,
   type RoundPhase,
-  type TraitId,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { threatsFor, type Threat } from '../hud/format/threats-for';
+import { HudStateService } from '../hud/hud-state.service';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
 import type { CameraExtent } from '../render/camera';
 
@@ -29,8 +29,6 @@ const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerProgressView>> = {};
 const NO_CELLS: readonly CellView[] = [];
 const NO_THREATS: readonly Threat[] = [];
-/** Until the picker lands (#188) nothing is ever previewed, so the ladder's ghost never hides. */
-const NO_PREVIEWED_TRAIT: TraitId | null = null;
 
 /** Two extents that describe the same rectangle; a fresh object per frame is not a new view. */
 function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | null): boolean {
@@ -44,12 +42,19 @@ function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | n
 @Injectable({ providedIn: 'root' })
 export class GameStateService {
   private readonly multiplayer = inject(MultiplayerService);
+  private readonly hudState = inject(HudStateService);
 
   /** `MultiplayerService.playerId()`: who we are (docs/ui/layout.md §1's `me`), `null` before the room names us. */
   readonly ownPlayerId = computed<PlayerId | null>(() => this.multiplayer.playerId());
 
   /** The round's phase; `playing` until the snapshot says otherwise, so the chrome shows on join. */
   readonly roundPhase = computed<RoundPhase>(() => this.multiplayer.snapshot()?.roundPhase ?? ROUND_PHASE.playing);
+
+  /**
+   * The newest snapshot's tick: the picker counts its offer down from it (docs/ui/overlays.md §3.2). The chrome is
+   * not interpolated, so this is the last tick the server named, not the renderer's smoothed estimate.
+   */
+  readonly serverTickEstimate = computed<number | null>(() => this.multiplayer.snapshot()?.tick ?? null);
 
   /** Milliseconds left in the round, or `null` before the first snapshot. */
   readonly roundTimeLeftMs = computed<number | null>(() => this.multiplayer.snapshot()?.roundTimeLeftMs ?? null);
@@ -131,9 +136,8 @@ export class GameStateService {
    * mirror speaks it. `null` while spectating or before the first snapshot, which is exactly when
    * there is no own cell to say anything about.
    *
-   * The ladder's ghost-hide rule already takes a previewed trait, but the signal that carries one
-   * is `HudStateService.previewTraitId` and belongs to the picker (#188, docs/ui/components-and-constants.md §7). Passing
-   * `null` keeps this slice honest: no dead signal here, and that slice is one argument away.
+   * The ladder's ghost-hide rule reads the picker's previewed card (`HudStateService.previewTraitId`, #188), so
+   * a highlighted rung card hides the orbit ghost it is about to replace (docs/ui/hud.md §3.1.2).
    */
   readonly ownCellIndicators = computed<OwnCellIndicators | null>(() => {
     const ownCell = this.ownCell();
@@ -150,7 +154,7 @@ export class GameStateService {
       ownProgress,
       balance,
       threats: this.threats(),
-      previewTraitId: NO_PREVIEWED_TRAIT,
+      previewTraitId: this.hudState.previewTraitId(),
     });
   });
 }

@@ -52,6 +52,22 @@ describe('setupGame', () => {
     expect(debugHost[EVOLUTION_DEBUG_KEY]).toBeUndefined();
   });
 
+  it('hands the HUD a card pick for the room and takes it back on teardown', () => {
+    const onTraitCardPickReady = vi.fn();
+    const teardown = setupGame(
+      {
+        send: vi.fn(),
+        messages$: new Subject<ServerMessage>(),
+        acknowledgeSnapshot: vi.fn(),
+        host: document.createElement('div'),
+      },
+      dependencies({ onTraitCardPickReady }),
+    );
+    expect(onTraitCardPickReady).toHaveBeenCalledWith(expect.any(Function));
+    teardown();
+    expect(onTraitCardPickReady).toHaveBeenLastCalledWith(null);
+  });
+
   it('connects the audio hooks once per game_state with the own player, the balance and the round length', () => {
     const messages$ = new Subject<ServerMessage>();
     const injected = dependencies();

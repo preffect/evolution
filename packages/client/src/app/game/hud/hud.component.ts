@@ -7,8 +7,8 @@
 // It also owns the one gate the chrome shares: the round phase (docs/ui/hud.md §3.1).
 //
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
-// mirror (§3.1.4), which carries no pixels of its own; the picker (#188), the death and results
-// overlays (#189) and the notices (#190) slot in here as they land.
+// mirror (§3.1.4), which carries no pixels of its own, and the trait picker (docs/ui/overlays.md §3.2, #188); the death
+// and results overlays (#189) and the notices (#190) slot in here as they land.
 
 import {
   ChangeDetectionStrategy,
@@ -25,6 +25,7 @@ import { GameStateService } from '../state/game-state.service';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
+import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
 import { hudScaleFor } from './format/hud-scale';
 import { hudStyleVariables } from './format/hud-css-variables';
@@ -36,9 +37,11 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
   selector: 'app-hud',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LeaderboardPanelComponent, OwnCellStatusComponent, RoundTimerComponent],
+  imports: [LeaderboardPanelComponent, OwnCellStatusComponent, RoundTimerComponent, TraitOfferOverlayComponent],
   template: `
     @if (isRoundPlaying()) {
+      <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
+      <app-trait-offer-overlay />
       <app-leaderboard-panel />
     }
     <app-round-timer />

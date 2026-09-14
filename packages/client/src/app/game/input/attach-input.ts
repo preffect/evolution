@@ -26,6 +26,11 @@ export interface AttachInputOptions {
   readonly onMenuKey?: () => void;
   /** Tab held / released: the HUD opens the full leaderboard while it is (docs/ui/input-and-onboarding.md §4, #185). */
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
+  /**
+   * The HUD's card pick for this room, handed over once the controller exists and taken back (`null`) on detach:
+   * a clicked card goes through the same pick policy as the `1` `2` `3` keys (docs/ui/overlays.md §3.2, #188).
+   */
+  readonly onTraitCardPickReady?: (pick: ((cardIndex: number) => void) | null) => void;
 }
 
 export interface InputSeam {
@@ -59,6 +64,7 @@ export function attachInput(options: AttachInputOptions): InputSeam {
     onPointerMoved: (point) => controller.pointerMovedTo(point),
     onSprint: () => controller.apply({ kind: INPUT_ACTION.sprint }),
   });
+  options.onTraitCardPickReady?.((cardIndex) => controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex }));
   return {
     controller,
     detach: () => {
@@ -67,6 +73,7 @@ export function attachInput(options: AttachInputOptions): InputSeam {
       // reported before the listener that would have reported it goes away, or the next room
       // mounts with the full leaderboard already open (docs/ui/hud.md §3.1.1).
       controller.releaseAllKeys();
+      options.onTraitCardPickReady?.(null);
       detachKeyboard();
       detachPointer();
     },

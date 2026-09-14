@@ -49,6 +49,8 @@ export interface GameSetupDependencies {
   readonly onMenuKey?: () => void;
   /** Tab held / released, handed to the HUD's overlay state (docs/ui/hud.md §3.1.1, docs/ui/input-and-onboarding.md §4, #185). */
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
+  /** The picker's card pick for this room, `null` when the room goes (docs/ui/overlays.md §3.2, #188). */
+  readonly onTraitCardPickReady?: (pick: ((cardIndex: number) => void) | null) => void;
 }
 
 /** Teardown handle returned by `setupGame`. */
@@ -69,6 +71,7 @@ function hudHandlersOf(dependencies: GameSetupDependencies): Partial<AttachInput
   return definedEntriesOf({
     onMenuKey: dependencies.onMenuKey,
     onFullLeaderboardHeldChanged: dependencies.onFullLeaderboardHeldChanged,
+    onTraitCardPickReady: dependencies.onTraitCardPickReady,
   });
 }
 

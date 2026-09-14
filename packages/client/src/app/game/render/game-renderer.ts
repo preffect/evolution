@@ -239,7 +239,14 @@ export class GameRenderer {
     const { ownCell, viewOf, zoom, nowMs } = context;
     const { ownCellIndicators } = inputs;
     const threat = threatAnchorFor({ indicators: ownCellIndicators, viewOf, ownCell, balance: frame.balance, zoom });
-    const indicators = this.indicators.update({ indicators: ownCellIndicators, ownCell, zoom, nowMs, threat });
+    const indicators = this.indicators.update({
+      indicators: ownCellIndicators,
+      ownCell,
+      zoom,
+      nowMs,
+      threat,
+      effects: frame.effects,
+    });
     const effects = this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } });
     return indicators.sprites + effects.sprites;
   }

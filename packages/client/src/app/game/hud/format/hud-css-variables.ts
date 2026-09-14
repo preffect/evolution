@@ -12,6 +12,7 @@
 // `calc(var(--hud-…) * var(--hud-scale))`, so hit-testing stays in real pixels (docs/ui/layout.md §1).
 
 import {
+  DNA_RING_STROKE_PX,
   LEVEL_GOLD,
   OUTLINE,
   PANEL_BOTTOM,
@@ -41,18 +42,28 @@ import {
   LEADERBOARD_SWATCH_COLUMN_PX,
   LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
+  PICKER_CARD_GAP_PX,
+  PICKER_CARD_HEIGHT_PX,
+  PICKER_CARD_LIFT_PX,
+  PICKER_CARD_MEDALLION_PX,
+  PICKER_CARD_WIDTH_PX,
+  PICKER_DIM_ALPHA,
+  PICKER_KEY_CHIP_GAP_PX,
+  PICKER_BAND_GAP_PX,
+  PICKER_ROW_GAP_PX,
+  PICKER_TIMER_BAR_WIDTH_PX,
+  HUD_PLAYER_EXCLUSION_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
 
 /** The custom property `hud.component.ts` sets from the live box; every length multiplies by it. */
 export const HUD_SCALE_VARIABLE = '--hud-scale';
 
-/** Every `--hud-…` a HUD stylesheet may read, by name, at scale 1. */
-export function hudStyleVariables(hudScale: number): Readonly<Record<string, string>> {
-  return {
-    [HUD_SCALE_VARIABLE]: String(hudScale),
+type StyleVariables = Readonly<Record<string, string>>;
 
-    // Layout frame (docs/ui/layout.md §1) and the chrome's sizes (§3.1.1).
+/** Layout frame (docs/ui/layout.md §1) and the chrome's sizes (docs/ui/hud.md §3.1.1). */
+function chromeVariables(): StyleVariables {
+  return {
     '--hud-margin': `${HUD_MARGIN_PX}px`,
     '--hud-leaderboard-width': `${LEADERBOARD_WIDTH_PX}px`,
     '--hud-leaderboard-full-width': `${LEADERBOARD_FULL_WIDTH_PX}px`,
@@ -73,8 +84,30 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
     '--hud-row-slide-duration': `${LEADERBOARD_ROW_SLIDE_MS}ms`,
     '--hud-leaderboard-expand-duration': `${LEADERBOARD_EXPAND_MS}ms`,
     '--hud-clock-pulse-duration': `${ROUND_CLOCK_PULSE_PERIOD_MS}ms`,
+  };
+}
 
-    // Type roles, each published whole — a size with its own face (docs/VISUAL-STYLE.md §7).
+/** The trait picker (docs/ui/overlays.md §3.2): the band hangs from the exclusion box, never an absolute y. */
+function pickerVariables(): StyleVariables {
+  return {
+    '--hud-exclusion': `${HUD_PLAYER_EXCLUSION_PX}px`,
+    '--hud-picker-band-gap': `${PICKER_BAND_GAP_PX}px`,
+    '--hud-picker-row-gap': `${PICKER_ROW_GAP_PX}px`,
+    '--hud-picker-timer-width': `${PICKER_TIMER_BAR_WIDTH_PX}px`,
+    '--hud-picker-card-width': `${PICKER_CARD_WIDTH_PX}px`,
+    '--hud-picker-card-height': `${PICKER_CARD_HEIGHT_PX}px`,
+    '--hud-picker-card-gap': `${PICKER_CARD_GAP_PX}px`,
+    '--hud-picker-medallion': `${PICKER_CARD_MEDALLION_PX}px`,
+    '--hud-picker-key-chip-gap': `${PICKER_KEY_CHIP_GAP_PX}px`,
+    '--hud-picker-card-lift': `${PICKER_CARD_LIFT_PX}px`,
+    '--hud-picker-timer-height': `${DNA_RING_STROKE_PX}px`,
+    '--hud-picker-dim-alpha': String(PICKER_DIM_ALPHA),
+  };
+}
+
+/** Type roles, each published whole — a size with its own face — and the colour roles (docs/VISUAL-STYLE.md §2, §7). */
+function typeAndColourVariables(): StyleVariables {
+  return {
     '--hud-font-sans': UI_TYPE.body.font,
     '--hud-font-mono': UI_TYPE.clock.font,
     '--hud-font-figure': UI_TYPE.figure.font,
@@ -82,9 +115,12 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
     '--hud-type-body': `${UI_TYPE.body.px}px`,
     '--hud-type-figure': `${UI_TYPE.figure.px}px`,
     '--hud-type-caption': `${UI_TYPE.caption.px}px`,
+    '--hud-type-title': `${UI_TYPE.title.px}px`,
+    '--hud-type-value': `${UI_TYPE.value.px}px`,
+    '--hud-type-card-name': `${UI_TYPE.cardName.px}px`,
+    '--hud-type-label': `${UI_TYPE.label.px}px`,
     '--hud-label-tracking': `${UI_LABEL_TRACKING_EM}em`,
 
-    // Colour roles (docs/VISUAL-STYLE.md §2, §7).
     '--hud-text': TEXT,
     '--hud-text-label': TEXT_LABEL,
     '--hud-text-muted': TEXT_MUTED,
@@ -94,5 +130,15 @@ export function hudStyleVariables(hudScale: number): Readonly<Record<string, str
     '--hud-level-gold': LEVEL_GOLD,
     '--hud-outline': OUTLINE,
     '--hud-white': WHITE,
+  };
+}
+
+/** Every `--hud-…` a HUD stylesheet may read, by name, at scale 1. */
+export function hudStyleVariables(hudScale: number): StyleVariables {
+  return {
+    [HUD_SCALE_VARIABLE]: String(hudScale),
+    ...chromeVariables(),
+    ...pickerVariables(),
+    ...typeAndColourVariables(),
   };
 }

@@ -7,8 +7,9 @@ import {
   createTestPlayerProgressView,
   entityId,
   type CellView,
+  type GameEffect,
 } from '@evolution/shared';
-import { createTestCellView } from '../../../../testing/builders';
+import { createTestCellView, createTestLevelUpEffect } from '../../../../testing/builders';
 import { createFakeIndicatorText } from '../../../../testing/fake-indicator-text';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { peakKeyframe } from '../../../../testing/motion-keyframes';
@@ -49,8 +50,9 @@ function frameAt(
   nowMs: number,
   cell: CellView | null,
   indicators: OwnCellIndicators | null,
+  effects: readonly GameEffect[] = [],
 ): OwnCellIndicatorsLayerFrame {
-  return { indicators, ownCell: cell, zoom: 1, nowMs, threat: null };
+  return { indicators, ownCell: cell, zoom: 1, nowMs, threat: null, effects };
 }
 
 function rowValue(subject: OwnCellIndicatorsLayer, row: number, field: keyof typeof ARC_INSTANCE_FIELD): number {
@@ -97,21 +99,25 @@ describe('OwnCellIndicatorsLayer', () => {
     subject.destroy();
   });
 
-  it('flashes the ring and the numeral gold with the level-up clip, never on a cell’s first frame', () => {
+  it('flashes the ring and the numeral gold from the own cell’s level_up effect, never from a record diff', () => {
     const { subject, text } = layer();
     const cell = createTestCellView();
     subject.update(frameAt(0, cell, recordFor(cell, { level: 5 })));
-    subject.update(frameAt(FLASH_PEAK.at, cell, recordFor(cell, { level: 5 })));
+    // The record rises and another cell levels up: neither is the own cell's moment.
+    const otherLevelUp = createTestLevelUpEffect({ cellId: entityId('other'), level: 6 });
+    subject.update(frameAt(16, cell, recordFor(cell, { level: 6 }), [otherLevelUp]));
+    subject.update(frameAt(16 + FLASH_PEAK.at, cell, recordFor(cell, { level: 6 })));
     expect(text.shown.numeral?.tint).toBe(WHITE);
-    subject.update(frameAt(1000, cell, recordFor(cell, { level: 6 })));
-    subject.update(frameAt(1000 + FLASH_PEAK.at, cell, recordFor(cell, { level: 6 })));
+    const ownLevelUp = createTestLevelUpEffect({ cellId: cell.id, level: 7 });
+    subject.update(frameAt(1000, cell, recordFor(cell, { level: 7 }), [ownLevelUp]));
+    subject.update(frameAt(1000 + FLASH_PEAK.at, cell, recordFor(cell, { level: 7 })));
     expect(text.shown.numeral?.tint).toBe(LEVEL_GOLD);
     const [red, green, blue] = hexToRgb(LEVEL_GOLD);
     expect(rowValue(subject, DNA_FILL_ROW, 'red')).toBeCloseTo(red, 6);
     expect(rowValue(subject, DNA_FILL_ROW, 'green')).toBeCloseTo(green, 6);
     expect(rowValue(subject, DNA_FILL_ROW, 'blue')).toBeCloseTo(blue, 6);
     expect(rowValue(subject, DNA_FILL_ROW, 'alpha')).toBeCloseTo(FLASH_PEAK.value, 6);
-    subject.update(frameAt(1000 + MOTION_CLIPS.level_up.duration, cell, recordFor(cell, { level: 6 })));
+    subject.update(frameAt(1000 + MOTION_CLIPS.level_up.duration, cell, recordFor(cell, { level: 7 })));
     expect(text.shown.numeral?.tint).toBe(WHITE);
     subject.destroy();
   });

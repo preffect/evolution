@@ -23,6 +23,12 @@ export const HUD_TEST_ID = {
   roundPhase: 'hud-round-phase',
   /** The trait picker's container (docs/ui/overlays.md §3.2, #188). */
   traitOffer: 'trait-offer',
+  /** The picker's `6.5 s` timer text (docs/ui/overlays.md §3.2). */
+  traitOfferTimer: 'trait-offer-timer',
+  /** The ribbon on the card that climbs the ladder. */
+  traitCardRung: 'trait-card-rung',
+  /** The `I → II` mark on a card that upgrades an owned trait. */
+  traitCardUpgrade: 'trait-card-upgrade',
   /** The Escape menu's panel (docs/ui/overlays.md §3.5, #189). */
   menuOverlay: 'menu-overlay',
   /** The results panel (docs/ui/overlays.md §3.4, #189). */
@@ -32,6 +38,16 @@ export const HUD_TEST_ID = {
 /** One leaderboard row, by the player it names (docs/ui/hud.md §3.1.1). */
 export function leaderboardRowTestId(id: PlayerId): string {
   return `leaderboard-row-${id}`;
+}
+
+/** One trait card, by its index in the offer (docs/ui/overlays.md §3.2). */
+export function traitCardTestId(cardIndex: number): string {
+  return `trait-card-${cardIndex}`;
+}
+
+/** The card's pick control. */
+export function traitCardPickTestId(cardIndex: number): string {
+  return `trait-card-${cardIndex}-pick`;
 }
 
 /** `[data-testid="…"]`, the one place the attribute name is spelled. */
