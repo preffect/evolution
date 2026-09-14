@@ -34,7 +34,14 @@ import { bakePaletteTextureBytes } from './palette';
 import { bakeDishField, type DishField } from './textures/dish-texture';
 import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
 import { bakeLightPool } from './textures/light-pool-bake';
-import { bakeMoteAtlas, type MoteSpriteKey, type MoteVariants } from './textures/mote-atlas';
+import type { BitmapFontInstaller } from './textures/bitmap-fonts';
+import {
+  createIndicatorTextures,
+  destroyIndicatorTextures,
+  type IndicatorTextures,
+} from './textures/indicator-textures';
+import type { MoteSpriteKey, MoteVariants } from './textures/mote-atlas';
+import { moteTextures } from './textures/mote-textures';
 import { bakeOrganelleAtlas } from './textures/organelle-atlas';
 import { byteDataTexture, texturesFromBakes, type SpriteAtlas } from './textures/pixi-textures';
 import type { BakeCanvas, BakeCanvasFactory } from './textures/texture-bake';
@@ -57,8 +64,8 @@ export interface RadialBakeSpec {
   readonly stops: readonly RadialStop[];
 }
 
-/** What turns a bake into a texture: `pixi-texture-baker.ts` in the app, a stub in tests. */
-export interface TextureBaker extends BakeCanvasFactory {
+/** What turns a bake into a texture and installs the BitmapFonts: `pixi-texture-baker.ts` in the app, a stub in tests. */
+export interface TextureBaker extends BakeCanvasFactory, BitmapFontInstaller {
   bakeRadial(spec: RadialBakeSpec): Texture;
   /** A sprite texture from a Canvas-2D bake made by `create`. */
   textureFromBake(bake: BakeCanvas): Texture;
@@ -110,6 +117,8 @@ export interface RenderTextures {
   readonly ventTexture: Texture;
   /** The condenser light pool, one sprite the dish layer keeps anchored to the view over the field (rendering/budget.md §6.1). */
   readonly lightPoolTexture: Texture;
+  /** The own-cell indicators' ghosts, pip blocks, unlock ring, label pill and fonts (rendering/own-cell-indicators.md §10). */
+  readonly indicators: IndicatorTextures;
 }
 
 export interface RenderTextureOptions {
@@ -167,51 +176,6 @@ function organelleTextures(
   return textures;
 }
 
-const MOTE_ATLAS_GROUP = { full: 'full', small: 'small', fragment: 'fragment', glint: 'glint' } as const;
-
-/** `group:key` for every bake of a record, so three records share one atlas. */
-function prefixed<Key extends string>(
-  group: string,
-  bakes: Readonly<Record<Key, BakeCanvas>>,
-): Record<string, BakeCanvas> {
-  const result: Record<string, BakeCanvas> = {};
-  for (const key of Object.keys(bakes) as Key[]) result[`${group}:${key}`] = bakes[key];
-  return result;
-}
-
-/** The textures of one group back under their own keys. */
-function unprefixed<Key extends string>(
-  group: string,
-  keys: readonly Key[],
-  atlas: SpriteAtlas<string>,
-): Readonly<Record<Key, Texture>> {
-  const result = {} as Record<Key, Texture>;
-  for (const key of keys) result[key] = atlas.textures[`${group}:${key}`]!;
-  return result;
-}
-
-/** The full and small mote sprites and the fragment helices packed into one atlas (docs/rendering/budget.md §6). */
-function moteTextures(baker: TextureBaker): MoteAtlasTextures {
-  const bakes = bakeMoteAtlas(baker);
-  const atlas = baker.atlasFromBakes({
-    ...prefixed(MOTE_ATLAS_GROUP.full, bakes.full),
-    ...prefixed(MOTE_ATLAS_GROUP.small, bakes.small),
-    ...prefixed(MOTE_ATLAS_GROUP.fragment, bakes.fragments),
-    ...prefixed(MOTE_ATLAS_GROUP.glint, bakes.rodGlint),
-  });
-  const moteKeys = Object.keys(bakes.full) as MoteSpriteKey[];
-  const variantKeys: readonly (keyof MoteVariants<Texture>)[] = ['full', 'small'];
-  return {
-    source: atlas.source,
-    full: unprefixed(MOTE_ATLAS_GROUP.full, moteKeys, atlas),
-    small: unprefixed(MOTE_ATLAS_GROUP.small, moteKeys, atlas),
-    fragments: unprefixed(MOTE_ATLAS_GROUP.fragment, Object.keys(bakes.fragments) as DnaTag[], atlas),
-    rodGlint: unprefixed(MOTE_ATLAS_GROUP.glint, variantKeys, atlas),
-    fullPxPerWu: bakes.fullPxPerWu,
-    smallPxPerWu: bakes.smallPxPerWu,
-  };
-}
-
 /** The cell shader's data textures: the strip and the palette as `texelFetch` tables, the tile sampled trilinear. */
 function cellDataTextures(
   cosmetic: RandomSource,
@@ -265,6 +229,7 @@ export function createRenderTextures(options: RenderTextureOptions): RenderTextu
     vent,
     ventTexture: baker.textureFromBake(vent.canvas),
     lightPoolTexture: baker.textureFromBake(lightPool),
+    indicators: createIndicatorTextures(baker, options.devicePixelRatio),
   };
 }
 
@@ -291,4 +256,5 @@ export function destroyRenderTextures(textures: RenderTextures): void {
   textures.stripTexture.destroy();
   textures.tileTexture.destroy();
   textures.paletteTexture.destroy();
+  destroyIndicatorTextures(textures.indicators);
 }

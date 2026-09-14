@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { BitmapFont } from 'pixi.js';
+import { describe, expect, it, vi } from 'vitest';
 import { createFakeBakeCanvasFactory } from '../../../testing/fake-bake-canvas';
 import { ALPHA, CHANNEL_MAX } from './colour';
 import { VIGNETTE_ALPHA, VIGNETTE_TEXTURE_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import { VIGNETTE_BAKE } from './render-textures';
+import { indicatorFontInstalls } from './textures/bitmap-fonts';
 import { radialPixelOffset } from './textures/radial-bake';
 
 const BYTE_TOLERANCE = 1;
@@ -29,5 +31,24 @@ describe('createPixiTextureBaker', () => {
     const bake = baker.create(3, 2);
     expect(canvases.canvases).toEqual([bake]);
     expect(bake.width).toBe(3);
+  });
+
+  it("installs and uninstalls the indicator fonts through Pixi's BitmapFont, with the spec's fields", () => {
+    const install = vi.spyOn(BitmapFont, 'install').mockReturnValue(undefined as never);
+    const uninstall = vi.spyOn(BitmapFont, 'uninstall').mockReturnValue(undefined);
+    const baker = createPixiTextureBaker(createFakeBakeCanvasFactory());
+    const [value] = indicatorFontInstalls(2);
+    baker.installBitmapFont(value!);
+    expect(install).toHaveBeenCalledWith({
+      name: value!.name,
+      style: value!.style,
+      chars: value!.chars,
+      resolution: value!.resolution,
+      padding: value!.padding,
+    });
+    baker.uninstallBitmapFont(value!.name);
+    expect(uninstall).toHaveBeenCalledWith(value!.name);
+    install.mockRestore();
+    uninstall.mockRestore();
   });
 });

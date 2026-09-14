@@ -3,8 +3,9 @@
 // comes from the canvas factory it wraps and becomes a texture through `textures/pixi-textures.ts`.
 // Not Pixi's `FillGradient`: its radial build floods the gradient canvas with the last stop before
 // painting, so a bake that is clear at the centre (the vignette) came out at its edge alpha over the
-// whole quad (#229).
+// whole quad (#229). The indicator fonts install into Pixi's `BitmapFont` cache (`textures/bitmap-fonts.ts`).
 
+import { BitmapFont } from 'pixi.js';
 import type { TextureBaker } from './render-textures';
 import { atlasTexturesFromBakes, spriteTextureFromBytes, textureFromBake } from './textures/pixi-textures';
 import { bakeRadialBytes } from './textures/radial-bake';
@@ -16,5 +17,15 @@ export function createPixiTextureBaker(canvases: BakeCanvasFactory): TextureBake
     create: (width, height) => canvases.create(width, height),
     textureFromBake,
     atlasFromBakes: atlasTexturesFromBakes,
+    installBitmapFont: (install) => {
+      BitmapFont.install({
+        name: install.name,
+        style: install.style,
+        chars: install.chars,
+        resolution: install.resolution,
+        padding: install.padding,
+      });
+    },
+    uninstallBitmapFont: (name) => BitmapFont.uninstall(name),
   };
 }

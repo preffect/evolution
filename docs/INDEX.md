@@ -169,18 +169,18 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — UI: HUD, overlays and onboarding** (L1–38): Ticket: #30, reworked for decision #143 in #146 (option C, diegetic: progress is shown on the player's own cell; the only chrome is the lea…
 - **Files** (L28–38): This document is split into topic files (#306).
 
-## VISUAL-STYLE.md (397 lines)
+## VISUAL-STYLE.md (398 lines)
 
-- **Evolution — Visual Style** (L1–397): Ticket #34, epic #2.
+- **Evolution — Visual Style** (L1–398): Ticket #34, epic #2.
 - **1. Dark-field microscopy: the principles** (L17–64): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
-- **2. Palette** (L65–204): All hex values are named constants; draw code never holds a literal.
-- **3. The cell: layer stack per stage** (L205–250): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
-- **4. Organelle vocabulary per trait** (L251–276): The trait's own `visual` string ([`traits/catalog-organelles.md §3`](./traits/catalog-organelles.md#3-build-1-catalog-sixteen-traits-fully…
-- **5. Membrane and motion language** (L277–304): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
-- **6. Legibility at play scale** (L305–324): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
-- **7. UI colours and type** (L325–353): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
-- **8. Performance intent: geometry, textures, shaders** (L354–383): The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
-- **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L384–397)
+- **2. Palette** (L65–205): All hex values are named constants; draw code never holds a literal.
+- **3. The cell: layer stack per stage** (L206–251): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
+- **4. Organelle vocabulary per trait** (L252–277): The trait's own `visual` string ([`traits/catalog-organelles.md §3`](./traits/catalog-organelles.md#3-build-1-catalog-sixteen-traits-fully…
+- **5. Membrane and motion language** (L278–305): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
+- **6. Legibility at play scale** (L306–325): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
+- **7. UI colours and type** (L326–354): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
+- **8. Performance intent: geometry, textures, shaders** (L355–384): The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
+- **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L385–398)
 
 ## WORKFLOW.md (157 lines)
 
@@ -360,16 +360,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **4. Motion tables (`packages/shared/src/constants/motion.ts`)** (L60–141): Sheet 03's strips become data; the renderer tweens, the HUD opens the picker at the end of `level_up` (`ui/overlays.md §3.2`) and the soun…
 - **5. LOD** (L142–157): Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them).
 
-## rendering/files-and-tests.md (101 lines)
+## rendering/files-and-tests.md (104 lines)
 
-- **Evolution — Rendering: file plan and test plan** (L1–101): §8–§9 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
-- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–43): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
-- **9. Test plan (`TESTING.md` tiers)** (L44–101): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
+- **Evolution — Rendering: file plan and test plan** (L1–104): §8–§9 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–46): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
+- **9. Test plan (`TESTING.md` tiers)** (L47–104): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 
-## rendering/own-cell-indicators.md (68 lines)
+## rendering/own-cell-indicators.md (79 lines)
 
-- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–68): §10 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
-- **10. Own-cell indicators and world-anchored labels (#146)** (L5–68): [`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows:…
+- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–79): §10 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **10. Own-cell indicators and world-anchored labels (#146)** (L5–79): [`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows:…
 
 ## traits/catalog-forms.md (123 lines)
 

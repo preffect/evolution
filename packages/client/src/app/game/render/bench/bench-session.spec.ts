@@ -1,4 +1,5 @@
 import { ManualClock, RENDER_STAGE_NAMES } from '@evolution/shared';
+import { Container } from 'pixi.js';
 import { describe, expect, it, vi } from 'vitest';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp } from '../../../../testing/fake-pixi-app';
 import type { PixiAppOptions } from '../pixi-app';
@@ -10,9 +11,16 @@ import {
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
 import { GPU_TIMER_STATUS } from './gpu-timer';
-import { BenchSession, isBenchRoute, parseBenchQuery, type BenchQuery, type RenderBenchReport } from './bench-session';
+import {
+  BENCH_SHEET,
+  BenchSession,
+  isBenchRoute,
+  parseBenchQuery,
+  type BenchQuery,
+  type RenderBenchReport,
+} from './bench-session';
 
-const DEFAULT_FLAGS = { shouldAdvanceTick: false, shouldPreserveDrawingBuffer: false };
+const DEFAULT_FLAGS = { shouldAdvanceTick: false, shouldPreserveDrawingBuffer: false, sheet: null };
 
 describe('parseBenchQuery', () => {
   it('reads the seed, tick, zoom and flags with defaults for what is missing or malformed', () => {
@@ -23,6 +31,7 @@ describe('parseBenchQuery', () => {
       windowFrames: 12,
       shouldAdvanceTick: true,
       shouldPreserveDrawingBuffer: true,
+      sheet: null,
     });
     expect(parseBenchQuery('?bench')).toEqual({
       seed: RENDER_BENCH_SEED,
@@ -38,6 +47,11 @@ describe('parseBenchQuery', () => {
       windowFrames: 1,
       ...DEFAULT_FLAGS,
     });
+  });
+
+  it('selects the indicator contact sheet only for `sheet=indicators`', () => {
+    expect(parseBenchQuery('?bench&sheet=indicators').sheet).toBe(BENCH_SHEET.indicators);
+    expect(parseBenchQuery('?bench&sheet=cells').sheet).toBeNull();
   });
 
   it('never lets a zoom of zero or less through to the camera', () => {
@@ -78,6 +92,13 @@ const SMALL_QUERY: BenchQuery = {
   ...DEFAULT_FLAGS,
 };
 
+/** Stands in for `attachIndicatorSheet`, whose BitmapText needs a real canvas: an empty container on top of the stage. */
+function attachEmptySheet(stage: Container): Container {
+  const sheet = new Container();
+  stage.addChild(sheet);
+  return sheet;
+}
+
 async function session(query: BenchQuery = SMALL_QUERY) {
   const pixi = createFakePixiApp();
   const heap = fakeHeap();
@@ -95,6 +116,7 @@ async function session(query: BenchQuery = SMALL_QUERY) {
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     counts: SMALL_COUNTS,
     onReport: (report) => reports.push(report),
+    attachSheet: attachEmptySheet,
   });
   await subject.start();
   return { subject, pixi, heap, reports, appOptions };
@@ -136,6 +158,20 @@ describe('BenchSession', () => {
     expect(appOptions[0]).toMatchObject({ shouldPreserveDrawingBuffer: false });
     const preserved = await session({ ...SMALL_QUERY, shouldPreserveDrawingBuffer: true });
     expect(preserved.appOptions[0]).toMatchObject({ shouldPreserveDrawingBuffer: true });
+  });
+
+  it('draws the indicator contact sheet over the scene with `sheet=indicators`, rebuilt with the textures', async () => {
+    const plain = await session();
+    const { subject, pixi } = await session({ ...SMALL_QUERY, sheet: BENCH_SHEET.indicators });
+    expect(pixi.stage.children).toHaveLength(plain.pixi.stage.children.length + 1);
+    const sheet = pixi.stage.children.at(-1)!;
+    subject.debugApi().setSeed(RENDER_BENCH_SEED + 1);
+    const rebuilt = pixi.stage.children.at(-1)!;
+    expect(rebuilt).not.toBe(sheet);
+    expect(sheet.destroyed).toBe(true);
+    expect(pixi.stage.children).toHaveLength(plain.pixi.stage.children.length + 1);
+    subject.destroy();
+    expect(rebuilt.destroyed).toBe(true);
   });
 
   it('steps the scene a tick a frame under `advance=1`, so the snapshot apply is inside the window', async () => {

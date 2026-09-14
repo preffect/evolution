@@ -14,10 +14,15 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
   `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
   in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
   predicted own position. Rings, tracks and arcs are tinted glow-atlas arc sprites (one `arc` entry with a `fill`
-  uniform, no per-frame `Graphics`); ghosts and pip blocks are entries of the organelle atlas (§3) at their fixed
-  px size, the pip blocks baked at startup as one entry per (variant, eaten) from
-  `balance.ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED`, so a counter is two sprites; the numeral and the labels are
-  `BitmapText` in the `value` / `label` roles, the labels on a label-pill sprite (`ui/input-and-onboarding.md §6`). Budget: ≤ 14 sprites
+  uniform, no per-frame `Graphics`); ghosts, pip blocks and the unlock ring are entries of the indicator atlas
+  (`textures/indicator-atlas.ts`, one packed source) baked at their fixed px size times the device pixel ratio
+  (rounded up, capped at `INDICATOR_BAKE_MAX_DPR`), keyed by `OrbitGhost.key` and `pipBlockKey(variant, eaten,
+required)`; the pip blocks are one entry per (variant, eaten) from each endosymbiont's `unlockedBy.count` in
+  `TRAIT_CATALOG` (ui/hud.md §3.1.2's source), and the key clamps `eaten` again, so a counter is two sprites. The rung
+  ghosts bake white for the rim-colour tint, the counters' in their organelle colour. The numeral and the labels are
+  `BitmapText` in the `value` / `label` roles over one shared install per texture bundle
+  (`textures/bitmap-fonts.ts`, names in `textures.indicators.fonts`), the labels on the label pill, a nine-slice
+  sprite that stretches only its middle column (`ui/input-and-onboarding.md §6`). Budget: ≤ 14 sprites
   and 2 texts inside the `effects` stage's 0.3 ms (§7); the worst case is a prokaryote with both counters, one
   unlocked, and a threat on screen: DNA track + fill (2), two backings, two ghosts, two pip blocks, one unlock ring,
   the label pill = 11 sprites, the numeral and the label = 2 texts (the escape arc replaces the orbit and hides the
@@ -63,6 +68,12 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
   case), `orbit-layout.spec.ts` (the counter layout and the ghost-beside-a-counter clearance) and
   `threat-label-placement.spec.ts` (near side at 200 px above a 30 px predator, far side at 100 px, the
   pill's whole box tested against the orbit extent so a wide pill beside the cell flips, upright at every angle),
-  unit, no WebGL; the screenshot baselines (§9) gain the own cell at the four sizes with the
+  and for the textures (#294) `ghost-bake.spec.ts` (every silhouette inside the `LADDER_GHOST_PX` square, the
+  layer order, the rung ghosts white), `pip-block-bake.spec.ts` (the clamped key, the first row nearest the cell
+  and lit clockwise under the orbit tangent, exactly `eaten` lit), `label-pill-bake.spec.ts` (caps and stretch
+  column make up the bake), `bitmap-fonts.spec.ts` (the roles' faces, sizes, outline and glyphs),
+  `indicator-atlas.spec.ts` (a ghost for every `OrbitGhost.key`, a pip block for every clamped lookup) and
+  `indicator-textures.spec.ts` (one source, fonts installed once and uninstalled on destroy), unit, no WebGL;
+  `?bench&sheet=indicators` draws the baked sheet for review (`bench/indicator-sheet.ts`); the screenshot baselines (§9) gain the own cell at the four sizes with the
   counters showing, the max-level ring, the escape arc before and after the seal and the far-side label, from
   `qa/decisions/hud-layout/diegetic/` as the reference look and its fixed indicator records as the scene fixtures.

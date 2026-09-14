@@ -200,7 +200,8 @@ by `qa/evidence/34/tools/render.sh`.
 `#ffe08a` (level ring full, anticipation ring, timer bar), `DNA` `#d36bff` / `DNA_DEEP` `#6b2ea6`
 (DNA ring, streams), the panel and text roles: sheet 03's palette table; the overlay panel is
 `PANEL_TOP` `#0e1f33` → `PANEL_BOTTOM` `#060e1a` with the `PANEL_RIM` `#173250` rim. `UI_ACCENT` is
-`LIGHT_ACCENT`; `WHITE` `#ffffff` is the single white.
+`LIGHT_ACCENT`; `CALLOUT_BACKING` (the callout backing role, sheet 02's callout `#04070d`) is `BG_DEEP`;
+`WHITE` `#ffffff` is the single white.
 
 ## 3. The cell: layer stack per stage
 

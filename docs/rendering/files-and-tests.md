@@ -15,6 +15,8 @@ textures/atlas-layout.ts                             shelf packing of the mote a
 textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
+textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten) and the unlock ring, the nine-slice label pill (#294)
+textures/{indicator-atlas,indicator-textures,bitmap-fonts,mote-textures}.ts   the indicator bakes keyed as `orbit-layout` hands them over, packed on one source with the pill and the fonts beside it; the `value` / `label` BitmapFont installs; the mote atlas's textures (#294)
 cells/{cell-layer,cell-layer-frame,cell-render-state,cell-traits,cell-lod}.ts   the composer, its frame contract, one state per cell, the stage / trait summary, the LOD rule (#215)
 cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-texture layout and packing, the per-frame record, the GPU objects (#215)
 cells/self-ring.ts                                 the sprint ring's input to the cell layer, its clockwise-from-12 arc coordinate (the GLSL's reference) and the escape's warning-ring rule (§10, #295)
@@ -33,6 +35,7 @@ effects/own-cell-ring.ts                           the sprint ring per frame: th
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
+bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
 frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation both sessions share (§7, #208); the one renderer a session holds, built over its textures and disposed with them
 pixi-texture-baker.ts                                  the `TextureBaker` (the per-pixel radial bakes of `textures/radial-bake.ts` for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
