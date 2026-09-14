@@ -86,4 +86,11 @@ describe('traitOfferViewFor', () => {
     expect(viewAt(-3)).toMatchObject({ secondsLeft: 0, secondsText: '0.0 s', timerFraction: 0 });
     expect(viewAt(WINDOW_SECONDS * 2)).toMatchObject({ secondsLeft: WINDOW_SECONDS, timerFraction: 1 });
   });
+
+  it('starts the countdown at the full window the tick the offer is shown', () => {
+    expect(viewAt(WINDOW_SECONDS)).toMatchObject({
+      secondsText: `${WINDOW_SECONDS.toFixed(1)} s`,
+      timerFraction: 1,
+    });
+  });
 });

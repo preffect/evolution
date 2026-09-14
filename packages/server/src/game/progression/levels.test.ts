@@ -1,6 +1,6 @@
 // docs/PROGRESSION.md §2 (thresholds, carry-over) and step 7 of the tick.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, EFFECT_KIND, cumulativeDnaForLevel, levelUpCost } from '@evolution/shared';
+import { DEFAULT_BALANCE, EFFECT_KIND, TICK_HZ, cumulativeDnaForLevel, levelUpCost } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { gainDna } from './dna.js';
 import { applyLevelUps, levelForCumulativeDna, runProgression, setLevelFromCumulativeDna } from './levels.js';
@@ -9,6 +9,7 @@ import { shownOffer } from './offers.js';
 const balance = DEFAULT_BALANCE;
 const { MAX_LEVEL } = balance.progression;
 const cost = (level: number): number => levelUpCost(level, balance.progression);
+const TIMEOUT_TICKS = balance.progression.TRAIT_CHOICE_TIMEOUT_SECONDS * TICK_HZ;
 
 describe('level thresholds', () => {
   it('sums the costs below a level (the doc table, derived from levelUpCost)', () => {
@@ -90,11 +91,11 @@ describe('runProgression (step 7)', () => {
     const offer = shownOffer(player);
     expect(offer?.offerId).toBe(1);
     expect(offer?.shownAtTick).toBe(12);
-    expect(offer?.expiresAtTick).toBe(12 + 600);
-    world.tick = 12 + 599;
+    expect(offer?.expiresAtTick).toBe(12 + TIMEOUT_TICKS);
+    world.tick = 12 + TIMEOUT_TICKS - 1;
     runProgression(world, context);
     expect(shownOffer(player)?.offerId).toBe(1);
-    world.tick = 12 + 600;
+    world.tick = 12 + TIMEOUT_TICKS;
     runProgression(world, context);
     expect(shownOffer(player)).toBeUndefined();
     expect(player.ownedTraits).toEqual([{ traitId: 'nucleoid', tier: 1 }]);
