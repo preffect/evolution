@@ -103,8 +103,8 @@ describe('applyPlacedCell', () => {
     expect({ x: cell.x, y: cell.y, targetX: cell.targetX, targetY: cell.targetY }).toEqual({
       x: BROTH_POINT.x,
       y: BROTH_POINT.y,
-      targetX: BROTH_POINT.x,
-      targetY: BROTH_POINT.y,
+      targetX: null,
+      targetY: null,
     });
     expect([cell.pinnedX, cell.pinnedY]).toEqual([BROTH_POINT.x, BROTH_POINT.y]);
     expect(cell.mass).toBe(100);

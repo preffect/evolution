@@ -55,7 +55,7 @@ describe('createPlayerRecord', () => {
 });
 
 describe('createCellRecord', () => {
-  it('appends a free protocell targeting its own centre with its derived state folded', () => {
+  it('appends a free protocell with no target yet and its derived state folded', () => {
     const world = createTestWorld();
     const player = world.players[0]!;
     player.level = 3;
@@ -67,8 +67,8 @@ describe('createCellRecord', () => {
       organismId: cell.id,
       x: 100,
       y: 200,
-      targetX: 100,
-      targetY: 200,
+      targetX: null,
+      targetY: null,
       velocityX: 0,
       mass: 80,
       level: 3,

@@ -18,6 +18,7 @@ import {
   type MovementPose,
   type MovementStep,
   type SteerCommand,
+  type Vec2,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
@@ -79,11 +80,20 @@ export function speedCapOf(cell: CellRecord, world: WorldState, balance: Balance
   );
 }
 
+/**
+ * Where a cell steers: its latched target, or, before its first input, its own centre, which the
+ * kernel reads as no steer (throttle 0), so an idle cell stays wherever separation pushed it (§5.2, E10).
+ */
+function steerTargetOf(cell: CellRecord): Vec2 {
+  return cell.targetX === null || cell.targetY === null ? cell : { x: cell.targetX, y: cell.targetY };
+}
+
 /** This tick's steer command for one cell, from its start-of-tick pose (docs/ecology/mass-and-movement.md §5.2). */
 function steerCommandOf(cell: CellRecord, balance: BalanceConfig): SteerCommand {
+  const target = steerTargetOf(cell);
   return steerCommand(cell, {
-    targetX: cell.targetX,
-    targetY: cell.targetY,
+    targetX: target.x,
+    targetY: target.y,
     radiusWu: cell.radius,
     controls: balance.controls,
   });
@@ -92,9 +102,10 @@ function steerCommandOf(cell: CellRecord, balance: BalanceConfig): SteerCommand 
 /** The kernel's step for one cell, everything but the command (which the caller has already taken). */
 function movementStepOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): MovementStep {
   const accelerationSeconds = balance.growth.CELL_ACCELERATION_SECONDS * cell.modifiers.accelerationSecondsMultiplier;
+  const target = steerTargetOf(cell);
   return {
-    targetX: cell.targetX,
-    targetY: cell.targetY,
+    targetX: target.x,
+    targetY: target.y,
     radiusWu: cell.radius,
     speedCapWuPerSecond: speedCapOf(cell, world, balance),
     blendPerTick: steerBlendPerTick(accelerationSeconds, TICK_INTERVAL_S),

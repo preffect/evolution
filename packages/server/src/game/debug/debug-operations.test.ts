@@ -89,9 +89,11 @@ describe('grantDnaForDebug', () => {
 });
 
 describe('setPlayerForDebug', () => {
-  it('sets mass, position (and the latched target), level and tier-I traits, then refolds', () => {
+  it('sets mass, position (at rest, no target), level and tier-I traits, then refolds', () => {
     const world = createTestWorld();
     const cell = world.cells[0]!;
+    cell.targetX = 9;
+    cell.targetY = 9;
     const view = setPlayerForDebug(world, ALICE, {
       mass: 100,
       level: 4,
@@ -103,7 +105,7 @@ describe('setPlayerForDebug', () => {
     expect(cell.mass).toBe(100);
     expect(cell.radius).toBeCloseTo(40, 12);
     expect(cell.x).toBe(1500);
-    expect(cell.targetX).toBe(1500);
+    expect([cell.targetX, cell.targetY]).toEqual([null, null]);
     expect(cell.level).toBe(4);
     expect(cell.traits).toEqual([
       { traitId: 'nucleoid', tier: 1 },

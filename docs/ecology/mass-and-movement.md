@@ -64,8 +64,12 @@ centre   += velocity × TICK_INTERVAL_S
 clamp centre to DISH_RADIUS − radius; zero the outward radial velocity on contact
 ```
 
-The blend is the only drag: with no input `desired` is zero and the cell coasts to a stop within
-about a second. `gelSpeedFactor(mass) = max(clamp(1 − mass / GEL_MASS_SCALE, GEL_MIN_SPEED_FACTOR,
+`target` is the latest applied input, latched until replaced. A cell has **no target until its
+player's first input**: a spawn, a respawn and a fixture placement all start without one, exactly as a
+wild seat does before its first decision ([`wild-cells.md §3.3`](wild-cells.md)). No target is
+throttle 0, so an idle cell stays wherever separation (§5.3) pushes it instead of steering back to the
+point it was placed at (E10). The blend is the only drag: with no input `desired` is zero and the cell
+coasts to a stop within about a second. `gelSpeedFactor(mass) = max(clamp(1 − mass / GEL_MASS_SCALE, GEL_MIN_SPEED_FACTOR,
 GEL_MAX_SPEED_FACTOR), gelSpeedFactorFloor)`: the gel barely slows a starting cell and cuts a 600-mass
 cell to 40 %, which is why small cells shelter there; the amoeba's `gelSpeedFactorFloor` is the only
 way through ([`traits/catalog-forms.md §3.12`](../traits/catalog-forms.md)). Trait factors: [`TRAITS.md`](../TRAITS.md).
