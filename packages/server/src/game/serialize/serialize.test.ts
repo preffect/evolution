@@ -21,7 +21,7 @@ import {
   toMotePositionView,
   toPlayerProgressView,
   toPlayerRosterView,
-  withOwnProgress,
+  ownProgressOf,
 } from './serialize.js';
 
 describe('quantizePosition', () => {
@@ -113,21 +113,16 @@ describe('view projections', () => {
   });
 });
 
-describe('withOwnProgress', () => {
-  it('adds the viewer’s own progress and leaves every other row a roster row', () => {
+describe('ownProgressOf', () => {
+  it('is the viewer’s own progress view', () => {
     const world = createTestWorld();
     const viewer = world.players[0]!;
     viewer.ownedTraits = [{ traitId: 'nucleoid', tier: 1 }];
-    const snapshot = serializeFullSnapshot(world);
-    const viewed = withOwnProgress(snapshot, world, viewer.playerId);
-    expect(viewed.ownProgress).toEqual(toPlayerProgressView(viewer));
-    expect(viewed.players).toBe(snapshot.players);
-    expect(snapshot.ownProgress).toBeNull();
+    expect(ownProgressOf(world, viewer.playerId)).toEqual(toPlayerProgressView(viewer));
   });
 
-  it('gives a viewer with no player in the world no progress', () => {
-    const world = createTestWorld();
-    expect(withOwnProgress(serializeFullSnapshot(world), world, playerId('nobody')).ownProgress).toBeNull();
+  it('is null for a viewer with no player in the world', () => {
+    expect(ownProgressOf(createTestWorld(), playerId('nobody'))).toBeNull();
   });
 });
 

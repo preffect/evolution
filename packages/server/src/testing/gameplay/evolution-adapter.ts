@@ -189,8 +189,6 @@ function createScenarioModule(module: EvolutionModule): EvolutionScenarioModule 
     ...module,
     serializeRoomState: serialize,
     serializeFullState: () => ({ snapshot: serialize(), balance: module.world.balance }),
-    // A table reads every player's progress through `progressByPlayer`, so the scenario snapshot has no viewer.
-    snapshotForViewer: (snapshot) => snapshot,
     addPlayer: (playerId, avatarIndex, playerName) => {
       materialiseSnapshot();
       module.addPlayer(playerId, avatarIndex, playerName);

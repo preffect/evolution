@@ -122,12 +122,12 @@ export function toPlayerRosterView(player: PlayerRecord): PlayerRosterView {
 }
 
 /**
- * `snapshot` as `viewerPlayerId` receives it (docs/architecture/wire-contract.md §4.1): the same snapshot plus that
- * player's own progress, which no other client is sent. A viewer with no player in the world gets none.
+ * What `viewerPlayerId` alone is sent of its own progress (docs/architecture/wire-contract.md §4.1): `null` for a
+ * viewer with no player in the world.
  */
-export function withOwnProgress(snapshot: GameSnapshot, world: WorldState, viewerPlayerId: PlayerId): GameSnapshot {
+export function ownProgressOf(world: WorldState, viewerPlayerId: PlayerId): PlayerProgressView | null {
   const viewer = findPlayer(world, viewerPlayerId);
-  return { ...snapshot, ownProgress: viewer === undefined ? null : toPlayerProgressView(viewer) };
+  return viewer === undefined ? null : toPlayerProgressView(viewer);
 }
 
 /** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */

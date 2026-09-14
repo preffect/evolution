@@ -25,6 +25,7 @@ import {
   type StateHash,
 } from '@evolution/shared';
 import { GameRoom } from '../../lobby/game-room.js';
+import { snapshotForViewer } from '../../lobby/viewer-snapshots.js';
 import {
   createManualRoomTiming,
   createTestConnection,
@@ -99,7 +100,7 @@ function startRoom(seed: number): DrivenRoom {
       );
     });
   return {
-    snapshot: (viewer = PREDATOR) => module.snapshotForViewer(room.getFullState().snapshot, viewer),
+    snapshot: (viewer = PREDATOR) => snapshotForViewer(module, room.getFullState().snapshot, viewer),
     effectsOfKind,
     releaseReasons: () => effectsOfKind(EFFECT_KIND.cellReleased).map((effect) => effect.reason),
     hash: () => handle.computeStateHash!(),

@@ -1,5 +1,13 @@
 import { DEFAULT_BALANCE } from '@evolution/shared';
-import type { BalanceConfig, GameId, GameInput, GameSessionConfig, GameSnapshot, PlayerId } from '@evolution/shared';
+import type {
+  BalanceConfig,
+  GameId,
+  GameInput,
+  GameSessionConfig,
+  GameSnapshot,
+  PlayerId,
+  PlayerProgressView,
+} from '@evolution/shared';
 import type { SimulationDebugHandle } from './debug/simulation-debug-handle.js';
 import { echoBotBinding } from './bots/bot-binding.js';
 import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-process-bots.js';
@@ -29,11 +37,12 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
    */
   serializeFullState(): FullGameState<Snapshot>;
   /**
-   * A snapshot of this tick (`serializeRoomState`'s or `serializeFullState`'s) as one connection receives it
-   * (docs/architecture/wire-contract.md §4.1): what only that player reads rides here, so the room serialises
-   * once per broadcast and projects per viewer. Optional: without it every connection receives the snapshot as is.
+   * The one part of this tick's snapshot a connection is sent for itself alone (docs/architecture/wire-contract.md
+   * §4.1): the viewer's own progress, `null` for a viewer with no player. The room stringifies the rest once per
+   * broadcast and splices this in per connection (`lobby/viewer-snapshots.ts`), and sets it on each `game_state`.
+   * Optional: without it every connection receives the snapshot as is.
    */
-  snapshotForViewer?(snapshot: Snapshot, viewerPlayerId: PlayerId): Snapshot;
+  serializeOwnProgress?(viewerPlayerId: PlayerId): PlayerProgressView | null;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */

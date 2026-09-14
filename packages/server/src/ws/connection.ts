@@ -23,7 +23,7 @@ export interface Connection {
 }
 
 /** Write an already-serialised frame if the socket is open; true when it was written. */
-function sendRaw(connection: Connection, data: string): boolean {
+export function sendRaw(connection: Connection, data: string): boolean {
   if (connection.socket.readyState !== WebSocket.OPEN) return false;
   connection.socket.send(data);
   return true;
