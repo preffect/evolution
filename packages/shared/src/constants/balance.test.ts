@@ -37,14 +37,11 @@ describe('DEFAULT_BALANCE', () => {
     expect(DEFAULT_BALANCE.traits.TRAIT_TIERS).toBe(TRAIT_TIERS);
   });
 
+  // The catalog side (both endosymbionts' `unlockedBy.count` equals the constant) is traits.test.ts T11.
   it('carries every ladder constant but the endosymbiosis count, which travels only in the catalog (#286)', () => {
-    const catalogCarried = 'ENDOSYMBIOSIS_BACTERIA_REQUIRED';
+    const catalogCarried: keyof typeof ladder = 'ENDOSYMBIOSIS_BACTERIA_REQUIRED';
     const ladderConstants = Object.keys(ladder).filter((name) => name !== catalogCarried);
     expect(Object.keys(DEFAULT_BALANCE.ladder).sort()).toEqual(ladderConstants.sort());
-    const unlockCounts = DEFAULT_BALANCE.traits.TRAIT_CATALOG.flatMap((trait) =>
-      'unlockedBy' in trait ? [trait.unlockedBy.count] : [],
-    );
-    expect(unlockCounts).toEqual([ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED, ladder.ENDOSYMBIOSIS_BACTERIA_REQUIRED]);
   });
 
   it('is a plain record, not a module namespace, so it clones and compares like its JSON', () => {

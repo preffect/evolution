@@ -10,7 +10,9 @@ exactly as the design tables name it (`game-design/constants-and-acceptance.md �
 `DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, absorption, progression, traits }`
 (the domain modules spread into plain records; `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
 room only as the endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the number the draft gate and the
-ladder orbit read, so there is one copy on the wire, #286) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
+ladder orbit read, so there is one copy on the wire, #286; being catalog structure inside an array, it is not
+`debug_set_balance`-patchable, so the count is a build-time constant and retuning the endosymbiosis trip is a code
+change) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
 patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
 that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
@@ -21,7 +23,8 @@ checked in as the diffable reference the debug tools quote, and pinned by
 room starts from a copy of `DEFAULT_BALANCE`; `debug_set_balance` patches number leaves only and the
 world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TIERS` only:
 `TRAIT_CATALOG[n].tiers` is structure and is never read for a number (the JSON writes both because a
-catalog row carries its tiers), so a patch has one path. Nothing reads `data/balance.json` at
+catalog row carries its tiers), so a patch has one path. The one number read from catalog structure is
+`TRAIT_CATALOG[n].unlockedBy.count` (above), which has no patch path at all. Nothing reads `data/balance.json` at
 runtime. The full rule set is `CODE-STANDARDS.md §2`.
 
 ## 10. File plan (target ≤ 250 lines per file; 300 is the lint cap)
