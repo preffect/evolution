@@ -22,7 +22,7 @@ export const TAG_WEIGHT_MAX_MULTIPLIER = 4;
 /** An upgrade card of an owned trait weighs this much more. */
 export const UPGRADE_CARD_WEIGHT_MULTIPLIER = 1.5;
 /** An offer auto-picks this long after it is shown (s). */
-export const TRAIT_CHOICE_TIMEOUT_SECONDS = 10;
+export const TRAIT_CHOICE_TIMEOUT_SECONDS = 20;
 /** Reserved: no rerolls in build 1. */
 export const TRAIT_REROLLS_PER_ROUND = 0;
 /** Mass granted instead of a draft when no candidate exists. */

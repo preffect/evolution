@@ -134,7 +134,7 @@ describe('PROGRESSION §7: levels and offers', () => {
       .atTick(P6_PICK_TICK + 1)
       .toSatisfy(
         (offer) => offer?.offerId === 2 && offer.expiresAtTick === P6_PICK_TICK + 1 + TIMEOUT_TICKS,
-        'offer 2, expiring 600 ticks after tick 6',
+        `offer 2, expiring ${TIMEOUT_TICKS} ticks after tick ${P6_PICK_TICK + 1}`,
       )
       .expect('a stale pick changes nothing', (view) => [
         progressOf(view, 0)?.offer?.offerId,

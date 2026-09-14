@@ -1,6 +1,6 @@
 // docs/PROGRESSION.md §4: the offer lifecycle.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE } from '@evolution/shared';
+import { DEFAULT_BALANCE, TICK_HZ } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import {
   applyCard,
@@ -11,7 +11,7 @@ import {
   shownOffer,
 } from './offers.js';
 
-const TIMEOUT_TICKS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS * 60;
+const TIMEOUT_TICKS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS * TICK_HZ;
 
 function worldWithQueuedOffer(tick = 4) {
   const world = createTestWorld();
