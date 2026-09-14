@@ -1,4 +1,4 @@
-// docs/ecology/acceptance.md §8, the engulf rows a predator wins or holds: E9, E9b, E10's engulfing half, E13,
+// docs/ecology/acceptance.md §8, the engulf rows a predator wins or holds: E9, E9b, E10 (both halves), E13,
 // E16 and E16b, each run twice and hash-compared, payout halves included (#259). The rows where the
 // prey gets away — E11, E11b and E11's reaction window — are `ecology-engulf-escape.gameplay.test.ts`.
 // The shared setup, and the row halves both files deliberately leave out, are `engulf-setups.ts`.
@@ -37,7 +37,9 @@ import {
   PREDATOR_MASS,
   PREY_MASS,
   PROGRESS_TOLERANCE,
-  SEPARATED_FACTOR,
+  E10_DECAY_GAP_WU,
+  E10_OVERLAP_BOUND_WU,
+  E10_SEPARATION_TICKS,
   SHORT_ROUND_SECONDS,
   SHORT_ROUND_TICKS,
   absorbedCellIds,
@@ -49,6 +51,7 @@ import {
   engulfPair,
   lifeStateOfPrey,
   massOfPredator,
+  overlapOfPair,
   predatoryPointsOfPredator,
   preyCell,
   progressOfPrey,
@@ -121,15 +124,18 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .runDeterministic();
   });
 
-  it('E10: 24 against 20 never starts, 26 against 20 seals on tick 35', async () => {
+  it('E10: 24 against 20 never starts and is separated under 0.01 wu of overlap, 26 against 20 seals on tick 35', async () => {
     await engulfPair('E10 under the ratio', E10_UNDER_RATIO_MASS)
-      .advance(120)
+      .advance(E10_SEPARATION_TICKS)
       .expect('never engulfed', (view) => statesOfPrey(view))
       .atEnd()
       .toEqual([])
-      .expect('separation pushed the pair apart', (view) => distanceBetweenCells(view, 0, 1))
+      .expect('separated under 0.01 wu of overlap: nothing steers the idle pair back', overlapOfPair)
       .atEnd()
-      .toBeGreaterThan(CENTRE_DISTANCE_WU * SEPARATED_FACTOR)
+      .toBeLessThan(E10_OVERLAP_BOUND_WU)
+      .expect('never pushed past touching: only the radii decaying opens a gap', overlapOfPair)
+      .atEnd()
+      .toBeAtLeast(-E10_DECAY_GAP_WU)
       .runDeterministic();
 
     await engulfPair('E10 over the ratio', E10_OVER_RATIO_MASS)

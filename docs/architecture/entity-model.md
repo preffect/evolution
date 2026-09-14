@@ -158,8 +158,8 @@ The **records** are the server's supersets in `packages/server/src/game/world/en
 ```ts
 // packages/server/src/game/world/entities.ts — records extend the views
 export interface CellRecord extends CellView {
-  targetX: number; // latest applied input, latched until replaced
-  targetY: number;
+  targetX: number | null; // latest applied input, latched until replaced; null until the first input (no target: throttle 0, ecology/mass-and-movement.md §5.2)
+  targetY: number | null;
   modifiers: CellModifiers; // folded at step 1 of the tick (traits/model.md §2); the simulation reads only this
   carriedOffsetX: number | null; // set at the seal (ecology/absorption.md §6.1): the prey rides at this offset from its predator's centre until payout or release
   carriedOffsetY: number | null;

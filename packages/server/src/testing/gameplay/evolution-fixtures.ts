@@ -124,15 +124,18 @@ function requireFixturePlayer(world: WorldState, playerIndex: number, context: F
   return player;
 }
 
-/** Moves the cell to the anchor at rest (target on its own centre), sets its mass, pin, traits and lifetime DNA. */
+/**
+ * Moves the cell to the anchor at rest (no target until its player's next input, docs/ecology/mass-and-movement.md
+ * §5.2), sets its mass, pin, traits and lifetime DNA.
+ */
 export function applyPlacedCell(world: WorldState, fixture: PlacedCell, context: FixtureContext): void {
   const player = requireFixturePlayer(world, fixture.playerIndex, context);
   const cell = requirePlacedCell(world, fixture.playerIndex, context);
   const centre = resolveAnchor(world, fixture.at, context);
   cell.x = centre.x;
   cell.y = centre.y;
-  cell.targetX = centre.x;
-  cell.targetY = centre.y;
+  cell.targetX = null;
+  cell.targetY = null;
   cell.velocityX = 0;
   cell.velocityY = 0;
   cell.pinnedX = fixture.isPinned ? centre.x : null;
