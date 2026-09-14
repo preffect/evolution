@@ -4,7 +4,7 @@
 // game/progression/draft.test.ts, P13 in game/progression/ladder.test.ts.
 
 import { describe, it } from 'vitest';
-import { CELL_STAGE, DEFAULT_BALANCE, DNA_TAG, TICK_HZ, type TraitId } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, DNA_TAG, TICK_HZ, cumulativeDnaForLevel, type TraitId } from '@evolution/shared';
 import { createGrazerStrategy } from '../../game/bots/strategies/grazer.js';
 import {
   PLACED_ROW_SEED,
@@ -17,9 +17,9 @@ import { chooseTrait, insideCellOf, player } from '../gameplay/index.js';
 import { MASS_TOLERANCE, P7_JOIN_TICK, decayed, p7Setup, placedSolo } from './shared-setups.js';
 
 const { growth, ecology, progression } = DEFAULT_BALANCE;
-const LEVEL_2_DNA = 60;
-const LEVEL_3_DNA = 140;
-const LEVEL_12_DNA = 1760;
+const LEVEL_2_DNA = cumulativeDnaForLevel(2, progression);
+const LEVEL_3_DNA = cumulativeDnaForLevel(3, progression);
+const MAX_LEVEL_DNA = cumulativeDnaForLevel(progression.MAX_LEVEL, progression);
 const PROTOCELL_PICKS: readonly TraitId[] = ['nucleoid', 'simple_flagellum', 'cell_wall'];
 /** "Greedy bot, re-evaluated every 30 ticks." */
 const GREEDY_BOT_DECISION_TICKS = 30;
@@ -147,13 +147,13 @@ describe('PROGRESSION §7: levels and offers', () => {
 
   it('P10: at the max level DNA keeps counting and no draft opens', async () => {
     await placedSolo('P10')
-      .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, dnaCumulative: LEVEL_12_DNA })
+      .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, dnaCumulative: MAX_LEVEL_DNA })
       .atTick(1)
       .placeFragment({ tag: DNA_TAG.motile, at: insideCellOf(0) })
       .advance(1)
       .expect('dna', (view) => progressOf(view, 0)?.dnaCumulative)
       .atTick(1)
-      .toBe(LEVEL_12_DNA + ecology.DNA_FRAGMENT_DNA)
+      .toBe(MAX_LEVEL_DNA + ecology.DNA_FRAGMENT_DNA)
       .expect('level', (view) => progressOf(view, 0)?.level)
       .atTick(1)
       .toBe(progression.MAX_LEVEL)
