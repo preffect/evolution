@@ -129,6 +129,9 @@ describe('lobby shell + multiplayer services', () => {
     expect(reopened.sentMessages()).toEqual([
       { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Player', avatarIndex: 0 },
     ]);
+    // A change-detection pass first, so a room torn down on the drop would already be destroyed here.
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).querySelector('app-game-host')).not.toBeNull();
     expect(destroyGameHost).not.toHaveBeenCalled();
     reopened.receive(JSON.stringify({ type: SERVER_MESSAGE_TYPE.lobbyUpdate, games: [] }));
     await fixture.whenStable();

@@ -1,6 +1,6 @@
 // The renderer smoke (docs/TESTING.md, docs/rendering/files-and-tests.md §9): a live room from the lobby with a fixed
 // seed, the canvas mounts, the baked dish field and the depth particles draw on SwiftShader without page
-// errors, the canvas fills the viewport with no page scroll at the config's viewport and at the 1024 × 640 minimum
+// errors, the canvas fills the viewport with no page scroll at the config's viewport and at the layout frame's minimum
 // (docs/ui/layout.md §1, #217, #220), the debug hook's pause holds the rendered tick and a step advances it, and a
 // screenshot lands under `.qa/screenshots/` for the PR. The bench route and its frame-budget report are
 // `render-bench.spec.ts`.
@@ -142,7 +142,7 @@ test.describe('renderer smoke on a live room', () => {
 test.describe('renderer smoke at the minimum viewport', () => {
   test.use({ viewport: MINIMUM_VIEWPORT });
 
-  test('the canvas fills the 1024 × 640 viewport and the page does not scroll (docs/ui/layout.md §1)', async ({
+  test(`the canvas fills the ${MINIMUM_VIEWPORT.width} × ${MINIMUM_VIEWPORT.height} viewport and the page does not scroll (docs/ui/layout.md §1)`, async ({
     page,
   }) => {
     await openLiveRoom(page);
