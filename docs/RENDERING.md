@@ -592,7 +592,8 @@ effects/cell-clip-tracker.ts                       one clip player per cell, sta
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
 effects/own-cell-indicators.ts                      the own cell's sprite placements from the HUD record, at the top of that chain (§10, #187)
 effects/own-cell-ring.ts                           the sprint ring per frame: the fill, the `sprint_ready` brighten on reaching ready, the escape's predator (§10, #295)
-effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
+effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`, a round or butt cap per row), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
+effects/orbit-backing-arcs.ts                       the ladder orbit's backings as butt-ended arc rows over `orbitLayout`'s padded, merged spans (§10, #294)
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
@@ -675,8 +676,11 @@ named here is a link to UI.md, never a copy. The files are §8's `effects/` indi
 - **Where.** The effects layer (§6), above pass B, from the `ownCellIndicators` signal (§1) and nothing else:
   `own-cell-indicators.ts` turns the record plus the own instance's `r_px` and centre into sprite placements, all
   in the **undeformed frame** exactly like the self ring (§2.2), so nothing bends with the membrane or lags the
-  predicted own position. The rings, tracks and arcs (the DNA track and fill, the ladder backings as merged spans
-  with round caps, the unlock rings, the escape track and arc) are rows of the arc primitive (`effects/arc-mesh.ts`):
+  predicted own position. The rings, tracks and arcs (the DNA track and fill, the ladder backings, the unlock rings,
+  the escape track and arc) are rows of the arc primitive (`effects/arc-mesh.ts`). Each row carries its cap: the DNA
+  fill and the escape arc are round, the backings (`effects/orbit-backing-arcs.ts`, `orbitLayout`'s padded, merged
+  spans) are **butt**, so a backing ends exactly `LADDER_BACKING_END_PAD_PX` past its items and two unmerged backings
+  never overlap (a round cap would add half the 16 px stroke to each end). The primitive is
   one instanced quad per row whose fragment stage measures the distance to the stroke, so a fill is exact at any
   share, the stroke keeps its px width at any radius and every arc of the frame is one draw call
   (`draw(arcs, zoom)`, start angles through `screenRadiansOf`, no per-frame `Graphics`). The sprint state of the

@@ -1,9 +1,10 @@
 // The arc panel of the indicator contact sheet (docs/RENDERING.md §10, #294 evidence): what the arc primitive
 // draws, at the sizes review asked for. The DNA ring at 0 / 25 / 50 / 75 / 100 % on the floored 17 px ring and on
-// a max-mass cell's 44.9 px ring; a ladder orbit at 32 px whose backings merge around the envelope ghost with both
-// counters unlocked, so each counter ghost wears its ring; the escape arc on a max-mass cell's 126 px orbit. Each
-// sits on a patch of body drawn with the same primitive (a ring as wide as its radius is a disc). Pure: the rows
-// and the placed sprites the sheet view draws, in the sheet's screen px (zoom 1).
+// a max-mass cell's 44.9 px ring; two ladder orbits with both counters full, so each counter ghost wears its ring:
+// at 32 px beside the envelope ghost, where the backings merge, and a 24 px prokaryote, whose two backings stay
+// apart with butt ends; the escape arc on a max-mass cell's 126 px orbit. Each sits on a patch of body drawn with
+// the same primitive (a ring as wide as its radius is a disc). Pure: the rows and the placed sprites the sheet
+// view draws, in the sheet's screen px (zoom 1).
 
 import {
   CALLOUT_BACKING,
@@ -15,18 +16,17 @@ import {
   ESCAPE_ARC_STROKE_PX,
   ESCAPE_ARC_TRACK_ALPHA,
   INDICATOR_SHEET,
-  LADDER_BACKING_ALPHA,
-  LADDER_BACKING_PX,
   LADDER_ORBIT_ANGLES_PAIR_DEG,
   LADDER_ORBIT_ANGLE_SINGLE_DEG,
   LADDER_UNLOCK_RING_STROKE_PX,
   LEVEL_GOLD,
   WHITE,
 } from '../constants';
-import { DEGREES_PER_TURN, DIAMETER_PER_RADIUS, HALF } from '../geometry';
+import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import { paletteFor } from '../palette';
 import { LADDER_SILHOUETTE, type LadderCounter, type LadderSilhouette } from '../../state/own-cell-indicators';
-import type { ArcInstance } from '../effects/arc-instance';
+import { ARC_CAP, type ArcInstance } from '../effects/arc-instance';
+import { orbitBackingArcs } from '../effects/orbit-backing-arcs';
 import { orbitLayout, type OrbitLayout } from '../effects/orbit-layout';
 import { dnaRingRadiusPx, ladderOrbitRadiusPx, unlockRingRadiusPx } from '../effects/own-cell-geometry';
 import type { IndicatorSpriteTexture, IndicatorTextures } from '../textures/indicator-textures';
@@ -49,6 +49,8 @@ export interface SheetArcs {
   readonly sprites: readonly PlacedSheetSprite[];
 }
 
+export type OrbitSample = (typeof INDICATOR_SHEET.arcs.orbitSamples)[number];
+
 const FULL_RING = 1;
 const FROM_TWELVE_O_CLOCK = 0;
 const OPAQUE = 1;
@@ -56,12 +58,13 @@ const SHEET = INDICATOR_SHEET.arcs;
 const PALETTE = paletteFor(INDICATOR_SHEET.rimPaletteIndex);
 const RUNG_SILHOUETTES: readonly string[] = Object.values(LADDER_SILHOUETTE);
 
+/** A round-capped ring or arc from 12 o'clock: the DNA fill, the escape arc, the unlock ring, a body patch. */
 function ring(
   centre: Centre,
   radiusPx: number,
-  paint: Omit<ArcInstance, 'x' | 'y' | 'radiusPx' | 'startDeg'>,
+  paint: Omit<ArcInstance, 'x' | 'y' | 'radiusPx' | 'startDeg' | 'cap'>,
 ): ArcInstance {
-  return { ...centre, radiusPx, startDeg: FROM_TWELVE_O_CLOCK, ...paint };
+  return { ...centre, radiusPx, startDeg: FROM_TWELVE_O_CLOCK, cap: ARC_CAP.round, ...paint };
 }
 
 /** A disc of body under a sample: a ring whose stroke is its own diameter. */
@@ -97,8 +100,8 @@ export function dnaRingSamples(): ArcInstance[] {
   );
 }
 
-/** A prokaryote-era orbit: the envelope rung ghost at 180 and both counters full (decision #285 B). */
-export function sampleOrbitLayout(): OrbitLayout {
+/** Both counters full (decision #285 B), beside the envelope rung ghost at 180 when the sample asks for it. */
+export function sampleOrbitLayout(sample: OrbitSample): OrbitLayout {
   const counters = endosymbiontTallies().map((tally): LadderCounter => ({
     traitId: tally.traitId,
     variant: tally.variant,
@@ -108,21 +111,14 @@ export function sampleOrbitLayout(): OrbitLayout {
     isGhostHidden: false,
     isUnlocked: true,
   }));
-  const ghost = { silhouette: LADDER_SILHOUETTE.envelope, angleDeg: LADDER_ORBIT_ANGLE_SINGLE_DEG };
-  return orbitLayout({ ghost, counters }, SHEET.orbitCellRadiusPx);
+  const ghost = sample.hasRungGhost
+    ? { silhouette: LADDER_SILHOUETTE.envelope, angleDeg: LADDER_ORBIT_ANGLE_SINGLE_DEG }
+    : null;
+  return orbitLayout({ ghost, counters }, sample.cellRadiusPx);
 }
 
-function orbitArcs(layout: OrbitLayout): ArcInstance[] {
-  const centre = SHEET.orbitCentre;
-  const backings = layout.backings.map((backing): ArcInstance => ({
-    ...centre,
-    radiusPx: layout.radiusPx,
-    strokePx: LADDER_BACKING_PX,
-    startDeg: backing.startDeg,
-    sweep: (backing.endDeg - backing.startDeg) / DEGREES_PER_TURN,
-    colour: CALLOUT_BACKING,
-    alpha: LADDER_BACKING_ALPHA,
-  }));
+function orbitArcs(layout: OrbitLayout, sample: OrbitSample): ArcInstance[] {
+  const { centre } = sample;
   const unlockRings = layout.ghosts
     .filter((ghost) => ghost.hasUnlockRing)
     .map((ghost) =>
@@ -133,11 +129,10 @@ function orbitArcs(layout: OrbitLayout): ArcInstance[] {
         alpha: OPAQUE,
       }),
     );
-  return [bodyPatch(centre, SHEET.orbitCellRadiusPx), ...backings, ...unlockRings];
+  return [bodyPatch(centre, sample.cellRadiusPx), ...orbitBackingArcs(layout, centre), ...unlockRings];
 }
 
-function orbitSprites(layout: OrbitLayout, textures: IndicatorTextures): PlacedSheetSprite[] {
-  const centre = SHEET.orbitCentre;
+function orbitSprites(layout: OrbitLayout, textures: IndicatorTextures, centre: Centre): PlacedSheetSprite[] {
   const ghosts = layout.ghosts.map((ghost) => ({
     texture: textures.ghosts[ghost.key]!,
     tint: RUNG_SILHOUETTES.includes(ghost.key as LadderSilhouette) ? PALETTE.rim : WHITE,
@@ -168,9 +163,13 @@ export function escapeSample(): ArcInstance[] {
 }
 
 export function indicatorSheetArcs(textures: IndicatorTextures): SheetArcs {
-  const layout = sampleOrbitLayout();
+  const orbits = SHEET.orbitSamples.map((sample) => ({ sample, layout: sampleOrbitLayout(sample) }));
   return {
-    arcs: [...dnaRingSamples(), ...orbitArcs(layout), ...escapeSample()],
-    sprites: orbitSprites(layout, textures),
+    arcs: [
+      ...dnaRingSamples(),
+      ...orbits.flatMap(({ sample, layout }) => orbitArcs(layout, sample)),
+      ...escapeSample(),
+    ],
+    sprites: orbits.flatMap(({ sample, layout }) => orbitSprites(layout, textures, sample.centre)),
   };
 }

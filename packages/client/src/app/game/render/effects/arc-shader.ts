@@ -73,10 +73,16 @@ void main() {
   // Screen radians grow clockwise on the y-down screen, the same sense as the sweep.
   float along = mod(atan(vLocal.y, vLocal.x) - start, FULL_TURN);
   float distanceWu = abs(length(vLocal) - radius) - halfStroke;
-  if (sweep < FULL_TURN && along > sweep) {
+  bool isPastAnEnd = sweep < FULL_TURN && along > sweep;
+  bool isRoundCap = ${arcRead('isRoundCap')} > HALF;
+  if (isPastAnEnd && isRoundCap) {
     float toStart = length(vLocal - onRing(radius, start));
     float toEnd = length(vLocal - onRing(radius, start + sweep));
     distanceWu = min(toStart, toEnd) - halfStroke;
+  } else if (sweep < FULL_TURN && !isRoundCap) {
+    // A butt end: the stroke stops on the radial line at the end angle, its edge covered over one px of arc length.
+    float insideAngle = isPastAnEnd ? -min(along - sweep, FULL_TURN - along) : min(along, sweep - along);
+    distanceWu = max(distanceWu, -insideAngle * length(vLocal));
   }
   float coverage = clamp(HALF - distanceWu * ${ARC_UNIFORM.zoom}, 0.0, 1.0);
   if (coverage <= 0.0) discard;

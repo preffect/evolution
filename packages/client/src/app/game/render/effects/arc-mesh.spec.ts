@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ARC_INSTANCE_CAPACITY, ARC_INSTANCE_FIELD, CELL_QUAD_INDICES, DNA } from '../constants';
 import { RGBA_CHANNELS } from '../colour';
-import { ARC_INSTANCE_FLOATS, type ArcInstance } from './arc-instance';
+import { ARC_CAP, ARC_INSTANCE_FLOATS, type ArcInstance } from './arc-instance';
 import { ArcMesh } from './arc-mesh';
 import { ARC_FRAGMENT_SOURCE, ARC_UNIFORM, ARC_UNIFORM_GROUP, ARC_VERTEX_SOURCE, arcRead } from './arc-shader';
 
@@ -19,6 +19,7 @@ function arcs(count: number): ArcInstance[] {
     strokePx: 4,
     startDeg: 0,
     sweep: 0.5,
+    cap: ARC_CAP.round,
     colour: DNA,
     alpha: 1,
   }));

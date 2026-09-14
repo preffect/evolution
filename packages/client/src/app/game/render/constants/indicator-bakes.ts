@@ -18,7 +18,7 @@ export const INDICATOR_BAKE_MAX_DPR = 2;
 export const ARC_INSTANCE_CAPACITY = 8;
 /** RGBA float texels per arc row. */
 export const ARC_INSTANCE_TEXELS = 3;
-/** Each field's float offset in a row, four per texel: centre, radius, half stroke | start, sweep | colour, alpha. */
+/** Each field's float offset in a row, four per texel: centre, radius, half stroke | start, sweep, cap | colour, alpha. */
 export const ARC_INSTANCE_FIELD = {
   x: 0,
   y: 1,
@@ -26,6 +26,7 @@ export const ARC_INSTANCE_FIELD = {
   halfStroke: 3,
   startRadians: 4,
   sweepRadians: 5,
+  isRoundCap: 6,
   red: 8,
   green: 9,
   blue: 10,

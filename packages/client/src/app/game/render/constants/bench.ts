@@ -89,8 +89,11 @@ export const INDICATOR_SHEET = {
     dnaFills: [0, 0.25, 0.5, 0.75, 1],
     dnaCellRadiiPx: [24, 102],
     dnaBodyPadPx: 10,
-    orbitCellRadiusPx: 32,
-    orbitCentre: { x: 1000, y: 460 },
+    /** A 32 px orbit whose backings merge around the envelope ghost; a 24 px prokaryote whose two stay apart. */
+    orbitSamples: [
+      { cellRadiusPx: 32, centre: { x: 1000, y: 430 }, hasRungGhost: true },
+      { cellRadiusPx: 24, centre: { x: 1000, y: 610 }, hasRungGhost: false },
+    ],
     escapeCellRadiusPx: 102,
     escapeCentre: { x: 1450, y: 540 },
     escapeFill: 0.4,

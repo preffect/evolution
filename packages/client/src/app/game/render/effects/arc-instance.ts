@@ -2,13 +2,15 @@
 // indicators draw — the DNA track and fill, the ladder backings, the unlock rings, the escape track and
 // arc — as one row each in a small float table the arc shader reads (`arc-shader.ts`). A row is a centre
 // in the layer's world units, a radius and a stroke in screen px turned into world units by the zoom, a
-// start angle and a clockwise sweep, and a straight colour with its alpha. Every arc has round caps; a
-// sweep of a whole turn or more is the full ring. Pure.
+// start angle and a clockwise sweep, its cap, and a straight colour with its alpha. A round cap reaches half
+// the stroke past each end (the DNA fill, the escape arc); a butt end stops exactly at the angle (the ladder
+// backings, whose padded, merged spans already say where they end). A sweep of a whole turn or more is the
+// full ring. Pure.
 //
 // `startDeg` is the record's convention, **degrees clockwise from 12 o'clock** (UI.md §3.1.2); the row
 // holds screen radians from 3 o'clock, and `screenRadiansOf` is the one turn between the two.
 
-import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { RADIANS_PER_FULL_TURN, type ValueOf } from '@evolution/shared';
 import { RGBA_CHANNELS, hexToRgb } from '../colour';
 import { ARC_INSTANCE_FIELD, ARC_INSTANCE_TEXELS } from '../constants';
 import { HALF } from '../geometry';
@@ -16,6 +18,13 @@ import { screenRadiansOf } from './own-cell-geometry';
 
 /** Floats per arc row: `ARC_INSTANCE_TEXELS` RGBA texels. */
 export const ARC_INSTANCE_FLOATS = ARC_INSTANCE_TEXELS * RGBA_CHANNELS;
+
+/** How an arc ends: `round` reaches half the stroke past the angle, `butt` stops on it. */
+export const ARC_CAP = { round: 'round', butt: 'butt' } as const;
+export type ArcCap = ValueOf<typeof ARC_CAP>;
+
+const ROUND_CAP_FLAG = 1;
+const BUTT_CAP_FLAG = 0;
 
 export interface ArcInstance {
   /** The centre in the layer's world units (the own cell's predicted centre). */
@@ -28,6 +37,7 @@ export interface ArcInstance {
   readonly startDeg: number;
   /** How much of a turn it covers, clockwise from the start: 0 draws nothing, 1 or more the whole ring. */
   readonly sweep: number;
+  readonly cap: ArcCap;
   readonly colour: string;
   readonly alpha: number;
 }
@@ -47,6 +57,7 @@ function writeRow(arc: ArcInstance, zoom: number, target: Float32Array, row: num
   target[base + field.halfStroke] = (arc.strokePx * HALF) / zoom;
   target[base + field.startRadians] = screenRadiansOf(arc.startDeg);
   target[base + field.sweepRadians] = Math.min(arc.sweep, 1) * RADIANS_PER_FULL_TURN;
+  target[base + field.isRoundCap] = arc.cap === ARC_CAP.round ? ROUND_CAP_FLAG : BUTT_CAP_FLAG;
   target[base + field.red] = red;
   target[base + field.green] = green;
   target[base + field.blue] = blue;

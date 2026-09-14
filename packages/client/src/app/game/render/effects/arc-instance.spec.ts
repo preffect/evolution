@@ -1,12 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { ARC_INSTANCE_FIELD, DANGER, DNA, LADDER_ORBIT_ANGLES_PAIR_DEG } from '../constants';
-import { ARC_INSTANCE_FLOATS, packArcInstances, type ArcInstance } from './arc-instance';
+import { ARC_CAP, ARC_INSTANCE_FLOATS, packArcInstances, type ArcInstance } from './arc-instance';
 
 const ZOOM = 2;
 const FIELD = ARC_INSTANCE_FIELD;
 
 function arc(overrides: Partial<ArcInstance> = {}): ArcInstance {
-  return { x: 10, y: -20, radiusPx: 45, strokePx: 4, startDeg: 0, sweep: 0.5, colour: DNA, alpha: 1, ...overrides };
+  return {
+    x: 10,
+    y: -20,
+    radiusPx: 45,
+    strokePx: 4,
+    startDeg: 0,
+    sweep: 0.5,
+    cap: ARC_CAP.round,
+    colour: DNA,
+    alpha: 1,
+    ...overrides,
+  };
 }
 
 function pack(arcs: readonly ArcInstance[], capacity = 4) {
@@ -28,6 +39,12 @@ describe('packArcInstances', () => {
     expect([row(0, 'x'), row(0, 'y')]).toEqual([10, -20]);
     expect(row(0, 'radius')).toBe(45 / ZOOM);
     expect(row(0, 'halfStroke')).toBe(4 / 2 / ZOOM);
+  });
+
+  it('writes each row’s cap: round for the fills and rings, butt for the backings (graphics-qa, #303)', () => {
+    const { row } = pack([arc({ cap: ARC_CAP.round }), arc({ cap: ARC_CAP.butt })]);
+    expect(row(0, 'isRoundCap')).toBe(1);
+    expect(row(1, 'isRoundCap')).toBe(0);
   });
 
   it('turns the record angle (clockwise from 12) into the screen angle, so 0 / 90 / 180 land at 12 / 3 / 6 o’clock', () => {
