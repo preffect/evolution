@@ -47,7 +47,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## CODE-STANDARDS.md (280 lines)
 
-- **Evolution — Code Standards** (L1–280): The concrete, checkable rules behind [`ENGINEERING.md`](./ENGINEERING.md).
+- **Evolution — Code Standards** (L1–280): The concrete, checkable rules behind `ENGINEERING.md`.
 - **1. No magic values** (L10–36): Every literal that carries meaning has a name and a home (section 2).
 - **2. Where every constant, enum and config value lives** (L37–92): Decision (#72): `packages/shared/src/constants/<domain>.ts` is the single source of truth for every tunable; `data/balance.json` is generat…
 - **3. No duplicated logic** (L93–110): Before writing a helper, search (`rg`) for the behaviour.
@@ -57,7 +57,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **7. Simplicity** (L200–209): Prefer pure functions and plain data; classes for genuinely stateful things (`ENGINEERING.md` §4.5).
 - **8. Determinism (scope decision)** (L210–228): Game code never calls `Math.random`, `Date.now`, `performance.now`, `setTimeout`, `setInterval` or `requestAnimationFrame`.
 - **9. Error handling** (L229–251): with Zod; inside the simulation, types are the guarantee.
-- **10. Tests: placement and shape** (L252–269): The full testing standard is [`TESTING.md`](./TESTING.md); the placement rules:
+- **10. Tests: placement and shape** (L252–269): The full testing standard is `TESTING.md`; the placement rules:
 - **11. Review checklist (what a reviewer cites, with `file:line`)** (L270–280)
 
 ## DETERMINISM.md (317 lines)
@@ -81,7 +81,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 - **Engineering Standards** (L1–317): These are enforceable rules, not suggestions.
 - **1. The Validation Gate (`./validate.sh`)** (L13–100): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
-- **2. Testing Standards** (L101–180): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is [`TESTING.md`](./TESTING.md).
+- **2. Testing Standards** (L101–180): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is `TESTING.md`.
   - **2.1 Every change is tested** (L106–119): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
   - **2.2 Unit vs integration split** (L120–151): isolation — no cross-subsystem orchestration, runs in <100ms.
   - **2.3 What must be covered (template-specific)** (L152–171): state + snapshot; invalid input is rejected/ignored.
@@ -124,7 +124,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **3. Draft pool and weights** (L65–99): On each level-up the server builds a draft of `TRAIT_DRAFT_SIZE` = 3 cards from the catalog:
 - **4. Offer lifecycle** (L100–122): when an offer is shown, not when it was queued.
 - **5. Entering the dish: late join and respawn** (L123–155): Every cell that enters the dish after tick 0, by joining late or by respawning, enters no lower than the world's current level (the stage s…
-- **6. Constants table — `packages/shared/src/constants/progression.ts`** (L156–179): The ladder's own constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` ([`game-design/const…
+- **6. Constants table — `packages/shared/src/constants/progression.ts`** (L156–179): The ladder's own constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` (`game-design/consta…
 - **7. Acceptance scenarios** (L180–206): Given seed S and inputs I, after N ticks assert X.
 
 ## RENDERING.md (27 lines)
@@ -175,7 +175,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Dark-field microscopy: the principles** (L17–64): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
 - **2. Palette** (L65–205): All hex values are named constants; draw code never holds a literal.
 - **3. The cell: layer stack per stage** (L206–251): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
-- **4. Organelle vocabulary per trait** (L252–277): The trait's own `visual` string ([`traits/catalog-organelles.md §3`](./traits/catalog-organelles.md#3-build-1-catalog-sixteen-traits-fully…
+- **4. Organelle vocabulary per trait** (L252–277): The trait's own `visual` string (`traits/catalog-organelles.md §3`) is the requirement; this table fixes the drawing.
 - **5. Membrane and motion language** (L278–305): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
 - **6. Legibility at play scale** (L306–325): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
 - **7. UI colours and type** (L326–354): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
@@ -195,32 +195,32 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## architecture/client.md (151 lines)
 
-- **Evolution — Architecture: client networking, module plan and audio seam** (L1–151): §5–§7 of the split [`ARCHITECTURE.md`](../ARCHITECTURE.md), which keeps the shared context and the file list.
+- **Evolution — Architecture: client networking, module plan and audio seam** (L1–151): §5–§7 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **5. Client networking policy (`packages/client/src/app/game/net/`)** (L5–97): plus a bracket each side, 4 at either cadence) and renders remote cells, bacteria and fragments at `renderTick = latestTick − INTERPOLATI…
 - **6. Client module plan (Pixi v8 + Angular)** (L98–136): numbers (`PROTOCELL_GRANULE_COUNT`, palettes, layer z, wobble amplitude) live in `render/constants.ts`.
-- **7. Audio hook seam (#101)** (L137–151): The design and the tables are [`AUDIO.md`](../AUDIO.md) (decision #140, option B).
+- **7. Audio hook seam (#101)** (L137–151): The design and the tables are `AUDIO.md` (decision #140, option B).
 
 ## architecture/constants-files-tests.md (106 lines)
 
-- **Evolution — Architecture: constants, file plan and test plan** (L1–106): §9–§11 of the split [`ARCHITECTURE.md`](../ARCHITECTURE.md), which keeps the shared context and the file list.
+- **Evolution — Architecture: constants, file plan and test plan** (L1–106): §9–§11 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **9. Constants and balance (decision, one home)** (L5–24): `packages/shared/src/constants/<domain>.ts` is the source of truth for every tunable, named exactly as the design tables name it (`game-des…
 - **10. File plan (target ≤ 250 lines per file; 300 is the lint cap)** (L25–93): Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts` reference each other only as types (`Trait…
 - **11. Test plan (`ENGINEERING.md §2`, `DETERMINISM.md §7`)** (L94–106): kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip; food delta tracker; draft (ladder filter, run…
 
 ## architecture/debug-mcp.md (85 lines)
 
-- **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split [`ARCHITECTURE.md`](../ARCHITECTURE.md), which keeps the shared context and the file list.
+- **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **8. Debug MCP surface (#14)** (L5–85): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
 
 ## architecture/entity-model.md (242 lines)
 
-- **Evolution — Architecture: decisions and the entity model** (L1–242): §1–§2 of the split [`ARCHITECTURE.md`](../ARCHITECTURE.md), which keeps the shared context and the file list.
+- **Evolution — Architecture: decisions and the entity model** (L1–242): §1–§2 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **1. Decisions (the short list)** (L5–21)
 - **2. Entity model** (L22–242): Two layers, one direction: the views are the wire types in `packages/shared/src/types/game.ts`, defined here (their one home) with each fie…
 
 ## architecture/server-simulation.md (77 lines)
 
-- **Evolution — Architecture: server simulation** (L1–77): §3 of the split [`ARCHITECTURE.md`](../ARCHITECTURE.md), which keeps the shared context and the file list.
+- **Evolution — Architecture: server simulation** (L1–77): §3 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **3. Server simulation (`packages/server/src/game/`)** (L5–77): `evolution-module.ts` implements the template's `GameModule` seam and stays thin (wiring only): it coalesces inputs, calls `stepWorld`, and…
   - **3.1 In-place systems, pure step** (L26–41): Systems are `(world: WorldState, context: StepContext) => void` and mutate the world they receive; `stepWorld` returns nothing and the modu…
   - **3.2 Input handling** (L42–56): `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together with a newer target is …
@@ -228,7 +228,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## architecture/wire-contract.md (147 lines)
 
-- **Evolution — Architecture: wire contract** (L1–147): §4 of the split [`ARCHITECTURE.md`](../ARCHITECTURE.md), which keeps the shared context and the file list.
+- **Evolution — Architecture: wire contract** (L1–147): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–147): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
   - **4.1 Bandwidth budget** (L103–136): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
   - **4.2 Levers (in order)** (L137–147): `serializeRoomState(viewerPlayerId)` with the camera extent plus `INTEREST_MARGIN_WU`, per-player snapshots.
@@ -236,19 +236,19 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 ## concept-art/README.md (408 lines)
 
 - **Concept art** (L1–408): Code-drawn concept sheets for Evolution.
-- **Sheet 01 — the cell (`cell-sheet.svg`, #104)** (L40–133): ![cell sheet](./cell-sheet.png)
-- **Sheet 02 — the dish (`dish-scene.svg`, #105)** (L134–255): ![dish scene](./dish-scene.png)
-- **Sheet 03 — motion studies and HUD (`motion-and-hud.svg`, #106)** (L256–329): ![motion and HUD](./motion-and-hud.png)
+- **Sheet 01 — the cell (`cell-sheet.svg`, #104)** (L40–133): !cell sheet
+- **Sheet 02 — the dish (`dish-scene.svg`, #105)** (L134–255): !dish scene
+- **Sheet 03 — motion studies and HUD (`motion-and-hud.svg`, #106)** (L256–329): !motion and HUD
   - **Strips (keyframes, easing, durations)** (L263–284): Membrane deformation values (fraction of the cell radius `R`); these are the canonical eat and engulf numbers, sheets 01, 02 and 04 defer t…
   - **HUD (panel D)** (L285–295): number, mass readout next to it, DNA percentage line under it.
   - **Trait picker (panel E)** (L296–304): The dish dims to 45 % brightness (a 55 % black overlay) but keeps simulating; three 152 × 226 cards (rounded 14) with a 68 px icon medalli…
   - **Palette** (L305–319): Cell colours (rim, cytoplasm, nucleus, the prey and rival ramps), the dish background pair and the algal green are sheet 01's constants (`B…
   - **Strip cell** (L320–329): The cell in the strips is a simplified stand-in so the keyframes read at strip scale: halo at 1.55 R, cytoplasm radial gradient, clipped in…
-- **Sheet 04 — origins, the single-cell ladder (`origins-ladder.svg`, #114)** (L330–408): ![origins ladder](./origins-ladder.png)
+- **Sheet 04 — origins, the single-cell ladder (`origins-ladder.svg`, #114)** (L330–408): !origins ladder
 
 ## ecology/absorption.md (245 lines)
 
-- **Evolution — Ecology, Growth and Absorption: absorption and engulf** (L1–245): §6 of the split [`ECOLOGY.md`](../ECOLOGY.md), which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: absorption and engulf** (L1–245): §6 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **6. Absorption and engulf** (L5–245): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
   - **6.1 Rules** (L13–193): Eligibility (mass only, one home).
   - **6.2 State diagram** (L194–226): Two records, two homes.
@@ -256,22 +256,22 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## ecology/acceptance.md (84 lines)
 
-- **Evolution — Ecology, Growth and Absorption: acceptance scenarios** (L1–84): §8 of the split [`ECOLOGY.md`](../ECOLOGY.md), which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: acceptance scenarios** (L1–84): §8 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **8. Acceptance scenarios** (L5–84): Given seed S and inputs I, after N ticks assert X.
-  - **8.1 The evolving world (§3.1–§3.4)** (L61–84): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` ([`TESTING.md §8.1`](../TESTING.md#81-…
+  - **8.1 The evolving world (§3.1–§3.4)** (L61–84): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` (`TESTING.md §8.1`) sets wild seat `se…
 
 ## ecology/constants.md (103 lines)
 
-- **Evolution — Ecology, Growth and Absorption: constants table** (L1–103): §7 of the split [`ECOLOGY.md`](../ECOLOGY.md), which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: constants table** (L1–103): §7 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **7. Constants table** (L5–103): Home: `packages/shared/src/constants/<domain>.ts`.
   - **`ecology.ts`** (L9–41)
   - **`growth.ts`** (L42–56)
-  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`game-design/constants-and-acceptance.md §12`](../game-design/constants-and-acceptance.md#12-constants-table))** (L57–72)
+  - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, `game-design/constants-and-acceptance.md §12`)** (L57–72)
   - **`absorption.ts`** (L73–103): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
 
 ## ecology/food-and-spawn.md (188 lines)
 
-- **Evolution — Ecology, Growth and Absorption: food, zones and the spawn model** (L1–188): §1–§3.2 of the split [`ECOLOGY.md`](../ECOLOGY.md), which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: food, zones and the spawn model** (L1–188): §1–§3.2 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **1. Food kinds** (L5–39): any mote; no minimum size.
 - **2. Zones** (L40–54): Geometry is fixed by the dish radius; the three gel patches are placed from the `zones` random stream at world creation and are part of the…
 - **3. Spawn model** (L55–188): Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond × TICK_INTERVAL_S`; while `accumulator �…
@@ -280,7 +280,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## ecology/mass-and-movement.md (101 lines)
 
-- **Evolution — Ecology, Growth and Absorption: mass decay, size, mass and speed** (L1–101): §4–§5 of the split [`ECOLOGY.md`](../ECOLOGY.md), which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: mass decay, size, mass and speed** (L1–101): §4–§5 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **4. Mass decay** (L5–31): Applied every tick in the metabolism step (§4.1).
   - **4.1 The metabolism step (one formula)** (L16–31): Every metabolism term reads the mass at the start of the step, so a test can reproduce a tick exactly:
 - **5. Size, mass and speed** (L32–101)
@@ -291,18 +291,18 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## ecology/wild-cells.md (139 lines)
 
-- **Evolution — Ecology, Growth and Absorption: wild cells and what a fresh protocell sees** (L1–139): §3.3–§3.4 of the split [`ECOLOGY.md`](../ECOLOGY.md), which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: wild cells and what a fresh protocell sees** (L1–139): §3.3–§3.4 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
   - **3.3 Wild cells** (L5–127): The world's average made flesh.
   - **3.4 What a fresh protocell sees** (L128–139): At 0:00, one player, #141's option A render (seed 96) still describes the motes: 9 algae, 0 bacteria and 1 fragment in the spawn camera (10…
 
 ## game-design/constants-and-acceptance.md (111 lines)
 
-- **Evolution — Game Design: constants and acceptance** (L1–111): §12–§13 of the split [`GAME-DESIGN.md`](../GAME-DESIGN.md), which keeps the shared context and the file list.
+- **Evolution — Game Design: constants and acceptance** (L1–111): §12–§13 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
 - **12. Constants table** (L5–88): Home: `packages/shared/src/constants/<domain>.ts`.
-  - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see [`ARCHITECTURE.md`](../ARCHITECTURE.md))** (L12–24): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
+  - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see `ARCHITECTURE.md`)** (L12–24): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
   - **`world.ts`** (L25–35)
   - **`session.ts`** (L36–49)
-  - **`world-clock.ts` (section 5.5, [`ecology/food-and-spawn.md §3.1`](../ecology/food-and-spawn.md#31-the-world-clock))** (L50–57)
+  - **`world-clock.ts` (section 5.5, `ecology/food-and-spawn.md §3.1`)** (L50–57)
   - **`controls.ts`** (L58–68)
   - **`ladder.ts`** (L69–76)
   - **`camera.ts` (client only)** (L77–88): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
@@ -310,7 +310,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## game-design/controls-and-scope.md (93 lines)
 
-- **Evolution — Game Design: controls, camera, dish and scope** (L1–93): §6–§11 of the split [`GAME-DESIGN.md`](../GAME-DESIGN.md), which keeps the shared context and the file list.
+- **Evolution — Game Design: controls, camera, dish and scope** (L1–93): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
 - **6. Controls** (L5–26): tick.
 - **7. Camera** (L27–40): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
 - **8. The petri dish** (L41–63): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
@@ -320,15 +320,15 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## game-design/core.md (135 lines)
 
-- **Evolution — Game Design: companions, fantasy, ladder and loop** (L1–135): §1–§4 of the split [`GAME-DESIGN.md`](../GAME-DESIGN.md), which keeps the shared context and the file list.
-- **1. Companion documents** (L5–24): Technical contracts and the file plan: [`ARCHITECTURE.md`](../ARCHITECTURE.md) (#112); the build itself is epic #96 and its tickets (planni…
+- **Evolution — Game Design: companions, fantasy, ladder and loop** (L1–135): §1–§4 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
+- **1. Companion documents** (L5–24): Technical contracts and the file plan: `ARCHITECTURE.md` (#112); the build itself is epic #96 and its tickets (planning lives in GitHub iss…
 - **2. Core fantasy** (L25–40): _A single cell that becomes something more._ You begin as a bare protocell: a lipid membrane, a few granules, no nucleus, drifting in a dar…
 - **3. The evolution ladder** (L41–122): The ladder is the progression spine of build 1.
 - **4. Moment-to-moment loop** (L123–135): Reserved for build 2 (hooks only, section 11): split (mitosis), bond (colonies).
 
 ## game-design/session.md (119 lines)
 
-- **Evolution — Game Design: session structure** (L1–119): §5 of the split [`GAME-DESIGN.md`](../GAME-DESIGN.md), which keeps the shared context and the file list.
+- **Evolution — Game Design: session structure** (L1–119): §5 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
 - **5. Session structure (#29)** (L5–119)
   - **5.1 Round timeline and pace curve** (L20–43): Decision #138 (option A, "slow dawn", applied by #144) sets this curve; times are the #138 pace model for one active player who takes the t…
   - **5.2 Spawn, death and respawn** (L44–71): (uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`); it is a separate fork from the `spawner` stream so a respawn never cha…
@@ -338,14 +338,14 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## rendering/budget.md (211 lines)
 
-- **Evolution — Rendering: batching plan and frame budget** (L1–211): §6–§7 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **Evolution — Rendering: batching plan and frame budget** (L1–211): §6–§7 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **6. Batching plan** (L5–76): Everything not a cell is a baked texture: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour (core + soft + wide + glint, `…
   - **6.1 The condenser light pool (#222)** (L30–76): `VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it.
 - **7. Frame budget and the harness #99 ships** (L77–211): Target: 60 fps, ≤ 12 ms p95 frame at 1080p, `devicePixelRatio` 1, on an integrated laptop GPU (Iris Xe class: a new assumption stated her…
 
 ## rendering/cells.md (189 lines)
 
-- **Evolution — Rendering: inputs and the cell shader** (L1–189): §1–§2 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **Evolution — Rendering: inputs and the cell shader** (L1–189): §1–§2 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **1. Inputs: the snapshot, the tick, the cosmetic stream** (L5–20): The renderer reads only what `net/` gives it and never feeds anything back (`architecture/entity-model.md §1`, "client-side cosmetic").
 - **2. The cell: one quad, one fragment shader** (L21–189): Every cell is one instanced quad whose half-size is the per-instance `quadExtentRadii × r` (§2.3): `max(CELL_QUAD_EXTENT_RADII, FAR_DOT_H…
   - **2.1 The profile** (L37–78): `h` is the heading (`atan2(velocityY, velocityX)`, held when ‖velocity‖ ≈ 0).
@@ -355,25 +355,25 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## rendering/contents-and-motion.md (157 lines)
 
-- **Evolution — Rendering: contents, motion tables and LOD** (L1–157): §3–§5 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **Evolution — Rendering: contents, motion tables and LOD** (L1–157): §3–§5 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **3. Contents: organelles through the deformation** (L5–59): Organelles are sprites from one code-baked atlas (`textures/organelle-atlas.ts`: mitochondrion with cristae, chloroplast with six lit granu…
 - **4. Motion tables (`packages/shared/src/constants/motion.ts`)** (L60–141): Sheet 03's strips become data; the renderer tweens, the HUD opens the picker at the end of `level_up` (`ui/overlays.md §3.2`) and the soun…
 - **5. LOD** (L142–157): Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them).
 
 ## rendering/files-and-tests.md (106 lines)
 
-- **Evolution — Rendering: file plan and test plan** (L1–106): §8–§9 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
+- **Evolution — Rendering: file plan and test plan** (L1–106): §8–§9 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–48): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
 - **9. Test plan (`TESTING.md` tiers)** (L49–106): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 
 ## rendering/own-cell-indicators.md (87 lines)
 
-- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–87): §10 of the split [`RENDERING.md`](../RENDERING.md), which keeps the shared context and the file list.
-- **10. Own-cell indicators and world-anchored labels (#146)** (L5–87): [`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive) owns what the own cell shows:…
+- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–87): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
+- **10. Own-cell indicators and world-anchored labels (#146)** (L5–87): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
 
 ## traits/catalog-forms.md (123 lines)
 
-- **Evolution — Trait Catalog v1 (the ladder): build-1 catalog: forms and the at-a-glance tables** (L1–123): §3.12–§3.18 of the split [`TRAITS.md`](../TRAITS.md), which keeps the shared context and the file list.
+- **Evolution — Trait Catalog v1 (the ladder): build-1 catalog: forms and the at-a-glance tables** (L1–123): §3.12–§3.18 of the split `TRAITS.md`, which keeps the shared context and the file list.
   - **Rung 5 — the specialised forms (`stage: 'eukaryote'`, category `form`, group `body_plan`: one per cell). **Owning any form → `specialised`.**** (L5–77)
   - **3.12 Amoeba Pseudopods `amoeba_pseudopods` — form, uncommon, tags `predatory motile`, requires `cytoskeleton`** (L7–21): The gel is no shelter from an amoeba, and its pseudopods wrap prey faster and hold it: the wrap runs at 0.85 / 0.75 / 0.65 of its base time…
   - **3.13 Paramecium Cilia `paramecium_cilia` — form, uncommon, tags `motile`, requires `cilia`** (L22–35): The fastest thing in the dish, and the most agile: as prey it twists against the wrap (struggle slowdown 0.6 / 0.65 / 0.7, stacking with th…
@@ -385,9 +385,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## traits/catalog-organelles.md (168 lines)
 
-- **Evolution — Trait Catalog v1 (the ladder): build-1 catalog: rungs 1 to 4** (L1–168): §3–§3.11 of the split [`TRAITS.md`](../TRAITS.md), which keeps the shared context and the file list.
+- **Evolution — Trait Catalog v1 (the ladder): build-1 catalog: rungs 1 to 4** (L1–168): §3–§3.11 of the split `TRAITS.md`, which keeps the shared context and the file list.
 - **3. Build-1 catalog (sixteen traits, fully specified)** (L5–168): Tier columns give the _value of the modifiers this tier sets_; unlisted modifiers stay at default.
-  - **3.0 What each stage looks like** (L11–25): The protocell is the level-1 baseline; every rung adds something the renderer must show (`render/cell-layer.ts`, [`ARCHITECTURE.md`](../ARC…
+  - **3.0 What each stage looks like** (L11–25): The protocell is the level-1 baseline; every rung adds something the renderer must show (`render/cell-layer.ts`, `ARCHITECTURE.md`):
   - **Rung 1 — protocell picks (`stage: 'protocell'`)** (L26–62)
   - **3.1 Nucleoid Coil `nucleoid` — genome, common, tags `metabolic`, no group, requires none. **Gate → `prokaryote`.**** (L28–37): Your genes are organised: every DNA gain reads a little more.
   - **3.2 Simple Flagellum `simple_flagellum` — locomotion, uncommon, tags `motile predatory`, no group, requires none** (L38–48): Visual: one long tail trailing opposite the velocity, sine wave with amplitude growing per tier; tier III adds a second tail.
@@ -406,27 +406,27 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## traits/constants-and-acceptance.md (73 lines)
 
-- **Evolution — Trait Catalog v1 (the ladder): later traits, constants and acceptance** (L1–73): §4–§6 of the split [`TRAITS.md`](../TRAITS.md), which keeps the shared context and the file list.
+- **Evolution — Trait Catalog v1 (the ladder): later traits, constants and acceptance** (L1–73): §4–§6 of the split `TRAITS.md`, which keeps the shared context and the file list.
 - **4. Later traits (build 2+, one line each)** (L5–27): Named now so ids, tags and groups are reserved.
-- **5. Constants table — `packages/shared/src/constants/traits.ts`** (L28–42): The ladder constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` ([`game-design/constants-a…
+- **5. Constants table — `packages/shared/src/constants/traits.ts`** (L28–42): The ladder constants (`STAGE_ORDER`, `STAGE_GATE_TRAITS`, `ENDOSYMBIOSIS_BACTERIA_REQUIRED`) live in `ladder.ts` (`game-design/constants-an…
 - **6. Acceptance scenarios** (L43–73): Given seed S and inputs I, after N ticks assert X.
 
 ## traits/model.md (85 lines)
 
-- **Evolution — Trait Catalog v1 (the ladder): definition shape and modifier model** (L1–85): §1–§2 of the split [`TRAITS.md`](../TRAITS.md), which keeps the shared context and the file list.
+- **Evolution — Trait Catalog v1 (the ladder): definition shape and modifier model** (L1–85): §1–§2 of the split `TRAITS.md`, which keeps the shared context and the file list.
 - **1. Definition shape** (L5–29): There is no `minLevel`: the ladder (`stage`, `requires`, `unlockedBy`) is the pacing.
 - **2. Modifier model** (L30–85): Every trait tier is a partial `CellModifiers`.
 
 ## ui/components-and-constants.md (112 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance and constants** (L1–112): §7–§9 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance and constants** (L1–112): §7–§9 of the split `UI.md`, which keeps the shared context and the file list.
 - **7. Angular component plan** (L5–55): Standalone, `OnPush`, signal inputs, no game logic: components format and lay out; every decision is a pure function under `hud/format/` (o…
 - **8. Acceptance (the Playwright loop #100 drives)** (L56–70): `OC` = `hud-own-cell` (§3.1.4).
 - **9. Constants table (own-cell indicators)** (L71–112): The values this doc owns (§3.1.2, §3.1.3, §6).
 
 ## ui/hud.md (160 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–160): §3–§3.1 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–160): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
 - **3. In-round HUD and overlays** (L5–160): Every element: source, placement, size, states, text, test id.
   - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–160): Option C has two kinds of in-round element.
   - **3.1.1 Chrome** (L19–30): The chrome's phase gate lives in `hud.component.ts`, which is the only component that reads `roundPhase` for both.
@@ -436,20 +436,20 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## ui/input-and-onboarding.md (118 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–118): §4–§6 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–118): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
 - **4. Input mapping and keyboard reachability** (L5–69): focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5: Escape is what closes it).
 - **5. Onboarding: the first two minutes** (L70–87): Diegetic and text hints, no modal tutorial.
 - **6. Readability during play** (L88–118): and the connection banner stack from the top, never downward past y 96.
 
 ## ui/layout.md (88 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–88): §1–§2 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–88): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
 - **1. Layout frame** (L5–76): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
 - **2. Screens (lobby)** (L77–88): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
 
 ## ui/overlays.md (108 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–108): §3.2–§3.6 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–108): §3.2–§3.6 of the split `UI.md`, which keeps the shared context and the file list.
   - **3.2 Trait pick overlay (`ownProgress.offer !== null`)** (L5–50): Cards are built from `offer.cards[i]` (`traitId`, `tier`) and the catalog (`TRAIT_CATALOG`, `TRAIT_TIERS`); the effect text is generated by…
   - **3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)** (L51–65): The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text block a…
   - **3.4 Round results and rematch (`roundPhase === 'results'`)** (L66–76): Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended.
@@ -458,4 +458,4 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 ## ui/README.md (7 lines)
 
-- **UI wireframes** (L1–7): Ticket #30's wireframes live with the spec, not here: the ASCII layout frame is [`layout.md §1`](./layout.md#1-layout-frame) and the drawn…
+- **UI wireframes** (L1–7): Ticket #30's wireframes live with the spec, not here: the ASCII layout frame is `layout.md §1` and the drawn HUD and trait-picker panels a…

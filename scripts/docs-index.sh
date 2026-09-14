@@ -34,7 +34,7 @@ index_one_document() {
       match($0, /^#+/)
       level[count] = RLENGTH
       indent[count] = (level[count] <= 2 ? "" : "  ")
-      title[count] = substr($0, RLENGTH + 2)
+      title[count] = link_text(substr($0, RLENGTH + 2))
       line[count] = NR
       summary[count] = ""
       want = count
@@ -53,11 +53,20 @@ index_one_document() {
     function finish() {
       s = buffer
       gsub(/\*\*/, "", s)
+      s = link_text(s)
       if (match(s, /[.!?]( |$)/)) s = substr(s, 1, RSTART)
       if (length(s) > max) s = substr(s, 1, max - 1) "…"
       summary[want] = s
       want = 0
       buffer = ""
+    }
+    # The index keeps the text of a link, not its target: the target is relative to the source file, not to INDEX.md.
+    function link_text(s, link) {
+      while (match(s, /\[[^]]*\]\([^)]*\)/)) {
+        link = substr(s, RSTART, RLENGTH)
+        s = substr(s, 1, RSTART - 1) substr(link, 2, index(link, "](") - 2) substr(s, RSTART + RLENGTH)
+      }
+      return s
     }
     END { flush() }
   ' "$path"
