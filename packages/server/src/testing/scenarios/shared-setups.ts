@@ -2,11 +2,19 @@
 // `decayed()` helper over the live balance, the tolerances the tables state, and PROGRESSION P7's
 // late-join world, which GAME-DESIGN G9 reuses. Not a test file: the scenario files import it.
 
-import { DEFAULT_BALANCE, TICK_INTERVAL_S, cumulativeDnaForLevel, steerBlendPerTick } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  DEFAULT_CELL_MODIFIERS,
+  TICK_INTERVAL_S,
+  cumulativeDnaForLevel,
+  steerBlendPerTick,
+  type CellModifiers,
+  type TraitId,
+} from '@evolution/shared';
 import { PLACED_ROW_SEED, TABLE_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
 import { ZONE, createDecayedHelper } from '../gameplay/index.js';
 
-const { growth, ecology, progression } = DEFAULT_BALANCE;
+const { growth, ecology, progression, traits } = DEFAULT_BALANCE;
 /** The share of the velocity gap a cell without an acceleration trait closes per tick. */
 const STEER_BLEND = steerBlendPerTick(growth.CELL_ACCELERATION_SECONDS, TICK_INTERVAL_S);
 
@@ -21,6 +29,11 @@ export const decayed = createDecayedHelper({
   cellStartingMass: growth.CELL_STARTING_MASS,
   massDecayRatePerSecond: ecology.MASS_DECAY_RATE_PER_SECOND,
 });
+
+/** A tier I modifier of `traitId` (docs/traits/model.md §2), or the identity when the trait does not set it. */
+export function tierOneModifier(traitId: TraitId, field: keyof CellModifiers): number {
+  return traits.TRAIT_TIERS[traitId][0][field] ?? DEFAULT_CELL_MODIFIERS[field];
+}
 
 /** The speed after `ticks` of full throttle from rest toward a cap held at `speedCapWuPerSecond`: cap × (1 − (1 − blend)^ticks). */
 export function blendedSpeed(speedCapWuPerSecond: number, ticks: number): number {
