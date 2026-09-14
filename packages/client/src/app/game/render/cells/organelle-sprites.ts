@@ -1,4 +1,4 @@
-// The organelle sprite layer (docs/RENDERING.md §3): one pooled Sprite per placement per frame,
+// The organelle sprite layer (docs/rendering/contents-and-motion.md §3): one pooled Sprite per placement per frame,
 // positioned through the deformation, scaled by `r × pulse` and its own motion, tinted where the
 // atlas is palette-relative (nucleus, nucleoid). Between pass A and pass B of the cell mesh. The
 // interior organelles fade with the LOD's interior blend; the nucleus keeps through mid (§5).

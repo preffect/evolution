@@ -47,7 +47,7 @@ describe('defaultGameModuleFactory (echo)', () => {
   });
 });
 
-describe('the echo module drives its own bots (docs/ARCHITECTURE.md §8)', () => {
+describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §8)', () => {
   it('offers only the bot pair as debug capabilities', () => {
     const handle = defaultGameModuleFactory(options).getDebugHandle?.();
     expect(handle && Object.keys(handle).sort()).toEqual(['removeBot', 'spawnBot']);

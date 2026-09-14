@@ -1,4 +1,4 @@
-// The mote atlas's textures (docs/RENDERING.md §6): the full and small mote sprites, the fragment helices
+// The mote atlas's textures (docs/rendering/budget.md §6): the full and small mote sprites, the fragment helices
 // and the rod glints packed into one source, the food `ParticleContainer`'s one texture. Split from
 // `render-textures.ts`, which assembles the bundle.
 
@@ -32,7 +32,7 @@ function unprefixed<Key extends string>(
   return result;
 }
 
-/** The full and small mote sprites and the fragment helices packed into one atlas (docs/RENDERING.md §6). */
+/** The full and small mote sprites and the fragment helices packed into one atlas (docs/rendering/budget.md §6). */
 export function moteTextures(baker: TextureBaker): MoteAtlasTextures {
   const bakes = bakeMoteAtlas(baker);
   const atlas = baker.atlasFromBakes({

@@ -1,7 +1,7 @@
-// The engulf pace formulas (docs/ECOLOGY.md §6.1): numbers in, numbers out, no state and no
-// randomness (docs/ARCHITECTURE.md §3.1). Shared because the HUD's escape arc and the renderer's
+// The engulf pace formulas (docs/ecology/absorption.md §6.1): numbers in, numbers out, no state and no
+// randomness (docs/architecture/server-simulation.md §3.1). Shared because the HUD's escape arc and the renderer's
 // membrane read `engulfPhaseOf` on the same thresholds the server advances progress with
-// (docs/UI.md §3.1, docs/VISUAL-STYLE.md §5); everything that needs more than a phase is the
+// (docs/ui/hud.md §3.1, docs/VISUAL-STYLE.md §5); everything that needs more than a phase is the
 // server's alone. The ratio predicates live next door in `engulf-eligibility.ts`.
 
 import type { BalanceConfig } from '../constants/balance.js';
@@ -32,7 +32,7 @@ export type EngulfPaceBalance = Pick<
 >;
 
 /**
- * The pace terms of the predator's folded modifiers (docs/ECOLOGY.md §6.1, docs/TRAITS.md §2). Only
+ * The pace terms of the predator's folded modifiers (docs/ecology/absorption.md §6.1, docs/traits/model.md §2). Only
  * what the rate reads: the grip belongs to `preyHeldSpeedFactor`, which takes it as a number.
  */
 export type EngulfPredatorPaceModifiers = Pick<
@@ -43,7 +43,7 @@ export type EngulfPredatorPaceModifiers = Pick<
 /** The pace terms of the prey's folded modifiers; the spit-out chance is read by the engulf step itself. */
 export type EngulfPreyPaceModifiers = Pick<CellModifiers, 'absorbDurationMultiplierAsPrey' | 'struggleSlowdownBonus'>;
 
-/** What one tick of progress depends on (docs/ECOLOGY.md §6.1, "The process"). */
+/** What one tick of progress depends on (docs/ecology/absorption.md §6.1, "The process"). */
 export interface EngulfProgressInput {
   readonly phase: EngulfPhase;
   readonly predatorMass: number;
@@ -82,7 +82,7 @@ export function engulfBaseRatePerTick(predatorMass: number, preyMass: number, ba
 const NO_SLOWDOWN = 1;
 /** A predator at exactly `ENGULF_MASS_RATIO` takes the full base duration; heavier ones go faster, never slower. */
 const FULL_DURATION_FACTOR = 1;
-/** Cover has no trait multiplier of its own: nothing in docs/TRAITS.md §2 touches it. */
+/** Cover has no trait multiplier of its own: nothing in docs/traits/model.md §2 touches it. */
 const COVER_PHASE_MULTIPLIER = 1;
 /** The prey is not held yet during cover, and is carried (speed cap 0) once sealed. */
 const PREY_UNHELD_SPEED_FACTOR = 1;
@@ -123,7 +123,7 @@ export function engulfStruggleSlowdown(
 }
 
 /**
- * This tick's signed progress change (docs/ECOLOGY.md §6.1, step 5): the phase rate slowed by the
+ * This tick's signed progress change (docs/ecology/absorption.md §6.1, step 5): the phase rate slowed by the
  * struggle while in contact, the escape decay while a wrap has lost contact, and zero for a cover
  * that has lost contact (the caller releases it instead of decaying anything).
  */
@@ -170,7 +170,7 @@ export function predatorEngulfSpeedFactor(phase: EngulfPhase, balance: EngulfPac
     : balance.ENGULF_PREDATOR_SPEED_FACTOR;
 }
 
-/** The per-tick spit-out probability of a prey whose spines roll every tick (docs/ECOLOGY.md §6.1). */
+/** The per-tick spit-out probability of a prey whose spines roll every tick (docs/ecology/absorption.md §6.1). */
 export function spitOutChancePerTick(preySpitOutChancePerSecond: number): number {
   return preySpitOutChancePerSecond * TICK_INTERVAL_S;
 }

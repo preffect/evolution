@@ -1,4 +1,4 @@
-// docs/TRAITS.md §2 and §6 T1: the fold over owned traits.
+// docs/traits/model.md §2 and docs/traits/constants-and-acceptance.md §6 T1: the fold over owned traits.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';

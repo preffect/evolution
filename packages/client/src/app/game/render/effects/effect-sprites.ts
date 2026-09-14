@@ -1,4 +1,4 @@
-// The effect sprites (docs/RENDERING.md §4, §6, sheet 03): each clip's placements as data, so the
+// The effect sprites (docs/rendering/contents-and-motion.md §4, docs/rendering/budget.md §6, sheet 03): each clip's placements as data, so the
 // layer only positions glow-atlas sprites. A level-up is `LEVEL_UP_RAYS` rays outside the body, a
 // shock ring and three concentric ripples, none of them before the burst keyframe (the anticipate
 // frame is the bare squash); a respawn a halo bloom from 2 r; an eat a soft halo at the pulse and

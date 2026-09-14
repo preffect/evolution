@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §5.3: score and ranking.
+// docs/game-design/session.md §5.3: score and ranking.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, playerId } from '@evolution/shared';
 import { createTestPlayerRecord, createTestWorld } from '../../testing/world-builders.js';

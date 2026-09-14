@@ -1,4 +1,4 @@
-// `--hud-scale` (docs/UI.md §1): the unitless number every HUD length is multiplied by. Pure, so
+// `--hud-scale` (docs/ui/layout.md §1): the unitless number every HUD length is multiplied by. Pure, so
 // the rule is tested without a viewport; `hud.component.ts` observes its host and sets the custom
 // property from it. There is no `transform: scale`, so hit-testing and focus rings stay in real px.
 

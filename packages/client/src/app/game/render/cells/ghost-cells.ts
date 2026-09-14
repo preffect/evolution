@@ -1,4 +1,4 @@
-// Absorbed prey keep drawing as ghosts (docs/RENDERING.md §2.3, docs/VISUAL-STYLE.md §5): the
+// Absorbed prey keep drawing as ghosts (docs/rendering/cells.md §2.3, docs/VISUAL-STYLE.md §5): the
 // entity is gone on the payout tick, so the ghost is built from what the cell was last drawn
 // with (its view, its organelle slots and its speckle seed, #243) and the `absorbed` clip, which
 // also drives the predator's seal bump until the ghost leaves at 600 ms. The trait-pick preview

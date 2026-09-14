@@ -1,4 +1,4 @@
-// Where a mote or a fragment may appear (docs/ECOLOGY.md §3): a uniform point in the drawn zone,
+// Where a mote or a fragment may appear (docs/ecology/food-and-spawn.md §3): a uniform point in the drawn zone,
 // rejected within `FOOD_EDGE_MARGIN` of the wall or inside any cell, redrawn up to a bound.
 
 import {

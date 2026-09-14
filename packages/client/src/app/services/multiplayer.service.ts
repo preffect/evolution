@@ -112,7 +112,7 @@ export class MultiplayerService {
 
   /**
    * Tells the server the newest snapshot tick this client has applied (#266,
-   * docs/ARCHITECTURE.md §4). Generic flow control, not a game verb: the room reads it to see how
+   * docs/architecture/wire-contract.md §4). Generic flow control, not a game verb: the room reads it to see how
    * far behind its stream this client is, and skips rather than queueing it deeper.
    */
   acknowledgeSnapshot(tick: number): void {

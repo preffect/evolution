@@ -43,7 +43,7 @@ async function main(): Promise<void> {
   server.get('/api/health', async () => ({ status: 'ok' }));
 
   // The /debug-mcp endpoint surfaces all game state to Claude via MCP. The Evolution module
-  // answers through its debug handle (docs/ARCHITECTURE.md §8); `getRoomGameState` stays unwired
+  // answers through its debug handle (docs/architecture/debug-mcp.md §8); `getRoomGameState` stays unwired
   // so `debug_get_game_state` reads the one full-state path, `GameRoom.getFullState()`.
   registerMcpEndpoint(server, { lobbyManager, connections });
 

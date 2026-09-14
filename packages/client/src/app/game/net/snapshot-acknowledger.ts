@@ -1,4 +1,4 @@
-// The client's half of the snapshot flow control (#266, docs/ARCHITECTURE.md §4): it tells the
+// The client's half of the snapshot flow control (#266, docs/architecture/wire-contract.md §4): it tells the
 // server the newest tick it has actually applied, so the room can see the queue between them —
 // wherever that queue sits — and stop adding to it instead of letting the client's view fall
 // behind for good. One acknowledgement every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` applied deltas, and

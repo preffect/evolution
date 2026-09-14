@@ -1,4 +1,4 @@
-// The client's one event seam (docs/ARCHITECTURE.md §6, §7): server-owned moments arrive as the
+// The client's one event seam (docs/architecture/client.md §6, §7): server-owned moments arrive as the
 // snapshot's `GameEffect`s, state transitions are detected by `SnapshotTransitionTracker`, and
 // the renderer (#99) and HUD (#100) raise the local moments (a click, a card, a trait cue).
 // Subscribers (the sound bus, later the toast and onboarding services) never see each other.
@@ -39,7 +39,7 @@ export type GameEvent =
   | { kind: typeof GAME_EVENT_KIND.bloomStarted }
   /** Raised by the HUD the moment a card is chosen, before the server confirms it. */
   | { kind: typeof GAME_EVENT_KIND.traitPicked; traitId: TraitId }
-  /** Raised by the renderer at a trait's moment (docs/TRAITS.md §3); `isActive: false` ends a looping cue. */
+  /** Raised by the renderer at a trait's moment (docs/traits/catalog-organelles.md §3); `isActive: false` ends a looping cue. */
   | { kind: typeof GAME_EVENT_KIND.traitCue; traitId: TraitId; isActive: boolean }
   | { kind: typeof GAME_EVENT_KIND.uiClick };
 

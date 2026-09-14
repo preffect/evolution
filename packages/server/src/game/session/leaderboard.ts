@@ -1,4 +1,4 @@
-// Score and ranking (docs/GAME-DESIGN.md §5.3, docs/ARCHITECTURE.md §2): computed, never stored
+// Score and ranking (docs/game-design/session.md §5.3, docs/architecture/entity-model.md §2): computed, never stored
 // twice. `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions`; ties
 // by current mass, then by earliest join. Step 10 of the tick.
 

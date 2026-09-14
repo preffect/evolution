@@ -67,7 +67,7 @@ describe('GameRenderer', () => {
     expect(centre.y).toBeCloseTo(30);
   });
 
-  it('brackets the frame in the seven stages of docs/RENDERING.md §7, in order, with the organelles inside the cells', () => {
+  it('brackets the frame in the seven stages of docs/rendering/budget.md §7, in order, with the organelles inside the cells', () => {
     const { stages, log } = recordingStages();
     const { renderer: subject } = renderer(stages);
     subject.render(createTestRenderFrame({ cells: [createTestCellView()] }), TEST_OWN_PLAYER_ID, INPUTS, () =>

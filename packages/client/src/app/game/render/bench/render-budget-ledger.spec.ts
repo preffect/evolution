@@ -1,4 +1,4 @@
-// The budget ledger (docs/CODE-STANDARDS.md §2): every number of docs/RENDERING.md §6–§7 that the
+// The budget ledger (docs/CODE-STANDARDS.md §2): every number of docs/rendering/budget.md §6–§7 that the
 // bench asserts is read from the doc's own tables here and pinned against the constants, so the
 // doc and the code cannot drift silently.
 import { describe, expect, it } from 'vitest';
@@ -7,6 +7,8 @@ import {
   RENDER_BENCH_CELL_COUNT,
   RENDER_BENCH_MOTE_COUNT,
   RENDER_BENCH_SEED,
+  RENDER_DRAW_CALL_HEADROOM,
+  RENDER_EFFECTS_DRAW_CALLS,
   RENDER_FRAME_BUDGET_P95_MS,
   RENDER_GPU_BUDGET_MS,
   RENDER_GPU_SAMPLE_MAX_FRAME_RATIO,
@@ -15,9 +17,9 @@ import {
   RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
 } from '../constants';
-import { markdownSection, readRepoDocument } from '../../../../testing/repo-document';
+import { markdownSection, readRepoDocument, tableCells } from '../../../../testing/repo-document';
 
-const rendering = readRepoDocument('docs/RENDERING.md');
+const rendering = readRepoDocument('docs/rendering/budget.md');
 
 function section(heading: string): string {
   return markdownSection(rendering, heading);
@@ -30,7 +32,7 @@ function numberIn(text: string, pattern: RegExp): number {
   return Number(match![1]!.replace(/[^\d.]/g, ''));
 }
 
-describe('docs/RENDERING.md §7 budgets', () => {
+describe('docs/rendering/budget.md §7 budgets', () => {
   const budgetSection = section('7. Frame budget');
 
   it('names the frame target, the GPU and the HUD budgets the verdict applies', () => {
@@ -67,8 +69,30 @@ describe('docs/RENDERING.md §7 budgets', () => {
   });
 });
 
-describe('docs/RENDERING.md §6 draw calls', () => {
+/** The batching table's rows (a layer name first, its calls last); a range like `0–2` stays text, the header's `Calls` too. */
+function batchingRows(table: string): { readonly layer: string; readonly calls: string }[] {
+  return table
+    .split('\n')
+    .filter((line) => /^\| \w/.test(line))
+    .map((line) => {
+      const cells = tableCells(line);
+      return { layer: cells[0] ?? '', calls: cells.at(-1) ?? '' };
+    });
+}
+
+describe('docs/rendering/budget.md §6 draw calls', () => {
+  const table = section('6. Batching plan');
+
   it('caps the draw calls at the total the batching table adds up to', () => {
-    expect(numberIn(section('6. Batching plan'), /Total \*\*≤ (\d+) draw calls\*\*/)).toBe(RENDER_MAX_DRAW_CALLS);
+    expect(numberIn(table, /Total \*\*≤ (\d+) draw calls\*\*/)).toBe(RENDER_MAX_DRAW_CALLS);
+  });
+
+  it('counts the effects stage at three calls (sprites, the arc mesh, text) and leaves the stated headroom', () => {
+    // The arc mesh is one instanced call at any arc count (arc-mesh.spec.ts), so the row never grows with the arcs.
+    const rows = batchingRows(table);
+    expect(rows.find((row) => row.layer === 'effects')?.calls).toBe(String(RENDER_EFFECTS_DRAW_CALLS));
+    const fixed = rows.filter((row) => /^\d+$/.test(row.calls)).reduce((sum, row) => sum + Number(row.calls), 0);
+    expect(fixed).toBe(RENDER_MAX_DRAW_CALLS - RENDER_DRAW_CALL_HEADROOM);
+    expect(numberIn(table, /leaves \*\*(\d+)\*\* call of headroom/)).toBe(RENDER_DRAW_CALL_HEADROOM);
   });
 });

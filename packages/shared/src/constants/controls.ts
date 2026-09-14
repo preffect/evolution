@@ -1,4 +1,4 @@
-// Steering and sprint (docs/GAME-DESIGN.md §6, §12). The per-tick steer blend is derived in
+// Steering and sprint (docs/game-design/controls-and-scope.md §6, docs/game-design/constants-and-acceptance.md §12). The per-tick steer blend is derived in
 // code from `CELL_ACCELERATION_SECONDS` (growth.ts), never declared here.
 
 /** Pointer inside this many radii of the centre: throttle 0. */

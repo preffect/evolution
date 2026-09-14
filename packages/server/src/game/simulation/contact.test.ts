@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §5.3 (E10 first half): separation of cells that cannot engulf each other.
+// docs/ecology/mass-and-movement.md §5.3 (E10 first half): separation of cells that cannot engulf each other.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, playerId } from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';

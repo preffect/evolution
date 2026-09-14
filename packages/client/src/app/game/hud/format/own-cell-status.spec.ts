@@ -117,7 +117,7 @@ describe('formatOwnCellStatus attributes', () => {
   });
 
   it('reports the engulf progress as a percent with the phase that progress falls in', () => {
-    // The bands are ECOLOGY §6.1's: cover to 1/6, wrap to the seal at 0.5, absorb from there.
+    // The bands are ecology/absorption.md §6.1's: cover to 1/6, wrap to the seal at 0.5, absorb from there.
     const statusAt = (progress: number): ReturnType<typeof formatOwnCellStatus> =>
       formatOwnCellStatus(
         indicatorsWith(

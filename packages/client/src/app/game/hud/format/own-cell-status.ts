@@ -1,4 +1,4 @@
-// The status mirror's content (docs/UI.md §3.1.4): the `data-*` attributes Playwright reads and
+// The status mirror's content (docs/ui/hud.md §3.1.4): the `data-*` attributes Playwright reads and
 // the sentence assistive technology hears. Pure and DOM-free — the component binds what this
 // answers and owns no rule of its own.
 //
@@ -16,7 +16,7 @@ import type { LadderCounter, OwnCellIndicators } from '../../state/own-cell-indi
 
 const PERCENT = 100;
 
-/** The sprint ring's three readings, as one word each (docs/UI.md §3.1.4). */
+/** The sprint ring's three readings, as one word each (docs/ui/hud.md §3.1.4). */
 export const SPRINT_STATUS = { ready: 'ready', cooling: 'cooling', sprinting: 'sprinting' } as const;
 
 /** `ghost:<silhouette>`, `counters` or `none`: what the ladder orbit is showing. */
@@ -107,7 +107,7 @@ function statusTextOf(indicators: OwnCellIndicators): string {
 }
 
 /**
- * What a change has to move before the mirror speaks again (docs/UI.md §3.1.4): the level, the DNA
+ * What a change has to move before the mirror speaks again (docs/ui/hud.md §3.1.4): the level, the DNA
  * percent **quantised to `STATUS_ANNOUNCE_DNA_STEP_PERCENT`**, each counter, the sprint word, the
  * engulf phase and which cell is the nearest threat. Mass and the raw percent are deliberately
  * absent: they move every snapshot, and announcing them would drown everything worth hearing.

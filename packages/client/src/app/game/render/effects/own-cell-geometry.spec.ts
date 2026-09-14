@@ -1,4 +1,4 @@
-// Pins docs/UI.md §3.1.3 — the geometry table at 24 / 32 / 45 / 102 px and its three inequalities —
+// Pins docs/ui/hud.md §3.1.3 — the geometry table at 24 / 32 / 45 / 102 px and its three inequalities —
 // and the one turn from the record's angles to the screen. The table and the HUD numbers are read
 // from the doc rather than copied, so the doc and these functions cannot drift apart without this
 // file going red. Two of the table's columns (one counter's span, the gap between the two backings)
@@ -12,9 +12,11 @@ import {
   DNA_RING_KEEP_OUT_PAD_PX,
   DNA_RING_STROKE_PX,
   LADDER_BACKING_PX,
+  LADDER_GHOST_PX,
   LADDER_ORBIT_ANGLES_PAIR_DEG,
   LADDER_ORBIT_ANGLE_SINGLE_DEG,
   LADDER_SEAT_MARK_CLEARANCE_PX,
+  LADDER_UNLOCK_RING_PAD_PX,
 } from '../constants';
 import { HALF } from '../geometry';
 import type { Ladder } from '../../state/own-cell-indicators';
@@ -27,10 +29,12 @@ import {
   screenRadiansOf,
   seatMarkHaloPx,
   selfRingRadiusPx,
+  unlockRingRadiusPx,
   type OrbitPoint,
 } from './own-cell-geometry';
 
-const UI_DOCUMENT = readRepoDocument('docs/UI.md');
+const UI_DOCUMENT = readRepoDocument('docs/ui/hud.md');
+const LAYOUT_DOCUMENT = readRepoDocument('docs/ui/layout.md');
 /** Any radius will do for the angle turn; a round one keeps the expected points readable. */
 const PROBE_RADIUS_PX = 10;
 const FLOAT_SLACK = 1e-9;
@@ -73,7 +77,7 @@ function printedNumbersIn(cell: string): PrintedNumber[] {
 
 function printedAt(row: PrintedRow | undefined, column: number, index = 0): PrintedNumber {
   const printed = row?.[column]?.[index];
-  if (printed === undefined) throw new Error(`UI.md §3.1.3 table: nothing printed in column ${column}`);
+  if (printed === undefined) throw new Error(`ui/hud.md §3.1.3 table: nothing printed in column ${column}`);
   return printed;
 }
 
@@ -93,7 +97,7 @@ function geometryTable(): PrintedRow[] {
 
 /** A px value from a row of the doc's §1 constants table. */
 function hudConstant(name: string): number {
-  const match = new RegExp(`\\| \`${name}\`\\s*\\|\\s*(\\d+)`).exec(UI_DOCUMENT);
+  const match = new RegExp(`\\| \`${name}\`\\s*\\|\\s*(\\d+)`).exec(LAYOUT_DOCUMENT);
   expect(match, name).not.toBeNull();
   return Number(match?.[1]);
 }
@@ -163,9 +167,9 @@ describe('the angle turn from clockwise-from-12 degrees to the screen', () => {
   });
 });
 
-// ---- UI.md §3.1.3 ----
+// ---- ui/hud.md §3.1.3 ----
 
-describe('docs/UI.md §3.1.3 geometry table', () => {
+describe('docs/ui/hud.md §3.1.3 geometry table', () => {
   it('has the four sizes that matter', () => {
     expect(TABLE.map((row) => printedAt(row, COLUMN.size).value)).toEqual([24, 32, 45, 102]);
   });
@@ -190,7 +194,7 @@ describe('docs/UI.md §3.1.3 geometry table', () => {
   });
 });
 
-describe('docs/UI.md §3.1.3 inequalities', () => {
+describe('docs/ui/hud.md §3.1.3 inequalities', () => {
   it('keeps the orbit under the picker band at the cap', () => {
     const bandTopPx = hudConstant('HUD_PLAYER_EXCLUSION_PX') + hudConstant('PICKER_BAND_GAP_PX');
     expect(ladderOrbitExtentPx(CAP_R_PX)).toBeLessThan(bandTopPx);
@@ -209,5 +213,12 @@ describe('docs/UI.md §3.1.3 inequalities', () => {
     for (const rPx of sweep(31, CAP_R_PX)) expect(margin(rPx), `${rPx} px`).toBeGreaterThanOrEqual(0);
     expect(margin(30)).toBeLessThan(0);
     expect(margin(24)).toBeLessThan(0);
+  });
+});
+
+describe('unlockRingRadiusPx', () => {
+  it('rings the ghost square LADDER_UNLOCK_RING_PAD_PX out: 9 px at the §9 values', () => {
+    expect(unlockRingRadiusPx()).toBe(LADDER_GHOST_PX / 2 + LADDER_UNLOCK_RING_PAD_PX);
+    expect(unlockRingRadiusPx()).toBe(9);
   });
 });

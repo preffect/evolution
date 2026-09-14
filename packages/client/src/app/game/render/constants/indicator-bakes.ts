@@ -1,7 +1,7 @@
-// How the own-cell indicator bakes are painted (docs/RENDERING.md §10, docs/ASSET-GENERATION.md §1):
-// the shares, alphas and px details that turn docs/UI.md §9's sizes into layered, shaded sprites —
-// the ghost silhouettes, the pip blocks, the unlock ring, the label pill — and the two BitmapFont
-// installs. §9 (`own-cell.ts`) owns every size a player reads; this page owns only what is painted
+// How the own-cell indicator bakes are painted (docs/rendering/own-cell-indicators.md §10, docs/ASSET-GENERATION.md §1):
+// the shares, alphas and px details that turn docs/ui/components-and-constants.md §9's sizes into layered, shaded sprites —
+// the ghost silhouettes, the pip blocks, the label pill — the arc primitive's row layout, and the two
+// BitmapFont installs. §9 (`own-cell.ts`) owns every size a player reads; this page owns only what is painted
 // inside those sizes, the way `organelles.ts` does for the organelle atlas. Px are CSS px.
 
 import { BACTERIUM_VARIANT } from '@evolution/shared';
@@ -9,6 +9,31 @@ import { CHLORO_BASE, CHLORO_LIGHT, MITO_BASE, MITO_DARK, MITO_LIGHT, WHITE } fr
 
 /** The bakes rasterise at the device pixel ratio rounded up and capped, so a sprite at its px size never upsamples. */
 export const INDICATOR_BAKE_MAX_DPR = 2;
+
+// ---- the arc primitive (docs/rendering/own-cell-indicators.md §10, `effects/arc-mesh.ts`) ----
+/**
+ * Arc rows one frame draws: at most six (the DNA track and fill, two orbit backings, two unlock rings), with
+ * room for two more. The escape track and arc replace the orbit, so they never add to it.
+ */
+export const ARC_INSTANCE_CAPACITY = 8;
+/** RGBA float texels per arc row. */
+export const ARC_INSTANCE_TEXELS = 3;
+/** Each field's float offset in a row, four per texel: centre, radius, half stroke | start, sweep, cap | colour, alpha. */
+export const ARC_INSTANCE_FIELD = {
+  x: 0,
+  y: 1,
+  radius: 2,
+  halfStroke: 3,
+  startRadians: 4,
+  sweepRadians: 5,
+  isRoundCap: 6,
+  red: 8,
+  green: 9,
+  blue: 10,
+  alpha: 11,
+} as const;
+/** The quad's margin past the stroke in screen px: room for the one-px anti-aliased edge. */
+export const ARC_EDGE_FEATHER_PX = 1;
 
 /** A three-tone ramp: `tone` is the colour the item reads as, `light` faces the light, `dark` the far side. */
 export interface IndicatorRamp {
@@ -18,7 +43,7 @@ export interface IndicatorRamp {
 }
 
 /**
- * Each counter's organelle colour (UI.md §3.1.2), keyed by the bacterium variant it tallies: the
+ * Each counter's organelle colour (ui/hud.md §3.1.2), keyed by the bacterium variant it tallies: the
  * aerobic counter is the mitochondrion's orange, the photosynthetic one the chloroplast's light green.
  */
 export const INDICATOR_VARIANT_RAMP = {
@@ -26,7 +51,7 @@ export const INDICATOR_VARIANT_RAMP = {
   [BACTERIUM_VARIANT.photosynthetic]: { light: WHITE, tone: CHLORO_LIGHT, dark: CHLORO_BASE },
 } as const satisfies Readonly<Record<string, IndicatorRamp>>;
 
-/** The nucleus parts' ghosts bake white and take the player's rim colour as a tint (UI.md §3.1.2). */
+/** The nucleus parts' ghosts bake white and take the player's rim colour as a tint (ui/hud.md §3.1.2). */
 export const INDICATOR_RIM_TINTED_RAMP: IndicatorRamp = { light: WHITE, tone: WHITE, dark: WHITE };
 
 /** Every ghost's layers, inside `LADDER_GHOST_PX`: halo, lit wash, faint trace, dashed rim, detail, glint. */
@@ -117,24 +142,10 @@ export const PIP_BAKE = {
   unlitWashAlpha: 0.14,
 } as const;
 
-/** The level-gold unlock ring: glow both sides, a dark edge under the stroke, the stroke, a lit arc toward the light, a glint. */
-export const UNLOCK_RING_BAKE = {
-  haloPx: 3,
-  haloAlpha: 0.5,
-  edgePx: 0.75,
-  edgeAlpha: 0.6,
-  litArcTurns: 0.25,
-  litArcAlpha: 0.8,
-  glintPx: 2,
-  glintAlpha: 0.8,
-} as const;
-
 /** The label pill: a danger glow, a lit-top body, a top highlight and the danger rim; stretched only across its middle. */
 export const LABEL_PILL_BAKE = {
   glowPx: 3,
   glowAlpha: 0.3,
-  /** How much lighter the top of the body is: the panel-top colour this share of the way in. */
-  topAlpha: 0.9,
   highlightAlpha: 0.14,
   highlightInsetPx: 3,
   /** The stretchable middle column of the bake. */

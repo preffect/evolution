@@ -1,4 +1,4 @@
-// Drives the bench scene through the real WorldStore on a ManualClock (docs/RENDERING.md §7): the
+// Drives the bench scene through the real WorldStore on a ManualClock (docs/rendering/budget.md §7): the
 // snapshots up to a tick are fed at their wall times, then the clock is set so the store renders
 // exactly that tick, so the bench route and a screenshot are parked on a reproducible frame. Only
 // the snapshots the store's buffer can hold are replayed on a jump, plus the tick-0 `game_state`

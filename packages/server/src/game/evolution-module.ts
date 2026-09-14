@@ -1,4 +1,4 @@
-// The Evolution `GameModule` (docs/ARCHITECTURE.md §3): wiring only. It coalesces inputs, drives
+// The Evolution `GameModule` (docs/architecture/server-simulation.md §3): wiring only. It coalesces inputs, drives
 // the in-process bots, runs the recorded step, serialises and exposes the debug handle; every
 // decision lives in the subsystems. One `WorldState` for the room's lifetime (a rematch resets it
 // in place), one live balance copy patched only by `debug_set_balance`, and the streams built
@@ -96,5 +96,5 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
   };
 }
 
-/** What `index.ts` hands the lobby (docs/ARCHITECTURE.md §10). */
+/** What `index.ts` hands the lobby (docs/architecture/constants-files-tests.md §10). */
 export const evolutionModuleFactory: GameModuleFactory = createEvolutionModule;

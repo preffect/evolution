@@ -1,4 +1,4 @@
-// The one line geometry of a cell (docs/RENDERING.md §3, docs/VISUAL-STYLE.md §4): the flagellum
+// The one line geometry of a cell (docs/rendering/contents-and-motion.md §3, docs/VISUAL-STYLE.md §4): the flagellum
 // tail, 2 r long behind the cell, two sine waves travelling away from it, amplitude per tier,
 // doubled on sprint, two tails at tier III. `flagellumPolyline` is pure; `FlagellumLines` draws
 // every tail of the frame into one Graphics, under the body so the root is buried in the membrane.

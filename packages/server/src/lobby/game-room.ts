@@ -30,7 +30,7 @@ import { DebugRequestError } from '../game/debug/debug-request-error.js';
  *
  * Time flows in through `RoomTiming` only (docs/DETERMINISM.md §2): the ticker wakes the loop,
  * the accumulator turns the clock into whole ticks, and the debug tools can pause the loop and
- * step it by hand for deterministic screenshots (docs/ARCHITECTURE.md §8).
+ * step it by hand for deterministic screenshots (docs/architecture/debug-mcp.md §8).
  */
 export class GameRoom {
   readonly gameId: GameId;
@@ -43,7 +43,7 @@ export class GameRoom {
   readonly avatarAssignments: Record<string, number>;
   readonly playerNames: Record<string, string>;
   readonly performanceTracker = new PerformanceTracker();
-  /** Who is behind on the wire and owes a `game_state` (#266, docs/ARCHITECTURE.md §4). */
+  /** Who is behind on the wire and owes a `game_state` (#266, docs/architecture/wire-contract.md §4). */
   readonly snapshotBacklog = new SnapshotBacklog();
 
   private readonly game: GameModule;
@@ -82,7 +82,7 @@ export class GameRoom {
     this.game.free?.();
   }
 
-  // ---- debug loop control (docs/ARCHITECTURE.md §8) ----------------------
+  // ---- debug loop control (docs/architecture/debug-mcp.md §8) ----------------------
 
   /** Ticks stepped since the room started; the room's own clock for modules without a world tick. */
   getTickCount(): number {
@@ -102,13 +102,13 @@ export class GameRoom {
   step(ticks: number): void {
     this.isLoopPaused = true;
     for (let count = 0; count < ticks; count += 1) this.runTick();
-    // A stepped room always ends on a fresh frame, whatever the cadence (docs/ARCHITECTURE.md §8).
+    // A stepped room always ends on a fresh frame, whatever the cadence (docs/architecture/debug-mcp.md §8).
     if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.broadcastSnapshot();
   }
 
   /**
    * Sends everyone the frame at the current tick without stepping: a debug mutation calls it so a
-   * paused room shows the patched world instead of the frame from before it (docs/ARCHITECTURE.md §8).
+   * paused room shows the patched world instead of the frame from before it (docs/architecture/debug-mcp.md §8).
    */
   republishSnapshot(): void {
     this.broadcastSnapshot();
@@ -124,7 +124,7 @@ export class GameRoom {
     return this.game.getDebugHandle?.();
   }
 
-  /** After `debug_set_balance` (docs/ARCHITECTURE.md §4): every client predicts with the balance the module now simulates. */
+  /** After `debug_set_balance` (docs/architecture/wire-contract.md §4): every client predicts with the balance the module now simulates. */
   broadcastBalanceUpdated(): void {
     broadcastMessage(this.playerConnections.values(), {
       type: SERVER_MESSAGE_TYPE.balanceUpdated,
@@ -138,7 +138,7 @@ export class GameRoom {
     this.playerConnections.set(connection.playerId, connection);
   }
 
-  /** A reconnect is a new `game_state` (docs/ARCHITECTURE.md §4), so it settles any resync owed. */
+  /** A reconnect is a new `game_state` (docs/architecture/wire-contract.md §4), so it settles any resync owed. */
   reattachPlayer(connection: Connection): void {
     this.playerConnections.set(connection.playerId, connection);
     this.disconnectedPlayers.delete(connection.playerId);
@@ -153,7 +153,7 @@ export class GameRoom {
     this.performanceTracker.recordClientReport(playerId as PlayerId, report);
   }
 
-  /** The newest snapshot tick a client has applied (#266, docs/ARCHITECTURE.md §4): its flow control. */
+  /** The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. */
   recordSnapshotAck(playerId: string, tick: number): void {
     this.snapshotBacklog.recordAcknowledgedTick(playerId, tick);
   }
@@ -162,7 +162,7 @@ export class GameRoom {
     return this.game.serializeRoomState();
   }
 
-  /** The `game_state` payload (docs/ARCHITECTURE.md §4): the module's full snapshot and live balance. */
+  /** The `game_state` payload (docs/architecture/wire-contract.md §4): the module's full snapshot and live balance. */
   getFullState(): FullGameState {
     return this.game.serializeFullState();
   }
@@ -178,7 +178,7 @@ export class GameRoom {
 
   /**
    * The `game_state` a player receives on start, late join, reconnect and resync
-   * (docs/ARCHITECTURE.md §4): the one message that rebuilds a client's whole view.
+   * (docs/architecture/wire-contract.md §4): the one message that rebuilds a client's whole view.
    */
   gameStateMessageFor(playerId: PlayerId): ServerMessage {
     return {
@@ -202,7 +202,7 @@ export class GameRoom {
   }
 
   /**
-   * A synthetic player the game module drives itself (`debug_spawn_bot`, docs/ARCHITECTURE.md §8):
+   * A synthetic player the game module drives itself (`debug_spawn_bot`, docs/architecture/debug-mcp.md §8):
    * in the roster and announced like a late joiner, with no connection. The module already holds
    * the player; this only makes it visible to the lobby and the other clients. An id that is
    * already in the roster or on a socket is refused with `DebugRequestError`, so a bot can never
@@ -271,9 +271,9 @@ export class GameRoom {
 
   /**
    * The delta since the previous broadcast, every `SNAPSHOT_EVERY_TICKS` ticks
-   * (docs/ARCHITECTURE.md §1). `serializeRoomState` runs on every broadcast tick whatever the
+   * (docs/architecture/entity-model.md §1). `serializeRoomState` runs on every broadcast tick whatever the
    * connections are doing: it is the one drain of the effects and the one step of the food delta
-   * tracker. Who receives it is then per connection (#266, docs/ARCHITECTURE.md §4) — a client
+   * tracker. Who receives it is then per connection (#266, docs/architecture/wire-contract.md §4) — a client
    * that has not caught up with what it was already sent is skipped rather than queued deeper, and
    * is sent one `game_state` in place of the next delta once it has.
    */

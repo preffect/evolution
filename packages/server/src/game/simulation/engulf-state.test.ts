@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §6.2: the engulf record itself, away from the step that drives it. `free` is the
+// docs/ecology/absorption.md §6.2: the engulf record itself, away from the step that drives it. `free` is the
 // absence of both engulf states, so every path out has to leave `states` empty.
 
 import { describe, expect, it } from 'vitest';
@@ -41,7 +41,7 @@ describe('beginEngulf', () => {
     expect(prey.engulfProgress).toBe(0);
   });
 
-  it('lets one cell be predator and prey at once: a chain (docs/ECOLOGY.md §6.2)', () => {
+  it('lets one cell be predator and prey at once: a chain (docs/ecology/absorption.md §6.2)', () => {
     const { predator, prey } = twoCells();
     beginEngulf({ predator, prey });
     beginEngulf({ predator: prey, prey: predator });

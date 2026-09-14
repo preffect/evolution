@@ -1,4 +1,4 @@
-// The one policy for a `1` `2` `3` press (docs/UI.md §4). A press is not a bare card index: it is
+// The one policy for a `1` `2` `3` press (docs/ui/input-and-onboarding.md §4). A press is not a bare card index: it is
 // an answer to the offer that was on screen when it was made, and the three cases are settled here
 // so no caller has half of the rule.
 //

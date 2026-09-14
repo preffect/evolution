@@ -17,7 +17,7 @@ import {
   type BitmapFontInstaller,
 } from './bitmap-fonts';
 
-/** The label texts UI.md §3.1.2 names: the escape arc's two readings and the threat label. */
+/** The label texts ui/hud.md §3.1.2 names: the escape arc's two readings and the threat label. */
 const LABEL_TEXTS = ['SPRINT TO ESCAPE', 'SEALED', 'AMOEBOID CAN ENGULF YOU'];
 const MAX_LEVEL_TEXT = '12';
 

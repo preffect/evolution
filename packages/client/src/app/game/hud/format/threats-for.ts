@@ -1,4 +1,4 @@
-// Who on screen can eat us (docs/UI.md §3.1.2). Pure, so the rule is tested without a camera.
+// Who on screen can eat us (docs/ui/hud.md §3.1.2). Pure, so the rule is tested without a camera.
 //
 // The predicate is the **shared** `canEngulf` — the same call the server's engulf check and the
 // renderer's warning ring make — so the threat label, the ring and the engulf itself can never
@@ -29,7 +29,7 @@ export interface Threat {
   readonly distanceSquared: number;
 }
 
-/** What a wild cell is called when it is the nearest threat (docs/ECOLOGY.md §3.3: it has no player). */
+/** What a wild cell is called when it is the nearest threat (docs/ecology/wild-cells.md §3.3: it has no player). */
 export const WILD_CELL_THREAT_NAME = 'Wild cell';
 
 export interface ThreatsInput {

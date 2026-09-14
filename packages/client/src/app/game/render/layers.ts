@@ -1,4 +1,4 @@
-// The scene graph (docs/ARCHITECTURE.md §6, docs/RENDERING.md §6): a world root the camera
+// The scene graph (docs/architecture/client.md §6, docs/rendering/budget.md §6): a world root the camera
 // transforms, holding the layers in `LAYER_Z` order, and a screen root for the vignette. The
 // orchestrator writes the world root's transform every frame; nothing else moves a layer.
 

@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §3.2: the trip rows never change; the broth and gel row is derived from the
+// docs/ecology/food-and-spawn.md §3.2: the trip rows never change; the broth and gel row is derived from the
 // stage's share (every broth cluster is plain in the protocell era, 0.4 / 0.3 / 0.3 by the eukaryote era).
 
 import { describe, expect, it } from 'vitest';

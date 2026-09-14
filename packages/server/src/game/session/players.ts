@@ -1,4 +1,4 @@
-// Player and cell record factories (docs/ARCHITECTURE.md §2): a fresh player at level 1, and a
+// Player and cell record factories (docs/architecture/entity-model.md §2): a fresh player at level 1, and a
 // free protocell placed for a player. A cell is born with its target at its own centre (throttle
 // 0: it drifts until the first input) and its derived state already folded.
 

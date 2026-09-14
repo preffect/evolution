@@ -1,4 +1,4 @@
-// The one renderer a session holds (docs/RENDERING.md §7): built over a fresh texture bundle for a
+// The one renderer a session holds (docs/rendering/budget.md §7): built over a fresh texture bundle for a
 // seed, disposed together with it, replaced when the seed changes. Both sessions (a live room, the
 // bench route) keep theirs here so the build / dispose order is written once.
 

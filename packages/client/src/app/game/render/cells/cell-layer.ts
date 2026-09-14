@@ -1,4 +1,4 @@
-// The cell layer (docs/RENDERING.md §2, §3, §6): one render state per cell in the frame (kept
+// The cell layer (docs/rendering/cells.md §2, docs/rendering/contents-and-motion.md §3, docs/rendering/budget.md §6): one render state per cell in the frame (kept
 // while the cell is off screen, so its slots and held heading survive a cull), the ghosts of
 // absorbed prey, the contact dents of the visible cells, the visible ones packed radius-ascending
 // into the mesh, the organelle sprites between the two passes (a ghost's too, fading with its body,
@@ -50,7 +50,7 @@ export class CellLayer {
   constructor(
     private readonly textures: CellLayerTextures,
     capacity: number = CELL_INSTANCE_CAPACITY,
-    /** Brackets the organelle sprite pass as its own `renderStagesMs` key (docs/RENDERING.md §7). */
+    /** Brackets the organelle sprite pass as its own `renderStagesMs` key (docs/rendering/budget.md §7). */
     private readonly stages: StageMeasurer = UNTIMED_STAGES,
   ) {
     this.registry = new ViewRegistry({
@@ -77,7 +77,7 @@ export class CellLayer {
     return this.mesh.instances;
   }
 
-  /** The cells whose quad reaches the extent, smallest first (docs/ARCHITECTURE.md §6), cut to `budget` rows from the small end. */
+  /** The cells whose quad reaches the extent, smallest first (docs/architecture/client.md §6), cut to `budget` rows from the small end. */
   private visibleCells(cells: readonly CellView[], extent: CameraExtent, budget: number): CellView[] {
     const visible = cells
       .filter((cell) => isDiscInExtent(extent, cell.x, cell.y, cell.radius * CELL_QUAD_EXTENT_RADII))
@@ -193,7 +193,7 @@ function organelleDraw(view: CellView, output: CellFrameOutput, isAtRest: boolea
   };
 }
 
-/** The cell's tail when it owns `simple_flagellum` and is not a far dot (docs/RENDERING.md §3). */
+/** The cell's tail when it owns `simple_flagellum` and is not a far dot (docs/rendering/contents-and-motion.md §3). */
 function flagellumSpec(view: CellView, output: CellFrameOutput, timeSeconds: number): FlagellumSpec | null {
   const tier = output.traits.tierOf(FLAGELLUM_TRAIT);
   if (tier === 0 || output.lod.isFarDot) return null;

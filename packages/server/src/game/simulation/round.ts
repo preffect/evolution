@@ -1,4 +1,4 @@
-// Step 2 (docs/GAME-DESIGN.md §5.4, docs/ECOLOGY.md §3.1): the round timer, the world level-up
+// Step 2 (docs/game-design/session.md §5.4, docs/ecology/food-and-spawn.md §3.1): the round timer, the world level-up
 // effect, the results phase that freezes steps 3–9, and the automatic rematch that rebuilds the
 // world from `seed + ROUND_SEED_INCREMENT` with everyone present as a level-1 protocell
 // (docs/DETERMINISM.md §3). The phase flips on the tick the timer reaches zero; the results
@@ -36,7 +36,7 @@ export function resetWorldForRematch(world: WorldState, context: StepContext): v
 
 /**
  * The world clock crossed a whole level on this tick when the tick in progress reads a higher
- * `floor(worldLevel)` than the tick before it (docs/ECOLOGY.md §3.1: 10 800, 21 600, 32 400 in a
+ * `floor(worldLevel)` than the tick before it (docs/ecology/food-and-spawn.md §3.1: 10 800, 21 600, 32 400 in a
  * 600 s round). The cap freezes the clock through `results`, so no level-up fires there.
  */
 export function emitWorldLevelUp(world: WorldState, context: StepContext): void {

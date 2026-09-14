@@ -1,4 +1,4 @@
-// Pass B of the cell shader (docs/RENDERING.md §2.2, over the organelle sprites): the inner
+// Pass B of the cell shader (docs/rendering/cells.md §2.2, over the organelle sprites): the inner
 // edge, the soft rim, the rim light with the outline through it (or the protocell double film),
 // the cell wall and the cilia (cell-shader-tells.ts), the glint, the prey-under-film alpha, and
 // the tells that snap with the LOD: seat-mark beads on the deformed outline, the own cell's self
@@ -135,7 +135,7 @@ vec4 seatMark(Instance inst, Frame frame, vec4 acc) {
 }
 
 /**
- * The sprint ring's alpha here (UI.md §3.1.2): recharged from 12 o'clock clockwise to 'selfRingFill' turns at
+ * The sprint ring's alpha here (ui/hud.md §3.1.2): recharged from 12 o'clock clockwise to 'selfRingFill' turns at
  * 'selfRingBrightness' (× the sprint rim brightness), the rest a track; the arc's end is feathered over one px.
  */
 float selfRingAlpha(Instance inst, Frame frame, float radiusWu) {

@@ -1,4 +1,4 @@
-// The frame loop both sessions run (docs/RENDERING.md §7): a live room (`render-session.ts`) and
+// The frame loop both sessions run (docs/rendering/budget.md §7): a live room (`render-session.ts`) and
 // the bench route (`bench/bench-session.ts`) each adopt one Pixi app's ticker, hold one renderer in
 // a `RendererSlot`, gate frames for the debug hook and run every frame through the
 // `FrameInstrumentation`. What differs (where a frame comes from, what happens after it) is the
@@ -48,7 +48,7 @@ export abstract class FrameLoopSession {
 
   /**
    * Called once per animation frame, before the gate: the input controller's pump runs here so it
-   * keeps its own `TICK_HZ` cadence off the injected clock (docs/ARCHITECTURE.md §5) instead of a
+   * keeps its own `TICK_HZ` cadence off the injected clock (docs/architecture/client.md §5) instead of a
    * timer of its own, which game code may not own (docs/CODE-STANDARDS.md §8).
    */
   setAnimationFrameListener(listener: (() => void) | null): void {

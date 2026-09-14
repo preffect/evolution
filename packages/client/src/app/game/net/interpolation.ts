@@ -1,5 +1,5 @@
 // Where the render tick comes from and how views are lerped between two snapshots
-// (docs/ARCHITECTURE.md §5): the one module that owns the delay and the lerp; nothing under
+// (docs/architecture/client.md §5): the one module that owns the delay and the lerp; nothing under
 // `render/` computes it. The server tick is estimated from snapshot arrival times through the
 // injected clock, so the render tick advances smoothly between the 20 Hz snapshots.
 

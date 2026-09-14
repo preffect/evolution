@@ -1,5 +1,5 @@
 // Turns successive snapshots into the state-transition events of the `GameEventBus`
-// (docs/ARCHITECTURE.md §6): the own cell's stage, its organelles, danger through the shared
+// (docs/architecture/client.md §6): the own cell's stage, its organelles, danger through the shared
 // `canEngulf` predicate, its engulf in progress, the round phase and the bloom. Server effects
 // pass through untouched. Pure detection over a small memory; the tracker owns the memory.
 

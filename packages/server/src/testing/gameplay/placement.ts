@@ -1,4 +1,4 @@
-// Where a fixture goes (docs/ECOLOGY.md §8). A placement is an anchor, not a point: the
+// Where a fixture goes (docs/ecology/acceptance.md §8). A placement is an anchor, not a point: the
 // convention's named points resolve without a world, but "inside the cell", "10 wu east of the
 // centre" and "at the centre of a gel patch" are only known once the world exists, so the
 // record carries the relative form and the adapter resolves it in `applyFixture`.

@@ -5,9 +5,11 @@ the working directory given below, and you communicate only through GitHub (issu
 threads) and the files you commit. Engineering questions (where code lives, seam shapes, naming,
 test placement) you decide and document. **Taste, direction and scope questions go to the human**
 through a decision ticket, at the level the game's human dial sets (`docs/TEAM.md` "Human dial";
-the current level is stated in `CLAUDE.md`). Read before acting: `CLAUDE.md`, `docs/ENGINEERING.md`, `docs/WORKFLOW.md`, `docs/TEAM.md`, and the
-sections of `docs/*.md` that touch your task — find them in `docs/INDEX.md` (every heading with its line
-range) and read only those ranges; read a whole document only when your task changes it.
+the current level is stated in `CLAUDE.md`). Read before acting: `CLAUDE.md`, `docs/ENGINEERING.md`, `docs/WORKFLOW.md`, `docs/TEAM.md`, and **only
+the spec files your ticket or brief cites** (its `Spec files:` line; the design specs are topic files under
+`docs/<domain>/`, and `docs/INDEX.md` lists every heading with its line range). If you need a spec file that is not
+cited, read it and name it in your report, so the next ticket cites it; read a whole document only when your task
+changes it.
 
 ## Ground rules
 

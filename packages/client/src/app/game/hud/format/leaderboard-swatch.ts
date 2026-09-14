@@ -1,4 +1,4 @@
-// The player swatch on a leaderboard row (docs/UI.md §3.1.1): the seat's palette base, its rim
+// The player swatch on a leaderboard row (docs/ui/hud.md §3.1.1): the seat's palette base, its rim
 // ring, the seat-mark beads and the own row's tint, resolved once per row rather than per change
 // detection. Pure: the palette is `render/palette.ts`'s (the same one the cell on the dish is drawn
 // from, which is the whole point of the swatch), the bead geometry is `seat-mark.ts`'s.
@@ -40,7 +40,7 @@ export interface LeaderboardSwatchGeometry {
   readonly ringWidth: number;
 }
 
-/** The one description of how the swatch's units reach the screen (docs/UI.md §3.1.1). */
+/** The one description of how the swatch's units reach the screen (docs/ui/hud.md §3.1.1). */
 export function leaderboardSwatchGeometry(): LeaderboardSwatchGeometry {
   const viewBoxSideUnits = LEADERBOARD_SWATCH_DIAMETER_PX;
   const halfSide = viewBoxSideUnits / HALF;

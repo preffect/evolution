@@ -2,14 +2,14 @@
   Generic multiplayer lobby / connection UI stub.
   De-branded template shell. No game-specific UI lives here — the game renders inside
   <app-game-host /> (game/game-host.component.ts → game/game-setup.ts). Once the room is in play
-  the host is the only thing on the page and fills the viewport (#217, docs/UI.md §1); the lobby
+  the host is the only thing on the page and fills the viewport (#217, docs/ui/layout.md §1); the lobby
   panels come back when the phase returns to the lobby.
 -->
 @if (isBenchRoute) {
-  <!-- ===== The dev-only bench route (docs/RENDERING.md §7): the fixed-seed scene, no lobby, no room ===== -->
+  <!-- ===== The dev-only bench route (docs/rendering/budget.md §7): the fixed-seed scene, no lobby, no room ===== -->
   <app-render-bench />
 } @else if (multiplayer.inGame()) {
-  <!-- ===== In game: the canvas fills the viewport with the HUD overlay over it (docs/UI.md §1) ===== -->
+  <!-- ===== In game: the canvas fills the viewport with the HUD overlay over it (docs/ui/layout.md §1) ===== -->
   <app-game-host />
   <app-hud />
 } @else {

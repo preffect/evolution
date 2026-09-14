@@ -4,27 +4,16 @@ import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/
 import { hexWithAlpha } from '../colour';
 import {
   INDICATOR_VARIANT_RAMP,
-  LADDER_GHOST_PX,
   LADDER_ORBIT_ANGLES_PAIR_DEG,
   LADDER_PIP_LIT_ALPHA,
   LADDER_PIP_PX,
   LADDER_PIP_ROW_MAX,
   LADDER_PIP_STROKE_PX,
-  LADDER_UNLOCK_RING_PAD_PX,
-  LADDER_UNLOCK_RING_STROKE_PX,
   PIP_BAKE,
-  UNLOCK_RING_BAKE,
 } from '../constants';
 import { pipBlockSizePx } from '../effects/orbit-layout';
 import { orbitPointPx } from '../effects/own-cell-geometry';
-import {
-  bakePipBlock,
-  bakeUnlockRing,
-  endosymbiontTallies,
-  pipBlockKey,
-  pipCentrePx,
-  unlockRingRadiusPx,
-} from './pip-block-bake';
+import { bakePipBlock, endosymbiontTallies, pipBlockKey, pipCentrePx } from './pip-block-bake';
 
 const TALLIES = endosymbiontTallies();
 const AEROBIC = TALLIES.find((tally) => tally.variant === BACTERIUM_VARIANT.aerobic)!;
@@ -47,7 +36,7 @@ describe('endosymbiontTallies', () => {
 
 describe('pipBlockKey', () => {
   it('clamps the tally into the atlas: past required reads the full block, below zero the empty one', () => {
-    // The record clamps too, but a raw tally keeps climbing until the trait is picked (UI.md §3.1.4).
+    // The record clamps too, but a raw tally keeps climbing until the trait is picked (ui/hud.md §3.1.4).
     expect(pipBlockKey(BACTERIUM_VARIANT.aerobic, REQUIRED + 2, REQUIRED)).toBe(`aerobic:${REQUIRED}`);
     expect(pipBlockKey(BACTERIUM_VARIANT.aerobic, -1, REQUIRED)).toBe('aerobic:0');
     expect(pipBlockKey(BACTERIUM_VARIANT.photosynthetic, 3, REQUIRED)).toBe('photosynthetic:3');
@@ -120,28 +109,5 @@ describe('bakePipBlock', () => {
     const [focusX = 0, focusY = 0, , centreX = 0, centreY = 0] = body.geometry;
     expect(focusX).toBeLessThan(centreX);
     expect(focusY).toBeLessThan(centreY);
-  });
-});
-
-describe('bakeUnlockRing', () => {
-  const sprite = bakeUnlockRing(createFakeBakeCanvasFactory(), 1);
-  const context = fakeContextOf(sprite.canvas);
-
-  it('rings the ghost square LADDER_UNLOCK_RING_PAD_PX out and holds the stroke and glow on its canvas', () => {
-    expect(unlockRingRadiusPx()).toBe(LADDER_GHOST_PX / 2 + LADDER_UNLOCK_RING_PAD_PX);
-    const outer = unlockRingRadiusPx() + LADDER_UNLOCK_RING_STROKE_PX / 2 + UNLOCK_RING_BAKE.haloPx;
-    expect(sprite.canvas.width).toBe(Math.ceil(outer * 2));
-  });
-
-  it('strokes a dark edge, the gold ring at its width and a lit arc toward the light', () => {
-    expect(context.argumentsOf('stroke')).toEqual([
-      [LADDER_UNLOCK_RING_STROKE_PX + UNLOCK_RING_BAKE.edgePx * 2],
-      [LADDER_UNLOCK_RING_STROKE_PX],
-      [LADDER_UNLOCK_RING_STROKE_PX / 2],
-    ]);
-    const onRing = context.argumentsOf('arc').filter((args) => args[2] === unlockRingRadiusPx());
-    expect(onRing).toHaveLength(3);
-    const [, , , start = 0, end = 0] = onRing[2]!;
-    expect(end - start).toBeCloseTo(UNLOCK_RING_BAKE.litArcTurns * 2 * Math.PI, 9);
   });
 });

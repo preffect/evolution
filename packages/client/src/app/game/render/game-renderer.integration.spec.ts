@@ -1,4 +1,4 @@
-// The cross-module wiring of slice C (docs/RENDERING.md §9): a frame's motes and fragments reach
+// The cross-module wiring of slice C (docs/rendering/files-and-tests.md §9): a frame's motes and fragments reach
 // the food layer through the renderer, the server effects start both the cell-side clip (the
 // packed pulse, dimple and alpha of the cell layer) and the effects sprites on the same render
 // tick, and an absorbed prey's DNA streams flow toward the predator while its ghost dissolves.

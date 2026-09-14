@@ -103,7 +103,7 @@ describe('DishLayer', () => {
   });
 });
 
-describe('placeLightPoolSprite (RENDERING §6.1)', () => {
+describe('placeLightPoolSprite (rendering/budget.md §6.1)', () => {
   it.each([VIEWPORT_1080P, VIEWPORT_SMALL])(
     'keeps the pool at LIGHT_POOL_VIEW_CENTRE / LIGHT_POOL_VIEW_RADII of a %o viewport at both zoom ends and two camera positions',
     (viewport) => {

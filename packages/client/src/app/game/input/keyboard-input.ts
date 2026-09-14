@@ -1,4 +1,4 @@
-// The keyboard adapter (docs/UI.md §4): `keydown` / `keyup` on the document and a window `blur`,
+// The keyboard adapter (docs/ui/input-and-onboarding.md §4): `keydown` / `keyup` on the document and a window `blur`,
 // turned into the decided actions of `keyboard-action.ts`. It holds no state and makes no rules —
 // it gathers the facts, asks, forwards, and suppresses the browser default when the answer says to.
 
@@ -11,7 +11,7 @@ import {
 } from './keyboard-action';
 
 export interface KeyboardInputOptions {
-  /** Where the listeners go: the document, so a hotkey works wherever focus sits (docs/UI.md §4). */
+  /** Where the listeners go: the document, so a hotkey works wherever focus sits (docs/ui/input-and-onboarding.md §4). */
   readonly ownerDocument: Document;
   readonly focusContext: () => FocusContext;
   /** Presses act only in a room; releases always do, so no key stays held across a phase change. */

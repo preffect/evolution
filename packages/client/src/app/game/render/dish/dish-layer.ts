@@ -1,10 +1,10 @@
-// The dish layer (docs/RENDERING.md §6, §6.1, docs/VISUAL-STYLE.md §1): the baked field as one
+// The dish layer (docs/rendering/budget.md §6, §6.1, docs/VISUAL-STYLE.md §1): the baked field as one
 // sprite scaled to the dish (textures/dish-texture.ts: zone tints, gel strands), the condenser light
 // pool over it as one sprite re-placed every frame with the inverse camera transform so it stays
 // fixed to the top-left of the view (textures/light-pool-bake.ts), the vent sprite at the vent zone
 // (textures/vent-bake.ts), the wall's crisp lines as world-scale Graphics (the one hard edge) and
 // the three depth particle layers; the orchestrator keeps the screen-space vignette above
-// everything. The vent shimmer (RENDERING §6, the one filter) is deferred.
+// everything. The vent shimmer (rendering/budget.md §6, the one filter) is deferred.
 
 import { DISH_RADIUS, type RandomSource } from '@evolution/shared';
 import { Container, Graphics, Particle, ParticleContainer, Sprite, type Texture } from 'pixi.js';
@@ -86,7 +86,7 @@ export function createLightPoolSprite(textures: Pick<RenderTextures, 'lightPoolT
 }
 
 /**
- * Keeps the pool fixed to the view (RENDERING §6.1): its centre is the world point under
+ * Keeps the pool fixed to the view (rendering/budget.md §6.1): its centre is the world point under
  * `LIGHT_POOL_VIEW_CENTRE` of the viewport and its extent is `LIGHT_POOL_VIEW_RADII` of the
  * viewport in wu at the current zoom, so the sprite reads the same on screen at every zoom.
  */

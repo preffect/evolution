@@ -1,10 +1,10 @@
-// The vent sprite (sheet 02 vent table, back → front; docs/RENDERING.md §6): one page of
+// The vent sprite (sheet 02 vent table, back → front; docs/rendering/budget.md §6): one page of
 // render/constants.ts. Units: wu unless the suffix says px; alphas are shares of 1.
 // Baked on its own canvas so its hairlines survive zoom 1.8 (the field is 0.33 px/wu). Positions are
 // wu in the fissure's frame (rotated `VENT_FISSURE_ROTATION_DEG`, −y rising); a `blurWu` is the
 // sheet's blur, drawn as a feather that far past the shape's rim.
 export const VENT_SPRITE_PX_PER_WU = 2;
-/** Where the sprite sits: the vent disc is at the origin (ECOLOGY §2, `VENT_RADIUS`). */
+/** Where the sprite sits: the vent disc is at the origin (ecology/food-and-spawn.md §2, `VENT_RADIUS`). */
 export const VENT_CENTRE_WU = { x: 0, y: 0 } as const;
 export const VENT_SPRITE_PADDING_WU = 80;
 export const VENT_FISSURE_SIZE_WU = { length: 190, width: 60 } as const;

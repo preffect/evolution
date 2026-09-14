@@ -1,4 +1,4 @@
-// The condenser light pool (docs/VISUAL-STYLE.md §1, docs/RENDERING.md §6.1, sheet 02 `light-pool`):
+// The condenser light pool (docs/VISUAL-STYLE.md §1, docs/rendering/budget.md §6.1, sheet 02 `light-pool`):
 // the `LIGHT_ACCENT` radial gradient and the three caustic sweeps, baked once per session on a
 // `LIGHT_POOL_TEXTURE_PX` square and drawn by the dish layer as one sprite it keeps anchored to the
 // view over the field. Per-axis mapping: the half-size is the pool's radius on each axis, so x maps

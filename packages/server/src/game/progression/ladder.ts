@@ -1,4 +1,4 @@
-// The evolution ladder's server-side rules (docs/GAME-DESIGN.md §3): what is owned and the stage
+// The evolution ladder's server-side rules (docs/game-design/core.md §3): what is owned and the stage
 // it reaches. The stage and the climb order (`hasReachedStage`, `nextStage`) have one home, the
 // shared `stage-of.ts`, because the client's ladder orbit reads the same order; `stageOfOwned` is
 // `stageOf` over owned traits and the live balance.

@@ -1,4 +1,4 @@
-// The death seam (docs/GAME-DESIGN.md §5.2, docs/ECOLOGY.md §1, §6.1 payout "Prey" row). The
+// The death seam (docs/game-design/session.md §5.2, docs/ecology/food-and-spawn.md §1, docs/ecology/absorption.md §6.1 payout "Prey" row). The
 // engulf slice calls `absorbCell` at payout; `removePlayer` calls `dissolveCell`. Both drop
 // detritus: `DETRITUS_MASS_FRACTION` of the mass in motes of `DETRITUS_MOTE_MASS` (floor), scattered
 // uniformly within `DETRITUS_SCATTER_RADIUS_FACTOR` radii of the centre from the `spawner` stream.
@@ -18,7 +18,7 @@ import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entit
 import { removeFromArray, requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 
-/** `floor(fraction × mass / moteMass)` motes; the remainder is dropped (docs/ECOLOGY.md §1). */
+/** `floor(fraction × mass / moteMass)` motes; the remainder is dropped (docs/ecology/food-and-spawn.md §1). */
 export function detritusMoteCount(mass: number, world: WorldState): number {
   const ecology = world.balance.ecology;
   return Math.floor((ecology.DETRITUS_MASS_FRACTION * mass) / ecology.DETRITUS_MOTE_MASS);
@@ -37,7 +37,7 @@ export function dropDetritus(world: WorldState, cell: CellRecord, spawner: Rando
   }
 }
 
-/** A spectator's camera loses its target once the cell it followed is gone (docs/ARCHITECTURE.md §2). */
+/** A spectator's camera loses its target once the cell it followed is gone (docs/architecture/entity-model.md §2). */
 function forgetSpectatedCell(world: WorldState, cell: CellRecord): void {
   for (const player of world.players) {
     if (player.spectatingCellId === cell.id) {
@@ -48,7 +48,7 @@ function forgetSpectatedCell(world: WorldState, cell: CellRecord): void {
 
 /**
  * Removes the cell from the world; the player keeps level, traits and stage (they live on the
- * record). Any engulf it was part of ends first with reason `aborted` (docs/ECOLOGY.md §6.3): a
+ * record). Any engulf it was part of ends first with reason `aborted` (docs/ecology/absorption.md §6.3): a
  * predator whose prey left gets no payout, and a prey whose predator left is freed where it is.
  */
 export function dissolveCell(world: WorldState, cell: CellRecord, spawner: RandomSource): void {
@@ -63,7 +63,7 @@ export function dissolveCell(world: WorldState, cell: CellRecord, spawner: Rando
  * (the engulf payout) and the countdown runs at step 9 of that same tick, so without this the
  * spectate would be one tick short of `RESPAWN_SPECTATE_SECONDS`. With it, a death on tick t places
  * the new cell on t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1, which is what docs/GAME-DESIGN.md
- * §5.2 (G8, G13) and docs/ECOLOGY.md §8.1 (W4) state.
+ * §5.2 (G8, G13) and docs/ecology/acceptance.md §8.1 (W4) state.
  *
  * It is the step order that makes it right, and only the payout calls `absorbCell` today: a death
  * reaching `startSpectating` from *outside* a tick, or from a step after 9, would spend no countdown
@@ -86,7 +86,7 @@ function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRe
  *
  * **A wild prey drops out at the guard below**: it has no player to spectate, so it returns after
  * `dissolveCell` and emits NO `cell_absorbed` — the renderer therefore gets no absorbed clip, no DNA
- * streams and no ghost for it (docs/RENDERING.md §9). That is a real gap, not a rule:
+ * streams and no ghost for it (docs/rendering/files-and-tests.md §9). That is a real gap, not a rule:
  * `CellAbsorbedEffect.playerId` is `PlayerId` and not nullable, so closing it is a wire change
  * (`types/effects.ts`) filed against the wild-cell slice, which is also the first slice that can
  * place a wild cell for it to matter to. Until then no wild cell exists (`world.wildSeats` is

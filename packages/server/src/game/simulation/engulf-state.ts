@@ -1,4 +1,4 @@
-// The engulf record on a cell (docs/ECOLOGY.md §6.2, "two records, two homes"): the cell carries
+// The engulf record on a cell (docs/ecology/absorption.md §6.2, "two records, two homes"): the cell carries
 // the simulation state, the player carries the lifecycle. `free` is the absence of both engulf
 // states, so a released cell is a cell with nothing in `states`. Every mutation of that record
 // goes through this file, so a state, an id, the progress and the carried offset can never be set
@@ -47,7 +47,7 @@ export function engulfedPreyOf(world: WorldState, predator: CellRecord): CellRec
 }
 
 /**
- * A cell the world took out of an engulf this tick (docs/ECOLOGY.md §6.1 step 1, §6.3): the chain
+ * A cell the world took out of an engulf this tick (docs/ecology/absorption.md §6.1 step 1, §6.3): the chain
  * payout, a removed predator, the results phase. It is left where its predator was — usually inside
  * the cell that just ate it — so it is unclaimable for the rest of the tick and gets one movement
  * step before anyone may start on it. Only `aborted` waits. §6.3 has already resolved the other
@@ -65,12 +65,12 @@ export function wasAbortedThisTick(cell: CellRecord, tick: number): boolean {
   );
 }
 
-/** True while `cell` is carried inside its predator (docs/ECOLOGY.md §6.1, from the seal on). */
+/** True while `cell` is carried inside its predator (docs/ecology/absorption.md §6.1, from the seal on). */
 export function isCarried(cell: CellRecord): boolean {
   return cell.carriedOffsetX !== null && cell.carriedOffsetY !== null;
 }
 
-/** Starts the engulf at progress 0; the same tick continues it (docs/ECOLOGY.md §6.1, step 1). */
+/** Starts the engulf at progress 0; the same tick continues it (docs/ecology/absorption.md §6.1, step 1). */
 export function beginEngulf(pairing: EngulfPairing): void {
   const { predator, prey } = pairing;
   predator.engulfingCellId = prey.id;
@@ -81,7 +81,7 @@ export function beginEngulf(pairing: EngulfPairing): void {
 }
 
 /**
- * The seal (docs/ECOLOGY.md §6.1): the offset is frozen and the prey's velocity zeroed, so from
+ * The seal (docs/ecology/absorption.md §6.1): the offset is frozen and the prey's velocity zeroed, so from
  * the next movement step it rides the predator instead of steering.
  */
 export function sealEngulf(pairing: EngulfPairing): void {
@@ -94,7 +94,7 @@ export function sealEngulf(pairing: EngulfPairing): void {
 
 /**
  * Ends an engulf with the prey alive: both cells free, progress 0, the prey left where it is (a
- * prey ejected after the seal therefore reappears at its carried offset, docs/ECOLOGY.md §6.3) and
+ * prey ejected after the seal therefore reappears at its carried offset, docs/ecology/absorption.md §6.3) and
  * one `cell_released` effect. The only path out of an engulf that is not the payout seam.
  */
 export function releaseEngulf(world: WorldState, pairing: EngulfPairing, reason: EngulfReleaseReason): void {
@@ -130,7 +130,7 @@ export function clearEngulfRecords(pairing: EngulfPairing): void {
 /**
  * Ends every engulf a cell is part of, as predator and as prey, with reason `aborted`: what a removed
  * cell does on its way out (a disconnect, `dissolveCell`) so no survivor is left holding or held by a
- * cell that is gone (docs/ECOLOGY.md §6.3). It lives here rather than in the step so `session/death.ts`
+ * cell that is gone (docs/ecology/absorption.md §6.3). It lives here rather than in the step so `session/death.ts`
  * can reach it without importing the step, which imports the payout seam, which #259 points back at
  * `session/death.ts`.
  */
@@ -145,7 +145,7 @@ export function abortEngulfsOf(world: WorldState, cell: CellRecord): void {
   }
 }
 
-/** The round entering `results` aborts every engulf in the dish, with no payout (docs/ECOLOGY.md §6.3, E13). */
+/** The round entering `results` aborts every engulf in the dish, with no payout (docs/ecology/absorption.md §6.3, E13). */
 export function abortAllEngulfs(world: WorldState): void {
   for (const predator of [...world.cells]) {
     const prey = engulfedPreyOf(world, predator);

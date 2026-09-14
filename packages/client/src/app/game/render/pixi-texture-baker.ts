@@ -1,4 +1,4 @@
-// The Pixi `TextureBaker` (docs/RENDERING.md §6): a radial bake spec is sampled per pixel into
+// The Pixi `TextureBaker` (docs/rendering/budget.md §6): a radial bake spec is sampled per pixel into
 // premultiplied bytes (`textures/radial-bake.ts`) and uploaded as a sprite texture; a Canvas-2D bake
 // comes from the canvas factory it wraps and becomes a texture through `textures/pixi-textures.ts`.
 // Not Pixi's `FillGradient`: its radial build floods the gradient canvas with the last stop before

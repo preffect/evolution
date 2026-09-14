@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: the ghost draws the last view at rest under the film, its organelle sprites
+// docs/rendering/files-and-tests.md §9: the ghost draws the last view at rest under the film, its organelle sprites
 // at their rest slots fading with the body (#243), its nucleus disc at the rest slot (#231).
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, MOTION_CLIPS, createSeededRandom, entityId } from '@evolution/shared';

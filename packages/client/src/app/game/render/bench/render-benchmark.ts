@@ -1,4 +1,4 @@
-// The frame-budget report and its verdict (docs/RENDERING.md §7): the timer's numbers plus the
+// The frame-budget report and its verdict (docs/rendering/budget.md §7): the timer's numbers plus the
 // draw calls, the visible counts and the GPU time become one `ClientPerformanceReport`, and the
 // verdict names every budget the report breaks.
 //

@@ -1,4 +1,4 @@
-// The one home of the engulf mass-ratio rules (docs/ECOLOGY.md §6.1). Three callers share
+// The one home of the engulf mass-ratio rules (docs/ecology/absorption.md §6.1). Three callers share
 // `canEngulf` (the server engulf system, the HUD danger chip, the renderer's warning ring) so
 // they can never disagree about who can engulf whom; only the server calls `canContinueEngulf`.
 // Contact is the server's alone: these predicates warn about mass, not touch.
@@ -44,7 +44,7 @@ export interface EngulfSpitOutDraw {
 }
 
 /**
- * The hold verdict of docs/ECOLOGY.md §6.1 steps 2 and 4, in that order: the ratio first (it
+ * The hold verdict of docs/ecology/absorption.md §6.1 steps 2 and 4, in that order: the ratio first (it
  * releases in any phase, seal included), then the spit-out, which only a wrapped or sealed prey
  * rolls. Server-only: the HUD warns about mass, never about a roll.
  */

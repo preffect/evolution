@@ -1,4 +1,4 @@
-// Step 8, after the spawners (docs/ECOLOGY.md §1, docs/TRAITS.md §3.14): bacteria random-walk
+// Step 8, after the spawners (docs/ecology/food-and-spawn.md §1, docs/traits/catalog-forms.md §3.14): bacteria random-walk
 // with a heading redrawn from the `moteMotion` stream every tick, fragments drift and reflect
 // off the food boundary, detritus expires, and motes inside a cell's attract range drift toward
 // its centre (the eyespot, seed-free). Motes never leave the food boundary.

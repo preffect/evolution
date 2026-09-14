@@ -1,4 +1,4 @@
-// The LOD rule (docs/RENDERING.md §5, docs/VISUAL-STYLE.md §6): interior bands and sprites fade
+// The LOD rule (docs/rendering/contents-and-motion.md §5, docs/VISUAL-STYLE.md §6): interior bands and sprites fade
 // in a window under the full threshold; the identity tells snap at the far threshold; below it
 // the cell is a rim-colour dot with a wide halo.
 

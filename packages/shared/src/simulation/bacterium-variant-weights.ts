@@ -1,4 +1,4 @@
-// The variant row a bacterium cluster draws from (docs/ECOLOGY.md §3.2): the vent and shallows
+// The variant row a bacterium cluster draws from (docs/ecology/food-and-spawn.md §3.2): the vent and shallows
 // rows are fixed (a trip is always a trip); the broth and gel row follows the world stage, so
 // organelles spread through the world as it ages.
 

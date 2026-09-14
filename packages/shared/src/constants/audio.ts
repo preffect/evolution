@@ -87,7 +87,7 @@ export const SOUND_EVENT_CATALOG: Record<SoundEventId, SoundEventRule> = {
     bus: AUDIO_BUS.music,
   },
   [SOUND_EVENT.uiClick]: oneShot(SOUND_PRIORITY.filler, 60),
-  // Trait cues (docs/TRAITS.md §3): a cue that reads "while" loops until the renderer ends it.
+  // Trait cues (docs/traits/catalog-organelles.md §3): a cue that reads "while" loops until the renderer ends it.
   [SOUND_EVENT.softClick]: oneShot(SOUND_PRIORITY.minor, TRAIT_CUE_COOLDOWN_MS),
   [SOUND_EVENT.whipCrack]: oneShot(SOUND_PRIORITY.minor, TRAIT_CUE_COOLDOWN_MS),
   [SOUND_EVENT.dullThud]: oneShot(SOUND_PRIORITY.minor, TRAIT_CUE_COOLDOWN_MS),

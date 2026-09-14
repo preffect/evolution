@@ -1,4 +1,4 @@
-// The module as wiring (docs/ARCHITECTURE.md §3, §3.2): inputs coalesce and stale ones are
+// The module as wiring (docs/architecture/server-simulation.md §3, §3.2): inputs coalesce and stale ones are
 // counted, a step advances the one world, the broadcast is a delta and the full state is full,
 // joins and leaves reach the world and the replay, and a spawned bot drives its own player.
 import { describe, expect, it } from 'vitest';

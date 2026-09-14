@@ -1,4 +1,4 @@
-// The handle through its class and through the MCP tools of docs/ARCHITECTURE.md §8: every
+// The handle through its class and through the MCP tools of docs/architecture/debug-mcp.md §8: every
 // game-specific tool answers real data on the Evolution module.
 import { describe, expect, it } from 'vitest';
 import {

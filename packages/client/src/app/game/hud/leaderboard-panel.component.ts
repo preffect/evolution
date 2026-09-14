@@ -1,4 +1,4 @@
-// The leaderboard (docs/UI.md §3.1.1): top-right, compact by default, the full list with mass and
+// The leaderboard (docs/ui/hud.md §3.1.1): top-right, compact by default, the full list with mass and
 // absorptions while Tab is held or after the header is clicked. Rows are absolutely placed by their
 // slot so a re-sort slides rather than jumps. It decides nothing about who is shown or what a row
 // reads — `leaderboardEntriesFor` does — and nothing about the swatch — `leaderboard-swatch.ts`
@@ -57,7 +57,7 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
         <span class="header-hint">Tab</span>
       </button>
       @if (isFull()) {
-        <!-- The full list's three numeric columns carry no unit, so they are labelled (docs/UI.md §3.1.1). -->
+        <!-- The full list's three numeric columns carry no unit, so they are labelled (docs/ui/hud.md §3.1.1). -->
         <div class="column-labels" aria-hidden="true">
           <span class="label-score">Score</span>
           <span class="label-mass">Mass</span>

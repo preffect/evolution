@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §5.1: the curve table, pinned row by row.
+// docs/ecology/mass-and-movement.md §5.1: the curve table, pinned row by row.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { gelSpeedFactor, maxSpeedForMass, radiusForMass } from './mass-curves.js';

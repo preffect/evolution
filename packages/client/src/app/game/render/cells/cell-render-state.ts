@@ -1,4 +1,4 @@
-// The per-cell render state (docs/RENDERING.md §1–§3): the cosmetic fork's phase and strip row,
+// The per-cell render state (docs/rendering/cells.md §1–§2, docs/rendering/contents-and-motion.md §3): the cosmetic fork's phase and strip row,
 // the held heading and the organelle slots (append-only). One `update` per frame turns the
 // interpolated `CellView` into the instance record the shader reads and the mapped organelle
 // placements the sprite layer draws. Pure over its inputs and the frame's time; nothing here
@@ -147,7 +147,7 @@ export class CellRenderState {
     return this.ciliaPhase;
   }
 
-  /** The frame's deformation plus the seal owed to a ghost and the contact dent (docs/RENDERING.md §2.1). */
+  /** The frame's deformation plus the seal owed to a ghost and the contact dent (docs/rendering/cells.md §2.1). */
   private deformationFor(
     view: CellView,
     traits: CellTraitSummary,
@@ -177,7 +177,7 @@ export class CellRenderState {
 
   /**
    * `warningRingPxFor`, except on the predator the own cell is escaping once the escape arc replaces its ring; while
-   * `shouldHidePredatorRing` is off (until #187 draws the arc) that predator keeps its ring (docs/RENDERING.md §10).
+   * `shouldHidePredatorRing` is off (until #187 draws the arc) that predator keeps its ring (docs/rendering/own-cell-indicators.md §10).
    */
   private warningRingPxOf(view: CellView, context: CellFrameContext, lod: CellLod): number {
     if (isWarningRingHidden(view.id, context.ownCellRing)) return 0;

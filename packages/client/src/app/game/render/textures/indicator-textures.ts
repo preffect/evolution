@@ -1,5 +1,5 @@
-// The own-cell indicators' textures (docs/RENDERING.md §10): the indicator atlas's ghosts, pip blocks and
-// unlock ring packed into one source (they draw in one sprite batch), the label pill as a texture of its
+// The own-cell indicators' textures (docs/rendering/own-cell-indicators.md §10): the indicator atlas's ghosts and pip blocks
+// packed into one source (they draw in one sprite batch), the label pill as a texture of its
 // own (a nine-slice sprite stretches it), and the two BitmapFonts installed once for the bundle. Built and
 // destroyed with the texture bundle (`render-textures.ts`), so a rematch rebakes and reinstalls them.
 
@@ -26,13 +26,12 @@ export interface LabelPillTexture extends IndicatorSpriteTexture {
 export interface IndicatorTextures {
   /** Texels per CSS px of every bake here: a nine-slice border in texels is `capWidthPx × bakeScale`. */
   readonly bakeScale: number;
-  /** The one source behind every ghost, pip block and the unlock ring. */
+  /** The one source behind every ghost and pip block. */
   readonly source: TextureSource;
   /** Keyed by `OrbitGhost.key`: the rung ghosts are white (tint them the rim colour), the counters' are coloured. */
   readonly ghosts: Readonly<Partial<Record<GhostKey, IndicatorSpriteTexture>>>;
   /** Keyed by `pipBlockKey(variant, eaten, required)`. */
   readonly pipBlocks: Readonly<Record<string, IndicatorSpriteTexture>>;
-  readonly unlockRing: IndicatorSpriteTexture;
   readonly labelPill: LabelPillTexture;
   /** The `fontFamily` a `BitmapText` names for the `value` and `label` roles. */
   readonly fonts: IndicatorFontNames;
@@ -40,15 +39,15 @@ export interface IndicatorTextures {
   readonly uninstallFonts: () => void;
 }
 
-const ATLAS_GROUP = { ghost: 'ghost', pips: 'pips', unlockRing: 'unlock-ring' } as const;
+const ATLAS_GROUP = { ghost: 'ghost', pips: 'pips' } as const;
 
 function atlasKey(group: string, key: string): string {
   return `${group}:${key}`;
 }
 
-/** Every atlas bake under its group-prefixed key, so the three records share one packed source. */
+/** Every atlas bake under its group-prefixed key, so the two records share one packed source. */
 function atlasCanvases(bakes: IndicatorAtlasBakes): Record<string, BakeCanvas> {
-  const canvases: Record<string, BakeCanvas> = { [ATLAS_GROUP.unlockRing]: bakes.unlockRing.canvas };
+  const canvases: Record<string, BakeCanvas> = {};
   for (const [key, sprite] of Object.entries(bakes.ghosts)) {
     if (sprite !== undefined) canvases[atlasKey(ATLAS_GROUP.ghost, key)] = sprite.canvas;
   }
@@ -79,7 +78,6 @@ export function createIndicatorTextures(baker: TextureBaker, devicePixelRatio: n
     source: atlas.source,
     ghosts,
     pipBlocks,
-    unlockRing: frameOf(ATLAS_GROUP.unlockRing, bakes.unlockRing),
     labelPill: { ...labelPill, texture: baker.textureFromBake(labelPill.canvas) },
     fonts,
     uninstallFonts: () => uninstallIndicatorFonts(baker, fonts),
@@ -88,7 +86,7 @@ export function createIndicatorTextures(baker: TextureBaker, devicePixelRatio: n
 
 export function destroyIndicatorTextures(textures: IndicatorTextures): void {
   // The atlas frames share one source: the frames go first, the source once.
-  const frames = [...Object.values(textures.ghosts), ...Object.values(textures.pipBlocks), textures.unlockRing];
+  const frames = [...Object.values(textures.ghosts), ...Object.values(textures.pipBlocks)];
   for (const sprite of frames) sprite?.texture.destroy(false);
   textures.source.destroy();
   textures.labelPill.texture.destroy(true);

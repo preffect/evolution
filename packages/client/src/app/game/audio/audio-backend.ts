@@ -1,4 +1,4 @@
-// The thin seam over Web Audio (docs/ARCHITECTURE.md §7). Everything above it (buses, cache,
+// The thin seam over Web Audio (docs/architecture/client.md §7). Everything above it (buses, cache,
 // scheduler, mixer, service) talks to these three handles, so the unit tests run on a fake and
 // the production backend is the only file that knows `AudioContext`. When the platform has no
 // `AudioContext` (a test runner, an old browser) the backend answers with inert handles: silence,

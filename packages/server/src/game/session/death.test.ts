@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §5.2 and docs/ECOLOGY.md §1, §6.1 (prey row): the death seam.
+// docs/game-design/session.md §5.2 and docs/ecology/food-and-spawn.md §1, docs/ecology/absorption.md §6.1 (prey row): the death seam.
 import { describe, expect, it } from 'vitest';
 import {
   createSeededRandom,

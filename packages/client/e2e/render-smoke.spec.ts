@@ -1,6 +1,6 @@
-// The renderer smoke (docs/TESTING.md, docs/RENDERING.md §9): a live room from the lobby with a fixed
+// The renderer smoke (docs/TESTING.md, docs/rendering/files-and-tests.md §9): a live room from the lobby with a fixed
 // seed, the canvas mounts, the baked dish field and the depth particles draw on SwiftShader without page
-// errors, the canvas fills the viewport with no page scroll (docs/UI.md §1, #217), the debug hook's pause
+// errors, the canvas fills the viewport with no page scroll (docs/ui/layout.md §1, #217), the debug hook's pause
 // holds the rendered tick and a step advances it, and a screenshot lands under `.qa/screenshots/` for the
 // PR. The bench route and its frame-budget report are `render-bench.spec.ts`.
 import { expect, test, type Page } from '@playwright/test';
@@ -95,7 +95,7 @@ test.describe('renderer smoke on a live room', () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/render-smoke-live-seed${SMOKE_SEED}.png` });
   });
 
-  test('the canvas fills the viewport and the page does not scroll (docs/UI.md §1)', async ({ page }) => {
+  test('the canvas fills the viewport and the page does not scroll (docs/ui/layout.md §1)', async ({ page }) => {
     await openLiveRoom(page);
     const fit = await viewportFit(page);
     expect(fit.canvas).toEqual(fit.viewport);

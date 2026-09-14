@@ -1,4 +1,4 @@
-// Composes the input layer for one room (docs/ARCHITECTURE.md §6): one controller, the two DOM
+// Composes the input layer for one room (docs/architecture/client.md §6): one controller, the two DOM
 // adapters and the teardown, so `game-setup.ts` stays a wiring file. Nothing here decides
 // anything — the rules are `keyboard-action.ts`, the mapping `game-input-builder.ts`.
 
@@ -22,9 +22,9 @@ export interface AttachInputOptions {
   readonly store: WorldStore;
   /** Canvas px through the live camera (`RenderSession.projectPointer`). */
   readonly projectPointer: (point: CanvasPoint) => PointerProjection | null;
-  /** Escape: the HUD closes the topmost overlay or opens the menu (docs/UI.md §3.5, #189). */
+  /** Escape: the HUD closes the topmost overlay or opens the menu (docs/ui/overlays.md §3.5, #189). */
   readonly onMenuKey?: () => void;
-  /** Tab held / released: the HUD opens the full leaderboard while it is (docs/UI.md §4, #185). */
+  /** Tab held / released: the HUD opens the full leaderboard while it is (docs/ui/input-and-onboarding.md §4, #185). */
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 
@@ -65,7 +65,7 @@ export function attachInput(options: AttachInputOptions): InputSeam {
       // A room can end with Tab still down (the round ends, a disconnect, a leave control). The
       // HUD state is `providedIn: 'root'` and outlives these components, so the release has to be
       // reported before the listener that would have reported it goes away, or the next room
-      // mounts with the full leaderboard already open (docs/UI.md §3.1.1).
+      // mounts with the full leaderboard already open (docs/ui/hud.md §3.1.1).
       controller.releaseAllKeys();
       detachKeyboard();
       detachPointer();

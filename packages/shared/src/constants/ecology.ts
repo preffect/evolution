@@ -1,4 +1,4 @@
-// Food kinds, spawners, zones and decay (docs/ECOLOGY.md §1–§4, §7). Weight tables are keyed by
+// Food kinds, spawners, zones and decay (docs/ecology/food-and-spawn.md §1–§3.2, docs/ecology/wild-cells.md §3.3–§3.4, docs/ecology/mass-and-movement.md §4, docs/ecology/constants.md §7). Weight tables are keyed by
 // the ids of types/game.ts; the spawner draws from them by id, never by a switch.
 
 import { BACTERIUM_VARIANT, CELL_STAGE, DNA_TAG, ENTITY_KIND, FOOD_KIND, ZONE_ID } from '../types/game.js';

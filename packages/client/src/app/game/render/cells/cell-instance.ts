@@ -62,7 +62,7 @@ export interface CellInstance {
   readonly nucleusDiscRadii: number;
   /** One draw in [0, 1) from the cell's cosmetic fork that salts the ribosome speckle hash (#243), so two cells of one palette never share a lattice. */
   readonly speckleSeed: number;
-  /** The recharged share of the own cell's self ring, clockwise from 12 o'clock (docs/UI.md §3.1.2); 1 on every other cell. */
+  /** The recharged share of the own cell's self ring, clockwise from 12 o'clock (docs/ui/hud.md §3.1.2); 1 on every other cell. */
   readonly selfRingFill: number;
   /** The recharged arc's alpha: `SELF_RING_ALPHA` at rest, the `sprint_ready` clip's `selfRingBrightness` while it plays. */
   readonly selfRingBrightness: number;

@@ -1,4 +1,4 @@
-// docs/RENDERING.md §9: every form has unit area within 0.5 %, the sheet-04 aspects, the diatom is rigid.
+// docs/rendering/files-and-tests.md §9: every form has unit area within 0.5 %, the sheet-04 aspects, the diatom is rigid.
 
 import { describe, expect, it } from 'vitest';
 import { FORM_ID } from '../../constants';

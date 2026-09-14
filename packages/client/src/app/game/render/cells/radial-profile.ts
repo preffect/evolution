@@ -1,5 +1,5 @@
 // The TypeScript reference of the cell profile `r(θ)`, its derivative and the perpendicular
-// membrane distance (docs/RENDERING.md §2.1). The GLSL in cell-shader-patterns.ts evaluates the
+// membrane distance (docs/rendering/cells.md §2.1). The GLSL in cell-shader-patterns.ts evaluates the
 // same expression term for term; organelle mapping (§3) and the parity checks read this one.
 // Every term is data: a new deformation is a row in the terms, never a branch here.
 

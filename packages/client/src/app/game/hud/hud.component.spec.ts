@@ -40,7 +40,7 @@ describe('HudComponent', () => {
     vi.restoreAllMocks();
   });
 
-  it('mounts the overlay with the chrome of docs/UI.md §3.1.1 and the status mirror of §3.1.4', () => {
+  it('mounts the overlay with the chrome of docs/ui/hud.md §3.1.1 and the status mirror of §3.1.4', () => {
     fixture.detectChanges();
     expect(host().dataset['testid']).toBe(HUD_TEST_ID.hud);
     expect(host().querySelector('app-leaderboard-panel')).not.toBeNull();
@@ -57,7 +57,7 @@ describe('HudComponent', () => {
     fixture.detectChanges();
     expect(host().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).toBeNull();
     // The mirror is not phase-gated: it stands down on its own when there is no own cell, and a
-    // screen-reader user is owed the final state rather than sudden silence (docs/UI.md §3.1.4).
+    // screen-reader user is owed the final state rather than sudden silence (docs/ui/hud.md §3.1.4).
     expect(host().querySelector('app-own-cell-status')).not.toBeNull();
 
     multiplayer.snapshot.set(createTestSnapshot({ roundPhase: ROUND_PHASE.playing }));

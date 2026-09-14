@@ -1,4 +1,4 @@
-// The engulf lifecycle and its payout end to end (docs/ARCHITECTURE.md §3, §4, §8;
+// The engulf lifecycle and its payout end to end (docs/architecture/server-simulation.md §3, docs/architecture/wire-contract.md §4, docs/architecture/debug-mcp.md §8;
 // docs/DETERMINISM.md §7): two
 // players in a real `GameRoom` on the Evolution module, placed through the debug handle the way a
 // QA agent drives one (`debug_set_player`: mass and position), stepped under manual timing, and

@@ -1,6 +1,6 @@
 // Integration (docs/TESTING.md §2): `debug_set_player` on a paused room of the real Evolution module
 // republishes the frame the client draws from, so the stage the tool reports and the stage the
-// snapshot carries never disagree (#236; docs/ARCHITECTURE.md §8).
+// snapshot carries never disagree (#236; docs/architecture/debug-mcp.md §8).
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, SERVER_MESSAGE_TYPE, type GameSnapshot } from '@evolution/shared';
 import { registerPlayerTools } from './player.js';

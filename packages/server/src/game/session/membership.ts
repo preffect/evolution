@@ -1,4 +1,4 @@
-// Joins and leaves between ticks (docs/GAME-DESIGN.md §5.2, docs/PROGRESSION.md §5): one code
+// Joins and leaves between ticks (docs/game-design/session.md §5.2, docs/PROGRESSION.md §5): one code
 // path for the room's `addPlayer` / `removePlayer` and for the replay runner. A late joiner is
 // appended in join order, placed by safe placement through the entry rule at the tick it is
 // present for (the coming step), and lifted by the living players' medians past the grace; a

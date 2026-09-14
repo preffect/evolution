@@ -1,9 +1,9 @@
-// Which action a key press or release is, given where focus sits (docs/UI.md §4). Pure: the DOM
+// Which action a key press or release is, given where focus sits (docs/ui/input-and-onboarding.md §4). Pure: the DOM
 // adapter (`keyboard-input.ts`) gathers the facts, this decides. The rules, in the order they
 // are applied:
 //
 //  1. focus in a text field swallows every press (a release still fires, so no key sticks);
-//  2. the trait keys `1` `2` `3` always act — they stay live under the menu (docs/UI.md §3.5);
+//  2. the trait keys `1` `2` `3` always act — they stay live under the menu (docs/ui/overlays.md §3.5);
 //  3. Escape always acts: it is the key that closes the menu it would otherwise be swallowed by;
 //  4. while the menu is open nothing else acts (sprint is swallowed, steering keeps its latch);
 //  5. **Space precedence**: with focus inside `trait-offer` Space picks the focused card — the
@@ -44,13 +44,13 @@ export type InputAction =
   | { readonly kind: typeof INPUT_ACTION.releaseFullLeaderboard }
   | { readonly kind: typeof INPUT_ACTION.menuKey };
 
-/** Where focus sits when a key arrives: the four facts docs/UI.md §4's rules read. */
+/** Where focus sits when a key arrives: the four facts docs/ui/input-and-onboarding.md §4's rules read. */
 export interface FocusContext {
   /** Focus is in a text field, so every press is ignored. */
   readonly isTextEntryFocused: boolean;
   /** Focus is inside the trait picker, so Space picks instead of sprinting. */
   readonly isTraitOfferFocused: boolean;
-  /** The Escape menu is open (docs/UI.md §3.5). */
+  /** The Escape menu is open (docs/ui/overlays.md §3.5). */
   readonly isMenuOpen: boolean;
   /** An overlay with focusable controls is open, so Tab must keep its native behaviour. */
   readonly hasFocusableOverlay: boolean;
@@ -123,7 +123,7 @@ export function keyUpAction(code: string): InputAction {
 
 /**
  * Whether the browser's default must be suppressed: the keys that would scroll the page or move
- * focus while they are steering, sprinting or holding the leaderboard open (docs/UI.md §4).
+ * focus while they are steering, sprinting or holding the leaderboard open (docs/ui/input-and-onboarding.md §4).
  */
 export function shouldPreventDefaultFor(action: InputAction): boolean {
   return (

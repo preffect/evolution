@@ -1,4 +1,4 @@
-// The debug mutations as functions over the world (docs/ARCHITECTURE.md §8): the handle applies
+// The debug mutations as functions over the world (docs/architecture/debug-mcp.md §8): the handle applies
 // and records them, the replay runner re-applies them from the recording, so a debug patch has
 // one code path. A request the world cannot honour is a `DebugRequestError`.
 

@@ -1,4 +1,4 @@
-// The one call the composition root makes to hear the game (docs/ARCHITECTURE.md §7,
+// The one call the composition root makes to hear the game (docs/architecture/client.md §7,
 // docs/AUDIO.md §5): `connect` builds the snapshot tracker and the sound bus over the shared
 // `GameEventBus` and starts loading the manifest; the handle it returns is what `game-setup.ts`
 // (#99) feeds snapshots and the unlock gesture to, and tears down with the room.

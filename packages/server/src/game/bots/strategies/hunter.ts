@@ -1,5 +1,5 @@
 // The hunter commits to the largest cell it can engulf (the shared predicate through the
-// perception, ECOLOGY §6.1) and chases it until the prey is gone or no longer engulfable, then
+// perception, ecology/absorption.md §6.1) and chases it until the prey is gone or no longer engulfable, then
 // picks again; it sprints once the prey is within `HUNTER_SPRINT_WITHIN_RADII` of its own radius.
 // It reads its own cell through `perception.ownCellOf` (the same self-locator `context.cell` is
 // derived from) because it needs the mass, not only the location. `preyPlayerId` narrows the

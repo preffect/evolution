@@ -1,4 +1,4 @@
-// The food layer (docs/RENDERING.md §6, docs/ARCHITECTURE.md §6): every mote in one
+// The food layer (docs/rendering/budget.md §6, docs/architecture/client.md §6): every mote in one
 // `ParticleContainer` over the one mote-atlas source (position, rotation, scale and frame per
 // particle; a rod adds one unrotated glint particle so its light stays top-left), every DNA
 // fragment a tag-tinted helix sprite in its own container above the motes. One render state per

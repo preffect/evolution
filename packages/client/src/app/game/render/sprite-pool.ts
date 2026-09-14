@@ -1,4 +1,4 @@
-// A pool of centred sprites in one container (docs/RENDERING.md §6): a layer that places a
+// A pool of centred sprites in one container (docs/rendering/budget.md §6): a layer that places a
 // varying number of sprites per frame (organelles, effects, fragments) takes them by index, so
 // no sprite is created or destroyed once the pool has grown, and hides the rest of the pool.
 

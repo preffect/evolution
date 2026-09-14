@@ -1,4 +1,4 @@
-// The bench route smoke (docs/TESTING.md §1 UI tier, docs/RENDERING.md §7, §9): the fixed-seed scene draws
+// The bench route smoke (docs/TESTING.md §1 UI tier, docs/rendering/budget.md §7, docs/rendering/files-and-tests.md §9): the fixed-seed scene draws
 // on SwiftShader without page or shader errors, two fresh loads of the same seed, tick and zoom are
 // pixel-identical and a step changes them, the frame-budget report lands in the DOM with every stage key, the
 // draw calls stay under the §6 ceiling at two zoom bands, and the report and screenshots land under
@@ -17,11 +17,11 @@ const CEILING_ZOOMS = [1.8, 1] as const;
 /**
  * The report's window on SwiftShader: a loaded box renders a 1080p bench frame in seconds, so the smoke shortens the
  * 240-frame window (`window=`) and only proves the harness. It stays at or above `RENDER_P95_MIN_SAMPLE_FRAMES`
- * (docs/RENDERING.md §7): below that the verdict judges no quantile row at all. The numbers a PR quotes come from a
+ * (docs/rendering/budget.md §7): below that the verdict judges no quantile row at all. The numbers a PR quotes come from a
  * hardware run at the full window.
  */
 const SMOKE_WINDOW_FRAMES = 24;
-/** `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/RENDERING.md §7); the spec runs outside the app's module graph. */
+/** `RENDER_P95_MIN_SAMPLE_FRAMES` (docs/rendering/budget.md §7); the spec runs outside the app's module graph. */
 const MIN_P95_SAMPLE_FRAMES = 20;
 /**
  * Every bench test renders the full bench load through SwiftShader, where one 1080p frame takes seconds: the
@@ -30,10 +30,10 @@ const MIN_P95_SAMPLE_FRAMES = 20;
  */
 const BENCH_TEST_TIMEOUT_MS = 2_400_000;
 const HOLD_WAIT_MS = 300;
-/** `RENDER_MAX_DRAW_CALLS` (docs/RENDERING.md §6); the spec runs outside the app's module graph, so the number is restated here. */
+/** `RENDER_MAX_DRAW_CALLS` (docs/rendering/budget.md §6); the spec runs outside the app's module graph, so the number is restated here. */
 const MAX_DRAW_CALLS = 17;
 const RENDER_STAGE_KEYS = ['camera', 'cells', 'effects', 'food', 'net', 'organelles', 'submit'];
-/** `canvas.toDataURL` needs the backbuffer kept, which the report runs without (docs/RENDERING.md §7). */
+/** `canvas.toDataURL` needs the backbuffer kept, which the report runs without (docs/rendering/budget.md §7). */
 const PRESERVE_QUERY = '&preserve=1';
 
 interface DebugWindow {
@@ -180,7 +180,7 @@ test.describe('renderer smoke on the bench route', () => {
       expect(parsed.verdict.isP95Estimable, 'the smoke window supports a p95').toBe(
         windowFrames >= MIN_P95_SAMPLE_FRAMES,
       );
-      // A GPU time this harness cannot trust is absent, never an overrun (docs/RENDERING.md §7).
+      // A GPU time this harness cannot trust is absent, never an overrun (docs/rendering/budget.md §7).
       if (parsed.gpuMs === null) {
         expect(parsed.gpuStatus).not.toBe('ok');
         expect(parsed.verdict.overruns.map((overrun) => overrun.name)).not.toContain('gpu');

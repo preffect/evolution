@@ -1,4 +1,4 @@
-// The own-cell indicators' ledger (docs/UI.md §9, docs/CODE-STANDARDS.md §2): every row of the
+// The own-cell indicators' ledger (docs/ui/components-and-constants.md §9, docs/CODE-STANDARDS.md §2): every row of the
 // table is parsed from the doc and pinned against `render/constants.ts` by name **and value**, the
 // way the shared `constants-ledger.test.ts` pins the four design tables by name. Values too, because
 // §3.1.3's geometry table and its inequalities are derived from these numbers, and that derivation is
@@ -9,7 +9,8 @@ import { markdownSection, readRepoDocument, tableCells } from '../../../testing/
 import * as constants from './constants';
 import * as ownCellConstants from './constants/own-cell';
 
-const UI_DOCUMENT = readRepoDocument('docs/UI.md');
+const UI_DOCUMENT = readRepoDocument('docs/ui/components-and-constants.md');
+const HUD_DOCUMENT = readRepoDocument('docs/ui/hud.md');
 const CONSTANTS_SECTION = markdownSection(UI_DOCUMENT, '9. Constants table');
 /** The distinct names §9's rows carry: a row added or removed is a deliberate edit on both sides. */
 const EXPECTED_NAMES = 36;
@@ -45,7 +46,7 @@ function numbersOf(value: unknown): number[] {
 const exported = constants as Readonly<Record<string, unknown>>;
 const rows = ledgerRows();
 
-describe('docs/UI.md §9 constants ledger', () => {
+describe('docs/ui/components-and-constants.md §9 constants ledger', () => {
   it(`parses exactly ${EXPECTED_NAMES} names (a doc row added or removed updates this pin)`, () => {
     expect(rows.flatMap((row) => row.names)).toHaveLength(EXPECTED_NAMES);
   });
@@ -67,7 +68,7 @@ describe('docs/UI.md §9 constants ledger', () => {
 
   it('keys the angle pair by the variant §3.1.2 puts at each angle, not just in the right order', () => {
     // The ledger compares the pair by declaration order, which a swap of the two keys would pass.
-    const aerobic = /aerobic (\d+), photosynthetic (\d+)/.exec(markdownSection(UI_DOCUMENT, '3. '));
+    const aerobic = /aerobic (\d+), photosynthetic (\d+)/.exec(markdownSection(HUD_DOCUMENT, '3. '));
     expect(constants.LADDER_ORBIT_ANGLES_PAIR_DEG).toEqual({
       aerobic: Number(aerobic?.[1]),
       photosynthetic: Number(aerobic?.[2]),

@@ -36,7 +36,7 @@ export function locateCellThrough<Snapshot>(
 
 /**
  * A command without a target aims at the origin: the wire has no "keep the latched target" input
- * (`targetX` / `targetY` are required, docs/ARCHITECTURE.md §4), so a script that wants to hold
+ * (`targetX` / `targetY` are required, docs/architecture/wire-contract.md §4), so a script that wants to hold
  * still targets the cell's own centre.
  */
 const ORIGIN = 0;

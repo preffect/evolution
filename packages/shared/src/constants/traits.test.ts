@@ -1,4 +1,4 @@
-// The pure catalog and ladder tests of docs/TRAITS.md §6 (T10, T11) plus the pins that keep the
+// The pure catalog and ladder tests of docs/traits/constants-and-acceptance.md §6 (T10, T11) plus the pins that keep the
 // tier tables, the identity record and the catalog one structure.
 
 import { describe, expect, it } from 'vitest';

@@ -1,5 +1,5 @@
-// Fixture- and debug-granted traits (docs/ECOLOGY.md §8 "fixture-granted traits bypass the ladder";
-// docs/ARCHITECTURE.md §8 `debug_set_player`): the one place a string trait id and a tier are checked
+// Fixture- and debug-granted traits (docs/ecology/acceptance.md §8 "fixture-granted traits bypass the ladder";
+// docs/architecture/debug-mcp.md §8 `debug_set_player`): the one place a string trait id and a tier are checked
 // against the catalog and turned into `OwnedTrait`s, so the scenario fixtures and the debug tools can
 // never diverge. Callers wrap `UnknownTraitError` in their own refusal type.
 
@@ -12,7 +12,7 @@ export class UnknownTraitError extends Error {
   }
 }
 
-/** A trait to grant: `'cilia'` is tier I; the tier names the row of the trait's table (docs/TRAITS.md §2). */
+/** A trait to grant: `'cilia'` is tier I; the tier names the row of the trait's table (docs/traits/model.md §2). */
 export interface TraitGrant {
   readonly traitId: string;
   readonly tier?: number;

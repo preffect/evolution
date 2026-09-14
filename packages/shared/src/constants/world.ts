@@ -1,4 +1,4 @@
-// The petri dish and spawn safety (docs/GAME-DESIGN.md §8, §5.2, §12).
+// The petri dish and spawn safety (docs/game-design/controls-and-scope.md §8, docs/game-design/session.md §5.2, docs/game-design/constants-and-acceptance.md §12).
 
 /** The world is the disc of this radius (wu), centred at the origin. */
 export const DISH_RADIUS = 3000;

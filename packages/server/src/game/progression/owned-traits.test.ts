@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §8 and docs/ARCHITECTURE.md §8: a fixture or debug grant checked against the catalog.
+// docs/ecology/acceptance.md §8 and docs/architecture/debug-mcp.md §8: a fixture or debug grant checked against the catalog.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { toOwnedTraits, UnknownTraitError } from './owned-traits.js';

@@ -9,7 +9,7 @@
 }
 
 /*
- * In play the shell IS the viewport (#217, docs/UI.md §1): the game host fills it edge to edge with
+ * In play the shell IS the viewport (#217, docs/ui/layout.md §1): the game host fills it edge to edge with
  * no card and no page scroll. `position: fixed; inset: 0` is the viewport box exactly, where
  * `100vw` would count a scrollbar gutter; `overflow: hidden` keeps the canvas from ever scrolling it.
  */

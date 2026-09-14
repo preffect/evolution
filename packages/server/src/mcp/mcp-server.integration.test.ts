@@ -15,7 +15,7 @@ const GENERIC_TOOLS = [
   'debug_get_game_state',
 ];
 
-/** The game-specific surface of docs/ARCHITECTURE.md §8. */
+/** The game-specific surface of docs/architecture/debug-mcp.md §8. */
 const GAME_SPECIFIC_TOOLS = [
   'debug_get_player_progress',
   'debug_get_entities',

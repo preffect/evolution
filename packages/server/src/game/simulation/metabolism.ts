@@ -1,4 +1,4 @@
-// Step 5 (docs/ECOLOGY.md §4, §4.1): one formula per cell, every term reading the masses and
+// Step 5 (docs/ecology/mass-and-movement.md §4, §4.1): one formula per cell, every term reading the masses and
 // radii at the start of the step, so the pair terms are order-independent. Base decay on the
 // surplus above the starting mass (zone × trait multipliers), the toxin drains of overlapping or
 // in-aura cells, then photosynthesis inside the shallows. The spike drain of a prey being engulfed
@@ -56,7 +56,7 @@ export function decayPerSecond(input: MetabolismInput, balance: BalanceConfig): 
   );
 }
 
-/** A toxic cell reaches another by overlap, or by centre distance within its aura (docs/TRAITS.md §2). */
+/** A toxic cell reaches another by overlap, or by centre distance within its aura (docs/traits/model.md §2). */
 export function isReachedByToxin(target: ToxinReachView, toxic: ToxinReachView): boolean {
   const distance = distanceBetween(target, toxic);
   if (distance <= target.radius + toxic.radius) {

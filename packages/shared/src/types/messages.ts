@@ -1,4 +1,4 @@
-// Client <-> server message envelope (the wire contract, docs/ARCHITECTURE.md §4).
+// Client <-> server message envelope (the wire contract, docs/architecture/wire-contract.md §4).
 //
 // The transport, lobby, room lifecycle and MCP plumbing are game-agnostic. The three game seams
 // (`GameInput`, `GameSessionConfig`, `GameSnapshot`) are declared here, their views in `game.ts`,
@@ -24,7 +24,7 @@ import type { BalanceConfig } from '../constants/balance.js';
 
 // ===== The game seams =====
 
-/** One per client tick, coalesced by the server (docs/ARCHITECTURE.md §3.2). */
+/** One per client tick, coalesced by the server (docs/architecture/server-simulation.md §3.2). */
 export interface GameInput {
   /** Monotonic per client, one per client tick; echoed back for prediction (§5). */
   sequence: number;
@@ -34,7 +34,7 @@ export interface GameInput {
   /** Edge-triggered by the client: start a sprint this tick if the cooldown allows. */
   shouldSprint: boolean;
   traitChoice: TraitChoiceInput | null;
-  /** Reserved for build 2: validated and ignored (docs/GAME-DESIGN.md §11). */
+  /** Reserved for build 2: validated and ignored (docs/game-design/controls-and-scope.md §11). */
   shouldSplit?: boolean;
   shouldEject?: boolean;
 }
@@ -51,7 +51,7 @@ export interface GameSessionConfig {
   endCondition: RoundEndCondition;
 }
 
-/** Wire refinement of the design's `FoodMoteView[]`: static motes ride as deltas (docs/ARCHITECTURE.md §4.1). */
+/** Wire refinement of the design's `FoodMoteView[]`: static motes ride as deltas (docs/architecture/wire-contract.md §4.1). */
 export interface FoodDelta {
   /** Every mote when the snapshot is a `game_state`. */
   spawned: FoodMoteView[];
@@ -64,7 +64,7 @@ export interface GameSnapshot {
   tick: number;
   /** The current round's seed; a rematch increments it. */
   seed: number;
-  /** 0 at creation, the current tick at a rematch: the HUD derives the world clock from `tick − roundStartTick` (docs/ECOLOGY.md §3.1). */
+  /** 0 at creation, the current tick at a rematch: the HUD derives the world clock from `tick − roundStartTick` (docs/ecology/food-and-spawn.md §3.1). */
   roundStartTick: number;
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
@@ -76,7 +76,7 @@ export interface GameSnapshot {
   /** Built from the join-ordered array. */
   players: Record<string, PlayerProgressView>;
   leaderboard: LeaderboardRow[];
-  /** Prediction (docs/ARCHITECTURE.md §5). */
+  /** Prediction (docs/architecture/client.md §5). */
   appliedInputSequenceByPlayer: Record<string, number>;
   /** This broadcast window's effects. */
   effects: GameEffect[];
@@ -99,7 +99,7 @@ export interface LobbyGameInfo {
 }
 
 /**
- * The seven CPU stages of a client frame (docs/RENDERING.md §7), the keys of `renderStagesMs`. Listed
+ * The seven CPU stages of a client frame (docs/rendering/budget.md §7), the keys of `renderStagesMs`. Listed
  * beside the report because the server's schema and the client's stage timer must agree on them.
  */
 export const RENDER_STAGE = {
@@ -123,7 +123,7 @@ export const RENDER_STAGE_NAMES: readonly RenderStageName[] = [
   RENDER_STAGE.submit,
 ];
 
-/** The client's frame-budget report (docs/RENDERING.md §7): rolling p95s over the last frames. */
+/** The client's frame-budget report (docs/rendering/budget.md §7): rolling p95s over the last frames. */
 export interface ClientPerformanceReport {
   fps: number;
   frameTimeAvgMs: number;
@@ -135,10 +135,10 @@ export interface ClientPerformanceReport {
   /**
    * GPU time per frame, ms (timer query), p95 over the same window; `null` when the number is unavailable —
    * no timer extension, nothing resolved yet, or the extension reported a time no frame could have taken
-   * (docs/RENDERING.md §7). Never a fallback number: an absent measurement is `null`.
+   * (docs/rendering/budget.md §7). Never a fallback number: an absent measurement is `null`.
    */
   gpuMs: number | null;
-  /** The worst frame's GL draw calls over the window (docs/RENDERING.md §6). */
+  /** The worst frame's GL draw calls over the window (docs/rendering/budget.md §6). */
   drawCalls: number;
   visibleCells: number;
   visibleMotes: number;
@@ -182,7 +182,7 @@ export const CLIENT_MESSAGE_TYPE = {
   deleteGame: 'delete_game',
   playerInput: 'player_input',
   clientPerformance: 'client_performance',
-  /** The newest snapshot tick the client has applied (#266, docs/ARCHITECTURE.md §4): flow control, not gameplay. */
+  /** The newest snapshot tick the client has applied (#266, docs/architecture/wire-contract.md §4): flow control, not gameplay. */
   snapshotAck: 'snapshot_ack',
 } as const;
 
@@ -193,7 +193,7 @@ export const SERVER_MESSAGE_TYPE = {
   gameSnapshot: 'game_snapshot',
   playerJoined: 'player_joined',
   playerDisconnected: 'player_disconnected',
-  /** After `debug_set_balance`: the live balance every client must predict with (docs/ARCHITECTURE.md §4). */
+  /** After `debug_set_balance`: the live balance every client must predict with (docs/architecture/wire-contract.md §4). */
   balanceUpdated: 'balance_updated',
   error: 'error',
 } as const;

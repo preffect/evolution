@@ -1,4 +1,4 @@
-// docs/ECOLOGY.md §3 and §8 E2/E3 on the spawners alone (no eating, the cell idle).
+// docs/ecology/food-and-spawn.md §3 and docs/ecology/acceptance.md §8 E2/E3 on the spawners alone (no eating, the cell idle).
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, DEFAULT_BALANCE, FOOD_KIND, RANDOM_STREAM, TICK_HZ } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';

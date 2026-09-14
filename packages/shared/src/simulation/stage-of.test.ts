@@ -1,4 +1,4 @@
-// docs/GAME-DESIGN.md §3: the stage is the highest gate owned; the ladder's own rows drive it.
+// docs/game-design/core.md §3: the stage is the highest gate owned; the ladder's own rows drive it.
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';

@@ -1,4 +1,4 @@
-// Oriented boxes and the gap between two of them (docs/RENDERING.md §10): the ladder orbit's items
+// Oriented boxes and the gap between two of them (docs/rendering/own-cell-indicators.md §10): the ladder orbit's items
 // are straight sprites laid tangent to a circle, so the clearance between two of them is measured
 // between the rectangles as drawn, not along the arc their centres sit on. Pure, screen px.
 

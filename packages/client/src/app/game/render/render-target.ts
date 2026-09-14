@@ -1,4 +1,4 @@
-// Whom the camera follows (docs/GAME-DESIGN.md §7): the own cell while alive, the killer's cell
+// Whom the camera follows (docs/game-design/controls-and-scope.md §7): the own cell while alive, the killer's cell
 // while spectating, nothing when neither exists. Pure over the frame.
 
 import type { CellView } from '@evolution/shared';

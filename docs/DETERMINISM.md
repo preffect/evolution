@@ -23,7 +23,7 @@ in [`GAME-DESIGN.md`](./GAME-DESIGN.md) and [`ECOLOGY.md`](./ECOLOGY.md).
    keys for game state (records keyed by a closed enum are walked in the enum's declared array
    order, section 5); every sort has a total comparator with an id tie-break.
 5. **Inputs apply at tick boundaries.** `submitInput` only coalesces into the player's pending
-   slot; step 1 applies it in join order (`ARCHITECTURE.md §3.2`).
+   slot; step 1 applies it in join order (`architecture/server-simulation.md §3.2`).
 6. **State is plain data.** `WorldState` is JSON-serialisable (no class instances, functions,
    `Set`/`Map` inside entities, or `undefined` holes). The random streams are stored as their
    serialisable state (`RandomState`) and rebuilt from it.
@@ -31,8 +31,8 @@ in [`GAME-DESIGN.md`](./GAME-DESIGN.md) and [`ECOLOGY.md`](./ECOLOGY.md).
    tests and replays compare.
 8. **Cosmetics are deterministic too.** Client wobble and particles use a `cosmetic` stream
    forked from the round seed, so a paused game screenshots identically.
-9. **The step order is a contract.** The ten steps of `ARCHITECTURE.md §3` are the order every
-   scenario table in the design assumes (`ECOLOGY.md §8`); changing it means recomputing them.
+9. **The step order is a contract.** The ten steps of `architecture/server-simulation.md §3` are the order every
+   scenario table in the design assumes (`ecology/acceptance.md §8`); changing it means recomputing them.
 
 ## 2. Clock and fixed step (`packages/shared/src/time/`, `packages/server/src/lobby/ticker.ts`)
 
@@ -104,13 +104,13 @@ export interface RandomState {
 export const createSeededRandom: (seed: number) => RandomSource;
 export const createSeededRandomFromState: (state: RandomState) => RandomSource; // exact resume
 export const RANDOM_STREAM = {
-  spawner: 'spawner', // food and fragment spawns: kind, zone, variant, point (ECOLOGY §3)
-  zones: 'zones', // gel patch placement at world creation (ECOLOGY §2)
-  spawnPlacement: 'spawn_placement', // safe spawn candidates (GAME-DESIGN §5.2)
+  spawner: 'spawner', // food and fragment spawns: kind, zone, variant, point (ecology/food-and-spawn.md §3)
+  zones: 'zones', // gel patch placement at world creation (ecology/food-and-spawn.md §2)
+  spawnPlacement: 'spawn_placement', // safe spawn candidates (game-design/session.md §5.2)
   traitDraft: 'trait_draft', // draft sampling (PROGRESSION §3)
   moteMotion: 'mote_motion', // bacteria random-walk headings; fragment drift direction at spawn
-  wildCells: 'wild_cells', // wild cells: spread factors, wander headings, turn rolls (ECOLOGY §3.3)
-  engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0; build 2's trait steal draws here too, in the payout (ECOLOGY §6.1)
+  wildCells: 'wild_cells', // wild cells: spread factors, wander headings, turn rolls (ecology/wild-cells.md §3.3)
+  engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0; build 2's trait steal draws here too, in the payout (ecology/absorption.md §6.1)
   cosmetic: 'cosmetic', // client only, never on the server
 } as const;
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
@@ -151,7 +151,7 @@ export const forkStreamStates: <Label extends string>(
   the spawner never changes what `traitDraft` produces. Forks of the same label from the same
   parent are identical.
 - **The `engulf` stream and its reserved second consumer.** Today only the spit-out draws from it,
-  and only for a prey whose `spitOutChancePerSecond` is above 0 (ECOLOGY §6.1): a chance of 0 makes no
+  and only for a prey whose `spitOutChancePerSecond` is above 0 (ecology/absorption.md §6.1): a chance of 0 makes no
   draw, so a dish with no spiny cells never advances it. The payout's trait steal
   (`ENGULF_TRAIT_STEAL_CHANCE`, 0 and unread in build 1) is the second consumer, and when build 2 turns
   it on it draws here, in the payout, after that tick's spit-out draw and once per completed engulf. Because
@@ -159,7 +159,7 @@ export const forkStreamStates: <Label extends string>(
   can only move later draws inside `engulf`; no other stream's sequence changes, which is what lets a
   reserved rule be switched on as a balance change rather than a rewrite of every seeded row.
 
-- **`moteMotion` is a separate stream** (ECOLOGY §1 lists it under the label `mote_motion`): the
+- **`moteMotion` is a separate stream** (ecology/food-and-spawn.md §1 lists it under the label `mote_motion`): the
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.
 - **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the server
@@ -167,7 +167,7 @@ export const forkStreamStates: <Label extends string>(
   and stores their state in `world.random`; systems obtain a live
   source per step through `context.streams[label]`, which resumes from the stored state and
   writes it back after the step. Exactly two things re-create the streams: the **auto-rematch**
-  (`session/round.ts` rebuilds the world from `seed + ROUND_SEED_INCREMENT`, GAME-DESIGN §5.4;
+  (`session/round.ts` rebuilds the world from `seed + ROUND_SEED_INCREMENT`, game-design/session.md §5.4;
   G2 asserts seed 43) and **`debug_set_seed`**. The module factory receives no `RandomSource`.
 - Never pass a `RandomSource` into a pure formula. Formulas take numbers; the calling system
   draws them (`spawnPointInZone(zone, random.nextFloat(), random.nextFloat())`).
@@ -181,7 +181,7 @@ export const forkStreamStates: <Label extends string>(
   or `splice`); never swap-remove. Spawns append. Cluster members spawn in draw order.
 - **Spatial hash** results are id-sorted before use. Pair processing (separation, engulf)
   iterates the sorted pair list `(lowerId, higherId)`; "two predators reach one prey" resolves to
-  the lower cell id (ECOLOGY §6.3).
+  the lower cell id (ecology/absorption.md §6.3).
 - **Sorting** always ends in `compareEntityIds(a.id, b.id)`; the leaderboard comparator is
   score, then mass, then `joinOrder`.
 - **Floating point.** Fixed evaluation order inside systems; sums over collections go
@@ -285,7 +285,7 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 | `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                                                                                                  |
 | `testing/scenarios/echo.gameplay.test.ts` (#75)         | the scenario runner on the echo module: two runs of one seed and scripted inputs hash equal at every checkpoint and the replay reproduces them; an unseeded script is reported at the first differing tick |
 | `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                                                                                   |
-| `client … cosmetic` (`cells/radial-profile.spec.ts`)    | same seed + same tick ⇒ same membrane profile `r(θ)` (`RENDERING.md §9`)                                                                                                                                   |
+| `client … cosmetic` (`cells/radial-profile.spec.ts`)    | same seed + same tick ⇒ same membrane profile `r(θ)` (`rendering/files-and-tests.md §9`)                                                                                                                   |
 | lint (`./validate.sh lint`, #69)                        | `Math.random` / `Date.now` / `performance.now` / timers banned in every package source file; allowed call sites and exemptions in `CODE-STANDARDS.md §8`                                                   |
 
 The determinism integration test runs against the **echo** module to prove the harness (the
@@ -307,7 +307,7 @@ never a flaky test: bisect by hashing every tick and diffing the first divergent
   guarantees; keep state plain.
 - A stream resumed from a stale `RandomState` (forgetting to write it back after a step) replays
   the same draws twice; the resume-and-write-back is done once in `step.ts`, never in a system.
-- Prediction re-runs **whole ticks with one input per tick** (`ARCHITECTURE.md §5`); feeding the
+- Prediction re-runs **whole ticks with one input per tick** (`architecture/client.md §5`); feeding the
   kernel a frame delta or more than one input per tick breaks reconciliation.
 - Reading a tunable from `constants/` inside a system instead of `context.balance` makes
   `debug_set_balance` and a replayed `balance` silently disagree with the live run.

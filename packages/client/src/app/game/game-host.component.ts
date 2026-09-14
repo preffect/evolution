@@ -1,7 +1,7 @@
-// The element the game renders into (docs/ARCHITECTURE.md §6): mounts the canvas host, runs
+// The element the game renders into (docs/architecture/client.md §6): mounts the canvas host, runs
 // `setupGame` with the multiplayer seams and the injected clock and audio hooks, and tears it
 // down with the component. It has no size of its own: it fills whatever the shell gives it, and
-// in play the shell is the viewport (docs/UI.md §1, #217), so the Pixi app's `resizeTo` sizes the
+// in play the shell is the viewport (docs/ui/layout.md §1, #217), so the Pixi app's `resizeTo` sizes the
 // canvas to the viewport. The HUD (#100) wraps this with its overlay.
 
 import { Component, ElementRef, inject, isDevMode, viewChild, type OnDestroy, type OnInit } from '@angular/core';
@@ -18,7 +18,7 @@ export const GAME_HOST_TEST_ID = 'game-host';
 @Component({
   selector: 'app-game-host',
   standalone: true,
-  // The host is focusable (docs/UI.md §4): a click on the canvas takes focus out of any field so
+  // The host is focusable (docs/ui/input-and-onboarding.md §4): a click on the canvas takes focus out of any field so
   // the hotkeys reach the document handler.
   template: `<div #host class="game-host" tabindex="0" data-testid="${GAME_HOST_TEST_ID}"></div>`,
   styles: [
@@ -64,9 +64,9 @@ export class GameHostComponent implements OnInit, OnDestroy {
         isDevMode: isDevMode(),
         previewTraitId: () => null,
         isReticleVisible: () => false,
-        // Tab (docs/UI.md §4) reaches the HUD through the input layer's one keyboard listener.
+        // Tab (docs/ui/input-and-onboarding.md §4) reaches the HUD through the input layer's one keyboard listener.
         onFullLeaderboardHeldChanged: (isHeld) => this.hudState.setFullLeaderboardHeld(isHeld),
-        // The one render-side fact the HUD reads (docs/UI.md §7): what is on screen right now.
+        // The one render-side fact the HUD reads (docs/ui/components-and-constants.md §7): what is on screen right now.
         onCameraExtent: (extent) => this.gameState.setCameraExtent(extent),
       },
     );

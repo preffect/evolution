@@ -1,4 +1,4 @@
-// The per-cell deformation record (docs/RENDERING.md §2.1, §2.3): what a frame's deformation
+// The per-cell deformation record (docs/rendering/cells.md §2.1, §2.3): what a frame's deformation
 // sources hand one cell — its bump slots (contact dents #216, the engulf arms and eat dimple
 // #207), the body pulse and the alpha of the clip tracks (#207). The layer resolves one record
 // per cell id and every cell without a source wears `REST_DEFORMATION`, so a new source is a map

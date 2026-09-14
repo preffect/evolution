@@ -1,4 +1,4 @@
-// The label pill (docs/UI.md §6, docs/RENDERING.md §10): the backing under the threat and escape labels,
+// The label pill (docs/ui/input-and-onboarding.md §6, docs/rendering/own-cell-indicators.md §10): the backing under the threat and escape labels,
 // `LABEL_PILL_HEIGHT_PX` tall with a full-height radius, in the callout backing at `LABEL_PILL_ALPHA` with a
 // `DANGER_LABEL_RIM_PX` danger rim. Its width follows the label, so it is baked once at its narrowest and
 // drawn as a nine-slice sprite that stretches only the middle column: the caps and the glow margin keep

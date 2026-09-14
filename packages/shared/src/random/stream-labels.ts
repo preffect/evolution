@@ -3,26 +3,26 @@
 // subsystem never changes what another one produces.
 
 export const RANDOM_STREAM = {
-  /** Food and fragment spawns: kind, zone, variant, point (ECOLOGY §3). */
+  /** Food and fragment spawns: kind, zone, variant, point (ecology/food-and-spawn.md §3). */
   spawner: 'spawner',
-  /** Gel patch placement at world creation (ECOLOGY §2). */
+  /** Gel patch placement at world creation (ecology/food-and-spawn.md §2). */
   zones: 'zones',
-  /** Safe spawn candidates (GAME-DESIGN §5.2). */
+  /** Safe spawn candidates (game-design/session.md §5.2). */
   spawnPlacement: 'spawn_placement',
   /** Draft sampling (PROGRESSION §3). */
   traitDraft: 'trait_draft',
-  /** Bacteria random-walk headings; fragment drift direction at spawn (ECOLOGY §1). */
+  /** Bacteria random-walk headings; fragment drift direction at spawn (ecology/food-and-spawn.md §1). */
   moteMotion: 'mote_motion',
-  /** Wild cells: spread factors, wander headings and turn rolls (ECOLOGY §3.3). */
+  /** Wild cells: spread factors, wander headings and turn rolls (ecology/wild-cells.md §3.3). */
   wildCells: 'wild_cells',
-  /** Spit-out rolls: one draw per tick per wrapped or sealed prey whose `spitOutChancePerSecond` > 0 (ECOLOGY §6.1). */
+  /** Spit-out rolls: one draw per tick per wrapped or sealed prey whose `spitOutChancePerSecond` > 0 (ecology/absorption.md §6.1). */
   engulf: 'engulf',
   /** Client only, never on the server: wobble and particles. */
   cosmetic: 'cosmetic',
 } as const;
 
 /**
- * Sub-streams the client forks from `cosmetic` (docs/RENDERING.md §1): `fork(COSMETIC_SUB_STREAM.x + ':' + key)`.
+ * Sub-streams the client forks from `cosmetic` (docs/rendering/cells.md §1): `fork(COSMETIC_SUB_STREAM.x + ':' + key)`.
  * Listed here so every stream name has the one home; never forked on the server.
  */
 export const COSMETIC_SUB_STREAM = {
@@ -44,7 +44,7 @@ export const COSMETIC_SUB_STREAM = {
   mote: 'mote',
   /** One DNA fragment's spin phase: `fork(fragment + ':' + fragmentId)` (#207). */
   fragment: 'fragment',
-  /** The fixed-seed bench scene's specs: cells, motes and fragments (docs/RENDERING.md §7, #208). */
+  /** The fixed-seed bench scene's specs: cells, motes and fragments (docs/rendering/budget.md §7, #208). */
   bench: 'bench',
 } as const;
 

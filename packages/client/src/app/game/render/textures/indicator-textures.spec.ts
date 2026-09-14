@@ -8,14 +8,13 @@ import { endosymbiontTallies, pipBlockKey } from './pip-block-bake';
 const FONT_NAMES = [INDICATOR_FONT.value.name, INDICATOR_FONT.label.name];
 
 describe('createIndicatorTextures', () => {
-  it('packs every ghost, pip block and the unlock ring on one source and gives the label pill its own texture', () => {
+  it('packs every ghost and pip block on one source and gives the label pill its own texture', () => {
     const textures = createIndicatorTextures(createFakeTextureBaker(), 1);
     const [tally] = endosymbiontTallies();
     const frames = [
       textures.ghosts[LADDER_SILHOUETTE.nucleoid]!,
       textures.ghosts[tally!.traitId]!,
       textures.pipBlocks[pipBlockKey(tally!.variant, tally!.required, tally!.required)]!,
-      textures.unlockRing,
     ];
     for (const frame of frames) {
       expect(frame.texture.source).toBe(textures.source);
@@ -35,6 +34,6 @@ describe('createIndicatorTextures', () => {
     destroyIndicatorTextures(textures);
     expect(baker.uninstalledFonts).toEqual(FONT_NAMES);
     expect(textures.labelPill.texture.destroyed).toBe(true);
-    expect(textures.unlockRing.texture.destroyed).toBe(true);
+    expect(textures.ghosts[LADDER_SILHOUETTE.envelope]!.texture.destroyed).toBe(true);
   });
 });

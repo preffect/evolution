@@ -1,4 +1,4 @@
-// The cell shader (docs/RENDERING.md §2): one instanced quad, the instance rows in a float
+// The cell shader (docs/rendering/cells.md §2): one instanced quad, the instance rows in a float
 // texture, the two passes selected by `uPass`. The vertex stage sizes the quad from the
 // instance's `r × quadExtentRadii`; the fragment stage evaluates the profile and paints the bands
 // of pass A (bodies, under the organelle sprites) or pass B (membranes, over them).

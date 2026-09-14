@@ -1,6 +1,6 @@
-// The sound vocabulary (docs/AUDIO.md §2, docs/ARCHITECTURE.md §7): the event ids, the buses and
+// The sound vocabulary (docs/AUDIO.md §2, docs/architecture/client.md §7): the event ids, the buses and
 // the shape of a catalogue rule. The numbers themselves (priority, cooldown, layering) are the
-// constants in constants/audio.ts; the trait cues are the `audioCue` values of docs/TRAITS.md §3.
+// constants in constants/audio.ts; the trait cues are the `audioCue` values of docs/traits/catalog-organelles.md §3.
 
 import type { ValueOf } from './common.js';
 import type { SOUND_PRIORITY } from '../constants/audio.js';
@@ -20,7 +20,7 @@ export const SOUND_EVENT = {
   bloomStart: 'bloom_start',
   roundEnd: 'round_end',
   uiClick: 'ui_click',
-  // Trait cues, one per build-1 trait (docs/TRAITS.md §3), in catalog order.
+  // Trait cues, one per build-1 trait (docs/traits/catalog-organelles.md §3), in catalog order.
   softClick: 'soft_click',
   whipCrack: 'whip_crack',
   dullThud: 'dull_thud',
