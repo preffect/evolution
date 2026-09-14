@@ -93,3 +93,57 @@ export const STATUS_ANNOUNCE_DNA_STEP_PERCENT = 25;
 export const ROUND_CLOCK_PULSE_LAST_SECONDS = 10;
 /** One pulse per second. */
 export const ROUND_CLOCK_PULSE_PERIOD_MS = 1000;
+
+// ---- trait picker (docs/ui/layout.md §1, docs/ui/overlays.md §3.2) ----
+
+/** Half-side of the exclusion box around the own cell at scale 1; also the picker dim's spotlight radius. */
+export const HUD_PLAYER_EXCLUSION_PX = 120;
+/** Gap between the exclusion box's bottom edge and the picker's title row. */
+export const PICKER_BAND_GAP_PX = 16;
+/** Gap between the picker's title row, timer bar and card row. */
+export const PICKER_ROW_GAP_PX = 12;
+/** The timer bar's width at scale 1; its height is `DNA_RING_STROKE_PX`, the width of every chrome fill bar. */
+export const PICKER_TIMER_BAR_WIDTH_PX = 470;
+/**
+ * One card at scale 1. The height is the catalog's measured worst case in the 1280 × 800 band: Simple Flagellum
+ * `II → III`, whose name wraps to three lines over three effect lines, is 214 px tall. Its key chip sits inside it.
+ */
+export const PICKER_CARD_WIDTH_PX = 170;
+export const PICKER_CARD_HEIGHT_PX = 214;
+/** Gap between two cards. */
+export const PICKER_CARD_GAP_PX = 10;
+/** The glyph medallion at the top of a card (its glyph is #312's; a category initial until then). */
+export const PICKER_CARD_MEDALLION_PX = 56;
+/** The highlighted card lifts this far. */
+export const PICKER_CARD_LIFT_PX = 8;
+/** The dim over the dish while an offer is open; the exclusion disc stays clear. */
+export const PICKER_DIM_ALPHA = 0.55;
+/**
+ * Effect lines a card has room for: the catalog's longest tier row (the diatom shell's speed cost, the simple
+ * flagellum's sprint cooldown). Lines are never cut; the spec fails the gate when a row outgrows this.
+ */
+export const PICKER_CARD_EFFECT_LINES_MAX = 3;
+/** Where the dim's clear disc starts to fade, as a share of its radius: the soft edge. */
+export const PICKER_DIM_SOFT_EDGE_FRACTION = 0.85;
+/** Gap between a card's medallion, category, name, effect lines and rarity. */
+export const PICKER_CARD_CONTENT_GAP_PX = 2;
+/** A card's inner padding, top and bottom. */
+export const PICKER_CARD_PADDING_BLOCK_PX = 8;
+/** A card's inner padding, left and right. */
+export const PICKER_CARD_PADDING_INLINE_PX = 8;
+/** The highlighted card's accent glow. */
+export const PICKER_CARD_GLOW_PX = 12;
+/** How long a card takes to lift into, or settle out of, the highlight. */
+export const PICKER_CARD_HIGHLIGHT_MS = 120;
+/** The `RUNG` ribbon's padding either side of its word. */
+export const PICKER_RIBBON_PADDING_INLINE_PX = 6;
+
+// ---- controls (docs/ui/input-and-onboarding.md §4) ----
+
+/** Every interactive element's visible focus ring, in the text colour; never scaled. */
+export const HUD_FOCUS_RING_PX = 2;
+
+// ---- units ----
+
+/** A share (0..1) shown as a percentage. */
+export const PERCENT = 100;

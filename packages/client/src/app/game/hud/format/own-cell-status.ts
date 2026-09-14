@@ -10,11 +10,9 @@
 
 import { BACTERIUM_VARIANT, TRAIT_CATALOG, type BacteriumVariant, type OwnedTrait } from '@evolution/shared';
 import { ENGULF_PHASE } from '@evolution/shared';
-import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
+import { PERCENT, STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
 import { READY } from './sprint-fill';
 import type { LadderCounter, OwnCellIndicators } from '../../state/own-cell-indicators';
-
-const PERCENT = 100;
 
 /** The sprint ring's three readings, as one word each (docs/ui/hud.md §3.1.4). */
 export const SPRINT_STATUS = { ready: 'ready', cooling: 'cooling', sprinting: 'sprinting' } as const;

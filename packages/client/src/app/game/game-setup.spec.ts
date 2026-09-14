@@ -12,6 +12,8 @@ import {
 } from '@evolution/shared';
 import { EVOLUTION_DEBUG_KEY, type EvolutionDebugHost } from './debug/evolution-debug';
 import { setupGame, type GameSetupDependencies } from './game-setup';
+import { InputController } from './input/input-controller';
+import { INPUT_ACTION } from './input/keyboard-action';
 import { createFakePixiApp } from '../../testing/fake-pixi-app';
 import type { TransitionOptions } from './state/snapshot-transitions';
 
@@ -50,6 +52,30 @@ describe('setupGame', () => {
     teardown();
     expect(messages$.observed).toBe(false);
     expect(debugHost[EVOLUTION_DEBUG_KEY]).toBeUndefined();
+  });
+
+  it('hands the HUD a card pick that applies the pick action with its index, and takes it back on teardown', () => {
+    const apply = vi.spyOn(InputController.prototype, 'apply');
+    const onTraitCardPickReady = vi.fn<(pick: ((cardIndex: number) => void) | null) => void>();
+    const teardown = setupGame(
+      {
+        send: vi.fn(),
+        messages$: new Subject<ServerMessage>(),
+        acknowledgeSnapshot: vi.fn(),
+        host: document.createElement('div'),
+      },
+      dependencies({ onTraitCardPickReady }),
+    );
+    try {
+      const pick = onTraitCardPickReady.mock.calls[0]?.[0];
+      pick?.(2);
+      expect(apply).toHaveBeenCalledExactlyOnceWith({ kind: INPUT_ACTION.pickCard, cardIndex: 2 });
+      teardown();
+      expect(onTraitCardPickReady).toHaveBeenLastCalledWith(null);
+    } finally {
+      // A failed assertion must not leave the prototype spied for the tests after it.
+      apply.mockRestore();
+    }
   });
 
   it('connects the audio hooks once per game_state with the own player, the balance and the round length', () => {

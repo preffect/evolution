@@ -51,8 +51,8 @@
 }
 
 .header:focus-visible {
-  outline: 2px solid var(--hud-text);
-  outline-offset: -2px;
+  outline: var(--hud-focus-ring) solid var(--hud-text);
+  outline-offset: calc(var(--hud-focus-ring) * -1);
 }
 
 .header-title {

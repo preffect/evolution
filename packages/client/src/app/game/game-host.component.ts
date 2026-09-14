@@ -62,12 +62,15 @@ export class GameHostComponent implements OnInit, OnDestroy {
         devicePixelRatio: window.devicePixelRatio,
         debugHost: window,
         isDevMode: isDevMode(),
-        previewTraitId: () => null,
+        // The picker's highlighted card (docs/ui/overlays.md §3.2): the renderer previews its trait on the own cell.
+        previewTraitId: () => this.hudState.previewTraitId(),
         isReticleVisible: () => false,
         // The fourth crossing (docs/ui/hud.md §3.1.4): the record the status mirror speaks is the one the renderer draws.
         ownCellIndicators: () => this.gameState.ownCellIndicators(),
         // Tab (docs/ui/input-and-onboarding.md §4) reaches the HUD through the input layer's one keyboard listener.
         onFullLeaderboardHeldChanged: (isHeld) => this.hudState.setFullLeaderboardHeld(isHeld),
+        // A clicked card picks through the input seam's pick policy, like the `1` `2` `3` keys.
+        onTraitCardPickReady: (pick) => this.hudState.setTraitCardPick(pick),
         // The one render-side fact the HUD reads (docs/ui/components-and-constants.md §7): what is on screen right now.
         onCameraExtent: (extent) => this.gameState.setCameraExtent(extent),
       },
