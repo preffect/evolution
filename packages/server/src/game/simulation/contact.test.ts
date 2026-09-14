@@ -1,4 +1,5 @@
-// docs/ecology/mass-and-movement.md §5.3 (E10 first half): separation of cells that cannot engulf each other.
+// docs/ecology/mass-and-movement.md §5.3 (E10 first half): separation of cells that cannot engulf each other, alone
+// and through the whole movement step, where an idle cell has no target to steer back to (§5.2, #261).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, playerId } from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';
@@ -25,8 +26,6 @@ function twoCells(massA: number, massB: number): { world: WorldState; cellA: Cel
   ] as const) {
     cell.x = BROTH_POINT.x + offset;
     cell.y = BROTH_POINT.y;
-    cell.targetX = cell.x;
-    cell.targetY = cell.y;
     setCellMass(cell, mass, DEFAULT_BALANCE);
   }
   return { world, cellA, cellB };
@@ -45,6 +44,33 @@ describe('separateOverlappingCells', () => {
       initialOverlap * (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** 120,
       6,
     );
+  });
+
+  it('E10 through the whole step: an idle pair with no target is pushed apart and nothing steers it back', () => {
+    const { world, cellA, cellB } = twoCells(24, 20);
+    expect([cellA.targetX, cellB.targetX]).toEqual([null, null]);
+    const initialOverlap = overlapOf(cellA, cellB);
+    const context = createTestStepContext(world);
+    for (let tick = 0; tick < 120; tick += 1) moveCells(world, context);
+    expect(overlapOf(cellA, cellB)).toBeLessThan(0.01);
+    expect(overlapOf(cellA, cellB)).toBeCloseTo(
+      initialOverlap * (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** 120,
+      6,
+    );
+    expect([cellA.velocityX, cellB.velocityX]).toEqual([0, 0]);
+  });
+
+  it('a latched target still pulls a pushed cell back once it leaves the dead zone', () => {
+    const { world, cellA, cellB } = twoCells(24, 20);
+    const placedXOfB = cellB.x;
+    for (const cell of [cellA, cellB]) {
+      cell.targetX = cell.x;
+      cell.targetY = cell.y;
+    }
+    const context = createTestStepContext(world);
+    for (let tick = 0; tick < 120; tick += 1) moveCells(world, context);
+    expect(overlapOf(cellA, cellB)).toBeGreaterThan(0.01);
+    expect(cellB.x - placedXOfB).toBeGreaterThan(DEFAULT_BALANCE.controls.STEER_DEAD_ZONE_RADII * cellB.radius);
   });
 
   it('runs inside the movement step, before the pins are restored', () => {

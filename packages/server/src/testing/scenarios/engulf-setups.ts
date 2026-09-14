@@ -5,15 +5,21 @@
 // #258 shipped the lifecycle and #259 the payout, so the mass, DNA, tag, `absorptions`, detritus
 // and `lifeState` halves of E9, E9b, E10 and E11 are on. What the rows still leave out, and to
 // which ticket:
-//   · E10's separation half ("< 0.01 wu of overlap"), which the whole step cannot reach — #261.
 //   · every spit-out and refractory row (§6.1 spit-out, §5.3's T4 separation, §6.3 "spat out, still
 //     overlapping"), because no build-1 tier table sets `spitOutChancePerSecond` until #260. The
 //     mechanism is pinned at unit level on a folded modifier instead (`engulf-spit-out.test.ts`).
 //   · the wild rows (W4, W5, W10), which need the wild-cell slice to place a wild cell.
 
-import { DEFAULT_BALANCE, DNA_TAG, EFFECT_KIND, TICK_HZ } from '@evolution/shared';
+import { DEFAULT_BALANCE, DNA_TAG, EFFECT_KIND, TICK_HZ, radiusForMass } from '@evolution/shared';
 import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
-import { cellOf, detritusMass, effectsOfKind, progressOf, type EvolutionView } from '../gameplay/evolution-views.js';
+import {
+  cellOf,
+  detritusMass,
+  distanceBetweenCells,
+  effectsOfKind,
+  progressOf,
+  type EvolutionView,
+} from '../gameplay/evolution-views.js';
 import { targetRadiiAwayFrom } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import { FULL_THROTTLE_RADII, decayed } from './shared-setups.js';
@@ -44,12 +50,18 @@ export const OFFSET_TOLERANCE_WU = 0.01;
 export const E16_START_MASS = 30;
 export const E16_HELD_MASS = 23;
 export const E16_RELEASED_MASS = 21.5;
+/** E10's under-ratio pair runs 120 ticks. */
+export const E10_SEPARATION_TICKS = 120;
 /**
- * E10's "< 0.01 wu of overlap" is unreachable through the whole step: an idle placed cell steers
- * back to its latched target, which balances the separation at a few wu of overlap (#261). The
- * row's engulf half is what these files own, so E10 asserts the pair moved well apart instead.
+ * E10's "overlap × 0.8^120": the placed overlap shrunk by `CELL_SEPARATION_FRACTION_PER_TICK` every
+ * tick. An idle placed cell has no target (docs/ecology/mass-and-movement.md §5.2), so nothing steers
+ * it back against the separation (#261).
  */
-export const SEPARATED_FACTOR = 3;
+export const E10_SEPARATED_OVERLAP_WU =
+  (radiusForMass(E10_UNDER_RATIO_MASS, DEFAULT_BALANCE.growth) +
+    radiusForMass(PREY_MASS, DEFAULT_BALANCE.growth) -
+    CENTRE_DISTANCE_WU) *
+  (1 - DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK) ** E10_SEPARATION_TICKS;
 /** E9b: A steers 5 radii away from B from tick 1 and drags it along; the numbers the row states. */
 export const E9B_SEAL_DISTANCE_WU = 22.53;
 export const E9B_SEAL_WESTING_WU = 12.5;
@@ -119,6 +131,16 @@ export const predatoryPointsOfPredator = (view: EvolutionView): number | undefin
   progressOf(view, 0)?.dnaTagPoints[DNA_TAG.predatory];
 export const lifeStateOfPrey = (view: EvolutionView): string | undefined => progressOf(view, 1)?.lifeState;
 export const preyCell = (view: EvolutionView) => cellOf(view, 1);
+/** `A.radius + B.radius − distance` (docs/ecology/acceptance.md §8, E10). */
+export function overlapOfPair(view: EvolutionView): number | undefined {
+  const predator = cellOf(view, 0);
+  const prey = cellOf(view, 1);
+  const distance = distanceBetweenCells(view, 0, 1);
+  if (predator === undefined || prey === undefined || distance === undefined) {
+    return undefined;
+  }
+  return predator.radius + prey.radius - distance;
+}
 export const absorbedCellIds = (view: EvolutionView): string[] =>
   effectsOfKind(view, EFFECT_KIND.cellAbsorbed).map((effect) => effect.cellId);
 export const detritusInDish = (view: EvolutionView): number =>

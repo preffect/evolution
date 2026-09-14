@@ -38,9 +38,12 @@ export interface EngulfReleaseRecord {
 }
 
 export interface CellRecord extends CellView {
-  /** The latest applied input, latched until replaced. */
-  targetX: number;
-  targetY: number;
+  /**
+   * The latest applied input, latched until replaced. `null` until the player's first input (a spawn,
+   * a respawn, a fixture placement): no target, throttle 0 (docs/ecology/mass-and-movement.md §5.2).
+   */
+  targetX: number | null;
+  targetY: number | null;
   /** Folded at step 1 of the tick (docs/traits/model.md §2); the simulation reads only this. */
   modifiers: CellModifiers;
   /**

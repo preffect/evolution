@@ -263,16 +263,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.1 The world clock** (L102–162): The dish has its own place on the ladder.
   - **3.2 What the world stage drives** (L163–188): tick already uses the new row: step 8 runs after step 2).
 
-## ecology/mass-and-movement.md (101 lines)
+## ecology/mass-and-movement.md (105 lines)
 
-- **Evolution — Ecology, Growth and Absorption: mass decay, size, mass and speed** (L1–101): §4–§5 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: mass decay, size, mass and speed** (L1–105): §4–§5 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **4. Mass decay** (L5–31): Applied every tick in the metabolism step (§4.1).
   - **4.1 The metabolism step (one formula)** (L16–31): Every metabolism term reads the mass at the start of the step, so a test can reproduce a tick exactly:
-- **5. Size, mass and speed** (L32–101)
+- **5. Size, mass and speed** (L32–105)
   - **5.1 Curves** (L34–53): Reviewed for feel: a starting cell crosses its own diameter in 0.16 s, a 1000-mass cell in 3 s.
-  - **5.2 Movement step (server, per tick)** (L54–82): The blend is the only drag: with no input `desired` is zero and the cell coasts to a stop within about a second.
-  - **5.3 Cell-to-cell contact** (L83–91): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
-  - **5.4 Growth, cap and mitosis (reserved)** (L92–101): at the cap still progresses the leaderboard.
+  - **5.2 Movement step (server, per tick)** (L54–86): `target` is the latest applied input, latched until replaced.
+  - **5.3 Cell-to-cell contact** (L87–95): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
+  - **5.4 Growth, cap and mitosis (reserved)** (L96–105): at the cap still progresses the leaderboard.
 
 ## ecology/wild-cells.md (139 lines)
 
