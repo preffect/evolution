@@ -15,8 +15,8 @@ const ONLY_CREATOR_MAY_DELETE = 'Only the creator can delete the game';
 
 /**
  * Generic lobby + room lifecycle. Owns pending games, active rooms, the player->game index and lobby
- * broadcasting; how a seat is freed (disconnect grace, `leave_game`, a seat taken elsewhere) is the
- * `SeatLifecycle`'s. Game logic is injected via a `GameModuleFactory` (the ONLY game seam here) and
+ * broadcasting. `LobbyManager` seats a player (create, join, start); the `SeatLifecycle` frees seats
+ * (disconnect grace, `leave_game`, a seat taken elsewhere, a deleted game, room teardown). Game logic is injected via a `GameModuleFactory` (the ONLY game seam here) and
  * room time via a `RoomTimingFactory` (docs/determinism/contract-and-clock.md §2): only the
  * composition root names the production clock and ticker.
  */
@@ -163,9 +163,7 @@ export class LobbyManager {
         sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: ONLY_CREATOR_MAY_DELETE });
         return;
       }
-      for (const playerId of pending.players.keys()) this.playerToGame.delete(playerId);
-      this.pendingGames.delete(gameId);
-      this.broadcastLobbyUpdate();
+      this.seats.deletePendingGame(gameId);
       return;
     }
     const active = this.activeRooms.get(gameId);

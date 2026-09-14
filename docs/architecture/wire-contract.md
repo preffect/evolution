@@ -104,8 +104,8 @@ export interface FoodDelta {
   (the lobby, an unknown or another room) is a no-op. The client still drops the frames that room had
   already sent (`services/left-room-filter.ts`).
 - **`join_game` / `create_game` while seated in another room** (#334): two tabs share one `clientId`, so a socket
-  can take a seat elsewhere without a `leave_game`. Once the server accepts the frame (a `join_game` for a game that
-  exists and has a free seat; a `create_game` always), it first leaves the old seat exactly as `leave_game` does,
+  can take a seat elsewhere without a `leave_game`. Once the server accepts the frame (a `join_game` for a pending game
+  with a free seat, or for any active room; a `create_game` always), it first leaves the old seat exactly as `leave_game` does,
   broadcasts included, and cancels any grace timer on it. A refused `join_game` keeps the old seat, and a `join_game`
   for the room already held is not a leave. The server code is `lobby/seat-lifecycle.ts`.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`

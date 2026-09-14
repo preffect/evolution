@@ -94,6 +94,15 @@ export class SeatLifecycle {
     this.broadcastLobbyUpdate();
   }
 
+  /** `delete_game` on a pending game (the verb checks the creator): every seat in it is freed at once. */
+  deletePendingGame(gameId: string): void {
+    const pending = this.registry.pendingGames.get(gameId);
+    if (!pending) return;
+    for (const playerId of pending.players.keys()) this.registry.playerToGame.delete(playerId);
+    this.registry.pendingGames.delete(gameId);
+    this.broadcastLobbyUpdate();
+  }
+
   /** Pending game: remove immediately (no in-progress state to preserve). */
   private leavePendingGame(pending: PendingGame, playerId: string): void {
     pending.players.delete(playerId);

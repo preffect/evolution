@@ -17,6 +17,8 @@ import {
   type TestLobby,
 } from '../testing/builders.js';
 
+// Freeing a whole pending game is pinned directly on the registry in seat-lifecycle.registry.test.ts.
+
 // The seat lifecycle is driven through the lobby's handlers, the way the router drives it.
 
 function playerDisconnectedCount(sent: SentLog, playerId: string): number {
@@ -257,6 +259,7 @@ describe('seat-lifecycle: join_game or create_game while seated in another room 
     expect(fixture.lobby.listGames()[0]?.creatorId).toBe('alice');
   });
 
+  // Defensive: over the wire `handleConnect` cancels a drop's timer before any frame arrives.
   it('cancels the old room grace timer, so it cannot unseat the player from the new room', () => {
     vi.useFakeTimers();
     const fixture = createTwoPlayerGameLobby();
