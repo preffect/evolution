@@ -1,4 +1,4 @@
-// Sheet 03's motion strips as data (docs/rendering/contents-and-motion.md §4, docs/VISUAL-STYLE.md §5). Cosmetic: the
+// Sheet 03's motion strips as data (docs/rendering/contents-and-motion.md §4, docs/visual-style/motion-and-legibility.md §5). Cosmetic: the
 // renderer tweens these, the HUD opens the picker at the end of `level_up`, the sound bus cues on
 // keyframes. Never imported by the server and excluded from `balance.json` (motion.test.ts pins
 // both). Easing names are the only spelling; the curves live in the client's `render/easing.ts`.

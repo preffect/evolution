@@ -1,4 +1,4 @@
-// Baking code-drawn textures (docs/ASSET-GENERATION.md, docs/VISUAL-STYLE.md §8): every glow,
+// Baking code-drawn textures (docs/ASSET-GENERATION.md, docs/visual-style/performance-and-checklist.md §8): every glow,
 // mote, organelle and the dish field is drawn once on a 2D canvas and blitted as a sprite. The
 // bakes draw through `BakeContext2D`, the slice of the Canvas 2D API they use, so a unit test
 // records the layers on a fake and the browser gets a real canvas from the DOM factory.
@@ -218,7 +218,7 @@ export function paintGlow(context: BakeContext2D, disc: DiscSpec, colour: string
   fillHalo(context, { ...disc, radius: disc.radius * layers.soft }, { colour, alpha: layers.softAlpha });
 }
 
-/** The specular glint: a small ellipse toward the top-left of a body, leaning with the light (VISUAL-STYLE §1). */
+/** The specular glint: a small ellipse toward the top-left of a body, leaning with the light (visual-style/principles-and-palette.md §1). */
 export function paintGlint(context: BakeContext2D, disc: DiscSpec, paint: Paint): void {
   const offset = disc.radius * BAKE_GLINT.offsetShare;
   fillEllipse(

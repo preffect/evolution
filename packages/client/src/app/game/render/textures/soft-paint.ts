@@ -1,4 +1,4 @@
-// Soft-edged primitives for the bakes (docs/VISUAL-STYLE.md §1 "one hard edge", §8 "filters run only
+// Soft-edged primitives for the bakes (docs/visual-style/principles-and-palette.md §1 "one hard edge", docs/visual-style/performance-and-checklist.md §8 "filters run only
 // at texture build time"): the sheets' `blur N` becomes a feather of N wu past a shape's rim, drawn
 // as a gradient (an ellipse) or as concentric strokes (a path), so no canvas filter is needed.
 

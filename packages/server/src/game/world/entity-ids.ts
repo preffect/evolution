@@ -1,5 +1,5 @@
 // Ids come from a per-world monotonic counter with a kind prefix, never from randomness
-// (docs/architecture/entity-model.md §2); every sort ends in `compareEntityIds` (docs/DETERMINISM.md §4).
+// (docs/architecture/entity-model.md §2); every sort ends in `compareEntityIds` (docs/determinism/ordering-and-state-hash.md §4).
 
 import { ENTITY_KIND, entityId, type EntityId, type EntityKind } from '@evolution/shared';
 

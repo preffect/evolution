@@ -5,7 +5,7 @@
 /**
  * Cap on simulation steps run for one ticker fire. After a stall the accumulator would owe
  * many ticks; running them all would stall again (spiral of death), so the surplus is dropped
- * and reported through `PerfTracker`, never silently (docs/DETERMINISM.md §2).
+ * and reported through `PerfTracker`, never silently (docs/determinism/contract-and-clock.md §2).
  */
 export const MAX_TICKS_PER_ADVANCE = 5;
 
@@ -40,5 +40,5 @@ export const GEL_PATCH_PLACEMENT_MAX_ATTEMPTS = 100;
  */
 export const INITIAL_FILL_POINT_MAX_ATTEMPTS = 1000;
 
-/** Bumped when the module's replay record changes shape (docs/DETERMINISM.md §6). */
+/** Bumped when the module's replay record changes shape (docs/determinism/replay-tests-and-traps.md §6). */
 export const REPLAY_FORMAT_VERSION = 1;

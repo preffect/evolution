@@ -61,7 +61,7 @@ the design docs (game-design/constants-and-acceptance.md §13, PROGRESSION §7, 
 ### 8.1 The evolving world (§3.1–§3.4)
 
 Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`
-([`TESTING.md §8.1`](../TESTING.md#81-writing-a-scenario)) sets wild seat `seat`'s `massSpreadFactor`
+([`testing/scenario-runner.md §8.1`](../testing/scenario-runner.md#81-writing-a-scenario)) sets wild seat `seat`'s `massSpreadFactor`
 to `spreadFactor`, places (or replaces) its cell at the stated point and clears the seat's target and
 velocity as a respawn does (no target until its next decision tick, §3.3). "Seat 0 pinned at spread
 _s_" is that call; a placed wild cell is still pinned to the world every tick, so its mass at tick _t_

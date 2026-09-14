@@ -1,4 +1,4 @@
-// The injected clock (docs/DETERMINISM.md §2). `SystemClock` is the one place in
+// The injected clock (docs/determinism/contract-and-clock.md §2). `SystemClock` is the one place in
 // packages/shared that reads wall time; everything else receives a `Clock`.
 
 /** Monotonic milliseconds. The only way to read time. */

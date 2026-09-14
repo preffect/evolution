@@ -1,4 +1,4 @@
-// The dish field (docs/VISUAL-STYLE.md §1–§2, sheet 02 field, zone and dish-wall tables): one render
+// The dish field (docs/visual-style/principles-and-palette.md §1–§2, sheet 02 field, zone and dish-wall tables): one render
 // of the whole dish at a fixed resolution, blitted as a sprite under everything: the field colour,
 // the zone tints (shallows annulus, vent disc, the gel patches with their strands), the wall's inner
 // shadow and the stage outside the wall with its scratches. The wall's crisp lines are Graphics at
@@ -8,7 +8,7 @@
 //
 // Resolution: `FIELD_TEXTURE_PX` over the dish is 0.33 px/wu, right for the tints.
 // Anything with an edge (the vent, and later the strands) belongs in its own sprite at ≥ 1 px/wu
-// (vent-bake.ts; the per-zoom-band textures of VISUAL-STYLE §8 are #223's), never in a bigger field.
+// (vent-bake.ts; the per-zoom-band textures of visual-style/performance-and-checklist.md §8 are #223's), never in a bigger field.
 // The zone noise clouds are deferred (see the PR).
 
 import {

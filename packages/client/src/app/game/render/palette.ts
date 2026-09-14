@@ -1,4 +1,4 @@
-// The eight player palettes and their derived shades (docs/VISUAL-STYLE.md §2; sheet 01's HSL rule),
+// The eight player palettes and their derived shades (docs/visual-style/principles-and-palette.md §2; sheet 01's HSL rule),
 // packed into the 8 × 8 palette texture the cell shader reads (docs/rendering/cells.md §2.3).
 
 import { PLAYER_PALETTE_COUNT, wrapAvatarIndex } from '@evolution/shared';
@@ -18,7 +18,7 @@ const CYTO_DARK_LIGHTNESS_SCALE = 0.22;
 const CYTO_DARK_SATURATION_SCALE = 0.55;
 const NUCLEUS_DARK_LIGHTNESS_SCALE = 0.45;
 const NUCLEUS_DARK_SATURATION_SCALE = 0.9;
-/** A palette added after sheet 01 derives its rim and nucleus from the base hue (VISUAL-STYLE §2). */
+/** A palette added after sheet 01 derives its rim and nucleus from the base hue (visual-style/principles-and-palette.md §2). */
 const NEW_RIM_SATURATION = 1.0;
 const NEW_RIM_LIGHTNESS = 0.85;
 const NEW_NUCLEUS_SATURATION = 0.85;
@@ -49,7 +49,7 @@ export function derivePalette(row: PlayerPaletteRow): PlayerPalette {
   };
 }
 
-/** The rim and nucleus a new palette takes from its base hue (VISUAL-STYLE §2). */
+/** The rim and nucleus a new palette takes from its base hue (visual-style/principles-and-palette.md §2). */
 export function newPaletteAccents(base: string): { rim: string; nucleus: string } {
   const { hue } = rgbToHsl(hexToRgb(base));
   return {

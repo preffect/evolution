@@ -39,7 +39,7 @@ export const BLOB_FORM: FormDefinition = {
   isRigid: false,
 };
 
-/** Keyed by the form trait (VISUAL-STYLE §4); a stage-five trait with no row draws the blob. */
+/** Keyed by the form trait (visual-style/cells-and-organelles.md §4); a stage-five trait with no row draws the blob. */
 export const FORM_PROFILES: ReadonlyMap<TraitId, FormDefinition> = new Map<TraitId, FormDefinition>([
   [
     'paramecium_cilia',

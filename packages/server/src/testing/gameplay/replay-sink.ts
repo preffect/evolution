@@ -1,4 +1,4 @@
-// Where a failing scenario's replay goes (docs/DETERMINISM.md §6): `qa/replays/<scenario>.replay.json`
+// Where a failing scenario's replay goes (docs/determinism/replay-tests-and-traps.md §6): `qa/replays/<scenario>.replay.json`
 // by default, an in-memory list in the framework's own tests. The sink is injected so the runner
 // never touches the file system on its own.
 

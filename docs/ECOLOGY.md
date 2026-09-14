@@ -10,7 +10,7 @@ spawn placement (`spawnPlacement`, [`game-design/session.md §5.2`](./game-desig
 and mote motion (`moteMotion`, label `mote_motion`: bacteria random-walk headings every tick and a
 fragment's drift direction at spawn, so the number of living bacteria never shifts a spawn point)
 and the spit-out rolls of §6.1 (`engulf`, label `engulf`: one draw per tick per wrapped or sealed prey
-whose `spitOutChancePerSecond` is positive, and none otherwise); nothing here uses wall time. Stream labels: [`DETERMINISM.md §3`](./DETERMINISM.md#3-seeded-random-streams-packagessharedsrcrandom-73).
+whose `spitOutChancePerSecond` is positive, and none otherwise); nothing here uses wall time. Stream labels: [`determinism/random-streams.md §3`](./determinism/random-streams.md#3-seeded-random-streams-packagessharedsrcrandom-73).
 
 ## Files
 

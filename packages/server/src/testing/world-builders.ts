@@ -1,4 +1,4 @@
-// Test builders for the simulation records (docs/TESTING.md §4): a world, a step context and a
+// Test builders for the simulation records (docs/testing/tiers-and-builders.md §4): a world, a step context and a
 // player record with defaults, so a shape change is one edit. Builder defaults are the only
 // tolerated inline test numbers.
 

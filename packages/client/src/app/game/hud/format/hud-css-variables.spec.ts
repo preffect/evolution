@@ -102,7 +102,7 @@ describe('hudStyleVariables', () => {
     for (const name of Object.keys(hudStyleVariables(1))) expect(name.startsWith('--hud-')).toBe(true);
   });
 
-  it('publishes each type role whole — a size with its own face (docs/VISUAL-STYLE.md §7)', () => {
+  it('publishes each type role whole — a size with its own face (docs/visual-style/ui-type.md §7)', () => {
     const variables = hudStyleVariables(1);
     expect(variables['--hud-type-body']).toBe(`${UI_TYPE.body.px}px`);
     expect(variables['--hud-font-sans']).toBe(UI_TYPE.body.font);

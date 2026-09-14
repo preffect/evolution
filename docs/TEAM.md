@@ -110,7 +110,7 @@ scripts/land-pr.sh 57 --reviewers "architect gameplay-qa"    # code-qa is always
    `./validate.sh <phase> --scope ...` on what it reviews and never needs a stamp; builders iterate
    the same way, with no gate when the PR is ready and no re-gate after fixes; whoever merges runs
    `./validate.sh all --affected` once on the final head, right before the merge
-   (`docs/ENGINEERING.md` §1).
+   (`docs/engineering/validation-gate.md` §1).
 2. If anyone objects, or any thread (including Copilot's) is unresolved, ONE engineer run fixes
    every reviewer's threads together, replies on every thread and merges `origin/main` into the
    branch (no rebase: it would mark every thread outdated). Authors never resolve their own threads.
@@ -156,6 +156,6 @@ document is `docs/GAME-DESIGN.md` as the design tickets name it.
 
 ## Definition of Done (per ticket)
 
-`docs/ENGINEERING.md` Definition of Done, plus: the PR closed the ticket, every review thread is
+`docs/engineering/conventions-and-done.md` §6 Definition of Done, plus: the PR closed the ticket, every review thread is
 resolved, docs describing the behaviour were updated in the same PR, and (for anything visible or
 playable) the PR carries evidence from graphics-qa or gameplay-qa.

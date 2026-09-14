@@ -152,7 +152,7 @@ export const LABEL_PILL_BAKE = {
   stretchPx: 2,
 } as const;
 
-/** The two BitmapFont installs (VISUAL-STYLE §7 roles): one shared install each, named for `BitmapText`. */
+/** The two BitmapFont installs (visual-style/ui-type.md §7 roles): one shared install each, named for `BitmapText`. */
 export const INDICATOR_FONT = {
   value: {
     name: 'evolution-indicator-value',

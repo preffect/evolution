@@ -107,7 +107,7 @@ status.
 5. Merge only after `./validate.sh all --affected` passes on the final head, run once by whoever
    merges right before the merge, with all threads resolved and all checks green. Builders and
    reviewers run scoped checks only: no gate when a PR is ready, no re-gate after review fixes, and
-   no stamp for a reviewer (`docs/ENGINEERING.md` §1).
+   no stamp for a reviewer (`docs/engineering/validation-gate.md` §1).
    The author never merges their own PR when a reviewer role exists.
 6. **After merge** the human's running game redeploys itself within a minute (the deploy watcher
    `./run.sh` starts in `/workspace`); the lead checks `.game-logs/deploy.log` and tells the human to hard-refresh.
@@ -123,7 +123,7 @@ and the replies on its own threads — it does not re-review the whole PR and do
 docs — resolves or re-opens its threads on that basis, and its verdict comment says
 `round 2 (diff-only)`. **Reviewers run scoped checks, never the gate**: a reviewer runs
 `./validate.sh <phase> --scope <package or path>` on what it reviews and never needs a stamp
-(`docs/ENGINEERING.md` §1). The **lead
+(`docs/engineering/validation-gate.md` §1). The **lead
 resolves purely mechanical round-two threads** (a rename, a moved constant, deleted dead code,
 verified by diff) itself instead of a further reviewer pass.
 

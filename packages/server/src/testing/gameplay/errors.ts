@@ -1,4 +1,4 @@
-// Failures the scenario runner raises (docs/TESTING.md §8). Every message names the scenario,
+// Failures the scenario runner raises (docs/testing/scenario-runner.md §8). Every message names the scenario,
 // the seed and the tick, so a red gameplay test is reproducible from its output alone.
 
 const INDENT = '  ';

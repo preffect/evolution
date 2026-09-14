@@ -52,7 +52,7 @@ function roomInitOptionsOf(pending: PendingGame): RoomInitOptions {
  * Generic lobby + room lifecycle. Owns pending games, active rooms, the
  * player->game index, disconnect grace timers and lobby broadcasting. Game
  * logic is injected via a `GameModuleFactory` (the ONLY game seam here) and
- * room time via a `RoomTimingFactory` (docs/DETERMINISM.md §2): only the
+ * room time via a `RoomTimingFactory` (docs/determinism/contract-and-clock.md §2): only the
  * composition root names the production clock and ticker.
  */
 export class LobbyManager {

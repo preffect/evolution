@@ -1,4 +1,4 @@
-// The one line geometry of a cell (docs/rendering/contents-and-motion.md §3, docs/VISUAL-STYLE.md §4): the flagellum
+// The one line geometry of a cell (docs/rendering/contents-and-motion.md §3, docs/visual-style/cells-and-organelles.md §4): the flagellum
 // tail, 2 r long behind the cell, two sine waves travelling away from it, amplitude per tier,
 // doubled on sprint, two tails at tier III. `flagellumPolyline` is pure; `FlagellumLines` draws
 // every tail of the frame into one Graphics, under the body so the root is buried in the membrane.
@@ -100,7 +100,7 @@ interface TailStroke {
   readonly alpha: number;
 }
 
-/** The outer glow stroke under the white core (VISUAL-STYLE §4 `FLAGELLUM` 3 px white core). */
+/** The outer glow stroke under the white core (visual-style/cells-and-organelles.md §4 `FLAGELLUM` 3 px white core). */
 const OUTER_STROKE: TailStroke = { widthPx: FLAGELLUM_OUTER_PX, colour: FLAGELLUM, alpha: FLAGELLUM_OUTER_ALPHA };
 const CORE_STROKE: TailStroke = { widthPx: FLAGELLUM_CORE_PX, colour: WHITE, alpha: 1 };
 

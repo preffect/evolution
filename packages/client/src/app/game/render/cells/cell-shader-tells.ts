@@ -1,6 +1,6 @@
-// The trait tells of pass B (docs/rendering/cells.md §2.2, docs/VISUAL-STYLE.md §4): the rigid cell
+// The trait tells of pass B (docs/rendering/cells.md §2.2, docs/visual-style/cells-and-organelles.md §4): the rigid cell
 // wall outside the membrane, the leaning cilia hairs (a flat band at mid LOD), the engulf-warning
-// ring in the undeformed frame (VISUAL-STYLE §5) and the absorbed ghost's dashed outline. Every
+// ring in the undeformed frame (visual-style/motion-and-legibility.md §5) and the absorbed ghost's dashed outline. Every
 // membrane band is a band of `d`; the ring tracks the instance's centre and snaps with the LOD.
 
 import {
@@ -64,7 +64,7 @@ vec4 cilia(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uCilia, mix(flatBand, full, inst.lodBlend));
 }
 
-/** The outline goes dashed as the ghost dissolves (VISUAL-STYLE §5 "rim dashes"). */
+/** The outline goes dashed as the ghost dissolves (visual-style/motion-and-legibility.md §5 "rim dashes"). */
 float rimDashMask(Instance inst, Frame frame) {
   float dashed = dash(frame.theta * frame.rPx, ${glslFloat(GHOST_RIM_DASH_PX[0])}, ${glslFloat(GHOST_RIM_DASH_PX[1])});
   return mix(1.0, dashed, inst.rimDash);

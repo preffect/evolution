@@ -1,4 +1,4 @@
-// The client's one injected clock (docs/DETERMINISM.md §2, docs/CODE-STANDARDS.md §8): game code
+// The client's one injected clock (docs/determinism/contract-and-clock.md §2, docs/CODE-STANDARDS.md §8): game code
 // under `app/game/` reads time through this token, never through the wall clock. Tests provide a
 // `ManualClock`.
 

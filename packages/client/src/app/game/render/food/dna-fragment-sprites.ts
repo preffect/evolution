@@ -1,4 +1,4 @@
-// What a DNA fragment sprite looks like this frame (docs/VISUAL-STYLE.md §2, §5): the helix bake of
+// What a DNA fragment sprite looks like this frame (docs/visual-style/principles-and-palette.md §2, docs/visual-style/motion-and-legibility.md §5): the helix bake of
 // its tag, spinning 20 °/s from a phase drawn once from the fragment's cosmetic fork so the field
 // never turns in lockstep, sized by the bake's px per wu. Pure; the food layer applies it.
 

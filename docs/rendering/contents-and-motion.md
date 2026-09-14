@@ -25,22 +25,22 @@ glow and the toxin bladder's `TOXIN_GLOW` are baked the same way.
   promises is that the sprite **body** never crosses the membrane, not that the 0.08 r margin survives: the 0.34 r
   toxin bladder's own radius reaches the ring exactly, so its annulus is degenerate — every bladder sits at
   `DNA_RING_KEEP_OUT_FRACTION` with only its angle varying, and its body touches the membrane from within with zero
-  clearance, #243; VISUAL-STYLE
+  clearance, #243; visual-style/cells-and-organelles.md
   §3; the inner bound is `ui/components-and-constants.md §9`'s and applies to every cell, so no slot centre sits under the own cell's DNA ring
   from 31 px up, `ui/hud.md §3.1.3`), outside the nucleus disc (0.30 r), with gap `ORGANELLE_MIN_GAP` 0.04 r (new). Slots are appended, never reshuffled, so a tier-up
   adds a bean without moving the others.
 - **Lag.** `q' = q − LAG · k · ĥ`, `NUCLEUS_LAG` 0.20 (sheet 01 / 03) for every organelle; nucleus rest drift
-  2 % r from the strip (VISUAL-STYLE §5).
+  2 % r from the strip (visual-style/motion-and-legibility.md §5).
 - **Mapping.** `p = c + |q'| · r(θ_q') · û(q')`: the same radial profile the shader draws, so cytoplasm flows into
   an engulf arm in proportion to ρ and stretches with the body. Sprites scale (`size × r × pulse`) and pulse
-  (mitochondrion 1.15 × on sprint; toxin 1.0 → 1.08 at 1 Hz; vacuoles rise and pop every 2 s: VISUAL-STYLE §4)
+  (mitochondrion 1.15 × on sprint; toxin 1.0 → 1.08 at 1 Hz; vacuoles rise and pop every 2 s: visual-style/cells-and-organelles.md §4)
   but are never sheared; their outlines are part of the baked sprite.
 - **Line geometry, only two:** flagella (`cells/flagellum-lines.ts`: 3 px white core over a 5 px `FLAGELLUM`
   glow, `FLAGELLUM_SEGMENTS` 32 round-joined segments rooted on the deformed rear membrane (`r(θ)` at `h + π`, so a tapered rear still carries its tail), 2 r long, two sine waves opposite velocity at `FLAGELLUM_WAVE_HZ`, amplitude × 1 / 1.5 / 2, tier III two
   tails spread `FLAGELLUM_TAIL_SPREAD_DEG`, sprint × 2, phase from the cosmetic fork) and the stentor anchor
   (#121), in one `Graphics` per frame drawn **under pass A** so the root is buried in the membrane. Cilia,
   filaments and speckle are shader patterns (§2.2).
-- **Nucleus ramp (#231, VISUAL-STYLE §3).** The nucleus disc is the last band of pass A (`cell-shader-bands.ts`
+- **Nucleus ramp (#231, visual-style/cells-and-organelles.md §3).** The nucleus disc is the last band of pass A (`cell-shader-bands.ts`
   `nucleusRamp`, after the filaments so their inner ends are buried): a disc of radius `nucleusDiscRadii` × r ×
   pulse at `inst.nucleus` (the same mapped point the sprite sits on, so the sprite's rim stays concentric
   through drift, lag and the level-up pulse), its edge a `smoothstep` over `frame.aa` like the body fill, returning
@@ -53,7 +53,7 @@ glow and the toxin bladder's `TOXIN_GLOW` are baked the same way.
   instance float in what was then a free channel (§2.3; the row stayed 16 texels until the sprint ring, #295), two `SHADE_*` defines the shader already has the
   columns for (`PALETTE_SHADE.nucleus`, `.nucleusDark`), one distance, two `mix`es and one `smoothstep` per
   fragment inside the quad, and no new texture; the sprite layer stays at eight textures. **How it reads:**
-  VISUAL-STYLE §3 (44 px: the pale-to-dark turn spans the 13 px disc; 140 px: an analytic gradient past panel A's
+  visual-style/cells-and-organelles.md §3 (44 px: the pale-to-dark turn spans the 13 px disc; 140 px: an analytic gradient past panel A's
   128 px scale, never upsampled; mid band: the mid tone as one disc).
 - **Preview.** `previewTraitId` is folded into the own cell's trait list at the offered tier for rendering only.
 
@@ -107,7 +107,7 @@ export const sampleTrack: (
 ) => number;
 ```
 
-| Clip              | Domain, length             | Keyframes (sheet 03 strips table; VISUAL-STYLE §5)                                                                                                                                                                      | Tracks                                                                                                                                                                                                                  |
+| Clip              | Domain, length             | Keyframes (sheet 03 strips table; visual-style/motion-and-legibility.md §5)                                                                                                                                             | Tracks                                                                                                                                                                                                                  |
 | ----------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `eat`             | ms, 300, interruptible     | keyframes at 0 approach → 100 wrap → 160 pulse → 220 absorb → 300 settle (sheet 03's "contact 50" is a label inside the first tween, not a keyframe); `ease_out_quad` · `ease_out_back` · `linear` · `ease_in_out_sine` | `dimple`, `wrap`, `pulse`, `stretchAlong`, `stretchAcross`, `haloRadii`                                                                                                                                                 |
 | `engulf`          | progress, 1.0              | 0 contact → 0.5 wrap → 1.0 seal; `ease_out_cubic` · `ease_in_out_quad`; values in the engulf table below                                                                                                                | `arm`, `notch`, `seal`                                                                                                                                                                                                  |
@@ -141,17 +141,17 @@ At the wrap frame (pulse 1, k 0, lobes and jitter zeroed) the profile is therefo
 
 ## 5. LOD
 
-Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them). One
+Screen radius is `r × zoom` in CSS px (visual-style/motion-and-legibility.md §6 thresholds; `resolution` does not move them). One
 instance field, `lodBlend`, fades the **interior bands** in a `LOD_FADE_BAND_PX` 6 (new) window under the full
 threshold so nothing pops; the interior organelle sprites and hairs fade in with zoom the same way, and the
 far-dot swap at `CELL_LOD_FAR_MAX_PX` is a snap by design. **The fade never touches the identity, stage and
 danger tells:** the seat mark, the self ring, the warning ring and the nucleus / nucleoid sprite (the stage tell,
 one disc through the mid band) snap at the far threshold (a bead at 40 % alpha during a fade is a bead that
-cannot be counted; VISUAL-STYLE §2 designed 1–4 beads to be countable at 8 px).
+cannot be counted; visual-style/principles-and-palette.md §2 designed 1–4 beads to be countable at 8 px).
 
-| On-screen radius                   | Drawn                                                                                                                                                                                                                        |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ≥ `CELL_LOD_FULL_MIN_PX` 20        | every band, sprites, lines                                                                                                                                                                                                   |
-| `CELL_LOD_FAR_MAX_PX` 8 → 20 (mid) | the VISUAL-STYLE §6 kept set, nothing else; the outline keeps the full profile (§2.1), the nucleus / nucleoid is one sprite, cilia are a flat band (§2.2)                                                                    |
-| < 8 (far dot)                      | body band as a rim-colour dot, floor `CELL_FAR_DOT_MIN_PX` 3, halo band to `FAR_DOT_HALO_RADII` 3.0 (VISUAL-STYLE §6 "halo ×3", named here for the quad extent, §2); same shader, no sprites, no seat mark (VISUAL-STYLE §2) |
-| Motes                              | core floor `MOTE_CORE_MIN_PX` 2; small sprite variant below zoom 0.5 (VISUAL-STYLE §6, §8)                                                                                                                                   |
+| On-screen radius                   | Drawn                                                                                                                                                                                                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ≥ `CELL_LOD_FULL_MIN_PX` 20        | every band, sprites, lines                                                                                                                                                                                                                                                      |
+| `CELL_LOD_FAR_MAX_PX` 8 → 20 (mid) | the visual-style/motion-and-legibility.md §6 kept set, nothing else; the outline keeps the full profile (§2.1), the nucleus / nucleoid is one sprite, cilia are a flat band (§2.2)                                                                                              |
+| < 8 (far dot)                      | body band as a rim-colour dot, floor `CELL_FAR_DOT_MIN_PX` 3, halo band to `FAR_DOT_HALO_RADII` 3.0 (visual-style/motion-and-legibility.md §6 "halo ×3", named here for the quad extent, §2); same shader, no sprites, no seat mark (visual-style/principles-and-palette.md §2) |
+| Motes                              | core floor `MOTE_CORE_MIN_PX` 2; small sprite variant below zoom 0.5 (visual-style/motion-and-legibility.md §6, visual-style/performance-and-checklist.md §8)                                                                                                                   |

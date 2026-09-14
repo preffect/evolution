@@ -1,4 +1,4 @@
-// Every colour the renderer and the HUD draw (docs/VISUAL-STYLE.md §2 and the sheet tables it
+// Every colour the renderer and the HUD draw (docs/visual-style/principles-and-palette.md §2 and the sheet tables it
 // links). One hex, one name; draw code never holds a literal. Derived shades are computed in
 // render/palette.ts, never listed here.
 
@@ -33,7 +33,7 @@ export const BUBBLE_INNER_RING = LIGHT_ACCENT;
 export const BUBBLE_FILL_RIM = '#a6f4ff';
 export const BUBBLE_FILL_MID = '#3d7fc4';
 
-// ---- food (sheet 02, VISUAL-STYLE §2) ----
+// ---- food (sheet 02, visual-style/principles-and-palette.md §2) ----
 export const FOOD_MOTE = '#8dff6a';
 export const FOOD_MOTE_EDGE = '#3f9a2c';
 export const FOOD_MOTE_RIM = '#dcffb0';
@@ -87,7 +87,7 @@ export const OUTLINE = '#020509';
 /** The one white: glints, seat-mark cores, the self ring, the protocell film light. */
 export const WHITE = '#ffffff';
 
-// ---- effects and UI (sheet 03, VISUAL-STYLE §2) ----
+// ---- effects and UI (sheet 03, visual-style/principles-and-palette.md §2) ----
 export const DANGER = '#ff5470';
 export const LEVEL_GOLD = '#ffe08a';
 export const DNA = '#d36bff';
@@ -96,7 +96,7 @@ export const PANEL_TOP = '#0e1f33';
 export const PANEL_BOTTOM = '#060e1a';
 export const PANEL_RIM = '#173250';
 export const UI_ACCENT = LIGHT_ACCENT;
-/** The callout backing role (VISUAL-STYLE §2): text over the dish sits on it; sheet 02's `#04070d` is the deep field. */
+/** The callout backing role (visual-style/principles-and-palette.md §2): text over the dish sits on it; sheet 02's `#04070d` is the deep field. */
 export const CALLOUT_BACKING = BG_DEEP;
 export const TEXT = '#dfeaf2';
 export const TEXT_LABEL = '#8fb3c9';
@@ -106,7 +106,7 @@ export const LEVEL_RING_TRACK = '#132238';
 export const DEPTH_FAR_TINTS = ['#ffffff', '#c4f0ff', '#9fe8f5', '#7fb8ff'] as const;
 export const DEPTH_NEAR = '#dff4ff';
 
-/** Fragments show their tag in the helix rungs and wide halo (VISUAL-STYLE §2). */
+/** Fragments show their tag in the helix rungs and wide halo (visual-style/principles-and-palette.md §2). */
 export const DNA_TAG_COLOR: Readonly<Record<DnaTag, string>> = {
   [DNA_TAG.motile]: '#66ecff',
   [DNA_TAG.metabolic]: '#ffb15a',
@@ -124,7 +124,7 @@ export interface PlayerPaletteRow {
   readonly nucleus: string;
 }
 
-/** Seat order (VISUAL-STYLE §2): the first k seats are mutually far apart on the hue wheel. */
+/** Seat order (visual-style/principles-and-palette.md §2): the first k seats are mutually far apart on the hue wheel. */
 export const PLAYER_PALETTE_TABLE: readonly PlayerPaletteRow[] = [
   { name: 'Cyan', base: '#22c1d6', rim: '#a6f4ff', nucleus: '#6fdcef' },
   { name: 'Coral', base: '#ff6b5c', rim: '#ffd0c8', nucleus: '#ff9a8c' },
@@ -136,7 +136,7 @@ export const PLAYER_PALETTE_TABLE: readonly PlayerPaletteRow[] = [
   { name: 'Rose', base: '#bc5768', rim: '#ffb2bf', nucleus: '#f47187' },
 ];
 
-/** Separability acceptance (VISUAL-STYLE §2), CIEDE2000. */
+/** Separability acceptance (visual-style/principles-and-palette.md §2), CIEDE2000. */
 export const PALETTE_PAIR_MIN_DELTA_E = 15;
 export const NEW_PALETTE_MIN_DELTA_E = 15;
 export const TAG_PAIR_MIN_DELTA_E = 15;

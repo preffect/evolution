@@ -1,4 +1,4 @@
-// The canonical walk helpers behind `computeStateHash` (docs/DETERMINISM.md §5): records by a
+// The canonical walk helpers behind `computeStateHash` (docs/determinism/ordering-and-state-hash.md §5): records by a
 // declared field list, closed-enum records by the enum's declared array, arrays in order.
 // Never `Object.keys`. `computeStateHash(world)` composes these over `HASHED_FIELDS` once the
 // world state lands (#98); until then the echo harness hashes text through `hashText`.

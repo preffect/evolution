@@ -1,4 +1,4 @@
-// What a mote sprite looks like this frame (docs/VISUAL-STYLE.md §2, §5, §6): the atlas key per
+// What a mote sprite looks like this frame (docs/visual-style/principles-and-palette.md §2, docs/visual-style/motion-and-legibility.md §5–§6): the atlas key per
 // kind and variant, the small variant below the zoom threshold, the breath (±6 % at a rate and
 // phase drawn once from the mote's cosmetic fork), the bacterium's tumble and heading, and the px
 // floors of the core and the wide halo. Pure; the food layer applies the result to particles.
@@ -98,7 +98,7 @@ export function drawMoteCosmetics(cosmetic: RandomSource, id: EntityId): MoteCos
   };
 }
 
-/** ±6 % at 0.3–0.6 Hz, phase per mote (VISUAL-STYLE §5). */
+/** ±6 % at 0.3–0.6 Hz, phase per mote (visual-style/motion-and-legibility.md §5). */
 export function moteBreath(cosmetics: MoteCosmetics, timeSeconds: number): number {
   const turns = cosmetics.breathHz * timeSeconds + cosmetics.breathPhase;
   return 1 + MOTE_BREATH_AMPLITUDE * Math.sin(RADIANS_PER_FULL_TURN * turns);
@@ -111,7 +111,7 @@ export function flooredRadiusWu(key: MoteSpriteKey, zoom: number): number {
   return Math.max(BODY_RADIUS_WU[key], coreFloor, haloFloor);
 }
 
-/** A rod tumbles ±15° about its heading as it walks (VISUAL-STYLE §5). */
+/** A rod tumbles ±15° about its heading as it walks (visual-style/motion-and-legibility.md §5). */
 function bacteriumTumble(cosmetics: MoteCosmetics, timeSeconds: number): number {
   const turns = BACTERIUM_TUMBLE_HZ * timeSeconds + cosmetics.tumblePhase;
   return degreesToRadians(BACTERIUM_TUMBLE_DEG) * Math.sin(RADIANS_PER_FULL_TURN * turns);

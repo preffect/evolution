@@ -1,4 +1,4 @@
-// Architecture guard (docs/ENGINEERING.md §2.3, docs/CODE-STANDARDS.md §8): no wall clock and
+// Architecture guard (docs/engineering/testing-and-typescript.md §2.3, docs/CODE-STANDARDS.md §8): no wall clock and
 // no Math.random in packages/shared outside the modules allowed to hold them. Lint (#69)
 // enforces the same ban per call site; this test proves the package as a whole, comments aside.
 

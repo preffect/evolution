@@ -1,4 +1,4 @@
-// docs/DETERMINISM.md §6, §7: recording a run then replaying it reproduces `finalHash`; a reseed
+// docs/determinism/replay-tests-and-traps.md §6, §7: recording a run then replaying it reproduces `finalHash`; a reseed
 // starts a new recording that also reproduces.
 import { describe, expect, it } from 'vitest';
 import { ENTITY_KIND, createTestGameInput, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
@@ -88,7 +88,7 @@ describe('replay', () => {
     expect(recording.finalTick).toBe(ROOM_TICKS + 12);
     expect(recording.inputs).toEqual([]);
     // A reseed keeps the running world and rebuilds only the streams, so the recording after it
-    // is not reproducible from seed + roster alone and replay() refuses it (docs/DETERMINISM.md §6).
+    // is not reproducible from seed + roster alone and replay() refuses it (docs/determinism/replay-tests-and-traps.md §6).
     expect(recording.startedBy).toBe(REPLAY_ORIGIN.reseed);
     expect(() => replay(recording)).toThrow(ReplayOriginError);
   });

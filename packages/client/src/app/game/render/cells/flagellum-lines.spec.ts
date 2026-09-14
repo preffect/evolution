@@ -1,4 +1,4 @@
-// docs/VISUAL-STYLE.md §4 `simple_flagellum`: 2 r long, two waves opposite velocity, amplitude per tier, two tails at III.
+// docs/visual-style/cells-and-organelles.md §4 `simple_flagellum`: 2 r long, two waves opposite velocity, amplitude per tier, two tails at III.
 
 import { describe, expect, it, vi } from 'vitest';
 import { FLAGELLUM_LENGTH_RADII, FLAGELLUM_SEGMENTS } from '../constants';

@@ -1,6 +1,6 @@
 // A uniform grid over positioned entities (docs/architecture/server-simulation.md §3.3): rebuilt every tick,
 // never part of the state. `queryCircle` answers "whose centre lies within `radius` of a
-// point", id-sorted (docs/DETERMINISM.md §4) so callers walk the hits in one order.
+// point", id-sorted (docs/determinism/ordering-and-state-hash.md §4) so callers walk the hits in one order.
 
 import type { EntityId } from '@evolution/shared';
 import { sortByEntityId } from './entity-ids.js';

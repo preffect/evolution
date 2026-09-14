@@ -1,4 +1,4 @@
-// Client test builders (docs/TESTING.md §4): the views the state layer reads, with defaults so a
+// Client test builders (docs/testing/tiers-and-builders.md §4): the views the state layer reads, with defaults so a
 // test names only what it asserts on. Builder defaults are the only tolerated inline numbers.
 
 import {

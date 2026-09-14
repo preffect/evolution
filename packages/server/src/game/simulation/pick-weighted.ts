@@ -1,4 +1,4 @@
-// One weighted draw over a list (docs/DETERMINISM.md §3): the caller passes the items and how each
+// One weighted draw over a list (docs/determinism/random-streams.md §3): the caller passes the items and how each
 // weighs, the source picks the index. The one home of the parallel-array lookup every table draw
 // in the spawner needs (kind, zone, variant, tag).
 

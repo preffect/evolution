@@ -1,4 +1,4 @@
-// Builds a round's world (docs/architecture/entity-model.md §2, docs/DETERMINISM.md §3): forks the server
+// Builds a round's world (docs/architecture/entity-model.md §2, docs/determinism/random-streams.md §3): forks the server
 // streams from the round seed, places the gel patches, spawns every roster member by safe
 // placement (join order), then runs the initial fill. Both the room's first round and every
 // rematch come through here; a rematch passes the incremented seed and the continued counters.

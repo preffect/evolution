@@ -1,4 +1,4 @@
-// docs/DETERMINISM.md §3: one weighted draw over a list, the index from the seeded source.
+// docs/determinism/random-streams.md §3: one weighted draw over a list, the index from the seeded source.
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';

@@ -2,7 +2,7 @@
 // state, the client tick counter and the one send per client tick. The adapters feed it decided
 // actions, the world seam tells it what is alive and what is offered, and `pump()` — called once
 // per animation frame — turns the elapsed time into whole `TICK_HZ` ticks through the injected
-// clock. Nothing here reads the wall clock, a timer or `Math.random` (docs/DETERMINISM.md §1).
+// clock. Nothing here reads the wall clock, a timer or `Math.random` (docs/determinism/contract-and-clock.md §1).
 
 import {
   FixedStepAccumulator,
@@ -49,7 +49,7 @@ export interface InputControllerDependencies {
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
 }
 
-/** What the dev-only debug hook reports about the input layer (docs/TESTING.md §8.3). */
+/** What the dev-only debug hook reports about the input layer (docs/testing/bots-and-design-tables.md §8.3). */
 export interface InputDebugState {
   readonly lastSentInput: GameInput | null;
   readonly heldSteerDirections: readonly SteerDirection[];

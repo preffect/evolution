@@ -1,5 +1,5 @@
 // The stored stream states become live sources for one step and are written back after it
-// (docs/DETERMINISM.md §3). The resume-and-write-back happens here and in step.ts only; a system
+// (docs/determinism/random-streams.md §3). The resume-and-write-back happens here and in step.ts only; a system
 // never touches `world.random`. Between ticks (a late join, a debug spawn) the module resumes one
 // stream through `withStream`, which writes back before returning.
 

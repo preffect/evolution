@@ -11,7 +11,7 @@ import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-pro
  *
  * The room always drives a `GameModule` over the wire types; the type parameters exist for the
  * gameplay testing framework, whose adapters run stand-in modules (the echo, a toy world) that
- * speak their own snapshot shape (docs/TESTING.md §8).
+ * speak their own snapshot shape (docs/testing/scenario-runner.md §8).
  */
 export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
   /** Store/merge the latest input for a player (called from the message router). */
@@ -73,7 +73,7 @@ export type GameModuleFactory = (options: RoomInitOptions) => GameModule;
  * init step with the real game logic. Its one debug capability is the in-process bot pair
  * (`spawnBot` / `removeBot`, docs/architecture/debug-mcp.md §8): a bot is a player whose input the module
  * produces itself at the start of each tick, from the snapshot of the tick before, stamped with
- * that tick as its sequence (inputs start at tick 1, docs/TESTING.md §8.1).
+ * that tick as its sequence (inputs start at tick 1, docs/testing/scenario-runner.md §8.1).
  */
 export function createEchoModule(options: RoomInitOptions): GameModule<GameInput, EchoSnapshot> {
   const latestInputByPlayer = new Map<string, GameInput>();

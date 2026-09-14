@@ -18,7 +18,7 @@ scoped checks   →  list the ones you ran (e.g. ./validate.sh test --scope serv
 - [ ] **SOLID / single responsibility**; composition over `switch` towers; clock/random/transport injected
 - [ ] **Size limits** — files ≤ 300 lines, functions ≤ 40, complexity ≤ 10, ≤ 4 params
 - [ ] **Full descriptive names** — no abbreviations (allow `x`, `y`, `id`); predicate booleans; units in names
-- [ ] **Unit tests** for all new logic; **integration test** if crossing a subsystem; **gameplay scenario** if rules/balance changed; coverage floors held (`docs/TESTING.md`)
+- [ ] **Unit tests** for all new logic; **integration test** if crossing a subsystem; **gameplay scenario** if rules/balance changed; coverage floors held (`docs/testing/tiers-and-builders.md` §5)
 - [ ] **Determinism preserved** — no `Math.random` / `Date.now` / `performance.now` in simulation code
 - [ ] **Docs in sync** — `README.md` / `CLAUDE.md` / `docs/WORKFLOW.md` (and any doc describing what changed) updated in this PR and consistent with each other; template-level fixes upstreamed to `base-multiplayer-game`
 - [ ] Constants / `data/*.json` updated

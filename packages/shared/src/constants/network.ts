@@ -13,10 +13,10 @@ export const TICK_HZ = 60;
 /**
  * Derived fixed-step interval in milliseconds. Fractional (16.67 ms): timer APIs round to
  * whole milliseconds, so the cadence comes from the FixedStepAccumulator counting due ticks
- * from the injected clock, never from `setInterval(TICK_INTERVAL_MS)` alone (docs/DETERMINISM.md §2).
+ * from the injected clock, never from `setInterval(TICK_INTERVAL_MS)` alone (docs/determinism/contract-and-clock.md §2).
  */
 export const TICK_INTERVAL_MS = MILLISECONDS_PER_SECOND / TICK_HZ;
-/** The same interval in seconds: the only `dt` the simulation ever sees (docs/DETERMINISM.md §1). */
+/** The same interval in seconds: the only `dt` the simulation ever sees (docs/determinism/contract-and-clock.md §1). */
 export const TICK_INTERVAL_S = 1 / TICK_HZ;
 
 /** Grace window before a disconnected player is fully removed from a room. */

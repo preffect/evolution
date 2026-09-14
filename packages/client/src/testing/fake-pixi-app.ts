@@ -1,4 +1,4 @@
-// Test double (docs/TESTING.md §4): a `PixiAppHandle` with no WebGL behind it. The stage is a real
+// Test double (docs/testing/tiers-and-builders.md §4): a `PixiAppHandle` with no WebGL behind it. The stage is a real
 // `Container` so layers and views build as in the app; the ticker records its callbacks so a test
 // runs frames by hand; `render` counts submits; the baker records its radial specs, hands out
 // recording canvases (`fake-bake-canvas.ts`) and turns every bake into a 1×1 texture.

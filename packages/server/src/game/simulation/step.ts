@@ -1,5 +1,5 @@
 // One tick (docs/architecture/server-simulation.md §3): the fixed step order every scenario table assumes
-// (docs/DETERMINISM.md §1). `stepWorld` mutates the world in place and returns what happened to
+// (docs/determinism/contract-and-clock.md §1). `stepWorld` mutates the world in place and returns what happened to
 // the round; `runStep` wraps it with the one resume-and-write-back of the random streams.
 //
 //   1 inputs      2 round      3 movement (+ separation, pins)   4 eating   5 metabolism

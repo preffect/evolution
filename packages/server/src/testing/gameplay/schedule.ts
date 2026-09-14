@@ -1,4 +1,4 @@
-// The input schedule (docs/TESTING.md §8): which script feeds which player before which step.
+// The input schedule (docs/testing/scenario-runner.md §8): which script feeds which player before which step.
 // "At tick T" means the command is submitted between tick T − 1 and tick T, so step T applies
 // it (docs/ecology/acceptance.md §8: the fixture acts between ticks). Joins and leaves use the same stamp.
 

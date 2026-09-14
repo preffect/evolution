@@ -1,4 +1,4 @@
-// Unit (docs/TESTING.md §2): `GameRoom`'s side of the snapshot backpressure of
+// Unit (docs/testing/tiers-and-builders.md §2): `GameRoom`'s side of the snapshot backpressure of
 // docs/architecture/wire-contract.md §4 (#266) — who is sent this broadcast's delta, who is sent a `game_state`
 // instead, and who is sent nothing. The decision itself is `snapshot-backlog.test.ts`; the wire is
 // `reconnect-snapshots.integration.test.ts`.

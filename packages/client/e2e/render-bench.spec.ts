@@ -1,4 +1,4 @@
-// The bench route smoke (docs/TESTING.md §1 UI tier, docs/rendering/budget.md §7, docs/rendering/files-and-tests.md §9): the fixed-seed scene draws
+// The bench route smoke (docs/testing/tiers-and-builders.md §1 UI tier, docs/rendering/budget.md §7, docs/rendering/files-and-tests.md §9): the fixed-seed scene draws
 // on SwiftShader without page or shader errors, two fresh loads of the same seed, tick and zoom are
 // pixel-identical and a step changes them, the frame-budget report lands in the DOM with every stage key, the
 // draw calls stay under the §6 ceiling at two zoom bands, and the report and screenshots land under
@@ -10,7 +10,7 @@ import { expect, test, type Page } from '@playwright/test';
 const SCREENSHOT_DIR = '../../.qa/screenshots';
 const BENCH_SEED = 42;
 const BENCH_TICK = 120;
-/** VISUAL-STYLE §9's three zoom bands. */
+/** visual-style/performance-and-checklist.md §9's three zoom bands. */
 const ZOOMS = [1.8, 1, 0.36] as const;
 /** The bands the draw-call ceiling is asserted at: the widest field of view and the reference one. */
 const CEILING_ZOOMS = [1.8, 1] as const;

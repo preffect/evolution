@@ -1,4 +1,4 @@
-// Replay and determinism checks (docs/DETERMINISM.md §5–6). A replay rebuilds the module from
+// Replay and determinism checks (docs/determinism/ordering-and-state-hash.md §5, docs/determinism/replay-tests-and-traps.md §6). A replay rebuilds the module from
 // the recorded seed, config and fixtures, feeds the recorded joins, leaves, patches and inputs
 // before the ticks they were applied in, and hashes at the recorded checkpoints; the first
 // checkpoint that differs is the divergence, reported with the seed and the tick.
@@ -124,7 +124,7 @@ export async function replayScenario<Input, Snapshot, Fixture>(
 ): Promise<ReplayVerdict> {
   const session = new ScenarioSession(adapter, {
     scenarioName: replay.scenarioName,
-    // The record's own seed is the one the recording started from (docs/DETERMINISM.md §6).
+    // The record's own seed is the one the recording started from (docs/determinism/replay-tests-and-traps.md §6).
     config: { ...replay.config, seed: replay.seed },
     players: playersOfReplay(replay),
     fixtures: replay.fixtures,

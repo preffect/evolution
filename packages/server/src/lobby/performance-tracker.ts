@@ -19,7 +19,7 @@ export interface PerformanceStats {
   tickP95Ms: number;
   tickPeakMs: number;
   broadcastBytesPerSec: number;
-  /** Ticks the fixed-step cap discarded after stalls (docs/DETERMINISM.md §2); cumulative. */
+  /** Ticks the fixed-step cap discarded after stalls (docs/determinism/contract-and-clock.md §2); cumulative. */
   droppedTicks: number;
   worstTick: TickRecord | null;
 }

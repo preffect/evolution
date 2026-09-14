@@ -1,4 +1,4 @@
-// docs/game-design/session.md §5.4 (G2) and docs/DETERMINISM.md §3, §7: the round boundaries and the rematch.
+// docs/game-design/session.md §5.4 (G2) and docs/determinism/random-streams.md §3 and docs/determinism/replay-tests-and-traps.md §7: the round boundaries and the rematch.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, EFFECT_KIND, playerId, ROUND_PHASE } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';

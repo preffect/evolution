@@ -1,11 +1,11 @@
-// Runs a recording back (docs/DETERMINISM.md §6): a fresh world from the recorded seed, config,
+// Runs a recording back (docs/determinism/replay-tests-and-traps.md §6): a fresh world from the recorded seed, config,
 // balance and roster, then tick by tick the joins and leaves, the debug patches and the inputs
 // the recording stamped for that tick, each fed exactly the way the module fed them, and the
 // same step, then the events stamped for the tick after the last one (what was pending when the
 // recording was exported: they are already in `finalHash`). Callers compare the returned hash
 // with `recording.finalHash`. The log is bucketed by tick once (`index-by-tick.ts`, the fold the
 // scenario framework's replay shares). Within one tick the order is membership, then debug
-// patches, then inputs, not arrival order (docs/DETERMINISM.md §8, #180).
+// patches, then inputs, not arrival order (docs/determinism/replay-tests-and-traps.md §8, #180).
 
 import type { StateHash } from '@evolution/shared';
 import { applyDebugPatch } from '../debug/debug-operations.js';
@@ -30,7 +30,7 @@ export interface ReplayResult {
   readonly hash: StateHash;
 }
 
-/** A recording that no fresh world can reproduce: one opened by `debug_set_seed` (docs/DETERMINISM.md §6). */
+/** A recording that no fresh world can reproduce: one opened by `debug_set_seed` (docs/determinism/replay-tests-and-traps.md §6). */
 export class ReplayOriginError extends Error {
   constructor(message: string) {
     super(message);

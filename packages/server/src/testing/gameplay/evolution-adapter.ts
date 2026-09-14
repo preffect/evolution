@@ -1,4 +1,4 @@
-// The scenario adapter for the Evolution module (docs/TESTING.md §8): the Evolution bot binding
+// The scenario adapter for the Evolution module (docs/testing/scenario-runner.md §8): the Evolution bot binding
 // (`game/bots/evolution-binding.ts`) plus the scenario duties. The snapshot the scripts and the
 // expectations see is the full snapshot of the tick plus that tick's effects and the spawners'
 // counters (E2, E14 count spawns, not populations), with exact positions, read through the module's

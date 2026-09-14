@@ -9,9 +9,9 @@ numbers") unless a table below says otherwise. Units follow `VISUAL-STYLE.md`: w
 
 **Decisions that supersede earlier text.** The concept sheets are SVGs built from per-layer blur and
 turbulence filters; **SVG is a spec, never a runtime asset**, and nothing in `render/` loads, parses or
-rasterises one. `VISUAL-STYLE.md §8`'s "36-point membrane as `Graphics` geometry, one shader effect only"
+rasterises one. `visual-style/performance-and-checklist.md §8`'s "36-point membrane as `Graphics` geometry, one shader effect only"
 was the pre-#120 intent; its goals (nothing filtered per frame, glows as cached sprites, deformations as
-functions of `t` and the cosmetic stream) stand, its means are replaced by §2 below. `DETERMINISM.md §7`'s
+functions of `t` and the cosmetic stream) stand, its means are replaced by §2 below. `determinism/replay-tests-and-traps.md §7`'s
 `membrane-mesh.spec.ts` is `cells/radial-profile.spec.ts` (§9). `architecture/client.md §6, architecture/constants-files-tests.md §10` link here.
 
 ## Files

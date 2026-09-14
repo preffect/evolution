@@ -7,7 +7,7 @@
 Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour
 (core + soft + wide + glint, `ASSET-GENERATION.md §1.5`) for motes, fragments, halos and effect rings; the dish
 (field, zone tints and clouds, mire strands, vent crust, wall) is one render texture per zoom band
-(VISUAL-STYLE §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
+(visual-style/performance-and-checklist.md §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
 the vent shimmer is the one filter, over the vent sprite only. Draw calls at the bench load (§7):
 
 | Layer (`architecture/client.md §6`) | Container                                                                                                                                                                    | Calls |
@@ -29,7 +29,7 @@ free) and only bacteria positions change per snapshot.
 
 ### 6.1 The condenser light pool (#222)
 
-`VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it. It is **one sprite in the dish layer's world
+`visual-style/principles-and-palette.md §1` anchors the pool to the view (option A); #242 builds it. It is **one sprite in the dish layer's world
 container**, between the field sprite and the vent sprite, that the layer re-places every frame with the inverse
 camera transform so it stays fixed on screen while everything over it scrolls. It cannot live in the screen root
 with the vignette: it must sit under the motes, fragments, cells and the vent, and the field under it is opaque.
@@ -62,7 +62,7 @@ with the vignette: it must sit under the motes, fragments, cells and the vent, a
 - **Composition:** normal blend, the alpha lives in the texture; no mask, no filter, no per-frame bake. Dish
   layer order: field, light pool, vent, wall, far particles. The shallows tint is under it in the field texture
   and stacks with it; the vignette (screen root) stays above everything and is 0 at the pool's centre
-  (VISUAL-STYLE §1).
+  (visual-style/principles-and-palette.md §1).
 - **Cost:** one draw call (the dish row above; the total is ≤ 17), one sprite transform per frame (the one point
   `screenToWorld` returns; no texture, buffer or bake work per frame).
 - **Tests:** a fake-context spec (`testing/fake-bake-canvas.ts`, the `dish-texture.spec.ts` pattern): the canvas

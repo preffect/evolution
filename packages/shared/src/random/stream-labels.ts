@@ -1,4 +1,4 @@
-// Random stream labels (docs/DETERMINISM.md §3, docs/CODE-STANDARDS.md §2). Each subsystem
+// Random stream labels (docs/determinism/random-streams.md §3, docs/CODE-STANDARDS.md §2). Each subsystem
 // forks its own stream from the round seed by one of these labels, so adding a draw to one
 // subsystem never changes what another one produces.
 
@@ -56,7 +56,7 @@ export type ServerRandomStreamLabel = Exclude<RandomStreamLabel, typeof RANDOM_S
 /**
  * The streams `createWorld` forks on the server, in declared order: the order they are forked
  * from the round seed and the walk order of `world.random` in the state hash (never
- * `Object.keys`, DETERMINISM §3, §5). Declared by hand rather than filtered from
+ * `Object.keys`, determinism/random-streams.md §3, determinism/ordering-and-state-hash.md §5). Declared by hand rather than filtered from
  * `RANDOM_STREAM_LABELS` so the narrowing is by declaration, not by a type guard.
  */
 export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [

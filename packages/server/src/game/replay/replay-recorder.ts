@@ -1,4 +1,4 @@
-// Records what the simulation saw (docs/DETERMINISM.md §6): joins, leaves, the coalesced inputs
+// Records what the simulation saw (docs/determinism/replay-tests-and-traps.md §6): joins, leaves, the coalesced inputs
 // step 1 applies and the debug patches, each stamped with the tick they apply at. One replay is
 // one round: the rematch and `debug_set_seed` close the recording and start a new one from the
 // new seed.

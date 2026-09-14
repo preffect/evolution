@@ -1,5 +1,5 @@
 // The one world a room owns (docs/architecture/entity-model.md §2) and the context every system receives
-// (§3). Plain data throughout (docs/DETERMINISM.md §1): arrays in insertion order, the random
+// (§3). Plain data throughout (docs/determinism/contract-and-clock.md §1): arrays in insertion order, the random
 // streams as serialisable state, no class instances.
 
 import type {
@@ -48,10 +48,10 @@ export interface WorldState {
   wildSeats: WildSeatRecord[];
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState };
-  /** The server streams' state, walked in `SERVER_RANDOM_STREAM_LABELS` order (docs/DETERMINISM.md §3, §5). */
+  /** The server streams' state, walked in `SERVER_RANDOM_STREAM_LABELS` order (docs/determinism/random-streams.md §3, docs/determinism/ordering-and-state-hash.md §5). */
   random: Record<ServerRandomStreamLabel, RandomState>;
   nextEntityNumber: number;
-  /** The counter this round's world was built from (a rematch continues it): what a replay rebuilds with (docs/DETERMINISM.md §6). */
+  /** The counter this round's world was built from (a rematch continues it): what a replay rebuilds with (docs/determinism/replay-tests-and-traps.md §6). */
   roundFirstEntityNumber: number;
   /** Effects since the last broadcast, drained by `serializeDelta` every `SNAPSHOT_EVERY_TICKS` ticks. */
   effects: GameEffect[];

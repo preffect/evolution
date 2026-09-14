@@ -1,5 +1,5 @@
 // Step 6 (docs/ecology/absorption.md §6.1, §6.2, §6.3): the engulf lifecycle. Every pair of cells is walked
-// id-sorted (docs/DETERMINISM.md §4), so "two predators reach one prey" resolves to the lower cell
+// id-sorted (docs/determinism/ordering-and-state-hash.md §4), so "two predators reach one prey" resolves to the lower cell
 // id without a tie-break of its own. Per pair, in the order §6.1 fixes: start, ratio, phase,
 // spit-out, progress, then seal or payout. The formulas are shared and pure
 // (`simulation/engulf-pace.ts`); the ratio and spit-out verdict is `resolveEngulfHold`; the record

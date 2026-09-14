@@ -1,7 +1,7 @@
 // The bots the Evolution module drives itself (`debug_spawn_bot`, docs/architecture/debug-mcp.md §8): an
 // in-process roster bound to the room's live balance, stepped before each tick on the full
 // snapshot of the tick before, its inputs stamped with the coming tick as their sequence
-// (docs/TESTING.md §8.1: inputs start at tick 1). The roster owns the pilots; the module owns the
+// (docs/testing/scenario-runner.md §8.1: inputs start at tick 1). The roster owns the pilots; the module owns the
 // players and records their inputs like anyone else's, so a replay needs no bot.
 
 import type { GameInput, GameSnapshot, PlayerId } from '@evolution/shared';

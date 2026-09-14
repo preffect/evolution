@@ -19,7 +19,7 @@ import {
 const SERVER_SOURCE_DIR = new URL('../../../server/src', import.meta.url).pathname;
 const BALANCE_FILE = new URL('../../../../data/balance.json', import.meta.url);
 
-/** Sheet 03's strips table plus VISUAL-STYLE §5: clip → [domain, duration, keyframe times]. */
+/** Sheet 03's strips table plus visual-style/motion-and-legibility.md §5: clip → [domain, duration, keyframe times]. */
 const SHEET_03 = {
   [MOTION_CLIP.eat]: { domain: MOTION_DOMAIN.milliseconds, duration: 300, at: [0, 100, 160, 220, 300] },
   [MOTION_CLIP.engulf]: { domain: MOTION_DOMAIN.progress, duration: 1, at: [0, 0.5, 1] },

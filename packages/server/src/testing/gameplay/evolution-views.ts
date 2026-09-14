@@ -1,4 +1,4 @@
-// Selectors over the Evolution scenario snapshot (docs/TESTING.md §8.1): what a table row reads
+// Selectors over the Evolution scenario snapshot (docs/testing/scenario-runner.md §8.1): what a table row reads
 // of a player index at a tick. Each answers `undefined` when the thing is gone (a cell after
 // death), which every matcher fails with "got undefined".
 

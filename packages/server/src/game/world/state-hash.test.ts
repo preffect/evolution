@@ -1,4 +1,4 @@
-// docs/DETERMINISM.md §5, §7: equal worlds hash equal, any hashed field change moves the hash, NaN
+// docs/determinism/ordering-and-state-hash.md §5, docs/determinism/replay-tests-and-traps.md §7: equal worlds hash equal, any hashed field change moves the hash, NaN
 // throws, and every non-derived record field is listed.
 import { describe, expect, it } from 'vitest';
 import { FOOD_KIND, StateHashError, createTestGameInput } from '@evolution/shared';

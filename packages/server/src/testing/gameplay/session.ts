@@ -1,4 +1,4 @@
-// One live module under the runner (docs/TESTING.md §8): the roster, the per-player input
+// One live module under the runner (docs/testing/scenario-runner.md §8): the roster, the per-player input
 // sequences and random streams, the cached snapshot of the current tick, the captured values,
 // and the replay log of everything the module was fed. Both the scenario run and its replay
 // drive a session; only what feeds it differs.

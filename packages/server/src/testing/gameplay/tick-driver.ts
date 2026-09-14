@@ -1,4 +1,4 @@
-// Drives a scenario the way the room loop does (docs/DETERMINISM.md §2): a `ManualClock` is
+// Drives a scenario the way the room loop does (docs/determinism/contract-and-clock.md §2): a `ManualClock` is
 // advanced in bursts no larger than the accumulator's cap, `dueTicks()` says how many steps are
 // owed, and every step runs the hooks around it. Wall time never enters; the clock is the test's.
 // The tick count is the truth: the clock is positioned at the absolute time of the tick each

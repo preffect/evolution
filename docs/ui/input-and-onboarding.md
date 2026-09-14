@@ -93,14 +93,14 @@ something on the cell, never at a corner.
 - **Floors.** Every on-cell indicator meets §3.1.3's floors at every camera zoom; the fact carriers are the DNA
   fill (≥ 4 px), the numeral (`value`), the pips (countable) and the threat label (`label`); a ghost is a hint and
   may be the only thing that shrinks toward its 14 px floor.
-- **Backing.** Text over the dish always sits on the callout backing role (VISUAL-STYLE §2, blurred for DOM); the
+- **Backing.** Text over the dish always sits on the callout backing role (visual-style/principles-and-palette.md §2, blurred for DOM); the
   renderer's labels sit on the **label pill**: the callout backing at `LABEL_PILL_ALPHA`, `LABEL_PILL_HEIGHT_PX`
   tall with `LABEL_PILL_PAD_PX` at each end, and, for the threat and escape labels, a `DANGER_LABEL_RIM_PX` rim in
   the danger colour around `WHITE` text (danger text on the backing is 6.3:1 and fails the floor below; the rim
   keeps danger a colour + text tell). Panels use the panel gradient and rim roles. Contrast: `body` text ≥ 4.5:1
   against its backing, values, the numeral and the threat and escape labels ≥ 7:1 (measured 19.4:1 on the rendered
   pill of the size sheet), muted labels ≥ 3:1 and never carry a fact on their own.
-- **Type.** Roles only (VISUAL-STYLE §7), in the DOM and in the renderer's text alike. The smallest role this doc
+- **Type.** Roles only (visual-style/ui-type.md §7), in the DOM and in the renderer's text alike. The smallest role this doc
   uses is `caption` (clock caption, leaderboard header, chips); nothing is set smaller, and no
   element in this doc uses a size outside the role list. Anything a player must read is `label` or larger; changing
   numbers (clock, countdowns, the level numeral, picker timer) use the mono roles (`number`, `clock`, `value`) so
