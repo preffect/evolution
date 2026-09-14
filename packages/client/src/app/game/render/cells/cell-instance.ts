@@ -23,7 +23,7 @@ export interface CellInstance {
   readonly axialAlong: number;
   readonly axialAcross: number;
   readonly pulse: number;
-  /** Sprint brightens the rim light (VISUAL-STYLE §5). */
+  /** Sprint brightens the rim light (visual-style/motion-and-legibility.md §5). */
   readonly rimBrightness: number;
   /** The mapped nucleus slot, fractions of `r`, cell frame. */
   readonly nucleusOffsetX: number;
@@ -41,14 +41,14 @@ export interface CellInstance {
   /** The strip's lobes scale and jitter amplitude; 0 when the strip is off. */
   readonly lobesScale: number;
   readonly jitterAmplitude: number;
-  // ---- the trait tells (#216, VISUAL-STYLE §4): 0 where the trait is not owned ----
+  // ---- the trait tells (#216, visual-style/cells-and-organelles.md §4): 0 where the trait is not owned ----
   readonly ciliaCount: number;
   readonly wallScale: number;
   readonly speckleDensity: number;
   readonly filamentCount: number;
   /** The membrane's mix toward `CHLORO_BASE`. */
   readonly tintMix: number;
-  /** The engulf-warning ring's radius in px; 0 when this cell cannot engulf the viewer (VISUAL-STYLE §5). */
+  /** The engulf-warning ring's radius in px; 0 when this cell cannot engulf the viewer (visual-style/motion-and-legibility.md §5). */
   readonly warningRingPx: number;
   /** `FORM_ID` (forms/form-profiles.ts); the blob is 0. */
   readonly formId: number;

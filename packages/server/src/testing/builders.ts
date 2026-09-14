@@ -1,4 +1,4 @@
-// Test builders (docs/TESTING.md §4): every server test constructs its fixtures here, so a
+// Test builders (docs/testing/tiers-and-builders.md §4): every server test constructs its fixtures here, so a
 // shape change is one edit. Builder defaults are the only tolerated inline test numbers.
 import { vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';

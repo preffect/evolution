@@ -1,4 +1,4 @@
-// The DNA fragment sprite (docs/VISUAL-STYLE.md §2, sheet 02): two strands crossing as sines, the
+// The DNA fragment sprite (docs/visual-style/principles-and-palette.md §2, sheet 02): two strands crossing as sines, the
 // tag-coloured rungs between them, the strand halo and the tag's wide halo. One bake per tag, so a
 // fragment is one sprite.
 

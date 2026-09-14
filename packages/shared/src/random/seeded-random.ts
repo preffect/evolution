@@ -1,4 +1,4 @@
-// The RandomSource implementation (docs/DETERMINISM.md §3): xoshiro128** behind the helpers
+// The RandomSource implementation (docs/determinism/random-streams.md §3): xoshiro128** behind the helpers
 // every subsystem uses, forks by label hash, and exact resume from serialised state.
 
 import { RADIANS_PER_FULL_TURN } from '../constants/units.js';

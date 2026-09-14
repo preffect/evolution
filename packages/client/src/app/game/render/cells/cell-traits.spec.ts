@@ -34,7 +34,7 @@ describe('summariseCellTraits', () => {
     expect(summary.tierOf('cilia')).toBe(0);
   });
 
-  it('reads the tiered tell counts from the trait tables (VISUAL-STYLE §4)', () => {
+  it('reads the tiered tell counts from the trait tables (visual-style/cells-and-organelles.md §4)', () => {
     const summary = summariseCellTraits(
       createTestCellView({
         stage: CELL_STAGE.eukaryote,

@@ -146,7 +146,7 @@ describe('radial profile r(θ)', () => {
     }
   });
 
-  it('reproduces the same profile for the same seed and tick (DETERMINISM §7)', () => {
+  it('reproduces the same profile for the same seed and tick (determinism/replay-tests-and-traps.md §7)', () => {
     const build = () => sampleProfileRing(stripTerms(5, 0.25), RAYS);
     expect(build()).toEqual(build());
     const other = buildNoiseStrip(createSeededRandom(TEST_SEED + 1));

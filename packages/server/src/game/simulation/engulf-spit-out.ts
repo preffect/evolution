@@ -34,7 +34,7 @@ export function noSpitOutDraw(phase: EngulfPhase): EngulfSpitOutDraw {
 
 /**
  * This tick's spit-out draw. The `engulf` stream is touched only for a wrapped or sealed prey whose
- * chance is positive, so a dish without spiny cells never advances it (docs/DETERMINISM.md §3) and
+ * chance is positive, so a dish without spiny cells never advances it (docs/determinism/random-streams.md §3) and
  * the roll is `null` when no draw was made.
  */
 export function spitOutDrawFor(prey: CellRecord, phase: EngulfPhase, context: StepContext): EngulfSpitOutDraw {

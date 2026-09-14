@@ -2,7 +2,7 @@
 // pool (light-pool-bake.ts), the mire strands scattered over each gel patch and the stage scratches
 // outside the wall. All are drawn into a coarse bake (the 0.33 px/wu field, the pool at 0.52 × 0.67
 // texel/wu), so a stroke thinner than `FIELD_MIN_STROKE_TEXELS` is widened to that and read by its
-// alpha alone; the per-band detail sprites of VISUAL-STYLE §8 are #223's.
+// alpha alone; the per-band detail sprites of visual-style/performance-and-checklist.md §8 are #223's.
 
 import { DISH_RADIUS, RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';

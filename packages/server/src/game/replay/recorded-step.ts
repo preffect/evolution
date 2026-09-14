@@ -1,4 +1,4 @@
-// One module tick with its recording (docs/DETERMINISM.md §6): the pending inputs are logged as
+// One module tick with its recording (docs/determinism/replay-tests-and-traps.md §6): the pending inputs are logged as
 // what step 1 applies, the world is stepped, and a rematch (the seed moved, docs/GAME-DESIGN.md
 // §5.4) closes the recording at the rematch tick with the rebuilt world's hash and opens the
 // next round's. The tick's effects stay in `world.effects` for the broadcast to drain.

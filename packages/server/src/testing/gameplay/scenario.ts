@@ -1,4 +1,4 @@
-// The scenario DSL (docs/TESTING.md §8): typed builders, no string parsing. A table row reads
+// The scenario DSL (docs/testing/scenario-runner.md §8): typed builders, no string parsing. A table row reads
 //
 //   await scenario('E9: A absorbs B').seed(42).players(2)
 //     .placeCell({ playerIndex: 0, mass: 100 }).placeCell({ playerIndex: 1, mass: 20, eastOfFirstCellWu: 10 })

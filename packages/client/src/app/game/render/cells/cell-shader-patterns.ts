@@ -120,7 +120,7 @@ vec3 bumpAt(int slot) {
 vec3 shade(Instance inst, int column) {
   return texelFetch(uPalette, ivec2(column, int(inst.palette + HALF)), 0).rgb;
 }
-/** The membrane's base and rim, tinted toward the chloroplast base with the trait (VISUAL-STYLE §4). */
+/** The membrane's base and rim, tinted toward the chloroplast base with the trait (visual-style/cells-and-organelles.md §4). */
 vec3 baseColour(Instance inst) { return mix(shade(inst, SHADE_BASE), shade(inst, SHADE_CHLORO_BASE), inst.tintMix); }
 vec3 rimColour(Instance inst) { return mix(shade(inst, SHADE_RIM), shade(inst, SHADE_CHLORO_BASE), inst.tintMix * RIM_TINT_SHARE); }
 

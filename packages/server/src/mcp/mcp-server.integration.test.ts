@@ -1,4 +1,4 @@
-// Integration (docs/TESTING.md §2): the /debug-mcp mount answers JSON-RPC `tools/list` and
+// Integration (docs/testing/tiers-and-builders.md §2): the /debug-mcp mount answers JSON-RPC `tools/list` and
 // `tools/call` over Fastify's in-process injection, proving the transport + tool registration
 // + zod argument wire.
 import { describe, expect, it } from 'vitest';

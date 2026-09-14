@@ -39,7 +39,7 @@ function colourUniform(hex: string): { value: readonly number[]; type: typeof CO
   return { value: hexToRgb(hex), type: COLOUR_TYPE };
 }
 
-/** The VISUAL-STYLE §2 colours the bands paint, one uniform each (the palette shades come from the texture). */
+/** The visual-style/principles-and-palette.md §2 colours the bands paint, one uniform each (the palette shades come from the texture). */
 const COLOUR_UNIFORMS: Readonly<Record<string, string>> = {
   [CELL_UNIFORM.white]: WHITE,
   [CELL_UNIFORM.outline]: OUTLINE,

@@ -46,7 +46,7 @@ packages/shared/src/
 packages/server/src/
   lobby/{game-room,ticker,snapshot-backlog}.ts                   room drives the accumulator via Ticker; snapshot-backlog: per-client flow control on the acknowledged tick and the resync it owes (§4, #266)
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
-  game/world/{world-state,entities,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (DETERMINISM §5)
+  game/world/{world-state,entities,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
   game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
@@ -57,11 +57,11 @@ packages/server/src/
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
   game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
   game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives
-  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (TESTING.md §8.3); #156 adds flee
+  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (testing/bots-and-design-tables.md §8.3); #156 adds flee
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
   testing/builders.ts   testing/world-builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; createTestWorld / createTestStepContext / createTestPlayerRecord over the records; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
   testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)
-  testing/gameplay/{evolution-adapter,evolution-fixtures,evolution-views}.ts   the Evolution ScenarioAdapter (TESTING §8), the placed and world fixtures on a live world, the table selectors
+  testing/gameplay/{evolution-adapter,evolution-fixtures,evolution-views}.ts   the Evolution ScenarioAdapter (testing/scenario-runner.md §8), the placed and world fixtures on a live world, the table selectors
   testing/bot-client/{bot-session,bot-swarm,bot-timing,bot-transport,web-socket-transport,cli,cli-arguments,errors}.ts   the headless wire client (#15): one bot's protocol, N bots, its clock + ticker, the transport seam, the `ws` transport, the CLI and its parser, BotClientError
   testing/scenarios/{ecology-spawn,ecology-cells,game-design-session,game-design-controls,progression}.gameplay.test.ts (+ shared-setups.ts)   the design tables by row (#102)
 packages/client/src/app/game/
@@ -72,7 +72,7 @@ packages/client/src/app/game/
   input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: rendering/files-and-tests.md §8)
-  clock-provider.ts                                             the injected Clock token (DETERMINISM §2)
+  clock-provider.ts                                             the injected Clock token (determinism/contract-and-clock.md §2)
   state/{game-state.service,game-event-bus,snapshot-transitions}.ts   the signal facade; the moment seam of section 6 and its snapshot detector
   state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor, ladderFor (ui/hud.md §3.1.4)
   audio/audio-hooks.ts                                          AudioHooks.connect(options): the composition root's one audio call (AUDIO.md §5)
@@ -80,7 +80,7 @@ packages/client/src/app/game/
   audio/{audio-backend,web-audio-backend,audio-tokens}.ts       the Web Audio seam, its production impl, the injection tokens (AUDIO.md §5)
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
   hud/{hud-constants,test-ids,trait-glyphs}.ts                  (components and file roles: ui/components-and-constants.md §7)
-  ../testing/{builders,fake-websocket,fake-audio-backend,fake-audio-context}.ts   client test doubles (TESTING.md §4)
+  ../testing/{builders,fake-websocket,fake-audio-backend,fake-audio-context}.ts   client test doubles (testing/tiers-and-builders.md §4)
 assets/audio/manifest.json                                      event → files, mood, length, prompt hint (AUDIO.md §4); the files are gitignored
 data/balance.json                                               generated (section 9): `pnpm generate:balance`
 scripts/generate-balance.ts
@@ -91,7 +91,7 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
 `ENDOSYMBIOSIS_BACTERIA_REQUIRED` from `ladder.ts`, so there is no runtime cycle. On the server,
 `game/bots` ← `game/*` and `testing/*`, never the reverse: no production file imports `src/testing/`.
 
-## 11. Test plan (`ENGINEERING.md §2`, `DETERMINISM.md §7`)
+## 11. Test plan (`engineering/testing-and-typescript.md §2`, `determinism/replay-tests-and-traps.md §7`)
 
 - **Unit:** every system and progression function with a `createTestWorld` builder; movement
   kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip;

@@ -1,4 +1,4 @@
-// Integration (docs/TESTING.md §2): a client that reloads into a running room, over real sockets
+// Integration (docs/testing/tiers-and-builders.md §2): a client that reloads into a running room, over real sockets
 // and the real game module (its snapshots carry the world tick this asserts on),
 // through the /ws route and the lobby into the room's broadcast loop. #266 measured a reconnected
 // client whose view stopped tracking the server; what the room owes it is a `game_state` and then a
@@ -45,7 +45,7 @@ const WAIT_ATTEMPTS = 400;
  * Resolves when `predicate` holds. A test on the wire waits for two kinds of thing — a message that
  * has arrived and a decision the room has taken — and the second is announced by nothing, so this
  * polls rather than listening. It lives here rather than in `src/testing/` because the timer ban of
- * docs/DETERMINISM.md §1 is lifted for test files only.
+ * docs/determinism/contract-and-clock.md §1 is lifted for test files only.
  */
 function waitFor(predicate: () => boolean): Promise<void> {
   return new Promise((resolve, reject) => {

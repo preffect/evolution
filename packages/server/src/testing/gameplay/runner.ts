@@ -1,4 +1,4 @@
-// The headless scenario runner (docs/TESTING.md §8). Given a built definition and an adapter it
+// The headless scenario runner (docs/testing/scenario-runner.md §8). Given a built definition and an adapter it
 // creates the module, drives it tick by tick under the manual clock, feeds joins, leaves,
 // scheduled fixtures and scripted inputs before the step they apply in, records the replay,
 // stores the captures and evaluates every expectation at its tick. One run reports every

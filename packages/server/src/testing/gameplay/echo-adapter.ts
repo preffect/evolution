@@ -1,7 +1,7 @@
-// The adapter for the template's echo module (docs/TESTING.md §8): it proves the harness before
+// The adapter for the template's echo module (docs/testing/scenario-runner.md §8): it proves the harness before
 // any rule exists. It is the echo bot binding (`game/bots/bot-binding.ts`: no perception, the
 // echo's input mapping) plus the scenario duties: the hash is the FNV lanes over the bytes of
-// `JSON.stringify(serializeRoomState())` (docs/DETERMINISM.md §7), cells cannot be located (a
+// `JSON.stringify(serializeRoomState())` (docs/determinism/replay-tests-and-traps.md §7), cells cannot be located (a
 // script that needs one fails the run, it does not idle) and nothing can be placed. #98 replaces
 // this with the Evolution adapter.
 

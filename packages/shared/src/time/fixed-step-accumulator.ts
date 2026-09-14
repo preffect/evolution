@@ -1,4 +1,4 @@
-// Turns wall time into whole simulation ticks (docs/DETERMINISM.md §2). Owns the accumulator,
+// Turns wall time into whole simulation ticks (docs/determinism/contract-and-clock.md §2). Owns the accumulator,
 // never the state: the room steps the world `dueTicks()` times per ticker fire.
 
 import { TICK_INTERVAL_MS } from '../constants/network.js';

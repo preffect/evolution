@@ -207,7 +207,7 @@ roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
 - **Records keyed by a closed enum** (`dnaTagPoints: Record<DnaTag, number>`,
   `bacteriaEatenByVariant: Record<BacteriumVariant, number>`) are walked in the enum's declared
   array order (`DNA_TAGS`, `BACTERIUM_VARIANTS`), never by `Object.keys`; that is what lets the
-  state hash cover them (`DETERMINISM.md §5`).
+  state hash cover them (`determinism/ordering-and-state-hash.md §5`).
 - Ids come from a per-world monotonic counter with a kind prefix (`c-17`, `m-2041`, `f-9`),
   never from randomness. `ENTITY_KIND = { cell: 'cell', foodMote: 'food_mote', dnaFragment: 'dna_fragment' }`
   is the debug-tool filter vocabulary; `organismId` (= own id in Build 1), the `dividing` state and
@@ -231,7 +231,7 @@ export interface WorldState {
   wildSeats: WildSeatRecord[]; // seat order (ecology/wild-cells.md §3.3)
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ecology/food-and-spawn.md §3)
-  random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (DETERMINISM §3, §5)
+  random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (determinism/random-streams.md §3, determinism/ordering-and-state-hash.md §5)
   nextEntityNumber: number;
   effects: GameEffect[]; // this tick's effects, drained by serialize (cell_absorbed, eat, level_up, …)
 }

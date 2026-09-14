@@ -36,7 +36,7 @@ export function findCell(world: WorldState, cellId: EntityId): CellRecord | unde
   return world.cells.find((cell) => cell.id === cellId);
 }
 
-/** Removes by identity, preserving order (docs/DETERMINISM.md §4: never swap-remove). */
+/** Removes by identity, preserving order (docs/determinism/ordering-and-state-hash.md §4: never swap-remove). */
 export function removeFromArray<Item>(items: Item[], item: Item): void {
   const index = items.indexOf(item);
   if (index >= 0) {

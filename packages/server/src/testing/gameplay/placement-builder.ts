@@ -1,4 +1,4 @@
-// The placement half of the DSL (docs/TESTING.md §8.1): `.placeCell(...)` on the scenario is a
+// The placement half of the DSL (docs/testing/scenario-runner.md §8.1): `.placeCell(...)` on the scenario is a
 // setup fixture (applied before tick 1); `.atTick(T).placeCell(...)` schedules the same record
 // to be applied between tick T − 1 and tick T. One scheduler class serves both, bound to the
 // tick it stamps, so the placement convention is written once. The placed records are accepted by

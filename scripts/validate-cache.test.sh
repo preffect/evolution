@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# validate-cache.test.sh — exercises validate.sh's result cache (docs/ENGINEERING.md §1) against a
+# validate-cache.test.sh — exercises validate.sh's result cache (docs/engineering/validation-gate.md §1) against a
 # throwaway git repo with a fake `pnpm` on PATH, so it runs without node_modules:
 #   second run is cached; an untracked file change invalidates; --fresh re-runs; red is never
 #   cached; `all` stamps its phases and itself (an `all` hit prints ALL PASSED and filters see every

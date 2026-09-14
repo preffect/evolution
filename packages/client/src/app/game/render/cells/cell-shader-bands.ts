@@ -4,7 +4,7 @@
 // units, the ribosome speckle on a hashed grid, the cytoskeleton filaments from the nucleus and,
 // last, the nucleus ramp (#231): the disc under the nucleus sprite as a three-stop radial ramp.
 // Everything under the organelle sprites. The pools, the noise and the interior tells fade with
-// `lodBlend`; the trait halo and the nucleus ramp do not (the mid-LOD tells, VISUAL-STYLE §4, §6).
+// `lodBlend`; the trait halo and the nucleus ramp do not (the mid-LOD tells, visual-style/cells-and-organelles.md §4, visual-style/motion-and-legibility.md §6).
 
 import {
   BODY_RAMP_ALPHAS,

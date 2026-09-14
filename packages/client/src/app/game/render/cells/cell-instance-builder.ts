@@ -1,6 +1,6 @@
 // From one frame's view, traits, terms, LOD and placements to the instance record the shader
 // reads (docs/rendering/cells.md §2.3). Pure: a table of assignments, kept out of the render state so
-// that class stays small. The engulf-warning ring (VISUAL-STYLE §5) is decided here from the
+// that class stays small. The engulf-warning ring (visual-style/motion-and-legibility.md §5) is decided here from the
 // shared `canEngulf`, the same call the server and the HUD chip make.
 
 import { SEAT_MARK_BEADS, canEngulf, type BalanceConfig, type CellView } from '@evolution/shared';
@@ -46,9 +46,9 @@ export interface CellInstanceInput {
 const REST_RIM_BRIGHTNESS = 1;
 const NO_WARNING_RING = 0;
 const FULL_PASS_B = 1;
-/** No nucleus ramp: the nucleoid and the protocell have no disc (VISUAL-STYLE §3). */
+/** No nucleus ramp: the nucleoid and the protocell have no disc (visual-style/cells-and-organelles.md §3). */
 const NO_NUCLEUS_DISC = 0;
-/** A seat with no bead entry still shows one bead (VISUAL-STYLE §2). */
+/** A seat with no bead entry still shows one bead (visual-style/principles-and-palette.md §2). */
 const DEFAULT_BEADS = 1;
 
 /**
@@ -105,7 +105,7 @@ function surfaceFields(
   };
 }
 
-/** The trait tells (VISUAL-STYLE §4) and the form, straight from the summary; the tells snap off with the far dot. */
+/** The trait tells (visual-style/cells-and-organelles.md §4) and the form, straight from the summary; the tells snap off with the far dot. */
 function tellFields(
   traits: CellTraitSummary,
   lod: CellLod,

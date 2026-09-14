@@ -1,4 +1,4 @@
-// The input path end to end (docs/TESTING.md §2.2): a real pointer event and a real key press on
+// The input path end to end (docs/testing/tiers-and-builders.md §2.2): a real pointer event and a real key press on
 // the composed game, through the camera and the client tick, to the `player_input` the multiplayer
 // service would send. What each piece decides is unit-tested; this pins that they are wired.
 

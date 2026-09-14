@@ -70,7 +70,7 @@ Teammates have NO context about the project unless you give it to them in the pr
 >   pass/fail, bugs with reproduction steps, and screenshots/evidence paths.
 > - Iterate on scoped runs (`./validate.sh test --scope ...`) and report what they covered. Nobody
 >   runs the full gate before merge: whoever merges runs `./validate.sh all --affected` once, right
->   before the merge (`docs/ENGINEERING.md` §1).
+>   before the merge (`docs/engineering/validation-gate.md` §1).
 
 ---
 

@@ -14,7 +14,7 @@ Procedure:
 1. `gh pr view <N> --json title,body,files,labels` then `gh pr diff <N>`; read the changed files
    in full in the working directory (the PR branch is checked out there).
 2. Check with scoped runs only; never run the full gate and never ask for a stamp (the gate runs
-   once at merge, `docs/ENGINEERING.md` §1). Run the new
+   once at merge, `docs/engineering/validation-gate.md` §1). Run the new
    tests scoped (`./validate.sh test --scope <path>`, and `lint --scope` on the changed files); try to
    break the change with an extra test case.
 3. Check: magic values, duplicated logic, unit size, naming, error handling, test coverage of

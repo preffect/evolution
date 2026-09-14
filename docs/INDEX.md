@@ -54,45 +54,26 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **4. SOLID, applied** (L111–140): loader.
 - **5. Small units (lint-enforced sizes, #69)** (L141–169): Split along a responsibility seam; never suppress the rule in game code and never compress working code to dodge a count.
 - **6. Full descriptive names** (L170–199): `connection` not `conn`, `message` not `msg`, `context` not `ctx`.
-- **7. Simplicity** (L200–209): Prefer pure functions and plain data; classes for genuinely stateful things (`ENGINEERING.md` §4.5).
+- **7. Simplicity** (L200–209): Prefer pure functions and plain data; classes for genuinely stateful things (`engineering/conventions-and-done.md` §4.5).
 - **8. Determinism (scope decision)** (L210–228): Game code never calls `Math.random`, `Date.now`, `performance.now`, `setTimeout`, `setInterval` or `requestAnimationFrame`.
 - **9. Error handling** (L229–251): with Zod; inside the simulation, types are the guarantee.
 - **10. Tests: placement and shape** (L252–269): The full testing standard is `TESTING.md`; the placement rules:
 - **11. Review checklist (what a reviewer cites, with `file:line`)** (L270–280)
 
-## DETERMINISM.md (317 lines)
+## DETERMINISM.md (19 lines)
 
-- **Evolution — Deterministic Simulation Contract** (L1–317): Same seed + same config + same balance + same inputs ⇒ the same state, on every run, on every machine that runs the same Node version.
-- **1. The contract** (L10–36): and `requestAnimationFrame` are lint-banned in every `packages/*/src` file; the allowed call sites are `packages/shared/src/time/` (`System…
-- **2. Clock and fixed step (`packages/shared/src/time/`, `packages/server/src/lobby/ticker.ts`)** (L37–85): `GameRoom` takes `{ clock, ticker }` in its constructor (the `LobbyManager` receives them from `index.ts`).
-- **3. Seeded random streams (`packages/shared/src/random/`, #73)** (L86–174): arithmetic so every engine agrees; a 32-bit seed is expanded into the four state words with splitmix32 (`random/xoshiro128-star-star.ts`, k…
-- **4. Ordering rules** (L175–191): dropped.
-- **5. State hash (`packages/shared/src/simulation/state-hash.ts`, `packages/server/src/game/world/state-hash.ts`)** (L192–226): The kernel is split in two: `simulation/state-hasher.ts` (`StateHasher`: the two lanes, the scalar encodings, `digest()`) and `simulation/s…
-- **6. Replay (`packages/server/src/game/replay/`)** (L227–272): stamped with the tick at which they were applied, so the log is exactly what the simulation saw (not what arrived).
-- **7. What the tests assert** (L273–296): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
-- **8. Known traps** (L297–317): fall back to insertion order, which differs between a live run and a replay after removals.
+- **Evolution — Deterministic Simulation Contract** (L1–19): Same seed + same config + same balance + same inputs ⇒ the same state, on every run, on every machine that runs the same Node version.
+- **Files** (L10–19): This document is split into topic files (#313).
 
 ## ECOLOGY.md (26 lines)
 
 - **Evolution — Ecology, Growth and Absorption** (L1–26): Tickets: #23 (food ecology), #26 (size, mass, speed, mitosis), #27 (absorption).
 - **Files** (L15–26): This document is split into topic files (#306).
 
-## ENGINEERING.md (324 lines)
+## ENGINEERING.md (19 lines)
 
-- **Engineering Standards** (L1–324): These are enforceable rules, not suggestions.
-- **1. The Validation Gate (`./validate.sh`)** (L13–107): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
-- **2. Testing Standards** (L108–187): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is `TESTING.md`.
-  - **2.1 Every change is tested** (L113–126): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
-  - **2.2 Unit vs integration split** (L127–158): isolation — no cross-subsystem orchestration, runs in <100ms.
-  - **2.3 What must be covered (template-specific)** (L159–178): state + snapshot; invalid input is rejected/ignored.
-  - **2.4 Determinism** (L179–187): simulation is reproducible and tests can assert exact outputs.
-- **3. TypeScript & Lint Strictness** (L188–234)
-  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L190–205): Do not weaken these.
-  - **3.2 Lint / format rules** (L206–220): means "intentionally unused" — it is not a license to leave a stub instead of real code.
-  - **3.3 Forbidden escape hatches** (L221–234): without a justification.
-- **4. Architecture Conventions (enforce on every change)** (L235–270): imports from `server` or `client`.
-- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L271–301): instead of `./validate.sh`.
-- **6. Definition of Done (checklist — ALL must hold)** (L302–324): path, edge cases, and error cases.
+- **Engineering Standards** (L1–19): These are enforceable rules, not suggestions.
+- **Files** (L11–19): This document is split into topic files (#313).
 
 ## GAME-DESIGN.md (15 lines)
 
@@ -140,24 +121,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Running an agent** (L47–90): The roles are Claude Code agent definitions in `.claude/agents/<role>.md`, so inside the devcontainer the team lead spawns them with the Ag…
 - **Landing a PR: the review loop** (L91–142): In session (Agent tool): spawn all round-one reviewers together — every reviewer role the table below names, each with the PR in its prom…
 - **Handoffs and artifacts** (L143–156): These names supersede the ones in ticket #18: balance lives with the other constants (`data/` is git-ignored runtime state, so `data/balanc…
-- **Definition of Done (per ticket)** (L157–161): `docs/ENGINEERING.md` Definition of Done, plus: the PR closed the ticket, every review thread is resolved, docs describing the behaviour we…
+- **Definition of Done (per ticket)** (L157–161): `docs/engineering/conventions-and-done.md` §6 Definition of Done, plus: the PR closed the ticket, every review thread is resolved, docs de…
 
-## TESTING.md (375 lines)
+## TESTING.md (16 lines)
 
-- **Evolution — Testing Standards** (L1–375): The bar every PR is reviewed against (#76).
-- **1. The tiers** (L8–23): A unit test that needs a server, a socket or a browser is an integration test with the wrong name: rename it rather than slowing the unit t…
-- **2. How the tiers are selected** (L24–40): `vitest.config.ts` spreads `testTierOptions()` and `coverageOptions(thresholds)` from it.
-- **3. Naming and placement** (L41–51): behaviour in the present tense: `it('drops an input whose sequence is not newer', …)`.
-- **4. Builders, not fixture files** (L52–72): Each package keeps its test doubles in `src/testing/`:
-- **5. Coverage thresholds** (L73–93): `./validate.sh test` runs `@vitest/coverage-v8` (shared, server) and the Angular unit-test builder's coverage (client) and fails below the …
-- **6. Flaky tests** (L94–100): A test that fails intermittently is a bug in the test or a determinism bug in the code, never "just flaky".
-- **7. Definition of tested (what a reviewer checks, with `file:line`)** (L101–109)
-- **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L110–375): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
-  - **8.1 Writing a scenario** (L126–240): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
-  - **8.2 Replay and the failure output** (L241–274): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
-  - **8.3 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)** (L275–351): Agents cannot open a second human's browser, so opponents are bots: the same `BotStrategy` runs in a scenario (section 8.1), over the wire …
-  - **8.4 Proving scenarios** (L352–363): `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo module: inputs echo from the tick they we…
-  - **8.5 The design tables** (L364–375): The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14), `ecology-cells.gameplay.test.ts` (E4–E8,…
+- **Evolution — Testing Standards** (L1–16): The bar every PR is reviewed against (#76).
+- **Files** (L8–16): This document is split into topic files (#313).
 
 ## TRAITS.md (26 lines)
 
@@ -169,18 +138,10 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — UI: HUD, overlays and onboarding** (L1–38): Ticket: #30, reworked for decision #143 in #146 (option C, diegetic: progress is shown on the player's own cell; the only chrome is the lea…
 - **Files** (L28–38): This document is split into topic files (#306).
 
-## VISUAL-STYLE.md (398 lines)
+## VISUAL-STYLE.md (27 lines)
 
-- **Evolution — Visual Style** (L1–398): Ticket #34, epic #2.
-- **1. Dark-field microscopy: the principles** (L17–64): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
-- **2. Palette** (L65–205): All hex values are named constants; draw code never holds a literal.
-- **3. The cell: layer stack per stage** (L206–251): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
-- **4. Organelle vocabulary per trait** (L252–277): The trait's own `visual` string (`traits/catalog-organelles.md §3`) is the requirement; this table fixes the drawing.
-- **5. Membrane and motion language** (L278–305): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
-- **6. Legibility at play scale** (L306–325): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
-- **7. UI colours and type** (L326–354): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
-- **8. Performance intent: geometry, textures, shaders** (L355–384): The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
-- **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L385–398)
+- **Evolution — Visual Style** (L1–27): Ticket #34, epic #2.
+- **Files** (L17–27): This document is split into topic files (#313).
 
 ## WORKFLOW.md (157 lines)
 
@@ -205,7 +166,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Architecture: constants, file plan and test plan** (L1–106): §9–§11 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **9. Constants and balance (decision, one home)** (L5–24): `packages/shared/src/constants/<domain>.ts` is the source of truth for every tunable, named exactly as the design tables name it (`game-des…
 - **10. File plan (target ≤ 250 lines per file; 300 is the lint cap)** (L25–93): Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts` reference each other only as types (`Trait…
-- **11. Test plan (`ENGINEERING.md §2`, `DETERMINISM.md §7`)** (L94–106): kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip; food delta tracker; draft (ladder filter, run…
+- **11. Test plan (`engineering/testing-and-typescript.md §2`, `determinism/replay-tests-and-traps.md §7`)** (L94–106): kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip; food delta tracker; draft (ladder filter, run…
 
 ## architecture/debug-mcp.md (85 lines)
 
@@ -246,6 +207,30 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **Strip cell** (L320–329): The cell in the strips is a simplified stand-in so the keyframes read at strip scale: halo at 1.55 R, cytoplasm radial gradient, clipped in…
 - **Sheet 04 — origins, the single-cell ladder (`origins-ladder.svg`, #114)** (L330–408): !origins ladder
 
+## determinism/contract-and-clock.md (79 lines)
+
+- **Evolution — Deterministic Simulation Contract: the contract, clock and fixed step** (L1–79): §1–§2 of the split `DETERMINISM.md`, which keeps the shared context and the file list.
+- **1. The contract** (L5–31): and `requestAnimationFrame` are lint-banned in every `packages/*/src` file; the allowed call sites are `packages/shared/src/time/` (`System…
+- **2. Clock and fixed step (`packages/shared/src/time/`, `packages/server/src/lobby/ticker.ts`)** (L32–79): `GameRoom` takes `{ clock, ticker }` in its constructor (the `LobbyManager` receives them from `index.ts`).
+
+## determinism/ordering-and-state-hash.md (55 lines)
+
+- **Evolution — Deterministic Simulation Contract: ordering rules and the state hash** (L1–55): §4–§5 of the split `DETERMINISM.md`, which keeps the shared context and the file list.
+- **4. Ordering rules** (L5–21): dropped.
+- **5. State hash (`packages/shared/src/simulation/state-hash.ts`, `packages/server/src/game/world/state-hash.ts`)** (L22–55): The kernel is split in two: `simulation/state-hasher.ts` (`StateHasher`: the two lanes, the scalar encodings, `digest()`) and `simulation/s…
+
+## determinism/random-streams.md (92 lines)
+
+- **Evolution — Deterministic Simulation Contract: seeded random streams** (L1–92): §3 of the split `DETERMINISM.md`, which keeps the shared context and the file list.
+- **3. Seeded random streams (`packages/shared/src/random/`, #73)** (L5–92): arithmetic so every engine agrees; a 32-bit seed is expanded into the four state words with splitmix32 (`random/xoshiro128-star-star.ts`, k…
+
+## determinism/replay-tests-and-traps.md (95 lines)
+
+- **Evolution — Deterministic Simulation Contract: replay, what the tests assert and known traps** (L1–95): §6–§8 of the split `DETERMINISM.md`, which keeps the shared context and the file list.
+- **6. Replay (`packages/server/src/game/replay/`)** (L5–50): stamped with the tick at which they were applied, so the log is exactly what the simulation saw (not what arrived).
+- **7. What the tests assert** (L51–74): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
+- **8. Known traps** (L75–95): fall back to insertion order, which differs between a live run and a replay after removals.
+
 ## ecology/absorption.md (245 lines)
 
 - **Evolution — Ecology, Growth and Absorption: absorption and engulf** (L1–245): §6 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
@@ -258,7 +243,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 - **Evolution — Ecology, Growth and Absorption: acceptance scenarios** (L1–84): §8 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **8. Acceptance scenarios** (L5–84): Given seed S and inputs I, after N ticks assert X.
-  - **8.1 The evolving world (§3.1–§3.4)** (L61–84): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` (`TESTING.md §8.1`) sets wild seat `se…
+  - **8.1 The evolving world (§3.1–§3.4)** (L61–84): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` (`testing/scenario-runner.md §8.1`) se…
 
 ## ecology/constants.md (103 lines)
 
@@ -294,6 +279,31 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Ecology, Growth and Absorption: wild cells and what a fresh protocell sees** (L1–139): §3.3–§3.4 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
   - **3.3 Wild cells** (L5–127): The world's average made flesh.
   - **3.4 What a fresh protocell sees** (L128–139): At 0:00, one player, #141's option A render (seed 96) still describes the motes: 9 algae, 0 bacteria and 1 fragment in the spawn camera (10…
+
+## engineering/conventions-and-done.md (94 lines)
+
+- **Engineering Standards: architecture conventions, forbidden shortcuts and the Definition of Done** (L1–94): §4–§6 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
+- **4. Architecture Conventions (enforce on every change)** (L5–40): imports from `server` or `client`.
+- **5. Forbidden Shortcuts / Anti-Patterns (reject on sight)** (L41–71): instead of `./validate.sh`.
+- **6. Definition of Done (checklist — ALL must hold)** (L72–94): path, edge cases, and error cases.
+
+## engineering/testing-and-typescript.md (128 lines)
+
+- **Engineering Standards: testing principles and TypeScript strictness** (L1–128): §2–§3 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
+- **2. Testing Standards** (L5–84): The full bar — tiers, naming, builders, coverage floors, flaky-test policy — is `TESTING.md`.
+  - **2.1 Every change is tested** (L10–23): (functions, classes, reducers, state machines, message handlers, math, generation), extract it into pure, testable functions and write test…
+  - **2.2 Unit vs integration split** (L24–55): isolation — no cross-subsystem orchestration, runs in <100ms.
+  - **2.3 What must be covered (template-specific)** (L56–75): state + snapshot; invalid input is rejected/ignored.
+  - **2.4 Determinism** (L76–84): simulation is reproducible and tests can assert exact outputs.
+- **3. TypeScript & Lint Strictness** (L85–128)
+  - **3.1 Required tsconfig flags (already set in `tsconfig.base.json`)** (L87–102): Do not weaken these.
+  - **3.2 Lint / format rules** (L103–117): means "intentionally unused" — it is not a license to leave a stub instead of real code.
+  - **3.3 Forbidden escape hatches** (L118–128): without a justification.
+
+## engineering/validation-gate.md (96 lines)
+
+- **Engineering Standards: the validation gate** (L1–96): §1 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
+- **1. The Validation Gate (`./validate.sh`)** (L5–96): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
 
 ## game-design/constants-and-acceptance.md (111 lines)
 
@@ -340,7 +350,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 - **Evolution — Rendering: batching plan and frame budget** (L1–211): §6–§7 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **6. Batching plan** (L5–76): Everything not a cell is a baked texture: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour (core + soft + wide + glint, `…
-  - **6.1 The condenser light pool (#222)** (L30–76): `VISUAL-STYLE.md §1` anchors the pool to the view (option A); #242 builds it.
+  - **6.1 The condenser light pool (#222)** (L30–76): `visual-style/principles-and-palette.md §1` anchors the pool to the view (option A); #242 builds it.
 - **7. Frame budget and the harness #99 ships** (L77–211): Target: 60 fps, ≤ 12 ms p95 frame at 1080p, `devicePixelRatio` 1, on an integrated laptop GPU (Iris Xe class: a new assumption stated her…
 
 ## rendering/cells.md (189 lines)
@@ -349,7 +359,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Inputs: the snapshot, the tick, the cosmetic stream** (L5–20): The renderer reads only what `net/` gives it and never feeds anything back (`architecture/entity-model.md §1`, "client-side cosmetic").
 - **2. The cell: one quad, one fragment shader** (L21–189): Every cell is one instanced quad whose half-size is the per-instance `quadExtentRadii × r` (§2.3): `max(CELL_QUAD_EXTENT_RADII, FAR_DOT_H…
   - **2.1 The profile** (L37–78): `h` is the heading (`atan2(velocityY, velocityX)`, held when ‖velocity‖ ≈ 0).
-  - **2.2 Distance bands (sheet 01 panel C, back → front)** (L79–121): Light direction is `LIGHT_DIRECTION_DEG` −135° everywhere (VISUAL-STYLE §1).
+  - **2.2 Distance bands (sheet 01 panel C, back → front)** (L79–121): Light direction is `LIGHT_DIRECTION_DEG` −135° everywhere (visual-style/principles-and-palette.md §1).
   - **2.3 Instance layout and passes** (L122–171): `cells/cell-instance.ts` declares one row per cell in an RGBA32F instance texture (`textures/pixi-textures.ts` `floatDataTexture`, re-uploa…
   - **2.4 Forms (#121)** (L172–189): `B(Δ)` per form, `FORM_PROFILES` keyed by the form trait.
 
@@ -358,7 +368,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Rendering: contents, motion tables and LOD** (L1–157): §3–§5 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **3. Contents: organelles through the deformation** (L5–59): Organelles are sprites from one code-baked atlas (`textures/organelle-atlas.ts`: mitochondrion with cristae, chloroplast with six lit granu…
 - **4. Motion tables (`packages/shared/src/constants/motion.ts`)** (L60–141): Sheet 03's strips become data; the renderer tweens, the HUD opens the picker at the end of `level_up` (`ui/overlays.md §3.2`) and the soun…
-- **5. LOD** (L142–157): Screen radius is `r × zoom` in CSS px (VISUAL-STYLE §6 thresholds; `resolution` does not move them).
+- **5. LOD** (L142–157): Screen radius is `r × zoom` in CSS px (visual-style/motion-and-legibility.md §6 thresholds; `resolution` does not move them).
 
 ## rendering/files-and-tests.md (108 lines)
 
@@ -370,6 +380,31 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 - **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–91): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
 - **10. Own-cell indicators and world-anchored labels (#146)** (L5–91): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
+
+## testing/bots-and-design-tables.md (105 lines)
+
+- **Evolution — Testing Standards: bots, proving scenarios and the design tables** (L1–105): §8.3–§8.5 of the split `TESTING.md`, which keeps the shared context and the file list.
+  - **8.3 Bots: strategies, the headless bot client and `debug_spawn_bot` (#15)** (L5–81): Agents cannot open a second human's browser, so opponents are bots: the same `BotStrategy` runs in a scenario (section 8.1), over the wire …
+  - **8.4 Proving scenarios** (L82–93): `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo module: inputs echo from the tick they we…
+  - **8.5 The design tables** (L94–105): The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14), `ecology-cells.gameplay.test.ts` (E4–E8,…
+
+## testing/scenario-runner.md (168 lines)
+
+- **Evolution — Testing Standards: the gameplay scenario runner and replay** (L1–168): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
+- **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L5–168): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
+  - **8.1 Writing a scenario** (L21–135): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
+  - **8.2 Replay and the failure output** (L136–168): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
+
+## testing/tiers-and-builders.md (105 lines)
+
+- **Evolution — Testing Standards: tiers, placement, builders, coverage and flaky tests** (L1–105): §1–§7 of the split `TESTING.md`, which keeps the shared context and the file list.
+- **1. The tiers** (L5–20): A unit test that needs a server, a socket or a browser is an integration test with the wrong name: rename it rather than slowing the unit t…
+- **2. How the tiers are selected** (L21–37): `vitest.config.ts` spreads `testTierOptions()` and `coverageOptions(thresholds)` from it.
+- **3. Naming and placement** (L38–48): behaviour in the present tense: `it('drops an input whose sequence is not newer', …)`.
+- **4. Builders, not fixture files** (L49–69): Each package keeps its test doubles in `src/testing/`:
+- **5. Coverage thresholds** (L70–90): `./validate.sh test` runs `@vitest/coverage-v8` (shared, server) and the Angular unit-test builder's coverage (client) and fails below the …
+- **6. Flaky tests** (L91–97): A test that fails intermittently is a bug in the test or a determinism bug in the code, never "just flaky".
+- **7. Definition of tested (what a reviewer checks, with `file:line`)** (L98–105)
 
 ## traits/catalog-forms.md (123 lines)
 
@@ -459,3 +494,32 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 ## ui/README.md (7 lines)
 
 - **UI wireframes** (L1–7): Ticket #30's wireframes live with the spec, not here: the ASCII layout frame is `layout.md §1` and the drawn HUD and trait-picker panels a…
+
+## visual-style/cells-and-organelles.md (75 lines)
+
+- **Evolution — Visual Style: cell layer stack and organelle vocabulary** (L1–75): §3–§4 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **3. The cell: layer stack per stage** (L5–50): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
+- **4. Organelle vocabulary per trait** (L51–75): The trait's own `visual` string (`traits/catalog-organelles.md §3`) is the requirement; this table fixes the drawing.
+
+## visual-style/motion-and-legibility.md (51 lines)
+
+- **Evolution — Visual Style: membrane motion and legibility at play scale** (L1–51): §5–§6 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **5. Membrane and motion language** (L5–32): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
+- **6. Legibility at play scale** (L33–51): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
+
+## visual-style/performance-and-checklist.md (48 lines)
+
+- **Evolution — Visual Style: performance intent and the per-asset checklist** (L1–48): §8–§9 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **8. Performance intent: geometry, textures, shaders** (L5–34): The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
+- **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L35–48)
+
+## visual-style/principles-and-palette.md (192 lines)
+
+- **Evolution — Visual Style: dark-field principles and palette** (L1–192): §1–§2 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **1. Dark-field microscopy: the principles** (L5–52): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
+- **2. Palette** (L53–192): All hex values are named constants; draw code never holds a literal.
+
+## visual-style/ui-type.md (32 lines)
+
+- **Evolution — Visual Style: UI colours and type** (L1–32): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **7. UI colours and type** (L5–32): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.

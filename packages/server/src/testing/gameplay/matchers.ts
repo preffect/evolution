@@ -1,4 +1,4 @@
-// The matchers behind `.toBe`, `.toBeCloseTo`, `.toBeBetween` … (docs/TESTING.md §8.1). Each one
+// The matchers behind `.toBe`, `.toBeCloseTo`, `.toBeBetween` … (docs/testing/scenario-runner.md §8.1). Each one
 // answers whether the selected value holds and renders both sides for the failure output; the
 // numeric ones are typed over `unknown` so a selector that may yield `undefined` (a cell that is
 // gone) fails with the value shown instead of being rejected at compile time.

@@ -14,15 +14,15 @@ HUD panel ([`concept-art/README.md`](./concept-art/README.md#sheet-03--motion-st
 is superseded by this doc where they differ. This doc holds no hex value and no type size: colours are cited by
 role (DNA, level gold, danger, accent, panel gradient and rim, callout backing, timer-bar track, identity ring, text
 / label / muted, and the organelle colours `MITO_BASE` / `CHLORO_LIGHT`) and text by type role (`number`,
-`headline`, `clock`, `title`, `value`, `card_name`, `body`, `label`, `caption`, VISUAL-STYLE §7's ids verbatim);
-the sizes, fonts and case of each role are VISUAL-STYLE §7's. Balance numbers named below are read from
+`headline`, `clock`, `title`, `value`, `card_name`, `body`, `label`, `caption`, visual-style/ui-type.md §7's ids verbatim);
+the sizes, fonts and case of each role are visual-style/ui-type.md §7's. Balance numbers named below are read from
 `game_state.balance` (`balance.<domain>.<NAME>`, architecture/constants-files-tests.md §9), never imported from `constants/`: the client
 keeps no copy of a balance number (CODE-STANDARDS §2).
 
 Four facts this doc owns: **the HUD reads `WorldStore` through `GameStateService` signals and never touches Pixi**
 (architecture/client.md §6), **the trait picker never pauses the dish** (PROGRESSION §4), **the exclusion box
 (`HUD_PLAYER_EXCLUSION_PX`, §1) is defined here**, and **what the own cell shows, and the reading floor it must meet,
-is defined here (§3.1)**; the renderer draws it and rendering/own-cell-indicators.md §10 owns the how. VISUAL-STYLE §6 and rendering/budget.md §6
+is defined here (§3.1)**; the renderer draws it and rendering/own-cell-indicators.md §10 owns the how. visual-style/motion-and-legibility.md §6 and rendering/budget.md §6
 cite the box.
 
 ## Files

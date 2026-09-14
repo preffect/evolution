@@ -1,4 +1,4 @@
-// docs/TESTING.md §8.3: the Evolution binding over wire snapshots.
+// docs/testing/bots-and-design-tables.md §8.3: the Evolution binding over wire snapshots.
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,

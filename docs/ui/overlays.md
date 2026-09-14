@@ -31,7 +31,7 @@ without copy fails the gate instead of rendering `undefined`.
   stay.
 - **Dim.** A DOM overlay owned by this doc, not a Pixi quad: a 55 % black `<div>` over the canvas with a
   soft-edged clear disc of radius `HUD_PLAYER_EXCLUSION_PX` × `s` around the centre (`mask-image` radial
-  gradient); the HUD never touches Pixi, so VISUAL-STYLE §8's "trait-picker dim" quad is superseded by this
+  gradient); the HUD never touches Pixi, so visual-style/performance-and-checklist.md §8's "trait-picker dim" quad is superseded by this
   element (corrected on #34). The dish keeps simulating and the cell keeps steering: pointer input is not captured
   by the overlay (`pointer-events: none` on everything but the cards).
 - **Card.** Glyph medallion 56 px, category in `caption`, name in `card_name` bold with tier numeral
@@ -74,7 +74,7 @@ alive): traits kept = `lastAliveOwnCell.traits.length`, DNA lost = the drop in `
 snapshot and this one. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
 so there are no own-cell indicators (`ownCellIndicators` is `null` and the mirror reads `data-level` with
 `data-spectating="true"`); leaderboard and timer stay. On respawn the indicators return with the `respawn` clip
-(VISUAL-STYLE §5). Test ids: `respawn-overlay`, `respawn-killer`, `respawn-countdown`, `respawn-kept`.
+(visual-style/motion-and-legibility.md §5). Test ids: `respawn-overlay`, `respawn-killer`, `respawn-countdown`, `respawn-kept`.
 
 ### 3.4 Round results and rematch (`roundPhase === 'results'`)
 

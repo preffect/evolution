@@ -21,7 +21,7 @@ export interface LeaderboardEntry {
   /** Full list only, but carried always: the panel decides what it shows. */
   readonly mass: number;
   readonly absorptions: number;
-  /** The seat's palette and bead count (docs/VISUAL-STYLE.md §2). */
+  /** The seat's palette and bead count (docs/visual-style/principles-and-palette.md §2). */
   readonly avatarIndex: number;
   /** The viewing player's own row: tinted, and never dropped for being outside the cut. */
   readonly isOwn: boolean;

@@ -101,7 +101,7 @@ else; a rematch recreates them at protocell scale.
 
 **Randomness.** The `wildCells` stream (label `wild_cells`) owns spread factors, wander headings and
 turn rolls, forked from the round seed like every other stream so a wild turn never shifts a mote;
-its state is hashed ([`DETERMINISM.md §3, §5`](../DETERMINISM.md#3-seeded-random-streams-packagessharedsrcrandom-73)).
+its state is hashed ([`determinism/random-streams.md §3`](../determinism/random-streams.md#3-seeded-random-streams-packagessharedsrcrandom-73), [`determinism/ordering-and-state-hash.md §5`](../determinism/ordering-and-state-hash.md#5-state-hash-packagessharedsrcsimulationstate-hashts-packagesserversrcgameworldstate-hashts)).
 
 **Contract (what #97 adds; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3 and `architecture/constants-files-tests.md` §10).**
 `WorldState.roundStartTick` (0 at creation, the current tick at a rematch; `elapsedTicks` of §3.1 is
@@ -122,7 +122,7 @@ broth variant row of §3.2 is `bacteriumVariantWeightsForZone(zone, worldStage, 
 two fixed trip rows). Step
 order: step 1 also runs the wild strategy and the pin; step 4 skips wild cells; step 9 also runs
 wild respawn. The renderer (#99) needs one wild palette (a desaturated, palette-independent rim so a
-wild cell never reads as a player; `VISUAL-STYLE.md §2` owns the value) and draws their organelles
+wild cell never reads as a player; `visual-style/principles-and-palette.md §2` owns the value) and draws their organelles
 from `traits` like anyone's. Cost: 24 cells and one decision per 30 ticks each.
 
 ### 3.4 What a fresh protocell sees

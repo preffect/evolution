@@ -6,7 +6,7 @@
 // It composes; every decision lives in the pure modules it calls. Culling is against the camera
 // extent the orchestrator passes in, at the quad's reach; past the capacity the smallest cells
 // are the ones dropped. Row order is draw order, so a ghost's row goes right before its
-// predator's (the predator paints over its dissolving prey, VISUAL-STYLE §6 "prey through film").
+// predator's (the predator paints over its dissolving prey, visual-style/motion-and-legibility.md §6 "prey through film").
 
 import { RENDER_STAGE, type CellView, type EntityId, type TraitId } from '@evolution/shared';
 import { Container } from 'pixi.js';

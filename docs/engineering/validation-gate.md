@@ -1,0 +1,96 @@
+# Engineering Standards: the validation gate
+
+§1 of the split [`ENGINEERING.md`](../ENGINEERING.md), which keeps the shared context and the file list.
+
+## 1. The Validation Gate (`./validate.sh`)
+
+1. **Always use `./validate.sh`. Never run the underlying tools directly.** Do not reach for
+   `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`,
+   or `pnpm --filter ... exec vitest` as a shortcut. The wrapper:
+   - pre-builds `@evolution/shared` before typecheck (`build_shared`) so downstream
+     `.d.ts` project references are fresh — running `tsc` directly gives stale/false results;
+   - runs **eslint AND prettier `--check` as a pair** — running only eslint silently misses
+     formatting failures — then audits the source for `eslint-disable` directives without a
+     `-- reason` and for `TODO`s without a ticket (`docs/CODE-STANDARDS.md` §7), printing the
+     directive count;
+   - runs **`jscpd`** (`duplication`) against `.jscpd.json`: ≥ 5 duplicated lines / 50 tokens
+     anywhere in `packages/*/src` outside tests and `testing/` fails (`docs/CODE-STANDARDS.md`
+     §3); import blocks are ignored; the offending file pairs are printed with line ranges;
+   - runs the unit tier **with coverage thresholds** (`docs/testing/tiers-and-builders.md` §5), so a drop below a
+     package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
+     (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
+   - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
+     package (its tests keep the package's coverage floor; typecheck still builds shared first);
+     `--scope <file or directory under packages/<package>/src>` runs only the tests that path
+     selects (a directory: the tests under it; a source file: the tests named after it) **without**
+     coverage floors, lints, formats and scans that path, and typechecks its package. No `--scope`
+     is the whole repo, exactly as before; an empty `--scope` is refused. `test` and `integration`
+     print `selected <package>: N test files, M tests run[, K skipped]`, and a targeted run (a path
+     scope or `-- extra-args`) that runs no test — nothing selected, or every selected test skipped
+     — **fails** (#289); a tier-wide run over a package with no file in that tier still passes, and
+     a runner that crashes keeps its own error;
+   - runs `all` as lint → duplication → typecheck → test and **stops at the first failing phase**
+     (`FAILED: <phase>`; the later phases never run, #304); each phase has its own exit code and
+     stamp, and a run ends with a `wall times:` line (run concurrently the phases measured no faster
+     on the shared container, #281);
+   - **`all --affected`** (#304, the merge gate) checks only what the branch changed against
+     `origin/main` (committed, uncommitted and untracked): the changed packages plus their dependents
+     (a `packages/shared` change selects all three); lint alone for a docs-only change (`*.md`,
+     `docs/`, `qa/`: prettier on the changed docs plus the docs index); the shell suites for a
+     `scripts/` or root `*.sh` change; the plain `all` for any other root file. It prints
+     `affected <what>: <why>` for each selection, skips the phases with nothing to check, and is
+     stamped per affected set (`scope=affected-<set>`);
+   - **caches green results by content** (#224, template #75): a green run is stamped under
+     `$HOME/.cache/<slug>-validate/<tree>.<command>[.scope-<scope>]` (the scope with `/` as `_`;
+     fields: `exit`, ISO `time`, `log` path, `node` major, `command`, `scope`, `tree`; the raw log
+     under `logs/`), keyed by `git write-tree` of the
+     whole working tree — tracked and untracked, via a temporary index — plus the Node major
+     version. **"Same tree" includes untracked files**: a worktree at the author's commit misses
+     the author's stamp when either side has any untracked, non-ignored file. A repeat call on the
+     same tree prints `cached green from <time> at tree <hash>` and the stored log path and exits
+     0 in well under a second; the filters apply to the stored log. Red is never cached, `all`
+     stamps each phase and itself, `--fresh` bypasses the stamp, and `-- extra-args` calls are
+     never cached. The scope is part of the stamp: a scoped green never answers an unscoped call,
+     nor the reverse. The stamp names the tree the merge gate ran on. Nothing
+     prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
+     rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
+     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **One real gate
+     at a time per machine** (#234): every non-cached run holds `$HOME/.cache/<slug>-validate/gate.lock`
+     (independent of `VALIDATE_CACHE_DIR`, so a scratch cache still queues), so a second agent's gate
+     prints `waiting for another gate to finish …` and queues instead of both starving the box; a
+     cache hit never waits; the lock fd is closed for the child so no orphaned worker keeps it.
+     `VALIDATE_NO_GATE_LOCK=1` disables it for a sandboxed test; without `flock` it runs unlocked;
+   - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.
+2. **Who runs which gate** (#281, #304). A full gate costs minutes (§2.2), so it runs once per PR,
+   at merge. This applies to direct work AND delegated work (teams, agents).
+   - **Builders:** scoped checks only — `./validate.sh test --scope <scope>` with a package or a
+     path, and `lint` / `typecheck` in the same scope — on what they touched. Fix every failure
+     before moving on. No gate when a PR is ready, and no re-gate after review fixes. When no scope
+     fits, add one to `validate.sh` (item 3).
+   - **Reviewers:** scoped checks on what they review. A reviewer never needs a stamp and never
+     runs `all`.
+   - **Whoever merges:** runs `./validate.sh all --affected` once on the final head, right before
+     the merge, and merges only on its `ALL PASSED`; when the change crosses subsystems, also runs
+     `./validate.sh integration --scope <package>` on the packages it touches.
+   - **Long gates:** a real `all` or `integration` runs in the background (the agent's
+     `run_in_background`), with `set -o pipefail` before any pipe; the verdict is the command's own
+     exit code, never a `tail` of its output.
+3. **If `./validate.sh` does not support what you need** (a flag, a scope, an output mode),
+   **STOP and extend the script (or prompt the user to)** — never route around it with a raw
+   tool invocation.
+4. Use the output filters instead of dumping full logs: `-tN` (tail), `-hN` (head),
+   `-G PATTERN` (grep), `-- extra-args` (passthrough). Example: `./validate.sh test -G 'fail'`.
+   `--fresh` re-runs regardless of the result cache.
+
+```text
+./validate.sh test         # unit tier with coverage thresholds
+./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier (opt-in)
+./validate.sh typecheck    # type check all packages (rebuilds shared first)
+./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
+./validate.sh duplication  # jscpd (.jscpd.json)
+./validate.sh all          # lint -> duplication -> typecheck -> test, stopping at the first red phase; prints wall times and ALL PASSED / FAILED: <phase>
+./validate.sh all --affected  # the merge gate: only what the branch changed against origin/main
+./validate.sh all --fresh  # same, ignoring the result cache (a green run is still stamped)
+./validate.sh test --scope server                          # one package, with its coverage floor
+./validate.sh test --scope packages/server/src/game/world  # only the tests under a path, no coverage floor
+```

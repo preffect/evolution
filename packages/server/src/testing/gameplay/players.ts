@@ -1,4 +1,4 @@
-// Who is in a scenario (docs/TESTING.md §8.1): players are numbered by index in declaration
+// Who is in a scenario (docs/testing/scenario-runner.md §8.1): players are numbered by index in declaration
 // order, with ids `player_<index>` and names `Player <index>`; `player(i).does(script)` names
 // who a script drives.
 

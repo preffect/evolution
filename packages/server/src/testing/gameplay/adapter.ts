@@ -1,4 +1,4 @@
-// The seam between the scenario runner and a `GameModule` (docs/TESTING.md §8). The runner
+// The seam between the scenario runner and a `GameModule` (docs/testing/scenario-runner.md §8). The runner
 // knows ticks, players, scripts and hashes; everything game-specific (how to build the module,
 // read a snapshot, hash the state, turn a command into the wire input, find a player's cell,
 // place a fixture) lives in an adapter. An adapter extends the bot `BotWorldBinding`

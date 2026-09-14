@@ -1,4 +1,4 @@
-// Forks the labelled streams from a root source (docs/DETERMINISM.md §3): the one place that
+// Forks the labelled streams from a root source (docs/determinism/random-streams.md §3): the one place that
 // turns a seed into `world.random`, used by `createWorld` and by the tests that model it.
 
 import type { RandomSource, RandomState } from './random-source.js';

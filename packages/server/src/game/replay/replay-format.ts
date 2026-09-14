@@ -1,4 +1,4 @@
-// The module's replay record (docs/DETERMINISM.md §6): everything a round's simulation saw,
+// The module's replay record (docs/determinism/replay-tests-and-traps.md §6): everything a round's simulation saw,
 // stamped with the tick it was applied at. Beyond the doc's shape it carries `startTick` (the
 // tick counter continues across a rematch) and `roster` (who was present when the recording
 // started), both needed to rebuild the world the recording started from.
@@ -24,7 +24,7 @@ export type DebugPatch =
 /**
  * What opened the recording: a world build (round start) and a rematch replay from scratch; a
  * `debug_set_seed` rebuilds only the streams of a running world, so its recording is exported for
- * inspection and never rebuilt by `replay()` (docs/DETERMINISM.md §6).
+ * inspection and never rebuilt by `replay()` (docs/determinism/replay-tests-and-traps.md §6).
  */
 export const REPLAY_ORIGIN = { worldBuild: 'world_build', rematch: 'rematch', reseed: 'reseed' } as const;
 export type ReplayOrigin = (typeof REPLAY_ORIGIN)[keyof typeof REPLAY_ORIGIN];
@@ -56,7 +56,7 @@ export interface Replay {
   /** The round seed the recording started from. */
   readonly seed: number;
   readonly startTick: number;
-  /** The entity counter at the start: a rematch continues it, so the rebuilt ids match (docs/DETERMINISM.md §6). */
+  /** The entity counter at the start: a rematch continues it, so the rebuilt ids match (docs/determinism/replay-tests-and-traps.md §6). */
   readonly nextEntityNumber: number;
   readonly config: GameSessionConfig;
   /** The numbers the run used, so a live-tuned room still replays. */

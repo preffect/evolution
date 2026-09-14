@@ -1,4 +1,4 @@
-// What a cell's stage and traits mean to the generic blob (docs/VISUAL-STYLE.md §3–§4): whether it
+// What a cell's stage and traits mean to the generic blob (docs/visual-style/cells-and-organelles.md §3–§4): whether it
 // is a protocell (the emptier stack, the mode-2 wobble) or a specialised form (mode-3), whether the
 // nucleoid has gathered into a nucleus, which halo it wears, the tier of each trait (the organelle
 // counts) and the shader tells: cilia hairs, wall thickness, ribosome speckle, cytoskeleton
@@ -35,7 +35,7 @@ export interface CellTraitSummary {
   readonly isProtocell: boolean;
   /** `nuclear_envelope` owned: the nucleoid has gathered into the nucleus sprite. */
   readonly hasNucleus: boolean;
-  /** `cytoskeleton` owned: breathing and lobes halve, the contact dent sharpens (VISUAL-STYLE §5). */
+  /** `cytoskeleton` owned: breathing and lobes halve, the contact dent sharpens (visual-style/motion-and-legibility.md §5). */
   readonly isTaut: boolean;
   readonly haloKind: HaloKind;
   readonly wobble: WobbleSpec;
@@ -75,7 +75,7 @@ function tierTable(table: readonly number[], tier: TraitTier | 0): number {
   return tier === 0 ? 0 : (table[tier - 1] ?? 0);
 }
 
-/** One glow per body (VISUAL-STYLE §1, sheet 01): the chloroplast halo wins over the toxin one. */
+/** One glow per body (visual-style/principles-and-palette.md §1, sheet 01): the chloroplast halo wins over the toxin one. */
 function haloKindFor(isProtocell: boolean, tierOf: TierOf): HaloKind {
   if (isProtocell) return HALO_KIND.protocell;
   if (tierOf(CHLOROPLAST_TRAIT) > 0) return HALO_KIND.chloroplast;

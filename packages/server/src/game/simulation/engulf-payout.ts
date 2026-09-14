@@ -16,7 +16,7 @@
 // names no trait for it to move (docs/ecology/absorption.md §6.1, the "Reserved" row), so no roll is drawn —
 // the same "no draw when the chance is 0" rule the spit-out follows (`engulf-spit-out.ts`). The draw
 // order build 2 must keep when it turns the steal on is the contract in docs/ecology/absorption.md §6.1's
-// Reserved row and docs/DETERMINISM.md §3, not this comment: a draw of `streams.engulf` here, after
+// Reserved row and docs/determinism/random-streams.md §3, not this comment: a draw of `streams.engulf` here, after
 // the tick's spit-out draw, one per completed engulf.
 
 import { DNA_TAG, DNA_TAGS, type BalanceConfig, type TraitDefinition } from '@evolution/shared';

@@ -31,7 +31,7 @@
 # test and integration print a `selected <package>: N test files, M tests run[, K skipped]` line per
 # package; a targeted run (a path scope, or extra args) that runs no test fails (#289).
 #
-# Result cache (docs/ENGINEERING.md §1): a green run is stamped under
+# Result cache (docs/engineering/validation-gate.md §1): a green run is stamped under
 # $HOME/.cache/<slug>-validate/<tree>.<command>[.scope-<scope>] (override the directory with
 # VALIDATE_CACHE_DIR), keyed by `git write-tree` of the whole working tree, tracked and untracked,
 # plus the Node major version and the scope. A repeat call on the same tree and scope prints
@@ -539,7 +539,7 @@ build_shared() {
   pnpm --filter "$PACKAGE_NAME_PREFIX$SHARED_PACKAGE" build > /dev/null 2>&1 || true
 }
 
-# docs/ENGINEERING.md §3.3: an eslint-disable needs a justification on the directive
+# docs/engineering/testing-and-typescript.md §3.3: an eslint-disable needs a justification on the directive
 # (`// eslint-disable-next-line rule -- why`). Prints the count; fails on an unjustified one.
 audit_disable_directives() {
   local all unjustified
@@ -653,7 +653,7 @@ run_package_tests() { # <test | integration> <extra args...>
   if [[ "$cmd" == test ]]; then
     output="$(pnpm "${PNPM_SELECTION[@]}" test "${runner_args[@]}" "$@" 2>&1)" || rc=$?
   else
-    # Each package's test:integration script selects the *.integration.* tier (docs/TESTING.md §2).
+    # Each package's test:integration script selects the *.integration.* tier (docs/testing/tiers-and-builders.md §2).
     build_shared
     output="$(pnpm "${PNPM_SELECTION[@]}" --if-present test:integration "${runner_args[@]}" "$@" 2>&1)" || rc=$?
   fi

@@ -28,7 +28,7 @@ import { DebugRequestError } from '../game/debug/debug-request-error.js';
  * bookkeeping, the fixed-tick loop and perf telemetry. All game-specific guts
  * live behind the injected `GameModule` (the 3 tick hooks + add/removePlayer).
  *
- * Time flows in through `RoomTiming` only (docs/DETERMINISM.md §2): the ticker wakes the loop,
+ * Time flows in through `RoomTiming` only (docs/determinism/contract-and-clock.md §2): the ticker wakes the loop,
  * the accumulator turns the clock into whole ticks, and the debug tools can pause the loop and
  * step it by hand for deterministic screenshots (docs/architecture/debug-mcp.md §8).
  */

@@ -1,4 +1,4 @@
-// The state hash of a world (docs/DETERMINISM.md §5): the canonical walk over `HASHED_FIELDS`
+// The state hash of a world (docs/determinism/ordering-and-state-hash.md §5): the canonical walk over `HASHED_FIELDS`
 // through the shared hasher. Every non-derived record field is listed (the test pins it); the
 // derived ones are excluded and named here so a debug-only field can never move the hash:
 // `leaderboard` (a function of the players), `effects` (transient), `balance` and `config`

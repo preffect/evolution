@@ -1,4 +1,4 @@
-// The renderer's two BitmapFonts (docs/rendering/own-cell-indicators.md §10, docs/VISUAL-STYLE.md §7): the `value` role
+// The renderer's two BitmapFonts (docs/rendering/own-cell-indicators.md §10, docs/visual-style/ui-type.md §7): the `value` role
 // for the level numeral, white on its callout-backing outline (docs/ui/hud.md §3.1.2), and the `label`
 // role for the threat and escape labels, uppercase-tracked white. One shared install each per texture
 // bundle, never one per indicator: `BitmapText` names the font by `INDICATOR_FONT[role].name`. The

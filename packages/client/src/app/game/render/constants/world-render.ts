@@ -1,5 +1,6 @@
-// The dish, food, depth, effects, layer order and camera numbers (docs/VISUAL-STYLE.md §1, §2, §5,
-// §8; sheet 02; docs/rendering/budget.md §6). Units: wu unless the suffix says px, seconds or degrees.
+// The dish, food, depth, effects, layer order and camera numbers (docs/visual-style/principles-and-palette.md §1–§2,
+// docs/visual-style/motion-and-legibility.md §5, docs/visual-style/performance-and-checklist.md §8; sheet 02;
+// docs/rendering/budget.md §6). Units: wu unless the suffix says px, seconds or degrees.
 // The bench scene and the frame-budget numbers of docs/rendering/budget.md §7 are the `bench.ts` page.
 
 // ---- layer order (docs/architecture/client.md §6) ----
@@ -62,7 +63,7 @@ export const VENT_GLINT_HZ_MAX = 9;
 /** The light pool's middle stop (sheet 02 `light-pool`: 9 % → 3 % at half the radius → 0). */
 export const LIGHT_POOL_MID = { stop: 0.5, alpha: 0.03 } as const;
 
-// ---- the condenser light pool, anchored to the view (docs/VISUAL-STYLE.md §1, docs/rendering/budget.md §6.1) ----
+// ---- the condenser light pool, anchored to the view (docs/visual-style/principles-and-palette.md §1, docs/rendering/budget.md §6.1) ----
 /** The pool's centre as fractions of the viewport's width and height: sheet 02's (380, 200) in its 1920 × 1080 scene. */
 export const LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 } as const;
 /** The pool's radii as fractions of the viewport's width and height: sheet 02's 980 × 760 wu at zoom 1. */
@@ -124,7 +125,7 @@ export const STAGE_SCRATCHES = {
 /** The field texture reaches past the wall by this many glass widths so the stage shows around it. */
 export const FIELD_OUTSIDE_MARGIN_GLASS = 3;
 
-// ---- depth particles (sheet 02, VISUAL-STYLE §5) ----
+// ---- depth particles (sheet 02, visual-style/motion-and-legibility.md §5) ----
 export const DEPTH_FAR = { count: 260, radiusMin: 0.5, radiusMax: 1.3, alphaMin: 0.08, alphaMax: 0.28 } as const;
 export const DEPTH_NEAR_PARTICLES = {
   count: 46,
@@ -140,10 +141,10 @@ export const DEPTH_DRIFT_WU_PER_SECOND_MAX = 4;
 export const DEPTH_FIELD_WU = { width: 1920, height: 1080 } as const;
 export const DEPTH_PARALLAX = { far: 0.85, near: 1.1, bokeh: 1.25 } as const;
 
-// ---- motes and fragments (sheet 02, VISUAL-STYLE §2, §5) ----
+// ---- motes and fragments (sheet 02, visual-style/principles-and-palette.md §2, visual-style/motion-and-legibility.md §5) ----
 export const MOTE_ATLAS_PX_PER_WU = 4;
 export const MOTE_SMALL_VARIANT_PX_PER_WU = 1;
-/** The specular glint on every baked body (VISUAL-STYLE §1): toward the light, as shares of the body radius. */
+/** The specular glint on every baked body (visual-style/principles-and-palette.md §1): toward the light, as shares of the body radius. */
 export const BAKE_GLINT = { offsetShare: 0.45, lengthShare: 0.35, widthShare: 0.16, rotationTurns: -0.125 } as const;
 /** The algae and detritus bakes: edge and rim as shares of the radius, the lipid centre, the glint. */
 export const MOTE_BAKE = {
@@ -200,7 +201,7 @@ export const RAY_TEXTURE_PX = { width: 16, height: 128 } as const;
 export const RAY_BASE_ALPHA = 0.9;
 export const RAY_GRADIENT_STOPS = 3;
 
-// ---- effects (sheet 03, VISUAL-STYLE §5) ----
+// ---- effects (sheet 03, visual-style/motion-and-legibility.md §5) ----
 export const LEVEL_UP_RAYS = 16;
 export const LEVEL_UP_RAY_WIDTH_RADII = 0.08;
 /** The rays sit outside the body (sheet 03 strip C frame 03): base at the rim, the `rayRadii` track is the tip. */

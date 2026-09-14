@@ -1,4 +1,4 @@
-// Scripted inputs (docs/TESTING.md §8, docs/ecology/acceptance.md §8). A script sees the state before the
+// Scripted inputs (docs/testing/scenario-runner.md §8, docs/ecology/acceptance.md §8). A script sees the state before the
 // step it feeds and answers with a `PlayerCommand`; the runner merges the commands one player
 // produced for one tick and hands the adapter the result. "Target N radii east" is measured
 // from the cell's *current* centre every tick, exactly as the fixture convention says. A script

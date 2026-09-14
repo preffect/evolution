@@ -1,4 +1,4 @@
-// Test support (docs/TESTING.md §4): byte-array equality for the baked noise textures. `toEqual`
+// Test support (docs/testing/tiers-and-builders.md §4): byte-array equality for the baked noise textures. `toEqual`
 // on a typed array walks every element through the deep matcher (~200 ms for the 16 KB strip,
 // #226); a typed-array walk is under a millisecond.
 

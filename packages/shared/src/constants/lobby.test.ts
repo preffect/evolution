@@ -16,7 +16,7 @@ import {
   wrapAvatarIndex,
 } from './lobby.js';
 
-/** docs/VISUAL-STYLE.md §2: eight palettes, so the last avatar index is 7. */
+/** docs/visual-style/principles-and-palette.md §2: eight palettes, so the last avatar index is 7. */
 const LAST_AVATAR_INDEX = 7;
 
 describe('lobby constants', () => {

@@ -1,4 +1,4 @@
-// Integration (docs/TESTING.md §2): the /ws route over a real socket pair, through the router
+// Integration (docs/testing/tiers-and-builders.md §2): the /ws route over a real socket pair, through the router
 // into the lobby and back out as a broadcast. Run with `./validate.sh integration`.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';

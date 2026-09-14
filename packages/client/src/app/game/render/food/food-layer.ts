@@ -120,7 +120,7 @@ export class FoodLayer {
     body.scaleX = scale;
     body.scaleY = scale;
     if (mote.kind !== FOOD_KIND.bacterium) return;
-    // The rod turns with its walk; its glint does not (VISUAL-STYLE §1: light from the top-left).
+    // The rod turns with its walk; its glint does not (visual-style/principles-and-palette.md §1: light from the top-left).
     const glint = this.nextParticle();
     glint.texture = appearance.isSmallVariant ? motes.rodGlint.small : motes.rodGlint.full;
     glint.x = mote.x;

@@ -139,7 +139,7 @@
 }
 
 /* §3.1.1 puts rank, name, level and score at `body`; the numbers take `figure`, which is `body`'s
-   size in the mono face (docs/VISUAL-STYLE.md §7), so the digits are tabular and do not jitter. */
+   size in the mono face (docs/visual-style/ui-type.md §7), so the digits are tabular and do not jitter. */
 .row .rank,
 .row .level {
   color: var(--hud-text-label);
@@ -176,7 +176,7 @@
   overflow: visible;
 }
 
-/* The seat-mark bead core is the one white (docs/VISUAL-STYLE.md §2). */
+/* The seat-mark bead core is the one white (docs/visual-style/principles-and-palette.md §2). */
 .bead {
   fill: var(--hud-white);
 }

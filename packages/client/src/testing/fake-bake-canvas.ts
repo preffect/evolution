@@ -1,4 +1,4 @@
-// A recording Canvas 2D for the texture bakes (docs/TESTING.md §4): every call is logged with its
+// A recording Canvas 2D for the texture bakes (docs/testing/tiers-and-builders.md §4): every call is logged with its
 // numeric arguments so a test can count a bake's layers, read where its curves go and check its
 // gradients without a DOM canvas.
 

@@ -1,4 +1,4 @@
-// docs/DETERMINISM.md §7 and #111's last row: two rooms on the Evolution module, same seed and
+// docs/determinism/replay-tests-and-traps.md §7 and #111's last row: two rooms on the Evolution module, same seed and
 // the same scripted inputs, driven through the real `GameRoom` loop under a `ManualClock` and a
 // `ManualTicker`, hash equal at every 600-tick checkpoint and at 10 000 ticks; a different seed
 // differs. The hash is `computeStateHash` over the world through the debug handle

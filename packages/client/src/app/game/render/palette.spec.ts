@@ -1,4 +1,4 @@
-// docs/rendering/files-and-tests.md §9: the HSL derivations of sheet 01 and the separability numbers of VISUAL-STYLE §2.
+// docs/rendering/files-and-tests.md §9: the HSL derivations of sheet 01 and the separability numbers of visual-style/principles-and-palette.md §2.
 
 import { describe, expect, it } from 'vitest';
 import { DNA_TAGS, PLAYER_PALETTE_COUNT, SEAT_MARK_BEADS } from '@evolution/shared';
@@ -100,7 +100,7 @@ describe('player palettes', () => {
   });
 });
 
-describe('separability (VISUAL-STYLE §2 acceptance)', () => {
+describe('separability (visual-style/principles-and-palette.md §2 acceptance)', () => {
   const bases = PLAYER_PALETTE_TABLE.map((row) => row.base);
 
   it('holds every base pair at or above PALETTE_PAIR_MIN_DELTA_E, with Coral–Rose the nearest at 18', () => {

@@ -1,4 +1,4 @@
-// Assertions with tolerances (docs/TESTING.md §8). An expectation selects a value from the view
+// Assertions with tolerances (docs/testing/scenario-runner.md §8). An expectation selects a value from the view
 // at a tick and matches it (`matchers.ts`); a failed match is reported with the tick, the label
 // and both values rather than thrown on the spot, so one run reports every failure and its
 // replay at once. A capture stores a selected value under a label for a later expectation.

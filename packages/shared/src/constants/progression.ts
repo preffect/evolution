@@ -37,7 +37,7 @@ export const ENTRY_DNA_FRACTION = 0.5;
 export const ENTRY_MASS_FRACTION = 0.5;
 export const ENTRY_MAX_MASS = 200;
 
-/** The seven tags in walk order: records keyed by tag are hashed in this order (docs/DETERMINISM.md §5). */
+/** The seven tags in walk order: records keyed by tag are hashed in this order (docs/determinism/ordering-and-state-hash.md §5). */
 export const DNA_TAGS = [
   DNA_TAG.motile,
   DNA_TAG.photic,

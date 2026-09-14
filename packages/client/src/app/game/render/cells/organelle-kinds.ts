@@ -1,4 +1,4 @@
-// What organelles a cell carries and how many (docs/VISUAL-STYLE.md §3, §4): the kinds in the
+// What organelles a cell carries and how many (docs/visual-style/cells-and-organelles.md §3, §4): the kinds in the
 // order their slots are laid out, and the per-trait tier tables that decide the counts. The
 // eyespot and the form parts join with #216.
 

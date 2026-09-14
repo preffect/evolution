@@ -1,4 +1,4 @@
-// The three depth layers (sheet 02 draw order 4–7, docs/VISUAL-STYLE.md §1, §5): far sharp
+// The three depth layers (sheet 02 draw order 4–7, docs/visual-style/principles-and-palette.md §1, docs/visual-style/motion-and-legibility.md §5): far sharp
 // motes, near blurred discs and bokeh, each a seeded field that drifts 2–4 wu/s and tiles over
 // a 1080p window at zoom 1, wrapping with the camera so the field never runs out. Pure
 // placement; the dish layer applies it to particles.

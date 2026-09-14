@@ -1,5 +1,5 @@
 // Unit conversion factors. The conversion helpers (secondsToTicks, ...) live in
-// packages/shared/src/time/units.ts (docs/DETERMINISM.md §2).
+// packages/shared/src/time/units.ts (docs/determinism/contract-and-clock.md §2).
 
 export const MILLISECONDS_PER_SECOND = 1000;
 export const SECONDS_PER_MINUTE = 60;

@@ -1,4 +1,4 @@
-// The trait sets the bench scene gives each stage (docs/VISUAL-STYLE.md §3) and the player
+// The trait sets the bench scene gives each stage (docs/visual-style/cells-and-organelles.md §3) and the player
 // records behind the player cells: every tier of every organelle the ladder through eukaryote
 // shows, so the atlas, the shader tells and the sprites are all exercised; the specialised row
 // wears the amoeba form. The player records climb the DNA bar with the tick.

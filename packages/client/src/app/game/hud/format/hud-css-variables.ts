@@ -121,7 +121,10 @@ function pickerVariables(): StyleVariables {
   };
 }
 
-/** Type roles, each published whole — a size with its own face — and the colour roles (docs/VISUAL-STYLE.md §2, §7). */
+/**
+ * Type roles, each published whole — a size with its own face — and the colour roles
+ * (docs/visual-style/principles-and-palette.md §2, docs/visual-style/ui-type.md §7).
+ */
 function typeAndColourVariables(): StyleVariables {
   return {
     '--hud-font-sans': UI_TYPE.body.font,
