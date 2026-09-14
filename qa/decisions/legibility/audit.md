@@ -82,8 +82,10 @@ Mitochondrion I owned.
 
 `docs/visual-style/ui-type.md` §7 allows only danger, gold and DNA (plus the UI accent) as saturated UI colours.
 Text in the frames is `WHITE` or the text role; colour sits on rims, dots, rings and glyphs. The toxin cue uses
-`DANGER`, as `principles-and-palette.md` §2 assigns the toxin damage flash; toxin violet stays world art. The
-frames still borrow three colours, which would need new named roles in §2:
+`DANGER`, as `principles-and-palette.md` §2 assigns the toxin damage flash; toxin violet stays world art. `DANGER`
+then marks both the threat ring and the toxic-prey ring, told apart only by the dash and the label, so a build
+ticket must separate them (for example, a solid thin toxic ring). The frames still borrow three colours, which
+would need new named roles in §2:
 
 | Borrowed colour    | Used for                                                                 | Options |
 | ------------------ | ------------------------------------------------------------------------ | ------- |
