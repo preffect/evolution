@@ -4,7 +4,7 @@
 // carried stage is refreshed here for every player, cell or not, so no writer of `ownedTraits` can leave it stale
 // past one tick.
 
-import { secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
+import { hasSteerTarget, secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
 import { refreshPlayerStage } from '../progression/ladder.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { applyTraitChoice, showQueuedOfferIfNone } from '../progression/offers.js';
@@ -12,7 +12,6 @@ import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { loseMassToFloor } from './cell-mass.js';
-import { hasSteerTarget } from './input-coalescing.js';
 
 /** The cooldown a sprint starts with: `SPRINT_COOLDOWN_SECONDS + delta`, floored (docs/traits/model.md §2). */
 export function sprintCooldownTicks(cell: CellRecord, balance: BalanceConfig): number {

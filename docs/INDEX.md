@@ -469,12 +469,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.1.3 The reading floor (the fact #146 solves)** (L51–99): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: the own cell is 24 px at spawn and …
   - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L100–160): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
 
-## ui/input-and-onboarding.md (120 lines)
+## ui/input-and-onboarding.md (123 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–120): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
-- **4. Input mapping and keyboard reachability** (L5–71): focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5: Escape is what closes it).
-- **5. Onboarding: the first two minutes** (L72–89): Diegetic and text hints, no modal tutorial.
-- **6. Readability during play** (L90–120): and the connection banner stack from the top, never downward past y 96.
+- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–123): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
+- **4. Input mapping and keyboard reachability** (L5–74): focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5: Escape is what closes it).
+- **5. Onboarding: the first two minutes** (L75–92): Diegetic and text hints, no modal tutorial.
+- **6. Readability during play** (L93–123): and the connection banner stack from the top, never downward past y 96.
 
 ## ui/layout.md (89 lines)
 

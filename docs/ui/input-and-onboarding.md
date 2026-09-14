@@ -49,7 +49,10 @@
 - **Presses do not survive a gap with nothing to steer.** While there is no world — before the first snapshot,
   and through `results` — a queued sprint and a queued pick are dropped rather than carried into the next round,
   and the client tick accumulator is resynced so the frame the world returns on sends one input, not a burst.
-  Held steer keys keep their latch, because the key is still physically down.
+  Held steer keys keep their latch, because the key is still physically down. With a world but no own cell
+  (spectating after a death) the input carries no target and no sprint, so a sprint pressed while spectating is
+  dropped rather than started on the respawned cell, while a queued pick is still sent: the offer outlives the
+  cell (#346).
 - **Opposing steer keys hand control back to the pointer.** `A` + `D` (or `W` + `S`) cancel to no direction, and
   the target falls through to the latched pointer rather than stopping. This is the decision for a
   pointer-primary game; "both keys to stop" would be a design change, not a bug fix.

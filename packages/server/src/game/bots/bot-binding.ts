@@ -36,14 +36,16 @@ export function locateCellThrough<Snapshot>(
 
 /**
  * The one mapping from a game-term command to the wire `GameInput`: both bindings share it. A command
- * without a target sends none, so the cell keeps its latched target (docs/architecture/wire-contract.md §4); a
- * script that wants to hold still targets the cell's own centre.
+ * without both coordinates sends no target, never a half one, so the cell keeps its latched target
+ * (docs/architecture/wire-contract.md §4); a script that wants to hold still targets the cell's own centre.
  */
 export function toWireInput(playerCommand: PlayerCommand, sequence: number): GameInput {
+  const { targetX, targetY } = playerCommand;
+  const hasTarget = targetX !== undefined && targetY !== undefined;
   return {
     sequence,
-    targetX: playerCommand.targetX ?? null,
-    targetY: playerCommand.targetY ?? null,
+    targetX: hasTarget ? targetX : null,
+    targetY: hasTarget ? targetY : null,
     shouldSprint: playerCommand.isSprinting ?? false,
     traitChoice: playerCommand.traitChoice ?? null,
   };

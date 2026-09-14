@@ -20,6 +20,8 @@ describe('toWireInput', () => {
       shouldSprint: false,
       traitChoice: null,
     });
+    expect(toWireInput({ targetX: 9 }, 4)).toMatchObject({ targetX: null, targetY: null });
+    expect(toWireInput({ targetY: 9 }, 5)).toMatchObject({ targetX: null, targetY: null });
     const choice = { offerId: 1, cardIndex: 2 };
     expect(toWireInput({ targetX: 3, targetY: 4, isSprinting: true, traitChoice: choice }, 7)).toEqual({
       sequence: 7,
