@@ -14,6 +14,7 @@ import {
   TICK_HZ,
   TICK_INTERVAL_MS,
   createSeededRandom,
+  cumulativeDnaForLevel,
   entryMass,
   ticksToSeconds,
   worldReference,
@@ -38,7 +39,7 @@ import { player, type PlayerScript } from '../gameplay/index.js';
 import { E9_PAYOUT_DNA, E9_PAYOUT_TICK, engulfPair, lifeStateOfPrey, preyCell } from './engulf-setups.js';
 import { MASS_TOLERANCE, P7_JOIN_TICK, decayed, expectedDetritusMass, p7Setup, seededSolo } from './shared-setups.js';
 
-const { growth, ecology, session, world: dish } = DEFAULT_BALANCE;
+const { growth, ecology, progression, session, world: dish } = DEFAULT_BALANCE;
 const TIME_TOLERANCE_MS = 1;
 const ROUND_TICKS = session.ROUND_DURATION_SECONDS * TICK_HZ;
 const RESULTS_TICKS = session.RESULTS_SCREEN_SECONDS * TICK_HZ;
@@ -170,18 +171,21 @@ describe('game-design/constants-and-acceptance.md §13: the session', () => {
   it('G14: a joiner at 5:00 is floored at the world clock, not the idle player', async () => {
     const reference = worldReference(ticksToSeconds(G14_JOIN_TICK), DEFAULT_BALANCE);
     const expectedMass = decayed(entryMass(null, reference, DEFAULT_BALANCE), 1);
+    // The median term is 0 (the idle player has no DNA), so the floor is the world's whole level; all of it is gift.
+    const worldFloorLevel = Math.floor(reference.worldLevel);
+    const worldFloorDna = cumulativeDnaForLevel(worldFloorLevel, progression);
     await seededSolo('G14')
       .playerJoinsAt(G14_JOIN_TICK)
       .advance(G14_JOIN_TICK)
       .expect('dna', (view) => progressOf(view, 1)?.dnaCumulative)
       .atTick(G14_JOIN_TICK)
-      .toBe(60)
+      .toBe(worldFloorDna)
       .expect('gift', (view) => progressOf(view, 1)?.dnaCatchUpGift)
       .atTick(G14_JOIN_TICK)
-      .toBe(60)
+      .toBe(worldFloorDna)
       .expect('level', (view) => progressOf(view, 1)?.level)
       .atTick(G14_JOIN_TICK)
-      .toBe(2)
+      .toBe(worldFloorLevel)
       .expect('offer shown', (view) => progressOf(view, 1)?.offer?.offerId)
       .atTick(G14_JOIN_TICK)
       .toBe(1)

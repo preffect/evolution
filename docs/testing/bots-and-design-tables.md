@@ -97,7 +97,10 @@ The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts`
 `ecology-cells.gameplay.test.ts` (E4–E8, E12, E15), `game-design-session.gameplay.test.ts` (G1–G3,
 G9–G11, G14; G2 and G11 share one whole-round run), `game-design-controls.gameplay.test.ts` (G4–G7)
 and `progression.gameplay.test.ts` (P1–P3, P6–P8, P10); `shared-setups.ts` holds the seeds bound to
-the DSL, `decayed()`, the tolerances and the P7 world G9 reuses. The pure-function rows are
+the DSL, `decayed()`, the steer-blend helpers (`blendedSpeed`, `blendedTravelWu`), the tolerances and
+the P7 world G9 reuses. A row derives its expected numbers from the shared constants and formulas
+(`maxSpeedForMass`, `radiusForMass`, `gelSpeedFactor`, `cumulativeDnaForLevel`, `worldReference`) rather
+than copying the table's literal, so a balance change fails a row only when the rule breaks (#212). The pure-function rows are
 pinned beside their functions (P4, P9, P12, P14 in `game/progression/draft.test.ts`, P13 in
 `ladder.test.ts`, G12 and W1 in `shared/src/simulation/world-clock.test.ts`). The rows that need
 an engulf (E9–E11, E13, E16, G8, P5, P11, the T rows) land with the engulf slice of #98; the

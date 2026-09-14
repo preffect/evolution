@@ -2,11 +2,13 @@
 // `decayed()` helper over the live balance, the tolerances the tables state, and PROGRESSION P7's
 // late-join world, which GAME-DESIGN G9 reuses. Not a test file: the scenario files import it.
 
-import { DEFAULT_BALANCE } from '@evolution/shared';
+import { DEFAULT_BALANCE, TICK_INTERVAL_S, cumulativeDnaForLevel, steerBlendPerTick } from '@evolution/shared';
 import { PLACED_ROW_SEED, TABLE_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
 import { ZONE, createDecayedHelper } from '../gameplay/index.js';
 
-const { growth, ecology } = DEFAULT_BALANCE;
+const { growth, ecology, progression } = DEFAULT_BALANCE;
+/** The share of the velocity gap a cell without an acceleration trait closes per tick. */
+const STEER_BLEND = steerBlendPerTick(growth.CELL_ACCELERATION_SECONDS, TICK_INTERVAL_S);
 
 /** "Mass assertions are ± 0.01 unless the row says otherwise" (docs/ecology/acceptance.md §8). */
 export const MASS_TOLERANCE = 0.01;
@@ -19,6 +21,18 @@ export const decayed = createDecayedHelper({
   cellStartingMass: growth.CELL_STARTING_MASS,
   massDecayRatePerSecond: ecology.MASS_DECAY_RATE_PER_SECOND,
 });
+
+/** The speed after `ticks` of full throttle from rest toward a cap held at `speedCapWuPerSecond`: cap × (1 − (1 − blend)^ticks). */
+export function blendedSpeed(speedCapWuPerSecond: number, ticks: number): number {
+  return speedCapWuPerSecond * (1 - (1 - STEER_BLEND) ** ticks);
+}
+
+/** The distance those ticks cover: the sum of each tick's `blendedSpeed` × the tick interval, in closed form. */
+export function blendedTravelWu(speedCapWuPerSecond: number, ticks: number): number {
+  const keptShare = 1 - STEER_BLEND;
+  const unconvergedTicks = (keptShare / STEER_BLEND) * (1 - keptShare ** ticks);
+  return speedCapWuPerSecond * TICK_INTERVAL_S * (ticks - unconvergedTicks);
+}
 
 /**
  * docs/ecology/food-and-spawn.md §1 rounding: motes = floor(fraction × mass / mote mass), the remainder dropped.
@@ -41,7 +55,8 @@ export function placedSolo(name: string) {
 
 /** "The third player joins before tick 6000 steps": the join is stamped 6000, the mass fixture the tick before it. */
 export const P7_JOIN_TICK = 6000;
-export const P7_FIXTURE_DNA = 120;
+/** The joiner's gift is `ENTRY_DNA_FRACTION` of the median: this median lands it exactly on the level-2 threshold. */
+export const P7_FIXTURE_DNA = cumulativeDnaForLevel(2, progression) / progression.ENTRY_DNA_FRACTION;
 export const P7_FIXTURE_MASS = 400;
 /** B sits east of A far enough that neither placement nor separation touches the other. */
 const B_EAST_OF_A_WU = 700;
