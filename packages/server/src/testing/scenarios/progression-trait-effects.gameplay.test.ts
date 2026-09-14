@@ -49,7 +49,7 @@ function tierOneModifier(traitId: TraitId, field: keyof CellModifiers): number {
 /** Picks the shown offer's card for `traitId` by its index, as the client would; sends nothing when it is not offered. */
 function pickOfferedTrait(traitId: TraitId): PlayerScript<EvolutionScenarioSnapshot> {
   return (context) => {
-    const offer = context.snapshot.players[context.playerId]?.offer;
+    const offer = context.snapshot.progressByPlayer[context.playerId]?.offer;
     const cardIndex = offer?.cards.findIndex((card) => card.traitId === traitId) ?? -1;
     return offer == null || cardIndex < 0 ? null : { traitChoice: { offerId: offer.offerId, cardIndex } };
   };
