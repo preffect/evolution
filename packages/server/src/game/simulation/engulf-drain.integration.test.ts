@@ -7,7 +7,8 @@
 // T4 lives here rather than on the scenario runner: its spit-out is a draw of the seed-42 `engulf` stream, and
 // the runner refuses seed 42 for placed rows (a gel patch sits by the broth point), while seed 48's stream
 // never draws under a Diatom Shell's chance. The world here is seed 42 with the gel patches cleared, and the
-// spit-out tick is derived from that stream. T22's masses are the design table's own numbers
+// spit-out tick is derived from that stream. T22's payout ticks and masses come from `modelHeldPair`, a step
+// model on the shared eligibility and pace formulas, never from the table's rounded numbers
 // (docs/traits/constants-and-acceptance.md §6). Run with `./validate.sh integration`.
 
 import { describe, expect, it } from 'vitest';
@@ -18,6 +19,7 @@ import {
   RANDOM_STREAM,
   createSeededRandom,
   distanceBetween,
+  foldModifiers,
   playerId,
   secondsToTicks,
   spitOutChancePerTick,
@@ -28,7 +30,7 @@ import {
 } from '@evolution/shared';
 import { E9_COVER_TICKS } from '../../testing/engulf-builders.js';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';
-import { drainedMass } from '../../testing/scenarios/trait-engulf-setups.js';
+import { HELD_PAIR_OUTCOME, drainedMass, modelHeldPair } from '../../testing/scenarios/trait-engulf-setups.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
@@ -45,16 +47,12 @@ const MASS_DIGITS = 2;
 const T4_ROW = { predatorMass: 100, preyMass: 20, ticks: 120, unspatPayoutTick: 44 };
 /** T18's pair: A at 101 over B at 80; without the toxin A absorbs B on tick 72. */
 const T18 = { predatorMass: 101, preyMass: 80, ticks: 72 };
-/** T22: Cell Wall III + Diatom Shell III + Toxin Vacuole III at 100 against A at 300, spit-out written to 0. */
-const T22 = {
-  predatorMass: 300,
-  preyMass: 100,
-  ticks: 90,
-  payoutTick: 84,
-  massAfterYield: 296.05,
-  vacuolePayoutTick: 51,
-  vacuoleMassAfterYield: 345.38,
-};
+/**
+ * T22: Cell Wall III + Diatom Shell III + Toxin Vacuole III at 100 against A at 300, spit-out written to 0, over the
+ * row's 90 ticks. The outcome is derived (`modelHeldPair`); the table states tick 84 at ≈ 296.05 and, with Food
+ * Vacuole III, tick 51 at ≈ 345.38.
+ */
+const T22 = { predatorMass: 300, preyMass: 100, ticks: 90 };
 
 interface PairSetup {
   readonly predatorMass: number;
@@ -212,16 +210,21 @@ describe('a swallowed toxin prey against its predator, through stepWorld (#260, 
     expect(run.world.cells).not.toContain(run.prey);
   });
 
-  it('T22: the Wall + Diatom + Toxin trio at 3 × is absorbed on tick 84, and on tick 51 by a Food Vacuole III', () => {
-    const plain = runPair(trioPrey);
-    expect(effectsOfKind(plain, EFFECT_KIND.cellAbsorbed).map((effect) => effect.tick)).toEqual([T22.payoutTick]);
-    expect(plain.predatorMassByTick[T22.payoutTick - 1]).toBeCloseTo(T22.massAfterYield, MASS_DIGITS);
-
-    const vacuole = runPair({ ...trioPrey, predatorTraits: [tierOf('food_vacuole', TOP_TIER)] });
-    expect(effectsOfKind(vacuole, EFFECT_KIND.cellAbsorbed).map((effect) => effect.tick)).toEqual([
-      T22.vacuolePayoutTick,
-    ]);
-    expect(vacuole.predatorMassByTick[T22.vacuolePayoutTick - 1]).toBeCloseTo(T22.vacuoleMassAfterYield, MASS_DIGITS);
+  it('T22: the Wall + Diatom + Toxin trio at 3 × is absorbed when the step model says, plain and by a Food Vacuole III', () => {
+    const tierTables = DEFAULT_BALANCE.traits.TRAIT_TIERS;
+    for (const predatorTraits of [[], [tierOf('food_vacuole', TOP_TIER)]] as const) {
+      const expected = modelHeldPair({
+        predatorMass: T22.predatorMass,
+        preyMass: T22.preyMass,
+        predator: foldModifiers(predatorTraits, tierTables),
+        prey: foldModifiers(trioPrey.preyTraits ?? [], tierTables),
+        maxTicks: T22.ticks,
+      });
+      expect(expected.kind, 'the model pays the trio out inside the row').toBe(HELD_PAIR_OUTCOME.payout);
+      const run = runPair({ ...trioPrey, predatorTraits });
+      expect(effectsOfKind(run, EFFECT_KIND.cellAbsorbed).map((effect) => effect.tick)).toEqual([expected.tick]);
+      expect(run.predatorMassByTick[expected.tick - 1]).toBeCloseTo(expected.predatorMass, MASS_DIGITS);
+    }
   });
 
   it('hashes equal at every tick across two runs, and the toxin moves the hash', () => {
