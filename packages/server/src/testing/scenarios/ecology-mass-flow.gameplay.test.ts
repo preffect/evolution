@@ -36,6 +36,8 @@ const AURA_TOXIC_MASS = 1000;
 const AURA_VICTIM_MASS = 40;
 const TOP_TIER = 3;
 /** T21 (#154): a 500 predator completes a meal of a 100 Toxin Vacuole III prey on tick 36. */
+/** F1 on #420: the T21 masses with a Diatom Shell I prey, whose spikes cost the predator from the first progress. */
+const SPINY = { ticks: 40, inCoverTick: 3 };
 const T21 = { predatorMass: 500, preyMass: 100, payoutTick: 36, pastCoverTick: 12, ticks: 40 };
 
 type RowBuilder = ReturnType<typeof placedSolo>;
@@ -229,6 +231,30 @@ describe('docs/ecology/acceptance.md §8 E17: the mass flow explains every tick 
       )
       .atTick(T21.payoutTick)
       .toBeGreaterThan(0)
+      .runDeterministic();
+  });
+
+  it('engulfing a Diatom Shell I prey: its spikes are swallowed from the first progress, in cover', async () => {
+    await conservedEveryTick(
+      placedPair('E17 spiny')
+        .placeCell({ playerIndex: 0, mass: T21.predatorMass })
+        .placeCell({
+          playerIndex: 1,
+          mass: T21.preyMass,
+          eastOfFirstCellWu: CONTACT_DISTANCE_WU,
+          traits: ['diatom_shell'],
+        }),
+      SPINY.ticks,
+    )
+      .expect('the engulf is still in cover', (view) => cellOf(view, 1)?.engulfProgress)
+      .atTick(SPINY.inCoverTick)
+      .toBeLessThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .expect('a swallowed rate in cover, never counted as toxin', (view) => {
+        const rates = massFlowOf(view, 0)?.ratesPerSecond;
+        return rates !== undefined && (rates.swallowed ?? 0) < 0 && rates.toxin === undefined;
+      })
+      .atTick(SPINY.inCoverTick)
+      .toBe(true)
       .runDeterministic();
   });
 });

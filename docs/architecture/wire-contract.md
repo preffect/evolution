@@ -62,7 +62,8 @@ precision.
 - `MassFlowView.sprintSpent`, `EatEffect.massGained` / `dnaGained` and `CellAbsorbedEffect.predatorMassGained` /
   `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` that rounds to 0 is left out
 - Written exact: `GelPatchView` `x` / `y` / `radius` (static, sent whole each snapshot), effect `x` / `y`,
-  `engulfProgress`, `membraneRatioBonus` and every other number of a view (counters, ticks, DNA).
+  `engulfProgress`, `membraneRatioBonus` and every other number of a view (counters, ticks, the progress DNA such as
+  `dnaCumulative`; the meal amounts `dnaGained` / `predatorDnaGained` are rounded, above).
 
 The debug inspect tools read exact values instead (architecture/debug-mcp.md §8); `debug_get_game_state` is the
 `game_state` payload, at this precision.
@@ -319,16 +320,19 @@ grazer bots and one recording client that grazes too, 300 `game_snapshot`s after
 recording client breaks each snapshot down by the bytes the mass flow adds (`,"massFlow":{…}` in its own
 `ownProgress`, and `,"massGained":…,"dnaGained":…` on each `eat`).
 
-| Part (the recording client, 20 Hz)                                              | Measured                                 | Per client                 |
-| ------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------- |
-| `ownProgress.massFlow`, to its own viewer only (two or three causes and a zone) | 77.1 B mean, 66–78 B                     | ≈ 1.5 KB/s, 0.3 % of 24 KB |
-| `eat` amounts, to every viewer                                                  | 29.0 B an eat; 0.36 eats a snapshot, 0–3 | 10.3 B a snapshot here     |
-| `cell_absorbed` amounts, to every viewer                                        | none in the window; ≈ 50 B an absorption | at most a few a minute     |
-| whole `game_snapshot` in that room                                              | 10 803 B mean                            |                            |
+| Part (the recording client, 20 Hz)                                              | Measured                                            | Per client                 |
+| ------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------- |
+| `ownProgress.massFlow`, to its own viewer only (two or three causes and a zone) | 77.1 B mean, 66–78 B                                | ≈ 1.5 KB/s, 0.3 % of 24 KB |
+| `eat` amounts, to every viewer                                                  | 29.0 B an eat; 0.36 eats a snapshot, 0–3            | 10.3 B a snapshot here     |
+| `cell_absorbed` amounts, to every viewer                                        | none in the window; ≈ 50 B an absorption, estimated | at most a few a minute     |
+| whole `game_snapshot` in that room                                              | 10 803 B mean                                       |                            |
 
 The room ate little (a fresh dish, 0.36 eats a snapshot across 8 players). In a bloom, 5–15 eats a window would put
-the eat amounts at 0.15–0.44 KB a snapshot. The mass flow costs at most about 0.5 KB against the ≈ 18–50 KB of the
-table above, so it moves no row across the budget line.
+the eat amounts at 0.15–0.44 KB a snapshot. The mass flow costs at most about 0.5 KB a snapshot. That moves no row of the table above across the budget line, but it
+matters for #341's tight row: the ≈ 22.8 KB projection with bare wild cells had a ≈ 1.2 KB margin, already the size of
+its own uncertainty, and in a bloom that margin falls to ≈ 0.7–1.1 KB. The widest-zoom and dish-centre cases stay over
+the budget as before. The `cell_absorbed` figure is estimated from the field names and 0.1-rounded values, not
+measured: no absorption happened in the window.
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120–150 KB/s after `perMessageDeflate`); 8 clients
 ≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s,

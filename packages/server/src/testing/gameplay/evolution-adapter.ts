@@ -17,7 +17,7 @@ import { createEvolutionModule, type EvolutionModule } from '../../game/evolutio
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
 import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
-import { sealSprintWindow } from '../../game/world/mass-flow-ledger.js';
+import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -110,12 +110,6 @@ export interface LazyScenarioSnapshot {
   materialise(): void;
 }
 
-/** A scenario drains every tick, so its sprint window is the tick's (#383): the conservation row reads it so. */
-function sealTickSprintWindow(world: WorldState): Record<never, never> {
-  sealSprintWindow(world.massFlow);
-  return {};
-}
-
 /**
  * Values are exact here (the tables assert ± 0.01 wu); only the wire rounds positions, velocity, mass, radius and the
  * leaderboard's score and mass. The scalars, the counters and this tick's effects (drained here, as the broadcast drains them) are captured
@@ -137,14 +131,15 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     );
     return projectedProgress;
   };
+  // A scenario drains every tick, so its window (the effects and the sprint spend, #383) is the tick's.
+  const effects = drainBroadcastWindow(world);
   const snapshot = {
     tick: world.tick,
     seed: world.seed,
     roundStartTick: world.roundStartTick,
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
-    effects: world.effects.splice(0),
-    ...sealTickSprintWindow(world),
+    effects,
     spawnedCounts: { food: world.spawners.food.spawnedCount, dnaFragments: world.spawners.dnaFragments.spawnedCount },
   } as EvolutionScenarioSnapshot;
   for (const key of LAZY_SNAPSHOT_KEYS) {

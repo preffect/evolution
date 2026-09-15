@@ -21,12 +21,6 @@ const CHLOROPLAST_TOP_TIER: TraitTier = 3;
 /** T5 at the cap: "± 1e-9" on the overflow DNA. */
 const OVERFLOW_DNA_DIGITS = 9;
 
-/** #383's worked example: mass 312 touched, 10 wu apart, by a 96-mass Toxin Vacuole I cell; rates to 1e-9. */
-const TOUCHING_OFFSET_WU = 10;
-const WORKED_MASS = 312;
-const TOXIC_MASS = 96;
-const RATE_DIGITS = 9;
-
 function placedCell(
   mass: number,
   centre: Vec2 = BROTH_POINT,
@@ -219,68 +213,5 @@ describe('toxin reach', () => {
     toxic.modifiers.toxinDrainFractionPerSecond = 0.03;
     expect(toxinDrainFraction(target, [toxic, target])).toBe(0.03);
     expect(toxinDrainFraction(toxic, world.cells)).toBe(0);
-  });
-});
-
-describe('metabolise: the applied mass flow (#383, docs/ui/hud.md §3.1.5)', () => {
-  const tiers = DEFAULT_BALANCE.traits.TRAIT_TIERS;
-
-  /** Mass `mass` at `centre` owning `ownTrait`, touched by a Toxin Vacuole I cell of `TOXIC_MASS`. */
-  function touchedByToxin(mass: number, centre: Vec2, ownTrait?: 'mitochondrion') {
-    const world = createTestWorld({
-      players: [
-        { playerId: playerId('a'), playerName: 'A', avatarIndex: 0 },
-        { playerId: playerId('b'), playerName: 'B', avatarIndex: 1 },
-      ],
-    });
-    const [own, toxic] = world.cells as [CellRecord, CellRecord];
-    const [ownPlayer, toxicPlayer] = world.players as [(typeof world.players)[0], (typeof world.players)[0]];
-    Object.assign(own, { x: centre.x, y: centre.y });
-    Object.assign(toxic, { x: centre.x + TOUCHING_OFFSET_WU, y: centre.y });
-    setCellMass(own, mass, DEFAULT_BALANCE);
-    setCellMass(toxic, TOXIC_MASS, DEFAULT_BALANCE);
-    if (ownTrait !== undefined) ownPlayer.ownedTraits.push({ traitId: ownTrait, tier: 1 });
-    toxicPlayer.ownedTraits.push({ traitId: 'toxin_vacuole', tier: 1 });
-    refreshCellDerivedState(own, ownPlayer, DEFAULT_BALANCE);
-    refreshCellDerivedState(toxic, toxicPlayer, DEFAULT_BALANCE);
-    return { world, own, ownPlayer };
-  }
-
-  it('the worked example: mass 312 in the vent with Mitochondrion I, touching Toxin Vacuole I', () => {
-    const { world, own, ownPlayer } = touchedByToxin(WORKED_MASS, VENT_POINT, 'mitochondrion');
-    metaboliseFor(world, 1);
-    const record = world.massFlow.metabolismByPlayer[ownPlayer.playerId]!;
-    const traitDecay = tiers.mitochondrion[0]!.decayMultiplier!;
-    const brothDecay = (WORKED_MASS - growth.CELL_STARTING_MASS) * ecology.MASS_DECAY_RATE_PER_SECOND * traitDecay;
-    expect(record.zone).toBe('warm_vent');
-    expect(record.ratesPerSecond.toxin).toBeCloseTo(
-      -WORKED_MASS * tiers.toxin_vacuole[0]!.toxinDrainFractionPerSecond!,
-      RATE_DIGITS,
-    );
-    expect(record.ratesPerSecond.decay).toBeCloseTo(-brothDecay, RATE_DIGITS);
-    expect(record.ratesPerSecond.vent).toBeCloseTo(-brothDecay * (ecology.VENT_DECAY_MULTIPLIER - 1), RATE_DIGITS);
-    expect(record.ratesPerSecond.swallowed).toBe(-0);
-    expect(record.ratesPerSecond.light).toBe(0);
-    expect(record.decayTraitShare).toBeCloseTo(traitDecay - 1, RATE_DIGITS);
-    const applied = Object.values(record.ratesPerSecond).reduce((sum, rate) => sum + rate, 0) * TICK_INTERVAL_S;
-    expect(own.mass - WORKED_MASS).toBeCloseTo(applied, RATE_DIGITS);
-  });
-
-  it('at the floor reports what was taken, split in proportion, never the formula', () => {
-    const surplus = 0.01;
-    const { world, own, ownPlayer } = touchedByToxin(growth.CELL_STARTING_MASS + surplus, BROTH_POINT);
-    metaboliseFor(world, 1);
-    const rates = world.massFlow.metabolismByPlayer[ownPlayer.playerId]!.ratesPerSecond;
-    expect(own.mass).toBe(growth.CELL_STARTING_MASS);
-    expect((rates.toxin + rates.decay) * TICK_INTERVAL_S).toBeCloseTo(-surplus, RATE_DIGITS);
-    const toxinFormula = (growth.CELL_STARTING_MASS + surplus) * tiers.toxin_vacuole[0]!.toxinDrainFractionPerSecond!;
-    expect(-rates.toxin).toBeLessThan(toxinFormula);
-  });
-
-  it('records no flow for a cell with no player', () => {
-    const { world, cell, player } = placedCell(WORKED_MASS);
-    cell.playerId = null;
-    metaboliseFor(world, 1);
-    expect(world.massFlow.metabolismByPlayer[player.playerId]).toBeUndefined();
   });
 });

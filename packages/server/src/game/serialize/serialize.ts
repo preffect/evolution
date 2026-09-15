@@ -26,7 +26,7 @@ import {
 } from '@evolution/shared';
 import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from '../world/entities.js';
 import { findPlayer } from '../world/lookups.js';
-import { sealSprintWindow } from '../world/mass-flow-ledger.js';
+import { drainBroadcastWindow } from '../world/broadcast-window.js';
 import type { WorldState } from '../world/world-state.js';
 import type { FoodDeltaTracker } from './food-delta-tracker.js';
 import { toEffectView, toMassFlowView } from './mass-flow-view.js';
@@ -225,7 +225,6 @@ export function serializeFullSnapshot(
  * viewers' own progress reports with it (#383).
  */
 export function serializeDeltaSnapshot(world: WorldState, tracker: FoodDeltaTracker): GameSnapshot {
-  sealSprintWindow(world.massFlow);
-  const effects: GameEffect[] = world.effects.splice(0).map((effect) => toEffectView(effect, WIRE_SNAPSHOT_VALUES));
+  const effects: GameEffect[] = drainBroadcastWindow(world).map((effect) => toEffectView(effect, WIRE_SNAPSHOT_VALUES));
   return { ...serializeCommon(world, WIRE_SNAPSHOT_VALUES), food: tracker.diff(world.food), effects };
 }

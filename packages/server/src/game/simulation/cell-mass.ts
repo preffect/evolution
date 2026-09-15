@@ -47,7 +47,7 @@ export function measureGain(cell: CellRecord, player: PlayerRecord, applyGains: 
   return { massGained: cell.mass - massBefore, dnaGained: player.dnaCumulative - dnaBefore };
 }
 
-/** Drops mass to `mass` but never below the starting mass (decay, drains and the sprint cost floor there). */
+/** Drops mass to `mass` but never below the starting mass (the metabolism step's decay and drains floor there). */
 export function loseMassToFloor(cell: CellRecord, mass: number, balance: BalanceConfig): void {
   setCellMass(cell, Math.max(balance.growth.CELL_STARTING_MASS, mass), balance);
 }

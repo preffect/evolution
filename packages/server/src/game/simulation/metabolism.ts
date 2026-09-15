@@ -52,6 +52,16 @@ export function metabolismInputOf(cell: CellRecord, world: WorldState, balance: 
 }
 
 /** `max(0, mass − CELL_STARTING_MASS) × MASS_DECAY_RATE_PER_SECOND × zone × trait` (mass/s). */
+/**
+ * The broth share of decay, `max(0, mass − CELL_STARTING_MASS) × MASS_DECAY_RATE_PER_SECOND × trait` (mass/s), from
+ * its own factors: what the snapshot reports as `decay`, with the vent's extra as `× (VENT_DECAY_MULTIPLIER − 1)`
+ * (#383). `decayPerSecond` keeps its own operand order, so the mass arithmetic and the hash stay bit-identical.
+ */
+export function brothDecayPerSecond(input: MetabolismInput, balance: BalanceConfig): number {
+  const surplus = Math.max(0, input.massAtStart - balance.growth.CELL_STARTING_MASS);
+  return surplus * balance.ecology.MASS_DECAY_RATE_PER_SECOND * input.cell.modifiers.decayMultiplier;
+}
+
 export function decayPerSecond(input: MetabolismInput, balance: BalanceConfig): number {
   const surplus = Math.max(0, input.massAtStart - balance.growth.CELL_STARTING_MASS);
   return (
@@ -102,18 +112,18 @@ function photosynthesise(input: MetabolismInput, world: WorldState, balance: Bal
   }
 }
 
-/** The requested losses by cause (mass/s): the vent's extra is what the zone multiplier adds over the broth share. */
+/** The requested losses by cause (mass/s): the vent's extra is the broth share × (the zone multiplier − 1). */
 function metabolismDemandOf(
   input: MetabolismInput,
   drains: MetabolismDrains,
   balance: BalanceConfig,
 ): MetabolismDemand {
-  const brothDecay = drains.decayPerSecond / zoneDecayMultiplier(input.zone, balance);
+  const brothDecay = brothDecayPerSecond(input, balance);
   return {
     toxin: input.massAtStart * drains.contactFraction,
     swallowed: drains.swallowedDosePerSecond,
     decay: brothDecay,
-    vent: drains.decayPerSecond - brothDecay,
+    vent: brothDecay * (zoneDecayMultiplier(input.zone, balance) - 1),
   };
 }
 
