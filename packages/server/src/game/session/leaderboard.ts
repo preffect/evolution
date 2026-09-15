@@ -3,12 +3,13 @@
 // by current mass, then by earliest join. Step 10 of the tick.
 
 import type { LeaderboardRow } from '@evolution/shared';
+import { earnedDnaOf } from '../progression/dna.js';
 import type { PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 
 export function scoreOf(player: PlayerRecord, absorptionBonus: number): number {
-  return player.dnaCumulative - player.dnaCatchUpGift + absorptionBonus * player.absorptions;
+  return earnedDnaOf(player) + absorptionBonus * player.absorptions;
 }
 
 interface RankedPlayer {

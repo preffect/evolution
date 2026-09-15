@@ -35,8 +35,8 @@ export const ENGULF_PREY_SPEED_FACTOR_FLOOR = 0.3;
 /** Struggle: steering away scales the phase rate by 1 − slowdown; the cap bounds trait bonuses. */
 export const ENGULF_STRUGGLE_SLOWDOWN = 0.5;
 export const ENGULF_STRUGGLE_SLOWDOWN_CAP = 0.9;
-/** A swallowed prey's toxin drain counts this many times against its engulfer (wrap and absorb). */
-export const ENGULF_SWALLOWED_TOXIN_MULTIPLIER = 6;
+/** × on a swallowed prey's toxin fraction, read against the prey's mass (wrap and absorb, #154). */
+export const ENGULF_SWALLOWED_TOXIN_MULTIPLIER = 8;
 /** After a spit-out the predator cannot restart on that prey for this long (s), one entry per prey. */
 export const ENGULF_SPIT_OUT_REFRACTORY_SECONDS = 1.0;
 /** Share of the prey's mass the predator gains. */
@@ -47,5 +47,3 @@ export const ENGULF_DNA_SHARE = 0.2;
 /** Tag points to the predator: a share of the prey's plus flat `predatory` points. */
 export const ENGULF_TAG_SHARE = 0.5;
 export const ENGULF_PREDATORY_TAG_POINTS = 10;
-/** Reserved: trait stealing is off in build 1. */
-export const ENGULF_TRAIT_STEAL_CHANCE = 0;

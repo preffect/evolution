@@ -72,10 +72,10 @@ each one, and every trait not named there sets none of them, by design.
 `CellModifiers` now carries all eight names above, the three tier tables that already set a duration
 multiplier were moved to the phase §3.18 assigns them (Food Vacuole → `absorbDurationMultiplierAsPredator`,
 Amoeba Pseudopods → `wrapDurationMultiplierAsPredator`, Diatom Shell → `absorbDurationMultiplierAsPrey`),
-and the four new bonuses sit at their identity with no tier setting them. What is left for #260 is the tier
-values: Cell Wall's `absorbDurationMultiplierAsPrey`, Cytoskeleton Lattice's and Paramecium Cilia's
-`struggleSlowdownBonus`, Cilia Fringe's `gripResistanceBonus`, Amoeba Pseudopods' `gripStrengthBonus` and
-Diatom Shell's `spitOutChancePerSecond`. The rework as originally written renames
+and #260 filled the tier values: Cell Wall's `absorbDurationMultiplierAsPrey`, Cytoskeleton Lattice's and
+Paramecium Cilia's `struggleSlowdownBonus`, Cilia Fringe's `gripResistanceBonus`, Amoeba Pseudopods'
+`gripStrengthBonus` and Diatom Shell's `spitOutChancePerSecond`. `engulf-effects.test.ts` reads §3.18 itself and
+fails when a tier table and the table disagree. The rework as originally written renames
 `engulfDurationMultiplierAsPrey` → `absorbDurationMultiplierAsPrey` (it now scales the absorb phase
 only), splits `engulfDurationMultiplierAsPredator` into `wrapDurationMultiplierAsPredator` (Amoeba
 Pseudopods) and `absorbDurationMultiplierAsPredator` (Food Vacuole), and adds `gripStrengthBonus`,

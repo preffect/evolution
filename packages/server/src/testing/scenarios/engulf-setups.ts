@@ -2,13 +2,10 @@
 // centres 10 wu apart", the numbers those rows name, and the selectors they read through. Not a test
 // file; `ecology-engulf.gameplay.test.ts` and `ecology-engulf-escape.gameplay.test.ts` import it.
 //
-// #258 shipped the lifecycle and #259 the payout, so the mass, DNA, tag, `absorptions`, detritus
-// and `lifeState` halves of E9, E9b, E10 and E11 are on. What the rows still leave out, and to
-// which ticket:
-//   · every spit-out and refractory row (§6.1 spit-out, §5.3's T4 separation, §6.3 "spat out, still
-//     overlapping"), because no build-1 tier table sets `spitOutChancePerSecond` until #260. The
-//     mechanism is pinned at unit level on a folded modifier instead (`engulf-spit-out.test.ts`).
-//   · the wild rows (W4, W5, W10), which need the wild-cell slice to place a wild cell.
+// #258 shipped the lifecycle, #259 the payout and #260 the trait hooks, so the trait rows on the same
+// setup (docs/traits/constants-and-acceptance.md §6: T3, T4, T6, T13–T19) use `engulfPairOf` from here too.
+// What the rows still leave out: the wild rows (W4, W5, W10), which need the wild-cell slice to place a
+// wild cell.
 
 import { DEFAULT_BALANCE, DNA_TAG, EFFECT_KIND, TICK_HZ, radiusForMass } from '@evolution/shared';
 import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
@@ -20,7 +17,7 @@ import {
   progressOf,
   type EvolutionView,
 } from '../gameplay/evolution-views.js';
-import { targetRadiiAwayFrom } from '../gameplay/index.js';
+import { combineScripts, player, sprint, targetRadiiAwayFrom, type PlaceCellOptions } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import { FULL_THROTTLE_RADII, decayed } from './shared-setups.js';
 
@@ -106,15 +103,38 @@ export function engulfPair(
   preyMass = PREY_MASS,
   predatorDnaCumulative?: number,
 ) {
+  return engulfPairOf(name, { mass: predatorMass, dnaCumulative: predatorDnaCumulative }, { mass: preyMass });
+}
+
+/** One side of the pair: the E9 mass unless the row says otherwise, plus its fixture traits and DNA. */
+export type EngulfSide = Partial<Omit<PlaceCellOptions, 'playerIndex' | 'at' | 'eastOfFirstCellWu'>>;
+
+/** The E9 setup with the row's own traits, DNA or masses on either side (T3's pair sits 5 wu apart). */
+export function engulfPairOf(
+  name: string,
+  predator: EngulfSide = {},
+  prey: EngulfSide = {},
+  centreDistanceWu = CENTRE_DISTANCE_WU,
+) {
   return scenario(name)
     .seed(PLACED_ROW_SEED)
     .players(2)
-    .placeCell({ playerIndex: 0, mass: predatorMass, dnaCumulative: predatorDnaCumulative })
-    .placeCell({ playerIndex: 1, mass: preyMass, eastOfFirstCellWu: CENTRE_DISTANCE_WU });
+    .placeCell({ ...predator, playerIndex: 0, mass: predator.mass ?? PREDATOR_MASS })
+    .placeCell({ ...prey, playerIndex: 1, mass: prey.mass ?? PREY_MASS, eastOfFirstCellWu: centreDistanceWu });
 }
 
 /** "Steers away from tick t": every tick targets 5 radii along the line from the predator through the prey. */
 export const awayFromPredator = targetRadiiAwayFrom(FULL_THROTTLE_RADII, BROTH_POINT);
+
+/** "B steers away from tick t" (docs/ecology/acceptance.md §8). */
+export const steersAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair>) =>
+  builder.from(tick, player(1).does(awayFromPredator));
+
+/** "B sprints away at tick t": steers away from t and presses sprint on t (docs/ecology/acceptance.md §8). */
+export const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair>) =>
+  builder
+    .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
+    .from(tick + 1, player(1).does(awayFromPredator));
 /** The mirror for E9b, where it is the predator that steers away: the prey's placed centre. */
 export const awayFromPrey = targetRadiiAwayFrom(FULL_THROTTLE_RADII, {
   x: BROTH_POINT.x + CENTRE_DISTANCE_WU,

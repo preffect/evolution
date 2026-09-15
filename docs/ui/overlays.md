@@ -12,8 +12,10 @@ rate it gives, `1 / value − 1`, so `accelerationSecondsMultiplier: 0.61` → `
 hand-written and a `debug_set_balance` patch reaches the cards (`architecture/constants-files-tests.md §9`). The
 numbers, and the countdown's `6.5 s`, go through the one formatter `formatQuantity` (`game/quantities/`,
 `architecture/encyclopedia.md §12.5`); the table keeps only the words. Every
-non-identity modifier is a line and none is ever cut, so a card never hides a trait's cost; the catalog's longest
-row has three (`PICKER_CARD_EFFECT_LINES_MAX`), and a unit test fails the gate when a row outgrows it. The table is
+non-identity modifier is a line and none is ever cut, so a card never hides a trait's cost; where one organelle
+sets two modifiers that read as a single effect the table pairs them onto one line with both numbers (the Diatom
+Shell's spine drain and spit-out chance, #260), so a pair costs the card one line rather than two. The catalog's
+longest row has three (`PICKER_CARD_EFFECT_LINES_MAX`), and a unit test fails the gate when a row outgrows it. The table is
 pinned: a unit test asserts every key of `DEFAULT_CELL_MODIFIERS` (traits/model.md §2) has a label, so a new modifier
 without copy fails the gate instead of rendering `undefined`.
 

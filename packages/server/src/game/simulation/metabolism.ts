@@ -1,8 +1,8 @@
 // Step 5 (docs/ecology/mass-and-movement.md §4, §4.1): one formula per cell, every term reading the masses and
 // radii at the start of the step, so the pair terms are order-independent. Base decay on the
 // surplus above the starting mass (zone × trait multipliers), the toxin drains of overlapping or
-// in-aura cells, then photosynthesis inside the shallows. The spike drain of a prey being engulfed
-// joins with the engulf slice.
+// in-aura cells plus what an engulfed prey's spikes and swallowed toxin cost its predator
+// (`engulf-drain.ts`), then photosynthesis inside the shallows.
 
 import {
   TICK_INTERVAL_S,
@@ -17,6 +17,7 @@ import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { gainMass, loseMassToFloor } from './cell-mass.js';
+import { engulfDrainOf } from './engulf-drain.js';
 import { zoneAt, zoneDecayMultiplier } from './zones.js';
 
 /** What the toxin reach reads of a cell: its centre, a radius and its modifiers. A record satisfies it; the step passes start-of-step views. */
@@ -66,11 +67,19 @@ export function isReachedByToxin(target: ToxinReachView, toxic: ToxinReachView):
   return toxic.modifiers.toxinAuraRangeInRadii > 0 && distance <= toxic.modifiers.toxinAuraRangeInRadii * toxic.radius;
 }
 
-/** The summed toxin drain fraction per second of every other cell whose toxin reaches this one. */
-export function toxinDrainFraction(target: ToxinReachView, cells: readonly ToxinReachView[]): number {
+/**
+ * The summed toxin drain fraction per second of every other cell whose toxin reaches this one, less
+ * `swallowedCellId`: a prey past cover counts swallowed instead (`engulfDrainOf`), never both ways.
+ */
+export function toxinDrainFraction(
+  target: ToxinReachView,
+  cells: readonly ToxinReachView[],
+  swallowedCellId: EntityId | null = null,
+): number {
   let fraction = 0;
   for (const other of cells) {
-    if (other.id !== target.id && other.modifiers.toxinDrainFractionPerSecond > 0 && isReachedByToxin(target, other)) {
+    const isCounted = other.id !== target.id && other.id !== swallowedCellId;
+    if (isCounted && other.modifiers.toxinDrainFractionPerSecond > 0 && isReachedByToxin(target, other)) {
       fraction += other.modifiers.toxinDrainFractionPerSecond;
     }
   }
@@ -83,12 +92,14 @@ export function toxinDrainFraction(target: ToxinReachView, cells: readonly Toxin
  */
 function metaboliseCell(
   input: MetabolismInput,
-  reaches: readonly ToxinReachView[],
+  step: MetabolismStepView,
   world: WorldState,
   balance: BalanceConfig,
 ): void {
   const { cell, massAtStart } = input;
-  const drain = massAtStart * toxinDrainFraction(input.reach, reaches) * TICK_INTERVAL_S;
+  const engulfDrain = engulfDrainOf(cell, world, step.massesAtStart, balance);
+  const contactFraction = toxinDrainFraction(input.reach, step.reaches, engulfDrain.swallowedCellId);
+  const drain = (massAtStart * contactFraction + engulfDrain.doseMassPerSecond) * TICK_INTERVAL_S;
   const decayed = massAtStart - decayPerSecond(input, balance) * TICK_INTERVAL_S - drain;
   loseMassToFloor(cell, decayed, balance);
   if (input.zone === ZONE_ID.sunlitShallows && cell.modifiers.photosynthesisMassPerSecond > 0) {
@@ -97,10 +108,19 @@ function metaboliseCell(
   }
 }
 
+/** What every cell's formula reads of the others at the start of the step. */
+interface MetabolismStepView {
+  readonly reaches: readonly ToxinReachView[];
+  readonly massesAtStart: ReadonlyMap<EntityId, number>;
+}
+
 export function metabolise(world: WorldState, context: StepContext): void {
   const inputs = world.cells.map((cell) => metabolismInputOf(cell, world, context.balance));
-  const reaches = inputs.map((input) => input.reach);
+  const step: MetabolismStepView = {
+    reaches: inputs.map((input) => input.reach),
+    massesAtStart: new Map(inputs.map((input) => [input.cell.id, input.massAtStart])),
+  };
   for (const input of inputs) {
-    metaboliseCell(input, reaches, world, context.balance);
+    metaboliseCell(input, step, world, context.balance);
   }
 }

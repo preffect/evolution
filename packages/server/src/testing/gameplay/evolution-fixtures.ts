@@ -148,6 +148,9 @@ export function applyPlacedCell(world: WorldState, fixture: PlacedCell, context:
     player.dnaCumulative = fixture.dnaCumulative;
     setLevelFromCumulativeDna(world, player);
   }
+  if (fixture.dnaCatchUpGift !== null) {
+    player.dnaCatchUpGift = fixture.dnaCatchUpGift;
+  }
   refreshCellDerivedState(cell, player, world.balance);
 }
 

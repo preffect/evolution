@@ -16,6 +16,11 @@ export function gainTagPoints(player: PlayerRecord, tag: DnaTag, points: number)
   player.dnaTagPoints[tag] += points;
 }
 
+/** The DNA the player earned: lifetime DNA less the catch-up gift, what score and an absorption share read (#271). */
+export function earnedDnaOf(player: PlayerRecord): number {
+  return player.dnaCumulative - player.dnaCatchUpGift;
+}
+
 /** The catch-up gift (docs/PROGRESSION.md §5): counts toward levels, never toward score, never multiplied. */
 export function grantCatchUpGift(player: PlayerRecord, dna: number): void {
   player.dnaCumulative += dna;

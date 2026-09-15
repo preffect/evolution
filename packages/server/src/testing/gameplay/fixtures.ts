@@ -55,6 +55,8 @@ export interface PlacedCell {
   readonly traits: readonly PlacedTrait[];
   /** Fixture-set lifetime DNA ("level 12 with fixture DNA 1760", P7, P10); `null` leaves the cell's own. */
   readonly dnaCumulative: number | null;
+  /** Fixture-set entry-rule gift inside that DNA (E9c: "140 with 100 gift"); `null` leaves the player's own. */
+  readonly dnaCatchUpGift: number | null;
 }
 
 export interface PlacedMote {
@@ -87,6 +89,7 @@ export interface PlaceCellOptions extends Placement {
   readonly isPinned?: boolean;
   readonly traits?: readonly PlacedTraitOption[];
   readonly dnaCumulative?: number;
+  readonly dnaCatchUpGift?: number;
 }
 
 export interface PlaceMoteOptions extends Placement {
@@ -144,6 +147,7 @@ export function placeCell(options: PlaceCellOptions, firstCell: PlacedCell | und
     isPinned: options.isPinned ?? false,
     traits: (options.traits ?? []).map(toPlacedTrait),
     dnaCumulative: options.dnaCumulative ?? null,
+    dnaCatchUpGift: options.dnaCatchUpGift ?? null,
   };
 }
 

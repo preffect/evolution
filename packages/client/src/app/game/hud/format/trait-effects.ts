@@ -7,7 +7,7 @@
 // `PICKER_CARD_EFFECT_LINES_MAX` of them, so a row that outgrows the card fails the gate instead of being cut. Pure.
 
 import type { BalanceConfig, TraitId, TraitTierModifiers } from '@evolution/shared';
-import { modifierLine, nonIdentityModifiers } from '../../quantities/modifier-labels';
+import { modifierLines, nonIdentityModifiers } from '../../quantities/modifier-labels';
 
 /** What a card reads from the live balance: the tier tables and the identity record, never the module constants. */
 export type TraitModifierTables = Pick<BalanceConfig['traits'], 'TRAIT_TIERS' | 'DEFAULT_CELL_MODIFIERS'>;
@@ -21,7 +21,5 @@ function tierModifierRow(traits: TraitModifierTables, traitId: TraitId, tier: nu
 
 /** The card's effect lines for `traitId` at `tier` (1..3): one per modifier that differs from identity, none cut. */
 export function describeTierModifiers(traits: TraitModifierTables, traitId: TraitId, tier: number): string[] {
-  return nonIdentityModifiers(tierModifierRow(traits, traitId, tier), traits.DEFAULT_CELL_MODIFIERS).map(
-    ([key, value]) => modifierLine(key, value),
-  );
+  return modifierLines(nonIdentityModifiers(tierModifierRow(traits, traitId, tier), traits.DEFAULT_CELL_MODIFIERS));
 }

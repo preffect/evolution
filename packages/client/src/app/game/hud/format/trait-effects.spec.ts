@@ -27,19 +27,23 @@ describe('describeTierModifiers', () => {
   });
 
   it('keeps the sign of a cost: the cell wall trades speed for resistance', () => {
-    expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual(['+30 % harder to engulf', '−10 % speed']);
+    expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual([
+      '+30 % harder to engulf',
+      '+40 % time to absorb you',
+      '−10 % speed',
+    ]);
   });
 
-  it('never hides a cost: the diatom shell’s third line is its speed', () => {
+  it('never hides a cost: the diatom shell pairs its two spine lines and still ends on its speed', () => {
     expect(describeTierModifiers('diatom_shell' as TraitId, 1)).toEqual([
       '+40 % time to absorb you',
-      'Spines drain 2 % / s',
+      'Spines drain 2 % / s, spit out 40 % / s',
       '−3 % speed',
     ]);
   });
 
   it('reads a shorter duration as the rate it gives, and a fraction as a share', () => {
-    expect(describeTierModifiers('cytoskeleton' as TraitId, 3)).toEqual(['+64 % acceleration']);
+    expect(describeTierModifiers('cytoskeleton' as TraitId, 3)).toEqual(['+64 % acceleration', '+30 % struggle']);
     expect(describeTierModifiers('nuclear_envelope' as TraitId, 3)).toEqual(['Keeps 75 % DNA on death']);
   });
 
@@ -80,13 +84,20 @@ describe('describeTierModifiers', () => {
       '+45 % harder to engulf',
       '−20 % speed',
     ]);
-    expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual(['+30 % harder to engulf', '−10 % speed']);
+    expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual([
+      '+30 % harder to engulf',
+      '+40 % time to absorb you',
+      '−10 % speed',
+    ]);
   });
 
   it('skips a value at the live identity, so a patched identity drops that line', () => {
     const patched = patchableTables();
     patched.DEFAULT_CELL_MODIFIERS.speedMultiplier = 0.9;
-    expect(describeTierModifiersIn(patched, 'cell_wall' as TraitId, 2)).toEqual(['+30 % harder to engulf']);
+    expect(describeTierModifiersIn(patched, 'cell_wall' as TraitId, 2)).toEqual([
+      '+30 % harder to engulf',
+      '+40 % time to absorb you',
+    ]);
   });
 
   it('reads a trait or tier the table does not hold as no lines', () => {
