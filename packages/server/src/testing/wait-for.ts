@@ -1,7 +1,8 @@
 // Waits for the integration tier (docs/testing/tiers-and-builders.md §6–§7). A test on the wire waits for two kinds
 // of thing: a message that has arrived, which the socket announces, and a decision the room has taken, which nothing
 // announces. Neither wait carries a budget of its own, so a loaded box slows a test rather than failing it: the test
-// timeout is the only bound, and a wait still open when its test ends rejects with the condition it was waiting for.
+// timeout is the only bound, and a wait still open when its test ends fails that test with the condition it was
+// waiting for.
 import { onTestFinished } from 'vitest';
 import type { WebSocket } from 'ws';
 import type { ServerMessage } from '@evolution/shared';
@@ -18,6 +19,20 @@ function neverBecameTrue(condition: string, reason: string): Error {
 }
 
 /**
+ * When the current test ends with the wait still open, `abandon` stops the wait and the error is thrown from the test's
+ * own `onTestFinished` hook, which vitest records against the test. A rejection alone would name the condition to no
+ * one: a test that timed out has already been reported, and its promise is dropped.
+ */
+function failTestIfStillOpen(condition: string, isOpen: () => boolean, abandon: (error: Error) => void): void {
+  onTestFinished(() => {
+    if (!isOpen()) return;
+    const error = neverBecameTrue(condition, 'the test ended first');
+    abandon(error);
+    throw error;
+  });
+}
+
+/**
  * Resolves once `holds(received)` is true, re-checked on every message the socket receives. The recording listener
  * was attached when the socket opened, before this one, so `received` already holds the message being announced.
  */
@@ -30,35 +45,49 @@ export function untilReceived(
   const { socket } = recording;
   return new Promise((resolve, reject) => {
     let isSettled = false;
-    const settle = (error?: Error): void => {
+    const settle = (error?: unknown): void => {
       if (isSettled) return;
       isSettled = true;
       socket.off('message', onMessage);
       socket.off('close', onClose);
-      if (error) reject(error);
-      else resolve();
+      if (error === undefined) resolve();
+      else reject(error);
     };
     const onMessage = (): void => {
-      if (holds(recording.received)) settle();
+      try {
+        if (holds(recording.received)) settle();
+      } catch (error) {
+        settle(error);
+      }
     };
     const onClose = (): void => settle(neverBecameTrue(condition, 'the socket closed'));
     socket.on('message', onMessage);
     socket.on('close', onClose);
-    onTestFinished(() => settle(neverBecameTrue(condition, 'the test ended first')));
+    failTestIfStillOpen(condition, () => !isSettled, settle);
   });
 }
 
 /**
- * Resolves once `holds()` is true, re-checked on every turn of the event loop. Only for a room decision that no
- * message announces (a `snapshot_ack` the server has read, say); anything the client is sent waits in `untilReceived`.
+ * Resolves once `holds()` is true, re-checked on every turn of the event loop without idling, so it keeps one core
+ * busy for as long as it waits: only for a room decision that no message announces and that follows within a few
+ * turns (a `snapshot_ack` the server has read, say). Anything the client is sent waits in `untilReceived`.
  */
 export async function untilRoomDecides(holds: () => boolean, condition: string): Promise<void> {
-  let hasTestEnded = false;
-  onTestFinished(() => {
-    hasTestEnded = true;
-  });
-  while (!holds()) {
-    if (hasTestEnded) throw neverBecameTrue(condition, 'the test ended first');
-    await yieldToEventLoop();
+  let isOpen = true;
+  let abandonment: Error | undefined;
+  failTestIfStillOpen(
+    condition,
+    () => isOpen,
+    (error) => {
+      abandonment = error;
+    },
+  );
+  try {
+    while (!holds()) {
+      if (abandonment) throw abandonment;
+      await yieldToEventLoop();
+    }
+  } finally {
+    isOpen = false;
   }
 }
