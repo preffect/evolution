@@ -109,11 +109,11 @@ Escape closes the topmost open overlay (the full leaderboard, then the encyclope
    click must not do it.
 3. A panel-rim rule, `YOUR TRAITS` (`label`) with the owned count right-aligned (`label`, muted), then one kit list
    row per owned trait (`ownProgress.ownedTraits`, so a spectator still sees theirs) in catalog order,
-   `MENU_TRAIT_ROW_HEIGHT_PX` tall with one effect line: the trait glyph in a level-gold-rimmed medallion,
+   `MENU_TRAIT_ROW_HEIGHT_PX` tall with one effect line: the trait's glyph (#312, `<app-trait-glyph [traitId] lod="list" still>` at `TRAIT_GLYPH_LIST_PX`, on its own disc and rim),
    `Cilia Fringe II` (`body`, bold: the catalog name and the tier numeral), and the effect lines of
    `describeTierModifiers` joined with `·` (`label`'s size and tracking, mixed case, label colour), broken only
    between two effects and never cut, so a row grows by `MENU_TRAIT_LINE_HEIGHT_PX` a line; a trailing `›`. The row is
-   a link to the trait's encyclopedia entry (`traits.<traitId>`), whose Escape comes back here. `No traits yet`
+   a link to the trait's encyclopedia entry (`trait:<traitId>`), whose Escape comes back here. `No traits yet`
    (`body`, muted) before the first pick. Past `MENU_TRAITS_VISIBLE_ROWS` rows the list scrolls in a kit scroll area,
    so the panel never outgrows the viewport. This list is where the pre-#146 trait strip's tooltips went.
 
@@ -123,6 +123,8 @@ sprint and the Tab hold are swallowed, and Tab and the arrows move focus. **The 
 keeps its timer and `1` `2` `3` still pick, and the alert strip shows the offer and its seconds because the panel
 covers part of the card band; otherwise a player who opened the menu during an offer would silently get the server's
 pick.
+
+**Coverage.** The menu is about 18 % of the viewport at 1280 × 800 with three traits, inside input-and-onboarding.md §6's overlay bar.
 
 **With the other overlays.** Layer order, top down: the notices (§3.6), the encyclopedia, the menu, the results and
 respawn overlays, the trait picker, the chrome.

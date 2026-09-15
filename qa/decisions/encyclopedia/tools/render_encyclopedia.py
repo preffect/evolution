@@ -67,9 +67,9 @@ ENC_LENS_D = 300
 HUD_REFERENCE = (1280, 800)
 SCALE_MIN, SCALE_MAX = 0.8, 1.5
 
-CATEGORIES = [  # id, name, count; traits, evolution and world counts come from code (16 traits, 5 stages, 4 zones + 2)
-    ('basics', 'Basics', 8), ('evolution', 'Evolution', 5), ('traits', 'Traits', 16), ('abilities', 'Abilities', 9),
-    ('actions', 'Actions', 6), ('cells', 'Cells', 2), ('food', 'Food', 6), ('world', 'World', 6), ('hud', 'HUD', 7),
+CATEGORIES = [  # id, rail name, count: the #358 categories plus basics; evolutions = 5 stages + 16 traits + 7 DNA tags
+    ('basics', 'Basics', 12), ('entities', 'Cells & food', 8), ('evolutions', 'Evolution', 28),
+    ('abilities', 'Abilities', 11), ('actions', 'Actions', 8), ('world', 'World', 8),
 ]
 
 TRAIT_GROUPS = [  # catalog order, grouped by TRAIT_CATEGORY
@@ -97,6 +97,7 @@ MITO_PROSE = [
 SEE_ALSO = ['Chloroplast', 'Mass decay', 'Sprint', 'Endosymbiosis']
 
 FOOD_TILES = [  # id, name, fact line: ALGAE_MASS/DNA, BACTERIUM_MASS/DNA, DETRITUS_MOTE_MASS, DNA_FRAGMENT_DNA
+    ('player_cell', 'Player cell', 'Starts at 20 mass'), ('wild_cell', 'Wild cell', f'{24} in the dish'),
     ('algae', 'Algae mote', '+1 mass'), ('bacterium_plain', 'Bacterium', '+3 mass · +1 DNA'),
     ('bacterium_aerobic', 'Aerobic bacterium', '+3 mass · +1 DNA'),
     ('bacterium_photosynthetic', 'Photosynthetic bacterium', '+3 mass · +1 DNA'),
@@ -292,7 +293,7 @@ def glyph(kind, cx, cy, size=1.0):
 
 def medallion(cx, cy, kind, owned=False):
     r = MEDALLION / 2
-    return (f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r}" fill="{CALLOUT}" fill-opacity="0.55" stroke="{GOLD if owned else PANEL_RIM}" '
+    return (f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r}" fill="{CALLOUT}" fill-opacity="0.55" stroke="{PANEL_RIM}" '
             f'stroke-width="1"/>' + glyph(kind, cx, cy, 0.95))
 
 
@@ -300,9 +301,9 @@ def rail_icon(kind, cx, cy, col):
     o = [f'<g transform="translate({cx:.1f},{cy:.1f})" fill="none" stroke="{col}" stroke-width="1.3" stroke-linecap="round">']
     if kind == 'basics':
         o.append('<circle r="6.5"/><line x1="0" y1="-0.5" x2="0" y2="3.5"/><circle cy="-3.2" r="0.6" fill="currentColor"/>')
-    elif kind == 'evolution':
+    elif kind == 'evolutions':
         o.append('<polyline points="-7,6 -3,6 -3,1 1,1 1,-4 6,-4"/><polyline points="3,-6 6,-4 4,-1"/>')
-    elif kind == 'traits':
+    elif kind == 'traits_unused':
         o.append('<ellipse rx="6.5" ry="3.8" transform="rotate(-25)"/><path d="M-3.5,-0.8 q1.4,2.2 2.8,0 q1.4,-2.2 2.8,0" transform="rotate(-25)"/>')
     elif kind == 'abilities':
         o.append('<path d="M1,-7 L-4,1 L0,1 L-1,7 L4,-1 L0,-1 Z"/>')
@@ -310,7 +311,7 @@ def rail_icon(kind, cx, cy, col):
         o.append('<circle cx="-3" cy="2" r="3.2"/><polyline points="0,-1 6,-6"/><polyline points="2,-6 6,-6 6,-2"/>')
     elif kind == 'cells':
         o.append('<circle r="6.5"/><circle cx="-1" cy="-1" r="2.4"/>')
-    elif kind == 'food':
+    elif kind == 'entities':
         o.append('<circle cx="-3" cy="-2" r="2.2"/><circle cx="3" cy="-3" r="1.6"/><rect x="-3" y="2" width="8" height="3.4" rx="1.7"/>')
     elif kind == 'world':
         o.append('<circle r="6.5"/><path d="M-6.5,0 a6.5,6.5 0 0 0 13,0" stroke-dasharray="1.6 1.6"/><circle cx="1.5" cy="-1.5" r="1.6"/>')
@@ -477,10 +478,10 @@ def list_row(x, y, w, kind, name, trailing=None, state='rest'):
     return ''.join(o)
 
 
-def enc_trait_list(x, y, h, selected='mitochondrion', hovered='chloroplast'):
+def enc_trait_list(x, y, h, selected='mitochondrion', hovered='chloroplast'):  # scrolled past STAGES
     o = [vline(x + ENC_LIST_W, y, y + h)]
-    o.append(t(x + SPACE_L, y + SPACE_L + 10, 'Traits', 'label', LABEL))
-    o.append(t(x + ENC_LIST_W - SPACE_L, y + SPACE_L + 10, '16', 'label', MUTED, anchor='end'))
+    o.append(t(x + SPACE_L, y + SPACE_L + 10, 'Evolution', 'label', LABEL))
+    o.append(t(x + ENC_LIST_W - SPACE_L, y + SPACE_L + 10, '28', 'label', MUTED, anchor='end'))
     o.append(f'<clipPath id="list-clip"><rect x="{x}" y="{y + 40}" width="{ENC_LIST_W}" height="{h - 40}"/></clipPath>')
     o.append(f'<g clip-path="url(#list-clip)">')
     ry = y + 40
@@ -493,8 +494,8 @@ def enc_trait_list(x, y, h, selected='mitochondrion', hovered='chloroplast'):
             ry += ROW_H
     o.append('</g>')
     content_h = ry - (y + 40)
-    frac = min(1.0, (h - 40) / content_h)
-    o.append(scrollbar(x + ENC_LIST_W - SCROLLBAR, y + 44, h - 52, 0.0, frac))
+    frac = min(1.0, (h - 40) / (content_h + 5 * ROW_H + 7 * ROW_H + 2 * 28))  # stages above, DNA tags below
+    o.append(scrollbar(x + ENC_LIST_W - SCROLLBAR, y + 44, h - 52, 0.22, frac))
     return ''.join(o)
 
 
@@ -649,7 +650,7 @@ def see_also(x, y, w):
     return ''.join(o), cy + 26 - y
 
 
-def entry_title(x, y, crumb='Traits  ›  Metabolism', name='Mitochondrion', chips=True, owned=True, chips_below=False):
+def entry_title(x, y, crumb='Evolution  ›  Metabolism', name='Mitochondrion', chips=True, owned=True, chips_below=False):
     o = [t(x, y + 10, crumb, 'label', MUTED)]
     o.append(t(x, y + 10 + SPACE_M + 24, name, 'headline', TEXT))
     cx = x if chips_below else x + tw(name, 'headline') * 1.08 + SPACE_L
@@ -681,7 +682,7 @@ def enc_shell(uw, uh, category, focused_rail=None, alert=True):
 
 
 def frame_a_trait(uw, uh):
-    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'traits')
+    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'evolutions')
     o = [shell, enc_trait_list(x + ENC_RAIL_W, by, bh)]
     dx = x + ENC_RAIL_W + ENC_LIST_W + PANEL_PAD
     dw = w - ENC_RAIL_W - ENC_LIST_W - 2 * PANEL_PAD
@@ -709,7 +710,10 @@ def frame_a_trait(uw, uh):
 
 def food_item(kind, cx, cy, s=2.2):
     g = [f'<g transform="translate({cx:.1f},{cy:.1f}) scale({s})">']
-    if kind == 'algae':
+    if kind in ('player_cell', 'wild_cell'):
+        g.append(kit.cell(0, 0, 13, 'cyan' if kind == 'player_cell' else 'amber', 'prokaryote', random.Random(3),
+                          self_ring=kind == 'player_cell'))
+    elif kind == 'algae':
         g.append('<circle r="14" fill="url(#halo-algal)"/><circle r="5" fill="url(#mote-algal)"/><circle cx="-1.8" cy="-1.8" r="1.4" fill="#fff" opacity="0.7"/>')
     elif kind.startswith('bacterium'):
         g.append(kit.bacterium(0, 0, -20, kind.split('_')[1]).replace('translate(0.0,0.0)', 'translate(0,0) scale(0.6)'))
@@ -729,10 +733,13 @@ def food_item(kind, cx, cy, s=2.2):
 
 
 def food_list(x, y, h, hovered='bacterium_aerobic'):
-    o = [vline(x + ENC_LIST_W, y, y + h), t(x + SPACE_L, y + SPACE_L + 10, 'Food', 'label', LABEL),
-         t(x + ENC_LIST_W - SPACE_L, y + SPACE_L + 10, '6', 'label', MUTED, anchor='end')]
+    o = [vline(x + ENC_LIST_W, y, y + h), t(x + SPACE_L, y + SPACE_L + 10, 'Cells & food', 'label', LABEL),
+         t(x + ENC_LIST_W - SPACE_L, y + SPACE_L + 10, '8', 'label', MUTED, anchor='end')]
     ry = y + 40
-    for fid, name, _fact in FOOD_TILES:
+    for i, (fid, name, _fact) in enumerate(FOOD_TILES):
+        if i in (0, 2):
+            o.append(t(x + SPACE_L, ry + 20, 'CELLS' if i == 0 else 'FOOD', 'label', MUTED))
+            ry += 28
         state = 'hover' if fid == hovered else 'rest'
         if state == 'hover':
             o.append(rect(x, ry, ENC_LIST_W, ROW_H, fill=TEXT, fill_opacity=ROW_HOVER_ALPHA))
@@ -744,14 +751,14 @@ def food_list(x, y, h, hovered='bacterium_aerobic'):
 
 
 def frame_a_category(uw, uh):
-    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'food', focused_rail='food', alert=False)
+    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'entities', focused_rail='entities', alert=False)
     o = [shell, food_list(x + ENC_RAIL_W, by, bh)]
     dx = x + ENC_RAIL_W + ENC_LIST_W + PANEL_PAD
     dw = w - ENC_RAIL_W - ENC_LIST_W - 2 * PANEL_PAD
     cy = by + PANEL_PAD - 4
-    o.append(t(dx, cy + 10, 'Encyclopedia  ›  Food', 'label', MUTED))
-    o.append(t(dx, cy + 10 + SPACE_M + 24, 'Food', 'headline', TEXT))
-    o.append(t(dx, cy + 10 + SPACE_M + 24 + SPACE_M + 16, 'What you swallow to grow, and where DNA comes from.', 'body', LABEL))
+    o.append(t(dx, cy + 10, 'Encyclopedia  ›  Cells & food', 'label', MUTED))
+    o.append(t(dx, cy + 10 + SPACE_M + 24, 'Cells & food', 'headline', TEXT))
+    o.append(t(dx, cy + 10 + SPACE_M + 24 + SPACE_M + 16, 'Who lives in the dish, what you swallow to grow, and where DNA comes from.', 'body', LABEL))
     cy += 10 + SPACE_M + 24 + SPACE_M + 16 + SPACE_XL
     per_row = max(1, int((dw + SPACE_M) // (ENC_TILE_W + SPACE_M)))
     for i, (fid, name, fact) in enumerate(FOOD_TILES):
@@ -782,7 +789,7 @@ def frame_a_category(uw, uh):
 
 
 def frame_b_trait(uw, uh):
-    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'traits')
+    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'evolutions')
     o = [shell, enc_trait_list(x + ENC_RAIL_W, by, bh)]
     dx = x + ENC_RAIL_W + ENC_LIST_W + PANEL_PAD
     dw = w - ENC_RAIL_W - ENC_LIST_W - 2 * PANEL_PAD
@@ -816,7 +823,7 @@ def frame_c_trait(uw, uh):
     o.append(hline(x, x + w, ty + ENC_TABS_H))
     tx = x + PANEL_PAD
     for cid, name, count in CATEGORIES:
-        sel = cid == 'traits'
+        sel = cid == 'evolutions'
         lw = tw(name, 'body') + 16 + SPACE_S + 2 * SPACE_M
         o.append(rail_icon(cid, tx + SPACE_M + 8, ty + ENC_TABS_H / 2, ACCENT if sel else LABEL))
         o.append(t(tx + SPACE_M + 16 + SPACE_S, ty + ENC_TABS_H / 2 + 5, name, 'body', TEXT if sel else LABEL, weight='bold' if sel else None))

@@ -125,4 +125,4 @@ something on the cell, never at a corner.
   counters differ by silhouette (bean vs lens) and angle, not only by orange vs green; a full counter is a gold ring
   plus ten lit pips.
 - **Coverage.** HUD chrome ≤ 8 % of the viewport at scale 1 (leaderboard and clock, 5 % at the reference size);
-  overlays (picker, respawn) ≤ 40 %; results may cover the centre because the dish is frozen. The menu stays under the overlay bar (18 % at 1280 × 800 with three traits); the encyclopedia is a reading screen the player opens on purpose and covers most of the dish, so instead of meeting the bar it carries the alert strip (encyclopedia.md §11.1).
+  overlays (picker, respawn) ≤ 40 %; results may cover the centre because the dish is frozen.
