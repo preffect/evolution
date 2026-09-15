@@ -1,15 +1,21 @@
 // Records → views (docs/architecture/entity-model.md §2, docs/architecture/wire-contract.md §4): the one projection from the server records onto
-// the wire types. Positions are quantised to `SNAPSHOT_POSITION_DECIMALS`; every array and
-// record is copied so a snapshot never aliases the world. Full snapshots carry every mote;
-// delta snapshots carry the food delta of a tracker and the effects since the last broadcast.
+// the wire types. Numbers are quantised to the `SNAPSHOT_*_DECIMALS` of `netcode.ts` as wire-contract.md §4 "Wire
+// precision" lists them (`quantize.ts`); every array and record is copied so a snapshot never
+// aliases the world. Full snapshots carry every mote; delta snapshots carry the food delta of a tracker and the
+// effects since the last broadcast.
 
 import {
+  SNAPSHOT_MASS_DECIMALS,
   SNAPSHOT_POSITION_DECIMALS,
+  SNAPSHOT_RADIUS_DECIMALS,
+  SNAPSHOT_SCORE_DECIMALS,
+  SNAPSHOT_VELOCITY_DECIMALS,
   type CellView,
   type DnaFragmentView,
   type FoodMoteView,
   type GameEffect,
   type GameSnapshot,
+  type LeaderboardRow,
   type MotePositionView,
   type PlayerId,
   type PlayerProgressView,
@@ -20,34 +26,21 @@ import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from
 import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import type { FoodDeltaTracker } from './food-delta-tracker.js';
+import { WIRE_SNAPSHOT_VALUES, quantizeToDecimals, snapshotValue, type SnapshotPrecision } from './quantize.js';
 
-const DECIMAL_BASE = 10;
-const POSITION_SCALE = DECIMAL_BASE ** SNAPSHOT_POSITION_DECIMALS;
-
-/** How a world coordinate is written: the wire rounds it, a scenario reads it exact. */
-export type PositionQuantizer = (value: number) => number;
-
-/** Rounds a world coordinate to the wire precision. */
-export function quantizePosition(value: number): number {
-  return Math.round(value * POSITION_SCALE) / POSITION_SCALE;
-}
-
-/** Full precision: what the scenario tables read, never the wire. */
-export const EXACT_POSITION: PositionQuantizer = (value) => value;
-
-export function toCellView(cell: CellRecord, quantize: PositionQuantizer = quantizePosition): CellView {
+export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES): CellView {
   return {
     id: cell.id,
     kind: cell.kind,
     playerId: cell.playerId,
     organismId: cell.organismId,
     avatarIndex: cell.avatarIndex,
-    x: quantize(cell.x),
-    y: quantize(cell.y),
-    velocityX: cell.velocityX,
-    velocityY: cell.velocityY,
-    mass: cell.mass,
-    radius: cell.radius,
+    x: snapshotValue(cell.x, SNAPSHOT_POSITION_DECIMALS, precision),
+    y: snapshotValue(cell.y, SNAPSHOT_POSITION_DECIMALS, precision),
+    velocityX: snapshotValue(cell.velocityX, SNAPSHOT_VELOCITY_DECIMALS, precision),
+    velocityY: snapshotValue(cell.velocityY, SNAPSHOT_VELOCITY_DECIMALS, precision),
+    mass: snapshotValue(cell.mass, SNAPSHOT_MASS_DECIMALS, precision),
+    radius: snapshotValue(cell.radius, SNAPSHOT_RADIUS_DECIMALS, precision),
     level: cell.level,
     stage: cell.stage,
     traits: cell.traits.map((trait) => ({ ...trait })),
@@ -61,25 +54,49 @@ export function toCellView(cell: CellRecord, quantize: PositionQuantizer = quant
   };
 }
 
-export function toFoodMoteView(mote: FoodMoteRecord, quantize: PositionQuantizer = quantizePosition): FoodMoteView {
+export function toFoodMoteView(
+  mote: FoodMoteRecord,
+  precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
+): FoodMoteView {
   return {
     id: mote.id,
     kind: mote.kind,
     bacteriumVariant: mote.bacteriumVariant,
-    x: quantize(mote.x),
-    y: quantize(mote.y),
+    x: snapshotValue(mote.x, SNAPSHOT_POSITION_DECIMALS, precision),
+    y: snapshotValue(mote.y, SNAPSHOT_POSITION_DECIMALS, precision),
   };
 }
 
 export function toMotePositionView(mote: FoodMoteRecord): MotePositionView {
-  return { id: mote.id, x: quantizePosition(mote.x), y: quantizePosition(mote.y) };
+  return {
+    id: mote.id,
+    x: quantizeToDecimals(mote.x, SNAPSHOT_POSITION_DECIMALS),
+    y: quantizeToDecimals(mote.y, SNAPSHOT_POSITION_DECIMALS),
+  };
 }
 
 export function toDnaFragmentView(
   fragment: DnaFragmentRecord,
-  quantize: PositionQuantizer = quantizePosition,
+  precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
 ): DnaFragmentView {
-  return { id: fragment.id, x: quantize(fragment.x), y: quantize(fragment.y), tag: fragment.tag };
+  return {
+    id: fragment.id,
+    x: snapshotValue(fragment.x, SNAPSHOT_POSITION_DECIMALS, precision),
+    y: snapshotValue(fragment.y, SNAPSHOT_POSITION_DECIMALS, precision),
+    tag: fragment.tag,
+  };
+}
+
+/** A copy of a ranked row with its score and mass at the wire precision (docs/architecture/wire-contract.md §4.1). */
+export function toLeaderboardRowView(
+  row: LeaderboardRow,
+  precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
+): LeaderboardRow {
+  return {
+    ...row,
+    score: snapshotValue(row.score, SNAPSHOT_SCORE_DECIMALS, precision),
+    mass: snapshotValue(row.mass, SNAPSHOT_MASS_DECIMALS, precision),
+  };
 }
 
 function copyOffer(offer: TraitOfferView | null): TraitOfferView | null {
@@ -94,7 +111,11 @@ function copyOffer(offer: TraitOfferView | null): TraitOfferView | null {
   };
 }
 
-export function toPlayerProgressView(player: PlayerRecord): PlayerProgressView {
+/** The player's own progress; its score rounds as its leaderboard row's does, so the two never disagree. */
+export function toPlayerProgressView(
+  player: PlayerRecord,
+  precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
+): PlayerProgressView {
   return {
     playerId: player.playerId,
     playerName: player.playerName,
@@ -106,7 +127,7 @@ export function toPlayerProgressView(player: PlayerRecord): PlayerProgressView {
     bacteriaEatenByVariant: { ...player.bacteriaEatenByVariant },
     absorptions: player.absorptions,
     wildAbsorptions: player.wildAbsorptions,
-    score: player.score,
+    score: snapshotValue(player.score, SNAPSHOT_SCORE_DECIMALS, precision),
     ownedTraits: player.ownedTraits.map((trait) => ({ ...trait })),
     stage: player.stage,
     offer: copyOffer(player.offer),
@@ -142,7 +163,7 @@ export function serializeViewerState(
 }
 
 /** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */
-function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<GameSnapshot, 'food' | 'effects'> {
+function serializeCommon(world: WorldState, precision: SnapshotPrecision): Omit<GameSnapshot, 'food' | 'effects'> {
   const players: Record<string, PlayerRosterView> = {};
   const appliedInputSequenceByPlayer: Record<string, number> = {};
   for (const player of world.players) {
@@ -156,20 +177,23 @@ function serializeCommon(world: WorldState, quantize: PositionQuantizer): Omit<G
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
     gelPatches: world.gelPatches.map((patch) => ({ ...patch })),
-    cells: world.cells.map((cell) => toCellView(cell, quantize)),
-    dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, quantize)),
+    cells: world.cells.map((cell) => toCellView(cell, precision)),
+    dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, precision)),
     players,
     ownProgress: null,
-    leaderboard: world.leaderboard.map((row) => ({ ...row })),
+    leaderboard: world.leaderboard.map((row) => toLeaderboardRowView(row, precision)),
     appliedInputSequenceByPlayer,
   };
 }
 
 /** The `game_state` snapshot: every mote in `food.spawned`, no effects (docs/architecture/wire-contract.md §4). */
-export function serializeFullSnapshot(world: WorldState, quantize: PositionQuantizer = quantizePosition): GameSnapshot {
+export function serializeFullSnapshot(
+  world: WorldState,
+  precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
+): GameSnapshot {
   return {
-    ...serializeCommon(world, quantize),
-    food: { spawned: world.food.map((mote) => toFoodMoteView(mote, quantize)), removedIds: [], moved: [] },
+    ...serializeCommon(world, precision),
+    food: { spawned: world.food.map((mote) => toFoodMoteView(mote, precision)), removedIds: [], moved: [] },
     effects: [],
   };
 }
@@ -181,5 +205,5 @@ export function serializeFullSnapshot(world: WorldState, quantize: PositionQuant
  */
 export function serializeDeltaSnapshot(world: WorldState, tracker: FoodDeltaTracker): GameSnapshot {
   const effects: GameEffect[] = world.effects.splice(0);
-  return { ...serializeCommon(world, quantizePosition), food: tracker.diff(world.food), effects };
+  return { ...serializeCommon(world, WIRE_SNAPSHOT_VALUES), food: tracker.diff(world.food), effects };
 }

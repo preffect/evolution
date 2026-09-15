@@ -76,13 +76,13 @@ The design reads these as they are; there is no alias for the tick rate (`TICK_H
 
 ### `camera.ts` (client only)
 
-| Constant                         | Value | Unit  | Meaning                             |
-| -------------------------------- | ----- | ----- | ----------------------------------- |
-| `CAMERA_VIEW_RADII`              | 12    | radii | Half the view height in cell radii. |
-| `CAMERA_MIN_VIEW_HALF_HEIGHT_WU` | 300   | wu    | Zoom-in limit.                      |
-| `CAMERA_MAX_VIEW_HALF_HEIGHT_WU` | 1500  | wu    | Zoom-out limit.                     |
-| `CAMERA_FOLLOW_SECONDS`          | 0.08  | s     | Position smoothing time constant.   |
-| `CAMERA_ZOOM_SECONDS`            | 0.6   | s     | Zoom smoothing time constant.       |
+| Constant                         | Value | Unit | Meaning                                                                             |
+| -------------------------------- | ----- | ---- | ----------------------------------------------------------------------------------- |
+| `CAMERA_VIEW_RADIUS_EXPONENT`    | 0.5   | ×    | The view grows with `(radius / spawnRadius) ^` this (Z1, controls-and-scope.md §7). |
+| `CAMERA_MIN_VIEW_HALF_HEIGHT_WU` | 300   | wu   | Zoom-in limit.                                                                      |
+| `CAMERA_MAX_VIEW_HALF_HEIGHT_WU` | 1500  | wu   | Zoom-out limit.                                                                     |
+| `CAMERA_FOLLOW_SECONDS`          | 0.08  | s    | Position smoothing time constant.                                                   |
+| `CAMERA_ZOOM_SECONDS`            | 0.6   | s    | Zoom smoothing time constant.                                                       |
 
 Growth, ecology, absorption and progression constants live with their rules in the companion docs.
 

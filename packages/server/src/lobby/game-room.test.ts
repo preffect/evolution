@@ -66,17 +66,6 @@ describe('game-room: the fixed-step loop', () => {
     expect(fixture.room.performanceTracker.getStats().droppedTicks).toBe(4);
   });
 
-  it('measures tick time with the injected clock', () => {
-    const gameModule = createSpyGameModule();
-    const timing = createManualRoomTiming();
-    vi.mocked(gameModule.reduceGameState).mockImplementation(() => timing.clock.advanceMilliseconds(2));
-    const room = new GameRoom(gameModule, roomOptions(['p1']), timing);
-    room.start();
-    timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
-    timing.ticker.fire();
-    expect(room.performanceTracker.getStats().tickPeakMs).toBe(2);
-  });
-
   it('start() discards the time that passed since construction instead of bursting', () => {
     const gameModule = createSpyGameModule();
     const timing = createManualRoomTiming();

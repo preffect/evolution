@@ -52,18 +52,31 @@ import {
   PICKER_CARD_MEDALLION_PX,
   PICKER_CARD_WIDTH_PX,
   PICKER_DIM_ALPHA,
-  PICKER_BAND_GAP_PX,
   PICKER_ROW_GAP_PX,
   PICKER_TIMER_BAR_WIDTH_PX,
-  HUD_PLAYER_EXCLUSION_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
 import {
   HUD_NOTICE_ROWS_VARIABLE,
+  HUD_PICKER_BAND_OFFSET_VARIABLE,
+  HUD_PICKER_SPOTLIGHT_VARIABLE,
   HUD_SCALE_VARIABLE,
   hudStyleVariables,
   noticeRowsVariable,
+  pickerBandVariables,
 } from './hud-css-variables';
+import { pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
+
+describe('pickerBandVariables', () => {
+  it('publishes the band offset and the dim radius for the viewport, in real px, beside the constant map', () => {
+    const viewport = { width: 2560, height: 1440 };
+    expect(pickerBandVariables(viewport)).toEqual({
+      [HUD_PICKER_BAND_OFFSET_VARIABLE]: `${pickerBandOffsetPx(viewport)}px`,
+      [HUD_PICKER_SPOTLIGHT_VARIABLE]: `${pickerSpotlightRadiusPx(viewport)}px`,
+    });
+    expect(HUD_PICKER_BAND_OFFSET_VARIABLE in hudStyleVariables(1)).toBe(false);
+  });
+});
 
 describe('noticeRowsVariable', () => {
   it('publishes the live notice row count, unitless, beside the constant map', () => {
@@ -104,8 +117,6 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-clock-pulse-duration', `${ROUND_CLOCK_PULSE_PERIOD_MS}ms`],
   ['--hud-focus-ring', `${HUD_FOCUS_RING_PX}px`],
 
-  ['--hud-exclusion', `${HUD_PLAYER_EXCLUSION_PX}px`],
-  ['--hud-picker-band-gap', `${PICKER_BAND_GAP_PX}px`],
   ['--hud-picker-row-gap', `${PICKER_ROW_GAP_PX}px`],
   ['--hud-picker-timer-width', `${PICKER_TIMER_BAR_WIDTH_PX}px`],
   ['--hud-picker-card-width', `${PICKER_CARD_WIDTH_PX}px`],
