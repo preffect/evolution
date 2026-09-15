@@ -13,9 +13,10 @@ ids and data shapes are §12's and everything on screen is this file's. Every pi
 ([`components-and-constants.md §10`](./components-and-constants.md#10-the-ui-kit-354)); the ESC menu that opens it is
 [`overlays.md §3.5`](./overlays.md#35-menu-escape). Mockups: `qa/decisions/encyclopedia/`.
 
-**The layout is pending decision #368** (A atlas, B eyepiece, C codex). This file specifies **A**, the
-recommendation; §11.8 lists what changes if B or C is picked. The navigation model, the categories, the entry page's
-content and the kit do not depend on the answer.
+**The layout is option B, the eyepiece** (decision #368): the rail and the list, and on the entry page a round live
+preview lens beside the title and the facts. The reference frames are `qa/decisions/encyclopedia/encyclopedia-b-*.png`;
+the category landing (`encyclopedia-a-category-*.png`) is the same under every option. §11.8 records what was not
+chosen.
 
 ### 11.1 What it is, and where it opens
 
@@ -91,7 +92,7 @@ eats whom `concept:engulf_ratio`; engulf progress `action:engulf`, `action:escap
 tags the `dna_tag:` entries; stage gates and endosymbiosis the `stage:` entries; trait effects the `trait:` entries;
 score `concept:score`; the leaderboard's columns `hud:leaderboard`.
 
-### 11.3 Layout (option A)
+### 11.3 Layout
 
 **Frame.** A kit modal panel centred on the viewport, `ENCYCLOPEDIA_INSET_PX` from every edge and at most
 `ENCYCLOPEDIA_MAX_WIDTH_PX` × `ENCYCLOPEDIA_MAX_HEIGHT_PX`, every length × `--ui-scale`. Worked examples: at 1280 × 800
@@ -125,50 +126,90 @@ Still frames of the real render in rows and tiles are follow-up #378; build 1 dr
 
 ### 11.4 The entry page
 
-Top to bottom (`encyclopedia-a-trait-*.png`), with `UI_PANEL_PADDING_PX` around it, inside a content column at most
-`ENCYCLOPEDIA_PREVIEW_WIDTH_PX` wide. Each part names the `ResolvedEntry` field (§12.2) it reads:
+`encyclopedia-b-trait-*.png`. The page sits in a **content column**, the detail's inner width (the panel's width cap keeps it at most 848), with `UI_PANEL_PADDING_PX` around it. Its top is two columns: the **lens column** on the left
+and the **title column** beside it, `ENCYCLOPEDIA_LENS_GAP_PX` apart; below both, prose and See also run across the
+content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
+
+**Geometry**, every length × `--ui-scale`:
+
+| Viewport (UI scale) | Detail inner width | Content column | Lens               | Title column | Lens top-left (viewport px) |
+| ------------------- | ------------------ | -------------- | ------------------ | ------------ | --------------------------- |
+| 1280 × 800 (1)      | 704                | 704            | 300 (300 × 300 px) | 372          | (520, 109)                  |
+| 1920 × 1080 (1.35)  | 846 (1143 px)      | 846 (1143 px)  | 300 (405 × 405 px) | 514 (694 px) | (702, 147)                  |
+
+Widths are scale-1 units (px in brackets). Detail inner width is the panel less the rail, the list and two paddings
+(§11.3); the title column is the content column less the lens and the gap. At the `UI_SCALE_MIN` viewport
+(1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 372; narrower viewports are below the
+target and recorded, not solved (§11.3).
+
+**The lens column** (`preview` not `null`):
+
+1. **The lens**: a circle `ENCYCLOPEDIA_LENS_DIAMETER_PX` across, `encyclopedia-lens.component.ts`. It hosts the one
+   preview canvas of the open encyclopedia in a square stage element of that side, clipped to the circle by a CSS
+   `border-radius: 50%; overflow: hidden` on the stage host (§12.7: the renderer never knows it is round, and every scene is framed 1:1
+   inside its safe circle). **Framing** (§12.7): a subject's body stays inside the `PREVIEW_LENS_SAFE_RADIUS_FRACTION` safe circle; appendages (a flagellum, cilia, pseudopods, spines) may reach into the vignette band but never past the rim. Over the canvas the lens draws a DOM SVG overlay that takes no pointer: a
+   `ENCYCLOPEDIA_LENS_RIM_PX` rim in `PANEL_RIM`, a 1 px inner ring in `LIGHT_ACCENT` (the condenser colour) @
+   `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`, `ENCYCLOPEDIA_LENS_TICK_COUNT` reticle ticks inward from the rim in the label
+   colour @ `ENCYCLOPEDIA_LENS_TICK_ALPHA` (every `ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY`th one
+   `ENCYCLOPEDIA_LENS_MAJOR_TICK_PX` long, the rest `ENCYCLOPEDIA_LENS_MINOR_TICK_PX`), and a radial edge vignette of
+   `CALLOUT_BACKING` from `ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION` of the radius to `ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA` at the rim. The vignette is the eyepiece's field stop; the scene inside keeps its own condenser pool.
+   - **The handle.** `encyclopedia.component.ts` owns the one `PreviewHandle`: it asks `ENCYCLOPEDIA_PREVIEW` for it on
+     the first entry that has a preview, the entry page lends it the lens's stage element, it calls `show(spec)` once
+     the selection has rested `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`, `pause()` while a landing or an entry without a preview
+     is shown, `resize` when `--ui-scale` changes, and `destroy()` on close.
+   - **States** (`encyclopedia-preview[data-preview-state]`), each inside the circle under the overlay: `loading` until
+     the first frame (the dish field with one slow `LIGHT_ACCENT` ring pulsing at half the radius, no text, static under
+     reduced motion; §12.7 budgets 300 ms), `live`, `paused` (the last frame held), `unavailable` when the preview app
+     cannot start (the dish field with `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT` in `body`, muted, centred and wrapped
+     within `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION` of the diameter; no retry loop).
+2. **The lens control**, centred under the lens and `UI_SPACE_M_PX` below it, one of:
+   - for a trait, the tier switch: one segment per `tier_n` section (its numeral from `formatQuantity`, so the count
+     follows the tier table), default the owned tier in a round, else the first; selecting one calls `show` with that
+     section's `preview`, and a deep link to `#tier_n` selects it;
+   - for the action scenes (`eat`, `engulf`, `escape`, `sprint`, `level_up`), a `Replay` compact button that calls
+     `show(spec)` again, labelled from `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`;
+   - nothing for the other scenes.
+
+   **Reduced motion.** Under `prefers-reduced-motion` the page pauses the lens after the first frame and adds a play and
+   pause toggle (`resume` / `pause`, a compact icon button): beside the tier switch for a trait (`UI_SPACE_S_PX` apart,
+   the pair centred under the lens), in place of `Replay` for an action scene, alone for the other scenes. There is no
+   scale bar: the handle does not expose the preview's zoom.
+
+An entry whose `preview` is `null` has no lens column: the title column takes the whole content column.
+
+**The title column**, top to bottom:
 
 1. **Breadcrumb** (`label`, muted): the category label, then the label of `group`; every crumb but the last is a link.
-2. **Title and chips** on one line, wrapping under the title when they do not fit: `title` (`headline`), then kit
-   chips sized to their text: from the trait summary on `subject` (rarity with its word, `COMMON` muted rim,
+2. **Title** (`headline`), and under it `UI_SPACE_M_PX` the **chips**, sized to their text and wrapping within the
+   column `UI_SPACE_S_PX` apart: from the trait summary on `subject` (rarity with its word, `COMMON` muted rim,
    `UNCOMMON` label rim, `RARE` DNA rim, never the accent; each DNA tag with its `DNA_TAG_COLOR` dot; the stage), and in
-   a round `OWNED · II` in level gold, its numeral `formatQuantity(tier, QUANTITY_UNIT.tier)` in `numeral`
-   presentation.
-3. **Preview**, when `preview` is not `null`: a fixed box `ENCYCLOPEDIA_PREVIEW_WIDTH_PX` × `ENCYCLOPEDIA_PREVIEW_HEIGHT_PX`
-   (16:5, × `--ui-scale`), `UI_RADIUS_PANEL_PX` corners and a panel-rim rim over the dish field.
-   - **The handle.** `encyclopedia.component.ts` owns the one `PreviewHandle` of the open encyclopedia: it asks
-     `ENCYCLOPEDIA_PREVIEW` for it on the first entry that has a preview, the entry page lends it the stage element,
-     it calls `show(spec)` once the selection has rested `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`, `pause()` while a landing or
-     an entry without a preview is shown, `resize` when `--ui-scale` changes, and `destroy()` on close.
-   - **States** (`encyclopedia-preview[data-preview-state]`): `loading` until the first frame (the dish field with one
-     slow `UI_ACCENT` ring pulse and no text, static under reduced motion; §12.7 budgets 300 ms), `live`, `paused` (the
-     last frame held), `unavailable` when the preview app cannot start (the dish field with
-     `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT` in `body`, muted, centred; no retry loop).
-   - **Controls** over the box: top-left the tier switch for a trait, one segment per `tier_n` section (its numeral
-     from `formatQuantity`, so the count follows the tier table), default the owned tier in a round, else the first;
-     selecting one calls `show` with that section's `preview`, and a deep link to `#tier_n` selects it. Top-right, for
-     the action scenes only (`eat`, `engulf`, `escape`, `sprint`, `level_up`), a `Replay` compact button that calls
-     `show(spec)` again; its label per scene is `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`. Under `prefers-reduced-motion`
-     the page pauses after the first frame and that button becomes a play and pause toggle (`resume` / `pause`). No
-     scale bar: the handle does not expose the preview's zoom.
-4. **Facts**: two kit facts tables side by side in the content column (one under the other below
-   `ENCYCLOPEDIA_FACTS_TWO_COLUMN_MIN_WIDTH_PX`), each under a `label` header.
-   - A trait's left table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
+   a round `OWNED · II` in level gold, its numeral `formatQuantity(tier, QUANTITY_UNIT.tier)` in `numeral` presentation.
+3. **Facts**, `UI_SPACE_L_PX` under the chips: kit facts tables stacked `UI_SPACE_L_PX` apart, each under a `label`
+   header.
+   - A trait's first table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
      modifier keys their `facts` carry (`label` is the noun, `Mass decay`; `text` the value, `−15 %`, in `figure`),
-     `—` where a tier leaves that key at identity; the owned tier's column is tinted accent under `You own II`.
-   - The right table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on
-     the left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry.
+     `—` where a tier leaves that key at identity; the owned tier's column is tinted accent under `You own II`. A tier
+     column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
+   - The next table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on the
+     left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry.
    - A table with no rows is left out, never drawn empty.
-5. **Prose**: `summary`'s segments (§12.6): `text` in `body`, `value` in `body` with tabular digits, `link` as accent
+
+**Below both columns**, from `UI_SPACE_XL_PX` under whichever of the lens control and the title column ends lower:
+
+1. **Prose**: `summary`'s segments (§12.6): `text` in `body`, `value` in `body` with tabular digits, `link` as accent
    text with an underline; at most `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX` wide, paragraphs `UI_SPACE_S_PX` apart,
    `text-wrap: pretty` so no line ends on a lone word.
-6. **See also**: a `label` header and a kit link chip per `seeAlso` link, sized to its title.
+2. **See also**, `UI_SPACE_S_PX` under the prose: a `label` header and a kit link chip per `seeAlso` link, sized to its
+   title, wrapping across the content column.
 
-**Long entries scroll** (`encyclopedia-a-long-trait-1280x800.png`, Diatom Shell: three effect rows and a `Requires`
-fact). The detail column is one kit scroll area. The breadcrumb and the title-and-chips row are **sticky** at its top,
-on the panel's top colour, with a 1 px panel-rim rule under them once the column has scrolled; the preview, the facts,
-the prose and See also scroll under them, with the scroll area's `UI_SCROLL_FADE_PX` fade below the rule (the mockup omits the fade; the build draws it). At 1280 × 800 an entry with two
-effect rows and two prose lines fits unscrolled; anything longer scrolls.
+**Long entries scroll** (`encyclopedia-b-long-trait-1280x800.png`, Diatom Shell: three effect rows, five facts with a
+`Requires`, four paragraphs). The detail column is one kit scroll area; the lens, both columns, the prose and See also
+scroll together. Once the title has scrolled under the column's top edge, a **sticky title bar**
+`ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX` tall shows at that edge, on `PANEL_TOP` with a 1 px panel-rim rule under it: the
+breadcrumb (`label`, muted) over the title (`card_name`), no chips. The scroll area's `UI_SCROLL_FADE_PX` fade sits
+under the rule (the mockup omits the fade; the build draws it). At 1280 × 800 an entry whose title column ends near
+the lens control and whose prose is two short paragraphs fits unscrolled (Mitochondrion, with room to spare); anything
+longer scrolls.
 
 ### 11.5 Navigation, search and cross-links
 
@@ -220,46 +261,54 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `encyclopedia.component.ts`                                            | The panel: header with its alert slot, the three columns, focus trap, the one `PreviewHandle`; hosted by the HUD shell in a room and by the lobby outside |
 | `encyclopedia-rail.component.ts`, `encyclopedia-list.component.ts`     | The category rail and the grouped entry list or search results, on the kit rail and list                                                                  |
-| `encyclopedia-landing.component.ts`, `encyclopedia-entry.component.ts` | The category landing and the entry page (§11.4); the entry page lends its stage element to the handle                                                     |
+| `encyclopedia-landing.component.ts`, `encyclopedia-entry.component.ts` | The category landing and the entry page (§11.4); the entry page lends the lens's stage element to the handle                                              |
+| `encyclopedia-lens.component.ts`                                       | The lens (§11.4): the square stage element lent to the handle, its circular clip, and the rim, reticle and vignette overlay                               |
 | `encyclopedia-facts.component.ts`, `encyclopedia-prose.component.ts`   | The facts tables and the prose segments with their links                                                                                                  |
 | `encyclopedia-state.service.ts`                                        | §11.5's state                                                                                                                                             |
 | `format/navigation.ts`, `format/search.ts`, `format/entry-view.ts`     | Pure: the transitions, the match and its order, the page's view model (tier columns, chips, crumbs)                                                       |
 | `encyclopedia-constants.ts`, `test-ids.ts`                             | The table below, the labels of §11.2 and the key codes; §11.6                                                                                             |
 
-| Constant                                     | Value                                                          | Unit | Meaning                                                                                           |
-| -------------------------------------------- | -------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------- |
-| `ENCYCLOPEDIA_INSET_PX`                      | 32                                                             | px   | The panel's distance from every viewport edge.                                                    |
-| `ENCYCLOPEDIA_MAX_WIDTH_PX`                  | 1360                                                           | px   | The panel's widest.                                                                               |
-| `ENCYCLOPEDIA_MAX_HEIGHT_PX`                 | 880                                                            | px   | The panel's tallest.                                                                              |
-| `ENCYCLOPEDIA_HEADER_HEIGHT_PX`              | 56                                                             | px   | The header row.                                                                                   |
-| `ENCYCLOPEDIA_RAIL_WIDTH_PX`                 | 184                                                            | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.        |
-| `ENCYCLOPEDIA_LIST_WIDTH_PX`                 | 280                                                            | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. |
-| `ENCYCLOPEDIA_PREVIEW_WIDTH_PX`              | 704                                                            | px   | The preview box and the entry page's content column: the full detail width at 1280 × 800.         |
-| `ENCYCLOPEDIA_PREVIEW_HEIGHT_PX`             | 220                                                            | px   | The preview box (16:5).                                                                           |
-| `ENCYCLOPEDIA_FACTS_TWO_COLUMN_MIN_WIDTH_PX` | 640                                                            | px   | The content width from which the two facts tables sit side by side.                               |
-| `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`            | 640                                                            | px   | The prose measure: about 90 characters of `body`.                                                 |
-| `ENCYCLOPEDIA_TILE_WIDTH_PX`                 | 168                                                            | px   | A landing tile; four to a row at 1280 × 800.                                                      |
-| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                | 132                                                            | px   | A landing tile.                                                                                   |
-| `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`        | 96                                                             | px   | The tile's well.                                                                                  |
-| `ENCYCLOPEDIA_SCRIM_ALPHA`                   | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                            |
-| `ENCYCLOPEDIA_HISTORY_MAX`                   | 50                                                             | —    | Back-stack depth; the oldest location drops first.                                                |
-| `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`             | 150                                                            | ms   | Arrowing through the list calls `show` only once the selection rests this long.                   |
-| `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`      | `Preview unavailable`                                          | —    | The `unavailable` state's line.                                                                   |
-| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`          | `Replay`                                                       | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).            |
-| `ENCYCLOPEDIA_SEARCH_KEY_CODE`               | `Slash`                                                        | —    | Focuses the search field.                                                                         |
-| `ENCYCLOPEDIA_BACK_KEYS`                     | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).              |
+| Constant                                                             | Value                                                          | Unit | Meaning                                                                                           |
+| -------------------------------------------------------------------- | -------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------- |
+| `ENCYCLOPEDIA_INSET_PX`                                              | 32                                                             | px   | The panel's distance from every viewport edge.                                                    |
+| `ENCYCLOPEDIA_MAX_WIDTH_PX`                                          | 1360                                                           | px   | The panel's widest.                                                                               |
+| `ENCYCLOPEDIA_MAX_HEIGHT_PX`                                         | 880                                                            | px   | The panel's tallest.                                                                              |
+| `ENCYCLOPEDIA_HEADER_HEIGHT_PX`                                      | 56                                                             | px   | The header row.                                                                                   |
+| `ENCYCLOPEDIA_RAIL_WIDTH_PX`                                         | 184                                                            | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.        |
+| `ENCYCLOPEDIA_LIST_WIDTH_PX`                                         | 280                                                            | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. |
+| `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                            | px   | The lens, and the side of its square preview canvas.                                              |
+| `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                             | px   | The lens to the title column.                                                                     |
+| `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                              | px   | The lens rim, in `PANEL_RIM`.                                                                     |
+| `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                           | ×    | The 1 px `LIGHT_ACCENT` ring inside the rim.                                                      |
+| `ENCYCLOPEDIA_LENS_TICK_COUNT`                                       | 24                                                             | —    | Reticle ticks around the lens.                                                                    |
+| `ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY`                                 | 6                                                              | —    | Every sixth tick is a major one: the four quarters.                                               |
+| `ENCYCLOPEDIA_LENS_MAJOR_TICK_PX`, `ENCYCLOPEDIA_LENS_MINOR_TICK_PX` | 10, 5                                                          | px   | Tick lengths, inward from the rim.                                                                |
+| `ENCYCLOPEDIA_LENS_TICK_ALPHA`                                       | 0.6                                                            | ×    | The ticks' opacity, in the label colour.                                                          |
+| `ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION`                          | 0.7                                                            | × r  | Where the edge vignette starts.                                                                   |
+| `ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA`                                   | 0.6                                                            | ×    | The vignette's `CALLOUT_BACKING` at the rim.                                                      |
+| `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION`                              | 0.7                                                            | × d  | The widest line of the `unavailable` text inside the lens.                                        |
+| `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX`                                | 48                                                             | px   | The sticky title bar of a scrolled entry: the breadcrumb over the title.                          |
+| `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`                                    | 640                                                            | px   | The prose measure: about 90 characters of `body`.                                                 |
+| `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                            | px   | A landing tile; four to a row at 1280 × 800.                                                      |
+| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 132                                                            | px   | A landing tile.                                                                                   |
+| `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                             | px   | The tile's well.                                                                                  |
+| `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                            |
+| `ENCYCLOPEDIA_HISTORY_MAX`                                           | 50                                                             | —    | Back-stack depth; the oldest location drops first.                                                |
+| `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`                                     | 150                                                            | ms   | Arrowing through the list calls `show` only once the selection rests this long.                   |
+| `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`                              | `Preview unavailable`                                          | —    | The `unavailable` state's line.                                                                   |
+| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                       | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).            |
+| `ENCYCLOPEDIA_SEARCH_KEY_CODE`                                       | `Slash`                                                        | —    | Focuses the search field.                                                                         |
+| `ENCYCLOPEDIA_BACK_KEYS`                                             | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).              |
 
 `ENCYCLOPEDIA_KEY_CODE` (`KeyH`) lives with the in-room key codes in `input/input-constants.ts` (§4), since only the
 room's input layer reads it.
 
-### 11.8 If B or C is picked (#368)
+### 11.8 The options not chosen (#368)
 
-- **B, eyepiece** (`encyclopedia-b-trait-*.png`): the rail, list, header and navigation stay. The preview box becomes a
-  round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier switch under
-  it; the title, chips and both facts tables stack to its right; prose and See also run full width below. The 16:5 box
-  constants and the two-column rule go.
-- **C, codex** (`encyclopedia-c-trait-*.png`): the rail and the list go. A tab row (`ENCYCLOPEDIA_TABS_HEIGHT_PX`, 44)
-  of the kit rail in its horizontal orientation, each tab sized to its label, sits under the header; the category
-  landing grid is the list; an entry page opens with a full-width hero box (300 tall) carrying the title and chips on
-  a fade, `‹ previous` and `next ›` compact buttons in its top corners, and the facts, prose and See also in three
-  columns under it. Search results show as a landing grid.
+The human chose **B** on #368. What the other frames show, so the mockups read right:
+
+- **A, atlas** (`encyclopedia-a-trait-*.png`, `encyclopedia-a-long-trait-1280x800.png`): a 704 × 220 (16:5) preview box
+  above two side-by-side facts tables, with a sticky title-and-chips row. Its landing frames
+  (`encyclopedia-a-category-*.png`) stay the reference for the category landing, which B shares.
+- **C, codex** (`encyclopedia-c-trait-*.png`): a tab row in place of the rail and the list, a full-width hero preview
+  and previous / next entry buttons.
