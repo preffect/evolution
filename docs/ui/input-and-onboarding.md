@@ -76,25 +76,48 @@
 
 Diegetic and text hints, no modal tutorial. Hints show in the hint pill (bottom-centre, `HUD_MARGIN_PX` from the
 bottom edge, `body` on the callout backing, `hint`, `data-hint-id`); `OnboardingService` keeps seen-flags in memory
-for the session (a reload replays them; a rematch does not). One hint at a time, in this order; each is dismissed
-by its trigger or after `HINT_DURATION_SECONDS` once its dismissal condition is met. Every beat points at
-something on the cell, never at a corner.
+for the session (a reload replays them; a rematch does not). One hint at a time; each is dismissed by its trigger
+or after `HINT_DURATION_SECONDS` once its dismissal condition is met. Every beat points at something on the cell or
+in the dish, never at a corner.
 
-| Beat         | When                                                      | What the player sees                                                                                                                                                                                             | Dismissed by                       | `data-hint-id`  |
-| ------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | --------------- |
-| Spawn        | first alive snapshot of the session                       | The protocell at centre with its empty ring, the `1` and the nucleoid ghost below it; a pointer reticle and a dotted line cell → pointer (renderer, world-anchored); pill `Move the pointer · your cell follows` | `STEER_HINT_DISTANCE_WU` travelled | `steer`         |
-| First eat    | after `steer`, until the first `eat` effect for `ownCell` | Pill `Swallow motes to grow`; on the first eat the cell's eat pulse (renderer)                                                                                                                                   | first eat                          | `eat`           |
-| First DNA    | first snapshot with `dnaCumulative > 0`                   | The ring's first fill lights; pill `DNA fills the ring around your nucleus · fill it to evolve`                                                                                                                  | timer                              | `dna`           |
-| Sprint       | round time ≥ `SPRINT_HINT_AT_SECONDS` and never sprinted  | Pill `SPACE sprint · costs mass · your white ring recharges` (`TAP sprint …` on touch)                                                                                                                           | first sprint or timer              | `sprint`        |
-| First offer  | first `offer` shown                                       | The picker with an extra footer line `1 2 3 or click · you keep swimming`; the `RUNG` ribbon on the nucleoid card, whose silhouette the orbit ghost has been showing                                             | pick / timeout                     | `offer`         |
-| Prokaryote   | stage becomes `prokaryote`                                | The two counters appear on the orbit; toast `stage`; pill `Eat 10 orange rods at the warm vent or 10 green in the shallows · the pips count them`                                                                | timer                              | `endosymbiosis` |
-| First threat | first time `nearestThreat` is non-null                    | The renderer's ring and the label on the threat; pill `Bigger cells engulf you · sprint away`                                                                                                                    | timer                              | `threat`        |
+**Two kinds of beat.** The first seven rows are the **opening beats**: they show in table order. The last five are
+**coach beats** (decision #324, option C): each teaches one cue of `hud.md` §3.1.5 the first time the mechanic it
+explains touches the player, so they fire on a game event, not in order. The queue that `OnboardingService` keeps:
+
+- A beat whose trigger fires while another pill is up **waits**, first in first out, at most `COACH_QUEUE_MAX`
+  waiting; a newer beat past that drops the oldest waiting one, which stays unseen and can fire again later.
+- A waiting beat whose condition no longer holds when its turn comes (the player left the zone, the prey is gone)
+  is dropped the same way, unseen.
+- **Danger beats pre-empt:** `threat` and `toxin` replace the pill that is up at once. The replaced beat counts as
+  seen, because its cue stays on the cell and its lesson is the lesser one.
+- The pill of a coach beat carries a `HINT_RIM_PX` rim in the role colour of the cue it explains (`ZONE_CUE`,
+  `GAIN` or `DANGER`, visual-style/principles-and-palette.md §2); an opening beat has none. Text stays `body` in the
+  text colour.
+- Every number in a pill comes from the constant or balance value named in its row, formatted by `hud/format/`,
+  never typed.
+
+| Beat         | When                                                                                                                               | What the player sees                                                                                                                                                                                                                                                                       | Dismissed by                                   | `data-hint-id`                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------ |
+| Spawn        | first alive snapshot of the session                                                                                                | The protocell at centre with its empty ring, the `1` and the nucleoid ghost below it; a pointer reticle and a dotted line cell → pointer (renderer, world-anchored); pill `Move the pointer · your cell follows`                                                                           | `STEER_HINT_DISTANCE_WU` travelled             | `steer`                                                      |
+| First eat    | after `steer`, until the first `eat` effect for `ownCell`                                                                          | Pill `Swallow motes to grow`; on the first eat the cell's eat pulse (renderer)                                                                                                                                                                                                             | first eat                                      | `eat`                                                        |
+| First DNA    | first snapshot with `dnaCumulative > 0`                                                                                            | The ring's first fill lights; pill `DNA fills the ring around your nucleus · fill it to evolve`                                                                                                                                                                                            | timer                                          | `dna`                                                        |
+| Sprint       | round time ≥ `SPRINT_HINT_AT_SECONDS` and never sprinted                                                                           | Pill `SPACE sprint · costs mass · your white ring recharges` (`TAP sprint …` on touch)                                                                                                                                                                                                     | first sprint or timer                          | `sprint`                                                     |
+| First offer  | first `offer` shown                                                                                                                | The picker with an extra footer line `1 2 3 or click · you keep swimming`; the `RUNG` ribbon on the nucleoid card, whose silhouette the orbit ghost has been showing                                                                                                                       | pick / timeout                                 | `offer`                                                      |
+| Prokaryote   | stage becomes `prokaryote`                                                                                                         | The two counters appear on the orbit; toast `stage`; pill `Eat 10 orange rods at the warm vent or 10 green in the shallows · the pips count them`                                                                                                                                          | timer                                          | `endosymbiosis`                                              |
+| First threat | first time `nearestThreat` is non-null                                                                                             | The renderer's ring and the label on the threat; pill `Bigger cells engulf you · sprint away`                                                                                                                                                                                              | timer                                          | `threat`                                                     |
+| First shrink | the mass chip's `trend` (hud.md §3.1.5) reads `down` for `COACH_SHRINK_HOLD_SECONDS` in a row, first time                          | The mass chip with its down arrow and the rate tags above it; pill `You burn mass when you stop eating · hold TAB for why`                                                                                                                                                                 | timer                                          | `shrink`                                                     |
+| First zone   | first entry into each of `warm_vent`, `sunlit_shallows`, `viscous_gel` (one beat per zone; `ownCellIndicators.zone` changes to it) | The zone pill under the cell; pill (rim `ZONE_CUE`) per zone: `The vent burns mass ×1.5 · orange rods live here` (`VENT_DECAY_MULTIPLIER`), `Sunlight feeds a Chloroplast · green rods live here`, `Gel slows you to ×0.6 · smaller cells slip through` (`gelSpeedFactor` at the own mass) | leaving the zone or timer                      | `zone-warm_vent`, `zone-sunlit_shallows`, `zone-viscous_gel` |
+| Bloom        | the round clock enters bloom (`roundClockStateFor`), first time in the session                                                     | The clock caption `BLOOM · FOOD ×1.5 · DNA DROPS ×2` (hud.md §3.1.1); pill `Bloom · more food and DNA until the end`                                                                                                                                                                       | timer                                          | `bloom`                                                      |
+| First prey   | first time an edible cell (hud.md §3.1.5 relation `edible`) is within `COACH_PREY_REACH_RADII` own radii, edge to edge             | The `GAIN` ring and the `EDIBLE` label on it; pill (rim `GAIN`) `Green ring: you can engulf it · swim over it`                                                                                                                                                                             | the first engulf the player starts, or timer   | `prey`                                                       |
+| First toxin  | first snapshot with `ownProgress.massFlow.ratesPerSecond.toxin > 0` (hud.md §3.1.5)                                                | The `TOXIN` rate tag on the cell and the toxic ring on its source; pill (rim `DANGER`) `Toxic cells drain you on contact · back off`                                                                                                                                                       | contact ends (the rate returns to 0), or timer | `toxin`                                                      |
 
 ## 6. Readability during play
 
 - **Exclusion box** (§1) is absolute for DOM while alive and playing; the picker's dim keeps its spotlight; toasts
-  and the connection banner stack from the top, never downward past y 96. Inside the box the own cell and its
-  indicators are the only drawn things besides the dish (§3.1.2).
+  and the connection banner stack from the top, never downward past `HUD_NOTICE_STACK_BOTTOM_PX` (y 96). Inside the
+  box the own cell, its indicators and its legibility cues (the mass chip, rate tags, floaters, zone pill and
+  relation labels, hud.md §3.1.5, decision #324) are the only drawn things besides the dish; every one of them is
+  renderer-drawn and world-anchored, never DOM, and meets §3.1.3's reading floor (numbers `value`, causes `label`).
 - **Floors.** Every on-cell indicator meets §3.1.3's floors at every camera zoom; the fact carriers are the DNA
   fill (≥ 4 px), the numeral (`value`), the pips (countable) and the threat label (`label`); a ghost is a hint and
   may be the only thing that shrinks toward its 14 px floor.
@@ -115,9 +138,17 @@ something on the cell, never at a corner.
   escape arc, timer bar) and the leaderboard's 200 ms re-sort; flashes ≤ 300 ms, at most one per second. The
   indicators' fills tween over `INDICATOR_FILL_TWEEN_MS`, their flashes are rendering/contents-and-motion.md §4 clips (`level_up`'s
   `ringFlash`, `sprint_ready`), and their labels neither pulse nor fade. The indicators ride the cell's predicted
-  position (rendering/cells.md §1) and never lag it.
+  position (rendering/cells.md §1) and never lag it. **One exception:** a floater (hud.md §3.1.5) rises
+  `FLOATER_RISE_PX` and fades over the last `FLOATER_FADE_FRACTION` of `FLOATER_LIFETIME_MS`, because a one-off
+  change has to read as one; rate tags, the mass chip and the zone pill appear and leave without a fade.
+- **Cue colour.** Besides danger, gold and DNA, a cue may carry the three roles of
+  visual-style/principles-and-palette.md §2 (`GAIN`, `ZONE_CUE`, `TRAIT_CUE`, decision #324), on rims, dots, rings
+  and glyphs only; the text on a cue is always `WHITE`. The toxic ring and the threat ring share `DANGER` and are
+  told apart by geometry (solid and thin against dashed and glowing) and by their labels.
 - **Colour is never the only carrier**: rarity, danger, bloom and stage all have a text label as well; the two
   counters differ by silhouette (bean vs lens) and angle, not only by orange vs green; a full counter is a gold ring
   plus ten lit pips.
-- **Coverage.** HUD chrome ≤ 8 % of the viewport at scale 1 (leaderboard and clock, 5 % at the reference size);
-  overlays (picker, respawn) ≤ 40 %; results may cover the centre because the dish is frozen.
+- **Coverage.** HUD chrome ≤ 8 % of the viewport at scale 1 (leaderboard with its label strip and the clock with
+  the bloom caption, about 6 % at the reference size); overlays (picker, respawn, and the hold-Tab panel with the
+  full board, about 27 % while Tab is held, overlays.md §3.7) ≤ 40 %; results may cover the centre because the dish
+  is frozen. The renderer's cues (hud.md §3.1.5) are not chrome and do not count.

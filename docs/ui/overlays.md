@@ -1,6 +1,6 @@
 # Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices
 
-§3.2–§3.6 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+§3.2–§3.7 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
 
 ### 3.2 Trait pick overlay (`ownProgress.offer !== null`)
 
@@ -15,7 +15,14 @@ without copy fails the gate instead of rendering `undefined`.
 
 - **Placement.** The band hangs from the exclusion box, so it is placed relative to the viewport centre
   (`centreX`, `centreY` = half the host size, the own cell's screen position), never at an absolute y. With `s` =
-  `--hud-scale`: title row top at `centreY + (HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) × s`
+  `--hud-scale`: title row top at `centreY + pickerBandOffsetPx(viewport)` (`hud/format/picker-band.ts`, pure) =
+  `max((HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) × s, capOrbitExtentPx + PICKER_BAND_ORBIT_CLEARANCE_PX)`,
+  where `capOrbitExtentPx` is hud.md §3.1.3's orbit extent for the own cell at `CELL_MAX_MASS` under the Z1 camera on
+  this viewport (`ladderOrbitExtentPx(radiusForMass(CELL_MAX_MASS) × (height / 2) / viewHalfHeightFor(that radius))`).
+  Z1 lets the own cell grow on screen, so the band anchors from whichever reaches lower: the box or the biggest orbit
+  the viewport can show. At the reference viewport and 1080p the box wins and nothing moves (offset 136 and 183.6
+  against orbit extents 126.2 and 163.4 plus 4); it moves at 1280 × 1000 (152.8 + 4 = 156.8, cards end at y 921) and
+  at 2560 × 1440 (211.2 + 4 = 215.2, cards end at y 1331). The rest of the band hangs from that title row as below
   (`LEVEL 5 · CHOOSE A TRAIT`, `title` role, level gold, centred on `centreX`; the level is `offer.level`, the
   level-up that queued the offer, so after a double level-up the first offer still reads the earlier level); timer bar 470 × 4
   `PICKER_ROW_GAP_PX` under the title row (level gold on the timer-bar track, drains left to right); three cards
@@ -25,13 +32,15 @@ without copy fails the gate instead of rendering `undefined`.
   row), bar y 570, cards y 586–800 at x 375–905. **The card height is a measured fit claim:** the catalog's worst
   card in that band, Simple Flagellum `II → III` (its name wraps to three lines over three effect lines), is 214 px
   tall with 2 px between a card's rows, 8 px padding top and bottom and no row allowed to shrink. At 1280 × 1000
-  (scale still 1, capped by width) the band starts at y 636 and still clears the box; the cards end exactly at the
+  (scale still 1, capped by width) the band starts at y 656.8, below the orbit at the cap; the cards end exactly at the
   reference viewport's bottom edge, and on a viewport shorter than the reference at `HUD_SCALE_MIN` they may cross
   it, which is accepted: the cards never enter the box, and the own cell's orbit never reaches the
   band (§3.1.3). The hint pill is hidden while the offer is open; the own-cell indicators, timer and leaderboard
   stay.
 - **Dim.** A DOM overlay owned by this doc, not a Pixi quad: a 55 % black `<div>` over the canvas with a
-  soft-edged clear disc of radius `HUD_PLAYER_EXCLUSION_PX` × `s` around the centre (`mask-image` radial
+  soft-edged clear disc of radius `pickerSpotlightRadiusPx(viewport)` =
+  `max(HUD_PLAYER_EXCLUSION_PX × s, capOrbitExtentPx)` around the centre (`hud/format/picker-band.ts`, the same cap
+  extent as the band, so under Z1 the dim never greys the outer edge of a big cell's orbit; `mask-image` radial
   gradient); the HUD never touches Pixi, so visual-style/performance-and-checklist.md §8's "trait-picker dim" quad is superseded by this
   element (corrected on #34). The dish keeps simulating and the cell keeps steering: pointer input is not captured
   by the overlay (`pointer-events: none` on everything but the cards).
@@ -134,3 +143,46 @@ A server `error` in play shows as a second notice row under the banner (`hud-ser
 same 32 px row, `server-error-notice.component.ts`), with a dismiss control; the two rows are the whole stack and stay
 above y 96. The top-anchored chrome (the leaderboard) drops by the rows that are up (`--hud-notice-rows`), so a notice
 never covers it.
+
+### 3.7 Hold-Tab "affecting you" panel (`openOverlay === 'leaderboard'` and `lifeState === 'alive'`)
+
+Decision #324 (option C). The cues on the cell (hud.md §3.1.5) say what is happening this second; this panel says
+everything acting on the cell at once, for the player who stops to ask why. It opens and closes with the full
+leaderboard (Tab held, or the leaderboard header clicked, §3.1.1), so there is no second key and no second
+`openOverlay` value. While spectating only the board opens: there is no cell to describe.
+
+- **Style.** Built on the #354 UI kit's panel (`ui/components-and-constants.md`, the kit uid-354 specifies for the
+  ESC menu and the encyclopedia): the same panel surface, rim, radius, padding, heading and row styles, so the two
+  overlays are one family. This section names only roles and sizes the kit does not already fix: the panel gradient
+  `PANEL_TOP` → `PANEL_BOTTOM` with the `PANEL_RIM` rim, headings in `caption` muted, row text in `body`, row values
+  in `figure` (tabular), the mass in `number`.
+- **Placement.** Top-left, `HUD_MARGIN_PX` × `s` from the corner, `AFFECTING_PANEL_WIDTH_PX` wide, height by its
+  rows (about 440 at the worked example), dropping by `--hud-notice-rows` like the leaderboard. With the full board
+  top-right it leaves the centre clear on the reference viewport: its right edge is x 396 against the exclusion box's
+  left edge at x 520.
+- **Not interactive.** `role="region"`, `aria-label="Affecting you"`, nothing focusable, no focus trap; Tab is being
+  held, so focus stays where it was. Its facts reach assistive technology through the status mirror (hud.md §3.1.4).
+- **Rows.** Built by the pure `affectingRowsFor({ ownCell, ownProgress, balance, roundClock, worldReference,
+recentEats })` (`hud/format/affecting-rows.ts`, unit-tested with no DOM). Each row has a marker, a left text and a
+  right value. A row whose value is zero or unknown is omitted, never shown as `0`.
+
+| Section  | Row (left · right)                                                                                                              | Marker                                | Source                                                                                                                                                            | `data-testid`                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `MASS`   | `312` (`number`) with the trend glyph and `9/s` (`value`); a sparkline of the last `AFFECTING_MASS_HISTORY_SECONDS`             | trend glyph (hud.md §3.1.5)           | `ownCell.mass`, `massChip` of the record; the history is the own mass per snapshot, kept in `state/`                                                              | `affecting-mass`                  |
+|          | `Food · +1.1/s`                                                                                                                 | `GAIN` dot                            | the `massGained` of the own cell's `eat` effects over the last `AFFECTING_FOOD_WINDOW_SECONDS`, as a rate                                                         | `affecting-cause-food`            |
+|          | `Decay · mito −15 % · −0.5/s`, `Vent · decay ×1.5 · −0.3/s`, `Toxin · touching Nib · −9.4/s`, `Spines · −2.1/s`, `Light · +1/s` | the rate tag's role (hud.md §3.1.5)   | `ownProgress.massFlow.ratesPerSecond`, `decayTraitShare`; the toxin row names the nearest toxic cell in reach (`relations`), `VENT_DECAY_MULTIPLIER` from balance | `affecting-cause-<MassRateCause>` |
+| `HERE`   | `Warm vent · orange rods · decay ×1.5` (the zone pill's facts in `body`); `Open broth` has no row                               | `ZONE_CUE` dot                        | `ownCellIndicators.zone`, `hud/format/zone-pill.ts`                                                                                                               | `affecting-zone`                  |
+|          | `Bloom · 1:48 · food ×1.5 · DNA drops ×2`, only in bloom                                                                        | `LEVEL_GOLD` dot                      | `roundClockStateFor`, `FOOD_BLOOM_SPAWN_MULTIPLIER`, `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`                                                                        | `affecting-bloom`                 |
+| `SIZE`   | `You eat · < 249`                                                                                                               | `GAIN` solid ring                     | floor(`ownCell.mass` / `ENGULF_MASS_RATIO`): the largest plain cell `canEngulf` lets the own cell take (a Cell Wall prey needs more; the ring on it says so)      | `affecting-prey-below`            |
+|          | `Eats you · > 390`                                                                                                              | `DANGER` dashed ring                  | `ownCell.mass` × (`ENGULF_MASS_RATIO` + `ownCell.membraneRatioBonus`), the mass a cell needs for `canEngulf(it, ownCell)`                                         | `affecting-threat-above`          |
+|          | `Speed · −50 %`                                                                                                                 | arrow glyph                           | `maxSpeedForMass(ownCell.mass) / CELL_BASE_SPEED − 1` from the shared mass curve: the size's cost alone, before traits (the trait rows say theirs)                | `affecting-speed`                 |
+| `TRAITS` | `Mitochondrion I · −15 % decay`, one row per owned trait, catalog order                                                         | the trait glyph (#312) in `TRAIT_CUE` | `ownCell.traits`, the catalog, the first line of `describeTierModifiers` (§3.2)                                                                                   | `affecting-trait-<traitId>`       |
+|          | `World · ahead` / `level` / `behind`                                                                                            | ring in the text colour               | `standingAgainstWorld(level, mass, worldReference(worldElapsedSeconds(…)), balance)` (shared `simulation/world-clock.ts`; `with` reads `level`)                   | `affecting-world`                 |
+
+The numbers in the rows are the audit's worked example (mass 312, in the vent, Mitochondrion I, touching Nib,
+Toxin Vacuole I, 1:48 of bloom left); every one of them comes from the source column, formatted by
+`formatMassRate` and `formatMassAmount` (hud.md §3.1.5), never typed. Constants (`hud/hud-constants.ts`, §1):
+`AFFECTING_PANEL_WIDTH_PX` 380 (the widest row, the toxin cause with a 12-character name, in `body` + `figure`),
+`AFFECTING_FOOD_WINDOW_SECONDS` 5 (long enough that grazing reads as a steady rate) and
+`AFFECTING_MASS_HISTORY_SECONDS` 30 (the sparkline shows "grew, then shrank" across a trip). Test ids:
+`affecting-panel` and the row ids above, from `HUD_TEST_ID`.

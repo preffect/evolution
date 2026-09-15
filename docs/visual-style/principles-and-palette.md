@@ -190,3 +190,21 @@ by `qa/evidence/34/tools/render.sh`.
 `PANEL_TOP` `#0e1f33` → `PANEL_BOTTOM` `#060e1a` with the `PANEL_RIM` `#173250` rim. `UI_ACCENT` is
 `LIGHT_ACCENT`; `CALLOUT_BACKING` (the callout backing role, sheet 02's callout `#04070d`) is `BG_DEEP`;
 `WHITE` `#ffffff` is the single white.
+
+**Legibility cue roles (decision #324, `ui/hud.md` §3.1.5).** Three roles join danger, gold and DNA as the colours a
+cue may carry. None is a new hex: each names a world colour the player already reads in the dish, so the cue and
+the thing it is about match. They colour rims, dots, rings and glyphs only; cue text is always `WHITE` (the label
+pill rule of `ui/input-and-onboarding.md` §6), so no role is ever the only carrier of a fact.
+
+| Role        | Value                                                                                         | Used for                                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GAIN`      | `FOOD_MOTE` `#8dff6a`                                                                         | mass-gain floater rims, the edible ring on a cell the own cell can engulf, the Tab panel's gain dots             |
+| `ZONE_CUE`  | the zone's own tint from the zone table above (`ZONE_VENT`, `ZONE_SHALLOWS`, `ZONE_GEL`)      | the zone pill's dot, a zone-caused floater's rim, the Tab panel's zone dot; `open_broth` has none                |
+| `TRAIT_CUE` | the trait's organelle base colour (sheet 01, `MITO_BASE`, `CHLORO_BASE`, …), else `UI_ACCENT` | trait glyphs in the Tab panel and on a trait-caused floater, as on the picker's medallions (`TRAIT_GLYPH_COLOR`) |
+
+**Relation rings.** A cell's relation to the own cell is geometry first and colour second, so the two rings that
+share `DANGER` are never confused: the **threat ring** is the engulf warning ring (dashed 6 4, glowing,
+`ENGULF_WARNING_RING_RADII`); the **toxic ring** is solid, thin (`RELATION_RING_STROKE_PX`), unglowing, at
+`RELATION_RING_RADII`, in `DANGER`; the **edible ring** is the same solid ring in `GAIN`. Toxin violet
+(`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a threat and toxic shows the threat
+ring only (the danger that ends a life wins); what each ring's label says is `ui/hud.md` §3.1.5.

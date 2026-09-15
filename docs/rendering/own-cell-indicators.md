@@ -73,6 +73,20 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   that pill's box intersects the disc of the own cell's orbit extent (`ui/hud.md §3.1.3`) the centre flips to the far
   side of the ring (the same distance, away from the own cell); text stays upright. The warning rings on every
   eligible cell remain the pass-B band of §2.2; the label is drawn on the nearest one only, as the record says.
+- **Legibility cues (decision #324).** `ui/hud.md §3.1.5` owns what they show and where; this bullet owns how. The
+  mass chip, rate tags, floaters and zone pill are laid out by `effects/cue-layout.ts` (pure, over `orbitLayout`)
+  and drawn in the effects layer beside the indicators: the pills are the label pill's nine-slice at
+  `CUE_PILL_HEIGHT_PX` with a rim variant per role, the numbers and causes `BitmapText` from `indicator-text.ts`,
+  the trend glyph and trait glyphs atlas entries. Floaters animate on `renderTick` (rise, fade) from a small pool
+  (`FLOATER_MAX_VISIBLE`), never a per-frame allocation. Budget: at most 1 chip + `RATE_TAG_ROWS_MAX` tags +
+  `FLOATER_MAX_VISIBLE` floaters + 1 zone pill = 9 pills and 18 texts on top of the indicators' worst case; the
+  build measures them inside the `effects` stage's 0.3 ms on the bench and raises the line in `rendering/budget.md`
+  only with a measurement.
+- **Relation rings.** Pass B's ring band, the one the warning ring uses (§2.2): a relation ring is a second ring
+  radius and style per cell instance (solid, `RELATION_RING_STROKE_PX`, `GAIN` or `DANGER`), packed like
+  `warningRingPx`, so rings on many cells cost no draw calls; `RELATIONS_MAX_RINGED` caps the cells that carry one.
+  A cell with a warning ring packs no relation ring. The labels are threat-label pills placed by
+  `threat-label-placement.ts`'s rule.
 - **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),
   `oriented-box.spec.ts`, `own-cell-indicators.spec.ts` (#187: the worst case at 5 sprites, 6 arc rows and 2 texts,
   the DNA fill and its gold, the orbit in world units, the escape window and its two labels, the threat label
