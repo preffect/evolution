@@ -52,7 +52,7 @@ are here, the headers' labels are #354's.
 
 | Subject                                    | Category                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------------ |
-| `concept`                                  | `basics` (except `concept:food` → `entities`, the one `CATEGORY_BY_ENTRY` row) |
+| `concept`, `hud`                           | `basics` (except `concept:food` → `entities`, the one `CATEGORY_BY_ENTRY` row) |
 | `cell_kind`, `food`, `bacterium`, `entity` | `entities`                                                                     |
 | `stage`, `trait`, `dna_tag`                | `evolutions`                                                                   |
 | `ability`                                  | `abilities`                                                                    |
@@ -88,6 +88,7 @@ export const ENTRY_SUBJECT = {
   zone: 'zone', // ZONE_ID
   world: 'world', // WORLD_TOPIC (§12.4)
   concept: 'concept', // CONCEPT (§12.4): the rules the other pages link to
+  hud: 'hud', // HUD_TOPIC (§12.4): how to read each HUD element; a subject under basics, not a category
 } as const;
 
 export type EntryId =
@@ -102,7 +103,8 @@ export type EntryId =
   | `action:${ActionId}`
   | `zone:${ZoneId}`
   | `world:${WorldTopicId}`
-  | `concept:${ConceptId}`;
+  | `concept:${ConceptId}`
+  | `hud:${HudTopicId}`;
 
 /** A place inside an entry: `trait:cell_wall#tier_2`. Section keys are lowercase snake_case. */
 export type EntryAnchor = `${EntryId}#${string}`;
@@ -203,7 +205,7 @@ rows and walk orders; structure is never patched, `constants-files-tests.md §9`
 titles and summaries and needs nothing more from the model.
 
 **List groups.** `encyclopedia/model/groups.ts` declares `ENTRY_GROUP` (closed ids) and #354's
-`ENTRY_GROUP_LABEL`; the registry **derives** each entry's group, never content: basics → `rules`; entities → `cells` (cell kinds) or `food` (food kinds, variants, `concept:food`,
+`ENTRY_GROUP_LABEL`; the registry **derives** each entry's group, never content: basics → `rules` (concepts) or `reading_the_screen` (`hud:`); entities → `cells` (cell kinds) or `food` (food kinds, variants, `concept:food`,
 `entity:dna_fragment`); evolutions → `stages`, then one group per `TRAIT_CATEGORY` in catalog order (the trait's own
 category), then `dna_tags`; world → `dish_and_zones` (the dish, zones) or `time` (world clock, bloom, round);
 abilities and actions → `null`. A spec pins that every entry of a grouped category has a group and that group order
@@ -319,7 +321,7 @@ balance.traits.DEFAULT_CELL_MODIFIERS)`), keyed by the modifier key, labelled `M
 
 ### 12.4 The closed sets the registry adds
 
-Four subjects have no code enum yet. Each is declared once in `encyclopedia/model/` and **anchored** to a code set
+Five subjects have no code enum yet. Each is declared once in `encyclopedia/model/` and **anchored** to a code set
 by a total `Record`, so the new id list cannot drift from the code it describes:
 
 ```ts
@@ -390,6 +392,24 @@ export const ENTRY_BY_WORLD_STANDING: Readonly<Record<WorldStanding, EntryAnchor
   with: 'concept:world_standing#with',
   behind: 'concept:world_standing#behind',
 };
+
+// encyclopedia/model/hud-topics.ts — one page per HUD element, anchored to the element it explains
+export const HUD_TOPIC = {
+  dnaRing: 'dna_ring',
+  levelNumeral: 'level_numeral',
+  ladderOrbit: 'ladder_orbit',
+  selfRing: 'self_ring',
+  threatRing: 'threat_ring',
+  leaderboard: 'leaderboard',
+  roundClock: 'round_clock',
+} as const;
+export type HudTopicId = ValueOf<typeof HUD_TOPIC>;
+/**
+ * The element each page explains, by its `HUD_TEST_ID` key: a removed or renamed element fails `typecheck`.
+ * `HUD_TEST_ID` moves from `hud/test-ids.ts` to the neutral `game/test-ids/hud-test-ids.ts` (which `hud/` and
+ * `input/` import too), so the anchor keeps "encyclopedia/ never imports hud/", type imports included.
+ */
+export const HUD_ELEMENT_BY_TOPIC: Readonly<Record<HudTopicId, keyof typeof HUD_TEST_ID>>;
 
 // encyclopedia/model/entity-kinds.ts — every ENTITY_KIND has a page
 export const ENTRY_BY_ENTITY_KIND: Readonly<Record<EntityKind, EntryId>> = {
@@ -480,15 +500,15 @@ spec below, never on a player's screen.
 
 **Tests** (`encyclopedia/**/*.spec.ts`, unit tier, jsdom, no Pixi):
 
-| Spec                            | Pins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `registry-completeness.spec.ts` | The registry holds exactly: one `trait:` entry per catalog row with one tier section per tier of its row; one entry per `CELL_STAGE`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ZONE_ID`, `ABILITY`, `ACTION`, `WORLD_TOPIC` and `CONCEPT` value; every `ENTRY_BY_EFFECT`, `ENTRY_BY_ENTITY_KIND`, `ENTRY_BY_WORLD_STANDING` and `ACTION_BY_INTENT` target (anchors included) exists; every `CellModifiers` key maps to one ability; every value outside the registry is in `RESERVED_FROM_ENCYCLOPEDIA`, and each of those is still reserved in code. Ids are unique; every entry's category is in `ENCYCLOPEDIA_CATEGORY_ORDER`; no category is empty                           |
-| `fact-sources.spec.ts`          | Every `balance` path resolves to a finite number in `DEFAULT_BALANCE`, and none names `ENGULF_COVER_SECONDS`, `ENGULF_WRAP_SECONDS` or `ENGULF_ABSORB_SECONDS` (inputs the simulation does not read; the list goes when #367 lands). Every `FACT_FORMULAS` and `CATALOG_QUANTITIES` row, run over a **recording proxy** of the balance with every argument its type allows, reads at least one leaf, and **at least one** of the number leaves it read changes its value when patched on a `structuredClone` (× 2, or + 1 for a leaf at 0), so clamps and branches do not false-fail. Every `BalanceConfig` domain is read by at least one fact, counting `balance` paths and proxy reads together |
-| `prose.spec.ts`                 | For every entry and section: no digit (`/\d/`) and no tier numeral (`/\btier\s+[ivx]+\b/i`, and a bare `/\b[IVX]{2,}\b/`) in any template, title, heading or label; every `{token}` names a fact of that entry or section; every `[[link]]` is a registry id or anchor; `resolveEntry` of every id succeeds over `DEFAULT_BALANCE`                                                                                                                                                                                                                                                                                                                                                                 |
-| `resolve-entry.spec.ts`         | A patched balance (`applyBalancePatch`) changes the resolved text of the facts that read the leaf and of the trait tier lines; the generated tier headings follow the tier count; the derived links (requires, granting traits, gate traits) match the balance's catalog                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `encyclopedia-context.spec.ts`  | `factContextFor(null)` is `DEFAULT_BALANCE`; a room balance wins; the service's signal follows `GameStateService.balance`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `lint-guard.spec.ts`            | The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; ESLint (`Linter` over fixture sources) rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access, a number literal and a binary arithmetic expression under `encyclopedia/content/**`                                                                                                                                                                                                                                                                                                                                                                                           |
-| `quantities/*.spec.ts`          | Every unit × presentation × rounding, the trimming and sign rules; the trait card, status mirror, round clock and leaderboard text unchanged by the move                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Spec                            | Pins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registry-completeness.spec.ts` | The registry holds exactly: one `trait:` entry per catalog row with one tier section per tier of its row; one entry per `CELL_STAGE`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ZONE_ID`, `ABILITY`, `ACTION`, `WORLD_TOPIC`, `CONCEPT` and `HUD_TOPIC` value (each `HUD_ELEMENT_BY_TOPIC` value an existing `HUD_TEST_ID` key); every `ENTRY_BY_EFFECT`, `ENTRY_BY_ENTITY_KIND`, `ENTRY_BY_WORLD_STANDING` and `ACTION_BY_INTENT` target (anchors included) exists; every `CellModifiers` key maps to one ability; every value outside the registry is in `RESERVED_FROM_ENCYCLOPEDIA`, and each of those is still reserved in code. Ids are unique; every entry's category is in `ENCYCLOPEDIA_CATEGORY_ORDER`; no category is empty |
+| `fact-sources.spec.ts`          | Every `balance` path resolves to a finite number in `DEFAULT_BALANCE`, and none names `ENGULF_COVER_SECONDS`, `ENGULF_WRAP_SECONDS` or `ENGULF_ABSORB_SECONDS` (inputs the simulation does not read; the list goes when #367 lands). Every `FACT_FORMULAS` and `CATALOG_QUANTITIES` row, run over a **recording proxy** of the balance with every argument its type allows, reads at least one leaf, and **at least one** of the number leaves it read changes its value when patched on a `structuredClone` (× 2, or + 1 for a leaf at 0), so clamps and branches do not false-fail. Every `BalanceConfig` domain is read by at least one fact, counting `balance` paths and proxy reads together                                                      |
+| `prose.spec.ts`                 | For every entry and section: no digit (`/\d/`) and no tier numeral (`/\btier\s+[ivx]+\b/i`, and a bare `/\b[IVX]{2,}\b/`) in any template, title, heading or label; every `{token}` names a fact of that entry or section; every `[[link]]` is a registry id or anchor; `resolveEntry` of every id succeeds over `DEFAULT_BALANCE`                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `resolve-entry.spec.ts`         | A patched balance (`applyBalancePatch`) changes the resolved text of the facts that read the leaf and of the trait tier lines; the generated tier headings follow the tier count; the derived links (requires, granting traits, gate traits) match the balance's catalog                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `encyclopedia-context.spec.ts`  | `factContextFor(null)` is `DEFAULT_BALANCE`; a room balance wins; the service's signal follows `GameStateService.balance`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `lint-guard.spec.ts`            | The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; ESLint (`Linter` over fixture sources) rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access, a number literal and a binary arithmetic expression under `encyclopedia/content/**`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `quantities/*.spec.ts`          | Every unit × presentation × rounding, the trimming and sign rules; the trait card, status mirror, round clock and leaderboard text unchanged by the move                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 **Lint guard.** `eslint.config.js` gains two blocks:
 
@@ -720,10 +740,11 @@ join an entry id to its spec and the render seam. `render/` never imports from `
 packages/client/src/app/game/
   quantities/{quantity-unit,format-quantity,modifier-labels}.ts    units, suffixes, decimals, rounding; the one formatter; the modifier label table (§12.5)
   encyclopedia/model/{entry-id,entry,fact,prose}.ts      the closed types, ids, definitions, resolved shapes, token parser
-  encyclopedia/model/{categories,groups,abilities,actions,world-topics,concepts,entity-kinds,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
+  encyclopedia/model/{categories,groups,abilities,actions,world-topics,concepts,hud-topics,entity-kinds,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
   encyclopedia/facts/{balance-path,formula-table,catalog-quantities,resolve-fact,resolve-prose,derived-links}.ts   typed paths, the closed formula and catalog tables, value + unit → text, template → segments, computed links
   encyclopedia/content/{trait,stage,dna-tag}-entries.ts            evolutions (trait tier sections and headings generated from balance.traits.TRAIT_TIERS)
-  encyclopedia/content/concept-entries.ts                          basics (and `concept:food`, in entities)
+  encyclopedia/content/{concept,hud}-entries.ts                   basics (and `concept:food`, in entities)
+  test-ids/hud-test-ids.ts                                          HUD_TEST_ID, moved out of hud/ (hud/, input/ and encyclopedia/ import it)
   encyclopedia/content/{cell-kind,food,bacterium,entity}-entries.ts   entities
   encyclopedia/content/{zone,world}-entries.ts                     world
   encyclopedia/content/{ability,action}-entries.ts                 abilities and actions
@@ -743,7 +764,7 @@ shell projects its alert strip into the panel, so the rule below holds for the c
 `quantities` ← `encyclopedia/model` ← `encyclopedia/facts` ← `encyclopedia/content` ← `registry.ts` ←
 `encyclopedia-context.ts` ← components; `hud/` ← `quantities` too, and `encyclopedia/` never imports from `hud/`;
 `encyclopedia/content` imports `render/preview/preview-spec.ts` as a type only; `render/` imports nothing from
-`encyclopedia/`, `quantities/`, `hud/` or `state/`.
+`encyclopedia/`, `quantities/`, `hud/` or `state/`. `test-ids/` is a leaf that imports nothing.
 
 ### 12.9 Test plan
 
