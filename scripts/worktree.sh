@@ -9,6 +9,8 @@ set -euo pipefail
 # An existing local branch is reused untouched; otherwise the branch tracks origin/<branch> if that
 # exists, else starts from origin/main. An existing worktree is fast-forwarded to origin/<branch>;
 # a dirty or diverged worktree is an error. A branch checked out in the main tree is used there.
+# A new worktree gets its git-ignored docs/INDEX.md at once (#407), so an agent can read it before running anything,
+# and the shared git hooks that keep it fresh; a branch that still commits the index is left as it is.
 # Run inside the devcontainer (git records absolute paths); scripts/agent.sh wraps this from the host.
 # ---------------------------------------------------------------------------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -31,12 +33,20 @@ fast_forward() { # <path> <branch>
   git -C "$1" merge -q --ff-only "origin/$2" || { echo "error: $1 has diverged from origin/$2" >&2; exit 1; }
 }
 
+generate_docs_index() { # <path>: its own generator, only where its .gitignore ignores the index
+  [[ -x "$1/scripts/docs-index.sh" ]] && git -C "$1" check-ignore -q docs/INDEX.md || return 0
+  # The worktree exists by now: a failed index never fails the add (the next setup or checkout retries it).
+  "$1/scripts/docs-index.sh" --if-stale >&2 || echo "worktree.sh: docs/INDEX.md was not generated in $1" >&2
+  "$1/scripts/docs-index.sh" --install-hooks >&2 || echo "worktree.sh: the docs index hooks were not installed" >&2
+}
+
 add() { # <branch> -> path relative to ROOT
   local branch="$1" path="$WORKTREES_DIR/$1"
   git fetch -q origin
   if [[ "$(git branch --show-current)" == "$branch" ]]; then fast_forward . "$branch"; echo "."; return 0; fi
   [[ -d "$path" ]] || create "$branch" "$path"
   fast_forward "$path" "$branch"
+  generate_docs_index "$path"
   echo "$path"
 }
 
@@ -49,5 +59,5 @@ remove() { # <branch>
 case "${1:-}" in
   add) add "${2:?branch}" ;;
   remove) remove "${2:?branch}" ;;
-  *) sed -n '3,12p' "${BASH_SOURCE[0]}"; exit 1 ;;
+  *) sed -n '3,14p' "${BASH_SOURCE[0]}"; exit 1 ;;
 esac
