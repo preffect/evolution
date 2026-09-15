@@ -126,8 +126,7 @@ Still frames of the real render in rows and tiles are follow-up #378; build 1 dr
 
 ### 11.4 The entry page
 
-`encyclopedia-b-trait-*.png`. The page sits in a **content column** at most `ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX` wide,
-left-aligned in the detail with `UI_PANEL_PADDING_PX` around it. Its top is two columns: the **lens column** on the left
+`encyclopedia-b-trait-*.png`. The page sits in a **content column**, the detail's inner width (the panel's width cap keeps it at most 848), with `UI_PANEL_PADDING_PX` around it. Its top is two columns: the **lens column** on the left
 and the **title column** beside it, `ENCYCLOPEDIA_LENS_GAP_PX` apart; below both, prose and See also run across the
 content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 
@@ -148,19 +147,18 @@ target and recorded, not solved (§11.3).
 1. **The lens**: a circle `ENCYCLOPEDIA_LENS_DIAMETER_PX` across, `encyclopedia-lens.component.ts`. It hosts the one
    preview canvas of the open encyclopedia in a square stage element of that side, clipped to the circle by a CSS
    `border-radius: 50%; overflow: hidden` on the stage host (§12.7: the renderer never knows it is round, and every scene is framed 1:1
-   inside its safe circle). Over the canvas the lens draws a DOM SVG overlay that takes no pointer: a
-   `ENCYCLOPEDIA_LENS_RIM_PX` rim in `PANEL_RIM`, a 1 px inner ring in `UI_ACCENT` @
+   inside its safe circle). **Framing** (§12.7): a subject's body stays inside the `PREVIEW_LENS_SAFE_RADIUS_FRACTION` safe circle; appendages (a flagellum, cilia, pseudopods, spines) may reach into the vignette band but never past the rim. Over the canvas the lens draws a DOM SVG overlay that takes no pointer: a
+   `ENCYCLOPEDIA_LENS_RIM_PX` rim in `PANEL_RIM`, a 1 px inner ring in `LIGHT_ACCENT` (the condenser colour) @
    `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`, `ENCYCLOPEDIA_LENS_TICK_COUNT` reticle ticks inward from the rim in the label
    colour @ `ENCYCLOPEDIA_LENS_TICK_ALPHA` (every `ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY`th one
    `ENCYCLOPEDIA_LENS_MAJOR_TICK_PX` long, the rest `ENCYCLOPEDIA_LENS_MINOR_TICK_PX`), and a radial edge vignette of
-   `CALLOUT_BACKING` from `ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION` of the radius to `ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA`
-   at the rim.
+   `CALLOUT_BACKING` from `ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION` of the radius to `ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA` at the rim. The vignette is the eyepiece's field stop; the scene inside keeps its own condenser pool.
    - **The handle.** `encyclopedia.component.ts` owns the one `PreviewHandle`: it asks `ENCYCLOPEDIA_PREVIEW` for it on
      the first entry that has a preview, the entry page lends it the lens's stage element, it calls `show(spec)` once
      the selection has rested `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`, `pause()` while a landing or an entry without a preview
      is shown, `resize` when `--ui-scale` changes, and `destroy()` on close.
    - **States** (`encyclopedia-preview[data-preview-state]`), each inside the circle under the overlay: `loading` until
-     the first frame (the dish field with one slow `UI_ACCENT` ring pulsing at half the radius, no text, static under
+     the first frame (the dish field with one slow `LIGHT_ACCENT` ring pulsing at half the radius, no text, static under
      reduced motion; §12.7 budgets 300 ms), `live`, `paused` (the last frame held), `unavailable` when the preview app
      cannot start (the dish field with `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT` in `body`, muted, centred and wrapped
      within `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION` of the diameter; no retry loop).
@@ -278,11 +276,10 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_HEADER_HEIGHT_PX`                                      | 56                                                             | px   | The header row.                                                                                   |
 | `ENCYCLOPEDIA_RAIL_WIDTH_PX`                                         | 184                                                            | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.        |
 | `ENCYCLOPEDIA_LIST_WIDTH_PX`                                         | 280                                                            | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. |
-| `ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX`                                  | 884                                                            | px   | The entry page's content column: the lens, the gap and a title column of at most 552.             |
 | `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                            | px   | The lens, and the side of its square preview canvas.                                              |
 | `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                             | px   | The lens to the title column.                                                                     |
 | `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                              | px   | The lens rim, in `PANEL_RIM`.                                                                     |
-| `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                           | ×    | The 1 px `UI_ACCENT` ring inside the rim.                                                         |
+| `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                           | ×    | The 1 px `LIGHT_ACCENT` ring inside the rim.                                                      |
 | `ENCYCLOPEDIA_LENS_TICK_COUNT`                                       | 24                                                             | —    | Reticle ticks around the lens.                                                                    |
 | `ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY`                                 | 6                                                              | —    | Every sixth tick is a major one: the four quarters.                                               |
 | `ENCYCLOPEDIA_LENS_MAJOR_TICK_PX`, `ENCYCLOPEDIA_LENS_MINOR_TICK_PX` | 10, 5                                                          | px   | Tick lengths, inward from the rim.                                                                |

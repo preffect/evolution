@@ -753,8 +753,13 @@ def preview_box(x, y, w, h, entry, clip_id, round_lens=False, rods=None, control
     for mx, my in ((0.36, 0.7), (0.7, 0.2), (0.62, 0.85), (0.4, 0.15)):
         o.append(f'<circle cx="{x + w * mx:.1f}" cy="{y + h * my:.1f}" r="12" fill="url(#halo-algal)"/><circle cx="{x + w * mx:.1f}" cy="{y + h * my:.1f}" r="4" fill="url(#mote-algal)"/>')
     r = min(h, w) * (0.24 if entry['preview'] == 'diatom' else 0.27)
+    body_x = cx
+    if round_lens and entry['preview'] == 'mito':
+        # §12.7 framing: the body inside the 0.8 safe circle, the tail into the vignette band but inside the rim
+        r = w * 0.18
+        body_x = cx - w * 0.13
     if entry['preview'] == 'mito':
-        o.append(kit.flagellum(cx, cy, r, 180) + kit.cell(cx, cy, r, 'cyan', 'prokaryote', rng, heading=0, speed=0.25, extra_inside=mito_beans(r, 1)))
+        o.append(kit.flagellum(body_x, cy, r, 180) + kit.cell(body_x, cy, r, 'cyan', 'prokaryote', rng, heading=0, speed=0.25, extra_inside=mito_beans(r, 1)))
     else:
         o.append(kit.cell(cx, cy, r, 'cyan', 'euk', rng, heading=0, speed=0.0, extra_after=diatom_shell(r, 1)))
     o.append('</g>')
@@ -976,7 +981,7 @@ def b_body(dx, cy, dw, entry, clip_id):
     """Option B's entry page from cy down: the lens and its control, the title and stacked tables beside it, then
     prose and See also across the content column. Returns (svg, height, title_height)."""
     start = cy
-    content_w = min(dw, ENC_CONTENT_MAX_W)
+    content_w = dw  # the detail's inner width; the panel cap keeps it at most 848
     o = [preview_box(dx, cy, ENC_LENS_D, ENC_LENS_D, entry, clip_id, round_lens=True)]
     switch_w = 36 * entry['tiers']
     o.append(tier_switch(dx + ENC_LENS_D / 2 - switch_w / 2, cy + ENC_LENS_D + SPACE_M, entry['tiers'], selected=(entry['owned'] or 1) - 1)[0])

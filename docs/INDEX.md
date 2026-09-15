@@ -477,18 +477,18 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **10.2 Components** (L196–227): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
   - **10.3 Colour and type** (L228–232): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
 
-## ui/encyclopedia.md (317 lines)
+## ui/encyclopedia.md (314 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–317): §11 of the split `UI.md`, which keeps the shared context and the file list.
-- **11. Encyclopedia** (L5–317): Ticket #354, epic #353.
+- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–314): §11 of the split `UI.md`, which keeps the shared context and the file list.
+- **11. Encyclopedia** (L5–314): Ticket #354, epic #353.
   - **11.1 What it is, and where it opens** (L21–58): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
   - **11.2 Categories, groups and ids** (L59–94): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`.
   - **11.3 Layout** (L95–126): Frame.
-  - **11.4 The entry page** (L127–215): `encyclopedia-b-trait-*.png`.
-  - **11.5 Navigation, search and cross-links** (L216–242): State.
-  - **11.6 Test ids** (L243–254): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
-  - **11.7 Files and constants** (L255–308): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
-  - **11.8 The options not chosen (#368)** (L309–317): The human chose B on #368.
+  - **11.4 The entry page** (L127–213): `encyclopedia-b-trait-*.png`.
+  - **11.5 Navigation, search and cross-links** (L214–240): State.
+  - **11.6 Test ids** (L241–252): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
+  - **11.7 Files and constants** (L253–305): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
+  - **11.8 The options not chosen (#368)** (L306–314): The human chose B on #368.
 
 ## ui/hud.md (336 lines)
 
