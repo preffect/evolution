@@ -16,37 +16,18 @@ import {
 import { evolutionModuleFactory } from '../game/evolution-module.js';
 import { createManualRoomTiming, type ManualRoomTiming } from '../testing/builders.js';
 import {
+  isSeated,
+  lobbyShows,
   openRecordingTestSocket,
   startTestWebSocketServer,
   whenClosed,
   type TestWebSocketServer,
 } from '../testing/socket-builders.js';
+import { untilReceived } from '../testing/wait-for.js';
 
 const ALICE = 'alice';
 const BOB = 'bob';
 const BROADCASTS = 2;
-
-/** How often and how many times a wait below re-reads what it is waiting for. */
-const WAIT_POLL_MS = 5;
-const WAIT_ATTEMPTS = 400;
-
-/** Resolves when `predicate` holds; the timer ban of docs/determinism/contract-and-clock.md §1 is lifted for test files. */
-function waitFor(predicate: () => boolean): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const attempt = (attemptsLeft: number): void => {
-      if (predicate()) {
-        resolve();
-        return;
-      }
-      if (attemptsLeft === 0) {
-        reject(new Error('the expected message never arrived'));
-        return;
-      }
-      setTimeout(() => attempt(attemptsLeft - 1), WAIT_POLL_MS);
-    };
-    attempt(WAIT_ATTEMPTS);
-  });
-}
 
 function snapshotsOf(received: readonly ServerMessage[], type: string): GameSnapshot[] {
   return received
@@ -78,26 +59,40 @@ describe('each player is sent its own progress and the others only by name (#331
     alice.socket.send(
       JSON.stringify({ type: CLIENT_MESSAGE_TYPE.createGame, gameName: 'own', config: createTestSessionConfig() }),
     );
-    await waitFor(() => started.lobby.listGames().length > 0);
+    const isListed = lobbyShows((games) => games.length > 0);
+    await untilReceived(alice, (received) => received.some(isListed), 'the game alice created is listed');
     const gameId = started.lobby.listGames()[0]!.gameId;
     const bob = await join(BOB);
     bob.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId }));
-    await waitFor(() => started.lobby.listGames()[0]!.players.length === 2);
+    const isBobSeated = lobbyShows((games) => isSeated(games, gameId, BOB));
+    await untilReceived(bob, (received) => received.some(isBobSeated), 'bob is seated in the game');
     alice.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.startGame, gameId }));
     const clients = [
-      { clientId: ALICE, received: alice.received },
-      { clientId: BOB, received: bob.received },
+      { clientId: ALICE, ...alice },
+      { clientId: BOB, ...bob },
     ];
     // The room exists once both have their `game_state`; only then does the test's clock drive its loop.
-    await waitFor(() =>
-      clients.every(({ received }) => snapshotsOf(received, SERVER_MESSAGE_TYPE.gameState).length > 0),
+    await Promise.all(
+      clients.map((client) =>
+        untilReceived(
+          client,
+          (received) => snapshotsOf(received, SERVER_MESSAGE_TYPE.gameState).length > 0,
+          `${client.clientId}'s game_state arrived`,
+        ),
+      ),
     );
     for (let tick = 0; tick < BROADCASTS * SNAPSHOT_EVERY_TICKS; tick += 1) {
       timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
       timing.ticker.fire();
     }
-    await waitFor(() =>
-      clients.every(({ received }) => snapshotsOf(received, SERVER_MESSAGE_TYPE.gameSnapshot).length >= BROADCASTS),
+    await Promise.all(
+      clients.map((client) =>
+        untilReceived(
+          client,
+          (received) => snapshotsOf(received, SERVER_MESSAGE_TYPE.gameSnapshot).length >= BROADCASTS,
+          `${BROADCASTS} snapshots arrived for ${client.clientId}`,
+        ),
+      ),
     );
 
     for (const { clientId, received } of clients) {
