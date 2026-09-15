@@ -34,9 +34,11 @@ import { HUD_TEST_ID, menuTraitTestId } from './test-ids';
                 <span class="name">{{ row.name }}</span>
                 @if (row.effects.length > 0) {
                   <span class="effects">
-                    @for (effect of row.effects; track $index) {
-                      <span class="effect">{{ effect }}</span>
-                    }
+                    <span class="effect-list">
+                      @for (effect of row.effects; track $index) {
+                        <span class="effect">{{ effect }}</span>
+                      }
+                    </span>
                   </span>
                 }
               </span>
