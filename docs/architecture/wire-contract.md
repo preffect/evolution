@@ -122,8 +122,12 @@ The debug inspect tools read exact values instead (architecture/debug-mcp.md §8
 - **`join_game` / `create_game` while seated in another room** (#334): two tabs share one `clientId`, so a socket
   can take a seat elsewhere without a `leave_game`. Once the server accepts the frame (a `join_game` for a pending game
   with a free seat, or for any active room; a `create_game` always), it first leaves the old seat exactly as `leave_game` does,
-  broadcasts included, and cancels any grace timer on it. A refused `join_game` keeps the old seat, and a `join_game`
-  for the room already held is not a leave. The server code is `lobby/seat-lifecycle.ts`.
+  broadcasts included, and cancels any grace timer on it. A refused `join_game` keeps the old seat. The server code is
+  `lobby/seat-lifecycle.ts`.
+- **`join_game` for the room already held** (#335): a second tab or a client retry re-enters the seat, exactly as a
+  reconnect does, and never runs the late join again. An active room cancels any grace timer, reattaches the socket and
+  resends `game_state`; the roster, the `GameModule` and the other players are untouched (no `player_joined`, no
+  `lobby_update`). A pending game held keeps the seat as it is and sends nothing, even when it is full.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `viewerState: { keys, serialize(viewerPlayerId) }` (#331, optional, `ViewerStateSerializer`): the snapshot

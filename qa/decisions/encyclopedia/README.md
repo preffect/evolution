@@ -2,7 +2,7 @@
 
 Real-size mockups of the ESC menu, the encyclopedia and the UI kit (`docs/ui/components-and-constants.md` §10,
 `docs/ui/encyclopedia.md` §11, `docs/ui/overlays.md` §3.5). 1920 × 1080 is UI scale 1.35, 1280 × 800 is scale 1. The
-three layout options of decision #368 are drawn at both sizes on the same entry, so they compare like for like.
+three layout options of decision #368 are drawn at both sizes on the same entry. **The human chose B, the eyepiece**: the `encyclopedia-b-*` frames and the category landing are the reference; A and C stay as the record of the decision.
 
 | Frame                                | Shows                                                                                                                                      |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -13,6 +13,7 @@ three layout options of decision #368 are drawn at both sizes on the same entry,
 | `encyclopedia-a-category-*`          | Option A on the Cells & food landing: glyph-medallion tiles, focus on the rail, hover on a tile, Back disabled                             |
 | `encyclopedia-a-long-trait-1280x800` | Option A on Diatom Shell scrolled to its end: sticky title, three effect rows, a Requires fact                                             |
 | `encyclopedia-b-trait-*`             | Option B (eyepiece): a round lens preview beside the facts                                                                                 |
+| `encyclopedia-b-long-trait-1280x800` | Option B on Diatom Shell scrolled past its title: the sticky title bar over the lens column                                                |
 | `encyclopedia-c-trait-*`             | Option C (codex): category tabs sized to their labels, a full-width hero preview, prev/next                                                |
 | `kit-states-1280x800`                | Every kit component in every state: buttons, rail items, rows, tier switch, chips, alert strip, search, key hints, the `side` panel, tiles |
 
