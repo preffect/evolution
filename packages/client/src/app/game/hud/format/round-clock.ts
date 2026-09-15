@@ -2,12 +2,12 @@
 // whether the bloom has started, whether the last-ten-seconds pulse runs and whether the clock is
 // shown at all. `round-timer.component.ts` only binds the record this answers.
 
-import { MILLISECONDS_PER_SECOND, ROUND_PHASE, SECONDS_PER_MINUTE, type RoundPhase } from '@evolution/shared';
+import { MILLISECONDS_PER_SECOND, ROUND_PHASE, type RoundPhase } from '@evolution/shared';
+import { formatQuantity } from '../../quantities/format-quantity';
+import { QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { ROUND_CLOCK_PULSE_LAST_SECONDS } from '../hud-constants';
 
 const NO_TIME_LEFT_MS = 0;
-const SECONDS_PAD_LENGTH = 2;
-const SECONDS_PAD_CHARACTER = '0';
 
 /** The caption under the digits: the round, or the bloom once the rates multiply. */
 export const ROUND_CLOCK_CAPTION = { round: 'ROUND', bloom: 'BLOOM' } as const;
@@ -44,12 +44,9 @@ export function roundSecondsLeft(timeLeftMs: number | null): number {
   return Math.floor(milliseconds / MILLISECONDS_PER_SECOND);
 }
 
-/** `m:ss` with the minutes unpadded and the seconds always two digits. */
+/** `m:ss` with the minutes unpadded and the seconds always two digits, through the `clock` unit. */
 export function formatRoundClock(timeLeftMs: number | null): string {
-  const secondsLeft = roundSecondsLeft(timeLeftMs);
-  const minutes = Math.floor(secondsLeft / SECONDS_PER_MINUTE);
-  const seconds = secondsLeft % SECONDS_PER_MINUTE;
-  return `${minutes}:${String(seconds).padStart(SECONDS_PAD_LENGTH, SECONDS_PAD_CHARACTER)}`;
+  return formatQuantity(roundSecondsLeft(timeLeftMs), QUANTITY_UNIT.clock);
 }
 
 /**

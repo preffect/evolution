@@ -3,6 +3,7 @@ import {
   CELL_STAGE,
   DEFAULT_BALANCE,
   TICK_HZ,
+  type BalanceConfig,
   createTestPlayerProgressView,
   createTestTraitOfferView,
   type PlayerProgressView,
@@ -33,12 +34,17 @@ const protocell = createTestPlayerProgressView({
   ownedTraits: [{ traitId: 'simple_flagellum' as TraitId, tier: 1 }],
 });
 
-function viewAt(secondsLeft: number, progress: PlayerProgressView = protocell, open: TraitOfferView = offer) {
+function viewAt(
+  secondsLeft: number,
+  progress: PlayerProgressView = protocell,
+  open: TraitOfferView = offer,
+  balance: BalanceConfig = DEFAULT_BALANCE,
+) {
   return traitOfferViewFor({
     offer: open,
     progress,
     serverTick: EXPIRES_AT - secondsLeft * TICK_HZ,
-    balance: DEFAULT_BALANCE,
+    balance,
   });
 }
 
@@ -54,7 +60,18 @@ describe('traitOfferViewFor', () => {
       category: 'genome',
       rarity: 'common',
     });
-    expect(view.cards[0]!.effects).toEqual(describeTierModifiers('nucleoid' as TraitId, 1));
+    expect(view.cards[0]!.effects).toEqual(describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1));
+  });
+
+  it('reads the effect lines from the live balance, so a debug_set_balance patch reaches the card', () => {
+    const traits: BalanceConfig['traits'] = { ...DEFAULT_BALANCE.traits };
+    traits.TRAIT_TIERS = { ...traits.TRAIT_TIERS };
+    const [, tierTwo, tierThree] = traits.TRAIT_TIERS.cell_wall;
+    traits.TRAIT_TIERS.cell_wall = [{ membraneRatioBonus: 0.5 }, tierTwo, tierThree];
+    const patched: BalanceConfig = { ...DEFAULT_BALANCE, traits };
+    const wall = viewAt(6.5, protocell, offer, patched).cards[2]!;
+    expect(wall.effects).toEqual(['+50 % harder to engulf']);
+    expect(viewAt(6.5).cards[2]!.effects).not.toEqual(wall.effects);
   });
 
   it('titles a queued offer with the level that earned it, not the level the player has reached since', () => {
