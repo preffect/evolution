@@ -9,7 +9,10 @@
 #     installs (pnpm install --frozen-lockfile) when node_modules/.pnpm/lock.yaml, pnpm's copy of the
 #     lockfile it installed, is missing or differs from pnpm-lock.yaml; then builds @evolution/shared
 #     when its types entry is missing or a source or config file is newer than its tsbuildinfo, which a
-#     build stamps with its start time (a source saved during the build is rebuilt next time).
+#     build stamps with its start time (a source saved during the build is rebuilt next time). Between
+#     the two it regenerates the git-ignored docs/INDEX.md when scripts/docs-index.sh --stale-reason
+#     names a reason (#407; after the install, so prettier formats it) and installs that script's git
+#     hooks; a failed index never fails the setup.
 #     One line per step taken, none when the checkout is ready. A failed install fails; a failed build
 #     prints its output and fails with `fail` (a deploy) or returns 0 with `continue` (validate.sh and
 #     run.sh, whose phases and server report the errors themselves).
@@ -30,6 +33,7 @@ WORKSPACE_SHARED_TYPES=dist/index.d.ts # package.json "types": what TS2307 canno
 # present, even when dist is gone, so a build without the types entry deletes it first.
 WORKSPACE_SHARED_BUILD_INFO=tsconfig.build.tsbuildinfo
 WORKSPACE_ROOT_TSCONFIG=tsconfig.base.json
+WORKSPACE_DOCS_INDEX_SCRIPT=scripts/docs-index.sh
 WORKSPACE_SETUP_LOCK_NAME=workspace-setup.lock
 WORKSPACE_DEFAULT_SETUP_LOCK_TIMEOUT_SECONDS=300
 WORKSPACE_BUILD_FAILURE_CONTINUES=continue
@@ -60,8 +64,15 @@ workspace_shared_stale_reason() { # <root>
   [[ -z "$newer" ]] || echo "${newer#"$1"/} changed since the last build"
 }
 
+# Why docs/INDEX.md needs a rewrite, or nothing when it is fresh (or the checkout has no generator).
+workspace_docs_index_stale_reason() { # <root>
+  [[ -x "$1/$WORKSPACE_DOCS_INDEX_SCRIPT" ]] || return 0
+  "$1/$WORKSPACE_DOCS_INDEX_SCRIPT" --stale-reason 2>/dev/null || true
+}
+
 workspace_ready_needed() { # <root>
-  workspace_install_needed "$1" || [[ -n "$(workspace_shared_stale_reason "$1")" ]]
+  workspace_install_needed "$1" || [[ -n "$(workspace_docs_index_stale_reason "$1")" ]] \
+    || [[ -n "$(workspace_shared_stale_reason "$1")" ]]
 }
 
 # The checkout's own git dir (a worktree has its own), else the root: one lock per node_modules.
@@ -114,6 +125,18 @@ workspace_prepare() { # <root> <log prefix> <continue | fail>
       printf '%s\n' "$output"
       echo "$prefix the dependency install failed"
       return 1
+    fi
+  fi
+  reason="$(workspace_docs_index_stale_reason "$root")"
+  if [[ -n "$reason" ]]; then
+    echo "$prefix regenerating the docs index ($reason)"
+    if output="$("$root/$WORKSPACE_DOCS_INDEX_SCRIPT" --if-stale 2>&1)"; then
+      # The hook lines (installed, or a foreign hook left alone) are shown: a foreign hook disables the refresh.
+      output="$("$root/$WORKSPACE_DOCS_INDEX_SCRIPT" --install-hooks 2>&1)" || true
+      [[ -z "$output" ]] || printf '%s\n' "$output"
+    else
+      printf '%s\n' "$output"
+      echo "$prefix the docs index failed; continuing"
     fi
   fi
   reason="$(workspace_shared_stale_reason "$root")"
