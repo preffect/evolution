@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CELL_MODIFIERS, TRAIT_CATALOG, type TraitId } from '@evolution/shared';
+import { DEFAULT_BALANCE, DEFAULT_CELL_MODIFIERS, TRAIT_CATALOG, type TraitId } from '@evolution/shared';
 import { PICKER_CARD_EFFECT_LINES_MAX } from '../hud-constants';
-import { MODIFIER_LABELS, describeTierModifiers, nonIdentityModifiers } from './trait-effects';
+import {
+  MODIFIER_LABELS,
+  describeTierModifiers as describeTierModifiersIn,
+  nonIdentityModifiers,
+  tierModifierRow,
+  type TraitTierTables,
+} from './trait-effects';
 
 const TIERS = [1, 2, 3];
+const TIER_TABLES = DEFAULT_BALANCE.traits.TRAIT_TIERS;
+
+/** The lines against `DEFAULT_BALANCE`'s tier tables, so every expectation below reads the shipped numbers. */
+const describeTierModifiers = (traitId: TraitId, tier: number): string[] =>
+  describeTierModifiersIn(TIER_TABLES, traitId, tier);
 
 describe('MODIFIER_LABELS', () => {
   it('labels exactly the modifiers of DEFAULT_CELL_MODIFIERS, so a new one without copy fails here', () => {
@@ -54,9 +65,10 @@ describe('describeTierModifiers', () => {
   it('fits every catalog tier row on a card, so a row that outgrows it fails here instead of losing a line', () => {
     for (const trait of TRAIT_CATALOG) {
       for (const tier of TIERS) {
-        expect(nonIdentityModifiers(trait.id, tier).length, `${trait.id} ${tier}`).toBeLessThanOrEqual(
-          PICKER_CARD_EFFECT_LINES_MAX,
-        );
+        expect(
+          nonIdentityModifiers(tierModifierRow(TIER_TABLES, trait.id, tier)).length,
+          `${trait.id} ${tier}`,
+        ).toBeLessThanOrEqual(PICKER_CARD_EFFECT_LINES_MAX);
       }
     }
   });
@@ -73,5 +85,21 @@ describe('describeTierModifiers', () => {
         }
       }
     }
+  });
+
+  it('reads the tier table it is given, so a patched balance changes the card and the shipped one does not move', () => {
+    const patched: TraitTierTables = { ...TIER_TABLES };
+    const [tierOne, , tierThree] = TIER_TABLES.cell_wall;
+    patched.cell_wall = [tierOne, { membraneRatioBonus: 0.45, speedMultiplier: 0.8 }, tierThree];
+    expect(describeTierModifiersIn(patched, 'cell_wall' as TraitId, 2)).toEqual([
+      '+45 % harder to engulf',
+      '−20 % speed',
+    ]);
+    expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual(['+30 % harder to engulf', '−10 % speed']);
+  });
+
+  it('reads a trait or tier the table does not hold as no lines', () => {
+    expect(describeTierModifiersIn(TIER_TABLES, 'no_such_trait' as TraitId, 1)).toEqual([]);
+    expect(nonIdentityModifiers(tierModifierRow(TIER_TABLES, 'cell_wall' as TraitId, 4))).toEqual([]);
   });
 });
