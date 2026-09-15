@@ -29,10 +29,11 @@ cite the box.
 
 This document is split into topic files (#306). Read only the file a ticket or brief cites.
 
-| File                                                                 | Sections  | Topic                                        |
-| -------------------------------------------------------------------- | --------- | -------------------------------------------- |
-| [`ui/layout.md`](./ui/layout.md)                                     | §1–§2     | Layout frame and lobby screens               |
-| [`ui/hud.md`](./ui/hud.md)                                           | §3–§3.1   | In-round HUD and own-cell indicators         |
-| [`ui/overlays.md`](./ui/overlays.md)                                 | §3.2–§3.6 | Trait pick, death, results, menu and notices |
-| [`ui/input-and-onboarding.md`](./ui/input-and-onboarding.md)         | §4–§6     | Input, onboarding and readability            |
-| [`ui/components-and-constants.md`](./ui/components-and-constants.md) | §7–§9     | Component plan, acceptance and constants     |
+| File                                                                 | Sections  | Topic                                                |
+| -------------------------------------------------------------------- | --------- | ---------------------------------------------------- |
+| [`ui/layout.md`](./ui/layout.md)                                     | §1–§2     | Layout frame and lobby screens                       |
+| [`ui/hud.md`](./ui/hud.md)                                           | §3–§3.1   | In-round HUD and own-cell indicators                 |
+| [`ui/overlays.md`](./ui/overlays.md)                                 | §3.2–§3.6 | Trait pick, death, results, menu and notices         |
+| [`ui/input-and-onboarding.md`](./ui/input-and-onboarding.md)         | §4–§6     | Input, onboarding and readability                    |
+| [`ui/components-and-constants.md`](./ui/components-and-constants.md) | §7–§10    | Component plan, acceptance, constants and the UI kit |
+| [`ui/encyclopedia.md`](./ui/encyclopedia.md)                         | §11       | The encyclopedia                                     |

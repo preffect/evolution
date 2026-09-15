@@ -105,7 +105,9 @@ git -C "$fixture" -c user.name=test -c user.email=test@example.com add -A
 git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m fixture
 
 export PATH="$sandbox/bin:$PATH" HOME="$sandbox/home"
-unset VALIDATE_CACHE_DIR
+# The gate slots live in the sandbox, never the machine's own lock dir (#380).
+export VALIDATE_GATE_LOCK_DIR="$sandbox/gate-locks" VALIDATE_HEAVY_SLOTS=1 VALIDATE_LIGHT_SLOTS=2
+unset VALIDATE_CACHE_DIR VALIDATE_NO_GATE_LOCK
 
 # --- helpers ------------------------------------------------------------------------------------
 failures=0
@@ -353,15 +355,21 @@ echo "$started_marker" > "$FAKE_PNPM_TOUCH_FILE" # the fake pnpm creates it the 
 first_pid=$!
 until [[ -e "$started_marker" ]]; do sleep 0.05; done
 : > "$FAKE_PNPM_TOUCH_FILE"
+lint_log="$sandbox/lint-beside-gate.log"
+(cd "$fixture" && ./validate.sh lint --fresh > "$lint_log" 2>&1) &
+lint_pid=$!
 started_second="$EPOCHREALTIME"
-run_validate "$fixture" test
+run_validate "$fixture" test --fresh
 second_elapsed_ms="$(awk -v a="$started_second" -v b="$EPOCHREALTIME" 'BEGIN { printf "%d", (b - a) * 1000 }')"
 wait "$first_pid" && first_rc=0 || first_rc=$?
+wait "$lint_pid" && lint_rc=0 || lint_rc=$?
+check "a lint never waits on a test holding the only heavy slot (#380; lint rc $lint_rc)" $(( lint_rc == 0 && $(grep -q 'waiting for a' "$lint_log"; echo $?) != 0 ))
 echo 0 > "$FAKE_PNPM_SLEEP_FILE"
 rm -f "$started_marker"
-check "a second real gate waits for the first (second took ${second_elapsed_ms} ms, first rc $first_rc)" $(( rc == 0 && first_rc == 0 && $(grep -q '^waiting for another gate to finish' <<<"$out"; echo $?) == 0 && second_elapsed_ms >= 1500 ))
+check "a second real test waits for the heavy slot (second took ${second_elapsed_ms} ms, first rc $first_rc)" $(( rc == 0 && first_rc == 0 && $(ran '^waiting for a heavy gate slot before test (1 slot,'; echo $?) == 0 && second_elapsed_ms >= 1500 ))
+check "the waiting line names the holder: its pid, worktree and command" $(( $(ran "held by: pid [0-9]* in $fixture: ./validate.sh test, since "; echo $?) == 0 ))
 run_validate "$fixture" test
-check "a cache hit never waits on the gate lock" $(( $(is_cached; echo $?) == 0 && $(grep -q 'waiting for another gate' <<<"$out"; echo $?) != 0 ))
+check "a cache hit never waits on the gate slots" $(( $(is_cached; echo $?) == 0 && $(ran 'waiting for a'; echo $?) != 0 ))
 echo orphan-case > "$fixture/untracked.txt"
 orphan_pid_file="$sandbox/orphan-pid"
 cat > "$sandbox/bin/pnpm" <<PNPM
@@ -373,7 +381,7 @@ PNPM
 run_validate "$fixture" test
 orphan_pid="$(cat "$orphan_pid_file")"
 lock_free=0
-flock -n "$HOME/.cache/$(basename "$fixture")-validate/gate.lock" true && lock_free=1
+flock -n "$VALIDATE_GATE_LOCK_DIR/gate.lock" true && lock_free=1
 kill "$orphan_pid" 2>/dev/null || true
 check "a child that outlives the gate does not keep the lock" $(( rc == 0 && lock_free == 1 ))
 write_standard_fake_pnpm
