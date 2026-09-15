@@ -10,8 +10,16 @@ import { toyAdapter, toyScenario, type ToyFixture, type ToySnapshot } from './to
 const SEED = 42;
 const OTHER_SEED = 43;
 const PATCH_TICK = 3;
-/** Run plus replay of 24 000 inputs takes well under a second when the log is indexed once. */
-const LINEAR_REPLAY_TIMEOUT_MS = 2000;
+/** The short log's length in ticks; the long log is `LOG_SIZE_RATIO` times as long. */
+const LINEAR_LOG_TICKS = 200;
+const LOG_SIZE_RATIO = 2;
+/**
+ * A replay that indexes the log once reads each entry a fixed number of times, so doubling the log
+ * doubles the reads; one that rescans the log every step reads it once per tick, and doubling
+ * quadruples them. The bound sits between the two and counts work, never milliseconds.
+ */
+const MAX_LOG_READ_GROWTH = 2.5;
+const ARRAY_INDEX_PATTERN = /^\d+$/;
 
 async function recordedRun() {
   return toyScenario('recorded')
@@ -82,23 +90,46 @@ describe('replayScenario / verifyReplay', () => {
     ]);
   });
 
-  it(
-    'replays a per-tick input log in time linear in the log (a per-step rescan took 3 s at this size)',
-    { timeout: LINEAR_REPLAY_TIMEOUT_MS },
-    async () => {
-      const ticks = 12_000;
-      const run = await toyScenario('per-tick inputs')
-        .seed(SEED)
-        .players(2)
-        .from(1, player(0).does(targetPoint(0, 0)))
-        .from(1, player(1).does(targetPoint(0, 0)))
-        .advance(ticks)
-        .run();
-      expect(run.replay.inputs).toHaveLength(2 * ticks);
-      expect((await verifyReplay(run.replay, toyAdapter)).divergence).toBeNull();
-    },
-  );
+  it('replays a per-tick input log with work linear in the log: doubling the log at most doubles its reads', async () => {
+    const shortLogReads = await logReadsOfReplay(LINEAR_LOG_TICKS);
+    const longLogReads = await logReadsOfReplay(LINEAR_LOG_TICKS * LOG_SIZE_RATIO);
+    expect(shortLogReads).toBeGreaterThan(0);
+    expect(longLogReads).toBeLessThanOrEqual(shortLogReads * MAX_LOG_READ_GROWTH);
+  });
 });
+
+/** Counts every element read of `items` into `counter`: indexing, iteration and array methods all read through `get`. */
+function countingElementReads<Item>(items: readonly Item[], counter: { reads: number }): readonly Item[] {
+  return new Proxy(items, {
+    get(target, property, receiver) {
+      if (typeof property === 'string' && ARRAY_INDEX_PATTERN.test(property)) {
+        counter.reads += 1;
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+}
+
+/** Records a log with two inputs per tick, replays it and returns how many log elements the replay read. */
+async function logReadsOfReplay(ticks: number): Promise<number> {
+  const { replay } = await toyScenario('per-tick inputs')
+    .seed(SEED)
+    .players(2)
+    .from(1, player(0).does(targetPoint(0, 0)))
+    .from(1, player(1).does(targetPoint(0, 0)))
+    .advance(ticks)
+    .run();
+  expect(replay.inputs).toHaveLength(2 * ticks);
+  const counter = { reads: 0 };
+  const counted: ScenarioReplay<ToyFixture> = {
+    ...replay,
+    membership: countingElementReads(replay.membership, counter),
+    patches: countingElementReads(replay.patches, counter),
+    inputs: countingElementReads(replay.inputs, counter),
+  };
+  expect((await verifyReplay(counted, toyAdapter)).divergence).toBeNull();
+  return counter.reads;
+}
 
 describe('indexByTick', () => {
   it('buckets events by tick in log order', () => {
