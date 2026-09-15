@@ -177,8 +177,17 @@ offers-shown row would be 30 783 − 8 162 + 1 477 ≈ 24.1 KB. The CPU cost of 
 is not measured here: until #340 the room read `tickMs` before the broadcast ran, so its tick p95 excluded
 serialisation and sending. Since #340 `tickMs` spans the step and the broadcast, and `debug_get_room_performance`
 reports the broadcast's share on its own as `broadcastAvgMs` / `broadcastP95Ms` / `broadcastPeakMs` (averaged over
-every tick, so a broadcast every `SNAPSHOT_EVERY_TICKS` weighs a third). The splice (§4) is what keeps that cost flat
-in the client count.
+every tick, so a broadcast every `SNAPSHOT_EVERY_TICKS` weighs a third). Measured in process (#340: the Evolution
+module on the system clock, idle seated players, a 300-tick window after 3 600 ticks of warm-up, sockets whose `send`
+is free), the tick p95 the room reported before #340 against the one it reports now:
+
+| Seated players | Snapshot per client | Tick p95, step only (before) | Tick p95, step + broadcast (after) | Broadcast p95, all ticks / broadcast ticks |
+| -------------- | ------------------- | ---------------------------- | ---------------------------------- | ------------------------------------------ |
+| 8              | 22.6 KB             | 1.14 ms                      | 2.00 ms                            | 0.79 ms / 1.96 ms                          |
+| 32             | 69.6 KB             | 5.39 ms                      | 9.35 ms                            | 4.95 ms / 10.0 ms                          |
+
+The broadcast is about 40 % of the tick p95 at both sizes; on a broadcast tick at 32 seats it alone is 60 % of the
+16.67 ms step. The splice (§4) is what keeps that cost flat in the client count.
 
 Raw JSON length stays the budget unit. `perMessageDeflate` (already enabled, level 1) cuts the bytes on the wire by
 about 70–75 %: with real sequential ids a `game_snapshot` of 31 689 B deflates to 7 658 B (#331's review). #331's own
