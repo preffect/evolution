@@ -44,7 +44,9 @@ check "a zero override still leaves one slot" $(( $(VALIDATE_LIGHT_SLOTS=0 slot_
 auto_heavy="$(VALIDATE_HEAVY_SLOTS='' slot_count heavy)"
 auto_light="$(VALIDATE_LIGHT_SLOTS='' slot_count light)"
 check "without an override heavy gets one slot per 4 cores, at least 1 (got $auto_heavy on $cores cores)" $(( auto_heavy >= 1 && auto_heavy <= (cores / 4 > 1 ? cores / 4 : 1) ))
-check "without an override light gets at most one slot per core, at least 1 (got $auto_light)" $(( auto_light >= 1 && auto_light <= cores ))
+check "without an override light gets one slot per 2 cores, at least 1 (got $auto_light)" $(( auto_light >= 1 && auto_light <= (cores / 2 > 1 ? cores / 2 : 1) ))
+override_warning="$(VALIDATE_LIGHT_SLOTS=two slot_count light 2>&1 >/dev/null)"
+check "a non-numeric override is warned about and ignored" $(( $(holds grep -q 'VALIDATE_LIGHT_SLOTS=two is not a number' <<<"$override_warning") && $(VALIDATE_LIGHT_SLOTS=two slot_count light 2>/dev/null) == auto_light ))
 
 # --- light slots fill, then the next run waits and names the holders ----------------------------------
 start_run light lint-one
@@ -65,6 +67,23 @@ start_run heavy test-two
 check "a second heavy run waits for the single heavy slot" $(( $(holds wait_for logged test-two "held by: pid $test_one_pid in $PWD: holder test-one") && ! $(holds acquired test-two) ))
 kill "$test_one_pid"
 check "and runs once it is freed" $(( $(holds wait_for acquired test-two) ))
+
+# --- first come first served, including the runs that arrive during another's grace second -------------
+queue_holder_pid=$run_pid
+queued=()
+for index in 1 2 3 4 5; do
+  start_run heavy "queued-$index"
+  queued+=("$run_pid")
+  sleep 0.3
+done
+served_in_order=1
+kill "$queue_holder_pid"
+for index in 1 2 3 4 5; do
+  wait_for acquired "queued-$index" || served_in_order=0
+  for later in $(seq $((index + 1)) 5); do ! acquired "queued-$later" || served_in_order=0; done
+  kill "${queued[index - 1]}"
+done
+check "waiters arriving 0.3 s apart are served in arrival order" $served_in_order
 
 rc=0
 (source "$library"; gate_lock_acquire "$sandbox" none lint-none "holder none") > "$sandbox/none.log" 2>&1 || rc=$?

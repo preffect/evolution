@@ -31,7 +31,7 @@
 #              is stamped per affected set.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the machine-wide gate slots (sandboxed tests only)
 #   VALIDATE_HEAVY_SLOTS=N    Heavy runs (test, integration, typecheck) at once; default from cores and memory
-#   VALIDATE_LIGHT_SLOTS=N    Light runs (lint, duplication) at once; default one per core, capped by memory
+#   VALIDATE_LIGHT_SLOTS=N    Light runs (lint, duplication) at once; default one per 2 cores, capped by memory
 #   VALIDATE_GATE_LOCK_DIR=D  Where the slot lock files live (default $HOME/.cache/<slug>-validate)
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache). For test and
@@ -614,8 +614,9 @@ CACHE_HIT_TIME=""
 CACHE_HIT_LOG=""
 
 cleanup_temp_files() { rm -f "${TEMP_INDEX:+$TEMP_INDEX}" "${TEMP_INDEX:+$TEMP_INDEX.lock}"; }
-trap cleanup_temp_files EXIT
-trap 'cleanup_temp_files; exit 130' INT TERM
+# A killed run releases its gate slot too, so its holder file never reads as stale beside the next holder.
+trap 'cleanup_temp_files; gate_lock_release' EXIT
+trap 'cleanup_temp_files; gate_lock_release; exit 130' INT TERM
 
 # One hash for the exact working tree, tracked and untracked (ignored files excluded), without
 # touching the real index: copy it (so unchanged files are not re-hashed), `git add -A` into the
