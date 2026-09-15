@@ -151,13 +151,21 @@ everything acting on the cell at once, for the player who stops to ask why. It o
 leaderboard (Tab held, or the leaderboard header clicked, §3.1.1), so there is no second key and no second
 `openOverlay` value. While spectating only the board opens: there is no cell to describe.
 
-- **Style.** Built on the #354 UI kit's panel (`ui/components-and-constants.md`, the kit uid-354 specifies for the
-  ESC menu and the encyclopedia): the same panel surface, rim, radius, padding, heading and row styles, so the two
-  overlays are one family. This section names only roles and sizes the kit does not already fix: the panel gradient
-  `PANEL_TOP` → `PANEL_BOTTOM` with the `PANEL_RIM` rim, headings in `caption` muted, row text in `body`, row values
-  in `figure` (tabular), the mass in `number`.
+- **Style.** The #354 UI kit (`ui/components-and-constants.md` §10, PR #374), so this panel and the ESC menu are one
+  family and no second panel style exists. The panel is `UiPanelComponent` (`<ui-panel variant="side">`, §10.2): no
+  scrim, no focus trap, `role="region"`, padding `UI_SPACE_L_PX`, radius `UI_RADIUS_PANEL_PX`, the panel gradient
+  over the blurred callout backing with the 1 px `PANEL_RIM` rim, all through the kit's `--ui-*` variables (the HUD
+  shell is a kit surface). Each section is a heading in the kit's `label` role (`TEXT_LABEL`), `UI_SPACE_M_PX` above
+  every section after the first, a 1 px `PANEL_RIM` rule between sections. Its rows are one `ui-facts-table`
+  (`ui-kit/ui-facts-table.component.ts`): the name in `body` on the left, the value in `figure` on the right,
+  `UI_FACT_ROW_HEIGHT_PX` tall, the marker below in the row's `marker` slot (`UI_ROW_MARKER_PX`, `UI_SPACE_S_PX` to
+  the name). A trait row's marker is the #312 glyph at its list size (`<app-trait-glyph [traitId] lod="list">`,
+  `TRAIT_GLYPH_LIST_PX`); the other markers are dots and rings in the roles the table gives. The one row the kit does
+  not have is the `MASS` row: the mass in `number` with the trend glyph, the rate in `value` and the sparkline in
+  `UI_ACCENT`, as its own element above the table.
 - **Placement.** Top-left, `HUD_MARGIN_PX` × `s` from the corner, `AFFECTING_PANEL_WIDTH_PX` wide, height by its
-  rows (about 440 at the worked example), dropping by `--hud-notice-rows` like the leaderboard. With the full board
+  rows (about 490 at the worked example: the mass row, twelve 26 px rows, four headings and the padding), placed by
+  the HUD shell's CSS and dropping by `--hud-notice-rows` like the leaderboard. With the full board
   top-right it leaves the centre clear on the reference viewport: its right edge is x 396 against the exclusion box's
   left edge at x 520.
 - **Not interactive.** `role="region"`, `aria-label="Affecting you"`, nothing focusable, no focus trap; Tab is being
