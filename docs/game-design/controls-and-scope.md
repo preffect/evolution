@@ -14,7 +14,8 @@
 | Eject mass  | —                             | reserved            | 2     |
 
 - **Pointer steering.** The client sends the pointer's world position as `targetX/targetY` each
-  tick. Steering throttle ramps from 0 when the pointer is within `STEER_DEAD_ZONE_RADII` × radius of
+  tick, and no target (nor a sprint) while it has no own cell, so nothing it sends while spectating steers
+  the respawned cell (#346). Steering throttle ramps from 0 when the pointer is within `STEER_DEAD_ZONE_RADII` × radius of
   the centre to 1 at `STEER_FULL_THROTTLE_RADII` × radius. Keyboard steering synthesises a target at
   `STEER_FULL_THROTTLE_RADII` × radius in the pressed direction.
 - **Sprint.** Speed × `SPRINT_SPEED_MULTIPLIER` for `SPRINT_DURATION_SECONDS`, costs

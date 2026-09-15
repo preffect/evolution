@@ -4,6 +4,7 @@ export * from './types/game-guards.js';
 export * from './types/traits.js';
 export * from './types/effects.js';
 export * from './types/messages.js';
+export * from './types/input-guards.js';
 export * from './types/audio.js';
 export * from './constants/index.js';
 export * from './hashing/fnv1a.js';

@@ -184,7 +184,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Architecture: server simulation** (L1–77): §3 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **3. Server simulation (`packages/server/src/game/`)** (L5–77): `evolution-module.ts` implements the template's `GameModule` seam and stays thin (wiring only): it coalesces inputs, calls `stepWorld`, and…
   - **3.1 In-place systems, pure step** (L26–41): Systems are `(world: WorldState, context: StepContext) => void` and mutate the world they receive; `stepWorld` returns nothing and the modu…
-  - **3.2 Input handling** (L42–56): `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together with a newer target is …
+  - **3.2 Input handling** (L42–56): `sequence` and the newest non-null `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together …
   - **3.3 Other structural rules** (L57–77): `constants/`; formulas take numbers.
 
 ## architecture/wire-contract.md (217 lines)
@@ -263,16 +263,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.1 The world clock** (L102–162): The dish has its own place on the ladder.
   - **3.2 What the world stage drives** (L163–188): tick already uses the new row: step 8 runs after step 2).
 
-## ecology/mass-and-movement.md (105 lines)
+## ecology/mass-and-movement.md (108 lines)
 
-- **Evolution — Ecology, Growth and Absorption: mass decay, size, mass and speed** (L1–105): §4–§5 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
+- **Evolution — Ecology, Growth and Absorption: mass decay, size, mass and speed** (L1–108): §4–§5 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **4. Mass decay** (L5–31): Applied every tick in the metabolism step (§4.1).
   - **4.1 The metabolism step (one formula)** (L16–31): Every metabolism term reads the mass at the start of the step, so a test can reproduce a tick exactly:
-- **5. Size, mass and speed** (L32–105)
+- **5. Size, mass and speed** (L32–108)
   - **5.1 Curves** (L34–53): Reviewed for feel: a starting cell crosses its own diameter in 0.16 s, a 1000-mass cell in 3 s.
-  - **5.2 Movement step (server, per tick)** (L54–86): `target` is the latest applied input, latched until replaced.
-  - **5.3 Cell-to-cell contact** (L87–95): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
-  - **5.4 Growth, cap and mitosis (reserved)** (L96–105): at the cap still progresses the leaderboard.
+  - **5.2 Movement step (server, per tick)** (L54–89): `target` is the latest applied input's target, latched until an input carrying one replaces it; an input whose `targetX/targetY` are null d…
+  - **5.3 Cell-to-cell contact** (L90–98): Two cells that overlap and where neither can engulf the other (§6.1) are pushed apart along the centre line by `CELL_SEPARATION_FRACTION_P…
+  - **5.4 Growth, cap and mitosis (reserved)** (L99–108): at the cap still progresses the leaderboard.
 
 ## ecology/wild-cells.md (139 lines)
 
@@ -305,9 +305,9 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Engineering Standards: the validation gate** (L1–128): §1 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
 - **1. The Validation Gate (`./validate.sh`)** (L5–128): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
 
-## game-design/constants-and-acceptance.md (111 lines)
+## game-design/constants-and-acceptance.md (112 lines)
 
-- **Evolution — Game Design: constants and acceptance** (L1–111): §12–§13 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
+- **Evolution — Game Design: constants and acceptance** (L1–112): §12–§13 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
 - **12. Constants table** (L5–88): Home: `packages/shared/src/constants/<domain>.ts`.
   - **Template files (`units.ts`, `network.ts`, `lobby.ts`, `identity.ts`; already split, see `ARCHITECTURE.md`)** (L12–24): The design reads these as they are; there is no alias for the tick rate (`TICK_HZ` is the one name).
   - **`world.ts`** (L25–35)
@@ -316,17 +316,17 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **`controls.ts`** (L58–68)
   - **`ladder.ts`** (L69–76)
   - **`camera.ts` (client only)** (L77–88): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
-- **13. Acceptance scenarios** (L89–111): Format: given seed S and inputs I, after N ticks assert X.
+- **13. Acceptance scenarios** (L89–112): Format: given seed S and inputs I, after N ticks assert X.
 
-## game-design/controls-and-scope.md (93 lines)
+## game-design/controls-and-scope.md (94 lines)
 
-- **Evolution — Game Design: controls, camera, dish and scope** (L1–93): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
-- **6. Controls** (L5–26): tick.
-- **7. Camera** (L27–40): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
-- **8. The petri dish** (L41–63): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
-- **9. Win / lose and the feel of a round** (L64–73): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
-- **10. Explicit non-goals for build 1** (L74–83): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
-- **11. Reserved hooks for build 2** (L84–93)
+- **Evolution — Game Design: controls, camera, dish and scope** (L1–94): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
+- **6. Controls** (L5–27): tick, and no target (nor a sprint) while it has no own cell, so nothing it sends while spectating steers the respawned cell (#346).
+- **7. Camera** (L28–41): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
+- **8. The petri dish** (L42–64): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
+- **9. Win / lose and the feel of a round** (L65–74): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
+- **10. Explicit non-goals for build 1** (L75–84): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
+- **11. Reserved hooks for build 2** (L85–94)
 
 ## game-design/core.md (135 lines)
 
@@ -469,12 +469,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.1.3 The reading floor (the fact #146 solves)** (L51–99): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: the own cell is 24 px at spawn and …
   - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L100–160): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
 
-## ui/input-and-onboarding.md (120 lines)
+## ui/input-and-onboarding.md (123 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–120): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
-- **4. Input mapping and keyboard reachability** (L5–71): focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5: Escape is what closes it).
-- **5. Onboarding: the first two minutes** (L72–89): Diegetic and text hints, no modal tutorial.
-- **6. Readability during play** (L90–120): and the connection banner stack from the top, never downward past y 96.
+- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–123): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
+- **4. Input mapping and keyboard reachability** (L5–74): focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5: Escape is what closes it).
+- **5. Onboarding: the first two minutes** (L75–92): Diegetic and text hints, no modal tutorial.
+- **6. Readability during play** (L93–123): and the connection banner stack from the top, never downward past y 96.
 
 ## ui/layout.md (89 lines)
 

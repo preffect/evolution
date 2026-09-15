@@ -5,7 +5,6 @@
 
 import type { GameInput, SteerBalance, TraitChoiceInput, TraitOfferView, Vec2 } from '@evolution/shared';
 import type { PointerProjection } from '../render/render-session';
-import { DISH_CENTRE_POINT } from './input-constants';
 import { steerVectorOf, type InputState } from './input-state';
 import { TRAIT_PICK_STATUS, traitPickStatus } from './trait-pick';
 
@@ -54,6 +53,10 @@ export function keyboardSteerTarget(ownCell: OwnCellPose, direction: Vec2, contr
  * Where the cell is asked to swim: the held keys win over the pointer, the latched pointer wins
  * over standing still, and standing still is the cell's own centre (throttle 0, docs/game-design/controls-and-scope.md §6).
  *
+ * **`null` while there is no own cell.** Nothing can be steered then, and a target sent while
+ * spectating would still be in flight when the server places the respawned cell, which would swim
+ * toward it until this client saw the cell (#346). A `null` target leaves the server's latch alone.
+ *
  * The pointer is sent as **its offset from the middle of the view, applied to the newest
  * snapshot's own cell** — not as the absolute world point the camera projects it to. The camera
  * centres on the *interpolated* cell and then smooths, so it trails the authoritative one by
@@ -62,15 +65,13 @@ export function keyboardSteerTarget(ownCell: OwnCellPose, direction: Vec2, contr
  * that is most of the throttle ramp of `ecology/mass-and-movement.md §5.2`, so a new cell would be full speed or
  * stopped with nothing in between. Full prediction of the own cell stays #265.
  */
-export function steerTargetFor(options: GameInputBuildOptions): Vec2 {
+export function steerTargetFor(options: GameInputBuildOptions): Vec2 | null {
   const { ownCell, controls } = options.world;
+  if (ownCell === null) return null;
   const keyDirection = steerVectorOf(options.state);
-  if (keyDirection !== null && ownCell !== null) return keyboardSteerTarget(ownCell, keyDirection, controls);
+  if (keyDirection !== null) return keyboardSteerTarget(ownCell, keyDirection, controls);
   const { pointer } = options;
-  if (pointer === null) return ownCell === null ? DISH_CENTRE_POINT : { x: ownCell.x, y: ownCell.y };
-  // With no own cell there is nothing to steer and nothing to anchor to: the camera's own
-  // projection is the only meaningful answer, and the server ignores it.
-  if (ownCell === null) return pointer.worldPoint;
+  if (pointer === null) return { x: ownCell.x, y: ownCell.y };
   return {
     x: ownCell.x + pointer.offsetFromViewCentre.x,
     y: ownCell.y + pointer.offsetFromViewCentre.y,
@@ -88,9 +89,10 @@ export function buildGameInput(options: GameInputBuildOptions): GameInput {
   const target = steerTargetFor(options);
   return {
     sequence: options.sequence,
-    targetX: target.x,
-    targetY: target.y,
-    shouldSprint: options.state.isSprintQueued,
+    targetX: target?.x ?? null,
+    targetY: target?.y ?? null,
+    // A press with no own cell is spent here, not carried onto the respawned cell (#346).
+    shouldSprint: target !== null && options.state.isSprintQueued,
     traitChoice: traitChoiceFor(options.state, options.world),
   };
 }

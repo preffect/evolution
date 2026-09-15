@@ -128,6 +128,21 @@ describe('clientMessageSchema: GameInput', () => {
     expect(isAccepted(playerInput({ targetY: Number.NaN }))).toBe(false);
   });
 
+  it('accepts a target of two numbers or none at all (#346)', () => {
+    expect(isAccepted(playerInput({ targetX: 12.5, targetY: -40 }))).toBe(true);
+    expect(isAccepted(playerInput({ targetX: null, targetY: null }))).toBe(true);
+  });
+
+  it('rejects a missing, half, NaN or string target (#346)', () => {
+    const withoutTargetX: Record<string, unknown> = { ...createTestGameInput() };
+    delete withoutTargetX['targetX'];
+    expect(isAccepted({ type: CLIENT_MESSAGE_TYPE.playerInput, payload: withoutTargetX })).toBe(false);
+    expect(isAccepted(playerInput({ targetX: 5, targetY: null }))).toBe(false);
+    expect(isAccepted(playerInput({ targetX: null, targetY: 5 }))).toBe(false);
+    expect(isAccepted(playerInput({ targetX: Number.NaN, targetY: null }))).toBe(false);
+    expect(isAccepted(playerInput({ targetX: '5', targetY: '5' }))).toBe(false);
+  });
+
   it('bounds the card index by the draft size', () => {
     expect(isAccepted(playerInput({ traitChoice: { offerId: 1, cardIndex: TRAIT_DRAFT_SIZE - 1 } }))).toBe(true);
     expect(isAccepted(playerInput({ traitChoice: { offerId: 1, cardIndex: TRAIT_DRAFT_SIZE } }))).toBe(false);

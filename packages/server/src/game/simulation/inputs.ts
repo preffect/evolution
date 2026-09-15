@@ -4,7 +4,7 @@
 // carried stage is refreshed here for every player, cell or not, so no writer of `ownedTraits` can leave it stale
 // past one tick.
 
-import { secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
+import { hasSteerTarget, secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
 import { refreshPlayerStage } from '../progression/ladder.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { applyTraitChoice, showQueuedOfferIfNone } from '../progression/offers.js';
@@ -36,9 +36,15 @@ export function tryStartSprint(cell: CellRecord, balance: BalanceConfig): boolea
   return true;
 }
 
+/**
+ * An input without a target leaves the latch alone, so a respawned cell keeps its null target through
+ * the inputs its client built while spectating (docs/ecology/mass-and-movement.md §5.2, #346).
+ */
 function applyCellInput(cell: CellRecord, input: GameInput, context: StepContext): void {
-  cell.targetX = input.targetX;
-  cell.targetY = input.targetY;
+  if (hasSteerTarget(input)) {
+    cell.targetX = input.targetX;
+    cell.targetY = input.targetY;
+  }
   if (input.shouldSprint && !tryStartSprint(cell, context.balance)) {
     context.rejections.sprintOnCooldown += 1;
   }

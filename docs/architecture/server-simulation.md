@@ -42,9 +42,9 @@ prediction reuses them unchanged.
 ### 3.2 Input handling
 
 - `submitInput(playerId, input)` **coalesces** into `PlayerRecord.pendingInput`: the newest
-  `sequence`, `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that
+  `sequence` and the newest non-null `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that
   arrives together with a newer target is never lost). Step 1 applies the pending input, records
-  its `sequence` as `appliedInputSequence`, latches the target on the cell, and clears the
+  its `sequence` as `appliedInputSequence`, latches the target on the cell when the input carries one, and clears the
   one-shots. An input with a `sequence` ≤ the applied one is dropped and counted in
   `PerformanceTracker.rejectedInputs`.
 - `shouldSprint` starts a sprint only when the cooldown allows (game-design/controls-and-scope.md §6); otherwise it is
