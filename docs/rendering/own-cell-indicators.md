@@ -41,8 +41,8 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   arc row: the cell shader draws them (Sprint state, below).
 - **Floors.** `dnaRingRadiusPx` and `ladderOrbitRadiusPx` (`effects/own-cell-geometry.ts`) and `orbitLayout` (`effects/orbit-layout.ts`), all pure, apply UI.md
   §9's constants, whose home is `constants.ts` beside `SELF_RING_MIN_PX`; the spec pins ui/hud.md §3.1.3's geometry
-  table at 24 / 32 / 45 / 102 px (read from the doc), its three inequalities (picker band, seat-mark clearance, DNA
-  keep-out) and the ghost-beside-a-counter case. `orbitLayout` centres each counter on its angle, ghost first and
+  table at the Z1 camera's 24 / 32 / 47.4 / 64 / 94.8 / 128 px (read from the doc), its seat-mark clearance and DNA
+  keep-out inequalities (the picker band's is `hud/format/picker-band.spec.ts`) and the ghost-beside-a-counter case. `orbitLayout` centres each counter on its angle, ghost first and
   pips after, clockwise, turns a counter away from a rung ghost it would crowd (ui/hud.md §3.1.3; the gap is measured between the drawn,
   tangent-laid boxes by `effects/oriented-box.ts`, never along the arc), and merges
   backings whose pads meet. The record's angles are degrees clockwise from 12
@@ -103,6 +103,6 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   column make up the bake), `bitmap-fonts.spec.ts` (the roles' faces, sizes, outline and glyphs),
   `indicator-atlas.spec.ts` (a ghost for every `OrbitGhost.key`, a pip block for every clamped lookup) and
   `indicator-textures.spec.ts` (one source, fonts installed once and uninstalled on destroy), unit, no WebGL;
-  `?bench&sheet=indicators` draws the baked sheet for review (`bench/indicator-sheet.ts`); the screenshot baselines (§9) gain the own cell at the four sizes with the
+  `?bench&sheet=indicators` draws the baked sheet for review (`bench/indicator-sheet.ts`); the screenshot baselines (§9) gain the own cell at the six sizes with the
   counters showing, the max-level ring, the escape arc before and after the seal and the far-side label, from
   `qa/decisions/hud-layout/diegetic/` as the reference look and its fixed indicator records as the scene fixtures.

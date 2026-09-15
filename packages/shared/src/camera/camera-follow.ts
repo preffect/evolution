@@ -1,15 +1,19 @@
-// The camera's follow and zoom (docs/game-design/controls-and-scope.md §7): centred on the followed cell, zoomed out as it
-// grows, both smoothed. One home for both sides: the client renders through it and the server runs the same camera
-// per viewer to cull what that viewer is sent (docs/architecture/wire-contract.md §4.2 lever 1). Pure over a small state.
+// The camera's follow and zoom (docs/game-design/controls-and-scope.md §7): centred on the followed cell, its view
+// growing with √radius under Z1's partial zoom (decision #324), both smoothed. One home for both sides: the client
+// renders through it and the server runs the same camera per viewer to cull what that viewer is sent
+// (docs/architecture/wire-contract.md §4.2 lever 1), so the cull area follows exactly the view the client draws.
+// Pure over a small state.
 
 import {
   CAMERA_FOLLOW_SECONDS,
   CAMERA_MAX_VIEW_HALF_HEIGHT_WU,
   CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
-  CAMERA_VIEW_RADII,
+  CAMERA_VIEW_RADIUS_EXPONENT,
   CAMERA_ZOOM_SECONDS,
 } from '../constants/camera.js';
+import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { DISH_RADIUS } from '../constants/world.js';
+import { radiusForMass } from '../simulation/mass-curves.js';
 import { clamp, type EntityId, type PlayerId } from '../types/common.js';
 
 export interface CameraState {
@@ -38,6 +42,9 @@ export interface FollowableCell {
 /** Where the camera parks before anyone exists to follow: the dish centre at a unit radius. */
 export const DISH_CENTRE_TARGET: CameraTarget = { x: 0, y: 0, radius: 1 };
 
+/** The starting cell's radius (wu) at the shipped balance: the view leaves its floor exactly there, whatever a patched room says. */
+const SPAWN_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_STARTING_MASS, DEFAULT_BALANCE.growth);
+
 /**
  * Whom the camera follows (docs/game-design/controls-and-scope.md §7): the player's own cell while alive, the killer's
  * cell while spectating, nothing when neither exists.
@@ -53,9 +60,13 @@ export function followTargetIn(
   return killer === undefined ? null : { x: killer.x, y: killer.y, radius: killer.radius };
 }
 
-/** `clamp(CAMERA_VIEW_RADII × radius, min, max)`. */
+/**
+ * Z1's partial zoom (decision #324): `clamp(MIN × (radius / spawnRadius) ^ CAMERA_VIEW_RADIUS_EXPONENT, MIN, MAX)`.
+ * The view grows more slowly than the cell, so a growing cell grows on screen and a shrinking one shrinks.
+ */
 export function viewHalfHeightFor(radius: number): number {
-  return clamp(CAMERA_VIEW_RADII * radius, CAMERA_MIN_VIEW_HALF_HEIGHT_WU, CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
+  const growth = (radius / SPAWN_RADIUS_WU) ** CAMERA_VIEW_RADIUS_EXPONENT;
+  return clamp(CAMERA_MIN_VIEW_HALF_HEIGHT_WU * growth, CAMERA_MIN_VIEW_HALF_HEIGHT_WU, CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
 }
 
 /** The view never centres outside the dish: the world ends at the wall. */

@@ -93,8 +93,12 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
-  /** A seat held in another room is left only once the join is accepted (#334), so a refused join keeps it. */
+  /**
+   * A join for the room already held re-enters it and is never a second late join (#335). A seat held in another room
+   * is left only once the join is accepted (#334), so a refused join keeps it.
+   */
   private onJoinGame(connection: Connection, gameId: string): void {
+    if (this.seats.reenterHeldSeat(connection, gameId)) return;
     // Joining an in-progress game = late join.
     const active = this.activeRooms.get(gameId);
     if (active) {
@@ -179,17 +183,8 @@ export class LobbyManager {
   // ---- connection lifecycle ----------------------------------------------
 
   handleConnect(connection: Connection, _connections: Map<string, Connection>): void {
-    // The player came back within the grace window.
-    this.seats.cancelPendingRemoval(connection.playerId);
-
     const gameId = this.playerToGame.get(connection.playerId);
-    if (!gameId) return;
-    const room = this.activeRooms.get(gameId);
-    if (room) {
-      room.reattachPlayer(connection);
-      // Resend the full game state so the reconnected client can resync.
-      sendMessage(connection, room.gameStateMessageFor(connection.playerId as PlayerId));
-    }
+    if (gameId) this.seats.reenterHeldSeat(connection, gameId);
   }
 
   handleDisconnect(connection: Connection): void {

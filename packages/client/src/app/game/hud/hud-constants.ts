@@ -96,10 +96,12 @@ export const ROUND_CLOCK_PULSE_PERIOD_MS = 1000;
 
 // ---- trait picker (docs/ui/layout.md §1, docs/ui/overlays.md §3.2) ----
 
-/** Half-side of the exclusion box around the own cell at scale 1; also the picker dim's spotlight radius. */
+/** Half-side of the exclusion box around the own cell at scale 1; also the floor of the picker dim's spotlight radius. */
 export const HUD_PLAYER_EXCLUSION_PX = 120;
 /** Gap between the exclusion box's bottom edge and the picker's title row. */
 export const PICKER_BAND_GAP_PX = 16;
+/** Least gap between the own cell's orbit extent at `CELL_MAX_MASS` and the picker's title row (Z1, decision #324). */
+export const PICKER_BAND_ORBIT_CLEARANCE_PX = 4;
 /** Gap between the picker's title row, timer bar and card row. */
 export const PICKER_ROW_GAP_PX = 12;
 /** The timer bar's width at scale 1; its height is `DNA_RING_STROKE_PX`, the width of every chrome fill bar. */
@@ -123,7 +125,7 @@ export const PICKER_DIM_ALPHA = 0.55;
  * flagellum's sprint cooldown). Lines are never cut; the spec fails the gate when a row outgrows this.
  */
 export const PICKER_CARD_EFFECT_LINES_MAX = 3;
-/** Where the dim's clear disc starts to fade, as a share of its radius: the soft edge. */
+/** The dim's clear disc as a share of where its soft edge reaches full dim: the fade runs from the disc to disc / this. */
 export const PICKER_DIM_SOFT_EDGE_FRACTION = 0.85;
 /** Gap between a card's medallion, category, name, effect lines and rarity. */
 export const PICKER_CARD_CONTENT_GAP_PX = 2;
@@ -157,8 +159,3 @@ export const NOTICE_RIM_PX = 2;
 
 /** Every interactive element's visible focus ring, in the text colour; never scaled. */
 export const HUD_FOCUS_RING_PX = 2;
-
-// ---- units ----
-
-/** A share (0..1) shown as a percentage. */
-export const PERCENT = 100;

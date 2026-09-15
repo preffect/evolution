@@ -59,7 +59,7 @@ packages/server/src/
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
-  game/serialize/{serialize,food-delta-tracker}.ts
+  game/serialize/{serialize,quantize,food-delta-tracker}.ts   quantize: the wire rounding and its exact twin (wire-contract.md §4)
   game/serialize/{viewer-state,viewer-cameras,interest-area}.ts  per-viewer members: the culled food delta and fragments over each viewer's camera and area (wire-contract.md §4.2 lever 1)
   game/replay/{replay-format,replay-recorder,recorded-step,replay-runner,index-by-tick}.ts
   game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,balance-patch,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations

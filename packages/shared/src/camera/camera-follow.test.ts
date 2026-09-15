@@ -1,24 +1,17 @@
+// The follow and the zoom. Z1's view half-height is pinned against game-design/controls-and-scope.md §7's table by
+// the client's `render/camera.spec.ts`, which reads that table; these are the smoothing and the dish clamp.
 import { describe, expect, it } from 'vitest';
-import {
-  CAMERA_FOLLOW_SECONDS,
-  CAMERA_MAX_VIEW_HALF_HEIGHT_WU,
-  CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
-  CAMERA_VIEW_RADII,
-} from '../constants/camera.js';
+import { CAMERA_FOLLOW_SECONDS } from '../constants/camera.js';
 import { DISH_RADIUS } from '../constants/world.js';
 import { parkCamera, stepCamera, viewHalfHeightFor } from './camera-follow.js';
 
-describe('viewHalfHeightFor', () => {
-  it('scales with the radius between the zoom limits', () => {
-    expect(viewHalfHeightFor(40)).toBe(CAMERA_VIEW_RADII * 40);
-    expect(viewHalfHeightFor(1)).toBe(CAMERA_MIN_VIEW_HALF_HEIGHT_WU);
-    expect(viewHalfHeightFor(10_000)).toBe(CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
-  });
-});
-
 describe('parkCamera and stepCamera', () => {
   it('parks on the target without smoothing', () => {
-    expect(parkCamera({ x: 10, y: -20, radius: 40 })).toEqual({ x: 10, y: -20, viewHalfHeightWu: 480 });
+    expect(parkCamera({ x: 10, y: -20, radius: 40 })).toEqual({
+      x: 10,
+      y: -20,
+      viewHalfHeightWu: viewHalfHeightFor(40),
+    });
   });
 
   it('follows the target exponentially and zooms more slowly', () => {
@@ -26,7 +19,8 @@ describe('parkCamera and stepCamera', () => {
     const stepped = stepCamera(start, { x: 100, y: 0, radius: 50 }, CAMERA_FOLLOW_SECONDS);
     expect(stepped.x).toBeCloseTo(100 * (1 - Math.exp(-1)), 6);
     expect(stepped.y).toBe(0);
-    const zoomShare = (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (600 - start.viewHalfHeightWu);
+    const zoomShare =
+      (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (viewHalfHeightFor(50) - start.viewHalfHeightWu);
     expect(zoomShare).toBeLessThan(1 - Math.exp(-1));
     expect(zoomShare).toBeGreaterThan(0);
   });
@@ -37,7 +31,7 @@ describe('parkCamera and stepCamera', () => {
     let state = start;
     for (let frame = 0; frame < 600; frame += 1) state = stepCamera(state, { x: 50, y: 50, radius: 40 }, 1 / 60);
     expect(state.x).toBeCloseTo(50, 3);
-    expect(state.viewHalfHeightWu).toBeCloseTo(480, 2);
+    expect(state.viewHalfHeightWu).toBeCloseTo(viewHalfHeightFor(40), 2);
   });
 
   it('never centres outside the dish', () => {

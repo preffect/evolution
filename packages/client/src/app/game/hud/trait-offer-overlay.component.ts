@@ -1,5 +1,5 @@
 // The trait picker (docs/ui/overlays.md §3.2): while the own player has an offer open, a dim over the dish with the
-// own cell's exclusion disc left clear, and a band hung from the exclusion box's bottom edge — the title, the
+// own cell's disc left clear, and a band hung below the exclusion box or the cap orbit (`picker-band.ts`) — the title, the
 // countdown bar with its text and the footer, and three cards. The dish keeps running and the cell keeps steering:
 // only the cards take the pointer. It owns the one highlight (the hovered card, else the focused one), and the
 // highlighted card's trait is the preview on the own cell (`HudStateService.previewTraitId`); a pick goes through the
@@ -19,6 +19,7 @@ import {
   signal,
 } from '@angular/core';
 import type { TraitId } from '@evolution/shared';
+import { PERCENT } from '../quantities/quantity-unit';
 import { GameStateService } from '../state/game-state.service';
 import {
   NO_CARD_HIGHLIGHT,
@@ -28,7 +29,6 @@ import {
 } from './format/card-highlight';
 import { traitOfferViewFor, type TraitOfferViewModel } from './format/trait-cards';
 import { FocusReturn } from './focus-return';
-import { PERCENT } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID } from './test-ids';
 import { TraitCardComponent } from './trait-card.component';

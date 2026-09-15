@@ -28,6 +28,7 @@ import type { InProcessBotRoster } from '../bots/in-process-bots.js';
 import type { CellRecord, EngulfReleaseRecord, SpitOutRefractoryRecord } from '../world/entities.js';
 import { REPLAY_ORIGIN } from '../replay/replay-format.js';
 import type { ReplayRecorder } from '../replay/replay-recorder.js';
+import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
 import { toCellView, toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
 import { computeStateHash } from '../world/state-hash.js';
@@ -103,15 +104,19 @@ function requireEntityKind(kind: string | undefined): EntityKind | undefined {
 export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
   constructor(private readonly dependencies: EvolutionDebugHandleDependencies) {}
 
+  /** Exact values, not the wire's rounding (docs/architecture/debug-mcp.md §8): the bbox tests exact positions. */
   listEntities(filter: EntityFilter): readonly DebugEntity[] {
     const kind = requireEntityKind(filter.kind);
     const { world } = this.dependencies;
     const entities: DebugEntity[] = [
-      ...world.cells.map((cell) => ({ entityKind: ENTITY_KIND.cell, ...toCellView(cell) })),
-      ...world.food.map((mote) => ({ entityKind: ENTITY_KIND.foodMote, ...toFoodMoteView(mote) })),
+      ...world.cells.map((cell) => ({ entityKind: ENTITY_KIND.cell, ...toCellView(cell, EXACT_SNAPSHOT_VALUES) })),
+      ...world.food.map((mote) => ({
+        entityKind: ENTITY_KIND.foodMote,
+        ...toFoodMoteView(mote, EXACT_SNAPSHOT_VALUES),
+      })),
       ...world.dnaFragments.map((fragment) => ({
         entityKind: ENTITY_KIND.dnaFragment,
-        ...toDnaFragmentView(fragment),
+        ...toDnaFragmentView(fragment, EXACT_SNAPSHOT_VALUES),
       })),
     ];
     return entities.filter(
@@ -127,8 +132,8 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
     }
     const cell = findCellOfPlayer(world, playerId);
     return {
-      progress: toPlayerProgressView(player),
-      cell: cell === undefined ? null : toCellView(cell),
+      progress: toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES),
+      cell: cell === undefined ? null : toCellView(cell, EXACT_SNAPSHOT_VALUES),
       engulf: cell === undefined ? null : engulfDebugStateOf(cell),
       modifiers: cell === undefined ? null : { ...cell.modifiers },
       offerQueue: structuredClone(player.offerQueue),
