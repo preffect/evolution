@@ -16,7 +16,7 @@
 // payout draws nothing: the spit-out stays the `engulf` stream's only consumer
 // (docs/determinism/random-streams.md §3).
 
-import { DNA_TAG, DNA_TAGS, type BalanceConfig, type TraitDefinition } from '@evolution/shared';
+import { DNA_TAG, DNA_TAGS, type BalanceConfig, type CellModifiers, type TraitDefinition } from '@evolution/shared';
 import { earnedDnaOf, gainDna, gainTagPoints } from '../progression/dna.js';
 import { absorbCell } from '../session/death.js';
 import { isPlayerCell, type CellRecord, type PlayerCellRecord, type PlayerRecord } from '../world/entities.js';
@@ -31,9 +31,12 @@ const ONE_ABSORPTION = 1;
 /** The yield never exceeds the whole prey (docs/traits/model.md §2: `engulfMassYieldBonus`, "cap 1"). */
 const WHOLE_PREY_YIELD = 1;
 
-/** `ENGULF_MASS_YIELD` + the predator's Food Vacuole bonus, capped at the whole prey (T6). */
-export function engulfMassYieldOf(predator: CellRecord, balance: BalanceConfig): number {
-  return Math.min(WHOLE_PREY_YIELD, balance.absorption.ENGULF_MASS_YIELD + predator.modifiers.engulfMassYieldBonus);
+/** `ENGULF_MASS_YIELD` + the predator's Food Vacuole bonus, capped at the whole prey (T6). One home for the cap. */
+export function engulfMassYieldOf(
+  predator: Pick<CellModifiers, 'engulfMassYieldBonus'>,
+  balance: BalanceConfig,
+): number {
+  return Math.min(WHOLE_PREY_YIELD, balance.absorption.ENGULF_MASS_YIELD + predator.engulfMassYieldBonus);
 }
 
 /**
@@ -90,7 +93,7 @@ function creditEndosymbionts(eater: PlayerRecord, prey: CellRecord, balance: Bal
 function payPredator(world: WorldState, context: StepContext, predator: PlayerCellRecord, prey: CellRecord): void {
   const balance = context.balance;
   const eater = requirePlayer(world, predator.playerId);
-  gainMass(predator, eater, prey.mass * engulfMassYieldOf(predator, balance), balance);
+  gainMass(predator, eater, prey.mass * engulfMassYieldOf(predator.modifiers, balance), balance);
   gainDna(eater, engulfDnaFor(world, prey, balance), predator.modifiers.dnaGainMultiplier);
   payTagPoints(eater, prey, world, balance);
   creditEndosymbionts(eater, prey, balance);

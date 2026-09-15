@@ -3,7 +3,8 @@
 // run twice and hash-compared. Traits are fixture-granted; masses are derived from the tier tables and
 // the shared constants (#212), and each row also runs its traitless control where the table gives one,
 // so a row can only pass on the trait's effect. The escape rows are `traits-engulf-escape.gameplay.test.ts`;
-// T4's seeded spit-out is `simulation/engulf-drain.integration.test.ts` (the runner cannot place on its seed).
+// T4's seeded spit-out is `simulation/engulf-drain.integration.test.ts`: the runner cannot place on seed 42, whose
+// stream the row's draws come from, and #402 tracks the runner option that would bring T4 back here.
 
 import { describe, expect, it } from 'vitest';
 import { CELL_STATE, DEFAULT_BALANCE, ENGULF_RELEASE_REASON, foldModifiers } from '@evolution/shared';

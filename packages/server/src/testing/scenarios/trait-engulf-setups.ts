@@ -14,10 +14,9 @@ import {
   engulfProgressDelta,
   type CellModifiers,
 } from '@evolution/shared';
+import { engulfMassYieldOf } from '../../game/simulation/engulf-payout.js';
 
 const { growth, ecology, absorption } = DEFAULT_BALANCE;
-/** The yield never exceeds the whole prey (docs/traits/model.md §2, `engulfMassYieldBonus` "cap 1"). */
-const WHOLE_PREY_YIELD = 1;
 /** An idle held pair: the prey never steers away. */
 const NO_AWAY_EFFORT = 0;
 
@@ -127,7 +126,7 @@ export function modelHeldPair(input: HeldPairModelInput): HeldPairOutcome {
       absorption,
     );
     if (state.progress >= 1 - absorption.ENGULF_PROGRESS_EPSILON) {
-      const yieldShare = Math.min(WHOLE_PREY_YIELD, absorption.ENGULF_MASS_YIELD + input.predator.engulfMassYieldBonus);
+      const yieldShare = engulfMassYieldOf(input.predator, DEFAULT_BALANCE);
       return { kind: HELD_PAIR_OUTCOME.payout, tick, predatorMass: state.predatorMass + state.preyMass * yieldShare };
     }
   }

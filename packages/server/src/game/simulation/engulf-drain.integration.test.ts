@@ -56,6 +56,16 @@ const T18 = { predatorMass: 101, preyMass: 80, ticks: 72 };
  * Vacuole III, tick 51 at ≈ 345.38.
  */
 const T22 = { predatorMass: 300, preyMass: 100, ticks: 90 };
+/**
+ * What the row states, as a drift guard on the model: the model and the simulation share the shared formulas, so
+ * a rule change would move both together and only the table would notice.
+ */
+const T22_TABLE = [
+  { payoutTick: 84, massAfterYield: 296.05 },
+  { payoutTick: 51, massAfterYield: 345.38 },
+] as const;
+/** "± 0.01" on a mass the table rounds to two decimals. */
+const TABLE_MASS_TOLERANCE = 0.01;
 
 interface PairSetup {
   readonly predatorMass: number;
@@ -242,7 +252,8 @@ describe('a swallowed toxin prey against its predator, through stepWorld (#260, 
 
   it('T22: the Wall + Diatom + Toxin trio at 3 × is absorbed when the step model says, plain and by a Food Vacuole III', () => {
     const tierTables = DEFAULT_BALANCE.traits.TRAIT_TIERS;
-    for (const predatorTraits of [[], [tierOf('food_vacuole', TOP_TIER)]] as const) {
+    for (const [index, predatorTraits] of [[], [tierOf('food_vacuole', TOP_TIER)]].entries()) {
+      const stated = T22_TABLE[index]!;
       const expected = modelHeldPair({
         predatorMass: T22.predatorMass,
         preyMass: T22.preyMass,
@@ -251,6 +262,9 @@ describe('a swallowed toxin prey against its predator, through stepWorld (#260, 
         maxTicks: T22.ticks,
       });
       expect(expected.kind, 'the model pays the trio out inside the row').toBe(HELD_PAIR_OUTCOME.payout);
+      // The design row is the third opinion: it moves only when the rules really change.
+      expect(expected.tick, 'the T22 row states this payout tick').toBe(stated.payoutTick);
+      expect(expected.predatorMass).toBeCloseTo(stated.massAfterYield, TABLE_MASS_TOLERANCE);
       const run = runPair({ ...trioPrey, predatorTraits });
       expect(effectsOfKind(run, EFFECT_KIND.cellAbsorbed).map((effect) => effect.tick)).toEqual([expected.tick]);
       expect(run.predatorMassByTick[expected.tick - 1]).toBeCloseTo(expected.predatorMass, MASS_DIGITS);
