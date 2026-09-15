@@ -27,13 +27,33 @@
 
 ## 7. Camera
 
-The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies
-a similar share of the screen:
+The camera centres on the player's cell and zooms out as the cell grows, but more slowly than the cell grows, so
+a bigger cell is visibly bigger on screen and a shrinking one visibly shrinks (decision #324, **Z1 · partial
+zoom**; the size lock it replaces held the own cell at 33 px on the reference viewport from mass 39 to 977 and hid
+both growth and decay, `qa/decisions/legibility/audit.md` on PR #325):
 
 ```
-viewHalfHeightWu = clamp(CAMERA_VIEW_RADII × radius,
+spawnRadius      = radiusForMass(CELL_STARTING_MASS)                       (17.9 wu)
+viewHalfHeightWu = clamp(CAMERA_MIN_VIEW_HALF_HEIGHT_WU × (radius / spawnRadius) ^ CAMERA_VIEW_RADIUS_EXPONENT,
                          CAMERA_MIN_VIEW_HALF_HEIGHT_WU, CAMERA_MAX_VIEW_HALF_HEIGHT_WU)
 ```
+
+`CAMERA_VIEW_RADIUS_EXPONENT` is 0.5 (`constants/camera.ts`, replacing `CAMERA_VIEW_RADII` 12, which is retired): the
+view grows with √radius, ≈ 70.9 × √radius wu, and leaves its floor exactly at the starting mass, so a fresh cell
+sees the same view as before. 1 would be a size lock again, 0 no zoom at all. The clamps are unchanged, and
+`CELL_MAX_MASS` (radius 283 wu, view 1193 wu) stays under the ceiling.
+
+| Mass           | Radius (wu) | View half-height (wu) | Radii ahead | Own cell at 800 px tall (px) | At 1080 px (px) |
+| -------------- | ----------- | --------------------- | ----------- | ---------------------------- | --------------- |
+| 20 (spawn)     | 17.9        | 300                   | 16.8        | 23.9                         | 32.2            |
+| 80             | 35.8        | 424                   | 11.9        | 33.7                         | 45.5            |
+| 312            | 70.7        | 596                   | 8.4         | 47.4                         | 64.0            |
+| 900            | 120.0       | 777                   | 6.5         | 61.8                         | 83.4            |
+| 5000 (the cap) | 282.8       | 1193                  | 4.2         | 94.8                         | 128.0           |
+
+"Radii ahead" is the view half-height over the radius: how far ahead a cell sees, in its own sizes (12 under the
+size lock). The cost of Z1 is that a giant sees less of the dish around it; ecology does not read the camera, so it
+changes nothing in the simulation. Own-cell px is `radius × (viewport height / 2) / viewHalfHeightWu`.
 
 Position follows with time constant `CAMERA_FOLLOW_SECONDS`; zoom with `CAMERA_ZOOM_SECONDS`
 (exponential smoothing, client side, purely cosmetic). While spectating, the camera follows the

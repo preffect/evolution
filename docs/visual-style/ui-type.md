@@ -28,7 +28,8 @@ not jitter. The type scale (`UI_TYPE_*`, px at HUD scale 1):
 Colour roles: the own row
 on the leaderboard is tinted with the player's own rim colour @12 %; a player swatch is the palette base
 with a rim-colour ring and the seat-mark bead count of §2; danger, gold and DNA are the only saturated UI
-colours; the rest of the overlay is the `PANEL_TOP` → `PANEL_BOTTOM` panel with the `PANEL_RIM` rim so the
+colours, plus the three legibility cue roles of §2 (`GAIN`, `ZONE_CUE`, `TRAIT_CUE`, decision #324), which colour
+rims, dots, rings and glyphs and never text; the rest of the overlay is the `PANEL_TOP` → `PANEL_BOTTOM` panel with the `PANEL_RIM` rim so the
 dish stays the brightest thing on screen.
 
 **The UI kit** (#354, [`ui/components-and-constants.md §10`](../ui/components-and-constants.md#10-the-ui-kit-354)) adds no

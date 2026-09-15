@@ -191,6 +191,47 @@ by `qa/evidence/34/tools/render.sh`.
 `LIGHT_ACCENT`; `CALLOUT_BACKING` (the callout backing role, sheet 02's callout `#04070d`) is `BG_DEEP`;
 `WHITE` `#ffffff` is the single white.
 
+**Legibility cue roles (decision #324, `ui/hud.md` §3.1.5).** Three roles join danger, gold and DNA as the colours a
+cue may carry. None is a new hex: each names a world colour the player already reads in the dish, so the cue and
+the thing it is about match. They colour rims, dots, rings and glyphs only; cue text is always `WHITE` (the label
+pill rule of `ui/input-and-onboarding.md` §6), so no role is ever the only carrier of a fact.
+
+| Role        | Value                                                                                         | Used for                                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GAIN`      | `FOOD_MOTE` `#8dff6a`                                                                         | mass-gain floater rims, the edible ring on a cell the own cell can engulf, the Tab panel's gain dots             |
+| `ZONE_CUE`  | the zone's own tint from the zone table above (`ZONE_VENT`, `ZONE_SHALLOWS`, `ZONE_GEL`)      | the zone pill's dot, a zone-caused floater's rim, the Tab panel's zone dot; `open_broth` has none                |
+| `TRAIT_CUE` | the trait's organelle base colour (sheet 01, `MITO_BASE`, `CHLORO_BASE`, …), else `UI_ACCENT` | trait glyphs in the Tab panel and on a trait-caused floater, as on the picker's medallions (`TRAIT_GLYPH_COLOR`) |
+
+**Relation rings.** A cell's relation to the own cell is geometry first and colour second: each of the three rings
+has its own shape, so none is told from another by colour alone (under deuteranopia `GAIN` and `DANGER` are two
+yellows 2.0:1 apart, and taking a toxic cell for prey is the costly misread).
+
+- The **threat ring** is the engulf warning ring as it ships: dashed `WARNING_RING_DASH_PX` 6 5,
+  `WARNING_RING_STROKE_PX` 2 px, rotating (`cell-shader-tells.ts`, visual-style/motion-and-legibility.md §5), at
+  `ENGULF_WARNING_RING_RADII`, in `DANGER`.
+- The **toxic ring** is a **double line**, still: two solid `RELATION_RING_STROKE_PX` lines in `DANGER`. The
+  **inner** line sits at the ring radius (`RELATION_RING_RADII`, or `r + RELATION_RING_MIN_GAP_PX` on a small cell),
+  and the outer line sits `TOXIC_RING_LINE_GAP_PX` outside it. The inner line is therefore never closer to the
+  membrane than the edible line is, and on the smallest cells the pair still reads as two lines, not one thick ring.
+- The **edible ring** is a **single line**, still: one solid `RELATION_RING_STROKE_PX` line at the same ring radius,
+  in `GAIN`.
+
+Each role has its own alpha, because `DANGER` is darker than `GAIN` and one shared value would drop it under the
+rim contrast floor:
+
+- `EDIBLE_RING_ALPHA` 0.6: `GAIN` blends to 5.78:1 on `BG_FIELD`, so a dish full of prey rings stays dimmer than the
+  dish (ui-type.md §7).
+- `TOXIC_RING_ALPHA` 0.9: `DANGER` blends to 4.90:1; at 0.6 it would be 2.76.
+
+Toxin violet (`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a threat and toxic
+shows the threat ring only (the danger that ends a life wins); a cell that is edible and toxic shows the double
+line. What each ring's label says is `ui/hud.md` §3.1.5.
+
+**Knowingly close pairs.** `GAIN` against `ZONE_SHALLOWS` (the `+3 FOOD` and `+0.3/s LIGHT` rims) and `ZONE_GEL`
+against `DNA` are close hues on purpose: each role is its world colour. They are never the only tell, because every
+cue carrying them has its cause in text (`FOOD`, `LIGHT`, `DNA`, the zone's name), so no hex is to be changed to
+separate them.
+
 **UI kit roles** (#354, [`ui/components-and-constants.md §10`](../ui/components-and-constants.md#10-the-ui-kit-354)): no
 new hue, each an existing colour at a kit alpha. `UI_HOVER` = `TEXT` @ `UI_ROW_HOVER_ALPHA` (6 %); `UI_PRESSED` =
 `TEXT` @ `UI_ROW_PRESSED_ALPHA` (18 %); `UI_SELECTED` = `UI_ACCENT` @ `UI_ROW_SELECTED_ALPHA` (12 %), with its
