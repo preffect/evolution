@@ -477,18 +477,18 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **10.2 Components** (L196–227): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
   - **10.3 Colour and type** (L228–232): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
 
-## ui/encyclopedia.md (265 lines)
+## ui/encyclopedia.md (317 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–265): §11 of the split `UI.md`, which keeps the shared context and the file list.
-- **11. Encyclopedia** (L5–265): Ticket #354, epic #353.
-  - **11.1 What it is, and where it opens** (L20–57): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
-  - **11.2 Categories, groups and ids** (L58–93): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`.
-  - **11.3 Layout (option A)** (L94–125): Frame.
-  - **11.4 The entry page** (L126–172): Top to bottom (`encyclopedia-a-trait-*.png`), with `UI_PANEL_PADDING_PX` around it, inside a content column at most `ENCYCLOPEDIA_PREVIEW_W…
-  - **11.5 Navigation, search and cross-links** (L173–199): State.
-  - **11.6 Test ids** (L200–211): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
-  - **11.7 Files and constants** (L212–254): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
-  - **11.8 If B or C is picked (#368)** (L255–265): round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier switch under it; the title, chips an…
+- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–317): §11 of the split `UI.md`, which keeps the shared context and the file list.
+- **11. Encyclopedia** (L5–317): Ticket #354, epic #353.
+  - **11.1 What it is, and where it opens** (L21–58): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
+  - **11.2 Categories, groups and ids** (L59–94): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`.
+  - **11.3 Layout** (L95–126): Frame.
+  - **11.4 The entry page** (L127–215): `encyclopedia-b-trait-*.png`.
+  - **11.5 Navigation, search and cross-links** (L216–242): State.
+  - **11.6 Test ids** (L243–254): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
+  - **11.7 Files and constants** (L255–308): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
+  - **11.8 The options not chosen (#368)** (L309–317): The human chose B on #368.
 
 ## ui/hud.md (336 lines)
 

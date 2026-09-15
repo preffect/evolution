@@ -130,7 +130,7 @@ and the encyclopedia ([`encyclopedia.md §11`](./encyclopedia.md#11-encyclopedia
 hold-Tab panel is the next; the respawn, results and lobby screens move onto it by their own tickets. Home
 `packages/client/src/app/ui-kit/`. The HUD elements built before it (the leaderboard, the picker cards, the notice
 rows) keep their stylesheets until a ticket moves them, but no new screen grows its own panel, button or row. The
-encyclopedia's layout is pending decision #368; nothing in this section is.
+encyclopedia's layout is option B, the eyepiece (decision #368, encyclopedia.md §11.4); nothing in this section depended on it.
 
 ### 10.1 Tokens, and how components share them
 
