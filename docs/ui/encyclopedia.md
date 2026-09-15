@@ -11,7 +11,7 @@ field it is a proposal **to align with #355**, and #355's file wins where they d
 UI kit ([`components-and-constants.md §10`](./components-and-constants.md#10-the-ui-kit-354)); the ESC menu that opens
 it is [`overlays.md §3.5`](./overlays.md#35-menu-escape). Mockups: `qa/decisions/encyclopedia/`.
 
-**The layout is pending decision #DECISION** (A atlas, B eyepiece, C codex). This file specifies **A**, the
+**The layout is pending decision #368** (A atlas, B eyepiece, C codex). This file specifies **A**, the
 recommendation; §11.8 lists what changes if B or C is picked. The navigation model, the categories, the entry page's
 content and the kit do not depend on the answer.
 
@@ -213,7 +213,7 @@ every decision a pure function with a unit test).
 `ENCYCLOPEDIA_KEY_CODE` (`KeyH`) and `ENCYCLOPEDIA_SEARCH_KEY_CODE` (`Slash`) live with the other key codes in
 `input/input-constants.ts` (§4).
 
-### 11.8 If B or C is picked (#DECISION)
+### 11.8 If B or C is picked (#368)
 
 - **B, eyepiece** (`encyclopedia-b-trait-1920x1080.png`): the rail, list, header and navigation stay. The stage
   becomes a round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier
