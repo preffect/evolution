@@ -29,7 +29,10 @@
 #              of each selected package that has any (#344). Fetches origin main first (best effort) and
 #              refuses a branch behind origin/main: merge it first. Prints each selection and why, and
 #              is stamped per affected set.
-#   VALIDATE_NO_GATE_LOCK=1   Skip the one-gate-at-a-time lock (sandboxed tests only)
+#   VALIDATE_NO_GATE_LOCK=1   Skip the machine-wide gate slots (sandboxed tests only)
+#   VALIDATE_HEAVY_SLOTS=N    Heavy runs (test, integration, typecheck) at once; default from cores and memory
+#   VALIDATE_LIGHT_SLOTS=N    Light runs (lint, duplication) at once; default one per core, capped by memory
+#   VALIDATE_GATE_LOCK_DIR=D  Where the slot lock files live (default $HOME/.cache/<slug>-validate)
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache). For test and
 # integration they reach one package's runner, so a selection that mixes the client (the Angular builder)
@@ -52,8 +55,10 @@
 # plus the Node major version and the scope. A repeat call on the same tree and scope prints
 # `cached green from <time> at tree <hash>` and the stored log path, applies -t/-h/-G to the stored
 # log, and exits 0. Red is never cached; a scoped stamp never answers an unscoped call, nor the
-# reverse. `all` stamps each phase and itself. Shared across worktrees at the same content. Real
-# runs hold $HOME/.cache/<slug>-validate/gate.lock so only one gate runs per machine; hits never wait.
+# reverse. `all` stamps each phase and itself. Shared across worktrees at the same content. A real
+# phase holds one machine-wide slot of its class (scripts/lib/gate-lock.sh, #380): heavy for test,
+# integration and typecheck, light for lint and duplication, none for a lint without eslint; a wait
+# names the holders (pid, worktree, command). Hits never wait.
 #
 # Examples:
 #   ./validate.sh test                                        # run all tests
@@ -74,6 +79,7 @@ SCOPE_ARG=""
 SCOPE_GIVEN=0
 AFFECTED=0
 USAGE="Usage: ./validate.sh <test|integration|typecheck|lint|duplication|all> [-tN] [-hN] [-G pattern] [--fresh] [--scope <shared|server|client|path> | --affected] [-- extra-args...]"
+INVOCATION="./validate.sh $*" # what a gate slot's holder file names
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -701,10 +707,19 @@ cache_store() {
   fi
 }
 
-# One real gate at a time per machine (scripts/lib/gate-lock.sh): every non-cached run holds
-# $HOME/.cache/<slug>-validate/gate.lock, independent of VALIDATE_CACHE_DIR so a scratch cache still
+# Machine-wide gate slots (scripts/lib/gate-lock.sh, #380): every non-cached phase holds one slot of its
+# class under $HOME/.cache/<slug>-validate, independent of VALIDATE_CACHE_DIR so a scratch cache still
 # queues behind the machine's gates; the fd is closed for the child (9>&-) so no orphaned worker can
-# keep the lock; a cache hit never takes it. The workspace setup runs before it, under a per-checkout lock.
+# keep the slot; a cache hit never takes one. The workspace setup runs before it, under a per-checkout lock.
+# The multi-core runners are heavy; eslint, prettier and jscpd use one core each, so a docs lint never
+# queues behind a test run; prettier and the audits alone take no slot.
+gate_class() { # <cmd>
+  case "$1" in
+    lint) if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then echo "$GATE_CLASS_LIGHT"; else echo "$GATE_CLASS_NONE"; fi ;;
+    duplication) echo "$GATE_CLASS_LIGHT" ;;
+    *) echo "$GATE_CLASS_HEAVY" ;;
+  esac
+}
 
 # Runs <cmd> through the cache: a hit prints the stamp; a green run is stamped; red never is.
 # PHASE_OUTPUT and PHASE_WAS_CACHED tell `all` what goes in its own log.
@@ -721,7 +736,7 @@ run_cached() {
   PHASE_WAS_CACHED=0
   # The setup takes this checkout's own lock, not the machine's gate: another worktree's gate never waits it.
   workspace_ensure_ready "$SCRIPT_DIR" "validate.sh:" continue || return 1
-  gate_lock_acquire "$SCRIPT_DIR" "$cmd"
+  gate_lock_acquire "$SCRIPT_DIR" "$(gate_class "$cmd")" "$cmd" "$INVOCATION"
   PHASE_OUTPUT="$(run_one "$cmd" "$@" 9>&-)" || rc=$?
   gate_lock_release
   printf '%s\n' "$PHASE_OUTPUT" | apply_filters
