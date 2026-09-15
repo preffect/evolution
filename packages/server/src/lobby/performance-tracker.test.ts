@@ -1,11 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import { TICK_HZ, createTestClientPerformanceReport } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
-import { PerformanceTracker } from './performance-tracker.js';
+import { PerformanceTracker, tickRecordOf, type TickRecord } from './performance-tracker.js';
 
-function tickOf(tickMs: number, snapshotBytes = 100, broadcastClients = 2, broadcastMs = 0) {
-  return { tickMs, broadcastMs, snapshotBytes, broadcastClients };
+/** More ticks than the tracker's 300-sample window holds, so the oldest have left it. */
+const MORE_THAN_THE_WINDOW = 400;
+/** Ticks that do not broadcast for each one that does, as at `SNAPSHOT_EVERY_TICKS` = 3. */
+const SILENT_TICKS_PER_BROADCAST = 2;
+/** Broadcast ticks in the percentile test, costing 1 … 10 ms. */
+const BROADCAST_TICK_COUNT = 10;
+
+function tickOf(tickMs: number, snapshotBytes = 100, broadcastClients = 2): TickRecord {
+  return { tickMs, broadcastMs: 0, isBroadcastTick: false, snapshotBytes, broadcastClients };
 }
+
+function broadcastTickOf(tickMs: number, broadcastMs: number, snapshotBytes = 100): TickRecord {
+  return { ...tickOf(tickMs, snapshotBytes), broadcastMs, isBroadcastTick: true };
+}
+
+describe('tickRecordOf', () => {
+  const readings = { tickStartMs: 10, broadcastStartMs: 13, tickEndMs: 17 };
+
+  it('spans the whole tick and gives the broadcast the time after its start', () => {
+    const broadcast = { isBroadcastTick: true, snapshotBytes: 100, broadcastClients: 2 };
+    expect(tickRecordOf(readings, broadcast)).toEqual({ tickMs: 7, broadcastMs: 4, ...broadcast });
+  });
+
+  it('gives a tick that does not broadcast no broadcast time, even when the clock moved after the step', () => {
+    const silent = { isBroadcastTick: false, snapshotBytes: 0, broadcastClients: 2 };
+    expect(tickRecordOf(readings, silent)).toEqual({ tickMs: 7, broadcastMs: 0, ...silent });
+  });
+});
 
 describe('PerformanceTracker', () => {
   it('reports zeros before any tick was recorded', () => {
@@ -42,33 +67,49 @@ describe('PerformanceTracker', () => {
     expect(tracker.worstTick()).toEqual(tickOf(3));
   });
 
-  it('summarises the broadcast share over every tick, the silent ones included', () => {
+  it('averages the broadcast over every tick, the silent ones included', () => {
     const tracker = new PerformanceTracker();
     tracker.recordTick(tickOf(1));
     tracker.recordTick(tickOf(1));
-    tracker.recordTick(tickOf(7, 100, 2, 6));
-    expect(tracker.getStats()).toMatchObject({
-      tickAvgMs: 3,
-      tickPeakMs: 7,
-      broadcastAvgMs: 2,
-      broadcastP95Ms: 6,
-      broadcastPeakMs: 6,
-    });
+    tracker.recordTick(broadcastTickOf(7, 6));
+    expect(tracker.getStats()).toMatchObject({ tickAvgMs: 3, tickPeakMs: 7, broadcastAvgMs: 2, broadcastPeakMs: 6 });
+  });
+
+  it('takes the broadcast p95 over the broadcast ticks only, so the silent zeros never pull it down', () => {
+    const tracker = new PerformanceTracker();
+    for (let broadcastMs = 1; broadcastMs <= BROADCAST_TICK_COUNT; broadcastMs += 1) {
+      for (let silent = 0; silent < SILENT_TICKS_PER_BROADCAST; silent += 1) tracker.recordTick(tickOf(1));
+      tracker.recordTick(broadcastTickOf(1 + broadcastMs, broadcastMs));
+    }
+    // Over all 30 ticks the p95 would be 9 ms; over the 10 broadcast ticks it is the slowest, 10 ms.
+    expect(tracker.getStats().broadcastP95Ms).toBe(BROADCAST_TICK_COUNT);
+  });
+
+  it('counts a broadcast tick that sent no bytes, and reports a p95 of 0 for a window without one', () => {
+    const tracker = new PerformanceTracker();
+    tracker.recordTick(tickOf(1));
+    expect(tracker.getStats().broadcastP95Ms).toBe(0);
+    tracker.recordTick(broadcastTickOf(4, 3, 0));
+    expect(tracker.getStats().broadcastP95Ms).toBe(3);
   });
 
   it('keeps the worst broadcast even when it was not the worst tick, after it leaves the window', () => {
     const tracker = new PerformanceTracker();
-    tracker.recordTick(tickOf(5, 100, 2, 4));
+    tracker.recordTick(broadcastTickOf(5, 4));
     tracker.recordTick(tickOf(9));
-    for (let index = 0; index < 400; index++) tracker.recordTick(tickOf(1));
-    const stats = tracker.getStats();
-    expect(stats).toMatchObject({ tickPeakMs: 9, broadcastAvgMs: 0, broadcastPeakMs: 4 });
+    for (let index = 0; index < MORE_THAN_THE_WINDOW; index++) tracker.recordTick(tickOf(1));
+    expect(tracker.getStats()).toMatchObject({
+      tickPeakMs: 9,
+      broadcastAvgMs: 0,
+      broadcastP95Ms: 0,
+      broadcastPeakMs: 4,
+    });
   });
 
   it('keeps a bounded window but never forgets the worst tick', () => {
     const tracker = new PerformanceTracker();
     tracker.recordTick(tickOf(50));
-    for (let index = 0; index < 400; index++) tracker.recordTick(tickOf(1));
+    for (let index = 0; index < MORE_THAN_THE_WINDOW; index++) tracker.recordTick(tickOf(1));
     const stats = tracker.getStats();
     expect(stats.sampleCount).toBeLessThanOrEqual(300);
     expect(stats.tickAvgMs).toBe(1);

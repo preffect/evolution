@@ -16,7 +16,7 @@ import {
 } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
-import { PerformanceTracker } from './performance-tracker.js';
+import { PerformanceTracker, tickRecordOf } from './performance-tracker.js';
 import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
 import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
 import type { RoomTiming } from './room-timing.js';
@@ -265,15 +265,13 @@ export class GameRoom {
   private runTick(): void {
     const tickStartMs = this.timing.clock.nowMilliseconds();
     this.game.reduceGameState();
+    this.tickCount += 1;
+    const isBroadcastTick = this.tickCount % SNAPSHOT_EVERY_TICKS === 0;
     const broadcastStartMs = this.timing.clock.nowMilliseconds();
-    const snapshotBytes = ++this.tickCount % SNAPSHOT_EVERY_TICKS === 0 ? this.broadcastSnapshot() : 0;
-    const tickEndMs = this.timing.clock.nowMilliseconds();
-    this.performanceTracker.recordTick({
-      tickMs: tickEndMs - tickStartMs,
-      broadcastMs: tickEndMs - broadcastStartMs,
-      snapshotBytes,
-      broadcastClients: this.playerConnections.size,
-    });
+    const snapshotBytes = isBroadcastTick ? this.broadcastSnapshot() : 0;
+    const readings = { tickStartMs, broadcastStartMs, tickEndMs: this.timing.clock.nowMilliseconds() };
+    const broadcast = { isBroadcastTick, snapshotBytes, broadcastClients: this.playerConnections.size };
+    this.performanceTracker.recordTick(tickRecordOf(readings, broadcast));
   }
 
   /**
