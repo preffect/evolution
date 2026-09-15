@@ -4,20 +4,33 @@
 
 ## 4. Input mapping and keyboard reachability
 
-| Input                | Pointer / touch                                         | Keyboard                                                                 | Sent as (architecture/wire-contract.md §4)                                                            |
-| -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Steer                | pointer position over the canvas → world via the camera | WASD / arrows synthesise a target (game-design/controls-and-scope.md §6) | `targetX/targetY` every client tick; the pointer's last position is latched when it leaves the canvas |
-| Sprint               | left click / tap on the canvas                          | Space (edge-triggered, no repeat) with focus outside `trait-offer`       | `shouldSprint: true` once per press                                                                   |
-| Pick trait           | click a card                                            | `1` `2` `3`; Enter/Space with focus on a card                            | `traitChoice`                                                                                         |
-| Full leaderboard     | click the leaderboard header (toggles)                  | Tab held                                                                 | local                                                                                                 |
-| Menu / close overlay | —                                                       | Escape                                                                   | local                                                                                                 |
-| Owned traits         | Escape → `Your traits` (§3.5)                           | Escape, then Tab through the list                                        | local                                                                                                 |
+| Input                | Pointer / touch                                                           | Keyboard                                                                                                                                                    | Sent as (architecture/wire-contract.md §4)                                                            |
+| -------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Steer                | pointer position over the canvas → world via the camera                   | WASD / arrows synthesise a target (game-design/controls-and-scope.md §6)                                                                                    | `targetX/targetY` every client tick; the pointer's last position is latched when it leaves the canvas |
+| Sprint               | left click / tap on the canvas                                            | Space (edge-triggered, no repeat) with focus outside `trait-offer`                                                                                          | `shouldSprint: true` once per press                                                                   |
+| Pick trait           | click a card                                                              | `1` `2` `3`; Enter/Space with focus on a card                                                                                                               | `traitChoice`                                                                                         |
+| Full leaderboard     | click the leaderboard header (toggles)                                    | Tab held                                                                                                                                                    | local                                                                                                 |
+| Menu / close overlay | —                                                                         | Escape (§3.5; inside the encyclopedia, encyclopedia.md §11.5)                                                                                               | local                                                                                                 |
+| Owned traits         | Escape → `Your traits` (§3.5); a row opens the trait's encyclopedia entry | Escape, then Tab and ↑ ↓ through the list                                                                                                                   | local                                                                                                 |
+| Encyclopedia         | ESC menu → `Encyclopedia`; the lobby's `Encyclopedia` button (§2)         | `H` in play and in the menu; inside it `/` search, ↑ ↓ Home End in the rail and list, ← → between them, `Alt+←` back, Escape closes (encyclopedia.md §11.5) | local                                                                                                 |
 
-- Hotkeys are handled by `input/keyboard-input.ts` on `document` while the client is in a room; they are ignored when
-  focus is in a text field, and all but `1` `2` `3` and Escape itself are ignored while the menu is open (§3.5:
-  Escape is what closes it). A **release** never consults focus, so a key pressed over the canvas and released after
+- Hotkeys are handled by `input/keyboard-input.ts` on `document` while the client is in a room. Focus in a text field
+  swallows every press but Escape. While a **modal overlay** is open (`openOverlay` is `menu` or `encyclopedia`;
+  `FocusContext.isModalOverlayOpen`, renamed from `isMenuOpen`) all but `1` `2` `3`, Escape and, with the menu open,
+  `H` are ignored, which leaves the arrow keys to the kit's rails and lists. `H` (`ENCYCLOPEDIA_KEY_CODE`, in
+  `input-constants.ts` beside the panel id it imports from the leaf `game/encyclopedia/test-ids.ts`) opens the
+  encyclopedia, edge-triggered, while no modal overlay is open (returning to the game) or while the menu is open
+  (returning to the menu, as the `Encyclopedia` button does). The encyclopedia's own keys (`/`, Back) are
+  `encyclopedia-constants.ts`'s, since the lobby reads them too.
+- **Escape has one owner per press.** A component that consumes an Escape (the search field clearing its query, the
+  menu's exit confirm restoring its row) calls `preventDefault()`. `keyboard-input.ts` passes `event.defaultPrevented`
+  into the press and `keyDownAction` returns `NO_ACTION` for a consumed Escape, before the text-field rule; an
+  Escape nothing consumed acts even from a text field. In a room the one close path is the HUD's topmost order
+  (§3.5); in the lobby, where no document listener exists, the encyclopedia's host closes it on its own Escape.
+  `keyboard-action.spec.ts` covers a consumed Escape doing nothing, an unconsumed one in the field closing, the
+  confirm row's Escape leaving the menu open, and `H` acting from the menu but not from the encyclopedia. A **release** never consults focus, so a key pressed over the canvas and released after
   focus moved still releases, and a window `blur` releases everything. Tab is `preventDefault`ed only
-  while no overlay with focusable controls is open, so the trait picker, menu and results remain fully tab-navigable;
+  while no overlay with focusable controls is open, so the trait picker, menu, encyclopedia and results remain fully tab-navigable;
   which overlays those are is the `FOCUSABLE_OVERLAY_TEST_IDS` list in `input/input-constants.ts`, the one home of the
   key codes and the selectors (`CODE-STANDARDS.md §2`).
 - **The module list** (the one home; `architecture/constants-files-tests.md §10`'s file plan repeats it without roles). Pure and
@@ -65,7 +78,7 @@
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until
   they Tab into a card (the arrow keys steer, so they never move focus).
 - Every interactive element is a native `<button>` or form control with a visible focus ring (`HUD_FOCUS_RING_PX`
-  2 px, text colour); the menu and results overlays trap focus and restore it on close, and the trait picker is
+  2 px, text colour); the menu, encyclopedia and results overlays trap focus with the kit's focus trap (components-and-constants.md §10) and restore it on close, and the trait picker is
   non-modal (overlays.md §3.2): it traps nothing, because the cell keeps steering, and gives focus back to the
   element it came from when it closes; the canvas host has `tabindex="0"` and takes focus on click. The
   own-cell indicators are not interactive; their facts reach keyboard and screen-reader users through the status
