@@ -190,3 +190,11 @@ by `qa/evidence/34/tools/render.sh`.
 `PANEL_TOP` `#0e1f33` → `PANEL_BOTTOM` `#060e1a` with the `PANEL_RIM` `#173250` rim. `UI_ACCENT` is
 `LIGHT_ACCENT`; `CALLOUT_BACKING` (the callout backing role, sheet 02's callout `#04070d`) is `BG_DEEP`;
 `WHITE` `#ffffff` is the single white.
+
+**UI kit roles** (#354, [`ui/components-and-constants.md §10`](../ui/components-and-constants.md#10-the-ui-kit-354)): no
+new hue, each an existing colour at a kit alpha. `UI_HOVER` = `TEXT` @ `UI_ROW_HOVER_ALPHA` (6 %); `UI_PRESSED` =
+`TEXT` @ `UI_ROW_PRESSED_ALPHA` (18 %); `UI_SELECTED` = `UI_ACCENT` @ `UI_ROW_SELECTED_ALPHA` (12 %), with its
+selection bar in `UI_ACCENT`; `UI_LINK` = `UI_ACCENT`; `UI_WELL` = `CALLOUT_BACKING` @ `UI_WELL_ALPHA` (45 %);
+`UI_SCRIM` = `CALLOUT_BACKING` at the overlay's own alpha. Button tones: primary `UI_ACCENT`, danger `DANGER`. Rarity
+tones: common `TEXT_MUTED`, uncommon `UI_ACCENT`, rare `DNA`, always beside the rarity word. The accent marks
+selection, links and the primary action and nothing else, so the dish stays the brightest thing on screen.
