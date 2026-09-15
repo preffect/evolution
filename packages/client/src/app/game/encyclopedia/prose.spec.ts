@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { factContextFor } from './encyclopedia-context';
+import { resolveProse } from './facts/resolve-prose';
+import type { ProseSegment } from './model/entry';
 import { PROSE_TOKEN, parseProseTemplate, type ProseToken } from './model/prose';
 import { ENCYCLOPEDIA_ENTRIES, isEntryReference, resolveEntry } from './registry';
 
@@ -34,6 +36,24 @@ function proseViolations(text: string): string[] {
 
 const context = factContextFor(null);
 
+/** A signed value already says which way it goes; a comparative word beside it says it again, or the opposite. */
+const SIGNED_VALUE = /^[+−]/;
+const DIRECTION_WORD =
+  /\b(sooner|later|longer|shorter|faster|slower|likelier|more|less|cost of|harder|easier)\s*[.,;:]?\s*$|^\s*(sooner|later|longer|shorter|faster|slower|likelier|more|less|harder|easier)\b/i;
+
+/** The signed values of `segments` that sit beside a direction word: "recharges −0.5 s sooner". */
+function signContradictions(segments: readonly ProseSegment[]): string[] {
+  return segments.flatMap((segment, index) => {
+    if (segment.kind !== PROSE_TOKEN.value || !SIGNED_VALUE.test(segment.text)) return [];
+    const before = segments[index - 1]?.text ?? '';
+    const after = segments[index + 1]?.text ?? '';
+    const isDoubled =
+      /\b(sooner|later|longer|shorter|faster|slower|likelier|more|less|cost of|harder|easier)\s*$/i.test(before) ||
+      DIRECTION_WORD.test(after);
+    return isDoubled ? [`${before}${segment.text}${after}`] : [];
+  });
+}
+
 describe('the prose rule', () => {
   it('rejects a digit and a tier numeral, and passes plain copy', () => {
     expect(proseViolations('Gives 3 mass')).not.toEqual([]);
@@ -57,6 +77,21 @@ describe('the prose rule', () => {
         ]),
       ];
       for (const text of texts) expect(proseViolations(text), `${entry.id}: ${text}`).toEqual([]);
+    }
+  });
+
+  it('never puts a signed value beside a word that states its direction again', () => {
+    const scope = {
+      facts: [{ key: 'cooldownDelta', label: 'sprint cooldown', text: '−0.5 s', link: null }],
+      titleOf: () => '',
+      isReference: () => false,
+    };
+    expect(signContradictions(resolveProse('The sprint recharges {cooldownDelta} sooner.', scope))).not.toEqual([]);
+    expect(signContradictions(resolveProse('Sprint cooldown {cooldownDelta}.', scope))).toEqual([]);
+    for (const entry of ENCYCLOPEDIA_ENTRIES) {
+      const resolved = resolveEntry(entry.id, context);
+      const proses = [resolved.summary, ...resolved.sections.flatMap((section) => [section.heading, section.body])];
+      for (const segments of proses) expect(signContradictions(segments), entry.id).toEqual([]);
     }
   });
 

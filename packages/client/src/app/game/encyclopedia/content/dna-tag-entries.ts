@@ -60,7 +60,7 @@ export const DNA_TAG_ENTRY_CONTENT: Readonly<Record<DnaTag, DnaTagEntryContent>>
     summary: `Earned by engulfing other cells and from DNA fragments at the warm vent. It favours the hunters: {favours}. ${HOW_TAGS_WEIGH}`,
   },
   armored: {
-    title: 'Armored',
+    title: 'Armoured',
     summary: `Earned from DNA fragments in the open broth and the gel. It favours the defences: {favours}. ${HOW_TAGS_WEIGH}`,
   },
   toxic: {
