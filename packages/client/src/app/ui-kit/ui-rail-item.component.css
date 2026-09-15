@@ -1,0 +1,57 @@
+/* A rail item over the shared row states (ui-row-states.css). The label rests in the label colour and takes the text
+   colour while hovered or selected; the count is `figure`, muted at rest and in the label colour while hovered or
+   selected, since muted on the selected tint is 3.92:1, under 4.5:1. */
+
+:host {
+  height: calc(var(--ui-rail-row-height) * var(--ui-scale));
+  color: var(--ui-text-label);
+}
+
+:host(:hover:not([aria-disabled='true'])) {
+  color: var(--ui-text);
+}
+
+.count {
+  flex: none;
+  color: var(--ui-text-muted);
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-figure) * var(--ui-scale));
+  font-weight: normal;
+  transition: color var(--ui-transition);
+}
+
+:host(:hover:not([aria-disabled='true'])) .count,
+:host([aria-selected='true']) .count {
+  color: var(--ui-text-label);
+}
+
+/* Pressed on the selected tint, the label colour falls to 3.82:1; the text colour holds 6.95:1. */
+:host(:active:not([aria-disabled='true'])) .count {
+  color: var(--ui-text);
+}
+
+:host([aria-selected='true']) .leading {
+  color: var(--ui-accent);
+}
+
+/* A horizontal item is a tab sized to its label, its selection bar on the bottom edge. */
+:host([data-orientation='horizontal']) {
+  padding: 0 calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+:host([data-orientation='horizontal']) .label {
+  flex: none;
+}
+
+:host([data-orientation='horizontal'])::before {
+  top: auto;
+  right: 0;
+  width: auto;
+  height: calc(var(--ui-selection-bar) * var(--ui-scale));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .count {
+    transition: none;
+  }
+}
