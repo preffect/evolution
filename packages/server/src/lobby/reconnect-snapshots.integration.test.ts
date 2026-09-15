@@ -22,11 +22,13 @@ import { evolutionModuleFactory } from '../game/evolution-module.js';
 import { createManualRoomTiming, type ManualRoomTiming } from '../testing/builders.js';
 import { broadcastTickAtOrBefore } from '../testing/cadence-builders.js';
 import {
+  lobbyShows,
   openRecordingTestSocket,
   startTestWebSocketServer,
   whenClosed,
   type TestWebSocketServer,
 } from '../testing/socket-builders.js';
+import { untilReceived, untilRoomDecides, type RecordingSocket } from '../testing/wait-for.js';
 
 const CLIENT_ID = 'reloader';
 /** The room broadcasts once per `SNAPSHOT_EVERY_TICKS`, so a test counts intervals and steps ticks. */
@@ -37,31 +39,11 @@ const TICKS_AFTER_RELOAD = INTERVALS_AFTER_RELOAD * SNAPSHOT_EVERY_TICKS;
 /** The room's own `bufferedAmount` reading for a socket nobody is reading. */
 const SATURATED_BYTES = SNAPSHOT_BACKLOG_LIMIT_BYTES + 1;
 
-/** How often and how many times a wait below re-reads what it is waiting for. */
-const WAIT_POLL_MS = 5;
-const WAIT_ATTEMPTS = 400;
-
-/**
- * Resolves when `predicate` holds. A test on the wire waits for two kinds of thing — a message that
- * has arrived and a decision the room has taken — and the second is announced by nothing, so this
- * polls rather than listening. It lives here rather than in `src/testing/` because the timer ban of
- * docs/determinism/contract-and-clock.md §1 is lifted for test files only.
- */
-function waitFor(predicate: () => boolean): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const attempt = (attemptsLeft: number): void => {
-      if (predicate()) {
-        resolve();
-        return;
-      }
-      if (attemptsLeft === 0) {
-        reject(new Error('the expected message or room state never arrived'));
-        return;
-      }
-      setTimeout(() => attempt(attemptsLeft - 1), WAIT_POLL_MS);
-    };
-    attempt(WAIT_ATTEMPTS);
-  });
+/** Waits for the client's first (`count` 1) or a later `game_state`. */
+function untilGameStates(recording: RecordingSocket, count: number): Promise<void> {
+  const holds = (received: readonly ServerMessage[]) =>
+    messagesOfType(received, SERVER_MESSAGE_TYPE.gameState).length >= count;
+  return untilReceived(recording, holds, `game_state number ${count} arrived`);
 }
 
 function messagesOfType(received: readonly ServerMessage[], type: string): ServerMessage[] {
@@ -105,7 +87,8 @@ describe('a client that reloads into a running room (#266)', () => {
 
   /** A started room with one player, reached the way a client reaches it. */
   async function startedRoomWithOnePlayer(): Promise<{ socket: WebSocket; received: ServerMessage[] }> {
-    const { socket, received } = await openRecordingTestSocket(`${started.url}?clientId=${CLIENT_ID}`);
+    const client = await openRecordingTestSocket(`${started.url}?clientId=${CLIENT_ID}`);
+    const { socket } = client;
     socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'Reloader', avatarIndex: 0 }));
     socket.send(
       JSON.stringify({
@@ -114,11 +97,12 @@ describe('a client that reloads into a running room (#266)', () => {
         config: createTestSessionConfig({ maxPlayers: 2 }),
       }),
     );
-    await waitFor(() => started.lobby.listGames().length > 0);
+    const isListed = lobbyShows((games) => games.length > 0);
+    await untilReceived(client, (received) => received.some(isListed), 'the created game is listed');
     const gameId = started.lobby.listGames()[0]!.gameId;
     socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.startGame, gameId }));
-    await waitFor(() => messagesOfType(received, SERVER_MESSAGE_TYPE.gameState).length > 0);
-    return { socket, received };
+    await untilGameStates(client, 1);
+    return client;
   }
 
   function activeRoom() {
@@ -128,20 +112,28 @@ describe('a client that reloads into a running room (#266)', () => {
   it('is sent a game_state and then a delta stream that carries on past the tick it reconnected at', async () => {
     const before = await startedRoomWithOnePlayer();
     advance(TICKS_BEFORE_RELOAD);
-    await waitFor(() => snapshotTicks(before.received).length >= INTERVALS_BEFORE_RELOAD);
+    await untilReceived(
+      before,
+      (received) => snapshotTicks(received).length >= INTERVALS_BEFORE_RELOAD,
+      `${INTERVALS_BEFORE_RELOAD} snapshots arrived before the reload`,
+    );
     expect(snapshotTicks(before.received).at(-1)).toBe(TICKS_BEFORE_RELOAD);
 
     // The reload: the page's socket goes, a new one arrives with the same clientId.
     before.socket.close();
     await whenClosed(before.socket);
     const after = await openRecordingTestSocket(`${started.url}?clientId=${CLIENT_ID}`);
-    await waitFor(() => messagesOfType(after.received, SERVER_MESSAGE_TYPE.gameState).length > 0);
+    await untilGameStates(after, 1);
 
     const [resumed] = messagesOfType(after.received, SERVER_MESSAGE_TYPE.gameState);
     expect((resumed as { snapshot: GameSnapshot }).snapshot.tick).toBe(TICKS_BEFORE_RELOAD);
 
     advance(TICKS_AFTER_RELOAD);
-    await waitFor(() => snapshotTicks(after.received).length >= INTERVALS_AFTER_RELOAD);
+    await untilReceived(
+      after,
+      (received) => snapshotTicks(received).length >= INTERVALS_AFTER_RELOAD,
+      `${INTERVALS_AFTER_RELOAD} snapshots arrived after the reload`,
+    );
     expect(snapshotTicks(after.received).at(-1)).toBe(TICKS_BEFORE_RELOAD + TICKS_AFTER_RELOAD);
 
     after.socket.close();
@@ -154,7 +146,7 @@ describe('a client that reloads into a running room (#266)', () => {
     before.socket.close();
     await whenClosed(before.socket);
     const after = await openRecordingTestSocket(`${started.url}?clientId=${CLIENT_ID}`);
-    await waitFor(() => messagesOfType(after.received, SERVER_MESSAGE_TYPE.gameState).length > 0);
+    await untilGameStates(after, 1);
 
     expect(room.playerConnections.get(CLIENT_ID)).toBe(started.connections.get(CLIENT_ID));
     expect(room.disconnectedPlayers.has(CLIENT_ID)).toBe(false);
@@ -179,7 +171,7 @@ describe('a client that reloads into a running room (#266)', () => {
     // The next broadcast resyncs it with a `game_state`; the one after that is a delta again.
     const drainedTicks = SNAPSHOT_EVERY_TICKS * 2;
     advance(drainedTicks);
-    await waitFor(() => messagesOfType(client.received, SERVER_MESSAGE_TYPE.gameState).length > 1);
+    await untilGameStates(client, 2);
 
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
     expect(snapshotTicks(client.received).at(-1)).toBe(TICKS_BEFORE_RELOAD + drainedTicks);
@@ -193,9 +185,12 @@ describe('a client that reloads into a running room (#266)', () => {
     const room = activeRoom();
     const acknowledgedTick = SNAPSHOT_EVERY_TICKS;
     advance(SNAPSHOT_EVERY_TICKS);
-    await waitFor(() => snapshotTicks(client.received).length > 0);
+    await untilReceived(client, (received) => snapshotTicks(received).length > 0, 'the first snapshot arrived');
     client.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: acknowledgedTick }));
-    await waitFor(() => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) !== null);
+    await untilRoomDecides(
+      () => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) !== null,
+      'the room read the first snapshot_ack',
+    );
 
     // The client says nothing more: the room keeps sending until the in-flight depth passes the limit.
     advance(SNAPSHOT_BACKLOG_LIMIT_TICKS * 2);
@@ -203,14 +198,21 @@ describe('a client that reloads into a running room (#266)', () => {
     const lastTickSent = broadcastTickAtOrBefore(
       acknowledgedTick + SNAPSHOT_BACKLOG_LIMIT_TICKS + SNAPSHOT_EVERY_TICKS,
     );
-    await waitFor(() => snapshotTicks(client.received).at(-1) === lastTickSent);
+    await untilReceived(
+      client,
+      (received) => snapshotTicks(received).at(-1) === lastTickSent,
+      `the snapshot for tick ${lastTickSent} arrived`,
+    );
     expect(snapshotTicks(client.received).at(-1)).toBe(lastTickSent);
     expect(room.snapshotBacklog.owedCount()).toBe(1);
 
     client.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: lastTickSent }));
-    await waitFor(() => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) === 0);
+    await untilRoomDecides(
+      () => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) === 0,
+      'the room read the catching-up snapshot_ack',
+    );
     advance(SNAPSHOT_EVERY_TICKS);
-    await waitFor(() => messagesOfType(client.received, SERVER_MESSAGE_TYPE.gameState).length > 1);
+    await untilGameStates(client, 2);
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
 
     client.socket.close();
