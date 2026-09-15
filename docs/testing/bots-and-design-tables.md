@@ -100,8 +100,9 @@ and `progression.gameplay.test.ts` (P1–P3, P6–P8, P10). Two files carry the 
 the tables (#198): `progression-trait-effects.gameplay.test.ts` (DNA eaten → level-up → a card picked
 through the input → the tier I modifier changes DNA gain, the speed cap or the decay on the pick tick)
 and `leaderboard.gameplay.test.ts` (score order, the mass then join-order tie-breaks of
-`determinism/ordering-and-state-hash.md` §4, and a late-join gift that buys no rank). `shared-setups.ts` holds the seeds bound to
-the DSL, `decayed()`, the steer-blend helpers (`blendedSpeed`, `blendedTravelWu`), the tolerances and
+`determinism/ordering-and-state-hash.md` §4, and a late-join gift that buys no rank). `traits.gameplay.test.ts` holds the trait
+rows that need no engulf (T2, T5, T7–T9, #178), each trait fixture-granted at tier I. `shared-setups.ts` holds the seeds bound to
+the DSL, `decayed()`, the steer-blend helpers (`blendedSpeed`, `blendedTravelWu`), `tierOneModifier`, the tolerances and
 the P7 world G9 reuses. A row derives its expected numbers from the shared constants and formulas
 (`maxSpeedForMass`, `radiusForMass`, `gelSpeedFactor`, `cumulativeDnaForLevel`, `worldReference`) rather
 than copying the table's literal, so a balance change fails a row only when the rule breaks (#212). The pure-function rows are

@@ -7,13 +7,11 @@ import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
   DEFAULT_BALANCE,
-  DEFAULT_CELL_MODIFIERS,
   DNA_TAG,
   ENDOSYMBIOSIS_BACTERIA_REQUIRED,
   FOOD_KIND,
   cumulativeDnaForLevel,
   maxSpeedForMass,
-  type CellModifiers,
   type TraitId,
 } from '@evolution/shared';
 import { type EvolutionScenarioSnapshot } from '../gameplay/evolution-adapter.js';
@@ -26,9 +24,10 @@ import {
   blendedSpeed,
   decayed,
   placedSolo,
+  tierOneModifier,
 } from './shared-setups.js';
 
-const { growth, ecology, progression, traits } = DEFAULT_BALANCE;
+const { growth, ecology, progression } = DEFAULT_BALANCE;
 const LEVEL_2_DNA = cumulativeDnaForLevel(2, progression);
 const LEVEL_3_DNA = cumulativeDnaForLevel(3, progression);
 /** The draft opens at step 7 of tick 1; the pick is submitted for tick 2, whose step 1 applies it. */
@@ -39,12 +38,6 @@ const FULL_THROTTLE_TICKS = 120;
 /** A mass well above the start, so the surplus decay is measurable over a second (E5's mass). */
 const DECAYING_MASS = 1020;
 const DECAY_TICKS = 60;
-
-/** A tier I modifier of `traitId`, or the identity when the trait does not set it. */
-function tierOneModifier(traitId: TraitId, field: keyof CellModifiers): number {
-  const value = traits.TRAIT_TIERS[traitId][0][field] ?? DEFAULT_CELL_MODIFIERS[field];
-  return value as number;
-}
 
 /** Picks the shown offer's card for `traitId` by its index, as the client would; sends nothing when it is not offered. */
 function pickOfferedTrait(traitId: TraitId): PlayerScript<EvolutionScenarioSnapshot> {
