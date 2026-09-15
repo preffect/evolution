@@ -226,28 +226,28 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `format/navigation.ts`, `format/search.ts`, `format/entry-view.ts`     | Pure: the transitions, the match and its order, the page's view model (tier columns, chips, crumbs)                                                       |
 | `encyclopedia-constants.ts`, `test-ids.ts`                             | The table below, the labels of §11.2 and the key codes; §11.6                                                                                             |
 
-| Constant                                     | Value                        | Unit | Meaning                                                                                           |
-| -------------------------------------------- | ---------------------------- | ---- | ------------------------------------------------------------------------------------------------- |
-| `ENCYCLOPEDIA_INSET_PX`                      | 32                           | px   | The panel's distance from every viewport edge.                                                    |
-| `ENCYCLOPEDIA_MAX_WIDTH_PX`                  | 1360                         | px   | The panel's widest.                                                                               |
-| `ENCYCLOPEDIA_MAX_HEIGHT_PX`                 | 880                          | px   | The panel's tallest.                                                                              |
-| `ENCYCLOPEDIA_HEADER_HEIGHT_PX`              | 56                           | px   | The header row.                                                                                   |
-| `ENCYCLOPEDIA_RAIL_WIDTH_PX`                 | 184                          | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.        |
-| `ENCYCLOPEDIA_LIST_WIDTH_PX`                 | 280                          | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. |
-| `ENCYCLOPEDIA_PREVIEW_WIDTH_PX`              | 704                          | px   | The preview box and the entry page's content column: the full detail width at 1280 × 800.         |
-| `ENCYCLOPEDIA_PREVIEW_HEIGHT_PX`             | 220                          | px   | The preview box (16:5).                                                                           |
-| `ENCYCLOPEDIA_FACTS_TWO_COLUMN_MIN_WIDTH_PX` | 640                          | px   | The content width from which the two facts tables sit side by side.                               |
-| `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`            | 640                          | px   | The prose measure: about 90 characters of `body`.                                                 |
-| `ENCYCLOPEDIA_TILE_WIDTH_PX`                 | 168                          | px   | A landing tile; four to a row at 1280 × 800.                                                      |
-| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                | 132                          | px   | A landing tile.                                                                                   |
-| `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`        | 96                           | px   | The tile's well.                                                                                  |
-| `ENCYCLOPEDIA_SCRIM_ALPHA`                   | 0.8                          | ×    | The callout-backing scrim behind the panel in a round.                                            |
-| `ENCYCLOPEDIA_HISTORY_MAX`                   | 50                           | —    | Back-stack depth; the oldest location drops first.                                                |
-| `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`             | 150                          | ms   | Arrowing through the list calls `show` only once the selection rests this long.                   |
-| `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`      | `Preview unavailable`        | —    | The `unavailable` state's line.                                                                   |
-| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`          | `Replay`                     | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).            |
-| `ENCYCLOPEDIA_SEARCH_KEY_CODE`               | `Slash`                      | —    | Focuses the search field.                                                                         |
-| `ENCYCLOPEDIA_BACK_KEYS` | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | — | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).                                                       |
+| Constant                                     | Value                                                          | Unit | Meaning                                                                                           |
+| -------------------------------------------- | -------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------- |
+| `ENCYCLOPEDIA_INSET_PX`                      | 32                                                             | px   | The panel's distance from every viewport edge.                                                    |
+| `ENCYCLOPEDIA_MAX_WIDTH_PX`                  | 1360                                                           | px   | The panel's widest.                                                                               |
+| `ENCYCLOPEDIA_MAX_HEIGHT_PX`                 | 880                                                            | px   | The panel's tallest.                                                                              |
+| `ENCYCLOPEDIA_HEADER_HEIGHT_PX`              | 56                                                             | px   | The header row.                                                                                   |
+| `ENCYCLOPEDIA_RAIL_WIDTH_PX`                 | 184                                                            | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.        |
+| `ENCYCLOPEDIA_LIST_WIDTH_PX`                 | 280                                                            | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. |
+| `ENCYCLOPEDIA_PREVIEW_WIDTH_PX`              | 704                                                            | px   | The preview box and the entry page's content column: the full detail width at 1280 × 800.         |
+| `ENCYCLOPEDIA_PREVIEW_HEIGHT_PX`             | 220                                                            | px   | The preview box (16:5).                                                                           |
+| `ENCYCLOPEDIA_FACTS_TWO_COLUMN_MIN_WIDTH_PX` | 640                                                            | px   | The content width from which the two facts tables sit side by side.                               |
+| `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`            | 640                                                            | px   | The prose measure: about 90 characters of `body`.                                                 |
+| `ENCYCLOPEDIA_TILE_WIDTH_PX`                 | 168                                                            | px   | A landing tile; four to a row at 1280 × 800.                                                      |
+| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                | 132                                                            | px   | A landing tile.                                                                                   |
+| `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`        | 96                                                             | px   | The tile's well.                                                                                  |
+| `ENCYCLOPEDIA_SCRIM_ALPHA`                   | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                            |
+| `ENCYCLOPEDIA_HISTORY_MAX`                   | 50                                                             | —    | Back-stack depth; the oldest location drops first.                                                |
+| `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`             | 150                                                            | ms   | Arrowing through the list calls `show` only once the selection rests this long.                   |
+| `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`      | `Preview unavailable`                                          | —    | The `unavailable` state's line.                                                                   |
+| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`          | `Replay`                                                       | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).            |
+| `ENCYCLOPEDIA_SEARCH_KEY_CODE`               | `Slash`                                                        | —    | Focuses the search field.                                                                         |
+| `ENCYCLOPEDIA_BACK_KEYS`                     | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).              |
 
 `ENCYCLOPEDIA_KEY_CODE` (`KeyH`) lives with the in-room key codes in `input/input-constants.ts` (§4), since only the
 room's input layer reads it.
