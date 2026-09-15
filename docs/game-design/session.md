@@ -4,18 +4,19 @@
 
 ## 5. Session structure (#29)
 
-| Decision            | Build 1 value                                                                                                                                              |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.                                                                  |
-| Players per room    | 1 to `MAX_PLAYERS_PER_GAME` = 8 (the template's constant, `constants/lobby.ts`). Solo play is valid.                                                       |
-| Round length        | `ROUND_DURATION_SECONDS` = 600, set at create time.                                                                                                        |
-| Round end           | Timer only. Dominant-organism and DNA-target end conditions are reserved (`endCondition`).                                                                 |
-| Late join           | Allowed at any time; the joiner enters at the world's level at least ([`PROGRESSION.md §5`](../PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)). |
-| Death               | Engulfed cell spectates `RESPAWN_SPECTATE_SECONDS` = 3, then respawns at the world's level at least (section 5.2).                                         |
-| World clock         | The dish climbs the ladder on its own: one world level per `WORLD_LEVEL_SECONDS` = 180 (section 5.5).                                                      |
-| Leaderboard         | Ranked by `score` (section 5.3); shows mass, level, absorptions alongside.                                                                                 |
-| Results and rematch | Results screen `RESULTS_SCREEN_SECONDS` = 20, then an automatic new round (section 5.4).                                                                   |
-| Alliances / teams   | None in build 1. Reserved.                                                                                                                                 |
+| Decision            | Build 1 value                                                                                                                                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.                                                                                                                  |
+| Players per room    | 1 to `MAX_PLAYERS_PER_GAME` = 8 (the template's constant, `constants/lobby.ts`). Solo play is valid.                                                                                                       |
+| Round length        | `ROUND_DURATION_SECONDS` = 600, set at create time.                                                                                                                                                        |
+| Round end           | Timer only. Dominant-organism and DNA-target end conditions are reserved (`endCondition`).                                                                                                                 |
+| Late join           | Allowed at any time while a seat is free; the joiner enters at the world's level at least ([`PROGRESSION.md §5`](../PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)).                            |
+| Seat cap            | `maxPlayers` (≤ `MAX_PLAYERS_PER_GAME`) holds for the whole life of a room, started or not (#337): a join to a full room is refused with `Game is full`, and the lobby row reads `8/8` with Join disabled. |
+| Death               | Engulfed cell spectates `RESPAWN_SPECTATE_SECONDS` = 3, then respawns at the world's level at least (section 5.2).                                                                                         |
+| World clock         | The dish climbs the ladder on its own: one world level per `WORLD_LEVEL_SECONDS` = 180 (section 5.5).                                                                                                      |
+| Leaderboard         | Ranked by `score` (section 5.3); shows mass, level, absorptions alongside.                                                                                                                                 |
+| Results and rematch | Results screen `RESULTS_SCREEN_SECONDS` = 20, then an automatic new round (section 5.4).                                                                                                                   |
+| Alliances / teams   | None in build 1. Reserved.                                                                                                                                                                                 |
 
 ### 5.1 Round timeline and pace curve
 
