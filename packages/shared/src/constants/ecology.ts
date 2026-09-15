@@ -74,7 +74,7 @@ export const BROTH_VARIANT_SHARE_BY_WORLD_STAGE: Record<CellStage, number> = {
 };
 export const FOOD_ZONE_WEIGHTS_BY_KIND: Record<SpawnedKind, Record<SpawnZoneId, number>> = {
   [FOOD_KIND.algae]: { [ZONE_ID.sunlitShallows]: 0.7, [ZONE_ID.openBroth]: 0.25, [ZONE_ID.warmVent]: 0.05 },
-  [FOOD_KIND.bacterium]: { [ZONE_ID.warmVent]: 0.6, [ZONE_ID.openBroth]: 0.3, [ZONE_ID.sunlitShallows]: 0.1 },
+  [FOOD_KIND.bacterium]: { [ZONE_ID.warmVent]: 0.5, [ZONE_ID.openBroth]: 0.3, [ZONE_ID.sunlitShallows]: 0.2 },
   [ENTITY_KIND.dnaFragment]: { [ZONE_ID.warmVent]: 0.4, [ZONE_ID.openBroth]: 0.4, [ZONE_ID.sunlitShallows]: 0.2 },
 };
 /**
