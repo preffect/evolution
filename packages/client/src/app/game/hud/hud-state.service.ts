@@ -22,6 +22,7 @@ export type TraitCardPick = (cardIndex: number) => void;
 export class HudStateService {
   private readonly openOverlayValue = signal<HudOverlay>(HUD_OVERLAY.none);
   private readonly previewTraitIdValue = signal<TraitId | null>(null);
+  private readonly isFullLeaderboardPinnedValue = signal(false);
   /** Set by the game host once the input seam exists; `null` outside a room. */
   private traitCardPick: TraitCardPick | null = null;
 
@@ -36,11 +37,17 @@ export class HudStateService {
   /** The full leaderboard is open (docs/ui/hud.md §3.1.1): Tab is held, or the header was clicked. */
   readonly isFullLeaderboardOpen = computed(() => this.openOverlayValue() === HUD_OVERLAY.leaderboard);
 
+  /** The header opened the full list and no Tab hold has taken it over since: its hint says how it closes. */
+  readonly isFullLeaderboardPinned = computed(
+    () => this.isFullLeaderboardOpen() && this.isFullLeaderboardPinnedValue(),
+  );
+
   /**
    * Tab held / released (docs/ui/input-and-onboarding.md §4), fed from the input seam's one keyboard listener. A release
    * only closes the leaderboard: an overlay opened over it in the meantime keeps its place.
    */
   setFullLeaderboardHeld(isHeld: boolean): void {
+    this.isFullLeaderboardPinnedValue.set(false);
     if (isHeld) {
       this.openOverlayValue.set(HUD_OVERLAY.leaderboard);
       return;
@@ -50,7 +57,9 @@ export class HudStateService {
 
   /** The leaderboard header clicked: the pointer's equivalent of holding Tab (docs/ui/input-and-onboarding.md §4). */
   toggleFullLeaderboard(): void {
-    this.setFullLeaderboardHeld(!this.isFullLeaderboardOpen());
+    const isOpening = !this.isFullLeaderboardOpen();
+    this.setFullLeaderboardHeld(isOpening);
+    this.isFullLeaderboardPinnedValue.set(isOpening);
   }
 
   /** A card highlighted (hover, focus) or let go (`null`). */

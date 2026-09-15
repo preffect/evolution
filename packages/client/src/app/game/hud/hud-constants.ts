@@ -22,8 +22,10 @@ export const LEADERBOARD_FULL_WIDTH_PX = 360;
 export const LEADERBOARD_HEADER_HEIGHT_PX = 26;
 /** One player row's height at scale 1. */
 export const LEADERBOARD_ROW_HEIGHT_PX = 24;
-/** The full list's column-label strip at scale 1; the compact panel has no numeric columns to name. */
+/** The column-label strip under the header at scale 1, on both panels (decision #324). */
 export const LEADERBOARD_LABEL_ROW_HEIGHT_PX = 16;
+/** The full list's score-rule footer row at scale 1 (docs/ui/layout.md §1's table owns the value). */
+export const LEADERBOARD_FOOTER_ROW_HEIGHT_PX = 24;
 /** Rows the compact panel shows; the own row replaces the last one when it is outside them. */
 export const LEADERBOARD_COMPACT_ROWS = 5;
 /** Rows the Tab-held full list shows. */
@@ -41,8 +43,19 @@ export const LEADERBOARD_RANK_COLUMN_PX = 16;
 export const LEADERBOARD_SWATCH_COLUMN_PX = 14;
 /** The `L<n>` level column; wide enough for two digits. */
 export const LEADERBOARD_LEVEL_COLUMN_PX = 30;
-/** Each of score, mass and absorptions; wide enough for four digits and for its own label. */
-export const LEADERBOARD_NUMBER_COLUMN_PX = 38;
+/** The score track: five `figure` digits and its `SCORE` label, 42 px, both fit. */
+export const LEADERBOARD_SCORE_COLUMN_PX = 44;
+/** The mass track: four `figure` digits and its `MASS` label, about 34 px each. */
+export const LEADERBOARD_MASS_COLUMN_PX = 38;
+/** The engulf count's track: its `ENGULFS` label, 57 px, is the widest in the strip (decision #324). */
+export const LEADERBOARD_ENGULFS_COLUMN_PX = 58;
+/**
+ * The least the full list's name track may be at scale 1: a wide 12-character name in `body`
+ * (`BigHungryAmo`, 105 px in Inter), so a name reaches its character cut before the column cuts it.
+ */
+export const LEADERBOARD_NAME_COLUMN_MIN_PX = 105;
+/** The panel's rim and its header and footer rules. */
+export const LEADERBOARD_RIM_PX = 1;
 /** Gap between columns. */
 export const LEADERBOARD_COLUMN_GAP_PX = 6;
 /** The panel's own left and right padding. */
