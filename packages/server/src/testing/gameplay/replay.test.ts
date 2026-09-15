@@ -14,9 +14,11 @@ const PATCH_TICK = 3;
 const LINEAR_LOG_TICKS = 200;
 const LOG_SIZE_RATIO = 2;
 /**
- * A replay that indexes the log once reads each entry a fixed number of times, so doubling the log
- * doubles the reads; one that rescans the log every step reads it once per tick, and doubling
- * quadruples them. The bound sits between the two and counts work, never milliseconds.
+ * Reads are element reads of the log arrays plus reads of each entry's `tick`, so a rescan of a copy
+ * counts too. A replay that indexes the log once reads each entry a fixed number of times, so
+ * doubling the log doubles the reads; one that rescans the log (or a copy of it) every step reads it
+ * once per tick, and doubling quadruples them. The bound sits between the two and counts work, never
+ * milliseconds.
  */
 const MAX_LOG_READ_GROWTH = 2.5;
 const ARRAY_INDEX_PATTERN = /^\d+$/;
@@ -110,7 +112,30 @@ function countingElementReads<Item>(items: readonly Item[], counter: { reads: nu
   });
 }
 
-/** Records a log with two inputs per tick, replays it and returns how many log elements the replay read. */
+/** Counts every read of `entry.tick` into `counter`: a copy of the log keeps the wrapped entries, so its rescans count. */
+function countingTickReads<Entry extends { readonly tick: number }>(entry: Entry, counter: { reads: number }): Entry {
+  return new Proxy(entry, {
+    get(target, property, receiver) {
+      if (property === 'tick') {
+        counter.reads += 1;
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+}
+
+/** `entries` with every element read and every entry's `tick` read counted into `counter`. */
+function countedLog<Entry extends { readonly tick: number }>(
+  entries: readonly Entry[],
+  counter: { reads: number },
+): readonly Entry[] {
+  return countingElementReads(
+    entries.map((entry) => countingTickReads(entry, counter)),
+    counter,
+  );
+}
+
+/** Records a log with two inputs per tick, replays it and returns how many log reads the replay made (elements and ticks). */
 async function logReadsOfReplay(ticks: number): Promise<number> {
   const { replay } = await toyScenario('per-tick inputs')
     .seed(SEED)
@@ -123,9 +148,9 @@ async function logReadsOfReplay(ticks: number): Promise<number> {
   const counter = { reads: 0 };
   const counted: ScenarioReplay<ToyFixture> = {
     ...replay,
-    membership: countingElementReads(replay.membership, counter),
-    patches: countingElementReads(replay.patches, counter),
-    inputs: countingElementReads(replay.inputs, counter),
+    membership: countedLog(replay.membership, counter),
+    patches: countedLog(replay.patches, counter),
+    inputs: countedLog(replay.inputs, counter),
   };
   expect((await verifyReplay(counted, toyAdapter)).divergence).toBeNull();
   return counter.reads;
