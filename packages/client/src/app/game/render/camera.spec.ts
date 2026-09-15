@@ -3,9 +3,12 @@ import {
   CAMERA_FOLLOW_SECONDS,
   CAMERA_MAX_VIEW_HALF_HEIGHT_WU,
   CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
-  CAMERA_VIEW_RADII,
+  CAMERA_VIEW_RADIUS_EXPONENT,
+  DEFAULT_BALANCE,
   DISH_RADIUS,
+  radiusForMass,
 } from '@evolution/shared';
+import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
 import {
   cameraExtent,
   isDiscInExtent,
@@ -17,20 +20,84 @@ import {
   worldToScreen,
   zoomFor,
 } from './camera';
+import { HALF } from './geometry';
 
 const VIEWPORT = { width: 1920, height: 1080 };
+const FLOAT_SLACK = 1e-9;
+const SPAWN_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_STARTING_MASS, DEFAULT_BALANCE.growth);
+
+/** A number as game-design/controls-and-scope.md §7's table prints it, with half its last digit as the tolerance. */
+function printedNumber(cell: string | undefined): { value: number; tolerance: number } {
+  const match = /\d+(?:\.(\d+))?/.exec(cell ?? '');
+  if (match === null) throw new Error(`controls-and-scope.md §7 table: no number in "${cell}"`);
+  return { value: Number(match[0]), tolerance: HALF * 10 ** -(match[1]?.length ?? 0) };
+}
+
+function expectAsPrinted(actual: number, cell: string | undefined, label: string): void {
+  const printed = printedNumber(cell);
+  expect(Math.abs(actual - printed.value), label).toBeLessThanOrEqual(printed.tolerance + FLOAT_SLACK);
+}
+
+/** §7's table rows: mass, radius, view half-height, radii ahead, own cell px at 800 and at 1080 px tall. */
+function cameraTable(): string[][] {
+  const section = markdownSection(readRepoDocument('docs/game-design/controls-and-scope.md'), '7. ');
+  return section
+    .split('\n')
+    .filter((line) => /^\|\s*\d/.test(line))
+    .map(tableCells);
+}
+
+function ownCellPx(radius: number, viewportHeightPx: number): number {
+  return zoomFor({ x: 0, y: 0, viewHalfHeightWu: viewHalfHeightFor(radius) }, { width: 0, height: viewportHeightPx });
+}
 
 describe('viewHalfHeightFor', () => {
-  it('scales with the radius between the zoom limits', () => {
-    expect(viewHalfHeightFor(40)).toBe(CAMERA_VIEW_RADII * 40);
+  it('sits on the zoom-in limit at the starting radius and below it', () => {
+    expect(viewHalfHeightFor(SPAWN_RADIUS_WU)).toBeCloseTo(CAMERA_MIN_VIEW_HALF_HEIGHT_WU, 9);
     expect(viewHalfHeightFor(1)).toBe(CAMERA_MIN_VIEW_HALF_HEIGHT_WU);
     expect(viewHalfHeightFor(10_000)).toBe(CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
+  });
+
+  it('grows with the radius to CAMERA_VIEW_RADIUS_EXPONENT between the limits, more slowly than the cell', () => {
+    const quadrupled = SPAWN_RADIUS_WU * 4;
+    expect(viewHalfHeightFor(quadrupled)).toBeCloseTo(
+      CAMERA_MIN_VIEW_HALF_HEIGHT_WU * 4 ** CAMERA_VIEW_RADIUS_EXPONENT,
+      9,
+    );
+    expect(quadrupled / viewHalfHeightFor(quadrupled)).toBeGreaterThan(
+      SPAWN_RADIUS_WU / viewHalfHeightFor(SPAWN_RADIUS_WU),
+    );
+  });
+
+  const rows = cameraTable();
+
+  it('reads the five masses of game-design/controls-and-scope.md §7', () => {
+    expect(rows.map((row) => printedNumber(row[0]).value)).toEqual([
+      DEFAULT_BALANCE.growth.CELL_STARTING_MASS,
+      80,
+      312,
+      900,
+      DEFAULT_BALANCE.growth.CELL_MAX_MASS,
+    ]);
+  });
+
+  it.each(rows.map((row) => [printedNumber(row[0]).value, row] as const))('mass %s as §7 prints it', (mass, row) => {
+    const radius = radiusForMass(mass, DEFAULT_BALANCE.growth);
+    expectAsPrinted(radius, row[1], 'radius');
+    expectAsPrinted(viewHalfHeightFor(radius), row[2], 'view half-height');
+    expectAsPrinted(viewHalfHeightFor(radius) / radius, row[3], 'radii ahead');
+    expectAsPrinted(ownCellPx(radius, 800) * radius, row[4], 'own cell at 800 px tall');
+    expectAsPrinted(ownCellPx(radius, VIEWPORT.height) * radius, row[5], 'own cell at 1080 px tall');
   });
 });
 
 describe('parkCamera and stepCamera', () => {
   it('parks on the target without smoothing', () => {
-    expect(parkCamera({ x: 10, y: -20, radius: 40 })).toEqual({ x: 10, y: -20, viewHalfHeightWu: 480 });
+    expect(parkCamera({ x: 10, y: -20, radius: 40 })).toEqual({
+      x: 10,
+      y: -20,
+      viewHalfHeightWu: viewHalfHeightFor(40),
+    });
   });
 
   it('follows the target exponentially and zooms more slowly', () => {
@@ -38,7 +105,8 @@ describe('parkCamera and stepCamera', () => {
     const stepped = stepCamera(start, { x: 100, y: 0, radius: 50 }, CAMERA_FOLLOW_SECONDS);
     expect(stepped.x).toBeCloseTo(100 * (1 - Math.exp(-1)), 6);
     expect(stepped.y).toBe(0);
-    const zoomShare = (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (600 - start.viewHalfHeightWu);
+    const zoomShare =
+      (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (viewHalfHeightFor(50) - start.viewHalfHeightWu);
     expect(zoomShare).toBeLessThan(1 - Math.exp(-1));
     expect(zoomShare).toBeGreaterThan(0);
   });
@@ -49,7 +117,7 @@ describe('parkCamera and stepCamera', () => {
     let state = start;
     for (let frame = 0; frame < 600; frame += 1) state = stepCamera(state, { x: 50, y: 50, radius: 40 }, 1 / 60);
     expect(state.x).toBeCloseTo(50, 3);
-    expect(state.viewHalfHeightWu).toBeCloseTo(480, 2);
+    expect(state.viewHalfHeightWu).toBeCloseTo(viewHalfHeightFor(40), 2);
   });
 
   it('never centres outside the dish', () => {

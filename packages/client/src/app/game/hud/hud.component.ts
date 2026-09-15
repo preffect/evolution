@@ -22,7 +22,7 @@ import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
-import { hudStyleVariables, noticeRowsVariable } from './format/hud-css-variables';
+import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
 import { ElementSizeTracker } from '../../ui-kit/element-size';
 
 @Component({
@@ -120,6 +120,7 @@ export class HudComponent implements OnInit {
   /** The scale plus every constant the child stylesheets read, as one style map. */
   protected readonly styleVariables = computed(() => ({
     ...hudStyleVariables(this.scale()),
+    ...pickerBandVariables({ width: this.sizeTracker.size().widthPx, height: this.sizeTracker.size().heightPx }),
     ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),
   }));
 

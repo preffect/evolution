@@ -176,7 +176,7 @@ never the only tell between players; the evidence render shows them at 52, 20 an
 - **Self ring** — the own cell only: `SELF_RING` = `WHITE` @70 %, 1.5 px, dashed 6 4 (px), at
   `SELF_RING_RADIUS_FRACTION` 1.12 r with a `SELF_RING_MIN_PX` 7.5 floor, rotating 20 °/s. It replaces
   sheet 02's inset "identity ring at 7.5 px", which only existed at a zoom the camera never reaches: the
-  own cell is 32–102 px on screen for the whole round (§6), so the ring is drawn at full LOD.
+  own cell is 24–128 px on screen for the whole round under Z1 (§6), so the ring is drawn at full LOD.
 - **Far LOD (< 8 px)** has no seat mark: the dot is a presence tell, not an identity tell, and identity
   there is hue plus the leaderboard swatch. Stated on purpose (the own cell never reaches that LOD).
 
