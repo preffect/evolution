@@ -138,6 +138,8 @@ export interface SectionDefinition {
   readonly facts: readonly FactDefinition[];
   /** A section may re-point the preview (a trait's tier tabs); `null` keeps the entry's. */
   readonly preview: PreviewSpec | null;
+  /** Set on a trait's `tier_<n>` section (`{ traitId, tier }`): its heading and facts are generated at resolve time. */
+  readonly tier: TierSectionSource | null;
 }
 
 /** What `resolveEntry(id, context)` returns: every value already formatted, every link already titled. */
@@ -228,24 +230,35 @@ export interface FactContext {
 /** A typed path to a number leaf: the first two segments are checked by the compiler, deeper ones by §12.6. */
 export type BalancePath = readonly [domain: keyof BalanceConfig, name: string, ...keys: string[]];
 
-export type FactSource =
+export type ValueFactSource =
   /** One balance leaf, shown as is: `balancePath('ecology', 'ALGAE_MASS')`. */
   | { readonly kind: 'balance'; readonly path: BalancePath }
   /** A row of the closed formula table with its typed, number-free argument. */
   | { readonly kind: 'formula'; readonly formula: FactFormulaCall }
   /** A catalog quantity from the closed selector set: a count over structure, never a typed number. */
-  | { readonly kind: 'catalog'; readonly quantity: CatalogQuantityCall }
-  /** A link-valued fact from the closed derived-link table (`facts/derived-links.ts`): a trait's stage, a gate's next stage, a food's zones. */
-  | { readonly kind: 'link'; readonly link: DerivedLinkCall };
-
-export interface FactDefinition {
-  readonly key: string; // camelCase; what prose tokens and test ids name
-  readonly label: string;
-  readonly unit: QuantityUnit; // §12.5; ignored for a `link` fact
-  readonly presentation: QuantityPresentation; // §12.5; ignored for a `link` fact
-  readonly source: FactSource;
+  | { readonly kind: 'catalog'; readonly quantity: CatalogQuantityCall };
+/** A link-valued fact from the closed derived-link table (`facts/derived-links.ts`): a trait's stage, a gate's next stage, a food's zones. */
+export interface LinkFactSource {
+  readonly kind: 'link';
+  readonly link: DerivedLinkCall;
 }
+
+/** A value fact carries a unit and a presentation (§12.5); a link fact has neither, so neither can be written wrong. */
+export type FactDefinition =
+  | {
+      readonly key: string;
+      readonly label: string;
+      readonly unit: QuantityUnit;
+      readonly presentation: QuantityPresentation;
+      readonly source: ValueFactSource;
+    }
+  | { readonly key: string; readonly label: string; readonly source: LinkFactSource };
+// `key` is camelCase: what prose tokens and test ids name.
 ```
+
+A **catalog quantity** returns `number | null`: `null` where the count does not apply to its subject (the unlock count
+of a trait with no `unlockedBy`), and the resolver leaves that fact out rather than showing `0`, as it leaves out a link
+fact with no target.
 
 ```ts
 // encyclopedia/facts/formula-table.ts — the one file where a formula fact's number is computed
@@ -317,7 +330,35 @@ balance.traits.DEFAULT_CELL_MODIFIERS)`), keyed by the modifier key, labelled `M
   `formatQuantity(n, QUANTITY_UNIT.tier)` → `Tier II`, never written in content.
 - **Derived links are computed too:** a trait's `requires` and `unlockedBy.bacteriumVariant`, a stage's gate traits
   (`balance.ladder.STAGE_GATE_TRAITS`), an ability's granting traits (every trait with a tier setting one of the
-  ability's modifier keys to a non-identity value), a zone's food weights (`balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND`).
+  ability's modifier keys to a non-identity value), a zone's food weights (`balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND`),
+  a DNA tag's traits (the catalog rows carrying it). `facts/derived-links.ts` declares them as a closed table with typed
+  arguments, the shape of `FactFormulaCall` (#360):
+
+  ```ts
+  export const DERIVED_LINK = {
+    traitStage: 'trait_stage', // the stage a trait is offered from
+    traitRequires: 'trait_requires', // the traits it requires
+    traitUnlockVariant: 'trait_unlock_variant', // the bacterium variant that unlocks an endosymbiont
+    stageGateTraits: 'stage_gate_traits', // balance.ladder.STAGE_GATE_TRAITS[stage]
+    stageNext: 'stage_next', // the stage a gate trait climbs to
+    foodZones: 'food_zones', // zones with a non-zero weight in balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND
+    abilityTraits: 'ability_traits', // traits whose tiers set one of the ability's modifier keys
+    tagTraits: 'tag_traits', // traits whose catalog row carries the tag
+  } as const;
+  export interface DerivedLinkArguments {
+    [DERIVED_LINK.traitStage]: { readonly traitId: TraitId };
+    // … one typed argument per row: a trait id, a stage, a spawned food kind, an ability id or a DNA tag
+  }
+  export type DerivedLinkCall = {
+    [Id in DerivedLinkId]: { readonly id: Id; readonly argument: DerivedLinkArguments[Id] };
+  }[DerivedLinkId];
+  ```
+
+  Every row reads the live balance's structure, never a module import, and `fact-sources.spec.ts` runs every row over
+  every argument its type allows. **A link with several targets yields one `ResolvedFact` per target**, in the table's
+  order, sharing the fact's `key` and `label`, so `ResolvedFact.link` stays a single `EntryLink` (#354's facts table
+  merges consecutive facts with one key into one row); a link with no target yields no fact, and a prose token naming
+  a multi-target fact reads as their titles joined by commas.
 
 ### 12.4 The closed sets the registry adds
 
@@ -418,6 +459,10 @@ export const ENTRY_BY_ENTITY_KIND: Readonly<Record<EntityKind, EntryId>> = {
   dna_fragment: 'entity:dna_fragment',
 };
 ```
+
+The anchors that name entry ids (`ENTRY_BY_EFFECT`, `ENTRY_BY_WORLD_STANDING`) sit in `encyclopedia/model/entry-anchors.ts`
+rather than beside `ACTION` and `CONCEPT`, because `entry-id.ts` imports those sets to derive `EntryId`: no model file
+imports another in a cycle (#360).
 
 **Reserved values are excluded by name**, never by omission: `RESERVED_FROM_ENCYCLOPEDIA` in
 `encyclopedia/model/reserved.ts` lists `CELL_STATE.dividing`, `GAME_MODE.colony`, the reserved trait ids, the
@@ -781,7 +826,8 @@ join an entry id to its spec and the render seam. `render/` never imports from `
 packages/client/src/app/game/
   quantities/{quantity-unit,format-quantity,modifier-labels}.ts    units, suffixes, decimals, rounding; the one formatter; the modifier label table (§12.5)
   encyclopedia/model/{entry-id,entry,fact,prose}.ts      the closed types, ids, definitions, resolved shapes, token parser
-  encyclopedia/model/{categories,groups,abilities,actions,world-topics,concepts,hud-topics,entity-kinds,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
+  encyclopedia/model/{categories,groups,abilities,actions,world-topics,concepts,hud-topics,entity-kinds,entry-anchors,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
+  encyclopedia/{build-entries,resolve-entry}.ts                    content + the balance's structure → definitions; one definition + context → ResolvedEntry (pure)
   encyclopedia/facts/{balance-path,formula-table,catalog-quantities,resolve-fact,resolve-prose,derived-links}.ts   typed paths, the closed formula and catalog tables, value + unit → text, template → segments, computed links
   encyclopedia/content/{trait,stage,dna-tag}-entries.ts            evolutions (trait tier sections and headings generated from balance.traits.TRAIT_TIERS)
   encyclopedia/content/{concept,hud}-entries.ts                   basics (and `concept:food`, in entities)
