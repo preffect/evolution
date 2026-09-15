@@ -83,8 +83,17 @@ TICK_INTERVAL_S`; while `accumulator ≥ 1` and the population is below the cap,
   over a window the spawner overshoots its accumulated budget by fewer than `BACTERIUM_CLUSTER_SIZE`.
   The initial fill uses the same kind draw and spawns clusters too, so the vent is clustered at
   tick 0 (each member is redrawn on rejection, and the last cluster is truncated to the fill count).
-- **Zone weights per kind:** algae shallows 0.70 / broth 0.25 / vent 0.05; bacterium vent 0.60 /
-  broth 0.30 / shallows 0.10; DNA fragment vent 0.40 / broth 0.40 / shallows 0.20.
+- **Zone weights per kind:** algae shallows 0.70 / broth 0.25 / vent 0.05; bacterium vent 0.50 /
+  broth 0.30 / shallows 0.20 (#119, from 0.60 / 0.30 / 0.10); DNA fragment vent 0.40 / broth 0.40 / shallows 0.20.
+- **The two trips are unequal by design, but not by a factor of ten (#119).** The vent is 2.8 % of the dish
+  and the shallows 30.6 %, so no weight makes their densities match; what a player feels is the time to
+  find two clusters. At 0.60 / 0.10 a solo dish in the trip era holds ≈ 42 bacterium clusters, ≈ 17.6
+  aerobic ones inside the vent (all on one screen: seconds) and ≈ 2.9 photosynthetic ones spread round
+  the 17 300 wu ring of the shallows (≈ 6 000 wu apart: ≈ 100 s of cruising at mass 200, 124 wu/s). At
+  0.50 / 0.20 the vent keeps ≈ 14.7 (still one screen) and the ring holds ≈ 5.9 (≈ 2 900 wu apart:
+  ≈ 50 s). The vent stays the short, crowded, decaying trip and the shallows the long, safe cruise; the
+  chloroplast is no longer a hunt. How a player sees it: a green cluster is in sight within a minute of
+  reaching the rim.
 - **Variant weights per zone** (`BACTERIUM_VARIANT_WEIGHTS_BY_ZONE`): vent plain 0.3 / aerobic 0.7 /
   photosynthetic 0; shallows plain 0.3 / aerobic 0 / photosynthetic 0.7; broth and gel plain 0.6 /
   aerobic 0.2 / photosynthetic 0.2. A vent trip is the mitochondrion, a shallows trip the chloroplast;
