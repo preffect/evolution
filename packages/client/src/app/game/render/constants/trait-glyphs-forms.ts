@@ -78,8 +78,9 @@ const AMOEBA_PSEUDOPODS: TraitGlyph = {
   ],
 };
 
+// The oral groove notches the slipper's upper edge, so the outline differs from a plain lens at 20 px.
 const SLIPPER = path(
-  'M16 50 C16 38 32 32 50 34 C62 35 66 40 76 38 C86 36 89 46 86 54 C84 64 70 68 50 66 C30 64 16 62 16 50 Z',
+  'M16 50 C16 38 32 32 46 34 C52 35 52 45 58 45 C63 45 65 38 76 38 C86 36 89 46 86 54 C84 64 70 68 50 66 C30 64 16 62 16 50 Z',
 );
 const FRINGE_BEAT = motion(GLYPH_MOTION.sway);
 const PARAMECIUM_CILIA: TraitGlyph = {
@@ -103,7 +104,7 @@ const PARAMECIUM_CILIA: TraitGlyph = {
       ),
       { stroke: stroke(VAC_RIM, 1, 0.7) },
     ),
-    paint(signature, path('M56 37 C62 46 60 54 51 58'), { stroke: stroke(SILICA_DARK, 2.6, 0.85) }),
+    paint(signature, path('M58 46 C61 51 58 56 51 58'), { stroke: stroke(SILICA_DARK, 2.6, 0.85) }),
     glintLayer(ellipse(30, 42, 6, 2.6)),
   ],
 };

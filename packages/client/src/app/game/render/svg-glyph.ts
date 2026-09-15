@@ -142,6 +142,25 @@ export function radialStrokesPath(spec: RadialStrokesSpec): string {
   }).join(' ');
 }
 
+export interface PolygonSpec {
+  readonly cx: number;
+  readonly cy: number;
+  readonly sides: number;
+  /** The corners' distance from the centre. */
+  readonly radius: number;
+  /** Where the first corner sits, in turns. */
+  readonly phaseTurns: number;
+}
+
+/** A closed regular polygon in one path: a plated wall. */
+export function polygonPath(spec: PolygonSpec): string {
+  const centre: Point = [spec.cx, spec.cy];
+  const corners = Array.from({ length: spec.sides }, (_unused, index) =>
+    formatPoint(polar(centre, spec.radius, spec.phaseTurns + index / spec.sides)),
+  );
+  return `M${corners.join(' L')} Z`;
+}
+
 export interface DotRingSpec {
   readonly cx: number;
   readonly cy: number;

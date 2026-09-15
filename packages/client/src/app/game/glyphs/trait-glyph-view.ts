@@ -28,6 +28,9 @@ export const TRAIT_GLYPH_LOD = { card: 'card', list: 'list' } as const;
 export type TraitGlyphLod = (typeof TRAIT_GLYPH_LOD)[keyof typeof TRAIT_GLYPH_LOD];
 
 const NO_PAINT = 'none';
+/** A dashed stroke ends square, so a thicker list-LOD stroke keeps its gaps (pores, plates) open; every other is round. */
+export const GLYPH_LINE_CAP = { round: 'round', butt: 'butt' } as const;
+export type GlyphLineCap = (typeof GLYPH_LINE_CAP)[keyof typeof GLYPH_LINE_CAP];
 const NO_TILT = 0;
 const HALF_BOX = 0.5;
 const TRANSPARENT = 0;
@@ -59,6 +62,7 @@ interface StrokeView {
   readonly strokeWidth: number;
   readonly strokeOpacity: number;
   readonly dash: string | null;
+  readonly lineCap: GlyphLineCap;
 }
 
 interface MotionView {
@@ -127,12 +131,15 @@ function fillView(fill: GlyphFill | undefined, gradient: GlyphGradientView | nul
 }
 
 function strokeView(stroke: GlyphStroke | undefined, widthScale: number): StrokeView {
-  if (stroke === undefined) return { stroke: NO_PAINT, strokeWidth: 0, strokeOpacity: OPAQUE, dash: null };
+  if (stroke === undefined) {
+    return { stroke: NO_PAINT, strokeWidth: 0, strokeOpacity: OPAQUE, dash: null, lineCap: GLYPH_LINE_CAP.round };
+  }
   return {
     stroke: stroke.colour,
     strokeWidth: stroke.width * widthScale,
     strokeOpacity: stroke.opacity,
     dash: stroke.dash ?? null,
+    lineCap: stroke.dash === undefined ? GLYPH_LINE_CAP.round : GLYPH_LINE_CAP.butt,
   };
 }
 

@@ -553,8 +553,8 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Dark-field microscopy: the principles** (L5–52): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
 - **2. Palette** (L53–241): All hex values are named constants; draw code never holds a literal.
 
-## visual-style/ui-type.md (101 lines)
+## visual-style/ui-type.md (107 lines)
 
-- **Evolution — Visual Style: UI colours and type** (L1–101): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
-- **7. UI colours and type** (L5–101): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
-  - **7.1 Trait glyphs (#312)** (L41–101): One code-drawn SVG glyph per `TraitId` names a trait wherever the HUD lists one: the picker card's medallion (`ui/overlays.md` §3.2) and t…
+- **Evolution — Visual Style: UI colours and type** (L1–107): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **7. UI colours and type** (L5–107): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
+  - **7.1 Trait glyphs (#312)** (L41–107): One code-drawn SVG glyph per `TraitId` names a trait wherever the HUD lists one: the picker card's medallion (`ui/overlays.md` §3.2) and t…

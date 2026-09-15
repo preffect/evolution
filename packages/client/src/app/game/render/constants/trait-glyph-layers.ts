@@ -74,10 +74,13 @@ export const GLYPH_LIST_STROKE_BOOST = 1.8;
 export const GLYPH_LIST_ZOOM = 1.2;
 export const GLYPH_HALO_OPACITY = 0.5;
 
-/** Idle periods, slow enough that three cards side by side never read as busy (visual-style/motion-and-legibility.md §5). */
+/**
+ * Idle periods, slow enough that three cards side by side never read as busy (visual-style/motion-and-legibility.md §5):
+ * even the beat, the quickest, stays near the 0.5 Hz rest rate so one card never pulls the eye.
+ */
 export const GLYPH_PERIOD_MS = {
   breathe: 4200,
-  beat: 1000,
+  beat: 2400,
   sway: 2600,
   spin: 40000,
   rise: 2000,

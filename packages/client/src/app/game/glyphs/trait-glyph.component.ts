@@ -54,7 +54,7 @@ import { TRAIT_GLYPHS } from './trait-glyphs';
             [attr.stroke-dasharray]="layer.dash"
             [style.animation-duration]="layer.animationDuration"
             [style.transform-origin]="layer.transformOrigin"
-            stroke-linecap="round"
+            [attr.stroke-linecap]="layer.lineCap"
             stroke-linejoin="round"
           />
         </g>

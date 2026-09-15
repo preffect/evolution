@@ -1,27 +1,35 @@
-// The trait glyphs of rungs 1 to 3 (docs/visual-style/ui-type.md §7.1): the protocell, prokaryote and endosymbiosis
-// traits, each drawn from its organelle vocabulary (visual-style/cells-and-organelles.md §4) in
-// the 100 × 100 glyph box. Draw order is the array order: halo, pool, outline, body, detail, signature, glint.
+// The trait glyphs of rungs 1 and 2 (docs/visual-style/ui-type.md §7.1): the protocell and prokaryote traits, each
+// drawn from its organelle vocabulary (visual-style/cells-and-organelles.md §4) in the 100 × 100 glyph box. Draw
+// order is the array order: halo, pool, outline, body, detail, signature, glint.
 
-import { GLYPH_MOTION, GLYPH_ROLE, circle, dotRingPath, dotsPath, ellipse, path, type TraitGlyph } from '../svg-glyph';
 import {
-  BLACK,
+  GLYPH_MOTION,
+  GLYPH_ROLE,
+  circle,
+  dotRingPath,
+  dotsPath,
+  ellipse,
+  path,
+  polygonPath,
+  radialStrokesPath,
+  type TraitGlyph,
+} from '../svg-glyph';
+import {
   CELL_WALL,
   CELL_WALL_LIGHT,
   CHLORO_DARK,
   CHLORO_LIGHT,
-  ENVELOPE,
   FLAGELLUM,
   MITO_BASE,
   MITO_DARK,
   MITO_LIGHT,
   NUCLEOID_GLOW,
   NUCLEOID_STRAND,
-  PORE,
+  OUTLINE,
   PROTO_FILM,
   PROTO_FILM_LIGHT,
   PROTO_GRANULE,
   RIBOSOME,
-  SILICA_DARK,
   WHITE,
 } from './colours';
 import {
@@ -107,73 +115,112 @@ const SIMPLE_FLAGELLUM: TraitGlyph = {
   ],
 };
 
+// A plated wall: a hexagonal band whose corners stay sharp at 20 px, with a seam across the middle of each side.
+const WALL_PLATES = path(polygonPath({ cx: 50, cy: 50, sides: 6, radius: 31, phaseTurns: 0 }));
 const CELL_WALL_GLYPH: TraitGlyph = {
   traitId: 'cell_wall',
   tiltDeg: NO_TILT,
   layers: [
-    haloLayer(circle(50, 50, 40), CELL_WALL, 0.4),
-    poolLayer(circle(50, 50, 34), BREATHE),
-    outlineLayer(circle(50, 50, 31), 7, BREATHE),
+    haloLayer(circle(50, 50, 42), CELL_WALL, 0.4),
+    poolLayer(path(polygonPath({ cx: 50, cy: 50, sides: 6, radius: 35, phaseTurns: 0 })), BREATHE),
+    outlineLayer(WALL_PLATES, 8, BREATHE),
     ...shadedBody({
-      shape: circle(50, 50, 24),
+      shape: circle(50, 50, 22),
       ramp: GLYPH_RAMP.protocell,
       rim: stroke(PROTO_FILM, 1.2, 0.8),
       opacity: 0.75,
       motion: BREATHE,
     }),
-    paint(signature, circle(50, 50, 31), { stroke: stroke(CELL_WALL, 7, 1, '11 2.4'), motion: BREATHE }),
-    paint(detail, circle(50, 50, 34.8), { stroke: stroke(CELL_WALL_LIGHT, 1.1, 0.8), motion: BREATHE }),
-    paint(detail, circle(50, 50, 27.2), { stroke: stroke(CELL_WALL_LIGHT, 0.8, 0.5), motion: BREATHE }),
-    paint(GLYPH_ROLE.glint, path('M19.5 44.6 A31 31 0 0 1 44.6 19.5'), {
-      stroke: stroke(WHITE, 2.2, 0.7),
+    paint(signature, WALL_PLATES, { stroke: stroke(CELL_WALL, 8), motion: BREATHE }),
+    paint(
+      detail,
+      path(
+        radialStrokesPath({
+          cx: 50,
+          cy: 50,
+          count: 6,
+          innerRadius: 26,
+          outerRadius: 34,
+          leanTurns: 0,
+          phaseTurns: 1 / 12,
+        }),
+      ),
+      { stroke: stroke(OUTLINE, 1.2, 0.7), motion: BREATHE },
+    ),
+    paint(detail, path(polygonPath({ cx: 50, cy: 50, sides: 6, radius: 35.4, phaseTurns: 0 })), {
+      stroke: stroke(CELL_WALL_LIGHT, 1, 0.8),
       motion: BREATHE,
     }),
-    glintLayer(ellipse(42, 41, 5, 3), BREATHE),
+    paint(GLYPH_ROLE.glint, path('M21 48 L34 25.5'), { stroke: stroke(WHITE, 2.2, 0.7), motion: BREATHE }),
+    glintLayer(ellipse(40, 41, 5, 3), BREATHE),
   ],
 };
 
-const RIBOSOME_RING = path(dotRingPath({ cx: 50, cy: 50, count: 18, ringRadius: 26, dotRadius: 2.4, phaseTurns: 0 }));
+// Studs stand proud of a smaller membrane, so the outline is a bumpy ring at 20 px.
+const RIBOSOME_STUDS = path(dotRingPath({ cx: 50, cy: 50, count: 14, ringRadius: 31, dotRadius: 3.8, phaseTurns: 0 }));
 const RIBOSOMES: TraitGlyph = {
   traitId: 'ribosomes',
   tiltDeg: NO_TILT,
   layers: [
-    haloLayer(circle(50, 50, 40), RIBOSOME, 0.3),
+    haloLayer(circle(50, 50, 42), RIBOSOME, 0.45),
     ...shadedBody({
-      shape: circle(50, 50, 32),
+      shape: circle(50, 50, 27),
       ramp: GLYPH_RAMP.protocell,
-      rim: stroke(PROTO_FILM, 2.4, 0.9),
-      opacity: 0.45,
+      rim: stroke(PROTO_FILM_LIGHT, 2, 0.9),
+      opacity: 0.75,
       motion: BREATHE,
     }),
-    paint(detail, path(dotRingPath({ cx: 50, cy: 50, count: 11, ringRadius: 17, dotRadius: 1.6, phaseTurns: 0.05 })), {
-      fill: solid(RIBOSOME, 0.6),
+    paint(detail, path(dotRingPath({ cx: 50, cy: 50, count: 9, ringRadius: 15, dotRadius: 1.6, phaseTurns: 0.05 })), {
+      fill: solid(RIBOSOME, 0.7),
       motion: BREATHE,
     }),
-    paint(GLYPH_ROLE.halo, RIBOSOME_RING, { stroke: stroke(RIBOSOME, 2.5, 0.3), motion: BREATHE }),
-    paint(signature, RIBOSOME_RING, { fill: solid(RIBOSOME), motion: BREATHE }),
-    glintLayer(ellipse(36, 34, 5, 3), BREATHE),
+    outlineLayer(RIBOSOME_STUDS, 1, BREATHE),
+    paint(signature, RIBOSOME_STUDS, { fill: solid(RIBOSOME), stroke: stroke(WHITE, 0.8, 0.6), motion: BREATHE }),
+    glintLayer(ellipse(38, 37, 5, 3), BREATHE),
   ],
 };
 
-const MITO_CRISTAE = path('M34 39 Q41 50 34 61 M50 35 Q57 50 50 65 M66 39 Q73 50 66 61');
+// A kidney bean: the notch in its lower edge is the outline tell that survives the list LOD.
+const MITO_KIDNEY = path(
+  'M20 50 C20 36 34 31 50 33 C66 31 80 36 80 50 C80 64 68 69 60 66 C56 54 44 54 40 66 C32 69 20 64 20 50 Z',
+);
+const MITO_CRISTAE = path('M33 40 Q39 50 33 60 M50 36 Q55 42 50 48 M67 40 Q73 50 67 60');
 const MITOCHONDRION: TraitGlyph = {
   traitId: 'mitochondrion',
   tiltDeg: -24,
   layers: [
     haloLayer(ellipse(50, 50, 41, 28), MITO_BASE, 0.5),
     ...shadedBody({
-      shape: ellipse(50, 50, 31, 18),
+      shape: MITO_KIDNEY,
       ramp: GLYPH_RAMP.mitochondrion,
       rim: stroke(MITO_LIGHT, 1.6, 0.9),
       motion: BEAT,
     }),
-    paint(detail, ellipse(50, 50, 26, 13.5), { stroke: stroke(MITO_DARK, 1.2, 0.7), motion: BEAT }),
+    paint(
+      detail,
+      path('M26 50 C26 40 37 37 50 38 C63 37 74 40 74 50 C74 58 67 62 62 60 C57 49 43 49 38 60 C33 62 26 58 26 50 Z'),
+      { stroke: stroke(MITO_DARK, 1.2, 0.7), motion: BEAT },
+    ),
     paint(signature, MITO_CRISTAE, { stroke: stroke(MITO_DARK, 5.5, 0.55), motion: BEAT }),
     paint(signature, MITO_CRISTAE, { stroke: stroke(MITO_LIGHT, 3.2, 0.9), motion: BEAT }),
     glintLayer(ellipse(36, 40, 6, 3), BEAT),
   ],
 };
 
+// Six grana sit on the lens's lit edge, half of each past it, so the outline is bumped at 20 px.
+const CHLORO_GRANA = path(
+  dotsPath(
+    [
+      [26, 36.4],
+      [34, 32.5],
+      [43, 30.5],
+      [53, 30.1],
+      [62, 31.4],
+      [71, 34.7],
+    ],
+    6,
+  ),
+);
 const CHLOROPLAST: TraitGlyph = {
   traitId: 'chloroplast',
   tiltDeg: 16,
@@ -189,67 +236,17 @@ const CHLOROPLAST: TraitGlyph = {
       stroke: stroke(CHLORO_LIGHT, 1, 0.45),
       motion: BREATHE,
     }),
-    paint(
-      signature,
-      path(
-        dotsPath(
-          [
-            [28, 48],
-            [37, 42],
-            [46, 39],
-            [55, 39],
-            [64, 42],
-            [73, 48],
-          ],
-          4.2,
-        ),
-      ),
-      {
-        fill: solid(CHLORO_DARK),
-        stroke: stroke(CHLORO_LIGHT, 1.1, 0.9),
-        motion: BREATHE,
-      },
-    ),
-    glintLayer(ellipse(38, 37, 6, 2.6), BREATHE),
+    outlineLayer(CHLORO_GRANA, 1.1, BREATHE),
+    paint(signature, CHLORO_GRANA, {
+      fill: solid(CHLORO_DARK),
+      stroke: stroke(CHLORO_LIGHT, 1.1, 0.9),
+      motion: BREATHE,
+    }),
+    glintLayer(ellipse(36, 45, 6, 2.6), BREATHE),
   ],
 };
 
-// The envelope's dash is a sixteenth of each ring's circumference less one pore gap; the pore dots sit in the gaps.
-const NUCLEAR_ENVELOPE: TraitGlyph = {
-  traitId: 'nuclear_envelope',
-  tiltDeg: NO_TILT,
-  layers: [
-    haloLayer(circle(50, 50, 42), NUCLEOID_GLOW, 0.4),
-    outlineLayer(circle(50, 50, 31), 2),
-    ...shadedBody({ shape: circle(50, 50, 22), ramp: GLYPH_RAMP.nucleus, rim: stroke(ENVELOPE, 1, 0.6) }),
-    paint(
-      detail,
-      path(
-        dotsPath(
-          [
-            [43, 47],
-            [55, 44],
-            [46, 57],
-            [41, 54],
-          ],
-          2.2,
-        ),
-      ),
-      { fill: solid(BLACK, 0.22) },
-    ),
-    paint(detail, circle(56, 54, 5.5), { fill: solid(SILICA_DARK, 0.55) }),
-    paint(signature, circle(50, 50, 27), { stroke: stroke(ENVELOPE, 2, 1, '8.6 2'), motion: SPIN }),
-    paint(signature, circle(50, 50, 31), { stroke: stroke(ENVELOPE, 2, 0.85, '10.17 2'), motion: SPIN }),
-    paint(
-      signature,
-      path(dotRingPath({ cx: 50, cy: 50, count: 16, ringRadius: 29, dotRadius: 1.5, phaseTurns: 0.057 })),
-      { fill: solid(PORE), motion: SPIN },
-    ),
-    glintLayer(ellipse(42, 42, 5, 3)),
-  ],
-};
-
-/** The protocell, prokaryote and endosymbiosis traits, in catalog order. */
+/** The protocell and prokaryote traits, in catalog order. */
 export const EARLY_TRAIT_GLYPHS: readonly TraitGlyph[] = [
   NUCLEOID,
   SIMPLE_FLAGELLUM,
@@ -257,5 +254,4 @@ export const EARLY_TRAIT_GLYPHS: readonly TraitGlyph[] = [
   RIBOSOMES,
   MITOCHONDRION,
   CHLOROPLAST,
-  NUCLEAR_ENVELOPE,
 ];

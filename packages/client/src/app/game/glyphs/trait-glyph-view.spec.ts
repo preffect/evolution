@@ -8,7 +8,7 @@ import {
 } from '../render/constants/trait-glyph-layers';
 import { GLYPH_ROLE, circle, ellipse, path } from '../render/svg-glyph';
 import { TRAIT_GLYPHS } from './trait-glyphs';
-import { TRAIT_GLYPH_LOD, shapePathData, traitGlyphView } from './trait-glyph-view';
+import { GLYPH_LINE_CAP, TRAIT_GLYPH_LOD, shapePathData, traitGlyphView } from './trait-glyph-view';
 
 const MITOCHONDRION = TRAIT_GLYPHS.mitochondrion;
 
@@ -76,6 +76,16 @@ describe('traitGlyphView', () => {
     expect(list.layers.at(-1)?.transform).toBe(
       `rotate(${MITOCHONDRION.tiltDeg} 50 50) matrix(${GLYPH_LIST_ZOOM} 0 0 ${GLYPH_LIST_ZOOM} ${shift} ${shift})`,
     );
+  });
+
+  it('ends dashed strokes square so their gaps stay open, and every other stroke round', () => {
+    const envelope = traitGlyphView(TRAIT_GLYPHS.nuclear_envelope, TRAIT_GLYPH_LOD.list, 'drawing-f');
+    const dashed = envelope.layers.filter((layer) => layer.dash !== null);
+    expect(dashed.length).toBeGreaterThan(0);
+    expect(dashed.every((layer) => layer.lineCap === GLYPH_LINE_CAP.butt)).toBe(true);
+    expect(
+      envelope.layers.filter((layer) => layer.dash === null).every((layer) => layer.lineCap === GLYPH_LINE_CAP.round),
+    ).toBe(true);
   });
 
   it('thickens the glyph strokes at the list LOD and leaves the frame rim alone', () => {

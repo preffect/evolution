@@ -65,17 +65,17 @@ after the tilt, so its shade stays down-right on screen.
 | ------------------- | ------------------------------------------------------------------------------------ | -------------------------------- |
 | `nucleoid`          | a glowing `NUCLEOID_STRAND` tangle in a faint film                                   | spin (the tangle)                |
 | `simple_flagellum`  | a small cell with a long `FLAGELLUM` sine tail                                       | sway about the tail's root       |
-| `cell_wall`         | a thick plated `CELL_WALL` band around the membrane                                  | breathe                          |
-| `ribosomes`         | a `RIBOSOME` stipple ring inside the membrane                                        | breathe                          |
-| `mitochondrion`     | a `MITO_*` bean with three cristae, tilted −24°                                      | beat                             |
-| `chloroplast`       | a `CHLORO_*` lens with six grana on its lit edge, 16°                                | breathe                          |
-| `nuclear_envelope`  | a nucleus inside a double `ENVELOPE` ring of 16 `PORE`s                              | spin (the rings and pores)       |
-| `cytoskeleton`      | eleven `CYTOSKELETON` spokes from a nucleus to the rim                               | breathe                          |
-| `cilia`             | a cell with a fringe of 28 leaning `CILIA` hairs                                     | sway (the fringe)                |
+| `cell_wall`         | a thick plated `CELL_WALL` hexagon around the membrane, its corners sharp at 20 px   | breathe                          |
+| `ribosomes`         | `RIBOSOME` studs standing proud of a smaller membrane: a bumpy ring                  | breathe                          |
+| `mitochondrion`     | a `MITO_*` kidney bean, notched in its lower edge, with three cristae, tilted −24°   | beat                             |
+| `chloroplast`       | a `CHLORO_*` lens with six grana bulging past its lit edge, 16°                      | breathe                          |
+| `nuclear_envelope`  | a nucleus inside a double `ENVELOPE` ring notched by 8 `PORE`s                       | spin (the rings and pores)       |
+| `cytoskeleton`      | eleven `CYTOSKELETON` spokes from a nucleus out past the rim                         | breathe                          |
+| `cilia`             | a cell with a long fringe of 20 leaning `CILIA` hairs                                | sway (the fringe)                |
 | `food_vacuole`      | three `MITO_BASE` bubbles, one holding food                                          | rise (the two small bubbles)     |
 | `toxin_vacuole`     | a `TOXIN_*` bladder leaking three `TOXIN_GLOW` wisps                                 | beat (bladder), sway (wisps)     |
 | `amoeba_pseudopods` | a lobed `VAC_*` body with a nucleus                                                  | breathe                          |
-| `paramecium_cilia`  | a `VAC_*` slipper with a cilia fringe and oral groove                                | sway (the fringe)                |
+| `paramecium_cilia`  | a `VAC_*` slipper notched by its oral groove, with a cilia fringe                    | sway (the fringe)                |
 | `euglena_eyespot`   | a `CHLORO_*` spindle with a red `EYESPOT` and a flagellum                            | breathe (body), sway (flagellum) |
 | `diatom_shell`      | a `SILICA_*` valve with striae and eight bright spines                               | spin (spines, tips, striae)      |
 | `stentor_trumpet`   | a `VAC_*` trumpet with a membranelle crown and beaded nucleus in a `TOXIN_GLOW` haze | sway about the foot              |
@@ -83,8 +83,14 @@ after the tilt, so its shade stays down-right on screen.
 Two traits are drawn louder than in the dish, for legibility at 20 px: the stentor's `TOXIN_GLOW` haze is @22 %
 here (@8 % on the cell, cells-and-organelles.md §4), and the eyespot carries its own `EYESPOT` halo.
 
-**Motion.** One slow loop per glyph (`GLYPH_PERIOD_MS`): breathe 4 200 ms to 1.04×, beat 1 000 ms to 1.08× in the
-first 15 %, sway 2 600 ms ±4°, spin 40 000 ms per turn, rise 2 000 ms by 3 units. All stay under §5's 1.14×
+**Silhouette at 20 px** (graphics-qa on #394; `principles-and-palette.md` §1, never hue alone): every trait's tell
+is on its outline, never only in its interior or its colour. That means the notch, the bumps, the plates, the studs,
+the pores, the spokes or the hairs. Glyphs that share a category must differ in outline, not just in hue
+(Mitochondrion and Chloroplast; Cytoskeleton and Cilia). A dashed stroke ends square, so a pore or plate gap stays
+open when the list LOD thickens the stroke. Evidence keeps a frameless silhouette strip at both 56 px and 20 px.
+
+**Motion.** One slow loop per glyph (`GLYPH_PERIOD_MS`): breathe 4 200 ms to 1.04×, beat 2 400 ms to 1.08× in the
+first 15 % (near §5's 0.5 Hz rest rate, so no card in the picker pulls the eye), sway 2 600 ms ±4°, spin 40 000 ms per turn, rise 2 000 ms by 3 units. All stay under §5's 1.14×
 pulse ceiling, and `prefers-reduced-motion` stops them. A layer lit by a ramp, and a glint, never spins: a turning
 ramp would turn the light (§1).
 
