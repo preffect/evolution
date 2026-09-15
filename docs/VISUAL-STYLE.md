@@ -23,5 +23,5 @@ This document is split into topic files (#313). Read only the file a ticket or b
 | [`visual-style/principles-and-palette.md`](./visual-style/principles-and-palette.md)       | §1–§2    | Dark-field principles and palette              |
 | [`visual-style/cells-and-organelles.md`](./visual-style/cells-and-organelles.md)           | §3–§4    | Cell layer stack and organelle vocabulary      |
 | [`visual-style/motion-and-legibility.md`](./visual-style/motion-and-legibility.md)         | §5–§6    | Membrane motion and legibility at play scale   |
-| [`visual-style/ui-type.md`](./visual-style/ui-type.md)                                     | §7       | UI colours and type                            |
+| [`visual-style/ui-type.md`](./visual-style/ui-type.md)                                     | §7       | UI colours, type and trait glyphs              |
 | [`visual-style/performance-and-checklist.md`](./visual-style/performance-and-checklist.md) | §8–§9    | Performance intent and the per-asset checklist |

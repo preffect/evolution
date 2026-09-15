@@ -38,8 +38,6 @@ export interface TraitCardView {
   /** The trait is a gate of the player's next stage: the card carries the `RUNG` ribbon. */
   readonly isRung: boolean;
   readonly category: TraitCategory;
-  /** The medallion's letter until #312's glyphs replace it. */
-  readonly categoryInitial: string;
   readonly rarity: TraitRarity;
   readonly effects: readonly string[];
   /** The `1` `2` `3` chip under the card. */
@@ -106,7 +104,6 @@ function cardView(
     isUpgrade,
     isRung: isRungFor(card.traitId, progress.stage),
     category,
-    categoryInitial: category.charAt(0).toUpperCase(),
     rarity: definition.rarity,
     effects: describeTierModifiers(traits, card.traitId, card.tier),
     keyLabel: String(index + FIRST_KEY),

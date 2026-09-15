@@ -57,15 +57,10 @@
   letter-spacing: var(--hud-label-tracking);
 }
 
+/* The trait's glyph draws its own disc and rim (docs/visual-style/ui-type.md §7.1). */
 .medallion {
-  display: grid;
-  place-items: center;
   width: calc(var(--hud-picker-medallion) * var(--hud-scale));
   height: calc(var(--hud-picker-medallion) * var(--hud-scale));
-  border-radius: 50%;
-  border: 1px solid var(--hud-panel-rim);
-  font-size: calc(var(--hud-type-title) * var(--hud-scale));
-  color: var(--hud-level-gold);
 }
 
 .category,
