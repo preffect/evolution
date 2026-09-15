@@ -73,6 +73,12 @@ describe('TraitCardComponent', () => {
     expect(picks).toEqual([1]);
   });
 
+  it('shows the offered trait’s glyph in its medallion', () => {
+    const medallion = mount(FRESH_CARD).querySelector('.medallion svg');
+    expect(medallion?.getAttribute('data-trait-id')).toBe('cell_wall');
+    expect(medallion?.getAttribute('data-lod')).toBe('card');
+  });
+
   it('lifts only while the overlay names it the highlight', () => {
     expect(mount(FRESH_CARD).classList.contains('highlighted')).toBe(false);
     expect(mount(FRESH_CARD, true).classList.contains('highlighted')).toBe(true);

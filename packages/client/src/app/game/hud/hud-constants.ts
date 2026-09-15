@@ -5,6 +5,8 @@
 //
 // Only the constants the chrome (#185) needs are declared; #186–#190 add their own rows as they land.
 
+import { TRAIT_GLYPH_CARD_PX } from '../glyphs/glyph-constants';
+
 // ---- layout frame (docs/ui/layout.md §1) ----
 
 /** Viewport width at which `--hud-scale` is 1. */
@@ -112,8 +114,8 @@ export const PICKER_CARD_WIDTH_PX = 170;
 export const PICKER_CARD_HEIGHT_PX = 214;
 /** Gap between two cards. */
 export const PICKER_CARD_GAP_PX = 10;
-/** The glyph medallion at the top of a card (its glyph is #312's; a category initial until then). */
-export const PICKER_CARD_MEDALLION_PX = 56;
+/** The glyph medallion at the top of a card: the trait's glyph at the card LOD (`glyphs/trait-glyph.component.ts`). */
+export const PICKER_CARD_MEDALLION_PX = TRAIT_GLYPH_CARD_PX;
 /** The highlighted card lifts this far. */
 export const PICKER_CARD_LIFT_PX = 8;
 /** The dim over the dish while an offer is open; the exclusion disc stays clear. */

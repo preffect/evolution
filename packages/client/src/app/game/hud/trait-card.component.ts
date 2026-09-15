@@ -7,11 +7,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { CARD_POINTER, type CardPointer, type CardPointerEvent } from './format/card-highlight';
 import type { TraitCardView } from './format/trait-cards';
 import { HUD_TEST_ID, traitCardPickTestId, traitCardTestId } from './test-ids';
+import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
 
 @Component({
   selector: 'app-trait-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TraitGlyphComponent],
   host: { '[attr.data-testid]': 'hostTestId()' },
   styleUrl: './trait-card.component.css',
   template: `
@@ -30,7 +32,7 @@ import { HUD_TEST_ID, traitCardPickTestId, traitCardTestId } from './test-ids';
       @if (card().isRung) {
         <span class="ribbon" [attr.data-testid]="testId.traitCardRung">Rung</span>
       }
-      <span class="medallion" aria-hidden="true">{{ card().categoryInitial }}</span>
+      <app-trait-glyph class="medallion" [traitId]="card().traitId" />
       <span class="category">{{ card().category }}</span>
       <span class="name">
         {{ card().name }}
