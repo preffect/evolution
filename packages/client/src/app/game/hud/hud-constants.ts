@@ -22,8 +22,10 @@ export const LEADERBOARD_FULL_WIDTH_PX = 360;
 export const LEADERBOARD_HEADER_HEIGHT_PX = 26;
 /** One player row's height at scale 1. */
 export const LEADERBOARD_ROW_HEIGHT_PX = 24;
-/** The full list's column-label strip at scale 1; the compact panel has no numeric columns to name. */
+/** The column-label strip under the header at scale 1, on both panels (decision #324). */
 export const LEADERBOARD_LABEL_ROW_HEIGHT_PX = 16;
+/** The full list's score-rule footer row at scale 1 (docs/ui/layout.md §1's table owns the value). */
+export const LEADERBOARD_FOOTER_ROW_HEIGHT_PX = 24;
 /** Rows the compact panel shows; the own row replaces the last one when it is outside them. */
 export const LEADERBOARD_COMPACT_ROWS = 5;
 /** Rows the Tab-held full list shows. */
@@ -41,8 +43,10 @@ export const LEADERBOARD_RANK_COLUMN_PX = 16;
 export const LEADERBOARD_SWATCH_COLUMN_PX = 14;
 /** The `L<n>` level column; wide enough for two digits. */
 export const LEADERBOARD_LEVEL_COLUMN_PX = 30;
-/** Each of score, mass and absorptions; wide enough for four digits and for its own label. */
-export const LEADERBOARD_NUMBER_COLUMN_PX = 38;
+/** Each of score and mass; wide enough for four digits and for its own `caption` label (`SCORE` is the wider). */
+export const LEADERBOARD_NUMBER_COLUMN_PX = 44;
+/** The engulf count's track: its `ENGULFS` label is the widest in the strip (decision #324). */
+export const LEADERBOARD_ENGULFS_COLUMN_PX = 60;
 /** Gap between columns. */
 export const LEADERBOARD_COLUMN_GAP_PX = 6;
 /** The panel's own left and right padding. */

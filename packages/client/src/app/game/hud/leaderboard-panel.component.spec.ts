@@ -1,6 +1,7 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  DEFAULT_BALANCE,
   createTestPlayerProgressView,
   createTestSnapshot,
   playerId,
@@ -9,10 +10,23 @@ import {
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { paletteFor } from '../render/palette';
-import { LEADERBOARD_COMPACT_ROWS, LEADERBOARD_FULL_ROWS } from './hud-constants';
+import {
+  LEADERBOARD_COMPACT_ROWS,
+  LEADERBOARD_FOOTER_ROW_HEIGHT_PX,
+  LEADERBOARD_FULL_ROWS,
+  LEADERBOARD_HEADER_HEIGHT_PX,
+  LEADERBOARD_LABEL_ROW_HEIGHT_PX,
+  LEADERBOARD_ROW_HEIGHT_PX,
+} from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
 import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from './test-ids';
+import {
+  LEADERBOARD_COMPACT_LABELS,
+  LEADERBOARD_FULL_LABELS,
+  LEADERBOARD_TEXT,
+  leaderboardFooterText,
+} from './format/leaderboard-labels';
 import { seatMarkBeadCount } from './format/seat-mark';
 
 const OWN_PLAYER_ID = playerId('player-me');
@@ -65,12 +79,55 @@ describe('LeaderboardPanelComponent', () => {
     fixture.detectChanges();
   });
 
-  it('mounts the panel with its header and the Tab hint, and no rows before a snapshot', () => {
+  function labelStripText(): string {
+    const strip = element().querySelector(testIdSelector(HUD_TEST_ID.leaderboardLabels));
+    return [...(strip?.querySelectorAll('span') ?? [])].map((label) => label.textContent).join(' ');
+  }
+
+  function footer(): Element | null {
+    return element().querySelector(testIdSelector(HUD_TEST_ID.leaderboardFooter));
+  }
+
+  it('mounts the panel with its header and the hold-Tab hint, and no rows before a snapshot', () => {
     expect(element().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
     const header = element().querySelector(testIdSelector(HUD_TEST_ID.leaderboardHeader));
-    expect(header?.textContent).toContain('Leaderboard');
-    expect(header?.textContent).toContain('Tab');
+    expect(header?.querySelector('.header-title')?.textContent).toBe(LEADERBOARD_TEXT.title);
+    expect(header?.querySelector('.header-hint')?.textContent).toBe(LEADERBOARD_TEXT.hintClosed);
     expect(rowElements()).toEqual([]);
+  });
+
+  it('labels the compact panel LV SCORE, with no footer', () => {
+    showBoard(boardOf(3, 1));
+    expect(labelStripText()).toBe(LEADERBOARD_COMPACT_LABELS.map((label) => label.text).join(' '));
+    expect(labelStripText()).toBe('LV SCORE');
+    expect(footer()).toBeNull();
+  });
+
+  it('labels the full list LV SCORE MASS ENGULFS, reads TAB HELD and adds the score rule from the balance', () => {
+    multiplayer.balance.set(DEFAULT_BALANCE);
+    showBoard(boardOf(3, 1));
+    hudState.setFullLeaderboardHeld(true);
+    fixture.detectChanges();
+
+    expect(labelStripText()).toBe(LEADERBOARD_FULL_LABELS.map((label) => label.text).join(' '));
+    expect(labelStripText()).toBe('LV SCORE MASS ENGULFS');
+    expect(element().querySelector('.header-hint')?.textContent).toBe(LEADERBOARD_TEXT.hintOpen);
+    expect(footer()?.textContent).toBe(leaderboardFooterText(DEFAULT_BALANCE.session.SCORE_ABSORPTION_BONUS));
+  });
+
+  it('sizes the panel for the header, the strip, the rows and, on the full list, the footer', () => {
+    showBoard(boardOf(3, 1));
+    const panel = (): HTMLElement | null =>
+      element().querySelector<HTMLElement>(testIdSelector(HUD_TEST_ID.leaderboard));
+    const compactHeight =
+      LEADERBOARD_HEADER_HEIGHT_PX + LEADERBOARD_LABEL_ROW_HEIGHT_PX + 3 * LEADERBOARD_ROW_HEIGHT_PX;
+    expect(panel()?.style.getPropertyValue('--hud-leaderboard-height')).toBe(`${compactHeight}px`);
+
+    hudState.setFullLeaderboardHeld(true);
+    fixture.detectChanges();
+    expect(panel()?.style.getPropertyValue('--hud-leaderboard-height')).toBe(
+      `${compactHeight + LEADERBOARD_FOOTER_ROW_HEIGHT_PX}px`,
+    );
   });
 
   it('shows the top five compact, one row per player, in rank order', () => {
@@ -109,7 +166,7 @@ describe('LeaderboardPanelComponent', () => {
     showBoard(boardOf(8, 1));
     expect(element().querySelector(testIdSelector(HUD_TEST_ID.leaderboardFull))).toBeNull();
     expect(rowElements()[0]?.querySelector('.mass')).toBeNull();
-    expect(element().querySelector('.column-labels')).toBeNull();
+    expect(element().querySelector('.label-mass')).toBeNull();
 
     hudState.setFullLeaderboardHeld(true);
     fixture.detectChanges();
@@ -119,8 +176,7 @@ describe('LeaderboardPanelComponent', () => {
     const firstRow = rowElements()[0];
     expect(firstRow?.querySelector('.mass')?.textContent).toBe('7');
     expect(firstRow?.querySelector('.absorptions')?.textContent).toBe('1');
-    // The three numeric columns carry no unit of their own, so the full list names them.
-    expect(element().querySelector('.column-labels')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('ScoreMassEaten');
+    expect(element().querySelector('.label-absorptions')?.textContent).toBe('ENGULFS');
   });
 
   it('places each label in its own track and keeps the row classes off the strip', () => {
@@ -131,12 +187,13 @@ describe('LeaderboardPanelComponent', () => {
 
     // Each label sits in a track of its own rather than auto-flowing off one start column, so none
     // can slide onto its neighbour; the shared fixed track list in the stylesheet does the rest.
+    expect(labels?.querySelector('.label-level')).not.toBeNull();
     expect(labels?.querySelector('.label-score')).not.toBeNull();
     expect(labels?.querySelector('.label-mass')).not.toBeNull();
     expect(labels?.querySelector('.label-absorptions')).not.toBeNull();
     // The strip does not carry the row's numeric classes, which would take the row's mono font and
     // colour over the strip's own caption and split three labels across two colours.
-    expect(labels?.querySelector('.score, .mass, .absorptions')).toBeNull();
+    expect(labels?.querySelector('.level, .score, .mass, .absorptions')).toBeNull();
   });
 
   it('toggles the full list from the header, so a pointer reaches what Tab does', () => {

@@ -15,6 +15,10 @@ export const HUD_TEST_ID = {
   leaderboard: 'leaderboard',
   /** The panel's header: `LEADERBOARD` with the `TAB` hint; clicking it toggles the full list. */
   leaderboardHeader: 'leaderboard-header',
+  /** The label strip under the header: `LV SCORE`, or `LV SCORE MASS ENGULFS` on the full list. */
+  leaderboardLabels: 'leaderboard-labels',
+  /** The full list's score rule, `SCORE = DNA + 25 PER ENGULF · KEPT ON DEATH`. */
+  leaderboardFooter: 'leaderboard-footer',
   /** The row list, carried only while the full list is open (docs/ui/hud.md §3.1.1). */
   leaderboardFull: 'leaderboard-full',
   /** The round clock's `m:ss` readout (docs/ui/hud.md §3.1.1). */

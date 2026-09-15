@@ -29,6 +29,7 @@ import { IdentityService } from '../../services/identity.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { RECONNECT_DELAY_MS, WebSocketService } from '../../services/websocket.service';
 import { CONNECTION_BANNER_TEXT, CONNECTION_STATE } from './format/connection-banner';
+import { bloomCaptionText } from './format/round-clock';
 import { HudComponent } from './hud.component';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from './test-ids';
@@ -161,7 +162,12 @@ describe('the HUD chrome, end to end', () => {
     // `debug_set_balance` dropping the threshold to zero puts every tick of the round in bloom.
     receive({ type: SERVER_MESSAGE_TYPE.balanceUpdated, balance: balanceWithBloomFrom(0) });
 
-    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundPhase))?.textContent).toBe('BLOOM');
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.roundPhase))?.textContent).toBe(
+      bloomCaptionText(
+        DEFAULT_BALANCE.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER,
+        DEFAULT_BALANCE.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER,
+      ),
+    );
   });
 
   it('stands the board down for the results phase, where #189’s overlay claims the same corner', () => {

@@ -18,6 +18,7 @@
 }
 
 .leaderboard {
+  position: relative;
   box-sizing: border-box;
   width: calc(var(--hud-leaderboard-width) * var(--hud-scale));
   height: calc(var(--hud-leaderboard-height) * var(--hud-scale));
@@ -92,10 +93,10 @@
     calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
     calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
     calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
+    calc(var(--hud-leaderboard-engulfs-column) * var(--hud-scale));
 }
 
-/* The full list's numeric columns carry no unit, so they are named (docs/ui/hud.md §3.1.1). Each label
+/* The numeric columns carry no unit, so both panels name them (docs/ui/hud.md §3.1.1). Each label
    is placed in its own track rather than auto-flowed, so none can slide onto its neighbour. */
 .column-labels {
   height: calc(var(--hud-leaderboard-label-row-height) * var(--hud-scale));
@@ -105,6 +106,11 @@
   letter-spacing: var(--hud-label-tracking);
   color: var(--hud-text-muted);
   text-align: right;
+  white-space: nowrap;
+}
+
+.column-labels .label-level {
+  grid-column: 4;
 }
 
 .column-labels .label-score {
@@ -167,6 +173,27 @@
 
 .row .mass,
 .row .absorptions {
+  color: var(--hud-text-label);
+}
+
+/* The full list's score rule (docs/ui/hud.md §3.1.1): a fact, so `label`, pinned under the last row slot. */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: calc(var(--hud-leaderboard-footer-row-height) * var(--hud-scale));
+  margin: 0;
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
+  border-top: 1px solid var(--hud-panel-rim);
+  font-family: var(--hud-font-sans);
+  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+  text-transform: uppercase;
+  letter-spacing: var(--hud-label-tracking);
+  white-space: nowrap;
   color: var(--hud-text-label);
 }
 

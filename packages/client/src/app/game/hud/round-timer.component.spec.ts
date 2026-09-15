@@ -12,7 +12,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { ROUND_CLOCK_PULSE_LAST_SECONDS } from './hud-constants';
 import { RoundTimerComponent } from './round-timer.component';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
-import { ROUND_CLOCK_CAPTION } from './format/round-clock';
+import { ROUND_CLOCK_CAPTION, bloomCaptionText } from './format/round-clock';
 
 const ROUND_SECONDS = 60;
 
@@ -65,9 +65,14 @@ describe('RoundTimerComponent', () => {
     expect(clockText()).toBe('0:42');
   });
 
-  it('turns gold and reads BLOOM once the bloom starts', () => {
+  it('turns gold and names the bloom’s effect once the bloom starts', () => {
     showRound(Math.round(ROUND_SECONDS * (1 - DEFAULT_BALANCE.session.ROUND_BLOOM_START_FRACTION)));
-    expect(captionText()).toBe(ROUND_CLOCK_CAPTION.bloom);
+    expect(captionText()).toBe(
+      bloomCaptionText(
+        DEFAULT_BALANCE.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER,
+        DEFAULT_BALANCE.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER,
+      ),
+    );
     expect(element().querySelector('.round-timer')?.classList.contains('bloom')).toBe(true);
   });
 
