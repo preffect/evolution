@@ -6,10 +6,12 @@ import {
   CAMERA_FOLLOW_SECONDS,
   CAMERA_MAX_VIEW_HALF_HEIGHT_WU,
   CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
-  CAMERA_VIEW_RADII,
+  CAMERA_VIEW_RADIUS_EXPONENT,
   CAMERA_ZOOM_SECONDS,
+  DEFAULT_BALANCE,
   DISH_RADIUS,
   clamp,
+  radiusForMass,
 } from '@evolution/shared';
 import { CAMERA_CULL_MARGIN_RADII } from './constants';
 import { HALF } from './geometry';
@@ -53,9 +55,16 @@ export interface WorldPoint {
   readonly y: number;
 }
 
-/** `clamp(CAMERA_VIEW_RADII × radius, min, max)`. */
+/** The starting cell's radius (wu): the view leaves its floor exactly there. */
+const SPAWN_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_STARTING_MASS, DEFAULT_BALANCE.growth);
+
+/**
+ * Z1's partial zoom (decision #324): `clamp(MIN × (radius / spawnRadius) ^ CAMERA_VIEW_RADIUS_EXPONENT, MIN, MAX)`.
+ * The view grows more slowly than the cell, so a growing cell grows on screen and a shrinking one shrinks.
+ */
 export function viewHalfHeightFor(radius: number): number {
-  return clamp(CAMERA_VIEW_RADII * radius, CAMERA_MIN_VIEW_HALF_HEIGHT_WU, CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
+  const growth = (radius / SPAWN_RADIUS_WU) ** CAMERA_VIEW_RADIUS_EXPONENT;
+  return clamp(CAMERA_MIN_VIEW_HALF_HEIGHT_WU * growth, CAMERA_MIN_VIEW_HALF_HEIGHT_WU, CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
 }
 
 /** The view never centres outside the dish: the world ends at the wall. */

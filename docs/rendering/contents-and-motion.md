@@ -8,7 +8,7 @@ Organelles are **sprites from one code-baked atlas** (`textures/organelle-atlas.
 chloroplast with six lit granules, food vacuole, toxin bladder, lipid droplet, protocell granule, nucleus +
 nucleolus, nucleoid 1 / 2 / 3 loops, envelope with 16 / 20 / 24 pores, eyespot), baked at
 `ORGANELLE_ATLAS_PX_PER_R` 128 px per r (sheet 01 panel A's 4 px/wu at r 32) × `min(ceil(devicePixelRatio), 2)`
-at startup, so the 102 px own cell never upsamples at DPR 1 or 2. **Every atlas sprite bakes its own soft halo**
+at startup, so the own cell at its 1080p cap (128 px under Z1) never upsamples at DPR 1 or 2. **Every atlas sprite bakes its own soft halo**
 (`ASSET-GENERATION.md §1.5`'s core + soft + wide + glint, for organelles): the nucleus entry is sheet 01 layer 6
 minus its disc fill, a 0.40 r soft glow @35 % **cut out inside the 0.30 r disc** (`cutDisc`, `destination-out`,
 so it is an outer glow and never flattens the ramp under it), the 2.3 px rim @75 %, five chromatin spots,

@@ -52,53 +52,39 @@ status mirror still carry it too. **Owned traits** are the organelles themselves
 
 #### 3.1.3 The reading floor (the fact #146 solves)
 
-Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: under the
-size lock the own cell is 24 px at spawn and 33 px for most of a round on the reference viewport, 32 / 45 px at
-1080p, 102 px only at `CELL_MAX_MASS` (visual-style/motion-and-legibility.md §6). Under Z1 (decision #324,
-game-design/controls-and-scope.md §7) it runs from 24 px at spawn through 47 px at mass 312 to 95 px at the cap on
-the reference viewport, and 32 to 128 px at 1080p; the floors below are unchanged, and the second table gives the
-geometry at those sizes. **Rule: every indicator has a size in screen px that never
+Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces. Under Z1
+(decision #324, game-design/controls-and-scope.md §7) the own cell runs from 24 px at spawn through 47 px at mass 312
+to 95 px at `CELL_MAX_MASS` on the reference viewport, and from 32 to 128 px at 1080p
+(visual-style/motion-and-legibility.md §6; the size lock Z1 replaced held it at 33 px for most of a round and hid
+growth and decay). **Rule: every indicator has a size in screen px that never
 goes below its floor, whatever `r_px` is**, the same idiom as the self ring's `SELF_RING_MIN_PX` and the warning
 ring's `ENGULF_WARNING_RING_MIN_PX`. Sizes tied to the cell use `max(fraction × r_px, floor)`; the rest are fixed
 px. Nothing here scales with `--hud-scale`, and nothing here falls back to chrome at any size. The constants are
 §9's (home `render/constants.ts`, CODE-STANDARDS §2); rendering/own-cell-indicators.md §10 applies them.
 
-Geometry at the sizes that matter (what `own-cell-geometry.spec.ts` pins, rendering/own-cell-indicators.md §10; px, angles in °):
+Geometry at the sizes that matter (what `own-cell-geometry.spec.ts` pins, rendering/own-cell-indicators.md §10; px,
+angles in °). The sizes are controls-and-scope.md §7's table; Z1 moved none of the floors, only where the camera puts
+the cell:
 
-| Own cell `r_px` | When                            | DNA ring ρ  | Keep-out (slot centres from) vs ring edge + pad | Self ring | Ladder orbit | One counter spans | Between the two backings | Orbit extent (backing edge) | Backing to seat-mark halo |
-| --------------- | ------------------------------- | ----------- | ----------------------------------------------- | --------- | ------------ | ----------------- | ------------------------ | --------------------------- | ------------------------- |
-| 24              | spawn on the reference viewport | 17 (0.71)   | 15.8 vs 20.0 (under; accepted, see below)       | 26.9      | 38.9         | 74                | 5                        | 46.9                        | 2.5                       |
-| 32              | spawn at 1080p                  | 17 (0.53)   | 21.1 vs 20.0                                    | 35.8      | 47.8         | 60                | 21                       | 55.8                        | 3.4                       |
-| 45              | most of a round at 1080p        | 19.8 (0.44) | 29.7 vs 22.8                                    | 50.4      | 62.4         | 46                | 37                       | 70.4                        | 4.5                       |
-| 102             | `CELL_MAX_MASS` at 1080p        | 44.9 (0.44) | 67.3 vs 47.9                                    | 114.2     | 126.2        | 23                | 64                       | 134.2                       | 5.0                       |
+| Own cell `r_px` | When                                      | DNA ring ρ  | Keep-out (slot centres from) vs ring edge + pad | Self ring | Ladder orbit | One counter spans | Between the two backings | Orbit extent (backing edge) | Backing to seat-mark halo |
+| --------------- | ----------------------------------------- | ----------- | ----------------------------------------------- | --------- | ------------ | ----------------- | ------------------------ | --------------------------- | ------------------------- |
+| 24              | spawn on the reference viewport           | 17 (0.71)   | 15.8 vs 20.0 (under; accepted, see below)       | 26.9      | 38.9         | 74                | 5                        | 46.9                        | 2.5                       |
+| 32              | spawn at 1080p                            | 17 (0.53)   | 21.1 vs 20.0                                    | 35.8      | 47.8         | 60                | 21                       | 55.8                        | 3.4                       |
+| 47.4            | mass 312 on the reference viewport        | 20.9 (0.44) | 31.3 vs 23.9                                    | 53.1      | 65.1         | 44                | 39                       | 73.1                        | 4.5                       |
+| 64              | mass 312 at 1080p                         | 28.2 (0.44) | 42.2 vs 31.2                                    | 71.7      | 83.7         | 34                | 50                       | 91.7                        | 4.6                       |
+| 94.8            | `CELL_MAX_MASS` on the reference viewport | 41.7 (0.44) | 62.6 vs 44.7                                    | 106.2     | 118.2        | 24                | 62                       | 126.2                       | 4.9                       |
+| 128             | `CELL_MAX_MASS` at 1080p                  | 56.3 (0.44) | 84.5 vs 59.3                                    | 143.4     | 155.4        | 18                | 69                       | 163.4                       | 5.3                       |
 
-**Under Z1 (decision #324).** The table above is the size-lock camera's, which `own-cell-geometry.spec.ts` pins
-today. Z1 (game-design/controls-and-scope.md §7) lets the own cell grow on screen, so the sizes that matter
-become the ones below; the camera ticket replaces the rows above with these (first cell as a bare number, as above)
-and the spec's four sizes with these six in the same PR. Every value was computed by the shipped
-`own-cell-geometry.ts` and `orbitLayout`, which reproduce the four rows above exactly; the sizes are
-controls-and-scope.md §7's table. Nothing in the geometry changes except where the camera puts it: no floor moves.
+Three inequalities, at the six sizes and as a derivation:
 
-| Own cell `r_px` (Z1) | When                                      | DNA ring ρ  | Keep-out vs ring edge + pad | Self ring | Ladder orbit | One counter spans | Between the two backings | Orbit extent | Backing to seat-mark halo |
-| -------------------- | ----------------------------------------- | ----------- | --------------------------- | --------- | ------------ | ----------------- | ------------------------ | ------------ | ------------------------- |
-| 24 px                | spawn on the reference viewport           | 17 (0.71)   | 15.8 vs 20.0 (under)        | 26.9      | 38.9         | 74                | 5                        | 46.9         | 2.5                       |
-| 32 px                | spawn at 1080p                            | 17 (0.53)   | 21.1 vs 20.0                | 35.8      | 47.8         | 60                | 21                       | 55.8         | 3.4                       |
-| 47.4 px              | mass 312 on the reference viewport        | 20.9 (0.44) | 31.3 vs 23.9                | 53.1      | 65.1         | 44                | 39                       | 73.1         | 4.5                       |
-| 64 px                | mass 312 at 1080p                         | 28.2 (0.44) | 42.2 vs 31.2                | 71.7      | 83.7         | 34                | 50                       | 91.7         | 4.6                       |
-| 94.8 px              | `CELL_MAX_MASS` on the reference viewport | 41.7 (0.44) | 62.6 vs 44.7                | 106.2     | 118.2        | 24                | 62                       | 126.2        | 4.9                       |
-| 128 px               | `CELL_MAX_MASS` at 1080p                  | 56.3 (0.44) | 84.5 vs 59.3                | 143.4     | 155.4        | 18                | 69                       | 163.4        | 5.3                       |
-
-Three inequalities the spec pins, at the four sizes and as a derivation:
-
-- **Picker band.** Under the size lock the orbit's extent at the cap (134.2) stays under
-  `HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX` (136), so the picker band never touches it. **Under Z1 that
-  ceiling breaks** (163.4 at 1080p, 211.2 at 2560 × 1440), and it is resolved by **moving the band, not by capping
-  Z1's growth**: capping would give back the size lock above a mass, which is what decision #324 removed, and no
-  single on-screen cap fits every viewport (the band scales with `--hud-scale`, the cell with the viewport's height).
-  The band anchors at `pickerBandOffsetPx` (overlays.md §3.2) = `max((HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX)
-× s, capOrbitExtentPx + PICKER_BAND_ORBIT_CLEARANCE_PX)`, so the inequality holds by construction on every
-  viewport; it moves nothing on the reference viewport (126.2 + 4 < 136) or at 1080p (163.4 + 4 < 183.6, the band
-  scaled by 1.35). The camera ticket rewrites this check as that function's spec at 1024 × 640, 1280 × 800,
+- **Picker band.** The orbit's extent at the cap grows with the viewport's height (126.2 on the reference viewport,
+  163.4 at 1080p, 211.2 at 2560 × 1440), so no fixed band offset clears it. It is resolved by **moving the band, not
+  by capping Z1's growth**: capping would give back the size lock above a mass, which is what decision #324 removed,
+  and no single on-screen cap fits every viewport (the band scales with `--hud-scale`, the cell with the viewport's
+  height). The band anchors at `pickerBandOffsetPx` (overlays.md §3.2) = `max((HUD_PLAYER_EXCLUSION_PX +
+PICKER_BAND_GAP_PX) × s, capOrbitExtentPx + PICKER_BAND_ORBIT_CLEARANCE_PX)`, so the inequality holds by
+  construction on every viewport; it moves nothing on the reference viewport (126.2 + 4 < 136) or at 1080p
+  (163.4 + 4 < 183.6, the band scaled by 1.35). `hud/format/picker-band.spec.ts` pins it at 1024 × 640, 1280 × 800,
   1280 × 1000, 1920 × 1080 and 2560 × 1440.
 - **Seat mark.** The backing's inner edge clears the seat mark's halo (visual-style/principles-and-palette.md §2: beads at 1.0 r, halo
   2.2 × `max(SEAT_MARK_BEAD_RADIUS_FRACTION × r_px, SEAT_MARK_BEAD_MIN_PX)`), for every seat index and every size:
@@ -116,7 +102,7 @@ Three inequalities the spec pins, at the four sizes and as a derivation:
   its track, which is also its backing (§3.1.2); accepted, and the same window in which the band may reach the
   membrane below`CELL_LOD_FULL_MIN_PX` (a 19 px cell on the smallest supported viewport, 1024 × 640).
 
-One layout case sits beside the table, and the spec pins it at the same four sizes. **A ghost beside a counter**
+One layout case sits beside the table, and the spec pins it at the same six sizes. **A ghost beside a counter**
 (decision #285 B): from `endosymbiosis` on, the rung ghost at 180 shares the orbit with an unclaimed counter at 225
 or 135. The ghost keeps its angle. Clearance is measured between the boxes as drawn, each laid tangent to the orbit
 (the ghosts' `LADDER_GHOST_PX` squares and the pip block), never along the arc: a tangent box's inner corners reach
@@ -124,7 +110,7 @@ past its arc angle. A counter whose nearer box would come closer to the rung gho
 `LADDER_ITEM_CLEARANCE_PX` turns away (aerobic clockwise, photosynthetic counter-clockwise) by the smallest turn
 that leaves exactly that gap: ghost to ghost for aerobic, pips to ghost for photosynthetic. That happens at 32 px
 and below (the 24 and 32 px rows); from 34 px up both counters keep their §9 angles. Where the padded backings
-meet, `orbitLayout` merges them into one band with no darker seam: at 24 and 32 px; they stand apart at 45 px.
+meet, `orbitLayout` merges them into one band with no darker seam: at 24 and 32 px; they stand apart at 47.4 px.
 
 #### 3.1.4 The `OwnCellIndicators` record and the status mirror
 

@@ -4,28 +4,28 @@
   pointer-events: none;
 }
 
-/* A DOM dim, never a Pixi quad; the own cell's exclusion disc stays clear (docs/ui/overlays.md §3.2). */
+/* A DOM dim, never a Pixi quad; the own cell's disc stays clear out to its cap orbit (docs/ui/overlays.md §3.2). */
 .dim {
   position: absolute;
   inset: 0;
   background: rgb(0 0 0 / var(--hud-picker-dim-alpha));
   -webkit-mask-image: radial-gradient(
     circle at 50% 50%,
-    transparent calc(var(--hud-exclusion) * var(--hud-picker-dim-soft-edge) * var(--hud-scale)),
-    black calc(var(--hud-exclusion) * var(--hud-scale))
+    transparent calc(var(--hud-picker-spotlight) * var(--hud-picker-dim-soft-edge)),
+    black var(--hud-picker-spotlight)
   );
   mask-image: radial-gradient(
     circle at 50% 50%,
-    transparent calc(var(--hud-exclusion) * var(--hud-picker-dim-soft-edge) * var(--hud-scale)),
-    black calc(var(--hud-exclusion) * var(--hud-scale))
+    transparent calc(var(--hud-picker-spotlight) * var(--hud-picker-dim-soft-edge)),
+    black var(--hud-picker-spotlight)
   );
 }
 
-/* Hung from the exclusion box's bottom edge, centred on the own cell: never an absolute y. */
+/* Hung below the exclusion box or the cap orbit, whichever reaches lower, centred on the own cell: never an absolute y. */
 .band {
   position: absolute;
   left: 50%;
-  top: calc(50% + (var(--hud-exclusion) + var(--hud-picker-band-gap)) * var(--hud-scale));
+  top: calc(50% + var(--hud-picker-band-offset));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;

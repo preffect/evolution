@@ -24,8 +24,8 @@ import { orientedBoxGapPx } from './oriented-box';
 import { ladderOrbitRadiusPx, orbitDegreesOf } from './own-cell-geometry';
 
 const REQUIRED = ENDOSYMBIOSIS_BACTERIA_REQUIRED;
-/** ui/hud.md §3.1.3's four sizes (its table, pinned in `own-cell-geometry.spec.ts`). */
-const TABLE_SIZES_PX = [24, 32, 45, 102] as const;
+/** ui/hud.md §3.1.3's six sizes under the Z1 camera (its table, pinned in `own-cell-geometry.spec.ts`). */
+const TABLE_SIZES_PX = [24, 32, 47.4, 64, 94.8, 128] as const;
 const FLOAT_SLACK = 1e-9;
 const AEROBIC = createTestAerobicCounter();
 const PHOTOSYNTHETIC = createTestPhotosyntheticCounter();

@@ -96,10 +96,12 @@ export const ROUND_CLOCK_PULSE_PERIOD_MS = 1000;
 
 // ---- trait picker (docs/ui/layout.md §1, docs/ui/overlays.md §3.2) ----
 
-/** Half-side of the exclusion box around the own cell at scale 1; also the picker dim's spotlight radius. */
+/** Half-side of the exclusion box around the own cell at scale 1; also the floor of the picker dim's spotlight radius. */
 export const HUD_PLAYER_EXCLUSION_PX = 120;
 /** Gap between the exclusion box's bottom edge and the picker's title row. */
 export const PICKER_BAND_GAP_PX = 16;
+/** Least gap between the own cell's orbit extent at `CELL_MAX_MASS` and the picker's title row (Z1, decision #324). */
+export const PICKER_BAND_ORBIT_CLEARANCE_PX = 4;
 /** Gap between the picker's title row, timer bar and card row. */
 export const PICKER_ROW_GAP_PX = 12;
 /** The timer bar's width at scale 1; its height is `DNA_RING_STROKE_PX`, the width of every chrome fill bar. */

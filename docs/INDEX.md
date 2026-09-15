@@ -490,17 +490,17 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **11.7 Files and constants** (L253–305): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
   - **11.8 The options not chosen (#368)** (L306–314): The human chose B on #368.
 
-## ui/hud.md (336 lines)
+## ui/hud.md (322 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–336): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
-- **3. In-round HUD and overlays** (L5–336): Every element: source, placement, size, states, text, test id.
-  - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–336): Option C has two kinds of in-round element.
+- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–322): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
+- **3. In-round HUD and overlays** (L5–322): Every element: source, placement, size, states, text, test id.
+  - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–322): Option C has two kinds of in-round element.
   - **3.1.1 Chrome** (L19–30): The chrome's phase gate lives in `hud.component.ts`, which is the only component that reads `roundPhase` for both.
   - **3.1.2 Own-cell indicators (what is shown; rendering/own-cell-indicators.md §10 owns how)** (L31–52): All six live in the own cell's undeformed frame (they never bend with the membrane) and follow the cell's on-screen radius `r_px` with the …
-  - **3.1.3 The reading floor (the fact #146 solves)** (L53–128): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: under the size lock the own cell is…
-  - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L129–203): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
-  - **3.1.5 Legibility cues (decision #324, option C)** (L204–298): The own-cell indicators say where the player is on the ladder.
-  - **3.1.6 Legibility cue constants** (L299–336): The values this doc owns for §3.1.5.
+  - **3.1.3 The reading floor (the fact #146 solves)** (L53–114): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces.
+  - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L115–189): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
+  - **3.1.5 Legibility cues (decision #324, option C)** (L190–284): The own-cell indicators say where the player is on the ladder.
+  - **3.1.6 Legibility cue constants** (L285–322): The values this doc owns for §3.1.5.
 
 ## ui/input-and-onboarding.md (168 lines)
 
@@ -535,11 +535,11 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **3. The cell: layer stack per stage** (L5–50): Every cell is sheet 01's eleven-layer stack (panel C), back to front: halo, body, cytoplasm texture, granules, organelles, nucleus, inner e…
 - **4. Organelle vocabulary per trait** (L51–75): The trait's own `visual` string (`traits/catalog-organelles.md §3`) is the requirement; this table fixes the drawing.
 
-## visual-style/motion-and-legibility.md (51 lines)
+## visual-style/motion-and-legibility.md (52 lines)
 
-- **Evolution — Visual Style: membrane motion and legibility at play scale** (L1–51): §5–§6 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **Evolution — Visual Style: membrane motion and legibility at play scale** (L1–52): §5–§6 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
 - **5. Membrane and motion language** (L5–32): Membranes are 36-point Catmull-Rom loops with Gaussian radial bumps (sheet 02, membranes paragraph); every deformation below is a bump `(am…
-- **6. Legibility at play scale** (L33–51): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
+- **6. Legibility at play scale** (L33–52): Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to 0.36 px/wu (view ceil…
 
 ## visual-style/performance-and-checklist.md (48 lines)
 

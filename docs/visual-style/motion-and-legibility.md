@@ -33,8 +33,9 @@ at 6–9 Hz, depth particles drift 2–4 wu/s, wall bubbles rise 1 wu/s and resp
 ## 6. Legibility at play scale
 
 Zoom is `game-design/controls-and-scope.md §7`'s camera: at 1080p it runs from 1.8 px/wu (spawn, view floor) down to
-0.36 px/wu (view ceiling), and the player's own cell is 32–45 px in radius for most of a round
-(102 px at `CELL_MAX_MASS`). Other cells and food can be far smaller, so:
+0.36 px/wu (view ceiling), and under Z1 (decision #324) the player's own cell grows on screen with its mass: 24–95 px
+in radius on the 1280 × 800 reference viewport and 32–128 px at 1080p, from spawn to `CELL_MAX_MASS` (`ui/hud.md
+§3.1.3`). Other cells and food can be far smaller, so:
 
 | Rule                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
