@@ -72,8 +72,10 @@ the subject. A count in the rail is `entriesIn(category)`'s length, never a type
 | 6     | `world`      | World        | Dish and zones (`dish_and_zones`) · Time (`time`)                                     | The dish and its four zones; the world clock, the bloom, the round                                                                                                                                                                                                                           |
 
 A list shows group headers only when its category has more than one group. The `hud` subject is a subject under
-Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_ELEMENT_BY_TOPIC` anchors each topic to a
-`HUD_TEST_ID` key, which moves to the neutral `game/test-ids/hud-test-ids.ts` so the encyclopedia never imports `hud/`.
+Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_ELEMENT_BY_TOPIC` (§12.4) anchors each topic to the element it explains: a `HUD_TEST_ID` key for a DOM
+element (the leaderboard, the round clock), an `OwnCellIndicators` field for a renderer-drawn one (the DNA ring,
+level numeral, ladder orbit, self ring, threat ring), as #361 lands it; `HUD_TEST_ID` moves to the neutral
+`game/test-ids/hud-test-ids.ts`, so the encyclopedia never imports `hud/`.
 
 **Ids** are §12.2's `<subject>:<codeId>`, with `#` for a section inside a page: `trait:mitochondrion`,
 `trait:mitochondrion#tier_2`, `stage:endosymbiosis`, `bacterium:aerobic`, `food:algae`, `entity:dna_fragment`,
