@@ -105,4 +105,16 @@ describe('CueLayer', () => {
     expect(drawnTexts(text)).toEqual(['20']);
     subject.destroy();
   });
+
+  it('measures each distinct string once and places every part at that width on later frames', () => {
+    const { subject, text } = layer();
+    const indicators = record(OWN, { rateTags: tagsOf({ toxin: -9.36 }) });
+    subject.update(frameAt(0, indicators));
+    // `312`, `−9.4/s`, `TOXIN`: one measure each, even though sizing and placing both read the widths.
+    expect(text.counts.measures).toBe(3);
+    subject.update(frameAt(RATE_TAG_REFRESH_MS, indicators));
+    expect(text.counts.measures).toBe(3);
+    expect(drawnTexts(text)).toEqual(['312', '−9.4/s', 'TOXIN']);
+    subject.destroy();
+  });
 });

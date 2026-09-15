@@ -2,8 +2,11 @@
 // chip, rate tags and zone pill on the own cell each frame, and the floaters of its one-off changes. It keeps the
 // render-side clocks the record cannot: the floater stack (spawned from the frame's own `eat` and `cell_absorbed`
 // effects and from the record's `sprintSpent`, once per tick), and the rate tags' `RATE_TAG_REFRESH_MS` hold, which
-// keeps a tag's last digit from flickering while a cause that appears or leaves does so at once. Placements are
-// `cue-placements.ts`'s data; this class only applies them. Nothing is drawn without a record or an own cell.
+// keeps a tag's last digit from flickering while a cause that appears or leaves does so at once. It also keeps the
+// measured text widths: the cues' strings repeat from frame to frame, and a `BitmapText` measure lays the glyphs out
+// again whenever its text changes, so each distinct string is measured once (the bench showed the effects stage paying
+// for re-measuring every part of every pill each frame). Placements are `cue-placements.ts`'s data; this class only
+// applies them. Nothing is drawn without a record or an own cell.
 
 import type { CellView, EntityId, GameEffect } from '@evolution/shared';
 import { Container, type Sprite } from 'pixi.js';
@@ -15,7 +18,7 @@ import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import type { IndicatorTextures } from '../textures/indicator-textures';
 import { floaterLeftPx, type CueLayout } from './cue-layout';
 import { cueLayoutOf, cuePlacements, cueRowsFor, type CueFrame } from './cue-placements';
-import { createBitmapCueText, type CueText, type CueTextFactory } from './cue-text';
+import { createBitmapCueText, type CueText, type CueTextFactory, type CueTextRole } from './cue-text';
 import { FLOATER_CAUSE, FloaterStack, floaterSpawnsOf } from './floater-stack';
 
 export interface CueLayerFrame {
@@ -38,6 +41,8 @@ export interface CueLayerOutputs {
 const NOTHING_DRAWN: CueLayerOutputs = { pills: 0, texts: 0, sprites: 0 };
 const HIDDEN_ZOOM = 1;
 const OPAQUE = 1;
+/** Distinct strings a session keeps widths for before starting over: floater amounts vary, so the set is bounded. */
+const MEASURED_WIDTHS_MAX_ENTRIES = 256;
 
 interface ShownTags {
   readonly tags: readonly RateTag[];
@@ -53,6 +58,8 @@ export class CueLayer {
   private readonly spriteContainer = new Container();
   private readonly pool = new SpritePool(this.spriteContainer);
   private readonly floaters = new FloaterStack();
+  /** Each measured string's width by role, so a repeated string costs no glyph layout. */
+  private readonly measuredWidthsPx = new Map<string, number>();
   /** Built on the first frame with something to say: `BitmapText` wants a real canvas (`cue-text.ts`). */
   private text: CueText | null = null;
   private cellId: EntityId | null = null;
@@ -84,7 +91,7 @@ export class CueLayer {
       ownCell,
       zoom: frame.zoom,
       textures: this.textures,
-      measurePx: (value, role) => text.measurePx(value, role),
+      measurePx: (value, role) => this.widthOf(text, value, role),
       rateTags: this.tagsAt(indicators.rateTags, frame.nowMs),
       labelBoxes: frame.labelBoxes,
     };
@@ -103,6 +110,17 @@ export class CueLayer {
   /** The pooled glyph sprites in placement order: a test reads them. */
   get sprites(): readonly Sprite[] {
     return this.pool.all;
+  }
+
+  /** A string's width in its role, measured by the text view the first time it is asked for and kept. */
+  private widthOf(text: CueText, value: string, role: CueTextRole): number {
+    const key = `${role}:${value}`;
+    const known = this.measuredWidthsPx.get(key);
+    if (known !== undefined) return known;
+    if (this.measuredWidthsPx.size >= MEASURED_WIDTHS_MAX_ENTRIES) this.measuredWidthsPx.clear();
+    const measured = text.measurePx(value, role);
+    this.measuredWidthsPx.set(key, measured);
+    return measured;
   }
 
   /** The record's tags, or the ones shown until `RATE_TAG_REFRESH_MS` has passed while the same causes show. */

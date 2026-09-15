@@ -1,6 +1,6 @@
 // The legibility cues' placements (docs/ui/hud.md §3.1.5, docs/rendering/own-cell-indicators.md §10): the record's
 // mass chip, rate tags and zone pill, and the live floaters, turned into pill rows (a pill and the parts inside it,
-// `CUE_SEGMENT_GAP_PX` apart, measured by the text view), laid out by `cueLayout`, and emitted as the backings,
+// `CUE_SEGMENT_GAP_PX` apart, measured once by the text view), laid out by `cueLayout`, and emitted as the backings,
 // texts and glyph sprites of this frame in the effects layer's world units. Pure: `cue-layer.ts` spawns the
 // floaters between the layout and the placements and applies what this answers. Text is always `WHITE`; a cue's
 // colour is its rim, its trend glyph and its zone dot only.
@@ -42,9 +42,11 @@ export interface CueFrame {
   readonly labelBoxes: readonly UprightBox[];
 }
 
-/** One pill and what sits inside it, measured. */
+/** One pill and what sits inside it, measured once: the placement reuses the widths the row was sized with. */
 export interface CueRow {
   readonly segments: readonly CueSegment[];
+  /** Each segment's width in CSS px, in segment order. */
+  readonly widthsPx: readonly number[];
   readonly texture: LabelPillTexture;
   readonly spec: PillSpec;
   readonly contentPx: number;
@@ -87,10 +89,10 @@ function segmentWidthPx(segment: CueSegment, frame: CueFrame): number {
 }
 
 function rowOf(segments: readonly CueSegment[], texture: LabelPillTexture, spec: PillSpec, frame: CueFrame): CueRow {
-  const widths = segments.map((segment) => segmentWidthPx(segment, frame));
+  const widthsPx = segments.map((segment) => segmentWidthPx(segment, frame));
   const gaps = Math.max(NOTHING, segments.length - 1) * CUE_SEGMENT_GAP_PX;
-  const contentPx = widths.reduce((sum, width) => sum + width, NOTHING) + gaps;
-  return { segments, texture, spec, contentPx, widthPx: pillWidthPx(contentPx, spec), alpha: OPAQUE };
+  const contentPx = widthsPx.reduce((sum, width) => sum + width, NOTHING) + gaps;
+  return { segments, widthsPx, texture, spec, contentPx, widthPx: pillWidthPx(contentPx, spec), alpha: OPAQUE };
 }
 
 /** `312`, then the trend triangle and `9/s` while the chip reads a trend; the chip has no rim. */
@@ -182,7 +184,7 @@ function placeSegment(segment: CueSegment, centre: { readonly x: number; readonl
   lists.sprites.push({ texture, ...centre, ...size, rotation, tint });
 }
 
-/** One row centred on `centrePx` (the own cell's frame): its backing, then its parts left to right. */
+/** One row centred on `centrePx` (the own cell's frame): its backing, then its parts left to right at their measured widths. */
 function drawRow(
   row: CueRow,
   centrePx: { readonly x: number; readonly y: number },
@@ -196,11 +198,11 @@ function drawRow(
   lists.backings.push({ texture, ...pillCentre, widthPx, heightPx: row.spec.heightPx, alpha });
   const target: RowTarget = { row, zoom, lists };
   let left = centrePx.x - row.contentPx * HALF;
-  for (const segment of row.segments) {
-    const width = segmentWidthPx(segment, frame);
+  row.segments.forEach((segment, index) => {
+    const width = row.widthsPx[index] ?? NOTHING;
     placeSegment(segment, toWorld(left + width * HALF, centrePx.y), target);
     left += width + CUE_SEGMENT_GAP_PX;
-  }
+  });
 }
 
 /** Everything this frame draws: the chip, the tags and the zone pill where the layout put them, then the floaters. */
