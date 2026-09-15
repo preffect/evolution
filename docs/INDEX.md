@@ -158,7 +158,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 - **Evolution — Architecture: client networking, module plan and audio seam** (L1–154): §5–§7 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **5. Client networking policy (`packages/client/src/app/game/net/`)** (L5–97): plus a bracket each side, 4 at either cadence) and renders remote cells, bacteria and fragments at `renderTick = latestTick − INTERPOLATI…
-- **6. Client module plan (Pixi v8 + Angular)** (L98–139): the zoom and whom they follow are shared (`simulation/camera-follow.ts`), because the server runs the same camera per viewer to cull snapsh…
+- **6. Client module plan (Pixi v8 + Angular)** (L98–139): the zoom and whom they follow are shared (`camera/camera-follow.ts`), because the server runs the same camera per viewer to cull snapshots …
 - **7. Audio hook seam (#101)** (L140–154): The design and the tables are `AUDIO.md` (decision #140, option B).
 
 ## architecture/constants-files-tests.md (116 lines)
@@ -201,12 +201,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Input handling** (L42–56): `sequence` and the newest non-null `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together …
   - **3.3 Other structural rules** (L57–77): `constants/`; formulas take numbers.
 
-## architecture/wire-contract.md (274 lines)
+## architecture/wire-contract.md (299 lines)
 
-- **Evolution — Architecture: wire contract** (L1–274): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–274): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
-  - **4.1 Bandwidth budget** (L135–238): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
-  - **4.2 Levers (in order)** (L239–274): and fragments inside its interest area, on the per-viewer seam #331 landed (§4).
+- **Evolution — Architecture: wire contract** (L1–299): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–299): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
+  - **4.1 Bandwidth budget** (L136–258): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
+  - **4.2 Levers (in order)** (L259–299): and fragments inside its interest area, on the per-viewer seam #331 landed (§4).
 
 ## concept-art/README.md (408 lines)
 
@@ -332,15 +332,15 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **`camera.ts` (client only)** (L77–88): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
 - **13. Acceptance scenarios** (L89–112): Format: given seed S and inputs I, after N ticks assert X.
 
-## game-design/controls-and-scope.md (116 lines)
+## game-design/controls-and-scope.md (118 lines)
 
-- **Evolution — Game Design: controls, camera, dish and scope** (L1–116): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
+- **Evolution — Game Design: controls, camera, dish and scope** (L1–118): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
 - **6. Controls** (L5–27): tick, and no target (nor a sprint) while it has no own cell, so nothing it sends while spectating steers the respawned cell (#346).
-- **7. Camera** (L28–63): The camera centres on the player's cell and zooms out as the cell grows, but more slowly than the cell grows, so a bigger cell is visibly b…
-- **8. The petri dish** (L64–86): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
-- **9. Win / lose and the feel of a round** (L87–96): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
-- **10. Explicit non-goals for build 1** (L97–106): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
-- **11. Reserved hooks for build 2** (L107–116)
+- **7. Camera** (L28–65): The camera centres on the player's cell and zooms out as the cell grows, but more slowly than the cell grows, so a bigger cell is visibly b…
+- **8. The petri dish** (L66–88): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
+- **9. Win / lose and the feel of a round** (L89–98): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
+- **10. Explicit non-goals for build 1** (L99–108): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
+- **11. Reserved hooks for build 2** (L109–118)
 
 ## game-design/core.md (135 lines)
 

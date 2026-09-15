@@ -87,7 +87,8 @@ export interface FoodDelta {
     evidence of a backlog.
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
-  is the one drain of the effects and the one step of every viewer's camera (§4.2 lever 1) — so a skipped client
+  is the one drain of the effects; each viewer's camera steps on the first `serialize` of a tick and its food delta
+  advances only when it is sent (§4.2 lever 1) — so a skipped client
   loses that window's effects and rejoins the stream whole. The resync exists because `food` is the
   only relative part of a snapshot, a delta per viewer: everything else (`cells`, `players`, `leaderboard`,
   `dnaFragments`, the round) is full in every one. A skipped client's food delta does not advance, and the
@@ -203,21 +204,33 @@ the recording client; "sent" counts are of that client, "dish" counts of the wor
 What culling buys depends on the view. A level-12 cell (view half-height 300 wu) at the centre is still sent 58 % of
 the moving motes, because bacteria cluster on the central vent, but 8 % of the fragments; steering off-centre it is
 sent 9 % and 10 %. At the widest zoom the covered area is 7 522 wu wide (`CAMERA_MAX_VIEW_HALF_HEIGHT_WU` 1 500 ×
-`INTEREST_VIEW_ASPECT_RATIO` 2.4, plus `INTEREST_MARGIN_WU` 161, each side of the centre) and 3 322 wu tall, most of a
+`INTEREST_VIEW_ASPECT_RATIO` 2.4, plus the 161 wu margin at `DEFAULT_BALANCE`, each side of the centre) and 3 322 wu tall, most of a
 dish 6 000 wu across: it cuts `moved` by about 15 % and the fragments by 20 %. The estimate of −75 % at the widest zoom
 that this section carried before #171 assumed a view far smaller than the dish; no cull sends less than the canvas
 can show, and at that zoom a 16:9 canvas already shows about 60 % of the dish. `appliedInputSequenceByPlayer` falls
 from 103 B to 12 B, and the motes crossing a moving viewer's edge cost ~50 B of `spawned` and `removedIds` per
 snapshot.
 
-The per-viewer members cost CPU the splice cannot share, since each viewer's food delta is a diff over the motes in its
-area; the shared stringify still runs once per broadcast. In process, on a filled world (medians of 300 broadcasts of
-`serializeRoomState` plus every viewer's members and splice, #171's review), a broadcast took 1.12 ms at 8 viewers and
-1 372 motes against 0.53 ms on origin/main (0.43 ms shared, 0.46 ms members, 0.19 ms stringify): about 0.2 ms more per
-tick at the 3-tick cadence. At 64 viewers, on the 6 855 motes the food cap grants 64 players, it took 32.5 ms against
-4.2 ms, 22.4 ms of it the members, because the cost is viewers × motes in view. `MAX_PLAYERS_PER_GAME` = 8 seats a
-room, so that case cannot arise today; a room past that cap would need a spatial index over the motes first. The
-motes' positions are quantised once per broadcast and shared by every viewer's delta (`positionMotes`).
+The per-viewer members cost CPU the splice cannot share: each viewer's food delta is a diff over the motes in its area,
+and each viewer re-stringifies the positions it is sent. The shared stringify still runs once per broadcast. In
+process, on a filled world with 8 viewers and ~1 400 motes (medians of 300 broadcasts of `serializeRoomState` plus
+every viewer's members and splice, from #398 and its perf review), against origin/main's shape of one delta, one
+stringify and each viewer's progress spliced in:
+
+| Broadcast, 8 viewers                                           | origin/main shape | #171          |
+| -------------------------------------------------------------- | ----------------- | ------------- |
+| spawn zoom                                                     | 0.53–0.65 ms      | 1.12–1.53 ms  |
+| widest zoom (radius 283 wu, about 700 of 1 400 motes per view) | 0.59 ms           | **≈ 5.99 ms** |
+
+The whole cost lands on the broadcast tick and is outside `tickMs` (#340), where #176 will add wild cells to the step.
+At the widest zoom the per-viewer work splits into the area filter (about 15 %), the food delta's diff (about 40 %, a new
+`Map` per viewer per broadcast) and the members' stringify of the same quantised positions (about 45 %), so an index
+over the motes would remove only the smallest share. The structural fix is #406: build each mote's position JSON once
+per broadcast and splice it in pre-serialised, and compute "moved since the last broadcast" once per mote, so a viewer
+keeps only a reused id set for what enters and leaves. At 64 viewers, on the 6 855 motes the food cap grants 64
+players, a spawn-zoom broadcast took 32.5 ms against 4.2 ms, since the cost is viewers × motes in view;
+`MAX_PLAYERS_PER_GAME` = 8 seats a room, so that case cannot arise today. The motes' positions are already quantised
+once per broadcast and shared by every viewer's delta (`positionMotes`).
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120–150 KB/s after `perMessageDeflate`); 8 clients
 ≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s,
@@ -225,10 +238,17 @@ about 1.7 × the budget, so lever 1 was required before the wild-cell slice (#17
 with no wild cells, every row above is inside the budget with it (10.2–21.7 KB, 205–435 KB/s per client). Projected
 onto the worst case of the table above (700 bacteria, 24 wild cells), a level-12 viewer is at ≈ 19–40 KB and a viewer
 at the widest zoom at ≈ 42–51 KB: **still over the 24 KB budget whenever the view is wide or bacteria crowd it**.
-Lever 1 cannot close that alone, since it never sends less than the canvas can show. What remains is quantising
-velocity, mass and radius (§4.2 lever 3, #341), the 15 Hz cadence per second (lever 2), and #176, which measures the
-wild cells and decides whether they are culled on the same seam (`cells` stay shared today because the client's
-threat checks read every cell, `state/snapshot-transitions.ts`). Sending static motes in full would add ~50 KB per snapshot, which is
+**Lever 1 at the widest zoom is accepted as it stands** (#398's review): it never sends less than the canvas can show,
+and 15 Hz alone does not close it (42–51 KB × 15 is still 630–765 KB/s). **#176 owns closing the budget: wild cells do
+not ship until an 8-viewer room at the widest zoom measures inside it.** The levers left, cheapest first:
+
+1. cull the wild cells on this seam (`cells` stay shared today, because the client's threat checks read every cell,
+   `state/snapshot-transitions.ts`);
+2. quantise velocity, mass and radius (§4.2 lever 3, #341);
+3. a compact `moved` encoding;
+4. the 15 Hz cadence (§4.2 lever 2).
+
+Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
 ~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
 measurement that confirms the estimate; #103 records it. Every row above is per snapshot at the
@@ -240,18 +260,23 @@ before #214 landed and what made a remote client run out of memory (#238).
 
 1. **Viewport culling of `food` and `dnaFragments`** (landed, #171; measured in §4.1): each viewer is sent the motes
    and fragments inside its interest area, on the per-viewer seam #331 landed (§4).
-   - **The camera.** The server runs the client's own camera per viewer (`simulation/camera-follow.ts`: the follow,
-     the zoom and whom they follow, which is the own cell, the killer while spectating, holding with neither, and the
-     dish centre before anything), stepped once per broadcast over the ticks since the last (`serialize/viewer-cameras.ts`).
+   - **The camera.** The server runs the client's own camera per viewer (`camera/camera-follow.ts`: the follow, the
+     zoom and whom they follow, which is the own cell, the killer while spectating, holding with neither, and the dish
+     centre before anything). It steps on the first `serialize` of each tick, over the ticks since the last
+     (`serialize/viewer-cameras.ts`), so no caller of `serializeRoomState` has to announce a broadcast.
    - **The area** (`serialize/interest-area.ts`, `constants/interest.ts`) is the box around the views of the camera's
      last `INTEREST_CAMERA_HISTORY_BROADCASTS` (4) states, each `viewHalfHeightWu` tall, `INTEREST_VIEW_ASPECT_RATIO`
-     (2.4) times that wide, and grown by `INTEREST_MARGIN_WU` (161 wu). The history covers the client drawing
-     `INTERPOLATION_DELAY_TICKS` behind the newest snapshot, so a respawn's pan or a zoom still settling stays covered
-     where the client's camera still is. The margin covers the client's camera leading by `MAX_EXTRAPOLATION_TICKS`
-     plus one broadcast at `INTEREST_MAX_CELL_SPEED` (1 081 wu/s: every speed and sprint tier folded), a mote moving at
-     `INTEREST_MAX_FOOD_SPEED` (80 wu/s) through the render delay, and its drawn reach (`INTEREST_ENTITY_REACH_RADII`
-     × the largest food radius, pinned against the food glows by `render/interest-reach.spec.ts`). A canvas wider than
-     2.4:1 sees food appear at its far sides; the server is not told the canvas.
+     (2.4) times that wide, and grown by `interestMarginFor(balance)` (`camera/interest-margin.ts`; 161 wu at
+     `DEFAULT_BALANCE`). The margin reads the room's live balance, so a `debug_set_balance` that raises a speed widens
+     it. The history covers the client drawing `INTERPOLATION_DELAY_TICKS` behind the newest snapshot, so a respawn's
+     pan or a zoom still settling stays covered where the client's camera still is. The margin covers the client's
+     camera leading by `MAX_EXTRAPOLATION_TICKS` plus one broadcast at the fastest cell (1 081 wu/s at
+     `DEFAULT_BALANCE`: every speed and sprint tier folded), a mote moving at the fastest food speed (80 wu/s) through
+     the render delay, and its drawn reach (`INTEREST_ENTITY_REACH_RADII` × the largest food radius, pinned against
+     the food glows by `render/interest-reach.spec.ts`).
+   - **Known limit: canvases wider than 2.4:1.** A 32:9 screen or a short, wide window sees food appear at its far
+     sides, because the server is not told the canvas. The fix is client-only, capping the drawn width at that ratio
+     (#408).
    - **The members.** Culled members differ per viewer, so they are more declared viewer keys (§4). `dnaFragments`
      stays a full list, filtered. `food` becomes a delta per viewer (`serialize/viewer-state.ts`): a mote entering the
      area is `spawned` for that viewer, one leaving it is in `removedIds`, one inside it that moved is in `moved`, and

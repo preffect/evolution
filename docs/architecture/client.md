@@ -113,7 +113,7 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
 ```
 
 - **Camera** (`render/camera.ts`) implements game-design/controls-and-scope.md §7 from `constants/camera.ts`: the follow,
-  the zoom and whom they follow are shared (`simulation/camera-follow.ts`), because the server runs the same camera
+  the zoom and whom they follow are shared (`camera/camera-follow.ts`), because the server runs the same camera
   per viewer to cull snapshots (wire-contract.md §4.2 lever 1), and this file adds the viewport, projections and draw
   cull; render-only
   numbers (`PROTOCELL_GRANULE_COUNT`, palettes, layer z, wobble amplitude) live in `render/constants.ts`.

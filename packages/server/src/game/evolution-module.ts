@@ -96,10 +96,8 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
       driveBots(bots, world, submitInput);
       runRecordedStep(world, recorder, rejections);
     },
-    serializeRoomState: () => {
-      viewerState.observeBroadcast();
-      return serializeDeltaSnapshot(world, foodDelta);
-    },
+    // The room strips this delta's `food` and sends each viewer its own (`viewerState`); building it anyway is #399.
+    serializeRoomState: () => serializeDeltaSnapshot(world, foodDelta),
     serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
     viewerState,
     getDebugHandle: () => debugHandle,

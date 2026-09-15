@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_BALANCE,
   DISH_CENTRE_TARGET,
   INTEREST_CAMERA_HISTORY_BROADCASTS,
   SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_S,
+  interestMarginFor,
   parkCamera,
   playerId,
   stepCamera,
@@ -14,6 +16,7 @@ import { ViewerCameras, followTargetOf } from './viewer-cameras.js';
 
 const OTHER_PLAYER = { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 };
 const PAN_WU = 2000;
+const MARGIN_WU = interestMarginFor(DEFAULT_BALANCE);
 
 function twoPlayerWorld() {
   const world = createTestWorld({ players: [TEST_PLAYER, OTHER_PLAYER] });
@@ -39,7 +42,7 @@ describe('ViewerCameras', () => {
     const { world, own } = twoPlayerWorld();
     const cameras = new ViewerCameras();
     const parked = parkCamera(own);
-    expect(cameras.areaOf(world, TEST_PLAYER.playerId)).toEqual(interestAreaOf([parked]));
+    expect(cameras.areaOf(world, TEST_PLAYER.playerId, MARGIN_WU)).toEqual(interestAreaOf([parked], MARGIN_WU));
     cameras.step(world);
     expect(cameras.cameraOf(TEST_PLAYER.playerId)).toEqual(parked);
     expect(cameras.cameraOf(OTHER_PLAYER.playerId)).toEqual(parkCamera(world.cells[1]!));
@@ -55,8 +58,8 @@ describe('ViewerCameras', () => {
     cameras.step(world);
     const expected = stepCamera(parked, own, SNAPSHOT_EVERY_TICKS * TICK_INTERVAL_S);
     expect(cameras.cameraOf(TEST_PLAYER.playerId)).toEqual(expected);
-    const area = cameras.areaOf(world, TEST_PLAYER.playerId);
-    expect(area).toEqual(interestAreaOf([parked, expected]));
+    const area = cameras.areaOf(world, TEST_PLAYER.playerId, MARGIN_WU);
+    expect(area).toEqual(interestAreaOf([parked, expected], MARGIN_WU));
   });
 
   it('forgets states older than the history', () => {
@@ -69,7 +72,8 @@ describe('ViewerCameras', () => {
       world.tick += SNAPSHOT_EVERY_TICKS;
       cameras.step(world);
     }
-    expect(cameras.areaOf(world, TEST_PLAYER.playerId).minX).toBeGreaterThan(viewAreaOf(parked).minX);
+    const area = cameras.areaOf(world, TEST_PLAYER.playerId, MARGIN_WU);
+    expect(area.minX).toBeGreaterThan(viewAreaOf(parked, MARGIN_WU).minX);
   });
 
   it('holds a camera with nothing to follow, and parks a viewer with no player at the dish centre', () => {
@@ -81,7 +85,9 @@ describe('ViewerCameras', () => {
     world.tick += SNAPSHOT_EVERY_TICKS;
     cameras.step(world);
     expect(cameras.cameraOf(TEST_PLAYER.playerId)).toEqual(parked);
-    expect(cameras.areaOf(world, playerId('nobody'))).toEqual(interestAreaOf([parkCamera(DISH_CENTRE_TARGET)]));
+    expect(cameras.areaOf(world, playerId('nobody'), MARGIN_WU)).toEqual(
+      interestAreaOf([parkCamera(DISH_CENTRE_TARGET)], MARGIN_WU),
+    );
   });
 
   it('drops a forgotten camera, which parks afresh', () => {

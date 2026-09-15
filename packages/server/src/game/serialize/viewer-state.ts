@@ -4,7 +4,7 @@
 // inside it that moved is in `moved`. A `game_state` restarts that delta from the motes it carries. The shared
 // snapshot keeps every mote and fragment for no viewer (a debug read, a scenario).
 
-import type { FoodDelta, GameSnapshot, PlayerId } from '@evolution/shared';
+import { interestMarginFor, type FoodDelta, type GameSnapshot, type PlayerId } from '@evolution/shared';
 import type { ViewerStateSerializer } from '../game-module.js';
 import type { WorldState } from '../world/world-state.js';
 import { FoodDeltaTracker, positionMotes, type PositionedMote } from './food-delta-tracker.js';
@@ -25,6 +25,17 @@ export type ViewerSnapshotKey = (typeof VIEWER_SNAPSHOT_KEYS)[number];
 /** One viewer's values for `VIEWER_SNAPSHOT_KEYS`. */
 export type ViewerSnapshotMembers = Pick<GameSnapshot, ViewerSnapshotKey>;
 
+/** What every viewer of one snapshot reads of the world: its food quantised once, and the live balance's margin. */
+interface WorldReading {
+  readonly food: readonly PositionedMote[];
+  readonly marginWu: number;
+}
+
+/** The snapshot the reading was taken for. */
+interface ObservedSnapshot extends WorldReading {
+  readonly snapshot: GameSnapshot;
+}
+
 function foodInArea(food: readonly PositionedMote[], area: InterestArea): PositionedMote[] {
   return food.filter(({ position }) => isInInterestArea(area, position.x, position.y));
 }
@@ -39,37 +50,44 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
   readonly keys = VIEWER_SNAPSHOT_KEYS;
   private readonly cameras = new ViewerCameras();
   private readonly foodDeltas = new Map<PlayerId, FoodDeltaTracker>();
-  /** This broadcast's quantised food, shared by every viewer's delta; `null` before the first broadcast. */
-  private broadcastFood: PositionedMote[] | null = null;
+  private observed: ObservedSnapshot | null = null;
 
   constructor(private readonly world: WorldState) {}
 
-  /** Once per broadcast, before any viewer is serialised: every viewer's camera steps and the food is quantised once. */
-  observeBroadcast(): void {
-    this.cameras.step(this.world);
-    this.broadcastFood = positionMotes(this.world.food);
-  }
-
-  /** Always right after this broadcast's `serializeRoomState`, so the food quantised there is the world's now. */
   serialize(viewerPlayerId: PlayerId, snapshot: GameSnapshot): ViewerSnapshotMembers {
+    const reading = this.observe(snapshot);
     const tracker = this.foodDeltas.get(viewerPlayerId) ?? this.restartFoodDelta(viewerPlayerId);
-    const food = this.broadcastFood ?? positionMotes(this.world.food);
-    return this.membersFor(viewerPlayerId, snapshot, tracker, food);
+    return this.membersFor(viewerPlayerId, snapshot, tracker, reading);
   }
 
   /**
    * A fresh delta reports every mote in the area as spawned: the `game_state`'s whole food for this viewer. A
-   * `game_state` can go out between broadcasts, so the food is quantised afresh.
+   * `game_state` can go out between broadcasts, so the world is read afresh and no camera steps.
    */
   serializeFull(viewerPlayerId: PlayerId, snapshot: GameSnapshot): ViewerSnapshotMembers {
-    const tracker = this.restartFoodDelta(viewerPlayerId);
-    return this.membersFor(viewerPlayerId, snapshot, tracker, positionMotes(this.world.food));
+    return this.membersFor(viewerPlayerId, snapshot, this.restartFoodDelta(viewerPlayerId), this.readWorld());
   }
 
   /** A player left the room: its camera and its delta go with it. */
   forget(viewerPlayerId: PlayerId): void {
     this.cameras.forget(viewerPlayerId);
     this.foodDeltas.delete(viewerPlayerId);
+  }
+
+  /**
+   * Once per snapshot, on its first viewer, the world is read; on the first snapshot of a tick, every camera steps.
+   * A second snapshot of one tick (a paused room republishing a debug change) re-reads the world but steps no camera
+   * twice, and a broadcast no viewer was sent is stepped over on the next one, so no caller has to announce either.
+   */
+  private observe(snapshot: GameSnapshot): WorldReading {
+    if (this.observed?.snapshot === snapshot) return this.observed;
+    if (this.observed?.snapshot.tick !== snapshot.tick) this.cameras.step(this.world);
+    this.observed = { snapshot, ...this.readWorld() };
+    return this.observed;
+  }
+
+  private readWorld(): WorldReading {
+    return { food: positionMotes(this.world.food), marginWu: interestMarginFor(this.world.balance) };
   }
 
   private restartFoodDelta(viewerPlayerId: PlayerId): FoodDeltaTracker {
@@ -82,10 +100,10 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
     viewerPlayerId: PlayerId,
     snapshot: GameSnapshot,
     tracker: FoodDeltaTracker,
-    positionedFood: readonly PositionedMote[],
+    reading: WorldReading,
   ): ViewerSnapshotMembers {
-    const area = this.cameras.areaOf(this.world, viewerPlayerId);
-    const food: FoodDelta = tracker.diffPositioned(foodInArea(positionedFood, area));
+    const area = this.cameras.areaOf(this.world, viewerPlayerId, reading.marginWu);
+    const food: FoodDelta = tracker.diffPositioned(foodInArea(reading.food, area));
     return {
       food,
       dnaFragments: snapshot.dnaFragments.filter((fragment) => isInInterestArea(area, fragment.x, fragment.y)),

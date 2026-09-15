@@ -44,7 +44,7 @@ packages/shared/src/
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
   simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1)
-  simulation/camera-follow.ts                                   the camera's follow, zoom and target (game-design/controls-and-scope.md §7): the client renders through it, the server culls with it
+  camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
   simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2)
                                                                 level-costs: levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ecology/absorption.md §6.1)

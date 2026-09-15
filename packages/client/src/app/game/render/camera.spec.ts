@@ -3,7 +3,7 @@ import { cameraExtent, isDiscInExtent, screenOffsetToWorld, screenToWorld, world
 
 const VIEWPORT = { width: 1920, height: 1080 };
 
-// The follow and the zoom are shared and tested with them (`shared/src/simulation/camera-follow.test.ts`).
+// The follow and the zoom are shared and tested with them (`shared/src/camera/camera-follow.test.ts`).
 describe('zoom, extent and projections', () => {
   const state = { x: 100, y: 50, viewHalfHeightWu: 540 };
 

@@ -1,5 +1,5 @@
 // The server's copy of every viewer's camera (docs/architecture/wire-contract.md §4.2 lever 1): the follow and zoom the
-// client renders with (`simulation/camera-follow.ts`), stepped once per broadcast toward the same target, so the area a
+// client renders with (`camera/camera-follow.ts`), stepped once per broadcast toward the same target, so the area a
 // viewer is sent tracks what its canvas shows through a spectate, a respawn's pan and a zoom still settling. Each
 // camera keeps its last `INTEREST_CAMERA_HISTORY_BROADCASTS` states, because the client draws behind the newest
 // snapshot. Serialisation state only: the simulation, the state hash and a replay never read it.
@@ -53,10 +53,13 @@ export class ViewerCameras {
     }
   }
 
-  /** The area `playerId` is sent. A camera never stepped parks on its target first, as the client's first frame does. */
-  areaOf(world: WorldState, playerId: PlayerId): InterestArea {
+  /**
+   * The area `playerId` is sent, each view grown by `marginWu`. A camera never stepped parks on its target first, as
+   * the client's first frame does.
+   */
+  areaOf(world: WorldState, playerId: PlayerId, marginWu: number): InterestArea {
     const history = this.histories.get(playerId) ?? this.park(world, playerId);
-    return interestAreaOf(history.states);
+    return interestAreaOf(history.states, marginWu);
   }
 
   /** The newest camera state of `playerId`, if it has one. */

@@ -1,13 +1,11 @@
 // The camera (docs/game-design/controls-and-scope.md §7): centred on the followed cell, zoomed out as it grows, both
-// smoothed and purely cosmetic. The follow and zoom are shared (`simulation/camera-follow.ts`), because the server runs
-// the same camera per viewer to cull its snapshots; this file adds what only a screen has: the viewport, the
-// projections and the draw cull. The render loop owns the state and the injected clock's delta.
+// smoothed and purely cosmetic. The follow and zoom are shared (`@evolution/shared`, `camera/camera-follow.ts`), because
+// the server runs the same camera per viewer to cull its snapshots; this file adds what only a screen has: the viewport,
+// the projections and the draw cull. The render loop owns the state and the injected clock's delta.
 
 import type { CameraState } from '@evolution/shared';
 import { CAMERA_CULL_MARGIN_RADII } from './constants';
 import { HALF } from './geometry';
-
-export { parkCamera, stepCamera, viewHalfHeightFor, type CameraState, type CameraTarget } from '@evolution/shared';
 
 export interface ViewportPx {
   readonly width: number;

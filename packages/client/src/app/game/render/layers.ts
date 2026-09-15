@@ -2,8 +2,9 @@
 // transforms, holding the layers in `LAYER_Z` order, and a screen root for the vignette. The
 // orchestrator writes the world root's transform every frame; nothing else moves a layer.
 
+import type { CameraState } from '@evolution/shared';
 import { Container } from 'pixi.js';
-import type { CameraState, ViewportPx } from './camera';
+import type { ViewportPx } from './camera';
 import { worldToScreen, zoomFor } from './camera';
 import { LAYER_NAMES, LAYER_Z, type LayerName } from './constants';
 

@@ -6,9 +6,9 @@
 // the three depth particle layers; the orchestrator keeps the screen-space vignette above
 // everything. The vent shimmer (rendering/budget.md §6, the one filter) is deferred.
 
-import { DISH_RADIUS, type RandomSource } from '@evolution/shared';
+import { DISH_RADIUS, type CameraState, type RandomSource } from '@evolution/shared';
 import { Container, Graphics, Particle, ParticleContainer, Sprite, type Texture } from 'pixi.js';
-import { screenToWorld, zoomFor, type CameraState, type ViewportPx } from '../camera';
+import { screenToWorld, zoomFor, type ViewportPx } from '../camera';
 import { hexToNumber } from '../colour';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import {

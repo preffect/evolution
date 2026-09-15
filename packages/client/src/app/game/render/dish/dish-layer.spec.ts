@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { DISH_RADIUS } from '@evolution/shared';
+import { DISH_RADIUS, type CameraState } from '@evolution/shared';
 import { Graphics, ParticleContainer, Sprite } from 'pixi.js';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
-import { worldToScreen, type CameraState, type ViewportPx } from '../camera';
+import { worldToScreen, type ViewportPx } from '../camera';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import {
   DEPTH_BOKEH,
