@@ -173,19 +173,19 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **8. Debug MCP surface (#14)** (L5–85): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
 
-## architecture/encyclopedia.md (525 lines)
+## architecture/encyclopedia.md (646 lines)
 
-- **Evolution — Architecture: encyclopedia content model and preview seam** (L1–525): §12 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **12. Encyclopedia** (L9–525)
-  - **12.1 Decisions (the short list)** (L11–30): are player-facing copy like the HUD's; nothing on the server or in the debug MCP reads it.
-  - **12.2 Registry: categories, subjects, ids** (L31–144): Categories are the closed player-facing grouping; subjects are the code kinds an entry documents.
-  - **12.3 Facts: values bound to code** (L145–191): name: NumberOrTableKey<D>, ...keys)`), so a renamed constant fails `typecheck` at the fact.
-  - **12.4 The closed sets the registry adds** (L192–252): Three subjects have no code enum yet.
-  - **12.5 Formatting and units: one place** (L253–294): The `−` minus sign, the space before `%` and the decimal rule the trait cards use today (`hud/format/trait-effects.ts`: `signedPercent`, …
-  - **12.6 Prose and the tests that bind everything** (L295–330): Where prose lives.
-  - **12.7 The preview seam** (L331–487): Requirement: real renders with their animations (epic #353), from the game's own code-drawn renderers, without a room, a snapshot from the …
-  - **12.8 File plan** (L488–511): The encyclopedia and ESC menu components, their test ids and the UI kit are #354's (`ui/` docs).
-  - **12.9 Test plan** (L512–525): same spec + tick ⇒ same frame; ticks are monotonic across a loop; each loop emits its effects once; the engulf scene's phase boundaries f…
+- **Evolution — Architecture: encyclopedia content model and preview seam** (L1–646): §12 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **12. Encyclopedia** (L9–646)
+  - **12.1 Decisions (the short list)** (L11–37): are player-facing copy like the HUD's; nothing on the server or in the debug MCP reads it.
+  - **12.2 Registry: categories, subjects, ids** (L38–168): Categories are the closed player-facing grouping; subjects are the code kinds an entry documents.
+  - **12.3 Facts: values bound to code** (L169–261): name: NumberOrTableKey<D>, ...keys)`), so a renamed constant fails `typecheck` at the fact.
+  - **12.4 The closed sets the registry adds** (L262–344): Four subjects have no code enum yet.
+  - **12.5 Formatting and units: one place** (L345–400): What goes through it.
+  - **12.6 Prose and the tests that bind everything** (L401–444): Where prose lives.
+  - **12.7 The preview seam** (L445–601): Requirement: real renders with their animations (epic #353), from the game's own code-drawn renderers, without a room, a snapshot from the …
+  - **12.8 File plan** (L602–628): The encyclopedia and ESC menu components, their test ids and the UI kit are #354's (`ui/` docs).
+  - **12.9 Test plan** (L629–646): `ENGULF_BASE_DURATION_SECONDS` over the three phases and follows a patched `ENGULF_SEAL_PROGRESS`); `preview-scene.spec.ts` (every `PREVIEW…
 
 ## architecture/entity-model.md (251 lines)
 
