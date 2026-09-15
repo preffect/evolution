@@ -77,6 +77,27 @@ describe('game-room: the fixed-step loop', () => {
     expect(room.performanceTracker.getStats().tickPeakMs).toBe(2);
   });
 
+  it('counts a slow broadcast in the tick time and reports it as the broadcast share', () => {
+    const gameModule = createSpyGameModule();
+    const timing = createManualRoomTiming();
+    vi.mocked(gameModule.reduceGameState).mockImplementation(() => timing.clock.advanceMilliseconds(2));
+    const serialize = vi.mocked(gameModule.serializeRoomState);
+    const echo = serialize.getMockImplementation()!;
+    serialize.mockImplementation(() => {
+      timing.clock.advanceMilliseconds(5);
+      return echo();
+    });
+    const room = new GameRoom(gameModule, roomOptions(['p1']), timing);
+    room.start();
+    for (let tick = 0; tick < SNAPSHOT_EVERY_TICKS; tick += 1) {
+      timing.clock.advanceMilliseconds(TICK_INTERVAL_MS);
+      timing.ticker.fire();
+    }
+    const broadcastTick = room.performanceTracker.worstTick();
+    expect(broadcastTick).toMatchObject({ tickMs: 7, broadcastMs: 5 });
+    expect(room.performanceTracker.getStats()).toMatchObject({ tickPeakMs: 7, broadcastPeakMs: 5 });
+  });
+
   it('start() discards the time that passed since construction instead of bursting', () => {
     const gameModule = createSpyGameModule();
     const timing = createManualRoomTiming();

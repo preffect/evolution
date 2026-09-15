@@ -261,14 +261,17 @@ export class GameRoom {
     for (let count = 0; count < dueTicks; count += 1) this.runTick();
   }
 
+  /** The tick time spans the step and the broadcast; `broadcastMs` is the broadcast's share of it (#340). */
   private runTick(): void {
     const tickStartMs = this.timing.clock.nowMilliseconds();
     this.game.reduceGameState();
-    this.tickCount += 1;
-    const isBroadcastTick = this.tickCount % SNAPSHOT_EVERY_TICKS === 0;
+    const broadcastStartMs = this.timing.clock.nowMilliseconds();
+    const snapshotBytes = ++this.tickCount % SNAPSHOT_EVERY_TICKS === 0 ? this.broadcastSnapshot() : 0;
+    const tickEndMs = this.timing.clock.nowMilliseconds();
     this.performanceTracker.recordTick({
-      tickMs: this.timing.clock.nowMilliseconds() - tickStartMs,
-      snapshotBytes: isBroadcastTick ? this.broadcastSnapshot() : 0,
+      tickMs: tickEndMs - tickStartMs,
+      broadcastMs: tickEndMs - broadcastStartMs,
+      snapshotBytes,
       broadcastClients: this.playerConnections.size,
     });
   }

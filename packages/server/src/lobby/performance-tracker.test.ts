@@ -3,8 +3,8 @@ import { TICK_HZ, createTestClientPerformanceReport } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
 import { PerformanceTracker } from './performance-tracker.js';
 
-function tickOf(tickMs: number, snapshotBytes = 100, broadcastClients = 2) {
-  return { tickMs, snapshotBytes, broadcastClients };
+function tickOf(tickMs: number, snapshotBytes = 100, broadcastClients = 2, broadcastMs = 0) {
+  return { tickMs, broadcastMs, snapshotBytes, broadcastClients };
 }
 
 describe('PerformanceTracker', () => {
@@ -14,6 +14,9 @@ describe('PerformanceTracker', () => {
       tickAvgMs: 0,
       tickP95Ms: 0,
       tickPeakMs: 0,
+      broadcastAvgMs: 0,
+      broadcastP95Ms: 0,
+      broadcastPeakMs: 0,
       broadcastBytesPerSec: 0,
       droppedTicks: 0,
       worstTick: null,
@@ -37,6 +40,29 @@ describe('PerformanceTracker', () => {
     expect(stats.broadcastBytesPerSec).toBe(100 * 2 * TICK_HZ);
     expect(tracker.stats).toEqual(stats);
     expect(tracker.worstTick()).toEqual(tickOf(3));
+  });
+
+  it('summarises the broadcast share over every tick, the silent ones included', () => {
+    const tracker = new PerformanceTracker();
+    tracker.recordTick(tickOf(1));
+    tracker.recordTick(tickOf(1));
+    tracker.recordTick(tickOf(7, 100, 2, 6));
+    expect(tracker.getStats()).toMatchObject({
+      tickAvgMs: 3,
+      tickPeakMs: 7,
+      broadcastAvgMs: 2,
+      broadcastP95Ms: 6,
+      broadcastPeakMs: 6,
+    });
+  });
+
+  it('keeps the worst broadcast even when it was not the worst tick, after it leaves the window', () => {
+    const tracker = new PerformanceTracker();
+    tracker.recordTick(tickOf(5, 100, 2, 4));
+    tracker.recordTick(tickOf(9));
+    for (let index = 0; index < 400; index++) tracker.recordTick(tickOf(1));
+    const stats = tracker.getStats();
+    expect(stats).toMatchObject({ tickPeakMs: 9, broadcastAvgMs: 0, broadcastPeakMs: 4 });
   });
 
   it('keeps a bounded window but never forgets the worst tick', () => {

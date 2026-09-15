@@ -174,8 +174,11 @@ too (`moved` 11.3 KB after, 9.5 KB before), so that row's total understates the 
 
 The players part falls by 4.4–6.7 KB per snapshot, up to 134 KB/s per client at 20 Hz. On the same dish, the
 offers-shown row would be 30 783 − 8 162 + 1 477 ≈ 24.1 KB. The CPU cost of sending each viewer its own progress
-is not measured here: the room reads `tickMs` before the broadcast runs, so its tick p95 excludes serialisation and
-sending (#340). The splice (§4) is what keeps that cost flat in the client count.
+is not measured here: until #340 the room read `tickMs` before the broadcast ran, so its tick p95 excluded
+serialisation and sending. Since #340 `tickMs` spans the step and the broadcast, and `debug_get_room_performance`
+reports the broadcast's share on its own as `broadcastAvgMs` / `broadcastP95Ms` / `broadcastPeakMs` (averaged over
+every tick, so a broadcast every `SNAPSHOT_EVERY_TICKS` weighs a third). The splice (§4) is what keeps that cost flat
+in the client count.
 
 Raw JSON length stays the budget unit. `perMessageDeflate` (already enabled, level 1) cuts the bytes on the wire by
 about 70–75 %: with real sequential ids a `game_snapshot` of 31 689 B deflates to 7 658 B (#331's review). #331's own
