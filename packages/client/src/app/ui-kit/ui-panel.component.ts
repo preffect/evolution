@@ -6,6 +6,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { nextUiElementId } from './ui-element-id';
+import { UiScrollAreaComponent } from './ui-scroll-area.component';
 
 export const UI_PANEL_VARIANT = { modal: 'modal', side: 'side' } as const;
 export type UiPanelVariant = (typeof UI_PANEL_VARIANT)[keyof typeof UI_PANEL_VARIANT];
@@ -19,6 +20,7 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
   selector: 'ui-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiScrollAreaComponent],
   template: `
     <header class="header">
       @if (title(); as text) {
@@ -26,7 +28,7 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
       }
       <ng-content select="[uiPanelHeader]" />
     </header>
-    <div class="body"><ng-content /></div>
+    <ui-scroll-area class="body" [label]="title()"><ng-content /></ui-scroll-area>
     <footer class="footer"><ng-content select="[uiPanelFooter]" /></footer>
   `,
   host: {

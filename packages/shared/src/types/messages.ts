@@ -14,12 +14,12 @@ import type {
   GelPatchView,
   LeaderboardRow,
   MotePositionView,
-  PlayerProgressView,
   PlayerRosterView,
   RoundEndCondition,
   RoundPhase,
   TraitChoiceInput,
 } from './game.js';
+import type { OwnProgressView } from './mass-flow.js';
 import type { GameEffect } from './effects.js';
 import type { BalanceConfig } from '../constants/balance.js';
 
@@ -89,7 +89,7 @@ export interface GameSnapshot {
    * that player alone, so no other client is sent them (docs/architecture/wire-contract.md §4.1). `null`
    * in a snapshot built for no viewer (a debug read, a scenario) or for one without a seat.
    */
-  ownProgress: PlayerProgressView | null;
+  ownProgress: OwnProgressView | null;
   leaderboard: LeaderboardRow[];
   /** Prediction (docs/architecture/client.md §5): only the receiver's own entry; every player's in a snapshot for no viewer. */
   appliedInputSequenceByPlayer: Record<string, number>;

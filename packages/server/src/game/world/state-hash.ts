@@ -1,7 +1,7 @@
 // The state hash of a world (docs/determinism/ordering-and-state-hash.md §5): the canonical walk over `HASHED_FIELDS`
 // through the shared hasher. Every non-derived record field is listed (the test pins it); the
 // derived ones are excluded and named here so a debug-only field can never move the hash:
-// `leaderboard` (a function of the players), `effects` (transient), `balance` and `config`
+// `leaderboard` (a function of the players), `effects` and `massFlow` (transient), `balance` and `config`
 // (replay inputs), `CellRecord.modifiers` (folded at step 1), `PlayerRecord.score` (step 10),
 // `PlayerRecord.stage` (`stageOf` the hashed `ownedTraits`) and `PlayerRecord.offer` (the shown offer
 // mirror of `offerQueue[0]`).
@@ -39,7 +39,7 @@ import type { WorldState } from './world-state.js';
 
 /** The record fields the walk leaves out, by record, for the pin test. */
 export const DERIVED_FIELDS = {
-  world: ['config', 'balance', 'leaderboard', 'effects'],
+  world: ['config', 'balance', 'leaderboard', 'effects', 'massFlow'],
   cell: ['modifiers'],
   player: ['score', 'stage', 'offer'],
 } as const;

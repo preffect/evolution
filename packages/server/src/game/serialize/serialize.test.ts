@@ -11,6 +11,10 @@ import {
   type LeaderboardRow,
   EFFECT_KIND,
   playerId,
+  MASS_RATE_CAUSES,
+  PLAYER_LIFE_STATE,
+  ZONE_ID,
+  zeroRecord,
 } from '@evolution/shared';
 import { updateLeaderboard } from '../session/leaderboard.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
@@ -28,7 +32,9 @@ import {
   toPlayerProgressView,
   toPlayerRosterView,
   ownProgressOf,
+  SPRINT_WINDOW,
 } from './serialize.js';
+import { recordMetabolism, recordSprintSpent } from '../world/mass-flow-ledger.js';
 
 /** A grown, moving cell as a recording client saw it on the wire before #341: every float at full precision. */
 const MOVING_CELL = {
@@ -162,7 +168,7 @@ describe('ownProgressOf', () => {
     const world = createTestWorld();
     const viewer = world.players[0]!;
     viewer.ownedTraits = [{ traitId: 'nucleoid', tier: 1 }];
-    expect(ownProgressOf(world, viewer.playerId)).toEqual(toPlayerProgressView(viewer));
+    expect(ownProgressOf(world, viewer.playerId)).toEqual({ ...toPlayerProgressView(viewer), massFlow: null });
   });
 
   it('is null for a viewer with no player in the world', () => {
@@ -221,6 +227,8 @@ describe('serializeDeltaSnapshot', () => {
         cellId: world.cells[0]!.id,
         eatenId: mote.id,
         eatenKind: 'food_mote',
+        massGained: 1,
+        dnaGained: 0,
       },
     ];
     world.effects.push(...effects);
@@ -232,5 +240,61 @@ describe('serializeDeltaSnapshot', () => {
     const second = serializeDeltaSnapshot(world, tracker);
     expect(second.food).toEqual({ spawned: [], removedIds: [mote.id], moved: [] });
     expect(second.effects).toEqual([]);
+  });
+});
+
+describe('the own progress mass flow (#383)', () => {
+  const record = {
+    ratesPerSecond: { ...zeroRecord(MASS_RATE_CAUSES), decay: -0.5 },
+    decayTraitShare: 0,
+    zone: ZONE_ID.openBroth,
+  };
+  const sprintSpent = 5;
+
+  function worldWithFlow() {
+    const world = createTestWorld();
+    const player = world.players[0]!;
+    recordMetabolism(world.massFlow, player.playerId, record);
+    recordSprintSpent(world.massFlow, player.playerId, sprintSpent);
+    return { world, player };
+  }
+
+  it('reports the sprint window only once the broadcast drain seals it', () => {
+    const { world, player } = worldWithFlow();
+    expect(ownProgressOf(world, player.playerId)?.massFlow).toEqual({
+      ratesPerSecond: { decay: -0.5 },
+      zone: ZONE_ID.openBroth,
+    });
+    serializeDeltaSnapshot(world, new FoodDeltaTracker());
+    expect(ownProgressOf(world, player.playerId)?.massFlow?.sprintSpent).toBe(sprintSpent);
+    expect(ownProgressOf(world, player.playerId, SPRINT_WINDOW.omitted)?.massFlow?.sprintSpent).toBeUndefined();
+    serializeDeltaSnapshot(world, new FoodDeltaTracker());
+    expect(ownProgressOf(world, player.playerId)?.massFlow?.sprintSpent).toBeUndefined();
+  });
+
+  it('is null while spectating and before the metabolism step has run', () => {
+    const { world, player } = worldWithFlow();
+    player.lifeState = PLAYER_LIFE_STATE.spectating;
+    expect(ownProgressOf(world, player.playerId)?.massFlow).toBeNull();
+    expect(ownProgressOf(createTestWorld(), player.playerId)?.massFlow).toBeNull();
+  });
+
+  it('rounds the meal amounts of the drained effects to the wire mass', () => {
+    const world = createTestWorld();
+    const cellId = world.cells[0]!.id;
+    const massGained = 1.26;
+    world.effects.push({
+      kind: EFFECT_KIND.eat,
+      tick: 1,
+      x: 0,
+      y: 0,
+      cellId,
+      eatenId: cellId,
+      eatenKind: 'food_mote',
+      massGained,
+      dnaGained: 0,
+    });
+    const [eaten] = serializeDeltaSnapshot(world, new FoodDeltaTracker()).effects;
+    expect(eaten).toMatchObject({ massGained: Number(massGained.toFixed(SNAPSHOT_MASS_DECIMALS)) });
   });
 });

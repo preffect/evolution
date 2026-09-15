@@ -10,6 +10,7 @@ import { placeGelPatches } from '../simulation/zones.js';
 import { runInitialFill } from '../simulation/spawner.js';
 import { roundTimeLeftMsAt } from '../simulation/round-clock.js';
 import type { SpawnerState } from './entities.js';
+import { createMassFlowLedger } from './mass-flow-ledger.js';
 import { forkServerStreams, resumeStreams, storeStreams } from './streams.js';
 import { createInputRejectionCounters, type StepContext, type WorldState } from './world-state.js';
 
@@ -56,6 +57,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     nextEntityNumber: firstEntityNumber,
     roundFirstEntityNumber: firstEntityNumber,
     effects: [],
+    massFlow: createMassFlowLedger(),
   };
   world.roundTimeLeftMs = roundTimeLeftMsAt(world, world.tick);
   return world;

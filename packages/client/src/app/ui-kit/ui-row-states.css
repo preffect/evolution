@@ -1,0 +1,109 @@
+/* The row the rail item and the list row share (docs/ui/components-and-constants.md §10.2, the states table): square,
+   so a column of rows reads as one surface; a text-colour tint for hover and press over the selected tint, the
+   accent bar on the leading edge, and the focus ring drawn inside the row, where a scroll area cannot clip it. Every
+   length is `calc(<token> * var(--ui-scale))` except the ring, which is never scaled. */
+
+:host {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  padding: 0 calc(var(--ui-space-l) * var(--ui-scale));
+  background-color: transparent;
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  font-weight: normal;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color var(--ui-transition),
+    color var(--ui-transition),
+    opacity var(--ui-transition);
+}
+
+/* The state tint, over the selected tint and under the content. */
+:host::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: transparent;
+  pointer-events: none;
+  transition: background-color var(--ui-transition);
+}
+
+/* The selection bar on the leading edge. */
+:host::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--ui-selection-bar) * var(--ui-scale));
+  background-color: var(--ui-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ui-transition);
+}
+
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leading,
+.trailing {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+.leading:empty,
+.trailing:empty {
+  display: none;
+}
+
+/* ---- states ---- */
+
+:host(:hover:not([aria-disabled='true']))::after {
+  background-color: var(--ui-hover);
+}
+
+:host(:active:not([aria-disabled='true']))::after {
+  background-color: var(--ui-pressed);
+}
+
+:host([aria-selected='true']) {
+  background-color: var(--ui-selected);
+  color: var(--ui-text);
+  font-weight: bold;
+}
+
+:host([aria-selected='true'])::before {
+  opacity: 1;
+}
+
+:host(:focus-visible) {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: calc(-1 * (var(--ui-focus-ring) + var(--ui-focus-ring-offset)));
+}
+
+:host([aria-disabled='true']) {
+  opacity: var(--ui-disabled-alpha);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host::before,
+  :host::after {
+    transition: none;
+  }
+}

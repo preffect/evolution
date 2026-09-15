@@ -21,6 +21,7 @@ import {
   type SpawnZoneId,
   type SpawnedKind,
   type Vec2,
+  zoneAt,
 } from '@evolution/shared';
 import type { SpawnerState } from '../world/entities.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
@@ -30,7 +31,6 @@ import { pickWeighted } from './pick-weighted.js';
 import { drawPointAround, drawPointInZone } from './spawn-point.js';
 import { fragmentSpawnerRates, foodSpawnerRates, spawnEventKindWeights, type SpawnerRates } from './spawn-rates.js';
 import { worldReferenceAt } from './round-clock.js';
-import { zoneAt } from './zones.js';
 
 /** The zones a kind is drawn in, in one fixed order, with their weights (docs/ecology/food-and-spawn.md §3). */
 const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_ID.warmVent, ZONE_ID.openBroth];

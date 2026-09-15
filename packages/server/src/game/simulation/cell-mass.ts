@@ -30,7 +30,24 @@ export function gainMass(
   setCellMass(cell, Math.min(raised, maxMass), balance);
 }
 
-/** Drops mass to `mass` but never below the starting mass (decay, drains and the sprint cost floor there). */
+/** What one meal added, measured around the gains (#383): the snapshot reports these, never a formula's value. */
+export interface MeasuredGain {
+  readonly massGained: number;
+  readonly dnaGained: number;
+}
+
+/** A wild predator's payout keeps nothing. */
+export const NO_GAIN: MeasuredGain = { massGained: 0, dnaGained: 0 };
+
+/** Runs `applyGains` and returns how far it moved the cell's mass and the player's lifetime DNA. */
+export function measureGain(cell: CellRecord, player: PlayerRecord, applyGains: () => void): MeasuredGain {
+  const massBefore = cell.mass;
+  const dnaBefore = player.dnaCumulative;
+  applyGains();
+  return { massGained: cell.mass - massBefore, dnaGained: player.dnaCumulative - dnaBefore };
+}
+
+/** Drops mass to `mass` but never below the starting mass (the metabolism step's decay and drains floor there). */
 export function loseMassToFloor(cell: CellRecord, mass: number, balance: BalanceConfig): void {
   setCellMass(cell, Math.max(balance.growth.CELL_STARTING_MASS, mass), balance);
 }

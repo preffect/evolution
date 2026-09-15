@@ -80,3 +80,17 @@ describe('runStep', () => {
     expect(stepWorld(world, createTestStepContext(world))).toBe(ROUND_STEP_OUTCOME.results);
   });
 });
+
+describe('stepWorld: the mass flow through results (#420)', () => {
+  it('reports no metabolism rates once the round ends, while the mass is frozen', () => {
+    const world = placed();
+    world.cells[0]!.mass = DEFAULT_BALANCE.growth.CELL_STARTING_MASS * 10;
+    stepWorld(world, createTestStepContext(world));
+    const playerId = world.players[0]!.playerId;
+    expect(world.massFlow.metabolismByPlayer[playerId]).toBeDefined();
+    world.roundPhase = ROUND_PHASE.results;
+    world.tick = roundDurationTicks(world) + 1;
+    expect(stepWorld(world, createTestStepContext(world))).toBe(ROUND_STEP_OUTCOME.results);
+    expect(world.massFlow.metabolismByPlayer[playerId]).toBeUndefined();
+  });
+});
