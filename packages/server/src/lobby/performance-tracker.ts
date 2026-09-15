@@ -65,7 +65,8 @@ const EMPTY_STATS: PerformanceStats = Object.freeze({
   worstTick: null,
 });
 
-function roundToHundredths(value: number): number {
+/** Rounds a millisecond or byte-rate reading to the hundredths every tracker figure is reported in. */
+export function roundToHundredths(value: number): number {
   return Math.round(value * HUNDREDTHS) / HUNDREDTHS;
 }
 

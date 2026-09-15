@@ -7,6 +7,7 @@ import { DEFAULT_BALANCE, EFFECT_KIND, PLAYER_LIFE_STATE, playerId, secondsToTic
 import { setCellMass } from '../simulation/cell-mass.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import type { CellRecord } from '../world/entities.js';
+import { NO_GAIN } from '../simulation/cell-mass.js';
 import { absorbCell } from './death.js';
 import { runRespawns } from './respawn.js';
 
@@ -26,7 +27,7 @@ function deadVictim() {
   victim.level = 3;
   victim.ownedTraits.push({ traitId: 'nucleoid', tier: 1 });
   world.tick = DEATH_TICK;
-  absorbCell(world, createTestStepContext(world), prey, predator);
+  absorbCell(world, createTestStepContext(world), { prey, predator, predatorGain: NO_GAIN });
   return { world, victim };
 }
 

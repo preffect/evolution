@@ -10,6 +10,7 @@ import {
   SNAPSHOT_RADIUS_DECIMALS,
   SNAPSHOT_SCORE_DECIMALS,
   SNAPSHOT_VELOCITY_DECIMALS,
+  PLAYER_LIFE_STATE,
   type CellView,
   type DnaFragmentView,
   type FoodMoteView,
@@ -17,6 +18,7 @@ import {
   type GameSnapshot,
   type LeaderboardRow,
   type MotePositionView,
+  type OwnProgressView,
   type PlayerId,
   type PlayerProgressView,
   type PlayerRosterView,
@@ -24,8 +26,10 @@ import {
 } from '@evolution/shared';
 import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from '../world/entities.js';
 import { findPlayer } from '../world/lookups.js';
+import { drainBroadcastWindow } from '../world/broadcast-window.js';
 import type { WorldState } from '../world/world-state.js';
 import type { FoodDeltaTracker } from './food-delta-tracker.js';
+import { toEffectView, toMassFlowView } from './mass-flow-view.js';
 import { WIRE_SNAPSHOT_VALUES, quantizeToDecimals, snapshotValue, type SnapshotPrecision } from './quantize.js';
 
 export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES): CellView {
@@ -142,13 +146,40 @@ export function toPlayerRosterView(player: PlayerRecord): PlayerRosterView {
   return { playerId: player.playerId, playerName: player.playerName };
 }
 
+/** Whether an own view carries the sealed sprint window: a `game_state` carries no window, as it carries no effects. */
+export const SPRINT_WINDOW = { included: 'included', omitted: 'omitted' } as const;
+export type SprintWindow = (typeof SPRINT_WINDOW)[keyof typeof SPRINT_WINDOW];
+
+/**
+ * The player's progress and why its cell's mass moves (#383): `massFlow` is `null` while spectating and until the
+ * metabolism step has run for a new cell.
+ */
+export function toOwnProgressView(
+  world: WorldState,
+  player: PlayerRecord,
+  precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
+  sprintWindow: SprintWindow = SPRINT_WINDOW.included,
+): OwnProgressView {
+  const ledger = world.massFlow;
+  const record = player.lifeState === PLAYER_LIFE_STATE.alive ? ledger.metabolismByPlayer[player.playerId] : undefined;
+  const sprintSpent = sprintWindow === SPRINT_WINDOW.included ? ledger.sprintSpentByPlayer[player.playerId] : undefined;
+  return {
+    ...toPlayerProgressView(player, precision),
+    massFlow: record === undefined ? null : toMassFlowView(record, sprintSpent, precision),
+  };
+}
+
 /**
  * What `viewerPlayerId` alone is sent of its own progress (docs/architecture/wire-contract.md §4.1): `null` for a
  * viewer with no player in the world.
  */
-export function ownProgressOf(world: WorldState, viewerPlayerId: PlayerId): PlayerProgressView | null {
+export function ownProgressOf(
+  world: WorldState,
+  viewerPlayerId: PlayerId,
+  sprintWindow: SprintWindow = SPRINT_WINDOW.included,
+): OwnProgressView | null {
   const viewer = findPlayer(world, viewerPlayerId);
-  return viewer === undefined ? null : toPlayerProgressView(viewer);
+  return viewer === undefined ? null : toOwnProgressView(world, viewer, WIRE_SNAPSHOT_VALUES, sprintWindow);
 }
 
 /** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */
@@ -190,9 +221,10 @@ export function serializeFullSnapshot(
 /**
  * The `game_snapshot` broadcast: the food delta since the previous broadcast and every effect since
  * it. This is the one drain of `world.effects` (docs/architecture/entity-model.md §2): the steps and the
- * between-tick paths (a join's catch-up level-ups, a debug grant) all push there.
+ * between-tick paths (a join's catch-up level-ups, a debug grant) all push there. It seals the sprint window the
+ * viewers' own progress reports with it (#383).
  */
 export function serializeDeltaSnapshot(world: WorldState, tracker: FoodDeltaTracker): GameSnapshot {
-  const effects: GameEffect[] = world.effects.splice(0);
+  const effects: GameEffect[] = drainBroadcastWindow(world).map((effect) => toEffectView(effect, WIRE_SNAPSHOT_VALUES));
   return { ...serializeCommon(world, WIRE_SNAPSHOT_VALUES), food: tracker.diff(world.food), effects };
 }

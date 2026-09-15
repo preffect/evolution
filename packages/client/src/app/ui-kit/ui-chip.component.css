@@ -1,0 +1,62 @@
+/* The kit chip (docs/ui/components-and-constants.md §10.2): a `label` pill on the well. No chip has a fixed width. */
+
+:host {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--ui-space-xs) * var(--ui-scale));
+  height: calc(var(--ui-chip-height) * var(--ui-scale));
+  padding: 0 calc(var(--ui-chip-padding-inline) * var(--ui-scale));
+  border: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-chip-height) * var(--ui-scale));
+  background-color: var(--ui-well);
+  color: var(--ui-text-label);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  line-height: 1;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  width: calc(var(--ui-chip-dot) * var(--ui-scale));
+  height: calc(var(--ui-chip-dot) * var(--ui-scale));
+  border-radius: 50%;
+}
+
+/* ---- tones ---- */
+
+:host([data-tone='muted']) {
+  border-color: var(--ui-text-muted);
+  color: var(--ui-text-muted);
+}
+
+:host([data-tone='strong']) {
+  border-color: var(--ui-text-label);
+  color: var(--ui-text);
+}
+
+:host([data-tone='accent']) {
+  border-color: var(--ui-accent);
+  color: var(--ui-accent);
+}
+
+:host([data-tone='gold']) {
+  border-color: var(--ui-level-gold);
+  color: var(--ui-level-gold);
+}
+
+/* The rim warns; the words, in the text colour, say what it is. */
+:host([data-tone='danger']) {
+  border-color: var(--ui-danger);
+  color: var(--ui-text);
+}
+
+:host([data-tone='dna']) {
+  border-color: var(--ui-dna);
+  color: var(--ui-dna);
+}

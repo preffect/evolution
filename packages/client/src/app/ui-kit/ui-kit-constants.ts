@@ -47,8 +47,12 @@ export const UI_ROW_HEIGHT_PX = 40;
 export const UI_RAIL_ROW_HEIGHT_PX = 36;
 /** A row's leading medallion. */
 export const UI_ROW_MEDALLION_PX = 24;
-/** A facts-table row's leading marker when it is a dot or ring. */
+/** A card's medallion: the picker card's and an encyclopedia tile's, the size a card-LOD glyph is drawn at. */
+export const UI_CARD_MEDALLION_PX = 56;
+/** A facts-table row's leading marker when it is a dot or ring; a glyph marker takes its own width. */
 export const UI_ROW_MARKER_PX = 8;
+/** The stroke of a ring marker. */
+export const UI_ROW_MARKER_RING_PX = 2;
 /** A facts-table row. */
 export const UI_FACT_ROW_HEIGHT_PX = 26;
 /** The accent bar on a selected rail item, row or tab. */
@@ -57,6 +61,8 @@ export const UI_SELECTION_BAR_PX = 3;
 export const UI_CHIP_HEIGHT_PX = 20;
 /** A chip is its text (and dot) plus this at each end. */
 export const UI_CHIP_PADDING_INLINE_PX = 8;
+/** The tone dot of a chip or an alert pill. */
+export const UI_CHIP_DOT_PX = 7;
 /** The alert strip's pill. */
 export const UI_ALERT_HEIGHT_PX = 28;
 /** A keycap. */
@@ -94,6 +100,8 @@ export const UI_SECONDARY_FILL_ALPHA = 0.04;
 export const UI_DANGER_RIM_ALPHA = 0.7;
 /** A modal panel's top edge, in `WHITE`: the light catching the panel's upper rim. */
 export const UI_PANEL_EDGE_ALPHA = 0.05;
+/** The scrollbar thumb: `TEXT_MUTED` mixed into the panel rim, which alone is lost on the well; 3.18:1 or more. */
+export const UI_SCROLL_THUMB_ALPHA = 0.55;
 
 // ---- panels ----
 

@@ -132,6 +132,18 @@ export interface PlayerProgressView extends PlayerRosterView {
   spectatingCellId: EntityId | null; // the killer's cell (a wild killer has no player, game-design/session.md §5.2); null once it is gone
   respawnInTicks: number;
 }
+// packages/shared/src/types/mass-flow.ts (#383): why the own cell's mass moves (ui/hud.md §3.1.5, architecture/wire-contract.md §4)
+export type MassRateCause = 'toxin' | 'swallowed' | 'decay' | 'vent' | 'light'; // MASS_RATE_CAUSE; declaration order is the tag tie-break
+export interface MassFlowView {
+  ratesPerSecond: Partial<Record<MassRateCause, number>>; // what metabolism applied this tick, post-floor and post-cap; losses negative; zeros left out
+  decayTraitShare?: number; // the folded decayMultiplier − 1; left out at 0
+  zone: ZoneId; // the zone the metabolism step used
+  sprintSpent?: number; // the mass a sprint start took in this broadcast window, as applied
+}
+export interface OwnProgressView extends PlayerProgressView {
+  // GameSnapshot.ownProgress; the records extend PlayerProgressView, never this: the flow is the transient world.massFlow, never hashed
+  massFlow: MassFlowView | null; // null while spectating and before a new cell's first metabolism step
+}
 export interface LeaderboardRow {
   rank: number;
   playerId: PlayerId;
@@ -147,8 +159,9 @@ Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_END_CONDITI
 union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.ts`), `TRAIT_CATEGORY` and
 `TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
 The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
-world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId }`, `eat { cellId, eatenId,
-eatenKind }`, `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; `world_level_up { level, stage }`
+world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId, predatorMassGained,
+predatorDnaGained }`, `eat { cellId, eatenId, eatenKind, massGained, dnaGained }` (the amounts measured around the gains,
+#383, wire-contract.md §4 "Mass flow"), `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; `world_level_up { level, stage }`
 (ecology/food-and-spawn.md §3.1) happens everywhere and is the one effect without a position.
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;

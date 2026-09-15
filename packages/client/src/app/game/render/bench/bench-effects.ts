@@ -19,6 +19,9 @@ export function victimAbsorbTick(): number {
   return Math.floor(RENDER_BENCH_ABSORB_EVERY_TICKS * HALF);
 }
 
+/** The bench draws no floaters (#385 reads the amounts), so its absorbs pay nothing. */
+const NO_BENCH_PAYOUT = { predatorMassGained: 0, predatorDnaGained: 0 } as const;
+
 function eatEffects(cells: readonly CellView[], tick: number): GameEffect[] {
   const effects: GameEffect[] = [];
   for (let eat = 0; eat < RENDER_BENCH_EATS_PER_SNAPSHOT; eat += 1) {
@@ -32,6 +35,8 @@ function eatEffects(cells: readonly CellView[], tick: number): GameEffect[] {
       cellId: cell.id,
       eatenId: entityId(`bench-m-${eat}`),
       eatenKind: ENTITY_KIND.foodMote,
+      massGained: 0,
+      dnaGained: 0,
     });
   }
   return effects;
@@ -63,7 +68,7 @@ function victimEffects(inputs: BenchEffectInputs, tick: number): GameEffect[] {
   return inputs.victims.map((view) => {
     const base = { tick, x: view.x, y: view.y, cellId: view.id, playerId: view.playerId ?? inputs.creditedPlayerId };
     return isAbsorbTick
-      ? { kind: EFFECT_KIND.cellAbsorbed, ...base, predatorCellId: predator?.id ?? view.id }
+      ? { kind: EFFECT_KIND.cellAbsorbed, ...base, predatorCellId: predator?.id ?? view.id, ...NO_BENCH_PAYOUT }
       : { kind: EFFECT_KIND.respawn, ...base };
   });
 }

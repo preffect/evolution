@@ -141,3 +141,31 @@ describe('eat', () => {
     expect(context.effects).toEqual([]);
   });
 });
+
+describe('eat: the amounts on the effect (#383)', () => {
+  it('reports the mass and DNA the meal added, the cap overflow counted as DNA', () => {
+    const { world, cell, player, context } = placedWorld();
+    const massBelowCap = 1;
+    cell.mass = growth.CELL_MAX_MASS - massBelowCap;
+    spawnFoodMote(world, {
+      kind: FOOD_KIND.bacterium,
+      variant: BACTERIUM_VARIANT.plain,
+      at: eastOf(cell, MOTE_OFFSET),
+    });
+    eat(world, context);
+    const overflowDna = (ecology.BACTERIUM_MASS - massBelowCap) * growth.MASS_OVERFLOW_DNA_PER_MASS;
+    expect(world.effects).toMatchObject([{ kind: EFFECT_KIND.eat, massGained: massBelowCap }]);
+    const [effect] = world.effects;
+    expect(effect?.kind === EFFECT_KIND.eat && effect.dnaGained).toBeCloseTo(ecology.BACTERIUM_DNA + overflowDna, 9);
+    expect(player.dnaCumulative).toBeCloseTo(ecology.BACTERIUM_DNA + overflowDna, 9);
+  });
+
+  it('reports a fragment as DNA with no mass', () => {
+    const { world, cell, context } = placedWorld();
+    spawnDnaFragment(world, { tag: DNA_TAG.motile, at: eastOf(cell, MOTE_OFFSET), driftTurn: 0 });
+    eat(world, context);
+    expect(world.effects).toMatchObject([
+      { kind: EFFECT_KIND.eat, eatenKind: ENTITY_KIND.dnaFragment, massGained: 0, dnaGained: ecology.DNA_FRAGMENT_DNA },
+    ]);
+  });
+});

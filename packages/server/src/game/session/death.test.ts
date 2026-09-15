@@ -13,6 +13,7 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import type { CellRecord } from '../world/entities.js';
+import { NO_GAIN } from '../simulation/cell-mass.js';
 import { absorbCell, detritusMoteCount, dissolveCell, dropDetritus } from './death.js';
 
 const SEED = 42;
@@ -74,7 +75,7 @@ describe('absorbCell', () => {
     const { world, predator, prey, victim } = predatorAndPrey();
     world.tick = 30;
     const context = createTestStepContext(world);
-    absorbCell(world, context, prey, predator);
+    absorbCell(world, context, { prey, predator, predatorGain: NO_GAIN });
     expect(world.cells).toEqual([predator]);
     expect(context.effects).toEqual([
       {
@@ -85,6 +86,8 @@ describe('absorbCell', () => {
         cellId: prey.id,
         playerId: 'b',
         predatorCellId: predator.id,
+        predatorMassGained: NO_GAIN.massGained,
+        predatorDnaGained: NO_GAIN.dnaGained,
       },
     ]);
     expect(victim.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
@@ -101,7 +104,7 @@ describe('absorbCell', () => {
     victim.dnaTowardNextLevel = 40;
     victim.ownedTraits.push({ traitId: 'nucleoid', tier: 1 }, { traitId: 'nuclear_envelope', tier: 2 });
     refreshCellDerivedState(prey, victim, DEFAULT_BALANCE);
-    absorbCell(world, createTestStepContext(world), prey, predator);
+    absorbCell(world, createTestStepContext(world), { prey, predator, predatorGain: NO_GAIN });
     expect(victim.dnaTowardNextLevel).toBe(20);
     expect(victim.level).toBe(5);
     expect(victim.ownedTraits).toHaveLength(2);
@@ -110,7 +113,7 @@ describe('absorbCell', () => {
   it('loses the whole progress without a nuclear envelope', () => {
     const { world, predator, prey, victim } = predatorAndPrey();
     victim.dnaTowardNextLevel = 40;
-    absorbCell(world, createTestStepContext(world), prey, predator);
+    absorbCell(world, createTestStepContext(world), { prey, predator, predatorGain: NO_GAIN });
     expect(victim.dnaTowardNextLevel).toBe(0);
   });
 });

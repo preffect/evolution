@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TICK_HZ, createTestClientPerformanceReport } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
-import { PerformanceTracker, tickRecordOf, type TickRecord } from './performance-tracker.js';
+import { PerformanceTracker, roundToHundredths, tickRecordOf, type TickRecord } from './performance-tracker.js';
 
 /** More ticks than the tracker's 300-sample window holds, so the oldest have left it. */
 const MORE_THAN_THE_WINDOW = 400;
@@ -29,6 +29,14 @@ describe('tickRecordOf', () => {
   it('gives a tick that does not broadcast no broadcast time, even when the clock moved after the step', () => {
     const silent = { isBroadcastTick: false, snapshotBytes: 0, broadcastClients: 2 };
     expect(tickRecordOf(readings, silent)).toEqual({ tickMs: 7, broadcastMs: 0, ...silent });
+  });
+});
+
+describe('roundToHundredths', () => {
+  it('rounds a fraction to two decimal places, so a broken rounding cannot hide behind whole-number averages', () => {
+    expect(roundToHundredths(5 / 3)).toBe(1.67);
+    expect(roundToHundredths(2 / 3)).toBe(0.67);
+    expect(roundToHundredths(1 / 8)).toBe(0.13);
   });
 });
 

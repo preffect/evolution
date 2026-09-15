@@ -162,3 +162,26 @@ describe('applyInputs', () => {
     expect(context.rejections.sprintOnCooldown).toBe(0);
   });
 });
+
+describe('applyInputs: the sprint spend (#383)', () => {
+  it('records the mass a sprint start took, as applied', () => {
+    const { world, cell, player, context } = fixture();
+    const mass = 100;
+    setCellMass(cell, mass, DEFAULT_BALANCE);
+    player.pendingInput = createTestGameInput({ sequence: 1, shouldSprint: true });
+    applyInputs(world, context);
+    expect(world.massFlow.sprintSpentPendingByPlayer[player.playerId]).toBeCloseTo(mass - cell.mass, 12);
+    expect(world.massFlow.sprintSpentPendingByPlayer[player.playerId]).toBeCloseTo(
+      mass * controls.SPRINT_MASS_COST_FRACTION,
+      9,
+    );
+  });
+
+  it('records nothing for a sprint refused on cooldown', () => {
+    const { world, cell, player, context } = fixture();
+    cell.sprintCooldownRemainingTicks = 1;
+    player.pendingInput = createTestGameInput({ sequence: 1, shouldSprint: true });
+    applyInputs(world, context);
+    expect(world.massFlow.sprintSpentPendingByPlayer[player.playerId]).toBeUndefined();
+  });
+});

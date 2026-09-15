@@ -19,12 +19,12 @@ import {
   type MovementStep,
   type SteerCommand,
   type Vec2,
+  zoneAt,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { separateOverlappingCells } from './contact.js';
 import { engulfedPreyOf, engulfingPredatorOf, isCarried } from './engulf-state.js';
-import { zoneAt } from './zones.js';
 
 /** `SPRINT_SPEED_MULTIPLIER + sprintSpeedMultiplierBonus` while a sprint runs, 1 otherwise. */
 export function sprintSpeedFactor(cell: CellRecord, balance: BalanceConfig): number {

@@ -88,11 +88,14 @@ const EXPECTED_CONSTANTS: Readonly<Record<string, string>> = {
   '--ui-row-height': `${kit.UI_ROW_HEIGHT_PX}px`,
   '--ui-rail-row-height': `${kit.UI_RAIL_ROW_HEIGHT_PX}px`,
   '--ui-row-medallion': `${kit.UI_ROW_MEDALLION_PX}px`,
+  '--ui-card-medallion': `${kit.UI_CARD_MEDALLION_PX}px`,
   '--ui-row-marker': `${kit.UI_ROW_MARKER_PX}px`,
+  '--ui-row-marker-ring': `${kit.UI_ROW_MARKER_RING_PX}px`,
   '--ui-fact-row-height': `${kit.UI_FACT_ROW_HEIGHT_PX}px`,
   '--ui-selection-bar': `${kit.UI_SELECTION_BAR_PX}px`,
   '--ui-chip-height': `${kit.UI_CHIP_HEIGHT_PX}px`,
   '--ui-chip-padding-inline': `${kit.UI_CHIP_PADDING_INLINE_PX}px`,
+  '--ui-chip-dot': `${kit.UI_CHIP_DOT_PX}px`,
   '--ui-alert-height': `${kit.UI_ALERT_HEIGHT_PX}px`,
   '--ui-key-hint-height': `${kit.UI_KEY_HINT_HEIGHT_PX}px`,
   '--ui-search-width': `${kit.UI_SEARCH_WIDTH_PX}px`,
@@ -107,6 +110,7 @@ const EXPECTED_CONSTANTS: Readonly<Record<string, string>> = {
   '--ui-secondary-fill-alpha': String(kit.UI_SECONDARY_FILL_ALPHA),
   '--ui-danger-rim-alpha': String(kit.UI_DANGER_RIM_ALPHA),
   '--ui-panel-edge-alpha': String(kit.UI_PANEL_EDGE_ALPHA),
+  '--ui-scroll-thumb-alpha': String(kit.UI_SCROLL_THUMB_ALPHA),
 };
 
 /** The naming rule of §10.1: drop `UI_` and `_PX`/`_MS`, kebab-case. */

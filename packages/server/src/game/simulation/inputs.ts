@@ -4,14 +4,15 @@
 // carried stage is refreshed here for every player, cell or not, so no writer of `ownedTraits` can leave it stale
 // past one tick.
 
-import { hasSteerTarget, secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
+import { hasSteerTarget, massAfterSprint, secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
 import { refreshPlayerStage } from '../progression/ladder.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { applyTraitChoice, showQueuedOfferIfNone } from '../progression/offers.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { loseMassToFloor } from './cell-mass.js';
+import { recordSprintSpent } from '../world/mass-flow-ledger.js';
+import { setCellMass } from './cell-mass.js';
 
 /** The cooldown a sprint starts with: `SPRINT_COOLDOWN_SECONDS + delta`, floored (docs/traits/model.md §2). */
 export function sprintCooldownTicks(cell: CellRecord, balance: BalanceConfig): number {
@@ -32,22 +33,28 @@ export function tryStartSprint(cell: CellRecord, balance: BalanceConfig): boolea
   }
   cell.sprintRemainingTicks = secondsToTicks(balance.controls.SPRINT_DURATION_SECONDS);
   cell.sprintCooldownRemainingTicks = sprintCooldownTicks(cell, balance);
-  loseMassToFloor(cell, cell.mass * (1 - balance.controls.SPRINT_MASS_COST_FRACTION), balance);
+  setCellMass(cell, massAfterSprint(cell.mass, balance), balance);
   return true;
 }
 
 /**
  * An input without a target leaves the latch alone, so a respawned cell keeps its null target through
- * the inputs its client built while spectating (docs/ecology/mass-and-movement.md §5.2, #346).
+ * the inputs its client built while spectating (docs/ecology/mass-and-movement.md §5.2, #346). Answers the mass a
+ * sprint start took (0 without one), which the snapshot reports (#383).
  */
-function applyCellInput(cell: CellRecord, input: GameInput, context: StepContext): void {
+function applyCellInput(cell: CellRecord, input: GameInput, context: StepContext): number {
   if (hasSteerTarget(input)) {
     cell.targetX = input.targetX;
     cell.targetY = input.targetY;
   }
-  if (input.shouldSprint && !tryStartSprint(cell, context.balance)) {
+  if (!input.shouldSprint) {
+    return 0;
+  }
+  const massBeforeSprint = cell.mass;
+  if (!tryStartSprint(cell, context.balance)) {
     context.rejections.sprintOnCooldown += 1;
   }
+  return massBeforeSprint - cell.mass;
 }
 
 /**
@@ -69,7 +76,10 @@ function applyPlayerInput(world: WorldState, player: PlayerRecord, context: Step
   player.appliedInputSequence = input.sequence;
   const cell = findCellOfPlayer(world, player.playerId);
   if (cell !== undefined) {
-    applyCellInput(cell, input, context);
+    const sprintSpent = applyCellInput(cell, input, context);
+    if (sprintSpent > 0) {
+      recordSprintSpent(world.massFlow, player.playerId, sprintSpent);
+    }
   }
   if (input.traitChoice !== null) {
     applyTraitChoice(world, player, input.traitChoice, context);

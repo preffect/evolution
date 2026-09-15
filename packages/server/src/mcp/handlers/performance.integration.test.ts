@@ -9,7 +9,7 @@ import {
   createSpyGameModule,
   parseToolJson,
 } from '../../testing/builders.js';
-import type { PerformanceStats } from '../../lobby/performance-tracker.js';
+import { roundToHundredths, type PerformanceStats } from '../../lobby/performance-tracker.js';
 
 /** What one simulation step costs on the injected clock. */
 const STEP_MS = 3;
@@ -17,12 +17,6 @@ const STEP_MS = 3;
 const SERIALIZE_MS = 11;
 /** Broadcast intervals the room runs before it is read. */
 const BROADCAST_INTERVALS = 4;
-const HUNDREDTHS = 100;
-
-/** The tracker reports hundredths, so an expectation is rounded the same way and compared exactly. */
-function toHundredths(value: number): number {
-  return Math.round(value * HUNDREDTHS) / HUNDREDTHS;
-}
 
 /** A spy module whose step and serialisation cost fixed time on the room's own clock. */
 function slowModuleFactory(timing: ReturnType<typeof createManualRoomTiming>) {
@@ -59,8 +53,8 @@ describe('debug_get_room_performance through the room loop', () => {
       expect(stats).toMatchObject({
         sampleCount: ticks,
         tickPeakMs: STEP_MS + SERIALIZE_MS,
-        tickAvgMs: toHundredths(STEP_MS + broadcastMsPerTick),
-        broadcastAvgMs: toHundredths(broadcastMsPerTick),
+        tickAvgMs: roundToHundredths(STEP_MS + broadcastMsPerTick),
+        broadcastAvgMs: roundToHundredths(broadcastMsPerTick),
         broadcastP95Ms: SERIALIZE_MS,
         broadcastPeakMs: SERIALIZE_MS,
       });

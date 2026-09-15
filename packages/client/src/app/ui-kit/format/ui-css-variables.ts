@@ -118,11 +118,14 @@ function controlVariables(): StyleVariables {
     '--ui-row-height': pixels(kit.UI_ROW_HEIGHT_PX),
     '--ui-rail-row-height': pixels(kit.UI_RAIL_ROW_HEIGHT_PX),
     '--ui-row-medallion': pixels(kit.UI_ROW_MEDALLION_PX),
+    '--ui-card-medallion': pixels(kit.UI_CARD_MEDALLION_PX),
     '--ui-row-marker': pixels(kit.UI_ROW_MARKER_PX),
+    '--ui-row-marker-ring': pixels(kit.UI_ROW_MARKER_RING_PX),
     '--ui-fact-row-height': pixels(kit.UI_FACT_ROW_HEIGHT_PX),
     '--ui-selection-bar': pixels(kit.UI_SELECTION_BAR_PX),
     '--ui-chip-height': pixels(kit.UI_CHIP_HEIGHT_PX),
     '--ui-chip-padding-inline': pixels(kit.UI_CHIP_PADDING_INLINE_PX),
+    '--ui-chip-dot': pixels(kit.UI_CHIP_DOT_PX),
     '--ui-alert-height': pixels(kit.UI_ALERT_HEIGHT_PX),
     '--ui-key-hint-height': pixels(kit.UI_KEY_HINT_HEIGHT_PX),
     '--ui-search-width': pixels(kit.UI_SEARCH_WIDTH_PX),
@@ -143,6 +146,7 @@ function alphaVariables(): StyleVariables {
     '--ui-secondary-fill-alpha': String(kit.UI_SECONDARY_FILL_ALPHA),
     '--ui-danger-rim-alpha': String(kit.UI_DANGER_RIM_ALPHA),
     '--ui-panel-edge-alpha': String(kit.UI_PANEL_EDGE_ALPHA),
+    '--ui-scroll-thumb-alpha': String(kit.UI_SCROLL_THUMB_ALPHA),
   };
 }
 

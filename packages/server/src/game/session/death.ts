@@ -12,6 +12,7 @@ import {
   uniformPointInDiscAround,
   type RandomSource,
 } from '@evolution/shared';
+import type { MeasuredGain } from '../simulation/cell-mass.js';
 import { abortEngulfsOf } from '../simulation/engulf-state.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
@@ -92,7 +93,15 @@ function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRe
  * place a wild cell for it to matter to. Until then no wild cell exists (`world.wildSeats` is
  * created empty), so nothing observable is lost.
  */
-export function absorbCell(world: WorldState, context: StepContext, prey: CellRecord, predator: CellRecord): void {
+/** A completed engulf as the prey's death reads it: the two cells and what the predator's payout added (#383). */
+export interface Absorption {
+  readonly prey: CellRecord;
+  readonly predator: CellRecord;
+  readonly predatorGain: MeasuredGain;
+}
+
+export function absorbCell(world: WorldState, context: StepContext, absorption: Absorption): void {
+  const { prey, predator, predatorGain } = absorption;
   if (!isPlayerCell(prey)) {
     dissolveCell(world, prey, context.streams[RANDOM_STREAM.spawner]);
     return;
@@ -106,6 +115,8 @@ export function absorbCell(world: WorldState, context: StepContext, prey: CellRe
     cellId: prey.id,
     playerId: player.playerId,
     predatorCellId: predator.id,
+    predatorMassGained: predatorGain.massGained,
+    predatorDnaGained: predatorGain.dnaGained,
   });
   dissolveCell(world, prey, context.streams[RANDOM_STREAM.spawner]);
   startSpectating(world, player, predator, prey.modifiers.dnaKeptOnDeathFraction);

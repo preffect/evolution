@@ -48,7 +48,7 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   field cannot silently change the hash, and a new gameplay field must be added to the list
   (the test table pins that every non-derived field is listed).
 - Random stream state is included (a run that consumed a different number of draws differs).
-- Derived data (spatial hash, `leaderboard`, `effects`, `balance`, `config`) is excluded:
+- Derived data (spatial hash, `leaderboard`, `effects`, `massFlow` (transient like `effects`, #383), `balance`, `config`) is excluded:
   the leaderboard is a function of the players, effects are transient, and balance and config
   are inputs recorded by the replay instead.
 - Cost: O(entities); computed on demand (tests, `debug_get_state_hash`, replay end, the

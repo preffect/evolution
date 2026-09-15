@@ -16,3 +16,18 @@ export const IS_UI_KIT_STATES_ROUTE = new InjectionToken<boolean>('IsUiKitStates
   providedIn: 'root',
   factory: () => isUiKitStatesRouteEnabled(isDevMode(), inject(DOCUMENT).defaultView?.location.search ?? null),
 });
+
+/** `?kit` alone is the states sheet (buttons, panels); `?kit&sheet=collections` the rail, list and the rest. */
+export const UI_KIT_SHEET_QUERY_KEY = 'sheet';
+export const KIT_SHEET = { states: 'states', collections: 'collections' } as const;
+export type KitSheet = (typeof KIT_SHEET)[keyof typeof KIT_SHEET];
+
+export function kitSheetFor(search: string | null): KitSheet {
+  const requested = search === null ? null : new URLSearchParams(search).get(UI_KIT_SHEET_QUERY_KEY);
+  return requested === KIT_SHEET.collections ? KIT_SHEET.collections : KIT_SHEET.states;
+}
+
+export const UI_KIT_SHEET = new InjectionToken<KitSheet>('UiKitSheet', {
+  providedIn: 'root',
+  factory: () => kitSheetFor(inject(DOCUMENT).defaultView?.location.search ?? null),
+});

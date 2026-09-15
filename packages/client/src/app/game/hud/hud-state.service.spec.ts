@@ -32,6 +32,22 @@ describe('HudStateService', () => {
     expect(hudState.isFullLeaderboardOpen()).toBe(false);
   });
 
+  it('marks a header-opened full list as pinned until it closes or a Tab hold takes it over', () => {
+    hudState.toggleFullLeaderboard();
+    expect(hudState.isFullLeaderboardPinned()).toBe(true);
+    hudState.toggleFullLeaderboard();
+    expect(hudState.isFullLeaderboardPinned()).toBe(false);
+
+    hudState.toggleFullLeaderboard();
+    hudState.setFullLeaderboardHeld(true);
+    expect(hudState.isFullLeaderboardPinned()).toBe(false);
+    hudState.setFullLeaderboardHeld(false);
+    expect(hudState.isFullLeaderboardOpen()).toBe(false);
+
+    hudState.setFullLeaderboardHeld(true);
+    expect(hudState.isFullLeaderboardPinned()).toBe(false);
+  });
+
   it('leaves another overlay alone when the Tab release arrives', () => {
     hudState.setFullLeaderboardHeld(true);
     hudState.setFullLeaderboardHeld(false);

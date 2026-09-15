@@ -64,6 +64,8 @@ export const UNCHANGED = 1;
 export const SINGULAR_MAGNITUDE = 1;
 export const MINUS_SIGN = '−';
 export const PLUS_SIGN = '+';
+/** A multiplier's sign: the `1.5×` suffix, and the `×1.5` a caption leads with (the round clock's bloom). */
+export const MULTIPLIER_SIGN = '×';
 export const COUNTDOWN_DECIMALS = 1;
 /** `0:09`: the clock's seconds are always this many digits. */
 export const CLOCK_SECONDS_DIGITS = 2;
@@ -119,7 +121,7 @@ export const QUANTITY_UNIT_FORMAT: Readonly<Record<QuantityUnit, UnitFormat>> = 
   [QUANTITY_UNIT.massPerSecond]: unitFormat(' mass / s'),
   [QUANTITY_UNIT.share]: unitFormat(' %', WHOLE_PERCENT),
   [QUANTITY_UNIT.sharePerSecond]: unitFormat(' % / s', WHOLE_PERCENT),
-  [QUANTITY_UNIT.multiplier]: unitFormat('×'),
+  [QUANTITY_UNIT.multiplier]: unitFormat(MULTIPLIER_SIGN),
   [QUANTITY_UNIT.radii]: unitFormat(' radii', { singularSuffix: ' radius' }),
   [QUANTITY_UNIT.count]: unitFormat('', { decimals: WHOLE }),
   [QUANTITY_UNIT.points]: unitFormat(' points', { singularSuffix: ' point', decimals: WHOLE }),

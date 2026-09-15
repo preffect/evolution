@@ -10,6 +10,7 @@ import { ROUND_PHASE, type BalanceConfig } from '@evolution/shared';
 import { runProgression } from '../progression/levels.js';
 import { updateLeaderboard } from '../session/leaderboard.js';
 import { runRespawns } from '../session/respawn.js';
+import { beginMetabolismRecords } from '../world/mass-flow-ledger.js';
 import { resumeStreams, storeStreams } from '../world/streams.js';
 import type { InputRejectionCounters, StepContext, WorldState } from '../world/world-state.js';
 import { eat } from './eating.js';
@@ -32,6 +33,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
     return outcome;
   }
   if (world.roundPhase === ROUND_PHASE.results) {
+    beginMetabolismRecords(world.massFlow); // no metabolism in results, so no rate is reported (#383)
     abortAllEngulfs(world); // no payout in results (docs/ecology/absorption.md §6.3, E13); a no-op on later results ticks
     updateLeaderboard(world);
     return outcome;

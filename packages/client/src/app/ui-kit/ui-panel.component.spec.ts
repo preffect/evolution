@@ -1,8 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { hostSelector, styleRuleValue } from '../../testing/style-rules';
+import { focusableElementsIn } from './focus-trap-stack';
+import { UiFocusTrapDirective } from './ui-focus-trap.directive';
 import { UiPanelSectionComponent } from './ui-panel-section.component';
+import { UiScrollAreaComponent } from './ui-scroll-area.component';
 import { UI_PANEL_VARIANT, UiPanelComponent, type UiPanelVariant } from './ui-panel.component';
 
 @Component({
@@ -24,6 +28,44 @@ class PanelHostComponent {
   readonly variant = signal<UiPanelVariant>(UI_PANEL_VARIANT.modal);
   readonly title = signal<string | null>('Menu');
 }
+
+/** jsdom lays nothing out: gives the body scroll area inside `panel` the box of an overflowing body. */
+function overflowBodyOf(fixture: ComponentFixture<unknown>, panel: HTMLElement): HTMLElement {
+  const area = fixture.debugElement
+    .queryAll(By.directive(UiScrollAreaComponent))
+    .find((found) => panel.contains(found.nativeElement as HTMLElement))!;
+  const viewport = (area.nativeElement as HTMLElement).querySelector<HTMLElement>('.viewport')!;
+  Object.defineProperty(viewport, 'scrollHeight', { configurable: true, value: 600 });
+  Object.defineProperty(viewport, 'clientHeight', { configurable: true, value: 200 });
+  (area.componentInstance as UiScrollAreaComponent).measure();
+  fixture.detectChanges();
+  return viewport;
+}
+
+@Component({
+  standalone: true,
+  imports: [UiPanelComponent, UiFocusTrapDirective],
+  template: `
+    <ui-panel testId="trapped" title="Leave the game?" uiFocusTrap>
+      <p>Your cell leaves the dish. The round goes on without you.</p>
+    </ui-panel>
+  `,
+})
+class TrappedPanelHostComponent {}
+
+describe('UiPanelComponent body, a scroll area inside a focus trap', () => {
+  it('an overflowing body with no control is the trap’s one Tab stop, named by the title', () => {
+    TestBed.configureTestingModule({ imports: [TrappedPanelHostComponent] });
+    const fixture = TestBed.createComponent(TrappedPanelHostComponent);
+    fixture.detectChanges();
+    const panel = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-testid="trapped"]')!;
+    expect(focusableElementsIn(panel)).toEqual([]);
+    const viewport = overflowBodyOf(fixture, panel);
+    expect(focusableElementsIn(panel)).toEqual([viewport]);
+    expect(viewport.getAttribute('role')).toBe('region');
+    expect(viewport.getAttribute('aria-label')).toBe('Leave the game?');
+  });
+});
 
 describe('UiPanelComponent', () => {
   let fixture: ComponentFixture<PanelHostComponent>;
@@ -77,6 +119,26 @@ describe('UiPanelComponent', () => {
     const sectionHost = hostSelector(section);
     expect(styleRuleValue(document, [sectionHost, ':not(:first-child)'], 'border-top')).toContain(
       'var(--ui-panel-rim)',
+    );
+  });
+
+  it('scrolls its body in a kit scroll area named by the title, so an overflowing body is never an unnamed stop', () => {
+    const area = byTestId('body').closest('ui-scroll-area');
+    expect(area?.classList.contains('body')).toBe(true);
+    set((host) => host.variant.set(UI_PANEL_VARIANT.modal));
+    const viewport = overflowBodyOf(fixture, byTestId('panel'));
+    expect(viewport.getAttribute('aria-label')).toBe('Menu');
+  });
+
+  it('a side panel lets the pointer through, but its overflowing body takes the wheel', () => {
+    expect(styleRuleValue(document, [hostSelector(byTestId('side')), "[data-variant='side']"], 'pointer-events')).toBe(
+      'none',
+    );
+    const viewport = overflowBodyOf(fixture, byTestId('side'));
+    const area = viewport.closest('ui-scroll-area')!;
+    expect(area.hasAttribute('data-overflowing')).toBe(true);
+    expect(styleRuleValue(document, [hostSelector(area), '[data-overflowing]', '.viewport'], 'pointer-events')).toBe(
+      'auto',
     );
   });
 
