@@ -81,7 +81,9 @@ score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptio
 ```
 
 `dnaCumulative` never decreases, so dying costs time and mass, not score. The late-join gift
-([`PROGRESSION.md §5`](../PROGRESSION.md#5-entering-the-dish-late-join-and-respawn), late join and respawn alike) buys levels, not rank. Ties break by current
+([`PROGRESSION.md §5`](../PROGRESSION.md#5-entering-the-dish-late-join-and-respawn), late join and respawn alike) buys levels, not rank, and not the rank of whoever eats the gifted cell: the
+absorption share reads the prey's earned DNA, `dnaCumulative − dnaCatchUpGift`
+([`ecology/absorption.md §6.1`](../ecology/absorption.md#61-rules), #271). Ties break by current
 mass, then by earliest join. Winner at round end = highest score. The leaderboard row shows: rank,
 name, level, mass, absorptions, score. It is part of the snapshot (every client sees the same list).
 

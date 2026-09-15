@@ -92,7 +92,10 @@ thrum on sprint.
 | II   | 0.6                         | 0.8             |
 | III  | 0.9                         | 0.7             |
 
-Unlocked by eating photosynthetic bacteria (shallows clusters). Visual: green lenses in the cytoplasm
+Unlocked by eating photosynthetic bacteria (shallows clusters). Light feeds a small cell and plateaus:
+in the shallows mass settles at 186.67 / 395 / 662.86 (where the gain meets decay,
+ecology/mass-and-movement.md §4.1), and like any gain it is capped at `CELL_MAX_MASS` with the overflow
+paid as DNA. Visual: green lenses in the cytoplasm
 (1 / 2 / 3, each with 6 granules) and the membrane tint shifts toward green; they glow brighter inside
 the shallows. Audio: warm shimmer on entering the shallows.
 
