@@ -19,39 +19,48 @@ import {
 
 const VIEWERS = ['p1', 'p2'];
 
+function ownProgressMember(viewerPlayerId: PlayerId) {
+  return { ownProgress: createTestPlayerProgressView({ playerId: viewerPlayerId }) };
+}
+
 /** A spy module that declares `ownProgress` as its one viewer member, naming the viewer it was serialised for. */
 function viewerStateModule() {
-  const serialize = vi.fn((viewerPlayerId: PlayerId) => ({
-    ownProgress: createTestPlayerProgressView({ playerId: viewerPlayerId }),
-  }));
-  const gameModule = { ...createSpyGameModule(), viewerState: { keys: ['ownProgress' as const], serialize } };
-  return { gameModule, serialize };
+  const serialize = vi.fn(ownProgressMember);
+  const serializeFull = vi.fn(ownProgressMember);
+  const viewerState = { keys: ['ownProgress' as const], serialize, serializeFull };
+  const gameModule = { ...createSpyGameModule(), viewerState };
+  return { gameModule, serialize, serializeFull };
 }
 
 describe('game-room: what each viewer is sent', () => {
-  it('serialises once per broadcast and sends each connection the snapshot with its own members', () => {
+  it('serialises once per broadcast and builds each connection’s members against that one snapshot', () => {
     const sent: SentLog = {};
-    const { gameModule, serialize } = viewerStateModule();
+    const { gameModule, serialize, serializeFull } = viewerStateModule();
     const room = new GameRoom(gameModule, createTestRoomInitOptions(VIEWERS), createManualRoomTiming());
     for (const viewer of VIEWERS) room.addPlayer(createTestConnection({ playerId: viewer, sent }));
     room.start();
     room.step(SNAPSHOT_EVERY_TICKS);
     expect(gameModule.serializeRoomState).toHaveBeenCalledTimes(1);
+    const broadcast = vi.mocked(gameModule.serializeRoomState).mock.results[0]!.value as unknown;
     expect(serialize).toHaveBeenCalledTimes(VIEWERS.length);
+    expect(serializeFull).not.toHaveBeenCalled();
     for (const viewer of VIEWERS) {
+      expect(serialize).toHaveBeenCalledWith(viewer, broadcast);
       expect(sent[viewer]).toMatchObject([
         { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: { ownProgress: { playerId: viewer } } },
       ]);
     }
   });
 
-  it('gives the game_state the members of the player it is addressed to', () => {
-    const { gameModule } = viewerStateModule();
+  it('gives the game_state the full-state members of the player it is addressed to', () => {
+    const { gameModule, serialize, serializeFull } = viewerStateModule();
     const room = new GameRoom(gameModule, createTestRoomInitOptions(VIEWERS), createManualRoomTiming());
     expect(room.gameStateMessageFor('p2' as PlayerId)).toMatchObject({
       type: SERVER_MESSAGE_TYPE.gameState,
       snapshot: { ownProgress: { playerId: 'p2' } },
       balance: DEFAULT_BALANCE,
     });
+    expect(serializeFull).toHaveBeenCalledWith('p2', room.getFullState().snapshot);
+    expect(serialize).not.toHaveBeenCalled();
   });
 });

@@ -32,7 +32,7 @@ export interface GameSnapshot {
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];
   cells: CellView[];
-  dnaFragments: DnaFragmentView[]; // full every snapshot: they drift
+  dnaFragments: DnaFragmentView[]; // every fragment in the receiver's interest area, every snapshot: they drift (section 4.2 lever 1)
   food: FoodDelta; // wire refinement of the design's FoodMoteView[] (section 4.1)
   players: Record<string, PlayerRosterView>; // { playerId, playerName }, built from the join-ordered array
   ownProgress: PlayerProgressView | null; // the receiver's own progress (section 4.1); null in a snapshot built for no viewer
@@ -41,17 +41,17 @@ export interface GameSnapshot {
   effects: GameEffect[]; // this broadcast window's cell_absorbed, eat, level_up, respawn, …
 }
 export interface FoodDelta {
-  spawned: FoodMoteView[]; // every mote when the snapshot is a game_state
-  removedIds: EntityId[];
-  moved: MotePositionView[]; // { id, x, y } for every bacterium, every snapshot (random walk)
+  spawned: FoodMoteView[]; // every mote in the receiver's area when the snapshot is a game_state; a mote entering it otherwise
+  removedIds: EntityId[]; // eaten, expired, or left the receiver's area
+  moved: MotePositionView[]; // { id, x, y } for every mote in the receiver's area that moved (bacteria walk every tick)
 }
 ```
 
 - The dish radius is the constant `DISH_RADIUS` (game-design/controls-and-scope.md §8), not a session field.
 - `game_state` (start, late join, reconnect: every player receives one right after `game_started`) carries `serializeFullState()`: a `GameSnapshot`
-  whose `food.spawned` is every mote, plus `balance: BalanceConfig` so the client predicts with
-  the numbers the server simulates. `game_snapshot` carries `serializeRoomState()`: the delta
-  since the previous broadcast. The client applies deltas idempotently (upsert `spawned`,
+  whose `food.spawned` is every mote in the receiver's interest area (§4.2 lever 1), plus `balance: BalanceConfig` so
+  the client predicts with the numbers the server simulates. `game_snapshot` carries `serializeRoomState()` with the
+  receiver's own delta since the previous broadcast. The client applies deltas idempotently (upsert `spawned`,
   delete-if-present `removedIds`, patch `moved`) and resets its food store on every
   `game_state`; WebSocket ordering makes this sufficient, so there is no base-tick check. A
   reconnect is a new `game_state`, and so is a resync: there is no separate verb for one.
@@ -80,17 +80,18 @@ export interface FoodDelta {
     room notices — 63 ticks against a limit of 60, pinned in `game-room-cadence.test.ts`.
     `SNAPSHOT_BACKLOG_LIMIT_BYTES` of unsent bytes on the socket is the same decision from the other
     side, for a socket that has stopped writing at all. It derives from the §4.1 _budget_ of
-    500 KB/s, which assumes lever 1; against the uncut contract of about 800 KB/s at 20 Hz it is
-    nearer two thirds of a second than the second it names, and becomes a true second once lever 1
-    lands.
+    500 KB/s, which assumes lever 1; with lever 1 (#171) a client measured 205–435 KB/s before wild
+    cells, so it holds a second or more there, and nearer two thirds of one at the widest zoom in the
+    projected worst case.
   - A client that acknowledges nothing is never skipped (the headless bot client): silence is not
     evidence of a backlog.
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
-  is the one drain of the effects and the one step of the food delta tracker — so a skipped client
+  is the one drain of the effects and the one step of every viewer's camera (§4.2 lever 1) — so a skipped client
   loses that window's effects and rejoins the stream whole. The resync exists because `food` is the
-  only relative part of a snapshot: everything else (`cells`, `players`, `leaderboard`,
-  `dnaFragments`, the round) is full in every one.
+  only relative part of a snapshot, a delta per viewer: everything else (`cells`, `players`, `leaderboard`,
+  `dnaFragments`, the round) is full in every one. A skipped client's food delta does not advance, and the
+  `game_state` it is sent restarts it.
 
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs for the _game_: everything a player does rides `player_input`. The transport's own verbs are
@@ -111,16 +112,22 @@ export interface FoodDelta {
   for the room already held is not a leave. The server code is `lobby/seat-lifecycle.ts`.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
-  `viewerState: { keys, serialize(viewerPlayerId) }` (#331, optional, `ViewerStateSerializer`): the snapshot
-  members each connection is sent for itself alone, declared by the module in the order they are written, and one
-  viewer's values for them (a key left out is sent as `null`). The room calls `serializeRoomState()` once per
-  broadcast (the drain), stringifies that message once without the declared keys, and closes it per delta target
-  with that viewer's members in declared order (`lobby/viewer-snapshots.ts`, built from structural JSON pieces,
-  never a replace on player data); each `game_state` is given its player's members. The lobby names no member: the
-  Evolution module declares `VIEWER_SNAPSHOT_KEYS` = `['ownProgress']`. A whole stringify per viewer measured
-  1.8 ms at 8 clients and 14.6 ms at 64 on a 36 KB snapshot, against 0.27 ms and 0.57 ms spliced (#331's review). A
-  module without it (the echo) is broadcast as before, serialised once. `debug_get_game_state` reads the full state
-  for no viewer, so `ownProgress` is `null` there; `debug_get_player_progress` is the read of one player's.
+  `viewerState: { keys, serialize(viewerPlayerId, snapshot), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
+  optional, `ViewerState`): the snapshot members each connection is sent for itself alone, declared by the module in
+  the order they are written, and one viewer's values for them. A module implements
+  `ViewerStateSerializer<Snapshot, Keys>`, whose answers are `Pick<Snapshot, Keys>`, so a declared member it forgets
+  fails to compile; one answered `undefined` anyway throws rather than being sent as a guess. The room calls
+  `serializeRoomState()` once per broadcast (the drain), stringifies that message once without the declared keys, and
+  closes it per delta target with `serialize(viewer, thatSnapshot)` in declared order; each `game_state` is given
+  `serializeFull(player, fullSnapshot)`, which restarts whatever that viewer's later members are relative to.
+  `ws/snapshot-frame.ts` builds the frame from structural JSON pieces, never a replace on player data (spliced members
+  go last, the shared value is a plain object, a spliced value is never `undefined`, and member order does not matter
+  to `JSON.parse`); `lobby/viewer-snapshots.ts` is the sending policy. The lobby names no member: the Evolution module
+  declares `VIEWER_SNAPSHOT_KEYS` = `['food', 'dnaFragments', 'ownProgress', 'appliedInputSequenceByPlayer']`
+  (`serialize/viewer-state.ts`, §4.2 lever 1). A whole stringify per viewer measured 1.8 ms at 8 clients and 14.6 ms
+  at 64 on a 36 KB snapshot, against 0.27 ms and 0.57 ms spliced (#331's review). A module without it (the echo) is
+  broadcast as before, serialised once. `debug_get_game_state` reads the full state for no viewer, so `ownProgress`
+  is `null` there and every mote and fragment is in it; `debug_get_player_progress` is the read of one player's.
   `RoomInitOptions.config` becomes the resolved `GameSessionConfig`; the factory receives
   `{ config, playerIds, clock }` and builds the random streams itself from `config.seed`
   (`determinism/random-streams.md §3`); it never receives a `RandomSource`.
@@ -145,7 +152,7 @@ worst case.
 | `players` (8 roster rows) + `ownProgress` + `leaderboard`                      | 468 + ~840–1 010 + ~850                  | ~2.2–2.3 KB      |
 | `appliedInputSequenceByPlayer`, effects, `food.spawned` / `removedIds`, header |                                          | ~0.7 KB          |
 | **total, uncut**                                                               |                                          | **≈ 48–56.4 KB** |
-| **total with lever 1** (−75 % on `moved` and `dnaFragments`)                   | ~6.4 + ~1.5 + …                          | **≈ 24.5–33 KB** |
+| **total with lever 1** (measured below; by the viewer's zoom and place)        | ~2.3–21.2 + ~0.5–4.6 + …                 | **≈ 19–51 KB**   |
 
 Until #331 every client was sent every player's whole `PlayerProgressView` (#330's review: 471 B with no owned traits,
 858 B with 11, 1 017 B with 11 and a shown offer, 1 053–1 212 B with all 16), and the table estimated a cell at
@@ -181,15 +188,47 @@ Raw JSON length stays the budget unit. `perMessageDeflate` (already enabled, lev
 about 70–75 %: with real sequential ids a `game_snapshot` of 31 689 B deflates to 7 658 B (#331's review). #331's own
 saving, measured after deflate, is 1.5–1.7 % of the wire bytes.
 
+**Measured (#171)** with #331's method, on private servers running the branch and origin/main from the same seed: 8
+players over the wire (7 idle `bot-client` bots on a ring of radius 1 800 wu, and the recording client), each set to
+level 11 with 11 traits (level 12 once `debug_grant_dna` opened the offers), `WORLD_LEVEL_SECONDS` patched to 5, and
+two minutes for the dish to reach its cap: 1 400 motes, 222–430 bacteria, 110 fragments. Means over 60 snapshots of
+the recording client; "sent" counts are of that client, "dish" counts of the world.
+
+| Recording client                                                   | origin/main: message / `moved` / `dnaFragments` | #171: message / `moved` / `dnaFragments`        | #171 per client |
+| ------------------------------------------------------------------ | ----------------------------------------------- | ----------------------------------------------- | --------------- |
+| level-12 cell (radius 20–25 wu) at the dish centre, offer shown    | 30 173 B / 15 353 B (425 sent) / 5 801 B (110)  | 18 226 B / 8 839 B (248 of 430) / 462 B (9)     | 365 KB/s        |
+| widest zoom (mass 5 000, radius 283 wu) at the centre, offer shown | 24 669 B / 9 630 B (261 sent) / 5 809 B (110)   | 21 744 B / 7 984 B (218 of ~255) / 4 639 B (88) | 435 KB/s        |
+| level-12 cell steering around the dish at ~1 000 wu, no offer      | 23 154 B / 8 358 B (226 sent) / 5 807 B (110)   | 10 231 B / 723 B (21 of ~250) / 576 B (11)      | 205 KB/s        |
+
+What culling buys depends on the view. A level-12 cell (view half-height 300 wu) at the centre is still sent 58 % of
+the moving motes, because bacteria cluster on the central vent, but 8 % of the fragments; steering off-centre it is
+sent 9 % and 10 %. At the widest zoom the covered area is 7 522 wu wide (`CAMERA_MAX_VIEW_HALF_HEIGHT_WU` 1 500 ×
+`INTEREST_VIEW_ASPECT_RATIO` 2.4, plus `INTEREST_MARGIN_WU` 161, each side of the centre) and 3 322 wu tall, most of a
+dish 6 000 wu across: it cuts `moved` by about 15 % and the fragments by 20 %. The estimate of −75 % at the widest zoom
+that this section carried before #171 assumed a view far smaller than the dish; no cull sends less than the canvas
+can show, and at that zoom a 16:9 canvas already shows about 60 % of the dish. `appliedInputSequenceByPlayer` falls
+from 103 B to 12 B, and the motes crossing a moving viewer's edge cost ~50 B of `spawned` and `removedIds` per
+snapshot.
+
+The per-viewer members cost CPU the splice cannot share, since each viewer's food delta is a diff over the motes in its
+area; the shared stringify still runs once per broadcast. In process, on a filled world (medians of 300 broadcasts of
+`serializeRoomState` plus every viewer's members and splice, #171's review), a broadcast took 1.12 ms at 8 viewers and
+1 372 motes against 0.53 ms on origin/main (0.43 ms shared, 0.46 ms members, 0.19 ms stringify): about 0.2 ms more per
+tick at the 3-tick cadence. At 64 viewers, on the 6 855 motes the food cap grants 64 players, it took 32.5 ms against
+4.2 ms, 22.4 ms of it the members, because the cost is viewers × motes in view. `MAX_PLAYERS_PER_GAME` = 8 seats a
+room, so that case cannot arise today; a room past that cap would need a spatial index over the motes first. The
+motes' positions are quantised once per broadcast and shared by every viewer's delta (`positionMotes`).
+
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120–150 KB/s after `perMessageDeflate`); 8 clients
-≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
-**§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
-wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
-With lever 1 the worst case above is ≈ 24.5 KB (≈ 490 KB/s) with bare wild cells and ≈ 33 KB if they carry their
-builds: **over the 24 KB budget, with no headroom**, even after #331 cut the players part from ~7–8 KB to ~2.3 KB.
-What closes the gap per snapshot: culling wild cells outside the viewport on the same per-viewer seam (§4), and
-quantising velocity, mass and radius (§4.2 lever 3); per second, the 15 Hz cadence (lever 2). #176 measures the
-wild cells and #171 decides. Sending static motes in full would add ~50 KB per snapshot, which is
+≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s,
+about 1.7 × the budget, so lever 1 was required before the wild-cell slice (#176); it landed with #171. Measured today,
+with no wild cells, every row above is inside the budget with it (10.2–21.7 KB, 205–435 KB/s per client). Projected
+onto the worst case of the table above (700 bacteria, 24 wild cells), a level-12 viewer is at ≈ 19–40 KB and a viewer
+at the widest zoom at ≈ 42–51 KB: **still over the 24 KB budget whenever the view is wide or bacteria crowd it**.
+Lever 1 cannot close that alone, since it never sends less than the canvas can show. What remains is quantising
+velocity, mass and radius (§4.2 lever 3, #341), the 15 Hz cadence per second (lever 2), and #176, which measures the
+wild cells and decides whether they are culled on the same seam (`cells` stay shared today because the client's
+threat checks read every cell, `state/snapshot-transitions.ts`). Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
 ~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
 measurement that confirms the estimate; #103 records it. Every row above is per snapshot at the
@@ -199,12 +238,30 @@ before #214 landed and what made a remote client run out of memory (#238).
 
 ### 4.2 Levers (in order)
 
-1. **Viewport culling of `moved` and `dnaFragments`** (required, #171: §4.1): per-player rows with the camera extent
-   plus `INTEREST_MARGIN_WU`, on the per-viewer seam #331 landed (§4). Culled members differ per viewer, so they are
-   just more declared viewer keys: the module adds them (`food`, `dnaFragments`) to `VIEWER_SNAPSHOT_KEYS` beside
-   `ownProgress`, and `appliedInputSequenceByPlayer` (~130–240 B at 8 players, read only for the viewer's own id,
-   `input-world-context.ts`) joins them; the lobby splice needs no change. Cuts the two big rows by ~75 % at the
-   widest zoom.
+1. **Viewport culling of `food` and `dnaFragments`** (landed, #171; measured in §4.1): each viewer is sent the motes
+   and fragments inside its interest area, on the per-viewer seam #331 landed (§4).
+   - **The camera.** The server runs the client's own camera per viewer (`simulation/camera-follow.ts`: the follow,
+     the zoom and whom they follow, which is the own cell, the killer while spectating, holding with neither, and the
+     dish centre before anything), stepped once per broadcast over the ticks since the last (`serialize/viewer-cameras.ts`).
+   - **The area** (`serialize/interest-area.ts`, `constants/interest.ts`) is the box around the views of the camera's
+     last `INTEREST_CAMERA_HISTORY_BROADCASTS` (4) states, each `viewHalfHeightWu` tall, `INTEREST_VIEW_ASPECT_RATIO`
+     (2.4) times that wide, and grown by `INTEREST_MARGIN_WU` (161 wu). The history covers the client drawing
+     `INTERPOLATION_DELAY_TICKS` behind the newest snapshot, so a respawn's pan or a zoom still settling stays covered
+     where the client's camera still is. The margin covers the client's camera leading by `MAX_EXTRAPOLATION_TICKS`
+     plus one broadcast at `INTEREST_MAX_CELL_SPEED` (1 081 wu/s: every speed and sprint tier folded), a mote moving at
+     `INTEREST_MAX_FOOD_SPEED` (80 wu/s) through the render delay, and its drawn reach (`INTEREST_ENTITY_REACH_RADII`
+     × the largest food radius, pinned against the food glows by `render/interest-reach.spec.ts`). A canvas wider than
+     2.4:1 sees food appear at its far sides; the server is not told the canvas.
+   - **The members.** Culled members differ per viewer, so they are more declared viewer keys (§4). `dnaFragments`
+     stays a full list, filtered. `food` becomes a delta per viewer (`serialize/viewer-state.ts`): a mote entering the
+     area is `spawned` for that viewer, one leaving it is in `removedIds`, one inside it that moved is in `moved`, and
+     a `game_state` carries the motes in the area and restarts the delta. `appliedInputSequenceByPlayer` carries the
+     viewer's own entry only, the one `input-world-context.ts` reads. The client needed no change: its food store
+     already upserts, deletes if present and ignores a `moved` it does not hold.
+   - **Not culled.** `cells`, `players` and `leaderboard` stay shared: the client's threat checks read every cell
+     (`state/snapshot-transitions.ts`); #176 decides the wild cells on the same seam with its measurement.
+   - **Serialisation only.** The cameras and deltas are never read by the simulation, the state hash or a replay; a
+     room with viewers hashes equal to the same room with none (`lobby/viewport-culling.integration.test.ts`).
 2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4, up from the landed 3; held, #214);
    interpolation absorbs it unchanged, but `MAX_EXTRAPOLATION_TICKS` (3) would then cover less than
    one snapshot interval and has to rise with it. Measured against a starved client (#266, #238): at

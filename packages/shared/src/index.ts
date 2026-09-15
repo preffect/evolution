@@ -17,6 +17,7 @@ export * from './time/clock.js';
 export * from './time/fixed-step-accumulator.js';
 export * from './time/units.js';
 export * from './simulation/bacterium-variant-weights.js';
+export * from './simulation/camera-follow.js';
 export * from './simulation/cell-modifiers.js';
 export * from './simulation/engulf-eligibility.js';
 export * from './simulation/engulf-pace.js';

@@ -22,8 +22,6 @@ import {
   toPlayerProgressView,
   toPlayerRosterView,
   ownProgressOf,
-  serializeViewerState,
-  VIEWER_SNAPSHOT_KEYS,
 } from './serialize.js';
 
 describe('quantizePosition', () => {
@@ -125,16 +123,6 @@ describe('ownProgressOf', () => {
 
   it('is null for a viewer with no player in the world', () => {
     expect(ownProgressOf(createTestWorld(), playerId('nobody'))).toBeNull();
-  });
-});
-
-describe('serializeViewerState', () => {
-  it('answers exactly the declared viewer members: the viewer’s own progress', () => {
-    const world = createTestWorld();
-    const viewer = world.players[0]!;
-    const state = serializeViewerState(world, viewer.playerId);
-    expect(Object.keys(state)).toEqual([...VIEWER_SNAPSHOT_KEYS]);
-    expect(state.ownProgress).toEqual(toPlayerProgressView(viewer));
   });
 });
 

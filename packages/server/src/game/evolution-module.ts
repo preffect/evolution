@@ -15,12 +15,8 @@ import {
 import { runRecordedStep } from './replay/recorded-step.js';
 import { ReplayRecorder } from './replay/replay-recorder.js';
 import { FoodDeltaTracker } from './serialize/food-delta-tracker.js';
-import {
-  VIEWER_SNAPSHOT_KEYS,
-  serializeDeltaSnapshot,
-  serializeFullSnapshot,
-  serializeViewerState,
-} from './serialize/serialize.js';
+import { serializeDeltaSnapshot, serializeFullSnapshot } from './serialize/serialize.js';
+import { EvolutionViewerState, type ViewerSnapshotKey } from './serialize/viewer-state.js';
 import { addPlayerToWorld, removePlayerFromWorld } from './session/membership.js';
 import type { PlayerIdentity } from './session/players.js';
 import { submitPlayerInput } from './simulation/input-coalescing.js';
@@ -32,8 +28,8 @@ export interface EvolutionModule extends GameModule<GameInput, GameSnapshot> {
   /** The room's one world; reset in place on a rematch, so the reference is stable. */
   readonly world: WorldState;
   readonly rejections: InputRejectionCounters;
-  /** Declares `ownProgress` as the one snapshot member no other client is sent. */
-  readonly viewerState: ViewerStateSerializer<GameSnapshot>;
+  /** The members no other client is sent: its own progress and input sequence, and the food and fragments it can see. */
+  readonly viewerState: ViewerStateSerializer<GameSnapshot, ViewerSnapshotKey>;
   getDebugHandle(): EvolutionDebugHandle;
 }
 
@@ -50,6 +46,7 @@ function createRecordedMembership(
   world: WorldState,
   recorder: ReplayRecorder,
   rejections: InputRejectionCounters,
+  viewerState: EvolutionViewerState,
 ): ModuleMembership {
   return {
     addPlayer: (playerId, avatarIndex, playerName) => {
@@ -65,6 +62,7 @@ function createRecordedMembership(
       const isRemoved = removePlayerFromWorld(world, playerId);
       if (isRemoved && identity !== undefined) {
         recorder.recordLeave(world, identity);
+        viewerState.forget(playerId);
       }
       return isRemoved;
     },
@@ -82,7 +80,8 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
   const recorder = new ReplayRecorder(world);
   const foodDelta = new FoodDeltaTracker();
   const bots = createEvolutionBotRoster(world);
-  const membership = createRecordedMembership(world, recorder, rejections);
+  const viewerState = new EvolutionViewerState(world);
+  const membership = createRecordedMembership(world, recorder, rejections, viewerState);
   const debugHandle = createEvolutionDebugHandle({ world, recorder, rejections, bots, membership });
 
   const submitInput = (playerId: PlayerId, input: GameInput): void => {
@@ -97,12 +96,12 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
       driveBots(bots, world, submitInput);
       runRecordedStep(world, recorder, rejections);
     },
-    serializeRoomState: () => serializeDeltaSnapshot(world, foodDelta),
-    serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
-    viewerState: {
-      keys: VIEWER_SNAPSHOT_KEYS,
-      serialize: (viewerPlayerId) => serializeViewerState(world, viewerPlayerId),
+    serializeRoomState: () => {
+      viewerState.observeBroadcast();
+      return serializeDeltaSnapshot(world, foodDelta);
     },
+    serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
+    viewerState,
     getDebugHandle: () => debugHandle,
   };
 }
