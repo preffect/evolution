@@ -195,6 +195,6 @@ by `qa/evidence/34/tools/render.sh`.
 new hue, each an existing colour at a kit alpha. `UI_HOVER` = `TEXT` @ `UI_ROW_HOVER_ALPHA` (6 %); `UI_PRESSED` =
 `TEXT` @ `UI_ROW_PRESSED_ALPHA` (18 %); `UI_SELECTED` = `UI_ACCENT` @ `UI_ROW_SELECTED_ALPHA` (12 %), with its
 selection bar in `UI_ACCENT`; `UI_LINK` = `UI_ACCENT`; `UI_WELL` = `CALLOUT_BACKING` @ `UI_WELL_ALPHA` (45 %);
-`UI_SCRIM` = `CALLOUT_BACKING` at the overlay's own alpha. Button tones: primary `UI_ACCENT`, danger `DANGER`. Rarity
-tones: common `TEXT_MUTED`, uncommon `UI_ACCENT`, rare `DNA`, always beside the rarity word. The accent marks
+`UI_SCRIM` = `CALLOUT_BACKING` at the overlay's own alpha. Button tones: primary `UI_ACCENT`, danger `DANGER` (its rim at `UI_DANGER_RIM_ALPHA`, 70 %: 3.17:1 against the panel). Rarity
+tones, never the accent: common `TEXT_MUTED` rim and text, uncommon `TEXT_LABEL` rim with `TEXT` text, rare `DNA` rim and text, always beside the rarity word. The accent marks
 selection, links and the primary action and nothing else, so the dish stays the brightest thing on screen.

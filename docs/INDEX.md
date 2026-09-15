@@ -452,29 +452,29 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Definition shape** (L5–29): There is no `minLevel`: the ladder (`stage`, `requires`, `unlockedBy`) is the pacing.
 - **2. Modifier model** (L30–85): Every trait tier is a partial `CellModifiers`.
 
-## ui/components-and-constants.md (221 lines)
+## ui/components-and-constants.md (232 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance, constants and the UI kit** (L1–221): §7–§10 of the split `UI.md`, which keeps the shared context and the file list.
-- **7. Angular component plan** (L5–59): Standalone, `OnPush`, signal inputs, no game logic: components format and lay out; every decision is a pure function under `hud/format/` (o…
-- **8. Acceptance (the Playwright loop #100 drives)** (L60–79): `OC` = `hud-own-cell` (§3.1.4).
-- **9. Constants table (own-cell indicators)** (L80–123): The values this doc owns (§3.1.2, §3.1.3, §6).
-- **10. The UI kit (#354)** (L124–221): The look every panel, menu and screen copies, set once.
-  - **10.1 Tokens, and how components share them** (L133–184): the way layout.md §1 publishes the HUD's: `ui-kit/format/ui-css-variables.ts` → `uiStyleVariables()`, a pure map of every `--ui-…` pro…
-  - **10.2 Components** (L185–216): States, for every interactive kit element (the mockups draw each one):
-  - **10.3 Colour and type** (L217–221): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
+- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance, constants and the UI kit** (L1–232): §7–§10 of the split `UI.md`, which keeps the shared context and the file list.
+- **7. Angular component plan** (L5–61): Standalone, `OnPush`, signal inputs, no game logic: components format and lay out; every decision is a pure function under `hud/format/` (o…
+- **8. Acceptance (the Playwright loop #100 drives)** (L62–81): `OC` = `hud-own-cell` (§3.1.4).
+- **9. Constants table (own-cell indicators)** (L82–125): The values this doc owns (§3.1.2, §3.1.3, §6).
+- **10. The UI kit (#354)** (L126–232): The look every panel, menu and screen copies, set once.
+  - **10.1 Tokens, and how components share them** (L135–195): the way layout.md §1 publishes the HUD's: `ui-kit/format/ui-css-variables.ts` → `uiStyleVariables()`, a pure map of every `--ui-…` pro…
+  - **10.2 Components** (L196–227): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
+  - **10.3 Colour and type** (L228–232): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
 
-## ui/encyclopedia.md (241 lines)
+## ui/encyclopedia.md (265 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–241): §11 of the split `UI.md`, which keeps the shared context and the file list.
-- **11. Encyclopedia** (L5–241): Ticket #354, epic #353.
-  - **11.1 What it is, and where it opens** (L20–54): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
-  - **11.2 Categories, groups and ids** (L55–87): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY` (the five of preffect's request, plus `basics`), in the order `ENCYCLOPEDIA_CATE…
-  - **11.3 Layout (option A)** (L88–122): Frame.
-  - **11.4 The entry page** (L123–154): Top to bottom (`encyclopedia-a-trait-*.png`), with `UI_PANEL_PADDING_PX` around it; every field is the `ResolvedEntry`'s (§12.2):
-  - **11.5 Navigation, search and cross-links** (L155–182): State.
-  - **11.6 Test ids** (L183–193): Home `packages/client/src/app/encyclopedia/test-ids.ts` (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_ID`).
-  - **11.7 Files and constants** (L194–230): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
-  - **11.8 If B or C is picked (#368)** (L231–241): becomes a round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier switch under it; the title…
+- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–265): §11 of the split `UI.md`, which keeps the shared context and the file list.
+- **11. Encyclopedia** (L5–265): Ticket #354, epic #353.
+  - **11.1 What it is, and where it opens** (L20–57): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
+  - **11.2 Categories, groups and ids** (L58–92): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`.
+  - **11.3 Layout (option A)** (L93–125): Frame.
+  - **11.4 The entry page** (L126–172): Top to bottom (`encyclopedia-a-trait-*.png`), with `UI_PANEL_PADDING_PX` around it, inside a content column at most `ENCYCLOPEDIA_PREVIEW_W…
+  - **11.5 Navigation, search and cross-links** (L173–199): State.
+  - **11.6 Test ids** (L200–211): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
+  - **11.7 Files and constants** (L212–254): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
+  - **11.8 If B or C is picked (#368)** (L255–265): round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier switch under it; the title, chips an…
 
 ## ui/hud.md (160 lines)
 
@@ -486,12 +486,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.1.3 The reading floor (the fact #146 solves)** (L51–99): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: the own cell is 24 px at spawn and …
   - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L100–160): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
 
-## ui/input-and-onboarding.md (128 lines)
+## ui/input-and-onboarding.md (136 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–128): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
-- **4. Input mapping and keyboard reachability** (L5–79): swallows every press but Escape, which acts after the field's own handler has had it (the encyclopedia's search field clears a non-empty qu…
-- **5. Onboarding: the first two minutes** (L80–97): Diegetic and text hints, no modal tutorial.
-- **6. Readability during play** (L98–128): and the connection banner stack from the top, never downward past y 96.
+- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–136): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
+- **4. Input mapping and keyboard reachability** (L5–87): swallows every press but Escape.
+- **5. Onboarding: the first two minutes** (L88–105): Diegetic and text hints, no modal tutorial.
+- **6. Readability during play** (L106–136): and the connection banner stack from the top, never downward past y 96.
 
 ## ui/layout.md (90 lines)
 
@@ -499,14 +499,14 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Layout frame** (L5–77): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
 - **2. Screens (lobby)** (L78–90): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
 
-## ui/overlays.md (183 lines)
+## ui/overlays.md (188 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–183): §3.2–§3.6 of the split `UI.md`, which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–188): §3.2–§3.6 of the split `UI.md`, which keeps the shared context and the file list.
   - **3.2 Trait pick overlay (`ownProgress.offer !== null`)** (L5–66): Cards are built from `offer.cards[i]` (`traitId`, `tier`) and the catalog (`TRAIT_CATALOG`, `TRAIT_TIERS`); the effect text is generated by…
   - **3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)** (L67–80): The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text block a…
   - **3.4 Round results and rematch (`roundPhase === 'results'`)** (L81–91): Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended.
-  - **3.5 Menu (Escape)** (L92–152): Escape closes the topmost open overlay (the full leaderboard, then the encyclopedia by `encyclopedia.md §11.5`) and, with none open, sets …
-  - **3.6 Notices: toasts and connection states** (L153–183): One toast at a time, top-centre at y 16, `body` on the callout backing, `TOAST_DURATION_SECONDS`, newest replaces oldest, `aria-live="polit…
+  - **3.5 Menu (Escape)** (L92–157): Escape closes the topmost open overlay (the full leaderboard, then the encyclopedia by `encyclopedia.md §11.5`) and, with none open, sets …
+  - **3.6 Notices: toasts and connection states** (L158–188): One toast at a time, top-centre at y 16, `body` on the callout backing, `TOAST_DURATION_SECONDS`, newest replaces oldest, `aria-live="polit…
 
 ## ui/README.md (7 lines)
 

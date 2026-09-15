@@ -99,17 +99,21 @@ Escape closes the topmost open overlay (the full leaderboard, then the encyclope
 `qa/decisions/encyclopedia/esc-menu-*.png`). Top to bottom:
 
 1. `Menu` (`title`) over `The dish keeps running.` (`body`, muted): it does, the sim never pauses. While an alert is
-   up (an open offer, a threat or an engulf, encyclopedia.md §11.1) the alert strip sits between this line and the
-   buttons.
+   up (an open offer, a threat or an engulf, encyclopedia.md §11.1) the alert strip sits full width between this line
+   and the buttons, `UI_SPACE_L_PX` above them, and pushes them down by its height (`esc-menu-alert-1280x800.png`); the
+   offer strip carries its seconds in `figure` and the `1` `2` `3` key hints at its trailing end.
 2. Three full-width kit buttons, `UI_SPACE_S_PX` apart. **`Return to game`** (primary, autofocus, `ESC` key hint)
-   closes the menu. **`Encyclopedia`** (secondary, `H` key hint) replaces the menu with the encyclopedia, whose Escape
-   comes back here. **`Exit game`** (danger) asks once: its row becomes `Leave this round?` (`body`) with `Exit`
-   (danger, compact) and `Cancel` (secondary, compact, focused); `Exit` calls `leave()` and the lobby returns
-   (§3.6), `Cancel` or Escape restores the row with focus on `Exit game`. Leaving drops the seat (#319), so one stray
-   click must not do it.
+   closes the menu. **`Encyclopedia`** (secondary, `H` key hint; `H` acts while the menu is open, §4) replaces the menu
+   with the encyclopedia, whose Escape comes back here. **`Exit game`** (danger) asks once
+   (`esc-menu-confirm-1280x800.png`): its row, keeping its size and danger rim, becomes `Leave this round?` (`body`) on
+   the left with two compact buttons on the right, `Exit` (danger) and then `Cancel` (secondary, focused) at the
+   trailing end, where a quick second click on the right half of `Exit game` lands. `Exit` calls `leave()` and the
+   lobby returns (§3.6); `Cancel` or Escape restores the row with focus on `Exit game`, and that Escape is consumed
+   (`preventDefault`, §4) so it does not also close the menu. Leaving drops the seat (#319), so one stray click must
+   not do it.
 3. A panel-rim rule, `YOUR TRAITS` (`label`) with the owned count right-aligned (`label`, muted), then one kit list
    row per owned trait (`ownProgress.ownedTraits`, so a spectator still sees theirs) in catalog order,
-   `MENU_TRAIT_ROW_HEIGHT_PX` tall with one effect line: the trait's glyph (#312, `<app-trait-glyph [traitId] lod="list" still>` at `TRAIT_GLYPH_LIST_PX`, on its own disc and rim),
+   `MENU_TRAIT_ROW_HEIGHT_PX` tall with one effect line: the trait's glyph (#312, `game/glyphs/`, `lod="list"`, still, at `TRAIT_GLYPH_LIST_PX`, on its own disc and rim),
    `Cilia Fringe II` (`body`, bold: the catalog name and the tier numeral), and the effect lines of
    `describeTierModifiers` joined with `·` (`label`'s size and tracking, mixed case, label colour), broken only
    between two effects and never cut, so a row grows by `MENU_TRAIT_LINE_HEIGHT_PX` a line; a trailing `›`. The row is
@@ -127,7 +131,8 @@ pick.
 **Coverage.** The menu is about 18 % of the viewport at 1280 × 800 with three traits, inside input-and-onboarding.md §6's overlay bar.
 
 **With the other overlays.** Layer order, top down: the notices (§3.6), the encyclopedia, the menu, the results and
-respawn overlays, the trait picker, the chrome.
+respawn overlays, the trait picker, the chrome. The chrome stays visible under the menu's scrim and hides while the
+encyclopedia is open (encyclopedia.md §11.1).
 
 - **Trait picker** (§3.2): stays open under the scrim; a pick clears the offer strip and leaves the menu open.
 - **Respawn** (§3.3): the menu opens over it and the countdown runs on underneath; a spectator can read, pick and

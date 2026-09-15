@@ -35,4 +35,4 @@ dish stays the brightest thing on screen.
 role. A panel title is `title`, an entry or category name `headline`; buttons, rows, fields and prose are `body`; a
 fact's value is `figure` (tabular, beside its `body` name); chips, breadcrumbs and list section headers are `label`;
 key hints are `caption`. Mixed-case text set at `label`'s size (the menu's effect lines, a tile's fact) keeps its
-tracking without the uppercase transform, as input-and-onboarding.md §6 already allows.
+tracking without the uppercase transform, as input-and-onboarding.md §6 already allows. A countdown inside a `label` line (the offer alert's `6.5 s`) is set in `figure`, so its digits do not jitter. A rarity chip is `label`: the picker card's `caption` rarity chip (ui/overlays.md §3.2) moves to `label` when the picker adopts the kit.
