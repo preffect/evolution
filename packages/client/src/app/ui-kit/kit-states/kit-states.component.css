@@ -99,27 +99,12 @@
   stroke-width: 1.6;
 }
 
-.fact {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--ui-space-s) * var(--ui-scale));
-  height: calc(var(--ui-fact-row-height) * var(--ui-scale));
+.side-panel-sample {
+  max-height: calc(var(--kit-side-panel-height) * var(--ui-scale));
 }
 
-.marker {
-  width: calc(var(--ui-row-marker) * var(--ui-scale));
-  height: calc(var(--ui-row-marker) * var(--ui-scale));
-  border-radius: 50%;
-}
-
-.fact-name {
-  flex: 1;
-  color: var(--ui-text-label);
-}
-
-.fact-value {
-  font-family: var(--ui-font-mono);
-  font-size: calc(var(--ui-type-figure) * var(--ui-scale));
+.tier-table {
+  width: calc(var(--ui-side-panel-width) * var(--ui-scale));
 }
 
 .modal-layer {

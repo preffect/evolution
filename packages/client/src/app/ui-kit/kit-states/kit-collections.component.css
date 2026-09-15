@@ -1,0 +1,103 @@
+/* The collections sheet, over the states sheet's page styles (kit-states.component.css): the kit's spacing scale, and
+   the harness's three layout widths from its component (`--kit-…`), scaled like every kit length. */
+
+.page.collections {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.state-grid {
+  display: grid;
+  grid-template-columns: max-content repeat(6, calc(var(--kit-state-cell) * var(--ui-scale)));
+  align-items: center;
+  column-gap: calc(var(--ui-space-s) * var(--ui-scale));
+  row-gap: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+/* Mixed case at the label size keeps the tracking (ui-type.md §7). */
+.state-label {
+  color: var(--ui-text-muted);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  letter-spacing: var(--ui-label-tracking);
+}
+
+.state-grid > .section-label {
+  padding-right: calc(var(--ui-space-l) * var(--ui-scale));
+}
+
+.well {
+  background-color: var(--ui-well);
+}
+
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--kit-browser-width) * var(--ui-scale));
+  column-gap: calc(var(--ui-space-xl) * var(--ui-scale));
+  min-height: 0;
+}
+
+.lower > .samples {
+  min-height: 0;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.rail-icon {
+  box-sizing: border-box;
+  width: calc(var(--ui-space-l) * var(--ui-scale));
+  height: calc(var(--ui-space-l) * var(--ui-scale));
+  border: calc(var(--ui-row-marker-ring) * var(--ui-scale)) solid currentColor;
+  border-radius: 50%;
+}
+
+.mote {
+  width: calc(var(--ui-space-s) * var(--ui-scale));
+  height: calc(var(--ui-space-s) * var(--ui-scale));
+  border-radius: 50%;
+}
+
+.mote-card {
+  width: calc(var(--ui-space-xl) * var(--ui-scale));
+  height: calc(var(--ui-space-xl) * var(--ui-scale));
+}
+
+/* ---- the live browser: a search field over a rail and a list, each column its own scroll area ---- */
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+}
+
+.browser-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: calc(var(--ui-space-m) * var(--ui-scale)) calc(var(--ui-space-l) * var(--ui-scale));
+  border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+}
+
+.browser-body {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: calc(var(--kit-browser-rail-width) * var(--ui-scale)) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.browser-rail {
+  border-right: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  background-color: var(--ui-well);
+}
+
+.no-match {
+  margin: 0;
+  padding: calc(var(--ui-space-l) * var(--ui-scale));
+  color: var(--ui-text-muted);
+}

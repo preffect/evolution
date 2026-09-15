@@ -1,0 +1,80 @@
+/* The kit facts table (docs/ui/components-and-constants.md §10.2): names in `body` and the label colour, values in
+   `figure` right-aligned, a panel-rim rule under each row, one accent-tinted column. */
+
+:host {
+  display: block;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  line-height: 1;
+}
+
+tr {
+  height: calc(var(--ui-fact-row-height) * var(--ui-scale));
+  border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+}
+
+th,
+td {
+  padding: 0;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+/* As wide as its content, the name always a small space after it. */
+.marker {
+  width: 1%;
+  padding-right: calc(var(--ui-space-s) * var(--ui-scale));
+  line-height: 0;
+}
+
+.mark {
+  display: inline-block;
+  box-sizing: border-box;
+  width: calc(var(--ui-row-marker) * var(--ui-scale));
+  height: calc(var(--ui-row-marker) * var(--ui-scale));
+  border-radius: 50%;
+}
+
+.mark[data-shape='dot'] {
+  background-color: currentColor;
+}
+
+.mark[data-shape='ring'] {
+  border: calc(var(--ui-row-marker-ring) * var(--ui-scale)) solid currentColor;
+}
+
+.name {
+  color: var(--ui-text-label);
+  text-align: left;
+}
+
+.value {
+  padding-left: calc(var(--ui-space-m) * var(--ui-scale));
+  padding-right: calc(var(--ui-space-s) * var(--ui-scale));
+  color: var(--ui-text);
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-figure) * var(--ui-scale));
+  text-align: right;
+}
+
+.value[data-highlighted] {
+  background-color: var(--ui-selected);
+}
+
+thead .name,
+thead .value {
+  color: var(--ui-text-label);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+}
+
+thead .value[data-highlighted] {
+  color: var(--ui-accent);
+}

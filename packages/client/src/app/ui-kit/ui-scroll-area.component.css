@@ -1,0 +1,71 @@
+/* The kit scroll area (docs/ui/components-and-constants.md §10.2). The fades are a mask, so they work over any surface
+   behind them (the well, a panel's gradient, the dish); each edge fades only while content lies beyond it. */
+
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.viewport {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  outline: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black var(--fade-start),
+    black calc(100% - var(--fade-end)),
+    transparent
+  );
+}
+
+:host([data-fade-start]) .viewport {
+  --fade-start: calc(var(--ui-scroll-fade) * var(--ui-scale));
+}
+
+:host([data-fade-end]) .viewport {
+  --fade-end: calc(var(--ui-scroll-fade) * var(--ui-scale));
+}
+
+/* Inside the area, where the column's own edge would clip a ring drawn outside it. */
+.viewport:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: calc(-1 * (var(--ui-focus-ring) + var(--ui-focus-ring-offset)));
+}
+
+/* The thin themed scrollbar on the well: the panel rim lifted by the muted text colour, as the mockups draw it, since
+   the panel rim alone all but vanishes on the well. */
+.viewport {
+  --scroll-thumb: color-mix(
+    in srgb,
+    var(--ui-text-muted) calc(var(--ui-scroll-thumb-alpha) * 100%),
+    var(--ui-panel-rim)
+  );
+}
+
+.viewport::-webkit-scrollbar {
+  width: calc(var(--ui-scrollbar) * var(--ui-scale));
+  height: calc(var(--ui-scrollbar) * var(--ui-scale));
+}
+
+.viewport::-webkit-scrollbar-track {
+  background-color: var(--ui-well);
+}
+
+.viewport::-webkit-scrollbar-thumb {
+  border-radius: calc(var(--ui-scrollbar) * var(--ui-scale));
+  background-color: var(--scroll-thumb);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .viewport {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) var(--ui-well);
+  }
+}
