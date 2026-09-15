@@ -1,6 +1,6 @@
-// docs/ecology/mass-and-movement.md §4, §4.1 (E5) and docs/traits/constants-and-acceptance.md §6 (T5, T7).
+// docs/ecology/mass-and-movement.md §4, §4.1 (E5), §5.4 and docs/traits/constants-and-acceptance.md §6 (T5, T7).
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, playerId, type Vec2 } from '@evolution/shared';
+import { DEFAULT_BALANCE, TICK_INTERVAL_S, playerId, type TraitTier, type Vec2 } from '@evolution/shared';
 import { createDecayedHelper } from '../../testing/gameplay/fixtures.js';
 import { BROTH_POINT, shallowsPoint, VENT_POINT } from '../../testing/gameplay/placement.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
@@ -16,17 +16,36 @@ const decayed = createDecayedHelper({
   massDecayRatePerSecond: ecology.MASS_DECAY_RATE_PER_SECOND,
 });
 
-function placedCell(mass: number, centre: Vec2 = BROTH_POINT, traitId?: 'chloroplast' | 'toxin_vacuole') {
+/** T5 at the cap: Chloroplast III, the highest tier (docs/traits/catalog-organelles.md). */
+const CHLOROPLAST_TOP_TIER: TraitTier = 3;
+/** T5 at the cap: "± 1e-9" on the overflow DNA. */
+const OVERFLOW_DNA_DIGITS = 9;
+
+function placedCell(
+  mass: number,
+  centre: Vec2 = BROTH_POINT,
+  traitId?: 'chloroplast' | 'toxin_vacuole',
+  tier: TraitTier = 1,
+) {
   const world = createTestWorld();
   const cell = world.cells[0]!;
   cell.x = centre.x;
   cell.y = centre.y;
   setCellMass(cell, mass, DEFAULT_BALANCE);
   if (traitId !== undefined) {
-    world.players[0]!.ownedTraits.push({ traitId, tier: 1 });
+    world.players[0]!.ownedTraits.push({ traitId, tier });
     refreshCellDerivedState(cell, world.players[0]!, DEFAULT_BALANCE);
   }
-  return { world, cell };
+  return { world, cell, player: world.players[0]! };
+}
+
+/** Chloroplast III in the shallows at `mass`, on a balance copy whose decay rate is `decayRatePerSecond`. */
+function topChloroplastInShallows(mass: number, decayRatePerSecond = ecology.MASS_DECAY_RATE_PER_SECOND) {
+  const shallows = shallowsPoint(worldBalance.DISH_RADIUS, ecology.SHALLOWS_WIDTH);
+  const placed = placedCell(mass, shallows, 'chloroplast', CHLOROPLAST_TOP_TIER);
+  placed.world.balance = structuredClone(DEFAULT_BALANCE);
+  placed.world.balance.ecology.MASS_DECAY_RATE_PER_SECOND = decayRatePerSecond;
+  return placed;
 }
 
 function metaboliseFor(world: WorldState, ticks: number): void {
@@ -64,6 +83,50 @@ describe('metabolise', () => {
     const broth = placedCell(growth.CELL_STARTING_MASS, BROTH_POINT, 'chloroplast');
     metaboliseFor(broth.world, 60);
     expect(broth.cell.mass).toBe(growth.CELL_STARTING_MASS);
+  });
+
+  it('T5 at the cap: with decay patched to 0, Chloroplast III at CELL_MAX_MASS holds the cap and banks the light as DNA', () => {
+    const { world, cell, player } = topChloroplastInShallows(growth.CELL_MAX_MASS, 0);
+    // Nucleoid Coil raises the DNA multiplier above 1, so the expectation can only pass with the factor applied.
+    player.ownedTraits.push({ traitId: 'nucleoid', tier: 1 });
+    refreshCellDerivedState(cell, player, world.balance);
+    expect(cell.modifiers.dnaGainMultiplier).toBeGreaterThan(1);
+    const lightPerTick = cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S;
+    expect(lightPerTick).toBeGreaterThan(0);
+    metaboliseFor(world, 1);
+    expect(cell.mass).toBe(growth.CELL_MAX_MASS);
+    const expectedDna = lightPerTick * growth.MASS_OVERFLOW_DNA_PER_MASS * cell.modifiers.dnaGainMultiplier;
+    expect(player.dnaCumulative).toBeCloseTo(expectedDna, OVERFLOW_DNA_DIGITS);
+    expect(player.dnaTowardNextLevel).toBeCloseTo(expectedDna, OVERFLOW_DNA_DIGITS);
+  });
+
+  it('T5 at the cap: the same cell with no player (wild) is clamped to CELL_MAX_MASS with no DNA', () => {
+    const { world, cell, player } = topChloroplastInShallows(growth.CELL_MAX_MASS, 0);
+    cell.playerId = null;
+    metaboliseFor(world, 1);
+    expect(cell.mass).toBe(growth.CELL_MAX_MASS);
+    expect(player.dnaCumulative).toBe(0);
+  });
+
+  it('T5: below the cap the light gain is unchanged and grants no DNA', () => {
+    const { world, cell, player } = topChloroplastInShallows(growth.CELL_STARTING_MASS);
+    metaboliseFor(world, 1);
+    expect(cell.mass).toBe(growth.CELL_STARTING_MASS + cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S);
+    expect(player.dnaCumulative).toBe(0);
+  });
+
+  it('T5: at the default balance Chloroplast III above its light plateau loses mass in the shallows', () => {
+    const { world, cell, player } = topChloroplastInShallows(growth.CELL_STARTING_MASS);
+    const plateau =
+      growth.CELL_STARTING_MASS +
+      cell.modifiers.photosynthesisMassPerSecond /
+        (ecology.MASS_DECAY_RATE_PER_SECOND * cell.modifiers.decayMultiplier);
+    const aboveThePlateau = Math.ceil(plateau);
+    expect(aboveThePlateau).toBeLessThan(growth.CELL_MAX_MASS);
+    setCellMass(cell, aboveThePlateau, world.balance);
+    metaboliseFor(world, 1);
+    expect(cell.mass).toBeLessThan(aboveThePlateau);
+    expect(player.dnaCumulative).toBe(0);
   });
 
   it('T7: a toxin vacuole I drains an overlapping 90-mass cell to ≈ 87.20 in 60 ticks, itself only decaying', () => {
