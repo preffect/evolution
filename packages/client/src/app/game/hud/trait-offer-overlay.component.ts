@@ -19,6 +19,7 @@ import {
   signal,
 } from '@angular/core';
 import type { TraitId } from '@evolution/shared';
+import { PERCENT } from '../quantities/quantity-unit';
 import { GameStateService } from '../state/game-state.service';
 import {
   NO_CARD_HIGHLIGHT,
@@ -28,7 +29,6 @@ import {
 } from './format/card-highlight';
 import { traitOfferViewFor, type TraitOfferViewModel } from './format/trait-cards';
 import { FocusReturn } from '../../ui-kit/focus-return';
-import { PERCENT } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID } from './test-ids';
 import { TraitCardComponent } from './trait-card.component';

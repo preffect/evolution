@@ -452,21 +452,34 @@ export const QUANTITY_PRESENTATION = {
   signedChange: 'signed_change', // a bonus or delta: `+0.5 s`, `+15 %`
   changeFromOne: 'change_from_one', // a multiplier as its change: 1.15 → `+15 %`
   rateFromDuration: 'rate_from_duration', // a duration multiplier as the rate it gives: 0.61 → `+64 %`
-  numeral: 'numeral', // the bare value in the unit's numeral form: `II`
+  numeral: 'numeral', // the bare figure in the unit's numeral form, no sign, prefix or suffix: `II`, `124`
+  countdown: 'countdown', // a running timer, always one decimal so the digits do not jump: `6.0 s`
 } as const;
 export type QuantityPresentation = ValueOf<typeof QUANTITY_PRESENTATION>;
 
-/** `nearest` for display; `floor` where a reading must never claim more than is there (the DNA percent). */
+/** `nearest` for display; `floor` where a reading must never claim more than is there (the DNA percent, the clock). */
 export const QUANTITY_ROUNDING = { nearest: 'nearest', floor: 'floor' } as const;
 
-/** Per unit: the suffix, the singular form where one exists, the decimals (trailing zeros dropped), the rounding. */
+/** Per unit: prefix, suffix, singular suffix, scale (a share × `PERCENT`), decimals (trailing zeros dropped), rounding
+ *  and form (a decimal figure, `m:ss`, or a tier numeral from `TIER_NUMERALS`). */
 export const QUANTITY_UNIT_FORMAT: Readonly<Record<QuantityUnit, UnitFormat>>;
 
 // quantities/format-quantity.ts — pure
+export interface FormatOptions {
+  readonly presentation?: QuantityPresentation; // `plain` when absent
+  readonly rounding?: QuantityRounding; // the unit's own when absent
+}
 export function formatQuantity(value: number, unit: QuantityUnit, options?: FormatOptions): string;
 
 // quantities/modifier-labels.ts — moved from hud/format/trait-effects.ts; hud/ and encyclopedia/ both import it
-export const MODIFIER_LABELS: Readonly<Record<keyof CellModifiers, (value: number) => string>>;
+export interface ModifierLabel {
+  readonly noun: string; // the effect's name alone: `speed`, `sprint cooldown`; the encyclopedia fact's label
+  readonly formatValue: (value: number) => string; // `+15 %`, `−0.5 s`, through `formatQuantity`; the fact's text
+  readonly formatLine?: (value: number) => string; // the card line where it is a sentence: `Toxin reaches 1.5 radii`
+}
+export const MODIFIER_LABELS: Readonly<Record<keyof CellModifiers, ModifierLabel>>;
+/** The card line: `formatLine`, else `${formatValue(value)} ${noun}` (`+15 % speed`). */
+export function modifierLine(key: keyof CellModifiers, value: number): string;
 export function nonIdentityModifiers(
   tierRow: TraitTierModifiers,
   identity: CellModifiers,
@@ -475,7 +488,9 @@ export function nonIdentityModifiers(
 
 **What goes through it.** Every number the player reads as text: the trait cards' effect lines and countdown, the
 status mirror's text (`DNA n %`, floored), the round clock (`m:ss`), the leaderboard's mass and score, the menu's
-trait list and the encyclopedia. `PERCENT` and `TIER_NUMERALS` move here from `hud/`. **Not** through it: `data-*`
+trait list and the encyclopedia. A leaderboard cell and a card's tier are the `numeral` presentation (the column
+header or the card names the unit); a mass is shown whole. `PERCENT` and `TIER_NUMERALS` move here from `hud/`; the
+HUD keeps `describeTierModifiers(balance.traits, traitId, tier)` as a thin caller. **Not** through it: `data-*`
 attribute values, which are machine-readable test hooks (`String(Math.round(mass))` stays where it is). The `−` minus
 sign, the space before `%` and the decimal rule the trait cards use today move here unchanged, so no player-facing
 text changes. No locale formatting in build 1 (the HUD is English, `ui/layout.md`); a locale later is one change here.
@@ -510,12 +525,14 @@ spec below, never on a player's screen.
 | `lint-guard.spec.ts`            | The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; ESLint (`Linter` over fixture sources) rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access, a number literal and a binary arithmetic expression under `encyclopedia/content/**`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `quantities/*.spec.ts`          | Every unit × presentation × rounding, the trimming and sign rules; the trait card, status mirror, round clock and leaderboard text unchanged by the move                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
-**Lint guard.** `eslint.config.js` gains two blocks:
+**Lint guard.** `eslint.config.js` gains two blocks (the folders' own `*.spec.ts` and `*.integration.spec.ts` files are exempt: they read `DEFAULT_BALANCE` to pin the
+shipped text):
 
 - `packages/client/src/app/game/{encyclopedia,quantities}/**`: `no-restricted-imports` forbids importing an
   `UPPER_SNAKE_CASE` name from `@evolution/shared` (`importNamePattern`) except the **id objects**, which are not
   balance keys: `CELL_STAGE`, `ZONE_ID`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ENTITY_KIND`,
-  `EFFECT_KIND`, `CELL_STATE`, `GAME_MODE`, `WORLD_STANDING`, `ENGULF_PHASE`, `TRAIT_CATEGORY`, `TRAIT_RARITY`; plus
+  `EFFECT_KIND`, `CELL_STATE`, `GAME_MODE`, `WORLD_STANDING`, `ENGULF_PHASE`, `TRAIT_CATEGORY`, `TRAIT_RARITY`; the unit
+  conversion `SECONDS_PER_MINUTE` (the clock unit; `constants/units.ts`, not a balance key); plus
   `DEFAULT_BALANCE` in `encyclopedia/encyclopedia-context.ts` and `encyclopedia/registry.ts` only. Every catalog row,
   walk order (`STAGE_ORDER`, `DNA_TAGS`, `BACTERIUM_VARIANTS`), gate table, tier table, identity record and reserved
   id list is a `DEFAULT_BALANCE` member and is read from the context (or, for the registry's structure, from

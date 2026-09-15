@@ -178,8 +178,22 @@ too (`moved` 11.3 KB after, 9.5 KB before), so that row's total understates the 
 
 The players part falls by 4.4–6.7 KB per snapshot, up to 134 KB/s per client at 20 Hz. On the same dish, the
 offers-shown row would be 30 783 − 8 162 + 1 477 ≈ 24.1 KB. The CPU cost of sending each viewer its own progress
-is not measured here: the room reads `tickMs` before the broadcast runs, so its tick p95 excludes serialisation and
-sending (#340). The splice (§4) is what keeps that cost flat in the client count.
+is not measured here: until #340 the room read `tickMs` before the broadcast ran, so its tick p95 excluded
+serialisation and sending. Since #340 `tickMs` spans the step and the broadcast, and `debug_get_room_performance`
+reports the broadcast on its own: `broadcastAvgMs` averaged over every tick (the broadcast's share of `tickAvgMs`),
+`broadcastP95Ms` over the broadcast ticks only (does a broadcasting tick fit the step), and `broadcastPeakMs`.
+Measured in process (#340: the Evolution module on the system clock, idle seated players, a 300-tick window after
+3 600 ticks of warm-up, sockets whose `send` is free), the tick p95 the room reported before #340 against the one it
+reports now:
+
+| Seated players | Snapshot per client | Tick p95, step only (before) | Tick p95, step + broadcast (after) | `broadcastAvgMs` | `broadcastP95Ms` (broadcast ticks) |
+| -------------- | ------------------- | ---------------------------- | ---------------------------------- | ---------------- | ---------------------------------- |
+| 8              | 22.6 KB             | 1.02 ms                      | 1.76 ms                            | 0.21 ms          | 1.17 ms                            |
+| 32             | 69.6 KB             | 5.50 ms                      | 8.86 ms                            | 0.91 ms          | 7.90 ms                            |
+
+The broadcast adds 60–75 % to the step-only tick p95, and at 32 seats a broadcasting tick spends 7.9 ms of the
+16.67 ms step on the broadcast alone. An earlier run of the same bench read 1.96 ms and 10.0 ms for `broadcastP95Ms`,
+so the figures are sizes, not pins. The splice (§4) is what keeps that cost flat in the client count.
 
 Raw JSON length stays the budget unit. `perMessageDeflate` (already enabled, level 1) cuts the bytes on the wire by
 about 70–75 %: with real sequential ids a `game_snapshot` of 31 689 B deflates to 7 658 B (#331's review). #331's own

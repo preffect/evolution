@@ -68,6 +68,61 @@ const SOURCE_FILES = ['packages/*/src/**/*.ts'];
 const TEST_FILES = ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.spec.ts'];
 /** Builders and scenario fixtures: their defaults are the only tolerated inline numbers (§2, §10). */
 const TEST_SUPPORT_FILES = ['packages/*/src/testing/**'];
+
+// ---- architecture/encyclopedia.md §12.6: the formatter and the encyclopedia never import a tunable -----------------
+const LIVE_BALANCE_READERS = 'packages/client/src/app/game/{encyclopedia,quantities}';
+/** The two files that may read `DEFAULT_BALANCE`: the outside-a-room context and the registry's structure. */
+const ENCYCLOPEDIA_DEFAULT_BALANCE_FILES = [
+  'packages/client/src/app/game/encyclopedia/encyclopedia-context.ts',
+  'packages/client/src/app/game/encyclopedia/registry.ts',
+];
+/** `UPPER_SNAKE_CASE` shared names that are no balance key: the id objects, and the clock's unit conversion. */
+const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
+  'CELL_STAGE',
+  'ZONE_ID',
+  'DNA_TAG',
+  'CELL_KIND',
+  'FOOD_KIND',
+  'BACTERIUM_VARIANT',
+  'ENTITY_KIND',
+  'EFFECT_KIND',
+  'CELL_STATE',
+  'GAME_MODE',
+  'WORLD_STANDING',
+  'ENGULF_PHASE',
+  'TRAIT_CATEGORY',
+  'TRAIT_RARITY',
+  'SECONDS_PER_MINUTE',
+];
+const LIVE_BALANCE_MESSAGE = 'Read tunables from the live balance (the context), never from a module import (§12.6).';
+/** Forbids importing any `UPPER_SNAKE_CASE` name from `@evolution/shared` but `allowedNames`, a namespace import, `.tiers`. */
+function liveBalanceOnlyRules(allowedNames) {
+  return {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@evolution/shared'],
+            importNamePattern: `^(?!(?:${allowedNames.join('|')})$)[A-Z][A-Z0-9_]*$`,
+            message: LIVE_BALANCE_MESSAGE,
+          },
+        ],
+      },
+    ],
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: "ImportDeclaration[source.value='@evolution/shared'] > ImportNamespaceSpecifier",
+        message: LIVE_BALANCE_MESSAGE,
+      },
+      {
+        selector: "MemberExpression[property.name='tiers']",
+        message: 'Tier numbers are read from balance.traits.TRAIT_TIERS only (constants-files-tests.md §9).',
+      },
+    ],
+  };
+}
 /** The definition sites of constants: a literal here IS the named constant (§1). */
 const CONSTANT_DEFINITION_FILES = [
   'packages/shared/src/constants/**',
@@ -259,6 +314,17 @@ export default tseslint.config(
     // ---- The one PRNG, the one clock, the one ticker ---------------------------------
     files: DETERMINISM_CALL_SITES,
     rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off' },
+  },
+  {
+    // ---- architecture/encyclopedia.md §12.6: the formatter and the encyclopedia read tunables from the live balance
+    files: [`${LIVE_BALANCE_READERS}/**/*.ts`],
+    // Only their own specs (`*.spec.ts`, `*.integration.spec.ts`) read `DEFAULT_BALANCE`, to pin the shipped text.
+    ignores: [`${LIVE_BALANCE_READERS}/**/*.spec.ts`, ...ENCYCLOPEDIA_DEFAULT_BALANCE_FILES],
+    rules: liveBalanceOnlyRules(SHARED_NAMES_WITHOUT_A_BALANCE_KEY),
+  },
+  {
+    files: ENCYCLOPEDIA_DEFAULT_BALANCE_FILES,
+    rules: liveBalanceOnlyRules([...SHARED_NAMES_WITHOUT_A_BALANCE_KEY, 'DEFAULT_BALANCE']),
   },
   ...TEMPLATE_FILE_EXEMPTIONS,
   {
