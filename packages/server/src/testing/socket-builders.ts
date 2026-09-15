@@ -149,9 +149,11 @@ export interface LobbySocketHarness {
   readonly clients: TestClient[];
 }
 
-export async function startLobbySocketHarness(): Promise<LobbySocketHarness> {
+/** The rooms run on the spy module unless `gameFactory` names another (the real module, for world assertions). */
+export async function startLobbySocketHarness(gameFactory?: GameModuleFactory): Promise<LobbySocketHarness> {
   const timings: ManualRoomTiming[] = [];
   const started = await startTestWebSocketServer({
+    gameFactory,
     createRoomTiming: () => {
       const timing = createManualRoomTiming();
       timings.push(timing);
@@ -168,6 +170,13 @@ export async function closeLobbySocketHarness(harness: LobbySocketHarness): Prom
     await whenClosed(client.socket);
   }
   await harness.started.close();
+}
+
+/** Stops tracking a client whose socket is already closed, so the harness does not wait for it to close again. */
+export function removeTestClient(harness: LobbySocketHarness, client: TestClient): void {
+  const index = harness.clients.indexOf(client);
+  if (index < 0) throw new Error(`client ${client.clientId} is not in the harness`);
+  harness.clients.splice(index, 1);
 }
 
 /** Connects as `clientId` and joins the lobby under that name. */
