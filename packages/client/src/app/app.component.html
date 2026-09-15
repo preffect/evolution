@@ -8,6 +8,9 @@
 @if (isBenchRoute) {
   <!-- ===== The dev-only bench route (docs/rendering/budget.md §7): the fixed-seed scene, no lobby, no room ===== -->
   <app-render-bench />
+} @else if (isUiKitStatesRoute) {
+  <!-- ===== The dev-only UI kit states page (docs/ui/components-and-constants.md §10.2) ===== -->
+  <ui-kit-states />
 } @else if (multiplayer.inGame()) {
   <!-- ===== In game: the canvas fills the viewport with the HUD overlay over it (docs/ui/layout.md §1) ===== -->
   <app-game-host />

@@ -4,11 +4,12 @@
 
 ## 1. Layout frame
 
-Reference viewport **`HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX`** (1280 × 800 CSS
+Reference viewport **`UI_REFERENCE_VIEWPORT_WIDTH_PX` × `UI_REFERENCE_VIEWPORT_HEIGHT_PX`** (1280 × 800 CSS
 px), HUD scale 1. Every chrome size below is at scale 1. The scale is a unitless number, not a CSS expression:
 `hud.component.ts` observes its host with a `ResizeObserver` and sets the custom property `--hud-scale` from the
-pure function `hudScaleFor(width, height)` (`hud/format/hud-scale.ts`, unit-tested) =
-`clamp(HUD_SCALE_MIN, min(width / HUD_REFERENCE_VIEWPORT_WIDTH_PX, height / HUD_REFERENCE_VIEWPORT_HEIGHT_PX), HUD_SCALE_MAX)`.
+UI kit's pure function `uiScaleFor(width, height)` (`ui-kit/format/ui-scale.ts`, unit-tested; a `[uiSurface]` sets
+`--ui-scale` from the same function, components-and-constants.md §10.1, and #381 retires `--hud-scale` for it) =
+`clamp(UI_SCALE_MIN, min(width / UI_REFERENCE_VIEWPORT_WIDTH_PX, height / UI_REFERENCE_VIEWPORT_HEIGHT_PX), UI_SCALE_MAX)`.
 Every length in the HUD stylesheets is `calc(<px> * var(--hud-scale))`; there is no `transform: scale`, so
 hit-testing, focus rings and the exclusion check below all happen in real pixels. Elements anchor to their corner
 with `HUD_MARGIN_PX` × scale; centre-relative elements (the picker band, §3.2) are placed as offsets from the
@@ -16,7 +17,7 @@ viewport centre, never at absolute y. The canvas fills the viewport; the player'
 (game-design/controls-and-scope.md §7; the follow smoothing keeps it within a few px of it), so the **exclusion box** is the central
 square of half-side `HUD_PLAYER_EXCLUSION_PX` = 120 px (scaled): **no DOM element** (chrome, hint, toast or card)
 may enter it while the player is alive and the round is `playing`. The rule holds at and above the viewport the
-`HUD_SCALE_MIN` floor implies (1024 × 640); below that the floor stops shrinking the chrome while the box keeps its
+`UI_SCALE_MIN` floor implies (1024 × 640); below that the floor stops shrinking the chrome while the box keeps its
 120 px half-side, and the widened leaderboard overlaps it at around 794 px of width. That is under the smallest
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the
 dish are the own cell's indicators (§3.1), drawn by the renderer in world space**; they are not subject to the box
@@ -40,14 +41,14 @@ is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md
 ```
 
 Client-only layout constants are declared by #100 in `packages/client/src/app/game/hud/hud-constants.ts`
-(CODE-STANDARDS §2; the directory does not exist yet):
+(CODE-STANDARDS §2), except the scale's four, which #369 moved into the UI kit's `ui-kit/ui-kit-constants.ts`:
 
 | Constant                           | Value                   | Unit | Meaning                                                                         |
 | ---------------------------------- | ----------------------- | ---- | ------------------------------------------------------------------------------- |
-| `HUD_REFERENCE_VIEWPORT_WIDTH_PX`  | 1280                    | px   | Viewport width at which `--hud-scale` is 1.                                     |
-| `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` | 800                     | px   | Viewport height at which `--hud-scale` is 1.                                    |
-| `HUD_SCALE_MIN`                    | 0.8                     | ×    | Lower bound of `--hud-scale`.                                                   |
-| `HUD_SCALE_MAX`                    | 1.5                     | ×    | Upper bound of `--hud-scale`.                                                   |
+| `UI_REFERENCE_VIEWPORT_WIDTH_PX`   | 1280                    | px   | Viewport width at which the scale is 1.                                         |
+| `UI_REFERENCE_VIEWPORT_HEIGHT_PX`  | 800                     | px   | Viewport height at which the scale is 1.                                        |
+| `UI_SCALE_MIN`                     | 0.8                     | ×    | Lower bound of the scale.                                                       |
+| `UI_SCALE_MAX`                     | 1.5                     | ×    | Upper bound of the scale.                                                       |
 | `HUD_MARGIN_PX`                    | 16                      | px   | Corner margin at scale 1.                                                       |
 | `HUD_PLAYER_EXCLUSION_PX`          | 120                     | px   | Half-side of the exclusion box; also the picker dim's spotlight radius.         |
 | `PICKER_BAND_GAP_PX`               | 16                      | px   | Gap between the exclusion box's bottom edge and the picker title row (§3.2).    |

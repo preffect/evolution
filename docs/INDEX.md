@@ -466,16 +466,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Definition shape** (L5–29): There is no `minLevel`: the ladder (`stage`, `requires`, `unlockedBy`) is the pacing.
 - **2. Modifier model** (L30–85): Every trait tier is a partial `CellModifiers`.
 
-## ui/components-and-constants.md (232 lines)
+## ui/components-and-constants.md (244 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance, constants and the UI kit** (L1–232): §7–§10 of the split `UI.md`, which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance, constants and the UI kit** (L1–244): §7–§10 of the split `UI.md`, which keeps the shared context and the file list.
 - **7. Angular component plan** (L5–61): Standalone, `OnPush`, signal inputs, no game logic: components format and lay out; every decision is a pure function under `hud/format/` (o…
 - **8. Acceptance (the Playwright loop #100 drives)** (L62–81): `OC` = `hud-own-cell` (§3.1.4).
 - **9. Constants table (own-cell indicators)** (L82–125): The values this doc owns (§3.1.2, §3.1.3, §6).
-- **10. The UI kit (#354)** (L126–232): The look every panel, menu and screen copies, set once.
-  - **10.1 Tokens, and how components share them** (L135–195): the way layout.md §1 publishes the HUD's: `ui-kit/format/ui-css-variables.ts` → `uiStyleVariables()`, a pure map of every `--ui-…` pro…
-  - **10.2 Components** (L196–227): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
-  - **10.3 Colour and type** (L228–232): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
+- **10. The UI kit (#354)** (L126–244): The look every panel, menu and screen copies, set once.
+  - **10.1 Tokens, and how components share them** (L135–201): the way layout.md §1 publishes the HUD's: `ui-kit/format/ui-css-variables.ts` → `uiStyleVariables()`, a pure map of every `--ui-…` pro…
+  - **10.2 Components** (L202–239): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
+  - **10.3 Colour and type** (L240–244): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
 
 ## ui/encyclopedia.md (265 lines)
 
@@ -507,11 +507,11 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **5. Onboarding: the first two minutes** (L88–105): Diegetic and text hints, no modal tutorial.
 - **6. Readability during play** (L106–136): and the connection banner stack from the top, never downward past y 96.
 
-## ui/layout.md (90 lines)
+## ui/layout.md (91 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–90): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
-- **1. Layout frame** (L5–77): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
-- **2. Screens (lobby)** (L78–90): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
+- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–91): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
+- **1. Layout frame** (L5–78): Reference viewport `UI_REFERENCE_VIEWPORT_WIDTH_PX` × `UI_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
+- **2. Screens (lobby)** (L79–91): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
 
 ## ui/overlays.md (188 lines)
 

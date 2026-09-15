@@ -1,5 +1,5 @@
 // The HUD shell (docs/ui/layout.md §1, docs/ui/components-and-constants.md §7): the overlay layer over the canvas. It owns two things —
-// `--hud-scale`, read from its own box through the pure `hudScaleFor`, and the rest of the
+// `--hud-scale`, read from its own box through the kit's pure `uiScaleFor`, and the rest of the
 // `--hud-…` custom properties every child stylesheet reads (`hud-css-variables.ts`) — and hosts
 // the chrome. The layer itself never takes the pointer: only the controls inside it opt back in,
 // so a click always reaches the dish.
@@ -30,9 +30,9 @@ import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
-import { hudScaleFor } from './format/hud-scale';
+import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { hudStyleVariables, noticeRowsVariable } from './format/hud-css-variables';
-import { observeElementSize, type ElementSize } from './element-size';
+import { observeElementSize, type ElementSize } from '../../ui-kit/element-size';
 
 const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
 
@@ -126,7 +126,7 @@ export class HudComponent implements OnInit, OnDestroy {
   );
 
   /** `--hud-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
-  protected readonly scale = computed(() => hudScaleFor(this.size().widthPx, this.size().heightPx));
+  protected readonly scale = computed(() => uiScaleFor(this.size().widthPx, this.size().heightPx));
 
   /** The scale plus every constant the child stylesheets read, as one style map. */
   protected readonly styleVariables = computed(() => ({

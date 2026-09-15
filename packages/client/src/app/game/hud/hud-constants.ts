@@ -5,16 +5,8 @@
 //
 // Only the constants the chrome (#185) needs are declared; #186–#190 add their own rows as they land.
 
-// ---- layout frame (docs/ui/layout.md §1) ----
+// ---- layout frame (docs/ui/layout.md §1; the scale's reference viewport and bounds are the kit's, `ui-kit/ui-kit-constants.ts`) ----
 
-/** Viewport width at which `--hud-scale` is 1. */
-export const HUD_REFERENCE_VIEWPORT_WIDTH_PX = 1280;
-/** Viewport height at which `--hud-scale` is 1. */
-export const HUD_REFERENCE_VIEWPORT_HEIGHT_PX = 800;
-/** Lower bound of `--hud-scale`. */
-export const HUD_SCALE_MIN = 0.8;
-/** Upper bound of `--hud-scale`. */
-export const HUD_SCALE_MAX = 1.5;
 /** Corner margin at scale 1: every chrome element anchors to its corner with this. */
 export const HUD_MARGIN_PX = 16;
 

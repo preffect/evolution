@@ -1,0 +1,93 @@
+<div class="page" uiSurface [attr.data-testid]="testId.page">
+  <header class="page-header">
+    <h1 class="page-title">UI kit states</h1>
+    <p class="page-caption">components-and-constants.md §10.2 · every state at scale 1</p>
+  </header>
+
+  <section class="buttons" aria-label="Buttons in every state">
+    <span></span>
+    @for (state of states; track state) {
+      <span class="section-label">{{ state }}</span>
+    }
+    @for (row of rows; track row.variant) {
+      <span class="section-label">{{ row.variant }}</span>
+      @for (cell of row.cells; track cell.testId) {
+        <button uiButton [variant]="row.variant" [isDisabled]="cell.isDisabled" [testId]="cell.testId">
+          @if (row.isIcon) {
+            <svg class="icon" viewBox="0 0 20 20" role="img" [attr.aria-label]="row.label">
+              <path d="M5 5 L15 15 M15 5 L5 15" />
+            </svg>
+          } @else {
+            {{ row.label }}
+          }
+        </button>
+      }
+    }
+  </section>
+
+  <section class="samples" aria-label="Sizes, key hints and the modal">
+    <h2 class="section-label">Sizes and key hints</h2>
+    <div class="sample-row">
+      <button uiButton variant="primary" keyHint="Escape">Resume</button>
+      <button uiButton variant="secondary" size="compact">Chloroplast</button>
+      <button uiButton variant="quiet" size="compact">Skip</button>
+      <button uiButton variant="icon" size="compact">
+        <svg class="icon" viewBox="0 0 20 20" role="img" aria-label="Close"><path d="M5 5 L15 15 M15 5 L5 15" /></svg>
+      </button>
+      <ui-key-hint key="Escape" />
+      <ui-key-hint key="H" />
+      <ui-key-hint key="/" />
+      <ui-key-hint key="1" />
+    </div>
+    <h2 class="section-label">Modal panel · scrim · focus trap</h2>
+    <div class="sample-row">
+      <button uiButton variant="secondary" [testId]="testId.openModal" (click)="openModal()">Open modal</button>
+    </div>
+  </section>
+
+  <section class="side-sample" aria-label="Side panel">
+    <h2 class="section-label">Side panel</h2>
+    <ui-panel variant="side" [testId]="testId.sidePanel">
+      @for (section of sections; track section.heading) {
+        <ui-panel-section [heading]="section.heading">
+          @for (fact of section.facts; track fact.name) {
+            <div class="fact">
+              <span class="marker" [style.background-color]="fact.marker"></span>
+              <span class="fact-name">{{ fact.name }}</span>
+              <span class="fact-value">{{ fact.value }}</span>
+            </div>
+          }
+        </ui-panel-section>
+      }
+    </ui-panel>
+  </section>
+
+  @if (isModalOpen()) {
+    <div class="modal-layer">
+      <ui-scrim [alpha]="scrimAlpha" [testId]="testId.scrim" />
+      <ui-panel
+        class="modal"
+        variant="modal"
+        title="Leave the game?"
+        uiFocusTrap
+        [testId]="testId.modal"
+        (keydown.escape)="closeModal()"
+      >
+        <p class="modal-text">Your cell leaves the dish. The round goes on without you.</p>
+        <button
+          uiPanelFooter
+          uiButton
+          uiAutofocus
+          variant="secondary"
+          [testId]="testId.modalStay"
+          (click)="closeModal()"
+        >
+          Stay
+        </button>
+        <button uiPanelFooter uiButton variant="danger" [testId]="testId.modalExit" (click)="closeModal()">
+          Exit game
+        </button>
+      </ui-panel>
+    </div>
+  }
+</div>

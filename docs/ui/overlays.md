@@ -26,7 +26,7 @@ without copy fails the gate instead of rendering `undefined`.
   card in that band, Simple Flagellum `II → III` (its name wraps to three lines over three effect lines), is 214 px
   tall with 2 px between a card's rows, 8 px padding top and bottom and no row allowed to shrink. At 1280 × 1000
   (scale still 1, capped by width) the band starts at y 636 and still clears the box; the cards end exactly at the
-  reference viewport's bottom edge, and on a viewport shorter than the reference at `HUD_SCALE_MIN` they may cross
+  reference viewport's bottom edge, and on a viewport shorter than the reference at `UI_SCALE_MIN` they may cross
   it, which is accepted: the cards never enter the box, and the own cell's orbit never reaches the
   band (§3.1.3). The hint pill is hidden while the offer is open; the own-cell indicators, timer and leaderboard
   stay.

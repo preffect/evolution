@@ -18,6 +18,8 @@ import { SERVER_ERROR_CAPTION } from './game/hud/server-error-notice.component';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { LOBBY_NOTICE, MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
+import { IS_UI_KIT_STATES_ROUTE } from './ui-kit/kit-states/kit-states-route';
+import { UiKitStatesComponent } from './ui-kit/kit-states/kit-states.component';
 
 /** The lobby's words for why it came back on its own (docs/ui/overlays.md §3.6). */
 export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
@@ -31,16 +33,17 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
  * join / start a game — without implementing any specific game. Once the room is in play the
  * game host (`game/game-host.component.ts`) fills the viewport with the HUD overlay
  * (`game/hud/hud.component.ts`) over it (#217, #185, docs/ui/layout.md §1). A dev build
- * opened with `?bench` renders the fixed-seed bench route instead (docs/rendering/budget.md §7).
+ * opened with `?bench` renders the fixed-seed bench route instead (docs/rendering/budget.md §7), and one opened
+ * with `?kit` the UI kit states page (docs/ui/components-and-constants.md §10.2).
  */
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, GameHostComponent, HudComponent, RenderBenchComponent],
+  imports: [FormsModule, GameHostComponent, HudComponent, RenderBenchComponent, UiKitStatesComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/ui/layout.md §1).
-  host: { '[class.in-game]': 'multiplayer.inGame() || isBenchRoute' },
+  host: { '[class.in-game]': 'multiplayer.inGame() || isBenchRoute || isUiKitStatesRoute' },
 })
 export class AppComponent {
   readonly title = 'Evolution';
@@ -60,6 +63,8 @@ export class AppComponent {
   readonly serverErrorCaption = SERVER_ERROR_CAPTION;
   /** The dev-only bench route (docs/rendering/budget.md §7) replaces the shell for the page's lifetime. */
   readonly isBenchRoute = inject(IS_BENCH_ROUTE);
+  /** The dev-only UI kit states page, likewise for the page's lifetime. */
+  readonly isUiKitStatesRoute = inject(IS_UI_KIT_STATES_ROUTE);
 
   // Local lobby form state.
   readonly playerName = signal('Player');

@@ -96,7 +96,7 @@ score `concept:score`; the leaderboard's columns `hud:leaderboard`.
 **Frame.** A kit modal panel centred on the viewport, `ENCYCLOPEDIA_INSET_PX` from every edge and at most
 `ENCYCLOPEDIA_MAX_WIDTH_PX` × `ENCYCLOPEDIA_MAX_HEIGHT_PX`, every length × `--ui-scale`. Worked examples: at 1280 × 800
 (scale 1) the panel is 1216 × 736 at (32, 32); at 1920 × 1080 (scale 1.35) it is 1834 × 994 at (43, 43), both sides
-held by the inset (the width cap, 1836, is 2 px wider). Below the `HUD_SCALE_MIN` viewport (1024 × 640) the panel
+held by the inset (the width cap, 1836, is 2 px wider). Below the `UI_SCALE_MIN` viewport (1024 × 640) the panel
 keeps the inset and the detail column narrows; that is under the smallest viewport the game targets, so it is
 recorded rather than solved, as layout.md §1 records the leaderboard's.
 
