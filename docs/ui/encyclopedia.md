@@ -39,7 +39,7 @@ caption for which balance it reads.
 components-and-constants.md §7): a callout-backing scrim at `ENCYCLOPEDIA_SCRIM_ALPHA` over the whole viewport, the
 kit focus trap, and the same input gate as the menu (§4): only `1` `2` `3` and Escape reach the game, the steer
 target stays latched (the pointer over the panel does not steer), sprint and the Tab hold are swallowed. The HUD
-chrome (the leaderboard and the round clock) hides while it is open, since the panel would cut it into slivers. The
+chrome (the leaderboard and the round clock) hides while it is open, since the panel would cut it into slivers. The encyclopedia is exempt from input-and-onboarding.md §6's overlay coverage bar: it is a reading screen the player opens on purpose, and the alert strip carries what must not be missed. The
 panel covers most of the dish, so it carries the one fact that must not be missed, the **alert strip**:
 
 | `data-alert-kind` | Shown while                                         | Text (from the HUD's own formatters, never a copy)                              | Tone           |
@@ -72,9 +72,7 @@ the subject. A count in the rail is `entriesIn(category)`'s length, never a type
 | 6     | `world`      | World        | Dish and zones (`dish_and_zones`) · Time (`time`)                                     | The dish and its four zones; the world clock, the bloom, the round                                                                                                                                                                                                                           |
 
 A list shows group headers only when its category has more than one group. The `hud` subject is a subject under
-Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_ELEMENT_BY_TOPIC` (§12.4) anchors each topic to the element it explains: a `HUD_TEST_ID` key for a DOM
-element (the leaderboard, the round clock), an `OwnCellIndicators` field for a renderer-drawn one (the DNA ring,
-level numeral, ladder orbit, self ring, threat ring), as #361 lands it; `HUD_TEST_ID` moves to the neutral
+Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_ELEMENT_BY_TOPIC` (§12.4) anchors each topic to the element it explains, a `HUD_TEST_ID` key or an `OwnCellIndicators` field (§12.4, #361); `HUD_TEST_ID` moves to the neutral
 `game/test-ids/hud-test-ids.ts`, so the encyclopedia never imports `hud/`.
 
 **Ids** are §12.2's `<subject>:<codeId>`, with `#` for a section inside a page: `trait:mitochondrion`,
@@ -112,8 +110,7 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
 - **Rail** (`ENCYCLOPEDIA_RAIL_WIDTH_PX`, on the kit well): one kit rail item per category of §11.2 that has
   entries, `UI_RAIL_ROW_HEIGHT_PX` tall: a 16 px category icon, the label (`body`), the entry count (`figure`).
 - **List** (`ENCYCLOPEDIA_LIST_WIDTH_PX`): the label and count (`label`), then the category's groups, each a kit list
-  section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion** (`UI_ROW_MEDALLION_PX`): a
-  trait's glyph from `game/glyphs/trait-glyphs.ts` (#312, `lod="list"`, still), otherwise the subject's code-drawn
+  section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion** (`UI_ROW_MEDALLION_PX`): a trait's glyph (`<app-trait-glyph [traitId] lod="list" still>` at `TRAIT_GLYPH_LIST_PX`, #312), otherwise the subject's code-drawn
   glyph from `game/glyphs/subject-glyphs.ts` (a small drawing of the cell, mote, rod, fragment or zone). Then the title
   (`body`, one line, ending in an ellipsis when it does not fit) and, in a round, a level-gold tier chip on owned
   traits.
@@ -170,7 +167,7 @@ Top to bottom (`encyclopedia-a-trait-*.png`), with `UI_PANEL_PADDING_PX` around 
 **Long entries scroll** (`encyclopedia-a-long-trait-1280x800.png`, Diatom Shell: three effect rows and a `Requires`
 fact). The detail column is one kit scroll area. The breadcrumb and the title-and-chips row are **sticky** at its top,
 on the panel's top colour, with a 1 px panel-rim rule under them once the column has scrolled; the preview, the facts,
-the prose and See also scroll under them, with the scroll area's fade below the rule. At 1280 × 800 an entry with two
+the prose and See also scroll under them, with the scroll area's `UI_SCROLL_FADE_PX` fade below the rule (the mockup omits the fade; the build draws it). At 1280 × 800 an entry with two
 effect rows and two prose lines fits unscrolled; anything longer scrolls.
 
 ### 11.5 Navigation, search and cross-links
@@ -194,7 +191,7 @@ transition is a pure function in `game/encyclopedia/format/navigation.ts`.
 - **Keyboard.** Tab order: header (Back, search, alert strip, Close), rail, list, detail (its controls and links in
   reading order). The rail and the list are one tab stop each with a roving focus: ↑ ↓ move, Home End jump, and
   **selection follows focus**, so arrowing down the list pages through entries. ← → move between the rail and the list.
-  `ENCYCLOPEDIA_BACK_KEY_CODES` (`Alt+←`, and Backspace outside a text field) is Back. The arrows are free here because
+  `ENCYCLOPEDIA_BACK_KEYS` (`Alt+←`, and Backspace outside a text field) is Back. The arrows are free here because
   the modal gate swallows steering (§4).
 - **Escape**, in order: the search field clears a non-empty query and consumes the press (`preventDefault`, §4);
   otherwise the encyclopedia closes to where it was opened from (§11.1). In a room that close is the HUD's topmost
@@ -250,7 +247,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`      | `Preview unavailable`        | —    | The `unavailable` state's line.                                                                   |
 | `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`          | `Replay`                     | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).            |
 | `ENCYCLOPEDIA_SEARCH_KEY_CODE`               | `Slash`                      | —    | Focuses the search field.                                                                         |
-| `ENCYCLOPEDIA_BACK_KEY_CODES`                | `Alt+ArrowLeft`, `Backspace` | —    | Back (Backspace only outside a text field).                                                       |
+| `ENCYCLOPEDIA_BACK_KEYS` | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | — | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).                                                       |
 
 `ENCYCLOPEDIA_KEY_CODE` (`KeyH`) lives with the in-room key codes in `input/input-constants.ts` (§4), since only the
 room's input layer reads it.

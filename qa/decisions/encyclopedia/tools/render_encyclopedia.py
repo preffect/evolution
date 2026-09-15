@@ -1027,7 +1027,7 @@ def frame_c_trait(uw, uh):
     o.append(t(px_, cy + 10, 'About', 'label', LABEL))
     svg, ph = prose(px_, cy + 22, col_w, MITO)
     o.append(svg)
-    o.append(see_also(px_, cy + 22 + ph, col_w, MITO)[0])
+    o.append(see_also(px_, cy + 22 + ph + SPACE_S, col_w, MITO)[0])
     return ''.join(o)
 
 
