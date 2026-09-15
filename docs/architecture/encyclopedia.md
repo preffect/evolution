@@ -43,11 +43,15 @@ has exactly one of each; the id is built from the subject, so regrouping entries
 **Ownership of the category values.** This file owns the `ENCYCLOPEDIA_CATEGORY` values: adding, removing or renaming
 one is a change to this file (and to the completeness spec, which requires every category to be non-empty). #354 owns
 each category's **label and position** only: `ENCYCLOPEDIA_CATEGORY_LABEL` and `ENCYCLOPEDIA_CATEGORY_ORDER` are
-written from its spec. So the two specs cannot disagree about which categories exist.
+written from its spec (today: `basics` "Basics", `entities` "Cells & food", `evolutions` "Evolution", `abilities`
+"Abilities", `actions` "Actions", `world` "World", in that order). So the two specs cannot disagree about which
+categories exist. The same split holds for **list groups** (below): the ids and how an entry is assigned one are
+here, the headers' labels are #354's.
 
 ```ts
 // encyclopedia/model/categories.ts
 export const ENCYCLOPEDIA_CATEGORY = {
+  basics: 'basics', // the rules and how to read the screen (#354)
   entities: 'entities',
   evolutions: 'evolutions',
   abilities: 'abilities',
@@ -72,7 +76,8 @@ export const ENTRY_SUBJECT = {
   action: 'action', // ACTION (§12.4)
   zone: 'zone', // ZONE_ID
   world: 'world', // WORLD_TOPIC (§12.4)
-  concept: 'concept', // CONCEPT (§12.4): mass, DNA, level, food, world standing
+  concept: 'concept', // CONCEPT (§12.4): the rules the other pages link to
+  hud: 'hud', // HUD_TOPIC (§12.4): how to read each HUD element
 } as const;
 
 export type EntryId =
@@ -87,7 +92,8 @@ export type EntryId =
   | `action:${ActionId}`
   | `zone:${ZoneId}`
   | `world:${WorldTopicId}`
-  | `concept:${ConceptId}`;
+  | `concept:${ConceptId}`
+  | `hud:${HudTopicId}`;
 
 /** A place inside an entry: `trait:cell_wall#tier_2`. Section keys are lowercase snake_case. */
 export type EntryAnchor = `${EntryId}#${string}`;
@@ -96,7 +102,7 @@ export type EntryAnchor = `${EntryId}#${string}`;
 Ids are lowercase and use only `:` `#` `_`, so they are URL- and test-id-safe as written. Cross-references
 (`seeAlso`, prose links) are typed `EntryId`s; a trait's tier sections are `tier_1` … `tier_<n>` for each tier of its
 row in `balance.traits.TRAIT_TIERS`. The category of each entry is set per entry, so one subject may span categories
-(`concept:dna` sits in evolutions, `concept:mass` in entities).
+(`concept:food` sits in entities, every other concept and every `hud:` entry in basics).
 
 **Entry definition** (what content files write) and **resolved entry** (what the UI binds):
 
@@ -129,6 +135,8 @@ export interface SectionDefinition {
 export interface ResolvedEntry {
   readonly id: EntryId;
   readonly category: EncyclopediaCategory;
+  /** The list header the entry sits under; `null` in a category without groups (abilities, actions). */
+  readonly group: EntryGroupId | null;
   readonly title: string;
   readonly summary: readonly ProseSegment[];
   readonly facts: readonly ResolvedFact[];
@@ -160,6 +168,14 @@ export interface EntryLink {
 rows and walk orders; structure is never patched, `constants-files-tests.md §9`); `resolveEntry(id, context)` and
 `entriesIn(category)` are pure and read every number from `context`. Search, if #354 wants it, runs over resolved
 titles and summaries and needs nothing more from the model.
+
+**List groups.** `encyclopedia/model/groups.ts` declares `ENTRY_GROUP` (closed ids) and #354's
+`ENTRY_GROUP_LABEL`; the registry **derives** each entry's group, never content: basics → `rules` (concepts) or
+`reading_the_screen` (`hud:`); entities → `cells` (cell kinds) or `food` (food kinds, variants, `concept:food`,
+`entity:dna_fragment`); evolutions → `stages`, then one group per `TRAIT_CATEGORY` in catalog order (the trait's own
+category), then `dna_tags`; world → `dish_and_zones` (the dish, zones) or `time` (world clock, bloom, round);
+abilities and actions → `null`. A spec pins that every entry of a grouped category has a group and that group order
+follows the category's walk.
 
 **The context provider.** `encyclopedia/encyclopedia-context.ts` is the one place a `FactContext` is made:
 `factContextFor(balance: BalanceConfig | null)` (pure: the room's balance, else `DEFAULT_BALANCE`) and
@@ -228,10 +244,16 @@ export const CATALOG_QUANTITY = {
   requiresCount: 'requires_count',
   stageCount: 'stage_count', // balance.ladder.STAGE_ORDER.length
 } as const;
+/** Each selector's argument, exactly as `FactFormulaArguments`: a trait id where the count is per trait, nothing otherwise. */
+export interface CatalogQuantityArguments {
+  tier_count: { readonly traitId: TraitId };
+  unlock_count: { readonly traitId: TraitId };
+  requires_count: { readonly traitId: TraitId };
+  stage_count: Record<string, never>;
+}
 export type CatalogQuantityCall = {
-  readonly id: ValueOf<typeof CATALOG_QUANTITY>;
-  readonly traitId?: TraitId;
-};
+  [Id in ValueOf<typeof CATALOG_QUANTITY>]: { readonly id: Id; readonly argument: CatalogQuantityArguments[Id] };
+}[ValueOf<typeof CATALOG_QUANTITY>];
 ```
 
 - **`balance`** is the default. `balancePath` is a typed helper (`balancePath<D extends keyof BalanceConfig>(domain: D,
@@ -261,7 +283,7 @@ name: NumberOrTableKey<D>, ...keys)`), so a renamed constant fails `typecheck` a
 
 ### 12.4 The closed sets the registry adds
 
-Four subjects have no code enum yet. Each is declared once in `encyclopedia/model/` and **anchored** to a code set
+Five subjects have no code enum yet. Each is declared once in `encyclopedia/model/` and **anchored** to a code set
 by a total `Record`, so the new id list cannot drift from the code it describes:
 
 ```ts
@@ -316,9 +338,11 @@ export type WorldTopicId = ValueOf<typeof WORLD_TOPIC>;
 
 // encyclopedia/model/concepts.ts — the game's core quantities, the pages prose links "mass" and "DNA" to
 export const CONCEPT = {
-  mass: 'mass',
-  dna: 'dna',
-  level: 'level',
+  massAndSize: 'mass_and_size',
+  massDecay: 'mass_decay',
+  engulfRatio: 'engulf_ratio',
+  dnaAndLevels: 'dna_and_levels',
+  score: 'score',
   food: 'food', // the overview of every food kind
   worldStanding: 'world_standing',
 } as const;
@@ -328,6 +352,20 @@ export const ENTRY_BY_WORLD_STANDING: Readonly<Record<WorldStanding, EntryAnchor
   with: 'concept:world_standing#with',
   behind: 'concept:world_standing#behind',
 };
+
+// encyclopedia/model/hud-topics.ts — one page per HUD element, each anchored to the element it explains
+export const HUD_TOPIC = {
+  dnaRing: 'dna_ring',
+  levelNumeral: 'level_numeral',
+  ladderOrbit: 'ladder_orbit',
+  selfRing: 'self_ring',
+  threatRing: 'threat_ring',
+  leaderboard: 'leaderboard',
+  roundClock: 'round_clock',
+} as const;
+export type HudTopicId = ValueOf<typeof HUD_TOPIC>;
+/** The element each page explains, by its `HUD_TEST_ID` key: a removed or renamed element fails `typecheck`. */
+export const HUD_ELEMENT_BY_TOPIC: Readonly<Record<HudTopicId, keyof typeof HUD_TEST_ID>>;
 
 // encyclopedia/model/entity-kinds.ts — every ENTITY_KIND has a page
 export const ENTRY_BY_ENTITY_KIND: Readonly<Record<EntityKind, EntryId>> = {
@@ -420,9 +458,9 @@ spec below, never on a player's screen.
 
 | Spec                            | Pins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `registry-completeness.spec.ts` | The registry holds exactly: one `trait:` entry per catalog row with one tier section per tier of its row; one entry per `CELL_STAGE`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ZONE_ID`, `ABILITY`, `ACTION`, `WORLD_TOPIC` and `CONCEPT` value; every `ENTRY_BY_EFFECT`, `ENTRY_BY_ENTITY_KIND`, `ENTRY_BY_WORLD_STANDING` and `ACTION_BY_INTENT` target (anchors included) exists; every `CellModifiers` key maps to one ability; every value outside the registry is in `RESERVED_FROM_ENCYCLOPEDIA`, and each of those is still reserved in code. Ids are unique; every entry's category is in `ENCYCLOPEDIA_CATEGORY_ORDER`; no category is empty                           |
+| `registry-completeness.spec.ts` | The registry holds exactly: one `trait:` entry per catalog row with one tier section per tier of its row; one entry per `CELL_STAGE`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ZONE_ID`, `ABILITY`, `ACTION`, `WORLD_TOPIC`, `CONCEPT` and `HUD_TOPIC` value; every `ENTRY_BY_EFFECT`, `ENTRY_BY_ENTITY_KIND`, `ENTRY_BY_WORLD_STANDING` and `ACTION_BY_INTENT` target (anchors included) exists; every `CellModifiers` key maps to one ability; every value outside the registry is in `RESERVED_FROM_ENCYCLOPEDIA`, and each of those is still reserved in code. Ids are unique; every entry's category is in `ENCYCLOPEDIA_CATEGORY_ORDER`; no category is empty              |
 | `fact-sources.spec.ts`          | Every `balance` path resolves to a finite number in `DEFAULT_BALANCE`, and none names `ENGULF_COVER_SECONDS`, `ENGULF_WRAP_SECONDS` or `ENGULF_ABSORB_SECONDS` (inputs the simulation does not read; the list goes when #367 lands). Every `FACT_FORMULAS` and `CATALOG_QUANTITIES` row, run over a **recording proxy** of the balance with every argument its type allows, reads at least one leaf, and **at least one** of the number leaves it read changes its value when patched on a `structuredClone` (× 2, or + 1 for a leaf at 0), so clamps and branches do not false-fail. Every `BalanceConfig` domain is read by at least one fact, counting `balance` paths and proxy reads together |
-| `prose.spec.ts`                 | For every entry and section: no digit (`/\d/`) and no Roman-numeral tier (`/\b(?:Tier\s+)?[IVX]{2,}\b/`, and `Tier I`) in any template, title, heading or label; every `{token}` names a fact of that entry or section; every `[[link]]` is a registry id or anchor; `resolveEntry` of every id succeeds over `DEFAULT_BALANCE`                                                                                                                                                                                                                                                                                                                                                                    |
+| `prose.spec.ts`                 | For every entry and section: no digit (`/\d/`) and no tier numeral (`/\btier\s+[ivx]+\b/i`, and a bare `/\b[IVX]{2,}\b/`) in any template, title, heading or label; every `{token}` names a fact of that entry or section; every `[[link]]` is a registry id or anchor; `resolveEntry` of every id succeeds over `DEFAULT_BALANCE`                                                                                                                                                                                                                                                                                                                                                                 |
 | `resolve-entry.spec.ts`         | A patched balance (`applyBalancePatch`) changes the resolved text of the facts that read the leaf and of the trait tier lines; the generated tier headings follow the tier count; the derived links (requires, granting traits, gate traits) match the balance's catalog                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `encyclopedia-context.spec.ts`  | `factContextFor(null)` is `DEFAULT_BALANCE`; a room balance wins; the service's signal follows `GameStateService.balance`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `lint-guard.spec.ts`            | The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; ESLint (`Linter` over fixture sources) rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access, a number literal and a binary arithmetic expression under `encyclopedia/content/**`                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -588,9 +626,20 @@ rebakes, so every entry's preview reuses it and a seed-fixed screenshot is repro
   the unknown name, one per open).
 - **`BitmapText` crashes jsdom.** The Angular side never builds a `PreviewSession` in a spec: it asks for an
   `ENCYCLOPEDIA_PREVIEW` injection token (`render/preview/preview-host.ts`: `(host, sizePx) => PreviewHandle`, with
-  `show`, `pause`, `resume`, `destroy`), provided like `clock-provider.ts`, and component specs provide a recording
+  `show`, `pause`, `resume`, `playLoop` (resume for one scene period, then pause: #354's reduced-motion play button),
+  `destroy`, and `still` below), provided like `clock-provider.ts`, and component specs provide a recording
   fake. `preview-session.spec.ts` runs over the fake `PixiAppHandle` and the fake baker `render-session.spec.ts`
   uses, and never draws the indicator texts (`NO_HUD_INPUTS`).
+
+**The box.** #354 fixes the stage at `ENCYCLOPEDIA_PREVIEW_WIDTH_PX` × `ENCYCLOPEDIA_PREVIEW_HEIGHT_PX` (704 × 220 CSS
+px, a 16:5 box) × `--ui-scale`, so `sizePx` changes only with the UI scale, never with the column, and the canvas is
+resized (no rebake) when it does. `PREVIEW_CANVAS_MAX_PX` is that box at the largest UI scale × `devicePixelRatio`,
+in device pixels; each scene's framing is authored for 16:5.
+
+**Still frames (#378).** `PreviewHandle.still(spec, sizePx): Promise<ImageBitmap>` serves #354's landing tiles and
+non-trait list rows from the same app: the scene walked to its `stillAtSeconds`, rendered once into a `RenderTexture`
+in device pixels, extracted, cached per session by spec, size and DPR, at most one extract per frame, released on
+`destroy`, invalidated by a balance patch. Until #378 lands the wells show #354's per-subject icons.
 
 **Lifecycle and cost of opening a preview.**
 
@@ -643,10 +692,11 @@ join an entry id to its spec and the render seam. `render/` never imports from `
 packages/client/src/app/game/
   quantities/{quantity-unit,format-quantity,modifier-labels}.ts    units, suffixes, decimals, rounding; the one formatter; the modifier label table (§12.5)
   encyclopedia/model/{categories,entry-id,entry,fact,prose}.ts      the closed types, ids, definitions, resolved shapes, token parser
-  encyclopedia/model/{abilities,actions,world-topics,concepts,entity-kinds,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
+  encyclopedia/model/{groups,abilities,actions,world-topics,concepts,hud-topics,entity-kinds,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
   encyclopedia/facts/{balance-path,formula-table,catalog-quantities,resolve-fact,resolve-prose,derived-links}.ts   typed paths, the closed formula and catalog tables, value + unit → text, template → segments, computed links
   encyclopedia/content/{trait,stage,dna-tag}-entries.ts            evolutions (trait tier sections and headings generated from balance.traits.TRAIT_TIERS)
-  encyclopedia/content/{cell-kind,food,bacterium,entity,concept}-entries.ts   entities and the core concepts
+  encyclopedia/content/{concept,hud}-entries.ts                   basics (and `concept:food`, in entities)
+  encyclopedia/content/{cell-kind,food,bacterium,entity}-entries.ts   entities
   encyclopedia/content/{zone,world}-entries.ts                     world
   encyclopedia/content/{ability,action}-entries.ts                 abilities and actions
   encyclopedia/registry.ts                                          ENCYCLOPEDIA_ENTRIES, entryById, resolveEntry, entriesIn
