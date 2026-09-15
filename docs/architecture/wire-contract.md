@@ -47,6 +47,21 @@ export interface FoodDelta {
 }
 ```
 
+**Wire precision** (#341): the one home of how exactly each number is written. The serializer rounds these, and only
+these, in the view (`game/serialize/quantize.ts`); the world records, the state hash and the replay keep full
+precision.
+
+- `CellView`, `FoodMoteView`, `DnaFragmentView` and `MotePositionView` `x` / `y`: `SNAPSHOT_POSITION_DECIMALS` (0.1 wu)
+- `CellView.radius`: `SNAPSHOT_RADIUS_DECIMALS` (0.1 wu)
+- `CellView.velocityX` / `velocityY`: `SNAPSHOT_VELOCITY_DECIMALS` (0.1 wu/s)
+- `CellView.mass` and `LeaderboardRow.mass`: `SNAPSHOT_MASS_DECIMALS` (0.1), one precision so a cell's two masses agree
+- `LeaderboardRow.score` and `PlayerProgressView.score`: `SNAPSHOT_SCORE_DECIMALS` (whole), one precision likewise
+- Written exact: `GelPatchView` `x` / `y` / `radius` (static, sent whole each snapshot), effect `x` / `y`,
+  `engulfProgress`, `membraneRatioBonus` and every other number of a view (counters, ticks, DNA).
+
+The debug inspect tools read exact values instead (architecture/debug-mcp.md §8); `debug_get_game_state` is the
+`game_state` payload, at this precision.
+
 - The dish radius is the constant `DISH_RADIUS` (game-design/controls-and-scope.md §8), not a session field.
 - `game_state` (start, late join, reconnect: every player receives one right after `game_started`) carries `serializeFullState()`: a `GameSnapshot`
   whose `food.spawned` is every mote, plus `balance: BalanceConfig` so the client predicts with
@@ -131,10 +146,8 @@ Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.m
 `FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400 motes, of which the bacterium share
 (`FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`: 0.25 in the protocell era, 0.5 from the eukaryote era) is up to
 700 moving every tick; 110 fragments, all drifting; 8 player cells plus `WILD_CELL_COUNT` = 24 wild
-cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON with positions and radii
-quantised to `SNAPSHOT_POSITION_DECIMALS` / `SNAPSHOT_RADIUS_DECIMALS` = 1, velocity and mass to
-`SNAPSHOT_VELOCITY_DECIMALS` / `SNAPSHOT_MASS_DECIMALS` = 1, and a leaderboard score to `SNAPSHOT_SCORE_DECIMALS` = 0
-(§4.2 lever 3, #341). The bytes per item are measured (#331, #341, below) except the wild cells', which do not exist
+cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON at the §4 wire precision.
+The bytes per item are measured (#331, #341, below) except the wild cells', which do not exist
 yet; the counts are the worst case.
 
 | Snapshot part (20 Hz)                                                          | Count × bytes                            | Per snapshot       |
@@ -145,7 +158,7 @@ yet; the counts are the worst case.
 | `cells`: wild cells (#176; estimated, not measurable yet)                      | 24 × ~250 bare, ~600 with a 7-pick build | ~6–14.4 KB         |
 | `players` (8 roster rows) + `ownProgress` + `leaderboard`                      | 468 + ~840–1 010 + ~690                  | ~2–2.2 KB          |
 | `appliedInputSequenceByPlayer`, effects, `food.spawned` / `removedIds`, header |                                          | ~0.7 KB            |
-| **total, uncut**                                                               |                                          | **≈ 46.3–54.9 KB** |
+| **total, uncut**                                                               |                                          | **≈ 46.3–54.8 KB** |
 | **total with lever 1** (−75 % on `moved` and `dnaFragments`)                   | ~6.4 + ~1.5 + …                          | **≈ 22.8–31.3 KB** |
 
 Until #331 every client was sent every player's whole `PlayerProgressView` (#330's review: 471 B with no owned traits,
@@ -196,7 +209,8 @@ change; live runs after it (means over 60 snapshots) confirm the per-item sizes:
 
 The worst case saves about 48 B a moving cell and 170 B of leaderboard: ≈ 0.55 KB per snapshot with 8 player cells,
 ≈ 1.7 KB once 24 wild cells carry the same four fields (their share is estimated from the player cell's). With lever
-1 that is **≈ 22.8 KB with bare wild cells, inside the 24 KB budget by ~1.2 KB** (≈ 456 KB/s), and **≈ 31.3 KB when
+1 that is **≈ 22.8 KB with bare wild cells, about at the 24 KB budget** (≈ 456 KB/s; the ~1.2 KB margin is the size of
+the wild-cell estimate's own uncertainty, ± 50 B × 24, and lever 1's cut is itself an estimate), and **≈ 31.3 KB when
 they carry their builds, still over it**: lever 3 does not pay for built wild cells on its own.
 
 What the rounding costs the client (`net/wire-precision.spec.ts`): at the closest zoom (`CAMERA_MIN_VIEW_HALF_HEIGHT_WU`
@@ -215,7 +229,7 @@ Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120–1
 ≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s, about 1.7 × the budget, so
 **§4.2 lever 1 is no longer held: it is required for the current contract and lands (#171) before the
 wild-cell slice (#176) fills the seats**; #152's snapshot (player cells only) is inside budget meanwhile.
-With lever 1 the worst case above is ≈ 22.8 KB (≈ 456 KB/s) with bare wild cells, inside the 24 KB budget since
+With lever 1 the worst case above is ≈ 22.8 KB (≈ 456 KB/s) with bare wild cells, about at the 24 KB budget since
 lever 3 landed (#341; ≈ 24.5 KB before it, after #331 cut the players part from ~7–8 KB to ~2.3 KB), and ≈ 31.3 KB
 if they carry their builds: **over the budget**. What closes that gap per snapshot: culling wild cells outside the
 viewport on the same per-viewer seam (§4); per second, the 15 Hz cadence (lever 2). #176 measures the wild cells and
@@ -242,10 +256,8 @@ before #214 landed and what made a remote client run out of memory (#238).
    bound; at 15 Hz it consumed ~12 of 15 and still slipped, so the cadence narrows the gap but does
    not close it on its own — the flow control of §4 is what bounds how stale any client can get.
 3. **Quantise `velocityX` / `velocityY`, `mass` and `radius` on the wire** (landed, #341, §4.1): `serialize/quantize.ts`
-   rounds them at serialize only, to `SNAPSHOT_VELOCITY_DECIMALS`, `SNAPSHOT_MASS_DECIMALS` and
-   `SNAPSHOT_RADIUS_DECIMALS` (0.1 each, where they had up to 17 significant digits), and a leaderboard row's score to
-   `SNAPSHOT_SCORE_DECIMALS` (whole) and its mass to the cell's 0.1. The world records, the state hash (which walks
-   records, never views: determinism/ordering-and-state-hash.md §5) and the replay keep full precision, which
-   `serialize.integration.test.ts` pins; the scenario snapshot reads `EXACT_SNAPSHOT_VALUES`. Prediction,
-   interpolation, the HUD, the in-process bots and `debug_get_entities` read the rounded values; §4.1 bounds what
-   that costs the client.
+   rounds them at serialize only, where they had up to 17 significant digits; the precision of every field is the §4
+   **Wire precision** list. The state hash walks records, never views (determinism/ordering-and-state-hash.md §5),
+   which `serialize.integration.test.ts` pins; the scenario snapshot and the debug inspect tools read
+   `EXACT_SNAPSHOT_VALUES`. Prediction, interpolation, the HUD and the in-process bots read the rounded values; §4.1
+   bounds what that costs the client.

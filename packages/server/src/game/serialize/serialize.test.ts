@@ -145,6 +145,13 @@ describe('view projections', () => {
     expect(toPlayerProgressView({ ...player, offer: null }).offer).toBeNull();
   });
 
+  it('rounds a player’s own score as its leaderboard row does, and keeps it exact with EXACT_SNAPSHOT_VALUES', () => {
+    const player = createTestWorld().players[0]!;
+    player.score = 1877.2600000000025;
+    expect(toPlayerProgressView(player).score).toBe(1877);
+    expect(toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES).score).toBe(player.score);
+  });
+
   it('projects a player onto a roster row of its id and name only', () => {
     const player = createTestWorld().players[0]!;
     player.ownedTraits = [{ traitId: 'nucleoid', tier: 2 }];

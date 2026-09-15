@@ -168,10 +168,10 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **10. File plan (target ≤ 250 lines per file; 300 is the lint cap)** (L30–98): Import direction: `types` ← `constants` ← `simulation` (shared); `ladder.ts` and `traits.ts` reference each other only as types (`Trait…
 - **11. Test plan (`engineering/testing-and-typescript.md §2`, `determinism/replay-tests-and-traps.md §7`)** (L99–111): kernel; mass curves; spatial hash vs brute force on seeded populations; serialize round-trip; food delta tracker; draft (ladder filter, run…
 
-## architecture/debug-mcp.md (85 lines)
+## architecture/debug-mcp.md (88 lines)
 
-- **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **8. Debug MCP surface (#14)** (L5–85): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
+- **Evolution — Architecture: debug MCP surface** (L1–88): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **8. Debug MCP surface (#14)** (L5–88): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
 
 ## architecture/entity-model.md (251 lines)
 
@@ -187,12 +187,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Input handling** (L42–56): `sequence` and the newest non-null `targetX/targetY` win; `shouldSprint` and `traitChoice` are OR-merged (a one-shot that arrives together …
   - **3.3 Other structural rules** (L57–77): `constants/`; formulas take numbers.
 
-## architecture/wire-contract.md (251 lines)
+## architecture/wire-contract.md (263 lines)
 
-- **Evolution — Architecture: wire contract** (L1–251): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–251): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
-  - **4.1 Bandwidth budget** (L128–229): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
-  - **4.2 Levers (in order)** (L230–251): plus `INTEREST_MARGIN_WU`, on the per-viewer seam #331 landed (§4).
+- **Evolution — Architecture: wire contract** (L1–263): §4 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **4. Wire contract (`packages/shared/src/types/messages.ts`)** (L5–263): The three seams replace the template's `unknown` / `{ maxPlayers }` hooks; this section is their one home, and the design docs own the mean…
+  - **4.1 Bandwidth budget** (L143–243): Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.md §3, §3.2, ecology/wild-cells.md §3.3): `FOOD_CAP_BASE …
+  - **4.2 Levers (in order)** (L244–263): plus `INTEREST_MARGIN_WU`, on the per-viewer seam #331 landed (§4).
 
 ## concept-art/README.md (408 lines)
 
@@ -388,12 +388,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **8.4 Proving scenarios** (L82–93): `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo module: inputs echo from the tick they we…
   - **8.5 The design tables** (L94–113): The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14), `ecology-cells.gameplay.test.ts` (E4–E8,…
 
-## testing/scenario-runner.md (169 lines)
+## testing/scenario-runner.md (171 lines)
 
-- **Evolution — Testing Standards: the gameplay scenario runner and replay** (L1–169): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
-- **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L5–169): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
-  - **8.1 Writing a scenario** (L21–136): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
-  - **8.2 Replay and the failure output** (L137–169): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
+- **Evolution — Testing Standards: the gameplay scenario runner and replay** (L1–171): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
+- **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L5–171): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
+  - **8.1 Writing a scenario** (L21–138): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
+  - **8.2 Replay and the failure output** (L139–171): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
 
 ## testing/tiers-and-builders.md (105 lines)
 

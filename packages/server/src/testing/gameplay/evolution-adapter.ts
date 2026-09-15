@@ -126,7 +126,7 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
   let projectedProgress: Record<string, PlayerProgressView> | undefined;
   const progressByPlayer = (): Record<string, PlayerProgressView> => {
     projectedProgress ??= Object.fromEntries(
-      world.players.map((player) => [player.playerId, toPlayerProgressView(player)]),
+      world.players.map((player) => [player.playerId, toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES)]),
     );
     return projectedProgress;
   };

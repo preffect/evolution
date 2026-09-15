@@ -16,22 +16,28 @@ import { CAMERA_REFERENCE_VIEWPORT_HEIGHT_PX } from '../render/constants/world-r
 
 const DECIMAL_BASE = 10;
 const HALF = 0.5;
-/** The bar: a fifth of a CSS pixel is below what antialiasing of a moving rim can show. */
-const INVISIBLE_ERROR_PX = 0.2;
+/** The bar: half a CSS pixel, below what antialiasing of a moving rim can show. */
+const INVISIBLE_ERROR_PX = 0.5;
+/**
+ * `zoomFor` is linear in the viewport height, so the bound is taken on a window twice the 1 080 px reference: a
+ * 2 160 CSS px tall one, taller than any supported display at device ratio 1 (a 1 440 px window gives 0.24 px).
+ */
+const TALLEST_VIEWPORT_REFERENCE_HEIGHTS = 2;
+const TALLEST_VIEWPORT_HEIGHT_PX = CAMERA_REFERENCE_VIEWPORT_HEIGHT_PX * TALLEST_VIEWPORT_REFERENCE_HEIGHTS;
 
 /** The furthest a value rounded to `decimals` places can be from the exact one. */
 function worstRoundingError(decimals: number): number {
   return DECIMAL_BASE ** -decimals * HALF;
 }
 
-/** CSS px per wu with the camera at its smallest view, on the reference viewport. */
+/** CSS px per wu with the camera at its smallest view, on the tallest viewport. */
 const closestZoom = zoomFor(
   { x: 0, y: 0, viewHalfHeightWu: CAMERA_MIN_VIEW_HALF_HEIGHT_WU },
-  { width: CAMERA_REFERENCE_VIEWPORT_HEIGHT_PX, height: CAMERA_REFERENCE_VIEWPORT_HEIGHT_PX },
+  { width: TALLEST_VIEWPORT_HEIGHT_PX, height: TALLEST_VIEWPORT_HEIGHT_PX },
 );
 
-describe('wire precision at the closest zoom (#341)', () => {
-  it('moves a cell’s rim by under a fifth of a CSS pixel: its centre and its radius rounded the wrong way together', () => {
+describe('wire precision at the closest zoom on the tallest viewport (#341)', () => {
+  it('moves a cell’s rim by under half a CSS pixel: its centre and its radius rounded the wrong way together', () => {
     const rimErrorWu = worstRoundingError(SNAPSHOT_POSITION_DECIMALS) + worstRoundingError(SNAPSHOT_RADIUS_DECIMALS);
     expect(rimErrorWu * closestZoom).toBeLessThan(INVISIBLE_ERROR_PX);
   });

@@ -73,7 +73,9 @@ it('E9: A absorbs B on tick 30', async () => {
   the seed and seed 42 puts one 73 wu from the broth point (ecology/acceptance.md §8's clearance rule refuses
   it). The scenario snapshot is the full snapshot with **exact values** (`EXACT_SNAPSHOT_VALUES`: the tables
   assert ± 0.01 wu; only the wire rounds positions, velocity, mass, radius and the leaderboard's score and mass to
-  their `SNAPSHOT_*_DECIMALS`, #341), plus that tick's `effects`
+  their `SNAPSHOT_*_DECIMALS`, #341; the bots a scenario drives read it too, so they perceive exact values where a
+  `debug_spawn_bot` or `bot-client` bot perceives the wire's, and a hunter within one 0.1-mass step of the engulf
+  ratio can decide differently in a table row than in a live room), plus that tick's `effects`
   and the spawners' `spawnedCounts` (E2, E14 count spawns, not populations). `evolution-views.ts`
   holds the selectors a row reads through (`cellOf`, `progressOf`, `massOf`, `speedOf`,
   `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`).
