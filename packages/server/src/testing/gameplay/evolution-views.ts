@@ -8,7 +8,8 @@ import {
   type CellView,
   type EffectKind,
   type GameEffect,
-  type PlayerProgressView,
+  type MassFlowView,
+  type OwnProgressView,
 } from '@evolution/shared';
 import type { EvolutionScenarioSnapshot } from './evolution-adapter.js';
 import type { ScenarioView } from './expectations.js';
@@ -20,8 +21,13 @@ export function cellOf(view: EvolutionView, playerIndex: number): CellView | und
   return view.snapshot.cells.find((cell) => cell.playerId === playerId);
 }
 
-export function progressOf(view: EvolutionView, playerIndex: number): PlayerProgressView | undefined {
+export function progressOf(view: EvolutionView, playerIndex: number): OwnProgressView | undefined {
   return view.snapshot.progressByPlayer[view.playerId(playerIndex)];
+}
+
+/** Why the player's cell's mass moved on this tick (#383), at full precision; `undefined` without a flow. */
+export function massFlowOf(view: EvolutionView, playerIndex: number): MassFlowView | undefined {
+  return progressOf(view, playerIndex)?.massFlow ?? undefined;
 }
 
 export function massOf(view: EvolutionView, playerIndex: number): number | undefined {

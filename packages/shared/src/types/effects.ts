@@ -34,6 +34,10 @@ export interface CellAbsorbedEffect extends EffectBase {
   cellId: EntityId;
   playerId: PlayerId;
   predatorCellId: EntityId;
+  /** Mass the predator's payout added, measured around `gainMass` (0 for a wild predator); `SNAPSHOT_MASS_DECIMALS` on the wire. */
+  predatorMassGained: number;
+  /** DNA the payout added to the predator's player, the cap overflow included; `SNAPSHOT_MASS_DECIMALS` on the wire. */
+  predatorDnaGained: number;
 }
 
 /**
@@ -65,6 +69,10 @@ export interface EatEffect extends EffectBase {
   cellId: EntityId;
   eatenId: EntityId;
   eatenKind: EntityKind;
+  /** Mass the eater gained, measured around `gainMass` (digestion bonus in, cap overflow out); `SNAPSHOT_MASS_DECIMALS` on the wire. */
+  massGained: number;
+  /** DNA the eater's player gained, the cap overflow included; `SNAPSHOT_MASS_DECIMALS` on the wire. */
+  dnaGained: number;
 }
 
 export interface LevelUpEffect extends EffectBase {

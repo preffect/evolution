@@ -1,7 +1,8 @@
 // Step 4 (docs/ecology/food-and-spawn.md §1): a mote or fragment is eaten the tick its centre lies within a
 // cell's radius. Cells eat in array order, hits in id order (the spatial hash), and a mote eaten
 // by an earlier cell is gone for the later ones; wild cells are skipped. Mass arrives through `gainMass` (digestion
-// bonus, cap overflow to DNA); DNA and tag points through the progression counters.
+// bonus, cap overflow to DNA); DNA and tag points through the progression counters. The `eat` effect carries the mass and DNA
+// the meal added, measured around the gains (#383).
 
 import { EFFECT_KIND, ENTITY_KIND, FOOD_KIND, SPATIAL_HASH_CELL_SIZE_WU, type EntityId } from '@evolution/shared';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
@@ -15,7 +16,7 @@ import {
 import { requirePlayer } from '../world/lookups.js';
 import { SpatialHash } from '../world/spatial-hash.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { gainMass } from './cell-mass.js';
+import { gainMass, measureGain, type MeasuredGain } from './cell-mass.js';
 
 interface Diner {
   readonly cell: PlayerCellRecord;
@@ -26,6 +27,8 @@ interface Diner {
 interface Eaten {
   readonly entity: { readonly id: EntityId; readonly x: number; readonly y: number };
   readonly kind: typeof ENTITY_KIND.foodMote | typeof ENTITY_KIND.dnaFragment;
+  /** What the meal added, measured around the gains (#383). */
+  readonly gain: MeasuredGain;
 }
 
 function pushEatEffect(world: WorldState, context: StepContext, diner: Diner, eaten: Eaten): void {
@@ -37,20 +40,24 @@ function pushEatEffect(world: WorldState, context: StepContext, diner: Diner, ea
     cellId: diner.cell.id,
     eatenId: eaten.entity.id,
     eatenKind: eaten.kind,
+    massGained: eaten.gain.massGained,
+    dnaGained: eaten.gain.dnaGained,
   });
 }
 
 export function eatFoodMote(diner: Diner, mote: FoodMoteRecord, world: WorldState, context: StepContext): void {
   const { cell, player } = diner;
-  gainMass(cell, player, mote.mass * (1 + cell.modifiers.digestionFactorBonus), context.balance);
-  gainDna(player, mote.dna, cell.modifiers.dnaGainMultiplier);
+  const gain = measureGain(cell, player, () => {
+    gainMass(cell, player, mote.mass * (1 + cell.modifiers.digestionFactorBonus), context.balance);
+    gainDna(player, mote.dna, cell.modifiers.dnaGainMultiplier);
+  });
   if (mote.tag !== null) {
     gainTagPoints(player, mote.tag, context.balance.ecology.FOOD_TAG_POINTS);
   }
   if (mote.kind === FOOD_KIND.bacterium && mote.bacteriumVariant !== null) {
     player.bacteriaEatenByVariant[mote.bacteriumVariant] += 1;
   }
-  pushEatEffect(world, context, diner, { entity: mote, kind: ENTITY_KIND.foodMote });
+  pushEatEffect(world, context, diner, { entity: mote, kind: ENTITY_KIND.foodMote, gain });
 }
 
 export function eatDnaFragment(
@@ -60,9 +67,11 @@ export function eatDnaFragment(
   context: StepContext,
 ): void {
   const { cell, player } = diner;
-  gainDna(player, context.balance.ecology.DNA_FRAGMENT_DNA, cell.modifiers.dnaGainMultiplier);
+  const gain = measureGain(cell, player, () =>
+    gainDna(player, context.balance.ecology.DNA_FRAGMENT_DNA, cell.modifiers.dnaGainMultiplier),
+  );
   gainTagPoints(player, fragment.tag, context.balance.ecology.FOOD_TAG_POINTS);
-  pushEatEffect(world, context, diner, { entity: fragment, kind: ENTITY_KIND.dnaFragment });
+  pushEatEffect(world, context, diner, { entity: fragment, kind: ENTITY_KIND.dnaFragment, gain });
 }
 
 export function eat(world: WorldState, context: StepContext): void {

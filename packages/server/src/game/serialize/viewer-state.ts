@@ -9,7 +9,7 @@ import type { ViewerStateSerializer } from '../game-module.js';
 import type { WorldState } from '../world/world-state.js';
 import { FoodDeltaTracker, positionMotes, type PositionedMote } from './food-delta-tracker.js';
 import { isInInterestArea, type InterestArea } from './interest-area.js';
-import { ownProgressOf } from './serialize.js';
+import { SPRINT_WINDOW, ownProgressOf } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
 
 /** The snapshot members only their viewer is sent, in the order the room appends them. */
@@ -62,10 +62,12 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
 
   /**
    * A fresh delta reports every mote in the area as spawned: the `game_state`'s whole food for this viewer. A
-   * `game_state` can go out between broadcasts, so the world is read afresh and no camera steps.
+   * `game_state` can go out between broadcasts, so the world is read afresh and no camera steps. Like its empty
+   * effects, it carries no sprint window: that window was the last broadcast's.
    */
   serializeFull(viewerPlayerId: PlayerId, snapshot: GameSnapshot): ViewerSnapshotMembers {
-    return this.membersFor(viewerPlayerId, snapshot, this.restartFoodDelta(viewerPlayerId), this.readWorld());
+    const members = this.membersFor(viewerPlayerId, snapshot, this.restartFoodDelta(viewerPlayerId), this.readWorld());
+    return { ...members, ownProgress: ownProgressOf(this.world, viewerPlayerId, SPRINT_WINDOW.omitted) };
   }
 
   /** A player left the room: its camera and its delta go with it. */

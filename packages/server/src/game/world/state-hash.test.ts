@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, FOOD_KIND, StateHashError, createTestGameInput } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
+import { recordMetabolism, recordSprintSpent, sealSprintWindow } from './mass-flow-ledger.js';
 import type { WorldState } from './world-state.js';
 import {
   CELL_HASHED_FIELDS,
@@ -134,5 +135,21 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
     expect(keysOf(DNA_FRAGMENT_HASHED_FIELDS)).toEqual(Object.keys(world.dnaFragments[0]!).sort());
     expect(keysOf(GEL_PATCH_HASHED_FIELDS)).toEqual(Object.keys(world.gelPatches[0]!).sort());
     expect(keysOf(SPAWNER_HASHED_FIELDS)).toEqual(Object.keys(world.spawners.food).sort());
+  });
+});
+
+describe('the mass-flow ledger (#383)', () => {
+  it('never moves the hash: it is transient like the effects', () => {
+    const world = populatedWorld();
+    const hash = computeStateHash(world);
+    const player = world.players[0]!;
+    recordSprintSpent(world.massFlow, player.playerId, 1);
+    recordMetabolism(world.massFlow, player.playerId, {
+      ratesPerSecond: { toxin: -1, swallowed: 0, decay: -0.5, vent: 0, light: 0 },
+      decayTraitShare: 0,
+      zone: 'open_broth',
+    });
+    sealSprintWindow(world.massFlow);
+    expect(computeStateHash(world)).toBe(hash);
   });
 });
