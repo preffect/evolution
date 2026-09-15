@@ -77,7 +77,7 @@ const ENCYCLOPEDIA_DEFAULT_BALANCE_FILES = [
   'packages/client/src/app/game/encyclopedia/registry.ts',
 ];
 /** `UPPER_SNAKE_CASE` shared names that are no balance key: the id objects, and the clock's unit conversion. */
-const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
+export const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
   'CELL_STAGE',
   'ZONE_ID',
   'DNA_TAG',
@@ -93,8 +93,30 @@ const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
   'TRAIT_CATEGORY',
   'TRAIT_RARITY',
   'SECONDS_PER_MINUTE',
+  'FIRST_TIER',
+  'FIRST_LEVEL',
 ];
 const LIVE_BALANCE_MESSAGE = 'Read tunables from the live balance (the context), never from a module import (§12.6).';
+/** The syntax half of the live-balance guard: a namespace import of the shared package, any `.tiers` access. */
+const LIVE_BALANCE_SYNTAX_RESTRICTIONS = [
+  {
+    selector: "ImportDeclaration[source.value='@evolution/shared'] > ImportNamespaceSpecifier",
+    message: LIVE_BALANCE_MESSAGE,
+  },
+  {
+    selector: "MemberExpression[property.name='tiers']",
+    message: 'Tier numbers are read from balance.traits.TRAIT_TIERS only (constants-files-tests.md §9).',
+  },
+];
+/** Encyclopedia content holds no number and computes none, even through a named constant (§12.6). */
+const ENCYCLOPEDIA_CONTENT_FILES = ['packages/client/src/app/game/encyclopedia/content/**/*.ts'];
+const CONTENT_NUMBER_MESSAGE = 'Encyclopedia content names a fact source, never a number or arithmetic (§12.3, §12.6).';
+const CONTENT_SYNTAX_RESTRICTIONS = [
+  { selector: 'Literal[raw=/^[0-9.]/]', message: CONTENT_NUMBER_MESSAGE },
+  { selector: 'BinaryExpression[operator=/^([-+*/%]|\\*\\*)$/]', message: CONTENT_NUMBER_MESSAGE },
+  { selector: 'AssignmentExpression[operator=/^([-+*/%]|\\*\\*)=$/]', message: CONTENT_NUMBER_MESSAGE },
+  { selector: 'UpdateExpression', message: CONTENT_NUMBER_MESSAGE },
+];
 /** Forbids importing any `UPPER_SNAKE_CASE` name from `@evolution/shared` but `allowedNames`, a namespace import, `.tiers`. */
 function liveBalanceOnlyRules(allowedNames) {
   return {
@@ -110,17 +132,7 @@ function liveBalanceOnlyRules(allowedNames) {
         ],
       },
     ],
-    'no-restricted-syntax': [
-      'error',
-      {
-        selector: "ImportDeclaration[source.value='@evolution/shared'] > ImportNamespaceSpecifier",
-        message: LIVE_BALANCE_MESSAGE,
-      },
-      {
-        selector: "MemberExpression[property.name='tiers']",
-        message: 'Tier numbers are read from balance.traits.TRAIT_TIERS only (constants-files-tests.md §9).',
-      },
-    ],
+    'no-restricted-syntax': ['error', ...LIVE_BALANCE_SYNTAX_RESTRICTIONS],
   };
 }
 /** The definition sites of constants: a literal here IS the named constant (§1). */
@@ -325,6 +337,13 @@ export default tseslint.config(
   {
     files: ENCYCLOPEDIA_DEFAULT_BALANCE_FILES,
     rules: liveBalanceOnlyRules([...SHARED_NAMES_WITHOUT_A_BALANCE_KEY, 'DEFAULT_BALANCE']),
+  },
+  {
+    // A later `no-restricted-syntax` replaces an earlier one, so the content block repeats the live-balance selectors.
+    files: ENCYCLOPEDIA_CONTENT_FILES,
+    rules: {
+      'no-restricted-syntax': ['error', ...LIVE_BALANCE_SYNTAX_RESTRICTIONS, ...CONTENT_SYNTAX_RESTRICTIONS],
+    },
   },
   ...TEMPLATE_FILE_EXEMPTIONS,
   {
