@@ -86,23 +86,29 @@ describe('UiPanelComponent', () => {
     }
 
     it('modal: the opaque panel gradient, the panel radius and padding, and a lit top edge', () => {
-      expect(rule(['modal'], 'background')).toBe('linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom))');
-      expect(rule(['modal'], 'padding')).toBe('calc(var(--ui-panel-padding) * var(--ui-scale))');
+      expect(rule(["[data-variant='modal']"], 'background')).toBe(
+        'linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom))',
+      );
+      expect(rule(["[data-variant='modal']"], 'padding')).toBe('calc(var(--ui-panel-padding) * var(--ui-scale))');
       expect(rule([], 'border-radius')).toBe('calc(var(--ui-radius-panel) * var(--ui-scale))');
-      expect(rule(['modal', '::before'], 'background-color')).toContain('var(--ui-panel-edge-alpha)');
+      expect(rule(["[data-variant='modal']", '::before'], 'background-color')).toContain('var(--ui-panel-edge-alpha)');
     });
 
     it('modal: enters over the panel-enter time, and appears without rising under reduced motion', () => {
-      expect(rule(['modal'], 'animation')).toContain('var(--ui-panel-enter)');
-      expect(rule(['modal'], 'animation', 'prefers-reduced-motion')).toBe('none');
+      expect(rule(["[data-variant='modal']"], 'animation')).toContain('var(--ui-panel-enter)');
+      expect(rule(["[data-variant='modal']"], 'animation', 'prefers-reduced-motion')).toBe('none');
     });
 
     it('side: its width, a translucent gradient over a blur, no motion, and the pointer only on its controls', () => {
-      expect(rule(['side'], 'width')).toBe('calc(var(--ui-side-panel-width) * var(--ui-scale))');
-      expect(rule(['side'], 'background')).toContain('var(--ui-side-panel-alpha)');
-      expect(rule(['side'], 'backdrop-filter')).toContain('var(--ui-side-panel-blur)');
-      expect(rule(['side'], 'animation')).toBeNull();
-      expect(rule(['side'], 'pointer-events')).toBe('none');
+      expect(rule(["[data-variant='side']"], 'width')).toBe('calc(var(--ui-side-panel-width) * var(--ui-scale))');
+      expect(rule(["[data-variant='side']"], 'background')).toContain('var(--ui-side-panel-alpha)');
+      expect(rule(["[data-variant='side']"], 'backdrop-filter')).toContain('var(--ui-side-panel-blur)');
+      expect(rule(["[data-variant='side']"], 'animation')).toBeNull();
+      expect(rule(["[data-variant='side']"], 'pointer-events')).toBe('none');
+    });
+
+    it('sets the body line height once, for prose, rows and a confirm', () => {
+      expect(styleRuleValue(document, ['.body'], 'line-height')).toBe('var(--ui-body-line-height)');
     });
 
     it('hides an empty header or footer', () => {

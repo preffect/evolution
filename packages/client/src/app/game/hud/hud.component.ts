@@ -10,16 +10,7 @@
 // mirror (§3.1.4), which carries no pixels of its own, and the trait picker (docs/ui/overlays.md §3.2, #188); the death
 // and results overlays (#189) and the notices (#190) slot in here as they land.
 
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  computed,
-  inject,
-  signal,
-  type OnDestroy,
-  type OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
@@ -32,9 +23,7 @@ import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { hudStyleVariables, noticeRowsVariable } from './format/hud-css-variables';
-import { observeElementSize, type ElementSize } from '../../ui-kit/element-size';
-
-const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
+import { ElementSizeTracker } from '../../ui-kit/element-size';
 
 @Component({
   selector: 'app-hud',
@@ -102,11 +91,9 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
     `,
   ],
 })
-export class HudComponent implements OnInit, OnDestroy {
+export class HudComponent implements OnInit {
   private readonly gameState = inject(GameStateService);
-  private readonly host = inject(ElementRef<HTMLElement>);
-  private readonly size = signal<ElementSize>(NO_SIZE);
-  private stopObservingSize: (() => void) | null = null;
+  private readonly sizeTracker = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
 
   protected readonly testId = HUD_TEST_ID;
 
@@ -126,7 +113,9 @@ export class HudComponent implements OnInit, OnDestroy {
   );
 
   /** `--hud-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
-  protected readonly scale = computed(() => uiScaleFor(this.size().widthPx, this.size().heightPx));
+  protected readonly scale = computed(() =>
+    uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx),
+  );
 
   /** The scale plus every constant the child stylesheets read, as one style map. */
   protected readonly styleVariables = computed(() => ({
@@ -135,11 +124,6 @@ export class HudComponent implements OnInit, OnDestroy {
   }));
 
   ngOnInit(): void {
-    this.stopObservingSize = observeElementSize(this.host.nativeElement as HTMLElement, (size) => this.size.set(size));
-  }
-
-  ngOnDestroy(): void {
-    this.stopObservingSize?.();
-    this.stopObservingSize = null;
+    this.sizeTracker.start();
   }
 }

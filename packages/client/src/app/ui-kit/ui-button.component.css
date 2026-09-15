@@ -100,6 +100,13 @@
   background-color: var(--ui-pressed);
 }
 
+/* A label-colour variant takes the text colour while pressed: `TEXT_LABEL` over the pressed tint is exactly
+   4.50:1, with no margin, where `TEXT` is 7.4:1. */
+:host([data-variant='quiet']:active:not([aria-disabled='true'])),
+:host([data-variant='icon']:active:not([aria-disabled='true'])) {
+  color: var(--ui-text);
+}
+
 :host(:focus-visible) {
   outline: var(--ui-focus-ring) solid var(--ui-text);
   outline-offset: var(--ui-focus-ring-offset);

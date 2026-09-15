@@ -69,6 +69,9 @@ export const UI_SCROLLBAR_PX = 8;
 /** The fade at a scroll area's edge while content lies beyond it. */
 export const UI_SCROLL_FADE_PX = 16;
 
+/** A panel body's line height: prose, list rows and a confirm's two lines all sit in it. */
+export const UI_BODY_LINE_HEIGHT = 1.45;
+
 // ---- alphas (docs/visual-style/principles-and-palette.md §2, UI kit roles) ----
 
 /** The hover tint, in the text colour. */

@@ -1,7 +1,11 @@
 // Reads the style rules a rendered component put into the document, so a kit spec can pin a state's look
 // (hover, pressed, focus-visible, disabled) that jsdom never computes: it does not apply pseudo-classes.
-// Angular rewrites `:host` to the component's `_nghost-…` attribute, so a spec matches a rule by that
-// attribute (`hostSelector`) plus the fragments it cares about.
+//
+// A spec names a rule by its whole selector: the simple selectors it is built of, such as the component's
+// `[_nghost-…]` (`hostSelector`), `[data-variant='primary']`, `:hover` or `::before`. A rule matches only when
+// one selector of its list is made of exactly those parts, so `:host([data-variant='primary'])` never also
+// answers for `:host([data-variant='primary'][data-size='compact'])`. Angular's `[_ngcontent-…]` scoping
+// attribute is left out of the comparison, since a spec cannot know it. Quotes are compared as one kind.
 
 interface FoundStyleRule {
   readonly selectorText: string;
@@ -30,6 +34,39 @@ function documentStyleRules(ownerDocument: Document): FoundStyleRule[] {
   return found;
 }
 
+/** A pseudo-class or element with its argument, an attribute, a class, an id, a type or `*`. */
+const SIMPLE_SELECTOR = /::?[\w-]+(?:\((?:[^()]|\([^()]*\))*\))?|\[[^\]]*\]|\.[\w-]+|#[\w-]+|[a-z][\w-]*|\*/gi;
+const CONTENT_SCOPE_ATTRIBUTE = /^\[_ngcontent-[^\]]*\]$/;
+
+function normaliseQuotes(selector: string): string {
+  return selector.replaceAll('"', "'");
+}
+
+/** A selector list split at its top-level commas: a comma inside `:not(…)` stays with its selector. */
+function splitSelectorList(selectorText: string): string[] {
+  const selectors: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const character of selectorText) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth -= 1;
+    if (character === ',' && depth === 0) {
+      selectors.push(current);
+      current = '';
+    } else current += character;
+  }
+  return [...selectors, current];
+}
+
+function simpleSelectorsOf(selector: string): string[] {
+  return (normaliseQuotes(selector).match(SIMPLE_SELECTOR) ?? []).filter((part) => !CONTENT_SCOPE_ATTRIBUTE.test(part));
+}
+
+function isSameSet(parts: readonly string[], wanted: ReadonlySet<string>): boolean {
+  const unique = new Set(parts);
+  return unique.size === wanted.size && [...unique].every((part) => wanted.has(part));
+}
+
 /** `[_nghost-…]`: the attribute selector Angular gave a rendered component's host. */
 export function hostSelector(host: Element): string {
   const attribute = host.getAttributeNames().find((name) => name.startsWith('_nghost-'));
@@ -38,20 +75,27 @@ export function hostSelector(host: Element): string {
 }
 
 /**
- * The value of `property` in the first rule whose selector contains every fragment and that sits under a
- * media condition containing `media` (or under none, when `media` is null); `null` when no rule sets it.
+ * The value of `property` in the rules whose selector is exactly `selectorParts`, under a media condition
+ * containing `media` (or under none, when `media` is null); `null` when no such rule sets it. Throws when two
+ * such rules set different values, so a spec never passes on whichever rule happened to come first.
  */
 export function styleRuleValue(
   ownerDocument: Document,
-  selectorFragments: readonly string[],
+  selectorParts: readonly string[],
   property: string,
   media: string | null = null,
 ): string | null {
-  const match = documentStyleRules(ownerDocument).find(
-    (found) =>
-      selectorFragments.every((fragment) => found.selectorText.includes(fragment)) &&
-      (media === null ? found.media === null : (found.media ?? '').includes(media)) &&
-      found.style.getPropertyValue(property) !== '',
-  );
-  return match ? match.style.getPropertyValue(property).trim() : null;
+  const wanted = new Set(selectorParts.map(normaliseQuotes));
+  const values = documentStyleRules(ownerDocument)
+    .filter((found) => (media === null ? found.media === null : (found.media ?? '').includes(media)))
+    .filter((found) =>
+      splitSelectorList(found.selectorText).some((selector) => isSameSet(simpleSelectorsOf(selector), wanted)),
+    )
+    .map((found) => found.style.getPropertyValue(property).trim())
+    .filter((value) => value !== '');
+  const distinct = [...new Set(values)];
+  if (distinct.length > 1) {
+    throw new Error(`rules for ${[...wanted].join('')} disagree on ${property}: ${distinct.join(' | ')}`);
+  }
+  return distinct[0] ?? null;
 }

@@ -62,6 +62,7 @@ const EXPECTED_COLOURS: Readonly<Record<string, string>> = {
 };
 
 const EXPECTED_CONSTANTS: Readonly<Record<string, string>> = {
+  '--ui-body-line-height': String(kit.UI_BODY_LINE_HEIGHT),
   '--ui-space-xs': `${kit.UI_SPACE_XS_PX}px`,
   '--ui-space-s': `${kit.UI_SPACE_S_PX}px`,
   '--ui-space-m': `${kit.UI_SPACE_M_PX}px`,

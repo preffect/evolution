@@ -103,11 +103,22 @@ describe('UiButtonComponent', () => {
     }
 
     it('hover lays the hover tint over the fill, never on a disabled button', () => {
-      expect(rule([':hover', ':not([aria-disabled=', '::before'], 'background-color')).toBe('var(--ui-hover)');
+      expect(rule([':hover', ":not([aria-disabled='true'])", '::before'], 'background-color')).toBe('var(--ui-hover)');
     });
 
     it('pressed lays the pressed tint instead, never on a disabled button', () => {
-      expect(rule([':active', ':not([aria-disabled=', '::before'], 'background-color')).toBe('var(--ui-pressed)');
+      expect(rule([':active', ":not([aria-disabled='true'])", '::before'], 'background-color')).toBe(
+        'var(--ui-pressed)',
+      );
+    });
+
+    it('a pressed quiet or icon label takes the text colour, which clears 4.5:1 over the pressed tint', () => {
+      expect(rule(["[data-variant='quiet']", ':active', ":not([aria-disabled='true'])"], 'color')).toBe(
+        'var(--ui-text)',
+      );
+      expect(rule(["[data-variant='icon']", ':active', ":not([aria-disabled='true'])"], 'color')).toBe(
+        'var(--ui-text)',
+      );
     });
 
     it('focus-visible alone draws the ring in the text colour at its offset, unscaled', () => {
@@ -120,7 +131,7 @@ describe('UiButtonComponent', () => {
     });
 
     it('disabled fades to the disabled alpha', () => {
-      expect(rule(['[aria-disabled='], 'opacity')).toBe('var(--ui-disabled-alpha)');
+      expect(rule(["[aria-disabled='true']"], 'opacity')).toBe('var(--ui-disabled-alpha)');
     });
 
     it('fades between states over the transition, and not at all under reduced motion', () => {
@@ -129,13 +140,15 @@ describe('UiButtonComponent', () => {
     });
 
     it('draws each variant from its tone: primary accent and bold, danger a danger rim, quiet the label colour', () => {
-      expect(rule(['primary'], 'background-color')).toContain('var(--ui-primary-fill-alpha)');
-      expect(rule(['primary'], 'border-color')).toContain('var(--ui-primary-rim-alpha)');
-      expect(rule(['primary'], 'font-weight')).toBe('bold');
-      expect(rule(['secondary'], 'border-color')).toBe('var(--ui-panel-rim)');
-      expect(rule(['danger'], 'border-color')).toContain('var(--ui-danger-rim-alpha)');
-      expect(rule(['quiet'], 'color')).toBe('var(--ui-text-label)');
-      expect(rule(['compact', 'icon'], 'width')).toBe('calc(var(--ui-button-compact-height) * var(--ui-scale))');
+      expect(rule(["[data-variant='primary']"], 'background-color')).toContain('var(--ui-primary-fill-alpha)');
+      expect(rule(["[data-variant='primary']"], 'border-color')).toContain('var(--ui-primary-rim-alpha)');
+      expect(rule(["[data-variant='primary']"], 'font-weight')).toBe('bold');
+      expect(rule(["[data-variant='secondary']"], 'border-color')).toBe('var(--ui-panel-rim)');
+      expect(rule(["[data-variant='danger']"], 'border-color')).toContain('var(--ui-danger-rim-alpha)');
+      expect(rule(["[data-variant='quiet']"], 'color')).toBe('var(--ui-text-label)');
+      expect(rule(["[data-size='compact']", "[data-variant='icon']"], 'width')).toBe(
+        'calc(var(--ui-button-compact-height) * var(--ui-scale))',
+      );
     });
   });
 });

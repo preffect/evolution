@@ -466,16 +466,16 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Definition shape** (L5–29): There is no `minLevel`: the ladder (`stage`, `requires`, `unlockedBy`) is the pacing.
 - **2. Modifier model** (L30–85): Every trait tier is a partial `CellModifiers`.
 
-## ui/components-and-constants.md (244 lines)
+## ui/components-and-constants.md (246 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance, constants and the UI kit** (L1–244): §7–§10 of the split `UI.md`, which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: component plan, acceptance, constants and the UI kit** (L1–246): §7–§10 of the split `UI.md`, which keeps the shared context and the file list.
 - **7. Angular component plan** (L5–61): Standalone, `OnPush`, signal inputs, no game logic: components format and lay out; every decision is a pure function under `hud/format/` (o…
 - **8. Acceptance (the Playwright loop #100 drives)** (L62–81): `OC` = `hud-own-cell` (§3.1.4).
 - **9. Constants table (own-cell indicators)** (L82–125): The values this doc owns (§3.1.2, §3.1.3, §6).
-- **10. The UI kit (#354)** (L126–244): The look every panel, menu and screen copies, set once.
-  - **10.1 Tokens, and how components share them** (L135–201): the way layout.md §1 publishes the HUD's: `ui-kit/format/ui-css-variables.ts` → `uiStyleVariables()`, a pure map of every `--ui-…` pro…
-  - **10.2 Components** (L202–239): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
-  - **10.3 Colour and type** (L240–244): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
+- **10. The UI kit (#354)** (L126–246): The look every panel, menu and screen copies, set once.
+  - **10.1 Tokens, and how components share them** (L135–203): the way layout.md §1 publishes the HUD's: `ui-kit/format/ui-css-variables.ts` → `uiStyleVariables()`, a pure map of every `--ui-…` pro…
+  - **10.2 Components** (L204–241): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
+  - **10.3 Colour and type** (L242–246): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
 
 ## ui/encyclopedia.md (314 lines)
 

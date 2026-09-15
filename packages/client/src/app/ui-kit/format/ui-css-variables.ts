@@ -56,6 +56,7 @@ function typeVariables(): StyleVariables {
     '--ui-font-sans': UI_FONT_SANS,
     '--ui-font-mono': UI_FONT_MONO,
     '--ui-label-tracking': `${UI_LABEL_TRACKING_EM}em`,
+    '--ui-body-line-height': String(kit.UI_BODY_LINE_HEIGHT),
     ...Object.fromEntries(roles),
   };
 }

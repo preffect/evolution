@@ -4,6 +4,9 @@
 // it (or to `restoreTo`) when that is still on the page and not under another open trap, else into the trap
 // now on top. Focus the player already moved elsewhere is theirs, and is never taken back.
 //
+// Focus that leaves the topmost trap on its own (a click on the scrim or on the panel's text drops it on
+// `<body>`) is sent back inside, so the next Tab cannot reach the page behind the modal.
+//
 // It listens on its own host, not the document: `input/keyboard-input.ts` stays the one document handler.
 
 import { DOCUMENT } from '@angular/common';
@@ -18,7 +21,7 @@ function focusedElement(ownerDocument: Document): HTMLElement | null {
 @Directive({
   selector: '[uiFocusTrap]',
   standalone: true,
-  host: { '(keydown)': 'onKeydown($event)' },
+  host: { '(keydown)': 'onKeydown($event)', '(focusout)': 'onFocusout($event)' },
 })
 export class UiFocusTrapDirective implements FocusTrap, AfterViewInit, OnDestroy {
   /** Where focus goes when the trap closes; by default, the element that had focus when it opened. */
@@ -55,6 +58,31 @@ export class UiFocusTrapDirective implements FocusTrap, AfterViewInit, OnDestroy
     if (wrapTo === null && stops.length > 0) return;
     event.preventDefault();
     wrapTo?.focus();
+  }
+
+  /**
+   * Focus left the host: while this trap is on top, bring it back to the element it left (else the trap's
+   * initial focus). A move to another element inside the host, or a trap now above this one, keeps it.
+   *
+   * The pull back waits for a microtask, because the browser applies the new focus *after* this event: focusing
+   * from inside the handler would simply be overwritten. A microtask, never a timer — no clock is involved, and
+   * it settles within the same task, so nothing observes a frame with focus outside the modal.
+   */
+  protected onFocusout(event: FocusEvent): void {
+    if (!this.stack.isTopmost(this)) return;
+    const next = event.relatedTarget;
+    if (next instanceof Node && this.host.contains(next)) return;
+    const left = event.target instanceof HTMLElement ? event.target : null;
+    queueMicrotask(() => this.pullFocusBack(left));
+  }
+
+  /** Focus has settled: if it ended outside this trap while it is still the topmost one, take it back. */
+  private pullFocusBack(left: HTMLElement | null): void {
+    if (!this.stack.isTopmost(this) || !this.host.isConnected) return;
+    const active = this.document.activeElement;
+    if (active instanceof Node && this.host.contains(active)) return;
+    if (left !== null && left.isConnected && this.host.contains(left)) left.focus();
+    else this.focusInitial();
   }
 
   /** Where Tab wraps to: past the last stop (or from outside every stop, the host itself) back round to the other end. */

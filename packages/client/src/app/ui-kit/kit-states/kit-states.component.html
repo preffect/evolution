@@ -1,7 +1,7 @@
-<div class="page" uiSurface [attr.data-testid]="testId.page">
+<div class="page" uiSurface #surface="uiSurface" [attr.data-testid]="testId.page">
   <header class="page-header">
     <h1 class="page-title">UI kit states</h1>
-    <p class="page-caption">components-and-constants.md §10.2 · every state at scale 1</p>
+    <p class="page-caption">components-and-constants.md §10.2 · every state at scale {{ surface.scale() }}</p>
   </header>
 
   <section class="buttons" aria-label="Buttons in every state">
@@ -74,6 +74,10 @@
         (keydown.escape)="closeModal()"
       >
         <p class="modal-text">Your cell leaves the dish. The round goes on without you.</p>
+        <!-- overlays.md §3.5: the safe, focused action sits at the trailing end, where a fast second click lands. -->
+        <button uiPanelFooter uiButton variant="danger" [testId]="testId.modalExit" (click)="closeModal()">
+          Exit game
+        </button>
         <button
           uiPanelFooter
           uiButton
@@ -83,9 +87,6 @@
           (click)="closeModal()"
         >
           Stay
-        </button>
-        <button uiPanelFooter uiButton variant="danger" [testId]="testId.modalExit" (click)="closeModal()">
-          Exit game
         </button>
       </ui-panel>
     </div>

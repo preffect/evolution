@@ -3,35 +3,27 @@
 // `--ui-scale` from the pure `uiScaleFor`, and spreads every `--ui-…` token, so everything under it reads
 // one set of numbers.
 
-import { Directive, ElementRef, computed, inject, signal, type OnDestroy, type OnInit } from '@angular/core';
-import { observeElementSize, type ElementSize } from './element-size';
+import { Directive, ElementRef, computed, inject, type OnInit } from '@angular/core';
+import { ElementSizeTracker } from './element-size';
 import { uiScaleVariable, uiStyleVariables } from './format/ui-css-variables';
 import { uiScaleFor } from './format/ui-scale';
-
-const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
 
 @Directive({
   selector: '[uiSurface]',
   standalone: true,
+  exportAs: 'uiSurface',
   host: { '[style]': 'styleVariables()' },
 })
-export class UiSurfaceDirective implements OnInit, OnDestroy {
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly size = signal<ElementSize>(NO_SIZE);
+export class UiSurfaceDirective implements OnInit {
+  private readonly sizeTracker = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
   private readonly tokens = uiStyleVariables();
-  private stopObservingSize: (() => void) | null = null;
 
   /** The live scale of this layer, for a host that needs the number itself. */
-  readonly scale = computed(() => uiScaleFor(this.size().widthPx, this.size().heightPx));
+  readonly scale = computed(() => uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx));
 
   protected readonly styleVariables = computed(() => ({ ...this.tokens, ...uiScaleVariable(this.scale()) }));
 
   ngOnInit(): void {
-    this.stopObservingSize = observeElementSize(this.host.nativeElement, (size) => this.size.set(size));
-  }
-
-  ngOnDestroy(): void {
-    this.stopObservingSize?.();
-    this.stopObservingSize = null;
+    this.sizeTracker.start();
   }
 }

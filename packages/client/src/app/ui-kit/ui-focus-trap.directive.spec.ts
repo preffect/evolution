@@ -162,6 +162,47 @@ describe('UiFocusTrapDirective', () => {
     expect(TestBed.inject(FocusTrapStack).topmost()?.host).toBe(byTestId('sibling'));
   });
 
+  describe('focus that leaves the host on its own', () => {
+    /** The trap pulls focus back a microtask after `focusout`, once the browser has applied the new focus. */
+    const focusSettles = (): Promise<void> => Promise.resolve();
+
+    it('comes back when a click drops it on the page: the scrim takes the pointer but no focus', async () => {
+      set((host) => host.isOuterOpen.set(true));
+      byTestId('outer-last').focus();
+      byTestId('outer-last').blur();
+      await focusSettles();
+      expect(document.activeElement).toBe(byTestId('outer-last'));
+      // …so the next Tab is still the trap's to handle, and cannot reach the page behind the modal.
+      expect(pressTab()).toBe(true);
+      expect(document.activeElement).toBe(byTestId('outer-first'));
+    });
+
+    it('comes back when something outside takes it', async () => {
+      set((host) => host.isOuterOpen.set(true));
+      byTestId('elsewhere').focus();
+      await focusSettles();
+      expect(byTestId('outer').contains(document.activeElement)).toBe(true);
+    });
+
+    it('is left alone by a trap that is not on top', async () => {
+      set((host) => host.isOuterOpen.set(true));
+      set((host) => host.isSiblingOpen.set(true));
+      expect(document.activeElement).toBe(byTestId('sibling-only'));
+      byTestId('outer-first').dispatchEvent(
+        new FocusEvent('focusout', { relatedTarget: byTestId('elsewhere'), bubbles: true }),
+      );
+      await focusSettles();
+      expect(document.activeElement).toBe(byTestId('sibling-only'));
+    });
+
+    it('stays put when focus moves between two stops inside the trap', async () => {
+      set((host) => host.isOuterOpen.set(true));
+      byTestId('outer-last').focus();
+      await focusSettles();
+      expect(document.activeElement).toBe(byTestId('outer-last'));
+    });
+  });
+
   it('holds focus on the host of a trap with nothing focusable, and keeps Tab inside', () => {
     set((host) => host.isEmptyOpen.set(true));
     expect(document.activeElement).toBe(byTestId('empty'));
