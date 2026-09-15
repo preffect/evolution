@@ -147,6 +147,7 @@ ENC_PREVIEW_W, ENC_PREVIEW_H = 704, 220
 ENC_PROSE_MAX_W = 640
 ENC_TILE_W, ENC_TILE_H, ENC_TILE_WELL_H = 168, 132, 96
 ENC_TABS_H, ENC_LENS_D, ENC_HERO_H = 44, 300, 300
+ENC_LENS_GAP, ENC_CONTENT_MAX_W, ENC_STICKY_H = 32, 884, 48  # option B (#368): encyclopedia.md §11.7
 
 HUD_REFERENCE = (1280, 800)
 SCALE_MIN, SCALE_MAX = 0.8, 1.5
@@ -190,7 +191,12 @@ DIATOM = {  # DIATOM_SHELL_TIERS: absorbDurationMultiplierAsPrey 1.4/1.8/2.2, sp
                 'it while it holds on.', False)],
               [('Only a cell that already grew a ', False), ('Cell Wall', True), (' can build one. It is a ', False),
                ('form', True), (', so it replaces any other body plan, and the weight of the glass costs a little ', False),
-               ('speed', True), ('.', False)]],
+               ('speed', True), ('.', False)],
+              [('Each tier grows more spines and a thicker wall. A predator that starts to ', False), ('engulf', True),
+               (' you pays for every moment it holds on, so the shell turns a sure meal into a costly one, and a cell '
+                'behind you thinks twice before it tries.', False)],
+              [('Like every trait you own, the shell stays with you through a ', False), ('respawn', True),
+               ('. Losing a fight costs mass and some DNA, never the glass you built.', False)]],
     'see': ['Cell Wall', 'Spines', 'Engulf', 'Specialised', 'Amoeba Pseudopods'], 'preview': 'diatom',
 }
 
@@ -747,8 +753,13 @@ def preview_box(x, y, w, h, entry, clip_id, round_lens=False, rods=None, control
     for mx, my in ((0.36, 0.7), (0.7, 0.2), (0.62, 0.85), (0.4, 0.15)):
         o.append(f'<circle cx="{x + w * mx:.1f}" cy="{y + h * my:.1f}" r="12" fill="url(#halo-algal)"/><circle cx="{x + w * mx:.1f}" cy="{y + h * my:.1f}" r="4" fill="url(#mote-algal)"/>')
     r = min(h, w) * (0.24 if entry['preview'] == 'diatom' else 0.27)
+    body_x = cx
+    if round_lens and entry['preview'] == 'mito':
+        # §12.7 framing: the body inside the 0.8 safe circle, the tail into the vignette band but inside the rim
+        r = w * 0.18
+        body_x = cx - w * 0.13
     if entry['preview'] == 'mito':
-        o.append(kit.flagellum(cx, cy, r, 180) + kit.cell(cx, cy, r, 'cyan', 'prokaryote', rng, heading=0, speed=0.25, extra_inside=mito_beans(r, 1)))
+        o.append(kit.flagellum(body_x, cy, r, 180) + kit.cell(body_x, cy, r, 'cyan', 'prokaryote', rng, heading=0, speed=0.25, extra_inside=mito_beans(r, 1)))
     else:
         o.append(kit.cell(cx, cy, r, 'cyan', 'euk', rng, heading=0, speed=0.0, extra_after=diatom_shell(r, 1)))
     o.append('</g>')
@@ -966,29 +977,61 @@ def frame_a_category(uw, uh):
     return ''.join(o)
 
 
+def b_body(dx, cy, dw, entry, clip_id):
+    """Option B's entry page from cy down: the lens and its control, the title and stacked tables beside it, then
+    prose and See also across the content column. Returns (svg, height, title_height)."""
+    start = cy
+    content_w = dw  # the detail's inner width; the panel cap keeps it at most 848
+    o = [preview_box(dx, cy, ENC_LENS_D, ENC_LENS_D, entry, clip_id, round_lens=True)]
+    switch_w = 36 * entry['tiers']
+    o.append(tier_switch(dx + ENC_LENS_D / 2 - switch_w / 2, cy + ENC_LENS_D + SPACE_M, entry['tiers'], selected=(entry['owned'] or 1) - 1)[0])
+    rx = dx + ENC_LENS_D + ENC_LENS_GAP
+    rw = content_w - ENC_LENS_D - ENC_LENS_GAP
+    svg, th = entry_title(rx, cy, entry, rw, chips_below=True)
+    o.append(svg)
+    ty = cy + th + SPACE_L
+    svg, eh = effects_table(rx, ty, rw, entry)
+    o.append(svg)
+    ty += eh + SPACE_L
+    svg, fh = facts_list(rx, ty, rw, entry)
+    o.append(svg)
+    py = max(cy + ENC_LENS_D + SPACE_M + BUTTON_COMPACT_H, ty + fh) + SPACE_XL
+    svg, ph = prose(dx, py, min(content_w, ENC_PROSE_MAX_W), entry)
+    o.append(svg)
+    svg, sh = see_also(dx, py + ph + SPACE_S, content_w, entry)
+    o.append(svg)
+    return ''.join(o), py + ph + SPACE_S + sh - start, th
+
+
 def frame_b_trait(uw, uh):
     shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'evolutions')
     o = [shell, enc_trait_list(x + ENC_RAIL_W, by, bh, 'mitochondrion', hovered='chloroplast')]
     dx = x + ENC_RAIL_W + ENC_LIST_W + PANEL_PAD
     dw = w - ENC_RAIL_W - ENC_LIST_W - 2 * PANEL_PAD
-    cy = by + PANEL_PAD + 4
-    o.append(preview_box(dx, cy, ENC_LENS_D, ENC_LENS_D, MITO, 'lens-clip', round_lens=True))
-    o.append(tier_switch(dx + ENC_LENS_D / 2 - 54, cy + ENC_LENS_D + SPACE_M, 3, selected=0)[0])
-    rx = dx + ENC_LENS_D + 32
-    rw = min(dw, ENC_PREVIEW_W + 180) - ENC_LENS_D - 32
-    svg, th = entry_title(rx, cy - 8, MITO, rw, chips_below=True)
-    o.append(svg)
-    ty = cy - 8 + th + SPACE_L
-    svg, eh = effects_table(rx, ty, rw, MITO)
-    o.append(svg)
-    ty += eh + SPACE_L
-    svg, fh = facts_list(rx, ty, rw, MITO)
-    o.append(svg)
-    py = max(cy + ENC_LENS_D + SPACE_M + BUTTON_COMPACT_H, ty + fh) + SPACE_XL
-    width = min(dw, ENC_PREVIEW_W + 180)
-    svg, ph = prose(dx, py, min(width, ENC_PROSE_MAX_W + 120), MITO)
-    o.append(svg)
-    o.append(see_also(dx, py + ph + SPACE_S, width, MITO)[0])
+    o.append(b_body(dx, by + PANEL_PAD - 4, dw, MITO, 'lens-clip')[0])
+    return ''.join(o)
+
+
+def frame_b_long_trait(uw, uh):
+    """Diatom Shell under B, scrolled to its end: the condensed sticky title bar over the detail column."""
+    shell, (x, y, w, h, by, bh) = enc_shell(uw, uh, 'evolutions')
+    o = [shell, enc_trait_list(x + ENC_RAIL_W, by, bh, 'diatom_shell')]
+    dx = x + ENC_RAIL_W + ENC_LIST_W + PANEL_PAD
+    dw = w - ENC_RAIL_W - ENC_LIST_W - 2 * PANEL_PAD
+    col_x = x + ENC_RAIL_W + ENC_LIST_W + 1
+    col_w = w - ENC_RAIL_W - ENC_LIST_W - 1
+    body_svg, body_h, _th = b_body(dx, 0, dw, DIATOM, 'long-lens')
+    content_h = PANEL_PAD - 4 + body_h + PANEL_PAD
+    offset = content_h - bh
+    o.append(f'<clipPath id="detail-clip"><rect x="{col_x}" y="{by + ENC_STICKY_H}" width="{col_w}" height="{bh - ENC_STICKY_H}"/></clipPath>')
+    o.append(f'<g clip-path="url(#detail-clip)"><g transform="translate(0,{by + PANEL_PAD - 4 - offset:.1f})">{body_svg}</g></g>')
+    o.append(f'<rect x="{col_x}" y="{by + ENC_STICKY_H:.1f}" width="{col_w - SCROLLBAR}" height="{SCROLL_FADE}" fill="url(#fade-down)"/>')
+    o.append(rect(col_x, by, col_w - 1, ENC_STICKY_H, fill=PANEL_TOP))
+    o.append(t(dx, by + 20, DIATOM['crumb'], 'label', MUTED))
+    o.append(t(dx, by + 39, DIATOM['title'], 'card_name', TEXT))
+    o.append(hline(col_x, x + w, by + ENC_STICKY_H))
+    visible = (bh - ENC_STICKY_H) / (content_h - ENC_STICKY_H)
+    o.append(scrollbar(x + w - SCROLLBAR - 2, by + ENC_STICKY_H + 4, bh - ENC_STICKY_H - 8, 1 - visible, visible))
     return ''.join(o)
 
 
@@ -1177,6 +1220,7 @@ def main(out_dir):
         ('encyclopedia-a-category', frame_a_category, BOTH, True, False),
         ('encyclopedia-a-long-trait', frame_a_long_trait, SMALL, True, False),
         ('encyclopedia-b-trait', frame_b_trait, BOTH, True, False),
+        ('encyclopedia-b-long-trait', frame_b_long_trait, SMALL, True, False),
         ('encyclopedia-c-trait', frame_c_trait, BOTH, True, False),
         ('kit-states', kit_states, SMALL, False, False),
     ]
