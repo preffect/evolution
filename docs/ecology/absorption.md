@@ -139,11 +139,19 @@ cell that has left the world, and separation at step 3, which treats a pair insi
 cannot engulf (§5.3)): it cannot start on that prey until the tick after, and the pair is
 separated meanwhile (§5.3) so the prey is pushed clear. Only the Diatom Shell sets the chance in build 1 (traits/catalog-forms.md §3.15).
 
-**Swallowed toxin (wrap and absorb).** A prey's `toxinDrainFractionPerSecond` counts
-`ENGULF_SWALLOWED_TOXIN_MULTIPLIER` times against its engulfer while the engulf is past cover (§4.1):
-the poison is inside the membrane. Spikes (`spikeDrainFractionPerSecond`) drain as before in every
-phase from the tick after the start. Both work through the ratio: the predator sheds mass until
-`canContinue` fails and the prey is released (`ratio`), in whatever phase, seal included.
+**Swallowed toxin and spikes: a dose set by the prey (#154).** Once the engulf is past cover (wrap
+and absorb) the poison is inside the membrane, and the engulfer loses
+`prey.mass × prey.toxinDrainFractionPerSecond × ENGULF_SWALLOWED_TOXIN_MULTIPLIER` mass per second
+(§4.1), in place of the contact drain that prey put on it in cover. Spikes cut the swallower in every
+phase from the tick after the start, `prey.mass × prey.spikeDrainFractionPerSecond` per second. Both
+read the **prey's** mass, not the predator's: a poison cell is a fixed dose, so a heavy predator that
+finishes quickly pays less than a marginal one. A prey whose only defence is the toxin is always worth
+finishing (`traits/catalog-organelles.md §3.11`, T21); armour stacked on the toxin can still make a
+completed meal cost more than it yields (`traits/catalog-forms.md §3.17`, T22). Both work through the ratio: the predator sheds mass until
+`canContinue` fails and the prey is released (`ratio`), in whatever phase, seal included. **What the
+player sees:** the predator's rim flashes violet and its mass readout falls while it holds the prey,
+and an ejected prey pops out of it with the `ratio` release; the HUD threat chip still warns on mass
+alone (above), so the toxin's effect is read on the predator, not promised on the chip.
 
 **Order inside the engulf step, per pair** (stable id order, #74; the numbers the scenarios quote come
 from this order):
