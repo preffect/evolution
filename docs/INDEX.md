@@ -314,10 +314,10 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **3.2 Lint / format rules** (L103–117): means "intentionally unused" — it is not a license to leave a stub instead of real code.
   - **3.3 Forbidden escape hatches** (L118–128): without a justification.
 
-## engineering/validation-gate.md (128 lines)
+## engineering/validation-gate.md (145 lines)
 
-- **Engineering Standards: the validation gate** (L1–128): §1 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
-- **1. The Validation Gate (`./validate.sh`)** (L5–128): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
+- **Engineering Standards: the validation gate** (L1–145): §1 of the split `ENGINEERING.md`, which keeps the shared context and the file list.
+- **1. The Validation Gate (`./validate.sh`)** (L5–145): `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`, or `pnpm --filter ...
 
 ## game-design/constants-and-acceptance.md (112 lines)
 
@@ -332,15 +332,15 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **`camera.ts` (client only)** (L77–88): Growth, ecology, absorption and progression constants live with their rules in the companion docs.
 - **13. Acceptance scenarios** (L89–112): Format: given seed S and inputs I, after N ticks assert X.
 
-## game-design/controls-and-scope.md (94 lines)
+## game-design/controls-and-scope.md (114 lines)
 
-- **Evolution — Game Design: controls, camera, dish and scope** (L1–94): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
+- **Evolution — Game Design: controls, camera, dish and scope** (L1–114): §6–§11 of the split `GAME-DESIGN.md`, which keeps the shared context and the file list.
 - **6. Controls** (L5–27): tick, and no target (nor a sprint) while it has no own cell, so nothing it sends while spectating steers the respawned cell (#346).
-- **7. Camera** (L28–41): The camera centres on the player's cell and zooms out as the cell grows so the cell always occupies a similar share of the screen:
-- **8. The petri dish** (L42–64): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
-- **9. Win / lose and the feel of a round** (L65–74): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
-- **10. Explicit non-goals for build 1** (L75–84): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
-- **11. Reserved hooks for build 2** (L85–94)
+- **7. Camera** (L28–61): The camera centres on the player's cell and zooms out as the cell grows, but more slowly than the cell grows, so a bigger cell is visibly b…
+- **8. The petri dish** (L62–84): A circular world of radius `DISH_RADIUS` world units (wu), centred at the origin.
+- **9. Win / lose and the feel of a round** (L85–94): You cannot lose a round, only fall behind: death costs mass and progress toward the next level, never score, traits or your place on the la…
+- **10. Explicit non-goals for build 1** (L95–104): Co-op colonies, cross-player fusion (#79), multi-cell organisms (#28), mitosis / split / eject, NPC microbes with their own progression (ce…
+- **11. Reserved hooks for build 2** (L105–114)
 
 ## game-design/core.md (135 lines)
 
@@ -390,10 +390,10 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–52): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
 - **9. Test plan (`TESTING.md` tiers)** (L53–110): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 
-## rendering/own-cell-indicators.md (91 lines)
+## rendering/own-cell-indicators.md (108 lines)
 
-- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–91): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
-- **10. Own-cell indicators and world-anchored labels (#146)** (L5–91): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
+- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–108): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
+- **10. Own-cell indicators and world-anchored labels (#146)** (L5–108): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
 
 ## testing/bots-and-design-tables.md (113 lines)
 
@@ -490,37 +490,40 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **11.7 Files and constants** (L212–254): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
   - **11.8 If B or C is picked (#368)** (L255–265): round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier switch under it; the title, chips an…
 
-## ui/hud.md (160 lines)
+## ui/hud.md (336 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–160): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
-- **3. In-round HUD and overlays** (L5–160): Every element: source, placement, size, states, text, test id.
-  - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–160): Option C has two kinds of in-round element.
+- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–336): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
+- **3. In-round HUD and overlays** (L5–336): Every element: source, placement, size, states, text, test id.
+  - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–336): Option C has two kinds of in-round element.
   - **3.1.1 Chrome** (L19–30): The chrome's phase gate lives in `hud.component.ts`, which is the only component that reads `roundPhase` for both.
-  - **3.1.2 Own-cell indicators (what is shown; rendering/own-cell-indicators.md §10 owns how)** (L31–50): All six live in the own cell's undeformed frame (they never bend with the membrane) and follow the cell's on-screen radius `r_px` with the …
-  - **3.1.3 The reading floor (the fact #146 solves)** (L51–99): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: the own cell is 24 px at spawn and …
-  - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L100–160): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
+  - **3.1.2 Own-cell indicators (what is shown; rendering/own-cell-indicators.md §10 owns how)** (L31–52): All six live in the own cell's undeformed frame (they never bend with the membrane) and follow the cell's on-screen radius `r_px` with the …
+  - **3.1.3 The reading floor (the fact #146 solves)** (L53–128): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: under the size lock the own cell is…
+  - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L129–203): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
+  - **3.1.5 Legibility cues (decision #324, option C)** (L204–298): The own-cell indicators say where the player is on the ladder.
+  - **3.1.6 Legibility cue constants** (L299–336): The values this doc owns for §3.1.5.
 
-## ui/input-and-onboarding.md (136 lines)
+## ui/input-and-onboarding.md (168 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–136): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
+- **Evolution — UI: HUD, overlays and onboarding: input, onboarding and readability** (L1–168): §4–§6 of the split `UI.md`, which keeps the shared context and the file list.
 - **4. Input mapping and keyboard reachability** (L5–87): swallows every press but Escape.
-- **5. Onboarding: the first two minutes** (L88–105): Diegetic and text hints, no modal tutorial.
-- **6. Readability during play** (L106–136): and the connection banner stack from the top, never downward past y 96.
+- **5. Onboarding: the first two minutes** (L88–126): Diegetic and text hints, no modal tutorial.
+- **6. Readability during play** (L127–168): and the connection banner stack from the top, never downward past `HUD_NOTICE_STACK_BOTTOM_PX` (y 96).
 
-## ui/layout.md (90 lines)
+## ui/layout.md (103 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–90): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
-- **1. Layout frame** (L5–77): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
-- **2. Screens (lobby)** (L78–90): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
+- **Evolution — UI: HUD, overlays and onboarding: layout frame and lobby screens** (L1–103): §1–§2 of the split `UI.md`, which keeps the shared context and the file list.
+- **1. Layout frame** (L5–90): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
+- **2. Screens (lobby)** (L91–103): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
 
-## ui/overlays.md (188 lines)
+## ui/overlays.md (257 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–188): §3.2–§3.6 of the split `UI.md`, which keeps the shared context and the file list.
-  - **3.2 Trait pick overlay (`ownProgress.offer !== null`)** (L5–66): Cards are built from `offer.cards[i]` (`traitId`, `tier`) and the catalog (`TRAIT_CATALOG`, `TRAIT_TIERS`); the effect text is generated by…
-  - **3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)** (L67–80): The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text block a…
-  - **3.4 Round results and rematch (`roundPhase === 'results'`)** (L81–91): Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended.
-  - **3.5 Menu (Escape)** (L92–157): Escape closes the topmost open overlay (the full leaderboard, then the encyclopedia by `encyclopedia.md §11.5`) and, with none open, sets …
-  - **3.6 Notices: toasts and connection states** (L158–188): One toast at a time, top-centre at y 16, `body` on the callout backing, `TOAST_DURATION_SECONDS`, newest replaces oldest, `aria-live="polit…
+- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–257): §3.2–§3.7 of the split `UI.md`, which keeps the shared context and the file list.
+  - **3.2 Trait pick overlay (`ownProgress.offer !== null`)** (L5–77): Cards are built from `offer.cards[i]` (`traitId`, `tier`) and the catalog (`TRAIT_CATALOG`, `TRAIT_TIERS`); the effect text is generated by…
+  - **3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)** (L78–91): The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text block a…
+  - **3.4 Round results and rematch (`roundPhase === 'results'`)** (L92–102): Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended.
+  - **3.5 Menu (Escape)** (L103–168): Escape closes the topmost open overlay (the full leaderboard, then the encyclopedia by `encyclopedia.md §11.5`) and, with none open, sets …
+  - **3.6 Notices: toasts and connection states** (L169–200): One toast at a time, top-centre at y 16, `body` on the callout backing, `TOAST_DURATION_SECONDS`, newest replaces oldest, `aria-live="polit…
+  - **3.7 Hold-Tab "affecting you" panel (`openOverlay === 'leaderboard'` and `lifeState === 'alive'`)** (L201–257): Decision #324 (option C).
 
 ## ui/README.md (7 lines)
 
@@ -544,13 +547,13 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Performance intent: geometry, textures, shaders** (L5–34): The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
 - **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L35–48)
 
-## visual-style/principles-and-palette.md (200 lines)
+## visual-style/principles-and-palette.md (241 lines)
 
-- **Evolution — Visual Style: dark-field principles and palette** (L1–200): §1–§2 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **Evolution — Visual Style: dark-field principles and palette** (L1–241): §1–§2 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
 - **1. Dark-field microscopy: the principles** (L5–52): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
-- **2. Palette** (L53–200): All hex values are named constants; draw code never holds a literal.
+- **2. Palette** (L53–241): All hex values are named constants; draw code never holds a literal.
 
-## visual-style/ui-type.md (38 lines)
+## visual-style/ui-type.md (39 lines)
 
-- **Evolution — Visual Style: UI colours and type** (L1–38): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
-- **7. UI colours and type** (L5–38): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
+- **Evolution — Visual Style: UI colours and type** (L1–39): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **7. UI colours and type** (L5–39): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
