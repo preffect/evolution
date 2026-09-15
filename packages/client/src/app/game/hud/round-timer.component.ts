@@ -58,6 +58,12 @@ import { roundClockStateFor } from './format/round-clock';
         color: var(--hud-level-gold);
       }
 
+      /* In bloom the caption names the effect, a fact, so it steps up from caption to label (docs/ui/hud.md §3.1.1). */
+      .round-timer.bloom .caption {
+        font-size: calc(var(--hud-type-label) * var(--hud-scale));
+        white-space: nowrap;
+      }
+
       /* One pulse per second through the last ten seconds (docs/ui/hud.md §3.1.1). */
       .round-timer.pulsing .digits {
         animation: round-clock-pulse var(--hud-clock-pulse-duration) ease-out infinite;
@@ -97,6 +103,8 @@ export class RoundTimerComponent {
       roundPhase: this.gameState.roundPhase(),
       roundDurationSeconds: this.gameState.sessionConfig()?.roundDurationSeconds ?? null,
       bloomStartFraction: this.gameState.balance()?.session.ROUND_BLOOM_START_FRACTION ?? null,
+      foodBloomMultiplier: this.gameState.balance()?.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER ?? null,
+      dnaFragmentBloomMultiplier: this.gameState.balance()?.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER ?? null,
     }),
   );
 }

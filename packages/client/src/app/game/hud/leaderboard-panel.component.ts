@@ -9,6 +9,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { GameStateService } from '../state/game-state.service';
 import {
   LEADERBOARD_COMPACT_ROWS,
+  LEADERBOARD_FOOTER_ROW_HEIGHT_PX,
   LEADERBOARD_FULL_ROWS,
   LEADERBOARD_HEADER_HEIGHT_PX,
   LEADERBOARD_LABEL_ROW_HEIGHT_PX,
@@ -16,6 +17,7 @@ import {
 } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, leaderboardRowTestId } from './test-ids';
+import { LEADERBOARD_TEXT, leaderboardLabelsFor } from './format/leaderboard-labels';
 import { leaderboardEntriesFor, type LeaderboardEntry } from './format/leaderboard-rows';
 import { leaderboardSwatchFor, leaderboardSwatchGeometry, type LeaderboardSwatch } from './format/leaderboard-swatch';
 
@@ -29,10 +31,10 @@ interface LeaderboardViewRow {
   readonly testId: string;
 }
 
-/** The header, the full list's column labels and the rows: the panel's height at scale 1. */
+/** The header, the label strip, the rows and the full list's footer: the panel's height at scale 1. */
 function panelHeightPx(rowCount: number, isFull: boolean): number {
-  const labels = isFull ? LEADERBOARD_LABEL_ROW_HEIGHT_PX : 0;
-  return LEADERBOARD_HEADER_HEIGHT_PX + labels + rowCount * LEADERBOARD_ROW_HEIGHT_PX;
+  const footer = isFull ? LEADERBOARD_FOOTER_ROW_HEIGHT_PX : 0;
+  return LEADERBOARD_HEADER_HEIGHT_PX + LEADERBOARD_LABEL_ROW_HEIGHT_PX + rowCount * LEADERBOARD_ROW_HEIGHT_PX + footer;
 }
 
 @Component({
@@ -53,17 +55,15 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
         [attr.aria-expanded]="isFull()"
         (click)="toggleFull()"
       >
-        <span class="header-title">Leaderboard</span>
-        <span class="header-hint">Tab</span>
+        <span class="header-title">{{ text.title }}</span>
+        <span class="header-hint">{{ labels().hint }}</span>
       </button>
-      @if (isFull()) {
-        <!-- The full list's three numeric columns carry no unit, so they are labelled (docs/ui/hud.md §3.1.1). -->
-        <div class="column-labels" aria-hidden="true">
-          <span class="label-score">Score</span>
-          <span class="label-mass">Mass</span>
-          <span class="label-absorptions">Eaten</span>
-        </div>
-      }
+      <!-- The numeric columns carry no unit, so both panels name them (docs/ui/hud.md §3.1.1, decision #324). -->
+      <div class="column-labels" aria-hidden="true" [attr.data-testid]="testId.leaderboardLabels">
+        @for (label of labels().columns; track label.className) {
+          <span [class]="label.className">{{ label.text }}</span>
+        }
+      </div>
       <ol class="rows" [attr.data-testid]="isFull() ? testId.leaderboardFull : null">
         @for (row of rows(); track row.entry.playerId; let slot = $index) {
           <li
@@ -95,6 +95,9 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
           </li>
         }
       </ol>
+      @if (labels().footer; as footer) {
+        <p class="footer" [attr.data-testid]="testId.leaderboardFooter">{{ footer }}</p>
+      }
     </div>
   `,
   styleUrl: './leaderboard-panel.component.css',
@@ -104,12 +107,21 @@ export class LeaderboardPanelComponent {
   private readonly hudState = inject(HudStateService);
 
   protected readonly testId = HUD_TEST_ID;
+  protected readonly text = LEADERBOARD_TEXT;
   protected readonly swatchViewBox = SWATCH.viewBox;
   protected readonly swatchBodyRadius = SWATCH.bodyRadius;
   protected readonly swatchBeadRadius = SWATCH.beadRadius;
   protected readonly swatchRingWidth = SWATCH.ringWidth;
 
   protected readonly isFull = this.hudState.isFullLeaderboardOpen;
+
+  protected readonly labels = computed(() =>
+    leaderboardLabelsFor({
+      isFull: this.isFull(),
+      isPinned: this.hudState.isFullLeaderboardPinned(),
+      scoreAbsorptionBonus: this.gameState.balance()?.session.SCORE_ABSORPTION_BONUS ?? null,
+    }),
+  );
 
   private readonly entries = computed(() =>
     leaderboardEntriesFor({
