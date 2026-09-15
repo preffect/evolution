@@ -149,9 +149,11 @@ export interface LobbySocketHarness {
   readonly clients: TestClient[];
 }
 
-export async function startLobbySocketHarness(): Promise<LobbySocketHarness> {
+/** The rooms run on the spy module unless `gameFactory` names another (the real module, for world assertions). */
+export async function startLobbySocketHarness(gameFactory?: GameModuleFactory): Promise<LobbySocketHarness> {
   const timings: ManualRoomTiming[] = [];
   const started = await startTestWebSocketServer({
+    gameFactory,
     createRoomTiming: () => {
       const timing = createManualRoomTiming();
       timings.push(timing);
