@@ -18,12 +18,19 @@ the broth this is 2.0 mass/s: idling halves your surplus in about 6 minutes, so 
 Every metabolism term reads the mass at the start of the step, so a test can reproduce a tick exactly:
 
 ```
-drainFraction = Σ toxinDrainFractionPerSecond (of every cell whose toxin reaches this one; × ENGULF_SWALLOWED_TOXIN_MULTIPLIER
-                  for the prey this cell is engulfing while that engulf is past cover, §6.1)
-              + spikeDrainFractionPerSecond (of the prey this cell is engulfing, while progress > 0)
-mass' = max(CELL_STARTING_MASS, mass − decayPerSecond × TICK_INTERVAL_S − mass × drainFraction × TICK_INTERVAL_S)
+drainFraction = Σ toxinDrainFractionPerSecond (of every cell whose toxin reaches this one, except the prey this cell is
+                  engulfing while that engulf is past cover: that prey's toxin is the dose below instead)
+swallowedDose = prey.mass × prey.toxinDrainFractionPerSecond × ENGULF_SWALLOWED_TOXIN_MULTIPLIER   (engulf past cover, §6.1)
+              + prey.mass × prey.spikeDrainFractionPerSecond                                     (while progress > 0)
+                (prey = the cell this one is engulfing, its mass at the start of the step; 0 when not engulfing)
+mass' = max(CELL_STARTING_MASS, mass − decayPerSecond × TICK_INTERVAL_S − mass × drainFraction × TICK_INTERVAL_S
+                                − swallowedDose × TICK_INTERVAL_S)
         + photosynthesisMassPerSecond × TICK_INTERVAL_S           (only inside sunlit_shallows; a gain, so capped, §5.4)
 ```
+
+The contact drain is a share of the victim's own mass (a field: everything near the poison loses the same
+share); the swallowed dose is set by the prey's mass (#154: a heavy predator is not punished for its size,
+so a meal it completes always pays, `traits/catalog-organelles.md §3.11`).
 
 The photosynthesis term is a mass gain like eating: it goes through the cap of §5.4, and the part
 above `CELL_MAX_MASS` becomes DNA at `MASS_OVERFLOW_DNA_PER_MASS` (#179). A cell with no player (a

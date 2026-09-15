@@ -53,7 +53,7 @@ same tick's movement, metabolism and engulf checks.
 | `digestionFactorBonus`               | 0       | food mass × (1 + bonus)                                                                          |
 | `decayMultiplier`                    | 1       | mass decay (ecology/mass-and-movement.md §4)                                                     |
 | `photosynthesisMassPerSecond`        | 0       | gained per second while inside `sunlit_shallows`                                                 |
-| `spikeDrainFractionPerSecond`        | 0       | predator engulfing this cell loses this × its mass per second                                    |
+| `spikeDrainFractionPerSecond`        | 0       | predator engulfing this cell loses this × this cell's mass per second                            |
 | `toxinDrainFractionPerSecond`        | 0       | other cells overlapping this cell lose this × their mass per second (floor `CELL_STARTING_MASS`) |
 | `toxinAuraRangeInRadii`              | 0       | scalar: toxin also applies to cells whose centre is within this × radius, without contact        |
 | `attractRangeInRadii`                | 0       | scalar: motes whose centre is within this × radius drift toward the cell                         |
@@ -63,9 +63,9 @@ same tick's movement, metabolism and engulf checks.
 | `gelSpeedFactorFloor`                | 0       | floor (max) on `gelSpeedFactor(mass)` (ecology/mass-and-movement.md §5.2)                        |
 
 Drained mass is lost to the dish (it is not transferred). Toxin and spikes never kill: they stop at
-`CELL_STARTING_MASS`; their job is to push the predator below `releaseRatio` (ecology/absorption.md §6.1). A prey's
-toxin counts `ENGULF_SWALLOWED_TOXIN_MULTIPLIER` (6) times against its engulfer once the wrap has
-begun: the poison is inside. The engulf hooks above are the whole set; §3.18 says which trait pulls
+`CELL_STARTING_MASS`; their job is to push the predator below `releaseRatio` (ecology/absorption.md §6.1). Once the
+wrap has begun a prey's toxin is a dose set by the prey's own mass, `ENGULF_SWALLOWED_TOXIN_MULTIPLIER` (8)
+times its fraction, and its spikes likewise read the prey's mass (#154): the poison is inside. The engulf hooks above are the whole set; §3.18 says which trait pulls
 each one, and every trait not named there sets none of them, by design.
 
 **Against PR #142's `trait-modifiers.ts`** (the shared contract, #97). The field half landed with #258:

@@ -95,7 +95,9 @@ thrum on sprint.
 Unlocked by eating photosynthetic bacteria (shallows clusters). Light feeds a small cell and plateaus:
 in the shallows mass settles at 186.67 / 395 / 662.86 (where the gain meets decay,
 ecology/mass-and-movement.md §4.1), and like any gain it is capped at `CELL_MAX_MASS` with the overflow
-paid as DNA. Visual: green lenses in the cytoplasm
+paid as DNA. Idling on the plateau is a turtle, not a winning line (#119): mass is not score
+([`game-design/session.md §5.3`](../game-design/session.md#53-leaderboard-and-score)), and a
+663-mass cell that never eats earns nothing on the leaderboard. Visual: green lenses in the cytoplasm
 (1 / 2 / 3, each with 6 granules) and the membrane tint shifts toward green; they glow brighter inside
 the shallows. Audio: warm shimmer on entering the shallows.
 
@@ -162,10 +164,12 @@ Visual: 2 / 3 / 4 orange digestive vacuoles that bubble; prey dissolves visibly 
 | II   | 0.05                        |
 | III  | 0.07                        |
 
-A predator touching you loses mass every tick, and one that has wrapped you loses it six times as fast
-(`ENGULF_SWALLOWED_TOXIN_MULTIPLIER`: 0.18 / 0.30 / 0.42 of its mass per second); when it drops below
-`releaseRatio` you are ejected, sealed or not (base rule, ecology/absorption.md §6.1). Tier I frees you from a predator
-up to 1.30 × your mass, tier III up to 1.60 × (T18); heavier ones finish before the poison bites, and the
-mass they shed is gone for good. As predator: the vacuole drains the prey you touch like any other cell
-(base rule) and nothing more, by design (poison is not a grip). Visual: one large violet vacuole pulsing
-near the nucleus. Audio: hiss while draining.
+A predator touching you loses that share of its own mass every second. One that has wrapped you takes a
+dose set by **your** mass instead (`ENGULF_SWALLOWED_TOXIN_MULTIPLIER` = 8: 0.24 / 0.40 / 0.56 × your mass
+per second, #154); when it drops below `releaseRatio` you are ejected, sealed or not (base rule,
+ecology/absorption.md §6.1). Tier I / II / III frees you from a predator up to ≈ 1.35 / 1.49 / 1.63 × your
+mass (T18); heavier ones finish before the poison bites, the mass they shed is gone for good, and
+because the dose does not grow with the predator a meal that completes always pays: a 5 × predator
+eating a Toxin Vacuole III prey of 100 sheds ≈ 31 and gains 80 (T21). As predator: the vacuole drains the
+prey you touch like any other cell (base rule) and nothing more, by design (poison is not a grip).
+Visual: one large violet vacuole pulsing near the nucleus. Audio: hiss while draining.
