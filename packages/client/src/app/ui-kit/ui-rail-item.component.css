@@ -25,6 +25,11 @@
   color: var(--ui-text-label);
 }
 
+/* Pressed on the selected tint, the label colour falls to 3.82:1; the text colour holds 6.95:1. */
+:host(:active:not([aria-disabled='true'])) .count {
+  color: var(--ui-text);
+}
+
 :host([aria-selected='true']) .leading {
   color: var(--ui-accent);
 }

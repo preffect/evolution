@@ -116,10 +116,11 @@ export abstract class UiRovingGroup {
 
   protected handleKeydown(event: KeyboardEvent): void {
     const ordered = inDocumentOrder(this.items());
-    const fromIndex = ordered.findIndex((item) => item.itemId() === this.tabStopId());
+    // Only a key pressed on an item itself is the group's: a control inside a row (a trailing button) keeps its keys.
+    const fromIndex = ordered.findIndex((item) => item.element === event.target);
+    const focused = ordered[fromIndex];
+    if (focused === undefined) return;
     if (SELECT_KEYS.has(event.key)) {
-      const focused = ordered[fromIndex];
-      if (focused === undefined) return;
       event.preventDefault();
       this.select(focused);
       return;

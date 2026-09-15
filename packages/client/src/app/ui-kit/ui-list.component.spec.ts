@@ -25,11 +25,17 @@ import { UiListComponent } from './ui-list.component';
         <ui-list-row itemId="chloroplast" testId="chloroplast">Chloroplast</ui-list-row>
       </ui-list-section>
     </ui-list>
+    <ui-list testId="list-with-action" [(selectedId)]="actionListSelectedId">
+      <ui-list-row itemId="cilia" testId="cilia">
+        Cilia Fringe<button uiTrailing type="button" data-testid="row-action">Open</button>
+      </ui-list-row>
+    </ui-list>
   `,
 })
 class ListHostComponent {
   readonly isFollowing = signal(false);
   readonly selectedId = signal<string | null>('mitochondrion');
+  readonly actionListSelectedId = signal<string | null>(null);
   readonly isEnvelopeDisabled = signal(false);
 }
 
@@ -114,6 +120,19 @@ describe('UiListComponent', () => {
     expect(document.activeElement).toBe(byTestId('nucleoid'));
     press('End');
     expect(document.activeElement).toBe(byTestId('chloroplast'));
+  });
+
+  it('leaves every key pressed on a control inside a row to that control', () => {
+    const action = byTestId('row-action');
+    action.focus();
+    for (const key of ['Enter', ' ', 'Home', 'End', 'ArrowDown', 'ArrowUp']) {
+      expect(press(key), key).toBe(false);
+    }
+    expect(document.activeElement).toBe(action);
+    expect(fixture.componentInstance.actionListSelectedId()).toBeNull();
+    focusOn('cilia');
+    expect(press('Enter')).toBe(true);
+    expect(fixture.componentInstance.actionListSelectedId()).toBe('cilia');
   });
 
   it('leaves ← →, Escape and Tab to the page', () => {

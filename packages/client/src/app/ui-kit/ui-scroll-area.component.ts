@@ -56,6 +56,7 @@ export function scrollEdgesFor(scrollTop: number, scrollHeight: number, clientHe
     </div>
   `,
   host: {
+    '[attr.data-overflowing]': 'edges().isOverflowing || null',
     '[attr.data-fade-start]': 'edges().hasContentBefore || null',
     '[attr.data-fade-end]': 'edges().hasContentAfter || null',
   },

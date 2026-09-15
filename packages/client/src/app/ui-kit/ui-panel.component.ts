@@ -28,7 +28,7 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
       }
       <ng-content select="[uiPanelHeader]" />
     </header>
-    <ui-scroll-area class="body"><ng-content /></ui-scroll-area>
+    <ui-scroll-area class="body" [label]="title()"><ng-content /></ui-scroll-area>
     <footer class="footer"><ng-content select="[uiPanelFooter]" /></footer>
   `,
   host: {

@@ -187,6 +187,10 @@ describe('UiRailComponent', () => {
       expect(rule([':hover', ":not([aria-disabled='true'])", '.count'], 'color')).toBe('var(--ui-text-label)');
     });
 
+    it('pressed lifts the count to the text colour, which clears 4.5:1 over selected and pressed', () => {
+      expect(rule([':active', ":not([aria-disabled='true'])", '.count'], 'color')).toBe('var(--ui-text)');
+    });
+
     it('pressed lays the pressed tint instead', () => {
       expect(rule([':active', ":not([aria-disabled='true'])", '::after'], 'background-color')).toBe(
         'var(--ui-pressed)',

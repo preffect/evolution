@@ -100,8 +100,8 @@ export const UI_SECONDARY_FILL_ALPHA = 0.04;
 export const UI_DANGER_RIM_ALPHA = 0.7;
 /** A modal panel's top edge, in `WHITE`: the light catching the panel's upper rim. */
 export const UI_PANEL_EDGE_ALPHA = 0.05;
-/** The scrollbar thumb: `TEXT_MUTED` mixed into the panel rim, which alone is lost on the well. */
-export const UI_SCROLL_THUMB_ALPHA = 0.35;
+/** The scrollbar thumb: `TEXT_MUTED` mixed into the panel rim, which alone is lost on the well; 3.18:1 or more. */
+export const UI_SCROLL_THUMB_ALPHA = 0.55;
 
 // ---- panels ----
 

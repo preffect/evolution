@@ -129,9 +129,16 @@ describe('UiFactsTableComponent', () => {
     });
 
     it('sizes the marker column to its content with the name a small space after it', () => {
+      expect(rule(['.marker'], 'width')).toBe('1%');
       expect(rule(['.marker'], 'padding-right')).toBe('calc(var(--ui-space-s) * var(--ui-scale))');
       expect(rule(['.mark'], 'width')).toBe('calc(var(--ui-row-marker) * var(--ui-scale))');
       expect(rule(['.mark', "[data-shape='ring']"], 'border')).toContain('var(--ui-row-marker-ring)');
+    });
+
+    it('inside a panel section leaves the last row unruled, since the section rule follows it', () => {
+      const host = hostSelector(fixture.nativeElement.querySelector('ui-facts-table'));
+      const parts = ['ui-panel-section', host, 'tbody', 'tr', ':last-child'];
+      expect(styleRuleValue(document, parts, 'border-bottom-style')).toBe('none');
     });
 
     it('tints the highlighted column with the selected tint and its header in the accent', () => {

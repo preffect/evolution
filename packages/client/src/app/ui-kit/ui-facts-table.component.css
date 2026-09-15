@@ -18,6 +18,11 @@ tr {
   border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
 }
 
+/* Inside a panel section the section's own rule follows the last row, so that row draws none: one line, not two. */
+:host-context(ui-panel-section) tbody tr:last-child {
+  border-bottom-style: none;
+}
+
 th,
 td {
   padding: 0;

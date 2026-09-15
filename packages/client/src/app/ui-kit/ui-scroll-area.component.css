@@ -25,6 +25,11 @@
   );
 }
 
+/* A viewport that scrolls takes the wheel even under a host that lets the pointer through (a `side` panel). */
+:host([data-overflowing]) .viewport {
+  pointer-events: auto;
+}
+
 :host([data-fade-start]) .viewport {
   --fade-start: calc(var(--ui-scroll-fade) * var(--ui-scale));
 }

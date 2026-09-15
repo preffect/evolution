@@ -80,6 +80,7 @@ describe('UiScrollAreaComponent', () => {
 
   it('with content that fits shows no fade and is no Tab stop', () => {
     layOut(200, 200);
+    expect(host().hasAttribute('data-overflowing')).toBe(false);
     expect(host().hasAttribute('data-fade-start')).toBe(false);
     expect(host().hasAttribute('data-fade-end')).toBe(false);
     expect(viewport().hasAttribute('tabindex')).toBe(false);
@@ -88,6 +89,7 @@ describe('UiScrollAreaComponent', () => {
 
   it('overflowing with nothing focusable is a named Tab stop, so the keyboard can scroll it', () => {
     layOut(600, 200);
+    expect(host().hasAttribute('data-overflowing')).toBe(true);
     expect(viewport().getAttribute('tabindex')).toBe('0');
     expect(viewport().getAttribute('role')).toBe('region');
     expect(viewport().getAttribute('aria-label')).toBe('Entries');
@@ -141,6 +143,11 @@ describe('UiScrollAreaComponent', () => {
       expect(thumb).toContain('var(--ui-text-muted) calc(var(--ui-scroll-thumb-alpha) * 100%)');
       expect(thumb).toContain('var(--ui-panel-rim)');
       expect(viewportRule(['::-webkit-scrollbar-track'], 'background-color')).toBe('var(--ui-well)');
+    });
+
+    it('takes the pointer on its viewport while it overflows, even under a host that lets the pointer through', () => {
+      expect(rule(['[data-overflowing]', '.viewport'], 'pointer-events')).toBe('auto');
+      expect(viewportRule([], 'pointer-events')).toBeNull();
     });
 
     it('rings its viewport inside on focus-visible', () => {

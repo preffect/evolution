@@ -6,15 +6,37 @@
 import { ChangeDetectionStrategy, Component, input, model } from '@angular/core';
 import { UiKeyHintComponent } from './ui-key-hint.component';
 
+/** The search icon's own drawing, in units of its viewBox (the CSS sizes the box): a lens and its handle. */
+const SEARCH_ICON_VIEWBOX_SIZE = 16;
+const SEARCH_ICON_LENS_CENTRE = 7;
+const SEARCH_ICON_LENS_RADIUS = 4.5;
+const SEARCH_ICON_HANDLE_START = 10.5;
+const SEARCH_ICON_HANDLE_END = 14;
+const SEARCH_ICON_STROKE = 1.5;
+
+const SEARCH_ICON = {
+  viewBox: `0 0 ${SEARCH_ICON_VIEWBOX_SIZE} ${SEARCH_ICON_VIEWBOX_SIZE}`,
+  lensCentre: SEARCH_ICON_LENS_CENTRE,
+  lensRadius: SEARCH_ICON_LENS_RADIUS,
+  handle: `M${SEARCH_ICON_HANDLE_START} ${SEARCH_ICON_HANDLE_START} L${SEARCH_ICON_HANDLE_END} ${SEARCH_ICON_HANDLE_END}`,
+  stroke: SEARCH_ICON_STROKE,
+} as const;
+
 @Component({
   selector: 'ui-search-field',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiKeyHintComponent],
   template: `
-    <svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <circle cx="7" cy="7" r="4.5" />
-      <path d="M10.5 10.5 L14 14" />
+    <svg
+      class="icon"
+      aria-hidden="true"
+      focusable="false"
+      [attr.viewBox]="icon.viewBox"
+      [attr.stroke-width]="icon.stroke"
+    >
+      <circle [attr.cx]="icon.lensCentre" [attr.cy]="icon.lensCentre" [attr.r]="icon.lensRadius" />
+      <path [attr.d]="icon.handle" />
     </svg>
     <input
       class="input"
@@ -67,7 +89,6 @@ import { UiKeyHintComponent } from './ui-key-hint.component';
         fill: none;
         stroke: currentColor;
         stroke-linecap: round;
-        stroke-width: 1.5;
       }
 
       .input {
@@ -102,6 +123,8 @@ export class UiSearchFieldComponent {
   /** The key that focuses the field, named as `KeyboardEvent.key` names it; the feature binds it. */
   readonly keyHint = input<string | null>(null);
   readonly testId = input<string | null>(null);
+
+  protected readonly icon = SEARCH_ICON;
 
   protected handleInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
