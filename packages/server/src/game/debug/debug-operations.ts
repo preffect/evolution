@@ -20,6 +20,7 @@ import { refreshPlayerStage } from '../progression/ladder.js';
 import { FIRST_LEVEL } from '../progression/levels.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
+import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
 import { toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
@@ -52,7 +53,7 @@ function spawnMoteForDebug(world: WorldState, request: SpawnRequest): unknown {
     throw new DebugRequestError('A bacterium needs a "variant" param (plain, aerobic or photosynthetic)');
   }
   const mote = spawnFoodMote(world, { kind, variant: isBacteriumVariant(variant) ? variant : null, at: request });
-  return toFoodMoteView(mote);
+  return toFoodMoteView(mote, EXACT_SNAPSHOT_VALUES);
 }
 
 /** A mote (`food_mote`, params `kind` and `variant`) or a fragment (`dna_fragment`, param `tag`) at the point. */
@@ -65,7 +66,10 @@ export function spawnForDebug(world: WorldState, request: SpawnRequest): unknown
     if (!isDnaTag(tag)) {
       throw new DebugRequestError('A DNA fragment needs a "tag" param (one of the DNA tags)');
     }
-    return toDnaFragmentView(spawnDnaFragment(world, { at: request, tag, driftTurn: NO_DRIFT_TURN }));
+    return toDnaFragmentView(
+      spawnDnaFragment(world, { at: request, tag, driftTurn: NO_DRIFT_TURN }),
+      EXACT_SNAPSHOT_VALUES,
+    );
   }
   throw new DebugRequestError(`"${request.kind}" cannot be spawned: use food_mote or dna_fragment`);
 }
@@ -79,7 +83,7 @@ export function grantDnaForDebug(world: WorldState, playerId: PlayerId, grant: D
   for (const tag of tags) {
     gainTagPoints(player, tag, grant.dna);
   }
-  return toPlayerProgressView(player);
+  return toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES);
 }
 
 /** Every listed tag as a `DnaTag`, refused as a whole when one is not. */
@@ -146,7 +150,7 @@ export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: 
     cell.level = player.level;
     refreshCellDerivedState(cell, player, world.balance);
   }
-  return toPlayerProgressView(player);
+  return toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES);
 }
 
 /** Number leaves only, validated as a whole (balance-patch.ts); the world carries the new copy. */

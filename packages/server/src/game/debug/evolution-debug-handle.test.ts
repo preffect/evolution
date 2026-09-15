@@ -74,6 +74,17 @@ describe('EvolutionDebugHandle', () => {
     expect(() => handle.listEntities({ kind: 'npc' })).toThrow(DebugRequestError);
   });
 
+  it('reads exact values where the wire rounds them, the bbox included (#341)', () => {
+    const { world, handle } = createHandle();
+    const exact = { x: 0.04, y: 0.04, velocityX: 154.05011631888448, mass: 20.46, radius: 18.093368951 };
+    Object.assign(world.cells[0]!, exact);
+    world.players[0]!.score = 1877.26;
+    // The wire writes this cell at x 0 and y 0, outside the box; the exact cell is inside it.
+    const inBox = handle.listEntities({ bbox: { minX: 0.03, minY: 0.03, maxX: 1, maxY: 1 } });
+    expect(inBox).toEqual([expect.objectContaining({ entityKind: ENTITY_KIND.cell, ...exact })]);
+    expect(handle.getPlayerDebugState(ALICE)).toMatchObject({ cell: exact, progress: { score: 1877.26 } });
+  });
+
   it('reports a player state with progress (stage and traits included), cell, modifiers, queue and rejections', () => {
     const { world, handle, rejections } = createHandle();
     rejections.staleSequence = 2;
