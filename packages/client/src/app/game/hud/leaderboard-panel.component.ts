@@ -87,9 +87,9 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
             </svg>
             <span class="name">{{ row.entry.name }}</span>
             <span class="level">L{{ row.entry.level }}</span>
-            <span class="score">{{ row.entry.score }}</span>
+            <span class="score">{{ row.entry.scoreText }}</span>
             @if (isFull()) {
-              <span class="mass">{{ row.entry.mass }}</span>
+              <span class="mass">{{ row.entry.massText }}</span>
               <span class="absorptions">{{ row.entry.absorptions }}</span>
             }
           </li>

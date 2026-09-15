@@ -3,12 +3,16 @@
 // Pure and DOM-free; the panel passes the signals in and renders the records out.
 
 import type { LeaderboardRow, PlayerId, PlayerRosterView } from '@evolution/shared';
+import { formatQuantity } from '../../quantities/format-quantity';
+import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
 
 const ELLIPSIS = '…';
 /** A name is cut to the ellipsis plus this many of its own characters. */
 const TRUNCATED_NAME_CHARS = LEADERBOARD_NAME_MAX_CHARS - ELLIPSIS.length;
 const FIRST_AVATAR_INDEX = 0;
+/** A leaderboard cell is the bare figure: the column header names the unit. */
+const BARE_FIGURE = { presentation: QUANTITY_PRESENTATION.numeral };
 
 /** One rendered row: everything the panel needs, already formatted. */
 export interface LeaderboardEntry {
@@ -17,9 +21,10 @@ export interface LeaderboardEntry {
   /** Cut to `LEADERBOARD_NAME_MAX_CHARS`, so the column never widens. */
   readonly name: string;
   readonly level: number;
-  readonly score: number;
-  /** Full list only, but carried always: the panel decides what it shows. */
-  readonly mass: number;
+  /** `124`: rounded, without a unit. */
+  readonly scoreText: string;
+  /** `40`: rounded, without a unit. Full list only, but carried always: the panel decides what it shows. */
+  readonly massText: string;
   readonly absorptions: number;
   /** The seat's palette and bead count (docs/visual-style/principles-and-palette.md §2). */
   readonly avatarIndex: number;
@@ -54,8 +59,8 @@ function entryFor(row: LeaderboardRow, input: LeaderboardInput): LeaderboardEntr
     rank: row.rank,
     name: truncatePlayerName(input.players[row.playerId]?.playerName ?? row.playerId),
     level: row.level,
-    score: Math.round(row.score),
-    mass: Math.round(row.mass),
+    scoreText: formatQuantity(row.score, QUANTITY_UNIT.points, BARE_FIGURE),
+    massText: formatQuantity(row.mass, QUANTITY_UNIT.mass, BARE_FIGURE),
     absorptions: row.absorptions,
     avatarIndex: input.avatarAssignments[row.playerId] ?? FIRST_AVATAR_INDEX,
     isOwn: row.playerId === input.ownPlayerId,

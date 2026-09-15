@@ -159,8 +159,3 @@ export const NOTICE_RIM_PX = 2;
 
 /** Every interactive element's visible focus ring, in the text colour; never scaled. */
 export const HUD_FOCUS_RING_PX = 2;
-
-// ---- units ----
-
-/** A share (0..1) shown as a percentage. */
-export const PERCENT = 100;
