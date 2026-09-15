@@ -35,3 +35,4 @@ This document is split into topic files (#306). Read only the file a ticket or b
 | [`architecture/client.md`](./architecture/client.md)                               | §5–§7    | Client networking, module plan and audio seam |
 | [`architecture/debug-mcp.md`](./architecture/debug-mcp.md)                         | §8       | Debug MCP surface                             |
 | [`architecture/constants-files-tests.md`](./architecture/constants-files-tests.md) | §9–§11   | Constants, file plan and test plan            |
+| [`architecture/encyclopedia.md`](./architecture/encyclopedia.md)                   | §12      | Encyclopedia content model and preview seam   |
