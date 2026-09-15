@@ -44,6 +44,15 @@ describe('gainMass', () => {
     gainMass(cell, player, 3, DEFAULT_BALANCE);
     expect(player.dnaCumulative).toBeCloseTo(2 * growth.MASS_OVERFLOW_DNA_PER_MASS * 2, 12);
   });
+
+  it('clamps a cell with no player (a wild cell) to the cap and grants no DNA', () => {
+    const { cell, player } = cellAndPlayer();
+    setCellMass(cell, growth.CELL_MAX_MASS - 1, DEFAULT_BALANCE);
+    gainMass(cell, undefined, 3, DEFAULT_BALANCE);
+    expect(cell.mass).toBe(growth.CELL_MAX_MASS);
+    expect(cell.radius).toBeCloseTo(radiusForMass(growth.CELL_MAX_MASS, growth), 12);
+    expect(player.dnaCumulative).toBe(0);
+  });
 });
 
 describe('loseMassToFloor', () => {

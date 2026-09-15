@@ -13,9 +13,10 @@ import {
   type EntityId,
   type ZoneId,
 } from '@evolution/shared';
-import type { CellRecord } from '../world/entities.js';
+import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
+import { requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { loseMassToFloor, setCellMass } from './cell-mass.js';
+import { gainMass, loseMassToFloor } from './cell-mass.js';
 import { zoneAt, zoneDecayMultiplier } from './zones.js';
 
 /** What the toxin reach reads of a cell: its centre, a radius and its modifiers. A record satisfies it; the step passes start-of-step views. */
@@ -76,13 +77,19 @@ export function toxinDrainFraction(target: ToxinReachView, cells: readonly Toxin
   return fraction;
 }
 
-function metaboliseCell(input: MetabolismInput, reaches: readonly ToxinReachView[], balance: BalanceConfig): void {
+/** Decay and drains floor first, then the light gain goes through the cap (§5.4): its overflow is the owner's DNA. */
+function metaboliseCell(
+  input: MetabolismInput,
+  reaches: readonly ToxinReachView[],
+  owner: PlayerRecord | undefined,
+  balance: BalanceConfig,
+): void {
   const { cell, massAtStart } = input;
   const drain = massAtStart * toxinDrainFraction(input.reach, reaches) * TICK_INTERVAL_S;
   const decayed = massAtStart - decayPerSecond(input, balance) * TICK_INTERVAL_S - drain;
   loseMassToFloor(cell, decayed, balance);
   if (input.zone === ZONE_ID.sunlitShallows && cell.modifiers.photosynthesisMassPerSecond > 0) {
-    setCellMass(cell, cell.mass + cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S, balance);
+    gainMass(cell, owner, cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S, balance);
   }
 }
 
@@ -90,6 +97,7 @@ export function metabolise(world: WorldState, context: StepContext): void {
   const inputs = world.cells.map((cell) => metabolismInputOf(cell, world, context.balance));
   const reaches = inputs.map((input) => input.reach);
   for (const input of inputs) {
-    metaboliseCell(input, reaches, context.balance);
+    const owner = isPlayerCell(input.cell) ? requirePlayer(world, input.cell.playerId) : undefined;
+    metaboliseCell(input, reaches, owner, context.balance);
   }
 }

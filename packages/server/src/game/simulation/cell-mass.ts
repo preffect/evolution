@@ -12,11 +12,19 @@ export function setCellMass(cell: CellRecord, mass: number, balance: BalanceConf
   cell.radius = radiusForMass(mass, balance.growth);
 }
 
-/** Adds `amount` to the cell; the part above the cap becomes DNA for `player`. */
-export function gainMass(cell: CellRecord, player: PlayerRecord, amount: number, balance: BalanceConfig): void {
+/**
+ * Adds `amount` to the cell; the part above the cap becomes DNA for `player`. A cell with no player (a wild
+ * cell) is clamped to the cap and gains no DNA.
+ */
+export function gainMass(
+  cell: CellRecord,
+  player: PlayerRecord | undefined,
+  amount: number,
+  balance: BalanceConfig,
+): void {
   const maxMass = balance.growth.CELL_MAX_MASS;
   const raised = cell.mass + amount;
-  if (raised > maxMass) {
+  if (raised > maxMass && player !== undefined) {
     gainDna(player, (raised - maxMass) * balance.growth.MASS_OVERFLOW_DNA_PER_MASS, cell.modifiers.dnaGainMultiplier);
   }
   setCellMass(cell, Math.min(raised, maxMass), balance);
