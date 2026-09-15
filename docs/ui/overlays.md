@@ -25,7 +25,7 @@ without copy fails the gate instead of rendering `undefined`.
   this viewport (`ladderOrbitExtentPx(radiusForMass(CELL_MAX_MASS) × (height / 2) / viewHalfHeightFor(that radius))`).
   Z1 lets the own cell grow on screen, so the band anchors from whichever reaches lower: the box or the biggest orbit
   the viewport can show. At the reference viewport and 1080p the box wins and nothing moves (offset 136 and 183.6
-  against orbit extents 126.2 and 163.4 plus 4); the orbit wins at 1024 × 640 (`HUD_SCALE_MIN`: the box gives
+  against orbit extents 126.2 and 163.4 plus 4); the orbit wins at 1024 × 640 (`UI_SCALE_MIN`: the box gives
   136 × 0.8 = 108.8, the orbit 105.0 + 4 = 109.0, so the band sits 0.2 px lower and the cards end 0.2 px past the
   bottom edge, which the cards' note below already accepts), at 1280 × 1000 (152.8 + 4 = 156.8, cards end at y 921) and
   at 2560 × 1440 (211.2 + 4 = 215.2, cards end at y 1331). The rest of the band hangs from that title row as below
@@ -39,7 +39,7 @@ without copy fails the gate instead of rendering `undefined`.
   card in that band, Simple Flagellum `II → III` (its name wraps to three lines over three effect lines), is 214 px
   tall with 2 px between a card's rows, 8 px padding top and bottom and no row allowed to shrink. At 1280 × 1000
   (scale still 1, capped by width) the band starts at y 656.8, below the orbit at the cap; the cards end exactly at the
-  reference viewport's bottom edge, and on a viewport shorter than the reference at `HUD_SCALE_MIN` they may cross
+  reference viewport's bottom edge, and on a viewport shorter than the reference at `UI_SCALE_MIN` they may cross
   it, which is accepted: the cards never enter the box, and the own cell's orbit never reaches the
   band (§3.1.3). The hint pill is hidden while the offer is open; the own-cell indicators, timer and leaderboard
   stay.

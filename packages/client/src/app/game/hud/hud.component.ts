@@ -1,5 +1,5 @@
 // The HUD shell (docs/ui/layout.md §1, docs/ui/components-and-constants.md §7): the overlay layer over the canvas. It owns two things —
-// `--hud-scale`, read from its own box through the pure `hudScaleFor`, and the rest of the
+// `--hud-scale`, read from its own box through the kit's pure `uiScaleFor`, and the rest of the
 // `--hud-…` custom properties every child stylesheet reads (`hud-css-variables.ts`) — and hosts
 // the chrome. The layer itself never takes the pointer: only the controls inside it opt back in,
 // so a click always reaches the dish.
@@ -10,16 +10,7 @@
 // mirror (§3.1.4), which carries no pixels of its own, and the trait picker (docs/ui/overlays.md §3.2, #188); the death
 // and results overlays (#189) and the notices (#190) slot in here as they land.
 
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  computed,
-  inject,
-  signal,
-  type OnDestroy,
-  type OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
@@ -30,11 +21,9 @@ import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
-import { hudScaleFor } from './format/hud-scale';
+import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
-import { observeElementSize, type ElementSize } from './element-size';
-
-const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
+import { ElementSizeTracker } from '../../ui-kit/element-size';
 
 @Component({
   selector: 'app-hud',
@@ -102,11 +91,9 @@ const NO_SIZE: ElementSize = { widthPx: 0, heightPx: 0 };
     `,
   ],
 })
-export class HudComponent implements OnInit, OnDestroy {
+export class HudComponent implements OnInit {
   private readonly gameState = inject(GameStateService);
-  private readonly host = inject(ElementRef<HTMLElement>);
-  private readonly size = signal<ElementSize>(NO_SIZE);
-  private stopObservingSize: (() => void) | null = null;
+  private readonly sizeTracker = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
 
   protected readonly testId = HUD_TEST_ID;
 
@@ -126,21 +113,18 @@ export class HudComponent implements OnInit, OnDestroy {
   );
 
   /** `--hud-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
-  protected readonly scale = computed(() => hudScaleFor(this.size().widthPx, this.size().heightPx));
+  protected readonly scale = computed(() =>
+    uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx),
+  );
 
   /** The scale plus every constant the child stylesheets read, as one style map. */
   protected readonly styleVariables = computed(() => ({
     ...hudStyleVariables(this.scale()),
-    ...pickerBandVariables({ width: this.size().widthPx, height: this.size().heightPx }),
+    ...pickerBandVariables({ width: this.sizeTracker.size().widthPx, height: this.sizeTracker.size().heightPx }),
     ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),
   }));
 
   ngOnInit(): void {
-    this.stopObservingSize = observeElementSize(this.host.nativeElement as HTMLElement, (size) => this.size.set(size));
-  }
-
-  ngOnDestroy(): void {
-    this.stopObservingSize?.();
-    this.stopObservingSize = null;
+    this.sizeTracker.start();
   }
 }
