@@ -14,39 +14,37 @@ export interface DnaTagEntryContent {
   readonly summary: ProseTemplate;
 }
 
-/** The draft weighting every tag shares (PROGRESSION.md §3). */
-const TAG_WEIGHT_FACTS: readonly FactDefinition[] = [
-  {
-    key: 'weightPerPoint',
-    label: 'Card weight per tag point',
-    unit: QUANTITY_UNIT.share,
-    presentation: QUANTITY_PRESENTATION.signedChange,
-    source: { kind: FACT_SOURCE.balance, path: balancePath('progression', 'TAG_WEIGHT_PER_POINT') },
-  },
-  {
-    key: 'weightCap',
-    label: 'Most a tag can weigh a card',
-    unit: QUANTITY_UNIT.multiplier,
-    presentation: QUANTITY_PRESENTATION.plain,
-    source: { kind: FACT_SOURCE.balance, path: balancePath('progression', 'TAG_WEIGHT_MAX_MULTIPLIER') },
-  },
-];
-
-/** The facts every tag page shows: the traits carrying the tag first (the tile's headline), then the weighting. */
+/**
+ * The facts every tag page shows. The single-valued weighting comes first, so the landing tile's headline is not one
+ * favoured trait out of several; the favoured traits follow as one row per trait (docs/ui/encyclopedia.md §11.4).
+ */
 export function dnaTagFacts(tag: DnaTag): readonly FactDefinition[] {
   return [
+    {
+      key: 'weightPerPoint',
+      label: 'Card weight per tag point',
+      unit: QUANTITY_UNIT.share,
+      presentation: QUANTITY_PRESENTATION.signedChange,
+      source: { kind: FACT_SOURCE.balance, path: balancePath('progression', 'TAG_WEIGHT_PER_POINT') },
+    },
+    {
+      key: 'weightCap',
+      label: 'Most tags can raise a card',
+      unit: QUANTITY_UNIT.multiplier,
+      presentation: QUANTITY_PRESENTATION.plain,
+      source: { kind: FACT_SOURCE.balance, path: balancePath('progression', 'TAG_WEIGHT_MAX_MULTIPLIER') },
+    },
     {
       key: 'favours',
       label: 'Favours',
       source: { kind: FACT_SOURCE.link, link: { id: DERIVED_LINK.tagTraits, argument: { tag } } },
     },
-    ...TAG_WEIGHT_FACTS,
   ];
 }
 
-/** How tag points bias a draft, the same for every tag. */
+/** How tag points bias a draft, the same for every tag; the numbers are the facts beside it. */
 const HOW_TAGS_WEIGH =
-  'Tag points are never spent: each one makes a card carrying the tag {weightPerPoint} likelier to be drawn, up to {weightCap}.';
+  'Tag points are never spent: the more you hold, the likelier cards carrying the tag are drawn. Engulfing a cell also takes a share of its tag points.';
 
 export const DNA_TAG_ENTRY_CONTENT: Readonly<Record<DnaTag, DnaTagEntryContent>> = {
   motile: {

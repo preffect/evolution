@@ -7,6 +7,7 @@ import { DEFAULT_BALANCE, ENTITY_KIND, TRAIT_CATEGORY, type BalanceConfig } from
 import { buildEntryDefinitions } from './build-entries';
 import { factContextFor } from './encyclopedia-context';
 import { DERIVED_LINK, derivedLinkTargets } from './facts/derived-links';
+import { resolveTierValueFacts } from './facts/resolve-fact';
 import { resolveProse } from './facts/resolve-prose';
 import { ABILITY } from './model/abilities';
 import { ENCYCLOPEDIA_CATEGORY } from './model/categories';
@@ -40,10 +41,14 @@ describe('resolveEntry over a patched balance', () => {
     );
     expect(factText(before, 'weightPerPoint')).toEqual(['+10 %']);
     expect(factText(after, 'weightPerPoint')).toEqual(['+25 %']);
-    expect(after.summary.some((segment) => segment.text === '+25 %')).toBe(true);
+    const dosed = resolveEntry(
+      'trait:toxin_vacuole',
+      factContextFor(patchedBalance((balance) => (balance.absorption['ENGULF_SWALLOWED_TOXIN_MULTIPLIER'] = 4))),
+    );
+    expect(dosed.summary.some((segment) => segment.kind === 'value' && segment.text === '4×')).toBe(true);
   });
 
-  it('changes a trait’s tier lines and the tier body that reads them', () => {
+  it('changes a trait’s tier lines', () => {
     const patched = patchedBalance((balance) => {
       const tiers = balance.traits['TRAIT_TIERS'] as Record<string, Record<string, number>[]>;
       (tiers['cilia'] as Record<string, number>[])[1] = { speedMultiplier: 1.5, gripResistanceBonus: 0.1 };
@@ -53,7 +58,6 @@ describe('resolveEntry over a patched balance', () => {
     expect(factText(before, 'speedMultiplier', 'tier_2')).toEqual(['+20 %']);
     expect(factText(after, 'speedMultiplier', 'tier_2')).toEqual(['+50 %']);
     expect(after.sections[1]?.facts.map((fact) => fact.label)).toEqual(['speed', 'grip resistance']);
-    expect(after.sections[1]?.body.some((segment) => segment.text === '+50 %')).toBe(true);
   });
 
   it('leaves a tier fact out when the patched tier sets that modifier to identity', () => {
@@ -63,11 +67,9 @@ describe('resolveEntry over a patched balance', () => {
     });
     const section = resolveEntry('trait:cell_wall', factContextFor(patched)).sections[0];
     expect(section?.facts.map((fact) => fact.key)).toEqual(['membraneRatioBonus']);
-    // The tier body still names the modifier the patch returned to identity: it reads the identity value.
-    const absorbToken = section?.body.find(
-      (segment) => segment.kind === 'value' && segment.factKey === 'absorbDurationMultiplierAsPrey',
-    );
-    expect(absorbToken?.text).toBe('+0 %');
+    // A tier token for the modifier the patch returned to identity reads its identity value, never nothing.
+    const values = resolveTierValueFacts(patched, 'cell_wall', 1);
+    expect(values.find((fact) => fact.key === 'absorbDurationMultiplierAsPrey')?.text).toBe('+0 %');
   });
 });
 
@@ -113,8 +115,11 @@ describe('the derived links', () => {
       DEFAULT_BALANCE.ladder.STAGE_GATE_TRAITS.endosymbiosis.map((traitId) => `trait:${traitId}`),
     );
     const protocell = resolveEntry('stage:protocell', shipped);
-    expect(protocell.facts).toEqual([]);
-    expect(protocell.headline).toBeNull();
+    expect(protocell.facts.filter((fact) => fact.key === 'reachedBy')).toEqual([]);
+    expect(protocell.headline?.key).toBe('opens');
+    const specialised = resolveEntry('stage:specialised', shipped);
+    expect(specialised.facts.filter((fact) => fact.key === 'opens')).toEqual([]);
+    expect(specialised.headline?.key).toBe('reachedBy');
   });
 
   it('match the catalog: stage, requires, the stage a gate climbs to and the unlock count', () => {
@@ -179,7 +184,7 @@ describe('the registry lookups', () => {
     expect(() => resolveProse('See [[ability:toxin]]', scope)).toThrow(/names no entry/);
     expect(resolveProse('See [[trait:cilia#tier_2|its second tier]]', scope)).toEqual([
       { kind: 'text', text: 'See ' },
-      { kind: 'link', entryId: 'trait:cilia', text: 'its second tier' },
+      { kind: 'link', entryId: 'trait:cilia', sectionKey: 'tier_2', text: 'its second tier' },
     ]);
   });
 });

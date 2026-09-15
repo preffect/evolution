@@ -2,10 +2,10 @@
 // from the context's live balance and formatted, every link titled, the category, group and subject derived. Pure:
 // the registry supplies the titles and the reference check, so this file never imports the registry.
 
-import type { TraitId } from '@evolution/shared';
+import type { BalanceConfig, TraitId } from '@evolution/shared';
 import { formatQuantity } from '../quantities/format-quantity';
 import { QUANTITY_UNIT } from '../quantities/quantity-unit';
-import { traitRowOf } from './facts/catalog-quantities';
+import { tierCountOf, traitRowOf } from './facts/catalog-quantities';
 import { DERIVED_LINK, derivedLinkTargets } from './facts/derived-links';
 import { resolveFacts, resolveTierFacts, resolveTierValueFacts, type TitleOf } from './facts/resolve-fact';
 import { resolveProse, type ProseScope } from './facts/resolve-prose';
@@ -20,12 +20,19 @@ import type {
 } from './model/entry';
 import { ENTRY_SUBJECT, splitEntryId, type EntryId } from './model/entry-id';
 import type { FactContext } from './model/fact';
-import { groupOf } from './model/groups';
+import { groupOf, type EntryGroupId } from './model/groups';
 import { PROSE_TOKEN } from './model/prose';
 
 export interface EntryLookup {
   readonly titleOf: TitleOf;
   readonly isReference: (reference: string) => boolean;
+}
+
+/** The one home of an entry's list group: a trait's from its catalog row in `balance`, every other from its subject. */
+export function entryGroup(entryId: EntryId, balance: BalanceConfig): EntryGroupId | null {
+  const { subject, codeId } = splitEntryId(entryId);
+  const traitCategory = subject === ENTRY_SUBJECT.trait ? traitRowOf(balance, codeId as TraitId).category : null;
+  return groupOf(entryId, traitCategory);
 }
 
 function resolveSubject(entryId: EntryId, context: FactContext): ResolvedSubject {
@@ -39,7 +46,7 @@ function resolveSubject(entryId: EntryId, context: FactContext): ResolvedSubject
     rarity: row.rarity,
     dnaTags: row.tags,
     stage: row.stage,
-    tierCount: context.balance.traits.TRAIT_TIERS[row.id].length,
+    tierCount: tierCountOf(context.balance, row.id),
   };
 }
 
@@ -78,12 +85,11 @@ export function resolveEntryDefinition(
 ): ResolvedEntry {
   const facts = resolveFacts(definition.facts, context, lookup.titleOf);
   const scope: ProseScope = { facts, titleOf: lookup.titleOf, isReference: lookup.isReference };
-  const subject = resolveSubject(definition.id, context);
   return {
     id: definition.id,
     category: categoryOf(definition.id),
-    subject,
-    group: groupOf(definition.id, subject.kind === ENTRY_SUBJECT.trait ? subject.traitCategory : null),
+    subject: resolveSubject(definition.id, context),
+    group: entryGroup(definition.id, context.balance),
     title: definition.title,
     summary: resolveProse(definition.summary, scope),
     headline: facts[0] ?? null,

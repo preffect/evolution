@@ -35,8 +35,9 @@ function segmentOf(token: ProseToken, template: ProseTemplate, scope: ProseScope
       if (!scope.isReference(token.reference)) {
         throw new Error(`The prose link [[${token.reference}]] names no entry: "${template}"`);
       }
-      const entryId = splitEntryReference(token.reference).entryId as EntryId;
-      return { kind: token.kind, entryId, text: token.shownText ?? scope.titleOf(entryId) };
+      const { entryId, sectionKey } = splitEntryReference(token.reference);
+      const text = token.shownText ?? scope.titleOf(entryId as EntryId);
+      return { kind: token.kind, entryId: entryId as EntryId, sectionKey, text };
     }
   }
 }

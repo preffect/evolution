@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, CELL_STATE, DEFAULT_BALANCE, DNA_TAG, GAME_MODE, type CellModifiers } from '@evolution/shared';
 import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
 import { tierSectionKey } from './build-entries';
+import { TRAIT_ENTRY_ROWS, contentByTrait } from './content/trait-entries';
 import { ABILITY, ABILITY_BY_MODIFIER } from './model/abilities';
 import { ACTION, ACTION_BY_INTENT } from './model/actions';
 import {
@@ -61,6 +62,11 @@ describe('the encyclopedia registry', () => {
       );
       expect(entry?.sections.map((section) => section.key)).toEqual(expectedKeys);
     }
+  });
+
+  it('refuses trait content with two rows for one trait', () => {
+    const [firstRow] = TRAIT_ENTRY_ROWS;
+    expect(() => contentByTrait([...TRAIT_ENTRY_ROWS, firstRow] as never)).toThrow(/more than one content row/);
   });
 
   it('holds one entry per stage and per DNA tag, in their walk orders', () => {

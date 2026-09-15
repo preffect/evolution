@@ -35,10 +35,15 @@ export function traitRowOf(balance: BalanceConfig, traitId: TraitId): TraitDefin
   return row;
 }
 
+/** A trait's tier count: the one home the `tier_count` fact and a trait page's subject both read. */
+export function tierCountOf(balance: BalanceConfig, traitId: TraitId): number {
+  return balance.traits.TRAIT_TIERS[traitId].length;
+}
+
 export const CATALOG_QUANTITIES: {
   readonly [Id in CatalogQuantityId]: (balance: BalanceConfig, argument: CatalogQuantityArguments[Id]) => number | null;
 } = {
-  [CATALOG_QUANTITY.tierCount]: (balance, argument) => balance.traits.TRAIT_TIERS[argument.traitId].length,
+  [CATALOG_QUANTITY.tierCount]: (balance, argument) => tierCountOf(balance, argument.traitId),
   [CATALOG_QUANTITY.unlockCount]: (balance, argument) =>
     traitRowOf(balance, argument.traitId).unlockedBy?.count ?? null,
   [CATALOG_QUANTITY.requiresCount]: (balance, argument) => traitRowOf(balance, argument.traitId).requires.length,

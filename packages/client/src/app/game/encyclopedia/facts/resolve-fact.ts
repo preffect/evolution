@@ -2,7 +2,13 @@
 // fact as one fact per target titled by the registry, and a trait's tier facts generated from the live tier table
 // through the cards' own label table, so a card and its encyclopedia page can never read differently. Pure.
 
-import type { BalanceConfig, CellModifiers, TraitId, TraitTierModifiers } from '@evolution/shared';
+import {
+  tierRowOf,
+  type BalanceConfig,
+  type CellModifiers,
+  type TraitId,
+  type TraitTierModifiers,
+} from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { MODIFIER_LABELS, nonIdentityModifiers } from '../../quantities/modifier-labels';
 import type { EntryLink, ResolvedFact } from '../model/entry';
@@ -15,8 +21,6 @@ import { evaluateFormula } from './formula-table';
 
 /** The registry's title of an entry: what a link fact and a prose link show. */
 export type TitleOf = (entryId: EntryId) => string;
-
-const FIRST_TIER = 1;
 
 /** A value source's number over `balance`; `null` for a catalog count that does not apply to its subject. */
 export function valueOfSource(source: ValueFactSource, balance: BalanceConfig): number | null {
@@ -52,8 +56,8 @@ export function resolveFacts(
   return definitions.flatMap((definition) => resolveFact(definition, context, titleOf));
 }
 
-function tierRowOf(balance: BalanceConfig, traitId: TraitId, tier: number): TraitTierModifiers {
-  const tierRow = balance.traits.TRAIT_TIERS[traitId][tier - FIRST_TIER];
+function tierRowFor(balance: BalanceConfig, traitId: TraitId, tier: number): TraitTierModifiers {
+  const tierRow = tierRowOf(balance.traits.TRAIT_TIERS[traitId], tier);
   if (tierRow === undefined) throw new Error(`The trait ${traitId} has no tier ${tier}`);
   return tierRow;
 }
@@ -64,7 +68,7 @@ function modifierFact(key: keyof CellModifiers, value: number): ResolvedFact {
 
 /** Tier `tier` (1-based) of `traitId`: one fact per modifier it sets away from identity, in the row's order. */
 export function resolveTierFacts(balance: BalanceConfig, traitId: TraitId, tier: number): readonly ResolvedFact[] {
-  const tierRow = tierRowOf(balance, traitId, tier);
+  const tierRow = tierRowFor(balance, traitId, tier);
   return nonIdentityModifiers(tierRow, balance.traits.DEFAULT_CELL_MODIFIERS).map(([key, value]) =>
     modifierFact(key, value),
   );
@@ -75,6 +79,6 @@ export function resolveTierFacts(balance: BalanceConfig, traitId: TraitId, tier:
  * reads, so a patch that returns a modifier to identity shows its identity text instead of breaking the page.
  */
 export function resolveTierValueFacts(balance: BalanceConfig, traitId: TraitId, tier: number): readonly ResolvedFact[] {
-  const values: CellModifiers = { ...balance.traits.DEFAULT_CELL_MODIFIERS, ...tierRowOf(balance, traitId, tier) };
+  const values: CellModifiers = { ...balance.traits.DEFAULT_CELL_MODIFIERS, ...tierRowFor(balance, traitId, tier) };
   return (Object.entries(values) as [keyof CellModifiers, number][]).map(([key, value]) => modifierFact(key, value));
 }

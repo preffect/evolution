@@ -13,6 +13,7 @@ const ENCYCLOPEDIA = 'packages/client/src/app/game/encyclopedia';
 const CONTENT_FILE = `${ENCYCLOPEDIA}/content/stage-entries.ts`;
 const FACTS_FILE = `${ENCYCLOPEDIA}/facts/formula-table.ts`;
 const REGISTRY_FILE = `${ENCYCLOPEDIA}/registry.ts`;
+const CONTEXT_FILE = `${ENCYCLOPEDIA}/encyclopedia-context.ts`;
 const QUANTITIES_FILE = 'packages/client/src/app/game/quantities/quantity-unit.ts';
 /** The runner replaces this source with an import of every allowlisted name. */
 const ALLOWLIST_IMPORT = '__ALLOWLIST_IMPORT__';
@@ -22,6 +23,8 @@ const LIVE_BALANCE_TEXT = 'live balance';
 const TIERS_TEXT = 'TRAIT_TIERS';
 const CONTENT_TEXT = 'never a number or arithmetic';
 const LINT_TIMEOUT_MS = 180_000;
+/** The runner's JSON report: every fixture's messages. */
+const LINT_OUTPUT_MAX_BYTES = 16 * 1024 * 1024;
 
 const RUNNER = `
 import { readFileSync } from 'node:fs';
@@ -121,6 +124,26 @@ const FIXTURES: readonly Fixture[] = [
     expected: { ruleId: SYNTAX, text: CONTENT_TEXT },
   },
   {
+    name: 'an increment in content',
+    filePath: CONTENT_FILE,
+    source: 'export function next(start: number): number {\n  let size = start;\n  size++;\n  return size;\n}\n',
+    expected: { ruleId: SYNTAX, text: CONTENT_TEXT },
+  },
+  {
+    name: 'an exponent in content',
+    filePath: CONTENT_FILE,
+    source: 'export const area = (side: number): number => side ** side;\n',
+    expected: { ruleId: SYNTAX, text: CONTENT_TEXT },
+  },
+  {
+    name: 'DEFAULT_BALANCE in the context',
+    filePath: CONTEXT_FILE,
+    source: "import { DEFAULT_BALANCE } from '@evolution/shared';\nexport const balance = DEFAULT_BALANCE;\n",
+    expected: null,
+  },
+  { name: 'every allowlisted name in facts', filePath: FACTS_FILE, source: ALLOWLIST_IMPORT, expected: null },
+  { name: 'every allowlisted name in quantities', filePath: QUANTITIES_FILE, source: ALLOWLIST_IMPORT, expected: null },
+  {
     name: 'a number literal outside content',
     filePath: FACTS_FILE,
     source: 'export const stageCount = 5;\n',
@@ -148,7 +171,7 @@ function runLint(): { readonly allowlist: readonly string[]; readonly results: r
     cwd: checkoutRoot(),
     input: JSON.stringify(FIXTURES.map(({ filePath, source }) => ({ filePath, source }))),
     encoding: 'utf8',
-    maxBuffer: 16 * 1024 * 1024,
+    maxBuffer: LINT_OUTPUT_MAX_BYTES,
   });
   return JSON.parse(output) as ReturnType<typeof runLint>;
 }

@@ -1,10 +1,17 @@
 // The entry definitions, joined from content and the balance's structure (docs/architecture/encyclopedia.md §12.2):
 // catalog order inside each subject, subjects in `ENTRY_SUBJECT` order. Titles of traits are catalog names, tier
 // sections one per row of `TRAIT_TIERS` (structure, never patched), previews built from ids. It reads no number;
-// `registry.ts` calls it once with `DEFAULT_BALANCE`. The completeness spec may expect only evolutions until #361 and
-// #362 add their subjects here.
+// `registry.ts` calls it once with `DEFAULT_BALANCE`. #361 and #362 add their subjects here.
 
-import { CELL_KIND, type BalanceConfig, type OwnedTrait, type TraitId, type TraitTier } from '@evolution/shared';
+import {
+  CELL_KIND,
+  FIRST_TIER,
+  tierOfRowIndex,
+  type BalanceConfig,
+  type OwnedTrait,
+  type TraitId,
+  type TraitTier,
+} from '@evolution/shared';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../render/preview/preview-spec';
 import { DNA_TAG_ENTRY_CONTENT, dnaTagFacts } from './content/dna-tag-entries';
 import { STAGE_ENTRY_CONTENT, stageFacts } from './content/stage-entries';
@@ -13,8 +20,8 @@ import type { EntryDefinition, SectionDefinition } from './model/entry';
 import { ENTRY_SUBJECT, entryIdOf } from './model/entry-id';
 
 export const TIER_SECTION_KEY_PREFIX = 'tier_';
-const FIRST_TIER: TraitTier = 1;
 const NO_SECTIONS: readonly SectionDefinition[] = [];
+const NO_EXTRA_FACTS: EntryDefinition['facts'] = [];
 
 /** `tier_2`: the key of a trait's tier section and its deep-link anchor. */
 export function tierSectionKey(tier: TraitTier): string {
@@ -28,7 +35,7 @@ function cellPreview(traits: readonly OwnedTrait[]): PreviewSpec {
 function tierSections(balance: BalanceConfig, traitId: TraitId): readonly SectionDefinition[] {
   const bodies = TRAIT_ENTRY_CONTENT[traitId].tierBodies;
   return balance.traits.TRAIT_TIERS[traitId].map((_tierRow, index) => {
-    const tier = (index + FIRST_TIER) as TraitTier;
+    const tier = tierOfRowIndex(index);
     const body = bodies[index];
     if (body === undefined) throw new Error(`The trait ${traitId} has no prose for tier ${tier}`);
     return {
@@ -43,15 +50,18 @@ function tierSections(balance: BalanceConfig, traitId: TraitId): readonly Sectio
 }
 
 function traitEntries(balance: BalanceConfig): readonly EntryDefinition[] {
-  return balance.traits.TRAIT_CATALOG.map((row) => ({
-    id: entryIdOf(ENTRY_SUBJECT.trait, row.id),
-    title: row.name,
-    summary: TRAIT_ENTRY_CONTENT[row.id].summary,
-    facts: traitFacts(row.id),
-    sections: tierSections(balance, row.id),
-    seeAlso: TRAIT_ENTRY_CONTENT[row.id].seeAlso,
-    preview: cellPreview([{ traitId: row.id, tier: FIRST_TIER }]),
-  }));
+  return balance.traits.TRAIT_CATALOG.map((row) => {
+    const content = TRAIT_ENTRY_CONTENT[row.id];
+    return {
+      id: entryIdOf(ENTRY_SUBJECT.trait, row.id),
+      title: row.name,
+      summary: content.summary,
+      facts: [...traitFacts(row.id), ...(content.extraFacts ?? NO_EXTRA_FACTS)],
+      sections: tierSections(balance, row.id),
+      seeAlso: content.seeAlso,
+      preview: cellPreview([{ traitId: row.id, tier: FIRST_TIER }]),
+    };
+  });
 }
 
 /** A stage is previewed as a cell owning its first gate trait; the starting stage owns nothing. */

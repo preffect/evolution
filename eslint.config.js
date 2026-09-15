@@ -93,6 +93,8 @@ export const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
   'TRAIT_CATEGORY',
   'TRAIT_RARITY',
   'SECONDS_PER_MINUTE',
+  'FIRST_TIER',
+  'FIRST_LEVEL',
 ];
 const LIVE_BALANCE_MESSAGE = 'Read tunables from the live balance (the context), never from a module import (§12.6).';
 /** The syntax half of the live-balance guard: a namespace import of the shared package, any `.tiers` access. */

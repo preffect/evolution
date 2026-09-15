@@ -27,6 +27,7 @@ export * from './simulation/level-costs.js';
 export * from './simulation/mass-curves.js';
 export * from './simulation/movement-kernel.js';
 export * from './simulation/stage-of.js';
+export * from './simulation/trait-tiers.js';
 export * from './simulation/state-hasher.js';
 export * from './simulation/state-hash.js';
 export * from './simulation/vector-math.js';

@@ -44,7 +44,13 @@ export interface SectionDefinition {
 export type ProseSegment =
   | { readonly kind: typeof PROSE_TOKEN.text; readonly text: string }
   | { readonly kind: typeof PROSE_TOKEN.value; readonly factKey: string; readonly text: string }
-  | { readonly kind: typeof PROSE_TOKEN.link; readonly entryId: EntryId; readonly text: string };
+  | {
+      readonly kind: typeof PROSE_TOKEN.link;
+      readonly entryId: EntryId;
+      /** The anchored section (`tier_2` of `[[trait:cilia#tier_2]]`), `null` for a whole entry. */
+      readonly sectionKey: string | null;
+      readonly text: string;
+    };
 
 export type ResolvedSubject =
   | {

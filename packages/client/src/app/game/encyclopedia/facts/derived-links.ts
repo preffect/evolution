@@ -20,6 +20,8 @@ export const DERIVED_LINK = {
   stageGateTraits: 'stage_gate_traits',
   /** The stage a gate trait climbs to. */
   stageNext: 'stage_next',
+  /** The traits a stage opens: catalog rows whose `stage` is it. */
+  stageTraits: 'stage_traits',
   /** Zones with a non-zero weight in `balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND`. */
   foodZones: 'food_zones',
   /** Traits whose tiers set one of the ability's modifier keys away from identity. */
@@ -35,6 +37,7 @@ export interface DerivedLinkArguments {
   [DERIVED_LINK.traitUnlockVariant]: { readonly traitId: TraitId };
   [DERIVED_LINK.stageGateTraits]: { readonly stage: CellStage };
   [DERIVED_LINK.stageNext]: { readonly traitId: TraitId };
+  [DERIVED_LINK.stageTraits]: { readonly stage: CellStage };
   [DERIVED_LINK.foodZones]: { readonly foodKind: SpawnedKind };
   [DERIVED_LINK.abilityTraits]: { readonly abilityId: AbilityId };
   [DERIVED_LINK.tagTraits]: { readonly tag: DnaTag };
@@ -80,6 +83,8 @@ export const DERIVED_LINKS: {
     balance.ladder.STAGE_ORDER.filter((stage) =>
       balance.ladder.STAGE_GATE_TRAITS[stage].includes(argument.traitId),
     ).map((stage) => entryIdOf(ENTRY_SUBJECT.stage, stage)),
+  [DERIVED_LINK.stageTraits]: (balance, argument) =>
+    traitEntryIds(balance.traits.TRAIT_CATALOG.filter((row) => row.stage === argument.stage).map((row) => row.id)),
   [DERIVED_LINK.foodZones]: (balance, argument) =>
     Object.entries(balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND[argument.foodKind])
       .filter(([, weight]) => weight > NO_WEIGHT)

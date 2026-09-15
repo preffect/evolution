@@ -2,15 +2,14 @@
 // module load from `DEFAULT_BALANCE`'s structure (catalog rows and walk orders, which a patch never changes), and the
 // pure lookups over it. Every number is read from the `FactContext` a caller passes, never from here.
 
-import { DEFAULT_BALANCE, type TraitId } from '@evolution/shared';
+import { DEFAULT_BALANCE } from '@evolution/shared';
 import { buildEntryDefinitions } from './build-entries';
-import { traitRowOf } from './facts/catalog-quantities';
 import { categoryOf, type EncyclopediaCategory } from './model/categories';
 import type { EntryDefinition, EntryLink, ResolvedEntry, ResolvedGroup } from './model/entry';
-import { ENTRY_SUBJECT, splitEntryId, splitEntryReference, type EntryId } from './model/entry-id';
+import { splitEntryReference, type EntryId } from './model/entry-id';
 import type { FactContext } from './model/fact';
-import { CATEGORY_GROUPS, groupOf, type EntryGroupId } from './model/groups';
-import { resolveEntryDefinition, type EntryLookup } from './resolve-entry';
+import { CATEGORY_GROUPS } from './model/groups';
+import { entryGroup, resolveEntryDefinition, type EntryLookup } from './resolve-entry';
 
 export const ENCYCLOPEDIA_ENTRIES: readonly EntryDefinition[] = buildEntryDefinitions(DEFAULT_BALANCE);
 
@@ -42,14 +41,6 @@ export function resolveEntry(entryId: EntryId, context: FactContext): ResolvedEn
   return resolveEntryDefinition(entryById(entryId), context, REGISTRY_LOOKUP);
 }
 
-/** The list group of a definition, a trait's from the registry's structure. */
-function definitionGroup(definition: EntryDefinition): EntryGroupId | null {
-  const { subject, codeId } = splitEntryId(definition.id);
-  const traitCategory =
-    subject === ENTRY_SUBJECT.trait ? traitRowOf(DEFAULT_BALANCE, codeId as TraitId).category : null;
-  return groupOf(definition.id, traitCategory);
-}
-
 function linkOf(definition: EntryDefinition): EntryLink {
   return { entryId: definition.id, title: definition.title };
 }
@@ -62,7 +53,7 @@ export function entriesIn(category: EncyclopediaCategory): readonly ResolvedGrou
   return groups
     .map((group) => ({
       group,
-      entries: definitions.filter((definition) => definitionGroup(definition) === group).map(linkOf),
+      entries: definitions.filter((definition) => entryGroup(definition.id, DEFAULT_BALANCE) === group).map(linkOf),
     }))
     .filter((resolvedGroup) => resolvedGroup.entries.length > 0);
 }

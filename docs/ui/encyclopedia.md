@@ -191,7 +191,9 @@ An entry whose `preview` is `null` has no lens column: the title column takes th
      `—` where a tier leaves that key at identity; the owned tier's column is tinted accent under `You own II`. A tier
      column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
    - The next table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on the
-     left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry.
+     left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry. Consecutive
+     facts sharing a `key` are one row: the label once, the texts as links joined by `, ` (a link with several targets
+     arrives as one fact per target, architecture/encyclopedia.md §12.3).
    - A table with no rows is left out, never drawn empty.
 
 **Below both columns**, from `UI_SPACE_XL_PX` under whichever of the lens control and the title column ends lower:

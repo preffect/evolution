@@ -3,6 +3,7 @@
 // id or anchor; every entry resolves over `DEFAULT_BALANCE`. The token parser's malformed cases throw.
 
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_BALANCE } from '@evolution/shared';
 import { factContextFor } from './encyclopedia-context';
 import { PROSE_TOKEN, parseProseTemplate, type ProseToken } from './model/prose';
 import { ENCYCLOPEDIA_ENTRIES, isEntryReference, resolveEntry } from './registry';
@@ -23,10 +24,12 @@ function expectValueTokensIn(template: string, factKeys: readonly string[], wher
 const DIGIT = /\d/;
 const TIER_WORD_NUMERAL = /\btier\s+[ivx]+\b/i;
 const BARE_NUMERAL = /\b[IVX]{2,}\b/;
+/** A count written as a word drifts with the catalog as a digit would; `one` stays ("One form per cell" is a rule). */
+const NUMBER_WORD = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|either|both)\b/i;
 
 /** What a typed number in copy looks like: the reasons `text` fails the prose rule, empty when it passes. */
 function proseViolations(text: string): string[] {
-  return [DIGIT, TIER_WORD_NUMERAL, BARE_NUMERAL].filter((pattern) => pattern.test(text)).map(String);
+  return [DIGIT, TIER_WORD_NUMERAL, BARE_NUMERAL, NUMBER_WORD].filter((pattern) => pattern.test(text)).map(String);
 }
 
 const context = factContextFor(null);
@@ -36,6 +39,8 @@ describe('the prose rule', () => {
     expect(proseViolations('Gives 3 mass')).not.toEqual([]);
     expect(proseViolations('At Tier II it doubles')).not.toEqual([]);
     expect(proseViolations('The III coil')).not.toEqual([]);
+    expect(proseViolations('the five body forms')).not.toEqual([]);
+    expect(proseViolations('Owning either trait')).not.toEqual([]);
     expect(proseViolations('Keeps {dnaKeptOnDeathFraction} of your DNA')).toEqual([]);
   });
 
@@ -60,6 +65,14 @@ describe('the prose rule', () => {
       for (const section of resolveEntry(entry.id, context).sections) {
         for (const fact of section.facts) expect(proseViolations(fact.label), `${entry.id}#${section.key}`).toEqual([]);
       }
+    }
+  });
+
+  it('never lets an entry or section fact key collide with a modifier key a tier token reads', () => {
+    const modifierKeys = Object.keys(DEFAULT_BALANCE.traits.DEFAULT_CELL_MODIFIERS);
+    for (const entry of ENCYCLOPEDIA_ENTRIES) {
+      const keys = [...entry.facts, ...entry.sections.flatMap((section) => section.facts)].map((fact) => fact.key);
+      for (const key of keys) expect(modifierKeys, `${entry.id} {${key}}`).not.toContain(key);
     }
   });
 

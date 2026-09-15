@@ -2,14 +2,14 @@
 // `levelUpCost` / `cumulativeDnaForLevel`; gains carry over, one gain may produce several level-ups and each queues a
 // draft. Step 7 of the tick runs the timeouts, the level-ups and the show-after-level-up.
 
-import { EFFECT_KIND, cumulativeDnaForLevel, levelUpCost, type BalanceConfig } from '@evolution/shared';
+import { EFFECT_KIND, FIRST_LEVEL, cumulativeDnaForLevel, levelUpCost, type BalanceConfig } from '@evolution/shared';
 import type { PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { applyExpiredOffer, queueOffer, showQueuedOfferIfNone } from './offers.js';
 
-/** A fresh player's level (docs/PROGRESSION.md §2). */
-export const FIRST_LEVEL = 1;
+/** A fresh player's level: the shared rule (docs/PROGRESSION.md §2), re-exported for the session and debug callers. */
+export { FIRST_LEVEL };
 
 /** The highest level, at most `MAX_LEVEL`, whose cumulative cost `dna` covers (the shared `cumulativeDnaForLevel`). */
 export function levelForCumulativeDna(dna: number, balance: BalanceConfig): number {

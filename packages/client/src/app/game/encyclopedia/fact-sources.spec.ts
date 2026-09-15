@@ -28,7 +28,7 @@ import type { SpawnedKind } from '@evolution/shared';
 
 /** Leaves the simulation does not read (#367 removes the list). */
 const UNREAD_LEAVES = ['ENGULF_COVER_SECONDS', 'ENGULF_WRAP_SECONDS', 'ENGULF_ABSORB_SECONDS'];
-/** Domains no content reads yet: their facts land with #361 (world, session, clock, ecology, wild cells) and #362. */
+/** Domains no content reads yet: their facts land with #361 (world, session, clock, ecology, wild cells) and #362 (growth, controls). */
 const DOMAINS_AWAITING_CONTENT: readonly (keyof BalanceConfig)[] = [
   'world',
   'session',
@@ -37,7 +37,6 @@ const DOMAINS_AWAITING_CONTENT: readonly (keyof BalanceConfig)[] = [
   'ecology',
   'growth',
   'wildCells',
-  'absorption',
 ];
 
 type Path = readonly string[];
@@ -115,6 +114,10 @@ const LINK_CALLS: { readonly [Id in DerivedLinkId]: readonly DerivedLinkCall[] }
     argument: { stage },
   })),
   [DERIVED_LINK.stageNext]: traitIds.map((traitId) => ({ id: DERIVED_LINK.stageNext, argument: { traitId } })),
+  [DERIVED_LINK.stageTraits]: DEFAULT_BALANCE.ladder.STAGE_ORDER.map((stage) => ({
+    id: DERIVED_LINK.stageTraits,
+    argument: { stage },
+  })),
   [DERIVED_LINK.foodZones]: (Object.keys(DEFAULT_BALANCE.ecology.FOOD_ZONE_WEIGHTS_BY_KIND) as SpawnedKind[]).map(
     (foodKind) => ({ id: DERIVED_LINK.foodZones, argument: { foodKind } }),
   ),
@@ -141,6 +144,66 @@ function expectRowReadsTheBalance<Call>(
   });
   expect(isMovedByAPatch).toBe(true);
 }
+
+/** The catalog row of `traitId` in a mutable clone. */
+function catalogRow(balance: BalanceConfig, traitId: string): Record<string, unknown> {
+  const rows = balance.traits.TRAIT_CATALOG as unknown as Record<string, unknown>[];
+  const row = rows.find((candidate) => candidate['id'] === traitId);
+  if (row === undefined) throw new Error(`no catalog row ${traitId}`);
+  return row;
+}
+
+function stageGates(balance: BalanceConfig): Record<string, string[]> {
+  return balance.ladder.STAGE_GATE_TRAITS as unknown as Record<string, string[]>;
+}
+
+/** One call per link row and one change to the structure it reads that must move its targets. */
+const LINK_MOVES: {
+  readonly [Id in DerivedLinkId]: { readonly call: DerivedLinkCall; readonly patch: (balance: BalanceConfig) => void };
+} = {
+  [DERIVED_LINK.traitStage]: {
+    call: { id: DERIVED_LINK.traitStage, argument: { traitId: 'nucleoid' } },
+    patch: (balance) => (catalogRow(balance, 'nucleoid')['stage'] = 'eukaryote'),
+  },
+  [DERIVED_LINK.traitRequires]: {
+    call: { id: DERIVED_LINK.traitRequires, argument: { traitId: 'nuclear_envelope' } },
+    patch: (balance) => (catalogRow(balance, 'nuclear_envelope')['requires'] = ['cilia']),
+  },
+  [DERIVED_LINK.traitUnlockVariant]: {
+    call: { id: DERIVED_LINK.traitUnlockVariant, argument: { traitId: 'mitochondrion' } },
+    patch: (balance) => (catalogRow(balance, 'mitochondrion')['unlockedBy'] = { bacteriumVariant: 'plain', count: 1 }),
+  },
+  [DERIVED_LINK.stageGateTraits]: {
+    call: { id: DERIVED_LINK.stageGateTraits, argument: { stage: 'prokaryote' } },
+    patch: (balance) => (stageGates(balance)['prokaryote'] = ['cilia']),
+  },
+  [DERIVED_LINK.stageNext]: {
+    call: { id: DERIVED_LINK.stageNext, argument: { traitId: 'nucleoid' } },
+    patch: (balance) => (stageGates(balance)['prokaryote'] = []),
+  },
+  [DERIVED_LINK.stageTraits]: {
+    call: { id: DERIVED_LINK.stageTraits, argument: { stage: 'protocell' } },
+    patch: (balance) => (catalogRow(balance, 'nucleoid')['stage'] = 'eukaryote'),
+  },
+  [DERIVED_LINK.foodZones]: {
+    call: { id: DERIVED_LINK.foodZones, argument: { foodKind: 'algae' } },
+    patch: (balance) => {
+      const weights = balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND as unknown as Record<string, Record<string, number>>;
+      (weights['algae'] as Record<string, number>)['warm_vent'] = 0;
+    },
+  },
+  [DERIVED_LINK.abilityTraits]: {
+    call: { id: DERIVED_LINK.abilityTraits, argument: { abilityId: ABILITY.photosynthesis } },
+    patch: (balance) => {
+      const tiers = balance.traits.TRAIT_TIERS as unknown as Record<string, Record<string, number>[]>;
+      tiers['chloroplast'] = [{ decayMultiplier: 0.9 }, { decayMultiplier: 0.8 }, { decayMultiplier: 0.7 }];
+    },
+  },
+  [DERIVED_LINK.tagTraits]: {
+    call: { id: DERIVED_LINK.tagTraits, argument: { tag: 'sensory' } },
+    patch: (balance) => (catalogRow(balance, 'euglena_eyespot')['tags'] = ['photic']),
+  },
+};
 
 function registryFacts(): readonly FactDefinition[] {
   return ENCYCLOPEDIA_ENTRIES.flatMap((entry) => [
@@ -171,6 +234,14 @@ describe('the fact sources', () => {
       const { reads } = readsOf((balance) => derivedLinkTargets(balance, call));
       expect(reads.length, JSON.stringify(call)).toBeGreaterThan(0);
     }
+  });
+
+  it.each(Object.values(DERIVED_LINK))('moves the %s targets when the structure the row reads changes', (id) => {
+    const { call, patch } = LINK_MOVES[id];
+    const before = derivedLinkTargets(DEFAULT_BALANCE, call);
+    const balance = structuredClone(DEFAULT_BALANCE) as BalanceConfig;
+    patch(balance);
+    expect(derivedLinkTargets(balance, call)).not.toEqual(before);
   });
 
   it('reads every balance domain from some fact, but the domains whose content has not landed', () => {

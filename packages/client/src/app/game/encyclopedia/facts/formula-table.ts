@@ -3,7 +3,14 @@
 // (an id or a closed selector). Content names a row and its argument; it can never write a closure, a sum or a
 // factor. A new row is reviewed here. `engulf_phase_span` lands with its shared function in #362.
 
-import { levelUpCost, maxSpeedForMass, radiusForMass, type BalanceConfig, type ValueOf } from '@evolution/shared';
+import {
+  FIRST_LEVEL,
+  levelUpCost,
+  maxSpeedForMass,
+  radiusForMass,
+  type BalanceConfig,
+  type ValueOf,
+} from '@evolution/shared';
 
 /** A mass the balance names: the starting mass and the cap. */
 export const BALANCE_MASS = { starting: 'starting', max: 'max' } as const;
@@ -34,7 +41,6 @@ export type FactFormulaCall = {
   [Id in FactFormulaId]: { readonly id: Id; readonly argument: FactFormulaArguments[Id] };
 }[FactFormulaId];
 
-const FIRST_LEVEL = 1;
 /** `levelUpCost(level)` is the cost from `level` to the next, so the last level-up starts one below the cap. */
 const LEVELS_BELOW_CAP_OF_LAST_LEVEL_UP = 1;
 
