@@ -157,13 +157,15 @@ export const INDICATOR_FONT = {
   value: {
     name: 'evolution-indicator-value',
     weight: 'normal',
-    chars: '0123456789',
+    // The numeral, and the legibility cues' amounts and rates: `+3`, `−9.4/s` (docs/ui/hud.md §3.1.5).
+    chars: '0123456789+−./s',
   },
   label: {
     name: 'evolution-indicator-label',
     weight: 'bold',
-    // Pre-rendered set; a player name with other glyphs adds them on first use (DynamicBitmapFont).
-    chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ·'-.!?",
+    // Pre-rendered set; a player name with other glyphs adds them on first use (DynamicBitmapFont). The cues add the
+    // signs of `−15 %` and `×1.5`.
+    chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ·'-.!?−+%×/",
   },
 } as const;
 /** Glyph padding in the font atlas, so the numeral's outline is never clipped. */

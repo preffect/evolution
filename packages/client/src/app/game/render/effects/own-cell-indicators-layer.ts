@@ -5,6 +5,7 @@
 // clip whose `ringFlash` track flashes the ring and the numeral gold from the frame the own cell's `level_up` effect
 // arrives — the server's moment, never a diff of the record (docs/architecture/client.md §6). Placements are
 // `own-cell-indicators.ts`'s data; this class only applies them. Nothing is drawn without a record or an own cell.
+// The label it placed is kept as a box, so the legibility cues drawn after it can yield to it (docs/ui/hud.md §3.1.5).
 
 import {
   EFFECT_KIND,
@@ -15,6 +16,8 @@ import {
   type GameEffect,
 } from '@evolution/shared';
 import { Container, type Sprite } from 'pixi.js';
+import { LABEL_PILL_HEIGHT_PX } from '../constants';
+import { HALF, type UprightBox } from '../geometry';
 import { SpritePool, placeSprite } from '../sprite-pool';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import type { IndicatorTextures } from '../textures/indicator-textures';
@@ -63,6 +66,7 @@ export class OwnCellIndicatorsLayer {
   /** Built on the first frame with something to say: `BitmapText` wants a real canvas (`indicator-text.ts`). */
   private text: IndicatorText | null = null;
   private cellId: EntityId | null = null;
+  private labelBoxPx: UprightBox | null = null;
 
   constructor(
     private readonly textures: IndicatorTextures,
@@ -99,6 +103,7 @@ export class OwnCellIndicatorsLayer {
     );
     this.pool.hideFrom(placements.sprites.length);
     showTexts(text, placements, frame.zoom);
+    this.labelBoxPx = labelBoxOf(placements, ownCell, frame.zoom);
     return outputsOf(placements, this.arcMesh.count);
   }
 
@@ -110,6 +115,11 @@ export class OwnCellIndicatorsLayer {
   /** The arc rows the next render draws, `ARC_INSTANCE_FLOATS` each: a test reads them. */
   get arcRows(): Readonly<Float32Array> {
     return this.arcMesh.instances;
+  }
+
+  /** The threat or escape label's pill as last placed, px in the own cell's frame; `null` when none shows. */
+  get labelBox(): UprightBox | null {
+    return this.labelBoxPx;
   }
 
   /** The fill's tween and the level-up flash: a new cell starts both fresh, its own `level_up` flashes and jumps the fill. */
@@ -145,6 +155,7 @@ export class OwnCellIndicatorsLayer {
     this.text?.hideNumeral();
     this.text?.hideLabel();
     this.cellId = null;
+    this.labelBoxPx = null;
     this.fill.reset();
     this.flash.clear();
   }
@@ -160,6 +171,18 @@ function showTexts(text: IndicatorText, placements: OwnCellIndicatorPlacements, 
   text.showNumeral(placements.numeral, zoom);
   if (placements.label === null) text.hideLabel();
   else text.showLabel(placements.label, zoom);
+}
+
+/** The placed label's pill in px from the own cell's centre: what the cue layout keeps clear of. */
+function labelBoxOf(placements: OwnCellIndicatorPlacements, ownCell: CellView, zoom: number): UprightBox | null {
+  const { label } = placements;
+  if (label === null) return null;
+  return {
+    x: (label.x - ownCell.x) * zoom,
+    y: (label.y - ownCell.y) * zoom,
+    halfWidth: label.pillWidthPx * HALF,
+    halfHeight: LABEL_PILL_HEIGHT_PX * HALF,
+  };
 }
 
 function outputsOf(placements: OwnCellIndicatorPlacements, arcs: number): OwnCellIndicatorsLayerOutputs {

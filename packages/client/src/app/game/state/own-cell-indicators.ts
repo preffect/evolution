@@ -24,6 +24,7 @@ import {
   type CellView,
   type EngulfPhase,
   type EntityId,
+  type OwnProgressView,
   type OwnedTrait,
   type PlayerProgressView,
   type TraitDefinition,
@@ -33,6 +34,9 @@ import {
 import { LADDER_ORBIT_ANGLES_PAIR_DEG, LADDER_ORBIT_ANGLE_SINGLE_DEG } from '../render/constants';
 import { sprintFillFor } from '../hud/format/sprint-fill';
 import type { Threat } from '../hud/format/threats-for';
+import type { ZoneEntryMemory } from '../hud/format/zone-pill';
+import { legibilityCuesFor, type LegibilityCues } from './legibility-cues';
+import type { MassTrendMemory } from './mass-trend';
 
 const FULL = 1;
 const EMPTY = 0;
@@ -90,7 +94,8 @@ export interface OwnCellThreat {
   readonly label: string;
 }
 
-export interface OwnCellIndicators {
+/** The ladder and the threat half (§3.1.2) plus the legibility cues (§3.1.5, `legibility-cues.ts`). */
+export interface OwnCellIndicators extends LegibilityCues {
   readonly level: number;
   /** 0..1 toward the next level; 1 at `MAX_LEVEL`. */
   readonly dnaFraction: number;
@@ -236,14 +241,21 @@ function nearestThreatOf(threats: readonly Threat[]): OwnCellThreat | null {
 /** Everything the record is derived from; a record rather than a parameter list, which ran long. */
 export interface OwnCellIndicatorsInput {
   readonly ownCell: CellView;
-  readonly ownProgress: PlayerProgressView;
+  readonly ownProgress: OwnProgressView;
   /** The room's live balance, so `debug_set_balance` is felt by the ring and the escape arc. */
   readonly balance: BalanceConfig;
   /** `threatsFor(...)`'s output, nearest first; empty while nothing on screen can eat us. */
   readonly threats: readonly Threat[];
   /** The picker's previewed card (#188), which hides the ghost of the rung it shows. */
   readonly previewTraitId: TraitId | null;
+  /** The newest snapshot's tick (the zone pill's clock); 0 when absent. */
+  readonly tick?: number;
+  /** The cue memories `GameStateService` carries (§3.1.5); absent reads a steady chip and no pill. */
+  readonly massTrend?: MassTrendMemory | null;
+  readonly zoneEntry?: ZoneEntryMemory | null;
 }
+
+const NO_TICK = 0;
 
 /**
  * The whole record. The escape arc takes the threat label's place while `being_engulfed`, so the
@@ -252,7 +264,17 @@ export interface OwnCellIndicatorsInput {
 export function ownCellIndicatorsFor(input: OwnCellIndicatorsInput): OwnCellIndicators {
   const { ownCell, ownProgress, balance, threats, previewTraitId } = input;
   const escape = escapeFor(ownCell, balance);
+  const cues = legibilityCuesFor({
+    ownCell,
+    ownProgress,
+    balance,
+    tick: input.tick ?? NO_TICK,
+    massTrend: input.massTrend ?? null,
+    zoneEntry: input.zoneEntry ?? null,
+    isBeingEngulfed: escape !== null,
+  });
   return {
+    ...cues,
     level: ownProgress.level,
     dnaFraction: dnaFractionFor(ownProgress, balance),
     isMaxLevel: isAtMaxLevel(ownProgress, balance),

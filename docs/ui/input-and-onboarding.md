@@ -127,7 +127,7 @@ explains touches the player, so they fire on a game event, not in order. The que
 ## 6. Readability during play
 
 - **Exclusion box** (§1) is absolute for DOM while alive and playing; the picker's dim keeps its spotlight; toasts
-  and the connection banner stack from the top, never downward past `HUD_NOTICE_STACK_BOTTOM_PX` (y 96). Inside the
+  and the connection banner stack from the top, never downward past `NOTICE_STACK_MAX_Y_PX` (y 96). Inside the
   box the own cell, its indicators and its legibility cues (the mass chip, rate tags, floaters, zone pill and
   relation labels, hud.md §3.1.5, decision #324) are the only drawn things besides the dish; every one of them is
   renderer-drawn and world-anchored, never DOM, and meets §3.1.3's reading floor (numbers `value`, causes `label`).
