@@ -147,7 +147,7 @@ target and recorded, not solved (§11.3).
 
 1. **The lens**: a circle `ENCYCLOPEDIA_LENS_DIAMETER_PX` across, `encyclopedia-lens.component.ts`. It hosts the one
    preview canvas of the open encyclopedia in a square stage element of that side, clipped to the circle by a CSS
-   `clip-path: circle(50%)` on the stage (§12.7: the renderer never knows it is round, and every scene is framed 1:1
+   `border-radius: 50%; overflow: hidden` on the stage host (§12.7: the renderer never knows it is round, and every scene is framed 1:1
    inside its safe circle). Over the canvas the lens draws a DOM SVG overlay that takes no pointer: a
    `ENCYCLOPEDIA_LENS_RIM_PX` rim in `PANEL_RIM`, a 1 px inner ring in `UI_ACCENT` @
    `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`, `ENCYCLOPEDIA_LENS_TICK_COUNT` reticle ticks inward from the rim in the label
