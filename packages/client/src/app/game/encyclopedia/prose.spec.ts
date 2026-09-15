@@ -4,8 +4,21 @@
 
 import { describe, expect, it } from 'vitest';
 import { factContextFor } from './encyclopedia-context';
-import { PROSE_TOKEN, parseProseTemplate } from './model/prose';
+import { PROSE_TOKEN, parseProseTemplate, type ProseToken } from './model/prose';
 import { ENCYCLOPEDIA_ENTRIES, isEntryReference, resolveEntry } from './registry';
+
+/** A link token's reference, none for any other token. */
+function referenceOf(token: ProseToken): string[] {
+  return token.kind === PROSE_TOKEN.link ? [token.reference] : [];
+}
+
+/** Every `{factKey}` token of `template` names one of `factKeys`. */
+function expectValueTokensIn(template: string, factKeys: readonly string[], where: string): void {
+  for (const token of parseProseTemplate(template)) {
+    if (token.kind !== PROSE_TOKEN.value) continue;
+    expect(factKeys, `${where} {${token.factKey}}`).toContain(token.factKey);
+  }
+}
 
 const DIGIT = /\d/;
 const TIER_WORD_NUMERAL = /\btier\s+[ivx]+\b/i;
@@ -50,26 +63,23 @@ describe('the prose rule', () => {
     }
   });
 
-  it('names only facts in scope and registry entries, so every entry resolves over the default balance', () => {
+  it('names only registry entries and anchors in its links', () => {
+    for (const entry of ENCYCLOPEDIA_ENTRIES) {
+      const templates = [entry.summary, ...entry.sections.flatMap((section) => [section.heading, section.body])];
+      const references = templates.flatMap(parseProseTemplate).flatMap(referenceOf);
+      for (const reference of references) expect(isEntryReference(reference), `${entry.id}: ${reference}`).toBe(true);
+    }
+  });
+
+  it('names only facts in scope at the shipped balance, so every entry resolves over it', () => {
     for (const entry of ENCYCLOPEDIA_ENTRIES) {
       const resolved = resolveEntry(entry.id, context);
-      const entryKeys = new Set(resolved.facts.map((fact) => fact.key));
-      const templates = [entry.summary, ...entry.sections.flatMap((section) => [section.heading, section.body])];
-      for (const token of templates.flatMap((template) => parseProseTemplate(template))) {
-        if (token.kind === PROSE_TOKEN.link) expect(isEntryReference(token.reference), token.reference).toBe(true);
-      }
+      const entryKeys = resolved.facts.map((fact) => fact.key);
+      expectValueTokensIn(entry.summary, entryKeys, entry.id);
       for (const [index, section] of entry.sections.entries()) {
-        // At the shipped balance a tier token names a modifier its tier actually sets, or a fact of the entry.
-        const sectionKeys = new Set([...entryKeys, ...(resolved.sections[index]?.facts ?? []).map((fact) => fact.key)]);
-        for (const token of parseProseTemplate(section.body)) {
-          if (token.kind === PROSE_TOKEN.value) {
-            expect(sectionKeys.has(token.factKey), `${entry.id}#${section.key} {${token.factKey}}`).toBe(true);
-          }
-        }
-      }
-      for (const token of parseProseTemplate(entry.summary)) {
-        if (token.kind === PROSE_TOKEN.value)
-          expect(entryKeys.has(token.factKey), `${entry.id} {${token.factKey}}`).toBe(true);
+        // A tier token names a modifier its tier actually sets, or a fact of the entry.
+        const sectionKeys = [...entryKeys, ...(resolved.sections[index]?.facts ?? []).map((fact) => fact.key)];
+        expectValueTokensIn(section.body, sectionKeys, `${entry.id}#${section.key}`);
       }
     }
   });

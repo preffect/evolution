@@ -67,7 +67,7 @@ type WithEveryTrait<Rows extends readonly TraitEntryContentRow[]> =
 function contentByTrait<Rows extends readonly TraitEntryContentRow[]>(
   rows: WithEveryTrait<Rows>,
 ): Readonly<Record<TraitId, TraitEntryContent>> {
-  return Object.fromEntries(rows.map((row) => [row.traitId, row])) as Record<TraitId, TraitEntryContent>;
+  return Object.fromEntries(rows.map((row) => [row.traitId, row])) as unknown as Record<TraitId, TraitEntryContent>;
 }
 
 /** Catalog ids are snake_case, so the copy is rows rather than a record literal keyed by id. */
