@@ -81,7 +81,13 @@ interface HeldPairState {
   progress: number | null;
 }
 
-/** Step 5 for the pair: contact toxin until the engulf is past cover, then the swallowed dose, plus the spikes. */
+/**
+ * Step 5 for the pair: contact toxin until the engulf is past cover, then the swallowed dose, plus the spikes.
+ * This mirrors `metabolise` / `engulfDrainOf` (docs/ecology/mass-and-movement.md §4.1) rather than calling them, on
+ * purpose: the rows compare the simulation against this model, and a model that called the step would be
+ * comparing the simulation with itself. The rules it must not copy — eligibility and pace — are the shared
+ * functions below, and the design row's own numbers guard the pair of them drifting together (T22).
+ */
 function metabolisePair(state: HeldPairState, input: HeldPairModelInput): void {
   const { prey } = input;
   const isPastCover = state.progress !== null && engulfPhaseOf(state.progress, absorption) !== ENGULF_PHASE.cover;
