@@ -472,7 +472,14 @@ export interface FormatOptions {
 export function formatQuantity(value: number, unit: QuantityUnit, options?: FormatOptions): string;
 
 // quantities/modifier-labels.ts — moved from hud/format/trait-effects.ts; hud/ and encyclopedia/ both import it
-export const MODIFIER_LABELS: Readonly<Record<keyof CellModifiers, (value: number) => string>>;
+export interface ModifierLabel {
+  readonly noun: string; // the effect's name alone: `speed`, `sprint cooldown`; the encyclopedia fact's label
+  readonly formatValue: (value: number) => string; // `+15 %`, `−0.5 s`, through `formatQuantity`; the fact's text
+  readonly formatLine?: (value: number) => string; // the card line where it is a sentence: `Toxin reaches 1.5 radii`
+}
+export const MODIFIER_LABELS: Readonly<Record<keyof CellModifiers, ModifierLabel>>;
+/** The card line: `formatLine`, else `${formatValue(value)} ${noun}` (`+15 % speed`). */
+export function modifierLine(key: keyof CellModifiers, value: number): string;
 export function nonIdentityModifiers(
   tierRow: TraitTierModifiers,
   identity: CellModifiers,
@@ -518,7 +525,7 @@ spec below, never on a player's screen.
 | `lint-guard.spec.ts`            | The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; ESLint (`Linter` over fixture sources) rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access, a number literal and a binary arithmetic expression under `encyclopedia/content/**`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `quantities/*.spec.ts`          | Every unit × presentation × rounding, the trimming and sign rules; the trait card, status mirror, round clock and leaderboard text unchanged by the move                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
-**Lint guard.** `eslint.config.js` gains two blocks (spec files are exempt: they read `DEFAULT_BALANCE` to pin the
+**Lint guard.** `eslint.config.js` gains two blocks (the folders' own `*.spec.ts` and `*.integration.spec.ts` files are exempt: they read `DEFAULT_BALANCE` to pin the
 shipped text):
 
 - `packages/client/src/app/game/{encyclopedia,quantities}/**`: `no-restricted-imports` forbids importing an

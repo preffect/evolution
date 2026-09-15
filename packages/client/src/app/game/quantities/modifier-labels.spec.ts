@@ -1,34 +1,55 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE } from '@evolution/shared';
-import { MODIFIER_LABELS, nonIdentityModifiers } from './modifier-labels';
+import { DEFAULT_BALANCE, type CellModifiers } from '@evolution/shared';
+import { MODIFIER_LABELS, modifierLine, nonIdentityModifiers } from './modifier-labels';
 
 const IDENTITY = DEFAULT_BALANCE.traits.DEFAULT_CELL_MODIFIERS;
+const KEYS = Object.keys(MODIFIER_LABELS) as (keyof CellModifiers)[];
 
 describe('MODIFIER_LABELS', () => {
   it('labels exactly the modifiers of the identity record, so a new one without copy fails here', () => {
-    expect(Object.keys(MODIFIER_LABELS).sort()).toEqual(Object.keys(IDENTITY).sort());
+    expect([...KEYS].sort()).toEqual(Object.keys(IDENTITY).sort());
   });
 
+  it('gives every modifier a noun with no figure in it, and a value that is a figure', () => {
+    for (const key of KEYS) {
+      const { noun, formatValue } = MODIFIER_LABELS[key];
+      expect(noun, key).toMatch(/^[A-Za-z][A-Za-z -]*$/);
+      expect(formatValue(0.5), key).toMatch(/\d/);
+      expect(formatValue(0.5), key).not.toContain(noun);
+    }
+  });
+
+  it('keeps the value beside its noun for the encyclopedia’s fact table', () => {
+    expect(MODIFIER_LABELS.decayMultiplier.noun).toBe('mass decay');
+    expect(MODIFIER_LABELS.decayMultiplier.formatValue(0.85)).toBe('−15 %');
+    expect(MODIFIER_LABELS.toxinAuraRangeInRadii.noun).toBe('toxin reach');
+    expect(MODIFIER_LABELS.toxinAuraRangeInRadii.formatValue(1.5)).toBe('1.5 radii');
+  });
+});
+
+describe('modifierLine', () => {
   it('reads a range of one in the singular and every other range in the plural', () => {
-    expect(MODIFIER_LABELS.toxinAuraRangeInRadii(1)).toBe('Toxin reaches 1 radius');
-    expect(MODIFIER_LABELS.toxinAuraRangeInRadii(1.5)).toBe('Toxin reaches 1.5 radii');
-    expect(MODIFIER_LABELS.attractRangeInRadii(1)).toBe('Pulls food from 1 radius');
-    expect(MODIFIER_LABELS.attractRangeInRadii(3)).toBe('Pulls food from 3 radii');
+    expect(modifierLine('toxinAuraRangeInRadii', 1)).toBe('Toxin reaches 1 radius');
+    expect(modifierLine('toxinAuraRangeInRadii', 1.5)).toBe('Toxin reaches 1.5 radii');
+    expect(modifierLine('attractRangeInRadii', 1)).toBe('Pulls food from 1 radius');
+    expect(modifierLine('attractRangeInRadii', 3)).toBe('Pulls food from 3 radii');
   });
 
-  it('reads a shorter duration as the rate it gives, a multiplier as its change and a delta with its unit', () => {
-    expect(MODIFIER_LABELS.wrapDurationMultiplierAsPredator(0.5)).toBe('+100 % wrap speed');
-    expect(MODIFIER_LABELS.absorbDurationMultiplierAsPredator(0.8)).toBe('+25 % absorb speed');
-    expect(MODIFIER_LABELS.speedMultiplier(0.9)).toBe('−10 % speed');
-    expect(MODIFIER_LABELS.sprintCooldownSecondsDelta(-0.5)).toBe('−0.5 s sprint cooldown');
-    expect(MODIFIER_LABELS.photosynthesisMassPerSecond(0.3)).toBe('+0.3 mass / s in sunlight');
-    expect(MODIFIER_LABELS.spitOutChancePerSecond(0.05)).toBe('5 % / s spit-out chance');
-    expect(MODIFIER_LABELS.attractSpeed(40)).toBe('Food drifts in at 40 u/s');
+  it('joins the value and the noun: a shorter duration as its rate, a multiplier as its change, a delta with its unit', () => {
+    expect(modifierLine('wrapDurationMultiplierAsPredator', 0.5)).toBe('+100 % wrap speed');
+    expect(modifierLine('absorbDurationMultiplierAsPredator', 0.8)).toBe('+25 % absorb speed');
+    expect(modifierLine('speedMultiplier', 0.9)).toBe('−10 % speed');
+    expect(modifierLine('sprintCooldownSecondsDelta', -0.5)).toBe('−0.5 s sprint cooldown');
+    expect(modifierLine('photosynthesisMassPerSecond', 0.3)).toBe('+0.3 mass / s in sunlight');
+    expect(modifierLine('spitOutChancePerSecond', 0.05)).toBe('5 % / s spit-out chance');
   });
 
-  it('reads a gel floor below full speed as a floor, and one at full speed as no slowdown at all', () => {
-    expect(MODIFIER_LABELS.gelSpeedFactorFloor(0.6)).toBe('Gel slows you to no less than 60 %');
-    expect(MODIFIER_LABELS.gelSpeedFactorFloor(1)).toBe('Gel no longer slows you');
+  it('reads a sentence-shaped row through its own line', () => {
+    expect(modifierLine('attractSpeed', 40)).toBe('Food drifts in at 40 u/s');
+    expect(modifierLine('spikeDrainFractionPerSecond', 0.02)).toBe('Spines drain 2 % / s');
+    expect(modifierLine('dnaKeptOnDeathFraction', 0.75)).toBe('Keeps 75 % DNA on death');
+    expect(modifierLine('gelSpeedFactorFloor', 0.6)).toBe('Gel slows you to no less than 60 %');
+    expect(modifierLine('gelSpeedFactorFloor', 1)).toBe('Gel no longer slows you');
   });
 });
 

@@ -301,7 +301,8 @@ export default tseslint.config(
   {
     // ---- architecture/encyclopedia.md §12.6: the formatter and the encyclopedia read tunables from the live balance
     files: [`${LIVE_BALANCE_READERS}/**/*.ts`],
-    ignores: [...TEST_FILES, ...ENCYCLOPEDIA_DEFAULT_BALANCE_FILES],
+    // Only their own specs (`*.spec.ts`, `*.integration.spec.ts`) read `DEFAULT_BALANCE`, to pin the shipped text.
+    ignores: [`${LIVE_BALANCE_READERS}/**/*.spec.ts`, ...ENCYCLOPEDIA_DEFAULT_BALANCE_FILES],
     rules: liveBalanceOnlyRules(SHARED_NAMES_WITHOUT_A_BALANCE_KEY),
   },
   {
