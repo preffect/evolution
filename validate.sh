@@ -6,7 +6,7 @@
 #   test         Run unit tests with coverage thresholds (pnpm -r test)
 #   integration  Run the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (pnpm -r test:integration)
 #   typecheck    Run type checking (pnpm -r typecheck)
-#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness)
+#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
 #   all          Run lint, duplication, typecheck, test in sequence, stopping at the first failing phase
 #                (FAILED: <phase>), then one line of per-phase wall times; `all --affected` adds integration last
@@ -352,7 +352,7 @@ apply_affected_selection() {
   done
   [[ ${#AFFECTED_PACKAGES[@]} -ne 1 ]] || SCOPE_PACKAGE="${AFFECTED_PACKAGES[0]}"
   LINT_PATHS+=("${AFFECTED_DOC_FILES[@]}")
-  [[ $IS_DOCS_AFFECTED -eq 0 ]] || { tokens+=(docs); report_affected "docs: lint only (prettier on ${#AFFECTED_DOC_FILES[@]} changed docs, the docs index)"; }
+  [[ $IS_DOCS_AFFECTED -eq 0 ]] || { tokens+=(docs); report_affected "docs: lint only (prettier on ${#AFFECTED_DOC_FILES[@]} changed docs)"; }
   SHELL_SUITES_SELECTED=$IS_SCRIPTS_AFFECTED
   [[ $IS_SCRIPTS_AFFECTED -eq 0 ]] || { tokens+=(scripts); report_affected "scripts: the shell suites (scripts/*.test.sh)"; }
   [[ ${#tokens[@]} -gt 0 ]] || { tokens+=(nothing); report_affected "nothing: no change against $AFFECTED_BASE_REF; lint only"; }
@@ -920,7 +920,6 @@ run_one() {
       # Each audit is captured on its own: a substitution only reports its last command's status.
       local directive_out=""
       local todo_out=""
-      local docs_index_out=""
       local audit_rc=0
 
       # An empty path list (`all --affected` over docs or scripts alone) skips that tool: eslint with
@@ -935,11 +934,10 @@ run_one() {
         directive_out="$(audit_disable_directives)" || audit_rc=1
         todo_out="$(audit_todo_markers)" || audit_rc=1
       fi
-      docs_index_out="$(scripts/docs-index.sh --check 2>&1)" || audit_rc=1
 
       output="${lint_out}"
       local extra
-      for extra in "$prettier_out" "$directive_out" "$todo_out" "$docs_index_out"; do
+      for extra in "$prettier_out" "$directive_out" "$todo_out"; do
         if [[ -n "$extra" ]]; then
           output="${output}
 ${extra}"

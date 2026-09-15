@@ -36,6 +36,10 @@ coverage/
 # Devcontainer build artifact
 .devcontainer/.build-checksum
 
+# The docs index is generated on demand (scripts/docs-index.sh, #407), never committed
+docs/INDEX.md
+docs/.INDEX.md.*
+
 # Claude personal notes
 CLAUDE.local.md
 
