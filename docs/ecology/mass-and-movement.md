@@ -30,7 +30,8 @@ mass' = max(CELL_STARTING_MASS, mass − decayPerSecond × TICK_INTERVAL_S − m
 
 The contact drain is a share of the victim's own mass (a field: everything near the poison loses the same
 share); the swallowed dose is set by the prey's mass (#154: a heavy predator is not punished for its size,
-so a meal it completes always pays, `traits/catalog-organelles.md §3.11`).
+so a completed meal of a prey whose only defence is the toxin always pays, `traits/catalog-organelles.md §3.11`;
+armour stacked on it can still tip a meal negative, `traits/catalog-forms.md §3.17`).
 
 The photosynthesis term is a mass gain like eating: it goes through the cap of §5.4, and the part
 above `CELL_MAX_MASS` becomes DNA at `MASS_OVERFLOW_DNA_PER_MASS` (#179). A cell with no player (a

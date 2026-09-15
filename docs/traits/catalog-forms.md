@@ -90,11 +90,19 @@ The `primary_locomotion` group of §4 has no build-1 member: the simple flagellu
 At tier I the trio is beatable: a 2 × predator pays out with ≈ 31 % spit-out risk over the meal and nets
 ≈ +54 on a prey of 100. At tier III it is nearly unkillable (a 3 × predator nets ≈ −4 on a completed
 meal and faces a ≈ 73 % spit-out; T22), and Food Vacuole III is the answer (≈ +45, ≈ 53 % spit-out). No
-exclusion is added: tier III of three traits is out of reach inside a 600 s round
-([`game-design/session.md §5.1`](../game-design/session.md#51-round-timeline-and-pace-curve)), no
-`WILD_CELL_BUILDS` list carries the toxin with the shell, and a cell that only defends earns no
-absorptions, so it grazes but does not win (score, session.md §5.3). If rounds lengthen, this is the first
-balance row to revisit.
+exclusion is added, because the full trio is unreachable at any round length: it needs 12 picks (the three
+gates, Nucleoid Coil, an endosymbiont and Nuclear Envelope, plus nine tiers), and levels 1 → 12 give only 11
+drafts ([`PROGRESSION.md`](../PROGRESSION.md)). The 11-pick near-trios are reachable in a long round, and a
+3 × predator beats every one of them on a completed meal (spit-out forced to miss, prey 100):
+
+| Build (Wall / Diatom / Toxin) | Net at 2.5 × | Net at 3 × | Spit-out risk it faces at 3 × |
+| ----------------------------- | ------------ | ---------- | ----------------------------- |
+| II / III / III                | ≈ −5.9       | ≈ +5.4     | ≈ 69 %                        |
+| III / II / III                | ≈ +3.0       | ≈ +11.9    | ≈ 53 %                        |
+| III / III / II                | ≈ +12.1      | ≈ +18.9    | ≈ 72 %                        |
+
+No `WILD_CELL_BUILDS` list carries the toxin with the shell, and a cell that only defends earns no
+absorptions, so it grazes but does not win (score, session.md §5.3).
 
 Distinguishability at small sizes (the graphics sign-off in #25): every rung and every form owns one
 silhouette change (nucleus-free blob / thread / tail / double rim / stipple / bean / lens / bounded
@@ -120,7 +128,7 @@ engulf field set; "none, by design" carries its reason. Tier I / II / III values
 | Cytoskeleton Lattice | none, by design (wrapping is the pseudopods' job, which require it)                                                                  | `struggleSlowdownBonus` +0.10 / +0.20 / +0.30 (steering away slows the wrap by 0.6 / 0.7 / 0.8) and the faster acceleration breaks contact sooner (T14)                                                                                                                            | cover, wrap            |
 | Cilia Fringe         | none, by design (cilia move, they do not hold)                                                                                       | `gripResistanceBonus` +0.05 / +0.10 / +0.15 (held speed factor 0.85 / 0.90 / 0.95) plus the cruising speed (T15)                                                                                                                                                                   | wrap                   |
 | Food Vacuole         | `absorbDurationMultiplierAsPredator` 0.80 / 0.64 / 0.51 and `engulfMassYieldBonus` +0.05 / +0.10 / +0.15 (T6)                        | none, by design                                                                                                                                                                                                                                                                    | absorb, payout         |
-| Toxin Vacuole        | the base drain on the prey it touches, nothing more, by design (poison is not a grip)                                                | `toxinDrainFractionPerSecond` 0.03 / 0.05 / 0.07; once wrapped the predator takes a dose of × 8 that of **your** mass (0.24 / 0.40 / 0.56 × your mass per second, #154) until the ratio fails and it ejects you: beats predators up to ≈ 1.35 / 1.49 / 1.63 × your mass (T18, T21) | wrap, absorb (ratio)   |
+| Toxin Vacuole        | the base drain on the prey it touches, nothing more, by design (poison is not a grip)                                                | `toxinDrainFractionPerSecond` 0.03 / 0.05 / 0.07; once wrapped the predator takes a dose of × 8 that of **your** mass (0.24 / 0.40 / 0.56 × your mass per second, #154) until the ratio fails and it ejects you: beats predators up to ≈ 1.34 / 1.49 / 1.62 × your mass (T18, T21) | wrap, absorb (ratio)   |
 | Amoeba Pseudopods    | `wrapDurationMultiplierAsPredator` 0.85 / 0.75 / 0.65 and `gripStrengthBonus` +0.1 / +0.2 / +0.3 (held factor 0.7 / 0.6 / 0.5) (T13) | none, by design (its wriggle is the Cytoskeleton Lattice it requires)                                                                                                                                                                                                              | wrap                   |
 | Paramecium Cilia     | none, by design (a groove sweeps motes; no pseudopods)                                                                               | `struggleSlowdownBonus` +0.10 / +0.15 / +0.20, on top of the Cilia Fringe's slip and its own speed and acceleration (T16)                                                                                                                                                          | cover, wrap            |
 | Euglena Eyespot      | none, by design (it senses motes; a wrapped cell is not a mote)                                                                      | none, by design                                                                                                                                                                                                                                                                    | —                      |

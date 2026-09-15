@@ -167,9 +167,10 @@ Visual: 2 / 3 / 4 orange digestive vacuoles that bubble; prey dissolves visibly 
 A predator touching you loses that share of its own mass every second. One that has wrapped you takes a
 dose set by **your** mass instead (`ENGULF_SWALLOWED_TOXIN_MULTIPLIER` = 8: 0.24 / 0.40 / 0.56 × your mass
 per second, #154); when it drops below `releaseRatio` you are ejected, sealed or not (base rule,
-ecology/absorption.md §6.1). Tier I / II / III frees you from a predator up to ≈ 1.35 / 1.49 / 1.63 × your
+ecology/absorption.md §6.1). Tier I / II / III frees you from a predator up to ≈ 1.34 / 1.49 / 1.62 × your
 mass (T18); heavier ones finish before the poison bites, the mass they shed is gone for good, and
-because the dose does not grow with the predator a meal that completes always pays: a 5 × predator
-eating a Toxin Vacuole III prey of 100 sheds ≈ 31 and gains 80 (T21). As predator: the vacuole drains the
+because the dose does not grow with the predator, a completed meal of a prey whose only defence is the
+toxin always pays: a 5 × predator eating a Toxin Vacuole III prey of 100 sheds ≈ 31 and gains 80 (T21).
+Armour stacked on the toxin can still make a completed meal cost more than it yields (§3.17, T22). As predator: the vacuole drains the
 prey you touch like any other cell (base rule) and nothing more, by design (poison is not a grip).
 Visual: one large violet vacuole pulsing near the nucleus. Audio: hiss while draining.

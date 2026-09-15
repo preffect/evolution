@@ -145,8 +145,9 @@ and absorb) the poison is inside the membrane, and the engulfer loses
 (§4.1), in place of the contact drain that prey put on it in cover. Spikes cut the swallower in every
 phase from the tick after the start, `prey.mass × prey.spikeDrainFractionPerSecond` per second. Both
 read the **prey's** mass, not the predator's: a poison cell is a fixed dose, so a heavy predator that
-finishes quickly pays less than a marginal one, and never more than the meal is worth
-(`traits/catalog-organelles.md §3.11`). Both work through the ratio: the predator sheds mass until
+finishes quickly pays less than a marginal one. A prey whose only defence is the toxin is always worth
+finishing (`traits/catalog-organelles.md §3.11`, T21); armour stacked on the toxin can still make a
+completed meal cost more than it yields (`traits/catalog-forms.md §3.17`, T22). Both work through the ratio: the predator sheds mass until
 `canContinue` fails and the prey is released (`ratio`), in whatever phase, seal included. **What the
 player sees:** the predator's rim flashes violet and its mass readout falls while it holds the prey,
 and an ejected prey pops out of it with the `ratio` release; the HUD threat chip still warns on mass
