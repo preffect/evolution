@@ -28,7 +28,7 @@ import {
   type CardPointerEvent,
 } from './format/card-highlight';
 import { traitOfferViewFor, type TraitOfferViewModel } from './format/trait-cards';
-import { FocusReturn } from './focus-return';
+import { FocusReturn } from '../../ui-kit/focus-return';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID } from './test-ids';
 import { TraitCardComponent } from './trait-card.component';

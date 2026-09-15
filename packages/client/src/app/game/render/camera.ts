@@ -1,34 +1,12 @@
 // The camera (docs/game-design/controls-and-scope.md §7): centred on the followed cell, zoomed out as it grows, both
-// smoothed client-side and purely cosmetic. Pure functions over a small state; the render loop
-// owns the state and the injected clock's delta.
+// smoothed and purely cosmetic. The follow, the zoom and Z1's view half-height are shared (`@evolution/shared`,
+// `camera/camera-follow.ts`), because the server runs the same camera per viewer to cull its snapshots; this file adds
+// what only a screen has: the viewport, the projections and the draw cull. The render loop owns the state and the
+// injected clock's delta.
 
-import {
-  CAMERA_FOLLOW_SECONDS,
-  CAMERA_MAX_VIEW_HALF_HEIGHT_WU,
-  CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
-  CAMERA_VIEW_RADIUS_EXPONENT,
-  CAMERA_ZOOM_SECONDS,
-  DEFAULT_BALANCE,
-  DISH_RADIUS,
-  clamp,
-  radiusForMass,
-} from '@evolution/shared';
+import type { CameraState } from '@evolution/shared';
 import { CAMERA_CULL_MARGIN_RADII } from './constants';
 import { HALF } from './geometry';
-
-export interface CameraState {
-  /** World centre (wu). */
-  readonly x: number;
-  readonly y: number;
-  /** Half the vertical extent of the view (wu); the vertical extent is authoritative. */
-  readonly viewHalfHeightWu: number;
-}
-
-export interface CameraTarget {
-  readonly x: number;
-  readonly y: number;
-  readonly radius: number;
-}
 
 export interface ViewportPx {
   readonly width: number;
@@ -53,47 +31,6 @@ export interface ScreenPoint {
 export interface WorldPoint {
   readonly x: number;
   readonly y: number;
-}
-
-/** The starting cell's radius (wu) at the shipped balance: the view leaves its floor exactly there, whatever a patched room says. */
-const SPAWN_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_STARTING_MASS, DEFAULT_BALANCE.growth);
-
-/**
- * Z1's partial zoom (decision #324): `clamp(MIN × (radius / spawnRadius) ^ CAMERA_VIEW_RADIUS_EXPONENT, MIN, MAX)`.
- * The view grows more slowly than the cell, so a growing cell grows on screen and a shrinking one shrinks.
- */
-export function viewHalfHeightFor(radius: number): number {
-  const growth = (radius / SPAWN_RADIUS_WU) ** CAMERA_VIEW_RADIUS_EXPONENT;
-  return clamp(CAMERA_MIN_VIEW_HALF_HEIGHT_WU * growth, CAMERA_MIN_VIEW_HALF_HEIGHT_WU, CAMERA_MAX_VIEW_HALF_HEIGHT_WU);
-}
-
-/** The view never centres outside the dish: the world ends at the wall. */
-function clampToDish(x: number, y: number): { x: number; y: number } {
-  const distance = Math.hypot(x, y);
-  if (distance <= DISH_RADIUS) return { x, y };
-  const scale = DISH_RADIUS / distance;
-  return { x: x * scale, y: y * scale };
-}
-
-/** The camera parked on a target with no smoothing (spawn, a new round, a fixture). */
-export function parkCamera(target: CameraTarget): CameraState {
-  const centre = clampToDish(target.x, target.y);
-  return { x: centre.x, y: centre.y, viewHalfHeightWu: viewHalfHeightFor(target.radius) };
-}
-
-/** Exponential smoothing: the share of the remaining distance covered in `deltaSeconds` with time constant `tau`. */
-function smoothingFactor(deltaSeconds: number, tau: number): number {
-  return 1 - Math.exp(-Math.max(0, deltaSeconds) / tau);
-}
-
-/** One frame of follow and zoom toward `target`; with no target the camera holds. */
-export function stepCamera(state: CameraState, target: CameraTarget | null, deltaSeconds: number): CameraState {
-  if (target === null) return state;
-  const follow = smoothingFactor(deltaSeconds, CAMERA_FOLLOW_SECONDS);
-  const zoom = smoothingFactor(deltaSeconds, CAMERA_ZOOM_SECONDS);
-  const centre = clampToDish(state.x + (target.x - state.x) * follow, state.y + (target.y - state.y) * follow);
-  const wanted = viewHalfHeightFor(target.radius);
-  return { ...centre, viewHalfHeightWu: state.viewHalfHeightWu + (wanted - state.viewHalfHeightWu) * zoom };
 }
 
 /** CSS px per wu. */

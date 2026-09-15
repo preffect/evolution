@@ -1,0 +1,125 @@
+/* The kit button (docs/ui/components-and-constants.md §10.2). Every length is `calc(<token> * var(--ui-scale))` except
+   the focus ring, which is never scaled. */
+
+:host {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  height: calc(var(--ui-button-height) * var(--ui-scale));
+  margin: 0;
+  padding: 0 calc(var(--ui-button-padding-inline) * var(--ui-scale));
+  border: calc(var(--ui-rim) * var(--ui-scale)) solid transparent;
+  border-radius: calc(var(--ui-radius-control) * var(--ui-scale));
+  background-color: transparent;
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  font-weight: normal;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  appearance: none;
+  outline: none;
+  transition:
+    background-color var(--ui-transition),
+    border-color var(--ui-transition),
+    opacity var(--ui-transition);
+}
+
+/* The state tint sits over the variant's fill and under the label. */
+:host::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: transparent;
+  pointer-events: none;
+  transition: background-color var(--ui-transition);
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---- variants ---- */
+
+:host([data-variant='primary']) {
+  border-color: color-mix(in srgb, var(--ui-accent) calc(var(--ui-primary-rim-alpha) * 100%), transparent);
+  background-color: color-mix(in srgb, var(--ui-accent) calc(var(--ui-primary-fill-alpha) * 100%), transparent);
+  font-weight: bold;
+}
+
+:host([data-variant='secondary']),
+:host([data-variant='icon']) {
+  border-color: var(--ui-panel-rim);
+  background-color: color-mix(in srgb, var(--ui-text) calc(var(--ui-secondary-fill-alpha) * 100%), transparent);
+}
+
+/* The rim warns; the words, in the text colour, say what happens. */
+:host([data-variant='danger']) {
+  border-color: color-mix(in srgb, var(--ui-danger) calc(var(--ui-danger-rim-alpha) * 100%), transparent);
+}
+
+:host([data-variant='quiet']),
+:host([data-variant='icon']) {
+  color: var(--ui-text-label);
+}
+
+:host([data-variant='icon']) {
+  width: calc(var(--ui-button-height) * var(--ui-scale));
+  padding: 0;
+}
+
+/* ---- sizes ---- */
+
+:host([data-size='compact']) {
+  height: calc(var(--ui-button-compact-height) * var(--ui-scale));
+  padding: 0 calc(var(--ui-button-compact-padding-inline) * var(--ui-scale));
+}
+
+:host([data-size='compact'][data-variant='icon']) {
+  width: calc(var(--ui-button-compact-height) * var(--ui-scale));
+  padding: 0;
+}
+
+/* ---- states (§10.2's table) ---- */
+
+:host(:hover:not([aria-disabled='true']))::before {
+  background-color: var(--ui-hover);
+}
+
+:host(:active:not([aria-disabled='true']))::before {
+  background-color: var(--ui-pressed);
+}
+
+/* A label-colour variant takes the text colour while pressed: `TEXT_LABEL` over the pressed tint is exactly
+   4.50:1, with no margin, where `TEXT` is 7.4:1. */
+:host([data-variant='quiet']:active:not([aria-disabled='true'])),
+:host([data-variant='icon']:active:not([aria-disabled='true'])) {
+  color: var(--ui-text);
+}
+
+:host(:focus-visible) {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+:host([aria-disabled='true']) {
+  opacity: var(--ui-disabled-alpha);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host::before {
+    transition: none;
+  }
+}

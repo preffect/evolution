@@ -2,7 +2,11 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ROUND_PHASE, createTestSnapshot } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
-import { HUD_SCALE_MIN, HUD_REFERENCE_VIEWPORT_HEIGHT_PX, HUD_REFERENCE_VIEWPORT_WIDTH_PX } from './hud-constants';
+import {
+  UI_REFERENCE_VIEWPORT_HEIGHT_PX,
+  UI_REFERENCE_VIEWPORT_WIDTH_PX,
+  UI_SCALE_MIN,
+} from '../../ui-kit/ui-kit-constants';
 import { HudComponent } from './hud.component';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
 import { HUD_NOTICE_ROWS_VARIABLE, HUD_SCALE_VARIABLE } from './format/hud-css-variables';
@@ -66,7 +70,7 @@ describe('HudComponent', () => {
   });
 
   it('publishes --hud-scale and the rest of the custom properties from its own box', () => {
-    stubHostBox(host(), HUD_REFERENCE_VIEWPORT_WIDTH_PX, HUD_REFERENCE_VIEWPORT_HEIGHT_PX);
+    stubHostBox(host(), UI_REFERENCE_VIEWPORT_WIDTH_PX, UI_REFERENCE_VIEWPORT_HEIGHT_PX);
     fixture.detectChanges();
     expect(host().style.getPropertyValue(HUD_SCALE_VARIABLE)).toBe('1');
     expect(host().style.getPropertyValue('--hud-margin')).not.toBe('');
@@ -76,7 +80,7 @@ describe('HudComponent', () => {
   it('clamps the scale on a small viewport', () => {
     stubHostBox(host(), 400, 300);
     fixture.detectChanges();
-    expect(host().style.getPropertyValue(HUD_SCALE_VARIABLE)).toBe(String(HUD_SCALE_MIN));
+    expect(host().style.getPropertyValue(HUD_SCALE_VARIABLE)).toBe(String(UI_SCALE_MIN));
   });
 
   it('publishes how many notice rows are up, so the top-anchored chrome drops under them (#219)', () => {

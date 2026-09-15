@@ -6,15 +6,15 @@
 // `render-bench.spec.ts`.
 import { expect, test, type Page } from '@playwright/test';
 import {
-  HUD_REFERENCE_VIEWPORT_HEIGHT_PX,
-  HUD_REFERENCE_VIEWPORT_WIDTH_PX,
-  HUD_SCALE_MIN,
-} from '../src/app/game/hud/hud-constants';
+  UI_REFERENCE_VIEWPORT_HEIGHT_PX,
+  UI_REFERENCE_VIEWPORT_WIDTH_PX,
+  UI_SCALE_MIN,
+} from '../src/app/ui-kit/ui-kit-constants';
 
 /** The smallest viewport the layout frame targets (docs/ui/layout.md §1): the reference frame at the scale floor. */
 const MINIMUM_VIEWPORT = {
-  width: Math.round(HUD_REFERENCE_VIEWPORT_WIDTH_PX * HUD_SCALE_MIN),
-  height: Math.round(HUD_REFERENCE_VIEWPORT_HEIGHT_PX * HUD_SCALE_MIN),
+  width: Math.round(UI_REFERENCE_VIEWPORT_WIDTH_PX * UI_SCALE_MIN),
+  height: Math.round(UI_REFERENCE_VIEWPORT_HEIGHT_PX * UI_SCALE_MIN),
 };
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';

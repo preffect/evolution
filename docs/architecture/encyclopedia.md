@@ -703,7 +703,7 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
   DPR it uses at the second (a 3× display shows the canvas upscaled 1.5×) and clamps each side of the canvas, in
   device pixels, to the first. Neither is computed from the lens diameter or the kit's scale maximum, because
   `render/` imports nothing from `encyclopedia/` or the UI kit (§12.8). The bound is sized for `ENCYCLOPEDIA_LENS_DIAMETER_PX`
-  × the kit's scale maximum (`UI_SCALE_MAX`, `HUD_SCALE_MAX` until #369 lands) × `PREVIEW_MAX_DEVICE_PIXEL_RATIO`, and
+  × the kit's scale maximum (`UI_SCALE_MAX`) × `PREVIEW_MAX_DEVICE_PIXEL_RATIO`, and
   an encyclopedia-side spec (#373) pins that product ≤ `PREVIEW_CANVAS_MAX_PX`, so a larger lens or scale fails a test
   instead of silently clamping. At the cap the canvas's GPU buffers are about 10 MiB (the cost table).
 - **Crop:** `border-radius: 50%; overflow: hidden` on the stage host that holds the canvas; never a Pixi mask (a

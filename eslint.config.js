@@ -128,6 +128,23 @@ const CONSTANT_DEFINITION_FILES = [
   'packages/shared/src/constants/**',
   'packages/client/src/app/game/render/constants.ts',
   'packages/client/src/app/game/render/constants/**',
+  'packages/client/src/app/ui-kit/ui-kit-constants.ts',
+];
+/**
+ * The UI kit's boundary (docs/ui/components-and-constants.md §10.1): it knows no game, so from `game/**` it imports
+ * exactly the two files its colour and type roles live in, and nothing at all from the shared package.
+ */
+const UI_KIT_FILES = ['packages/client/src/app/ui-kit/**/*.ts'];
+const UI_KIT_RESTRICTED_IMPORTS = [
+  {
+    regex: '(^|/)game/(?!render/constants/(colours|ui-type)$)',
+    message:
+      'The UI kit imports from game/** only game/render/constants/colours.ts and ui-type.ts (docs/ui/components-and-constants.md §10.1).',
+  },
+  {
+    regex: '^@evolution/shared',
+    message: 'The UI kit imports nothing from @evolution/shared (docs/ui/components-and-constants.md §10.1).',
+  },
 ];
 /** The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). */
 const DETERMINISM_CALL_SITES = [
@@ -322,6 +339,20 @@ export default tseslint.config(
           prefix: 'app',
           style: 'kebab-case',
         },
+      ],
+    },
+  },
+  {
+    // ---- The UI kit: its own `ui` prefix, and its import boundary -------------------------
+    files: UI_KIT_FILES,
+    rules: {
+      'no-restricted-imports': ['error', { patterns: UI_KIT_RESTRICTED_IMPORTS }],
+      '@angular-eslint/component-selector': [
+        'error',
+        [
+          { type: 'element', prefix: 'ui', style: 'kebab-case' },
+          { type: 'attribute', prefix: 'ui', style: 'camelCase' },
+        ],
       ],
     },
   },

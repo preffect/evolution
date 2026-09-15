@@ -8,28 +8,38 @@ import type { EntityId, FoodDelta, FoodMoteView, MotePositionView } from '@evolu
 import type { FoodMoteRecord } from '../world/entities.js';
 import { toFoodMoteView, toMotePositionView } from './serialize.js';
 
-interface KnownPosition {
-  readonly x: number;
-  readonly y: number;
+/** A mote and its quantised position, built once per broadcast and shared by every viewer's tracker. */
+export interface PositionedMote {
+  readonly mote: FoodMoteRecord;
+  readonly position: MotePositionView;
+}
+
+/** Quantises every mote's position once: what each viewer's delta then reads without allocating its own. */
+export function positionMotes(food: readonly FoodMoteRecord[]): PositionedMote[] {
+  return food.map((mote) => ({ mote, position: toMotePositionView(mote) }));
 }
 
 export class FoodDeltaTracker {
   /** Id → quantised position at the previous broadcast, in that broadcast's array order. */
-  private known = new Map<EntityId, KnownPosition>();
+  private known = new Map<EntityId, MotePositionView>();
 
   diff(food: readonly FoodMoteRecord[]): FoodDelta {
-    const next = new Map<EntityId, KnownPosition>();
+    return this.diffPositioned(positionMotes(food));
+  }
+
+  /** `diff` over positions already quantised; the position objects are only read, never changed. */
+  diffPositioned(food: readonly PositionedMote[]): FoodDelta {
+    const next = new Map<EntityId, MotePositionView>();
     const spawned: FoodMoteView[] = [];
     const moved: MotePositionView[] = [];
-    for (const mote of food) {
-      const position = toMotePositionView(mote);
+    for (const { mote, position } of food) {
       const previous = this.known.get(mote.id);
       if (previous === undefined) {
         spawned.push(toFoodMoteView(mote));
       } else if (previous.x !== position.x || previous.y !== position.y) {
         moved.push(position);
       }
-      next.set(mote.id, { x: position.x, y: position.y });
+      next.set(mote.id, position);
     }
     const removedIds: EntityId[] = [];
     for (const id of this.known.keys()) {

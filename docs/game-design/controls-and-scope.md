@@ -56,8 +56,12 @@ size lock). The cost of Z1 is that a giant sees less of the dish around it; ecol
 changes nothing in the simulation. Own-cell px is `radius × (viewport height / 2) / viewHalfHeightWu`.
 
 Position follows with time constant `CAMERA_FOLLOW_SECONDS`; zoom with `CAMERA_ZOOM_SECONDS`
-(exponential smoothing, client side, purely cosmetic). While spectating, the camera follows the
-killer at its zoom. Screen aspect is whatever the canvas is; the vertical extent is authoritative.
+(exponential smoothing, purely cosmetic). While spectating, the camera follows the
+killer at its zoom. Screen aspect is whatever the canvas is; the vertical extent is authoritative. The server runs
+the same camera per viewer only to choose which food and fragments that viewer is sent (architecture/wire-contract.md
+§4.2 lever 1); the simulation never reads it. That choice covers canvases up to `INTEREST_VIEW_ASPECT_RATIO` (2.4:1);
+a wider one, such as a 32:9 screen or a short, wide window, sees food appear at its far sides until the client caps its
+drawn width at that ratio (#408).
 
 ## 8. The petri dish
 

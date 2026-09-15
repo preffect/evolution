@@ -1,0 +1,98 @@
+:host {
+  display: block;
+}
+
+.glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * Idle motion (docs/visual-style/ui-type.md §7.1): each layer's period and pivot are bound from the glyph table, in
+ * user units of the 100-unit box. The amplitudes are the `--glyph-…` custom properties the component publishes from
+ * `GLYPH_MOTION_AMPLITUDE` (`glyphs/glyph-motion-variables.ts`), whose spec holds both pulses under the §5 ceiling.
+ */
+.motion {
+  transform-box: view-box;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+.motion-breathe {
+  animation-name: glyph-breathe;
+}
+
+.motion-beat {
+  animation-name: glyph-beat;
+  animation-timing-function: ease-out;
+}
+
+.motion-sway {
+  animation-name: glyph-sway;
+}
+
+.motion-spin {
+  animation-name: glyph-spin;
+  animation-timing-function: linear;
+}
+
+.motion-rise {
+  animation-name: glyph-rise;
+}
+
+@keyframes glyph-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(var(--glyph-breathe-scale));
+  }
+}
+
+@keyframes glyph-beat {
+  0%,
+  45%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(var(--glyph-beat-scale));
+  }
+}
+
+@keyframes glyph-sway {
+  0%,
+  100% {
+    transform: rotate(calc(var(--glyph-sway-angle) * -1));
+  }
+  50% {
+    transform: rotate(var(--glyph-sway-angle));
+  }
+}
+
+@keyframes glyph-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes glyph-rise {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--glyph-rise-distance) * -1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion {
+    animation: none;
+  }
+}

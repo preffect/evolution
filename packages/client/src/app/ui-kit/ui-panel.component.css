@@ -1,0 +1,96 @@
+/* The kit panel (docs/ui/components-and-constants.md §10.2). */
+
+:host {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  border: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+.header,
+.footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+.header:empty,
+.footer:empty {
+  display: none;
+}
+
+.footer {
+  justify-content: flex-end;
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  font-size: calc(var(--ui-type-title) * var(--ui-scale));
+  font-weight: bold;
+}
+
+/* Prose, list rows and a confirm's two lines all sit in the body, so its line height is set once here. */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  line-height: var(--ui-body-line-height);
+}
+
+/* ---- modal ---- */
+
+:host([data-variant='modal']) {
+  gap: calc(var(--ui-space-l) * var(--ui-scale));
+  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+  pointer-events: auto;
+  animation: ui-panel-enter var(--ui-panel-enter) ease-out both;
+}
+
+/* The light catching the upper rim, held inside the corner radii. */
+:host([data-variant='modal'])::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(var(--ui-radius-panel) * var(--ui-scale));
+  right: calc(var(--ui-radius-panel) * var(--ui-scale));
+  height: calc(var(--ui-rim) * var(--ui-scale));
+  background-color: color-mix(in srgb, var(--ui-white) calc(var(--ui-panel-edge-alpha) * 100%), transparent);
+  pointer-events: none;
+}
+
+@keyframes ui-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--ui-space-s) * var(--ui-scale)));
+  }
+}
+
+/* ---- side ---- */
+
+:host([data-variant='side']) {
+  width: calc(var(--ui-side-panel-width) * var(--ui-scale));
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  padding: calc(var(--ui-space-l) * var(--ui-scale));
+  background: linear-gradient(
+    color-mix(in srgb, var(--ui-panel-top) calc(var(--ui-side-panel-alpha) * 100%), transparent),
+    color-mix(in srgb, var(--ui-panel-bottom) calc(var(--ui-side-panel-alpha) * 100%), transparent)
+  );
+  backdrop-filter: blur(calc(var(--ui-side-panel-blur) * var(--ui-scale)));
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host([data-variant='modal']) {
+    animation: none;
+  }
+}

@@ -58,10 +58,14 @@ export interface GameSessionConfig {
 
 /** Wire refinement of the design's `FoodMoteView[]`: static motes ride as deltas (docs/architecture/wire-contract.md §4.1). */
 export interface FoodDelta {
-  /** Every mote when the snapshot is a `game_state`. */
+  /**
+   * Every mote in the receiver's interest area when the snapshot is a `game_state`; otherwise each mote that entered
+   * it (docs/architecture/wire-contract.md §4.2 lever 1).
+   */
   spawned: FoodMoteView[];
+  /** Eaten, expired, or left the receiver's interest area. */
   removedIds: EntityId[];
-  /** Every bacterium, every snapshot: they random-walk. */
+  /** Every mote in the receiver's interest area that moved: bacteria random-walk every tick. */
   moved: MotePositionView[];
 }
 
@@ -75,7 +79,7 @@ export interface GameSnapshot {
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];
   cells: CellView[];
-  /** Full every snapshot: they drift. */
+  /** Every fragment in the receiver's interest area, every snapshot: they drift (docs/architecture/wire-contract.md §4.2). */
   dnaFragments: DnaFragmentView[];
   food: FoodDelta;
   /** Every player's roster row, built from the join-ordered array. */
@@ -87,7 +91,7 @@ export interface GameSnapshot {
    */
   ownProgress: PlayerProgressView | null;
   leaderboard: LeaderboardRow[];
-  /** Prediction (docs/architecture/client.md §5). */
+  /** Prediction (docs/architecture/client.md §5): only the receiver's own entry; every player's in a snapshot for no viewer. */
   appliedInputSequenceByPlayer: Record<string, number>;
   /** This broadcast window's effects. */
   effects: GameEffect[];

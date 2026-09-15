@@ -112,7 +112,10 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
    components: ui/components-and-constants.md §7 (the one home of the HUD component list, #30)
 ```
 
-- **Camera** (`render/camera.ts`) implements game-design/controls-and-scope.md §7 from `constants/camera.ts`; render-only
+- **Camera** (`render/camera.ts`) implements game-design/controls-and-scope.md §7 from `constants/camera.ts`: the follow,
+  the zoom and whom they follow are shared (`camera/camera-follow.ts`), because the server runs the same camera
+  per viewer to cull snapshots (wire-contract.md §4.2 lever 1), and this file adds the viewport, projections and draw
+  cull; render-only
   numbers (`PROTOCELL_GRANULE_COUNT`, palettes, layer z, wobble amplitude) live in `render/constants.ts`.
 - **View registry**: entity id → view, created/destroyed on snapshot diff; views are dumb.
 - **HUD** reads `WorldStore` through `GameStateService` signals (derived only; the writable UI

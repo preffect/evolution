@@ -7,20 +7,26 @@
 // clip tracker both start from them before the cell layer syncs, so a prey that just left the
 // frame still resolves to its last view; that start is accrued to the `effects` stage.
 
-import { MILLISECONDS_PER_SECOND, RENDER_STAGE, type CellView, type TraitId } from '@evolution/shared';
+import {
+  DISH_CENTRE_TARGET,
+  MILLISECONDS_PER_SECOND,
+  RENDER_STAGE,
+  parkCamera,
+  stepCamera,
+  type CameraState,
+  type CameraTarget,
+  type CellView,
+  type TraitId,
+} from '@evolution/shared';
 import { Sprite, type Container } from 'pixi.js';
 import type { RenderFrame } from '../net/world-store';
 import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
 import {
   cameraExtent,
-  parkCamera,
   screenOffsetToWorld,
   screenToWorld,
-  stepCamera,
   zoomFor,
   type CameraExtent,
-  type CameraState,
-  type CameraTarget,
   type ViewportPx,
   type WorldPoint,
 } from './camera';
@@ -36,7 +42,7 @@ import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
-import { DISH_CENTRE_TARGET, followTarget, ownCellOf } from './render-target';
+import { followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 import type { IndicatorTextures } from './textures/indicator-textures';
 import type { OwnCellIndicators } from '../state/own-cell-indicators';

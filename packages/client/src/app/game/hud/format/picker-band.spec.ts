@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { HUD_PLAYER_EXCLUSION_PX, PICKER_BAND_GAP_PX, PICKER_BAND_ORBIT_CLEARANCE_PX } from '../hud-constants';
-import { hudScaleFor } from './hud-scale';
+import { uiScaleFor } from '../../../ui-kit/format/ui-scale';
 import { capOrbitExtentPx, pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
 
 /** Half the last digit overlays.md §3.2 prints its offsets to. */
@@ -28,7 +28,7 @@ const VIEWPORTS: readonly ViewportCase[] = [
 ];
 
 function boxOffsetPx(viewport: ViewportCase): number {
-  return (HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) * hudScaleFor(viewport.width, viewport.height);
+  return (HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) * uiScaleFor(viewport.width, viewport.height);
 }
 
 function orbitOffsetPx(viewport: ViewportCase): number {
@@ -65,7 +65,7 @@ describe('pickerBandOffsetPx', () => {
 describe('pickerSpotlightRadiusPx', () => {
   it.each(VIEWPORTS)('never greys the box or the cap orbit at $width × $height', (viewport) => {
     const radiusPx = pickerSpotlightRadiusPx(viewport);
-    expect(radiusPx).toBeGreaterThanOrEqual(HUD_PLAYER_EXCLUSION_PX * hudScaleFor(viewport.width, viewport.height));
+    expect(radiusPx).toBeGreaterThanOrEqual(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(viewport.width, viewport.height));
     expect(radiusPx).toBeGreaterThanOrEqual(capOrbitExtentPx(viewport));
   });
 
@@ -76,6 +76,6 @@ describe('pickerSpotlightRadiusPx', () => {
   });
 
   it('is the scaled exclusion box on a box with no layout yet, where no orbit shows', () => {
-    expect(pickerSpotlightRadiusPx({ width: 0, height: 0 })).toBe(HUD_PLAYER_EXCLUSION_PX * hudScaleFor(0, 0));
+    expect(pickerSpotlightRadiusPx({ width: 0, height: 0 })).toBe(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(0, 0));
   });
 });

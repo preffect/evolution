@@ -1,0 +1,140 @@
+/* The dev-only states page: laid out on the kit's own spacing scale. */
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.page {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto 1fr;
+  column-gap: calc(var(--ui-space-xl) * 2 * var(--ui-scale));
+  row-gap: calc(var(--ui-space-xl) * var(--ui-scale));
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: calc(var(--ui-space-xl) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+.page-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--ui-space-l) * var(--ui-scale));
+}
+
+.page-title {
+  margin: 0;
+  font-size: calc(var(--ui-type-title) * var(--ui-scale));
+  font-weight: bold;
+}
+
+.page-caption {
+  margin: 0;
+  color: var(--ui-text-muted);
+}
+
+.section-label {
+  margin: 0;
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}
+
+.buttons > .section-label {
+  align-self: center;
+}
+
+.samples > .section-label,
+.side-sample > .section-label {
+  align-self: start;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(6, max-content);
+  align-items: center;
+  justify-items: start;
+  column-gap: calc(var(--ui-space-m) * var(--ui-scale));
+  row-gap: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+.samples {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+.sample-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+.side-sample {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+.icon {
+  width: calc(var(--ui-space-l) * var(--ui-scale));
+  height: calc(var(--ui-space-l) * var(--ui-scale));
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.6;
+}
+
+.fact {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  height: calc(var(--ui-fact-row-height) * var(--ui-scale));
+}
+
+.marker {
+  width: calc(var(--ui-row-marker) * var(--ui-scale));
+  height: calc(var(--ui-row-marker) * var(--ui-scale));
+  border-radius: 50%;
+}
+
+.fact-name {
+  flex: 1;
+  color: var(--ui-text-label);
+}
+
+.fact-value {
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-figure) * var(--ui-scale));
+}
+
+.modal-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.modal {
+  position: relative;
+  width: calc(var(--ui-side-panel-width) * var(--ui-scale));
+}
+
+.modal-text {
+  margin: 0;
+  color: var(--ui-text-label);
+}
