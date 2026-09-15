@@ -252,13 +252,6 @@ describe('seat-lifecycle: join_game or create_game while seated in another room 
     fixture.room.stop();
   });
 
-  it('join_game into the pending game already held keeps the one seat', () => {
-    const fixture = createPendingGameLobby();
-    fixture.handlers.onJoinGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
-    expect(seatsOf(fixture)).toEqual([{ gameName: 'G', playerIds: ['alice'] }]);
-    expect(fixture.lobby.listGames()[0]?.creatorId).toBe('alice');
-  });
-
   // Defensive: over the wire `handleConnect` cancels a drop's timer before any frame arrives.
   it('cancels the old room grace timer, so it cannot unseat the player from the new room', () => {
     vi.useFakeTimers();

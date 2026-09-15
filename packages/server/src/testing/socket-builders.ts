@@ -172,6 +172,13 @@ export async function closeLobbySocketHarness(harness: LobbySocketHarness): Prom
   await harness.started.close();
 }
 
+/** Stops tracking a client whose socket is already closed, so the harness does not wait for it to close again. */
+export function removeTestClient(harness: LobbySocketHarness, client: TestClient): void {
+  const index = harness.clients.indexOf(client);
+  if (index < 0) throw new Error(`client ${client.clientId} is not in the harness`);
+  harness.clients.splice(index, 1);
+}
+
 /** Connects as `clientId` and joins the lobby under that name. */
 export async function connectTestClient(harness: LobbySocketHarness, clientId: string): Promise<TestClient> {
   const recording = await openRecordingTestSocket(`${harness.started.url}?clientId=${clientId}`);

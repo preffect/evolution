@@ -19,6 +19,7 @@ import {
   createTestRoom,
   messageOfType,
   nextMatchingMessage,
+  removeTestClient,
   sendAndAwait,
   startLobbySocketHarness,
   startTestRoom,
@@ -55,7 +56,7 @@ describe('join_game for the room already held, over the wire (#335)', () => {
     const firstTabClosed = whenClosed(client.socket);
     const secondTab = await connectTestClient(harness, client.clientId);
     await firstTabClosed;
-    harness.clients.splice(harness.clients.indexOf(client), 1);
+    removeTestClient(harness, client);
     return secondTab;
   }
 
@@ -92,7 +93,7 @@ describe('join_game for the room already held, over the wire (#335)', () => {
     alice.socket.close();
     await whenClosed(alice.socket);
     await heardDrop;
-    harness.clients.splice(harness.clients.indexOf(alice), 1);
+    removeTestClient(harness, alice);
 
     const reconnected = await connectTestClient(harness, 'alice');
     const state = await rejoin(reconnected, held.gameId);
@@ -102,15 +103,23 @@ describe('join_game for the room already held, over the wire (#335)', () => {
     expect(bob.received.some((message) => message.type === SERVER_MESSAGE_TYPE.playerJoined)).toBe(false);
   });
 
-  it('a join for the pending game already held keeps the one seat', async () => {
+  it('a join for the full pending game already held keeps the one seat, with no "Game is full"', async () => {
     const alice = await connectTestClient(harness, 'alice');
     const bob = await connectTestClient(harness, 'bob');
-    const gameId = await createTestRoom(harness, alice, 'pending', [bob]);
+    const carol = await connectTestClient(harness, 'carol');
+    const dave = await connectTestClient(harness, 'dave');
+    // The harness caps a game at four seats, so these guests fill it.
+    const gameId = await createTestRoom(harness, alice, 'pending', [bob, carol, dave]);
     bob.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.joinGame, gameId }));
     // `join_lobby` is answered to the sender alone: once it is, the server has handled the join before it.
     const joinLobby = { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'bob', avatarIndex: 0 } as const;
     await sendAndAwait(bob, joinLobby, messageOfType(SERVER_MESSAGE_TYPE.lobbyUpdate));
-    expect(harness.started.lobby.listGames()[0]?.players.map((player) => player.playerId)).toEqual(['alice', 'bob']);
+    expect(harness.started.lobby.listGames()[0]?.players.map((player) => player.playerId)).toEqual([
+      'alice',
+      'bob',
+      'carol',
+      'dave',
+    ]);
     expect(bob.received.some((message) => message.type === SERVER_MESSAGE_TYPE.error)).toBe(false);
   });
 });

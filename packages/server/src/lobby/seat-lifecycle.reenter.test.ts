@@ -78,7 +78,7 @@ describe('seat-lifecycle: join_game for the room already held (#335)', () => {
     expect(fixture.sent['bob']).toHaveLength(sentToBob);
   });
 
-  it('a join for another room is not a re-entry: the late join still runs', () => {
+  it('a player with no seat in the room still late-joins', () => {
     const fixture = createHeldRoomLobby();
     const carol = fixture.join('carol');
     fixture.handlers.onJoinGame(carol, fixture.rejoin);

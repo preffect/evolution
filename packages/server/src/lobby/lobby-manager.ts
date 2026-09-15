@@ -183,8 +183,6 @@ export class LobbyManager {
   // ---- connection lifecycle ----------------------------------------------
 
   handleConnect(connection: Connection, _connections: Map<string, Connection>): void {
-    // The player came back within the grace window.
-    this.seats.cancelPendingRemoval(connection.playerId);
     const gameId = this.playerToGame.get(connection.playerId);
     if (gameId) this.seats.reenterHeldSeat(connection, gameId);
   }
