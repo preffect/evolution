@@ -173,19 +173,19 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **8. Debug MCP surface (#14)** (L5–85): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
 
-## architecture/encyclopedia.md (793 lines)
+## architecture/encyclopedia.md (803 lines)
 
-- **Evolution — Architecture: encyclopedia content model and preview seam** (L1–793): §12 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **12. Encyclopedia** (L9–793)
+- **Evolution — Architecture: encyclopedia content model and preview seam** (L1–803): §12 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **12. Encyclopedia** (L9–803)
   - **12.1 Decisions (the short list)** (L11–37): are player-facing copy like the HUD's; nothing on the server or in the debug MCP reads it.
   - **12.2 Registry: categories, subjects, ids** (L38–218): Categories are the closed player-facing grouping; subjects are the code kinds an entry documents.
   - **12.3 Facts: values bound to code** (L219–321): name: NumberOrTableKey<D>, ...keys)`), so a renamed constant fails `typecheck` at the fact.
   - **12.4 The closed sets the registry adds** (L322–426): Five subjects have no code enum yet.
-  - **12.5 Formatting and units: one place** (L427–482): What goes through it.
-  - **12.6 Prose and the tests that bind everything** (L483–526): Where prose lives.
-  - **12.7 The preview seam** (L527–736): Requirement: real renders with their animations (epic #353), from the game's own code-drawn renderers, without a room, a snapshot from the …
-  - **12.8 File plan** (L737–768): The encyclopedia's UI component files are #354's and sit at the root of the same folder, `packages/client/src/app/game/encyclopedia/` (its …
-  - **12.9 Test plan** (L769–793): `ENGULF_BASE_DURATION_SECONDS` over the three phases and follows a patched `ENGULF_SEAL_PROGRESS`); `preview-scene.spec.ts` (every `PREVIEW…
+  - **12.5 Formatting and units: one place** (L427–490): What goes through it.
+  - **12.6 Prose and the tests that bind everything** (L491–536): Where prose lives.
+  - **12.7 The preview seam** (L537–746): Requirement: real renders with their animations (epic #353), from the game's own code-drawn renderers, without a room, a snapshot from the …
+  - **12.8 File plan** (L747–778): The encyclopedia's UI component files are #354's and sit at the root of the same folder, `packages/client/src/app/game/encyclopedia/` (its …
+  - **12.9 Test plan** (L779–803): `ENGULF_BASE_DURATION_SECONDS` over the three phases and follows a patched `ENGULF_SEAL_PROGRESS`); `preview-scene.spec.ts` (every `PREVIEW…
 
 ## architecture/entity-model.md (251 lines)
 
@@ -496,14 +496,14 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **1. Layout frame** (L5–77): Reference viewport `HUD_REFERENCE_VIEWPORT_WIDTH_PX` × `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` (1280 × 800 CSS px), HUD scale 1.
 - **2. Screens (lobby)** (L78–89): The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and stable test ids added.
 
-## ui/overlays.md (139 lines)
+## ui/overlays.md (140 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–139): §3.2–§3.6 of the split `UI.md`, which keeps the shared context and the file list.
-  - **3.2 Trait pick overlay (`ownProgress.offer !== null`)** (L5–69): Cards are built from `offer.cards[i]` (`traitId`, `tier`), the catalog (`TRAIT_CATALOG`) and the live balance's tier tables; the effect tex…
-  - **3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)** (L70–83): The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text block a…
-  - **3.4 Round results and rematch (`roundPhase === 'results'`)** (L84–94): Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended.
-  - **3.5 Menu (Escape)** (L95–108): Escape closes the topmost open overlay (`openOverlay = 'leaderboard'`) and, with none open, sets `openOverlay = 'menu'`: a 320-wide centred…
-  - **3.6 Notices: toasts and connection states** (L109–139): One toast at a time, top-centre at y 16, `body` on the callout backing, `TOAST_DURATION_SECONDS`, newest replaces oldest, `aria-live="polit…
+- **Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices** (L1–140): §3.2–§3.6 of the split `UI.md`, which keeps the shared context and the file list.
+  - **3.2 Trait pick overlay (`ownProgress.offer !== null`)** (L5–70): Cards are built from `offer.cards[i]` (`traitId`, `tier`), the catalog (`TRAIT_CATALOG`) and the live balance's tier tables; the effect tex…
+  - **3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)** (L71–84): The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text block a…
+  - **3.4 Round results and rematch (`roundPhase === 'results'`)** (L85–95): Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended.
+  - **3.5 Menu (Escape)** (L96–109): Escape closes the topmost open overlay (`openOverlay = 'leaderboard'`) and, with none open, sets `openOverlay = 'menu'`: a 320-wide centred…
+  - **3.6 Notices: toasts and connection states** (L110–140): One toast at a time, top-centre at y 16, `body` on the callout backing, `TOAST_DURATION_SECONDS`, newest replaces oldest, `aria-live="polit…
 
 ## ui/README.md (7 lines)
 

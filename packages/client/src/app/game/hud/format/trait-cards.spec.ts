@@ -60,9 +60,7 @@ describe('traitOfferViewFor', () => {
       category: 'genome',
       rarity: 'common',
     });
-    expect(view.cards[0]!.effects).toEqual(
-      describeTierModifiers(DEFAULT_BALANCE.traits.TRAIT_TIERS, 'nucleoid' as TraitId, 1),
-    );
+    expect(view.cards[0]!.effects).toEqual(describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1));
   });
 
   it('reads the effect lines from the live balance, so a debug_set_balance patch reaches the card', () => {

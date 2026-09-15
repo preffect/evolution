@@ -21,15 +21,11 @@ import {
 } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
-import { describeTierModifiers, type TraitTierTables } from './trait-effects';
-
-/** Tier I..III as the card names them. */
-export const TIER_NUMERALS = ['I', 'II', 'III'] as const;
+import { describeTierModifiers, type TraitModifierTables } from './trait-effects';
 
 const NO_TIME = 0;
 const FULL = 1;
 const FIRST_KEY = 1;
-const FIRST_TIER = 1;
 const UPGRADE_ARROW = '→';
 
 export interface TraitCardView {
@@ -82,10 +78,9 @@ function definitionOf(traitId: TraitId): TraitDefinition {
   return definition;
 }
 
+/** `II`; a tier past the numerals throws, since only a broken server contract can offer one. */
 function numeral(tier: number): string {
-  const tierNumeral = TIER_NUMERALS[tier - FIRST_TIER];
-  if (tierNumeral === undefined) throw new Error(`Offered trait tier ${tier} has no numeral`);
-  return tierNumeral;
+  return formatQuantity(tier, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral });
 }
 
 function isRungFor(traitId: TraitId, stage: CellStage): boolean {
@@ -97,7 +92,7 @@ function cardView(
   card: OwnedTrait,
   index: number,
   progress: TraitOfferInput['progress'],
-  tierTables: TraitTierTables,
+  traits: TraitModifierTables,
 ): TraitCardView {
   const definition = definitionOf(card.traitId);
   const owned = progress.ownedTraits.find((trait) => trait.traitId === card.traitId);
@@ -113,7 +108,7 @@ function cardView(
     category,
     categoryInitial: category.charAt(0).toUpperCase(),
     rarity: definition.rarity,
-    effects: describeTierModifiers(tierTables, card.traitId, card.tier),
+    effects: describeTierModifiers(traits, card.traitId, card.tier),
     keyLabel: String(index + FIRST_KEY),
   };
 }
@@ -125,9 +120,9 @@ export function traitOfferViewFor(input: TraitOfferInput): TraitOfferViewModel {
   return {
     offerId: offer.offerId,
     title: `LEVEL ${offer.level} · CHOOSE A TRAIT`,
-    cards: offer.cards.map((card, index) => cardView(card, index, input.progress, input.balance.traits.TRAIT_TIERS)),
+    cards: offer.cards.map((card, index) => cardView(card, index, input.progress, input.balance.traits)),
     secondsLeft,
-    secondsText: formatQuantity(secondsLeft, QUANTITY_UNIT.seconds, QUANTITY_PRESENTATION.countdown),
+    secondsText: formatQuantity(secondsLeft, QUANTITY_UNIT.seconds, { presentation: QUANTITY_PRESENTATION.countdown }),
     timerFraction: windowSeconds > NO_TIME ? clamp(secondsLeft / windowSeconds, NO_TIME, FULL) : NO_TIME,
   };
 }

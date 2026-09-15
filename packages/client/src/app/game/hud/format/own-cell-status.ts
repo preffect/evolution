@@ -11,7 +11,7 @@
 import { BACTERIUM_VARIANT, TRAIT_CATALOG, type BacteriumVariant, type OwnedTrait } from '@evolution/shared';
 import { ENGULF_PHASE } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
-import { PERCENT, QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { PERCENT, QUANTITY_ROUNDING, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
 import { READY } from './sprint-fill';
 import type { LadderCounter, OwnCellIndicators } from '../../state/own-cell-indicators';
@@ -92,9 +92,9 @@ function counterAttributes(indicators: OwnCellIndicators): OwnCellStatusAttribut
 
 /** The sentence, in the order §3.1.4 sets: level, DNA, the counters, then sprint. */
 function statusTextOf(indicators: OwnCellIndicators): string {
-  // The floored percent, back as a share, so the sentence and `data-dna-percent` never disagree.
-  const dnaShare = dnaPercentOf(indicators.dnaFraction) / PERCENT;
-  const parts = [`Level ${indicators.level}`, `DNA ${formatQuantity(dnaShare, QUANTITY_UNIT.share)}`];
+  // Floored like `data-dna-percent`, so the sentence never claims a percent the ring has not filled.
+  const dnaText = formatQuantity(indicators.dnaFraction, QUANTITY_UNIT.share, { rounding: QUANTITY_ROUNDING.floor });
+  const parts = [formatQuantity(indicators.level, QUANTITY_UNIT.level), `DNA ${dnaText}`];
   for (const counter of visibleCounters(indicators)) {
     const name = `${counter.variant.charAt(0).toUpperCase()}${counter.variant.slice(1)}`;
     parts.push(`${name} ${counter.eaten} of ${counter.required}`);
