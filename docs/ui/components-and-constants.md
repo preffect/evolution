@@ -130,7 +130,7 @@ and the encyclopedia ([`encyclopedia.md §11`](./encyclopedia.md#11-encyclopedia
 hold-Tab panel is the next; the respawn, results and lobby screens move onto it by their own tickets. Home
 `packages/client/src/app/ui-kit/`. The HUD elements built before it (the leaderboard, the picker cards, the notice
 rows) keep their stylesheets until a ticket moves them, but no new screen grows its own panel, button or row. The
-encyclopedia's layout is pending decision #368; nothing in this section is.
+encyclopedia's layout is option B, the eyepiece (decision #368, encyclopedia.md §11.4); nothing in this section depended on it.
 
 ### 10.1 Tokens, and how components share them
 
@@ -161,7 +161,7 @@ Constants, `ui-kit/ui-kit-constants.ts`, px at scale 1:
 | `UI_SPACE_XS_PX`, `UI_SPACE_S_PX`, `UI_SPACE_M_PX`, `UI_SPACE_L_PX`, `UI_SPACE_XL_PX` | 4, 8, 12, 16, 24 | px   | The spacing scale; nothing is spaced off it.                                                                                                            |
 | `UI_PANEL_PADDING_PX`                                                                 | 24               | px   | A panel's inner padding.                                                                                                                                |
 | `UI_RADIUS_CONTROL_PX`                                                                | 4                | px   | Buttons, rows, fields and tables; the leaderboard's corner already.                                                                                     |
-| `UI_RADIUS_PANEL_PX`                                                                  | 8                | px   | Panels, the preview stage, tiles.                                                                                                                       |
+| `UI_RADIUS_PANEL_PX`                                                                  | 8                | px   | Panels and tiles.                                                                                                                                       |
 | `UI_BUTTON_HEIGHT_PX`                                                                 | 40               | px   | A button.                                                                                                                                               |
 | `UI_BUTTON_COMPACT_HEIGHT_PX`                                                         | 28               | px   | A compact button, a segmented switch, a control over a preview.                                                                                         |
 | `UI_BUTTON_PADDING_INLINE_PX`                                                         | 16               | px   | A button label's inset.                                                                                                                                 |

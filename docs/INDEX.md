@@ -173,19 +173,19 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Architecture: debug MCP surface** (L1–85): §8 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
 - **8. Debug MCP surface (#14)** (L5–85): `GameModule` gains the optional `getDebugHandle(): SimulationDebugHandle` (`game/debug/simulation-debug-handle.ts`); the room exposes it as…
 
-## architecture/encyclopedia.md (810 lines)
+## architecture/encyclopedia.md (834 lines)
 
-- **Evolution — Architecture: encyclopedia content model and preview seam** (L1–810): §12 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
-- **12. Encyclopedia** (L9–810)
+- **Evolution — Architecture: encyclopedia content model and preview seam** (L1–834): §12 of the split `ARCHITECTURE.md`, which keeps the shared context and the file list.
+- **12. Encyclopedia** (L9–834)
   - **12.1 Decisions (the short list)** (L11–37): are player-facing copy like the HUD's; nothing on the server or in the debug MCP reads it.
   - **12.2 Registry: categories, subjects, ids** (L38–218): Categories are the closed player-facing grouping; subjects are the code kinds an entry documents.
   - **12.3 Facts: values bound to code** (L219–321): name: NumberOrTableKey<D>, ...keys)`), so a renamed constant fails `typecheck` at the fact.
   - **12.4 The closed sets the registry adds** (L322–426): Five subjects have no code enum yet.
   - **12.5 Formatting and units: one place** (L427–497): What goes through it.
   - **12.6 Prose and the tests that bind everything** (L498–543): Where prose lives.
-  - **12.7 The preview seam** (L544–753): Requirement: real renders with their animations (epic #353), from the game's own code-drawn renderers, without a room, a snapshot from the …
-  - **12.8 File plan** (L754–785): The encyclopedia's UI component files are #354's and sit at the root of the same folder, `packages/client/src/app/game/encyclopedia/` (its …
-  - **12.9 Test plan** (L786–810): `ENGULF_BASE_DURATION_SECONDS` over the three phases and follows a patched `ENGULF_SEAL_PROGRESS`); `preview-scene.spec.ts` (every `PREVIEW…
+  - **12.7 The preview seam** (L544–777): Requirement: real renders with their animations (epic #353), from the game's own code-drawn renderers, without a room, a snapshot from the …
+  - **12.8 File plan** (L778–809): The encyclopedia's UI component files are #354's and sit at the root of the same folder, `packages/client/src/app/game/encyclopedia/` (its …
+  - **12.9 Test plan** (L810–834): `ENGULF_BASE_DURATION_SECONDS` over the three phases and follows a patched `ENGULF_SEAL_PROGRESS`); `preview-scene.spec.ts` (every `PREVIEW…
 
 ## architecture/entity-model.md (251 lines)
 
@@ -477,18 +477,18 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **10.2 Components** (L196–227): States, for every interactive kit element (`qa/decisions/encyclopedia/kit-states-1280x800.png` draws each one):
   - **10.3 Colour and type** (L228–232): No new hue and no new type role: the kit's colour roles are existing colours at the alphas above, named in `visual-style/principles-and-pal…
 
-## ui/encyclopedia.md (265 lines)
+## ui/encyclopedia.md (314 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–265): §11 of the split `UI.md`, which keeps the shared context and the file list.
-- **11. Encyclopedia** (L5–265): Ticket #354, epic #353.
-  - **11.1 What it is, and where it opens** (L20–57): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
-  - **11.2 Categories, groups and ids** (L58–93): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`.
-  - **11.3 Layout (option A)** (L94–125): Frame.
-  - **11.4 The entry page** (L126–172): Top to bottom (`encyclopedia-a-trait-*.png`), with `UI_PANEL_PADDING_PX` around it, inside a content column at most `ENCYCLOPEDIA_PREVIEW_W…
-  - **11.5 Navigation, search and cross-links** (L173–199): State.
-  - **11.6 Test ids** (L200–211): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
-  - **11.7 Files and constants** (L212–254): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
-  - **11.8 If B or C is picked (#368)** (L255–265): round lens `ENCYCLOPEDIA_LENS_DIAMETER_PX` (300) wide with a reticle, top-left of the detail, the tier switch under it; the title, chips an…
+- **Evolution — UI: HUD, overlays and onboarding: the encyclopedia** (L1–314): §11 of the split `UI.md`, which keeps the shared context and the file list.
+- **11. Encyclopedia** (L5–314): Ticket #354, epic #353.
+  - **11.1 What it is, and where it opens** (L21–58): A reference for every thing in the game, in the player's words: what it is, what it does to you, the numbers, and the real thing moving.
+  - **11.2 Categories, groups and ids** (L59–94): The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`.
+  - **11.3 Layout** (L95–126): Frame.
+  - **11.4 The entry page** (L127–213): `encyclopedia-b-trait-*.png`.
+  - **11.5 Navigation, search and cross-links** (L214–240): State.
+  - **11.6 Test ids** (L241–252): Home `packages/client/src/app/game/encyclopedia/test-ids.ts`, a leaf file (`ENCYCLOPEDIA_TEST_ID` with builders, the pattern of `HUD_TEST_I…
+  - **11.7 Files and constants** (L253–305): Standalone, `OnPush`, signal inputs; the rules of components-and-constants.md §7 hold (no decision in a template, every decision a pure fu…
+  - **11.8 The options not chosen (#368)** (L306–314): The human chose B on #368.
 
 ## ui/hud.md (336 lines)
 
