@@ -1,6 +1,7 @@
 import type { PlayerId } from '@evolution/shared';
 import { DISCONNECT_GRACE_MS, SERVER_MESSAGE_TYPE } from '@evolution/shared';
-import { broadcastMessage } from '../ws/connection.js';
+import type { Connection } from '../ws/connection.js';
+import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { GameRoom } from './game-room.js';
 import type { PendingGame } from './pending-game.js';
 
@@ -76,6 +77,23 @@ export class SeatLifecycle {
     const seatedGameId = this.registry.playerToGame.get(playerId);
     if (seatedGameId === undefined || seatedGameId === gameId) return;
     this.leave(playerId, seatedGameId);
+  }
+
+  /**
+   * A socket coming back to the seat it holds in `gameId` (#335, docs/architecture/wire-contract.md §4): a reconnect,
+   * a takeover tab, or a `join_game` for that room. An active room reattaches the socket, cancels any grace timer
+   * and resends `game_state`; the roster, the module and the other players are untouched. A pending seat stays as it
+   * is. Answers whether the player held a seat in `gameId`, so a join for any other room goes on to take a seat.
+   */
+  reenterHeldSeat(connection: Connection, gameId: string): boolean {
+    if (this.registry.playerToGame.get(connection.playerId) !== gameId) return false;
+    this.cancelPendingRemoval(connection.playerId);
+    const room = this.registry.activeRooms.get(gameId);
+    if (room) {
+      room.reattachPlayer(connection);
+      sendMessage(connection, room.gameStateMessageFor(connection.playerId as PlayerId));
+    }
+    return true;
   }
 
   cancelPendingRemoval(playerId: string): void {

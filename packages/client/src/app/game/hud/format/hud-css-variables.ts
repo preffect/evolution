@@ -64,12 +64,12 @@ import {
   PICKER_CARD_MEDALLION_PX,
   PICKER_CARD_WIDTH_PX,
   PICKER_DIM_ALPHA,
-  PICKER_BAND_GAP_PX,
   PICKER_ROW_GAP_PX,
   PICKER_TIMER_BAR_WIDTH_PX,
-  HUD_PLAYER_EXCLUSION_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
+import type { ViewportPx } from '../../render/camera';
+import { pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
 
 /** The custom property `hud.component.ts` sets from the live box; every length multiplies by it. */
 export const HUD_SCALE_VARIABLE = '--hud-scale';
@@ -105,11 +105,9 @@ function chromeVariables(): StyleVariables {
   };
 }
 
-/** The trait picker (docs/ui/overlays.md §3.2): the band hangs from the exclusion box, never an absolute y. */
+/** The trait picker (docs/ui/overlays.md §3.2); where its band and dim disc sit is `pickerBandVariables`'s. */
 function pickerVariables(): StyleVariables {
   return {
-    '--hud-exclusion': `${HUD_PLAYER_EXCLUSION_PX}px`,
-    '--hud-picker-band-gap': `${PICKER_BAND_GAP_PX}px`,
     '--hud-picker-row-gap': `${PICKER_ROW_GAP_PX}px`,
     '--hud-picker-timer-width': `${PICKER_TIMER_BAR_WIDTH_PX}px`,
     '--hud-picker-card-width': `${PICKER_CARD_WIDTH_PX}px`,
@@ -183,6 +181,20 @@ export const HUD_NOTICE_ROWS_VARIABLE = '--hud-notice-rows';
 /** The notice rows up along the top edge, unitless, so a top-anchored length can multiply by it. */
 export function noticeRowsVariable(noticeRows: number): StyleVariables {
   return { [HUD_NOTICE_ROWS_VARIABLE]: String(noticeRows) };
+}
+
+export const HUD_PICKER_BAND_OFFSET_VARIABLE = '--hud-picker-band-offset';
+export const HUD_PICKER_SPOTLIGHT_VARIABLE = '--hud-picker-spotlight';
+
+/**
+ * The picker band's offset below the centre and the dim's clear radius for this viewport (docs/ui/overlays.md §3.2),
+ * in real px: they already carry the scale, because under Z1 the cap orbit they clear follows the viewport's height.
+ */
+export function pickerBandVariables(viewport: ViewportPx): StyleVariables {
+  return {
+    [HUD_PICKER_BAND_OFFSET_VARIABLE]: `${pickerBandOffsetPx(viewport)}px`,
+    [HUD_PICKER_SPOTLIGHT_VARIABLE]: `${pickerSpotlightRadiusPx(viewport)}px`,
+  };
 }
 
 /** Every `--hud-…` a HUD stylesheet may read, by name, at scale 1. */

@@ -38,7 +38,8 @@ const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_I
 /** The two kinds a food event draws between, in one fixed order; `spawnEventKindWeights` weighs them. */
 const SPAWN_EVENT_KINDS: readonly (keyof FoodKindWeights)[] = [FOOD_KIND.algae, FOOD_KIND.bacterium];
 
-function drawZone(kind: SpawnedKind, random: RandomSource, balance: BalanceConfig): SpawnZoneId {
+/** One zone for a spawned `kind`, drawn by its `FOOD_ZONE_WEIGHTS_BY_KIND` row. */
+export function drawSpawnZone(kind: SpawnedKind, random: RandomSource, balance: BalanceConfig): SpawnZoneId {
   const weights = balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND[kind];
   return pickWeighted(random, SPAWN_ZONE_ORDER, (zone) => weights[zone]);
 }
@@ -82,7 +83,7 @@ function spawnBacteriumCluster(world: WorldState, random: RandomSource, centre: 
 export function spawnFoodEvent(world: WorldState, random: RandomSource, limits: FoodEventLimits): number {
   const kindWeights = spawnEventKindWeights(world.balance, limits.worldStage);
   const kind = pickWeighted(random, SPAWN_EVENT_KINDS, (eventKind) => kindWeights[eventKind]);
-  const point = drawPointInZone(world, drawZone(kind, random, world.balance), random, limits.maxAttempts);
+  const point = drawPointInZone(world, drawSpawnZone(kind, random, world.balance), random, limits.maxAttempts);
   if (point === null) {
     return 0;
   }
@@ -96,7 +97,8 @@ export function spawnFoodEvent(world: WorldState, random: RandomSource, limits: 
 /** One fragment: zone, point, the zone's tag, then a drift direction from `moteMotion`. */
 export function spawnFragmentEvent(world: WorldState, context: StepContext, maxAttempts: number): number {
   const random = context.streams[RANDOM_STREAM.spawner];
-  const point = drawPointInZone(world, drawZone(ENTITY_KIND.dnaFragment, random, world.balance), random, maxAttempts);
+  const zone = drawSpawnZone(ENTITY_KIND.dnaFragment, random, world.balance);
+  const point = drawPointInZone(world, zone, random, maxAttempts);
   if (point === null) {
     return 0;
   }

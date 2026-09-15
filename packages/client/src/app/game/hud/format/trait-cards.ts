@@ -19,16 +19,13 @@ import {
   type TraitOfferView,
   type TraitRarity,
 } from '@evolution/shared';
-import { describeTierModifiers } from './trait-effects';
-
-/** Tier I..III as the card names them. */
-export const TIER_NUMERALS = ['I', 'II', 'III'] as const;
+import { formatQuantity } from '../../quantities/format-quantity';
+import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { describeTierModifiers, type TraitModifierTables } from './trait-effects';
 
 const NO_TIME = 0;
 const FULL = 1;
-const TIMER_DECIMALS = 1;
 const FIRST_KEY = 1;
-const FIRST_TIER = 1;
 const UPGRADE_ARROW = '→';
 
 export interface TraitCardView {
@@ -65,7 +62,8 @@ export interface TraitOfferInput {
   readonly progress: Pick<PlayerProgressView, 'ownedTraits' | 'stage'>;
   /** The newest snapshot's tick: the countdown's clock. */
   readonly serverTick: number;
-  readonly balance: Pick<BalanceConfig, 'progression'>;
+  /** The live balance: the choice window, and the tier tables the effect lines read. */
+  readonly balance: Pick<BalanceConfig, 'progression' | 'traits'>;
 }
 
 // Every offered card comes from the server's catalog and tier table, so a miss is a broken contract: the band
@@ -78,10 +76,9 @@ function definitionOf(traitId: TraitId): TraitDefinition {
   return definition;
 }
 
+/** `II`; a tier past the numerals throws, since only a broken server contract can offer one. */
 function numeral(tier: number): string {
-  const tierNumeral = TIER_NUMERALS[tier - FIRST_TIER];
-  if (tierNumeral === undefined) throw new Error(`Offered trait tier ${tier} has no numeral`);
-  return tierNumeral;
+  return formatQuantity(tier, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral });
 }
 
 function isRungFor(traitId: TraitId, stage: CellStage): boolean {
@@ -89,7 +86,12 @@ function isRungFor(traitId: TraitId, stage: CellStage): boolean {
   return rung !== null && STAGE_GATE_TRAITS[rung].includes(traitId);
 }
 
-function cardView(card: OwnedTrait, index: number, progress: TraitOfferInput['progress']): TraitCardView {
+function cardView(
+  card: OwnedTrait,
+  index: number,
+  progress: TraitOfferInput['progress'],
+  traits: TraitModifierTables,
+): TraitCardView {
   const definition = definitionOf(card.traitId);
   const owned = progress.ownedTraits.find((trait) => trait.traitId === card.traitId);
   const isUpgrade = owned !== undefined && card.tier > owned.tier;
@@ -103,7 +105,7 @@ function cardView(card: OwnedTrait, index: number, progress: TraitOfferInput['pr
     isRung: isRungFor(card.traitId, progress.stage),
     category,
     rarity: definition.rarity,
-    effects: describeTierModifiers(card.traitId, card.tier),
+    effects: describeTierModifiers(traits, card.traitId, card.tier),
     keyLabel: String(index + FIRST_KEY),
   };
 }
@@ -115,9 +117,9 @@ export function traitOfferViewFor(input: TraitOfferInput): TraitOfferViewModel {
   return {
     offerId: offer.offerId,
     title: `LEVEL ${offer.level} · CHOOSE A TRAIT`,
-    cards: offer.cards.map((card, index) => cardView(card, index, input.progress)),
+    cards: offer.cards.map((card, index) => cardView(card, index, input.progress, input.balance.traits)),
     secondsLeft,
-    secondsText: `${secondsLeft.toFixed(TIMER_DECIMALS)} s`,
+    secondsText: formatQuantity(secondsLeft, QUANTITY_UNIT.seconds, { presentation: QUANTITY_PRESENTATION.countdown }),
     timerFraction: windowSeconds > NO_TIME ? clamp(secondsLeft / windowSeconds, NO_TIME, FULL) : NO_TIME,
   };
 }

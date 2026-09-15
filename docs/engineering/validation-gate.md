@@ -14,7 +14,10 @@
      `node_modules/.pnpm/lock.yaml` is missing or differs from `pnpm-lock.yaml`, and the
      `@evolution/shared` build when `dist/index.d.ts` is missing or a shared source or config is newer
      than its tsbuildinfo, one line each, so a fresh worktree needs no manual step and downstream
-     `.d.ts` references are fresh — running `tsc` directly gives stale/false results;
+     `.d.ts` references are fresh — running `tsc` directly gives stale/false results; between the two it
+     regenerates the git-ignored `docs/INDEX.md` (`scripts/docs-index.sh`, #407) when it is missing, the docs
+     no longer match the fingerprint it stores, or it was written before prettier was installed, and installs the shared hooks that
+     refresh it after a checkout or merge; the index is never committed, so lint does not check it;
    - runs **eslint AND prettier `--check` as a pair** — running only eslint silently misses
      formatting failures — then audits the source for `eslint-disable` directives without a
      `-- reason` and for `TODO`s without a ticket (`docs/CODE-STANDARDS.md` §7), printing the
@@ -135,7 +138,7 @@
 ./validate.sh test         # unit tier with coverage thresholds
 ./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier + *.gameplay.test.ts (opt-in; all --affected runs it)
 ./validate.sh typecheck    # type check all packages (builds shared first when stale)
-./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit + docs/INDEX.md freshness
+./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit
 ./validate.sh duplication  # jscpd (.jscpd.json)
 ./validate.sh all          # lint -> duplication -> typecheck -> test, stopping at the first red phase; prints wall times and ALL PASSED / FAILED: <phase>
 ./validate.sh all --affected  # the merge gate: only what the branch changed against origin/main, then its integration tier; refuses a branch behind origin/main
