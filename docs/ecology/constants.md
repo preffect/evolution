@@ -100,4 +100,3 @@ and the eleven `wild-cells.ts` rows; the simulation core (#152) adds `ALGAE_TAG`
 | `ENGULF_MASS_YIELD`                                                    | 0.8       | ratio                                                             |
 | `ENGULF_DNA_BASE` / `ENGULF_DNA_SHARE`                                 | 30 / 0.2  | DNA / ratio                                                       |
 | `ENGULF_TAG_SHARE` / `ENGULF_PREDATORY_TAG_POINTS`                     | 0.5 / 10  | ratio / points                                                    |
-| `ENGULF_TRAIT_STEAL_CHANCE`                                            | 0         | retired (#269): no trait steal; removed with this row by #260     |

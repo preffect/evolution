@@ -47,9 +47,9 @@ export const SIMPLE_FLAGELLUM_TIERS: TraitTiers = [
   { speedMultiplier: 1.05, sprintSpeedMultiplierBonus: 0.9, sprintCooldownSecondsDelta: -1.5 },
 ];
 export const CELL_WALL_TIERS: TraitTiers = [
-  { membraneRatioBonus: 0.15, speedMultiplier: 0.95 },
-  { membraneRatioBonus: 0.3, speedMultiplier: 0.9 },
-  { membraneRatioBonus: 0.45, speedMultiplier: 0.85 },
+  { membraneRatioBonus: 0.15, absorbDurationMultiplierAsPrey: 1.2, speedMultiplier: 0.95 },
+  { membraneRatioBonus: 0.3, absorbDurationMultiplierAsPrey: 1.4, speedMultiplier: 0.9 },
+  { membraneRatioBonus: 0.45, absorbDurationMultiplierAsPrey: 1.6, speedMultiplier: 0.85 },
 ];
 export const RIBOSOMES_TIERS: TraitTiers = [
   { digestionFactorBonus: 0.1 },
@@ -72,11 +72,15 @@ export const NUCLEAR_ENVELOPE_TIERS: TraitTiers = [
   { dnaKeptOnDeathFraction: 0.75 },
 ];
 export const CYTOSKELETON_TIERS: TraitTiers = [
-  { accelerationSecondsMultiplier: 0.85 },
-  { accelerationSecondsMultiplier: 0.72 },
-  { accelerationSecondsMultiplier: 0.61 },
+  { accelerationSecondsMultiplier: 0.85, struggleSlowdownBonus: 0.1 },
+  { accelerationSecondsMultiplier: 0.72, struggleSlowdownBonus: 0.2 },
+  { accelerationSecondsMultiplier: 0.61, struggleSlowdownBonus: 0.3 },
 ];
-export const CILIA_TIERS: TraitTiers = [{ speedMultiplier: 1.1 }, { speedMultiplier: 1.2 }, { speedMultiplier: 1.3 }];
+export const CILIA_TIERS: TraitTiers = [
+  { speedMultiplier: 1.1, gripResistanceBonus: 0.05 },
+  { speedMultiplier: 1.2, gripResistanceBonus: 0.1 },
+  { speedMultiplier: 1.3, gripResistanceBonus: 0.15 },
+];
 export const FOOD_VACUOLE_TIERS: TraitTiers = [
   { absorbDurationMultiplierAsPredator: 0.8, engulfMassYieldBonus: 0.05 },
   { absorbDurationMultiplierAsPredator: 0.64, engulfMassYieldBonus: 0.1 },
@@ -88,14 +92,14 @@ export const TOXIN_VACUOLE_TIERS: TraitTiers = [
   { toxinDrainFractionPerSecond: 0.07 },
 ];
 export const AMOEBA_PSEUDOPODS_TIERS: TraitTiers = [
-  { gelSpeedFactorFloor: 0.6, wrapDurationMultiplierAsPredator: 0.85 },
-  { gelSpeedFactorFloor: 0.8, wrapDurationMultiplierAsPredator: 0.75 },
-  { gelSpeedFactorFloor: 1.0, wrapDurationMultiplierAsPredator: 0.65 },
+  { gelSpeedFactorFloor: 0.6, wrapDurationMultiplierAsPredator: 0.85, gripStrengthBonus: 0.1 },
+  { gelSpeedFactorFloor: 0.8, wrapDurationMultiplierAsPredator: 0.75, gripStrengthBonus: 0.2 },
+  { gelSpeedFactorFloor: 1.0, wrapDurationMultiplierAsPredator: 0.65, gripStrengthBonus: 0.3 },
 ];
 export const PARAMECIUM_CILIA_TIERS: TraitTiers = [
-  { speedMultiplier: 1.1, accelerationSecondsMultiplier: 0.9 },
-  { speedMultiplier: 1.15, accelerationSecondsMultiplier: 0.8 },
-  { speedMultiplier: 1.2, accelerationSecondsMultiplier: 0.7 },
+  { speedMultiplier: 1.1, accelerationSecondsMultiplier: 0.9, struggleSlowdownBonus: 0.1 },
+  { speedMultiplier: 1.15, accelerationSecondsMultiplier: 0.8, struggleSlowdownBonus: 0.15 },
+  { speedMultiplier: 1.2, accelerationSecondsMultiplier: 0.7, struggleSlowdownBonus: 0.2 },
 ];
 export const EUGLENA_EYESPOT_TIERS: TraitTiers = [
   { attractRangeInRadii: 3, attractSpeed: 40 },
@@ -103,9 +107,24 @@ export const EUGLENA_EYESPOT_TIERS: TraitTiers = [
   { attractRangeInRadii: 5, attractSpeed: 80 },
 ];
 export const DIATOM_SHELL_TIERS: TraitTiers = [
-  { absorbDurationMultiplierAsPrey: 1.4, spikeDrainFractionPerSecond: 0.02, speedMultiplier: 0.97 },
-  { absorbDurationMultiplierAsPrey: 1.8, spikeDrainFractionPerSecond: 0.04, speedMultiplier: 0.94 },
-  { absorbDurationMultiplierAsPrey: 2.2, spikeDrainFractionPerSecond: 0.06, speedMultiplier: 0.91 },
+  {
+    absorbDurationMultiplierAsPrey: 1.4,
+    spikeDrainFractionPerSecond: 0.02,
+    spitOutChancePerSecond: 0.4,
+    speedMultiplier: 0.97,
+  },
+  {
+    absorbDurationMultiplierAsPrey: 1.8,
+    spikeDrainFractionPerSecond: 0.04,
+    spitOutChancePerSecond: 0.7,
+    speedMultiplier: 0.94,
+  },
+  {
+    absorbDurationMultiplierAsPrey: 2.2,
+    spikeDrainFractionPerSecond: 0.06,
+    spitOutChancePerSecond: 1.0,
+    speedMultiplier: 0.91,
+  },
 ];
 export const STENTOR_TRUMPET_TIERS: TraitTiers = [
   { toxinAuraRangeInRadii: 1.0, digestionFactorBonus: 0.1 },

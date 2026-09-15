@@ -3,10 +3,8 @@
 // that refractory, both here: the engulf step's start check and its prune at step 6, and separation
 // at step 3 through `contact.ts`, which treats a pair inside one as a pair that cannot engulf (§5.3).
 //
-// No build-1 tier table sets `spitOutChancePerSecond` yet — the Diatom Shell's 0.4 / 0.7 / 1.0 arrives
-// with #260 (docs/traits/catalog-forms.md §3.15) — so in play today every prey takes the no-draw branch and the
-// stream is never advanced. The path itself is live: a folded modifier with a positive chance runs it,
-// which is how `engulf-spit-out.test.ts` reaches it.
+// Only the Diatom Shell sets `spitOutChancePerSecond` (0.4 / 0.7 / 1.0, docs/traits/catalog-forms.md §3.15,
+// §3.18), so every other prey takes the no-draw branch and never advances the stream (T4).
 
 import {
   ENGULF_PHASE,

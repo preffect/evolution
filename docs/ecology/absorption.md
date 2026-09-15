@@ -72,9 +72,7 @@ export function resolveEngulfHold(
 
 `CellModifiers` carries every field named above (traits/model.md §2), so the arguments are literal `Pick`s of the
 folded record: #258 landed the `absorb` / `wrap` split and the four new bonuses with identity defaults, and
-#260 fills the tier tables that set them. Until it does, `gripStrengthBonus`, `gripResistanceBonus`,
-`struggleSlowdownBonus` and `spitOutChancePerSecond` are 0 for every cell in play, so the spit-out branch
-and the refractory are reachable only from a folded modifier a test writes directly.
+#260 filled the tier tables that set them (traits/catalog-forms.md §3.18).
 `EngulfPaceBalance` and `EngulfRatioBalance` are `Pick`s of `BalanceConfig['absorption']`
 ([`architecture/constants-files-tests.md §9`](../architecture/constants-files-tests.md#9-constants-and-balance-decision-one-home)), so every caller, server and client, passes
 `balance.absorption` (the room's live copy) and the thresholds follow a `debug_set_balance` patch.

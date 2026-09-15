@@ -5,7 +5,7 @@
 import { describe, it } from 'vitest';
 import { ENGULF_RELEASE_REASON, PLAYER_LIFE_STATE } from '@evolution/shared';
 import { distanceBetweenCells, speedOf } from '../gameplay/evolution-views.js';
-import { combineScripts, player, sprint } from '../gameplay/index.js';
+import { player } from '../gameplay/index.js';
 import {
   CENTRE_DISTANCE_WU,
   DISTANCE_TOLERANCE_WU,
@@ -31,16 +31,11 @@ import {
   preyCell,
   progressOfPrey,
   releaseReasons,
+  sprintsAwayFrom,
   statesOfPredator,
   statesOfPrey,
 } from './engulf-setups.js';
 import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
-
-/** "B sprints away at tick t": steers away from t and presses sprint on t (docs/ecology/acceptance.md §8). */
-const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof engulfPair>) =>
-  builder
-    .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
-    .from(tick + 1, player(1).does(awayFromPredator));
 
 describe('ecology/acceptance.md §8: getting away from an engulf, and being carried past the chance', () => {
   it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', async () => {

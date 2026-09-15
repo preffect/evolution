@@ -90,6 +90,34 @@ describe('payOutEngulf: the predator', () => {
     expect(predatorPlayer.dnaTowardNextLevel).toBeCloseTo(gained * multiplier, 6);
   });
 
+  it('adds the Food Vacuole engulfMassYieldBonus to the yield, capped at the whole prey (T6)', () => {
+    const bonus = DEFAULT_BALANCE.traits.TRAIT_TIERS.food_vacuole[0]!.engulfMassYieldBonus!;
+    const { predator, predatorMassBefore } = payOut(({ predator: eater, predatorPlayer, world }) => {
+      predatorPlayer.ownedTraits.push({ traitId: 'food_vacuole', tier: 1 });
+      refreshCellDerivedState(eater, predatorPlayer, world.balance);
+    });
+    expect(predator.mass).toBeCloseTo(predatorMassBefore + PREY_MASS * (absorption.ENGULF_MASS_YIELD + bonus), 6);
+    const capped = payOut(({ predator: eater }) => {
+      eater.modifiers = { ...eater.modifiers, engulfMassYieldBonus: 1 };
+    });
+    expect(capped.predator.mass).toBeCloseTo(capped.predatorMassBefore + PREY_MASS, 6);
+  });
+
+  it("shares only the prey's earned DNA, never its catch-up gift (#271, E9c)", () => {
+    const shareOf = (dnaCatchUpGift: number) =>
+      payOut(({ preyPlayer }) => {
+        preyPlayer.dnaCumulative = PREY_DNA;
+        preyPlayer.dnaCatchUpGift = dnaCatchUpGift;
+      }).predatorPlayer.dnaCumulative;
+    const partialGift = PREY_DNA / 2;
+    expect(shareOf(partialGift)).toBeCloseTo(
+      absorption.ENGULF_DNA_BASE + (PREY_DNA - partialGift) * absorption.ENGULF_DNA_SHARE,
+      6,
+    );
+    expect(shareOf(PREY_DNA)).toBe(absorption.ENGULF_DNA_BASE);
+    expect(shareOf(0)).toBeCloseTo(absorption.ENGULF_DNA_BASE + PREY_DNA * absorption.ENGULF_DNA_SHARE, 6);
+  });
+
   it('takes ENGULF_TAG_SHARE of every prey tag and the flat predatory points', () => {
     const { predatorPlayer } = payOut(({ preyPlayer }) => {
       preyPlayer.dnaTagPoints[DNA_TAG.photic] = PREY_TAG_POINTS;

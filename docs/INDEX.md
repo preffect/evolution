@@ -231,13 +231,13 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **7. What the tests assert** (L51–74): The determinism integration test runs against the echo module to prove the harness (the echo module has no `WorldState`, so there the harne…
 - **8. Known traps** (L75–95): fall back to insertion order, which differs between a live run and a replay after removals.
 
-## ecology/absorption.md (246 lines)
+## ecology/absorption.md (244 lines)
 
-- **Evolution — Ecology, Growth and Absorption: absorption and engulf** (L1–246): §6 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
-- **6. Absorption and engulf** (L5–246): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
-  - **6.1 Rules** (L13–193): Eligibility (mass only, one home).
-  - **6.2 State diagram** (L194–226): Two records, two homes.
-  - **6.3 Edge cases (resolved)** (L227–246)
+- **Evolution — Ecology, Growth and Absorption: absorption and engulf** (L1–244): §6 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
+- **6. Absorption and engulf** (L5–244): Decision #139 (direction, confirmed on #145): escape and absorption depend on the traits involved.
+  - **6.1 Rules** (L13–191): Eligibility (mass only, one home).
+  - **6.2 State diagram** (L192–224): Two records, two homes.
+  - **6.3 Edge cases (resolved)** (L225–244)
 
 ## ecology/acceptance.md (85 lines)
 
@@ -245,14 +245,14 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Acceptance scenarios** (L5–85): Given seed S and inputs I, after N ticks assert X.
   - **8.1 The evolving world (§3.1–§3.4)** (L62–85): Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })` (`testing/scenario-runner.md §8.1`) se…
 
-## ecology/constants.md (103 lines)
+## ecology/constants.md (102 lines)
 
-- **Evolution — Ecology, Growth and Absorption: constants table** (L1–103): §7 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
-- **7. Constants table** (L5–103): Home: `packages/shared/src/constants/<domain>.ts`.
+- **Evolution — Ecology, Growth and Absorption: constants table** (L1–102): §7 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
+- **7. Constants table** (L5–102): Home: `packages/shared/src/constants/<domain>.ts`.
   - **`ecology.ts`** (L9–41)
   - **`growth.ts`** (L42–56)
   - **`wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, `game-design/constants-and-acceptance.md §12`)** (L57–72)
-  - **`absorption.ts`** (L73–103): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
+  - **`absorption.ts`** (L73–102): Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to the 1.2 s sum of the three phase secon…
 
 ## ecology/food-and-spawn.md (188 lines)
 
@@ -388,12 +388,12 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
   - **8.4 Proving scenarios** (L82–93): `packages/server/src/testing/scenarios/echo.gameplay.test.ts` runs the framework against the echo module: inputs echo from the tick they we…
   - **8.5 The design tables** (L94–113): The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14), `ecology-cells.gameplay.test.ts` (E4–E8,…
 
-## testing/scenario-runner.md (168 lines)
+## testing/scenario-runner.md (169 lines)
 
-- **Evolution — Testing Standards: the gameplay scenario runner and replay** (L1–168): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
-- **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L5–168): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
-  - **8.1 Writing a scenario** (L21–135): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
-  - **8.2 Replay and the failure output** (L136–168): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
+- **Evolution — Testing Standards: the gameplay scenario runner and replay** (L1–169): §8–§8.2 of the split `TESTING.md`, which keeps the shared context and the file list.
+- **8. Gameplay tier: the scenario runner (`packages/server/src/testing/gameplay/`, #75)** (L5–169): The design tables (`ecology/acceptance.md` §8, `game-design/constants-and-acceptance.md` §13, `PROGRESSION.md` §7, `traits/constants-and…
+  - **8.1 Writing a scenario** (L21–136): `0 … n − 1` present from tick 0 (ids `player_<index>`, names `Player <index>`).
+  - **8.2 Replay and the failure output** (L137–169): Every run records a `ScenarioReplay` (`replay-format.ts`): seed, config, setup fixtures, the tick-0 roster, every join and leave, every sch…
 
 ## testing/tiers-and-builders.md (105 lines)
 

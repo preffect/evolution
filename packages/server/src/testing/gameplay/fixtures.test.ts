@@ -59,6 +59,7 @@ describe('placed fixtures', () => {
       isPinned: false,
       traits: [],
       dnaCumulative: null,
+      dnaCatchUpGift: null,
     });
   });
 
@@ -90,6 +91,11 @@ describe('placed fixtures', () => {
     const levelled = placeCell({ playerIndex: 0, mass: 20, at: ZONE.vent, dnaCumulative: 1760 }, first);
     expect(levelled.at).toBe(ZONE.vent);
     expect(levelled.dnaCumulative).toBe(1760);
+    const gifted = placeCell(
+      { playerIndex: 1, mass: 20, at: ZONE.vent, dnaCumulative: 140, dnaCatchUpGift: 100 },
+      first,
+    );
+    expect(gifted.dnaCatchUpGift).toBe(100);
   });
 
   it('rejects a trait tier outside I to III', () => {

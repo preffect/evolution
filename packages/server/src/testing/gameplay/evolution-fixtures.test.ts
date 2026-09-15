@@ -94,6 +94,7 @@ describe('applyPlacedCell', () => {
         isPinned: true,
         traits: ['nucleoid', { traitId: 'cell_wall', tier: 2 }],
         dnaCumulative: 140,
+        dnaCatchUpGift: 100,
       },
       undefined,
     );
@@ -114,7 +115,13 @@ describe('applyPlacedCell', () => {
     ]);
     expect(cell.stage).toBe(CELL_STAGE.prokaryote);
     expect(cell.modifiers.membraneRatioBonus).toBeGreaterThan(0);
-    expect(player).toMatchObject({ dnaCumulative: 140, level: 3, dnaTowardNextLevel: 0, offerQueue: [] });
+    expect(player).toMatchObject({
+      dnaCumulative: 140,
+      dnaCatchUpGift: 100,
+      level: 3,
+      dnaTowardNextLevel: 0,
+      offerQueue: [],
+    });
     expect(cell.level).toBe(3);
   });
 
@@ -127,6 +134,7 @@ describe('applyPlacedCell', () => {
     expect(cell.mass).toBe(40);
     expect(cell.traits).toEqual([]);
     expect(world.players[0]!.dnaCumulative).toBe(0);
+    expect(world.players[0]!.dnaCatchUpGift).toBe(0);
   });
 
   it('refuses a trait that is not in the catalog and a player that is not in the world', () => {

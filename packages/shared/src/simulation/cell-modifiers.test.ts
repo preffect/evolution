@@ -21,7 +21,18 @@ describe('foldModifiers', () => {
     expect(folded.speedMultiplier).toBeCloseTo(1.045, 12);
     expect(folded.accelerationSecondsMultiplier).toBe(0.85);
     expect(folded.membraneRatioBonus).toBe(0.15);
-    const changed: (keyof CellModifiers)[] = ['speedMultiplier', 'accelerationSecondsMultiplier', 'membraneRatioBonus'];
+    // The engulf hooks the three traits carry (docs/traits/catalog-forms.md §3.18, #260).
+    expect(folded.absorbDurationMultiplierAsPrey).toBe(1.2);
+    expect(folded.gripResistanceBonus).toBe(0.05);
+    expect(folded.struggleSlowdownBonus).toBe(0.1);
+    const changed: (keyof CellModifiers)[] = [
+      'speedMultiplier',
+      'accelerationSecondsMultiplier',
+      'membraneRatioBonus',
+      'absorbDurationMultiplierAsPrey',
+      'gripResistanceBonus',
+      'struggleSlowdownBonus',
+    ];
     for (const name of MODIFIER_NAMES) {
       if (!changed.includes(name)) expect(folded[name], name).toBe(DEFAULT_CELL_MODIFIERS[name]);
     }

@@ -12,15 +12,12 @@
 // it is filed against the wild-cell slice; until that slice no wild cell exists, so nothing is
 // observably missing yet.
 //
-// The trait steal stays reserved: `ENGULF_TRAIT_STEAL_CHANCE` is 0 in build 1 and the payout table
-// names no trait for it to move (docs/ecology/absorption.md §6.1, the "Reserved" row), so no roll is drawn —
-// the same "no draw when the chance is 0" rule the spit-out follows (`engulf-spit-out.ts`). The draw
-// order build 2 must keep when it turns the steal on is the contract in docs/ecology/absorption.md §6.1's
-// Reserved row and docs/determinism/random-streams.md §3, not this comment: a draw of `streams.engulf` here, after
-// the tick's spit-out draw, one per completed engulf.
+// Traits never move (docs/ecology/absorption.md §6.1, the "Traits" row; the steal was retired by #269), so the
+// payout draws nothing: the spit-out stays the `engulf` stream's only consumer
+// (docs/determinism/random-streams.md §3).
 
 import { DNA_TAG, DNA_TAGS, type BalanceConfig, type TraitDefinition } from '@evolution/shared';
-import { gainDna, gainTagPoints } from '../progression/dna.js';
+import { earnedDnaOf, gainDna, gainTagPoints } from '../progression/dna.js';
 import { absorbCell } from '../session/death.js';
 import { isPlayerCell, type CellRecord, type PlayerCellRecord, type PlayerRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
@@ -31,14 +28,22 @@ import { worldReferenceAt } from './round-clock.js';
 
 /** One absorption, of a player or of a wild cell: the counters count meals, never mass. */
 const ONE_ABSORPTION = 1;
+/** The yield never exceeds the whole prey (docs/traits/model.md §2: `engulfMassYieldBonus`, "cap 1"). */
+const WHOLE_PREY_YIELD = 1;
+
+/** `ENGULF_MASS_YIELD` + the predator's Food Vacuole bonus, capped at the whole prey (T6). */
+export function engulfMassYieldOf(predator: CellRecord, balance: BalanceConfig): number {
+  return Math.min(WHOLE_PREY_YIELD, balance.absorption.ENGULF_MASS_YIELD + predator.modifiers.engulfMassYieldBonus);
+}
 
 /**
- * The prey's lifetime DNA the predator takes a share of: a player's own, and for a wild cell the
- * world's `worldDna` — the wild cell is the world clock made flesh (docs/ecology/wild-cells.md §3.3).
+ * The prey DNA the predator takes a share of: a player's earned DNA, never its entry-rule gift (#271,
+ * docs/ecology/absorption.md §6.3), and for a wild cell the world's `worldDna` — the wild cell is the
+ * world clock made flesh (docs/ecology/wild-cells.md §3.3).
  */
 function preyDnaOf(world: WorldState, prey: CellRecord): number {
   return isPlayerCell(prey)
-    ? requirePlayer(world, prey.playerId).dnaCumulative
+    ? earnedDnaOf(requirePlayer(world, prey.playerId))
     : worldReferenceAt(world, world.tick).worldDna;
 }
 
@@ -85,7 +90,7 @@ function creditEndosymbionts(eater: PlayerRecord, prey: CellRecord, balance: Bal
 function payPredator(world: WorldState, context: StepContext, predator: PlayerCellRecord, prey: CellRecord): void {
   const balance = context.balance;
   const eater = requirePlayer(world, predator.playerId);
-  gainMass(predator, eater, prey.mass * balance.absorption.ENGULF_MASS_YIELD, balance);
+  gainMass(predator, eater, prey.mass * engulfMassYieldOf(predator, balance), balance);
   gainDna(eater, engulfDnaFor(world, prey, balance), predator.modifiers.dnaGainMultiplier);
   payTagPoints(eater, prey, world, balance);
   creditEndosymbionts(eater, prey, balance);
