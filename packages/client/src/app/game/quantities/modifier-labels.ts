@@ -112,6 +112,43 @@ export function modifierLine(key: ModifierKey, value: number): string {
   return label.formatLine?.(value) ?? `${label.formatValue(value)} ${label.noun}`;
 }
 
+/**
+ * Two modifiers of one organelle that read as a single card line (docs/ui/overlays.md §3.2): the Diatom Shell's
+ * spines both drain a predator and spit it out, so the card states both numbers on one line instead of spending two
+ * of its three on the same organelle. Both numbers stay on the card, which is what the three-line cap protects.
+ * The encyclopedia lists a fact per modifier and does not pair (docs/architecture/encyclopedia.md §12.3).
+ */
+const PAIRED_MODIFIER_LINES: readonly {
+  readonly keys: readonly [ModifierKey, ModifierKey];
+  readonly formatLine: (first: number, second: number) => string;
+}[] = [
+  {
+    keys: ['spikeDrainFractionPerSecond', 'spitOutChancePerSecond'],
+    formatLine: (drain, chance) => `Spines drain ${percentPerSecond(drain)}, spit out ${percentPerSecond(chance)}`,
+  },
+];
+
+/**
+ * The card lines for a tier row's modifiers, in row order, with a paired organelle's two modifiers on one line at
+ * the first of the two. Anything unpaired is its own `modifierLine`.
+ */
+export function modifierLines(modifiers: readonly [ModifierKey, number][]): string[] {
+  const valueOf = new Map<ModifierKey, number>(modifiers);
+  const pairedAway = new Set<ModifierKey>();
+  const lineOf = new Map<ModifierKey, string>();
+  for (const pair of PAIRED_MODIFIER_LINES) {
+    const [first, second] = pair.keys;
+    const firstValue = valueOf.get(first);
+    const secondValue = valueOf.get(second);
+    if (firstValue === undefined || secondValue === undefined) continue;
+    lineOf.set(first, pair.formatLine(firstValue, secondValue));
+    pairedAway.add(second);
+  }
+  return modifiers
+    .filter(([key]) => !pairedAway.has(key))
+    .map(([key, value]) => lineOf.get(key) ?? modifierLine(key, value));
+}
+
 /** The modifiers of `tierRow` that differ from `identity` (`balance.traits.DEFAULT_CELL_MODIFIERS`), in row order. */
 export function nonIdentityModifiers(tierRow: TraitTierModifiers, identity: CellModifiers): [ModifierKey, number][] {
   return (Object.entries(tierRow) as [ModifierKey, number][]).filter(([key, value]) => value !== identity[key]);

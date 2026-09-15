@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type CellModifiers } from '@evolution/shared';
-import { MODIFIER_LABELS, modifierLine, nonIdentityModifiers } from './modifier-labels';
+import { MODIFIER_LABELS, modifierLine, modifierLines, nonIdentityModifiers } from './modifier-labels';
 
 const IDENTITY = DEFAULT_BALANCE.traits.DEFAULT_CELL_MODIFIERS;
 const KEYS = Object.keys(MODIFIER_LABELS) as (keyof CellModifiers)[];
@@ -50,6 +50,24 @@ describe('modifierLine', () => {
     expect(modifierLine('dnaKeptOnDeathFraction', 0.75)).toBe('Keeps 75 % DNA on death');
     expect(modifierLine('gelSpeedFactorFloor', 0.6)).toBe('Gel slows you to no less than 60 %');
     expect(modifierLine('gelSpeedFactorFloor', 1)).toBe('Gel no longer slows you');
+  });
+});
+
+describe('modifierLines', () => {
+  it("pairs one organelle's two modifiers onto a single line, both numbers kept, at the first of the two", () => {
+    expect(
+      modifierLines([
+        ['absorbDurationMultiplierAsPrey', 1.4],
+        ['spikeDrainFractionPerSecond', 0.02],
+        ['spitOutChancePerSecond', 0.4],
+        ['speedMultiplier', 0.97],
+      ]),
+    ).toEqual(['+40 % time to absorb you', 'Spines drain 2 % / s, spit out 40 % / s', '−3 % speed']);
+  });
+
+  it('leaves either half of a pair as its own line when the other is not in the row', () => {
+    expect(modifierLines([['spikeDrainFractionPerSecond', 0.02]])).toEqual(['Spines drain 2 % / s']);
+    expect(modifierLines([['spitOutChancePerSecond', 0.4]])).toEqual(['40 % / s spit-out chance']);
   });
 });
 
