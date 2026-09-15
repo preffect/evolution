@@ -71,8 +71,9 @@ it('E9: A absorbs B on tick 30', async () => {
 - **Seeds and the Evolution snapshot.** `TABLE_SEED` (42) is what every row names;
   `PLACED_ROW_SEED` (48) is what the placed rows run on, because only the gel patches come from
   the seed and seed 42 puts one 73 wu from the broth point (ecology/acceptance.md §8's clearance rule refuses
-  it). The scenario snapshot is the full snapshot with **exact positions** (the tables assert
-  ± 0.01 wu; only the wire rounds to `SNAPSHOT_POSITION_DECIMALS`), plus that tick's `effects`
+  it). The scenario snapshot is the full snapshot with **exact values** (`EXACT_SNAPSHOT_VALUES`: the tables
+  assert ± 0.01 wu; only the wire rounds positions, velocity, mass, radius and the leaderboard's score and mass to
+  their `SNAPSHOT_*_DECIMALS`, #341), plus that tick's `effects`
   and the spawners' `spawnedCounts` (E2, E14 count spawns, not populations). `evolution-views.ts`
   holds the selectors a row reads through (`cellOf`, `progressOf`, `massOf`, `speedOf`,
   `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`).

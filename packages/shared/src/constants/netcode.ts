@@ -8,6 +8,19 @@ import { TICK_HZ } from './network.js';
 /** Positions on the wire are rounded to this many decimals (0.1 wu): what keeps a snapshot under budget. */
 export const SNAPSHOT_POSITION_DECIMALS = 1;
 
+// ---- the other snapshot numbers (#341, docs/architecture/wire-contract.md §4.2 lever 3): only the view is rounded ----
+/** A radius is a length like a position, so its rim is as exact as its centre: at most 0.05 wu off. */
+export const SNAPSHOT_RADIUS_DECIMALS = SNAPSHOT_POSITION_DECIMALS;
+/** 0.1 wu/s: extrapolation carries it for at most `MAX_EXTRAPOLATION_TICKS`, so a position drifts 0.0025 wu at most. */
+export const SNAPSHOT_VELOCITY_DECIMALS = 1;
+/**
+ * 0.1 mass, for a cell and its leaderboard row alike, so the two whole numbers the HUD shows for one cell always
+ * agree. At `CELL_STARTING_MASS` the engulf ratio a client reads moves by 0.5 % at most.
+ */
+export const SNAPSHOT_MASS_DECIMALS = 1;
+/** A leaderboard score is written whole: the panel only ever shows it rounded, so the rounding is invisible. */
+export const SNAPSHOT_SCORE_DECIMALS = 0;
+
 /**
  * Ticks between two `game_snapshot` broadcasts (docs/architecture/entity-model.md §1): the one home of the
  * cadence, read by `GameRoom.runTick`. 3 at `TICK_HZ` = 60, so the wire runs at 20 Hz — a third

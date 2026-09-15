@@ -1,7 +1,7 @@
 // The scenario adapter for the Evolution module (docs/testing/scenario-runner.md §8): the Evolution bot binding
 // (`game/bots/evolution-binding.ts`) plus the scenario duties. The snapshot the scripts and the
 // expectations see is the full snapshot of the tick plus that tick's effects and the spawners'
-// counters (E2, E14 count spawns, not populations), with exact positions, read through the module's
+// counters (E2, E14 count spawns, not populations), with exact values (no wire rounding), read through the module's
 // broadcast so the effects drain as on the wire; the hash is `computeStateHash` over the
 // world; fixtures are the placed records of `fixtures.ts` and the world fixtures below.
 
@@ -15,7 +15,8 @@ import {
 import { createEvolutionBotBinding } from '../../game/bots/evolution-binding.js';
 import { createEvolutionModule, type EvolutionModule } from '../../game/evolution-module.js';
 import type { GameModule } from '../../game/game-module.js';
-import { EXACT_POSITION, serializeFullSnapshot, toPlayerProgressView } from '../../game/serialize/serialize.js';
+import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
+import { serializeFullSnapshot, toPlayerProgressView } from '../../game/serialize/serialize.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -109,8 +110,8 @@ export interface LazyScenarioSnapshot {
 }
 
 /**
- * Positions are exact here (the tables assert ± 0.01 wu); only the wire rounds them. The scalars,
- * the counters and this tick's effects (drained here, as the broadcast drains them) are captured
+ * Values are exact here (the tables assert ± 0.01 wu); only the wire rounds positions, velocity, mass, radius and the
+ * leaderboard's score and mass. The scalars, the counters and this tick's effects (drained here, as the broadcast drains them) are captured
  * at once; the entity projections are built on first access, because the runner reads a snapshot
  * every tick and a whole-round row (37 200 ticks, twice) observes a handful of them. The rule:
  * the projections are pinned before anything changes the world between ticks (a scheduled
@@ -119,7 +120,7 @@ export interface LazyScenarioSnapshot {
 export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnapshot {
   let projected: GameSnapshot | undefined;
   const projection = (): GameSnapshot => {
-    projected ??= serializeFullSnapshot(world, EXACT_POSITION);
+    projected ??= serializeFullSnapshot(world, EXACT_SNAPSHOT_VALUES);
     return projected;
   };
   let projectedProgress: Record<string, PlayerProgressView> | undefined;
