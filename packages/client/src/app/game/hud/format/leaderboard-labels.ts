@@ -11,8 +11,10 @@ export const LEADERBOARD_TEXT = {
   title: 'LEADERBOARD',
   /** The compact panel's hint: what opens the full list. */
   hintClosed: 'HOLD TAB',
-  /** The full list's hint while it is open. */
+  /** The full list's hint while Tab holds it open. */
   hintOpen: 'TAB HELD',
+  /** The full list's hint after the header opened it: no key is held, so it says how it closes. */
+  hintClicked: 'CLICK TO CLOSE',
 } as const;
 
 /** One label in the strip, with the class that places it in its column's track. */
@@ -43,20 +45,31 @@ export interface LeaderboardLabels {
 
 export interface LeaderboardLabelsInput {
   readonly isFull: boolean;
+  /** The header opened the full list rather than a held Tab. */
+  readonly isPinned: boolean;
   /** `balance.session.SCORE_ABSORPTION_BONUS`; `null` before the live balance has arrived. */
   readonly scoreAbsorptionBonus: number | null;
 }
 
-/** `SCORE = DNA + 25 PER ENGULF · KEPT ON DEATH`, with the bonus formatted from the live balance. */
+/**
+ * `Score = DNA + 25 per engulf · kept on death`, with the bonus formatted from the live balance. Mixed case at
+ * `label` size (docs/visual-style/ui-type.md §7): uppercase overran the full list's content box.
+ */
 export function leaderboardFooterText(scoreAbsorptionBonus: number): string {
   const bonus = formatQuantity(scoreAbsorptionBonus, QUANTITY_UNIT.count);
-  return joinFacts([`SCORE = DNA + ${bonus} PER ENGULF`, 'KEPT ON DEATH']);
+  return joinFacts([`Score = DNA + ${bonus} per engulf`, 'kept on death']);
+}
+
+/** `HOLD TAB` on the compact panel; on the full list, how it is being kept open. */
+function leaderboardHintFor(isFull: boolean, isPinned: boolean): string {
+  if (!isFull) return LEADERBOARD_TEXT.hintClosed;
+  return isPinned ? LEADERBOARD_TEXT.hintClicked : LEADERBOARD_TEXT.hintOpen;
 }
 
 export function leaderboardLabelsFor(input: LeaderboardLabelsInput): LeaderboardLabels {
-  const { isFull, scoreAbsorptionBonus } = input;
+  const { isFull, isPinned, scoreAbsorptionBonus } = input;
   return {
-    hint: isFull ? LEADERBOARD_TEXT.hintOpen : LEADERBOARD_TEXT.hintClosed,
+    hint: leaderboardHintFor(isFull, isPinned),
     columns: isFull ? LEADERBOARD_FULL_LABELS : LEADERBOARD_COMPACT_LABELS,
     footer: isFull && scoreAbsorptionBonus !== null ? leaderboardFooterText(scoreAbsorptionBonus) : null,
   };

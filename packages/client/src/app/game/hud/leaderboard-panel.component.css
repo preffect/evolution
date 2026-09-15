@@ -2,8 +2,8 @@
    The chrome sizes §3.1.1 owns — the panel widths, the header, row and label-strip heights, the
    column tracks, the swatch, the durations, the type roles and the colour roles — all arrive as
    `--hud-…` custom properties the shell publishes from the constants (`format/hud-css-variables.ts`),
-   so none of them has a second home here. The `0`s, the `100%`s and the one- and two-pixel borders
-   and focus ring below are this stylesheet's own and are not a restatement of anything.
+   so none of them has a second home here. The `0`s and the `100%`s
+   below are this stylesheet's own and are not a restatement of anything.
 
    The column tracks are **fixed**, never `auto`: `.row` and `.column-labels` are two grid
    containers, grid tracks are per-container, and an `auto` track would be sized by each one's own
@@ -22,7 +22,7 @@
   box-sizing: border-box;
   width: calc(var(--hud-leaderboard-width) * var(--hud-scale));
   height: calc(var(--hud-leaderboard-height) * var(--hud-scale));
-  border: 1px solid var(--hud-panel-rim);
+  border: var(--hud-leaderboard-rim) solid var(--hud-panel-rim);
   border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--hud-scale));
   background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
   overflow: hidden;
@@ -43,7 +43,7 @@
   height: calc(var(--hud-leaderboard-header-height) * var(--hud-scale));
   padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
   border: 0;
-  border-bottom: 1px solid var(--hud-panel-rim);
+  border-bottom: var(--hud-leaderboard-rim) solid var(--hud-panel-rim);
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
@@ -76,7 +76,7 @@
     calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
     1fr
     calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-number-column) * var(--hud-scale));
+    calc(var(--hud-leaderboard-score-column) * var(--hud-scale));
   align-items: center;
   gap: calc(var(--hud-leaderboard-column-gap) * var(--hud-scale));
   box-sizing: border-box;
@@ -91,8 +91,8 @@
     calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
     1fr
     calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-number-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-score-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-mass-column) * var(--hud-scale))
     calc(var(--hud-leaderboard-engulfs-column) * var(--hud-scale));
 }
 
@@ -188,10 +188,11 @@
   height: calc(var(--hud-leaderboard-footer-row-height) * var(--hud-scale));
   margin: 0;
   padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
-  border-top: 1px solid var(--hud-panel-rim);
+  border-top: var(--hud-leaderboard-rim) solid var(--hud-panel-rim);
   font-family: var(--hud-font-sans);
   font-size: calc(var(--hud-type-label) * var(--hud-scale));
-  text-transform: uppercase;
+  /* Mixed case at `label` size keeps the tracking (docs/visual-style/ui-type.md §7) and fits the
+     content box with room to spare in a wider fallback face; uppercase did not. */
   letter-spacing: var(--hud-label-tracking);
   white-space: nowrap;
   color: var(--hud-text-label);

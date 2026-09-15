@@ -19,14 +19,14 @@ function texts(labels: readonly { readonly text: string }[]): string[] {
 
 describe('leaderboardLabelsFor', () => {
   it('names the level and score columns on the compact panel, with the hold-Tab hint and no footer', () => {
-    const labels = leaderboardLabelsFor({ isFull: false, scoreAbsorptionBonus: BONUS });
+    const labels = leaderboardLabelsFor({ isFull: false, isPinned: false, scoreAbsorptionBonus: BONUS });
     expect(labels.hint).toBe(LEADERBOARD_TEXT.hintClosed);
     expect(texts(labels.columns)).toEqual(['LV', 'SCORE']);
     expect(labels.footer).toBeNull();
   });
 
   it('adds MASS and ENGULFS on the full list, reads TAB HELD and carries the score rule', () => {
-    const labels = leaderboardLabelsFor({ isFull: true, scoreAbsorptionBonus: BONUS });
+    const labels = leaderboardLabelsFor({ isFull: true, isPinned: false, scoreAbsorptionBonus: BONUS });
     expect(labels.hint).toBe(LEADERBOARD_TEXT.hintOpen);
     expect(texts(labels.columns)).toEqual(['LV', 'SCORE', 'MASS', 'ENGULFS']);
     expect(labels.footer).toBe(leaderboardFooterText(BONUS));
@@ -37,18 +37,25 @@ describe('leaderboardLabelsFor', () => {
     expect(new Set(LEADERBOARD_FULL_LABELS.map((label) => label.className)).size).toBe(LEADERBOARD_FULL_LABELS.length);
   });
 
+  it('reads CLICK TO CLOSE after the header opened the full list, since no key is held', () => {
+    const labels = leaderboardLabelsFor({ isFull: true, isPinned: true, scoreAbsorptionBonus: BONUS });
+    expect(labels.hint).toBe(LEADERBOARD_TEXT.hintClicked);
+    expect(texts(labels.columns)).toEqual(['LV', 'SCORE', 'MASS', 'ENGULFS']);
+  });
+
   it('drops the footer until the live balance has arrived rather than typing a bonus', () => {
-    expect(leaderboardLabelsFor({ isFull: true, scoreAbsorptionBonus: null }).footer).toBeNull();
+    expect(leaderboardLabelsFor({ isFull: true, isPinned: false, scoreAbsorptionBonus: null }).footer).toBeNull();
   });
 });
 
 describe('leaderboardFooterText', () => {
-  it('reads the bonus from the balance, formatted', () => {
+  it('reads the bonus from the balance, formatted, in mixed case', () => {
     const bonus = formatQuantity(BONUS, QUANTITY_UNIT.count);
-    expect(leaderboardFooterText(BONUS)).toBe(`SCORE = DNA + ${bonus} PER ENGULF${FACT_SEPARATOR}KEPT ON DEATH`);
+    expect(leaderboardFooterText(BONUS)).toBe(`Score = DNA + ${bonus} per engulf${FACT_SEPARATOR}kept on death`);
+    expect(leaderboardFooterText(BONUS)).toBe('Score = DNA + 25 per engulf · kept on death');
   });
 
   it('follows a retuned bonus', () => {
-    expect(leaderboardFooterText(BONUS + 1)).toContain(`+ ${formatQuantity(BONUS + 1, QUANTITY_UNIT.count)} PER`);
+    expect(leaderboardFooterText(BONUS + 1)).toContain(`+ ${formatQuantity(BONUS + 1, QUANTITY_UNIT.count)} per`);
   });
 });

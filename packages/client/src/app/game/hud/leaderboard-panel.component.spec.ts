@@ -11,12 +11,23 @@ import {
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { paletteFor } from '../render/palette';
 import {
+  LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_COMPACT_ROWS,
+  LEADERBOARD_ENGULFS_COLUMN_PX,
   LEADERBOARD_FOOTER_ROW_HEIGHT_PX,
   LEADERBOARD_FULL_ROWS,
+  LEADERBOARD_FULL_WIDTH_PX,
   LEADERBOARD_HEADER_HEIGHT_PX,
   LEADERBOARD_LABEL_ROW_HEIGHT_PX,
+  LEADERBOARD_LEVEL_COLUMN_PX,
+  LEADERBOARD_MASS_COLUMN_PX,
+  LEADERBOARD_NAME_COLUMN_MIN_PX,
+  LEADERBOARD_PADDING_PX,
+  LEADERBOARD_RANK_COLUMN_PX,
+  LEADERBOARD_RIM_PX,
   LEADERBOARD_ROW_HEIGHT_PX,
+  LEADERBOARD_SCORE_COLUMN_PX,
+  LEADERBOARD_SWATCH_COLUMN_PX,
 } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
@@ -30,6 +41,19 @@ import {
 import { seatMarkBeadCount } from './format/seat-mark';
 
 const OWN_PLAYER_ID = playerId('player-me');
+
+/** The full list's fixed tracks, in the stylesheet's order: rank, swatch, (name), level, score, mass, engulfs. */
+const FULL_FIXED_TRACKS_PX = [
+  LEADERBOARD_RANK_COLUMN_PX,
+  LEADERBOARD_SWATCH_COLUMN_PX,
+  LEADERBOARD_LEVEL_COLUMN_PX,
+  LEADERBOARD_SCORE_COLUMN_PX,
+  LEADERBOARD_MASS_COLUMN_PX,
+  LEADERBOARD_ENGULFS_COLUMN_PX,
+];
+/** The `1fr` name track plus the fixed ones. */
+const FULL_TRACK_COUNT = FULL_FIXED_TRACKS_PX.length + 1;
+const SIDES = 2;
 
 function testRow(rank: number, id: PlayerId): LeaderboardRow {
   return { rank, playerId: id, score: rank * 10, mass: rank * 7, level: rank, absorptions: rank };
@@ -113,6 +137,30 @@ describe('LeaderboardPanelComponent', () => {
     expect(labelStripText()).toBe('LV SCORE MASS ENGULFS');
     expect(element().querySelector('.header-hint')?.textContent).toBe(LEADERBOARD_TEXT.hintOpen);
     expect(footer()?.textContent).toBe(leaderboardFooterText(DEFAULT_BALANCE.session.SCORE_ABSORPTION_BONUS));
+  });
+
+  it('reads CLICK TO CLOSE after the header opened the full list, and TAB HELD once Tab takes it over', () => {
+    showBoard(boardOf(3, 1));
+    element().querySelector<HTMLButtonElement>(testIdSelector(HUD_TEST_ID.leaderboardHeader))?.click();
+    fixture.detectChanges();
+    expect(element().querySelector('.header-hint')?.textContent).toBe(LEADERBOARD_TEXT.hintClicked);
+
+    hudState.setFullLeaderboardHeld(true);
+    fixture.detectChanges();
+    expect(element().querySelector('.header-hint')?.textContent).toBe(LEADERBOARD_TEXT.hintOpen);
+  });
+
+  it('leaves the full list a name track wide enough for a wide 12-character name at scale 1', () => {
+    // jsdom lays nothing out, so this is the stylesheet's grid arithmetic from the same constants:
+    // the panel width less its rims, its padding, the gaps between tracks and every fixed track.
+    const fixedPx = FULL_FIXED_TRACKS_PX.reduce((total, trackPx) => total + trackPx, 0);
+    const nameTrackPx =
+      LEADERBOARD_FULL_WIDTH_PX -
+      SIDES * (LEADERBOARD_RIM_PX + LEADERBOARD_PADDING_PX) -
+      (FULL_TRACK_COUNT - 1) * LEADERBOARD_COLUMN_GAP_PX -
+      fixedPx;
+    // `BigHungryAmo` in `body` measures 105 px; the constant is that width (docs/ui/hud.md §3.1.1).
+    expect(nameTrackPx).toBeGreaterThanOrEqual(LEADERBOARD_NAME_COLUMN_MIN_PX);
   });
 
   it('sizes the panel for the header, the strip, the rows and, on the full list, the footer', () => {

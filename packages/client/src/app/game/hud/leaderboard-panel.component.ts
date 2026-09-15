@@ -118,6 +118,7 @@ export class LeaderboardPanelComponent {
   protected readonly labels = computed(() =>
     leaderboardLabelsFor({
       isFull: this.isFull(),
+      isPinned: this.hudState.isFullLeaderboardPinned(),
       scoreAbsorptionBonus: this.gameState.balance()?.session.SCORE_ABSORPTION_BONUS ?? null,
     }),
   );

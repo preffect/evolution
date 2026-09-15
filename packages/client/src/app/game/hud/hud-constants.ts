@@ -43,10 +43,19 @@ export const LEADERBOARD_RANK_COLUMN_PX = 16;
 export const LEADERBOARD_SWATCH_COLUMN_PX = 14;
 /** The `L<n>` level column; wide enough for two digits. */
 export const LEADERBOARD_LEVEL_COLUMN_PX = 30;
-/** Each of score and mass; wide enough for four digits and for its own `caption` label (`SCORE` is the wider). */
-export const LEADERBOARD_NUMBER_COLUMN_PX = 44;
-/** The engulf count's track: its `ENGULFS` label is the widest in the strip (decision #324). */
-export const LEADERBOARD_ENGULFS_COLUMN_PX = 60;
+/** The score track: five `figure` digits and its `SCORE` label, 42 px, both fit. */
+export const LEADERBOARD_SCORE_COLUMN_PX = 44;
+/** The mass track: four `figure` digits and its `MASS` label, about 34 px each. */
+export const LEADERBOARD_MASS_COLUMN_PX = 38;
+/** The engulf count's track: its `ENGULFS` label, 57 px, is the widest in the strip (decision #324). */
+export const LEADERBOARD_ENGULFS_COLUMN_PX = 58;
+/**
+ * The least the full list's name track may be at scale 1: a wide 12-character name in `body`
+ * (`BigHungryAmo`, 105 px in Inter), so a name reaches its character cut before the column cuts it.
+ */
+export const LEADERBOARD_NAME_COLUMN_MIN_PX = 105;
+/** The panel's rim and its header and footer rules. */
+export const LEADERBOARD_RIM_PX = 1;
 /** Gap between columns. */
 export const LEADERBOARD_COLUMN_GAP_PX = 6;
 /** The panel's own left and right padding. */
