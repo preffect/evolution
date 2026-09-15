@@ -22,6 +22,9 @@ const COVER_PROGRESS = absorption.ENGULF_WRAP_START_PROGRESS / 2;
 const WRAP_PROGRESS = (absorption.ENGULF_WRAP_START_PROGRESS + absorption.ENGULF_SEAL_PROGRESS) / 2;
 /** A prey heavier than the builder's 20, so a dose read off the predator's 100 or the wrong cell shows. */
 const PREY_MASS = 60;
+/** Digits for a fraction the test computes the same way the code does, and for a mass after one tick. */
+const FRACTION_DIGITS = 12;
+const MASS_DIGITS = 9;
 
 /** The E9 pair with a 60-mass prey holding `traitIds` at tier I and, when `progress` is given, held at it. */
 function heldPrey(traitIds: readonly string[], progress?: number): EngulfFixture {
@@ -72,7 +75,7 @@ describe('engulfDrainOf', () => {
     expect(drain.swallowedCellId).toBe(fixture.prey.id);
     expect(drain.doseMassPerSecond).toBeCloseTo(
       PREY_MASS * (spikeFraction + toxinFraction * absorption.ENGULF_SWALLOWED_TOXIN_MULTIPLIER),
-      12,
+      FRACTION_DIGITS,
     );
   });
 
@@ -83,7 +86,7 @@ describe('engulfDrainOf', () => {
     const drain = engulfDrainOf(fixture.predator, fixture.world, masses, fixture.world.balance);
     expect(drain.doseMassPerSecond).toBeCloseTo(
       PREY_MASS * toxinFraction * absorption.ENGULF_SWALLOWED_TOXIN_MULTIPLIER,
-      12,
+      FRACTION_DIGITS,
     );
   });
 });
@@ -101,12 +104,12 @@ describe('metabolise with a held prey', () => {
   it('drains the predator by the swallowed dose alone, not the contact drain on top', () => {
     const fixture = heldPrey([TOXIN_TRAIT], WRAP_PROGRESS);
     const dose = PREY_MASS * toxinFraction * absorption.ENGULF_SWALLOWED_TOXIN_MULTIPLIER;
-    expect(lossBeyondDecay(fixture)).toBeCloseTo(dose * TICK_INTERVAL_S, 9);
+    expect(lossBeyondDecay(fixture)).toBeCloseTo(dose * TICK_INTERVAL_S, MASS_DIGITS);
   });
 
   it('drains a predator still in cover by the contact toxin, a share of its own mass, once', () => {
     const fixture = heldPrey([TOXIN_TRAIT], COVER_PROGRESS);
     const massBefore = fixture.predator.mass;
-    expect(lossBeyondDecay(fixture)).toBeCloseTo(massBefore * toxinFraction * TICK_INTERVAL_S, 9);
+    expect(lossBeyondDecay(fixture)).toBeCloseTo(massBefore * toxinFraction * TICK_INTERVAL_S, MASS_DIGITS);
   });
 });

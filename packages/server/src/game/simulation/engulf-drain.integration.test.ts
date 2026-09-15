@@ -7,7 +7,8 @@
 // T4 lives here rather than on the scenario runner: its spit-out is a draw of the seed-42 `engulf` stream, and
 // the runner refuses seed 42 for placed rows (a gel patch sits by the broth point), while seed 48's stream
 // never draws under a Diatom Shell's chance. The world here is seed 42 with the gel patches cleared, and the
-// spit-out tick is derived from that stream. T22's payout ticks and masses come from `modelHeldPair`, a step
+// spit-out tick is derived from that stream; #402 tracks giving the runner a seed the placed rows can spit out
+// on, which would bring T4 back to the scenario tier. T22's payout ticks and masses come from `modelHeldPair`, a step
 // model on the shared eligibility and pace formulas, never from the table's rounded numbers
 // (docs/traits/constants-and-acceptance.md §6). Run with `./validate.sh integration`.
 
@@ -43,6 +44,8 @@ const { absorption } = DEFAULT_BALANCE;
 const CENTRE_DISTANCE_WU = 10;
 const TOP_TIER = 3;
 const MASS_DIGITS = 2;
+/** `createTestWorld`'s seed, which the derived draws must be taken from. */
+const TEST_WORLD_SEED = 42;
 /** T4: the E9 pair, B with Diatom Shell I; unspat, the absorb at × 1.4 would pay out on tick 44. */
 const T4_ROW = { predatorMass: 100, preyMass: 20, ticks: 120, unspatPayoutTick: 44 };
 /** T18's pair: A at 101 over B at 80; without the toxin A absorbs B on tick 72. */
@@ -72,6 +75,8 @@ interface PairRun {
   readonly hashes: readonly StateHash[];
   readonly predatorMassByTick: readonly number[];
   readonly isPreyHeldByTick: readonly boolean[];
+  /** The last tick the predator's refractory on this prey blocks a restart, per tick; `undefined` when it holds none. */
+  readonly refractoryUntilByTick: readonly (number | undefined)[];
 }
 
 const tierOf = (traitId: OwnedTrait['traitId'], tier = 1): OwnedTrait => ({ traitId, tier }) as OwnedTrait;
@@ -114,13 +119,26 @@ function runPair(setup: PairSetup): PairRun {
   const hashes: StateHash[] = [];
   const predatorMassByTick: number[] = [];
   const isPreyHeldByTick: boolean[] = [];
+  const refractoryUntilByTick: (number | undefined)[] = [];
   for (let tick = 1; tick <= setup.ticks; tick += 1) {
     stepWorld(world, context);
     hashes.push(computeStateHash(world));
     predatorMassByTick.push(predator.mass);
     isPreyHeldByTick.push(prey.engulfedByCellId !== null);
+    refractoryUntilByTick.push(
+      predator.spitOutRefractories.find((refractory) => refractory.preyCellId === prey.id)?.untilTick,
+    );
   }
-  return { world, predator, prey, effects: [...world.effects], hashes, predatorMassByTick, isPreyHeldByTick };
+  return {
+    world,
+    predator,
+    prey,
+    effects: [...world.effects],
+    hashes,
+    predatorMassByTick,
+    isPreyHeldByTick,
+    refractoryUntilByTick,
+  };
 }
 
 /**
@@ -168,7 +186,7 @@ describe('T4: a Diatom Shell prey spat out by the seeded engulf stream, through 
     expect(run.predatorMassByTick[spitOutTick! - 1]).toBeCloseTo(expectedMass, MASS_DIGITS);
   });
 
-  it('holds A off B through the refractory and leaves the pair separated past contact with no restart', () => {
+  it('records the refractory to the spit-out tick plus its seconds, and never restarts on B', () => {
     const run = runPair({ ...T4_ROW, preyTraits: [tierOf('diatom_shell')] });
     const spitOutTick = spitOutTickOf(
       run.world.seed,
@@ -176,20 +194,32 @@ describe('T4: a Diatom Shell prey spat out by the seeded engulf stream, through 
       T4_ROW.unspatPayoutTick,
     )!;
     const refractoryTicks = secondsToTicks(absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS);
-    expect(run.isPreyHeldByTick.slice(spitOutTick, spitOutTick + refractoryTicks)).not.toContain(true);
+    expect(run.refractoryUntilByTick[spitOutTick - 1]).toBe(spitOutTick + refractoryTicks);
+    // Pruned the tick after the last blocked one, and B is never claimed again in the row's 120 ticks.
+    expect(run.refractoryUntilByTick[spitOutTick + refractoryTicks]).toBeUndefined();
     expect(run.isPreyHeldByTick.slice(spitOutTick)).not.toContain(true);
     const contactBound = run.predator.radius - run.prey.radius * absorption.ENGULF_COVERAGE_FRACTION;
     expect(distanceBetween(run.predator, run.prey)).toBeGreaterThan(contactBound);
   });
 
-  it('Diatom Shell III rolls the same stream: the same draw spits B out', () => {
+  it('Diatom Shell III rolls the same stream, so the same draw spits B out on the same tick', () => {
+    const tierOneTick = spitOutTickOf(
+      TEST_WORLD_SEED,
+      diatomTiers[0]!.spitOutChancePerSecond!,
+      T4_ROW.unspatPayoutTick,
+    );
     const run = runPair({ ...T4_ROW, preyTraits: [tierOf('diatom_shell', TOP_TIER)] });
     const topTierChance = diatomTiers[TOP_TIER - 1]!.spitOutChancePerSecond!;
     const spitOutTick = spitOutTickOf(run.world.seed, topTierChance, T4_ROW.unspatPayoutTick);
-    expect(spitOutTick).toBeDefined();
+    expect(spitOutTick, "the table's claim: a chance this much larger still turns on the same draw").toBe(tierOneTick);
     expect(effectsOfKind(run, EFFECT_KIND.cellReleased).map((effect) => [effect.tick, effect.reason])).toEqual([
       [spitOutTick, ENGULF_RELEASE_REASON.spatOut],
     ]);
+  });
+
+  it('hashes equal at every tick across two runs: the spit-out draw is seeded (the runner rows hash-compare too)', () => {
+    const first = runPair({ ...T4_ROW, preyTraits: [tierOf('diatom_shell')] });
+    expect(runPair({ ...T4_ROW, preyTraits: [tierOf('diatom_shell')] }).hashes).toEqual(first.hashes);
   });
 });
 

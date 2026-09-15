@@ -1,7 +1,9 @@
 // docs/traits/catalog-forms.md §3.18 ("Engulf effects at a glance") against the tier tables, one test per row,
 // plus T20 (docs/traits/constants-and-acceptance.md §6). The rows are parsed from the doc itself, as the
 // constants ledger parses its tables, so a trait whose tiers set an engulf hook the table does not name,
-// or a hook the table names at values the tiers do not carry, fails on either side.
+// or a hook the table names at values the tiers do not carry, fails on either side. A row that names a
+// modifier must state its three tier values: a doc whose format drifts fails here rather than passing with
+// nothing parsed.
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -37,11 +39,16 @@ const HOOKLESS_TRAIT_IDS = [
   'stentor_trumpet',
 ];
 
-/** `` `name` 0.85 / 0.75 / 0.65 `` or `` `name` +0.1 / +0.2 / +0.3 ``: a modifier and its tier I..III values. */
-const TIERED_VALUE_PATTERN = /`([a-z][A-Za-z]*)` (\+?\d+(?:\.\d+)?) \/ (\+?\d+(?:\.\d+)?) \/ (\+?\d+(?:\.\d+)?)/g;
+/** A backticked lowerCamelCase modifier name, as the rows write it. */
+const MODIFIER_NAME_PATTERN = /`([a-z][A-Za-z]*)`/g;
+/** One tier value: `0.85`, `+0.1` or `1.0`. */
+const TIER_VALUE = String.raw`\+?\d+(?:\.\d+)?`;
 const TABLE_ROW_PATTERN = /^\| ([^|]+?) +\| (.+?) +\| (.+?) +\| .+\|$/;
 const HEADER_CELL = 'Trait';
 const SEPARATOR_CELL_PATTERN = /^-+$/;
+const TIER_COUNT = 3;
+
+class EngulfEffectsDocumentError extends Error {}
 
 interface EngulfEffectRow {
   readonly traitName: string;
@@ -52,13 +59,18 @@ interface EngulfEffectRow {
 function engulfEffectRows(): EngulfEffectRow[] {
   const lines = readFileSync(CATALOG_FORMS_DOCUMENT, 'utf8').split('\n');
   const start = lines.indexOf(SECTION_HEADING);
-  expect(start, SECTION_HEADING).toBeGreaterThanOrEqual(0);
+  if (start < 0) {
+    throw new EngulfEffectsDocumentError(`${SECTION_HEADING} is gone from catalog-forms.md`);
+  }
   const rows: EngulfEffectRow[] = [];
   for (const line of lines.slice(start + 1)) {
     if (line.startsWith('#')) break;
     const match = TABLE_ROW_PATTERN.exec(line);
     if (match === null || match[1] === HEADER_CELL || SEPARATOR_CELL_PATTERN.test(match[1]!)) continue;
     rows.push({ traitName: match[1]!, effects: `${match[2]} ${match[3]}` });
+  }
+  if (rows.length === 0) {
+    throw new EngulfEffectsDocumentError(`${SECTION_HEADING} parsed no rows: the table's format changed`);
   }
   return rows;
 }
@@ -73,6 +85,17 @@ function hooksSetBy(trait: TraitDefinition): string[] {
   return [...names].filter(isEngulfHook).sort();
 }
 
+/** The names of every modifier the row writes in backticks, in order, with duplicates dropped. */
+function modifiersNamedBy(effects: string): string[] {
+  return [...new Set([...effects.matchAll(MODIFIER_NAME_PATTERN)].map((match) => match[1]!))];
+}
+
+/** The three tier values the row states right after `` `name` ``; null when it states none. */
+function tierValuesOf(effects: string, name: string): number[] | null {
+  const stated = new RegExp(String.raw`\`${name}\` (${TIER_VALUE}) / (${TIER_VALUE}) / (${TIER_VALUE})`).exec(effects);
+  return stated === null ? null : stated.slice(1, 1 + TIER_COUNT).map(Number);
+}
+
 describe('traits/catalog-forms.md §3.18: one row per build-1 trait', () => {
   it('has exactly the catalog, by name', () => {
     expect(rows.map((row) => row.traitName).sort()).toEqual(catalog.map((trait) => trait.name).sort());
@@ -83,14 +106,18 @@ describe.each(rows)('§3.18 $traitName', ({ traitName, effects }) => {
   const trait = catalog.find((candidate) => candidate.name === traitName)!;
 
   it('sets exactly the engulf hooks its row names', () => {
-    const named = [...effects.matchAll(/`([a-z][A-Za-z]*)`/g)].map((match) => match[1]!).filter(isEngulfHook);
-    expect(hooksSetBy(trait)).toEqual([...new Set(named)].sort());
+    const named = modifiersNamedBy(effects).filter(isEngulfHook);
+    expect(hooksSetBy(trait)).toEqual([...named].sort());
   });
 
-  it('carries the tier I / II / III values its row states', () => {
-    for (const [, name, ...values] of effects.matchAll(TIERED_VALUE_PATTERN)) {
-      const tierValues = trait.tiers.map((tier) => tier[name as keyof CellModifiers]);
-      expect(tierValues, `${traitName} ${name}`).toEqual(values.map(Number));
+  it('carries the tier I / II / III values its row states for every modifier it names', () => {
+    for (const name of modifiersNamedBy(effects)) {
+      const stated = tierValuesOf(effects, name);
+      expect(stated, `§3.18 ${traitName} states three tier values for ${name}`).not.toBeNull();
+      expect(
+        trait.tiers.map((tier) => tier[name as keyof CellModifiers]),
+        `${traitName} ${name}`,
+      ).toEqual(stated);
     }
   });
 });

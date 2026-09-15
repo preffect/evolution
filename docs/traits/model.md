@@ -74,8 +74,8 @@ multiplier were moved to the phase §3.18 assigns them (Food Vacuole → `absorb
 Amoeba Pseudopods → `wrapDurationMultiplierAsPredator`, Diatom Shell → `absorbDurationMultiplierAsPrey`),
 and #260 filled the tier values: Cell Wall's `absorbDurationMultiplierAsPrey`, Cytoskeleton Lattice's and
 Paramecium Cilia's `struggleSlowdownBonus`, Cilia Fringe's `gripResistanceBonus`, Amoeba Pseudopods'
-`gripStrengthBonus` and Diatom Shell's `spitOutChancePerSecond`. `traits.test.ts` reads §3.18 itself and fails
-when a tier table and the table disagree. The rework as originally written renames
+`gripStrengthBonus` and Diatom Shell's `spitOutChancePerSecond`. `engulf-effects.test.ts` reads §3.18 itself and
+fails when a tier table and the table disagree. The rework as originally written renames
 `engulfDurationMultiplierAsPrey` → `absorbDurationMultiplierAsPrey` (it now scales the absorb phase
 only), splits `engulfDurationMultiplierAsPredator` into `wrapDurationMultiplierAsPredator` (Amoeba
 Pseudopods) and `absorbDurationMultiplierAsPredator` (Food Vacuole), and adds `gripStrengthBonus`,

@@ -7,8 +7,8 @@
 
 import { ENGULF_PHASE, engulfPhaseOf, type BalanceConfig, type EntityId } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
-import { findCell } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
+import { engulfedPreyOf } from './engulf-state.js';
 
 /** An engulf that has not advanced yet costs the predator nothing. */
 const NO_PROGRESS = 0;
@@ -29,11 +29,15 @@ export function engulfDrainOf(
   massesAtStart: ReadonlyMap<EntityId, number>,
   balance: BalanceConfig,
 ): EngulfDrain {
-  const prey = predator.engulfingCellId === null ? undefined : findCell(world, predator.engulfingCellId);
+  const prey = engulfedPreyOf(world, predator);
   if (prey === undefined || prey.engulfProgress <= NO_PROGRESS) {
     return NO_ENGULF_DRAIN;
   }
-  const preyMass = massesAtStart.get(prey.id) ?? prey.mass;
+  // A prey that is not in this step's masses joined the world after it began, so it has nothing to give yet.
+  const preyMass = massesAtStart.get(prey.id);
+  if (preyMass === undefined) {
+    return NO_ENGULF_DRAIN;
+  }
   const spikes = preyMass * prey.modifiers.spikeDrainFractionPerSecond;
   if (engulfPhaseOf(prey.engulfProgress, balance.absorption) === ENGULF_PHASE.cover) {
     return { swallowedCellId: null, doseMassPerSecond: spikes };

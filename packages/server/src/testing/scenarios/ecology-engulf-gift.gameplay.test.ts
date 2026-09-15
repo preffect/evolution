@@ -11,6 +11,8 @@ import { E9_PAYOUT_TICK, absorption, dnaOfPredator, engulfPairOf } from './engul
 const PREY_DNA = 140;
 const PARTIAL_GIFT = 100;
 const NO_GIFT = 0;
+/** DNA and score are exact sums of the payout constants; this only absorbs the float residue. */
+const DNA_TOLERANCE = 1e-9;
 const scoreOfPredator = (view: Parameters<typeof dnaOfPredator>[0]) => progressOf(view, 0)?.score;
 
 function expectedPredatorDna(preyGift: number): number {
@@ -23,10 +25,10 @@ async function runE9c(name: string, preyGift: number): Promise<void> {
     .advance(E9_PAYOUT_TICK)
     .expect('A DNA = ENGULF_DNA_BASE + ENGULF_DNA_SHARE × (dnaCumulative − dnaCatchUpGift)', dnaOfPredator)
     .atTick(E9_PAYOUT_TICK)
-    .toBeCloseTo(predatorDna, 1e-9)
+    .toBeCloseTo(predatorDna, DNA_TOLERANCE)
     .expect('A score = that DNA + SCORE_ABSORPTION_BONUS', scoreOfPredator)
     .atTick(E9_PAYOUT_TICK)
-    .toBeCloseTo(predatorDna + DEFAULT_BALANCE.session.SCORE_ABSORPTION_BONUS, 1e-9)
+    .toBeCloseTo(predatorDna + DEFAULT_BALANCE.session.SCORE_ABSORPTION_BONUS, DNA_TOLERANCE)
     .runDeterministic();
 }
 

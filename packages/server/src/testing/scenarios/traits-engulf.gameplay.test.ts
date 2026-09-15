@@ -5,8 +5,8 @@
 // so a row can only pass on the trait's effect. The escape rows are `traits-engulf-escape.gameplay.test.ts`;
 // T4's seeded spit-out is `simulation/engulf-drain.integration.test.ts` (the runner cannot place on its seed).
 
-import { describe, it } from 'vitest';
-import { CELL_STATE, DEFAULT_BALANCE, ENGULF_RELEASE_REASON } from '@evolution/shared';
+import { describe, expect, it } from 'vitest';
+import { CELL_STATE, DEFAULT_BALANCE, ENGULF_RELEASE_REASON, foldModifiers } from '@evolution/shared';
 import { cellOf } from '../gameplay/evolution-views.js';
 import {
   E9_PAYOUT_TICK,
@@ -23,7 +23,7 @@ import {
   statesOfPrey,
 } from './engulf-setups.js';
 import { MASS_TOLERANCE, decayed, tierOneModifier } from './shared-setups.js';
-import { drainedMass } from './trait-engulf-setups.js';
+import { HELD_PAIR_OUTCOME, drainedMass, modelHeldPair } from './trait-engulf-setups.js';
 
 const ROW_TICKS = 120;
 /** T3: B with Cell Wall I 5 wu from A; 28 never starts (1.40 × 20), 29 does. */
@@ -116,6 +116,17 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows armour, poison
   it('T18: a swallowed Toxin Vacuole drains its predator under the release ratio before the payout', async () => {
     const toxinPair = (name: string, predatorMass: number, tier: number) =>
       engulfPairOf(name, { mass: predatorMass }, { mass: T18.preyMass, traits: [{ traitId: 'toxin_vacuole', tier }] });
+    // The release tick and A's mass at it, stepped from the shared formulas rather than read off the row.
+    const tierTables = DEFAULT_BALANCE.traits.TRAIT_TIERS;
+    const model = modelHeldPair({
+      predatorMass: T18.predatorMass,
+      preyMass: T18.preyMass,
+      predator: foldModifiers([], tierTables),
+      prey: foldModifiers([{ traitId: 'toxin_vacuole', tier: 1 }], tierTables),
+      maxTicks: T18.controlPayoutTick,
+    });
+    expect(model.kind, 'the model releases A on the ratio').toBe(HELD_PAIR_OUTCOME.ratio);
+    expect(model.tick, "the row's release tick").toBe(T18.releaseTick);
 
     await toxinPair('T18', T18.predatorMass, 1)
       .advance(T18.controlPayoutTick)
@@ -131,6 +142,9 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows armour, poison
       .expect('released from absorb on tick 51 on the ratio', releaseReasons)
       .atTick(T18.releaseTick)
       .toEqual([ENGULF_RELEASE_REASON.ratio])
+      .expect('A mass at the release is the step model’s', massOfPredator)
+      .atTick(T18.releaseTick)
+      .toBeCloseTo(model.predatorMass, MASS_TOLERANCE)
       .expect('B free and alive at the end', statesOfPrey)
       .atEnd()
       .toEqual([])
