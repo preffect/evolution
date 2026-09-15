@@ -87,6 +87,10 @@ describe('metabolise', () => {
 
   it('T5 at the cap: with decay patched to 0, Chloroplast III at CELL_MAX_MASS holds the cap and banks the light as DNA', () => {
     const { world, cell, player } = topChloroplastInShallows(growth.CELL_MAX_MASS, 0);
+    // Nucleoid Coil raises the DNA multiplier above 1, so the expectation can only pass with the factor applied.
+    player.ownedTraits.push({ traitId: 'nucleoid', tier: 1 });
+    refreshCellDerivedState(cell, player, world.balance);
+    expect(cell.modifiers.dnaGainMultiplier).toBeGreaterThan(1);
     const lightPerTick = cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S;
     expect(lightPerTick).toBeGreaterThan(0);
     metaboliseFor(world, 1);

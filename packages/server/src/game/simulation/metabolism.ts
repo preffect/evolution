@@ -13,7 +13,7 @@ import {
   type EntityId,
   type ZoneId,
 } from '@evolution/shared';
-import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
+import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { gainMass, loseMassToFloor } from './cell-mass.js';
@@ -77,11 +77,14 @@ export function toxinDrainFraction(target: ToxinReachView, cells: readonly Toxin
   return fraction;
 }
 
-/** Decay and drains floor first, then the light gain goes through the cap (§5.4): its overflow is the owner's DNA. */
+/**
+ * Decay and drains floor first, then the light gain goes through the cap (§5.4): its overflow is the owner's DNA.
+ * The owner is looked up only for a cell that photosynthesises, so the other cells pay no players scan.
+ */
 function metaboliseCell(
   input: MetabolismInput,
   reaches: readonly ToxinReachView[],
-  owner: PlayerRecord | undefined,
+  world: WorldState,
   balance: BalanceConfig,
 ): void {
   const { cell, massAtStart } = input;
@@ -89,6 +92,7 @@ function metaboliseCell(
   const decayed = massAtStart - decayPerSecond(input, balance) * TICK_INTERVAL_S - drain;
   loseMassToFloor(cell, decayed, balance);
   if (input.zone === ZONE_ID.sunlitShallows && cell.modifiers.photosynthesisMassPerSecond > 0) {
+    const owner = isPlayerCell(cell) ? requirePlayer(world, cell.playerId) : undefined;
     gainMass(cell, owner, cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S, balance);
   }
 }
@@ -97,7 +101,6 @@ export function metabolise(world: WorldState, context: StepContext): void {
   const inputs = world.cells.map((cell) => metabolismInputOf(cell, world, context.balance));
   const reaches = inputs.map((input) => input.reach);
   for (const input of inputs) {
-    const owner = isPlayerCell(input.cell) ? requirePlayer(world, input.cell.playerId) : undefined;
-    metaboliseCell(input, reaches, owner, context.balance);
+    metaboliseCell(input, reaches, world, context.balance);
   }
 }
