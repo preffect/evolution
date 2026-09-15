@@ -4,8 +4,8 @@
 // (the own cell at `CELL_MAX_MASS`) plus a clearance. The dim's disc follows the same cap orbit, so it never greys
 // a big cell's orbit. Pure: `hud.component.ts` publishes both as custom properties from its observed box.
 
-import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
-import { viewHalfHeightFor, zoomFor, type ViewportPx } from '../../render/camera';
+import { DEFAULT_BALANCE, radiusForMass, viewHalfHeightFor } from '@evolution/shared';
+import { zoomFor, type ViewportPx } from '../../render/camera';
 import { ladderOrbitExtentPx } from '../../render/effects/own-cell-geometry';
 import { HUD_PLAYER_EXCLUSION_PX, PICKER_BAND_GAP_PX, PICKER_BAND_ORBIT_CLEARANCE_PX } from '../hud-constants';
 import { hudScaleFor } from './hud-scale';

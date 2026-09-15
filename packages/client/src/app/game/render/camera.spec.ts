@@ -1,25 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CAMERA_FOLLOW_SECONDS,
   CAMERA_MAX_VIEW_HALF_HEIGHT_WU,
   CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
   CAMERA_VIEW_RADIUS_EXPONENT,
   DEFAULT_BALANCE,
-  DISH_RADIUS,
   radiusForMass,
+  viewHalfHeightFor,
 } from '@evolution/shared';
 import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
-import {
-  cameraExtent,
-  isDiscInExtent,
-  screenOffsetToWorld,
-  screenToWorld,
-  parkCamera,
-  stepCamera,
-  viewHalfHeightFor,
-  worldToScreen,
-  zoomFor,
-} from './camera';
+// The follow and the zoom are shared and tested with them (`shared/src/camera/camera-follow.test.ts`); Z1's view
+// half-height is shared too, and pinned here against §7's table.
+import { cameraExtent, isDiscInExtent, screenOffsetToWorld, screenToWorld, worldToScreen, zoomFor } from './camera';
 import { HALF } from './geometry';
 
 const VIEWPORT = { width: 1920, height: 1080 };
@@ -88,43 +79,6 @@ describe('viewHalfHeightFor', () => {
     expectAsPrinted(viewHalfHeightFor(radius) / radius, row[3], 'radii ahead');
     expectAsPrinted(ownCellPx(radius, 800) * radius, row[4], 'own cell at 800 px tall');
     expectAsPrinted(ownCellPx(radius, VIEWPORT.height) * radius, row[5], 'own cell at 1080 px tall');
-  });
-});
-
-describe('parkCamera and stepCamera', () => {
-  it('parks on the target without smoothing', () => {
-    expect(parkCamera({ x: 10, y: -20, radius: 40 })).toEqual({
-      x: 10,
-      y: -20,
-      viewHalfHeightWu: viewHalfHeightFor(40),
-    });
-  });
-
-  it('follows the target exponentially and zooms more slowly', () => {
-    const start = parkCamera({ x: 0, y: 0, radius: 25 });
-    const stepped = stepCamera(start, { x: 100, y: 0, radius: 50 }, CAMERA_FOLLOW_SECONDS);
-    expect(stepped.x).toBeCloseTo(100 * (1 - Math.exp(-1)), 6);
-    expect(stepped.y).toBe(0);
-    const zoomShare =
-      (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (viewHalfHeightFor(50) - start.viewHalfHeightWu);
-    expect(zoomShare).toBeLessThan(1 - Math.exp(-1));
-    expect(zoomShare).toBeGreaterThan(0);
-  });
-
-  it('holds with no target and converges on the target over time', () => {
-    const start = parkCamera({ x: 0, y: 0, radius: 25 });
-    expect(stepCamera(start, null, 1)).toBe(start);
-    let state = start;
-    for (let frame = 0; frame < 600; frame += 1) state = stepCamera(state, { x: 50, y: 50, radius: 40 }, 1 / 60);
-    expect(state.x).toBeCloseTo(50, 3);
-    expect(state.viewHalfHeightWu).toBeCloseTo(viewHalfHeightFor(40), 2);
-  });
-
-  it('never centres outside the dish', () => {
-    const far = parkCamera({ x: DISH_RADIUS * 2, y: 0, radius: 20 });
-    expect(far.x).toBe(DISH_RADIUS);
-    const stepped = stepCamera(far, { x: DISH_RADIUS * 3, y: DISH_RADIUS * 3, radius: 20 }, 10);
-    expect(Math.hypot(stepped.x, stepped.y)).toBeCloseTo(DISH_RADIUS, 6);
   });
 });
 

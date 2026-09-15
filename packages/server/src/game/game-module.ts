@@ -33,7 +33,7 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
    * and one viewer's values for them, appended after a single shared stringify per broadcast and set on each
    * `game_state`. Optional: without it every connection receives the snapshot as is, serialised once.
    */
-  readonly viewerState?: ViewerStateSerializer<Snapshot>;
+  readonly viewerState?: ViewerState<Snapshot>;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */
@@ -50,13 +50,30 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
 /**
  * The snapshot members each connection is sent for itself alone (docs/architecture/wire-contract.md §4): the room
  * stringifies the snapshot once per broadcast without `keys`, then appends every viewer's own values for them in
- * this order (`lobby/viewer-snapshots.ts`). The module declares the members; the lobby names none.
+ * this order (`lobby/viewer-snapshots.ts`). The module declares the members; the lobby names none. This is what the
+ * lobby reads; a module implements `ViewerStateSerializer`, whose answers must carry every declared member.
  */
-export interface ViewerStateSerializer<Snapshot = GameSnapshot> {
+export interface ViewerState<Snapshot = GameSnapshot> {
   /** The per-viewer members, in the order the room appends them; the shared stringify leaves them out. */
   readonly keys: readonly (keyof Snapshot & string)[];
-  /** One viewer's values for `keys`; a key it leaves out is sent as `null`. */
-  serialize(viewerPlayerId: PlayerId): Partial<Snapshot>;
+  /** One viewer's values for `keys` in a `game_snapshot`; `snapshot` is what this broadcast's `serializeRoomState` answered. */
+  serialize(viewerPlayerId: PlayerId, snapshot: Snapshot): Partial<Snapshot>;
+  /**
+   * One viewer's values for `keys` in a `game_state`; `snapshot` is `serializeFullState`'s. Whatever that viewer's
+   * later `serialize` answers are relative to (a per-viewer delta) restarts from this one.
+   */
+  serializeFull(viewerPlayerId: PlayerId, snapshot: Snapshot): Partial<Snapshot>;
+}
+
+/**
+ * A module's viewer state: `Keys` are the members it declares, and every answer carries each of them. Not declared as
+ * extending `ViewerState`, since TypeScript cannot relate `Pick` over a generic key set to `Partial`; every concrete
+ * instance is assignable to it, which is where the room takes it.
+ */
+export interface ViewerStateSerializer<Snapshot, Keys extends keyof Snapshot & string> {
+  readonly keys: readonly Keys[];
+  serialize(viewerPlayerId: PlayerId, snapshot: Snapshot): Pick<Snapshot, Keys>;
+  serializeFull(viewerPlayerId: PlayerId, snapshot: Snapshot): Pick<Snapshot, Keys>;
 }
 
 /** The `game_state` payload: a full snapshot and the live balance the client must predict with. */

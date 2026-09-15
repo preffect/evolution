@@ -277,8 +277,8 @@ export class GameRoom {
   /**
    * The delta since the previous broadcast, every `SNAPSHOT_EVERY_TICKS` ticks
    * (docs/architecture/entity-model.md §1). `serializeRoomState` runs on every broadcast tick whatever the
-   * connections are doing: it is the one drain of the effects and the one step of the food delta
-   * tracker. Who receives it is then per connection (#266, docs/architecture/wire-contract.md §4) — a client
+   * connections are doing: it is the one drain of the effects. What each connection's members advance from it is the
+   * module's (a viewer skipped here has its per-viewer food delta left where it was). Who receives it is then per connection (#266, docs/architecture/wire-contract.md §4) — a client
    * that has not caught up with what it was already sent is skipped rather than queued deeper, and
    * is sent one `game_state` in place of the next delta once it has.
    */

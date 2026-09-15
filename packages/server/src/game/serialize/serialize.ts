@@ -151,17 +151,6 @@ export function ownProgressOf(world: WorldState, viewerPlayerId: PlayerId): Play
   return viewer === undefined ? null : toPlayerProgressView(viewer);
 }
 
-/** The snapshot members only their viewer is sent (docs/architecture/wire-contract.md §4.1), in the order the room appends them. */
-export const VIEWER_SNAPSHOT_KEYS = ['ownProgress'] as const satisfies readonly (keyof GameSnapshot)[];
-
-/** One viewer's values for `VIEWER_SNAPSHOT_KEYS`. */
-export function serializeViewerState(
-  world: WorldState,
-  viewerPlayerId: PlayerId,
-): Pick<GameSnapshot, (typeof VIEWER_SNAPSHOT_KEYS)[number]> {
-  return { ownProgress: ownProgressOf(world, viewerPlayerId) };
-}
-
 /** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */
 function serializeCommon(world: WorldState, precision: SnapshotPrecision): Omit<GameSnapshot, 'food' | 'effects'> {
   const players: Record<string, PlayerRosterView> = {};

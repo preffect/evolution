@@ -1,6 +1,6 @@
+import { parkCamera } from '@evolution/shared';
 import { Container } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
-import { parkCamera } from './camera';
 import { LAYER_NAMES, LAYER_Z } from './constants';
 import { applyCameraTransform, createSceneLayers } from './layers';
 
