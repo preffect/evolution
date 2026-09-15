@@ -74,7 +74,7 @@ The server writes it into `world.massFlow` (`game/world/mass-flow-ledger.ts`), a
 `world.effects` that is never hashed or replayed, so the state hash is unchanged. The metabolism step replaces the
 rates every tick from its own deltas (post-floor, post-cap, split pro rata at the floor:
 `simulation/metabolism-flow.ts`); `massFlow` is `null` while spectating and until a new cell's first metabolism step.
-A sprint start adds what it took to a pending total that the broadcast's drain (`serializeDeltaSnapshot`, the same
+A sprint start adds what it took to a pending total that the broadcast's drain (`serializeBroadcastSnapshot`, the same
 call that drains the effects) seals as the window's `sprintSpent`, so a republish or a skipped client never sees one
 twice. A `game_state` carries no `sprintSpent`, as it carries no effects. The `eat` and `cell_absorbed` amounts are
 measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every tick
@@ -84,8 +84,8 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
 - The dish radius is the constant `DISH_RADIUS` (game-design/controls-and-scope.md §8), not a session field.
 - `game_state` (start, late join, reconnect: every player receives one right after `game_started`) carries `serializeFullState()`: a `GameSnapshot`
   whose `food.spawned` is every mote in the receiver's interest area (§4.2 lever 1), plus `balance: BalanceConfig` so
-  the client predicts with the numbers the server simulates. `game_snapshot` carries `serializeRoomState()` with the
-  receiver's own delta since the previous broadcast. The client applies deltas idempotently (upsert `spawned`,
+  the client predicts with the numbers the server simulates. `game_snapshot` carries `serializeRoomState()`, which
+  builds none of the receiver's own members, closed with them: its food delta since the previous broadcast among them. The client applies deltas idempotently (upsert `spawned`,
   delete-if-present `removedIds`, patch `moved`) and resets its food store on every
   `game_state`; WebSocket ordering makes this sufficient, so there is no base-tick check. A
   reconnect is a new `game_state`, and so is a resync: there is no separate verb for one.
@@ -151,14 +151,22 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   `lobby_update`). A pending game held keeps the seat as it is and sends nothing, even when it is full.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
-  `viewerState: { keys, serialize(viewerPlayerId, snapshot), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
+  `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
   optional, `ViewerState`): the snapshot members each connection is sent for itself alone, declared by the module in
   the order they are written, and one viewer's values for them. A module implements
   `ViewerStateSerializer<Snapshot, Keys>`, whose answers are `Pick<Snapshot, Keys>`, so a declared member it forgets
-  fails to compile; one answered `undefined` anyway throws rather than being sent as a guess. The room calls
-  `serializeRoomState()` once per broadcast (the drain), stringifies that message once without the declared keys, and
-  closes it per delta target with `serialize(viewer, thatSnapshot)` in declared order; each `game_state` is given
+  fails to compile; one answered `undefined` anyway throws rather than being sent as a guess. The module names the same
+  keys as `GameModule<Input, Snapshot, ViewerKey>`'s third parameter, and `serializeRoomState()` answers
+  `ViewerlessSnapshot<Snapshot, ViewerKey>` (`Omit<Snapshot, ViewerKey>`, the whole snapshot for a module that declares
+  none), so the broadcast never builds a member the viewers are sent apart (#399). The Evolution broadcast is
+  `serializeBroadcastSnapshot`, typed `BroadcastSnapshot` (`serialize/viewer-snapshot-keys.ts`, where
+  `viewer-snapshot-keys.test.ts` pins that the two sides split the snapshot exactly), and every viewer member is read
+  from the world. The room drives `RoomGameModule`, whose viewer keys may be any member but the `tick` its flow control
+  reads. The room calls `serializeRoomState()` once per broadcast (the drain), stringifies that message once, and
+  closes it per delta target with `serialize(viewer, thatBroadcast)` in declared order; each `game_state` is given
   `serializeFull(player, fullSnapshot)`, which restarts whatever that viewer's later members are relative to.
+  `serializeFullSnapshot` still builds every member for no viewer: the `game_state` base, the debug reads, the
+  scenarios and the in-process bots.
   `ws/snapshot-frame.ts` builds the frame from structural JSON pieces, never a replace on player data (spliced members
   go last, the shared value is a plain object, a spliced value is never `undefined`, and member order does not matter
   to `JSON.parse`); `lobby/viewer-snapshots.ts` is the sending policy. The lobby names no member: the Evolution module

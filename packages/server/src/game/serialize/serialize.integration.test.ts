@@ -17,9 +17,8 @@ import { TEST_PLAYER, createTestWorld } from '../../testing/world-builders.js';
 import { runStep } from '../simulation/step.js';
 import { computeStateHash } from '../world/state-hash.js';
 import { createInputRejectionCounters, type WorldState } from '../world/world-state.js';
-import { FoodDeltaTracker } from './food-delta-tracker.js';
 import { quantizeToDecimals } from './quantize.js';
-import { serializeDeltaSnapshot, serializeFullSnapshot } from './serialize.js';
+import { serializeBroadcastSnapshot, serializeFullSnapshot } from './serialize.js';
 
 /** Twenty seconds: long enough for the cells to eat, grow, decay and change course many times. */
 const TOTAL_TICKS = 1200;
@@ -51,12 +50,11 @@ describe('wire quantisation never reaches the simulation (#341)', () => {
   it('a world serialised on every broadcast tick hashes as the same world never serialised', () => {
     const broadcast = seededDish();
     const silent = seededDish();
-    const tracker = new FoodDeltaTracker();
     for (let tick = 1; tick <= TOTAL_TICKS; tick += 1) {
       stepTo(broadcast, tick);
       stepTo(silent, tick);
       if (tick % SNAPSHOT_EVERY_TICKS !== 0) continue;
-      serializeDeltaSnapshot(broadcast, tracker);
+      serializeBroadcastSnapshot(broadcast);
       serializeFullSnapshot(broadcast);
       // Effects are transient and unhashed; drained alike so both worlds hold the same arrays.
       silent.effects.splice(0);

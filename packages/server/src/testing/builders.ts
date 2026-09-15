@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig, gameId } from '@evolution/shared';
 import type { GameSnapshot, PlayerId } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
-import type { GameModule, GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
+import type { GameModuleFactory, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import type { DebugContext } from '../mcp/debug-context.js';
 import { LobbyManager } from '../lobby/lobby-manager.js';
@@ -78,7 +78,7 @@ export function createTestRoomInitOptions(
 }
 
 /** A `GameModule` whose every hook is a spy; `players` mirrors add/remove so snapshots are inspectable. */
-export function createSpyGameModule(): GameModule & { players: Set<string> } {
+export function createSpyGameModule(): RoomGameModule & { players: Set<string> } {
   const players = new Set<string>();
   return {
     players,
@@ -103,7 +103,7 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
 export const spyGameModuleFactory: GameModuleFactory = () => createSpyGameModule();
 
 /** A spy module that also offers `handle` to the debug tools (the "supported" path of every game-specific tool). */
-export function createDebugCapableGameModule(handle: SimulationDebugHandle): GameModule & { players: Set<string> } {
+export function createDebugCapableGameModule(handle: SimulationDebugHandle): RoomGameModule & { players: Set<string> } {
   return { ...createSpyGameModule(), getDebugHandle: () => handle };
 }
 
