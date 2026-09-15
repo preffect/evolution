@@ -75,12 +75,29 @@
      nor the reverse. The stamp names the tree the merge gate ran on. Nothing
      prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
      rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
-     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **One real gate
-     at a time per machine** (#234): every non-cached run holds `$HOME/.cache/<slug>-validate/gate.lock`
-     (independent of `VALIDATE_CACHE_DIR`, so a scratch cache still queues), so a second agent's gate
-     prints `waiting for another gate to finish …` and queues instead of both starving the box; a
-     cache hit never waits; the lock fd is closed for the child so no orphaned worker keeps it.
-     `VALIDATE_NO_GATE_LOCK=1` disables it for a sandboxed test; without `flock` it runs unlocked;
+     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **Machine-wide
+     gate slots by phase class** (#234, #380; `scripts/lib/gate-lock.sh`): every non-cached phase holds
+     one slot of its class under `$HOME/.cache/<slug>-validate` (independent of `VALIDATE_CACHE_DIR`, so a
+     scratch cache still queues; `VALIDATE_GATE_LOCK_DIR` moves it for a sandboxed test), so parallel
+     agents queue instead of starving the box, and a cheap phase never queues behind a heavy one.
+     **Heavy** (`test`, `integration`, `typecheck`: vitest and the Angular builder spawn about one worker
+     per core) gets one slot per 4 cores, capped at one per 4 GB of memory, so one on the 4-core box;
+     **light** (`lint`, `duplication`: eslint, prettier and jscpd use one core each, eslint over the
+     client peaks near 1 GB) gets one slot per 2 cores, since it runs beside a heavy run that already
+     fills every core, capped at one per GB; a lint that runs no eslint (`all --affected` over docs alone)
+     takes **no** slot. `VALIDATE_HEAVY_SLOTS` / `VALIDATE_LIGHT_SLOTS` override the counts (a value that
+     is not a number is warned about and ignored). `all --affected` takes each phase's slot in turn like
+     any other run. Waiters are served first come first served; one still waiting after a second prints
+     `waiting for a <class> gate slot before <phase> (N slots, lock dir …), held by: pid P in <worktree>:`
+     `<command>, since HH:MM:SS` (a holder whose pid is gone is named stale), then
+     `got a <class> gate slot after N s`. A killed run releases its slot and holder file. Heavy slot 0 is
+     the old `gate.lock`, so a branch still carrying the single-lock `validate.sh` excludes a new heavy
+     run. **Known transitional limit:** a class with more than one slot has its queue head poll the
+     slots every 0.5 s, while an old `validate.sh` waits on `gate.lock` in the kernel, so a steady stream
+     of old-branch runs could starve such a head. With one heavy slot (this box) the head waits in the kernel
+     too. The limit ends once every branch carries this script. A cache hit never waits; the slot fd is
+     closed for the child so no orphaned worker keeps it.
+     `VALIDATE_NO_GATE_LOCK=1` disables the slots for a sandboxed test; without `flock` it runs unlocked;
    - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.
 2. **Who runs which gate** (#281, #304). A full gate costs minutes (§2.2), so it runs once per PR,
    at merge. This applies to direct work AND delegated work (teams, agents).
