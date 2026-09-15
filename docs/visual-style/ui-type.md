@@ -15,18 +15,25 @@ not jitter. The type scale (`UI_TYPE_*`, px at HUD scale 1):
 | Role        | px  | Face | Used for                                                                                                                                                                                                                                                   |
 | ----------- | --- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `number`    | 28  | mono | level number, mass value                                                                                                                                                                                                                                   |
-| `headline`  | 26  | sans | results winner line                                                                                                                                                                                                                                        |
+| `headline`  | 26  | sans | results winner line; encyclopedia entry and category names                                                                                                                                                                                                 |
 | `clock`     | 24  | mono | round timer                                                                                                                                                                                                                                                |
 | `value`     | 20  | mono | secondary numbers (DNA count, sprint meter, scores)                                                                                                                                                                                                        |
-| `title`     | 22  | sans | overlay titles (respawn, menu)                                                                                                                                                                                                                             |
+| `title`     | 22  | sans | overlay titles (respawn, menu, encyclopedia)                                                                                                                                                                                                               |
 | `card_name` | 16  | sans | trait card name                                                                                                                                                                                                                                            |
-| `body`      | 14  | sans | body text, hint pill                                                                                                                                                                                                                                       |
+| `body`      | 14  | sans | body text, hint pill; buttons, list rows, encyclopedia prose                                                                                                                                                                                               |
 | `figure`    | 14  | mono | `body`'s size in the mono face: a changing number inside a dense row — the leaderboard's score, mass and absorptions columns (`ui/hud.md` §3.1.1), which need `body`'s weight and tabular digits at a 24 px row height, where `value`'s 28 px does not fit |
-| `label`     | 12  | sans | labels, uppercase tracked 0.08 em; the reading floor                                                                                                                                                                                                       |
+| `label`     | 12  | sans | labels, uppercase tracked 0.08 em; the reading floor; chips, breadcrumbs, list section headers                                                                                                                                                             |
 | `caption`   | 11  | sans | key hints, muted captions; never carries a fact                                                                                                                                                                                                            |
 
 Colour roles: the own row
 on the leaderboard is tinted with the player's own rim colour @12 %; a player swatch is the palette base
 with a rim-colour ring and the seat-mark bead count of §2; danger, gold and DNA are the only saturated UI
-colours; the rest of the overlay is the `PANEL_TOP` → `PANEL_BOTTOM` panel with the `PANEL_RIM` rim so the
+colours, plus the three legibility cue roles of §2 (`GAIN`, `ZONE_CUE`, `TRAIT_CUE`, decision #324), which colour
+rims, dots, rings and glyphs and never text; the rest of the overlay is the `PANEL_TOP` → `PANEL_BOTTOM` panel with the `PANEL_RIM` rim so the
 dish stays the brightest thing on screen.
+
+**The UI kit** (#354, [`ui/components-and-constants.md §10`](../ui/components-and-constants.md#10-the-ui-kit-354)) adds no
+role. A panel title is `title`, an entry or category name `headline`; buttons, rows, fields and prose are `body`; a
+fact's value is `figure` (tabular, beside its `body` name); chips, breadcrumbs and list section headers are `label`;
+key hints are `caption`. Mixed-case text set at `label`'s size (the menu's effect lines, a tile's fact) keeps its
+tracking without the uppercase transform, as input-and-onboarding.md §6 already allows. A countdown inside a `label` line (the offer alert's `6.5 s`) is set in `figure`, so its digits do not jitter. A rarity chip is `label`: the picker card's `caption` rarity chip (ui/overlays.md §3.2) moves to `label` when the picker adopts the kit.

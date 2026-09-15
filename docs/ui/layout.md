@@ -19,20 +19,26 @@ may enter it while the player is alive and the round is `playing`. The rule hold
 `HUD_SCALE_MIN` floor implies (1024 × 640); below that the floor stops shrinking the chrome while the box keeps its
 120 px half-side, and the widened leaderboard overlaps it at around 794 px of width. That is under the smallest
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the
-dish are the own cell's indicators (§3.1), drawn by the renderer in world space**; they are not subject to the box
-and do not scale with `--hud-scale` (they follow the cell's on-screen size with the px floors of §3.1.3). `me` =
+dish are the own cell's indicators and legibility cues (hud.md §3.1.2, §3.1.5), drawn by the renderer in world
+space**; they are not subject to the box and do not scale with `--hud-scale` (they follow the cell's on-screen size
+with the px floors of §3.1.3). The cues (the mass chip, rate tags, floaters, zone pill and the relation labels) were
+let in by decision #324: the box keeps DOM out, it never kept the renderer out, and a cue about the cell has to sit
+on the cell. They may reach past the box (the rate-tag column at the cap), but never into the notice stack above
+`HUD_NOTICE_STACK_BOTTOM_PX` (hud.md §3.1.5's inequality). `me` =
 `MultiplayerService.playerId()`, `ownProgress` = `snapshot.ownProgress` (sent to `me` alone; `snapshot.players[id]`
 is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md §4.1), `ownCell` = the cell whose `playerId` is
 `me` (absent while spectating).
 
 ```
  (0,0) ────────────────────────────────────────────────────────────────── 1280
- │ [connection banner when shown]      [toast]        leaderboard 240×146 (16,16 from right)
- │
+ │ [connection banner when shown]      [toast]        leaderboard 240×162 (16,16 from right)
+ │ [hold-Tab panel, overlays.md §3.7]
  │                                   ┌── 240 × 240 ──┐
- │                                   │   own cell    │   no DOM element enters;
- │                                   │  ring · level │   the renderer draws the
- │                                   │  ladder orbit │   indicators here (§3.1)
+ │                                   │  rate tags    │   no DOM element enters;
+ │                                   │  mass chip    │   the renderer draws the
+ │                                   │  own cell  +3 │   indicators and cues here
+ │                                   │  ladder orbit │   (hud.md §3.1.2, §3.1.5)
+ │                                   │  zone pill    │
  │                                   └───────────────┘
  │
  │                                    [hint pill]                                07:42
@@ -42,22 +48,29 @@ is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md
 Client-only layout constants are declared by #100 in `packages/client/src/app/game/hud/hud-constants.ts`
 (CODE-STANDARDS §2; the directory does not exist yet):
 
-| Constant                           | Value                   | Unit | Meaning                                                                         |
-| ---------------------------------- | ----------------------- | ---- | ------------------------------------------------------------------------------- |
-| `HUD_REFERENCE_VIEWPORT_WIDTH_PX`  | 1280                    | px   | Viewport width at which `--hud-scale` is 1.                                     |
-| `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` | 800                     | px   | Viewport height at which `--hud-scale` is 1.                                    |
-| `HUD_SCALE_MIN`                    | 0.8                     | ×    | Lower bound of `--hud-scale`.                                                   |
-| `HUD_SCALE_MAX`                    | 1.5                     | ×    | Upper bound of `--hud-scale`.                                                   |
-| `HUD_MARGIN_PX`                    | 16                      | px   | Corner margin at scale 1.                                                       |
-| `HUD_PLAYER_EXCLUSION_PX`          | 120                     | px   | Half-side of the exclusion box; also the picker dim's spotlight radius.         |
-| `PICKER_BAND_GAP_PX`               | 16                      | px   | Gap between the exclusion box's bottom edge and the picker title row (§3.2).    |
-| `PICKER_ROW_GAP_PX`                | 12                      | px   | Gap between the picker's title row, timer bar and card row (§3.2).              |
-| `ROUND_LENGTH_CHOICES_SECONDS`     | 60, 300, 600, 900, 1800 | s    | Round-length `<select>` options (§2); every value is inside the session bounds. |
-| `HINT_DURATION_SECONDS`            | 4                       | s    | Timed onboarding hints (§5).                                                    |
-| `TOAST_DURATION_SECONDS`           | 6                       | s    | Toasts (§3.6).                                                                  |
-| `STEER_HINT_DISTANCE_WU`           | 200                     | wu   | Distance travelled that dismisses the steer hint.                               |
-| `SPRINT_HINT_AT_SECONDS`           | 30                      | s    | Round time at which the sprint hint shows if never sprinted.                    |
-| `STATUS_ANNOUNCE_DNA_STEP_PERCENT` | 25                      | %    | The status mirror (§3.1.4) re-announces DNA only at multiples of this.          |
+| Constant                           | Value                   | Unit  | Meaning                                                                                                                 |
+| ---------------------------------- | ----------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------- |
+| `HUD_REFERENCE_VIEWPORT_WIDTH_PX`  | 1280                    | px    | Viewport width at which `--hud-scale` is 1.                                                                             |
+| `HUD_REFERENCE_VIEWPORT_HEIGHT_PX` | 800                     | px    | Viewport height at which `--hud-scale` is 1.                                                                            |
+| `HUD_SCALE_MIN`                    | 0.8                     | ×     | Lower bound of `--hud-scale`.                                                                                           |
+| `HUD_SCALE_MAX`                    | 1.5                     | ×     | Upper bound of `--hud-scale`.                                                                                           |
+| `HUD_MARGIN_PX`                    | 16                      | px    | Corner margin at scale 1.                                                                                               |
+| `HUD_PLAYER_EXCLUSION_PX`          | 120                     | px    | Half-side of the exclusion box; the floor of the picker dim's spotlight radius (overlays.md §3.2).                      |
+| `PICKER_BAND_GAP_PX`               | 16                      | px    | Gap between the exclusion box's bottom edge and the picker title row (§3.2).                                            |
+| `PICKER_ROW_GAP_PX`                | 12                      | px    | Gap between the picker's title row, timer bar and card row (§3.2).                                                      |
+| `ROUND_LENGTH_CHOICES_SECONDS`     | 60, 300, 600, 900, 1800 | s     | Round-length `<select>` options (§2); every value is inside the session bounds.                                         |
+| `HINT_DURATION_SECONDS`            | 4                       | s     | Timed onboarding hints (§5).                                                                                            |
+| `TOAST_DURATION_SECONDS`           | 6                       | s     | Toasts (§3.6).                                                                                                          |
+| `STEER_HINT_DISTANCE_WU`           | 200                     | wu    | Distance travelled that dismisses the steer hint.                                                                       |
+| `SPRINT_HINT_AT_SECONDS`           | 30                      | s     | Round time at which the sprint hint shows if never sprinted.                                                            |
+| `STATUS_ANNOUNCE_DNA_STEP_PERCENT` | 25                      | %     | The status mirror (§3.1.4) re-announces DNA only at multiples of this.                                                  |
+| `HUD_NOTICE_STACK_BOTTOM_PX`       | 96                      | px    | Lowest edge of the connection banner and error rows (overlays.md §3.6); no renderer cue rises above it (hud.md §3.1.5). |
+| `PICKER_BAND_ORBIT_CLEARANCE_PX`   | 4                       | px    | Least gap between the own cell's orbit extent at `CELL_MAX_MASS` and the picker title row (overlays.md §3.2).           |
+| `LEADERBOARD_FOOTER_ROW_HEIGHT_PX` | 24                      | px    | The full board's score rule row (hud.md §3.1.1).                                                                        |
+| `HINT_RIM_PX`                      | 2                       | px    | A coach beat's role-colour rim on the hint pill (input-and-onboarding.md §5).                                           |
+| `COACH_QUEUE_MAX`                  | 2                       | beats | Coach beats waiting behind the pill that is up (input-and-onboarding.md §5).                                            |
+| `COACH_SHRINK_HOLD_SECONDS`        | 3                       | s     | The mass trend reads `down` this long before the `shrink` beat fires: a sprint alone does not.                          |
+| `COACH_PREY_REACH_RADII`           | 1                       | × r   | Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat.                                     |
 
 The chrome's own sizes are §3.1.1's (panel widths, the header and row heights, the row counts, the name cut, the
 200 ms re-sort slide, the swatch, the 12 % own-row tint and the last-ten-seconds pulse); they live in the same file,
@@ -84,6 +97,7 @@ stable test ids added. One `<section>` per panel; every control is a native `<in
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Name input, avatar row of 8 swatches (radio group), Connect                       | `joinLobby(name, avatarIndex)`; palette index 0–7 (`AVATAR_INDEX_MAX`)                                                                                                                                                                                                                                                                                                     | `lobby-name`, `lobby-avatar-<i>`, `lobby-connect`                                                              |
 | Create: game name, max players 1–8, round length, seed                            | `GameSessionConfig`; round length is a `<select>` over `ROUND_LENGTH_CHOICES_SECONDS` (§1; default `ROUND_DURATION_SECONDS`, bounds `ROUND_DURATION_MIN_SECONDS` / `ROUND_DURATION_MAX_SECONDS` from `constants/session.ts`); seed is a number input prefilled from the client's random source with a "New seed" button; `mode` and `endCondition` are fixed and not shown | `create-name`, `create-max-players`, `create-round-seconds`, `create-seed`, `create-seed-new`, `create-submit` |
-| Open games list: name, players/max, `started` badge, Join, Start (host), Delete   | `mp.games()`; joining a started game is a late join (PROGRESSION §5)                                                                                                                                                                                                                                                                                                       | `games-list`, `game-row-<id>`, `game-join-<id>`, `game-start-<id>`, `game-delete-<id>`                         |
+| Open games list: name, players/max, `started` badge, Join, Start (host), Delete   | `mp.games()`; joining a started game is a late join (PROGRESSION §5) while a seat is free: players/max counts humans only (connected plus in grace, bots excluded), and a full room, started or not, shows Join disabled (#337, game-design/session.md §5)                                                                                                                 | `games-list`, `game-row-<id>`, `game-join-<id>`, `game-start-<id>`, `game-delete-<id>`                         |
 | Room (joined, not started): player list, "Waiting for the host to start" or Start | `mp.playerIds()`, `mp.isHost()`                                                                                                                                                                                                                                                                                                                                            | `room-waiting`, `room-start`                                                                                   |
 | In game: the canvas host and the HUD overlay                                      | `game-setup.ts`                                                                                                                                                                                                                                                                                                                                                            | `game-canvas`, `hud`                                                                                           |
+| Lobby header: `Encyclopedia` button                                               | opens the encyclopedia over the lobby (encyclopedia.md §11.1)                                                                                                                                                                                                                                                                                                              | `lobby-encyclopedia`                                                                                           |

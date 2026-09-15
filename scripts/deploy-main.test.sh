@@ -219,7 +219,9 @@ merge_to_main game.txt v7
 deployed_at_origin() { [[ "$(deployed_sha)" == "$(origin_head)" ]]; }
 check "--watch deploys a new commit within a few polls" $(holds wait_for deployed_at_origin)
 check "a deploy the watcher runs restarts with --no-deploy-watch" $(( $(holds restarted_with '--clear-prebundle --wait-ready --no-deploy-watch$') ))
-check "--watch re-executes itself after a deploy and keeps running" $(( $(holds grep -q 're-executing the watcher' "$deploy_log") && $(holds kill -0 "$watch_pid") ))
+# The watcher records the deployed sha before it logs the re-exec, so the line may not be there yet.
+reexecuted() { grep -q 're-executing the watcher' "$deploy_log" && kill -0 "$watch_pid"; }
+check "--watch re-executes itself after a deploy and keeps running" $(holds wait_for reexecuted)
 
 echo local-edit > "$target/game.txt"
 merge_to_main game.txt v8
