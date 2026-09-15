@@ -51,7 +51,6 @@ export function metabolismInputOf(cell: CellRecord, world: WorldState, balance: 
   };
 }
 
-/** `max(0, mass − CELL_STARTING_MASS) × MASS_DECAY_RATE_PER_SECOND × zone × trait` (mass/s). */
 /**
  * The broth share of decay, `max(0, mass − CELL_STARTING_MASS) × MASS_DECAY_RATE_PER_SECOND × trait` (mass/s), from
  * its own factors: what the snapshot reports as `decay`, with the vent's extra as `× (VENT_DECAY_MULTIPLIER − 1)`
@@ -62,6 +61,7 @@ export function brothDecayPerSecond(input: MetabolismInput, balance: BalanceConf
   return surplus * balance.ecology.MASS_DECAY_RATE_PER_SECOND * input.cell.modifiers.decayMultiplier;
 }
 
+/** `max(0, mass − CELL_STARTING_MASS) × MASS_DECAY_RATE_PER_SECOND × zone × trait` (mass/s). */
 export function decayPerSecond(input: MetabolismInput, balance: BalanceConfig): number {
   const surplus = Math.max(0, input.massAtStart - balance.growth.CELL_STARTING_MASS);
   return (

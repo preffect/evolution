@@ -36,9 +36,9 @@ const AURA_TOXIC_MASS = 1000;
 const AURA_VICTIM_MASS = 40;
 const TOP_TIER = 3;
 /** T21 (#154): a 500 predator completes a meal of a 100 Toxin Vacuole III prey on tick 36. */
+const T21 = { predatorMass: 500, preyMass: 100, payoutTick: 36, pastCoverTick: 12, ticks: 40 };
 /** F1 on #420: the T21 masses with a Diatom Shell I prey, whose spikes cost the predator from the first progress. */
 const SPINY = { ticks: 40, inCoverTick: 3 };
-const T21 = { predatorMass: 500, preyMass: 100, payoutTick: 36, pastCoverTick: 12, ticks: 40 };
 
 type RowBuilder = ReturnType<typeof placedSolo>;
 
