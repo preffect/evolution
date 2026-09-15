@@ -103,6 +103,8 @@ export function createTestEatEffect(overrides: Partial<EatEffect> = {}): EatEffe
     cellId: TEST_OWN_CELL_ID,
     eatenId: entityId('m-1'),
     eatenKind: ENTITY_KIND.foodMote,
+    massGained: 0,
+    dnaGained: 0,
     ...overrides,
   };
 }
@@ -134,6 +136,8 @@ export function createTestCellAbsorbedEffect(overrides: Partial<CellAbsorbedEffe
     cellId: TEST_OTHER_CELL_ID,
     playerId: TEST_OTHER_PLAYER_ID,
     predatorCellId: TEST_OWN_CELL_ID,
+    predatorMassGained: 0,
+    predatorDnaGained: 0,
     ...overrides,
   };
 }

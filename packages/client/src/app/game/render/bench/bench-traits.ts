@@ -14,7 +14,7 @@ import {
   type CellStage,
   type OwnedTrait,
   type PlayerId,
-  type PlayerProgressView,
+  type OwnProgressView,
   type TraitTier,
 } from '@evolution/shared';
 import { RENDER_BENCH_LEVEL_UP_EVERY_TICKS } from '../constants';
@@ -71,8 +71,8 @@ export interface BenchPlayerSpec {
 }
 
 /** One alive record per player cell; the DNA bar climbs and wraps on the level-up cadence. */
-export function benchPlayers(players: readonly BenchPlayerSpec[], tick: number): Record<string, PlayerProgressView> {
-  const records: Record<string, PlayerProgressView> = {};
+export function benchPlayers(players: readonly BenchPlayerSpec[], tick: number): Record<string, OwnProgressView> {
+  const records: Record<string, OwnProgressView> = {};
   for (const player of players) {
     const stage = benchCellStage(player.index);
     records[player.playerId] = {
@@ -93,6 +93,7 @@ export function benchPlayers(players: readonly BenchPlayerSpec[], tick: number):
       lifeState: PLAYER_LIFE_STATE.alive,
       spectatingCellId: null,
       respawnInTicks: 0,
+      massFlow: null,
     };
   }
   return records;

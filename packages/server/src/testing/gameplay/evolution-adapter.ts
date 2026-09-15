@@ -10,13 +10,14 @@ import {
   type BalanceConfig,
   type GameInput,
   type GameSnapshot,
-  type PlayerProgressView,
+  type OwnProgressView,
 } from '@evolution/shared';
 import { createEvolutionBotBinding } from '../../game/bots/evolution-binding.js';
 import { createEvolutionModule, type EvolutionModule } from '../../game/evolution-module.js';
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
-import { serializeFullSnapshot, toPlayerProgressView } from '../../game/serialize/serialize.js';
+import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
+import { sealSprintWindow } from '../../game/world/mass-flow-ledger.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -44,7 +45,7 @@ export interface SpawnedCounts {
 export interface EvolutionScenarioSnapshot extends GameSnapshot {
   readonly spawnedCounts: SpawnedCounts;
   /** Every player's full progress: the wire sends each player only its own (docs/architecture/wire-contract.md §4.1), a table reads anyone's. */
-  readonly progressByPlayer: Readonly<Record<string, PlayerProgressView>>;
+  readonly progressByPlayer: Readonly<Record<string, OwnProgressView>>;
 }
 
 export const WORLD_FIXTURE_KIND = {
@@ -109,6 +110,12 @@ export interface LazyScenarioSnapshot {
   materialise(): void;
 }
 
+/** A scenario drains every tick, so its sprint window is the tick's (#383): the conservation row reads it so. */
+function sealTickSprintWindow(world: WorldState): Record<never, never> {
+  sealSprintWindow(world.massFlow);
+  return {};
+}
+
 /**
  * Values are exact here (the tables assert ± 0.01 wu); only the wire rounds positions, velocity, mass, radius and the
  * leaderboard's score and mass. The scalars, the counters and this tick's effects (drained here, as the broadcast drains them) are captured
@@ -123,10 +130,10 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     projected ??= serializeFullSnapshot(world, EXACT_SNAPSHOT_VALUES);
     return projected;
   };
-  let projectedProgress: Record<string, PlayerProgressView> | undefined;
-  const progressByPlayer = (): Record<string, PlayerProgressView> => {
+  let projectedProgress: Record<string, OwnProgressView> | undefined;
+  const progressByPlayer = (): Record<string, OwnProgressView> => {
     projectedProgress ??= Object.fromEntries(
-      world.players.map((player) => [player.playerId, toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES)]),
+      world.players.map((player) => [player.playerId, toOwnProgressView(world, player, EXACT_SNAPSHOT_VALUES)]),
     );
     return projectedProgress;
   };
@@ -137,6 +144,7 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
     effects: world.effects.splice(0),
+    ...sealTickSprintWindow(world),
     spawnedCounts: { food: world.spawners.food.spawnedCount, dnaFragments: world.spawners.dnaFragments.spawnedCount },
   } as EvolutionScenarioSnapshot;
   for (const key of LAZY_SNAPSHOT_KEYS) {

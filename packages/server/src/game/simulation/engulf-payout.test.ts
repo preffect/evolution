@@ -158,7 +158,7 @@ describe('payOutEngulf: the predator', () => {
 
 describe('payOutEngulf: the prey', () => {
   it('removes the cell, emits cell_absorbed and starts the respawn countdown', () => {
-    const { world, context, predator, prey, preyPlayer } = payOut();
+    const { world, context, predator, prey, preyPlayer, predatorPlayer, predatorMassBefore } = payOut();
     expect(world.cells).not.toContain(prey);
     expect(context.effects).toContainEqual({
       kind: EFFECT_KIND.cellAbsorbed,
@@ -168,6 +168,8 @@ describe('payOutEngulf: the prey', () => {
       cellId: prey.id,
       playerId: preyPlayer.playerId,
       predatorCellId: predator.id,
+      predatorMassGained: predator.mass - predatorMassBefore,
+      predatorDnaGained: predatorPlayer.dnaCumulative,
     });
     expect(preyPlayer.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(preyPlayer.spectatingCellId).toBe(predator.id);
@@ -253,5 +255,16 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md Â
     expect(world.cells).not.toContain(prey);
     expect(preyPlayer.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(preyPlayer.spectatingCellId).toBe(predator.id);
+  });
+});
+
+describe('payOutEngulf: the amounts on cell_absorbed (#383)', () => {
+  it('reports the yield and the DNA the predator was paid, as measured', () => {
+    const { context, predator, predatorMassBefore } = payOut();
+    const absorbed = context.effects.find((effect) => effect.kind === EFFECT_KIND.cellAbsorbed);
+    const amounts = absorbed?.kind === EFFECT_KIND.cellAbsorbed ? absorbed : undefined;
+    expect(amounts?.predatorMassGained).toBeCloseTo(PREY_MASS * absorption.ENGULF_MASS_YIELD, 9);
+    expect(amounts?.predatorMassGained).toBe(predator.mass - predatorMassBefore);
+    expect(amounts?.predatorDnaGained).toBeCloseTo(absorption.ENGULF_DNA_BASE, 9);
   });
 });

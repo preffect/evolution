@@ -12,7 +12,8 @@ import {
   ROUND_END_CONDITION,
   ROUND_PHASE,
 } from '../types/game.js';
-import type { CellView, PlayerProgressView, TraitOfferView } from '../types/game.js';
+import type { CellView, TraitOfferView } from '../types/game.js';
+import type { OwnProgressView } from '../types/mass-flow.js';
 import { RENDER_STAGE_NAMES } from '../types/messages.js';
 import type { ClientPerformanceReport, GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
 import { entityId, playerId, zeroRecord } from '../types/common.js';
@@ -73,8 +74,8 @@ export function createTestCellView(overrides: Partial<CellView> = {}): CellView 
   };
 }
 
-/** A level-1 player with nothing eaten, alive and offer-less. */
-export function createTestPlayerProgressView(overrides: Partial<PlayerProgressView> = {}): PlayerProgressView {
+/** A level-1 player with nothing eaten, alive and offer-less, in the own form a snapshot sends (no mass flow yet). */
+export function createTestPlayerProgressView(overrides: Partial<OwnProgressView> = {}): OwnProgressView {
   return {
     playerId: TEST_PLAYER_ID,
     playerName: 'Player 1',
@@ -93,6 +94,7 @@ export function createTestPlayerProgressView(overrides: Partial<PlayerProgressVi
     lifeState: PLAYER_LIFE_STATE.alive,
     spectatingCellId: null,
     respawnInTicks: 0,
+    massFlow: null,
     ...overrides,
   };
 }

@@ -18,6 +18,13 @@ export const SNAPSHOT_VELOCITY_DECIMALS = 1;
  * agree. At `CELL_STARTING_MASS` the engulf ratio a client reads moves by 0.5 % at most.
  */
 export const SNAPSHOT_MASS_DECIMALS = 1;
+/**
+ * 0.01 mass/s for `MassFlowView.ratesPerSecond` (#383): at 0.1 the broth decay `(m − 20) × 0.002` would round to 0
+ * below mass 45 and the vent share below about 70, and the causes would stop adding up to the net rate.
+ */
+export const SNAPSHOT_MASS_RATE_DECIMALS = 2;
+/** `MassFlowView.decayTraitShare`: −0.235 (Mitochondrion I with Chloroplast I) is exact at three places. */
+export const SNAPSHOT_SHARE_DECIMALS = 3;
 /** A leaderboard score is written whole: the panel only ever shows it rounded, so the rounding is invisible. */
 export const SNAPSHOT_SCORE_DECIMALS = 0;
 

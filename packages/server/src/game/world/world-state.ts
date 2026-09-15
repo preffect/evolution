@@ -21,6 +21,7 @@ import type {
   SpawnerState,
   WildSeatRecord,
 } from './entities.js';
+import type { MassFlowLedger } from './mass-flow-ledger.js';
 
 export interface WorldState {
   tick: number;
@@ -55,6 +56,8 @@ export interface WorldState {
   roundFirstEntityNumber: number;
   /** Effects since the last broadcast, drained by `serializeDelta` every `SNAPSHOT_EVERY_TICKS` ticks. */
   effects: GameEffect[];
+  /** Why each player cell's mass moved (#383): transient like `effects`, never hashed or replayed. */
+  massFlow: MassFlowLedger;
 }
 
 /** Player inputs the simulation ignored, by reason (docs/architecture/server-simulation.md §3.2); reported by the debug handle. */

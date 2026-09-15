@@ -22,7 +22,7 @@ import { absorbCell } from '../session/death.js';
 import { isPlayerCell, type CellRecord, type PlayerCellRecord, type PlayerRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { gainMass } from './cell-mass.js';
+import { NO_GAIN, gainMass, measureGain, type MeasuredGain } from './cell-mass.js';
 import { clearEngulfRecords, type EngulfPairing } from './engulf-state.js';
 import { worldReferenceAt } from './round-clock.js';
 
@@ -90,11 +90,18 @@ function creditEndosymbionts(eater: PlayerRecord, prey: CellRecord, balance: Bal
  * so the part above `CELL_MAX_MASS` becomes DNA in the same gain (docs/ecology/mass-and-movement.md §5.4); the prey
  * is still in the world, so its mass and traits are read here before `absorbCell` removes it.
  */
-function payPredator(world: WorldState, context: StepContext, predator: PlayerCellRecord, prey: CellRecord): void {
+function payPredator(
+  world: WorldState,
+  context: StepContext,
+  predator: PlayerCellRecord,
+  prey: CellRecord,
+): MeasuredGain {
   const balance = context.balance;
   const eater = requirePlayer(world, predator.playerId);
-  gainMass(predator, eater, prey.mass * engulfMassYieldOf(predator.modifiers, balance), balance);
-  gainDna(eater, engulfDnaFor(world, prey, balance), predator.modifiers.dnaGainMultiplier);
+  const gain = measureGain(predator, eater, () => {
+    gainMass(predator, eater, prey.mass * engulfMassYieldOf(predator.modifiers, balance), balance);
+    gainDna(eater, engulfDnaFor(world, prey, balance), predator.modifiers.dnaGainMultiplier);
+  });
   payTagPoints(eater, prey, world, balance);
   creditEndosymbionts(eater, prey, balance);
   if (isPlayerCell(prey)) {
@@ -102,6 +109,7 @@ function payPredator(world: WorldState, context: StepContext, predator: PlayerCe
   } else {
     eater.wildAbsorptions += ONE_ABSORPTION;
   }
+  return gain;
 }
 
 /**
@@ -113,8 +121,6 @@ function payPredator(world: WorldState, context: StepContext, predator: PlayerCe
 export function payOutEngulf(world: WorldState, context: StepContext, pairing: EngulfPairing): void {
   const { predator, prey } = pairing;
   clearEngulfRecords(pairing);
-  if (isPlayerCell(predator)) {
-    payPredator(world, context, predator, prey);
-  }
-  absorbCell(world, context, prey, predator);
+  const predatorGain = isPlayerCell(predator) ? payPredator(world, context, predator, prey) : NO_GAIN;
+  absorbCell(world, context, { prey, predator, predatorGain });
 }

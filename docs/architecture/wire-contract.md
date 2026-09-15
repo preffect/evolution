@@ -35,7 +35,7 @@ export interface GameSnapshot {
   dnaFragments: DnaFragmentView[]; // every fragment in the receiver's interest area, every snapshot: they drift (section 4.2 lever 1)
   food: FoodDelta; // wire refinement of the design's FoodMoteView[] (section 4.1)
   players: Record<string, PlayerRosterView>; // { playerId, playerName }, built from the join-ordered array
-  ownProgress: PlayerProgressView | null; // the receiver's own progress (section 4.1); null in a snapshot built for no viewer
+  ownProgress: OwnProgressView | null; // the receiver's own progress and its massFlow (section 4.1, below); null in a snapshot built for no viewer
   leaderboard: LeaderboardRow[];
   appliedInputSequenceByPlayer: Record<string, number>; // prediction (section 5)
   effects: GameEffect[]; // this broadcast window's cell_absorbed, eat, level_up, respawn, …
@@ -56,11 +56,29 @@ precision.
 - `CellView.velocityX` / `velocityY`: `SNAPSHOT_VELOCITY_DECIMALS` (0.1 wu/s)
 - `CellView.mass` and `LeaderboardRow.mass`: `SNAPSHOT_MASS_DECIMALS` (0.1), one precision so a cell's two masses agree
 - `LeaderboardRow.score` and `PlayerProgressView.score`: `SNAPSHOT_SCORE_DECIMALS` (whole), one precision likewise
+- `MassFlowView.ratesPerSecond`: `SNAPSHOT_MASS_RATE_DECIMALS` (0.01 mass/s), a cause that rounds to 0 left out; at 0.1
+  the broth decay would read 0 below mass 45 and the causes would stop adding up to the net rate (#383)
+- `MassFlowView.decayTraitShare`: `SNAPSHOT_SHARE_DECIMALS` (0.001), left out at 0
+- `MassFlowView.sprintSpent`, `EatEffect.massGained` / `dnaGained` and `CellAbsorbedEffect.predatorMassGained` /
+  `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` that rounds to 0 is left out
 - Written exact: `GelPatchView` `x` / `y` / `radius` (static, sent whole each snapshot), effect `x` / `y`,
   `engulfProgress`, `membraneRatioBonus` and every other number of a view (counters, ticks, DNA).
 
 The debug inspect tools read exact values instead (architecture/debug-mcp.md §8); `debug_get_game_state` is the
 `game_state` payload, at this precision.
+
+**Mass flow** (#383, ui/hud.md §3.1.5): `ownProgress` is an `OwnProgressView`, the `PlayerProgressView` plus
+`massFlow: MassFlowView | null` (`types/mass-flow.ts`): why the receiver's cell's mass moves, as the server applied it.
+The server writes it into `world.massFlow` (`game/world/mass-flow-ledger.ts`), a transient record beside
+`world.effects` that is never hashed or replayed, so the state hash is unchanged. The metabolism step replaces the
+rates every tick from its own deltas (post-floor, post-cap, split pro rata at the floor:
+`simulation/metabolism-flow.ts`); `massFlow` is `null` while spectating and until a new cell's first metabolism step.
+A sprint start adds what it took to a pending total that the broadcast's drain (`serializeDeltaSnapshot`, the same
+call that drains the effects) seals as the window's `sprintSpent`, so a republish or a skipped client never sees one
+twice. A `game_state` carries no `sprintSpent`, as it carries no effects. The `eat` and `cell_absorbed` amounts are
+measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every tick
+`Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained − sprintSpent`
+(`ecology-mass-flow.gameplay.test.ts`).
 
 - The dish radius is the constant `DISH_RADIUS` (game-design/controls-and-scope.md §8), not a session field.
 - `game_state` (start, late join, reconnect: every player receives one right after `game_started`) carries `serializeFullState()`: a `GameSnapshot`
@@ -295,6 +313,22 @@ keeps only a reused id set for what enters and leaves. At 64 viewers, on the 6 8
 players, a spawn-zoom broadcast took 32.5 ms against 4.2 ms, since the cost is viewers × motes in view;
 `MAX_PLAYERS_PER_GAME` = 8 seats a room, so that case cannot arise today. The motes' positions are already quantised
 once per broadcast and shared by every viewer's delta (`positionMotes`).
+
+**Measured (#383)** with #331's method on a private server (seed 38301): 8 players over the wire, 7 `bot-client`
+grazer bots and one recording client that grazes too, 300 `game_snapshot`s after a 200-snapshot warm-up. The
+recording client breaks each snapshot down by the bytes the mass flow adds (`,"massFlow":{…}` in its own
+`ownProgress`, and `,"massGained":…,"dnaGained":…` on each `eat`).
+
+| Part (the recording client, 20 Hz)                                              | Measured                                 | Per client                 |
+| ------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------- |
+| `ownProgress.massFlow`, to its own viewer only (two or three causes and a zone) | 77.1 B mean, 66–78 B                     | ≈ 1.5 KB/s, 0.3 % of 24 KB |
+| `eat` amounts, to every viewer                                                  | 29.0 B an eat; 0.36 eats a snapshot, 0–3 | 10.3 B a snapshot here     |
+| `cell_absorbed` amounts, to every viewer                                        | none in the window; ≈ 50 B an absorption | at most a few a minute     |
+| whole `game_snapshot` in that room                                              | 10 803 B mean                            |                            |
+
+The room ate little (a fresh dish, 0.36 eats a snapshot across 8 players). In a bloom, 5–15 eats a window would put
+the eat amounts at 0.15–0.44 KB a snapshot. The mass flow costs at most about 0.5 KB against the ≈ 18–50 KB of the
+table above, so it moves no row across the budget line.
 
 Budget: **≤ 24 KB raw per snapshot, ≤ 500 KB/s raw per client** (≈ 120–150 KB/s after `perMessageDeflate`); 8 clients
 ≈ 4 MB/s raw server egress, fine on a LAN. The evolving world (#161) put the uncut contract at ≈ 40 KB and ≈ 800 KB/s,

@@ -207,9 +207,9 @@ number (the `massFlow` facts below), formatted by `formatMassAmount` / `formatMa
 `+3`, `−16`, `−0.5/s` under 10 with one decimal, `−12/s` from 10 up, U+2212 minus); none is re-derived from a
 client-side formula.
 
-**The facts the cues read (proposal; the wire change is the architect's, on the build ticket).** Today the snapshot
-carries the own cell's mass but not why it moved: decay, the vent share, toxin reach and photosynthesis are
-computed only in the server's `simulation/metabolism.ts`, and the `eat` effect carries no amount. Re-deriving them
+**The facts the cues read (landed with #383; wire-contract.md §4 "Mass flow").** Before #383 the snapshot
+carried the own cell's mass but not why it moved: decay, the vent share, toxin reach and photosynthesis are
+computed only in the server's `simulation/metabolism.ts`, and the `eat` effect carried no amount. Re-deriving them
 on the client would be a second copy of the rules that drifts at the floors and the cap, so the server reports what
 it applied:
 

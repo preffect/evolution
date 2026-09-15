@@ -2,12 +2,15 @@
 // radii at the start of the step, so the pair terms are order-independent. Base decay on the
 // surplus above the starting mass (zone × trait multipliers), the toxin drains of overlapping or
 // in-aura cells plus what an engulfed prey's spikes and swallowed toxin cost its predator
-// (`engulf-drain.ts`), then photosynthesis inside the shallows.
+// (`engulf-drain.ts`), then photosynthesis inside the shallows. What each player cell was applied, by cause, goes to
+// `world.massFlow` (`metabolism-flow.ts`, #383).
 
 import {
   TICK_INTERVAL_S,
   ZONE_ID,
   distanceBetween,
+  zoneAt,
+  zoneDecayMultiplier,
   type BalanceConfig,
   type CellModifiers,
   type EntityId,
@@ -15,10 +18,11 @@ import {
 } from '@evolution/shared';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
+import { beginMetabolismRecords, recordMetabolism } from '../world/mass-flow-ledger.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { gainMass, loseMassToFloor } from './cell-mass.js';
 import { engulfDrainOf } from './engulf-drain.js';
-import { zoneAt, zoneDecayMultiplier } from './zones.js';
+import { massFlowRecordOf, type MetabolismDemand } from './metabolism-flow.js';
 
 /** What the toxin reach reads of a cell: its centre, a radius and its modifiers. A record satisfies it; the step passes start-of-step views. */
 export interface ToxinReachView {
@@ -87,8 +91,42 @@ export function toxinDrainFraction(
 }
 
 /**
- * Decay and drains floor first, then the light gain goes through the cap (§5.4): its overflow is the owner's DNA.
- * The owner is looked up only for a cell that photosynthesises, so the other cells pay no players scan.
+ * The light gain goes through the cap (§5.4): its overflow is the owner's DNA. The owner is looked up only for a
+ * cell that photosynthesises, so the other cells pay no players scan.
+ */
+function photosynthesise(input: MetabolismInput, world: WorldState, balance: BalanceConfig): void {
+  const { cell } = input;
+  if (input.zone === ZONE_ID.sunlitShallows && cell.modifiers.photosynthesisMassPerSecond > 0) {
+    const owner = isPlayerCell(cell) ? requirePlayer(world, cell.playerId) : undefined;
+    gainMass(cell, owner, cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S, balance);
+  }
+}
+
+/** The requested losses by cause (mass/s): the vent's extra is what the zone multiplier adds over the broth share. */
+function metabolismDemandOf(
+  input: MetabolismInput,
+  drains: MetabolismDrains,
+  balance: BalanceConfig,
+): MetabolismDemand {
+  const brothDecay = drains.decayPerSecond / zoneDecayMultiplier(input.zone, balance);
+  return {
+    toxin: input.massAtStart * drains.contactFraction,
+    swallowed: drains.swallowedDosePerSecond,
+    decay: brothDecay,
+    vent: drains.decayPerSecond - brothDecay,
+  };
+}
+
+/** What one cell's formula asks for this tick, before the floor. */
+interface MetabolismDrains {
+  readonly decayPerSecond: number;
+  readonly contactFraction: number;
+  readonly swallowedDosePerSecond: number;
+}
+
+/**
+ * Decay and drains floor first, then the light. A player cell's applied amounts, by cause, are recorded beside the
+ * effects (#383); the mass arithmetic is the formula's and never reads the record.
  */
 function metaboliseCell(
   input: MetabolismInput,
@@ -98,13 +136,20 @@ function metaboliseCell(
 ): void {
   const { cell, massAtStart } = input;
   const engulfDrain = engulfDrainOf(cell, world, step.massesAtStart, balance);
-  const contactFraction = toxinDrainFraction(input.reach, step.reaches, engulfDrain.swallowedCellId);
-  const drain = (massAtStart * contactFraction + engulfDrain.doseMassPerSecond) * TICK_INTERVAL_S;
-  const decayed = massAtStart - decayPerSecond(input, balance) * TICK_INTERVAL_S - drain;
-  loseMassToFloor(cell, decayed, balance);
-  if (input.zone === ZONE_ID.sunlitShallows && cell.modifiers.photosynthesisMassPerSecond > 0) {
-    const owner = isPlayerCell(cell) ? requirePlayer(world, cell.playerId) : undefined;
-    gainMass(cell, owner, cell.modifiers.photosynthesisMassPerSecond * TICK_INTERVAL_S, balance);
+  const drains: MetabolismDrains = {
+    decayPerSecond: decayPerSecond(input, balance),
+    contactFraction: toxinDrainFraction(input.reach, step.reaches, engulfDrain.swallowedCellId),
+    swallowedDosePerSecond: engulfDrain.doseMassPerSecond,
+  };
+  const drain = (massAtStart * drains.contactFraction + drains.swallowedDosePerSecond) * TICK_INTERVAL_S;
+  loseMassToFloor(cell, massAtStart - drains.decayPerSecond * TICK_INTERVAL_S - drain, balance);
+  const massAfterFloor = cell.mass;
+  photosynthesise(input, world, balance);
+  if (isPlayerCell(cell)) {
+    const demand = metabolismDemandOf(input, drains, balance);
+    const measure = { demand, massAtStart, massAfterFloor, massAfterGain: cell.mass, zone: input.zone };
+    const record = massFlowRecordOf({ ...measure, decayMultiplier: cell.modifiers.decayMultiplier });
+    recordMetabolism(world.massFlow, cell.playerId, record);
   }
 }
 
@@ -115,6 +160,7 @@ interface MetabolismStepView {
 }
 
 export function metabolise(world: WorldState, context: StepContext): void {
+  beginMetabolismRecords(world.massFlow);
   const inputs = world.cells.map((cell) => metabolismInputOf(cell, world, context.balance));
   const step: MetabolismStepView = {
     reaches: inputs.map((input) => input.reach),
