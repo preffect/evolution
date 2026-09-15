@@ -91,17 +91,69 @@ the phase returns to `playing` the panel fades out over 300 ms and the HUD reset
 
 ### 3.5 Menu (Escape)
 
-Escape closes the topmost open overlay (`openOverlay = 'leaderboard'`) and, with none open, sets
-`openOverlay = 'menu'`: a 320-wide centred panel with `Resume` (autofocus), **`Your traits`** (`caption` header
-over one `body` line per owned trait, `Cilia Fringe II · +30 % speed`, name and tier from the catalog, effects
-from `describeTierModifiers`, catalog order; `No traits yet` before the first pick: this list is where the
-pre-#146 trait strip's tooltips went), `Leave to lobby` (`body`), and the line `The dish keeps running while this
-is open.` (`body` muted; it does: the sim never pauses). Focus is trapped inside; Escape or Resume closes it and
-returns focus to the canvas host. Steering input continues to send the latched target; sprint is swallowed while
-the menu is open. **Trait keys stay live:** an open offer keeps its timer running under the menu, so `1` `2` `3`
-still pick while the menu is open (the picker stays visible behind the panel); otherwise a player who opened the
-menu during an offer would silently get the server's pick. Test ids: `menu-overlay`, `menu-resume`, `menu-traits`,
-`menu-trait-<traitId>`, `menu-leave`.
+Escape closes the topmost open overlay (the full leaderboard, then the encyclopedia by
+[`encyclopedia.md §11.5`](./encyclopedia.md#115-navigation-search-and-cross-links)) and, with none open, sets
+`openOverlay = 'menu'`. The menu is the UI kit's modal panel ([`components-and-constants.md §10`](./components-and-constants.md#10-the-ui-kit-354)),
+`MENU_PANEL_WIDTH_PX` wide and as tall as its content, centred on the viewport over a callout-backing scrim at
+`MENU_SCRIM_ALPHA`, lighter than the encyclopedia's so the dish reads through it (mockups
+`qa/decisions/encyclopedia/esc-menu-*.png`). Top to bottom:
+
+1. `Menu` (`title`) over `The dish keeps running.` (`body`, muted): it does, the sim never pauses. While an alert is
+   up (an open offer, a threat or an engulf, encyclopedia.md §11.1) the alert strip sits full width between this line
+   and the buttons, `UI_SPACE_L_PX` above them, and pushes them down by its height (`esc-menu-alert-1280x800.png`); the
+   offer strip carries its seconds in `figure` and the `1` `2` `3` key hints at its trailing end.
+2. Three full-width kit buttons, `UI_SPACE_S_PX` apart. **`Return to game`** (primary, autofocus, `ESC` key hint)
+   closes the menu. **`Encyclopedia`** (secondary, `H` key hint; `H` acts while the menu is open, §4) replaces the menu
+   with the encyclopedia, whose Escape comes back here. **`Exit game`** (danger) asks once
+   (`esc-menu-confirm-1280x800.png`): its row, keeping its size and danger rim, becomes `Leave this round?` (`body`) on
+   the left with two compact buttons on the right, `Exit` (danger) and then `Cancel` (secondary, focused) at the
+   trailing end, where a quick second click on the right half of `Exit game` lands. `Exit` calls `leave()` and the
+   lobby returns (§3.6); `Cancel` or Escape restores the row with focus on `Exit game`, and that Escape is consumed
+   (`preventDefault`, §4) so it does not also close the menu. Leaving drops the seat (#319), so one stray click must
+   not do it.
+3. A panel-rim rule, `YOUR TRAITS` (`label`) with the owned count right-aligned (`label`, muted), then one kit list
+   row per owned trait (`ownProgress.ownedTraits`, so a spectator still sees theirs) in catalog order,
+   `MENU_TRAIT_ROW_HEIGHT_PX` tall with one effect line: the trait's glyph (#312, `game/glyphs/`, `lod="list"`, still, at `TRAIT_GLYPH_LIST_PX`, on its own disc and rim),
+   `Cilia Fringe II` (`body`, bold: the catalog name and the tier numeral), and the effect lines of
+   `describeTierModifiers` joined with `·` (`label`'s size and tracking, mixed case, label colour), broken only
+   between two effects and never cut, so a row grows by `MENU_TRAIT_LINE_HEIGHT_PX` a line; a trailing `›`. The row is
+   a link to the trait's encyclopedia entry (`trait:<traitId>`), whose Escape comes back here. `No traits yet`
+   (`body`, muted) before the first pick. Past `MENU_TRAITS_VISIBLE_ROWS` rows the list scrolls in a kit scroll area,
+   so the panel never outgrows the viewport. This list is where the pre-#146 trait strip's tooltips went.
+
+**Focus and input.** The kit focus trap holds focus inside, and closing returns it to the canvas host. While the
+menu is open (§4's modal gate) steering keeps its latched target and the pointer over the panel does not steer,
+sprint and the Tab hold are swallowed, and Tab and the arrows move focus. **The trait keys stay live:** an open offer
+keeps its timer and `1` `2` `3` still pick, and the alert strip shows the offer and its seconds because the panel
+covers part of the card band; otherwise a player who opened the menu during an offer would silently get the server's
+pick.
+
+**Coverage.** The menu is about 18 % of the viewport at 1280 × 800 with three traits, inside input-and-onboarding.md §6's overlay bar.
+
+**With the other overlays.** Layer order, top down: the notices (§3.6), the encyclopedia, the menu, the results and
+respawn overlays, the trait picker, the chrome. The chrome stays visible under the menu's scrim and hides while the
+encyclopedia is open (encyclopedia.md §11.1).
+
+- **Trait picker** (§3.2): stays open under the scrim; a pick clears the offer strip and leaves the menu open.
+- **Respawn** (§3.3): the menu opens over it and the countdown runs on underneath; a spectator can read, pick and
+  leave.
+- **Results** (§3.4): Escape opens the menu here too, since between rounds is a good time for the encyclopedia;
+  `Exit game` leaves as `Leave to lobby` does. The menu and the encyclopedia stay open when the phase returns to
+  `playing`, and the alert strip takes up the new round.
+- **Tab**: while the menu is open Tab moves focus and cannot hold the leaderboard; with the leaderboard held, Escape
+  closes the leaderboard first, because it is the topmost overlay.
+
+| Constant                    | Value | Unit | Meaning                                                                          |
+| --------------------------- | ----- | ---- | -------------------------------------------------------------------------------- |
+| `MENU_PANEL_WIDTH_PX`       | 400   | px   | The panel; Mitochondrion I's two effects fit on one line.                        |
+| `MENU_TRAIT_ROW_HEIGHT_PX`  | 48    | px   | A trait row with one effect line.                                                |
+| `MENU_TRAIT_LINE_HEIGHT_PX` | 16    | px   | Each further effect line.                                                        |
+| `MENU_TRAITS_VISIBLE_ROWS`  | 5     | rows | Rows shown before the list scrolls.                                              |
+| `MENU_SCRIM_ALPHA`          | 0.5   | ×    | The callout-backing scrim behind the menu; the encyclopedia's is darker (§11.7). |
+
+Home `hud/hud-constants.ts`, published as `--hud-menu-…` like §3.2's. Test ids: `menu-overlay` (`role="dialog"`,
+`aria-modal="true"`, labelled by its title), `menu-resume`, `menu-encyclopedia`, `menu-exit` (was `menu-leave`),
+`menu-exit-confirm`, `menu-exit-cancel`, `menu-alert` (with `data-alert-kind`), `menu-traits`, `menu-trait-<traitId>`.
 
 ### 3.6 Notices: toasts and connection states
 
