@@ -55,7 +55,7 @@ export interface WorldPoint {
   readonly y: number;
 }
 
-/** The starting cell's radius (wu): the view leaves its floor exactly there. */
+/** The starting cell's radius (wu) at the shipped balance: the view leaves its floor exactly there, whatever a patched room says. */
 const SPAWN_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_STARTING_MASS, DEFAULT_BALANCE.growth);
 
 /**

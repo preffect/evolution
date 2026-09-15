@@ -10,6 +10,7 @@ import { ladderOrbitExtentPx } from '../../render/effects/own-cell-geometry';
 import { HUD_PLAYER_EXCLUSION_PX, PICKER_BAND_GAP_PX, PICKER_BAND_ORBIT_CLEARANCE_PX } from '../hud-constants';
 import { hudScaleFor } from './hud-scale';
 
+/** The shipped balance's cap: a room patched with `debug_set_balance` moves its true cap orbit, not this band. */
 const CAP_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_MAX_MASS, DEFAULT_BALANCE.growth);
 
 /** ui/hud.md §3.1.3's orbit extent (backing edge) for the own cell at `CELL_MAX_MASS`, under the Z1 camera, on this viewport. */

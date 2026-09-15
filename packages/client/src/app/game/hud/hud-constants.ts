@@ -125,7 +125,7 @@ export const PICKER_DIM_ALPHA = 0.55;
  * flagellum's sprint cooldown). Lines are never cut; the spec fails the gate when a row outgrows this.
  */
 export const PICKER_CARD_EFFECT_LINES_MAX = 3;
-/** Where the dim's clear disc starts to fade, as a share of its radius: the soft edge. */
+/** The dim's clear disc as a share of where its soft edge reaches full dim: the fade runs from the disc to disc / this. */
 export const PICKER_DIM_SOFT_EDGE_FRACTION = 0.85;
 /** Gap between a card's medallion, category, name, effect lines and rarity. */
 export const PICKER_CARD_CONTENT_GAP_PX = 2;

@@ -40,10 +40,11 @@ without copy fails the gate instead of rendering `undefined`.
   band (§3.1.3). The hint pill is hidden while the offer is open; the own-cell indicators, timer and leaderboard
   stay.
 - **Dim.** A DOM overlay owned by this doc, not a Pixi quad: a 55 % black `<div>` over the canvas with a
-  soft-edged clear disc of radius `pickerSpotlightRadiusPx(viewport)` =
-  `max(HUD_PLAYER_EXCLUSION_PX × s, capOrbitExtentPx)` around the centre (`hud/format/picker-band.ts`, the same cap
-  extent as the band, so under Z1 the dim never greys the outer edge of a big cell's orbit; `mask-image` radial
-  gradient); the HUD never touches Pixi, so visual-style/performance-and-checklist.md §8's "trait-picker dim" quad is superseded by this
+  clear disc of radius `pickerSpotlightRadiusPx(viewport)` = `max(HUD_PLAYER_EXCLUSION_PX × s, capOrbitExtentPx)`
+  around the centre (`hud/format/picker-band.ts`, the same cap extent as the band), fully clear out to that radius
+  and fading to the full dim at `radius / PICKER_DIM_SOFT_EDGE_FRACTION`, so the soft edge lies outside it and under
+  Z1 the dim never greys the outer edge of a big cell's orbit (`mask-image` radial gradient); both extents use the
+  shipped balance's `CELL_MAX_MASS`, so a room patched with `debug_set_balance` moves its cap orbit but not the band; the HUD never touches Pixi, so visual-style/performance-and-checklist.md §8's "trait-picker dim" quad is superseded by this
   element (corrected on #34). The dish keeps simulating and the cell keeps steering: pointer input is not captured
   by the overlay (`pointer-events: none` on everything but the cards).
 - **Card.** Glyph medallion 56 px, category in `caption`, name in `card_name` bold with tier numeral

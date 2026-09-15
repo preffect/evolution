@@ -4,20 +4,20 @@
   pointer-events: none;
 }
 
-/* A DOM dim, never a Pixi quad; the own cell's disc stays clear out to its cap orbit (docs/ui/overlays.md §3.2). */
+/* A DOM dim, never a Pixi quad; fully clear out to the cap orbit, fading to full dim just past it (docs/ui/overlays.md §3.2). */
 .dim {
   position: absolute;
   inset: 0;
   background: rgb(0 0 0 / var(--hud-picker-dim-alpha));
   -webkit-mask-image: radial-gradient(
     circle at 50% 50%,
-    transparent calc(var(--hud-picker-spotlight) * var(--hud-picker-dim-soft-edge)),
-    black var(--hud-picker-spotlight)
+    transparent var(--hud-picker-spotlight),
+    black calc(var(--hud-picker-spotlight) / var(--hud-picker-dim-soft-edge))
   );
   mask-image: radial-gradient(
     circle at 50% 50%,
-    transparent calc(var(--hud-picker-spotlight) * var(--hud-picker-dim-soft-edge)),
-    black var(--hud-picker-spotlight)
+    transparent var(--hud-picker-spotlight),
+    black calc(var(--hud-picker-spotlight) / var(--hud-picker-dim-soft-edge))
   );
 }
 
