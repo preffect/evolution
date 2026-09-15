@@ -28,6 +28,10 @@ mass' = max(CELL_STARTING_MASS, mass − decayPerSecond × TICK_INTERVAL_S − m
         + photosynthesisMassPerSecond × TICK_INTERVAL_S           (only inside sunlit_shallows; a gain, so capped, §5.4)
 ```
 
+A toxic cell's toxin reaches a cell whose centre is within
+`target.radius + toxic.radius × (1 + toxinAuraRangeInRadii)`: contact, plus the aura measured from the toxic
+cell's rim (`toxinAuraRangeInRadii` is 0 without Stentor Trumpet, `traits/catalog-forms.md §3.16`, #424).
+
 The contact drain is a share of the victim's own mass (a field: everything near the poison loses the same
 share); the swallowed dose is set by the prey's mass (#154: a heavy predator is not punished for its size,
 so a completed meal of a prey whose only defence is the toxin always pays, `traits/catalog-organelles.md §3.11`;

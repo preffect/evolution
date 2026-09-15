@@ -72,13 +72,18 @@ export function decayPerSecond(input: MetabolismInput, balance: BalanceConfig): 
   );
 }
 
-/** A toxic cell reaches another by overlap, or by centre distance within its aura (docs/traits/model.md §2). */
+/**
+ * The farthest centre distance at which a toxic cell's toxin reaches a target of `targetRadius`: contact, plus
+ * `toxinAuraRangeInRadii` of the toxic cell's radii measured from its rim (docs/traits/model.md §2, #424). Without an
+ * aura this is exactly the contact distance.
+ */
+export function toxinReachDistance(targetRadius: number, toxic: ToxinReachView): number {
+  return targetRadius + toxic.radius * (1 + toxic.modifiers.toxinAuraRangeInRadii);
+}
+
+/** A toxic cell reaches another by overlap, or without contact within its aura beyond the rim. */
 export function isReachedByToxin(target: ToxinReachView, toxic: ToxinReachView): boolean {
-  const distance = distanceBetween(target, toxic);
-  if (distance <= target.radius + toxic.radius) {
-    return true;
-  }
-  return toxic.modifiers.toxinAuraRangeInRadii > 0 && distance <= toxic.modifiers.toxinAuraRangeInRadii * toxic.radius;
+  return distanceBetween(target, toxic) <= toxinReachDistance(target.radius, toxic);
 }
 
 /**

@@ -1,6 +1,6 @@
 // docs/ecology/mass-and-movement.md §4, §4.1 (E5), §5.4 and docs/traits/constants-and-acceptance.md §6 (T5, T7).
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_INTERVAL_S, playerId, type TraitTier, type Vec2 } from '@evolution/shared';
+import { DEFAULT_BALANCE, TICK_INTERVAL_S, TRAIT_TIERS, playerId, type TraitTier, type Vec2 } from '@evolution/shared';
 import { createDecayedHelper } from '../../testing/gameplay/fixtures.js';
 import { BROTH_POINT, shallowsPoint, VENT_POINT } from '../../testing/gameplay/placement.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
@@ -8,7 +8,14 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
-import { decayPerSecond, isReachedByToxin, metabolise, metabolismInputOf, toxinDrainFraction } from './metabolism.js';
+import {
+  decayPerSecond,
+  isReachedByToxin,
+  metabolise,
+  metabolismInputOf,
+  toxinDrainFraction,
+  toxinReachDistance,
+} from './metabolism.js';
 
 const { growth, ecology, world: worldBalance } = DEFAULT_BALANCE;
 const decayed = createDecayedHelper({
@@ -20,6 +27,10 @@ const decayed = createDecayedHelper({
 const CHLOROPLAST_TOP_TIER: TraitTier = 3;
 /** T5 at the cap: "± 1e-9" on the overflow DNA. */
 const OVERFLOW_DNA_DIGITS = 9;
+/** #424: a toxic cell heavy enough that its aura gap spans many world units. */
+const AURA_TOXIC_MASS = 1000;
+/** #424: a step either side of the aura's edge, far above float error and far below any tier's gap. */
+const REACH_EDGE_MARGIN_WU = 0.001;
 
 function placedCell(
   mass: number,
@@ -214,4 +225,23 @@ describe('toxin reach', () => {
     expect(toxinDrainFraction(target, [toxic, target])).toBe(0.03);
     expect(toxinDrainFraction(toxic, world.cells)).toBe(0);
   });
+
+  it('without an aura, reaches exactly to contact', () => {
+    const { cell: toxic } = placedCell(AURA_TOXIC_MASS);
+    expect(toxinReachDistance(toxic.radius, toxic)).toBe(toxic.radius + toxic.radius);
+  });
+
+  it.each(TRAIT_TIERS.stentor_trumpet.map((modifiers, index) => ({ tier: index + 1, modifiers })))(
+    'Stentor Trumpet tier $tier reaches a cell its own size its range in radii beyond touching, no further (#424)',
+    ({ modifiers }) => {
+      const { cell: toxic } = placedCell(AURA_TOXIC_MASS);
+      toxic.modifiers.toxinAuraRangeInRadii = modifiers.toxinAuraRangeInRadii!;
+      const contactDistance = toxic.radius + toxic.radius;
+      const rimToRimGap = modifiers.toxinAuraRangeInRadii! * toxic.radius;
+      const targetAt = (gap: number) => ({ ...toxic, id: 'c-99', x: toxic.x + contactDistance + gap }) as CellRecord;
+      expect(toxinReachDistance(toxic.radius, toxic)).toBeCloseTo(contactDistance + rimToRimGap);
+      expect(isReachedByToxin(targetAt(rimToRimGap - REACH_EDGE_MARGIN_WU), toxic)).toBe(true);
+      expect(isReachedByToxin(targetAt(rimToRimGap + REACH_EDGE_MARGIN_WU), toxic)).toBe(false);
+    },
+  );
 });
