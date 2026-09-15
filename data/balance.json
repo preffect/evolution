@@ -98,7 +98,7 @@
     "FOOD_TAG_POINTS": 1,
     "FOOD_ZONE_WEIGHTS_BY_KIND": {
       "algae": { "sunlit_shallows": 0.7, "open_broth": 0.25, "warm_vent": 0.05 },
-      "bacterium": { "warm_vent": 0.6, "open_broth": 0.3, "sunlit_shallows": 0.1 },
+      "bacterium": { "warm_vent": 0.5, "open_broth": 0.3, "sunlit_shallows": 0.2 },
       "dna_fragment": { "warm_vent": 0.4, "open_broth": 0.4, "sunlit_shallows": 0.2 }
     },
     "GEL_PATCH_COUNT": 3,

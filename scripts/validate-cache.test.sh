@@ -49,14 +49,13 @@ FAKE_PNPM_FAIL_PATTERN_FILE="$sandbox/fake-pnpm-fail-pattern" # when non-empty: 
 FAKE_BUILD_SAW_FILE="$sandbox/fake-build-saw" # the fake shared build writes whether the build record was kept or deleted
 FAKE_BUILD_EDIT_FILE="$sandbox/fake-build-edit" # when non-empty: the fake shared build saves a shared source mid-build
 
-# --- fixture: a git repo holding validate.sh, a stub docs-index.sh, package dirs and a fake pnpm --
+# --- fixture: a git repo holding validate.sh, package dirs and a fake pnpm -------------------------
 fixture="$sandbox/repo"
 mkdir -p "$fixture/scripts/lib" "$sandbox/bin" "$sandbox/home" \
   "$fixture/packages/shared/src" "$fixture/packages/shared/dist" "$fixture/node_modules/.pnpm" \
   "$fixture/packages/server/src/game" "$fixture/packages/client/src/app"
 cp "$repo_root/validate.sh" "$fixture/validate.sh"
 cp "$repo_root/scripts/lib/workspace-ready.sh" "$repo_root/scripts/lib/gate-lock.sh" "$repo_root/scripts/lib/behind-base.sh" "$fixture/scripts/lib/"
-printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/scripts/docs-index.sh"
 touch "$fixture/packages/shared/src/index.ts" "$fixture/packages/server/src/game/world.ts" \
   "$fixture/packages/server/src/game/world.test.ts" "$fixture/packages/client/src/app/hud.spec.ts" \
   "$fixture/packages/client/src/app/app.integration.spec.ts" "$fixture/packages/client/src/app/hud.ts" \
@@ -93,7 +92,6 @@ PNPM
   chmod +x "$sandbox/bin/pnpm"
 }
 write_standard_fake_pnpm
-chmod +x "$fixture/scripts/docs-index.sh"
 echo 0 > "$FAKE_PNPM_RC_FILE"
 : > "$FAKE_PNPM_TOUCH_FILE"
 echo 0 > "$FAKE_PNPM_SLEEP_FILE"

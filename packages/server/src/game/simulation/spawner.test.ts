@@ -4,11 +4,14 @@ import { createSeededRandom, DEFAULT_BALANCE, FOOD_KIND, RANDOM_STREAM, TICK_HZ 
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { storeStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
-import { runInitialFill, runSpawners, spawnFoodEvent } from './spawner.js';
+import { drawSpawnZone, runInitialFill, runSpawners, spawnFoodEvent } from './spawner.js';
 import { foodSpawnerRates, fragmentSpawnerRates } from './spawn-rates.js';
 
 const { ecology } = DEFAULT_BALANCE;
 const TEN_SECONDS_TICKS = 600;
+const ZONE_DRAW_SAMPLES = 20_000;
+/** About six standard errors of a 0.5 share over the sample count: never a seeded fluke, still tight. */
+const ZONE_SHARE_TOLERANCE = 0.02;
 
 /** Steps the spawners `ticks` times the way step.ts does: resume, run, write back. */
 function runSpawnersFor(world: WorldState, ticks: number): void {
@@ -118,6 +121,23 @@ describe('spawnFoodEvent', () => {
       }
     }
     throw new Error('no cluster drawn in 500 events');
+  });
+});
+
+describe('drawSpawnZone', () => {
+  it('draws bacterium zones at the FOOD_ZONE_WEIGHTS_BY_KIND shares (#119)', () => {
+    const random = createSeededRandom(7);
+    const weights = ecology.FOOD_ZONE_WEIGHTS_BY_KIND[FOOD_KIND.bacterium];
+    const counts = new Map<string, number>();
+    for (let draw = 0; draw < ZONE_DRAW_SAMPLES; draw += 1) {
+      const zone = drawSpawnZone(FOOD_KIND.bacterium, random, DEFAULT_BALANCE);
+      counts.set(zone, (counts.get(zone) ?? 0) + 1);
+    }
+    const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    for (const [zone, weight] of Object.entries(weights)) {
+      const share = (counts.get(zone) ?? 0) / ZONE_DRAW_SAMPLES;
+      expect(Math.abs(share - weight / totalWeight)).toBeLessThan(ZONE_SHARE_TOLERANCE);
+    }
   });
 });
 
