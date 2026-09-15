@@ -8,7 +8,7 @@ import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
 import { viewHalfHeightFor, zoomFor, type ViewportPx } from '../../render/camera';
 import { ladderOrbitExtentPx } from '../../render/effects/own-cell-geometry';
 import { HUD_PLAYER_EXCLUSION_PX, PICKER_BAND_GAP_PX, PICKER_BAND_ORBIT_CLEARANCE_PX } from '../hud-constants';
-import { hudScaleFor } from './hud-scale';
+import { uiScaleFor } from '../../../ui-kit/format/ui-scale';
 
 /** The shipped balance's cap: a room patched with `debug_set_balance` moves its true cap orbit, not this band. */
 const CAP_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_MAX_MASS, DEFAULT_BALANCE.growth);
@@ -21,12 +21,12 @@ export function capOrbitExtentPx(viewport: ViewportPx): number {
 
 /** The picker's title row top, below the viewport centre: `max((box + gap) × scale, cap orbit extent + clearance)`. */
 export function pickerBandOffsetPx(viewport: ViewportPx): number {
-  const boxPx = (HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) * hudScaleFor(viewport.width, viewport.height);
+  const boxPx = (HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) * uiScaleFor(viewport.width, viewport.height);
   return Math.max(boxPx, capOrbitExtentPx(viewport) + PICKER_BAND_ORBIT_CLEARANCE_PX);
 }
 
 /** The radius of the dim's clear disc around the centre: `max(box × scale, cap orbit extent)`. */
 export function pickerSpotlightRadiusPx(viewport: ViewportPx): number {
-  const boxPx = HUD_PLAYER_EXCLUSION_PX * hudScaleFor(viewport.width, viewport.height);
+  const boxPx = HUD_PLAYER_EXCLUSION_PX * uiScaleFor(viewport.width, viewport.height);
   return Math.max(boxPx, capOrbitExtentPx(viewport));
 }
