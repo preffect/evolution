@@ -273,7 +273,7 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **Evolution — Ecology, Growth and Absorption: food, zones and the spawn model** (L1–197): §1–§3.2 of the split `ECOLOGY.md`, which keeps the shared context and the file list.
 - **1. Food kinds** (L5–39): any mote; no minimum size.
 - **2. Zones** (L40–54): Geometry is fixed by the dish radius; the three gel patches are placed from the `zones` random stream at world creation and are part of the…
-- **3. Spawn model** (L55–197): Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond × TICK_INTERVAL_S`; while `accumulator �…
+- **3. Spawn model** (L55–197): Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond × TICK_INTERVAL_S`; while `accumulator �…
   - **3.1 The world clock** (L111–171): The dish has its own place on the ladder.
   - **3.2 What the world stage drives** (L172–197): tick already uses the new row: step 8 runs after step 2).
 
@@ -557,4 +557,3 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 
 - **Evolution — Visual Style: UI colours and type** (L1–39): §7 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
 - **7. UI colours and type** (L5–39): Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts.
-
