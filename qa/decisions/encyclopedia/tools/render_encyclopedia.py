@@ -152,7 +152,7 @@ HUD_REFERENCE = (1280, 800)
 SCALE_MIN, SCALE_MAX = 0.8, 1.5
 
 CATEGORIES = [  # #358's six, labels and order from encyclopedia.md §11.2; counts illustrate entriesIn(category)
-    ('basics', 'Basics', 6), ('entities', 'Cells & food', 10), ('evolutions', 'Evolution', 28),
+    ('basics', 'Basics', 13), ('entities', 'Cells & food', 10), ('evolutions', 'Evolution', 28),
     ('abilities', 'Abilities', 11), ('actions', 'Actions', 8), ('world', 'World', 8),
 ]
 
@@ -1056,7 +1056,7 @@ def kit_states(uw, uh):
         rx = 32 + i * 158
         o.append(t(rx, y1 + 20, s.replace('_', ' + ').capitalize(), 'label_mixed', MUTED))
         o.append(rect(rx, y1 + 28, 150, RAIL_ROW_H, fill=CALLOUT, fill_opacity=WELL_ALPHA))
-        o.append(rail_item(rx, y1 + 28, 150, 'basics', 'Basics', 6, s))
+        o.append(rail_item(rx, y1 + 28, 150, 'basics', 'Basics', 13, s))
     y2 = y1 + 28 + RAIL_ROW_H + 24
     o.append(t(32, y2, 'List row', 'label', LABEL))
     for i, s in enumerate(['rest', 'hover', 'selected', 'focus']):

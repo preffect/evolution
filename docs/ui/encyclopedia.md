@@ -62,22 +62,23 @@ writes their labels (`ENCYCLOPEDIA_CATEGORY_LABEL`) and order (`ENCYCLOPEDIA_CAT
 list groups (`ENTRY_GROUP_LABEL`); the group each entry takes is `ResolvedEntry.group`, which the registry derives from
 the subject. A count in the rail is `entriesIn(category)`'s length, never a typed number.
 
-| Order | Category     | Label        | Groups (`ENTRY_GROUP`), in order                                                      | What a player finds there                                                                                                                                               |
-| ----- | ------------ | ------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `basics`     | Basics       | Rules (`rules`)                                                                       | Mass and size (bigger is slower), mass decay, who can engulf whom, DNA and levels, score, where you stand against the world                                             |
-| 2     | `entities`   | Cells & food | Cells (`cells`) · Food (`food`)                                                       | The player cell and the wild cell; the food overview, algae, the bacteria and their variants, detritus, the DNA fragment                                                |
-| 3     | `evolutions` | Evolution    | Stages (`stages`) · one per `TRAIT_CATEGORY` in catalog order · DNA tags (`dna_tags`) | The five ladder stages, every trait (its tiers are sections of its page, not entries), the DNA tags                                                                     |
-| 4     | `abilities`  | Abilities    | none                                                                                  | What traits grant, one page per `ABILITY` (§12.4): movement, sprint, photosynthesis, toxin, spines, food attraction and the rest, each listing the traits that grant it |
-| 5     | `actions`    | Actions      | none                                                                                  | One page per `ACTION` (§12.4): steer, sprint, eat, engulf (its `ENGULF_PHASE`s cover, wrap, absorb), escape, pick a trait, level up, respawn                            |
-| 6     | `world`      | World        | Dish and zones (`dish_and_zones`) · Time (`time`)                                     | The dish and its four zones; the world clock, the bloom, the round                                                                                                      |
+| Order | Category     | Label        | Groups (`ENTRY_GROUP`), in order                                                      | What a player finds there                                                                                                                                                                                                                                                                    |
+| ----- | ------------ | ------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `basics`     | Basics       | Rules (`rules`) · Reading the screen (`reading_the_screen`)                           | Mass and size (bigger is slower), mass decay, who can engulf whom, DNA and levels, score, where you stand against the world; how to read each HUD element (`HUD_TOPIC`): the DNA ring, the level numeral, the ladder orbit, the self ring, the threat ring, the leaderboard, the round clock |
+| 2     | `entities`   | Cells & food | Cells (`cells`) · Food (`food`)                                                       | The player cell and the wild cell; the food overview, algae, the bacteria and their variants, detritus, the DNA fragment                                                                                                                                                                     |
+| 3     | `evolutions` | Evolution    | Stages (`stages`) · one per `TRAIT_CATEGORY` in catalog order · DNA tags (`dna_tags`) | The five ladder stages, every trait (its tiers are sections of its page, not entries), the DNA tags                                                                                                                                                                                          |
+| 4     | `abilities`  | Abilities    | none                                                                                  | What traits grant, one page per `ABILITY` (§12.4): movement, sprint, photosynthesis, toxin, spines, food attraction and the rest, each listing the traits that grant it                                                                                                                      |
+| 5     | `actions`    | Actions      | none                                                                                  | One page per `ACTION` (§12.4): steer, sprint, eat, engulf (its `ENGULF_PHASE`s cover, wrap, absorb), escape, pick a trait, level up, respawn                                                                                                                                                 |
+| 6     | `world`      | World        | Dish and zones (`dish_and_zones`) · Time (`time`)                                     | The dish and its four zones; the world clock, the bloom, the round                                                                                                                                                                                                                           |
 
-A list shows group headers only when its category has more than one group. **Reading the HUD** is not in build 1;
-it is follow-up #382.
+A list shows group headers only when its category has more than one group. The `hud` subject is a subject under
+Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_ELEMENT_BY_TOPIC` anchors each topic to a
+`HUD_TEST_ID` key, which moves to the neutral `game/test-ids/hud-test-ids.ts` so the encyclopedia never imports `hud/`.
 
 **Ids** are §12.2's `<subject>:<codeId>`, with `#` for a section inside a page: `trait:mitochondrion`,
 `trait:mitochondrion#tier_2`, `stage:endosymbiosis`, `bacterium:aerobic`, `food:algae`, `entity:dna_fragment`,
 `cell_kind:wild`, `zone:warm_vent`, `world:bloom`, `action:sprint`, `ability:toxin`, `concept:mass_decay`,
-`concept:world_standing#ahead`. The subject is the code kind, not the category, so regrouping never renames an id. The
+`concept:world_standing#ahead`, `hud:leaderboard`. The subject is the code kind, not the category, so regrouping never renames an id. The
 id is the deep link, the `data-entry-id` and the test-id suffix (`testIdSelector` quotes the attribute, so `:` and `#`
 are safe).
 
@@ -88,7 +89,7 @@ sprint cost `action:sprint`; gel `zone:viscous_gel`; shallows `zone:sunlit_shall
 food by zone the `bacterium:` entries; bloom `world:bloom`; toxin and spines `ability:toxin`, `ability:spines`; who
 eats whom `concept:engulf_ratio`; engulf progress `action:engulf`, `action:escape`; death cost `action:respawn`; DNA
 tags the `dna_tag:` entries; stage gates and endosymbiosis the `stage:` entries; trait effects the `trait:` entries;
-score `concept:score`. The leaderboard's columns wait for #382.
+score `concept:score`; the leaderboard's columns `hud:leaderboard`.
 
 ### 11.3 Layout (option A)
 
