@@ -12,6 +12,7 @@ import {
   EFFECT_KIND,
   ENGULF_RELEASE_REASON,
   PLAYER_LIFE_STATE,
+  SNAPSHOT_MASS_DECIMALS,
   TICK_INTERVAL_MS,
   createTestGameInput,
   createTestSessionConfig,
@@ -34,6 +35,7 @@ import {
 } from '../../testing/builders.js';
 import { broadcastTickAtOrAfter } from '../../testing/cadence-builders.js';
 import { createEvolutionModule } from '../evolution-module.js';
+import { quantizeToDecimals } from '../serialize/quantize.js';
 import { decayed } from '../../testing/scenarios/shared-setups.js';
 
 const SEED = 42;
@@ -51,8 +53,6 @@ const session = DEFAULT_BALANCE.session;
 /** The respawn convention (#211): a death on tick t places the new cell on t + spectate + 1. */
 const RESPAWN_TICK = END_TICK + secondsToTicks(session.RESPAWN_SPECTATE_SECONDS) + 1;
 const PROGRESS_TOLERANCE = 6;
-/** Two decimals: the §8 rows' "± 0.01" on a mass, as vitest counts digits. */
-const MASS_DIGITS = 2;
 /**
  * E9's payout arithmetic for this room: the pair is placed at the origin, which is inside the warm
  * vent, so the predator decays at `VENT_DECAY_MULTIPLIER` where the placed §8 rows (at the broth
@@ -201,9 +201,9 @@ describe('the payout, from the completed engulf to the respawn and the leaderboa
     expect(cellOf(snapshot, PREY)).toBeUndefined();
     expect(preyView.ownProgress!.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(preyView.ownProgress!.spectatingCellId).toBe(predator.id);
-    // The E9 numbers, to the scenario table's own tolerance: the yield on the decayed predator,
-    // the flat DNA base, one absorption. `E9_PAYOUT_MASS` is the quantity the §8 rows pin.
-    expect(predator.mass).toBeCloseTo(PAYOUT_MASS_IN_THE_VENT, MASS_DIGITS);
+    // The E9 numbers as the wire carries them: the yield on the decayed predator at `SNAPSHOT_MASS_DECIMALS` (#341),
+    // the flat DNA base, one absorption. `E9_PAYOUT_MASS` is the quantity the §8 rows pin, exact, off the records.
+    expect(predator.mass).toBe(quantizeToDecimals(PAYOUT_MASS_IN_THE_VENT, SNAPSHOT_MASS_DECIMALS));
     expect(snapshot.ownProgress!.dnaCumulative).toBe(absorption.ENGULF_DNA_BASE);
     expect(snapshot.ownProgress!.absorptions).toBe(1);
   });

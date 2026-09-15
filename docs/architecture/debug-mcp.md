@@ -40,7 +40,10 @@ world; they need no capability):
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
 same `{ snapshot, balance }` that `game_state` sends a joining client. The handle has no second
-full-state member, so the Evolution module cannot implement two shapes of one fact.
+full-state member, so the Evolution module cannot implement two shapes of one fact. It is the wire's `game_state`, so
+its numbers are at the wire precision (architecture/wire-contract.md §4); the inspect tools (`debug_get_entities`,
+whose `bbox` tests exact positions, `debug_get_player_progress`) and the answers of the debug mutations read the
+records at full precision (`EXACT_SNAPSHOT_VALUES`, #341).
 `patchBalance` applies `applyBalancePatch` (`game/debug/balance-patch.ts`): number leaves only,
 at paths that exist, validated as a whole before anything is written.
 
