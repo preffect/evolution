@@ -3,6 +3,8 @@
 // Numbers are glyph user units in the 100 × 100 box; opacities are 0..1; periods are ms.
 
 import {
+  ellipse,
+  circle,
   GLYPH_MOTION,
   GLYPH_ROLE,
   type GlyphFill,
@@ -41,6 +43,10 @@ import {
 /** The glyph's user-unit box: 100 wide and tall, centred on (50, 50). */
 export const GLYPH_BOX = 100;
 export const GLYPH_CENTRE = 50;
+/** The box centre as a `cx` / `cy` pair, spread into the radial path specs. */
+export const GLYPH_CENTRE_POINT = { cx: GLYPH_CENTRE, cy: GLYPH_CENTRE } as const;
+/** A glyph that lies flat: no tilt about the centre. */
+export const GLYPH_NO_TILT = 0;
 
 /** The medallion disc: the dark-field stage the glyph sits on, its condenser pool and its rim. */
 export const GLYPH_FRAME = {
@@ -75,6 +81,15 @@ export const GLYPH_LIST_ZOOM = 1.2;
 export const GLYPH_HALO_OPACITY = 0.5;
 
 /**
+ * The idle motions' amplitudes (visual-style/ui-type.md §7.1), published to the keyframes as CSS custom properties by
+ * `glyphs/glyph-motion-variables.ts`: a breathe and a beat swell to these scales, a sway turns this far either way, a
+ * rise lifts this many user units. Both pulses stay under `GLYPH_PULSE_CEILING`.
+ */
+export const GLYPH_MOTION_AMPLITUDE = { breatheScale: 1.04, beatScale: 1.08, swayDeg: 4, riseUnits: 3 } as const;
+/** The largest scale any pulse may reach (visual-style/motion-and-legibility.md §5: pulses ≤ 1.14×). */
+export const GLYPH_PULSE_CEILING = 1.14;
+
+/**
  * Idle periods, slow enough that three cards side by side never read as busy (visual-style/motion-and-legibility.md §5):
  * even the beat, the quickest, stays near the 0.5 Hz rest rate so one card never pulls the eye.
  */
@@ -96,6 +111,16 @@ export const GLYPH_RAMP = {
   toxin: { light: TOXIN_RIM, base: TOXIN_BASE, dark: DNA_DEEP },
   silica: { light: SILICA_LIGHT, base: SILICA_BASE, dark: SILICA_DARK },
 } as const satisfies Readonly<Record<string, GlyphRamp>>;
+
+/** A circle about the box centre. */
+export function centreCircle(radius: number): GlyphShape {
+  return circle(GLYPH_CENTRE, GLYPH_CENTRE, radius);
+}
+
+/** An ellipse about the box centre. */
+export function centreEllipse(radiusX: number, radiusY: number): GlyphShape {
+  return ellipse(GLYPH_CENTRE, GLYPH_CENTRE, radiusX, radiusY);
+}
 
 /** A motion of `kind` at its idle period about (`originX`, `originY`), the centre by default. */
 export function motion(kind: GlyphMotionKind, originX = GLYPH_CENTRE, originY = GLYPH_CENTRE): GlyphMotion {

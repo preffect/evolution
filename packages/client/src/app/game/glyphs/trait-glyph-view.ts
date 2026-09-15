@@ -8,6 +8,7 @@
 import { GLYPH_FRAME_LAYERS } from '../render/constants/trait-glyph-frame';
 import {
   GLYPH_CENTRE,
+  GLYPH_NO_TILT,
   GLYPH_HALO_FALLOFF,
   GLYPH_LIST_STROKE_BOOST,
   GLYPH_LIST_ZOOM,
@@ -31,7 +32,6 @@ const NO_PAINT = 'none';
 /** A dashed stroke ends square, so a thicker list-LOD stroke keeps its gaps (pores, plates) open; every other is round. */
 export const GLYPH_LINE_CAP = { round: 'round', butt: 'butt' } as const;
 export type GlyphLineCap = (typeof GLYPH_LINE_CAP)[keyof typeof GLYPH_LINE_CAP];
-const NO_TILT = 0;
 const HALF_BOX = 0.5;
 const TRANSPARENT = 0;
 const OPAQUE = 1;
@@ -169,7 +169,7 @@ function zoomAboutCentre(zoom: number): string {
 function transformFor(layer: GlyphLayer, group: LayerGroup): string | null {
   const parts = [
     layer.offset === undefined ? null : `translate(${layer.offset.x} ${layer.offset.y})`,
-    group.tiltDeg === NO_TILT ? null : `rotate(${group.tiltDeg} ${GLYPH_CENTRE} ${GLYPH_CENTRE})`,
+    group.tiltDeg === GLYPH_NO_TILT ? null : `rotate(${group.tiltDeg} ${GLYPH_CENTRE} ${GLYPH_CENTRE})`,
     group.zoom === UNSCALED ? null : zoomAboutCentre(group.zoom),
   ].filter((part): part is string => part !== null);
   return parts.length === 0 ? null : parts.join(' ');
@@ -201,7 +201,7 @@ export function traitGlyphView(glyph: TraitGlyph, lod: TraitGlyphLod, idPrefix: 
     {
       layers: GLYPH_FRAME_LAYERS,
       idPrefix: `${idPrefix}-frame`,
-      tiltDeg: NO_TILT,
+      tiltDeg: GLYPH_NO_TILT,
       strokeWidthScale: UNSCALED,
       zoom: UNSCALED,
     },

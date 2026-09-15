@@ -89,10 +89,20 @@ the pores, the spokes or the hairs. Glyphs that share a category must differ in 
 (Mitochondrion and Chloroplast; Cytoskeleton and Cilia). A dashed stroke ends square, so a pore or plate gap stays
 open when the list LOD thickens the stroke. Evidence keeps a frameless silhouette strip at both 56 px and 20 px.
 
-**Motion.** One slow loop per glyph (`GLYPH_PERIOD_MS`): breathe 4 200 ms to 1.04×, beat 2 400 ms to 1.08× in the
-first 15 % (near §5's 0.5 Hz rest rate, so no card in the picker pulls the eye), sway 2 600 ms ±4°, spin 40 000 ms per turn, rise 2 000 ms by 3 units. All stay under §5's 1.14×
-pulse ceiling, and `prefers-reduced-motion` stops them. A layer lit by a ramp, and a glint, never spins: a turning
-ramp would turn the light (§1).
+**Motion.** One slow loop per glyph. The periods are `GLYPH_PERIOD_MS` and the amplitudes `GLYPH_MOTION_AMPLITUDE`,
+both in `render/constants/trait-glyph-layers.ts`:
+
+- breathe: 4 200 ms, swelling to 1.04×
+- beat: 2 400 ms, swelling to 1.08× in the first 15 % (near §5's 0.5 Hz rest rate, so no card in the picker pulls
+  the eye)
+- sway: 2 600 ms, ±4°
+- spin: 40 000 ms per turn
+- rise: 2 000 ms, by 3 units
+
+The amplitudes reach the keyframes as `--glyph-…` custom properties the component publishes on its host
+(`glyphs/glyph-motion-variables.ts`), so no amplitude is a stylesheet literal. A spec holds both pulses under
+`GLYPH_PULSE_CEILING` (§5's 1.14×). `prefers-reduced-motion` stops every loop. A layer lit by a ramp, and a glint,
+never spins: a turning ramp would turn the light (§1).
 
 **Sizes, LOD and still.** The SVG fills its host, so the caller sizes it (`game/glyphs/glyph-constants.ts`):
 `TRAIT_GLYPH_CARD_PX` 56 at the `card` LOD on a picker card (`PICKER_CARD_MEDALLION_PX` is that constant) and on an

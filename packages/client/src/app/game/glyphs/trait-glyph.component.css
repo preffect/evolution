@@ -10,7 +10,8 @@
 
 /*
  * Idle motion (docs/visual-style/ui-type.md §7.1): each layer's period and pivot are bound from the glyph table, in
- * user units of the 100-unit box. Amplitudes stay under the §5 pulse ceiling (≤ 1.14×) and a sway stays a few degrees.
+ * user units of the 100-unit box. The amplitudes are the `--glyph-…` custom properties the component publishes from
+ * `GLYPH_MOTION_AMPLITUDE` (`glyphs/glyph-motion-variables.ts`), whose spec holds both pulses under the §5 ceiling.
  */
 .motion {
   transform-box: view-box;
@@ -46,7 +47,7 @@
     transform: scale(1);
   }
   50% {
-    transform: scale(1.04);
+    transform: scale(var(--glyph-breathe-scale));
   }
 }
 
@@ -57,17 +58,17 @@
     transform: scale(1);
   }
   15% {
-    transform: scale(1.08);
+    transform: scale(var(--glyph-beat-scale));
   }
 }
 
 @keyframes glyph-sway {
   0%,
   100% {
-    transform: rotate(-4deg);
+    transform: rotate(calc(var(--glyph-sway-angle) * -1));
   }
   50% {
-    transform: rotate(4deg);
+    transform: rotate(var(--glyph-sway-angle));
   }
 }
 
@@ -86,7 +87,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(calc(var(--glyph-rise-distance) * -1));
   }
 }
 

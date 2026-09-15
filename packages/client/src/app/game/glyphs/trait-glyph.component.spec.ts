@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { TraitId } from '@evolution/shared';
 import { GLYPH_FRAME_LAYERS } from '../render/constants/trait-glyph-frame';
 import { GLYPH_ROLE } from '../render/svg-glyph';
+import { glyphMotionVariables } from './glyph-motion-variables';
 import { TRAIT_GLYPH_LOD, type TraitGlyphLod } from './trait-glyph-view';
 import { TraitGlyphComponent } from './trait-glyph.component';
 import { TRAIT_GLYPHS } from './trait-glyphs';
@@ -48,6 +49,13 @@ describe('TraitGlyphComponent', () => {
     const moving = mount('simple_flagellum').querySelector<SVGPathElement>('path.motion-sway');
     expect(moving).not.toBeNull();
     expect(moving!.style.transformOrigin).toBe('54px 52px');
+  });
+
+  it('publishes the idle amplitudes on its host for the keyframes to read', () => {
+    const host = mount('mitochondrion').parentElement as HTMLElement;
+    for (const [name, value] of Object.entries(glyphMotionVariables())) {
+      expect(host.style.getPropertyValue(name)).toBe(value);
+    }
   });
 
   it('drops every idle loop when still, and keeps the same drawing', () => {

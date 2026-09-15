@@ -7,6 +7,7 @@
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input } from '@angular/core';
 import type { TraitId } from '@evolution/shared';
 import { GLYPH_BOX } from '../render/constants/trait-glyph-layers';
+import { glyphMotionVariables } from './glyph-motion-variables';
 import { TRAIT_GLYPH_LOD, traitGlyphView, type TraitGlyphLod } from './trait-glyph-view';
 import { TRAIT_GLYPHS } from './trait-glyphs';
 
@@ -14,6 +15,7 @@ import { TRAIT_GLYPHS } from './trait-glyphs';
   selector: 'app-trait-glyph',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[style]': 'motionVariables' },
   styleUrl: './trait-glyph.component.css',
   template: `
     <svg
@@ -72,6 +74,8 @@ export class TraitGlyphComponent {
   readonly still = input(false, { transform: booleanAttribute });
 
   protected readonly viewBox = `0 0 ${GLYPH_BOX} ${GLYPH_BOX}`;
+  /** The idle keyframes' amplitudes, as the `--glyph-…` custom properties the stylesheet reads. */
+  protected readonly motionVariables = glyphMotionVariables();
   private readonly idPrefix = TraitGlyphComponent.nextIdPrefix();
   protected readonly view = computed(() => traitGlyphView(TRAIT_GLYPHS[this.traitId()], this.lod(), this.idPrefix));
 
