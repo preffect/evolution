@@ -9,15 +9,15 @@ Session rules (respawn, round end): [`game-design/session.md §5`](./game-design
 
 DNA is the experience currency. Every player carries:
 
-| Field                    | Type                               | Meaning                                                                                            |
-| ------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `dnaCumulative`          | number                             | Every DNA point ever gained this round (including catch-up gifts). Never decreases.                |
-| `dnaCatchUpGift`         | number                             | The part of `dnaCumulative` granted by late-join catch-up (§5). Excluded from score.               |
-| `dnaTowardNextLevel`     | number                             | Progress inside the current level; reset on death.                                                 |
-| `level`                  | 1 .. `MAX_LEVEL`                   | Current level. Kept on death.                                                                      |
-| `dnaTagPoints`           | `Record<DnaTag, number>`           | What you have eaten, by flavour. Drives draft weights (§3).                                        |
-| `bacteriaEatenByVariant` | `Record<BacteriumVariant, number>` | Endosymbiosis counters (ecology/food-and-spawn.md §1). Kept on death. Gate the endosymbionts (§3). |
-| `wildAbsorptions`        | number                             | Wild cells engulfed (ecology/wild-cells.md §3.3). Never scores; shown beside `absorptions`.        |
+| Field                    | Type                               | Meaning                                                                                                        |
+| ------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `dnaCumulative`          | number                             | Every DNA point ever gained this round (including catch-up gifts). Never decreases.                            |
+| `dnaCatchUpGift`         | number                             | The part of `dnaCumulative` granted by the entry rule (§5). Excluded from score and from the absorption share. |
+| `dnaTowardNextLevel`     | number                             | Progress inside the current level; reset on death.                                                             |
+| `level`                  | 1 .. `MAX_LEVEL`                   | Current level. Kept on death.                                                                                  |
+| `dnaTagPoints`           | `Record<DnaTag, number>`           | What you have eaten, by flavour. Drives draft weights (§3).                                                    |
+| `bacteriaEatenByVariant` | `Record<BacteriumVariant, number>` | Endosymbiosis counters (ecology/food-and-spawn.md §1). Kept on death. Gate the endosymbionts (§3).             |
+| `wildAbsorptions`        | number                             | Wild cells engulfed (ecology/wild-cells.md §3.3). Never scores; shown beside `absorptions`.                    |
 
 `DnaTag` = `motile | photic | predatory | armored | toxic | sensory | metabolic`. Tag points are not
 spent; they only bias drafts. Sources, with the amounts owned by ECOLOGY: algae (`photic`),

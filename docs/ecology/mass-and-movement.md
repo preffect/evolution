@@ -22,8 +22,15 @@ drainFraction = Σ toxinDrainFractionPerSecond (of every cell whose toxin reache
                   for the prey this cell is engulfing while that engulf is past cover, §6.1)
               + spikeDrainFractionPerSecond (of the prey this cell is engulfing, while progress > 0)
 mass' = max(CELL_STARTING_MASS, mass − decayPerSecond × TICK_INTERVAL_S − mass × drainFraction × TICK_INTERVAL_S)
-        + photosynthesisMassPerSecond × TICK_INTERVAL_S           (only inside sunlit_shallows)
+        + photosynthesisMassPerSecond × TICK_INTERVAL_S           (only inside sunlit_shallows; a gain, so capped, §5.4)
 ```
+
+The photosynthesis term is a mass gain like eating: it goes through the cap of §5.4, and the part
+above `CELL_MAX_MASS` becomes DNA at `MASS_OVERFLOW_DNA_PER_MASS` (#179). A cell with no player (a
+wild cell, whose mass the world re-pins every tick) is clamped to the cap and gains no DNA. At the
+default balance light alone never reaches the cap: photosynthesis equals decay at
+`CELL_STARTING_MASS + photosynthesisMassPerSecond / (MASS_DECAY_RATE_PER_SECOND × decayMultiplier)`,
+186.67 / 395 / 662.86 mass for Chloroplast I / II / III (T5); a cell above that loses mass in the light.
 
 Drained mass is lost to the dish. The step runs after eating and before the engulf update
 ([`ARCHITECTURE.md`](../ARCHITECTURE.md), fixed step order), which is why a predator that
@@ -99,8 +106,9 @@ other, so a spat-out prey is pushed clear (T4). Cells never bounce; the renderer
 ### 5.4 Growth, cap and mitosis (reserved)
 
 - Mass gained from food is applied in full (`digestionFactor` = 1 + trait bonuses).
-- At `CELL_MAX_MASS` any further mass is converted to DNA at `MASS_OVERFLOW_DNA_PER_MASS` so eating
-  at the cap still progresses the leaderboard.
+- At `CELL_MAX_MASS` any further mass, from food, absorption or photosynthesis (§4.1), is converted to
+  DNA at `MASS_OVERFLOW_DNA_PER_MASS` so growing at the cap still progresses the leaderboard. One home:
+  every mass gain goes through the capped gain; nothing adds mass past the cap (#179).
 - **Mitosis, merge-back and eject are build 2.** Their constants are declared in `growth.ts` so the
   contract is stable: `MITOSIS_MIN_MASS` 200, `MITOSIS_MAX_CELLS` 4, `MITOSIS_COOLDOWN_SECONDS` 8,
   `MITOSIS_MERGE_SECONDS` 20, `EJECT_MASS` 10. `GameInput.shouldSplit` / `.shouldEject` are validated and ignored;
