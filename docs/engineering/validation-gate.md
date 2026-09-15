@@ -15,8 +15,8 @@
      `@evolution/shared` build when `dist/index.d.ts` is missing or a shared source or config is newer
      than its tsbuildinfo, one line each, so a fresh worktree needs no manual step and downstream
      `.d.ts` references are fresh — running `tsc` directly gives stale/false results; between the two it
-     regenerates the git-ignored `docs/INDEX.md` (`scripts/docs-index.sh`, #407) when it is missing, a doc or docs
-     directory is newer, or it was written before prettier was installed, and installs the shared hooks that
+     regenerates the git-ignored `docs/INDEX.md` (`scripts/docs-index.sh`, #407) when it is missing, the docs
+     no longer match the fingerprint it stores, or it was written before prettier was installed, and installs the shared hooks that
      refresh it after a checkout or merge; the index is never committed, so lint does not check it;
    - runs **eslint AND prettier `--check` as a pair** — running only eslint silently misses
      formatting failures — then audits the source for `eslint-disable` directives without a

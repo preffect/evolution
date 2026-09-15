@@ -35,8 +35,9 @@ fast_forward() { # <path> <branch>
 
 generate_docs_index() { # <path>: its own generator, only where its .gitignore ignores the index
   [[ -x "$1/scripts/docs-index.sh" ]] && git -C "$1" check-ignore -q docs/INDEX.md || return 0
-  "$1/scripts/docs-index.sh" --if-stale >&2
-  "$1/scripts/docs-index.sh" --install-hooks >&2
+  # The worktree exists by now: a failed index never fails the add (the next setup or checkout retries it).
+  "$1/scripts/docs-index.sh" --if-stale >&2 || echo "worktree.sh: docs/INDEX.md was not generated in $1" >&2
+  "$1/scripts/docs-index.sh" --install-hooks >&2 || echo "worktree.sh: the docs index hooks were not installed" >&2
 }
 
 add() { # <branch> -> path relative to ROOT

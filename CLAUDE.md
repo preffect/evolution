@@ -131,7 +131,7 @@ the file you need and read only the spec files your ticket or brief cites (its *
 design and standards docs are split into topic files under `docs/<domain>/` (`ecology`, `architecture`, `rendering`,
 `ui`, `traits`, `game-design`, `visual-style`, `testing`, `engineering`, `determinism`); each old `docs/<NAME>.md` lists its files, and `docs/INDEX.md` lists every heading of
 every file with its line range (git-ignored, generated on demand by `scripts/docs-index.sh`: `scripts/worktree.sh add`,
-the workspace setup and the shared git hooks refresh it when a doc is newer).
+the workspace setup and the shared git hooks refresh it when a doc changed).
 
 - **[`docs/ENGINEERING.md`](docs/ENGINEERING.md)** — coding, architecture, and testing rules. The single
   gate is **`./validate.sh all`** (lint + duplication + typecheck + test): builders and reviewers run scoped

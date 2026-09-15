@@ -130,8 +130,14 @@ workspace_prepare() { # <root> <log prefix> <continue | fail>
   reason="$(workspace_docs_index_stale_reason "$root")"
   if [[ -n "$reason" ]]; then
     echo "$prefix regenerating the docs index ($reason)"
-    output="$("$root/$WORKSPACE_DOCS_INDEX_SCRIPT" --if-stale 2>&1 && "$root/$WORKSPACE_DOCS_INDEX_SCRIPT" --install-hooks 2>&1)" \
-      || { printf '%s\n' "$output"; echo "$prefix the docs index failed; continuing"; }
+    if output="$("$root/$WORKSPACE_DOCS_INDEX_SCRIPT" --if-stale 2>&1)"; then
+      # The hook lines (installed, or a foreign hook left alone) are shown: a foreign hook disables the refresh.
+      output="$("$root/$WORKSPACE_DOCS_INDEX_SCRIPT" --install-hooks 2>&1)" || true
+      [[ -z "$output" ]] || printf '%s\n' "$output"
+    else
+      printf '%s\n' "$output"
+      echo "$prefix the docs index failed; continuing"
+    fi
   fi
   reason="$(workspace_shared_stale_reason "$root")"
   [[ -n "$reason" ]] || return 0

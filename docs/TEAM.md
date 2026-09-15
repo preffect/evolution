@@ -78,7 +78,7 @@ scripts/agent.sh code-qa --pr 57 --branch feat/42-food-ecology "Review PR #57"
   lists every heading of every doc with its line range. It is git-ignored and generated on demand by
   `scripts/docs-index.sh` (#407; a committed index conflicted on nearly every back-to-back merge):
   `scripts/worktree.sh add` writes it into a new worktree, the workspace setup (`./validate.sh`, `./run.sh`, the
-  deploy) rewrites it when it is missing or a doc is newer, and the shared `post-checkout` / `post-merge` hooks
+  deploy) rewrites it when it is missing or the docs no longer match the fingerprint it stores, and the shared `post-checkout` / `post-merge` hooks
   those install do the same after a checkout or merge (`scripts/docs-index.sh --if-stale` by hand after editing a
   doc). It is for citing a range inside a file; ingesting whole documents to find one section is the main
   way an agent's context grows before it has done anything.
