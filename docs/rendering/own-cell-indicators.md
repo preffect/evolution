@@ -82,9 +82,12 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   `FLOATER_MAX_VISIBLE` floaters + 1 zone pill = 9 pills and 18 texts on top of the indicators' worst case; the
   build measures them inside the `effects` stage's 0.3 ms on the bench and raises the line in `rendering/budget.md`
   only with a measurement.
-- **Relation rings.** Pass B's ring band, the one the warning ring uses (§2.2): a relation ring is a second ring
-  radius and style per cell instance (solid, `RELATION_RING_STROKE_PX`, `GAIN` or `DANGER`), packed like
-  `warningRingPx`, so rings on many cells cost no draw calls; `RELATIONS_MAX_RINGED` caps the cells that carry one.
+- **Relation rings.** Pass B's ring band, the one the warning ring uses (§2.2). A relation ring adds, per cell
+  instance, a ring radius (the inner line's), a **line count** (1 for the edible ring, 2 for the toxic double line,
+  whose second line is drawn `TOXIC_RING_LINE_GAP_PX` outside the first), a role colour (`GAIN` or `DANGER`) and that
+  role's alpha (`EDIBLE_RING_ALPHA` or `TOXIC_RING_ALPHA`). The lines are solid, still and `RELATION_RING_STROKE_PX`
+  wide. All of it is packed like `warningRingPx` (the line count and role share one scalar), so rings on many cells
+  cost no draw calls; `RELATIONS_MAX_RINGED` caps the cells that carry one.
   A cell with a warning ring packs no relation ring. The labels are threat-label pills placed by
   `threat-label-placement.ts`'s rule.
 - **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),

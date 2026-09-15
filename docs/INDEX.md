@@ -390,10 +390,10 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. File plan (`packages/client/src/app/game/render/`, ≤ 250 lines each, 300 is the lint cap)** (L5–52): `cell-layer.ts` composes; every other module is a pure function or a dumb view (`CODE-STANDARDS.md §4`).
 - **9. Test plan (`TESTING.md` tiers)** (L53–110): tables (rest with lobes and jitter zeroed = the circle, moving k = 1 gives 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180° and k = 0.45 gives …
 
-## rendering/own-cell-indicators.md (105 lines)
+## rendering/own-cell-indicators.md (108 lines)
 
-- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–105): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
-- **10. Own-cell indicators and world-anchored labels (#146)** (L5–105): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
+- **Evolution — Rendering: own-cell indicators and world-anchored labels** (L1–108): §10 of the split `RENDERING.md`, which keeps the shared context and the file list.
+- **10. Own-cell indicators and world-anchored labels (#146)** (L5–108): `ui/hud.md §3.1` owns what the own cell shows: the DNA ring, level numeral, ladder orbit, sprint state of the self ring, escape arc and th…
 
 ## testing/bots-and-design-tables.md (113 lines)
 
@@ -473,17 +473,17 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Acceptance (the Playwright loop #100 drives)** (L57–71): `OC` = `hud-own-cell` (§3.1.4).
 - **9. Constants table (own-cell indicators)** (L72–114): The values this doc owns (§3.1.2, §3.1.3, §6).
 
-## ui/hud.md (335 lines)
+## ui/hud.md (336 lines)
 
-- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–335): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
-- **3. In-round HUD and overlays** (L5–335): Every element: source, placement, size, states, text, test id.
-  - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–335): Option C has two kinds of in-round element.
+- **Evolution — UI: HUD, overlays and onboarding: in-round HUD and own-cell indicators** (L1–336): §3–§3.1 of the split `UI.md`, which keeps the shared context and the file list.
+- **3. In-round HUD and overlays** (L5–336): Every element: source, placement, size, states, text, test id.
+  - **3.1 In-round elements (visible while `roundPhase === 'playing'` and `lifeState === 'alive'`)** (L10–336): Option C has two kinds of in-round element.
   - **3.1.1 Chrome** (L19–30): The chrome's phase gate lives in `hud.component.ts`, which is the only component that reads `roundPhase` for both.
   - **3.1.2 Own-cell indicators (what is shown; rendering/own-cell-indicators.md §10 owns how)** (L31–52): All six live in the own cell's undeformed frame (they never bend with the membrane) and follow the cell's on-screen radius `r_px` with the …
   - **3.1.3 The reading floor (the fact #146 solves)** (L53–128): Option C as drawn scaled everything with the cell and failed at the sizes the camera actually produces: under the size lock the own cell is…
   - **3.1.4 The `OwnCellIndicators` record and the status mirror** (L129–203): `GameStateService.ownCellIndicators` (§7) is a derived signal built by the pure `ownCellIndicatorsFor(...)` (`state/own-cell-indicators.ts…
   - **3.1.5 Legibility cues (decision #324, option C)** (L204–298): The own-cell indicators say where the player is on the ladder.
-  - **3.1.6 Legibility cue constants** (L299–335): The values this doc owns for §3.1.5.
+  - **3.1.6 Legibility cue constants** (L299–336): The values this doc owns for §3.1.5.
 
 ## ui/input-and-onboarding.md (155 lines)
 
@@ -530,11 +530,11 @@ and read only that line range (`sed -n 'start,endp' docs/FILE.md`). Regenerate a
 - **8. Performance intent: geometry, textures, shaders** (L5–34): The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes).
 - **9. Per-asset checklist (graphics-qa reviews against this, after `ASSET-GENERATION.md §6`)** (L35–48)
 
-## visual-style/principles-and-palette.md (225 lines)
+## visual-style/principles-and-palette.md (231 lines)
 
-- **Evolution — Visual Style: dark-field principles and palette** (L1–225): §1–§2 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
+- **Evolution — Visual Style: dark-field principles and palette** (L1–231): §1–§2 of the split `VISUAL-STYLE.md`, which keeps the shared context and the file list.
 - **1. Dark-field microscopy: the principles** (L5–52): The dish is a dark-field microscope stage: a black field, and only what scatters light is visible.
-- **2. Palette** (L53–225): All hex values are named constants; draw code never holds a literal.
+- **2. Palette** (L53–231): All hex values are named constants; draw code never holds a literal.
 
 ## visual-style/ui-type.md (33 lines)
 

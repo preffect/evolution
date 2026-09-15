@@ -209,15 +209,21 @@ yellows 2.0:1 apart, and taking a toxic cell for prey is the costly misread).
 - The **threat ring** is the engulf warning ring as it ships: dashed `WARNING_RING_DASH_PX` 6 5,
   `WARNING_RING_STROKE_PX` 2 px, rotating (`cell-shader-tells.ts`, visual-style/motion-and-legibility.md §5), at
   `ENGULF_WARNING_RING_RADII`, in `DANGER`.
-- The **toxic ring** is a **double line**, still: two solid `RELATION_RING_STROKE_PX` lines `TOXIC_RING_LINE_GAP_PX`
-  apart, the outer at `RELATION_RING_RADII`, in `DANGER`.
-- The **edible ring** is a **single line**, still: one solid `RELATION_RING_STROKE_PX` line at `RELATION_RING_RADII`,
+- The **toxic ring** is a **double line**, still: two solid `RELATION_RING_STROKE_PX` lines in `DANGER`. The
+  **inner** line sits at the ring radius (`RELATION_RING_RADII`, or `r + RELATION_RING_MIN_GAP_PX` on a small cell),
+  and the outer line sits `TOXIC_RING_LINE_GAP_PX` outside it. The inner line is therefore never closer to the
+  membrane than the edible line is, and on the smallest cells the pair still reads as two lines, not one thick ring.
+- The **edible ring** is a **single line**, still: one solid `RELATION_RING_STROKE_PX` line at the same ring radius,
   in `GAIN`.
 
-Both relation rings are drawn at `RELATION_RING_ALPHA`, so a dish full of prey rings stays dimmer than the dish
-(ui-type.md §7). Toxin violet (`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a
-threat and toxic shows the threat ring only (the danger that ends a life wins); a cell that is edible and toxic
-shows the double line. What each ring's label says is `ui/hud.md` §3.1.5.
+Each role has its own alpha, because `DANGER` is darker than `GAIN` and one shared value would drop it under the
+rim contrast floor:
+
+- `EDIBLE_RING_ALPHA` 0.6: `GAIN` blends to 5.78:1 on `BG_FIELD`, so a dish full of prey rings stays dimmer than the
+  dish (ui-type.md §7).
+- `TOXIC_RING_ALPHA` 0.9: `DANGER` blends to 4.90:1; at 0.6 it would be 2.76. Toxin violet (`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a
+  threat and toxic shows the threat ring only (the danger that ends a life wins); a cell that is edible and toxic
+  shows the double line. What each ring's label says is `ui/hud.md` §3.1.5.
 
 **Knowingly close pairs.** `GAIN` against `ZONE_SHALLOWS` (the `+3 FOOD` and `+0.3/s LIGHT` rims) and `ZONE_GEL`
 against `DNA` are close hues on purpose: each role is its world colour. They are never the only tell, because every
