@@ -32,8 +32,6 @@ const { growth, ecology, controls, absorption } = DEFAULT_BALANCE;
 const STARTING_MASS = growth.CELL_STARTING_MASS;
 /** T2: "blend converged as in E6", 120 ticks. */
 const FULL_THROTTLE_TICKS = 120;
-/** T2's travel is the closed-form sum of the blended speeds; the kernel's position update may differ by a fraction of a tick. */
-const TRAVEL_TOLERANCE_WU = 2;
 /** T5: "± 0.001". */
 const PHOTOSYNTHESIS_TOLERANCE = 0.001;
 /** T5, T7 and T8 run 60 ticks. */
@@ -47,7 +45,10 @@ const NEAR_MOTE_RADII = 2.5;
 const FAR_MOTE_RADII = 4;
 /** A mote's centre is eaten once it lies within one radius of the cell's centre (docs/ecology/food-and-spawn.md §1). */
 const EAT_REACH_RADII = 1;
-/** Exact positions in the scenario snapshot: "± 0.01 wu". */
+/**
+ * Exact positions in the scenario snapshot: "± 0.01 wu". T2's travel holds to it too: `blendedTravelWu` is the exact
+ * sum of the kernel's steps (blend the velocity, then move by it) for a straight run at a constant cap.
+ */
 const POSITION_TOLERANCE_WU = 0.01;
 /** T9: "sprint at tick 1"; the row's "tick 2 speed cap" is read as the speed two ticks into the sprint. */
 const FIRST_SPRINT_TICK = 1;
@@ -91,7 +92,7 @@ describe('traits/constants-and-acceptance.md §6: the trait rows without an engu
       .toBeCloseTo(expectedSpeed, SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('travelled east of the vent centre', (view) => cellOf(view, 0)?.x)
       .atTick(FULL_THROTTLE_TICKS)
-      .toBeCloseTo(expectedTravelWu, TRAVEL_TOLERANCE_WU)
+      .toBeCloseTo(expectedTravelWu, POSITION_TOLERANCE_WU)
       .expect('no decay at the starting mass', (view) => massOf(view, 0))
       .atTick(FULL_THROTTLE_TICKS)
       .toBe(STARTING_MASS)
