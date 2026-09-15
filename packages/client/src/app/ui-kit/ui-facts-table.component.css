@@ -73,11 +73,20 @@ td {
 
 thead .name,
 thead .value {
-  color: var(--ui-text-label);
   font-family: var(--ui-font-sans);
   font-size: calc(var(--ui-type-label) * var(--ui-scale));
-  font-weight: bold;
   letter-spacing: var(--ui-label-tracking);
+}
+
+thead .value {
+  color: var(--ui-text-label);
+  font-weight: bold;
+}
+
+/* The caption over the names (`You own I`) is a quiet note, not a column label. */
+thead .name {
+  color: var(--ui-text-muted);
+  font-weight: normal;
 }
 
 thead .value[data-highlighted] {

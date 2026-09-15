@@ -141,6 +141,11 @@ describe('UiFactsTableComponent', () => {
       expect(styleRuleValue(document, parts, 'border-bottom-style')).toBe('none');
     });
 
+    it('sets the caption over the names in the muted colour at normal weight, as layout B draws it', () => {
+      expect(rule(['thead', '.name'], 'color')).toBe('var(--ui-text-muted)');
+      expect(rule(['thead', '.name'], 'font-weight')).toBe('normal');
+    });
+
     it('tints the highlighted column with the selected tint and its header in the accent', () => {
       expect(rule(['.value', '[data-highlighted]'], 'background-color')).toBe('var(--ui-selected)');
       expect(rule(['thead', '.value', '[data-highlighted]'], 'color')).toBe('var(--ui-accent)');
