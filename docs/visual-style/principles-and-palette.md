@@ -221,11 +221,21 @@ rim contrast floor:
 
 - `EDIBLE_RING_ALPHA` 0.6: `GAIN` blends to 5.78:1 on `BG_FIELD`, so a dish full of prey rings stays dimmer than the
   dish (ui-type.md §7).
-- `TOXIC_RING_ALPHA` 0.9: `DANGER` blends to 4.90:1; at 0.6 it would be 2.76. Toxin violet (`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a
-  threat and toxic shows the threat ring only (the danger that ends a life wins); a cell that is edible and toxic
-  shows the double line. What each ring's label says is `ui/hud.md` §3.1.5.
+- `TOXIC_RING_ALPHA` 0.9: `DANGER` blends to 4.90:1; at 0.6 it would be 2.76.
+
+Toxin violet (`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a threat and toxic
+shows the threat ring only (the danger that ends a life wins); a cell that is edible and toxic shows the double
+line. What each ring's label says is `ui/hud.md` §3.1.5.
 
 **Knowingly close pairs.** `GAIN` against `ZONE_SHALLOWS` (the `+3 FOOD` and `+0.3/s LIGHT` rims) and `ZONE_GEL`
 against `DNA` are close hues on purpose: each role is its world colour. They are never the only tell, because every
 cue carrying them has its cause in text (`FOOD`, `LIGHT`, `DNA`, the zone's name), so no hex is to be changed to
 separate them.
+
+**UI kit roles** (#354, [`ui/components-and-constants.md §10`](../ui/components-and-constants.md#10-the-ui-kit-354)): no
+new hue, each an existing colour at a kit alpha. `UI_HOVER` = `TEXT` @ `UI_ROW_HOVER_ALPHA` (6 %); `UI_PRESSED` =
+`TEXT` @ `UI_ROW_PRESSED_ALPHA` (18 %); `UI_SELECTED` = `UI_ACCENT` @ `UI_ROW_SELECTED_ALPHA` (12 %), with its
+selection bar in `UI_ACCENT`; `UI_LINK` = `UI_ACCENT`; `UI_WELL` = `CALLOUT_BACKING` @ `UI_WELL_ALPHA` (45 %);
+`UI_SCRIM` = `CALLOUT_BACKING` at the overlay's own alpha. Button tones: primary `UI_ACCENT`, danger `DANGER` (its rim at `UI_DANGER_RIM_ALPHA`, 70 %: 3.17:1 against the panel). Rarity
+tones, never the accent: common `TEXT_MUTED` rim and text, uncommon `TEXT_LABEL` rim with `TEXT` text, rare `DNA` rim and text, always beside the rarity word. The accent marks
+selection, links and the primary action and nothing else, so the dish stays the brightest thing on screen.
