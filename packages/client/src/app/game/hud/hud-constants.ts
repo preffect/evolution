@@ -147,6 +147,19 @@ export const PICKER_CARD_HIGHLIGHT_MS = 120;
 /** The `RUNG` ribbon's padding either side of its word. */
 export const PICKER_RIBBON_PADDING_INLINE_PX = 6;
 
+// ---- menu (docs/ui/overlays.md §3.5) ----
+
+/** The menu panel's width at scale 1: Mitochondrion I's two effects fit on one line. */
+export const MENU_PANEL_WIDTH_PX = 400;
+/** A `Your traits` row with one effect line, at scale 1. */
+export const MENU_TRAIT_ROW_HEIGHT_PX = 48;
+/** Each further effect line a row grows by, at scale 1. */
+export const MENU_TRAIT_LINE_HEIGHT_PX = 16;
+/** Rows the list shows before it scrolls, so the panel never outgrows the viewport. */
+export const MENU_TRAITS_VISIBLE_ROWS = 5;
+/** The callout-backing scrim behind the menu: lighter than the encyclopedia's, so the dish reads through it. */
+export const MENU_SCRIM_ALPHA = 0.5;
+
 // ---- notices (docs/ui/overlays.md §3.6, docs/ui/input-and-onboarding.md §6) ----
 
 /** The connection banner and the server-error line under it: full width, this tall at scale 1. */

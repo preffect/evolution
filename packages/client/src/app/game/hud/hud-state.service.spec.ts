@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TraitId } from '@evolution/shared';
-import { HUD_OVERLAY, HudStateService } from './hud-state.service';
+import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud-state.service';
 
 describe('HudStateService', () => {
   let hudState: HudStateService;
@@ -74,5 +74,55 @@ describe('HudStateService', () => {
     hudState.setTraitCardPick(null);
     hudState.pickTraitCard(0);
     expect(pick).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Escape and the menu (docs/ui/overlays.md §3.5)', () => {
+    it('opens the menu with nothing open, and closes it on the next press', () => {
+      hudState.pressMenuKey();
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
+      expect(hudState.isMenuOpen()).toBe(true);
+      hudState.pressMenuKey();
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
+    });
+
+    it('closes a held full leaderboard first, because it is the topmost overlay', () => {
+      hudState.setFullLeaderboardHeld(true);
+      hudState.pressMenuKey();
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
+    });
+
+    it('replaces the menu with the encyclopedia, whose Escape comes back to the control that opened it', () => {
+      hudState.openMenu();
+      hudState.openEncyclopedia('trait:nucleoid', 'menu-trait-nucleoid');
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.encyclopedia);
+      expect(hudState.encyclopediaReturnTo()).toBe(ENCYCLOPEDIA_RETURN.menu);
+      expect(hudState.encyclopediaEntryId()).toBe('trait:nucleoid');
+
+      hudState.pressMenuKey();
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
+      expect(hudState.menuReturnFocusTestId()).toBe('menu-trait-nucleoid');
+
+      hudState.pressMenuKey();
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
+      expect(hudState.menuReturnFocusTestId()).toBeNull();
+    });
+
+    it('sends the encyclopedia opened from play back to the game, with no menu focus to return', () => {
+      hudState.openEncyclopedia(null, 'menu-encyclopedia');
+      expect(hudState.encyclopediaReturnTo()).toBe(ENCYCLOPEDIA_RETURN.game);
+      expect(hudState.encyclopediaEntryId()).toBeNull();
+      expect(hudState.menuReturnFocusTestId()).toBeNull();
+      hudState.pressMenuKey();
+      expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
+    });
+
+    it('opens the menu fresh, forgetting a focus return that belonged to an earlier encyclopedia visit', () => {
+      hudState.openMenu();
+      hudState.openEncyclopedia(null, 'menu-encyclopedia');
+      hudState.pressMenuKey();
+      hudState.closeOverlays();
+      hudState.openMenu();
+      expect(hudState.menuReturnFocusTestId()).toBeNull();
+    });
   });
 });

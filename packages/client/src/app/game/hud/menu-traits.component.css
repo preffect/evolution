@@ -1,0 +1,87 @@
+/* The menu's `Your traits` section (docs/ui/overlays.md §3.5). Kit tokens for type, colour and spacing; the row sizes
+   are the menu's own `--hud-menu-…`. */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  padding-top: calc(var(--ui-space-l) * var(--ui-scale));
+  border-top: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}
+
+.count {
+  color: var(--ui-text-muted);
+}
+
+.empty {
+  margin: 0;
+  color: var(--ui-text-muted);
+}
+
+/* Five one-line rows show before the list scrolls; a row with more effect lines takes more of that height. */
+.scroll {
+  max-height: calc(var(--hud-menu-traits-visible-rows) * var(--hud-menu-trait-row-height) * var(--ui-scale));
+}
+
+/* The kit row, grown to hold a name over wrapping effect lines instead of one ellipsised title. */
+.row {
+  height: auto;
+  min-height: calc(var(--hud-menu-trait-row-height) * var(--ui-scale));
+  padding-block: calc(var(--ui-space-xs) * var(--ui-scale));
+  padding-inline: calc(var(--ui-space-s) * var(--ui-scale));
+  white-space: normal;
+}
+
+.glyph {
+  display: block;
+  width: calc(var(--hud-menu-trait-glyph) * var(--ui-scale));
+  height: calc(var(--hud-menu-trait-glyph) * var(--ui-scale));
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-weight: bold;
+  line-height: var(--ui-body-line-height);
+}
+
+/* Each effect is unbreakable; the list wraps only between two of them. */
+.effects {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: calc(var(--ui-space-xs) * var(--ui-scale));
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: normal;
+  letter-spacing: var(--ui-label-tracking);
+  line-height: calc(var(--hud-menu-trait-line-height) * var(--ui-scale));
+}
+
+.effect {
+  white-space: nowrap;
+}
+
+.effect:not(:last-child)::after {
+  content: ' ·';
+}
+
+.chevron {
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-title) * var(--ui-scale));
+}
