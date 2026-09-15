@@ -681,20 +681,26 @@ rebakes, so every entry's preview reuses it and a seed-fixed screenshot is repro
 its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
 
 - **Canvas:** the lens's bounding square, `sizePx = { width: D, height: D }` with `D = ENCYCLOPEDIA_LENS_DIAMETER_PX × --ui-scale`, so
-  `sizePx` changes only with the UI scale and `resize` is the only path for it. `PREVIEW_CANVAS_MAX_PX` is `D` at the
-  largest UI scale (`HUD_SCALE_MAX`) × `min(devicePixelRatio, PREVIEW_MAX_DEVICE_PIXEL_RATIO)`, in device pixels:
-  the preview caps its DPR at `PREVIEW_MAX_DEVICE_PIXEL_RATIO` 2 (a 3× display shows the canvas upscaled 1.5×). At the cap the canvas's GPU buffers are about 10 MiB (the cost table).
+  `sizePx` changes only with the UI scale and `resize` is the only path for it. `PREVIEW_CANVAS_MAX_PX` 900 and
+  `PREVIEW_MAX_DEVICE_PIXEL_RATIO` 2 are plain render constants in `render/constants/preview.ts`: the session caps the
+  DPR it uses at the second (a 3× display shows the canvas upscaled 1.5×) and clamps each side of the canvas, in
+  device pixels, to the first. Neither is computed from the lens diameter or the kit's scale maximum, because
+  `render/` imports nothing from `encyclopedia/` or the UI kit (§12.8). The bound is sized for `ENCYCLOPEDIA_LENS_DIAMETER_PX`
+  × the kit's scale maximum (`UI_SCALE_MAX`, `HUD_SCALE_MAX` until #369 lands) × `PREVIEW_MAX_DEVICE_PIXEL_RATIO`, and
+  an encyclopedia-side spec (#373) pins that product ≤ `PREVIEW_CANVAS_MAX_PX`, so a larger lens or scale fails a test
+  instead of silently clamping. At the cap the canvas's GPU buffers are about 10 MiB (the cost table).
 - **Crop:** `border-radius: 50%; overflow: hidden` on the stage host that holds the canvas; never a Pixi mask (a
   stencil pass and extra draw calls every frame) and never a CSS `clip-path` (which promotes the canvas to its own
   composited layer with an offscreen surface of up to the canvas's size plus the mask). The rounded overflow clip is
   applied while the compositor draws the canvas quad, with no offscreen surface. The square's corners (1 − π/4 ≈ 21 %
   of the fill) are still rendered. The loading and unavailable states fill the same circle, so no square shows before
   the first frame. The renderer's own screen vignette is square; its corners fall outside the clip.
-- **Framing:** scenes are authored for 1:1 and keep their subject inside the inscribed safe circle,
-  `PREVIEW_LENS_SAFE_RADIUS_FRACTION` 0.8 of the radius (`render/constants/preview.ts`), through each scene's
-  `framing.target` and `zoom`. Wide subjects (a flagellum tail, pseudopods, the two-cell `engulf` and `escape` scenes) frame to fit the circle, not a
-  strip. Scenes never know
-  they are round.
+- **Framing:** scenes are authored for 1:1, through each scene's `framing.target` and `zoom`, in two bands. A
+  subject's **body** (every cell's membrane at its widest, stretch and engulf arms included) lies inside
+  `PREVIEW_LENS_SAFE_RADIUS_FRACTION` 0.8 of the radius. Its **appendages** (a flagellum, cilia, pseudopods) may reach
+  into the vignette band between 0.8 and the rim, and nothing drawn ever reaches past the rim (1.0), so nothing is cut
+  off by the crop. The two-cell `engulf` and `escape` scenes keep both bodies inside 0.8. Scenes never know they are
+  round.
 
 `encyclopedia.component` (#354) owns the one handle: it takes it on the first entry with a preview, lends it each
 entry page's stage element, pauses it on a landing and destroys it on close.
