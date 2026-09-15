@@ -202,9 +202,24 @@ pill rule of `ui/input-and-onboarding.md` §6), so no role is ever the only carr
 | `ZONE_CUE`  | the zone's own tint from the zone table above (`ZONE_VENT`, `ZONE_SHALLOWS`, `ZONE_GEL`)      | the zone pill's dot, a zone-caused floater's rim, the Tab panel's zone dot; `open_broth` has none                |
 | `TRAIT_CUE` | the trait's organelle base colour (sheet 01, `MITO_BASE`, `CHLORO_BASE`, …), else `UI_ACCENT` | trait glyphs in the Tab panel and on a trait-caused floater, as on the picker's medallions (`TRAIT_GLYPH_COLOR`) |
 
-**Relation rings.** A cell's relation to the own cell is geometry first and colour second, so the two rings that
-share `DANGER` are never confused: the **threat ring** is the engulf warning ring (dashed 6 4, glowing,
-`ENGULF_WARNING_RING_RADII`); the **toxic ring** is solid, thin (`RELATION_RING_STROKE_PX`), unglowing, at
-`RELATION_RING_RADII`, in `DANGER`; the **edible ring** is the same solid ring in `GAIN`. Toxin violet
-(`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a threat and toxic shows the threat
-ring only (the danger that ends a life wins); what each ring's label says is `ui/hud.md` §3.1.5.
+**Relation rings.** A cell's relation to the own cell is geometry first and colour second: each of the three rings
+has its own shape, so none is told from another by colour alone (under deuteranopia `GAIN` and `DANGER` are two
+yellows 2.0:1 apart, and taking a toxic cell for prey is the costly misread).
+
+- The **threat ring** is the engulf warning ring as it ships: dashed `WARNING_RING_DASH_PX` 6 5,
+  `WARNING_RING_STROKE_PX` 2 px, rotating (`cell-shader-tells.ts`, visual-style/motion-and-legibility.md §5), at
+  `ENGULF_WARNING_RING_RADII`, in `DANGER`.
+- The **toxic ring** is a **double line**, still: two solid `RELATION_RING_STROKE_PX` lines `TOXIC_RING_LINE_GAP_PX`
+  apart, the outer at `RELATION_RING_RADII`, in `DANGER`.
+- The **edible ring** is a **single line**, still: one solid `RELATION_RING_STROKE_PX` line at `RELATION_RING_RADII`,
+  in `GAIN`.
+
+Both relation rings are drawn at `RELATION_RING_ALPHA`, so a dish full of prey rings stays dimmer than the dish
+(ui-type.md §7). Toxin violet (`TOXIN_GLOW`) stays world art: it is the aura, never a cue. A cell that is both a
+threat and toxic shows the threat ring only (the danger that ends a life wins); a cell that is edible and toxic
+shows the double line. What each ring's label says is `ui/hud.md` §3.1.5.
+
+**Knowingly close pairs.** `GAIN` against `ZONE_SHALLOWS` (the `+3 FOOD` and `+0.3/s LIGHT` rims) and `ZONE_GEL`
+against `DNA` are close hues on purpose: each role is its world colour. They are never the only tell, because every
+cue carrying them has its cause in text (`FOOD`, `LIGHT`, `DNA`, the zone's name), so no hex is to be changed to
+separate them.
