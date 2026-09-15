@@ -51,7 +51,7 @@ without copy fails the gate instead of rendering `undefined`.
   shipped balance's `CELL_MAX_MASS`, so a room patched with `debug_set_balance` moves its cap orbit but not the band; the HUD never touches Pixi, so visual-style/performance-and-checklist.md §8's "trait-picker dim" quad is superseded by this
   element (corrected on #34). The dish keeps simulating and the cell keeps steering: pointer input is not captured
   by the overlay (`pointer-events: none` on everything but the cards).
-- **Card.** Glyph medallion 56 px, category in `caption`, name in `card_name` bold with tier numeral
+- **Card.** Glyph medallion 56 px (the trait's glyph, visual-style/ui-type.md §7.1), category in `caption`, name in `card_name` bold with tier numeral
   (`Cilia Fringe II`), up to three effect lines in `label` (mixed case), rarity chip in `caption` (`COMMON` / `UNCOMMON` /
   `RARE`, text as well as colour). A card whose trait is in `STAGE_GATE_TRAITS[nextStage(ownProgress.stage)]`
   carries a `RUNG` ribbon (the rung card of PROGRESSION §3, which reserves the first card for it; the ribbon text
