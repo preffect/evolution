@@ -323,6 +323,31 @@ players, a spawn-zoom broadcast took 32.5 ms against 4.2 ms, since the cost is v
 `MAX_PLAYERS_PER_GAME` = 8 seats a room, so that case cannot arise today. The motes' positions are already quantised
 once per broadcast and shared by every viewer's delta (`positionMotes`).
 
+**Measured (#399)** in process: 8 idle seated viewers on the Evolution module through the real `GameRoom` (system clock,
+`room.step`, sockets whose `send` is free), a 300-tick window (the `PerformanceTracker` buffer) after 3 600 ticks of
+warm-up, and 600 more after every cell is set to mass 5 000 for the widest zoom; seed 42, four rounds alternating
+origin/main and the branch. Each viewer was sent the same bytes before and after (6 295 B a message at spawn zoom,
+15 253 B at the widest), so the wire is unchanged. `serializeRoomState` alone, timed around the module's call, medians
+of 100 broadcasts a round:
+
+| 8 viewers   | `serializeRoomState`, origin/main | #399    |
+| ----------- | --------------------------------- | ------- |
+| spawn zoom  | 0.32–0.38 ms                      | 0.01 ms |
+| widest zoom | 0.36 ms                           | 0.01 ms |
+
+That is the food diff over the whole dish (a new `Map` of every mote), the full fragment list and every player's input
+sequence, which the room discarded: ≈ 0.35 ms off every broadcast tick whatever the zoom, ≈ 0.12 ms of
+`broadcastAvgMs`. The room's own figures (`debug_get_room_performance`), medians of the four rounds:
+
+| 8 viewers   | `broadcastAvgMs`, origin/main → #399 | `broadcastP95Ms` (broadcast ticks), origin/main → #399 |
+| ----------- | ------------------------------------ | ------------------------------------------------------ |
+| spawn zoom  | 1.48 → 1.23 ms                       | 15.0 → 14.9 ms                                         |
+| widest zoom | 3.90 → 3.33 ms                       | 25.1 → 24.8 ms                                         |
+
+The box was shared with other runs: the absolute figures are two to five times #340's, one round moved threefold, and
+the p95 is set by that contention, so it does not resolve a 0.35 ms change. The averages fall by about the removed
+share. What is left of the broadcast is the per-viewer work #406 restructures.
+
 **Measured (#383)** with #331's method on a private server (seed 38301): 8 players over the wire, 7 `bot-client`
 grazer bots and one recording client that grazes too, 300 `game_snapshot`s after a 200-snapshot warm-up. The
 recording client breaks each snapshot down by the bytes the mass flow adds (`,"massFlow":{…}` in its own
