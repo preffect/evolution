@@ -15,11 +15,16 @@ export interface DnaTagEntryContent {
 }
 
 /**
- * The facts every tag page shows. The single-valued weighting comes first, so the landing tile's headline is not one
- * favoured trait out of several; the favoured traits follow as one row per trait (docs/ui/encyclopedia.md §11.4).
+ * The facts every tag page shows: the traits the tag favours first, so each tag's landing tile shows its own first
+ * trait rather than the weighting every tag shares (one row per trait, docs/ui/encyclopedia.md §11.4), then the weighting.
  */
 export function dnaTagFacts(tag: DnaTag): readonly FactDefinition[] {
   return [
+    {
+      key: 'favours',
+      label: 'Favours',
+      source: { kind: FACT_SOURCE.link, link: { id: DERIVED_LINK.tagTraits, argument: { tag } } },
+    },
     {
       key: 'weightPerPoint',
       label: 'Card weight per tag point',
@@ -33,11 +38,6 @@ export function dnaTagFacts(tag: DnaTag): readonly FactDefinition[] {
       unit: QUANTITY_UNIT.multiplier,
       presentation: QUANTITY_PRESENTATION.plain,
       source: { kind: FACT_SOURCE.balance, path: balancePath('progression', 'TAG_WEIGHT_MAX_MULTIPLIER') },
-    },
-    {
-      key: 'favours',
-      label: 'Favours',
-      source: { kind: FACT_SOURCE.link, link: { id: DERIVED_LINK.tagTraits, argument: { tag } } },
     },
   ];
 }

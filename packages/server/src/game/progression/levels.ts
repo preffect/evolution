@@ -8,9 +8,6 @@ import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { applyExpiredOffer, queueOffer, showQueuedOfferIfNone } from './offers.js';
 
-/** A fresh player's level: the shared rule (docs/PROGRESSION.md §2), re-exported for the session and debug callers. */
-export { FIRST_LEVEL };
-
 /** The highest level, at most `MAX_LEVEL`, whose cumulative cost `dna` covers (the shared `cumulativeDnaForLevel`). */
 export function levelForCumulativeDna(dna: number, balance: BalanceConfig): number {
   let level = FIRST_LEVEL;

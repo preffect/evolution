@@ -142,7 +142,7 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'toxin_vacuole',
     summary:
-      'A violet vacuole of poison. Cells touching you lose mass every second. A cell that swallows you takes a dose {swallowedDose} as strong, set by your mass, until it lets you go. The poison never kills.',
+      'A violet vacuole of poison. Cells touching you lose mass every second. A cell that swallows you takes a dose {swallowedDose} as strong, set by your mass, and may have to let you go. The poison never kills.',
     tierBodies: ['A faint brew.', 'A stronger brew.', 'The strongest brew.'],
     seeAlso: ['trait:stentor_trumpet'],
     extraFacts: [

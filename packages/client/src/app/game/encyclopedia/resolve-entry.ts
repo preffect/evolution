@@ -7,7 +7,7 @@ import { formatQuantity } from '../quantities/format-quantity';
 import { QUANTITY_UNIT } from '../quantities/quantity-unit';
 import { tierCountOf, traitRowOf } from './facts/catalog-quantities';
 import { DERIVED_LINK, derivedLinkTargets } from './facts/derived-links';
-import { resolveFacts, resolveTierFacts, resolveTierValueFacts, type TitleOf } from './facts/resolve-fact';
+import { resolveFacts, resolveTierFacts, type TitleOf } from './facts/resolve-fact';
 import { resolveProse, type ProseScope } from './facts/resolve-prose';
 import { categoryOf } from './model/categories';
 import type {
@@ -55,9 +55,7 @@ function resolveSection(section: SectionDefinition, context: FactContext, entryS
     section.tier === null
       ? resolveFacts(section.facts, context, entryScope.titleOf)
       : resolveTierFacts(context.balance, section.tier.traitId, section.tier.tier);
-  const proseFacts =
-    section.tier === null ? facts : resolveTierValueFacts(context.balance, section.tier.traitId, section.tier.tier);
-  const scope: ProseScope = { ...entryScope, facts: [...proseFacts, ...entryScope.facts] };
+  const scope: ProseScope = { ...entryScope, facts: [...facts, ...entryScope.facts] };
   const heading =
     section.tier === null
       ? resolveProse(section.heading, scope)

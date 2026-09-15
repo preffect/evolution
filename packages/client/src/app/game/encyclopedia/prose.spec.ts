@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '@evolution/shared';
+import { MINUS_SIGN, PLUS_SIGN } from '../quantities/quantity-unit';
 import { factContextFor } from './encyclopedia-context';
 import { resolveProse } from './facts/resolve-prose';
 import type { ProseSegment } from './model/entry';
@@ -37,9 +38,11 @@ function proseViolations(text: string): string[] {
 const context = factContextFor(null);
 
 /** A signed value already says which way it goes; a comparative word beside it says it again, or the opposite. */
-const SIGNED_VALUE = /^[+−]/;
-const DIRECTION_WORD =
-  /\b(sooner|later|longer|shorter|faster|slower|likelier|more|less|cost of|harder|easier)\s*[.,;:]?\s*$|^\s*(sooner|later|longer|shorter|faster|slower|likelier|more|less|harder|easier)\b/i;
+/** Words that state which way a value goes; a signed value beside one states it again, or contradicts it. */
+const DIRECTION_WORDS = 'sooner|later|longer|shorter|faster|slower|likelier|more|less|cost of|harder|easier';
+const SIGNED_VALUE = new RegExp(`^[${PLUS_SIGN}${MINUS_SIGN}]`);
+const DIRECTION_WORD_BEFORE = new RegExp(`\\b(${DIRECTION_WORDS})\\s*$`, 'i');
+const DIRECTION_WORD_AFTER = new RegExp(`^\\s*(${DIRECTION_WORDS})\\b`, 'i');
 
 /** The signed values of `segments` that sit beside a direction word: "recharges −0.5 s sooner". */
 function signContradictions(segments: readonly ProseSegment[]): string[] {
@@ -47,9 +50,7 @@ function signContradictions(segments: readonly ProseSegment[]): string[] {
     if (segment.kind !== PROSE_TOKEN.value || !SIGNED_VALUE.test(segment.text)) return [];
     const before = segments[index - 1]?.text ?? '';
     const after = segments[index + 1]?.text ?? '';
-    const isDoubled =
-      /\b(sooner|later|longer|shorter|faster|slower|likelier|more|less|cost of|harder|easier)\s*$/i.test(before) ||
-      DIRECTION_WORD.test(after);
+    const isDoubled = DIRECTION_WORD_BEFORE.test(before) || DIRECTION_WORD_AFTER.test(after);
     return isDoubled ? [`${before}${segment.text}${after}`] : [];
   });
 }
@@ -108,6 +109,15 @@ describe('the prose rule', () => {
     for (const entry of ENCYCLOPEDIA_ENTRIES) {
       const keys = [...entry.facts, ...entry.sections.flatMap((section) => section.facts)].map((fact) => fact.key);
       for (const key of keys) expect(modifierKeys, `${entry.id} {${key}}`).not.toContain(key);
+    }
+  });
+
+  it('keeps every number of a tier out of its body: the Effects by tier table carries them', () => {
+    for (const entry of ENCYCLOPEDIA_ENTRIES) {
+      for (const section of entry.sections.filter((candidate) => candidate.tier !== null)) {
+        const valueTokens = parseProseTemplate(section.body).filter((token) => token.kind === PROSE_TOKEN.value);
+        expect(valueTokens, `${entry.id}#${section.key}`).toEqual([]);
+      }
     }
   });
 

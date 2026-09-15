@@ -547,7 +547,7 @@ text changes. No locale formatting in build 1 (the HUD is English, `ui/layout.md
 **Where prose lives.** In the content file of its subject, beside the facts it references
 (`encyclopedia/content/<subject>-entries.ts`, one file per subject, each ≤ 250 lines, split by stage for traits if
 it outgrows that). Each exports a total record, e.g. `TRAIT_ENTRY_CONTENT: Record<TraitId, TraitEntryContent>`
-(summary, one body per tier, hand-picked `seeAlso`); the builder joins it with the catalog row and the generated
+(summary, one short clause per tier, hand-picked `seeAlso`, and `extraFacts` for facts only that trait's page shows); the builder joins it with the catalog row and the generated
 facts and headings. Keeping each entry's copy in one object is also what a later localisation replaces. Trait ids are
 snake_case, so `trait-entries.ts` writes `TRAIT_ENTRY_ROWS` (one row per trait, with its `traitId`) and derives the record
 through `contentByTrait`: a missing trait fails `typecheck` and a duplicated one throws at module load.
@@ -560,8 +560,7 @@ export type ProseTemplate = string;
 
 `resolveProse(template, scope)` splits a template into `ProseSegment`s over `scope = { facts, titleOf, isReference }`: a
 value token becomes the text of the facts with its key (a multi-target link's titles joined by `, `), a link its target's
-title (or the shown text) with the anchor's `sectionKey`. A tier body reads every modifier's value, identity included,
-so a patch that returns a modifier to identity never breaks its page. A malformed token throws at resolve time and fails the
+title (or the shown text) with the anchor's `sectionKey`. A tier body carries no value token: the Effects by tier table carries its numbers, and `prose.spec.ts` pins it. A malformed token throws at resolve time and fails the
 spec below, never on a player's screen.
 
 **Tests** (`encyclopedia/**/*.spec.ts`, unit tier, jsdom, no Pixi):

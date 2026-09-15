@@ -73,12 +73,3 @@ export function resolveTierFacts(balance: BalanceConfig, traitId: TraitId, tier:
     modifierFact(key, value),
   );
 }
-
-/**
- * Every modifier's value at tier `tier`, identity where the row leaves it: what a tier body's `{modifierKey}` token
- * reads, so a patch that returns a modifier to identity shows its identity text instead of breaking the page.
- */
-export function resolveTierValueFacts(balance: BalanceConfig, traitId: TraitId, tier: number): readonly ResolvedFact[] {
-  const values: CellModifiers = { ...balance.traits.DEFAULT_CELL_MODIFIERS, ...tierRowFor(balance, traitId, tier) };
-  return (Object.entries(values) as [keyof CellModifiers, number][]).map(([key, value]) => modifierFact(key, value));
-}

@@ -7,7 +7,6 @@ import { DEFAULT_BALANCE, ENTITY_KIND, TRAIT_CATEGORY, type BalanceConfig } from
 import { buildEntryDefinitions } from './build-entries';
 import { factContextFor } from './encyclopedia-context';
 import { DERIVED_LINK, derivedLinkTargets } from './facts/derived-links';
-import { resolveTierValueFacts } from './facts/resolve-fact';
 import { resolveProse } from './facts/resolve-prose';
 import { ABILITY } from './model/abilities';
 import { ENCYCLOPEDIA_CATEGORY } from './model/categories';
@@ -67,9 +66,6 @@ describe('resolveEntry over a patched balance', () => {
     });
     const section = resolveEntry('trait:cell_wall', factContextFor(patched)).sections[0];
     expect(section?.facts.map((fact) => fact.key)).toEqual(['membraneRatioBonus']);
-    // A tier token for the modifier the patch returned to identity reads its identity value, never nothing.
-    const values = resolveTierValueFacts(patched, 'cell_wall', 1);
-    expect(values.find((fact) => fact.key === 'absorbDurationMultiplierAsPrey')?.text).toBe('+0 %');
   });
 });
 
