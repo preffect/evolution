@@ -519,25 +519,45 @@ export interface PreviewSessionDependencies {
   readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
   /** Read every frame: the live balance, so a patch retimes an engulf preview as it plays. */
   readonly balance: () => BalanceConfig;
+  /** `true` on the evidence route only (`toDataURL` needs it); `false` in the encyclopedia: it copies the framebuffer every frame. */
+  readonly shouldPreserveDrawingBuffer: boolean;
+}
+
+/** `openedToFirstFrameMs` split, so a miss points at its lever (the cost table below). */
+export interface PreviewOpenTimings {
+  readonly initMs: number; // createPixiApp: the WebGL2 context and Pixi init
+  readonly bakeMs: number; // createRenderTextures
+  readonly firstSubmitMs: number; // the first frame: texture uploads and shader compiles
+  readonly openedToFirstFrameMs: number;
 }
 
 export class PreviewSession extends FrameLoopSession {
-  /** Resolves when the first frame of the first scene is on the canvas; `openedToFirstFrameMs` is recorded. */
-  start(): Promise<void>;
+  /**
+   * Resolves with the open timings once the first frame is on the canvas, or with `null` when `destroy` ran first:
+   * an app that arrives after `destroy` is destroyed on arrival (`RenderSession`'s `isDestroyed` guard).
+   */
+  start(): Promise<PreviewOpenTimings | null>;
   /** Swaps the scene and restarts the local clock; no texture work. */
   show(spec: PreviewSpec): void;
-  /** `pause` / `resume` / the report come from the loop (the debug gate): reduced motion, a hidden detail pane. */
+  /** The UI pause (reduced motion, a pane without a preview): the preview app's own `ticker.stop()`, never the debug `FrameGate`. */
+  pause(): void;
+  /** `ticker.start()`, and the local clock is re-based so the paused span never plays. */
+  resume(): void;
   destroy(): void;
 }
 ```
 
 **The local clock.** `localSeconds = (clock.nowMilliseconds() − shownAtMs) / MILLISECONDS_PER_SECOND` from the
 injected `Clock`; `renderTick = localSeconds / TICK_INTERVAL_S`; `timeSeconds` as in play (`rendering/cells.md §1`:
-the only time the renderer sees). Time is **monotonic and never wraps**: the clip tracker, the ghost registry and the
-sprint-ring tracker key on `nowMs`, and a backwards jump would strand their clips. A scene loops by taking its phase
-modulo its period and emitting each loop's effects at their absolute ticks. A prey absorbed in an engulf loop
-reappears with the **same id** after a `respawn` effect, once the `absorbed` clip has ended, so its cosmetic fork
-(`cell:<id>`) and its look are identical every loop.
+the only time the renderer sees). Time is **monotonic and never wraps**: the clip tracker, the ghost registry and the sprint-ring tracker key on
+`nowMs`, and a backwards jump would strand their clips. A scene loops by taking its phase modulo its period and
+emitting each loop's effects at their absolute ticks. A prey absorbed in an engulf loop reappears with the **same id**
+after a `respawn` effect, once the `absorbed` clip has ended, so its cosmetic fork (`cell:<id>`) and its look are
+identical every loop. **Paused and hidden time never plays:** `resume` re-bases `shownAtMs` by the paused span, and
+because rAF also stops while the tab is hidden without any pause, `frameAt` never looks back more than one period
+(`previousTick = max(previousTick, tick − periodTicks)`), so a return after minutes emits at most one loop's effects
+instead of hundreds at one `nowMs`. The preview never installs `window.__evolutionDebug` (the room's hook stays in
+place while the encyclopedia is open); only the evidence route does.
 
 **The fixture frame.** `render/preview/preview-frame.ts` wraps a scene frame into the `RenderFrame` the renderer
 takes: `balance` is the live one, `latest` a fixture `GameSnapshot` built there (production code never imports
@@ -560,8 +580,12 @@ rebakes, so every entry's preview reuses it and a seed-fixed screenshot is repro
 - **BitmapFont names are global.** `createIndicatorTextures` installs the `value` / `label` fonts into Pixi's
   process-wide `BitmapFont` cache by name, and `destroyIndicatorTextures` uninstalls them. A second bundle under the
   same names would overwrite the room's install, and destroying the preview would uninstall the room's fonts. The
-  seam ticket suffixes the installed names per bundle (`IndicatorFontNames` already carries them to `BitmapText`)
-  and pins that two bundles install distinct names and that destroying one leaves the other's installed.
+  seam ticket suffixes the installed names per bundle **instance** (a per-process counter in
+  `textures/bitmap-fonts.ts`, never the seed: two bundles of `PREVIEW_SEED`, or a kept-alive session, must not
+  collide; `IndicatorFontNames` already carries the names to `BitmapText`) and pins that two bundles install
+  distinct names, that destroying one leaves the other's installed, that an uninstall removes the name from Pixi's
+  cache, and that no live `BitmapText` names an uninstalled font (Pixi would silently install a dynamic font under
+  the unknown name, one per open).
 - **`BitmapText` crashes jsdom.** The Angular side never builds a `PreviewSession` in a spec: it asks for an
   `ENCYCLOPEDIA_PREVIEW` injection token (`render/preview/preview-host.ts`: `(host, sizePx) => PreviewHandle`, with
   `show`, `pause`, `resume`, `destroy`), provided like `clock-provider.ts`, and component specs provide a recording
@@ -570,19 +594,29 @@ rebakes, so every entry's preview reuses it and a seed-fixed screenshot is repro
 
 **Lifecycle and cost of opening a preview.**
 
-| When                                                      | Paid                                                                                                                                                                                                                                                                                                | Budget (reference GPU of `rendering/budget.md §7`)                                                                                                                  |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| First detail view with a preview, per encyclopedia open   | A WebGL2 context and Pixi init; the full bundle bake a room pays at startup: the dish field (a 16 MiB RGBA8 texture), the light pool (4 MiB), the noise tile with mips, strip, palette, glow / mote / organelle atlases, indicator textures and fonts. GPU memory ≈ one more room bundle while open | `openedToFirstFrameMs` ≤ `PREVIEW_OPEN_BUDGET_MS` 300, p95 over 10 opens; the list and text render at once and the canvas box shows #354's loading state until then |
-| Switching entries                                         | `show`: a new scene, registry churn of at most a handful of render states; no bake, no allocation proportional to the bundle                                                                                                                                                                        | one frame                                                                                                                                                           |
-| Every frame while visible                                 | One `GameRenderer.render` at ≤ 3 cells, ≤ 40 motes, ≤ 10 fragments on a canvas of at most `PREVIEW_CANVAS_MAX_PX`; the same ≤ 17 draw calls on its own context. The room keeps rendering behind the menu (the dish never pauses)                                                                    | preview frame CPU p95 ≤ `PREVIEW_FRAME_BUDGET_MS` 1.0 (its own `FrameInstrumentation` report); the room's frame stays within its §7 budget                          |
-| Encyclopedia closed                                       | `destroy`: the renderer, the bundle and the context are released (a context is never leaked toward the browser's context cap)                                                                                                                                                                       | —                                                                                                                                                                   |
-| Detail pane without a preview, reduced motion, tab hidden | the gate pauses: no frames drawn, the last frame held                                                                                                                                                                                                                                               | 0 per frame                                                                                                                                                         |
+| When                                                    | Paid                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Budget (reference GPU of `rendering/budget.md §7`)                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First detail view with a preview, per encyclopedia open | A WebGL2 context and Pixi init (every program compiles again on a new context); the full bundle bake a room pays at startup: the dish field, the light pool, the noise tile with mips, strip, palette, glow / mote / organelle atlases, indicator textures and fonts. **Memory ≈ 40 MiB per bundle** while open: each `CanvasSource` keeps its bake canvas, so the 2048² dish field (16 MiB) and the 1024² light pool (4 MiB) are each held twice, as the texture and as the canvas's accelerated backing | `openedToFirstFrameMs` ≤ `PREVIEW_OPEN_BUDGET_MS` 300, p95 over **20 opens in one page** (`RENDER_P95_MIN_SAMPLE_FRAMES`), the cold first open reported apart, split into init / bake / first submit. **No baseline exists yet**: nothing measures the room's own startup, so #363 records it through the same instrument. The list and text render at once and the canvas box shows #354's loading state       |
+| Switching entries                                       | `show`: a new scene, registry churn of at most a handful of render states; no bake, no allocation proportional to the bundle                                                                                                                                                                                                                                                                                                                                                                              | one frame                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Every frame while visible                               | One `GameRenderer.render` at ≤ 3 cells, ≤ 40 motes, ≤ 10 fragments on a canvas of at most `PREVIEW_CANVAS_MAX_PX` **device pixels** (`sizePx × devicePixelRatio`); the same ≤ 17 draw calls on its own context, from its own ticker in the same rAF turn as the room's. The room keeps rendering behind the menu (the dish never pauses)                                                                                                                                                                  | preview frame CPU p95 ≤ `PREVIEW_FRAME_BUDGET_MS` 1.0 (its own `FrameInstrumentation` report, warm-up frames excluded, per-stage split). **The page:** the room ticker's `deltaMS` p95 (the rAF interval) and dropped frames over ≥ 20 frames, encyclopedia open vs closed, within the room's §7 budget. The room's in-bracket frame time is not the measure: the preview's callback and submit land outside it |
+| Encyclopedia closed                                     | `destroy`: the renderer, the bundle and the context are released (`app.destroy` loses the context), also when it lands before `start` resolves; a context is never leaked toward the browser's cap of 16                                                                                                                                                                                                                                                                                                  | —                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Pane without a preview, reduced motion                  | `pause`: the preview ticker stopped, zero rAF callbacks, the last frame held; `resume` re-bases the clock                                                                                                                                                                                                                                                                                                                                                                                                 | 0 per frame                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Tab hidden                                              | rAF stops by itself; the one-period clamp covers the return                                                                                                                                                                                                                                                                                                                                                                                                                                               | 0 per frame                                                                                                                                                                                                                                                                                                                                                                                                     |
 
-The two budgets are new, owned here, and land as constants in `render/constants/preview.ts` beside the bench's;
-the perf-engineer measures them in the seam ticket on a real GPU and records the measurement in `rendering/budget.md
-§7`. **If the open budget is missed**, the levers, in order: keep the preview session alive across encyclopedia opens
-for the room's lifetime (one bake per room, the memory held); then a bundle option that skips the dish field and
-light-pool bakes for scenes that do not show the dish. Neither is built before the measurement asks for it.
+The two budgets are new, owned here, and land as constants in `render/constants/preview.ts` beside the bench's.
+**Measurement.** The evidence route writes its report into the DOM as the bench route does (a `data-testid`
+element carrying the open timings with the cold open apart, the preview frame report, the page's rAF interval and
+dropped frames with the encyclopedia open and closed, and the verdict against both budgets), so a hardware run is
+one URL (`?preview=<anchor>&opens=20`). The container's browser is SwiftShader (about 9 s a frame, a CPU-rasterised
+submit), so #363's smoke asserts only the report's **shape** (every value reported and finite, every key present,
+nothing leaked, below) and `rendering/budget.md §7` records the absolute numbers as **unmeasured**. No agent has a
+real GPU: when #363 lands, the lead files a hardware-run request for the human.
+
+**If a budget is missed**, the levers, in order: **0.** throttle the room renderer to every other frame while the
+encyclopedia covers it (a few lines in `FrameLoopSession`; snapshots still apply on arrival, so the room loses no
+simulation state); **1.** keep the preview session alive across encyclopedia opens for the room's lifetime (one bake
+per room, about 40 MiB held); **2.** a bundle option that skips the dish field and light-pool bakes for scenes that do
+not show the dish (which also halves the memory). None is built before a measurement asks for it.
 
 **Rejected alternatives.**
 
@@ -595,9 +629,13 @@ light-pool bakes for scenes that do not show the dish. Neither is built before t
   the first retune.
 
 **Evidence route.** `?preview=<EntryAnchor>&t=<seconds>` (dev builds only, behind the same production gate as
-`bench/bench-route.ts`) mounts one preview at a fixed `ManualClock` time for graphics-qa screenshots and the
-Playwright smoke; it lives in `encyclopedia/preview-route.ts`, the one module allowed to join an entry id to its
-spec and the render seam. `render/` never imports from `encyclopedia/`.
+`bench/bench-route.ts`) mounts one preview on a `ManualClock` for graphics-qa screenshots and the Playwright smoke.
+Clips and effect sprites start at the frame's `nowMs`, not the effect's tick, so the route **walks the clock** from
+the loop's start to `t` in `TICK_INTERVAL_S` steps, rendering each, before it parks: a frame parked at `t` then shows
+the clips already in progress exactly as a live preview does at `t`. It is the one place the preview installs
+`window.__evolutionDebug` and sets `shouldPreserveDrawingBuffer`; `opens=<n>` repeats open and close `n` times in one
+page for the measurement and the leak loop. It lives in `encyclopedia/preview-route.ts`, the one module allowed to
+join an entry id to its spec and the render seam. `render/` never imports from `encyclopedia/`.
 
 ### 12.8 File plan
 
@@ -633,14 +671,21 @@ The encyclopedia and ESC menu components, their test ids and the UI kit are #354
   `preview-scene.spec.ts` (every `PREVIEW_SCENE` has a builder; same spec + tick ⇒ same frame; ticks are monotonic
   across a loop; each loop emits its effects once; the engulf scene's phase boundaries follow a patched
   `ENGULF_BASE_DURATION_SECONDS` and `ENGULF_SEAL_PROGRESS`, the leaves the simulation reads; the absorbed prey
-  returns with its id after the `absorbed` clip's duration); `preview-frame.spec.ts` (radius and stage through the
-  shared formulas, the live balance on the frame); `preview-session.spec.ts` over the fake app (one bake per session,
-  none on `show`, pause holds the frame, destroy releases the slot and the app); `indicator-textures.spec.ts`
-  (distinct font names per bundle, destroy uninstalls only its own).
+  returns with its id after the `absorbed` clip's duration; a tick jump of many periods emits at most one loop's
+  effects); `preview-frame.spec.ts` (radius and stage through the
+  shared formulas, the live balance on the frame); `preview-session.spec.ts` over the fake app (one bake per session, none on `show`; `destroy` before `start`
+  resolves destroys the late app and resolves `null`; N open and close cycles give apps created = apps destroyed,
+  font installs = uninstalls and bakes = bundle destroys; `pause` stops the preview ticker and never touches the
+  `FrameGate` or installs the debug hook; `resume` re-bases the clock); `preview-route.spec.ts` (the walked frame at
+  `t` equals a session sampled live at `t`; the report element carries every key); `indicator-textures.spec.ts`
+  (distinct font names per bundle instance, two bundles of one seed included; destroy uninstalls only its own and
+  removes the name from Pixi's cache; no `BitmapText` names an uninstalled font).
 - **Integration:** `encyclopedia/encyclopedia.integration.spec.ts` applies a `game_state` through the real
   `WorldStore` and `GameStateService`, resolves every registry entry through `EncyclopediaContextService`, applies a
   `balance_updated` patch, and sees the patched values in the resolved entries; with no room, the entries resolve over
   `DEFAULT_BALANCE`. It covers every entry the registry holds, so each content ticket extends it by landing content.
-- **Playwright smoke (WebGL):** the evidence route for one entry per `PREVIEW_SCENE`: no page or shader errors, the
-  canvas non-empty, two loads at the same `t` give the same pixels and a different `t` changes them; graphics-qa
-  screenshots under `qa/evidence/<pr>/`. The perf-engineer's open and frame measurements ride the same route.
+- **Playwright smoke (WebGL, SwiftShader in the container):** the evidence route for one entry per `PREVIEW_SCENE`:
+  no page or shader errors, the canvas non-empty, two loads at the same `t` give the same pixels and a different `t`
+  changes them; **20 open and close cycles** (`opens=20`) log no `Too many active WebGL contexts` warning; the DOM
+  report has its shape (values reported and finite); no absolute time is judged in the container. graphics-qa
+  screenshots under `qa/evidence/<pr>/`; the hardware run reads the same report.
