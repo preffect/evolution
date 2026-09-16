@@ -68,6 +68,14 @@ export function boxIntersectsDisc(box: UprightBox, disc: Disc): boolean {
   return Math.hypot(nearestX - disc.x, nearestY - disc.y) < disc.radius;
 }
 
+/** Whether two upright boxes overlap; boxes that only touch along an edge do not. */
+export function boxesIntersect(first: UprightBox, second: UprightBox): boolean {
+  return (
+    Math.abs(first.x - second.x) < first.halfWidth + second.halfWidth &&
+    Math.abs(first.y - second.y) < first.halfHeight + second.halfHeight
+  );
+}
+
 /** A Gaussian bump `amplitude · exp(−Δ² / (2 σ²))` and its derivative in Δ. */
 export function gaussianBump(amplitude: number, delta: number, sigma: number): { value: number; derivative: number } {
   const value = amplitude * Math.exp(-(delta * delta) / (SQUARE_DERIVATIVE_FACTOR * sigma * sigma));

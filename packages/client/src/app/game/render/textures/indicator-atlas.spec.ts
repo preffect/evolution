@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/fake-bake-canvas';
 import { hexWithAlpha } from '../colour';
 import { GHOST_BAKE, INDICATOR_BAKE_MAX_DPR, MITO_BASE, WHITE } from '../constants';
-import { LADDER_SILHOUETTE } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
 import { bakeIndicatorAtlas, indicatorBakeScale } from './indicator-atlas';
 import { endosymbiontTallies, pipBlockKey } from './pip-block-bake';
 

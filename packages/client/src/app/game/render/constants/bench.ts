@@ -128,3 +128,18 @@ export const RENDER_BENCH_LEVEL_UP_EVERY_TICKS = 90;
 /** Ticks an engulf takes to walk the whole wrap strip, so every frame of it shows. */
 export const RENDER_BENCH_ENGULF_CYCLE_TICKS = 90;
 export const RENDER_BENCH_ABSORB_EVERY_TICKS = 300;
+/**
+ * `?bench&cues=1` (#385): the own cell's legibility cues at their worst case (docs/ui/hud.md §3.1.5, `bench-cues.ts`).
+ * One of the eat, the engulf payout and the sprint lands every `floaterEveryFrames`, longer than `FLOATER_MERGE_MS` at
+ * 60 fps so nothing merges, and short enough that `FLOATER_MAX_VISIBLE` floaters stay alive; the rates are the audit's
+ * worked example (mass 312 in the vent with Mitochondrion I, touching Toxin Vacuole I), so three tags show.
+ */
+export const RENDER_BENCH_CUES = {
+  floaterEveryFrames: 20,
+  ratesPerSecond: { toxin: -9.36, decay: -0.5, vent: -0.25 },
+  decayTraitShare: -0.15,
+  eatMassGained: 3,
+  eatDnaGained: 5,
+  engulfMassGained: 60,
+  sprintSpent: 16,
+} as const;

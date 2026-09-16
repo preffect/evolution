@@ -34,13 +34,15 @@ import { cellClipStarts, type LastViewOf } from './cells/cell-effects';
 import { CellLayer } from './cells/cell-layer';
 import { DishLayer } from './dish/dish-layer';
 import { CellClipTracker, cellsById, type CellViewsById } from './effects/cell-clip-tracker';
+import { CueLayer } from './effects/cue-layer';
+import type { CueTextFactory } from './effects/cue-text';
 import { EffectsLayer } from './effects/effects-layer';
 import type { IndicatorTextFactory } from './effects/indicator-text';
 import { threatAnchorFor } from './effects/own-cell-indicators';
 import { OwnCellIndicatorsLayer } from './effects/own-cell-indicators-layer';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
-import { HALF } from './geometry';
+import { HALF, type UprightBox } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
 import { followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
@@ -60,7 +62,7 @@ export interface RenderOutputs {
   readonly visibleCells: number;
   readonly visibleMotes: number;
   readonly fragments: number;
-  /** Effect, reticle and own-cell indicator sprites placed this frame (docs/rendering/budget.md §6). */
+  /** Effect, reticle, own-cell indicator and legibility cue sprites placed this frame (docs/rendering/budget.md §6). */
   readonly effectSprites: number;
 }
 
@@ -70,6 +72,8 @@ export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 
 /** The crossings with nothing to say: no preview, no reticle, no own-cell record (the bench, a test). */
 export const NO_HUD_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE, ownCellIndicators: null };
 
+const NO_LABEL_BOXES: readonly UprightBox[] = [];
+
 export class GameRenderer {
   private readonly layers: SceneLayers;
   private readonly dish: DishLayer;
@@ -77,6 +81,7 @@ export class GameRenderer {
   private readonly cells: CellLayer;
   private readonly effects: EffectsLayer;
   private readonly indicators: OwnCellIndicatorsLayer;
+  private readonly cues: CueLayer;
   private readonly clips = new CellClipTracker();
   private readonly ownCellRing = new OwnCellRingTracker();
   private readonly vignette: Sprite;
@@ -97,14 +102,15 @@ export class GameRenderer {
     this.cells = new CellLayer(textures, undefined, stages);
     this.effects = new EffectsLayer(textures);
     this.indicators = new OwnCellIndicatorsLayer(textures.indicators);
+    this.cues = new CueLayer(textures.indicators);
     this.vignette = new Sprite(textures.vignetteTexture);
     this.layers.dish.addChild(this.dish.container);
     this.layers.food.addChild(this.food.container);
     this.layers.fragments.addChild(this.food.fragmentContainer);
     this.layers.cells.addChild(this.cells.container);
     this.layers.depthNear.addChild(this.dish.nearContainer);
-    // The indicators under the effects, so an eat halo or a level-up burst reads over the ring it starts on.
-    this.layers.effects.addChild(this.indicators.container, this.effects.container);
+    // The indicators and the cues under the effects, so an eat halo or a level-up burst reads over the ring it starts on.
+    this.layers.effects.addChild(this.indicators.container, this.cues.container, this.effects.container);
     this.layers.screen.addChild(this.vignette);
     this.resize(viewport);
   }
@@ -121,6 +127,11 @@ export class GameRenderer {
   /** The indicator texts' factory, before the first frame that draws them: a test passes a fake (`BitmapText` wants a real canvas). */
   useIndicatorText(factory: IndicatorTextFactory): void {
     this.indicators.useText(factory);
+  }
+
+  /** The legibility cues' pills and texts factory, before the first frame that draws them: a test passes a fake. */
+  useCueText(factory: CueTextFactory): void {
+    this.cues.useText(factory);
   }
 
   /** The cell layer's packed rows, read-only: a test or the bench reads what the clips did to a cell. */
@@ -236,7 +247,10 @@ export class GameRenderer {
     };
   }
 
-  /** The effects stage (§7): the own-cell indicators under the effect and reticle sprites; the sprites placed. */
+  /**
+   * The effects stage (§7): the own-cell indicators, then the legibility cues (placed after, so they yield to the
+   * indicators' label), under the effect and reticle sprites; the sprites and cue pills placed.
+   */
   private effectsStage(
     frame: RenderFrame,
     inputs: RenderInputs,
@@ -253,13 +267,23 @@ export class GameRenderer {
       threat,
       effects: frame.effects,
     });
+    const labelBox = this.indicators.labelBox;
+    const cues = this.cues.update({
+      indicators: ownCellIndicators,
+      ownCell,
+      zoom,
+      nowMs,
+      effects: frame.effects,
+      labelBoxes: labelBox === null ? NO_LABEL_BOXES : [labelBox],
+    });
     const effects = this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } });
-    return indicators.sprites + effects.sprites;
+    return indicators.sprites + cues.pills + cues.sprites + effects.sprites;
   }
 
   destroy(): void {
     this.clips.clear();
     this.effects.destroy();
+    this.cues.destroy();
     this.indicators.destroy();
     this.cells.destroy();
     this.food.destroy();

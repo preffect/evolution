@@ -16,6 +16,7 @@ import {
   type CellView,
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestRenderFrame } from '../../../testing/builders';
+import { createFakeCueText } from '../../../testing/fake-cue-text';
 import { createFakeIndicatorText } from '../../../testing/fake-indicator-text';
 import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
 import { peakKeyframe } from '../../../testing/motion-keyframes';
@@ -41,6 +42,7 @@ function renderer(): GameRenderer {
   const textures = createTestRenderTextures({ seed: 13, baker: pixi.textures });
   const subject = new GameRenderer(pixi.stage, textures, VIEWPORT);
   subject.useIndicatorText(createFakeIndicatorText().factory);
+  subject.useCueText(createFakeCueText().factory);
   return subject;
 }
 
@@ -115,8 +117,27 @@ describe('the sprint ring and the escape through the renderer', () => {
       engulfProgress: 0.2,
     });
     const frame = createTestRenderFrame({ cells: [held, predator] });
-    // The escape replaces the orbit: no atlas sprites, only the label pill.
-    expect(subject.render(frame, TEST_OWN_PLAYER_ID, inputsFor(held), NO_SUBMIT).effectSprites).toBe(1);
+    // The escape replaces the orbit: no atlas sprites, only the label pill — plus the mass chip's pill, which the
+    // legibility cues draw whenever the own cell is alive (docs/ui/hud.md §3.1.5), and no cue glyph while steady.
+    expect(subject.render(frame, TEST_OWN_PLAYER_ID, inputsFor(held), NO_SUBMIT).effectSprites).toBe(2);
+    subject.destroy();
+  });
+
+  it('draws the legibility cues from the same record, after the indicators and under the effects (#385)', () => {
+    const pixi = createFakePixiApp(VIEWPORT);
+    const subject = new GameRenderer(
+      pixi.stage,
+      createTestRenderTextures({ seed: 13, baker: pixi.textures }),
+      VIEWPORT,
+    );
+    const cueText = createFakeCueText();
+    subject.useIndicatorText(createFakeIndicatorText().factory);
+    subject.useCueText(cueText.factory);
+    const own = createTestCellView({ radius: 20, mass: 312.7 });
+    subject.render(createTestRenderFrame({ cells: [own] }), TEST_OWN_PLAYER_ID, inputsFor(own), NO_SUBMIT);
+    expect(cueText.drawn.texts.map((text) => text.text)).toEqual(['312']);
+    subject.render(createTestRenderFrame({ cells: [own] }), TEST_OWN_PLAYER_ID, NO_HUD_INPUTS, NO_SUBMIT);
+    expect(cueText.drawn.texts).toEqual([]);
     subject.destroy();
   });
 });

@@ -4,6 +4,7 @@
 export * from './constants/colours';
 export * from './constants/ui-type';
 export * from './constants/own-cell';
+export * from './constants/legibility-cues';
 export * from './constants/indicator-bakes';
 export * from './constants/cell-shape';
 export * from './constants/organelles';

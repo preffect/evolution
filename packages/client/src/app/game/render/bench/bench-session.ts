@@ -19,6 +19,7 @@ import {
 import { FrameLoopSession } from '../frame-loop-session';
 import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
+import { benchCueFrame } from './bench-cues';
 import { BenchDriver } from './bench-driver';
 import { attachIndicatorSheet } from './indicator-sheet';
 import type { BenchCounts } from './bench-scene';
@@ -43,6 +44,8 @@ export interface BenchQuery {
    * does not set it and it costs a full-framebuffer copy a frame on a real GPU (docs/rendering/budget.md §7).
    */
   readonly shouldPreserveDrawingBuffer: boolean;
+  /** `cues=1`: draw the own cell's legibility cues at their worst case (`bench-cues.ts`, #385). */
+  readonly shouldDrawCues: boolean;
   /** `sheet=indicators`: the own-cell indicator textures' contact sheet over the scene (`indicator-sheet.ts`). */
   readonly sheet: BenchSheet | null;
 }
@@ -57,6 +60,7 @@ const ZOOM_PARAMETER = 'zoom';
 const WINDOW_PARAMETER = 'window';
 const ADVANCE_PARAMETER = 'advance';
 const PRESERVE_PARAMETER = 'preserve';
+const CUES_PARAMETER = 'cues';
 const FLAG_ON = '1';
 
 function numberParameter(parameters: URLSearchParams, key: string, fallback: number): number {
@@ -71,7 +75,7 @@ function positiveParameter(parameters: URLSearchParams, key: string, fallback: n
 }
 
 /**
- * `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>&advance=1&preserve=1`, each with its default; `bench`
+ * `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>&advance=1&preserve=1&cues=1`, each with its default; `bench`
  * alone selects the route.
  */
 export function parseBenchQuery(search: string): BenchQuery {
@@ -83,6 +87,7 @@ export function parseBenchQuery(search: string): BenchQuery {
     windowFrames: Math.max(1, Math.trunc(numberParameter(parameters, WINDOW_PARAMETER, RENDER_BENCH_REPORT_FRAMES))),
     shouldAdvanceTick: parameters.get(ADVANCE_PARAMETER) === FLAG_ON,
     shouldPreserveDrawingBuffer: parameters.get(PRESERVE_PARAMETER) === FLAG_ON,
+    shouldDrawCues: parameters.get(CUES_PARAMETER) === FLAG_ON,
     sheet: parameters.get(SHEET_PARAMETER) === BENCH_SHEET.indicators ? BENCH_SHEET.indicators : null,
   };
 }
@@ -184,8 +189,12 @@ export class BenchSession extends FrameLoopSession {
     return this.driver.frame();
   }
 
+  /** `cues=1` draws the worst-case cues on the own cell, their one-off changes landing on the frame count's cadence. */
   protected renderFrame(renderer: GameRenderer, frame: RenderFrame, submit: () => void): RenderOutputs {
-    return renderer.render(frame, this.driver.store.ownPlayerId, BENCH_INPUTS, submit);
+    const { ownPlayerId } = this.driver.store;
+    if (!this.query.shouldDrawCues) return renderer.render(frame, ownPlayerId, BENCH_INPUTS, submit);
+    const cued = benchCueFrame(frame, ownPlayerId, this.instrumentation.frameCount);
+    return renderer.render(cued.frame, ownPlayerId, cued.inputs, submit);
   }
 
   /** Collects at the end of the warm-up and reports once the window has run. */

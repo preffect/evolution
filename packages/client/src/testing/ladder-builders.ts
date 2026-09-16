@@ -3,7 +3,7 @@
 
 import { BACTERIUM_VARIANT, ENDOSYMBIOSIS_BACTERIA_REQUIRED } from '@evolution/shared';
 import { LADDER_ORBIT_ANGLES_PAIR_DEG } from '../app/game/render/constants';
-import type { LadderCounter } from '../app/game/state/own-cell-indicators';
+import type { LadderCounter } from '../app/game/state/own-cell-ladder';
 
 /** The aerobic counter, which unlocks the mitochondrion. */
 export function createTestAerobicCounter(overrides: Partial<LadderCounter> = {}): LadderCounter {
