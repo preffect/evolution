@@ -46,7 +46,6 @@ import {
   MENU_PANEL_WIDTH_PX,
   MENU_TRAIT_LINE_HEIGHT_PX,
   MENU_TRAIT_ROW_HEIGHT_PX,
-  MENU_TRAITS_VISIBLE_ROWS,
   PICKER_CARD_CONTENT_GAP_PX,
   PICKER_CARD_GLOW_PX,
   PICKER_CARD_HIGHLIGHT_MS,
@@ -150,7 +149,6 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-menu-panel-width', `${MENU_PANEL_WIDTH_PX}px`],
   ['--hud-menu-trait-row-height', `${MENU_TRAIT_ROW_HEIGHT_PX}px`],
   ['--hud-menu-trait-line-height', `${MENU_TRAIT_LINE_HEIGHT_PX}px`],
-  ['--hud-menu-traits-visible-rows', String(MENU_TRAITS_VISIBLE_ROWS)],
   ['--hud-menu-trait-glyph', `${TRAIT_GLYPH_LIST_PX}px`],
 
   ['--hud-notice-row-height', `${NOTICE_ROW_HEIGHT_PX}px`],

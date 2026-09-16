@@ -78,8 +78,9 @@ import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from './test-ids';
             </button>
             <app-menu-exit (exited)="exitGame()" />
           </div>
-          <app-menu-traits [rows]="traitRows()" (opened)="openTraitEntry($event)" />
         </div>
+        <!-- Outside the body's scroll area, so its rule spans the panel's full width (docs/ui/overlays.md §3.5). -->
+        <app-menu-traits uiPanelBleed [rows]="traitRows()" (opened)="openTraitEntry($event)" />
       </ui-panel>
     </div>
   `,

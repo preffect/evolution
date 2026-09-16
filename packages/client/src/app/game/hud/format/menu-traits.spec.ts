@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, TRAIT_CATALOG, type OwnedTrait, type TraitId } from '@evolution/shared';
-import { menuTraitRowsFor, traitEntryId } from './menu-traits';
+import { menuTraitRowsFor, traitEntryId, visibleRowsHeightPx } from './menu-traits';
 import { describeTierModifiers } from './trait-effects';
 
 const NUCLEOID = 'nucleoid' as TraitId;
 const MITOCHONDRION = 'mitochondrion' as TraitId;
+
+/** The menu's row count, and a row as drawn with one effect line and with two. */
+const VISIBLE_ROWS = 5;
+const ONE_LINE = 48;
+const TWO_LINES = 64;
 
 function catalogNameOf(traitId: TraitId): string {
   return TRAIT_CATALOG.find((trait) => trait.id === traitId)!.name;
@@ -47,5 +52,23 @@ describe('menuTraitRowsFor', () => {
   it('has no rows before the first pick, and none for a trait the catalog does not hold', () => {
     expect(menuTraitRowsFor([], DEFAULT_BALANCE.traits)).toEqual([]);
     expect(menuTraitRowsFor([{ traitId: 'retired' as TraitId, tier: 1 }], DEFAULT_BALANCE.traits)).toEqual([]);
+  });
+});
+
+describe('visibleRowsHeightPx', () => {
+  it('does not cap a list that fits: five rows have nothing to scroll', () => {
+    expect(visibleRowsHeightPx(Array<number>(VISIBLE_ROWS).fill(ONE_LINE), VISIBLE_ROWS)).toBeNull();
+    expect(visibleRowsHeightPx([ONE_LINE], VISIBLE_ROWS)).toBeNull();
+  });
+
+  it('caps a longer list at the first five rows as drawn, so a two-line row is never sliced', () => {
+    const heights = [ONE_LINE, TWO_LINES, ONE_LINE, TWO_LINES, ONE_LINE, ONE_LINE, ONE_LINE];
+    // The fixed cap this replaces would have been 5 × 48 = 240, which cuts through the fifth row.
+    expect(visibleRowsHeightPx(heights, VISIBLE_ROWS)).toBe(ONE_LINE * 3 + TWO_LINES * 2);
+    expect(visibleRowsHeightPx(heights, VISIBLE_ROWS)).toBeGreaterThan(ONE_LINE * VISIBLE_ROWS);
+  });
+
+  it('does not cap before there is a layout to measure', () => {
+    expect(visibleRowsHeightPx([0, 0, 0, 0, 0, 0], VISIBLE_ROWS)).toBeNull();
   });
 });

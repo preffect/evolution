@@ -17,6 +17,19 @@ export interface MenuTraitRow {
 }
 
 const TRAIT_ENTRY_PREFIX = 'trait:';
+const NO_HEIGHT = 0;
+
+/**
+ * What the `Your traits` list is capped at (docs/ui/overlays.md §3.5): the first `visibleRows` rows **as drawn**, so a
+ * row carrying two effect lines is never sliced through its text. `MENU_TRAITS_VISIBLE_ROWS` is a row count, not a
+ * pixel height, which is why the heights are measured rather than multiplied. `null` when the list holds no more rows
+ * than that — nothing to scroll, so no cap — or before there is a layout to measure (every height still zero).
+ */
+export function visibleRowsHeightPx(rowHeightsPx: readonly number[], visibleRows: number): number | null {
+  if (rowHeightsPx.length <= visibleRows) return null;
+  const shown = rowHeightsPx.slice(0, visibleRows).reduce((total, height) => total + height, NO_HEIGHT);
+  return shown > NO_HEIGHT ? shown : null;
+}
 
 /**
  * A trait's encyclopedia entry id, `trait:<traitId>` (docs/ui/encyclopedia.md §11.2). Its home moves to the
