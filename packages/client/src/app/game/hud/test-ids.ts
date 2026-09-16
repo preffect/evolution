@@ -4,7 +4,7 @@
 //
 // Only the ids shipped so far are listed; #187–#190 add their own as they land.
 
-import type { PlayerId } from '@evolution/shared';
+import type { MassRateCause, PlayerId, TraitId } from '@evolution/shared';
 
 export const HUD_TEST_ID = {
   /** The HUD shell: the overlay layer over the canvas (docs/ui/components-and-constants.md §7). */
@@ -43,7 +43,35 @@ export const HUD_TEST_ID = {
   serverError: 'hud-server-error',
   /** The control that dismisses it. */
   serverErrorDismiss: 'hud-server-error-dismiss',
+  /** The hold-Tab "affecting you" panel, beside the full board (docs/ui/overlays.md §3.7, #387). */
+  affectingPanel: 'affecting-panel',
+  /** Its mass element: the mass, its trend glyph, the net rate and the sparkline. */
+  affectingMass: 'affecting-mass',
+  /** The gain from the `eat` effects of the last `AFFECTING_FOOD_WINDOW_SECONDS`, as a rate. */
+  affectingCauseFood: 'affecting-cause-food',
+  /** The zone row; absent in the open broth, which has nothing to say. */
+  affectingZone: 'affecting-zone',
+  /** The bloom row, only once the bloom has started. */
+  affectingBloom: 'affecting-bloom',
+  /** The largest plain cell the own cell can engulf. */
+  affectingPreyBelow: 'affecting-prey-below',
+  /** The mass a cell needs to engulf the own cell. */
+  affectingThreatAbove: 'affecting-threat-above',
+  /** The size's own speed cost, before traits. */
+  affectingSpeed: 'affecting-speed',
+  /** The standing against the world clock. */
+  affectingWorld: 'affecting-world',
 } as const;
+
+/** One mass-cause row, by the cause it names (docs/ui/overlays.md §3.7). */
+export function affectingCauseTestId(cause: MassRateCause): string {
+  return `affecting-cause-${cause}`;
+}
+
+/** One owned-trait row, by the trait it names (docs/ui/overlays.md §3.7). */
+export function affectingTraitTestId(traitId: TraitId): string {
+  return `affecting-trait-${traitId}`;
+}
 
 /** One leaderboard row, by the player it names (docs/ui/hud.md §3.1.1). */
 export function leaderboardRowTestId(id: PlayerId): string {

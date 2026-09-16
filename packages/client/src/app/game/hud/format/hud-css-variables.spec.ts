@@ -3,6 +3,7 @@ import {
   CALLOUT_BACKING,
   DANGER,
   DNA_RING_STROKE_PX,
+  GAIN,
   LEVEL_GOLD,
   OUTLINE,
   PANEL_BOTTOM,
@@ -11,11 +12,16 @@ import {
   TEXT,
   TEXT_LABEL,
   TEXT_MUTED,
+  TREND_GLYPH_PX,
   UI_LABEL_TRACKING_EM,
   UI_TYPE,
   WHITE,
 } from '../../render/constants';
 import {
+  AFFECTING_MASS_ROW_GAP_PX,
+  AFFECTING_SPARKLINE_HEIGHT_PX,
+  AFFECTING_SPARKLINE_STROKE_PX,
+  AFFECTING_SPARKLINE_WIDTH_PX,
   CONNECTION_LOST_DIM_ALPHA,
   HUD_MARGIN_PX,
   NOTICE_GAP_PX,
@@ -143,6 +149,12 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-picker-ribbon-padding-inline', `${PICKER_RIBBON_PADDING_INLINE_PX}px`],
 
   ['--hud-notice-row-height', `${NOTICE_ROW_HEIGHT_PX}px`],
+  ['--hud-affecting-mass-row-gap', `${AFFECTING_MASS_ROW_GAP_PX}px`],
+  ['--hud-affecting-sparkline-width', `${AFFECTING_SPARKLINE_WIDTH_PX}px`],
+  ['--hud-affecting-sparkline-height', `${AFFECTING_SPARKLINE_HEIGHT_PX}px`],
+  ['--hud-affecting-sparkline-stroke', `${AFFECTING_SPARKLINE_STROKE_PX}px`],
+  ['--hud-affecting-trend-glyph', `${TREND_GLYPH_PX}px`],
+
   ['--hud-notice-stack-max-y', `${NOTICE_STACK_MAX_Y_PX}px`],
   ['--hud-notice-padding-inline', `${NOTICE_PADDING_INLINE_PX}px`],
   ['--hud-notice-gap', `${NOTICE_GAP_PX}px`],
@@ -173,6 +185,7 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-level-gold', LEVEL_GOLD],
   ['--hud-outline', OUTLINE],
   ['--hud-white', WHITE],
+  ['--hud-gain', GAIN],
 ];
 
 describe('hudStyleVariables', () => {

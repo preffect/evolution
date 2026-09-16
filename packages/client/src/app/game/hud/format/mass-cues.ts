@@ -17,7 +17,7 @@ import {
 } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { MINUS_SIGN, PLUS_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
-import { RATE_TAG_MIN_MASS_PER_SECOND, RATE_TAG_ROWS_MAX } from '../../render/constants';
+import { DANGER, DNA, GAIN, RATE_TAG_MIN_MASS_PER_SECOND, RATE_TAG_ROWS_MAX, ZONE_CUE } from '../../render/constants';
 
 /** The colour role a cue's rim carries (visual-style/principles-and-palette.md §2); a zone rim is the zone's own tint. */
 export const CUE_RIM = {
@@ -30,6 +30,22 @@ export const CUE_RIM = {
   viscousGel: ZONE_ID.viscousGel,
 } as const;
 export type CueRim = ValueOf<typeof CUE_RIM>;
+
+/**
+ * The colour each rim role carries (visual-style/principles-and-palette.md §2); `null` is no rim at all. It lives
+ * beside the roles rather than in the texture atlas because two very different drawings read it: the renderer bakes
+ * a cue pill's rim from it, and the hold-Tab panel's rows (docs/ui/overlays.md §3.7) mark themselves in it as a DOM
+ * colour. Keeping it here also keeps that panel's pure row builder clear of the canvas bake modules.
+ */
+export const CUE_RIM_COLOUR: Readonly<Record<CueRim, string | null>> = {
+  [CUE_RIM.none]: null,
+  [CUE_RIM.gain]: GAIN,
+  [CUE_RIM.danger]: DANGER,
+  [CUE_RIM.dna]: DNA,
+  [CUE_RIM.warmVent]: ZONE_CUE[ZONE_ID.warmVent] ?? null,
+  [CUE_RIM.sunlitShallows]: ZONE_CUE[ZONE_ID.sunlitShallows] ?? null,
+  [CUE_RIM.viscousGel]: ZONE_CUE[ZONE_ID.viscousGel] ?? null,
+};
 
 /** Under this size a figure keeps one decimal (`−0.5/s`, `+2.5`); from it up it is whole (`−12/s`, `+16`). */
 const WHOLE_FIGURE_FROM = 10;
@@ -48,7 +64,8 @@ export const RATE_CAUSE_LABEL: Readonly<Record<MassRateCause, string>> = {
   [MASS_RATE_CAUSE.light]: 'Light',
 };
 
-const RATE_CAUSE_RIM: Readonly<Record<MassRateCause, CueRim>> = {
+/** The rim role each cause's cue carries; the panel's rows (docs/ui/overlays.md §3.7) mark themselves from it too. */
+export const RATE_CAUSE_RIM: Readonly<Record<MassRateCause, CueRim>> = {
   [MASS_RATE_CAUSE.toxin]: CUE_RIM.danger,
   [MASS_RATE_CAUSE.swallowed]: CUE_RIM.danger,
   [MASS_RATE_CAUSE.decay]: CUE_RIM.none,
@@ -113,7 +130,11 @@ function largestDecayTrait(traits: readonly OwnedTrait[], balance: Pick<BalanceC
   return best?.traitId ?? null;
 }
 
-function decayTraitShareOf(
+/**
+ * The owned trait the DECAY cue names and the whole cut it carries. The hold-Tab panel's decay row
+ * (docs/ui/overlays.md §3.7) names the same trait, so the choice of trait has one home.
+ */
+export function decayTraitShareOf(
   massFlow: MassFlowView,
   traits: readonly OwnedTrait[],
   balance: Pick<BalanceConfig, 'traits'>,

@@ -22,14 +22,17 @@ import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from './test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
+import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
 import { ElementSizeTracker } from '../../ui-kit/element-size';
+import { AffectingPanelComponent } from './affecting-panel.component';
 
 @Component({
   selector: 'app-hud',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AffectingPanelComponent,
     ConnectionBannerComponent,
     LeaderboardPanelComponent,
     OwnCellStatusComponent,
@@ -42,6 +45,9 @@ import { ElementSizeTracker } from '../../ui-kit/element-size';
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
       <app-trait-offer-overlay />
       <app-leaderboard-panel />
+      <!-- Opens and closes with the full board, top-left against it (docs/ui/overlays.md §3.7); it draws
+           nothing while the board is shut or the player is spectating, so it needs no gate of its own. -->
+      <app-affecting-panel />
     }
     <app-round-timer />
     <!-- Not phase-gated: the mirror stands down on its own when there is no own cell to mirror,
@@ -94,6 +100,14 @@ import { ElementSizeTracker } from '../../ui-kit/element-size';
 export class HudComponent implements OnInit {
   private readonly gameState = inject(GameStateService);
   private readonly sizeTracker = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
+  /**
+   * The kit's tokens (docs/ui/components-and-constants.md §10.1). The shell IS the HUD's kit surface, so the
+   * `--ui-…` every kit stylesheet reads are published from here. It spreads the kit's own pure maps rather than
+   * wearing `[uiSurface]`: the directive and this component would both bind `[style]` on the one host, and the
+   * shell already observes that same box with the same `ElementSizeTracker` and the same `uiScaleFor`, so a
+   * second observer would measure the same element twice to reach the same number.
+   */
+  private readonly kitTokens = uiStyleVariables();
 
   protected readonly testId = HUD_TEST_ID;
 
@@ -117,8 +131,10 @@ export class HudComponent implements OnInit {
     uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx),
   );
 
-  /** The scale plus every constant the child stylesheets read, as one style map. */
+  /** The scale plus every constant the child stylesheets read — the kit's and the HUD's — as one style map. */
   protected readonly styleVariables = computed(() => ({
+    ...this.kitTokens,
+    ...uiScaleVariable(this.scale()),
     ...hudStyleVariables(this.scale()),
     ...pickerBandVariables({ width: this.sizeTracker.size().widthPx, height: this.sizeTracker.size().heightPx }),
     ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),

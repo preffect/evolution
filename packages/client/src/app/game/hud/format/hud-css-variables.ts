@@ -15,6 +15,7 @@ import {
   CALLOUT_BACKING,
   DANGER,
   DNA_RING_STROKE_PX,
+  GAIN,
   LEVEL_GOLD,
   OUTLINE,
   PANEL_BOTTOM,
@@ -23,11 +24,16 @@ import {
   TEXT,
   TEXT_LABEL,
   TEXT_MUTED,
+  TREND_GLYPH_PX,
   UI_LABEL_TRACKING_EM,
   UI_TYPE,
   WHITE,
 } from '../../render/constants';
 import {
+  AFFECTING_MASS_ROW_GAP_PX,
+  AFFECTING_SPARKLINE_HEIGHT_PX,
+  AFFECTING_SPARKLINE_STROKE_PX,
+  AFFECTING_SPARKLINE_WIDTH_PX,
   CONNECTION_LOST_DIM_ALPHA,
   HUD_MARGIN_PX,
   NOTICE_GAP_PX,
@@ -135,6 +141,20 @@ function pickerVariables(): StyleVariables {
   };
 }
 
+/**
+ * The hold-Tab "affecting you" panel (docs/ui/overlays.md §3.7). Only the mass element's own sizes are here: the
+ * panel's surface, padding, rim, radius, rows and headings are the kit's and arrive as `--ui-…`.
+ */
+function affectingPanelVariables(): StyleVariables {
+  return {
+    '--hud-affecting-mass-row-gap': `${AFFECTING_MASS_ROW_GAP_PX}px`,
+    '--hud-affecting-sparkline-width': `${AFFECTING_SPARKLINE_WIDTH_PX}px`,
+    '--hud-affecting-sparkline-height': `${AFFECTING_SPARKLINE_HEIGHT_PX}px`,
+    '--hud-affecting-sparkline-stroke': `${AFFECTING_SPARKLINE_STROKE_PX}px`,
+    '--hud-affecting-trend-glyph': `${TREND_GLYPH_PX}px`,
+  };
+}
+
 /** The notices along the top edge (docs/ui/overlays.md §3.6): the connection banner and the server-error line. */
 function noticeVariables(): StyleVariables {
   return {
@@ -177,6 +197,8 @@ function typeAndColourVariables(): StyleVariables {
     '--hud-level-gold': LEVEL_GOLD,
     '--hud-outline': OUTLINE,
     '--hud-white': WHITE,
+    // The gain role beside the danger one of `noticeVariables`: the mass trend rises in it (§3.7).
+    '--hud-gain': GAIN,
   };
 }
 
@@ -211,6 +233,7 @@ export function hudStyleVariables(hudScale: number): StyleVariables {
     [HUD_SCALE_VARIABLE]: String(hudScale),
     ...chromeVariables(),
     ...pickerVariables(),
+    ...affectingPanelVariables(),
     ...noticeVariables(),
     ...typeAndColourVariables(),
   };

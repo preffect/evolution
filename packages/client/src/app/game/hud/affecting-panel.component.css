@@ -1,0 +1,74 @@
+/* The hold-Tab "affecting you" panel (docs/ui/overlays.md §3.7).
+
+   The panel's own surface, padding, rim, radius, rows and headings are the kit's and are styled by
+   `ui-panel`, `ui-panel-section` and `ui-facts-table`; nothing of that is restated here. What this
+   stylesheet owns is where the panel sits and the one row the kit has no shape for, the mass element.
+
+   Every length reads a `--ui-…` or `--hud-…` the shell publishes from the constants
+   (`ui-kit/format/ui-css-variables.ts`, `hud/format/hud-css-variables.ts`), so no number has a second
+   home here. `--ui-scale` and `--hud-scale` are the same number — the shell computes both from one
+   `uiScaleFor` on one box — and the kit's scale is used throughout, since the panel is a kit surface. */
+
+:host {
+  position: absolute;
+  /* Top-left, dropping under the notice rows while any are up, exactly as the board does on the right
+     (docs/ui/overlays.md §3.6), so a banner never covers the panel's first section. */
+  top: calc((var(--hud-margin) + var(--hud-notice-row-height) * var(--hud-notice-rows, 0)) * var(--ui-scale));
+  left: calc(var(--hud-margin) * var(--ui-scale));
+  /* The kit caps a side panel at the viewport less two margins; the host is what that percentage is of. */
+  max-height: calc(100% - var(--hud-margin) * 2 * var(--ui-scale));
+  display: flex;
+  /* The layer never eats a click: the panel holds nothing interactive and Tab is being held. */
+  pointer-events: none;
+}
+
+/* The mass element: the mass in `number`, its trend glyph, the rate in `value`, then the sparkline.
+   It sits above the first section, inside the panel's body. */
+.mass {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--hud-affecting-mass-row-gap) * var(--ui-scale));
+  line-height: 1;
+}
+
+.figure {
+  color: var(--ui-text);
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-number) * var(--ui-scale));
+  font-variant-numeric: tabular-nums;
+}
+
+.rate {
+  color: var(--ui-text);
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-value) * var(--ui-scale));
+  font-variant-numeric: tabular-nums;
+}
+
+/* The triangle points up by default and is turned half a turn for a fall, so the direction is geometry
+   as well as colour (docs/ui/hud.md §3.1.5). */
+.trend {
+  flex: none;
+  width: calc(var(--hud-affecting-trend-glyph) * var(--ui-scale));
+  height: calc(var(--hud-affecting-trend-glyph) * var(--ui-scale));
+  color: var(--hud-gain);
+}
+
+.mass[data-trend='down'] .trend {
+  color: var(--hud-danger);
+  transform: rotate(0.5turn);
+}
+
+/* `steady` renders no glyph and no rate at all, so there is no rule for it here. */
+
+.sparkline {
+  flex: none;
+  margin-left: auto;
+  width: calc(var(--hud-affecting-sparkline-width) * var(--ui-scale));
+  height: calc(var(--hud-affecting-sparkline-height) * var(--ui-scale));
+  color: var(--ui-accent);
+  stroke-width: var(--hud-affecting-sparkline-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}

@@ -236,9 +236,15 @@ leaderboard (Tab held, or the leaderboard header clicked, §3.1.1), so there is 
   with no fade or rise, because it lives only while a key is held (`UI_PANEL_ENTER_MS` is the modal panels').
 - **Not interactive.** `role="region"`, `aria-label="Affecting you"`, nothing focusable, no focus trap; Tab is being
   held, so focus stays where it was. Its facts reach assistive technology through the status mirror (hud.md §3.1.4).
-- **Rows.** Built by the pure `affectingRowsFor({ ownCell, ownProgress, balance, roundClock, worldReference,
-recentEats })` (`hud/format/affecting-rows.ts`, unit-tested with no DOM). Each row has a marker, a left text and a
-  right value. A row whose value is zero or unknown is omitted, never shown as `0`.
+- **Rows.** Built by the pure `affectingRowsFor({ ownCell, ownProgress, indicators, balance, cells, players,
+roundClock, tick, roundStartTick, roundDurationSeconds, masses, foodGainPerSecond })`
+  (`hud/format/affecting-rows.ts`, unit-tested with no DOM). Naming each mass cause is most of that work, so the
+  cause rows are the sibling `hud/format/affecting-causes.ts`, and the sparkline's geometry is
+  `hud/format/sparkline.ts`; both are pure and have their own specs. `cells` and `players` are there because the
+  toxin and swallowed rows name a cell. Each row has a marker, a left text and a right value. A row whose value is
+  zero or unknown is omitted, never shown as `0`. The markers are the kit facts table's own vocabulary — a dot or a
+  ring in a colour role, plus the `marker` slot's trait glyph — so the Marker column below says which role a row
+  takes, not a shape the kit would have to grow.
 
 | Section  | Row (left · right)                                                                                                                                                                                                                     | Marker                                | Source                                                                                                                                                                                                                                                                                          | `data-testid`                     |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
@@ -260,5 +266,16 @@ Toxin Vacuole I, 1:48 of bloom left); every one of them comes from the source co
 one decimal with `≤`, and `Eats you` uses `≥`, because `canEngulf` admits equality. The width is the kit's `UI_SIDE_PANEL_WIDTH_PX` (360), which the widest
 row, the toxin cause with a 12-character name in `body` + `figure`, fits. Constants (`hud/hud-constants.ts`, §1):
 `AFFECTING_FOOD_WINDOW_SECONDS` 5 (long enough that grazing reads as a steady rate) and
-`AFFECTING_MASS_HISTORY_SECONDS` 30 (the sparkline shows "grew, then shrank" across a trip). Test ids:
+`AFFECTING_MASS_HISTORY_SECONDS` 30 (the sparkline shows "grew, then shrank" across a trip), with
+`AFFECTING_MASS_SAMPLE_SECONDS` 0.5 (snapshots arrive far faster than a 120 px line can draw, so the history keeps
+one point per interval and is bounded rather than growing with the broadcast rate),
+`AFFECTING_SPARKLINE_WIDTH_PX` 120, `AFFECTING_SPARKLINE_HEIGHT_PX` 20, `AFFECTING_SPARKLINE_STROKE_PX` 1.5 and
+`AFFECTING_MASS_ROW_GAP_PX` 8 (the mass element's own box and rhythm). Test ids:
 `affecting-panel` and the row ids above, from `HUD_TEST_ID`.
+
+The sparkline is scaled to its own run rather than to an absolute mass: the question the panel answers is whether
+this cell grew or shrank over the window, and a cell that moved between 310 and 314 has to show that as movement.
+The toxin row names the **nearest cell whose folded `toxinDrainFractionPerSecond` is above zero** — hud.md §3.1.5's
+own `toxic` predicate — rather than `relationsFor`, which #385's relation-ring slice has not built yet; the reach
+rule stays on the server and is never re-derived on the client, and the rate itself is always the wire's. When no
+such cell is on the snapshot the row still shows its rate, without a name.

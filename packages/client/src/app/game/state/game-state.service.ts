@@ -8,7 +8,7 @@
 // The own-cell signals of docs/ui/components-and-constants.md §7 (`ownCell`, `ownProgress`, `ownCellIndicators`, `threats`,
 // `cameraExtent`) arrive with #186/#187 and read the store through the render seam.
 
-import { Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { Injectable, computed, inject, linkedSignal, signal, type Signal } from '@angular/core';
 import {
   PLAYER_LIFE_STATE,
   ROUND_PHASE,
@@ -28,12 +28,16 @@ import { zoneEntryFor, type ZoneEntryMemory } from '../hud/format/zone-pill';
 import { HudStateService } from '../hud/hud-state.service';
 import { massTrendFor, type MassTrendMemory } from './mass-trend';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
+import { ownMassHistoryFor, ownMassesFor, type OwnMassHistory } from './own-mass-history';
+import { foodGainPerSecondFor, recentEatsFor, type RecentEatsMemory } from './recent-eats';
 import type { CameraExtent } from '../render/camera';
 
 const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerRosterView>> = {};
 const NO_CELLS: readonly CellView[] = [];
 const NO_THREATS: readonly Threat[] = [];
+const NO_MASSES: readonly number[] = [];
+const NO_FOOD_GAIN = 0;
 
 /** Two extents that describe the same rectangle; a fresh object per frame is not a new view. */
 function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | null): boolean {
@@ -101,8 +105,14 @@ export class GameStateService {
   /** The live balance of `game_state` / `balance_updated`; `null` before the room's arrives. */
   readonly balance = computed<BalanceConfig | null>(() => this.multiplayer.balance());
 
-  /** Every cell in the newest snapshot: what `threatsFor` asks `canEngulf` about. */
-  private readonly cells = computed<readonly CellView[]>(() => this.multiplayer.snapshot()?.cells ?? NO_CELLS);
+  /**
+   * Every cell in the newest snapshot: what `threatsFor` asks `canEngulf` about, and what the hold-Tab panel
+   * (docs/ui/overlays.md §3.7) looks through to name the cell whose toxin reaches us and the prey we are swallowing.
+   */
+  readonly cells = computed<readonly CellView[]>(() => this.multiplayer.snapshot()?.cells ?? NO_CELLS);
+
+  /** The newest snapshot itself: the hold-Tab panel reads its tick and round start to place the world clock. */
+  readonly snapshot = computed<GameSnapshot | null>(() => this.multiplayer.snapshot());
 
   /**
    * Our own progress record, or `null` before the room names us (docs/ui/layout.md §1's `ownProgress`). The
@@ -153,6 +163,45 @@ export class GameStateService {
       if (current === null || zone === undefined) return previous?.value ?? null;
       return zoneEntryFor(previous?.value ?? null, { cellId: current.ownCell.id, zone, tick: current.snapshot.tick });
     },
+  });
+
+  /**
+   * The own cell's mass over the last `AFFECTING_MASS_HISTORY_SECONDS` (docs/ui/overlays.md §3.7), carried the same
+   * way the trend and the zone entries are: the hold-Tab panel's sparkline is a question about the past.
+   */
+  private readonly massHistory = this.carriedMemory<OwnMassHistory>((previous, own) =>
+    ownMassHistoryFor(previous, { cellId: own.ownCell.id, tick: own.snapshot.tick, mass: own.ownCell.mass }),
+  );
+
+  /** What the own cell has eaten in the last `AFFECTING_FOOD_WINDOW_SECONDS`, for that panel's `Food` row. */
+  private readonly recentEats = this.carriedMemory<RecentEatsMemory>((previous, own) =>
+    recentEatsFor(previous, { cellId: own.ownCell.id, tick: own.snapshot.tick, effects: own.snapshot.effects }),
+  );
+
+  /**
+   * A memory carried from snapshot to snapshot: `step` folds the newest own snapshot into the last value, and the
+   * whole memory is dropped whenever there is no own cell to remember anything about. The pure step functions reset
+   * on a new own cell id themselves, so a respawn never reads as a fall.
+   */
+  private carriedMemory<TMemory>(
+    step: (previous: TMemory | null, own: OwnSnapshot) => TMemory,
+  ): Signal<TMemory | null> {
+    return linkedSignal<OwnSnapshot | null, TMemory | null>({
+      source: () => this.ownSnapshot(),
+      computation: (current, previous) => (current === null ? null : step(previous?.value ?? null, current)),
+    });
+  }
+
+  /** The masses the panel's sparkline draws, oldest first; empty before the own cell has a history of its own. */
+  readonly ownMasses = computed<readonly number[]>(() => {
+    const ownCell = this.ownCell();
+    return ownCell === null ? NO_MASSES : ownMassesFor(this.massHistory(), ownCell.id);
+  });
+
+  /** The `Food` row's gain rate, mass/s; zero omits the row rather than showing `+0/s`. */
+  readonly foodGainPerSecond = computed<number>(() => {
+    const ownCell = this.ownCell();
+    return ownCell === null ? NO_FOOD_GAIN : foodGainPerSecondFor(this.recentEats(), ownCell.id);
   });
 
   /**

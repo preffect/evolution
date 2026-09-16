@@ -166,3 +166,29 @@ export const NOTICE_RIM_PX = 2;
 
 /** Every interactive element's visible focus ring, in the text colour; never scaled. */
 export const HUD_FOCUS_RING_PX = 2;
+
+// ---- the hold-Tab "affecting you" panel (docs/ui/overlays.md §3.7, decision #324) ----
+
+/**
+ * The window the `Food` row's gain rate is measured over: long enough that grazing reads as a
+ * steady rate rather than a figure that jumps to zero between two motes.
+ */
+export const AFFECTING_FOOD_WINDOW_SECONDS = 5;
+/**
+ * The span the mass sparkline draws: long enough that a trip across a vent reads as "grew, then
+ * shrank" rather than as the last second's noise.
+ */
+export const AFFECTING_MASS_HISTORY_SECONDS = 30;
+/**
+ * The least time between two kept mass samples. Snapshots arrive far faster than the sparkline can
+ * draw, so the history keeps one point per interval instead of one per snapshot: the drawing is the
+ * same and the memory is bounded at `AFFECTING_MASS_HISTORY_SECONDS / this` points.
+ */
+export const AFFECTING_MASS_SAMPLE_SECONDS = 0.5;
+/** The sparkline's box at scale 1; its width is the panel's body less the mass and rate beside it. */
+export const AFFECTING_SPARKLINE_WIDTH_PX = 120;
+export const AFFECTING_SPARKLINE_HEIGHT_PX = 20;
+/** The sparkline's stroke: one px reads as a hair at scale 1 and disappears under the scale floor. */
+export const AFFECTING_SPARKLINE_STROKE_PX = 1.5;
+/** Between the mass numeral, its trend glyph, its rate and the sparkline. */
+export const AFFECTING_MASS_ROW_GAP_PX = 8;
