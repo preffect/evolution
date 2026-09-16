@@ -1,39 +1,41 @@
 // What each viewer alone is sent of a snapshot (docs/architecture/wire-contract.md §4.1, §4.2 lever 1): its own
 // progress, its own applied input sequence, and the food and DNA fragments inside its interest area. The food is a
 // delta per viewer: a mote entering the area is `spawned` for that viewer, one leaving it is in `removedIds`, and one
-// inside it that moved is in `moved`. A `game_state` restarts that delta from the motes it carries. The shared
-// snapshot keeps every mote and fragment for no viewer (a debug read, a scenario).
+// inside it that moved is in `moved`. A `game_state` restarts that delta from the motes it carries. Every member is
+// read from the world: the broadcast builds none of them (#399), and the full snapshot keeps every mote and fragment
+// for no viewer (a debug read, a scenario).
 
-import { interestMarginFor, type FoodDelta, type GameSnapshot, type PlayerId } from '@evolution/shared';
+import {
+  interestMarginFor,
+  type DnaFragmentView,
+  type FoodDelta,
+  type GameSnapshot,
+  type PlayerId,
+} from '@evolution/shared';
 import type { ViewerStateSerializer } from '../game-module.js';
+import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import { FoodDeltaTracker, positionMotes, type PositionedMote } from './food-delta-tracker.js';
 import { isInInterestArea, type InterestArea } from './interest-area.js';
-import { SPRINT_WINDOW, ownProgressOf } from './serialize.js';
+import { SPRINT_WINDOW, ownProgressOf, toDnaFragmentView } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
+import {
+  VIEWER_SNAPSHOT_KEYS,
+  type BroadcastSnapshot,
+  type ViewerSnapshotKey,
+  type ViewerSnapshotMembers,
+} from './viewer-snapshot-keys.js';
 
-/** The snapshot members only their viewer is sent, in the order the room appends them. */
-export const VIEWER_SNAPSHOT_KEYS = [
-  'food',
-  'dnaFragments',
-  'ownProgress',
-  'appliedInputSequenceByPlayer',
-] as const satisfies readonly (keyof GameSnapshot)[];
-
-export type ViewerSnapshotKey = (typeof VIEWER_SNAPSHOT_KEYS)[number];
-
-/** One viewer's values for `VIEWER_SNAPSHOT_KEYS`. */
-export type ViewerSnapshotMembers = Pick<GameSnapshot, ViewerSnapshotKey>;
-
-/** What every viewer of one snapshot reads of the world: its food quantised once, and the live balance's margin. */
+/** What every viewer of one snapshot reads of the world: its food and fragments quantised once, and the live margin. */
 interface WorldReading {
   readonly food: readonly PositionedMote[];
+  readonly fragments: readonly DnaFragmentView[];
   readonly marginWu: number;
 }
 
-/** The snapshot the reading was taken for. */
-interface ObservedSnapshot extends WorldReading {
-  readonly snapshot: GameSnapshot;
+/** The broadcast the reading was taken for. */
+interface ObservedBroadcast extends WorldReading {
+  readonly broadcast: BroadcastSnapshot;
 }
 
 function foodInArea(food: readonly PositionedMote[], area: InterestArea): PositionedMote[] {
@@ -41,23 +43,23 @@ function foodInArea(food: readonly PositionedMote[], area: InterestArea): Positi
 }
 
 /** The viewer's own entry of the applied input sequences: the only one its prediction reads. */
-function ownSequenceOf(snapshot: GameSnapshot, viewerPlayerId: PlayerId): Record<string, number> {
-  const sequence = snapshot.appliedInputSequenceByPlayer[viewerPlayerId];
-  return sequence === undefined ? {} : { [viewerPlayerId]: sequence };
+function ownSequenceOf(world: WorldState, viewerPlayerId: PlayerId): Record<string, number> {
+  const viewer = findPlayer(world, viewerPlayerId);
+  return viewer === undefined ? {} : { [viewerPlayerId]: viewer.appliedInputSequence };
 }
 
 export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot, ViewerSnapshotKey> {
   readonly keys = VIEWER_SNAPSHOT_KEYS;
   private readonly cameras = new ViewerCameras();
   private readonly foodDeltas = new Map<PlayerId, FoodDeltaTracker>();
-  private observed: ObservedSnapshot | null = null;
+  private observed: ObservedBroadcast | null = null;
 
   constructor(private readonly world: WorldState) {}
 
-  serialize(viewerPlayerId: PlayerId, snapshot: GameSnapshot): ViewerSnapshotMembers {
-    const reading = this.observe(snapshot);
+  serialize(viewerPlayerId: PlayerId, broadcast: BroadcastSnapshot): ViewerSnapshotMembers {
+    const reading = this.observe(broadcast);
     const tracker = this.foodDeltas.get(viewerPlayerId) ?? this.restartFoodDelta(viewerPlayerId);
-    return this.membersFor(viewerPlayerId, snapshot, tracker, reading);
+    return this.membersFor(viewerPlayerId, tracker, reading);
   }
 
   /**
@@ -65,8 +67,8 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
    * `game_state` can go out between broadcasts, so the world is read afresh and no camera steps. Like its empty
    * effects, it carries no sprint window: that window was the last broadcast's.
    */
-  serializeFull(viewerPlayerId: PlayerId, snapshot: GameSnapshot): ViewerSnapshotMembers {
-    const members = this.membersFor(viewerPlayerId, snapshot, this.restartFoodDelta(viewerPlayerId), this.readWorld());
+  serializeFull(viewerPlayerId: PlayerId): ViewerSnapshotMembers {
+    const members = this.membersFor(viewerPlayerId, this.restartFoodDelta(viewerPlayerId), this.readWorld());
     return { ...members, ownProgress: ownProgressOf(this.world, viewerPlayerId, SPRINT_WINDOW.omitted) };
   }
 
@@ -77,19 +79,23 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
   }
 
   /**
-   * Once per snapshot, on its first viewer, the world is read; on the first snapshot of a tick, every camera steps.
-   * A second snapshot of one tick (a paused room republishing a debug change) re-reads the world but steps no camera
+   * Once per broadcast, on its first viewer, the world is read; on the first broadcast of a tick, every camera steps.
+   * A second broadcast of one tick (a paused room republishing a debug change) re-reads the world but steps no camera
    * twice, and a broadcast no viewer was sent is stepped over on the next one, so no caller has to announce either.
    */
-  private observe(snapshot: GameSnapshot): WorldReading {
-    if (this.observed?.snapshot === snapshot) return this.observed;
-    if (this.observed?.snapshot.tick !== snapshot.tick) this.cameras.step(this.world);
-    this.observed = { snapshot, ...this.readWorld() };
+  private observe(broadcast: BroadcastSnapshot): WorldReading {
+    if (this.observed?.broadcast === broadcast) return this.observed;
+    if (this.observed?.broadcast.tick !== broadcast.tick) this.cameras.step(this.world);
+    this.observed = { broadcast, ...this.readWorld() };
     return this.observed;
   }
 
   private readWorld(): WorldReading {
-    return { food: positionMotes(this.world.food), marginWu: interestMarginFor(this.world.balance) };
+    return {
+      food: positionMotes(this.world.food),
+      fragments: this.world.dnaFragments.map((fragment) => toDnaFragmentView(fragment)),
+      marginWu: interestMarginFor(this.world.balance),
+    };
   }
 
   private restartFoodDelta(viewerPlayerId: PlayerId): FoodDeltaTracker {
@@ -100,7 +106,6 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
 
   private membersFor(
     viewerPlayerId: PlayerId,
-    snapshot: GameSnapshot,
     tracker: FoodDeltaTracker,
     reading: WorldReading,
   ): ViewerSnapshotMembers {
@@ -108,9 +113,9 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
     const food: FoodDelta = tracker.diffPositioned(foodInArea(reading.food, area));
     return {
       food,
-      dnaFragments: snapshot.dnaFragments.filter((fragment) => isInInterestArea(area, fragment.x, fragment.y)),
+      dnaFragments: reading.fragments.filter((fragment) => isInInterestArea(area, fragment.x, fragment.y)),
       ownProgress: ownProgressOf(this.world, viewerPlayerId),
-      appliedInputSequenceByPlayer: ownSequenceOf(snapshot, viewerPlayerId),
+      appliedInputSequenceByPlayer: ownSequenceOf(this.world, viewerPlayerId),
     };
   }
 }

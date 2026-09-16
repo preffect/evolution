@@ -155,12 +155,11 @@ describe('bot client against a real server', () => {
       bot.waitForSnapshot(
         (snapshot) => echoedInput(snapshot as unknown as EchoSnapshot, bot.playerId)?.sequence === TICKS,
       );
-    await Promise.all(bots.bots().map(isLastInputEchoed));
-
-    const snapshot = room.getSnapshot() as unknown as EchoSnapshot;
-    expect(echoedInput(snapshot, botIds[0]!)).toEqual(offlineLastInput(botIds[0]!, 0));
-    expect(echoedInput(snapshot, botIds[1]!)).toEqual(offlineLastInput(botIds[1]!, 1));
-    expect(echoedInput(snapshot, botIds[0]!)).not.toEqual(echoedInput(snapshot, botIds[1]!));
+    // What each bot was sent, not what the room holds: the room keeps no broadcast accessor (#399).
+    const received = (await Promise.all(bots.bots().map(isLastInputEchoed))) as unknown as EchoSnapshot[];
+    expect(echoedInput(received[0]!, botIds[0]!)).toEqual(offlineLastInput(botIds[0]!, 0));
+    expect(echoedInput(received[1]!, botIds[1]!)).toEqual(offlineLastInput(botIds[1]!, 1));
+    expect(echoedInput(received[0]!, botIds[0]!)).not.toEqual(echoedInput(received[1]!, botIds[1]!));
     expect(room.getTickCount()).toBe(TICKS);
     for (const stats of bots.stats()) {
       expect(stats).toMatchObject({
