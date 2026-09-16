@@ -11,6 +11,7 @@
 import {
   CELL_STAGE,
   CELL_STATE,
+  ENGULF_PHASE,
   STAGE_GATE_TRAITS,
   TRAIT_CATALOG,
   clamp,
@@ -86,6 +87,17 @@ export interface OwnCellEscape {
   /** The escape window, draining to 0 at the seal; 0 from the seal on (docs/ui/hud.md §3.1.2). */
   readonly fill: number;
   readonly predatorCellId: EntityId;
+}
+
+/** The escape label's two readings (docs/ui/hud.md §3.1.2), uppercased by the `label` role when drawn. */
+export const ESCAPE_LABEL = { window: 'Sprint to escape', sealed: 'Sealed' } as const;
+
+/**
+ * `Sprint to escape` through the window, `Sealed` from the seal on: the one reading the renderer's label over the
+ * escape arc and the alert strip (docs/ui/encyclopedia.md §11.1) both show.
+ */
+export function escapeLabelFor(escape: OwnCellEscape): string {
+  return escape.phase === ENGULF_PHASE.absorb ? ESCAPE_LABEL.sealed : ESCAPE_LABEL.window;
 }
 
 export interface OwnCellThreat {

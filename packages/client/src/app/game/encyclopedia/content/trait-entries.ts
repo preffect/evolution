@@ -185,7 +185,7 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'stentor_trumpet',
     summary:
-      'A flared trumpet body. At higher tiers your toxin reaches small cells before they touch you, and you digest food better. One form per cell.',
+      'A flared trumpet body. Your toxin reaches cells before they touch you, further at higher tiers, and you digest food better. One form per cell.',
     tierBodies: ['A flared trumpet.', 'A wider flare.', 'The widest flare.'],
     seeAlso: ['trait:toxin_vacuole'],
   },

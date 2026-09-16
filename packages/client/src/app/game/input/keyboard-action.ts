@@ -2,10 +2,11 @@
 // adapter (`keyboard-input.ts`) gathers the facts, this decides. The rules, in the order they
 // are applied:
 //
-//  1. focus in a text field swallows every press (a release still fires, so no key sticks);
-//  2. the trait keys `1` `2` `3` always act — they stay live under the menu (docs/ui/overlays.md §3.5);
-//  3. Escape always acts: it is the key that closes the menu it would otherwise be swallowed by;
-//  4. while the menu is open nothing else acts (sprint is swallowed, steering keeps its latch);
+//  1. Escape has one owner per press: one a component consumed (`preventDefault`, the menu's exit confirm restoring
+//     its row) does nothing here; any other Escape acts, even from a text field, since it closes what is on top;
+//  2. focus in a text field swallows every other press (a release still fires, so no key sticks);
+//  3. the trait keys `1` `2` `3` always act — they stay live under the menu (docs/ui/overlays.md §3.5);
+//  4. while a modal overlay (the menu) is open nothing else acts (sprint is swallowed, steering keeps its latch);
 //  5. **Space precedence**: with focus inside `trait-offer` Space picks the focused card — the
 //     card's own handler runs and the sprint path does not; anywhere else Space sprints, once
 //     per press (auto-repeat is dropped);
@@ -46,12 +47,12 @@ export type InputAction =
 
 /** Where focus sits when a key arrives: the four facts docs/ui/input-and-onboarding.md §4's rules read. */
 export interface FocusContext {
-  /** Focus is in a text field, so every press is ignored. */
+  /** Focus is in a text field, so every press but Escape is ignored. */
   readonly isTextEntryFocused: boolean;
   /** Focus is inside the trait picker, so Space picks instead of sprinting. */
   readonly isTraitOfferFocused: boolean;
-  /** The Escape menu is open (docs/ui/overlays.md §3.5). */
-  readonly isMenuOpen: boolean;
+  /** A modal overlay is open (the menu, docs/ui/overlays.md §3.5; the encyclopedia with #372). */
+  readonly isModalOverlayOpen: boolean;
   /** An overlay with focusable controls is open, so Tab must keep its native behaviour. */
   readonly hasFocusableOverlay: boolean;
 }
@@ -60,6 +61,8 @@ export interface FocusContext {
 export interface KeyPress {
   readonly code: string;
   readonly isRepeat: boolean;
+  /** A component on the way up already consumed the press (`event.defaultPrevented`). */
+  readonly isDefaultPrevented: boolean;
 }
 
 export const NO_ACTION: InputAction = { kind: INPUT_ACTION.none };
@@ -68,7 +71,7 @@ export const NO_ACTION: InputAction = { kind: INPUT_ACTION.none };
 export const FREE_FOCUS: FocusContext = {
   isTextEntryFocused: false,
   isTraitOfferFocused: false,
-  isMenuOpen: false,
+  isModalOverlayOpen: false,
   hasFocusableOverlay: false,
 };
 
@@ -82,14 +85,7 @@ export function cardIndexForKeyCode(code: string): number | null {
   return cardIndex === -1 ? null : cardIndex;
 }
 
-/** Rules 2 and 3: the presses that act wherever focus sits, short of a text field. */
-function alwaysLiveAction(code: string): InputAction {
-  const cardIndex = cardIndexForKeyCode(code);
-  if (cardIndex !== null) return { kind: INPUT_ACTION.pickCard, cardIndex };
-  return code === MENU_KEY_CODE ? { kind: INPUT_ACTION.menuKey } : NO_ACTION;
-}
-
-/** Rules 5 and 6 plus steering: the presses an open menu swallows. */
+/** Rules 5 and 6 plus steering: the presses an open modal overlay swallows. */
 function playAction(press: KeyPress, focus: FocusContext): InputAction {
   const direction = steerDirectionForKeyCode(press.code);
   if (direction !== null) return { kind: INPUT_ACTION.steer, direction, isPressed: true };
@@ -105,10 +101,11 @@ function playAction(press: KeyPress, focus: FocusContext): InputAction {
 
 /** The action a `keydown` is. */
 export function keyDownAction(press: KeyPress, focus: FocusContext): InputAction {
+  if (press.code === MENU_KEY_CODE) return press.isDefaultPrevented ? NO_ACTION : { kind: INPUT_ACTION.menuKey };
   if (focus.isTextEntryFocused) return NO_ACTION;
-  const live = alwaysLiveAction(press.code);
-  if (live.kind !== INPUT_ACTION.none) return live;
-  return focus.isMenuOpen ? NO_ACTION : playAction(press, focus);
+  const cardIndex = cardIndexForKeyCode(press.code);
+  if (cardIndex !== null) return { kind: INPUT_ACTION.pickCard, cardIndex };
+  return focus.isModalOverlayOpen ? NO_ACTION : playAction(press, focus);
 }
 
 /**

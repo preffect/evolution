@@ -24,7 +24,12 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
   template: `
     <header class="header">
       @if (title(); as text) {
-        <h2 class="title" [id]="titleId">{{ text }}</h2>
+        <div class="heading">
+          <h2 class="title" [id]="titleId">{{ text }}</h2>
+          @if (subtitle(); as line) {
+            <p class="subtitle" [id]="subtitleId">{{ line }}</p>
+          }
+        </div>
       }
       <ng-content select="[uiPanelHeader]" />
     </header>
@@ -36,6 +41,7 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
     '[attr.role]': 'role()',
     '[attr.aria-modal]': 'ariaModal()',
     '[attr.aria-labelledby]': 'labelledBy()',
+    '[attr.aria-describedby]': 'describedBy()',
     '[attr.data-testid]': 'testId()',
   },
   styleUrl: './ui-panel.component.css',
@@ -43,10 +49,14 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
 export class UiPanelComponent {
   readonly variant = input<UiPanelVariant>(UI_PANEL_VARIANT.modal);
   readonly title = input<string | null>(null);
+  /** One muted `body` line under the title (the menu's `The dish keeps running.`); it describes the panel. */
+  readonly subtitle = input<string | null>(null);
   readonly testId = input<string | null>(null);
 
   protected readonly titleId = nextUiElementId('ui-panel-title');
+  protected readonly subtitleId = nextUiElementId('ui-panel-subtitle');
   protected readonly role = computed(() => PANEL_ROLE[this.variant()]);
   protected readonly ariaModal = computed(() => (this.variant() === UI_PANEL_VARIANT.modal ? 'true' : null));
   protected readonly labelledBy = computed(() => (this.title() ? this.titleId : null));
+  protected readonly describedBy = computed(() => (this.title() && this.subtitle() ? this.subtitleId : null));
 }
