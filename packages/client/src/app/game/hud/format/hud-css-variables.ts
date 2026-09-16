@@ -156,6 +156,9 @@ function affectingPanelVariables(): StyleVariables {
     '--hud-affecting-sparkline-height': `${AFFECTING_SPARKLINE_HEIGHT_PX}px`,
     '--hud-affecting-sparkline-stroke': `${AFFECTING_SPARKLINE_STROKE_PX}px`,
     '--hud-affecting-trend-glyph': `${TREND_GLYPH_PX}px`,
+    // `TraitGlyphComponent` fills its host and leaves the sizing to the caller, so a trait row's marker has to be
+    // given a box here or it resolves to 0 x 0 inside the kit's shrink-to-content marker cell and draws nothing.
+    '--hud-affecting-trait-glyph': `${TRAIT_GLYPH_LIST_PX}px`,
   };
 }
 

@@ -115,6 +115,13 @@ export class HudComponent implements OnInit {
    * wearing `[uiSurface]`: the directive and this component would both bind `[style]` on the one host, and the
    * shell already observes that same box with the same `ElementSizeTracker` and the same `uiScaleFor`, so a
    * second observer would measure the same element twice to reach the same number.
+   *
+   * This does not change how the ESC menu (#434) renders, which is mounted here and reads `--ui-…` too: it wears
+   * its own `[uiSurface]` on `div.layer`, republishing the identical token set, so the nearer surface wins and the
+   * shell's are invisible to it. The shell is therefore a token-publishing ancestor of a second surface, which
+   * `ui-kit/ui-surface.directive.ts` ("one per layer") warns against, and two `ElementSizeTracker`s now measure for
+   * the same scale. Inert today because both publish the same values; #381 owns collapsing them as it migrates the
+   * rest of the HUD onto the kit.
    */
   private readonly kitTokens = uiStyleVariables();
 

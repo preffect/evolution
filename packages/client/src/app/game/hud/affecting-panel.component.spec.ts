@@ -14,6 +14,7 @@ import {
   type OwnProgressView,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
+import { MASS_TREND } from '../state/mass-trend';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { AffectingPanelComponent } from './affecting-panel.component';
 import { HudStateService } from './hud-state.service';
@@ -66,6 +67,29 @@ describe('AffectingPanelComponent', () => {
     fixture.detectChanges();
   }
 
+  /**
+   * Whether the panel's stylesheet gives `app-trait-glyph` a width. The glyph fills its host and is sized by
+   * whoever mounts it, so this rule is the whole difference between a drawn marker and a 0 x 0 one.
+   */
+  function sizesTheTraitGlyph(): boolean {
+    return styleRules().some((rule) => rule.selectorText.includes('app-trait-glyph') && rule.style.width.length > 0);
+  }
+
+  /**
+   * Whether any rule the panel ships selects on `fragment`, used to pin a CSS literal to the enum behind it.
+   * Quotes are stripped from both sides: the stylesheet is authored with `'…'` and read back with `"…"`.
+   */
+  function hasRuleSelecting(fragment: string): boolean {
+    const unquoted = (text: string): string => text.replaceAll(`'`, '').replaceAll('"', '');
+    return styleRules().some((rule) => unquoted(rule.selectorText).includes(unquoted(fragment)));
+  }
+
+  function styleRules(): readonly CSSStyleRule[] {
+    return [...document.styleSheets].flatMap((sheet) =>
+      [...sheet.cssRules].filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule),
+    );
+  }
+
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [AffectingPanelComponent] });
     multiplayer = TestBed.inject(MultiplayerService);
@@ -112,14 +136,32 @@ describe('AffectingPanelComponent', () => {
     expect(host.querySelector(`[data-row-id="${HUD_TEST_ID.affectingWorld}"]`)).not.toBeNull();
   });
 
-  it('marks an owned trait row with that trait glyph rather than a dot', () => {
+  it('drives the falling-mass cue off MASS_TREND, so a rename cannot leave it green and pointing up', () => {
+    show();
+    holdTab();
+    const mass = (fixture.nativeElement as HTMLElement).querySelector(testIdSelector(HUD_TEST_ID.affectingMass));
+    // The element publishes the trend as the enum's own value...
+    expect(Object.values(MASS_TREND)).toContain(mass?.getAttribute('data-trend'));
+    // ...and the stylesheet's fall rule selects on that same value. These are the two halves of one cue: if the
+    // enum is renamed and the selector is not, a falling mass renders in the gain colour with the triangle still
+    // pointing up — the wrong direction and the wrong colour, with nothing else failing.
+    expect(hasRuleSelecting(`[data-trend='${MASS_TREND.down}']`)).toBe(true);
+  });
+
+  it('marks an owned trait row with that trait glyph rather than a dot, at a size that actually draws', () => {
     show();
     holdTab();
     const row = (fixture.nativeElement as HTMLElement).querySelector(
       `[data-row-id="${affectingTraitTestId(MITOCHONDRION)}"]`,
     );
     expect(row).not.toBeNull();
-    expect(row?.querySelector(`app-trait-glyph svg[data-trait-id="${MITOCHONDRION}"]`)).not.toBeNull();
+    const glyph = row?.querySelector(`app-trait-glyph svg[data-trait-id="${MITOCHONDRION}"]`);
+    expect(glyph).not.toBeNull();
+    // Presence alone is a false green: `TraitGlyphComponent` fills its host and leaves the sizing to the caller,
+    // so before the panel gave it a box it sat at 0 x 0 inside the kit's shrink-to-content marker cell and drew
+    // nothing at all. jsdom lays nothing out and cannot resolve `calc(var(…))`, so this pins the rule that sizes
+    // it — the thing whose absence was the defect — rather than a measured box.
+    expect(sizesTheTraitGlyph()).toBe(true);
   });
 
   it('stands down while spectating: there is no cell to describe', () => {

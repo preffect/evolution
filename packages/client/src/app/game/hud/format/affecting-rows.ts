@@ -11,7 +11,6 @@
 import {
   TRAIT_CATALOG,
   WORLD_STANDING,
-  maxSpeedForMass,
   standingAgainstWorld,
   worldElapsedSeconds,
   worldReference,
@@ -25,13 +24,14 @@ import {
 } from '@evolution/shared';
 import { UI_FACT_MARKER_SHAPE, type UiFactRow } from '../../../ui-kit/ui-facts-table.component';
 import { formatQuantity } from '../../quantities/format-quantity';
-import { AT_LEAST_SIGN, AT_MOST_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
-import { DANGER, GAIN, LEVEL_GOLD, TEXT, TEXT_LABEL, ZONE_CUE } from '../../render/constants';
+import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { LEVEL_GOLD, TEXT, TEXT_LABEL, ZONE_CUE } from '../../render/constants';
 import { MASS_TREND, type MassTrend } from '../../state/mass-trend';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import { HUD_TEST_ID, affectingTraitTestId } from '../test-ids';
 import { causeRowsFor } from './affecting-causes';
-import { FACT_SEPARATOR, joinFacts } from './fact-line';
+import { sizeRowsFor } from './affecting-size';
+import { joinFacts } from './fact-line';
 import { leadingMultiplier, type RoundClockState } from './round-clock';
 import { describeTierModifiers } from './trait-effects';
 import { zonePillText } from './zone-pill';
@@ -54,10 +54,21 @@ export interface AffectingRow extends UiFactRow {
   readonly traitId: TraitId | null;
 }
 
+/**
+ * A section, already split into the two tables the panel draws it as. The split is a decision about the rows, so it
+ * is made here with them rather than in the component: the kit's facts table draws either its own dot-and-ring
+ * markers or a feature's marker slot, never both in one table, so the glyph-marked trait rows and the plain rows
+ * cannot share one. Splitting here also means the component allocates nothing per change detection.
+ */
 export interface AffectingSection {
   readonly sectionId: AffectingSectionId;
   readonly heading: string;
+  /** Every row of the section, in order: the trait rows first, then the plain ones. */
   readonly rows: readonly AffectingRow[];
+  /** The rows whose marker is a #312 trait glyph; empty in every section but `TRAITS`. */
+  readonly traitRows: readonly AffectingRow[];
+  /** The rows the kit marks with its own dot or ring. */
+  readonly plainRows: readonly AffectingRow[];
 }
 
 /** The one row the kit has no shape for: the mass, its trend, its rate and the sparkline, above the table. */
@@ -96,20 +107,12 @@ export interface AffectingRowsInput {
   readonly foodGainPerSecond: number;
 }
 
-const NO_SPEED_COST = 0;
-const FULL_SPEED = 1;
 /** A section with no rows is left out entirely, heading and rule included. */
 const NO_ROWS = 0;
-/** A threshold keeps one decimal: `≤ 249.6`, and `≥ 390` once the trailing zero is dropped. */
-const MASS_THRESHOLD_DECIMALS = 1;
-const DECIMAL_BASE = 10;
 /** The bloom row names what the bloom multiplies, as §3.7 writes it. */
 const BLOOM_ROW_NAME = 'Bloom';
 const BLOOM_FOOD_NAME = 'food';
 const BLOOM_DNA_NAME = 'DNA drops';
-const PREY_BELOW_ROW_NAME = 'You eat';
-const THREAT_ABOVE_ROW_NAME = 'Eats you';
-const SPEED_ROW_NAME = 'Speed';
 const WORLD_ROW_NAME = 'World';
 
 /** How the standing reads to a player: at the world's level is `level`, which `with` would not say. */
@@ -125,20 +128,13 @@ function plainRow(row: UiFactRow): AffectingRow {
 }
 
 /**
- * A mass threshold's figure: one decimal, trailing zeros dropped. Not `formatMassFigure`, which goes whole from ten
- * up and would print `250` for a 249.6 that a 250-mass prey is safe from — the opposite of what the row promises.
+ * The zone's row: the whole pill text in `body` across the row, as §3.7 specifies, and no right-hand value.
+ *
+ * These facts are prose, not figures. The kit draws `values` in the mono `figure` face and never wraps a cell, so a
+ * fact line put there is cut at the panel's edge mid-word — `decay ×1.5 · orange` — losing exactly the part that
+ * tells the player what to go and eat. The name column is the sans `body` face and takes the row's slack, which is
+ * what the pill's own line is sized for. The open broth has nothing to say and gets no row.
  */
-function massThresholdText(mass: number): string {
-  return String(Number(mass.toFixed(MASS_THRESHOLD_DECIMALS)));
-}
-
-/** Floored, never rounded: at mass 312.1 a rounded `249.7` would name a prey that actually needs 312.125. */
-function flooredToDecimal(value: number): number {
-  const factor = DECIMAL_BASE ** MASS_THRESHOLD_DECIMALS;
-  return Math.floor(value * factor) / factor;
-}
-
-/** The zone's row: its name on the left, the rest of the pill's facts on the right; the open broth has no row. */
 function zoneRows(input: AffectingRowsInput): readonly AffectingRow[] {
   const zone = input.indicators.zone;
   if (zone === null) return [];
@@ -149,22 +145,22 @@ function zoneRows(input: AffectingRowsInput): readonly AffectingRow[] {
     balance: input.balance,
   });
   if (text === null) return [];
-  const [name = text, ...facts] = text.split(FACT_SEPARATOR);
   return [
     plainRow({
       rowId: HUD_TEST_ID.affectingZone,
-      name,
-      values: [joinFacts(facts)],
+      name: text,
+      values: [],
       marker: { shape: UI_FACT_MARKER_SHAPE.dot, colour: ZONE_CUE[zone.zone] ?? TEXT_LABEL },
     }),
   ];
 }
 
-/** `Bloom · 1:48 · food ×1.5 · DNA drops ×2`, only once the bloom has started. */
+/** `Bloom · 1:48 · food ×1.5 · DNA drops ×2` in `body`, for the same reason the zone row is; only while in bloom. */
 function bloomRows(input: AffectingRowsInput): readonly AffectingRow[] {
   if (!input.roundClock.isBloom) return [];
   const { ecology } = input.balance;
   const facts = [
+    BLOOM_ROW_NAME,
     input.roundClock.text,
     `${BLOOM_FOOD_NAME} ${leadingMultiplier(ecology.FOOD_BLOOM_SPAWN_MULTIPLIER)}`,
     `${BLOOM_DNA_NAME} ${leadingMultiplier(ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER)}`,
@@ -172,53 +168,20 @@ function bloomRows(input: AffectingRowsInput): readonly AffectingRow[] {
   return [
     plainRow({
       rowId: HUD_TEST_ID.affectingBloom,
-      name: BLOOM_ROW_NAME,
-      values: [joinFacts(facts)],
+      name: joinFacts(facts),
+      values: [],
       marker: { shape: UI_FACT_MARKER_SHAPE.dot, colour: LEVEL_GOLD },
     }),
   ];
 }
 
 /**
- * The two engulf thresholds and the size's own speed cost. Both comparisons admit equality, because `canEngulf`
- * does: the prey figure is floored so the row never names a prey that is in fact too heavy, and the threat figure
- * is the mass a cell needs for `canEngulf(it, ownCell)`, the own membrane bonus included.
+ * One row per owned trait, in catalog order, each reading the first line of its tier's effects.
+ *
+ * An owned trait always earns its row — it is acting on the cell whether or not its tier has a line to show — but a
+ * tier with no described modifier gets no value cell at all rather than an empty one, which is the same rule the
+ * rest of the panel follows: nothing to say is said by omission, never by a blank.
  */
-function sizeRows(input: AffectingRowsInput): readonly AffectingRow[] {
-  const { ownCell, balance } = input;
-  const preyBelow = flooredToDecimal(ownCell.mass / balance.absorption.ENGULF_MASS_RATIO);
-  const threatAbove = ownCell.mass * (balance.absorption.ENGULF_MASS_RATIO + ownCell.membraneRatioBonus);
-  const speedShare = maxSpeedForMass(ownCell.mass, balance.growth) / balance.growth.CELL_BASE_SPEED - FULL_SPEED;
-  const rows = [
-    plainRow({
-      rowId: HUD_TEST_ID.affectingPreyBelow,
-      name: PREY_BELOW_ROW_NAME,
-      values: [`${AT_MOST_SIGN} ${massThresholdText(preyBelow)}`],
-      marker: { shape: UI_FACT_MARKER_SHAPE.ring, colour: GAIN },
-    }),
-    plainRow({
-      rowId: HUD_TEST_ID.affectingThreatAbove,
-      name: THREAT_ABOVE_ROW_NAME,
-      values: [`${AT_LEAST_SIGN} ${massThresholdText(threatAbove)}`],
-      marker: { shape: UI_FACT_MARKER_SHAPE.ring, colour: DANGER },
-    }),
-  ];
-  if (speedShare === NO_SPEED_COST) return rows;
-  const speedText = formatQuantity(speedShare, QUANTITY_UNIT.share, {
-    presentation: QUANTITY_PRESENTATION.signedChange,
-  });
-  return [
-    ...rows,
-    plainRow({
-      rowId: HUD_TEST_ID.affectingSpeed,
-      name: SPEED_ROW_NAME,
-      values: [speedText],
-      marker: { shape: UI_FACT_MARKER_SHAPE.dot, colour: TEXT_LABEL },
-    }),
-  ];
-}
-
-/** One row per owned trait, in catalog order, each reading the first line of its tier's effects. */
 function traitRows(input: AffectingRowsInput): readonly AffectingRow[] {
   return TRAIT_CATALOG.flatMap((definition) => {
     const owned = input.ownCell.traits.find((trait) => trait.traitId === definition.id);
@@ -229,7 +192,7 @@ function traitRows(input: AffectingRowsInput): readonly AffectingRow[] {
       {
         rowId: affectingTraitTestId(definition.id),
         name: `${definition.name} ${tier}`,
-        values: [effect ?? ''],
+        values: effect === undefined ? [] : [effect],
         marker: null,
         traitId: definition.id,
       },
@@ -261,14 +224,25 @@ function massElementOf(input: AffectingRowsInput): AffectingMass {
   };
 }
 
+/** A section's heading and its split into the two tables the panel draws it as. */
+function sectionOf(sectionId: AffectingSectionId, rows: readonly AffectingRow[]): AffectingSection {
+  return {
+    sectionId,
+    heading: AFFECTING_SECTION_HEADING[sectionId],
+    rows,
+    traitRows: rows.filter((row) => row.traitId !== null),
+    plainRows: rows.filter((row) => row.traitId === null),
+  };
+}
+
 /** The whole panel: the mass element, then the sections, each without the rows that would read zero. */
 export function affectingRowsFor(input: AffectingRowsInput): AffectingPanel {
   const causes = causeRowsFor(input).map(plainRow);
-  const sections: AffectingSection[] = [
-    { sectionId: AFFECTING_SECTION.mass, rows: causes },
-    { sectionId: AFFECTING_SECTION.here, rows: [...zoneRows(input), ...bloomRows(input)] },
-    { sectionId: AFFECTING_SECTION.size, rows: sizeRows(input) },
-    { sectionId: AFFECTING_SECTION.traits, rows: [...traitRows(input), worldRow(input)] },
-  ].map((section) => ({ ...section, heading: AFFECTING_SECTION_HEADING[section.sectionId] }));
+  const sections = [
+    sectionOf(AFFECTING_SECTION.mass, causes),
+    sectionOf(AFFECTING_SECTION.here, [...zoneRows(input), ...bloomRows(input)]),
+    sectionOf(AFFECTING_SECTION.size, sizeRowsFor(input).map(plainRow)),
+    sectionOf(AFFECTING_SECTION.traits, [...traitRows(input), worldRow(input)]),
+  ];
   return { mass: massElementOf(input), sections: sections.filter((section) => section.rows.length > NO_ROWS) };
 }

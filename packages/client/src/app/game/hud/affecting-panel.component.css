@@ -22,6 +22,16 @@
   pointer-events: none;
 }
 
+/* A trait row's marker is the #312 glyph (docs/ui/overlays.md §3.7). `TraitGlyphComponent` is a block that
+   fills its host and leaves the sizing to whoever mounts it, and the kit's marker cell is shrink-to-content
+   with `line-height: 0` — so without a box here the glyph resolves to 0 x 0 and the row draws no marker at
+   all. Same shape as the ESC menu's trait list (`menu-traits.component.css`), from the same constant. */
+app-trait-glyph {
+  display: block;
+  width: calc(var(--hud-affecting-trait-glyph) * var(--ui-scale));
+  height: calc(var(--hud-affecting-trait-glyph) * var(--ui-scale));
+}
+
 /* The mass element: the mass in `number`, its trend glyph, the rate in `value`, then the sparkline.
    It sits above the first section, inside the panel's body. */
 .mass {

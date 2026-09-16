@@ -163,6 +163,7 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-affecting-sparkline-height', `${AFFECTING_SPARKLINE_HEIGHT_PX}px`],
   ['--hud-affecting-sparkline-stroke', `${AFFECTING_SPARKLINE_STROKE_PX}px`],
   ['--hud-affecting-trend-glyph', `${TREND_GLYPH_PX}px`],
+  ['--hud-affecting-trait-glyph', `${TRAIT_GLYPH_LIST_PX}px`],
 
   ['--hud-notice-stack-max-y', `${NOTICE_STACK_MAX_Y_PX}px`],
   ['--hud-notice-padding-inline', `${NOTICE_PADDING_INLINE_PX}px`],

@@ -22,7 +22,7 @@ import { UiPanelSectionComponent } from '../../ui-kit/ui-panel-section.component
 import { AFFECTING_SPARKLINE_HEIGHT_PX, AFFECTING_SPARKLINE_WIDTH_PX } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID } from './test-ids';
-import { affectingRowsFor, type AffectingRow, type AffectingSection } from './format/affecting-rows';
+import { affectingRowsFor, type AffectingRow } from './format/affecting-rows';
 import { roundClockStateFor } from './format/round-clock';
 import { sparklinePointsFor } from './format/sparkline';
 
@@ -61,22 +61,19 @@ const PANEL_LABEL = 'Affecting you';
         </div>
         @for (section of affecting.sections; track section.sectionId) {
           <ui-panel-section [heading]="section.heading">
-            <!-- The trait rows come first and wear their #312 glyph; the plain rows follow (§3.7's row order). -->
-            @if (traitRowsOf(section); as traitRows) {
-              @if (traitRows.length > 0) {
-                <ui-facts-table [rows]="traitRows">
-                  <ng-template uiFactMarker let-row>
-                    @if (traitIdOf(row); as traitId) {
-                      <app-trait-glyph [traitId]="traitId" [lod]="listLod" still />
-                    }
-                  </ng-template>
-                </ui-facts-table>
-              }
+            <!-- The trait rows come first and wear their #312 glyph; the plain rows follow (§3.7's row order).
+                 Both lists come split from affectingRowsFor, so nothing is partitioned per change detection. -->
+            @if (section.traitRows.length) {
+              <ui-facts-table [rows]="section.traitRows">
+                <ng-template uiFactMarker let-row>
+                  @if (traitIdOf(row); as traitId) {
+                    <app-trait-glyph [traitId]="traitId" [lod]="listLod" still />
+                  }
+                </ng-template>
+              </ui-facts-table>
             }
-            @if (plainRowsOf(section); as plainRows) {
-              @if (plainRows.length > 0) {
-                <ui-facts-table [rows]="plainRows" />
-              }
+            @if (section.plainRows.length) {
+              <ui-facts-table [rows]="section.plainRows" />
             }
           </ui-panel-section>
         }
@@ -140,18 +137,12 @@ export class AffectingPanelComponent {
     return sparklinePointsFor(mass.masses, AFFECTING_SPARKLINE_WIDTH_PX, AFFECTING_SPARKLINE_HEIGHT_PX);
   });
 
-  /** The owned-trait rows, which the glyph slot marks. */
-  protected traitRowsOf(section: AffectingSection): readonly AffectingRow[] {
-    return section.rows.filter((row) => row.traitId !== null);
-  }
-
-  /** Every other row, which the kit marks with its own dot or ring. */
-  protected plainRowsOf(section: AffectingSection): readonly AffectingRow[] {
-    return section.rows.filter((row) => row.traitId === null);
-  }
-
-  /** The trait a marker slot draws; the rows handed to that table always carry one. */
+  /**
+   * The trait a marker slot draws. The kit hands the slot its own `UiFactRow`, so this narrows to the panel's row
+   * with a real check rather than asserting the shape: every row in a `traitRows` table carries a trait, and one
+   * that somehow did not would simply draw no marker.
+   */
   protected traitIdOf(row: UiFactRow): TraitId | null {
-    return (row as AffectingRow).traitId;
+    return 'traitId' in row ? (row as AffectingRow).traitId : null;
   }
 }

@@ -4,6 +4,7 @@
 // literal is typed twice.
 
 import { expect, test } from '@playwright/test';
+import { HUD_PLAYER_EXCLUSION_PX } from '../src/app/game/hud/hud-constants';
 import { HUD_TEST_ID } from '../src/app/game/hud/test-ids';
 import { openLiveRoom } from './live-room';
 
@@ -48,10 +49,32 @@ test.describe('the hold-Tab affecting panel', () => {
     await page.keyboard.down('Tab');
 
     const box = await page.getByTestId(HUD_TEST_ID.affectingPanel).boundingBox();
-    const viewport = page.viewportSize()!;
-    // docs/ui/layout.md §1: no DOM element enters the central square around the player's own cell.
     expect(box).not.toBeNull();
-    expect(box!.x + box!.width).toBeLessThan(viewport.width / 2);
+
+    // docs/ui/layout.md §1: no DOM element enters the central square around the player's own cell. The square is
+    // `HUD_PLAYER_EXCLUSION_PX` each way from the viewport centre, scaled by the HUD's own scale — 520 to 760 at
+    // the 1280 reference viewport. Asserting only "left of the midpoint" would pass a panel 144 px too wide.
+    const scale = await page.evaluate(
+      (hudTestId) =>
+        Number(
+          getComputedStyle(document.querySelector(`[data-testid="${hudTestId}"]`)!).getPropertyValue('--hud-scale'),
+        ),
+      HUD_TEST_ID.hud,
+    );
+    const viewport = page.viewportSize()!;
+    const half = HUD_PLAYER_EXCLUSION_PX * scale;
+    const square = {
+      left: viewport.width / 2 - half,
+      right: viewport.width / 2 + half,
+      top: viewport.height / 2 - half,
+      bottom: viewport.height / 2 + half,
+    };
+    const overlaps =
+      box!.x < square.right &&
+      box!.x + box!.width > square.left &&
+      box!.y < square.bottom &&
+      box!.y + box!.height > square.top;
+    expect(overlaps).toBe(false);
 
     await page.keyboard.up('Tab');
   });

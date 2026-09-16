@@ -10,6 +10,7 @@
 // builder would otherwise run past the size bar. Pure and DOM-free.
 
 import {
+  MASS_RATE_CAUSE,
   MASS_RATE_CAUSES,
   TRAIT_CATALOG,
   foldModifiers,
@@ -25,7 +26,7 @@ import { HUD_TEST_ID, affectingCauseTestId } from '../test-ids';
 import { joinFacts } from './fact-line';
 import { CUE_RIM_COLOUR, RATE_CAUSE_LABEL, RATE_CAUSE_RIM, decayTraitShareOf, formatMassRate } from './mass-cues';
 import { leadingMultiplier } from './round-clock';
-import { cellDisplayName } from './threats-for';
+import { cellDisplayName, distanceSquaredBetween } from './threats-for';
 
 /** What the cause rows are built from; the caller holds the window the `Food` rate was measured over. */
 export interface AffectingCausesInput {
@@ -66,36 +67,39 @@ function ventQualifier(input: AffectingCausesInput): string {
 }
 
 /**
- * The cells that drain by toxin at all: the `toxic` rule of docs/ui/hud.md §3.1.5, over the folded modifiers.
+ * Whether a cell drains by toxin at all: the `toxic` rule of docs/ui/hud.md §3.1.5, over the folded modifiers.
  *
- * This deliberately mirrors that section's predicate rather than inventing a second definition of "toxic", because
- * `relationsFor` (`hud/format/relations-for.ts`), which §3.1.5 gives the rule to, belongs to #385's relation-ring
- * slice and is not built on any branch yet. **Move this to `relationsFor` when that lands** and delete the copy;
- * until then the duplication is intentional and lives here so it is findable. It names the likeliest source only —
- * the reach rule stays on the server and is never re-derived here, and the rate itself is always the wire's.
+ * This mirrors that section's predicate rather than inventing a second definition of "toxic". §3.1.5 gives the rule
+ * a long-term home in `relationsFor` (`hud/format/relations-for.ts`), which belongs to #385's relation-ring slice
+ * and does not exist yet; the rule is small and reading it from the folded modifiers is the same computation either
+ * way, so the panel asks the question directly here instead of waiting for that file. It names the likeliest source
+ * only — the reach rule stays on the server and is never re-derived here, and the rate itself is always the wire's.
  */
 function isToxic(cell: CellView, balance: BalanceConfig): boolean {
   return foldModifiers(cell.traits, balance.traits.TRAIT_TIERS).toxinDrainFractionPerSecond > NO_RATE;
-}
-
-function distanceSquaredTo(cell: CellView, ownCell: CellView): number {
-  const deltaX = cell.x - ownCell.x;
-  const deltaY = cell.y - ownCell.y;
-  return deltaX * deltaX + deltaY * deltaY;
 }
 
 /**
  * `near Nib`: the nearest toxic cell, which is the one the player has to move away from. The rate itself is the
  * server's sum over every cell reaching us, so this names the likeliest source rather than claiming to be the only
  * one; the reach rule stays on the server and is never re-derived here.
+ *
+ * One pass for one minimum, rather than folding every cell's modifiers and then sorting the survivors: the panel is
+ * rebuilt on every snapshot for as long as Tab is held, and only the nearest cell is ever read.
  */
 function toxinQualifier(input: AffectingCausesInput): string | null {
   const { ownCell, balance } = input;
-  const toxic = input.cells
-    .filter((cell) => cell.id !== ownCell.id && isToxic(cell, balance))
-    .sort((first, second) => distanceSquaredTo(first, ownCell) - distanceSquaredTo(second, ownCell));
-  const nearest = toxic[0];
-  return nearest === undefined ? null : `${TOXIN_SOURCE_PREFIX} ${cellDisplayName(nearest, input.players)}`;
+  let nearest: CellView | null = null;
+  let nearestDistanceSquared = Number.POSITIVE_INFINITY;
+  for (const cell of input.cells) {
+    if (cell.id === ownCell.id) continue;
+    const distanceSquared = distanceSquaredBetween(cell, ownCell);
+    if (distanceSquared >= nearestDistanceSquared) continue;
+    if (!isToxic(cell, balance)) continue;
+    nearest = cell;
+    nearestDistanceSquared = distanceSquared;
+  }
+  return nearest === null ? null : `${TOXIN_SOURCE_PREFIX} ${cellDisplayName(nearest, input.players)}`;
 }
 
 /** `Nib`: the prey this cell is swallowing, whose spikes and toxin are the dose (#154). */
@@ -111,11 +115,11 @@ function swallowedQualifier(input: AffectingCausesInput): string | null {
  * the type stops compiling until it has one.
  */
 const CAUSE_QUALIFIER: Readonly<Record<MassRateCause, (input: AffectingCausesInput) => string | null>> = {
-  toxin: toxinQualifier,
-  swallowed: swallowedQualifier,
-  decay: decayQualifier,
-  vent: ventQualifier,
-  light: () => null,
+  [MASS_RATE_CAUSE.toxin]: toxinQualifier,
+  [MASS_RATE_CAUSE.swallowed]: swallowedQualifier,
+  [MASS_RATE_CAUSE.decay]: decayQualifier,
+  [MASS_RATE_CAUSE.vent]: ventQualifier,
+  [MASS_RATE_CAUSE.light]: () => null,
 };
 
 /** `Decay · Mitochondrion −15 %`, or plain `Light` where the cause has nothing to add. */

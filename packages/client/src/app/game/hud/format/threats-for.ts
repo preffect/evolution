@@ -36,6 +36,17 @@ export interface ThreatsInput {
 }
 
 /**
+ * How far one cell is from another, squared — enough to rank by, and it never takes a square root to do it. Shared
+ * with the hold-Tab panel, whose toxin row picks the nearest toxic cell (docs/ui/overlays.md §3.7) by the same
+ * measure this file's threats are sorted by.
+ */
+export function distanceSquaredBetween(cell: CellView, other: CellView): number {
+  const deltaX = cell.x - other.x;
+  const deltaY = cell.y - other.y;
+  return deltaX * deltaX + deltaY * deltaY;
+}
+
+/**
  * What a cell is called on screen: its player's name, or the wild cell's stand-in. The hold-Tab panel names the
  * cell draining us and the prey we are swallowing (docs/ui/overlays.md §3.7) the same way, so the fallback for a
  * nameless cell has one home.
@@ -58,12 +69,10 @@ export function threatsFor(input: ThreatsInput): readonly Threat[] {
     if (cell.id === ownCell.id) continue;
     if (!isDiscVisibleInExtent(cameraExtent, cell.x, cell.y, cell.radius)) continue;
     if (!canEngulf(cell, ownCell, balance.absorption)) continue;
-    const deltaX = cell.x - ownCell.x;
-    const deltaY = cell.y - ownCell.y;
     threats.push({
       cellId: cell.id,
       name: cellDisplayName(cell, players),
-      distanceSquared: deltaX * deltaX + deltaY * deltaY,
+      distanceSquared: distanceSquaredBetween(cell, ownCell),
     });
   }
   // Ties break on id so the label never flickers between two equidistant predators.

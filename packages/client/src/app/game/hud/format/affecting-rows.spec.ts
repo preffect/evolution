@@ -182,26 +182,33 @@ describe('affectingRowsFor at the worked example', () => {
     expect(rowById(panel, affectingCauseTestId(MASS_RATE_CAUSE.swallowed))).toBeUndefined();
   });
 
-  it('says where the cell is, splitting the zone pill into its name and its facts', () => {
+  it('says where the cell is, carrying the whole zone pill in the row name', () => {
     const panel = panelAt();
     const pill = zonePillText({ zone: ZONE_ID.warmVent, mass: OWN_MASS, traits: ownCell.traits, balance })!;
     const zone = rowById(panel, HUD_TEST_ID.affectingZone);
-    expect(pill.startsWith(zone!.name)).toBe(true);
-    expect(pill).toContain(zone!.values[0]!);
+    // The facts are prose, so they belong in `body` with the name (docs/ui/overlays.md §3.7). The kit draws
+    // `values` in the mono figure face and never wraps one, which cut `orange rods` off at the panel edge.
+    expect(zone?.name).toBe(pill);
+    expect(zone?.values).toEqual([]);
   });
 
-  it('shows the bloom with its multipliers, both from the live balance', () => {
-    const bloom = valueOf(panelAt(), HUD_TEST_ID.affectingBloom);
-    expect(bloom).toContain(leadingMultiplier(balance.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER));
-    expect(bloom).toContain(leadingMultiplier(balance.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER));
+  it('shows the bloom with its multipliers, both from the live balance, in the row name', () => {
+    const bloom = rowById(panelAt(), HUD_TEST_ID.affectingBloom);
+    expect(bloom?.name).toContain(leadingMultiplier(balance.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER));
+    expect(bloom?.name).toContain(leadingMultiplier(balance.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER));
+    // Same reason as the zone row: `8:02 · food ×1.5 · DNA drops ×2` is the widest line the panel draws, and in
+    // the figure face it lost `ps ×2` off the end.
+    expect(bloom?.values).toEqual([]);
   });
 
   it('reads the engulf thresholds off the ratio in balance, with the comparisons canEngulf admits', () => {
     const panel = panelAt();
     const prey = OWN_MASS / balance.absorption.ENGULF_MASS_RATIO;
     const threat = OWN_MASS * (balance.absorption.ENGULF_MASS_RATIO + ownCell.membraneRatioBonus);
-    expect(valueOf(panel, HUD_TEST_ID.affectingPreyBelow)).toBe(`${AT_MOST_SIGN} ${Number(prey.toFixed(1))}`);
-    expect(valueOf(panel, HUD_TEST_ID.affectingThreatAbove)).toBe(`${AT_LEAST_SIGN} ${Number(threat.toFixed(1))}`);
+    // Each figure is taken away from the player being surprised, never to the nearest decimal: the prey limit down,
+    // the threat threshold up. The rule, not the implementation — a rounded expectation would pin the bug.
+    expect(valueOf(panel, HUD_TEST_ID.affectingPreyBelow)).toBe(`${AT_MOST_SIGN} ${Math.floor(prey * 10) / 10}`);
+    expect(valueOf(panel, HUD_TEST_ID.affectingThreatAbove)).toBe(`${AT_LEAST_SIGN} ${Math.ceil(threat * 10) / 10}`);
   });
 
   it('floors the prey figure instead of rounding it, so it never names a prey that is too heavy', () => {
@@ -209,6 +216,23 @@ describe('affectingRowsFor at the worked example', () => {
     // needs a predator of 312.125, which this cell is not.
     const panel = panelAt(312.1);
     expect(valueOf(panel, HUD_TEST_ID.affectingPreyBelow)).toBe(`${AT_MOST_SIGN} 249.6`);
+  });
+
+  it('ceils the threat figure instead of rounding it, so it never names a cell that cannot eat us', () => {
+    // The other half of the #389 ruling. The mass is chosen from the live ratio so the threshold lands 0.0375 above
+    // a decimal step whatever the ratio is tuned to — at the shipped 1.25 that mass is 100.03. Rounded, the row
+    // would read `≥ 125`, and a 125-mass cell cannot engulf this one: a harmless cell named as a predator.
+    const thresholdJustAboveAStep = 125.0375;
+    const ratio = balance.absorption.ENGULF_MASS_RATIO + ownCell.membraneRatioBonus;
+    const panel = panelAt(thresholdJustAboveAStep / ratio);
+    expect(valueOf(panel, HUD_TEST_ID.affectingThreatAbove)).toBe(`${AT_LEAST_SIGN} 125.1`);
+  });
+
+  it('omits the speed row entirely at a size that costs no speed', () => {
+    // `maxSpeedForMass` clamps to `CELL_BASE_SPEED` at or under the starting mass, so the share is exactly zero
+    // there — not an epsilon — and a `−0 %` row would be noise.
+    const panel = panelAt(balance.growth.CELL_STARTING_MASS);
+    expect(rowById(panel, HUD_TEST_ID.affectingSpeed)).toBeUndefined();
   });
 
   it('reads the size speed cost off the shared mass curve, before any trait', () => {
