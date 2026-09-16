@@ -17,6 +17,15 @@ const PACKAGES_DIRECTORY = new URL('../../../../packages/', import.meta.url);
  */
 const DESCRIBES_BUT_DOES_NOT_DRIVE = ['EFFECT_DRAW_WINDOW_TICKS'] as const;
 
+/**
+ * `constants/derive-netcode.ts` is the algebra behind the netcode constants and is deliberately out of
+ * the barrel: the public surface is the named constants `netcode.ts` exports, not the function behind
+ * them, and a second caller would pick levers of its own and re-open the drift #287 closes. Its own
+ * header says so, which is the shape of prose #287 exists to turn into a case.
+ */
+const DERIVATION_MODULE = 'derive-netcode.js';
+const DERIVATION_SOLE_IMPORTER = 'shared/src/constants/netcode.ts';
+
 /** Every shipping TypeScript file under each package's `src`: not tests, not the doubles they use. */
 function shippingSourceFiles(): URL[] {
   const files: URL[] = [];
@@ -35,6 +44,11 @@ function shippingSourceFiles(): URL[] {
     }
   }
   return files;
+}
+
+/** `…/packages/shared/src/constants/netcode.ts` as `shared/src/constants/netcode.ts`, for a readable failure. */
+function pathWithinPackages(file: URL): string | undefined {
+  return file.pathname.split('/packages/')[1];
 }
 
 /**
@@ -124,6 +138,13 @@ describe('constants ledger: constants that describe rather than drive', () => {
     });
     // Aimed at the condition, not at today's behaviour: this goes red on exactly the day the comment
     // needs rewriting, and hands whoever adds the consumer the paragraph to update.
-    expect(consumers.map((file) => file.pathname.split('/packages/')[1])).toEqual([]);
+    expect(consumers.map(pathWithinPackages)).toEqual([]);
+  });
+
+  it('imports the netcode derivation from nothing but the file that names its result', () => {
+    // The same shape for `derive-netcode.ts`'s own header claim (#287): the specifier is matched
+    // without its leading `./` so an import from another directory counts too.
+    const importers = sources.filter((file) => readFileSync(file, 'utf8').includes(DERIVATION_MODULE));
+    expect(importers.map(pathWithinPackages)).toEqual([DERIVATION_SOLE_IMPORTER]);
   });
 });
