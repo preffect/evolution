@@ -43,6 +43,9 @@ import {
   LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
   HUD_FOCUS_RING_PX,
+  MENU_PANEL_WIDTH_PX,
+  MENU_TRAIT_LINE_HEIGHT_PX,
+  MENU_TRAIT_ROW_HEIGHT_PX,
   PICKER_CARD_CONTENT_GAP_PX,
   PICKER_CARD_GLOW_PX,
   PICKER_CARD_HIGHLIGHT_MS,
@@ -70,6 +73,7 @@ import {
   pickerBandVariables,
 } from './hud-css-variables';
 import { pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
+import { TRAIT_GLYPH_LIST_PX } from '../../glyphs/glyph-constants';
 
 describe('pickerBandVariables', () => {
   it('publishes the band offset and the dim radius for the viewport, in real px, beside the constant map', () => {
@@ -141,6 +145,11 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-picker-card-glow', `${PICKER_CARD_GLOW_PX}px`],
   ['--hud-picker-highlight-duration', `${PICKER_CARD_HIGHLIGHT_MS}ms`],
   ['--hud-picker-ribbon-padding-inline', `${PICKER_RIBBON_PADDING_INLINE_PX}px`],
+
+  ['--hud-menu-panel-width', `${MENU_PANEL_WIDTH_PX}px`],
+  ['--hud-menu-trait-row-height', `${MENU_TRAIT_ROW_HEIGHT_PX}px`],
+  ['--hud-menu-trait-line-height', `${MENU_TRAIT_LINE_HEIGHT_PX}px`],
+  ['--hud-menu-trait-glyph', `${TRAIT_GLYPH_LIST_PX}px`],
 
   ['--hud-notice-row-height', `${NOTICE_ROW_HEIGHT_PX}px`],
   ['--hud-notice-stack-max-y', `${NOTICE_STACK_MAX_Y_PX}px`],

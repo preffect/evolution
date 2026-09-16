@@ -8,22 +8,25 @@
 // The own-cell signals of docs/ui/components-and-constants.md §7 (`ownCell`, `ownProgress`, `ownCellIndicators`, `threats`,
 // `cameraExtent`) arrive with #186/#187 and read the store through the render seam.
 
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
 import {
   PLAYER_LIFE_STATE,
   ROUND_PHASE,
   type BalanceConfig,
   type CellView,
+  type GameSnapshot,
   type LeaderboardRow,
+  type OwnProgressView,
   type PlayerId,
-  type PlayerProgressView,
   type PlayerRosterView,
   type RoundPhase,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { CONNECTION_STATE, type ConnectionState } from '../hud/format/connection-banner';
 import { threatsFor, type Threat } from '../hud/format/threats-for';
+import { zoneEntryFor, type ZoneEntryMemory } from '../hud/format/zone-pill';
 import { HudStateService } from '../hud/hud-state.service';
+import { massTrendFor, type MassTrendMemory } from './mass-trend';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
 import type { CameraExtent } from '../render/camera';
 
@@ -39,6 +42,13 @@ function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | n
   return (
     first.minX === second.minX && first.maxX === second.maxX && first.minY === second.minY && first.maxY === second.maxY
   );
+}
+
+/** The newest snapshot with the own cell and progress it names: what the cue memories step on. */
+interface OwnSnapshot {
+  readonly snapshot: GameSnapshot;
+  readonly ownCell: CellView;
+  readonly ownProgress: OwnProgressView;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -98,7 +108,7 @@ export class GameStateService {
    * Our own progress record, or `null` before the room names us (docs/ui/layout.md §1's `ownProgress`). The
    * server sends it to us alone, as the snapshot's `ownProgress` (docs/architecture/wire-contract.md §4.1).
    */
-  readonly ownProgress = computed<PlayerProgressView | null>(() =>
+  readonly ownProgress = computed<OwnProgressView | null>(() =>
     this.ownPlayerId() === null ? null : (this.multiplayer.snapshot()?.ownProgress ?? null),
   );
 
@@ -107,6 +117,42 @@ export class GameStateService {
     const id = this.ownPlayerId();
     if (id === null) return null;
     return this.cells().find((cell) => cell.playerId === id) ?? null;
+  });
+
+  /** The snapshot the cue memories step on; `null` whenever there is no own cell to say anything about. */
+  private readonly ownSnapshot = computed<OwnSnapshot | null>(() => {
+    const snapshot = this.multiplayer.snapshot();
+    const ownCell = this.ownCell();
+    const ownProgress = this.ownProgress();
+    return snapshot === null || ownCell === null || ownProgress === null ? null : { snapshot, ownCell, ownProgress };
+  });
+
+  /**
+   * The mass chip's trend (docs/ui/hud.md §3.1.5), carried from snapshot to snapshot: a trend is a question about
+   * history, which a plain computed cannot answer. `massTrendFor` resets on a new own cell and ignores a tick it
+   * has already seen, so a recomputation never counts a snapshot twice.
+   */
+  private readonly massTrend = linkedSignal<OwnSnapshot | null, MassTrendMemory | null>({
+    source: () => this.ownSnapshot(),
+    computation: (current, previous) =>
+      current === null
+        ? null
+        : massTrendFor(previous?.value ?? null, {
+            cellId: current.ownCell.id,
+            tick: current.snapshot.tick,
+            massFlow: current.ownProgress.massFlow,
+            effects: current.snapshot.effects,
+          }),
+  });
+
+  /** The zone pill's entries and cooldowns (docs/ui/hud.md §3.1.5), carried the same way. */
+  private readonly zoneEntry = linkedSignal<OwnSnapshot | null, ZoneEntryMemory | null>({
+    source: () => this.ownSnapshot(),
+    computation: (current, previous) => {
+      const zone = current?.ownProgress.massFlow?.zone;
+      if (current === null || zone === undefined) return previous?.value ?? null;
+      return zoneEntryFor(previous?.value ?? null, { cellId: current.ownCell.id, zone, tick: current.snapshot.tick });
+    },
   });
 
   /**
@@ -155,21 +201,23 @@ export class GameStateService {
    * a highlighted rung card hides the orbit ghost it is about to replace (docs/ui/hud.md §3.1.2).
    */
   readonly ownCellIndicators = computed<OwnCellIndicators | null>(() => {
-    const ownCell = this.ownCell();
-    const ownProgress = this.ownProgress();
+    const own = this.ownSnapshot();
     const balance = this.balance();
-    if (ownCell === null || ownProgress === null || balance === null) return null;
+    if (own === null || balance === null) return null;
     // Death lands here: `lifeState` has only `alive` and `spectating`, so dying leaves `alive` and
     // the record goes `null`. The mirror then unmounts, which is silent — an `aria-live` region
     // that is removed announces nothing. Saying the death itself is #189's, which owns the death
     // overlay; this slice does not claim to, and `hud.component.ts` no longer says it does.
-    if (ownProgress.lifeState !== PLAYER_LIFE_STATE.alive) return null;
+    if (own.ownProgress.lifeState !== PLAYER_LIFE_STATE.alive) return null;
     return ownCellIndicatorsFor({
-      ownCell,
-      ownProgress,
+      ownCell: own.ownCell,
+      ownProgress: own.ownProgress,
       balance,
       threats: this.threats(),
       previewTraitId: this.hudState.previewTraitId(),
+      tick: own.snapshot.tick,
+      massTrend: this.massTrend(),
+      zoneEntry: this.zoneEntry(),
     });
   });
 }

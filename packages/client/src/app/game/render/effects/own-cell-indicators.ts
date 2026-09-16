@@ -28,7 +28,8 @@ import type { SpritePaint } from '../sprite-pool';
 import type { LastViewOf } from '../cells/cell-effects';
 import { warningRingPxFor } from '../cells/cell-instance-builder';
 import { cellLodFor } from '../cells/cell-lod';
-import { LADDER_SILHOUETTE, type OwnCellEscape, type OwnCellIndicators } from '../../state/own-cell-indicators';
+import { escapeLabelFor, type OwnCellEscape, type OwnCellIndicators } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
 import type { IndicatorSpriteTexture, IndicatorTextures } from '../textures/indicator-textures';
 import { labelPillWidthPx } from '../textures/label-pill-bake';
 import { pipBlockKey } from '../textures/pip-block-bake';
@@ -37,9 +38,6 @@ import { orbitBackingArcs } from './orbit-backing-arcs';
 import { orbitLayout, type OrbitLayout } from './orbit-layout';
 import { dnaRingRadiusPx, ladderOrbitRadiusPx, unlockRingRadiusPx, type OrbitPoint } from './own-cell-geometry';
 import { threatLabelPlacement } from './threat-label-placement';
-
-/** The escape label's two readings (docs/ui/hud.md §3.1.2), uppercased by the `label` role when drawn. */
-export const ESCAPE_LABEL = { window: 'Sprint to escape', sealed: 'Sealed' } as const;
 
 const FULL_RING = 1;
 const FROM_TWELVE_O_CLOCK = 0;
@@ -237,7 +235,7 @@ function labelOf(text: string, position: Centre, frame: OwnCellIndicatorsFrame):
 
 /** `THREAT_LABEL_GAP_PX` above the escape arc: `SPRINT TO ESCAPE`, then `SEALED` from the seal on. */
 function escapeLabel(escape: OwnCellEscape, centre: Centre, radiusPx: number, frame: OwnCellIndicatorsFrame) {
-  const text = escape.phase === ENGULF_PHASE.absorb ? ESCAPE_LABEL.sealed : ESCAPE_LABEL.window;
+  const text = escapeLabelFor(escape);
   const abovePx = radiusPx + ESCAPE_ARC_STROKE_PX * HALF + THREAT_LABEL_GAP_PX + LABEL_PILL_HEIGHT_PX * HALF;
   return labelOf(text, { x: centre.x, y: centre.y - abovePx / frame.zoom }, frame);
 }

@@ -23,11 +23,7 @@ export class FoodDeltaTracker {
   /** Id → quantised position at the previous broadcast, in that broadcast's array order. */
   private known = new Map<EntityId, MotePositionView>();
 
-  diff(food: readonly FoodMoteRecord[]): FoodDelta {
-    return this.diffPositioned(positionMotes(food));
-  }
-
-  /** `diff` over positions already quantised; the position objects are only read, never changed. */
+  /** The delta over positions already quantised (`positionMotes`); the position objects are only read, never changed. */
   diffPositioned(food: readonly PositionedMote[]): FoodDelta {
     const next = new Map<EntityId, MotePositionView>();
     const spawned: FoodMoteView[] = [];

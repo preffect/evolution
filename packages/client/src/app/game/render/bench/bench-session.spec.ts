@@ -20,7 +20,12 @@ import {
   type RenderBenchReport,
 } from './bench-session';
 
-const DEFAULT_FLAGS = { shouldAdvanceTick: false, shouldPreserveDrawingBuffer: false, sheet: null };
+const DEFAULT_FLAGS = {
+  shouldAdvanceTick: false,
+  shouldPreserveDrawingBuffer: false,
+  shouldDrawCues: false,
+  sheet: null,
+};
 
 describe('parseBenchQuery', () => {
   it('reads the seed, tick, zoom and flags with defaults for what is missing or malformed', () => {
@@ -31,8 +36,11 @@ describe('parseBenchQuery', () => {
       windowFrames: 12,
       shouldAdvanceTick: true,
       shouldPreserveDrawingBuffer: true,
+      shouldDrawCues: false,
       sheet: null,
     });
+    expect(parseBenchQuery('?bench&cues=1').shouldDrawCues).toBe(true);
+    expect(parseBenchQuery('?bench&cues=yes').shouldDrawCues).toBe(false);
     expect(parseBenchQuery('?bench')).toEqual({
       seed: RENDER_BENCH_SEED,
       tick: RENDER_BENCH_DEFAULT_TICK,

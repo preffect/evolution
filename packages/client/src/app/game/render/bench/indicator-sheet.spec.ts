@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { INDICATOR_SHEET } from '../constants';
-import { LADDER_SILHOUETTE } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
 import { endosymbiontTallies } from '../textures/pip-block-bake';
 import { flowSheetRows, indicatorSheetRows } from './indicator-sheet';
 

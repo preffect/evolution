@@ -1,5 +1,5 @@
 // The module as wiring (docs/architecture/server-simulation.md §3, §3.2): inputs coalesce and stale ones are
-// counted, a step advances the one world, the broadcast is a delta and the full state is full,
+// counted, a step advances the one world, the broadcast builds no viewer member and the full state is full,
 // joins and leaves reach the world and the replay, and a spawned bot drives its own player.
 import { describe, expect, it } from 'vitest';
 import {
@@ -65,18 +65,18 @@ describe('createEvolutionModule', () => {
     module.reduceGameState();
     expect(module.world.tick).toBe(1);
     expect(pendingOf(module)).toBeNull();
-    expect(module.serializeRoomState().appliedInputSequenceByPlayer[ALICE]).toBe(4);
+    const broadcast = module.serializeRoomState();
+    expect(module.viewerState.serialize(ALICE, broadcast).appliedInputSequenceByPlayer).toEqual({ [ALICE]: 4 });
   });
 
-  it('broadcasts deltas after a full first snapshot and carries every effect since the last broadcast, between-tick ones included', () => {
+  it('broadcasts no viewer member and every effect since the last broadcast, between-tick ones included', () => {
     const module = createModule();
-    const first = module.serializeRoomState();
-    expect(first.food.spawned.length).toBe(module.world.food.length);
+    const viewerKeys: readonly string[] = module.viewerState.keys;
+    expect(Object.keys(module.serializeRoomState()).filter((key) => viewerKeys.includes(key))).toEqual([]);
     module.world.tick = LATE_JOIN_TICK;
     module.addPlayer(BOB, 1, 'Bob');
     module.reduceGameState();
     const second = module.serializeRoomState();
-    expect(second.food.spawned.length).toBeLessThan(first.food.spawned.length);
     expect(second.tick).toBe(LATE_JOIN_TICK + 1);
     expect(second.effects.map((effect) => effect.kind)).toContain(EFFECT_KIND.levelUp);
     expect(module.serializeRoomState().effects).toEqual([]);
@@ -88,7 +88,6 @@ describe('createEvolutionModule', () => {
     const module = createModule();
     module.addPlayer(BOB, 1, 'Bob');
     const broadcast = module.serializeRoomState();
-    expect(broadcast.ownProgress).toBeNull();
     expect(module.serializeFullState().snapshot.ownProgress).toBeNull();
     expect(broadcast.players).toEqual({
       [ALICE]: { playerId: ALICE, playerName: 'Alice' },
@@ -97,7 +96,7 @@ describe('createEvolutionModule', () => {
     expect(module.viewerState.keys).toEqual(['food', 'dnaFragments', 'ownProgress', 'appliedInputSequenceByPlayer']);
     expect(module.viewerState.serialize(ALICE, broadcast)).toMatchObject({
       ownProgress: { playerId: ALICE, playerName: 'Alice', level: 1 },
-      appliedInputSequenceByPlayer: { [ALICE]: broadcast.appliedInputSequenceByPlayer[ALICE] },
+      appliedInputSequenceByPlayer: { [ALICE]: 0 },
     });
     expect(module.viewerState.serialize(BOB, broadcast).ownProgress?.playerId).toBe(BOB);
     expect(module.viewerState.serialize(playerId('nobody'), broadcast)).toMatchObject({

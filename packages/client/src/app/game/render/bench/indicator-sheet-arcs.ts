@@ -10,7 +10,7 @@ import { ENGULF_PHASE } from '@evolution/shared';
 import { DNA, INDICATOR_SHEET, LADDER_ORBIT_ANGLES_PAIR_DEG, LADDER_ORBIT_ANGLE_SINGLE_DEG } from '../constants';
 import { HALF } from '../geometry';
 import { paletteFor } from '../palette';
-import { LADDER_SILHOUETTE, type LadderCounter } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE, type LadderCounter } from '../../state/own-cell-ladder';
 import type { ArcInstance } from '../effects/arc-instance';
 import { orbitBackingArcs } from '../effects/orbit-backing-arcs';
 import { orbitLayout, type OrbitLayout } from '../effects/orbit-layout';

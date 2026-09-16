@@ -2,7 +2,7 @@
 // links). One hex, one name; draw code never holds a literal. Derived shades are computed in
 // render/palette.ts, never listed here.
 
-import { DNA_TAG, type DnaTag } from '@evolution/shared';
+import { DNA_TAG, ZONE_ID, type DnaTag, type TraitId, type ZoneId } from '@evolution/shared';
 
 // ---- field and dish (sheet 01 / sheet 02) ----
 export const BG_DEEP = '#04070d';
@@ -105,6 +105,22 @@ export const TIMER_TRACK = '#0b1a2c';
 export const LEVEL_RING_TRACK = '#132238';
 export const DEPTH_FAR_TINTS = ['#ffffff', '#c4f0ff', '#9fe8f5', '#7fb8ff'] as const;
 export const DEPTH_NEAR = '#dff4ff';
+
+// ---- legibility cue roles (visual-style/principles-and-palette.md §2, decision #324): no new hex, each a world colour ----
+/** Mass-gain floater rims and the edible ring: the food mote the gain comes from. */
+export const GAIN = FOOD_MOTE;
+/** A zone-caused cue's rim and the zone pill's dot: the zone's own tint; the open broth has none. */
+export const ZONE_CUE: Readonly<Partial<Record<ZoneId, string>>> = {
+  [ZONE_ID.warmVent]: ZONE_VENT,
+  [ZONE_ID.sunlitShallows]: ZONE_SHALLOWS,
+  [ZONE_ID.viscousGel]: ZONE_GEL,
+};
+/** A trait's cue colour (`TRAIT_CUE`): its organelle base colour; `TRAIT_CUE_FALLBACK` for a trait without one here. */
+export const TRAIT_GLYPH_COLOR: Readonly<Partial<Record<TraitId, string>>> = {
+  mitochondrion: MITO_BASE,
+  chloroplast: CHLORO_BASE,
+};
+export const TRAIT_CUE_FALLBACK = UI_ACCENT;
 
 /** Fragments show their tag in the helix rungs and wide halo (visual-style/principles-and-palette.md §2). */
 export const DNA_TAG_COLOR: Readonly<Record<DnaTag, string>> = {

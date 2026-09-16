@@ -69,10 +69,10 @@
 - **Opposing steer keys hand control back to the pointer.** `A` + `D` (or `W` + `S`) cancel to no direction, and
   the target falls through to the latched pointer rather than stopping. This is the decision for a
   pointer-primary game; "both keys to stop" would be a design change, not a bug fix.
-- Three of the focus rules above — the Space-precedence branch, the menu gate and the Tab-vs-overlay rule — are
-  **dormant until the overlays exist** (#188, #189): nothing renders `trait-offer`, `menu-overlay` or
-  `results-overlay` yet, so today Space always sprints and Tab is always `preventDefault`ed. The rules are
-  unit-tested, and are to be re-tested by hand when those tickets land.
+- The trait picker (#188) and the menu (#371) are live, so the Space-precedence branch, the modal gate and Escape's one
+  owner act in play; `hud/menu.integration.spec.ts` pins the gate and the confirm row's Escape end to end. The
+  Tab-vs-overlay rule for the results panel is **dormant until that overlay exists** (#189): nothing renders
+  `results-overlay` yet. The rule is unit-tested, and is to be re-tested by hand when #189 lands.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:
   inside `trait-offer` it picks (the card's own key handler runs, the sprint path does not); anywhere else it sprints.
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until
@@ -127,7 +127,7 @@ explains touches the player, so they fire on a game event, not in order. The que
 ## 6. Readability during play
 
 - **Exclusion box** (§1) is absolute for DOM while alive and playing; the picker's dim keeps its spotlight; toasts
-  and the connection banner stack from the top, never downward past `HUD_NOTICE_STACK_BOTTOM_PX` (y 96). Inside the
+  and the connection banner stack from the top, never downward past `NOTICE_STACK_MAX_Y_PX` (y 96). Inside the
   box the own cell, its indicators and its legibility cues (the mass chip, rate tags, floaters, zone pill and
   relation labels, hud.md §3.1.5, decision #324) are the only drawn things besides the dish; every one of them is
   renderer-drawn and world-anchored, never DOM, and meets §3.1.3's reading floor (numbers `value`, causes `label`).

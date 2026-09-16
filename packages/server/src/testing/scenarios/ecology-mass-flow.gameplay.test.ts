@@ -127,8 +127,9 @@ describe('docs/ecology/acceptance.md §8 E17: the mass flow explains every tick 
   it('inside a toxin aura, not touching', async () => {
     const toxicRadius = radiusForMass(AURA_TOXIC_MASS, growth);
     const victimRadius = radiusForMass(AURA_VICTIM_MASS, growth);
-    const auraRadius = TRAIT_TIERS.stentor_trumpet[TOP_TIER - 1]!.toxinAuraRangeInRadii! * toxicRadius;
-    const betweenRimAndAura = (toxicRadius + victimRadius + auraRadius) / 2;
+    // The aura is measured from the rim (#424): halfway between touching and its reach.
+    const auraGap = TRAIT_TIERS.stentor_trumpet[TOP_TIER - 1]!.toxinAuraRangeInRadii! * toxicRadius;
+    const betweenRimAndAura = toxicRadius + victimRadius + auraGap / 2;
     await conservedEveryTick(
       placedPair('E17 aura')
         .placeCell({

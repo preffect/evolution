@@ -46,6 +46,10 @@ import { formatOwnCellStatus, shouldAnnounce, type OwnCellStatus } from './forma
         [attr.data-threat]="current.attributes['data-threat']"
         [attr.data-aerobic]="current.attributes['data-aerobic']"
         [attr.data-photosynthetic]="current.attributes['data-photosynthetic']"
+        [attr.data-mass-trend]="current.attributes['data-mass-trend']"
+        [attr.data-mass-rate]="current.attributes['data-mass-rate']"
+        [attr.data-mass-causes]="current.attributes['data-mass-causes']"
+        [attr.data-zone]="current.attributes['data-zone']"
       >
         {{ announcedText() }}
       </div>

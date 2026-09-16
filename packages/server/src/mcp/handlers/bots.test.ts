@@ -34,7 +34,7 @@ describe('debug_spawn_bot', () => {
     });
     fixture.room.step(1);
     const botId = (parseToolJson(result) as { playerId: string }).playerId;
-    expect(fixture.room.getSnapshot()).toMatchObject({
+    expect(fixture.gameModule.serializeRoomState()).toMatchObject({
       players: { [botId]: expect.objectContaining({ sequence: 1 }) },
     });
     fixture.stop();
@@ -57,7 +57,9 @@ describe('debug_spawn_bot', () => {
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob', 'sim_bot_42_0']);
     expect(fixture.room.playerConnections.get('sim_bot_42_0')).toBe(impostor);
     fixture.room.step(1);
-    expect(fixture.room.getSnapshot()).toEqual({ players: { alice: null, bob: null, ['sim_bot_42_0']: null } });
+    expect(fixture.gameModule.serializeRoomState()).toEqual({
+      players: { alice: null, bob: null, ['sim_bot_42_0']: null },
+    });
     const removal = await fixture.call('debug_remove_bot', { gameId: fixture.gameId, playerId: 'sim_bot_42_0' });
     expect(removal.isError).toBe(true);
     expect(fixture.room.allPlayerIds).toContain('sim_bot_42_0');
@@ -84,7 +86,7 @@ describe('debug_spawn_bot', () => {
       text: expect.stringMatching(/'idle' \| 'wander' \| 'grazer' \| 'hunter'/),
     });
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
-    expect(fixture.room.getSnapshot()).toEqual({ players: { alice: null, bob: null } });
+    expect(fixture.gameModule.serializeRoomState()).toEqual({ players: { alice: null, bob: null } });
     fixture.stop();
   });
 
@@ -102,7 +104,7 @@ describe('debug_remove_bot', () => {
     const result = await fixture.call('debug_remove_bot', { gameId: fixture.gameId, playerId: 'sim_bot_42_0' });
     expect(parseToolJson(result)).toMatchObject({ playerId: 'sim_bot_42_0', behavior: 'wander' });
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob']);
-    expect(fixture.room.getSnapshot()).toEqual({ players: { alice: null, bob: null } });
+    expect(fixture.gameModule.serializeRoomState()).toEqual({ players: { alice: null, bob: null } });
     expect(fixture.messagesTo('bob', SERVER_MESSAGE_TYPE.playerDisconnected)).toContainEqual({
       type: SERVER_MESSAGE_TYPE.playerDisconnected,
       playerId: 'sim_bot_42_0',

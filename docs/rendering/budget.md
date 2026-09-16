@@ -182,7 +182,11 @@ applied (`unjudged` names every row the evidence could not judge; `isFullyJudged
   is an allocation count; measuring allocation, and attributing it to a call site, needs CDP
   `HeapProfiler.startSampling` around the window, which this harness does not drive.
 
-The route takes two more flags, both off by default. `advance=1` steps the scene one tick per frame, so the snapshot
+The route takes three more flags, all off by default. `cues=1` draws the own cell's legibility cues at their worst
+case (ui/hud.md §3.1.5, #385): a shrinking mass chip with its trend glyph, `RATE_TAG_ROWS_MAX` rate tags with the DECAY
+tag's trait glyph, the zone pill and `FLOATER_MAX_VISIBLE` floaters kept alive by the own cell's eats, engulf payouts
+and sprints on a staggered cadence (`bench-cues.ts`), so the `effects` stage is measured with every cue drawn.
+`advance=1` steps the scene one tick per frame, so the snapshot
 apply and the view-registry churn that §7 budgets as `net` happen inside the window; parked on one tick (the default,
 and what a screenshot needs) the window measures the interpolation half of `net` only. `preserve=1` keeps the WebGL
 backbuffer so `canvas.toDataURL` can read it; production does not set it and it costs a full-framebuffer copy a frame
@@ -194,7 +198,7 @@ gives each stage its trait set and the player records; three predator / prey pai
 absorbed and respawned on a cadence, eats and level-ups scheduled by `bench-effects.ts`; motes by the eukaryote-era
 shares with the bacteria on a tick-driven walk, fragments drifting, `bench-food.ts`), all from the
 `cosmetic:bench` fork of the seed, fed through the real `WorldStore` by a `ManualClock` (`bench-driver.ts`,
-snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1]`
+snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1][&cues=1]`
 (`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token, `bench-session.ts` the engine) renders it,
 parked at tick `n` and re-rendered every frame at `zoom` px/wu in a fixed 1920 × 1080 canvas, and after
 `RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames (`window=` shortens the report window where a

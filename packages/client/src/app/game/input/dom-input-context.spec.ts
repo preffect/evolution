@@ -16,7 +16,7 @@ describe('focusContextOf', () => {
     expect(focusContextOf(document)).toEqual({
       isTextEntryFocused: false,
       isTraitOfferFocused: false,
-      isMenuOpen: false,
+      isModalOverlayOpen: false,
       hasFocusableOverlay: false,
     });
   });
@@ -41,17 +41,22 @@ describe('focusContextOf', () => {
     expect(focusContextOf(document).isTraitOfferFocused).toBe(false);
   });
 
-  it('sees the menu open', () => {
+  it('sees the menu open as a modal overlay', () => {
     mount(`<div data-testid="${MENU_OVERLAY_TEST_ID}"></div>`);
     const context = focusContextOf(document);
-    expect(context.isMenuOpen).toBe(true);
+    expect(context.isModalOverlayOpen).toBe(true);
     expect(context.hasFocusableOverlay).toBe(true);
+  });
+
+  it('does not call the trait picker modal: the cell keeps steering under it', () => {
+    mount(`<div data-testid="${TRAIT_OFFER_TEST_ID}"></div>`);
+    expect(focusContextOf(document).isModalOverlayOpen).toBe(false);
   });
 
   it('counts the results panel as an overlay with focusable controls', () => {
     mount(`<div data-testid="${RESULTS_OVERLAY_TEST_ID}"></div>`);
     const context = focusContextOf(document);
-    expect(context.isMenuOpen).toBe(false);
+    expect(context.isModalOverlayOpen).toBe(false);
     expect(context.hasFocusableOverlay).toBe(true);
   });
 });

@@ -1,0 +1,101 @@
+/* The menu's `Your traits` section (docs/ui/overlays.md §3.5). Kit tokens for type, colour and spacing; the row sizes
+   are the menu's own `--hud-menu-…`. */
+
+/* The rule above the heading is inset by the panel's padding, where the mockups run it edge to edge: the section sits
+   in the panel body, a kit scroll area that clips anything drawn past its padding box, so nothing drawn here can
+   reach the panel's edges. A deliberate deviation until the kit can bleed a section (docs/ui/overlays.md §3.5). */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  padding-top: calc(var(--ui-space-l) * var(--ui-scale));
+  border-top: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}
+
+.count {
+  color: var(--ui-text-muted);
+}
+
+.empty {
+  margin: 0;
+  color: var(--ui-text-muted);
+}
+
+/* No `max-height` here: `MENU_TRAITS_VISIBLE_ROWS` is a row count, and a row grows with each effect line, so the cap
+   is the first five rows measured as drawn (`visibleRowsHeightPx`) and set as an inline style. A fixed
+   rows × row-height cap slices a row that carries two effect lines. */
+
+/* The kit row, grown to hold a name over wrapping effect lines instead of one ellipsised title, and as wide as the
+   panel body allows, so Mitochondrion I's two effects fit on one line (overlays.md §3.5's panel width). */
+.row {
+  height: auto;
+  min-height: calc(var(--hud-menu-trait-row-height) * var(--ui-scale));
+  padding-block: calc(var(--ui-space-xs) * var(--ui-scale));
+  padding-inline: calc(var(--ui-space-xs) * var(--ui-scale));
+  white-space: normal;
+}
+
+.glyph {
+  display: block;
+  width: calc(var(--hud-menu-trait-glyph) * var(--ui-scale));
+  height: calc(var(--hud-menu-trait-glyph) * var(--ui-scale));
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-weight: bold;
+  line-height: var(--ui-body-line-height);
+}
+
+/* Each effect is unbreakable; the list wraps only between two of them. Every effect carries a leading `·` in a
+   separator box, and the list is shifted left by one box inside a clipping frame, so the separator of whichever
+   effect starts a line falls outside and a line never starts or ends on a dot. */
+.effects {
+  display: block;
+  overflow: hidden;
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: normal;
+  letter-spacing: var(--ui-label-tracking);
+  line-height: calc(var(--hud-menu-trait-line-height) * var(--ui-scale));
+  --effect-separator: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+.effect-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-inline-start: calc(-1 * var(--effect-separator));
+}
+
+.effect {
+  white-space: nowrap;
+}
+
+.effect::before {
+  content: '·';
+  display: inline-block;
+  width: var(--effect-separator);
+  text-align: center;
+}
+
+.chevron {
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-title) * var(--ui-scale));
+}

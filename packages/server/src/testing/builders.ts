@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { CLIENT_MESSAGE_TYPE, DEFAULT_BALANCE, ManualClock, createTestSessionConfig, gameId } from '@evolution/shared';
 import type { GameSnapshot, PlayerId } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
-import type { GameModule, GameModuleFactory, RoomInitOptions } from '../game/game-module.js';
+import type { GameModuleFactory, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import type { DebugContext } from '../mcp/debug-context.js';
 import { LobbyManager } from '../lobby/lobby-manager.js';
@@ -78,7 +78,7 @@ export function createTestRoomInitOptions(
 }
 
 /** A `GameModule` whose every hook is a spy; `players` mirrors add/remove so snapshots are inspectable. */
-export function createSpyGameModule(): GameModule & { players: Set<string> } {
+export function createSpyGameModule(): RoomGameModule & { players: Set<string> } {
   const players = new Set<string>();
   return {
     players,
@@ -103,7 +103,7 @@ export function createSpyGameModule(): GameModule & { players: Set<string> } {
 export const spyGameModuleFactory: GameModuleFactory = () => createSpyGameModule();
 
 /** A spy module that also offers `handle` to the debug tools (the "supported" path of every game-specific tool). */
-export function createDebugCapableGameModule(handle: SimulationDebugHandle): GameModule & { players: Set<string> } {
+export function createDebugCapableGameModule(handle: SimulationDebugHandle): RoomGameModule & { players: Set<string> } {
   return { ...createSpyGameModule(), getDebugHandle: () => handle };
 }
 
@@ -193,9 +193,15 @@ export function createTestDebugContext(overrides: Partial<DebugContext> = {}): D
   return { lobbyManager: lobby, connections, sent, ...overrides };
 }
 
-/** A started room reachable through a debug context: the fixture every game-specific tool test begins from. */
+/**
+ * A started room reachable through a debug context: the fixture every game-specific tool test begins from. It also
+ * answers the room's `gameModule`, the only way to read a broadcast now that the room keeps no accessor for one.
+ */
 export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
-  const fixture = createTestLobby(options);
+  let startedModule: RoomGameModule | undefined;
+  const gameFactory: GameModuleFactory = (roomOptions) =>
+    (startedModule = (options.gameFactory ?? spyGameModuleFactory)(roomOptions));
+  const fixture = createTestLobby({ ...options, gameFactory });
   const alice = fixture.join('alice');
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
@@ -207,7 +213,7 @@ export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
   const context: DebugContext = { lobbyManager: fixture.lobby, connections: fixture.connections };
   const room = fixture.lobby.getActiveRoom(gameId)!;
   const stop = () => room.stop();
-  return { ...fixture, ...createToolCapture(), context, gameId, room, stop };
+  return { ...fixture, ...createToolCapture(), context, gameId, room, gameModule: startedModule!, stop };
 }
 
 type ToolCallback = (input: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;

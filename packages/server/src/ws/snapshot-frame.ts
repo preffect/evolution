@@ -7,7 +7,7 @@
 //   - a spliced value is never `undefined`: `JSON.stringify` would drop it and leave `"key":` dangling, so it throws;
 //   - member order does not matter to `JSON.parse`, so a closed frame parses equal to the whole object stringified.
 
-import { SERVER_MESSAGE_TYPE, type GameSnapshot } from '@evolution/shared';
+import { SERVER_MESSAGE_TYPE } from '@evolution/shared';
 
 const EMPTY_OBJECT_JSON = '{}';
 const CLOSING_BRACE = '}';
@@ -38,8 +38,11 @@ export function requireViewerMember(viewerMembers: ViewerMembers, key: string): 
   return value;
 }
 
-/** Stringifies `snapshot` once without `viewerKeys`: the shared part of every viewer's `game_snapshot`. */
-export function openSnapshotFrame(snapshot: GameSnapshot, viewerKeys: readonly string[]): OpenSnapshotFrame {
+/**
+ * Stringifies `snapshot` once without `viewerKeys`: the shared part of every viewer's `game_snapshot`. A broadcast
+ * typed without them carries none, but a member present anyway is still left out rather than written twice.
+ */
+export function openSnapshotFrame(snapshot: object, viewerKeys: readonly string[]): OpenSnapshotFrame {
   const viewerMembersLeftOut = Object.fromEntries(viewerKeys.map((key) => [key, undefined]));
   const snapshotJson = JSON.stringify({ ...snapshot, ...viewerMembersLeftOut });
   return {

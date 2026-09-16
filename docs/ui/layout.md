@@ -25,7 +25,7 @@ space**; they are not subject to the box and do not scale with `--hud-scale` (th
 with the px floors of §3.1.3). The cues (the mass chip, rate tags, floaters, zone pill and the relation labels) were
 let in by decision #324: the box keeps DOM out, it never kept the renderer out, and a cue about the cell has to sit
 on the cell. They may reach past the box (the rate-tag column at the cap), but never into the notice stack above
-`HUD_NOTICE_STACK_BOTTOM_PX` (hud.md §3.1.5's inequality). `me` =
+`NOTICE_STACK_MAX_Y_PX` (hud.md §3.1.5's inequality). `me` =
 `MultiplayerService.playerId()`, `ownProgress` = `snapshot.ownProgress` (sent to `me` alone; `snapshot.players[id]`
 is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md §4.1), `ownCell` = the cell whose `playerId` is
 `me` (absent while spectating).
@@ -65,7 +65,7 @@ Client-only layout constants are declared by #100 in `packages/client/src/app/ga
 | `STEER_HINT_DISTANCE_WU`           | 200                     | wu    | Distance travelled that dismisses the steer hint.                                                                       |
 | `SPRINT_HINT_AT_SECONDS`           | 30                      | s     | Round time at which the sprint hint shows if never sprinted.                                                            |
 | `STATUS_ANNOUNCE_DNA_STEP_PERCENT` | 25                      | %     | The status mirror (§3.1.4) re-announces DNA only at multiples of this.                                                  |
-| `HUD_NOTICE_STACK_BOTTOM_PX`       | 96                      | px    | Lowest edge of the connection banner and error rows (overlays.md §3.6); no renderer cue rises above it (hud.md §3.1.5). |
+| `NOTICE_STACK_MAX_Y_PX`            | 96                      | px    | Lowest edge of the connection banner and error rows (overlays.md §3.6); no renderer cue rises above it (hud.md §3.1.5). |
 | `PICKER_BAND_ORBIT_CLEARANCE_PX`   | 4                       | px    | Least gap between the own cell's orbit extent at `CELL_MAX_MASS` and the picker title row (overlays.md §3.2).           |
 | `LEADERBOARD_FOOTER_ROW_HEIGHT_PX` | 24                      | px    | The full board's score rule row (hud.md §3.1.1).                                                                        |
 | `HINT_RIM_PX`                      | 2                       | px    | A coach beat's role-colour rim on the hint pill (input-and-onboarding.md §5).                                           |
