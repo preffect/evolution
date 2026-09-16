@@ -1,0 +1,84 @@
+card width 240px, height budget 214px, 82 cards
+OVERFLOW    250  4 lines  ADVERSARIAL-4-wrapping-lines II → III
+   ok       208  4 lines  HYPOTHETICAL-4-ordinary-lines II → III
+   ok       192  3 lines  amoeba_pseudopods I → II
+   ok       192  3 lines  amoeba_pseudopods II → III
+   ok       187  3 lines  diatom_shell I
+   ok       187  3 lines  diatom_shell II
+   ok       187  3 lines  diatom_shell I → II
+   ok       187  3 lines  diatom_shell III
+   ok       187  3 lines  diatom_shell II → III
+   ok       176  2 lines  cytoskeleton I → II
+   ok       176  2 lines  cytoskeleton II → III
+   ok       173  3 lines  simple_flagellum I
+   ok       173  3 lines  simple_flagellum II
+   ok       173  3 lines  simple_flagellum I → II
+   ok       173  3 lines  simple_flagellum III
+   ok       173  3 lines  simple_flagellum II → III
+   ok       173  3 lines  cell_wall I
+   ok       173  3 lines  cell_wall II
+   ok       173  3 lines  cell_wall I → II
+   ok       173  3 lines  cell_wall III
+   ok       173  3 lines  cell_wall II → III
+   ok       173  3 lines  amoeba_pseudopods I
+   ok       173  3 lines  amoeba_pseudopods II
+   ok       173  3 lines  amoeba_pseudopods III
+   ok       173  3 lines  paramecium_cilia I
+   ok       173  3 lines  paramecium_cilia II
+   ok       173  3 lines  paramecium_cilia I → II
+   ok       173  3 lines  paramecium_cilia III
+   ok       173  3 lines  paramecium_cilia II → III
+   ok       157  2 lines  mitochondrion I
+   ok       157  2 lines  mitochondrion II
+   ok       157  2 lines  mitochondrion I → II
+   ok       157  2 lines  mitochondrion III
+   ok       157  2 lines  mitochondrion II → III
+   ok       157  2 lines  chloroplast I
+   ok       157  2 lines  chloroplast II
+   ok       157  2 lines  chloroplast I → II
+   ok       157  2 lines  chloroplast III
+   ok       157  2 lines  chloroplast II → III
+   ok       157  2 lines  cytoskeleton I
+   ok       157  2 lines  cytoskeleton II
+   ok       157  2 lines  cytoskeleton III
+   ok       157  2 lines  cilia I
+   ok       157  2 lines  cilia II
+   ok       157  2 lines  cilia I → II
+   ok       157  2 lines  cilia III
+   ok       157  2 lines  cilia II → III
+   ok       157  2 lines  food_vacuole I
+   ok       157  2 lines  food_vacuole II
+   ok       157  2 lines  food_vacuole I → II
+   ok       157  2 lines  food_vacuole III
+   ok       157  2 lines  food_vacuole II → III
+   ok       157  2 lines  euglena_eyespot I
+   ok       157  2 lines  euglena_eyespot II
+   ok       157  2 lines  euglena_eyespot I → II
+   ok       157  2 lines  euglena_eyespot III
+   ok       157  2 lines  euglena_eyespot II → III
+   ok       157  2 lines  stentor_trumpet I
+   ok       157  2 lines  stentor_trumpet II
+   ok       157  2 lines  stentor_trumpet I → II
+   ok       157  2 lines  stentor_trumpet III
+   ok       157  2 lines  stentor_trumpet II → III
+   ok       141  1 lines  nucleoid I
+   ok       141  1 lines  nucleoid II
+   ok       141  1 lines  nucleoid I → II
+   ok       141  1 lines  nucleoid III
+   ok       141  1 lines  nucleoid II → III
+   ok       141  1 lines  ribosomes I
+   ok       141  1 lines  ribosomes II
+   ok       141  1 lines  ribosomes I → II
+   ok       141  1 lines  ribosomes III
+   ok       141  1 lines  ribosomes II → III
+   ok       141  1 lines  nuclear_envelope I
+   ok       141  1 lines  nuclear_envelope II
+   ok       141  1 lines  nuclear_envelope I → II
+   ok       141  1 lines  nuclear_envelope III
+   ok       141  1 lines  nuclear_envelope II → III
+   ok       141  1 lines  toxin_vacuole I
+   ok       141  1 lines  toxin_vacuole II
+   ok       141  1 lines  toxin_vacuole I → II
+   ok       141  1 lines  toxin_vacuole III
+   ok       141  1 lines  toxin_vacuole II → III
+tallest 250px (ADVERSARIAL-4-wrapping-lines II → III); overflowing 1

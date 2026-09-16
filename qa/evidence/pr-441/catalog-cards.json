@@ -1,0 +1,967 @@
+[
+  {
+    "traitId": "nucleoid",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Nucleoid Coil",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "+5 % DNA"
+    ]
+  },
+  {
+    "traitId": "nucleoid",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Nucleoid Coil",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "+10 % DNA"
+    ]
+  },
+  {
+    "traitId": "nucleoid",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Nucleoid Coil",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "+10 % DNA"
+    ]
+  },
+  {
+    "traitId": "nucleoid",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Nucleoid Coil",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "+15 % DNA"
+    ]
+  },
+  {
+    "traitId": "nucleoid",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Nucleoid Coil",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "+15 % DNA"
+    ]
+  },
+  {
+    "traitId": "simple_flagellum",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Simple Flagellum",
+    "category": "locomotion",
+    "rarity": "uncommon",
+    "effects": [
+      "+5 % speed",
+      "+30 % sprint speed",
+      "−0.5 s sprint cooldown"
+    ]
+  },
+  {
+    "traitId": "simple_flagellum",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Simple Flagellum",
+    "category": "locomotion",
+    "rarity": "uncommon",
+    "effects": [
+      "+5 % speed",
+      "+60 % sprint speed",
+      "−1 s sprint cooldown"
+    ]
+  },
+  {
+    "traitId": "simple_flagellum",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Simple Flagellum",
+    "category": "locomotion",
+    "rarity": "uncommon",
+    "effects": [
+      "+5 % speed",
+      "+60 % sprint speed",
+      "−1 s sprint cooldown"
+    ]
+  },
+  {
+    "traitId": "simple_flagellum",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Simple Flagellum",
+    "category": "locomotion",
+    "rarity": "uncommon",
+    "effects": [
+      "+5 % speed",
+      "+90 % sprint speed",
+      "−1.5 s sprint cooldown"
+    ]
+  },
+  {
+    "traitId": "simple_flagellum",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Simple Flagellum",
+    "category": "locomotion",
+    "rarity": "uncommon",
+    "effects": [
+      "+5 % speed",
+      "+90 % sprint speed",
+      "−1.5 s sprint cooldown"
+    ]
+  },
+  {
+    "traitId": "cell_wall",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Cell Wall",
+    "category": "membrane",
+    "rarity": "common",
+    "effects": [
+      "+15 % harder to engulf",
+      "+20 % time to absorb you",
+      "−5 % speed"
+    ]
+  },
+  {
+    "traitId": "cell_wall",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Cell Wall",
+    "category": "membrane",
+    "rarity": "common",
+    "effects": [
+      "+30 % harder to engulf",
+      "+40 % time to absorb you",
+      "−10 % speed"
+    ]
+  },
+  {
+    "traitId": "cell_wall",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Cell Wall",
+    "category": "membrane",
+    "rarity": "common",
+    "effects": [
+      "+30 % harder to engulf",
+      "+40 % time to absorb you",
+      "−10 % speed"
+    ]
+  },
+  {
+    "traitId": "cell_wall",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Cell Wall",
+    "category": "membrane",
+    "rarity": "common",
+    "effects": [
+      "+45 % harder to engulf",
+      "+60 % time to absorb you",
+      "−15 % speed"
+    ]
+  },
+  {
+    "traitId": "cell_wall",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Cell Wall",
+    "category": "membrane",
+    "rarity": "common",
+    "effects": [
+      "+45 % harder to engulf",
+      "+60 % time to absorb you",
+      "−15 % speed"
+    ]
+  },
+  {
+    "traitId": "ribosomes",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Ribosome Studs",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+10 % digestion"
+    ]
+  },
+  {
+    "traitId": "ribosomes",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Ribosome Studs",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+20 % digestion"
+    ]
+  },
+  {
+    "traitId": "ribosomes",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Ribosome Studs",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+20 % digestion"
+    ]
+  },
+  {
+    "traitId": "ribosomes",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Ribosome Studs",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+30 % digestion"
+    ]
+  },
+  {
+    "traitId": "ribosomes",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Ribosome Studs",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+30 % digestion"
+    ]
+  },
+  {
+    "traitId": "mitochondrion",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Mitochondrion",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "−15 % mass decay",
+      "+10 % sprint speed"
+    ]
+  },
+  {
+    "traitId": "mitochondrion",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Mitochondrion",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "−30 % mass decay",
+      "+20 % sprint speed"
+    ]
+  },
+  {
+    "traitId": "mitochondrion",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Mitochondrion",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "−30 % mass decay",
+      "+20 % sprint speed"
+    ]
+  },
+  {
+    "traitId": "mitochondrion",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Mitochondrion",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "−45 % mass decay",
+      "+30 % sprint speed"
+    ]
+  },
+  {
+    "traitId": "mitochondrion",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Mitochondrion",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "−45 % mass decay",
+      "+30 % sprint speed"
+    ]
+  },
+  {
+    "traitId": "chloroplast",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Chloroplast",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+0.3 mass / s in sunlight",
+      "−10 % mass decay"
+    ]
+  },
+  {
+    "traitId": "chloroplast",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Chloroplast",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+0.6 mass / s in sunlight",
+      "−20 % mass decay"
+    ]
+  },
+  {
+    "traitId": "chloroplast",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Chloroplast",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+0.6 mass / s in sunlight",
+      "−20 % mass decay"
+    ]
+  },
+  {
+    "traitId": "chloroplast",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Chloroplast",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+0.9 mass / s in sunlight",
+      "−30 % mass decay"
+    ]
+  },
+  {
+    "traitId": "chloroplast",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Chloroplast",
+    "category": "metabolism",
+    "rarity": "common",
+    "effects": [
+      "+0.9 mass / s in sunlight",
+      "−30 % mass decay"
+    ]
+  },
+  {
+    "traitId": "nuclear_envelope",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Nuclear Envelope",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "Keeps 25 % DNA on death"
+    ]
+  },
+  {
+    "traitId": "nuclear_envelope",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Nuclear Envelope",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "Keeps 50 % DNA on death"
+    ]
+  },
+  {
+    "traitId": "nuclear_envelope",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Nuclear Envelope",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "Keeps 50 % DNA on death"
+    ]
+  },
+  {
+    "traitId": "nuclear_envelope",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Nuclear Envelope",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "Keeps 75 % DNA on death"
+    ]
+  },
+  {
+    "traitId": "nuclear_envelope",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Nuclear Envelope",
+    "category": "genome",
+    "rarity": "common",
+    "effects": [
+      "Keeps 75 % DNA on death"
+    ]
+  },
+  {
+    "traitId": "cytoskeleton",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Cytoskeleton Lattice",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+18 % acceleration",
+      "+10 % struggle"
+    ]
+  },
+  {
+    "traitId": "cytoskeleton",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Cytoskeleton Lattice",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+39 % acceleration",
+      "+20 % struggle"
+    ]
+  },
+  {
+    "traitId": "cytoskeleton",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Cytoskeleton Lattice",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+39 % acceleration",
+      "+20 % struggle"
+    ]
+  },
+  {
+    "traitId": "cytoskeleton",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Cytoskeleton Lattice",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+64 % acceleration",
+      "+30 % struggle"
+    ]
+  },
+  {
+    "traitId": "cytoskeleton",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Cytoskeleton Lattice",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+64 % acceleration",
+      "+30 % struggle"
+    ]
+  },
+  {
+    "traitId": "cilia",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Cilia Fringe",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+10 % speed",
+      "+5 % grip resistance"
+    ]
+  },
+  {
+    "traitId": "cilia",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Cilia Fringe",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+20 % speed",
+      "+10 % grip resistance"
+    ]
+  },
+  {
+    "traitId": "cilia",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Cilia Fringe",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+20 % speed",
+      "+10 % grip resistance"
+    ]
+  },
+  {
+    "traitId": "cilia",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Cilia Fringe",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+30 % speed",
+      "+15 % grip resistance"
+    ]
+  },
+  {
+    "traitId": "cilia",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Cilia Fringe",
+    "category": "locomotion",
+    "rarity": "common",
+    "effects": [
+      "+30 % speed",
+      "+15 % grip resistance"
+    ]
+  },
+  {
+    "traitId": "food_vacuole",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Food Vacuole",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "+25 % absorb speed",
+      "+5 % mass from engulfs"
+    ]
+  },
+  {
+    "traitId": "food_vacuole",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Food Vacuole",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "+56 % absorb speed",
+      "+10 % mass from engulfs"
+    ]
+  },
+  {
+    "traitId": "food_vacuole",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Food Vacuole",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "+56 % absorb speed",
+      "+10 % mass from engulfs"
+    ]
+  },
+  {
+    "traitId": "food_vacuole",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Food Vacuole",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "+96 % absorb speed",
+      "+15 % mass from engulfs"
+    ]
+  },
+  {
+    "traitId": "food_vacuole",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Food Vacuole",
+    "category": "metabolism",
+    "rarity": "uncommon",
+    "effects": [
+      "+96 % absorb speed",
+      "+15 % mass from engulfs"
+    ]
+  },
+  {
+    "traitId": "toxin_vacuole",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Toxin Vacuole",
+    "category": "offense",
+    "rarity": "rare",
+    "effects": [
+      "Toxin drains 3 % / s"
+    ]
+  },
+  {
+    "traitId": "toxin_vacuole",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Toxin Vacuole",
+    "category": "offense",
+    "rarity": "rare",
+    "effects": [
+      "Toxin drains 5 % / s"
+    ]
+  },
+  {
+    "traitId": "toxin_vacuole",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Toxin Vacuole",
+    "category": "offense",
+    "rarity": "rare",
+    "effects": [
+      "Toxin drains 5 % / s"
+    ]
+  },
+  {
+    "traitId": "toxin_vacuole",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Toxin Vacuole",
+    "category": "offense",
+    "rarity": "rare",
+    "effects": [
+      "Toxin drains 7 % / s"
+    ]
+  },
+  {
+    "traitId": "toxin_vacuole",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Toxin Vacuole",
+    "category": "offense",
+    "rarity": "rare",
+    "effects": [
+      "Toxin drains 7 % / s"
+    ]
+  },
+  {
+    "traitId": "amoeba_pseudopods",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Amoeba Pseudopods",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "Gel slows you to no less than 60 %",
+      "+18 % wrap speed",
+      "+10 % grip on prey"
+    ]
+  },
+  {
+    "traitId": "amoeba_pseudopods",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Amoeba Pseudopods",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "Gel slows you to no less than 80 %",
+      "+33 % wrap speed",
+      "+20 % grip on prey"
+    ]
+  },
+  {
+    "traitId": "amoeba_pseudopods",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Amoeba Pseudopods",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "Gel slows you to no less than 80 %",
+      "+33 % wrap speed",
+      "+20 % grip on prey"
+    ]
+  },
+  {
+    "traitId": "amoeba_pseudopods",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Amoeba Pseudopods",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "Gel no longer slows you",
+      "+54 % wrap speed",
+      "+30 % grip on prey"
+    ]
+  },
+  {
+    "traitId": "amoeba_pseudopods",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Amoeba Pseudopods",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "Gel no longer slows you",
+      "+54 % wrap speed",
+      "+30 % grip on prey"
+    ]
+  },
+  {
+    "traitId": "paramecium_cilia",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Paramecium Cilia",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+10 % speed",
+      "+11 % acceleration",
+      "+10 % struggle"
+    ]
+  },
+  {
+    "traitId": "paramecium_cilia",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Paramecium Cilia",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+15 % speed",
+      "+25 % acceleration",
+      "+15 % struggle"
+    ]
+  },
+  {
+    "traitId": "paramecium_cilia",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Paramecium Cilia",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+15 % speed",
+      "+25 % acceleration",
+      "+15 % struggle"
+    ]
+  },
+  {
+    "traitId": "paramecium_cilia",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Paramecium Cilia",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+20 % speed",
+      "+43 % acceleration",
+      "+20 % struggle"
+    ]
+  },
+  {
+    "traitId": "paramecium_cilia",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Paramecium Cilia",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+20 % speed",
+      "+43 % acceleration",
+      "+20 % struggle"
+    ]
+  },
+  {
+    "traitId": "euglena_eyespot",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Euglena Eyespot",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Pulls food from 3 radii",
+      "Food drifts in at 40 u/s"
+    ]
+  },
+  {
+    "traitId": "euglena_eyespot",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Euglena Eyespot",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Pulls food from 4 radii",
+      "Food drifts in at 60 u/s"
+    ]
+  },
+  {
+    "traitId": "euglena_eyespot",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Euglena Eyespot",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Pulls food from 4 radii",
+      "Food drifts in at 60 u/s"
+    ]
+  },
+  {
+    "traitId": "euglena_eyespot",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Euglena Eyespot",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Pulls food from 5 radii",
+      "Food drifts in at 80 u/s"
+    ]
+  },
+  {
+    "traitId": "euglena_eyespot",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Euglena Eyespot",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Pulls food from 5 radii",
+      "Food drifts in at 80 u/s"
+    ]
+  },
+  {
+    "traitId": "diatom_shell",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Diatom Shell",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+40 % time to absorb you",
+      "Spines drain 2 % / s, spit out 40 % / s",
+      "−3 % speed"
+    ]
+  },
+  {
+    "traitId": "diatom_shell",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Diatom Shell",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+80 % time to absorb you",
+      "Spines drain 4 % / s, spit out 70 % / s",
+      "−6 % speed"
+    ]
+  },
+  {
+    "traitId": "diatom_shell",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Diatom Shell",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+80 % time to absorb you",
+      "Spines drain 4 % / s, spit out 70 % / s",
+      "−6 % speed"
+    ]
+  },
+  {
+    "traitId": "diatom_shell",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Diatom Shell",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+120 % time to absorb you",
+      "Spines drain 6 % / s, spit out 100 % / s",
+      "−9 % speed"
+    ]
+  },
+  {
+    "traitId": "diatom_shell",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Diatom Shell",
+    "category": "form",
+    "rarity": "uncommon",
+    "effects": [
+      "+120 % time to absorb you",
+      "Spines drain 6 % / s, spit out 100 % / s",
+      "−9 % speed"
+    ]
+  },
+  {
+    "traitId": "stentor_trumpet",
+    "tier": 1,
+    "tierLabel": "I",
+    "name": "Stentor Trumpet",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Toxin reaches 1 radius",
+      "+10 % digestion"
+    ]
+  },
+  {
+    "traitId": "stentor_trumpet",
+    "tier": 2,
+    "tierLabel": "II",
+    "name": "Stentor Trumpet",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Toxin reaches 1.5 radii",
+      "+20 % digestion"
+    ]
+  },
+  {
+    "traitId": "stentor_trumpet",
+    "tier": 2,
+    "tierLabel": "I → II",
+    "name": "Stentor Trumpet",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Toxin reaches 1.5 radii",
+      "+20 % digestion"
+    ]
+  },
+  {
+    "traitId": "stentor_trumpet",
+    "tier": 3,
+    "tierLabel": "III",
+    "name": "Stentor Trumpet",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Toxin reaches 2 radii",
+      "+30 % digestion"
+    ]
+  },
+  {
+    "traitId": "stentor_trumpet",
+    "tier": 3,
+    "tierLabel": "II → III",
+    "name": "Stentor Trumpet",
+    "category": "form",
+    "rarity": "rare",
+    "effects": [
+      "Toxin reaches 2 radii",
+      "+30 % digestion"
+    ]
+  }
+]
