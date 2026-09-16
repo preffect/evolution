@@ -48,6 +48,12 @@ export const MENU_OVERLAY_TEST_ID = HUD_TEST_ID.menuOverlay;
 /** The results panel (docs/ui/overlays.md §3.4). */
 export const RESULTS_OVERLAY_TEST_ID = HUD_TEST_ID.resultsOverlay;
 
+/**
+ * The modal overlays (docs/ui/input-and-onboarding.md §4's modal gate): while one is open only `1` `2` `3` and Escape
+ * reach the game. The encyclopedia shell (#372) adds its panel's id here.
+ */
+export const MODAL_OVERLAY_TEST_IDS: readonly string[] = [MENU_OVERLAY_TEST_ID];
+
 /** Overlays with focusable controls: Tab stays native while one of them is open (docs/ui/input-and-onboarding.md §4). */
 export const FOCUSABLE_OVERLAY_TEST_IDS: readonly string[] = [
   TRAIT_OFFER_TEST_ID,

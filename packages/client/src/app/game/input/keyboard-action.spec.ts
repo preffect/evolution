@@ -17,14 +17,20 @@ import {
   shouldPreventDefaultFor,
   steerDirectionForKeyCode,
   type FocusContext,
+  type KeyPress,
 } from './keyboard-action';
 
 function focus(overrides: Partial<FocusContext> = {}): FocusContext {
   return { ...FREE_FOCUS, ...overrides };
 }
 
-function press(code: string, isRepeat = false): { code: string; isRepeat: boolean } {
-  return { code, isRepeat };
+function press(code: string, isRepeat = false): KeyPress {
+  return { code, isRepeat, isDefaultPrevented: false };
+}
+
+/** A press a component on the way up already consumed with `preventDefault()`. */
+function consumed(code: string): KeyPress {
+  return { code, isRepeat: false, isDefaultPrevented: true };
 }
 
 describe('the key tables', () => {
@@ -77,25 +83,47 @@ describe('keyDownAction', () => {
   });
 
   it('keeps the trait keys live while the menu is open', () => {
-    expect(keyDownAction(press('Digit3'), focus({ isMenuOpen: true }))).toEqual({
+    expect(keyDownAction(press('Digit3'), focus({ isModalOverlayOpen: true }))).toEqual({
       kind: INPUT_ACTION.pickCard,
       cardIndex: 2,
     });
   });
 
   it('swallows sprint while the menu is open', () => {
-    expect(keyDownAction(press(SPRINT_KEY_CODE), focus({ isMenuOpen: true }))).toEqual({ kind: INPUT_ACTION.none });
+    const action = keyDownAction(press(SPRINT_KEY_CODE), focus({ isModalOverlayOpen: true }));
+    expect(action).toEqual({ kind: INPUT_ACTION.none });
   });
 
-  it('swallows steering while the menu is open', () => {
-    expect(keyDownAction(press('KeyD'), focus({ isMenuOpen: true }))).toEqual({ kind: INPUT_ACTION.none });
+  it('swallows steering and the arrows while the menu is open, leaving the arrows to its list', () => {
+    expect(keyDownAction(press('KeyD'), focus({ isModalOverlayOpen: true }))).toEqual({ kind: INPUT_ACTION.none });
+    expect(keyDownAction(press('ArrowDown'), focus({ isModalOverlayOpen: true }))).toEqual({
+      kind: INPUT_ACTION.none,
+    });
   });
 
   it('keeps Escape live while the menu is open, since Escape is what closes it', () => {
-    expect(keyDownAction(press(MENU_KEY_CODE), focus({ isMenuOpen: true }))).toEqual({ kind: INPUT_ACTION.menuKey });
+    const action = keyDownAction(press(MENU_KEY_CODE), focus({ isModalOverlayOpen: true }));
+    expect(action).toEqual({ kind: INPUT_ACTION.menuKey });
   });
 
-  it('ignores every press while focus is in a text field', () => {
+  it('does nothing for an Escape a component consumed', () => {
+    expect(keyDownAction(consumed(MENU_KEY_CODE), focus())).toEqual({ kind: INPUT_ACTION.none });
+  });
+
+  it('leaves the menu open when the exit confirm consumed the Escape that restored its row', () => {
+    const action = keyDownAction(
+      consumed(MENU_KEY_CODE),
+      focus({ isModalOverlayOpen: true, hasFocusableOverlay: true }),
+    );
+    expect(action).toEqual({ kind: INPUT_ACTION.none });
+  });
+
+  it('acts on an unconsumed Escape even from a text field, so a field never traps the player', () => {
+    const action = keyDownAction(press(MENU_KEY_CODE), focus({ isTextEntryFocused: true }));
+    expect(action).toEqual({ kind: INPUT_ACTION.menuKey });
+  });
+
+  it('ignores every other press while focus is in a text field', () => {
     const textEntry = focus({ isTextEntryFocused: true });
     expect(keyDownAction(press('KeyW'), textEntry)).toEqual({ kind: INPUT_ACTION.none });
     expect(keyDownAction(press('Digit1'), textEntry)).toEqual({ kind: INPUT_ACTION.none });

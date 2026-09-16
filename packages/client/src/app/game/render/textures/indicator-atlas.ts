@@ -9,7 +9,7 @@
 import type { TraitId } from '@evolution/shared';
 import { INDICATOR_BAKE_MAX_DPR, INDICATOR_RIM_TINTED_RAMP } from '../constants';
 import { CUE_RIM_COLOUR, type CueRim } from '../../hud/format/mass-cues';
-import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-ladder';
 import { GHOST_SHAPE, bakeGhost, type GhostShape } from './ghost-bake';
 import { LABEL_PILL_SPEC, bakeLabelPill, bakePill, cuePillSpec, type LabelPillBake } from './label-pill-bake';
 import { bakePipBlock, endosymbiontTallies, pipBlockKey } from './pip-block-bake';

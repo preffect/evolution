@@ -210,7 +210,9 @@ the toxic ring), this section wins.
 
 **Rules shared by every cue.** Renderer-drawn in the own cell's undeformed frame, world-anchored and riding the
 predicted position like §3.1.2's indicators; never DOM, never scaled by `--hud-scale`, inside the exclusion box by
-design (layout.md §1). A number is `value`, its cause `label`, both `WHITE`; the colour is on the pill's
+design (layout.md §1). **While a trait offer is open (§3.2) the mass chip and the rate tags stay drawn, under the
+picker's dim, and only the zone pill hides**: the dim is the picker's spotlight over the dish, and what the cell is
+doing to its mass is exactly what the pick is weighed against. A number is `value`, its cause `label`, both `WHITE`; the colour is on the pill's
 `CUE_RIM_PX` rim, never on text (visual-style/principles-and-palette.md §2's cue roles). A cue pill is
 `CUE_PILL_HEIGHT_PX` tall (`value` needs it; the label pill of §6 stays 18 px for `label`-only text), full-height
 radius, `CUE_PILL_PAD_PX` at each end, callout backing at `LABEL_PILL_ALPHA`. Every amount is the server's own

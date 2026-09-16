@@ -10,7 +10,7 @@ import type { ViewportPx } from '../camera';
 import { BG_FIELD, INDICATOR_SHEET, UI_TYPE, WHITE } from '../constants';
 import { HALF } from '../geometry';
 import { paletteFor } from '../palette';
-import { LADDER_SILHOUETTE } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
 import type { IndicatorSpriteTexture, IndicatorTextures } from '../textures/indicator-textures';
 import { labelPillSpriteSizePx, labelPillWidthPx } from '../textures/label-pill-bake';
 import { endosymbiontTallies, pipBlockKey } from '../textures/pip-block-bake';

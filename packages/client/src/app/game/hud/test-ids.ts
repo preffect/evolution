@@ -33,8 +33,24 @@ export const HUD_TEST_ID = {
   traitCardRung: 'trait-card-rung',
   /** The `I → II` mark on a card that upgrades an owned trait. */
   traitCardUpgrade: 'trait-card-upgrade',
-  /** The Escape menu's panel (docs/ui/overlays.md §3.5, #189). */
+  /** The canvas host: focus goes back to it when a modal overlay closes (docs/ui/input-and-onboarding.md §4). */
+  gameHost: 'game-host',
+  /** The Escape menu's panel (docs/ui/overlays.md §3.5). */
   menuOverlay: 'menu-overlay',
+  /** `Return to game`, focused when the menu opens. */
+  menuResume: 'menu-resume',
+  /** `Encyclopedia`: the menu gives way to the encyclopedia. */
+  menuEncyclopedia: 'menu-encyclopedia',
+  /** `Exit game`, which asks once. */
+  menuExit: 'menu-exit',
+  /** The confirm row's `Exit`: leaves the room. */
+  menuExitConfirm: 'menu-exit-confirm',
+  /** The confirm row's `Cancel`, focused when the row asks. */
+  menuExitCancel: 'menu-exit-cancel',
+  /** The menu's alert strip, with `data-alert-kind` (docs/ui/encyclopedia.md §11.1). */
+  menuAlert: 'menu-alert',
+  /** The `Your traits` list. */
+  menuTraits: 'menu-traits',
   /** The results panel (docs/ui/overlays.md §3.4, #189). */
   resultsOverlay: 'results-overlay',
   /** The connection banner, with `data-connection-state` (docs/ui/overlays.md §3.6, #219). */
@@ -86,6 +102,11 @@ export function traitCardTestId(cardIndex: number): string {
 /** The card's pick control. */
 export function traitCardPickTestId(cardIndex: number): string {
   return `trait-card-${cardIndex}-pick`;
+}
+
+/** One `Your traits` row in the menu, by the trait it names (docs/ui/overlays.md §3.5). */
+export function menuTraitTestId(traitId: TraitId): string {
+  return `menu-trait-${traitId}`;
 }
 
 /** `[data-testid="…"]`, the one place the attribute name is spelled. */

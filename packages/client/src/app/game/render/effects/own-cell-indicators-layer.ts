@@ -15,16 +15,16 @@ import {
   type EntityId,
   type GameEffect,
 } from '@evolution/shared';
-import { Container, type Sprite } from 'pixi.js';
 import { LABEL_PILL_HEIGHT_PX } from '../constants';
 import { HALF, type UprightBox } from '../geometry';
-import { SpritePool, placeSprite } from '../sprite-pool';
+import { placeSpriteBatch } from '../sprite-pool';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import type { IndicatorTextures } from '../textures/indicator-textures';
 import { ArcMesh } from './arc-mesh';
 import { IndicatorFillTween } from './indicator-fill-tween';
 import { createBitmapIndicatorText, type IndicatorText, type IndicatorTextFactory } from './indicator-text';
 import { MotionClipPlayer } from './motion-clip-player';
+import { OwnCellLayer, type OwnCellLayerSubject } from './own-cell-layer';
 import { ownCellIndicatorPlacements, type OwnCellIndicatorPlacements, type ThreatAnchor } from './own-cell-indicators';
 
 export interface OwnCellIndicatorsLayerFrame {
@@ -56,37 +56,27 @@ const HIDDEN_ZOOM = 1;
 const OPAQUE = 1;
 const NOTHING_DRAWN: OwnCellIndicatorsLayerOutputs = { sprites: 0, arcs: 0, texts: 0 };
 
-export class OwnCellIndicatorsLayer {
-  readonly container = new Container();
-  private readonly spriteContainer = new Container();
-  private readonly pool = new SpritePool(this.spriteContainer);
+export class OwnCellIndicatorsLayer extends OwnCellLayer<
+  OwnCellIndicators,
+  IndicatorText,
+  OwnCellIndicatorsLayerOutputs,
+  OwnCellIndicatorsLayerFrame
+> {
   private readonly arcMesh = new ArcMesh();
   private readonly flash = new MotionClipPlayer();
   private readonly fill = new IndicatorFillTween();
-  /** Built on the first frame with something to say: `BitmapText` wants a real canvas (`indicator-text.ts`). */
-  private text: IndicatorText | null = null;
-  private cellId: EntityId | null = null;
   private labelBoxPx: UprightBox | null = null;
 
-  constructor(
-    private readonly textures: IndicatorTextures,
-    private createText: IndicatorTextFactory = createBitmapIndicatorText,
-  ) {
+  constructor(textures: IndicatorTextures, createText: IndicatorTextFactory = createBitmapIndicatorText) {
+    super(textures, NOTHING_DRAWN, createText);
     this.container.addChild(this.arcMesh.mesh, this.spriteContainer);
   }
 
-  /** Swaps the text factory before the first text is built: a test passes a fake. */
-  useText(factory: IndicatorTextFactory): void {
-    this.createText = factory;
-  }
-
-  update(frame: OwnCellIndicatorsLayerFrame): OwnCellIndicatorsLayerOutputs {
-    const { indicators, ownCell } = frame;
-    if (indicators === null || ownCell === null) {
-      this.hide();
-      return NOTHING_DRAWN;
-    }
-    const text = this.textView();
+  protected draw(
+    subject: OwnCellLayerSubject<OwnCellIndicators, IndicatorText>,
+    frame: OwnCellIndicatorsLayerFrame,
+  ): OwnCellIndicatorsLayerOutputs {
+    const { indicators, ownCell, text } = subject;
     const clocks = this.advanceClocks(ownCell.id, indicators, frame);
     const placements = ownCellIndicatorPlacements({
       indicators,
@@ -98,18 +88,10 @@ export class OwnCellIndicatorsLayer {
       measureLabelPx: (label) => text.measureLabelPx(label),
     });
     this.arcMesh.draw(placements.arcs, frame.zoom);
-    placements.sprites.forEach((placement, index) =>
-      placeSprite(this.pool.spriteAt(index), placement.texture.texture, { ...placement, alpha: OPAQUE }),
-    );
-    this.pool.hideFrom(placements.sprites.length);
+    placeSpriteBatch(this.pool, placements.sprites, OPAQUE);
     showTexts(text, placements, frame.zoom);
     this.labelBoxPx = labelBoxOf(placements, ownCell, frame.zoom);
     return outputsOf(placements, this.arcMesh.count);
-  }
-
-  /** The pooled atlas sprites in placement order: a test reads them. */
-  get sprites(): readonly Sprite[] {
-    return this.pool.all;
   }
 
   /** The arc rows the next render draws, `ARC_INSTANCE_FLOATS` each: a test reads them. */
@@ -140,16 +122,8 @@ export class OwnCellIndicatorsLayer {
     };
   }
 
-  private textView(): IndicatorText {
-    if (this.text === null) {
-      this.text = this.createText(this.textures);
-      this.container.addChild(this.text.container);
-    }
-    return this.text;
-  }
-
   /** No own cell or no record (spectating, the lobby): nothing drawn, and the next cell starts fresh. */
-  private hide(): void {
+  protected hide(): void {
     this.arcMesh.draw([], HIDDEN_ZOOM);
     this.pool.hideFrom(0);
     this.text?.hideNumeral();

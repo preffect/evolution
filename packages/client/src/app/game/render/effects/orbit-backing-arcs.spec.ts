@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-builders';
 import { LADDER_BACKING_END_PAD_PX, LADDER_BACKING_PX, LADDER_ORBIT_ANGLE_SINGLE_DEG } from '../constants';
 import { DEGREES_PER_TURN } from '../geometry';
-import { LADDER_SILHOUETTE, type Ladder } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE, type Ladder } from '../../state/own-cell-ladder';
 import { ARC_CAP, type ArcInstance } from './arc-instance';
 import { orbitBackingArcs } from './orbit-backing-arcs';
 import { orbitLayout } from './orbit-layout';

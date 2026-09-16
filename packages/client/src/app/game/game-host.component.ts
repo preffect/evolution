@@ -12,8 +12,9 @@ import { HudStateService } from './hud/hud-state.service';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
 import { createPixiApp } from './render/pixi-app';
+import { HUD_TEST_ID } from './hud/test-ids';
 
-export const GAME_HOST_TEST_ID = 'game-host';
+export const GAME_HOST_TEST_ID = HUD_TEST_ID.gameHost;
 
 @Component({
   selector: 'app-game-host',
@@ -69,6 +70,8 @@ export class GameHostComponent implements OnInit, OnDestroy {
         ownCellIndicators: () => this.gameState.ownCellIndicators(),
         // Tab (docs/ui/input-and-onboarding.md §4) reaches the HUD through the input layer's one keyboard listener.
         onFullLeaderboardHeldChanged: (isHeld) => this.hudState.setFullLeaderboardHeld(isHeld),
+        // Escape nothing consumed (docs/ui/overlays.md §3.5): the HUD closes the topmost overlay or opens the menu.
+        onMenuKey: () => this.hudState.pressMenuKey(),
         // A clicked card picks through the input seam's pick policy, like the `1` `2` `3` keys.
         onTraitCardPickReady: (pick) => this.hudState.setTraitCardPick(pick),
         // The one render-side fact the HUD reads (docs/ui/components-and-constants.md §7): what is on screen right now.
@@ -80,5 +83,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.teardown?.();
     this.teardown = null;
+    // The HUD state outlives the room: the next room must not open with this one's menu on screen.
+    this.hudState.closeOverlays();
   }
 }

@@ -69,10 +69,22 @@ describe('UiAlertPillComponent', () => {
     expect(alert().querySelector('.alert-label')?.textContent?.trim()).toBe('Level 5 · choose a trait');
   });
 
-  it('trails its key hints', () => {
+  it('trails its key hints as one tight set, and draws no set without keys', () => {
+    expect(alert().querySelector('.keys')).toBeNull();
     set((host) => host.keyHints.set(['1', '2']));
     const hints = Array.from(alert().querySelectorAll('ui-key-hint')).map((hint) => hint.textContent?.trim());
     expect(hints).toEqual(['1', '2']);
+    expect(alert().querySelector('.keys')?.children).toHaveLength(2);
+    expect(styleRuleValue(document, ['.keys'], 'gap')).toBe('calc(var(--ui-space-xs) * var(--ui-scale))');
+  });
+
+  it('lets its words give way before the number and the keys when the column is narrow', () => {
+    expect(styleRuleValue(document, ['.alert-label'], 'text-overflow')).toBe('ellipsis');
+    expect(styleRuleValue(document, ['.alert-label'], 'min-width')).toBe('0px');
+    // `flex: none` serialises as `none` or `0 0 auto` depending on the rule; what matters is that these never shrink.
+    for (const part of ['.keys', '.dot', '.figure']) {
+      expect(styleRuleValue(document, [part], 'flex-shrink')).toBe('0');
+    }
   });
 
   it('is a white uppercase label pill on the callout backing, its rim and dot in the tone', () => {

@@ -12,14 +12,15 @@ hardware run, as §7 says).
 **Short windows are noise.** Two 24-frame baselines measured the effects stage at 0.78 and 5.69 ms p95: a load spike
 swamps the difference. The comparison below uses the full 240-frame window, each pair run back to back.
 
-| Run (240 frames, p95 ms)      | effects | cells | net  | frame | draw calls |
-| ----------------------------- | ------- | ----- | ---- | ----- | ---------- |
-| baseline, before the fix      | 0.70    | 7.30  | 4.81 | 17.3  | 12         |
-| `cues=1`, before the fix      | 2.50    | 7.41  | 4.41 | 19.8  | 13         |
-| `cues=1`, after the fix       | 1.10    | 6.50  | 3.30 | 15.3  | 13         |
-| baseline, after the fix       | 0.62    | 8.00  | 4.60 | 20.9  | 12         |
+| Run (240 frames, p95 ms) | effects | cells | net  | frame | draw calls |
+| ------------------------ | ------- | ----- | ---- | ----- | ---------- |
+| baseline, before the fix | 0.70    | 7.30  | 4.81 | 17.3  | 12         |
+| `cues=1`, before the fix | 2.50    | 7.41  | 4.41 | 19.8  | 13         |
+| `cues=1`, after the fix  | 1.10    | 6.50  | 3.30 | 15.3  | 13         |
+| baseline, after the fix  | 0.62    | 8.00  | 4.60 | 20.9  | 12         |
 
 **What it shows.**
+
 - Before: the cue layer measured every part of every pill twice a frame through one shared `BitmapText`, whose text
   changed on every call, so each measure re-laid out its glyphs: about +1.8 ms p95 on the effects stage.
 - After (commit `perf(cues)`: widths kept by role and string, rows reuse the widths they were sized with): about

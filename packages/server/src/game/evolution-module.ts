@@ -14,9 +14,9 @@ import {
 } from './debug/evolution-debug-handle.js';
 import { runRecordedStep } from './replay/recorded-step.js';
 import { ReplayRecorder } from './replay/replay-recorder.js';
-import { FoodDeltaTracker } from './serialize/food-delta-tracker.js';
-import { serializeDeltaSnapshot, serializeFullSnapshot } from './serialize/serialize.js';
-import { EvolutionViewerState, type ViewerSnapshotKey } from './serialize/viewer-state.js';
+import { serializeBroadcastSnapshot, serializeFullSnapshot } from './serialize/serialize.js';
+import type { ViewerSnapshotKey } from './serialize/viewer-snapshot-keys.js';
+import { EvolutionViewerState } from './serialize/viewer-state.js';
 import { addPlayerToWorld, removePlayerFromWorld } from './session/membership.js';
 import type { PlayerIdentity } from './session/players.js';
 import { submitPlayerInput } from './simulation/input-coalescing.js';
@@ -24,7 +24,7 @@ import { createWorld } from './world/create-world.js';
 import { findPlayer } from './world/lookups.js';
 import { createInputRejectionCounters, type InputRejectionCounters, type WorldState } from './world/world-state.js';
 
-export interface EvolutionModule extends GameModule<GameInput, GameSnapshot> {
+export interface EvolutionModule extends GameModule<GameInput, GameSnapshot, ViewerSnapshotKey> {
   /** The room's one world; reset in place on a rematch, so the reference is stable. */
   readonly world: WorldState;
   readonly rejections: InputRejectionCounters;
@@ -78,7 +78,6 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
     players: rosterOf(options),
   });
   const recorder = new ReplayRecorder(world);
-  const foodDelta = new FoodDeltaTracker();
   const bots = createEvolutionBotRoster(world);
   const viewerState = new EvolutionViewerState(world);
   const membership = createRecordedMembership(world, recorder, rejections, viewerState);
@@ -96,8 +95,8 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
       driveBots(bots, world, submitInput);
       runRecordedStep(world, recorder, rejections);
     },
-    // The room strips this delta's `food` and sends each viewer its own (`viewerState`); building it anyway is #399.
-    serializeRoomState: () => serializeDeltaSnapshot(world, foodDelta),
+    // No viewer member: each viewer's own are built from the world by `viewerState` (#399).
+    serializeRoomState: () => serializeBroadcastSnapshot(world),
     serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
     viewerState,
     getDebugHandle: () => debugHandle,

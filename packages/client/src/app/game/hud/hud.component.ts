@@ -16,6 +16,8 @@ import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
 import { CONNECTION_STATE, noticeRowCountFor } from './format/connection-banner';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
+import { HudStateService } from './hud-state.service';
+import { MenuOverlayComponent } from './menu-overlay.component';
 import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
@@ -35,6 +37,7 @@ import { AffectingPanelComponent } from './affecting-panel.component';
     AffectingPanelComponent,
     ConnectionBannerComponent,
     LeaderboardPanelComponent,
+    MenuOverlayComponent,
     OwnCellStatusComponent,
     RoundTimerComponent,
     ServerErrorNoticeComponent,
@@ -54,6 +57,11 @@ import { AffectingPanelComponent } from './affecting-panel.component';
          so the results phase does not need to gate it. It does unmount on death, which announces
          nothing; speaking the death is #189's, with the death overlay. -->
     <app-own-cell-status />
+    <!-- Over the picker and the chrome, under the notices (docs/ui/overlays.md §3.5); not phase-gated, since Escape
+         opens it between rounds too. -->
+    @if (isMenuOpen()) {
+      <app-menu-overlay />
+    }
     <!-- Last, so they paint over the chrome (docs/ui/overlays.md §3.6): the dish stays, dimmed, under
          the banner while the socket is down, and the notices stack from the top edge. -->
     @if (isConnectionLost()) {
@@ -99,6 +107,7 @@ import { AffectingPanelComponent } from './affecting-panel.component';
 })
 export class HudComponent implements OnInit {
   private readonly gameState = inject(GameStateService);
+  private readonly hudState = inject(HudStateService);
   private readonly sizeTracker = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
   /**
    * The kit's tokens (docs/ui/components-and-constants.md §10.1). The shell IS the HUD's kit surface, so the
@@ -120,6 +129,9 @@ export class HudComponent implements OnInit {
    * keeps its gate rather than borrowing this one.
    */
   protected readonly isRoundPlaying = computed(() => this.gameState.roundPhase() === ROUND_PHASE.playing);
+
+  /** The Escape menu (docs/ui/overlays.md §3.5), in play and between rounds alike. */
+  protected readonly isMenuOpen = this.hudState.isMenuOpen;
 
   /** The socket is down: the last snapshot stays on screen, dimmed, under the banner (docs/ui/overlays.md §3.6). */
   protected readonly isConnectionLost = computed(

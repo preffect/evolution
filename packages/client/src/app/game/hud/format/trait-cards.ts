@@ -77,7 +77,7 @@ function definitionOf(traitId: TraitId): TraitDefinition {
 }
 
 /** `II`; a tier past the numerals throws, since only a broken server contract can offer one. */
-function numeral(tier: number): string {
+export function tierNumeral(tier: number): string {
   return formatQuantity(tier, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral });
 }
 
@@ -100,7 +100,9 @@ function cardView(
     index,
     traitId: card.traitId,
     name: definition.name,
-    tierLabel: isUpgrade ? `${numeral(owned.tier)} ${UPGRADE_ARROW} ${numeral(card.tier)}` : numeral(card.tier),
+    tierLabel: isUpgrade
+      ? `${tierNumeral(owned.tier)} ${UPGRADE_ARROW} ${tierNumeral(card.tier)}`
+      : tierNumeral(card.tier),
     isUpgrade,
     isRung: isRungFor(card.traitId, progress.stage),
     category,

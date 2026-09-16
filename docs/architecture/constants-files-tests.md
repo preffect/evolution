@@ -61,6 +61,7 @@ packages/server/src/
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,quantize,food-delta-tracker}.ts   quantize: the wire rounding and its exact twin (wire-contract.md §4)
   game/serialize/{viewer-state,viewer-cameras,interest-area}.ts  per-viewer members: the culled food delta and fragments over each viewer's camera and area (wire-contract.md §4.2 lever 1)
+  game/serialize/viewer-snapshot-keys.ts                      which members the broadcast carries and which each viewer is sent apart; read by both sides so neither imports the other (wire-contract.md §4, #399)
   game/replay/{replay-format,replay-recorder,recorded-step,replay-runner,index-by-tick}.ts
   game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,balance-patch,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
@@ -83,7 +84,8 @@ packages/client/src/app/game/
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: rendering/files-and-tests.md §8)
   clock-provider.ts                                             the injected Clock token (determinism/contract-and-clock.md §2)
   state/{game-state.service,game-event-bus,snapshot-transitions}.ts   the signal facade; the moment seam of section 6 and its snapshot detector
-  state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor, ladderFor (ui/hud.md §3.1.4)
+  state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor: the record the renderer and the status mirror share (ui/hud.md §3.1.4)
+  state/own-cell-ladder.ts                                      pure ladderFor: the rung ghost and the endosymbiont counters on the orbit (ui/hud.md §3.1.2)
   state/legibility-cues.ts                                      pure legibilityCuesFor: the record's mass chip, rate tags, zone, sprint cost (ui/hud.md §3.1.5)
   state/mass-trend.ts                                           pure massTrendFor: the chip's net rate and trend with hysteresis (ui/hud.md §3.1.5)
   state/legibility-constants.ts                                 the §3.1.6 rows marked state

@@ -191,6 +191,8 @@ function createScenarioModule(module: EvolutionModule): EvolutionScenarioModule 
   };
   return {
     ...module,
+    // The runner reads the whole scenario snapshot: no member of it is a viewer's alone.
+    viewerState: undefined,
     serializeRoomState: serialize,
     serializeFullState: () => ({ snapshot: serialize(), balance: module.world.balance }),
     addPlayer: (playerId, avatarIndex, playerName) => {

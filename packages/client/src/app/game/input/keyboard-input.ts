@@ -25,7 +25,9 @@ export interface KeyboardInputOptions {
 export function attachKeyboardInput(options: KeyboardInputOptions): () => void {
   const onKeyDown = (event: KeyboardEvent): void => {
     if (!options.isInGame()) return;
-    const action = keyDownAction({ code: event.code, isRepeat: event.repeat }, options.focusContext());
+    // A component that consumed the press (the menu's exit confirm, the search field) has already said so (§4).
+    const press = { code: event.code, isRepeat: event.repeat, isDefaultPrevented: event.defaultPrevented };
+    const action = keyDownAction(press, options.focusContext());
     if (shouldPreventDefaultFor(action)) event.preventDefault();
     options.onAction(action);
   };

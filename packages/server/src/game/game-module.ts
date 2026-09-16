@@ -11,15 +11,23 @@ import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-pro
  *
  * The room always drives a `GameModule` over the wire types; the type parameters exist for the
  * gameplay testing framework, whose adapters run stand-in modules (the echo, a toy world) that
- * speak their own snapshot shape (docs/testing/scenario-runner.md §8).
+ * speak their own snapshot shape (docs/testing/scenario-runner.md §8). `ViewerKey` names the members `viewerState`
+ * declares; the broadcast is typed without them, so the module never builds them for it (#399).
  */
-export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
+export interface GameModule<
+  Input = GameInput,
+  Snapshot = GameSnapshot,
+  ViewerKey extends keyof Snapshot & string = never,
+> {
   /** Store/merge the latest input for a player (called from the message router). */
   submitInput(playerId: PlayerId, payload: Input): void;
   /** Advance the world one tick (called at TICK_HZ by GameRoom). */
   reduceGameState(): void;
-  /** Produce the broadcast snapshot for this tick (the delta since the previous broadcast). */
-  serializeRoomState(): Snapshot;
+  /**
+   * Produce the broadcast snapshot for this tick (the delta since the previous broadcast), without the members
+   * `viewerState` declares: each viewer's `serialize` builds those from the world.
+   */
+  serializeRoomState(): ViewerlessSnapshot<Snapshot, ViewerKey>;
   /**
    * What a joining, late-joining or reconnecting client receives in `game_state`
    * (docs/architecture/wire-contract.md §4): the full snapshot plus the balance the module simulates with.
@@ -33,7 +41,7 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
    * and one viewer's values for them, appended after a single shared stringify per broadcast and set on each
    * `game_state`. Optional: without it every connection receives the snapshot as is, serialised once.
    */
-  readonly viewerState?: ViewerState<Snapshot>;
+  readonly viewerState?: ViewerState<Snapshot, ViewerKey>;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */
@@ -47,22 +55,39 @@ export interface GameModule<Input = GameInput, Snapshot = GameSnapshot> {
   getDebugHandle?(): SimulationDebugHandle;
 }
 
+/** A snapshot without the members its viewers are sent apart: the whole snapshot for a module that declares none. */
+export type ViewerlessSnapshot<Snapshot, ViewerKey extends keyof Snapshot & string> = [ViewerKey] extends [never]
+  ? Snapshot
+  : Omit<Snapshot, ViewerKey>;
+
+/** The members a module over the wire types may declare per viewer: any but the `tick` the room's flow control reads. */
+export type RoomViewerKey = Exclude<keyof GameSnapshot, 'tick'>;
+
+/** What the room drives: a module over the wire types, whatever members it declares per viewer (the lobby names none). */
+export type RoomGameModule = GameModule<GameInput, GameSnapshot, RoomViewerKey>;
+
+/** What the room's `serializeRoomState` answers, as the room sees it. */
+export type RoomBroadcastSnapshot = ViewerlessSnapshot<GameSnapshot, RoomViewerKey>;
+
 /**
  * The snapshot members each connection is sent for itself alone (docs/architecture/wire-contract.md §4): the room
- * stringifies the snapshot once per broadcast without `keys`, then appends every viewer's own values for them in
+ * stringifies the broadcast once, which carries none of `keys`, then appends every viewer's own values for them in
  * this order (`lobby/viewer-snapshots.ts`). The module declares the members; the lobby names none. This is what the
  * lobby reads; a module implements `ViewerStateSerializer`, whose answers must carry every declared member.
  */
-export interface ViewerState<Snapshot = GameSnapshot> {
-  /** The per-viewer members, in the order the room appends them; the shared stringify leaves them out. */
-  readonly keys: readonly (keyof Snapshot & string)[];
-  /** One viewer's values for `keys` in a `game_snapshot`; `snapshot` is what this broadcast's `serializeRoomState` answered. */
-  serialize(viewerPlayerId: PlayerId, snapshot: Snapshot): Partial<Snapshot>;
+export interface ViewerState<Snapshot, ViewerKey extends keyof Snapshot & string> {
+  /** The per-viewer members, in the order the room appends them; the broadcast leaves them out. */
+  readonly keys: readonly ViewerKey[];
+  /** One viewer's values for `keys` in a `game_snapshot`; `broadcast` is what this broadcast's `serializeRoomState` answered. */
+  serialize(
+    viewerPlayerId: PlayerId,
+    broadcast: ViewerlessSnapshot<Snapshot, ViewerKey>,
+  ): Partial<Pick<Snapshot, ViewerKey>>;
   /**
    * One viewer's values for `keys` in a `game_state`; `snapshot` is `serializeFullState`'s. Whatever that viewer's
    * later `serialize` answers are relative to (a per-viewer delta) restarts from this one.
    */
-  serializeFull(viewerPlayerId: PlayerId, snapshot: Snapshot): Partial<Snapshot>;
+  serializeFull(viewerPlayerId: PlayerId, snapshot: Snapshot): Partial<Pick<Snapshot, ViewerKey>>;
 }
 
 /**
@@ -72,7 +97,7 @@ export interface ViewerState<Snapshot = GameSnapshot> {
  */
 export interface ViewerStateSerializer<Snapshot, Keys extends keyof Snapshot & string> {
   readonly keys: readonly Keys[];
-  serialize(viewerPlayerId: PlayerId, snapshot: Snapshot): Pick<Snapshot, Keys>;
+  serialize(viewerPlayerId: PlayerId, broadcast: ViewerlessSnapshot<Snapshot, Keys>): Pick<Snapshot, Keys>;
   serializeFull(viewerPlayerId: PlayerId, snapshot: Snapshot): Pick<Snapshot, Keys>;
 }
 
@@ -100,7 +125,7 @@ export interface RoomInitOptions {
 }
 
 /** Factory the LobbyManager uses to create a room's game logic. */
-export type GameModuleFactory = (options: RoomInitOptions) => GameModule;
+export type GameModuleFactory = (options: RoomInitOptions) => RoomGameModule;
 
 /**
  * DEFAULT PLACEHOLDER (TODO(game)): trust-client echo. Stores the latest input per player and
@@ -177,4 +202,4 @@ function echoBotHandle(
  * snapshot to make it go away: the real module returns a real `GameSnapshot` and needs neither.
  */
 export const defaultGameModuleFactory: GameModuleFactory = (options) =>
-  createEchoModule(options) as unknown as GameModule;
+  createEchoModule(options) as unknown as RoomGameModule;

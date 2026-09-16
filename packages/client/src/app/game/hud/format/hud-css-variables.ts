@@ -61,6 +61,9 @@ import {
   LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
   HUD_FOCUS_RING_PX,
+  MENU_PANEL_WIDTH_PX,
+  MENU_TRAIT_LINE_HEIGHT_PX,
+  MENU_TRAIT_ROW_HEIGHT_PX,
   PICKER_CARD_CONTENT_GAP_PX,
   PICKER_CARD_GLOW_PX,
   PICKER_CARD_HIGHLIGHT_MS,
@@ -78,6 +81,7 @@ import {
   PICKER_TIMER_BAR_WIDTH_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
 } from '../hud-constants';
+import { TRAIT_GLYPH_LIST_PX } from '../../glyphs/glyph-constants';
 import type { ViewportPx } from '../../render/camera';
 import { pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
 
@@ -152,6 +156,19 @@ function affectingPanelVariables(): StyleVariables {
     '--hud-affecting-sparkline-height': `${AFFECTING_SPARKLINE_HEIGHT_PX}px`,
     '--hud-affecting-sparkline-stroke': `${AFFECTING_SPARKLINE_STROKE_PX}px`,
     '--hud-affecting-trend-glyph': `${TREND_GLYPH_PX}px`,
+  };
+}
+
+/**
+ * The Escape menu (docs/ui/overlays.md §3.5): the panel and the `Your traits` rows. How many rows show before the list
+ * scrolls is not published: `MENU_TRAITS_VISIBLE_ROWS` is a row count the component measures with, never a length.
+ */
+function menuVariables(): StyleVariables {
+  return {
+    '--hud-menu-panel-width': `${MENU_PANEL_WIDTH_PX}px`,
+    '--hud-menu-trait-row-height': `${MENU_TRAIT_ROW_HEIGHT_PX}px`,
+    '--hud-menu-trait-line-height': `${MENU_TRAIT_LINE_HEIGHT_PX}px`,
+    '--hud-menu-trait-glyph': `${TRAIT_GLYPH_LIST_PX}px`,
   };
 }
 
@@ -234,6 +251,7 @@ export function hudStyleVariables(hudScale: number): StyleVariables {
     ...chromeVariables(),
     ...pickerVariables(),
     ...affectingPanelVariables(),
+    ...menuVariables(),
     ...noticeVariables(),
     ...typeAndColourVariables(),
   };

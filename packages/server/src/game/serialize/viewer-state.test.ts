@@ -6,15 +6,14 @@ import {
   interestMarginFor,
   playerId,
   viewHalfHeightFor,
-  type GameSnapshot,
 } from '@evolution/shared';
 import { TEST_PLAYER, createTestWorld } from '../../testing/world-builders.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { WorldState } from '../world/world-state.js';
-import { FoodDeltaTracker } from './food-delta-tracker.js';
-import { serializeDeltaSnapshot } from './serialize.js';
+import { serializeBroadcastSnapshot } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
-import { EvolutionViewerState, VIEWER_SNAPSHOT_KEYS } from './viewer-state.js';
+import { VIEWER_SNAPSHOT_KEYS, type BroadcastSnapshot } from './viewer-snapshot-keys.js';
+import { EvolutionViewerState } from './viewer-state.js';
 
 const OTHER_PLAYER = { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 };
 /** Near a cell parked at the dish centre, and past any view of a starting cell there. */
@@ -24,6 +23,8 @@ const TAG = 'motile';
 /** How far past the default margin a mote waits for a raised speed to reach it (wu). */
 const PAST_THE_MARGIN_WU = 20;
 const SPEED_RAISE = 3;
+/** The other player's applied input sequence, apart from the own player's. */
+const OTHER_SEQUENCE = 7;
 
 /** A world with the own cell parked at the centre and one viewer state over it. */
 function centredWorld(players = [TEST_PLAYER]) {
@@ -35,9 +36,9 @@ function centredWorld(players = [TEST_PLAYER]) {
 }
 
 /** What the room does once per broadcast: the world moves on, then the shared snapshot is built. */
-function broadcast(world: WorldState): GameSnapshot {
+function broadcast(world: WorldState): BroadcastSnapshot {
   world.tick += SNAPSHOT_EVERY_TICKS;
-  return serializeDeltaSnapshot(world, new FoodDeltaTracker());
+  return serializeBroadcastSnapshot(world);
 }
 
 function algaeAt(world: WorldState, position: { x: number; y: number }) {
@@ -62,11 +63,21 @@ describe('EvolutionViewerState', () => {
     algaeAt(world, FAR);
     const nearFragment = spawnDnaFragment(world, { at: NEAR, tag: TAG, driftTurn: 0 });
     spawnDnaFragment(world, { at: FAR, tag: TAG, driftTurn: 0 });
-    const members = viewerState.serializeFull(TEST_PLAYER.playerId, broadcast(world));
+    const members = viewerState.serializeFull(TEST_PLAYER.playerId);
     expect(members.food.spawned.map((mote) => mote.id)).toEqual([near.id]);
     expect(members.food.removedIds).toEqual([]);
     expect(members.food.moved).toEqual([]);
     expect(members.dnaFragments.map((fragment) => fragment.id)).toEqual([nearFragment.id]);
+  });
+
+  it('sends a game_snapshot the fragments near the viewer from the world, which the broadcast does not carry', () => {
+    const { world, viewerState } = centredWorld();
+    const nearFragment = spawnDnaFragment(world, { at: NEAR, tag: TAG, driftTurn: 0 });
+    spawnDnaFragment(world, { at: FAR, tag: TAG, driftTurn: 0 });
+    const shared = broadcast(world);
+    expect(Object.keys(shared)).not.toContain('dnaFragments');
+    const { dnaFragments } = viewerState.serialize(TEST_PLAYER.playerId, shared);
+    expect(dnaFragments.map((fragment) => fragment.id)).toEqual([nearFragment.id]);
   });
 
   it('spawns a mote entering the area, removes one leaving it and moves one inside it', () => {
@@ -74,7 +85,7 @@ describe('EvolutionViewerState', () => {
     const leaving = algaeAt(world, NEAR);
     const entering = algaeAt(world, FAR);
     const drifting = algaeAt(world, { x: -NEAR.x, y: NEAR.y });
-    viewerState.serializeFull(TEST_PLAYER.playerId, broadcast(world));
+    viewerState.serializeFull(TEST_PLAYER.playerId);
     leaving.x = FAR.x;
     entering.x = NEAR.x;
     drifting.y += NEAR.x;
@@ -89,7 +100,7 @@ describe('EvolutionViewerState', () => {
     const near = algaeAt(world, NEAR);
     viewerState.serialize(TEST_PLAYER.playerId, broadcast(world));
     expect(viewerState.serialize(TEST_PLAYER.playerId, broadcast(world)).food.spawned).toEqual([]);
-    const full = viewerState.serializeFull(TEST_PLAYER.playerId, broadcast(world));
+    const full = viewerState.serializeFull(TEST_PLAYER.playerId);
     expect(full.food.spawned.map((mote) => mote.id)).toEqual([near.id]);
     viewerState.forget(TEST_PLAYER.playerId);
     const afresh = viewerState.serialize(TEST_PLAYER.playerId, broadcast(world));
@@ -102,7 +113,7 @@ describe('EvolutionViewerState', () => {
     const snapshot = broadcast(world);
     viewerState.serialize(TEST_PLAYER.playerId, snapshot);
     viewerState.serialize(OTHER_PLAYER.playerId, snapshot);
-    viewerState.serialize(TEST_PLAYER.playerId, serializeDeltaSnapshot(world, new FoodDeltaTracker()));
+    viewerState.serialize(TEST_PLAYER.playerId, serializeBroadcastSnapshot(world));
     expect(step).toHaveBeenCalledTimes(1);
     viewerState.serialize(TEST_PLAYER.playerId, broadcast(world));
     expect(step).toHaveBeenCalledTimes(2);
@@ -112,8 +123,7 @@ describe('EvolutionViewerState', () => {
     const { world, viewerState } = centredWorld();
     viewerState.serialize(TEST_PLAYER.playerId, broadcast(world));
     const spawned = algaeAt(world, NEAR);
-    const republished = serializeDeltaSnapshot(world, new FoodDeltaTracker());
-    const { food } = viewerState.serialize(TEST_PLAYER.playerId, republished);
+    const { food } = viewerState.serialize(TEST_PLAYER.playerId, serializeBroadcastSnapshot(world));
     expect(food.spawned.map((mote) => mote.id)).toEqual([spawned.id]);
   });
 
@@ -122,8 +132,7 @@ describe('EvolutionViewerState', () => {
     world.balance = structuredClone(DEFAULT_BALANCE);
     const edge = viewHalfHeightFor(own.radius) + interestMarginFor(world.balance) + PAST_THE_MARGIN_WU;
     const justPast = algaeAt(world, { x: 0, y: edge });
-    const spawnedIds = () =>
-      viewerState.serializeFull(TEST_PLAYER.playerId, broadcast(world)).food.spawned.map((mote) => mote.id);
+    const spawnedIds = () => viewerState.serializeFull(TEST_PLAYER.playerId).food.spawned.map((mote) => mote.id);
     expect(spawnedIds()).toEqual([]);
     world.balance.growth.CELL_BASE_SPEED *= SPEED_RAISE;
     expect(spawnedIds()).toEqual([justPast.id]);
@@ -136,21 +145,18 @@ describe('EvolutionViewerState', () => {
     other.y = FAR.y;
     const byOwn = algaeAt(world, { x: own.x + NEAR.x, y: own.y });
     const byOther = algaeAt(world, { x: other.x - NEAR.x, y: other.y });
-    const snapshot = broadcast(world);
     const spawnedFor = (viewer: typeof TEST_PLAYER) =>
-      viewerState.serializeFull(viewer.playerId, snapshot).food.spawned.map((mote) => mote.id);
+      viewerState.serializeFull(viewer.playerId).food.spawned.map((mote) => mote.id);
     expect(spawnedFor(TEST_PLAYER)).toEqual([byOwn.id]);
     expect(spawnedFor(OTHER_PLAYER)).toEqual([byOther.id]);
   });
 
-  it('sends each viewer its own progress and input sequence alone', () => {
+  it('sends each viewer its own progress and input sequence alone, read from the world', () => {
     const { world, viewerState } = centredWorld([TEST_PLAYER, OTHER_PLAYER]);
+    world.players.find((player) => player.playerId === OTHER_PLAYER.playerId)!.appliedInputSequence = OTHER_SEQUENCE;
     const snapshot = broadcast(world);
-    expect(Object.keys(snapshot.appliedInputSequenceByPlayer)).toHaveLength(2);
     const members = viewerState.serialize(OTHER_PLAYER.playerId, snapshot);
-    expect(members.appliedInputSequenceByPlayer).toEqual({
-      [OTHER_PLAYER.playerId]: snapshot.appliedInputSequenceByPlayer[OTHER_PLAYER.playerId],
-    });
+    expect(members.appliedInputSequenceByPlayer).toEqual({ [OTHER_PLAYER.playerId]: OTHER_SEQUENCE });
     expect(members.ownProgress?.playerId).toBe(OTHER_PLAYER.playerId);
     const nobody = viewerState.serialize(playerId('nobody'), snapshot);
     expect(nobody.appliedInputSequenceByPlayer).toEqual({});

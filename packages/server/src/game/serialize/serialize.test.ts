@@ -19,10 +19,9 @@ import {
 import { updateLeaderboard } from '../session/leaderboard.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
-import { FoodDeltaTracker } from './food-delta-tracker.js';
 import { EXACT_SNAPSHOT_VALUES } from './quantize.js';
 import {
-  serializeDeltaSnapshot,
+  serializeBroadcastSnapshot,
   serializeFullSnapshot,
   toCellView,
   toDnaFragmentView,
@@ -35,6 +34,7 @@ import {
   SPRINT_WINDOW,
 } from './serialize.js';
 import { recordMetabolism, recordSprintSpent } from '../world/mass-flow-ledger.js';
+import { VIEWER_SNAPSHOT_KEYS } from './viewer-snapshot-keys.js';
 
 /** A grown, moving cell as a recording client saw it on the wire before #341: every float at full precision. */
 const MOVING_CELL = {
@@ -213,11 +213,11 @@ describe('serializeFullSnapshot', () => {
   });
 });
 
-describe('serializeDeltaSnapshot', () => {
-  it('carries the tracker diff and the given effects', () => {
+describe('serializeBroadcastSnapshot', () => {
+  it('drains the effects since the last broadcast and builds no member a viewer is sent apart (#399)', () => {
     const world = createTestWorld();
     const mote = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 1, y: 1 } });
-    const tracker = new FoodDeltaTracker();
+    spawnDnaFragment(world, { at: { x: 1, y: 1 }, tag: 'motile', driftTurn: 0 });
     const effects: GameEffect[] = [
       {
         kind: EFFECT_KIND.eat,
@@ -232,14 +232,13 @@ describe('serializeDeltaSnapshot', () => {
       },
     ];
     world.effects.push(...effects);
-    const first = serializeDeltaSnapshot(world, tracker);
-    expect(first.food.spawned.map((view) => view.id)).toEqual([mote.id]);
+    const first = serializeBroadcastSnapshot(world);
     expect(first.effects).toEqual(effects);
     expect(world.effects).toEqual([]);
-    world.food = [];
-    const second = serializeDeltaSnapshot(world, tracker);
-    expect(second.food).toEqual({ spawned: [], removedIds: [mote.id], moved: [] });
-    expect(second.effects).toEqual([]);
+    const viewerKeys: readonly string[] = VIEWER_SNAPSHOT_KEYS;
+    expect(Object.keys(first).filter((key) => viewerKeys.includes(key))).toEqual([]);
+    expect(first.cells).toEqual(serializeFullSnapshot(world).cells);
+    expect(serializeBroadcastSnapshot(world).effects).toEqual([]);
   });
 });
 
@@ -265,10 +264,10 @@ describe('the own progress mass flow (#383)', () => {
       ratesPerSecond: { decay: -0.5 },
       zone: ZONE_ID.openBroth,
     });
-    serializeDeltaSnapshot(world, new FoodDeltaTracker());
+    serializeBroadcastSnapshot(world);
     expect(ownProgressOf(world, player.playerId)?.massFlow?.sprintSpent).toBe(sprintSpent);
     expect(ownProgressOf(world, player.playerId, SPRINT_WINDOW.omitted)?.massFlow?.sprintSpent).toBeUndefined();
-    serializeDeltaSnapshot(world, new FoodDeltaTracker());
+    serializeBroadcastSnapshot(world);
     expect(ownProgressOf(world, player.playerId)?.massFlow?.sprintSpent).toBeUndefined();
   });
 
@@ -294,7 +293,7 @@ describe('the own progress mass flow (#383)', () => {
       massGained,
       dnaGained: 0,
     });
-    const [eaten] = serializeDeltaSnapshot(world, new FoodDeltaTracker()).effects;
+    const [eaten] = serializeBroadcastSnapshot(world).effects;
     expect(eaten).toMatchObject({ massGained: Number(massGained.toFixed(SNAPSHOT_MASS_DECIMALS)) });
   });
 });

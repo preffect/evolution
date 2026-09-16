@@ -16,7 +16,8 @@ import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
 import { formatMassFigure } from './mass-cues';
 import { READY } from './sprint-fill';
 import { MASS_TREND } from '../../state/mass-trend';
-import type { LadderCounter, OwnCellIndicators } from '../../state/own-cell-indicators';
+import type { OwnCellIndicators } from '../../state/own-cell-indicators';
+import type { LadderCounter } from '../../state/own-cell-ladder';
 
 /** `data-mass-rate` and `data-mass-causes` carry one decimal (docs/ui/hud.md §3.1.4). */
 const MASS_RATE_ATTRIBUTE_DECIMALS = 1;

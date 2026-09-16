@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createFakeTextureBaker } from '../../../../testing/fake-pixi-app';
 import { INDICATOR_FONT } from '../constants';
 import { CUE_RIM } from '../../hud/format/mass-cues';
-import { LADDER_SILHOUETTE } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
 import { createIndicatorTextures, destroyIndicatorTextures } from './indicator-textures';
 import { endosymbiontTallies, pipBlockKey } from './pip-block-bake';
 

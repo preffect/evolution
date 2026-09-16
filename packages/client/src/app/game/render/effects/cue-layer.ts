@@ -9,14 +9,14 @@
 // applies them. Nothing is drawn without a record or an own cell.
 
 import type { CellView, EntityId, GameEffect } from '@evolution/shared';
-import { Container, type Sprite } from 'pixi.js';
 import { RATE_TAG_REFRESH_MS } from '../constants';
 import type { UprightBox } from '../geometry';
-import { SpritePool, placeSprite } from '../sprite-pool';
+import { placeSpriteBatch } from '../sprite-pool';
 import type { RateTag } from '../../hud/format/mass-cues';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import type { IndicatorTextures } from '../textures/indicator-textures';
 import { floaterLeftPx, type CueLayout } from './cue-layout';
+import { OwnCellLayer, type OwnCellLayerSubject } from './own-cell-layer';
 import { cueLayoutOf, cuePlacements, cueRowsFor, type CueFrame } from './cue-placements';
 import { createBitmapCueText, type CueText, type CueTextFactory, type CueTextRole } from './cue-text';
 import { FLOATER_CAUSE, FloaterStack, floaterSpawnsOf } from './floater-stack';
@@ -53,38 +53,25 @@ function hasSameCauses(first: readonly RateTag[], second: readonly RateTag[]): b
   return first.length === second.length && first.every((tag, index) => tag.cause === second[index]?.cause);
 }
 
-export class CueLayer {
-  readonly container = new Container();
-  private readonly spriteContainer = new Container();
-  private readonly pool = new SpritePool(this.spriteContainer);
+export class CueLayer extends OwnCellLayer<OwnCellIndicators, CueText, CueLayerOutputs, CueLayerFrame> {
   private readonly floaters = new FloaterStack();
   /** Each measured string's width by role, so a repeated string costs no glyph layout. */
   private readonly measuredWidthsPx = new Map<string, number>();
-  /** Built on the first frame with something to say: `BitmapText` wants a real canvas (`cue-text.ts`). */
-  private text: CueText | null = null;
-  private cellId: EntityId | null = null;
   private lastSprintTick: number | null = null;
   private shownTags: ShownTags | null = null;
 
-  constructor(
-    private readonly textures: IndicatorTextures,
-    private createText: CueTextFactory = createBitmapCueText,
-  ) {
+  constructor(textures: IndicatorTextures, createText: CueTextFactory = createBitmapCueText) {
+    super(textures, NOTHING_DRAWN, createText);
     this.container.addChild(this.spriteContainer);
   }
 
-  /** Swaps the text factory before the first text is built: a test passes a fake. */
-  useText(factory: CueTextFactory): void {
-    this.createText = factory;
+  /** The cues' text view goes under the glyph sprites, so a pill's backing never covers its own glyph. */
+  protected override addTextView(view: CueText): void {
+    this.container.addChildAt(view.container, 0);
   }
 
-  update(frame: CueLayerFrame): CueLayerOutputs {
-    const { indicators, ownCell } = frame;
-    if (indicators === null || ownCell === null) {
-      this.hide();
-      return NOTHING_DRAWN;
-    }
-    const text = this.textView();
+  protected draw(subject: OwnCellLayerSubject<OwnCellIndicators, CueText>, frame: CueLayerFrame): CueLayerOutputs {
+    const { indicators, ownCell, text } = subject;
     if (ownCell.id !== this.cellId) this.startCell(ownCell.id);
     const cueFrame: CueFrame = {
       indicators,
@@ -100,16 +87,8 @@ export class CueLayer {
     this.spawnFloaters(frame, indicators, ownCell, layout);
     const placements = cuePlacements(cueFrame, rows, layout, this.floaters.placements(frame.nowMs));
     text.draw(placements.backings, placements.texts, frame.zoom);
-    placements.sprites.forEach((placement, index) =>
-      placeSprite(this.pool.spriteAt(index), placement.texture.texture, { ...placement, alpha: OPAQUE }),
-    );
-    this.pool.hideFrom(placements.sprites.length);
+    placeSpriteBatch(this.pool, placements.sprites, OPAQUE);
     return { pills: placements.backings.length, texts: placements.texts.length, sprites: placements.sprites.length };
-  }
-
-  /** The pooled glyph sprites in placement order: a test reads them. */
-  get sprites(): readonly Sprite[] {
-    return this.pool.all;
   }
 
   /** A string's width in its role, measured by the text view the first time it is asked for and kept. */
@@ -153,16 +132,8 @@ export class CueLayer {
     this.shownTags = null;
   }
 
-  private textView(): CueText {
-    if (this.text === null) {
-      this.text = this.createText(this.textures);
-      this.container.addChildAt(this.text.container, 0);
-    }
-    return this.text;
-  }
-
   /** No own cell or no record (spectating, the lobby): nothing drawn, and the next cell starts fresh. */
-  private hide(): void {
+  protected hide(): void {
     this.text?.draw([], [], HIDDEN_ZOOM);
     this.pool.hideFrom(0);
     this.floaters.clear();

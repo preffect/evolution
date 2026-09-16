@@ -1,12 +1,4 @@
-import type {
-  PlayerId,
-  GameId,
-  GameSnapshot,
-  GameInput,
-  GameSessionConfig,
-  LobbyPlayerInfo,
-  ServerMessage,
-} from '@evolution/shared';
+import type { PlayerId, GameId, GameInput, GameSessionConfig, LobbyPlayerInfo, ServerMessage } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
 import {
   SERVER_MESSAGE_TYPE,
@@ -20,7 +12,7 @@ import { PerformanceTracker, tickRecordOf } from './performance-tracker.js';
 import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
 import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
 import type { RoomTiming } from './room-timing.js';
-import type { FullGameState, GameModule, RoomInitOptions } from '../game/game-module.js';
+import type { FullGameState, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import { DebugRequestError } from '../game/debug/debug-request-error.js';
 
@@ -47,14 +39,14 @@ export class GameRoom {
   /** Who is behind on the wire and owes a `game_state` (#266, docs/architecture/wire-contract.md §4). */
   readonly snapshotBacklog = new SnapshotBacklog();
 
-  private readonly game: GameModule;
+  private readonly game: RoomGameModule;
   private readonly timing: RoomTiming;
   private readonly accumulator: FixedStepAccumulator;
   private isLoopPaused = false;
   private isLoopStarted = false;
   private tickCount = 0;
 
-  constructor(game: GameModule, options: RoomInitOptions, timing: RoomTiming) {
+  constructor(game: RoomGameModule, options: RoomInitOptions, timing: RoomTiming) {
     this.game = game;
     this.timing = timing;
     this.accumulator = createSimulationStepAccumulator(timing.clock);
@@ -157,10 +149,6 @@ export class GameRoom {
   /** The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. */
   recordSnapshotAck(playerId: string, tick: number): void {
     this.snapshotBacklog.recordAcknowledgedTick(playerId, tick);
-  }
-
-  getSnapshot(): GameSnapshot {
-    return this.game.serializeRoomState();
   }
 
   /** The `game_state` payload (docs/architecture/wire-contract.md §4): the module's full snapshot and live balance. */
