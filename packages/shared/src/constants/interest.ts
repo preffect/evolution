@@ -3,7 +3,7 @@
 // viewer) over its last few broadcasts, grown by a margin (`camera/interest-margin.ts`, over the room's live balance).
 // These are the parts that do not depend on the balance: engineering constants, not in `balance.json`.
 
-import { INTERPOLATION_DELAY_TICKS, SNAPSHOT_EVERY_TICKS } from './netcode.js';
+import { INTERPOLATION_DELAY_INTERVALS } from './netcode.js';
 
 /**
  * The widest canvas, width over height, whose sides are never culled. The vertical extent is authoritative
@@ -13,11 +13,16 @@ import { INTERPOLATION_DELAY_TICKS, SNAPSHOT_EVERY_TICKS } from './netcode.js';
  */
 export const INTEREST_VIEW_ASPECT_RATIO = 2.4;
 
+/** The two states beyond the render delay: the newest, and one more for a snapshot that arrives late. */
+const INTEREST_BROADCASTS_BEYOND_THE_RENDER_DELAY = 2;
+
 /**
  * Camera states the area spans: the newest, the broadcasts the client renders behind it
- * (`INTERPOLATION_DELAY_TICKS`), and one more for a snapshot that arrives late.
+ * (`INTERPOLATION_DELAY_INTERVALS`, the render delay counted in whole broadcasts, which is where that
+ * division lives — #287), and one more for a snapshot that arrives late.
  */
-export const INTEREST_CAMERA_HISTORY_BROADCASTS = Math.ceil(INTERPOLATION_DELAY_TICKS / SNAPSHOT_EVERY_TICKS) + 2;
+export const INTEREST_CAMERA_HISTORY_BROADCASTS =
+  INTERPOLATION_DELAY_INTERVALS + INTEREST_BROADCASTS_BEYOND_THE_RENDER_DELAY;
 
 /** How far a mote or a fragment is drawn, in its radii: the widest food glow (`ALGAE_GLOW.wide`, 3) and one more. */
 export const INTEREST_ENTITY_REACH_RADII = 4;

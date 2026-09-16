@@ -14,7 +14,11 @@ export const SNAPSHOT_POSITION_DECIMALS = 1;
 // ---- the other snapshot numbers (#341, docs/architecture/wire-contract.md §4.2 lever 3): only the view is rounded ----
 /** A radius is a length like a position, so its rim is as exact as its centre: at most 0.05 wu off. */
 export const SNAPSHOT_RADIUS_DECIMALS = SNAPSHOT_POSITION_DECIMALS;
-/** 0.1 wu/s: extrapolation carries it for at most `MAX_EXTRAPOLATION_TICKS`, so a position drifts 0.0025 wu at most. */
+/**
+ * 0.1 wu/s: extrapolation carries it for at most `MAX_EXTRAPOLATION_TICKS`, so a position drifts 0.0025 wu at most
+ * at the landed cadence. The cap is one snapshot interval (#287), so a slower cadence drifts in proportion —
+ * `wire-precision.spec.ts` computes the bound from the constant rather than from this number.
+ */
 export const SNAPSHOT_VELOCITY_DECIMALS = 1;
 /**
  * 0.1 mass, for a cell and its leaderboard row alike, so the two whole numbers the HUD shows for one cell always
@@ -65,11 +69,9 @@ export const SNAPSHOT_BACKLOG_LIMIT_TICKS = derived.snapshotBacklogLimitTicks;
 
 /**
  * How long a client may go between acknowledgements, as a tick budget rather than a count of
- * snapshots (#277). `SNAPSHOT_BACKLOG_LIMIT_TICKS` is a second of ticks, so a cadence counted in
- * snapshots would move the floor of that measurement every time `SNAPSHOT_EVERY_TICKS` moved and one
- * lever would eat the other's headroom: a fixed 5 snapshots is 5 ticks at 60 Hz, 15 at 20 Hz and 20
- * at 15 Hz, all against the same 60-tick limit. Derived, it is 6, 6 and 4. Ticks and not
- * milliseconds so the division is exact integer arithmetic at every `SNAPSHOT_EVERY_TICKS`; this
+ * snapshots (#277): why a count would let one lever eat the other's headroom is
+ * docs/architecture/wire-contract.md §4, and `derive-netcode.test.ts` executes the gap it produces at
+ * every cadence. Ticks and not milliseconds so the division is exact integer arithmetic; this
  * quantity is itself whole only while `TICK_HZ` divides by the ack rate, which `netcode.test.ts` pins.
  */
 export const SNAPSHOT_ACK_INTERVAL_TICKS = derived.snapshotAckIntervalTicks;
@@ -92,6 +94,12 @@ export const SNAPSHOT_BACKLOG_LIMIT_BYTES = CLIENT_WIRE_BUDGET_BYTES_PER_SECOND 
 // ---- client interpolation (docs/architecture/client.md §5, #99), derived from the cadence ----
 /** Remote entities render this many ticks behind the newest snapshot: two snapshot intervals. */
 export const INTERPOLATION_DELAY_TICKS = derived.interpolationDelayTicks;
+/**
+ * The same delay in whole broadcasts, for a consumer that counts snapshots rather than ticks
+ * (`interest.ts`, which spans the client's render delay in camera states). The division back is exact
+ * at every cadence and `derive-netcode.test.ts` asserts that, so this is the one home of it (#287).
+ */
+export const INTERPOLATION_DELAY_INTERVALS = derived.interpolationDelayIntervals;
 /** Snapshots the client keeps for interpolation: the delay plus a bracket each side, 4 at every cadence. */
 export const SNAPSHOT_BUFFER_SIZE = derived.snapshotBufferSize;
 /** A missing bracket extrapolates with velocity for at most this many ticks, then holds: one interval. */

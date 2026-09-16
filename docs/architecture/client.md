@@ -89,8 +89,9 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   §4.2 lever 2 has to carry `BRACKET_SNAPSHOTS` with it if the floor is ever too high, and
   `netcode.test.ts` gates that rather than describing it. The cross-cadence numbers are executed and
   not argued (#287): `deriveNetcode(tickHz, snapshotEveryTicks)` (`constants/derive-netcode.ts`) is the
-  derivation, and `derive-netcode.test.ts` runs it at `SNAPSHOT_EVERY_TICKS` = 1, 2, 3, 4 and 6, where
-  the window is 2, 3, 4, 5 and 7 ticks. It also pins the trap the #284 review found: the superseded
+  derivation, and `derive-netcode.test.ts` runs it at every `SNAPSHOT_EVERY_TICKS` that divides
+  `TICK_HZ` into a whole wire rate up to 12 — 1, 2, 3, 4, 5, 6, 10 and 12, where the window is 2, 3, 4,
+  5, 6, 7, 11 and 13 ticks. It also pins the trap the #284 review found: the superseded
   formula (`SNAPSHOT_BUFFER_SIZE × SNAPSHOT_EVERY_TICKS − INTERPOLATION_DELAY_TICKS`) agrees with the
   corrected one at cadence 1 and is one interval too long at every other. `MAX_EXTRAPOLATION_TICKS` is
   derived from the cadence with it, so lever 2 carries the cap by construction rather than by review.

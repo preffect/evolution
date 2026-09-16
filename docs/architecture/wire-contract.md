@@ -262,7 +262,8 @@ they carry their builds, still over it**: lever 3 does not pay for built wild ce
 What the rounding costs the client (`net/wire-precision.spec.ts`): at the closest zoom (`CAMERA_MIN_VIEW_HALF_HEIGHT_WU`
 = 300 on the 1 080 px reference viewport, 1.8 CSS px per wu) a rim is at most 0.1 wu off — its centre and its radius
 rounded the wrong way together — which is 0.18 CSS px; a velocity 0.05 wu/s off drifts 0.0025 wu over the whole
-`MAX_EXTRAPOLATION_TICKS` cap. The engulf ratio a client reads for its threat tells moves by at most 0.5 % at
+`MAX_EXTRAPOLATION_TICKS` cap at the landed cadence (the cap is one snapshot interval, so a slower cadence drifts in
+proportion; `net/wire-precision.spec.ts` computes the bound from the constant rather than from this figure). The engulf ratio a client reads for its threat tells moves by at most 0.5 % at
 `CELL_STARTING_MASS`. The HUD and the leaderboard show whole numbers: a score written whole displays as before, and a
 cell and its leaderboard row carry the same 0.1 mass, so the two masses shown for one cell always agree (one reads a
 unit higher than the exact mass rounds to only when that mass is within 0.05 under a half).
@@ -393,8 +394,11 @@ before #214 landed and what made a remote client run out of memory (#238).
    - **Serialisation only.** The cameras and deltas are never read by the simulation, the state hash or a replay; a
      room with viewers hashes equal to the same room with none (`lobby/viewport-culling.integration.test.ts`).
 2. **Broadcast at 15 Hz** (`SNAPSHOT_EVERY_TICKS` = 4, up from the landed 3; held, #214);
-   interpolation absorbs it unchanged, but `MAX_EXTRAPOLATION_TICKS` (3) would then cover less than
-   one snapshot interval and has to rise with it. Measured against a starved client (#266, #238): at
+   interpolation absorbs it unchanged, and `MAX_EXTRAPOLATION_TICKS` rises with it by construction —
+   it is `EXTRAPOLATION_INTERVALS × SNAPSHOT_EVERY_TICKS` (`constants/derive-netcode.ts`, #287), so it
+   still covers a whole snapshot interval without a hand edit. Every other number in that derived
+   block moves with the lever the same way, and `derive-netcode.test.ts` executes them across the
+   cadences. Measured against a starved client (#266, #238): at
    60 Hz a headless client under load consumed ~35 of the 60 snapshots a second and diverged without
    bound; at 15 Hz it consumed ~12 of 15 and still slipped, so the cadence narrows the gap but does
    not close it on its own — the flow control of §4 is what bounds how stale any client can get.
