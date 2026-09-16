@@ -12,7 +12,7 @@ import { PerformanceTracker, tickRecordOf } from './performance-tracker.js';
 import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
 import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
 import type { RoomTiming } from './room-timing.js';
-import type { FullGameState, RoomBroadcastSnapshot, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
+import type { FullGameState, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import { DebugRequestError } from '../game/debug/debug-request-error.js';
 
@@ -149,11 +149,6 @@ export class GameRoom {
   /** The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. */
   recordSnapshotAck(playerId: string, tick: number): void {
     this.snapshotBacklog.recordAcknowledgedTick(playerId, tick);
-  }
-
-  /** The broadcast as it stands, without the members the module sends each viewer apart. */
-  getSnapshot(): RoomBroadcastSnapshot {
-    return this.game.serializeRoomState();
   }
 
   /** The `game_state` payload (docs/architecture/wire-contract.md §4): the module's full snapshot and live balance. */

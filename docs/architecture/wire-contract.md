@@ -171,7 +171,7 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   go last, the shared value is a plain object, a spliced value is never `undefined`, and member order does not matter
   to `JSON.parse`); `lobby/viewer-snapshots.ts` is the sending policy. The lobby names no member: the Evolution module
   declares `VIEWER_SNAPSHOT_KEYS` = `['food', 'dnaFragments', 'ownProgress', 'appliedInputSequenceByPlayer']`
-  (`serialize/viewer-state.ts`, §4.2 lever 1). A whole stringify per viewer measured 1.8 ms at 8 clients and 14.6 ms
+  (`serialize/viewer-snapshot-keys.ts`, §4.2 lever 1). A whole stringify per viewer measured 1.8 ms at 8 clients and 14.6 ms
   at 64 on a 36 KB snapshot, against 0.27 ms and 0.57 ms spliced (#331's review). A module without it (the echo) is
   broadcast as before, serialised once. `debug_get_game_state` reads the full state for no viewer, so `ownProgress`
   is `null` there and every mote and fragment is in it; `debug_get_player_progress` is the read of one player's.
@@ -335,9 +335,10 @@ of 100 broadcasts a round:
 | spawn zoom  | 0.32–0.38 ms                      | 0.01 ms |
 | widest zoom | 0.36 ms                           | 0.01 ms |
 
-That is the food diff over the whole dish (a new `Map` of every mote), the full fragment list and every player's input
-sequence, which the room discarded: ≈ 0.35 ms off every broadcast tick whatever the zoom, ≈ 0.12 ms of
-`broadcastAvgMs`. The room's own figures (`debug_get_room_performance`), medians of the four rounds:
+That is the food diff over the whole dish — every mote quantised a second time into a new `Map`, against a tracker no
+viewer ever read — and the record of every player's applied input sequence: ≈ 0.35 ms off every broadcast tick whatever
+the zoom, ≈ 0.12 ms of `broadcastAvgMs`. The fragment views are not part of that saving; they moved from the broadcast
+into the once-per-broadcast reading of the world in `EvolutionViewerState`, which each viewer's area then filters. The room's own figures (`debug_get_room_performance`), medians of the four rounds:
 
 | 8 viewers   | `broadcastAvgMs`, origin/main → #399 | `broadcastP95Ms` (broadcast ticks), origin/main → #399 |
 | ----------- | ------------------------------------ | ------------------------------------------------------ |

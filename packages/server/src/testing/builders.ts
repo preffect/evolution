@@ -193,9 +193,15 @@ export function createTestDebugContext(overrides: Partial<DebugContext> = {}): D
   return { lobbyManager: lobby, connections, sent, ...overrides };
 }
 
-/** A started room reachable through a debug context: the fixture every game-specific tool test begins from. */
+/**
+ * A started room reachable through a debug context: the fixture every game-specific tool test begins from. It also
+ * answers the room's `gameModule`, the only way to read a broadcast now that the room keeps no accessor for one.
+ */
 export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
-  const fixture = createTestLobby(options);
+  let startedModule: RoomGameModule | undefined;
+  const gameFactory: GameModuleFactory = (roomOptions) =>
+    (startedModule = (options.gameFactory ?? spyGameModuleFactory)(roomOptions));
+  const fixture = createTestLobby({ ...options, gameFactory });
   const alice = fixture.join('alice');
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
@@ -207,7 +213,7 @@ export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
   const context: DebugContext = { lobbyManager: fixture.lobby, connections: fixture.connections };
   const room = fixture.lobby.getActiveRoom(gameId)!;
   const stop = () => room.stop();
-  return { ...fixture, ...createToolCapture(), context, gameId, room, stop };
+  return { ...fixture, ...createToolCapture(), context, gameId, room, gameModule: startedModule!, stop };
 }
 
 type ToolCallback = (input: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>;
