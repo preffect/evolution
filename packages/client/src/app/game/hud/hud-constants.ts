@@ -114,10 +114,13 @@ export const PICKER_ROW_GAP_PX = 12;
 /** The timer bar's width at scale 1; its height is `DNA_RING_STROKE_PX`, the width of every chrome fill bar. */
 export const PICKER_TIMER_BAR_WIDTH_PX = 470;
 /**
- * One card at scale 1. The height is the catalog's measured worst case in the 1280 × 800 band: Simple Flagellum
- * `II → III`, whose name wraps to three lines over three effect lines, is 214 px tall. Its key chip sits inside it.
+ * One card at scale 1 (decision #425, option B). The width is what it takes for every catalog card to fit the height:
+ * at 170 the names and effects wrapped far enough that Amoeba Pseudopods `I → II` needed 223 px and the Diatom Shell
+ * upgrades 218 px, so they overflowed the card. At 240 the catalog's tallest card measures 190 px and a hypothetical
+ * `PICKER_CARD_EFFECT_LINES_MAX`-line card 206 px, both inside the height, which is unchanged so that #384's band
+ * anchor and the 1280 × 800 bottom edge stay where they are. Its key chip sits inside it.
  */
-export const PICKER_CARD_WIDTH_PX = 170;
+export const PICKER_CARD_WIDTH_PX = 240;
 export const PICKER_CARD_HEIGHT_PX = 214;
 /** Gap between two cards. */
 export const PICKER_CARD_GAP_PX = 10;
@@ -128,10 +131,12 @@ export const PICKER_CARD_LIFT_PX = 8;
 /** The dim over the dish while an offer is open; the exclusion disc stays clear. */
 export const PICKER_DIM_ALPHA = 0.55;
 /**
- * Effect lines a card has room for: the catalog's longest tier row (the diatom shell's speed cost, the simple
- * flagellum's sprint cooldown). Lines are never cut; the spec fails the gate when a row outgrows this.
+ * Effect lines a card has room for. The catalog's longest tier row has three (the diatom shell's speed cost, the
+ * simple flagellum's sprint cooldown); the fourth is the headroom decision #425 bought with the wider card, and the
+ * human set it as the ceiling: a fifth line is not wanted, it buys a taller card or shorter words instead. Lines are
+ * never cut; the spec fails the gate when a row outgrows this.
  */
-export const PICKER_CARD_EFFECT_LINES_MAX = 3;
+export const PICKER_CARD_EFFECT_LINES_MAX = 4;
 /** The dim's clear disc as a share of where its soft edge reaches full dim: the fade runs from the disc to disc / this. */
 export const PICKER_DIM_SOFT_EDGE_FRACTION = 0.85;
 /** Gap between a card's medallion, category, name, effect lines and rarity. */

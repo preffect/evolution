@@ -3,7 +3,17 @@
 // wins is the one the docs name at 1024 × 640, 1280 × 800, 1280 × 1000, 1920 × 1080 and 2560 × 1440.
 
 import { describe, expect, it } from 'vitest';
-import { HUD_PLAYER_EXCLUSION_PX, PICKER_BAND_GAP_PX, PICKER_BAND_ORBIT_CLEARANCE_PX } from '../hud-constants';
+import { TRAIT_DRAFT_SIZE } from '@evolution/shared';
+import {
+  HUD_PLAYER_EXCLUSION_PX,
+  PICKER_BAND_GAP_PX,
+  PICKER_BAND_ORBIT_CLEARANCE_PX,
+  PICKER_CARD_GAP_PX,
+  PICKER_CARD_HEIGHT_PX,
+  PICKER_CARD_WIDTH_PX,
+  PICKER_ROW_GAP_PX,
+} from '../hud-constants';
+import { DNA_RING_STROKE_PX, UI_TYPE } from '../../render/constants';
 import { uiScaleFor } from '../../../ui-kit/format/ui-scale';
 import { capOrbitExtentPx, pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
 
@@ -77,5 +87,30 @@ describe('pickerSpotlightRadiusPx', () => {
 
   it('is the scaled exclusion box on a box with no layout yet, where no orbit shows', () => {
     expect(pickerSpotlightRadiusPx({ width: 0, height: 0 })).toBe(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(0, 0));
+  });
+});
+
+/**
+ * The card row is not a function — the band's flex row lays it out — but its width and the band's total height are
+ * what decision #425's wider card could have broken, so both are pinned here from the constants it changed.
+ */
+describe('the picker card row', () => {
+  const referenceViewport = { width: 1280, height: 800 };
+
+  function cardRowWidthPx(width: number, height: number): number {
+    const unscaledPx = PICKER_CARD_WIDTH_PX * TRAIT_DRAFT_SIZE + PICKER_CARD_GAP_PX * (TRAIT_DRAFT_SIZE - 1);
+    return unscaledPx * uiScaleFor(width, height);
+  }
+
+  it.each(VIEWPORTS)('fits across $width × $height, so no card is cut off at the sides', (viewport) => {
+    expect(cardRowWidthPx(viewport.width, viewport.height)).toBeLessThanOrEqual(viewport.width);
+  });
+
+  it('ends exactly at the reference viewport’s bottom edge, where #384 and overlays.md §3.2 put it', () => {
+    // §3.2's worked example: centre 400, title row 22, gap, bar 4, gap, cards 214 — the last row lands on 800.
+    const bandHeightPx =
+      UI_TYPE.title.px + PICKER_ROW_GAP_PX + DNA_RING_STROKE_PX + PICKER_ROW_GAP_PX + PICKER_CARD_HEIGHT_PX;
+    const cardsBottomPx = referenceViewport.height / 2 + pickerBandOffsetPx(referenceViewport) + bandHeightPx;
+    expect(cardsBottomPx).toBe(referenceViewport.height);
   });
 });

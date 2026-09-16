@@ -15,7 +15,10 @@ numbers, and the countdown's `6.5 s`, go through the one formatter `formatQuanti
 non-identity modifier is a line and none is ever cut, so a card never hides a trait's cost; where one organelle
 sets two modifiers that read as a single effect the table pairs them onto one line with both numbers (the Diatom
 Shell's spine drain and spit-out chance, #260), so a pair costs the card one line rather than two. The catalog's
-longest row has three (`PICKER_CARD_EFFECT_LINES_MAX`), and a unit test fails the gate when a row outgrows it. The table is
+longest row has three and the card has room for four (`PICKER_CARD_EFFECT_LINES_MAX`, decision #425): four is the
+ceiling, so a fifth line buys a bigger card or shorter words rather than raising the cap. A unit test fails the gate
+when a row outgrows it; that test counts lines, not the rows they wrap onto, and #428 adds the rendered-height
+guard. The table is
 pinned: a unit test asserts every key of `DEFAULT_CELL_MODIFIERS` (traits/model.md §2) has a label, so a new modifier
 without copy fails the gate instead of rendering `undefined`.
 
@@ -34,12 +37,16 @@ without copy fails the gate instead of rendering `undefined`.
   (`LEVEL 5 · CHOOSE A TRAIT`, `title` role, level gold, centred on `centreX`; the level is `offer.level`, the
   level-up that queued the offer, so after a double level-up the first offer still reads the earlier level); timer bar 470 × 4
   `PICKER_ROW_GAP_PX` under the title row (level gold on the timer-bar track, drains left to right); three cards
-  170 × 214 with 10 px gaps `PICKER_ROW_GAP_PX` under the bar, centred on `centreX`; each card's key chip `1` `2`
+  240 × 214 with 10 px gaps `PICKER_ROW_GAP_PX` under the bar, centred on `centreX`; each card's key chip `1` `2`
   `3` (`caption`) sits inside its bottom-right corner, so nothing hangs under the cards. Every row is exactly its own height (the title at line height 1, the
   timer row the bar alone), so the worked example at 1280 × 800 is: centre (640, 400), title y 536 (the 22 px `title`
-  row), bar y 570, cards y 586–800 at x 375–905. **The card height is a measured fit claim:** the catalog's worst
-  card in that band, Simple Flagellum `II → III` (its name wraps to three lines over three effect lines), is 214 px
-  tall with 2 px between a card's rows, 8 px padding top and bottom and no row allowed to shrink. At 1280 × 1000
+  row), bar y 570, cards y 586–800 at x 270–1010. **The card size is a measured fit claim** (decision #425, #415):
+  with 2 px between a card's rows, 8 px padding top and bottom and no row allowed to shrink, the catalog's tallest
+  card at 240 wide is Amoeba Pseudopods `I → II` at 192 px, and a card carrying the longest name over four effect
+  lines is 208 px, both inside the 214. At 170 wide those same cards wanted 225 px and 220 px and overflowed, which
+  is what the width buys. (Measured in headless Chromium with the shipped card CSS, DejaVu Sans — the container's
+  fallback for Inter, the font of #316's evidence — over every catalog trait at every tier, fresh and upgrade;
+  border box, so the figures include the card's 1 px rim.) At 1280 × 1000
   (scale still 1, capped by width) the band starts at y 656.8, below the orbit at the cap; the cards end exactly at the
   reference viewport's bottom edge, and on a viewport shorter than the reference at `UI_SCALE_MIN` they may cross
   it, which is accepted: the cards never enter the box, and the own cell's orbit never reaches the
@@ -54,7 +61,7 @@ without copy fails the gate instead of rendering `undefined`.
   element (corrected on #34). The dish keeps simulating and the cell keeps steering: pointer input is not captured
   by the overlay (`pointer-events: none` on everything but the cards).
 - **Card.** Glyph medallion 56 px (the trait's glyph, visual-style/ui-type.md §7.1), category in `caption`, name in `card_name` bold with tier numeral
-  (`Cilia Fringe II`), up to three effect lines in `label` (mixed case), rarity chip in `caption` (`COMMON` / `UNCOMMON` /
+  (`Cilia Fringe II`), up to four effect lines in `label` (mixed case), rarity chip in `caption` (`COMMON` / `UNCOMMON` /
   `RARE`, text as well as colour). A card whose trait is in `STAGE_GATE_TRAITS[nextStage(ownProgress.stage)]`
   carries a `RUNG` ribbon (the rung card of PROGRESSION §3, which reserves the first card for it; the ribbon text
   and the test id share the one word); its silhouette is the one the ladder orbit has been showing as a ghost

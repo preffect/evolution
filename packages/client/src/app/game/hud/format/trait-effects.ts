@@ -4,7 +4,8 @@
 // `balance.traits.DEFAULT_CELL_MODIFIERS`, architecture/constants-files-tests.md §9), so a `debug_set_balance` patch
 // reaches the cards. A value at its identity says nothing and is skipped; every other one is a line, in the tier row's
 // own order, so a card never hides a trait's cost. The spec pins that no tier row has more than
-// `PICKER_CARD_EFFECT_LINES_MAX` of them, so a row that outgrows the card fails the gate instead of being cut. Pure.
+// `PICKER_CARD_EFFECT_LINES_MAX` of them, so a row that outgrows the card fails the gate instead of being cut. That
+// guard counts lines, not the rows a long line wraps onto; #428 adds the rendered-height one. Pure.
 
 import type { BalanceConfig, TraitId, TraitTierModifiers } from '@evolution/shared';
 import { modifierLines, nonIdentityModifiers } from '../../quantities/modifier-labels';
