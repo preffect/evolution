@@ -60,38 +60,6 @@ class TrappedPanelHostComponent {}
 })
 class SubtitledPanelHostComponent {}
 
-@Component({
-  standalone: true,
-  imports: [UiPanelComponent],
-  template: `
-    <ui-panel testId="bleed-panel" title="Menu">
-      <p data-testid="bleed-body">Body</p>
-      <section uiPanelBleed data-testid="bleed-section">Your traits</section>
-      <button uiPanelFooter data-testid="bleed-footer">Done</button>
-    </ui-panel>
-  `,
-})
-class BleedPanelHostComponent {}
-
-describe('UiPanelComponent bleed slot', () => {
-  it('sits under the body but outside its scroll area, before the footer, so a section can span the panel', () => {
-    TestBed.configureTestingModule({ imports: [BleedPanelHostComponent] });
-    const fixture = TestBed.createComponent(BleedPanelHostComponent);
-    fixture.detectChanges();
-    const panel = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-testid="bleed-panel"]')!;
-    const body = panel.querySelector<HTMLElement>('ui-scroll-area.body')!;
-    const bleed = panel.querySelector<HTMLElement>('[data-testid="bleed-section"]')!;
-    const footer = panel.querySelector<HTMLElement>('.footer')!;
-
-    // Inside the scroll area, anything drawn past the padding box is clipped; the bleed section is not inside it.
-    expect(body.contains(bleed)).toBe(false);
-    expect(body.querySelector('[data-testid="bleed-body"]')).not.toBeNull();
-    expect(bleed.parentElement).toBe(panel);
-    expect(body.compareDocumentPosition(bleed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(bleed.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-});
-
 describe('UiPanelComponent subtitle', () => {
   it('sets one line under the title, which describes the dialog', () => {
     TestBed.configureTestingModule({ imports: [SubtitledPanelHostComponent] });

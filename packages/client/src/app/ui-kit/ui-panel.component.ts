@@ -34,9 +34,6 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
       <ng-content select="[uiPanelHeader]" />
     </header>
     <ui-scroll-area class="body" [label]="title()"><ng-content /></ui-scroll-area>
-    <!-- Under the body but outside its scroll area, which clips at its padding box: a section here can take the
-         panel padding back with a negative inline margin and run edge to edge (the menu's Your traits rule). -->
-    <ng-content select="[uiPanelBleed]" />
     <footer class="footer"><ng-content select="[uiPanelFooter]" /></footer>
   `,
   host: {

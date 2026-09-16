@@ -139,9 +139,10 @@ Escape closes the topmost open overlay (the full leaderboard, then the encyclope
    (`body`, muted) before the first pick. Past `MENU_TRAITS_VISIBLE_ROWS` rows the list scrolls in a kit scroll area,
    so the panel never outgrows the viewport; the cap is **those rows as they are drawn**, measured, since a row grows
    with each effect line — a rows × `MENU_TRAIT_ROW_HEIGHT_PX` cap would slice a two-line row through its text. The
-   section spans the panel's full width, so its rule runs edge to edge (the kit panel's `[uiPanelBleed]` slot,
-   components-and-constants.md §10.2) while its heading and rows keep the panel's own inset. This list is where the
-   pre-#146 trait strip's tooltips went.
+   rule above `YOUR TRAITS` is **inset by the panel's padding**, where the mockups run it edge to edge: the section
+   sits in the panel body, which is a kit scroll area and clips anything drawn past its padding box, so nothing in it
+   can reach the panel's edges. That is a deliberate deviation from the mockup, not a preference, and it stands until
+   #439 gives the kit a section that can bleed. This list is where the pre-#146 trait strip's tooltips went.
 
 **Focus and input.** The kit focus trap holds focus inside, and closing returns it to the canvas host. While the
 menu is open (§4's modal gate) steering keeps its latched target and the pointer over the panel does not steer,
