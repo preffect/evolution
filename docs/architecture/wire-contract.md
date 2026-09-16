@@ -101,7 +101,8 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
     and not fixed (#277 item 3, landed with #214): the room measures the queue in ticks, so a fixed
     count of snapshots moves the floor of that measurement every time `SNAPSHOT_EVERY_TICKS` moves,
     and one lever eats the other's headroom. Against the same 60-tick limit, a fixed 5 snapshots is
-    5 ticks at 60 Hz, 15 at 20 Hz and 20 at 15 Hz; derived, it is 6, 6 and 4. A budget in ticks
+    5 ticks at 60 Hz, 15 at 20 Hz and 20 at 15 Hz; derived, it is 6, 6 and 4 (`derive-netcode.test.ts`
+    executes the gap at five cadences, #287). A budget in ticks
     rather than milliseconds keeps the division exact integer arithmetic at every cadence, and it
     rounds **down**, so the gap is never longer than the budget at a cadence that does not divide it;
   - the room subtracts it from the newest tick it sent that client. That difference is the depth of
