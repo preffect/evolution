@@ -74,11 +74,14 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   side of the ring (the same distance, away from the own cell); text stays upright. The warning rings on every
   eligible cell remain the pass-B band of §2.2; the label is drawn on the nearest one only, as the record says.
 - **Legibility cues (decision #324).** `ui/hud.md §3.1.5` owns what they show and where; this bullet owns how. The
-  mass chip, rate tags, floaters and zone pill are laid out by `effects/cue-layout.ts` (pure, over `orbitLayout`)
-  and drawn in the effects layer beside the indicators: the pills are the label pill's nine-slice at
-  `CUE_PILL_HEIGHT_PX` with a rim variant per role, the numbers and causes `BitmapText` from `indicator-text.ts`,
-  the trend glyph and trait glyphs atlas entries. Floaters animate on `renderTick` (rise, fade) from a small pool
-  (`FLOATER_MAX_VISIBLE`), never a per-frame allocation. Budget: at most 1 chip + `RATE_TAG_ROWS_MAX` tags +
+  mass chip, rate tags, floaters and zone pill are laid out by `effects/cue-layout.ts` (pure, over the own-cell
+  geometry; the orbit and the placed threat label are its inputs) and drawn by `effects/cue-layer.ts` in the effects
+  layer beside the indicators: the pills are one nine-slice bake per rim role (`textures/label-pill-bake.ts`
+  `bakePill` with `cuePillSpec`, `CUE_PILL_HEIGHT_PX`, the label pill being the same bake at its own spec), the
+  numbers and causes `BitmapText` behind an injected text seam so specs never build one, the trend triangle a bake of
+  its own (`textures/trend-glyph-bake.ts`, tinted and turned per trend) and the DECAY tag's trait glyph the
+  endosymbiont's existing ghost entry. Floaters are `effects/floater-stack.ts` (pure: spawn, merge, push, expire) on
+  the render clock, drawn from a pool of `FLOATER_MAX_VISIBLE`, never a per-frame allocation. Budget: at most 1 chip + `RATE_TAG_ROWS_MAX` tags +
   `FLOATER_MAX_VISIBLE` floaters + 1 zone pill = 9 pills and 18 texts on top of the indicators' worst case; the
   build measures them inside the `effects` stage's 0.3 ms on the bench and raises the line in `rendering/budget.md`
   only with a measurement.

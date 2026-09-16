@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeTextureBaker } from '../../../../testing/fake-pixi-app';
 import { INDICATOR_FONT } from '../constants';
+import { CUE_RIM } from '../../hud/format/mass-cues';
 import { LADDER_SILHOUETTE } from '../../state/own-cell-indicators';
 import { createIndicatorTextures, destroyIndicatorTextures } from './indicator-textures';
 import { endosymbiontTallies, pipBlockKey } from './pip-block-bake';
@@ -35,5 +36,17 @@ describe('createIndicatorTextures', () => {
     expect(baker.uninstalledFonts).toEqual(FONT_NAMES);
     expect(textures.labelPill.texture.destroyed).toBe(true);
     expect(textures.ghosts[LADDER_SILHOUETTE.envelope]!.texture.destroyed).toBe(true);
+  });
+
+  it('packs the cue glyphs on the atlas and gives every cue rim role and the zone pill a texture of its own', () => {
+    const textures = createIndicatorTextures(createFakeTextureBaker(), 1);
+    expect(textures.trendGlyph.texture.source).toBe(textures.source);
+    expect(textures.zoneDot.texture.source).toBe(textures.source);
+    const pills = [textures.zonePill, ...Object.values(CUE_RIM).map((rim) => textures.cuePills[rim])];
+    expect(new Set(pills.map((pill) => pill.texture)).size).toBe(pills.length);
+    for (const pill of pills) expect(pill.texture.source).not.toBe(textures.source);
+    destroyIndicatorTextures(textures);
+    for (const pill of pills) expect(pill.texture.destroyed).toBe(true);
+    expect(textures.trendGlyph.texture.destroyed).toBe(true);
   });
 });
