@@ -5,7 +5,8 @@
 ## 5. Client networking policy (`packages/client/src/app/game/net/`)
 
 - **Interpolation.** `SnapshotBuffer` keeps the last `SNAPSHOT_BUFFER_SIZE` snapshots (derived: the delay
-  plus a bracket each side, 4 at either cadence) and renders remote cells, bacteria and fragments at
+  plus a bracket each side, 4 at **every** cadence — the delay is counted in whole intervals, so dividing
+  it back by the interval is exact; `derive-netcode.test.ts` asserts it) and renders remote cells, bacteria and fragments at
   `renderTick = latestTick − INTERPOLATION_DELAY_TICKS` (`2 × SNAPSHOT_EVERY_TICKS`, two snapshot
   intervals), lerping position, velocity and radius between the bracketing
   snapshots; a missing bracket extrapolates with velocity for at most `MAX_EXTRAPOLATION_TICKS`.
@@ -59,7 +60,7 @@
 - **The window, and the deadline it puts on the client.** _A client that draws at least one frame
   every `EFFECT_DRAW_WINDOW_TICKS` sees every effect; one that draws slower misses some, and a missed
   effect is never drawn rather than drawn late._ The window is `(SNAPSHOT_BUFFER_SIZE − 1) ×
-SNAPSHOT_EVERY_TICKS − INTERPOLATION_DELAY_TICKS + 1` (`netcode.ts`), which is **4 ticks, 67 ms, a
+SNAPSHOT_EVERY_TICKS − INTERPOLATION_DELAY_TICKS + 1` (`deriveNetcode`, `constants/derive-netcode.ts`), which is **4 ticks, 67 ms, a
   15 fps obligation at `SNAPSHOT_EVERY_TICKS` = 3**. Every frame-rate figure here is that cadence's;
   the window is not cadence-invariant and neither are they.
 
@@ -86,9 +87,13 @@ SNAPSHOT_EVERY_TICKS − INTERPOLATION_DELAY_TICKS + 1` (`netcode.ts`), which is
 SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster** cadence buys a
   **tighter** deadline: 2 ticks and a 30 fps obligation at 60 Hz, against 4 ticks and 15 fps at 20 Hz.
   §4.2 lever 2 has to carry `BRACKET_SNAPSHOTS` with it if the floor is ever too high, and
-  `netcode.test.ts` gates that rather than describing it. The cross-cadence numbers are a simulation
-  (`window2.mjs`, on the #284 review), not a test: the constants compile at one cadence, so a spec
-  cannot execute another — #287 is the extraction that would change that.
+  `netcode.test.ts` gates that rather than describing it. The cross-cadence numbers are executed and
+  not argued (#287): `deriveNetcode(tickHz, snapshotEveryTicks)` (`constants/derive-netcode.ts`) is the
+  derivation, and `derive-netcode.test.ts` runs it at `SNAPSHOT_EVERY_TICKS` = 1, 2, 3, 4 and 6, where
+  the window is 2, 3, 4, 5 and 7 ticks. It also pins the trap the #284 review found: the superseded
+  formula (`SNAPSHOT_BUFFER_SIZE × SNAPSHOT_EVERY_TICKS − INTERPOLATION_DELAY_TICKS`) agrees with the
+  corrected one at cadence 1 and is one interval too long at every other. `MAX_EXTRAPOLATION_TICKS` is
+  derived from the cadence with it, so lever 2 carries the cap by construction rather than by review.
 
 - **Every applied snapshot is acknowledged** (#266, §4). `RenderSession` tells the room the tick it
   has just applied — at once for a `game_state`, every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` for a delta —
