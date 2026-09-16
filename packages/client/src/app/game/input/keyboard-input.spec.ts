@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { FULL_LEADERBOARD_KEY_CODE, SPRINT_KEY_CODE } from './input-constants';
+import { FULL_LEADERBOARD_KEY_CODE, MENU_KEY_CODE, SPRINT_KEY_CODE } from './input-constants';
 import { FREE_FOCUS, INPUT_ACTION, type FocusContext, type InputAction } from './keyboard-action';
 import { attachKeyboardInput, type KeyboardInputOptions } from './keyboard-input';
 
@@ -58,6 +58,16 @@ describe('attachKeyboardInput', () => {
     const event = press(FULL_LEADERBOARD_KEY_CODE);
     document.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
+    attached.detach();
+  });
+
+  it('passes a press a component consumed on the way up, so that Escape has one owner (§4)', () => {
+    const attached = attach();
+    const field = document.body.appendChild(document.createElement('div'));
+    field.addEventListener('keydown', (event) => event.preventDefault());
+    field.dispatchEvent(press(MENU_KEY_CODE));
+    document.dispatchEvent(press(MENU_KEY_CODE));
+    expect(attached.actions).toEqual([{ kind: INPUT_ACTION.none }, { kind: INPUT_ACTION.menuKey }]);
     attached.detach();
   });
 

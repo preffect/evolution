@@ -53,6 +53,35 @@ function overflowBodyOf(fixture: ComponentFixture<unknown>, panel: HTMLElement):
 })
 class TrappedPanelHostComponent {}
 
+@Component({
+  standalone: true,
+  imports: [UiPanelComponent],
+  template: `<ui-panel testId="menu" title="Menu" subtitle="The dish keeps running." />`,
+})
+class SubtitledPanelHostComponent {}
+
+describe('UiPanelComponent subtitle', () => {
+  it('sets one line under the title, which describes the dialog', () => {
+    TestBed.configureTestingModule({ imports: [SubtitledPanelHostComponent] });
+    const fixture = TestBed.createComponent(SubtitledPanelHostComponent);
+    fixture.detectChanges();
+    const panel = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-testid="menu"]')!;
+    const subtitle = panel.querySelector<HTMLElement>('.subtitle')!;
+    expect(subtitle.textContent).toBe('The dish keeps running.');
+    expect(panel.querySelector('.title')?.nextElementSibling).toBe(subtitle);
+    expect(panel.getAttribute('aria-describedby')).toBe(subtitle.id);
+  });
+
+  it('describes nothing without one', () => {
+    TestBed.configureTestingModule({ imports: [TrappedPanelHostComponent] });
+    const fixture = TestBed.createComponent(TrappedPanelHostComponent);
+    fixture.detectChanges();
+    const panel = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-testid="trapped"]')!;
+    expect(panel.querySelector('.subtitle')).toBeNull();
+    expect(panel.hasAttribute('aria-describedby')).toBe(false);
+  });
+});
+
 describe('UiPanelComponent body, a scroll area inside a focus trap', () => {
   it('an overflowing body with no control is the trap’s one Tab stop, named by the title', () => {
     TestBed.configureTestingModule({ imports: [TrappedPanelHostComponent] });

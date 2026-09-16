@@ -20,8 +20,12 @@ export type UiAlertTone = (typeof UI_ALERT_TONE)[keyof typeof UI_ALERT_TONE];
     @if (figure(); as number) {
       <span class="figure">{{ number }}</span>
     }
-    @for (key of keyHints(); track key) {
-      <ui-key-hint [key]="key" />
+    @if (keyHints().length > 0) {
+      <span class="keys">
+        @for (key of keyHints(); track key) {
+          <ui-key-hint [key]="key" />
+        }
+      </span>
     }
   `,
   host: { '[attr.data-tone]': 'tone()', '[attr.data-testid]': 'testId()' },
@@ -50,16 +54,33 @@ export type UiAlertTone = (typeof UI_ALERT_TONE)[keyof typeof UI_ALERT_TONE];
         --alert-tone: var(--ui-level-gold);
       }
 
-      .dot {
+      .dot,
+      .figure {
         flex: none;
+      }
+
+      .dot {
         width: calc(var(--ui-chip-dot) * var(--ui-scale));
         height: calc(var(--ui-chip-dot) * var(--ui-scale));
         border-radius: 50%;
         background-color: var(--alert-tone);
       }
 
+      /* In a column narrower than the strip's words (a wide fallback face), the words give way with an ellipsis; the
+         changing number and the keys, which the player acts on, never do. */
       .alert-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         text-transform: uppercase;
+      }
+
+      /* The keys read as one set (\`1\` \`2\` \`3\`), closer to each other than to the text before them. */
+      .keys {
+        display: inline-flex;
+        flex: none;
+        gap: calc(var(--ui-space-xs) * var(--ui-scale));
       }
 
       .figure {

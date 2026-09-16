@@ -12,12 +12,11 @@ import { FAKE_LABEL_CHAR_PX } from '../../../../testing/fake-indicator-text';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { CALLOUT_BACKING, DANGER, DNA, ESCAPE_ARC_TRACK_ALPHA, LEVEL_GOLD, WHITE } from '../constants';
 import { paletteFor } from '../palette';
-import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-cell-indicators';
+import { ESCAPE_LABEL, ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-cell-indicators';
 import { labelPillWidthPx } from '../textures/label-pill-bake';
 import { endosymbiontTallies } from '../textures/pip-block-bake';
 import { orbitLayout } from './orbit-layout';
 import {
-  ESCAPE_LABEL,
   ownCellIndicatorPlacements,
   threatAnchorFor,
   type OwnCellIndicatorsFrame,
