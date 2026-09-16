@@ -71,7 +71,9 @@ star. Audio: scrape while being engulfed, a wet cough on spit-out.
 | III  | 2.0                   | +0.30                |
 
 A trumpet-shaped giant whose pigment poisons everything nearby and whose funnel feeds it more from
-every mote. The aura reuses the toxin vacuole's drain at range. Visual: a flared trumpet body with a
+every mote. The aura reuses the toxin vacuole's drain at range, measured from the rim: a cell of any
+size is reached while the gap between the two membranes is at most `toxinAuraRangeInRadii` × this
+cell's radius (#424), so even tier I poisons what it does not touch. Visual: a flared trumpet body with a
 ciliated rim and a faint violet haze to `toxinAuraRangeInRadii`. Silhouette: trumpet. Audio: hiss plus
 a low drone.
 
