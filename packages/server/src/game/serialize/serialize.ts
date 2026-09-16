@@ -1,8 +1,8 @@
 // Records → views (docs/architecture/entity-model.md §2, docs/architecture/wire-contract.md §4): the one projection from the server records onto
 // the wire types. Numbers are quantised to the `SNAPSHOT_*_DECIMALS` of `netcode.ts` as wire-contract.md §4 "Wire
 // precision" lists them (`quantize.ts`); every array and record is copied so a snapshot never
-// aliases the world. Full snapshots carry every mote; delta snapshots carry the food delta of a tracker and the
-// effects since the last broadcast.
+// aliases the world. The full snapshot carries every mote and fragment for no viewer; the broadcast carries the effects
+// since the last one and none of the members each viewer is sent apart (`viewer-snapshot-keys.ts`, #399).
 
 import {
   SNAPSHOT_MASS_DECIMALS,
@@ -28,9 +28,9 @@ import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from
 import { findPlayer } from '../world/lookups.js';
 import { drainBroadcastWindow } from '../world/broadcast-window.js';
 import type { WorldState } from '../world/world-state.js';
-import type { FoodDeltaTracker } from './food-delta-tracker.js';
 import { toEffectView, toMassFlowView } from './mass-flow-view.js';
 import { WIRE_SNAPSHOT_VALUES, quantizeToDecimals, snapshotValue, type SnapshotPrecision } from './quantize.js';
+import type { BroadcastSnapshot } from './viewer-snapshot-keys.js';
 
 export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES): CellView {
   return {
@@ -182,13 +182,14 @@ export function ownProgressOf(
   return viewer === undefined ? null : toOwnProgressView(world, viewer, WIRE_SNAPSHOT_VALUES, sprintWindow);
 }
 
-/** Everything but the food and the effects: what the full and the delta snapshot share, built for no viewer. */
-function serializeCommon(world: WorldState, precision: SnapshotPrecision): Omit<GameSnapshot, 'food' | 'effects'> {
+/**
+ * Everything every viewer is sent alike but the effects: what the full snapshot and the broadcast share. Typed as the
+ * broadcast, so a member a viewer is sent apart that is still built here fails to compile (#399).
+ */
+function serializeShared(world: WorldState, precision: SnapshotPrecision): Omit<BroadcastSnapshot, 'effects'> {
   const players: Record<string, PlayerRosterView> = {};
-  const appliedInputSequenceByPlayer: Record<string, number> = {};
   for (const player of world.players) {
     players[player.playerId] = toPlayerRosterView(player);
-    appliedInputSequenceByPlayer[player.playerId] = player.appliedInputSequence;
   }
   return {
     tick: world.tick,
@@ -198,33 +199,38 @@ function serializeCommon(world: WorldState, precision: SnapshotPrecision): Omit<
     roundTimeLeftMs: world.roundTimeLeftMs,
     gelPatches: world.gelPatches.map((patch) => ({ ...patch })),
     cells: world.cells.map((cell) => toCellView(cell, precision)),
-    dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, precision)),
     players,
-    ownProgress: null,
     leaderboard: world.leaderboard.map((row) => toLeaderboardRowView(row, precision)),
-    appliedInputSequenceByPlayer,
   };
 }
 
-/** The `game_state` snapshot: every mote in `food.spawned`, no effects (docs/architecture/wire-contract.md §4). */
+/**
+ * The `game_state` snapshot for no viewer (docs/architecture/wire-contract.md §4): every mote in `food.spawned`, every
+ * fragment and every player's input sequence, no own progress and no effects.
+ */
 export function serializeFullSnapshot(
   world: WorldState,
   precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
 ): GameSnapshot {
   return {
-    ...serializeCommon(world, precision),
+    ...serializeShared(world, precision),
+    dnaFragments: world.dnaFragments.map((fragment) => toDnaFragmentView(fragment, precision)),
     food: { spawned: world.food.map((mote) => toFoodMoteView(mote, precision)), removedIds: [], moved: [] },
+    ownProgress: null,
+    appliedInputSequenceByPlayer: Object.fromEntries(
+      world.players.map((player) => [player.playerId, player.appliedInputSequence]),
+    ),
     effects: [],
   };
 }
 
 /**
- * The `game_snapshot` broadcast: the food delta since the previous broadcast and every effect since
- * it. This is the one drain of `world.effects` (docs/architecture/entity-model.md §2): the steps and the
- * between-tick paths (a join's catch-up level-ups, a debug grant) all push there. It seals the sprint window the
- * viewers' own progress reports with it (#383).
+ * The `game_snapshot` broadcast: what every viewer is sent alike, and every effect since the previous broadcast. This
+ * is the one drain of `world.effects` (docs/architecture/entity-model.md §2): the steps and the between-tick paths (a
+ * join's catch-up level-ups, a debug grant) all push there. It seals the sprint window the viewers' own progress
+ * reports with it (#383).
  */
-export function serializeDeltaSnapshot(world: WorldState, tracker: FoodDeltaTracker): GameSnapshot {
+export function serializeBroadcastSnapshot(world: WorldState): BroadcastSnapshot {
   const effects: GameEffect[] = drainBroadcastWindow(world).map((effect) => toEffectView(effect, WIRE_SNAPSHOT_VALUES));
-  return { ...serializeCommon(world, WIRE_SNAPSHOT_VALUES), food: tracker.diff(world.food), effects };
+  return { ...serializeShared(world, WIRE_SNAPSHOT_VALUES), effects };
 }

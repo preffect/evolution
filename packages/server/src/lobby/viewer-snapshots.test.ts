@@ -8,7 +8,7 @@ import {
   type GameSnapshot,
   type PlayerId,
 } from '@evolution/shared';
-import type { GameModule, ViewerStateSerializer } from '../game/game-module.js';
+import type { RoomGameModule, ViewerStateSerializer } from '../game/game-module.js';
 import { createSpyGameModule, createTestConnection, type SentLog } from '../testing/builders.js';
 import { sendSnapshotToViewers, snapshotForViewer, viewerMembersOf } from './viewer-snapshots.js';
 
@@ -33,7 +33,7 @@ const VIEWER_STATE: ViewerStateSerializer<GameSnapshot, ViewerKey> = {
   serializeFull: (viewerPlayerId) => membersOf(viewerPlayerId, FULL_STATE_SEQUENCE),
 };
 
-function viewerStateModule(): GameModule {
+function viewerStateModule(): RoomGameModule {
   return { ...createSpyGameModule(), viewerState: VIEWER_STATE };
 }
 

@@ -19,8 +19,10 @@ export interface DebugContext {
    * EXTENSION POINT (init step): return a JSON-serializable snapshot of a
    * room's game-specific state, given its gameId. The generic
    * `debug_get_game_state` tool calls this; when it is `undefined` the tool
-   * falls back to the room's opaque snapshot from `room.getSnapshot()` plus a
-   * "no game logic wired yet" note.
+   * falls back to `room.getFullState()`, the `{ snapshot, balance }` payload a
+   * joining client receives, which carries every member for no viewer. The
+   * broadcast is never the fallback: it leaves out what each viewer is sent
+   * apart (docs/architecture/wire-contract.md §4).
    *
    * Wire this to your real game state in the init step (see docs/INIT-GAME.md).
    */
