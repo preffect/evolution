@@ -11,10 +11,18 @@
 import { BACTERIUM_VARIANT, TRAIT_CATALOG, type BacteriumVariant, type OwnedTrait } from '@evolution/shared';
 import { ENGULF_PHASE } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
-import { PERCENT, QUANTITY_ROUNDING, QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { MULTIPLIER_SIGN, PERCENT, QUANTITY_ROUNDING, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
+import { formatMassFigure } from './mass-cues';
 import { READY } from './sprint-fill';
-import type { LadderCounter, OwnCellIndicators } from '../../state/own-cell-indicators';
+import { MASS_TREND } from '../../state/mass-trend';
+import type { OwnCellIndicators } from '../../state/own-cell-indicators';
+import type { LadderCounter } from '../../state/own-cell-ladder';
+
+/** `data-mass-rate` and `data-mass-causes` carry one decimal (docs/ui/hud.md §3.1.4). */
+const MASS_RATE_ATTRIBUTE_DECIMALS = 1;
+/** How `×` is spoken: `decay times 1.5`. */
+const SPOKEN_MULTIPLIER = 'times ';
 
 /** The sprint ring's three readings, as one word each (docs/ui/hud.md §3.1.4). */
 export const SPRINT_STATUS = { ready: 'ready', cooling: 'cooling', sprinting: 'sprinting' } as const;
@@ -90,7 +98,37 @@ function counterAttributes(indicators: OwnCellIndicators): OwnCellStatusAttribut
   return attributes;
 }
 
-/** The sentence, in the order §3.1.4 sets: level, DNA, the counters, then sprint. */
+/** The mass cues' attributes (§3.1.4): the trend, the net rate, the shown causes in drawn order, the zone. */
+function massCueAttributes(indicators: OwnCellIndicators): OwnCellStatusAttributes {
+  const causes = indicators.rateTags.map((tag) => `${tag.cause}:${asciiRate(tag.ratePerSecond)}`).join(' ');
+  return {
+    'data-mass-trend': indicators.massChip.trend,
+    'data-mass-rate': asciiRate(indicators.massChip.ratePerSecond),
+    'data-mass-causes': causes === '' ? null : causes,
+    'data-zone': indicators.zone?.zone ?? null,
+  };
+}
+
+/** `-9.4`: one decimal and the ASCII minus, so a test can parse it. */
+function asciiRate(ratePerSecond: number): string {
+  return ratePerSecond.toFixed(MASS_RATE_ATTRIBUTE_DECIMALS);
+}
+
+/** `Shrinking 9.4 a second` / `Growing 3 a second` while the chip shows a trend; `null` when steady. */
+function trendTextOf(indicators: OwnCellIndicators): string | null {
+  const { trend, ratePerSecond } = indicators.massChip;
+  if (trend === MASS_TREND.steady) return null;
+  const verb = trend === MASS_TREND.down ? 'Shrinking' : 'Growing';
+  return `${verb} ${formatMassFigure(ratePerSecond)} a second`;
+}
+
+/** The zone pill's line as speech: `Warm vent · decay times 1.5`; `null` while the pill is down. */
+function zoneTextOf(indicators: OwnCellIndicators): string | null {
+  const pillText = indicators.zone?.pillText ?? null;
+  return pillText === null ? null : pillText.replaceAll(MULTIPLIER_SIGN, SPOKEN_MULTIPLIER);
+}
+
+/** The sentence, in the order §3.1.4 sets: level, DNA, the counters, then sprint, then the mass cues. */
 function statusTextOf(indicators: OwnCellIndicators): string {
   // Floored like `data-dna-percent`, so the sentence never claims a percent the ring has not filled.
   const dnaText = formatQuantity(indicators.dnaFraction, QUANTITY_UNIT.share, { rounding: QUANTITY_ROUNDING.floor });
@@ -105,6 +143,9 @@ function statusTextOf(indicators: OwnCellIndicators): string {
     parts.push(indicators.nearestThreat.label);
   }
   parts.push(`Sprint ${sprintStatusOf(indicators)}`);
+  for (const line of [trendTextOf(indicators), zoneTextOf(indicators)]) {
+    if (line !== null) parts.push(line);
+  }
   return parts.join(' · ');
 }
 
@@ -137,6 +178,10 @@ function announceKeyOf(indicators: OwnCellIndicators): string {
     // harmless — the rendered sentence is unchanged, so the DOM does not mutate. That holds while
     // the dish is as sparse as it is; #98's wild cells will be the test of it.
     indicators.nearestThreat?.cellId ?? '',
+    // The trend word, not the rate (it moves every snapshot), and the zone only while its pill is up: §3.1.4's
+    // "when the trend changes" and "the zone's name on entry".
+    indicators.massChip.trend,
+    indicators.zone?.pillText === null || indicators.zone === null ? '' : indicators.zone.zone,
   ].join('|');
 }
 
@@ -155,6 +200,7 @@ export function formatOwnCellStatus(indicators: OwnCellIndicators): OwnCellStatu
       'data-engulf-phase': indicators.escape?.phase ?? null,
       'data-threat': indicators.nearestThreat?.cellId ?? null,
       ...counterAttributes(indicators),
+      ...massCueAttributes(indicators),
     },
     text: statusTextOf(indicators),
     announceKey: announceKeyOf(indicators),

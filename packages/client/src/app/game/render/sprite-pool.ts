@@ -29,6 +29,14 @@ export function placeSprite(sprite: Sprite, texture: Texture, paint: SpritePaint
   sprite.visible = true;
 }
 
+/**
+ * What a layer hands the batch below: a paint without its alpha (the layer owns that), and the texture entry to draw.
+ * An atlas entry carries its px size too, which is why this takes the entry rather than a bare `Texture`.
+ */
+export interface PooledSpritePlacement extends Omit<SpritePaint, 'alpha'> {
+  readonly texture: { readonly texture: Texture };
+}
+
 export class SpritePool {
   private readonly sprites: Sprite[] = [];
 
@@ -58,4 +66,16 @@ export class SpritePool {
   get size(): number {
     return this.sprites.length;
   }
+}
+
+/**
+ * A layer's whole sprite batch for one frame: every placement on its pooled sprite at the same index, painted at
+ * `alpha`, and the rest of the pool hidden. The own-cell indicators and the legibility cues both draw their atlas
+ * sprites this way (docs/rendering/own-cell-indicators.md §10), so the loop lives here beside `placeSprite`.
+ */
+export function placeSpriteBatch(pool: SpritePool, placements: readonly PooledSpritePlacement[], alpha: number): void {
+  placements.forEach((placement, index) =>
+    placeSprite(pool.spriteAt(index), placement.texture.texture, { ...placement, alpha }),
+  );
+  pool.hideFrom(placements.length);
 }

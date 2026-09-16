@@ -15,7 +15,7 @@ import {
   LADDER_PIP_ROW_MAX,
 } from '../constants';
 import { HALF } from '../geometry';
-import type { Ladder, LadderCounter, LadderGhost, LadderSilhouette } from '../../state/own-cell-indicators';
+import type { Ladder, LadderCounter, LadderGhost, LadderSilhouette } from '../../state/own-cell-ladder';
 import { orientedBoxGapPx, type OrientedBox } from './oriented-box';
 import { ladderOrbitRadiusPx, orbitDegreesOf, orbitPointPx, type OrbitPoint } from './own-cell-geometry';
 

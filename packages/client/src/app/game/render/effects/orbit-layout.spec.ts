@@ -10,7 +10,7 @@ import {
   LADDER_ORBIT_ANGLE_SINGLE_DEG,
 } from '../constants';
 import { HALF } from '../geometry';
-import { LADDER_SILHOUETTE, type Ladder, type LadderCounter } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE, type Ladder, type LadderCounter } from '../../state/own-cell-ladder';
 import {
   counterLengthPx,
   ghostBoxOf,

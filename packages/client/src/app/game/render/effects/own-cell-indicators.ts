@@ -28,12 +28,8 @@ import type { SpritePaint } from '../sprite-pool';
 import type { LastViewOf } from '../cells/cell-effects';
 import { warningRingPxFor } from '../cells/cell-instance-builder';
 import { cellLodFor } from '../cells/cell-lod';
-import {
-  LADDER_SILHOUETTE,
-  escapeLabelFor,
-  type OwnCellEscape,
-  type OwnCellIndicators,
-} from '../../state/own-cell-indicators';
+import { escapeLabelFor, type OwnCellEscape, type OwnCellIndicators } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
 import type { IndicatorSpriteTexture, IndicatorTextures } from '../textures/indicator-textures';
 import { labelPillWidthPx } from '../textures/label-pill-bake';
 import { pipBlockKey } from '../textures/pip-block-bake';
