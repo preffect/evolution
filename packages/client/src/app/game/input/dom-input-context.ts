@@ -4,7 +4,7 @@
 
 import {
   FOCUSABLE_OVERLAY_TEST_IDS,
-  MENU_OVERLAY_TEST_ID,
+  MODAL_OVERLAY_TEST_IDS,
   TEXT_ENTRY_SELECTOR,
   TRAIT_OFFER_TEST_ID,
 } from './input-constants';
@@ -26,7 +26,7 @@ export function focusContextOf(ownerDocument: Document): FocusContext {
   return {
     isTextEntryFocused: active?.matches(TEXT_ENTRY_SELECTOR) ?? false,
     isTraitOfferFocused: active !== null && active.closest(testIdSelector(TRAIT_OFFER_TEST_ID)) !== null,
-    isMenuOpen: isOverlayOpen(ownerDocument, MENU_OVERLAY_TEST_ID),
+    isModalOverlayOpen: MODAL_OVERLAY_TEST_IDS.some((testId) => isOverlayOpen(ownerDocument, testId)),
     hasFocusableOverlay: FOCUSABLE_OVERLAY_TEST_IDS.some((testId) => isOverlayOpen(ownerDocument, testId)),
   };
 }
