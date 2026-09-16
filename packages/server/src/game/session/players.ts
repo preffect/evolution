@@ -3,6 +3,7 @@
 // 0: it drifts until the first input) and its derived state already folded.
 
 import {
+  FIRST_LEVEL,
   BACTERIUM_VARIANTS,
   CELL_KIND,
   DEFAULT_CELL_MODIFIERS,
@@ -19,7 +20,6 @@ import {
   type RandomSource,
   type Vec2,
 } from '@evolution/shared';
-import { FIRST_LEVEL } from '../progression/levels.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { findSafeSpawnPoint } from '../simulation/spawn-placement.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';

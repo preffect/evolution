@@ -9,6 +9,9 @@ export type LevelCostBalance = Pick<
   'LEVEL_UP_COST_BASE_DNA' | 'LEVEL_UP_COST_PER_LEVEL_DNA'
 >;
 
+/** A fresh cell's level: the ladder of levels starts here (docs/PROGRESSION.md §2). */
+export const FIRST_LEVEL = 1;
+
 /** DNA needed to go from `level` to `level + 1`. */
 export function levelUpCost(level: number, balance: LevelCostBalance): number {
   return balance.LEVEL_UP_COST_BASE_DNA + balance.LEVEL_UP_COST_PER_LEVEL_DNA * level;
@@ -17,6 +20,6 @@ export function levelUpCost(level: number, balance: LevelCostBalance): number {
 /** Cumulative DNA at which `level` is reached: the sum of every cost below it (0 at level 1). */
 export function cumulativeDnaForLevel(level: number, balance: LevelCostBalance): number {
   let total = 0;
-  for (let reached = 1; reached < level; reached += 1) total += levelUpCost(reached, balance);
+  for (let reached = FIRST_LEVEL; reached < level; reached += 1) total += levelUpCost(reached, balance);
   return total;
 }

@@ -6,6 +6,7 @@
 import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';
 import type { OwnedTrait, TraitId } from '../types/game.js';
 import type { CellModifiers, TraitTiers } from '../types/traits.js';
+import { tierRowOf } from './trait-tiers.js';
 
 /** A fold that cannot happen: an owned tier outside its table or a fold kind without a rule (a bug, never a no-op). */
 export class TraitFoldError extends Error {
@@ -80,7 +81,7 @@ export function foldModifiers(
 ): CellModifiers {
   const folded: CellModifiers = { ...DEFAULT_CELL_MODIFIERS };
   for (const owned of ownedTraits) {
-    const tier = tierTables[owned.traitId][owned.tier - 1];
+    const tier = tierRowOf(tierTables[owned.traitId], owned.tier);
     if (tier === undefined) {
       throw new TraitFoldError(`trait ${owned.traitId} has no tier ${owned.tier}`);
     }

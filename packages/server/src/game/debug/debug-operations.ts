@@ -3,6 +3,7 @@
 // one code path. A request the world cannot honour is a `DebugRequestError`.
 
 import {
+  FIRST_LEVEL,
   ENTITY_KIND,
   FOOD_KIND,
   isBacteriumVariant,
@@ -17,7 +18,6 @@ import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
 import { refreshPlayerStage } from '../progression/ladder.js';
-import { FIRST_LEVEL } from '../progression/levels.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
 import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
