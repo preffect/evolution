@@ -74,7 +74,7 @@ The server writes it into `world.massFlow` (`game/world/mass-flow-ledger.ts`), a
 `world.effects` that is never hashed or replayed, so the state hash is unchanged. The metabolism step replaces the
 rates every tick from its own deltas (post-floor, post-cap, split pro rata at the floor:
 `simulation/metabolism-flow.ts`); `massFlow` is `null` while spectating and until a new cell's first metabolism step.
-A sprint start adds what it took to a pending total that the broadcast's drain (`serializeDeltaSnapshot`, the same
+A sprint start adds what it took to a pending total that the broadcast's drain (`serializeBroadcastSnapshot`, the same
 call that drains the effects) seals as the window's `sprintSpent`, so a republish or a skipped client never sees one
 twice. A `game_state` carries no `sprintSpent`, as it carries no effects. The `eat` and `cell_absorbed` amounts are
 measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every tick
@@ -84,8 +84,8 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
 - The dish radius is the constant `DISH_RADIUS` (game-design/controls-and-scope.md §8), not a session field.
 - `game_state` (start, late join, reconnect: every player receives one right after `game_started`) carries `serializeFullState()`: a `GameSnapshot`
   whose `food.spawned` is every mote in the receiver's interest area (§4.2 lever 1), plus `balance: BalanceConfig` so
-  the client predicts with the numbers the server simulates. `game_snapshot` carries `serializeRoomState()` with the
-  receiver's own delta since the previous broadcast. The client applies deltas idempotently (upsert `spawned`,
+  the client predicts with the numbers the server simulates. `game_snapshot` carries `serializeRoomState()`, which
+  builds none of the receiver's own members, closed with them: its food delta since the previous broadcast among them. The client applies deltas idempotently (upsert `spawned`,
   delete-if-present `removedIds`, patch `moved`) and resets its food store on every
   `game_state`; WebSocket ordering makes this sufficient, so there is no base-tick check. A
   reconnect is a new `game_state`, and so is a resync: there is no separate verb for one.
@@ -151,19 +151,27 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   `lobby_update`). A pending game held keeps the seat as it is and sends nothing, even when it is full.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
-  `viewerState: { keys, serialize(viewerPlayerId, snapshot), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
+  `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
   optional, `ViewerState`): the snapshot members each connection is sent for itself alone, declared by the module in
   the order they are written, and one viewer's values for them. A module implements
   `ViewerStateSerializer<Snapshot, Keys>`, whose answers are `Pick<Snapshot, Keys>`, so a declared member it forgets
-  fails to compile; one answered `undefined` anyway throws rather than being sent as a guess. The room calls
-  `serializeRoomState()` once per broadcast (the drain), stringifies that message once without the declared keys, and
-  closes it per delta target with `serialize(viewer, thatSnapshot)` in declared order; each `game_state` is given
+  fails to compile; one answered `undefined` anyway throws rather than being sent as a guess. The module names the same
+  keys as `GameModule<Input, Snapshot, ViewerKey>`'s third parameter, and `serializeRoomState()` answers
+  `ViewerlessSnapshot<Snapshot, ViewerKey>` (`Omit<Snapshot, ViewerKey>`, the whole snapshot for a module that declares
+  none), so the broadcast never builds a member the viewers are sent apart (#399). The Evolution broadcast is
+  `serializeBroadcastSnapshot`, typed `BroadcastSnapshot` (`serialize/viewer-snapshot-keys.ts`, where
+  `viewer-snapshot-keys.test.ts` pins that the two sides split the snapshot exactly), and every viewer member is read
+  from the world. The room drives `RoomGameModule`, whose viewer keys may be any member but the `tick` its flow control
+  reads. The room calls `serializeRoomState()` once per broadcast (the drain), stringifies that message once, and
+  closes it per delta target with `serialize(viewer, thatBroadcast)` in declared order; each `game_state` is given
   `serializeFull(player, fullSnapshot)`, which restarts whatever that viewer's later members are relative to.
+  `serializeFullSnapshot` still builds every member for no viewer: the `game_state` base, the debug reads, the
+  scenarios and the in-process bots.
   `ws/snapshot-frame.ts` builds the frame from structural JSON pieces, never a replace on player data (spliced members
   go last, the shared value is a plain object, a spliced value is never `undefined`, and member order does not matter
   to `JSON.parse`); `lobby/viewer-snapshots.ts` is the sending policy. The lobby names no member: the Evolution module
   declares `VIEWER_SNAPSHOT_KEYS` = `['food', 'dnaFragments', 'ownProgress', 'appliedInputSequenceByPlayer']`
-  (`serialize/viewer-state.ts`, §4.2 lever 1). A whole stringify per viewer measured 1.8 ms at 8 clients and 14.6 ms
+  (`serialize/viewer-snapshot-keys.ts`, §4.2 lever 1). A whole stringify per viewer measured 1.8 ms at 8 clients and 14.6 ms
   at 64 on a 36 KB snapshot, against 0.27 ms and 0.57 ms spliced (#331's review). A module without it (the echo) is
   broadcast as before, serialised once. `debug_get_game_state` reads the full state for no viewer, so `ownProgress`
   is `null` there and every mote and fragment is in it; `debug_get_player_progress` is the read of one player's.
@@ -314,6 +322,32 @@ keeps only a reused id set for what enters and leaves. At 64 viewers, on the 6 8
 players, a spawn-zoom broadcast took 32.5 ms against 4.2 ms, since the cost is viewers × motes in view;
 `MAX_PLAYERS_PER_GAME` = 8 seats a room, so that case cannot arise today. The motes' positions are already quantised
 once per broadcast and shared by every viewer's delta (`positionMotes`).
+
+**Measured (#399)** in process: 8 idle seated viewers on the Evolution module through the real `GameRoom` (system clock,
+`room.step`, sockets whose `send` is free), a 300-tick window (the `PerformanceTracker` buffer) after 3 600 ticks of
+warm-up, and 600 more after every cell is set to mass 5 000 for the widest zoom; seed 42, four rounds alternating
+origin/main and the branch. Each viewer was sent the same bytes before and after (6 295 B a message at spawn zoom,
+15 253 B at the widest), so the wire is unchanged. `serializeRoomState` alone, timed around the module's call, medians
+of 100 broadcasts a round:
+
+| 8 viewers   | `serializeRoomState`, origin/main | #399    |
+| ----------- | --------------------------------- | ------- |
+| spawn zoom  | 0.32–0.38 ms                      | 0.01 ms |
+| widest zoom | 0.36 ms                           | 0.01 ms |
+
+That is the food diff over the whole dish — every mote quantised a second time into a new `Map`, against a tracker no
+viewer ever read — and the record of every player's applied input sequence: ≈ 0.35 ms off every broadcast tick whatever
+the zoom, ≈ 0.12 ms of `broadcastAvgMs`. The fragment views are not part of that saving; they moved from the broadcast
+into the once-per-broadcast reading of the world in `EvolutionViewerState`, which each viewer's area then filters. The room's own figures (`debug_get_room_performance`), medians of the four rounds:
+
+| 8 viewers   | `broadcastAvgMs`, origin/main → #399 | `broadcastP95Ms` (broadcast ticks), origin/main → #399 |
+| ----------- | ------------------------------------ | ------------------------------------------------------ |
+| spawn zoom  | 1.48 → 1.23 ms                       | 15.0 → 14.9 ms                                         |
+| widest zoom | 3.90 → 3.33 ms                       | 25.1 → 24.8 ms                                         |
+
+The box was shared with other runs: the absolute figures are two to five times #340's, one round moved threefold, and
+the p95 is set by that contention, so it does not resolve a 0.35 ms change. The averages fall by about the removed
+share. What is left of the broadcast is the per-viewer work #406 restructures.
 
 **Measured (#383)** with #331's method on a private server (seed 38301): 8 players over the wire, 7 `bot-client`
 grazer bots and one recording client that grazes too, 300 `game_snapshot`s after a 200-snapshot warm-up. The
