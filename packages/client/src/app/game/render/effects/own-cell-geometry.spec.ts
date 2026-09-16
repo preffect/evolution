@@ -20,7 +20,7 @@ import {
   LADDER_UNLOCK_RING_PAD_PX,
 } from '../constants';
 import { HALF } from '../geometry';
-import type { Ladder } from '../../state/own-cell-indicators';
+import type { Ladder } from '../../state/own-cell-ladder';
 import { orbitLayout, type OrbitArc } from './orbit-layout';
 import {
   dnaRingRadiusPx,

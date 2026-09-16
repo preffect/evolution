@@ -84,7 +84,8 @@ packages/client/src/app/game/
   render/{cells,food,dish,effects,noise,textures,bench}/**             (the one home of the render/ plan: rendering/files-and-tests.md §8)
   clock-provider.ts                                             the injected Clock token (determinism/contract-and-clock.md §2)
   state/{game-state.service,game-event-bus,snapshot-transitions}.ts   the signal facade; the moment seam of section 6 and its snapshot detector
-  state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor, ladderFor (ui/hud.md §3.1.4)
+  state/own-cell-indicators.ts                                  pure ownCellIndicatorsFor: the record the renderer and the status mirror share (ui/hud.md §3.1.4)
+  state/own-cell-ladder.ts                                      pure ladderFor: the rung ghost and the endosymbiont counters on the orbit (ui/hud.md §3.1.2)
   state/legibility-cues.ts                                      pure legibilityCuesFor: the record's mass chip, rate tags, zone, sprint cost (ui/hud.md §3.1.5)
   state/mass-trend.ts                                           pure massTrendFor: the chip's net rate and trend with hysteresis (ui/hud.md §3.1.5)
   state/legibility-constants.ts                                 the §3.1.6 rows marked state

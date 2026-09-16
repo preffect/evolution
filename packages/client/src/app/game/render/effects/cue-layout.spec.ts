@@ -10,7 +10,7 @@ import {
   type BacteriumVariant,
 } from '@evolution/shared';
 import { NOTICE_STACK_MAX_Y_PX } from '../../hud/hud-constants';
-import { ladderFor, type Ladder } from '../../state/own-cell-indicators';
+import { ladderFor, type Ladder } from '../../state/own-cell-ladder';
 import {
   CUE_GAP_PX,
   CUE_PILL_HEIGHT_PX,

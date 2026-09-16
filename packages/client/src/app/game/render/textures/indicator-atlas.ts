@@ -9,7 +9,7 @@
 import { ZONE_ID, type TraitId } from '@evolution/shared';
 import { DANGER, DNA, GAIN, INDICATOR_BAKE_MAX_DPR, INDICATOR_RIM_TINTED_RAMP, ZONE_CUE } from '../constants';
 import { CUE_RIM, type CueRim } from '../../hud/format/mass-cues';
-import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-indicators';
+import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-ladder';
 import { GHOST_SHAPE, bakeGhost, type GhostShape } from './ghost-bake';
 import { LABEL_PILL_SPEC, bakeLabelPill, bakePill, cuePillSpec, type LabelPillBake } from './label-pill-bake';
 import { bakePipBlock, endosymbiontTallies, pipBlockKey } from './pip-block-bake';

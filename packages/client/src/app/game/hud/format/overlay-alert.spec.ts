@@ -7,7 +7,7 @@ import {
   createTestTraitOfferView,
   playerId,
   type EngulfPhase,
-  type PlayerProgressView,
+  type OwnProgressView,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { UI_ALERT_TONE } from '../../../ui-kit/ui-alert-pill.component';
@@ -19,7 +19,7 @@ const SNAPSHOT_TICK = 5000;
 const OWN_CELL = createTestCellView({ playerId: OWN_PLAYER_ID });
 const OFFER = createTestTraitOfferView({ level: 5, expiresAtTick: SNAPSHOT_TICK + 6.5 * TICK_HZ });
 
-function progressWith(overrides: Partial<PlayerProgressView> = {}): PlayerProgressView {
+function progressWith(overrides: Partial<OwnProgressView> = {}): OwnProgressView {
   return createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, level: 5, ...overrides });
 }
 
