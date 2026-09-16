@@ -31,6 +31,7 @@ effects/{effects-layer,motion-clip-player,effect-sprites,reticle}.ts   the glow-
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
 effects/own-cell-indicators.ts                      the own cell's arc rows, sprite placements and texts from the HUD record, at the top of that chain; `threatAnchorFor` (§10, #187)
+effects/own-cell-layer.ts                           what both own-cell layers share: the sprite container and pool, the text view built on first use, and the frame that stands down without a record or an own cell (§10, #385)
 effects/own-cell-indicators-layer.ts                the layer that draws them: one arc mesh, one pooled sprite batch, the texts; the DNA fill tween and the level-up flash (§10, #187)
 effects/cue-layout.ts                               where the legibility cues sit: the chip, the tag column, the zone pill, a floater's column; labels first (§10, #385)
 effects/cue-placements.ts                           the record's cues and the live floaters as pill rows, backings, texts and glyph sprites (§10, #385)
