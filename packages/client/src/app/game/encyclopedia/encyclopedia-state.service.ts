@@ -19,7 +19,14 @@ import {
   listedCategories,
   type EncyclopediaLocation,
 } from './format/navigation';
-import { proseText, searchEntries, type EncyclopediaSearchResult, type SearchableEntry } from './format/search';
+import {
+  groupSearchResults,
+  proseText,
+  searchEntries,
+  type EncyclopediaSearchGroup,
+  type EncyclopediaSearchResult,
+  type SearchableEntry,
+} from './format/search';
 import type { EncyclopediaCategory } from './model/categories';
 import type { ResolvedEntry, ResolvedGroup } from './model/entry';
 import type { EntryId } from './model/entry-id';
@@ -77,9 +84,14 @@ export class EncyclopediaStateService {
   /** Rebuilt only when the balance behind it changes, not on every keystroke. */
   private readonly searchIndex = computed(() => searchIndexOf(this.contextService.context()));
 
-  /** The matches for the current query, ranked (§11.5); empty while the query is blank. */
+  /** The matches for the current query, ranked (§11.5); empty while the query is blank. Enter opens the first. */
   readonly results: Signal<readonly EncyclopediaSearchResult[]> = computed(() =>
     searchEntries(this.searchIndex(), this.queryValue()),
+  );
+
+  /** The same matches as the sections the list draws them in, one header per category. */
+  readonly resultGroups: Signal<readonly EncyclopediaSearchGroup[]> = computed(() =>
+    groupSearchResults(this.results()),
   );
 
   /** A rail row chosen: the category's landing. */

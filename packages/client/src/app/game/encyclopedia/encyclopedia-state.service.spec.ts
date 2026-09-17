@@ -108,6 +108,17 @@ describe('EncyclopediaStateService', () => {
     expect(service.results()).toEqual([]);
   });
 
+  it('cuts the matches into one section per category, in result order', () => {
+    const { service } = setUp();
+    service.setQuery('cil');
+
+    const groups = service.resultGroups();
+    const categories = groups.map((group) => group.category);
+
+    expect(new Set(categories).size).toBe(categories.length);
+    expect(groups.flatMap((group) => group.results)).toEqual(service.results());
+  });
+
   it('opens at the entry a host asked for, and stays where it was when it asks for nothing', () => {
     const { service } = setUp();
     service.openEntry(CILIA);

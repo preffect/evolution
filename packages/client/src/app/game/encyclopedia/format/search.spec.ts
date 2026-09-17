@@ -5,12 +5,25 @@ import { describe, expect, it } from 'vitest';
 import { ENCYCLOPEDIA_CATEGORY, type EncyclopediaCategory } from '../model/categories';
 import type { ProseSegment } from '../model/entry';
 import type { EntryId } from '../model/entry-id';
-import { SEARCH_MATCH, foldForSearch, proseText, searchEntries, type SearchableEntry } from './search';
+import {
+  SEARCH_MATCH,
+  foldForSearch,
+  groupSearchResults,
+  proseText,
+  searchEntries,
+  type SearchableEntry,
+} from './search';
 
 const EVOLUTIONS: EncyclopediaCategory = ENCYCLOPEDIA_CATEGORY.evolutions;
+const ENTITIES: EncyclopediaCategory = ENCYCLOPEDIA_CATEGORY.entities;
 
-function searchable(entryId: EntryId, title: string, summaryText: string): SearchableEntry {
-  return { entryId, category: EVOLUTIONS, title, summaryText };
+function searchable(
+  entryId: EntryId,
+  title: string,
+  summaryText: string,
+  category: EncyclopediaCategory = EVOLUTIONS,
+): SearchableEntry {
+  return { entryId, category, title, summaryText };
 }
 
 /**
@@ -63,6 +76,75 @@ describe('searchEntries', () => {
       SEARCH_MATCH.title,
       SEARCH_MATCH.summary,
     ]);
+  });
+
+  // The list draws one header per category (§11.5) while a strong name match still has to lead the list, so results
+  // are category-major with the categories ordered by the best match each holds. The two cases below reject the two
+  // orderings that satisfy only one half of that: rank-major (which repeats a header) and plain rail order (which
+  // buries the best match).
+  describe('category order', () => {
+    it('keeps a category contiguous, so a header is never drawn twice', () => {
+      const index = [
+        searchable('bacterium:aerobic', 'Ciliated bacterium', 'A swimmer.', ENTITIES),
+        searchable('entity:dna_fragment', 'DNA fragment', 'Left where cilia swept.', ENTITIES),
+        searchable('trait:paramecium_cilia', 'Paramecium Cilia', 'Dense rows.', EVOLUTIONS),
+        searchable('trait:cilia', 'Cilia Fringe', 'Beating hairs.', EVOLUTIONS),
+      ];
+
+      const results = searchEntries(index, 'cil');
+
+      // Rank-major would give bacterium, cilia, paramecium, dna_fragment — entities, evolutions, evolutions, entities.
+      expect(results.map((result) => result.entryId)).toEqual([
+        'bacterium:aerobic',
+        'entity:dna_fragment',
+        'trait:cilia',
+        'trait:paramecium_cilia',
+      ]);
+      expect(groupSearchResults(results).map((group) => group.category)).toEqual([ENTITIES, EVOLUTIONS]);
+    });
+
+    it('leads with the category holding the best match, not the one the rail happens to put first', () => {
+      const index = [
+        searchable('entity:dna_fragment', 'DNA fragment', 'Left where cilia swept.', ENTITIES),
+        searchable('trait:cilia', 'Cilia Fringe', 'Beating hairs.', EVOLUTIONS),
+      ];
+
+      const results = searchEntries(index, 'cil');
+
+      // Plain rail order would leave the summary-only match above the title-prefix one.
+      expect(results.map((result) => result.entryId)).toEqual(['trait:cilia', 'entity:dna_fragment']);
+      expect(groupSearchResults(results).map((group) => group.category)).toEqual([EVOLUTIONS, ENTITIES]);
+    });
+
+    it('breaks a tie on the caller’s rail order', () => {
+      const index = [
+        searchable('bacterium:aerobic', 'Ciliated bacterium', 'A swimmer.', ENTITIES),
+        searchable('trait:cilia', 'Cilia Fringe', 'Beating hairs.', EVOLUTIONS),
+      ];
+
+      expect(groupSearchResults(searchEntries(index, 'cil')).map((group) => group.category)).toEqual([
+        ENTITIES,
+        EVOLUTIONS,
+      ]);
+      expect(groupSearchResults(searchEntries([...index].reverse(), 'cil')).map((group) => group.category)).toEqual([
+        EVOLUTIONS,
+        ENTITIES,
+      ]);
+    });
+  });
+
+  describe('groupSearchResults', () => {
+    it('cuts the results into sections without reordering them, and gives nothing for no results', () => {
+      const groups = groupSearchResults(searchEntries(INDEX, 'cil'));
+
+      expect(groups).toEqual([
+        {
+          category: EVOLUTIONS,
+          results: searchEntries(INDEX, 'cil'),
+        },
+      ]);
+      expect(groupSearchResults([])).toEqual([]);
+    });
   });
 
   it('ignores the case the player typed', () => {

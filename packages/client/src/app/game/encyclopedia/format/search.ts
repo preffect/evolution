@@ -2,8 +2,12 @@
 //
 // Matching is case- **and accent-insensitive** in both directions: a query typed without accents finds an accented
 // title, and a query typed with them finds it too, because query and text are compared in the same folded form. The
-// resolved title is matched first — a title-prefix match ahead of any other title match — and the summary text last;
-// inside each rank the caller's order is kept, which is the rail's category order, each category in list order.
+// resolved title is matched first — a title-prefix match ahead of any other title match — and the summary text last.
+//
+// Results are **category-major**: every match of one category is contiguous, so the list draws that category's header
+// exactly once, and the categories run in the order of the best match each one holds. That keeps both halves of §11.5:
+// a strong name match still leads the list, and no header is ever repeated. Inside a category, entries run by match
+// rank and then by the caller's own list order. A tie between two categories keeps the caller's rail order.
 
 import type { ValueOf } from '@evolution/shared';
 import type { EncyclopediaCategory } from '../model/categories';
@@ -39,6 +43,12 @@ export interface EncyclopediaSearchResult {
   readonly match: SearchMatch;
 }
 
+/** One category's section of the results, which the list draws under a single header. */
+export interface EncyclopediaSearchGroup {
+  readonly category: EncyclopediaCategory;
+  readonly results: readonly EncyclopediaSearchResult[];
+}
+
 /** The combining marks NFD splits an accented letter into; dropping them leaves the plain letter. */
 const COMBINING_MARKS = /\p{Mn}/gu;
 
@@ -60,9 +70,34 @@ function matchOf(entry: SearchableEntry, foldedQuery: string): SearchMatch | nul
   return null;
 }
 
+function rankIndexOf(match: SearchMatch): number {
+  return SEARCH_MATCH_RANKS.indexOf(match);
+}
+
+/** The best rank any of `category`'s matches achieved; 0 is a title-prefix match. */
+function bestRankIn(matched: readonly EncyclopediaSearchResult[], category: EncyclopediaCategory): number {
+  const ranks = matched.filter((result) => result.category === category).map((result) => rankIndexOf(result.match));
+  return Math.min(...ranks);
+}
+
 /**
- * The entries `query` matches, ranked (§11.5). A blank query matches nothing — the list column shows its category's
- * entries instead — and Enter opens the first result, so the head of this array is the one the player expects.
+ * The categories present, best match first. The tie-break is the caller's own order — the rail's — taken from where
+ * each category's first match sits, so the ordering never leans on the sort being stable.
+ */
+function categoriesByBestMatch(matched: readonly EncyclopediaSearchResult[]): readonly EncyclopediaCategory[] {
+  const ordered = [...new Set(matched.map((result) => result.category))].map((category, firstIndex) => ({
+    category,
+    firstIndex,
+    bestRank: bestRankIn(matched, category),
+  }));
+  ordered.sort((one, other) => one.bestRank - other.bestRank || one.firstIndex - other.firstIndex);
+  return ordered.map((ranked) => ranked.category);
+}
+
+/**
+ * The entries `query` matches, category-major and ranked (§11.5). A blank query matches nothing — the list column
+ * shows its category's entries instead — and Enter opens the first result, so the head of this array is the one the
+ * player expects: the best match in the category that holds it.
  */
 export function searchEntries(index: readonly SearchableEntry[], query: string): readonly EncyclopediaSearchResult[] {
   const foldedQuery = foldForSearch(query.trim());
@@ -72,5 +107,22 @@ export function searchEntries(index: readonly SearchableEntry[], query: string):
     if (match === null) return [];
     return [{ entryId: entry.entryId, category: entry.category, title: entry.title, match }];
   });
-  return SEARCH_MATCH_RANKS.flatMap((rank) => matched.filter((result) => result.match === rank));
+  return categoriesByBestMatch(matched).flatMap((category) => {
+    const inCategory = matched.filter((result) => result.category === category);
+    return SEARCH_MATCH_RANKS.flatMap((rank) => inCategory.filter((result) => result.match === rank));
+  });
+}
+
+/**
+ * The ranked results cut into the sections the list draws. Because `searchEntries` keeps a category's matches
+ * contiguous, each category appears exactly once — the grouping cannot reorder anything, only split it.
+ */
+export function groupSearchResults(results: readonly EncyclopediaSearchResult[]): readonly EncyclopediaSearchGroup[] {
+  const groups: { category: EncyclopediaCategory; results: EncyclopediaSearchResult[] }[] = [];
+  for (const result of results) {
+    const open = groups.at(-1);
+    if (open?.category === result.category) open.results.push(result);
+    else groups.push({ category: result.category, results: [result] });
+  }
+  return groups;
 }

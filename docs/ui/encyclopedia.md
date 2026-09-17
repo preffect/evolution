@@ -232,7 +232,10 @@ to the first listed category while `basics` is still empty (#361).
 - **Search** is warranted: about 75 entries across six categories, and a player usually arrives knowing a name they
   saw on a card or a label. `/` (`ENCYCLOPEDIA_SEARCH_KEY_CODE`) focuses the field from anywhere in the encyclopedia
   but a text field. Typing matches, case- and accent-insensitive, the resolved `title` first (title-prefix matches
-  before other title matches) and then the `summary` text, each in rail and list order. While the query is non-empty
+  before other title matches) and then the `summary` text. Results are **category-major**: each category's matches are
+  contiguous, so its section header is drawn exactly once; the categories run in the order of the best match each one
+  holds, and a tie between two keeps rail order; inside a category the entries run by match rank, then list order. So
+  the strongest name match always leads the list, whichever category it sits in. While the query is non-empty
   the list column shows the results under category section headers, the rail shows no selection, and Enter opens the
   first result; `No match for "xyz"` (`body`, muted) when there is none.
 - **Keyboard.** Tab order: header (Back, search, alert strip, Close), rail, list, detail (its controls and links in
