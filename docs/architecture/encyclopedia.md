@@ -652,21 +652,29 @@ export interface PreviewSceneFrame {
 }
 
 export interface PreviewScene {
-  /** Where the camera parks and at what fixed zoom (px per wu). */
-  readonly framing: { readonly target: CameraTarget; readonly zoom: number };
+  /**
+   * Where the camera parks and how much world the lens's **radius** spans (wu), read per frame so a balance patch
+   * reframes a scene whose subject's size it moved. Not a px-per-wu zoom: `sizePx` follows `--ui-scale`, and a
+   * fixed zoom would shrink the subject on a smaller lens. The session derives the fixed zoom it sets from the
+   * canvas it actually has: `zoom = (canvasSidePx / 2) / viewRadiusWu`.
+   */
+  framing(balance: BalanceConfig): { readonly target: CameraTarget; readonly viewRadiusWu: number };
   /** The cell the camera follows as `ownPlayerId` (the action scenes: the sprint ring, the warning ring), or `null`. */
   readonly subjectPlayerId: PlayerId | null;
+  /** One loop of this scene, in ticks; balance-driven wherever the simulation, not the framing, sets the pace. */
+  periodTicks(balance: BalanceConfig): number;
   /** Monotonic `tick`; the scene loops internally on its own period. */
   frameAt(tick: number, previousTick: number, balance: BalanceConfig): PreviewSceneFrame;
 }
 
-export function previewSceneFor(spec: PreviewSpec, balance: BalanceConfig): PreviewScene;
+/** Total over `PreviewSpec`. Reads no balance: a scene reads it per frame, so a patch never needs a rebuild. */
+export function previewSceneFor(spec: PreviewSpec): PreviewScene;
 
 // render/preview/preview-session.ts
 export interface PreviewSessionDependencies {
   readonly host: HTMLElement;
   readonly clock: Clock; // the injected Clock (CODE-STANDARDS.md §8)
-  /** Already capped: `min(window.devicePixelRatio, PREVIEW_MAX_DEVICE_PIXEL_RATIO)`, for both Pixi's `resolution` and the bake. */
+  /** The display's **raw** ratio. The session caps it at `PREVIEW_MAX_DEVICE_PIXEL_RATIO` — one cap site, not two — and passes the capped value to both Pixi's `resolution` and the bake. */
   readonly devicePixelRatio: number;
   readonly sizePx: { readonly width: number; readonly height: number };
   readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
@@ -686,12 +694,18 @@ export interface PreviewOpenTimings {
 
 export class PreviewSession extends FrameLoopSession {
   /**
-   * Resolves with the open timings once the first frame is on the canvas, or with `null` when `destroy` ran first:
-   * an app that arrives after `destroy` is destroyed on arrival (`RenderSession`'s `isDestroyed` guard).
+   * Opens on `spec` and resolves with the open timings once the first frame is on the canvas, or with `null` when
+   * `destroy` ran first: an app that arrives after `destroy` is destroyed on arrival (`RenderSession`'s
+   * `isDestroyed` guard). The first spec is taken here rather than through `show`, so `openedToFirstFrameMs`
+   * always covers a frame that was drawn instead of an ordering rule nothing enforces.
    */
-  start(): Promise<PreviewOpenTimings | null>;
+  start(spec: PreviewSpec): Promise<PreviewOpenTimings | null>;
   /** Swaps the scene and restarts the local clock; no texture work. */
   show(spec: PreviewSpec): void;
+  /** A `--ui-scale` change: the canvas resizes and the framing follows it; nothing is rebaked. */
+  resize(sizePx: { readonly width: number; readonly height: number }): void;
+  /** One frame with a no-op submit: the clips advance, nothing is drawn. The evidence route's walk, and only its. */
+  walkFrame(): void;
   /** The UI pause (reduced motion, a pane without a preview): the preview app's own `ticker.stop()`, never the debug `FrameGate`. */
   pause(): void;
   /** `ticker.start()`, and the local clock is re-based so the paused span never plays. */
@@ -774,6 +788,14 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
 
 `encyclopedia.component` (#354) owns the one handle: it takes it on the first entry with a preview, lends it each
 entry page's stage element, pauses it on a landing and destroys it on close.
+
+**What #363 built and what it left.** The session, the frame, the four **subject** scenes (`cell`, `food`,
+`dna_fragment`, `zone`), the host token, the per-bundle BitmapFont names and the evidence route are in.
+`previewSceneFor` is total over `PREVIEW_SCENE`, but the five **action** families are ticket #364's: until it
+lands each resolves to an open-broth stand-in, and `preview-scene.spec.ts` names exactly those five, so a builder
+landing for one of them fails that spec rather than leaving the list stale. The evidence route also answers a bare
+`PREVIEW_SCENE` name (`?preview=food`) as well as an entry anchor, so a family the registry has no entry for yet is
+still reachable for a screenshot.
 
 **Still frames are not in build 1.** List rows and landing tiles draw code-drawn glyph medallions (#354). A cached
 still capture from the same app (`still(spec, sizePx): Promise<ImageBitmap>`, one extract per frame at most) is the

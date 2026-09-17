@@ -213,3 +213,47 @@ and the draw-call ceiling at two zoom bands; never an absolute time, the box's l
 determinism is the claim the route supports: a page walked to a tick and a page loaded at it are **not** the same
 frame, because effects due at that tick have already drained on the walked page. The numbers in a PR body come from a
 hardware run of the same route, with the machine's load stated.
+
+### 7.1 The encyclopedia preview (#363)
+
+The preview seam (`architecture/encyclopedia.md §12.7`) is a **third** `FrameLoopSession` on its own small Pixi app:
+the real `GameRenderer` over a fixture scene and a local clock, with no room, snapshot or socket. It has two budgets
+of its own, both constants of `render/constants/preview.ts`:
+
+| Budget                    | Value | What it covers                                                                                                                                                   |
+| ------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PREVIEW_OPEN_BUDGET_MS`  | 300   | `openedToFirstFrameMs` p95 over 20 opens in one page (`RENDER_P95_MIN_SAMPLE_FRAMES`), the cold first open reported apart, split into init / bake / first submit |
+| `PREVIEW_FRAME_BUDGET_MS` | 1.0   | the preview frame's own CPU p95, through the same `FrameInstrumentation` as a room's, warm-up frames excluded                                                    |
+
+**The route.** `/?preview=<EntryAnchor|PREVIEW_SCENE>&t=<seconds>&opens=<n>` (dev builds only, behind the same
+production gate as the bench route) mounts `opens` sessions on a `ManualClock`, walks each to `t` in
+`TICK_INTERVAL_S` steps with a **no-op submit** and submits only the parked frame, then writes its report into
+`data-testid="encyclopedia-preview-report"`: the cold open, every warm open, the open p95, the parked session's
+frame report, both budgets and the verdict. It is the one place the preview installs `window.__evolutionDebug` and
+sets `preserveDrawingBuffer`. `packages/client/e2e/encyclopedia-preview.spec.ts` is its smoke.
+
+**The absolute numbers are UNMEASURED.** Every figure below awaits a hardware run of that URL. No agent has a real
+GPU: the container's browser is SwiftShader, a CPU rasteriser, which exaggerates GPU work and the shader compiles
+inside `init`, so a bad number there may be better on hardware and only a **good** SwiftShader number is
+trustworthy. The smoke therefore asserts the report's **shape** — every key present, every value reported and
+finite — and never an absolute time.
+
+| Number                                                   | State                     | Where it is read                                                                                                                                                                                                            |
+| -------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| open p95 over 20 opens                                   | **unmeasured**            | `openP95Ms` in the DOM report, `opens=20`                                                                                                                                                                                   |
+| cold open, apart                                         | **unmeasured**            | `coldOpen` in the DOM report                                                                                                                                                                                                |
+| the three-way split (init / bake / first submit)         | **unmeasured**            | every `PreviewOpenTimings` in the report                                                                                                                                                                                    |
+| preview frame p95                                        | **unmeasured**            | `frame.frameTimeP95Ms`, with the per-stage split beside it                                                                                                                                                                  |
+| page rAF interval p95 and dropped frames, open vs closed | **unmeasured**            | a **live room** with the encyclopedia over it, through the room's debug hook — not this route, which has no room                                                                                                            |
+| room startup through the same instrument                 | **unmeasured**            | the baseline §12.7 says is missing; `RenderSession`'s own first frame                                                                                                                                                       |
+| lens canvas GPU memory at the cap (900² device px)       | **unmeasured**, ≈ 10 MiB  | colour backbuffer + the depth-stencil Pixi requests (`stencil: true`, ≈ 3.2 MiB) + the presented front buffer; ≈ 13 MiB on the evidence route with `preserveDrawingBuffer`; ≈ 50 MiB with the bundle while the lens is open |
+| the stencil-free app option (would save ≈ 3.2 MiB)       | **not built, unmeasured** | nothing in the preview draws a Pixi mask, so it is available; §12.7 says measure before building                                                                                                                            |
+
+**Shape checks that are green in the container** (`e2e/encyclopedia-preview.spec.ts`, SwiftShader): every subject
+scene draws with no page or shader error; two loads at the same `t` are pixel-identical and a different `t` is not;
+the canvas is clamped to `PREVIEW_CANVAS_MAX_PX` device pixels on a 3× display; 20 open-and-close cycles log no
+`Too many active WebGL contexts` warning; the DOM report carries every key with a finite value.
+
+**If a budget is missed**, §12.7's levers in order: throttle the room renderer while the encyclopedia covers it;
+keep the preview session alive across encyclopedia opens; a bundle option that skips the dish-field and light-pool
+bakes for scenes that do not show the dish. None is built before a measurement asks for one.

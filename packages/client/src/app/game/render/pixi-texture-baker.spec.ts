@@ -5,7 +5,7 @@ import { ALPHA, CHANNEL_MAX } from './colour';
 import { VIGNETTE_ALPHA, VIGNETTE_TEXTURE_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import { VIGNETTE_BAKE } from './render-textures';
-import { indicatorFontInstalls } from './textures/bitmap-fonts';
+import { indicatorFontInstalls, indicatorFontNamesFor } from './textures/bitmap-fonts';
 import { radialPixelOffset } from './textures/radial-bake';
 
 const BYTE_TOLERANCE = 1;
@@ -37,7 +37,7 @@ describe('createPixiTextureBaker', () => {
     const install = vi.spyOn(BitmapFont, 'install').mockReturnValue(undefined as never);
     const uninstall = vi.spyOn(BitmapFont, 'uninstall').mockReturnValue(undefined);
     const baker = createPixiTextureBaker(createFakeBakeCanvasFactory());
-    const [value] = indicatorFontInstalls(2);
+    const [value] = indicatorFontInstalls(2, indicatorFontNamesFor(1));
     baker.installBitmapFont(value!);
     expect(install).toHaveBeenCalledWith({
       name: value!.name,

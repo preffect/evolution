@@ -19,8 +19,12 @@ import { createFakeBakeCanvasFactory, type FakeBakeCanvas } from './fake-bake-ca
 export type TickerCallback = () => void;
 
 export interface FakePixiApp extends PixiAppHandle {
+  /** The recording baker behind `textures`: a spec reads its bakes, font installs and uninstalls. */
+  readonly textures: FakeTextureBaker;
   readonly stage: Container;
   readonly tickerCallbacks: TickerCallback[];
+  /** `false` between `ticker.stop()` and the next `ticker.start()`; `tick()` draws nothing while it is. */
+  readonly ticking: { isRunning: boolean };
   readonly screen: { width: number; height: number };
   readonly renderCalls: { count: number };
   readonly bakedSpecs: RadialBakeSpec[];
@@ -111,6 +115,7 @@ interface FakeStageParts {
   readonly tickerCallbacks: TickerCallback[];
   readonly renderCalls: { count: number };
   readonly screen: { width: number; height: number };
+  readonly ticking: { isRunning: boolean };
 }
 
 /** The slice of `Application` the session uses: the stage, the screen box, a hand-run ticker, a counted render. */
@@ -124,6 +129,12 @@ function createStageHandle(parts: FakeStageParts): Application {
       remove: (callback: TickerCallback) => {
         const index = tickerCallbacks.indexOf(callback);
         if (index >= 0) tickerCallbacks.splice(index, 1);
+      },
+      start: () => {
+        parts.ticking.isRunning = true;
+      },
+      stop: () => {
+        parts.ticking.isRunning = false;
       },
     },
     render: () => {
@@ -140,7 +151,8 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const baker = createFakeTextureBaker();
   const lifecycle = { isDestroyed: false };
   const screenBox = { ...screen };
-  const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox });
+  const ticking = { isRunning: true };
+  const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
   const canvas = document.createElement('canvas');
   return {
     app,
@@ -153,8 +165,16 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     bakedSpecs: baker.bakedSpecs,
     bakedCanvases: baker.bakedCanvases,
     lifecycle,
+    ticking,
+    // A stopped Pixi ticker runs no callback at all; a `tick()` while stopped must draw nothing here either,
+    // or a spec that pauses a session would still see frames and pass without the pause working.
     tick: () => {
+      if (!ticking.isRunning) return;
       for (const callback of [...tickerCallbacks]) callback();
+    },
+    resize: (sizePx) => {
+      screenBox.width = sizePx.width;
+      screenBox.height = sizePx.height;
     },
     destroy: () => {
       lifecycle.isDestroyed = true;

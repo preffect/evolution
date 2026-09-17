@@ -16,6 +16,7 @@ import {
   RENDER_BENCH_VIEWPORT_PX,
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
+import { numberParameter, positiveParameter } from '../../route-query';
 import { FrameLoopSession } from '../frame-loop-session';
 import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
@@ -62,17 +63,6 @@ const ADVANCE_PARAMETER = 'advance';
 const PRESERVE_PARAMETER = 'preserve';
 const CUES_PARAMETER = 'cues';
 const FLAG_ON = '1';
-
-function numberParameter(parameters: URLSearchParams, key: string, fallback: number): number {
-  const value = parameters.get(key);
-  const parsed = value === null ? Number.NaN : Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function positiveParameter(parameters: URLSearchParams, key: string, fallback: number): number {
-  const parsed = numberParameter(parameters, key, fallback);
-  return parsed > 0 ? parsed : fallback;
-}
 
 /**
  * `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>&advance=1&preserve=1&cues=1`, each with its default; `bench`
