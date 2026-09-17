@@ -6,17 +6,20 @@
 // This contract has broken three times: ticket #447's review (no replace transition at all, so roving filled
 // `ENCYCLOPEDIA_HISTORY_MAX` and evicted the location Back was there to return to), #448 round one (a latching flag
 // that pushed on the next arrow) and round two (the flag cleared mid-press, so a press dragged off its row neither
-// replaced nor pushed and Back lost the open entry). The entry page's prose, facts and See also links are three new
-// activations on it, so the walk below ends where a reader expects rather than where a transition happened to leave
-// them.
+// replaced nor pushed and Back lost the open entry). The entry page adds three new activations to it â€” a prose link,
+// a fact's link and a See also chip â€” so the walk below follows **one of each** and then goes back through them.
+//
+// **Each follow names the region it clicks in, and that is not tidiness.** `encyclopedia-link-<entryId>` is carried by
+// *every* link to that entry (Â§11.6), so a page that links Endosymbiosis from both its facts table and its prose has
+// two of them, the table's first in document order. A `querySelector` over the whole page therefore always pressed
+// the fact link, and a first draft of this spec went green with the prose link's own transition broken.
 
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectTestId, queryByTestId } from '../../../testing/test-id-query';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
-import { categoryLanding } from './format/navigation';
-import type { EncyclopediaLocation } from './format/navigation';
+import { categoryLanding, type EncyclopediaLocation } from './format/navigation';
 import type { EntryId } from './model/entry-id';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId, encyclopediaRowTestId } from './test-ids';
 
@@ -35,6 +38,13 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md Â
 
   function entryPage(): HTMLElement {
     return expectTestId(root(), ENCYCLOPEDIA_TEST_ID.entry);
+  }
+
+  /** The region a link is pressed in, so a page carrying the same link twice cannot answer for the wrong one. */
+  function region(selector: string): HTMLElement {
+    const element = entryPage().querySelector<HTMLElement>(selector);
+    if (element === null) throw new Error(`the open entry has no ${selector}`);
+    return element;
   }
 
   /**
@@ -64,6 +74,13 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md Â
     fixture.detectChanges();
   }
 
+  /** The first link of a region, whichever entry it names: what a reader's eye would land on first. */
+  function firstLinkTargetIn(within: HTMLElement): EntryId {
+    const link = within.querySelector<HTMLElement>('[data-testid^="encyclopedia-link-"]');
+    if (link === null) throw new Error('the region holds no link');
+    return link.getAttribute('data-testid')!.replace('encyclopedia-link-', '') as EntryId;
+  }
+
   function goBack(): void {
     expectTestId(root(), ENCYCLOPEDIA_TEST_ID.back).click();
     fixture.detectChanges();
@@ -83,13 +100,23 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md Â
 
   it('walks Back through the pages the reader chose, in the order they chose them', () => {
     const landing: EncyclopediaLocation = categoryLanding(state.location().category);
-    follow(ENDOSYMBIOSIS, entryPage());
+
+    // A **prose** link, taken from the paragraph rather than from the facts table that names the same entry above it.
+    follow(ENDOSYMBIOSIS, region('app-encyclopedia-prose'));
     expect(shownEntryId()).toBe(ENDOSYMBIOSIS);
 
-    const seeAlso = state.entry()!.seeAlso[0]!.entryId;
-    follow(seeAlso, entryPage().querySelector('.see-also')!);
-    expect(shownEntryId()).toBe(seeAlso);
+    // A **fact's** link, from the first facts table of the page it landed on.
+    const factTarget = firstLinkTargetIn(region('app-encyclopedia-facts'));
+    follow(factTarget, region('app-encyclopedia-facts'));
+    expect(shownEntryId()).toBe(factTarget);
 
+    // A **See also** chip.
+    const seeAlsoTarget = firstLinkTargetIn(region('.see-also'));
+    follow(seeAlsoTarget, region('.see-also'));
+    expect(shownEntryId()).toBe(seeAlsoTarget);
+
+    goBack();
+    expect(shownEntryId()).toBe(factTarget);
     goBack();
     expect(shownEntryId()).toBe(ENDOSYMBIOSIS);
     goBack();
@@ -114,13 +141,17 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md Â
     expect(state.canGoBack()).toBe(false);
   });
 
-  /** A link followed after a rove still returns to the page the rove left the reader on, not to the row before it. */
+  /**
+   * A link followed after a rove still returns to the page the rove left the reader on, not to the row before it.
+   * Which *kind* of link it is does not matter here â€” the walk above takes one of each â€” so this one takes the first
+   * link on the page, whichever region holds it.
+   */
   it('returns from a link to the entry the rove was showing when it was followed', () => {
     roveDown();
     const roved = shownEntryId();
-    const link = state.entry()!.seeAlso[0]!.entryId;
-    follow(link, entryPage().querySelector('.see-also')!);
-    expect(shownEntryId()).toBe(link);
+    const target = firstLinkTargetIn(entryPage());
+    follow(target, entryPage());
+    expect(shownEntryId()).toBe(target);
 
     goBack();
     expect(shownEntryId()).toBe(roved);
