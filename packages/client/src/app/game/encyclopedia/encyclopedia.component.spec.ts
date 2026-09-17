@@ -30,9 +30,18 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
     return expectTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia);
   }
 
+  /**
+   * A row pressed as a browser presses one — `pointerdown`, `pointerup`, `click`, in that order. The `pointerdown`
+   * is load-bearing rather than decorative: it is what tells the list that the kit's report beside the press is that
+   * press's and not a rove, and a helper that omits it would quietly turn every push here into a replace
+   * (docs/ui/encyclopedia.md §11.5, `encyclopedia-activation-press.directive.ts`).
+   */
   function openFirstEntry(): string {
     const first = entriesIn(state.location().category)[0]!.entries[0]!;
-    expectTestId(root(), encyclopediaRowTestId(first.entryId)).click();
+    const element = expectTestId(root(), encyclopediaRowTestId(first.entryId));
+    element.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    element.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    element.click();
     fixture.detectChanges();
     return first.entryId;
   }
@@ -158,5 +167,77 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
     const trapped = fixture.debugElement.query(By.directive(UiFocusTrapDirective));
     expect(trapped).not.toBeNull();
     expect(trapped.nativeElement).toBe(panel());
+  });
+
+  /**
+   * §11.5's panel keys, driven on the elements a reader's focus would actually be on. The rules themselves are
+   * `format/panel-keys.spec.ts`'s; what these pin is the wiring — that the panel reads the two DOM facts correctly,
+   * suppresses the browser default, and puts focus where the answer says.
+   */
+  describe('the panel keys (§11.5)', () => {
+    function searchField(): HTMLInputElement {
+      return expectTestId(root(), ENCYCLOPEDIA_TEST_ID.search) as HTMLInputElement;
+    }
+
+    function tabStopIn(testId: string): HTMLElement {
+      const stop = expectTestId(root(), testId).querySelector<HTMLElement>('[tabindex="0"]');
+      expect(stop).not.toBeNull();
+      return stop!;
+    }
+
+    /** Returns the event, so a case can ask whether the panel claimed the press. */
+    function pressOn(element: Element, init: KeyboardEventInit): KeyboardEvent {
+      const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+      element.dispatchEvent(event);
+      fixture.detectChanges();
+      return event;
+    }
+
+    it('focuses the search field on `/` from wherever the reader is, and never types the character', () => {
+      const event = pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.rail), { key: '/', code: 'Slash' });
+      expect(document.activeElement).toBe(searchField());
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it('leaves `/` to the search field once the reader is typing in it', () => {
+      searchField().focus();
+      const event = pressOn(searchField(), { key: '/', code: 'Slash' });
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('goes back on Alt+← and on Backspace', () => {
+      for (const init of [
+        { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true },
+        { key: 'Backspace', code: 'Backspace' },
+      ]) {
+        const landing = state.location();
+        openFirstEntry();
+        pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.list), init);
+        expect(state.location()).toEqual(landing);
+      }
+    });
+
+    it('keeps Backspace as the delete key while the search field holds focus', () => {
+      const landing = state.location();
+      openFirstEntry();
+      searchField().focus();
+      const event = pressOn(searchField(), { key: 'Backspace', code: 'Backspace' });
+      expect(event.defaultPrevented).toBe(false);
+      expect(state.location()).not.toEqual(landing);
+    });
+
+    it('crosses from the rail to the list on → and back on ←', () => {
+      pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.rail), { key: 'ArrowRight', code: 'ArrowRight' });
+      expect(document.activeElement).toBe(tabStopIn(ENCYCLOPEDIA_TEST_ID.list));
+
+      pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.list), { key: 'ArrowLeft', code: 'ArrowLeft' });
+      expect(document.activeElement).toBe(tabStopIn(ENCYCLOPEDIA_TEST_ID.rail));
+    });
+
+    /** Escape has one owner per press (input-and-onboarding.md §4), and the panel is never it. */
+    it('claims no Escape of its own, so its host is the one that closes', () => {
+      const event = pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.list), { key: 'Escape', code: 'Escape' });
+      expect(event.defaultPrevented).toBe(false);
+    });
   });
 });

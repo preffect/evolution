@@ -97,4 +97,47 @@ describe('the encyclopedia over the lobby (acceptance U11)', () => {
     fixture.detectChanges();
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia)).toBeNull();
   });
+
+  /**
+   * #449's added "Done when", on the third host. The core clears the query on both of its doors, but nothing
+   * *obliges* a host to use one, so the guarantee is the lobby's own and is asserted on the lobby's own close paths.
+   * Both are driven with the query **still up**: an Escape would clear it itself and prove nothing about the host.
+   */
+  describe('a reopen never restores a stale query', () => {
+    function openTypeAndClose(close: () => void): void {
+      lobbyButton().click();
+      fixture.detectChanges();
+      const field = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.search) as HTMLInputElement;
+      field.value = 'mito';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      expect(encyclopedia.query()).toBe('mito');
+      close();
+      fixture.detectChanges();
+      expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia)).toBeNull();
+    }
+
+    it('after the panel’s Close, which runs the lobby host’s own close', () => {
+      openTypeAndClose(() => expectTestId(root(), ENCYCLOPEDIA_TEST_ID.close).click());
+      lobbyButton().click();
+      fixture.detectChanges();
+      expect(encyclopedia.query()).toBe('');
+      expect(expectTestId(root(), ENCYCLOPEDIA_TEST_ID.search)).toHaveProperty('value', '');
+    });
+
+    /**
+     * The lobby's own Escape, which is the host's second close path. It is pressed from a control **outside the
+     * search field** — the panel's Close — so the field does not consume it first: that is what leaves the query
+     * still up at the moment the host closes, which is the case worth asserting.
+     */
+    it('after the lobby’s own Escape, pressed from outside the field so nothing consumes it', () => {
+      openTypeAndClose(() => {
+        expectTestId(root(), ENCYCLOPEDIA_TEST_ID.close).focus();
+        pressEscape();
+      });
+      lobbyButton().click();
+      fixture.detectChanges();
+      expect(encyclopedia.query()).toBe('');
+    });
+  });
 });

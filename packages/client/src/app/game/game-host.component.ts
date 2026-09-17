@@ -72,6 +72,9 @@ export class GameHostComponent implements OnInit, OnDestroy {
         onFullLeaderboardHeldChanged: (isHeld) => this.hudState.setFullLeaderboardHeld(isHeld),
         // Escape nothing consumed (docs/ui/overlays.md §3.5): the HUD closes the topmost overlay or opens the menu.
         onMenuKey: () => this.hudState.pressMenuKey(),
+        // `H` (docs/ui/encyclopedia.md §11.1): at the last location read this session, and — pressed from the menu —
+        // returning to the menu with focus on the control that would have opened it, exactly as that button does.
+        onEncyclopediaKey: () => this.hudState.openEncyclopedia(null, HUD_TEST_ID.menuEncyclopedia),
         // A clicked card picks through the input seam's pick policy, like the `1` `2` `3` keys.
         onTraitCardPickReady: (pick) => this.hudState.setTraitCardPick(pick),
         // The one render-side fact the HUD reads (docs/ui/components-and-constants.md §7): what is on screen right now.

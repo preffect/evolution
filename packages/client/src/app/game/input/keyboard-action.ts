@@ -6,15 +6,19 @@
 //     its row) does nothing here; any other Escape acts, even from a text field, since it closes what is on top;
 //  2. focus in a text field swallows every other press (a release still fires, so no key sticks);
 //  3. the trait keys `1` `2` `3` always act — they stay live under the menu (docs/ui/overlays.md §3.5);
-//  4. while a modal overlay (the menu) is open nothing else acts (sprint is swallowed, steering keeps its latch);
-//  5. **Space precedence**: with focus inside `trait-offer` Space picks the focused card — the
+//  4. `H` opens the encyclopedia, edge-triggered, from play and from the menu — the one other press the modal gate
+//     lets past — but never from the encyclopedia itself, which is already what it would open;
+//  5. while a modal overlay (the menu, the encyclopedia) is open nothing else acts (sprint is swallowed, steering
+//     keeps its latch);
+//  6. **Space precedence**: with focus inside `trait-offer` Space picks the focused card — the
 //     card's own handler runs and the sprint path does not; anywhere else Space sprints, once
 //     per press (auto-repeat is dropped);
-//  6. Tab holds the full leaderboard, but only while no overlay with focusable controls is open,
-//     so the picker, the menu and the results panel stay fully tab-navigable.
+//  7. Tab holds the full leaderboard, but only while no overlay with focusable controls is open,
+//     so the picker, the menu, the encyclopedia and the results panel stay fully tab-navigable.
 
 import type { ValueOf } from '@evolution/shared';
 import {
+  ENCYCLOPEDIA_KEY_CODE,
   FULL_LEADERBOARD_KEY_CODE,
   MENU_KEY_CODE,
   SPRINT_KEY_CODE,
@@ -32,6 +36,7 @@ export const INPUT_ACTION = {
   holdFullLeaderboard: 'hold_full_leaderboard',
   releaseFullLeaderboard: 'release_full_leaderboard',
   menuKey: 'menu_key',
+  encyclopediaKey: 'encyclopedia_key',
 } as const;
 
 export type InputActionKind = ValueOf<typeof INPUT_ACTION>;
@@ -43,16 +48,23 @@ export type InputAction =
   | { readonly kind: typeof INPUT_ACTION.pickCard; readonly cardIndex: number }
   | { readonly kind: typeof INPUT_ACTION.holdFullLeaderboard }
   | { readonly kind: typeof INPUT_ACTION.releaseFullLeaderboard }
-  | { readonly kind: typeof INPUT_ACTION.menuKey };
+  | { readonly kind: typeof INPUT_ACTION.menuKey }
+  | { readonly kind: typeof INPUT_ACTION.encyclopediaKey };
 
-/** Where focus sits when a key arrives: the four facts docs/ui/input-and-onboarding.md §4's rules read. */
+/** Where focus sits when a key arrives: the five facts docs/ui/input-and-onboarding.md §4's rules read. */
 export interface FocusContext {
   /** Focus is in a text field, so every press but Escape is ignored. */
   readonly isTextEntryFocused: boolean;
   /** Focus is inside the trait picker, so Space picks instead of sprinting. */
   readonly isTraitOfferFocused: boolean;
-  /** A modal overlay is open (the menu, docs/ui/overlays.md §3.5; the encyclopedia with #372). */
+  /** A modal overlay is open (the menu, docs/ui/overlays.md §3.5; the encyclopedia, docs/ui/encyclopedia.md §11.1). */
   readonly isModalOverlayOpen: boolean;
+  /**
+   * The open modal overlay is the **menu**, which is the one `H` still acts from (returning to the menu, as its own
+   * `Encyclopedia` button does). Told apart from `isModalOverlayOpen` rather than derived from it, because the other
+   * modal overlay is the encyclopedia itself, where `H` must do nothing.
+   */
+  readonly isMenuOpen: boolean;
   /** An overlay with focusable controls is open, so Tab must keep its native behaviour. */
   readonly hasFocusableOverlay: boolean;
 }
@@ -72,6 +84,7 @@ export const FREE_FOCUS: FocusContext = {
   isTextEntryFocused: false,
   isTraitOfferFocused: false,
   isModalOverlayOpen: false,
+  isMenuOpen: false,
   hasFocusableOverlay: false,
 };
 
@@ -99,12 +112,23 @@ function playAction(press: KeyPress, focus: FocusContext): InputAction {
   return NO_ACTION;
 }
 
+/**
+ * Rule 4: `H` opens the encyclopedia from play and from the menu, and from nowhere else. The encyclopedia is itself a
+ * modal overlay, so "no modal overlay, or the menu" is exactly the two places §11.1 lists; auto-repeat is dropped,
+ * since a held `H` must not reopen what it has already opened.
+ */
+function encyclopediaKeyAction(press: KeyPress, focus: FocusContext): InputAction {
+  const isSomewhereItActs = !focus.isModalOverlayOpen || focus.isMenuOpen;
+  return isSomewhereItActs && !press.isRepeat ? { kind: INPUT_ACTION.encyclopediaKey } : NO_ACTION;
+}
+
 /** The action a `keydown` is. */
 export function keyDownAction(press: KeyPress, focus: FocusContext): InputAction {
   if (press.code === MENU_KEY_CODE) return press.isDefaultPrevented ? NO_ACTION : { kind: INPUT_ACTION.menuKey };
   if (focus.isTextEntryFocused) return NO_ACTION;
   const cardIndex = cardIndexForKeyCode(press.code);
   if (cardIndex !== null) return { kind: INPUT_ACTION.pickCard, cardIndex };
+  if (press.code === ENCYCLOPEDIA_KEY_CODE) return encyclopediaKeyAction(press, focus);
   return focus.isModalOverlayOpen ? NO_ACTION : playAction(press, focus);
 }
 

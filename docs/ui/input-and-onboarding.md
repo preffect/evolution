@@ -69,8 +69,9 @@
 - **Opposing steer keys hand control back to the pointer.** `A` + `D` (or `W` + `S`) cancel to no direction, and
   the target falls through to the latched pointer rather than stopping. This is the decision for a
   pointer-primary game; "both keys to stop" would be a design change, not a bug fix.
-- The trait picker (#188) and the menu (#371) are live, so the Space-precedence branch, the modal gate and Escape's one
-  owner act in play; `hud/menu.integration.spec.ts` pins the gate and the confirm row's Escape end to end. The
+- The trait picker (#188), the menu (#371) and the encyclopedia (#449) are live, so the Space-precedence branch, the
+  modal gate, `H` and Escape's one owner act in play; `hud/menu.integration.spec.ts` pins the gate and the confirm
+  row's Escape end to end, and `hud/encyclopedia-keyboard.integration.spec.ts` the encyclopedia's half of both. The
   Tab-vs-overlay rule for the results panel is **dormant until that overlay exists** (#189): nothing renders
   `results-overlay` yet. The rule is unit-tested, and is to be re-tested by hand when #189 lands.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:

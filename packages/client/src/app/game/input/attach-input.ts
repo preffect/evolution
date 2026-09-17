@@ -24,6 +24,8 @@ export interface AttachInputOptions {
   readonly projectPointer: (point: CanvasPoint) => PointerProjection | null;
   /** Escape: the HUD closes the topmost overlay or opens the menu (docs/ui/overlays.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /** `H`: the HUD opens the encyclopedia (docs/ui/encyclopedia.md §11.1, docs/ui/input-and-onboarding.md §4). */
+  readonly onEncyclopediaKey?: () => void;
   /** Tab held / released: the HUD opens the full leaderboard while it is (docs/ui/input-and-onboarding.md §4, #185). */
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
   /**
@@ -46,6 +48,7 @@ export function attachInput(options: AttachInputOptions): InputSeam {
     world: () => inputWorldContextOf(options.store),
     ...definedEntriesOf({
       onMenuKey: options.onMenuKey,
+      onEncyclopediaKey: options.onEncyclopediaKey,
       onFullLeaderboardHeldChanged: options.onFullLeaderboardHeldChanged,
     }),
   });

@@ -32,6 +32,7 @@ function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
     world: worldOverrides === null ? null : worldWith(worldOverrides),
   };
   const onMenuKey = vi.fn();
+  const onEncyclopediaKey = vi.fn();
   const onFullLeaderboardHeldChanged = vi.fn();
   const controller = new InputController({
     clock,
@@ -41,6 +42,7 @@ function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
     projectPointer: (point) => ({ worldPoint: { ...point }, offsetFromViewCentre: { ...point } }),
     world: () => state.world,
     onMenuKey,
+    onEncyclopediaKey,
     onFullLeaderboardHeldChanged,
   });
   /** Moves the clock one client tick and runs one animation frame. */
@@ -48,7 +50,7 @@ function createHarness(worldOverrides: Partial<InputWorldContext> | null = {}) {
     clock.advanceMilliseconds(TICK_INTERVAL_MS * ticks);
     controller.pump();
   };
-  return { clock, sent, state, controller, onMenuKey, onFullLeaderboardHeldChanged, tick };
+  return { clock, sent, state, controller, onMenuKey, onEncyclopediaKey, onFullLeaderboardHeldChanged, tick };
 }
 
 describe('the input controller', () => {
@@ -203,6 +205,17 @@ describe('the input controller', () => {
     const harness = createHarness();
     harness.controller.apply({ kind: INPUT_ACTION.menuKey });
     expect(harness.onMenuKey).toHaveBeenCalledOnce();
+  });
+
+  /** `H` is the HUD's, like Escape: it opens an overlay and leaves the steer state, the sprint and the pick alone. */
+  it('hands the encyclopedia key to its handler without touching what it is about to send', () => {
+    const harness = createHarness();
+    harness.controller.apply({ kind: INPUT_ACTION.steer, direction: 'right', isPressed: true });
+    harness.controller.apply({ kind: INPUT_ACTION.encyclopediaKey });
+    harness.tick();
+    expect(harness.onEncyclopediaKey).toHaveBeenCalledOnce();
+    expect(harness.onMenuKey).not.toHaveBeenCalled();
+    expect(harness.sent.at(-1)?.targetX).toBeGreaterThan(0);
   });
 
   it('releases the held keys when the window loses focus', () => {
