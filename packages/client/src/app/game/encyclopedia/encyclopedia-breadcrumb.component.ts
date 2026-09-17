@@ -8,6 +8,7 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import type { EncyclopediaCrumb } from './format/landing-view';
 import type { EncyclopediaCategory } from './model/categories';
+import { encyclopediaCrumbTestId } from './test-ids';
 
 /** The mark between two crumbs; decorative, so a screen reader reads the crumbs as a list and not as punctuation. */
 const CRUMB_SEPARATOR = '›';
@@ -24,7 +25,9 @@ const CRUMB_SEPARATOR = '›';
           <span class="separator" aria-hidden="true">{{ separator }}</span>
         }
         @if (crumb.target; as category) {
-          <button type="button" class="crumb link" (click)="goTo(category)">{{ crumb.text }}</button>
+          <button type="button" class="crumb link" [attr.data-testid]="crumbTestId(category)" (click)="goTo(category)">
+            {{ crumb.text }}
+          </button>
         } @else {
           <span class="crumb">{{ crumb.text }}</span>
         }
@@ -38,6 +41,7 @@ export class EncyclopediaBreadcrumbComponent {
   readonly crumbs = input.required<readonly EncyclopediaCrumb[]>();
 
   protected readonly separator = CRUMB_SEPARATOR;
+  protected readonly crumbTestId = encyclopediaCrumbTestId;
 
   protected goTo(category: EncyclopediaCategory): void {
     this.state.selectCategory(category);

@@ -3,7 +3,8 @@
 // map unnoticed, and a token no stylesheet reads cannot linger in it.
 
 import { describe, expect, it } from 'vitest';
-import { TRAIT_GLYPH_CARD_PX, TRAIT_GLYPH_LIST_PX } from '../../glyphs/glyph-constants';
+import { TRAIT_GLYPH_CARD_PX } from '../../glyphs/glyph-constants';
+import { UI_ROW_MEDALLION_PX } from '../../../ui-kit/ui-kit-constants';
 import {
   ENCYCLOPEDIA_HEADER_HEIGHT_PX,
   ENCYCLOPEDIA_INSET_PX,
@@ -29,7 +30,7 @@ const EXPECTED: readonly (readonly [string, string])[] = [
   ['--encyclopedia-tile-width', `${ENCYCLOPEDIA_TILE_WIDTH_PX}px`],
   ['--encyclopedia-tile-height', `${ENCYCLOPEDIA_TILE_HEIGHT_PX}px`],
   ['--encyclopedia-tile-well-height', `${ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX}px`],
-  ['--encyclopedia-row-glyph', `${TRAIT_GLYPH_LIST_PX}px`],
+  ['--encyclopedia-row-glyph', `${UI_ROW_MEDALLION_PX}px`],
   ['--encyclopedia-tile-glyph', `${TRAIT_GLYPH_CARD_PX}px`],
 ];
 

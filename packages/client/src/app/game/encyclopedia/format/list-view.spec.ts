@@ -135,4 +135,9 @@ describe('noMatchTextFor (docs/ui/encyclopedia.md §11.5)', () => {
   it('quotes the query exactly as it was typed, spaces and case and all', () => {
     expect(noMatchTextFor('  Xyz ')).toBe(`${ENCYCLOPEDIA_NO_MATCH_PREFIX}  Xyz ${ENCYCLOPEDIA_NO_MATCH_SUFFIX}`);
   });
+
+  /** The assertion above is built from the same constants the code reads, so it pins the shape and not the wording. */
+  it('reads the words §11.5 and §11.7 both write, not merely the ones the constants happen to hold', () => {
+    expect(noMatchTextFor('xyz')).toBe('No match for "xyz"');
+  });
 });

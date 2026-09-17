@@ -74,9 +74,24 @@ describe('landingTilesFor (docs/ui/encyclopedia.md §11.3)', () => {
 
   it("takes the tile's one line from the entry's first fact, already formatted", () => {
     const entryId = 'stage:protocell' as EntryId;
+    const valued = {
+      ...resolve(entryId),
+      headline: { key: 'mass', label: 'Starting mass', text: '20 mass', link: null },
+    };
+    const [first] = landingTilesFor([{ group: null, entries: [link(entryId, 'Protocell')] }], () => valued);
+    expect(first?.fact).toBe('20 mass');
+  });
+
+  /**
+   * A link fact's text is nothing but another entry's title, so a stage tile would read `Protocell` over
+   * `Nucleoid Coil` — two titles with no way to tell which one the tile is (#460's review).
+   */
+  it('names a link-valued fact, since its text alone reads as a second title', () => {
+    const entryId = 'stage:protocell' as EntryId;
+    const headline = resolve(entryId).headline;
+    expect(headline?.link).not.toBeNull();
     const [first] = landingTilesFor([{ group: null, entries: [link(entryId, 'Protocell')] }], resolve);
-    expect(first?.fact).toBe(resolve(entryId).headline?.text);
-    expect(first?.fact).not.toBeNull();
+    expect(first?.fact).toBe(`${headline?.label}: ${headline?.text}`);
   });
 
   it('leaves the line off an entry with no fact rather than drawing an empty one', () => {

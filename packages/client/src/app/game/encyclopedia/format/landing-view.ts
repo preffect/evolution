@@ -3,7 +3,7 @@
 
 import { ENCYCLOPEDIA_TITLE } from '../encyclopedia-constants';
 import { ENCYCLOPEDIA_CATEGORY_LABEL, type EncyclopediaCategory } from '../model/categories';
-import type { ResolvedEntry, ResolvedGroup } from '../model/entry';
+import type { ResolvedEntry, ResolvedFact, ResolvedGroup } from '../model/entry';
 import type { EntryId } from '../model/entry-id';
 import { encyclopediaTileTestId } from '../test-ids';
 
@@ -39,6 +39,20 @@ export function entryBreadcrumb(
   return [categoryCrumb, { text: groupLabel, target: null }];
 }
 
+/** Between a link fact's name and the entry it names: `Opens: Nucleoid Coil`. */
+const TILE_FACT_NAME_SEPARATOR = ': ';
+
+/**
+ * The tile's one line. A value fact reads alone — `+3 mass`, `Starts at 20 mass` — and is drawn as it is. A **link**
+ * fact's text is nothing but another entry's title, so a stage tile would read `Protocell` over `Nucleoid Coil`, two
+ * titles with no way to tell which is the tile's; it takes its fact's name instead.
+ */
+function tileLineFor(headline: ResolvedFact | null): string | null {
+  if (headline === null) return null;
+  if (headline.link === null) return headline.text;
+  return `${headline.label}${TILE_FACT_NAME_SEPARATOR}${headline.text}`;
+}
+
 export interface EncyclopediaTile {
   readonly entryId: EntryId;
   readonly title: string;
@@ -60,7 +74,7 @@ export function landingTilesFor(
     group.entries.map((link) => ({
       entryId: link.entryId,
       title: link.title,
-      fact: resolve(link.entryId).headline?.text ?? null,
+      fact: tileLineFor(resolve(link.entryId).headline),
       testId: encyclopediaTileTestId(link.entryId),
     })),
   );

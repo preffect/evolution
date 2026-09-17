@@ -2,11 +2,26 @@
 // mark, its label and its live entry count. Which categories those are is the core's (`listedCategories`, §11.5); an
 // empty category is never among them, so the rail never offers a landing with nothing on it.
 //
-// **Activating pushes, roving replaces** (§11.5). The kit's rail selects as focus moves, and reports both the same
-// way, so the two are told apart here by what caused the change: a pointer press is an activation and pushes
-// (`selectCategory`), and a change with no pointer behind it is the roving focus and replaces (`focusCategory`), so
-// arrowing down the rail cannot spend the back stack on looking. `pointerdown` always precedes the `click` the kit
-// selects on, which is a DOM ordering rule, not an order between two listeners.
+// **Activating pushes, roving replaces** (§11.5), and the kit reports both the same way — but only *sometimes*.
+// `UiRovingGroup.select` writes a signal, so pressing the row that is already selected sets the value it already
+// holds and emits nothing at all. Two things follow, and they are why the press is handled on its own event rather
+// than on the kit's report:
+//
+//   * **A press is an activation whether or not the selection moves.** Reading `trait:mitochondrion` and pressing
+//     `Evolution` must return to that category's landing (§11.5, "selecting a category shows its landing"), and with
+//     one category listed today the rail would otherwise be an inert control for the whole build. So each item's own
+//     `(click)` pushes, with the category it names — no id to narrow, no emission to wait for.
+//   * **The report is then the roving focus and nothing else** — except during a press, where the kit may also emit.
+//     `isPointerPressInFlight` suppresses that one, since the press's own push is the move and a replace either side
+//     of it would either be a duplicate or swallow the location Back is there to return to. The flag is set on
+//     `pointerdown` and cleared when the press *ends*: on the `click` it bubbles (which a press on the already
+//     selected row, or on the strip above the first row, still produces) or on the pointer leaving the rail without
+//     producing one. It cannot survive into the next keyboard move, which is the latch #460's review found.
+//
+// Neither handler assumes an order between two listeners on one element: whichever of the item's `(click)` and the
+// kit's own runs first, the push happens once and the replace beside it is a no-op on the location already shown.
+// Enter and Space are still the kit's `select`, so they emit nothing on a rail whose selection follows focus; the
+// keyboard model, including what Enter does here, is #449's.
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { UiRailComponent } from '../../ui-kit/ui-rail.component';
@@ -17,6 +32,7 @@ import { ENCYCLOPEDIA_CATEGORY_ICON } from './encyclopedia-icons';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { categoryFromItemId, railRowsFor } from './format/rail-view';
 import { entryCountIn } from './format/list-view';
+import type { EncyclopediaCategory } from './model/categories';
 import { entriesIn } from './registry';
 import { ENCYCLOPEDIA_TEST_ID } from './test-ids';
 
@@ -36,11 +52,18 @@ const RAIL_LABEL = 'Categories';
         [attr.aria-label]="railLabel"
         [testId]="testId.rail"
         [selectedId]="selectedId()"
-        (pointerdown)="noteActivation()"
-        (selectedIdChange)="goToCategory($event)"
+        (pointerdown)="beginPointerPress()"
+        (pointerleave)="endPointerPress()"
+        (click)="endPointerPress()"
+        (selectedIdChange)="roveTo($event)"
       >
         @for (row of rows(); track row.category) {
-          <ui-rail-item [itemId]="row.category" [count]="row.count" [testId]="row.testId">
+          <ui-rail-item
+            [itemId]="row.category"
+            [count]="row.count"
+            [testId]="row.testId"
+            (click)="activate(row.category)"
+          >
             <app-encyclopedia-icon uiLeading class="icon" [icon]="categoryIcon[row.category]" />
             {{ row.label }}
           </ui-rail-item>
@@ -64,18 +87,29 @@ export class EncyclopediaRailComponent {
   /** While a query is running no category is selected (§11.5): the results replace the category's own list. */
   protected readonly selectedId = computed(() => (this.state.query() === '' ? this.state.location().category : null));
 
-  private isPointerActivation = false;
+  private isPointerPressInFlight = false;
 
-  protected noteActivation(): void {
-    this.isPointerActivation = true;
+  protected beginPointerPress(): void {
+    this.isPointerPressInFlight = true;
   }
 
-  protected goToCategory(itemId: string | null): void {
-    const wasActivated = this.isPointerActivation;
-    this.isPointerActivation = false;
+  protected endPointerPress(): void {
+    this.isPointerPressInFlight = false;
+  }
+
+  /**
+   * A row pressed: its landing, pushed (§11.5) — from an entry of that same category as much as from another one.
+   * A query is dropped with it, so the list stops answering a search the rail is no longer part of.
+   */
+  protected activate(category: EncyclopediaCategory): void {
+    this.state.clearQuery();
+    this.state.selectCategory(category);
+  }
+
+  /** The roving focus: shows the category without pushing. A press's own report is the press's, handled above. */
+  protected roveTo(itemId: string | null): void {
+    if (this.isPointerPressInFlight) return;
     const category = categoryFromItemId(itemId, this.state.categories);
-    if (category === null) return;
-    if (wasActivated) this.state.selectCategory(category);
-    else this.state.focusCategory(category);
+    if (category !== null) this.state.focusCategory(category);
   }
 }

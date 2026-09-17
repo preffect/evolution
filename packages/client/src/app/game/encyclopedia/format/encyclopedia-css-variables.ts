@@ -7,7 +7,8 @@
 // which is the kit's scale, published by the `[uiSurface]` the panel sits on. The kit's own numbers stay
 // `--ui-…`: nothing here restates one.
 
-import { TRAIT_GLYPH_CARD_PX, TRAIT_GLYPH_LIST_PX } from '../../glyphs/glyph-constants';
+import { TRAIT_GLYPH_CARD_PX } from '../../glyphs/glyph-constants';
+import { UI_ROW_MEDALLION_PX } from '../../../ui-kit/ui-kit-constants';
 import type { StyleVariables } from '../../../ui-kit/format/ui-css-variables';
 import {
   ENCYCLOPEDIA_HEADER_HEIGHT_PX,
@@ -39,9 +40,12 @@ export function encyclopediaStyleVariables(): StyleVariables {
     '--encyclopedia-tile-width': pixels(ENCYCLOPEDIA_TILE_WIDTH_PX),
     '--encyclopedia-tile-height': pixels(ENCYCLOPEDIA_TILE_HEIGHT_PX),
     '--encyclopedia-tile-well-height': pixels(ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX),
-    // The glyph sizes the rows and tiles draw at (docs/ui/encyclopedia.md §11.3); their home is `glyphs/`, shared
-    // with the picker and the menu's trait list, so the medallion is one size wherever it is drawn.
-    '--encyclopedia-row-glyph': pixels(TRAIT_GLYPH_LIST_PX),
+    // The glyph sizes the rows and tiles draw at (docs/ui/encyclopedia.md §11.3). A row's glyph **is** its medallion
+    // — both kinds draw their own disc and rim (components-and-constants.md §10.2) — so it is the kit's
+    // `UI_ROW_MEDALLION_PX`, which is what the reference frame measures; `TRAIT_GLYPH_LIST_PX` is the smaller size
+    // the menu's trait list draws at, and naming it here left every row 4 px under the frame. A tile's is the
+    // picker's card medallion, which `glyphs/` and `hud/` already share.
+    '--encyclopedia-row-glyph': pixels(UI_ROW_MEDALLION_PX),
     '--encyclopedia-tile-glyph': pixels(TRAIT_GLYPH_CARD_PX),
   };
 }

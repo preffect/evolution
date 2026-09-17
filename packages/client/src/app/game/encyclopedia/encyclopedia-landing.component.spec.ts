@@ -3,6 +3,7 @@
 
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { styleRuleValue } from '../../../testing/style-rules';
 import { expectTestId } from '../../../testing/test-id-query';
 import { EncyclopediaLandingComponent } from './encyclopedia-landing.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
@@ -68,6 +69,30 @@ describe('EncyclopediaLandingComponent (docs/ui/encyclopedia.md §11.3)', () => 
     const first = entriesIn(state.location().category)[0]!.entries[0]!;
     expectTestId(root(), encyclopediaTileTestId(first.entryId)).click();
     expect(state.location().entryId).toBe(first.entryId);
+  });
+
+  /**
+   * Which surface goes where, pinned as the declaration rather than as the composited pixel — jsdom has no
+   * compositing, and the frames in `qa/evidence/pr-460/` carry the colours. Both reference frames draw the well as
+   * the dark surface and the caption band as the raised one (§11.3, "a well on the dish field"); #460's review found
+   * them exchanged, which cost the tile its depth and all but erased the rule between them.
+   */
+  it('paints the dark surface in the well and the raised one in the caption band, not the other way round', () => {
+    expect(styleRuleValue(document, ['.well'], 'background-color')).toBe('var(--ui-well)');
+    expect(styleRuleValue(document, ['.caption'], 'background-color')).toContain('--ui-secondary-fill-alpha');
+    expect(styleRuleValue(document, ['.tile'], 'background-color')).toBe('transparent');
+  });
+
+  /** `transparent` is load-bearing: a `<button>` with no background of its own takes the user agent's grey. */
+  it('never falls back to the user agent\u2019s own button surface', () => {
+    expect(['transparent', 'rgba(0, 0, 0, 0)']).toContain(getComputedStyle(tiles()[0]!).backgroundColor);
+  });
+
+  /** The tint has to reach the well too: it is opaque, so a tile-level background would light only the caption. */
+  it('tints the whole tile on hover and press, through an overlay over the well', () => {
+    expect(styleRuleValue(document, ['.tile', ':hover', '::after'], 'background-color')).toBe('var(--ui-hover)');
+    expect(styleRuleValue(document, ['.tile', ':active', '::after'], 'background-color')).toBe('var(--ui-pressed)');
+    expect(styleRuleValue(document, ['.tile', '::after'], 'position')).toBe('absolute');
   });
 
   it('is keyboard-reachable: every tile is a real button in the Tab order', () => {

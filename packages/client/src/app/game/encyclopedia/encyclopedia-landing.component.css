@@ -24,8 +24,9 @@
   color: var(--ui-text);
   font-size: calc(var(--ui-type-headline) * var(--ui-scale));
   font-weight: bold;
-  /* The panel body sets the prose line height for the summary below; a heading sits on its own cap height. */
-  line-height: 1.15;
+  /* The panel body sets the prose line height for the summary below; a heading sits on its own cap height, which is
+     what the reference frame draws — 1.45 pushed the tile grid ~22 px below where the frame starts it. */
+  line-height: 1;
 }
 
 .summary {
@@ -54,20 +55,34 @@
   overflow: hidden;
   border: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
   border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
-  background-color: var(--ui-well);
+  /* No fill of its own: the well and the caption below each paint their own, over the panel's gradient. Both
+     reference frames draw the well as the dark surface and the caption band as the raised one (§11.3, "a well on the
+     dish field"); a fill here would sit under the well and lift it off that field. `transparent` rather than nothing,
+     since a `<button>` left alone takes the user agent's own grey. */
+  background-color: transparent;
   color: var(--ui-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+/* The state tint, over the well as well as the caption band: the well is opaque to anything painted under it, so a
+   background on the tile alone would light 36 of a tile's 132 px. The kit's own rows solve it the same way. */
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+  pointer-events: none;
   transition: background-color var(--ui-transition);
 }
 
-.tile:hover {
-  background-image: linear-gradient(var(--ui-hover), var(--ui-hover));
+.tile:hover::after {
+  background-color: var(--ui-hover);
 }
 
-.tile:active {
-  background-image: linear-gradient(var(--ui-pressed), var(--ui-pressed));
+.tile:active::after {
+  background-color: var(--ui-pressed);
 }
 
 .tile:focus-visible {
@@ -75,7 +90,7 @@
   outline-offset: var(--ui-focus-ring-offset);
 }
 
-/* The well the medallion floats in, on the dish field, with the rule under it. */
+/* The well the medallion floats in, on the dish field, with the rule under it (§11.3). */
 .well {
   display: flex;
   flex: none;
@@ -83,7 +98,7 @@
   justify-content: center;
   height: calc(var(--encyclopedia-tile-well-height) * var(--ui-scale));
   border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
-  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+  background-color: var(--ui-well);
 }
 
 .glyph {
@@ -99,6 +114,8 @@
   gap: calc(var(--ui-space-xs) * var(--ui-scale));
   min-width: 0;
   padding: 0 calc(var(--ui-space-m) * var(--ui-scale));
+  /* The raised band the title and the fact sit on: the kit's secondary fill over the panel's own gradient. */
+  background-color: color-mix(in srgb, var(--ui-text) calc(var(--ui-secondary-fill-alpha) * 100%), transparent);
 }
 
 /* Each on one line, ending in an ellipsis; the tile's accessible name carries the full title (§11.3). */

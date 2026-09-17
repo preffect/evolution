@@ -49,6 +49,14 @@ export function encyclopediaRowTestId(entryId: EntryId): string {
   return `encyclopedia-row-${entryId}`;
 }
 
+/**
+ * One breadcrumb crumb that goes somewhere, by the category it goes to (§11.6). `encyclopediaLinkTestId` names a link
+ * to an *entry*; a crumb targets a category, and #449 has to put it in the detail column's Tab order.
+ */
+export function encyclopediaCrumbTestId(category: EncyclopediaCategory): string {
+  return `encyclopedia-crumb-${category}`;
+}
+
 /** One landing tile, by the entry it names. */
 export function encyclopediaTileTestId(entryId: EntryId): string {
   return `encyclopedia-tile-${entryId}`;

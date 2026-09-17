@@ -17,6 +17,17 @@ describe('locationAttributeFor (docs/ui/encyclopedia.md §11.6)', () => {
     );
   });
 
+  /**
+   * The two assertions above build their expectation out of `ENCYCLOPEDIA_LOCATION_SEPARATOR`, so they pin the shape
+   * and never the character: §11.6 and `test-ids.ts` both write `|`, and the acceptance loop steers by it.
+   */
+  it('writes the separator §11.6 names, and not merely the one the constant happens to hold', () => {
+    expect(locationAttributeFor(categoryLanding(ENCYCLOPEDIA_CATEGORY.world))).toBe('world|');
+    expect(locationAttributeFor(entryLocation('trait:mitochondrion' as EntryId))).toBe(
+      'evolutions|trait:mitochondrion',
+    );
+  });
+
   it('says nothing about the section an anchor named: the attribute is where the reader is, not how deep', () => {
     const anchored = entryLocation('trait:mitochondrion' as EntryId, 'tier_2');
     expect(locationAttributeFor(anchored)).toBe(locationAttributeFor(entryLocation('trait:mitochondrion' as EntryId)));

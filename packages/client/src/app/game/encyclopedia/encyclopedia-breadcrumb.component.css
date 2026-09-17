@@ -12,6 +12,8 @@
   gap: calc(var(--ui-space-s) * var(--ui-scale));
   font-family: var(--ui-font-sans);
   font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  /* One line on its own cap height: the panel body's prose line height belongs to prose, not to a trail of crumbs. */
+  line-height: 1;
   letter-spacing: var(--ui-label-tracking);
   text-transform: uppercase;
 }

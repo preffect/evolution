@@ -122,7 +122,7 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
   entries, `UI_RAIL_ROW_HEIGHT_PX` tall: a 16 px category icon, the label (`body`), the entry count (`figure`).
 - **List** (`ENCYCLOPEDIA_LIST_WIDTH_PX`): the label and count (`label`) — the category and `entriesIn`'s length, or
   `ENCYCLOPEDIA_RESULTS_LABEL` and the number of matches while a query runs — then the category's groups, each a kit list
-  section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion** (`UI_ROW_MEDALLION_PX`): a trait's glyph (`<app-trait-glyph [traitId] lod="list" still>` at `TRAIT_GLYPH_LIST_PX`, #312), otherwise the subject's code-drawn
+  section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion**, `UI_ROW_MEDALLION_PX` square: a trait's glyph (`<app-trait-glyph [traitId] lod="list" still>`, #312), otherwise the subject's code-drawn
   glyph (`<app-subject-glyph [entryId] lod="list" still>`, #391: a small drawing of the cell, mote, rod, fragment,
   zone or topic, visual-style/ui-type.md §7.2). Then the title
   (`body`, one line, ending in an ellipsis when it does not fit) and, in a round, a level-gold tier chip on owned
@@ -131,8 +131,10 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
   the label (`headline`), the category's one-line summary (`body`, label colour) and a grid of entry tiles
   (`ENCYCLOPEDIA_TILE_WIDTH_PX` × `ENCYCLOPEDIA_TILE_HEIGHT_PX`, `UI_SPACE_M_PX` gaps): a
   `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX` well on the dish field with the glyph medallion at the picker's
-  `PICKER_CARD_MEDALLION_PX`, the title in `body` and the entry's `facts[0].text` in `label` size, mixed case, each on
-  one line ending in an ellipsis (the full title is the tile's accessible name). A tile is a link to its entry.
+  `PICKER_CARD_MEDALLION_PX`, the title in `body` and the entry's `facts[0]` in `label` size, mixed case, each on
+  one line ending in an ellipsis (the full title is the tile's accessible name). A **link-valued** first fact is drawn
+  as `<name>: <text>`, since its text alone is another entry's title and the tile would read as two titles with no way
+  to tell which one it is; a value fact reads alone and is drawn as it is. A tile is a link to its entry.
 
 Still frames of the real render in rows and tiles are follow-up #378; build 1 draws glyph medallions only.
 
@@ -146,7 +148,7 @@ content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 
 | Viewport (UI scale) | Detail inner width | Content column | Lens               | Title column | Lens top-left (viewport px) |
 | ------------------- | ------------------ | -------------- | ------------------ | ------------ | --------------------------- |
-| 1280 × 800 (1)      | 704                | 704            | 300 (300 × 300 px) | 372          | (520, 109)                  |
+| 1280 × 800 (1)      | 702                | 702            | 300 (300 × 300 px) | 370          | (520, 109)                  |
 | 1920 × 1080 (1.35)  | 846 (1143 px)      | 846 (1143 px)  | 300 (405 × 405 px) | 514 (694 px) | (702, 147)                  |
 
 Widths are scale-1 units (px in brackets). Detail inner width is the panel less the rail, the list and two paddings
@@ -255,7 +257,10 @@ to the first listed category while `basics` is still empty (#361).
   covers what NFD decomposes: ligatures and stroked letters (`œ`, `æ`, `ß`, `ø`) are out of scope until an entry title
   uses one. While the query is non-empty
   the list column shows the results under category section headers, the rail shows no selection, and Enter opens the
-  first result; `No match for "xyz"` (`body`, muted) when there is none.
+  first result; `No match for "xyz"` (`body`, muted) when there is none. **The detail column keeps whatever it was
+  showing** — a search narrows the list, it does not leave the reader's page — and **activating a rail row drops the
+  query**, so the three columns never disagree about which category is selected: the rail marks it, the list returns to
+  its entries and the detail shows its landing.
 - **Keyboard.** Tab order: header (Back, search, alert strip, Close), rail, list, detail (its controls and links in
   reading order). The rail and the list are one tab stop each with a roving focus: ↑ ↓ move, Home End jump, and
   **selection follows focus**, so arrowing down the list pages through entries. ← → move between the rail and the list.
@@ -272,6 +277,8 @@ pattern of `HUD_TEST_ID`; `input/input-constants.ts` imports the panel id from i
 `data-location="<category>|<entryId>"`), `encyclopedia-back`, `encyclopedia-close`, `encyclopedia-search`,
 `encyclopedia-no-results`, `encyclopedia-alert` (with `data-alert-kind`), `encyclopedia-rail`,
 `encyclopedia-category-<category>`, `encyclopedia-list`, `encyclopedia-row-<entryId>`, `encyclopedia-tile-<entryId>`,
+`encyclopedia-crumb-<category>` (a breadcrumb crumb that goes somewhere; the crumb naming the page already shown is
+text and carries none),
 `encyclopedia-entry` (with `data-entry-id`), `encyclopedia-preview` (with `data-preview-state`),
 `encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-facts`,
 `encyclopedia-link-<entryId>` (every link to that entry; a test takes the first), and in the lobby
@@ -321,7 +328,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION`                              | 0.7                                                            | × d  | The widest line of the `unavailable` text inside the lens.                                                                             |
 | `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX`                                | 48                                                             | px   | The sticky title bar of a scrolled entry: the breadcrumb over the title.                                                               |
 | `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`                                    | 640                                                            | px   | The prose measure: about 90 characters of `body`.                                                                                      |
-| `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                            | px   | A landing tile; four to a row at 1280 × 800.                                                                                           |
+| `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                            | px   | A landing tile; three to a row at 1280 × 800 and four at 1920 × 1080. The grid wraps to whatever the column fits.                      |
 | `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 132                                                            | px   | A landing tile.                                                                                                                        |
 | `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                             | px   | The tile's well.                                                                                                                       |
 | `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                                                                 |
