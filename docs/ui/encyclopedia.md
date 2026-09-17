@@ -216,9 +216,13 @@ longer scrolls.
 ### 11.5 Navigation, search and cross-links
 
 **State.** `game/encyclopedia/encyclopedia-state.service.ts` (root-provided, so the lobby and the room share one
-session's reading position; it is not a HUD service): `location` (`{ category, entryId | null }`), `query`, `history`
-(a back stack capped at `ENCYCLOPEDIA_HISTORY_MAX`), and the last location, which is where the next open starts. Every
-transition is a pure function in `game/encyclopedia/format/navigation.ts`.
+session's reading position; it is not a HUD service): `location` (`{ category, entryId | null, sectionKey | null }`,
+the section carrying the anchor a link arrived on), `query`, `history` (a back stack capped at
+`ENCYCLOPEDIA_HISTORY_MAX`), and the last location, which is where the next open starts. A reopen starts with a blank
+`query`, so a stale search never greets the next open. Every transition is a pure function in
+`game/encyclopedia/format/navigation.ts`, and the rail's categories are one of them: `listedCategories` keeps the
+declared order and drops every category `entriesIn` finds empty, which is also why an open with no last location falls
+to the first listed category while `basics` is still empty (#361).
 
 - **Rail**: selecting a category shows its landing (`entryId: null`). **List** and **tiles**: selecting an entry
   shows its page. **Links** (prose, facts, chips, breadcrumbs, a menu trait row): go to the target, switching the
