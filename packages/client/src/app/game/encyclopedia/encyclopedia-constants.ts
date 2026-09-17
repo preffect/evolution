@@ -42,6 +42,20 @@ export const ENCYCLOPEDIA_LENS_GAP_PX = 32;
 /** The lens rim, in `PANEL_RIM`; the reserved box wears it so the empty eyepiece reads as an eyepiece. */
 export const ENCYCLOPEDIA_LENS_RIM_PX = 6;
 
+/**
+ * The 1 px `LIGHT_ACCENT` ring inside the rim — the condenser's bright edge (§11.4). It is the eyepiece's own
+ * furniture rather than the preview's, so the reserved box wears it: without it the box is a bare outline of a
+ * circle, which is what a failed image looks like (PR #471's review measured the well at one unit per channel over
+ * the panel behind it). #466 draws the same ring over its canvas.
+ */
+export const ENCYCLOPEDIA_LENS_INNER_RING_ALPHA = 0.35;
+
+/** The radial edge vignette, the eyepiece's field stop: `CALLOUT_BACKING` from this fraction of the radius... */
+export const ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION = 0.7;
+
+/** ...to this alpha at the rim (§11.4). */
+export const ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA = 0.6;
+
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 

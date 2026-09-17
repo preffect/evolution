@@ -39,15 +39,33 @@
   width: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
 }
 
-/* The empty eyepiece: the well inside the rim §11.4 gives the lens, so the reserved space reads as the instrument it
-   is about to hold rather than as a gap. #466 replaces it with the preview stage and its reticle overlay. */
+/* The empty eyepiece (§11.4): the rim, the field stop's vignette and the condenser's bright inner edge — all three
+   the box's own furniture rather than the preview's, so #466 adds its canvas underneath and its reticle overlay on
+   top without redrawing any of this.
+
+   The well alone was not enough, and the measurement is why: `--ui-well` is `CALLOUT_BACKING` at 0.45, which over a
+   panel this dark came out one unit per channel above it (PR #471's review, `srgb(8,17,30)` against `srgb(7,16,30)`).
+   With no field and no edge the box was a bare 300 px outline — a failed image, not reserved space. The inner ring
+   is what turns it back into glass; the vignette gives it depth. */
 .lens-reserved {
   box-sizing: border-box;
   width: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
   height: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
   border: calc(var(--encyclopedia-lens-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
   border-radius: 50%;
+  background-image: radial-gradient(
+    circle at center,
+    transparent var(--encyclopedia-lens-vignette-start),
+    color-mix(
+        in srgb,
+        var(--ui-callout-backing) calc(var(--encyclopedia-lens-vignette-alpha) * 100%),
+        transparent
+      )
+      100%
+  );
   background-color: var(--ui-well);
+  box-shadow: inset 0 0 0 var(--ui-rim)
+    color-mix(in srgb, var(--ui-accent) calc(var(--encyclopedia-lens-inner-ring-alpha) * 100%), transparent);
 }
 
 .title-column {

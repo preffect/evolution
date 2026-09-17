@@ -170,7 +170,10 @@ content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 | 1920 × 1080 (1.35)  | 846 (1143 px)      | 846 (1143 px)  | 300 (405 × 405 px) | 514 (694 px) | (702, 147)                  |
 
 Widths are scale-1 units (px in brackets). Detail inner width is the panel less the rail, the list and two paddings
-(§11.3); the title column is the content column less the lens and the gap. At the `UI_SCALE_MIN` viewport
+(§11.3); the title column is the content column less the lens and the gap. The lens top-left is the mockup's; the
+built page measures (521, 113) at 1280 × 800, which is the content box's own top — the inset, the header, its rule and
+`UI_PANEL_PADDING_PX` — and the lens shares it with the title column beside it, so the 4 units are the mockup's and
+not a layout error (#465). At the `UI_SCALE_MIN` viewport
 (1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 372; narrower viewports are below the
 target and recorded, not solved (§11.3).
 
@@ -209,6 +212,13 @@ target and recorded, not solved (§11.3).
 
 An entry whose `preview` is `null` has no lens column: the title column takes the whole content column.
 
+**The box before the preview is in it** (#465, while #466 is outstanding). Three of the lens's parts belong to the
+eyepiece rather than to what is under it, and the reserved box wears all three: the `ENCYCLOPEDIA_LENS_RIM_PX` rim, the
+edge vignette, and the 1 px `LIGHT_ACCENT` inner ring. Without the last two the box is a bare outline of a circle,
+which is what a failed image looks like rather than what reserved space looks like — the well alone cannot carry it,
+since `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it. The
+reticle ticks wait for #466, which draws them in the SVG overlay it brings.
+
 **The title column**, top to bottom:
 
 1. **Breadcrumb** (`label`, muted): the category label, then the label of `group`; every crumb but the last is a link.
@@ -227,10 +237,20 @@ An entry whose `preview` is `null` has no lens column: the title column takes th
      `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity; the owned tier's column is tinted
      accent under `You own II` (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier
      column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
+   - **When the columns do not fit, the cells wrap; the table never widens** (#465). The sizing rule above assumes
+     every value fits on one line, and three tier columns of `+0.3 mass / s` do not fit the 370 unit title column
+     however little the noun column keeps. So both tables ask the kit for `shouldWrapValues`
+     (components-and-constants.md §10.2): a value breaks at its spaces, a tier column takes its widest resulting
+     **line**, the noun column takes what is left, and the row grows downwards. Nothing ever crosses the content
+     column. Two alternatives were weighed and rejected: shrinking the noun column alone cannot fit Chloroplast's
+     three tiers at any width, and moving the tier table out to the full content column would re-lay the page around
+     the lens and split the facts across two measures for the sake of one trait. A wrapped tier value keeps the
+     comparison the table exists for — I over II over III, aligned — which is what a clipped one loses.
    - The next table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on the
      left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry. Consecutive
      facts sharing a `key` are one row: the label once, the texts as links joined by `, ` (a link with several targets
-     arrives as one fact per target, architecture/encyclopedia.md §12.3).
+     arrives as one fact per target, architecture/encyclopedia.md §12.3). A value of several links is one of the two
+     cases the wrapping rule above exists for: `Opens` on a stage page is three entry titles in one cell.
    - A table with no rows is left out, never drawn empty.
 
 **Below both columns**, from `UI_SPACE_XL_PX` under whichever of the lens control and the title column ends lower:

@@ -92,4 +92,13 @@ describe('EncyclopediaFactsComponent (docs/ui/encyclopedia.md §11.4)', () => {
   it('draws no header row at all when a table has no columns, which is every table but the tier one', () => {
     expect(root().querySelector('thead')).toBeNull();
   });
+
+  /**
+   * §11.4's wrapping ruling, at the seam where it is asked for. The kit's single-line default does not narrow a
+   * column, it widens the table — which pushed the page's facts out through the panel rim on 12 of 28 entries
+   * (PR #471). That the wrapped table then *fits* is a rendered frame's answer, not jsdom's: `qa/evidence/pr-471/`.
+   */
+  it('asks the kit to wrap, since a value here can be several links or a wide unit', () => {
+    expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.facts)?.getAttribute('data-wrap-values')).toBe('true');
+  });
 });

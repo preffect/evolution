@@ -2,6 +2,12 @@
 // the page's tables are this component — the trait's Effects by tier, which has tier columns and may tint one, and
 // the Unlock and ladder table, whose values may be links.
 //
+// **Both tables wrap** (`shouldWrapValues`, §10.2). A value here can be wider than the 370 px title column it sits
+// in: `Opens` on a stage page is three entry titles in one cell, and Chloroplast's `+0.3 mass / s` across three tier
+// columns does not fit on one line whatever the noun column gives up. The kit's default single-line row would not
+// make the column narrower — it would make the table wider than the panel (PR #471's blocker). What gives when the
+// tier columns do not fit is docs/ui/encyclopedia.md §11.4's ruling, made there rather than here.
+//
 // The kit draws a value that is more than text through `ng-template[uiFactValue]`, whose context types its row as the
 // kit's own `UiFactRow`. The links belong to the feature's row, so they are looked up by `rowId` rather than read off
 // a cast: the tables are a handful of rows each, and a lookup keeps the template free of a type assertion.
@@ -35,6 +41,7 @@ const NO_LINKS: EncyclopediaFactRow['links'] = [];
       [columns]="columns()"
       [columnsCaption]="columnsCaption()"
       [highlightColumn]="highlightColumn()"
+      [shouldWrapValues]="true"
       [testId]="testId.facts"
     >
       <ng-template uiFactValue let-row let-value="value">
