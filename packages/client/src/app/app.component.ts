@@ -12,6 +12,9 @@ import {
   SEED_MAX,
 } from '@evolution/shared';
 import type { GameSessionConfig } from '@evolution/shared';
+import { EncyclopediaComponent } from './game/encyclopedia/encyclopedia.component';
+import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
+import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
 import { GameHostComponent } from './game/game-host.component';
 import { HudComponent } from './game/hud/hud.component';
 import { SERVER_ERROR_CAPTION } from './game/hud/server-error-notice.component';
@@ -39,7 +42,14 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule, GameHostComponent, HudComponent, RenderBenchComponent, UiKitStatesComponent],
+  imports: [
+    EncyclopediaComponent,
+    FormsModule,
+    GameHostComponent,
+    HudComponent,
+    RenderBenchComponent,
+    UiKitStatesComponent,
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/ui/layout.md §1).
@@ -66,6 +76,15 @@ export class AppComponent {
   /** The dev-only UI kit states page, likewise for the page's lifetime. */
   readonly isUiKitStatesRoute = inject(IS_UI_KIT_STATES_ROUTE);
 
+  /**
+   * The encyclopedia over the lobby (docs/ui/encyclopedia.md §11.1). The room's copy is the HUD's, over
+   * `HudStateService`; outside a room there is no overlay stack to join, so the one open flag lives here.
+   */
+  private readonly encyclopedia = inject(EncyclopediaStateService);
+  private readonly isEncyclopediaOpenValue = signal(false);
+  readonly isEncyclopediaOpen = this.isEncyclopediaOpenValue.asReadonly();
+  readonly encyclopediaTestId = ENCYCLOPEDIA_TEST_ID;
+
   // Local lobby form state.
   readonly playerName = signal('Player');
   readonly newGameName = signal('New Game');
@@ -85,6 +104,18 @@ export class AppComponent {
 
   newSeed(): void {
     this.seed.set(drawSeed());
+  }
+
+  /** At the last location this session, with a blank query; there is no entry to ask for from the lobby (§11.1). */
+  openEncyclopedia(): void {
+    this.encyclopedia.openAt(null);
+    this.isEncyclopediaOpenValue.set(true);
+  }
+
+  /** The location stays as the session's reading position; the query does not (§11.5). */
+  closeEncyclopedia(): void {
+    this.isEncyclopediaOpenValue.set(false);
+    this.encyclopedia.close();
   }
 
   createGame(): void {

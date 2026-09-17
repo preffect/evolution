@@ -1,0 +1,137 @@
+/* The category landing (docs/ui/encyclopedia.md §11.3), against `encyclopedia-a-category-*.png`: breadcrumb, heading,
+   one summary line, then a wrapping grid of fixed-size tiles — as many to a row as the detail column fits. */
+
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.landing {
+  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+}
+
+.headline {
+  margin: calc(var(--ui-space-m) * var(--ui-scale)) 0 0;
+  color: var(--ui-text);
+  font-size: calc(var(--ui-type-headline) * var(--ui-scale));
+  font-weight: bold;
+  /* The panel body sets the prose line height for the summary below; a heading sits on its own cap height, which is
+     what the reference frame draws — 1.45 pushed the tile grid ~22 px below where the frame starts it. */
+  line-height: 1;
+}
+
+.summary {
+  margin: calc(var(--ui-space-m) * var(--ui-scale)) 0 0;
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  margin-top: calc(var(--ui-space-xl) * var(--ui-scale));
+}
+
+/* A tile is a link to its entry: the well with its medallion, then the title and the entry's first fact. */
+.tile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: calc(var(--encyclopedia-tile-width) * var(--ui-scale));
+  height: calc(var(--encyclopedia-tile-height) * var(--ui-scale));
+  padding: 0;
+  overflow: hidden;
+  border: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  /* No fill of its own: the well and the caption below each paint their own, over the panel's gradient. Both
+     reference frames draw the well as the dark surface and the caption band as the raised one (§11.3, "a well on the
+     dish field"); a fill here would sit under the well and lift it off that field. `transparent` rather than nothing,
+     since a `<button>` left alone takes the user agent's own grey. */
+  background-color: transparent;
+  color: var(--ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The state tint, over the well as well as the caption band: the well is opaque to anything painted under it, so a
+   background on the tile alone would light 36 of a tile's 132 px. The kit's own rows solve it the same way. */
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+  pointer-events: none;
+  transition: background-color var(--ui-transition);
+}
+
+.tile:hover::after {
+  background-color: var(--ui-hover);
+}
+
+.tile:active::after {
+  background-color: var(--ui-pressed);
+}
+
+.tile:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+/* The well the medallion floats in, on the dish field, with the rule under it (§11.3). */
+.well {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--encyclopedia-tile-well-height) * var(--ui-scale));
+  border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  background-color: var(--ui-well);
+}
+
+.glyph {
+  width: calc(var(--encyclopedia-tile-glyph) * var(--ui-scale));
+  height: calc(var(--encyclopedia-tile-glyph) * var(--ui-scale));
+}
+
+.caption {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--ui-space-xs) * var(--ui-scale));
+  min-width: 0;
+  padding: 0 calc(var(--ui-space-m) * var(--ui-scale));
+  /* The raised band the title and the fact sit on: the kit's secondary fill over the panel's own gradient. */
+  background-color: color-mix(in srgb, var(--ui-text) calc(var(--ui-secondary-fill-alpha) * 100%), transparent);
+}
+
+/* Each on one line, ending in an ellipsis; the tile's accessible name carries the full title (§11.3). */
+.title,
+.fact {
+  overflow: hidden;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title {
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+.fact {
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+}

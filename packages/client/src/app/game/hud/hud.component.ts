@@ -28,6 +28,8 @@ import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-va
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
 import { ElementSizeTracker } from '../../ui-kit/element-size';
 import { AffectingPanelComponent } from './affecting-panel.component';
+import { EncyclopediaOverlayComponent } from './encyclopedia-overlay.component';
+import { HUD_OVERLAY } from './hud-state.service';
 
 @Component({
   selector: 'app-hud',
@@ -36,6 +38,7 @@ import { AffectingPanelComponent } from './affecting-panel.component';
   imports: [
     AffectingPanelComponent,
     ConnectionBannerComponent,
+    EncyclopediaOverlayComponent,
     LeaderboardPanelComponent,
     MenuOverlayComponent,
     OwnCellStatusComponent,
@@ -47,12 +50,18 @@ import { AffectingPanelComponent } from './affecting-panel.component';
     @if (isRoundPlaying()) {
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
       <app-trait-offer-overlay />
-      <app-leaderboard-panel />
+      <!-- The board and the clock stand down under the encyclopedia (docs/ui/encyclopedia.md §11.1): the panel would
+           cut both into slivers, and what a reader must not miss is on its alert strip instead. -->
+      @if (!isEncyclopediaOpen()) {
+        <app-leaderboard-panel />
+      }
       <!-- Opens and closes with the full board, top-left against it (docs/ui/overlays.md §3.7); it draws
            nothing while the board is shut or the player is spectating, so it needs no gate of its own. -->
       <app-affecting-panel />
     }
-    <app-round-timer />
+    @if (!isEncyclopediaOpen()) {
+      <app-round-timer />
+    }
     <!-- Not phase-gated: the mirror stands down on its own when there is no own cell to mirror,
          so the results phase does not need to gate it. It does unmount on death, which announces
          nothing; speaking the death is #189's, with the death overlay. -->
@@ -61,6 +70,11 @@ import { AffectingPanelComponent } from './affecting-panel.component';
          opens it between rounds too. -->
     @if (isMenuOpen()) {
       <app-menu-overlay />
+    }
+    <!-- The encyclopedia replaces the menu rather than stacking on it (docs/ui/encyclopedia.md §11.1); the chrome
+         above hides under it, since the panel would cut the board and the clock into slivers. -->
+    @if (isEncyclopediaOpen()) {
+      <app-encyclopedia-overlay />
     }
     <!-- Last, so they paint over the chrome (docs/ui/overlays.md §3.6): the dish stays, dimmed, under
          the banner while the socket is down, and the notices stack from the top edge. -->
@@ -139,6 +153,9 @@ export class HudComponent implements OnInit {
 
   /** The Escape menu (docs/ui/overlays.md §3.5), in play and between rounds alike. */
   protected readonly isMenuOpen = this.hudState.isMenuOpen;
+
+  /** The encyclopedia (docs/ui/encyclopedia.md §11.1): a modal reading screen, likewise not phase-gated. */
+  protected readonly isEncyclopediaOpen = computed(() => this.hudState.openOverlay() === HUD_OVERLAY.encyclopedia);
 
   /** The socket is down: the last snapshot stays on screen, dimmed, under the banner (docs/ui/overlays.md §3.6). */
   protected readonly isConnectionLost = computed(

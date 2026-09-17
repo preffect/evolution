@@ -1,0 +1,28 @@
+/* The entry page's frame (docs/ui/encyclopedia.md §11.4); build 1 fills it with the breadcrumb and the title only,
+   and #373 adds the lens, the tier sections, the facts and the prose under them. */
+
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.page {
+  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+}
+
+.title {
+  margin: calc(var(--ui-space-m) * var(--ui-scale)) 0 0;
+  color: var(--ui-text);
+  font-size: calc(var(--ui-type-headline) * var(--ui-scale));
+  font-weight: bold;
+  line-height: 1;
+}
