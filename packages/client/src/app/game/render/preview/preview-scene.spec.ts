@@ -158,10 +158,21 @@ describe('previewSceneFor', () => {
         framing.target.y === standIn.framing(BALANCE).target.y
       );
     };
-    for (const scene of PREVIEW_SCENES_AWAITING_BUILDERS) expect(isStandIn({ scene }), scene).toBe(true);
+    for (const scene of PREVIEW_SCENES_AWAITING_BUILDERS) {
+      expect(
+        isStandIn({ scene }),
+        `"${scene}" now draws a scene of its own, so ticket #364 has built it. Nothing is broken: drop "${scene}" ` +
+          'from PREVIEW_SCENES_AWAITING_BUILDERS in preview-scene.ts and add it to SUBJECT_SPECS, so the framing ' +
+          'bands below start covering it.',
+      ).toBe(true);
+    }
     for (const spec of SUBJECT_SPECS) {
       if (spec.scene === PREVIEW_SCENE.zone && spec.zone === ZONE_ID.openBroth) continue;
-      expect(isStandIn(spec), spec.scene).toBe(false);
+      expect(
+        isStandIn(spec),
+        `"${spec.scene}" is a scene ticket #363 built, but it is drawing ticket #364's stand-in: its builder is ` +
+          'not reached by previewSceneFor.',
+      ).toBe(false);
     }
   });
 
@@ -216,6 +227,11 @@ describe('the framing bands', () => {
    * §12.7's two bands, measured from `framing` in the canvas's square: every **body** inside
    * `PREVIEW_LENS_SAFE_RADIUS_FRACTION` of the lens radius, and every **drawn** extent — halo, flagellum, cilia,
    * and the motes and fragments — inside the rim, so the round crop never cuts anything off.
+   *
+   * **Coverage is `SUBJECT_SPECS`, and that is deliberate, not an omission.** Those are the scenes that exist: the
+   * four families ticket #363 built, spread across the ladder's real trait sets. The five action families have no
+   * bodies to measure until ticket #364 builds them, and the test above fails the moment one of them does — which
+   * is what brings it into this list.
    */
   it('keep every body inside the safe radius and everything drawn inside the rim', () => {
     for (const spec of SUBJECT_SPECS) {
