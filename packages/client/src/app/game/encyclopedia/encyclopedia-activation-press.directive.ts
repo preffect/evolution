@@ -22,13 +22,22 @@
 //     listeners on one node.
 //
 // `document` is always an ancestor of both, and a listener there runs **last** in the bubble — after the kit's report
-// and after the feature's own handlers — for a release anywhere (`click`) and for a key anywhere (`keydown`).
+// and after the feature's own handlers — for a release anywhere (`click`) and for a key anywhere (`keydown`). One
+// `document` listener is enough for the click: a second on the group would only fire earlier in the same bubble.
 // `pointercancel` covers a press the browser abandons without a click (a touch that becomes a scroll).
 //
-// **The one gap this leaves.** A `click` with no press behind it — `element.click()` from a script, and nothing a
-// browser sends — reaches the item with the flag down, so the kit's report lands first and replaces before the
-// activation pushes. Every real press has a `pointerdown`, and so does every helper in these specs; a kit `activated`
-// output would remove the question rather than answer it.
+// **The two gaps this leaves**, neither worth code today and both worth naming, so that meeting one reads as a known
+// limit rather than as a new bug:
+//
+//   * a `click` with no press behind it — `element.click()` from a script, and nothing a browser sends — reaches the
+//     item with the flag down, so the kit's report lands first and replaces before the activation pushes. Every real
+//     press has a `pointerdown`, and so does every helper in these specs;
+//   * a press released **outside the document** (out of the window, or onto browser chrome) fires no `click` at all,
+//     so the flag outlives it. The next `document:keydown` clears it — but that listener runs *after* the group's
+//     handler, so the first arrow after such a press is suppressed and the detail column stands still for one step.
+//     It heals on the step after.
+//
+// A kit `activated` output would remove both questions rather than answer them.
 //
 // **Ticket #461** is the first customer for exactly that. With one, this whole file and both its callers collapse
 // into reading the two reports the kit already knows apart.
@@ -40,7 +49,6 @@ import { Directive } from '@angular/core';
   standalone: true,
   host: {
     '(pointerdown)': 'begin()',
-    '(click)': 'end()',
     '(document:click)': 'end()',
     '(document:keydown)': 'end()',
     '(document:pointercancel)': 'end()',

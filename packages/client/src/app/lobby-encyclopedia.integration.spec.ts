@@ -11,6 +11,7 @@ import { expectTestId, queryByTestId } from '../testing/test-id-query';
 import { ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA } from './game/encyclopedia/encyclopedia-constants';
 import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
 import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
+import { MultiplayerService } from './services/multiplayer.service';
 
 describe('the encyclopedia over the lobby (acceptance U11)', () => {
   let fixture: ComponentFixture<AppComponent>;
@@ -142,6 +143,27 @@ describe('the encyclopedia over the lobby (acceptance U11)', () => {
       fixture.detectChanges();
       expect(encyclopedia.query()).toBe('');
       expect(expectTestId(root(), ENCYCLOPEDIA_TEST_ID.search)).toHaveProperty('value', '');
+    });
+
+    /**
+     * **The round starting underneath the reader**, which is the close path nobody deliberately takes and the one
+     * #449's review found leaking (both the panel and the query). Any non-host gets it the moment the host presses
+     * Start, and they cannot have closed it themselves: the panel is modal and focus-trapped. The lobby `@else`
+     * unmounts it without `closeEncyclopedia()` ever running, so before the fix the flag survived the round and the
+     * panel came back unbidden, showing a search from before it.
+     */
+    it('after a round started underneath it, which is the close path nobody chooses', () => {
+      const multiplayer = TestBed.inject(MultiplayerService);
+      openTypeAndClose(() => multiplayer.phase.set('in-game'));
+
+      multiplayer.phase.set('lobby');
+      fixture.detectChanges();
+      expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia)).toBeNull();
+      expect(encyclopedia.query()).toBe('');
+
+      lobbyButton().click();
+      fixture.detectChanges();
+      expect(encyclopedia.query()).toBe('');
     });
 
     /**

@@ -117,7 +117,7 @@ function playAction(press: KeyPress, focus: FocusContext): InputAction {
  * modal overlay, so "no modal overlay, or the menu" is exactly the two places §11.1 lists; auto-repeat is dropped,
  * since a held `H` must not reopen what it has already opened.
  */
-function encyclopediaKeyAction(press: KeyPress, focus: FocusContext): InputAction {
+function encyclopediaOpenAction(press: KeyPress, focus: FocusContext): InputAction {
   const isSomewhereItActs = !focus.isModalOverlayOpen || focus.isMenuOpen;
   return isSomewhereItActs && !press.isRepeat ? { kind: INPUT_ACTION.encyclopediaKey } : NO_ACTION;
 }
@@ -128,7 +128,7 @@ export function keyDownAction(press: KeyPress, focus: FocusContext): InputAction
   if (focus.isTextEntryFocused) return NO_ACTION;
   const cardIndex = cardIndexForKeyCode(press.code);
   if (cardIndex !== null) return { kind: INPUT_ACTION.pickCard, cardIndex };
-  if (press.code === ENCYCLOPEDIA_KEY_CODE) return encyclopediaKeyAction(press, focus);
+  if (press.code === ENCYCLOPEDIA_KEY_CODE) return encyclopediaOpenAction(press, focus);
   return focus.isModalOverlayOpen ? NO_ACTION : playAction(press, focus);
 }
 

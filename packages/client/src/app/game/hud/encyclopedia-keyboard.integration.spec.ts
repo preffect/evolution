@@ -126,7 +126,9 @@ describe('the encyclopedia’s keyboard over the wired game', () => {
         previewTraitId: () => null,
         ownCellIndicators: () => null,
         isReticleVisible: () => false,
-        // Exactly what `game-host.component.ts` hands the seam, so this spec covers that wiring and not a copy.
+        // The same handlers `game-host.component.ts` passes, **repeated** here rather than referenced: this spec
+        // calls `setupGame` itself, so it would not notice that component passing nothing. That it passes them is
+        // `game/game-host.integration.spec.ts`, which mounts the component and presses the real key.
         onMenuKey: () => hudState.pressMenuKey(),
         onEncyclopediaKey: () => hudState.openEncyclopedia(null, HUD_TEST_ID.menuEncyclopedia),
       },

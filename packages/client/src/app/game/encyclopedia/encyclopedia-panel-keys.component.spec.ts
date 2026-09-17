@@ -72,6 +72,37 @@ describe('the encyclopedia panel’s keys (docs/ui/encyclopedia.md §11.5)', () 
     fixture.detectChanges();
   });
 
+  /**
+   * §11.5's initial focus. The kit trap's own default is the first focusable, which is the header's Back — and Back
+   * is disabled on an open with nothing pushed yet, so the reader's first keystroke would hit a dimmed dead control
+   * (#449's review). The rail's selected row is live, marks where they already are, and answers every key of §11.5.
+   */
+  it('opens with focus on the rail’s selected row, never on a disabled control', () => {
+    const focused = document.activeElement as HTMLElement;
+    expect(expectTestId(root(), ENCYCLOPEDIA_TEST_ID.rail).contains(focused)).toBe(true);
+    expect(focused.getAttribute('aria-disabled')).toBeNull();
+    expect(expectTestId(root(), ENCYCLOPEDIA_TEST_ID.back).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  /**
+   * Entering a region is **not** a rove, so it does not move the reader: the kit only takes the Tab stop, and the
+   * detail column keeps the page it was showing. The consequence is that the first ↓ from row 1 selects row **2**, so
+   * row 1's own page is reached by activating it (Enter) or by Home, not by arrowing down past it. That is the right
+   * trade: the alternative — a region entry that selects — means Tab-ing through the panel to reach Close silently
+   * changes where the reader is (§11.5, documented).
+   */
+  it('takes the Tab stop into the list without moving the reader, and Home opens the row it lands on', () => {
+    const landing = state.location();
+    pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.rail), { key: 'ArrowRight', code: 'ArrowRight' });
+    const firstRow = tabStopIn(ENCYCLOPEDIA_TEST_ID.list);
+    expect(document.activeElement).toBe(firstRow);
+    expect(firstRow.getAttribute('aria-selected')).toBe('false');
+    expect(state.location()).toEqual(landing);
+
+    pressOn(firstRow, { key: 'Home', code: 'Home' });
+    expect(state.location().entryId).toBe(firstRow.getAttribute('data-item-id'));
+  });
+
   it('focuses the search field on `/` from wherever the reader is, and never types the character', () => {
     const event = pressOn(tabStopIn(ENCYCLOPEDIA_TEST_ID.rail), { key: '/', code: 'Slash' });
     expect(document.activeElement).toBe(searchField());

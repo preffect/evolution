@@ -21,6 +21,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  afterNextRender,
   computed,
   inject,
   input,
@@ -104,6 +105,7 @@ type ElementChild = Signal<ElementRef<HTMLElement>>;
         class="panel"
         variant="modal"
         uiFocusTrap
+        [restoreTo]="restoreFocusTo()"
         [attr.aria-label]="panelTitle"
         [attr.data-location]="locationAttribute()"
         [testId]="testId.encyclopedia"
@@ -172,6 +174,14 @@ export class EncyclopediaComponent {
    */
   readonly isOverDish = input(true);
 
+  /**
+   * Where focus goes when the panel closes (§11.1's last column). `null` leaves it to the kit trap, which restores
+   * whatever had focus when the panel opened — right for the lobby, whose button opened it. A room host passes the
+   * canvas host for a close **to the game**, because there the element that had focus may be gone (the Start button
+   * that unmounted at round start) or may never have existed, and §11.1 states that return unconditionally.
+   */
+  readonly restoreFocusTo = input<HTMLElement | null>(null);
+
   protected readonly testId = ENCYCLOPEDIA_TEST_ID;
   protected readonly styleVariables = encyclopediaStyleVariables();
   protected readonly scrimAlpha = computed(() =>
@@ -198,6 +208,14 @@ export class EncyclopediaComponent {
   private readonly railElement: ElementChild = viewChild.required('railColumn', { read: ElementRef });
   private readonly listElement: ElementChild = viewChild.required('listColumn', { read: ElementRef });
   private readonly searchElement: ElementChild = viewChild.required('searchField', { read: ElementRef });
+
+  constructor() {
+    // After the trap's own initial focus, which lands on the first focusable — the header's Back, and Back is
+    // disabled on an open with nothing pushed yet (§11.5). The reader's first keystroke would hit a dead control, so
+    // the panel takes focus to the rail's selected row instead: a live control, marking where they already are, from
+    // which every key of §11.5 works at once.
+    afterNextRender(() => this.focusRovingTabStopIn(this.railElement()));
+  }
 
   protected setQuery(query: string): void {
     this.state.setQuery(query);

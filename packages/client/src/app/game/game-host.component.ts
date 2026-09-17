@@ -11,7 +11,7 @@ import { GameStateService } from './state/game-state.service';
 import { HudStateService } from './hud/hud-state.service';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
-import { createPixiApp } from './render/pixi-app';
+import { CREATE_PIXI_APP } from './render/pixi-app-provider';
 import { HUD_TEST_ID } from './hud/test-ids';
 
 export const GAME_HOST_TEST_ID = HUD_TEST_ID.gameHost;
@@ -45,6 +45,8 @@ export class GameHostComponent implements OnInit, OnDestroy {
   private readonly clock = inject(CLOCK);
   private readonly hudState = inject(HudStateService);
   private readonly gameState = inject(GameStateService);
+  /** Injected rather than imported, so a spec can mount this component without a WebGL context (#449's review). */
+  private readonly createPixiApp = inject(CREATE_PIXI_APP);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
   private teardown: GameTeardown | null = null;
 
@@ -59,7 +61,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
       {
         clock: this.clock,
         connectAudio: (options) => this.audioHooks.connect(options),
-        createPixiApp,
+        createPixiApp: this.createPixiApp,
         devicePixelRatio: window.devicePixelRatio,
         debugHost: window,
         isDevMode: isDevMode(),

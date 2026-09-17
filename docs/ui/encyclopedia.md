@@ -31,6 +31,14 @@ game's own renderer, never a picture.
 | `H` in play (`ENCYCLOPEDIA_KEY_CODE`, §4)     | the last location this session, else the `basics` landing | the game, focus on the canvas host |
 | The lobby header's `Encyclopedia` button (§2) | the last location this session, else the `basics` landing | the lobby, focus on the button     |
 
+**How each return is actually produced** (#449), since "focus on the canvas host" is not something a focus trap does
+by itself. The kit trap restores whatever had focus when the panel opened, which is right for the lobby (its button)
+and for the two menu rows (the menu remounts and focuses the control named in `menuReturnFocusTestId`). It is **wrong
+for `H` in play**: on the first `H` of a round nothing has focus, because the Start button unmounted when the room
+began, so the trap would restore nothing and the reader would lose the cursor entirely. The room's host therefore
+passes the canvas host as the panel's `restoreFocusTo` for a close **to the game**, and `null` for a close to the
+menu. The table's third row is unconditional, so the code has to be too.
+
 **Where "the `basics` landing" actually lands, and what U8 asserts.** §11.5 forbids showing a category with no entry,
 and `basics` holds none until #361 fills it, so an open with no last location falls to the first category the rail
 lists — `defaultLocation`, which returns `basics` the moment that category has entries. Acceptance **U8**
@@ -272,8 +280,15 @@ to the first listed category while `basics` is still empty (#361).
   query**, so the three columns never disagree about which category is selected: the rail marks it, the list returns to
   its entries and the detail shows its landing.
 - **Keyboard.** Tab order: header (Back, search, alert strip, Close), rail, list, detail (its controls and links in
-  reading order). The rail and the list are one tab stop each with a roving focus: ↑ ↓ move, Home End jump, and
+  reading order). **Initial focus is the rail's selected row**, not the first tab stop: Back leads the Tab order but
+  is disabled on an open with nothing pushed, and a reader whose first keystroke hits a dimmed dead control has been
+  told the panel is broken. The rail row is live, marks where they already are, and every key below works from it
+  (#449). The rail and the list are one tab stop each with a roving focus: ↑ ↓ move, Home End jump, and
   **selection follows focus**, so arrowing down the list pages through entries. ← → move between the rail and the list.
+  **Entering a region is not a move**: Tab or ← → takes the region's Tab stop and the reader stays where they were, so
+  Tab-ing through the panel to reach Close never changes the page. The consequence is that the first ↓ after entering
+  the list selects its **second** row; the first row's page is reached by activating it (Enter) or by Home, both of
+  which are one key.
   `ENCYCLOPEDIA_BACK_KEYS` (`Alt+←`, and Backspace outside a text field) is Back. The arrows are free here because
   the modal gate swallows steering (§4).
 - **Escape**, in order: the search field clears a non-empty query and consumes the press (`preventDefault`, §4);

@@ -129,7 +129,7 @@ export abstract class UiRovingGroup {
     const fromIndex = ordered.findIndex((item) => item.element === event.target);
     const focused = ordered[fromIndex];
     if (focused === undefined) return;
-    if (SELECT_KEYS.has(event.key)) {
+    if (isRovingSelectKey(event.key)) {
       event.preventDefault();
       this.select(focused);
       return;
