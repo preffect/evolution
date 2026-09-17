@@ -30,7 +30,14 @@ const ACTION = { beadRadius: 12, smallBeadRadius: 8, headLength: 15, ringRadius:
 const RETICLE_CENTRE = { cx: 63, cy: 39 } as const;
 const RETICLE_RING = shape.path(circlePath(RETICLE_CENTRE.cx, RETICLE_CENTRE.cy, 11));
 const RETICLE_TICKS = shape.path(
-  shape.radialStrokesPath({ ...RETICLE_CENTRE, count: 4, innerRadius: 11, outerRadius: 18, leanTurns: 0, phaseTurns: 0 }),
+  shape.radialStrokesPath({
+    ...RETICLE_CENTRE,
+    count: 4,
+    innerRadius: 11,
+    outerRadius: 18,
+    leanTurns: 0,
+    phaseTurns: 0,
+  }),
 );
 const STEER: shape.SubjectGlyph = {
   entryId: 'action:steer',
@@ -50,7 +57,10 @@ const STEER: shape.SubjectGlyph = {
       ramp: SUBJECT_RAMP.player,
       rim: kit.stroke(SUBJECT_RAMP.player.light, SUBJECT_STROKE.rim),
     }),
-    ...arrowLayers({ fromX: 42, fromY: 58, toX: 54, toY: 50, bow: 5, headLength: ACTION.headLength }, SUBJECT_RAMP.accent),
+    ...arrowLayers(
+      { fromX: 42, fromY: 58, toX: 54, toY: 50, bow: 5, headLength: ACTION.headLength },
+      SUBJECT_RAMP.accent,
+    ),
   ],
 };
 
@@ -184,7 +194,11 @@ const PICK_TRAIT: shape.SubjectGlyph = {
       stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.mark),
       motion: kit.BREATHE,
     }),
-    ...arrowLayers({ fromX: 50, fromY: 18, toX: 50, toY: 34, bow: 0, headLength: ACTION.headLength - 3 }, SUBJECT_RAMP.accent, kit.BREATHE),
+    ...arrowLayers(
+      { fromX: 50, fromY: 18, toX: 50, toY: 34, bow: 0, headLength: ACTION.headLength - 3 },
+      SUBJECT_RAMP.accent,
+      kit.BREATHE,
+    ),
   ],
 };
 

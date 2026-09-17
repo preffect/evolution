@@ -99,11 +99,10 @@ const PROKARYOTE: shape.SubjectGlyph = {
       motion: kit.BREATHE,
       opacity: 0.55,
     }),
-    kit.paint(
-      shape.GLYPH_ROLE.detail,
-      NUCLEOID,
-      { stroke: kit.stroke(NUCLEOID_STRAND, SUBJECT_STROKE.fine, SUBJECT_ALPHA.wash), motion: kit.SPIN },
-    ),
+    kit.paint(shape.GLYPH_ROLE.detail, NUCLEOID, {
+      stroke: kit.stroke(NUCLEOID_STRAND, SUBJECT_STROKE.fine, SUBJECT_ALPHA.wash),
+      motion: kit.SPIN,
+    }),
     kit.paint(
       shape.GLYPH_ROLE.signature,
       shape.path(

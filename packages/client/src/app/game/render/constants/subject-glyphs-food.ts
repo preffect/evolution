@@ -5,7 +5,16 @@
 
 import { DNA_TAG } from '@evolution/shared';
 import * as shape from '../svg-glyph';
-import { CHLORO_DARK, DNA_TAG_COLOR, LIPID_LIGHT, LIPID_RIM, MITO_LIGHT, PROTO_FILM, PROTO_FILM_LIGHT, WHITE } from './colours';
+import {
+  CHLORO_DARK,
+  DNA_TAG_COLOR,
+  LIPID_LIGHT,
+  LIPID_RIM,
+  MITO_LIGHT,
+  PROTO_FILM,
+  PROTO_FILM_LIGHT,
+  WHITE,
+} from './colours';
 import {
   SUBJECT_ALPHA,
   SUBJECT_RAMP,

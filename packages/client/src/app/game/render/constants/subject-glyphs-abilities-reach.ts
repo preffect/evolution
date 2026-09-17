@@ -76,11 +76,17 @@ const SPINES: shape.SubjectGlyph = {
  * encyclopedia was the tightest collision in the set. So: the toxic cell, the haze it sits in, and a second cell
  * caught in it — eroded at the edge, with the drain pulling inward. Two bodies read as two bodies at 20 px.
  */
-const TOXIN_VICTIM = shape.path(
-  lobedPath({ cx: 64, cy: 54, radius: 12, lobes: 7, lobeDepth: 2.4, phaseTurns: 0.1 }),
-);
+const TOXIN_VICTIM = shape.path(lobedPath({ cx: 64, cy: 54, radius: 12, lobes: 7, lobeDepth: 2.4, phaseTurns: 0.1 }));
 const TOXIN_DRAIN = shape.path(
-  shape.radialStrokesPath({ cx: 64, cy: 54, count: 6, innerRadius: 15, outerRadius: 19, leanTurns: 0, phaseTurns: 0.03 }),
+  shape.radialStrokesPath({
+    cx: 64,
+    cy: 54,
+    count: 6,
+    innerRadius: 15,
+    outerRadius: 19,
+    leanTurns: 0,
+    phaseTurns: 0.03,
+  }),
 );
 const TOXIN: shape.SubjectGlyph = {
   entryId: 'ability:toxin',
