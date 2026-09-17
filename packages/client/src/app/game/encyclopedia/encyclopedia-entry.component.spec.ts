@@ -20,6 +20,7 @@ import {
   ENCYCLOPEDIA_SEE_ALSO_LABEL,
   ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
 } from './encyclopedia-constants';
+import { factNameFromNoun } from './format/entry-view';
 import { ENCYCLOPEDIA_CATEGORY_LABEL } from './model/categories';
 import type { ResolvedEntry } from './model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, type EntryId } from './model/entry-id';
@@ -122,7 +123,7 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
       ENCYCLOPEDIA_EFFECTS_TABLE_LABEL,
       ENCYCLOPEDIA_LADDER_TABLE_LABEL,
     ]);
-    expect(drawn[0]?.names).toEqual(entry.sections[0]?.facts.map((fact) => fact.label));
+    expect(drawn[0]?.names).toEqual(entry.sections[0]?.facts.map((fact) => factNameFromNoun(fact.label)));
     expect(drawn[1]?.names.length).toBeGreaterThan(0);
   });
 

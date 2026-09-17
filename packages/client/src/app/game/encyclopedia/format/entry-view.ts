@@ -147,6 +147,14 @@ export interface EncyclopediaTierTable {
   readonly highlightColumn: number | null;
 }
 
+/**
+ * A modifier's noun as the tier table writes it: §11.4's `Mass decay`, from the `mass decay` the trait cards read
+ * inside a sentence (`+15 % speed`). One place, so the two never drift into two spellings of one effect.
+ */
+export function factNameFromNoun(noun: string): string {
+  return `${noun.slice(0, 1).toUpperCase()}${noun.slice(1)}`;
+}
+
 /** The union of the modifier keys the tier sections carry, in the order the sections first name each one. */
 function modifierKeysOf(sections: readonly ResolvedSection[]): readonly ResolvedFact[] {
   const byKey = new Map<string, ResolvedFact>();
@@ -169,7 +177,7 @@ export function tierTableFor(
     .filter((column): column is { section: ResolvedSection; tier: TraitTier } => column.tier !== null);
   const rows: EncyclopediaFactRow[] = modifierKeysOf(tiers.map((column) => column.section)).map((fact) => ({
     rowId: fact.key,
-    name: fact.label,
+    name: factNameFromNoun(fact.label),
     values: tiers.map(
       (column) =>
         column.section.facts.find((tierFact) => tierFact.key === fact.key)?.text ?? ENCYCLOPEDIA_TIER_IDENTITY_TEXT,

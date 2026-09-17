@@ -17,7 +17,15 @@ import type { ProseSegment, ResolvedEntry, ResolvedFact, ResolvedSection, Resolv
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, type EntryId } from '../model/entry-id';
 import { PROSE_TOKEN } from '../model/prose';
 import { entryTitle, resolveEntry } from '../registry';
-import { entryChips, factRowsFor, ownedTierOf, proseParagraphs, tierNumeral, tierTableFor } from './entry-view';
+import {
+  entryChips,
+  factNameFromNoun,
+  factRowsFor,
+  ownedTierOf,
+  proseParagraphs,
+  tierNumeral,
+  tierTableFor,
+} from './entry-view';
 
 const MITOCHONDRION = 'trait:mitochondrion' as EntryId;
 const PROTOCELL = 'stage:protocell' as EntryId;
@@ -101,8 +109,19 @@ describe('tierTableFor (docs/ui/encyclopedia.md §11.4)', () => {
     const table = tierTableFor(entry.sections, null);
     expect(table?.columns).toEqual(entry.sections.map((_section, index) => tierNumeral((index + 1) as TraitTier)));
     const firstTier = entry.sections[0]!.facts;
-    expect(table?.rows.map((row) => row.name)).toEqual(firstTier.map((fact) => fact.label));
+    expect(table?.rows.map((row) => row.name)).toEqual(firstTier.map((fact) => factNameFromNoun(fact.label)));
     expect(table?.rows[0]?.values[0]).toBe(firstTier[0]!.text);
+  });
+
+  /**
+   * The nouns are the trait cards' (`+15 % speed`), so they arrive lowercase; §11.4 writes the table's row as
+   * `Mass decay`. The real nouns are checked rather than a made-up pair, so a catalog that starts capitalising them
+   * does not quietly get double-capitalised here.
+   */
+  it('reads a modifier noun as a sentence, and leaves one that already is alone', () => {
+    expect(factNameFromNoun('mass decay')).toBe('Mass decay');
+    expect(factNameFromNoun('Mass decay')).toBe('Mass decay');
+    expect(factNameFromNoun('')).toBe('');
   });
 
   it('writes the identity dash where one tier leaves a key the others set, and only there', () => {

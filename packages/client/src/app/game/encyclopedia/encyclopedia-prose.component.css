@@ -18,9 +18,9 @@
   margin-top: calc(var(--ui-space-s) * var(--ui-scale));
 }
 
-/* A value reads as the same figure the facts table shows, so it takes the mono face at the body size. */
+/* §11.4: a value is `body` with tabular digits — the sentence's own face, not the table's mono `figure`. A value
+   token is not always a number: `{reachedBy}` resolves to a list of entry titles, and those in mono read as code. */
 .value {
-  font-family: var(--ui-font-mono);
   font-variant-numeric: tabular-nums;
 }
 
