@@ -48,7 +48,7 @@ describe('rateTagsFor', () => {
       ['−0.5/s', 'Decay', CUE_RIM.none],
       ['−0.3/s', 'Vent', CUE_RIM.warmVent],
     ]);
-    expect(tags[1]?.traitShare).toEqual({ traitId: 'mitochondrion', text: '−15 %' });
+    expect(tags[1]?.traitShare).toEqual({ traitId: 'mitochondrion', text: '×0.85' });
     expect(tags[0]?.traitShare).toBeNull();
   });
 
@@ -78,12 +78,17 @@ describe('rateTagsFor', () => {
     const massFlow = flow({ ratesPerSecond: { decay: -0.4 }, decayTraitShare: -0.235 });
     expect(rateTagsFor(massFlow, traits, DEFAULT_BALANCE)[0]?.traitShare).toEqual({
       traitId: 'mitochondrion',
-      text: '−24 %',
+      text: '×0.77',
     });
   });
 
   it('shows no trait share when the wire carries none', () => {
     const tags = rateTagsFor(flow({ ratesPerSecond: { decay: -0.4 } }), MITOCHONDRION_I, DEFAULT_BALANCE);
     expect(tags[0]?.traitShare).toBeNull();
+  });
+
+  it('says nothing when the folded share is not a cut, rather than crediting a trait with an increase', () => {
+    const massFlow = flow({ ratesPerSecond: { decay: -0.4 }, decayTraitShare: 0.15 });
+    expect(rateTagsFor(massFlow, MITOCHONDRION_I, DEFAULT_BALANCE)[0]?.traitShare).toBeNull();
   });
 });

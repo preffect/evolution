@@ -15,9 +15,9 @@ import {
   type TraitId,
   type ValueOf,
 } from '@evolution/shared';
-import { formatQuantity } from '../../quantities/format-quantity';
-import { MINUS_SIGN, PLUS_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { MINUS_SIGN, PLUS_SIGN } from '../../quantities/quantity-unit';
 import { DANGER, DNA, GAIN, RATE_TAG_MIN_MASS_PER_SECOND, RATE_TAG_ROWS_MAX, ZONE_CUE } from '../../render/constants';
+import { leadingMultiplier } from './round-clock';
 
 /** The colour role a cue's rim carries (visual-style/principles-and-palette.md §2); a zone rim is the zone's own tint. */
 export const CUE_RIM = {
@@ -52,8 +52,13 @@ const WHOLE_FIGURE_FROM = 10;
 const ONE_DECIMAL = 1;
 const WHOLE = 0;
 const RATE_SUFFIX = '/s';
-const NO_DECAY_SHARE = 1;
 const TIER_INDEX_OFFSET = 1;
+/** A `decayMultiplier` of one is no cut at all: the tier that scales decay least, and the value a tier without one has. */
+const UNSCALED_DECAY = 1;
+/** A multiplier's identity, the one the wire's `decayMultiplier − 1` share is added back to. */
+const MULTIPLIER_IDENTITY = 1;
+/** A cut is a multiplier below one, so that share is negative; at or above zero it is no cut. */
+const NO_CUT = 0;
 
 /** The cause a tag names, uppercased by the `label` role when drawn. */
 export const RATE_CAUSE_LABEL: Readonly<Record<MassRateCause, string>> = {
@@ -99,10 +104,10 @@ export function formatUnsignedMassRate(ratePerSecond: number): string {
   return `${formatMassFigure(ratePerSecond)}${RATE_SUFFIX}`;
 }
 
-/** The owned trait that cuts decay the most and the whole cut: the DECAY tag's glyph and its `−15 %`. */
+/** The owned trait that cuts decay the most and the cut it makes: the DECAY tag's glyph and its `×0.85`. */
 export interface DecayTraitShare {
   readonly traitId: TraitId;
-  /** `−15 %`, from the wire's `decayTraitShare`. */
+  /** `×0.85`, the factor the wire's `decayTraitShare` (`decayMultiplier − 1`) gives. */
   readonly text: string;
 }
 
@@ -124,15 +129,25 @@ function largestDecayTrait(traits: readonly OwnedTrait[], balance: Pick<BalanceC
   for (const trait of TRAIT_CATALOG) {
     const owned = traits.find((candidate) => candidate.traitId === trait.id);
     const tier = owned === undefined ? undefined : balance.traits.TRAIT_TIERS[trait.id][owned.tier - TIER_INDEX_OFFSET];
-    const multiplier = tier?.decayMultiplier ?? NO_DECAY_SHARE;
-    if (multiplier < (best?.multiplier ?? NO_DECAY_SHARE)) best = { traitId: trait.id, multiplier };
+    const multiplier = tier?.decayMultiplier ?? UNSCALED_DECAY;
+    if (multiplier < (best?.multiplier ?? UNSCALED_DECAY)) best = { traitId: trait.id, multiplier };
   }
   return best?.traitId ?? null;
 }
 
 /**
- * The owned trait the DECAY cue names and the whole cut it carries. The hold-Tab panel's decay row
- * (docs/ui/overlays.md §3.7) names the same trait, so the choice of trait has one home.
+ * The owned trait the DECAY cue names and the cut it carries. The hold-Tab panel's decay row (docs/ui/overlays.md
+ * §3.7) names the same trait and shows the same text, so both the wording and the choice of trait have one home and
+ * the two surfaces cannot describe the cut differently (#445).
+ *
+ * The cut is written as the **factor** it is, `×0.85`, not as a signed change: on both surfaces it is read beside
+ * the loss it is not — `−0.5/s DECAY` on the tag, `· −0.5/s` on the row — and a `−15 %` there is a second minus
+ * sign pointing the other way, which reads as another cost rather than a saving. A factor has no sign to misread,
+ * and it is the form the rest of the HUD already states a decay modifier in: the vent's `decay ×1.5`, one row below
+ * this one on the panel, and the zone pill's `DECAY ×1.5` (`zone-pill.ts`). `leadingMultiplier` is that form's home.
+ *
+ * A share that is not a cut says nothing: there is no factor worth a tag, and naming the trait that cuts decay
+ * beside a net increase would credit it with the increase, so it is left out the way a zero row is (§3.7).
  */
 export function decayTraitShareOf(
   massFlow: MassFlowView,
@@ -140,10 +155,10 @@ export function decayTraitShareOf(
   balance: Pick<BalanceConfig, 'traits'>,
 ): DecayTraitShare | null {
   const share = massFlow.decayTraitShare;
-  const traitId = share === undefined ? null : largestDecayTrait(traits, balance);
-  if (share === undefined || traitId === null) return null;
-  const text = formatQuantity(share, QUANTITY_UNIT.share, { presentation: QUANTITY_PRESENTATION.signedChange });
-  return { traitId, text };
+  if (share === undefined || share >= NO_CUT) return null;
+  const traitId = largestDecayTrait(traits, balance);
+  if (traitId === null) return null;
+  return { traitId, text: leadingMultiplier(MULTIPLIER_IDENTITY + share) };
 }
 
 /**
