@@ -107,6 +107,10 @@ stage on the linked Project board, epics as sub-issues, **assignee = waiting on 
 thread resolved before merge**, labels updated as tickets complete. Everything is done via the
 API — the human never clicks in GitHub's UI. Helpers: `scripts/project-sync.sh` (run at session
 start), `scripts/issue-status.sh <Status> <N...>`, `scripts/pr-threads.sh` (batched review threads), `.github/PULL_REQUEST_TEMPLATE.md` (review checklist).
+**Referring to a number:** issues and PRs share one number sequence and the board shows **tickets
+only**, so never write a bare `#N` — write **`ticket #447`** or **`PR #452`**, and lead with the
+ticket where one exists (`ticket #447 (PR #452)`). Status summaries name tickets; a PR is named
+only where it adds something the ticket does not. See `docs/WORKFLOW.md` §1.1.
 **Human dial: 2 (Consulted)** from milestone M2 First playable onward (M0/M1 ran at 1) — taste,
 direction and scope questions are posed to the human as decision tickets with options and mockups;
 see `docs/TEAM.md`.
