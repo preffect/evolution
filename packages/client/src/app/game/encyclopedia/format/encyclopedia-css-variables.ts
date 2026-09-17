@@ -9,6 +9,7 @@
 
 import { TRAIT_GLYPH_CARD_PX } from '../../glyphs/glyph-constants';
 import { UI_ROW_MEDALLION_PX } from '../../../ui-kit/ui-kit-constants';
+import { PERCENT } from '../../quantities/quantity-unit';
 import type { StyleVariables } from '../../../ui-kit/format/ui-css-variables';
 import {
   ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX,
@@ -35,9 +36,12 @@ function pixels(value: number): string {
   return `${value}px`;
 }
 
-/** A 0..1 fraction as a gradient stop: `0.7` → `70%`. `PERCENT` is the quantities' own, for text a player reads. */
+/**
+ * A 0..1 fraction as a gradient stop: `0.7` → `70%`. The hundred is the quantities' `PERCENT`, the same one the
+ * player-facing `share` unit scales by — a percent is a percent whether a person reads it or a `radial-gradient` does.
+ */
 function percent(fraction: number): string {
-  return `${fraction * 100}%`;
+  return `${fraction * PERCENT}%`;
 }
 
 /** Every `--encyclopedia-…` token the panel's stylesheets may read, by name, at scale 1. */

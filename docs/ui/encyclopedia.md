@@ -216,8 +216,10 @@ An entry whose `preview` is `null` has no lens column: the title column takes th
 eyepiece rather than to what is under it, and the reserved box wears all three: the `ENCYCLOPEDIA_LENS_RIM_PX` rim, the
 edge vignette, and the 1 px `LIGHT_ACCENT` inner ring. Without the last two the box is a bare outline of a circle,
 which is what a failed image looks like rather than what reserved space looks like — the well alone cannot carry it,
-since `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it. The
-reticle ticks wait for #466, which draws them in the SVG overlay it brings.
+since `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it. **The
+inner ring is the part that carries it; the vignette is inert until there is a scene to darken**, and is drawn anyway
+because that scene is what it is the field stop for. The reticle ticks wait for #466, which draws them in the SVG
+overlay it brings.
 
 **The title column**, top to bottom:
 
