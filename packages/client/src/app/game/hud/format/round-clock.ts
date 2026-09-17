@@ -57,8 +57,11 @@ export function formatRoundClock(timeLeftMs: number | null): string {
   return formatQuantity(roundSecondsLeft(timeLeftMs), QUANTITY_UNIT.clock);
 }
 
-/** `×1.5`: the sign leads, so the effect reads as a factor on the name before it. */
-function leadingMultiplier(multiplier: number): string {
+/**
+ * `×1.5`: the sign leads, so the effect reads as a factor on the name before it. The bloom row of the hold-Tab
+ * panel (docs/ui/overlays.md §3.7) writes the same factors, so the form has one home.
+ */
+export function leadingMultiplier(multiplier: number): string {
   const figure = formatQuantity(multiplier, QUANTITY_UNIT.multiplier, { presentation: QUANTITY_PRESENTATION.numeral });
   return `${MULTIPLIER_SIGN}${figure}`;
 }

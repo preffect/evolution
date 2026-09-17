@@ -66,6 +66,12 @@ export const MINUS_SIGN = '−';
 export const PLUS_SIGN = '+';
 /** A multiplier's sign: the `1.5×` suffix, and the `×1.5` a caption leads with (the round clock's bloom). */
 export const MULTIPLIER_SIGN = '×';
+/**
+ * The two comparisons a threshold is written with (docs/ui/overlays.md §3.7). Both admit equality, because
+ * `canEngulf` does: a prey at exactly the ratio is eaten, so `<` and `>` would both be lies.
+ */
+export const AT_MOST_SIGN = '≤';
+export const AT_LEAST_SIGN = '≥';
 export const COUNTDOWN_DECIMALS = 1;
 /** `0:09`: the clock's seconds are always this many digits. */
 export const CLOCK_SECONDS_DIGITS = 2;

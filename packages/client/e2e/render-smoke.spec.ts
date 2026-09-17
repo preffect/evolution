@@ -10,6 +10,7 @@ import {
   UI_REFERENCE_VIEWPORT_WIDTH_PX,
   UI_SCALE_MIN,
 } from '../src/app/ui-kit/ui-kit-constants';
+import { openLiveRoom, type DebugWindow } from './live-room';
 
 /** The smallest viewport the layout frame targets (docs/ui/layout.md §1): the reference frame at the scale floor. */
 const MINIMUM_VIEWPORT = {
@@ -20,47 +21,13 @@ const MINIMUM_VIEWPORT = {
 const SCREENSHOT_DIR = '../../.qa/screenshots';
 const SMOKE_SEED = 42;
 const GAME_NAME_PREFIX = 'render-smoke';
-/** Enough of the test id to tell rooms apart while staying under `GAME_NAME_MAX_LENGTH`. */
-const GAME_NAME_SUFFIX_LENGTH = 8;
-/** `AUDIO_ASSET_BASE_PATH`: the audio assets are opt-in (docs/AUDIO-PIPELINE.md); a missing one is a silent cue, not a renderer error. */
-const AUDIO_ASSET_PATH = '/assets/audio/';
 /** Long enough for the depth particles to drift a pixel between two stepped frames. */
 const DRIFT_WAIT_MS = 1500;
 const HOLD_WAIT_MS = 500;
 
-interface DebugWindow {
-  __evolutionDebug?: {
-    pause(): void;
-    step(frames?: number): void;
-    renderTick(): number | null;
-    isPaused(): boolean;
-  };
-}
-
-/** Creates and starts a fresh room named after the test, so reruns never pick an already-started one. */
-async function openLiveRoom(page: Page): Promise<string[]> {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    const isMissingAudioAsset = message.location().url.includes(AUDIO_ASSET_PATH);
-    if (message.type() === 'error' && !isMissingAudioAsset)
-      errors.push(`${message.text()} (${message.location().url})`);
-  });
-  const gameName = `${GAME_NAME_PREFIX}-${test.info().testId.slice(-GAME_NAME_SUFFIX_LENGTH)}`;
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Connect & Join Lobby' }).click();
-  await expect(page.locator('.conn')).toHaveText(/connected/);
-  await page.getByLabel('Game name').fill(gameName);
-  await page.getByTestId('create-seed').fill(String(SMOKE_SEED));
-  await page.getByRole('button', { name: 'Create' }).click();
-  const row = page
-    .locator('.games li', { hasText: gameName })
-    .filter({ hasNot: page.locator('.badge') })
-    .first();
-  await row.getByRole('button', { name: 'Start' }).click();
-  await expect(page.locator('canvas[data-testid="game-canvas"]')).toBeVisible();
-  await page.waitForFunction(() => (window as DebugWindow).__evolutionDebug?.renderTick() !== null);
-  return errors;
+/** This spec's room: the shared opener with this spec's name and seed. */
+function openSmokeRoom(page: Page): Promise<string[]> {
+  return openLiveRoom(page, GAME_NAME_PREFIX, SMOKE_SEED);
 }
 
 async function canvasHash(page: Page): Promise<string> {
@@ -107,7 +74,7 @@ function renderTick(page: Page): Promise<number | null | undefined> {
 
 test.describe('renderer smoke on a live room', () => {
   test('draws the dish with the placeholder cell and screenshots it', async ({ page }) => {
-    const errors = await openLiveRoom(page);
+    const errors = await openSmokeRoom(page);
     await page.waitForTimeout(DRIFT_WAIT_MS);
     await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.pause());
     await page.waitForTimeout(HOLD_WAIT_MS);
@@ -116,12 +83,12 @@ test.describe('renderer smoke on a live room', () => {
   });
 
   test('the canvas fills the viewport and the page does not scroll (docs/ui/layout.md §1)', async ({ page }) => {
-    await openLiveRoom(page);
+    await openSmokeRoom(page);
     await expectCanvasFillsViewport(page);
   });
 
   test('pause holds the rendered tick and the canvas; a step advances both', async ({ page }) => {
-    await openLiveRoom(page);
+    await openSmokeRoom(page);
     await page.evaluate(() => (window as DebugWindow).__evolutionDebug?.pause());
     await page.waitForTimeout(HOLD_WAIT_MS);
     const heldTick = await renderTick(page);
@@ -145,7 +112,7 @@ test.describe('renderer smoke at the minimum viewport', () => {
   test(`the canvas fills the ${MINIMUM_VIEWPORT.width} × ${MINIMUM_VIEWPORT.height} viewport and the page does not scroll (docs/ui/layout.md §1)`, async ({
     page,
   }) => {
-    await openLiveRoom(page);
+    await openSmokeRoom(page);
     expect(page.viewportSize()).toEqual(MINIMUM_VIEWPORT);
     await expectCanvasFillsViewport(page);
   });
