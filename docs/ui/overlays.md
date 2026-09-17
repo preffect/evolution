@@ -281,7 +281,26 @@ The width is the kit's `UI_SIDE_PANEL_WIDTH_PX` (360). A row's `figure` value is
 wrapped, so only short figures go there — a rate, a threshold, a share. **The fact lines (`HERE`'s zone and bloom
 rows) are prose and belong wholly in `body`**, where the name column takes the row's slack; put in `figure` they are
 cut at the panel edge mid-word, which is how `decay ×1.5 · orange` and `8:02 · food ×1.5 · DNA dro` shipped in
-#387's first frames. The widest line the panel draws is the bloom row's. Among the rows that _do_ carry a `figure` value, the tightest is `MASS`'s decay row, and its budget is measured, not guessed: at 1024 × 640 with `--hud-scale` at the `UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, of which the decay row's name column can render 185 px. `Decay · Mitochondrion ×0.85` takes 163.6 px of it; the `saves 15 %` wording weighed against it on #445 took 193.3 px and pushed the row out of the panel (hud.md §3.1.5). A longer name there needs a fresh measurement at that viewport, not an estimate. Constants (`hud/hud-constants.ts`, §1):
+#387's first frames. The widest line the panel draws is the bloom row's.
+
+**The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--hud-scale` at the
+`UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, and a row's name column overflows between
+**189.23 px** (widest still fitting) and **192.52 px** (narrowest that does not), bisected a character at a time —
+read the capacity as **~189 px**, never as the width of whatever string happens to ship. The tightest rows are
+**`Toxin · near <name>` and `Swallowed · <name>`**, not the decay row: at the 20-character player name the cap
+allows they reach 188.09–188.41 px and 188.63 px, about 0.6 px from overflowing, while
+`Decay · Mitochondrion ×0.85` sits at 184.11 px with roughly 5 px clear. Those two rows are where a copy change
+costs the most, so a longer name in one of them needs a fresh measurement at that viewport, not an estimate. A
+fitting row's right edge is always flush with the viewport's, because the name column takes the row's slack; a
+flush edge is not a tightness signal and must not be measured as one.
+
+That margin is thin because this panel does **not** truncate a name. `PLAYER_NAME_MAX_LENGTH` is 20
+(`packages/shared/src/constants/lobby.ts`); the leaderboard cuts the same value to `LEADERBOARD_NAME_MAX_CHARS` 12
+through `truncatePlayerName` (`leaderboard-rows.ts`), `affecting-causes.ts` does not cut at all, and
+`cellDisplayName`'s `?? cell.playerId` fallback is unbounded. That is pre-existing and not #445's to fix; it is
+recorded here so the next author reads the 0.6 px as the standing state rather than as slack.
+
+Constants (`hud/hud-constants.ts`, §1):
 `AFFECTING_FOOD_WINDOW_SECONDS` 5 (long enough that grazing reads as a steady rate) and
 `AFFECTING_MASS_HISTORY_SECONDS` 30 (the sparkline shows "grew, then shrank" across a trip), with
 `AFFECTING_MASS_SAMPLE_SECONDS` 0.5 (snapshots arrive far faster than a 120 px line can draw, so the history keeps

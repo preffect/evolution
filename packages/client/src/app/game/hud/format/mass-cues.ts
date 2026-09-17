@@ -52,9 +52,12 @@ const WHOLE_FIGURE_FROM = 10;
 const ONE_DECIMAL = 1;
 const WHOLE = 0;
 const RATE_SUFFIX = '/s';
-const NO_DECAY_SHARE = 1;
 const TIER_INDEX_OFFSET = 1;
-/** A cut is a multiplier below one, so the wire's `decayMultiplier − 1` is negative; at or above zero it is no cut. */
+/** A `decayMultiplier` of one is no cut at all: the tier that scales decay least, and the value a tier without one has. */
+const UNSCALED_DECAY = 1;
+/** A multiplier's identity, the one the wire's `decayMultiplier − 1` share is added back to. */
+const MULTIPLIER_IDENTITY = 1;
+/** A cut is a multiplier below one, so that share is negative; at or above zero it is no cut. */
 const NO_CUT = 0;
 
 /** The cause a tag names, uppercased by the `label` role when drawn. */
@@ -126,8 +129,8 @@ function largestDecayTrait(traits: readonly OwnedTrait[], balance: Pick<BalanceC
   for (const trait of TRAIT_CATALOG) {
     const owned = traits.find((candidate) => candidate.traitId === trait.id);
     const tier = owned === undefined ? undefined : balance.traits.TRAIT_TIERS[trait.id][owned.tier - TIER_INDEX_OFFSET];
-    const multiplier = tier?.decayMultiplier ?? NO_DECAY_SHARE;
-    if (multiplier < (best?.multiplier ?? NO_DECAY_SHARE)) best = { traitId: trait.id, multiplier };
+    const multiplier = tier?.decayMultiplier ?? UNSCALED_DECAY;
+    if (multiplier < (best?.multiplier ?? UNSCALED_DECAY)) best = { traitId: trait.id, multiplier };
   }
   return best?.traitId ?? null;
 }
@@ -155,7 +158,7 @@ export function decayTraitShareOf(
   if (share === undefined || share >= NO_CUT) return null;
   const traitId = largestDecayTrait(traits, balance);
   if (traitId === null) return null;
-  return { traitId, text: leadingMultiplier(NO_DECAY_SHARE + share) };
+  return { traitId, text: leadingMultiplier(MULTIPLIER_IDENTITY + share) };
 }
 
 /**

@@ -284,29 +284,50 @@ the trait applies — `×0.85` — not the signed change `−15 %` it was throug
 The reason is that both surfaces read it beside the loss it is not: `−0.5/s DECAY ×0.85` on the tag, `Decay ·
 Mitochondrion ×0.85 · −0.5/s` on the row. A `−15 %` there puts two minus signs on one line pointing opposite ways —
 the rate is a cost, the share is a saving — and a player reads the second as another cost. A factor has no sign to
-misread, and it is the form the HUD already states every other decay modifier in: the vent row directly below this
-one reads `Vent · decay ×1.5`, and the zone pill reads `WARM VENT · DECAY ×1.5`. One vocabulary for the two
-multipliers acting on the same rate, `×1.5` above one and `×0.85` below it, is what carries the direction.
-`leadingMultiplier` (`hud/format/round-clock.ts`) is that form's one home.
+misread, and it is the form the HUD already states every other decay modifier in. `leadingMultiplier`
+(`hud/format/round-clock.ts`) is that form's one home.
+
+**The contrast pair is the panel's, not the tag's, and the doc should not claim otherwise.** On the panel the
+argument is visible: `Decay · Mitochondrion ×0.85` and `Vent · decay ×1.5` are adjacent permanent rows on the same
+quantity, one below one and one above it, so a player who has learnt `×1.5 = worse` has the pair in their eyeline.
+In the world there is no pair: the VENT rate tag directly above the DECAY tag carries no multiplier at all
+(`−0.2/s VENT`), and the zone pill's `WARM VENT · DECAY ×1.5` is up only for `ZONE_PILL_SECONDS` on entering the
+zone. So for nearly all the time the tag is up, `×0.85` stands alone with nothing on screen to calibrate it. That
+is still the better read than `−15 %` beside `−0.4/s` — a factor asks the player to know which side of one they are
+on, the old string asked them to see that two identical minus signs meant opposite things — but it is a weaker
+support in the world than on the panel, and the choice rests on the panel.
 
 The factor is **left out entirely unless it is a cut** (the wire's `decayTraitShare` is the folded
 `decayMultiplier − 1`, so a cut is negative): with no cut there is nothing to name, and putting a factor above one
 beside the glyph of the trait that cuts decay would credit that trait with the increase, so the tag and the row
 drop it the way overlays.md §3.7 drops a zero row.
 
-The panel's `TRAITS` row still reads `Mitochondrion I · −15 % mass decay`, and that is not this rule's business: it
-comes from the trait-modifier label table (`quantities/modifier-labels.ts`) that the trait cards and the
-encyclopedia share, where every effect is `<signed change> <noun>` (`+15 % speed`) and the noun, not a neighbouring
-rate, says what the sign is about. Only the cause rows and the DECAY cue put the cut beside a loss, so only they
-change form.
+**Known inconsistency, not a decided rule (ticket pending).** The panel's `TRAITS` row still reads
+`Mitochondrion I · −15 % mass decay`, from the trait-modifier label table (`quantities/modifier-labels.ts`) the
+trait cards and the encyclopedia share, where every effect is `<signed change> <noun>` (`+15 % speed`). Read alone
+the noun carries what the sign is about. It is not read alone here: that row is right-aligned in the **same value
+column** as `Speed · −47 %`, so scanning the column gives `−0.4/s`, `−0.2/s`, `−47 %`, `−15 % mass decay` — four
+negatives in one form, three costs and one benefit. That is this ticket's misread, one column over. #445 did not
+widen into it because the table is shared with two other surfaces and changing it changes every trait's copy on all
+three; the case is open and filed, and this paragraph is the record that it is open, not that it is settled.
 
 **One wording, both surfaces — measured, not assumed.** `saves 15 %` was the other candidate and it does **not**
-fit: at 1024 × 640 with `--hud-scale` at the `UI_SCALE_MIN` floor of 0.8, the panel's scroll viewport holds 260 px
-of row and the decay row's name column can render 185 px of text. `Decay · Mitochondrion −15 %` measures 167.1 px,
-`Decay · Mitochondrion saves 15 %` 193.3 px — 8 px past the column, pushing the row 2.05 px outside the panel and
-giving the panel a horizontal scroll axis. `Decay · Mitochondrion ×0.85` measures 163.6 px, 3.5 px narrower than
-what shipped, and the two-organelle worst case `×0.77` is narrower still. So no surface needs a compact form of its
-own and no divergence is recorded here.
+fit. All figures at 1024 × 640 with `--hud-scale` at the `UI_SCALE_MIN` floor of 0.8, measured in the live table;
+the panel's scroll viewport holds 260 px of row.
+
+The decay row's name column overflows somewhere between **189.23 px** (the widest text still fitting) and
+**192.52 px** (the narrowest that does not), bisected a character at a time — so read the capacity as **~189 px**,
+never as the width of whatever string happens to ship. Against that threshold: `Decay · Mitochondrion −15 %` gives
+a 185.11 px name cell, about two characters clear of overflow; `Decay · Mitochondrion ×0.85` gives 184.11 px, so
+this change buys about a pixel, not a reprieve; `Decay · Mitochondrion saves 15 %` needs 193.27 px, past the
+threshold, and it pushed the row 2.05 px outside the panel and gave the panel a horizontal scroll axis
+(`scrollWidth` 262 against `clientWidth` 260). The two-organelle worst case `×0.77` **ties** `×0.85` exactly at a
+163.55 px text and a 184.11 px cell — the digits are equal-advance — so it is no worse, not better.
+
+A fitting row's right edge is always flush with the viewport's (287.0 px at this viewport, for `−15 %` and `×0.85`
+alike), because the name column takes the row's slack. **A flush right edge is therefore not a tightness signal and
+must not be measured as one**; the name cell against the ~189 px threshold is the only reading that means anything
+here. So no surface needs a compact form of its own and no divergence is recorded.
 
 **Layout inequalities `cue-layout.spec.ts` pins**, at the §3.1.3 sizes and at `CELL_MAX_MASS` on 1024 × 640 (the
 smallest viewport) and 1280 × 800:
