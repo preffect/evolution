@@ -362,6 +362,22 @@ export default tseslint.config(
     },
   },
   {
+    // ---- The glyph renderer: the one component that cannot be an element (#391) ----------
+    // `glyph-layers.component.ts` *is* the `<svg>` both glyph components draw through, and a custom element inside
+    // `<svg>` renders nothing, so it attaches by attribute. Scoped to `game/glyphs/` rather than the whole client, so
+    // every other component still has to be an element; prefix and style stay enforced for both forms.
+    files: ['packages/client/src/app/game/glyphs/**/*.ts'],
+    rules: {
+      '@angular-eslint/component-selector': [
+        'error',
+        [
+          { type: 'element', prefix: 'app', style: 'kebab-case' },
+          { type: 'attribute', prefix: 'app', style: 'camelCase' },
+        ],
+      ],
+    },
+  },
+  {
     // ---- The UI kit: its own `ui` prefix, and its import boundary -------------------------
     files: UI_KIT_FILES,
     rules: {

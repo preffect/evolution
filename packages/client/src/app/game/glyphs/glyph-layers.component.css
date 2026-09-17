@@ -1,13 +1,3 @@
-:host {
-  display: block;
-}
-
-.glyph {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 /*
  * Idle motion (docs/visual-style/ui-type.md §7.1): each layer's period and pivot are bound from the glyph table, in
  * user units of the 100-unit box. The amplitudes are the `--glyph-…` custom properties the component publishes from

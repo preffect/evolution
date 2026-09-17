@@ -1,0 +1,13 @@
+/*
+ * The glyph's own box (docs/visual-style/ui-type.md §7.1 and §7.2): the SVG fills its host, so the caller sizes it.
+ * The idle keyframes live beside the paths they animate, in `glyph-layers.component.css`.
+ */
+:host {
+  display: block;
+}
+
+.glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

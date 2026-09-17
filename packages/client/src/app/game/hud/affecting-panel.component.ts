@@ -14,7 +14,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import type { TraitId } from '@evolution/shared';
 import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
-import { TRAIT_GLYPH_LOD } from '../glyphs/trait-glyph-view';
+import { GLYPH_LOD } from '../glyphs/glyph-view';
 import { GameStateService } from '../state/game-state.service';
 import { UiFactMarkerDirective, UiFactsTableComponent, type UiFactRow } from '../../ui-kit/ui-facts-table.component';
 import { UiPanelComponent } from '../../ui-kit/ui-panel.component';
@@ -86,7 +86,7 @@ export class AffectingPanelComponent {
   // What the template draws with, before what it draws from.
   protected readonly testId = HUD_TEST_ID;
   protected readonly panelLabel = PANEL_LABEL;
-  protected readonly listLod = TRAIT_GLYPH_LOD.list;
+  protected readonly listLod = GLYPH_LOD.list;
   protected readonly sparklineViewBox = `0 0 ${AFFECTING_SPARKLINE_WIDTH_PX} ${AFFECTING_SPARKLINE_HEIGHT_PX}`;
 
   private readonly gameState = inject(GameStateService);

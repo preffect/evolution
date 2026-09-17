@@ -76,7 +76,9 @@ const cardHtml = (c) => `
 </button>`;
 
 const html = `<!doctype html><meta charset="utf-8"><style>
-  :root { ${Object.entries(VARS).map(([k, v]) => `${k}: ${v};`).join(' ')} }
+  :root { ${Object.entries(VARS)
+    .map(([k, v]) => `${k}: ${v};`)
+    .join(' ')} }
   body { margin: 0; background: #04101c; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
   ${cardCss.replace(':host', '.unused-host')}
   /* Natural height, so every card reports how tall it wants to be, over or under the budget. */
@@ -87,7 +89,10 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 await page.setContent(html);
 const measured = await page.evaluate(() =>
-  [...document.querySelectorAll('.card')].map((el) => ({ key: el.dataset.key, height: el.getBoundingClientRect().height })),
+  [...document.querySelectorAll('.card')].map((el) => ({
+    key: el.dataset.key,
+    height: el.getBoundingClientRect().height,
+  })),
 );
 await browser.close();
 
@@ -100,6 +105,10 @@ const rows = cards.map((c) => ({
 rows.sort((a, b) => b.height - a.height);
 console.log(`card width ${CARD_WIDTH}px, height budget ${CARD_HEIGHT}px, ${rows.length} cards`);
 for (const r of rows) {
-  console.log(`${r.height > CARD_HEIGHT ? 'OVERFLOW' : '   ok   '} ${String(r.height).padStart(6)}  ${r.lines} lines  ${r.key}`);
+  console.log(
+    `${r.height > CARD_HEIGHT ? 'OVERFLOW' : '   ok   '} ${String(r.height).padStart(6)}  ${r.lines} lines  ${r.key}`,
+  );
 }
-console.log(`tallest ${rows[0].height}px (${rows[0].key}); overflowing ${rows.filter((r) => r.height > CARD_HEIGHT).length}`);
+console.log(
+  `tallest ${rows[0].height}px (${rows[0].key}); overflowing ${rows.filter((r) => r.height > CARD_HEIGHT).length}`,
+);
