@@ -294,17 +294,18 @@ label table is shared with the trait cards and the encyclopedia; this row is rec
 **189.23 px** (widest still fitting) and **192.52 px** (narrowest that does not), bisected a character at a time —
 read the capacity as **~189 px**, never as the width of whatever string happens to ship. The tightest rows are
 **`Toxin · near <name>` and `Swallowed · <name>`**, not the decay row: at the 20-character player name the cap
-allows they reach 188.09–188.41 px and 188.63 px, about 0.6 px from overflowing, while
-`Decay · Mitochondrion ×0.85` sits at 184.11 px with roughly 5 px clear. Those two rows are where a copy change
-costs the most, so a longer name in one of them needs a fresh measurement at that viewport, not an estimate. A
-fitting row's right edge is always flush with the viewport's, because the name column takes the row's slack; a
-flush edge is not a tightness signal and must not be measured as one.
+allows they reach 188.09–188.41 px and 188.63 px — **about 0.6 px from overflowing, which is a known hazard on
+#454, not an acceptable margin** — while `Decay · Mitochondrion ×0.85` sits at 184.11 px with roughly 5 px clear.
+Those two rows are where a copy change costs the most, so a longer name in one of them needs a fresh measurement at
+that viewport, not an estimate. A fitting row's right edge is always flush with the viewport's, because the name
+column takes the row's slack; a flush edge is not a tightness signal and must not be measured as one.
 
-That margin is thin because this panel does **not** truncate a name. `PLAYER_NAME_MAX_LENGTH` is 20
-(`packages/shared/src/constants/lobby.ts`); the leaderboard cuts the same value to `LEADERBOARD_NAME_MAX_CHARS` 12
-through `truncatePlayerName` (`leaderboard-rows.ts`), `affecting-causes.ts` does not cut at all, and
-`cellDisplayName`'s `?? cell.playerId` fallback is unbounded. That is pre-existing and not #445's to fix; it is
-recorded here so the next author reads the 0.6 px as the standing state rather than as slack.
+That margin is thin because this panel does **not** truncate a name, and **#454 owns that**.
+`PLAYER_NAME_MAX_LENGTH` is 20 (`packages/shared/src/constants/lobby.ts`); the leaderboard cuts the same value to
+`LEADERBOARD_NAME_MAX_CHARS` 12 through `truncatePlayerName` (`leaderboard-rows.ts`), `affecting-causes.ts` does
+not cut at all, and `cellDisplayName`'s `?? cell.playerId` fallback is unbounded — so the worst case is not the
+20-character cap at all. The condition is pre-existing and was not #445's to fix; until #454 lands, read the 0.6 px
+as the standing state of a row that can already be pushed over, never as slack a copy change may spend.
 
 Constants (`hud/hud-constants.ts`, §1):
 `AFFECTING_FOOD_WINDOW_SECONDS` 5 (long enough that grazing reads as a steady rate) and
