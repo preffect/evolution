@@ -49,20 +49,28 @@ describe('the encyclopedia over the lobby (acceptance U11)', () => {
   });
 
   /**
-   * **The control is a plain `<button>`, and that is a decision rather than an omission** (#449, PR #463).
+   * **A deliberate tripwire, not a discriminator. If you are reading this because it went red: that is what it is
+   * for, nothing is broken, and the answer is ticket #464 — go and read it before changing this line.**
    *
-   * `layout.md` §2 puts `lobby-encyclopedia` in a table whose own rule is "every control is a native `<input>`,
-   * `<select>` or `<button>`", and components-and-constants.md §10 says the lobby screens move onto the kit by their
-   * own ticket, **#464**. Until that lands, dressing this one control in `uiButton` makes it *worse*: a kit
+   * What it asserts is blunt on purpose: `lobby-encyclopedia` is a `<button>` with no `data-variant`, and
+   * `UiButtonComponent` stamps `data-variant` unconditionally (`'[attr.data-variant]': 'variant()'`, with a
+   * `secondary` default). So **any** `uiButton` here turns this case red — the naive swap and the correct
+   * surface-first one alike. It cannot tell them apart and does not try to.
+   *
+   * Why blunt and not clever. The discriminating version would have to detect a kit ground above the control, which
+   * means guessing where #464 puts the surface; `UiSurfaceDirective`'s own header says a surface belongs on a
+   * full-viewport layer and never on a header, so a guess written today would likely be wrong tomorrow — and a guard
+   * that is wrong again teaches the next person a second false lesson. An honestly-named tripwire keeps working.
+   *
+   * Why there is a tripwire at all. `layout.md` §2 puts this control in a table whose own rule is "every control is a
+   * native `<input>`, `<select>` or `<button>`", and components-and-constants.md §10 says the lobby screens move onto
+   * the kit by their own ticket. Until that lands, dressing this one control in `uiButton` makes it **worse**: a kit
    * `secondary` button is `color: var(--ui-text)` over a `UI_SECONDARY_FILL_ALPHA` fill of the same colour — a light
-   * label for the dark panel gradient — and the lobby around it is `#1a1a1a` on white. The surface has to come first.
-   *
-   * So this guard exists to make a naive swap a deliberate act: whoever takes #464 changes this line **and** gives
-   * the lobby a kit ground, rather than discovering the contrast regression in a screenshot. Nothing here forbids the
-   * kit; `button[uiButton]` is itself a native `<button>` and would keep this assertion true — the second one is what
-   * a swap without a surface trips on.
+   * label for the dark panel gradient — and the lobby around it is `#1a1a1a` on white, where graphics-qa measured
+   * that fill at **1.09:1**. The surface has to come first, and this case exists to make sure whoever does it has
+   * read why (#449, PR #463).
    */
-  it('is a native button on the lobby’s own surface, not a kit one on a ground that does not exist yet (#464)', () => {
+  it('refuses any uiButton on this control, on purpose, until ticket #464 gives the lobby a kit ground', () => {
     expect(lobbyButton().tagName).toBe('BUTTON');
     expect(lobbyButton().hasAttribute('data-variant')).toBe(false);
   });
