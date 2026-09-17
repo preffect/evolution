@@ -62,6 +62,16 @@ describe('describeTierModifiers', () => {
     }
   });
 
+  it('keeps a line of headroom under the cap: the catalog’s longest row is three, the card holds four', () => {
+    // Decision #425 set four as the ceiling, not a step on a ladder: when a tier legitimately reaches it this
+    // number goes to four, and the line after that buys a bigger card or shorter words, never a bigger cap.
+    const longestRow = Math.max(
+      ...TRAIT_CATALOG.flatMap((trait) => TIERS.map((tier) => describeTierModifiers(trait.id, tier).length)),
+    );
+    expect(longestRow).toBe(3);
+    expect(longestRow).toBeLessThan(PICKER_CARD_EFFECT_LINES_MAX);
+  });
+
   it('gives every catalog trait at every tier readable lines and never a raw number or undefined', () => {
     for (const trait of TRAIT_CATALOG) {
       for (const tier of TIERS) {

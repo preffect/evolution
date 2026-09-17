@@ -85,7 +85,9 @@ Three inequalities, at the six sizes and as a derivation:
 PICKER_BAND_GAP_PX) × s, capOrbitExtentPx + PICKER_BAND_ORBIT_CLEARANCE_PX)`, so the inequality holds by
   construction on every viewport; it moves nothing on the reference viewport (126.2 + 4 < 136) or at 1080p
   (163.4 + 4 < 183.6, the band scaled by 1.35). `hud/format/picker-band.spec.ts` pins it at 1024 × 640, 1280 × 800,
-  1280 × 1000, 1920 × 1080 and 2560 × 1440.
+  1280 × 1000, 1920 × 1080 and 2560 × 1440, and pins the two things decision #425's wider card must not move: the
+  card row fits across each of those viewports, and the band still ends exactly on the reference viewport's bottom
+  edge.
 - **Seat mark.** The backing's inner edge clears the seat mark's halo (visual-style/principles-and-palette.md §2: beads at 1.0 r, halo
   2.2 × `max(SEAT_MARK_BEAD_RADIUS_FRACTION × r_px, SEAT_MARK_BEAD_MIN_PX)`), for every seat index and every size:
   `ladderOrbitRadiusPx − LADDER_BACKING_PX / 2 ≥ r_px + haloPx + LADDER_SEAT_MARK_CLEARANCE_PX`. Below 40 px the
