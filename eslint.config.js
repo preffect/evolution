@@ -351,13 +351,14 @@ export default tseslint.config(
     extends: [...angular.configs.tsRecommended],
     processor: angular.processInlineTemplates,
     rules: {
+      // An SVG-internal component (the glyph renderer, #391) cannot be an element: a custom element inside `<svg>`
+      // draws nothing. It attaches to an `<svg:g>` by attribute instead, under the same `app` prefix.
       '@angular-eslint/component-selector': [
         'error',
-        {
-          type: 'element',
-          prefix: 'app',
-          style: 'kebab-case',
-        },
+        [
+          { type: 'element', prefix: 'app', style: 'kebab-case' },
+          { type: 'attribute', prefix: 'app', style: 'camelCase' },
+        ],
       ],
     },
   },

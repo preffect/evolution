@@ -1,13 +1,14 @@
-// The trait glyph turned into what the SVG binds (docs/visual-style/ui-type.md §7.1): the medallion frame then the
+// A glyph turned into what the SVG binds (docs/visual-style/ui-type.md §7.1 and §7.2): the medallion frame then the
 // glyph's layers, each one `<path>` with its paint as attributes, its gradient as a def with an id unique to the
 // drawing, its tilt and pool offset as a wrapping group's transform and its idle motion as a class, a period and a
-// pivot. The list LOD drops the interior detail a 20 px glyph cannot show
-// enlarges the glyph inside its frame and thickens its strokes so
-// they stay a pixel wide. Pure.
+// pivot. The list LOD drops the interior detail a 20 px glyph cannot show, enlarges the glyph inside its frame and
+// thickens its strokes so they stay a pixel wide. It takes a `GlyphDrawing`, so a trait glyph and a subject glyph
+// are one builder and one stylesheet, never two. Pure.
 
 import { GLYPH_FRAME_LAYERS } from '../render/constants/trait-glyph-frame';
 import {
   GLYPH_CENTRE,
+  GLYPH_FRAME,
   GLYPH_NO_TILT,
   GLYPH_HALO_FALLOFF,
   GLYPH_LIST_STROKE_BOOST,
@@ -21,12 +22,12 @@ import {
   type GlyphMotion,
   type GlyphShape,
   type GlyphStroke,
-  type TraitGlyph,
+  type GlyphDrawing,
 } from '../render/svg-glyph';
 
 /** `card` on a card's medallion or an encyclopedia tile; `list` at one line of text, where the interior detail drops. */
-export const TRAIT_GLYPH_LOD = { card: 'card', list: 'list' } as const;
-export type TraitGlyphLod = (typeof TRAIT_GLYPH_LOD)[keyof typeof TRAIT_GLYPH_LOD];
+export const GLYPH_LOD = { card: 'card', list: 'list' } as const;
+export type GlyphLod = (typeof GLYPH_LOD)[keyof typeof GLYPH_LOD];
 
 const NO_PAINT = 'none';
 /** A dashed stroke ends square, so a thicker list-LOD stroke keeps its gaps (pores, plates) open; every other is round. */
@@ -76,12 +77,23 @@ export interface GlyphLayerView extends FillView, StrokeView, MotionView {
   readonly d: string;
   /** `translate(x y) rotate(deg 50 50)`: the pool's offset stays down-right on screen whatever the tilt. Null for none. */
   readonly transform: string | null;
+  /** The medallion disc, for the glyph's own layers; null for the frame, which draws its own rim. */
+  readonly clipPath: string | null;
 }
 
-export interface TraitGlyphView {
+/** The disc the glyph is clipped to, as a def: the medallion is the stage, so no halo or tail reaches the panel. */
+export interface GlyphClipView {
+  readonly id: string;
+  readonly cx: number;
+  readonly cy: number;
+  readonly radius: number;
+}
+
+export interface GlyphView {
   /** The frame's layers, then the glyph's, in draw order. */
   readonly layers: readonly GlyphLayerView[];
   readonly gradients: readonly GlyphGradientView[];
+  readonly clip: GlyphClipView;
 }
 
 /** Every shape as one path, so the SVG binds a single element kind. */
@@ -158,6 +170,8 @@ interface LayerGroup {
   readonly tiltDeg: number;
   readonly strokeWidthScale: number;
   readonly zoom: number;
+  /** What the group's layers are clipped to; the frame's are not clipped. */
+  readonly clipPath: string | null;
 }
 
 /** A scale about the glyph's centre as one matrix: `zoom` 0 0 `zoom` and the shift that keeps the centre put. */
@@ -182,6 +196,7 @@ function layerViews(group: LayerGroup, gradients: GlyphGradientView[]): readonly
     return {
       d: shapePathData(layer.shape),
       transform: transformFor(layer, group),
+      clipPath: group.clipPath,
       ...fillView(layer.fill, gradient),
       ...strokeView(layer.stroke, group.strokeWidthScale),
       ...motionView(layer.motion),
@@ -190,13 +205,19 @@ function layerViews(group: LayerGroup, gradients: GlyphGradientView[]): readonly
 }
 
 /** The glyph's layers at a LOD: `list` keeps the silhouette and signature, never the interior detail. */
-export function layersAtLod(glyph: TraitGlyph, lod: TraitGlyphLod): readonly GlyphLayer[] {
-  return lod === TRAIT_GLYPH_LOD.card ? glyph.layers : glyph.layers.filter((layer) => layer.role !== GLYPH_ROLE.detail);
+export function layersAtLod(glyph: GlyphDrawing, lod: GlyphLod): readonly GlyphLayer[] {
+  return lod === GLYPH_LOD.card ? glyph.layers : glyph.layers.filter((layer) => layer.role !== GLYPH_ROLE.detail);
 }
 
 /** One drawing of `glyph`: `idPrefix` must be unique in the document, since gradient ids are global. */
-export function traitGlyphView(glyph: TraitGlyph, lod: TraitGlyphLod, idPrefix: string): TraitGlyphView {
+export function glyphView(glyph: GlyphDrawing, lod: GlyphLod, idPrefix: string): GlyphView {
   const gradients: GlyphGradientView[] = [];
+  const clip: GlyphClipView = {
+    id: `${idPrefix}-clip`,
+    cx: GLYPH_CENTRE,
+    cy: GLYPH_CENTRE,
+    radius: GLYPH_FRAME.radius,
+  };
   const frame = layerViews(
     {
       layers: GLYPH_FRAME_LAYERS,
@@ -204,15 +225,23 @@ export function traitGlyphView(glyph: TraitGlyph, lod: TraitGlyphLod, idPrefix: 
       tiltDeg: GLYPH_NO_TILT,
       strokeWidthScale: UNSCALED,
       zoom: UNSCALED,
+      clipPath: null,
     },
     gradients,
   );
-  const isList = lod === TRAIT_GLYPH_LOD.list;
+  const isList = lod === GLYPH_LOD.list;
   const strokeWidthScale = isList ? GLYPH_LIST_STROKE_BOOST : UNSCALED;
   const zoom = isList ? GLYPH_LIST_ZOOM : UNSCALED;
   const layers = layerViews(
-    { layers: layersAtLod(glyph, lod), idPrefix, tiltDeg: glyph.tiltDeg, strokeWidthScale, zoom },
+    {
+      layers: layersAtLod(glyph, lod),
+      idPrefix,
+      tiltDeg: glyph.tiltDeg,
+      strokeWidthScale,
+      zoom,
+      clipPath: `url(#${clip.id})`,
+    },
     gradients,
   );
-  return { layers: [...frame, ...layers], gradients };
+  return { layers: [...frame, ...layers], gradients, clip };
 }

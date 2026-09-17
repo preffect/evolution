@@ -8,7 +8,7 @@ import {
 } from '../render/constants/trait-glyph-layers';
 import { GLYPH_ROLE, circle, ellipse, path } from '../render/svg-glyph';
 import { TRAIT_GLYPHS } from './trait-glyphs';
-import { GLYPH_LINE_CAP, TRAIT_GLYPH_LOD, shapePathData, traitGlyphView } from './trait-glyph-view';
+import { GLYPH_LINE_CAP, GLYPH_LOD, shapePathData, glyphView } from './glyph-view';
 
 const MITOCHONDRION = TRAIT_GLYPHS.mitochondrion;
 
@@ -20,8 +20,8 @@ describe('shapePathData', () => {
   });
 });
 
-describe('traitGlyphView', () => {
-  const view = traitGlyphView(MITOCHONDRION, TRAIT_GLYPH_LOD.card, 'drawing-a');
+describe('glyphView', () => {
+  const view = glyphView(MITOCHONDRION, GLYPH_LOD.card, 'drawing-a');
 
   it('draws the frame first, untilted, then every glyph layer tilted about the centre', () => {
     expect(view.layers).toHaveLength(GLYPH_FRAME_LAYERS.length + MITOCHONDRION.layers.length);
@@ -63,14 +63,14 @@ describe('traitGlyphView', () => {
   });
 
   it('drops the interior detail at the list LOD and keeps the frame', () => {
-    const list = traitGlyphView(MITOCHONDRION, TRAIT_GLYPH_LOD.list, 'drawing-b');
+    const list = glyphView(MITOCHONDRION, GLYPH_LOD.list, 'drawing-b');
     const detailCount = MITOCHONDRION.layers.filter((layer) => layer.role === GLYPH_ROLE.detail).length;
     expect(detailCount).toBeGreaterThan(0);
     expect(list.layers).toHaveLength(view.layers.length - detailCount);
   });
 
   it('enlarges the glyph about its centre at the list LOD, after its tilt, and never the frame', () => {
-    const list = traitGlyphView(MITOCHONDRION, TRAIT_GLYPH_LOD.list, 'drawing-e');
+    const list = glyphView(MITOCHONDRION, GLYPH_LOD.list, 'drawing-e');
     const shift = (1 - GLYPH_LIST_ZOOM) * 50;
     expect(list.layers[0]?.transform).toBeNull();
     expect(list.layers.at(-1)?.transform).toBe(
@@ -79,7 +79,7 @@ describe('traitGlyphView', () => {
   });
 
   it('ends dashed strokes square so their gaps stay open, and every other stroke round', () => {
-    const envelope = traitGlyphView(TRAIT_GLYPHS.nuclear_envelope, TRAIT_GLYPH_LOD.list, 'drawing-f');
+    const envelope = glyphView(TRAIT_GLYPHS.nuclear_envelope, GLYPH_LOD.list, 'drawing-f');
     const dashed = envelope.layers.filter((layer) => layer.dash !== null);
     expect(dashed.length).toBeGreaterThan(0);
     expect(dashed.every((layer) => layer.lineCap === GLYPH_LINE_CAP.butt)).toBe(true);
@@ -89,8 +89,8 @@ describe('traitGlyphView', () => {
   });
 
   it('thickens the glyph strokes at the list LOD and leaves the frame rim alone', () => {
-    const list = traitGlyphView(TRAIT_GLYPHS.cilia, TRAIT_GLYPH_LOD.list, 'drawing-c');
-    const full = traitGlyphView(TRAIT_GLYPHS.cilia, TRAIT_GLYPH_LOD.card, 'drawing-d');
+    const list = glyphView(TRAIT_GLYPHS.cilia, GLYPH_LOD.list, 'drawing-c');
+    const full = glyphView(TRAIT_GLYPHS.cilia, GLYPH_LOD.card, 'drawing-d');
     expect(list.layers[0]?.strokeWidth).toBe(full.layers[0]?.strokeWidth);
     const hairs = TRAIT_GLYPHS.cilia.layers.findIndex((layer) => layer.role === GLYPH_ROLE.signature);
     const index = GLYPH_FRAME_LAYERS.length + hairs;

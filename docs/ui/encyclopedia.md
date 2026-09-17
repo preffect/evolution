@@ -112,7 +112,8 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
   entries, `UI_RAIL_ROW_HEIGHT_PX` tall: a 16 px category icon, the label (`body`), the entry count (`figure`).
 - **List** (`ENCYCLOPEDIA_LIST_WIDTH_PX`): the label and count (`label`), then the category's groups, each a kit list
   section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion** (`UI_ROW_MEDALLION_PX`): a trait's glyph (`<app-trait-glyph [traitId] lod="list" still>` at `TRAIT_GLYPH_LIST_PX`, #312), otherwise the subject's code-drawn
-  glyph from `game/glyphs/subject-glyphs.ts` (a small drawing of the cell, mote, rod, fragment or zone). Then the title
+  glyph (`<app-subject-glyph [entryId] lod="list" still>`, #391: a small drawing of the cell, mote, rod, fragment,
+  zone or topic, visual-style/ui-type.md §7.2). Then the title
   (`body`, one line, ending in an ellipsis when it does not fit) and, in a round, a level-gold tier chip on owned
   traits.
 - **Detail** (the rest): the entry page (§11.4) when an entry is selected, else the category landing: the breadcrumb,

@@ -155,7 +155,7 @@ describe('AffectingPanelComponent', () => {
       `[data-row-id="${affectingTraitTestId(MITOCHONDRION)}"]`,
     );
     expect(row).not.toBeNull();
-    const glyph = row?.querySelector(`app-trait-glyph svg[data-trait-id="${MITOCHONDRION}"]`);
+    const glyph = row?.querySelector(`app-trait-glyph[data-trait-id="${MITOCHONDRION}"] svg`);
     expect(glyph).not.toBeNull();
     // Presence alone is a false green: `TraitGlyphComponent` fills its host and leaves the sizing to the caller,
     // so before the panel gave it a box it sat at 0 x 0 inside the kit's shrink-to-content marker cell and drew

@@ -4,6 +4,14 @@
 // `render/constants/trait-glyphs-*.ts` are written in; `game/glyphs/trait-glyph.component.ts` is the one renderer.
 
 import { RADIANS_PER_FULL_TURN, type TraitId } from '@evolution/shared';
+import type { ENTRY_SUBJECT, EntryId, EntryIdOf } from '../encyclopedia/model/entry-id';
+
+/**
+ * Every encyclopedia entry that is no trait: what `subject-glyphs.ts` draws, the traits being `trait-glyphs.ts`'s.
+ * A type-only import of the model's ids is all a glyph ever takes from `encyclopedia/` (ui-type.md §7.2), so the
+ * drawings stay a leaf both the HUD and the encyclopedia can read.
+ */
+export type SubjectEntryId = Exclude<EntryId, EntryIdOf<typeof ENTRY_SUBJECT.trait>>;
 
 /** Path coordinates keep two decimals: a hundredth of a unit is below a pixel at every glyph size. */
 const PATH_DECIMALS = 2;
@@ -80,12 +88,22 @@ export interface GlyphLayer {
   readonly offset?: { readonly x: number; readonly y: number };
 }
 
-export interface TraitGlyph {
-  /** The trait this glyph names: the tables are lists, since trait ids are snake_case and never object keys. */
-  readonly traitId: TraitId;
+/** One drawing, whatever it names: the layer stack and the angle it lies at. `glyphs/glyph-view.ts` draws it. */
+export interface GlyphDrawing {
   /** The whole drawing turns this far about the centre: a bean or a slipper lies at an angle, not flat. */
   readonly tiltDeg: number;
   readonly layers: readonly GlyphLayer[];
+}
+
+export interface TraitGlyph extends GlyphDrawing {
+  /** The trait this glyph names: the tables are lists, since trait ids are snake_case and never object keys. */
+  readonly traitId: TraitId;
+}
+
+/** The glyph of an encyclopedia subject that is no trait (docs/visual-style/ui-type.md §7.2). */
+export interface SubjectGlyph extends GlyphDrawing {
+  /** The entry this glyph names; the tables are lists, since entry ids are never object keys. */
+  readonly entryId: SubjectEntryId;
 }
 
 export function circle(centreX: number, centreY: number, radius: number): GlyphShape {
@@ -100,15 +118,16 @@ export function path(pathData: string): GlyphShape {
   return { kind: 'path', d: pathData };
 }
 
-type Point = readonly [number, number];
+export type Point = readonly [number, number];
 
 /** A point `radius` from `centre` at `turns` of a full turn clockwise from 3 o'clock. */
-function polar(centre: Point, radius: number, turns: number): Point {
+export function polar(centre: Point, radius: number, turns: number): Point {
   const angle = turns * RADIANS_PER_FULL_TURN;
   return [centre[0] + radius * Math.cos(angle), centre[1] + radius * Math.sin(angle)];
 }
 
-function formatPoint([x, y]: Point): string {
+/** A point as path data: two decimals, a hundredth of a unit being below a pixel at every glyph size. */
+export function formatPoint([x, y]: Point): string {
   return `${x.toFixed(PATH_DECIMALS)} ${y.toFixed(PATH_DECIMALS)}`;
 }
 

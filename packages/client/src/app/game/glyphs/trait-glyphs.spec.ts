@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TRAIT_CATALOG, type TraitId } from '@evolution/shared';
 import * as COLOURS from '../render/constants/colours';
 import { GLYPH_MOTION, GLYPH_ROLE, type GlyphLayer, type TraitGlyph } from '../render/svg-glyph';
-import { TRAIT_GLYPH_LOD, layersAtLod } from './trait-glyph-view';
+import { GLYPH_LOD, layersAtLod } from './glyph-view';
 import { TRAIT_GLYPHS } from './trait-glyphs';
 
 const PALETTE = new Set<string>(
@@ -64,7 +64,7 @@ describe('TRAIT_GLYPHS', () => {
   });
 
   it.each(CATALOG_IDS)('%s keeps its silhouette, signature and glint at the list LOD', (traitId) => {
-    const roles = new Set(layersAtLod(glyphOf(traitId), TRAIT_GLYPH_LOD.list).map((layer) => layer.role));
+    const roles = new Set(layersAtLod(glyphOf(traitId), GLYPH_LOD.list).map((layer) => layer.role));
     expect(roles.has(GLYPH_ROLE.detail)).toBe(false);
     expect([GLYPH_ROLE.body, GLYPH_ROLE.signature, GLYPH_ROLE.glint].every((role) => roles.has(role))).toBe(true);
   });
