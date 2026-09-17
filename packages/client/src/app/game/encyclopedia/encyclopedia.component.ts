@@ -9,7 +9,7 @@
 // The keyboard *model* — the `/` and `Alt+←` bindings, the Tab regions, the Escape order — is #449. What this file
 // owes that slice is only that every control here is reachable and carries its test id.
 
-import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { UiButtonComponent } from '../../ui-kit/ui-button.component';
 import { UiFocusTrapDirective } from '../../ui-kit/ui-focus-trap.directive';
 import { UiKeyHintComponent } from '../../ui-kit/ui-key-hint.component';
@@ -24,6 +24,7 @@ import { EncyclopediaRailComponent } from './encyclopedia-rail.component';
 import { EncyclopediaIconComponent } from './encyclopedia-icon.component';
 import { ENCYCLOPEDIA_BACK_ICON, ENCYCLOPEDIA_CLOSE_ICON } from './encyclopedia-icons';
 import {
+  ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA,
   ENCYCLOPEDIA_SCRIM_ALPHA,
   ENCYCLOPEDIA_SEARCH_PLACEHOLDER,
   ENCYCLOPEDIA_TITLE,
@@ -63,7 +64,7 @@ const CLOSE_KEY_HINT = 'Escape';
   host: { '[style]': 'styleVariables' },
   template: `
     <div class="layer" uiSurface>
-      <ui-scrim [alpha]="scrimAlpha" />
+      <ui-scrim [alpha]="scrimAlpha()" />
       <ui-panel
         class="panel"
         variant="modal"
@@ -128,9 +129,18 @@ export class EncyclopediaComponent {
   /** Close, or the alert strip's own press: the host decides where focus and the overlay state go (§11.1). */
   readonly closed = output<void>();
 
+  /**
+   * Whether a running dish is behind the panel. The room's host leaves it as it is and the scrim keeps the dish
+   * faintly visible; the lobby's host says no, and the scrim covers completely (§11.7). The panel cannot tell on its
+   * own — it is hosted, and knowing would mean reading the HUD it must not import (§12.8).
+   */
+  readonly isOverDish = input(true);
+
   protected readonly testId = ENCYCLOPEDIA_TEST_ID;
   protected readonly styleVariables = encyclopediaStyleVariables();
-  protected readonly scrimAlpha = ENCYCLOPEDIA_SCRIM_ALPHA;
+  protected readonly scrimAlpha = computed(() =>
+    this.isOverDish() ? ENCYCLOPEDIA_SCRIM_ALPHA : ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA,
+  );
   protected readonly panelTitle = ENCYCLOPEDIA_TITLE;
   protected readonly searchPlaceholder = ENCYCLOPEDIA_SEARCH_PLACEHOLDER;
   protected readonly searchKeyHint = SEARCH_KEY_HINT;

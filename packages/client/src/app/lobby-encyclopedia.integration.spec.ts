@@ -8,6 +8,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppComponent } from './app.component';
 import { expectTestId, queryByTestId } from '../testing/test-id-query';
+import { ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA } from './game/encyclopedia/encyclopedia-constants';
 import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
 import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
 
@@ -51,6 +52,14 @@ describe('the encyclopedia over the lobby (acceptance U11)', () => {
     fixture.detectChanges();
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia)).not.toBeNull();
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.alert)).toBeNull();
+  });
+
+  /** No dish behind it here, so nothing is worth keeping half-legible: the lobby's own header must not ghost through. */
+  it('covers the lobby completely, rather than leaving its header legible above the panel', () => {
+    lobbyButton().click();
+    fixture.detectChanges();
+    const scrim = root().querySelector<HTMLElement>('ui-scrim');
+    expect(scrim?.style.getPropertyValue('--ui-scrim-alpha')).toBe(String(ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA));
   });
 
   it('closes on Escape and puts focus back on the button that opened it', () => {

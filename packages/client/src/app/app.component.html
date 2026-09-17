@@ -123,6 +123,6 @@
     kit focus trap puts focus back on the button that opened it.
   -->
   @if (isEncyclopediaOpen()) {
-    <app-encyclopedia (closed)="closeEncyclopedia()" (keydown.escape)="closeEncyclopedia()" />
+    <app-encyclopedia [isOverDish]="false" (closed)="closeEncyclopedia()" (keydown.escape)="closeEncyclopedia()" />
   }
 }

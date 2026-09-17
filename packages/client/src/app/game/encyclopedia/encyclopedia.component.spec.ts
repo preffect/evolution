@@ -6,7 +6,7 @@ import { By } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiFocusTrapDirective } from '../../ui-kit/ui-focus-trap.directive';
 import { expectTestId, queryByTestId } from '../../../testing/test-id-query';
-import { ENCYCLOPEDIA_TITLE } from './encyclopedia-constants';
+import { ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA, ENCYCLOPEDIA_SCRIM_ALPHA, ENCYCLOPEDIA_TITLE } from './encyclopedia-constants';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { locationAttributeFor } from './format/panel-view';
@@ -120,6 +120,22 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
    */
   it('lays its columns edge to edge: the kit modal’s padding is overridden, not merely tied with', () => {
     expect(getComputedStyle(panel()).padding).toBe('0px');
+  });
+
+  /**
+   * §11.7 gives the scrim two values, and which one applies is the host's answer, not the panel's: in a round the
+   * dish keeps running faintly under it, and outside one there is nothing behind worth keeping half-legible.
+   */
+  it('keeps the dish faintly visible under it in a round', () => {
+    const scrim = root().querySelector<HTMLElement>('ui-scrim');
+    expect(scrim?.style.getPropertyValue('--ui-scrim-alpha')).toBe(String(ENCYCLOPEDIA_SCRIM_ALPHA));
+  });
+
+  it('covers completely when its host says no dish is behind it', () => {
+    fixture.componentRef.setInput('isOverDish', false);
+    fixture.detectChanges();
+    const scrim = root().querySelector<HTMLElement>('ui-scrim');
+    expect(scrim?.style.getPropertyValue('--ui-scrim-alpha')).toBe(String(ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA));
   });
 
   it('draws no alert strip of its own: a host with no strip to project leaves the header without one', () => {

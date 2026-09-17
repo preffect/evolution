@@ -31,8 +31,15 @@ export const ENCYCLOPEDIA_TILE_WIDTH_PX = 168;
 export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 132;
 export const ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX = 96;
 
-/** The callout-backing scrim behind the panel in a round. */
+/** The callout-backing scrim behind the panel in a round: the dish keeps running, faintly, under it. */
 export const ENCYCLOPEDIA_SCRIM_ALPHA = 0.8;
+
+/**
+ * The same scrim outside a round (docs/ui/encyclopedia.md §11.7). There is no dish to keep behind the panel there,
+ * only the lobby's own chrome, and a header half-legible in the 32 px band above the panel reads as a bug rather
+ * than as depth — so the lobby's scrim covers completely.
+ */
+export const ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA = 1;
 
 /** The panel's own name, on the header and as the dialog's accessible name and first breadcrumb. */
 export const ENCYCLOPEDIA_TITLE = 'Encyclopedia';
