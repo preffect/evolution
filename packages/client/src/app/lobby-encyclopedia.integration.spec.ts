@@ -47,6 +47,25 @@ describe('the encyclopedia over the lobby (acceptance U11)', () => {
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia)).toBeNull();
   });
 
+  /**
+   * **The control is a plain `<button>`, and that is a decision rather than an omission** (#449, PR #463).
+   *
+   * `layout.md` §2 puts `lobby-encyclopedia` in a table whose own rule is "every control is a native `<input>`,
+   * `<select>` or `<button>`", and components-and-constants.md §10 says the lobby screens move onto the kit by their
+   * own ticket, **#464**. Until that lands, dressing this one control in `uiButton` makes it *worse*: a kit
+   * `secondary` button is `color: var(--ui-text)` over a `UI_SECONDARY_FILL_ALPHA` fill of the same colour — a light
+   * label for the dark panel gradient — and the lobby around it is `#1a1a1a` on white. The surface has to come first.
+   *
+   * So this guard exists to make a naive swap a deliberate act: whoever takes #464 changes this line **and** gives
+   * the lobby a kit ground, rather than discovering the contrast regression in a screenshot. Nothing here forbids the
+   * kit; `button[uiButton]` is itself a native `<button>` and would keep this assertion true — the second one is what
+   * a swap without a surface trips on.
+   */
+  it('is a native button on the lobby’s own surface, not a kit one on a ground that does not exist yet (#464)', () => {
+    expect(lobbyButton().tagName).toBe('BUTTON');
+    expect(lobbyButton().hasAttribute('data-variant')).toBe(false);
+  });
+
   it('opens the panel with no alert strip, since the lobby has no round to alert about', () => {
     lobbyButton().click();
     fixture.detectChanges();
