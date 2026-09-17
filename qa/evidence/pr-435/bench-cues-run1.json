@@ -1,1 +1,48 @@
-{"fps":73.50689137840985,"frameTimeAvgMs":13.604166646798452,"frameTimeP95Ms":18.579999852180478,"frameTimePeakMs":20.59999990463257,"renderStagesMs":{"net":3.1549997806549066,"camera":0.10000038146972656,"food":1.6550002574920648,"cells":5.78499972820282,"organelles":1.7800000667572005,"effects":2.4850000143051147,"submit":8.660000109672543},"heapMb":38.87696933746338,"gpuMs":null,"drawCalls":13,"visibleCells":66,"visibleMotes":1400,"seed":42,"tick":120,"zoom":1,"frames":24,"isTickAdvancing":false,"heapGrowthBytesPerFrame":267106.8333333333,"gpuStatus":"implausible","verdict":{"isWithinBudget":false,"isFullyJudged":false,"overruns":[{"name":"net","measured":3.1549997806549066,"budget":1},{"name":"camera","measured":0.10000038146972656,"budget":0.1},{"name":"food","measured":1.6550002574920648,"budget":0.6},{"name":"cells","measured":5.78499972820282,"budget":1.2},{"name":"organelles","measured":1.7800000667572005,"budget":1},{"name":"effects","measured":2.4850000143051147,"budget":0.3},{"name":"submit","measured":8.660000109672543,"budget":1},{"name":"frame","measured":18.579999852180478,"budget":12},{"name":"hud","measured":1.5800002574920637,"budget":1}],"unjudged":["gpu"],"stagesTotalMs":23.620000338554377,"residualP95Ms":1.5800002574920637,"derivedResidualMs":-5.0400004863738985,"sampleCount":24,"isP95Estimable":true}}
+{
+  "fps": 73.50689137840985,
+  "frameTimeAvgMs": 13.604166646798452,
+  "frameTimeP95Ms": 18.579999852180478,
+  "frameTimePeakMs": 20.59999990463257,
+  "renderStagesMs": {
+    "net": 3.1549997806549066,
+    "camera": 0.10000038146972656,
+    "food": 1.6550002574920648,
+    "cells": 5.78499972820282,
+    "organelles": 1.7800000667572005,
+    "effects": 2.4850000143051147,
+    "submit": 8.660000109672543
+  },
+  "heapMb": 38.87696933746338,
+  "gpuMs": null,
+  "drawCalls": 13,
+  "visibleCells": 66,
+  "visibleMotes": 1400,
+  "seed": 42,
+  "tick": 120,
+  "zoom": 1,
+  "frames": 24,
+  "isTickAdvancing": false,
+  "heapGrowthBytesPerFrame": 267106.8333333333,
+  "gpuStatus": "implausible",
+  "verdict": {
+    "isWithinBudget": false,
+    "isFullyJudged": false,
+    "overruns": [
+      { "name": "net", "measured": 3.1549997806549066, "budget": 1 },
+      { "name": "camera", "measured": 0.10000038146972656, "budget": 0.1 },
+      { "name": "food", "measured": 1.6550002574920648, "budget": 0.6 },
+      { "name": "cells", "measured": 5.78499972820282, "budget": 1.2 },
+      { "name": "organelles", "measured": 1.7800000667572005, "budget": 1 },
+      { "name": "effects", "measured": 2.4850000143051147, "budget": 0.3 },
+      { "name": "submit", "measured": 8.660000109672543, "budget": 1 },
+      { "name": "frame", "measured": 18.579999852180478, "budget": 12 },
+      { "name": "hud", "measured": 1.5800002574920637, "budget": 1 }
+    ],
+    "unjudged": ["gpu"],
+    "stagesTotalMs": 23.620000338554377,
+    "residualP95Ms": 1.5800002574920637,
+    "derivedResidualMs": -5.0400004863738985,
+    "sampleCount": 24,
+    "isP95Estimable": true
+  }
+}

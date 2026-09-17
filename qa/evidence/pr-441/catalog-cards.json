@@ -6,9 +6,7 @@
     "name": "Nucleoid Coil",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "+5 % DNA"
-    ]
+    "effects": ["+5 % DNA"]
   },
   {
     "traitId": "nucleoid",
@@ -17,9 +15,7 @@
     "name": "Nucleoid Coil",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "+10 % DNA"
-    ]
+    "effects": ["+10 % DNA"]
   },
   {
     "traitId": "nucleoid",
@@ -28,9 +24,7 @@
     "name": "Nucleoid Coil",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "+10 % DNA"
-    ]
+    "effects": ["+10 % DNA"]
   },
   {
     "traitId": "nucleoid",
@@ -39,9 +33,7 @@
     "name": "Nucleoid Coil",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "+15 % DNA"
-    ]
+    "effects": ["+15 % DNA"]
   },
   {
     "traitId": "nucleoid",
@@ -50,9 +42,7 @@
     "name": "Nucleoid Coil",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "+15 % DNA"
-    ]
+    "effects": ["+15 % DNA"]
   },
   {
     "traitId": "simple_flagellum",
@@ -61,11 +51,7 @@
     "name": "Simple Flagellum",
     "category": "locomotion",
     "rarity": "uncommon",
-    "effects": [
-      "+5 % speed",
-      "+30 % sprint speed",
-      "−0.5 s sprint cooldown"
-    ]
+    "effects": ["+5 % speed", "+30 % sprint speed", "−0.5 s sprint cooldown"]
   },
   {
     "traitId": "simple_flagellum",
@@ -74,11 +60,7 @@
     "name": "Simple Flagellum",
     "category": "locomotion",
     "rarity": "uncommon",
-    "effects": [
-      "+5 % speed",
-      "+60 % sprint speed",
-      "−1 s sprint cooldown"
-    ]
+    "effects": ["+5 % speed", "+60 % sprint speed", "−1 s sprint cooldown"]
   },
   {
     "traitId": "simple_flagellum",
@@ -87,11 +69,7 @@
     "name": "Simple Flagellum",
     "category": "locomotion",
     "rarity": "uncommon",
-    "effects": [
-      "+5 % speed",
-      "+60 % sprint speed",
-      "−1 s sprint cooldown"
-    ]
+    "effects": ["+5 % speed", "+60 % sprint speed", "−1 s sprint cooldown"]
   },
   {
     "traitId": "simple_flagellum",
@@ -100,11 +78,7 @@
     "name": "Simple Flagellum",
     "category": "locomotion",
     "rarity": "uncommon",
-    "effects": [
-      "+5 % speed",
-      "+90 % sprint speed",
-      "−1.5 s sprint cooldown"
-    ]
+    "effects": ["+5 % speed", "+90 % sprint speed", "−1.5 s sprint cooldown"]
   },
   {
     "traitId": "simple_flagellum",
@@ -113,11 +87,7 @@
     "name": "Simple Flagellum",
     "category": "locomotion",
     "rarity": "uncommon",
-    "effects": [
-      "+5 % speed",
-      "+90 % sprint speed",
-      "−1.5 s sprint cooldown"
-    ]
+    "effects": ["+5 % speed", "+90 % sprint speed", "−1.5 s sprint cooldown"]
   },
   {
     "traitId": "cell_wall",
@@ -126,11 +96,7 @@
     "name": "Cell Wall",
     "category": "membrane",
     "rarity": "common",
-    "effects": [
-      "+15 % harder to engulf",
-      "+20 % time to absorb you",
-      "−5 % speed"
-    ]
+    "effects": ["+15 % harder to engulf", "+20 % time to absorb you", "−5 % speed"]
   },
   {
     "traitId": "cell_wall",
@@ -139,11 +105,7 @@
     "name": "Cell Wall",
     "category": "membrane",
     "rarity": "common",
-    "effects": [
-      "+30 % harder to engulf",
-      "+40 % time to absorb you",
-      "−10 % speed"
-    ]
+    "effects": ["+30 % harder to engulf", "+40 % time to absorb you", "−10 % speed"]
   },
   {
     "traitId": "cell_wall",
@@ -152,11 +114,7 @@
     "name": "Cell Wall",
     "category": "membrane",
     "rarity": "common",
-    "effects": [
-      "+30 % harder to engulf",
-      "+40 % time to absorb you",
-      "−10 % speed"
-    ]
+    "effects": ["+30 % harder to engulf", "+40 % time to absorb you", "−10 % speed"]
   },
   {
     "traitId": "cell_wall",
@@ -165,11 +123,7 @@
     "name": "Cell Wall",
     "category": "membrane",
     "rarity": "common",
-    "effects": [
-      "+45 % harder to engulf",
-      "+60 % time to absorb you",
-      "−15 % speed"
-    ]
+    "effects": ["+45 % harder to engulf", "+60 % time to absorb you", "−15 % speed"]
   },
   {
     "traitId": "cell_wall",
@@ -178,11 +132,7 @@
     "name": "Cell Wall",
     "category": "membrane",
     "rarity": "common",
-    "effects": [
-      "+45 % harder to engulf",
-      "+60 % time to absorb you",
-      "−15 % speed"
-    ]
+    "effects": ["+45 % harder to engulf", "+60 % time to absorb you", "−15 % speed"]
   },
   {
     "traitId": "ribosomes",
@@ -191,9 +141,7 @@
     "name": "Ribosome Studs",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+10 % digestion"
-    ]
+    "effects": ["+10 % digestion"]
   },
   {
     "traitId": "ribosomes",
@@ -202,9 +150,7 @@
     "name": "Ribosome Studs",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+20 % digestion"
-    ]
+    "effects": ["+20 % digestion"]
   },
   {
     "traitId": "ribosomes",
@@ -213,9 +159,7 @@
     "name": "Ribosome Studs",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+20 % digestion"
-    ]
+    "effects": ["+20 % digestion"]
   },
   {
     "traitId": "ribosomes",
@@ -224,9 +168,7 @@
     "name": "Ribosome Studs",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+30 % digestion"
-    ]
+    "effects": ["+30 % digestion"]
   },
   {
     "traitId": "ribosomes",
@@ -235,9 +177,7 @@
     "name": "Ribosome Studs",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+30 % digestion"
-    ]
+    "effects": ["+30 % digestion"]
   },
   {
     "traitId": "mitochondrion",
@@ -246,10 +186,7 @@
     "name": "Mitochondrion",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "−15 % mass decay",
-      "+10 % sprint speed"
-    ]
+    "effects": ["−15 % mass decay", "+10 % sprint speed"]
   },
   {
     "traitId": "mitochondrion",
@@ -258,10 +195,7 @@
     "name": "Mitochondrion",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "−30 % mass decay",
-      "+20 % sprint speed"
-    ]
+    "effects": ["−30 % mass decay", "+20 % sprint speed"]
   },
   {
     "traitId": "mitochondrion",
@@ -270,10 +204,7 @@
     "name": "Mitochondrion",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "−30 % mass decay",
-      "+20 % sprint speed"
-    ]
+    "effects": ["−30 % mass decay", "+20 % sprint speed"]
   },
   {
     "traitId": "mitochondrion",
@@ -282,10 +213,7 @@
     "name": "Mitochondrion",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "−45 % mass decay",
-      "+30 % sprint speed"
-    ]
+    "effects": ["−45 % mass decay", "+30 % sprint speed"]
   },
   {
     "traitId": "mitochondrion",
@@ -294,10 +222,7 @@
     "name": "Mitochondrion",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "−45 % mass decay",
-      "+30 % sprint speed"
-    ]
+    "effects": ["−45 % mass decay", "+30 % sprint speed"]
   },
   {
     "traitId": "chloroplast",
@@ -306,10 +231,7 @@
     "name": "Chloroplast",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+0.3 mass / s in sunlight",
-      "−10 % mass decay"
-    ]
+    "effects": ["+0.3 mass / s in sunlight", "−10 % mass decay"]
   },
   {
     "traitId": "chloroplast",
@@ -318,10 +240,7 @@
     "name": "Chloroplast",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+0.6 mass / s in sunlight",
-      "−20 % mass decay"
-    ]
+    "effects": ["+0.6 mass / s in sunlight", "−20 % mass decay"]
   },
   {
     "traitId": "chloroplast",
@@ -330,10 +249,7 @@
     "name": "Chloroplast",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+0.6 mass / s in sunlight",
-      "−20 % mass decay"
-    ]
+    "effects": ["+0.6 mass / s in sunlight", "−20 % mass decay"]
   },
   {
     "traitId": "chloroplast",
@@ -342,10 +258,7 @@
     "name": "Chloroplast",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+0.9 mass / s in sunlight",
-      "−30 % mass decay"
-    ]
+    "effects": ["+0.9 mass / s in sunlight", "−30 % mass decay"]
   },
   {
     "traitId": "chloroplast",
@@ -354,10 +267,7 @@
     "name": "Chloroplast",
     "category": "metabolism",
     "rarity": "common",
-    "effects": [
-      "+0.9 mass / s in sunlight",
-      "−30 % mass decay"
-    ]
+    "effects": ["+0.9 mass / s in sunlight", "−30 % mass decay"]
   },
   {
     "traitId": "nuclear_envelope",
@@ -366,9 +276,7 @@
     "name": "Nuclear Envelope",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "Keeps 25 % DNA on death"
-    ]
+    "effects": ["Keeps 25 % DNA on death"]
   },
   {
     "traitId": "nuclear_envelope",
@@ -377,9 +285,7 @@
     "name": "Nuclear Envelope",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "Keeps 50 % DNA on death"
-    ]
+    "effects": ["Keeps 50 % DNA on death"]
   },
   {
     "traitId": "nuclear_envelope",
@@ -388,9 +294,7 @@
     "name": "Nuclear Envelope",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "Keeps 50 % DNA on death"
-    ]
+    "effects": ["Keeps 50 % DNA on death"]
   },
   {
     "traitId": "nuclear_envelope",
@@ -399,9 +303,7 @@
     "name": "Nuclear Envelope",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "Keeps 75 % DNA on death"
-    ]
+    "effects": ["Keeps 75 % DNA on death"]
   },
   {
     "traitId": "nuclear_envelope",
@@ -410,9 +312,7 @@
     "name": "Nuclear Envelope",
     "category": "genome",
     "rarity": "common",
-    "effects": [
-      "Keeps 75 % DNA on death"
-    ]
+    "effects": ["Keeps 75 % DNA on death"]
   },
   {
     "traitId": "cytoskeleton",
@@ -421,10 +321,7 @@
     "name": "Cytoskeleton Lattice",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+18 % acceleration",
-      "+10 % struggle"
-    ]
+    "effects": ["+18 % acceleration", "+10 % struggle"]
   },
   {
     "traitId": "cytoskeleton",
@@ -433,10 +330,7 @@
     "name": "Cytoskeleton Lattice",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+39 % acceleration",
-      "+20 % struggle"
-    ]
+    "effects": ["+39 % acceleration", "+20 % struggle"]
   },
   {
     "traitId": "cytoskeleton",
@@ -445,10 +339,7 @@
     "name": "Cytoskeleton Lattice",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+39 % acceleration",
-      "+20 % struggle"
-    ]
+    "effects": ["+39 % acceleration", "+20 % struggle"]
   },
   {
     "traitId": "cytoskeleton",
@@ -457,10 +348,7 @@
     "name": "Cytoskeleton Lattice",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+64 % acceleration",
-      "+30 % struggle"
-    ]
+    "effects": ["+64 % acceleration", "+30 % struggle"]
   },
   {
     "traitId": "cytoskeleton",
@@ -469,10 +357,7 @@
     "name": "Cytoskeleton Lattice",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+64 % acceleration",
-      "+30 % struggle"
-    ]
+    "effects": ["+64 % acceleration", "+30 % struggle"]
   },
   {
     "traitId": "cilia",
@@ -481,10 +366,7 @@
     "name": "Cilia Fringe",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+10 % speed",
-      "+5 % grip resistance"
-    ]
+    "effects": ["+10 % speed", "+5 % grip resistance"]
   },
   {
     "traitId": "cilia",
@@ -493,10 +375,7 @@
     "name": "Cilia Fringe",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+20 % speed",
-      "+10 % grip resistance"
-    ]
+    "effects": ["+20 % speed", "+10 % grip resistance"]
   },
   {
     "traitId": "cilia",
@@ -505,10 +384,7 @@
     "name": "Cilia Fringe",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+20 % speed",
-      "+10 % grip resistance"
-    ]
+    "effects": ["+20 % speed", "+10 % grip resistance"]
   },
   {
     "traitId": "cilia",
@@ -517,10 +393,7 @@
     "name": "Cilia Fringe",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+30 % speed",
-      "+15 % grip resistance"
-    ]
+    "effects": ["+30 % speed", "+15 % grip resistance"]
   },
   {
     "traitId": "cilia",
@@ -529,10 +402,7 @@
     "name": "Cilia Fringe",
     "category": "locomotion",
     "rarity": "common",
-    "effects": [
-      "+30 % speed",
-      "+15 % grip resistance"
-    ]
+    "effects": ["+30 % speed", "+15 % grip resistance"]
   },
   {
     "traitId": "food_vacuole",
@@ -541,10 +411,7 @@
     "name": "Food Vacuole",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "+25 % absorb speed",
-      "+5 % mass from engulfs"
-    ]
+    "effects": ["+25 % absorb speed", "+5 % mass from engulfs"]
   },
   {
     "traitId": "food_vacuole",
@@ -553,10 +420,7 @@
     "name": "Food Vacuole",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "+56 % absorb speed",
-      "+10 % mass from engulfs"
-    ]
+    "effects": ["+56 % absorb speed", "+10 % mass from engulfs"]
   },
   {
     "traitId": "food_vacuole",
@@ -565,10 +429,7 @@
     "name": "Food Vacuole",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "+56 % absorb speed",
-      "+10 % mass from engulfs"
-    ]
+    "effects": ["+56 % absorb speed", "+10 % mass from engulfs"]
   },
   {
     "traitId": "food_vacuole",
@@ -577,10 +438,7 @@
     "name": "Food Vacuole",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "+96 % absorb speed",
-      "+15 % mass from engulfs"
-    ]
+    "effects": ["+96 % absorb speed", "+15 % mass from engulfs"]
   },
   {
     "traitId": "food_vacuole",
@@ -589,10 +447,7 @@
     "name": "Food Vacuole",
     "category": "metabolism",
     "rarity": "uncommon",
-    "effects": [
-      "+96 % absorb speed",
-      "+15 % mass from engulfs"
-    ]
+    "effects": ["+96 % absorb speed", "+15 % mass from engulfs"]
   },
   {
     "traitId": "toxin_vacuole",
@@ -601,9 +456,7 @@
     "name": "Toxin Vacuole",
     "category": "offense",
     "rarity": "rare",
-    "effects": [
-      "Toxin drains 3 % / s"
-    ]
+    "effects": ["Toxin drains 3 % / s"]
   },
   {
     "traitId": "toxin_vacuole",
@@ -612,9 +465,7 @@
     "name": "Toxin Vacuole",
     "category": "offense",
     "rarity": "rare",
-    "effects": [
-      "Toxin drains 5 % / s"
-    ]
+    "effects": ["Toxin drains 5 % / s"]
   },
   {
     "traitId": "toxin_vacuole",
@@ -623,9 +474,7 @@
     "name": "Toxin Vacuole",
     "category": "offense",
     "rarity": "rare",
-    "effects": [
-      "Toxin drains 5 % / s"
-    ]
+    "effects": ["Toxin drains 5 % / s"]
   },
   {
     "traitId": "toxin_vacuole",
@@ -634,9 +483,7 @@
     "name": "Toxin Vacuole",
     "category": "offense",
     "rarity": "rare",
-    "effects": [
-      "Toxin drains 7 % / s"
-    ]
+    "effects": ["Toxin drains 7 % / s"]
   },
   {
     "traitId": "toxin_vacuole",
@@ -645,9 +492,7 @@
     "name": "Toxin Vacuole",
     "category": "offense",
     "rarity": "rare",
-    "effects": [
-      "Toxin drains 7 % / s"
-    ]
+    "effects": ["Toxin drains 7 % / s"]
   },
   {
     "traitId": "amoeba_pseudopods",
@@ -656,11 +501,7 @@
     "name": "Amoeba Pseudopods",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "Gel slows you to no less than 60 %",
-      "+18 % wrap speed",
-      "+10 % grip on prey"
-    ]
+    "effects": ["Gel slows you to no less than 60 %", "+18 % wrap speed", "+10 % grip on prey"]
   },
   {
     "traitId": "amoeba_pseudopods",
@@ -669,11 +510,7 @@
     "name": "Amoeba Pseudopods",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "Gel slows you to no less than 80 %",
-      "+33 % wrap speed",
-      "+20 % grip on prey"
-    ]
+    "effects": ["Gel slows you to no less than 80 %", "+33 % wrap speed", "+20 % grip on prey"]
   },
   {
     "traitId": "amoeba_pseudopods",
@@ -682,11 +519,7 @@
     "name": "Amoeba Pseudopods",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "Gel slows you to no less than 80 %",
-      "+33 % wrap speed",
-      "+20 % grip on prey"
-    ]
+    "effects": ["Gel slows you to no less than 80 %", "+33 % wrap speed", "+20 % grip on prey"]
   },
   {
     "traitId": "amoeba_pseudopods",
@@ -695,11 +528,7 @@
     "name": "Amoeba Pseudopods",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "Gel no longer slows you",
-      "+54 % wrap speed",
-      "+30 % grip on prey"
-    ]
+    "effects": ["Gel no longer slows you", "+54 % wrap speed", "+30 % grip on prey"]
   },
   {
     "traitId": "amoeba_pseudopods",
@@ -708,11 +537,7 @@
     "name": "Amoeba Pseudopods",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "Gel no longer slows you",
-      "+54 % wrap speed",
-      "+30 % grip on prey"
-    ]
+    "effects": ["Gel no longer slows you", "+54 % wrap speed", "+30 % grip on prey"]
   },
   {
     "traitId": "paramecium_cilia",
@@ -721,11 +546,7 @@
     "name": "Paramecium Cilia",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+10 % speed",
-      "+11 % acceleration",
-      "+10 % struggle"
-    ]
+    "effects": ["+10 % speed", "+11 % acceleration", "+10 % struggle"]
   },
   {
     "traitId": "paramecium_cilia",
@@ -734,11 +555,7 @@
     "name": "Paramecium Cilia",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+15 % speed",
-      "+25 % acceleration",
-      "+15 % struggle"
-    ]
+    "effects": ["+15 % speed", "+25 % acceleration", "+15 % struggle"]
   },
   {
     "traitId": "paramecium_cilia",
@@ -747,11 +564,7 @@
     "name": "Paramecium Cilia",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+15 % speed",
-      "+25 % acceleration",
-      "+15 % struggle"
-    ]
+    "effects": ["+15 % speed", "+25 % acceleration", "+15 % struggle"]
   },
   {
     "traitId": "paramecium_cilia",
@@ -760,11 +573,7 @@
     "name": "Paramecium Cilia",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+20 % speed",
-      "+43 % acceleration",
-      "+20 % struggle"
-    ]
+    "effects": ["+20 % speed", "+43 % acceleration", "+20 % struggle"]
   },
   {
     "traitId": "paramecium_cilia",
@@ -773,11 +582,7 @@
     "name": "Paramecium Cilia",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+20 % speed",
-      "+43 % acceleration",
-      "+20 % struggle"
-    ]
+    "effects": ["+20 % speed", "+43 % acceleration", "+20 % struggle"]
   },
   {
     "traitId": "euglena_eyespot",
@@ -786,10 +591,7 @@
     "name": "Euglena Eyespot",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Pulls food from 3 radii",
-      "Food drifts in at 40 u/s"
-    ]
+    "effects": ["Pulls food from 3 radii", "Food drifts in at 40 u/s"]
   },
   {
     "traitId": "euglena_eyespot",
@@ -798,10 +600,7 @@
     "name": "Euglena Eyespot",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Pulls food from 4 radii",
-      "Food drifts in at 60 u/s"
-    ]
+    "effects": ["Pulls food from 4 radii", "Food drifts in at 60 u/s"]
   },
   {
     "traitId": "euglena_eyespot",
@@ -810,10 +609,7 @@
     "name": "Euglena Eyespot",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Pulls food from 4 radii",
-      "Food drifts in at 60 u/s"
-    ]
+    "effects": ["Pulls food from 4 radii", "Food drifts in at 60 u/s"]
   },
   {
     "traitId": "euglena_eyespot",
@@ -822,10 +618,7 @@
     "name": "Euglena Eyespot",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Pulls food from 5 radii",
-      "Food drifts in at 80 u/s"
-    ]
+    "effects": ["Pulls food from 5 radii", "Food drifts in at 80 u/s"]
   },
   {
     "traitId": "euglena_eyespot",
@@ -834,10 +627,7 @@
     "name": "Euglena Eyespot",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Pulls food from 5 radii",
-      "Food drifts in at 80 u/s"
-    ]
+    "effects": ["Pulls food from 5 radii", "Food drifts in at 80 u/s"]
   },
   {
     "traitId": "diatom_shell",
@@ -846,11 +636,7 @@
     "name": "Diatom Shell",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+40 % time to absorb you",
-      "Spines drain 2 % / s, spit out 40 % / s",
-      "−3 % speed"
-    ]
+    "effects": ["+40 % time to absorb you", "Spines drain 2 % / s, spit out 40 % / s", "−3 % speed"]
   },
   {
     "traitId": "diatom_shell",
@@ -859,11 +645,7 @@
     "name": "Diatom Shell",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+80 % time to absorb you",
-      "Spines drain 4 % / s, spit out 70 % / s",
-      "−6 % speed"
-    ]
+    "effects": ["+80 % time to absorb you", "Spines drain 4 % / s, spit out 70 % / s", "−6 % speed"]
   },
   {
     "traitId": "diatom_shell",
@@ -872,11 +654,7 @@
     "name": "Diatom Shell",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+80 % time to absorb you",
-      "Spines drain 4 % / s, spit out 70 % / s",
-      "−6 % speed"
-    ]
+    "effects": ["+80 % time to absorb you", "Spines drain 4 % / s, spit out 70 % / s", "−6 % speed"]
   },
   {
     "traitId": "diatom_shell",
@@ -885,11 +663,7 @@
     "name": "Diatom Shell",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+120 % time to absorb you",
-      "Spines drain 6 % / s, spit out 100 % / s",
-      "−9 % speed"
-    ]
+    "effects": ["+120 % time to absorb you", "Spines drain 6 % / s, spit out 100 % / s", "−9 % speed"]
   },
   {
     "traitId": "diatom_shell",
@@ -898,11 +672,7 @@
     "name": "Diatom Shell",
     "category": "form",
     "rarity": "uncommon",
-    "effects": [
-      "+120 % time to absorb you",
-      "Spines drain 6 % / s, spit out 100 % / s",
-      "−9 % speed"
-    ]
+    "effects": ["+120 % time to absorb you", "Spines drain 6 % / s, spit out 100 % / s", "−9 % speed"]
   },
   {
     "traitId": "stentor_trumpet",
@@ -911,10 +681,7 @@
     "name": "Stentor Trumpet",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Toxin reaches 1 radius",
-      "+10 % digestion"
-    ]
+    "effects": ["Toxin reaches 1 radius", "+10 % digestion"]
   },
   {
     "traitId": "stentor_trumpet",
@@ -923,10 +690,7 @@
     "name": "Stentor Trumpet",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Toxin reaches 1.5 radii",
-      "+20 % digestion"
-    ]
+    "effects": ["Toxin reaches 1.5 radii", "+20 % digestion"]
   },
   {
     "traitId": "stentor_trumpet",
@@ -935,10 +699,7 @@
     "name": "Stentor Trumpet",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Toxin reaches 1.5 radii",
-      "+20 % digestion"
-    ]
+    "effects": ["Toxin reaches 1.5 radii", "+20 % digestion"]
   },
   {
     "traitId": "stentor_trumpet",
@@ -947,10 +708,7 @@
     "name": "Stentor Trumpet",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Toxin reaches 2 radii",
-      "+30 % digestion"
-    ]
+    "effects": ["Toxin reaches 2 radii", "+30 % digestion"]
   },
   {
     "traitId": "stentor_trumpet",
@@ -959,9 +717,6 @@
     "name": "Stentor Trumpet",
     "category": "form",
     "rarity": "rare",
-    "effects": [
-      "Toxin reaches 2 radii",
-      "+30 % digestion"
-    ]
+    "effects": ["Toxin reaches 2 radii", "+30 % digestion"]
   }
 ]
