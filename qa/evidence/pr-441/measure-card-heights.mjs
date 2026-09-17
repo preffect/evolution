@@ -28,6 +28,14 @@ cards.push(hypothetical('HYPOTHETICAL-4-ordinary-lines', uniqueLines.slice(-4)))
 cards.push(hypothetical('ADVERSARIAL-4-wrapping-lines', uniqueLines.slice(0, 4)));
 const cardCss = readFileSync(cssPath, 'utf8');
 
+// The custom properties the shell publishes, restated rather than imported: this script is plain node run from
+// the repo root, and `hud/format/hud-css-variables.ts` is TypeScript reaching into the Angular app's constant
+// tree, so importing it would mean putting a TS loader on the path by its pnpm-store path (tsx is not a direct
+// dependency and has no node_modules/.bin entry). So the list is CHECKED, not derived: every property below that
+// affects height matches the shipped constant — gap 2, padding 8/8, medallion 56 (TRAIT_GLYPH_CARD_PX), caption
+// 11 / cardName 16 / label 12 (UI_TYPE), font stack UI_FONT_SANS. Only `--hud-leaderboard-corner-radius` differs
+// (6 here against the shipped 4): it is the rim radius and changes no height. Re-check this list against
+// hud-css-variables.ts before trusting a fresh run.
 const VARS = {
   '--hud-scale': '1',
   '--hud-picker-card-width': `${CARD_WIDTH}px`,

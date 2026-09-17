@@ -108,6 +108,9 @@ describe('the picker card row', () => {
 
   it('ends exactly at the reference viewport’s bottom edge, where #384 and overlays.md §3.2 put it', () => {
     // §3.2's worked example: centre 400, title row 22, gap, bar 4, gap, cards 214 — the last row lands on 800.
+    // This pins the DOC'S ARITHMETIC, not the rendered band: it rebuilds the height from the constants, so a new
+    // row in the overlay, or a row that renders taller than its constant, would run past 800 and still pass here.
+    // Measuring what the band actually renders needs a real browser and is #428's.
     const bandHeightPx =
       UI_TYPE.title.px + PICKER_ROW_GAP_PX + DNA_RING_STROKE_PX + PICKER_ROW_GAP_PX + PICKER_CARD_HEIGHT_PX;
     const cardsBottomPx = referenceViewport.height / 2 + pickerBandOffsetPx(referenceViewport) + bandHeightPx;

@@ -115,10 +115,11 @@ export const PICKER_ROW_GAP_PX = 12;
 export const PICKER_TIMER_BAR_WIDTH_PX = 470;
 /**
  * One card at scale 1 (decision #425, option B). The width is what it takes for every catalog card to fit the height:
- * at 170 the names and effects wrapped far enough that Amoeba Pseudopods `I → II` needed 223 px and the Diatom Shell
- * upgrades 218 px, so they overflowed the card. At 240 the catalog's tallest card measures 190 px and a hypothetical
- * `PICKER_CARD_EFFECT_LINES_MAX`-line card 206 px, both inside the height, which is unchanged so that #384's band
- * anchor and the 1280 × 800 bottom edge stay where they are. Its key chip sits inside it.
+ * at 170 the names and effects wrapped far enough that Amoeba Pseudopods `I → II` needed 225 px and the Diatom Shell
+ * upgrades 220 px, so they overflowed the card. At 240 the catalog's tallest card measures 192 px and a hypothetical
+ * `PICKER_CARD_EFFECT_LINES_MAX`-line card 208 px, both inside the height, which is unchanged so that #384's band
+ * anchor and the 1280 × 800 bottom edge stay where they are. Its key chip sits inside it. (Border box, so every
+ * figure includes the card's 1 px rim; `qa/evidence/pr-441/` measured them and holds the harness that re-runs them.)
  */
 export const PICKER_CARD_WIDTH_PX = 240;
 export const PICKER_CARD_HEIGHT_PX = 214;
