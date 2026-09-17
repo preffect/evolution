@@ -31,7 +31,8 @@ import { massTrendFor } from '../../state/mass-trend';
 import { ownCellIndicatorsFor } from '../../state/own-cell-indicators';
 import { HUD_TEST_ID, affectingCauseTestId, affectingTraitTestId } from '../test-ids';
 import { AFFECTING_SECTION, WORLD_STANDING_WORD, affectingRowsFor, type AffectingPanel } from './affecting-rows';
-import { formatMassRate } from './mass-cues';
+import { joinFacts } from './fact-line';
+import { RATE_CAUSE_LABEL, formatMassRate } from './mass-cues';
 import { leadingMultiplier, roundClockStateFor } from './round-clock';
 import { describeTierModifiers } from './trait-effects';
 import { zonePillText } from './zone-pill';
@@ -166,9 +167,13 @@ describe('affectingRowsFor at the worked example', () => {
     expect(vent?.name).toContain(leadingMultiplier(balance.ecology.VENT_DECAY_MULTIPLIER));
     expect(vent?.values[0]).toBe(formatMassRate(VENT_RATE));
 
-    // The decay row names the trait cutting it, which is `mass-cues.ts`'s choice, not a second one.
+    // The decay row names the trait cutting it, which is `mass-cues.ts`'s choice, not a second one. It writes the
+    // cut in that file's wording too (#445): the factor, as the vent row right below it writes the vent's, so the
+    // two decay modifiers read in one vocabulary and neither leans on a minus sign beside the rate it sits next to.
+    // Pinned whole rather than with `toContain`, so a surface that *appends* to the shared string fails here too.
     const decay = rowById(panel, affectingCauseTestId(MASS_RATE_CAUSE.decay));
-    expect(decay?.name).toContain('Mitochondrion');
+    const factor = leadingMultiplier(IDENTITY + DECAY_TRAIT_SHARE);
+    expect(decay?.name).toBe(joinFacts([RATE_CAUSE_LABEL[MASS_RATE_CAUSE.decay], `Mitochondrion ${factor}`]));
     expect(decay?.values[0]).toBe(formatMassRate(DECAY_RATE));
   });
 

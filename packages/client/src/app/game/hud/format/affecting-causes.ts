@@ -51,7 +51,7 @@ function causeMarker(cause: MassRateCause): UiFactMarker {
   return { shape: UI_FACT_MARKER_SHAPE.dot, colour: CUE_RIM_COLOUR[RATE_CAUSE_RIM[cause]] ?? TEXT_LABEL };
 }
 
-/** `Mitochondrion −15 %`: the owned trait cutting decay the most, and the whole cut, both `mass-cues.ts`'s choice. */
+/** `Mitochondrion ×0.85`: the trait cutting decay the most and the cut it makes, both `mass-cues.ts`'s wording. */
 function decayQualifier(input: AffectingCausesInput): string | null {
   const massFlow = input.ownProgress.massFlow;
   if (massFlow === null) return null;
@@ -122,7 +122,7 @@ const CAUSE_QUALIFIER: Readonly<Record<MassRateCause, (input: AffectingCausesInp
   [MASS_RATE_CAUSE.light]: () => null,
 };
 
-/** `Decay · Mitochondrion −15 %`, or plain `Light` where the cause has nothing to add. */
+/** `Decay · Mitochondrion ×0.85`, or plain `Light` where the cause has nothing to add. */
 function causeName(cause: MassRateCause, input: AffectingCausesInput): string {
   const qualifier = CAUSE_QUALIFIER[cause](input);
   const label = RATE_CAUSE_LABEL[cause];
