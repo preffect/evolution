@@ -21,6 +21,21 @@ repo so it appears in the repo's Projects tab and only holds this repo's issues.
 Repo-level "saved issue views" are **not API-editable** — do not use them; the Project views
 cover the same need.
 
+### 1.1 Referring to a number: say which, and lead with the ticket
+
+GitHub issues and pull requests **share one number sequence**, so a bare `#452` is ambiguous.
+The board shows **tickets only**, so a bare PR number is something the human cannot look up.
+
+- **Never write a bare `#N`.** Write **`ticket #447`** or **`PR #452`**, every time — in chat,
+  in ticket bodies, in PR descriptions, in agent briefs and in commit messages.
+- **Lead with the ticket** where one exists: `ticket #447 (PR #452)`, not the reverse. The ticket
+  is the unit of work the human tracks; the PR is an implementation detail of it.
+- Status summaries, tables and "what landed" lists name **tickets**. Mention a PR only where it
+  adds something the ticket does not — a review to read, a head sha, a merge.
+- Landed work reads `ticket #415 (via PR #441)`, so it is findable on the board.
+
+A reference the reader cannot resolve is not a reference.
+
 ## 2. Labels (category), Status (stage), assignee (ball in court)
 
 - **Labels say what and who.** `area:*` (devcontainer, tooling-mcp, team, quality, testing,
