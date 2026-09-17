@@ -77,11 +77,16 @@ export interface GlyphLayerView extends FillView, StrokeView, MotionView {
   readonly d: string;
   /** `translate(x y) rotate(deg 50 50)`: the pool's offset stays down-right on screen whatever the tilt. Null for none. */
   readonly transform: string | null;
-  /** The medallion disc, for the glyph's own layers; null for the frame, which draws its own rim. */
+  /** The medallion disc, on the glyph's own halo layers; null on everything else. */
   readonly clipPath: string | null;
 }
 
-/** The disc the glyph is clipped to, as a def: the medallion is the stage, so no halo or tail reaches the panel. */
+/**
+ * The disc a glyph's halos are clipped to, as a def. Only the halos: a halo is a soft glow that fades to nothing at
+ * its edge, so cutting it at the rim removes a smear on the panel and costs nothing anyone can see — while clipping a
+ * *drawn* layer would crop artwork instead of protecting it (it would crop 15 of #312's 16 trait glyphs at the list
+ * LOD). Drawn layers are kept inside the frame by `GLYPH_MEDALLION_REACH` instead, which a spec enforces.
+ */
 export interface GlyphClipView {
   readonly id: string;
   readonly cx: number;
@@ -170,7 +175,7 @@ interface LayerGroup {
   readonly tiltDeg: number;
   readonly strokeWidthScale: number;
   readonly zoom: number;
-  /** What the group's layers are clipped to; the frame's are not clipped. */
+  /** What the group's halos are clipped to; the frame's layers are never clipped. */
   readonly clipPath: string | null;
 }
 
@@ -196,7 +201,7 @@ function layerViews(group: LayerGroup, gradients: GlyphGradientView[]): readonly
     return {
       d: shapePathData(layer.shape),
       transform: transformFor(layer, group),
-      clipPath: group.clipPath,
+      clipPath: layer.role === GLYPH_ROLE.halo ? group.clipPath : null,
       ...fillView(layer.fill, gradient),
       ...strokeView(layer.stroke, group.strokeWidthScale),
       ...motionView(layer.motion),

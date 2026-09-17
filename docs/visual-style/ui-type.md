@@ -148,9 +148,15 @@ a player palette — the first seat's (`GLYPH_PLAYER_SEAT`) — because the play
 
 **Inside the medallion.** Every drawn layer stays within `GLYPH_MEDALLION_REACH` 39 of the centre: the frame's radius
 47 divided by `GLYPH_LIST_ZOOM` 1.2, so a drawing that fits at the card LOD still fits once the list LOD enlarges it.
-`subject-glyphs.spec.ts` walks each path and fails on a layer that reaches further (halos excepted — they fade to
-nothing at their edge). The view builder also **clips the glyph to the medallion disc**, so nothing can smear onto the
-panel behind it whatever a table does.
+`subject-glyphs.spec.ts` fails on a layer that reaches further, measuring with `src/testing/glyph-bounds.ts` — which
+walks arcs rather than jumping them and reads a circle from its own geometry, since a circle's path data runs between
+its _horizontal_ extremes and measuring through it hides the top and bottom of every disc.
+
+**Halos are the exception, and the clip is why.** A halo may reach past the rim, because it is a soft glow that fades
+to nothing at its edge; the view builder clips **the halo layers and only those** to the medallion disc, so the part
+that would have smeared onto the panel is the part nobody can see. Drawn layers are never clipped — clipping those
+would crop artwork rather than protect it, and would crop 15 of #312's 16 trait glyphs at the list LOD, which were
+authored before this budget existed. For drawn layers the budget is the whole guarantee.
 
 **The drawings.** Files: `render/constants/subject-glyphs-{cells,food,stages,tags,abilities-contest,abilities-reach,actions,zones,world,concepts}.ts`,
 on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.ts` and the paint of

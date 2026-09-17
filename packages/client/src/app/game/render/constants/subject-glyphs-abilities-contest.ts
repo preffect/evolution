@@ -20,7 +20,7 @@ import * as kit from './trait-glyph-layers';
 const ABILITY = { beadRadius: 15, bigBeadRadius: 20, preyRadius: 8, reach: 34, washRadius: 36 } as const;
 
 /** The dotted track a cell has already swum: movement is speed held, where a sprint is speed spent. */
-const TRACK = shape.path(strandPath({ fromX: 20, toX: 74, y: 50, amplitude: 11, waves: 1, phaseTurns: 0.25 }));
+const TRACK = shape.path(strandPath({ fromX: 25, toX: 71, y: 50, amplitude: 9, waves: 1, phaseTurns: 0.25 }));
 const MOVEMENT: shape.SubjectGlyph = {
   entryId: 'ability:movement',
   tiltDeg: kit.GLYPH_NO_TILT,
@@ -30,8 +30,8 @@ const MOVEMENT: shape.SubjectGlyph = {
       stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.mark, 1, '3 6'),
     }),
     ...roundBodyLayers({
-      cx: 70,
-      cy: 39,
+      cx: 67,
+      cy: 41,
       radius: ABILITY.beadRadius,
       ramp: SUBJECT_RAMP.accent,
       rim: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.rim),

@@ -46,6 +46,19 @@ describe('SubjectGlyphComponent', () => {
     expect(references.every((id) => idsOf(first).includes(id))).toBe(true);
   });
 
+  it('clips each drawing to its own medallion, with a clip id no other drawing on the page shares', () => {
+    const clipIdsOf = (svg: SVGSVGElement): string[] => [...svg.querySelectorAll('clipPath')].map((clip) => clip.id);
+    const first = mount('concept:food');
+    const second = mount('concept:food');
+    expect(clipIdsOf(first)).toHaveLength(1);
+    expect(clipIdsOf(first).filter((id) => clipIdsOf(second).includes(id))).toEqual([]);
+    const clipped = [...first.querySelectorAll('g[clip-path]')];
+    expect(clipped.length).toBeGreaterThan(0);
+    expect(clipped.every((group) => group.getAttribute('clip-path') === `url(#${clipIdsOf(first)[0]})`)).toBe(true);
+    // Only the halos: clipping a drawn layer would crop the artwork it was meant to protect.
+    expect(clipped.length).toBeLessThan(first.querySelectorAll('path').length);
+  });
+
   it('animates the moving layers with their period and pivot', () => {
     const moving = mount(A_MOVING_SUBJECT).querySelector<SVGPathElement>('path.motion-spin');
     expect(moving).not.toBeNull();

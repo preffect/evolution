@@ -20,7 +20,7 @@ import { arcPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The two cells a comparison needs, and the reach of the mark that compares them. */
-const CONCEPT = { bigRadius: 22, smallRadius: 10, washRadius: 36 } as const;
+const CONCEPT = { bigRadius: 20, smallRadius: 10, washRadius: 36 } as const;
 
 /** The player's own cell, which four of the seven relations are drawn about: one body, one lighting, four sizes. */
 function ownCellLayers(
@@ -46,7 +46,7 @@ const MASS_AND_SIZE: shape.SubjectGlyph = {
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     ...ownCellLayers(28, 48, CONCEPT.smallRadius),
-    ...ownCellLayers(56, 32, CONCEPT.bigRadius, kit.BREATHE),
+    ...ownCellLayers(54, 36, CONCEPT.bigRadius, kit.BREATHE),
     ...strokedMarkLayers(CALIPER, LIGHT_ACCENT, SUBJECT_STROKE.mark),
   ],
 };
@@ -88,7 +88,7 @@ const ENGULF_RATIO: shape.SubjectGlyph = {
   entryId: 'concept:engulf_ratio',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    ...ownCellLayers(32, 32, 13, kit.BREATHE),
+    ...ownCellLayers(34, 34, 12, kit.BREATHE),
     ...roundBodyLayers({
       cx: 76,
       cy: 44,
@@ -152,7 +152,7 @@ const WORLD_STANDING: shape.SubjectGlyph = {
   layers: [
     washLayer(CONCEPT.washRadius, LIGHT_ACCENT),
     ...strokedMarkLayers(DATUM, LIGHT_ACCENT, SUBJECT_STROKE.mark),
-    ...ownCellLayers(36, 36, 18, kit.BREATHE),
+    ...ownCellLayers(38, 38, 17, kit.BREATHE),
     kit.paint(
       shape.GLYPH_ROLE.signature,
       shape.path(arcPath({ cx: 68, cy: 60, radius: 13, fromTurns: 0.5, toTurns: 1 })),

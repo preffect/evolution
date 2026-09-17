@@ -25,7 +25,7 @@ const ACTION = { beadRadius: 12, smallBeadRadius: 8, headLength: 15, ringRadius:
 const RETICLE_CENTRE = { cx: 62, cy: 40 } as const;
 const RETICLE = shape.path(
   [
-    circlePath(RETICLE_CENTRE.cx, RETICLE_CENTRE.cy, 11),
+    circlePath(RETICLE_CENTRE.cx, RETICLE_CENTRE.cy, 10),
     shape.radialStrokesPath({
       ...RETICLE_CENTRE,
       count: 4,
@@ -46,9 +46,9 @@ const STEER: shape.SubjectGlyph = {
       motion: kit.BEAT,
     }),
     ...roundBodyLayers({
-      cx: 32,
-      cy: 68,
-      radius: ACTION.beadRadius,
+      cx: 35,
+      cy: 65,
+      radius: ACTION.beadRadius - 1,
       ramp: SUBJECT_RAMP.player,
       rim: kit.stroke(SUBJECT_RAMP.player.light, SUBJECT_STROKE.fine),
     }),
@@ -86,7 +86,7 @@ const SPRINT: shape.SubjectGlyph = {
 };
 
 /** A mouth open at the left and a mote arriving at it: eating is food crossing a rim. */
-const MOUTH = shape.path(crescentPath({ cx: 30, cy: 50, radius: 26, thickness: 8, fromTurns: 0.14, toTurns: 0.86 }));
+const MOUTH = shape.path(crescentPath({ cx: 38, cy: 50, radius: 22, thickness: 8, fromTurns: 0.14, toTurns: 0.86 }));
 const EAT: shape.SubjectGlyph = {
   entryId: 'action:eat',
   tiltDeg: kit.GLYPH_NO_TILT,
@@ -108,7 +108,7 @@ const EAT: shape.SubjectGlyph = {
 };
 
 /** The arrow wraps the prey rather than pointing at it: engulf is a hold, not a hit. */
-const WRAP = shape.path(crescentPath({ cx: 44, cy: 50, radius: 32, thickness: 9, fromTurns: 0.1, toTurns: 0.9 }));
+const WRAP = shape.path(crescentPath({ cx: 46, cy: 50, radius: 30, thickness: 9, fromTurns: 0.1, toTurns: 0.9 }));
 const ENGULF: shape.SubjectGlyph = {
   entryId: 'action:engulf',
   tiltDeg: kit.GLYPH_NO_TILT,
@@ -132,7 +132,7 @@ const ENGULF: shape.SubjectGlyph = {
 
 /** The same wrap, broken: the gap on the lit side and the arrow leaving through it are what escape means. */
 const BROKEN_WRAP = shape.path(
-  crescentPath({ cx: 44, cy: 54, radius: 32, thickness: 9, fromTurns: 0.16, toTurns: 0.74 }),
+  crescentPath({ cx: 46, cy: 52, radius: 29, thickness: 9, fromTurns: 0.16, toTurns: 0.74 }),
 );
 const ESCAPE: shape.SubjectGlyph = {
   entryId: 'action:escape',
@@ -140,8 +140,8 @@ const ESCAPE: shape.SubjectGlyph = {
   layers: [
     ...rampedMarkLayers(BROKEN_WRAP, SUBJECT_RAMP.danger, kit.BEAT),
     ...roundBodyLayers({
-      cx: 44,
-      cy: 54,
+      cx: 46,
+      cy: 52,
       radius: ACTION.smallBeadRadius,
       ramp: SUBJECT_RAMP.player,
       rim: kit.stroke(SUBJECT_RAMP.player.light, SUBJECT_STROKE.hair),

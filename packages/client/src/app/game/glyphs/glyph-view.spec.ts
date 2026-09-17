@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { GLYPH_FRAME_LAYERS } from '../render/constants/trait-glyph-frame';
 import {
+  GLYPH_CENTRE,
+  GLYPH_FRAME,
   GLYPH_LIST_STROKE_BOOST,
   GLYPH_LIST_ZOOM,
   GLYPH_PERIOD_MS,
@@ -97,5 +99,47 @@ describe('glyphView', () => {
     expect(list.layers[index]?.strokeWidth).toBeCloseTo(
       (full.layers[index]?.strokeWidth ?? 0) * GLYPH_LIST_STROKE_BOOST,
     );
+  });
+});
+
+describe('the medallion clip', () => {
+  // The clip catches the one thing the reach budget deliberately does not: a halo, which is allowed to be bigger than
+  // the frame because it fades to nothing at its edge. It is exactly why `subject-glyphs.spec.ts` may exempt halos.
+  const view = glyphView(MITOCHONDRION, GLYPH_LOD.card, 'drawing-a');
+
+  it('clips to the frame’s own disc, so the glyph can never paint outside the rim it sits on', () => {
+    expect(view.clip).toEqual({ id: 'drawing-a-clip', cx: GLYPH_CENTRE, cy: GLYPH_CENTRE, radius: GLYPH_FRAME.radius });
+  });
+
+  it('clips the glyph’s halos and never its drawn layers, which would be cropping artwork, not protecting it', () => {
+    const glyph = view.layers.slice(GLYPH_FRAME_LAYERS.length);
+    const clipped = MITOCHONDRION.layers.map((layer) =>
+      layer.role === GLYPH_ROLE.halo ? `url(#${view.clip.id})` : null,
+    );
+    expect(glyph.map((layer) => layer.clipPath)).toEqual(clipped);
+    expect(clipped).toContain(`url(#${view.clip.id})`);
+  });
+
+  it('never clips the frame, so the medallion keeps the rim and pool it had before the clip existed', () => {
+    expect(view.layers.slice(0, GLYPH_FRAME_LAYERS.length).every((layer) => layer.clipPath === null)).toBe(true);
+  });
+
+  it('gives each drawing its own clip id, since ids are global to the document', () => {
+    const second = glyphView(MITOCHONDRION, GLYPH_LOD.card, 'drawing-b');
+    const haloOf = (drawing: typeof second): string | null =>
+      drawing.layers.find((layer) => layer.clipPath !== null)?.clipPath ?? null;
+    expect(second.clip.id).not.toBe(view.clip.id);
+    expect(haloOf(second)).toBe(`url(#${second.clip.id})`);
+    expect(haloOf(view)).toBe(`url(#${view.clip.id})`);
+  });
+
+  it('never collides with a gradient id from the same drawing', () => {
+    expect(view.gradients.map((gradient) => gradient.id)).not.toContain(view.clip.id);
+  });
+
+  it('clips at the list LOD too, where the glyph is drawn 1.2× larger inside the same frame', () => {
+    const list = glyphView(MITOCHONDRION, GLYPH_LOD.list, 'drawing-c');
+    expect(list.clip.radius).toBe(GLYPH_FRAME.radius);
+    expect(list.layers.some((layer) => layer.clipPath === `url(#${list.clip.id})`)).toBe(true);
   });
 });
