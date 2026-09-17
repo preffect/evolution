@@ -2,8 +2,8 @@
 // exactly once here. Ids live in `test-ids.ts`, category labels and order in `model/categories.ts` (§11.2), and every
 // gameplay number is the shared balance read through `EncyclopediaContextService` — nothing here is a copy of one.
 //
-// The core's (#447) constants, the panel's (#448) layout row and the keyboard's (#449) key codes are declared; the
-// entry page (#373) adds the lens's as that slice lands.
+// The core's (#447) constants, the panel's (#448) layout row, the keyboard's (#449) key codes and the entry page's
+// (#465) are declared; the lens's own numbers arrive with #466.
 
 import { ENCYCLOPEDIA_CATEGORY, type EncyclopediaCategory } from './model/categories';
 
@@ -25,6 +25,25 @@ export const ENCYCLOPEDIA_RAIL_WIDTH_PX = 184;
 
 /** The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. */
 export const ENCYCLOPEDIA_LIST_WIDTH_PX = 280;
+
+/**
+ * The entry page's content column (docs/ui/encyclopedia.md §11.4). The panel's own width cap already holds the detail
+ * column to this, so the cap never bites today; it is declared because the column is the page's measure and a later
+ * wider panel must not stretch it.
+ */
+export const ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX = 848;
+
+/** The lens, and the side of its square preview canvas; #466 fills the box this build reserves (§11.4). */
+export const ENCYCLOPEDIA_LENS_DIAMETER_PX = 300;
+
+/** The lens to the title column. */
+export const ENCYCLOPEDIA_LENS_GAP_PX = 32;
+
+/** The lens rim, in `PANEL_RIM`; the reserved box wears it so the empty eyepiece reads as an eyepiece. */
+export const ENCYCLOPEDIA_LENS_RIM_PX = 6;
+
+/** The prose measure: about 90 characters of `body` (§11.4). */
+export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 
 /** A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). */
 export const ENCYCLOPEDIA_TILE_WIDTH_PX = 168;
@@ -49,6 +68,28 @@ export const ENCYCLOPEDIA_RAIL_ICON_PX = 16;
 
 /** The search field's placeholder, which also names it for a screen reader. */
 export const ENCYCLOPEDIA_SEARCH_PLACEHOLDER = 'Search';
+
+/**
+ * The entry page's own words (docs/ui/encyclopedia.md §11.4). Each facts table sits under a `label` header: a trait
+ * gets both of the first two, and every other entry the third — §11.4 names a header only for the trait's two, and an
+ * entry whose one table sat under no header at all read as a stray list of values.
+ */
+export const ENCYCLOPEDIA_EFFECTS_TABLE_LABEL = 'Effects by tier';
+export const ENCYCLOPEDIA_LADDER_TABLE_LABEL = 'Unlock and ladder';
+export const ENCYCLOPEDIA_FACTS_TABLE_LABEL = 'Facts';
+
+/** The See also header, over the link chips (§11.4). */
+export const ENCYCLOPEDIA_SEE_ALSO_LABEL = 'See also';
+
+/** `You own II`: the caption over the noun column of the Effects by tier table, before the owned tier's numeral. */
+export const ENCYCLOPEDIA_TIER_CAPTION_PREFIX = 'You own ';
+
+/** `OWNED · II`: the level-gold chip a round adds, before and between the word and the tier's numeral. */
+export const ENCYCLOPEDIA_OWNED_CHIP_LABEL = 'OWNED';
+export const ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR = ' · ';
+
+/** What a tier column shows where that tier leaves the row's modifier at identity (§11.4). */
+export const ENCYCLOPEDIA_TIER_IDENTITY_TEXT = '—';
 
 /** The list header while a search is running, where no one category is selected (§11.5). */
 export const ENCYCLOPEDIA_RESULTS_LABEL = 'Results';

@@ -15,8 +15,8 @@ export interface ProseScope {
   readonly isReference: (reference: string) => boolean;
 }
 
-/** A link fact with several targets reads as the list of their titles. */
-const FACT_LIST_SEPARATOR = ', ';
+/** A link fact with several targets reads as the list of their titles, in prose and in the facts table alike. */
+export const FACT_LIST_SEPARATOR = ', ';
 
 function segmentOf(token: ProseToken, template: ProseTemplate, scope: ProseScope): ProseSegment {
   switch (token.kind) {

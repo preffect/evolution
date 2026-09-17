@@ -6,11 +6,16 @@ import { describe, expect, it } from 'vitest';
 import { TRAIT_GLYPH_CARD_PX } from '../../glyphs/glyph-constants';
 import { UI_ROW_MEDALLION_PX } from '../../../ui-kit/ui-kit-constants';
 import {
+  ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX,
   ENCYCLOPEDIA_HEADER_HEIGHT_PX,
   ENCYCLOPEDIA_INSET_PX,
+  ENCYCLOPEDIA_LENS_DIAMETER_PX,
+  ENCYCLOPEDIA_LENS_GAP_PX,
+  ENCYCLOPEDIA_LENS_RIM_PX,
   ENCYCLOPEDIA_LIST_WIDTH_PX,
   ENCYCLOPEDIA_MAX_HEIGHT_PX,
   ENCYCLOPEDIA_MAX_WIDTH_PX,
+  ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX,
   ENCYCLOPEDIA_RAIL_ICON_PX,
   ENCYCLOPEDIA_RAIL_WIDTH_PX,
   ENCYCLOPEDIA_TILE_HEIGHT_PX,
@@ -30,6 +35,11 @@ const EXPECTED: readonly (readonly [string, string])[] = [
   ['--encyclopedia-tile-width', `${ENCYCLOPEDIA_TILE_WIDTH_PX}px`],
   ['--encyclopedia-tile-height', `${ENCYCLOPEDIA_TILE_HEIGHT_PX}px`],
   ['--encyclopedia-tile-well-height', `${ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX}px`],
+  ['--encyclopedia-content-max-width', `${ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX}px`],
+  ['--encyclopedia-lens-diameter', `${ENCYCLOPEDIA_LENS_DIAMETER_PX}px`],
+  ['--encyclopedia-lens-gap', `${ENCYCLOPEDIA_LENS_GAP_PX}px`],
+  ['--encyclopedia-lens-rim', `${ENCYCLOPEDIA_LENS_RIM_PX}px`],
+  ['--encyclopedia-prose-max-width', `${ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX}px`],
   ['--encyclopedia-row-glyph', `${UI_ROW_MEDALLION_PX}px`],
   ['--encyclopedia-tile-glyph', `${TRAIT_GLYPH_CARD_PX}px`],
 ];
