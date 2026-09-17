@@ -3,8 +3,9 @@
 // bacterium a stadium rod. The three rods share the dish's silhouette, so they separate on proportion — a plump
 // aerobe, a long thin photosynthetic, a middling plain — plus one interior mark each, not on hue alone.
 
+import { DNA_TAG } from '@evolution/shared';
 import * as shape from '../svg-glyph';
-import { CHLORO_DARK, MITO_LIGHT, PROTO_FILM_LIGHT, WHITE } from './colours';
+import { CHLORO_DARK, DNA_TAG_COLOR, LIPID_LIGHT, LIPID_RIM, MITO_LIGHT, PROTO_FILM, PROTO_FILM_LIGHT, WHITE } from './colours';
 import {
   SUBJECT_ALPHA,
   SUBJECT_RAMP,
@@ -65,7 +66,7 @@ const DETRITUS: shape.SubjectGlyph = {
     ...kit.shadedBody({
       shape: DETRITUS_BODY,
       ramp: SUBJECT_RAMP.lipid,
-      rim: kit.stroke(SUBJECT_RAMP.lipid.light, SUBJECT_STROKE.rim),
+      rim: kit.stroke(LIPID_RIM, SUBJECT_STROKE.rim),
       motion: kit.BREATHE,
     }),
     kit.paint(
@@ -78,7 +79,11 @@ const DETRITUS: shape.SubjectGlyph = {
       ),
       { fill: kit.solid(SUBJECT_RAMP.lipid.dark, SUBJECT_ALPHA.scatter), motion: kit.BREATHE },
     ),
-    bodyGlint(50, 50, FOOD.detritusRadiusY, kit.BREATHE),
+    /** The lipid glint is the dish's warm `LIPID_LIGHT`, not the white every other mote glints with. */
+    {
+      ...bodyGlint(50, 50, FOOD.detritusRadiusY, kit.BREATHE),
+      fill: kit.solid(LIPID_LIGHT, kit.GLYPH_GLINT_OPACITY),
+    },
   ],
 };
 
@@ -86,7 +91,7 @@ const DETRITUS: shape.SubjectGlyph = {
 function bandsPath(halfLength: number, radius: number): string {
   return ROD.bandShares
     .map((share) => {
-      const x = 50 + halfLength * share * 2;
+      const x = 50 + halfLength * share;
       return `M${x} ${50 - radius} L${x} ${50 + radius}`;
     })
     .join(' ');
@@ -102,7 +107,7 @@ const PLAIN_ROD: shape.SubjectGlyph = {
       ...ROD.plain,
       turns: 0,
       ramp: SUBJECT_RAMP.rod,
-      rim: kit.stroke(SUBJECT_RAMP.rod.light, SUBJECT_STROKE.rim),
+      rim: kit.stroke(PROTO_FILM, SUBJECT_STROKE.rim),
       motion: kit.BREATHE,
     }),
     kit.paint(
@@ -130,7 +135,7 @@ const AEROBIC_ROD: shape.SubjectGlyph = {
       cy: 50,
       ...ROD.aerobic,
       turns: 0,
-      ramp: SUBJECT_RAMP.vent,
+      ramp: kit.GLYPH_RAMP.mitochondrion,
       rim: kit.stroke(MITO_LIGHT, SUBJECT_STROKE.rim),
       motion: kit.BEAT,
     }),
@@ -212,7 +217,7 @@ const DNA_FRAGMENT: shape.SubjectGlyph = {
       amplitude: 15,
       waves: 1,
       rungCount: 5,
-      rungColour: SUBJECT_RAMP.dna.light,
+      rungColour: DNA_TAG_COLOR[DNA_TAG.motile],
       motion: kit.BREATHE,
     }),
     bodyGlint(30, 44, 12, kit.BREATHE),

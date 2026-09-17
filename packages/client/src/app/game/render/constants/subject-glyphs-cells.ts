@@ -1,10 +1,12 @@
-// The two cell kinds as the dish draws them (docs/visual-style/ui-type.md §7.2). A player cell is a smooth
-// seat-lit blob wearing its seat-mark bead and its dashed self ring; a wild cell is the same body desaturated to
-// steel, with no bead and no ring, crawling on a lobed amoeboid outline. Both tells are on the silhouette — a broken
-// ring around one, a lobed edge on the other — so the pair separates at 20 px without relying on hue.
+// The two cell kinds (docs/visual-style/ui-type.md §7.2). The **player** cell is drawn as the dish draws it: a
+// seat-lit blob wearing its seat-mark bead and its dashed self ring. The **wild** cell is not — the renderer has no
+// branch on cell kind at all, so every cell is drawn as a player's today. Its desaturated body, missing bead and
+// lobed crawling outline are this doc's invention, anticipating the wild palette `ecology/wild-cells.md` §3.3 asks
+// for; revisit when #99 lands one. Both tells are on the silhouette — a broken ring around one, a lobed edge on the
+// other — so the pair separates at 20 px without relying on hue.
 
 import * as shape from '../svg-glyph';
-import { OUTLINE, SILICA_LIGHT, WHITE } from './colours';
+import { DEPTH_NEAR, OUTLINE, WHITE } from './colours';
 import {
   GLYPH_PLAYER_SEAT,
   SUBJECT_ALPHA,
@@ -91,21 +93,21 @@ const WILD_CELL: shape.SubjectGlyph = {
   entryId: 'cell_kind:wild',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    kit.haloLayer(kit.centreCircle(CELL.radius * CELL.haloShare), SUBJECT_RAMP.steel.light, SUBJECT_ALPHA.wash),
+    kit.haloLayer(kit.centreCircle(CELL.radius * CELL.haloShare), SUBJECT_RAMP.wild.light, SUBJECT_ALPHA.wash),
     ...kit.shadedBody({
       shape: WILD_OUTLINE,
-      ramp: SUBJECT_RAMP.steel,
-      rim: kit.stroke(SUBJECT_RAMP.steel.light, SUBJECT_STROKE.rim),
+      ramp: SUBJECT_RAMP.wild,
+      rim: kit.stroke(SUBJECT_RAMP.wild.light, SUBJECT_STROKE.rim),
       motion: kit.BREATHE,
     }),
     kit.paint(shape.GLYPH_ROLE.detail, shape.circle(NUCLEUS.cx, NUCLEUS.cy, CELL.nucleusRadius), {
-      fill: kit.solid(SILICA_LIGHT, SUBJECT_ALPHA.wash),
-      stroke: kit.stroke(SILICA_LIGHT, SUBJECT_STROKE.hair, SUBJECT_ALPHA.scatter),
+      fill: kit.solid(DEPTH_NEAR, SUBJECT_ALPHA.wash),
+      stroke: kit.stroke(DEPTH_NEAR, SUBJECT_STROKE.hair, SUBJECT_ALPHA.scatter),
       motion: kit.BREATHE,
     }),
     {
       ...kit.paint(shape.GLYPH_ROLE.signature, WILD_OUTLINE, {
-        stroke: kit.stroke(SILICA_LIGHT, SUBJECT_STROKE.fine, SUBJECT_ALPHA.scatter),
+        stroke: kit.stroke(DEPTH_NEAR, SUBJECT_STROKE.fine, SUBJECT_ALPHA.scatter),
         motion: kit.BREATHE,
       }),
       offset: { x: CELL.rimLightOffset, y: CELL.rimLightOffset },

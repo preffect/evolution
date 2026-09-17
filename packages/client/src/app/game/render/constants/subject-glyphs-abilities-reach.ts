@@ -15,7 +15,7 @@ import {
   strokedMarkLayers,
   washLayer,
 } from './subject-glyph-motifs';
-import { crescentPath, strandPath } from './subject-glyph-shapes';
+import { crescentPath, lobedPath, strandPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The bead an ability acts on, and the reach of the mark around it — the contest table's sizes, shared. */
@@ -70,18 +70,35 @@ const SPINES: shape.SubjectGlyph = {
   ],
 };
 
-/** A bladder leaking three wisps into a wide haze: the aura a toxin cell carries, drawn louder than in the dish. */
-const WISPS = shape.path('M62 40 C74 34 80 42 76 52 M64 58 C76 60 80 70 70 74 M40 62 C30 68 30 78 40 78');
+/**
+ * Toxin is drawn as what the aura *does*, not as the organ that carries it: the Toxin Vacuole trait glyph already
+ * owns the bladder-and-tendrils silhouette, and a second magenta ball with purple wisps beside it in the same
+ * encyclopedia was the tightest collision in the set. So: the toxic cell, the haze it sits in, and a second cell
+ * caught in it — eroded at the edge, with the drain pulling inward. Two bodies read as two bodies at 20 px.
+ */
+const TOXIN_VICTIM = shape.path(
+  lobedPath({ cx: 64, cy: 54, radius: 12, lobes: 7, lobeDepth: 2.4, phaseTurns: 0.1 }),
+);
+const TOXIN_DRAIN = shape.path(
+  shape.radialStrokesPath({ cx: 64, cy: 54, count: 6, innerRadius: 15, outerRadius: 19, leanTurns: 0, phaseTurns: 0.03 }),
+);
 const TOXIN: shape.SubjectGlyph = {
   entryId: 'ability:toxin',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     washLayer(ABILITY.washRadius, TOXIN_GLOW),
-    ...strokedMarkLayers(WISPS, TOXIN_GLOW, SUBJECT_STROKE.mark, kit.motion(shape.GLYPH_MOTION.sway)),
+    ...kit.shadedBody({
+      shape: TOXIN_VICTIM,
+      ramp: SUBJECT_RAMP.rod,
+      rim: kit.stroke(TOXIN_RIM, SUBJECT_STROKE.fine, SUBJECT_ALPHA.scatter),
+      opacity: 0.7,
+      motion: kit.BREATHE,
+    }),
+    ...strokedMarkLayers(TOXIN_DRAIN, TOXIN_GLOW, SUBJECT_STROKE.mark, kit.BEAT),
     ...roundBodyLayers({
-      cx: 48,
-      cy: 50,
-      radius: ABILITY.beadRadius,
+      cx: 34,
+      cy: 44,
+      radius: 14,
       ramp: kit.GLYPH_RAMP.toxin,
       rim: kit.stroke(TOXIN_RIM, SUBJECT_STROKE.rim),
       motion: kit.BEAT,

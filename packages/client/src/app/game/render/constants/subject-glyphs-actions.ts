@@ -5,12 +5,13 @@
 // a card, up through a ring, back round a circle.
 
 import * as shape from '../svg-glyph';
-import { LEVEL_GOLD, LIGHT_ACCENT, PANEL_RIM, TEXT_LABEL, WHITE } from './colours';
+import { LEVEL_GOLD, LIGHT_ACCENT, TEXT_LABEL, WHITE } from './colours';
 import {
   SUBJECT_ALPHA,
   SUBJECT_RAMP,
   SUBJECT_STROKE,
   arrowLayers,
+  strokedMarkLayers,
   bodyGlint,
   rampedMarkLayers,
   roundBodyLayers,
@@ -21,28 +22,25 @@ import * as kit from './trait-glyph-layers';
 /** The bead an action acts on and the head every gesture ends in. */
 const ACTION = { beadRadius: 12, smallBeadRadius: 8, headLength: 15, ringRadius: 27 } as const;
 
-/** The reticle a steer points at: a ring notched by four ticks, so the target is a shape, not a dot. */
-const RETICLE_CENTRE = { cx: 62, cy: 40 } as const;
-const RETICLE = shape.path(
-  [
-    circlePath(RETICLE_CENTRE.cx, RETICLE_CENTRE.cy, 10),
-    shape.radialStrokesPath({
-      ...RETICLE_CENTRE,
-      count: 4,
-      innerRadius: 8,
-      outerRadius: 17,
-      leanTurns: 0,
-      phaseTurns: 0,
-    }),
-  ].join(' '),
+/**
+ * A steer points the cell at a place. The reticle is drawn heavy — a filled ring with four thick ticks — because at
+ * 20 px a hairline crosshair is nothing at all; the arrowhead that marks this as an action is ~2 px there, so the
+ * mass has to carry it.
+ */
+const RETICLE_CENTRE = { cx: 63, cy: 39 } as const;
+const RETICLE_RING = shape.path(circlePath(RETICLE_CENTRE.cx, RETICLE_CENTRE.cy, 11));
+const RETICLE_TICKS = shape.path(
+  shape.radialStrokesPath({ ...RETICLE_CENTRE, count: 4, innerRadius: 11, outerRadius: 18, leanTurns: 0, phaseTurns: 0 }),
 );
 const STEER: shape.SubjectGlyph = {
   entryId: 'action:steer',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    kit.outlineLayer(RETICLE, SUBJECT_STROKE.fine, kit.BEAT),
-    kit.paint(shape.GLYPH_ROLE.body, RETICLE, {
-      stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.fine),
+    kit.haloLayer(shape.circle(RETICLE_CENTRE.cx, RETICLE_CENTRE.cy, 26), LIGHT_ACCENT, SUBJECT_ALPHA.halo),
+    ...strokedMarkLayers(RETICLE_TICKS, LIGHT_ACCENT, SUBJECT_STROKE.heavy, kit.BEAT),
+    kit.outlineLayer(RETICLE_RING, SUBJECT_STROKE.mark, kit.BEAT),
+    kit.paint(shape.GLYPH_ROLE.body, RETICLE_RING, {
+      stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.heavy),
       motion: kit.BEAT,
     }),
     ...roundBodyLayers({
@@ -50,12 +48,9 @@ const STEER: shape.SubjectGlyph = {
       cy: 65,
       radius: ACTION.beadRadius - 1,
       ramp: SUBJECT_RAMP.player,
-      rim: kit.stroke(SUBJECT_RAMP.player.light, SUBJECT_STROKE.fine),
+      rim: kit.stroke(SUBJECT_RAMP.player.light, SUBJECT_STROKE.rim),
     }),
-    ...arrowLayers(
-      { fromX: 38, fromY: 58, toX: 58, toY: 44, bow: 10, headLength: ACTION.headLength },
-      SUBJECT_RAMP.accent,
-    ),
+    ...arrowLayers({ fromX: 42, fromY: 58, toX: 54, toY: 50, bow: 5, headLength: ACTION.headLength }, SUBJECT_RAMP.accent),
   ],
 };
 
@@ -154,29 +149,42 @@ const ESCAPE: shape.SubjectGlyph = {
   ],
 };
 
-/** Three cards, the middle one lifted and lit under the arrow: a pick, not an offer. */
-const CARDS = shape.path('M24 54 h14 v22 h-14 Z M62 54 h14 v22 h-14 Z');
-const PICKED_CARD = shape.path('M40 46 h20 v34 h-20 Z');
+/**
+ * Three offers with the middle one taken. Drawn as medallions rather than cards: at 20 px the card stack and its
+ * arrow both dissolved and the glyph read as a bottle. Three discs with the chosen one larger, lit and ringed
+ * survives, and the accent is right where gold would be borrowed — picking a trait is not levelling.
+ */
+const PICK_OFFERED: readonly (readonly [number, number])[] = [
+  [27, 56],
+  [73, 56],
+];
+const PICK_CHOSEN = { cx: 50, cy: 56, radius: 14 } as const;
 const PICK_TRAIT: shape.SubjectGlyph = {
   entryId: 'action:pick_trait',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    kit.haloLayer(shape.circle(50, 58, 30), LIGHT_ACCENT, SUBJECT_ALPHA.wash),
-    kit.paint(shape.GLYPH_ROLE.detail, CARDS, {
-      fill: kit.solid(PANEL_RIM, SUBJECT_ALPHA.scatter),
-      stroke: kit.stroke(TEXT_LABEL, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
-    }),
-    kit.outlineLayer(PICKED_CARD, SUBJECT_STROKE.hair, kit.BREATHE),
-    kit.paint(shape.GLYPH_ROLE.body, PICKED_CARD, {
-      fill: { kind: 'ramp', ramp: SUBJECT_RAMP.accent, opacity: 1 },
-      stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.fine),
+    kit.haloLayer(shape.circle(PICK_CHOSEN.cx, PICK_CHOSEN.cy, 28), LIGHT_ACCENT, SUBJECT_ALPHA.halo),
+    ...PICK_OFFERED.flatMap(([centreX, centreY]) => [
+      kit.outlineLayer(shape.circle(centreX, centreY, 11), SUBJECT_STROKE.hair),
+      // Bright enough to count: at 20 px a panel-rim disc is the background, and the glyph read as one lit bulb.
+      kit.paint(shape.GLYPH_ROLE.detail, shape.circle(centreX, centreY, 11), {
+        fill: kit.solid(TEXT_LABEL, SUBJECT_ALPHA.wash),
+        stroke: kit.stroke(TEXT_LABEL, SUBJECT_STROKE.fine),
+      }),
+    ]),
+    ...roundBodyLayers({
+      cx: PICK_CHOSEN.cx,
+      cy: PICK_CHOSEN.cy,
+      radius: PICK_CHOSEN.radius,
+      ramp: SUBJECT_RAMP.accent,
+      rim: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.rim),
       motion: kit.BREATHE,
     }),
-    ...arrowLayers(
-      { fromX: 50, fromY: 14, toX: 50, toY: 38, bow: 0, headLength: ACTION.headLength },
-      SUBJECT_RAMP.accent,
-      kit.BREATHE,
-    ),
+    kit.paint(shape.GLYPH_ROLE.signature, shape.circle(PICK_CHOSEN.cx, PICK_CHOSEN.cy, PICK_CHOSEN.radius + 4), {
+      stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.mark),
+      motion: kit.BREATHE,
+    }),
+    ...arrowLayers({ fromX: 50, fromY: 18, toX: 50, toY: 34, bow: 0, headLength: ACTION.headLength - 3 }, SUBJECT_RAMP.accent, kit.BREATHE),
   ],
 };
 

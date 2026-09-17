@@ -7,31 +7,43 @@
 import * as shape from '../svg-glyph';
 import { LIGHT_ACCENT, MITO_LIGHT, SILICA_LIGHT, WHITE } from './colours';
 import {
+  SUBJECT_ALPHA,
   SUBJECT_RAMP,
   SUBJECT_STROKE,
   rampedMarkLayers,
   roundBodyLayers,
   strokedMarkLayers,
 } from './subject-glyph-motifs';
-import { crescentPath, strandPath } from './subject-glyph-shapes';
+import { crescentPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The bead an ability acts on, and the reach of the mark around it. */
 const ABILITY = { beadRadius: 15, bigBeadRadius: 20, preyRadius: 8, reach: 34, washRadius: 36 } as const;
 
-/** The dotted track a cell has already swum: movement is speed held, where a sprint is speed spent. */
-const TRACK = shape.path(strandPath({ fromX: 25, toX: 71, y: 50, amplitude: 9, waves: 1, phaseTurns: 0.25 }));
+/**
+ * Movement is speed *held*, where a sprint is speed spent — so the cell trails the wake it has already made. Drawn
+ * as three solid beads shrinking behind it, not as a dashed line: the list LOD keeps dash gaps open (a pore has to
+ * stay a pore), so a 3-unit mark against a 6-unit gap comes to well under a pixel at 20 px and simply vanishes.
+ */
+const MOVEMENT_TRAIL: readonly (readonly [number, number, number])[] = [
+  [48, 55, 8],
+  [33, 61, 5.5],
+  [21, 66, 3.5],
+];
 const MOVEMENT: shape.SubjectGlyph = {
   entryId: 'ability:movement',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    kit.outlineLayer(TRACK, SUBJECT_STROKE.mark),
-    kit.paint(shape.GLYPH_ROLE.signature, TRACK, {
-      stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.mark, 1, '3 6'),
-    }),
+    kit.haloLayer(shape.circle(48, 52, 34), LIGHT_ACCENT, SUBJECT_ALPHA.wash),
+    ...MOVEMENT_TRAIL.flatMap(([centreX, centreY, radius], index) => [
+      kit.outlineLayer(shape.circle(centreX, centreY, radius), SUBJECT_STROKE.hair),
+      kit.paint(shape.GLYPH_ROLE.signature, shape.circle(centreX, centreY, radius), {
+        fill: kit.solid(LIGHT_ACCENT, SUBJECT_ALPHA.scatter - index * 0.18),
+      }),
+    ]),
     ...roundBodyLayers({
-      cx: 67,
-      cy: 41,
+      cx: 64,
+      cy: 44,
       radius: ABILITY.beadRadius,
       ramp: SUBJECT_RAMP.accent,
       rim: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.rim),

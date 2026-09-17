@@ -3,8 +3,9 @@
 // what it was, a beam that tips, a helix climbing into a level ring, a rising tally, a cell held against the world's
 // line, and the three food kinds together. Every one is two marks at most, so the relation survives at 20 px.
 
+import { DNA_TAG } from '@evolution/shared';
 import * as shape from '../svg-glyph';
-import { DEPTH_NEAR, LEVEL_GOLD, LIGHT_ACCENT, SILICA_LIGHT, TEXT_LABEL, WHITE } from './colours';
+import { DEPTH_NEAR, DNA_TAG_COLOR, LEVEL_GOLD, LIGHT_ACCENT, SILICA_LIGHT, TEXT_LABEL, WHITE } from './colours';
 import {
   SUBJECT_ALPHA,
   SUBJECT_RAMP,
@@ -112,7 +113,7 @@ const DNA_AND_LEVELS: shape.SubjectGlyph = {
       amplitude: 12,
       waves: 1,
       rungCount: 4,
-      rungColour: SUBJECT_RAMP.dna.light,
+      rungColour: DNA_TAG_COLOR[DNA_TAG.motile],
       motion: kit.BREATHE,
     }),
     kit.haloLayer(shape.circle(66, 35, 20), LEVEL_GOLD, SUBJECT_ALPHA.halo),

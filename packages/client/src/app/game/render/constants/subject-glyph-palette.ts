@@ -9,6 +9,7 @@ import {
   BG_FIELD,
   BUBBLE_RIM,
   DANGER,
+  DEPTH_NEAR,
   DNA_DEEP,
   DNA_STRAND,
   DNA_STRAND_LIGHT,
@@ -26,6 +27,7 @@ import {
   PLAYER_PALETTE_TABLE,
   PROTO_FILM,
   SILICA_DARK,
+  STAGE_SCRATCH,
   VENT_CRUST,
   VENT_CRUST_RIM,
   WALL_GLASS,
@@ -60,6 +62,8 @@ export const SUBJECT_RAMP = {
   crust: { light: VENT_CRUST_RIM, base: VENT_CRUST, dark: BG_DEEP },
   gold: { light: WHITE, base: LEVEL_GOLD, dark: VENT_CRUST_RIM },
   danger: { light: LIPID_LIGHT, base: DANGER, dark: DNA_DEEP },
+  /** The stage's own inert greys: no organelle owns them, so a wild cell reads as nobody's colour. */
+  wild: { light: DEPTH_NEAR, base: STAGE_SCRATCH, dark: BG_DEEP },
   steel: { light: MAGNET_LIGHT, base: MAGNET_BASE, dark: MAGNET_DARK },
   player: { light: GLYPH_PLAYER_SEAT.rim, base: GLYPH_PLAYER_SEAT.base, dark: SILICA_DARK },
 } as const satisfies Readonly<Record<string, GlyphRamp>>;

@@ -129,10 +129,12 @@ describe('SUBJECT_GLYPHS', () => {
     expect(cropped).toEqual([]);
   });
 
-  it('gives every subject a signature drawn by no other subject, in shape and not merely in paint', () => {
-    // Compared on geometry with the paint stripped off: two subjects whose signatures are the same shapes in
-    // different colours would read the same at 20 px, where principles-and-palette.md §1 says hue is the least
-    // reliable cue. Passing this is what makes the set mutually distinguishable rather than merely differently lit.
+  it('never repeats one subject’s signature geometry in another, recoloured', () => {
+    // A copy-paste-and-recolour guard, and only that. Comparing geometry with the paint stripped off is what makes
+    // it one — two subjects drawn from the same shapes in different colours would pass a JSON comparison and read
+    // the same at 20 px, where hue is the least reliable cue (principles-and-palette.md §1). It does **not** show
+    // the set is mutually distinguishable: `ability:genome` and `ability:toxin` have different geometry and still
+    // read alike at list size. Distinguishability is judged on the contact sheets, by eye.
     const signatures = SUBJECT_ENTRY_IDS.map((entryId) =>
       JSON.stringify(
         glyphOf(entryId)

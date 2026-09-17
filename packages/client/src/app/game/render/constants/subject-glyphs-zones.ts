@@ -5,7 +5,6 @@
 import * as shape from '../svg-glyph';
 import {
   DEPTH_NEAR,
-  FOOD_MOTE_RIM,
   LIGHT_ACCENT,
   VENT_PLUME,
   VENT_SEAM_HOT,
@@ -80,7 +79,7 @@ const SUNLIT_SHALLOWS: shape.SubjectGlyph = {
       },
     ),
     kit.paint(shape.GLYPH_ROLE.detail, CAUSTICS, {
-      stroke: kit.stroke(FOOD_MOTE_RIM, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
+      stroke: kit.stroke(LIGHT_ACCENT, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
       motion: kit.motion(shape.GLYPH_MOTION.sway, 30, 30),
     }),
     bodyGlint(34, 30, 12),
@@ -139,7 +138,7 @@ const VISCOUS_GEL: shape.SubjectGlyph = {
     }),
     kit.outlineLayer(GEL_STRANDS, SUBJECT_STROKE.mark, kit.motion(shape.GLYPH_MOTION.sway)),
     kit.paint(shape.GLYPH_ROLE.signature, GEL_STRANDS, {
-      stroke: kit.stroke(SUBJECT_RAMP.gel.light, SUBJECT_STROKE.mark),
+      stroke: kit.stroke(ZONE_GEL, SUBJECT_STROKE.mark),
       motion: kit.motion(shape.GLYPH_MOTION.sway),
     }),
   ],

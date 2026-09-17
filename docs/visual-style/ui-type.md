@@ -129,8 +129,15 @@ the three bacterium rods, the DNA fragment, the four zones — read off `render/
 not invented. Topics have no dish form, so they are designed here: the stages, DNA tags, abilities, actions, world
 topics and concepts below.
 
-**Family marks.** Four sets would otherwise blur into each other, so each carries one rule that separates it at 20 px
-before any drawing is read:
+**Family marks.** Four sets would otherwise blur into each other, so each carries one rule. The **negative** half of
+each rule is enforced and holds everywhere; the **positive** half has four known gaps (three concepts carry no
+relation, `ability:food_attraction` no cell), tracked on **#457** — read the table as the rule the set is held to,
+not as a claim that all 55 already meet it.
+
+An honest caveat about what does the work at 20 px: an arrowhead there is about two pixels and effectively
+invisible. `ability:sprint` and `action:sprint` separate because of **where the mass sits** — chevrons ahead of the
+bead against speed lines behind it — not because one has a head. The arrowhead is the card-size mark; layout is the
+list-size one, and a new pair that shares a hue _and_ a layout will not be rescued by the rule alone.
 
 | Family  | Mark                                                                                                                                                                                                                                                        |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -139,12 +146,14 @@ before any drawing is read:
 | Action  | A bold **arrow gesture** — every action has an arrowhead and no ability does — with the thing it acts on beside it.                                                                                                                                         |
 | Concept | A **relation, drawn as a relation**: two cells against a measuring mark (a caliper, a beam, a datum line), never a single object.                                                                                                                           |
 
-**Palette (§7.1's rule, with three stated exceptions).** A subject glyph paints only `colours.ts` names, the table
-values included (`DNA_TAG_COLOR`, `PLAYER_PALETTE_TABLE`). §7.1 bans gold, danger and DNA from a trait glyph; a
-subject glyph may use them **where they are the subject**: `LEVEL_GOLD` on `action:level_up`, `action:pick_trait`'s
-halo, `concept:score` and `world:round`; `DANGER` on `action:escape`; the DNA ramp on `entity:dna_fragment`,
-`ability:genome`, `concept:dna_and_levels` and every tag cartouche. And `cell_kind:player` is the one glyph drawn in
-a player palette — the first seat's (`GLYPH_PLAYER_SEAT`) — because the player's own cell _is_ the subject.
+**Palette.** A subject glyph paints only `colours.ts` names, the table values included (`DNA_TAG_COLOR`,
+`PLAYER_PALETTE_TABLE`). §7.1 keeps gold, danger and DNA off a trait glyph; the rule underneath that, which §7.2
+follows, is **a reserved colour may be used only by the subject that colour denotes**. Gold is banned on a trait
+because gold means _level_ — so `action:level_up` and `concept:score` may wear it, and `action:pick_trait` may not,
+because picking a trait is not levelling. Likewise `DANGER` on `action:escape`, the DNA ramp on
+`entity:dna_fragment`, `ability:genome`, `concept:dna_and_levels` and the tag cartouches, and the first seat's
+palette (`GLYPH_PLAYER_SEAT`) on `cell_kind:player`, whose subject _is_ the player's own cell. A colour borrowed for
+emphasis rather than for meaning is the thing this forbids.
 
 **Inside the medallion.** Every drawn layer stays within `GLYPH_MEDALLION_REACH` 39 of the centre: the frame's radius
 47 divided by `GLYPH_LIST_ZOOM` 1.2, so a drawing that fits at the card LOD still fits once the list LOD enlarges it.
@@ -221,7 +230,14 @@ on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.
 | `concept:world_standing`   | a cell held above the world's own datum line, a ghost sitting on it                            | breathe             |
 | `concept:food`             | the three food kinds together: the overview, not one kind's page                               | breathe             |
 
+**Two glyphs that are not read off the dish, and say so.** The renderer has **no branch on cell kind at all** —
+`CellView.kind` is read nowhere under `render/`, and every cell is drawn as a player's — so `cell_kind:wild` is
+invented on every axis: its desaturated body, its missing seat bead and its lobed crawling outline. It is painted
+from the stage's own inert greys (`STAGE_SCRATCH`, `DEPTH_NEAR`), which no organelle family owns, so it borrows no
+other subject's colour; revisit it when #99 lands a real wild palette. And the dish bakes one DNA fragment per
+`DnaTag`, so `entity:dna_fragment` shows one of them — the first in `DNA_TAG`'s walk order — since the entity page
+has no tag of its own.
+
 **Not yet drawn.** `HUD_TOPIC` (architecture/encyclopedia.md §12.4) has no model file and no `hud` subject, so the
-seven HUD pages have no glyph. The completeness spec is derived from `EntryId`, so the day that subject lands the
-spec fails until its seven are drawn. `cell_kind:wild` anticipates the wild palette
-(`ecology/wild-cells.md` §3.3) that the renderer has not implemented: revisit it when #99 lands one.
+seven HUD pages have no glyph (**#450**). The completeness spec is derived from `EntryId`, so the day that subject
+lands the spec fails until its seven are drawn.

@@ -7,10 +7,10 @@ import * as shape from '../svg-glyph';
 import {
   CELL_WALL_LIGHT,
   ENVELOPE,
-  NUCLEOID_GLOW,
   NUCLEOID_STRAND,
   PORE,
   PROTO_FILM_LIGHT,
+  OUTLINE,
   PROTO_GRANULE,
   RIBOSOME,
   SILICA_LIGHT,
@@ -33,7 +33,7 @@ const STAGE = {
   nucleusRadius: 13,
   envelopeGap: 3.4,
   poreCount: 8,
-  ribosomeCount: 9,
+  ribosomeCount: 10,
   spineCount: 12,
 } as const;
 
@@ -83,36 +83,39 @@ const PROTOCELL: shape.SubjectGlyph = {
   ],
 };
 
-const NUCLEOID = shape.path('M34 54 C32 36 56 28 64 42 C71 55 54 68 44 60 C36 54 45 43 56 47');
+/**
+ * A prokaryote leads with its **ribosomes**, standing proud of the membrane so the outline itself is bumpy. The
+ * loose nucleoid is the Nucleoid Coil trait's silhouette — a pale disc with a white spiral — so it stays here only
+ * as an interior detail the list LOD drops, and the studs are what names the rung.
+ */
+const NUCLEOID = shape.path('M36 54 C34 40 54 32 62 44 C69 55 54 66 46 59');
 const PROKARYOTE: shape.SubjectGlyph = {
   entryId: 'stage:prokaryote',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     ...stageCellLayers({
       ramp: kit.GLYPH_RAMP.protocell,
-      rim: kit.stroke(NUCLEOID_GLOW, SUBJECT_STROKE.rim, SUBJECT_ALPHA.scatter),
+      rim: kit.stroke(RIBOSOME, SUBJECT_STROKE.rim, SUBJECT_ALPHA.scatter),
       motion: kit.BREATHE,
-    }),
-    kit.paint(shape.GLYPH_ROLE.halo, NUCLEOID, {
-      stroke: kit.stroke(NUCLEOID_GLOW, SUBJECT_STROKE.heavy + SUBJECT_STROKE.mark, SUBJECT_ALPHA.wash),
-      motion: kit.SPIN,
-    }),
-    kit.paint(shape.GLYPH_ROLE.signature, NUCLEOID, {
-      stroke: kit.stroke(NUCLEOID_STRAND, SUBJECT_STROKE.mark),
-      motion: kit.SPIN,
+      opacity: 0.55,
     }),
     kit.paint(
       shape.GLYPH_ROLE.detail,
+      NUCLEOID,
+      { stroke: kit.stroke(NUCLEOID_STRAND, SUBJECT_STROKE.fine, SUBJECT_ALPHA.wash), motion: kit.SPIN },
+    ),
+    kit.paint(
+      shape.GLYPH_ROLE.signature,
       shape.path(
         shape.dotRingPath({
           ...kit.GLYPH_CENTRE_POINT,
           count: STAGE.ribosomeCount,
-          ringRadius: STAGE.radius - STAGE.envelopeGap,
-          dotRadius: 2.6,
-          phaseTurns: 0.05,
+          ringRadius: STAGE.radius,
+          dotRadius: 4.2,
+          phaseTurns: 0.03,
         }),
       ),
-      { fill: kit.solid(RIBOSOME) },
+      { fill: kit.solid(RIBOSOME), stroke: kit.stroke(OUTLINE, SUBJECT_STROKE.hair), motion: kit.BREATHE },
     ),
   ],
 };
