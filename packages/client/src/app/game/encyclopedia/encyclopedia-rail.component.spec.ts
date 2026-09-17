@@ -38,24 +38,46 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
     return expectTestId(fixture.nativeElement as HTMLElement, encyclopediaCategoryTestId(category));
   }
 
-  /** A press as a browser sends it: `pointerdown`, then the `click` the kit selects on. */
+  /**
+   * A press as a browser sends it — **all three events, in order**: `pointerdown`, `pointerup`, then the `click` the
+   * kit selects on. The `pointerup` matters: it is dispatched before the click, so a handler that ends the press on
+   * it has already run by the time the kit reports. A helper that skipped it made every ordering question in this
+   * file unanswerable, and hid #460's R6 (docs/ui/encyclopedia.md §11.5).
+   */
   function clickRow(category: EncyclopediaCategory): void {
     const element = row(category);
     element.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    element.dispatchEvent(new Event('pointerup', { bubbles: true }));
     element.click();
     fixture.detectChanges();
   }
 
-  /** A press that never becomes a click on the rail: down on a row, then the pointer drags off the column. */
+  /**
+   * A press that never becomes a click on the rail: down on a row, the pointer drags off the column, and it is
+   * released out there — where the browser fires the `click` on a common ancestor above the rail, which `document`
+   * still sees.
+   */
   function pressAndDragOff(category: EncyclopediaCategory): void {
     row(category).dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    document.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+  }
+
+  /** One press that slips off the rail and comes back before it is released (#460's R6). */
+  function pressSlippingOffAndBack(category: EncyclopediaCategory): void {
+    const element = row(category);
+    element.dispatchEvent(new Event('pointerdown', { bubbles: true }));
     rail().dispatchEvent(new Event('pointerleave', { bubbles: false }));
+    element.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    element.click();
     fixture.detectChanges();
   }
 
   /** A press that lands on the rail but on no row: the strip `.rail` adds above the first one. */
   function pressBesideEveryRow(): void {
     rail().dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    rail().dispatchEvent(new Event('pointerup', { bubbles: true }));
     rail().dispatchEvent(new MouseEvent('click', { bubbles: true }));
     fixture.detectChanges();
   }
@@ -150,6 +172,20 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
     arrowDownFrom(ENCYCLOPEDIA_CATEGORY.evolutions);
     expect(state.focusCategory.mock.calls).toEqual([[ENCYCLOPEDIA_CATEGORY.world]]);
     expect(state.selectCategory).not.toHaveBeenCalled();
+  });
+
+  /**
+   * #460's R6: one press that slips off the 184 px column and comes back. The old `(pointerleave)` clear ended the
+   * press at the boundary rather than at the release, so the kit's report — which lands *before* the item's own
+   * click — replaced the location instead of being suppressed, and the push that followed then had nowhere to push
+   * from. The reader moved category and Back did not return.
+   */
+  it('still pushes when one press slips off the rail and comes back before it is released', () => {
+    state.location.set(categoryLanding(ENCYCLOPEDIA_CATEGORY.world));
+    fixture.detectChanges();
+    pressSlippingOffAndBack(ENCYCLOPEDIA_CATEGORY.evolutions);
+    expect(state.selectCategory.mock.calls).toEqual([[ENCYCLOPEDIA_CATEGORY.evolutions]]);
+    expect(state.focusCategory).not.toHaveBeenCalled();
   });
 
   it('leaves the arrows replacing after a press dragged off the rail without a click', () => {

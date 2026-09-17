@@ -12,16 +12,26 @@
 //     one category listed today the rail would otherwise be an inert control for the whole build. So each item's own
 //     `(click)` pushes, with the category it names — no id to narrow, no emission to wait for.
 //   * **The report is then the roving focus and nothing else** — except during a press, where the kit may also emit.
-//     `isPointerPressInFlight` suppresses that one, since the press's own push is the move and a replace either side
-//     of it would either be a duplicate or swallow the location Back is there to return to. The flag is set on
-//     `pointerdown` and cleared when the press *ends*: on the `click` it bubbles (which a press on the already
-//     selected row, or on the strip above the first row, still produces) or on the pointer leaving the rail without
-//     producing one. It cannot survive into the next keyboard move, which is the latch #460's review found.
+//     `isPointerPressInFlight` suppresses that one, since the press's own push is the move and a replace beside it
+//     would swallow the location Back is there to return to.
 //
-// Neither handler assumes an order between two listeners on one element: whichever of the item's `(click)` and the
+// **The flag is cleared on the `click`, never earlier.** That is the whole of it, and two earlier attempts got it
+// wrong in ways only the browser could show. `pointerleave` ends the press at the column's boundary rather than at
+// the release, so a press that slips off the 184 px rail and comes back is cleared mid-press (#460's R6).
+// `pointerup` is worse: it is dispatched *before* the click, so ending the press there lifts the suppression before
+// the kit reports at all, and every ordinary press replaces and then pushes nothing. A `document`-level `click`
+// covers a release anywhere — the browser fires it on the common ancestor of press and release, which `document`
+// always is — and runs last in the bubble, after the kit's report and after this rail's own handlers.
+// `pointercancel` covers a press the browser abandons without a click (a touch that becomes a scroll).
+//
+// Nothing here assumes an order between two listeners on one element: whichever of the item's `(click)` and the
 // kit's own runs first, the push happens once and the replace beside it is a no-op on the location already shown.
+// (The kit's does in fact run first — #460's review measured it — but the code does not rely on that.)
 // Enter and Space are still the kit's `select`, so they emit nothing on a rail whose selection follows focus; the
 // keyboard model, including what Enter does here, is #449's.
+//
+// **Ticket #461** is the first customer for a kit `activated` output on the roving group: with one, the flag, the
+// three lifecycle handlers and every case below collapse into reading the two reports the kit already knows apart.
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { UiRailComponent } from '../../ui-kit/ui-rail.component';
@@ -44,6 +54,7 @@ const RAIL_LABEL = 'Categories';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [EncyclopediaIconComponent, UiRailComponent, UiRailItemComponent, UiScrollAreaComponent],
+  host: { '(document:click)': 'endPointerPress()', '(document:pointercancel)': 'endPointerPress()' },
   styleUrl: './encyclopedia-rail.component.css',
   template: `
     <ui-scroll-area class="scroll" [label]="railLabel">
@@ -53,7 +64,6 @@ const RAIL_LABEL = 'Categories';
         [testId]="testId.rail"
         [selectedId]="selectedId()"
         (pointerdown)="beginPointerPress()"
-        (pointerleave)="endPointerPress()"
         (click)="endPointerPress()"
         (selectedIdChange)="roveTo($event)"
       >

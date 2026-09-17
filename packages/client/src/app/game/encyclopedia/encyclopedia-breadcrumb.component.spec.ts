@@ -67,6 +67,12 @@ describe('EncyclopediaBreadcrumbComponent (docs/ui/encyclopedia.md §11.3)', () 
     expect(root().querySelectorAll('.separator')).toHaveLength(0);
   });
 
+  /** The old guard counted separators and never read one, so any character would have passed (#460's review). */
+  it('draws the chevron \u00a711.3 writes, not merely some separator', () => {
+    show(entryBreadcrumb(CATEGORY, ENTRY_GROUP_LABEL[ENTRY_GROUP.metabolism]));
+    expect(root().querySelector('.separator')?.textContent?.trim()).toBe('\u203a');
+  });
+
   it('names the trail for a screen reader, so the crumbs are not read as loose words', () => {
     show(landingBreadcrumb(CATEGORY));
     expect(root().querySelector('nav')?.getAttribute('aria-label')).toBe('Breadcrumb');

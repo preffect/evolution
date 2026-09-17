@@ -6,7 +6,12 @@ import { By } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiFocusTrapDirective } from '../../ui-kit/ui-focus-trap.directive';
 import { expectTestId, queryByTestId } from '../../../testing/test-id-query';
-import { ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA, ENCYCLOPEDIA_SCRIM_ALPHA, ENCYCLOPEDIA_TITLE } from './encyclopedia-constants';
+import {
+  ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA,
+  ENCYCLOPEDIA_SCRIM_ALPHA,
+  ENCYCLOPEDIA_SEARCH_PLACEHOLDER,
+  ENCYCLOPEDIA_TITLE,
+} from './encyclopedia-constants';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { locationAttributeFor } from './format/panel-view';
@@ -53,6 +58,13 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
       expect(expectTestId(root(), testId).tagName).toBe('BUTTON');
     }
     expect(expectTestId(root(), ENCYCLOPEDIA_TEST_ID.search).tagName).toBe('INPUT');
+  });
+
+  /** Nothing read the placeholder at all before #460's review, so the field could have shown any word. */
+  it('shows the search field\u2019s placeholder, which is also what names the field', () => {
+    const field = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.search);
+    expect(field.getAttribute('placeholder')).toBe(ENCYCLOPEDIA_SEARCH_PLACEHOLDER);
+    expect(field.getAttribute('placeholder')).toBe('Search');
   });
 
   it('opens on a category landing, not on an entry page', () => {
