@@ -24,6 +24,8 @@
   color: var(--ui-text);
   font-size: calc(var(--ui-type-headline) * var(--ui-scale));
   font-weight: bold;
+  /* The panel body sets the prose line height for the summary below; a heading sits on its own cap height. */
+  line-height: 1.15;
 }
 
 .summary {

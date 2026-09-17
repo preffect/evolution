@@ -16,8 +16,10 @@
   pointer-events: auto;
 }
 
-/* `inset` plus `margin: auto` centres the panel inside the inset and lets the caps bite on a wide viewport. */
-.panel {
+/* `inset` plus `margin: auto` centres the panel inside the inset and lets the caps bite on a wide viewport.
+   The element selector is deliberate: the kit sets the modal's padding through `:host([data-variant='modal'])`, which
+   a bare `.panel` only ties with — `ui-panel.panel` outranks it, so the padding below actually lands. */
+ui-panel.panel {
   position: absolute;
   inset: calc(var(--encyclopedia-inset) * var(--ui-scale));
   max-width: calc(var(--encyclopedia-max-width) * var(--ui-scale));

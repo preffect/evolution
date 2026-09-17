@@ -113,6 +113,15 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia)).not.toBeNull();
   });
 
+  /**
+   * The kit sets a modal's padding through `:host([data-variant='modal'])`, which a bare `.panel` in this
+   * component's own stylesheet only *ties* with — and a tie is settled by whichever sheet the browser happened to
+   * order last. The columns then sat a panel padding in from the rail, which the reference frame draws flush.
+   */
+  it('lays its columns edge to edge: the kit modal’s padding is overridden, not merely tied with', () => {
+    expect(getComputedStyle(panel()).padding).toBe('0px');
+  });
+
   it('draws no alert strip of its own: a host with no strip to project leaves the header without one', () => {
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.alert)).toBeNull();
   });
