@@ -166,9 +166,11 @@ describe('affectingRowsFor at the worked example', () => {
     expect(vent?.name).toContain(leadingMultiplier(balance.ecology.VENT_DECAY_MULTIPLIER));
     expect(vent?.values[0]).toBe(formatMassRate(VENT_RATE));
 
-    // The decay row names the trait cutting it, which is `mass-cues.ts`'s choice, not a second one.
+    // The decay row names the trait cutting it, which is `mass-cues.ts`'s choice, not a second one. It writes the
+    // cut in that file's wording too (#445): the factor, as the vent row right below it writes the vent's, so the
+    // two decay modifiers read in one vocabulary and neither leans on a minus sign beside the rate it sits next to.
     const decay = rowById(panel, affectingCauseTestId(MASS_RATE_CAUSE.decay));
-    expect(decay?.name).toContain('Mitochondrion');
+    expect(decay?.name).toContain(`Mitochondrion ${leadingMultiplier(IDENTITY + DECAY_TRAIT_SHARE)}`);
     expect(decay?.values[0]).toBe(formatMassRate(DECAY_RATE));
   });
 

@@ -102,7 +102,7 @@ describe('cuePlacements: the rate tags and the zone pill', () => {
       textures.cuePills[CUE_RIM.danger],
       textures.cuePills[CUE_RIM.none],
     ]);
-    expect(placements.texts.map((text) => text.text)).toEqual(['312', '−9.4/s', 'TOXIN', '−0.5/s', 'DECAY', '−15 %']);
+    expect(placements.texts.map((text) => text.text)).toEqual(['312', '−9.4/s', 'TOXIN', '−0.5/s', 'DECAY', '×0.85']);
     expect(placements.sprites[0]).toMatchObject({ texture: textures.ghosts.mitochondrion, tint: WHITE });
   });
 
