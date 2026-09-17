@@ -27,6 +27,16 @@ export function entryTitle(entryId: EntryId): string {
   return entryById(entryId).title;
 }
 
+/**
+ * The entry `value` names, or `null` when it names none. A host that carries the request as a plain string — the
+ * HUD's `encyclopediaEntryId`, a deep link — narrows it here rather than casting, so an id that no longer exists
+ * opens the last location instead of throwing on the way in.
+ */
+export function entryIdFrom(value: string | null): EntryId | null {
+  const candidate = value as EntryId | null;
+  return candidate !== null && ENTRY_BY_ID.has(candidate) ? candidate : null;
+}
+
 /** Whether `reference` names an entry, or a section of one (`trait:cell_wall#tier_2`). */
 export function isEntryReference(reference: string): boolean {
   const { entryId, sectionKey } = splitEntryReference(reference);

@@ -1,0 +1,56 @@
+/* The entry list (docs/ui/encyclopedia.md §11.3): a fixed-width column with its own header line over a kit scroll
+   area, and a 1 px panel-rim rule against the detail column. The rows are the kit's. */
+
+:host {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: calc(var(--encyclopedia-list-width) * var(--ui-scale));
+  min-height: 0;
+  border-right: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+}
+
+/* The label and the count (§11.3), over the first section header. */
+.column-header {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  padding: calc(var(--ui-space-l) * var(--ui-scale)) calc(var(--ui-space-l) * var(--ui-scale))
+    calc(var(--ui-space-s) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}
+
+.column-header .label {
+  overflow: hidden;
+  color: var(--ui-text-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-header .count {
+  flex: none;
+  color: var(--ui-text-muted);
+  font-family: var(--ui-font-mono);
+  font-weight: normal;
+  letter-spacing: normal;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.no-results {
+  margin: 0;
+  padding: calc(var(--ui-space-s) * var(--ui-scale)) calc(var(--ui-space-l) * var(--ui-scale));
+  color: var(--ui-text-muted);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}

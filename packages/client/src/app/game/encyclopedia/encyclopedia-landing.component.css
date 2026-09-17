@@ -1,0 +1,118 @@
+/* The category landing (docs/ui/encyclopedia.md §11.3), against `encyclopedia-a-category-*.png`: breadcrumb, heading,
+   one summary line, then a wrapping grid of fixed-size tiles — as many to a row as the detail column fits. */
+
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.landing {
+  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+}
+
+.headline {
+  margin: calc(var(--ui-space-m) * var(--ui-scale)) 0 0;
+  color: var(--ui-text);
+  font-size: calc(var(--ui-type-headline) * var(--ui-scale));
+  font-weight: bold;
+}
+
+.summary {
+  margin: calc(var(--ui-space-m) * var(--ui-scale)) 0 0;
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  margin-top: calc(var(--ui-space-xl) * var(--ui-scale));
+}
+
+/* A tile is a link to its entry: the well with its medallion, then the title and the entry's first fact. */
+.tile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: calc(var(--encyclopedia-tile-width) * var(--ui-scale));
+  height: calc(var(--encyclopedia-tile-height) * var(--ui-scale));
+  padding: 0;
+  overflow: hidden;
+  border: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  background-color: var(--ui-well);
+  color: var(--ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--ui-transition);
+}
+
+.tile:hover {
+  background-image: linear-gradient(var(--ui-hover), var(--ui-hover));
+}
+
+.tile:active {
+  background-image: linear-gradient(var(--ui-pressed), var(--ui-pressed));
+}
+
+.tile:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+/* The well the medallion floats in, on the dish field, with the rule under it. */
+.well {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--encyclopedia-tile-well-height) * var(--ui-scale));
+  border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+}
+
+.glyph {
+  width: calc(var(--encyclopedia-tile-glyph) * var(--ui-scale));
+  height: calc(var(--encyclopedia-tile-glyph) * var(--ui-scale));
+}
+
+.caption {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--ui-space-xs) * var(--ui-scale));
+  min-width: 0;
+  padding: 0 calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+/* Each on one line, ending in an ellipsis; the tile's accessible name carries the full title (§11.3). */
+.title,
+.fact {
+  overflow: hidden;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title {
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+.fact {
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+}

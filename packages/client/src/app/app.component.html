@@ -23,6 +23,10 @@
     <span class="conn" [class.on]="multiplayer.connected()">
       {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
     </span>
+    <!-- Reading the rules before joining is the calm moment to do it (docs/ui/encyclopedia.md §11.1, layout.md §2). -->
+    <button type="button" [attr.data-testid]="encyclopediaTestId.lobbyButton" (click)="openEncyclopedia()">
+      Encyclopedia
+    </button>
   </header>
 
   @if (multiplayer.lobbyNotice(); as notice) {
@@ -111,4 +115,14 @@
       }
     </ul>
   </section>
+
+  <!--
+    The encyclopedia over the lobby (docs/ui/encyclopedia.md §11.1): no room, so no alert strip is projected and the
+    values come from `DEFAULT_BALANCE`. The lobby is the host that closes it on its own Escape (§11.5) — the kit
+    search field swallows that press first while a query is up, which is exactly the order §11.5 asks for — and the
+    kit focus trap puts focus back on the button that opened it.
+  -->
+  @if (isEncyclopediaOpen()) {
+    <app-encyclopedia (closed)="closeEncyclopedia()" (keydown.escape)="closeEncyclopedia()" />
+  }
 }

@@ -1,0 +1,46 @@
+/* The breadcrumb (docs/ui/encyclopedia.md §11.3): one muted `label` line, its crumbs separated by a chevron. A crumb
+   that goes somewhere is a button in the link colour with the kit's focus ring; the rest is text. */
+
+:host {
+  display: block;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}
+
+.crumb {
+  color: var(--ui-text-muted);
+}
+
+.separator {
+  color: var(--ui-text-muted);
+}
+
+.link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ui-link);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
+}

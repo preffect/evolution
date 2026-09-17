@@ -1,0 +1,85 @@
+/* The encyclopedia panel (docs/ui/encyclopedia.md §11.3): a kit modal panel centred on the viewport, inset from every
+   edge and capped, with a fixed header over three columns. Worked examples: 1216 × 736 at (32, 32) on 1280 × 800, and
+   1834 × 994 at (43, 43) on 1920 × 1080 (scale 1.35), both held by the inset rather than by the cap. */
+
+/* `fixed`, not `absolute`: the panel covers the viewport under the HUD shell in a room and under the lobby's plain
+   document flow outside one, and only one of those two hosts is a positioned ancestor. */
+:host {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+/* `inset` plus `margin: auto` centres the panel inside the inset and lets the caps bite on a wide viewport. */
+.panel {
+  position: absolute;
+  inset: calc(var(--encyclopedia-inset) * var(--ui-scale));
+  max-width: calc(var(--encyclopedia-max-width) * var(--ui-scale));
+  max-height: calc(var(--encyclopedia-max-height) * var(--ui-scale));
+  margin: auto;
+  /* The columns run edge to edge and each carries its own padding, so the panel's own is zero here (§11.3). */
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* The header row: `ENCYCLOPEDIA_HEADER_HEIGHT_PX`, a 1 px panel-rim rule under it, and it never scrolls. */
+.header {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  height: calc(var(--encyclopedia-header-height) * var(--ui-scale));
+  padding: 0 calc(var(--ui-space-l) * var(--ui-scale));
+  border-bottom: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+}
+
+.header .title {
+  flex: none;
+  margin: 0;
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-title) * var(--ui-scale));
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* The field sits a wide space after the title, where the reference frame draws it at both sizes. */
+.header .search {
+  flex: none;
+  margin-left: calc((var(--ui-space-xl) - var(--ui-space-m)) * var(--ui-scale));
+}
+
+/* The alert strip, the ESC hint and Close, right-aligned as one group (§11.3). */
+.header-end {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  min-width: 0;
+}
+
+.button-icon {
+  width: 100%;
+  height: 100%;
+}
+
+/* The body fills what is left of the panel below the header. The kit panel wraps its body in a scroll area for the
+   pages that scroll as one; this one never does — each column scrolls on its own (§11.3, "the page itself never
+   scrolls") — so the columns are laid against that area's box rather than given a height inside it, and the area is
+   left with nothing to scroll. */
+.columns {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+}

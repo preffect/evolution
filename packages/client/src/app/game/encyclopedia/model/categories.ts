@@ -25,6 +25,19 @@ export const ENCYCLOPEDIA_CATEGORY_LABEL: Readonly<Record<EncyclopediaCategory, 
   [ENCYCLOPEDIA_CATEGORY.world]: 'World',
 };
 
+/**
+ * The one line under a category's landing heading (docs/ui/encyclopedia.md §11.3): §11.2's "what a player finds
+ * there", in the player's words. Copy, never a number — a landing that wants a figure links to the entry holding it.
+ */
+export const ENCYCLOPEDIA_CATEGORY_SUMMARY: Readonly<Record<EncyclopediaCategory, string>> = {
+  [ENCYCLOPEDIA_CATEGORY.basics]: 'The rules every other page leans on, and how to read the screen.',
+  [ENCYCLOPEDIA_CATEGORY.entities]: 'Who lives in the dish, what you swallow to grow, and where DNA comes from.',
+  [ENCYCLOPEDIA_CATEGORY.evolutions]: 'The ladder stages, every trait and what its tiers do, and the DNA tags.',
+  [ENCYCLOPEDIA_CATEGORY.abilities]: 'What a trait grants you, and which traits grant it.',
+  [ENCYCLOPEDIA_CATEGORY.actions]: 'Everything you can do, and how each one resolves.',
+  [ENCYCLOPEDIA_CATEGORY.world]: 'The dish and its zones, the clock, the bloom and the round.',
+};
+
 export const ENCYCLOPEDIA_CATEGORY_ORDER: readonly EncyclopediaCategory[] = [
   ENCYCLOPEDIA_CATEGORY.basics,
   ENCYCLOPEDIA_CATEGORY.entities,

@@ -31,6 +31,14 @@ game's own renderer, never a picture.
 | `H` in play (`ENCYCLOPEDIA_KEY_CODE`, §4)     | the last location this session, else the `basics` landing | the game, focus on the canvas host |
 | The lobby header's `Encyclopedia` button (§2) | the last location this session, else the `basics` landing | the lobby, focus on the button     |
 
+**Where "the `basics` landing" actually lands, and what U8 asserts.** §11.5 forbids showing a category with no entry,
+and `basics` holds none until #361 fills it, so an open with no last location falls to the first category the rail
+lists — `defaultLocation`, which returns `basics` the moment that category has entries. Acceptance **U8**
+(components-and-constants.md §8) therefore asserts **the first rail row is selected**, not `encyclopedia-category-basics`
+by name: the row it names today would be wrong, and naming `basics` would pin the content rather than the rule. Once
+#361 lands, the first rail row _is_ `basics` and U8 reads the same either way. Amended by #448 (part 2 of #372);
+#361 removes nothing here.
+
 **The lobby opens it too.** Reading the rules before joining a round is the calm moment to do it, and the page
 needs no room. Values come from `EncyclopediaContextService` (§12.2): outside a room its context is
 `DEFAULT_BALANCE`, inside one the room's live balance, so a patched balance updates an open page. The page shows no
@@ -61,7 +69,9 @@ same component (§3.5).
 The categories are §12.2's closed `ENCYCLOPEDIA_CATEGORY`, the five of preffect's request plus `basics`. This file
 writes their labels (`ENCYCLOPEDIA_CATEGORY_LABEL`) and order (`ENCYCLOPEDIA_CATEGORY_ORDER`), and the labels of the
 list groups (`ENTRY_GROUP_LABEL`); the group each entry takes is `ResolvedEntry.group`, which the registry derives from
-the subject. A count in the rail is `entriesIn(category)`'s length, never a typed number.
+the subject. A count in the rail is `entriesIn(category)`'s length, never a typed number. The one line under a landing's
+heading is `ENCYCLOPEDIA_CATEGORY_SUMMARY`, beside the labels: the "what a player finds there" column below, in the
+player's words and in no more than a line.
 
 | Order | Category     | Label        | Groups (`ENTRY_GROUP`), in order                                                      | What a player finds there                                                                                                                                                                                                                                                                    |
 | ----- | ------------ | ------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,7 +120,8 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
 
 - **Rail** (`ENCYCLOPEDIA_RAIL_WIDTH_PX`, on the kit well): one kit rail item per category of §11.2 that has
   entries, `UI_RAIL_ROW_HEIGHT_PX` tall: a 16 px category icon, the label (`body`), the entry count (`figure`).
-- **List** (`ENCYCLOPEDIA_LIST_WIDTH_PX`): the label and count (`label`), then the category's groups, each a kit list
+- **List** (`ENCYCLOPEDIA_LIST_WIDTH_PX`): the label and count (`label`) — the category and `entriesIn`'s length, or
+  `ENCYCLOPEDIA_RESULTS_LABEL` and the number of matches while a query runs — then the category's groups, each a kit list
   section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion** (`UI_ROW_MEDALLION_PX`): a trait's glyph (`<app-trait-glyph [traitId] lod="list" still>` at `TRAIT_GLYPH_LIST_PX`, #312), otherwise the subject's code-drawn
   glyph (`<app-subject-glyph [entryId] lod="list" still>`, #391: a small drawing of the cell, mote, rod, fragment,
   zone or topic, visual-style/ui-type.md §7.2). Then the title
@@ -273,16 +284,21 @@ every decision a pure function with a unit test). Component specs get a recordin
 components sit at the root of `packages/client/src/app/game/encyclopedia/`, beside §12.8's `model/`, `facts/` and
 `content/`.
 
-| File (`game/encyclopedia/`)                                            | Role                                                                                                                                                      |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `encyclopedia.component.ts`                                            | The panel: header with its alert slot, the three columns, focus trap, the one `PreviewHandle`; hosted by the HUD shell in a room and by the lobby outside |
-| `encyclopedia-rail.component.ts`, `encyclopedia-list.component.ts`     | The category rail and the grouped entry list or search results, on the kit rail and list                                                                  |
-| `encyclopedia-landing.component.ts`, `encyclopedia-entry.component.ts` | The category landing and the entry page (§11.4); the entry page lends the lens's stage element to the handle                                              |
-| `encyclopedia-lens.component.ts`                                       | The lens (§11.4): the square stage element lent to the handle, its circular clip, and the rim, reticle and vignette overlay                               |
-| `encyclopedia-facts.component.ts`, `encyclopedia-prose.component.ts`   | The facts tables and the prose segments with their links                                                                                                  |
-| `encyclopedia-state.service.ts`                                        | §11.5's state                                                                                                                                             |
-| `format/navigation.ts`, `format/search.ts`, `format/entry-view.ts`     | Pure: the transitions, the match and its order, the page's view model (tier columns, chips, crumbs)                                                       |
-| `encyclopedia-constants.ts`, `test-ids.ts`                             | The table below and the key codes; §11.6. §11.2's category labels and order are the registry's, in `model/categories.ts`                                  |
+| File (`game/encyclopedia/`)                                                                                                                                                                   | Role                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `encyclopedia.component.ts`                                                                                                                                                                   | The panel: header with its alert slot, the three columns, focus trap, the one `PreviewHandle`; hosted by the HUD shell in a room and by the lobby outside |
+| `encyclopedia-rail.component.ts`, `encyclopedia-list.component.ts`                                                                                                                            | The category rail and the grouped entry list or search results, on the kit rail and list                                                                  |
+| `encyclopedia-list-rows.component.ts`                                                                                                                                                         | One run of entry rows, so a section's rows and a headerless group's are written once                                                                      |
+| `encyclopedia-breadcrumb.component.ts`                                                                                                                                                        | The trail over a landing and an entry page; a crumb with a target is a link to that category's landing                                                    |
+| `encyclopedia-glyph.component.ts`                                                                                                                                                             | The medallion a row and a tile lead with: a trait's glyph (#312) or the subject's (#391), over `format/glyph-subject.ts`                                  |
+| `encyclopedia-icons.ts`, `encyclopedia-icon.component.ts`                                                                                                                                     | The six 16 px rail marks and the header's Back and Close, as shape tables and their one renderer, in `currentColor`                                       |
+| `encyclopedia-landing.component.ts`, `encyclopedia-entry.component.ts`                                                                                                                        | The category landing and the entry page (§11.4); the entry page lends the lens's stage element to the handle                                              |
+| `encyclopedia-lens.component.ts`                                                                                                                                                              | The lens (§11.4): the square stage element lent to the handle, its circular clip, and the rim, reticle and vignette overlay                               |
+| `encyclopedia-facts.component.ts`, `encyclopedia-prose.component.ts`                                                                                                                          | The facts tables and the prose segments with their links                                                                                                  |
+| `encyclopedia-state.service.ts`                                                                                                                                                               | §11.5's state                                                                                                                                             |
+| `format/navigation.ts`, `format/search.ts`, `format/rail-view.ts`, `format/list-view.ts`, `format/landing-view.ts`, `format/panel-view.ts`, `format/glyph-subject.ts`, `format/entry-view.ts` | Pure: the transitions, the match and its order, the page's view model (tier columns, chips, crumbs)                                                       |
+| `encyclopedia-constants.ts`, `test-ids.ts`                                                                                                                                                    | The table below and the key codes; §11.6. §11.2's category labels and order are the registry's, in `model/categories.ts`                                  |
+| `format/encyclopedia-css-variables.ts`                                                                                                                                                        | The `--encyclopedia-…` tokens the panel's stylesheets read, pinned entry by entry (docs/CODE-STANDARDS.md §2)                                             |
 
 | Constant                                                             | Value                                                          | Unit | Meaning                                                                                                                                |
 | -------------------------------------------------------------------- | -------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -310,6 +326,11 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                             | px   | The tile's well.                                                                                                                       |
 | `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                                                                 |
 | `ENCYCLOPEDIA_HISTORY_MAX`                                           | 50                                                             | —    | Back-stack depth; the oldest location drops first.                                                                                     |
+| `ENCYCLOPEDIA_TITLE`                                                 | `Encyclopedia`                                                 | —    | The header's word, the dialog's accessible name and the landing's first crumb.                                                         |
+| `ENCYCLOPEDIA_RAIL_ICON_PX`                                          | 16                                                             | px   | A rail row's category mark (`encyclopedia-icons.ts`), drawn in `currentColor`.                                                         |
+| `ENCYCLOPEDIA_SEARCH_PLACEHOLDER`                                    | `Search`                                                       | —    | The search field's placeholder, which also names it.                                                                                   |
+| `ENCYCLOPEDIA_RESULTS_LABEL`                                         | `Results`                                                      | —    | The list column's header while a query runs, where no category is selected.                                                            |
+| `ENCYCLOPEDIA_NO_MATCH_PREFIX`, `ENCYCLOPEDIA_NO_MATCH_SUFFIX`       | `No match for "`, `"`                                          | —    | Around the query as typed, for §11.5's `No match for "xyz"`.                                                                           |
 | `DEFAULT_ENCYCLOPEDIA_CATEGORY`                                      | `basics`                                                       | —    | Where an open with no entry asked for and no last location starts (§11.1); while that category is empty, the first one the rail lists. |
 | `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`                                     | 150                                                            | ms   | Arrowing through the list calls `show` only once the selection rests this long.                                                        |
 | `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`                              | `Preview unavailable`                                          | —    | The `unavailable` state's line.                                                                                                        |

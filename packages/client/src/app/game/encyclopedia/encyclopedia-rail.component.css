@@ -1,0 +1,28 @@
+/* The category rail (docs/ui/encyclopedia.md §11.3): a fixed-width column on the kit well, its rows the kit's, with a
+   1 px panel-rim rule against the list beside it. Only the column is this file's — every row state is the kit's. */
+
+:host {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: calc(var(--encyclopedia-rail-width) * var(--ui-scale));
+  min-height: 0;
+  border-right: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  background-color: var(--ui-well);
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* The rows start a space below the header rule, as the mockup draws them. */
+.rail {
+  padding-top: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+.icon {
+  width: calc(var(--encyclopedia-rail-icon) * var(--ui-scale));
+  height: calc(var(--encyclopedia-rail-icon) * var(--ui-scale));
+}

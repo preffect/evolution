@@ -1,0 +1,12 @@
+/* The run is not a box of its own: its rows are the list's or the section's own children, so the kit's column layout
+   and its roving focus see exactly what they would have seen written inline. */
+:host {
+  display: contents;
+}
+
+/* The glyph draws its own disc and rim, so it is the medallion rather than sitting in one
+   (docs/ui/components-and-constants.md §10.2). */
+.glyph {
+  width: calc(var(--encyclopedia-row-glyph) * var(--ui-scale));
+  height: calc(var(--encyclopedia-row-glyph) * var(--ui-scale));
+}
