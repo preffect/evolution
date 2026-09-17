@@ -216,19 +216,32 @@ longer scrolls.
 ### 11.5 Navigation, search and cross-links
 
 **State.** `game/encyclopedia/encyclopedia-state.service.ts` (root-provided, so the lobby and the room share one
-session's reading position; it is not a HUD service): `location` (`{ category, entryId | null }`), `query`, `history`
-(a back stack capped at `ENCYCLOPEDIA_HISTORY_MAX`), and the last location, which is where the next open starts. Every
-transition is a pure function in `game/encyclopedia/format/navigation.ts`.
+session's reading position; it is not a HUD service): `location` (`{ category, entryId | null, sectionKey | null }`,
+the section carrying the anchor a link arrived on), `query`, `history` (a back stack capped at
+`ENCYCLOPEDIA_HISTORY_MAX`), and the last location, which is where the next open starts. A reopen starts with a blank
+`query`, so a stale search never greets the next open. Every transition is a pure function in
+`game/encyclopedia/format/navigation.ts`, and the rail's categories are one of them: `listedCategories` keeps the
+declared order and drops every category `entriesIn` finds empty, which is also why an open with no last location falls
+to the first listed category while `basics` is still empty (#361).
 
 - **Rail**: selecting a category shows its landing (`entryId: null`). **List** and **tiles**: selecting an entry
   shows its page. **Links** (prose, facts, chips, breadcrumbs, a menu trait row): go to the target, switching the
   category to the target entry's. An anchor (`#tier_2`, `#ahead`) opens the page with that section selected or
   scrolled into view. Every move but Back pushes the location it left; Back pops. A move to the location already
-  shown pushes nothing.
+  shown pushes nothing. **Activating pushes; roving replaces**: a row, tile, link, crumb or rail row the player
+  activates pushes the location it left (`goTo`), while the roving focus of the rail and the list, where selection
+  follows focus, only replaces it (`goToReplacing`). Arrowing down a list is one act of looking, not one move per row;
+  pushing each would spend `ENCYCLOPEDIA_HISTORY_MAX` on arrow steps and drop the location Back is there to return to.
+  A `sectionKey` naming a section the entry does not have is treated as the top of the page.
 - **Search** is warranted: about 75 entries across six categories, and a player usually arrives knowing a name they
   saw on a card or a label. `/` (`ENCYCLOPEDIA_SEARCH_KEY_CODE`) focuses the field from anywhere in the encyclopedia
-  but a text field. Typing matches, case- and accent-insensitive, the resolved `title` first (title-prefix matches
-  before other title matches) and then the `summary` text, each in rail and list order. While the query is non-empty
+  but a text field. Typing matches, case- and accent-insensitive, the resolved `title` and then the `summary` text.
+  Results are **category-major**: each category's matches are contiguous, so its section header is drawn exactly once;
+  the categories run in the order of the best match each one holds, and a tie between two keeps rail order. **Within a
+  category** the entries run by match rank — a title-prefix match, then any other title match, then a summary match —
+  and then in list order. So the strongest name match always leads the list, whichever category it sits in. Folding
+  covers what NFD decomposes: ligatures and stroked letters (`œ`, `æ`, `ß`, `ø`) are out of scope until an entry title
+  uses one. While the query is non-empty
   the list column shows the results under category section headers, the rail shows no selection, and Enter opens the
   first result; `No match for "xyz"` (`body`, muted) when there is none.
 - **Keyboard.** Tab order: header (Back, search, alert strip, Close), rail, list, detail (its controls and links in
@@ -268,39 +281,40 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `encyclopedia-facts.component.ts`, `encyclopedia-prose.component.ts`   | The facts tables and the prose segments with their links                                                                                                  |
 | `encyclopedia-state.service.ts`                                        | §11.5's state                                                                                                                                             |
 | `format/navigation.ts`, `format/search.ts`, `format/entry-view.ts`     | Pure: the transitions, the match and its order, the page's view model (tier columns, chips, crumbs)                                                       |
-| `encyclopedia-constants.ts`, `test-ids.ts`                             | The table below, the labels of §11.2 and the key codes; §11.6                                                                                             |
+| `encyclopedia-constants.ts`, `test-ids.ts`                             | The table below and the key codes; §11.6. §11.2's category labels and order are the registry's, in `model/categories.ts`                                  |
 
-| Constant                                                             | Value                                                          | Unit | Meaning                                                                                           |
-| -------------------------------------------------------------------- | -------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------- |
-| `ENCYCLOPEDIA_INSET_PX`                                              | 32                                                             | px   | The panel's distance from every viewport edge.                                                    |
-| `ENCYCLOPEDIA_MAX_WIDTH_PX`                                          | 1360                                                           | px   | The panel's widest.                                                                               |
-| `ENCYCLOPEDIA_MAX_HEIGHT_PX`                                         | 880                                                            | px   | The panel's tallest.                                                                              |
-| `ENCYCLOPEDIA_HEADER_HEIGHT_PX`                                      | 56                                                             | px   | The header row.                                                                                   |
-| `ENCYCLOPEDIA_RAIL_WIDTH_PX`                                         | 184                                                            | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.        |
-| `ENCYCLOPEDIA_LIST_WIDTH_PX`                                         | 280                                                            | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion. |
-| `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                            | px   | The lens, and the side of its square preview canvas.                                              |
-| `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                             | px   | The lens to the title column.                                                                     |
-| `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                              | px   | The lens rim, in `PANEL_RIM`.                                                                     |
-| `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                           | ×    | The 1 px `LIGHT_ACCENT` ring inside the rim.                                                      |
-| `ENCYCLOPEDIA_LENS_TICK_COUNT`                                       | 24                                                             | —    | Reticle ticks around the lens.                                                                    |
-| `ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY`                                 | 6                                                              | —    | Every sixth tick is a major one: the four quarters.                                               |
-| `ENCYCLOPEDIA_LENS_MAJOR_TICK_PX`, `ENCYCLOPEDIA_LENS_MINOR_TICK_PX` | 10, 5                                                          | px   | Tick lengths, inward from the rim.                                                                |
-| `ENCYCLOPEDIA_LENS_TICK_ALPHA`                                       | 0.6                                                            | ×    | The ticks' opacity, in the label colour.                                                          |
-| `ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION`                          | 0.7                                                            | × r  | Where the edge vignette starts.                                                                   |
-| `ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA`                                   | 0.6                                                            | ×    | The vignette's `CALLOUT_BACKING` at the rim.                                                      |
-| `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION`                              | 0.7                                                            | × d  | The widest line of the `unavailable` text inside the lens.                                        |
-| `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX`                                | 48                                                             | px   | The sticky title bar of a scrolled entry: the breadcrumb over the title.                          |
-| `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`                                    | 640                                                            | px   | The prose measure: about 90 characters of `body`.                                                 |
-| `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                            | px   | A landing tile; four to a row at 1280 × 800.                                                      |
-| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 132                                                            | px   | A landing tile.                                                                                   |
-| `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                             | px   | The tile's well.                                                                                  |
-| `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                            |
-| `ENCYCLOPEDIA_HISTORY_MAX`                                           | 50                                                             | —    | Back-stack depth; the oldest location drops first.                                                |
-| `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`                                     | 150                                                            | ms   | Arrowing through the list calls `show` only once the selection rests this long.                   |
-| `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`                              | `Preview unavailable`                                          | —    | The `unavailable` state's line.                                                                   |
-| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                       | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).            |
-| `ENCYCLOPEDIA_SEARCH_KEY_CODE`                                       | `Slash`                                                        | —    | Focuses the search field.                                                                         |
-| `ENCYCLOPEDIA_BACK_KEYS`                                             | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).              |
+| Constant                                                             | Value                                                          | Unit | Meaning                                                                                                                                |
+| -------------------------------------------------------------------- | -------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `ENCYCLOPEDIA_INSET_PX`                                              | 32                                                             | px   | The panel's distance from every viewport edge.                                                                                         |
+| `ENCYCLOPEDIA_MAX_WIDTH_PX`                                          | 1360                                                           | px   | The panel's widest.                                                                                                                    |
+| `ENCYCLOPEDIA_MAX_HEIGHT_PX`                                         | 880                                                            | px   | The panel's tallest.                                                                                                                   |
+| `ENCYCLOPEDIA_HEADER_HEIGHT_PX`                                      | 56                                                             | px   | The header row.                                                                                                                        |
+| `ENCYCLOPEDIA_RAIL_WIDTH_PX`                                         | 184                                                            | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.                                             |
+| `ENCYCLOPEDIA_LIST_WIDTH_PX`                                         | 280                                                            | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion.                                      |
+| `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                            | px   | The lens, and the side of its square preview canvas.                                                                                   |
+| `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                             | px   | The lens to the title column.                                                                                                          |
+| `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                              | px   | The lens rim, in `PANEL_RIM`.                                                                                                          |
+| `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                           | ×    | The 1 px `LIGHT_ACCENT` ring inside the rim.                                                                                           |
+| `ENCYCLOPEDIA_LENS_TICK_COUNT`                                       | 24                                                             | —    | Reticle ticks around the lens.                                                                                                         |
+| `ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY`                                 | 6                                                              | —    | Every sixth tick is a major one: the four quarters.                                                                                    |
+| `ENCYCLOPEDIA_LENS_MAJOR_TICK_PX`, `ENCYCLOPEDIA_LENS_MINOR_TICK_PX` | 10, 5                                                          | px   | Tick lengths, inward from the rim.                                                                                                     |
+| `ENCYCLOPEDIA_LENS_TICK_ALPHA`                                       | 0.6                                                            | ×    | The ticks' opacity, in the label colour.                                                                                               |
+| `ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION`                          | 0.7                                                            | × r  | Where the edge vignette starts.                                                                                                        |
+| `ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA`                                   | 0.6                                                            | ×    | The vignette's `CALLOUT_BACKING` at the rim.                                                                                           |
+| `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION`                              | 0.7                                                            | × d  | The widest line of the `unavailable` text inside the lens.                                                                             |
+| `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX`                                | 48                                                             | px   | The sticky title bar of a scrolled entry: the breadcrumb over the title.                                                               |
+| `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`                                    | 640                                                            | px   | The prose measure: about 90 characters of `body`.                                                                                      |
+| `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                            | px   | A landing tile; four to a row at 1280 × 800.                                                                                           |
+| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 132                                                            | px   | A landing tile.                                                                                                                        |
+| `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                             | px   | The tile's well.                                                                                                                       |
+| `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                            | ×    | The callout-backing scrim behind the panel in a round.                                                                                 |
+| `ENCYCLOPEDIA_HISTORY_MAX`                                           | 50                                                             | —    | Back-stack depth; the oldest location drops first.                                                                                     |
+| `DEFAULT_ENCYCLOPEDIA_CATEGORY`                                      | `basics`                                                       | —    | Where an open with no entry asked for and no last location starts (§11.1); while that category is empty, the first one the rail lists. |
+| `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`                                     | 150                                                            | ms   | Arrowing through the list calls `show` only once the selection rests this long.                                                        |
+| `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`                              | `Preview unavailable`                                          | —    | The `unavailable` state's line.                                                                                                        |
+| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                       | —    | The replay button's label, a record keyed by the action scenes (one value in build 1).                                                 |
+| `ENCYCLOPEDIA_SEARCH_KEY_CODE`                                       | `Slash`                                                        | —    | Focuses the search field.                                                                                                              |
+| `ENCYCLOPEDIA_BACK_KEYS`                                             | `{ code: 'ArrowLeft', altKey: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier (Backspace only outside a text field).                                                   |
 
 `ENCYCLOPEDIA_KEY_CODE` (`KeyH`) lives with the in-room key codes in `input/input-constants.ts` (§4), since only the
 room's input layer reads it.
