@@ -17,6 +17,10 @@ import { SUBJECT_GLYPHS, SUBJECT_GLYPH_LIST } from './subject-glyphs';
  * member of one fails this file before it can reach the encyclopedia without a glyph. The glyph tables take only the
  * id *type* from `encyclopedia/` (ui-type.md §7.2); this spec is what may read its values, because checking them is
  * the whole point of it.
+ *
+ * A **new subject** lands here first as a `typecheck` error — this record is mapped over `NonTraitSubject`, so the
+ * missing key is named — and the fix is one row here plus its glyphs, never a row here alone: the row is what makes
+ * the completeness test below ask for them. `HUD_TOPIC` (#450) is the outstanding case.
  */
 type NonTraitSubject = Exclude<EntrySubject, typeof ENTRY_SUBJECT.trait>;
 const CODE_IDS_BY_SUBJECT: { readonly [Subject in NonTraitSubject]: readonly CodeIdBySubject[Subject][] } = {
@@ -72,8 +76,16 @@ function coloursOf(layer: GlyphLayer): readonly string[] {
 }
 
 describe('SUBJECT_GLYPHS', () => {
-  it('has exactly one glyph per non-trait entry id, no more and no fewer', () => {
-    expect([...SUBJECT_GLYPH_LIST.map((glyph) => glyph.entryId)].sort()).toEqual([...SUBJECT_ENTRY_IDS].sort());
+  it('draws every non-trait entry id exactly once: a subject that gains members owes glyphs', () => {
+    // Failing here is not a broken glyph — it is a glyph that was never drawn. `undrawn` lists the entries the
+    // encyclopedia will show with nothing beside their name until someone draws them (`ui-type.md` §7.2 says how);
+    // `orphaned` lists drawings whose subject has left the model and that should go with it. The known outstanding
+    // case is `HUD_TOPIC` (#450): the day `hud-topics.ts` and the `hud` subject land, its seven appear in `undrawn`.
+    const drawn = SUBJECT_GLYPH_LIST.map((glyph) => glyph.entryId);
+    const undrawn = SUBJECT_ENTRY_IDS.filter((entryId) => !drawn.includes(entryId));
+    const orphaned = drawn.filter((entryId) => !SUBJECT_ENTRY_IDS.includes(entryId));
+    expect({ undrawn, orphaned }).toEqual({ undrawn: [], orphaned: [] });
+    expect(new Set(drawn).size).toBe(drawn.length);
   });
 
   it.each(SUBJECT_ENTRY_IDS)('%s draws the full layer stack with a ramped body', (entryId) => {
@@ -117,9 +129,16 @@ describe('SUBJECT_GLYPHS', () => {
     expect(cropped).toEqual([]);
   });
 
-  it('gives every subject a signature drawn by no other subject', () => {
+  it('gives every subject a signature drawn by no other subject, in shape and not merely in paint', () => {
+    // Compared on geometry with the paint stripped off: two subjects whose signatures are the same shapes in
+    // different colours would read the same at 20 px, where principles-and-palette.md §1 says hue is the least
+    // reliable cue. Passing this is what makes the set mutually distinguishable rather than merely differently lit.
     const signatures = SUBJECT_ENTRY_IDS.map((entryId) =>
-      JSON.stringify(glyphOf(entryId).layers.filter((layer) => layer.role === GLYPH_ROLE.signature)),
+      JSON.stringify(
+        glyphOf(entryId)
+          .layers.filter((layer) => layer.role === GLYPH_ROLE.signature)
+          .map((layer) => ({ shape: layer.shape, offset: layer.offset })),
+      ),
     );
     expect(new Set(signatures).size).toBe(SUBJECT_ENTRY_IDS.length);
   });

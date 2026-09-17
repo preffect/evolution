@@ -153,7 +153,9 @@ nothing at their edge). The view builder also **clips the glyph to the medallion
 panel behind it whatever a table does.
 
 **The drawings.** Files: `render/constants/subject-glyphs-{cells,food,stages,tags,abilities-contest,abilities-reach,actions,zones,world,concepts}.ts`,
-on the shapes of `subject-glyph-shapes.ts` and the motifs of `subject-glyph-motifs.ts`.
+on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.ts` and the paint of
+`subject-glyph-palette.ts` (the ramps, the line weights `SUBJECT_STROKE`, the alphas `SUBJECT_ALPHA` and
+`GLYPH_MEDALLION_REACH`).
 
 | Subject                    | Signature (what the silhouette says)                                                           | Idle motion         |
 | -------------------------- | ---------------------------------------------------------------------------------------------- | ------------------- |
