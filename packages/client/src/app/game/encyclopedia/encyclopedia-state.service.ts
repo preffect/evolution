@@ -15,6 +15,7 @@ import {
   entryLocation,
   goBack,
   goTo,
+  goToReplacing,
   initialNavigation,
   listedCategories,
   type EncyclopediaLocation,
@@ -72,12 +73,19 @@ export class EncyclopediaStateService {
   /** What the search field holds; blank while the list shows its category. */
   readonly query = this.queryValue.asReadonly();
 
+  // The category and the entry are read through their own computeds so that a move which changes only the
+  // `sectionKey` — following a `#tier_2` link on the page already open — stops at the string. Depending on
+  // `location()` itself would rebuild every `ResolvedGroup` and re-resolve the entry, handing #448's `@for` new
+  // identities for a jump that changed nothing about either.
+  private readonly currentCategory = computed(() => this.location().category);
+  private readonly currentEntryId = computed(() => this.location().entryId);
+
   /** The current category's non-empty groups with their entries, which the list column walks. */
-  readonly groups: Signal<readonly ResolvedGroup[]> = computed(() => entriesIn(this.location().category));
+  readonly groups: Signal<readonly ResolvedGroup[]> = computed(() => entriesIn(this.currentCategory()));
 
   /** The page being read, resolved against the live balance; `null` on a category landing. */
   readonly entry: Signal<ResolvedEntry | null> = computed(() => {
-    const entryId = this.location().entryId;
+    const entryId = this.currentEntryId();
     return entryId === null ? null : resolveEntry(entryId, this.contextService.context());
   });
 
@@ -94,14 +102,27 @@ export class EncyclopediaStateService {
     groupSearchResults(this.results()),
   );
 
-  /** A rail row chosen: the category's landing. */
+  /** A rail row activated: the category's landing, pushed. */
   selectCategory(category: EncyclopediaCategory): void {
     this.navigation.update((navigation) => goTo(navigation, categoryLanding(category)));
   }
 
-  /** A list row, a tile or a link followed (§11.5): the entry's page, with the rail switched to its category. */
+  /** A list row, a tile or a link followed (§11.5): the entry's page, pushed, with the rail switched to its category. */
   openEntry(entryId: EntryId, sectionKey: string | null = null): void {
     this.navigation.update((navigation) => goTo(navigation, entryLocation(entryId, sectionKey)));
+  }
+
+  /**
+   * The rail's roving focus (§11.5), where selection follows focus: shows the category without pushing, so arrowing
+   * down the rail does not bury the location Back is meant to return to.
+   */
+  focusCategory(category: EncyclopediaCategory): void {
+    this.navigation.update((navigation) => goToReplacing(navigation, categoryLanding(category)));
+  }
+
+  /** The list's roving focus (§11.5): shows the entry without pushing, for the same reason. */
+  focusEntry(entryId: EntryId): void {
+    this.navigation.update((navigation) => goToReplacing(navigation, entryLocation(entryId)));
   }
 
   /** Back (§11.5): one move back, never one entry out of a category and never the close. */
@@ -125,5 +146,15 @@ export class EncyclopediaStateService {
   openAt(entryId: EntryId | null): void {
     this.clearQuery();
     if (entryId !== null) this.openEntry(entryId);
+  }
+
+  /**
+   * A host closing the panel (§11.1). The location is the session's reading position and stays; the query does not,
+   * so it is dropped from this side too — the invariant then holds whichever door a host used. It still needs a host
+   * to use one of them: this service cannot see the overlay state, which is the HUD's in a room and the lobby's
+   * outside, so #449's acceptance covers the reopen.
+   */
+  close(): void {
+    this.clearQuery();
   }
 }

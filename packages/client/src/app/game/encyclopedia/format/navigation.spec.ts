@@ -12,6 +12,7 @@ import {
   entryLocation,
   goBack,
   goTo,
+  goToReplacing,
   initialNavigation,
   isSameLocation,
   listedCategories,
@@ -99,6 +100,27 @@ describe('goBack', () => {
   });
 });
 
+describe('goToReplacing', () => {
+  it('shows the new location without touching the stack, so roving focus cannot spend the history', () => {
+    const start = goTo(initialNavigation(BASICS_LANDING), entryLocation(CILIA));
+    const roved = Array.from({ length: ENCYCLOPEDIA_HISTORY_MAX * 2 }, (_unused, index) => sectionAt(index)).reduce(
+      goToReplacing,
+      start,
+    );
+
+    expect(roved.location).toEqual(sectionAt(ENCYCLOPEDIA_HISTORY_MAX * 2 - 1));
+    expect(roved.history).toEqual([BASICS_LANDING]);
+    expect(canGoBack(roved)).toBe(true);
+    expect(goBack(roved).location).toEqual(BASICS_LANDING);
+  });
+
+  it('changes nothing at all for a replace onto the location already shown', () => {
+    const navigation = goTo(initialNavigation(BASICS_LANDING), entryLocation(CILIA));
+
+    expect(goToReplacing(navigation, entryLocation(CILIA))).toBe(navigation);
+  });
+});
+
 describe('the history cap', () => {
   it('holds exactly ENCYCLOPEDIA_HISTORY_MAX locations once full, and drops the oldest for the next one', () => {
     const start = initialNavigation(sectionAt(0));
@@ -153,5 +175,14 @@ describe('defaultLocation', () => {
     const listed: readonly EncyclopediaCategory[] = [ENCYCLOPEDIA_CATEGORY.evolutions, ENCYCLOPEDIA_CATEGORY.world];
 
     expect(defaultLocation(listed)).toEqual(categoryLanding(ENCYCLOPEDIA_CATEGORY.evolutions));
+  });
+
+  it('prefers the default category over the first listed one, wherever in the order it sits', () => {
+    // `DEFAULT_ENCYCLOPEDIA_CATEGORY` is also ENCYCLOPEDIA_CATEGORY_ORDER[0] today, so every other case here reads the
+    // same under "prefers the default" and under "takes the first listed". This is the one that tells them apart, and
+    // it is the case that arrives the day #361 fills `basics` while an earlier-ordered category is still empty.
+    const listed: readonly EncyclopediaCategory[] = [ENCYCLOPEDIA_CATEGORY.entities, DEFAULT_ENCYCLOPEDIA_CATEGORY];
+
+    expect(defaultLocation(listed)).toEqual(categoryLanding(DEFAULT_ENCYCLOPEDIA_CATEGORY));
   });
 });

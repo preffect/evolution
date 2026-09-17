@@ -65,6 +65,20 @@ export function goTo(navigation: EncyclopediaNavigation, location: EncyclopediaL
   return { location, history: pushCapped(navigation.history, navigation.location) };
 }
 
+/**
+ * A move that replaces where the reader is instead of pushing it: the rail's and the list's roving focus, where
+ * selection follows focus (§11.5). Arrowing through a list is one continuous act of looking, not fifty moves — pushing
+ * each one would spend `ENCYCLOPEDIA_HISTORY_MAX` on arrow steps and drop the location the reader actually came from,
+ * leaving Back unable to return there. Activating a row, a tile, a link or a crumb pushes; roving replaces.
+ */
+export function goToReplacing(
+  navigation: EncyclopediaNavigation,
+  location: EncyclopediaLocation,
+): EncyclopediaNavigation {
+  if (isSameLocation(navigation.location, location)) return navigation;
+  return { ...navigation, location };
+}
+
 /** Back pops (§11.5). With nothing pushed there is nowhere to go, and the navigation is returned untouched. */
 export function goBack(navigation: EncyclopediaNavigation): EncyclopediaNavigation {
   const previous = navigation.history[navigation.history.length - 1];
@@ -83,8 +97,10 @@ export function listedCategories(
 }
 
 /**
- * Where an open with no entry asked for and no last location starts (§11.1): the default category's landing, or —
- * while that category is still empty — the first one the rail does list, since the landing shown must have entries.
+ * Where an open with no entry asked for and no last location starts (§11.1): the default category's landing whenever
+ * the rail lists it — wherever in the order it sits — or else the first one the rail does list, since the landing
+ * shown must have entries. The `??` arm is the impossible case: `listed` is empty only for an empty registry, which
+ * `registry-completeness.spec.ts` forbids.
  */
 export function defaultLocation(listed: readonly EncyclopediaCategory[]): EncyclopediaLocation {
   if (listed.includes(DEFAULT_ENCYCLOPEDIA_CATEGORY)) return categoryLanding(DEFAULT_ENCYCLOPEDIA_CATEGORY);

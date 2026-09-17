@@ -24,8 +24,20 @@ export const SEARCH_MATCH = {
 } as const;
 export type SearchMatch = ValueOf<typeof SEARCH_MATCH>;
 
-/** The ranks in the order results are listed in (§11.5). */
-const SEARCH_MATCH_RANKS: readonly SearchMatch[] = [SEARCH_MATCH.titlePrefix, SEARCH_MATCH.title, SEARCH_MATCH.summary];
+/**
+ * What each kind of match is worth, lowest first (§11.5). A total record over the closed set rather than an array of
+ * it, so a `SEARCH_MATCH` member added later is a compile error here instead of a match that is silently dropped from
+ * the results and sorts its category to the front on an `indexOf` miss.
+ */
+const TITLE_PREFIX_RANK = 0;
+const TITLE_RANK = TITLE_PREFIX_RANK + 1;
+const SUMMARY_RANK = TITLE_RANK + 1;
+
+const SEARCH_MATCH_RANK: Readonly<Record<SearchMatch, number>> = {
+  [SEARCH_MATCH.titlePrefix]: TITLE_PREFIX_RANK,
+  [SEARCH_MATCH.title]: TITLE_RANK,
+  [SEARCH_MATCH.summary]: SUMMARY_RANK,
+};
 
 /** One entry as search sees it: what a caller resolved, in the order it wants matches listed. */
 export interface SearchableEntry {
@@ -52,7 +64,17 @@ export interface EncyclopediaSearchGroup {
 /** The combining marks NFD splits an accented letter into; dropping them leaves the plain letter. */
 const COMBINING_MARKS = /\p{Mn}/gu;
 
-/** The form a query and a searched text are both compared in: decomposed, stripped of accents, lowercased. */
+/**
+ * The form a query and a searched text are both compared in: decomposed, stripped of accents, lowercased.
+ *
+ * Deliberately limited to what NFD decomposes. Ligatures and stroked letters — `œ`, `æ`, `ß`, `ø` — have no combining
+ * mark to drop, so they stay as typed and `oeil` will not find `Œil`. None appears in an entry title, and the fix is a
+ * transliteration table rather than a regex, so it is out of scope until one does.
+ *
+ * `\p{Mn}` (nonspacing marks) rather than `\p{Diacritic}`, which is the right class for NFD output; the dev-only kit
+ * sample sheet (`ui-kit/kit-states/kit-collections.component.ts`) folds with `\p{Diacritic}`. The two are independent
+ * on purpose — neither should be "fixed" to match the other.
+ */
 export function foldForSearch(text: string): string {
   return text.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase();
 }
@@ -70,28 +92,39 @@ function matchOf(entry: SearchableEntry, foldedQuery: string): SearchMatch | nul
   return null;
 }
 
-function rankIndexOf(match: SearchMatch): number {
-  return SEARCH_MATCH_RANKS.indexOf(match);
+/** A match with the two numbers that order it: what it is worth, and where the caller put it. */
+interface RankedMatch {
+  readonly result: EncyclopediaSearchResult;
+  readonly rank: number;
+  /** Position among the matches, in the caller's own rail-and-list order. */
+  readonly order: number;
 }
 
-/** The best rank any of `category`'s matches achieved; 0 is a title-prefix match. */
-function bestRankIn(matched: readonly EncyclopediaSearchResult[], category: EncyclopediaCategory): number {
-  const ranks = matched.filter((result) => result.category === category).map((result) => rankIndexOf(result.match));
-  return Math.min(...ranks);
+function rankedMatches(index: readonly SearchableEntry[], foldedQuery: string): readonly RankedMatch[] {
+  const ranked: RankedMatch[] = [];
+  for (const entry of index) {
+    const match = matchOf(entry, foldedQuery);
+    if (match === null) continue;
+    const result = { entryId: entry.entryId, category: entry.category, title: entry.title, match };
+    ranked.push({ result, rank: SEARCH_MATCH_RANK[match], order: ranked.length });
+  }
+  return ranked;
 }
 
 /**
- * The categories present, best match first. The tie-break is the caller's own order — the rail's — taken from where
- * each category's first match sits, so the ordering never leans on the sort being stable.
+ * The categories present, best match first, ties broken on `railIndex` — where the category's first match sits in the
+ * caller's order, which is rail order. Because `railIndex` is distinct per category the comparator is a total order,
+ * so the result never leans on `Array.sort` being stable. No test in this runtime can show that (V8's sort has been
+ * stable since ES2019), so do not delete the tie-break on the strength of a green run: it holds by reading.
  */
-function categoriesByBestMatch(matched: readonly EncyclopediaSearchResult[]): readonly EncyclopediaCategory[] {
-  const ordered = [...new Set(matched.map((result) => result.category))].map((category, firstIndex) => ({
+function categoriesByBestMatch(ranked: readonly RankedMatch[]): readonly EncyclopediaCategory[] {
+  const ordered = [...new Set(ranked.map((match) => match.result.category))].map((category, railIndex) => ({
     category,
-    firstIndex,
-    bestRank: bestRankIn(matched, category),
+    railIndex,
+    bestRank: Math.min(...ranked.filter((match) => match.result.category === category).map((match) => match.rank)),
   }));
-  ordered.sort((one, other) => one.bestRank - other.bestRank || one.firstIndex - other.firstIndex);
-  return ordered.map((ranked) => ranked.category);
+  ordered.sort((one, other) => one.bestRank - other.bestRank || one.railIndex - other.railIndex);
+  return ordered.map((entry) => entry.category);
 }
 
 /**
@@ -102,27 +135,26 @@ function categoriesByBestMatch(matched: readonly EncyclopediaSearchResult[]): re
 export function searchEntries(index: readonly SearchableEntry[], query: string): readonly EncyclopediaSearchResult[] {
   const foldedQuery = foldForSearch(query.trim());
   if (foldedQuery.length === 0) return [];
-  const matched = index.flatMap((entry) => {
-    const match = matchOf(entry, foldedQuery);
-    if (match === null) return [];
-    return [{ entryId: entry.entryId, category: entry.category, title: entry.title, match }];
-  });
-  return categoriesByBestMatch(matched).flatMap((category) => {
-    const inCategory = matched.filter((result) => result.category === category);
-    return SEARCH_MATCH_RANKS.flatMap((rank) => inCategory.filter((result) => result.match === rank));
-  });
+  const ranked = rankedMatches(index, foldedQuery);
+  return categoriesByBestMatch(ranked).flatMap((category) =>
+    ranked
+      .filter((match) => match.result.category === category)
+      .sort((one, other) => one.rank - other.rank || one.order - other.order)
+      .map((match) => match.result),
+  );
 }
 
 /**
- * The ranked results cut into the sections the list draws. Because `searchEntries` keeps a category's matches
- * contiguous, each category appears exactly once — the grouping cannot reorder anything, only split it.
+ * The results cut into the sections the list draws, one per category, the categories in the order they first appear.
+ * It holds for any input, not only for `searchEntries`' contiguous output: a category met again is added to the
+ * section already open for it, so no category can ever be given two headers.
  */
 export function groupSearchResults(results: readonly EncyclopediaSearchResult[]): readonly EncyclopediaSearchGroup[] {
-  const groups: { category: EncyclopediaCategory; results: EncyclopediaSearchResult[] }[] = [];
+  const byCategory = new Map<EncyclopediaCategory, EncyclopediaSearchResult[]>();
   for (const result of results) {
-    const open = groups.at(-1);
-    if (open?.category === result.category) open.results.push(result);
-    else groups.push({ category: result.category, results: [result] });
+    const open = byCategory.get(result.category);
+    if (open === undefined) byCategory.set(result.category, [result]);
+    else open.push(result);
   }
-  return groups;
+  return [...byCategory].map(([category, grouped]) => ({ category, results: grouped }));
 }

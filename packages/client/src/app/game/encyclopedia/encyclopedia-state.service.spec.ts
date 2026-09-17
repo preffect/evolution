@@ -7,6 +7,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type BalanceConfig } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
+import { ENCYCLOPEDIA_HISTORY_MAX } from './encyclopedia-constants';
 import { LISTED_ENCYCLOPEDIA_CATEGORIES, EncyclopediaStateService } from './encyclopedia-state.service';
 import { categoryLanding } from './format/navigation';
 import { SEARCH_MATCH } from './format/search';
@@ -24,7 +25,10 @@ function setUp(): { service: EncyclopediaStateService; balance: ReturnType<typeo
 }
 
 describe('LISTED_ENCYCLOPEDIA_CATEGORIES', () => {
-  it('lists a category exactly when it has entries, so no empty category is ever offered', () => {
+  // This guards the predicate at the call site — that the service really asks `entriesIn` and not something else. The
+  // rule itself is pinned where it can fail as a property: `navigation.spec.ts` drives `listedCategories` with
+  // injected predicates, and the default-open case below asserts the landing shown has entries.
+  it('asks entriesIn, so a category is listed exactly when it has entries', () => {
     for (const category of ENCYCLOPEDIA_CATEGORY_ORDER) {
       expect({ category, listed: LISTED_ENCYCLOPEDIA_CATEGORIES.includes(category) }).toEqual({
         category,
@@ -117,6 +121,33 @@ describe('EncyclopediaStateService', () => {
 
     expect(new Set(categories).size).toBe(categories.length);
     expect(groups.flatMap((group) => group.results)).toEqual(service.results());
+  });
+
+  it('roves without pushing, so arrowing through a list leaves Back where the reader came from', () => {
+    const { service } = setUp();
+    const start = service.location();
+    const listed = LISTED_ENCYCLOPEDIA_CATEGORIES[0];
+    if (listed === undefined) throw new Error('The registry listed no category');
+
+    service.openEntry(CILIA);
+    for (let step = 0; step < ENCYCLOPEDIA_HISTORY_MAX * 2; step += 1) {
+      service.focusEntry(step % 2 === 0 ? MITOCHONDRION : CILIA);
+      service.focusCategory(listed);
+    }
+
+    service.goBack();
+    expect(service.location()).toEqual(start);
+    expect(service.canGoBack()).toBe(false);
+  });
+
+  it('drops the query from the closing side too, so a reopen never shows a stale search', () => {
+    const { service } = setUp();
+    service.setQuery('mitoch');
+
+    service.close();
+
+    expect(service.query()).toBe('');
+    expect(service.results()).toEqual([]);
   });
 
   it('opens at the entry a host asked for, and stays where it was when it asks for nothing', () => {

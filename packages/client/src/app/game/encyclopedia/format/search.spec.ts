@@ -40,6 +40,8 @@ describe('foldForSearch', () => {
   it('folds case and strips accents, so the accented and plain spellings meet in one form', () => {
     expect(foldForSearch('Paramécium Cília')).toBe(foldForSearch('paramecium cilia'));
     expect(foldForSearch('CILIA')).toBe('cilia');
+    // `œ` survives on purpose: NFD decomposes accents but not ligatures or stroked letters, so `œ`, `æ`, `ß` and `ø`
+    // stay as typed and `oeil` will not find `Œil`. A stated limit, not an accident — see `foldForSearch`.
     expect(foldForSearch('Über Ångström œil')).toBe('uber angstrom œil');
   });
 });
@@ -144,6 +146,29 @@ describe('searchEntries', () => {
         },
       ]);
       expect(groupSearchResults([])).toEqual([]);
+    });
+
+    it('gives one section per category even for an input whose categories are interleaved', () => {
+      // `searchEntries` never produces this, but the signature accepts it, so the guarantee must not rest on the
+      // caller: a category met again joins the section already open for it rather than opening a second one.
+      const interleaved = [
+        searchable('trait:cilia', 'Cilia Fringe', 'Beating hairs.', EVOLUTIONS),
+        searchable('bacterium:aerobic', 'Ciliated bacterium', 'A swimmer.', ENTITIES),
+        searchable('trait:paramecium_cilia', 'Paramecium Cilia', 'Dense rows.', EVOLUTIONS),
+      ].map((entry) => ({
+        entryId: entry.entryId,
+        category: entry.category,
+        title: entry.title,
+        match: SEARCH_MATCH.title,
+      }));
+
+      const groups = groupSearchResults(interleaved);
+
+      expect(groups.map((group) => group.category)).toEqual([EVOLUTIONS, ENTITIES]);
+      expect(groups.map((group) => group.results.map((result) => result.entryId))).toEqual([
+        ['trait:cilia', 'trait:paramecium_cilia'],
+        ['bacterium:aerobic'],
+      ]);
     });
   });
 
