@@ -47,6 +47,8 @@ export interface GameSetupDependencies {
   readonly onCameraExtent?: (extent: CameraExtent) => void;
   /** Escape, handed to the HUD's overlay state (docs/ui/overlays.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /** `H`, handed to the HUD's overlay state (docs/ui/encyclopedia.md §11.1, #449). */
+  readonly onEncyclopediaKey?: () => void;
   /** Tab held / released, handed to the HUD's overlay state (docs/ui/hud.md §3.1.1, docs/ui/input-and-onboarding.md §4, #185). */
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
   /** The picker's card pick for this room, `null` when the room goes (docs/ui/overlays.md §3.2, #188). */
@@ -70,6 +72,7 @@ function reticleFor(isVisible: boolean, controller: InputController | null): Ren
 function hudHandlersOf(dependencies: GameSetupDependencies): Partial<AttachInputOptions> {
   return definedEntriesOf({
     onMenuKey: dependencies.onMenuKey,
+    onEncyclopediaKey: dependencies.onEncyclopediaKey,
     onFullLeaderboardHeldChanged: dependencies.onFullLeaderboardHeldChanged,
     onTraitCardPickReady: dependencies.onTraitCardPickReady,
   });

@@ -29,6 +29,15 @@ export type RovingMove = (typeof ROVING_MOVE)[keyof typeof ROVING_MOVE];
 
 const SELECT_KEYS: ReadonlySet<string> = new Set(['Enter', ' ']);
 
+/**
+ * Whether `key` is the one a group selects its focused item on. Exported because a feature whose selection follows
+ * focus has to tell that activation from the rove beside it, and both must mean the same keys (the encyclopedia's
+ * rail and list, docs/ui/encyclopedia.md §11.5).
+ */
+export function isRovingSelectKey(key: string): boolean {
+  return SELECT_KEYS.has(key);
+}
+
 /** The move `key` asks of a group laid out along `orientation`, or null for a key the group leaves alone. */
 export function rovingMoveFor(key: string, orientation: UiOrientation): RovingMove | null {
   const isVertical = orientation === UI_ORIENTATION.vertical;
@@ -120,7 +129,7 @@ export abstract class UiRovingGroup {
     const fromIndex = ordered.findIndex((item) => item.element === event.target);
     const focused = ordered[fromIndex];
     if (focused === undefined) return;
-    if (SELECT_KEYS.has(event.key)) {
+    if (isRovingSelectKey(event.key)) {
       event.preventDefault();
       this.select(focused);
       return;

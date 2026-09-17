@@ -2,8 +2,8 @@
 // exactly once here. Ids live in `test-ids.ts`, category labels and order in `model/categories.ts` (§11.2), and every
 // gameplay number is the shared balance read through `EncyclopediaContextService` — nothing here is a copy of one.
 //
-// The core's (#447) constants and the panel's (#448) layout row are declared; the entry page (#373) adds the lens's
-// and the keyboard (#449) its key codes as those slices land.
+// The core's (#447) constants, the panel's (#448) layout row and the keyboard's (#449) key codes are declared; the
+// entry page (#373) adds the lens's as that slice lands.
 
 import { ENCYCLOPEDIA_CATEGORY, type EncyclopediaCategory } from './model/categories';
 
@@ -63,3 +63,30 @@ export const ENCYCLOPEDIA_NO_MATCH_SUFFIX = '"';
  * that does.
  */
 export const DEFAULT_ENCYCLOPEDIA_CATEGORY: EncyclopediaCategory = ENCYCLOPEDIA_CATEGORY.basics;
+
+/**
+ * Focuses the search field from anywhere in the encyclopedia but a text field (docs/ui/encyclopedia.md §11.5). A
+ * `KeyboardEvent.code`, like every other key here, so a layout that puts `/` behind a modifier still reaches it.
+ * The lobby reads these as well as the room, which is why they live here and not in `input/input-constants.ts`.
+ */
+export const ENCYCLOPEDIA_SEARCH_KEY_CODE = 'Slash';
+
+/**
+ * One key plus its modifiers, as `KeyboardEvent` reports them; an omitted modifier must be up. The modifier is
+ * `isAltKeyHeld` rather than `KeyboardEvent`'s own `altKey`, which this repository's boolean-naming rule forbids;
+ * §11.7's table is written the same way.
+ */
+export interface EncyclopediaKeyChord {
+  readonly code: string;
+  readonly isAltKeyHeld?: boolean;
+}
+
+/**
+ * Back (docs/ui/encyclopedia.md §11.5, §11.7): `Alt+←` anywhere, and Backspace outside a text field — where it is
+ * the delete key and the search field must keep it. It goes back one *move*, never one entry out of a category, and
+ * it is never the close.
+ */
+export const ENCYCLOPEDIA_BACK_KEYS: readonly EncyclopediaKeyChord[] = [
+  { code: 'ArrowLeft', isAltKeyHeld: true },
+  { code: 'Backspace' },
+];

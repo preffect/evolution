@@ -11,14 +11,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ENCYCLOPEDIA_CATEGORY,
+  ENCYCLOPEDIA_BACK_KEYS,
   ENCYCLOPEDIA_NO_MATCH_PREFIX,
   ENCYCLOPEDIA_NO_MATCH_SUFFIX,
   ENCYCLOPEDIA_RESULTS_LABEL,
+  ENCYCLOPEDIA_SEARCH_KEY_CODE,
   ENCYCLOPEDIA_SEARCH_PLACEHOLDER,
   ENCYCLOPEDIA_TITLE,
 } from './encyclopedia-constants';
 
-/** Every quoted-string row of §11.7 that this build declares; the rest arrive with #373 and #449. */
+/** Every quoted-string row of §11.7 that this build declares; the lens's arrive with #373. */
 const TABULATED_WORDS: readonly (readonly [name: string, value: string, written: string])[] = [
   ['ENCYCLOPEDIA_TITLE', ENCYCLOPEDIA_TITLE, 'Encyclopedia'],
   ['ENCYCLOPEDIA_SEARCH_PLACEHOLDER', ENCYCLOPEDIA_SEARCH_PLACEHOLDER, 'Search'],
@@ -26,11 +28,20 @@ const TABULATED_WORDS: readonly (readonly [name: string, value: string, written:
   ['ENCYCLOPEDIA_NO_MATCH_PREFIX', ENCYCLOPEDIA_NO_MATCH_PREFIX, 'No match for "'],
   ['ENCYCLOPEDIA_NO_MATCH_SUFFIX', ENCYCLOPEDIA_NO_MATCH_SUFFIX, '"'],
   ['DEFAULT_ENCYCLOPEDIA_CATEGORY', DEFAULT_ENCYCLOPEDIA_CATEGORY, 'basics'],
+  ['ENCYCLOPEDIA_SEARCH_KEY_CODE', ENCYCLOPEDIA_SEARCH_KEY_CODE, 'Slash'],
 ];
 
 describe('the words docs/ui/encyclopedia.md §11.7 writes out', () => {
   it.each(TABULATED_WORDS)('%s reads exactly as the table writes it', (_name, value, written) => {
     expect(value).toBe(written);
+  });
+
+  /**
+   * `ENCYCLOPEDIA_BACK_KEYS` is a quoted-string row too, but a list of chords rather than one word, so it is pinned
+   * whole: both chords, in the table's order, with the modifier each one names and no other.
+   */
+  it('lists the Back chords exactly as the table writes them', () => {
+    expect(ENCYCLOPEDIA_BACK_KEYS).toEqual([{ code: 'ArrowLeft', isAltKeyHeld: true }, { code: 'Backspace' }]);
   });
 
   /**

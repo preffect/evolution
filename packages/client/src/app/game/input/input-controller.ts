@@ -41,6 +41,8 @@ export interface InputControllerDependencies {
   readonly world: () => InputWorldContext | null;
   /** Escape: the HUD closes the topmost overlay or opens the menu (docs/ui/overlays.md §3.5, #189). */
   readonly onMenuKey?: () => void;
+  /** `H`: the HUD opens the encyclopedia, returning to the menu or to the game (docs/ui/encyclopedia.md §11.1). */
+  readonly onEncyclopediaKey?: () => void;
   /**
    * Tab pressed or released (docs/ui/input-and-onboarding.md §4): the HUD opens the full leaderboard while it is held.
    * Reported rather than polled, and only on a change, so the one keyboard listener of #184 stays
@@ -75,14 +77,18 @@ export class InputController {
   }
 
   /**
-   * Folds one decided action in. `menu_key` is the HUD's and leaves the state alone; a card press
-   * is bound to the offer that is open at the moment it is made, and one no open offer can answer
+   * Folds one decided action in. `menu_key` and `encyclopedia_key` are the HUD's and leave the state alone; a card
+   * press is bound to the offer that is open at the moment it is made, and one no open offer can answer
    * is discarded there and then rather than carried to a later offer (`trait-pick.ts`).
    */
   apply(action: InputAction): void {
     if (action.kind === INPUT_ACTION.menuKey) {
       this.menuKeyPressCountValue += 1;
       this.dependencies.onMenuKey?.();
+      return;
+    }
+    if (action.kind === INPUT_ACTION.encyclopediaKey) {
+      this.dependencies.onEncyclopediaKey?.();
       return;
     }
     if (action.kind === INPUT_ACTION.pickCard) {

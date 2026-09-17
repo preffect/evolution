@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   DEFAULT_PLAYERS_PER_GAME,
@@ -104,6 +104,18 @@ export class AppComponent {
 
   newSeed(): void {
     this.seed.set(drawSeed());
+  }
+
+  constructor() {
+    // **The round starting underneath the reader is a close path too** (#449's review). The panel is mounted inside
+    // the lobby's own `@else`, so when `inGame()` flips — which any non-host gets the moment the host presses Start,
+    // with the panel modal and focus-trapped so they cannot have closed it themselves — that branch unmounts it
+    // without anyone calling `closeEncyclopedia()`. The open flag and the query would then both survive the round and
+    // the panel would reappear unbidden, showing a search from before it. #449's own "Done when" covers every close
+    // path on every host, and this is one; the core cannot enforce it, because it cannot see either host's state.
+    effect(() => {
+      if (this.multiplayer.inGame()) this.closeEncyclopedia();
+    });
   }
 
   /** At the last location this session, with a blank query; there is no entry to ask for from the lobby (§11.1). */

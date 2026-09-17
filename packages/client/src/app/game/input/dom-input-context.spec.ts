@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { MENU_OVERLAY_TEST_ID, RESULTS_OVERLAY_TEST_ID, TRAIT_OFFER_TEST_ID } from './input-constants';
+import {
+  ENCYCLOPEDIA_OVERLAY_TEST_ID,
+  MENU_OVERLAY_TEST_ID,
+  RESULTS_OVERLAY_TEST_ID,
+  TRAIT_OFFER_TEST_ID,
+} from './input-constants';
 import { focusContextOf } from './dom-input-context';
 
 function mount(html: string): void {
@@ -17,6 +22,7 @@ describe('focusContextOf', () => {
       isTextEntryFocused: false,
       isTraitOfferFocused: false,
       isModalOverlayOpen: false,
+      isMenuOpen: false,
       hasFocusableOverlay: false,
     });
   });
@@ -41,10 +47,20 @@ describe('focusContextOf', () => {
     expect(focusContextOf(document).isTraitOfferFocused).toBe(false);
   });
 
-  it('sees the menu open as a modal overlay', () => {
+  it('sees the menu open as a modal overlay, and says which modal overlay it is', () => {
     mount(`<div data-testid="${MENU_OVERLAY_TEST_ID}"></div>`);
     const context = focusContextOf(document);
     expect(context.isModalOverlayOpen).toBe(true);
+    expect(context.isMenuOpen).toBe(true);
+    expect(context.hasFocusableOverlay).toBe(true);
+  });
+
+  /** The two modal overlays are told apart because `H` acts from one of them and not from the other (§4). */
+  it('sees the encyclopedia open as a modal overlay that is not the menu', () => {
+    mount(`<div data-testid="${ENCYCLOPEDIA_OVERLAY_TEST_ID}"></div>`);
+    const context = focusContextOf(document);
+    expect(context.isModalOverlayOpen).toBe(true);
+    expect(context.isMenuOpen).toBe(false);
     expect(context.hasFocusableOverlay).toBe(true);
   });
 

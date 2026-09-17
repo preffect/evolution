@@ -30,9 +30,18 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
     return expectTestId(root(), ENCYCLOPEDIA_TEST_ID.encyclopedia);
   }
 
+  /**
+   * A row pressed as a browser presses one — `pointerdown`, `pointerup`, `click`, in that order. The `pointerdown`
+   * is load-bearing rather than decorative: it is what tells the list that the kit's report beside the press is that
+   * press's and not a rove, and a helper that omits it would quietly turn every push here into a replace
+   * (docs/ui/encyclopedia.md §11.5, `encyclopedia-activation-press.directive.ts`).
+   */
   function openFirstEntry(): string {
     const first = entriesIn(state.location().category)[0]!.entries[0]!;
-    expectTestId(root(), encyclopediaRowTestId(first.entryId)).click();
+    const element = expectTestId(root(), encyclopediaRowTestId(first.entryId));
+    element.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    element.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    element.click();
     fixture.detectChanges();
     return first.entryId;
   }

@@ -30,6 +30,7 @@ describe('the encyclopedia over the wired HUD (acceptance U8)', () => {
   let hud: ComponentFixture<HudComponent>;
   let hudState: HudStateService;
   let encyclopedia: EncyclopediaStateService;
+  let canvasHost: HTMLElement;
 
   function render(): void {
     hud.detectChanges();
@@ -54,12 +55,17 @@ describe('the encyclopedia over the wired HUD (acceptance U8)', () => {
     multiplayer.playerId.set(TEST_OWN_PLAYER_ID);
     multiplayer.balance.set(DEFAULT_BALANCE);
     multiplayer.snapshot.set(SNAPSHOT);
+    // The element §11.1 sends focus back to, in the document before the panel can look for it.
+    canvasHost = document.body.appendChild(document.createElement('div'));
+    canvasHost.tabIndex = 0;
+    canvasHost.setAttribute('data-testid', HUD_TEST_ID.gameHost);
     hud = TestBed.createComponent(HudComponent);
     render();
   });
 
   afterEach(() => {
     hud.destroy();
+    canvasHost.remove();
   });
 
   it('opens from the menu on the first category the rail lists, with that row selected', () => {
@@ -106,6 +112,34 @@ describe('the encyclopedia over the wired HUD (acceptance U8)', () => {
     expect(
       expectTestId(hud.nativeElement as HTMLElement, encyclopediaRowTestId(entryId)).getAttribute('aria-selected'),
     ).toBe('true');
+  });
+
+  /**
+   * §11.1's third row: an `H`-in-play close returns "focus on the canvas host". The kit trap would otherwise restore
+   * whatever had focus when the panel opened — and on the first `H` of a round that is `<body>`, because the Start
+   * button unmounted when the room began. The reader would lose the cursor entirely and the next Tab would restart
+   * at the top of the document, which is what #449's review found live.
+   */
+  it('gives focus to the canvas host when it closes to the game, even with nothing focused when it opened', () => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+
+    hudState.openEncyclopedia(null);
+    render();
+    hudState.pressMenuKey();
+    render();
+
+    expect(query(ENCYCLOPEDIA_TEST_ID.encyclopedia)).toBeNull();
+    expect(document.activeElement).toBe(canvasHost);
+  });
+
+  /** The other return in §11.1 is the menu's own control, so a close **to the menu** must not take the canvas host. */
+  it('leaves the canvas host alone when it closes to the menu, which restores its own control', () => {
+    openFromMenu();
+    hudState.pressMenuKey();
+    render();
+    expect(query(HUD_TEST_ID.menuOverlay)).not.toBeNull();
+    expect(document.activeElement).not.toBe(canvasHost);
   });
 
   it('keeps the reading position across a close and a reopen, but never a stale query', () => {

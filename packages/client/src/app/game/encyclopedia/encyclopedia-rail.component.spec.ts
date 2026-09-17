@@ -86,9 +86,13 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
     return expectTestId(fixture.nativeElement as HTMLElement, ENCYCLOPEDIA_TEST_ID.rail);
   }
 
-  function arrowDownFrom(category: EncyclopediaCategory): void {
-    row(category).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+  function pressKeyOn(category: EncyclopediaCategory, key: string): void {
+    row(category).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
     fixture.detectChanges();
+  }
+
+  function arrowDownFrom(category: EncyclopediaCategory): void {
+    pressKeyOn(category, 'ArrowDown');
   }
 
   beforeEach(() => {
@@ -203,5 +207,30 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
 
   it('is one Tab stop: exactly one row is reachable by Tab, the rest by the arrows', () => {
     expect(rows().filter((element) => element.getAttribute('tabindex') === '0')).toHaveLength(1);
+  });
+
+  // Enter and Space (#449's keyboard model). On a rail whose selection follows focus the kit's own `select` sets the
+  // id the rove already set, so it emits nothing at all — which is why an activation by key is handled on the item's
+  // own `keydown`, below the group, rather than waited for as a report.
+
+  it.each([['Enter'], [' ']])('pushes on %j, which is an activation and not the rove that put focus there', (key) => {
+    pressKeyOn(ENCYCLOPEDIA_CATEGORY.evolutions, key);
+    expect(state.selectCategory).toHaveBeenCalledWith(ENCYCLOPEDIA_CATEGORY.evolutions);
+  });
+
+  it('pushes exactly once on an Enter that also moves the selection', () => {
+    state.location.set(categoryLanding(ENCYCLOPEDIA_CATEGORY.world));
+    fixture.detectChanges();
+    pressKeyOn(ENCYCLOPEDIA_CATEGORY.evolutions, 'Enter');
+    expect(state.selectCategory.mock.calls).toEqual([[ENCYCLOPEDIA_CATEGORY.evolutions]]);
+    expect(state.focusCategory).not.toHaveBeenCalled();
+  });
+
+  it('leaves the arrows replacing after an Enter, rather than latching it into the next press', () => {
+    pressKeyOn(ENCYCLOPEDIA_CATEGORY.evolutions, 'Enter');
+    state.selectCategory.mockClear();
+    arrowDownFrom(ENCYCLOPEDIA_CATEGORY.evolutions);
+    expect(state.focusCategory.mock.calls).toEqual([[ENCYCLOPEDIA_CATEGORY.world]]);
+    expect(state.selectCategory).not.toHaveBeenCalled();
   });
 });

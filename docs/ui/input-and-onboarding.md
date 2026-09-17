@@ -16,8 +16,12 @@
 
 - Hotkeys are handled by `input/keyboard-input.ts` on `document` while the client is in a room. Focus in a text field
   swallows every press but Escape. While a **modal overlay** is open (`openOverlay` is `menu` or `encyclopedia`;
-  `FocusContext.isModalOverlayOpen`, renamed from `isMenuOpen`) all but `1` `2` `3`, Escape and, with the menu open,
-  `H` are ignored, which leaves the arrow keys to the kit's rails and lists. `H` (`ENCYCLOPEDIA_KEY_CODE`, in
+  `FocusContext.isModalOverlayOpen`) all but `1` `2` `3`, Escape and, with the menu open,
+  `H` are ignored, which leaves the arrow keys to the kit's rails and lists. **Two of `FocusContext`'s five facts are
+  about overlays and they are not the same fact**: `isModalOverlayOpen` says a modal overlay is up, `isMenuOpen` says
+  it is the **menu** — and `H` acts on `!isModalOverlayOpen || isMenuOpen`, which is why telling them apart is the
+  whole of that rule (#449; before it there was one flag, and the rename it carried is no longer a useful way to read
+  either name). `H` (`ENCYCLOPEDIA_KEY_CODE`, in
   `input-constants.ts` beside the panel id it imports from the leaf `game/encyclopedia/test-ids.ts`) opens the
   encyclopedia, edge-triggered, while no modal overlay is open (returning to the game) or while the menu is open
   (returning to the menu, as the `Encyclopedia` button does). The encyclopedia's own keys (`/`, Back) are
@@ -69,8 +73,9 @@
 - **Opposing steer keys hand control back to the pointer.** `A` + `D` (or `W` + `S`) cancel to no direction, and
   the target falls through to the latched pointer rather than stopping. This is the decision for a
   pointer-primary game; "both keys to stop" would be a design change, not a bug fix.
-- The trait picker (#188) and the menu (#371) are live, so the Space-precedence branch, the modal gate and Escape's one
-  owner act in play; `hud/menu.integration.spec.ts` pins the gate and the confirm row's Escape end to end. The
+- The trait picker (#188), the menu (#371) and the encyclopedia (#449) are live, so the Space-precedence branch, the
+  modal gate, `H` and Escape's one owner act in play; `hud/menu.integration.spec.ts` pins the gate and the confirm
+  row's Escape end to end, and `hud/encyclopedia-keyboard.integration.spec.ts` the encyclopedia's half of both. The
   Tab-vs-overlay rule for the results panel is **dormant until that overlay exists** (#189): nothing renders
   `results-overlay` yet. The rule is unit-tested, and is to be re-tested by hand when #189 lands.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:

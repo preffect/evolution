@@ -5,13 +5,22 @@
 // which is the HUD's own topmost-overlay order (`pressMenuKey`) — back to the menu when the menu opened it, else to
 // the game. The panel itself knows none of that.
 
-import { ChangeDetectionStrategy, Component, inject, type OnDestroy, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  type OnDestroy,
+  type OnInit,
+} from '@angular/core';
 import { EncyclopediaComponent } from '../encyclopedia/encyclopedia.component';
 import { EncyclopediaStateService } from '../encyclopedia/encyclopedia-state.service';
 import { entryIdFrom } from '../encyclopedia/registry';
 import { ENCYCLOPEDIA_TEST_ID } from '../encyclopedia/test-ids';
-import { HudStateService } from './hud-state.service';
+import { ENCYCLOPEDIA_RETURN, HudStateService } from './hud-state.service';
 import { OverlayAlertComponent } from './overlay-alert.component';
+import { HUD_TEST_ID, testIdSelector } from './test-ids';
 
 @Component({
   selector: 'app-encyclopedia-overlay',
@@ -19,7 +28,7 @@ import { OverlayAlertComponent } from './overlay-alert.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [EncyclopediaComponent, OverlayAlertComponent],
   template: `
-    <app-encyclopedia (closed)="close()">
+    <app-encyclopedia [restoreFocusTo]="restoreFocusTo()" (closed)="close()">
       <app-overlay-alert encyclopediaHeaderAlert class="alert" [testId]="encyclopediaTestId.alert" />
     </app-encyclopedia>
   `,
@@ -37,8 +46,25 @@ import { OverlayAlertComponent } from './overlay-alert.component';
 export class EncyclopediaOverlayComponent implements OnInit, OnDestroy {
   private readonly hudState = inject(HudStateService);
   private readonly encyclopedia = inject(EncyclopediaStateService);
+  private readonly host: HTMLElement = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly encyclopediaTestId = ENCYCLOPEDIA_TEST_ID;
+
+  /** The element the hotkeys work from, as the menu finds it (docs/ui/input-and-onboarding.md §4). */
+  private readonly canvasHost = this.host.ownerDocument.querySelector<HTMLElement>(
+    testIdSelector(HUD_TEST_ID.gameHost),
+  );
+
+  /**
+   * §11.1's last column, for a close **to the game**: focus on the canvas host. The kit trap would otherwise restore
+   * whatever had focus when the panel opened, and on the first `H` of a round that is `<body>` — the Start button
+   * unmounted when the room began — so the reader would lose the cursor entirely and Tab would restart at the top of
+   * the document. A close to the **menu** stays `null`: the menu remounts and puts focus on the control that opened
+   * the panel, which is that row of §11.1 and not this one.
+   */
+  protected readonly restoreFocusTo = computed(() =>
+    this.hudState.encyclopediaReturnTo() === ENCYCLOPEDIA_RETURN.game ? this.canvasHost : null,
+  );
 
   /** Opening at the menu's entry, or at the last location this session; either way the query starts blank (§11.5). */
   ngOnInit(): void {

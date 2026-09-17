@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TRAIT_DRAFT_SIZE } from '@evolution/shared';
 import {
+  ENCYCLOPEDIA_KEY_CODE,
   FULL_LEADERBOARD_KEY_CODE,
   MENU_KEY_CODE,
   SPRINT_KEY_CODE,
@@ -139,6 +140,46 @@ describe('keyDownAction', () => {
   it('leaves Tab native while an overlay with focusable controls is open', () => {
     const action = keyDownAction(press(FULL_LEADERBOARD_KEY_CODE), focus({ hasFocusableOverlay: true }));
     expect(action).toEqual({ kind: INPUT_ACTION.none });
+  });
+
+  /**
+   * `H` (docs/ui/encyclopedia.md §11.1, input-and-onboarding.md §4). The three cases that decide it are where it is
+   * pressed from: play, the menu — the one modal overlay it still reaches past — and the encyclopedia itself, which
+   * is already what it would open.
+   */
+  describe('the encyclopedia key', () => {
+    /** The menu open: a modal overlay with focusable controls, and the one that is the menu. */
+    const menuOpen = { isModalOverlayOpen: true, isMenuOpen: true, hasFocusableOverlay: true };
+    /** The encyclopedia open: modal and focusable too, but not the menu. */
+    const encyclopediaOpen = { isModalOverlayOpen: true, isMenuOpen: false, hasFocusableOverlay: true };
+
+    it('opens the encyclopedia from play', () => {
+      expect(keyDownAction(press(ENCYCLOPEDIA_KEY_CODE), focus())).toEqual({ kind: INPUT_ACTION.encyclopediaKey });
+    });
+
+    it('opens it from the menu, which is what makes the menu’s own button reachable by key', () => {
+      expect(keyDownAction(press(ENCYCLOPEDIA_KEY_CODE), focus(menuOpen))).toEqual({
+        kind: INPUT_ACTION.encyclopediaKey,
+      });
+    });
+
+    it('does nothing from inside the encyclopedia, which is already open', () => {
+      expect(keyDownAction(press(ENCYCLOPEDIA_KEY_CODE), focus(encyclopediaOpen))).toEqual({ kind: INPUT_ACTION.none });
+    });
+
+    it('is a character while focus is in a text field, the search field included', () => {
+      expect(keyDownAction(press(ENCYCLOPEDIA_KEY_CODE), focus({ isTextEntryFocused: true }))).toEqual({
+        kind: INPUT_ACTION.none,
+      });
+    });
+
+    it('is edge-triggered: a held H does not reopen what it has already opened', () => {
+      expect(keyDownAction(press(ENCYCLOPEDIA_KEY_CODE, true), focus())).toEqual({ kind: INPUT_ACTION.none });
+    });
+
+    it('leaves the browser default alone, since it neither scrolls nor moves focus', () => {
+      expect(shouldPreventDefaultFor({ kind: INPUT_ACTION.encyclopediaKey })).toBe(false);
+    });
   });
 });
 
