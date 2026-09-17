@@ -263,8 +263,11 @@ to the first listed category while `basics` is still empty (#361).
   and then in list order. So the strongest name match always leads the list, whichever category it sits in. Folding
   covers what NFD decomposes: ligatures and stroked letters (`œ`, `æ`, `ß`, `ø`) are out of scope until an entry title
   uses one. While the query is non-empty
-  the list column shows the results under category section headers, the rail shows no selection, and Enter opens the
-  first result; `No match for "xyz"` (`body`, muted) when there is none. **The detail column keeps whatever it was
+  the list column shows the results under category section headers, the rail shows no selection, and **Enter in the
+  search field** opens the first result; `No match for "xyz"` (`body`, muted) when there is none. (Which Enter, this
+  bullet did not say. It is the field's: everywhere else in the panel Enter already belongs to the control it was
+  pressed on — the kit groups select their focused item with it — and the reader who has just typed a name is in the
+  field. It is an activation, so it pushes; with no match there is nothing to open. #449.) **The detail column keeps whatever it was
   showing** — a search narrows the list, it does not leave the reader's page — and **activating a rail row drops the
   query**, so the three columns never disagree about which category is selected: the rail marks it, the list returns to
   its entries and the detail shows its landing.
