@@ -302,14 +302,15 @@ The factor is **left out entirely unless it is a cut** (the wire's `decayTraitSh
 beside the glyph of the trait that cuts decay would credit that trait with the increase, so the tag and the row
 drop it the way overlays.md §3.7 drops a zero row.
 
-**Known inconsistency, not a decided rule (ticket pending).** The panel's `TRAITS` row still reads
+**Known inconsistency, not a decided rule (#453).** The panel's `TRAITS` row still reads
 `Mitochondrion I · −15 % mass decay`, from the trait-modifier label table (`quantities/modifier-labels.ts`) the
 trait cards and the encyclopedia share, where every effect is `<signed change> <noun>` (`+15 % speed`). Read alone
 the noun carries what the sign is about. It is not read alone here: that row is right-aligned in the **same value
 column** as `Speed · −47 %`, so scanning the column gives `−0.4/s`, `−0.2/s`, `−47 %`, `−15 % mass decay` — four
 negatives in one form, three costs and one benefit. That is this ticket's misread, one column over. #445 did not
 widen into it because the table is shared with two other surfaces and changing it changes every trait's copy on all
-three; the case is open and filed, and this paragraph is the record that it is open, not that it is settled.
+three. The case is open on **#453**, and this paragraph is the record that it is open, not that it is settled: the
+boundary #445 drew is a scope boundary, never a finding that the `TRAITS` row reads correctly.
 
 **One wording, both surfaces — measured, not assumed.** `saves 15 %` was the other candidate and it does **not**
 fit. All figures at 1024 × 640 with `--hud-scale` at the `UI_SCALE_MIN` floor of 0.8, measured in the live table;

@@ -283,6 +283,12 @@ rows) are prose and belong wholly in `body`**, where the name column takes the r
 cut at the panel edge mid-word, which is how `decay ×1.5 · orange` and `8:02 · food ×1.5 · DNA dro` shipped in
 #387's first frames. The widest line the panel draws is the bloom row's.
 
+**The `TRAITS` rows' sign convention is an open question (#453).** They come from the trait-modifier label table
+(`quantities/modifier-labels.ts`), where an effect is `<signed change> <noun>` — so `Mitochondrion I · −15 % mass
+decay` lands in the same right-aligned value column as `Speed · −47 %` and the `MASS` rates, and scanning that
+column gives four negatives of which one is a benefit. #445 changed the cause rows only (hud.md §3.1.5) because the
+label table is shared with the trait cards and the encyclopedia; this row is recorded as open, not as correct.
+
 **The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--hud-scale` at the
 `UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, and a row's name column overflows between
 **189.23 px** (widest still fitting) and **192.52 px** (narrowest that does not), bisected a character at a time —
