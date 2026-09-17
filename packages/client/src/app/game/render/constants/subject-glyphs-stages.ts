@@ -23,6 +23,7 @@ import {
   bodyGlint,
   rodLayers,
   roundBodyLayers,
+  studRingLayer,
 } from './subject-glyph-motifs';
 import * as kit from './trait-glyph-layers';
 
@@ -103,19 +104,15 @@ const PROKARYOTE: shape.SubjectGlyph = {
       stroke: kit.stroke(NUCLEOID_STRAND, SUBJECT_STROKE.fine, SUBJECT_ALPHA.wash),
       motion: kit.SPIN,
     }),
-    kit.paint(
-      shape.GLYPH_ROLE.signature,
-      shape.path(
-        shape.dotRingPath({
-          ...kit.GLYPH_CENTRE_POINT,
-          count: STAGE.ribosomeCount,
-          ringRadius: STAGE.radius,
-          dotRadius: 4.2,
-          phaseTurns: 0.03,
-        }),
-      ),
-      { fill: kit.solid(RIBOSOME), stroke: kit.stroke(OUTLINE, SUBJECT_STROKE.hair), motion: kit.BREATHE },
-    ),
+    studRingLayer({
+      count: STAGE.ribosomeCount,
+      ringRadius: STAGE.radius,
+      dotRadius: 4.2,
+      phaseTurns: 0.03,
+      colour: RIBOSOME,
+      rimColour: OUTLINE,
+      motion: kit.BREATHE,
+    }),
   ],
 };
 
@@ -169,19 +166,14 @@ const EUKARYOTE: shape.SubjectGlyph = {
       stroke: kit.stroke(ENVELOPE, SUBJECT_STROKE.rim),
       motion: kit.SPIN,
     }),
-    kit.paint(
-      shape.GLYPH_ROLE.signature,
-      shape.path(
-        shape.dotRingPath({
-          ...kit.GLYPH_CENTRE_POINT,
-          count: STAGE.poreCount,
-          ringRadius: STAGE.nucleusRadius + STAGE.envelopeGap,
-          dotRadius: 2.8,
-          phaseTurns: 0,
-        }),
-      ),
-      { fill: kit.solid(PORE), motion: kit.SPIN },
-    ),
+    studRingLayer({
+      count: STAGE.poreCount,
+      ringRadius: STAGE.nucleusRadius + STAGE.envelopeGap,
+      dotRadius: 2.8,
+      phaseTurns: 0,
+      colour: PORE,
+      motion: kit.SPIN,
+    }),
     bodyGlint(50, 50, STAGE.radius, kit.BREATHE),
   ],
 };

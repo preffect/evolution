@@ -9,6 +9,7 @@ import {
   GLYPH_MOTION,
   GLYPH_ROLE,
   circle,
+  dotRingPath,
   dotsPath,
   ellipse,
   path,
@@ -248,6 +249,39 @@ export function driftingMotesLayer(
     fill: solid(colour, SUBJECT_ALPHA.scatter),
     motion: motion(GLYPH_MOTION.rise, GLYPH_CENTRE, GLYPH_CENTRE),
   });
+}
+
+export interface StudRingSpec {
+  readonly count: number;
+  readonly ringRadius: number;
+  readonly dotRadius: number;
+  readonly phaseTurns: number;
+  readonly colour: string;
+  /** An outline round each dot, for studs that have to stand off the body they sit on. */
+  readonly rimColour?: string;
+  readonly motion?: GlyphMotion;
+}
+
+/** A ring of dots about the medallion's centre: a prokaryote's ribosome studs, a nuclear envelope's pores. */
+export function studRingLayer(spec: StudRingSpec, role: GlyphRole = GLYPH_ROLE.signature): GlyphLayer {
+  return paint(
+    role,
+    path(
+      dotRingPath({
+        cx: GLYPH_CENTRE,
+        cy: GLYPH_CENTRE,
+        count: spec.count,
+        ringRadius: spec.ringRadius,
+        dotRadius: spec.dotRadius,
+        phaseTurns: spec.phaseTurns,
+      }),
+    ),
+    {
+      fill: solid(spec.colour),
+      ...(spec.rimColour === undefined ? {} : { stroke: stroke(spec.rimColour, SUBJECT_STROKE.hair) }),
+      ...(spec.motion === undefined ? {} : { motion: spec.motion }),
+    },
+  );
 }
 
 /** A faint wash behind a drawing: the zone tint a subject sits in, the field a dish topic is seen against. */
