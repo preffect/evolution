@@ -6,9 +6,9 @@
 // §3.1.5) add their trend triangle and zone dot, one cue pill per rim role and the zone pill (a label pill without
 // the danger rim).
 
-import { ZONE_ID, type TraitId } from '@evolution/shared';
-import { DANGER, DNA, GAIN, INDICATOR_BAKE_MAX_DPR, INDICATOR_RIM_TINTED_RAMP, ZONE_CUE } from '../constants';
-import { CUE_RIM, type CueRim } from '../../hud/format/mass-cues';
+import type { TraitId } from '@evolution/shared';
+import { INDICATOR_BAKE_MAX_DPR, INDICATOR_RIM_TINTED_RAMP } from '../constants';
+import { CUE_RIM_COLOUR, type CueRim } from '../../hud/format/mass-cues';
 import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-ladder';
 import { GHOST_SHAPE, bakeGhost, type GhostShape } from './ghost-bake';
 import { LABEL_PILL_SPEC, bakeLabelPill, bakePill, cuePillSpec, type LabelPillBake } from './label-pill-bake';
@@ -30,17 +30,6 @@ export const GHOST_SHAPE_BY_SILHOUETTE: Readonly<Record<LadderSilhouette, GhostS
 export const GHOST_SHAPE_BY_ENDOSYMBIONT: Readonly<Partial<Record<TraitId, GhostShape>>> = {
   mitochondrion: GHOST_SHAPE.bean,
   chloroplast: GHOST_SHAPE.lens,
-};
-
-/** The colour each cue rim role bakes in (visual-style/principles-and-palette.md §2); `null` bakes no rim. */
-export const CUE_RIM_COLOUR: Readonly<Record<CueRim, string | null>> = {
-  [CUE_RIM.none]: null,
-  [CUE_RIM.gain]: GAIN,
-  [CUE_RIM.danger]: DANGER,
-  [CUE_RIM.dna]: DNA,
-  [CUE_RIM.warmVent]: ZONE_CUE[ZONE_ID.warmVent] ?? null,
-  [CUE_RIM.sunlitShallows]: ZONE_CUE[ZONE_ID.sunlitShallows] ?? null,
-  [CUE_RIM.viscousGel]: ZONE_CUE[ZONE_ID.viscousGel] ?? null,
 };
 
 export interface IndicatorAtlasBakes {
