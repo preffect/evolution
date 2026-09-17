@@ -42,6 +42,21 @@ describe('encyclopediaKeyAction (docs/ui/encyclopedia.md §11.5)', () => {
     });
   });
 
+  describe('Enter', () => {
+    it('opens the first result from the search field, where the reader has just typed a name', () => {
+      expect(encyclopediaKeyAction(press({ code: 'Enter', isTextEntryFocused: true }))).toBe(
+        ENCYCLOPEDIA_KEY_ACTION.openFirstResult,
+      );
+    });
+
+    it('is left to whatever control it was pressed on anywhere else: a row Enter selects is the kit group’s', () => {
+      expect(encyclopediaKeyAction(press({ code: 'Enter' }))).toBe(ENCYCLOPEDIA_KEY_ACTION.none);
+      expect(encyclopediaKeyAction(press({ code: 'Enter', focusedColumn: ENCYCLOPEDIA_COLUMN.list }))).toBe(
+        ENCYCLOPEDIA_KEY_ACTION.none,
+      );
+    });
+  });
+
   describe('the Back keys (§11.7)', () => {
     it('goes back on every chord the table lists', () => {
       for (const chord of ENCYCLOPEDIA_BACK_KEYS) {

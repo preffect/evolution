@@ -224,8 +224,19 @@ export class EncyclopediaComponent {
   private runKeyAction(action: EncyclopediaKeyAction): void {
     if (action === ENCYCLOPEDIA_KEY_ACTION.goBack) return this.state.goBack();
     if (action === ENCYCLOPEDIA_KEY_ACTION.focusSearch) return this.focusFirstFocusableIn(this.searchElement());
+    if (action === ENCYCLOPEDIA_KEY_ACTION.openFirstResult) return this.openFirstResult();
     const column = action === ENCYCLOPEDIA_KEY_ACTION.focusRail ? this.railElement() : this.listElement();
     this.focusRovingTabStopIn(column);
+  }
+
+  /**
+   * Enter in the search field (§11.5): the strongest match, which the core guarantees is both `results[0]` and the
+   * row the list draws first, so nothing here re-derives that order. It is an **activation** — the reader chose this
+   * page — so it pushes; with no query, and with a query that matched nothing, there is nothing to open.
+   */
+  private openFirstResult(): void {
+    const first = this.state.results()[0];
+    if (first !== undefined) this.state.openEntry(first.entryId);
   }
 
   /**

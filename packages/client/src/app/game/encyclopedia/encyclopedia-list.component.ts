@@ -3,7 +3,8 @@
 //
 // The two states share one template because `format/list-view.ts` gives them one shape. What differs is only where
 // the sections come from: a category's groups, or the search's category runs. The core guarantees
-// `resultGroups[0].results[0] === results[0]` for any query, so the row drawn first is the one Enter opens (#449) —
+// `resultGroups[0].results[0] === results[0]` for any query, so the row drawn first is the one Enter in the search
+// field opens (`encyclopedia.component.ts`, §11.5) —
 // nothing here re-derives that order.
 //
 // **Selection follows focus here** (§11.5): arrowing down the column pages through entries, so the detail column

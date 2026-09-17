@@ -185,6 +185,14 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
       return stop!;
     }
 
+    /** Types into the real field, so the query the panel reads is the one the field produced. */
+    function type(query: string): void {
+      const field = searchField();
+      field.value = query;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    }
+
     /** Returns the event, so a case can ask whether the panel claimed the press. */
     function pressOn(element: Element, init: KeyboardEventInit): KeyboardEvent {
       const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
@@ -224,6 +232,34 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
       const event = pressOn(searchField(), { key: 'Backspace', code: 'Backspace' });
       expect(event.defaultPrevented).toBe(false);
       expect(state.location()).not.toEqual(landing);
+    });
+
+    /**
+     * §11.5's "Enter opens the first result". The core guarantees the first result is also the row the list draws
+     * first, so this asserts the entry the panel opened **is** `results()[0]` rather than naming an entry.
+     */
+    it('opens the first result on Enter in the search field, and pushes, so Back returns to the list', () => {
+      const landing = state.location();
+      type('mito');
+      expect(state.results().length).toBeGreaterThan(0);
+
+      searchField().focus();
+      pressOn(searchField(), { key: 'Enter', code: 'Enter' });
+      expect(state.location().entryId).toBe(state.results()[0]!.entryId);
+
+      state.goBack();
+      expect(state.location()).toEqual(landing);
+    });
+
+    it('opens nothing on Enter with a query that matched nothing, and nothing with no query at all', () => {
+      const landing = state.location();
+      searchField().focus();
+      pressOn(searchField(), { key: 'Enter', code: 'Enter' });
+      expect(state.location()).toEqual(landing);
+
+      type('qqzz');
+      pressOn(searchField(), { key: 'Enter', code: 'Enter' });
+      expect(state.location()).toEqual(landing);
     });
 
     it('crosses from the rail to the list on → and back on ←', () => {

@@ -24,6 +24,8 @@ export const ENCYCLOPEDIA_KEY_ACTION = {
   /** The panel leaves the press alone: the kit groups, the search field and Escape's owner all live outside it. */
   none: 'none',
   focusSearch: 'focus_search',
+  /** Enter in the search field (§11.5): the strongest match, which is the row the list draws first. */
+  openFirstResult: 'open_first_result',
   goBack: 'go_back',
   focusRail: 'focus_rail',
   focusList: 'focus_list',
@@ -46,6 +48,9 @@ export interface EncyclopediaKeyPress {
 /** The keys that cross between the columns: a vertical kit group leaves them alone, exactly so a feature can (§10.2). */
 const COLUMN_FORWARD_KEY_CODE = 'ArrowRight';
 const COLUMN_BACKWARD_KEY_CODE = 'ArrowLeft';
+
+/** Enter, which in the search field opens the first result (§11.5) and anywhere else is its own control's. */
+const SEARCH_SUBMIT_KEY_CODE = 'Enter';
 
 /**
  * A chord matches a press on its code and on every modifier it names; a modifier it does not name must be **up**.
@@ -87,10 +92,16 @@ function columnMoveFor(press: EncyclopediaKeyPress): EncyclopediaKeyAction {
 
 /**
  * The action a `keydown` inside the panel is, in this order: Back first, so `Alt+←` is Back rather than a move out
- * of the list; then `/`; then the column move.
+ * of the list; then Enter, which belongs to the field it was typed in; then `/`; then the column move.
+ *
+ * Everything after Back is gated on the text field, each for its own reason — `/` is a character there, Enter is the
+ * field's, and ← → move the caret — so the last two arms read the same flag rather than sharing one early return.
  */
 export function encyclopediaKeyAction(press: EncyclopediaKeyPress): EncyclopediaKeyAction {
   if (isBackPress(press)) return ENCYCLOPEDIA_KEY_ACTION.goBack;
+  if (press.code === SEARCH_SUBMIT_KEY_CODE) {
+    return press.isTextEntryFocused ? ENCYCLOPEDIA_KEY_ACTION.openFirstResult : ENCYCLOPEDIA_KEY_ACTION.none;
+  }
   if (press.code === ENCYCLOPEDIA_SEARCH_KEY_CODE) {
     return press.isTextEntryFocused ? ENCYCLOPEDIA_KEY_ACTION.none : ENCYCLOPEDIA_KEY_ACTION.focusSearch;
   }
