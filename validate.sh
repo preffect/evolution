@@ -787,6 +787,17 @@ RUN_OUTCOMES=(passed failed)    # a test that ran
 NOT_RUN_OUTCOMES=(skipped todo) # a test that was selected and never ran
 SELECTED_LINE_PATTERN='^selected [^:]+: [0-9]+ test files, ([0-9]+) tests run'
 
+# Unhandled runner errors (#475): an error thrown outside any test is counted on its own `Errors N`
+# line and exits the runner non-zero, while the per-test counts still read `Tests 2449 passed (2449)`.
+# Left to those counts the output of such a run is indistinguishable from a green one, so it is named.
+UNHANDLED_ERRORS_SUMMARY_PATTERN='^[[:space:]]*Errors[[:space:]]+([0-9]+)[[:space:]]+errors?[[:space:]]*$'
+# The commonest one by far, and the only one no diff can fix: vitest's worker RPC watchdog
+# (`[vitest-worker]: Timeout calling "onTaskUpdate"`). It is birpc's DEFAULT_TIMEOUT, hard-coded in
+# vitest 3.2.7 with no option or environment variable behind it, and it fires when neither side of the
+# worker channel makes progress for that long — starvation, not a slow test, which `testTimeout` fails first.
+RUNNER_RPC_TIMEOUT_MARKER='Timeout calling'
+RUNNER_RPC_TIMEOUT_SECONDS=60
+
 # The sum of the `N <outcome>` counts on a vitest summary line, for the outcomes named.
 outcome_count() { # <summary line> <outcome...>
   local line="$1" outcome total=0
@@ -836,6 +847,30 @@ total_tests_run() { # <summary lines>
   echo "$total"
 }
 
+# What the runner reported outside its tests (#475), as the lines to print; empty when it reported
+# none. Every package's `Errors N` line counts, and an RPC timeout among them is named as the
+# infrastructure failure it is, so nobody reads the passed counts above it as a green run.
+unhandled_error_report() { # <runner output>
+  local line rest errors=0 timeouts=0 noun=errors
+  while IFS= read -r line; do
+    rest="$line"
+    [[ ! "$line" =~ $PNPM_LINE_PREFIX_PATTERN ]] || rest="${BASH_REMATCH[2]}"
+    if [[ "$rest" =~ $UNHANDLED_ERRORS_SUMMARY_PATTERN ]]; then
+      errors=$((errors + BASH_REMATCH[1]))
+    elif [[ "$rest" == *"$RUNNER_RPC_TIMEOUT_MARKER"* ]]; then
+      timeouts=$((timeouts + 1))
+    fi
+  done <<< "$1"
+  [[ $errors -gt 0 ]] || return 0
+  [[ $errors -ne 1 ]] || noun=error
+  echo "validate.sh: the runner reported $errors unhandled $noun outside its tests, and exited non-zero:"
+  echo "validate.sh: this run is RED, whatever the passed counts above it say. An unhandled error fails the run."
+  [[ $timeouts -gt 0 ]] || return 0
+  echo "validate.sh: $timeouts of them is a \"$RUNNER_RPC_TIMEOUT_MARKER\" error: the runner's ${RUNNER_RPC_TIMEOUT_SECONDS}s worker RPC watchdog."
+  echo "validate.sh: that is infrastructure, not this branch — the runner made no progress for ${RUNNER_RPC_TIMEOUT_SECONDS}s, which no diff causes and none fixes."
+  echo "validate.sh: re-run it, on a quieter box (docs/engineering/validation-gate.md §1)."
+}
+
 # test | integration: the selected packages' runner, then the shell suites when they are selected
 # (`test` with no extra args). `all --affected` over scripts alone selects no package.
 run_tests() { # <test | integration> <extra args...>
@@ -856,7 +891,7 @@ run_tests() { # <test | integration> <extra args...>
 run_package_tests() { # <test | integration> <extra args...>
   local cmd="$1"
   shift
-  local output summary rc=0
+  local output summary unhandled rc=0
   resolve_runner_args "$cmd" "$@" || return 1
   if [[ "$cmd" == test ]]; then
     output="$(pnpm "${PNPM_SELECTION[@]}" test "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
@@ -873,6 +908,12 @@ run_package_tests() { # <test | integration> <extra args...>
     if [[ $rc -eq 0 || "$summary" == *": 0 test files"* ]]; then
       echo "validate.sh: this targeted $cmd run ran no tests (${SCOPE_PATH:-$*}): nothing was selected, or every selected test was skipped; a run that tests nothing is not a pass"
     fi
+    rc=1
+  fi
+  # Last, so it is the final word of the phase and a `-tN` filter still shows it.
+  unhandled="$(unhandled_error_report "$output")"
+  if [[ -n "$unhandled" ]]; then
+    printf '%s\n' "$unhandled"
     rc=1
   fi
   return $rc

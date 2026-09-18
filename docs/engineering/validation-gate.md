@@ -28,6 +28,17 @@
    - runs the unit tier **with coverage thresholds** (`docs/testing/tiers-and-builders.md` §5), so a drop below a
      package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
      (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
+   - **names an unhandled runner error for what it is** (#475): an error thrown outside any test is
+     counted on the runner's own `Errors N` line, and exits it non-zero while the per-test counts still
+     read `Tests 2449 passed (2449)` — output indistinguishable from a green run, which only the exit
+     code contradicts. `test` and `integration` fail on that count, in their last lines, whatever the
+     runner's own exit code was, and such a run is never stamped green. The commonest one is vitest's
+     **worker RPC watchdog** (`[vitest-worker]: Timeout calling "onTaskUpdate"`), which fires when
+     neither side of the worker channel makes progress for **60 s** — birpc's `DEFAULT_TIMEOUT`,
+     hard-coded in vitest 3.2.7 with no option or environment variable behind it. That is starvation,
+     not a slow test: a test slow enough to matter fails on `testTimeout` first, so a run where every
+     test passed and the watchdog still fired is infrastructure, not the branch. Re-run it on a quieter
+     box; do not look for the cause in the diff;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
      package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
      filtered or path-scoped `test` has no coverage floor; typecheck builds shared first when stale);
