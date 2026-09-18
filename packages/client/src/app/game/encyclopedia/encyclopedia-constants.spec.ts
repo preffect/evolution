@@ -19,6 +19,7 @@ import {
   ENCYCLOPEDIA_NO_MATCH_SUFFIX,
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR,
+  ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT,
   ENCYCLOPEDIA_RESULTS_LABEL,
   ENCYCLOPEDIA_SEARCH_KEY_CODE,
   ENCYCLOPEDIA_SEARCH_PLACEHOLDER,
@@ -28,7 +29,11 @@ import {
   ENCYCLOPEDIA_TITLE,
 } from './encyclopedia-constants';
 
-/** Every quoted-string row of §11.7 that this build declares; the lens's arrive with #466. */
+/**
+ * Every quoted-string row of §11.7 that this build declares. The one row it does not is
+ * `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`, which arrives with the control that shows it: no entry can carry an action
+ * scene until the actions category lands, so the constant would have no reader (§11.4, the table's own note).
+ */
 const TABULATED_WORDS: readonly (readonly [name: string, value: string, written: string])[] = [
   ['ENCYCLOPEDIA_TITLE', ENCYCLOPEDIA_TITLE, 'Encyclopedia'],
   ['ENCYCLOPEDIA_SEARCH_PLACEHOLDER', ENCYCLOPEDIA_SEARCH_PLACEHOLDER, 'Search'],
@@ -45,6 +50,7 @@ const TABULATED_WORDS: readonly (readonly [name: string, value: string, written:
   ['ENCYCLOPEDIA_OWNED_CHIP_LABEL', ENCYCLOPEDIA_OWNED_CHIP_LABEL, 'OWNED'],
   ['ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR', ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR, ' · '],
   ['ENCYCLOPEDIA_TIER_IDENTITY_TEXT', ENCYCLOPEDIA_TIER_IDENTITY_TEXT, '—'],
+  ['ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT', ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT, 'Preview unavailable'],
 ];
 
 describe('the words docs/ui/encyclopedia.md §11.7 writes out', () => {

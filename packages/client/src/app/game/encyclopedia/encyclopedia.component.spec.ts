@@ -12,6 +12,7 @@ import {
   ENCYCLOPEDIA_SEARCH_PLACEHOLDER,
   ENCYCLOPEDIA_TITLE,
 } from './encyclopedia-constants';
+import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { locationAttributeFor } from './format/panel-view';
@@ -47,7 +48,7 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [EncyclopediaComponent] });
+    TestBed.configureTestingModule({ imports: [EncyclopediaComponent], providers: [recordingPreviewProvider()] });
     state = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(EncyclopediaComponent);
     fixture.detectChanges();

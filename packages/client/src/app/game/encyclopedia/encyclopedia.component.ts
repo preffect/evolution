@@ -23,6 +23,7 @@ import {
   ElementRef,
   afterNextRender,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -41,6 +42,7 @@ import { EncyclopediaLandingComponent } from './encyclopedia-landing.component';
 import { EncyclopediaListComponent } from './encyclopedia-list.component';
 import { EncyclopediaRailComponent } from './encyclopedia-rail.component';
 import { EncyclopediaIconComponent } from './encyclopedia-icon.component';
+import { EncyclopediaPreviewService } from './encyclopedia-preview.service';
 import { ENCYCLOPEDIA_BACK_ICON, ENCYCLOPEDIA_CLOSE_ICON } from './encyclopedia-icons';
 import {
   ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA,
@@ -98,8 +100,11 @@ type ElementChild = Signal<ElementRef<HTMLElement>>;
   ],
   styleUrl: './encyclopedia.component.css',
   host: { '[style]': 'styleVariables', '(keydown)': 'handleKeydown($event)' },
+  // The one preview session an open encyclopedia has (§11.4). Provided here rather than in the root, so it opens
+  // with the panel, is destroyed with it, and every lens the reader passes through borrows the same bake (§12.7).
+  providers: [EncyclopediaPreviewService],
   template: `
-    <div class="layer" uiSurface>
+    <div class="layer" uiSurface #surface="uiSurface">
       <ui-scrim [alpha]="scrimAlpha()" />
       <ui-panel
         class="panel"
@@ -163,6 +168,7 @@ type ElementChild = Signal<ElementRef<HTMLElement>>;
 })
 export class EncyclopediaComponent {
   private readonly state = inject(EncyclopediaStateService);
+  private readonly preview = inject(EncyclopediaPreviewService);
 
   /** Close, or the alert strip's own press: the host decides where focus and the overlay state go (§11.1). */
   readonly closed = output<void>();
@@ -209,7 +215,13 @@ export class EncyclopediaComponent {
   private readonly listElement: ElementChild = viewChild.required('listColumn', { read: ElementRef });
   private readonly searchElement: ElementChild = viewChild.required('searchField', { read: ElementRef });
 
+  /** The layer's live `--ui-scale`: the lens's canvas is sized in CSS px, so it has to follow it (§12.7). */
+  private readonly surface = viewChild.required(UiSurfaceDirective);
+
   constructor() {
+    // A `--ui-scale` change resizes the canvas and nothing else; no texture is rebaked.
+    effect(() => this.preview.setUiScale(this.surface().scale()));
+
     // After the trap's own initial focus, which lands on the first focusable — the header's Back, and Back is
     // disabled on an open with nothing pushed yet (§11.5). The reader's first keystroke would hit a dead control, so
     // the panel takes focus to the rail's selected row instead: a live control, marking where they already are, from

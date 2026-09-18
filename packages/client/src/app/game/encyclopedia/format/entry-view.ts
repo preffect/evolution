@@ -17,6 +17,7 @@ import {
   ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
   ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
 } from '../encyclopedia-constants';
+import type { PreviewSpec } from '../../render/preview/preview-spec';
 import type { EntryLink, ProseSegment, ResolvedFact, ResolvedSection, ResolvedSubject } from '../model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, entryIdOf, type EntryId } from '../model/entry-id';
 import { PROSE_TOKEN } from '../model/prose';
@@ -164,6 +165,52 @@ function modifierKeysOf(sections: readonly ResolvedSection[]): readonly Resolved
   return [...byKey.values()];
 }
 
+/** A tier section with the tier its key names: the shape both the tier table and the lens's tier switch are built of. */
+interface TierSection {
+  readonly section: ResolvedSection;
+  readonly tier: TraitTier;
+}
+
+function tierSectionsOf(sections: readonly ResolvedSection[]): readonly TierSection[] {
+  return sections
+    .map((section) => ({ section, tier: tierOfSectionKey(section.key) }))
+    .filter((column): column is TierSection => column.tier !== null);
+}
+
+/** One segment of the lens's tier switch (§11.4): the numeral it is labelled with and the preview it shows. */
+export interface EncyclopediaTierSegment {
+  readonly tier: TraitTier;
+  readonly numeral: string;
+  /** The section's own preview; `null` where a section re-points nothing, which leaves the entry's showing. */
+  readonly preview: PreviewSpec | null;
+}
+
+export interface EncyclopediaTierSwitch {
+  readonly segments: readonly EncyclopediaTierSegment[];
+  /** Where the switch starts: the tier the round owns, else the first (§11.4). */
+  readonly defaultTier: TraitTier;
+}
+
+/**
+ * The lens control under a trait's lens, or `null` for an entry with no tier section — every entry but a trait. It
+ * is built from the same sections as the Effects by tier table, so the switch and the table always have the same
+ * columns: a numeral in one that is missing from the other would be the table and the lens disagreeing about the
+ * trait.
+ */
+export function tierSwitchFor(
+  sections: readonly ResolvedSection[],
+  ownedTier: TraitTier | null,
+): EncyclopediaTierSwitch | null {
+  const tiers = tierSectionsOf(sections);
+  const [firstTier] = tiers;
+  if (firstTier === undefined) return null;
+  const owned = tiers.find((column) => column.tier === ownedTier);
+  return {
+    segments: tiers.map(({ section, tier }) => ({ tier, numeral: tierNumeral(tier), preview: section.preview })),
+    defaultTier: (owned ?? firstTier).tier,
+  };
+}
+
 /**
  * The tier table, or `null` for an entry with no tier section — which is every entry but a trait, and a trait whose
  * tiers all sit at identity, where §11.4 says a table with no rows is left out rather than drawn empty.
@@ -172,9 +219,7 @@ export function tierTableFor(
   sections: readonly ResolvedSection[],
   ownedTier: TraitTier | null,
 ): EncyclopediaTierTable | null {
-  const tiers = sections
-    .map((section) => ({ section, tier: tierOfSectionKey(section.key) }))
-    .filter((column): column is { section: ResolvedSection; tier: TraitTier } => column.tier !== null);
+  const tiers = tierSectionsOf(sections);
   const rows: EncyclopediaFactRow[] = modifierKeysOf(tiers.map((column) => column.section)).map((fact) => ({
     rowId: fact.key,
     name: factNameFromNoun(fact.label),

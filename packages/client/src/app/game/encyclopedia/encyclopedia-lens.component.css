@@ -1,0 +1,103 @@
+/* The lens (docs/ui/encyclopedia.md §11.4). Every length is a scale-1 constant × `--ui-scale`, and the SVG overlay
+   carries its own geometry in a view box of the diameter, so the whole eyepiece scales with the panel.
+
+   **Colours only.** The overlay's shapes are placed by `format/lens-overlay.ts`; this sheet says which `--ui-…` role
+   each one paints in, because a colour may be named nowhere else (components-and-constants.md §10.1). */
+
+:host {
+  position: relative;
+  display: block;
+  flex: none;
+  width: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
+  height: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
+}
+
+/* The crop, and the only one: a rounded overflow rather than a `clip-path`, which would promote the canvas to its
+   own composited layer with an offscreen surface (docs/architecture/encyclopedia.md §12.7). The well is what shows
+   through it before the first frame — the `loading` and `unavailable` states fill this same circle, so no square
+   corner is ever visible. */
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background-color: var(--ui-well);
+}
+
+/* Over the canvas and out of its way: the eyepiece is drawn, never pressed. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rim {
+  fill: none;
+  stroke: var(--ui-panel-rim);
+}
+
+/* The condenser's bright edge, and the reticle in the label colour; both carry their alpha as `stroke-opacity`. */
+.inner-ring {
+  fill: none;
+  stroke: var(--ui-accent);
+}
+
+.tick {
+  stroke: var(--ui-text-label);
+}
+
+/* The field stop: clear over the middle of the scene, `CALLOUT_BACKING` at the rim. */
+.vignette-clear {
+  stop-color: var(--ui-callout-backing);
+  stop-opacity: 0;
+}
+
+.vignette-edge {
+  stop-color: var(--ui-callout-backing);
+}
+
+/* The `loading` state: one ring at half the radius, breathing. It is a wait rather than a progress bar — nothing
+   here knows how far along the bake is — so it pulses in place instead of sweeping. */
+.loading-ring {
+  fill: none;
+  stroke: var(--ui-accent);
+  animation: encyclopedia-lens-pulse var(--encyclopedia-lens-loading-pulse) ease-in-out infinite;
+}
+
+@keyframes encyclopedia-lens-pulse {
+  from,
+  to {
+    opacity: var(--encyclopedia-lens-loading-min-alpha);
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* §11.4: static under reduced motion. With no animation the ring holds its own opacity, which is full. */
+@media (prefers-reduced-motion: reduce) {
+  .loading-ring {
+    animation: none;
+  }
+}
+
+/* The `unavailable` line, centred in the circle and wrapped within its share of the diameter (§11.4). */
+.unavailable {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  pointer-events: none;
+}
+
+.unavailable span {
+  max-width: calc(var(--encyclopedia-lens-diameter) * var(--encyclopedia-lens-text-width-fraction) * var(--ui-scale));
+  color: var(--ui-text-muted);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  line-height: var(--ui-body-line-height);
+  text-align: center;
+}
