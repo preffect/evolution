@@ -230,7 +230,11 @@ overlay it brings.
    a round `OWNED · II` in level gold, its numeral `formatQuantity(tier, QUANTITY_UNIT.tier)` in `numeral` presentation.
    An entry that is **not** a trait has one chip, `ENTRY_SUBJECT_LABEL[subject.kind]` (`Stage`, `DNA tag`), in the
    neutral tone: it has no rarity, tags or stage of its own, and a page that opened on a title with nothing under it
-   read as unfinished (#465).
+   read as unfinished (#465). **It repeats the breadcrumb's group crumb for the two subjects whose list group is their
+   subject** — `EVOLUTION › STAGES` over `STAGE` — and is kept anyway: the alternative is those two pages losing their
+   chip row, which is the defect the chip was added for, and the crumb is a quieter line the eye passes on its way to
+   the title while the chip sits in the reader's eye-line under it. Where the two differ they differ usefully, and a
+   subject that carried something better than its own name would be content's to give (#465's review).
 3. **Facts**, `UI_SPACE_L_PX` under the chips: kit facts tables stacked `UI_SPACE_L_PX` apart, each under a `label`
    header — `ENCYCLOPEDIA_EFFECTS_TABLE_LABEL`, `ENCYCLOPEDIA_LADDER_TABLE_LABEL` and, for an entry that is not a
    trait, `ENCYCLOPEDIA_FACTS_TABLE_LABEL`.
@@ -239,11 +243,13 @@ overlay it brings.
      `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity; the owned tier's column is tinted
      accent under `You own II` (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier
      column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
-   - **When the columns do not fit, the cells wrap; the table never widens** (#465). The sizing rule above assumes
+   - **When the columns do not fit, the values wrap; the table never widens** (#465). The sizing rule above assumes
      every value fits on one line, and three tier columns of `+0.3 mass / s` do not fit the 370 unit title column
      however little the noun column keeps. So both tables ask the kit for `shouldWrapValues`
      (components-and-constants.md §10.2): a value breaks at its spaces, a tier column takes its widest resulting
-     **line**, the noun column takes what is left, and the row grows downwards. Nothing ever crosses the content
+     **line**, the noun column takes what is left, and the row grows downwards. The nouns themselves keep one line —
+     a noun column that may wrap is one the table's auto layout can squeeze, which broke `Reached by` over two lines
+     to widen a value column that had room to spare. Nothing ever crosses the content
      column. Two alternatives were weighed and rejected: shrinking the noun column alone cannot fit Chloroplast's
      three tiers at any width, and moving the tier table out to the full content column would re-lay the page around
      the lens and split the facts across two measures for the sake of one trait. A wrapped tier value keeps the

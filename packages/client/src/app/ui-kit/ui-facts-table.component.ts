@@ -124,12 +124,13 @@ export class UiFactsTableComponent {
   /** The value column tinted in the accent, by index. */
   readonly highlightColumn = input<number | null>(null);
   /**
-   * Lets a row's name and its values wrap inside their column instead of holding one line each (§10.2). **Off by
-   * default**: a table whose values are short figures reads as one line per row, and that is every table the kit had
-   * when this was added. A feature turns it on when a value can be wider than the column it is given — several links
-   * in one cell, or a unit like `+0.3 mass / s` across three tier columns — because the alternative is not a narrower
-   * column but a table wider than its container: the cells' minimum content width wins over `width: 100%`, and the
-   * table pushes out through whatever is holding it (PR #471).
+   * Lets a row's **values** wrap inside their column instead of holding one line each (§10.2); the names keep one
+   * line either way, since a wrapping name column is one the auto layout can squeeze. **Off by default**: a table
+   * whose values are short figures reads as one line per row, and that is every table the kit had when this was
+   * added. A feature turns it on when a value can be wider than the column it is given — several links in one cell,
+   * or a unit like `+0.3 mass / s` across three tier columns — because the alternative is not a narrower column but
+   * a table wider than its container: the cells' minimum content width wins over `width: 100%`, and the table pushes
+   * out through whatever is holding it (PR #471).
    */
   readonly shouldWrapValues = input(false);
   readonly testId = input<string | null>(null);

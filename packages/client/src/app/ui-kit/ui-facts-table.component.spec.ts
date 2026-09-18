@@ -154,17 +154,27 @@ describe('UiFactsTableComponent', () => {
 
     /**
      * Both halves of `shouldWrapValues`: every cell holds one line by default, and only the table that asked for it
-     * lets the names and values wrap. jsdom has no layout, so what is checked is the rule and the attribute that
-     * gates it — whether a wrapped table then fits its container is a rendered frame's answer (`qa/evidence/pr-471/`).
+     * lets its **values** wrap. jsdom has no layout, so what is checked is the rule and the attribute that gates it
+     * — whether a wrapped table then fits its container is a rendered frame's answer (`qa/evidence/pr-471/`).
      */
     it('keeps every cell on one line by default and wraps only where a feature asks', () => {
       expect(rule(['th'], 'white-space')).toBe('nowrap');
       expect(rule(['td'], 'white-space')).toBe('nowrap');
       const value = ['.table', '[data-wrap-values]', 'td', '.value'];
-      const name = ['.table', '[data-wrap-values]', 'th', '.name'];
       expect(styleRuleValue(document, value, 'white-space')).toBe('normal');
-      expect(styleRuleValue(document, name, 'white-space')).toBe('normal');
       expect(styleRuleValue(document, value, 'line-height')).toBe('var(--ui-body-line-height)');
+    });
+
+    /**
+     * The other half of the same ruling, and the reason it is a separate case: the modifier reaches the value cells
+     * only. Letting the names wrap too handed the table's auto layout a name column it could squeeze to 64 px, and
+     * `Reached by` broke over two lines while the value column it was making room for had space to spare. So no
+     * `[data-wrap-values]` rule may target `.name` — the `th { white-space: nowrap }` above stays in force for it.
+     */
+    it('leaves the row names on one line even in a table that wraps', () => {
+      const name = ['.table', '[data-wrap-values]', 'th', '.name'];
+      expect(styleRuleValue(document, name, 'white-space')).toBeNull();
+      expect(rule(['th'], 'white-space')).toBe('nowrap');
     });
   });
 

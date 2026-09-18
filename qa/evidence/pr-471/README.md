@@ -55,6 +55,43 @@ and again with `ui-facts-table.component.{ts,css}` reverted to `origin/main`, sa
 | `?kit&sheet=collections`                                  | full page, 1280 × 800                           | **0** |
 | the HUD's hold-Tab affecting panel                        | panel crop, room paused and player state pinned | **0** |
 
-The affecting panel was also measured directly in both builds: all four of its tables carry no
-`data-wrap-values`, every cell computes `white-space: nowrap` at `line-height: 14px`, every row is 26 px
-(`UI_FACT_ROW_HEIGHT_PX`) and every table is 326 px wide — identical figures either side.
+The affecting panel was also measured directly in both builds: its tables carry no `data-wrap-values`, every
+cell computes `white-space: nowrap` at `line-height: 14px`, every row is 26 px (`UI_FACT_ROW_HEIGHT_PX`) and
+every table is 326 px wide — identical figures either side.
+
+**RMSE alone would not have caught a leak here, so do not read the zeroes as the whole answer.** Every value
+on `?kit` is short enough to fit its column, so a table that wrapped would still land on the same pixels: the
+frames go identical whether the opt-in is respected or not. The measurement that separates the two cases is
+the computed one — `data-wrap-values` absent, `white-space: nowrap`, `line-height: 14px` — and the proof that
+it separates them is the mutation below, which moved those three figures while leaving RMSE at 0.
+
+## Re-verified on this round's head, with each guard broken to show it bites
+
+The four guards this round adds were each broken in turn and the named spec went red (172 client ui-kit tests,
+344 encyclopedia tests):
+
+| Mutation                                                   | Spec that went red                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| delete `.table[data-wrap-values] td.value`'s `white-space` | `keeps every cell on one line by default and wraps only where a feature asks`  |
+| add `th.name` back to that selector                        | `leaves the row names on one line even in a table that wraps`                  |
+| drop the `\|\| null` from the attribute binding            | `marks only the table that asked to wrap, and leaves the others unmarked`      |
+| remove `[shouldWrapValues]="true"` from the entry page     | `asks the kit to wrap, since a value here can be several links or a wide unit` |
+
+The last two were also driven in the browser, which is where they say something jsdom cannot:
+
+- **without the `|| null`**, every kit table carries `data-wrap-values="false"`, the rule matches, and all four
+  `?kit` tables compute `white-space: normal` at `line-height: 20.3px` instead of `nowrap` at `14px`. The opt-in
+  is the attribute's _absence_, not its value, and that is what keeps the other consumers still.
+- **without `[shouldWrapValues]="true"`**, the review's blocker returns exactly: **12 of 28** entries overflow at
+  1280 × 800, the same twelve the review listed, worst `stage:eukaryote`, and the detail column's `scrollWidth`
+  goes to 1706 against `clientWidth` 750.
+
+With both in place, swept over all 28 entries at both sizes: **0 of 28 overflowing, worst 0 px, and no element
+under the entry page whose `scrollWidth` exceeds its `clientWidth`.**
+
+The consumer re-check on this head, and exactly which build each figure came from: `?kit` and
+`?kit&sheet=collections` were captured on the branch and again with `ui-facts-table.component.{ts,css}` replaced
+by `origin/main`'s — **RMSE 0** both, and the same computed figures either side. The hold-Tab affecting panel was
+re-measured on the branch only (three tables, `data-wrap-values` absent, `nowrap`, `line-height: 14px`, rows 26 px,
+tables 326 px); it shares the one rule the two `?kit` routes pin either side, so nothing about it is taken on
+trust beyond that shared rule.
