@@ -14,7 +14,7 @@ import { DebugHookHolder } from '../debug/debug-hook-holder';
 import { EncyclopediaContextService } from './encyclopedia-context';
 import { RENDER_P95_MIN_SAMPLE_FRAMES } from '../render/constants';
 import { createPixiApp } from '../render/pixi-app';
-import { PreviewSession, type PreviewOpenTimings } from '../render/preview/preview-session';
+import { PreviewSession } from '../render/preview/preview-session';
 import type { PreviewSpec } from '../render/preview/preview-spec';
 import {
   PREVIEW_BUDGETS,
@@ -22,6 +22,7 @@ import {
   previewBudgetVerdict,
   previewOpenP95Ms,
   previewWalkFrameCount,
+  type PreviewOpenTimings,
 } from '../render/preview/preview-timings';
 import {
   PREVIEW_ROUTE_FAILURE,

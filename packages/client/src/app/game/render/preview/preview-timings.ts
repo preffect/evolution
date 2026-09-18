@@ -8,7 +8,24 @@
 import { MILLISECONDS_PER_SECOND, P95_QUANTILE, TICK_INTERVAL_S } from '@evolution/shared';
 import { quantileOf } from '../bench/render-stage-timer';
 import { PREVIEW_FRAME_BUDGET_MS, PREVIEW_OPEN_BUDGET_MS } from '../constants';
-import type { PreviewOpenTimings } from './preview-session';
+
+/** `openedToFirstFrameMs` split, so a miss over `PREVIEW_OPEN_BUDGET_MS` points at its lever (§12.7's cost table). */
+export interface PreviewOpenTimings {
+  /** `createPixiApp` alone: the WebGL2 context and Pixi's init, every program compiled again on a new context. */
+  readonly initMs: number;
+  /** `createRenderTextures` alone: the whole bundle, paid once per session. Nothing else is inside this span. */
+  readonly bakeMs: number;
+  /** The first instrumented frame alone: texture uploads and shader compiles. */
+  readonly firstSubmitMs: number;
+  /**
+   * The whole open. The three spans above do **not** sum to it: adopting the ticker and building the scene fall
+   * between them, deliberately outside all three so each keeps its name. The residual is small next to the bake.
+   *
+   * It is **submit-side**: the frame ends at `app.render()`, which returns once the GL commands are queued, not
+   * once the frame is presented. On a real GPU those differ, so a hardware run understates the open a little.
+   */
+  readonly openedToFirstFrameMs: number;
+}
 
 /** One walk frame: exactly one simulation tick, so the walk visits the ticks a live preview would have. */
 export const PREVIEW_WALK_STEP_MS = TICK_INTERVAL_S * MILLISECONDS_PER_SECOND;

@@ -5,13 +5,13 @@
 import { TICK_INTERVAL_S } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { PREVIEW_FRAME_BUDGET_MS, PREVIEW_OPEN_BUDGET_MS } from '../constants';
-import type { PreviewOpenTimings } from './preview-session';
 import {
   PREVIEW_BUDGETS,
   PREVIEW_WALK_STEP_MS,
   previewBudgetVerdict,
   previewOpenP95Ms,
   previewWalkFrameCount,
+  type PreviewOpenTimings,
 } from './preview-timings';
 
 const millisecondsPerSecond = 1000;

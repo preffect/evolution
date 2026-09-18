@@ -14,7 +14,7 @@ import { DOCUMENT } from '@angular/common';
 import { InjectionToken, inject, isDevMode } from '@angular/core';
 import { BACTERIUM_VARIANT, CELL_KIND, DNA_TAG, FOOD_KIND, ZONE_ID } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
-import type { PreviewOpenTimings } from '../render/preview/preview-session';
+import type { PreviewOpenTimings } from '../render/preview/preview-timings';
 import { PREVIEW_BUDGETS, type PreviewBudgetVerdict } from '../render/preview/preview-timings';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewScene, type PreviewSpec } from '../render/preview/preview-spec';
 import { positiveParameter } from '../route-query';

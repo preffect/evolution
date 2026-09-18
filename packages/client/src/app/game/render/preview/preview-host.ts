@@ -9,7 +9,9 @@ import { InjectionToken, inject } from '@angular/core';
 import type { BalanceConfig, Clock } from '@evolution/shared';
 import { CLOCK } from '../../clock-provider';
 import { createPixiApp } from '../pixi-app';
-import { PreviewSession, type PreviewOpenTimings, type PreviewSizePx } from './preview-session';
+import type { PreviewSizePx } from './preview-canvas';
+import { PreviewSession } from './preview-session';
+import type { PreviewOpenTimings } from './preview-timings';
 import type { PreviewSpec } from './preview-spec';
 
 export interface PreviewHandle {

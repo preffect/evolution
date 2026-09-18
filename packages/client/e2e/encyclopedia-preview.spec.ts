@@ -30,6 +30,15 @@ const ROUTE_LENS_CSS_PX = 360;
 const PREVIEW_TEST_TIMEOUT_MS = 1_800_000;
 
 /**
+ * How long the canvas may take to appear. It is **not** the 5 s Playwright default, and that default is why three
+ * of these tests failed the first time the file was ever executed: the canvas is appended by `createPixiApp`, so
+ * waiting for it means waiting for a WebGL2 context and Pixi's init — measured at 0.6–0.9 s of `initMs` on an idle
+ * box, and well past 5 s on a loaded one. Every wait in this file has to be scaled to a SwiftShader open, not to a
+ * DOM update; a wait left on the default is a load-dependent false red, which is the one thing a smoke must not be.
+ */
+const PREVIEW_OPEN_WAIT_MS = 120_000;
+
+/**
  * Every subject scene family ticket #363 builds. The registry holds `trait:`, `stage:` and `dna_tag:` entries
  * today, so a real entry anchor covers the cell and fragment families; the bare scene names (`?preview=food`,
  * `?preview=zone`) cover the two the content tickets have not reached, which is what they are for.
@@ -58,8 +67,8 @@ function watchErrors(page: Page): string[] {
 /** The report lands once the last session has parked, which is the signal that a frame is on the canvas. */
 async function openPreview(page: Page, url: string): Promise<PreviewRouteReport> {
   await page.goto(url);
-  await expect(page.getByTestId(PREVIEW_TEST_ID)).toBeVisible();
-  await expect(page.locator(CANVAS)).toBeVisible();
+  await expect(page.getByTestId(PREVIEW_TEST_ID)).toBeVisible({ timeout: PREVIEW_OPEN_WAIT_MS });
+  await expect(page.locator(CANVAS)).toBeVisible({ timeout: PREVIEW_OPEN_WAIT_MS });
   await page.waitForFunction(
     (testId) => (document.querySelector(`[data-testid="${testId}"]`)?.textContent ?? '') !== '',
     REPORT_TEST_ID,

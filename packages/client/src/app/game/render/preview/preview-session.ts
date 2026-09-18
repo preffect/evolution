@@ -28,9 +28,7 @@ import { PreviewLocalClock } from './preview-clock';
 import { previewRenderFrame } from './preview-frame';
 import { previewSceneFor, type PreviewScene } from './preview-scene';
 import type { PreviewSpec } from './preview-spec';
-
-export type { PreviewSizePx } from './preview-canvas';
-export { cappedPreviewDevicePixelRatio, clampedPreviewCanvasSize } from './preview-canvas';
+import type { PreviewOpenTimings } from './preview-timings';
 
 export interface PreviewSessionDependencies {
   readonly host: HTMLElement;
@@ -56,24 +54,6 @@ export interface PreviewSessionDependencies {
   readonly shouldPreserveDrawingBuffer: boolean;
   /** The cytoplasm tile's edge: the production size unless a test shrinks it (`RenderTextureOptions`). */
   readonly noiseTileSizePx?: number;
-}
-
-/** `openedToFirstFrameMs` split, so a miss over `PREVIEW_OPEN_BUDGET_MS` points at its lever (§12.7's cost table). */
-export interface PreviewOpenTimings {
-  /** `createPixiApp` alone: the WebGL2 context and Pixi's init, every program compiled again on a new context. */
-  readonly initMs: number;
-  /** `createRenderTextures` alone: the whole bundle, paid once per session. Nothing else is inside this span. */
-  readonly bakeMs: number;
-  /** The first instrumented frame alone: texture uploads and shader compiles. */
-  readonly firstSubmitMs: number;
-  /**
-   * The whole open. The three spans above do **not** sum to it: adopting the ticker and building the scene fall
-   * between them, deliberately outside all three so each keeps its name. The residual is small next to the bake.
-   *
-   * It is **submit-side**: the frame ends at `app.render()`, which returns once the GL commands are queued, not
-   * once the frame is presented. On a real GPU those differ, so a hardware run understates the open a little.
-   */
-  readonly openedToFirstFrameMs: number;
 }
 
 const NO_SUBMIT = (): void => undefined;

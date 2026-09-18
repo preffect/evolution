@@ -252,9 +252,14 @@ finite — and never an absolute time.
 **Shape checks the smoke asserts** (`e2e/encyclopedia-preview.spec.ts`, SwiftShader): every subject scene draws
 with no page or shader error; two loads at the same `t` are pixel-identical and a different `t` is not; the canvas
 is clamped to `PREVIEW_CANVAS_MAX_PX` device pixels on a 3× display; 20 open-and-close cycles log no
-`Too many active WebGL contexts` warning; the DOM report carries every key with a finite value. See the run status
-recorded with the PR that last touched the file — this list is what the spec claims, not a statement that it last
-ran green.
+`Too many active WebGL contexts` warning; the DOM report carries every key with a finite value.
+
+This list is what the spec asserts. Whether it last **ran** green is a separate fact, and it belongs with the PR
+that last touched the file rather than here: ticket #363 (PR #469) is the first run — 5 passed in 5.8 min against a
+private stack in the container. Two things that run cost and that the next runner should know: the whole file must
+be the only e2e spec running (`pnpm smoke encyclopedia-preview`, **not** `-- encyclopedia-preview`, which selects
+nothing and runs the entire suite), and every wait in it is scaled to a SwiftShader open, because Playwright's 5 s
+default is shorter than `createPixiApp` takes on a loaded box.
 
 **If a budget is missed**, §12.7's levers in order: throttle the room renderer while the encyclopedia covers it;
 keep the preview session alive across encyclopedia opens; a bundle option that skips the dish-field and light-pool
