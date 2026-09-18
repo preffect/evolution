@@ -32,6 +32,9 @@
 #   reaches it; a plain `all` stamp never answers the affected gate on a root-file branch; a branch behind
 #   origin/main is refused before any stamp is read, leaving the branch, tree and stash untouched; the
 #   gate fetches origin main first and falls back to the local copy when the fetch fails.
+#   Unhandled runner errors (#475): a run whose every test passed is still red when the runner counted an
+#   error outside its tests, even if the runner exits 0, and is never stamped; an RPC timeout among them is
+#   named as the runner's watchdog rather than as the branch; a clean summary is left alone.
 #
 #   scripts/validate-cache.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -330,6 +333,50 @@ check "a tier-wide run passes over a package with no files in the tier" $(( rc =
 : > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" integration -- ecology
 check "extra args on a selection that mixes the client with vitest packages are refused, naming --scope" $(( rc != 0 && $(ran 'add --scope shared|server|client'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 ))
+
+# --- unhandled runner errors (#475): every test passed and the run is still red --------------------
+echo unhandled-errors > "$fixture/untracked.txt" # a tree of its own: no earlier scoped stamp answers these
+printf '%s\n' ' Test Files  246 passed (246)''      Tests  2449 passed (2449)' \
+  'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' '     Errors  1 error' > "$FAKE_PNPM_OUTPUT_FILE"
+echo 1 > "$FAKE_PNPM_RC_FILE"
+run_validate "$fixture" test --scope client
+check "a run whose every test passed still fails on an unhandled error, and says so" $(( rc != 0 && $(ran 'reported 1 unhandled error outside its tests'; echo $?) == 0 && $(ran 'this run is RED'; echo $?) == 0 ))
+check "an RPC timeout is named as the runner's watchdog, not as this branch" $(( $(ran 'worker RPC watchdog'; echo $?) == 0 && $(ran 'infrastructure, not this branch'; echo $?) == 0 ))
+echo 0 > "$FAKE_PNPM_RC_FILE"
+run_validate "$fixture" test --scope client
+check "an unhandled error fails the phase even when the runner itself exits 0" $(( rc != 0 ))
+run_validate "$fixture" test --scope client
+check "a run with an unhandled error is never stamped green" $(( rc != 0 && $(is_cached; echo $?) != 0 ))
+printf '%s\n' 'packages/server test:  Test Files  3 passed (3)' 'packages/server test:       Tests  9 passed (9)' \
+  'packages/server test:      Errors  2 errors' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" test --scope server
+check "a pnpm-prefixed error count counts, and an unhandled error that is no timeout is not called one" $(( rc != 0 && $(ran 'reported 2 unhandled errors outside its tests'; echo $?) == 0 && $(ran 'worker RPC watchdog'; echo $?) != 0 ))
+# --- worker cap (#475): the runner never gets every core, the main process needs one ---------------
+echo worker-cap > "$fixture/untracked.txt"
+cat > "$sandbox/bin/pnpm" <<'PNPM'
+#!/usr/bin/env bash
+echo "fake pnpm $*"
+echo "workers: VITEST_MAX_FORKS=${VITEST_MAX_FORKS:-unset} VITEST_MAX_THREADS=${VITEST_MAX_THREADS:-unset}"
+echo ' Test Files  1 passed (1)'
+echo '      Tests  2 passed (2)'
+PNPM
+chmod +x "$sandbox/bin/pnpm"
+expected_workers=$(( $(nproc) - 2 ))
+[[ $expected_workers -ge 1 ]] || expected_workers=1
+run_validate "$fixture" test --scope server
+check "the test phase caps the runner's workers two below the core count" $(( rc == 0 && $(ran "workers: VITEST_MAX_FORKS=$expected_workers VITEST_MAX_THREADS=$expected_workers"; echo $?) == 0 ))
+echo worker-cap-inherited > "$fixture/untracked.txt"
+export VITEST_MAX_FORKS=7
+run_validate "$fixture" test --scope server
+unset VITEST_MAX_FORKS
+check "an inherited worker cap wins, for a one-off experiment" $(( $(ran 'VITEST_MAX_FORKS=7'; echo $?) == 0 ))
+write_standard_fake_pnpm
+
+echo unhandled-errors-clean > "$fixture/untracked.txt"
+printf ' Test Files  1 passed (1)\n      Tests  2 passed (2)\n' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" test --scope server
+check "a runner summary without an Errors line is left alone" $(( rc == 0 && $(ran_pnpm; echo $?) == 0 && $(ran 'unhandled'; echo $?) != 0 ))
+: > "$FAKE_PNPM_OUTPUT_FILE"
 
 # --- all: fixed order, per-phase exit codes and stamps, wall times (#281) ---------------------------
 echo phases > "$fixture/untracked.txt"

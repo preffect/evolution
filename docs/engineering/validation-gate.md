@@ -28,6 +28,28 @@
    - runs the unit tier **with coverage thresholds** (`docs/testing/tiers-and-builders.md` §5), so a drop below a
      package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
      (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
+   - **caps the test workers below the core count** (#475): vitest's forks pool defaults to
+     `availableParallelism() - 1` workers and does not count its own main process, which alone serves
+     the vite transforms, the coverage collection and the reporters for all of them — on the 4-core box
+     four CPU-hungry processes for four cores before any other agent's load, multiplied again because
+     `pnpm -r test` runs each selected package's runner at the same time. `test` and `integration` set
+     `VITEST_MAX_FORKS` / `VITEST_MAX_THREADS` to **cores − 2**, reserving one core for the runner's
+     main process (the part that has to answer a worker inside the RPC watchdog below) and one for the
+     rest of the box. An inherited value wins, for a one-off experiment;
+   - **names an unhandled runner error for what it is** (#475): an error thrown outside any test is
+     counted on the runner's own `Errors N` line, and exits it non-zero while the per-test counts still
+     read `Tests 2449 passed (2449)` — output indistinguishable from a green run, which only the exit
+     code contradicts. `test` and `integration` fail on that count, in their last lines, whatever the
+     runner's own exit code was, and such a run is never stamped green. The commonest one is vitest's
+     **worker RPC watchdog** (`[vitest-worker]: Timeout calling "onTaskUpdate"`), which fires when
+     neither side of the worker channel makes progress for **60 s** — birpc's `DEFAULT_TIMEOUT`,
+     hard-coded in vitest 3.2.7 with no option or environment variable behind it. In the unit tier that
+     is starvation and not a slow test, because `testTimeout` is 5 s there: a test slow enough to matter
+     fails on its own long before 60 s, so a unit run where every test passed and the watchdog still
+     fired is infrastructure, not the branch — re-run it on a quieter box rather than looking for the
+     cause in the diff. In the opt-in tier the watchdog is the tighter of the two (`OPT_IN_TEST_TIMEOUT_MS`
+     is 300 s), so there a scenario that holds its worker for a minute without yielding can trip it on
+     its own, and that one is the branch's;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
      package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
      filtered or path-scoped `test` has no coverage floor; typecheck builds shared first when stale);
