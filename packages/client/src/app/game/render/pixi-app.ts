@@ -22,6 +22,12 @@ export interface PixiAppHandle {
   readonly canvas: HTMLCanvasElement;
   /** The app's texture baker; the session hands it to `createRenderTextures`. */
   readonly textures: TextureBaker;
+  /**
+   * Resizes a `fixedSize` canvas in CSS px (the encyclopedia lens on a `--ui-scale` change,
+   * docs/architecture/encyclopedia.md §12.7). Nothing is rebaked: the renderer picks the new screen box up on its
+   * next frame. An app sized by `resizeTo` never needs it.
+   */
+  resize(sizePx: { readonly width: number; readonly height: number }): void;
   destroy(): void;
 }
 
@@ -47,6 +53,9 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     app,
     canvas,
     textures: createPixiTextureBaker(createDomBakeCanvasFactory(options.host.ownerDocument)),
+    resize: (sizePx) => {
+      app.renderer.resize(sizePx.width, sizePx.height);
+    },
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

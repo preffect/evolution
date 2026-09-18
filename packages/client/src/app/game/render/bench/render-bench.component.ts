@@ -6,7 +6,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, ElementRef, inject, isDevMode, viewChild, type OnDestroy, type OnInit } from '@angular/core';
 import { CLOCK } from '../../clock-provider';
-import { installEvolutionDebug } from '../../debug/evolution-debug';
+import { DebugHookHolder } from '../../debug/debug-hook-holder';
 import { RENDER_BENCH_VIEWPORT_PX } from '../constants';
 import { createPixiApp } from '../pixi-app';
 import { BenchSession, parseBenchQuery } from './bench-session';
@@ -49,7 +49,7 @@ export class RenderBenchComponent implements OnInit, OnDestroy {
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
   private readonly report = viewChild.required<ElementRef<HTMLElement>>('report');
   private session: BenchSession | null = null;
-  private uninstallDebug: (() => void) | null = null;
+  private readonly debugHook = new DebugHookHolder();
 
   ngOnInit(): void {
     const windowLike = this.document.defaultView;
@@ -64,13 +64,12 @@ export class RenderBenchComponent implements OnInit, OnDestroy {
         this.report().nativeElement.textContent = JSON.stringify(report);
       },
     });
-    if (windowLike !== null)
-      this.uninstallDebug = installEvolutionDebug(windowLike, this.session.debugApi(), isDevMode());
+    this.debugHook.install(windowLike, this.session.debugApi(), isDevMode());
     this.session.start().catch((error: unknown) => console.error('The bench could not start.', error));
   }
 
   ngOnDestroy(): void {
-    this.uninstallDebug?.();
+    this.debugHook.remove();
     this.session?.destroy();
     this.session = null;
   }

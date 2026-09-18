@@ -14,6 +14,8 @@ import {
 import type { GameSessionConfig } from '@evolution/shared';
 import { EncyclopediaComponent } from './game/encyclopedia/encyclopedia.component';
 import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
+import { IS_PREVIEW_ROUTE } from './game/encyclopedia/preview-route';
+import { EncyclopediaPreviewRouteComponent } from './game/encyclopedia/preview-route.component';
 import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
 import { GameHostComponent } from './game/game-host.component';
 import { HudComponent } from './game/hud/hud.component';
@@ -36,7 +38,8 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
  * join / start a game — without implementing any specific game. Once the room is in play the
  * game host (`game/game-host.component.ts`) fills the viewport with the HUD overlay
  * (`game/hud/hud.component.ts`) over it (#217, #185, docs/ui/layout.md §1). A dev build
- * opened with `?bench` renders the fixed-seed bench route instead (docs/rendering/budget.md §7), and one opened
+ * opened with `?bench` renders the fixed-seed bench route instead (docs/rendering/budget.md §7), one opened
+ * with `?preview` the encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7), and one opened
  * with `?kit` the UI kit states page (docs/ui/components-and-constants.md §10.2).
  */
 @Component({
@@ -44,6 +47,7 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
   standalone: true,
   imports: [
     EncyclopediaComponent,
+    EncyclopediaPreviewRouteComponent,
     FormsModule,
     GameHostComponent,
     HudComponent,
@@ -53,7 +57,7 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/ui/layout.md §1).
-  host: { '[class.in-game]': 'multiplayer.inGame() || isBenchRoute || isUiKitStatesRoute' },
+  host: { '[class.in-game]': 'multiplayer.inGame() || isBenchRoute || isPreviewRoute || isUiKitStatesRoute' },
 })
 export class AppComponent {
   readonly title = 'Evolution';
@@ -73,6 +77,8 @@ export class AppComponent {
   readonly serverErrorCaption = SERVER_ERROR_CAPTION;
   /** The dev-only bench route (docs/rendering/budget.md §7) replaces the shell for the page's lifetime. */
   readonly isBenchRoute = inject(IS_BENCH_ROUTE);
+  /** The dev-only encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7), likewise. */
+  readonly isPreviewRoute = inject(IS_PREVIEW_ROUTE);
   /** The dev-only UI kit states page, likewise for the page's lifetime. */
   readonly isUiKitStatesRoute = inject(IS_UI_KIT_STATES_ROUTE);
 

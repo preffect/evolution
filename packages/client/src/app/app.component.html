@@ -8,6 +8,9 @@
 @if (isBenchRoute) {
   <!-- ===== The dev-only bench route (docs/rendering/budget.md §7): the fixed-seed scene, no lobby, no room ===== -->
   <app-render-bench />
+} @else if (isPreviewRoute) {
+  <!-- ===== The dev-only encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7) ===== -->
+  <app-encyclopedia-preview-route />
 } @else if (isUiKitStatesRoute) {
   <!-- ===== The dev-only UI kit states page (docs/ui/components-and-constants.md §10.2) ===== -->
   <ui-kit-states />

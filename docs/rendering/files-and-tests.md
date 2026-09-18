@@ -45,11 +45,14 @@ effects/orbit-backing-arcs.ts                       the ladder orbit's backings 
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
-preview/{preview-spec,preview-scene,preview-frame,preview-session,preview-host,preview-still}.ts   the encyclopedia preview seam (architecture/encyclopedia.md §12.7): the spec data, spec → scene, scene → `RenderFrame`, the third `FrameLoopSession`, the `ENCYCLOPEDIA_PREVIEW` token, the cached still frames (#378)
-preview/scenes/{cell-scene,food-scene,zone-scene,eat-scene,engulf-scene,sprint-scene,level-up-scene}.ts   one scripted scene per `PREVIEW_SCENE` family, pure over (tick, balance)
+preview/{preview-spec,preview-scene,preview-frame,preview-session,preview-host,preview-timings,preview-still}.ts   the encyclopedia preview seam (architecture/encyclopedia.md §12.7): the spec data, spec → scene, scene → `RenderFrame`, the third `FrameLoopSession`, the `ENCYCLOPEDIA_PREVIEW` token, the walk arithmetic and the two budgets' verdict, the cached still frames (#378)
+preview/{preview-clock,preview-canvas}.ts           the session's two pure pieces, out of it so it is only the session: the local clock (a monotonic render tick, a scene phase a `show` restarts, a pause that re-bases) and the canvas bounds (the DPR cap, the CSS clamp, the lens's bounding square)
+preview/scenes/{cell-scene,food-scene,zone-scene}.ts   the subject scenes (#363: `cell`, `food`, `dna_fragment`, `zone`), pure over (loop seconds, balance)
+preview/scenes/{eat-scene,engulf-scene,sprint-scene,level-up-scene}.ts   the action scenes (#364); until they land `previewSceneFor` shows the open-broth stand-in for their families
 bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
-frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation both sessions share (§7, #208); the one renderer a session holds, built over its textures and disposed with them
+frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation all three sessions share (§7, #208); the one renderer a session holds, built over its textures and disposed with them
+../route-query.ts  ../debug/debug-hook-holder.ts        what the two dev routes (bench, preview) share: reading a number off the query, and holding the `window.__evolutionDebug` install so each removes only its own (#363)
 pixi-texture-baker.ts                                  the `TextureBaker` (the per-pixel radial bakes of `textures/radial-bake.ts` for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
 ```
 
@@ -82,7 +85,20 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   gradients are the two halos); `palette.spec.ts` (HSL derivations, the
   separability numbers of visual-style/principles-and-palette.md §2); `bench-scene.spec.ts` (counts, seed-stable, the pairs, the schedule),
   `bench-driver.spec.ts` (parks and steps the store), `bench-session.spec.ts` (the query and its flags, the report
-  after the window, the hook), `bench-route.spec.ts` (both halves of the production gate),
+  after the window, the hook), `preview-scene.spec.ts` (every family resolves, seed- and tick-stable frames, each
+  zone target reads as its own zone through `zoneAt`, the swim at the cell's own top speed, and the stand-in the
+  action families share until #364 builds them), `preview-framing.spec.ts` (the two framing bands measured from the
+  renderer's own `buildShapeTerms` extents at every tick of a loop, over the `preview-subject-specs.ts` list both it
+  and `preview-scene.spec.ts` walk),
+  `preview-loop.spec.ts` (each loop's effects once, at their absolute ticks; a jump of many periods emits at most
+  one loop's), `preview-frame.spec.ts` (radius and stage through the shared formulas over the live balance),
+  `preview-session.spec.ts` (one bake per session and none on `show`, a `show` that restarts the scene's phase
+  without ever moving the render tick backwards, a destroy before `start` resolves destroys the late app,
+  open/close cycles balance apps, bakes and font installs), `preview-clocks.spec.ts` (the wall clock measures the
+  open while a caller's `sceneClock` drives the scene, `pause` uses the ticker and never the `FrameGate`, `resume`
+  re-bases the clock, the DPR cap, the canvas clamp and the lens's bounding square), `preview-timings.spec.ts` (the walk
+  arithmetic and the budget verdict's `null` rows), `bitmap-fonts.spec.ts` (a bundle's own font names, and an
+  uninstall that touches only them), `bench-route.spec.ts` (both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
   `gpu-timer.spec.ts` (the plausibility rule and the four statuses), `render-benchmark.spec.ts` (the verdict rows,
   a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the
@@ -100,7 +116,10 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   ring, the escaping predator's included, while `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE` is off (#295; the unit specs cover
   both switch states). The client's vitest tier runs under jsdom with
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
-  `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
+  `pnpm --filter @evolution/client smoke` against the dev servers — **to run one spec file, append the filter with
+  no `--` separator** (`pnpm --filter @evolution/client smoke render-smoke`): `smoke -- render-smoke` selects
+  nothing and silently runs every e2e spec, which passes, takes many times as long, and is easy to mistake for the
+  one file having run; check the `Running N tests` line): slice A (#205) opens a live room with a fixed
   seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
   panel left, at the config's viewport and at the 1024 × 640 minimum (ui/layout.md §1, #217, #220), that the debug hook's pause holds the rendered tick and the canvas and a step
   advances both, and screenshots the dish; slice D (#208, `e2e/render-bench.spec.ts`) opens the bench route at

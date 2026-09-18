@@ -46,6 +46,8 @@ export const COSMETIC_SUB_STREAM = {
   fragment: 'fragment',
   /** The fixed-seed bench scene's specs: cells, motes and fragments (docs/rendering/budget.md §7, #208). */
   bench: 'bench',
+  /** The encyclopedia preview scenes' specs: the seeded mote and fragment clusters (docs/architecture/encyclopedia.md §12.7, #363). */
+  preview: 'preview',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];

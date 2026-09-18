@@ -6,7 +6,7 @@
 import type { ClientPerformanceReport } from '@evolution/shared';
 import type { InputDebugState } from '../input/input-controller';
 
-export const EVOLUTION_DEBUG_MODE = { live: 'live', bench: 'bench' } as const;
+export const EVOLUTION_DEBUG_MODE = { live: 'live', bench: 'bench', preview: 'preview' } as const;
 export type EvolutionDebugMode = (typeof EVOLUTION_DEBUG_MODE)[keyof typeof EVOLUTION_DEBUG_MODE];
 
 export interface EvolutionDebugApi {
