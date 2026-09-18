@@ -51,7 +51,7 @@ preview/scenes/{cell-scene,food-scene,zone-scene}.ts   the subject scenes (#363:
 preview/scenes/{eat-scene,engulf-scene,sprint-scene,level-up-scene}.ts   the action scenes (#364); until they land `previewSceneFor` shows the open-broth stand-in for their families
 bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
-frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation all three sessions share (§7, #208); the one renderer a session holds, built over its textures and disposed with them
+frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation all three sessions share (§7, #208); the one renderer a session holds, built over its seeded textures and disposed with them, keeping the bundle's seed-independent half across a rebuild (§7.2, #442)
 ../route-query.ts  ../debug/debug-hook-holder.ts        what the two dev routes (bench, preview) share: reading a number off the query, and holding the `window.__evolutionDebug` install so each removes only its own (#363)
 pixi-texture-baker.ts                                  the `TextureBaker` (the per-pixel radial bakes of `textures/radial-bake.ts` for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
 ```
@@ -98,7 +98,12 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   open while a caller's `sceneClock` drives the scene, `pause` uses the ticker and never the `FrameGate`, `resume`
   re-bases the clock, the DPR cap, the canvas clamp and the lens's bounding square), `preview-timings.spec.ts` (the walk
   arithmetic and the budget verdict's `null` rows), `bitmap-fonts.spec.ts` (a bundle's own font names, and an
-  uninstall that touches only them), `bench-route.spec.ts` (both halves of the production gate),
+  uninstall that touches only them), `render-textures.spec.ts` and `renderer-slot.spec.ts` (§7.2's two halves: the
+  dish field's and the vent's recorded strokes are identical whether or not the shared half ran first, each half
+  destroys without touching the other, a rebuild adds no radial bake and no font install and keeps the very same
+  indicator bundle, and a changed baker or device pixel ratio re-bakes it), `noise-tile.spec.ts` and
+  `radial-bake.spec.ts` (FNV-1a digests of the production bakes, pinned to the pre-#442 samplers),
+  `bench-route.spec.ts` (both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
   `gpu-timer.spec.ts` (the plausibility rule and the four statuses), `render-benchmark.spec.ts` (the verdict rows,
   a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the

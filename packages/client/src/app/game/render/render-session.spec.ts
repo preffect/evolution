@@ -15,7 +15,7 @@ import {
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
-import { RENDER_REPORT_EVERY_FRAMES } from './constants';
+import { FIELD_TEXTURE_PX, RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { NO_HUD_INPUTS } from './game-renderer';
 import { RenderSession, type RenderSessionDependencies } from './render-session';
 
@@ -94,12 +94,23 @@ describe('RenderSession', () => {
     const { subject, pixi } = session();
     subject.onMessage(gameState(1));
     await flush();
+    const afterFirstBuild = pixi.bakedCanvases.length;
     subject.onMessage(snapshotMessage(3, [], 2));
     subject.onMessage(snapshotMessage(4, [], 2));
     await flush();
-    expect(pixi.bakedSpecs).toHaveLength(4);
+    const oneRebuild = pixi.bakedCanvases.length - afterFirstBuild;
+    expect(oneRebuild).toBeGreaterThan(0);
+    // A third snapshot on the same seed asks for nothing; a third seed costs exactly one more rebuild.
+    subject.onMessage(snapshotMessage(5, [], 2));
+    await flush();
+    expect(pixi.bakedCanvases).toHaveLength(afterFirstBuild + oneRebuild);
+    subject.onMessage(snapshotMessage(6, [], 3));
+    await flush();
+    expect(pixi.bakedCanvases).toHaveLength(afterFirstBuild + oneRebuild * 2);
+    // The seed-independent half was baked on the first build and kept across both rematches (ticket #442).
+    expect(pixi.bakedSpecs).toHaveLength(2);
     expect(pixi.stage.children).toHaveLength(2);
-    expect(subject.store.latestSnapshot()?.tick).toBe(4);
+    expect(subject.store.latestSnapshot()?.tick).toBe(6);
   });
 
   it('applies every snapshot on arrival, in order, so a frame hitch drops no delta; the frame loop only reads', async () => {
@@ -158,7 +169,9 @@ describe('RenderSession', () => {
     await flush();
     await flush();
     expect(createPixiApp).toHaveBeenCalledTimes(1);
-    expect(pixi.bakedSpecs).toHaveLength(4);
+    // Two builds queued behind the one app: one seed-independent half, two seeded ones (ticket #442).
+    expect(pixi.bakedSpecs).toHaveLength(2);
+    expect(pixi.bakedCanvases.filter((canvas) => canvas.width === FIELD_TEXTURE_PX)).toHaveLength(2);
     expect(pixi.stage.children).toHaveLength(2);
     expect(subject.startupError).toBeNull();
   });

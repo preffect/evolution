@@ -264,3 +264,45 @@ default is shorter than `createPixiApp` takes on a loaded box.
 **If a budget is missed**, §12.7's levers in order: throttle the room renderer while the encyclopedia covers it;
 keep the preview session alive across encyclopedia opens; a bundle option that skips the dish-field and light-pool
 bakes for scenes that do not show the dish. None is built before a measurement asks for one.
+
+### 7.2 The texture bundle's two halves (#442)
+
+`createRenderTextures` is synchronous and runs on the render thread. Ticket #442 measured what that costs: about
+**1.2 s at room entry** and a **~310 ms freeze at every round change**, because a rematch's new seed rides a
+snapshot (`architecture/wire-contract.md §4`) and `RenderSession` re-ran the whole bundle inline.
+
+The bundle is therefore **two halves**, and `renderer-slot.ts` owns the difference:
+
+| Half                   | What is in it                                                                                                         | Lifetime                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `SharedRenderTextures` | the two radial bakes, the glow and mote atlases, the palette, the light pool, the indicator atlas and its BitmapFonts | baked once per Pixi app and **kept**; re-baked only if the baker or the device pixel ratio changes, dropped on `dispose` |
+| `SeededRenderTextures` | the dish field, the vent, the noise strip, the cytoplasm tile, the organelle atlas                                    | re-baked on every seed change, and only then                                                                             |
+
+Every seeded bake takes a **named sub-stream** off the cosmetic stream (`COSMETIC_SUB_STREAM`,
+`DETERMINISM.md`) rather than drawing from it, so no bake can move another's numbers and the split could not
+change a byte. What that rests on is that nothing in the shared half touches `cosmetic` at all — a shared bake
+that drew from it directly would shift every seeded bake after it. `render-textures.spec.ts` compares the dish
+field's and the vent's recorded Canvas-2D strokes, argument for argument, between a whole bundle and a
+seeded-only one to catch exactly that, and `renderer-slot.spec.ts` pins that a rebuild adds no radial bake and
+no font install and hands the new renderer the very same indicator bundle.
+
+**Measured on the container's SwiftShader** through the bench route at 1920 × 1080, `devicePixelRatio` 1, taking
+the bake spans directly; 8 rebuilds per run through the debug hook's `setSeed`, medians. **These absolutes are a
+software rasteriser on a loaded 4-core box and are not hardware numbers** — the proportions are the durable part:
+
+| Figure                                               | Before (main)         | After                 | Notes                                                                                                                                                                          |
+| ---------------------------------------------------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| round-change rebuild, median of 8                    | **485 ms** (load 7.4) | **136 ms** (load 9.2) | −72 %, measured on a _busier_ box after                                                                                                                                        |
+| what a rebuild re-bakes                              | the whole bundle      | the seeded half only  | the structural change                                                                                                                                                          |
+| the seeded half as a share of the bundle             | —                     | —                     | **35–44 %** across four runs whose absolutes span 1.6 ×: one spread, not a before and an after. It is the floor a round change now pays, where it used to pay the whole bundle |
+| `buildNoiseTile` (256², pure CPU, Node, median of 5) | 134 ms                | **64 ms**             | −52 %: per-row terms hoisted, no closure per knot read                                                                                                                         |
+| `bakeRadialBytes` (vignette 512², same)              | 49 ms                 | **37 ms**             | −25 %: no `stops.slice(1)` per pixel                                                                                                                                           |
+
+**Room entry is only partly addressed.** The shared half is most of a first build and it still runs inside the
+frame loop, so the ~1.2 s at room entry falls by roughly the CPU savings above and no further: keeping the half
+across rebuilds does nothing for the build that creates it. Ticket #442's option 2 — build the renderer during the
+room transition instead of inside `_tick` — is what remains, and is filed separately.
+
+**The bytes did not move.** `noise-tile.spec.ts` and `radial-bake.spec.ts` pin FNV-1a digests of the production
+bakes, taken from the implementations these replaced, so the mottle and the vignette are byte for byte what every
+screenshot and every pixel-determinism check already shows.

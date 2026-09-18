@@ -194,7 +194,8 @@ describe('BenchSession', () => {
     const { subject, pixi } = await session();
     const api = subject.debugApi();
     pixi.tick();
-    const bakes = pixi.bakedSpecs.length;
+    const bakes = pixi.bakedCanvases.length;
+    const radialBakes = pixi.bakedSpecs.length;
     api.pause();
     pixi.tick();
     expect(pixi.renderCalls.count).toBe(1);
@@ -207,7 +208,9 @@ describe('BenchSession', () => {
     expect(api.setSeed(RENDER_BENCH_SEED + 1)).toBe(true);
     expect(subject.driver.world.seed).toBe(RENDER_BENCH_SEED + 1);
     expect(subject.driver.tick).toBe(60);
-    expect(pixi.bakedSpecs.length).toBeGreaterThan(bakes);
+    expect(pixi.bakedCanvases.length).toBeGreaterThan(bakes);
+    // The seed-independent half is kept across the rebuild (ticket #442): no second radial bake.
+    expect(pixi.bakedSpecs).toHaveLength(radialBakes);
     api.resume();
     pixi.tick();
     expect(pixi.renderCalls.count).toBe(3);

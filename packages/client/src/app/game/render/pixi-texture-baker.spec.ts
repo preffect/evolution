@@ -4,7 +4,7 @@ import { createFakeBakeCanvasFactory } from '../../../testing/fake-bake-canvas';
 import { ALPHA, CHANNEL_MAX } from './colour';
 import { VIGNETTE_ALPHA, VIGNETTE_TEXTURE_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
-import { VIGNETTE_BAKE } from './render-textures';
+import { VIGNETTE_BAKE } from './textures/radial-bake';
 import { indicatorFontInstalls, indicatorFontNamesFor } from './textures/bitmap-fonts';
 import { radialPixelOffset } from './textures/radial-bake';
 

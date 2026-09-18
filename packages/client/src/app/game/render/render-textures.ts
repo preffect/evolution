@@ -1,5 +1,7 @@
-// The texture bundle every layer draws from (docs/rendering/cells.md §1, docs/rendering/budget.md §6, docs/rendering/files-and-tests.md §8): the round seed's
-// cosmetic stream plus every texture baked at startup, rebuilt when the seed changes (a rematch).
+// The texture bundle every layer draws from (docs/rendering/cells.md §1, docs/rendering/budget.md §6, §7.2,
+// docs/rendering/files-and-tests.md §8): the round seed's cosmetic stream plus every texture baked at startup.
+// It comes in two halves (ticket #442): `SharedRenderTextures`, which no seed reaches and which
+// `renderer-slot.ts` bakes once per Pixi app and keeps, and `SeededRenderTextures`, which a rematch re-bakes.
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
 // since jsdom has no canvas): the radial bakes sampled into bytes (the soft disc, the vignette;
 // textures/radial-bake.ts) and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish
@@ -16,23 +18,13 @@ import {
   type RandomSource,
 } from '@evolution/shared';
 import type { Texture, TextureSource } from 'pixi.js';
-import {
-  GLOW_TEXTURE_PX,
-  NOISE_STRIP_ROWS,
-  NOISE_STRIP_WIDTH,
-  PALETTE_SHADE_COUNT,
-  VIGNETTE,
-  VIGNETTE_ALPHA,
-  VIGNETTE_RADIUS_FRACTION,
-  VIGNETTE_TEXTURE_PX,
-  WHITE,
-  type OrganelleKind,
-} from './constants';
+import { NOISE_STRIP_ROWS, NOISE_STRIP_WIDTH, PALETTE_SHADE_COUNT, type OrganelleKind } from './constants';
 import { buildNoiseStrip, type NoiseStrip } from './noise/noise-strip';
 import { buildNoiseTile } from './noise/noise-tile';
 import { bakePaletteTextureBytes } from './palette';
 import { bakeDishField, type DishField } from './textures/dish-texture';
 import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
+import { SOFT_DISC_BAKE, VIGNETTE_BAKE, type RadialBakeSpec } from './textures/radial-bake';
 import { bakeLightPool } from './textures/light-pool-bake';
 import type { BitmapFontInstaller } from './textures/bitmap-fonts';
 import {
@@ -46,23 +38,6 @@ import { bakeOrganelleAtlas } from './textures/organelle-atlas';
 import { byteDataTexture, texturesFromBakes, type SpriteAtlas } from './textures/pixi-textures';
 import type { BakeCanvas, BakeCanvasFactory } from './textures/texture-bake';
 import { bakeVentSprite, type VentSprite } from './textures/vent-bake';
-
-export interface RadialStop {
-  /** 0 at the centre, 1 at the half-diagonal of the bake. */
-  readonly offset: number;
-  readonly alpha: number;
-}
-
-export const RADIAL_BAKE_SHAPE = { disc: 'disc', square: 'square' } as const;
-export type RadialBakeShape = (typeof RADIAL_BAKE_SHAPE)[keyof typeof RADIAL_BAKE_SHAPE];
-
-/** One radial-gradient bake: a `sizePx` square (or the disc inscribed in it) shaded from its centre. */
-export interface RadialBakeSpec {
-  readonly sizePx: number;
-  readonly shape: RadialBakeShape;
-  readonly colour: string;
-  readonly stops: readonly RadialStop[];
-}
 
 /** What turns a bake into a texture and installs the BitmapFonts: `pixi-texture-baker.ts` in the app, a stub in tests. */
 export interface TextureBaker extends BakeCanvasFactory, BitmapFontInstaller {
@@ -91,23 +66,37 @@ export interface MoteAtlasTextures {
   readonly smallPxPerWu: number;
 }
 
-export interface RenderTextures {
-  readonly seed: number;
-  /** `fork(RANDOM_STREAM.cosmetic)` of the round seed: every cosmetic phase derives from it (rendering/cells.md §1). */
-  readonly cosmetic: RandomSource;
+/**
+ * The half of the bundle no seed reaches: the fonts, the atlases, the radial bakes and the light pool
+ * are the same bytes in every round. It is baked once per Pixi app and **kept across rebuilds**
+ * (`renderer-slot.ts`), so a rematch re-bakes only `SeededRenderTextures` (ticket #442): re-running these
+ * is what froze the frame for a third of a second at every round change.
+ */
+export interface SharedRenderTextures {
   /** A white soft disc the depth particles (and later the effects) tint at use. */
   readonly glowTexture: Texture;
   /** The screen-space vignette: clear inside `VIGNETTE_RADIUS_FRACTION`, the vignette colour at the corners. */
   readonly vignetteTexture: Texture;
+  /** The 8 × 8 palette shades (palette.ts), one row per palette, read with `texelFetch`. */
+  readonly paletteTexture: TextureSource;
+  readonly glow: Readonly<Record<GlowSpriteKey, Texture>>;
+  readonly motes: MoteAtlasTextures;
+  /** The condenser light pool, one sprite the dish layer keeps anchored to the view over the field (rendering/budget.md §6.1). */
+  readonly lightPoolTexture: Texture;
+  /** The own-cell indicators' ghosts, pip blocks, unlock ring, label pill and fonts (rendering/own-cell-indicators.md §10). */
+  readonly indicators: IndicatorTextures;
+}
+
+/** The half the round seed decides: re-baked whenever the seed changes, and only then. */
+export interface SeededRenderTextures {
+  readonly seed: number;
+  /** `fork(RANDOM_STREAM.cosmetic)` of the round seed: every cosmetic phase derives from it (rendering/cells.md §1). */
+  readonly cosmetic: RandomSource;
   /** The jitter / lobes strip (noise-strip.ts) and its `texelFetch` table. */
   readonly strip: NoiseStrip;
   readonly stripTexture: TextureSource;
   /** The cytoplasm mottle, sampled trilinear with repeat: mipmapped, since it is drawn minified at every zoom under the bake scale. */
   readonly tileTexture: TextureSource;
-  /** The 8 × 8 palette shades (palette.ts), one row per palette, read with `texelFetch`. */
-  readonly paletteTexture: TextureSource;
-  readonly glow: Readonly<Record<GlowSpriteKey, Texture>>;
-  readonly motes: MoteAtlasTextures;
   readonly organelles: Readonly<Record<OrganelleKind, OrganelleSpriteTexture>>;
   /** The dish field bake and its sprite texture (dish-layer.ts scales it to `halfExtentWu`). */
   readonly dishField: DishField;
@@ -115,11 +104,10 @@ export interface RenderTextures {
   /** The vent sprite bake and its texture, drawn over the field at the vent zone (dish-layer.ts). */
   readonly vent: VentSprite;
   readonly ventTexture: Texture;
-  /** The condenser light pool, one sprite the dish layer keeps anchored to the view over the field (rendering/budget.md §6.1). */
-  readonly lightPoolTexture: Texture;
-  /** The own-cell indicators' ghosts, pip blocks, unlock ring, label pill and fonts (rendering/own-cell-indicators.md §10). */
-  readonly indicators: IndicatorTextures;
 }
+
+/** What every layer draws from: the two halves together, as one flat bundle. */
+export type RenderTextures = SharedRenderTextures & SeededRenderTextures;
 
 export interface RenderTextureOptions {
   readonly seed: number;
@@ -135,34 +123,6 @@ export interface RenderTextureOptions {
   readonly noiseTileSizePx?: number;
 }
 
-const CLEAR = 0;
-const OPAQUE = 1;
-/** Where the inscribed disc's rim sits on the centre-to-corner scale. */
-const DISC_RIM_OFFSET = 1 / Math.SQRT2;
-
-/** The soft disc: opaque at the centre, clear at the rim (the glow atlas's `disc`, ASSET-GENERATION §1.5). */
-export const SOFT_DISC_BAKE: RadialBakeSpec = {
-  sizePx: GLOW_TEXTURE_PX,
-  shape: RADIAL_BAKE_SHAPE.disc,
-  colour: WHITE,
-  stops: [
-    { offset: 0, alpha: OPAQUE },
-    { offset: DISC_RIM_OFFSET, alpha: CLEAR },
-  ],
-};
-
-/** The vignette: transparent to `VIGNETTE_RADIUS_FRACTION` of the half-diagonal, then to the vignette colour. */
-export const VIGNETTE_BAKE: RadialBakeSpec = {
-  sizePx: VIGNETTE_TEXTURE_PX,
-  shape: RADIAL_BAKE_SHAPE.square,
-  colour: VIGNETTE,
-  stops: [
-    { offset: 0, alpha: CLEAR },
-    { offset: VIGNETTE_RADIUS_FRACTION, alpha: CLEAR },
-    { offset: 1, alpha: VIGNETTE_ALPHA },
-  ],
-};
-
 function organelleTextures(
   baker: TextureBaker,
   devicePixelRatio: number,
@@ -176,11 +136,11 @@ function organelleTextures(
   return textures;
 }
 
-/** The cell shader's data textures: the strip and the palette as `texelFetch` tables, the tile sampled trilinear. */
+/** The cell shader's seeded data textures: the strip as a `texelFetch` table, the tile sampled trilinear. */
 function cellDataTextures(
   cosmetic: RandomSource,
   noiseTileSizePx: number | undefined,
-): Pick<RenderTextures, 'strip' | 'stripTexture' | 'tileTexture' | 'paletteTexture'> {
+): Pick<SeededRenderTextures, 'strip' | 'stripTexture' | 'tileTexture'> {
   const strip = buildNoiseStrip(cosmetic);
   const tile = buildNoiseTile(cosmetic, noiseTileSizePx);
   return {
@@ -199,6 +159,15 @@ function cellDataTextures(
       isRepeating: true,
       hasMipmaps: true,
     }),
+  };
+}
+
+/** The seed-independent half, baked once per Pixi app (`renderer-slot.ts` keeps it across rebuilds). */
+export function createSharedRenderTextures(baker: TextureBaker, devicePixelRatio: number): SharedRenderTextures {
+  const lightPool = bakeLightPool(baker);
+  return {
+    glowTexture: baker.bakeRadial(SOFT_DISC_BAKE),
+    vignetteTexture: baker.bakeRadial(VIGNETTE_BAKE),
     paletteTexture: byteDataTexture(bakePaletteTextureBytes(), {
       width: PALETTE_SHADE_COUNT,
       height: PLAYER_PALETTE_COUNT,
@@ -206,42 +175,51 @@ function cellDataTextures(
       isRepeating: false,
       hasMipmaps: false,
     }),
+    glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
+    motes: moteTextures(baker),
+    lightPoolTexture: baker.textureFromBake(lightPool),
+    indicators: createIndicatorTextures(baker, devicePixelRatio),
   };
 }
 
-export function createRenderTextures(options: RenderTextureOptions): RenderTextures {
+/**
+ * The seeded half. Every bake below takes a **named sub-stream** off `cosmetic` rather than drawing from
+ * it (`COSMETIC_SUB_STREAM`, docs/DETERMINISM.md), so none of them can move another's numbers and the split
+ * could not change a byte. What that rests on is that nothing in `SharedRenderTextures` touches `cosmetic`
+ * at all — a shared bake that drew from it directly would shift every seeded bake after it, which is what
+ * `render-textures.spec.ts` compares the dish field's recorded strokes to catch.
+ */
+export function createSeededRenderTextures(options: RenderTextureOptions): SeededRenderTextures {
   const { baker } = options;
   const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
   const dishField = bakeDishField(baker, options.gelPatches, cosmetic);
   const vent = bakeVentSprite(baker, cosmetic);
-  const lightPool = bakeLightPool(baker);
   return {
     seed: options.seed,
     cosmetic,
-    glowTexture: baker.bakeRadial(SOFT_DISC_BAKE),
-    vignetteTexture: baker.bakeRadial(VIGNETTE_BAKE),
     ...cellDataTextures(cosmetic, options.noiseTileSizePx),
-    glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
-    motes: moteTextures(baker),
     organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),
     dishField,
     dishTexture: baker.textureFromBake(dishField.canvas),
     vent,
     ventTexture: baker.textureFromBake(vent.canvas),
-    lightPoolTexture: baker.textureFromBake(lightPool),
-    indicators: createIndicatorTextures(baker, options.devicePixelRatio),
   };
 }
 
-export function destroyRenderTextures(textures: RenderTextures): void {
+/** Both halves at once: what a first build (and every test) asks for. */
+export function createRenderTextures(options: RenderTextureOptions): RenderTextures {
+  return {
+    ...createSharedRenderTextures(options.baker, options.devicePixelRatio),
+    ...createSeededRenderTextures(options),
+  };
+}
+
+export function destroySharedRenderTextures(textures: SharedRenderTextures): void {
   const sprites: Texture[] = [
     textures.glowTexture,
     textures.vignetteTexture,
-    textures.dishTexture,
-    textures.ventTexture,
     textures.lightPoolTexture,
     ...Object.values(textures.glow),
-    ...Object.values(textures.organelles).map((sprite) => sprite.texture),
   ];
   for (const texture of sprites) texture.destroy(true);
   // The mote frames share one source: the frames go first, the source once.
@@ -253,8 +231,22 @@ export function destroyRenderTextures(textures: RenderTextures): void {
   ];
   for (const texture of moteFrames) texture.destroy(false);
   textures.motes.source.destroy();
-  textures.stripTexture.destroy();
-  textures.tileTexture.destroy();
   textures.paletteTexture.destroy();
   destroyIndicatorTextures(textures.indicators);
+}
+
+export function destroySeededRenderTextures(textures: SeededRenderTextures): void {
+  const sprites: Texture[] = [
+    textures.dishTexture,
+    textures.ventTexture,
+    ...Object.values(textures.organelles).map((sprite) => sprite.texture),
+  ];
+  for (const texture of sprites) texture.destroy(true);
+  textures.stripTexture.destroy();
+  textures.tileTexture.destroy();
+}
+
+export function destroyRenderTextures(textures: RenderTextures): void {
+  destroySeededRenderTextures(textures);
+  destroySharedRenderTextures(textures);
 }
