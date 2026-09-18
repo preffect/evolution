@@ -118,21 +118,28 @@ describe('createRenderTextures', () => {
 describe('the two halves of the bundle (#442)', () => {
   const seededOptions = {
     seed: 42,
-    gelPatches: [],
+    // Not empty: this is what a rebuild has to carry through to the dish field, and an empty list would
+    // let a `createRenderTextures` that forgot to forward it look identical to one that did.
+    gelPatches: [{ x: 120, y: -80, radius: 300 }],
     devicePixelRatio: 1,
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
   };
 
-  it('draws the seeded bakes identically whether or not the shared half ran first, down to the dish field strokes', () => {
-    const wholeBaker = createFakeTextureBaker();
-    const whole = createTestRenderTextures({ seed: seededOptions.seed, baker: wholeBaker });
+  /**
+   * A rebuild builds the seeded half alone, so it must come out as the whole bundle's seeded half would.
+   * That it *cannot* differ through the cosmetic stream is structural rather than lucky:
+   * `fork(label)` seeds a child from the parent's **seed**, never its position
+   * (`determinism/random-streams.md` §3), so no bake can move another's numbers whatever order they run in.
+   * What this does catch is the composition — a `createRenderTextures` that hands the two halves different
+   * inputs — which is why the strokes are compared with gel patches in play.
+   */
+  it('builds the seeded half the same whether it is built alone or as part of the whole bundle', () => {
+    const whole = createTestRenderTextures({ ...seededOptions, baker: createFakeTextureBaker() });
     const seededOnly = createSeededRenderTextures({ ...seededOptions, baker: createFakeTextureBaker() });
     expect(areBytesEqual(whole.strip.bytes, seededOnly.strip.bytes)).toBe(true);
-    expect(whole.cosmetic.nextFloat()).toBe(seededOnly.cosmetic.nextFloat());
-    // The bytes are one thing; the Canvas-2D bakes are another. Every stroke of the dish field, with its
-    // numbers, has to land the same way, or the shared half has quietly taken a draw the field wanted.
     expect(fakeContextOf(seededOnly.dishField.canvas).calls).toEqual(fakeContextOf(whole.dishField.canvas).calls);
     expect(fakeContextOf(seededOnly.vent.canvas).calls).toEqual(fakeContextOf(whole.vent.canvas).calls);
+    expect(seededOnly.tileTexture.width).toBe(whole.tileTexture.width);
   });
 
   it('bakes the radials and the indicator fonts in the shared half only', () => {
