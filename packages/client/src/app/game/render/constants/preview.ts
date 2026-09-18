@@ -18,7 +18,13 @@ export const PREVIEW_SEED = 907;
  */
 export const PREVIEW_MAX_DEVICE_PIXEL_RATIO = 2;
 
-/** Each canvas side is clamped to this many **device** pixels; at the cap the GPU buffers are about 10 MiB (§12.7). */
+/**
+ * Each canvas side is clamped to this many **device** pixels; at the cap the GPU buffers are about 10 MiB (§12.7).
+ *
+ * 900 is not a round number picked for room: it is exactly `ENCYCLOPEDIA_LENS_DIAMETER_PX` 300 × `UI_SCALE_MAX` 1.5
+ * × `PREVIEW_MAX_DEVICE_PIXEL_RATIO` 2, the product #373 pins from the encyclopedia side. There is **no headroom**,
+ * so raising any of those three without raising this one makes the lens clamp silently (§12.7).
+ */
 export const PREVIEW_CANVAS_MAX_PX = 900;
 
 /**
@@ -31,6 +37,12 @@ export const PREVIEW_LENS_SAFE_RADIUS_FRACTION = 0.8;
 export const PREVIEW_OPEN_BUDGET_MS = 300;
 /** The preview frame's own CPU p95, warm-up frames excluded (§12.7's cost table). */
 export const PREVIEW_FRAME_BUDGET_MS = 1;
+
+/**
+ * The `level` a preview cell carries when nothing on the lens draws one — which is every scene in ticket #363,
+ * since the own-cell indicators stand down under `NO_HUD_INPUTS`. A scene that needs a real level sets one.
+ */
+export const PREVIEW_UNUSED_LEVEL = 0;
 
 /** A scene with no motion of its own still loops, so the effect look-back has a period to clamp to. */
 export const PREVIEW_STILL_PERIOD_SECONDS = 6;

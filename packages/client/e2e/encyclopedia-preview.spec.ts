@@ -9,6 +9,10 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+// Type-only, so it is erased before this file runs outside the app's module graph. It is what stops the report's
+// shape and this spec's idea of it drifting — which they had: this file asserted `verdict.open` while the report
+// carried `verdict.isOpenWithinBudget`, and nothing caught it, because `e2e/` is in no tsconfig (ticket #473).
+import type { PreviewRouteReport } from '../src/app/game/encyclopedia/preview-route';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';
 const PREVIEW_TEST_ID = 'encyclopedia-preview';
@@ -19,6 +23,8 @@ const CANVAS = 'canvas[data-testid="game-canvas"]';
 const CANVAS_MAX_DEVICE_PX = 900;
 /** `RENDER_STAGE` (docs/rendering/budget.md §7), restated here for the same reason. */
 const RENDER_STAGE_KEYS = ['camera', 'cells', 'effects', 'food', 'net', 'organelles', 'submit'];
+/** `PREVIEW_ROUTE_LENS_PX` (`preview-route.component.ts`); restated for the same reason as the two above. */
+const ROUTE_LENS_CSS_PX = 360;
 
 /** Each open is a whole bundle bake plus a SwiftShader submit; twenty of them is a long run on a loaded box. */
 const PREVIEW_TEST_TIMEOUT_MS = 1_800_000;
@@ -36,31 +42,6 @@ const SCENE_ANCHORS = [
   { name: 'zone', anchor: 'zone', scene: 'zone' },
 ] as const;
 
-interface OpenTimings {
-  readonly initMs: number;
-  readonly bakeMs: number;
-  readonly firstSubmitMs: number;
-  readonly openedToFirstFrameMs: number;
-}
-
-interface PreviewReport {
-  readonly anchor: string | null;
-  readonly scene: string;
-  readonly parkAtSeconds: number;
-  readonly walkFrames: number;
-  readonly opens: number;
-  readonly coldOpen: OpenTimings;
-  readonly warmOpens: readonly OpenTimings[];
-  readonly openP95Ms: number | null;
-  readonly frame: {
-    readonly renderStagesMs: Record<string, number>;
-    readonly frameTimeP95Ms: number;
-    readonly drawCalls: number;
-  };
-  readonly budgets: { readonly openMs: number; readonly frameMs: number };
-  readonly verdict: { readonly open: boolean | null; readonly frame: boolean | null };
-}
-
 function previewUrl(anchor: string, parkAtSeconds: number, opens = 1): string {
   return `/?preview=${encodeURIComponent(anchor)}&t=${parkAtSeconds}&opens=${opens}`;
 }
@@ -75,7 +56,7 @@ function watchErrors(page: Page): string[] {
 }
 
 /** The report lands once the last session has parked, which is the signal that a frame is on the canvas. */
-async function openPreview(page: Page, url: string): Promise<PreviewReport> {
+async function openPreview(page: Page, url: string): Promise<PreviewRouteReport> {
   await page.goto(url);
   await expect(page.getByTestId(PREVIEW_TEST_ID)).toBeVisible();
   await expect(page.locator(CANVAS)).toBeVisible();
@@ -84,7 +65,12 @@ async function openPreview(page: Page, url: string): Promise<PreviewReport> {
     REPORT_TEST_ID,
     { timeout: PREVIEW_TEST_TIMEOUT_MS },
   );
-  return JSON.parse((await page.getByTestId(REPORT_TEST_ID).textContent()) ?? '{}') as PreviewReport;
+  const text = (await page.getByTestId(REPORT_TEST_ID).textContent()) ?? '{}';
+  const report = JSON.parse(text) as PreviewRouteReport & { readonly error?: string };
+  // The route writes `{ error }` rather than nothing when an open or a frame fails, so a failure is legible here
+  // instead of being a timeout with no diagnosis.
+  expect(report.error, `the route reported a failure: ${report.error ?? ''}`).toBeUndefined();
+  return report;
 }
 
 /** The canvas's own buffer, the full square: the CSS crop around it does not touch what `toDataURL` reads. */
@@ -136,7 +122,9 @@ test.describe('the encyclopedia preview evidence route', () => {
     expect(size.width).toBeLessThanOrEqual(CANVAS_MAX_DEVICE_PX);
     expect(size.height).toBeLessThanOrEqual(CANVAS_MAX_DEVICE_PX);
     // The DPR cap is 2, so a 3x display gets a 2x buffer for its CSS square, never a 3x one.
-    expect(size.width).toBeLessThan(await page.evaluate(() => window.devicePixelRatio * 360));
+    expect(size.width).toBeLessThan(
+      await page.evaluate((lensPx) => window.devicePixelRatio * lensPx, ROUTE_LENS_CSS_PX),
+    );
     await context.close();
   });
 
@@ -162,8 +150,8 @@ test.describe('the encyclopedia preview evidence route', () => {
     expect(report.budgets.openMs).toBeGreaterThan(0);
     expect(report.budgets.frameMs).toBeGreaterThan(0);
     // The verdict is reported but never judged here: SwiftShader is not the reference GPU (§7).
-    expect(report.verdict).toHaveProperty('open');
-    expect(report.verdict).toHaveProperty('frame');
+    expect(report.verdict).toHaveProperty('isOpenWithinBudget');
+    expect(report.verdict).toHaveProperty('isFrameWithinBudget');
   });
 
   /** The leak loop: a browser caps live WebGL contexts at 16, and warns before it starts dropping the oldest. */

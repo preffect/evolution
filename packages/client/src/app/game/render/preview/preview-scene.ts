@@ -159,7 +159,18 @@ export function previewSceneFor(spec: PreviewSpec): PreviewScene {
       return dnaFragmentPreviewScene(spec);
     case PREVIEW_SCENE.zone:
       return zonePreviewScene(spec);
-    default:
+    case PREVIEW_SCENE.eat:
+    case PREVIEW_SCENE.engulf:
+    case PREVIEW_SCENE.escape:
+    case PREVIEW_SCENE.sprint:
+    case PREVIEW_SCENE.levelUp:
       return zonePreviewScene(ACTION_SCENE_STAND_IN);
+    default:
+      // A tenth `PREVIEW_SCENE` family fails the build here rather than resolving quietly to the stand-in.
+      return assertEveryFamilyHandled(spec);
   }
+}
+
+function assertEveryFamilyHandled(spec: never): never {
+  throw new Error(`No preview scene builder for ${JSON.stringify(spec)}`);
 }

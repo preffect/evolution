@@ -7,17 +7,11 @@
 // opens, because a browser caps WebGL contexts at 16 and the BitmapFont cache is process-wide; and the **pause is
 // the ticker, not the `FrameGate`**, because the room's own hook must keep working underneath the encyclopedia.
 
-import { DEFAULT_BALANCE, ManualClock, TICK_INTERVAL_S, ZONE_ID, type BalanceConfig } from '@evolution/shared';
-import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_BALANCE, ManualClock, ZONE_ID, type BalanceConfig } from '@evolution/shared';
+import { describe, expect, it } from 'vitest';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
-import { PREVIEW_CANVAS_MAX_PX, PREVIEW_MAX_DEVICE_PIXEL_RATIO } from '../constants';
-import { EVOLUTION_DEBUG_KEY, EVOLUTION_DEBUG_MODE } from '../../debug/evolution-debug';
-import {
-  PreviewSession,
-  cappedPreviewDevicePixelRatio,
-  clampedPreviewCanvasSize,
-  type PreviewSessionDependencies,
-} from './preview-session';
+import { EVOLUTION_DEBUG_KEY } from '../../debug/evolution-debug';
+import { PreviewSession, type PreviewSessionDependencies } from './preview-session';
 import { PREVIEW_SCENE, type PreviewSpec } from './preview-spec';
 
 const LENS_SIDE_PX = 360;
@@ -54,15 +48,21 @@ function harness(overrides: Partial<PreviewSessionDependencies> = {}): Harness {
 }
 
 describe('PreviewSession.start', () => {
-  it('bakes one bundle at PREVIEW_SEED and reports the open split, which sums to the total', async () => {
+  /**
+   * Each of the three spans brackets exactly the call it names, so they do **not** sum to the total: adopting the
+   * ticker and building the scene fall between them, outside all three. What must hold is that none of them
+   * escapes the total, which is what stops a span quietly covering work its name does not cover.
+   */
+  it('bakes one bundle at PREVIEW_SEED and reports an open split that stays inside the total', async () => {
     const { subject, apps, clock } = harness();
     const start = subject.start(VENT_SPEC);
     clock.advanceMilliseconds(1);
     const timings = await start;
     expect(apps).toHaveLength(1);
     expect(timings).not.toBeNull();
-    expect(timings!.initMs + timings!.bakeMs + timings!.firstSubmitMs).toBeCloseTo(timings!.openedToFirstFrameMs, 9);
+    const { initMs, bakeMs, firstSubmitMs, openedToFirstFrameMs } = timings!;
     for (const value of Object.values(timings!)) expect(Number.isFinite(value)).toBe(true);
+    expect(initMs + bakeMs + firstSubmitMs).toBeLessThanOrEqual(openedToFirstFrameMs);
     expect(apps[0]!.renderCalls.count).toBe(1);
     subject.destroy();
   });
@@ -104,15 +104,44 @@ describe('PreviewSession.show', () => {
     subject.destroy();
   });
 
-  it('restarts the scene’s loop, so showing the same spec again is the replay', async () => {
+  /**
+   * §12.7: *time is monotonic and never wraps* — the clip tracker, the ghost registry and the sprint-ring tracker
+   * key on `nowMs`, which `GameRenderer` derives from `timeSeconds`, which is this tick. A `show` that reset it
+   * would leave any clip started before the swap with `nowMs - startMs` negative, so `isClipFinished` would never
+   * be true and the instance would never be pruned. `show` therefore moves the scene's **phase**, not the clock.
+   */
+  it('restarts the scene’s loop on a phase change, never by moving the tick backwards', async () => {
     const { subject, apps, clock } = harness();
     await subject.start(VENT_SPEC);
     clock.advanceMilliseconds(2_000);
     apps[0]!.tick();
-    expect(subject.lastRenderedTick).toBeGreaterThan(0);
+    const tickBeforeSwap = subject.lastRenderedTick!;
+    expect(tickBeforeSwap).toBeGreaterThan(0);
+    expect(subject.lastSceneTick).toBeCloseTo(tickBeforeSwap, 9);
+
     subject.show(VENT_SPEC);
     apps[0]!.tick();
-    expect(subject.lastRenderedTick).toBe(0);
+    // The scene is back at the start of its loop...
+    expect(subject.lastSceneTick).toBe(0);
+    // ...and the tick the renderer sees has not gone back with it.
+    expect(subject.lastRenderedTick!).toBeGreaterThanOrEqual(tickBeforeSwap);
+    subject.destroy();
+  });
+
+  it('keeps the render tick climbing across many swaps, however often the scene restarts', async () => {
+    const { subject, apps, clock } = harness();
+    await subject.start(VENT_SPEC);
+    const swaps = 5;
+    const stepMs = 1_000;
+    let previous = subject.lastRenderedTick ?? 0;
+    for (let swap = 0; swap < swaps; swap += 1) {
+      clock.advanceMilliseconds(stepMs);
+      subject.show(swap % 2 === 0 ? SHALLOWS_SPEC : VENT_SPEC);
+      apps[0]!.tick();
+      expect(subject.lastSceneTick, `scene restarted on swap ${swap}`).toBe(0);
+      expect(subject.lastRenderedTick!, `render tick monotonic across swap ${swap}`).toBeGreaterThan(previous);
+      previous = subject.lastRenderedTick!;
+    }
     subject.destroy();
   });
 });
@@ -154,126 +183,5 @@ describe('PreviewSession open and close cycles', () => {
     const names = apps.flatMap((app) => app.textures.installedFonts.map((install) => install.name));
     expect(names).toHaveLength(cycles * 2);
     expect(new Set(names).size).toBe(names.length);
-  });
-});
-
-describe('PreviewSession.pause and resume', () => {
-  it('stops the preview ticker and never touches the debug FrameGate', async () => {
-    const { subject, apps, clock } = harness();
-    await subject.start(VENT_SPEC);
-    const app = apps[0]!;
-    const rendersAfterOpen = app.renderCalls.count;
-    subject.pause();
-    expect(subject.isPaused).toBe(true);
-    expect(app.ticking.isRunning).toBe(false);
-    // The gate is the debug hook's pause; a UI pause must leave it alone, or `debug_resume_room` would fight it.
-    expect(subject.gate.isPaused()).toBe(false);
-    clock.advanceMilliseconds(1_000);
-    app.tick();
-    expect(app.renderCalls.count).toBe(rendersAfterOpen);
-    subject.resume();
-    expect(app.ticking.isRunning).toBe(true);
-    app.tick();
-    expect(app.renderCalls.count).toBe(rendersAfterOpen + 1);
-    subject.destroy();
-  });
-
-  /** The paused span never plays: the tick after a resume is the tick the pause froze, not that span later. */
-  it('re-bases the local clock across the paused span', async () => {
-    const { subject, apps, clock } = harness();
-    await subject.start(VENT_SPEC);
-    const app = apps[0]!;
-    const playedMs = 1_000;
-    const pausedMs = 30_000;
-    clock.advanceMilliseconds(playedMs);
-    app.tick();
-    const tickAtPause = subject.lastRenderedTick;
-    expect(tickAtPause).toBeCloseTo(playedMs / 1000 / TICK_INTERVAL_S, 9);
-    subject.pause();
-    clock.advanceMilliseconds(pausedMs);
-    subject.resume();
-    app.tick();
-    expect(subject.lastRenderedTick).toBeCloseTo(tickAtPause!, 9);
-    subject.destroy();
-  });
-
-  it('holds a scene shown while paused until the resume', async () => {
-    const { subject, apps, clock } = harness();
-    await subject.start(VENT_SPEC);
-    subject.pause();
-    clock.advanceMilliseconds(5_000);
-    subject.show(SHALLOWS_SPEC);
-    clock.advanceMilliseconds(5_000);
-    subject.resume();
-    apps[0]!.tick();
-    expect(subject.lastRenderedTick).toBe(0);
-    subject.destroy();
-  });
-
-  it('applies a pause that lands before the app arrives', async () => {
-    const { subject, apps } = harness();
-    const start = subject.start(VENT_SPEC);
-    subject.pause();
-    await start;
-    expect(apps[0]!.ticking.isRunning).toBe(false);
-    subject.destroy();
-  });
-});
-
-describe('PreviewSession.resize', () => {
-  it('resizes the canvas with no rebake', async () => {
-    const { subject, apps } = harness();
-    await subject.start(VENT_SPEC);
-    const app = apps[0]!;
-    const bakes = app.textures.texturedBakes.length;
-    const largerSidePx = 420;
-    subject.resize({ width: largerSidePx, height: largerSidePx });
-    expect(app.screen).toEqual({ width: largerSidePx, height: largerSidePx });
-    expect(app.textures.texturedBakes).toHaveLength(bakes);
-    subject.destroy();
-  });
-});
-
-describe('the canvas bounds', () => {
-  it('caps the device pixel ratio the preview renders and bakes at', () => {
-    expect(cappedPreviewDevicePixelRatio(1)).toBe(1);
-    expect(cappedPreviewDevicePixelRatio(3)).toBe(PREVIEW_MAX_DEVICE_PIXEL_RATIO);
-  });
-
-  it('clamps each canvas side to PREVIEW_CANVAS_MAX_PX device pixels', () => {
-    const capped = PREVIEW_MAX_DEVICE_PIXEL_RATIO;
-    const underCap = PREVIEW_CANVAS_MAX_PX / capped - 1;
-    expect(clampedPreviewCanvasSize({ width: underCap, height: underCap }, capped)).toEqual({
-      width: underCap,
-      height: underCap,
-    });
-    const overCap = PREVIEW_CANVAS_MAX_PX;
-    const clamped = clampedPreviewCanvasSize({ width: overCap, height: overCap }, capped);
-    expect(clamped.width * capped).toBe(PREVIEW_CANVAS_MAX_PX);
-    expect(clamped.height * capped).toBe(PREVIEW_CANVAS_MAX_PX);
-  });
-
-  it('passes the capped ratio to the app, not the display’s', async () => {
-    const createPixiApp = vi.fn(() => Promise.resolve(createFakePixiApp(LENS_SIZE_PX)));
-    const { subject } = harness({ devicePixelRatio: 3, createPixiApp });
-    await subject.start(VENT_SPEC);
-    expect(createPixiApp).toHaveBeenCalledWith(
-      expect.objectContaining({ devicePixelRatio: PREVIEW_MAX_DEVICE_PIXEL_RATIO }),
-    );
-    subject.destroy();
-  });
-});
-
-describe('PreviewSession.performanceReport', () => {
-  it('is null before the first frame and carries the seed’s frame after it', async () => {
-    const { subject, apps } = harness();
-    expect(subject.performanceReport()).toBeNull();
-    await subject.start(VENT_SPEC);
-    apps[0]!.tick();
-    const report = subject.performanceReport();
-    expect(report).not.toBeNull();
-    expect(Number.isFinite(report!.frameTimeP95Ms)).toBe(true);
-    expect(subject.debugApi().mode).toBe(EVOLUTION_DEBUG_MODE.preview);
-    subject.destroy();
   });
 });

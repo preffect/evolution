@@ -23,7 +23,14 @@ import {
   previewOpenP95Ms,
   previewWalkFrameCount,
 } from '../render/preview/preview-timings';
-import { parsePreviewQuery, previewSpecForAnchor, type PreviewQuery, type PreviewRouteReport } from './preview-route';
+import {
+  PREVIEW_ROUTE_FAILURE,
+  parsePreviewQuery,
+  previewSpecForAnchor,
+  type PreviewQuery,
+  type PreviewRouteFailure,
+  type PreviewRouteReport,
+} from './preview-route';
 
 export const PREVIEW_ROUTE_TEST_ID = 'encyclopedia-preview';
 export const PREVIEW_ROUTE_REPORT_TEST_ID = 'encyclopedia-preview-report';
@@ -137,7 +144,10 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
   private writeReport(query: PreviewQuery, spec: PreviewSpec, opens: readonly PreviewOpenTimings[]): void {
     const [coldOpen, ...warmOpens] = opens;
     const frame = this.parkedSession?.performanceReport() ?? null;
-    if (coldOpen === undefined || frame === null) return;
+    // Never leave the element empty: the smoke waits on it, and a silent failure is a half-hour timeout with no
+    // diagnosis on a route whose whole job is to make a hardware run one URL.
+    if (coldOpen === undefined) return this.writeFailure(PREVIEW_ROUTE_FAILURE.noOpenCompleted);
+    if (frame === null) return this.writeFailure(PREVIEW_ROUTE_FAILURE.noFrameDrawn);
     const openP95Ms = previewOpenP95Ms(warmOpens);
     const report: PreviewRouteReport = {
       anchor: query.anchor,
@@ -153,6 +163,11 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
       verdict: previewBudgetVerdict(openP95Ms, frame.frameTimeP95Ms),
     };
     this.report().nativeElement.textContent = JSON.stringify(report);
+  }
+
+  private writeFailure(error: string): void {
+    const failure: PreviewRouteFailure = { error };
+    this.report().nativeElement.textContent = JSON.stringify(failure);
   }
 
   ngOnDestroy(): void {

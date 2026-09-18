@@ -115,6 +115,16 @@ export function previewSpecForAnchor(anchor: string | null): PreviewSpec {
   return section?.preview ?? definition.preview ?? PREVIEW_ROUTE_FALLBACK_SPEC;
 }
 
+/** Why the route could not produce a report; written into the same element so a failure is never silence. */
+export interface PreviewRouteFailure {
+  readonly error: string;
+}
+
+export const PREVIEW_ROUTE_FAILURE = {
+  noOpenCompleted: 'no open completed: createPixiApp never resolved, or destroy ran first',
+  noFrameDrawn: 'no frame drawn: the parked session produced no performance report',
+} as const;
+
 export interface PreviewRouteReport {
   readonly anchor: string | null;
   readonly scene: PreviewSpec['scene'];

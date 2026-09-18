@@ -46,6 +46,7 @@ bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,rend
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
 preview/{preview-spec,preview-scene,preview-frame,preview-session,preview-host,preview-timings,preview-still}.ts   the encyclopedia preview seam (architecture/encyclopedia.md §12.7): the spec data, spec → scene, scene → `RenderFrame`, the third `FrameLoopSession`, the `ENCYCLOPEDIA_PREVIEW` token, the walk arithmetic and the two budgets' verdict, the cached still frames (#378)
+preview/{preview-clock,preview-canvas}.ts           the session's two pure pieces, out of it so it is only the session: the local clock (a monotonic render tick, a scene phase a `show` restarts, a pause that re-bases) and the canvas bounds (the DPR cap, the CSS clamp, the lens's bounding square)
 preview/scenes/{cell-scene,food-scene,zone-scene}.ts   the subject scenes (#363: `cell`, `food`, `dna_fragment`, `zone`), pure over (loop seconds, balance)
 preview/scenes/{eat-scene,engulf-scene,sprint-scene,level-up-scene}.ts   the action scenes (#364); until they land `previewSceneFor` shows the open-broth stand-in for their families
 bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
@@ -85,13 +86,17 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   separability numbers of visual-style/principles-and-palette.md §2); `bench-scene.spec.ts` (counts, seed-stable, the pairs, the schedule),
   `bench-driver.spec.ts` (parks and steps the store), `bench-session.spec.ts` (the query and its flags, the report
   after the window, the hook), `preview-scene.spec.ts` (every family resolves, seed- and tick-stable frames, each
-  zone target reads as its own zone through `zoneAt`, the swim at the cell's own top speed, and the two framing
-  bands measured from the renderer's own `buildShapeTerms` extents at every tick of a loop),
+  zone target reads as its own zone through `zoneAt`, the swim at the cell's own top speed, and the stand-in the
+  action families share until #364 builds them), `preview-framing.spec.ts` (the two framing bands measured from the
+  renderer's own `buildShapeTerms` extents at every tick of a loop, over the `preview-subject-specs.ts` list both it
+  and `preview-scene.spec.ts` walk),
   `preview-loop.spec.ts` (each loop's effects once, at their absolute ticks; a jump of many periods emits at most
   one loop's), `preview-frame.spec.ts` (radius and stage through the shared formulas over the live balance),
-  `preview-session.spec.ts` (one bake per session and none on `show`, a destroy before `start` resolves destroys
-  the late app, open/close cycles balance apps, bakes and font installs, `pause` uses the ticker and never the
-  `FrameGate`, `resume` re-bases the clock, the DPR cap and canvas clamp), `preview-timings.spec.ts` (the walk
+  `preview-session.spec.ts` (one bake per session and none on `show`, a `show` that restarts the scene's phase
+  without ever moving the render tick backwards, a destroy before `start` resolves destroys the late app,
+  open/close cycles balance apps, bakes and font installs), `preview-clocks.spec.ts` (the wall clock measures the
+  open while a caller's `sceneClock` drives the scene, `pause` uses the ticker and never the `FrameGate`, `resume`
+  re-bases the clock, the DPR cap, the canvas clamp and the lens's bounding square), `preview-timings.spec.ts` (the walk
   arithmetic and the budget verdict's `null` rows), `bitmap-fonts.spec.ts` (a bundle's own font names, and an
   uninstall that touches only them), `bench-route.spec.ts` (both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),

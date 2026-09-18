@@ -96,7 +96,7 @@ describe('previewCellView', () => {
 describe('previewRenderFrame', () => {
   const fractionalTick = 12.5;
   const frame = previewRenderFrame({
-    tick: fractionalTick,
+    renderTick: fractionalTick,
     scene: { cells: [previewCellView(cellSpec(), BALANCE)], motes: [], fragments: [], effects: [] },
     balance: BALANCE,
   });
@@ -116,7 +116,7 @@ describe('previewRenderFrame', () => {
 
   it('puts the live balance on the frame, so speedRatio and canEngulf read the patched one', () => {
     const patched = previewRenderFrame({
-      tick: 0,
+      renderTick: 0,
       scene: { cells: [], motes: [], fragments: [], effects: [] },
       balance: PATCHED_BALANCE,
     });

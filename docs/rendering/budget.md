@@ -249,10 +249,12 @@ finite — and never an absolute time.
 | lens canvas GPU memory at the cap (900² device px)       | **unmeasured**, ≈ 10 MiB  | colour backbuffer + the depth-stencil Pixi requests (`stencil: true`, ≈ 3.2 MiB) + the presented front buffer; ≈ 13 MiB on the evidence route with `preserveDrawingBuffer`; ≈ 50 MiB with the bundle while the lens is open |
 | the stencil-free app option (would save ≈ 3.2 MiB)       | **not built, unmeasured** | nothing in the preview draws a Pixi mask, so it is available; §12.7 says measure before building                                                                                                                            |
 
-**Shape checks that are green in the container** (`e2e/encyclopedia-preview.spec.ts`, SwiftShader): every subject
-scene draws with no page or shader error; two loads at the same `t` are pixel-identical and a different `t` is not;
-the canvas is clamped to `PREVIEW_CANVAS_MAX_PX` device pixels on a 3× display; 20 open-and-close cycles log no
-`Too many active WebGL contexts` warning; the DOM report carries every key with a finite value.
+**Shape checks the smoke asserts** (`e2e/encyclopedia-preview.spec.ts`, SwiftShader): every subject scene draws
+with no page or shader error; two loads at the same `t` are pixel-identical and a different `t` is not; the canvas
+is clamped to `PREVIEW_CANVAS_MAX_PX` device pixels on a 3× display; 20 open-and-close cycles log no
+`Too many active WebGL contexts` warning; the DOM report carries every key with a finite value. See the run status
+recorded with the PR that last touched the file — this list is what the spec claims, not a statement that it last
+ran green.
 
 **If a budget is missed**, §12.7's levers in order: throttle the room renderer while the encyclopedia covers it;
 keep the preview session alive across encyclopedia opens; a bundle option that skips the dish-field and light-pool

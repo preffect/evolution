@@ -25,7 +25,7 @@ import {
 } from '@evolution/shared';
 import { CELL_STATE } from '@evolution/shared';
 import type { RenderFrame } from '../../net/world-store';
-import { PREVIEW_GEL_PATCHES, PREVIEW_SEED } from '../constants';
+import { PREVIEW_GEL_PATCHES, PREVIEW_SEED, PREVIEW_UNUSED_LEVEL } from '../constants';
 import type { PreviewSceneFrame } from './preview-scene';
 
 /** What a scene says about one cell; `radius` and `stage` are derived here, never supplied. */
@@ -47,6 +47,8 @@ export interface PreviewCellSpec {
   readonly engulfedByCellId?: string | null;
   readonly sprintRemainingTicks?: number;
   readonly sprintCooldownRemainingTicks?: number;
+  /** Only a scene that actually draws a level sets this; `PREVIEW_UNUSED_LEVEL` otherwise. */
+  readonly level?: number;
 }
 
 const FREE: readonly CellState[] = [CELL_STATE.free];
@@ -73,9 +75,10 @@ export function previewCellView(spec: PreviewCellSpec, balance: BalanceConfig): 
     velocityY: spec.velocityY,
     mass: spec.mass,
     radius: radiusForMass(spec.mass, balance.growth),
-    // The own-cell indicators are the only thing that draws a level, and they stand down in a preview
-    // (`NO_HUD_INPUTS`), so this is the owned-trait count and nothing on the lens reads it.
-    level: spec.traits.length,
+    // No preview draws a level: the own-cell indicators are the only reader and they stand down under
+    // `NO_HUD_INPUTS`. A scene that needs a real one (ticket #364's `level_up`) has to say so rather than
+    // inherit whatever happened to be here.
+    level: spec.level ?? PREVIEW_UNUSED_LEVEL,
     stage: stageOf(
       spec.traits.map((owned) => owned.traitId),
       balance.ladder,
@@ -92,7 +95,8 @@ export function previewCellView(spec: PreviewCellSpec, balance: BalanceConfig): 
 }
 
 export interface PreviewFrameInput {
-  readonly tick: number;
+  /** The session's **monotonic** render tick, never the scene's loop phase: `timeSeconds` is derived from it. */
+  readonly renderTick: number;
   readonly scene: PreviewSceneFrame;
   readonly balance: BalanceConfig;
 }
@@ -103,16 +107,16 @@ export interface PreviewFrameInput {
  * fixture snapshot everything that is not interpolated (the round, the roster, the leaderboard) reads.
  */
 export function previewRenderFrame(input: PreviewFrameInput): RenderFrame {
-  const { tick, scene, balance } = input;
+  const { renderTick, scene, balance } = input;
   return {
-    renderTick: tick,
-    timeSeconds: tick * TICK_INTERVAL_S,
+    renderTick,
+    timeSeconds: renderTick * TICK_INTERVAL_S,
     cells: scene.cells,
     motes: scene.motes,
     fragments: scene.fragments,
     effects: scene.effects,
     latest: {
-      tick: Math.floor(tick),
+      tick: Math.floor(renderTick),
       seed: PREVIEW_SEED,
       roundStartTick: 0,
       roundPhase: ROUND_PHASE.playing,
