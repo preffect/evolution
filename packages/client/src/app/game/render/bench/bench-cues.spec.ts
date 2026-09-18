@@ -15,7 +15,7 @@ import { BENCH_CUE_STEP, benchCueFrame, benchCueStepAt } from './bench-cues';
 
 const OWN_PLAYER = playerId('bench-player-0');
 const OWN = createTestCellView({ id: entityId('own'), playerId: OWN_PLAYER, mass: 312 });
-const EVERY = RENDER_BENCH_CUES.floaterEveryFrames;
+const CYCLE = RENDER_BENCH_CUES.floaterCycleFrames;
 
 function frame(overrides: Parameters<typeof createTestRenderFrame>[0] = {}) {
   return createTestRenderFrame({
@@ -26,14 +26,11 @@ function frame(overrides: Parameters<typeof createTestRenderFrame>[0] = {}) {
 }
 
 describe('benchCueStepAt', () => {
-  it('lands the eat, the engulf and the sprint in turn every floaterEveryFrames, nothing between', () => {
-    expect([0, EVERY, 2 * EVERY, 3 * EVERY].map(benchCueStepAt)).toEqual([
-      BENCH_CUE_STEP.eat,
-      BENCH_CUE_STEP.engulf,
-      BENCH_CUE_STEP.sprint,
-      BENCH_CUE_STEP.eat,
-    ]);
-    expect(benchCueStepAt(1)).toBeNull();
+  it('lands the eat, the engulf and the sprint on the first frames of each cycle, nothing through the rest of it', () => {
+    expect([0, 1, 2].map(benchCueStepAt)).toEqual([BENCH_CUE_STEP.eat, BENCH_CUE_STEP.engulf, BENCH_CUE_STEP.sprint]);
+    // The four floaters the three steps put up are alive for the rest of the cycle, so nothing lands inside it.
+    expect([3, CYCLE - 1].map(benchCueStepAt)).toEqual([null, null]);
+    expect([CYCLE, CYCLE + 2].map(benchCueStepAt)).toEqual([BENCH_CUE_STEP.eat, BENCH_CUE_STEP.sprint]);
   });
 });
 
@@ -58,13 +55,10 @@ describe('benchCueFrame', () => {
   it('adds the own eat on its frame, the engulf payout on the next, and hands the sprint over with its own tick', () => {
     const eat = benchCueFrame(frame(), OWN_PLAYER, 0).frame.effects;
     expect(eat.map((effect) => effect.kind)).toEqual([EFFECT_KIND.eat]);
-    const engulf = benchCueFrame(frame(), OWN_PLAYER, EVERY).frame.effects;
+    const engulf = benchCueFrame(frame(), OWN_PLAYER, 1).frame.effects;
     expect(engulf).toMatchObject([{ kind: EFFECT_KIND.cellAbsorbed, predatorCellId: OWN.id }]);
-    const sprint = benchCueFrame(frame(), OWN_PLAYER, 2 * EVERY);
+    const sprint = benchCueFrame(frame(), OWN_PLAYER, 2);
     expect(sprint.frame.effects).toEqual([]);
-    expect(sprint.inputs.ownCellIndicators?.sprintSpent).toEqual({
-      amount: RENDER_BENCH_CUES.sprintSpent,
-      tick: 2 * EVERY,
-    });
+    expect(sprint.inputs.ownCellIndicators?.sprintSpent).toEqual({ amount: RENDER_BENCH_CUES.sprintSpent, tick: 2 });
   });
 });

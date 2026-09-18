@@ -130,12 +130,15 @@ export const RENDER_BENCH_ENGULF_CYCLE_TICKS = 90;
 export const RENDER_BENCH_ABSORB_EVERY_TICKS = 300;
 /**
  * `?bench&cues=1` (#385): the own cell's legibility cues at their worst case (docs/ui/hud.md §3.1.5, `bench-cues.ts`).
- * One of the eat, the engulf payout and the sprint lands every `floaterEveryFrames`, longer than `FLOATER_MERGE_MS` at
- * 60 fps so nothing merges, and short enough that `FLOATER_MAX_VISIBLE` floaters stay alive; the rates are the audit's
+ * The eat, the engulf payout and the sprint land on the first three frames of every `floaterCycleFrames`, so all
+ * `FLOATER_MAX_VISIBLE` floaters are up for the rest of the cycle: since #443 a cause is on screen at most once, so
+ * the worst case is one floater of each — FOOD and DNA from the eat, ENGULF, SPRINT — born together and leaving
+ * together rather than a repeat of one cause, which now merges and draws nothing more. The rates are the audit's
  * worked example (mass 312 in the vent with Mitochondrion I, touching Toxin Vacuole I), so three tags show.
  */
 export const RENDER_BENCH_CUES = {
-  floaterEveryFrames: 20,
+  /** `FLOATER_LIFETIME_MS` at 60 fps: the four floaters expire as the next cycle's three steps replace them. */
+  floaterCycleFrames: 72,
   ratesPerSecond: { toxin: -9.36, decay: -0.5, vent: -0.25 },
   decayTraitShare: -0.15,
   eatMassGained: 3,

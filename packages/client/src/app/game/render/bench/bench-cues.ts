@@ -2,8 +2,8 @@
 // bench scene drawn with every cue of docs/ui/hud.md §3.1.5 at once, so the `effects` stage is measured with all of
 // them — a shrinking mass chip with its trend glyph, `RATE_TAG_ROWS_MAX` rate tags (the DECAY one with its trait glyph
 // and share), the zone pill, and `FLOATER_MAX_VISIBLE` floaters kept alive by an eat, an engulf payout and a sprint
-// landing in turn every `RENDER_BENCH_CUES.floaterEveryFrames`. Pure over the frame and the frame count, so a bench
-// run is reproducible.
+// landing on the first three frames of each `RENDER_BENCH_CUES.floaterCycleFrames`. Pure over the frame and the frame
+// count, so a bench run is reproducible.
 
 import {
   EFFECT_KIND,
@@ -26,10 +26,10 @@ import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-ce
 import { RENDER_BENCH_CUES } from '../constants';
 import { NO_HUD_INPUTS, type RenderInputs } from '../game-renderer';
 
-/** The one-off change that lands on a floater frame. */
+/** The one-off change a cue frame lands. */
 export const BENCH_CUE_STEP = { eat: 'eat', engulf: 'engulf', sprint: 'sprint' } as const;
 export type BenchCueStep = ValueOf<typeof BENCH_CUE_STEP>;
-/** The order the steps land in, one per floater frame, round and round. */
+/** The steps of one cycle, one per frame from its head: together they put up one floater of every cause. */
 const BENCH_CUE_STEP_ORDER: readonly BenchCueStep[] = [
   BENCH_CUE_STEP.eat,
   BENCH_CUE_STEP.engulf,
@@ -47,11 +47,9 @@ export interface BenchCueFrame {
   readonly inputs: RenderInputs;
 }
 
-/** The step a frame lands, or `null` between floater frames. */
+/** The step a frame lands: one per frame over the first frames of each cycle, `null` through the rest of it. */
 export function benchCueStepAt(frameIndex: number): BenchCueStep | null {
-  const { floaterEveryFrames } = RENDER_BENCH_CUES;
-  if (frameIndex % floaterEveryFrames !== 0) return null;
-  return BENCH_CUE_STEP_ORDER[(frameIndex / floaterEveryFrames) % BENCH_CUE_STEP_ORDER.length] ?? null;
+  return BENCH_CUE_STEP_ORDER[frameIndex % RENDER_BENCH_CUES.floaterCycleFrames] ?? null;
 }
 
 function eatEffect(ownCell: CellView, tick: number): GameEffect {

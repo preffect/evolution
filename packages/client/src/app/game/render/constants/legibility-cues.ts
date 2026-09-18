@@ -21,7 +21,6 @@ export const RATE_TAG_REFRESH_MS = 500;
 export const FLOATER_RISE_PX = 24;
 export const FLOATER_LIFETIME_MS = 1200;
 export const FLOATER_FADE_FRACTION = 0.3;
-export const FLOATER_MERGE_MS = 300;
 export const FLOATER_MAX_VISIBLE = 4;
 
 // ---- the zone pill ----

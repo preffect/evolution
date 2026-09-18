@@ -184,8 +184,9 @@ applied (`unjudged` names every row the evidence could not judge; `isFullyJudged
 
 The route takes three more flags, all off by default. `cues=1` draws the own cell's legibility cues at their worst
 case (ui/hud.md §3.1.5, #385): a shrinking mass chip with its trend glyph, `RATE_TAG_ROWS_MAX` rate tags with the DECAY
-tag's trait glyph, the zone pill and `FLOATER_MAX_VISIBLE` floaters kept alive by the own cell's eats, engulf payouts
-and sprints on a staggered cadence (`bench-cues.ts`), so the `effects` stage is measured with every cue drawn.
+tag's trait glyph, the zone pill and `FLOATER_MAX_VISIBLE` floaters — one of each cause since #443 — kept alive by an
+eat, an engulf payout and a sprint landing together at the head of each `floaterCycleFrames` (`bench-cues.ts`), so the
+`effects` stage is measured with every cue drawn.
 `advance=1` steps the scene one tick per frame, so the snapshot
 apply and the view-registry churn that §7 budgets as `net` happen inside the window; parked on one tick (the default,
 and what a screenshot needs) the window measures the interpolation half of `net` only. `preserve=1` keeps the WebGL
