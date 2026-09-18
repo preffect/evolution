@@ -5,11 +5,12 @@
 //
 // Lengths carry their unit at scale 1; a stylesheet scales one with `calc(var(--encyclopedia-…) * var(--ui-scale))`,
 // which is the kit's scale, published by the `[uiSurface]` the panel sits on. The kit's own numbers stay
-// `--ui-…`: nothing here restates one.
+// `--ui-…`: nothing here restates one, and `pixels` and `milliseconds` are the kit's own — a token's value is
+// written one way in this codebase, not one way per feature.
 
 import { TRAIT_GLYPH_CARD_PX } from '../../glyphs/glyph-constants';
 import { UI_ROW_MEDALLION_PX } from '../../../ui-kit/ui-kit-constants';
-import type { StyleVariables } from '../../../ui-kit/format/ui-css-variables';
+import { milliseconds, pixels, type StyleVariables } from '../../../ui-kit/format/ui-css-variables';
 import {
   ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX,
   ENCYCLOPEDIA_HEADER_HEIGHT_PX,
@@ -29,14 +30,6 @@ import {
   ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_WIDTH_PX,
 } from '../encyclopedia-constants';
-
-function pixels(value: number): string {
-  return `${value}px`;
-}
-
-function milliseconds(value: number): string {
-  return `${value}ms`;
-}
 
 /** Every `--encyclopedia-…` token the panel's stylesheets may read, by name, at scale 1. */
 export function encyclopediaStyleVariables(): StyleVariables {

@@ -36,11 +36,17 @@ export function colourAtAlpha(colour: string, alpha: number): string {
   return `color-mix(in srgb, ${colour} ${alpha * PERCENT_PER_UNIT}%, transparent)`;
 }
 
-function pixels(value: number): string {
+/**
+ * How a token's value is written, exported because a feature that publishes its own `--…` tokens writes them the
+ * same way: `game/encyclopedia/format/encyclopedia-css-variables.ts` is the second such formatter, and both of these
+ * were a verbatim copy in it until the duplication gate said so. A stylesheet reads a length back with
+ * `calc(var(--…) * var(--ui-scale))`, so what these produce is the scale-1 value with its unit and nothing else.
+ */
+export function pixels(value: number): string {
   return `${value}px`;
 }
 
-function milliseconds(value: number): string {
+export function milliseconds(value: number): string {
   return `${value}ms`;
 }
 
