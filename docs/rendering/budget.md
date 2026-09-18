@@ -290,13 +290,13 @@ no font install and hands the new renderer the very same indicator bundle.
 the bake spans directly; 8 rebuilds per run through the debug hook's `setSeed`, medians. **These absolutes are a
 software rasteriser on a loaded 4-core box and are not hardware numbers** — the proportions are the durable part:
 
-| Figure                                               | Before (main)         | After                 | Notes                                                  |
-| ---------------------------------------------------- | --------------------- | --------------------- | ------------------------------------------------------ |
-| round-change rebuild, median of 8                    | **485 ms** (load 7.4) | **136 ms** (load 9.2) | −72 %, measured on a _busier_ box after                |
-| what a rebuild re-bakes                              | the whole bundle      | the seeded half only  | the structural change                                  |
-| the seeded half as a share of the bundle             | 44 %                  | 35–43 %               | four runs whose absolutes span 1.6 ×                   |
-| `buildNoiseTile` (256², pure CPU, Node, median of 5) | 134 ms                | **64 ms**             | −52 %: per-row terms hoisted, no closure per knot read |
-| `bakeRadialBytes` (vignette 512², same)              | 49 ms                 | **37 ms**             | −25 %: no `stops.slice(1)` per pixel                   |
+| Figure                                               | Before (main)         | After                 | Notes                                                                                                                                                                          |
+| ---------------------------------------------------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| round-change rebuild, median of 8                    | **485 ms** (load 7.4) | **136 ms** (load 9.2) | −72 %, measured on a _busier_ box after                                                                                                                                        |
+| what a rebuild re-bakes                              | the whole bundle      | the seeded half only  | the structural change                                                                                                                                                          |
+| the seeded half as a share of the bundle             | —                     | —                     | **35–44 %** across four runs whose absolutes span 1.6 ×: one spread, not a before and an after. It is the floor a round change now pays, where it used to pay the whole bundle |
+| `buildNoiseTile` (256², pure CPU, Node, median of 5) | 134 ms                | **64 ms**             | −52 %: per-row terms hoisted, no closure per knot read                                                                                                                         |
+| `bakeRadialBytes` (vignette 512², same)              | 49 ms                 | **37 ms**             | −25 %: no `stops.slice(1)` per pixel                                                                                                                                           |
 
 **Room entry is only partly addressed.** The shared half is most of a first build and it still runs inside the
 frame loop, so the ~1.2 s at room entry falls by roughly the CPU savings above and no further: keeping the half

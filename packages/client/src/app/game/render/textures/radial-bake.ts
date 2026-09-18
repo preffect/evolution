@@ -75,8 +75,7 @@ export function sampleRadialAlpha(stops: readonly RadialBakeStop[], offset: numb
   if (offset <= first.offset) return first.alpha;
   let previous = first;
   for (let index = 1; index < stops.length; index += 1) {
-    const stop = stops[index];
-    if (stop === undefined) break;
+    const stop = stops[index]!;
     if (offset <= stop.offset) {
       return lerp(previous.alpha, stop.alpha, (offset - previous.offset) / (stop.offset - previous.offset));
     }

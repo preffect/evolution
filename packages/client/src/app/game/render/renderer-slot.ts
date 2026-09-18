@@ -57,6 +57,9 @@ export class RendererSlot {
   private sharedFor(baker: TextureBaker, devicePixelRatio: number): SharedRenderTextures {
     const kept = this.shared;
     if (kept !== null && kept.baker === baker && kept.devicePixelRatio === devicePixelRatio) return kept.textures;
+    // Emptied before the destroy, never after: a bake that throws must leave the slot with nothing rather
+    // than with a destroyed bundle the next same-baker build would hand straight to a new renderer.
+    this.shared = null;
     if (kept !== null) destroySharedRenderTextures(kept.textures);
     const textures = createSharedRenderTextures(baker, devicePixelRatio);
     this.shared = { textures, baker, devicePixelRatio };

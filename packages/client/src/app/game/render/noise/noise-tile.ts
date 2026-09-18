@@ -112,7 +112,13 @@ function fractalRowSample(rows: readonly NoiseOctaveRow[], total: number, unitX:
   return value / total;
 }
 
-/** Fractal value noise in [0, 1]: octaves of doubling frequency and halving amplitude, renormalised. */
+/**
+ * Fractal value noise in [0, 1]: octaves of doubling frequency and halving amplitude, renormalised.
+ * The **single-sample reference**, and since #442 not the path the bake takes: `buildNoiseTile` goes through
+ * `fractalRowAt` once per tile row and `fractalRowSample` per pixel, so optimising this function buys a bake
+ * nothing. It is kept because it is a thin wrapper over that same path, which is what lets the periodicity
+ * test drive production code with one call.
+ */
 export function fractalNoiseAt(
   lattices: readonly Float32Array[],
   spec: NoiseSpec,

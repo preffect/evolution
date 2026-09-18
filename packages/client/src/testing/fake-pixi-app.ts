@@ -57,6 +57,8 @@ export interface FakeTextureBaker extends TextureBaker {
   readonly bakedCanvases: FakeBakeCanvas[];
   /** The bakes turned into textures, in order. */
   readonly texturedBakes: BakeCanvas[];
+  /** Every `Texture` handed out, in the order it was made: what a spec reads `destroyed` off (#442). */
+  readonly madeTextures: Texture[];
   /** The BitmapFont installs, in order, and the names uninstalled. */
   readonly installedFonts: BitmapFontInstall[];
   readonly uninstalledFonts: string[];
@@ -67,31 +69,37 @@ export function createFakeTextureBaker(): FakeTextureBaker {
   const bakedSpecs: RadialBakeSpec[] = [];
   const canvases = createFakeBakeCanvasFactory();
   const texturedBakes: BakeCanvas[] = [];
+  const madeTextures: Texture[] = [];
   const installedFonts: BitmapFontInstall[] = [];
   const uninstalledFonts: string[] = [];
+  const made = (texture: Texture): Texture => {
+    madeTextures.push(texture);
+    return texture;
+  };
   return {
     bakedSpecs,
     bakedCanvases: canvases.canvases,
     texturedBakes,
+    madeTextures,
     installedFonts,
     uninstalledFonts,
     installBitmapFont: (install) => installedFonts.push(install),
     uninstallBitmapFont: (name) => uninstalledFonts.push(name),
     bakeRadial(spec) {
       bakedSpecs.push(spec);
-      return createOnePixelTexture();
+      return made(createOnePixelTexture());
     },
     create: (width, height) => canvases.create(width, height),
     textureFromBake(bake) {
       texturedBakes.push(bake);
-      return createOnePixelTexture();
+      return made(createOnePixelTexture());
     },
     atlasFromBakes: <Key extends string>(bakes: Readonly<Record<Key, BakeCanvas>>): SpriteAtlas<Key> => {
       const { source } = createOnePixelTexture();
       const textures = {} as Record<Key, Texture>;
       for (const key of Object.keys(bakes) as Key[]) {
         texturedBakes.push(bakes[key]);
-        textures[key] = new Texture({ source });
+        textures[key] = made(new Texture({ source }));
       }
       return { source, textures };
     },
