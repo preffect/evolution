@@ -5,22 +5,27 @@ Every frame is headless Chromium against a private dev stack on **4520 / 4522** 
 running behind it and the numbers below are the preview's own. The 1024 × 640 frame is the `UI_SCALE_MIN` floor
 (`--ui-scale` 0.8), which ticket #415 found is where layout breaks.
 
-| Frame                               | Size       | What it shows                                                                                          |
-| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------ |
-| `466-lens-live-1280x800.png`        | 1280 × 800 | Mitochondrion, tier I: the live cell in the eyepiece, the reticle, and the tier switch under it        |
-| `466-lens-tier3-1280x800.png`       | 1280 × 800 | tier III selected — the same session, a new scene: three organelles instead of two                     |
-| `466-lens-live-1024x640.png`        | 1024 × 640 | the same page at the scale floor: the lens is 240 px and the canvas 240 device px                      |
-| `466-lens-unavailable-1280x800.png` | 1280 × 800 | `unavailable`, with WebGL taken away from the page: the eyepiece with `Preview unavailable` in it      |
-| `466-lens-in-room-1280x800.png`     | 1280 × 800 | the same lens over a **live room**: two renderers on the page, the dish still running behind the scrim |
-| `466-vignette-on.png` / `-off.png`  | 1280 × 800 | the pair the vignette table below is measured from                                                     |
+| Frame                               | Size       | What it shows                                                                                           |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
+| `466-lens-live-1280x800.png`        | 1280 × 800 | Mitochondrion, tier I: the live cell in the eyepiece, the reticle, and the tier switch under it         |
+| `466-lens-tier3-1280x800.png`       | 1280 × 800 | tier III selected — the same session, a new scene: three organelles instead of two                      |
+| `466-lens-live-1024x640.png`        | 1024 × 640 | the same page at the scale floor: the lens is 240 px and the canvas 240 device px                       |
+| `466-lens-unavailable-1280x800.png` | 1280 × 800 | `unavailable`, with WebGL taken away from the page: the eyepiece with `Preview unavailable` in it       |
+| `466-lens-loading-1280x800.png`     | 1280 × 800 | `loading` under an 8× CPU throttle: the dish field with one accent ring at half the radius, and no text |
+| `466-lens-in-room-1280x800.png`     | 1280 × 800 | the same lens over a **live room**: two renderers on the page, the dish still running behind the scrim  |
+| `466-vignette-on.png` / `-off.png`  | 1280 × 800 | the pair the vignette table below is measured from                                                      |
 
-**The `loading` frame is not here, and it is not a shortcut.** The state is real and was observed: on the first open
-of a page the lens's own `data-preview-state` went `loading` at **+177 ms** after the row click and `live` at
-**+1978 ms**, and every later open was polled through `loading` too. It could not be photographed on this box. Warm, it lasts about 30 ms; on the cold open the main
-thread is blocked for ~1 s, and the preview's canvas presents through the compositor independently of it, so a
-screenshot taken during the wait comes back with the scene in it rather than with the wait. Its drawing is the
-`unavailable` frame's eyepiece plus one accent ring at half the radius, whose geometry `format/lens-overlay.spec.ts`
-pins.
+**The `loading` frame was captured under a throttled CPU**, and that is the method rather than a caveat: warm, the
+state lasts about 30 ms, and on a cold open the main thread is blocked for ~1 s while the preview's canvas presents
+through the compositor independently of it — so a screenshot taken during the wait comes back with the scene in it.
+Throttling the renderer over CDP (`Emulation.setCPUThrottlingRate`, rate 8) stretches the wait past a screenshot
+without touching the lens: what the frame shows is the state's own drawing, on a slow machine rather than a fake one.
+It was taken in review of this PR (`.qa/screenshots/gqa482-loading-attempt.png`); an earlier version of this README
+said the frame could not be taken on this box, which was wrong.
+
+Measured on it: the ring's accent pixels sit at x 595.5 and 745.5 on the lens's centre line, which is a radius of
+**75.0 about the centre at 670.5** — exactly `ENCYCLOPEDIA_LENS_LOADING_RING_RADIUS_FRACTION` 0.5 of the lens's 150,
+clear of the reticle outside it and of where the `unavailable` line sits inside it.
 
 ## The open, measured
 
