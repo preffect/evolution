@@ -164,6 +164,9 @@ export class EncyclopediaPreviewService {
       // `null` is a `destroy` that landed first, which is a panel that has closed rather than a preview that failed.
       const timings = await handle.start(spec);
       if (timings !== null) {
+        // The session reads its canvas size once, as `start` is called, so a `--ui-scale` change that landed while
+        // the bundle baked would otherwise leave a canvas of the previous size inside a lens of the new one.
+        handle.resize(this.canvasSizePx());
         this.stateSignal.set(this.isTickerPaused ? ENCYCLOPEDIA_PREVIEW_STATE.paused : ENCYCLOPEDIA_PREVIEW_STATE.live);
       }
     } catch {

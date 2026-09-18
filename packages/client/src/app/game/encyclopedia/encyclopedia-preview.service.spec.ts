@@ -192,11 +192,15 @@ describe('EncyclopediaPreviewService (docs/ui/encyclopedia.md §11.4)', () => {
     const side = ENCYCLOPEDIA_LENS_DIAMETER_PX * scale;
     expect(host.options[0]?.sizePx).toEqual({ width: side, height: side });
 
-    await host.handles[0]?.completeOpen();
+    // A scale set while the bundle bakes reaches the canvas once the open resolves: the session reads its size as
+    // `start` is called, so the lens would otherwise keep a canvas of the size the reader has already left behind.
     preview.setUiScale(1);
-    expect(host.handles[0]?.resizes).toEqual([
-      { width: ENCYCLOPEDIA_LENS_DIAMETER_PX, height: ENCYCLOPEDIA_LENS_DIAMETER_PX },
-    ]);
+    await host.handles[0]?.completeOpen();
+    const unscaled = { width: ENCYCLOPEDIA_LENS_DIAMETER_PX, height: ENCYCLOPEDIA_LENS_DIAMETER_PX };
+    expect(host.handles[0]?.resizes).toEqual([unscaled]);
+
+    preview.setUiScale(scale);
+    expect(host.handles[0]?.resizes).toEqual([unscaled, { width: side, height: side }]);
   });
 
   /** The lens reads the room's live balance, so a `balance_updated` retimes the scene that is playing (§12.7). */

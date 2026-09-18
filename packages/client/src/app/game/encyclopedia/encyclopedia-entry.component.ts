@@ -173,19 +173,21 @@ export class EncyclopediaEntryComponent {
     return segment?.preview ?? this.entry().preview;
   });
 
-  constructor() {
-    effect(() => {
-      const spec = this.previewSpec();
-      if (spec !== null) this.preview.show(spec);
-    });
-  }
-
   /** §11.4 names the header of a trait's second table; every other entry has one table, and it is simply its facts. */
   protected readonly factsLabel = computed(() =>
     this.entry().subject.kind === ENTRY_SUBJECT.trait
       ? ENCYCLOPEDIA_LADDER_TABLE_LABEL
       : ENCYCLOPEDIA_FACTS_TABLE_LABEL,
   );
+
+  constructor() {
+    // The lens is told, rather than asked: the session is not a signal, and a page that simply *is* the selected
+    // preview would have to be read by someone. The effect is the one place this page reaches the preview seam.
+    effect(() => {
+      const spec = this.previewSpec();
+      if (spec !== null) this.preview.show(spec);
+    });
+  }
 
   /** A See also chip is an activation, so it pushes and Back returns to this page (§11.5). */
   protected open(entryId: EntryId): void {

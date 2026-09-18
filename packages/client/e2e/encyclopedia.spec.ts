@@ -24,7 +24,12 @@ import type { EntryId } from '../src/app/game/encyclopedia/model/entry-id';
 import { openRoom } from './live-room';
 
 const ENCYCLOPEDIA_SEED = 42;
-/** The lens once its first frame is drawn (docs/ui/encyclopedia.md §11.4). */
+/**
+ * The lens once its first frame is drawn (docs/ui/encyclopedia.md §11.4). Written out rather than imported from
+ * `ENCYCLOPEDIA_PREVIEW_STATE`: that constant sits beside the preview seam, whose module graph reaches
+ * `createPixiApp` and so all of Pixi, and this file runs in Playwright's own Node process. The value is part of the
+ * §11.6 DOM contract, and `encyclopedia-lens.component.spec.ts` holds the element to the constant.
+ */
 const PREVIEW_STATE_LIVE = 'live';
 /**
  * How long the lens is given to open. It is not the budget — `PREVIEW_OPEN_BUDGET_MS` is 300 and is judged on real
