@@ -116,7 +116,10 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   ring, the escaping predator's included, while `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE` is off (#295; the unit specs cover
   both switch states). The client's vitest tier runs under jsdom with
   no WebGL, so the WebGL checks ride the Playwright smoke (`packages/client/e2e/render-smoke.spec.ts`, run with
-  `pnpm --filter @evolution/client smoke` against the dev servers): slice A (#205) opens a live room with a fixed
+  `pnpm --filter @evolution/client smoke` against the dev servers — **to run one spec file, append the filter with
+  no `--` separator** (`pnpm --filter @evolution/client smoke render-smoke`): `smoke -- render-smoke` selects
+  nothing and silently runs every e2e spec, which passes, takes many times as long, and is easy to mistake for the
+  one file having run; check the `Running N tests` line): slice A (#205) opens a live room with a fixed
   seed, asserts no page or shader errors, that the canvas fills the viewport with no page scroll and no lobby
   panel left, at the config's viewport and at the 1024 × 640 minimum (ui/layout.md §1, #217, #220), that the debug hook's pause holds the rendered tick and the canvas and a step
   advances both, and screenshots the dish; slice D (#208, `e2e/render-bench.spec.ts`) opens the bench route at

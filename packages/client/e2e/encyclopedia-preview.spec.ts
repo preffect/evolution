@@ -9,9 +9,13 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-// Type-only, so it is erased before this file runs outside the app's module graph. It is what stops the report's
-// shape and this spec's idea of it drifting — which they had: this file asserted `verdict.open` while the report
-// carried `verdict.isOpenWithinBudget`, and nothing caught it, because `e2e/` is in no tsconfig (ticket #473).
+// Type-only, so it is erased before this file runs outside the app's module graph.
+//
+// **It enforces nothing yet — it documents the contract.** `e2e/` is in no tsconfig (the app config takes
+// `src/**/*.ts`, the spec config `src/**/*.spec.ts`, and the root has no `include`), so no typechecker reads this
+// import, and the drift it names would still go uncaught: this file asserted `verdict.open` while the report
+// carried `verdict.isOpenWithinBudget`. What protects the file today is that it is **run**, and what will make the
+// import load-bearing is ticket #473. Until then, treat a change here as unchecked and run the spec.
 import type { PreviewRouteReport } from '../src/app/game/encyclopedia/preview-route';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';

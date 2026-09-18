@@ -18,7 +18,7 @@ import {
 } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { REST_DEFORMATION } from '../cells/cell-deformation';
-import { summariseCellTraits, type CellTraitSummary } from '../cells/cell-traits';
+import { summariseCellTraits } from '../cells/cell-traits';
 import { buildShapeTerms, headingOf } from '../cells/shape-terms';
 import {
   CILIA_OUTER_RADII,
@@ -37,34 +37,34 @@ import { SUBJECT_SPECS } from './preview-subject-specs';
 
 const BALANCE = DEFAULT_BALANCE;
 
-interface CellCosmetic {
+interface CellDraw {
   readonly phase: number;
   readonly stripRow: number;
-  readonly traits: CellTraitSummary;
 }
 
 /**
- * The cosmetic phase, strip row and trait summary `CellRenderState` would hold for this cell, in its order.
+ * The cosmetic phase and strip row `CellRenderState` would draw this cell with, in its order.
  *
- * **Cached by cell id, which is what keeps this spec off vitest's RPC timeout.** All three are pure in the cell's
- * identity and its traits, neither of which changes across the ticks of a loop, so recomputing them per tick was
- * the same two stream forks and the same trait walk thousands of times over. Nothing about the coverage changes:
- * every tick is still walked, and everything that *does* vary with time is still recomputed below.
+ * **Cached by cell id, and it caches only what that key is valid for.** Both draws come from
+ * `createSeededRandom(PREVIEW_SEED).fork(cosmetic).fork(cell:<id>)`, whose sole variable is the id, so the id is
+ * the whole key — and those two string-hashing forks were the cost that put this spec on vitest's RPC timeout.
+ *
+ * The trait summary is deliberately **not** in here. It is pure in the cell's stage and traits, not its identity,
+ * and every preview cell shares the id `'preview-cell'` (`cell-scene.ts`), so caching it under the id handed every
+ * cell spec the first one's traits: all eleven collapsed to two measurements, split by motion alone. It is cheap
+ * (a small map and some table lookups, next to two seeded forks), so it is recomputed rather than re-keyed —
+ * a compound key would work today and break again the moment something with a third purity is added to the record.
  */
-const cellCosmetics = new Map<string, CellCosmetic>();
+const cellDraws = new Map<string, CellDraw>();
 
-function cosmeticOf(cell: CellView): CellCosmetic {
-  const cached = cellCosmetics.get(cell.id);
+function cellDrawOf(cell: CellView): CellDraw {
+  const cached = cellDraws.get(cell.id);
   if (cached !== undefined) return cached;
   const cosmetic: RandomSource = createSeededRandom(PREVIEW_SEED)
     .fork(RANDOM_STREAM.cosmetic)
     .fork(`${COSMETIC_SUB_STREAM.cell}:${cell.id}`);
-  const built: CellCosmetic = {
-    phase: cosmetic.nextFloat(),
-    stripRow: cosmetic.nextInt(0, NOISE_STRIP_ROWS - 1),
-    traits: summariseCellTraits(cell),
-  };
-  cellCosmetics.set(cell.id, built);
+  const built: CellDraw = { phase: cosmetic.nextFloat(), stripRow: cosmetic.nextInt(0, NOISE_STRIP_ROWS - 1) };
+  cellDraws.set(cell.id, built);
   return built;
 }
 
@@ -86,7 +86,8 @@ function cellExtents(cell: CellView, timeSeconds: number): CellExtentsWu {
     1,
     Math.hypot(cell.velocityX, cell.velocityY) / maxSpeedForMass(cell.mass, BALANCE.growth),
   );
-  const { phase, stripRow, traits } = cosmeticOf(cell);
+  const { phase, stripRow } = cellDrawOf(cell);
+  const traits = summariseCellTraits(cell);
   const terms = buildShapeTerms({
     view: cell,
     traits,
