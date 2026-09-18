@@ -1,7 +1,8 @@
 // The own-cell indicators' textures (docs/rendering/own-cell-indicators.md §10): the indicator atlas's ghosts, pip blocks
 // and the cues' two glyphs packed into one source (they draw in one sprite batch), each pill as a texture of its
-// own (a nine-slice sprite stretches it), and the two BitmapFonts installed once for the bundle. Built and
-// destroyed with the texture bundle (`render-textures.ts`), so a rematch rebakes and reinstalls them.
+// own (a nine-slice sprite stretches it), and the two BitmapFonts installed once for the bundle. None of it depends
+// on the round seed, so it belongs to the bundle's shared half (`render-textures.ts`): baked and installed once per
+// Pixi app and kept across a rematch's rebuild, never reinstalled per round (ticket #442).
 
 import type { Texture, TextureSource } from 'pixi.js';
 import type { CueRim } from '../../hud/format/mass-cues';

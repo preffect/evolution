@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
+import { bytesChecksum } from '../../../../testing/bytes';
 import { CYTO_NOISE_COARSE, NOISE_TILE_SIZE_PX } from '../constants';
 import { buildLattices, buildNoiseTile, fractalNoiseAt } from './noise-tile';
 
@@ -20,6 +21,14 @@ describe('noise tile', () => {
     expect(buildNoiseTile(cosmetic(), SMALL).bytes).toEqual(tile.bytes);
     expect(buildNoiseTile(cosmetic(TEST_SEED + 1), SMALL).bytes).not.toEqual(tile.bytes);
     expect(buildNoiseTile(cosmetic()).size).toBe(NOISE_TILE_SIZE_PX);
+  });
+
+  // The digests below were taken from the implementation this file's per-row hoisting replaced (ticket #442),
+  // so they pin the tile's bytes to what the cell shader sampled before it: a mottle that shifts by a byte is a
+  // different dish. Changing the noise on purpose means changing them in the same commit, and saying so.
+  it('bakes the bytes the pre-#442 sampler did, at both sizes', () => {
+    expect(bytesChecksum(buildNoiseTile(cosmetic(), SMALL).bytes)).toBe('e716bc89');
+    expect(bytesChecksum(buildNoiseTile(cosmetic()).bytes)).toBe('2206af6f');
   });
 
   it('varies across the tile in both channels and stays inside a byte', () => {

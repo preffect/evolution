@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { bytesChecksum } from '../../../../testing/bytes';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED } from '../colour';
-import { VIGNETTE_ALPHA, VIGNETTE_RADIUS_FRACTION, VIGNETTE_TEXTURE_PX, WHITE } from '../constants';
-import { RADIAL_BAKE_SHAPE, SOFT_DISC_BAKE, VIGNETTE_BAKE } from '../render-textures';
-import { bakeRadialBytes, radialPixelOffset, sampleRadialAlpha } from './radial-bake';
+import { GLOW_TEXTURE_PX, VIGNETTE_ALPHA, VIGNETTE_RADIUS_FRACTION, VIGNETTE_TEXTURE_PX, WHITE } from '../constants';
+import {
+  RADIAL_BAKE_SHAPE,
+  SOFT_DISC_BAKE,
+  VIGNETTE_BAKE,
+  bakeRadialBytes,
+  radialPixelOffset,
+  sampleRadialAlpha,
+} from './radial-bake';
 
 const alphaAt = (bytes: Uint8Array, sizePx: number, x: number, y: number): number =>
   bytes[radialPixelOffset(sizePx, x, y) + ALPHA]!;
@@ -63,6 +70,13 @@ describe('bakeRadialBytes of the vignette (#229)', () => {
     const corner = radialPixelOffset(size, 0, 0);
     expect([bytes[corner + RED], bytes[corner + GREEN], bytes[corner + BLUE]]).toEqual([0, 0, 0]);
   });
+
+  // Taken from the sampler that allocated a `stops.slice(1)` per pixel (ticket #442): the two production bakes
+  // must come out byte for byte as they did, or the dish is lit differently than every screenshot shows it.
+  it('bakes the bytes the pre-#442 sampler did, for both production specs', () => {
+    expect(bytesChecksum(bytes)).toBe('762f85a5');
+    expect(bytesChecksum(bakeRadialBytes(SOFT_DISC_BAKE))).toBe('19264e25');
+  });
 });
 
 describe('bakeRadialBytes of the soft disc', () => {
@@ -99,5 +113,18 @@ describe('bakeRadialBytes of the soft disc', () => {
     expect(alphaAt(square, size, 0, 0)).toBeGreaterThanOrEqual(nearOpaque);
     expect(alphaAt(disc, size, 0, 0)).toBe(0);
     expect(alphaAt(square, size, size - 1, middle)).toBe(alphaAt(disc, size, size - 1, middle));
+  });
+});
+
+describe('the radial bake specs', () => {
+  it('describe a glow-sized disc fading to clear and a vignette square clear inside the radius fraction', () => {
+    expect(SOFT_DISC_BAKE.sizePx).toBe(GLOW_TEXTURE_PX);
+    expect(SOFT_DISC_BAKE.shape).toBe(RADIAL_BAKE_SHAPE.disc);
+    expect(SOFT_DISC_BAKE.stops[0]?.alpha).toBe(1);
+    expect(SOFT_DISC_BAKE.stops.at(-1)?.alpha).toBe(0);
+    expect(VIGNETTE_BAKE.sizePx).toBe(VIGNETTE_TEXTURE_PX);
+    expect(VIGNETTE_BAKE.shape).toBe(RADIAL_BAKE_SHAPE.square);
+    expect(VIGNETTE_BAKE.stops.map((stop) => stop.offset)).toEqual([0, VIGNETTE_RADIUS_FRACTION, 1]);
+    expect(VIGNETTE_BAKE.stops.at(-1)?.alpha).toBe(VIGNETTE_ALPHA);
   });
 });

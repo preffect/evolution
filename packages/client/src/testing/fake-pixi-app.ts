@@ -6,7 +6,6 @@ import { BufferImageSource, Container, Texture, type Application } from 'pixi.js
 import type { PixiAppHandle } from '../app/game/render/pixi-app';
 import {
   createRenderTextures,
-  type RadialBakeSpec,
   type RenderTextureOptions,
   type RenderTextures,
   type TextureBaker,
@@ -14,6 +13,7 @@ import {
 import type { BitmapFontInstall } from '../app/game/render/textures/bitmap-fonts';
 import type { SpriteAtlas } from '../app/game/render/textures/pixi-textures';
 import type { BakeCanvas } from '../app/game/render/textures/texture-bake';
+import type { RadialBakeSpec } from '../app/game/render/textures/radial-bake';
 import { createFakeBakeCanvasFactory, type FakeBakeCanvas } from './fake-bake-canvas';
 
 export type TickerCallback = () => void;

@@ -8,19 +8,22 @@ import {
 } from '../../../testing/fake-pixi-app';
 import {
   FIELD_TEXTURE_PX,
-  GLOW_TEXTURE_PX,
   LIGHT_POOL_TEXTURE_PX,
   NOISE_STRIP_ROWS,
   NOISE_STRIP_WIDTH,
   ORGANELLE_KIND,
   PALETTE_SHADE_COUNT,
-  VIGNETTE_ALPHA,
-  VIGNETTE_RADIUS_FRACTION,
-  VIGNETTE_TEXTURE_PX,
 } from './constants';
 import { GLOW_SPRITE } from './textures/glow-atlas';
 import { MOTE_SPRITE } from './textures/mote-atlas';
-import { RADIAL_BAKE_SHAPE, SOFT_DISC_BAKE, VIGNETTE_BAKE, destroyRenderTextures } from './render-textures';
+import { SOFT_DISC_BAKE, VIGNETTE_BAKE } from './textures/radial-bake';
+import {
+  createSeededRenderTextures,
+  createSharedRenderTextures,
+  destroyRenderTextures,
+  destroySeededRenderTextures,
+  destroySharedRenderTextures,
+} from './render-textures';
 
 describe('createRenderTextures', () => {
   it('bakes the soft disc then the vignette through the radial path', () => {
@@ -35,12 +38,12 @@ describe('createRenderTextures', () => {
     const baker = createFakeTextureBaker();
     const gelPatches = [{ x: 100, y: -200, radius: 350 }];
     const textures = createTestRenderTextures({ seed: 7, baker, gelPatches });
-    expect(baker.bakedCanvases[0]!.width).toBe(FIELD_TEXTURE_PX);
-    expect(textures.dishField.canvas).toBe(baker.bakedCanvases[0]);
-    expect(textures.vent.canvas).toBe(baker.bakedCanvases[1]);
+    expect(textures.dishField.canvas.width).toBe(FIELD_TEXTURE_PX);
+    expect(baker.bakedCanvases).toContain(textures.dishField.canvas);
+    expect(baker.bakedCanvases).toContain(textures.vent.canvas);
     expect(textures.vent.halfExtentWu).toBeGreaterThan(0);
-    expect(baker.bakedCanvases[2]!.width).toBe(LIGHT_POOL_TEXTURE_PX);
-    expect(baker.bakedCanvases[2]!.height).toBe(LIGHT_POOL_TEXTURE_PX);
+    const lightPool = baker.bakedCanvases.find((canvas) => canvas.width === LIGHT_POOL_TEXTURE_PX);
+    expect(lightPool?.height).toBe(LIGHT_POOL_TEXTURE_PX);
     expect(textures.lightPoolTexture).not.toBe(textures.ventTexture);
     expect(Object.keys(textures.glow).sort()).toEqual(Object.values(GLOW_SPRITE).sort());
     expect(Object.keys(textures.motes.full).sort()).toEqual(Object.values(MOTE_SPRITE).sort());
@@ -111,15 +114,47 @@ describe('createRenderTextures', () => {
   });
 });
 
-describe('the radial bake specs', () => {
-  it('describe a glow-sized disc fading to clear and a vignette square clear inside the radius fraction', () => {
-    expect(SOFT_DISC_BAKE.sizePx).toBe(GLOW_TEXTURE_PX);
-    expect(SOFT_DISC_BAKE.shape).toBe(RADIAL_BAKE_SHAPE.disc);
-    expect(SOFT_DISC_BAKE.stops[0]?.alpha).toBe(1);
-    expect(SOFT_DISC_BAKE.stops.at(-1)?.alpha).toBe(0);
-    expect(VIGNETTE_BAKE.sizePx).toBe(VIGNETTE_TEXTURE_PX);
-    expect(VIGNETTE_BAKE.shape).toBe(RADIAL_BAKE_SHAPE.square);
-    expect(VIGNETTE_BAKE.stops.map((stop) => stop.offset)).toEqual([0, VIGNETTE_RADIUS_FRACTION, 1]);
-    expect(VIGNETTE_BAKE.stops.at(-1)?.alpha).toBe(VIGNETTE_ALPHA);
+describe('the two halves of the bundle (#442)', () => {
+  const seededOptions = {
+    seed: 42,
+    gelPatches: [],
+    devicePixelRatio: 1,
+    noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
+  };
+
+  it('takes nothing from the cosmetic stream for the seed-independent half, so a seeded bake is the same either way', () => {
+    const whole = createTestRenderTextures({ seed: seededOptions.seed });
+    const seededOnly = createSeededRenderTextures({ ...seededOptions, baker: createFakeTextureBaker() });
+    expect(areBytesEqual(whole.strip.bytes, seededOnly.strip.bytes)).toBe(true);
+    expect(whole.cosmetic.nextFloat()).toBe(seededOnly.cosmetic.nextFloat());
+  });
+
+  it('bakes the radials and the indicator fonts in the shared half only', () => {
+    const sharedBaker = createFakeTextureBaker();
+    createSharedRenderTextures(sharedBaker, seededOptions.devicePixelRatio);
+    const seededBaker = createFakeTextureBaker();
+    createSeededRenderTextures({ ...seededOptions, baker: seededBaker });
+    expect(sharedBaker.bakedSpecs).toEqual([SOFT_DISC_BAKE, VIGNETTE_BAKE]);
+    expect(sharedBaker.installedFonts.length).toBeGreaterThan(0);
+    expect(seededBaker.bakedSpecs).toEqual([]);
+    expect(seededBaker.installedFonts).toEqual([]);
+  });
+
+  it('destroys one half without touching the other, so a rebuild may keep the shared one', () => {
+    const baker = createFakeTextureBaker();
+    const shared = createSharedRenderTextures(baker, seededOptions.devicePixelRatio);
+    const seeded = createSeededRenderTextures({ ...seededOptions, baker });
+
+    destroySeededRenderTextures(seeded);
+    expect(seeded.dishTexture.destroyed).toBe(true);
+    expect(seeded.tileTexture.destroyed).toBe(true);
+    expect(shared.vignetteTexture.destroyed).toBe(false);
+    expect(shared.paletteTexture.destroyed).toBe(false);
+    expect(baker.uninstalledFonts).toEqual([]);
+
+    destroySharedRenderTextures(shared);
+    expect(shared.vignetteTexture.destroyed).toBe(true);
+    expect(shared.paletteTexture.destroyed).toBe(true);
+    expect(baker.uninstalledFonts.length).toBeGreaterThan(0);
   });
 });
