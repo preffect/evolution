@@ -28,6 +28,14 @@
    - runs the unit tier **with coverage thresholds** (`docs/testing/tiers-and-builders.md` §5), so a drop below a
      package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
      (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
+   - **caps the test workers below the core count** (#475): vitest's forks pool defaults to
+     `availableParallelism() - 1` workers and does not count its own main process, which alone serves
+     the vite transforms, the coverage collection and the reporters for all of them — on the 4-core box
+     four CPU-hungry processes for four cores before any other agent's load, multiplied again because
+     `pnpm -r test` runs each selected package's runner at the same time. `test` and `integration` set
+     `VITEST_MAX_FORKS` / `VITEST_MAX_THREADS` to **cores − 2**, reserving one core for the runner's
+     main process (the part that has to answer a worker inside the RPC watchdog below) and one for the
+     rest of the box. An inherited value wins, for a one-off experiment;
    - **names an unhandled runner error for what it is** (#475): an error thrown outside any test is
      counted on the runner's own `Errors N` line, and exits it non-zero while the per-test counts still
      read `Tests 2449 passed (2449)` — output indistinguishable from a green run, which only the exit

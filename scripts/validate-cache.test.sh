@@ -351,6 +351,27 @@ printf '%s\n' 'packages/server test:  Test Files  3 passed (3)' 'packages/server
   'packages/server test:      Errors  2 errors' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" test --scope server
 check "a pnpm-prefixed error count counts, and an unhandled error that is no timeout is not called one" $(( rc != 0 && $(ran 'reported 2 unhandled errors outside its tests'; echo $?) == 0 && $(ran 'worker RPC watchdog'; echo $?) != 0 ))
+# --- worker cap (#475): the runner never gets every core, the main process needs one ---------------
+echo worker-cap > "$fixture/untracked.txt"
+cat > "$sandbox/bin/pnpm" <<'PNPM'
+#!/usr/bin/env bash
+echo "fake pnpm $*"
+echo "workers: VITEST_MAX_FORKS=${VITEST_MAX_FORKS:-unset} VITEST_MAX_THREADS=${VITEST_MAX_THREADS:-unset}"
+echo ' Test Files  1 passed (1)'
+echo '      Tests  2 passed (2)'
+PNPM
+chmod +x "$sandbox/bin/pnpm"
+expected_workers=$(( $(nproc) - 2 ))
+[[ $expected_workers -ge 1 ]] || expected_workers=1
+run_validate "$fixture" test --scope server
+check "the test phase caps the runner's workers two below the core count" $(( rc == 0 && $(ran "workers: VITEST_MAX_FORKS=$expected_workers VITEST_MAX_THREADS=$expected_workers"; echo $?) == 0 ))
+echo worker-cap-inherited > "$fixture/untracked.txt"
+export VITEST_MAX_FORKS=7
+run_validate "$fixture" test --scope server
+unset VITEST_MAX_FORKS
+check "an inherited worker cap wins, for a one-off experiment" $(( $(ran 'VITEST_MAX_FORKS=7'; echo $?) == 0 ))
+write_standard_fake_pnpm
+
 echo unhandled-errors-clean > "$fixture/untracked.txt"
 printf ' Test Files  1 passed (1)\n      Tests  2 passed (2)\n' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" test --scope server

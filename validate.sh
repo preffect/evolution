@@ -33,6 +33,8 @@
 #   VALIDATE_HEAVY_SLOTS=N    Heavy runs (test, integration, typecheck) at once; default from cores and memory
 #   VALIDATE_LIGHT_SLOTS=N    Light runs (lint, duplication) at once; default one per 2 cores, capped by memory
 #   VALIDATE_GATE_LOCK_DIR=D  Where the slot lock files live (default $HOME/.cache/<slug>-validate)
+#   VITEST_MAX_FORKS=N        Test workers per runner; default cores - 2, leaving the runner's own main
+#   VITEST_MAX_THREADS=N      process a core (#475). An inherited value wins, for a one-off experiment.
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache). For test and
 # integration they reach one package's runner, so a selection that mixes the client (the Angular builder)
@@ -798,6 +800,25 @@ UNHANDLED_ERRORS_SUMMARY_PATTERN='^[[:space:]]*Errors[[:space:]]+([0-9]+)[[:spac
 RUNNER_RPC_TIMEOUT_MARKER='Timeout calling'
 RUNNER_RPC_TIMEOUT_SECONDS=60
 
+# Worker cap (#475). Vitest's forks pool defaults to `availableParallelism() - 1` workers, and forgets
+# its own main process, which alone serves the vite transforms, the coverage collection and the
+# reporters for every one of them: on the 4-core box that is four CPU-hungry processes for four cores
+# before any other agent's load, and `pnpm -r test` runs each selected package's runner at the same
+# time, multiplying it. Two cores are reserved — one for the runner's main process, which is the part
+# that has to answer a worker within RUNNER_RPC_TIMEOUT_SECONDS, and one for everything else on the
+# box. No package sets `pool`, so they all use forks; the threads variable is set alongside it so a
+# package that switches pool later does not silently lose the cap. An inherited value wins, for a
+# one-off experiment.
+RUNNER_WORKER_CORES_RESERVED=2
+RUNNER_WORKER_MINIMUM=1
+runner_worker_limit() {
+  local cores
+  cores="$(nproc 2>/dev/null || echo "$((RUNNER_WORKER_CORES_RESERVED + RUNNER_WORKER_MINIMUM))")"
+  local limit=$((cores - RUNNER_WORKER_CORES_RESERVED))
+  [[ $limit -ge $RUNNER_WORKER_MINIMUM ]] || limit=$RUNNER_WORKER_MINIMUM
+  echo "$limit"
+}
+
 # The sum of the `N <outcome>` counts on a vitest summary line, for the outcomes named.
 outcome_count() { # <summary line> <outcome...>
   local line="$1" outcome total=0
@@ -893,6 +914,9 @@ run_package_tests() { # <test | integration> <extra args...>
   shift
   local output summary unhandled rc=0
   resolve_runner_args "$cmd" "$@" || return 1
+  local workers
+  workers="$(runner_worker_limit)"
+  export VITEST_MAX_FORKS="${VITEST_MAX_FORKS:-$workers}" VITEST_MAX_THREADS="${VITEST_MAX_THREADS:-$workers}"
   if [[ "$cmd" == test ]]; then
     output="$(pnpm "${PNPM_SELECTION[@]}" test "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
   else
