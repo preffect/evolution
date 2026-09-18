@@ -12,8 +12,7 @@ import {
   ENCYCLOPEDIA_SEARCH_PLACEHOLDER,
   ENCYCLOPEDIA_TITLE,
 } from './encyclopedia-constants';
-import { recordingPreviewHost } from '../../../testing/fake-preview-handle';
-import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
+import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { locationAttributeFor } from './format/panel-view';
@@ -49,12 +48,7 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [EncyclopediaComponent],
-      // The panel provides the one preview session (§11.4); the recording fake is what keeps a component spec from
-      // building a `PreviewSession`, which would need Pixi and crash jsdom (architecture/encyclopedia.md §12.7).
-      providers: [{ provide: ENCYCLOPEDIA_PREVIEW, useValue: recordingPreviewHost().factory }],
-    });
+    TestBed.configureTestingModule({ imports: [EncyclopediaComponent], providers: [recordingPreviewProvider()] });
     state = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(EncyclopediaComponent);
     fixture.detectChanges();

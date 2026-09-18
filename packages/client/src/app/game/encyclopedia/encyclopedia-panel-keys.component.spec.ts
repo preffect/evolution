@@ -11,8 +11,7 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectTestId } from '../../../testing/test-id-query';
-import { recordingPreviewHost } from '../../../testing/fake-preview-handle';
-import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
+import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { entriesIn } from './registry';
@@ -68,12 +67,7 @@ describe('the encyclopedia panel’s keys (docs/ui/encyclopedia.md §11.5)', () 
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [EncyclopediaComponent],
-      // The panel provides the one preview session (§11.4); the recording fake is what keeps a component spec from
-      // building a `PreviewSession`, which would need Pixi and crash jsdom (architecture/encyclopedia.md §12.7).
-      providers: [{ provide: ENCYCLOPEDIA_PREVIEW, useValue: recordingPreviewHost().factory }],
-    });
+    TestBed.configureTestingModule({ imports: [EncyclopediaComponent], providers: [recordingPreviewProvider()] });
     state = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(EncyclopediaComponent);
     fixture.detectChanges();

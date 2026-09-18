@@ -8,6 +8,7 @@
 // The open is deliberately **not** resolved for you: `completeOpen` and `failOpen` are how a spec holds a lens in
 // `loading` for as long as it needs to, and how it reaches `unavailable` at all.
 
+import { ENCYCLOPEDIA_PREVIEW } from '../app/game/render/preview/preview-host';
 import type { PreviewHandle, PreviewHostFactory, PreviewHostOptions } from '../app/game/render/preview/preview-host';
 import type { PreviewSizePx } from '../app/game/render/preview/preview-canvas';
 import type { PreviewSpec } from '../app/game/render/preview/preview-spec';
@@ -103,4 +104,13 @@ export function recordingPreviewHost(): RecordingPreviewHost {
       return handle;
     },
   };
+}
+
+/**
+ * The provider for a spec that only needs the panel to **open** — the HUD's, the panel's own, the keyboard's. It
+ * keeps its handles to itself: a spec that wants to watch what the encyclopedia asks of a preview builds the host
+ * itself and holds on to it (`encyclopedia-preview.service.spec.ts`).
+ */
+export function recordingPreviewProvider(): { provide: typeof ENCYCLOPEDIA_PREVIEW; useValue: PreviewHostFactory } {
+  return { provide: ENCYCLOPEDIA_PREVIEW, useValue: recordingPreviewHost().factory };
 }
