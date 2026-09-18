@@ -35,10 +35,13 @@
      runner's own exit code was, and such a run is never stamped green. The commonest one is vitest's
      **worker RPC watchdog** (`[vitest-worker]: Timeout calling "onTaskUpdate"`), which fires when
      neither side of the worker channel makes progress for **60 s** — birpc's `DEFAULT_TIMEOUT`,
-     hard-coded in vitest 3.2.7 with no option or environment variable behind it. That is starvation,
-     not a slow test: a test slow enough to matter fails on `testTimeout` first, so a run where every
-     test passed and the watchdog still fired is infrastructure, not the branch. Re-run it on a quieter
-     box; do not look for the cause in the diff;
+     hard-coded in vitest 3.2.7 with no option or environment variable behind it. In the unit tier that
+     is starvation and not a slow test, because `testTimeout` is 5 s there: a test slow enough to matter
+     fails on its own long before 60 s, so a unit run where every test passed and the watchdog still
+     fired is infrastructure, not the branch — re-run it on a quieter box rather than looking for the
+     cause in the diff. In the opt-in tier the watchdog is the tighter of the two (`OPT_IN_TEST_TIMEOUT_MS`
+     is 300 s), so there a scenario that holds its worker for a minute without yielding can trip it on
+     its own, and that one is the branch's;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
      package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
      filtered or path-scoped `test` has no coverage floor; typecheck builds shared first when stale);
