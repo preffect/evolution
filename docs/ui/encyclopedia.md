@@ -155,7 +155,10 @@ Still frames of the real render in rows and tiles are follow-up #378; build 1 dr
 
 ### 11.4 The entry page
 
-`encyclopedia-b-trait-*.png`. The page sits in a **content column**, the detail's inner width (the panel's width cap keeps it at most 848), with `UI_PANEL_PADDING_PX` around it. Its top is two columns: the **lens column** on the left
+`encyclopedia-b-trait-*.png`. The page sits in a **content column**, the detail's inner width capped at
+`ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX` (the panel's own width cap already keeps it there, so the cap never bites today; it
+is declared because the column is the page's measure and a wider panel must not stretch it), with `UI_PANEL_PADDING_PX`
+around it. Its top is two columns: the **lens column** on the left
 and the **title column** beside it, `ENCYCLOPEDIA_LENS_GAP_PX` apart; below both, prose and See also run across the
 content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 
@@ -167,7 +170,10 @@ content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 | 1920 × 1080 (1.35)  | 846 (1143 px)      | 846 (1143 px)  | 300 (405 × 405 px) | 514 (694 px) | (702, 147)                  |
 
 Widths are scale-1 units (px in brackets). Detail inner width is the panel less the rail, the list and two paddings
-(§11.3); the title column is the content column less the lens and the gap. At the `UI_SCALE_MIN` viewport
+(§11.3); the title column is the content column less the lens and the gap. The lens top-left is the mockup's; the
+built page measures (521, 113) at 1280 × 800, which is the content box's own top — the inset, the header, its rule and
+`UI_PANEL_PADDING_PX` — and the lens shares it with the title column beside it, so the 4 units are the mockup's and
+not a layout error (#465). At the `UI_SCALE_MIN` viewport
 (1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 372; narrower viewports are below the
 target and recorded, not solved (§11.3).
 
@@ -206,6 +212,15 @@ target and recorded, not solved (§11.3).
 
 An entry whose `preview` is `null` has no lens column: the title column takes the whole content column.
 
+**The box before the preview is in it** (#465, while #466 is outstanding). Three of the lens's parts belong to the
+eyepiece rather than to what is under it, and the reserved box wears all three: the `ENCYCLOPEDIA_LENS_RIM_PX` rim, the
+edge vignette, and the 1 px `LIGHT_ACCENT` inner ring. Without the last two the box is a bare outline of a circle,
+which is what a failed image looks like rather than what reserved space looks like — the well alone cannot carry it,
+since `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it. **The
+inner ring is the part that carries it; the vignette is inert until there is a scene to darken**, and is drawn anyway
+because that scene is what it is the field stop for. The reticle ticks wait for #466, which draws them in the SVG
+overlay it brings.
+
 **The title column**, top to bottom:
 
 1. **Breadcrumb** (`label`, muted): the category label, then the label of `group`; every crumb but the last is a link.
@@ -213,16 +228,37 @@ An entry whose `preview` is `null` has no lens column: the title column takes th
    column `UI_SPACE_S_PX` apart: from the trait summary on `subject` (rarity with its word, `COMMON` muted rim,
    `UNCOMMON` label rim, `RARE` DNA rim, never the accent; each DNA tag with its `DNA_TAG_COLOR` dot; the stage), and in
    a round `OWNED · II` in level gold, its numeral `formatQuantity(tier, QUANTITY_UNIT.tier)` in `numeral` presentation.
+   An entry that is **not** a trait has one chip, `ENTRY_SUBJECT_LABEL[subject.kind]` (`Stage`, `DNA tag`), in the
+   neutral tone: it has no rarity, tags or stage of its own, and a page that opened on a title with nothing under it
+   read as unfinished (#465). **It repeats the breadcrumb's group crumb for the two subjects whose list group is their
+   subject** — `EVOLUTION › STAGES` over `STAGE` — and is kept anyway: the alternative is those two pages losing their
+   chip row, which is the defect the chip was added for, and the crumb is a quieter line the eye passes on its way to
+   the title while the chip sits in the reader's eye-line under it. Where the two differ they differ usefully, and a
+   subject that carried something better than its own name would be content's to give (#465's review).
 3. **Facts**, `UI_SPACE_L_PX` under the chips: kit facts tables stacked `UI_SPACE_L_PX` apart, each under a `label`
-   header.
+   header — `ENCYCLOPEDIA_EFFECTS_TABLE_LABEL`, `ENCYCLOPEDIA_LADDER_TABLE_LABEL` and, for an entry that is not a
+   trait, `ENCYCLOPEDIA_FACTS_TABLE_LABEL`.
    - A trait's first table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
      modifier keys their `facts` carry (`label` is the noun, `Mass decay`; `text` the value, `−15 %`, in `figure`),
-     `—` where a tier leaves that key at identity; the owned tier's column is tinted accent under `You own II`. A tier
+     `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity; the owned tier's column is tinted
+     accent under `You own II` (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier
      column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
+   - **When the columns do not fit, the values wrap; the table never widens** (#465). The sizing rule above assumes
+     every value fits on one line, and three tier columns of `+0.3 mass / s` do not fit the 370 unit title column
+     however little the noun column keeps. So both tables ask the kit for `shouldWrapValues`
+     (components-and-constants.md §10.2): a value breaks at its spaces, a tier column takes its widest resulting
+     **line**, the noun column takes what is left, and the row grows downwards. The nouns themselves keep one line —
+     a noun column that may wrap is one the table's auto layout can squeeze, which broke `Reached by` over two lines
+     to widen a value column that had room to spare. Nothing ever crosses the content
+     column. Two alternatives were weighed and rejected: shrinking the noun column alone cannot fit Chloroplast's
+     three tiers at any width, and moving the tier table out to the full content column would re-lay the page around
+     the lens and split the facts across two measures for the sake of one trait. A wrapped tier value keeps the
+     comparison the table exists for — I over II over III, aligned — which is what a clipped one loses.
    - The next table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on the
      left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry. Consecutive
      facts sharing a `key` are one row: the label once, the texts as links joined by `, ` (a link with several targets
-     arrives as one fact per target, architecture/encyclopedia.md §12.3).
+     arrives as one fact per target, architecture/encyclopedia.md §12.3). A value of several links is one of the two
+     cases the wrapping rule above exists for: `Opens` on a stage page is three entry titles in one cell.
    - A table with no rows is left out, never drawn empty.
 
 **Below both columns**, from `UI_SPACE_XL_PX` under whichever of the lens control and the title column ends lower:
@@ -343,6 +379,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_HEADER_HEIGHT_PX`                                      | 56                                                                   | px   | The header row.                                                                                                                                                                                                                                                                                                                                                             |
 | `ENCYCLOPEDIA_RAIL_WIDTH_PX`                                         | 184                                                                  | px   | The category rail: the longest label, `Cells & food`, with its icon and a two-digit count.                                                                                                                                                                                                                                                                                  |
 | `ENCYCLOPEDIA_LIST_WIDTH_PX`                                         | 280                                                                  | px   | The entry list: `Photosynthetic bacterium` and `Cytoskeleton Lattice` fit beside their medallion.                                                                                                                                                                                                                                                                           |
+| `ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX`                                  | 848                                                                  | px   | The content column's widest. The panel's own width cap already holds the detail column there; this is the page's measure, so a wider panel later never stretches the prose and the tables with it.                                                                                                                                                                          |
 | `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                                  | px   | The lens, and the side of its square preview canvas.                                                                                                                                                                                                                                                                                                                        |
 | `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                                   | px   | The lens to the title column.                                                                                                                                                                                                                                                                                                                                               |
 | `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                                    | px   | The lens rim, in `PANEL_RIM`.                                                                                                                                                                                                                                                                                                                                               |
@@ -356,6 +393,13 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION`                              | 0.7                                                                  | × d  | The widest line of the `unavailable` text inside the lens.                                                                                                                                                                                                                                                                                                                  |
 | `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX`                                | 48                                                                   | px   | The sticky title bar of a scrolled entry: the breadcrumb over the title.                                                                                                                                                                                                                                                                                                    |
 | `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX`                                    | 640                                                                  | px   | The prose measure: about 90 characters of `body`.                                                                                                                                                                                                                                                                                                                           |
+| `ENCYCLOPEDIA_EFFECTS_TABLE_LABEL`                                   | `Effects by tier`                                                    | —    | The header over a trait's tier table (§11.4).                                                                                                                                                                                                                                                                                                                               |
+| `ENCYCLOPEDIA_LADDER_TABLE_LABEL`                                    | `Unlock and ladder`                                                  | —    | The header over a trait's second table.                                                                                                                                                                                                                                                                                                                                     |
+| `ENCYCLOPEDIA_FACTS_TABLE_LABEL`                                     | `Facts`                                                              | —    | The header over the one table of an entry that is not a trait, which has no unlock and no ladder of its own.                                                                                                                                                                                                                                                                |
+| `ENCYCLOPEDIA_SEE_ALSO_LABEL`                                        | `See also`                                                           | —    | The header over the link chips (§11.4).                                                                                                                                                                                                                                                                                                                                     |
+| `ENCYCLOPEDIA_TIER_CAPTION_PREFIX`                                   | `You own `                                                           | —    | Before the owned tier's numeral, as the caption over the tier table's noun column.                                                                                                                                                                                                                                                                                          |
+| `ENCYCLOPEDIA_OWNED_CHIP_LABEL`, `ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR` | `OWNED`, `·`                                                         | —    | The level-gold chip a round adds, around the tier's numeral: `OWNED · II`.                                                                                                                                                                                                                                                                                                  |
+| `ENCYCLOPEDIA_TIER_IDENTITY_TEXT`                                    | `—`                                                                  | —    | What a tier column shows where that tier leaves the row's modifier at identity.                                                                                                                                                                                                                                                                                             |
 | `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                                  | px   | A landing tile; three to a row at 1280 × 800 and four at 1920 × 1080. The grid wraps to whatever the column fits.                                                                                                                                                                                                                                                           |
 | `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 132                                                                  | px   | A landing tile.                                                                                                                                                                                                                                                                                                                                                             |
 | `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                                   | px   | The tile's well.                                                                                                                                                                                                                                                                                                                                                            |

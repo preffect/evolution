@@ -1,0 +1,42 @@
+/* A facts table under its `label` header (docs/ui/encyclopedia.md §11.4). The table itself is the kit's; what is here
+   is the header over it and the link a value may be. */
+
+:host {
+  display: block;
+}
+
+.heading {
+  margin: 0 0 calc(var(--ui-space-s) * var(--ui-scale));
+  color: var(--ui-text-label);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* A link value: the link colour with the underline §11.4 gives every entry-to-entry link. `transparent` rather than
+   nothing, since a `<button>` left alone takes the user agent's own grey (#448's review). */
+.link {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--ui-link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--ui-text);
+}
+
+.link:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+.separator {
+  color: var(--ui-text-muted);
+}

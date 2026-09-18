@@ -37,6 +37,27 @@ export const ENTRY_SUBJECT = {
 } as const;
 export type EntrySubject = ValueOf<typeof ENTRY_SUBJECT>;
 
+/**
+ * What an entry page's kind chip calls its subject (docs/ui/encyclopedia.md §11.4). A trait page names its kind with
+ * the rarity, tag and stage chips §11.4 lists; every other page has only this one, so a stage or a DNA tag is not a
+ * title on an otherwise bare column. It sits beside the closed set so that a subject added without a word fails
+ * `typecheck` rather than reaching a reader as `dna_tag`.
+ */
+export const ENTRY_SUBJECT_LABEL: Readonly<Record<EntrySubject, string>> = {
+  [ENTRY_SUBJECT.cellKind]: 'Cell',
+  [ENTRY_SUBJECT.food]: 'Food',
+  [ENTRY_SUBJECT.bacterium]: 'Bacterium',
+  [ENTRY_SUBJECT.entity]: 'Object',
+  [ENTRY_SUBJECT.stage]: 'Stage',
+  [ENTRY_SUBJECT.trait]: 'Trait',
+  [ENTRY_SUBJECT.dnaTag]: 'DNA tag',
+  [ENTRY_SUBJECT.ability]: 'Ability',
+  [ENTRY_SUBJECT.action]: 'Action',
+  [ENTRY_SUBJECT.zone]: 'Zone',
+  [ENTRY_SUBJECT.world]: 'World',
+  [ENTRY_SUBJECT.concept]: 'Rule',
+};
+
 /** The code id each subject documents: the one table the `EntryId` union is derived from. */
 export interface CodeIdBySubject {
   [ENTRY_SUBJECT.cellKind]: CellKind;

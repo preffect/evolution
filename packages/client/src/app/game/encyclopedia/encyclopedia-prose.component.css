@@ -1,0 +1,48 @@
+/* The prose (docs/ui/encyclopedia.md §11.4): `body` at the prose measure, paragraphs `UI_SPACE_S_PX` apart, with
+   `text-wrap: pretty` so no line ends on a lone word. */
+
+:host {
+  display: block;
+  max-width: calc(var(--encyclopedia-prose-max-width) * var(--ui-scale));
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  text-wrap: pretty;
+}
+
+.paragraph {
+  margin: 0;
+}
+
+.paragraph + .paragraph {
+  margin-top: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+/* §11.4: a value is `body` with tabular digits — the sentence's own face, not the table's mono `figure`. A value
+   token is not always a number: `{reachedBy}` resolves to a list of entry titles, and those in mono read as code. */
+.value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accent text with an underline (§11.4). `inline`, not the button's default `inline-block`, so a link of two or three
+   words breaks across lines with the sentence it sits in. `transparent` rather than nothing: a `<button>` left alone
+   takes the user agent's own grey, which #448's review caught in jsdom-green code. */
+.link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--ui-link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--ui-text);
+}
+
+.link:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
+}

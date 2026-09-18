@@ -28,6 +28,17 @@ export function tierSectionKey(tier: TraitTier): string {
   return `${TIER_SECTION_KEY_PREFIX}${tier}`;
 }
 
+/**
+ * The tier a section key names, or `null` for a written section (`aerobic`) and for anything the prefix does not
+ * start. It reads the keys this file writes, so the two stay one rule: the entry page turns a trait's sections into
+ * the Effects by tier columns and has nothing else to go on — a `ResolvedSection` carries its key, not its tier.
+ */
+export function tierOfSectionKey(key: string): TraitTier | null {
+  if (!key.startsWith(TIER_SECTION_KEY_PREFIX)) return null;
+  const tier = Number(key.slice(TIER_SECTION_KEY_PREFIX.length));
+  return Number.isInteger(tier) && tier >= FIRST_TIER ? (tier as TraitTier) : null;
+}
+
 function cellPreview(traits: readonly OwnedTrait[]): PreviewSpec {
   return { scene: PREVIEW_SCENE.cell, cellKind: CELL_KIND.player, traits, motion: PREVIEW_MOTION.swimming };
 }

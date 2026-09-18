@@ -30,6 +30,21 @@ td {
   white-space: nowrap;
 }
 
+/* `shouldWrapValues` (§10.2), opt-in: the values wrap inside their column. Without it a cell's minimum content width
+   beats `width: 100%` and the table grows past whatever holds it rather than the column growing narrower — which is
+   how the encyclopedia's entry page pushed its facts out through the panel rim on 12 of 28 entries (PR #471). A row
+   that wraps grows downwards on its own: `height` on a table row is already a minimum (CSS 2.1 §17.5.3), so
+   `UI_FACT_ROW_HEIGHT_PX` keeps its meaning and a one-line row is unchanged. The wrapped lines take the body line
+   height, since `line-height: 1` above is set for rows that never have a second line.
+
+   The names deliberately keep the `nowrap` above: wrapping them too gives the table's auto layout a name column it
+   can squeeze — measured at 64 px, breaking `Reached by` over two lines — while the value column it squeezed for had
+   room to spare. The value column absorbs the wrapping, which is where the long content is. */
+.table[data-wrap-values] td.value {
+  white-space: normal;
+  line-height: var(--ui-body-line-height);
+}
+
 /* As wide as its content, the name always a small space after it. */
 .marker {
   width: 1%;

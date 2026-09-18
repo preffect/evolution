@@ -1,5 +1,7 @@
-/* The entry page's frame (docs/ui/encyclopedia.md §11.4); build 1 fills it with the breadcrumb and the title only,
-   and #373 adds the lens, the tier sections, the facts and the prose under them. */
+/* The entry page, layout B (docs/ui/encyclopedia.md §11.4), against `encyclopedia-b-trait-1280x800.png`: a content
+   column whose top is the lens column and the title column side by side, with the prose and See also across both
+   below. At 1280 × 800 the detail's inner width is 702 units, which the content cap never bites into; the cap holds
+   the column when a wider panel arrives. */
 
 :host {
   display: flex;
@@ -19,10 +21,97 @@
   font-family: var(--ui-font-sans);
 }
 
+.content {
+  max-width: calc(var(--encyclopedia-content-max-width) * var(--ui-scale));
+}
+
+/* The two columns, `ENCYCLOPEDIA_LENS_GAP_PX` apart; `align-items: flex-start` keeps the lens at the top of the
+   column rather than stretched down the length of a long title column. */
+.top {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--encyclopedia-lens-gap) * var(--ui-scale));
+}
+
+/* Reserved for #466's lens: the box is held at its full diameter so dropping the preview in relays nothing. */
+.lens-column {
+  flex: none;
+  width: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
+}
+
+/* The empty eyepiece (§11.4): the rim, the field stop's vignette and the condenser's bright inner edge — all three
+   the box's own furniture rather than the preview's, so #466 adds its canvas underneath and its reticle overlay on
+   top without redrawing any of this.
+
+   The well alone was not enough, and the measurement is why: `--ui-well` is `CALLOUT_BACKING` at 0.45, which over a
+   panel this dark came out one unit per channel above it (PR #471's review, `srgb(8,17,30)` against `srgb(7,16,30)`).
+   With no field and no edge the box was a bare 300 px outline — a failed image, not reserved space.
+
+   **The inner ring is the part that works, and the vignette is inert today.** Measured on the render: the ring puts
+   `srgb(49,92,106)` where the field was `srgb(9,17,30)`, matching the review's own prototype pixel for pixel; the
+   vignette leaves every sample along the radius unchanged, because darkening a well that is already
+   `CALLOUT_BACKING` at 0.45 with more `CALLOUT_BACKING` moves nothing an 8-bit buffer can hold. It is here because
+   §11.4 owns it and because it is the field stop for the **lit** scene #466 puts under the box — which is the first
+   thing it will have to darken. Anyone deleting it as dead CSS should read that sentence first. */
+.lens-reserved {
+  box-sizing: border-box;
+  width: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
+  height: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
+  border: calc(var(--encyclopedia-lens-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
+  border-radius: 50%;
+  background-image: radial-gradient(
+    circle at center,
+    transparent var(--encyclopedia-lens-vignette-start),
+    color-mix(in srgb, var(--ui-callout-backing) calc(var(--encyclopedia-lens-vignette-alpha) * 100%), transparent) 100%
+  );
+  background-color: var(--ui-well);
+  box-shadow: inset 0 0 0 var(--ui-rim)
+    color-mix(in srgb, var(--ui-accent) calc(var(--encyclopedia-lens-inner-ring-alpha) * 100%), transparent);
+}
+
+.title-column {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .title {
   margin: calc(var(--ui-space-m) * var(--ui-scale)) 0 0;
   color: var(--ui-text);
   font-size: calc(var(--ui-type-headline) * var(--ui-scale));
   font-weight: bold;
+  /* A heading sits on its own cap height, as the reference frame draws it; the panel body's prose line height would
+     push everything below it down (the landing's stylesheet carries the same note). */
   line-height: 1;
+}
+
+/* Sized to their text and wrapping within the column, `UI_SPACE_S_PX` apart (§11.4). */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  margin-top: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+/* The facts tables, `UI_SPACE_L_PX` under the chips and the same apart from each other. */
+.table {
+  margin-top: calc(var(--ui-space-l) * var(--ui-scale));
+}
+
+/* The prose starts `UI_SPACE_XL_PX` under whichever column ends lower, which is what the row above gives it. */
+.prose {
+  margin-top: calc(var(--ui-space-xl) * var(--ui-scale));
+}
+
+.see-also {
+  margin-top: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+.see-also .heading {
+  margin: 0 0 calc(var(--ui-space-s) * var(--ui-scale));
+  color: var(--ui-text-label);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  line-height: 1;
+  text-transform: uppercase;
 }
