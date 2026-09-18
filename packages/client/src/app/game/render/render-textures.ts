@@ -183,9 +183,11 @@ export function createSharedRenderTextures(baker: TextureBaker, devicePixelRatio
 }
 
 /**
- * The seeded half. The cosmetic stream is drawn in a fixed order — dish field, vent, strip, tile,
- * organelles — and that order is the bundle's determinism (docs/DETERMINISM.md): nothing between these
- * calls may take from `cosmetic`, which is why the seed-independent bakes moved out rather than around.
+ * The seeded half. Every bake below takes a **named sub-stream** off `cosmetic` rather than drawing from
+ * it (`COSMETIC_SUB_STREAM`, docs/DETERMINISM.md), so none of them can move another's numbers and the split
+ * could not change a byte. What that rests on is that nothing in `SharedRenderTextures` touches `cosmetic`
+ * at all — a shared bake that drew from it directly would shift every seeded bake after it, which is what
+ * `render-textures.spec.ts` compares the dish field's recorded strokes to catch.
  */
 export function createSeededRenderTextures(options: RenderTextureOptions): SeededRenderTextures {
   const { baker } = options;

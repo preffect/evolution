@@ -99,10 +99,11 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   re-bases the clock, the DPR cap, the canvas clamp and the lens's bounding square), `preview-timings.spec.ts` (the walk
   arithmetic and the budget verdict's `null` rows), `bitmap-fonts.spec.ts` (a bundle's own font names, and an
   uninstall that touches only them), `render-textures.spec.ts` and `renderer-slot.spec.ts` (§7.2's two halves: the
-  shared half takes nothing from the cosmetic stream, each half destroys without touching the other, a rebuild adds
-  no radial bake and no font install and keeps the very same indicator bundle, and a changed baker or device pixel
-  ratio re-bakes it), `noise-tile.spec.ts` and `radial-bake.spec.ts` (FNV-1a digests of the production bakes, pinned
-  to the pre-#442 samplers), `bench-route.spec.ts` (both halves of the production gate),
+  dish field's and the vent's recorded strokes are identical whether or not the shared half ran first, each half
+  destroys without touching the other, a rebuild adds no radial bake and no font install and keeps the very same
+  indicator bundle, and a changed baker or device pixel ratio re-bakes it), `noise-tile.spec.ts` and
+  `radial-bake.spec.ts` (FNV-1a digests of the production bakes, pinned to the pre-#442 samplers),
+  `bench-route.spec.ts` (both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
   `gpu-timer.spec.ts` (the plausibility rule and the four statuses), `render-benchmark.spec.ts` (the verdict rows,
   a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the

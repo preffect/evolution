@@ -278,10 +278,13 @@ The bundle is therefore **two halves**, and `renderer-slot.ts` owns the differen
 | `SharedRenderTextures` | the two radial bakes, the glow and mote atlases, the palette, the light pool, the indicator atlas and its BitmapFonts | baked once per Pixi app and **kept**; re-baked only if the baker or the device pixel ratio changes, dropped on `dispose` |
 | `SeededRenderTextures` | the dish field, the vent, the noise strip, the cytoplasm tile, the organelle atlas                                    | re-baked on every seed change, and only then                                                                             |
 
-Nothing in the shared half draws from the cosmetic stream, so moving it out left the seeded draw order — dish
-field, vent, strip, tile, organelles — exactly as it was; `render-textures.spec.ts` pins that a seeded bake is the
-same bytes whichever half runs first, and `renderer-slot.spec.ts` pins that a rebuild adds no radial bake and no
-font install.
+Every seeded bake takes a **named sub-stream** off the cosmetic stream (`COSMETIC_SUB_STREAM`,
+`DETERMINISM.md`) rather than drawing from it, so no bake can move another's numbers and the split could not
+change a byte. What that rests on is that nothing in the shared half touches `cosmetic` at all — a shared bake
+that drew from it directly would shift every seeded bake after it. `render-textures.spec.ts` compares the dish
+field's and the vent's recorded Canvas-2D strokes, argument for argument, between a whole bundle and a
+seeded-only one to catch exactly that, and `renderer-slot.spec.ts` pins that a rebuild adds no radial bake and
+no font install and hands the new renderer the very same indicator bundle.
 
 **Measured on the container's SwiftShader** through the bench route at 1920 × 1080, `devicePixelRatio` 1, taking
 the bake spans directly; 8 rebuilds per run through the debug hook's `setSeed`, medians. **These absolutes are a

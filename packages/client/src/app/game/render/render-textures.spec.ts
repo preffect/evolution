@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DNA_TAGS, PLAYER_PALETTE_COUNT } from '@evolution/shared';
 import { areBytesEqual } from '../../../testing/bytes';
+import { fakeContextOf } from '../../../testing/fake-bake-canvas';
 import {
   TEST_NOISE_TILE_SIZE_PX,
   createFakeTextureBaker,
@@ -122,11 +123,16 @@ describe('the two halves of the bundle (#442)', () => {
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
   };
 
-  it('takes nothing from the cosmetic stream for the seed-independent half, so a seeded bake is the same either way', () => {
-    const whole = createTestRenderTextures({ seed: seededOptions.seed });
+  it('draws the seeded bakes identically whether or not the shared half ran first, down to the dish field strokes', () => {
+    const wholeBaker = createFakeTextureBaker();
+    const whole = createTestRenderTextures({ seed: seededOptions.seed, baker: wholeBaker });
     const seededOnly = createSeededRenderTextures({ ...seededOptions, baker: createFakeTextureBaker() });
     expect(areBytesEqual(whole.strip.bytes, seededOnly.strip.bytes)).toBe(true);
     expect(whole.cosmetic.nextFloat()).toBe(seededOnly.cosmetic.nextFloat());
+    // The bytes are one thing; the Canvas-2D bakes are another. Every stroke of the dish field, with its
+    // numbers, has to land the same way, or the shared half has quietly taken a draw the field wanted.
+    expect(fakeContextOf(seededOnly.dishField.canvas).calls).toEqual(fakeContextOf(whole.dishField.canvas).calls);
+    expect(fakeContextOf(seededOnly.vent.canvas).calls).toEqual(fakeContextOf(whole.vent.canvas).calls);
   });
 
   it('bakes the radials and the indicator fonts in the shared half only', () => {
