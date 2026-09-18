@@ -3,6 +3,7 @@
 // lobby's markup is one edit rather than a hunt.
 
 import { expect, test, type Page } from '@playwright/test';
+import { HUD_TEST_ID } from '../src/app/game/hud/test-ids';
 
 /** The debug hook the client exposes in a development build: the room's clock, for deterministic frames. */
 export interface DebugWindow {
@@ -20,10 +21,16 @@ const AUDIO_ASSET_PATH = '/assets/audio/';
 const GAME_NAME_SUFFIX_LENGTH = 8;
 
 /**
- * Creates and starts a fresh room named after the test, so reruns never pick an already-started one, and returns
- * the page errors collected from the moment it opened — a spec asserts on them when it cares.
+ * Creates and starts a fresh room named after the test, so reruns never pick an already-started one, and waits until
+ * the **HUD** is up. Returns the page errors collected from the moment it opened — a spec asserts on them when it
+ * cares.
+ *
+ * It stops at the HUD rather than at the first rendered frame because most of what a UI spec drives — the menu, the
+ * encyclopedia, the overlays — is DOM that is live before the renderer is, and waiting on a WebGL canvas makes a
+ * spec about a panel fail for a reason that has nothing to do with it. A spec that needs the renderer calls
+ * `waitForFirstFrame` after this.
  */
-export async function openLiveRoom(page: Page, namePrefix: string, seed: number): Promise<string[]> {
+export async function openRoom(page: Page, namePrefix: string, seed: number): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -43,7 +50,19 @@ export async function openLiveRoom(page: Page, namePrefix: string, seed: number)
     .filter({ hasNot: page.locator('.badge') })
     .first();
   await row.getByRole('button', { name: 'Start' }).click();
+  await expect(page.getByTestId(HUD_TEST_ID.hud)).toBeVisible();
+  return errors;
+}
+
+/** The renderer's first frame: the Pixi canvas in the DOM and the room clock running. */
+export async function waitForFirstFrame(page: Page): Promise<void> {
   await expect(page.locator('canvas[data-testid="game-canvas"]')).toBeVisible();
   await page.waitForFunction(() => (window as DebugWindow).__evolutionDebug?.renderTick() !== null);
+}
+
+/** A room open and drawing: what the renderer's own specs want. */
+export async function openLiveRoom(page: Page, namePrefix: string, seed: number): Promise<string[]> {
+  const errors = await openRoom(page, namePrefix, seed);
+  await waitForFirstFrame(page);
   return errors;
 }

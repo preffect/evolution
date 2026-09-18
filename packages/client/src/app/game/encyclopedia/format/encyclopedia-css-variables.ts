@@ -9,13 +9,22 @@
 
 import { TRAIT_GLYPH_CARD_PX } from '../../glyphs/glyph-constants';
 import { UI_ROW_MEDALLION_PX } from '../../../ui-kit/ui-kit-constants';
+import { PERCENT } from '../../quantities/quantity-unit';
 import type { StyleVariables } from '../../../ui-kit/format/ui-css-variables';
 import {
+  ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX,
   ENCYCLOPEDIA_HEADER_HEIGHT_PX,
   ENCYCLOPEDIA_INSET_PX,
+  ENCYCLOPEDIA_LENS_DIAMETER_PX,
+  ENCYCLOPEDIA_LENS_GAP_PX,
+  ENCYCLOPEDIA_LENS_INNER_RING_ALPHA,
+  ENCYCLOPEDIA_LENS_RIM_PX,
+  ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA,
+  ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION,
   ENCYCLOPEDIA_LIST_WIDTH_PX,
   ENCYCLOPEDIA_MAX_HEIGHT_PX,
   ENCYCLOPEDIA_MAX_WIDTH_PX,
+  ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX,
   ENCYCLOPEDIA_RAIL_ICON_PX,
   ENCYCLOPEDIA_RAIL_WIDTH_PX,
   ENCYCLOPEDIA_TILE_HEIGHT_PX,
@@ -25,6 +34,14 @@ import {
 
 function pixels(value: number): string {
   return `${value}px`;
+}
+
+/**
+ * A 0..1 fraction as a gradient stop: `0.7` → `70%`. The hundred is the quantities' `PERCENT`, the same one the
+ * player-facing `share` unit scales by — a percent is a percent whether a person reads it or a `radial-gradient` does.
+ */
+function percent(fraction: number): string {
+  return `${fraction * PERCENT}%`;
 }
 
 /** Every `--encyclopedia-…` token the panel's stylesheets may read, by name, at scale 1. */
@@ -40,6 +57,17 @@ export function encyclopediaStyleVariables(): StyleVariables {
     '--encyclopedia-tile-width': pixels(ENCYCLOPEDIA_TILE_WIDTH_PX),
     '--encyclopedia-tile-height': pixels(ENCYCLOPEDIA_TILE_HEIGHT_PX),
     '--encyclopedia-tile-well-height': pixels(ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX),
+    // The entry page (docs/ui/encyclopedia.md §11.4). The lens's diameter, gap and rim are read by the box #465
+    // reserves and by #466's lens itself, which lands in that same box.
+    '--encyclopedia-content-max-width': pixels(ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX),
+    '--encyclopedia-lens-diameter': pixels(ENCYCLOPEDIA_LENS_DIAMETER_PX),
+    '--encyclopedia-lens-gap': pixels(ENCYCLOPEDIA_LENS_GAP_PX),
+    '--encyclopedia-lens-rim': pixels(ENCYCLOPEDIA_LENS_RIM_PX),
+    // Alphas and fractions, not lengths: a stylesheet reads them into `color-mix` and a `radial-gradient` stop.
+    '--encyclopedia-lens-inner-ring-alpha': String(ENCYCLOPEDIA_LENS_INNER_RING_ALPHA),
+    '--encyclopedia-lens-vignette-start': percent(ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION),
+    '--encyclopedia-lens-vignette-alpha': String(ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA),
+    '--encyclopedia-prose-max-width': pixels(ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX),
     // The glyph sizes the rows and tiles draw at (docs/ui/encyclopedia.md §11.3). A row's glyph **is** its medallion
     // — both kinds draw their own disc and rim (components-and-constants.md §10.2) — so it is the kit's
     // `UI_ROW_MEDALLION_PX`, which is what the reference frame measures; `TRAIT_GLYPH_LIST_PX` is the smaller size

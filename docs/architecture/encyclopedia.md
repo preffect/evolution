@@ -45,7 +45,9 @@ one is a change to this file (and to the completeness spec, which requires every
 each category's **label and position** only: `ENCYCLOPEDIA_CATEGORY_LABEL` and `ENCYCLOPEDIA_CATEGORY_ORDER` are
 written from its spec (`docs/ui/encyclopedia.md §11.2`, not repeated here). So the two specs cannot disagree about
 which categories exist. The same split holds for **list groups** (below): the ids and how an entry is assigned one
-are here, the headers' labels are #354's.
+are here, the headers' labels are #354's; and for the **subjects**, whose ids are this file's while the word each one
+wears on an entry page's kind chip is #354's `ENTRY_SUBJECT_LABEL`, beside `ENTRY_SUBJECT` so that a subject added
+without a word fails `typecheck` (ui/encyclopedia.md §11.4).
 
 **Category by subject.** An entry's category is derived, never written in content: `CATEGORY_BY_SUBJECT` in
 `encyclopedia/model/categories.ts` is total over `ENTRY_SUBJECT`, and `CATEGORY_BY_ENTRY` holds the only exception.
