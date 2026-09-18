@@ -2,8 +2,8 @@
 // exactly once here. Ids live in `test-ids.ts`, category labels and order in `model/categories.ts` (§11.2), and every
 // gameplay number is the shared balance read through `EncyclopediaContextService` — nothing here is a copy of one.
 //
-// The core's (#447) constants, the panel's (#448) layout row, the keyboard's (#449) key codes and the entry page's
-// (#465) are declared; the lens's own numbers arrive with #466.
+// The core's (#447) constants, the panel's (#448) layout row, the keyboard's (#449) key codes, the entry page's
+// (#465) and the lens's (#466) are declared.
 
 import { ENCYCLOPEDIA_CATEGORY, type EncyclopediaCategory } from './model/categories';
 
@@ -33,20 +33,28 @@ export const ENCYCLOPEDIA_LIST_WIDTH_PX = 280;
  */
 export const ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX = 848;
 
-/** The lens, and the side of its square preview canvas; #466 fills the box this build reserves (§11.4). */
+/**
+ * The lens, and the side of its square preview canvas (§11.4).
+ *
+ * **It is at its ceiling.** `render/constants/preview.ts` clamps each canvas side to `PREVIEW_CANVAS_MAX_PX` 900
+ * **device** pixels, and this diameter is multiplied by the kit's `UI_SCALE_MAX` and then by the preview's own DPR
+ * cap before it gets there: 300 × 1.5 × 2 is exactly 900, with nothing to spare. Raising any of the three without
+ * raising the clamp makes the canvas shrink under a lens that did not, and `encyclopedia-lens.spec.ts` fails on the
+ * product rather than letting it happen quietly.
+ */
 export const ENCYCLOPEDIA_LENS_DIAMETER_PX = 300;
 
 /** The lens to the title column. */
 export const ENCYCLOPEDIA_LENS_GAP_PX = 32;
 
-/** The lens rim, in `PANEL_RIM`; the reserved box wears it so the empty eyepiece reads as an eyepiece. */
+/** The lens rim, in `PANEL_RIM`; the eyepiece wears it whether or not a scene is under it. */
 export const ENCYCLOPEDIA_LENS_RIM_PX = 6;
 
 /**
  * The 1 px `LIGHT_ACCENT` ring inside the rim — the condenser's bright edge (§11.4). It is the eyepiece's own
- * furniture rather than the preview's, so the reserved box wears it: without it the box is a bare outline of a
- * circle, which is what a failed image looks like (PR #471's review measured the well at one unit per channel over
- * the panel behind it). #466 draws the same ring over its canvas.
+ * furniture rather than the preview's, which is why the box wore it while it was empty: without it the box was a bare
+ * outline of a circle, which is what a failed image looks like (PR #471's review measured the well at one unit per
+ * channel over the panel behind it).
  */
 export const ENCYCLOPEDIA_LENS_INNER_RING_ALPHA = 0.35;
 
@@ -55,6 +63,45 @@ export const ENCYCLOPEDIA_LENS_VIGNETTE_START_FRACTION = 0.7;
 
 /** ...to this alpha at the rim (§11.4). */
 export const ENCYCLOPEDIA_LENS_VIGNETTE_ALPHA = 0.6;
+
+/** Reticle ticks around the lens, inward from the rim (§11.4). */
+export const ENCYCLOPEDIA_LENS_TICK_COUNT = 24;
+
+/** Every sixth tick is a major one, which puts the four long ones on the quarters. */
+export const ENCYCLOPEDIA_LENS_MAJOR_TICK_EVERY = 6;
+
+/** Tick lengths, inward from the rim's inner edge; no tick reaches into the rim or past the safe circle. */
+export const ENCYCLOPEDIA_LENS_MAJOR_TICK_PX = 10;
+export const ENCYCLOPEDIA_LENS_MINOR_TICK_PX = 5;
+
+/** The ticks' opacity, in the label colour. */
+export const ENCYCLOPEDIA_LENS_TICK_ALPHA = 0.6;
+
+/** The widest line of the `unavailable` text inside the lens, as a fraction of the diameter (§11.4). */
+export const ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION = 0.7;
+
+/**
+ * The `loading` state's one ring, as a fraction of the lens **radius** — §11.4's "half the radius". It pulses
+ * rather than spinning: the lens is an eyepiece focusing, not a spinner, and a ring at half the radius is clear of
+ * both the reticle and the text the `unavailable` state puts in the same place.
+ */
+export const ENCYCLOPEDIA_LENS_LOADING_RING_RADIUS_FRACTION = 0.5;
+
+/** One breath of that ring. Slow on purpose: §12.7 budgets the open at 300 ms, so this is a wait, not a progress bar. */
+export const ENCYCLOPEDIA_LENS_LOADING_PULSE_MS = 1800;
+
+/** The dimmest the pulse goes; it breathes back to full. Under `prefers-reduced-motion` the ring simply holds full. */
+export const ENCYCLOPEDIA_LENS_LOADING_PULSE_MIN_ALPHA = 0.2;
+
+/**
+ * Arrowing through the list calls `show` only once the selection has rested this long (§11.4). `show` swaps a scene
+ * without baking anything, so this is not a cost guard: it is so that holding ↓ through a category does not restart
+ * a scene per row, which reads as a flicker rather than as previews.
+ */
+export const ENCYCLOPEDIA_PREVIEW_SETTLE_MS = 150;
+
+/** The `unavailable` state's line, inside the circle: the preview app could not start, and there is no retry. */
+export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';
 
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;

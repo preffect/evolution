@@ -1,22 +1,28 @@
 // The entry page (docs/ui/encyclopedia.md §11.4): the frame a link steers by, the title column's chips, the two facts
-// tables, the prose, See also, and the box held for #466's lens.
+// tables, the prose, See also, and what the lens column hands the preview.
 //
-// **jsdom has no layout and no user-agent cascade**, so nothing here claims anything about size, colour or focus: the
-// geometry of §11.4 and the reserved box reading as deliberate space are the rendered frames' to answer, and the
-// screenshots on the PR are where they are answered. What a spec can hold is what is drawn and what it says.
+// **jsdom has no layout, no user-agent cascade and no GL**, so nothing here claims anything about size, colour, focus
+// or what the lens shows: the geometry of §11.4 and the eyepiece reading as deliberate are the rendered frames' to
+// answer, and the screenshots on the PR are where they are answered. What a spec can hold is what is drawn, what it
+// says, and which spec reached the preview seam.
 
 import { signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_BALANCE, type BalanceConfig, type OwnedTrait, type TraitTier } from '@evolution/shared';
-import { queryAllByTestId, queryByTestId } from '../../../testing/test-id-query';
+import { recordingPreviewHost, type RecordingPreviewHost } from '../../../testing/fake-preview-handle';
+import { expectTestId, queryAllByTestId, queryByTestId } from '../../../testing/test-id-query';
+import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
+import type { PreviewSpec } from '../render/preview/preview-spec';
 import { GameStateService } from '../state/game-state.service';
 import { EncyclopediaEntryComponent } from './encyclopedia-entry.component';
+import { EncyclopediaPreviewService } from './encyclopedia-preview.service';
 import {
   ENCYCLOPEDIA_EFFECTS_TABLE_LABEL,
   ENCYCLOPEDIA_FACTS_TABLE_LABEL,
   ENCYCLOPEDIA_LADDER_TABLE_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
+  ENCYCLOPEDIA_PREVIEW_SETTLE_MS,
   ENCYCLOPEDIA_SEE_ALSO_LABEL,
   ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
 } from './encyclopedia-constants';
@@ -26,7 +32,7 @@ import type { ResolvedEntry } from './model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, type EntryId } from './model/entry-id';
 import { ENTRY_GROUP_LABEL } from './model/groups';
 import { resolveEntry } from './registry';
-import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId } from './test-ids';
+import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId, encyclopediaTierTestId } from './test-ids';
 
 const MITOCHONDRION = 'trait:mitochondrion' as EntryId;
 const PROTOCELL = 'stage:protocell' as EntryId;
@@ -45,6 +51,7 @@ function resolve(entryId: EntryId): ResolvedEntry {
 describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
   let fixture: ComponentFixture<EncyclopediaEntryComponent>;
   let entry: ResolvedEntry;
+  let previewHost: RecordingPreviewHost;
 
   function root(): HTMLElement {
     return fixture.nativeElement as HTMLElement;
@@ -54,6 +61,16 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
     entry = shown;
     fixture.componentRef.setInput('entry', shown);
     fixture.detectChanges();
+  }
+
+  /** The settle §11.4 asks for, then the first frame: what a reader has waited through before they touch anything. */
+  async function openLens(): Promise<void> {
+    vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
+    await previewHost.handles[0]?.completeOpen();
+  }
+
+  function sectionPreviewOf(tier: TraitTier): PreviewSpec | null {
+    return entry.sections.find((section) => section.key === `tier_${tier}`)?.preview ?? null;
   }
 
   function chipTexts(): string[] {
@@ -69,13 +86,25 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
   }
 
   beforeEach(() => {
+    // The lens's selection settles on a timer (§11.4), so the clock is the spec's: every assertion about what
+    // reached the preview advances it deliberately rather than waiting on a real 150 ms.
+    vi.useFakeTimers();
     gameStateStub.ownProgress.set(null);
+    previewHost = recordingPreviewHost();
     TestBed.configureTestingModule({
       imports: [EncyclopediaEntryComponent],
-      providers: [{ provide: GameStateService, useValue: gameStateStub }],
+      providers: [
+        { provide: GameStateService, useValue: gameStateStub },
+        { provide: ENCYCLOPEDIA_PREVIEW, useValue: previewHost.factory },
+        EncyclopediaPreviewService,
+      ],
     });
     fixture = TestBed.createComponent(EncyclopediaEntryComponent);
     show(resolve(MITOCHONDRION));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('carries `encyclopedia-entry` with the entry it is showing, which is what a link steers by', () => {
@@ -145,9 +174,52 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
     }
   });
 
-  it('reserves the lens box without claiming a preview: #466 owns `encyclopedia-preview` and its state', () => {
-    expect(root().querySelector('.lens-reserved')).not.toBeNull();
+  it('opens the lens on a trait’s first tier, and on a plain entry’s own preview', async () => {
+    expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.preview)).not.toBeNull();
+    await openLens();
+    // A trait's lens follows its tier switch, which starts on the first tier; the entry's own spec is what an
+    // entry with no tier section has, and it is a different object even where it describes the same cell.
+    expect(previewHost.handles[0]?.shownSpecs).toEqual([entry.sections[0]?.preview]);
+
+    show(resolve(PROTOCELL));
+    vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
+    expect(previewHost.handles[0]?.shownSpecs.at(-1)).toBe(entry.preview);
+  });
+
+  /**
+   * The lens column is a trait's; an entry whose `preview` is `null` has none at all (§11.4). Nothing in the
+   * registry has a null preview today, so the case is made here rather than found: the guard is the branch, not
+   * the data.
+   */
+  it('has no lens column at all for an entry with no preview', () => {
+    show({ ...resolve(PROTOCELL), preview: null });
     expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.preview)).toBeNull();
+  });
+
+  /**
+   * §11.4's tier switch: one segment per tier section, and selecting one shows **that tier's** preview — which is
+   * the whole point of the control, and the half a "the segments are drawn" guard would miss.
+   */
+  it('switches the lens between a trait’s tiers', async () => {
+    expect(root().querySelectorAll('app-encyclopedia-lens-control button')).toHaveLength(entry.sections.length);
+    await openLens();
+
+    expectTestId(root(), encyclopediaTierTestId(SECOND_TIER)).click();
+    fixture.detectChanges();
+    vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
+    expect(previewHost.handles[0]?.shownSpecs.at(-1)).toBe(sectionPreviewOf(SECOND_TIER));
+  });
+
+  it('starts the switch on the tier the round owns', async () => {
+    const subject = entry.subject;
+    if (subject.kind !== ENTRY_SUBJECT.trait) throw new Error('the mitochondrion entry is a trait');
+    await openLens();
+
+    gameStateStub.ownProgress.set({ ownedTraits: [{ traitId: subject.traitId, tier: SECOND_TIER }] });
+    fixture.detectChanges();
+    vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
+    expect(previewHost.handles[0]?.shownSpecs.at(-1)).toBe(sectionPreviewOf(SECOND_TIER));
+    expect(expectTestId(root(), encyclopediaTierTestId(SECOND_TIER)).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('draws both facts tables under the one facts id, the first of which a test takes (§11.6)', () => {

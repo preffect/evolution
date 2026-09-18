@@ -27,7 +27,9 @@ import {
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
 import { createFakePixiApp } from '../../../testing/fake-pixi-app';
+import { recordingPreviewHost } from '../../../testing/fake-preview-handle';
 import { MultiplayerService } from '../../services/multiplayer.service';
+import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
 import { EncyclopediaStateService } from '../encyclopedia/encyclopedia-state.service';
 import { ENCYCLOPEDIA_SEARCH_KEY_CODE } from '../encyclopedia/encyclopedia-constants';
 import { ENCYCLOPEDIA_TEST_ID } from '../encyclopedia/test-ids';
@@ -89,7 +91,12 @@ describe('the encyclopedia’s keyboard over the wired game', () => {
   }
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({ imports: [HudComponent] });
+    TestBed.configureTestingModule({
+      imports: [HudComponent],
+      // The panel this spec opens provides the one preview session (docs/ui/encyclopedia.md §11.4). The recording
+      // fake keeps it from building a `PreviewSession`, which would need Pixi and crash jsdom (§12.7).
+      providers: [{ provide: ENCYCLOPEDIA_PREVIEW, useValue: recordingPreviewHost().factory }],
+    });
     hudState = TestBed.inject(HudStateService);
     encyclopedia = TestBed.inject(EncyclopediaStateService);
     const multiplayer = TestBed.inject(MultiplayerService);

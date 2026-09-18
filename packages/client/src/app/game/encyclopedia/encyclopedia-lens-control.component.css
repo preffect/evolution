@@ -1,0 +1,19 @@
+/* The lens control (docs/ui/encyclopedia.md §11.4): centred under the lens, `UI_SPACE_M_PX` below it. */
+
+:host {
+  display: block;
+  margin-top: calc(var(--ui-space-m) * var(--ui-scale));
+}
+
+.switch {
+  display: flex;
+  justify-content: center;
+  gap: calc(var(--ui-space-xs) * var(--ui-scale));
+}
+
+/* The chosen tier. `accent` is the kit's selection colour and is used for nothing else (components-and-constants.md
+   §10.2), so the switch says which tier the lens is showing in the same colour the list says which entry is open. */
+.switch button[aria-pressed='true'] {
+  background-color: var(--ui-selected);
+  color: var(--ui-accent);
+}

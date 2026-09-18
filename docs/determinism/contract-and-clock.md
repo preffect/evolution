@@ -6,8 +6,8 @@
 
 1. **No wall clock in game code.** `Date.now`, `performance.now`, `setTimeout`, `setInterval`
    and `requestAnimationFrame` are lint-banned in every `packages/*/src` file; the allowed call
-   sites are `packages/shared/src/time/` (`SystemClock`) and `packages/server/src/lobby/ticker.ts`
-   (`IntervalTicker`). Template infrastructure files carry an explicit, ticketed exemption
+   sites are `packages/shared/src/time/` (`SystemClock`, `SystemScheduler`) and
+   `packages/server/src/lobby/ticker.ts` (`IntervalTicker`). Template infrastructure files carry an explicit, ticketed exemption
    (`CODE-STANDARDS.md §8`). The simulation sees only `world.tick` and the constant
    `TICK_INTERVAL_S`.
 2. **No `Math.random`.** Lint-banned in the same files outside `packages/shared/src/random/`.
@@ -40,6 +40,21 @@ export class SystemClock implements Clock {} // performance.now(); the one allow
 export class ManualClock implements Clock {
   advanceMilliseconds(delta: number): void;
   setMilliseconds(now: number): void;
+}
+
+/**
+ * A delayed call, for the one thing a `Clock` cannot express. The simulation never needs it — it sees `world.tick`
+ * and nothing else — but a UI seam sometimes waits: the encyclopedia's lens settles a selection before it shows a
+ * scene (`ui/encyclopedia.md §11.4`). Such a caller injects this instead of naming a timer global, so the delay is
+ * in its dependencies and a test drives it. A delay may decide when something is **drawn**, never what the
+ * simulation does, and nothing on the server takes one.
+ */
+export interface Scheduler {
+  after(delayMilliseconds: number, callback: () => void): CancelDeferredCall;
+}
+export class SystemScheduler implements Scheduler {} // setTimeout; the other allowed call site
+export class ManualScheduler implements Scheduler {
+  advanceMilliseconds(delta: number): void;
 }
 
 /** Turns wall time into whole ticks; owns the accumulator, never the state. */

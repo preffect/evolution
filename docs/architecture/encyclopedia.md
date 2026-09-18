@@ -775,8 +775,8 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
   device pixels, to the first. Neither is computed from the lens diameter or the kit's scale maximum, because
   `render/` imports nothing from `encyclopedia/` or the UI kit (§12.8). The bound is sized for `ENCYCLOPEDIA_LENS_DIAMETER_PX`
   × the kit's scale maximum (`UI_SCALE_MAX`) × `PREVIEW_MAX_DEVICE_PIXEL_RATIO`, and
-  an encyclopedia-side spec (#373) pins that product ≤ `PREVIEW_CANVAS_MAX_PX`, so a larger lens or scale fails a test
-  instead of silently clamping. **The invariant holds today with no headroom, so do the arithmetic before changing
+  an encyclopedia-side spec (`encyclopedia-lens.component.spec.ts`) pins that product ≤ `PREVIEW_CANVAS_MAX_PX`, so a
+  larger lens or scale fails a test instead of silently clamping. **The invariant holds today with no headroom, so do the arithmetic before changing
   any of its three terms:** `UI_SCALE_MAX` is 1.5 and the DPR cap is 2, so 900 admits a lens of at most **300 CSS
   px** — and `ENCYCLOPEDIA_LENS_DIAMETER_PX` is already 300 (`ui/encyclopedia.md`'s constants table), making the
   product exactly 900. Raising the diameter, `UI_SCALE_MAX` or `PREVIEW_MAX_DEVICE_PIXEL_RATIO` by any amount
@@ -796,8 +796,14 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
   off by the crop. The two-cell `engulf` and `escape` scenes keep both bodies inside 0.8. Scenes never know they are
   round.
 
-`encyclopedia.component` (#354) owns the one handle: it takes it on the first entry with a preview, lends it each
-entry page's stage element, pauses it on a landing and destroys it on close.
+**Who owns the handle** (#466). `encyclopedia.component` **provides** `encyclopedia-preview.service.ts`, so the one
+handle opens with the panel and is destroyed with it. The service makes the host element itself and lends it to
+whichever lens is mounted, rather than being handed the lens's own stage: `createPixiApp` appends the canvas to the
+host it is given and a session cannot be re-hosted, so a host that belonged to the lens would die with the first
+landing the reader stepped out to, and the next entry would pay the whole bake again. The entry page says _what_ to
+show — its own spec, or the tier its switch is on — and the service opens on the first one and `show`s every one
+after it, once the selection has rested `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`. The lens pauses the session as it goes and
+resumes it as the next one arrives, which covers both a landing and an entry without a preview.
 
 **What #363 built and what it left.** The session, the frame, the four **subject** scenes (`cell`, `food`,
 `dna_fragment`, `zone`), the host token, the per-bundle BitmapFont names and the evidence route are in.
@@ -911,6 +917,12 @@ shell projects its alert strip into the panel, so the rule below holds for the c
   `t` equals a session sampled live at `t`; the report element carries every key); `indicator-textures.spec.ts`
   (distinct font names per bundle instance, two bundles of one seed included; destroy uninstalls only its own and
   removes the name from Pixi's cache; no `BitmapText` names an uninstalled font).
+- **The encyclopedia side (#466):** `encyclopedia-preview.service.spec.ts` over the recording `ENCYCLOPEDIA_PREVIEW`
+  fake (one session per panel and a `show` per page after it; the settle's two sides; a selection that arrived during
+  the open; `unavailable` once and never retried; pause on the lens leaving and resume on the next; the canvas sized
+  and resized at the diameter × `--ui-scale`); `encyclopedia-lens.component.spec.ts` (the four states' DOM, the crop
+  being a rounded overflow and not a `clip-path`, the canvas moving into the stage and back out, and the canvas-bound
+  pin above); `format/lens-overlay.spec.ts` (the eyepiece's geometry, including that no tick reaches the safe circle).
 - **Integration:** `encyclopedia/encyclopedia.integration.spec.ts` applies a `game_state` through the real
   `WorldStore` and `GameStateService`, resolves every registry entry through `EncyclopediaContextService`, applies a
   `balance_updated` patch, and sees the patched values in the resolved entries; with no room, the entries resolve over
