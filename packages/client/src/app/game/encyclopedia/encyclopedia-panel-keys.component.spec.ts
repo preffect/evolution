@@ -11,6 +11,7 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectTestId } from '../../../testing/test-id-query';
+import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { entriesIn } from './registry';
@@ -66,7 +67,7 @@ describe('the encyclopedia panel’s keys (docs/ui/encyclopedia.md §11.5)', () 
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [EncyclopediaComponent] });
+    TestBed.configureTestingModule({ imports: [EncyclopediaComponent], providers: [recordingPreviewProvider()] });
     state = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(EncyclopediaComponent);
     fixture.detectChanges();

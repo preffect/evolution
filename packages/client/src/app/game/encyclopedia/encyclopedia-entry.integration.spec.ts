@@ -17,6 +17,7 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { expectTestId, queryByTestId } from '../../../testing/test-id-query';
+import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { categoryLanding, type EncyclopediaLocation } from './format/navigation';
@@ -91,7 +92,7 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md Â
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [EncyclopediaComponent] });
+    TestBed.configureTestingModule({ imports: [EncyclopediaComponent], providers: [recordingPreviewProvider()] });
     state = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(EncyclopediaComponent);
     fixture.detectChanges();

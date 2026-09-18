@@ -27,6 +27,7 @@ import {
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
 import { createFakePixiApp } from '../../../testing/fake-pixi-app';
+import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { EncyclopediaStateService } from '../encyclopedia/encyclopedia-state.service';
 import { ENCYCLOPEDIA_SEARCH_KEY_CODE } from '../encyclopedia/encyclopedia-constants';
@@ -89,7 +90,7 @@ describe('the encyclopedia’s keyboard over the wired game', () => {
   }
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({ imports: [HudComponent] });
+    TestBed.configureTestingModule({ imports: [HudComponent], providers: [recordingPreviewProvider()] });
     hudState = TestBed.inject(HudStateService);
     encyclopedia = TestBed.inject(EncyclopediaStateService);
     const multiplayer = TestBed.inject(MultiplayerService);
