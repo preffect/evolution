@@ -1,8 +1,12 @@
 // The floaters (docs/ui/hud.md §3.1.5): one per one-off mass or DNA change of the own cell — an eat, an engulf's
 // payout, a sprint's cost — rising `FLOATER_RISE_PX` over `FLOATER_LIFETIME_MS` and fading over its last
-// `FLOATER_FADE_FRACTION`. The same cause within `FLOATER_MERGE_MS` merges into the youngest; a new floater pushes the
-// live ones up one row; at most `FLOATER_MAX_VISIBLE`, the oldest leaving early. A floater's x is fixed when it
-// spawns, so it only ever moves on y. Every amount is the server's. Pure over the render clock (`nowMs`).
+// `FLOATER_FADE_FRACTION`. **One live floater per cause (#443):** a pickup of a cause that is still on screen adds to
+// that floater (`+1` reads `+2`) instead of spawning a second beside it, so a feeding run is one counter, not a column
+// of near-identical labels. The floater keeps the lifetime and the x it was born with — `bornMs` and `leftPx` are
+// readonly for that reason: its rise and its fade are both functions of its age, so resetting the clock on a merge
+// would slide it back down toward the cell on every bite. A new floater of another cause pushes the live ones up one
+// row, so the column holds at most one row per cause (`FLOATER_MAX_VISIBLE`). Every amount is the server's. Pure over
+// the render clock (`nowMs`).
 
 import { EFFECT_KIND, type EntityId, type GameEffect, type ValueOf } from '@evolution/shared';
 import {
@@ -11,8 +15,6 @@ import {
   CUE_ROW_GAP_PX,
   FLOATER_FADE_FRACTION,
   FLOATER_LIFETIME_MS,
-  FLOATER_MAX_VISIBLE,
-  FLOATER_MERGE_MS,
   FLOATER_RISE_PX,
 } from '../constants';
 import { CUE_RIM, formatMassAmount, type CueRim } from '../../hud/format/mass-cues';
@@ -56,8 +58,11 @@ export interface FloaterPlacement {
 
 interface LiveFloater {
   readonly cause: FloaterCause;
+  /** The only field a merge touches: the running total of this cause's pickups while the floater is up. */
   amount: number;
+  /** The first pickup's clock: a merge never moves it, so the floater always leaves on its original schedule. */
   readonly bornMs: number;
+  /** The first pickup's column start: a merge never moves it, so the pill never snaps sideways. */
   readonly leftPx: number;
   /** Rows the floaters spawned after it have pushed it up. */
   row: number;
@@ -96,30 +101,29 @@ export function floaterAlpha(ageMs: number): number {
 export class FloaterStack {
   private live: LiveFloater[] = [];
 
-  /** The newest live floater of `cause`: the live list is oldest first. */
-  private youngestOf(cause: FloaterCause): LiveFloater | undefined {
-    for (let index = this.live.length - 1; index >= 0; index -= 1) {
-      const floater = this.live[index];
-      if (floater?.cause === cause) return floater;
-    }
-    return undefined;
+  /** Drops the floaters past their lifetime, so a spawn and a read both see only what is on screen at `nowMs`. */
+  private retire(nowMs: number): void {
+    this.live = this.live.filter((floater) => nowMs - floater.bornMs < FLOATER_LIFETIME_MS);
   }
 
-  /** Merges into the youngest of the same cause inside `FLOATER_MERGE_MS`, or pushes the column and adds a floater. */
+  /**
+   * Adds to the live floater of the same cause (#443) — a merge only ever changes the amount — or pushes the column up
+   * one row and starts a floater. Retiring first is what keeps a merge from landing on a floater that has already left.
+   */
   spawn(spawn: FloaterSpawn, nowMs: number, leftPx: number): void {
-    const youngest = this.youngestOf(spawn.cause);
-    if (youngest !== undefined && nowMs - youngest.bornMs < FLOATER_MERGE_MS) {
-      youngest.amount += spawn.amount;
+    this.retire(nowMs);
+    const shown = this.live.find((floater) => floater.cause === spawn.cause);
+    if (shown !== undefined) {
+      shown.amount += spawn.amount;
       return;
     }
     for (const floater of this.live) floater.row += 1;
     this.live.push({ cause: spawn.cause, amount: spawn.amount, bornMs: nowMs, leftPx, row: 0 });
-    if (this.live.length > FLOATER_MAX_VISIBLE) this.live.shift();
   }
 
   /** The live floaters at `nowMs`, oldest first; the ones past their lifetime leave first. */
   placements(nowMs: number): FloaterPlacement[] {
-    this.live = this.live.filter((floater) => nowMs - floater.bornMs < FLOATER_LIFETIME_MS);
+    this.retire(nowMs);
     return this.live.map((floater) => {
       const age = nowMs - floater.bornMs;
       return {

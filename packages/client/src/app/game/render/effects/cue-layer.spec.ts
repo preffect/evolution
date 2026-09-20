@@ -13,7 +13,7 @@ import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { rateTagsFor } from '../../hud/format/mass-cues';
 import { MASS_TREND } from '../../state/mass-trend';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-cell-indicators';
-import { RATE_TAG_REFRESH_MS } from '../constants';
+import { FLOATER_LIFETIME_MS, RATE_TAG_REFRESH_MS } from '../constants';
 import { CueLayer, type CueLayerFrame } from './cue-layer';
 
 const textures = createTestRenderTextures().indicators;
@@ -81,6 +81,17 @@ describe('CueLayer', () => {
     subject.update(frameAt(20, sprinting));
     expect(drawnTexts(text)).toContain('−16');
     expect(drawnTexts(text)).not.toContain('−32');
+    subject.destroy();
+  });
+
+  it('adds a later eat to the FOOD floater already drawn rather than drawing a second one (#443)', () => {
+    const { subject, text } = layer();
+    const eat = createTestEatEffect({ cellId: OWN.id, massGained: 3, dnaGained: 0 });
+    subject.update(frameAt(0, record(OWN), { effects: [eat] }));
+    expect(drawnTexts(text)).toEqual(['312', '+3', 'FOOD']);
+    // One FOOD row, its amount climbing: two rows here would be the clutter the ticket removes.
+    subject.update(frameAt(FLOATER_LIFETIME_MS - 1, record(OWN), { effects: [eat] }));
+    expect(drawnTexts(text)).toEqual(['312', '+6', 'FOOD']);
     subject.destroy();
   });
 

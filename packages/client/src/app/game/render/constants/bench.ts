@@ -10,10 +10,12 @@ import {
   FOOD_CAP_PER_PLAYER,
   FOOD_KIND,
   MAX_PLAYERS_PER_GAME,
+  MILLISECONDS_PER_SECOND,
   P95_QUANTILE,
   type FoodKind,
   type RenderStageName,
 } from '@evolution/shared';
+import { FLOATER_LIFETIME_MS } from './legibility-cues';
 
 // ---- the frame budget (docs/rendering/budget.md §7) ----
 /** The whole frame, p95, at 1080p and `devicePixelRatio` 1. */
@@ -128,14 +130,27 @@ export const RENDER_BENCH_LEVEL_UP_EVERY_TICKS = 90;
 /** Ticks an engulf takes to walk the whole wrap strip, so every frame of it shows. */
 export const RENDER_BENCH_ENGULF_CYCLE_TICKS = 90;
 export const RENDER_BENCH_ABSORB_EVERY_TICKS = 300;
+/** The frame rate the §7 budgets are stated at, and the rate a cadence written in ms becomes frames at. */
+export const RENDER_BENCH_FRAMES_PER_SECOND = 60;
+
 /**
  * `?bench&cues=1` (#385): the own cell's legibility cues at their worst case (docs/ui/hud.md §3.1.5, `bench-cues.ts`).
- * One of the eat, the engulf payout and the sprint lands every `floaterEveryFrames`, longer than `FLOATER_MERGE_MS` at
- * 60 fps so nothing merges, and short enough that `FLOATER_MAX_VISIBLE` floaters stay alive; the rates are the audit's
+ * The eat, the engulf payout and the sprint land on the first three frames of every `floaterCycleFrames`, so all
+ * `FLOATER_MAX_VISIBLE` floaters are up for the rest of the cycle: since #443 a cause is on screen at most once, so
+ * the worst case is one floater of each — FOOD and DNA from the eat, ENGULF, SPRINT — born together and leaving
+ * together rather than a repeat of one cause, which now merges and draws nothing more. The rates are the audit's
  * worked example (mass 312 in the vent with Mitochondrion I, touching Toxin Vacuole I), so three tags show.
  */
 export const RENDER_BENCH_CUES = {
-  floaterEveryFrames: 20,
+  /**
+   * A whole `FLOATER_LIFETIME_MS` in frames, so the cycle's four floaters retire just before the next cycle's steps
+   * replace them. Derived, never a literal: retuning the lifetime (which §3.1.6 states as a taste call, so it will be
+   * retuned) must move this with it, or the next cycle's eat would merge into a FOOD floater still on screen and the
+   * bench would quietly measure fewer than `FLOATER_MAX_VISIBLE`. Rounded **up**, since a cycle shorter than the
+   * lifetime is that same merge, while a longer one costs at most a frame of the four being three.
+   * `bench-cues.spec.ts` drives a real `FloaterStack` over two cycles and pins what the cycle holds.
+   */
+  floaterCycleFrames: Math.ceil((FLOATER_LIFETIME_MS * RENDER_BENCH_FRAMES_PER_SECOND) / MILLISECONDS_PER_SECOND),
   ratesPerSecond: { toxin: -9.36, decay: -0.5, vent: -0.25 },
   decayTraitShare: -0.15,
   eatMassGained: 3,

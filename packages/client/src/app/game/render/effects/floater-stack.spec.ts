@@ -9,7 +9,6 @@ import {
   FLOATER_FADE_FRACTION,
   FLOATER_LIFETIME_MS,
   FLOATER_MAX_VISIBLE,
-  FLOATER_MERGE_MS,
   FLOATER_RISE_PX,
 } from '../constants';
 import { FLOATER_CAUSE, FloaterStack, floaterAlpha, floaterSpawnsOf } from './floater-stack';
@@ -65,13 +64,31 @@ describe('FloaterStack', () => {
     expect(stack.placements(FLOATER_LIFETIME_MS)).toEqual([]);
   });
 
-  it('merges the same cause within FLOATER_MERGE_MS into the youngest, and not after it', () => {
+  it('adds a later pickup of the same cause to the floater on screen, and starts a new one once it has left', () => {
     const stack = new FloaterStack();
     stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, 0, LEFT_PX);
-    stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, FLOATER_MERGE_MS - 1, LEFT_PX);
-    expect(stack.placements(FLOATER_MERGE_MS - 1).map((floater) => floater.amountText)).toEqual(['+6']);
-    stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, FLOATER_MERGE_MS, LEFT_PX);
-    expect(stack.count).toBe(2);
+    stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, FLOATER_LIFETIME_MS - 1, LEFT_PX);
+    // One pill, not two: the whole lifetime merges, not just the first moments of it.
+    expect(stack.placements(FLOATER_LIFETIME_MS - 1).map((floater) => floater.amountText)).toEqual(['+6']);
+    // The first has left by now, so this one is the next floater rather than a third helping of the same.
+    stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, FLOATER_LIFETIME_MS, LEFT_PX);
+    expect(stack.placements(FLOATER_LIFETIME_MS).map((floater) => floater.amountText)).toEqual(['+3']);
+  });
+
+  it('keeps the clock and the x of the first pickup when it merges: no reset, no sideways snap (#443)', () => {
+    const stack = new FloaterStack();
+    const halfWay = FLOATER_LIFETIME_MS / 2;
+    stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, 0, LEFT_PX);
+    stack.spawn({ cause: FLOATER_CAUSE.food, amount: 3 }, halfWay, LEFT_PX + 50);
+    const merged = stack.placements(halfWay)[0];
+    expect(merged?.leftPx, 'a merge must not move the pill to the new column start').toBe(LEFT_PX);
+    // Its rise and its alpha are its ORIGINAL age's: a restarted clock would put both back to a newborn's.
+    expect(merged, 'a merge must not restart the rise or the fade').toMatchObject({
+      bottomPx: -CUE_GAP_PX - FLOATER_RISE_PX / 2,
+      alpha: floaterAlpha(halfWay),
+    });
+    // And it leaves on the first pickup's schedule: a reset would have kept it up until halfWay + the lifetime.
+    expect(stack.placements(FLOATER_LIFETIME_MS)).toEqual([]);
   });
 
   it('pushes the live floaters up one row for a new one, and keeps each one’s x from its spawn', () => {
@@ -83,20 +100,20 @@ describe('FloaterStack', () => {
     expect(newer).toMatchObject({ leftPx: LEFT_PX + 50, bottomPx: -CUE_GAP_PX, amountText: '−16', rim: CUE_RIM.none });
   });
 
-  it(`keeps at most ${FLOATER_MAX_VISIBLE}: the oldest leaves early`, () => {
+  it(`holds one floater per cause, so the column cannot exceed ${FLOATER_MAX_VISIBLE} rows`, () => {
+    const causes = Object.values(FLOATER_CAUSE);
+    // The cap is structural since #443, and only while there are no more causes than rows the column may hold.
+    expect(causes.length).toBeLessThanOrEqual(FLOATER_MAX_VISIBLE);
     const stack = new FloaterStack();
-    const causes = [
-      FLOATER_CAUSE.food,
-      FLOATER_CAUSE.dna,
-      FLOATER_CAUSE.engulf,
-      FLOATER_CAUSE.sprint,
-      FLOATER_CAUSE.food,
-    ];
-    causes.forEach((cause, index) => stack.spawn({ cause, amount: index + 1 }, index * FLOATER_MERGE_MS, LEFT_PX));
-    // Read at the last spawn: every floater is still inside its lifetime, so only the cap can have removed one.
-    const shown = stack.placements((causes.length - 1) * FLOATER_MERGE_MS);
-    expect(shown).toHaveLength(FLOATER_MAX_VISIBLE);
-    expect(shown[0]?.amountText).toBe('+2');
+    const spawnRound = (round: number) =>
+      causes.forEach((cause) => stack.spawn({ cause, amount: 1 }, round, LEFT_PX + round));
+    spawnRound(0);
+    spawnRound(1);
+    spawnRound(2);
+    const shown = stack.placements(2);
+    expect(shown.map((floater) => floater.cause)).toEqual(causes);
+    // Each cause's three pickups landed on its one floater, so nothing was dropped to keep the column short.
+    expect(shown.map((floater) => floater.amountText)).toEqual(causes.map(() => '+3'));
   });
 
   it('clears everything for a new own cell', () => {
