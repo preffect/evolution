@@ -301,6 +301,13 @@ Since a cause is on screen at most once, the column holds at most one row per `F
 `floater-stack.spec.ts` pins it: adding a fifth cause without raising the constant turns that test red, where the old
 trim would have silently dropped a floater.
 
+**The clock rule keeps the column whole, not just still.** Every floater has the same lifetime and a `bornMs` no
+merge moves, so they retire strictly oldest first — and rows are handed out oldest-highest, so the row a retiring
+floater leaves is always the top one. The live rows are therefore always exactly `0…n−1`, with no gap. Restarting
+the clock on a merge would break that: a middle floater fed by a late pickup would outlive the one above it and
+leave a hole in the column where a pill used to be. That is a structural reason for the same rule the motion
+argument above gives, and it is the one that would still hold if the rise were ever decoupled from the lifetime.
+
 **The decay factor (#445).** The DECAY tag's trait share and the hold-Tab panel's decay row (overlays.md §3.7)
 are one string from one function, `decayTraitShareOf` (`hud/format/mass-cues.ts`), and that string is the **factor**
 the trait applies — `×0.85` — not the signed change `−15 %` it was through #385 and #387.
