@@ -6,7 +6,16 @@
 // here is computed from `ENCYCLOPEDIA_LENS_DIAMETER_PX` or the kit's scale maximum; #373 pins their product
 // against `PREVIEW_CANVAS_MAX_PX` from the encyclopedia side.
 
-import { DISH_RADIUS, SHALLOWS_WIDTH, VENT_RADIUS, ZONE_ID, type GelPatchView, type ZoneId } from '@evolution/shared';
+import {
+  DISH_RADIUS,
+  SHALLOWS_WIDTH,
+  VENT_RADIUS,
+  ZONE_ID,
+  type GelPatchView,
+  type OwnedTrait,
+  type TraitTier,
+  type ZoneId,
+} from '@evolution/shared';
 import { HALF } from '../geometry';
 
 /** The one seed every preview texture bundle is baked from, so a seeded screenshot is reproducible. */
@@ -78,6 +87,38 @@ export const PREVIEW_CELL_DRAWN_FILL_FRACTION = PREVIEW_LENS_RIM_RADIUS_FRACTION
 
 /** How far from the lens centre a swimming subject circles, in its own radii. */
 export const PREVIEW_SWIM_RADIUS_RADII = 0.4;
+
+// ===== The action family (#364) =====
+
+/** Mid-ladder: every trait the action subject owns sits at tier II. */
+const PREVIEW_ACTION_SUBJECT_TIER: TraitTier = 2;
+
+/**
+ * The cell the `eat`, `sprint` and `level_up` scenes act with. These entries are about the **action**, so the
+ * subject is one fixed cell across all three rather than the entry's own traits: a reader comparing `eat` with
+ * `sprint` should see the same creature doing two different things. It owns a flagellum so the speed stretch and
+ * the tail read as motion, and a nucleoid and ribosomes so the body is not a bare protocell.
+ */
+export const PREVIEW_ACTION_SUBJECT_TRAITS: readonly OwnedTrait[] = [
+  { traitId: 'nucleoid', tier: PREVIEW_ACTION_SUBJECT_TIER },
+  { traitId: 'simple_flagellum', tier: PREVIEW_ACTION_SUBJECT_TIER },
+  { traitId: 'ribosomes', tier: PREVIEW_ACTION_SUBJECT_TIER },
+];
+
+/** The still beat between one loop of an action and the next, so a reader sees the action begin. */
+export const PREVIEW_ACTION_REST_SECONDS = 0.9;
+
+/** Where the mote the `eat` scene swallows starts, in the subject's radii, and the angle it comes in on. */
+export const PREVIEW_EAT_APPROACH_RADII = 2.6;
+export const PREVIEW_EAT_APPROACH_TURNS = 0.07;
+/** How long the mote takes to drift in from there; the eat fires when it arrives. */
+export const PREVIEW_EAT_APPROACH_SECONDS = 1.1;
+/** The mass and DNA the scene's `eat` effect reports — the floater reads them, nothing else does. */
+export const PREVIEW_EAT_MASS_GAINED = 4;
+export const PREVIEW_EAT_DNA_GAINED = 2;
+
+/** The level the `level_up` scene climbs to; the only preview that draws a real one. */
+export const PREVIEW_LEVEL_UP_LEVEL = 4;
 
 // ===== The food and DNA-fragment families =====
 

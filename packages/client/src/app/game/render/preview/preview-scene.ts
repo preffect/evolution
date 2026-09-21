@@ -21,6 +21,9 @@ import {
 } from '@evolution/shared';
 import { PREVIEW_SCENE, type PreviewSpec } from './preview-spec';
 import { cellPreviewScene } from './scenes/cell-scene';
+import { eatPreviewScene } from './scenes/eat-scene';
+import { levelUpPreviewScene } from './scenes/level-up-scene';
+import { sprintPreviewScene } from './scenes/sprint-scene';
 import { dnaFragmentPreviewScene, foodPreviewScene } from './scenes/food-scene';
 import { zonePreviewScene } from './scenes/zone-scene';
 
@@ -132,22 +135,21 @@ export function previewScene(definition: PreviewSceneDefinition): PreviewScene {
 /** What an unbuilt action family shows until ticket #364 lands: the open broth, with nothing in it. */
 const ACTION_SCENE_STAND_IN = { scene: PREVIEW_SCENE.zone, zone: ZONE_ID.openBroth } as const;
 
-/** The families ticket #364 still owes a builder; `previewSceneFor` shows the stand-in for each. */
-export const PREVIEW_SCENES_AWAITING_BUILDERS = [
-  PREVIEW_SCENE.eat,
-  PREVIEW_SCENE.engulf,
-  PREVIEW_SCENE.escape,
-  PREVIEW_SCENE.sprint,
-  PREVIEW_SCENE.levelUp,
-] as const;
+/**
+ * The families ticket #364 still owes a builder; `previewSceneFor` shows the stand-in for each.
+ *
+ * `eat`, `sprint` and `level_up` came off this list with the single-cell action scenes. The two left are the
+ * two-cell ones, which need a second body, the absorbed ghost and the prey's re-entry.
+ */
+export const PREVIEW_SCENES_AWAITING_BUILDERS = [PREVIEW_SCENE.engulf, PREVIEW_SCENE.escape] as const;
 
 /**
  * The scene for a spec; the balance is not read here, because a scene reads it per frame (its framing, its period
  * and its content), so a `balance_updated` retimes and reframes the open preview without a rebuild.
  *
- * The five families in `PREVIEW_SCENES_AWAITING_BUILDERS` are ticket #364's and resolve to
- * the stand-in until it lands, so the lens shows the dish rather than nothing; `preview-scene.spec.ts` names
- * exactly those five, so landing a builder for one of them flips that spec.
+ * The families in `PREVIEW_SCENES_AWAITING_BUILDERS` are ticket #364's remaining two and resolve to the stand-in
+ * until they land, so the lens shows the dish rather than nothing; `preview-scene.spec.ts` names exactly those,
+ * so landing a builder for one of them flips that spec.
  */
 export function previewSceneFor(spec: PreviewSpec): PreviewScene {
   switch (spec.scene) {
@@ -160,10 +162,13 @@ export function previewSceneFor(spec: PreviewSpec): PreviewScene {
     case PREVIEW_SCENE.zone:
       return zonePreviewScene(spec);
     case PREVIEW_SCENE.eat:
+      return eatPreviewScene();
+    case PREVIEW_SCENE.sprint:
+      return sprintPreviewScene();
+    case PREVIEW_SCENE.levelUp:
+      return levelUpPreviewScene();
     case PREVIEW_SCENE.engulf:
     case PREVIEW_SCENE.escape:
-    case PREVIEW_SCENE.sprint:
-    case PREVIEW_SCENE.levelUp:
       return zonePreviewScene(ACTION_SCENE_STAND_IN);
     default:
       // A tenth `PREVIEW_SCENE` family fails the build here rather than resolving quietly to the stand-in.

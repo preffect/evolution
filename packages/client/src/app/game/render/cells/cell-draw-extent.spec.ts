@@ -20,7 +20,7 @@ import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
 import { NOISE_STRIP_ROWS, PREVIEW_SEED } from '../constants';
 import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
-import { appendageReachRadii, cellDrawExtentRadii } from './cell-draw-extent';
+import { appendageReachRadii, cellDrawExtentRadii, restingDrawState } from './cell-draw-extent';
 import { summariseCellTraits } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
 import { FORM_PROFILES } from './forms/form-profiles';
@@ -95,7 +95,7 @@ describe('cellDrawExtentRadii', () => {
     for (const stage of Object.values(CELL_STAGE)) {
       for (const speedRatio of [RESTING, SWIMMING]) {
         const view = viewOf(BENCH_STAGE_TRAITS[stage], speedRatio, false);
-        const bound = cellDrawExtentRadii(summariseCellTraits(view), speedRatio, false);
+        const bound = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
         for (let tick = 0; tick <= SWEPT_TICKS; tick += 1) {
           const measured = measuredReachRadii(view, tick * TICK_INTERVAL_S, speedRatio, FIXED_STRIP_ROW);
           expect(
@@ -121,7 +121,7 @@ describe('cellDrawExtentRadii', () => {
   it('keeps the body inside the drawn extent for every stage', () => {
     for (const stage of Object.values(CELL_STAGE)) {
       const view = viewOf(BENCH_STAGE_TRAITS[stage], SWIMMING, false);
-      const { bodyRadii, drawnRadii } = cellDrawExtentRadii(summariseCellTraits(view), SWIMMING, false);
+      const { bodyRadii, drawnRadii } = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(SWIMMING));
       expect(bodyRadii, stage).toBeGreaterThan(0);
       expect(bodyRadii, stage).toBeLessThan(drawnRadii);
     }
@@ -132,9 +132,12 @@ describe('cellDrawExtentRadii', () => {
     const traits = BENCH_STAGE_TRAITS[CELL_STAGE.prokaryote];
     const traitsOf = (speedRatio: number, isSprinting: boolean) =>
       summariseCellTraits(viewOf(traits, speedRatio, isSprinting));
-    const resting = cellDrawExtentRadii(traitsOf(RESTING, false), RESTING, false);
-    const swimming = cellDrawExtentRadii(traitsOf(SWIMMING, false), SWIMMING, false);
-    const sprinting = cellDrawExtentRadii(traitsOf(SWIMMING, true), SWIMMING, true);
+    const resting = cellDrawExtentRadii(traitsOf(RESTING, false), restingDrawState(RESTING));
+    const swimming = cellDrawExtentRadii(traitsOf(SWIMMING, false), restingDrawState(SWIMMING));
+    const sprinting = cellDrawExtentRadii(traitsOf(SWIMMING, true), {
+      ...restingDrawState(SWIMMING),
+      isSprinting: true,
+    });
     expect(swimming.drawnRadii).toBeGreaterThan(resting.drawnRadii);
     expect(sprinting.drawnRadii).toBeGreaterThan(swimming.drawnRadii);
   });

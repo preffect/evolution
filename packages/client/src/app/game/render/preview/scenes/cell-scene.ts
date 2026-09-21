@@ -22,7 +22,7 @@ import {
   type CellView,
   type PlayerId,
 } from '@evolution/shared';
-import { cellDrawExtentRadii } from '../../cells/cell-draw-extent';
+import { cellDrawExtentRadii, restingDrawState } from '../../cells/cell-draw-extent';
 import { summariseCellTraits } from '../../cells/cell-traits';
 import {
   PREVIEW_CELL_BODY_FILL_FRACTION,
@@ -51,8 +51,6 @@ type CellPreviewSpec = Extract<PreviewSpec, { scene: typeof PREVIEW_SCENE.cell }
 const NO_MOTES = [] as const;
 const NO_FRAGMENTS = [] as const;
 
-/** A preview cell never sprints: the sprint's axial stretch and its doubled tail wave are the sprint scene's. */
-const IS_NOT_SPRINTING = false;
 /** Swimming is the cell's own top speed, so its stretch, tail and cilia read exactly as they do in play. */
 const SWIMMING_SPEED_RATIO = 1;
 const RESTING_SPEED_RATIO = 0;
@@ -100,8 +98,7 @@ export function cellPreviewScene(spec: CellPreviewSpec): PreviewScene {
 function subjectViewRadiusWu(spec: CellPreviewSpec, balance: BalanceConfig, isSwimming: boolean): number {
   const extent = cellDrawExtentRadii(
     summariseCellTraits(subjectCellView(spec, REST_POSE, balance)),
-    isSwimming ? SWIMMING_SPEED_RATIO : RESTING_SPEED_RATIO,
-    IS_NOT_SPRINTING,
+    restingDrawState(isSwimming ? SWIMMING_SPEED_RATIO : RESTING_SPEED_RATIO),
   );
   const offsetRadii = isSwimming ? PREVIEW_SWIM_RADIUS_RADII : 0;
   return (
