@@ -1,3 +1,4 @@
+// @vitest-environment node
 // `preview-bands.ts` is a **measuring tool**, and a measuring tool with no spec of its own is how
 // `glyph-bounds.ts` came to be wrong in four ways at once while every test that used it stayed green
 // (docs/rendering/files-and-tests.md). It carries the whole of PR #486's MAJOR 1 fix — the tail is measured from
