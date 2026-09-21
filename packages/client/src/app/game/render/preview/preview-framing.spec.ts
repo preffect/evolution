@@ -47,6 +47,13 @@ const MEASURED_FILL_FLOOR = 0.99;
  * Tightening it is ticket #491. It moves every tailed row's framing by about a fifth, which would be a third
  * framing change landing on top of ticket #488's orbit, so the call was to land the honest number now and the
  * tightening measured on its own. **When #491 lands this goes to 1**, and this spec is what will tell you.
+ *
+ * **If a tailed row fails on this floor, raise this number, never `MEASURED_FILL_FLOOR`.** The margin is thin by
+ * design — 1.22 puts the floor at 0.811 against a worst measured row of 0.8387, about 3.4 % — because the slack
+ * is a defect being tracked, not headroom being granted, and every point of it is framing a reader does not get.
+ * The walk is deterministic, so this will not flake; a new row landing under it means that row's tail is rooted
+ * even further inside its bound than the ones measured here, which is #491 getting worse rather than this
+ * constant being wrong. Lowering `MEASURED_FILL_FLOOR` instead would quietly weaken every tail-less row too.
  */
 const TAIL_BOUND_SLACK = 1.22;
 

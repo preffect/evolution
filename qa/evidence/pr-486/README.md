@@ -14,6 +14,11 @@ running behind it. The 1024 × 640 frame is the `UI_SCALE_MIN` floor, where the 
 | `364-route-mito-after-1280x800.png`       | 1280 × 800 | the evidence route (`?preview=trait:mitochondrion&t=1`), whose lens is its own 360 px  |
 | `swim-loop/364-swim-loop-four-phases.png` | 4 × 360 px | ticket #488's orbit at four quarter phases of its 2.05 s lap                           |
 
+**Every "after" frame here was re-captured from the current head**, including the evidence-route one. Round two of
+review caught that frame byte-identical across a commit that changed the other four — it was still drawing the
+pre-#488 orbit, and a stale frame reads as current evidence _of the wrong thing_, which is worse than the absent
+evidence this PR already fixed once.
+
 The before frame is not a re-capture: it is `466-lens-live-1280x800.png` from PR #482's own evidence, taken on
 `main` at the same entry and the same viewport. Reusing it is what makes the pair comparable — the same page, the
 same build of everything but this change.
@@ -24,17 +29,27 @@ Read off the two PNGs above, not derived from the framing arithmetic. The lens b
 its centre is `(671, 263)` and its radius 150 px; everything is measured inside 0.90 of that radius, clear of the
 rim, the reticle and the vignette, which are DOM SVG drawn over the canvas.
 
-**Half the bright-pixel bounding box — the membrane's own drawn radius:**
+**Half the bright-pixel bounding box — the membrane's own drawn radius.** Measured across **eight frames of a
+full 2.05 s lap**, because the loop phase is the axis that moves this number: the subject circles at 0.38 of the
+lens radius, so where it sits in its lap changes what the box encloses. (An earlier revision varied the luminance
+_threshold_ instead and reported a flat 1.39×. Thresholds barely move this measurement — 1.38/1.40/1.39 at 90/120/150
+— so that table read as stability while holding the one variable that actually matters fixed. It is the same error
+this file catches elsewhere: a stable number is not a representative one.)
 
-| threshold | before            | after             | ratio                    |
-| --------- | ----------------- | ----------------- | ------------------------ |
-| 90        | 35.5 px (0.237 r) | 49.0 px (0.327 r) | 1.38× radius, 1.91× area |
-| 120       | 35.0 px (0.233 r) | 49.0 px (0.327 r) | 1.40× radius, 1.96× area |
-| 150       | 35.0 px (0.233 r) | 48.5 px (0.323 r) | 1.39× radius, 1.92× area |
+|                            | px (threshold 120)                                    | of lens radius |
+| -------------------------- | ----------------------------------------------------- | -------------- |
+| after, eight phases        | 44.5 · 45.0 · 45.5 · 46.0 · 46.5 · 47.5 · 48.0 · 48.0 | 0.297 – 0.320  |
+| after, **mean**            | **46.4**                                              | **0.309**      |
+| before (`main`, one frame) | 35.0                                                  | 0.233          |
 
-Stable across three thresholds: **1.39× in radius, 1.93× in area.**
+**≈1.32× in radius at the phase mean, band 1.27–1.37×** — about 1.7× in area. Not a flat 1.39×; that was one
+lucky phase. PR #486's reviewer measured the same lap independently at 45.0–47.5 px, mean 46.5, and reports
+1.33× / 1.29–1.41×, which agrees inside the phase spread.
 
-### Why this is not the 2.0× / 3.9× an earlier revision of this file reported
+The **before** figure is a single frame and carries its own phase uncertainty, though less of it: at the old 0.4
+orbit the subject circled at 0.19 of the lens radius rather than 0.38, so its lap moved the box about half as far.
+
+### Why this is not the 2.0× / 3.9× the first revision of this file reported
 
 Two things changed, and only one of them is the picture.
 
@@ -47,7 +62,7 @@ at 0.636 r, which is consistent — same metric, same frame.)
 
 **And the orbit changed**, which is the real halving: ticket #488 took the swim loop from 0.4 to 1.2 radii, so the
 lens grew to hold the wider circle and the subject shrank inside it. At the 0.4 orbit this fix gave about 2.1× in
-radius; at 1.2 it gives 1.39×. That is the human's decision and its cost, both measured.
+radius; at 1.2 it gives 1.32×. That is the human's decision and its cost, both measured.
 
 ## The framing bands, walked
 

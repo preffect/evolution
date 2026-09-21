@@ -63,14 +63,14 @@ function cellDrawOf(cell: CellView): CellDraw {
 
 const PREVIEW_STRIP = buildNoiseStrip(createSeededRandom(PREVIEW_SEED).fork(RANDOM_STREAM.cosmetic));
 
-interface CellExtentsWu {
+export interface CellExtentsWu {
   /** The membrane at its widest: `maxRadii` with the halo taken back out. */
   readonly bodyWu: number;
   /** The widest anything is drawn: the halo, or the flagellum's tip past the membrane, or the cilia. */
   readonly drawnWu: number;
 }
 
-function cellExtents(cell: CellView, timeSeconds: number): CellExtentsWu {
+export function cellExtents(cell: CellView, timeSeconds: number): CellExtentsWu {
   const speedRatio = Math.min(
     1,
     Math.hypot(cell.velocityX, cell.velocityY) / maxSpeedForMass(cell.mass, BALANCE.growth),
@@ -115,7 +115,7 @@ function ciliaReachWu(traits: CellTraitSummary, bodyRadii: number, cell: CellVie
  * tapers. That taper is the whole point of measuring rather than bounding: the bound roots the tail at the cell's
  * *widest* membrane instead, which is a good deal further out than its rear.
  */
-function tailTipWu(cell: CellView, terms: ShapeTerms, timeSeconds: number, phase: number): number {
+export function tailTipWu(cell: CellView, terms: ShapeTerms, timeSeconds: number, phase: number): number {
   const tier = summariseCellTraits(cell).tierOf(FLAGELLUM_TRAIT);
   if (tier === 0) return 0;
   // Exactly the record `cell-layer.ts`'s `flagellumSpec` builds, off this frame's own terms and cosmetic phase.
@@ -208,6 +208,8 @@ export function worstBandsOf(spec: PreviewSpec): WorstBands {
   worstBandsBySpec.set(spec, walked);
   return walked;
 }
+
+export { PREVIEW_STRIP, cellDrawOf };
 
 export function reportBand(band: WorstBand): string {
   return `${band.what} reached ${band.fraction.toFixed(3)} of the lens radius at tick ${band.atTick}`;
