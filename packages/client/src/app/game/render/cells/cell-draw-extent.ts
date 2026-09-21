@@ -34,11 +34,7 @@ const FULL_AMPLITUDE = 1;
  * wave's peak added sideways (`flagellum-lines.ts`). Adding the wave to the length instead of taking the
  * hypotenuse of the two overstates the tip slightly, which is the safe direction for a framing bound.
  */
-export function appendageReachRadii(
-  traits: CellTraitSummary,
-  membraneRadii: number,
-  isSprinting: boolean,
-): number {
+export function appendageReachRadii(traits: CellTraitSummary, membraneRadii: number, isSprinting: boolean): number {
   const ciliaReach = traits.ciliaCount > 0 ? membraneRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
   if (flagellumTier === 0) return ciliaReach;

@@ -23,6 +23,7 @@ import { REST_DEFORMATION } from './cell-deformation';
 import { appendageReachRadii, cellDrawExtentRadii } from './cell-draw-extent';
 import { summariseCellTraits } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
+import { FORM_PROFILES } from './forms/form-profiles';
 import { buildShapeTerms } from './shape-terms';
 
 const BALANCE = DEFAULT_BALANCE;
@@ -30,6 +31,7 @@ const STRIP = buildNoiseStrip(createSeededRandom(PREVIEW_SEED).fork(RANDOM_STREA
 
 const CILIA_TRAIT: TraitId = 'cilia';
 const TIER_I: TraitTier = 1;
+const TIER_II: TraitTier = 2;
 const TIER_III: TraitTier = 3;
 
 /** A unit radius, so every reach this file compares is already in radii. */
@@ -138,23 +140,49 @@ describe('cellDrawExtentRadii', () => {
   });
 });
 
+/**
+ * A tripwire, not a feature test. `evaluateProfile` is `radius × pulse × form.evaluate(Δ) × stretch × surface`,
+ * but `maxReachRadii` has **no form term** — it bounds the stretch and the surface and nothing else. That is
+ * exact only while every form draws the blob (`B ≡ 1`), which is where the registry still stands: every
+ * `profileAt` is `BLOB_PROFILE` and returns `null`, with the five silhouettes owed by #192–#196.
+ *
+ * The day one of them registers a real `B(Δ)`, a profile with a peak above 1 reaches further than `maxRadii`
+ * claims — which is the encyclopedia lens clipping a stentor's trumpet, and the in-game quad extent clipping it
+ * too. This fires then, on the commit that causes it, instead of being found in a screenshot.
+ */
+describe('the form profiles maxReachRadii does not bound', () => {
+  it('all still draw the blob, so the reach is exact', () => {
+    for (const [traitId, form] of FORM_PROFILES) {
+      for (const tier of [TIER_I, TIER_II, TIER_III]) {
+        expect(
+          form.profileAt(tier),
+          `"${traitId}" tier ${tier} now has a form profile of its own. maxReachRadii (shape-terms.ts) multiplies ` +
+            'no form term into its bound, so if that profile peaks above 1 the membrane reaches further than ' +
+            'maxRadii reports: the cell quad clips it in play, and the encyclopedia lens — which frames from ' +
+            'peakReachRadii — clips it in the preview. Teach both the profile’s peak before landing the silhouette.',
+        ).toBeNull();
+      }
+    }
+  });
+});
+
 describe('appendageReachRadii', () => {
-  const MEMBRANE_RADII = 1.2;
+  const membraneRadii = 1.2;
 
   /** A cell with neither trait has nothing hanging off it, so the membrane is the whole extent. */
   it('reaches nothing past a cell with no cilia and no tail', () => {
     const bare = summariseCellTraits(viewOf([], RESTING, false));
-    expect(appendageReachRadii(bare, MEMBRANE_RADII, false)).toBe(0);
+    expect(appendageReachRadii(bare, membraneRadii, false)).toBe(0);
   });
 
   /** The two cases the tail's tier separates: a longer wave at tier III, and double that again on a sprint. */
   it('lengthens the tail with its tier and doubles its wave on a sprint', () => {
     const tierOne = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_I }], RESTING, false));
     const tierThree = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }], RESTING, false));
-    const shortTail = appendageReachRadii(tierOne, MEMBRANE_RADII, false);
-    const longTail = appendageReachRadii(tierThree, MEMBRANE_RADII, false);
-    const sprintingTail = appendageReachRadii(tierThree, MEMBRANE_RADII, true);
-    expect(shortTail).toBeGreaterThan(MEMBRANE_RADII);
+    const shortTail = appendageReachRadii(tierOne, membraneRadii, false);
+    const longTail = appendageReachRadii(tierThree, membraneRadii, false);
+    const sprintingTail = appendageReachRadii(tierThree, membraneRadii, true);
+    expect(shortTail).toBeGreaterThan(membraneRadii);
     expect(longTail).toBeGreaterThan(shortTail);
     expect(sprintingTail).toBeGreaterThan(longTail);
   });
@@ -162,8 +190,8 @@ describe('appendageReachRadii', () => {
   /** Cilia are hairs on the membrane, not a tail: they reach a fraction of a radius, not two of them. */
   it('reaches only just past the membrane for cilia', () => {
     const ciliated = summariseCellTraits(viewOf([{ traitId: CILIA_TRAIT, tier: TIER_I }], RESTING, false));
-    const reach = appendageReachRadii(ciliated, MEMBRANE_RADII, false);
-    expect(reach).toBeGreaterThan(MEMBRANE_RADII);
-    expect(reach).toBeLessThan(MEMBRANE_RADII + 1);
+    const reach = appendageReachRadii(ciliated, membraneRadii, false);
+    expect(reach).toBeGreaterThan(membraneRadii);
+    expect(reach).toBeLessThan(membraneRadii + 1);
   });
 });

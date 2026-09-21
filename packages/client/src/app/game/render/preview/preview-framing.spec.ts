@@ -78,8 +78,11 @@ const PREVIEW_STRIP = buildNoiseStrip(createSeededRandom(PREVIEW_SEED).fork(RAND
  * `SUBJECT_SPECS`, at both motions, the binding band came in at 1.0000 of its fill fraction every time; the
  * remaining hundredth is for a loop whose tick spacing straddles the peak less exactly.
  *
- * The number this is really set against is the framing it replaced: one `PREVIEW_CELL_VIEW_RADII` of 4.4 scores
- * about **0.35** here.
+ * **Why it is this high and not a comfortable 0.9.** The framing it replaced — one `PREVIEW_CELL_VIEW_RADII` of
+ * 4.4 — scores 0.333 on its worst row, but **0.9433** on its best: a tier-III flagellate, which is the case that
+ * constant was sized for and so the one it got nearly right. A floor under about 0.95 would let a revert to 4.4
+ * through on exactly the row it was tuned for, and catch it only elsewhere. That is the mistake this file exists
+ * to refuse, so the floor sits above it.
  */
 const MEASURED_FILL_FLOOR = 0.99;
 

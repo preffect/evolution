@@ -25,13 +25,7 @@ import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
 import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
-import {
-  ZERO_BUMP,
-  type RadialProfileTerms,
-  type ShapeBump,
-  type StretchTerm,
-  type StripTerm,
-} from './radial-profile';
+import { ZERO_BUMP, type RadialProfileTerms, type ShapeBump, type StretchTerm, type StripTerm } from './radial-profile';
 
 /** The rest motion at full amplitude; `cytoskeleton` halves breathing and lobes, a rigid form zeroes all three. */
 const FULL = 1;
@@ -121,12 +115,7 @@ function surfaceReach(breathing: number, wobbleAmplitude: number, strip: number,
 /** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2). */
 export function maxReachRadii(terms: RadialProfileTerms, haloOuterRadii: number): number {
   const stripMax = terms.strip ? stripReach(terms.strip.jitterAmplitude, terms.strip.lobesScale) : 0;
-  const surfaceMax = surfaceReach(
-    Math.abs(terms.breathing),
-    terms.wobble.amplitude,
-    stripMax,
-    bumpPeak(terms.bumps),
-  );
+  const surfaceMax = surfaceReach(Math.abs(terms.breathing), terms.wobble.amplitude, stripMax, bumpPeak(terms.bumps));
   return terms.pulse * stretchReach(terms.stretch) * surfaceMax * haloOuterRadii;
 }
 
