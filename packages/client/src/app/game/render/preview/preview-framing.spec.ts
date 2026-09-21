@@ -39,7 +39,6 @@ import { SUBJECT_SPECS } from './preview-subject-specs';
  */
 const MEASURED_FILL_FLOOR = 0.97;
 
-
 describe('the framing bands', () => {
   /**
    * §12.7's two bands, measured from `framing` in the canvas's square: every **body** inside
@@ -54,8 +53,12 @@ describe('the framing bands', () => {
   it('keep every body inside the safe radius and everything drawn inside the rim', () => {
     for (const spec of SUBJECT_SPECS) {
       const { body, drawn } = worstBandsOf(spec);
-      expect(body.fraction, `${spec.scene}: ${reportBand(body)}`).toBeLessThanOrEqual(PREVIEW_LENS_SAFE_RADIUS_FRACTION);
-      expect(drawn.fraction, `${spec.scene}: ${reportBand(drawn)}`).toBeLessThanOrEqual(PREVIEW_LENS_RIM_RADIUS_FRACTION);
+      expect(body.fraction, `${spec.scene}: ${reportBand(body)}`).toBeLessThanOrEqual(
+        PREVIEW_LENS_SAFE_RADIUS_FRACTION,
+      );
+      expect(drawn.fraction, `${spec.scene}: ${reportBand(drawn)}`).toBeLessThanOrEqual(
+        PREVIEW_LENS_RIM_RADIUS_FRACTION,
+      );
     }
   });
 

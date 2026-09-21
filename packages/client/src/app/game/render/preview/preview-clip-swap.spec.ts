@@ -1,13 +1,7 @@
 // A clip running across a scene swap (docs/architecture/encyclopedia.md §12.7): the rule that the preview's render
 // tick is monotonic and never wraps, and the consequence that makes it matter.
 
-import {
-  MILLISECONDS_PER_SECOND,
-  MOTION_CLIP,
-  MOTION_CLIPS,
-  ManualClock,
-  TICK_INTERVAL_S,
-} from '@evolution/shared';
+import { MILLISECONDS_PER_SECOND, MOTION_CLIP, MOTION_CLIPS, ManualClock, TICK_INTERVAL_S } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { MotionClipPlayer } from '../effects/motion-clip-player';
 import { PreviewLocalClock } from './preview-clock';

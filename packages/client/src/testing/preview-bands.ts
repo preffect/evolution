@@ -213,7 +213,6 @@ function walkWorstBands(spec: PreviewSpec): WorstBands {
   return { body, drawn };
 }
 
-
 /** Keyed on the spec's identity, which is safe because `SUBJECT_SPECS` holds one stable object per subject. */
 const worstBandsBySpec = new Map<PreviewSpec, WorstBands>();
 
