@@ -803,6 +803,11 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
   into the vignette band between 0.8 and the rim, and nothing drawn ever reaches past the rim (1.0), so nothing is cut
   off by the crop. The two-cell `engulf` and `escape` scenes keep both bodies inside 0.8. Scenes never know they are
   round.
+  **0.8 is a ceiling, not a target, and the two bands cannot both be filled** (#364). A flagellum is
+  `FLAGELLUM_LENGTH_RADII` 2 plus its wave, so a body framed at 0.8 would put its tail past 2.2 of the rim: for a
+  flagellate the rim band binds and the body lands near 0.41, measured. A scene therefore fills **whichever band
+  binds** and lets the other fall where it must — a cell framed so its body reaches 0.8 is a cell whose appendages
+  are outside the lens. Do not read the 0.8 as something a cell scene should be retuned toward.
 
 **Who owns the handle** (#466). `encyclopedia.component` **provides** `encyclopedia-preview.service.ts`, so the one
 handle opens with the panel and is destroyed with it. The service makes the host element itself and lends it to
