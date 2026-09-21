@@ -1,5 +1,9 @@
 # The mutation runs, verbatim
 
+The logs are `.txt` and not `.log` on purpose: `.gitignore`'s `*.log` swallowed the first attempt at committing
+them, so this README cited two files that were never in the tree — evidence that does not exist reads exactly
+like evidence that does. Caught in review of PR #486.
+
 Kept because three of the five mutations in `run-1` **failed to compile**, and a runner that scores by exit code
 alone cannot tell that from a guard firing. Both runs and both logs are here so the claim "each guard was verified
 by breaking it" can be checked rather than taken.
@@ -7,9 +11,9 @@ by breaking it" can be checked rather than taken.
 | File                     | What it is                                                                                    |
 | ------------------------ | --------------------------------------------------------------------------------------------- |
 | `run-1-first-attempt.sh` | The first pass. M1 and M3 are sound; **M2, M4 and M5 die on `TS6133`** and test nothing       |
-| `run-1-output.log`       | Its output — look at M2, M4 and M5: `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL` and **no test lines** |
+| `run-1-output.txt`       | Its output — look at M2, M4 and M5: `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL` and **no test lines** |
 | `run-2-rewritten.sh`     | M2, M4 and M5 rewritten to keep every symbol used, with the build-failure check in `run()`    |
-| `run-2-output.log`       | Its output: all three red on the intended guard, with the assertion messages                  |
+| `run-2-output.txt`       | Its output: all three red on the intended guard, with the assertion messages                  |
 
 ## The trap, and the four lines that close it
 

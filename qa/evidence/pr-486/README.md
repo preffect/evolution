@@ -12,6 +12,7 @@ running behind it. The 1024 × 640 frame is the `UI_SCALE_MIN` floor, where the 
 | `364-entry-protocell-after-1280x800.png`  | 1280 × 800 | `stage:protocell` — the worst case before, a cell with no appendages at all            |
 | `364-entry-flagellum3-after-1280x800.png` | 1280 × 800 | `trait:simple_flagellum` **III** — the case 4.4 existed for: two tails, inside the rim |
 | `364-route-mito-after-1280x800.png`       | 1280 × 800 | the evidence route (`?preview=trait:mitochondrion&t=1`), whose lens is its own 360 px  |
+| `swim-loop/364-swim-loop-four-phases.png` | 4 × 360 px | ticket #488's orbit at four quarter phases of its 2.05 s lap                           |
 
 The before frame is not a re-capture: it is `466-lens-live-1280x800.png` from PR #482's own evidence, taken on
 `main` at the same entry and the same viewport. Reusing it is what makes the pair comparable — the same page, the
@@ -19,74 +20,112 @@ same build of everything but this change.
 
 ## The subject, measured in pixels
 
-Not derived from the framing arithmetic — read off the two PNGs above. The lens box is `(521, 113) 300 × 300`, so
-its centre is `(671, 263)` and its radius 150 px. Inside 0.90 of that radius (clear of the rim, the reticle and the
-vignette, which are DOM SVG drawn over the canvas), the furthest pixel brighter than a luminance threshold:
+Read off the two PNGs above, not derived from the framing arithmetic. The lens box is `(521, 113) 300 × 300`, so
+its centre is `(671, 263)` and its radius 150 px; everything is measured inside 0.90 of that radius, clear of the
+rim, the reticle and the vignette, which are DOM SVG drawn over the canvas.
 
-| threshold | before            | after             | ratio |
-| --------- | ----------------- | ----------------- | ----- |
-| 90        | 47.4 px (0.316 r) | 93.5 px (0.623 r) | 1.97× |
-| 120       | 46.2 px (0.308 r) | 92.9 px (0.619 r) | 2.01× |
-| 150       | 45.4 px (0.303 r) | 90.6 px (0.604 r) | 2.00× |
+**Half the bright-pixel bounding box — the membrane's own drawn radius:**
 
-Stable across three thresholds: **2.0× in radius, 3.9× in area.** These are single frames at one phase of the swim
-loop, so they sit under the 0.75 the loop's worst tick reaches.
+| threshold | before            | after             | ratio                    |
+| --------- | ----------------- | ----------------- | ------------------------ |
+| 90        | 35.5 px (0.237 r) | 49.0 px (0.327 r) | 1.38× radius, 1.91× area |
+| 120       | 35.0 px (0.233 r) | 49.0 px (0.327 r) | 1.40× radius, 1.96× area |
+| 150       | 35.0 px (0.233 r) | 48.5 px (0.323 r) | 1.39× radius, 1.92× area |
+
+Stable across three thresholds: **1.39× in radius, 1.93× in area.**
+
+### Why this is not the 2.0× / 3.9× an earlier revision of this file reported
+
+Two things changed, and only one of them is the picture.
+
+**The metric was wrong for the question.** The earlier number was the _furthest_ bright pixel from the lens
+centre, which is the **band** — the subject's own reach plus how far its orbit carries it. That is 0.75 of the
+lens radius by construction whatever the orbit is, so it could not see a change in orbit at all. Measuring half
+the bright-pixel bounding box measures the subject. The old figure was not wrong about the band; it was answering
+a different question from the one the headline asks. (PR #482's reviewer independently reproduced the old number
+at 0.636 r, which is consistent — same metric, same frame.)
+
+**And the orbit changed**, which is the real halving: ticket #488 took the swim loop from 0.4 to 1.2 radii, so the
+lens grew to hold the wider circle and the subject shrank inside it. At the 0.4 orbit this fix gave about 2.1× in
+radius; at 1.2 it gives 1.39×. That is the human's decision and its cost, both measured.
 
 ## The framing bands, walked
 
-Every tick of one loop, for every cell spec in `SUBJECT_SPECS`, against the extents the renderer itself builds.
-`fill` is `max(body / 0.75, drawn / 0.95)` — how much of its own fill fraction the binding band reached. Both
-columns of each pair are measured the same way, so `old` is the old lens re-measured with the fixed appendage
-rule, not the number the old spec printed.
+Every tick of one loop, for every cell spec in `SUBJECT_SPECS`, against the extents the renderer itself would
+build — the membrane from the real `buildShapeTerms`, the tail from the real `flagellumPolyline` over the same
+terms. `fill` is `max(body / 0.75, drawn / 0.95)`: how much of its own fill fraction the binding band reached.
 
-| cell (traits at tier)                    | view (wu)     | body old → new  | drawn old → new | fill old → new   |
-| ---------------------------------------- | ------------- | --------------- | --------------- | ---------------- |
-| protocell, resting                       | 176 → **61**  | 0.2609 → 0.7500 | 0.3131 → 0.9000 | 0.3479 → **1.0** |
-| protocell, swimming                      | 176 → **96**  | 0.4092 → 0.7500 | 0.4729 → 0.8667 | 0.5456 → **1.0** |
-| prokaryote, resting                      | 176 → **137** | 0.2427 → 0.3124 | 0.7382 → 0.9500 | 0.7770 → **1.0** |
-| prokaryote, swimming                     | 176 → **163** | 0.3870 → 0.4166 | 0.8825 → 0.9500 | 0.9289 → **1.0** |
-| endosymbiosis, resting                   | 176 → **63**  | 0.2427 → 0.6835 | 0.3374 → 0.9500 | 0.3551 → **1.0** |
-| endosymbiosis, swimming                  | 176 → **93**  | 0.3870 → 0.7317 | 0.5025 → 0.9500 | 0.5290 → **1.0** |
-| eukaryote, resting                       | 176 → **61**  | 0.2359 → 0.6835 | 0.3279 → 0.9500 | 0.3452 → **1.0** |
-| eukaryote, swimming                      | 176 → **91**  | 0.3787 → 0.7328 | 0.4910 → 0.9500 | 0.5168 → **1.0** |
-| specialised, resting                     | 176 → **59**  | 0.2473 → 0.7422 | 0.3165 → 0.9500 | 0.3332 → **1.0** |
-| specialised, swimming                    | 176 → **92**  | 0.3926 → 0.7500 | 0.4770 → 0.9114 | 0.5234 → **1.0** |
-| wild protocell, resting                  | 176 → **61**  | 0.2609 → 0.7500 | 0.3131 → 0.9000 | 0.3479 → **1.0** |
-| **`simple_flagellum` III**, swimming     | 176 → **166** | 0.3870 → 0.4103 | 0.8961 → 0.9500 | 0.9433 → **1.0** |
-| **`diatom_shell` III** (rigid), swimming | 176 → **86**  | 0.3682 → 0.7500 | 0.4458 → 0.9081 | 0.4909 → **1.0** |
+| cell (traits at tier)                    | tail | view (wu) | body   | drawn  | fill       |
+| ---------------------------------------- | ---- | --------- | ------ | ------ | ---------- |
+| protocell, resting                       | —    | 61        | 0.7500 | 0.9000 | **1.0000** |
+| protocell, swimming                      | —    | 139       | 0.7500 | 0.8308 | **1.0000** |
+| prokaryote, resting                      | yes  | 137       | 0.3124 | 0.8852 | 0.9318     |
+| prokaryote, swimming                     | yes  | 197       | 0.5078 | 0.8060 | 0.8485     |
+| endosymbiosis, resting                   | —    | 63        | 0.6835 | 0.9500 | **1.0000** |
+| endosymbiosis, swimming                  | —    | 133       | 0.7500 | 0.9023 | **1.0000** |
+| eukaryote, resting                       | —    | 61        | 0.6835 | 0.9500 | **1.0000** |
+| eukaryote, swimming                      | —    | 132       | 0.7500 | 0.9002 | **1.0000** |
+| specialised, resting                     | —    | 59        | 0.7422 | 0.9500 | **1.0000** |
+| specialised, swimming                    | —    | 135       | 0.7500 | 0.8603 | **1.0000** |
+| wild protocell, resting                  | —    | 61        | 0.7500 | 0.9000 | **1.0000** |
+| **`simple_flagellum` III**, swimming     | yes  | 200       | 0.5013 | 0.7968 | 0.8387     |
+| **`diatom_shell` III** (rigid), swimming | —    | 129       | 0.7500 | 0.8559 | **1.0000** |
 
-`fill` comes out at **1.0000 on every row**, so the bound is _tight_, not merely safe: every loop is long enough
-that some tick lands on the breathing sine's peak, which is the only term `maxReachRadii` samples rather than
-bounds.
+Every row **without a tail** fills **1.0000**: the bound is tight, and since the tail is now measured rather than
+taken from that bound, the figure is not a tautology.
 
-**The last two rows are new coverage, and they are the two that decide the argument.** `BENCH_STAGE_TRAITS` tops
-its flagellum out at tier II, and `diatom_shell` is the ladder's only rigid form — the one path where `restScales`
+**The tailed rows do not, and the gap is a real finding.** `appendageReachRadii` roots the tail on the cell's
+_widest_ membrane; `cell-layer.ts` roots the drawn tail on the membrane **at the rear**, which the speed stretch
+tapers. The bound is safe but loose — 1.07× at rest, **1.19× at speed** — so a tailed cell is framed smaller than
+it needs to be. `preview-framing.spec.ts` carries that as a named `TAIL_BOUND_SLACK` applied only to tailed rows,
+with **ticket #491** to tighten it; a tail-less row still has to fill exactly. Deferred rather than fixed here
+because it moves every tailed row by about a fifth, which would be a third framing change landing alongside
+ticket #488's orbit.
+
+**Two rows are new coverage**, and they are the two that decide the argument: `BENCH_STAGE_TRAITS` tops its
+flagellum out at tier II, and `diatom_shell` is the ladder's only rigid form — the one path where `restScales`
 zeroes the breathing, the jitter and the lobes at once. Both are entries a reader can open, and neither was being
 measured.
 
-### Why one constant could not serve the family, quantified
+### What is measured and what is not
 
-Read the `fill old` column. The old 4.4 scores **0.9433** on the tier-III flagellate — nearly right, because that
-is the case it was sized for — and **0.3332** on a specialised cell at rest. One number, a 2.8× spread. The
-flagellate's body stays small after the fix too (0.41), and that is correct: its tail is what makes it wide, and
-the tail has to stay inside the rim.
+Everything above is the drawing, with one exception: the **cilia** reach is the membrane (measured) plus
+`CILIA_OUTER_RADII − 1`, read from the same render constant the shader compiles in. Cilia never bind a lens in
+practice — a tail or the halo always reaches further — but that one term is a constant rather than a measurement,
+and it is named here so the table is not read as more than it is.
 
-This also shows the two bands are **not jointly satisfiable** for a flagellate. Its lens is set by the tail at
-0.95 of the rim, which leaves the body at 0.41 — there is no framing that puts a 2-radius tail inside the rim and
-a body near 0.8 at the same time. So §12.7's body band is a **ceiling**, not a target, and whichever band binds is
-the one to fill. That is the reading this PR builds to and writes into §12.7.
+### Why one constant could not serve the family
+
+The old 4.4 scored **0.9433** on the tier-III flagellate — nearly right, because that is the case it was sized for
+— and **0.3332** on a specialised cell at rest. One number, a 2.8× spread. That is what sets
+`MEASURED_FILL_FLOOR` at 0.99 rather than something more comfortable: a floor at or under 0.9433 would let a
+revert to 4.4 through on exactly the row it was tuned for.
+
+This also shows the two bands are **not jointly satisfiable** for a flagellate: its lens is set by the tail, which
+leaves the body well under half. So §12.7's body band is a **ceiling**, not a target, and whichever band binds is
+the one to fill — the reading this PR writes into §12.7, with the reason, so it is not later "fixed" toward 0.8.
 
 ### A defect in the old measurement
 
 `preview-framing.spec.ts` was adding a tier-III **sprinting** flagellum's reach to _every_ cell, including ones
-with no tail at all: a bare protocell measured 0.8245 "drawn" with nothing but its halo on screen. That inflated
-number is part of why 4.4 looked defensible — it made the rim look nearly full for every cell. `appendageReachRadii`
-now asks each cell what it actually has, which is why the `drawn old` column above (0.3131 for that protocell)
-disagrees with what the old spec printed.
+with no tail: a bare protocell measured 0.8245 "drawn" with nothing but its halo on screen. That inflated number
+is part of why 4.4 looked defensible — it made the rim look nearly full for everything. Two smaller things fixed
+with it: the cilia reach was taken as an absolute `CILIA_OUTER_RADII` 1.12 radii rather than
+`CILIA_OUTER_RADII − 1` **past the membrane**, and was counted for cells with no cilia.
 
-Two smaller things fixed with it: the cilia reach was being taken as an absolute `CILIA_OUTER_RADII` 1.12 radii
-rather than `CILIA_OUTER_RADII − 1` **past the membrane** (`cell-shader-tells.ts`'s own `CILIA_REACH`), and it was
-counted for cells with no cilia.
+## The swim loop (ticket #488, option B)
+
+`PREVIEW_SWIM_RADIUS_RADII` 0.4 → **1.2**, the human's decision. The lap is `2πR / maxSpeedForMass(100)` — the
+cell walks its circle at its **own top speed**, so the stretch, the flagellum wave and the cilia beat all read the
+speed ratio the simulation would have given it, and widening the orbit is the only way to slow it that keeps them
+agreeing. The lap goes **0.683 s → 2.050 s**; the orbit is 48.0 wu.
+
+`364-swim-loop-four-phases.png` is the loop at four quarter phases (t = 0.256 / 0.769 / 1.281 / 1.794 s).
+
+The cost is in the table above and was accepted knowingly: the lens grows to hold the wider circle, so a
+protocell's own radius falls from about 0.52 to 0.37 of the lens, and this fix's headline goes from ~2.1× to
+1.39×. `preview-scene.spec.ts`'s "swims at the full speed ratio at every tick" was **re-run, not assumed**, and
+still holds — it is about velocity, which option B does not change.
 
 ## Guards, verified by breaking them
 
