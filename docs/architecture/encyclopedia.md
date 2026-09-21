@@ -789,7 +789,15 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
   applied while the compositor draws the canvas quad, with no offscreen surface. The square's corners (1 − π/4 ≈ 21 %
   of the fill) are still rendered. The loading and unavailable states fill the same circle, so no square shows before
   the first frame. The renderer's own screen vignette is square; its corners fall outside the clip.
-- **Framing:** scenes are authored for 1:1, through each scene's `framing.target` and `zoom`, in two bands. A
+- **Framing:** scenes are authored for 1:1, through each scene's `framing.target` and `zoom`, in two bands. The
+  `cell` family **derives** its view radius from the subject rather than carrying a constant (#364): a lens sized
+  to hold a tier-III flagellate's tail is about 2.5 radii of empty broth around a bare protocell, which has no
+  tail, and no one number serves both — at the 4.4 radii the tail needs, a protocell's body sat at 0.26 of the
+  lens radius against the 0.8 band. `cells/cell-draw-extent.ts` bounds how far a given cell can be drawn, over any
+  frame, and `cell-scene.ts` frames whichever band binds to `PREVIEW_CELL_BODY_FILL_FRACTION` /
+  `PREVIEW_CELL_DRAWN_FILL_FRACTION`. Because the bound is time-independent the zoom never breathes with the
+  membrane; because it is a bound, the bands below hold for every tick of the loop by construction, and
+  `preview-framing.spec.ts` measures the frames the renderer actually builds against them. A
   subject's **body** (every cell's membrane at its widest, stretch and engulf arms included) lies inside
   `PREVIEW_LENS_SAFE_RADIUS_FRACTION` 0.8 of the radius. Its **appendages** (a flagellum, cilia, pseudopods) may reach
   into the vignette band between 0.8 and the rim, and nothing drawn ever reaches past the rim (1.0), so nothing is cut

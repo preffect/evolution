@@ -79,8 +79,9 @@ describe('previewSceneFor', () => {
           'target.x/target.y: either previewSceneFor no longer reaches its builder (check the switch in ' +
           'preview-scene.ts), or the builder is reached perfectly normally and its framing has drifted onto the ' +
           "stand-in's. Drift is the likelier one for the cell family, whose SUBJECT_CENTRE is already the openBroth " +
-          'centre the stand-in parks on — so viewRadiusWu is the only number separating them, and retuning ' +
-          'PREVIEW_CELL_VIEW_RADII or the preview mass alone will fire this.',
+          'centre the stand-in parks on — so viewRadiusWu is the only number separating them, and a cell scene ' +
+          'derives that from its subject (cellDrawExtentRadii, the fill fractions, the preview mass), so retuning ' +
+          'any of those alone will fire this.',
       ).toBe(false);
     }
   });

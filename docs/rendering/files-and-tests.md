@@ -22,6 +22,7 @@ cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-text
 cells/self-ring.ts                                 the sprint ring's input to the cell layer, its clockwise-from-12 arc coordinate (the GLSL's reference) and the escape's warning-ring rule (§10, #295)
 cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-tells,cell-shader-membrane}.ts   GLSL as template strings: the two stages, the shared helpers, the profile, pass A (with the interior tells), the pass-B tells (wall, cilia, warning ring, rim dash), pass B (#215, #216)
 cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t (dents: #216)
+cells/cell-draw-extent.ts                          how far a cell reaches: the membrane's time-independent bound (`peakReachRadii`) and the appendages hanging off it, which the encyclopedia preview frames its lens from and `preview-framing.spec.ts` measures against (#364)
 cells/{cell-clips,cell-effects,ghost-cells,ghost-instance}.ts  the clip hooks (tracks → deformation), effects → clip starts and ghosts, the absorbed-prey ghosts and their instance rows (#216; #207 drives the first two)
 cells/{organelle-kinds,organelle-layout,organelle-mapper,organelle-motion,organelle-sprites,flagellum-lines}.ts   counts, seeded slots, the mapping through the profile, sprite motion, the pooled sprites (#215); flagella #216
 cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   the registry and aspects (#216); the silhouettes (#192–#196, #121)

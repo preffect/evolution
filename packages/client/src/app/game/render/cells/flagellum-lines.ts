@@ -3,7 +3,7 @@
 // doubled on sprint, two tails at tier III. `flagellumPolyline` is pure; `FlagellumLines` draws
 // every tail of the frame into one Graphics, under the body so the root is buried in the membrane.
 
-import { RADIANS_PER_FULL_TURN, type TraitTier } from '@evolution/shared';
+import { RADIANS_PER_FULL_TURN, type TraitId, type TraitTier } from '@evolution/shared';
 import { Graphics } from 'pixi.js';
 import { hexToNumber } from '../colour';
 import {
@@ -23,6 +23,9 @@ import {
   WHITE,
 } from '../constants';
 import { HALF, degreesToRadians } from '../geometry';
+
+/** The trait that grows the tail: whoever needs its tier reads it here rather than spelling the id again. */
+export const FLAGELLUM_TRAIT: TraitId = 'simple_flagellum';
 
 export interface FlagellumSpec {
   readonly x: number;
