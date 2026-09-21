@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createTestPlayerProgressView, playerId, type LeaderboardRow, type PlayerId } from '@evolution/shared';
 import { LEADERBOARD_COMPACT_ROWS, LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';

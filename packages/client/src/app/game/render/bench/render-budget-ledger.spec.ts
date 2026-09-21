@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The budget ledger (docs/CODE-STANDARDS.md §2): every number of docs/rendering/budget.md §6–§7 that the
 // bench asserts is read from the doc's own tables here and pinned against the constants, so the
 // doc and the code cannot drift silently.

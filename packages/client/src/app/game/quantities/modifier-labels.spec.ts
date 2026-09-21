@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type CellModifiers } from '@evolution/shared';
 import { MODIFIER_LABELS, modifierLine, modifierLines, nonIdentityModifiers } from './modifier-labels';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { NO_HEAP_PROBE, createBrowserHeapProbe } from './heap-probe';
 

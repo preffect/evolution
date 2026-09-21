@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ENDOSYMBIOSIS_BACTERIA_REQUIRED } from '@evolution/shared';
 import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-builders';

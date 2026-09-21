@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The server culls food and fragments outside each viewer's interest area (docs/architecture/wire-contract.md §4.2
 // lever 1). Its margin counts a mote as `INTEREST_ENTITY_REACH_RADII` of its radius wide, so no mote this renderer
 // draws may reach further, or its glow would pop at the edge of the canvas as the mote enters the stream.

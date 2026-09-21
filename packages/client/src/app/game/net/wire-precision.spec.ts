@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/architecture/wire-contract.md §4.2 lever 3 (#341): the rounding the server applies to a cell on the wire is
 // invisible where the camera is closest. Positions and radii arrive at `SNAPSHOT_POSITION_DECIMALS` /
 // `SNAPSHOT_RADIUS_DECIMALS`, velocity at `SNAPSHOT_VELOCITY_DECIMALS`; interpolation and extrapolation read them as

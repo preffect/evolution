@@ -35,6 +35,37 @@ the opt-in integration run rather than on every save.
 - Run the integration tier at the end of a task that may have caused a cross-subsystem
   regression, never on every save.
 
+### 2.1 The client spec environment: jsdom by default, `node` where there is no DOM (#477)
+
+The Angular unit-test builder constructs a fresh **jsdom** for every client spec file, and that
+construction costs ~1.8 s whatever the spec asserts. It is a flat tax, not a tail: across the 258
+files of the `test` tier the per-file cost ran p10 1.48 s, p50 1.79 s, p90 2.17 s, max 2.63 s, for
+469 s of the run's 1482 worker-seconds. It is charged per _file_, so every spec split buys another
+one.
+
+A spec whose whole import graph touches no DOM does not need it, and says so on its first line:
+
+```ts
+// @vitest-environment node
+```
+
+Vitest reads that docblock from the spec's own source when it groups the files (so it survives the
+builder's esbuild bundling, which the comment itself never reaches) and runs the file in a plain
+node environment, where its environment cost is ~0 ms. The 90 specs that carry it today took the
+tier from 741 s to 644 s.
+
+- **The rule for a new spec:** when nothing in its import graph imports `@angular/*` or `pixi.js`,
+  and nothing in it names a DOM global (`document`, `window`, `HTMLElement`, `canvas`,
+  `localStorage`, `WebSocket`, …), give it the docblock. Section 7 lists it as a reviewer check.
+- **When in doubt, leave it out.** A spec that needs the DOM and declares `node` fails loudly
+  (`ReferenceError: document is not defined`) rather than silently, but it is still a red tier.
+- A spec that uses `TestBed`, renders a component, stubs `WebSocket` or `AudioContext` on
+  `globalThis`, or drives Pixi keeps jsdom. The builder's TestBed setup file runs in both
+  environments and costs ~0.85 s a file either way; it needs a DOM only once a spec uses `TestBed`.
+- Vitest runs the two environments as separate worker batches and recycles the workers between
+  them, so the node specs and the jsdom specs never share global state.
+- The same docblock works in the integration tier (`lint-guard.integration.spec.ts` carries it).
+
 ## 3. Naming and placement
 
 - Co-located, same basename: `game-room.ts` → `game-room.test.ts`. No `__tests__/` directories.
@@ -106,4 +137,5 @@ the only bound (`testing/wait-for.ts`, #421).
 3. A changed rule or number has a scenario named by its design-table row.
 4. Fixtures come from `src/testing/`; no ad-hoc object literals repeated across tests.
 5. No `.only`, no `.skip`, no snapshot of a large object, no `Math.random`, no real time.
-6. Coverage did not go down; if it went up, the threshold went up with it.
+6. A new client spec with no DOM in its import graph carries `// @vitest-environment node` (§2.1).
+7. Coverage did not go down; if it went up, the threshold went up with it.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/architecture/encyclopedia.md §12.6: the assembled registry against the code's closed sets at runtime. Until
 // #361 and #362 land their content the registry holds the evolutions subjects only; every other subject is listed in
 // `SUBJECTS_AWAITING_CONTENT`, and the spec fails as soon as one of them gains entries, so the list shrinks with them.

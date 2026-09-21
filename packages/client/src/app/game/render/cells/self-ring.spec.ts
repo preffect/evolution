@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The sprint ring's coordinate and the escape rule (docs/ui/hud.md §3.1.2, docs/rendering/own-cell-indicators.md §10). The
 // turn is the one a wrong sign or a wrong zero would silently move, so it is pinned at the clock
 // positions a player reads, in the renderer's y-down world frame.
