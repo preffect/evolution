@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, TRAIT_CATALOG, type OwnedTrait, type TraitId } from '@evolution/shared';
 import { menuTraitRowsFor, traitEntryId, visibleRowsHeightPx } from './menu-traits';

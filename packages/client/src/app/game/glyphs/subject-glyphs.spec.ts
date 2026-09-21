@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, CELL_KIND, CELL_STAGE, DNA_TAG, ENTITY_KIND, FOOD_KIND, ZONE_ID } from '@evolution/shared';
 import { ABILITY } from '../encyclopedia/model/abilities';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The own-cell indicators' ledger (docs/ui/components-and-constants.md §9, docs/CODE-STANDARDS.md §2): every row of the
 // table is parsed from the doc and pinned against `render/constants.ts` by name **and value**, the
 // way the shared `constants-ledger.test.ts` pins the four design tables by name. Values too, because

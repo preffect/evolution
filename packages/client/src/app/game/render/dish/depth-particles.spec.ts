@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
 import { DEPTH_FAR, DEPTH_FIELD_WU, DEPTH_PARALLAX } from '../constants';

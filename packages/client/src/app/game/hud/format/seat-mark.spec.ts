@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { AVATAR_INDEX_MAX, PLAYER_PALETTE_COUNT, SEAT_MARK_BEADS } from '@evolution/shared';
 import { seatMarkBeadCount, seatMarkBeadPositions } from './seat-mark';

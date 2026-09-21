@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, MASS_RATE_CAUSE, ZONE_ID, type MassFlowView } from '@evolution/shared';
 import { RATE_TAG_MIN_MASS_PER_SECOND, RATE_TAG_ROWS_MAX } from '../../render/constants';

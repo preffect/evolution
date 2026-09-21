@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The panel's key rules (docs/testing/tiers-and-builders.md §2.1, docs/ui/encyclopedia.md §11.5). Pure, so every case
 // is a record in and a string out — no DOM, no fixture, no component.
 

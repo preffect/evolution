@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { SNAPSHOT_ACK_EVERY_SNAPSHOTS } from '@evolution/shared';
 import { SnapshotAcknowledger } from './snapshot-acknowledger';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { AVATAR_INDEX_MAX } from '@evolution/shared';
 import { paletteFor } from '../../render/palette';

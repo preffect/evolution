@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom, entityId } from '@evolution/shared';
 import { MOTE_ATLAS_PX_PER_WU } from '../constants';

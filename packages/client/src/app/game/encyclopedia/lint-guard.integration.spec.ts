@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/architecture/encyclopedia.md §12.6: the two lint blocks that keep numbers out of the encyclopedia, pinned
 // against the repository's real `eslint.config.js`. ESLint runs in one child Node process over fixture sources (the
 // test bundle never loads ESLint itself); each fixture lints under the path of an existing file, so the type-aware

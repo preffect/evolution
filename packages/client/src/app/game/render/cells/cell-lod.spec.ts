@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/rendering/files-and-tests.md §9: the LOD thresholds and the fade window under the full threshold.
 
 import { describe, expect, it } from 'vitest';

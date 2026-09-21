@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_HEADING_STILL_WU } from '../constants';
 import { advanceHeading, createHeadingMemory } from './bacterium-heading';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The fixture frame (docs/architecture/encyclopedia.md §12.7, §12.9). The point of this seam is that a preview
 // cannot lie about a cell: its `radius` and its `stage` come from the shared formulas over the **live** balance,
 // so a trait preview's silhouette is exactly the ladder's and a balance patch moves the preview with the game.

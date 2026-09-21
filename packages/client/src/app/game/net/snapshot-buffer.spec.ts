@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createTestSnapshot } from '@evolution/shared';
 import { SNAPSHOT_PUSH, SnapshotBuffer } from './snapshot-buffer';

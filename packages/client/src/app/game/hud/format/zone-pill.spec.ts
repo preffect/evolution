@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, ZONE_ID, entityId, gelSpeedFactor, secondsToTicks } from '@evolution/shared';
 import { ZONE_PILL_COOLDOWN_SECONDS, ZONE_PILL_SECONDS } from '../../render/constants';

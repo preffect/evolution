@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ARC_INSTANCE_FIELD, DANGER, DNA, LADDER_ORBIT_ANGLES_PAIR_DEG } from '../constants';
 import { ARC_CAP, ARC_INSTANCE_FLOATS, packArcInstances, type ArcInstance } from './arc-instance';

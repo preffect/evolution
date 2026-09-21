@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { LIGHT_DIRECTION_DEG, NUCLEUS_OFFSET_TOWARD_LIGHT } from './constants';
 import { LIGHT_DIRECTION_RADIANS, LIGHT_UNIT_VECTOR, NUCLEUS_REST_OFFSET } from './light-direction';

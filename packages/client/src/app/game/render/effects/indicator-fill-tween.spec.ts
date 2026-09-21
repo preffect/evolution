@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { INDICATOR_FILL_TWEEN_MS } from '../constants';
 import { IndicatorFillTween } from './indicator-fill-tween';
