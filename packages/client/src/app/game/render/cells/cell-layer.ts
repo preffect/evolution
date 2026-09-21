@@ -8,7 +8,7 @@
 // are the ones dropped. Row order is draw order, so a ghost's row goes right before its
 // predator's (the predator paints over its dissolving prey, visual-style/motion-and-legibility.md §6 "prey through film").
 
-import { RENDER_STAGE, type CellView, type EntityId, type TraitId } from '@evolution/shared';
+import { RENDER_STAGE, type CellView, type EntityId } from '@evolution/shared';
 import { Container } from 'pixi.js';
 import { UNTIMED_STAGES, type StageMeasurer } from '../bench/render-stage-timer';
 import { isDiscInExtent, type CameraExtent } from '../camera';
@@ -23,7 +23,7 @@ import type { CellLayerFrame, CellLayerOutputs } from './cell-layer-frame';
 import { CellMesh } from './cell-mesh';
 import { CellRenderState, type CellFrameContext, type CellFrameOutput } from './cell-render-state';
 import { computeContactDents } from './contact-dents';
-import { FlagellumLines, type FlagellumSpec } from './flagellum-lines';
+import { FLAGELLUM_TRAIT, FlagellumLines, type FlagellumSpec } from './flagellum-lines';
 import { GhostRegistry, type Ghost, type GhostSource } from './ghost-cells';
 import { ghostFrame } from './ghost-instance';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
@@ -34,7 +34,6 @@ export type CellLayerTextures = Pick<
   'cosmetic' | 'strip' | 'stripTexture' | 'tileTexture' | 'paletteTexture' | 'organelles'
 >;
 
-const FLAGELLUM_TRAIT: TraitId = 'simple_flagellum';
 /** `organelleDraw`'s rest flag: a ghost's sprites are frozen, a living cell's keep their idle motion (#243). */
 const IS_AT_REST = true;
 const IS_IN_MOTION = false;

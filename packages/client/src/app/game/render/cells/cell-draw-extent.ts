@@ -1,0 +1,74 @@
+// How far from its centre a cell is drawn (docs/rendering/cells.md §2, docs/architecture/encyclopedia.md §12.7):
+// the membrane at its widest, and the widest anything reaches — the halo, the cilia hairs, or a flagellum's tip.
+//
+// Two readers, and they are deliberately not the same reader. The encyclopedia preview **frames its lens** by the
+// bound (`peakReachRadii`, a constant of the cell), so a scene's zoom is fixed for its whole loop; the framing
+// spec **measures** the membrane the renderer actually drew that tick and asks this file only for the appendages
+// hanging off it. Sharing `appendageReachRadii` between the two is what keeps the framing honest: the spec's
+// measurement stays independent of the bound the framing was picked from, and neither owns a private copy of how
+// long a tail is.
+
+import type { TraitTier } from '@evolution/shared';
+import {
+  CILIA_OUTER_RADII,
+  FLAGELLUM_AMPLITUDE_BY_TIER,
+  FLAGELLUM_AMPLITUDE_RADII,
+  FLAGELLUM_LENGTH_RADII,
+  FLAGELLUM_SPRINT_AMPLITUDE_SCALE,
+} from '../constants';
+import type { CellTraitSummary } from './cell-traits';
+import { FLAGELLUM_TRAIT } from './flagellum-lines';
+import { haloOuterRadiiOf, peakReachRadii } from './shape-terms';
+
+/** The hairs reach `CILIA_OUTER_RADII − 1` **past the membrane** (`cell-shader-tells.ts`'s `CILIA_REACH`). */
+const CILIA_REACH_RADII = CILIA_OUTER_RADII - 1;
+
+/** A cell with no cilia and no tail: its appendages reach no further than its membrane. */
+const NO_APPENDAGE_REACH = 0;
+const FULL_AMPLITUDE = 1;
+
+/**
+ * The widest an appendage reaches **past the cell's centre**, in radii, given the membrane radius at its widest.
+ *
+ * The tail is the long one: rooted on the membrane at the rear, `FLAGELLUM_LENGTH_RADII` further out, with the
+ * wave's peak added sideways (`flagellum-lines.ts`). Adding the wave to the length instead of taking the
+ * hypotenuse of the two overstates the tip slightly, which is the safe direction for a framing bound.
+ */
+export function appendageReachRadii(traits: CellTraitSummary, membraneRadii: number, isSprinting: boolean): number {
+  const ciliaReach = traits.ciliaCount > 0 ? membraneRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
+  const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
+  if (flagellumTier === 0) return ciliaReach;
+  return Math.max(ciliaReach, membraneRadii + FLAGELLUM_LENGTH_RADII + waveAmplitudeRadii(flagellumTier, isSprinting));
+}
+
+/** The tail wave's peak in radii at this tier, doubled while sprinting (`flagellum-lines.ts`'s `amplitudeWu`). */
+function waveAmplitudeRadii(tier: TraitTier, isSprinting: boolean): number {
+  const tierScale = FLAGELLUM_AMPLITUDE_BY_TIER[tier - 1] ?? FULL_AMPLITUDE;
+  const sprintScale = isSprinting ? FLAGELLUM_SPRINT_AMPLITUDE_SCALE : FULL_AMPLITUDE;
+  return FLAGELLUM_AMPLITUDE_RADII * tierScale * sprintScale;
+}
+
+/** The two framing bands of §12.7, in radii: the body inside the safe circle, everything drawn inside the rim. */
+export interface CellDrawExtentRadii {
+  /** The membrane at its widest, the halo taken back out: what the **safe** band is measured against. */
+  readonly bodyRadii: number;
+  /** The widest anything is drawn — halo, cilia or tail: what the **rim** band is measured against. */
+  readonly drawnRadii: number;
+}
+
+/**
+ * The bound: how far a cell of these traits can be drawn at this speed, over **any** frame. Time-independent and
+ * cosmetic-fork-independent, so a lens framed by it holds still.
+ */
+export function cellDrawExtentRadii(
+  traits: CellTraitSummary,
+  speedRatio: number,
+  isSprinting: boolean,
+): CellDrawExtentRadii {
+  const drawnWithHalo = peakReachRadii(traits, speedRatio, isSprinting);
+  const bodyRadii = drawnWithHalo / haloOuterRadiiOf(traits);
+  return {
+    bodyRadii,
+    drawnRadii: Math.max(drawnWithHalo, appendageReachRadii(traits, bodyRadii, isSprinting)),
+  };
+}

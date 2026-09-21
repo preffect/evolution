@@ -33,6 +33,16 @@ export const PREVIEW_CANVAS_MAX_PX = 900;
  */
 export const PREVIEW_LENS_SAFE_RADIUS_FRACTION = 0.8;
 
+/** The rim: the lens radius itself, the fraction nothing drawn may pass (§12.7). */
+export const PREVIEW_LENS_RIM_RADIUS_FRACTION = 1;
+
+/**
+ * How far inside its band a scene frames its subject. The two bands above are **limits**, not targets: a subject
+ * framed to exactly its limit has its outline sitting in the vignette or on the crop. One margin serves both, so
+ * the two fill fractions below cannot drift past the bands they belong to.
+ */
+export const PREVIEW_LENS_FILL_MARGIN = 0.05;
+
 /** `openedToFirstFrameMs` p95 over 20 opens, the cold first open reported apart (§12.7's cost table). */
 export const PREVIEW_OPEN_BUDGET_MS = 300;
 /** The preview frame's own CPU p95, warm-up frames excluded (§12.7's cost table). */
@@ -53,14 +63,32 @@ export const PREVIEW_STILL_PERIOD_SECONDS = 6;
 export const PREVIEW_CELL_MASS = 100;
 
 /**
- * The lens's world radius for a one-cell scene, in that cell's radii. Sized so a tier-III flagellate's whole tail
- * stays inside the rim: the loop offset below, plus the body, plus `FLAGELLUM_LENGTH_RADII` and the wave's peak.
- * `preview-scene.spec.ts` measures both bands against the renderer's own extents and fails if either leaves its band.
+ * A cell scene's lens is **derived, not tuned**: `cell-scene.ts` frames it from the subject's own drawn extent
+ * (`cells/cell-draw-extent.ts`) so that whichever of the two bands binds is filled to here.
+ *
+ * It replaced a single `PREVIEW_CELL_VIEW_RADII` of 4.4 (ticket #364). That one number had to keep a tier-III
+ * flagellate's whole tail inside the rim, and a tail is `FLAGELLUM_LENGTH_RADII` 2 plus its wave — about 2.5 radii
+ * of mostly empty lens that a bare protocell, which has no tail at all, was framed for anyway. It left a
+ * protocell's body at 0.26 of the lens radius against a 0.8 band, so the reader saw a speck in an eyepiece on
+ * every trait and stage page. No single constant serves both: at 4.4 a swimming flagellate's tail already reaches
+ * 0.97 of the rim, so there was nothing to give back.
  */
-export const PREVIEW_CELL_VIEW_RADII = 4.4;
+export const PREVIEW_CELL_BODY_FILL_FRACTION = PREVIEW_LENS_SAFE_RADIUS_FRACTION - PREVIEW_LENS_FILL_MARGIN;
+export const PREVIEW_CELL_DRAWN_FILL_FRACTION = PREVIEW_LENS_RIM_RADIUS_FRACTION - PREVIEW_LENS_FILL_MARGIN;
 
-/** How far from the lens centre a swimming subject circles, in its own radii. */
-export const PREVIEW_SWIM_RADIUS_RADII = 0.4;
+/**
+ * How far from the lens centre a swimming subject circles, in its own radii — and therefore, since the cell walks
+ * that circle at its **own top speed**, how long a lap takes: `2πR / maxSpeedForMass`. Widening the orbit is the
+ * only way to slow it that keeps the stretch, the flagellum wave and the cilia beat reading the speed ratio the
+ * simulation would have given it.
+ *
+ * **1.2 is the human's decision on ticket #488, option B**, taken over 0.4 knowing its cost. At 0.4 the lap took
+ * 0.683 s — about 1.5 orbits a second — which was an invisible jiggle while the lens was 4.4 radii wide and
+ * became a fast circuit once ticket #364's framing fix nearly doubled the subject. At 1.2 the lap takes 2.05 s,
+ * and the lens grows to hold the wider circle, so a protocell's body fills about 0.37 of the lens rather than
+ * 0.75. Tempo bought with size, deliberately: do not "recover" the size by narrowing this again.
+ */
+export const PREVIEW_SWIM_RADIUS_RADII = 1.2;
 
 // ===== The food and DNA-fragment families =====
 

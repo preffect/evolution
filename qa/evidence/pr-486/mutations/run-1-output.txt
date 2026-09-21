@@ -1,0 +1,60 @@
+===== BASELINE =====
+### RUN baseline-extent on packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+ ✓ |client| src/app/game/render/cells/cell-draw-extent.spec.ts (7 tests) 229ms
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+### END baseline-extent
+### RUN baseline-framing on packages/client/src/app/game/render/preview/preview-framing.spec.ts
+ ✓ |client| src/app/game/render/preview/preview-framing.spec.ts (3 tests) 288ms
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+### END baseline-framing
+===== M1: peakReachRadii forgets the breathing peak =====
+### RUN M1 on packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+   × cellDrawExtentRadii > is never beaten by a frame the renderer actually builds 48ms
+     → protocell at speed 0, tick 1: the renderer reached 1.3549 radii, past the 1.3536 bound the lens is framed from: expected 1.3548560629498307 to be less than or equal to 1.3536000000000001
+   ✓ cellDrawExtentRadii > reaches the same maximum whichever strip row a cell drew 2ms
+   ✓ cellDrawExtentRadii > keeps the body inside the drawn extent for every stage 9ms
+   ✓ cellDrawExtentRadii > grows with a sprint and with speed 1ms
+   ✓ appendageReachRadii > reaches nothing past a cell with no cilia and no tail 1ms
+   ✓ appendageReachRadii > lengthens the tail with its tier and doubles its wave on a sprint 1ms
+   ✓ appendageReachRadii > reaches only just past the membrane for cilia 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |client| src/app/game/render/cells/cell-draw-extent.spec.ts > cellDrawExtentRadii > is never beaten by a frame the renderer actually builds
+AssertionError: protocell at speed 0, tick 1: the renderer reached 1.3549 radii, past the 1.3536 bound the lens is framed from: expected 1.3548560629498307 to be less than or equal to 1.3536000000000001
+    104|               `past the ${bound.drawnRadii.toFixed(4)} bound the lens …
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @evolution/client@0.0.1 test: `ng test --include src/app/game/render/cells/cell-draw-extent.spec.ts --no-coverage`
+### END M1
+===== M2: the cell scene goes back to one constant of 4.4 =====
+### RUN M2 on packages/client/src/app/game/render/preview/preview-framing.spec.ts
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @evolution/client@0.0.1 test: `ng test --include src/app/game/render/preview/preview-framing.spec.ts --no-coverage`
+### END M2
+===== M3: the cell scene frames twice as tight as its contents allow =====
+### RUN M3 on packages/client/src/app/game/render/preview/preview-framing.spec.ts
+   × the framing bands > keep every body inside the safe radius and everything drawn inside the rim 50ms
+     → cell: the body of preview-cell reached 1.500 of the lens radius at tick 13: expected 1.4999977855780973 to be less than or equal to 0.8
+   ✓ the framing bands > draw something in every subject scene, so the bands above are not vacuous  371ms
+   ✓ the framing bands > frame every cell scene no looser than its own contents need 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |client| src/app/game/render/preview/preview-framing.spec.ts > the framing bands > keep every body inside the safe radius and everything drawn inside the rim
+AssertionError: cell: the body of preview-cell reached 1.500 of the lens radius at tick 13: expected 1.4999977855780973 to be less than or equal to 0.8
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @evolution/client@0.0.1 test: `ng test --include src/app/game/render/preview/preview-framing.spec.ts --no-coverage`
+### END M3
+===== M4: cilia are given a tail's reach =====
+### RUN M4 on packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @evolution/client@0.0.1 test: `ng test --include src/app/game/render/cells/cell-draw-extent.spec.ts --no-coverage`
+### END M4
+===== M5: the tail stops growing with its tier =====
+### RUN M5 on packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @evolution/client@0.0.1 test: `ng test --include src/app/game/render/cells/cell-draw-extent.spec.ts --no-coverage`
+### END M5
+===== DONE; working tree: =====
+ M packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+ M packages/client/src/app/game/render/preview/preview-subject-specs.ts
+?? qa/evidence/pr-486/
+
+[exited with code 0]

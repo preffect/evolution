@@ -92,14 +92,54 @@ export function headingOf(view: Pick<CellView, 'velocityX' | 'velocityY'>, speed
   return speedRatio > 0 ? Math.atan2(view.velocityY, view.velocityX) : held;
 }
 
+/** The halo's outer radius for a cell's halo kind, in radii. */
+export function haloOuterRadiiOf(traits: CellTraitSummary): number {
+  return HALO_OUTER_BY_KIND[traits.haloKind] ?? HALO_OUTER_RADII;
+}
+
+/** The widest the stretch scales a radius: the speed stretch along the heading, times the sprint's axial scale. */
+function stretchReach(stretch: StretchTerm): number {
+  return Math.max(1, 1 + stretch.k * (stretch.along - 1)) * Math.max(1, stretch.axialAlong, stretch.axialAcross);
+}
+
+/** The most the noise strip can push the surface out, in radii: its jitter plus its deepest rest lobe. */
+function stripReach(jitterAmplitude: number, lobesScale: number): number {
+  return jitterAmplitude + lobesScale * REST_LOBE_AMPLITUDE_MAX;
+}
+
+/** The surface's widest radius fraction: the unit membrane plus everything that pushes it outward. */
+function surfaceReach(breathing: number, wobbleAmplitude: number, strip: number, bumps: number): number {
+  return 1 + breathing + wobbleAmplitude + strip + bumps;
+}
+
 /** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2). */
 export function maxReachRadii(terms: RadialProfileTerms, haloOuterRadii: number): number {
-  const { stretch, wobble } = terms;
-  const stretchMax =
-    Math.max(1, 1 + stretch.k * (stretch.along - 1)) * Math.max(1, stretch.axialAlong, stretch.axialAcross);
-  const stripMax = terms.strip ? terms.strip.jitterAmplitude + terms.strip.lobesScale * REST_LOBE_AMPLITUDE_MAX : 0;
-  const surfaceMax = 1 + Math.abs(terms.breathing) + wobble.amplitude + stripMax + bumpPeak(terms.bumps);
-  return terms.pulse * stretchMax * surfaceMax * haloOuterRadii;
+  const stripMax = terms.strip ? stripReach(terms.strip.jitterAmplitude, terms.strip.lobesScale) : 0;
+  const surfaceMax = surfaceReach(Math.abs(terms.breathing), terms.wobble.amplitude, stripMax, bumpPeak(terms.bumps));
+  return terms.pulse * stretchReach(terms.stretch) * surfaceMax * haloOuterRadii;
+}
+
+/** A cell nothing has bumped into: the preview's cells, and the bound `peakReachRadii` is taken over. */
+const NO_BUMP_PEAK = 0;
+
+/**
+ * The largest reach any frame of a cell with these traits can produce, in radii — the same
+ * `maxReachRadii`, with the one term it **samples** rather than bounds (the breathing sine) at its own peak, at
+ * rest pulse and with nothing bumped into it.
+ *
+ * It takes no time and no cosmetic fork, so it is a constant of the cell rather than of the frame. That is what
+ * the encyclopedia preview frames its lens by (`preview/scenes/cell-scene.ts`): a view radius read off a sampled
+ * reach would breathe the zoom in and out with the membrane.
+ */
+export function peakReachRadii(traits: CellTraitSummary, speedRatio: number, isSprinting: boolean): number {
+  const scales = restScales(traits);
+  const surfaceMax = surfaceReach(
+    scales.breathing * BREATH_AMPLITUDE,
+    traits.wobble.amplitude,
+    stripReach(JITTER_AMPLITUDE * scales.jitter, scales.lobes),
+    NO_BUMP_PEAK,
+  );
+  return stretchReach(stretchTerm(speedRatio, isSprinting)) * surfaceMax * haloOuterRadiiOf(traits);
 }
 
 function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
@@ -135,7 +175,7 @@ function stripTerm(input: ShapeTermsInput, scales: RestScales): StripTerm | null
 export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
   const { traits, timeSeconds } = input;
   const isSprinting = input.view.sprintRemainingTicks > 0;
-  const haloOuterRadii = HALO_OUTER_BY_KIND[traits.haloKind] ?? HALO_OUTER_RADII;
+  const haloOuterRadii = haloOuterRadiiOf(traits);
   const scales = restScales(traits);
   const terms: RadialProfileTerms = {
     radius: input.view.radius,
