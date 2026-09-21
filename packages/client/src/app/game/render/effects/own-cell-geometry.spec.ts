@@ -1,3 +1,4 @@
+// @vitest-environment node
 // Pins docs/ui/hud.md §3.1.3 — the geometry table at the Z1 camera's 24 / 32 / 47.4 / 64 / 94.8 / 128 px and its
 // seat-mark and DNA keep-out inequalities (the picker band's is `hud/format/picker-band.spec.ts`) —
 // and the one turn from the record's angles to the screen. The table and the HUD numbers are read

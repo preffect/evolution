@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The scene loop (docs/architecture/encyclopedia.md §12.7, §12.9): each loop emits its effects once, at their
 // absolute ticks, and `frameAt` never looks back more than one period — so a tab that was hidden for minutes
 // returns with one loop's clips starting, not every loop it slept through starting at one `nowMs`.

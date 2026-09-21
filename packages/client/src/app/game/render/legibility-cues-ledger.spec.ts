@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The legibility cues' ledger (docs/ui/hud.md §3.1.6, docs/CODE-STANDARDS.md §2): every row of the table is parsed
 // from the doc and pinned by name and value against its home — `render/constants/legibility-cues.ts`, or
 // `state/legibility-constants.ts` for the rows marked **state** — in both directions, so the table and the files

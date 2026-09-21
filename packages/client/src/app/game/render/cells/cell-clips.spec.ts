@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/rendering/contents-and-motion.md §4, docs/rendering/cells.md §2.1: the clip tracks become bumps at the mote and the prey, a pulse and an alpha.
 
 import { describe, expect, it } from 'vitest';

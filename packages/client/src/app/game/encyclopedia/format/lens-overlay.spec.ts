@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The eyepiece's geometry (docs/ui/encyclopedia.md §11.4). jsdom draws nothing and measures nothing, so every
 // assertion here is arithmetic over the numbers the overlay hands the template: where each ring's *edges* fall,
 // where each tick starts and ends, and that none of it is written against the one diameter it ships at. How the

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import {

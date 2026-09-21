@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
   UI_REFERENCE_VIEWPORT_HEIGHT_PX,

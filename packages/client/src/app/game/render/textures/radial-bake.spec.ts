@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { bytesChecksum } from '../../../../testing/bytes';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED } from '../colour';

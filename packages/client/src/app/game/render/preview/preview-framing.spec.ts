@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The framing bands (docs/architecture/encyclopedia.md §12.7, §12.9): every **body** inside
 // `PREVIEW_LENS_SAFE_RADIUS_FRACTION` of the lens radius, every **drawn** extent inside the rim, so the round crop
 // never cuts a subject off — and, the half ticket #364 added, a lens no **looser** than its subject needs.
