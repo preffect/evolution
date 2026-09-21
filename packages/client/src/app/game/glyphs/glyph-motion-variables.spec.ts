@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { GLYPH_MOTION_AMPLITUDE, GLYPH_PULSE_CEILING } from '../render/constants/trait-glyph-layers';
 import { glyphMotionVariables } from './glyph-motion-variables';

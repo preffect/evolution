@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, MILLISECONDS_PER_SECOND, ROUND_PHASE } from '@evolution/shared';
 import { ROUND_CLOCK_PULSE_LAST_SECONDS } from '../hud-constants';

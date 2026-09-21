@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The measuring tool the glyph specs trust, measured itself. `glyph-bounds.ts` shipped asserting something other than
 // what it claimed — it read a circle through path data whose arcs run between the horizontal extremes, so the top and
 // bottom of every disc went unmeasured and seven drawings that the medallion crops passed the guard. A harness that

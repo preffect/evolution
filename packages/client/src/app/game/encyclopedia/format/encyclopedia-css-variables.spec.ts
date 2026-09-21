@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The bridge exists only to stop a number being typed twice (docs/CODE-STANDARDS.md §2), so this spec pins it entry
 // by entry: the exact key set, and each value against the constant it came from. A hand-typed value cannot join the
 // map unnoticed, and a token no stylesheet reads cannot linger in it.

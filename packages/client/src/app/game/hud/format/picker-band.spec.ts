@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The picker band's anchor (docs/ui/overlays.md §3.2, docs/ui/hud.md §3.1.3's picker-band inequality): the band
 // clears the exclusion box and the own cell's orbit at the cap on every viewport, by construction, and the side that
 // wins is the one the docs name at 1024 × 640, 1280 × 800, 1280 × 1000, 1920 × 1080 and 2560 × 1440.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The preview scenes (docs/architecture/encyclopedia.md §12.7, §12.9): that `previewSceneFor` is total over
 // `PREVIEW_SCENE`, which families ticket #364 still owes, that a scene is a pure function of its tick, and that
 // each zone scene parks where the simulation agrees that zone is.

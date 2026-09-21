@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
 import { bytesChecksum } from '../../../../testing/bytes';

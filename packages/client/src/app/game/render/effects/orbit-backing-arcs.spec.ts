@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The backings as drawn (graphics-qa round one on #303): a round cap reaches half the 16 px stroke past the
 // pad, so the band overshot its items by 12 px and the prokaryote's two backings, 5 px apart at 24 px
 // (ui/hud.md §3.1.3), overlapped into a double-alpha seam. These pin the drawn extents, caps included, at the

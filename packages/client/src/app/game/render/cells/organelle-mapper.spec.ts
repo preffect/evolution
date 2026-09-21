@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/rendering/files-and-tests.md §9: lag 0.20 r at k = 1; the mapping equals the profile on the rim.
 import { describe, expect, it } from 'vitest';
 import { NUCLEUS_LAG } from '../constants';

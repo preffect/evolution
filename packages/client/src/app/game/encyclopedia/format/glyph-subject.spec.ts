@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { TRAIT_CATALOG } from '@evolution/shared';
 import { SUBJECT_GLYPHS } from '../../glyphs/subject-glyphs';

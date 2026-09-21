@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { entityId } from '@evolution/shared';
 import { NO_DEFORMATIONS, REST_DEFORMATION, deformationOf, type CellDeformation } from './cell-deformation';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ATLAS_PADDING_PX } from '../constants';
 import { layoutAtlas, type AtlasFrame } from './atlas-layout';

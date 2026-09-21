@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { MOTION_CLIP, MOTION_CLIPS } from '@evolution/shared';
 import { MotionClipPlayer, clipProgress, isClipFinished } from './motion-clip-player';
