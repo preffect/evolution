@@ -15,9 +15,10 @@ import { findCell } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { wildOwnedTraits } from './wild-build.js';
 
-/** The pinned mass: the world's, spread by the seat, less what an engulfing cell has bled. */
+/** The pinned mass: the world's, spread by the seat, less what an engulfing cell has bled, never below the floor. */
 export function pinnedWildMass(seat: WildSeatRecord, reference: WorldReference, balance: BalanceConfig): number {
-  return Math.max(balance.growth.CELL_STARTING_MASS, reference.worldMass * seat.massSpreadFactor - seat.drainedMass);
+  const fullPin = reference.worldMass * seat.massSpreadFactor;
+  return Math.max(Math.min(balance.growth.CELL_STARTING_MASS, fullPin), fullPin - seat.drainedMass);
 }
 
 /** Pins one cell to `reference`: mass and radius, level, the seat's build up to that level, stage and modifiers. */

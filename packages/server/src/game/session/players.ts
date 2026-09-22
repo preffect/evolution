@@ -71,7 +71,14 @@ export function createPlayerRecord(identity: PlayerIdentity, joinOrder: number):
 export function createCellRecord(world: WorldState, player: PlayerRecord, centre: Vec2, mass: number): CellRecord {
   const id = mintEntityId(world, ENTITY_KIND.cell);
   const cell = bornCellRecord(
-    { id, kind: CELL_KIND.player, playerId: player.playerId, organismId: id, avatarIndex: player.avatarIndex, level: player.level },
+    {
+      id,
+      kind: CELL_KIND.player,
+      playerId: player.playerId,
+      organismId: id,
+      avatarIndex: player.avatarIndex,
+      level: player.level,
+    },
     centre,
     mass,
   );

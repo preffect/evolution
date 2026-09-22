@@ -30,7 +30,7 @@ function pinAt(world: WorldState, tick: number): void {
 }
 
 describe('pinnedWildMass', () => {
-  it('is worldMass × spread − drainedMass, floored at the starting mass', () => {
+  it('is worldMass × spread − drainedMass, floored at the starting mass by the bleed', () => {
     const reference = worldReference(100, DEFAULT_BALANCE);
     const seat = { ...createWildSeatRecord(0), massSpreadFactor: 1.2 };
     expect(pinnedWildMass(seat, reference, DEFAULT_BALANCE)).toBeCloseTo(120 * 1.2, 10);
@@ -38,6 +38,14 @@ describe('pinnedWildMass', () => {
     expect(pinnedWildMass(seat, reference, DEFAULT_BALANCE)).toBeCloseTo(120 * 1.2 - 4, 10);
     seat.drainedMass = 1000;
     expect(pinnedWildMass(seat, reference, DEFAULT_BALANCE)).toBe(growth.CELL_STARTING_MASS);
+  });
+
+  it('lets a light spread sit below the starting mass (W2: 14 at tick 0), and a bleed never raises it', () => {
+    const reference = worldReference(0, DEFAULT_BALANCE);
+    const seat = { ...createWildSeatRecord(0), massSpreadFactor: 0.7 };
+    expect(pinnedWildMass(seat, reference, DEFAULT_BALANCE)).toBeCloseTo(14, 10);
+    seat.drainedMass = 1;
+    expect(pinnedWildMass(seat, reference, DEFAULT_BALANCE)).toBeCloseTo(14, 10);
   });
 });
 

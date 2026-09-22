@@ -44,7 +44,12 @@ describe('wildOwnedTraits', () => {
       for (const seat of [0, 1, 2]) {
         const owned = wildOwnedTraits(seat, level, DEFAULT_BALANCE);
         expect(stageOfOwned(owned, DEFAULT_BALANCE)).toBe(worldStage);
-        expect(stageOf(owned.map((trait) => trait.traitId), DEFAULT_BALANCE.ladder)).toBe(worldStage);
+        expect(
+          stageOf(
+            owned.map((trait) => trait.traitId),
+            DEFAULT_BALANCE.ladder,
+          ),
+        ).toBe(worldStage);
       }
     }
   });

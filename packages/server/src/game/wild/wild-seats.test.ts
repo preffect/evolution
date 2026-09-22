@@ -18,12 +18,7 @@ import { isInsideAnyCell } from '../simulation/spawn-point.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import { createWorld } from '../world/create-world.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
-import {
-  createWildSeatRecord,
-  drawMassSpreadFactor,
-  placeWildCell,
-  wildSpawnClearance,
-} from './wild-seats.js';
+import { createWildSeatRecord, drawMassSpreadFactor, placeWildCell, wildSpawnClearance } from './wild-seats.js';
 
 const SEED = 42;
 const { wildCells, world: worldBalance, growth, ecology } = DEFAULT_BALANCE;
@@ -49,7 +44,7 @@ describe('createWildSeats (W2)', () => {
   it('seats exactly WILD_CELL_COUNT wild protocells of the world organism after the player', () => {
     expect(world.wildSeats).toHaveLength(wildCells.WILD_CELL_COUNT);
     expect(wild).toHaveLength(wildCells.WILD_CELL_COUNT);
-    expect(world.wildSeats.map((seat) => seat.seatNumber)).toEqual(wild.map((_, index) => index));
+    expect(world.wildSeats.map((seat) => seat.seatNumber)).toEqual(wild.map((_unused, index) => index));
     expect(world.wildSeats.map((seat) => seat.cellId)).toEqual(wild.map((cell) => cell.id));
     expect(world.cells.findIndex((cell) => cell.kind === CELL_KIND.wild)).toBe(1);
     for (const cell of wild) {
@@ -129,7 +124,10 @@ describe('wildSpawnClearance', () => {
     // A threat 500 wu away: the safe-spawn radius (600) is the binding rule, not the spacing (200).
     cell.mass = worldBalance.SAFE_SPAWN_THREAT_MASS_RATIO * growth.CELL_STARTING_MASS;
     const farPoint = { x: cell.x + 500, y: cell.y };
-    expect(wildSpawnClearance(farPoint, world.cells, DEFAULT_BALANCE)).toBeCloseTo(500 - worldBalance.SAFE_SPAWN_RADIUS, 6);
+    expect(wildSpawnClearance(farPoint, world.cells, DEFAULT_BALANCE)).toBeCloseTo(
+      500 - worldBalance.SAFE_SPAWN_RADIUS,
+      6,
+    );
     expect(wildSpawnClearance(farPoint, [], DEFAULT_BALANCE)).toBe(Number.POSITIVE_INFINITY);
   });
 });
@@ -168,7 +166,9 @@ describe('placeWildCell', () => {
     const placementBefore = context.streams[RANDOM_STREAM.spawnPlacement].getState().position;
     placeWildCell(world, seat, context, worldReferenceAt(world, world.tick));
     expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(wildBefore + 1);
-    expect(context.streams[RANDOM_STREAM.spawnPlacement].getState().position).toBeGreaterThanOrEqual(placementBefore + 2);
+    expect(context.streams[RANDOM_STREAM.spawnPlacement].getState().position).toBeGreaterThanOrEqual(
+      placementBefore + 2,
+    );
     expect(seat.massSpreadFactor).toBeCloseTo(expectedSpread, 10);
   });
 });

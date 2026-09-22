@@ -212,7 +212,9 @@ describe('the game-specific MCP tools on the Evolution module', () => {
     ) as (DebugEntity & { kind: string })[];
     // The seeded world: Alice's cell and the wild seats (docs/ecology/wild-cells.md §3.3).
     expect(cells.filter((cell) => cell.kind === CELL_KIND.player)).toHaveLength(1);
-    expect(cells.filter((cell) => cell.kind === CELL_KIND.wild)).toHaveLength(DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT);
+    expect(cells.filter((cell) => cell.kind === CELL_KIND.wild)).toHaveLength(
+      DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT,
+    );
     const motes = parseToolJson(
       await fixture.call('debug_get_entities', { gameId: fixture.gameId, kind: 'food_mote' }),
     ) as DebugEntity[];

@@ -41,12 +41,16 @@ export interface WildPlacementContext {
 
 /** The safe-spawn rule tightened by the wild spacing: both clearances must hold, the smaller decides. */
 export const wildSpawnClearance: SpawnClearance = (point, cells, balance) =>
-  Math.min(threatClearance(point, cells, balance), nearestCellDistance(point, cells) - balance.wildCells.WILD_CELL_MIN_SPACING_WU);
+  Math.min(
+    threatClearance(point, cells, balance),
+    nearestCellDistance(point, cells) - balance.wildCells.WILD_CELL_MIN_SPACING_WU,
+  );
 
 /** `massSpreadFactor ~ uniform[1 − WILD_CELL_MASS_SPREAD, 1 + WILD_CELL_MASS_SPREAD]`; one draw. */
 export function drawMassSpreadFactor(unit: number, balance: BalanceConfig): number {
-  const spread = balance.wildCells.WILD_CELL_MASS_SPREAD;
-  return 1 - spread + 2 * spread * unit;
+  const lightest = 1 - balance.wildCells.WILD_CELL_MASS_SPREAD;
+  const heaviest = 1 + balance.wildCells.WILD_CELL_MASS_SPREAD;
+  return lightest + (heaviest - lightest) * unit;
 }
 
 export function createWildSeatRecord(seatNumber: number): WildSeatRecord {
