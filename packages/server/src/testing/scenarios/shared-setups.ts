@@ -11,8 +11,17 @@ import {
   type CellModifiers,
   type TraitId,
 } from '@evolution/shared';
-import { PLACED_ROW_SEED, TABLE_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
+import {
+  PLACED_ROW_SEED,
+  TABLE_SEED,
+  clearFood,
+  evolutionScenario as scenario,
+  resetSpawnerAccumulators,
+} from '../gameplay/evolution-adapter.js';
+import type { EvolutionView } from '../gameplay/evolution-views.js';
 import { ZONE, createDecayedHelper } from '../gameplay/index.js';
+
+export type EvolutionScenarioBuilder = ReturnType<typeof scenario>;
 
 const { growth, ecology, progression, traits } = DEFAULT_BALANCE;
 /** The share of the velocity gap a cell without an acceleration trait closes per tick. */
@@ -64,6 +73,28 @@ export function seededSolo(name: string) {
 /** A placed row's solo world: the placed-row seed, the seeded spawns switched off by the first placement. */
 export function placedSolo(name: string) {
   return scenario(name).seed(PLACED_ROW_SEED).players(1);
+}
+
+/** The motes spawned since the count captured under `label` (E2, E14, W3, W9 count spawns, not populations). */
+export function foodSpawnedSince(label: string): (view: EvolutionView) => number {
+  return (view) => view.snapshot.spawnedCounts.food - (view.captured(label) as number);
+}
+
+/**
+ * The E14 window fixture (docs/ecology/acceptance.md §8 E14, §8.1 W3, W9): both spawner accumulators zeroed before
+ * step `fromTick`, and every mote and fragment removed before every step from `fromTick` to `toTick`, so neither
+ * spawner is capped and no residue carries into the window. The run must already cover `toTick`.
+ */
+export function holdPopulationsAtZero(
+  run: EvolutionScenarioBuilder,
+  fromTick: number,
+  toTick: number,
+): EvolutionScenarioBuilder {
+  run.atTick(fromTick).place(resetSpawnerAccumulators);
+  for (let tick = fromTick; tick <= toTick; tick += 1) {
+    run.atTick(tick).place(clearFood);
+  }
+  return run;
 }
 
 /** "The third player joins before tick 6000 steps": the join is stamped 6000, the mass fixture the tick before it. */

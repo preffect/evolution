@@ -48,15 +48,24 @@ function forgetSpectatedCell(world: WorldState, cell: CellRecord): void {
 }
 
 /**
- * Removes the cell from the world; the player keeps level, traits and stage (they live on the
- * record). Any engulf it was part of ends first with reason `aborted` (docs/ecology/absorption.md §6.3): a
- * predator whose prey left gets no payout, and a prey whose predator left is freed where it is.
+ * Removes the cell from the world without a trace: no detritus. Any engulf it was part of ends first with reason
+ * `aborted` (docs/ecology/absorption.md §6.3): a predator whose prey left gets no payout, and a prey whose predator
+ * left is freed where it is. A scenario fixture replacing a wild seat's cell takes this path
+ * (docs/testing/scenario-runner.md §8.1, `.placeWildCell`); a death or a removal dissolves instead.
  */
-export function dissolveCell(world: WorldState, cell: CellRecord, spawner: RandomSource): void {
+export function withdrawCell(world: WorldState, cell: CellRecord): void {
   abortEngulfsOf(world, cell);
-  dropDetritus(world, cell, spawner);
   removeFromArray(world.cells, cell);
   forgetSpectatedCell(world, cell);
+}
+
+/**
+ * Removes the cell from the world with its detritus; the player keeps level, traits and stage (they live on the
+ * record).
+ */
+export function dissolveCell(world: WorldState, cell: CellRecord, spawner: RandomSource): void {
+  dropDetritus(world, cell, spawner);
+  withdrawCell(world, cell);
 }
 
 /**

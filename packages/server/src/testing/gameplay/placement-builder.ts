@@ -10,12 +10,14 @@ import {
   placeCell,
   placeFragment,
   placeMote,
+  placeWildCell,
   PLACED_KIND,
   type PlacedCell,
   type PlacedFixture,
   type PlaceCellOptions,
   type PlaceFragmentOptions,
   type PlaceMoteOptions,
+  type PlaceWildCellOptions,
 } from './fixtures.js';
 
 /** What the scheduler needs from the scenario builder. */
@@ -46,6 +48,13 @@ export class FixtureScheduler<Fixture, Builder> {
   placeCell(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceCellOptions): Builder {
     this.registry.requirePlayer(options.playerIndex);
     const fixture = placeCell(options, this.firstPlacedCell());
+    this.requireAnchorPlayer(fixture.at);
+    return this.place(fixture);
+  }
+
+  /** Wild seat `seat`'s cell at `at` or east of the first placed (player) cell (docs/ecology/acceptance.md §8.1). */
+  placeWildCell(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceWildCellOptions): Builder {
+    const fixture = placeWildCell(options, this.firstPlacedCell());
     this.requireAnchorPlayer(fixture.at);
     return this.place(fixture);
   }

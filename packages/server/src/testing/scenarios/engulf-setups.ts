@@ -3,9 +3,8 @@
 // file; `ecology-engulf.gameplay.test.ts` and `ecology-engulf-escape.gameplay.test.ts` import it.
 //
 // #258 shipped the lifecycle, #259 the payout and #260 the trait hooks, so the trait rows on the same
-// setup (docs/traits/constants-and-acceptance.md §6: T3, T4, T6, T13–T19) use `engulfPairOf` from here too.
-// What the rows still leave out: the wild rows (W4, W5, W10), which need the wild-cell slice to place a
-// wild cell.
+// setup (docs/traits/constants-and-acceptance.md §6: T3, T4, T6, T13–T19) use `engulfPairOf` from here too, and
+// the wild rows (docs/ecology/acceptance.md §8.1 W4, W5, W10; `wild-setups.ts`) read the E9 ticks from here.
 
 import { DEFAULT_BALANCE, DNA_TAG, EFFECT_KIND, TICK_HZ, radiusForMass } from '@evolution/shared';
 import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';

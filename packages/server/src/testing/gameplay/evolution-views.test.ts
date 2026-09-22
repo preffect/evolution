@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CELL_KIND,
   EFFECT_KIND,
   createTestCellView,
   createTestPlayerProgressView,
@@ -7,6 +8,7 @@ import {
   entityId,
   playerId,
 } from '@evolution/shared';
+import { createWildSeatRecord } from '../../game/wild/wild-seats.js';
 import type { EvolutionScenarioSnapshot } from './evolution-adapter.js';
 import {
   cellOf,
@@ -17,6 +19,9 @@ import {
   massOf,
   progressOf,
   speedOf,
+  wildCellOf,
+  wildCellsOf,
+  wildSeatOf,
   type EvolutionView,
 } from './evolution-views.js';
 
@@ -31,6 +36,7 @@ function viewOf(snapshot: Partial<EvolutionScenarioSnapshot>): EvolutionView {
       ...createTestSnapshot(),
       spawnedCounts: { food: 0, dnaFragments: 0 },
       progressByPlayer: {},
+      wildSeats: [],
       ...snapshot,
     },
     playerId: (index) => playerId(`player_${index}`),
@@ -76,5 +82,24 @@ describe('evolution views', () => {
     expect(fragmentCount(view)).toBe(1);
     expect(effectsOfKind(view, EFFECT_KIND.worldLevelUp)).toHaveLength(1);
     expect(effectsOfKind(view, EFFECT_KIND.eat)).toEqual([]);
+  });
+
+  it('reads a wild seat, its cell while it has one, and every wild cell', () => {
+    const seated = { ...createWildSeatRecord(0), cellId: entityId('w-0'), targetX: 7, targetY: 8 };
+    const vacant = { ...createWildSeatRecord(1), targetX: null, targetY: null };
+    const wildView = viewOf({
+      cells: [
+        createTestCellView({ id: entityId('c-1'), playerId: alice }),
+        createTestCellView({ id: entityId('w-0'), kind: CELL_KIND.wild, playerId: null }),
+      ],
+      wildSeats: [seated, vacant],
+    });
+    expect(wildSeatOf(wildView, 0)).toBe(seated);
+    expect(wildSeatOf(wildView, 2)).toBeUndefined();
+    expect(wildCellOf(wildView, 0)?.id).toBe('w-0');
+    expect(wildCellOf(wildView, 1)).toBeUndefined();
+    expect(wildCellOf(wildView, 2)).toBeUndefined();
+    expect(wildCellsOf(wildView).map((cell) => cell.id)).toEqual(['w-0']);
+    expect(wildCellsOf(view)).toEqual([]);
   });
 });

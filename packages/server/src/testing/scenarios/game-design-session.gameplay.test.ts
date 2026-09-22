@@ -1,7 +1,7 @@
 // docs/game-design/constants-and-acceptance.md §13, the session and world-clock rows that need no wild cell (G1–G3, G8–G11,
-// G14), each run twice and hash-compared. The control rows are game-design-controls.gameplay.test.ts.
-// G13 (a wild killer) waits for the wild-cell slice; G12 is the pure `standingAgainstWorld` row,
-// pinned in packages/shared/src/simulation/world-clock.test.ts.
+// G14), each run twice and hash-compared. The control rows are game-design-controls.gameplay.test.ts, G13 (a wild
+// killer) is game-design-wild.gameplay.test.ts; G12 is the pure `standingAgainstWorld` row, pinned in
+// packages/shared/src/simulation/world-clock.test.ts.
 
 import { describe, expect, it } from 'vitest';
 import {

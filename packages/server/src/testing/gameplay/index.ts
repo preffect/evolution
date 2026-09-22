@@ -31,12 +31,14 @@ export {
   type PlaceCellOptions,
   type PlaceFragmentOptions,
   type PlaceMoteOptions,
+  type PlaceWildCellOptions,
   type PlacedCell,
   type PlacedFixture,
   type PlacedFragment,
   type PlacedMote,
   type PlacedTrait,
   type PlacedTraitOption,
+  type PlacedWildCell,
 } from './fixtures.js';
 export type { Matcher, MatchOutcome } from './matchers.js';
 export {

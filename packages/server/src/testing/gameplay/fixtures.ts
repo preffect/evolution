@@ -37,7 +37,7 @@ export function createDecayedHelper(constants: DecayConstants) {
   };
 }
 
-export const PLACED_KIND = { cell: 'cell', mote: 'mote', fragment: 'fragment' } as const;
+export const PLACED_KIND = { cell: 'cell', wildCell: 'wild_cell', mote: 'mote', fragment: 'fragment' } as const;
 
 /** A fixture-granted trait at a tier (traits/model.md §2): bypasses the ladder and the draft. */
 export interface PlacedTrait {
@@ -52,11 +52,23 @@ export interface PlacedCell {
   readonly at: PlacementAnchor;
   /** The fixture restores the centre after the movement step every tick. */
   readonly isPinned: boolean;
-  readonly traits: readonly PlacedTrait[];
+  /** The traits the cell owns after placement: `[]` strips every trait (G13's "A at level 1"), `null` leaves its own. */
+  readonly traits: readonly PlacedTrait[] | null;
   /** Fixture-set lifetime DNA ("level 12 with fixture DNA 1760", P7, P10); `null` leaves the cell's own. */
   readonly dnaCumulative: number | null;
   /** Fixture-set entry-rule gift inside that DNA (E9c: "140 with 100 gift"); `null` leaves the player's own. */
   readonly dnaCatchUpGift: number | null;
+}
+
+/**
+ * Wild seat `seat`'s cell placed (or replaced) at `at` with its spread factor set (docs/ecology/acceptance.md §8.1,
+ * docs/testing/scenario-runner.md §8.1): the seat is cleared of target and velocity as a respawn does.
+ */
+export interface PlacedWildCell {
+  readonly kind: typeof PLACED_KIND.wildCell;
+  readonly seat: number;
+  readonly spreadFactor: number;
+  readonly at: PlacementAnchor;
 }
 
 export interface PlacedMote {
@@ -72,7 +84,7 @@ export interface PlacedFragment {
   readonly at: PlacementAnchor;
 }
 
-export type PlacedFixture = PlacedCell | PlacedMote | PlacedFragment;
+export type PlacedFixture = PlacedCell | PlacedWildCell | PlacedMote | PlacedFragment;
 
 /** Where to put a fixture: an anchor (or a bare point), or east of the first placed cell by a distance. */
 export interface Placement {
@@ -90,6 +102,12 @@ export interface PlaceCellOptions extends Placement {
   readonly traits?: readonly PlacedTraitOption[];
   readonly dnaCumulative?: number;
   readonly dnaCatchUpGift?: number;
+}
+
+/** "Seat 0 pinned at spread 1.0, placed 10 wu east of A" (W4): `placeWildCell({ seat: 0, spreadFactor: 1, eastOfFirstCellWu: 10 })`. */
+export interface PlaceWildCellOptions extends Placement {
+  readonly seat: number;
+  readonly spreadFactor: number;
 }
 
 export interface PlaceMoteOptions extends Placement {
@@ -145,9 +163,24 @@ export function placeCell(options: PlaceCellOptions, firstCell: PlacedCell | und
     mass: options.mass,
     at: resolvePlacement(options, firstCell, `player ${options.playerIndex}'s cell`),
     isPinned: options.isPinned ?? false,
-    traits: (options.traits ?? []).map(toPlacedTrait),
+    traits: options.traits === undefined ? null : options.traits.map(toPlacedTrait),
     dnaCumulative: options.dnaCumulative ?? null,
     dnaCatchUpGift: options.dnaCatchUpGift ?? null,
+  };
+}
+
+export function placeWildCell(options: PlaceWildCellOptions, firstCell: PlacedCell | undefined): PlacedWildCell {
+  if (!Number.isInteger(options.seat) || options.seat < 0) {
+    throw new ScenarioSetupError(`a wild seat is a whole number from 0, got ${options.seat}`);
+  }
+  if (!(options.spreadFactor > 0)) {
+    throw new ScenarioSetupError(`a wild seat's spread factor is positive, got ${options.spreadFactor}`);
+  }
+  return {
+    kind: PLACED_KIND.wildCell,
+    seat: options.seat,
+    spreadFactor: options.spreadFactor,
+    at: resolvePlacement(options, firstCell, `wild seat ${options.seat}'s cell`),
   };
 }
 

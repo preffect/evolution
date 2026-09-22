@@ -9,6 +9,7 @@ import {
   placeCell,
   placeFragment,
   placeMote,
+  placeWildCell,
   resolvePlacement,
   toPlacedTrait,
 } from './fixtures.js';
@@ -57,10 +58,30 @@ describe('placed fixtures', () => {
       mass: 100,
       at: ZONE.broth,
       isPinned: false,
-      traits: [],
+      traits: null,
       dnaCumulative: null,
       dnaCatchUpGift: null,
     });
+  });
+
+  it('records an empty trait list as a strip, distinct from no trait list at all (G13: "A at level 1")', () => {
+    expect(placeCell({ playerIndex: 0, mass: 20, traits: [] }, undefined).traits).toEqual([]);
+    expect(placeCell({ playerIndex: 0, mass: 20 }, undefined).traits).toBeNull();
+  });
+
+  it('places a wild seat east of the first cell or at an anchor, refusing a bad seat or spread (W4, W8)', () => {
+    expect(placeWildCell({ seat: 0, spreadFactor: 1, eastOfFirstCellWu: 10 }, first)).toEqual({
+      kind: PLACED_KIND.wildCell,
+      seat: 0,
+      spreadFactor: 1,
+      at: eastOfCellOf(0, 10),
+    });
+    expect(placeWildCell({ seat: 3, spreadFactor: 5 }, undefined).at).toBe(ZONE.broth);
+    expect(placeWildCell({ seat: 3, spreadFactor: 5, at: VENT_POINT }, first).at).toEqual(atPoint(0, 0));
+    expect(() => placeWildCell({ seat: 1.5, spreadFactor: 1 }, undefined)).toThrow(ScenarioSetupError);
+    expect(() => placeWildCell({ seat: -1, spreadFactor: 1 }, undefined)).toThrow(/whole number from 0/);
+    expect(() => placeWildCell({ seat: 0, spreadFactor: 0 }, undefined)).toThrow(/spread factor is positive/);
+    expect(() => placeWildCell({ seat: 0, spreadFactor: 1 }, first)).toThrow(/needs a placement/);
   });
 
   it('puts a second cell east of the first cell, resolved by the adapter against that cell', () => {

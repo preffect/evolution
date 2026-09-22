@@ -2,7 +2,7 @@
 // its cadence, and the victims' absorb and respawn at the middle and the end of every absorb
 // cycle, so every clip of §4 plays in a bench run.
 
-import { EFFECT_KIND, ENTITY_KIND, entityId, type CellView, type GameEffect, type PlayerId } from '@evolution/shared';
+import { EFFECT_KIND, ENTITY_KIND, entityId, type CellView, type GameEffect } from '@evolution/shared';
 import {
   RENDER_BENCH_ABSORB_EVERY_TICKS,
   RENDER_BENCH_EATS_PER_SNAPSHOT,
@@ -59,17 +59,23 @@ function levelUpEffects(cells: readonly CellView[], tick: number): GameEffect[] 
   ];
 }
 
-/** The victims dissolve toward the first cell and respawn; a wild victim is credited to `creditedPlayerId`. */
+/**
+ * The victims dissolve toward the first cell and respawn. The absorb names the victim's player, `null` for a wild
+ * cell (#270); only a player's cell comes back with a `respawn` effect (a wild seat reappears without one,
+ * docs/ecology/wild-cells.md §3.3), which is why the bench's victims are player cells.
+ */
 function victimEffects(inputs: BenchEffectInputs, tick: number): GameEffect[] {
   const cycleTick = tick % RENDER_BENCH_ABSORB_EVERY_TICKS;
   const isAbsorbTick = cycleTick === victimAbsorbTick();
   if (!isAbsorbTick && cycleTick !== 0) return [];
   const predator = inputs.cells[0];
-  return inputs.victims.map((view) => {
-    const base = { tick, x: view.x, y: view.y, cellId: view.id, playerId: view.playerId ?? inputs.creditedPlayerId };
-    return isAbsorbTick
-      ? { kind: EFFECT_KIND.cellAbsorbed, ...base, predatorCellId: predator?.id ?? view.id, ...NO_BENCH_PAYOUT }
-      : { kind: EFFECT_KIND.respawn, ...base };
+  return inputs.victims.flatMap((view): GameEffect[] => {
+    const base = { tick, x: view.x, y: view.y, cellId: view.id };
+    if (isAbsorbTick) {
+      const predatorCellId = predator?.id ?? view.id;
+      return [{ kind: EFFECT_KIND.cellAbsorbed, ...base, playerId: view.playerId, predatorCellId, ...NO_BENCH_PAYOUT }];
+    }
+    return view.playerId === null ? [] : [{ kind: EFFECT_KIND.respawn, ...base, playerId: view.playerId }];
   });
 }
 
@@ -78,8 +84,6 @@ export interface BenchEffectInputs {
   readonly cells: readonly CellView[];
   /** The victims' views at the tick, whether or not they are present. */
   readonly victims: readonly CellView[];
-  /** The player a wild victim's absorb and respawn are credited to. */
-  readonly creditedPlayerId: PlayerId;
 }
 
 export function scheduledBenchEffects(inputs: BenchEffectInputs, tick: number): GameEffect[] {

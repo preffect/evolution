@@ -27,6 +27,7 @@ import { findCellOfPlayer, findPlayer } from '../../game/world/lookups.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
+import { applyPlacedWildCell } from './evolution-wild-fixtures.js';
 import {
   GEL_PATCH_CLEARANCE_WU,
   isClearOfGelPatches,
@@ -126,7 +127,7 @@ function requireFixturePlayer(world: WorldState, playerIndex: number, context: F
 
 /**
  * Moves the cell to the anchor at rest (no target until its player's next input, docs/ecology/mass-and-movement.md
- * §5.2), sets its mass, pin, traits and lifetime DNA.
+ * §5.2), sets its mass, pin, traits (`[]` strips them: the cell is a protocell again) and lifetime DNA.
  */
 export function applyPlacedCell(world: WorldState, fixture: PlacedCell, context: FixtureContext): void {
   const player = requireFixturePlayer(world, fixture.playerIndex, context);
@@ -141,7 +142,7 @@ export function applyPlacedCell(world: WorldState, fixture: PlacedCell, context:
   cell.pinnedX = fixture.isPinned ? centre.x : null;
   cell.pinnedY = fixture.isPinned ? centre.y : null;
   setCellMass(cell, fixture.mass, world.balance);
-  if (fixture.traits.length > 0) {
+  if (fixture.traits !== null) {
     grantTraits(world, player, fixture.traits);
   }
   if (fixture.dnaCumulative !== null) {
@@ -195,6 +196,9 @@ export function applyPlacedFixture(world: WorldState, fixture: PlacedFixture, co
   switch (fixture.kind) {
     case PLACED_KIND.cell:
       applyPlacedCell(world, fixture, context);
+      return;
+    case PLACED_KIND.wildCell:
+      applyPlacedWildCell(world, fixture, resolveAnchor(world, fixture.at, context));
       return;
     case PLACED_KIND.mote:
       applyPlacedMote(world, fixture, context);

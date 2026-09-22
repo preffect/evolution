@@ -202,7 +202,8 @@ on a real GPU, so the report runs without it and only the pixel-determinism test
 **Fixed-seed scene:** `render/bench/bench-scene.ts` builds a synthetic `GameSnapshot` from `RENDER_BENCH_SEED` (42) with
 the bench-load cells (table above) across every stage and palette on scripted circular paths (`bench-traits.ts`
 gives each stage its trait set and the player records; three predator / prey pairs mid-engulf, four victims
-absorbed and respawned on a cadence, eats and level-ups scheduled by `bench-effects.ts`; motes by the eukaryote-era
+absorbed and respawned on a cadence (player cells, ticket #501: an absorb names its victim's player and the
+return is a `respawn` effect, which a wild seat's is not), eats and level-ups scheduled by `bench-effects.ts`; motes by the eukaryote-era
 shares with the bacteria on a tick-driven walk, fragments drifting, `bench-food.ts`), all from the
 `cosmetic:bench` fork of the seed, fed through the real `WorldStore` by a `ManualClock` (`bench-driver.ts`,
 snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1][&cues=1]`

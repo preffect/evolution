@@ -17,7 +17,9 @@ import { createEvolutionModule, type EvolutionModule } from '../../game/evolutio
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
 import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
+import { cellOfSeat } from '../../game/wild/wild-pin.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
+import type { WildSeatRecord } from '../../game/world/entities.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -41,11 +43,27 @@ export interface SpawnedCounts {
   readonly dnaFragments: number;
 }
 
+/**
+ * A wild seat as the W rows read it (docs/ecology/acceptance.md §8.1): the record, plus the latched target of its cell
+ * (`CellRecord.targetX/Y`, which no wire view carries: W6 and W7 read where a decision sent the seat).
+ */
+export interface WildSeatView extends Readonly<WildSeatRecord> {
+  readonly targetX: number | null;
+  readonly targetY: number | null;
+}
+
 /** The wire snapshot plus what the tables count that never rides the wire. */
 export interface EvolutionScenarioSnapshot extends GameSnapshot {
   readonly spawnedCounts: SpawnedCounts;
   /** Every player's full progress: the wire sends each player only its own (docs/architecture/wire-contract.md §4.1), a table reads anyone's. */
   readonly progressByPlayer: Readonly<Record<string, OwnProgressView>>;
+  /** The wild seats in seat order: the world clock is never sent (docs/ecology/wild-cells.md §3.3), a W row reads it. */
+  readonly wildSeats: readonly WildSeatView[];
+}
+
+function toWildSeatView(world: WorldState, seat: WildSeatRecord): WildSeatView {
+  const cell = cellOfSeat(world, seat);
+  return { ...seat, targetX: cell?.targetX ?? null, targetY: cell?.targetY ?? null };
 }
 
 export const WORLD_FIXTURE_KIND = {
@@ -118,19 +136,23 @@ export interface LazyScenarioSnapshot {
  * the projections are pinned before anything changes the world between ticks (a scheduled
  * fixture, a join or a leave call `materialise`), so a script at the next tick reads this tick.
  */
-export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnapshot {
-  let projected: GameSnapshot | undefined;
-  const projection = (): GameSnapshot => {
-    projected ??= serializeFullSnapshot(world, EXACT_SNAPSHOT_VALUES);
+/** A projection built from the world on first access and kept from then on. */
+function projectOnce<Projection>(build: () => Projection): () => Projection {
+  let projected: Projection | undefined;
+  return () => {
+    projected ??= build();
     return projected;
   };
-  let projectedProgress: Record<string, OwnProgressView> | undefined;
-  const progressByPlayer = (): Record<string, OwnProgressView> => {
-    projectedProgress ??= Object.fromEntries(
+}
+
+export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnapshot {
+  const projection = projectOnce(() => serializeFullSnapshot(world, EXACT_SNAPSHOT_VALUES));
+  const progressByPlayer = projectOnce((): Record<string, OwnProgressView> =>
+    Object.fromEntries(
       world.players.map((player) => [player.playerId, toOwnProgressView(world, player, EXACT_SNAPSHOT_VALUES)]),
-    );
-    return projectedProgress;
-  };
+    ),
+  );
+  const wildSeats = projectOnce(() => world.wildSeats.map((seat) => toWildSeatView(world, seat)));
   // A scenario drains every tick, so its window (the effects and the sprint spend, #383) is the tick's.
   const effects = drainBroadcastWindow(world);
   const snapshot = {
@@ -146,11 +168,13 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     Object.defineProperty(snapshot, key, { enumerable: true, get: () => projection()[key] });
   }
   Object.defineProperty(snapshot, 'progressByPlayer', { enumerable: true, get: progressByPlayer });
+  Object.defineProperty(snapshot, 'wildSeats', { enumerable: true, get: wildSeats });
   return {
     snapshot,
     materialise: () => {
       projection();
       progressByPlayer();
+      wildSeats();
     },
   };
 }

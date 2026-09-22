@@ -1,6 +1,7 @@
 // docs/testing/scenario-runner.md §8: the Evolution adapter's scenario duties on a real module.
 import { describe, expect, it } from 'vitest';
 import { CELL_KIND, EFFECT_KIND, createTestSessionConfig, gameId, playerId, type CellView } from '@evolution/shared';
+import { worldReferenceAt } from '../../game/simulation/round-clock.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { FixtureContext } from './adapter.js';
 import {
@@ -13,7 +14,7 @@ import {
   type EvolutionScenarioModule,
 } from './evolution-adapter.js';
 import { ScenarioSetupError } from './errors.js';
-import { placeCell, placeMote } from './fixtures.js';
+import { placeCell, placeMote, placeWildCell } from './fixtures.js';
 import { ZONE } from './placement.js';
 
 const alice = playerId('player_0');
@@ -74,6 +75,28 @@ describe('evolutionAdapter', () => {
     const snapshot = evolutionAdapter.readSnapshot(module);
     expect(snapshot.effects.some((effect) => effect.kind === EFFECT_KIND.levelUp)).toBe(true);
     expect(evolutionAdapter.readSnapshot(module).effects).toEqual([]);
+  });
+
+  it("reads the wild seats with their cells' latched targets, pinned like the rest of the snapshot", () => {
+    const module = moduleUnderTest();
+    module.reduceGameState();
+    const snapshot = evolutionAdapter.readSnapshot(module);
+    const seat = module.world.wildSeats[0]!;
+    const seated = { ...seat };
+    expect(snapshot.wildSeats).toHaveLength(module.world.wildSeats.length);
+    expect(snapshot.wildSeats[0]).toEqual({ ...seated, targetX: null, targetY: null });
+    expect(snapshot.wildSeats[0]).not.toBe(seat);
+    const fixture = placeWildCell({ seat: 0, spreadFactor: 5, at: ZONE.broth }, undefined);
+    evolutionAdapter.applyFixture(module, fixture, context);
+    // The seat record moved on; the pinned snapshot still reads the seat as it was.
+    expect(seat.massSpreadFactor).toBe(5);
+    expect(snapshot.wildSeats[0]).toEqual({ ...seated, targetX: null, targetY: null });
+    const next = evolutionAdapter.readSnapshot(module);
+    expect(next.wildSeats[0]).toMatchObject({ massSpreadFactor: 5, cellId: seat.cellId });
+    expect(next.wildSeats[0]?.cellId).not.toBe(seated.cellId);
+    expect(next.cells.find((cell) => cell.id === seat.cellId)?.mass).toBe(
+      5 * worldReferenceAt(module.world, module.world.tick).worldMass,
+    );
   });
 
   it('hashes the world through computeStateHash and locates a cell through the binding', () => {

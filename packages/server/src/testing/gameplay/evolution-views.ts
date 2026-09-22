@@ -3,6 +3,7 @@
 // death), which every matcher fails with "got undefined".
 
 import {
+  CELL_KIND,
   FOOD_KIND,
   distanceBetween,
   type CellView,
@@ -11,7 +12,7 @@ import {
   type MassFlowView,
   type OwnProgressView,
 } from '@evolution/shared';
-import type { EvolutionScenarioSnapshot } from './evolution-adapter.js';
+import type { EvolutionScenarioSnapshot, WildSeatView } from './evolution-adapter.js';
 import type { ScenarioView } from './expectations.js';
 
 export type EvolutionView = ScenarioView<EvolutionScenarioSnapshot>;
@@ -19,6 +20,21 @@ export type EvolutionView = ScenarioView<EvolutionScenarioSnapshot>;
 export function cellOf(view: EvolutionView, playerIndex: number): CellView | undefined {
   const playerId = view.playerId(playerIndex);
   return view.snapshot.cells.find((cell) => cell.playerId === playerId);
+}
+
+/** Wild seat `seatNumber` (docs/ecology/acceptance.md §8.1: "seat 0"); `undefined` for a seat the world has not. */
+export function wildSeatOf(view: EvolutionView, seatNumber: number): WildSeatView | undefined {
+  return view.snapshot.wildSeats.find((seat) => seat.seatNumber === seatNumber);
+}
+
+/** The seat's cell; `undefined` while the seat is vacant (absorbed, counting down to its respawn). */
+export function wildCellOf(view: EvolutionView, seatNumber: number): CellView | undefined {
+  const cellId = wildSeatOf(view, seatNumber)?.cellId;
+  return cellId === null || cellId === undefined ? undefined : view.snapshot.cells.find((cell) => cell.id === cellId);
+}
+
+export function wildCellsOf(view: EvolutionView): CellView[] {
+  return view.snapshot.cells.filter((cell) => cell.kind === CELL_KIND.wild);
 }
 
 export function progressOf(view: EvolutionView, playerIndex: number): OwnProgressView | undefined {
