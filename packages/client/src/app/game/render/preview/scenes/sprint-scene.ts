@@ -18,8 +18,11 @@ import { MOTION_CLIP, TICK_INTERVAL_S, type BalanceConfig } from '@evolution/sha
 import { REST_CLIP_PEAK } from '../../cells/shape-terms';
 import { UNAIMED_CLIP_CONTEXT, clipDeformationPeak } from '../../cells/cell-clips';
 import { PREVIEW_ACTION_SUBJECT_LEVEL } from '../../constants';
-import { previewScene, type PreviewScene, type PreviewSceneContent } from '../preview-scene';
+import { previewScene } from '../preview-scene';
+import type { PreviewScene, PreviewSceneContent } from '../preview-scene';
 import {
+  NO_FRAGMENTS,
+  NO_MOTES,
   actionSubjectCellView,
   actionSubjectFraming,
   actionSubjectMaxSpeed,
@@ -27,8 +30,6 @@ import {
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 
-const NO_MOTES = [] as const;
-const NO_FRAGMENTS = [] as const;
 const SPRINTING = 1;
 const NO_TICKS_LEFT = 0;
 

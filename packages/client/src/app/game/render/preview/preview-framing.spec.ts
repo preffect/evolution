@@ -64,10 +64,9 @@ describe('the framing bands', () => {
    * `PREVIEW_LENS_SAFE_RADIUS_FRACTION` of the lens radius, and every **drawn** extent — halo, flagellum, cilia,
    * and the motes and fragments — inside the rim, so the round crop never cuts anything off.
    *
-   * **Coverage is `SUBJECT_SPECS`, and that is deliberate, not an omission.** Those are the scenes that exist: the
-   * four families ticket #363 built, spread across the ladder's real trait sets, and the action families ticket
-   * #364 has built so far. The ones still on `PREVIEW_SCENES_AWAITING_BUILDERS` have no bodies to measure, and
-   * `preview-scene.spec.ts`'s stand-in test fails the moment one of them does — which is what brings it here.
+   * **Coverage is `SUBJECT_SPECS`**: every family, the cell one spread across the ladder's real trait sets. The
+   * two-cell scenes put two bodies through the band at once, the partner out at its start distance and the
+   * predator wearing its arms, which is what the pair's framing (`engulf-pair.ts`) bounds twice.
    */
   it('keep every body inside the safe radius and everything drawn inside the rim', () => {
     for (const spec of SUBJECT_SPECS) {

@@ -50,7 +50,7 @@ preview/{preview-spec,preview-scene,preview-frame,preview-session,preview-host,p
 preview/{preview-clock,preview-canvas}.ts           the session's two pure pieces, out of it so it is only the session: the local clock (a monotonic render tick, a scene phase a `show` restarts, a pause that re-bases) and the canvas bounds (the DPR cap, the CSS clamp, the lens's bounding square)
 preview/scenes/{cell-scene,food-scene,zone-scene}.ts   the subject scenes (#363: `cell`, `food`, `dna_fragment`, `zone`), pure over (loop seconds, balance)
 preview/scenes/{action-subject,eat-scene,sprint-scene,level-up-scene}.ts   the single-cell action scenes (#364): the shared subject held at the lens centre and followed as `ownPlayerId`, and the three scenes over it
-preview/scenes/{engulf-scene,escape-scene}.ts      the two-cell action scenes (#364); until they land `previewSceneFor` shows the open-broth stand-in for their two families
+preview/scenes/{engulf-pair,engulf-scene,escape-scene}.ts   the two-cell action scenes (#364): the pair at exactly the required ratio, the server's contact rule, the phase spans and the lens over two bodies, and the two scenes over it — the subject as predator to a payout and a respawn, the subject as prey to a `cell_released`
 bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
 frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation all three sessions share (§7, #208); the one renderer a session holds, built over its seeded textures and disposed with them, keeping the bundle's seed-independent half across a rebuild (§7.2, #442)
@@ -88,8 +88,10 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   separability numbers of visual-style/principles-and-palette.md §2); `bench-scene.spec.ts` (counts, seed-stable, the pairs, the schedule),
   `bench-driver.spec.ts` (parks and steps the store), `bench-session.spec.ts` (the query and its flags, the report
   after the window, the hook), `preview-scene.spec.ts` (every family resolves, seed- and tick-stable frames, each
-  zone target reads as its own zone through `zoneAt`, the swim at the cell's own top speed, and the stand-in the
-  action families share until #364 builds them), `preview-framing.spec.ts` (the two framing bands measured from the
+  zone target reads as its own zone through `zoneAt`, the swim at the cell's own top speed), `action-scenes.spec.ts`
+  and `engulf-scenes.spec.ts` (what each action scene promises that the shared machinery cannot: the mote and the
+  prey leave on their effect's tick, the sprint and the engulf phases follow the balance, the escape releases before
+  the seal and its record carries the threat then the arc), `preview-framing.spec.ts` (the two framing bands measured from the
   renderer's own `buildShapeTerms` extents at every tick of a loop, over the `preview-subject-specs.ts` list both it
   and `preview-scene.spec.ts` walk),
   `preview-loop.spec.ts` (each loop's effects once, at their absolute ticks; a jump of many periods emits at most

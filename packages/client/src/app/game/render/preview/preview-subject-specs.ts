@@ -1,9 +1,8 @@
-// The preview specs the scene specs walk (docs/architecture/encyclopedia.md §12.9): one per family that ticket
-// #363 built, with the cell family spread across the ladder's real trait sets rather than one made-up set.
+// The preview specs the scene specs walk (docs/architecture/encyclopedia.md §12.9): one per family, with the cell
+// family spread across the ladder's real trait sets rather than one made-up set.
 //
-// Shared by `preview-scene.spec.ts` and `preview-framing.spec.ts` so the two cannot drift: the stand-in test in
-// the first fails the moment ticket #364 gives an action family a builder, and the fix is to add it here, which
-// brings the framing bands in the second along with it.
+// Shared by `preview-scene.spec.ts` and `preview-framing.spec.ts` so the two cannot drift: a family added here is
+// resolved, walked for determinism and measured against the framing bands in one move.
 
 import {
   BACTERIUM_VARIANT,
@@ -17,7 +16,6 @@ import {
   type TraitTier,
 } from '@evolution/shared';
 import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
-import { PREVIEW_SCENES_AWAITING_BUILDERS } from './preview-scene';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from './preview-spec';
 
 export const ZONE_IDS = Object.values(ZONE_ID);
@@ -46,11 +44,17 @@ const EXTREME_TRAIT_SETS: readonly (readonly OwnedTrait[])[] = [
 ];
 
 /**
- * The action families ticket #364's second PR built. They carry no options — an action scene is one fixed
- * subject doing one thing — so each is its whole coverage, and being here is what puts them through the framing
- * bands, the loop's closure and the determinism walk alongside every other family.
+ * The action families ticket #364 built: three single-cell, two two-cell. They carry no options — an action scene
+ * is one fixed subject doing one thing — so each is its whole coverage, and being here is what puts them through
+ * the framing bands, the loop's closure and the determinism walk alongside every other family.
  */
-const ACTION_SCENES = [PREVIEW_SCENE.eat, PREVIEW_SCENE.sprint, PREVIEW_SCENE.levelUp] as const;
+const ACTION_SCENES = [
+  PREVIEW_SCENE.eat,
+  PREVIEW_SCENE.sprint,
+  PREVIEW_SCENE.levelUp,
+  PREVIEW_SCENE.engulf,
+  PREVIEW_SCENE.escape,
+] as const;
 
 /** One spec per family, plus a spread of the cell family across the ladder's real trait sets. */
 export const SUBJECT_SPECS: readonly PreviewSpec[] = [
@@ -79,8 +83,5 @@ export const SUBJECT_SPECS: readonly PreviewSpec[] = [
   ...ACTION_SCENES.map((scene): PreviewSpec => ({ scene })),
 ];
 
-/** Every family in `PREVIEW_SCENE`, one spec each: what `previewSceneFor` must be total over. */
-export const EVERY_FAMILY_SPECS: readonly PreviewSpec[] = [
-  ...SUBJECT_SPECS,
-  ...PREVIEW_SCENES_AWAITING_BUILDERS.map((scene): PreviewSpec => ({ scene })),
-];
+/** Every family in `PREVIEW_SCENE` has a builder now, so the list above is what `previewSceneFor` is total over. */
+export const EVERY_FAMILY_SPECS: readonly PreviewSpec[] = SUBJECT_SPECS;

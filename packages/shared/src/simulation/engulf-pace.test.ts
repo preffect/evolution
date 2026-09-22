@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ENGULF_ABSORB_SECONDS, ENGULF_COVER_SECONDS, ENGULF_WRAP_SECONDS } from '../constants/absorption.js';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { TICK_INTERVAL_S } from '../constants/network.js';
 import { DEFAULT_CELL_MODIFIERS } from '../constants/trait-modifiers.js';
@@ -8,6 +9,7 @@ import {
   engulfMassFactor,
   engulfPhaseMultiplier,
   engulfPhaseOf,
+  engulfPhaseSpanSeconds,
   engulfProgressDelta,
   engulfStruggleSlowdown,
   predatorEngulfSpeedFactor,
@@ -40,6 +42,60 @@ describe('engulfPhaseOf', () => {
   it('keeps a tick that lands a hair short of a boundary on the far side of it', () => {
     const shortOfTheSeal = absorption.ENGULF_SEAL_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON / 2;
     expect(engulfPhaseOf(shortOfTheSeal, absorption)).toBe(ENGULF_PHASE.absorb);
+  });
+});
+
+/**
+ * The default absorption rows with one retuned, as `debug_set_balance` hands them over. Assigned rather than
+ * written as an object-literal key because the lint's naming rule reads `ENGULF_*` in a literal as a badly named
+ * key; it is the balance's own key.
+ */
+function withAbsorption(
+  key: 'ENGULF_SEAL_PROGRESS' | 'ENGULF_BASE_DURATION_SECONDS',
+  value: number,
+): typeof absorption {
+  const patched = { ...absorption };
+  patched[key] = value;
+  return patched;
+}
+
+describe('engulfPhaseSpanSeconds', () => {
+  const phases = Object.values(ENGULF_PHASE);
+  const spansOf = (balance: typeof absorption): number[] =>
+    phases.map((phase) => engulfPhaseSpanSeconds(phase, balance));
+
+  /** docs/ecology/constants.md §7: the bands are the phase seconds' shares, so the spans give them back. */
+  it('reads the three phase seconds back out of the bands', () => {
+    expect(spansOf(absorption)).toEqual([
+      expect.closeTo(ENGULF_COVER_SECONDS, 12),
+      expect.closeTo(ENGULF_WRAP_SECONDS, 12),
+      expect.closeTo(ENGULF_ABSORB_SECONDS, 12),
+    ]);
+  });
+
+  it('sums to ENGULF_BASE_DURATION_SECONDS over the three phases', () => {
+    const total = spansOf(absorption).reduce((sum, span) => sum + span, 0);
+    expect(total).toBeCloseTo(absorption.ENGULF_BASE_DURATION_SECONDS, 12);
+  });
+
+  /**
+   * The leaves the simulation reads, patched as `debug_set_balance` would: a moved seal trades wrap for absorb and
+   * leaves the cover alone; a longer base duration stretches all three in proportion. The phase-second leaves
+   * (`ENGULF_COVER_SECONDS` and its siblings) are deliberately not what this reads, so patching one of them alone
+   * would change nothing here — as it changes nothing the engulf plays (ticket #362).
+   */
+  it('follows a patched seal and a patched base duration, the leaves the engulf itself reads', () => {
+    const laterSeal = withAbsorption('ENGULF_SEAL_PROGRESS', 0.75);
+    const [cover, wrap, absorb] = spansOf(laterSeal);
+    expect(cover).toBeCloseTo(engulfPhaseSpanSeconds(ENGULF_PHASE.cover, absorption), 12);
+    expect(wrap).toBeCloseTo(
+      absorption.ENGULF_BASE_DURATION_SECONDS * (0.75 - absorption.ENGULF_WRAP_START_PROGRESS),
+      12,
+    );
+    expect(absorb).toBeCloseTo(absorption.ENGULF_BASE_DURATION_SECONDS * 0.25, 12);
+
+    const doubled = withAbsorption('ENGULF_BASE_DURATION_SECONDS', absorption.ENGULF_BASE_DURATION_SECONDS * 2);
+    expect(spansOf(doubled)).toEqual(spansOf(absorption).map((span) => expect.closeTo(span * 2, 12)));
   });
 });
 
