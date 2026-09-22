@@ -80,7 +80,7 @@ describe('debug_spawn_bot', () => {
 
   it('refuses a strategy outside the catalogue at the schema, without touching the roster', async () => {
     const fixture = echoFixture();
-    const result = await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'flee', seed: 1 });
+    const result = await fixture.call('debug_spawn_bot', { gameId: fixture.gameId, behavior: 'ambush', seed: 1 });
     expect(result.isError).toBe(true);
     expect(result.content[0]).toMatchObject({
       text: expect.stringMatching(/'idle' \| 'wander' \| 'grazer' \| 'hunter'/),
