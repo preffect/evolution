@@ -1,10 +1,9 @@
 // docs/ecology/acceptance.md §8.1, the evolving-world rows that run the clock into a later era (W3, W6, W9, W10),
 // each run twice and hash-compared. The first-minute rows are ecology-wild.gameplay.test.ts.
 //
-// The placed rows (W6, W10) place A at the broth point at setup, so the spawns are off from tick 0 and the idle A
-// eats nothing before the fixture re-places it at the era tick; on the placed-row seed the seeded seats still kill an
-// idle A along the way (ticks 6396 and 18 576 on seed 48), which is why every fixture at the era tick states A's mass
-// and traits in full. No seeded seat is within 1000 wu of the broth point at 21 570 or 21 600 on that seed.
+// The placed rows (W6, W10) place A at the broth point at setup, which vacates the seeded seats and switches the
+// spawns off from tick 0 (docs/testing/scenario-runner.md §8.1): the idle A meets nothing before the fixture re-places
+// it at the era tick and seats seat 0 on demand beside it. The seeded rows (W3, W9) keep every seeded seat.
 
 import { describe, expect, it } from 'vitest';
 import {

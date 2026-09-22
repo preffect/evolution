@@ -1,10 +1,9 @@
 // docs/game-design/constants-and-acceptance.md §13 G13: a wild killer, and the entry lift of the player it ate, run
 // twice and hash-compared. The rest of §13 is game-design-session.gameplay.test.ts and game-design-controls.gameplay.test.ts.
 //
-// A is placed at the broth point at setup (spawns off, nothing to eat) and re-placed by the fixture at tick 23 365
-// with no DNA, no gift and no traits: on the placed-row seed the seeded seats kill an idle A more than once before
-// then (docs/ecology/acceptance.md §8.1's "never meet" holds for no idle cell over six minutes), and each respawn
-// lifts it, so the fixture states A's whole record. No seeded seat is within 1000 wu of the broth point at 23 365.
+// A is placed at the broth point at setup, which vacates the seeded seats and switches the spawns off
+// (docs/testing/scenario-runner.md §8.1): an idle A meets nothing for six minutes and is re-placed by the fixture at
+// tick 23 365 at level 1, mass 20, no DNA, exactly as the row states it; seat 0 is seated on demand beside it.
 
 import { describe, it } from 'vitest';
 import { DEFAULT_BALANCE, DNA_TAGS, PLAYER_LIFE_STATE, cumulativeDnaForLevel } from '@evolution/shared';
@@ -38,14 +37,7 @@ function g13(name: string, dnaCumulative: number) {
   return placedSolo(name)
     .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS })
     .atTick(G13_FIXTURE_TICK)
-    .placeCell({
-      playerIndex: 0,
-      mass: growth.CELL_STARTING_MASS,
-      at: ZONE.broth,
-      traits: [],
-      dnaCumulative,
-      dnaCatchUpGift: 0,
-    })
+    .placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS, at: ZONE.broth, dnaCumulative })
     .atTick(G13_FIXTURE_TICK)
     .placeWildCell({ seat: PLACED_SEAT, spreadFactor: G13_SEAT_SPREAD, eastOfFirstCellWu: CENTRE_DISTANCE_WU })
     .advance(G13_RESPAWN_TICK);

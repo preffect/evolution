@@ -5,7 +5,8 @@
 import { DEFAULT_BALANCE, createTestSessionConfig, playerId } from '@evolution/shared';
 import { createPlayerRecord, type PlayerIdentity } from '../game/session/players.js';
 import { createWorld } from '../game/world/create-world.js';
-import { isPlayerCell, type PlayerRecord } from '../game/world/entities.js';
+import type { PlayerRecord } from '../game/world/entities.js';
+import { removeWildSeats } from '../game/wild/wild-seats.js';
 import { resumeStreams } from '../game/world/streams.js';
 import { createInputRejectionCounters, type StepContext, type WorldState } from '../game/world/world-state.js';
 
@@ -41,8 +42,7 @@ export function createTestWorld(options: TestWorldOptions = {}): WorldState {
     world.spawners.dnaFragments.isEnabled = false;
   }
   if (!options.hasWildSeats) {
-    world.cells = world.cells.filter(isPlayerCell);
-    world.wildSeats = [];
+    removeWildSeats(world);
   }
   return world;
 }

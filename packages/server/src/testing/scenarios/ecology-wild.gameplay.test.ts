@@ -1,8 +1,8 @@
 // docs/ecology/acceptance.md §8.1, the evolving-world rows that end within the first minute (W2, W4, W5, W7, W8),
 // each run twice and hash-compared. The world-clock rows (W3, W6, W9, W10) are ecology-wild-clock.gameplay.test.ts;
 // W1 is the pure `worldReference` row, pinned in packages/shared/src/simulation/world-clock.test.ts. The placed rows
-// run on seed 48 (docs/testing/scenario-runner.md §8.1): seat 0 is re-seated beside the placed cell and the other 23
-// seats come from that seed, the nearest 239 wu from the broth point at tick 0, out of reach within these rows.
+// run on seed 48 (docs/testing/scenario-runner.md §8.1): placing anything vacates the seeded seats, and seat 0 is
+// seated on demand beside the placed cell, the only wild cell in the dish.
 
 import { describe, it } from 'vitest';
 import {

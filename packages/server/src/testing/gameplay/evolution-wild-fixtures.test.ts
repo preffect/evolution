@@ -80,10 +80,23 @@ describe('applyPlacedWildCell', () => {
     expect(seat.decideInTicks).toBeLessThan(decisionIntervalTicks(world.balance));
   });
 
-  it('refuses a seat the world has not', () => {
-    const world = seededWorld();
+  it('creates the seat record on demand in a placed row, which has no seeded seats, in seat order', () => {
+    const world = createTestWorld();
+    expect(world.wildSeats).toEqual([]);
+    applyPlacedWildCell(world, placeWildCell({ seat: 3, spreadFactor: 1 }, undefined), BROTH_POINT);
+    const cell = applyPlacedWildCell(
+      world,
+      placeWildCell({ seat: SEAT, spreadFactor: SPREAD }, undefined),
+      BROTH_POINT,
+    );
+    expect(world.wildSeats.map((seat) => seat.seatNumber)).toEqual([SEAT, 3]);
+    expect(world.wildSeats[0]).toMatchObject({ cellId: cell.id, massSpreadFactor: SPREAD });
+    expect(world.cells.filter((candidate) => candidate.kind === CELL_KIND.wild)).toHaveLength(2);
+  });
+
+  it('refuses a seat number the dish has not', () => {
     const fixture = placeWildCell({ seat: wildCells.WILD_CELL_COUNT, spreadFactor: 1 }, undefined);
-    expect(() => applyPlacedWildCell(world, fixture, BROTH_POINT)).toThrow(ScenarioSetupError);
-    expect(() => applyPlacedWildCell(createTestWorld(), fixture, BROTH_POINT)).toThrow(/does not exist \(0 seats\)/);
+    expect(() => applyPlacedWildCell(seededWorld(), fixture, BROTH_POINT)).toThrow(ScenarioSetupError);
+    expect(() => applyPlacedWildCell(createTestWorld(), fixture, BROTH_POINT)).toThrow(/seats 0 to 23/);
   });
 });
