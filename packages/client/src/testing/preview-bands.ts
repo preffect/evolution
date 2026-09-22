@@ -1,12 +1,12 @@
 // Measuring the two framing bands of docs/architecture/encyclopedia.md §12.7 for a preview scene — test-only, and
-// here rather than beside the spec because two spec files read it and because `preview-framing.spec.ts` is at its
-// line limit.
+// in its own file because `preview-framing.spec.ts` is at its line limit.
 //
-// **What it measures is what the renderer would draw, not what the scene says.** The membrane comes from the real
-// `buildShapeTerms` over the real cosmetic fork; the clips come from the real `MotionClipPlayer`, fed the scene's
-// own effects; the effect sprites come from the real `effectPlacements`. Only the appendages are taken from
-// `cells/cell-draw-extent.ts` — the module a scene frames its lens by — so that the measurement stays independent
-// of the bound it is checking, while neither side keeps a private copy of how long a flagellum is.
+// **Nothing here is taken from `cells/cell-draw-extent.ts`, and that is the point.** A scene frames its lens from
+// that module's bound; this measures what the renderer would actually draw — the membrane from the real
+// `buildShapeTerms` over the clips the real `MotionClipPlayer` is playing, the tail from the real
+// `flagellumPolyline` over the same terms, the effect sprites from the real `effectPlacements`. Asking the bound
+// for the tail, as this did before PR #486's review, made the fill guard unfailable on exactly the rows where the
+// tail binds: the same defect class the PR exists to remove, one level up.
 
 import {
   COSMETIC_SUB_STREAM,
@@ -23,11 +23,17 @@ import {
   type RandomSource,
 } from '@evolution/shared';
 import { REST_CLIP_INPUT, clipDeformation, sampleClipTracks } from '../app/game/render/cells/cell-clips';
-import { appendageReachRadii } from '../app/game/render/cells/cell-draw-extent';
 import { cellClipStarts } from '../app/game/render/cells/cell-effects';
-import { summariseCellTraits } from '../app/game/render/cells/cell-traits';
-import { buildShapeTerms, headingOf } from '../app/game/render/cells/shape-terms';
-import { NOISE_STRIP_ROWS, PREVIEW_SEED } from '../app/game/render/constants';
+import { summariseCellTraits, type CellTraitSummary } from '../app/game/render/cells/cell-traits';
+import {
+  FLAGELLUM_TRAIT,
+  flagellumPolyline,
+  flagellumTailCount,
+  type FlagellumSpec,
+} from '../app/game/render/cells/flagellum-lines';
+import { evaluateProfile } from '../app/game/render/cells/radial-profile';
+import { buildShapeTerms, headingOf, type ShapeTerms } from '../app/game/render/cells/shape-terms';
+import { CILIA_OUTER_RADII, NOISE_STRIP_ROWS, PREVIEW_SEED } from '../app/game/render/constants';
 import { effectPlacements, type EffectSource } from '../app/game/render/effects/effect-sprites';
 import { MotionClipPlayer } from '../app/game/render/effects/motion-clip-player';
 import { buildNoiseStrip } from '../app/game/render/noise/noise-strip';
@@ -45,13 +51,10 @@ interface CellDraw {
  * The cosmetic phase and strip row `CellRenderState` would draw this cell with, in its order.
  *
  * **Cached by cell id, and it caches only what that key is valid for.** Both draws come from
- * `createSeededRandom(PREVIEW_SEED).fork(cosmetic).fork(cell:<id>)`, whose sole variable is the id, so the id is
- * the whole key — and those two string-hashing forks were the cost that put the bands spec on vitest's RPC
- * timeout.
- *
- * The trait summary is deliberately **not** in here. It is pure in the cell's stage and traits, not its identity,
- * and every `cell`-family preview shares one id, so caching it under the id handed every spec the first one's
- * traits: all eleven collapsed to two measurements, split by motion alone.
+ * `createSeededRandom(PREVIEW_SEED).fork(cosmetic).fork(cell:<id>)`, whose sole variable is the id — and those
+ * two string-hashing forks were the cost that put the bands spec on vitest's RPC timeout. The trait summary is
+ * deliberately not in here: it is pure in the cell's stage and traits, not its identity, and every cell-family
+ * preview shares one id, so caching it under the id handed every spec the first one's traits.
  */
 const cellDraws = new Map<string, CellDraw>();
 
@@ -68,10 +71,16 @@ function cellDrawOf(cell: CellView): CellDraw {
 
 const PREVIEW_STRIP = buildNoiseStrip(createSeededRandom(PREVIEW_SEED).fork(RANDOM_STREAM.cosmetic));
 
-interface CellExtentsWu {
+/** A player nothing was ever started on: the resting cell, for callers that measure a scene without effects. */
+const RESTING_PLAYER = new MotionClipPlayer();
+
+/** The eat clip's bumps need an angle; the subject eats what arrives at its own centre, so it is this one. */
+const AIMED_AT_THE_CENTRE = 0;
+
+export interface CellExtentsWu {
   /** The membrane at its widest: `maxRadii` with the halo taken back out. */
   readonly bodyWu: number;
-  /** The widest anything is drawn: the halo, the flagellum's tip, the cilia, or an effect sprite. */
+  /** The widest anything is drawn: the halo, the flagellum's tip past the membrane, the cilia, or an effect sprite. */
   readonly drawnWu: number;
 }
 
@@ -80,11 +89,15 @@ interface CellExtentsWu {
  *
  * **The clips are not decoration here.** An action scene's `eat` pulses the membrane to 1.09 of its radius and
  * wraps it 0.14 further; a `level_up` draws ripples past three radii, which is several times the cell. Measuring
- * these frames against `REST_DEFORMATION` — as this file did while no scene emitted effects — would report a
+ * these frames against the resting deformation — as this file did while no scene emitted effects — would report a
  * resting cell and pass a lens that clips the burst. `player` is the renderer's own `MotionClipPlayer`, fed the
  * scene's own effects, so what is measured is what would be drawn.
  */
-function cellExtents(cell: CellView, timeSeconds: number, player: MotionClipPlayer): CellExtentsWu {
+export function cellExtents(
+  cell: CellView,
+  timeSeconds: number,
+  player: MotionClipPlayer = RESTING_PLAYER,
+): CellExtentsWu {
   const nowMs = timeSeconds * MILLISECONDS_PER_SECOND;
   const speedRatio = Math.min(
     1,
@@ -108,20 +121,55 @@ function cellExtents(cell: CellView, timeSeconds: number, player: MotionClipPlay
   const bodyRadii = terms.maxRadii / terms.haloOuterRadii;
   return {
     bodyWu: bodyRadii * cell.radius,
-    // The membrane and the effect sprites are **measured** — what the renderer built this tick, and what
-    // `effectPlacements` would place around it — and only the appendages come from `cell-draw-extent.ts`, the
-    // module the scene frames by. Taking the whole extent from there would leave this file checking a bound
-    // against itself; taking the tail's length from a local copy would leave the two free to drift apart.
+    // **Nothing here is taken from `cell-draw-extent.ts`.** The membrane is the reach the renderer built this
+    // tick, the tail is the real `flagellumPolyline` over the same terms, and the sprites are what
+    // `effectPlacements` would place — so this file measures the drawing and the scene frames from the bound, and
+    // the two can disagree. Asking the bound for the tail, as this did, made the fill guard unfailable on exactly
+    // the rows where the tail binds (PR #486 review).
     drawnWu: Math.max(
       terms.maxRadii * cell.radius,
-      appendageReachRadii(traits, bodyRadii, terms.isSprinting) * cell.radius,
+      ciliaReachWu(traits, bodyRadii, cell),
+      tailTipWu(cell, terms, timeSeconds, phase),
       effectSpriteExtentWu(cell, player, nowMs),
     ),
   };
 }
 
-/** The eat clip's bumps need an angle; the subject eats what arrives at its own centre, so it is this one. */
-const AIMED_AT_THE_CENTRE = 0;
+/** The hairs reach `CILIA_OUTER_RADII − 1` past the membrane (`cell-shader-tells.ts`'s `CILIA_REACH`). */
+function ciliaReachWu(traits: CellTraitSummary, bodyRadii: number, cell: CellView): number {
+  if (traits.ciliaCount <= 0) return 0;
+  return (bodyRadii + (CILIA_OUTER_RADII - 1)) * cell.radius;
+}
+
+/**
+ * The furthest point of the cell's actual tails, in wu — `flagellumPolyline` over the frame's own terms, rooted
+ * where `cell-layer.ts`'s `flagellumSpec` roots it: on the membrane **at the rear**, which the speed stretch
+ * tapers. That taper is the whole point of measuring rather than bounding: the bound roots the tail at the cell's
+ * *widest* membrane instead, which is a good deal further out than its rear.
+ */
+export function tailTipWu(cell: CellView, terms: ShapeTerms, timeSeconds: number, phase: number): number {
+  const tier = summariseCellTraits(cell).tierOf(FLAGELLUM_TRAIT);
+  if (tier === 0) return 0;
+  // Exactly the record `cell-layer.ts`'s `flagellumSpec` builds, off this frame's own terms and cosmetic phase.
+  const spec: FlagellumSpec = {
+    x: cell.x,
+    y: cell.y,
+    radius: cell.radius * terms.pulse,
+    rootRadius: evaluateProfile(terms, terms.heading + Math.PI).r,
+    heading: terms.heading,
+    tier,
+    timeSeconds,
+    isSprinting: terms.isSprinting,
+    phase,
+  };
+  let furthest = 0;
+  for (let tail = 0; tail < flagellumTailCount(tier); tail += 1) {
+    for (const point of flagellumPolyline(spec, tail)) {
+      furthest = Math.max(furthest, Math.hypot(point.x - cell.x, point.y - cell.y));
+    }
+  }
+  return furthest;
+}
 
 /** The furthest any sprite of the cell's running clips reaches from its centre, in wu; 0 when none plays. */
 function effectSpriteExtentWu(cell: CellView, player: MotionClipPlayer, nowMs: number): number {
@@ -222,7 +270,7 @@ const worstBandsBySpec = new Map<PreviewSpec, WorstBands>();
  * The walk is plain arithmetic and the assertions are two per scene rather than two per body per tick. That is
  * not a coverage cut — every tick is still measured — it is what keeps the bands spec off vitest's RPC timeout:
  * at one `expect` per body per tick it ran ~50 000 assertions and tipped over 5 s under load. The memo is the
- * other half of that: several tests want the same walk for the same specs, and walking twice was twice the cost.
+ * other half: several tests want the same walk for the same specs, and walking twice was twice the cost.
  */
 export function worstBandsOf(spec: PreviewSpec): WorstBands {
   const cached = worstBandsBySpec.get(spec);
@@ -231,6 +279,8 @@ export function worstBandsOf(spec: PreviewSpec): WorstBands {
   worstBandsBySpec.set(spec, walked);
   return walked;
 }
+
+export { PREVIEW_STRIP, cellDrawOf };
 
 export function reportBand(band: WorstBand): string {
   return `${band.what} reached ${band.fraction.toFixed(3)} of the lens radius at tick ${band.atTick}`;

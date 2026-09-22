@@ -33,12 +33,22 @@ const FULL_AMPLITUDE = 1;
  * The tail is the long one: rooted on the membrane at the rear, `FLAGELLUM_LENGTH_RADII` further out, with the
  * wave's peak added sideways (`flagellum-lines.ts`). Adding the wave to the length instead of taking the
  * hypotenuse of the two overstates the tip slightly, which is the safe direction for a framing bound.
+ *
+ * `pulse` scales the tail and not the cilia, because that is what the renderer does: `flagellumSpec.radius` is
+ * `r × pulse`, so an eat's pulse lengthens the tail by the same fraction, while the shader measures the cilia's
+ * reach in unpulsed radii past the membrane (`frame.dr` is `d / inst.r`).
  */
-export function appendageReachRadii(traits: CellTraitSummary, membraneRadii: number, isSprinting: boolean): number {
+export function appendageReachRadii(
+  traits: CellTraitSummary,
+  membraneRadii: number,
+  isSprinting: boolean,
+  pulse: number,
+): number {
   const ciliaReach = traits.ciliaCount > 0 ? membraneRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
   if (flagellumTier === 0) return ciliaReach;
-  return Math.max(ciliaReach, membraneRadii + FLAGELLUM_LENGTH_RADII + waveAmplitudeRadii(flagellumTier, isSprinting));
+  const tailRadii = (FLAGELLUM_LENGTH_RADII + waveAmplitudeRadii(flagellumTier, isSprinting)) * pulse;
+  return Math.max(ciliaReach, membraneRadii + tailRadii);
 }
 
 /** The tail wave's peak in radii at this tier, doubled while sprinting (`flagellum-lines.ts`'s `amplitudeWu`). */
@@ -89,6 +99,10 @@ export function cellDrawExtentRadii(traits: CellTraitSummary, state: CellDrawSta
   const bodyRadii = drawnWithHalo / haloOuterRadiiOf(traits);
   return {
     bodyRadii,
-    drawnRadii: Math.max(drawnWithHalo, appendageReachRadii(traits, bodyRadii, state.isSprinting), state.effectRadii),
+    drawnRadii: Math.max(
+      drawnWithHalo,
+      appendageReachRadii(traits, bodyRadii, state.isSprinting, state.clip.pulse),
+      state.effectRadii,
+    ),
   };
 }

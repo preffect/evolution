@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The GLSL is a string until a WebGL context compiles it (the Playwright smoke does); here we pin
 // what a string can prove: every instance field is read from the column the packing puts it in,
 // every uniform the mesh sets is declared, both passes assemble, and float literals are floats.

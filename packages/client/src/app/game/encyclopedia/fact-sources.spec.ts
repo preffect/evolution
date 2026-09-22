@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/architecture/encyclopedia.md §12.6: every fact source reads the live balance. The formula and catalog rows run
 // over a recording proxy of an unfrozen clone (a proxy over the frozen default would break its invariants) with every
 // argument their types allow; each call reads a leaf, and at least one leaf a row reads moves its value when patched

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { BACTERIUM_VARIANT, FOOD_KIND, entityId, type FoodMoteView } from '@evolution/shared';
 import { FoodStore } from './food-store';

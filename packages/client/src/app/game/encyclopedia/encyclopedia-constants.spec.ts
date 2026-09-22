@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The words §11.7 tabulates, pinned as literals (docs/ui/encyclopedia.md §11.7).
 //
 // **The rule this file exists to apply is mechanical, not a judgement.** §11.7's "Value" column *is* the list: every

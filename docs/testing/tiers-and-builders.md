@@ -35,6 +35,48 @@ the opt-in integration run rather than on every save.
 - Run the integration tier at the end of a task that may have caused a cross-subsystem
   regression, never on every save.
 
+### 2.1 The client spec environment: jsdom by default, `node` where there is no DOM (#477)
+
+The Angular unit-test builder constructs a fresh **jsdom** for every client spec file, and that
+construction costs ~1.8 s whatever the spec asserts. It is a flat tax, not a tail: across the 258
+files of the `test` tier the per-file cost ran p10 1.48 s, p50 1.79 s, p90 2.17 s, max 2.63 s, for
+469 s of the run's 1482 worker-seconds. It is charged per _file_, so every spec split buys another
+one.
+
+A spec whose whole import graph touches no DOM does not need it, and says so on its first line:
+
+```ts
+// @vitest-environment node
+```
+
+Vitest reads that docblock from the spec's own source when it groups the files (so it survives the
+builder's esbuild bundling, which the comment itself never reaches) and runs the file in a plain
+node environment, where its environment cost is ~0 ms. The 91 files that carry it today (90 in the
+`test` tier, one in the integration tier) took the tier from 732.5 s to 657.0 s, −10.3 %.
+
+- **The rule for a new spec:** when nothing in its import graph imports `@angular/*` or `pixi.js`,
+  and nothing in it names a DOM global (`document`, `window`, `HTMLElement`, `canvas`,
+  `localStorage`, `WebSocket`, …), give it the docblock. Section 7 lists it as a reviewer check.
+- **When in doubt, leave it out.** A spec that needs the DOM and declares `node` fails loudly
+  (`ReferenceError: document is not defined`) rather than silently, but it is still a red tier.
+- **The one case that fails silently: environment sniffing.** A module that branches on
+  `typeof window !== 'undefined'` (or `typeof document`, or a `globalThis` probe) does not throw
+  under node — it takes the other branch, and the tier stays green while the spec exercises code
+  the browser never runs. No sniff exists in `packages/client/src` or `packages/shared/src` today,
+  and nothing enforces that; a spec whose graph grows one must lose the docblock.
+- A spec that uses `TestBed`, renders a component, stubs `WebSocket` or `AudioContext` on
+  `globalThis`, or drives Pixi keeps jsdom. The builder's TestBed setup file runs in both
+  environments and costs ~0.85 s a file either way; it needs a DOM only once a spec uses `TestBed`.
+- Vitest runs the two environments as separate worker batches and recycles the workers between
+  them, so the node specs and the jsdom specs never share global state.
+- `node` also switches Vite's transform mode from `web` to `ssr`, so a package that resolves
+  differently under the `browser` export condition would load a different file. Nothing in the
+  converted graph does — it imports only `vitest` and `node:` builtins — but a spec that pulls in
+  a third-party package keeps jsdom unless that package is checked.
+- The same docblock works in the integration tier (`lint-guard.integration.spec.ts` carries it).
+- Only the section 7 checklist enforces any of this: nothing fails when a new DOM-free spec is
+  written without the docblock, so the saving decays unless reviewers look (ticket #489).
+
 ## 3. Naming and placement
 
 - Co-located, same basename: `game-room.ts` → `game-room.test.ts`. No `__tests__/` directories.
@@ -106,4 +148,5 @@ the only bound (`testing/wait-for.ts`, #421).
 3. A changed rule or number has a scenario named by its design-table row.
 4. Fixtures come from `src/testing/`; no ad-hoc object literals repeated across tests.
 5. No `.only`, no `.skip`, no snapshot of a large object, no `Math.random`, no real time.
-6. Coverage did not go down; if it went up, the threshold went up with it.
+6. A new client spec with no DOM in its import graph carries `// @vitest-environment node` (§2.1).
+7. Coverage did not go down; if it went up, the threshold went up with it.

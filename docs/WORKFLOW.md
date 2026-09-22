@@ -109,7 +109,36 @@ with `gh` as the credential helper, set up by `.devcontainer/post-create.sh`), s
 enforce "reviewer ≠ author". Reviews are therefore procedural (below) plus the `code-review`
 status.
 
-## 6. Review process (every PR)
+### 5.1 Lanes — how much process a change gets
+
+Decided 2026-09-22 after a two-line logging change took 35 minutes of agent, brief, review and gate:
+**the process scales with the risk of the change, not with the ceremony available.** The lead picks the
+lane when it picks up the ticket and names it in the PR body (`Lane: 1`). When in doubt between two
+lanes, take the lighter one and let the timed gate (below) catch what slips.
+
+| Lane          | What                                                                                                                                 | Who                                                                                                                             | Checks before merge                                                                                                       | Target    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------- |
+| **1 trivial** | docs, copy, constants, dev tooling, logging, a fix under ~50 lines in one package with no new behaviour                              | the lead itself — no agent, no reviewer, no design review                                                                       | `./validate.sh <phase> --scope <path>` on what changed (lint for docs), then merge                                        | 5–10 min  |
+| **2 normal**  | a feature slice or fix inside one package (`client`, `server`) that does not touch the lane-3 areas                                  | one builder with a brief under ~150 words, one reviewer by area (§6), **one** round; blockers fixed, minors filed as follow-ups | builder's scoped tests + reviewer's scoped check; no per-PR gate, no mutation table, at most one evidence frame if visual | 30–60 min |
+| **3 risky**   | anything in `packages/shared/`, the simulation step, the wire contract, renderer or session lifecycle, `validate.sh`, deploy scripts | the full §6 process: design review, parallel round one, light round two                                                         | `./validate.sh all --affected` on the final head, by whoever merges                                                       | as needed |
+
+**The gate moves from the PR to `main`.** Lanes 1 and 2 merge on scoped checks. `./validate.sh all` runs
+against `origin/main` on a timer (`scripts/main-gate.sh`, hourly while anything merged) rather than once per
+PR; a red run names the merge that broke it and that merge is **reverted, not fixed forward**, with a lane-2
+ticket for the redo. Lane 3 keeps the per-PR gate because a revert there is not cheap.
+
+Every lane still starts as a ticket (§5; the `pr-links-issue` check requires it — a lane-1 ticket is one
+`gh issue create` line) and still says `ticket #N` / `PR #N` (§1.1). What lanes 1–2 drop is the parts that cost
+hours and found little on small changes: long briefs, mutation tables, multi-viewport evidence, second review
+rounds, and a 20-minute gate queued behind another gate.
+
+**Agent hygiene.** Agents never wait with `until …; do sleep …; done` loops — they end their turn and are
+woken by the harness; a poll loop outlives its agent and burns a core for days. The lead sweeps at session
+start for processes whose cwd is a deleted worktree and for poll loops older than an hour.
+
+## 6. Review process (lanes 2 and 3)
+
+Lane 2 runs steps 2 and 4 only, with one reviewer and one round. Lane 3 runs everything.
 
 1. **Design review** (architect) before code: approach, file plan, interfaces, where constants
    and config live, test plan.
@@ -156,17 +185,18 @@ Graphics PRs attach before/after screenshots; gameplay PRs list the balance valu
 
 ## 7. Scripts
 
-| Script                           | Runs on   | Purpose                                                                                                                                                                   |
-| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/github-setup.sh`        | host      | Create/push the repo, labels, milestones, Project + views, ruleset, seed groundwork epics.                                                                                |
-| `scripts/project-sync.sh`        | host/cont | Reconcile issues ↔ board (section 4).                                                                                                                                     |
-| `scripts/issue-status.sh`        | host/cont | `issue-status.sh <Status> <N> [N...]` — move tickets to a Status in two API calls.                                                                                        |
-| `scripts/pr-threads.sh`          | host/cont | `pr-threads.sh list\|unresolved\|state <PR>`; `reply <PR> actions.json` — read, summarise, and answer/resolve review threads in one request each.                         |
-| `scripts/agent.sh`               | host/cont | `agent.sh <role> [--ticket N] [--branch B] "<task>"` — run one team role headlessly inside the devcontainer (`docs/TEAM.md`).                                             |
-| `scripts/worktree.sh`            | host/cont | `worktree.sh add\|remove <branch>` — one git worktree per branch under `.worktrees/` for parallel agents (`docs/TEAM.md`).                                                |
-| `scripts/land-pr.sh`             | host/cont | `land-pr.sh <PR> [--reviewers "roles"]` — reviewer roles review, engineer fixes, re-review, then auto-merge (`docs/TEAM.md`).                                             |
-| `scripts/resume-in-container.sh` | host/cont | Copy a Claude Code transcript under the other side's project key so `claude --resume <id>` continues the same conversation inside the devcontainer (or back on the host). |
-| `scripts/sync-from-template.sh`  | host/cont | Pull template-owned files (scripts, devcontainer, process docs) from `base-multiplayer-game` into this game, re-applying its identity; land the diff via a PR.            |
-| `scripts/deploy-main.sh`         | cont      | Redeploy the running stack from `origin/main` (once, or `--watch` as `./run.sh` starts it); refuses dirty checkouts, logs to `.game-logs/deploy.log`.                     |
+| Script                           | Runs on   | Purpose                                                                                                                                                                               |
+| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/github-setup.sh`        | host      | Create/push the repo, labels, milestones, Project + views, ruleset, seed groundwork epics.                                                                                            |
+| `scripts/project-sync.sh`        | host/cont | Reconcile issues ↔ board (section 4).                                                                                                                                                 |
+| `scripts/issue-status.sh`        | host/cont | `issue-status.sh <Status> <N> [N...]` — move tickets to a Status in two API calls.                                                                                                    |
+| `scripts/pr-threads.sh`          | host/cont | `pr-threads.sh list\|unresolved\|state <PR>`; `reply <PR> actions.json` — read, summarise, and answer/resolve review threads in one request each.                                     |
+| `scripts/agent.sh`               | host/cont | `agent.sh <role> [--ticket N] [--branch B] "<task>"` — run one team role headlessly inside the devcontainer (`docs/TEAM.md`).                                                         |
+| `scripts/worktree.sh`            | host/cont | `worktree.sh add\|remove <branch>` — one git worktree per branch under `.worktrees/` for parallel agents (`docs/TEAM.md`).                                                            |
+| `scripts/land-pr.sh`             | host/cont | `land-pr.sh <PR> [--reviewers "roles"]` — reviewer roles review, engineer fixes, re-review, then auto-merge (`docs/TEAM.md`).                                                         |
+| `scripts/resume-in-container.sh` | host/cont | Copy a Claude Code transcript under the other side's project key so `claude --resume <id>` continues the same conversation inside the devcontainer (or back on the host).             |
+| `scripts/sync-from-template.sh`  | host/cont | Pull template-owned files (scripts, devcontainer, process docs) from `base-multiplayer-game` into this game, re-applying its identity; land the diff via a PR.                        |
+| `scripts/main-gate.sh`           | cont      | `main-gate.sh [--watch]` — the timed gate on `main` (section 5.1): `./validate.sh all` on `origin/main` in its own worktree when it moved; red logs the commits since the last green. |
+| `scripts/deploy-main.sh`         | cont      | Redeploy the running stack from `origin/main` (once, or `--watch` as `./run.sh` starts it); refuses dirty checkouts, logs to `.game-logs/deploy.log`.                                 |
 
 `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).

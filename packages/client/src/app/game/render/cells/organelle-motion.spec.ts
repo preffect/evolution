@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { FOOD_VACUOLE, MITOCHONDRION, ORGANELLE_KIND, TOXIN_VACUOLE } from '../constants';
 import { organelleMotion } from './organelle-motion';

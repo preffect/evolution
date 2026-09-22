@@ -29,7 +29,8 @@
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
 ./validate.sh all                     # lint, duplication, typecheck, test in sequence; stops at the first red phase
-./validate.sh all --affected          # the merge gate (once, by whoever merges): only what the branch changed vs origin/main, then its integration tier; refuses a branch behind origin/main (merge it first)
+scripts/main-gate.sh [--watch]        # the timed gate on main (docs/WORKFLOW.md §5.1): lanes 1–2 merge on scoped checks, this gates origin/main hourly
+./validate.sh all --affected          # the lane-3 merge gate (once, by whoever merges): only what the branch changed vs origin/main, then its integration tier; refuses a branch behind origin/main (merge it first)
 ./validate.sh test --scope server     # build loop: one package (shared|server|client), coverage floor kept
 ./validate.sh test --scope packages/server/src/game/world   # build loop: only that path's tests, no coverage floor
 

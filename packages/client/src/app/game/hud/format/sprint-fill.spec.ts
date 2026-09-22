@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, secondsToTicks } from '@evolution/shared';
 import { sprintFillFor, type SprintFillBalance } from './sprint-fill';

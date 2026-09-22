@@ -1,6 +1,7 @@
 // The dev-only preview evidence page (docs/architecture/encyclopedia.md §12.7): it opens `opens` preview sessions
-// on one `ManualClock`, walks each to `?t=` and parks it, and writes the report into
-// `data-testid="encyclopedia-preview-report"` the way the bench route does, so a hardware run is one URL.
+// on one `ManualClock`, walks each to `?t=` and parks it, and publishes the report the way the bench route does —
+// into `data-testid="encyclopedia-preview-report"` for the smoke and to the browser console for whoever opened the
+// URL (#492) — so a hardware run is one URL.
 //
 // The stage element carries the encyclopedia's own crop — `border-radius: 50%; overflow: hidden`, never a Pixi
 // mask and never a `clip-path` — so graphics-qa's element screenshots show the lens the player sees. The pixel
@@ -24,6 +25,7 @@ import {
   previewWalkFrameCount,
   type PreviewOpenTimings,
 } from '../render/preview/preview-timings';
+import { publishPreviewFailure, publishPreviewReport } from './preview-report-log';
 import {
   PREVIEW_ROUTE_FAILURE,
   parsePreviewQuery,
@@ -89,7 +91,9 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
     this.run(
       parsePreviewQuery(view?.location.search ?? ''),
       view?.devicePixelRatio ?? DEFAULT_DEVICE_PIXEL_RATIO,
-    ).catch((error: unknown) => console.error('The preview evidence route could not start.', error));
+    ).catch((error: unknown) =>
+      console.error('The preview evidence route could not start: no report will be produced.', error),
+    );
   }
 
   private async run(query: PreviewQuery, devicePixelRatio: number): Promise<void> {
@@ -163,12 +167,12 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
       budgets: PREVIEW_BUDGETS,
       verdict: previewBudgetVerdict(openP95Ms, frame.frameTimeP95Ms),
     };
-    this.report().nativeElement.textContent = JSON.stringify(report);
+    publishPreviewReport(this.report().nativeElement, report);
   }
 
   private writeFailure(error: string): void {
     const failure: PreviewRouteFailure = { error };
-    this.report().nativeElement.textContent = JSON.stringify(failure);
+    publishPreviewFailure(this.report().nativeElement, failure);
   }
 
   ngOnDestroy(): void {

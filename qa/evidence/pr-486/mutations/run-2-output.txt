@@ -1,0 +1,43 @@
+===== M2: the lens goes back to the looseness the single 4.4 constant gave it =====
+### RUN M2 on packages/client/src/app/game/render/preview/preview-framing.spec.ts
+   ✓ the framing bands > keep every body inside the safe radius and everything drawn inside the rim 256ms
+   ✓ the framing bands > draw something in every subject scene, so the bands above are not vacuous 1ms
+   × the framing bands > frame every cell scene no looser than its own contents need 22ms
+     → cell (resting) is framed 3.07× looser than its contents need: the body of preview-cell reached 0.244 of the lens radius at tick 13, and the drawn extent of preview-cell reached 0.293 of the lens radius at tick 13. A cell scene's lens comes from cellDrawExtentRadii, which bounds every term the renderer samples, so the measured worst tick lands a little inside the fill fractions — but only a little. 0.99 is the gap measured across SUBJECT_SPECS with room to spare; a number far under it means the framing stopped following the subject, not that the bound loosened.: expected 0.325732418149424 to be greater than or equal to 0.99
+ FAIL  |client| src/app/game/render/preview/preview-framing.spec.ts > the framing bands > frame every cell scene no looser than its own contents need
+AssertionError: cell (resting) is framed 3.07× looser than its contents need: the body of preview-cell reached 0.244 of the lens radius at tick 13, and the drawn extent of preview-cell reached 0.293 of the lens radius at tick 13. A cell scene's lens comes from cellDrawExtentRadii, which bounds every term the renderer samples, so the measured worst tick lands a little inside the fill fractions — but only a little. 0.99 is the gap measured across SUBJECT_SPECS with room to spare; a number far under it means the framing stopped following the subject, not that the bound loosened.: expected 0.325732418149424 to be greater than or equal to 0.99
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+### END M2
+===== M4: cilia are given a tail's reach on top of their own =====
+### RUN M4 on packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+   ✓ cellDrawExtentRadii > is never beaten by a frame the renderer actually builds 204ms
+   ✓ cellDrawExtentRadii > reaches the same maximum whichever strip row a cell drew 1ms
+   ✓ cellDrawExtentRadii > keeps the body inside the drawn extent for every stage 1ms
+   ✓ cellDrawExtentRadii > grows with a sprint and with speed 1ms
+   ✓ the form profiles maxReachRadii does not bound > all still draw the blob, so the reach is exact 1ms
+   ✓ appendageReachRadii > reaches nothing past a cell with no cilia and no tail 0ms
+   ✓ appendageReachRadii > lengthens the tail with its tier and doubles its wave on a sprint 0ms
+   × appendageReachRadii > reaches only just past the membrane for cilia 13ms
+ FAIL  |client| src/app/game/render/cells/cell-draw-extent.spec.ts > appendageReachRadii > reaches only just past the membrane for cilia
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+### END M4
+===== M5: every tail waves as if it were tier I =====
+### RUN M5 on packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+   ✓ cellDrawExtentRadii > is never beaten by a frame the renderer actually builds  324ms
+   ✓ cellDrawExtentRadii > reaches the same maximum whichever strip row a cell drew 1ms
+   ✓ cellDrawExtentRadii > keeps the body inside the drawn extent for every stage 2ms
+   ✓ cellDrawExtentRadii > grows with a sprint and with speed 1ms
+   ✓ the form profiles maxReachRadii does not bound > all still draw the blob, so the reach is exact 1ms
+   ✓ appendageReachRadii > reaches nothing past a cell with no cilia and no tail 0ms
+   × appendageReachRadii > lengthens the tail with its tier and doubles its wave on a sprint 17ms
+   ✓ appendageReachRadii > reaches only just past the membrane for cilia 0ms
+ FAIL  |client| src/app/game/render/cells/cell-draw-extent.spec.ts > appendageReachRadii > lengthens the tail with its tier and doubles its wave on a sprint
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+### END M5
+===== DONE; working tree: =====
+ M packages/client/src/app/game/render/cells/cell-draw-extent.spec.ts
+ M packages/client/src/app/game/render/preview/preview-subject-specs.ts
+?? qa/evidence/pr-486/

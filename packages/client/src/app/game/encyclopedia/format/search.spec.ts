@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/ui/encyclopedia.md §11.5: search is case- and accent-insensitive, title before summary with a title-prefix
 // match ahead of the rest, and the caller's rail-and-list order kept inside each rank.
 

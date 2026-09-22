@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { createDrawCallCounter, type DrawCallSource } from './draw-call-counter';
 

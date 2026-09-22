@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The instance layout is the one table the packing and the GLSL share (docs/rendering/cells.md §2.3):
 // every scalar lands in a distinct channel, the bumps fill the row's tail, and the row fits.
 

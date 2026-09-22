@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/ui/hud.md §3.1.5's layout inequalities: the notice stack, the orbit and the labels, at §3.1.3's sizes and at
 // `CELL_MAX_MASS` on the smallest viewport and the reference one, plus #324's caveat scene.
 

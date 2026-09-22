@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { boxIntersectsDisc, clamp01, degreesToRadians, gaussianBump, smoothstep, wrapAngle } from './geometry';
 

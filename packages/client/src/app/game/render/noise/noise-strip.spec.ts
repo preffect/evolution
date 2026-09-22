@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { RADIANS_PER_FULL_TURN, RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
 import { areBytesEqual } from '../../../../testing/bytes';
