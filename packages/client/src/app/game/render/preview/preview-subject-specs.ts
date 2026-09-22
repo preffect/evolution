@@ -45,6 +45,13 @@ const EXTREME_TRAIT_SETS: readonly (readonly OwnedTrait[])[] = [
   ),
 ];
 
+/**
+ * The action families ticket #364's second PR built. They carry no options — an action scene is one fixed
+ * subject doing one thing — so each is its whole coverage, and being here is what puts them through the framing
+ * bands, the loop's closure and the determinism walk alongside every other family.
+ */
+const ACTION_SCENES = [PREVIEW_SCENE.eat, PREVIEW_SCENE.sprint, PREVIEW_SCENE.levelUp] as const;
+
 /** One spec per family, plus a spread of the cell family across the ladder's real trait sets. */
 export const SUBJECT_SPECS: readonly PreviewSpec[] = [
   ...Object.values(CELL_STAGE).flatMap((stage): PreviewSpec[] =>
@@ -69,6 +76,7 @@ export const SUBJECT_SPECS: readonly PreviewSpec[] = [
   })),
   ...Object.values(DNA_TAG).map((tag): PreviewSpec => ({ scene: PREVIEW_SCENE.dnaFragment, tag })),
   ...ZONE_IDS.map((zone): PreviewSpec => ({ scene: PREVIEW_SCENE.zone, zone })),
+  ...ACTION_SCENES.map((scene): PreviewSpec => ({ scene })),
 ];
 
 /** Every family in `PREVIEW_SCENE`, one spec each: what `previewSceneFor` must be total over. */

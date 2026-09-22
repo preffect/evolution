@@ -15,7 +15,7 @@ import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../../debug/evolut
 import type { RenderFrame } from '../../net/world-store';
 import { PREVIEW_GEL_PATCHES, PREVIEW_SEED } from '../constants';
 import { FrameLoopSession } from '../frame-loop-session';
-import { NO_HUD_INPUTS, type GameRenderer, type RenderOutputs } from '../game-renderer';
+import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
 import { HALF } from '../geometry';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import {
@@ -240,7 +240,13 @@ export class PreviewSession extends FrameLoopSession {
       renderer.setFixedZoom((previewLensSidePx(this.pixi.app.screen) * HALF) / framing.viewRadiusWu);
       renderer.parkOn(framing.target);
     }
-    return renderer.render(frame, scene?.subjectPlayerId ?? null, NO_HUD_INPUTS, submit);
+    // The scene's own-cell record rides the same crossing the HUD's does; `NO_HUD_INPUTS` otherwise, so a scene
+    // that supplies none draws no indicators and its ring rests.
+    const inputs: RenderInputs =
+      scene === null
+        ? NO_HUD_INPUTS
+        : { ...NO_HUD_INPUTS, ownCellIndicators: scene.ownCellIndicators(frame, frame.balance) };
+    return renderer.render(frame, scene?.subjectPlayerId ?? null, inputs, submit);
   }
 
   protected afterFrame(outputs: RenderOutputs): void {

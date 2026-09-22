@@ -18,7 +18,7 @@ import {
 } from '../constants';
 import type { CellTraitSummary } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
-import { haloOuterRadiiOf, peakReachRadii } from './shape-terms';
+import { REST_CLIP_PEAK, haloOuterRadiiOf, peakReachRadii, type ClipDeformationPeak } from './shape-terms';
 
 /** The hairs reach `CILIA_OUTER_RADII − 1` **past the membrane** (`cell-shader-tells.ts`'s `CILIA_REACH`). */
 const CILIA_REACH_RADII = CILIA_OUTER_RADII - 1;
@@ -33,12 +33,22 @@ const FULL_AMPLITUDE = 1;
  * The tail is the long one: rooted on the membrane at the rear, `FLAGELLUM_LENGTH_RADII` further out, with the
  * wave's peak added sideways (`flagellum-lines.ts`). Adding the wave to the length instead of taking the
  * hypotenuse of the two overstates the tip slightly, which is the safe direction for a framing bound.
+ *
+ * `pulse` scales the tail and not the cilia, because that is what the renderer does: `flagellumSpec.radius` is
+ * `r × pulse`, so an eat's pulse lengthens the tail by the same fraction, while the shader measures the cilia's
+ * reach in unpulsed radii past the membrane (`frame.dr` is `d / inst.r`).
  */
-export function appendageReachRadii(traits: CellTraitSummary, membraneRadii: number, isSprinting: boolean): number {
+export function appendageReachRadii(
+  traits: CellTraitSummary,
+  membraneRadii: number,
+  isSprinting: boolean,
+  pulse: number,
+): number {
   const ciliaReach = traits.ciliaCount > 0 ? membraneRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
   if (flagellumTier === 0) return ciliaReach;
-  return Math.max(ciliaReach, membraneRadii + FLAGELLUM_LENGTH_RADII + waveAmplitudeRadii(flagellumTier, isSprinting));
+  const tailRadii = (FLAGELLUM_LENGTH_RADII + waveAmplitudeRadii(flagellumTier, isSprinting)) * pulse;
+  return Math.max(ciliaReach, membraneRadii + tailRadii);
 }
 
 /** The tail wave's peak in radii at this tier, doubled while sprinting (`flagellum-lines.ts`'s `amplitudeWu`). */
@@ -56,19 +66,43 @@ export interface CellDrawExtentRadii {
   readonly drawnRadii: number;
 }
 
+/** What a cell is doing, as far as its extent is concerned. */
+export interface CellDrawState {
+  /** 0 at rest, 1 at its own top speed: the speed stretch. */
+  readonly speedRatio: number;
+  /** The sprint's axial stretch and its doubled tail wave. */
+  readonly isSprinting: boolean;
+  /** The widest its running clips deform it (`cell-clips.ts`); `REST_CLIP_PEAK` for a cell playing none. */
+  readonly clip: ClipDeformationPeak;
+  /**
+   * How far the clips' **effect sprites** reach from the cell's centre, in radii
+   * (`effects/effect-reach.ts`); 0 when nothing is emitted. A level-up's outermost ripple is the
+   * widest thing the preview draws, and it is not part of the cell at all — so it belongs in `drawnRadii` and
+   * never in `bodyRadii`.
+   */
+  readonly effectRadii: number;
+}
+
+/** A cell swimming or resting with nothing playing on it: every scene ticket #363 built. */
+export function restingDrawState(speedRatio: number): CellDrawState {
+  return { speedRatio, isSprinting: false, clip: REST_CLIP_PEAK, effectRadii: NO_EFFECT_REACH };
+}
+
+const NO_EFFECT_REACH = 0;
+
 /**
- * The bound: how far a cell of these traits can be drawn at this speed, over **any** frame. Time-independent and
+ * The bound: how far a cell of these traits can be drawn in this state, over **any** frame. Time-independent and
  * cosmetic-fork-independent, so a lens framed by it holds still.
  */
-export function cellDrawExtentRadii(
-  traits: CellTraitSummary,
-  speedRatio: number,
-  isSprinting: boolean,
-): CellDrawExtentRadii {
-  const drawnWithHalo = peakReachRadii(traits, speedRatio, isSprinting);
+export function cellDrawExtentRadii(traits: CellTraitSummary, state: CellDrawState): CellDrawExtentRadii {
+  const drawnWithHalo = peakReachRadii(traits, state.speedRatio, state.isSprinting, state.clip);
   const bodyRadii = drawnWithHalo / haloOuterRadiiOf(traits);
   return {
     bodyRadii,
-    drawnRadii: Math.max(drawnWithHalo, appendageReachRadii(traits, bodyRadii, isSprinting)),
+    drawnRadii: Math.max(
+      drawnWithHalo,
+      appendageReachRadii(traits, bodyRadii, state.isSprinting, state.clip.pulse),
+      state.effectRadii,
+    ),
   };
 }

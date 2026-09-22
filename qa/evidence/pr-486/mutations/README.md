@@ -35,6 +35,28 @@ The same shape guards any filtered command: **a filter that hides a result looks
 generalises past mutation testing — `| tail -40` on a test log truncated a spec listing during this ticket and read
 as "the spec was skipped", which was also wrong in the safe-looking direction.
 
+## The result cache: run the runner with `--fresh`
+
+`validate.sh` keeps a content-addressed result cache (`docs/engineering/validation-gate.md` §1): a green run is
+stamped under the working tree's hash, and the same tree asked again prints `cached green from <time> at tree
+<hash>` and **no `Tests` line**. A mutate/revert loop can hit it — a mutation that reproduces a tree already
+stamped green, or a revert followed by a control run — and the check above then reads the hit as "build failed".
+The two scripts here ran without it and are kept verbatim; a runner written from them calls
+`./validate.sh test --fresh --scope …`, and reads each run's output as one of three cases:
+
+| Output                                         | What happened                                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `cached green from … at tree …`, no `Tests`    | A cache hit: nothing ran. Not a build failure and not a pass of this mutation — add `--fresh` |
+| No `Tests` line and no `cached green` line     | The build failed (`TS6133` and friends): the mutation **tested nothing**                      |
+| A `Tests` line (`Tests  N failed \| M passed`) | The tests ran; read the failed count and the assertion messages                               |
+
+## `git checkout --` in the revert
+
+`revert()` puts each mutated file back with `git checkout -- <file>`, which restores the **committed** version
+and throws away every uncommitted change in that file — the mutation, and any edit of your own you had not yet
+committed. Run the loop only on a clean tree (`git status --porcelain` empty, which is why both scripts print it
+last), never in a worktree where you are mid-edit, and never on a file another agent is working in.
+
 ## Reusing these
 
 They are evidence, not a tool: each one patches named anchors in specific files with `python3` and `assert`s the

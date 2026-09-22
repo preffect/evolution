@@ -20,7 +20,7 @@ import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
 import { NOISE_STRIP_ROWS, PREVIEW_SEED } from '../constants';
 import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
-import { appendageReachRadii, cellDrawExtentRadii } from './cell-draw-extent';
+import { appendageReachRadii, cellDrawExtentRadii, restingDrawState } from './cell-draw-extent';
 import { summariseCellTraits } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
 import { FORM_PROFILES } from './forms/form-profiles';
@@ -78,6 +78,9 @@ const SWEPT_TICKS = Math.ceil(SWEPT_SECONDS / TICK_INTERVAL_S);
 const FIXED_STRIP_ROW = 0;
 const RESTING = 0;
 const SWIMMING = 1;
+const REST_PULSE = 1;
+/** An eat's peak pulse, near enough: what the tail must follow and the cilia must not. */
+const EATING_PULSE = 1.1;
 const AT_ZERO_SECONDS = 0;
 
 describe('cellDrawExtentRadii', () => {
@@ -95,7 +98,7 @@ describe('cellDrawExtentRadii', () => {
     for (const stage of Object.values(CELL_STAGE)) {
       for (const speedRatio of [RESTING, SWIMMING]) {
         const view = viewOf(BENCH_STAGE_TRAITS[stage], speedRatio, false);
-        const bound = cellDrawExtentRadii(summariseCellTraits(view), speedRatio, false);
+        const bound = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
         for (let tick = 0; tick <= SWEPT_TICKS; tick += 1) {
           const measured = measuredReachRadii(view, tick * TICK_INTERVAL_S, speedRatio, FIXED_STRIP_ROW);
           expect(
@@ -121,7 +124,7 @@ describe('cellDrawExtentRadii', () => {
   it('keeps the body inside the drawn extent for every stage', () => {
     for (const stage of Object.values(CELL_STAGE)) {
       const view = viewOf(BENCH_STAGE_TRAITS[stage], SWIMMING, false);
-      const { bodyRadii, drawnRadii } = cellDrawExtentRadii(summariseCellTraits(view), SWIMMING, false);
+      const { bodyRadii, drawnRadii } = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(SWIMMING));
       expect(bodyRadii, stage).toBeGreaterThan(0);
       expect(bodyRadii, stage).toBeLessThan(drawnRadii);
     }
@@ -132,9 +135,12 @@ describe('cellDrawExtentRadii', () => {
     const traits = BENCH_STAGE_TRAITS[CELL_STAGE.prokaryote];
     const traitsOf = (speedRatio: number, isSprinting: boolean) =>
       summariseCellTraits(viewOf(traits, speedRatio, isSprinting));
-    const resting = cellDrawExtentRadii(traitsOf(RESTING, false), RESTING, false);
-    const swimming = cellDrawExtentRadii(traitsOf(SWIMMING, false), SWIMMING, false);
-    const sprinting = cellDrawExtentRadii(traitsOf(SWIMMING, true), SWIMMING, true);
+    const resting = cellDrawExtentRadii(traitsOf(RESTING, false), restingDrawState(RESTING));
+    const swimming = cellDrawExtentRadii(traitsOf(SWIMMING, false), restingDrawState(SWIMMING));
+    const sprinting = cellDrawExtentRadii(traitsOf(SWIMMING, true), {
+      ...restingDrawState(SWIMMING),
+      isSprinting: true,
+    });
     expect(swimming.drawnRadii).toBeGreaterThan(resting.drawnRadii);
     expect(sprinting.drawnRadii).toBeGreaterThan(swimming.drawnRadii);
   });
@@ -172,16 +178,16 @@ describe('appendageReachRadii', () => {
   /** A cell with neither trait has nothing hanging off it, so the membrane is the whole extent. */
   it('reaches nothing past a cell with no cilia and no tail', () => {
     const bare = summariseCellTraits(viewOf([], RESTING, false));
-    expect(appendageReachRadii(bare, membraneRadii, false)).toBe(0);
+    expect(appendageReachRadii(bare, membraneRadii, false, REST_PULSE)).toBe(0);
   });
 
   /** The two cases the tail's tier separates: a longer wave at tier III, and double that again on a sprint. */
   it('lengthens the tail with its tier and doubles its wave on a sprint', () => {
     const tierOne = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_I }], RESTING, false));
     const tierThree = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }], RESTING, false));
-    const shortTail = appendageReachRadii(tierOne, membraneRadii, false);
-    const longTail = appendageReachRadii(tierThree, membraneRadii, false);
-    const sprintingTail = appendageReachRadii(tierThree, membraneRadii, true);
+    const shortTail = appendageReachRadii(tierOne, membraneRadii, false, REST_PULSE);
+    const longTail = appendageReachRadii(tierThree, membraneRadii, false, REST_PULSE);
+    const sprintingTail = appendageReachRadii(tierThree, membraneRadii, true, REST_PULSE);
     expect(shortTail).toBeGreaterThan(membraneRadii);
     expect(longTail).toBeGreaterThan(shortTail);
     expect(sprintingTail).toBeGreaterThan(longTail);
@@ -190,8 +196,24 @@ describe('appendageReachRadii', () => {
   /** Cilia are hairs on the membrane, not a tail: they reach a fraction of a radius, not two of them. */
   it('reaches only just past the membrane for cilia', () => {
     const ciliated = summariseCellTraits(viewOf([{ traitId: CILIA_TRAIT, tier: TIER_I }], RESTING, false));
-    const reach = appendageReachRadii(ciliated, membraneRadii, false);
+    const reach = appendageReachRadii(ciliated, membraneRadii, false, REST_PULSE);
     expect(reach).toBeGreaterThan(membraneRadii);
     expect(reach).toBeLessThan(membraneRadii + 1);
+  });
+
+  /**
+   * The renderer draws the tail off `r × pulse` and the cilia in unpulsed radii past the membrane, so a clip's
+   * pulse lengthens the one and leaves the other alone — two cases, so a bound that scaled both, or neither,
+   * fails here.
+   */
+  it('lengthens the tail with the pulse and leaves the cilia alone', () => {
+    const tailed = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }], RESTING, false));
+    const ciliated = summariseCellTraits(viewOf([{ traitId: CILIA_TRAIT, tier: TIER_I }], RESTING, false));
+    const restingTail = appendageReachRadii(tailed, membraneRadii, false, REST_PULSE);
+    const pulsedTail = appendageReachRadii(tailed, membraneRadii, false, EATING_PULSE);
+    expect(pulsedTail - membraneRadii).toBeCloseTo((restingTail - membraneRadii) * EATING_PULSE);
+    expect(appendageReachRadii(ciliated, membraneRadii, false, EATING_PULSE)).toBe(
+      appendageReachRadii(ciliated, membraneRadii, false, REST_PULSE),
+    );
   });
 });
