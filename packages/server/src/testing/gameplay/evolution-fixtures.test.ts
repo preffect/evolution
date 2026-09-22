@@ -2,6 +2,7 @@
 // spawner switch-off and the gel clearance.
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, FOOD_KIND, playerId } from '@evolution/shared';
+import { isPlayerCell } from '../../game/world/entities.js';
 import { createTestWorld, TEST_PLAYER } from '../world-builders.js';
 import type { FixtureContext } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
@@ -47,6 +48,15 @@ describe('prepareWorldForPlacement', () => {
     expect(world.dnaFragments).toEqual([]);
     expect(world.spawners.food.isEnabled).toBe(false);
     expect(world.spawners.dnaFragments.isEnabled).toBe(false);
+  });
+
+  it('vacates the wild seats with their cells, so no seeded wanderer reaches a placed cell', () => {
+    const world = createTestWorld({ seed: CLEAR_SEED, isFilled: true, hasWildSeats: true });
+    expect(world.wildSeats.length).toBeGreaterThan(0);
+    prepareWorldForPlacement(world);
+    expect(world.wildSeats).toEqual([]);
+    expect(world.cells.every(isPlayerCell)).toBe(true);
+    expect(world.cells).toHaveLength(1);
   });
 
   it('refuses a seed whose gel patch reaches the broth point', () => {

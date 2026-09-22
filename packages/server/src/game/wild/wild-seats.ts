@@ -21,7 +21,7 @@ import {
   type SpawnClearance,
 } from '../simulation/spawn-placement.js';
 import { bornCellRecord } from '../world/cell-record.js';
-import type { CellRecord, WildSeatRecord } from '../world/entities.js';
+import { isPlayerCell, type CellRecord, type WildSeatRecord } from '../world/entities.js';
 import { mintEntityId } from '../world/entity-ids.js';
 import type { LiveStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
@@ -102,6 +102,15 @@ export function placeWildCell(
   pinWildCell(cell, seat, reference, balance);
   world.cells.push(cell);
   return cell;
+}
+
+/**
+ * Takes every wild seat and its cell out of the world: a placed scenario row (docs/testing/scenario-runner.md §8.1)
+ * and the unit-test world keep only the wild cells they place, so no wanderer walks into a placed cell.
+ */
+export function removeWildSeats(world: WorldState): void {
+  world.cells = world.cells.filter(isPlayerCell);
+  world.wildSeats = [];
 }
 
 /** World creation: the seats after the players and before the initial fill (docs/ecology/wild-cells.md §3.3). */

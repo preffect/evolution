@@ -67,7 +67,8 @@ Same conventions, plus one fixture: `placeWildCell({ seat, spreadFactor, at | ea
 to `spreadFactor`, places (or replaces) its cell at the stated point and clears the seat's target and
 velocity as a respawn does (no target until its next decision tick, §3.3). "Seat 0 pinned at spread
 _s_" is that call; a placed wild cell is still pinned to the world every tick, so its mass at tick _t_
-is `worldMass(t / TICK_HZ) × s` while it is not engulfing; the other 23 seats come from the seed.
+is `worldMass(t / TICK_HZ) × s` while it is not engulfing; no other seat is in the dish (placing anything
+vacates the wild seats, [`testing/scenario-runner.md §8.1`](../testing/scenario-runner.md#81-writing-a-scenario)).
 `worldMass(t)` = 20 + _t_ for _t_ in seconds (the `CELL_MAX_MASS` cap of §3.1 is 83 minutes away and
 reached by no row). Elapsed time is `elapsedTicks / TICK_HZ` with `elapsedTicks` the tick in progress
 (§3.1): tick 10 800 reads 180 s exactly at every step of it.
