@@ -1,8 +1,8 @@
 // The wild seats (docs/ecology/wild-cells.md §3.3 "Placement and respawn", docs/architecture/entity-model.md §2): `WILD_CELL_COUNT`
 // seats hold the world's average made flesh. A seat's cell is placed by the safe-spawn rule plus "no cell centre within
 // `WILD_CELL_MIN_SPACING_WU`" from the `spawnPlacement` stream, with a spread factor from the `wildCells` stream; the
-// seat count never changes. The heading and the decision cadence stay at rest here: the wild strategy (#176) draws and
-// uses them.
+// seat count never changes. Placement also draws the seat's first wander heading (used from its first decision on,
+// never earlier) and starts its decision countdown (`wild-strategy.ts`).
 
 import {
   AVATAR_INDEX_MIN,
@@ -26,11 +26,13 @@ import { mintEntityId } from '../world/entity-ids.js';
 import type { LiveStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
 import { pinWildCell } from './wild-pin.js';
+import { decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
+import { drawWildHeading, setSeatHeading } from './wild-wander.js';
 
 /** A wild cell wears no player palette: the renderer keys its wild ramp off `kind`, and the index is the first. */
 const WILD_CELL_AVATAR_INDEX = AVATAR_INDEX_MIN;
 const FIRST_SEAT_NUMBER = 0;
-/** At rest: no heading and no decision pending until the strategy slice draws them. */
+/** At rest until placed: no heading and no decision pending. */
 const AT_REST = 0;
 
 /** What placing a seat's cell draws from: the two streams and the live balance. */
@@ -67,9 +69,10 @@ export function createWildSeatRecord(seatNumber: number): WildSeatRecord {
 }
 
 /**
- * Places (or replaces) the seat's cell: a fresh spread factor, a safe point, then the pin to `reference`
- * so the cell is the world's average from its first tick. The seat's target and velocity are those of a
- * new cell (none) and its `drainedMass` is 0, as a respawn requires.
+ * Places (or replaces) the seat's cell: a fresh spread factor and heading, the countdown to the seat's next
+ * decision tick, a safe point, then the pin to `reference` so the cell is the world's average from its first
+ * tick. The seat's target and velocity are those of a new cell (none) and its `drainedMass` is 0, as a respawn
+ * requires.
  */
 export function placeWildCell(
   world: WorldState,
@@ -78,7 +81,10 @@ export function placeWildCell(
   reference: WorldReference,
 ): CellRecord {
   const { streams, balance } = context;
-  seat.massSpreadFactor = drawMassSpreadFactor(streams[RANDOM_STREAM.wildCells].nextFloat(), balance);
+  const wildStream = streams[RANDOM_STREAM.wildCells];
+  seat.massSpreadFactor = drawMassSpreadFactor(wildStream.nextFloat(), balance);
+  setSeatHeading(seat, drawWildHeading(wildStream));
+  seat.decideInTicks = ticksUntilDecision(world.tick, seat.seatNumber, decisionIntervalTicks(balance));
   const centre = findSafeSpawnPoint(streams[RANDOM_STREAM.spawnPlacement], world.cells, balance, wildSpawnClearance);
   const id = mintEntityId(world, ENTITY_KIND.cell);
   const identity = {

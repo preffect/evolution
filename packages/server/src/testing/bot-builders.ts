@@ -25,7 +25,7 @@ export function createTestScriptContext<Snapshot = null>(
     tick: 0,
     stepTick: 1,
     playerIndex: 0,
-    playerId: TEST_PLAYER_ID,
+    actorId: TEST_PLAYER_ID,
     snapshot: null as Snapshot,
     cell: undefined,
     seed,

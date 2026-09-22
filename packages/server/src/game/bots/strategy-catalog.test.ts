@@ -20,9 +20,10 @@ describe('strategy catalog', () => {
   });
 
   it('tells a catalogue name from any other string, which is how the CLI and the tool schema gate the catalogue', () => {
-    expect(BOT_STRATEGY_NAMES).toEqual(['idle', 'wander', 'grazer', 'hunter']);
+    expect(BOT_STRATEGY_NAMES).toEqual(['idle', 'wander', 'grazer', 'hunter', 'flee']);
     expect(isBotStrategyName('grazer')).toBe(true);
-    expect(isBotStrategyName('flee')).toBe(false);
+    expect(isBotStrategyName('flee')).toBe(true);
+    expect(isBotStrategyName('sleep')).toBe(false);
   });
 
   it('hands the hunter its prey option', () => {

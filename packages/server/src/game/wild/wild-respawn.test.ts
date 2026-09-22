@@ -14,6 +14,8 @@ import { createWildSeatRecord, placeWildCell } from './wild-seats.js';
 
 const { wildCells } = DEFAULT_BALANCE;
 const RESPAWN_TICKS = secondsToTicks(wildCells.WILD_CELL_RESPAWN_SECONDS);
+/** A placement draws the spread factor and the first heading. */
+const WILD_DRAWS_PER_PLACEMENT = 2;
 /** W4: seat 0 is paid out on tick 36. */
 const DEATH_TICK = 36;
 
@@ -83,6 +85,8 @@ describe('runWildRespawns (W4)', () => {
     expect(cell.mass).toBeGreaterThanOrEqual(21.43);
     expect(cell.mass).toBeLessThanOrEqual(39.8);
     expect(seat.massSpreadFactor).not.toBe(spreadBefore);
-    expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(wildDrawsBefore + 1);
+    expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(
+      wildDrawsBefore + WILD_DRAWS_PER_PLACEMENT,
+    );
   });
 });

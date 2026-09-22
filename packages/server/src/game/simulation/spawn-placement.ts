@@ -19,9 +19,14 @@ import type { CellRecord } from '../world/entities.js';
  */
 export type SpawnClearance = (point: Vec2, cells: readonly CellRecord[], balance: BalanceConfig) => number;
 
-/** Uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`; two draws. */
+/** The radius of the placement disc, `DISH_RADIUS − SPAWN_EDGE_MARGIN`: cells spawn in it and the wild wander stays in it. */
+export function spawnReach(balance: BalanceConfig): number {
+  return balance.world.DISH_RADIUS - balance.world.SPAWN_EDGE_MARGIN;
+}
+
+/** Uniform in the disc of radius `spawnReach`; two draws. */
 export function drawSpawnCandidate(random: RandomSource, balance: BalanceConfig): Vec2 {
-  const reach = balance.world.DISH_RADIUS - balance.world.SPAWN_EDGE_MARGIN;
+  const reach = spawnReach(balance);
   return uniformPointInAnnulus(0, reach, random.nextFloat(), random.nextFloat());
 }
 

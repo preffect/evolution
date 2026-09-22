@@ -23,7 +23,7 @@ function contextWith(cell: CellLocation | undefined): ScriptContext<null> {
     tick: 4,
     stepTick: 5,
     playerIndex: 0,
-    playerId: playerId('player_0'),
+    actorId: playerId('player_0'),
     snapshot: null,
     cell,
     seed: SEED,

@@ -36,11 +36,16 @@ export function pinWildCell(
   refreshCellDerivedStateFromTraits(cell, wildOwnedTraits(seat.seatNumber, cell.level, balance), balance);
 }
 
+/** The seat's cell, or `undefined` while the seat is vacant. */
+export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord | undefined {
+  return seat.cellId === null ? undefined : findCell(world, seat.cellId);
+}
+
 /** Step 1 for the wild seats: every seated cell pinned to this tick's world reference, in seat order. */
 export function pinWildCells(world: WorldState, context: StepContext): void {
   const reference = worldReferenceAt(world, world.tick);
   for (const seat of world.wildSeats) {
-    const cell = seat.cellId === null ? undefined : findCell(world, seat.cellId);
+    const cell = cellOfSeat(world, seat);
     if (cell !== undefined) {
       pinWildCell(cell, seat, reference, context.balance);
     }

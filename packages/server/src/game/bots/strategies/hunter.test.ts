@@ -8,7 +8,7 @@ import {
   createTestWorldView,
 } from '../../../testing/bot-builders.js';
 import { createHunterStrategy } from './hunter.js';
-import { BOT_STRATEGY_NAME, HUNTER_SPRINT_WITHIN_RADII } from '../strategy-constants.js';
+import { BOT_STRATEGY_NAME, HUNT_PREFERENCE, HUNTER_SPRINT_WITHIN_RADII } from '../strategy-constants.js';
 
 const perception = createTestPerception();
 const self = createTestBotCell({ id: 'self', playerId: TEST_PLAYER_ID, mass: 100, radius: 10 });
@@ -83,5 +83,26 @@ describe('hunter strategy', () => {
     const strategy = createHunterStrategy(perception, { preyPlayerId: smallPrey.playerId })();
     expect(strategy.decide(contextWith([self, smallPrey, biggerPrey]))).toEqual({ targetX: smallPrey.x, targetY: 0 });
     expect(strategy.decide(contextWith([self, biggerPrey]))).toBeNull();
+  });
+
+  it('hunts only within the given range: a prey at 10 radii counts, the same prey at 11 does not', () => {
+    const inRange = { ...smallPrey, x: self.radius * 10, y: 0 };
+    const outOfRange = { ...smallPrey, x: self.radius * 11, y: 0 };
+    expect(createHunterStrategy(perception, { withinRadii: 10 })().decide(contextWith([self, inRange]))).toEqual({
+      targetX: inRange.x,
+      targetY: 0,
+    });
+    expect(createHunterStrategy(perception, { withinRadii: 10 })().decide(contextWith([self, outOfRange]))).toBeNull();
+  });
+
+  it('prefers the nearest prey when asked, where the default prefers the largest', () => {
+    const nearer = { ...smallPrey, x: 100, y: 0 };
+    const nearest = createHunterStrategy(perception, { preference: HUNT_PREFERENCE.nearest })();
+    expect(nearest.decide(contextWith([self, biggerPrey, nearer]))).toEqual({ targetX: nearer.x, targetY: 0 });
+    const largest = createHunterStrategy(perception)();
+    expect(largest.decide(contextWith([self, biggerPrey, nearer]))).toEqual({
+      targetX: biggerPrey.x,
+      targetY: biggerPrey.y,
+    });
   });
 });

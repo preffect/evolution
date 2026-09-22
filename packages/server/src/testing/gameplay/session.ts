@@ -139,7 +139,7 @@ export class ScenarioSession<Input, Snapshot, Fixture> {
       tick: this.tick,
       stepTick: this.tick + 1,
       playerIndex,
-      playerId,
+      actorId: playerId,
       snapshot,
       get cell() {
         return adapter.locateCell(snapshot, playerId);

@@ -21,6 +21,7 @@ export {
   type EngulfPredatorView,
   type EngulfPreyView,
 } from '../../../game/bots/perception.js';
+export { createFleeStrategy, type FleeOptions } from '../../../game/bots/strategies/flee.js';
 export { createGrazerStrategy } from '../../../game/bots/strategies/grazer.js';
 export { createHunterStrategy, type HunterOptions } from '../../../game/bots/strategies/hunter.js';
 export { createIdleStrategy } from '../../../game/bots/strategies/idle.js';
@@ -29,11 +30,15 @@ export { createStrategyByName, type CatalogOptions } from '../../../game/bots/st
 export {
   BOT_STRATEGY_NAME,
   BOT_STRATEGY_NAMES,
+  FLEE_STEP_RADII,
+  FLEE_WITHIN_RADII,
+  HUNT_PREFERENCE,
   HUNTER_SPRINT_WITHIN_RADII,
   WANDER_STEP_WU,
   WANDER_TURN_SIGMA_RADIANS,
   isBotStrategyName,
   type BotStrategyName,
+  type HuntPreference,
 } from '../../../game/bots/strategy-constants.js';
 export {
   SCRIPT_SEQUENCE_STRATEGY_NAME,

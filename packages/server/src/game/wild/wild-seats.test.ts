@@ -22,6 +22,8 @@ import { createWildSeatRecord, drawMassSpreadFactor, placeWildCell, wildSpawnCle
 
 const SEED = 42;
 const { wildCells, world: worldBalance, growth, ecology } = DEFAULT_BALANCE;
+/** The spread factor and the first heading. */
+const WILD_DRAWS_PER_PLACEMENT = 2;
 
 /** W2: seed 42, one player, the seeded world at tick 0. */
 function seededWorld() {
@@ -94,8 +96,8 @@ describe('createWildSeats (W2)', () => {
     }
   });
 
-  it('draws one spread per seat from the wildCells stream and the points from spawnPlacement, both stored', () => {
-    expect(world.random[RANDOM_STREAM.wildCells].position).toBe(wildCells.WILD_CELL_COUNT);
+  it('draws one spread and one heading per seat from the wildCells stream and the points from spawnPlacement, both stored', () => {
+    expect(world.random[RANDOM_STREAM.wildCells].position).toBe(WILD_DRAWS_PER_PLACEMENT * wildCells.WILD_CELL_COUNT);
     // Two draws per candidate, one candidate at least per player and per seat.
     expect(world.random[RANDOM_STREAM.spawnPlacement].position).toBeGreaterThanOrEqual(
       2 * (world.players.length + wildCells.WILD_CELL_COUNT),
@@ -153,7 +155,7 @@ describe('placeWildCell', () => {
     expect(distanceBetween(cell, world.cells[0]!)).toBeGreaterThanOrEqual(wildCells.WILD_CELL_MIN_SPACING_WU);
   });
 
-  it('draws the spread from the wildCells stream first, then the point from spawnPlacement', () => {
+  it('draws the spread, then the heading, from the wildCells stream and the point from spawnPlacement', () => {
     const world = createTestWorld();
     const seat = createWildSeatRecord(0);
     world.wildSeats.push(seat);
@@ -165,7 +167,8 @@ describe('placeWildCell', () => {
     const wildBefore = context.streams[RANDOM_STREAM.wildCells].getState().position;
     const placementBefore = context.streams[RANDOM_STREAM.spawnPlacement].getState().position;
     placeWildCell(world, seat, context, worldReferenceAt(world, world.tick));
-    expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(wildBefore + 1);
+    expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(wildBefore + WILD_DRAWS_PER_PLACEMENT);
+    expect(Math.hypot(seat.headingX, seat.headingY)).toBeCloseTo(1, 10);
     expect(context.streams[RANDOM_STREAM.spawnPlacement].getState().position).toBeGreaterThanOrEqual(
       placementBefore + 2,
     );

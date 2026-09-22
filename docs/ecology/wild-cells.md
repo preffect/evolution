@@ -44,7 +44,8 @@ threat. The timeline PNG (§3.1) draws both shares against the #138 player.
 (`packages/server/src/game/wild/wild-strategy.ts`; #15 therefore homes `wander`, `hunt` and `flee`
 under `packages/server/src/game/bots/`, where both this file and the gameplay framework's `.bot()`
 import them, never under `testing/`). A seat decides every `WILD_CELL_DECISION_INTERVAL_SECONDS`,
-staggered by seat (seat _n_ decides on ticks ≡ _n_ mod the interval in ticks), and latches its
+staggered by seat (seat _n_ decides on ticks ≡ _n_ mod the interval in ticks; `decideInTicks`, set at
+placement to the ticks until that tick, counts down and restarts at the interval), and latches its
 target between decisions exactly as a player's input is latched. **A seat has no target (throttle 0)
 until its first decision:** a fresh seat, a respawned seat and a seat whose cell a fixture placed
 all sit still until their next decision tick (seat 0 on tick 30, 60, …; tick 0 is never stepped), so
@@ -57,7 +58,9 @@ hunt, then wander:
 | hunt   | `worldStage` ≥ `WILD_CELL_HUNTS_FROM_STAGE` and the nearest player cell for which `canEngulf(self, it)` holds is within `WILD_CELL_HUNT_RANGE_RADII` × own radius | that cell's centre                                                                                                                                                                                    |
 | wander | otherwise; with probability `WILD_CELL_TURN_CHANCE` per decision draw a new uniform heading from the `wildCells` stream, else keep it                             | own centre + heading × `STEER_FULL_THROTTLE_RADII` × own radius; a target outside the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN` is redrawn (up to `SPAWN_POINT_MAX_ATTEMPTS`, then the origin) |
 
-Wild cells never sprint. They move through the shared kernel (§5.2, gel included), separate
+Flee and hunt are the catalogue's `flee` and a range-bound, nearest-first `hunter`, each a fresh instance
+per decision (a wild cell keeps no commitment: its only state is the seat record); the wander rule is the
+seat's own. Wild cells never sprint (only the command's target is taken). They move through the shared kernel (§5.2, gel included), separate
 (§5.3) and engulf (§6) exactly as players do; `canEngulf` reads mass only, so the danger chip and
 the warning ring work on them unchanged (the chip names them `WILD <STAGE>`).
 

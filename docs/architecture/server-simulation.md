@@ -11,7 +11,7 @@ against it):
 
 ```text
  stepWorld(world, context): void          context = { balance, streams, effects }
-   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild pin
+   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild pin and the due wild seats' decisions (ecology/wild-cells.md §3.3)
                    (`wild/wild-pin.ts`: every seated wild cell's mass, level, traits and stage from `worldReferenceAt`, ecology/wild-cells.md §3.3)
    2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation

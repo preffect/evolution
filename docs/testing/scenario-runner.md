@@ -95,7 +95,7 @@ it('E9: A absorbs B on tick 30', async () => {
   in one tick are merged (later fields win; the sprint flag and the trait pick are OR-merged,
   `architecture/server-simulation.md` §3.2) and the adapter stamps the sequence.
 - **Bots.** `.bot(index, factory, everyTicks)` drives a player from a `BotStrategy` built by
-  `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` strategies of
+  `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` / `flee` strategies of
   section 8.3 implement and the headless bot client reuses. The schedule holds the **factory**, not an
   instance: every run (both runs of `runDeterministic`) gets a fresh strategy, so a strategy may
   keep state across its decisions. Its only other input is `ScriptContext`, and its only source

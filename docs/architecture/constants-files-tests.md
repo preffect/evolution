@@ -57,7 +57,8 @@ packages/server/src/
   game/world/{world-state,entities,cell-record,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   cell-record: the literal every cell is born from (player or wild); state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
   game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
-  game/wild/{wild-seats,wild-build,wild-pin,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176): placement by the safe-spawn rule plus the wild spacing, a seat's build up to a level, the step-1 pin with `drainedMass`, the step-9 respawn; the strategy joins them
+  game/wild/{wild-seats,wild-build,wild-pin,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176): placement by the safe-spawn rule plus the wild spacing (with the first heading and the decision countdown), a seat's build up to a level, the step-1 pin with `drainedMass`, the step-9 respawn
+  game/wild/{wild-strategy,wild-perception,wild-wander}.ts     the wild minds (#176): the step-1 decisions (flee, hunt, wander) over the #15 strategies through an entity-id perception, the wander heading rule
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,quantize,food-delta-tracker}.ts   quantize: the wire rounding and its exact twin (wire-contract.md §4)
@@ -68,7 +69,7 @@ packages/server/src/
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
   game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
   game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives
-  game/bots/strategies/{idle,wander,grazer,hunter}.ts                        the build-1 strategies (testing/bots-and-design-tables.md §8.3); #156 adds flee
+  game/bots/strategies/{idle,wander,grazer,hunter,flee}.ts                   the build-1 strategies (testing/bots-and-design-tables.md §8.3)
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
   testing/builders.ts   testing/world-builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; createTestWorld / createTestStepContext / createTestPlayerRecord over the records; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
   testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)

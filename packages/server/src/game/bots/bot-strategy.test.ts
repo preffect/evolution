@@ -7,7 +7,7 @@ const CONTEXT: ScriptContext<null> = {
   tick: 0,
   stepTick: 1,
   playerIndex: 0,
-  playerId: playerId('player_0'),
+  actorId: playerId('player_0'),
   snapshot: null,
   cell: undefined,
   seed: SEED,
