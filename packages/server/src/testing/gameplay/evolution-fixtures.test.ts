@@ -14,7 +14,7 @@ import {
   prepareWorldForPlacement,
   resolveAnchor,
 } from './evolution-fixtures.js';
-import { placeCell, placeFragment, placeMote } from './fixtures.js';
+import { placeCell, placeFragment, placeMote, placeWildCell } from './fixtures.js';
 import {
   BROTH_POINT,
   VENT_POINT,
@@ -137,14 +137,28 @@ describe('applyPlacedCell', () => {
 
   it('unpins and leaves traits and DNA alone when the record carries none', () => {
     const world = clearWorld();
-    applyPlacedCell(world, placeCell({ playerIndex: 0, mass: 30, isPinned: true }, undefined), context);
+    applyPlacedCell(
+      world,
+      placeCell({ playerIndex: 0, mass: 30, isPinned: true, traits: ['nucleoid'] }, undefined),
+      context,
+    );
     applyPlacedCell(world, placeCell({ playerIndex: 0, mass: 40, at: ZONE.vent }, undefined), context);
     const cell = world.cells[0]!;
     expect([cell.pinnedX, cell.pinnedY]).toEqual([null, null]);
     expect(cell.mass).toBe(40);
-    expect(cell.traits).toEqual([]);
+    expect(cell.traits).toEqual([{ traitId: 'nucleoid', tier: 1 }]);
     expect(world.players[0]!.dnaCumulative).toBe(0);
     expect(world.players[0]!.dnaCatchUpGift).toBe(0);
+  });
+
+  it('strips every trait for an empty trait list: the cell is a protocell again (G13)', () => {
+    const world = clearWorld();
+    applyPlacedCell(world, placeCell({ playerIndex: 0, mass: 30, traits: ['nucleoid'] }, undefined), context);
+    expect(world.cells[0]!.stage).toBe(CELL_STAGE.prokaryote);
+    applyPlacedCell(world, placeCell({ playerIndex: 0, mass: 20, at: ZONE.broth, traits: [] }, undefined), context);
+    expect(world.cells[0]!.traits).toEqual([]);
+    expect(world.players[0]!.ownedTraits).toEqual([]);
+    expect(world.cells[0]!.stage).toBe(CELL_STAGE.protocell);
   });
 
   it('refuses a trait that is not in the catalog and a player that is not in the world', () => {
@@ -188,13 +202,17 @@ describe('placed motes and fragments', () => {
   });
 
   it('dispatches every placed kind', () => {
-    const world = clearWorld();
+    const world = createTestWorld({ seed: CLEAR_SEED, isFilled: true, hasWildSeats: true });
     prepareWorldForPlacement(world);
     applyPlacedFixture(world, placeCell({ playerIndex: 0, mass: 30 }, undefined), context);
     applyPlacedFixture(world, placeMote({ moteKind: FOOD_KIND.algae, at: ZONE.vent }, undefined), context);
     applyPlacedFixture(world, placeFragment({ tag: 'motile', at: ZONE.vent }, undefined), context);
+    applyPlacedFixture(world, placeWildCell({ seat: 0, spreadFactor: 2, at: ZONE.shallows }, undefined), context);
     expect(world.cells[0]!.mass).toBe(30);
     expect(world.food).toHaveLength(1);
     expect(world.dnaFragments).toHaveLength(1);
+    const wild = world.cells.find((cell) => cell.id === world.wildSeats[0]!.cellId)!;
+    expect(wild.x).toBe(shallowsPoint(world.balance.world.DISH_RADIUS, world.balance.ecology.SHALLOWS_WIDTH).x);
+    expect(world.wildSeats[0]!.massSpreadFactor).toBe(2);
   });
 });

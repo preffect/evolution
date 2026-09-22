@@ -105,7 +105,10 @@ function uniform(random: RandomSource, range: { readonly min: number; readonly m
 }
 
 function cellSpec(index: number, count: number, random: RandomSource): BenchCellSpec {
-  const isPlayer = index < PLAYER_PALETTE_COUNT;
+  const isVictim = index >= count - RENDER_BENCH_VICTIM_COUNT;
+  // A victim is a player's cell: its absorb names its player and its respawn is a `respawn` effect, as in the game;
+  // a wild cell's death names no player and its seat reappears without an effect (docs/ecology/wild-cells.md §3.3).
+  const isPlayer = index < PLAYER_PALETTE_COUNT || isVictim;
   const isPrey = index < RENDER_BENCH_ENGULF_PAIRS * PAIR_SIZE && index % PAIR_SIZE === 1;
   return {
     index,
@@ -118,7 +121,7 @@ function cellSpec(index: number, count: number, random: RandomSource): BenchCell
     orbitSeconds: uniform(random, RENDER_BENCH_ORBIT_SECONDS),
     phase: random.nextFloat(),
     predatorIndex: isPrey ? index - 1 : null,
-    isVictim: index >= count - RENDER_BENCH_VICTIM_COUNT,
+    isVictim,
   };
 }
 
@@ -236,6 +239,6 @@ export function benchSnapshotAt(world: BenchWorld, tick: number): GameSnapshot {
     ownProgress: progressByPlayer[BENCH_OWN_PLAYER_ID] ?? null,
     leaderboard: [],
     appliedInputSequenceByPlayer: {},
-    effects: scheduledBenchEffects({ cells, victims, creditedPlayerId: BENCH_OWN_PLAYER_ID }, tick),
+    effects: scheduledBenchEffects({ cells, victims }, tick),
   };
 }

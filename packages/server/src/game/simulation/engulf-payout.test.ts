@@ -14,9 +14,12 @@ import {
   secondsToTicks,
 } from '@evolution/shared';
 import { ENGULF_PREY_MASS, createEngulfFixture, type EngulfFixture } from '../../testing/engulf-builders.js';
+import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
+import { withdrawCell } from '../session/death.js';
 import { requirePlayer } from '../world/lookups.js';
-import type { PlayerRecord } from '../world/entities.js';
+import type { CellRecord, PlayerRecord } from '../world/entities.js';
+import type { WorldState } from '../world/world-state.js';
 import { beginEngulf, sealEngulf } from './engulf-state.js';
 import { payOutEngulf } from './engulf-payout.js';
 
@@ -32,6 +35,8 @@ const PREY_TAG_POINTS = 8;
  */
 const WORLD_LEVEL_2_TICK = DEFAULT_BALANCE.worldClock.WORLD_LEVEL_SECONDS * TICK_HZ;
 const WORLD_DNA_AT_LEVEL_2 = 60;
+/** The third level: seat 0's build owns `nucleoid` and `mitochondrion` (docs/ecology/wild-cells.md ยง3.3). */
+const WORLD_LEVEL_3_TICK = 2 * WORLD_LEVEL_2_TICK;
 
 interface PaidOut extends EngulfFixture {
   predatorPlayer: PlayerRecord;
@@ -39,17 +44,29 @@ interface PaidOut extends EngulfFixture {
   predatorMassBefore: number;
 }
 
+interface PayOutOptions {
+  /** Which side of the pair is a wild cell (docs/ecology/wild-cells.md ยง3.3), seated in the player cell's place. */
+  readonly wildSide?: 'predator' | 'prey';
+  /** The tick of the payout; the wild cell is pinned to the world clock of this tick. */
+  readonly tick?: number;
+}
+
+/** A wild cell of the player cell's mass at its centre, the player cell withdrawn (its player keeps its record). */
+function wildStandInFor(world: WorldState, cell: CellRecord): CellRecord {
+  withdrawCell(world, cell);
+  return seatTestWildCell(world, { at: { x: cell.x, y: cell.y }, mass: cell.mass }).cell;
+}
+
 /** A sealed engulf on the E9 pair, paid out on tick 30. */
-function payOut(prepare: (fixture: PaidOut) => void = () => {}): PaidOut {
+function payOut(prepare: (fixture: PaidOut) => void = () => {}, options: PayOutOptions = {}): PaidOut {
   const fixture = createEngulfFixture();
-  const { world, context, predator, prey } = fixture;
-  world.tick = PAYOUT_TICK;
-  const paid: PaidOut = {
-    ...fixture,
-    predatorPlayer: requirePlayer(world, predator.playerId!),
-    preyPlayer: requirePlayer(world, prey.playerId!),
-    predatorMassBefore: predator.mass,
-  };
+  const { world, context } = fixture;
+  world.tick = options.tick ?? PAYOUT_TICK;
+  const predatorPlayer = requirePlayer(world, fixture.predator.playerId!);
+  const preyPlayer = requirePlayer(world, fixture.prey.playerId!);
+  const predator = options.wildSide === 'predator' ? wildStandInFor(world, fixture.predator) : fixture.predator;
+  const prey = options.wildSide === 'prey' ? wildStandInFor(world, fixture.prey) : fixture.prey;
+  const paid: PaidOut = { ...fixture, predator, prey, predatorPlayer, preyPlayer, predatorMassBefore: predator.mass };
   beginEngulf({ predator, prey });
   sealEngulf({ predator, prey });
   prepare(paid);
@@ -57,6 +74,8 @@ function payOut(prepare: (fixture: PaidOut) => void = () => {}): PaidOut {
   payOutEngulf(world, context, { predator, prey });
   return paid;
 }
+
+const wildPrey = (tick = PAYOUT_TICK): PayOutOptions => ({ wildSide: 'prey', tick });
 
 describe('payOutEngulf: the predator', () => {
   it('gains ENGULF_MASS_YIELD of the prey mass and ends the engulf', () => {
@@ -211,10 +230,8 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md ย
   it("pays the world clock's DNA share with no base, no tag share, and counts a wildAbsorption", () => {
     // On the second world level the share is worth something, so the three ways to get this wrong โ€”
     // reading nothing, reading the player base, reading the share โ€” give three different numbers.
-    const { predatorPlayer } = payOut(({ prey, world }) => {
-      prey.playerId = null; // the wild-cell slice places real ones; the payout rule is the same
-      world.tick = WORLD_LEVEL_2_TICK;
-    });
+    const { predatorPlayer, prey } = payOut(() => {}, wildPrey(WORLD_LEVEL_2_TICK));
+    expect(prey.playerId).toBeNull();
     expect(predatorPlayer.dnaCumulative).toBe(WORLD_DNA_AT_LEVEL_2 * absorption.ENGULF_DNA_SHARE);
     expect(predatorPlayer.dnaCumulative).not.toBe(absorption.ENGULF_DNA_BASE);
     expect(predatorPlayer.wildAbsorptions).toBe(1);
@@ -223,34 +240,26 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md ย
   });
 
   it('pays a wild prey no DNA at all in the protocell era, where the world has none', () => {
-    const { predatorPlayer } = payOut(({ prey }) => {
-      prey.playerId = null;
-    });
+    const { predatorPlayer } = payOut(() => {}, wildPrey());
     expect(predatorPlayer.dnaCumulative).toBe(0); // worldDna is 0 before the first world level-up
   });
 
   it('credits the endosymbiont of a wild prey too, as a player prey does (docs/ecology/wild-cells.md ยง3.3)', () => {
-    // The one rule the wild prey does NOT substitute: eating the world is the third way onto that rung.
-    const { predatorPlayer } = payOut(({ prey, preyPlayer, world }) => {
-      preyPlayer.ownedTraits.push({ traitId: 'mitochondrion', tier: 1 });
-      refreshCellDerivedState(prey, preyPlayer, world.balance);
-      prey.playerId = null; // the traits stay on the cell, which is where a wild cell carries them
-    });
+    // The one rule the wild prey does NOT substitute: eating the world is the third way onto that rung. Seat 0's
+    // build owns the mitochondrion from the third world level, where the pin gives it to the seated cell.
+    const { predatorPlayer, prey } = payOut(() => {}, wildPrey(WORLD_LEVEL_3_TICK));
+    expect(prey.traits.map((trait) => trait.traitId)).toContain('mitochondrion');
     expect(predatorPlayer.bacteriaEatenByVariant.aerobic).toBe(ENDOSYMBIOSIS_BACTERIA_REQUIRED);
     expect(predatorPlayer.wildAbsorptions).toBe(1);
   });
 
   it('keeps the mass yield for a wild prey', () => {
-    const { predator, predatorMassBefore } = payOut(({ prey }) => {
-      prey.playerId = null;
-    });
+    const { predator, predatorMassBefore } = payOut(() => {}, wildPrey());
     expect(predator.mass).toBeCloseTo(predatorMassBefore + PREY_MASS * absorption.ENGULF_MASS_YIELD, 6);
   });
 
   it('emits cell_absorbed for a wild prey, with playerId null and the amounts paid (#270)', () => {
-    const { context, predator, prey, predatorMassBefore } = payOut(({ prey: wild }) => {
-      wild.playerId = null;
-    });
+    const { context, predator, prey, predatorMassBefore } = payOut(() => {}, wildPrey());
     expect(context.effects).toEqual([
       expect.objectContaining({
         kind: EFFECT_KIND.cellAbsorbed,
@@ -264,9 +273,8 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md ย
   });
 
   it('gives a wild predator nothing but still kills the player prey', () => {
-    const { world, predator, prey, preyPlayer, predatorMassBefore } = payOut(({ predator: wild }) => {
-      wild.playerId = null;
-    });
+    const { world, predator, prey, preyPlayer, predatorMassBefore } = payOut(() => {}, { wildSide: 'predator' });
+    expect(predator.playerId).toBeNull();
     expect(predator.mass).toBe(predatorMassBefore);
     expect(world.cells).not.toContain(prey);
     expect(preyPlayer.lifeState).toBe(PLAYER_LIFE_STATE.spectating);

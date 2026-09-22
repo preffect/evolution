@@ -53,7 +53,8 @@ it('E9: A absorbs B on tick 30', async () => {
   (`ZONE.broth`, `ZONE.vent`, `ZONE.shallows`), `insideCellOf(i)` (E12, E15, P2),
   `eastOfCellOf(i, wu)` (E4 against a seeded cell) or `gelPatchCentre(n)` (E8). A cell takes
   `isPinned`, `traits` (`'cilia'` is tier I, `{ traitId: 'nucleoid', tier: 2 }` names the tier,
-  traits/model.md §2), `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760") and `dnaCatchUpGift`,
+  traits/model.md §2; `[]` strips every trait, G13's "A at level 1"; left out, the cell keeps its own),
+  `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760") and `dnaCatchUpGift`,
   the entry-rule gift inside that DNA (E9c: "140 with 100 gift"). A setup placement
   applies before tick 1; **`.atTick(T).placeMote(...)`** schedules the same record to apply
   between tick T − 1 and tick T, after that tick's joins and leaves and before its scripts
@@ -66,10 +67,13 @@ it('E9: A absorbs B on tick 30', async () => {
   patch lies within `GEL_PATCH_CLEARANCE_WU` of the broth point (`isClearOfGelPatches`; pick another
   seed, never tolerate it).
   **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ecology/acceptance.md §8.1: the W rows
-  and G13) sets wild seat `seat`'s spread factor, places or replaces its cell (default: east of
-  the first placed cell) and clears the seat's target and velocity as a respawn does, so the seat
-  has no target until its next decision tick; it schedules with `.atTick(T)` like any placement
-  (it lands with the wild-cell slice). An adapter may add fixtures of its own beside the placed
+  and G13; #498) sets wild seat `seat`'s spread factor, places or replaces its cell (the broth point when
+  no player cell was placed, else `at` or east of the first placed player cell; a wild cell is never "the
+  first cell") and clears the seat's target and velocity as a respawn does, so the seat has no target
+  until its next decision tick; the seat keeps its heading, a cell it already had is withdrawn without
+  detritus (`withdrawCell`, its engulfs aborted), and the new one is seated through the simulation's own
+  `seatWildCell`, pinned to the world from its first tick. It schedules with `.atTick(T)` like any placement
+  (W6: placed after tick 21 599, seat 0 decides on 21 600). An adapter may add fixtures of its own beside the placed
   records (`.place(fixture)` / `.atTick(T).place(fixture)`): the Evolution adapter's
   `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures.
 - **Seeds and the Evolution snapshot.** `TABLE_SEED` (42) is what every row names;
@@ -80,9 +84,12 @@ it('E9: A absorbs B on tick 30', async () => {
   their `SNAPSHOT_*_DECIMALS`, #341; the bots a scenario drives read it too, so they perceive exact values where a
   `debug_spawn_bot` or `bot-client` bot perceives the wire's, and a hunter within one 0.1-mass step of the engulf
   ratio can decide differently in a table row than in a live room), plus that tick's `effects`
-  and the spawners' `spawnedCounts` (E2, E14 count spawns, not populations). `evolution-views.ts`
+  and the spawners' `spawnedCounts` (E2, E14 count spawns, not populations), plus `wildSeats`: every
+  seat record with its cell's latched target (`WildSeatView`; the world clock never rides the wire, and
+  W6 and W7 read where a decision sent a seat). `evolution-views.ts`
   holds the selectors a row reads through (`cellOf`, `progressOf`, `massOf`, `speedOf`,
-  `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`).
+  `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`, and for the seats `wildSeatOf`,
+  `wildCellOf`, `wildCellsOf`).
 - **Inputs.** "At tick T" means submitted between tick T − 1 and tick T, so step T applies it
   (inputs apply at tick boundaries; tick 0 is the initial state, so inputs start at tick 1).
   `.atTick(T, player(i).does(script))` fires once; `.from(T, …)` every step from T;

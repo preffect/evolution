@@ -42,11 +42,24 @@ describe('FixtureScheduler', () => {
     expect(scheduler.placeCell({ playerIndex: 0, mass: 100 })).toBe('builder');
     expect(scheduler.placeMote({ moteKind: 'algae', eastOfFirstCellWu: 10 })).toBe('builder');
     expect(scheduler.placeFragment({ tag: 'sensory', at: insideCellOf(1) })).toBe('builder');
+    expect(scheduler.placeWildCell({ seat: 0, spreadFactor: 5, eastOfFirstCellWu: 10 })).toBe('builder');
     expect(registered.map((entry) => [entry.tick, entry.fixture.kind, entry.fixture.at])).toEqual([
       [3, PLACED_KIND.cell, ZONE.broth],
       [3, PLACED_KIND.mote, eastOfCellOf(0, 10)],
       [3, PLACED_KIND.fragment, insideCellOf(1)],
+      [3, PLACED_KIND.wildCell, eastOfCellOf(0, 10)],
     ]);
+  });
+
+  it('places a wild seat at the broth point when no player cell was placed, and never counts it as the first cell', () => {
+    const { registry, registered } = recordingRegistry();
+    const scheduler = new FixtureScheduler(0, registry);
+    scheduler.placeWildCell({ seat: 0, spreadFactor: 1 });
+    expect(registered[0]?.fixture.at).toBe(ZONE.broth);
+    // W6: the player cell placed after the wild one names its own point; "east of the first cell" needs a player cell.
+    expect(() => scheduler.placeCell({ playerIndex: 0, mass: 20, eastOfFirstCellWu: 390 })).toThrow(
+      /no cell has been placed/,
+    );
   });
 
   it('requires the placed cell player and any player an anchor names', () => {

@@ -18,7 +18,14 @@ import { isInsideAnyCell } from '../simulation/spawn-point.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import { createWorld } from '../world/create-world.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
-import { createWildSeatRecord, drawMassSpreadFactor, placeWildCell, wildSpawnClearance } from './wild-seats.js';
+import { decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
+import {
+  createWildSeatRecord,
+  drawMassSpreadFactor,
+  placeWildCell,
+  seatWildCell,
+  wildSpawnClearance,
+} from './wild-seats.js';
 
 const SEED = 42;
 const { wildCells, world: worldBalance, growth, ecology } = DEFAULT_BALANCE;
@@ -131,6 +138,34 @@ describe('wildSpawnClearance', () => {
       6,
     );
     expect(wildSpawnClearance(farPoint, [], DEFAULT_BALANCE)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe('seatWildCell', () => {
+  it('seats a cell at the given centre and spread, drawing nothing, with the countdown to the next decision tick', () => {
+    const world = createTestWorld();
+    world.tick = 21_599;
+    const seat = createWildSeatRecord(0);
+    seat.headingX = 1;
+    world.wildSeats.push(seat);
+    const context = createTestStepContext(world);
+    const wildBefore = context.streams[RANDOM_STREAM.wildCells].getState().position;
+    const seating = { centre: { x: 1500, y: 0 }, spreadFactor: 5 };
+    const cell = seatWildCell(world, seat, seating, worldReferenceAt(world, world.tick));
+    expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(wildBefore);
+    expect(seat).toMatchObject({
+      cellId: cell.id,
+      massSpreadFactor: 5,
+      headingX: 1,
+      respawnInTicks: 0,
+      drainedMass: 0,
+    });
+    expect(seat.decideInTicks).toBe(ticksUntilDecision(world.tick, 0, decisionIntervalTicks(DEFAULT_BALANCE)));
+    expect([cell.x, cell.y, cell.targetX, cell.velocityX]).toEqual([1500, 0, null, 0]);
+    // 21 599 ticks: the world's mass is 20 + 359.983, times the spread.
+    expect(cell.mass).toBeCloseTo(worldReferenceAt(world, world.tick).worldMass * 5, 10);
+    expect(cell.level).toBe(2);
+    expect(world.cells.at(-1)).toBe(cell);
   });
 });
 

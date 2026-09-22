@@ -91,7 +91,9 @@ drains that let a prey out (§6.1 hysteresis, §4.1; Toxin Vacuole and Diatom Sh
 `drainedMass`, and the pin subtracts it (formula above), so the wild predator loses mass tick by
 tick exactly as a player predator would and `canContinueEngulf` fails on the same tick it would
 for a player of that mass: a `ratio` release before payout (W10 mirrors the Toxin Vacuole escape
-row of traits/constants-and-acceptance.md §6, #145). `drainedMass` resets to 0 at payout, at release and at respawn. A `free`
+row of traits/constants-and-acceptance.md §6, #145). Step 5 skips a `free` wild cell and an engulf
+starts at step 6, so the tick an engulf starts on drains nothing: the bleed begins the tick after (a
+player predator decays on the start tick too). `drainedMass` resets to 0 at payout, at release and at respawn. A `free`
 wild cell is re-pinned in full: brushing a toxin against the world never whittles a heavier wild
 cell down to lunch, because the world is an average, not a resource.
 

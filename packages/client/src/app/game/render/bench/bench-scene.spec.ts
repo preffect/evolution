@@ -33,8 +33,11 @@ describe('bench scene', () => {
     expect(snapshot.dnaFragments).toHaveLength(RENDER_BENCH_FRAGMENT_COUNT);
     expect(new Set(snapshot.cells.map((cell) => cell.stage)).size).toBe(STAGE_ORDER.length);
     expect(new Set(snapshot.cells.map((cell) => cell.avatarIndex)).size).toBe(PLAYER_PALETTE_COUNT);
-    expect(snapshot.cells.filter((cell) => cell.playerId !== null)).toHaveLength(PLAYER_PALETTE_COUNT);
-    expect(Object.keys(snapshot.players)).toHaveLength(PLAYER_PALETTE_COUNT);
+    // One player cell per palette, plus the victims: their absorb and respawn need a player (ticket #501).
+    expect(snapshot.cells.filter((cell) => cell.playerId !== null)).toHaveLength(
+      PLAYER_PALETTE_COUNT + RENDER_BENCH_VICTIM_COUNT,
+    );
+    expect(Object.keys(snapshot.players)).toHaveLength(PLAYER_PALETTE_COUNT + RENDER_BENCH_VICTIM_COUNT);
     expect(snapshot.players[BENCH_OWN_PLAYER_ID]?.playerName).toBe('Bench 0');
     const wild = snapshot.cells.find((cell) => cell.playerId === null)!;
     expect(wild.organismId).toBe(WORLD_ORGANISM_ID);
@@ -85,7 +88,12 @@ describe('bench scene', () => {
       (effect) => effect.kind === EFFECT_KIND.cellAbsorbed,
     );
     expect(absorbed).toHaveLength(RENDER_BENCH_VICTIM_COUNT);
-    expect(absorbed.every((effect) => 'playerId' in effect && effect.playerId === BENCH_OWN_PLAYER_ID)).toBe(true);
+    // Each absorb names its own victim's player, never a stand-in (ticket #501: a wild prey would carry null).
+    const victimPlayerIds = benchSnapshotAt(world, 0)
+      .cells.slice(-RENDER_BENCH_VICTIM_COUNT)
+      .map((cell) => cell.playerId);
+    expect(victimPlayerIds.every((id) => id !== null && id !== BENCH_OWN_PLAYER_ID)).toBe(true);
+    expect(absorbed.map((effect) => ('playerId' in effect ? effect.playerId : null))).toEqual(victimPlayerIds);
     expect(benchSnapshotAt(world, absorbTick).cells).toHaveLength(RENDER_BENCH_CELL_COUNT - RENDER_BENCH_VICTIM_COUNT);
     const respawns = benchSnapshotAt(world, RENDER_BENCH_ABSORB_EVERY_TICKS).effects.filter(
       (effect) => effect.kind === EFFECT_KIND.respawn,

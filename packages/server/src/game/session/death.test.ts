@@ -10,11 +10,13 @@ import {
   secondsToTicks,
 } from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';
+import { beginEngulf } from '../simulation/engulf-state.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
+import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import type { CellRecord } from '../world/entities.js';
 import { NO_GAIN } from '../simulation/cell-mass.js';
-import { absorbCell, detritusMoteCount, dissolveCell, dropDetritus } from './death.js';
+import { absorbCell, detritusMoteCount, dissolveCell, dropDetritus, withdrawCell } from './death.js';
 
 const SEED = 42;
 const { ecology, session } = DEFAULT_BALANCE;
@@ -70,6 +72,20 @@ describe('dissolveCell', () => {
   });
 });
 
+describe('withdrawCell', () => {
+  it('removes the cell without detritus, aborting its engulf and forgetting it as a spectated cell', () => {
+    const { world, predator, prey, victim } = predatorAndPrey();
+    beginEngulf({ predator, prey });
+    victim.spectatingCellId = predator.id;
+    withdrawCell(world, predator);
+    expect(world.cells).toEqual([prey]);
+    expect(world.food).toEqual([]);
+    expect(prey.engulfedByCellId).toBeNull();
+    expect(world.effects.map((effect) => effect.kind)).toEqual([EFFECT_KIND.cellReleased]);
+    expect(victim.spectatingCellId).toBeNull();
+  });
+});
+
 describe('absorbCell', () => {
   it('removes the prey, emits cell_absorbed and sets the player spectating the killer', () => {
     const { world, predator, prey, victim } = predatorAndPrey();
@@ -118,12 +134,12 @@ describe('absorbCell', () => {
   });
 
   it('emits cell_absorbed with playerId null for a wild prey and sets nobody spectating (#270)', () => {
-    const { world, predator, prey, killer, victim } = predatorAndPrey();
-    prey.playerId = null; // the wild-cell slice places real ones (#496); the death seam reads only `playerId`
+    const { world, predator, killer, victim } = predatorAndPrey();
+    const { cell: prey } = seatTestWildCell(world, { at: { x: predator.x + 10, y: predator.y }, mass: 20 });
     world.tick = 30;
     const context = createTestStepContext(world);
     absorbCell(world, context, { prey, predator, predatorGain: NO_GAIN });
-    expect(world.cells).toEqual([predator]);
+    expect(world.cells).not.toContain(prey);
     expect(context.effects).toEqual([
       expect.objectContaining({
         kind: EFFECT_KIND.cellAbsorbed,

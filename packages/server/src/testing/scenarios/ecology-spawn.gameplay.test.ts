@@ -1,13 +1,11 @@
 // docs/ecology/acceptance.md §8, the spawn-model rows on the seeded world (E1–E3, E14), each run twice and
-// hash-compared (`runDeterministic`). The placed rows are ecology-cells.gameplay.test.ts; the
-// engulf rows (E9–E11, E13, E16) wait for the engulf slice of #98 and the evolving-world rows
-// (§8.1, W1–W10) for the wild-cell slice.
+// hash-compared (`runDeterministic`). The placed rows are ecology-cells.gameplay.test.ts, the engulf rows
+// ecology-engulf*.gameplay.test.ts and the evolving-world rows (§8.1, W2–W10) ecology-wild*.gameplay.test.ts.
 
 import { describe, it } from 'vitest';
 import { DEFAULT_BALANCE, FOOD_KIND, TICK_HZ, distanceBetween } from '@evolution/shared';
-import { clearFood, resetSpawnerAccumulators } from '../gameplay/evolution-adapter.js';
 import { cellOf, foodCount, fragmentCount, type EvolutionView } from '../gameplay/evolution-views.js';
-import { seededSolo } from './shared-setups.js';
+import { foodSpawnedSince, holdPopulationsAtZero, seededSolo } from './shared-setups.js';
 
 const { ecology, world: dish, session } = DEFAULT_BALANCE;
 const ALGAE_SHARE_TOLERANCE = 0.06;
@@ -28,10 +26,6 @@ function farthestMoteFromOrigin(view: EvolutionView): number {
 function motesInsidePlayerCell(view: EvolutionView): number {
   const cell = cellOf(view, 0)!;
   return view.snapshot.food.spawned.filter((mote) => distanceBetween(mote, cell) <= cell.radius).length;
-}
-
-function foodSpawnedSince(label: string): (view: EvolutionView) => number {
-  return (view) => view.snapshot.spawnedCounts.food - (view.captured(label) as number);
 }
 
 function fragmentsSpawnedSince(label: string): (view: EvolutionView) => number {
@@ -92,13 +86,8 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
 
   it('E14: the bloom multiplies the rates over a 610-tick window with the populations held at 0', async () => {
     const bloomStart = session.ROUND_BLOOM_START_FRACTION * session.ROUND_DURATION_SECONDS * TICK_HZ;
-    const run = seededSolo('E14')
-      .advance(bloomStart + COUNT_WINDOW_TICKS)
-      .atTick(bloomStart + 1)
-      .place(resetSpawnerAccumulators);
-    for (let tick = bloomStart + 1; tick <= bloomStart + COUNT_WINDOW_TICKS; tick += 1) {
-      run.atTick(tick).place(clearFood);
-    }
+    const run = seededSolo('E14').advance(bloomStart + COUNT_WINDOW_TICKS);
+    holdPopulationsAtZero(run, bloomStart + 1, bloomStart + COUNT_WINDOW_TICKS);
     await run
       .capture('food at window start', (view) => view.snapshot.spawnedCounts.food)
       .atTick(bloomStart)

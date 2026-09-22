@@ -11,6 +11,7 @@ import {
   RANDOM_STREAM,
   WORLD_ORGANISM_ID,
   type BalanceConfig,
+  type Vec2,
   type WorldReference,
 } from '@evolution/shared';
 import { worldReferenceAt } from '../simulation/round-clock.js';
@@ -68,24 +69,29 @@ export function createWildSeatRecord(seatNumber: number): WildSeatRecord {
   };
 }
 
+/** Where a seat's new cell goes and how heavy it runs: the streams' choice in play, a fixture's in a scenario. */
+export interface WildSeating {
+  readonly centre: Vec2;
+  readonly spreadFactor: number;
+}
+
 /**
- * Places (or replaces) the seat's cell: a fresh spread factor and heading, the countdown to the seat's next
- * decision tick, a safe point, then the pin to `reference` so the cell is the world's average from its first
- * tick. The seat's target and velocity are those of a new cell (none) and its `drainedMass` is 0, as a respawn
- * requires.
+ * Seats a fresh cell for `seat` at `seating`: the spread factor, the countdown to the seat's next decision tick
+ * (`ticksUntilDecision` from `world.tick`, the tick in progress or the one a fixture acts after), then the pin to
+ * `reference` under the world's live balance, so the cell is the world's average from its first tick. The seat's
+ * target and velocity are those of a new cell (none) and its `drainedMass` is 0, as a respawn requires. The seat's
+ * heading is left as it is: the wild placement draws one, a fixture keeps the seat's own
+ * (docs/testing/scenario-runner.md §8.1, `.placeWildCell`).
  */
-export function placeWildCell(
+export function seatWildCell(
   world: WorldState,
   seat: WildSeatRecord,
-  context: WildPlacementContext,
+  seating: WildSeating,
   reference: WorldReference,
 ): CellRecord {
-  const { streams, balance } = context;
-  const wildStream = streams[RANDOM_STREAM.wildCells];
-  seat.massSpreadFactor = drawMassSpreadFactor(wildStream.nextFloat(), balance);
-  setSeatHeading(seat, drawWildHeading(wildStream));
+  const { balance } = world;
+  seat.massSpreadFactor = seating.spreadFactor;
   seat.decideInTicks = ticksUntilDecision(world.tick, seat.seatNumber, decisionIntervalTicks(balance));
-  const centre = findSafeSpawnPoint(streams[RANDOM_STREAM.spawnPlacement], world.cells, balance, wildSpawnClearance);
   const id = mintEntityId(world, ENTITY_KIND.cell);
   const identity = {
     id,
@@ -95,13 +101,31 @@ export function placeWildCell(
     avatarIndex: WILD_CELL_AVATAR_INDEX,
     level: Math.floor(reference.worldLevel),
   };
-  const cell = bornCellRecord(identity, centre, balance.growth.CELL_STARTING_MASS);
+  const cell = bornCellRecord(identity, seating.centre, balance.growth.CELL_STARTING_MASS);
   seat.cellId = id;
   seat.respawnInTicks = 0;
   seat.drainedMass = 0;
   pinWildCell(cell, seat, reference, balance);
   world.cells.push(cell);
   return cell;
+}
+
+/**
+ * Places (or replaces) the seat's cell from the streams: a fresh spread factor and heading from `wildCells`, a
+ * safe point from `spawnPlacement`, then `seatWildCell`.
+ */
+export function placeWildCell(
+  world: WorldState,
+  seat: WildSeatRecord,
+  context: WildPlacementContext,
+  reference: WorldReference,
+): CellRecord {
+  const { streams, balance } = context;
+  const wildStream = streams[RANDOM_STREAM.wildCells];
+  const spreadFactor = drawMassSpreadFactor(wildStream.nextFloat(), balance);
+  setSeatHeading(seat, drawWildHeading(wildStream));
+  const centre = findSafeSpawnPoint(streams[RANDOM_STREAM.spawnPlacement], world.cells, balance, wildSpawnClearance);
+  return seatWildCell(world, seat, { centre, spreadFactor }, reference);
 }
 
 /**

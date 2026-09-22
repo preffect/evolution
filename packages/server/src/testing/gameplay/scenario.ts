@@ -15,7 +15,13 @@ import { strategyScript, type BotStrategyFactory } from './bots.js';
 import { ScenarioSetupError } from './errors.js';
 import { CaptureBuilder, ExpectationBuilder } from './expectation-builder.js';
 import type { Capture, Expectation, Selector } from './expectations.js';
-import type { PlacedFixture, PlaceCellOptions, PlaceFragmentOptions, PlaceMoteOptions } from './fixtures.js';
+import type {
+  PlacedFixture,
+  PlaceCellOptions,
+  PlaceFragmentOptions,
+  PlaceMoteOptions,
+  PlaceWildCellOptions,
+} from './fixtures.js';
 import { FixtureScheduler, type FixtureRegistry } from './placement-builder.js';
 import { createScenarioPlayer, type PlayerScriptEntry } from './players.js';
 import { assertDeterministic } from './replay.js';
@@ -107,6 +113,13 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
 
   placeCell(this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>, options: PlaceCellOptions): typeof this {
     return this.fixturesAt(SETUP_TICK).placeCell(options);
+  }
+
+  placeWildCell(
+    this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>,
+    options: PlaceWildCellOptions,
+  ): typeof this {
+    return this.fixturesAt(SETUP_TICK).placeWildCell(options);
   }
 
   placeMote(this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>, options: PlaceMoteOptions): typeof this {
