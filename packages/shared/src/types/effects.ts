@@ -28,11 +28,16 @@ interface EffectBase extends EffectMoment {
   y: number;
 }
 
-/** The prey's cell was removed this tick (docs/ecology/absorption.md §6.2); the player is now spectating. */
+/**
+ * The prey's cell was removed this tick (docs/ecology/absorption.md §6.2); a player prey is now spectating. A wild
+ * prey (docs/ecology/wild-cells.md §3.3) is reported the same way with `playerId: null`, mirroring `CellView.playerId`
+ * (#270): the renderer keys the dissolve, the DNA streams and the ghost on `cellId`, not on the player.
+ */
 export interface CellAbsorbedEffect extends EffectBase {
   kind: typeof EFFECT_KIND.cellAbsorbed;
   cellId: EntityId;
-  playerId: PlayerId;
+  /** The prey's player; `null` for a wild prey, as on its `CellView`. */
+  playerId: PlayerId | null;
   predatorCellId: EntityId;
   /** Mass the predator's payout added, measured around `gainMass` (0 for a wild predator); `SNAPSHOT_MASS_DECIMALS` on the wire. */
   predatorMassGained: number;

@@ -6,11 +6,8 @@
 //
 // A wild cell on either side is not a special case here beyond its own row: a wild predator keeps
 // nothing (its mass is the world clock, re-pinned next tick) and a wild prey pays no DNA base, no
-// tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3). One thing IS lost on the wild path:
-// `absorbCell` emits no `cell_absorbed` for a prey with no player (`session/death.ts`, the
-// `isPlayerCell` guard), because the effect's `playerId` is not nullable. The wire change that fixes
-// it is filed against the wild-cell slice; until that slice no wild cell exists, so nothing is
-// observably missing yet.
+// tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3). Its death emits `cell_absorbed` like a
+// player's, with `playerId: null` (#270), so the predator's viewer sees the dissolve either way.
 //
 // Traits never move (docs/ecology/absorption.md §6.1, the "Traits" row; the steal was retired by #269), so the
 // payout draws nothing: the spit-out stays the `engulf` stream's only consumer

@@ -80,19 +80,6 @@ function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRe
   player.dnaTowardNextLevel *= kept;
 }
 
-/**
- * The prey side of an engulf payout: the cell is removed this tick, detritus dropped, the
- * `cell_absorbed` effect emitted and the player spectates the killer's cell (a player's or a
- * wild one) until respawn, keeping `dnaKeptOnDeathFraction` of its progress.
- *
- * **A wild prey drops out at the guard below**: it has no player to spectate, so it returns after
- * `dissolveCell` and emits NO `cell_absorbed` — the renderer therefore gets no absorbed clip, no DNA
- * streams and no ghost for it (docs/rendering/files-and-tests.md §9). That is a real gap, not a rule:
- * `CellAbsorbedEffect.playerId` is `PlayerId` and not nullable, so closing it is a wire change
- * (`types/effects.ts`) filed against the wild-cell slice, which is also the first slice that can
- * place a wild cell for it to matter to. Until then no wild cell exists (`world.wildSeats` is
- * created empty), so nothing observable is lost.
- */
 /** A completed engulf as the prey's death reads it: the two cells and what the predator's payout added (#383). */
 export interface Absorption {
   readonly prey: CellRecord;
@@ -100,24 +87,31 @@ export interface Absorption {
   readonly predatorGain: MeasuredGain;
 }
 
+/**
+ * The prey side of an engulf payout: the cell is removed this tick, detritus dropped, the
+ * `cell_absorbed` effect emitted and the player spectates the killer's cell (a player's or a
+ * wild one) until respawn, keeping `dnaKeptOnDeathFraction` of its progress.
+ *
+ * A wild prey (docs/ecology/wild-cells.md §3.3) takes the same path with `playerId: null` on the effect
+ * (#270): the renderer's absorbed clip, DNA streams and ghost key on `cellId`, so the player who ate it sees
+ * the dissolve; it has no player to spectate, so the countdown is skipped.
+ */
 export function absorbCell(world: WorldState, context: StepContext, absorption: Absorption): void {
   const { prey, predator, predatorGain } = absorption;
-  if (!isPlayerCell(prey)) {
-    dissolveCell(world, prey, context.streams[RANDOM_STREAM.spawner]);
-    return;
-  }
-  const player = requirePlayer(world, prey.playerId);
   context.effects.push({
     kind: EFFECT_KIND.cellAbsorbed,
     tick: world.tick,
     x: prey.x,
     y: prey.y,
     cellId: prey.id,
-    playerId: player.playerId,
+    playerId: prey.playerId,
     predatorCellId: predator.id,
     predatorMassGained: predatorGain.massGained,
     predatorDnaGained: predatorGain.dnaGained,
   });
   dissolveCell(world, prey, context.streams[RANDOM_STREAM.spawner]);
-  startSpectating(world, player, predator, prey.modifiers.dnaKeptOnDeathFraction);
+  if (isPlayerCell(prey)) {
+    const player = requirePlayer(world, prey.playerId);
+    startSpectating(world, player, predator, prey.modifiers.dnaKeptOnDeathFraction);
+  }
 }

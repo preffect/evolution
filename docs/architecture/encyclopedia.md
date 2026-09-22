@@ -822,9 +822,11 @@ resumes it as the next one arrives, which covers both a landing and an entry wit
 
 **What #363 built and what it left.** The session, the frame, the four **subject** scenes (`cell`, `food`,
 `dna_fragment`, `zone`), the host token, the per-bundle BitmapFont names and the evidence route are in.
-`previewSceneFor` is total over `PREVIEW_SCENE`, but the five **action** families are ticket #364's: until it
-lands each resolves to an open-broth stand-in, and `preview-scene.spec.ts` names exactly those five, so a builder
-landing for one of them fails that spec rather than leaving the list stale. The evidence route also answers a bare
+`previewSceneFor` is total over `PREVIEW_SCENE`. Ticket #364 built the three single-cell **action** families
+(`eat`, `sprint`, `level_up`) — the first scenes to emit effects at all, so the framing has to account for what a
+clip does to a cell and for the effect sprites drawn around it (`cells/cell-draw-extent.ts`'s `CellDrawState`).
+The two-cell families (`engulf`, `escape`) still resolve to an open-broth stand-in, and `preview-scene.spec.ts`
+names exactly those two, so a builder landing for one of them fails that spec rather than leaving the list stale. The evidence route also answers a bare
 `PREVIEW_SCENE` name (`?preview=food`) as well as an entry anchor, so a family the registry has no entry for yet is
 still reachable for a screenshot.
 

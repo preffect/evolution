@@ -22,7 +22,7 @@ import {
 } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { BENCH_STAGE_TRAITS } from '../app/game/render/bench/bench-traits';
-import { cellDrawExtentRadii } from '../app/game/render/cells/cell-draw-extent';
+import { cellDrawExtentRadii, restingDrawState } from '../app/game/render/cells/cell-draw-extent';
 import { REST_DEFORMATION } from '../app/game/render/cells/cell-deformation';
 import { summariseCellTraits } from '../app/game/render/cells/cell-traits';
 import { FLAGELLUM_TRAIT } from '../app/game/render/cells/flagellum-lines';
@@ -37,7 +37,6 @@ const TIER_III: TraitTier = 3;
 const AT_REST = 0;
 const SWIMMING = 1;
 const NO_SECONDS = 0;
-const IS_NOT_SPRINTING = false;
 
 const FLAGELLATE: readonly OwnedTrait[] = [{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }];
 
@@ -87,7 +86,7 @@ describe('the tail measurement', () => {
   it('comes in strictly inside the bound a scene frames from, for a swimming flagellate', () => {
     const cell = cellOf(FLAGELLATE, SWIMMING);
     const traits = summariseCellTraits(cell);
-    const bound = cellDrawExtentRadii(traits, SWIMMING, IS_NOT_SPRINTING).drawnRadii * cell.radius;
+    const bound = cellDrawExtentRadii(traits, restingDrawState(SWIMMING)).drawnRadii * cell.radius;
     const drawn = cellExtents(cell, NO_SECONDS).drawnWu;
 
     // The margin matters: rewired to the bound the two come out at a ratio of 1.0002 — not equal, because the

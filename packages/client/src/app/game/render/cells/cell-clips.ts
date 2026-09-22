@@ -4,7 +4,7 @@
 // the predator's seal relaxing from the ghost's `absorbed` clip, the pulse of level-up / respawn /
 // eat and the respawn alpha. Pure; slice C (#207) owns the player that decides which clips run.
 
-import { MOTION_CLIPS, sampleTrack, type MotionClip } from '@evolution/shared';
+import { MOTION_CLIPS, sampleTrack, type MotionClip, type MotionClipId } from '@evolution/shared';
 import {
   EAT_DIMPLE_SIGMA_DEG,
   EAT_WRAP_SIGMA_DEG,
@@ -17,6 +17,7 @@ import { ease } from '../easing';
 import { degreesToRadians } from '../geometry';
 import type { ShapeBump } from './radial-profile';
 import type { CellDeformation } from './cell-deformation';
+import { bumpPeak, type ClipDeformationPeak } from './shape-terms';
 
 export type ClipTrackValues = Readonly<Record<string, number>>;
 
@@ -99,3 +100,48 @@ export function clipDeformation(input: CellClipInput): CellDeformation {
     alpha: input.tracks['alpha'] ?? FULL_ALPHA,
   };
 }
+
+/**
+ * How widely `clipId` can deform a cell, over the whole clip — what the encyclopedia preview frames its lens by
+ * when a scene plays that clip (`cells/cell-draw-extent.ts`, ticket #364).
+ *
+ * It **samples the real `clipDeformation`** rather than reading the clip's keyframes: the tracks reach the
+ * surface through `eatBumps` and `engulfBumps`, which place them at sigmas and pair them up, so a peak taken off
+ * the keyframes would be a different number from the one drawn. Retuning `EAT_WRAP_SIGMA_DEG` or the bump
+ * pairing therefore moves this, as it should.
+ *
+ * Sampled because the tracks are eased between keyframes and two bumps can overlap: the widest sum need not land
+ * on a keyframe. The step is fine enough that the miss is far under the framing margin, and `cell-clips.spec.ts`
+ * pins the peak against a much finer walk.
+ */
+export function clipDeformationPeak(clipId: MotionClipId, context: ClipPeakContext): ClipDeformationPeak {
+  const clip = MOTION_CLIPS[clipId];
+  let pulse = REST_PULSE;
+  let bumpRadii = 0;
+  for (let step = 0; step <= CLIP_PEAK_SAMPLES; step += 1) {
+    const deformation = clipDeformation({
+      ...REST_CLIP_INPUT,
+      ...context,
+      tracks: sampleClipTracks(clip, (step / CLIP_PEAK_SAMPLES) * clip.duration),
+    });
+    pulse = Math.max(pulse, deformation.pulse);
+    bumpRadii = Math.max(bumpRadii, bumpPeak(deformation.bumps));
+  }
+  return { pulse, bumpRadii };
+}
+
+/**
+ * Which bumps a clip's tracks become depends on where the thing it reacts to is — `clipDeformation` places the
+ * eat bumps at `moteAngle` and the engulf bumps around `preyAngle`, and drops one set when the other applies. The
+ * **angles** do not change the peak (the bumps are the same size wherever they point), but whether they are
+ * `null` decides which set exists at all, so a caller says which case it is asking about.
+ */
+export type ClipPeakContext = Pick<CellClipInput, 'moteAngle' | 'preyAngle' | 'absorbedSeal'>;
+
+/** A cell eating: the bumps aim at the mote. Any angle gives the same peak. */
+export const EATING_CLIP_CONTEXT: ClipPeakContext = { moteAngle: 0, preyAngle: null, absorbedSeal: null };
+/** A cell playing a clip that deforms nothing directionally — a level-up or a respawn pulse. */
+export const UNAIMED_CLIP_CONTEXT: ClipPeakContext = { moteAngle: null, preyAngle: null, absorbedSeal: null };
+
+/** Enough steps that an eased peak between keyframes is not missed; `cell-clips.spec.ts` pins it against 20×. */
+const CLIP_PEAK_SAMPLES = 240;

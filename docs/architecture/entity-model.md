@@ -160,7 +160,9 @@ union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.t
 `TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
 The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
 world position it happened at: `cell_absorbed { cellId, playerId, predatorCellId, predatorMassGained,
-predatorDnaGained }`, `eat { cellId, eatenId, eatenKind, massGained, dnaGained }` (the amounts measured around the gains,
+predatorDnaGained }` (`playerId` is `PlayerId | null` like `CellView.playerId`: `null` for a wild prey, which is
+reported like any other so the predator's viewer sees the dissolve, #270), `eat { cellId, eatenId, eatenKind,
+massGained, dnaGained }` (the amounts measured around the gains,
 #383, wire-contract.md §4 "Mass flow"), `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; `world_level_up { level, stage }`
 (ecology/food-and-spawn.md §3.1) happens everywhere and is the one effect without a position.
 

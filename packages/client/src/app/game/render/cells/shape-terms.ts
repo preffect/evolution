@@ -75,7 +75,7 @@ export function assignBumpSlots(bumps: readonly ShapeBump[]): ShapeBump[] {
 }
 
 /** The largest positive bump sum, evaluated at every bump centre (neighbouring bumps overlap). */
-function bumpPeak(bumps: readonly ShapeBump[]): number {
+export function bumpPeak(bumps: readonly ShapeBump[]): number {
   let peak = 0;
   for (const centreBump of bumps) {
     if (centreBump.amplitude <= 0) continue;
@@ -119,27 +119,47 @@ export function maxReachRadii(terms: RadialProfileTerms, haloOuterRadii: number)
   return terms.pulse * stretchReach(terms.stretch) * surfaceMax * haloOuterRadii;
 }
 
-/** A cell nothing has bumped into: the preview's cells, and the bound `peakReachRadii` is taken over. */
-const NO_BUMP_PEAK = 0;
+/**
+ * What a cell's running motion clips add to its reach at their widest (`cell-clips.ts`'s `clipDeformationPeak`).
+ * A cell playing nothing wears `REST_CLIP_PEAK`.
+ */
+export interface ClipDeformationPeak {
+  /** The largest `pulse` the clips reach; 1 at rest. */
+  readonly pulse: number;
+  /** The largest positive bump sum the clips push the surface out by, in radii; 0 at rest. */
+  readonly bumpRadii: number;
+}
+
+/** A cell playing no clip and bumped into by nothing. */
+export const REST_CLIP_PEAK: ClipDeformationPeak = { pulse: 1, bumpRadii: 0 };
 
 /**
  * The largest reach any frame of a cell with these traits can produce, in radii — the same
- * `maxReachRadii`, with the one term it **samples** rather than bounds (the breathing sine) at its own peak, at
- * rest pulse and with nothing bumped into it.
+ * `maxReachRadii`, with the one term it **samples** rather than bounds (the breathing sine) at its own peak, and
+ * with the clips it plays at theirs.
  *
  * It takes no time and no cosmetic fork, so it is a constant of the cell rather than of the frame. That is what
  * the encyclopedia preview frames its lens by (`preview/scenes/cell-scene.ts`): a view radius read off a sampled
  * reach would breathe the zoom in and out with the membrane.
+ *
+ * **`clip` is not optional by accident.** Ticket #363's scenes played no clip, so a default of `REST_CLIP_PEAK`
+ * would have been right for every caller that existed — and then silently wrong for the first action scene, whose
+ * eat clip pulses the membrane to 1.09 and wraps it 0.14 further. A caller that plays no clip says so.
  */
-export function peakReachRadii(traits: CellTraitSummary, speedRatio: number, isSprinting: boolean): number {
+export function peakReachRadii(
+  traits: CellTraitSummary,
+  speedRatio: number,
+  isSprinting: boolean,
+  clip: ClipDeformationPeak,
+): number {
   const scales = restScales(traits);
   const surfaceMax = surfaceReach(
     scales.breathing * BREATH_AMPLITUDE,
     traits.wobble.amplitude,
     stripReach(JITTER_AMPLITUDE * scales.jitter, scales.lobes),
-    NO_BUMP_PEAK,
+    clip.bumpRadii,
   );
-  return stretchReach(stretchTerm(speedRatio, isSprinting)) * surfaceMax * haloOuterRadiiOf(traits);
+  return clip.pulse * stretchReach(stretchTerm(speedRatio, isSprinting)) * surfaceMax * haloOuterRadiiOf(traits);
 }
 
 function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {

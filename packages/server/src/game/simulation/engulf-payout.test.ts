@@ -247,6 +247,22 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md Â
     expect(predator.mass).toBeCloseTo(predatorMassBefore + PREY_MASS * absorption.ENGULF_MASS_YIELD, 6);
   });
 
+  it('emits cell_absorbed for a wild prey, with playerId null and the amounts paid (#270)', () => {
+    const { context, predator, prey, predatorMassBefore } = payOut(({ prey: wild }) => {
+      wild.playerId = null;
+    });
+    expect(context.effects).toEqual([
+      expect.objectContaining({
+        kind: EFFECT_KIND.cellAbsorbed,
+        tick: PAYOUT_TICK,
+        cellId: prey.id,
+        playerId: null,
+        predatorCellId: predator.id,
+        predatorMassGained: predator.mass - predatorMassBefore,
+      }),
+    ]);
+  });
+
   it('gives a wild predator nothing but still kills the player prey', () => {
     const { world, predator, prey, preyPlayer, predatorMassBefore } = payOut(({ predator: wild }) => {
       wild.playerId = null;

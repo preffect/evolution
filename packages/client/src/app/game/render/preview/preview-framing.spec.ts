@@ -4,8 +4,8 @@
 // never cuts a subject off — and, the half ticket #364 added, a lens no **looser** than its subject needs.
 //
 // The measuring is `testing/preview-bands.ts`, which walks a scene tick by tick from the extents the renderer
-// itself would draw. Retuning `FLAGELLUM_LENGTH_RADII`, the halo, the preview mass, the swim orbit or a fill
-// fraction therefore fails this file.
+// itself would draw, with the motion clips its effects start. Retuning `FLAGELLUM_LENGTH_RADII`, the halo, a
+// motion clip, the preview mass, the swim orbit or a fill fraction therefore fails this file.
 
 import { describe, expect, it } from 'vitest';
 import { reportBand, worstBandsOf } from '../../../../testing/preview-bands';
@@ -22,11 +22,11 @@ import { SUBJECT_SPECS } from './preview-subject-specs';
 /**
  * How much of the fill fraction the **measured** worst tick must reach.
  *
- * It sits just under 1 rather than well under, because the bound a cell scene frames by turns out to be **tight**:
- * the only term `maxReachRadii` samples rather than bounds is the breathing sine, and every scene's loop is
- * hundreds of ticks long, so some tick of it lands on that sine's peak. Measured across every cell spec in
- * `SUBJECT_SPECS`, at both motions, the binding band came in at 1.0000 of its fill fraction every time; the
- * remaining hundredth is for a loop whose tick spacing straddles the peak less exactly.
+ * **The floor is set by one number: 0.9433.** That is what the framing this replaced — one
+ * `PREVIEW_CELL_VIEW_RADII` of 4.4 — scores on its *best* row, a tier-III flagellate, which is the case the
+ * constant was sized for and so the one it got nearly right (its worst row is 0.333). A floor at or under 0.9433
+ * would let a revert to 4.4 through on exactly the row it was tuned for and catch it only elsewhere, which is the
+ * mistake this file exists to refuse. Everything above that number is margin, and the margin is spent as follows.
  *
  * **Why it is this high and not a comfortable 0.9.** The framing it replaced — one `PREVIEW_CELL_VIEW_RADII` of
  * 4.4 — scores 0.333 on its worst row, but **0.9433** on its best: a tier-III flagellate, which is the case that
@@ -65,9 +65,9 @@ describe('the framing bands', () => {
    * and the motes and fragments — inside the rim, so the round crop never cuts anything off.
    *
    * **Coverage is `SUBJECT_SPECS`, and that is deliberate, not an omission.** Those are the scenes that exist: the
-   * four families ticket #363 built, spread across the ladder's real trait sets. The five action families have no
-   * bodies to measure until ticket #364 builds them, and the stand-in test above fails the moment one of them
-   * does — which is what brings it into this list.
+   * four families ticket #363 built, spread across the ladder's real trait sets, and the action families ticket
+   * #364 has built so far. The ones still on `PREVIEW_SCENES_AWAITING_BUILDERS` have no bodies to measure, and
+   * `preview-scene.spec.ts`'s stand-in test fails the moment one of them does — which is what brings it here.
    */
   it('keep every body inside the safe radius and everything drawn inside the rim', () => {
     for (const spec of SUBJECT_SPECS) {
