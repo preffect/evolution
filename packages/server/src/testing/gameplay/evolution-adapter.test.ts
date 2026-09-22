@@ -1,6 +1,6 @@
 // docs/testing/scenario-runner.md §8: the Evolution adapter's scenario duties on a real module.
 import { describe, expect, it } from 'vitest';
-import { EFFECT_KIND, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
+import { CELL_KIND, EFFECT_KIND, createTestSessionConfig, gameId, playerId, type CellView } from '@evolution/shared';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { FixtureContext } from './adapter.js';
 import {
@@ -31,6 +31,10 @@ function moduleUnderTest(): EvolutionScenarioModule {
   }) as EvolutionScenarioModule;
 }
 
+function playerCells(cells: readonly CellView[]): readonly CellView[] {
+  return cells.filter((cell) => cell.kind === CELL_KIND.player);
+}
+
 describe('evolutionAdapter', () => {
   it('builds the module from the config seed and reads the scenario snapshot with exact positions and effects', () => {
     const module = moduleUnderTest();
@@ -55,10 +59,11 @@ describe('evolutionAdapter', () => {
     expect(snapshot.cells[0]?.mass).toBe(massBefore);
     const next = evolutionAdapter.readSnapshot(module);
     expect(next.cells[0]?.mass).toBe(massBefore + 50);
+    // The world also seats its wild cells (ticket #496); the pin is about the players' cells.
     module.addPlayer(playerId('bob'), 1, 'Bob');
-    expect(next.cells).toHaveLength(1);
+    expect(playerCells(next.cells)).toHaveLength(1);
     module.removePlayer(playerId('bob'));
-    expect(evolutionAdapter.readSnapshot(module).cells).toHaveLength(1);
+    expect(playerCells(evolutionAdapter.readSnapshot(module).cells)).toHaveLength(1);
   });
 
   it('drains the effects into the snapshot it hands the runner, as the broadcast would', () => {
