@@ -1,6 +1,8 @@
 // Safe spawn placement (docs/game-design/session.md §5.2): candidates from the `spawnPlacement` stream,
 // rejected while a threat lies within `SAFE_SPAWN_RADIUS`; after `SAFE_SPAWN_MAX_ATTEMPTS`
-// rejections the candidate farthest from the nearest threat is used.
+// rejections the candidate farthest from the nearest threat is used. The rule is a clearance a
+// caller may tighten: the wild seats add "no cell centre within `WILD_CELL_MIN_SPACING_WU`"
+// (docs/ecology/wild-cells.md §3.3, `game/wild/wild-seats.ts`).
 
 import {
   distanceBetween,
@@ -10,6 +12,12 @@ import {
   type Vec2,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
+
+/**
+ * How far a candidate is from rejection: ≥ 0 is safe, and when no candidate is, the largest wins
+ * (the "farthest from the nearest threat" fallback, generalised).
+ */
+export type SpawnClearance = (point: Vec2, cells: readonly CellRecord[], balance: BalanceConfig) => number;
 
 /** Uniform in the disc of radius `DISH_RADIUS − SPAWN_EDGE_MARGIN`; two draws. */
 export function drawSpawnCandidate(random: RandomSource, balance: BalanceConfig): Vec2 {
@@ -21,28 +29,45 @@ export function isThreat(cell: CellRecord, balance: BalanceConfig): boolean {
   return cell.mass >= balance.world.SAFE_SPAWN_THREAT_MASS_RATIO * balance.growth.CELL_STARTING_MASS;
 }
 
-/** Distance to the nearest threatening cell; `Infinity` when none threatens. */
-export function nearestThreatDistance(point: Vec2, cells: readonly CellRecord[], balance: BalanceConfig): number {
+function nearestDistance(point: Vec2, cells: readonly CellRecord[], isCounted: (cell: CellRecord) => boolean): number {
   let nearest = Number.POSITIVE_INFINITY;
   for (const cell of cells) {
-    if (isThreat(cell, balance)) {
+    if (isCounted(cell)) {
       nearest = Math.min(nearest, distanceBetween(point, cell));
     }
   }
   return nearest;
 }
 
-export function findSafeSpawnPoint(random: RandomSource, cells: readonly CellRecord[], balance: BalanceConfig): Vec2 {
+/** Distance to the nearest threatening cell; `Infinity` when none threatens. */
+export function nearestThreatDistance(point: Vec2, cells: readonly CellRecord[], balance: BalanceConfig): number {
+  return nearestDistance(point, cells, (cell) => isThreat(cell, balance));
+}
+
+/** Distance to the nearest cell centre of any kind; `Infinity` in an empty dish. */
+export function nearestCellDistance(point: Vec2, cells: readonly CellRecord[]): number {
+  return nearestDistance(point, cells, () => true);
+}
+
+/** The player rule: safe once the nearest threat is `SAFE_SPAWN_RADIUS` away. */
+export const threatClearance: SpawnClearance = (point, cells, balance) =>
+  nearestThreatDistance(point, cells, balance) - balance.world.SAFE_SPAWN_RADIUS;
+
+export function findSafeSpawnPoint(
+  random: RandomSource,
+  cells: readonly CellRecord[],
+  balance: BalanceConfig,
+  clearance: SpawnClearance = threatClearance,
+): Vec2 {
   const maxAttempts = balance.world.SAFE_SPAWN_MAX_ATTEMPTS;
-  const safeRadius = balance.world.SAFE_SPAWN_RADIUS;
   let best = drawSpawnCandidate(random, balance);
-  let bestDistance = nearestThreatDistance(best, cells, balance);
-  for (let attempt = 1; attempt < maxAttempts && bestDistance < safeRadius; attempt += 1) {
+  let bestClearance = clearance(best, cells, balance);
+  for (let attempt = 1; attempt < maxAttempts && bestClearance < 0; attempt += 1) {
     const candidate = drawSpawnCandidate(random, balance);
-    const distance = nearestThreatDistance(candidate, cells, balance);
-    if (distance > bestDistance) {
+    const candidateClearance = clearance(candidate, cells, balance);
+    if (candidateClearance > bestClearance) {
       best = candidate;
-      bestDistance = distance;
+      bestClearance = candidateClearance;
     }
   }
   return best;

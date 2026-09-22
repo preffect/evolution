@@ -65,6 +65,11 @@ export function wasAbortedThisTick(cell: CellRecord, tick: number): boolean {
   );
 }
 
+/** True while `cell` holds a prey (docs/ecology/absorption.md §6.2): a wild predator bleeds only then (docs/ecology/wild-cells.md §3.3). */
+export function isEngulfing(cell: CellRecord): boolean {
+  return cell.engulfingCellId !== null;
+}
+
 /** True while `cell` is carried inside its predator (docs/ecology/absorption.md §6.1, from the seal on). */
 export function isCarried(cell: CellRecord): boolean {
   return cell.carriedOffsetX !== null && cell.carriedOffsetY !== null;

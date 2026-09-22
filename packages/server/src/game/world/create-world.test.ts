@@ -10,6 +10,7 @@ import {
 } from '@evolution/shared';
 import { isInsideAnyCell } from '../simulation/spawn-point.js';
 import { createWorld, type CreateWorldOptions } from './create-world.js';
+import { isPlayerCell } from './entities.js';
 
 const SEED = 42;
 const { ecology, world: worldBalance, growth } = DEFAULT_BALANCE;
@@ -60,8 +61,8 @@ describe('createWorld', () => {
   it('spawns the roster in join order, at starting mass, inside the spawn disc', () => {
     expect(world.players.map((player) => player.playerId)).toEqual(['p1', 'p2']);
     expect(world.players.map((player) => player.joinOrder)).toEqual([0, 1]);
-    expect(world.cells.map((cell) => cell.playerId)).toEqual(['p1', 'p2']);
-    for (const cell of world.cells) {
+    expect(world.cells.filter(isPlayerCell).map((cell) => cell.playerId)).toEqual(['p1', 'p2']);
+    for (const cell of world.cells.filter(isPlayerCell)) {
       expect(cell.mass).toBe(growth.CELL_STARTING_MASS);
       expect(Math.hypot(cell.x, cell.y)).toBeLessThanOrEqual(worldBalance.DISH_RADIUS - worldBalance.SPAWN_EDGE_MARGIN);
       expect(cell.level).toBe(1);

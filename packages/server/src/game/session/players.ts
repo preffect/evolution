@@ -6,9 +6,7 @@ import {
   FIRST_LEVEL,
   BACTERIUM_VARIANTS,
   CELL_KIND,
-  DEFAULT_CELL_MODIFIERS,
   DNA_TAGS,
-  NO_STEER_COMMAND,
   ENTITY_KIND,
   PLAYER_LIFE_STATE,
   STARTING_STAGE,
@@ -22,6 +20,7 @@ import {
 } from '@evolution/shared';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { findSafeSpawnPoint } from '../simulation/spawn-placement.js';
+import { bornCellRecord } from '../world/cell-record.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { mintEntityId } from '../world/entity-ids.js';
 import type { WorldState } from '../world/world-state.js';
@@ -71,39 +70,18 @@ export function createPlayerRecord(identity: PlayerIdentity, joinOrder: number):
 /** A free cell for `player` at `centre` with `mass`, appended to the world; its derived state is folded. */
 export function createCellRecord(world: WorldState, player: PlayerRecord, centre: Vec2, mass: number): CellRecord {
   const id = mintEntityId(world, ENTITY_KIND.cell);
-  const cell: CellRecord = {
-    id,
-    kind: CELL_KIND.player,
-    playerId: player.playerId,
-    organismId: id,
-    avatarIndex: player.avatarIndex,
-    x: centre.x,
-    y: centre.y,
-    velocityX: 0,
-    velocityY: 0,
+  const cell = bornCellRecord(
+    {
+      id,
+      kind: CELL_KIND.player,
+      playerId: player.playerId,
+      organismId: id,
+      avatarIndex: player.avatarIndex,
+      level: player.level,
+    },
+    centre,
     mass,
-    radius: 0,
-    level: player.level,
-    stage: STARTING_STAGE,
-    traits: [],
-    membraneRatioBonus: 0,
-    states: [],
-    engulfProgress: 0,
-    engulfingCellId: null,
-    engulfedByCellId: null,
-    sprintRemainingTicks: 0,
-    sprintCooldownRemainingTicks: 0,
-    targetX: null,
-    targetY: null,
-    modifiers: { ...DEFAULT_CELL_MODIFIERS },
-    pinnedX: null,
-    pinnedY: null,
-    carriedOffsetX: null,
-    carriedOffsetY: null,
-    spitOutRefractories: [],
-    steerCommand: NO_STEER_COMMAND,
-    lastRelease: null,
-  };
+  );
   refreshCellDerivedState(cell, player, world.balance);
   world.cells.push(cell);
   return cell;

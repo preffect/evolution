@@ -15,9 +15,10 @@ row and no score; it neither eats motes (the eating step skips it) nor decays. E
 its mass and ladder are pinned to the world reference:
 
 ```
-mass             = max(CELL_STARTING_MASS, worldMass × massSpreadFactor − drainedMass)
+mass             = max(min(CELL_STARTING_MASS, worldMass × massSpreadFactor), worldMass × massSpreadFactor − drainedMass)
                                                        massSpreadFactor ~ uniform[1 − WILD_CELL_MASS_SPREAD, 1 + WILD_CELL_MASS_SPREAD], drawn at each (re)spawn from the wildCells stream;
-                                                       drainedMass = 0 except while the cell is engulfing ("Bleeding while engulfing" below)
+                                                       drainedMass = 0 except while the cell is engulfing ("Bleeding while engulfing" below); the floor
+                                                       guards the bleed, never the spread: a light seat weighs 14 at tick 0 (W2), a bleeding one never drops below the starting mass (#496)
 level            = floor(worldLevel)
 traits           = the first (level − 1) entries of WILD_CELL_BUILDS[seatNumber mod WILD_CELL_BUILDS.length]; the list wraps as tier upgrades (entry 8 = entry 1 at tier II)
 stage            = stageOf(traits)                     (= worldStage at every level: worldStage is defined from build 0's picks (§3.1) and all three builds reach the endosymbiont at pick 2, the envelope at 3, a form's prerequisite at 4 and the form at 5; the modifier fold then runs as for any cell)

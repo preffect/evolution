@@ -45,7 +45,7 @@ export interface WorldState {
   dnaFragments: DnaFragmentRecord[];
   /** Join order. */
   players: PlayerRecord[];
-  /** Seat order (docs/ecology/wild-cells.md §3.3); empty until the wild-cell slice. */
+  /** Seat order (docs/ecology/wild-cells.md §3.3): `WILD_CELL_COUNT` seats from world creation, never fewer. */
   wildSeats: WildSeatRecord[];
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState };

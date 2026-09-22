@@ -1,7 +1,8 @@
 // Builds a round's world (docs/architecture/entity-model.md §2, docs/determinism/random-streams.md §3): forks the server
 // streams from the round seed, places the gel patches, spawns every roster member by safe
-// placement (join order), then runs the initial fill. Both the room's first round and every
-// rematch come through here; a rematch passes the incremented seed and the continued counters.
+// placement (join order), seats the wild cells (docs/ecology/wild-cells.md §3.3), then runs the initial fill so no
+// mote lands inside any cell. Both the room's first round and every rematch come through here; a rematch passes
+// the incremented seed and the continued counters, and its wild cells start again at protocell scale.
 
 import { RANDOM_STREAM, ROUND_PHASE, type BalanceConfig, type GameSessionConfig } from '@evolution/shared';
 import { createPlayerRecord, spawnCellForPlayer, type PlayerIdentity } from '../session/players.js';
@@ -9,6 +10,7 @@ import { updateLeaderboard } from '../session/leaderboard.js';
 import { placeGelPatches } from '../simulation/zones.js';
 import { runInitialFill } from '../simulation/spawner.js';
 import { roundTimeLeftMsAt } from '../simulation/round-clock.js';
+import { createWildSeats } from '../wild/wild-seats.js';
 import type { SpawnerState } from './entities.js';
 import { createMassFlowLedger } from './mass-flow-ledger.js';
 import { forkServerStreams, resumeStreams, storeStreams } from './streams.js';
@@ -72,6 +74,7 @@ export function createWorld(options: CreateWorldOptions): WorldState {
     world.players.push(player);
     spawnCellForPlayer(world, player, options.balance.growth.CELL_STARTING_MASS, streams[RANDOM_STREAM.spawnPlacement]);
   }
+  createWildSeats(world, { streams, balance: options.balance });
   const context: StepContext = {
     balance: options.balance,
     streams,

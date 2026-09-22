@@ -2,9 +2,9 @@
 // (docs/determinism/contract-and-clock.md §1). `stepWorld` mutates the world in place and returns what happened to
 // the round; `runStep` wraps it with the one resume-and-write-back of the random streams.
 //
-//   1 inputs      2 round      3 movement (+ separation, pins)   4 eating   5 metabolism
+//   1 inputs (+ the wild pin)      2 round      3 movement (+ separation, pins)   4 eating   5 metabolism
 //   6 engulf      7 progression      8 spawners + mote motion
-//   9 respawn     10 leaderboard
+//   9 respawn (players, then wild seats)     10 leaderboard
 
 import { ROUND_PHASE, type BalanceConfig } from '@evolution/shared';
 import { runProgression } from '../progression/levels.js';
@@ -12,6 +12,8 @@ import { updateLeaderboard } from '../session/leaderboard.js';
 import { runRespawns } from '../session/respawn.js';
 import { beginMetabolismRecords } from '../world/mass-flow-ledger.js';
 import { resumeStreams, storeStreams } from '../world/streams.js';
+import { pinWildCells } from '../wild/wild-pin.js';
+import { runWildRespawns } from '../wild/wild-respawn.js';
 import type { InputRejectionCounters, StepContext, WorldState } from '../world/world-state.js';
 import { eat } from './eating.js';
 import { runEngulfs } from './engulf.js';
@@ -27,6 +29,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
   world.tick += 1;
   if (world.roundPhase === ROUND_PHASE.playing) {
     applyInputs(world, context); // input is ignored through `results` (docs/game-design/session.md §5.4)
+    pinWildCells(world, context); // and the wild cells freeze with everything else (docs/ecology/wild-cells.md §3.3)
   }
   const outcome = advanceRound(world, context);
   if (outcome === ROUND_STEP_OUTCOME.rematched) {
@@ -46,6 +49,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
   runSpawners(world, context);
   moveMotes(world, context);
   runRespawns(world, context);
+  runWildRespawns(world, context);
   updateLeaderboard(world);
   return outcome;
 }
