@@ -116,6 +116,12 @@ export const PREVIEW_ACTION_SUBJECT_TRAITS: readonly OwnedTrait[] = [
   { traitId: 'ribosomes', tier: PREVIEW_ACTION_SUBJECT_TIER },
 ];
 
+/**
+ * The level the action subject wears where its own-cell record draws (the `sprint` scene's ring and ladder). A
+ * real mid-ladder number rather than `PREVIEW_UNUSED_LEVEL`, which would put a level-zero pip on the orbit.
+ */
+export const PREVIEW_ACTION_SUBJECT_LEVEL = 3;
+
 /** The still beat between one loop of an action and the next, so a reader sees the action begin. */
 export const PREVIEW_ACTION_REST_SECONDS = 0.9;
 

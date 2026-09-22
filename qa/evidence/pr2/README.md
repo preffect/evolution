@@ -11,6 +11,21 @@ not the encyclopedia's 300.
 | `364-sprint-1280x800.png`        | t = 0.2 s  | mid-sprint: the self ring's bright arc on the membrane, the axial stretch |
 | `364-level-up-1280x800.png`      | t = 1.35 s | the burst — rays, shock ring and three gold ripples                       |
 
+## PR #500 review fixes
+
+Same stack and settings; the crops are the 360 px lens at 2×.
+
+| Frame                             | Parked at  | What it shows                                                                                                                                  |
+| --------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `500-sprint-ring-t1.6-crop.png`   | t = 1.6 s  | mid-cooldown: the self ring's solid arc is about a third of the way round (fill 1 − 1.9 / 3 ≈ 0.37), where the review's frame showed it full   |
+| `500-eat-membrane-t0.95-crop.png` | t = 0.95 s | the mote still drawn, on the membrane along its approach, where the review's frame showed nothing (it was hidden under the cell at the centre) |
+| `500-eat-membrane-t1.2-crop.png`  | t = 1.2 s  | the eat fired at the membrane: the halo, the mote gone                                                                                         |
+
+The sprint scene now hands the renderer the HUD's own-cell record (`actionSubjectOwnCellIndicators`), which is
+what the ring reads its fill from; the record also draws what it draws in play — the mass chip, the level pip and
+the ladder's ghost slots — visible in the sprint crop. The eat fires where the server's does: the mote's centre on
+the cell's radius (`eating.ts`), the effect at the mote.
+
 **The dashed circle in the eat and sprint frames is the own cell's self ring** (`cell-shader-membrane.ts`: "the
 own cell's dashed, slowly rotating ring … its alpha is the sprint ring"), and its solid bright arc in the sprint
 frame is the recharged share. It is the proof the `ownPlayerId` wiring works: the own-cell indicators draw for

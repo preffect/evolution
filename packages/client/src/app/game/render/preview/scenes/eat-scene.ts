@@ -5,7 +5,12 @@
 // **The mote is removed by the same tick the effect is emitted at**, not a frame either side. That is the
 // contract the renderer reads: `cellClipStarts` aims the eat clip at the effect's position, so a mote still on
 // screen after its own eat would be a second mote, and a mote gone before it would leave the clip aiming at
-// nothing. `eat-scene.spec.ts` pins the two together.
+// nothing. `action-scenes.spec.ts` pins the two together.
+//
+// **The eat fires at the membrane, as the server's does** (`eating.ts`: a mote is eaten the tick its centre lies
+// within the cell's radius, and the effect carries the mote's own position). Driving the mote to the centre
+// instead (PR #500 review) hid it under the cell layer for the last ~20 ticks of its approach, and put the
+// effect at `atan2(0, 0)`, so the dimple aimed east while the mote came in on `PREVIEW_EAT_APPROACH_TURNS`.
 
 import {
   EFFECT_KIND,
@@ -65,19 +70,31 @@ function periodSeconds(): number {
   return PREVIEW_EAT_APPROACH_SECONDS + PREVIEW_ACTION_REST_SECONDS;
 }
 
-/** Where the mote is at `loopSeconds`: on the approach line, closing on the subject; `null` once eaten. */
-function motePosition(loopSeconds: number, balance: BalanceConfig): { readonly x: number; readonly y: number } | null {
-  if (loopSeconds > PREVIEW_EAT_APPROACH_SECONDS) return null;
-  const share = loopSeconds / PREVIEW_EAT_APPROACH_SECONDS;
-  const distanceWu = PREVIEW_EAT_APPROACH_RADII * actionSubjectRadiusWu(balance) * (1 - share);
+/** A point on the approach line, `distanceWu` out from the subject's centre toward where the mote starts. */
+function onApproachLine(distanceWu: number): { readonly x: number; readonly y: number } {
   return {
     x: ACTION_SUBJECT_CENTRE.x + Math.cos(APPROACH_ANGLE) * distanceWu,
     y: ACTION_SUBJECT_CENTRE.y + Math.sin(APPROACH_ANGLE) * distanceWu,
   };
 }
 
-/** The mote's resting place at the instant it is eaten: the subject's own centre, which is where it arrives. */
-const EATEN_AT = ACTION_SUBJECT_CENTRE;
+/**
+ * Where the mote is eaten: on the membrane, one subject radius out along the approach. That is the server's
+ * contact rule — a mote is eaten the tick its **centre** lies within the cell's radius (`eating.ts`), and the
+ * `eat` effect is placed at the mote — so the mote is drawn right up to the membrane and the clip aims at it.
+ */
+export function eatenAt(balance: BalanceConfig): { readonly x: number; readonly y: number } {
+  return onApproachLine(actionSubjectRadiusWu(balance));
+}
+
+/** Where the mote is at `loopSeconds`: closing from its start to the contact radius; `null` once eaten. */
+function motePosition(loopSeconds: number, balance: BalanceConfig): { readonly x: number; readonly y: number } | null {
+  if (loopSeconds > PREVIEW_EAT_APPROACH_SECONDS) return null;
+  const share = loopSeconds / PREVIEW_EAT_APPROACH_SECONDS;
+  const radiusWu = actionSubjectRadiusWu(balance);
+  const startWu = PREVIEW_EAT_APPROACH_RADII * radiusWu;
+  return onApproachLine(startWu - (startWu - radiusWu) * share);
+}
 
 export function eatPreviewScene(): PreviewScene {
   return previewScene({
@@ -117,12 +134,13 @@ function moteView(position: { readonly x: number; readonly y: number }): FoodMot
   return { id: entityId(MOTE_ID), kind: FOOD_KIND.algae, bacteriumVariant: null, x: position.x, y: position.y };
 }
 
-function eatSchedule(): readonly ScheduledPreviewEffect[] {
+function eatSchedule(balance: BalanceConfig): readonly ScheduledPreviewEffect[] {
+  const contact = eatenAt(balance);
   const effect: GameEffect = {
     kind: EFFECT_KIND.eat,
     tick: 0,
-    x: EATEN_AT.x,
-    y: EATEN_AT.y,
+    x: contact.x,
+    y: contact.y,
     cellId: entityId(ACTION_SUBJECT_CELL_ID),
     eatenId: entityId(MOTE_ID),
     eatenKind: ENTITY_KIND.foodMote,

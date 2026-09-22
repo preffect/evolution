@@ -8,12 +8,23 @@
 //
 // It emits **no effects**. `sprint_ready` is a motion clip the own-cell ring starts when the fill reaches full
 // (`own-cell-ring.ts`), not a `GameEffect`, so there is nothing for a schedule to carry.
+//
+// **The ring is driven through the HUD's own-cell record, not through the view's clocks alone.** The renderer's
+// `OwnCellRingTracker` reads `RenderInputs.ownCellIndicators.sprintFill`; the view's `sprintCooldownRemainingTicks`
+// reaches it only through `ownCellIndicatorsFor`. A scene that set the clocks and supplied no record showed a full
+// ring every frame (PR #500 review), so this one supplies the record and `action-scenes.spec.ts` reads the *ring*.
 
 import { MOTION_CLIP, TICK_INTERVAL_S, type BalanceConfig } from '@evolution/shared';
 import { REST_CLIP_PEAK } from '../../cells/shape-terms';
 import { UNAIMED_CLIP_CONTEXT, clipDeformationPeak } from '../../cells/cell-clips';
+import { PREVIEW_ACTION_SUBJECT_LEVEL } from '../../constants';
 import { previewScene, type PreviewScene, type PreviewSceneContent } from '../preview-scene';
-import { actionSubjectCellView, actionSubjectFraming, actionSubjectMaxSpeed } from './action-subject';
+import {
+  actionSubjectCellView,
+  actionSubjectFraming,
+  actionSubjectMaxSpeed,
+  actionSubjectOwnCellIndicators,
+} from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 
 const NO_MOTES = [] as const;
@@ -62,6 +73,7 @@ export function sprintPreviewScene(): PreviewScene {
       }),
     periodSecondsFor: periodSeconds,
     contentAt: sprintContent,
+    ownCellIndicators: actionSubjectOwnCellIndicators,
   });
 }
 
@@ -89,6 +101,8 @@ function sprintContent(loopSeconds: number, balance: BalanceConfig): PreviewScen
           velocityY: 0,
           sprintRemainingTicks: sprintRemainingTicks(loopSeconds, balance),
           sprintCooldownRemainingTicks: sprintCooldownRemainingTicks(loopSeconds, balance),
+          // The record draws the ladder's level pip beside the ring, so the subject wears a real level here.
+          level: PREVIEW_ACTION_SUBJECT_LEVEL,
         },
         balance,
       ),

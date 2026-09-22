@@ -14,6 +14,7 @@ import {
   MILLISECONDS_PER_SECOND,
   MOTION_CLIP,
   MOTION_CLIPS,
+  RADIANS_PER_FULL_TURN,
   RANDOM_STREAM,
   TICK_INTERVAL_S,
   createSeededRandom,
@@ -33,7 +34,12 @@ import {
 } from '../app/game/render/cells/flagellum-lines';
 import { evaluateProfile } from '../app/game/render/cells/radial-profile';
 import { buildShapeTerms, headingOf, type ShapeTerms } from '../app/game/render/cells/shape-terms';
-import { CILIA_OUTER_RADII, NOISE_STRIP_ROWS, PREVIEW_SEED } from '../app/game/render/constants';
+import {
+  CILIA_OUTER_RADII,
+  NOISE_STRIP_ROWS,
+  PREVIEW_EAT_APPROACH_TURNS,
+  PREVIEW_SEED,
+} from '../app/game/render/constants';
 import { effectPlacements, type EffectSource } from '../app/game/render/effects/effect-sprites';
 import { MotionClipPlayer } from '../app/game/render/effects/motion-clip-player';
 import { buildNoiseStrip } from '../app/game/render/noise/noise-strip';
@@ -74,8 +80,11 @@ const PREVIEW_STRIP = buildNoiseStrip(createSeededRandom(PREVIEW_SEED).fork(RAND
 /** A player nothing was ever started on: the resting cell, for callers that measure a scene without effects. */
 const RESTING_PLAYER = new MotionClipPlayer();
 
-/** The eat clip's bumps need an angle; the subject eats what arrives at its own centre, so it is this one. */
-const AIMED_AT_THE_CENTRE = 0;
+/**
+ * The eat clip's bumps need an angle: the `eat` scene's mote arrives on `PREVIEW_EAT_APPROACH_TURNS` and its
+ * effect sits on the membrane there, which is where `cellClipStarts` aims the clip in play.
+ */
+const AIMED_AT_THE_APPROACH = PREVIEW_EAT_APPROACH_TURNS * RADIANS_PER_FULL_TURN;
 
 export interface CellExtentsWu {
   /** The membrane at its widest: `maxRadii` with the halo taken back out. */
@@ -115,8 +124,8 @@ export function cellExtents(
     phase,
     stripRow,
     strip: PREVIEW_STRIP,
-    // The eat bumps aim at the mote, which every action scene puts at the subject's own centre.
-    deformation: clipDeformation({ ...REST_CLIP_INPUT, tracks, moteAngle: AIMED_AT_THE_CENTRE }),
+    // The eat bumps aim at the mote, which the `eat` scene brings in along its approach line.
+    deformation: clipDeformation({ ...REST_CLIP_INPUT, tracks, moteAngle: AIMED_AT_THE_APPROACH }),
   });
   const bodyRadii = terms.maxRadii / terms.haloOuterRadii;
   return {

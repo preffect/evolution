@@ -8,11 +8,14 @@ import {
   MILLISECONDS_PER_SECOND,
   MOTION_CLIP,
   MOTION_CLIPS,
+  RADIANS_PER_FULL_TURN,
   TICK_INTERVAL_S,
   type BalanceConfig,
 } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
-import { PREVIEW_LEVEL_UP_LEVEL, PREVIEW_UNUSED_LEVEL } from '../../constants';
+import { FULL_SELF_RING } from '../../cells/self-ring';
+import { PREVIEW_EAT_APPROACH_TURNS, PREVIEW_LEVEL_UP_LEVEL, PREVIEW_UNUSED_LEVEL } from '../../constants';
+import { OwnCellRingTracker, ownCellRingSourceOf } from '../../effects/own-cell-ring';
 import { previewSceneFor, type PreviewScene } from '../preview-scene';
 import { PREVIEW_SCENE, type PreviewSpec } from '../preview-spec';
 
@@ -118,7 +121,44 @@ describe('the eat scene', () => {
     const [cell] = scene.frameAt(0, 0, BALANCE).cells;
     expect(eat && 'cellId' in eat ? eat.cellId : null).toBe(cell?.id);
   });
+
+  /**
+   * The server eats a mote the tick its centre lies within the cell's radius and places the effect at the mote
+   * (`eating.ts`), so the preview fires at the membrane too. Driven to the centre instead (PR #500 review), the
+   * mote spent its last ~20 ticks hidden under the cell layer and the effect at `atan2(0, 0)` aimed the dimple
+   * east while the mote came in on the approach angle. Two checks: the mote never goes inside the membrane, and
+   * the effect sits one radius out along the approach.
+   */
+  it('fires the eat on the membrane along the approach, and never draws the mote inside the cell', () => {
+    const scene = previewSceneFor(EAT);
+    const [cell] = scene.frameAt(0, 0, BALANCE).cells;
+    const [eat] = effectsOverOneLoop(scene).filter((effect) => effect.kind === EFFECT_KIND.eat);
+    expect(cell).toBeDefined();
+    expect(eat).toBeDefined();
+    const radius = cell!.radius;
+    const effectDistance = Math.hypot(eat!.x - cell!.x, eat!.y - cell!.y);
+    expect(effectDistance, 'the eat is not on the membrane').toBeCloseTo(radius, 6);
+    const aim = Math.atan2(eat!.y - cell!.y, eat!.x - cell!.x);
+    expect(aim, 'the dimple would aim away from the approach').toBeCloseTo(
+      PREVIEW_EAT_APPROACH_TURNS * RADIANS_PER_FULL_TURN,
+      6,
+    );
+
+    let moteFrames = 0;
+    for (const tick of loopTicks(scene)) {
+      for (const mote of scene.frameAt(tick, tick, BALANCE).motes) {
+        moteFrames += 1;
+        expect(
+          Math.hypot(mote.x - cell!.x, mote.y - cell!.y),
+          `tick ${tick}: the mote is inside the membrane`,
+        ).toBeGreaterThanOrEqual(radius - ROUNDING);
+      }
+    }
+    expect(moteFrames, 'the walk saw no mote at all').toBeGreaterThan(0);
+  });
 });
+
+const ROUNDING = 1e-9;
 
 describe('the sprint scene', () => {
   /**
@@ -170,6 +210,36 @@ describe('the sprint scene', () => {
   /** `sprint_ready` is a clip the own-cell ring starts, not a `GameEffect`, so this scene schedules nothing. */
   it('emits no effects', () => {
     expect(effectsOverOneLoop(previewSceneFor(SPRINT))).toEqual([]);
+  });
+
+  /**
+   * The ring itself, not the view's clocks. The renderer's `OwnCellRingTracker` reads only `RenderInputs
+   * .ownCellIndicators`; the two tests above stayed green while the session handed it `NO_HUD_INPUTS` and the ring
+   * sat full every frame (PR #500 review). This drives the real tracker off the scene's own record, as the
+   * session does, and wants a full ring through the sprint, an emptied one just after, and a refilled one by the
+   * loop's end.
+   */
+  it('drives the own-cell ring through its record: full while sprinting, emptied after, refilled by the end', () => {
+    const scene = previewSceneFor(SPRINT);
+    const tracker = new OwnCellRingTracker();
+    const ringAt = (seconds: number): number => {
+      const tick = seconds / TICK_INTERVAL_S;
+      const frame = scene.frameAt(tick, tick, BALANCE);
+      const [cell] = frame.cells;
+      const record = scene.ownCellIndicators(frame, BALANCE);
+      expect(record, `${seconds} s: the sprint scene supplied no own-cell record`).not.toBeNull();
+      return tracker.update(cell?.id ?? null, ownCellRingSourceOf(record), seconds * MILLISECONDS_PER_SECOND).fill;
+    };
+    const sprintSeconds = BALANCE.controls.SPRINT_DURATION_SECONDS;
+    const period = scene.periodTicks(BALANCE) * TICK_INTERVAL_S;
+
+    expect(ringAt(sprintSeconds / 2), 'the ring is not full mid-sprint').toBe(FULL_SELF_RING);
+    const justAfter = ringAt(sprintSeconds + TICK_INTERVAL_S);
+    expect(justAfter, 'the ring did not empty when the sprint ended').toBeLessThan(0.1);
+    const midway = ringAt(sprintSeconds + (period - sprintSeconds) / 2);
+    expect(midway, 'the ring is not refilling').toBeGreaterThan(justAfter);
+    expect(midway).toBeLessThan(FULL_SELF_RING);
+    expect(ringAt(period - TICK_INTERVAL_S), 'the ring is not nearly full at the loop’s end').toBeGreaterThan(0.9);
   });
 });
 

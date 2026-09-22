@@ -8,13 +8,19 @@
 // wobble.
 
 import {
+  BACTERIUM_VARIANTS,
   CELL_KIND,
+  DNA_TAGS,
+  PLAYER_LIFE_STATE,
   ZONE_ID,
   maxSpeedForMass,
   radiusForMass,
+  zeroRecord,
   type BalanceConfig,
   type CellView,
+  type OwnProgressView,
 } from '@evolution/shared';
+import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../../state/own-cell-indicators';
 import { cellDrawExtentRadii, type CellDrawState } from '../../cells/cell-draw-extent';
 import { summariseCellTraits } from '../../cells/cell-traits';
 import {
@@ -25,7 +31,7 @@ import {
   PREVIEW_ZONE_CENTRE_WU,
 } from '../../constants';
 import { previewCellView } from '../preview-frame';
-import type { PreviewFraming } from '../preview-scene';
+import type { PreviewFraming, PreviewSceneContent } from '../preview-scene';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 
 /** The action scenes' cell id; distinct from the `cell` family's, so the two never share a cosmetic fork. */
@@ -102,3 +108,55 @@ function actionSubjectTraits(balance: BalanceConfig) {
 }
 
 const AT_REST: ActionSubjectPose = { velocityX: 0, velocityY: 0 };
+
+/** The action subject threatens nobody and is threatened by nobody: it is alone on its lens. */
+const NO_THREATS = [] as const;
+const NO_PREVIEWED_TRAIT = null;
+const NOTHING_COUNTED = 0;
+const ACTION_SUBJECT_NAME = 'You';
+
+/**
+ * The HUD's own-cell record for the subject this frame, built by the HUD's own `ownCellIndicatorsFor` so the ring
+ * reads exactly what it reads in play: `sprintFill` from the view's `sprintCooldownRemainingTicks` against the
+ * live `SPRINT_COOLDOWN_SECONDS`, `isSprinting` from `sprintRemainingTicks`. Without this the renderer's
+ * `OwnCellRingTracker` gets no source and answers `REST_OWN_CELL_RING` — a full ring every frame, whatever the
+ * view's clocks say (PR #500 review). `null` when the subject is not in the frame.
+ */
+export function actionSubjectOwnCellIndicators(
+  content: PreviewSceneContent,
+  balance: BalanceConfig,
+): OwnCellIndicators | null {
+  const ownCell = content.cells.find((cell) => cell.playerId === PREVIEW_SUBJECT_PLAYER_ID);
+  if (ownCell === undefined) return null;
+  return ownCellIndicatorsFor({
+    ownCell,
+    ownProgress: actionSubjectProgress(ownCell),
+    balance,
+    threats: NO_THREATS,
+    previewTraitId: NO_PREVIEWED_TRAIT,
+  });
+}
+
+/** The subject's progress as the record needs it: its own level, traits and stage, and nothing yet counted. */
+function actionSubjectProgress(ownCell: CellView): OwnProgressView {
+  return {
+    playerId: PREVIEW_SUBJECT_PLAYER_ID,
+    playerName: ACTION_SUBJECT_NAME,
+    level: ownCell.level,
+    dnaCumulative: NOTHING_COUNTED,
+    dnaCatchUpGift: NOTHING_COUNTED,
+    dnaTowardNextLevel: NOTHING_COUNTED,
+    dnaTagPoints: zeroRecord(DNA_TAGS),
+    bacteriaEatenByVariant: zeroRecord(BACTERIUM_VARIANTS),
+    absorptions: NOTHING_COUNTED,
+    wildAbsorptions: NOTHING_COUNTED,
+    score: NOTHING_COUNTED,
+    ownedTraits: ownCell.traits.map((owned) => ({ ...owned })),
+    stage: ownCell.stage,
+    offer: null,
+    lifeState: PLAYER_LIFE_STATE.alive,
+    spectatingCellId: null,
+    respawnInTicks: NOTHING_COUNTED,
+    massFlow: null,
+  };
+}

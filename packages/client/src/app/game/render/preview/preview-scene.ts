@@ -19,6 +19,7 @@ import {
   type GameEffect,
   type PlayerId,
 } from '@evolution/shared';
+import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import { PREVIEW_SCENE, type PreviewSpec } from './preview-spec';
 import { cellPreviewScene } from './scenes/cell-scene';
 import { eatPreviewScene } from './scenes/eat-scene';
@@ -66,6 +67,13 @@ export interface PreviewScene {
   periodTicks(balance: BalanceConfig): number;
   /** Monotonic `tick`; the scene loops internally on its period. */
   frameAt(tick: number, previousTick: number, balance: BalanceConfig): PreviewSceneFrame;
+  /**
+   * The HUD's own-cell record for this frame (docs/ui/hud.md §3.1.4), or `null` — the session hands it to the
+   * renderer as `RenderInputs.ownCellIndicators`. Naming a `subjectPlayerId` makes the own-cell layers *look* for
+   * that cell; only a record makes them draw anything, and the sprint ring's fill is read from it and from
+   * nothing else (`ownCellRingSourceOf`), so a scene whose subject recharges has to supply one.
+   */
+  ownCellIndicators(content: PreviewSceneContent, balance: BalanceConfig): OwnCellIndicators | null;
 }
 
 /** One effect of a scene's loop, at its tick inside `(0, periodTicks]` — an effect at tick 0 is never emitted. */
@@ -84,10 +92,13 @@ export interface PreviewSceneDefinition {
   contentAt(loopSeconds: number, balance: BalanceConfig): PreviewSceneContent;
   /** This loop's effects at their loop ticks; a scene with none supplies nothing. */
   schedule?(balance: BalanceConfig): readonly ScheduledPreviewEffect[];
+  /** The own-cell record for a frame's bodies; a scene that draws no own-cell indicators supplies nothing. */
+  ownCellIndicators?(content: PreviewSceneContent, balance: BalanceConfig): OwnCellIndicators | null;
 }
 
 const NO_SCHEDULE: readonly ScheduledPreviewEffect[] = [];
 const NO_EFFECTS: readonly GameEffect[] = [];
+const NO_OWN_CELL_RECORD = null;
 
 /**
  * Every scheduled effect whose absolute tick lies in `(fromTick, toTick]`, oldest first, across as many loops as
@@ -119,6 +130,7 @@ export function previewScene(definition: PreviewSceneDefinition): PreviewScene {
     framing: (balance) => definition.framing(balance),
     subjectPlayerId: definition.subjectPlayerId,
     periodTicks,
+    ownCellIndicators: (content, balance) => definition.ownCellIndicators?.(content, balance) ?? NO_OWN_CELL_RECORD,
     frameAt(tick, previousTick, balance) {
       const period = periodTicks(balance);
       // The one-period clamp: a return from a hidden tab emits one loop's effects, not every loop it slept through.
