@@ -30,7 +30,10 @@ describe('RenderBenchComponent', () => {
     expect(window[EVOLUTION_DEBUG_KEY]?.renderTick()).toBeNull();
     await fixture.whenStable();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(consoleError).toHaveBeenLastCalledWith('The bench could not start.', expect.anything());
+    expect(consoleError).toHaveBeenLastCalledWith(
+      'The bench could not start: no report will be produced.',
+      expect.anything(),
+    );
     fixture.destroy();
     expect(window[EVOLUTION_DEBUG_KEY]).toBeUndefined();
   });

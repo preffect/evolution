@@ -147,6 +147,13 @@ const CONSTANT_DEFINITION_FILES = [
  * exactly the two files its colour and type roles live in, and nothing at all from the shared package.
  */
 const UI_KIT_FILES = ['packages/client/src/app/ui-kit/**/*.ts'];
+/**
+ * The dev routes' report sink (docs/rendering/budget.md §7, #492): the one module that prints to the console on
+ * purpose. `console.error` / `console.warn` are the error channel §9 keeps clear — devtools' filters and the e2e
+ * smokes' console watchers both read them as failures — and a measurement report is output, not a problem. Every
+ * route's report goes through this file, so the allowance is one file wide and no `eslint-disable` is needed.
+ */
+const MEASUREMENT_LOG_FILES = ['packages/client/src/app/game/measurement-log.ts'];
 const UI_KIT_RESTRICTED_IMPORTS = [
   {
     regex: '(^|/)game/(?!render/constants/(colours|ui-type)$)',
@@ -390,6 +397,11 @@ export default tseslint.config(
         ],
       ],
     },
+  },
+  {
+    // ---- The dev routes' measurement reports: output, not a warning (MEASUREMENT_LOG_FILES above) -----------
+    files: MEASUREMENT_LOG_FILES,
+    rules: { 'no-console': ['error', { allow: ['error', 'warn', 'log'] }] },
   },
   {
     files: ['**/*.html'],

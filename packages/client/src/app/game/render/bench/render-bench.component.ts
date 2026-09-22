@@ -1,7 +1,8 @@
 // The dev-only bench route (docs/rendering/budget.md §7): `/?bench=<seed>&tick=<n>&zoom=<z>` renders the
 // fixed-seed scene through the real WorldStore on a ManualClock, parked at tick `n`, and after the
-// warm-up writes the frame-budget report into `data-testid="render-bench-report"`. The debug
-// hook's `step` and `setSeed` drive the bench, so a screenshot can walk the scene tick by tick.
+// warm-up publishes the frame-budget report — into `data-testid="render-bench-report"` for the smoke, and to
+// the browser console for whoever opened the URL (#492). The debug hook's `step` and `setSeed` drive the
+// bench, so a screenshot can walk the scene tick by tick.
 
 import { DOCUMENT } from '@angular/common';
 import { Component, ElementRef, inject, isDevMode, viewChild, type OnDestroy, type OnInit } from '@angular/core';
@@ -9,6 +10,7 @@ import { CLOCK } from '../../clock-provider';
 import { DebugHookHolder } from '../../debug/debug-hook-holder';
 import { RENDER_BENCH_VIEWPORT_PX } from '../constants';
 import { createPixiApp } from '../pixi-app';
+import { publishBenchReport } from './bench-report-log';
 import { BenchSession, parseBenchQuery } from './bench-session';
 import { createBrowserHeapProbe, type HeapProbeWindow } from './heap-probe';
 
@@ -60,12 +62,12 @@ export class RenderBenchComponent implements OnInit, OnDestroy {
       devicePixelRatio: windowLike?.devicePixelRatio ?? 1,
       createPixiApp,
       heap: createBrowserHeapProbe((windowLike ?? {}) as HeapProbeWindow),
-      onReport: (report) => {
-        this.report().nativeElement.textContent = JSON.stringify(report);
-      },
+      onReport: (report) => publishBenchReport(this.report().nativeElement, report),
     });
     this.debugHook.install(windowLike, this.session.debugApi(), isDevMode());
-    this.session.start().catch((error: unknown) => console.error('The bench could not start.', error));
+    this.session
+      .start()
+      .catch((error: unknown) => console.error('The bench could not start: no report will be produced.', error));
   }
 
   ngOnDestroy(): void {

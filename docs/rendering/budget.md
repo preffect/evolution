@@ -106,7 +106,13 @@ Budget per stage (ms, p95) at the bench load. The seven `renderStagesMs` keys ar
 way `CLIENT_MESSAGE_TYPE` does, because the server's schema and the client's timer must agree on it (`RENDER_STAGE_NAMES`
 is pinned complete against `RENDER_STAGE`). The client does not send the report yet and `debug_get_room_performance`
 does not list the stored reports: that wire path is a follow-up of #208; today the report is read through the debug
-hook (`window.__evolutionDebug.performanceReport()`) and the bench route's DOM.
+hook (`window.__evolutionDebug.performanceReport()`), the routes' DOM and — since #492 — the **browser console**.
+Both measurement routes print their finished report there as well, headline block first and then the object, so a
+human runs the measurement by opening the URL with devtools open and reads the numbers off the console; the DOM
+element stays exactly as it is, because the smokes parse it and its `opacity: 0` is what keeps text out of a
+screenshot of the stage. A route that produces no report says so on the console too (`console.error`), so a slow
+run and a broken one are never the same silence. `game/measurement-log.ts` is the one module that may
+`console.log`, and it carries the scoped `no-console` allowance in `eslint.config.js`.
 
 ```ts
 export const RENDER_STAGE = {
@@ -203,7 +209,10 @@ snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n
 (`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token, `bench-session.ts` the engine) renders it,
 parked at tick `n` and re-rendered every frame at `zoom` px/wu in a fixed 1920 × 1080 canvas, and after
 `RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames (`window=` shortens the report window where a
-software GPU renders a frame in seconds; the smoke passes 24) writes the **bench report** into
+software GPU renders a frame in seconds; the smoke passes 24) publishes the **bench report** to both sinks above —
+the console block leads with the verdict, then the frame, GPU and HUD rows against their budgets, the draw calls,
+the seven stages and the window, and a quantile row prints its window instead of a verdict wherever
+`isP95Estimable` is false, so no number quoted from it comes from a window too short to hold one — and
 `data-testid="render-bench-report"`: the wire report plus `seed`, `tick`, `zoom`, `frames`, the `verdict`, and
 `heapGrowthBytesPerFrame` (the heap growth over the window after a forced collection, through Chrome's
 `performance.memory` and `--js-flags=--expose-gc`, `heap-probe.ts`; `null` elsewhere) and `gpuStatus`. The debug hook runs in
@@ -228,9 +237,12 @@ of its own, both constants of `render/constants/preview.ts`:
 
 **The route.** `/?preview=<EntryAnchor|PREVIEW_SCENE>&t=<seconds>&opens=<n>` (dev builds only, behind the same
 production gate as the bench route) mounts `opens` sessions on a `ManualClock`, walks each to `t` in
-`TICK_INTERVAL_S` steps with a **no-op submit** and submits only the parked frame, then writes its report into
-`data-testid="encyclopedia-preview-report"`: the cold open, every warm open, the open p95, the parked session's
-frame report, both budgets and the verdict. It is the one place the preview installs `window.__evolutionDebug` and
+`TICK_INTERVAL_S` steps with a **no-op submit** and submits only the parked frame, then publishes its report to
+both sinks (§7): the **browser console** — the open p95 against `PREVIEW_OPEN_BUDGET_MS`, the parked frame's p95
+against `PREVIEW_FRAME_BUDGET_MS`, and the cold open split into init / bake / first submit with the bake's share of
+it, then the object — and `data-testid="encyclopedia-preview-report"`: the cold open, every warm open, the open
+p95, the parked session's frame report, both budgets and the verdict. One open leaves no warm open to take a p95
+over, so that row prints what to pass (`&opens=20`) rather than a verdict. It is the one place the preview installs `window.__evolutionDebug` and
 sets `preserveDrawingBuffer`. `packages/client/e2e/encyclopedia-preview.spec.ts` is its smoke.
 
 **The absolute numbers are UNMEASURED.** Every figure below awaits a hardware run of that URL. No agent has a real
