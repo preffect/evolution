@@ -20,7 +20,11 @@ import {
   type CellView,
   type OwnProgressView,
 } from '@evolution/shared';
-import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../../state/own-cell-indicators';
+import {
+  ownCellIndicatorsFor,
+  type OwnCellIndicators,
+  type OwnCellIndicatorsInput,
+} from '../../../state/own-cell-indicators';
 import { cellDrawExtentRadii, type CellDrawState } from '../../cells/cell-draw-extent';
 import { summariseCellTraits } from '../../cells/cell-traits';
 import {
@@ -30,18 +34,38 @@ import {
   PREVIEW_CELL_MASS,
   PREVIEW_ZONE_CENTRE_WU,
 } from '../../constants';
-import { previewCellView } from '../preview-frame';
+import { previewCellView, type PreviewCellSpec } from '../preview-frame';
 import type { PreviewFraming, PreviewSceneContent } from '../preview-scene';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 
 /** The action scenes' cell id; distinct from the `cell` family's, so the two never share a cosmetic fork. */
 export const ACTION_SUBJECT_CELL_ID = 'preview-action-cell';
 
+/** No action scene draws food or fragments: the subject and, in the two-cell scenes, its partner are the whole picture. */
+export const NO_MOTES: readonly never[] = [];
+export const NO_FRAGMENTS: readonly never[] = [];
+
 /** The first palette: the subject is alone in `eat`, `sprint` and `level_up`. */
 const ACTION_SUBJECT_AVATAR_INDEX = 0;
 
 /** The action scenes play in the open broth, the same plain backdrop the `cell` family uses. */
 export const ACTION_SUBJECT_CENTRE = PREVIEW_ZONE_CENTRE_WU[ZONE_ID.openBroth];
+
+/** The point `distanceWu` out from the subject's centre along `angle` (world frame, radians). */
+export function pointFromSubject(angle: number, distanceWu: number): { readonly x: number; readonly y: number } {
+  return {
+    x: ACTION_SUBJECT_CENTRE.x + Math.cos(angle) * distanceWu,
+    y: ACTION_SUBJECT_CENTRE.y + Math.sin(angle) * distanceWu,
+  };
+}
+
+/** A velocity of `speed` along `angle`; a negative speed points the other way. */
+export function velocityAlong(
+  angle: number,
+  speed: number,
+): { readonly velocityX: number; readonly velocityY: number } {
+  return { velocityX: Math.cos(angle) * speed, velocityY: Math.sin(angle) * speed };
+}
 
 /** The subject's radius at the preview mass, from the live balance. */
 export function actionSubjectRadiusWu(balance: BalanceConfig): number {
@@ -53,13 +77,25 @@ export function actionSubjectMaxSpeed(balance: BalanceConfig): number {
   return maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth);
 }
 
-/** What the subject is doing this frame; everything not named here is at rest. */
-export interface ActionSubjectPose {
+/**
+ * What the subject is doing this frame; everything not named here is at rest and free. The engulf fields are the
+ * two-cell scenes' (`engulf-pair.ts`): a predator names the prey it holds, a prey names its predator and carries
+ * the progress the arms and the escape arc are drawn from.
+ */
+export interface ActionSubjectPose extends Partial<
+  Pick<
+    PreviewCellSpec,
+    | 'sprintRemainingTicks'
+    | 'sprintCooldownRemainingTicks'
+    | 'states'
+    | 'engulfProgress'
+    | 'engulfingCellId'
+    | 'engulfedByCellId'
+  >
+> {
   readonly velocityX: number;
   readonly velocityY: number;
-  readonly sprintRemainingTicks?: number;
-  readonly sprintCooldownRemainingTicks?: number;
-  /** Only `level_up` draws one; every other scene leaves it at `PREVIEW_UNUSED_LEVEL`. */
+  /** Only `level_up` and the scenes with an own-cell record draw one; the rest leave it at `PREVIEW_UNUSED_LEVEL`. */
   readonly level?: number;
 }
 
@@ -109,8 +145,11 @@ function actionSubjectTraits(balance: BalanceConfig) {
 
 const AT_REST: ActionSubjectPose = { velocityX: 0, velocityY: 0 };
 
-/** The action subject threatens nobody and is threatened by nobody: it is alone on its lens. */
-const NO_THREATS = [] as const;
+/** The HUD's threat list, as `threatsFor` builds it: who on the lens can engulf the subject, nearest first. */
+export type SubjectThreats = OwnCellIndicatorsInput['threats'];
+
+/** The single-cell action subject threatens nobody and is threatened by nobody: it is alone on its lens. */
+const NO_THREATS: SubjectThreats = [];
 const NO_PREVIEWED_TRAIT = null;
 const NOTHING_COUNTED = 0;
 const ACTION_SUBJECT_NAME = 'You';
@@ -120,11 +159,14 @@ const ACTION_SUBJECT_NAME = 'You';
  * reads exactly what it reads in play: `sprintFill` from the view's `sprintCooldownRemainingTicks` against the
  * live `SPRINT_COOLDOWN_SECONDS`, `isSprinting` from `sprintRemainingTicks`. Without this the renderer's
  * `OwnCellRingTracker` gets no source and answers `REST_OWN_CELL_RING` — a full ring every frame, whatever the
- * view's clocks say (PR #500 review). `null` when the subject is not in the frame.
+ * view's clocks say (PR #500 review). `null` when the subject is not in the frame. `threats` is what the HUD's
+ * `threatsFor` would list: the `escape` scene names its predator, so the record carries the threat label until
+ * the engulf's own escape arc takes its place, exactly as in play.
  */
 export function actionSubjectOwnCellIndicators(
   content: PreviewSceneContent,
   balance: BalanceConfig,
+  threats: SubjectThreats = NO_THREATS,
 ): OwnCellIndicators | null {
   const ownCell = content.cells.find((cell) => cell.playerId === PREVIEW_SUBJECT_PLAYER_ID);
   if (ownCell === undefined) return null;
@@ -132,7 +174,7 @@ export function actionSubjectOwnCellIndicators(
     ownCell,
     ownProgress: actionSubjectProgress(ownCell),
     balance,
-    threats: NO_THREATS,
+    threats,
     previewTraitId: NO_PREVIEWED_TRAIT,
   });
 }

@@ -116,14 +116,19 @@ export function clipDeformation(input: CellClipInput): CellDeformation {
  */
 export function clipDeformationPeak(clipId: MotionClipId, context: ClipPeakContext): ClipDeformationPeak {
   const clip = MOTION_CLIPS[clipId];
+  return peakOverWalk((share) => ({
+    ...REST_CLIP_INPUT,
+    ...context,
+    tracks: sampleClipTracks(clip, share * clip.duration),
+  }));
+}
+
+/** The widest pulse and bump sum `clipDeformation` reaches over `inputAt(0..1)`, sampled at `CLIP_PEAK_SAMPLES`. */
+function peakOverWalk(inputAt: (share: number) => CellClipInput): ClipDeformationPeak {
   let pulse = REST_PULSE;
   let bumpRadii = 0;
   for (let step = 0; step <= CLIP_PEAK_SAMPLES; step += 1) {
-    const deformation = clipDeformation({
-      ...REST_CLIP_INPUT,
-      ...context,
-      tracks: sampleClipTracks(clip, (step / CLIP_PEAK_SAMPLES) * clip.duration),
-    });
+    const deformation = clipDeformation(inputAt(step / CLIP_PEAK_SAMPLES));
     pulse = Math.max(pulse, deformation.pulse);
     bumpRadii = Math.max(bumpRadii, bumpPeak(deformation.bumps));
   }
@@ -142,6 +147,25 @@ export type ClipPeakContext = Pick<CellClipInput, 'moteAngle' | 'preyAngle' | 'a
 export const EATING_CLIP_CONTEXT: ClipPeakContext = { moteAngle: 0, preyAngle: null, absorbedSeal: null };
 /** A cell playing a clip that deforms nothing directionally — a level-up or a respawn pulse. */
 export const UNAIMED_CLIP_CONTEXT: ClipPeakContext = { moteAngle: null, preyAngle: null, absorbedSeal: null };
+
+/**
+ * How widely an engulf can deform the **predator**, over the whole of `engulfProgress` — the arms, the notch and
+ * the seal at their widest sum (ticket #364's two-cell scenes frame their lens by it).
+ *
+ * Its own walk rather than `clipDeformationPeak(MOTION_CLIP.engulf, …)`: the engulf is the one clip driven by
+ * progress instead of the clock, so `engulfBumps` samples `MOTION_CLIPS.engulf` at `input.engulfProgress` and
+ * reads nothing from `tracks`. Fed through the clock walk it would report a round cell.
+ */
+export function engulfDeformationPeak(): ClipDeformationPeak {
+  return peakOverWalk((share) => ({
+    ...REST_CLIP_INPUT,
+    preyAngle: ENGULF_PEAK_PREY_ANGLE,
+    engulfProgress: share * MOTION_CLIPS.engulf.duration,
+  }));
+}
+
+/** The bumps are the same size wherever the prey is; any angle gives the peak. */
+const ENGULF_PEAK_PREY_ANGLE = 0;
 
 /** Enough steps that an eased peak between keyframes is not missed; `cell-clips.spec.ts` pins it against 20×. */
 const CLIP_PEAK_SAMPLES = 240;

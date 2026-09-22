@@ -34,25 +34,22 @@ import {
   PREVIEW_EAT_DNA_GAINED,
   PREVIEW_EAT_MASS_GAINED,
 } from '../../constants';
-import {
-  previewScene,
-  type PreviewScene,
-  type PreviewSceneContent,
-  type ScheduledPreviewEffect,
-} from '../preview-scene';
+import { previewScene } from '../preview-scene';
+import type { PreviewScene, PreviewSceneContent, ScheduledPreviewEffect } from '../preview-scene';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 import {
   ACTION_SUBJECT_CELL_ID,
-  ACTION_SUBJECT_CENTRE,
+  NO_FRAGMENTS,
+  NO_MOTES,
   actionSubjectCellView,
   actionSubjectFraming,
   actionSubjectMaxSpeed,
   actionSubjectRadiusWu,
+  pointFromSubject,
+  velocityAlong,
 } from './action-subject';
 
 const MOTE_ID = 'preview-eat-mote';
-const NO_FRAGMENTS = [] as const;
-const NO_MOTES = [] as const;
 
 /** The mote comes in on this heading; the subject swims to meet it, so its stretch points the same way. */
 const APPROACH_ANGLE = PREVIEW_EAT_APPROACH_TURNS * RADIANS_PER_FULL_TURN;
@@ -70,21 +67,13 @@ function periodSeconds(): number {
   return PREVIEW_EAT_APPROACH_SECONDS + PREVIEW_ACTION_REST_SECONDS;
 }
 
-/** A point on the approach line, `distanceWu` out from the subject's centre toward where the mote starts. */
-function onApproachLine(distanceWu: number): { readonly x: number; readonly y: number } {
-  return {
-    x: ACTION_SUBJECT_CENTRE.x + Math.cos(APPROACH_ANGLE) * distanceWu,
-    y: ACTION_SUBJECT_CENTRE.y + Math.sin(APPROACH_ANGLE) * distanceWu,
-  };
-}
-
 /**
  * Where the mote is eaten: on the membrane, one subject radius out along the approach. That is the server's
  * contact rule — a mote is eaten the tick its **centre** lies within the cell's radius (`eating.ts`), and the
  * `eat` effect is placed at the mote — so the mote is drawn right up to the membrane and the clip aims at it.
  */
 export function eatenAt(balance: BalanceConfig): { readonly x: number; readonly y: number } {
-  return onApproachLine(actionSubjectRadiusWu(balance));
+  return pointFromSubject(APPROACH_ANGLE, actionSubjectRadiusWu(balance));
 }
 
 /** Where the mote is at `loopSeconds`: closing from its start to the contact radius; `null` once eaten. */
@@ -93,7 +82,7 @@ function motePosition(loopSeconds: number, balance: BalanceConfig): { readonly x
   const share = loopSeconds / PREVIEW_EAT_APPROACH_SECONDS;
   const radiusWu = actionSubjectRadiusWu(balance);
   const startWu = PREVIEW_EAT_APPROACH_RADII * radiusWu;
-  return onApproachLine(startWu - (startWu - radiusWu) * share);
+  return pointFromSubject(APPROACH_ANGLE, startWu - (startWu - radiusWu) * share);
 }
 
 export function eatPreviewScene(): PreviewScene {
@@ -119,12 +108,7 @@ function eatContent(loopSeconds: number, balance: BalanceConfig): PreviewSceneCo
   const speed = actionSubjectMaxSpeed(balance);
   const mote = motePosition(loopSeconds, balance);
   return {
-    cells: [
-      actionSubjectCellView(
-        { velocityX: Math.cos(APPROACH_ANGLE) * speed, velocityY: Math.sin(APPROACH_ANGLE) * speed },
-        balance,
-      ),
-    ],
+    cells: [actionSubjectCellView(velocityAlong(APPROACH_ANGLE, speed), balance)],
     motes: mote === null ? NO_MOTES : [moteView(mote)],
     fragments: NO_FRAGMENTS,
   };
