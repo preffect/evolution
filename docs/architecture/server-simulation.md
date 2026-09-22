@@ -11,15 +11,18 @@ against it):
 
 ```text
  stepWorld(world, context): void          context = { balance, streams, effects }
-   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage
+   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild pin
+                   (`wild/wild-pin.ts`: every seated wild cell's mass, level, traits and stage from `worldReferenceAt`, ecology/wild-cells.md §3.3)
    2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation
-   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA
-   5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1)
+   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; wild cells skipped
+   5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1); a free wild
+                   cell is skipped (it neither eats nor decays: the pin re-sets it), an engulfing one bleeds into its seat's `drainedMass`
    6 engulf        canStart / canContinue, progress, release, payout, chains; absorbed cells removed
    7 progression   level-ups, offer queue, timeouts, rung card
    8 spawners      food and fragment accumulators, bacteria random walk, fragment drift, detritus expiry
-   9 respawn       spectate timers, safe placement from the spawnPlacement stream
+   9 respawn       spectate timers, safe placement from the spawnPlacement stream; then the wild seats (`wild/wild-respawn.ts`:
+                   a vacated seat counts `WILD_CELL_RESPAWN_SECONDS` down and is placed again with a fresh spread)
   10 leaderboard   score and ranking
 ```
 

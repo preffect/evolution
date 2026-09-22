@@ -78,9 +78,10 @@ export function isPlayerCell(cell: CellRecord): cell is PlayerCellRecord {
 }
 
 /**
- * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the world clock made flesh. The
- * seats are declared with the state shape so the hash walk and the snapshot never change when the
- * wild-cell slice fills them; build 1's simulation core leaves `world.wildSeats` empty.
+ * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the world clock made flesh. Filled
+ * at world creation (`wild/wild-seats.ts`); `cellId` is null while the seat waits out `respawnInTicks`, `drainedMass`
+ * is what step 5 took while its cell was engulfing, and the heading and `decideInTicks` rest at 0 until the wild
+ * strategy (#176) drives them.
  */
 export interface WildSeatRecord {
   seatNumber: number;

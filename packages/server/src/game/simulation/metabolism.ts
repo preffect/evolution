@@ -3,7 +3,9 @@
 // surplus above the starting mass (zone × trait multipliers), the toxin drains of overlapping or
 // in-aura cells plus what an engulfed prey's spikes and swallowed toxin cost its predator
 // (`engulf-drain.ts`), then photosynthesis inside the shallows. What each player cell was applied, by cause, goes to
-// `world.massFlow` (`metabolism-flow.ts`, #383).
+// `world.massFlow` (`metabolism-flow.ts`, #383). A free wild cell is skipped (it neither eats nor decays: the pin
+// re-sets it every tick); an engulfing one bleeds like any predator and what it loses is booked against its seat
+// (docs/ecology/wild-cells.md §3.3 "Bleeding while engulfing").
 
 import {
   TICK_INTERVAL_S,
@@ -20,8 +22,10 @@ import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
 import { beginMetabolismRecords, recordMetabolism } from '../world/mass-flow-ledger.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
+import { recordWildDrain } from '../wild/wild-pin.js';
 import { gainMass, loseMassToFloor } from './cell-mass.js';
 import { engulfDrainOf } from './engulf-drain.js';
+import { isEngulfing } from './engulf-state.js';
 import { massFlowRecordOf, type MetabolismDemand } from './metabolism-flow.js';
 
 /** What the toxin reach reads of a cell: its centre, a radius and its modifiers. A record satisfies it; the step passes start-of-step views. */
@@ -141,7 +145,8 @@ interface MetabolismDrains {
 
 /**
  * Decay and drains floor first, then the light. A player cell's applied amounts, by cause, are recorded beside the
- * effects (#383); the mass arithmetic is the formula's and never reads the record.
+ * effects (#383); the mass arithmetic is the formula's and never reads the record. A wild cell's loss goes to its
+ * seat's `drainedMass` instead.
  */
 function metaboliseCell(
   input: MetabolismInput,
@@ -160,12 +165,19 @@ function metaboliseCell(
   loseMassToFloor(cell, massAtStart - drains.decayPerSecond * TICK_INTERVAL_S - drain, balance);
   const massAfterFloor = cell.mass;
   photosynthesise(input, world, balance);
-  if (isPlayerCell(cell)) {
-    const demand = metabolismDemandOf(input, drains, balance);
-    const measure = { demand, massAtStart, massAfterFloor, massAfterGain: cell.mass, zone: input.zone };
-    const record = massFlowRecordOf({ ...measure, decayMultiplier: cell.modifiers.decayMultiplier });
-    recordMetabolism(world.massFlow, cell.playerId, record);
+  if (!isPlayerCell(cell)) {
+    recordWildDrain(world, cell, massAtStart - massAfterFloor);
+    return;
   }
+  const demand = metabolismDemandOf(input, drains, balance);
+  const measure = { demand, massAtStart, massAfterFloor, massAfterGain: cell.mass, zone: input.zone };
+  const record = massFlowRecordOf({ ...measure, decayMultiplier: cell.modifiers.decayMultiplier });
+  recordMetabolism(world.massFlow, cell.playerId, record);
+}
+
+/** A free wild cell is the world's average, re-pinned in full at step 1: nothing to apply. */
+function isMetabolised(cell: CellRecord): boolean {
+  return isPlayerCell(cell) || isEngulfing(cell);
 }
 
 /** What every cell's formula reads of the others at the start of the step. */
@@ -182,6 +194,8 @@ export function metabolise(world: WorldState, context: StepContext): void {
     massesAtStart: new Map(inputs.map((input) => [input.cell.id, input.massAtStart])),
   };
   for (const input of inputs) {
-    metaboliseCell(input, step, world, context.balance);
+    if (isMetabolised(input.cell)) {
+      metaboliseCell(input, step, world, context.balance);
+    }
   }
 }

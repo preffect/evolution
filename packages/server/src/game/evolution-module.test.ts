@@ -14,6 +14,7 @@ import {
 } from '@evolution/shared';
 import { createEvolutionModule, type EvolutionModule } from './evolution-module.js';
 import type { Replay } from './replay/replay-format.js';
+import { isPlayerCell } from './world/entities.js';
 
 const ALICE = playerId('alice');
 const BOB = playerId('bob');
@@ -110,7 +111,7 @@ describe('createEvolutionModule', () => {
     module.addPlayer(BOB, 1, 'Bob');
     module.addPlayer(BOB, 1, 'Bob');
     expect(module.world.players.map((player) => player.playerId)).toEqual([ALICE, BOB]);
-    expect(module.world.cells).toHaveLength(2);
+    expect(module.world.cells.filter(isPlayerCell)).toHaveLength(2);
     module.removePlayer(BOB);
     module.removePlayer(BOB);
     expect(module.world.players.map((player) => player.playerId)).toEqual([ALICE]);

@@ -5,7 +5,7 @@
 import { DEFAULT_BALANCE, createTestSessionConfig, playerId } from '@evolution/shared';
 import { createPlayerRecord, type PlayerIdentity } from '../game/session/players.js';
 import { createWorld } from '../game/world/create-world.js';
-import type { PlayerRecord } from '../game/world/entities.js';
+import { isPlayerCell, type PlayerRecord } from '../game/world/entities.js';
 import { resumeStreams } from '../game/world/streams.js';
 import { createInputRejectionCounters, type StepContext, type WorldState } from '../game/world/world-state.js';
 
@@ -17,10 +17,15 @@ export interface TestWorldOptions {
   readonly players?: readonly PlayerIdentity[];
   /** Keep the seeded motes and spawners; off by default so arithmetic is exact. */
   readonly isFilled?: boolean;
+  /** Keep the seeded wild seats and their cells (docs/ecology/wild-cells.md §3.3); off by default so `world.cells` is the players'. */
+  readonly hasWildSeats?: boolean;
   readonly seed?: number;
 }
 
-/** A seeded world with one player; the dish is emptied and the spawners are off unless `isFilled`. */
+/**
+ * A seeded world with one player; the dish is emptied and the spawners are off unless `isFilled`, and the wild
+ * seats are removed with their cells unless `hasWildSeats`.
+ */
 export function createTestWorld(options: TestWorldOptions = {}): WorldState {
   const seed = options.seed ?? TEST_SEED;
   const world = createWorld({
@@ -34,6 +39,10 @@ export function createTestWorld(options: TestWorldOptions = {}): WorldState {
     world.dnaFragments = [];
     world.spawners.food.isEnabled = false;
     world.spawners.dnaFragments.isEnabled = false;
+  }
+  if (!options.hasWildSeats) {
+    world.cells = world.cells.filter(isPlayerCell);
+    world.wildSeats = [];
   }
   return world;
 }
