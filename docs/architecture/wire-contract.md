@@ -356,12 +356,13 @@ grazer bots and one recording client that grazes too, 300 `game_snapshot`s after
 recording client breaks each snapshot down by the bytes the mass flow adds (`,"massFlow":{…}` in its own
 `ownProgress`, and `,"massGained":…,"dnaGained":…` on each `eat`).
 
-| Part (the recording client, 20 Hz)                                              | Measured                                            | Per client                 |
-| ------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------- |
-| `ownProgress.massFlow`, to its own viewer only (two or three causes and a zone) | 77.1 B mean, 66–78 B                                | ≈ 1.5 KB/s, 0.3 % of 24 KB |
-| `eat` amounts, to every viewer                                                  | 29.0 B an eat; 0.36 eats a snapshot, 0–3            | 10.3 B a snapshot here     |
-| `cell_absorbed` amounts, to every viewer                                        | none in the window; ≈ 50 B an absorption, estimated | at most a few a minute     |
-| whole `game_snapshot` in that room                                              | 10 803 B mean                                       |                            |
+| Part (the recording client, 20 Hz)                                              | Measured                                                                               | Per client                 |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------- |
+| `ownProgress.massFlow`, to its own viewer only (two or three causes and a zone) | 77.1 B mean, 66–78 B                                                                   | ≈ 1.5 KB/s, 0.3 % of 24 KB |
+| `eat` amounts, to every viewer                                                  | 29.0 B an eat; 0.36 eats a snapshot, 0–3                                               | 10.3 B a snapshot here     |
+| `cell_absorbed` amounts, to every viewer                                        | none in the window; ≈ 50 B an absorption, estimated                                    | at most a few a minute     |
+| `cell_absorbed` of a wild prey (#270), to every viewer                          | the same effect with `"playerId":null` (15 B) in place of an id (≈ 15 B): no new field | one an absorbed wild cell  |
+| whole `game_snapshot` in that room                                              | 10 803 B mean                                                                          |                            |
 
 The room ate little (a fresh dish, 0.36 eats a snapshot across 8 players). In a bloom, 5–15 eats a window would put
 the eat amounts at 0.15–0.44 KB a snapshot. The mass flow costs at most about 0.5 KB a snapshot. That moves no row of the table above across the budget line, but it

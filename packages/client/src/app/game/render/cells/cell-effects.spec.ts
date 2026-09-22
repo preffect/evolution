@@ -61,6 +61,15 @@ describe('startAbsorbedGhosts', () => {
     expect(ghosts.size).toBe(1);
   });
 
+  it('ghosts a wild prey too: the effect carries no player and the ghost keys on the cell (#270)', () => {
+    const wild = createTestCellView({ id: entityId('wild'), playerId: null, x: 10, y: 0, radius: 9 });
+    const predator = createTestCellView({ id: entityId('p'), x: 0, y: 0 });
+    const ghosts = new GhostRegistry();
+    const absorbed = createTestCellAbsorbedEffect({ cellId: wild.id, playerId: null, predatorCellId: predator.id });
+    expect(startAbsorbedGhosts([absorbed], sourceLookup([wild, predator]), ghosts, 100)).toBe(1);
+    expect(ghosts.active(100)[0]!.view.playerId).toBeNull();
+  });
+
   it('places the predator at the effect when its view is unknown', () => {
     const prey = createTestCellView({ id: entityId('prey'), x: 0, y: 5 });
     const ghosts = new GhostRegistry();

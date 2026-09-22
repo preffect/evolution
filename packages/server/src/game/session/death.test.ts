@@ -116,4 +116,27 @@ describe('absorbCell', () => {
     absorbCell(world, createTestStepContext(world), { prey, predator, predatorGain: NO_GAIN });
     expect(victim.dnaTowardNextLevel).toBe(0);
   });
+
+  it('emits cell_absorbed with playerId null for a wild prey and sets nobody spectating (#270)', () => {
+    const { world, predator, prey, killer, victim } = predatorAndPrey();
+    prey.playerId = null; // the wild-cell slice places real ones (#496); the death seam reads only `playerId`
+    world.tick = 30;
+    const context = createTestStepContext(world);
+    absorbCell(world, context, { prey, predator, predatorGain: NO_GAIN });
+    expect(world.cells).toEqual([predator]);
+    expect(context.effects).toEqual([
+      expect.objectContaining({
+        kind: EFFECT_KIND.cellAbsorbed,
+        tick: 30,
+        cellId: prey.id,
+        playerId: null,
+        predatorCellId: predator.id,
+      }),
+    ]);
+    expect(world.food).toHaveLength(2);
+    for (const player of [killer, victim]) {
+      expect(player.lifeState).toBe(PLAYER_LIFE_STATE.alive);
+      expect(player.respawnInTicks).toBe(0);
+    }
+  });
 });
