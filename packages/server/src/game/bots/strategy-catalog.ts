@@ -8,6 +8,7 @@
 import type { PlayerId } from '@evolution/shared';
 import type { BotStrategyFactory } from './bot-strategy.js';
 import type { BotPerception } from './perception.js';
+import { createFleeStrategy } from './strategies/flee.js';
 import { createGrazerStrategy } from './strategies/grazer.js';
 import { createHunterStrategy } from './strategies/hunter.js';
 import { createIdleStrategy } from './strategies/idle.js';
@@ -29,6 +30,7 @@ export function createStrategyByName<Snapshot>(
     [BOT_STRATEGY_NAME.wander]: () => createWanderStrategy(),
     [BOT_STRATEGY_NAME.grazer]: () => createGrazerStrategy(perception),
     [BOT_STRATEGY_NAME.hunter]: () => createHunterStrategy(perception, options),
+    [BOT_STRATEGY_NAME.flee]: () => createFleeStrategy(perception),
   };
   return factories[name]();
 }

@@ -60,8 +60,11 @@ it('E9: A absorbs B on tick 30', async () => {
   (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 10 ticks" is ten
   `.atTick(t).placeMote(...)` calls). Scheduled fixtures are recorded in the replay as
   `patches`. Placing anything means the adapter disables the initial fill and both spawners for
-  that run, and fails the scenario when a seeded gel patch lies within `GEL_PATCH_CLEARANCE_WU`
-  of the broth point (`isClearOfGelPatches`; pick another seed, never tolerate it).
+  that run, vacates the wild seats (a seeded wanderer would otherwise walk into a placed cell and its
+  separation push or engulf would break the row's arithmetic; a placed row seats only the wild cells
+  it places, so `.placeWildCell` seats its record on demand), and fails the scenario when a seeded gel
+  patch lies within `GEL_PATCH_CLEARANCE_WU` of the broth point (`isClearOfGelPatches`; pick another
+  seed, never tolerate it).
   **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ecology/acceptance.md §8.1: the W rows
   and G13) sets wild seat `seat`'s spread factor, places or replaces its cell (default: east of
   the first placed cell) and clears the seat's target and velocity as a respawn does, so the seat
@@ -95,7 +98,7 @@ it('E9: A absorbs B on tick 30', async () => {
   in one tick are merged (later fields win; the sprint flag and the trait pick are OR-merged,
   `architecture/server-simulation.md` §3.2) and the adapter stamps the sequence.
 - **Bots.** `.bot(index, factory, everyTicks)` drives a player from a `BotStrategy` built by
-  `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` strategies of
+  `factory` (`bots.ts`): the interface the `idle` / `wander` / `grazer` / `hunter` / `flee` strategies of
   section 8.3 implement and the headless bot client reuses. The schedule holds the **factory**, not an
   instance: every run (both runs of `runDeterministic`) gets a fresh strategy, so a strategy may
   keep state across its decisions. Its only other input is `ScriptContext`, and its only source

@@ -105,7 +105,7 @@ describe('ScenarioSession', () => {
     const session = createSession([scenarioPlayer(0)]);
     session.step();
     const context = session.scriptContext(0);
-    expect(context).toMatchObject({ tick: 1, stepTick: 2, playerIndex: 0, playerId: scenarioPlayerId(0), seed: SEED });
+    expect(context).toMatchObject({ tick: 1, stepTick: 2, playerIndex: 0, actorId: scenarioPlayerId(0), seed: SEED });
     expect(context.cell).toEqual({ x: SEED, y: 0, radius: 10 });
   });
 

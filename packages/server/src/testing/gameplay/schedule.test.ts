@@ -21,7 +21,7 @@ function contextFor(playerIndex: number): ScriptContext<null> {
     tick: 0,
     stepTick: 1,
     playerIndex,
-    playerId: playerId(`player_${playerIndex}`),
+    actorId: playerId(`player_${playerIndex}`),
     snapshot: null,
     cell: undefined,
     seed: SEED,

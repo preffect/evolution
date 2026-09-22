@@ -41,8 +41,6 @@ describe('the wild seats through the step', () => {
     expect(reference.worldMass).toBe(growth.CELL_STARTING_MASS + 1);
     for (const [index, cell] of wildCellsOf(world).entries()) {
       expect(cell.mass).toBe(reference.worldMass * world.wildSeats[index]!.massSpreadFactor);
-      expect(cell.velocityX).toBe(0);
-      expect(cell.velocityY).toBe(0);
     }
   });
 

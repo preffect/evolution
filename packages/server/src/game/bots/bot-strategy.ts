@@ -5,6 +5,8 @@
 // a target), which is why every host holds a factory: each run builds a fresh instance, and a
 // random choice comes from `context.random`, never from outside the seed. The strategies
 // themselves live in `strategies/`; the scenario-only script helpers in `testing/gameplay/scripts.ts`.
+// `ActorId` is who decides: a player's id for every bot and script (the default), a cell's entity id
+// for a wild seat (`game/wild/wild-strategy.ts`, docs/ecology/wild-cells.md §3.3), which has no player.
 
 import type { PlayerId, RandomSource } from '@evolution/shared';
 import type { CellLocation } from './perception.js';
@@ -26,13 +28,15 @@ export interface PlayerCommand {
   readonly traitChoice?: TraitChoiceCommand | null;
 }
 
-export interface ScriptContext<Snapshot> {
+export interface ScriptContext<Snapshot, ActorId = PlayerId> {
   /** The tick of `snapshot`: the state the script is looking at. */
   readonly tick: number;
   /** The tick the command will be applied in (`tick + 1`). */
   readonly stepTick: number;
+  /** The player's index in the roster, or a wild seat's number. */
   readonly playerIndex: number;
-  readonly playerId: PlayerId;
+  /** Who decides: what `perception.ownCellOf` locates the own cell by. */
+  readonly actorId: ActorId;
   readonly snapshot: Snapshot;
   /** The player's cell (`BotWorldBinding.locateCell`), or `undefined` when the player has none. */
   readonly cell: CellLocation | undefined;
@@ -42,29 +46,33 @@ export interface ScriptContext<Snapshot> {
 }
 
 /** Answers the command to submit before `stepTick`, or `null` to send nothing this tick. */
-export type PlayerScript<Snapshot> = (context: ScriptContext<Snapshot>) => PlayerCommand | null;
+export type PlayerScript<Snapshot, ActorId = PlayerId> = (
+  context: ScriptContext<Snapshot, ActorId>,
+) => PlayerCommand | null;
 
 /** No input at all ("idle" in the scenario tables and the `idle` strategy). */
 export const idle: PlayerScript<unknown> = () => null;
 
-export interface BotStrategy<Snapshot> {
+export interface BotStrategy<Snapshot, ActorId = PlayerId> {
   readonly name: string;
   /** The command for this tick, or `null` to send nothing. */
-  decide(context: ScriptContext<Snapshot>): PlayerCommand | null;
+  decide(context: ScriptContext<Snapshot, ActorId>): PlayerCommand | null;
 }
 
 /** Builds one strategy instance per run; what `.bot()`, the pilot and the catalogue hand around. */
-export type BotStrategyFactory<Snapshot> = () => BotStrategy<Snapshot>;
+export type BotStrategyFactory<Snapshot, ActorId = PlayerId> = () => BotStrategy<Snapshot, ActorId>;
 
 /** Wraps a script as a named strategy factory, so a scripted bot and a real one share one type. */
-export function createScriptedStrategy<Snapshot>(
+export function createScriptedStrategy<Snapshot, ActorId = PlayerId>(
   name: string,
-  script: PlayerScript<Snapshot>,
-): BotStrategyFactory<Snapshot> {
+  script: PlayerScript<Snapshot, ActorId>,
+): BotStrategyFactory<Snapshot, ActorId> {
   return () => ({ name, decide: script });
 }
 
 /** The script form of a strategy instance: what the scenario schedule runs. */
-export function strategyScript<Snapshot>(strategy: BotStrategy<Snapshot>): PlayerScript<Snapshot> {
+export function strategyScript<Snapshot, ActorId = PlayerId>(
+  strategy: BotStrategy<Snapshot, ActorId>,
+): PlayerScript<Snapshot, ActorId> {
   return (context) => strategy.decide(context);
 }

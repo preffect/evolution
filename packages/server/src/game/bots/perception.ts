@@ -3,10 +3,10 @@
 // snapshot yields cells and motes, and closes the shared `canEngulf` (ecology/absorption.md §6.1,
 // `shared/simulation/engulf-eligibility.ts`) over the live absorption balance so a bot never
 // carries its own copy of the ratio rule. The echo module has no world: `NO_WORLD_PERCEPTION`.
-// The one place a player identity is assumed is `ownCellOf`; #156's wild cells (non-player
-// cells that wander, flee and hunt by era, `playerId: null` on the view) swap that single
-// function for an entity-id lookup and add `flee` to the catalogue without touching the
-// strategy shape.
+// The one place an identity is assumed is `ownCellOf`, keyed by `ActorId`: a player id for every
+// bot (the default), and for a wild seat (a non-player cell that wanders, flees and hunts by era,
+// `playerId: null` on the view) its cell's entity id (`game/wild/wild-perception.ts`), so the
+// strategy shape is the same on both sides.
 
 import { distanceBetween, type PlayerId } from '@evolution/shared';
 
@@ -40,9 +40,9 @@ export type EngulfPredatorView = Pick<BotCellView, 'mass'>;
 /** The predicate's prey side, as `canEngulf` declares it. */
 export type EngulfPreyView = Pick<BotCellView, 'mass' | 'membraneRatioBonus'>;
 
-export interface BotPerception<Snapshot> {
+export interface BotPerception<Snapshot, ActorId = PlayerId> {
   /** The actor's own cell in `snapshot`, or `undefined` when it has none: the single self-locator every host derives from. */
-  ownCellOf(snapshot: Snapshot, playerId: PlayerId): BotCellView | undefined;
+  ownCellOf(snapshot: Snapshot, actorId: ActorId): BotCellView | undefined;
   cellsOf(snapshot: Snapshot): readonly BotCellView[];
   motesOf(snapshot: Snapshot): readonly BotMoteView[];
   /** `canEngulf(predator, prey, balance.absorption)` with the balance already applied. */
