@@ -820,15 +820,19 @@ show — its own spec, or the tier its switch is on — and the service opens on
 after it, once the selection has rested `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`. The lens pauses the session as it goes and
 resumes it as the next one arrives, which covers both a landing and an entry without a preview.
 
-**What #363 built and what it left.** The session, the frame, the four **subject** scenes (`cell`, `food`,
-`dna_fragment`, `zone`), the host token, the per-bundle BitmapFont names and the evidence route are in.
-`previewSceneFor` is total over `PREVIEW_SCENE`. Ticket #364 built the three single-cell **action** families
-(`eat`, `sprint`, `level_up`) — the first scenes to emit effects at all, so the framing has to account for what a
-clip does to a cell and for the effect sprites drawn around it (`cells/cell-draw-extent.ts`'s `CellDrawState`).
-The two-cell families (`engulf`, `escape`) still resolve to an open-broth stand-in, and `preview-scene.spec.ts`
-names exactly those two, so a builder landing for one of them fails that spec rather than leaving the list stale. The evidence route also answers a bare
-`PREVIEW_SCENE` name (`?preview=food`) as well as an entry anchor, so a family the registry has no entry for yet is
-still reachable for a screenshot.
+**What #363 built and what #364 added.** The session, the frame, the four **subject** scenes (`cell`, `food`,
+`dna_fragment`, `zone`), the host token, the per-bundle BitmapFont names and the evidence route are #363's.
+Ticket #364 built the five **action** families: the three single-cell ones (`eat`, `sprint`, `level_up`) — the
+first scenes to emit effects at all, so the framing has to account for what a clip does to a cell and for the
+effect sprites drawn around it (`cells/cell-draw-extent.ts`'s `CellDrawState`) — and the two-cell ones (`engulf`,
+`escape`, `preview/scenes/engulf-pair.ts`), where the **subject holds the lens centre and its partner moves**: the
+pair sits at exactly `ENGULF_MASS_RATIO` so each phase lasts exactly `engulfPhaseSpanSeconds`, contact is the
+server's `ENGULF_COVERAGE_FRACTION` rule, the approach closes at the predator's own top speed, and every effect
+fires where the server fires it (`cell_absorbed` and `cell_released` at the prey, `respawn` where the prey comes
+back). The escape scene supplies the HUD's own-cell record with the predator as its one threat, so the escape arc
+and its labels draw as in play. `previewSceneFor` is total over `PREVIEW_SCENE` with no stand-in left. The evidence
+route also answers a bare `PREVIEW_SCENE` name (`?preview=engulf`) as well as an entry anchor, so a family the
+registry has no entry for yet (the actions, until #362) is still reachable for a screenshot.
 
 **Still frames are not in build 1.** List rows and landing tiles draw code-drawn glyph medallions (#354). A cached
 still capture from the same app (`still(spec, sizePx): Promise<ImageBitmap>`, one extract per frame at most) is the
@@ -923,10 +927,12 @@ shell projects its alert strip into the panel, so the rule below holds for the c
 - **Unit:** §12.6's specs; `engulf-pace.test.ts` in shared (`engulfPhaseSpanSeconds` sums to
   `ENGULF_BASE_DURATION_SECONDS` over the three phases and follows a patched `ENGULF_SEAL_PROGRESS`);
   `preview-scene.spec.ts` (every `PREVIEW_SCENE` has a builder; same spec + tick ⇒ same frame; ticks are monotonic
-  across a loop; each loop emits its effects once; the engulf scene's phase boundaries follow a patched
+  across a loop; each loop emits its effects once; a tick jump of many periods emits at most one loop's effects);
+  `scenes/engulf-scenes.spec.ts` (the engulf scene's phase boundaries follow a patched
   `ENGULF_BASE_DURATION_SECONDS` and `ENGULF_SEAL_PROGRESS`, the leaves the simulation reads; the absorbed prey
-  returns with its id after the `absorbed` clip's duration; a tick jump of many periods emits at most one loop's
-  effects); `preview-frame.spec.ts` (radius and stage through the
+  returns with its id after the `absorbed` clip's duration and leaves on its `cell_absorbed`'s tick; the pair can
+  engulf by the shared `canEngulf`; the escape's release is `escaped`, lands before the seal and at the prey, and
+  its record carries the threat, then the escape arc); `preview-frame.spec.ts` (radius and stage through the
   shared formulas, the live balance on the frame); `preview-session.spec.ts` over the fake app (one bake per session, none on `show`; `destroy` before `start`
   resolves destroys the late app and resolves `null`; N open and close cycles give apps created = apps destroyed,
   font installs = uninstalls and bakes = bundle destroys; `pause` stops the preview ticker and never touches the

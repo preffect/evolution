@@ -128,7 +128,12 @@ export const PREVIEW_ACTION_REST_SECONDS = 0.9;
 /** Where the mote the `eat` scene swallows starts, in the subject's radii, and the angle it comes in on. */
 export const PREVIEW_EAT_APPROACH_RADII = 2.6;
 export const PREVIEW_EAT_APPROACH_TURNS = 0.07;
-/** How long the mote takes to drift in from there; the eat fires when it arrives. */
+/**
+ * How long the mote takes to drift in from there; the eat fires when it arrives. **A whole number of ticks**
+ * (1.1 / `TICK_INTERVAL_S` is exactly 66): the mote is removed by the same tick the eat is emitted at, and the
+ * two compare a loop time against this number, so a value that is not a whole tick would let them disagree by a
+ * frame (ticket #505). The two-cell scenes quantise their timeline to ticks instead (`engulf-pair.ts`).
+ */
 export const PREVIEW_EAT_APPROACH_SECONDS = 1.1;
 /** The mass and DNA the scene's `eat` effect reports — the floater reads them, nothing else does. */
 export const PREVIEW_EAT_MASS_GAINED = 4;
@@ -136,6 +141,41 @@ export const PREVIEW_EAT_DNA_GAINED = 2;
 
 /** The level the `level_up` scene climbs to; the only preview that draws a real one. */
 export const PREVIEW_LEVEL_UP_LEVEL = 4;
+
+// ===== The two-cell action family: `engulf` and `escape` (#364, PR 3) =====
+
+/** The partner's traits sit at tier I: a plain body, so the pair's lens is set by the two bodies and nothing else. */
+const PREVIEW_ENGULF_PARTNER_TIER: TraitTier = 1;
+
+/**
+ * The cell across from the subject in `engulf` (its prey) and `escape` (its predator). The subject stays the
+ * action subject above, so a reader sees the same creature engulf and be engulfed; the partner has no tail, since
+ * a second flagellum would bind the lens for a body that is not the point, and it wears the second palette so
+ * the two read apart at a glance.
+ */
+export const PREVIEW_ENGULF_PARTNER_TRAITS: readonly OwnedTrait[] = [
+  { traitId: 'nucleoid', tier: PREVIEW_ENGULF_PARTNER_TIER },
+  { traitId: 'ribosomes', tier: PREVIEW_ENGULF_PARTNER_TIER },
+];
+
+/** The partner comes in on this heading from the subject, and the escaping prey flees the other way along it. */
+export const PREVIEW_ENGULF_APPROACH_TURNS = 0.6;
+
+/** The clear water between the two membranes where the partner starts, in subject radii. */
+export const PREVIEW_ENGULF_START_GAP_RADII = 0.3;
+
+/**
+ * How far a held prey sinks toward its predator's centre by the seal, as a fraction of the contact reach it was
+ * caught at: 1 would hold it where the membrane first covered it. Progress-driven, like the arms, so a decaying
+ * escape plays it backwards.
+ */
+export const PREVIEW_ENGULF_SINK_FRACTION = 0.6;
+
+/**
+ * How far through the wrap band the escaping prey starts its sprint. Late enough that the arms have closed and
+ * the escape arc has visibly drained, early enough that the decay back to the cover band is what releases it.
+ */
+export const PREVIEW_ESCAPE_SPRINT_AT_WRAP_SHARE = 0.5;
 
 // ===== The food and DNA-fragment families =====
 
