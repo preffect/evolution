@@ -141,14 +141,17 @@ describe('detectTransitions', () => {
     const otherEat = createTestEatEffect({ cellId: TEST_OTHER_CELL_ID, eatenKind: ENTITY_KIND.dnaFragment });
     const ownLevelUp = createTestLevelUpEffect();
     const ownKill = createTestCellAbsorbedEffect();
+    // A wild prey has no player (#270): the effect is nobody's own and the own cell is still its predator.
+    const ownWildKill = createTestCellAbsorbedEffect({ playerId: null });
     const events = eventsAfter(
-      snapshotWith([createTestCellView()], { effects: [ownEat, otherEat, ownLevelUp, ownKill] }),
+      snapshotWith([createTestCellView()], { effects: [ownEat, otherEat, ownLevelUp, ownKill, ownWildKill] }),
     );
-    expect(events.slice(0, 4)).toEqual([
+    expect(events.slice(0, 5)).toEqual([
       { kind: GAME_EVENT_KIND.effect, effect: ownEat, isOwn: true, isOwnPredator: false },
       { kind: GAME_EVENT_KIND.effect, effect: otherEat, isOwn: false, isOwnPredator: false },
       { kind: GAME_EVENT_KIND.effect, effect: ownLevelUp, isOwn: true, isOwnPredator: false },
       { kind: GAME_EVENT_KIND.effect, effect: ownKill, isOwn: false, isOwnPredator: true },
+      { kind: GAME_EVENT_KIND.effect, effect: ownWildKill, isOwn: false, isOwnPredator: true },
     ]);
   });
 
