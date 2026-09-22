@@ -10,11 +10,13 @@ import {
   UNAIMED_CLIP_CONTEXT,
   clipDeformation,
   clipDeformationPeak,
+  engulfDeformationPeak,
   sampleClipTracks,
   type ClipPeakContext,
 } from './cell-clips';
 import { bumpPeak } from './shape-terms';
 import { degreesToRadians } from '../geometry';
+import { ENGULF_ARM_OFFSET_DEG, ENGULF_ARM_SIGMA_DEG, ENGULF_NOTCH_SIGMA_DEG } from '../constants';
 
 describe('sampleClipTracks', () => {
   it('samples every track of a clip at a position in its domain', () => {
@@ -133,5 +135,58 @@ describe('clipDeformationPeak', () => {
   /** A clip that moves neither the pulse nor a bump reports the resting peak, not a fabricated one. */
   it('reports rest for a clip that deforms nothing', () => {
     expect(clipDeformationPeak(MOTION_CLIP.sprintReady, UNAIMED_CLIP_CONTEXT)).toEqual({ pulse: 1, bumpRadii: 0 });
+  });
+});
+
+/**
+ * The engulf is the one clip driven by progress rather than the clock, and `engulfBumps` reads that progress off
+ * the input, not off `tracks` — so its peak needs its own walk (ticket #364's two-cell scenes frame by it).
+ */
+describe('engulfDeformationPeak', () => {
+  /** Twenty times the module's own 240 steps. */
+  const fineSamples = 4_800;
+  const samplingTolerance = 0.002;
+
+  it('is not beaten by a walk twenty times finer over the progress domain', () => {
+    const coarse = engulfDeformationPeak();
+    let fine = 0;
+    for (let step = 0; step <= fineSamples; step += 1) {
+      const deformation = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0, engulfProgress: step / fineSamples });
+      fine = Math.max(fine, bumpPeak(deformation.bumps));
+    }
+    expect(fine).toBeLessThanOrEqual(coarse.bumpRadii * (1 + samplingTolerance) + samplingTolerance);
+  });
+
+  /**
+   * The wrap frame is the widest, and its sum is documented (contents-and-motion.md §4, the §9 pin): the arm at
+   * ±30° plus the far arm's tail minus the notch's — 0.62 + 0.62·e^(−60²/(2·16²)) − 0.10·e^(−30²/(2·12²)).
+   */
+  it('peaks at the wrap frame’s documented arm sum, not at a keyframe read', () => {
+    const farArm = degreesToRadians(2 * ENGULF_ARM_OFFSET_DEG);
+    const armSigma = degreesToRadians(ENGULF_ARM_SIGMA_DEG);
+    const notchSigma = degreesToRadians(ENGULF_NOTCH_SIGMA_DEG);
+    const arm = 0.62;
+    const notch = 0.1;
+    const armAngle = degreesToRadians(ENGULF_ARM_OFFSET_DEG);
+    const documented =
+      arm +
+      arm * Math.exp(-(farArm ** 2) / (2 * armSigma ** 2)) -
+      notch * Math.exp(-(armAngle ** 2) / (2 * notchSigma ** 2));
+    const peak = engulfDeformationPeak();
+    expect(peak.bumpRadii).toBeCloseTo(documented, 3);
+    // Nothing in the engulf pulses the membrane; the seal at 1.0 (0.6) is under the wrap's arm sum.
+    expect(peak.pulse).toBe(1);
+    expect(peak.bumpRadii).toBeGreaterThan(0.6);
+  });
+
+  /** Fed through the clock walk, the engulf reads as a round cell: the reason this walk exists. */
+  it('is what the clock-domain walk misses', () => {
+    const throughTheClockWalk = clipDeformationPeak(MOTION_CLIP.engulf, {
+      moteAngle: null,
+      preyAngle: 0,
+      absorbedSeal: null,
+    });
+    expect(throughTheClockWalk.bumpRadii).toBe(0);
+    expect(engulfDeformationPeak().bumpRadii).toBeGreaterThan(0);
   });
 });

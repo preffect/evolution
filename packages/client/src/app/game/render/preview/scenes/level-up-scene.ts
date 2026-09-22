@@ -24,22 +24,18 @@ import {
 import { UNAIMED_CLIP_CONTEXT, clipDeformationPeak } from '../../cells/cell-clips';
 import { effectSpriteReachRadii } from '../../effects/effect-reach';
 import { PREVIEW_ACTION_REST_SECONDS, PREVIEW_LEVEL_UP_LEVEL } from '../../constants';
-import {
-  previewScene,
-  type PreviewScene,
-  type PreviewSceneContent,
-  type ScheduledPreviewEffect,
-} from '../preview-scene';
+import { previewScene } from '../preview-scene';
+import type { PreviewScene, PreviewSceneContent, ScheduledPreviewEffect } from '../preview-scene';
 import {
   ACTION_SUBJECT_CELL_ID,
   ACTION_SUBJECT_CENTRE,
+  NO_FRAGMENTS,
+  NO_MOTES,
   actionSubjectCellView,
   actionSubjectFraming,
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 
-const NO_MOTES = [] as const;
-const NO_FRAGMENTS = [] as const;
 /** The subject holds still: the burst is the motion, and a swimming cell would compete with it. */
 const AT_REST = 0;
 

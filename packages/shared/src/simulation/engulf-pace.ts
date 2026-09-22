@@ -66,6 +66,35 @@ export function engulfPhaseOf(progress: number, balance: EngulfPaceBalance): Eng
   return ENGULF_PHASE.cover;
 }
 
+/** Progress runs from here to `COMPLETE_PROGRESS`; the absorb band ends where the payout fires. */
+const START_PROGRESS = 0;
+const COMPLETE_PROGRESS = 1;
+
+/**
+ * How long a phase lasts at exactly the required ratio, with nobody fighting: `ENGULF_BASE_DURATION_SECONDS` × the
+ * width of the phase's progress band — cover `[0, WRAP_START)`, wrap `[WRAP_START, SEAL)`, absorb `[SEAL, 1]`
+ * (docs/architecture/encyclopedia.md §12.3, ticket #362). The three spans sum to the base duration.
+ *
+ * It reads only the leaves the simulation reads (the base duration and the two band edges), never
+ * `ENGULF_COVER_SECONDS` and its siblings: those are folded into the three at module load and a `debug_set_balance`
+ * patch of one of them changes nothing the game plays. The encyclopedia's facts and preview scenes read this, so a
+ * patched `ENGULF_SEAL_PROGRESS` moves the shown spans exactly as it moves the engulf.
+ */
+export function engulfPhaseSpanSeconds(phase: EngulfPhase, balance: EngulfPaceBalance): number {
+  return balance.ENGULF_BASE_DURATION_SECONDS * engulfPhaseBandWidth(phase, balance);
+}
+
+function engulfPhaseBandWidth(phase: EngulfPhase, balance: EngulfPaceBalance): number {
+  switch (phase) {
+    case ENGULF_PHASE.cover:
+      return balance.ENGULF_WRAP_START_PROGRESS - START_PROGRESS;
+    case ENGULF_PHASE.wrap:
+      return balance.ENGULF_SEAL_PROGRESS - balance.ENGULF_WRAP_START_PROGRESS;
+    case ENGULF_PHASE.absorb:
+      return COMPLETE_PROGRESS - balance.ENGULF_SEAL_PROGRESS;
+  }
+}
+
 /** `clamp(ENGULF_MASS_RATIO / (predator.mass / prey.mass), ENGULF_MIN_DURATION_FACTOR, 1)`: a heavier predator is faster. */
 export function engulfMassFactor(predatorMass: number, preyMass: number, balance: EngulfPaceBalance): number {
   const massRatio = predatorMass / preyMass;

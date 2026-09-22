@@ -68,8 +68,8 @@ export const IS_PREVIEW_ROUTE = new InjectionToken<boolean>('IsPreviewRoute', {
 
 /**
  * A default spec per scene family, so `?preview=<scene>` reaches a family the registry has no entry for yet — the
- * whole point of an evidence route is not to wait on content. The five action families resolve to their
- * stand-in until ticket #364 builds them (`previewSceneFor`).
+ * whole point of an evidence route is not to wait on content. The five action families (ticket #364) have no
+ * entry until ticket #362's content lands, so their bare names are how their scenes are reached.
  */
 export const PREVIEW_ROUTE_SCENE_SPECS: Readonly<Record<PreviewScene, PreviewSpec>> = {
   [PREVIEW_SCENE.cell]: {
