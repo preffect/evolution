@@ -52,10 +52,22 @@ export function openSnapshotFrame(snapshot: object, viewerKeys: readonly string[
   };
 }
 
-/** One viewer's whole `game_snapshot` message: `frame` closed with that viewer's members, in declared order. */
-export function closeSnapshotFrame(frame: OpenSnapshotFrame, viewerMembers: ViewerMembers): string {
+/** Writes one member's value as JSON; it must write exactly what `JSON.stringify` would. */
+export type MemberJsonWriter = (key: string, value: unknown) => string;
+
+const STRINGIFY_MEMBER: MemberJsonWriter = (_key, value) => JSON.stringify(value);
+
+/**
+ * One viewer's whole `game_snapshot` message: `frame` closed with that viewer's members, in declared order, each
+ * written by `memberJson` (a module's writer can reuse strings its viewers share, #406).
+ */
+export function closeSnapshotFrame(
+  frame: OpenSnapshotFrame,
+  viewerMembers: ViewerMembers,
+  memberJson: MemberJsonWriter = STRINGIFY_MEMBER,
+): string {
   const members = frame.viewerKeys.map(
-    (key) => `${JSON.stringify(key)}${KEY_VALUE_SEPARATOR}${JSON.stringify(requireViewerMember(viewerMembers, key))}`,
+    (key) => `${JSON.stringify(key)}${KEY_VALUE_SEPARATOR}${memberJson(key, requireViewerMember(viewerMembers, key))}`,
   );
   const separator = frame.hasSharedMembers && members.length > 0 ? MEMBER_SEPARATOR : '';
   return `${frame.sharedJson}${separator}${members.join(MEMBER_SEPARATOR)}${SNAPSHOT_AND_MESSAGE_CLOSE}`;

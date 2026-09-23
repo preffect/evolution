@@ -55,7 +55,8 @@ export function sendSnapshotToViewers(
   const frame = openSnapshotFrame(snapshot, viewerState.keys);
   let totalBytes = 0;
   for (const connection of targets) {
-    const message = closeSnapshotFrame(frame, viewerState.serialize(connection.playerId as PlayerId, snapshot));
+    const members = viewerState.serialize(connection.playerId as PlayerId, snapshot);
+    const message = closeSnapshotFrame(frame, members, viewerState.memberJson?.bind(viewerState));
     if (sendRaw(connection, message)) totalBytes += message.length;
   }
   return Math.round(totalBytes / targets.length);

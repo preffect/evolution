@@ -250,6 +250,30 @@ The broadcast adds 60–75 % to the step-only tick p95, and at 32 seats a broadc
 16.67 ms step on the broadcast alone. An earlier run of the same bench read 1.96 ms and 10.0 ms for `broadcastP95Ms`,
 so the figures are sizes, not pins. The splice (§4) is what keeps that cost flat in the client count.
 
+**Measured (#406)**: the per-viewer part of a broadcast (the food delta, the fragments, each viewer's members
+written into the spliced frame) in process, no socket, with `pnpm --filter @evolution/server bench:broadcast`
+(`packages/server/bench/viewer-broadcast.ts`). The dish holds 1 400 motes (half bacteria, moving each broadcast) and 110
+fragments, packed around 8 viewers so a widest-zoom view holds several hundred motes. Figures are medians of the
+process's **CPU time** per broadcast over 300 broadcasts. That is not wall time, because other agents' runs on the
+shared box stretch the wall clock. Main (A) and the change (B) ran alternately, three rounds each, at load average
+14–20 on 4 cores.
+
+| 8 viewers, 1 400 motes                 | Before (median / p95) | After (median / p95) | Change (median) |
+| -------------------------------------- | --------------------- | -------------------- | --------------- |
+| spawn zoom (532 moving motes in view)  | 3.96–4.08 / 5.5–6.4   | 2.32–2.38 / 7.7–8.2  | −42 %           |
+| widest zoom (686 moving motes in view) | 4.77–4.80 / 6.1–6.4   | 2.53–2.79 / 5.7–6.8  | −45 %           |
+
+The bytes each viewer is sent are unchanged (28 310 B and 35 356 B): the member JSON is written to match
+`JSON.stringify` exactly. What moved into the shared once-per-broadcast part is: every mote's quantised position, its
+"moved at broadcast N" stamp and its JSON (`MoteMotion` keeps one `MoteEntry` per mote across broadcasts, so an unmoved
+mote keeps its position object and its string). Per viewer there is no `Map`, no id hashing and no per-mote stringify.
+The tracker owns a slot, each entry records in it the broadcast that viewer was last sent the mote at, and the
+viewer's arrays are joined from the entries' strings. The p95 rises at spawn zoom (garbage collection lands in some
+samples). What remains per viewer is proportional to the motes in its view (the area filter and the membership walk);
+a spatial grid of shared chunks is the next lever if it ever matters. One behaviour differs from comparing positions:
+a mote that moves away and back to the same quantised position between two of a viewer's snapshots is sent in `moved`
+again. That is harmless, because a patch is idempotent.
+
 **Measured (#341)** with the #331 method on a private server (seed 34101), in two rooms: idle bots with food and
 fragments at cap, and grazer bots, whose cells move and grow — which is what gives velocity and mass their float
 digits (an idle cell sits at velocity 0 and mass 20, so only its radius had any). Two servers draw two dishes, so the
