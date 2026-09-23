@@ -32,7 +32,7 @@ export const WORLD_ENTRY_CONTENT: Readonly<Record<WorldTopicId, WrittenEntryCont
       'The dish evolves on its own. As the round runs, the world’s average cell gains {worldMassGain} and a level every {worldLevelTime}. The [[cell_kind:wild|wild cells]] follow it, and the food grows richer. A round of the default length ends with the world at {worldLevelAtEnd}, near {worldMassAtEnd}. Your aim is to stay ahead of it.',
     facts: [
       balanceFact(
-        { key: 'worldLevelTime', label: 'Time per world level', unit: QUANTITY_UNIT.clock },
+        { key: 'worldLevelTime', label: 'Per world level', unit: QUANTITY_UNIT.clock },
         balancePath('worldClock', 'WORLD_LEVEL_SECONDS'),
       ),
       balanceFact(
@@ -58,7 +58,7 @@ export const WORLD_ENTRY_CONTENT: Readonly<Record<WorldTopicId, WrittenEntryCont
       'The last stretch of the round. From {bloomStart} of the way through, food spawns {bloomFood} as fast and DNA fragments {bloomFragments} as fast, though the dish holds no more than before. The round clock turns gold and reads BLOOM.',
     facts: [
       balanceFact(
-        { key: 'bloomStart', label: 'Starts this far into the round', unit: QUANTITY_UNIT.share },
+        { key: 'bloomStart', label: 'Starts at', unit: QUANTITY_UNIT.share },
         balancePath('session', 'ROUND_BLOOM_START_FRACTION'),
       ),
       balanceFact(

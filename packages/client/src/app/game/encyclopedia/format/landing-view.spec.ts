@@ -79,7 +79,7 @@ describe('landingTilesFor (docs/ui/encyclopedia.md §11.3)', () => {
       headline: { key: 'mass', label: 'Starting mass', text: '20 mass', link: null },
     };
     const [first] = landingTilesFor([{ group: null, entries: [link(entryId, 'Protocell')] }], () => valued);
-    expect(first?.fact).toBe('20 mass');
+    expect(first?.fact).toBe('Starting mass: 20 mass');
   });
 
   /**

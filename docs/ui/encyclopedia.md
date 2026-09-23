@@ -140,9 +140,10 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
   (`ENCYCLOPEDIA_TILE_WIDTH_PX` × `ENCYCLOPEDIA_TILE_HEIGHT_PX`, `UI_SPACE_M_PX` gaps): a
   `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX` well on the dish field with the glyph medallion at the picker's
   `PICKER_CARD_MEDALLION_PX`, the title in `body` and the entry's `facts[0]` in `label` size, mixed case, each on
-  one line ending in an ellipsis (the full title is the tile's accessible name). A **link-valued** first fact is drawn
-  as `<name>: <text>`, since its text alone is another entry's title and the tile would read as two titles with no way
-  to tell which one it is; a value fact reads alone and is drawn as it is. A tile is a link to its entry.
+  one line ending in an ellipsis (the full title is the tile's accessible name). The fact is drawn as `<name>: <text>`:
+  a value alone says nothing of what it measures (`Mass decay` over `20 mass`), and a link's text alone is another
+  entry's title, so the tile would read as two titles. First-fact names are kept short so the line fits the tile. A
+  tile is a link to its entry.
 
 The landing's blocks stack from the panel body's own box, each on its own line height: the breadcrumb and the
 heading on their cap height, the summary on the body's. The reference frame is drawn baseline by baseline

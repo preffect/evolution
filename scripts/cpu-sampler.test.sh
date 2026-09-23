@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# cpu-sampler.test.sh — exercises scripts/lib/cpu_sampler.py and cpu_report.py (#521) against a fake /proc in a sandbox: a live
-# process is charged its own delta, a new one its whole time, a child reaped between two scans is charged
-# to its parent minus what was already counted while it lived, and a reused pid starts over; a vitest
+# cpu-sampler.test.sh — exercises scripts/lib/cpu_sampler.py, cpu_attribution.py and cpu_report.py (#521) against a
+# fake /proc in a sandbox: a live process is charged its own delta, a new one its whole time, a child reaped between
+# two scans is charged to its parent minus what was already counted while it lived (a whole dead subtree too), the
+# cgroup's count caps the reaped share, and a reused pid starts over; a vitest
 # worker in a worktree is "client tests" of that worktree, an esbuild under ng serve is "ng serve", a
 # command claude ran is "other" and claude itself "claude"; the report ranks kinds with shares of the
 # attributed total and prints the machine rows; the wrapper's start / status / stop drive a real sampler
@@ -22,6 +23,7 @@ source "$repo_root/scripts/lib/shell-test.sh"
 # --- the attribution and the report, in python against a fake /proc ------------------------------
 python_output="$(CPU_SAMPLER_PROC="$sandbox/proc" SANDBOX="$sandbox" PYTHONPATH="$repo_root/scripts/lib" python3 - <<'PY'
 import os
+import cpu_attribution as attribution
 import cpu_sampler as sampler
 
 sandbox = os.environ["SANDBOX"]
@@ -52,6 +54,16 @@ usage = sampler.interval_usage(previous, current)
 verdict("a live process is charged its own delta plus the unseen part of a reaped child (5 + 70 - 40)", usage[10] == 35)
 verdict("a process new since the last scan is charged its whole time, reaped children included", usage[13] == 35)
 verdict("a reused pid (new starttime) starts over instead of going negative", usage[12] == 7)
+# a whole subtree dies in one interval: 10 -> 11 -> 14; 10 reaps 11, whose final cutime holds 14's final time
+previous = {10: entry(1, 100, 0, 10), 11: entry(10, 40, 0, 11), 14: entry(11, 60, 0, 14)}
+current = {10: entry(1, 100, 40 + 20 + 60 + 20, 10)}
+usage = sampler.interval_usage(previous, current)
+verdict("a dead subtree is charged only its unseen time (20 + 20), not the grandchild twice", usage[10] == 40)
+# the cgroup caps what reaped time can add: own 10, reaped 90, measured 50 -> 40 of the 90 kept
+previous = {10: entry(1, 0, 0, 10)}
+current = {10: entry(1, 10, 90, 10)}
+verdict("reaped ticks never push the total past what the cgroup measured", sampler.interval_usage(previous, current, 50)[10] == 50)
+verdict("without a cgroup count reaped ticks count in full", sampler.interval_usage(previous, current)[10] == 100)
 
 # classification on a fake /proc
 fake_process(1, 0, "/sbin/init", "/")
@@ -65,20 +77,20 @@ fake_process(30, 1, "ng serve --port 4402", f"{repo}/packages/client")
 fake_process(31, 30, "/node_modules/esbuild --service=0.28.2", f"{repo}/packages/client")
 fake_process(32, 22, "node node_modules/.bin/eslint packages/client", worktree)
 table = sampler.ProcessTable()
-attributor = sampler.Attributor(repo)
+attributor = attribution.Attributor(repo)
 kind_of = lambda pid: attributor.attribute(table, pid)[:2]
 verdict("the comm field may hold ') ' and still parses", table.entries[25]["ppid"] == 24)
 verdict("a vitest worker in a worktree is that worktree's client tests", kind_of(25) == ("feat/1-thing", "client tests"))
-verdict("esbuild under ng serve in the main checkout is ng serve", kind_of(31) == (sampler.MAIN_CHECKOUT, "ng serve"))
-verdict("a command claude ran is other, not claude", kind_of(21) == (sampler.MAIN_CHECKOUT, "other"))
+verdict("esbuild under ng serve in the main checkout is ng serve", kind_of(31) == (attribution.MAIN_CHECKOUT, "ng serve"))
+verdict("a command claude ran is other, not claude", kind_of(21) == (attribution.MAIN_CHECKOUT, "other"))
 verdict("claude itself is claude", kind_of(20)[1] == "claude")
 verdict("eslint is lint/prettier", kind_of(32)[1] == "lint/prettier")
 verdict("validate.sh itself is its orchestration", kind_of(22)[1] == "validate.sh (orchestration)")
-verdict("a cwd outside the repository is outside it", attributor.worktree("/tmp") == sampler.OUTSIDE_REPO)
+verdict("a cwd outside the repository is outside it", attributor.worktree("/tmp") == attribution.OUTSIDE_REPO)
 PY
 )"
 echo "$python_output"
-PYTHON_CASES=11
+PYTHON_CASES=14
 check "the $PYTHON_CASES python cases all ran and passed" \
   "$(( $(grep -c '^ok ' <<<"$python_output") == PYTHON_CASES && $(grep -c '^FAIL' <<<"$python_output" || true) == 0 ))"
 

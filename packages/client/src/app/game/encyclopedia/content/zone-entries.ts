@@ -25,9 +25,9 @@ function spawnShareFacts(zone: SpawnZoneId): readonly FactDefinition[] {
       balancePath('ecology', 'FOOD_ZONE_WEIGHTS_BY_KIND', kind, zone),
     );
   return [
-    shareOf('algaeShare', 'Algae spawned here', FOOD_KIND.algae),
-    shareOf('bacteriumShare', 'Bacteria spawned here', FOOD_KIND.bacterium),
-    shareOf('fragmentShare', 'DNA fragments spawned here', ENTITY_KIND.dnaFragment),
+    shareOf('algaeShare', 'Algae share', FOOD_KIND.algae),
+    shareOf('bacteriumShare', 'Bacteria share', FOOD_KIND.bacterium),
+    shareOf('fragmentShare', 'Fragment share', ENTITY_KIND.dnaFragment),
   ];
 }
 
@@ -41,6 +41,11 @@ export const ZONE_ENTRY_CONTENT: Readonly<Record<ZoneId, WrittenEntryContent>> =
     summary:
       'The bright ring around the rim of the dish, {shallowsWidth} wide. Light reaches here, so a [[trait:chloroplast]] feeds you, algae grow thick and [[bacterium:photosynthetic|photosynthetic bacteria]] gather. Safe, but a long swim around. Its fragments carry {fragmentTags} tags.',
     facts: [
+      ...spawnShareFacts(ZONE_ID.sunlitShallows),
+      balanceFact(
+        { key: 'shallowsWidth', label: 'Width', unit: QUANTITY_UNIT.worldUnits },
+        balancePath('ecology', 'SHALLOWS_WIDTH'),
+      ),
       balanceFact(
         { key: 'photosyntheticShare', label: 'Of its bacteria, photosynthetic', unit: QUANTITY_UNIT.share },
         balancePath(
@@ -50,11 +55,6 @@ export const ZONE_ENTRY_CONTENT: Readonly<Record<ZoneId, WrittenEntryContent>> =
           BACTERIUM_VARIANT.photosynthetic,
         ),
       ),
-      balanceFact(
-        { key: 'shallowsWidth', label: 'Width', unit: QUANTITY_UNIT.worldUnits },
-        balancePath('ecology', 'SHALLOWS_WIDTH'),
-      ),
-      ...spawnShareFacts(ZONE_ID.sunlitShallows),
       fragmentTagsFact(ZONE_ID.sunlitShallows),
     ],
     sections: [],
@@ -93,7 +93,7 @@ export const ZONE_ENTRY_CONTENT: Readonly<Record<ZoneId, WrittenEntryContent>> =
       formulaFact(
         {
           key: 'gelSpeedAtMax',
-          label: 'Speed at the largest mass',
+          label: 'Speed, largest cell',
           unit: QUANTITY_UNIT.multiplier,
           presentation: QUANTITY_PRESENTATION.changeFromOne,
         },
@@ -102,7 +102,7 @@ export const ZONE_ENTRY_CONTENT: Readonly<Record<ZoneId, WrittenEntryContent>> =
       formulaFact(
         {
           key: 'gelSpeedAtStart',
-          label: 'Speed at the starting mass',
+          label: 'Speed, new cell',
           unit: QUANTITY_UNIT.multiplier,
           presentation: QUANTITY_PRESENTATION.changeFromOne,
         },
