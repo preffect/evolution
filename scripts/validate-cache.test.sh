@@ -545,6 +545,36 @@ run_validate "$fixture" test --scope server
 run_validate "$fixture" all --affected
 check "a gate that also runs the shell suites runs its test phase, which no package stamp covers" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server test$'; echo $?) == 0 && $(ran "$FIXTURE_SUITE_MARKER"; echo $?) == 0 ))
 
+# The reuse's guards, each on its own tree: --fresh, a path-scoped stamp, a Node-major mismatch, the -r gate.
+affected_branch affected-reuse-fresh packages/server/src/fresh.ts
+run_validate "$fixture" test --scope server
+run_validate "$fixture" typecheck --scope server
+run_validate "$fixture" all --affected --fresh
+check "--fresh never answers the gate from package stamps" $(( rc == 0 && $(ran '^cached green from the package stamps'; echo $?) != 0 && $(ran '^fake pnpm --filter @evolution/server typecheck$'; echo $?) == 0 ))
+affected_branch affected-reuse-path packages/server/src/path.ts
+printf ' Test Files  1 passed (1)\n      Tests  2 passed (2)\n' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" test --scope packages/server/src/game
+run_validate "$fixture" typecheck --scope packages/server/src/game
+run_validate "$fixture" test --scope packages/server/src/game
+path_stamped=$(( $(is_cached; echo $?) == 0 ))
+: > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" all --affected
+check "a path-scoped stamp (no coverage floor) never answers the gate" $(( path_stamped && rc == 0 && $(ran '^cached green from the package stamps'; echo $?) != 0 && $(ran '^fake pnpm --filter @evolution/server test$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/server typecheck$'; echo $?) == 0 ))
+affected_branch affected-reuse-node packages/server/src/node.ts
+run_validate "$fixture" test --scope server
+run_validate "$fixture" typecheck --scope server
+run_validate "$fixture" typecheck --scope server
+reuse_tree="$(sed -n 's/^cached green from .* at tree //p' <<<"$out")"
+sed -i 's/^node=.*/node=0/' "$slug_dir/$reuse_tree.typecheck.scope-server"
+run_validate "$fixture" all --affected
+check "a package stamp from another Node major never answers the gate" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server typecheck$'; echo $?) == 0 && $(grep -c '^cached green from the package stamps of server' <<<"$out") == 1 ))
+affected_branch affected-reuse-everything packages/extra/src/unregistered.ts
+echo root >> "$fixture/eslint.config.js"
+git -C "$fixture" add -A && git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m root
+for package in shared server client; do run_validate "$fixture" typecheck --scope "$package"; done
+run_validate "$fixture" all --affected
+check "the everything gate (-r, which also reaches unregistered packages) never composes package stamps" $(( rc == 0 && $(ran '^cached green from the package stamps'; echo $?) != 0 && $(ran '^fake pnpm -r typecheck$'; echo $?) == 0 ))
+
 affected_branch affected-docs docs/NOTE.md
 run_validate "$fixture" all --affected
 check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran '^fake pnpm prettier --check docs/NOTE.md$'; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$\|test:integration'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 4 ))

@@ -741,6 +741,9 @@ composed_package_hit() { # <cmd>
   [[ -n "$CACHE_DIR" && $FRESH -eq 0 && "$SCOPE_NAME" == "$AFFECTED_SCOPE_PREFIX"* ]] || return 1
   [[ " ${COMPOSABLE_PHASES[*]} " == *" $cmd "* && ${#AFFECTED_PACKAGES[@]} -gt 0 ]] || return 1
   [[ "$cmd" != test || $SHELL_SUITES_SELECTED -eq 0 ]] || return 1
+  # Only an explicit --filter selection: `affected-everything` runs -r, over every packages/* directory,
+  # including one not registered in PACKAGES, which no package stamp covers.
+  [[ "${PNPM_SELECTION[0]:-}" == --filter ]] || return 1
   for package in "${AFFECTED_PACKAGES[@]}"; do
     stamp="$CACHE_DIR/$TREE_HASH.$cmd.scope-$package"
     [[ -f "$stamp" && "$(stamp_field "$stamp" exit)" == "0" && "$(stamp_field "$stamp" node)" == "$NODE_MAJOR" ]] || return 1
