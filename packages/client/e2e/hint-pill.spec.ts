@@ -7,7 +7,7 @@ import { DEFAULT_BALANCE } from '@evolution/shared';
 import { ONBOARDING_BEAT } from '../src/app/game/hud/format/onboarding-beats';
 import { onboardingTextFor } from '../src/app/game/hud/format/onboarding-text';
 import { NOTICE_ROW_HEIGHT_PX } from '../src/app/game/hud/hud-constants';
-import { HUD_TEST_ID } from '../src/app/game/hud/test-ids';
+import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
 import { openRoom } from './live-room';
 
 const REFERENCE_VIEWPORT = { width: 1280, height: 800 };
