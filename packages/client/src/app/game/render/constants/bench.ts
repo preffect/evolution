@@ -48,6 +48,20 @@ export const RENDER_GPU_SAMPLE_MAX_FRAME_RATIO = 2;
  * all (docs/rendering/budget.md §7).
  */
 export const RENDER_P95_MIN_SAMPLE_FRAMES = Math.ceil(1 / (1 - P95_QUANTILE));
+/**
+ * A stage budget below this is informational (docs/rendering/budget.md §7, ruling on ticket #470): no consumer
+ * browser's clock resolves it, so the verdict never judges it and the frame p95 and the draw calls carry the frame.
+ */
+export const RENDER_JUDGED_STAGE_BUDGET_MIN_MS = 1.0;
+/**
+ * A CPU-clock row is judged only when the page's clock resolves a tenth of its budget: Firefox and Chrome quantise
+ * `performance.now()` to 1 ms or 0.1 ms outside a cross-origin-isolated page, and a p95 of whole ticks against a
+ * budget of one tick is the tick, not the work (ticket #504).
+ */
+export const RENDER_TIMER_RESOLUTION_BUDGET_FRACTION = 0.1;
+/** The clock probe: the positive steps it waits for, and the readings it gives up after (a clock that never moves). */
+export const RENDER_TIMER_PROBE_STEPS = 8;
+export const RENDER_TIMER_PROBE_MAX_READINGS = 200_000;
 /** GL draw calls per frame at the bench load (docs/rendering/budget.md §6). */
 export const RENDER_MAX_DRAW_CALLS = 17;
 /** The effects stage's calls (§6): the glow-atlas sprite batch, the own-cell arc mesh, the `BitmapText`. */
