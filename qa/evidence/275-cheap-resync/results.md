@@ -3,12 +3,15 @@
 **Slow client** (`game-room.resync-burst.test.ts`, the real flow control against a client that drains 34.8 of the
 room's 60.6 messages a second, #274's measured rates, 3 000 broadcasts):
 
-|        | resyncs | stacked on an unacknowledged one | deltas delivered |
-| ------ | ------- | -------------------------------- | ---------------- |
-| before | 100     | 88                               | 1 641            |
-| after  | 24      | 0                                | 1 704            |
+| room                     | run    | resyncs | stacked on an unacknowledged one | deltas delivered |
+| ------------------------ | ------ | ------- | -------------------------------- | ---------------- |
+| running (its own ticker) | before | 100     | 88                               | 1 641            |
+| running (its own ticker) | after  | 24      | 0                                | 1 704            |
+| advanced by debug steps  | before | 106     | 94                               | 1 636            |
+| advanced by debug steps  | after  | 16      | 0                                | 1 799            |
 
-The same numbers hold whether the room runs or is advanced by debug steps.
+A paused room sends a step taken during a held resync as its delta, behind the resync (review of PR #617), so the
+stepped client stays current; that is why it delivers more deltas than the running room.
 
 **Single-shot paths** (private server 4540, a raw socket client acknowledging as the browser does; after the fix):
 a paused room stepped 89 ticks sends 1 `game_state`, a tab takeover sends 1 (to the new socket, 0 to the old), a

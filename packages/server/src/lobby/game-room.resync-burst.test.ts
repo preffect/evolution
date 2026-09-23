@@ -8,6 +8,7 @@ import {
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   SNAPSHOT_EVERY_TICKS,
+  TICK_INTERVAL_MS,
   createTestSessionConfig,
   gameId,
 } from '@evolution/shared';
@@ -36,6 +37,7 @@ function tickingRoom() {
     balance: DEFAULT_BALANCE,
   }));
   const sent: Record<string, unknown[]> = {};
+  const timing = createManualRoomTiming();
   const room = new GameRoom(
     module,
     {
@@ -47,11 +49,11 @@ function tickingRoom() {
       avatarAssignments: { p1: 0 },
       playerNames: {},
     },
-    createManualRoomTiming(),
+    timing,
   );
   room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
   room.start();
-  return { room, sent: () => sent['p1'] as SentMessage[] };
+  return { room, timing, sent: () => sent['p1'] as SentMessage[] };
 }
 
 /**
@@ -106,12 +108,16 @@ class SlowClient {
 }
 
 function runSlowClient(isRoomRunning: boolean): { resyncs: number; stackedResyncs: number; deltas: number } {
-  const { room, sent } = tickingRoom();
+  const { room, timing, sent } = tickingRoom();
   const client = new SlowClient(room, sent);
   for (let broadcast = 0; broadcast < BROADCASTS; broadcast += 1) {
-    room.step(SNAPSHOT_EVERY_TICKS);
-    // `step` pauses; a running room settles resyncs on broadcasts, a paused one on acks (#300).
-    if (isRoomRunning) room.resume();
+    if (isRoomRunning) {
+      // The live loop: one broadcast's ticks through the room's own ticker.
+      timing.clock.advanceMilliseconds(SNAPSHOT_EVERY_TICKS * TICK_INTERVAL_MS);
+      timing.ticker.fire();
+    } else {
+      room.step(SNAPSHOT_EVERY_TICKS);
+    }
     client.countArrivals();
     client.drain();
   }

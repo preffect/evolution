@@ -1,33 +1,40 @@
 // The audio session of one room (docs/architecture/client.md §7, #275): which `AudioHooksHandle` is live, and when a
 // `game_state` needs a new one. A resync (#266, #300) is routine flow control, not a new session, so it must not tear
-// the sounds down: the same player in a room with the same round length keeps its loops and its transition memory and
-// only takes the new balance, as `RenderSession.buildRendererFor` keeps the Pixi app for the same seed. A different
-// player or round length (a reconnect into another room) starts over. Framework-free; `RenderSession` owns one.
+// the sounds down: the same player in the same room keeps its loops and its transition memory and only takes the new
+// balance, as `RenderSession.buildRendererFor` keeps the Pixi app for the same seed. Another room or another player
+// starts over. A player's id is stable across rooms (the stored client id), so the room is what tells two sessions
+// apart. Framework-free; `RenderSession` owns one.
 
+import type { GameId, PlayerId } from '@evolution/shared';
 import type { AudioHooksHandle } from './audio-hooks';
 import type { TransitionOptions } from '../state/snapshot-transitions';
 
-/** What identifies a session: the balance is not in it, since `balance_updated` patches a live session too. */
-function isSameSession(current: TransitionOptions, next: TransitionOptions): boolean {
-  return current.ownPlayerId === next.ownPlayerId && current.roundDurationSeconds === next.roundDurationSeconds;
+/** What names a session: the room and the player in it. Round length cannot change inside a room, so it is not in it. */
+export interface AudioSessionKey {
+  readonly gameId: GameId;
+  readonly ownPlayerId: PlayerId;
+}
+
+function isSameSession(current: AudioSessionKey, next: AudioSessionKey): boolean {
+  return current.gameId === next.gameId && current.ownPlayerId === next.ownPlayerId;
 }
 
 export class AudioSession {
   private handle: AudioHooksHandle | null = null;
-  private options: TransitionOptions | null = null;
+  private key: AudioSessionKey | null = null;
 
   constructor(private readonly connect: (options: TransitionOptions) => AudioHooksHandle) {}
 
   /** A `game_state`: keeps the live session when it is the same one, else disconnects it and connects anew. */
-  begin(options: TransitionOptions): void {
-    if (this.handle !== null && this.options !== null && isSameSession(this.options, options)) {
+  begin(gameId: GameId, options: TransitionOptions): void {
+    const key: AudioSessionKey = { gameId, ownPlayerId: options.ownPlayerId };
+    if (this.handle !== null && this.key !== null && isSameSession(this.key, key)) {
       this.handle.updateOptions({ balance: options.balance });
-      this.options = options;
       return;
     }
     this.handle?.disconnect();
     this.handle = this.connect(options);
-    this.options = options;
+    this.key = key;
   }
 
   observe(...args: Parameters<AudioHooksHandle['observe']>): void {
@@ -36,7 +43,6 @@ export class AudioSession {
 
   updateOptions(patch: Partial<TransitionOptions>): void {
     this.handle?.updateOptions(patch);
-    if (this.options !== null) this.options = { ...this.options, ...patch };
   }
 
   unlock(): void {
@@ -46,6 +52,6 @@ export class AudioSession {
   disconnect(): void {
     this.handle?.disconnect();
     this.handle = null;
-    this.options = null;
+    this.key = null;
   }
 }

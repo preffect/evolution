@@ -107,8 +107,8 @@ export class RenderSession extends FrameLoopSession {
       timer.accrue(RENDER_STAGE.net, () => this.store.applyGameState(message));
       // A full state puts the two in step: the room is waiting to hear it before it resumes deltas.
       this.acknowledger.acknowledgeNow(message.snapshot.tick);
-      // A resync keeps the session it is already in (#275): only another player or round starts one over.
-      this.audio.begin({
+      // A resync keeps the session it is already in (#275): only another room or player starts one over.
+      this.audio.begin(message.gameId, {
         ownPlayerId: message.playerId,
         balance: message.balance,
         roundDurationSeconds: message.config.roundDurationSeconds,

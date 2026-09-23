@@ -96,7 +96,7 @@ packages/client/src/app/game/
   state/legibility-constants.ts                                 the §3.1.6 rows marked state
   quantities/**  encyclopedia/**                               the one formatter and the encyclopedia registry (the one home of their file plan: architecture/encyclopedia.md §12.8)
   audio/audio-hooks.ts                                          AudioHooks.connect(options): the composition root's one audio call (AUDIO.md §5)
-  audio/audio-session.ts                                        AudioSession: the live handle kept through a resync, a new one per player or round length (#275)
+  audio/audio-session.ts                                        AudioSession: the live handle kept through a resync, a new one per room or player (#275)
   audio/{audio.service,sound-event-bus,cue-scheduler,ambient-mixer,audio-buses,audio-asset-cache}.ts
   audio/{audio-backend,web-audio-backend,audio-tokens}.ts       the Web Audio seam, its production impl, the injection tokens (AUDIO.md §5)
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
