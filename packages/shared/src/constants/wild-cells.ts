@@ -1,14 +1,23 @@
-// Wild cells (docs/ecology/wild-cells.md §3.3, docs/ecology/constants.md §7): the world's average made flesh. Their mass and ladder
-// are pinned to the world clock every tick; these are the seats, the spread, the builds they
-// climb and the behaviour knobs. The clock itself is world-clock.ts.
+// Wild cells (docs/ecology/wild-cells.md §3.3, docs/ecology/constants.md §7): cells that live their own lives. Each is
+// born at its own share of the world's average mass, keeps what it eats and recovers from its wounds; its ladder is
+// the world's. These are the seats, the size range, growth and recovery, the builds they climb and the behaviour
+// knobs. The clock itself is world-clock.ts.
 
 import { entityId, type EntityId } from '../types/common.js';
 import { CELL_STAGE, type CellStage, type TraitId } from '../types/game.js';
 
 /** Non-player cells in the dish from tick 0 to the end of the round; never varies with the stage. */
 export const WILD_CELL_COUNT = 24;
-/** massSpreadFactor ~ uniform[1 − this, 1 + this], drawn at each (re)spawn from the `wildCells` stream. */
-export const WILD_CELL_MASS_SPREAD = 0.3;
+/**
+ * `sizeFactor` is log-uniform on [this, `WILD_CELL_SIZE_FACTOR_MAX`], drawn at each (re)spawn from the `wildCells`
+ * stream; a wild cell's base size is `worldMass × sizeFactor` (docs/ecology/wild-cells.md §3.3.1).
+ */
+export const WILD_CELL_SIZE_FACTOR_MIN = 0.5;
+export const WILD_CELL_SIZE_FACTOR_MAX = 2.0;
+/** A wound (the cell lighter than its full size) recovers with this time constant (s): 81 % in 10 s, 95 % in 18 s. */
+export const WILD_CELL_RECOVERY_SECONDS = 6;
+/** The growth ceiling: a wild cell never grows past this × `worldMass` (docs/ecology/wild-cells.md §3.3.1). */
+export const WILD_CELL_MAX_WORLD_MASS_MULTIPLE = 3;
 /**
  * Three valid ladders (seat mod 3): a wild cell at level L owns the first L − 1 picks; the list
  * wraps as tier upgrades. Build 0 defines `worldStage` (docs/ecology/food-and-spawn.md §3.1).
@@ -44,16 +53,9 @@ export const WILD_CELL_HUNTS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;
 export const WILD_CELL_TURN_CHANCE = 0.25;
 
 // ===== Wild cells live their own lives (#517, design PRs #523 and #556) =====
-// The design tables list these now; the build tickets #550, #551 and #558 wire them in and retire the
-// per-tick pin constants above. Values are docs/ecology/constants.md §7's.
+// The design tables list these now; the build tickets #551 and #558 wire them in and retire the hunt constants
+// above (#550 wired the size, growth and recovery ones at the top). Values are docs/ecology/constants.md §7's.
 
-/** A newborn wild cell's size is drawn from [MIN, MAX] × the world's average mass. */
-export const WILD_CELL_SIZE_FACTOR_MIN = 0.5;
-export const WILD_CELL_SIZE_FACTOR_MAX = 2.0;
-/** Time constant of a wild cell's recovery from a loss toward its full size, in seconds. */
-export const WILD_CELL_RECOVERY_SECONDS = 6;
-/** No wild cell grows past this multiple of the world's average mass. */
-export const WILD_CELL_MAX_WORLD_MASS_MULTIPLE = 3;
 /** A wild cell notices what a same-size player sees: this × `viewHalfHeightFor`. */
 export const WILD_CELL_SIGHT_VIEW_MULTIPLE = 1.0;
 /** A wild cell sprints to flee a threat within this many of its own radii. */

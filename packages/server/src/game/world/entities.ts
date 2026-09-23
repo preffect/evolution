@@ -78,20 +78,22 @@ export function isPlayerCell(cell: CellRecord): cell is PlayerCellRecord {
 }
 
 /**
- * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the world clock made flesh. Filled
- * at world creation (`wild/wild-seats.ts`); `cellId` is null while the seat waits out `respawnInTicks`, `drainedMass`
- * is what step 5 took while its cell was engulfing, and the heading and `decideInTicks` rest at 0 until the wild
- * strategy (#176) drives them.
+ * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the whole of a wild cell's
+ * memory. Filled at world creation (`wild/wild-seats.ts`); `cellId` is null while the seat waits out
+ * `respawnInTicks`. The base size is `worldMass × sizeFactor`; `grownMass` is the permanent growth above it and
+ * `fullMass` the last settle's full size, so the wound is `cell.mass − fullMass` and is never stored
+ * (`wild/wild-settle.ts`). The heading and `decideInTicks` rest at 0 until the wild strategy drives them.
  */
 export interface WildSeatRecord {
   seatNumber: number;
   cellId: EntityId | null;
-  massSpreadFactor: number;
+  sizeFactor: number;
+  grownMass: number;
+  fullMass: number;
   respawnInTicks: number;
   headingX: number;
   headingY: number;
   decideInTicks: number;
-  drainedMass: number;
 }
 
 export interface TraitOffer extends TraitOfferView {

@@ -1,7 +1,7 @@
 // The wild seats (docs/ecology/wild-cells.md §3.3 "Placement and respawn", docs/architecture/entity-model.md §2): `WILD_CELL_COUNT`
 // seats hold the world's average made flesh. A seat's cell is placed by the safe-spawn rule plus "no cell centre within
-// `WILD_CELL_MIN_SPACING_WU`" from the `spawnPlacement` stream, with a spread factor from the `wildCells` stream; the
-// seat count never changes. Placement also draws the seat's first wander heading (used from its first decision on,
+// `WILD_CELL_MIN_SPACING_WU`" from the `spawnPlacement` stream, with a size factor from the `wildCells` stream, at its
+// base size for the world of that moment with no growth (docs/ecology/wild-cells.md §3.3.5); the seat count never changes. Placement also draws the seat's first wander heading (used from its first decision on,
 // never earlier) and starts its decision countdown (`wild-strategy.ts`).
 
 import {
@@ -14,6 +14,7 @@ import {
   type Vec2,
   type WorldReference,
 } from '@evolution/shared';
+import { setCellMass } from '../simulation/cell-mass.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import {
   findSafeSpawnPoint,
@@ -26,7 +27,7 @@ import { isPlayerCell, type CellRecord, type WildSeatRecord } from '../world/ent
 import { mintEntityId } from '../world/entity-ids.js';
 import type { LiveStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
-import { pinWildCell } from './wild-pin.js';
+import { applyWorldLadder, wildBaseMass, wildSizeFactor } from './wild-settle.js';
 import { decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
 import { drawWildHeading, setSeatHeading } from './wild-wander.js';
 
@@ -49,37 +50,31 @@ export const wildSpawnClearance: SpawnClearance = (point, cells, balance) =>
     nearestCellDistance(point, cells) - balance.wildCells.WILD_CELL_MIN_SPACING_WU,
   );
 
-/** `massSpreadFactor ~ uniform[1 − WILD_CELL_MASS_SPREAD, 1 + WILD_CELL_MASS_SPREAD]`; one draw. */
-export function drawMassSpreadFactor(unit: number, balance: BalanceConfig): number {
-  const lightest = 1 - balance.wildCells.WILD_CELL_MASS_SPREAD;
-  const heaviest = 1 + balance.wildCells.WILD_CELL_MASS_SPREAD;
-  return lightest + (heaviest - lightest) * unit;
-}
-
 export function createWildSeatRecord(seatNumber: number): WildSeatRecord {
   return {
     seatNumber,
     cellId: null,
-    massSpreadFactor: 1,
+    sizeFactor: 1,
+    grownMass: 0,
+    fullMass: 0,
     respawnInTicks: 0,
     headingX: AT_REST,
     headingY: AT_REST,
     decideInTicks: AT_REST,
-    drainedMass: 0,
   };
 }
 
 /** Where a seat's new cell goes and how heavy it runs: the streams' choice in play, a fixture's in a scenario. */
 export interface WildSeating {
   readonly centre: Vec2;
-  readonly spreadFactor: number;
+  readonly sizeFactor: number;
 }
 
 /**
- * Seats a fresh cell for `seat` at `seating`: the spread factor, the countdown to the seat's next decision tick
- * (`ticksUntilDecision` from `world.tick`, the tick in progress or the one a fixture acts after), then the pin to
- * `reference` under the world's live balance, so the cell is the world's average from its first tick. The seat's
- * target and velocity are those of a new cell (none) and its `drainedMass` is 0, as a respawn requires. The seat's
+ * Seats a fresh cell for `seat` at `seating`: the size factor, the countdown to the seat's next decision tick
+ * (`ticksUntilDecision` from `world.tick`, the tick in progress or the one a fixture acts after), then the cell at its
+ * base size at `reference` with no growth (`fullMass` = mass: no wound) and the world's ladder, under the world's live
+ * balance. The seat's target and velocity are those of a new cell (none), as a respawn requires. The seat's
  * heading is left as it is: the wild placement draws one, a fixture keeps the seat's own
  * (docs/testing/scenario-runner.md §8.1, `.placeWildCell`).
  */
@@ -90,7 +85,7 @@ export function seatWildCell(
   reference: WorldReference,
 ): CellRecord {
   const { balance } = world;
-  seat.massSpreadFactor = seating.spreadFactor;
+  seat.sizeFactor = seating.sizeFactor;
   seat.decideInTicks = ticksUntilDecision(world.tick, seat.seatNumber, decisionIntervalTicks(balance));
   const id = mintEntityId(world, ENTITY_KIND.cell);
   const identity = {
@@ -101,17 +96,20 @@ export function seatWildCell(
     avatarIndex: WILD_CELL_AVATAR_INDEX,
     level: Math.floor(reference.worldLevel),
   };
-  const cell = bornCellRecord(identity, seating.centre, balance.growth.CELL_STARTING_MASS);
+  const baseMass = wildBaseMass(seat, reference);
+  const cell = bornCellRecord(identity, seating.centre, baseMass);
   seat.cellId = id;
   seat.respawnInTicks = 0;
-  seat.drainedMass = 0;
-  pinWildCell(cell, seat, reference, balance);
+  seat.grownMass = 0;
+  seat.fullMass = baseMass;
+  setCellMass(cell, baseMass, balance);
+  applyWorldLadder(cell, seat, reference, balance);
   world.cells.push(cell);
   return cell;
 }
 
 /**
- * Places (or replaces) the seat's cell from the streams: a fresh spread factor and heading from `wildCells`, a
+ * Places (or replaces) the seat's cell from the streams: a fresh size factor and heading from `wildCells`, a
  * safe point from `spawnPlacement`, then `seatWildCell`.
  */
 export function placeWildCell(
@@ -122,10 +120,10 @@ export function placeWildCell(
 ): CellRecord {
   const { streams, balance } = context;
   const wildStream = streams[RANDOM_STREAM.wildCells];
-  const spreadFactor = drawMassSpreadFactor(wildStream.nextFloat(), balance);
+  const sizeFactor = wildSizeFactor(wildStream.nextFloat(), balance);
   setSeatHeading(seat, drawWildHeading(wildStream));
   const centre = findSafeSpawnPoint(streams[RANDOM_STREAM.spawnPlacement], world.cells, balance, wildSpawnClearance);
-  return seatWildCell(world, seat, { centre, spreadFactor }, reference);
+  return seatWildCell(world, seat, { centre, sizeFactor }, reference);
 }
 
 /**

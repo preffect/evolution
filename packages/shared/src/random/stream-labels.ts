@@ -13,7 +13,7 @@ export const RANDOM_STREAM = {
   traitDraft: 'trait_draft',
   /** Bacteria random-walk headings; fragment drift direction at spawn (ecology/food-and-spawn.md §1). */
   moteMotion: 'mote_motion',
-  /** Wild cells: spread factors, wander headings and turn rolls (ecology/wild-cells.md §3.3). */
+  /** Wild cells: size factors, wander headings and turn rolls (ecology/wild-cells.md §3.3). */
   wildCells: 'wild_cells',
   /** Spit-out rolls: one draw per tick per wrapped or sealed prey whose `spitOutChancePerSecond` > 0 (ecology/absorption.md §6.1). */
   engulf: 'engulf',

@@ -33,7 +33,7 @@ function soloSeat(tick = 0): { world: WorldState; wild: CellRecord; player: Cell
   world.wildSeats = [seat];
   world.cells = [player, wild];
   world.tick = tick;
-  seat.massSpreadFactor = 1;
+  seat.sizeFactor = 1;
   seat.decideInTicks = ticksUntilDecision(world.tick, seat.seatNumber, INTERVAL_TICKS);
   return { world, wild, player };
 }
@@ -44,10 +44,14 @@ interface Placement {
   readonly mass: number;
 }
 
+/** Moves and weighs a cell; the wild seat's full size follows, so the settle reads no meal and no wound. */
 function place(cell: CellRecord, placement: Placement, world: WorldState): void {
   cell.x = placement.x;
   cell.y = placement.y;
   setCellMass(cell, placement.mass, world.balance);
+  for (const seat of world.wildSeats.filter((candidate) => candidate.cellId === cell.id)) {
+    seat.fullMass = placement.mass;
+  }
 }
 
 function headingDegrees(cell: CellRecord): number {
@@ -71,7 +75,7 @@ describe('the wild strategy through the step', () => {
     place(player, { x: 0, y: 0, mass: 100 }, world);
     place(wild, { x: 89, y: 0, mass: 20 }, world);
     step(world, INTERVAL_TICKS);
-    // Decided at step 1 of tick 30 from where it sat (89, 0) at that tick's pinned radius; step 3 then moved it.
+    // Decided at step 1 of tick 30 from where it sat (89, 0) at that tick's settled radius; step 3 then moved it.
     expect(wild.targetX).toBeCloseTo(89 + controls.STEER_FULL_THROTTLE_RADII * wild.radius, 6);
     expect(wild.targetY).toBeCloseTo(0, 6);
     step(world, secondsToTicks(1) - INTERVAL_TICKS);

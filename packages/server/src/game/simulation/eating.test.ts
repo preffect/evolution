@@ -1,4 +1,5 @@
-// docs/ecology/food-and-spawn.md §1 (E4), docs/traits/constants-and-acceptance.md §6 (T6 ribosomes) and the step-4 ordering rules.
+// docs/ecology/food-and-spawn.md §1 (E4), docs/traits/constants-and-acceptance.md §6 (T6 ribosomes), the step-4 ordering
+// rules, and what a wild cell eats (docs/ecology/wild-cells.md §3.3.3: algae and detritus, for mass alone).
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
@@ -10,6 +11,7 @@ import {
   playerId,
 } from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';
+import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import type { CellRecord } from '../world/entities.js';
@@ -167,5 +169,44 @@ describe('eat: the amounts on the effect (#383)', () => {
     expect(world.effects).toMatchObject([
       { kind: EFFECT_KIND.eat, eatenKind: ENTITY_KIND.dnaFragment, massGained: 0, dnaGained: ecology.DNA_FRAGMENT_DNA },
     ]);
+  });
+});
+
+describe('eat: a wild cell', () => {
+  function wildWorld() {
+    const { world, context } = placedWorld();
+    world.cells = [];
+    const { cell } = seatTestWildCell(world, { at: BROTH_POINT });
+    return { world, context, wild: cell };
+  }
+
+  it('eats algae and detritus for their mass alone, with an eat effect that carries no DNA', () => {
+    const { world, context, wild } = wildWorld();
+    const massBefore = wild.mass;
+    spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: eastOf(wild, 1) });
+    spawnFoodMote(world, { kind: FOOD_KIND.detritus, variant: null, at: eastOf(wild, 2) });
+    eat(world, context);
+    expect(world.food).toEqual([]);
+    expect(wild.mass).toBeCloseTo(massBefore + ecology.ALGAE_MASS + ecology.DETRITUS_MOTE_MASS, 9);
+    expect(world.effects).toMatchObject([
+      { kind: EFFECT_KIND.eat, cellId: wild.id, massGained: ecology.ALGAE_MASS, dnaGained: 0 },
+      { kind: EFFECT_KIND.eat, cellId: wild.id, massGained: ecology.DETRITUS_MOTE_MASS, dnaGained: 0 },
+    ]);
+  });
+
+  it('leaves bacteria and fragments inside it for a player', () => {
+    const { world, context, wild } = wildWorld();
+    const massBefore = wild.mass;
+    const bacterium = spawnFoodMote(world, {
+      kind: FOOD_KIND.bacterium,
+      variant: BACTERIUM_VARIANT.aerobic,
+      at: eastOf(wild, 1),
+    });
+    const fragment = spawnDnaFragment(world, { tag: DNA_TAG.motile, at: eastOf(wild, 1), driftTurn: 0 });
+    eat(world, context);
+    expect(world.food).toEqual([bacterium]);
+    expect(world.dnaFragments).toEqual([fragment]);
+    expect(wild.mass).toBe(massBefore);
+    expect(world.effects).toEqual([]);
   });
 });
