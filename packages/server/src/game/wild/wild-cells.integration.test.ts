@@ -31,7 +31,7 @@ import { wildRecoveryFactorPerTick } from './wild-settle.js';
 const { wildCells, growth, ecology } = DEFAULT_BALANCE;
 const ONE_SECOND_TICKS = secondsToTicks(1);
 const DETERMINISM_TICKS = 120;
-const MASS_TOLERANCE_DIGITS = 6;
+const MASS_DIGITS = 6;
 /** A wound or a meal the tests lay on a cell. */
 const WOUND_MASS = 10;
 const MEAL_MASS = 10;
@@ -97,7 +97,7 @@ describe('the wild seats through the step', () => {
     expect(world.food).not.toContain(algae);
     expect(world.food).toContain(bacterium);
     expect(world.dnaFragments).toContain(fragment);
-    expect(wild.mass - seat.fullMass).toBeCloseTo(algae.mass, MASS_TOLERANCE_DIGITS);
+    expect(wild.mass - seat.fullMass).toBeCloseTo(algae.mass, MASS_DIGITS);
     step(world);
     expect(seat.grownMass).toBeGreaterThan(algae.mass * (1 - ecology.MASS_DECAY_RATE_PER_SECOND));
     expect(seat.grownMass).toBeLessThan(algae.mass);
@@ -109,7 +109,7 @@ describe('the wild seats through the step', () => {
     setCellMass(wild, seat.fullMass + MEAL_MASS, world.balance);
     const decayAtMeal = (wild.mass - growth.CELL_STARTING_MASS) * ecology.MASS_DECAY_RATE_PER_SECOND;
     step(world);
-    expect(seat.grownMass).toBeCloseTo(MEAL_MASS - decayAtMeal * TICK_INTERVAL_S, MASS_TOLERANCE_DIGITS);
+    expect(seat.grownMass).toBeCloseTo(MEAL_MASS - decayAtMeal * TICK_INTERVAL_S, MASS_DIGITS);
     expect(wild.mass).toBe(seat.fullMass);
     setCellMass(wild, seat.fullMass - WOUND_MASS, world.balance);
     step(world);
@@ -122,7 +122,7 @@ describe('the wild seats through the step', () => {
     step(world, ONE_SECOND_TICKS);
     const reference = worldReferenceAt(world, world.tick);
     for (const [index, cell] of wildCellsOf(world).entries()) {
-      expect(cell.mass).toBeCloseTo(reference.worldMass * world.wildSeats[index]!.sizeFactor, MASS_TOLERANCE_DIGITS);
+      expect(cell.mass).toBeCloseTo(reference.worldMass * world.wildSeats[index]!.sizeFactor, MASS_DIGITS);
     }
   });
 
