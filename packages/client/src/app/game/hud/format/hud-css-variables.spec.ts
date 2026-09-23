@@ -1,23 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import {
-  CALLOUT_BACKING,
-  DANGER,
-  DNA_RING_STROKE_PX,
-  GAIN,
-  LEVEL_GOLD,
-  OUTLINE,
-  PANEL_BOTTOM,
-  PANEL_RIM,
-  PANEL_TOP,
-  TEXT,
-  TEXT_LABEL,
-  TEXT_MUTED,
-  TREND_GLYPH_PX,
-  UI_LABEL_TRACKING_EM,
-  UI_TYPE,
-  WHITE,
-} from '../../render/constants';
+import { DNA_RING_STROKE_PX, GAIN, OUTLINE, TREND_GLYPH_PX } from '../../render/constants';
+import { uiStyleVariables } from '../../../ui-kit/format/ui-css-variables';
 import {
   AFFECTING_MASS_ROW_GAP_PX,
   AFFECTING_SPARKLINE_HEIGHT_PX,
@@ -50,7 +34,6 @@ import {
   LEADERBOARD_SWATCH_COLUMN_PX,
   LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
-  HUD_FOCUS_RING_PX,
   MENU_PANEL_WIDTH_PX,
   MENU_TRAIT_LINE_HEIGHT_PX,
   MENU_TRAIT_ROW_HEIGHT_PX,
@@ -75,7 +58,6 @@ import {
   HUD_NOTICE_ROWS_VARIABLE,
   HUD_PICKER_BAND_OFFSET_VARIABLE,
   HUD_PICKER_SPOTLIGHT_VARIABLE,
-  HUD_SCALE_VARIABLE,
   hudStyleVariables,
   noticeRowsVariable,
   pickerBandVariables,
@@ -90,18 +72,16 @@ describe('pickerBandVariables', () => {
       [HUD_PICKER_BAND_OFFSET_VARIABLE]: `${pickerBandOffsetPx(viewport)}px`,
       [HUD_PICKER_SPOTLIGHT_VARIABLE]: `${pickerSpotlightRadiusPx(viewport)}px`,
     });
-    expect(HUD_PICKER_BAND_OFFSET_VARIABLE in hudStyleVariables(1)).toBe(false);
+    expect(HUD_PICKER_BAND_OFFSET_VARIABLE in hudStyleVariables()).toBe(false);
   });
 });
 
 describe('noticeRowsVariable', () => {
   it('publishes the live notice row count, unitless, beside the constant map', () => {
     expect(noticeRowsVariable(2)).toEqual({ [HUD_NOTICE_ROWS_VARIABLE]: '2' });
-    expect(HUD_NOTICE_ROWS_VARIABLE in hudStyleVariables(1)).toBe(false);
+    expect(HUD_NOTICE_ROWS_VARIABLE in hudStyleVariables()).toBe(false);
   });
 });
-
-const TEST_SCALE = 1.25;
 
 /**
  * Every entry the bridge may publish, against the constant it must come from. The bridge is the
@@ -110,8 +90,6 @@ const TEST_SCALE = 1.25;
  * joining the map with a green gate.
  */
 const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
-  [HUD_SCALE_VARIABLE, String(TEST_SCALE)],
-
   ['--hud-margin', `${HUD_MARGIN_PX}px`],
   ['--hud-leaderboard-width', `${LEADERBOARD_WIDTH_PX}px`],
   ['--hud-leaderboard-full-width', `${LEADERBOARD_FULL_WIDTH_PX}px`],
@@ -135,7 +113,6 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-row-slide-duration', `${LEADERBOARD_ROW_SLIDE_MS}ms`],
   ['--hud-leaderboard-expand-duration', `${LEADERBOARD_EXPAND_MS}ms`],
   ['--hud-clock-pulse-duration', `${ROUND_CLOCK_PULSE_PERIOD_MS}ms`],
-  ['--hud-focus-ring', `${HUD_FOCUS_RING_PX}px`],
 
   ['--hud-picker-row-gap', `${PICKER_ROW_GAP_PX}px`],
   ['--hud-picker-timer-width', `${PICKER_TIMER_BAR_WIDTH_PX}px`],
@@ -173,59 +150,31 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-notice-rim', `${NOTICE_RIM_PX}px`],
   ['--hud-hint-rim', `${HINT_RIM_PX}px`],
   ['--hud-connection-lost-dim-alpha', String(CONNECTION_LOST_DIM_ALPHA)],
-  ['--hud-danger', DANGER],
-  ['--hud-callout-backing', CALLOUT_BACKING],
 
-  ['--hud-font-sans', UI_TYPE.body.font],
-  ['--hud-font-mono', UI_TYPE.clock.font],
-  ['--hud-font-figure', UI_TYPE.figure.font],
-  ['--hud-type-clock', `${UI_TYPE.clock.px}px`],
-  ['--hud-type-body', `${UI_TYPE.body.px}px`],
-  ['--hud-type-figure', `${UI_TYPE.figure.px}px`],
-  ['--hud-type-caption', `${UI_TYPE.caption.px}px`],
-  ['--hud-type-title', `${UI_TYPE.title.px}px`],
-  ['--hud-type-value', `${UI_TYPE.value.px}px`],
-  ['--hud-type-card-name', `${UI_TYPE.cardName.px}px`],
-  ['--hud-type-label', `${UI_TYPE.label.px}px`],
-  ['--hud-label-tracking', `${UI_LABEL_TRACKING_EM}em`],
-
-  ['--hud-text', TEXT],
-  ['--hud-text-label', TEXT_LABEL],
-  ['--hud-text-muted', TEXT_MUTED],
-  ['--hud-panel-top', PANEL_TOP],
-  ['--hud-panel-bottom', PANEL_BOTTOM],
-  ['--hud-panel-rim', PANEL_RIM],
-  ['--hud-level-gold', LEVEL_GOLD],
   ['--hud-outline', OUTLINE],
-  ['--hud-white', WHITE],
   ['--hud-gain', GAIN],
 ];
 
 describe('hudStyleVariables', () => {
   it.each(PUBLISHED_VARIABLES)('publishes %s from its constant, never a copy', (name, expected) => {
-    expect(hudStyleVariables(TEST_SCALE)[name]).toBe(expected);
+    expect(hudStyleVariables()[name]).toBe(expected);
   });
 
   it('publishes exactly these and nothing else, so an unpinned value cannot join the map', () => {
-    expect(Object.keys(hudStyleVariables(TEST_SCALE)).sort()).toEqual(PUBLISHED_VARIABLES.map(([name]) => name).sort());
-  });
-
-  it('carries the scale it is given, unitless, so a length can multiply by it', () => {
-    expect(hudStyleVariables(1)[HUD_SCALE_VARIABLE]).toBe('1');
-    expect(hudStyleVariables(0.8)[HUD_SCALE_VARIABLE]).toBe('0.8');
+    expect(Object.keys(hudStyleVariables()).sort()).toEqual(PUBLISHED_VARIABLES.map(([name]) => name).sort());
   });
 
   it('names every variable with the --hud- prefix, so a stylesheet cannot read a stray one', () => {
-    for (const name of Object.keys(hudStyleVariables(1))) expect(name.startsWith('--hud-')).toBe(true);
+    for (const name of Object.keys(hudStyleVariables())) expect(name.startsWith('--hud-')).toBe(true);
   });
 
-  it('publishes each type role whole — a size with its own face (docs/visual-style/ui-type.md §7)', () => {
-    const variables = hudStyleVariables(1);
-    expect(variables['--hud-type-body']).toBe(`${UI_TYPE.body.px}px`);
-    expect(variables['--hud-font-sans']).toBe(UI_TYPE.body.font);
-    expect(variables['--hud-type-figure']).toBe(`${UI_TYPE.figure.px}px`);
-    expect(variables['--hud-font-figure']).toBe(UI_TYPE.figure.font);
-    // `figure` is `body`'s size in the mono face: the numeric columns keep the row's weight.
-    expect(UI_TYPE.figure.px).toBe(UI_TYPE.body.px);
+  it('leaves the type, colour, focus ring and scale to the kit, which the same shell publishes (#381)', () => {
+    const kit = uiStyleVariables();
+    for (const role of ['type-body', 'font-sans', 'font-mono', 'text', 'panel-rim', 'danger', 'focus-ring', 'scale']) {
+      expect(`--hud-${role}` in hudStyleVariables()).toBe(false);
+    }
+    expect(kit['--ui-type-body']).toBeDefined();
+    expect(kit['--ui-text']).toBeDefined();
+    expect(kit['--ui-focus-ring']).toBeDefined();
   });
 });

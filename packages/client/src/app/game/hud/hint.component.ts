@@ -41,7 +41,7 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
         position: absolute;
         left: 0;
         right: 0;
-        bottom: calc(var(--hud-margin) * var(--hud-scale));
+        bottom: calc(var(--hud-margin) * var(--ui-scale));
         display: flex;
         justify-content: center;
         pointer-events: none;
@@ -52,7 +52,7 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
        * shrink-to-fit box and wrap every hint, however short.
        */
       .live {
-        max-width: calc(100% - 2 * var(--hud-margin) * var(--hud-scale));
+        max-width: calc(100% - 2 * var(--hud-margin) * var(--ui-scale));
       }
 
       /* The notice row's height and inset, rounded into a pill: one callout surface for every line of words. */
@@ -64,27 +64,27 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
         box-sizing: border-box;
         display: flex;
         align-items: center;
-        min-height: calc(var(--hud-notice-row-height) * var(--hud-scale));
+        min-height: calc(var(--hud-notice-row-height) * var(--ui-scale));
         max-width: 100%;
         margin: 0;
-        padding-inline: calc(var(--hud-notice-padding-inline) * var(--hud-scale));
+        padding-inline: calc(var(--hud-notice-padding-inline) * var(--ui-scale));
         /* One line fills the notice row's height exactly; each further line adds its own. */
         --hint-line-height: 1.25;
         padding-block: calc(
-          (var(--hud-notice-row-height) - var(--hud-type-body) * var(--hint-line-height)) / 2 * var(--hud-scale)
+          (var(--hud-notice-row-height) - var(--ui-type-body) * var(--hint-line-height)) / 2 * var(--ui-scale)
         );
-        border-radius: calc(var(--hud-notice-row-height) / 2 * var(--hud-scale));
-        background: var(--hud-callout-backing);
-        font-family: var(--hud-font-sans);
-        font-size: calc(var(--hud-type-body) * var(--hud-scale));
+        border-radius: calc(var(--hud-notice-row-height) / 2 * var(--ui-scale));
+        background: var(--ui-callout-backing);
+        font-family: var(--ui-font-sans);
+        font-size: calc(var(--ui-type-body) * var(--ui-scale));
         line-height: var(--hint-line-height);
-        color: var(--hud-text);
+        color: var(--ui-text);
         text-align: center;
       }
 
       /* A coach beat's rim in the role colour of the cue it explains; the text stays in the text colour (§5). */
       .pill.rimmed {
-        border: calc(var(--hud-hint-rim) * var(--hud-scale)) solid var(--hint-rim-colour);
+        border: calc(var(--hud-hint-rim) * var(--ui-scale)) solid var(--hint-rim-colour);
       }
     `,
   ],

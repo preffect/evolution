@@ -8,27 +8,13 @@
 // Enforcement is the only reason the indirection exists, so nothing here may go unpinned, and
 // nothing may be published that no stylesheet reads.
 //
-// Lengths are emitted with their unit and are at HUD scale 1; a stylesheet scales one with
-// `calc(var(--hud-…) * var(--hud-scale))`, so hit-testing stays in real pixels (docs/ui/layout.md §1).
+// Only the HUD's own sizes are here. The type roles, the colour roles, the focus ring and the scale are the UI kit's
+// (`ui-kit/format/ui-css-variables.ts`, docs/ui/components-and-constants.md §10.1), published on the same shell, so
+// a HUD stylesheet reads `--ui-type-…`, the `--ui-` colours and `--ui-scale` (#381). Lengths are emitted with their
+// unit at scale 1; a stylesheet scales one with `calc(var(--hud-…) * var(--ui-scale))`, so hit-testing stays in real
+// pixels (docs/ui/layout.md §1).
 
-import {
-  CALLOUT_BACKING,
-  DANGER,
-  DNA_RING_STROKE_PX,
-  GAIN,
-  LEVEL_GOLD,
-  OUTLINE,
-  PANEL_BOTTOM,
-  PANEL_RIM,
-  PANEL_TOP,
-  TEXT,
-  TEXT_LABEL,
-  TEXT_MUTED,
-  TREND_GLYPH_PX,
-  UI_LABEL_TRACKING_EM,
-  UI_TYPE,
-  WHITE,
-} from '../../render/constants';
+import { DNA_RING_STROKE_PX, GAIN, OUTLINE, TREND_GLYPH_PX } from '../../render/constants';
 import {
   AFFECTING_MASS_ROW_GAP_PX,
   AFFECTING_SPARKLINE_HEIGHT_PX,
@@ -61,7 +47,6 @@ import {
   LEADERBOARD_SWATCH_COLUMN_PX,
   LEADERBOARD_SWATCH_DIAMETER_PX,
   LEADERBOARD_WIDTH_PX,
-  HUD_FOCUS_RING_PX,
   MENU_PANEL_WIDTH_PX,
   MENU_TRAIT_LINE_HEIGHT_PX,
   MENU_TRAIT_ROW_HEIGHT_PX,
@@ -85,9 +70,6 @@ import {
 import { TRAIT_GLYPH_LIST_PX } from '../../glyphs/glyph-constants';
 import type { ViewportPx } from '../../render/camera';
 import { pickerBandOffsetPx, pickerSpotlightRadiusPx } from './picker-band';
-
-/** The custom property `hud.component.ts` sets from the live box; every length multiplies by it. */
-export const HUD_SCALE_VARIABLE = '--hud-scale';
 
 type StyleVariables = Readonly<Record<string, string>>;
 
@@ -118,9 +100,6 @@ function chromeVariables(): StyleVariables {
     '--hud-row-slide-duration': `${LEADERBOARD_ROW_SLIDE_MS}ms`,
     '--hud-leaderboard-expand-duration': `${LEADERBOARD_EXPAND_MS}ms`,
     '--hud-clock-pulse-duration': `${ROUND_CLOCK_PULSE_PERIOD_MS}ms`,
-
-    // Every control's focus ring (docs/ui/input-and-onboarding.md §4).
-    '--hud-focus-ring': `${HUD_FOCUS_RING_PX}px`,
   };
 }
 
@@ -187,40 +166,16 @@ function noticeVariables(): StyleVariables {
     '--hud-connection-lost-dim-alpha': String(CONNECTION_LOST_DIM_ALPHA),
     // The hint pill shares the notice row's surface (docs/ui/input-and-onboarding.md §5); a coach beat adds this rim.
     '--hud-hint-rim': `${HINT_RIM_PX}px`,
-    '--hud-danger': DANGER,
-    '--hud-callout-backing': CALLOUT_BACKING,
   };
 }
 
 /**
- * Type roles, each published whole — a size with its own face — and the colour roles
- * (docs/visual-style/principles-and-palette.md §2, docs/visual-style/ui-type.md §7).
+ * The two colour roles the kit does not carry (docs/visual-style/principles-and-palette.md §2): the text outline the
+ * clock and the cues sit on, and the gain role the mass trend rises in (§3.7). Every other colour is the kit's.
  */
-function typeAndColourVariables(): StyleVariables {
+function hudColourVariables(): StyleVariables {
   return {
-    '--hud-font-sans': UI_TYPE.body.font,
-    '--hud-font-mono': UI_TYPE.clock.font,
-    '--hud-font-figure': UI_TYPE.figure.font,
-    '--hud-type-clock': `${UI_TYPE.clock.px}px`,
-    '--hud-type-body': `${UI_TYPE.body.px}px`,
-    '--hud-type-figure': `${UI_TYPE.figure.px}px`,
-    '--hud-type-caption': `${UI_TYPE.caption.px}px`,
-    '--hud-type-title': `${UI_TYPE.title.px}px`,
-    '--hud-type-value': `${UI_TYPE.value.px}px`,
-    '--hud-type-card-name': `${UI_TYPE.cardName.px}px`,
-    '--hud-type-label': `${UI_TYPE.label.px}px`,
-    '--hud-label-tracking': `${UI_LABEL_TRACKING_EM}em`,
-
-    '--hud-text': TEXT,
-    '--hud-text-label': TEXT_LABEL,
-    '--hud-text-muted': TEXT_MUTED,
-    '--hud-panel-top': PANEL_TOP,
-    '--hud-panel-bottom': PANEL_BOTTOM,
-    '--hud-panel-rim': PANEL_RIM,
-    '--hud-level-gold': LEVEL_GOLD,
     '--hud-outline': OUTLINE,
-    '--hud-white': WHITE,
-    // The gain role beside the danger one of `noticeVariables`: the mass trend rises in it (§3.7).
     '--hud-gain': GAIN,
   };
 }
@@ -251,14 +206,13 @@ export function pickerBandVariables(viewport: ViewportPx): StyleVariables {
 }
 
 /** Every `--hud-…` a HUD stylesheet may read, by name, at scale 1. */
-export function hudStyleVariables(hudScale: number): StyleVariables {
+export function hudStyleVariables(): StyleVariables {
   return {
-    [HUD_SCALE_VARIABLE]: String(hudScale),
     ...chromeVariables(),
     ...pickerVariables(),
     ...affectingPanelVariables(),
     ...menuVariables(),
     ...noticeVariables(),
-    ...typeAndColourVariables(),
+    ...hudColourVariables(),
   };
 }

@@ -6,11 +6,11 @@
 
 Reference viewport **`UI_REFERENCE_VIEWPORT_WIDTH_PX` × `UI_REFERENCE_VIEWPORT_HEIGHT_PX`** (1280 × 800 CSS
 px), HUD scale 1. Every chrome size below is at scale 1. The scale is a unitless number, not a CSS expression:
-`hud.component.ts` observes its host with a `ResizeObserver` and sets the custom property `--hud-scale` from the
-UI kit's pure function `uiScaleFor(width, height)` (`ui-kit/format/ui-scale.ts`, unit-tested; a `[uiSurface]` sets
-`--ui-scale` from the same function, components-and-constants.md §10.1, and #381 retires `--hud-scale` for it) =
+`hud.component.ts` observes its host with a `ResizeObserver` and sets the kit's custom property `--ui-scale` from the
+UI kit's pure function `uiScaleFor(width, height)` (`ui-kit/format/ui-scale.ts`, unit-tested; a `[uiSurface]` sets it
+from the same function, components-and-constants.md §10.1; the HUD's own `--hud-scale` went in #381) =
 `clamp(UI_SCALE_MIN, min(width / UI_REFERENCE_VIEWPORT_WIDTH_PX, height / UI_REFERENCE_VIEWPORT_HEIGHT_PX), UI_SCALE_MAX)`.
-Every length in the HUD stylesheets is `calc(<px> * var(--hud-scale))`; there is no `transform: scale`, so
+Every length in the HUD stylesheets is `calc(<px> * var(--ui-scale))`; there is no `transform: scale`, so
 hit-testing, focus rings and the exclusion check below all happen in real pixels. Elements anchor to their corner
 with `HUD_MARGIN_PX` × scale; centre-relative elements (the picker band, §3.2) are placed as offsets from the
 viewport centre, never at absolute y. The canvas fills the viewport; the player's cell is at the screen centre
@@ -21,7 +21,7 @@ may enter it while the player is alive and the round is `playing`. The rule hold
 120 px half-side, and the widened leaderboard overlaps it at around 794 px of width. That is under the smallest
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the
 dish are the own cell's indicators and legibility cues (hud.md §3.1.2, §3.1.5), drawn by the renderer in world
-space**; they are not subject to the box and do not scale with `--hud-scale` (they follow the cell's on-screen size
+space**; they are not subject to the box and do not scale with `--ui-scale` (they follow the cell's on-screen size
 with the px floors of §3.1.3). The cues (the mass chip, rate tags, floaters, zone pill and the relation labels) were
 let in by decision #324: the box keeps DOM out, it never kept the renderer out, and a cue about the cell has to sit
 on the cell. They may reach past the box (the rate-tag column at the cap), but never into the notice stack above
