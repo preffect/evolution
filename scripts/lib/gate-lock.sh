@@ -33,7 +33,7 @@
 GATE_CLASS_HEAVY="heavy"
 GATE_CLASS_LIGHT="light"
 GATE_CLASS_NONE="none"
-GATE_HEAVY_RUN_CORES=4        # a heavy run's runner uses about every core of a 4-core box (#380)
+GATE_HEAVY_RUN_CORES=2        # a heavy runner uses cores - 2 workers (#475): two runs share a 4-core box (#561)
 GATE_LIGHT_RUN_CORES=2        # a light run uses one core, beside a heavy run that already fills them (#380)
 GATE_HEAVY_RUN_MEMORY_MB=4096 # a heavy runner's processes were sampled near 1.1 GB; headroom for coverage (#380)
 GATE_LIGHT_RUN_MEMORY_MB=1024 # eslint over the client peaks near 1 GB (#380)
