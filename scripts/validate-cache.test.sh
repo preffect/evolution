@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # validate-cache.test.sh — exercises validate.sh's result cache (docs/engineering/validation-gate.md §1) against a
 # throwaway git repo with a fake `pnpm` on PATH, so it runs without node_modules:
-#   second run is cached; an untracked file change invalidates; --fresh re-runs; red is never
+#   second run is cached; an untracked file change invalidates; `all --affected` answers test and typecheck
+#   from every affected package's own stamp on the tree, never lint, duplication or the shell suites (#563); --fresh re-runs; red is never
 #   cached; `all` stamps its phases and itself (an `all` hit prints ALL PASSED and filters see every
 #   phase's stored log); a worktree at the same content shares the stamp; a Node-major mismatch, a
 #   missing stored log and a run that changes the tree are misses; VALIDATE_CACHE_DIR overrides the
@@ -523,6 +524,26 @@ affected_branch affected-shared packages/shared/src/index.ts
 run_validate "$fixture" all --affected
 check "a shared change selects all three packages, the dependents with their reason" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/shared --filter @evolution/server --filter @evolution/client test$'; echo $?) == 0 && $(ran '^affected server: depends on shared$'; echo $?) == 0 && $(ran '^affected client: depends on shared$'; echo $?) == 0 ))
 check "a shared change runs the integration tier of every selected package that has one: server and client" $(( $(ran '^fake pnpm --filter @evolution/server --filter @evolution/client --if-present test:integration$'; echo $?) == 0 ))
+
+# #563: the gate answers test and typecheck from package stamps on the same tree, never lint or duplication.
+affected_branch affected-reuse packages/server/src/reuse.ts
+run_validate "$fixture" test --scope server
+run_validate "$fixture" typecheck --scope server
+: > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" all --affected
+check "an affected gate answers test and typecheck from the package's green stamps on the same tree (#563)" $(( rc == 0 && $(grep -c '^cached green from the package stamps of server at tree [0-9a-f]\{40\}$' <<<"$out") == 2 && $(ran '^fake pnpm --filter @evolution/server test$\|^fake pnpm --filter @evolution/server typecheck$'; echo $?) != 0 ))
+check "that gate still lints and scans for duplication itself" $(( $(ran '^fake pnpm eslint packages/server$'; echo $?) == 0 && $(ran '^fake pnpm jscpd'; echo $?) == 0 ))
+affected_branch affected-reuse-partial packages/shared/src/partial.ts
+run_validate "$fixture" test --scope shared
+run_validate "$fixture" test --scope server
+run_validate "$fixture" all --affected
+check "a package without its own stamp (client) makes the gate run the whole test phase" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/shared --filter @evolution/server --filter @evolution/client test$'; echo $?) == 0 ))
+affected_branch affected-reuse-scripts packages/server/src/with-tool.ts
+echo tool >> "$fixture/scripts/tool.sh"
+git -C "$fixture" add -A && git -C "$fixture" -c user.name=test -c user.email=test@example.com commit -q -m tool
+run_validate "$fixture" test --scope server
+run_validate "$fixture" all --affected
+check "a gate that also runs the shell suites runs its test phase, which no package stamp covers" $(( rc == 0 && $(ran '^fake pnpm --filter @evolution/server test$'; echo $?) == 0 && $(ran "$FIXTURE_SUITE_MARKER"; echo $?) == 0 ))
 
 affected_branch affected-docs docs/NOTE.md
 run_validate "$fixture" all --affected

@@ -97,7 +97,15 @@
      0 in well under a second; the filters apply to the stored log. Red is never cached, `all`
      stamps each phase and itself, `--fresh` bypasses the stamp, and `-- extra-args` calls are
      never cached. The scope is part of the stamp: a scoped green never answers an unscoped call,
-     nor the reverse. The stamp names the tree the merge gate ran on. Nothing
+     nor the reverse, with one exception (#563): `all --affected` answers its `test` and `typecheck`
+     phases from green package stamps (`test --scope client`, …) when every affected package has one on
+     the same tree, so the merge gate does not repeat what the builder or reviewer ran on that exact code.
+     It prints `cached green from the package stamps of <packages> at tree <hash>` and stamps the phase.
+     Lint is never reused, because a plain lint uses eslint's cache (#559). Duplication is never reused,
+     because jscpd across packages finds what one package cannot. A test phase that also runs the shell
+     suites always runs. The stamps kept on this box showed 17 typecheck and 7 test phases repeated on
+     an identical tree (a client test run costs about 340 core-s). The stamp names the tree the merge gate
+     ran on. Nothing
      prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
      rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
      sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **Machine-wide
