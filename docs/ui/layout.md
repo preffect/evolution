@@ -71,7 +71,8 @@ Client-only layout constants are declared by #100 in `packages/client/src/app/ga
 | `HINT_RIM_PX`                      | 2                       | px    | A coach beat's role-colour rim on the hint pill (input-and-onboarding.md §5).                                           |
 | `COACH_QUEUE_MAX`                  | 2                       | beats | Coach beats waiting behind the pill that is up (input-and-onboarding.md §5).                                            |
 | `COACH_SHRINK_HOLD_SECONDS`        | 3                       | s     | The mass trend reads `down` this long before the `shrink` beat fires: a sprint alone does not.                          |
-| `COACH_PREY_REACH_RADII`           | 1                       | × r   | Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat.                                     |
+| `COACH_PREY_REACH_RADII`           | 4                       | × r   | Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat: before contact, so it can be read.  |
+| `HINT_MIN_SECONDS`                 | 1.5                     | s     | The least time the `prey` pill stays up before the player's engulf can dismiss it.                                      |
 
 The chrome's own sizes are §3.1.1's (panel widths, the header and row heights, the row counts, the name cut, the
 200 ms re-sort slide, the swatch, the 12 % own-row tint and the last-ten-seconds pulse); they live in the same file,

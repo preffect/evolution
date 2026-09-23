@@ -28,6 +28,7 @@ export class OnboardingService {
           ownCell: this.gameState.ownCell(),
           ownProgress: this.gameState.ownProgress(),
           indicators: this.gameState.ownCellIndicators(),
+          relations: this.gameState.relations(),
           balance: this.gameState.balance(),
           roundDurationSeconds: this.gameState.sessionConfig()?.roundDurationSeconds ?? null,
         }),

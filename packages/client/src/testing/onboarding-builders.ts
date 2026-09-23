@@ -43,6 +43,8 @@ export function createTestOnboardingSample(tick: number, options: OnboardingSamp
     isShrinkingFromDecay: false,
     isBloom: false,
     isToxinReaching: false,
+    hasPreyInReach: false,
+    isEngulfing: false,
     ...facts,
   };
   return {
