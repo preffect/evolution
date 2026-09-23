@@ -10,7 +10,7 @@ import {
 } from '../../quantities/quantity-unit';
 import { balancePath, type BalancePath } from '../facts/balance-path';
 import { DERIVED_LINK, type DerivedLinkCall } from '../facts/derived-links';
-import { BALANCE_MASS, FACT_FORMULA, type FactFormulaCall } from '../facts/formula-table';
+import { BALANCE_MASS, FACT_FORMULA, LEVEL_SELECTOR, type FactFormulaCall } from '../facts/formula-table';
 import type { SpawnedKind } from '@evolution/shared';
 import { FACT_SOURCE, type LinkFactDefinition, type ValueFactDefinition } from '../model/fact';
 
@@ -67,3 +67,15 @@ export const BACTERIUM_DNA_FACT = balanceFact(
 export function foundInFact(foodKind: SpawnedKind): LinkFactDefinition {
   return linkFact('foundIn', 'Found in', { id: DERIVED_LINK.foodZones, argument: { foodKind } });
 }
+
+/** What the first level-up costs: the DNA pages and the DNA ring both lead with it. */
+export const FIRST_LEVEL_UP_FACT = formulaFact(
+  { key: 'firstLevelUp', label: 'First level-up', unit: QUANTITY_UNIT.dna },
+  { id: FACT_FORMULA.levelUpCostAt, argument: { level: LEVEL_SELECTOR.first } },
+);
+
+/** The score a player engulfed adds: the score page and the leaderboard quote it. */
+export const ENGULF_BONUS_FACT = balanceFact(
+  { key: 'engulfBonus', label: 'Per engulf', unit: QUANTITY_UNIT.points },
+  balancePath('session', 'SCORE_ABSORPTION_BONUS'),
+);

@@ -8,11 +8,10 @@ import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../../render/pr
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { balancePath } from '../facts/balance-path';
 import { CATALOG_QUANTITY } from '../facts/catalog-quantities';
-import { FACT_FORMULA, LEVEL_SELECTOR } from '../facts/formula-table';
 import type { WrittenEntryContent } from '../model/entry';
 import { FACT_SOURCE } from '../model/fact';
 import { HUD_TOPIC, type HudTopicId } from '../model/hud-topics';
-import { balanceFact, formulaFact } from './fact-builders';
+import { ENGULF_BONUS_FACT, FIRST_LEVEL_UP_FACT, balanceFact } from './fact-builders';
 
 /** The own cell swimming: every indicator page shows the cell its indicator is drawn on. */
 const OWN_CELL: PreviewSpec = {
@@ -32,13 +31,7 @@ export const HUD_ENTRY_CONTENT: Readonly<Record<HudTopicId, WrittenEntryContent>
     title: 'DNA ring',
     summary:
       'The ring inside your cell fills with [[concept:dna_and_levels|DNA]] toward your next level, clockwise from the top. When it is full you level up: it flashes gold and starts again. Your first level costs {firstLevelUp}. At {maxLevel} it stays full, in gold.',
-    facts: [
-      formulaFact(
-        { key: 'firstLevelUp', label: 'First level-up', unit: QUANTITY_UNIT.dna },
-        { id: FACT_FORMULA.levelUpCostAt, argument: { level: LEVEL_SELECTOR.first } },
-      ),
-      MAX_LEVEL_FACT,
-    ],
+    facts: [FIRST_LEVEL_UP_FACT, MAX_LEVEL_FACT],
     sections: [],
     seeAlso: ['hud:level_numeral', 'concept:dna_and_levels'],
     preview: OWN_CELL,
@@ -111,12 +104,7 @@ export const HUD_ENTRY_CONTENT: Readonly<Record<HudTopicId, WrittenEntryContent>
     title: 'Leaderboard',
     summary:
       'Top right: the leading players by [[concept:score|score]], each with a swatch that matches their cell, their level and their score. Your own row is always shown. Hold Tab for the full list, which adds mass and cells engulfed. Every player cell you engulf adds {engulfBonus}.',
-    facts: [
-      balanceFact(
-        { key: 'engulfBonus', label: 'Per engulf', unit: QUANTITY_UNIT.points },
-        balancePath('session', 'SCORE_ABSORPTION_BONUS'),
-      ),
-    ],
+    facts: [ENGULF_BONUS_FACT],
     sections: [],
     seeAlso: ['concept:score', 'hud:round_clock'],
     preview: null,

@@ -17,28 +17,12 @@ import {
   strokedMarkLayers,
   washLayer,
 } from './subject-glyph-motifs';
+import { ownCellLayers } from './subject-glyph-own-cell';
 import { arcPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The two cells a comparison needs, and the reach of the mark that compares them. */
 const CONCEPT = { bigRadius: 20, smallRadius: 10, washRadius: 36 } as const;
-
-/** The player's own cell, which four of the seven relations are drawn about: one body, one lighting, four sizes. */
-function ownCellLayers(
-  centreX: number,
-  centreY: number,
-  radius: number,
-  motion?: shape.GlyphMotion,
-): readonly shape.GlyphLayer[] {
-  return roundBodyLayers({
-    cx: centreX,
-    cy: centreY,
-    radius,
-    ramp: SUBJECT_RAMP.player,
-    rim: kit.stroke(SUBJECT_RAMP.player.light, radius > CONCEPT.smallRadius ? SUBJECT_STROKE.rim : SUBJECT_STROKE.fine),
-    ...(motion === undefined ? {} : { motion }),
-  });
-}
 
 /** A caliper under two cells: mass is size, and size is measured. */
 const CALIPER = shape.path('M24 62 L24 72 M76 62 L76 72 M24 68 L76 68 M56 52 L56 68 M32 58 L32 68');

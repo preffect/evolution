@@ -27,6 +27,7 @@ import {
   roundBodyLayers,
   strokedMarkLayers,
 } from './subject-glyph-motifs';
+import { ownCellLayers } from './subject-glyph-own-cell';
 import { arcPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
@@ -39,18 +40,6 @@ const PANEL_RAMP: shape.GlyphRamp = { light: PANEL_RIM, base: PANEL_TOP, dark: P
 /** The identity ring's dash, the one dashed circle on the screen. */
 const SELF_RING_DASH = '6 4';
 
-/** The own cell as a bead: the body every indicator page draws on. */
-function ownCellLayers(centreX: number, centreY: number, radius: number): readonly shape.GlyphLayer[] {
-  return roundBodyLayers({
-    cx: centreX,
-    cy: centreY,
-    radius,
-    ramp: SUBJECT_RAMP.player,
-    rim: kit.stroke(GLYPH_PLAYER_SEAT.rim, SUBJECT_STROKE.rim),
-    motion: kit.BREATHE,
-  });
-}
-
 /** The DNA ring: the dark track inside the cell and the DNA arc filling it clockwise from the top. */
 const DNA_ARC = shape.path(
   arcPath({ cx: 50, cy: 50, radius: OWN.dnaRingRadius, fromTurns: TWELVE_O_CLOCK, toTurns: 0.4 }),
@@ -59,7 +48,7 @@ const DNA_RING: shape.SubjectGlyph = {
   entryId: 'hud:dna_ring',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    ...ownCellLayers(50, 50, OWN.bodyRadius),
+    ...ownCellLayers(50, 50, OWN.bodyRadius, kit.BREATHE),
     kit.paint(shape.GLYPH_ROLE.signature, kit.centreCircle(OWN.dnaRingRadius), {
       stroke: kit.stroke(LEVEL_RING_TRACK, SUBJECT_STROKE.heavy),
     }),
@@ -76,7 +65,7 @@ const LEVEL_NUMERAL: shape.SubjectGlyph = {
   entryId: 'hud:level_numeral',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    ...ownCellLayers(50, 50, OWN.bodyRadius),
+    ...ownCellLayers(50, 50, OWN.bodyRadius, kit.BREATHE),
     kit.paint(shape.GLYPH_ROLE.detail, kit.centreCircle(OWN.dnaRingRadius + SUBJECT_STROKE.heavy), {
       stroke: kit.stroke(LEVEL_RING_TRACK, SUBJECT_STROKE.fine, SUBJECT_ALPHA.scatter),
     }),
@@ -102,7 +91,7 @@ const LADDER_ORBIT: shape.SubjectGlyph = {
   entryId: 'hud:ladder_orbit',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    ...ownCellLayers(ORBIT.cx, ORBIT.cy, ORBIT.bodyRadius),
+    ...ownCellLayers(ORBIT.cx, ORBIT.cy, ORBIT.bodyRadius, kit.BREATHE),
     kit.paint(shape.GLYPH_ROLE.signature, ORBIT_BAND, {
       stroke: kit.stroke(LEVEL_RING_TRACK, SUBJECT_STROKE.heavy + SUBJECT_STROKE.fine),
     }),
@@ -125,7 +114,7 @@ const SELF_RING: shape.SubjectGlyph = {
   entryId: 'hud:self_ring',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
-    ...ownCellLayers(50, 50, OWN.selfBodyRadius),
+    ...ownCellLayers(50, 50, OWN.selfBodyRadius, kit.BREATHE),
     kit.paint(shape.GLYPH_ROLE.signature, kit.centreCircle(OWN.selfRingRadius), {
       stroke: kit.stroke(WHITE, SUBJECT_STROKE.mark, SUBJECT_ALPHA.faint, SELF_RING_DASH),
     }),
@@ -149,7 +138,7 @@ const THREAT_RING: shape.SubjectGlyph = {
       ramp: SUBJECT_RAMP.wild,
       rim: kit.stroke(SUBJECT_RAMP.wild.light, SUBJECT_STROKE.rim, SUBJECT_ALPHA.scatter),
     }),
-    ...ownCellLayers(32, 66, 9),
+    ...ownCellLayers(32, 66, 9, kit.BREATHE),
     kit.paint(shape.GLYPH_ROLE.signature, shape.circle(THREAT.cx, THREAT.cy, THREAT.ringRadius), {
       stroke: kit.stroke(DANGER, SUBJECT_STROKE.mark),
       motion: kit.motion(shape.GLYPH_MOTION.beat, THREAT.cx, THREAT.cy),
