@@ -1,7 +1,7 @@
 // The encyclopedia's ids (docs/architecture/encyclopedia.md §12.2): an entry documents one code kind, its subject, and
 // its id is `<subject>:<codeId>`, so regrouping entries never renames an id. Ids are lowercase and use only `:` `#`
 // `_`, which keeps them URL- and test-id-safe as written. The closed sets of the subjects without a code enum of
-// their own (`ABILITY`, `ACTION`, `WORLD_TOPIC`, `CONCEPT`) import nothing from here, so no model file cycles.
+// their own (`ABILITY`, `ACTION`, `WORLD_TOPIC`, `CONCEPT`, `HUD_TOPIC`) import nothing from here, so no model file cycles.
 
 import type {
   BacteriumVariant,
@@ -17,6 +17,7 @@ import type {
 import type { AbilityId } from './abilities';
 import type { ActionId } from './actions';
 import type { ConceptId } from './concepts';
+import type { HudTopicId } from './hud-topics';
 import type { WorldTopicId } from './world-topics';
 
 export const ENTRY_SUBJECT = {
@@ -34,6 +35,8 @@ export const ENTRY_SUBJECT = {
   world: 'world',
   /** The rules the other pages link to. */
   concept: 'concept',
+  /** How to read each HUD element; a subject under basics, not a category. */
+  hud: 'hud',
 } as const;
 export type EntrySubject = ValueOf<typeof ENTRY_SUBJECT>;
 
@@ -56,6 +59,7 @@ export const ENTRY_SUBJECT_LABEL: Readonly<Record<EntrySubject, string>> = {
   [ENTRY_SUBJECT.zone]: 'Zone',
   [ENTRY_SUBJECT.world]: 'World',
   [ENTRY_SUBJECT.concept]: 'Rule',
+  [ENTRY_SUBJECT.hud]: 'Screen',
 };
 
 /** The code id each subject documents: the one table the `EntryId` union is derived from. */
@@ -72,6 +76,7 @@ export interface CodeIdBySubject {
   [ENTRY_SUBJECT.zone]: ZoneId;
   [ENTRY_SUBJECT.world]: WorldTopicId;
   [ENTRY_SUBJECT.concept]: ConceptId;
+  [ENTRY_SUBJECT.hud]: HudTopicId;
 }
 
 export type EntryIdOf<Subject extends EntrySubject> = `${Subject}:${CodeIdBySubject[Subject]}`;

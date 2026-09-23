@@ -1,6 +1,6 @@
 // docs/ui/encyclopedia.md §11.5: the session's reading position, its back stack and its query, over the registry read
 // through `EncyclopediaContextService`. The empty-category rule is pinned as a rule — every listed category has
-// entries and every unlisted one has none — so it still holds the day #361 and #362 fill the empty ones.
+// entries and every unlisted one has none — so it still holds the day #362 fills the empty ones.
 
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';

@@ -43,16 +43,16 @@ const W3_MASS_AT_LEVEL = 200;
 const W3_TOLERANCE = 0.01;
 const W3_SPAWNED_LOW = 351;
 const W3_SPAWNED_HIGH = 355;
-/** W3 on the pinned seed: 291 algae and 12 clusters of 5 in 303 events, 0.829 (the 0.70 row; the window's σ is ≈ 0.07). */
-const W3_ALGAE_SHARE_ON_SEED = 0.829;
-/** W9: the idle player dies three times in the window; "between 513 and 517", "algae share within 0.50 ± 0.06" (0.514). */
+/** W3 on the pinned seed: 266 algae in 351 motes, 0.758 since #550 (the 0.70 row; the window's σ is ≈ 0.07). */
+const W3_ALGAE_SHARE_ON_SEED = 0.758;
+/** W9: the idle player dies three times in the window; "between 513 and 517", "algae share within 0.50 ± 0.06" (0.553). */
 const W9_DEATHS_IN_WINDOW = 3;
 const W9_SPAWNED_LOW = 513;
 const W9_SPAWNED_HIGH = 517;
 const W9_ALGAE_SHARE = 0.5;
-const W9_ALGAE_SHARE_ON_SEED = 0.514;
+const W9_ALGAE_SHARE_ON_SEED = 0.553;
 const ALGAE_SHARE_TOLERANCE = 0.06;
-/** A seed's share is one number: the tolerance only absorbs the rounding of the literal the row states. */
+/** A seed's share is one number: the tolerance only absorbs the rounding of the literal the row states (± 0.001). */
 const SEED_SHARE_TOLERANCE = 0.001;
 /** W6: seat 0 at mass 380 (radius 77.97) and A at 20, pinned, 390 wu east; the velocity read 60 ticks on. */
 const W6_PREY_MASS = 20;
@@ -113,7 +113,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
     expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.prokaryote).toEqual({ algae: 0.7, bacterium: 0.3 });
     // The seed's own draw of the 0.70 row (docs/ecology/acceptance.md §8.1 W3): no death in the window.
     expect(counts.deaths).toBe(0);
-    expect(algaeShareOf(counts)).toBeCloseTo(W3_ALGAE_SHARE_ON_SEED, SEED_SHARE_TOLERANCE);
+    expect(Math.abs(algaeShareOf(counts) - W3_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
   });
 
   it('W9: the eukaryote bloom spawns 513–517 motes in the window (three deaths) at 50 % algae; the variant table', async () => {
@@ -128,7 +128,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
     expect(counts.deaths).toBe(RUNS_PER_ROW * W9_DEATHS_IN_WINDOW);
     expect(algaeShareOf(counts)).toBeGreaterThanOrEqual(W9_ALGAE_SHARE - ALGAE_SHARE_TOLERANCE);
     expect(algaeShareOf(counts)).toBeLessThanOrEqual(W9_ALGAE_SHARE + ALGAE_SHARE_TOLERANCE);
-    expect(algaeShareOf(counts)).toBeCloseTo(W9_ALGAE_SHARE_ON_SEED, SEED_SHARE_TOLERANCE);
+    expect(Math.abs(algaeShareOf(counts) - W9_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
     const weights = (
       zone: (typeof ZONE_ID)[keyof typeof ZONE_ID],
       stage: (typeof CELL_STAGE)[keyof typeof CELL_STAGE],

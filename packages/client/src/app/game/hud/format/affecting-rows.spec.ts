@@ -29,7 +29,7 @@ import { AT_LEAST_SIGN, AT_MOST_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } fro
 import { formatQuantity } from '../../quantities/format-quantity';
 import { massTrendFor } from '../../state/mass-trend';
 import { ownCellIndicatorsFor } from '../../state/own-cell-indicators';
-import { HUD_TEST_ID, affectingCauseTestId, affectingTraitTestId } from '../test-ids';
+import { HUD_TEST_ID, affectingCauseTestId, affectingTraitTestId } from '../../test-ids/hud-test-ids';
 import { AFFECTING_SECTION, WORLD_STANDING_WORD, affectingRowsFor, type AffectingPanel } from './affecting-rows';
 import { joinFacts } from './fact-line';
 import { RATE_CAUSE_LABEL, formatMassRate } from './mass-cues';

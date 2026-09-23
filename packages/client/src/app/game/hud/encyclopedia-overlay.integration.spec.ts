@@ -4,9 +4,8 @@
 // overlay order, the alert strip the shell projects into the panel's header, and the chrome standing down under it.
 //
 // **U8 asserts the first listed category, not `basics` by name** (docs/ui/encyclopedia.md §11.1): §11.5 forbids
-// showing an empty category, and `basics` holds no entry until #361 lands, so the open falls to the first category
-// the rail lists. The assertion below is written that way on purpose — naming `basics` here would pass only once
-// #361 landed and would say nothing about the rule either way.
+// showing an empty category, so the open falls to the first category the rail lists. The assertion below is written
+// that way on purpose: `basics` has entries since #361, and naming it here would say nothing about the rule.
 
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -19,7 +18,7 @@ import { ENCYCLOPEDIA_TEST_ID, encyclopediaCategoryTestId, encyclopediaRowTestId
 import { entriesIn } from '../encyclopedia/registry';
 import { HUD_OVERLAY, HudStateService } from './hud-state.service';
 import { HudComponent } from './hud.component';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 
 const SNAPSHOT = createTestSnapshot({
   cells: [createTestCellView({ playerId: TEST_OWN_PLAYER_ID, x: 0, y: 0, radius: 4 })],

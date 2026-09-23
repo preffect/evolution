@@ -19,7 +19,7 @@ import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from './hud-constants';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const NOTHING_EATEN: Record<BacteriumVariant, number> = { plain: 0, aerobic: 0, photosynthetic: 0 };

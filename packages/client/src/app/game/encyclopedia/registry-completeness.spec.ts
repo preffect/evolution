@@ -1,15 +1,33 @@
 // @vitest-environment node
 // docs/architecture/encyclopedia.md §12.6: the assembled registry against the code's closed sets at runtime. Until
-// #361 and #362 land their content the registry holds the evolutions subjects only; every other subject is listed in
-// `SUBJECTS_AWAITING_CONTENT`, and the spec fails as soon as one of them gains entries, so the list shrinks with them.
+// #362 lands the abilities and actions, those two subjects are listed in `SUBJECTS_AWAITING_CONTENT`, and the spec
+// fails as soon as one of them gains entries, so the list shrinks with them.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, CELL_STATE, DEFAULT_BALANCE, DNA_TAG, GAME_MODE, type CellModifiers } from '@evolution/shared';
+import {
+  CELL_KIND,
+  CELL_STAGE,
+  CELL_STATE,
+  DEFAULT_BALANCE,
+  DNA_TAG,
+  ENTITY_KIND,
+  FOOD_KIND,
+  GAME_MODE,
+  WORLD_STANDING,
+  ZONE_ID,
+  createTestPlayerProgressView,
+  type CellModifiers,
+} from '@evolution/shared';
+import { createTestCellView } from '../../../testing/builders';
+import { ownCellIndicatorsFor } from '../state/own-cell-indicators';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
 import { tierSectionKey } from './build-entries';
 import { TRAIT_ENTRY_ROWS, contentByTrait } from './content/trait-entries';
 import { ABILITY, ABILITY_BY_MODIFIER } from './model/abilities';
 import { ACTION, ACTION_BY_INTENT } from './model/actions';
+import { CONCEPT } from './model/concepts';
+import { HUD_ELEMENT_BY_TOPIC, HUD_ELEMENT_KIND, HUD_TOPIC } from './model/hud-topics';
 import {
   CATEGORY_BY_SUBJECT,
   ENCYCLOPEDIA_CATEGORY,
@@ -22,21 +40,12 @@ import { ENTRY_BY_EFFECT, ENTRY_BY_WORLD_STANDING } from './model/entry-anchors'
 import { ENTRY_SUBJECT, splitEntryId, splitEntryReference, type EntryId, type EntrySubject } from './model/entry-id';
 import { CATEGORY_GROUPS, ENTRY_GROUP, ENTRY_GROUP_LABEL } from './model/groups';
 import { RESERVED_EXCLUSION_GROUP, RESERVED_FROM_ENCYCLOPEDIA } from './model/reserved';
+import { WORLD_TOPIC } from './model/world-topics';
 import { ENCYCLOPEDIA_ENTRIES, entriesIn, isEntryReference } from './registry';
 import type { TraitTier } from '@evolution/shared';
 
-/** The subjects whose content lands later: basics, entities and world with #361, abilities and actions with #362. */
-const SUBJECTS_AWAITING_CONTENT: readonly EntrySubject[] = [
-  ENTRY_SUBJECT.concept,
-  ENTRY_SUBJECT.cellKind,
-  ENTRY_SUBJECT.food,
-  ENTRY_SUBJECT.bacterium,
-  ENTRY_SUBJECT.entity,
-  ENTRY_SUBJECT.zone,
-  ENTRY_SUBJECT.world,
-  ENTRY_SUBJECT.ability,
-  ENTRY_SUBJECT.action,
-];
+/** The subjects whose content lands later: abilities and actions with #362. */
+const SUBJECTS_AWAITING_CONTENT: readonly EntrySubject[] = [ENTRY_SUBJECT.ability, ENTRY_SUBJECT.action];
 
 const traits = DEFAULT_BALANCE.traits;
 
@@ -75,6 +84,44 @@ describe('the encyclopedia registry', () => {
     expect([...idsOf(ENTRY_SUBJECT.stage)].sort()).toEqual(Object.values(CELL_STAGE).sort());
     expect(idsOf(ENTRY_SUBJECT.dnaTag)).toEqual([...DEFAULT_BALANCE.progression.DNA_TAGS]);
     expect([...idsOf(ENTRY_SUBJECT.dnaTag)].sort()).toEqual(Object.values(DNA_TAG).sort());
+  });
+
+  it('holds one entry per cell kind, food kind, bacterium variant, zone, world topic and concept', () => {
+    expect(idsOf(ENTRY_SUBJECT.cellKind)).toEqual(Object.values(CELL_KIND));
+    expect(idsOf(ENTRY_SUBJECT.food)).toEqual(Object.values(FOOD_KIND));
+    expect(idsOf(ENTRY_SUBJECT.bacterium)).toEqual([...DEFAULT_BALANCE.ecology.BACTERIUM_VARIANTS]);
+    expect(idsOf(ENTRY_SUBJECT.zone)).toEqual(Object.values(ZONE_ID));
+    expect(idsOf(ENTRY_SUBJECT.world)).toEqual(Object.values(WORLD_TOPIC));
+    expect(idsOf(ENTRY_SUBJECT.concept)).toEqual(Object.values(CONCEPT));
+  });
+
+  it('holds one HUD entry per topic, each anchored to its own element that exists', () => {
+    expect(idsOf(ENTRY_SUBJECT.hud)).toEqual(Object.values(HUD_TOPIC));
+    const anchors = Object.values(HUD_ELEMENT_BY_TOPIC);
+    expect(new Set(anchors.map((anchor) => JSON.stringify(anchor))).size).toBe(anchors.length);
+    const indicators = ownCellIndicatorsFor({
+      ownCell: createTestCellView(),
+      ownProgress: createTestPlayerProgressView(),
+      balance: DEFAULT_BALANCE,
+      threats: [],
+      previewTraitId: null,
+    });
+    for (const anchor of anchors) {
+      if (anchor.kind === HUD_ELEMENT_KIND.dom) expect(Object.keys(HUD_TEST_ID)).toContain(anchor.testId);
+      else expect(Object.keys(indicators)).toContain(anchor.field);
+    }
+  });
+
+  it('holds the DNA fragment as the one entity entry, with one section per DNA tag in walk order', () => {
+    expect(idsOf(ENTRY_SUBJECT.entity)).toEqual([ENTITY_KIND.dnaFragment]);
+    const fragment = ENCYCLOPEDIA_ENTRIES.find((entry) => entry.id === 'entity:dna_fragment');
+    expect(fragment?.sections.map((section) => section.key)).toEqual([...DEFAULT_BALANCE.progression.DNA_TAGS]);
+  });
+
+  it('has a world standing section for every standing the HUD shows', () => {
+    for (const standing of Object.values(WORLD_STANDING)) {
+      expect(isEntryReference(`concept:world_standing#${standing}`), standing).toBe(true);
+    }
   });
 
   it('has no entry yet for a subject awaiting content, so the awaiting list shrinks as content lands', () => {
@@ -161,13 +208,11 @@ describe('the category and group labels', () => {
     }
   });
 
-  it('name each group the doc names, but the HUD group that lands with #361', () => {
+  it('name each group the doc names', () => {
     const named = rows.flatMap((cells) => [...(cells[3] ?? '').matchAll(/([A-Z][A-Za-z ]*?) \(`(\w+)`\)/g)]);
-    const awaiting = ['reading_the_screen'];
+    expect(named.map(([, , groupId]) => groupId)).toContain(ENTRY_GROUP.readingTheScreen);
     for (const [, label, groupId] of named) {
-      if (awaiting.includes(groupId ?? '')) continue;
       expect(ENTRY_GROUP_LABEL[groupId as keyof typeof ENTRY_GROUP_LABEL], groupId).toBe(label);
     }
-    expect(Object.values(ENTRY_GROUP)).not.toContain('reading_the_screen');
   });
 });

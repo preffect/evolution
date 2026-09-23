@@ -18,7 +18,7 @@ import { MASS_TREND } from '../state/mass-trend';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { AffectingPanelComponent } from './affecting-panel.component';
 import { HudStateService } from './hud-state.service';
-import { HUD_TEST_ID, affectingTraitTestId, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, affectingTraitTestId, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const OWN_CELL_ID = entityId('c-own');

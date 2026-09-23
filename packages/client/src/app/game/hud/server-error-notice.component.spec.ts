@@ -6,7 +6,7 @@ import {
   SERVER_ERROR_DISMISS_LABEL,
   ServerErrorNoticeComponent,
 } from './server-error-notice.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 describe('ServerErrorNoticeComponent', () => {
   let fixture: ComponentFixture<ServerErrorNoticeComponent>;

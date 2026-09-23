@@ -31,7 +31,7 @@ import { AudioHooks } from './audio/audio-hooks';
 import { CLOCK } from './clock-provider';
 import { GameHostComponent } from './game-host.component';
 import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud/hud-state.service';
-import { HUD_TEST_ID } from './hud/test-ids';
+import { HUD_TEST_ID } from './test-ids/hud-test-ids';
 import { CREATE_PIXI_APP } from './render/pixi-app-provider';
 
 const VIEWPORT = { width: 1280, height: 720 };

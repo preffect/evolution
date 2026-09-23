@@ -3,7 +3,13 @@ import { DEFAULT_BALANCE, canEngulf, entityId, type CellView } from '@evolution/
 import { createTestCellView } from '../../../../testing/builders';
 import type { CameraExtent } from '../../render/camera';
 import { RELATIONS_MAX_RINGED } from '../../state/legibility-constants';
-import { RELATION_RING, relationRingsOf, relationsFor } from './relations-for';
+import {
+  RELATION_RING,
+  relationCandidatesFor,
+  relationRingsOf,
+  relationsFor,
+  relationsOnScreen,
+} from './relations-for';
 
 const ON_SCREEN: CameraExtent = { minX: -1000, minY: -1000, maxX: 1000, maxY: 1000 };
 const OWN_MASS = 100;
@@ -82,6 +88,31 @@ describe('relationsFor', () => {
     expect(relations).toHaveLength(RELATIONS_MAX_RINGED);
     expect(relations.slice(0, 2).map((relation) => relation.cellId)).toEqual([entityId('tie-a'), entityId('tie-b')]);
     expect(relations.map((relation) => relation.cellId)).not.toContain(entityId('c0'));
+  });
+
+  it('marks a diatom-shell prey spiny from the folded spike drain, and a bare prey not', () => {
+    const shell = cellAt('shell', 50, { traits: [{ traitId: 'diatom_shell', tier: 1 }] });
+    const relations = relationsOf([shell, cellAt('bare', 60)]);
+    expect(relations.map((relation) => [relation.cellId, relation.isSpiny])).toEqual([
+      [shell.id, true],
+      [entityId('bare'), false],
+    ]);
+  });
+
+  it('finds the candidates once per snapshot and asks the camera only which are on screen, capping after the camera', () => {
+    const offScreen = Array.from({ length: RELATIONS_MAX_RINGED }, (_unused, index) =>
+      cellAt(`off${index}`, -1100 - index),
+    );
+    const candidates = relationCandidatesFor({
+      cells: [OWN, cellAt('on', 1500), ...offScreen],
+      ownCell: OWN,
+      balance: DEFAULT_BALANCE,
+    });
+    expect(candidates).toHaveLength(RELATIONS_MAX_RINGED + 1);
+    expect(relationsOnScreen(candidates, ON_SCREEN)).toEqual([]);
+    const panned = { minX: 1000, minY: -1000, maxX: 3000, maxY: 1000 };
+    expect(relationsOnScreen(candidates, panned).map((relation) => relation.cellId)).toEqual([entityId('on')]);
+    expect(relationsOnScreen(candidates, null)).toEqual([]);
   });
 
   it('maps the rings by cell id for the cell layer', () => {

@@ -40,9 +40,10 @@ import { EffectsLayer } from './effects/effects-layer';
 import type { IndicatorTextFactory } from './effects/indicator-text';
 import { threatAnchorFor } from './effects/own-cell-indicators';
 import { OwnCellIndicatorsLayer } from './effects/own-cell-indicators-layer';
+import { relationLabelSceneFor } from './effects/relation-label-placements';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
-import { HALF, type UprightBox } from './geometry';
+import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
 import { followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
@@ -71,8 +72,6 @@ export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 
 
 /** The crossings with nothing to say: no preview, no reticle, no own-cell record (the bench, a test). */
 export const NO_HUD_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE, ownCellIndicators: null };
-
-const NO_LABEL_BOXES: readonly UprightBox[] = [];
 
 export class GameRenderer {
   private readonly layers: SceneLayers;
@@ -259,6 +258,7 @@ export class GameRenderer {
     const { ownCell, viewOf, zoom, nowMs } = context;
     const { ownCellIndicators } = inputs;
     const threat = threatAnchorFor({ indicators: ownCellIndicators, viewOf, ownCell, balance: frame.balance, zoom });
+    const relationScene = relationLabelSceneFor({ indicators: ownCellIndicators, viewOf, zoom });
     const indicators = this.indicators.update({
       indicators: ownCellIndicators,
       ownCell,
@@ -266,15 +266,16 @@ export class GameRenderer {
       nowMs,
       threat,
       effects: frame.effects,
+      relationScene,
+      cueColumn: this.cues.restingColumn,
     });
-    const labelBox = this.indicators.labelBox;
     const cues = this.cues.update({
       indicators: ownCellIndicators,
       ownCell,
       zoom,
       nowMs,
       effects: frame.effects,
-      labelBoxes: labelBox === null ? NO_LABEL_BOXES : [labelBox],
+      labelBoxes: this.indicators.labelBoxes,
     });
     const effects = this.effects.update({ viewOf, nowMs, reticle: { ...inputs.reticle, zoom, ownCell } });
     return indicators.sprites + cues.pills + cues.sprites + effects.sprites;

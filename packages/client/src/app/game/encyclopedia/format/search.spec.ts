@@ -199,7 +199,7 @@ describe('searchEntries', () => {
   });
 
   describe('accents', () => {
-    // No entry in the registry carries an accent yet; #361 and #362 bring the subjects that may. Both directions are
+    // No entry in the registry carries an accent yet; #362 brings the last subjects that may. Both directions are
     // pinned here so the folding cannot be quietly dropped before then.
     const accented: readonly SearchableEntry[] = [
       searchable('trait:paramecium_cilia', 'Paramécium Cilia', 'Dense rows that sweep food in.'),

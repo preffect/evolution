@@ -14,9 +14,9 @@ import {
 import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
-import { onboardingTextFor } from './format/onboarding-text';
+import { styleRuleValue } from '../../../testing/style-rules';
 import { HintComponent } from './hint.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 
@@ -55,7 +55,8 @@ describe('HintComponent', () => {
   it('shows the steer beat on the first alive snapshot, with its id and words, inside a polite live region', () => {
     show();
     expect(pill()?.getAttribute('data-hint-id')).toBe(ONBOARDING_BEAT.steer);
-    expect(pill()?.textContent).toBe(onboardingTextFor(ONBOARDING_BEAT.steer, false));
+    expect(pill()?.textContent?.trim()).toBe('Move the pointer · your cell follows');
+    expect(pill()?.classList.contains('rimmed')).toBe(false);
     expect(pill()?.parentElement?.getAttribute('aria-live')).toBe('polite');
   });
 
@@ -66,5 +67,15 @@ describe('HintComponent', () => {
     expect(pill()).toBeNull();
     show({ tick: 2, roundPhase: ROUND_PHASE.results });
     expect(pill()).toBeNull();
+  });
+
+  it('caps the width at the full host less its margins, and lets the pill fill that cap', () => {
+    show();
+    expect(styleRuleValue(document, ['.live'], 'max-width')).toBe(
+      'calc(100% - 2 * var(--hud-margin) * var(--hud-scale))',
+    );
+    expect(styleRuleValue(document, ['.pill'], 'max-width')).toBe('100%');
+    expect(styleRuleValue(document, ['.pill'], 'white-space')).toBeNull();
+    expect(styleRuleValue(document, ['.pill'], 'height')).toBeNull();
   });
 });

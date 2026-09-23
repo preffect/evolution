@@ -6,7 +6,7 @@
 // recovers with the `WILD_CELL_RECOVERY_SECONDS` time constant. The ladder is the world's: level, the seat's build up
 // to that level, stage and modifiers are set from the world reference (`wild-build.ts`).
 
-import { TICK_INTERVAL_S, type BalanceConfig, type WorldReference } from '@evolution/shared';
+import { TICK_INTERVAL_S, worldWholeLevel, type BalanceConfig, type WorldReference } from '@evolution/shared';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { decayPerSecond, metabolismInputOf } from '../simulation/metabolism.js';
@@ -77,7 +77,7 @@ export function applyWorldLadder(
   reference: WorldReference,
   balance: BalanceConfig,
 ): void {
-  cell.level = Math.floor(reference.worldLevel);
+  cell.level = worldWholeLevel(reference);
   refreshCellDerivedStateFromTraits(cell, wildOwnedTraits(seat.seatNumber, cell.level, balance), balance);
 }
 

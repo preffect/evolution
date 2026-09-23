@@ -118,7 +118,7 @@ encyclopedia never imports `hud/`.
 
 ### 7.2 Subject glyphs (#391)
 
-One code-drawn SVG glyph per **non-trait** encyclopedia subject — 55 of them on the model as it stands — so every
+One code-drawn SVG glyph per **non-trait** encyclopedia subject — 62 of them on the model as it stands — so every
 row, tile and entry header in the encyclopedia is named by a picture as well as by words. They sit on §7.1's
 medallion, use §7.1's layer stack, LODs, `still` and motions, and are drawn by the same builder and the same
 stylesheet: `<app-subject-glyph [entryId] lod="list" still />` is the sibling of `<app-trait-glyph>`, and neither
@@ -144,6 +144,7 @@ list-size one, and a new pair that shares a hue _and_ a layout will not be rescu
 | DNA tag | The motif sits inside a **cartouche**: the lit lens two crossing `DNA_STRAND` strands enclose, tinted that tag's `DNA_TAG_COLOR`. It is what keeps a tag apart from the trait that grants it (metabolic against Mitochondrion, photic against Chloroplast). |
 | Ability | An organ or an effect **on a cell**, in that ability's organelle colours, and **never an arrowhead**.                                                                                                                                                       |
 | Action  | A bold **arrow gesture** — every action has an arrowhead and no ability does — with the thing it acts on beside it.                                                                                                                                         |
+| HUD     | The element **as the screen draws it**: an indicator on the player's own cell (the first seat's body, since that is the cell it is drawn on), a DOM element on the HUD's own panel plate (`PANEL_*`).                                                       |
 | Concept | A **relation, drawn as a relation**: two cells against a measuring mark (a caliper, a beam, a datum line), never a single object.                                                                                                                           |
 
 **Palette.** A subject glyph paints only `colours.ts` names, the table values included (`DNA_TAG_COLOR`,
@@ -152,7 +153,7 @@ follows, is **a reserved colour may be used only by the subject that colour deno
 because gold means _level_ — so `action:level_up` and `concept:score` may wear it, and `action:pick_trait` may not,
 because picking a trait is not levelling. Likewise `DANGER` on `action:escape`, the DNA ramp on
 `entity:dna_fragment`, `ability:genome`, `concept:dna_and_levels` and the tag cartouches, and the first seat's
-palette (`GLYPH_PLAYER_SEAT`) on `cell_kind:player`, whose subject _is_ the player's own cell. A colour borrowed for
+palette (`GLYPH_PLAYER_SEAT`) on `cell_kind:player`, whose subject _is_ the player's own cell, and the HUD indicators drawn on that cell. A colour borrowed for
 emphasis rather than for meaning is the thing this forbids.
 
 **Inside the medallion.** Every drawn layer stays within `GLYPH_MEDALLION_REACH` 39 of the centre: the frame's radius
@@ -229,6 +230,13 @@ on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.
 | `concept:score`            | a gold tally rising left to right, its top bar lit                                             | beat                |
 | `concept:world_standing`   | a cell held above the world's own datum line, a ghost sitting on it                            | breathe             |
 | `concept:food`             | the three food kinds together: the overview, not one kind's page                               | breathe             |
+| `hud:dna_ring`             | the own cell with a `DNA` arc filling its dark `LEVEL_RING_TRACK` clockwise from the top       | breathe             |
+| `hud:level_numeral`        | a bold `WHITE` figure on its dark outline at the centre of the own cell                        | breathe, beat       |
+| `hud:ladder_orbit`         | a backing arc over the own cell: the dashed ghost of the next rung and a row of lit pips       | breathe, beat       |
+| `hud:self_ring`            | the own cell inside its dashed `WHITE` ring, recharged most of the way round                   | breathe             |
+| `hud:threat_ring`          | a bigger steel cell in a `DANGER` ring, the own cell small beside it                           | breathe, beat       |
+| `hud:leaderboard`          | a panel plate of three ranked rows, the own row lit and led by the first seat's swatch         | breathe             |
+| `hud:round_clock`          | a panel plate with an `m:ss` readout in segment strokes, its colon ticking                     | beat                |
 
 **Two glyphs that are not read off the dish, and say so.** The renderer has **no branch on cell kind at all** —
 `CellView.kind` is read nowhere under `render/`, and every cell is drawn as a player's — so `cell_kind:wild` is
@@ -237,7 +245,3 @@ from the stage's own inert greys (`STAGE_SCRATCH`, `DEPTH_NEAR`), which no organ
 other subject's colour; revisit it when #99 lands a real wild palette. And the dish bakes one DNA fragment per
 `DnaTag`, so `entity:dna_fragment` shows one of them — the first in `DNA_TAG`'s walk order — since the entity page
 has no tag of its own.
-
-**Not yet drawn.** `HUD_TOPIC` (architecture/encyclopedia.md §12.4) has no model file and no `hud` subject, so the
-seven HUD pages have no glyph (**#450**). The completeness spec is derived from `EntryId`, so the day that subject
-lands the spec fails until its seven are drawn.

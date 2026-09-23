@@ -9,7 +9,7 @@ import {
   TEXT_ENTRY_SELECTOR,
   TRAIT_OFFER_TEST_ID,
 } from './input-constants';
-import { testIdSelector } from '../hud/test-ids';
+import { testIdSelector } from '../test-ids/hud-test-ids';
 import type { FocusContext } from './keyboard-action';
 
 function isOverlayOpen(ownerDocument: Document, testId: string): boolean {

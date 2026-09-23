@@ -16,7 +16,7 @@ import {
   LEADERBOARD_ROW_HEIGHT_PX,
 } from './hud-constants';
 import { HudStateService } from './hud-state.service';
-import { HUD_TEST_ID, leaderboardRowTestId } from './test-ids';
+import { HUD_TEST_ID, leaderboardRowTestId } from '../test-ids/hud-test-ids';
 import { LEADERBOARD_TEXT, leaderboardLabelsFor } from './format/leaderboard-labels';
 import { leaderboardEntriesFor, type LeaderboardEntry } from './format/leaderboard-rows';
 import { leaderboardSwatchFor, leaderboardSwatchGeometry, type LeaderboardSwatch } from './format/leaderboard-swatch';

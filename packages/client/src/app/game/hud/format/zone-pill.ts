@@ -36,7 +36,8 @@ const ROD_WORDS: Readonly<Partial<Record<BacteriumVariant, string>>> = {
 const SEPARATOR = ' · ';
 const MULTIPLIER_DECIMALS = 1;
 
-function multiplierText(value: number): string {
+/** `×1.5`: a multiplier to one decimal, trailing zeros dropped. */
+export function multiplierText(value: number): string {
   return `${MULTIPLIER_SIGN}${Number(value.toFixed(MULTIPLIER_DECIMALS))}`;
 }
 
@@ -58,6 +59,12 @@ export interface ZonePillInput {
   readonly balance: Pick<BalanceConfig, 'ecology' | 'growth' | 'traits'>;
 }
 
+/** The gel's speed factor at the own mass, the traits' floor included. */
+export function ownGelSpeedFactor(input: Omit<ZonePillInput, 'zone'>): number {
+  const floor = foldModifiers(input.traits, input.balance.traits.TRAIT_TIERS).gelSpeedFactorFloor;
+  return gelSpeedFactor(input.mass, input.balance.growth, floor);
+}
+
 /** `Warm vent · decay ×1.5 · orange rods`; `null` in the open broth, which has no pill. */
 export function zonePillText(input: ZonePillInput): string | null {
   const { zone, balance } = input;
@@ -65,10 +72,7 @@ export function zonePillText(input: ZonePillInput): string | null {
   if (zone === ZONE_ID.openBroth) return null;
   if (zone === ZONE_ID.warmVent) parts.push(`decay ${multiplierText(balance.ecology.VENT_DECAY_MULTIPLIER)}`);
   if (zone === ZONE_ID.sunlitShallows) parts.push('light');
-  if (zone === ZONE_ID.viscousGel) {
-    const floor = foldModifiers(input.traits, balance.traits.TRAIT_TIERS).gelSpeedFactorFloor;
-    parts.push(`your speed ${multiplierText(gelSpeedFactor(input.mass, balance.growth, floor))}`);
-  }
+  if (zone === ZONE_ID.viscousGel) parts.push(`your speed ${multiplierText(ownGelSpeedFactor(input))}`);
   const rods = rodWordsFor(zone, balance);
   if (rods !== null) parts.push(rods);
   return parts.join(SEPARATOR);

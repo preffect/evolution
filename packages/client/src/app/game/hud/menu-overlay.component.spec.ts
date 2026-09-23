@@ -15,7 +15,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { OVERLAY_ALERT_KIND } from './format/overlay-alert';
 import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud-state.service';
 import { MenuOverlayComponent } from './menu-overlay.component';
-import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const SNAPSHOT_TICK = 5000;

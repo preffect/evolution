@@ -31,7 +31,7 @@ import {
 } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
-import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from '../test-ids/hud-test-ids';
 import {
   LEADERBOARD_COMPACT_LABELS,
   LEADERBOARD_FULL_LABELS,
