@@ -10,6 +10,7 @@ import {
   maxSpeedForMass,
   radiusForMass,
   worldReference,
+  worldWholeLevel,
   type BalanceConfig,
   type ValueOf,
 } from '@evolution/shared';
@@ -35,7 +36,7 @@ export const FACT_FORMULA = {
   levelUpCostAt: 'level_up_cost_at',
   /** `gelSpeedFactor(massOf(argument), balance.growth, the default gelSpeedFactorFloor)`. */
   gelSpeedFactorAt: 'gel_speed_factor_at',
-  /** `worldReference(secondsOf(argument), balance).worldLevel`. */
+  /** `worldWholeLevel(worldReference(secondsOf(argument), balance))`: the level the game plays, floored. */
   worldLevelAt: 'world_level_at',
   /** `worldReference(secondsOf(argument), balance).worldMass`. */
   worldMassAt: 'world_mass_at',
@@ -91,7 +92,7 @@ export const FACT_FORMULAS: {
       balance.traits.DEFAULT_CELL_MODIFIERS.gelSpeedFactorFloor,
     ),
   [FACT_FORMULA.worldLevelAt]: (balance, argument) =>
-    worldReference(secondsOf(balance, argument.moment), balance).worldLevel,
+    worldWholeLevel(worldReference(secondsOf(balance, argument.moment), balance)),
   [FACT_FORMULA.worldMassAt]: (balance, argument) =>
     worldReference(secondsOf(balance, argument.moment), balance).worldMass,
 };

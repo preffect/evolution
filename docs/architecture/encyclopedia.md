@@ -271,7 +271,7 @@ export const FACT_FORMULA = {
   levelUpCostAt: 'level_up_cost_at', // levelUpCost(levelOf(argument), balance.progression)
   engulfPhaseSpan: 'engulf_phase_span', // engulfPhaseSpanSeconds(argument.phase, balance.absorption)
   gelSpeedFactorAt: 'gel_speed_factor_at', // gelSpeedFactor(massOf(argument), balance.growth, the default gelSpeedFactorFloor)
-  worldLevelAt: 'world_level_at', // worldReference(secondsOf(argument), balance).worldLevel
+  worldLevelAt: 'world_level_at', // worldWholeLevel(worldReference(secondsOf(argument), balance)): floored, as the game plays it
   worldMassAt: 'world_mass_at', // worldReference(secondsOf(argument), balance).worldMass
   // … one row per shared function a page needs; a new row is reviewed here, never in content
 } as const;
