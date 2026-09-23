@@ -119,10 +119,17 @@ export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 
-/** A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). */
+/**
+ * A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). The height holds the well, the one-line
+ * title and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines: a fact reads `<name>: <value>`, and at one line
+ * the name spent the characters the value needed, cutting 30 of 78 tiles mid-value (#462).
+ */
 export const ENCYCLOPEDIA_TILE_WIDTH_PX = 168;
-export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 132;
+export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 152;
 export const ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX = 96;
+/** The lines a tile's fact may wrap to before it ends in an ellipsis, and the line height it wraps at. */
+export const ENCYCLOPEDIA_TILE_FACT_LINES = 2;
+export const ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT = 1.2;
 
 /** The callout-backing scrim behind the panel in a round: the dish keeps running, faintly, under it. */
 export const ENCYCLOPEDIA_SCRIM_ALPHA = 0.8;
