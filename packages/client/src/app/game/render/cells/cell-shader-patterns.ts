@@ -62,6 +62,7 @@ uniform vec3 uCellWall;
 uniform vec3 uCellWallLight;
 uniform vec3 uCilia;
 uniform vec3 uDanger;
+uniform vec3 uGain;
 
 flat in int vInstance;
 in vec2 vLocal;
@@ -77,7 +78,7 @@ struct Instance {
   float ciliaCount; float wallScale; float speckleDensity; float filamentCount;
   float tintMix; float warningRingPx; float formId; float passBAlpha;
   float rimDash; float ciliaPhase; float nucleusDiscRadii; float speckleSeed;
-  float selfRingFill; float selfRingBrightness;
+  float selfRingFill; float selfRingBrightness; float relationRingPx; float relationRingLines;
 };
 
 Instance readInstance() {
@@ -103,6 +104,7 @@ Instance readInstance() {
   inst.rimDash = ${instanceRead('rimDash')}; inst.ciliaPhase = ${instanceRead('ciliaPhase')};
   inst.nucleusDiscRadii = ${instanceRead('nucleusDiscRadii')}; inst.speckleSeed = ${instanceRead('speckleSeed')};
   inst.selfRingFill = ${instanceRead('selfRingFill')}; inst.selfRingBrightness = ${instanceRead('selfRingBrightness')};
+  inst.relationRingPx = ${instanceRead('relationRingPx')}; inst.relationRingLines = ${instanceRead('relationRingLines')};
   return inst;
 }
 

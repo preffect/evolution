@@ -25,6 +25,7 @@ import {
   type TraitId,
 } from '@evolution/shared';
 import { sprintFillFor } from '../hud/format/sprint-fill';
+import { relationRingsOf, type Relation, type RelationRing } from '../hud/format/relations-for';
 import type { Threat } from '../hud/format/threats-for';
 import type { ZoneEntryMemory } from '../hud/format/zone-pill';
 import { legibilityCuesFor, type LegibilityCues } from './legibility-cues';
@@ -74,6 +75,10 @@ export interface OwnCellIndicators extends LegibilityCues {
   readonly escape: OwnCellEscape | null;
   /** The nearest cell that can engulf us, or `null`; hidden while `escape` is set (§3.1.2). */
   readonly nearestThreat: OwnCellThreat | null;
+  /** The on-screen cells the own cell could eat or should not touch, nearest first (§3.1.5, `relationsFor`). */
+  readonly relations: readonly Relation[];
+  /** The same rings by cell id: what the cell layer packs, built once per record rather than per frame. */
+  readonly relationRings: ReadonlyMap<EntityId, RelationRing>;
   /** The exact mass, for the status mirror; the cell's size is the indicator (§3.1.2). */
   readonly mass: number;
   readonly traits: readonly OwnedTrait[];
@@ -121,6 +126,8 @@ export interface OwnCellIndicatorsInput {
   readonly balance: BalanceConfig;
   /** `threatsFor(...)`'s output, nearest first; empty while nothing on screen can eat us. */
   readonly threats: readonly Threat[];
+  /** `relationsFor(...)`'s output, nearest first; absent reads no relation rings. */
+  readonly relations?: readonly Relation[];
   /** The picker's previewed card (#188), which hides the ghost of the rung it shows. */
   readonly previewTraitId: TraitId | null;
   /** The newest snapshot's tick (the zone pill's clock); 0 when absent. */
@@ -131,6 +138,7 @@ export interface OwnCellIndicatorsInput {
 }
 
 const NO_TICK = 0;
+const NO_RELATIONS: readonly Relation[] = [];
 
 /**
  * The whole record. The escape arc takes the threat label's place while `being_engulfed`, so the
@@ -139,6 +147,7 @@ const NO_TICK = 0;
 export function ownCellIndicatorsFor(input: OwnCellIndicatorsInput): OwnCellIndicators {
   const { ownCell, ownProgress, balance, threats, previewTraitId } = input;
   const escape = escapeFor(ownCell, balance);
+  const relations = input.relations ?? NO_RELATIONS;
   const cues = legibilityCuesFor({
     ownCell,
     ownProgress,
@@ -158,6 +167,8 @@ export function ownCellIndicatorsFor(input: OwnCellIndicatorsInput): OwnCellIndi
     isSprinting: ownCell.sprintRemainingTicks > EMPTY,
     escape,
     nearestThreat: escape === null ? nearestThreatOf(threats) : null,
+    relations,
+    relationRings: relationRingsOf(relations),
     mass: ownCell.mass,
     traits: ownCell.traits,
     bacteriaEatenByVariant: ownProgress.bacteriaEatenByVariant,

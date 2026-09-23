@@ -15,6 +15,7 @@ import type { Ghost } from './ghost-cells';
 import { mapSlot } from './organelle-mapper';
 import { REST_OWN_CELL_RING } from './self-ring';
 import { buildShapeTerms, type ShapeTerms } from './shape-terms';
+import { RELATION_RING } from '../../hud/format/relations-for';
 
 const AT_REST = 0;
 const NO_STRIP = { stripRow: 0, phase: 0 } as const;
@@ -56,6 +57,7 @@ export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
     ciliaPhase: AT_REST,
     rimDash: ghost.tracks['rimDash'] ?? 0,
     ownCellRing: REST_OWN_CELL_RING,
+    relationRing: RELATION_RING.none,
   });
   return { instance, terms, lod, organelles, traits };
 }

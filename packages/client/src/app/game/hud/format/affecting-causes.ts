@@ -13,7 +13,6 @@ import {
   MASS_RATE_CAUSE,
   MASS_RATE_CAUSES,
   TRAIT_CATALOG,
-  foldModifiers,
   type BalanceConfig,
   type CellView,
   type MassRateCause,
@@ -26,6 +25,7 @@ import { HUD_TEST_ID, affectingCauseTestId } from '../test-ids';
 import { joinFacts } from './fact-line';
 import { CUE_RIM_COLOUR, RATE_CAUSE_LABEL, RATE_CAUSE_RIM, decayTraitShareOf, formatMassRate } from './mass-cues';
 import { leadingMultiplier } from './round-clock';
+import { isToxicCell } from './relations-for';
 import { cellDisplayName, distanceSquaredBetween } from './threats-for';
 
 /** What the cause rows are built from; the caller holds the window the `Food` rate was measured over. */
@@ -67,19 +67,6 @@ function ventQualifier(input: AffectingCausesInput): string {
 }
 
 /**
- * Whether a cell drains by toxin at all: the `toxic` rule of docs/ui/hud.md §3.1.5, over the folded modifiers.
- *
- * This mirrors that section's predicate rather than inventing a second definition of "toxic". §3.1.5 gives the rule
- * a long-term home in `relationsFor` (`hud/format/relations-for.ts`), which belongs to #385's relation-ring slice
- * and does not exist yet; the rule is small and reading it from the folded modifiers is the same computation either
- * way, so the panel asks the question directly here instead of waiting for that file. It names the likeliest source
- * only — the reach rule stays on the server and is never re-derived here, and the rate itself is always the wire's.
- */
-function isToxic(cell: CellView, balance: BalanceConfig): boolean {
-  return foldModifiers(cell.traits, balance.traits.TRAIT_TIERS).toxinDrainFractionPerSecond > NO_RATE;
-}
-
-/**
  * `near Nib`: the nearest toxic cell, which is the one the player has to move away from. The rate itself is the
  * server's sum over every cell reaching us, so this names the likeliest source rather than claiming to be the only
  * one; the reach rule stays on the server and is never re-derived here.
@@ -95,7 +82,7 @@ function toxinQualifier(input: AffectingCausesInput): string | null {
     if (cell.id === ownCell.id) continue;
     const distanceSquared = distanceSquaredBetween(cell, ownCell);
     if (distanceSquared >= nearestDistanceSquared) continue;
-    if (!isToxic(cell, balance)) continue;
+    if (!isToxicCell(cell, balance)) continue;
     nearest = cell;
     nearestDistanceSquared = distanceSquared;
   }

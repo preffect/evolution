@@ -175,6 +175,7 @@ vec4 membranePass(Instance inst, Frame frame) {
   acc *= inst.passBAlpha;
   acc = seatMark(inst, frame, acc);
   acc = selfRing(inst, frame, acc);
-  return warningRing(inst, frame, acc);
+  acc = warningRing(inst, frame, acc);
+  return relationRing(inst, frame, acc);
 }
 `;

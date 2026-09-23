@@ -36,6 +36,7 @@ export const CELL_UNIFORM = {
   cellWallLight: 'uCellWallLight',
   cilia: 'uCilia',
   danger: 'uDanger',
+  gain: 'uGain',
 } as const;
 
 /** The uniform group the mesh's frame values and colours live in. */

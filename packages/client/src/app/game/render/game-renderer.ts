@@ -230,8 +230,19 @@ export class GameRenderer {
       this.food.update({ motes: frame.motes, fragments: frame.fragments, timeSeconds: frame.timeSeconds, zoom }),
     );
     const { previewTraitId } = inputs;
+    const relationRings = inputs.ownCellIndicators?.relationRings;
     const cells = stages.measure(RENDER_STAGE.cells, () =>
-      this.cells.update({ frame, extent, zoom, nowMs, ownCell, previewTraitId, deformations, ownCellRing }),
+      this.cells.update({
+        frame,
+        extent,
+        zoom,
+        nowMs,
+        ownCell,
+        previewTraitId,
+        deformations,
+        ownCellRing,
+        relationRings,
+      }),
     );
     const effectSprites = stages.measure(RENDER_STAGE.effects, () =>
       this.effectsStage(frame, inputs, { ownCell, viewOf, zoom, nowMs }),
