@@ -90,12 +90,16 @@ class: a new assumption stated here, not traced to any doc). The load is stated 
 Budget per stage (ms, p95) at the bench load. The seven `renderStagesMs` keys are the CPU stages
 `render/bench/render-stage-timer.ts` brackets; the three rows below them are not keys:
 
-| `renderStagesMs` key                                | Budget | `renderStagesMs` key                        | Budget |
-| --------------------------------------------------- | ------ | ------------------------------------------- | ------ |
-| `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites          | 0.3    |
-| `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent` | 0.1    |
-| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 17 calls)           | 1.0    |
-| `food` mote and fragment updates                    | 0.6    |                                             |        |
+| `renderStagesMs` key                                | Budget | `renderStagesMs` key                            | Budget |
+| --------------------------------------------------- | ------ | ----------------------------------------------- | ------ |
+| `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites (i)          | 0.3    |
+| `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent` (i) | 0.1    |
+| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 17 calls)               | 1.0    |
+| `food` mote and fragment updates (i)                | 0.6    |                                                 |        |
+
+**(i) informational** (ruling on ticket #470): a stage budget under **1** ms (`RENDER_JUDGED_STAGE_BUDGET_MIN_MS`) is
+below what any consumer browser's clock resolves, so the verdict reports its p95 and never judges it; the frame p95
+and the draw calls carry the frame. A number nobody can measure outside a lab raises no line.
 
 | Not a key                                    | Budget | What it is                                                                                             |
 | -------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
@@ -147,7 +151,7 @@ both sessions wrap around a frame: the timer, `draw-call-counter.ts` (the four G
 context, wrapped in every build: one increment per call) and `gpu-timer.ts` (`EXT_disjoint_timer_query_webgl2`, one
 query per submit, read back on later frames, every sample checked for plausibility; `null` where the extension is
 missing or the number is not one a frame could have taken, see **Reading a report** below).
-`render-benchmark.ts` builds the report and its **verdict** against the tables above (`budgetVerdict`: every stage,
+`render-benchmark.ts` builds the report and its **verdict** against the tables above (`budgetVerdict`: every judged stage,
 the frame, `gpuMs`, the HUD residual, the draw calls). A live session rebuilds the
 report every `RENDER_REPORT_EVERY_FRAMES` frames. Every budget and bench number is a constant of
 `render/constants/bench.ts` (`CODE-STANDARDS.md §2`), and `render-budget-ledger.spec.ts` reads the tables of this
@@ -182,6 +186,13 @@ applied (`unjudged` names every row the evidence could not judge; `isFullyJudged
   `frameTimeP95Ms − Σ renderStagesMs` is still reported as `derivedResidualMs`, signed and never judged: it goes
   negative because a sum of seven independent p95s is not the p95 of their sum, and because work accrued from outside
   a frame (a snapshot applied on arrival) is charged to a stage without ever being inside the frame bracket.
+- **A CPU-clock row needs a clock that resolves it** (ticket #504). Browsers quantise `performance.now()` unless the
+  page is cross-origin isolated: 1 ms in Firefox, 0.1 ms plus jitter in Chrome, so a stage p95 read off such a clock
+  is a whole number of ticks (`net 2.00, food 1.00`), not the work. On its first report the session probes the
+  clock's smallest step (`timer-resolution.ts`), and a row read off it — a judged stage, the frame, the HUD residual
+  — is judged only where the step is at most **a tenth** of its budget (`RENDER_TIMER_RESOLUTION_BUDGET_FRACTION`).
+  Coarser, the row lands in `unjudged` and the console prints its number marked unjudged with the clock's step. At
+  1 ms that leaves the frame and the draw calls judged; a test clock that never moves leaves nothing unjudged.
 - **`drawCalls` is the window's worst frame**, not its last, so one arbitrary frame cannot hide a spike.
 - **`heapGrowthBytesPerFrame` is heap residency growth, not allocation.** It is the heap read after the window minus
   the heap read after a forced collection at the window's start, divided by the frames. A collection inside the
