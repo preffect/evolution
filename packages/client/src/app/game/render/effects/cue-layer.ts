@@ -15,7 +15,7 @@ import { placeSpriteBatch } from '../sprite-pool';
 import type { RateTag } from '../../hud/format/mass-cues';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import type { IndicatorTextures } from '../textures/indicator-textures';
-import { floaterLeftPx, type CueLayout } from './cue-layout';
+import { cueColumnBox, floaterLeftPx, type CueLayout } from './cue-layout';
 import { OwnCellLayer, type OwnCellLayerSubject } from './own-cell-layer';
 import { cueLayoutOf, cuePlacements, cueRowsFor, type CueFrame } from './cue-placements';
 import { createBitmapCueText, type CueText, type CueTextFactory, type CueTextRole } from './cue-text';
@@ -59,6 +59,7 @@ export class CueLayer extends OwnCellLayer<OwnCellIndicators, CueText, CueLayerO
   private readonly measuredWidthsPx = new Map<string, number>();
   private lastSprintTick: number | null = null;
   private shownTags: ShownTags | null = null;
+  private restingColumnPx: UprightBox | null = null;
 
   constructor(textures: IndicatorTextures, createText: CueTextFactory = createBitmapCueText) {
     super(textures, NOTHING_DRAWN, createText);
@@ -84,6 +85,7 @@ export class CueLayer extends OwnCellLayer<OwnCellIndicators, CueText, CueLayerO
     };
     const rows = cueRowsFor(cueFrame);
     const layout = cueLayoutOf(cueFrame, rows);
+    this.restingColumnPx = cueColumnBox(cueLayoutOf({ ...cueFrame, labelBoxes: [] }, rows));
     this.spawnFloaters(frame, indicators, ownCell, layout);
     const placements = cuePlacements(cueFrame, rows, layout, this.floaters.placements(frame.nowMs));
     text.draw(placements.backings, placements.texts, frame.zoom);
@@ -112,6 +114,11 @@ export class CueLayer extends OwnCellLayer<OwnCellIndicators, CueText, CueLayerO
     return tags;
   }
 
+  /** The chip and tags where they rest with no label near, px in the own cell's frame; `null` while nothing is drawn. */
+  get restingColumn(): UprightBox | null {
+    return this.restingColumnPx;
+  }
+
   /** The own cell's floaters of this frame, all starting at one x past the chip, the tags and any label. */
   private spawnFloaters(frame: CueLayerFrame, indicators: OwnCellIndicators, ownCell: CellView, layout: CueLayout) {
     const spawns = floaterSpawnsOf(frame.effects, ownCell.id);
@@ -137,6 +144,7 @@ export class CueLayer extends OwnCellLayer<OwnCellIndicators, CueText, CueLayerO
     this.text?.draw([], [], HIDDEN_ZOOM);
     this.pool.hideFrom(0);
     this.floaters.clear();
+    this.restingColumnPx = null;
     this.cellId = null;
     this.lastSprintTick = null;
     this.shownTags = null;

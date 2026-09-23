@@ -40,7 +40,7 @@ import { EffectsLayer } from './effects/effects-layer';
 import type { IndicatorTextFactory } from './effects/indicator-text';
 import { threatAnchorFor } from './effects/own-cell-indicators';
 import { OwnCellIndicatorsLayer } from './effects/own-cell-indicators-layer';
-import { relationLabelAnchorsFor } from './effects/relation-label-placements';
+import { relationLabelSceneFor } from './effects/relation-label-placements';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
@@ -258,7 +258,7 @@ export class GameRenderer {
     const { ownCell, viewOf, zoom, nowMs } = context;
     const { ownCellIndicators } = inputs;
     const threat = threatAnchorFor({ indicators: ownCellIndicators, viewOf, ownCell, balance: frame.balance, zoom });
-    const relationAnchors = relationLabelAnchorsFor({ indicators: ownCellIndicators, viewOf, zoom });
+    const relationScene = relationLabelSceneFor({ indicators: ownCellIndicators, viewOf, zoom });
     const indicators = this.indicators.update({
       indicators: ownCellIndicators,
       ownCell,
@@ -266,7 +266,8 @@ export class GameRenderer {
       nowMs,
       threat,
       effects: frame.effects,
-      relationAnchors,
+      relationScene,
+      cueColumn: this.cues.restingColumn,
     });
     const cues = this.cues.update({
       indicators: ownCellIndicators,

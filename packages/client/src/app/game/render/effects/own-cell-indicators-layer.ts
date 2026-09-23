@@ -32,7 +32,7 @@ import {
   type OwnCellIndicatorPlacements,
   type ThreatAnchor,
 } from './own-cell-indicators';
-import { relationLabelPlacements, type RelationLabelAnchor } from './relation-label-placements';
+import { NO_RELATION_LABEL_SCENE, relationLabelPlacements, type RelationLabelScene } from './relation-label-placements';
 
 export interface OwnCellIndicatorsLayerFrame {
   readonly indicators: OwnCellIndicators | null;
@@ -42,8 +42,10 @@ export interface OwnCellIndicatorsLayerFrame {
   readonly threat: ThreatAnchor | null;
   /** The effects this frame's render tick reached; the own cell's `level_up` among them starts the flash. */
   readonly effects: readonly GameEffect[];
-  /** The relation labels' cells and rings (`relationLabelAnchorsFor`); absent draws none. */
-  readonly relationAnchors?: readonly RelationLabelAnchor[];
+  /** The drawn relation rings and the labels for them (`relationLabelSceneFor`); absent draws no label. */
+  readonly relationScene?: RelationLabelScene;
+  /** Where the cue column rests (`CueLayer.restingColumn`, last frame's), px in the own cell's frame; labels keep off it. */
+  readonly cueColumn?: UprightBox | null;
 }
 
 export interface OwnCellIndicatorsLayerOutputs {
@@ -59,7 +61,6 @@ export interface OwnCellIndicatorsLayerOutputs {
 const RING_FLASH_TRACK = 'ringFlash';
 const NO_FLASH = 0;
 const NUMERAL_TEXTS = 1;
-const NO_ANCHORS: readonly RelationLabelAnchor[] = [];
 const HIDDEN_ZOOM = 1;
 const OPAQUE = 1;
 const NOTHING_DRAWN: OwnCellIndicatorsLayerOutputs = { sprites: 0, arcs: 0, texts: 0 };
@@ -98,9 +99,12 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
     this.arcMesh.draw(placements.arcs, frame.zoom);
     placeSpriteBatch(this.pool, placements.sprites, OPAQUE);
     const relationLabels = relationLabelPlacements({
-      anchors: frame.relationAnchors ?? NO_ANCHORS,
+      scene: frame.relationScene ?? NO_RELATION_LABEL_SCENE,
       ownCell,
       zoom: frame.zoom,
+      threat: frame.threat,
+      placedLabel: placements.label,
+      cueColumn: frame.cueColumn ?? null,
       measureLabelPx: (label) => text.measureLabelPx(label),
     });
     showTexts(text, placements, frame.zoom);

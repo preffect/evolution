@@ -1,7 +1,8 @@
 // The own-cell indicators' texts (docs/rendering/own-cell-indicators.md §10): the level numeral in the `value` role,
 // the threat or escape label and the relation labels (docs/ui/hud.md §3.1.5) in the `label` role on their nine-slice
-// pills, all drawn upright at their px size in the effects layer's world units (scaled by 1 / zoom). A seam of its own because `BitmapText` needs a real 2D canvas to build
-// its glyphs, which no unit test has: the layer takes a factory, and specs hand it a recording fake.
+// pills, all drawn upright at their px size in the effects layer's world units (scaled by 1 / zoom). A seam of its own
+// because `BitmapText` needs a real 2D canvas to build its glyphs, which no unit test has: the layer takes a factory,
+// and specs hand it a recording fake.
 
 import { BitmapText, Container, NineSliceSprite } from 'pixi.js';
 import { UI_TYPE } from '../constants';

@@ -165,7 +165,7 @@ describe('GameStateService', () => {
     expect(gameState.ownCellIndicators()).not.toBe(first);
   });
 
-  it('drops the plain EDIBLE label once the own cell engulfs, and keeps it dropped; another cell’s engulf does not count', () => {
+  it('drops the plain EDIBLE label once the own cell engulfs and keeps it dropped through a respawn; another cell’s engulf does not count', () => {
     const own = createTestCellView({ id: entityId('own'), playerId: OWN_PLAYER_ID, mass: 100, radius: 10 });
     const prey = createTestCellView({ id: entityId('prey'), mass: 20, radius: 4, x: 40 });
     const snapshotWith = (effects: ReturnType<typeof createTestCellAbsorbedEffect>[], tick: number) =>
@@ -191,6 +191,26 @@ describe('GameStateService', () => {
     multiplayer.snapshot.set(snapshotWith([], 4));
     expect(gameState.ownCellIndicators()?.relationLabels.edible).toBeNull();
     expect(gameState.ownCellIndicators()?.relationRings.get(prey.id)).toBeDefined();
+
+    // Death and a respawn under a new own cell id: the latch holds.
+    multiplayer.snapshot.set(
+      createTestSnapshot({
+        tick: 5,
+        cells: [prey],
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
+      }),
+    );
+    expect(gameState.ownCellIndicators()).toBeNull();
+    const reborn = { ...own, id: entityId('own-2') };
+    multiplayer.snapshot.set(
+      createTestSnapshot({
+        tick: 6,
+        cells: [reborn, prey],
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
+      }),
+    );
+    expect(gameState.ownCellIndicators()?.relationRings.get(prey.id)).toBeDefined();
+    expect(gameState.ownCellIndicators()?.relationLabels.edible).toBeNull();
   });
 
   it('mirrors the room’s seats, config and live balance', () => {

@@ -91,11 +91,16 @@ describe('OwnCellIndicatorsLayer', () => {
     const { subject, text } = layer();
     const cell = createTestCellView({ radius: 20 });
     const indicators = recordFor(cell, { nearestThreat: { cellId: entityId('t'), label: 'Amoeboid can engulf you' } });
-    const relationAnchors = [
-      { label: { cellId: entityId('toxic'), text: 'Toxic', rim: 'danger' as const }, x: -200, y: 0, ringPx: 30 },
-      { label: { cellId: entityId('prey'), text: 'Edible', rim: 'gain' as const }, x: 200, y: 0, ringPx: 26 },
-    ];
-    const frame = { ...frameAt(0, cell, indicators), threat: { x: 0, y: 400, warningRingPx: 60 }, relationAnchors };
+    const toxic = { cellId: entityId('toxic'), x: -200, y: 0, ringPx: 30 };
+    const prey = { cellId: entityId('prey'), x: 200, y: 0, ringPx: 26 };
+    const relationScene = {
+      rings: [toxic, prey],
+      anchors: [
+        { ...toxic, label: { cellId: toxic.cellId, text: 'Toxic', rim: 'danger' as const } },
+        { ...prey, label: { cellId: prey.cellId, text: 'Edible', rim: 'gain' as const } },
+      ],
+    };
+    const frame = { ...frameAt(0, cell, indicators), threat: { x: 0, y: 400, warningRingPx: 60 }, relationScene };
     const outputs = subject.update(frame);
     expect(text.shown.relationLabels.map((label) => [label.text, label.rim])).toEqual([
       ['TOXIC', 'danger'],
