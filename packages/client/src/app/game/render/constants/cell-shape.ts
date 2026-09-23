@@ -2,6 +2,8 @@
 // docs/visual-style/cells-and-organelles.md §3–§4, docs/visual-style/motion-and-legibility.md §5–§6).
 // Sizes are fractions of the cell radius `r` unless the suffix says px or degrees.
 
+import { RELATION_RING_STROKE_PX, TOXIC_RING_LINE_GAP_PX } from './legibility-cues';
+
 // ---- quad and slots (§2, §2.1) ----
 export const CELL_QUAD_EXTENT_RADII = 3.0;
 /** Instance rows in the instance texture: the bench's 100 cells, their ghosts and a wide margin. */
@@ -232,6 +234,8 @@ export const ENGULF_WARNING_RING_MIN_PX = 24;
 export const WARNING_RING_STROKE_PX = 2;
 export const WARNING_RING_DASH_PX = [6, 5] as const;
 export const WARNING_RING_ROTATION_DEG_PER_SECOND = 12;
+/** Centre to centre, the toxic relation ring's two lines: one stroke plus the clear gap (docs/rendering/cells.md §2.2). */
+export const RELATION_RING_LINE_PITCH_PX = RELATION_RING_STROKE_PX + TOXIC_RING_LINE_GAP_PX;
 
 // ---- LOD (visual-style/motion-and-legibility.md §6, rendering/contents-and-motion.md §5) ----
 export const CELL_LOD_FULL_MIN_PX = 20;

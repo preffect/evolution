@@ -14,6 +14,7 @@ import {
   CUE_RIM_PX,
   DANGER,
   DANGER_LABEL_RIM_PX,
+  GAIN,
   LABEL_PILL_ALPHA,
   LABEL_PILL_BAKE,
   LABEL_PILL_HEIGHT_PX,
@@ -50,6 +51,9 @@ export const LABEL_PILL_SPEC: PillSpec = {
   rimColour: DANGER,
   rimPx: DANGER_LABEL_RIM_PX,
 };
+
+/** The edible relation label's backing (docs/ui/hud.md §3.1.5): the label pill of §6, rimmed in gain. */
+export const GAIN_LABEL_PILL_SPEC: PillSpec = { ...LABEL_PILL_SPEC, rimColour: GAIN };
 
 /** A cue pill (§3.1.5) rimmed in `rimColour`, or unrimmed. */
 export function cuePillSpec(rimColour: string | null): PillSpec {

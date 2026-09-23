@@ -36,6 +36,8 @@ export interface IndicatorTextures {
   /** Keyed by `pipBlockKey(variant, eaten, required)`. */
   readonly pipBlocks: Readonly<Record<string, IndicatorSpriteTexture>>;
   readonly labelPill: LabelPillTexture;
+  /** The label pill rimmed in `GAIN`, for the edible relation label; the same size and caps as `labelPill`. */
+  readonly gainLabelPill: LabelPillTexture;
   /** The mass chip's trend triangle, white and pointing up (docs/ui/hud.md §3.1.5). */
   readonly trendGlyph: IndicatorSpriteTexture;
   /** The zone pill's dot, white. */
@@ -99,6 +101,7 @@ export function createIndicatorTextures(baker: TextureBaker, devicePixelRatio: n
     ghosts,
     pipBlocks,
     labelPill: pillTexture(baker, bakes.labelPill),
+    gainLabelPill: pillTexture(baker, bakes.gainLabelPill),
     trendGlyph: frameOf(atlasKey(ATLAS_GROUP.cue, CUE_GLYPH.trend), bakes.trendGlyph),
     zoneDot: frameOf(atlasKey(ATLAS_GROUP.cue, CUE_GLYPH.zoneDot), bakes.zoneDot),
     cuePills,
@@ -118,7 +121,8 @@ export function destroyIndicatorTextures(textures: IndicatorTextures): void {
   ];
   for (const sprite of frames) sprite?.texture.destroy(false);
   textures.source.destroy();
-  for (const pill of [textures.labelPill, textures.zonePill, ...Object.values(textures.cuePills)]) {
+  const pills = [textures.labelPill, textures.gainLabelPill, textures.zonePill, ...Object.values(textures.cuePills)];
+  for (const pill of pills) {
     pill.texture.destroy(true);
   }
   textures.uninstallFonts();

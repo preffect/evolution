@@ -23,7 +23,14 @@ import {
   RELATION_RING_RADII,
 } from '../constants';
 import { HALF, boxesIntersect, type UprightBox } from '../geometry';
-import { cueLayout, floaterColumnSpan, floaterLeftPx, rateTagColumnTopPx, type CueLayout } from './cue-layout';
+import {
+  cueColumnBox,
+  cueLayout,
+  floaterColumnSpan,
+  floaterLeftPx,
+  rateTagColumnTopPx,
+  type CueLayout,
+} from './cue-layout';
 import { orientedBoxGapPx, type OrientedBox } from './oriented-box';
 import { ghostBoxOf, orbitLayout, pipBlockBoxOf } from './orbit-layout';
 import { escapeLabelAbovePx, ladderOrbitExtentPx, selfRingRadiusPx } from './own-cell-geometry';
@@ -212,5 +219,14 @@ describe('cueLayout: labels come first', () => {
     for (const label of [preyLabel, threatLabel]) {
       for (const cue of cueBoxes(layout)) expect(boxesIntersect(label, cue)).toBe(false);
     }
+  });
+});
+
+describe('cueColumnBox', () => {
+  it('bounds the chip and every tag, the widest setting the width', () => {
+    const chip = { x: 0, y: -40, halfWidth: 50, halfHeight: 9 };
+    const tags = [{ x: 0, y: -64, halfWidth: 70, halfHeight: 9 }];
+    expect(cueColumnBox({ chip, tags })).toEqual({ x: 0, y: -52, halfWidth: 70, halfHeight: 21 });
+    expect(cueColumnBox({ chip, tags: [] })).toEqual(chip);
   });
 });

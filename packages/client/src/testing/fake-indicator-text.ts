@@ -5,17 +5,22 @@
 import { Container } from 'pixi.js';
 import type { IndicatorTextFactory } from '../app/game/render/effects/indicator-text';
 import type { IndicatorLabelPlacement, IndicatorTextPlacement } from '../app/game/render/effects/own-cell-indicators';
+import type { RelationLabelPlacement } from '../app/game/render/effects/relation-label-placements';
 
 export const FAKE_LABEL_CHAR_PX = 7;
 
 export interface FakeIndicatorText {
   readonly factory: IndicatorTextFactory;
-  /** The last numeral and label shown, `null` once hidden (or never shown). */
-  readonly shown: { numeral: IndicatorTextPlacement | null; label: IndicatorLabelPlacement | null };
+  /** The last numeral and label shown, `null` once hidden (or never shown); the relation labels last shown, `[]` once hidden. */
+  readonly shown: {
+    numeral: IndicatorTextPlacement | null;
+    label: IndicatorLabelPlacement | null;
+    relationLabels: readonly RelationLabelPlacement[];
+  };
 }
 
 export function createFakeIndicatorText(): FakeIndicatorText {
-  const shown: FakeIndicatorText['shown'] = { numeral: null, label: null };
+  const shown: FakeIndicatorText['shown'] = { numeral: null, label: null, relationLabels: [] };
   const factory: IndicatorTextFactory = () => ({
     container: new Container(),
     measureLabelPx: (text) => text.length * FAKE_LABEL_CHAR_PX,
@@ -30,6 +35,12 @@ export function createFakeIndicatorText(): FakeIndicatorText {
     },
     hideLabel: () => {
       shown.label = null;
+    },
+    showRelationLabels: (placements) => {
+      shown.relationLabels = placements;
+    },
+    hideRelationLabels: () => {
+      shown.relationLabels = [];
     },
   });
   return { factory, shown };

@@ -16,13 +16,13 @@ import {
   NUCLEUS_RAMP_MID_STOP,
   NUCLEUS_RAMP_REACH_RADII,
   PALETTE_SHADE,
+  RELATION_RING_LINE_PITCH_PX,
   RELATION_RING_STROKE_PX,
   SELF_RING_ALPHA,
   SELF_RING_TRACK_ALPHA,
   SPECKLE_HASH_SALT,
   TOXIC_RING_ALPHA,
 } from '../constants';
-import { RELATION_RING_LINE_PITCH_PX } from './cell-instance-builder';
 import { HALF } from '../geometry';
 import { instanceFieldLocation, instanceScalarFields } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';

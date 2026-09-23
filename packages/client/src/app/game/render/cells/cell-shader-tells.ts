@@ -21,6 +21,7 @@ import {
   EDIBLE_RING_ALPHA,
   GHOST_RIM_DASH_PX,
   OUTLINE_ALPHA,
+  RELATION_RING_LINE_PITCH_PX,
   RELATION_RING_STROKE_PX,
   TOXIC_RING_ALPHA,
   WARNING_RING_DASH_PX,
@@ -30,7 +31,6 @@ import {
 import { degreesToRadians } from '../geometry';
 import { glslFloat } from './cell-shader-source';
 import { RELATION_RING } from '../../hud/format/relations-for';
-import { RELATION_RING_LINE_PITCH_PX } from './cell-instance-builder';
 
 /** Membrane bands in `d / r` around the membrane at 1.00. */
 const WALL_INNER = CELL_WALL_INNER_RADII - 1;
