@@ -52,7 +52,7 @@ gate lock), waiting at most `WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS` (300) before 
 after an option written with a space is its value. A filtered (`-- <file filter>`, `-t`, `--testNamePattern`,
 `--filter`) or path-scoped `test` has no coverage floor. A scoped `lint` also prettier-checks the docs (`*.md` outside
 `packages/`) the branch changed against `origin/main`. A real run takes a machine-wide slot of its phase's class
-(`scripts/lib/gate-lock.sh`): heavy for `test`, `integration` and `typecheck` (one per 4 cores), light for `lint` and
+(`scripts/lib/gate-lock.sh`): heavy for `test`, `integration` and `typecheck` (one per 2 cores), light for `lint` and
 `duplication` (one per 2 cores), so a lint never queues behind a test run; a wait prints who holds the slots (pid,
 worktree, command).
 

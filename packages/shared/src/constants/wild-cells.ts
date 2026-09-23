@@ -42,3 +42,27 @@ export const WILD_CELL_HUNT_RANGE_RADII = 10;
 export const WILD_CELL_HUNTS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;
 /** Per wander decision: the chance of drawing a new heading instead of keeping the old one. */
 export const WILD_CELL_TURN_CHANCE = 0.25;
+
+// ===== Wild cells live their own lives (#517, design PRs #523 and #556) =====
+// The design tables list these now; the build tickets #550, #551 and #558 wire them in and retire the
+// per-tick pin constants above. Values are docs/ecology/constants.md §7's.
+
+/** A newborn wild cell's size is drawn from [MIN, MAX] × the world's average mass. */
+export const WILD_CELL_SIZE_FACTOR_MIN = 0.5;
+export const WILD_CELL_SIZE_FACTOR_MAX = 2.0;
+/** Time constant of a wild cell's recovery from a loss toward its full size, in seconds. */
+export const WILD_CELL_RECOVERY_SECONDS = 6;
+/** No wild cell grows past this multiple of the world's average mass. */
+export const WILD_CELL_MAX_WORLD_MASS_MULTIPLE = 3;
+/** A wild cell notices what a same-size player sees: this × `viewHalfHeightFor`. */
+export const WILD_CELL_SIGHT_VIEW_MULTIPLE = 1.0;
+/** A wild cell sprints to flee a threat within this many of its own radii. */
+export const WILD_CELL_SPRINT_FLEE_RADII = 4;
+/** A wild cell sprints to close on prey within this many of its own radii. */
+export const WILD_CELL_SPRINT_HUNT_RADII = 3;
+/** The dish feeds at most this × `WILD_CELL_COUNT` × the world's average mass in wild cells. */
+export const WILD_CELL_CARRYING_CAPACITY_MULTIPLE = 1.5;
+/** A starving wild cell loses this share of its full size per second. */
+export const WILD_CELL_STARVATION_FRACTION_PER_SECOND = 0.1;
+/** Wild cells hunt players from this stage on (they hunt each other from tick 0). */
+export const WILD_CELL_HUNTS_PLAYERS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;

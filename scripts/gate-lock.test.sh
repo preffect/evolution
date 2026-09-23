@@ -43,7 +43,10 @@ check "an override sets the slot count" $(( $(VALIDATE_HEAVY_SLOTS=3 slot_count 
 check "a zero override still leaves one slot" $(( $(VALIDATE_LIGHT_SLOTS=0 slot_count light) == 1 ))
 auto_heavy="$(VALIDATE_HEAVY_SLOTS='' slot_count heavy)"
 auto_light="$(VALIDATE_LIGHT_SLOTS='' slot_count light)"
-check "without an override heavy gets one slot per 4 cores, at least 1 (got $auto_heavy on $cores cores)" $(( auto_heavy >= 1 && auto_heavy <= (cores / 4 > 1 ? cores / 4 : 1) ))
+memory_mb="$(awk '/^MemTotal:/ { printf "%d", $2 / 1024 }' /proc/meminfo)"
+expected_heavy=$((cores / 2 < memory_mb / 4096 ? cores / 2 : memory_mb / 4096))
+expected_heavy=$((expected_heavy > 1 ? expected_heavy : 1))
+check "without an override heavy gets one slot per 2 cores, capped at one per 4 GB, at least 1 (got $auto_heavy, expected $expected_heavy on $cores cores)" $(( auto_heavy == expected_heavy ))
 check "without an override light gets one slot per 2 cores, at least 1 (got $auto_light)" $(( auto_light >= 1 && auto_light <= (cores / 2 > 1 ? cores / 2 : 1) ))
 override_warning="$(VALIDATE_LIGHT_SLOTS=two slot_count light 2>&1 >/dev/null)"
 check "a non-numeric override is warned about and ignored" $(( $(holds grep -q 'VALIDATE_LIGHT_SLOTS=two is not a number' <<<"$override_warning") && $(VALIDATE_LIGHT_SLOTS=two slot_count light 2>/dev/null) == auto_light ))

@@ -111,8 +111,8 @@
      one slot of its class under `$HOME/.cache/<slug>-validate` (independent of `VALIDATE_CACHE_DIR`, so a
      scratch cache still queues; `VALIDATE_GATE_LOCK_DIR` moves it for a sandboxed test), so parallel
      agents queue instead of starving the box, and a cheap phase never queues behind a heavy one.
-     **Heavy** (`test`, `integration`, `typecheck`: vitest and the Angular builder spawn about one worker
-     per core) gets one slot per 4 cores, capped at one per 4 GB of memory, so one on the 4-core box;
+     **Heavy** (`test`, `integration`, `typecheck`: vitest and the Angular builder run cores − 2 workers)
+     gets one slot per 2 cores, capped at one per 4 GB of memory, so two on the 4-core box (#561);
      **light** (`lint`, `duplication`: eslint, prettier and jscpd use one core each, eslint over the
      client peaks near 1 GB) gets one slot per 2 cores, since it runs beside a heavy run that already
      fills every core, capped at one per GB; a lint that runs no eslint (`all --affected` over docs alone)
@@ -125,8 +125,8 @@
      the old `gate.lock`, so a branch still carrying the single-lock `validate.sh` excludes a new heavy
      run. **Known transitional limit:** a class with more than one slot has its queue head poll the
      slots every 0.5 s, while an old `validate.sh` waits on `gate.lock` in the kernel, so a steady stream
-     of old-branch runs could starve such a head. With one heavy slot (this box) the head waits in the kernel
-     too. The limit ends once every branch carries this script. A cache hit never waits; the slot fd is
+     of old-branch runs could starve such a head. Since #561 this box has two heavy slots, so the limit
+     applies here too. It ends once every branch carries this script. A cache hit never waits; the slot fd is
      closed for the child so no orphaned worker keeps it.
      `VALIDATE_NO_GATE_LOCK=1` disables the slots for a sandboxed test; without `flock` it runs unlocked;
    - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.
