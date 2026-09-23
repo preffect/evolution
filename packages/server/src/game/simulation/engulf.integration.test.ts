@@ -52,7 +52,7 @@ const absorption = DEFAULT_BALANCE.absorption;
 const session = DEFAULT_BALANCE.session;
 /** The respawn convention (#211): a death on tick t places the new cell on t + spectate + 1. */
 const RESPAWN_TICK = END_TICK + secondsToTicks(session.RESPAWN_SPECTATE_SECONDS) + 1;
-const PROGRESS_TOLERANCE = 6;
+const PROGRESS_DIGITS = 6;
 /**
  * E9's payout arithmetic for this room: the pair is placed at the origin, which is inside the warm
  * vent, so the predator decays at `VENT_DECAY_MULTIPLIER` where the placed §8 rows (at the broth
@@ -132,8 +132,8 @@ describe('an engulf through the room loop and onto the snapshot', () => {
 
     const atTick = (tick: number) => seen[tick - 1]!;
     expect(atTick(1).states).toEqual([CELL_STATE.beingEngulfed]);
-    expect(atTick(1).progress).toBeCloseTo(1 / END_TICK, PROGRESS_TOLERANCE);
-    expect(atTick(SEAL_TICK).progress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE);
+    expect(atTick(1).progress).toBeCloseTo(1 / END_TICK, PROGRESS_DIGITS);
+    expect(atTick(SEAL_TICK).progress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
     expect(atTick(END_TICK).states).toEqual([]);
     expect(atTick(END_TICK).progress).toBe(0);
   });

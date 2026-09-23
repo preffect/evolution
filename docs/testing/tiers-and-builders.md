@@ -182,3 +182,9 @@ the only bound (`testing/wait-for.ts`, #421).
 5. No `.only`, no `.skip`, no snapshot of a large object, no `Math.random`, no real time.
 6. A new client spec with no DOM in its import graph carries `// @vitest-environment node` (§2.1).
 7. Coverage did not go down; if it went up, the threshold went up with it.
+8. Vitest's `toBeCloseTo(expected, numDigits)` and `expect.closeTo` take a **digit count**, passing when
+   `|Δ| < 10^−numDigits / 2`: a tolerance there (`0.01`, `1e-12`) makes the bound about ±0.5 and the assertion
+   can hardly fail (#587). Pass a whole number named `*_DIGITS`, or, where a tolerance is meant, assert
+   `expect(Math.abs(actual - expected)).toBeLessThanOrEqual(TOLERANCE)`. `eslint.config.js` rejects a fractional
+   literal, a negative count or a `*TOLERANCE*` name there. The scenario DSL's `.atTick(t).toBeCloseTo(value,
+tolerance)` is tolerance-based (`scenario-runner.md`) and is not affected.
