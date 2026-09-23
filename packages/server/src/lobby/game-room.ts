@@ -146,9 +146,18 @@ export class GameRoom {
     this.performanceTracker.recordClientReport(playerId as PlayerId, report);
   }
 
-  /** The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. */
+  /**
+   * The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. A
+   * running room settles a resync this makes due on its next broadcast; a paused one makes none, so it is sent now
+   * (#300: a step deeper than the backlog limit otherwise left the client frozen until a resume).
+   */
   recordSnapshotAck(playerId: string, tick: number): void {
     this.snapshotBacklog.recordAcknowledgedTick(playerId, tick);
+    const connection = this.playerConnections.get(playerId);
+    if (!this.isLoopPaused || connection === undefined || !this.snapshotBacklog.isResyncDue(connection)) return;
+    const state = this.getFullState();
+    this.snapshotBacklog.recordResyncSent(playerId, state.snapshot.tick);
+    sendMessage(connection, this.gameStateMessageFor(playerId as PlayerId, state));
   }
 
   /** The `game_state` payload (docs/architecture/wire-contract.md §4): the module's full snapshot and live balance. */
@@ -169,8 +178,8 @@ export class GameRoom {
    * The `game_state` a player receives on start, late join, reconnect and resync
    * (docs/architecture/wire-contract.md §4): the one message that rebuilds a client's whole view.
    */
-  gameStateMessageFor(playerId: PlayerId): ServerMessage {
-    const { snapshot, balance } = this.getFullState();
+  gameStateMessageFor(playerId: PlayerId, state: FullGameState = this.getFullState()): ServerMessage {
+    const { snapshot, balance } = state;
     return {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: this.gameId,
