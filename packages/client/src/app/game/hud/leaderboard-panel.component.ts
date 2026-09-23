@@ -5,7 +5,7 @@
 // does. The stylesheet is the sibling `.css`; every length and colour in it is a `--hud-…` the
 // shell publishes from the constants.
 
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal } from '@angular/core';
 import { GameStateService } from '../state/game-state.service';
 import {
   LEADERBOARD_COMPACT_ROWS,
@@ -20,6 +20,10 @@ import { HUD_TEST_ID, leaderboardRowTestId } from '../test-ids/hud-test-ids';
 import { LEADERBOARD_TEXT, leaderboardLabelsFor } from './format/leaderboard-labels';
 import { leaderboardEntriesFor, type LeaderboardEntry } from './format/leaderboard-rows';
 import { leaderboardSwatchFor, leaderboardSwatchGeometry, type LeaderboardSwatch } from './format/leaderboard-swatch';
+
+/** The property whose transition the full layout waits for, and the element that carries it. */
+const WIDTH_PROPERTY = 'width';
+const PANEL_SELECTOR = '.leaderboard';
 
 /** One user unit is one CSS px here, pinned by `leaderboard-swatch.spec.ts`. */
 const SWATCH = leaderboardSwatchGeometry();
@@ -45,6 +49,8 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
     <div
       class="leaderboard"
       [class.full]="isFull()"
+      [class.full-layout]="isFullLayout()"
+      (transitionend)="onTransitionEnd($event)"
       [style.--hud-leaderboard-height.px]="heightPx()"
       [attr.data-testid]="testId.leaderboard"
     >
@@ -88,7 +94,7 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
             <span class="name">{{ row.entry.name }}</span>
             <span class="level">L{{ row.entry.level }}</span>
             <span class="score">{{ row.entry.scoreText }}</span>
-            @if (isFull()) {
+            @if (isFullLayout()) {
               <span class="mass">{{ row.entry.massText }}</span>
               <span class="absorptions">{{ row.entry.absorptions }}</span>
             }
@@ -115,9 +121,19 @@ export class LeaderboardPanelComponent {
 
   protected readonly isFull = this.hudState.isFullLeaderboardOpen;
 
+  /**
+   * The full list's columns and footer wait for the panel to finish widening (#615): drawn while the box still grows
+   * from the compact width, they were squeezed and clipped for the whole `LEADERBOARD_EXPAND_MS`. Widening, the rows
+   * keep the compact columns and the footer stays away; closing, both go at once, before the box narrows.
+   */
+  private readonly isWidthSettledFull = signal(false);
+  protected readonly isFullLayout = computed(() => this.isFull() && this.isWidthSettledFull());
+  private readonly host: HTMLElement = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+
   protected readonly labels = computed(() =>
     leaderboardLabelsFor({
       isFull: this.isFull(),
+      isFullLayout: this.isFullLayout(),
       isPinned: this.hudState.isFullLeaderboardPinned(),
       scoreAbsorptionBonus: this.gameState.balance()?.session.SCORE_ABSORPTION_BONUS ?? null,
     }),
@@ -142,6 +158,29 @@ export class LeaderboardPanelComponent {
   );
 
   protected readonly heightPx = computed(() => panelHeightPx(this.entries().length, this.isFull()));
+
+  constructor() {
+    effect(() => {
+      if (!this.isFull()) this.isWidthSettledFull.set(false);
+      // No width transition to wait for (reduced motion, or no layout at all): the full layout is there at once.
+      else if (!this.hasWidthTransition()) this.isWidthSettledFull.set(true);
+    });
+  }
+
+  /** The panel's own width transition has ended: the full layout may be drawn if the list is still open. */
+  protected onTransitionEnd(event: TransitionEvent): void {
+    if (event.target !== event.currentTarget || event.propertyName !== WIDTH_PROPERTY) return;
+    this.isWidthSettledFull.set(this.isFull());
+  }
+
+  private hasWidthTransition(): boolean {
+    const panel = this.host.querySelector<HTMLElement>(PANEL_SELECTOR);
+    if (panel === null) return false;
+    const durations = getComputedStyle(panel)
+      .transitionDuration.split(',')
+      .map((duration) => Number.parseFloat(duration));
+    return durations.some((seconds) => seconds > 0);
+  }
 
   protected toggleFull(): void {
     this.hudState.toggleFullLeaderboard();
