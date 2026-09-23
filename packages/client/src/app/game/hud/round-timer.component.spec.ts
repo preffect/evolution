@@ -11,7 +11,7 @@ import {
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { ROUND_CLOCK_PULSE_LAST_SECONDS } from './hud-constants';
 import { RoundTimerComponent } from './round-timer.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { ROUND_CLOCK_CAPTION, bloomCaptionText } from './format/round-clock';
 
 const ROUND_SECONDS = 60;

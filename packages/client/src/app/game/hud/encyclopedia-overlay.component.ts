@@ -20,7 +20,7 @@ import { entryIdFrom } from '../encyclopedia/registry';
 import { ENCYCLOPEDIA_TEST_ID } from '../encyclopedia/test-ids';
 import { ENCYCLOPEDIA_RETURN, HudStateService } from './hud-state.service';
 import { OverlayAlertComponent } from './overlay-alert.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 @Component({
   selector: 'app-encyclopedia-overlay',

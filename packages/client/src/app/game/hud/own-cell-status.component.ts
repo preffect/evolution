@@ -19,7 +19,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal } from '@angular/core';
 import { GameStateService } from '../state/game-state.service';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { formatOwnCellStatus, shouldAnnounce, type OwnCellStatus } from './format/own-cell-status';
 
 @Component({

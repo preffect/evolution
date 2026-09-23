@@ -5,7 +5,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { GameStateService } from '../state/game-state.service';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 
 /** The caption before the server's own words, in play and in the lobby alike. */
 export const SERVER_ERROR_CAPTION = 'Error:';

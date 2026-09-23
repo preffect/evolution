@@ -22,7 +22,7 @@ import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';

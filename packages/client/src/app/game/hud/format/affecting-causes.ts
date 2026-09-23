@@ -22,7 +22,7 @@ import {
 } from '@evolution/shared';
 import { UI_FACT_MARKER_SHAPE, type UiFactMarker, type UiFactRow } from '../../../ui-kit/ui-facts-table.component';
 import { GAIN, TEXT_LABEL } from '../../render/constants';
-import { HUD_TEST_ID, affectingCauseTestId } from '../test-ids';
+import { HUD_TEST_ID, affectingCauseTestId } from '../../test-ids/hud-test-ids';
 import { joinFacts } from './fact-line';
 import { CUE_RIM_COLOUR, RATE_CAUSE_LABEL, RATE_CAUSE_RIM, decayTraitShareOf, formatMassRate } from './mass-cues';
 import { leadingMultiplier } from './round-clock';

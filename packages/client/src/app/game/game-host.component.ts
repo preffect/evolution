@@ -12,7 +12,7 @@ import { HudStateService } from './hud/hud-state.service';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
 import { CREATE_PIXI_APP } from './render/pixi-app-provider';
-import { HUD_TEST_ID } from './hud/test-ids';
+import { HUD_TEST_ID } from './test-ids/hud-test-ids';
 
 export const GAME_HOST_TEST_ID = HUD_TEST_ID.gameHost;
 
