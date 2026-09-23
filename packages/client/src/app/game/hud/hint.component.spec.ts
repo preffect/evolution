@@ -69,12 +69,13 @@ describe('HintComponent', () => {
     expect(pill()).toBeNull();
   });
 
-  it('wraps a long line inside the margins instead of running off a narrow screen', () => {
+  it('caps the width at the full host less its margins, and lets the pill fill that cap', () => {
     show();
-    expect(styleRuleValue(document, ['.pill'], 'white-space')).toBeNull();
-    expect(styleRuleValue(document, ['.pill'], 'max-width')).toBe(
+    expect(styleRuleValue(document, ['.live'], 'max-width')).toBe(
       'calc(100% - 2 * var(--hud-margin) * var(--hud-scale))',
     );
+    expect(styleRuleValue(document, ['.pill'], 'max-width')).toBe('100%');
+    expect(styleRuleValue(document, ['.pill'], 'white-space')).toBeNull();
     expect(styleRuleValue(document, ['.pill'], 'height')).toBeNull();
   });
 });

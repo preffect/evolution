@@ -47,6 +47,14 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
         pointer-events: none;
       }
 
+      /*
+       * The margin cap sits here, where 100% is the full-width host: on the pill it would resolve against this
+       * shrink-to-fit box and wrap every hint, however short.
+       */
+      .live {
+        max-width: calc(100% - 2 * var(--hud-margin) * var(--hud-scale));
+      }
+
       /* The notice row's height and inset, rounded into a pill: one callout surface for every line of words. */
       /*
        * One line at the notice row's height where it fits; a long line (the endosymbiosis beat is ~650 px) wraps
@@ -57,15 +65,19 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
         display: flex;
         align-items: center;
         min-height: calc(var(--hud-notice-row-height) * var(--hud-scale));
-        max-width: calc(100% - 2 * var(--hud-margin) * var(--hud-scale));
+        max-width: 100%;
         margin: 0;
         padding-inline: calc(var(--hud-notice-padding-inline) * var(--hud-scale));
-        padding-block: calc(var(--hud-notice-gap) / 2 * var(--hud-scale));
+        /* One line fills the notice row's height exactly; each further line adds its own. */
+        --hint-line-height: 1.25;
+        padding-block: calc(
+          (var(--hud-notice-row-height) - var(--hud-type-body) * var(--hint-line-height)) / 2 * var(--hud-scale)
+        );
         border-radius: calc(var(--hud-notice-row-height) / 2 * var(--hud-scale));
         background: var(--hud-callout-backing);
         font-family: var(--hud-font-sans);
         font-size: calc(var(--hud-type-body) * var(--hud-scale));
-        line-height: 1.25;
+        line-height: var(--hint-line-height);
         color: var(--hud-text);
         text-align: center;
       }
