@@ -57,7 +57,7 @@ export interface CellView {
   id: EntityId;
   kind: CellKind;
   playerId: PlayerId | null; // null for a wild cell
-  organismId: EntityId; // == id for a player cell in build 1 (reserved grouping key, game-design/controls-and-scope.md §11); WORLD_ORGANISM_ID for every wild cell
+  organismId: EntityId; // == id for every cell in build 1, wild included (reserved grouping key, game-design/controls-and-scope.md §11; wild eats wild, ecology/wild-cells.md §3.3.2)
   avatarIndex: number;
   x: number;
   y: number;
@@ -219,11 +219,29 @@ export interface DnaFragmentRecord extends DnaFragmentView {
   `world.cells` the tick it is absorbed and emitted as a `cell_absorbed` effect (ecology/absorption.md §6.2).
   A spectating player has no cell record.
 - **Wild cells are cells, not players** (ecology/wild-cells.md §3.3): ordinary `CellRecord`s in `world.cells` with
-  `kind: 'wild'`, `playerId: null` and `organismId: WORLD_ORGANISM_ID`, owned by a `WildSeatRecord`
-  (`seatNumber`, `cellId | null`, `massSpreadFactor`, `respawnInTicks`, `headingX`, `headingY`,
-  `decideInTicks`, `drainedMass`) in `world.wildSeats`. The world clock is never sent: the snapshot
-  carries `roundStartTick` and both sides compute `worldReference(worldElapsedSeconds(tick, roundStartTick,
+  `kind: 'wild'`, `playerId: null` and `organismId` equal to their own id (so wild engulfs wild by the ordinary
+  rule), carrying the player's sprint counters (`sprintRemainingTicks`, `sprintCooldownRemainingTicks`), each owned
+  by a `WildSeatRecord` in `world.wildSeats`:
+
+  ```ts
+  export interface WildSeatRecord {
+    seatNumber: number;
+    cellId: EntityId | null; // null while vacant (respawn countdown)
+    sizeFactor: number; // log-uniform on [WILD_CELL_SIZE_FACTOR_MIN, _MAX], drawn at each (re)spawn; base size = worldMass × sizeFactor
+    grownMass: number; // permanent growth above the base size; only the player's decay removes it (ecology/wild-cells.md §3.3.1)
+    fullMass: number; // last settle's full size: min(base + grownMass, max(base, growth ceiling)); cell.mass − fullMass is the wound
+    respawnInTicks: number;
+    headingX: number;
+    headingY: number;
+    decideInTicks: number;
+  }
+  ```
+
+  The seat record is the whole of a wild cell's memory: the wound is not stored, it is `cell.mass − fullMass`, and
+  every field above is hashed (`WILD_SEAT_HASHED_FIELDS`). The world clock is never sent: the snapshot carries
+  `roundStartTick` and both sides compute `worldReference(worldElapsedSeconds(tick, roundStartTick,
 roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
+
 - **Score** is computed, never stored twice: `session/leaderboard.ts` implements
   `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions` with ties by
   mass then `joinOrder` (game-design/session.md §5.3) and writes `PlayerProgressView.score` and the

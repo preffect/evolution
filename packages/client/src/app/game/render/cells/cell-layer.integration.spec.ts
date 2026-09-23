@@ -1,7 +1,8 @@
 // The cross-module wiring of the cell tells (docs/rendering/files-and-tests.md §9): the warning ring agrees with
 // the shared `canEngulf` on the live balance, an absorbed prey draws as a ghost from the
 // `cell_absorbed` effect through the packed rows and leaves at 600 ms, and the predator wears the
-// ghost's seal meanwhile. Frames come through the layer's real contract, not its parts.
+// ghost's seal meanwhile; the relation rings `relationsFor` decides are the rings packed. Frames come through the
+// layer's real contract, not its parts.
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, MOTION_CLIPS, canEngulf, entityId } from '@evolution/shared';
@@ -12,7 +13,13 @@ import {
   createTestRenderFrame,
 } from '../../../../testing/builders';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
-import { ENGULF_WARNING_RING_MIN_PX, ENGULF_WARNING_RING_RADII, PREY_UNDER_FILM_ALPHA } from '../constants';
+import {
+  ENGULF_WARNING_RING_MIN_PX,
+  ENGULF_WARNING_RING_RADII,
+  PREY_UNDER_FILM_ALPHA,
+  RELATION_RING_RADII,
+} from '../constants';
+import { RELATION_RING, relationRingsOf, relationsFor } from '../../hud/format/relations-for';
 import { NO_DEFORMATIONS } from './cell-deformation';
 import {
   BUMP_TEXEL_START,
@@ -65,6 +72,38 @@ describe('cell tells through the layer', () => {
     expect(packed(subject, 2, 'quadExtentRadii')).toBeGreaterThanOrEqual(
       (packed(subject, 2, 'warningRingPx') + 2) / 80,
     );
+    subject.destroy();
+  });
+
+  it('packs the relation ring relationsFor decides: edible on prey, the double line on toxic, none on the rest', () => {
+    const subject = new CellLayer(textures);
+    const own = createTestCellView({ mass: 100, radius: 20 });
+    const ratio = DEFAULT_BALANCE.absorption.ENGULF_MASS_RATIO;
+    // Rows are packed smallest radius first: prey, toxic, peer, own.
+    const prey = createTestCellView({ id: entityId('prey'), x: 100, mass: (100 / ratio) * 0.9, radius: 10 });
+    const toxic = createTestCellView({
+      id: entityId('toxic'),
+      x: -100,
+      mass: (100 / ratio) * 1.1,
+      radius: 11,
+      traits: [{ traitId: 'toxin_vacuole', tier: 1 }],
+    });
+    const peer = createTestCellView({ id: TEST_OTHER_CELL_ID, y: 100, mass: (100 / ratio) * 1.1, radius: 12 });
+    const cells = [own, prey, toxic, peer];
+    const relations = relationsFor({ cells, ownCell: own, cameraExtent: EXTENT, balance: DEFAULT_BALANCE });
+    subject.update(
+      input({
+        frame: createTestRenderFrame({ cells }),
+        ownCell: own,
+        zoom: 2,
+        relationRings: relationRingsOf(relations),
+      }),
+    );
+    expect(packed(subject, 0, 'relationRingPx')).toBe(RELATION_RING_RADII * 20);
+    expect(packed(subject, 0, 'relationRingLines')).toBe(RELATION_RING.edible);
+    expect(packed(subject, 1, 'relationRingLines')).toBe(RELATION_RING.toxic);
+    expect(packed(subject, 2, 'relationRingPx')).toBe(0);
+    expect(packed(subject, 3, 'relationRingPx')).toBe(0);
     subject.destroy();
   });
 

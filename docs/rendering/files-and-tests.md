@@ -76,7 +76,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   toxin bladder on the keep-out ring (#243), outside the nucleus disc, gap held, append-only across tiers, seeded); `ghost-instance.spec.ts` (the ghost's sprites at the rest slots mapped through its own profile, the shader's
   nucleus disc anchored on the mapped nucleus sprite, none below the far threshold; `cell-layer.spec.ts` queues them before the predator's at the ghost's alpha and `organelle-sprites.spec.ts` freezes their idle motion, #243); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
   on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `cell-instance.spec.ts` (the §2.3 row is seventeen texels, 272 B a cell,
-  `nucleusDiscRadii` and `speckleSeed` in the tenth scalar texel and the sprint ring alone in the eleventh, #295), `self-ring.spec.ts` (the arc
+  `nucleusDiscRadii` and `speckleSeed` in the tenth scalar texel and the sprint ring then the relation ring in the eleventh, #295, #538), `self-ring.spec.ts` (the arc
   coordinate at 12 / 3 / 6 / 9 o'clock in the y-down frame, the escape rule), `own-cell-ring.spec.ts` (the fill through
   `sprintFillFor`, a full ring while sprinting, `sprint_ready` on reaching ready and never on a first frame or a
   respawn), `cell-shader.spec.ts` (every field read from its column, the sprint ring's turn, track and brightness, the speckle salt
@@ -121,7 +121,9 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   render texture, walk 36 rays, boundary within 1 px of `radial-profile`; on the engulf wrap frame the rim-light
   band measured along the outline normal is 5 % r ± 1 px at every one of the 36 rays, arm flanks included
   (the perpendicular-distance check); draw-call count ≤ 17 on the bench scene; `renderStagesMs` populated; the
-  ghost instance appears on `cell_absorbed` and leaves at 600 ms; `own-cell-ring.integration.spec.ts` takes the own
+  ghost instance appears on `cell_absorbed` and leaves at 600 ms; `cell-layer.integration.spec.ts` packs the relation
+  ring `relationsFor` decides (edible on a prey, the double line on a toxic cell, none on a cell the own cell cannot
+  eat, #538); `own-cell-ring.integration.spec.ts` takes the own
   view's cooldown through the renderer to the packed `selfRingFill` and `selfRingBrightness`, and keeps every warning
   ring, the escaping predator's included, while `SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE` is off (#295; the unit specs cover
   both switch states). The client's vitest tier runs under jsdom with
