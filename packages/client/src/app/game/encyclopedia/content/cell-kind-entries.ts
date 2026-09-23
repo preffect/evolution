@@ -36,15 +36,23 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
   wild: {
     title: 'Wild cell',
     summary:
-      'The world’s average cell made flesh. {wildCount} of them share the dish all round. They grow with the [[world:world_clock|world clock]], not by eating, each within {massSpread} of the world’s average mass, and they never decay. They wander, flee what can eat them and, later in the round, hunt what they can eat. Engulfing one pays {wildDnaShare} of the DNA a cell at the world’s level has earned, but no score bonus. An engulfed wild cell returns after {wildRespawn}.',
+      'Cells that live their own lives. {wildCount} of them share the dish all round. Each is born at {sizeMin} to {sizeMax} the world’s average mass and grows with the [[world:world_clock|world clock]]; what it eats it keeps, burning it off as a player does, and a wound heals back with a {recovery} time constant. They wander, flee what can eat them and, later in the round, hunt what they can eat. Engulfing one pays {wildDnaShare} of the DNA a cell at the world’s level has earned, but no score bonus. An engulfed wild cell returns after {wildRespawn}.',
     facts: [
       balanceFact(
         { key: 'wildCount', label: 'In the dish', unit: QUANTITY_UNIT.count },
         balancePath('wildCells', 'WILD_CELL_COUNT'),
       ),
       balanceFact(
-        { key: 'massSpread', label: 'Mass spread around the world’s', unit: QUANTITY_UNIT.share },
-        balancePath('wildCells', 'WILD_CELL_MASS_SPREAD'),
+        { key: 'sizeMin', label: 'Smallest newborn, of the world’s mass', unit: QUANTITY_UNIT.multiplier },
+        balancePath('wildCells', 'WILD_CELL_SIZE_FACTOR_MIN'),
+      ),
+      balanceFact(
+        { key: 'sizeMax', label: 'Largest newborn, of the world’s mass', unit: QUANTITY_UNIT.multiplier },
+        balancePath('wildCells', 'WILD_CELL_SIZE_FACTOR_MAX'),
+      ),
+      balanceFact(
+        { key: 'recovery', label: 'A wound heals with a time constant of', unit: QUANTITY_UNIT.seconds },
+        balancePath('wildCells', 'WILD_CELL_RECOVERY_SECONDS'),
       ),
       balanceFact(
         { key: 'wildDnaShare', label: 'DNA paid when engulfed, of the world’s', unit: QUANTITY_UNIT.share },

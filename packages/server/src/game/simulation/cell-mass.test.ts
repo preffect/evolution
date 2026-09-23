@@ -1,10 +1,13 @@
-// docs/ecology/mass-and-movement.md §5.4 (E12) on the mass cap.
+// docs/ecology/mass-and-movement.md §5.4 (E12) on the mass cap; the wild floor (docs/architecture/server-simulation.md §3.4).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
+import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
-import { gainMass, loseMassToFloor, setCellMass } from './cell-mass.js';
+import { gainMass, loseMassToFloor, massFloorOf, setCellMass } from './cell-mass.js';
 
 const { growth } = DEFAULT_BALANCE;
+/** A wild cell born below the starting mass (size 0.5 at tick 0). */
+const SMALL_WILD_MASS = 10;
 
 function cellAndPlayer() {
   const world = createTestWorld();
@@ -64,5 +67,26 @@ describe('loseMassToFloor', () => {
     loseMassToFloor(cell, 5, DEFAULT_BALANCE);
     expect(cell.mass).toBe(growth.CELL_STARTING_MASS);
     expect(cell.radius).toBeCloseTo(radiusForMass(growth.CELL_STARTING_MASS, growth), 12);
+  });
+});
+
+describe('massFloorOf and the wild floor', () => {
+  it('floors a player cell at the starting mass and a wild cell at min(starting mass, its mass before)', () => {
+    const world = createTestWorld();
+    const player = world.cells[0]!;
+    const { cell: wild } = seatTestWildCell(world, { at: { x: 1500, y: 0 }, mass: SMALL_WILD_MASS });
+    expect(massFloorOf(player, SMALL_WILD_MASS, DEFAULT_BALANCE)).toBe(growth.CELL_STARTING_MASS);
+    expect(massFloorOf(wild, SMALL_WILD_MASS, DEFAULT_BALANCE)).toBe(SMALL_WILD_MASS);
+    expect(massFloorOf(wild, 50, DEFAULT_BALANCE)).toBe(growth.CELL_STARTING_MASS);
+  });
+
+  it('never lifts a drained 10-mass wild cell to 20, and a heavy one stops at 20', () => {
+    const world = createTestWorld();
+    const { cell: wild } = seatTestWildCell(world, { at: { x: 1500, y: 0 }, mass: SMALL_WILD_MASS });
+    loseMassToFloor(wild, SMALL_WILD_MASS - 1, DEFAULT_BALANCE);
+    expect(wild.mass).toBe(SMALL_WILD_MASS);
+    setCellMass(wild, 30, DEFAULT_BALANCE);
+    loseMassToFloor(wild, 5, DEFAULT_BALANCE);
+    expect(wild.mass).toBe(growth.CELL_STARTING_MASS);
   });
 });
