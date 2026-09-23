@@ -227,9 +227,14 @@ was a bare outline of a circle, which is what a failed image looks like rather t
 **What is built and what is left.** The lens, its four states, the one session behind it and the tier switch are
 #466's; **`Replay`** is #577's. `EncyclopediaPreviewService.replay()` shows the scene on the canvas again, which
 restarts its loop from the first frame, and plays a paused lens. It does nothing before the open resolves or while a
-new selection settles, since there is then no scene on the canvas to restart. One piece still waits: the
-**reduced-motion** pause with its play and pause toggle, which needs a `prefers-reduced-motion` seam the client does
-not have yet. Under it today the lens plays, as the dish behind the panel does.
+new selection settles, since there is then no scene on the canvas to restart. The **reduced-motion** pause and its toggle are #483's. `game/reduced-motion.ts` is the client's one
+`prefers-reduced-motion` seam in code, shaped like `clock-provider.ts`: the root `REDUCED_MOTION` token, a signal
+over `matchMedia('(prefers-reduced-motion: reduce)')` that follows the setting and answers `false` on a host with no
+`matchMedia`. Under it the page pauses the lens the moment a preview goes `live`, and each new preview starts held
+again. The toggle (`encyclopedia-preview-motion`, `data-motion="play"|"pause"`, the panel's own play and pause icons
+in `currentColor`) is named for what a press does: `lensMotionFor` offers play on a `paused` lens and pause on a
+`live` one, and nothing while loading or unavailable. Pressing play keeps that preview playing until the reader
+pauses it or moves on. The dish behind the panel still moves under the preference; that is the HUD's to answer.
 
 **The title column**, top to bottom:
 
@@ -351,7 +356,7 @@ pattern of `HUD_TEST_ID`; `input/input-constants.ts` imports the panel id from i
 `encyclopedia-crumb-<category>` (a breadcrumb crumb that goes somewhere; the crumb naming the page already shown is
 text and carries none),
 `encyclopedia-entry` (with `data-entry-id`), `encyclopedia-preview` (with `data-preview-state`),
-`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-sticky-title` (present only while a scrolled entry shows the bar), `encyclopedia-facts`,
+`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-preview-motion` (the reduced-motion toggle, with `data-motion`), `encyclopedia-sticky-title` (present only while a scrolled entry shows the bar), `encyclopedia-facts`,
 `encyclopedia-link-<entryId>` (every link to that entry; a test takes the first), and in the lobby
 `lobby-encyclopedia`.
 

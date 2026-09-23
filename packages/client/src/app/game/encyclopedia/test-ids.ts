@@ -35,6 +35,8 @@ export const ENCYCLOPEDIA_TEST_ID = {
   previewReplay: 'encyclopedia-preview-replay',
   /** The sticky title bar a scrolled entry shows at the column's top edge (§11.4); absent while the title is in view. */
   stickyTitle: 'encyclopedia-sticky-title',
+  /** The lens's play and pause toggle under reduced motion (§11.4), with `data-motion="play"|"pause"`. */
+  previewMotion: 'encyclopedia-preview-motion',
   /** The entry's facts table. */
   facts: 'encyclopedia-facts',
   /** The lobby header's button that opens the panel outside a room (docs/ui/encyclopedia.md §11.1). */

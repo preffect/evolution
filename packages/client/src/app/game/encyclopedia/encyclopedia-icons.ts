@@ -1,6 +1,7 @@
-// The panel's own line icons (docs/ui/encyclopedia.md §11.3): one 16 px mark per rail category, and the header's Back
-// and Close. Code-drawn, like every other mark in the game (docs/ASSET-GENERATION.md): a table of paths in the icon's
-// own view box, which `encyclopedia-icon.component.ts` is the single renderer of.
+// The panel's own line icons (docs/ui/encyclopedia.md §11.3): one 16 px mark per rail category, the header's Back
+// and Close, and the lens's play and pause (§11.4). Code-drawn, like every other mark in the game
+// (docs/ASSET-GENERATION.md): a table of paths in the icon's own view box, which `encyclopedia-icon.component.ts` is
+// the single renderer of.
 //
 // The drawings are the approved mockup's (`qa/decisions/encyclopedia/tools/render_encyclopedia.py`, `rail_icon`),
 // transcribed shape for shape so the shipped rail matches the frame the human signed off. Each is one `d` string,
@@ -93,6 +94,18 @@ export const ENCYCLOPEDIA_CATEGORY_ICON: Readonly<Record<EncyclopediaCategory, E
 export const ENCYCLOPEDIA_BACK_ICON: EncyclopediaIcon = {
   viewBox: BUTTON_ICON_VIEW_BOX,
   paths: [stroked('M12,5 L7,10 L12,15')],
+};
+
+/** The lens's play mark under reduced motion (§11.4): a filled triangle pointing on. */
+export const ENCYCLOPEDIA_PLAY_ICON: EncyclopediaIcon = {
+  viewBox: BUTTON_ICON_VIEW_BOX,
+  paths: [filled('M7,5 L15,10 L7,15 Z')],
+};
+
+/** Its pause mark: two filled bars. */
+export const ENCYCLOPEDIA_PAUSE_ICON: EncyclopediaIcon = {
+  viewBox: BUTTON_ICON_VIEW_BOX,
+  paths: [filled('M6,5 H9 V15 H6 Z M11,5 H14 V15 H11 Z')],
 };
 
 /** The header's Close cross, the kit's own (`ui-kit/kit-states`). */

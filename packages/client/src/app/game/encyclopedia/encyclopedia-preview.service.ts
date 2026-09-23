@@ -18,7 +18,12 @@ import { SCHEDULER } from '../clock-provider';
 import { ENCYCLOPEDIA_PREVIEW, type PreviewHandle } from '../render/preview/preview-host';
 import type { PreviewSpec } from '../render/preview/preview-spec';
 import { EncyclopediaContextService } from './encyclopedia-context';
-import { ENCYCLOPEDIA_LENS_DIAMETER_PX, ENCYCLOPEDIA_PREVIEW_SETTLE_MS } from './encyclopedia-constants';
+import {
+  ENCYCLOPEDIA_LENS_DIAMETER_PX,
+  ENCYCLOPEDIA_LENS_MOTION,
+  ENCYCLOPEDIA_PREVIEW_SETTLE_MS,
+  type EncyclopediaLensMotion,
+} from './encyclopedia-constants';
 
 /** What the lens draws, on `encyclopedia-preview[data-preview-state]` (docs/ui/encyclopedia.md §11.4). */
 export const ENCYCLOPEDIA_PREVIEW_STATE = {
@@ -31,6 +36,20 @@ export const ENCYCLOPEDIA_PREVIEW_STATE = {
   unavailable: 'unavailable',
 } as const;
 export type EncyclopediaPreviewState = ValueOf<typeof ENCYCLOPEDIA_PREVIEW_STATE>;
+
+/**
+ * The reduced-motion toggle under the lens (§11.4): what a press does — play a held lens, hold a playing one — or
+ * `null` for no toggle, without the preference or before the lens has a frame to hold.
+ */
+export function lensMotionFor(
+  isReducedMotionPreferred: boolean,
+  state: EncyclopediaPreviewState,
+): EncyclopediaLensMotion | null {
+  if (!isReducedMotionPreferred) return null;
+  if (state === ENCYCLOPEDIA_PREVIEW_STATE.live) return ENCYCLOPEDIA_LENS_MOTION.pause;
+  if (state === ENCYCLOPEDIA_PREVIEW_STATE.paused) return ENCYCLOPEDIA_LENS_MOTION.play;
+  return null;
+}
 
 /**
  * The canvas's wrapper is styled from here rather than from a stylesheet because it is created outside any
@@ -131,7 +150,8 @@ export class EncyclopediaPreviewService {
     }
   }
 
-  private resume(): void {
+  /** The ticker plays again, and the state follows it: the reduced-motion toggle's play (§11.4). */
+  resume(): void {
     if (this.handle === null || !this.isTickerPaused) return;
     this.handle.resume();
     this.isTickerPaused = false;

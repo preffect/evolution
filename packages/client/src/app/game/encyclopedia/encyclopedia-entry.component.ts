@@ -22,12 +22,13 @@ import {
 import { FIRST_TIER, type OwnedTrait, type TraitTier } from '@evolution/shared';
 import { UiChipComponent, UiLinkChipComponent } from '../../ui-kit/ui-chip.component';
 import { UiScrollAreaComponent } from '../../ui-kit/ui-scroll-area.component';
+import { REDUCED_MOTION } from '../reduced-motion';
 import { GameStateService } from '../state/game-state.service';
 import { EncyclopediaBreadcrumbComponent } from './encyclopedia-breadcrumb.component';
 import { EncyclopediaFactsComponent } from './encyclopedia-facts.component';
 import { EncyclopediaLensComponent } from './encyclopedia-lens.component';
 import { EncyclopediaLensControlComponent } from './encyclopedia-lens-control.component';
-import { EncyclopediaPreviewService } from './encyclopedia-preview.service';
+import { ENCYCLOPEDIA_PREVIEW_STATE, EncyclopediaPreviewService, lensMotionFor } from './encyclopedia-preview.service';
 import { EncyclopediaProseComponent } from './encyclopedia-prose.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import {
@@ -36,6 +37,8 @@ import {
   ENCYCLOPEDIA_FACTS_TABLE_LABEL,
   ENCYCLOPEDIA_LADDER_TABLE_LABEL,
   ENCYCLOPEDIA_SEE_ALSO_LABEL,
+  ENCYCLOPEDIA_LENS_MOTION,
+  type EncyclopediaLensMotion,
 } from './encyclopedia-constants';
 import { entryBreadcrumb } from './format/landing-view';
 import {
@@ -46,6 +49,7 @@ import {
   replayLabelFor,
   tierSwitchFor,
   tierTableFor,
+  type EncyclopediaTierSegment,
   type EncyclopediaTierSwitch,
 } from './format/entry-view';
 import type { ResolvedEntry } from './model/entry';
@@ -94,14 +98,16 @@ const NO_OWNED_TRAITS: readonly OwnedTrait[] = [];
             @if (entry().preview) {
               <div class="lens-column">
                 <app-encyclopedia-lens [state]="previewState()" />
-                @if (tierSwitch(); as control) {
+                @if (tierSwitch() || lensReplayLabel() || lensMotion()) {
                   <app-encyclopedia-lens-control
-                    [segments]="control.segments"
+                    [segments]="tierSwitch()?.segments ?? noSegments"
                     [selectedTier]="selectedTier()"
                     (tierSelected)="selectTier($event)"
+                    [replayLabel]="lensReplayLabel()"
+                    (replayed)="replay()"
+                    [motion]="lensMotion()"
+                    (motionToggled)="toggleMotion($event)"
                   />
-                } @else if (replayLabel(); as label) {
-                  <app-encyclopedia-lens-control [replayLabel]="label" (replayed)="replay()" />
                 }
               </div>
             }
@@ -166,6 +172,10 @@ export class EncyclopediaEntryComponent {
   protected readonly isTitleScrolledPast = signal(false);
   /** What the lens draws; the session behind it is the panel's, and outlives this page (§12.7). */
   protected readonly previewState = this.preview.state;
+  protected readonly noSegments: readonly EncyclopediaTierSegment[] = [];
+
+  /** The reader's `prefers-reduced-motion` (§11.4): the lens holds its first frame and the toggle plays it. */
+  private readonly prefersReducedMotion = inject(REDUCED_MOTION);
   protected readonly linkTestId = encyclopediaLinkTestId;
   protected readonly effectsLabel = ENCYCLOPEDIA_EFFECTS_TABLE_LABEL;
   protected readonly seeAlsoLabel = ENCYCLOPEDIA_SEE_ALSO_LABEL;
@@ -215,6 +225,15 @@ export class EncyclopediaEntryComponent {
   /** `Replay` under an action scene (§11.4); `null` for a lens showing a subject. */
   protected readonly replayLabel = computed(() => replayLabelFor(this.previewSpec()));
 
+  /** Under reduced motion the toggle takes `Replay`'s place (§11.4): replaying a held scene would only hold it again. */
+  protected readonly lensReplayLabel = computed(() => (this.prefersReducedMotion() ? null : this.replayLabel()));
+
+  /** The reader pressed play on this preview; a new preview starts held again. */
+  private readonly isPlayRequested = linkedSignal({ source: this.previewSpec, computation: () => false });
+
+  /** What the toggle does when pressed: play a held lens, hold a playing one; no toggle without the preference. */
+  protected readonly lensMotion = computed(() => lensMotionFor(this.prefersReducedMotion(), this.previewState()));
+
   /** §11.4 names the header of a trait's second table; every other entry has one table, and it is simply its facts. */
   protected readonly factsLabel = computed(() =>
     this.entry().subject.kind === ENTRY_SUBJECT.trait
@@ -223,6 +242,11 @@ export class EncyclopediaEntryComponent {
   );
 
   constructor() {
+    // Reduced motion: the moment a preview draws its first frame and goes live, it is held, unless the reader played it.
+    effect(() => {
+      const isLive = this.previewState() === ENCYCLOPEDIA_PREVIEW_STATE.live;
+      if (isLive && this.prefersReducedMotion() && !this.isPlayRequested()) this.preview.pause();
+    });
     // A new page keeps the scroll area (and its position), so where its title sits is read again once it is drawn.
     effect(() => {
       this.entryId();
@@ -249,6 +273,14 @@ export class EncyclopediaEntryComponent {
   }
 
   /** `Replay`: the scene on the lens starts again from its first frame. */
+  /** The reduced-motion toggle: play resumes the held lens and keeps it playing; pause holds it again. */
+  protected toggleMotion(motion: EncyclopediaLensMotion): void {
+    const isPlay = motion === ENCYCLOPEDIA_LENS_MOTION.play;
+    this.isPlayRequested.set(isPlay);
+    if (isPlay) this.preview.resume();
+    else this.preview.pause();
+  }
+
   protected replay(): void {
     this.preview.replay();
   }

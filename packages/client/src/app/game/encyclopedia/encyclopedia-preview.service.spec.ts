@@ -11,8 +11,12 @@ import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../render/previ
 import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
 import { recordingPreviewHost, type RecordingPreviewHost } from '../../../testing/fake-preview-handle';
 import { GameStateService } from '../state/game-state.service';
-import { ENCYCLOPEDIA_LENS_DIAMETER_PX, ENCYCLOPEDIA_PREVIEW_SETTLE_MS } from './encyclopedia-constants';
-import { ENCYCLOPEDIA_PREVIEW_STATE, EncyclopediaPreviewService } from './encyclopedia-preview.service';
+import {
+  ENCYCLOPEDIA_LENS_DIAMETER_PX,
+  ENCYCLOPEDIA_LENS_MOTION,
+  ENCYCLOPEDIA_PREVIEW_SETTLE_MS,
+} from './encyclopedia-constants';
+import { ENCYCLOPEDIA_PREVIEW_STATE, EncyclopediaPreviewService, lensMotionFor } from './encyclopedia-preview.service';
 
 const CELL_SPEC: PreviewSpec = {
   scene: PREVIEW_SCENE.cell,
@@ -247,5 +251,15 @@ describe('EncyclopediaPreviewService (docs/ui/encyclopedia.md §11.4)', () => {
 
     fixture.destroy();
     expect(host.handles[0]?.destroyCount).toBe(1);
+  });
+});
+
+describe('lensMotionFor (docs/ui/encyclopedia.md §11.4)', () => {
+  it('offers play on a held lens and pause on a playing one, only under the preference and with a frame to hold', () => {
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.paused)).toBe(ENCYCLOPEDIA_LENS_MOTION.play);
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.live)).toBe(ENCYCLOPEDIA_LENS_MOTION.pause);
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.loading)).toBeNull();
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.unavailable)).toBeNull();
+    expect(lensMotionFor(false, ENCYCLOPEDIA_PREVIEW_STATE.live)).toBeNull();
   });
 });
