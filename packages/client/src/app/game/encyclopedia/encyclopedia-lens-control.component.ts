@@ -7,8 +7,8 @@
 // are three of them, they sit outside both roving columns (§11.5), and an arrow key inside the detail column
 // belongs to the scroll area.
 //
-// The action scenes' `Replay` (§11.4) is **not** here. No entry the registry holds has an action-scene preview until
-// the actions category lands (#362) over the scenes of #364, so it would be a control no page could show.
+// The action scenes' `Replay` (§11.4) is **not** here yet: the action pages that show those scenes landed with #362,
+// and the control is ticket #577.
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import type { TraitTier } from '@evolution/shared';

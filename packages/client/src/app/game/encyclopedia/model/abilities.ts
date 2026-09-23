@@ -1,5 +1,5 @@
 // What traits grant, one page per ability (docs/architecture/encyclopedia.md §12.4). The id list is content's (#362
-// writes the pages); the anchor is the rule: every `CellModifiers` key belongs to exactly one ability, so a new
+// wrote the pages); the anchor is the rule: every `CellModifiers` key belongs to exactly one ability, so a new
 // modifier without an ability fails `typecheck`, and an ability page lists the traits that set its keys.
 
 import type { CellModifiers, ValueOf } from '@evolution/shared';

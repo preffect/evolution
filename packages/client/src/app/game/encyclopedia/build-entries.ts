@@ -1,7 +1,7 @@
 // The entry definitions, joined from content and the balance's structure (docs/architecture/encyclopedia.md §12.2):
 // catalog order inside each subject, subjects in `ENTRY_SUBJECT` order. Titles of traits are catalog names, tier
 // sections one per row of `TRAIT_TIERS` (structure, never patched), previews built from ids. It reads no number;
-// `registry.ts` calls it once with `DEFAULT_BALANCE`. #362 adds the abilities and actions here.
+// `registry.ts` calls it once with `DEFAULT_BALANCE`.
 
 import {
   CELL_KIND,
@@ -16,6 +16,8 @@ import {
   type TraitTier,
 } from '@evolution/shared';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../render/preview/preview-spec';
+import { ABILITY_ENTRY_CONTENT } from './content/ability-entries';
+import { ACTION_ENTRY_CONTENT } from './content/action-entries';
 import { BACTERIUM_ENTRY_CONTENT } from './content/bacterium-entries';
 import { CELL_KIND_ENTRY_CONTENT } from './content/cell-kind-entries';
 import { CONCEPT_ENTRY_CONTENT } from './content/concept-entries';
@@ -27,6 +29,8 @@ import { STAGE_ENTRY_CONTENT, stageFacts } from './content/stage-entries';
 import { TRAIT_ENTRY_CONTENT, traitFacts } from './content/trait-entries';
 import { WORLD_ENTRY_CONTENT } from './content/world-entries';
 import { ZONE_ENTRY_CONTENT } from './content/zone-entries';
+import { ABILITY } from './model/abilities';
+import { ACTION } from './model/actions';
 import { CONCEPT } from './model/concepts';
 import { HUD_TOPIC } from './model/hud-topics';
 import type { EntryDefinition, SectionDefinition, WrittenEntryContent } from './model/entry';
@@ -143,6 +147,8 @@ export function buildEntryDefinitions(balance: BalanceConfig): readonly EntryDef
     ...stageEntries(balance),
     ...traitEntries(balance),
     ...dnaTagEntries(balance),
+    ...writtenEntries(ENTRY_SUBJECT.ability, Object.values(ABILITY), ABILITY_ENTRY_CONTENT),
+    ...writtenEntries(ENTRY_SUBJECT.action, Object.values(ACTION), ACTION_ENTRY_CONTENT),
     ...writtenEntries(ENTRY_SUBJECT.zone, Object.values(ZONE_ID), ZONE_ENTRY_CONTENT),
     ...writtenEntries(ENTRY_SUBJECT.world, Object.values(WORLD_TOPIC), WORLD_ENTRY_CONTENT),
     ...writtenEntries(ENTRY_SUBJECT.concept, Object.values(CONCEPT), CONCEPT_ENTRY_CONTENT),

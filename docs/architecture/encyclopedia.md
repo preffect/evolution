@@ -919,6 +919,8 @@ packages/client/src/app/game/
   encyclopedia/content/{cell-kind,food,bacterium,entity}-entries.ts   entities
   encyclopedia/content/{zone,world}-entries.ts                     world
   encyclopedia/content/{ability,action}-entries.ts                 abilities and actions
+  encyclopedia/content/action-facts.ts                             the sprint and engulf facts an ability page and an action page both quote
+  encyclopedia/format/key-names.ts                                  key names read from input/input-constants.ts, for the action pages' controls text
   encyclopedia/registry.ts                                          ENCYCLOPEDIA_ENTRIES, entryById, resolveEntry, entriesIn
   encyclopedia/encyclopedia-context.ts                              factContextFor, EncyclopediaContextService (§12.2)
   encyclopedia/preview-route.ts                                     the dev evidence route (§12.7)

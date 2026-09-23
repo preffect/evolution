@@ -1,10 +1,11 @@
 // The one file where a formula fact's number is computed (docs/architecture/encyclopedia.md §12.3). Each row is
 // exactly one call of the shared function the simulation calls, over the live balance, with a number-free argument
 // (an id or a closed selector). Content names a row and its argument; it can never write a closure, a sum or a
-// factor. A new row is reviewed here. `engulf_phase_span` lands with its shared function in #362.
+// factor. A new row is reviewed here.
 
 import {
   FIRST_LEVEL,
+  engulfPhaseSpanSeconds,
   gelSpeedFactor,
   levelUpCost,
   maxSpeedForMass,
@@ -12,6 +13,7 @@ import {
   worldReference,
   worldWholeLevel,
   type BalanceConfig,
+  type EngulfPhase,
   type ValueOf,
 } from '@evolution/shared';
 
@@ -40,6 +42,8 @@ export const FACT_FORMULA = {
   worldLevelAt: 'world_level_at',
   /** `worldReference(secondsOf(argument), balance).worldMass`. */
   worldMassAt: 'world_mass_at',
+  /** `engulfPhaseSpanSeconds(argument.phase, balance.absorption)`: an uncontested engulf's time in one phase. */
+  engulfPhaseSpan: 'engulf_phase_span',
 } as const;
 export type FactFormulaId = ValueOf<typeof FACT_FORMULA>;
 
@@ -51,6 +55,7 @@ export interface FactFormulaArguments {
   [FACT_FORMULA.gelSpeedFactorAt]: { readonly mass: BalanceMass };
   [FACT_FORMULA.worldLevelAt]: { readonly moment: RoundMoment };
   [FACT_FORMULA.worldMassAt]: { readonly moment: RoundMoment };
+  [FACT_FORMULA.engulfPhaseSpan]: { readonly phase: EngulfPhase };
 }
 
 export type FactFormulaCall = {
@@ -95,6 +100,7 @@ export const FACT_FORMULAS: {
     worldWholeLevel(worldReference(secondsOf(balance, argument.moment), balance)),
   [FACT_FORMULA.worldMassAt]: (balance, argument) =>
     worldReference(secondsOf(balance, argument.moment), balance).worldMass,
+  [FACT_FORMULA.engulfPhaseSpan]: (balance, argument) => engulfPhaseSpanSeconds(argument.phase, balance.absorption),
 };
 
 export function evaluateFormula(balance: BalanceConfig, call: FactFormulaCall): number {
