@@ -87,19 +87,25 @@ isolation. A spec whose source names `TestBed` runs in its own isolated process,
 platform binds the jsdom `document` of the first file it meets. Under reused workers, 104 component and
 directive tests failed against that stale document.
 
-| Run (`./validate.sh test --scope …`, `--fresh`) | Before              | After               |
-| ----------------------------------------------- | ------------------- | ------------------- |
-| `client` (268 files, coverage on)               | 450.8 s, 659 core-s | 155.8 s, 340 core-s |
-| `packages/client/src/app/game/render` (124/125) | 95.4 s              | 10.7 s              |
+| Run (`./validate.sh test --scope …`, `--fresh`)             | Before              | After               |
+| ----------------------------------------------------------- | ------------------- | ------------------- |
+| `client` (268 files, coverage on)                           | 450.8 s, 659 core-s | 155.8 s, 340 core-s |
+| `packages/client/src/app/game/render` (124, then 125 files) | 95.4 s              | 10.7 s              |
 
-Before/After: vitest's reported duration; core-s is CPU time from `scripts/cpu-report.sh`, so 60 core-s
-is one core busy for a minute. Coverage held at 97.6 % of lines, and the full tier passed again with the
+Before/After: vitest's reported duration (main added a render spec between the two render runs);
+core-s is CPU time from `scripts/cpu-report.sh`, so 60 core-s is one core busy for a minute. Coverage held at 97.6 % of lines, and the full tier passed again with the
 file order shuffled.
 
 - **What it asks of a plain spec:** leave no module-level state behind. A plain spec shares its module
   cache with the specs before it in the same worker. A spec that mutates a module singleton, a global,
   or `document` without restoring it can change a later file's result. Vitest still restores `vi.spyOn`
   mocks between files, and nothing in `src` uses `vi.mock` today.
+- A spec counts as using `TestBed` when it names it, or relatively imports a non-spec module under
+  `src` that names it (a `src/testing` helper). Deeper chains are not followed. A helper that reaches
+  `TestBed` through another helper names `TestBed` in a comment.
+- `src/testing/shared-worker-reset.ts` (a builder `setupFiles` entry) restores real timers, stubbed
+  globals and stubbed env vars after each file, so a forgotten `vi.useFakeTimers()` or `vi.stubGlobal()`
+  never reaches the next file in the worker.
 - A spec that needs its own process but does not use `TestBed` names the reason on a line that
   contains `TestBed` (for example `// isolated like a TestBed spec: patches globalThis.WebSocket`).
 
