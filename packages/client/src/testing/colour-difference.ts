@@ -3,7 +3,7 @@
 // it). Test support only, mirroring qa/evidence/34/tools/colour_separability.py; the literals are
 // the standards' coefficients.
 
-import { hexToRgb, linearToSrgb, srgbToLinear, type Rgb } from '../app/game/render/colour';
+import { hexToRgb, linearToSrgb, rgbToHex, srgbToLinear, type Rgb } from '../app/game/render/colour';
 
 export type Lab = readonly [number, number, number];
 export type RgbMatrix = readonly [Rgb, Rgb, Rgb];
@@ -142,6 +142,14 @@ export function hexDeltaE(hex1: string, hex2: string, matrix: RgbMatrix | null =
 export function relativeLuminance(rgb: Rgb): number {
   const [red, green, blue] = rgb.map(srgbToLinear) as unknown as Rgb;
   return XYZ_FROM_LINEAR[1][0] * red + XYZ_FROM_LINEAR[1][1] * green + XYZ_FROM_LINEAR[1][2] * blue;
+}
+
+/** `color-mix(in srgb, top alpha, transparent)` painted over `groundHex`, as a hex colour. */
+export function hexOver(topHex: string, alpha: number, groundHex: string): string {
+  const top = hexToRgb(topHex);
+  const ground = hexToRgb(groundHex);
+  const blended = top.map((channel, index) => channel * alpha + (ground[index] ?? 0) * (1 - alpha));
+  return rgbToHex(blended as unknown as Rgb);
 }
 
 /** WCAG contrast ratio between two hex colours. */
