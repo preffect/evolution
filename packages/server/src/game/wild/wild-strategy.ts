@@ -38,7 +38,7 @@ import { tryStartSprint } from '../simulation/inputs.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
+import { isFleeSprintWorthwhile, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
 import { createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
 import { cellOfSeat } from './wild-settle.js';
 import { wanderTargetOf } from './wild-wander.js';
@@ -101,16 +101,19 @@ function escapeCommand(cell: CellRecord, decision: WildDecisionContext): WildCom
   return { target, isSprinting: true };
 }
 
-/** The hunt rule's sprint test over the sight's own records: `isHuntSprintWorthwhile` (`wild-hunt-sprint.ts`). */
-function huntSprintTest(sight: WildSight, decision: WildDecisionContext) {
+/** What a sprint test reads: the two cells as records of this world, the deciding cell first. */
+type SprintTest = (self: CellRecord, other: CellRecord, world: WorldState, balance: BalanceConfig) => boolean;
+
+/** A rule's sprint test over the sight's own records (`wild-hunt-sprint.ts`). */
+function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: SprintTest) {
   const recordOf = new Map<string, CellRecord>(sight.cells.map((cell) => [cell.id, cell]));
-  return (self: BotCellView, prey: BotCellView): boolean => {
-    const hunter = recordOf.get(self.id);
-    const target = recordOf.get(prey.id);
+  return (self: BotCellView, other: BotCellView): boolean => {
+    const deciding = recordOf.get(self.id);
+    const counterpart = recordOf.get(other.id);
     return (
-      hunter !== undefined &&
-      target !== undefined &&
-      isHuntSprintWorthwhile(hunter, target, decision.world, decision.step.balance)
+      deciding !== undefined &&
+      counterpart !== undefined &&
+      test(deciding, counterpart, decision.world, decision.step.balance)
     );
   };
 }
@@ -128,11 +131,12 @@ function sightedCommand(
     withinRadii: wildCells.WILD_CELL_FLEE_RANGE_RADII,
     stepRadii: controls.STEER_FULL_THROTTLE_RADII,
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_FLEE_RADII,
+    isSprintWorthwhile: sprintTestOver(sight, decision, isFleeSprintWorthwhile),
   };
   const huntOptions = {
     preference: HUNT_PREFERENCE.nearest,
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_HUNT_RADII,
-    isSprintWorthwhile: huntSprintTest(sight, decision),
+    isSprintWorthwhile: sprintTestOver(sight, decision, isHuntSprintWorthwhile),
   };
   const prey = createWildPerception(sight, balance, decision.isHuntingStage);
   return (

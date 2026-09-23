@@ -8,6 +8,7 @@ import { describe, it } from 'vitest';
 import { DEFAULT_BALANCE, DNA_TAGS, FOOD_KIND, radiusForMass, secondsToTicks, type Vec2 } from '@evolution/shared';
 import { cellOf, progressOf, wildCellOf, wildSeatOf } from '../gameplay/evolution-views.js';
 import type { EvolutionView } from '../gameplay/evolution-views.js';
+import { player, targetPoint, type PlayerScript } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import { PROGRESS_TOLERANCE, absorption, detritusInDish } from './engulf-setups.js';
 import { placedSolo } from './shared-setups.js';
@@ -38,16 +39,22 @@ const W12_DETRITUS_MASS = 4;
 const W13_IN_SIGHT_WU = 290;
 const W13_OUT_OF_SIGHT_WU = 310;
 const W13_DECISION_TICK = 30;
-/** W14: A at 400, seat 0 at size 10.0 200 wu east; the sprint on tick 30 costs 5 % of 205.00. */
+/** W14: A at 400, seat 0 at size 10.0 100 wu east; A charges it through tick 30; the sprint costs 5 % of 205.00. */
 const W14_PLAYER_MASS = 400;
 const W14_SEAT_SIZE = 10;
-const W14_SEAT_EAST_WU = 200;
+const W14_SEAT_EAST_WU = 100;
+/** W14's variant: A idle at the row's old 200 wu, whose own sprint cannot reach seat 0: no flee sprint. */
+const W14_IDLE_THREAT_EAST_WU = 200;
 const W14_DECISION_TICK = 30;
 const W14_MASS_AFTER_SPRINT = 194.75;
 const W14_SPENT = 10.25;
 const W14_READ_TICK = 90;
 const W14_LAST_TICK = 209;
 const MASS_TOLERANCE = 0.01;
+/** W14: A charges east at full throttle through tick 30, then stops (its target on its own centre). */
+const W14_CHARGE_EAST_WU = 1000;
+const holdStill: PlayerScript<unknown> = (context) =>
+  context.cell === undefined ? null : { targetX: context.cell.x, targetY: context.cell.y };
 
 const seatCell = (seat: number) => (view: EvolutionView) => wildCellOf(view, seat);
 const seatTarget = (seat: number) => (view: EvolutionView) => {
@@ -175,7 +182,7 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .runDeterministic();
   });
 
-  it('W14: seat 0 flees A and sprints on tick 30, and the sprint is spent mass: no wound, no refund, once in 3 s', async () => {
+  it('W14: seat 0 flees a charging A and sprints on tick 30, and the sprint is spent mass: no wound, no refund, once in 3 s', async () => {
     const seatMass = (view: EvolutionView) => seatCell(PLACED_SEAT)(view)?.mass;
     const deficit = (view: EvolutionView) => {
       const seat = wildSeatOf(view, PLACED_SEAT);
@@ -185,6 +192,12 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
     await placedSolo('W14')
       .placeCell({ playerIndex: 0, mass: W14_PLAYER_MASS })
       .placeWildCell({ seat: PLACED_SEAT, sizeFactor: W14_SEAT_SIZE, eastOfFirstCellWu: W14_SEAT_EAST_WU })
+      .between(
+        ONE_TICK,
+        W14_DECISION_TICK,
+        player(0).does(targetPoint(BROTH_POINT.x + W14_CHARGE_EAST_WU, BROTH_POINT.y)),
+      )
+      .atTick(W14_DECISION_TICK + ONE_TICK, player(0).does(holdStill))
       .advance(W14_LAST_TICK)
       .expect("the sprint starts on tick 30 as a player's: both counters one tick down at the end of it", (view) => [
         seatCell(PLACED_SEAT)(view)?.sprintRemainingTicks,
@@ -216,6 +229,17 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .expect('A still alive and idle', (view) => cellOf(view, 0) !== undefined)
       .atTick(W14_LAST_TICK)
       .toBe(true)
+      .runDeterministic();
+    await placedSolo('W14 idle threat')
+      .placeCell({ playerIndex: 0, mass: W14_PLAYER_MASS })
+      .placeWildCell({ seat: PLACED_SEAT, sizeFactor: W14_SEAT_SIZE, eastOfFirstCellWu: W14_IDLE_THREAT_EAST_WU })
+      .advance(W14_DECISION_TICK)
+      .expect('an idle A 200 wu off cannot reach seat 0 on its own sprint: it flees at normal speed', (view) => [
+        seatTarget(PLACED_SEAT)(view)?.x !== null,
+        seatCell(PLACED_SEAT)(view)?.sprintRemainingTicks,
+      ])
+      .atTick(W14_DECISION_TICK)
+      .toEqual([true, 0])
       .runDeterministic();
   });
 });

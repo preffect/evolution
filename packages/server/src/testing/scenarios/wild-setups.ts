@@ -165,26 +165,45 @@ interface SeatSizes {
   readonly baseMass: number;
   readonly fullMass: number;
   readonly mass: number;
+  /** What the cell ate or was paid this tick, after the settle. */
+  readonly mealsThisTick: number;
+}
+
+/** The mass `cellId` gained from meals and payouts in this tick's effects. */
+function mealsThisTick(view: EvolutionView, cellId: string): number {
+  let gained = 0;
+  for (const effect of view.snapshot.effects) {
+    if (effect.kind === EFFECT_KIND.eat && effect.cellId === cellId) gained += effect.massGained;
+    if (effect.kind === EFFECT_KIND.cellAbsorbed && effect.predatorCellId === cellId)
+      gained += effect.predatorMassGained;
+  }
+  return gained;
 }
 
 /**
- * W3: every seated cell's `fullMass` at most max(base, 3 × world) and its mass in [min(20, base), `fullMass`]; a
- * vacant seat (its cell eaten, the respawn counting down) has no cell to bound. The full size has no lower bound at
- * the base: a sprint's cost is spent mass, taken off it until a meal pays it back.
+ * W3: every seated cell's `fullMass` at most max(base, 3 × world) and its mass in [min(20, base), `fullMass` + this
+ * tick's meals] (a mote or a payout at steps 4 and 6 lands after the settle, which books it on the next tick); a vacant
+ * seat (its cell eaten, the respawn counting down) has no cell to bound. The full size has no lower bound at the base:
+ * a sprint's cost is spent mass, taken off it until a meal pays it back.
  */
 export function areSeatsWithinBounds(worldMass: number, tolerance: number): (view: EvolutionView) => boolean {
   const ceiling = wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
-  const isWithin = ({ baseMass, fullMass, mass }: SeatSizes): boolean =>
+  const isWithin = ({ baseMass, fullMass, mass, mealsThisTick: meals }: SeatSizes): boolean =>
     fullMass <= Math.max(baseMass, ceiling) + tolerance &&
     mass >= Math.min(growth.CELL_STARTING_MASS, baseMass) - tolerance &&
-    mass <= fullMass + tolerance;
+    mass <= fullMass + meals + tolerance;
   return (view) =>
     view.snapshot.wildSeats.every((seat) => {
       const cell = view.snapshot.cells.find((candidate) => candidate.id === seat.cellId);
       return (
         seat.cellId === null ||
         (cell !== undefined &&
-          isWithin({ baseMass: worldMass * seat.sizeFactor, fullMass: seat.fullMass, mass: cell.mass }))
+          isWithin({
+            baseMass: worldMass * seat.sizeFactor,
+            fullMass: seat.fullMass,
+            mass: cell.mass,
+            mealsThisTick: mealsThisTick(view, cell.id),
+          }))
       );
     });
 }

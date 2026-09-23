@@ -6,6 +6,10 @@
 // latched target at the prey's centre, the steer throttle easing off near it) against the prey carried on at its
 // current velocity. A hunter that already covers the prey has no gap to close (the engulf starts at step 6 of this
 // tick) and does not sprint.
+//
+// A flee sprint mirrors it (the lead's ruling on the #594 review): a wild cell sprints from a threat only when the
+// threat already covers it (the engulf would start this tick) or the threat's own sprint, at its paid mass, would
+// reach it while it carries on at its current velocity without sprinting. Otherwise it flees at normal speed.
 
 import {
   TICK_INTERVAL_S,
@@ -70,4 +74,14 @@ export function isHuntSprintWorthwhile(
     engulfContactGap(hunter, prey, balance) > 0 &&
     doesHuntSprintReachPrey(hunter, prey, world, balance)
   );
+}
+
+/** A flee sprint is worth its spent mass: the threat covers the cell already, or its own sprint would reach it. */
+export function isFleeSprintWorthwhile(
+  self: CellRecord,
+  threat: CellRecord,
+  world: WorldState,
+  balance: BalanceConfig,
+): boolean {
+  return engulfContactGap(threat, self, balance) <= 0 || isHuntSprintWorthwhile(threat, self, world, balance);
 }

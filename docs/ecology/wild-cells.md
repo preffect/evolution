@@ -202,7 +202,10 @@ its duration. The second test runs the shared movement kernel for the sprint's t
 hunter (its sprinting speed cap at the paid mass, its current velocity, the latched target at the prey's centre and
 the throttle easing off near it) against the prey carried on at its current velocity. A hunter that already covers
 the prey has no gap to close (the engulf starts at step 6 of the same tick) and does not sprint either. No tunable
-of its own: the hunt sprint radius (3) still bounds where it is considered. Flee sprints are unchanged. Wild cells move through the shared kernel (§5.2, gel included), separate
+of its own: the hunt sprint radius (3) still bounds where it is considered. A flee sprint mirrors it (the lead's
+ruling on the #594 review): within the flee sprint radius (4), a wild cell sprints only when the threat already
+covers it or the threat's own sprint, at its paid mass and steering at the cell's centre, would reach engulf contact
+while the cell carries on at its current velocity without sprinting; otherwise it flees at normal speed. Wild cells move through the shared kernel (§5.2, gel included), separate
 (§5.3) and engulf (§6) exactly as players do. `canEngulf` reads mass only, so the danger chip and the
 warning ring work on them unchanged (the chip names them `WILD <STAGE>`).
 

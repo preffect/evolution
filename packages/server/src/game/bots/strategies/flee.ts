@@ -12,6 +12,7 @@ import { BOT_STRATEGY_NAME, FLEE_STEP_RADII, FLEE_WITHIN_RADII } from '../strate
 
 /** No threat is ever within a negative distance: the default flee never sprints. */
 const NEVER_SPRINTS = -1;
+const ALWAYS_WORTHWHILE = (): boolean => true;
 
 export interface FleeOptions {
   /** Flee only from a threat whose centre is within this many own radii. */
@@ -20,6 +21,8 @@ export interface FleeOptions {
   readonly stepRadii?: number;
   /** Sprint when the threat's centre is within this many own radii; never by default. */
   readonly sprintWithinRadii?: number;
+  /** Whether it sprints from `threat` once within `sprintWithinRadii`; always by default (the wild flee asks the kernel). */
+  readonly isSprintWorthwhile?: (self: BotCellView, threat: BotCellView) => boolean;
 }
 
 /** Where a fleeing cell aims: `stepRadii` own radii from its centre, straight away from the threat. */
@@ -32,7 +35,12 @@ export function createFleeStrategy<Snapshot, ActorId = PlayerId>(
   perception: BotPerception<Snapshot, ActorId>,
   options: FleeOptions = {},
 ): BotStrategyFactory<Snapshot, ActorId> {
-  const { withinRadii = FLEE_WITHIN_RADII, stepRadii = FLEE_STEP_RADII, sprintWithinRadii = NEVER_SPRINTS } = options;
+  const {
+    withinRadii = FLEE_WITHIN_RADII,
+    stepRadii = FLEE_STEP_RADII,
+    sprintWithinRadii = NEVER_SPRINTS,
+    isSprintWorthwhile = ALWAYS_WORTHWHILE,
+  } = options;
   const isThreat = (self: BotCellView, other: BotCellView): boolean =>
     other.id !== self.id &&
     perception.canEngulf(other, self) &&
@@ -51,7 +59,8 @@ export function createFleeStrategy<Snapshot, ActorId = PlayerId>(
         return null;
       }
       const target = fleeTargetFrom(self, threat, stepRadii);
-      const isSprinting = distanceBetween(self, threat) <= self.radius * sprintWithinRadii;
+      const isSprinting =
+        distanceBetween(self, threat) <= self.radius * sprintWithinRadii && isSprintWorthwhile(self, threat);
       return { targetX: target.x, targetY: target.y, ...(isSprinting ? { isSprinting } : {}) };
     },
   });

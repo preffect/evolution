@@ -64,6 +64,12 @@ describe('flee strategy', () => {
     expect(cruising).toEqual({ targetX: self.x - FLEE_STEP_RADII * self.radius, targetY: self.y });
   });
 
+  it('keeps the flee but skips the sprint when isSprintWorthwhile says so', () => {
+    const options = { sprintWithinRadii: 5, isSprintWorthwhile: () => false };
+    const command = createFleeStrategy(perception, options)().decide(contextWith([self, nearThreat]));
+    expect(command).toEqual({ targetX: self.x - FLEE_STEP_RADII * self.radius, targetY: self.y });
+  });
+
   it('sends nothing when its own cell is not in the snapshot', () => {
     expect(createFleeStrategy(perception)().decide(contextWith([nearThreat]))).toBeNull();
   });

@@ -1,13 +1,13 @@
 // docs/ecology/wild-cells.md §3.3.3, the hunt sprint's two tests (the #594 review): a sprint that cannot reach the
 // prey within its duration is not taken, nor one whose cost would leave the hunter under the engulf ratio, nor one at
-// a prey it already covers.
+// a prey it already covers; and the flee sprint mirrored: taken only when the threat's own sprint could reach.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
-import { doesHuntSprintReachPrey, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
+import { doesHuntSprintReachPrey, isFleeSprintWorthwhile, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
 
 const { absorption, growth } = DEFAULT_BALANCE;
 const HUNTER_MASS = 100;
@@ -59,5 +59,23 @@ describe('isHuntSprintWorthwhile', () => {
   it('does not sprint at a prey it already covers: the engulf starts this tick', () => {
     const { world, hunter, prey } = chase(0.25);
     expect(isHuntSprintWorthwhile(hunter, prey, world, DEFAULT_BALANCE)).toBe(false);
+  });
+});
+
+describe('isFleeSprintWorthwhile', () => {
+  it('sprints from a resting threat whose own sprint would reach it', () => {
+    const { world, hunter: threat, prey: self } = chase(2);
+    expect(isFleeSprintWorthwhile(self, threat, world, DEFAULT_BALANCE)).toBe(true);
+  });
+
+  it('flees at normal speed when it is already outrunning the threat', () => {
+    const { world, hunter: threat, prey: self } = chase(2);
+    self.velocityX = OUTRUNNING_SPEED_WU_S;
+    expect(isFleeSprintWorthwhile(self, threat, world, DEFAULT_BALANCE)).toBe(false);
+  });
+
+  it('sprints when the threat already covers it: the engulf would start this tick', () => {
+    const { world, hunter: threat, prey: self } = chase(0.25);
+    expect(isFleeSprintWorthwhile(self, threat, world, DEFAULT_BALANCE)).toBe(true);
   });
 });
