@@ -12,6 +12,7 @@ import { createDrawCallCounter, type DrawCallCounter, type DrawCallSource } from
 import { createGpuTimer, GPU_TIMER_STATUS, type GpuTimer, type GpuTimerSource, type GpuTimerStatus } from './gpu-timer';
 import { buildPerformanceReport, type FrameEvidence } from './render-benchmark';
 import { RenderStageTimer, SampleRing } from './render-stage-timer';
+import { probeTimerResolutionMs } from './timer-resolution';
 
 export interface FrameCounts {
   readonly visibleCells: number;
@@ -30,9 +31,19 @@ export class FrameInstrumentation {
   readonly timer: RenderStageTimer;
   private readonly capacity: number;
   private readonly drawCallsPerFrame: SampleRing;
+  /**
+   * Per frame, the frame bracket minus the submit: the scene work the session's code does. The submit is Pixi's
+   * encode plus whatever the driver blocks on, which on a real GPU waits for the queue and tracks the refresh
+   * interval, so a budget on the whole frame judges the display, not the work (ticket #502).
+   */
+  private readonly workOutsideSubmitPerFrame: SampleRing;
+  /** The submit time of the frame in progress, for `workOutsideSubmitPerFrame`. */
+  private frameSubmitMs = 0;
   private drawCalls: DrawCallCounter | null = null;
   private gpu: GpuTimer | null = null;
   private frames = 0;
+  /** The clock's step, probed once, on the first report: the clock does not change under a session. */
+  private timerResolutionMs: number | null | undefined;
 
   constructor(
     private readonly clock: Clock,
@@ -41,6 +52,7 @@ export class FrameInstrumentation {
     this.capacity = capacity;
     this.timer = new RenderStageTimer(clock, capacity);
     this.drawCallsPerFrame = new SampleRing(capacity);
+    this.workOutsideSubmitPerFrame = new SampleRing(capacity);
   }
 
   /**
@@ -70,6 +82,8 @@ export class FrameInstrumentation {
     render: (frame: RenderFrame, submit: () => void) => RenderOutputs,
     submit: () => void,
   ): { frame: RenderFrame; outputs: RenderOutputs } | null {
+    const startedMs = this.clock.nowMilliseconds();
+    this.frameSubmitMs = 0;
     this.timer.beginFrame();
     const frame = this.timer.measure(RENDER_STAGE.net, nextFrame);
     if (frame === null) {
@@ -78,6 +92,7 @@ export class FrameInstrumentation {
     }
     const outputs = render(frame, () => this.submit(submit));
     this.timer.endFrame();
+    this.workOutsideSubmitPerFrame.push(this.clock.nowMilliseconds() - startedMs - this.frameSubmitMs);
     return { frame, outputs };
   }
 
@@ -88,9 +103,11 @@ export class FrameInstrumentation {
   submit(render: () => void): void {
     this.drawCalls?.reset();
     this.gpu?.begin();
+    const startedMs = this.clock.nowMilliseconds();
     try {
       render();
     } finally {
+      this.frameSubmitMs += this.clock.nowMilliseconds() - startedMs;
       this.gpu?.end();
       if (this.drawCalls !== null) this.drawCallsPerFrame.push(this.drawCalls.count());
       this.frames += 1;
@@ -104,7 +121,17 @@ export class FrameInstrumentation {
 
   /** What the window says beyond the wire report (the verdict's evidence). */
   evidence(): FrameEvidence {
-    return { sampleCount: this.timer.frameCount, residual: this.timer.residual() };
+    if (this.timerResolutionMs === undefined) this.timerResolutionMs = probeTimerResolutionMs(this.clock);
+    return {
+      sampleCount: this.timer.frameCount,
+      residual: this.timer.residual(),
+      timerResolutionMs: this.timerResolutionMs,
+    };
+  }
+
+  /** The p95 of each frame's work outside its submit; 0 before a frame was drawn. */
+  workOutsideSubmitP95Ms(): number {
+    return this.workOutsideSubmitPerFrame.p95();
   }
 
   report(counts: FrameCounts, heapBytes: number | null): ClientPerformanceReport {
