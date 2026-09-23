@@ -56,6 +56,15 @@ describe('cell shader source', () => {
       expect(fetchesOf(CELL_FRAGMENT_SOURCE, texelIndex), `texel ${texelIndex}`).toBe(1);
     }
     expect(CELL_VERTEX_SOURCE.split('texelFetch(uInstances').length - 1).toBe(1);
+    expect(CELL_FRAGMENT_SOURCE.split('readInstance()').length - 1, 'the definition and the one call in main').toBe(2);
+  });
+
+  it('declares every instance texel local a stage reads, before GL compile would say so', () => {
+    for (const source of [CELL_VERTEX_SOURCE, CELL_FRAGMENT_SOURCE]) {
+      const read = new Set([...source.matchAll(/instanceTexel(\d+)\./g)].map((match) => match[1]));
+      const declared = new Set([...source.matchAll(/vec4 instanceTexel(\d+) = /g)].map((match) => match[1]));
+      expect([...read].filter((texel) => !declared.has(texel))).toEqual([]);
+    }
   });
 
   it('declares every uniform the mesh sets, in one of the two stages', () => {
