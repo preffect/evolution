@@ -7,6 +7,19 @@
   margin-top: calc(var(--ui-space-m) * var(--ui-scale));
 }
 
+/* The tier switch and the reduced-motion toggle side by side, `UI_SPACE_S_PX` apart, the pair centred (§11.4). */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+.motion-icon {
+  width: 100%;
+  height: 100%;
+}
+
 .switch {
   display: flex;
   justify-content: center;

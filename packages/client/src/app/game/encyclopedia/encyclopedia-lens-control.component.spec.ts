@@ -6,6 +6,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { TraitTier } from '@evolution/shared';
 import { expectTestId } from '../../../testing/test-id-query';
+import { ENCYCLOPEDIA_LENS_MOTION, ENCYCLOPEDIA_LENS_MOTION_LABEL } from './encyclopedia-constants';
 import { EncyclopediaLensControlComponent } from './encyclopedia-lens-control.component';
 import type { EncyclopediaTierSegment } from './format/entry-view';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaTierTestId } from './test-ids';
@@ -87,5 +88,28 @@ describe('EncyclopediaLensControlComponent (docs/ui/encyclopedia.md §11.4)', ()
     fixture.componentInstance.replayed.subscribe(() => (replays += 1));
     expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewReplay).click();
     expect(replays).toBe(1);
+  });
+
+  it('draws the reduced-motion toggle beside the tier switch, named for what a press does', () => {
+    fixture.componentRef.setInput('motion', ENCYCLOPEDIA_LENS_MOTION.play);
+    fixture.detectChanges();
+    const toggle = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewMotion);
+    expect(toggle.getAttribute('aria-label')).toBe(ENCYCLOPEDIA_LENS_MOTION_LABEL.play);
+    expect(toggle.dataset['motion']).toBe(ENCYCLOPEDIA_LENS_MOTION.play);
+    expect(root().querySelector('.row')?.contains(toggle)).toBe(true);
+    expect(
+      root()
+        .querySelector('.row')
+        ?.contains(expectTestId(root(), encyclopediaTierTestId(FIRST))),
+    ).toBe(true);
+  });
+
+  it('emits what the toggle does when pressed', () => {
+    fixture.componentRef.setInput('motion', ENCYCLOPEDIA_LENS_MOTION.pause);
+    fixture.detectChanges();
+    const pressed: string[] = [];
+    fixture.componentInstance.motionToggled.subscribe((motion) => pressed.push(motion));
+    expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewMotion).click();
+    expect(pressed).toEqual([ENCYCLOPEDIA_LENS_MOTION.pause]);
   });
 });

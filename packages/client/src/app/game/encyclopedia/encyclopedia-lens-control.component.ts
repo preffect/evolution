@@ -1,6 +1,8 @@
 // The lens control (docs/ui/encyclopedia.md §11.4): centred under the lens, `UI_SPACE_M_PX` below it. For a trait it
 // is the tier switch — one segment per `tier_n` section, labelled with the tier's numeral — and selecting one shows
-// that tier's preview in the lens above. Under an action scene it is `Replay`, which starts the scene again.
+// that tier's preview in the lens above. Under an action scene it is `Replay`, which starts the scene again. Under
+// `prefers-reduced-motion` a play and pause toggle joins them: beside the tier switch, `UI_SPACE_S_PX` apart and the
+// pair centred, or alone in `Replay`'s place — one family of compact controls under the one lens.
 //
 // Every segment is a real `<button>` on the kit's own quiet compact variant, so it is a Tab stop with the kit's
 // focus ring and Enter and Space press it. The switch is a `role="group"` rather than a roving radio group: there
@@ -10,33 +12,64 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FIRST_TIER, type TraitTier } from '@evolution/shared';
 import { UI_BUTTON_SIZE, UI_BUTTON_VARIANT, UiButtonComponent } from '../../ui-kit/ui-button.component';
+import {
+  ENCYCLOPEDIA_LENS_MOTION,
+  ENCYCLOPEDIA_LENS_MOTION_LABEL,
+  type EncyclopediaLensMotion,
+} from './encyclopedia-constants';
+import { EncyclopediaIconComponent } from './encyclopedia-icon.component';
+import { ENCYCLOPEDIA_PAUSE_ICON, ENCYCLOPEDIA_PLAY_ICON, type EncyclopediaIcon } from './encyclopedia-icons';
 import type { EncyclopediaTierSegment } from './format/entry-view';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaTierTestId } from './test-ids';
 
 /** What a screen reader meets: the group's name, and each segment's, since a numeral alone says nothing. */
 const TIER_SWITCH_LABEL = 'Tier';
 
+/** The mark on the toggle is what a press does: play on a held lens, pause on a playing one. */
+const MOTION_ICON: Readonly<Record<EncyclopediaLensMotion, EncyclopediaIcon>> = {
+  [ENCYCLOPEDIA_LENS_MOTION.play]: ENCYCLOPEDIA_PLAY_ICON,
+  [ENCYCLOPEDIA_LENS_MOTION.pause]: ENCYCLOPEDIA_PAUSE_ICON,
+};
+
 @Component({
   selector: 'app-encyclopedia-lens-control',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiButtonComponent],
+  imports: [EncyclopediaIconComponent, UiButtonComponent],
   styleUrl: './encyclopedia-lens-control.component.css',
   template: `
-    @if (segments().length > 0) {
-      <div class="switch" role="group" [attr.aria-label]="switchLabel">
-        @for (segment of segments(); track segment.tier) {
+    @if (segments().length > 0 || motion()) {
+      <div class="row">
+        @if (segments().length > 0) {
+          <div class="switch" role="group" [attr.aria-label]="switchLabel">
+            @for (segment of segments(); track segment.tier) {
+              <button
+                type="button"
+                uiButton
+                [variant]="variant"
+                [size]="size"
+                [attr.aria-label]="switchLabel + ' ' + segment.numeral"
+                [attr.aria-pressed]="segment.tier === selectedTier()"
+                [testId]="tierTestId(segment.tier)"
+                (click)="tierSelected.emit(segment.tier)"
+              >
+                {{ segment.numeral }}
+              </button>
+            }
+          </div>
+        }
+        @if (motion(); as action) {
           <button
             type="button"
             uiButton
-            [variant]="variant"
+            [variant]="iconVariant"
             [size]="size"
-            [attr.aria-label]="switchLabel + ' ' + segment.numeral"
-            [attr.aria-pressed]="segment.tier === selectedTier()"
-            [testId]="tierTestId(segment.tier)"
-            (click)="tierSelected.emit(segment.tier)"
+            [attr.aria-label]="motionLabel[action]"
+            [attr.data-motion]="action"
+            [testId]="motionTestId"
+            (click)="motionToggled.emit(action)"
           >
-            {{ segment.numeral }}
+            <app-encyclopedia-icon class="motion-icon" [icon]="motionIcon[action]" />
           </button>
         }
       </div>
@@ -63,10 +96,17 @@ export class EncyclopediaLensControlComponent {
   /** `Replay` under an action scene, `null` for a scene that shows a subject. */
   readonly replayLabel = input<string | null>(null);
   readonly replayed = output<void>();
+  /** Under reduced motion, what the toggle does when pressed; `null` shows no toggle. */
+  readonly motion = input<EncyclopediaLensMotion | null>(null);
+  readonly motionToggled = output<EncyclopediaLensMotion>();
 
   protected readonly switchLabel = TIER_SWITCH_LABEL;
   protected readonly variant = UI_BUTTON_VARIANT.quiet;
   protected readonly size = UI_BUTTON_SIZE.compact;
   protected readonly tierTestId = encyclopediaTierTestId;
   protected readonly replayTestId = ENCYCLOPEDIA_TEST_ID.previewReplay;
+  protected readonly iconVariant = UI_BUTTON_VARIANT.icon;
+  protected readonly motionLabel = ENCYCLOPEDIA_LENS_MOTION_LABEL;
+  protected readonly motionIcon = MOTION_ICON;
+  protected readonly motionTestId = ENCYCLOPEDIA_TEST_ID.previewMotion;
 }
