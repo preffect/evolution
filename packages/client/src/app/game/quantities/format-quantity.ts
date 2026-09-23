@@ -6,6 +6,7 @@ import {
   CLOCK_PAD_CHARACTER,
   CLOCK_SECONDS_DIGITS,
   CLOCK_SEPARATOR,
+  COMPACT_STEPS,
   COUNTDOWN_DECIMALS,
   MINUS_SIGN,
   PLUS_SIGN,
@@ -82,6 +83,16 @@ function signOf(value: number, presentation: QuantityPresentation): string {
   return presentation === QUANTITY_PRESENTATION.signedChange ? PLUS_SIGN : NO_SIGN;
 }
 
+/**
+ * `123k` from 123 456 and `1.2M` from 1 234 567, rounded down so a shortened figure never claims more than there is;
+ * below the first step the whole figure, rounded to the nearest as the unshortened figure always was.
+ */
+function compactFigure(magnitude: number): string {
+  const step = COMPACT_STEPS.find((candidate) => magnitude >= candidate.from);
+  if (step === undefined) return String(roundedMagnitude(magnitude, 0, QUANTITY_ROUNDING.nearest));
+  return `${roundedMagnitude(magnitude / step.divisor, step.decimals, QUANTITY_ROUNDING.floor)}${step.suffix}`;
+}
+
 /** The change a multiplier makes, as a share: from one, or as the rate a duration multiplier gives. */
 function multiplierChange(value: number, presentation: QuantityPresentation): number | null {
   if (presentation === QUANTITY_PRESENTATION.changeFromOne) return value - UNCHANGED;
@@ -102,6 +113,8 @@ export function formatQuantity(value: number, unit: QuantityUnit, options: Forma
       presentation: QUANTITY_PRESENTATION.signedChange,
     });
   }
+  if (presentation === QUANTITY_PRESENTATION.compact)
+    return `${signOf(value, presentation)}${compactFigure(Math.abs(value))}`;
   const format = QUANTITY_UNIT_FORMAT[unit];
   const figure = figureText(Math.abs(value) * format.scale, format, presentation, options.rounding ?? format.rounding);
   if (presentation === QUANTITY_PRESENTATION.numeral) return figure;
