@@ -87,11 +87,48 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/arch
     expect(room.snapshotBacklog.owedCount()).toBe(1);
     expect(room.snapshotBacklog.backlogTicksOf('p1')).toBe(SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
 
-    // The client drains the queue and says so: the next broadcast rebuilds its whole view.
+    // The client drains the queue and says so. The room is paused (a step pauses it) and will broadcast nothing, so
+    // the ack itself rebuilds the whole view (#300); the next broadcast is an ordinary delta again.
     room.recordSnapshotAck('p1', lastTickSent);
-    room.step(SNAPSHOT_EVERY_TICKS);
     expect(typesSent().slice(sentWhileBehind)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
+    room.step(SNAPSHOT_EVERY_TICKS);
+    expect(typesSent().slice(sentWhileBehind)).toEqual([
+      SERVER_MESSAGE_TYPE.gameState,
+      SERVER_MESSAGE_TYPE.gameSnapshot,
+    ]);
+  });
+
+  it('#300: a paused room stepped past the limit in one burst resyncs the client as soon as its ack catches up', () => {
+    const { room, typesSent } = tickingRoom();
+    room.step(SNAPSHOT_EVERY_TICKS);
+    room.recordSnapshotAck('p1', 1);
+    // The debug_step_room burst the ticket reproduced: 89 ticks at once, no ack can arrive inside it.
+    room.step(89 * SNAPSHOT_EVERY_TICKS);
+    const lastTickSent = 1 + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
+    expect(typesSent()).toHaveLength(lastTickSent);
+    expect(room.snapshotBacklog.owedCount()).toBe(1);
+    // An ack still more than the limit behind what was sent settles nothing.
+    room.recordSnapshotAck('p1', lastTickSent - SNAPSHOT_BACKLOG_LIMIT_TICKS - 1);
+    expect(typesSent()).toHaveLength(lastTickSent);
+    // Caught up: the game_state goes now, once; a repeated ack sends nothing twice.
+    room.recordSnapshotAck('p1', lastTickSent);
+    room.recordSnapshotAck('p1', lastTickSent);
+    expect(typesSent().slice(lastTickSent)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+    expect(room.snapshotBacklog.owedCount()).toBe(0);
+  });
+
+  it('#300: a running room still settles the resync on its next broadcast, not on the ack', () => {
+    const { room, typesSent } = tickingRoom();
+    room.step(SNAPSHOT_EVERY_TICKS);
+    room.recordSnapshotAck('p1', 1);
+    room.step(89 * SNAPSHOT_EVERY_TICKS);
+    const sentWhileBehind = typesSent().length;
+    room.resume();
+    room.recordSnapshotAck('p1', sentWhileBehind);
+    expect(typesSent()).toHaveLength(sentWhileBehind);
+    room.step(SNAPSHOT_EVERY_TICKS);
+    expect(typesSent().slice(sentWhileBehind)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
   });
 
   it('never skips a client that has acknowledged nothing at all (the headless bot client)', () => {
