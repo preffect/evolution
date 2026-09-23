@@ -13,6 +13,8 @@ import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import {
   DNA_RING_MIN_RADIUS_PX,
   DNA_RING_RADIUS_FRACTION,
+  ESCAPE_ARC_STROKE_PX,
+  LABEL_PILL_HEIGHT_PX,
   LADDER_BACKING_PX,
   LADDER_GHOST_PX,
   LADDER_ORBIT_GAP_PX,
@@ -22,6 +24,7 @@ import {
   SEAT_MARK_HALO_SCALE,
   SELF_RING_MIN_PX,
   SELF_RING_RADIUS_FRACTION,
+  THREAT_LABEL_GAP_PX,
 } from '../constants';
 import { DEGREES_PER_TURN, HALF, degreesToRadians } from '../geometry';
 
@@ -59,6 +62,11 @@ export function unlockRingRadiusPx(): number {
 /** The outer edge of the orbit's backing: what the picker band and the threat label keep clear of. */
 export function ladderOrbitExtentPx(rPx: number): number {
   return ladderOrbitRadiusPx(rPx) + LADDER_BACKING_PX * HALF;
+}
+
+/** The escape label's centre, px above the cell centre: `THREAT_LABEL_GAP_PX` over the escape arc on the orbit. */
+export function escapeLabelAbovePx(rPx: number): number {
+  return ladderOrbitRadiusPx(rPx) + ESCAPE_ARC_STROKE_PX * HALF + THREAT_LABEL_GAP_PX + LABEL_PILL_HEIGHT_PX * HALF;
 }
 
 /** The seat mark's bead halo, the same rule `cell-shader-membrane.ts` draws it by (visual-style/principles-and-palette.md §2). */
