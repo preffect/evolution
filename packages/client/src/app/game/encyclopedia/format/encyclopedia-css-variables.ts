@@ -26,6 +26,8 @@ import {
   ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX,
   ENCYCLOPEDIA_RAIL_ICON_PX,
   ENCYCLOPEDIA_RAIL_WIDTH_PX,
+  ENCYCLOPEDIA_TILE_FACT_LINES,
+  ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT,
   ENCYCLOPEDIA_TILE_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_WIDTH_PX,
@@ -44,6 +46,8 @@ export function encyclopediaStyleVariables(): StyleVariables {
     '--encyclopedia-tile-width': pixels(ENCYCLOPEDIA_TILE_WIDTH_PX),
     '--encyclopedia-tile-height': pixels(ENCYCLOPEDIA_TILE_HEIGHT_PX),
     '--encyclopedia-tile-well-height': pixels(ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX),
+    '--encyclopedia-tile-fact-lines': String(ENCYCLOPEDIA_TILE_FACT_LINES),
+    '--encyclopedia-tile-fact-line-height': String(ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT),
     // The entry page (docs/ui/encyclopedia.md §11.4): the two lengths the page is laid out with.
     '--encyclopedia-content-max-width': pixels(ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX),
     '--encyclopedia-lens-diameter': pixels(ENCYCLOPEDIA_LENS_DIAMETER_PX),
