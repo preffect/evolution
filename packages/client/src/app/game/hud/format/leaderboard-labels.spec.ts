@@ -44,6 +44,18 @@ describe('leaderboardLabelsFor', () => {
     expect(texts(labels.columns)).toEqual(['LV', 'SCORE', 'MASS', 'ENGULFS']);
   });
 
+  it('keeps the compact columns and no footer while the full list is still widening, with the open hint (#615)', () => {
+    const labels = leaderboardLabelsFor({
+      isFull: true,
+      isFullLayout: false,
+      isPinned: false,
+      scoreAbsorptionBonus: BONUS,
+    });
+    expect(labels.hint).toBe(LEADERBOARD_TEXT.hintOpen);
+    expect(texts(labels.columns)).toEqual(['LV', 'SCORE']);
+    expect(labels.footer).toBeNull();
+  });
+
   it('drops the footer until the live balance has arrived rather than typing a bonus', () => {
     expect(leaderboardLabelsFor({ isFull: true, isPinned: false, scoreAbsorptionBonus: null }).footer).toBeNull();
   });

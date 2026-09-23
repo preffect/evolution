@@ -257,7 +257,6 @@ export function engulfPairFraming(
 /** The prey steers straight away from its predator: the struggle formula's full effort. */
 const FULL_AWAY_EFFORT = 1;
 /** The pair wears no grip or resistance traits: the wrap's speed cap is the balance's plain factor. */
-/** Neither cell of the pair owns a grip trait: no bonus on either side of the held-speed rule. */
 export const NO_GRIP_BONUS = 0;
 
 /** The escape decay, as the server applies it to a wrap that has lost contact, at this pair's masses. */

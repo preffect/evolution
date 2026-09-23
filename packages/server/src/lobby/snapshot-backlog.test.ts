@@ -119,6 +119,37 @@ describe('SnapshotBacklog', () => {
     backlog.recordResyncSent(playerId, behindTick + 2);
     expect([backlog.isResyncDue(connection), backlog.owedCount(), backlog.resyncCount()]).toEqual([false, 0, 1]);
     expect(backlog.backlogTicksOf(playerId)).toBe(2);
-    expect(backlog.nextFor(connection, behindTick + 3)).toBe(SNAPSHOT_DELIVERY.delta);
+    // Held until the client acknowledges the resync's own tick (#275), then deltas again.
+    expect(backlog.nextFor(connection, behindTick + 3)).toBe(SNAPSHOT_DELIVERY.skipped);
+    backlog.recordAcknowledgedTick(playerId, behindTick + 2);
+    expect(backlog.nextFor(connection, behindTick + 4)).toBe(SNAPSHOT_DELIVERY.delta);
+  });
+
+  it('#275: after a resync, sends nothing and owes nothing until the client acknowledges that tick', () => {
+    const { backlog, connection, playerId } = oneConnection();
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    const behindTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
+    backlog.nextFor(connection, behindTick);
+    expect(backlog.nextFor(connection, behindTick + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
+    backlog.recordAcknowledgedTick(playerId, behindTick);
+    const resyncTick = behindTick + 2;
+    expect(backlog.nextFor(connection, resyncTick)).toBe(SNAPSHOT_DELIVERY.resync);
+    // The client still acks the deltas queued ahead of the resync: far behind, but no second resync is armed.
+    for (let tick = resyncTick + 1; tick < resyncTick + SNAPSHOT_BACKLOG_LIMIT_TICKS * 3; tick += 1) {
+      expect(backlog.nextFor(connection, tick)).toBe(SNAPSHOT_DELIVERY.skipped);
+    }
+    expect([backlog.owedCount(), backlog.resyncCount()]).toEqual([0, 1]);
+    backlog.recordAcknowledgedTick(playerId, resyncTick);
+    expect(backlog.nextFor(connection, resyncTick + SNAPSHOT_BACKLOG_LIMIT_TICKS * 3)).toBe(SNAPSHOT_DELIVERY.delta);
+  });
+
+  it('#275: a client that has never acknowledged is not held after a resync (silence is not a backlog)', () => {
+    const { backlog, connection } = oneConnection();
+    setBufferedAmount(connection, SATURATED_BYTES);
+    expect(backlog.nextFor(connection, FIRST_TICK)).toBe(SNAPSHOT_DELIVERY.skipped);
+    setBufferedAmount(connection, DRAINED);
+    expect(backlog.nextFor(connection, FIRST_TICK + 1)).toBe(SNAPSHOT_DELIVERY.resync);
+    expect(backlog.nextFor(connection, FIRST_TICK + 2)).toBe(SNAPSHOT_DELIVERY.delta);
   });
 });

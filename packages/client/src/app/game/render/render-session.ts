@@ -8,7 +8,11 @@
 // the `ClientPerformanceReport` the debug hook answers is rebuilt.
 
 import {
+  DISH_CENTRE_TARGET,
   RENDER_STAGE,
+  followTargetIn,
+  parkCamera,
+  type CameraState,
   SERVER_MESSAGE_TYPE,
   type ClientPerformanceReport,
   type Clock,
@@ -17,12 +21,13 @@ import {
 } from '@evolution/shared';
 import type { TransitionOptions } from '../state/snapshot-transitions';
 import type { AudioHooksHandle } from '../audio/audio-hooks';
+import { AudioSession } from '../audio/audio-session';
 import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution-debug';
 import { SnapshotAcknowledger } from '../net/snapshot-acknowledger';
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
-import type { CameraExtent, WorldPoint } from './camera';
+import { screenOffsetToWorld, screenToWorld, type CameraExtent, type WorldPoint } from './camera';
 import type { GameRenderer, RenderInputs, RenderOutputs } from './game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
 
@@ -63,7 +68,7 @@ export class RenderSession extends FrameLoopSession {
   readonly store: WorldStore;
   private readonly acknowledger: SnapshotAcknowledger;
   private lastReport: ClientPerformanceReport | null = null;
-  private audio: AudioHooksHandle | null = null;
+  private readonly audio: AudioSession;
   /** The one in-flight or resolved Pixi app, so two early `game_state`s never create two canvases. */
   private pixiReady: Promise<PixiAppHandle | null> | null = null;
   /** Renderer builds queue behind each other: the newest seed wins and no two share the stage. */
@@ -78,6 +83,7 @@ export class RenderSession extends FrameLoopSession {
     super(dependencies.clock);
     this.store = new WorldStore(dependencies.clock);
     this.acknowledger = new SnapshotAcknowledger(dependencies.acknowledgeSnapshot);
+    this.audio = new AudioSession(dependencies.connectAudio);
   }
 
   get startupError(): unknown {
@@ -85,18 +91,37 @@ export class RenderSession extends FrameLoopSession {
   }
 
   /**
-   * A canvas point through the live camera (docs/game-design/controls-and-scope.md §7); `null` before the renderer
-   * exists. The input layer's one read of the render side (docs/ui/input-and-onboarding.md §4): the absolute world
-   * point is where the reticle is drawn, the offset is what the steer target hangs off the own
-   * cell so the camera's smoothing and interpolation delay stay out of the steering command.
+   * A canvas point through the live camera (docs/game-design/controls-and-scope.md §7). The input layer's one read of
+   * the render side (docs/ui/input-and-onboarding.md §4): the absolute world point is where the reticle is drawn, the
+   * offset is what the steer target hangs off the own cell so the camera's smoothing and interpolation delay stay out
+   * of the steering command. While the first renderer is still baking (ticket #479) there is no live camera yet, so
+   * the point goes through the camera that renderer will open on — parked on the newest snapshot's follow target —
+   * and the pointer steers from the first frame; `null` only before a snapshot and an app exist.
    */
   projectPointer(point: { readonly x: number; readonly y: number }): PointerProjection | null {
     const renderer = this.renderer;
-    if (renderer === null) return null;
+    if (renderer !== null) {
+      return {
+        worldPoint: renderer.screenToWorld(point.x, point.y),
+        offsetFromViewCentre: renderer.screenOffsetToWorld(point.x, point.y),
+      };
+    }
+    const camera = this.openingCamera();
+    if (camera === null || this.pixi === null) return null;
+    const viewport = this.pixi.app.screen;
     return {
-      worldPoint: renderer.screenToWorld(point.x, point.y),
-      offsetFromViewCentre: renderer.screenOffsetToWorld(point.x, point.y),
+      worldPoint: screenToWorld(camera, viewport, point.x, point.y),
+      offsetFromViewCentre: screenOffsetToWorld(camera, viewport, point.x, point.y),
     };
+  }
+
+  /** The camera a new renderer's first frame parks (`GameRenderer.stepCamera`): on the follow target, or the dish. */
+  private openingCamera(): CameraState | null {
+    const snapshot = this.store.latestSnapshot();
+    const ownPlayerId = this.store.ownPlayerId;
+    if (snapshot === null || ownPlayerId === null) return null;
+    const target = followTargetIn(snapshot.cells, ownPlayerId, snapshot.ownProgress?.spectatingCellId ?? null);
+    return parkCamera(target ?? DISH_CENTRE_TARGET);
   }
 
   onMessage(message: ServerMessage): void {
@@ -105,8 +130,8 @@ export class RenderSession extends FrameLoopSession {
       timer.accrue(RENDER_STAGE.net, () => this.store.applyGameState(message));
       // A full state puts the two in step: the room is waiting to hear it before it resumes deltas.
       this.acknowledger.acknowledgeNow(message.snapshot.tick);
-      this.audio?.disconnect();
-      this.audio = this.dependencies.connectAudio({
+      // A resync keeps the session it is already in (#275): only another room or player starts one over.
+      this.audio.begin(message.gameId, {
         ownPlayerId: message.playerId,
         balance: message.balance,
         roundDurationSeconds: message.config.roundDurationSeconds,
@@ -114,7 +139,7 @@ export class RenderSession extends FrameLoopSession {
       this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
       if (timer.accrue(RENDER_STAGE.net, () => this.store.applySnapshot(message.snapshot))) {
-        this.audio?.observe(message.snapshot);
+        this.audio.observe(message.snapshot);
         this.acknowledger.recordApplied(message.snapshot.tick);
       }
       // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/architecture/wire-contract.md §4).
@@ -123,7 +148,7 @@ export class RenderSession extends FrameLoopSession {
       }
     } else if (message.type === SERVER_MESSAGE_TYPE.balanceUpdated) {
       this.store.applyBalance(message.balance);
-      this.audio?.updateOptions({ balance: message.balance });
+      this.audio.updateOptions({ balance: message.balance });
     }
   }
 
@@ -140,9 +165,11 @@ export class RenderSession extends FrameLoopSession {
   }
 
   private async buildRendererFor(snapshot: GameSnapshot): Promise<void> {
-    if (this.renderer?.seed === snapshot.seed) return;
+    // A seed superseded while it waited in the queue is never baked: the newest one is already queued behind it.
+    if (snapshot.seed !== this.requestedSeed || this.renderer?.seed === snapshot.seed) return;
     if ((await this.ensurePixiApp()) === null) return;
-    this.buildRenderer({
+    // Staged across frames (ticket #479): baked one step per animation frame rather than in one long task.
+    await this.buildRendererAcrossFrames({
       seed: snapshot.seed,
       gelPatches: snapshot.gelPatches,
       devicePixelRatio: this.dependencies.devicePixelRatio,
@@ -170,7 +197,7 @@ export class RenderSession extends FrameLoopSession {
       return null;
     }
     this.adoptPixiApp(pixi);
-    pixi.canvas.addEventListener('pointerdown', () => this.audio?.unlock(), { once: true });
+    pixi.canvas.addEventListener('pointerdown', () => this.audio.unlock(), { once: true });
     return pixi;
   }
 
@@ -210,7 +237,7 @@ export class RenderSession extends FrameLoopSession {
 
   destroy(): void {
     this.isDestroyed = true;
-    this.audio?.disconnect();
+    this.audio.disconnect();
     this.disposeLoop();
   }
 }

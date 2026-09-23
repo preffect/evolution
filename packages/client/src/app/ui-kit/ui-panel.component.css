@@ -59,6 +59,14 @@
   line-height: var(--ui-body-line-height);
 }
 
+/* A bleed body is the feature's (#461): no panel padding or gap, no kit scroll area, and the page never scrolls; the
+   feature lays its own columns in this flex column and gives each its own scroll where it wants one. */
+.bleed {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ---- modal ---- */
 
 :host([data-variant='modal']) {
@@ -67,6 +75,14 @@
   background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
   pointer-events: auto;
   animation: ui-panel-enter var(--ui-panel-enter) ease-out both;
+}
+
+/* Declared after the modal's own padding and with one more attribute, so it wins without the feature out-specifying the
+   kit. */
+:host([data-variant='modal'][data-body='bleed']) {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 /* The light catching the upper rim, held inside the corner radii. */

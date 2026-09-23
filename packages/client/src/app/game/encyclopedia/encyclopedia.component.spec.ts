@@ -1,6 +1,7 @@
 // The panel as a whole (docs/ui/encyclopedia.md §11.3): the header's four controls, the three columns, what
 // `data-location` says, and what the panel does and does not host on its own.
 
+import { styleRuleValue } from '../../../testing/style-rules';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -136,12 +137,15 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
   });
 
   /**
-   * The kit sets a modal's padding through `:host([data-variant='modal'])`, which a bare `.panel` in this
-   * component's own stylesheet only *ties* with — and a tie is settled by whichever sheet the browser happened to
-   * order last. The columns then sat a panel padding in from the rail, which the reference frame draws flush.
+   * The columns run edge to edge (§11.3) on the kit's bleed body (#461): the kit drops the modal's padding and its
+   * scroll area, so this component neither out-specifies the kit's padding nor lays its columns against a kit box.
    */
-  it('lays its columns edge to edge: the kit modal’s padding is overridden, not merely tied with', () => {
+  it('lays its columns edge to edge on the kit’s bleed body, positioned against nothing of the kit’s', () => {
+    expect(panel().getAttribute('data-body')).toBe('bleed');
     expect(getComputedStyle(panel()).padding).toBe('0px');
+    const columns = root().querySelector<HTMLElement>('.columns');
+    expect(columns?.closest('ui-scroll-area')).toBeNull();
+    expect(styleRuleValue(document, ['.columns'], 'position')).toBeNull();
   });
 
   /**
