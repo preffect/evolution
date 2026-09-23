@@ -73,7 +73,7 @@ describe('ecology/acceptance.md §8.1: the wild cells', () => {
       .expect('wild cell count', (view) => wildCellsOf(view).length)
       .atTick(0)
       .toBe(wildCells.WILD_CELL_COUNT)
-      .expect('every wild cell a level-1 traitless protocell of the world organism', (view) =>
+      .expect('every wild cell a level-1 traitless protocell, its own organism', (view) =>
         wildCellsOf(view).every(isWorldProtocell),
       )
       .atTick(0)
@@ -139,6 +139,9 @@ describe('ecology/acceptance.md §8.1: the wild cells', () => {
       .expect('being engulfed while carried', statesOfSeat)
       .atTick(FIRST_DECISION_TICK + ONE_TICK)
       .toEqual([CELL_STATE.beingEngulfed])
+      .expect('a carried cell never sprints, even on its decision', sprintOfSeat)
+      .atTick(FIRST_DECISION_TICK + ONE_TICK)
+      .toBe(0)
       .expect("seat 0's cell absorbed on tick 36 with no player", absorbedThisTick)
       .atTick(E9_PAYOUT_TICK)
       .toSatisfy(

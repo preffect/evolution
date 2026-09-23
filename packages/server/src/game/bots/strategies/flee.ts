@@ -2,19 +2,27 @@
 // perception, ecology/absorption.md §6.1) once that cell's centre is within `withinRadii` own radii, aiming
 // `stepRadii` own radii past its own centre straight away from the threat; with no threat in range it
 // sends nothing, so a composed strategy (the wild strategy, docs/ecology/wild-cells.md §3.3) falls through to
-// its next rule. It reads its own cell through `perception.ownCellOf` because the predicate needs the
-// mass. No randomness, no state.
+// its next rule. With `sprintWithinRadii` it also sprints once the threat is that close (the wild flee sprint).
+// It reads its own cell through `perception.ownCellOf` because the predicate needs the mass. No randomness, no state.
 
 import { distanceBetween, unitVectorToward, type PlayerId, type Vec2 } from '@evolution/shared';
 import type { BotStrategy, BotStrategyFactory, PlayerCommand } from '../bot-strategy.js';
 import { nearestTo, type BotCellView, type BotPerception } from '../perception.js';
 import { BOT_STRATEGY_NAME, FLEE_STEP_RADII, FLEE_WITHIN_RADII } from '../strategy-constants.js';
 
+/** No threat is ever within a negative distance: the default flee never sprints. */
+const NEVER_SPRINTS = -1;
+const ALWAYS_WORTHWHILE = (): boolean => true;
+
 export interface FleeOptions {
   /** Flee only from a threat whose centre is within this many own radii. */
   readonly withinRadii?: number;
   /** How far past its own centre it aims, in own radii. */
   readonly stepRadii?: number;
+  /** Sprint when the threat's centre is within this many own radii; never by default. */
+  readonly sprintWithinRadii?: number;
+  /** Whether it sprints from `threat` once within `sprintWithinRadii`; always by default (the wild flee asks the kernel). */
+  readonly isSprintWorthwhile?: (self: BotCellView, threat: BotCellView) => boolean;
 }
 
 /** Where a fleeing cell aims: `stepRadii` own radii from its centre, straight away from the threat. */
@@ -27,7 +35,12 @@ export function createFleeStrategy<Snapshot, ActorId = PlayerId>(
   perception: BotPerception<Snapshot, ActorId>,
   options: FleeOptions = {},
 ): BotStrategyFactory<Snapshot, ActorId> {
-  const { withinRadii = FLEE_WITHIN_RADII, stepRadii = FLEE_STEP_RADII } = options;
+  const {
+    withinRadii = FLEE_WITHIN_RADII,
+    stepRadii = FLEE_STEP_RADII,
+    sprintWithinRadii = NEVER_SPRINTS,
+    isSprintWorthwhile = ALWAYS_WORTHWHILE,
+  } = options;
   const isThreat = (self: BotCellView, other: BotCellView): boolean =>
     other.id !== self.id &&
     perception.canEngulf(other, self) &&
@@ -46,7 +59,9 @@ export function createFleeStrategy<Snapshot, ActorId = PlayerId>(
         return null;
       }
       const target = fleeTargetFrom(self, threat, stepRadii);
-      return { targetX: target.x, targetY: target.y };
+      const isSprinting =
+        distanceBetween(self, threat) <= self.radius * sprintWithinRadii && isSprintWorthwhile(self, threat);
+      return { targetX: target.x, targetY: target.y, ...(isSprinting ? { isSprinting } : {}) };
     },
   });
 }

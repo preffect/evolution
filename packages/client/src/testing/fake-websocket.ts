@@ -5,13 +5,15 @@ export class FakeWebSocket {
   static readonly OPEN = 1;
   static readonly CLOSING = 2;
   static readonly CLOSED = 3;
+  /** The code of an ordinary close (RFC 6455 §7.4.1). */
+  static readonly NORMAL_CLOSURE_CODE = 1000;
   static instances: FakeWebSocket[] = [];
 
   readyState = FakeWebSocket.CONNECTING;
   readonly sent: string[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: { code: number }) => void) | null = null;
   onerror: (() => void) | null = null;
 
   constructor(readonly url: string) {
@@ -33,9 +35,10 @@ export class FakeWebSocket {
     this.sent.push(data);
   }
 
-  close(): void {
+  /** Closes with `code`: an ordinary close by default, or the server's own code (`SOCKET_CLOSE_CODE_REPLACED`). */
+  close(code = FakeWebSocket.NORMAL_CLOSURE_CODE): void {
     this.readyState = FakeWebSocket.CLOSED;
-    this.onclose?.();
+    this.onclose?.({ code });
   }
 
   open(): void {

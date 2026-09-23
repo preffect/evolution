@@ -12,9 +12,16 @@ export interface SprintCostBalance {
   readonly growth: Pick<BalanceConfig['growth'], 'CELL_STARTING_MASS'>;
 }
 
-/** The mass left after a sprint start from `mass`: `max(CELL_STARTING_MASS, mass × (1 − fraction))`. */
-export function massAfterSprint(mass: number, balance: SprintCostBalance): number {
-  return Math.max(balance.growth.CELL_STARTING_MASS, mass * (1 - balance.controls.SPRINT_MASS_COST_FRACTION));
+/**
+ * The mass left after a sprint start from `mass`: `max(floor, mass × (1 − fraction))`. The floor is the starting mass
+ * for a player; a wild cell passes its own, `min(CELL_STARTING_MASS, mass)` (docs/ecology/wild-cells.md §3.3.3).
+ */
+export function massAfterSprint(
+  mass: number,
+  balance: SprintCostBalance,
+  floor: number = balance.growth.CELL_STARTING_MASS,
+): number {
+  return Math.max(floor, mass * (1 - balance.controls.SPRINT_MASS_COST_FRACTION));
 }
 
 /** `min(mass × fraction, mass − CELL_STARTING_MASS)`, never negative: a cell at the floor pays nothing. */

@@ -36,7 +36,7 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
   wild: {
     title: 'Wild cell',
     summary:
-      'Cells that live their own lives. {wildCount} of them share the dish all round. Each is born at {sizeMin} to {sizeMax} the world’s average mass and grows with the [[world:world_clock|world clock]]; what it eats it keeps, burning it off as a player does, and a wound heals back with a {recovery} time constant. They wander, flee what can eat them and, later in the round, hunt what they can eat. Engulfing one pays {wildDnaShare} of the DNA a cell at the world’s level has earned, but no score bonus. An engulfed wild cell returns after {wildRespawn}.',
+      'Cells that live their own lives. {wildCount} of them share the dish all round. Each is born at {sizeMin} to {sizeMax} the world’s average mass and grows with the [[world:world_clock|world clock]]; what it eats it keeps, burning it off as a player does, and a wound heals back with a {recovery} time constant. They see about as far as a player of their size, graze algae and scraps, flee what can eat them and hunt what they can eat, sprinting to escape or to close the gap: each other from the start, players later in the round. Engulfing one pays {wildDnaShare} of the DNA a cell at the world’s level has earned, but no score bonus. An engulfed wild cell returns after {wildRespawn}.',
     facts: [
       balanceFact(
         { key: 'wildCount', label: 'In the dish', unit: QUANTITY_UNIT.count },

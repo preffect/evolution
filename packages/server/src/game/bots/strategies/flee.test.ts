@@ -54,6 +54,22 @@ describe('flee strategy', () => {
     });
   });
 
+  it('sprints only with sprintWithinRadii and only once the threat is that close (the wild flee sprint)', () => {
+    // nearThreat sits 5 own radii east: a 5-radius sprint range sprints, a 4-radius one does not.
+    const sprinting = createFleeStrategy(perception, { sprintWithinRadii: 5 })().decide(
+      contextWith([self, nearThreat]),
+    );
+    expect(sprinting).toEqual({ targetX: self.x - FLEE_STEP_RADII * self.radius, targetY: self.y, isSprinting: true });
+    const cruising = createFleeStrategy(perception, { sprintWithinRadii: 4 })().decide(contextWith([self, nearThreat]));
+    expect(cruising).toEqual({ targetX: self.x - FLEE_STEP_RADII * self.radius, targetY: self.y });
+  });
+
+  it('keeps the flee but skips the sprint when isSprintWorthwhile says so', () => {
+    const options = { sprintWithinRadii: 5, isSprintWorthwhile: () => false };
+    const command = createFleeStrategy(perception, options)().decide(contextWith([self, nearThreat]));
+    expect(command).toEqual({ targetX: self.x - FLEE_STEP_RADII * self.radius, targetY: self.y });
+  });
+
   it('sends nothing when its own cell is not in the snapshot', () => {
     expect(createFleeStrategy(perception)().decide(contextWith([nearThreat]))).toBeNull();
   });
