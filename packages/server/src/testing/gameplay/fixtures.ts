@@ -52,7 +52,7 @@ export interface PlacedCell {
   readonly at: PlacementAnchor;
   /** The fixture restores the centre after the movement step every tick. */
   readonly isPinned: boolean;
-  /** The traits the cell owns after placement: `[]` strips every trait (G13's "A at level 1"), `null` leaves its own. */
+  /** The traits the cell owns after placement: `[]` strips every trait (a placed cell at level 1 with none), `null` leaves its own. */
   readonly traits: readonly PlacedTrait[] | null;
   /** Fixture-set lifetime DNA ("level 12 with fixture DNA 1760", P7, P10); `null` leaves the cell's own. */
   readonly dnaCumulative: number | null;
