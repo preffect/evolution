@@ -14,6 +14,7 @@ import {
 import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
+import { styleRuleValue } from '../../../testing/style-rules';
 import { HintComponent } from './hint.component';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
 
@@ -66,5 +67,14 @@ describe('HintComponent', () => {
     expect(pill()).toBeNull();
     show({ tick: 2, roundPhase: ROUND_PHASE.results });
     expect(pill()).toBeNull();
+  });
+
+  it('wraps a long line inside the margins instead of running off a narrow screen', () => {
+    show();
+    expect(styleRuleValue(document, ['.pill'], 'white-space')).toBeNull();
+    expect(styleRuleValue(document, ['.pill'], 'max-width')).toBe(
+      'calc(100% - 2 * var(--hud-margin) * var(--hud-scale))',
+    );
+    expect(styleRuleValue(document, ['.pill'], 'height')).toBeNull();
   });
 });

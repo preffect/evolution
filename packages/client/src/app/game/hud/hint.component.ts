@@ -48,20 +48,26 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
       }
 
       /* The notice row's height and inset, rounded into a pill: one callout surface for every line of words. */
+      /*
+       * One line at the notice row's height where it fits; a long line (the endosymbiosis beat is ~650 px) wraps
+       * inside the viewport's margins on a narrow screen rather than running off it, and the pill grows with it.
+       */
       .pill {
         box-sizing: border-box;
         display: flex;
         align-items: center;
-        height: calc(var(--hud-notice-row-height) * var(--hud-scale));
+        min-height: calc(var(--hud-notice-row-height) * var(--hud-scale));
+        max-width: calc(100% - 2 * var(--hud-margin) * var(--hud-scale));
         margin: 0;
         padding-inline: calc(var(--hud-notice-padding-inline) * var(--hud-scale));
-        border-radius: calc(var(--hud-notice-row-height) * var(--hud-scale));
+        padding-block: calc(var(--hud-notice-gap) / 2 * var(--hud-scale));
+        border-radius: calc(var(--hud-notice-row-height) / 2 * var(--hud-scale));
         background: var(--hud-callout-backing);
         font-family: var(--hud-font-sans);
         font-size: calc(var(--hud-type-body) * var(--hud-scale));
-        line-height: 1;
+        line-height: 1.25;
         color: var(--hud-text);
-        white-space: nowrap;
+        text-align: center;
       }
 
       /* A coach beat's rim in the role colour of the cue it explains; the text stays in the text colour (§5). */

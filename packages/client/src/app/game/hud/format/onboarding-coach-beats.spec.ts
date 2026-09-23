@@ -6,7 +6,12 @@ import {
   foldOnboardingSamples,
   onboardingPastOpening,
 } from '../../../../testing/onboarding-builders';
-import { COACH_QUEUE_MAX, COACH_SHRINK_HOLD_SECONDS, HINT_DURATION_SECONDS } from '../hud-constants';
+import {
+  COACH_QUEUE_MAX,
+  COACH_SHRINK_HOLD_SECONDS,
+  HINT_DURATION_SECONDS,
+  SPRINT_HINT_AT_SECONDS,
+} from '../hud-constants';
 import { ONBOARDING_BEAT } from './onboarding-beats';
 import { onboardingStepFor, type OnboardingMemory, type OnboardingSample } from './onboarding-queue';
 
@@ -103,14 +108,15 @@ describe('onboardingStepFor: the coach beats', () => {
   });
 
   it('never drops an opening beat to make room for a coach beat', () => {
+    const late = { isBloom: true, roundElapsedSeconds: SPRINT_HINT_AT_SECONDS } as const;
     const bloomUp = after(sample(10, { isBloom: true }));
     const queued = [ZONE_ID.warmVent, ZONE_ID.sunlitShallows, ZONE_ID.viscousGel].reduce(
-      (memory, zone, index) => onboardingStepFor(memory, sample(11 + index, { isBloom: true, hasOffer: true, zone })),
+      (memory, zone, index) => onboardingStepFor(memory, sample(11 + index, { ...late, zone })),
       bloomUp,
     );
     expect(queued.current).toBe(ONBOARDING_BEAT.bloom);
     expect(queued.waiting).toEqual([
-      ONBOARDING_BEAT.offer,
+      ONBOARDING_BEAT.sprint,
       ONBOARDING_BEAT.zoneSunlitShallows,
       ONBOARDING_BEAT.zoneViscousGel,
     ]);

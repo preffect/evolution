@@ -224,8 +224,9 @@ function stepWhilePicking(
     const heldTicks = observation.tick - previous.lastTick;
     next = { ...next, history: { ...next.history, shownAtTick: next.history.shownAtTick + heldTicks } };
   }
-  const waiting = [...next.waiting];
-  for (const beat of newlyTriggered(next, observation, beats)) waiting.push(beat.id);
+  const beatsById = new Map(beats.map((beat) => [beat.id, beat]));
+  let waiting = next.waiting;
+  for (const beat of newlyTriggered(next, observation, beats)) waiting = waitingWith(waiting, beat, beatsById);
   return { ...next, waiting };
 }
 
