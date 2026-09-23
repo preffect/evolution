@@ -158,6 +158,7 @@ describe('hasPreyInReach', () => {
       ring,
       isEdible: true,
       isToxic: ring === RELATION_RING.toxic,
+      isSpiny: false,
       distanceSquared: distance * distance,
     };
   }
