@@ -114,6 +114,15 @@ describe('UiScrollAreaComponent', () => {
     expect(host().hasAttribute('data-fade-end')).toBe(false);
   });
 
+  it('reports the viewport’s scroll position on every scroll', () => {
+    layOut(600, 200);
+    const reported: number[] = [];
+    fixture.componentInstance.area().scrolled.subscribe((scrollTop) => reported.push(scrollTop));
+    scrollTo(150);
+    scrollTo(0);
+    expect(reported).toEqual([150, 0]);
+  });
+
   describe('its stylesheet (docs/ui/components-and-constants.md §10.2)', () => {
     function rule(fragments: readonly string[], property: string): string | null {
       return styleRuleValue(document, [hostSelector(host()), ...fragments], property);
