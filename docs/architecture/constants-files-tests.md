@@ -26,6 +26,9 @@ world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TI
 catalog row carries its tiers), so a patch has one path. The one number read from catalog structure is
 `TRAIT_CATALOG[n].unlockedBy.count` (above), which has no patch path at all. Nothing reads `data/balance.json` at
 runtime. The full rule set is `CODE-STANDARDS.md §2`.
+`constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
+`viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
+knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
 
 ## 10. File plan (target ≤ 250 lines per file; 300 is the lint cap)
 
@@ -57,8 +60,8 @@ packages/server/src/
   game/world/{world-state,entities,cell-record,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   cell-record: the literal every cell is born from (player or wild); state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
   game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
-  game/wild/{wild-seats,wild-build,wild-pin,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176): placement by the safe-spawn rule plus the wild spacing (with the first heading and the decision countdown), a seat's build up to a level, the step-1 pin with `drainedMass`, the step-9 respawn
-  game/wild/{wild-strategy,wild-perception,wild-wander}.ts     the wild minds (#176): the step-1 decisions (flee, hunt, wander) over the #15 strategies through an entity-id perception, the wander heading rule
+  game/wild/{wild-seats,wild-build,wild-settle,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176, #517): placement by the safe-spawn rule plus the wild spacing (with the size factor, the first heading and the decision countdown), a seat's build up to a level, the step-1 settle (`settleWildMass`, `wildSizeFactor`: growth, the growth ceiling, recovery; server-simulation.md §3.4), the step-9 respawn
+  game/wild/{wild-strategy,wild-perception,wild-wander}.ts     the wild minds (#176, #517): the step-1 decisions (flee, hunt, graze, wander, and the sprint flag) over the #15 strategies through an entity-id perception filtered to the seat's sight (`wildSightRange` over the shared `viewHalfHeightFor`), the wander heading rule
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,quantize,food-delta-tracker}.ts   quantize: the wire rounding and its exact twin (wire-contract.md §4)
@@ -116,6 +119,12 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
   snapshot buffer / prediction / reconciliation; schemas (`message-schemas.test.ts` bounds);
   `balance.test.ts` (generated file equals `DEFAULT_BALANCE`), `constants-ledger.test.ts` (every design
   table constant exists).
+- **Wild cells (#517):** `settleWildMass` and `wildSizeFactor` against ecology W11; the wild perception's sight
+  filter against a brute-force distance check on a seeded population (boundary: a centre exactly at the range is
+  seen); the wild floor (a 10-mass wild cell that sprints or is drained stays at 10, a player cell floors at 20);
+  one seeded long-run invariant test: after every settle, `grownMass ≥ 0`, `fullMass ≤ max(baseMass, 3 ×
+worldMass)` and `cell.mass ≤ fullMass`, and the state hash covers `sizeFactor`, `grownMass` and `fullMass` (a
+  one-field change moves it).
 - **Integration:** input → step → snapshot through a real `GameRoom` under a `ManualClock`; late
   join gets a full `game_state` then deltas; reconnect resync; replay reproduces the hash; the
   rematch reseed (`seed + ROUND_SEED_INCREMENT`) produces a fresh world.

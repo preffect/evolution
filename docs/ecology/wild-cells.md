@@ -185,7 +185,8 @@ instance per decision, so a wild cell keeps no commitment between decisions. The
 seat's own. Ties on distance go to the lower entity id (stable ordering). A sprint is the player's
 sprint in every respect (game-design/controls-and-scope.md §6): × `SPRINT_SPEED_MULTIPLIER` 1.8 for
 `SPRINT_DURATION_SECONDS` 0.5, costing `SPRINT_MASS_COST_FRACTION` 5 % of current mass (never below
-`CELL_STARTING_MASS`), with `SPRINT_COOLDOWN_SECONDS` 3 counted from the sprint's start. The strategy
+`min(CELL_STARTING_MASS, current mass)`, step 5's wild floor: a wild cell under 20 sprints for free and is never lifted
+to 20), with `SPRINT_COOLDOWN_SECONDS` 3 counted from the sprint's start. The strategy
 sets the command's sprint flag, and the cell's own sprint counters apply it exactly as for a player's
 input. A decision is the only moment a wild cell can start a sprint, so it reacts to an engulf within
 0.5 s, as a player would. It never sprints while it is engulfing (the prey is already in hand) or once it
