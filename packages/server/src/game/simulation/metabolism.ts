@@ -10,12 +10,12 @@
 import {
   TICK_INTERVAL_S,
   ZONE_ID,
-  distanceBetween,
+  isReachedByToxin,
   zoneAt,
   zoneDecayMultiplier,
   type BalanceConfig,
-  type CellModifiers,
   type EntityId,
+  type ToxinReachView,
   type ZoneId,
 } from '@evolution/shared';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
@@ -27,15 +27,6 @@ import { gainMass, loseMassToFloor } from './cell-mass.js';
 import { engulfDrainOf } from './engulf-drain.js';
 import { isEngulfing } from './engulf-state.js';
 import { massFlowRecordOf, type MetabolismDemand } from './metabolism-flow.js';
-
-/** What the toxin reach reads of a cell: its centre, a radius and its modifiers. A record satisfies it; the step passes start-of-step views. */
-export interface ToxinReachView {
-  readonly id: EntityId;
-  readonly x: number;
-  readonly y: number;
-  readonly radius: number;
-  readonly modifiers: CellModifiers;
-}
 
 /** The start-of-step snapshot every term reads. */
 export interface MetabolismInput {
@@ -74,20 +65,6 @@ export function decayPerSecond(input: MetabolismInput, balance: BalanceConfig): 
     zoneDecayMultiplier(input.zone, balance) *
     input.cell.modifiers.decayMultiplier
   );
-}
-
-/**
- * The farthest centre distance at which a toxic cell's toxin reaches a target of `targetRadius`: contact, plus
- * `toxinAuraRangeInRadii` of the toxic cell's radii measured from its rim (docs/traits/model.md §2, #424). Without an
- * aura this is exactly the contact distance.
- */
-export function toxinReachDistance(targetRadius: number, toxic: ToxinReachView): number {
-  return targetRadius + toxic.radius * (1 + toxic.modifiers.toxinAuraRangeInRadii);
-}
-
-/** A toxic cell reaches another by overlap, or without contact within its aura beyond the rim. */
-export function isReachedByToxin(target: ToxinReachView, toxic: ToxinReachView): boolean {
-  return distanceBetween(target, toxic) <= toxinReachDistance(target.radius, toxic);
 }
 
 /**

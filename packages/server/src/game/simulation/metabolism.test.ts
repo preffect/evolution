@@ -1,6 +1,15 @@
 // docs/ecology/mass-and-movement.md §4, §4.1 (E5), §5.4 and docs/traits/constants-and-acceptance.md §6 (T5, T7).
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_INTERVAL_S, TRAIT_TIERS, playerId, type TraitTier, type Vec2 } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  TICK_INTERVAL_S,
+  TRAIT_TIERS,
+  isReachedByToxin,
+  playerId,
+  toxinReachDistance,
+  type TraitTier,
+  type Vec2,
+} from '@evolution/shared';
 import { createDecayedHelper } from '../../testing/gameplay/fixtures.js';
 import { BROTH_POINT, shallowsPoint, VENT_POINT } from '../../testing/gameplay/placement.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
@@ -8,14 +17,7 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
-import {
-  decayPerSecond,
-  isReachedByToxin,
-  metabolise,
-  metabolismInputOf,
-  toxinDrainFraction,
-  toxinReachDistance,
-} from './metabolism.js';
+import { decayPerSecond, metabolise, metabolismInputOf, toxinDrainFraction } from './metabolism.js';
 
 const { growth, ecology, world: worldBalance } = DEFAULT_BALANCE;
 const decayed = createDecayedHelper({

@@ -1,60 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { entityId, secondsToTicks, type EntityId } from '@evolution/shared';
-import { HINT_DURATION_SECONDS, SPRINT_HINT_AT_SECONDS, STEER_HINT_DISTANCE_WU } from '../hud-constants';
-import { ONBOARDING_BEAT, type OnboardingObservation } from './onboarding-beats';
+import { secondsToTicks } from '@evolution/shared';
 import {
-  INITIAL_ONBOARDING_MEMORY,
-  onboardingStepFor,
-  type OnboardingMemory,
-  type OnboardingSample,
-} from './onboarding-queue';
+  TEST_ONBOARDING_RESPAWNED_CELL_ID as RESPAWNED,
+  createTestOnboardingSample as sample,
+  foldOnboardingSamples,
+  onboardingPastOpening as pastOpening,
+} from '../../../../testing/onboarding-builders';
+import { HINT_DURATION_SECONDS, SPRINT_HINT_AT_SECONDS, STEER_HINT_DISTANCE_WU } from '../hud-constants';
+import { ONBOARDING_BEAT } from './onboarding-beats';
+import { onboardingStepFor, type OnboardingMemory, type OnboardingSample } from './onboarding-queue';
 
-const OWN = entityId('own');
-const RESPAWNED = entityId('own-respawned');
 const HINT_TICKS = secondsToTicks(HINT_DURATION_SECONDS);
-
-interface SampleOptions extends Partial<OnboardingObservation> {
-  readonly x?: number;
-  readonly cellId?: EntityId;
-  readonly hasOwnEat?: boolean;
-  readonly isSprinting?: boolean;
-  readonly isAlive?: boolean;
-}
-
-/** An alive snapshot at `tick`, the own cell at (`x`, 0), with nothing else going on unless named. */
-function sample(tick: number, options: SampleOptions = {}): OnboardingSample {
-  const { x = 0, cellId = OWN, hasOwnEat = false, isSprinting = false, isAlive = true, ...facts } = options;
-  return {
-    tick,
-    observation: isAlive
-      ? {
-          tick,
-          roundElapsedSeconds: 0,
-          dnaCumulative: 0,
-          hasOffer: false,
-          isProkaryote: false,
-          hasThreat: false,
-          ...facts,
-        }
-      : null,
-    ownCell: isAlive ? { id: cellId, x, y: 0 } : null,
-    hasOwnEat,
-    isSprinting,
-  };
-}
 
 /** Folds the samples in order from a fresh session. */
 function run(...samples: readonly OnboardingSample[]): OnboardingMemory {
-  return samples.reduce((memory, next) => onboardingStepFor(memory, next), INITIAL_ONBOARDING_MEMORY);
-}
-
-/** A session past the steer and eat beats: the cell has moved away and eaten. */
-function pastOpening(): OnboardingMemory {
-  return run(
-    sample(1),
-    sample(2, { x: STEER_HINT_DISTANCE_WU }),
-    sample(3, { x: STEER_HINT_DISTANCE_WU, hasOwnEat: true }),
-  );
+  return foldOnboardingSamples(samples);
 }
 
 describe('onboardingStepFor: the opening beats', () => {

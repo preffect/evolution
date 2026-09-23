@@ -35,6 +35,7 @@ import {
   AFFECTING_SPARKLINE_STROKE_PX,
   AFFECTING_SPARKLINE_WIDTH_PX,
   CONNECTION_LOST_DIM_ALPHA,
+  HINT_RIM_PX,
   HUD_MARGIN_PX,
   NOTICE_GAP_PX,
   NOTICE_PADDING_INLINE_PX,
@@ -184,6 +185,8 @@ function noticeVariables(): StyleVariables {
     '--hud-notice-gap': `${NOTICE_GAP_PX}px`,
     '--hud-notice-rim': `${NOTICE_RIM_PX}px`,
     '--hud-connection-lost-dim-alpha': String(CONNECTION_LOST_DIM_ALPHA),
+    // The hint pill shares the notice row's surface (docs/ui/input-and-onboarding.md §5); a coach beat adds this rim.
+    '--hud-hint-rim': `${HINT_RIM_PX}px`,
     '--hud-danger': DANGER,
     '--hud-callout-backing': CALLOUT_BACKING,
   };
