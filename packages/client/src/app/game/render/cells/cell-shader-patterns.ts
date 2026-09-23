@@ -20,8 +20,14 @@ import {
   STRETCH_TAPER,
 } from '../constants';
 import { HALF } from '../geometry';
-import { BUMP_FLOATS, BUMP_TEXEL_START, CELL_INSTANCE_TEXELS, TEXEL_FLOATS } from './cell-instance';
-import { glslFloat, instanceRead } from './cell-shader-source';
+import {
+  BUMP_FLOATS,
+  BUMP_TEXEL_START,
+  CELL_INSTANCE_TEXELS,
+  TEXEL_FLOATS,
+  instanceScalarFields,
+} from './cell-instance';
+import { glslFloat, instanceRead, instanceTexelLocals } from './cell-shader-source';
 
 /** The levels of one byte channel, so a hi byte weighs `BYTE_LEVELS` lo bytes. */
 const BYTE_LEVELS = CHANNEL_MAX + 1;
@@ -82,6 +88,7 @@ struct Instance {
 };
 
 Instance readInstance() {
+  ${instanceTexelLocals(instanceScalarFields())}
   Instance inst;
   inst.centre = vec2(${instanceRead('x')}, ${instanceRead('y')});
   inst.r = ${instanceRead('radius')}; inst.extent = ${instanceRead('quadExtentRadii')};

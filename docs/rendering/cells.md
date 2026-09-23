@@ -127,7 +127,10 @@ through the predator's film for free; separation (`ecology/mass-and-movement.md 
 draws one unit quad per row with an instance-index attribute. One table (the scalar texels, then the
 `MAX_SHAPE_BUMPS` bump slots at three floats each) is the whole contract: the packing writes it and
 `cell-shader-source.ts` reads every field through it, so a new field is one entry and never a second attribute
-layout (a texture row also has no 16-`vec4` attribute cap to budget against). **WebGL2 is required**: the
+layout (a texture row also has no 16-`vec4` attribute cap to budget against). Each stage fetches every texel it
+reads **once** into a `vec4` local (`instanceTexelLocals`) and takes fields as channels of it (`instanceRead`), so
+the fragment stage does one fetch per scalar texel per fragment rather than one per field (#302; the bump texels are
+read by `bumpAt`). **WebGL2 is required**: the
 program is `#version 300 es`, the instance texture is RGBA32F read with `texelFetch` (nearest; linear on a float
 texture would need `OES_texture_float_linear`), and there is no WebGL1 path, so a context that falls back to
 WebGL1 fails at program compile and `RenderSession` rejects. The table holds `CELL_INSTANCE_CAPACITY` (512)
