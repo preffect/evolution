@@ -15,7 +15,7 @@ const NO_SECTIONS: WrittenEntryContent['sections'] = [];
 
 /** How far outside the world's average mass still reads as level with it; the standing sections all quote it. */
 const STANDING_BAND = balanceFact(
-  { key: 'standingBand', label: 'Mass band that counts as level', unit: QUANTITY_UNIT.share },
+  { key: 'standingBand', label: 'Mass band', unit: QUANTITY_UNIT.share },
   balancePath('worldClock', 'WORLD_STANDING_MASS_TOLERANCE'),
 );
 
@@ -60,9 +60,12 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
   [CONCEPT.massDecay]: {
     title: 'Mass decay',
     summary:
-      'Mass above your starting size slowly wastes away, and the more you carry the faster it goes, so a big cell has to keep eating. Decay never takes you below {startingMass}. In the [[zone:warm_vent]] it runs {ventDecayRate} as fast.',
+      'Mass above your starting size slowly wastes away, and the more you carry the faster it goes, so a big cell has to keep eating. Decay never takes you below {decayFloor}. In the [[zone:warm_vent]] it runs {ventDecayRate} as fast.',
     facts: [
-      STARTING_MASS_FACT,
+      balanceFact(
+        { key: 'decayFloor', label: 'Never below', unit: QUANTITY_UNIT.mass },
+        balancePath('growth', 'CELL_STARTING_MASS'),
+      ),
       balanceFact(
         { key: 'ventDecayRate', label: 'Decay in the warm vent', unit: QUANTITY_UNIT.multiplier },
         balancePath('ecology', 'VENT_DECAY_MULTIPLIER'),
@@ -78,11 +81,11 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
       'You can swallow a cell once you weigh at least {engulfRatio} its mass, and anything that much heavier than you can swallow you. A swallow already under way holds as long as the predator stays {releaseRatio} the prey’s mass. A [[trait:cell_wall]] raises the ratio needed to swallow you.',
     facts: [
       balanceFact(
-        { key: 'engulfRatio', label: 'Mass needed to engulf', unit: QUANTITY_UNIT.multiplier },
+        { key: 'engulfRatio', label: 'To engulf', unit: QUANTITY_UNIT.multiplier },
         balancePath('absorption', 'ENGULF_MASS_RATIO'),
       ),
       balanceFact(
-        { key: 'releaseRatio', label: 'Mass needed to keep hold', unit: QUANTITY_UNIT.multiplier },
+        { key: 'releaseRatio', label: 'To keep hold', unit: QUANTITY_UNIT.multiplier },
         balancePath('absorption', 'ENGULF_RELEASE_RATIO'),
       ),
     ],
@@ -122,7 +125,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
       'Your score is all the DNA you earned this round, plus {engulfBonus} for every player cell you engulf. It is kept when you die, and the highest score wins the [[world:round|round]]. DNA handed to a late joiner to catch up never counts, and a [[cell_kind:wild|wild cell]] gives DNA but no bonus.',
     facts: [
       balanceFact(
-        { key: 'engulfBonus', label: 'Bonus per player engulfed', unit: QUANTITY_UNIT.points },
+        { key: 'engulfBonus', label: 'Per engulf', unit: QUANTITY_UNIT.points },
         balancePath('session', 'SCORE_ABSORPTION_BONUS'),
       ),
     ],
@@ -161,7 +164,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
       'Anything you swallow without a fight. Swim over a mote and it is eaten at once, whatever your size. [[food:algae|Algae]] gives mass, [[food:bacterium|bacteria]] give mass and DNA, [[food:detritus|detritus]] is what dead cells leave, and [[entity:dna_fragment|DNA fragments]] give DNA alone. In the [[world:bloom|bloom]] food spawns {bloomFood} as fast.',
     facts: [
       balanceFact(
-        { key: 'bloomFood', label: 'Food spawning in the bloom', unit: QUANTITY_UNIT.multiplier },
+        { key: 'bloomFood', label: 'In the bloom', unit: QUANTITY_UNIT.multiplier },
         balancePath('ecology', 'FOOD_BLOOM_SPAWN_MULTIPLIER'),
       ),
     ],

@@ -39,7 +39,7 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
       'The world’s average cell made flesh. {wildCount} of them share the dish all round. They grow with the [[world:world_clock|world clock]], not by eating, each within {massSpread} of the world’s average mass, and they never decay. They wander, flee what can eat them and, later in the round, hunt what they can eat. Engulfing one pays {wildDnaShare} of the DNA a cell at the world’s level has earned, but no score bonus. An engulfed wild cell returns after {wildRespawn}.',
     facts: [
       balanceFact(
-        { key: 'wildCount', label: 'Wild cells in the dish', unit: QUANTITY_UNIT.count },
+        { key: 'wildCount', label: 'In the dish', unit: QUANTITY_UNIT.count },
         balancePath('wildCells', 'WILD_CELL_COUNT'),
       ),
       balanceFact(
