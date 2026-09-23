@@ -43,7 +43,7 @@ packages/shared/src/
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1)
+  simulation/{movement-kernel,movement-step,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1); movement-step: the speed cap and blend the server and the prediction share (#265)
   camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
   simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,trait-tiers}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
                                                                 level-costs: FIRST_LEVEL, levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
@@ -79,7 +79,7 @@ packages/server/src/
 packages/client/src/app/game/
   game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
   debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
-  net/{snapshot-buffer,interpolation,food-store,world-store,snapshot-acknowledger}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; snapshot-acknowledger tells the room which tick this client has applied (§4, #266); prediction and reconciliation are still open (#265)
+  net/{snapshot-buffer,interpolation,food-store,world-store,snapshot-acknowledger,own-cell-prediction,own-cell-predictor,pose-correction}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; snapshot-acknowledger tells the room which tick this client has applied (§4, #266); own-cell-prediction replays, own-cell-predictor keeps the inputs and re-bases, pose-correction reconciles (#265)
   input/{input-constants,keyboard-action,input-state,trait-pick,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state, the trait-pick policy and the GameInput mapping — all pure (ui/input-and-onboarding.md §4)
   input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts

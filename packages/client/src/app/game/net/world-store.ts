@@ -1,8 +1,8 @@
 // The single client model (docs/architecture/client.md §5): applies `game_state` and `game_snapshot`
 // messages (food deltas idempotently), estimates the server tick through the injected clock and
 // answers one interpolated `RenderFrame` per rendered frame (`nextFrame`, which consumes the effects due). Framework-free; the Angular facade and
-// the renderer both read it, nothing else writes it. Prediction and reconciliation of the own
-// cell join with the input ticket (#100): every cell is interpolated here.
+// the renderer both read it; the input layer records its sent inputs into it. Every cell is interpolated, except the
+// own cell, which is predicted and reconciled (`own-cell-predictor.ts`, #265).
 
 import {
   MILLISECONDS_PER_SECOND,
@@ -13,7 +13,9 @@ import {
   type DnaFragmentView,
   type FoodMoteView,
   type GameEffect,
+  type GameInput,
   type GameSnapshot,
+  type MovementPose,
   type PlayerId,
 } from '@evolution/shared';
 import { FoodStore } from './food-store';
@@ -25,6 +27,7 @@ import {
   interpolationWeight,
   renderTickFor,
 } from './interpolation';
+import { OwnCellPredictor, type PredictionDebugState } from './own-cell-predictor';
 import { SNAPSHOT_PUSH, SnapshotBuffer } from './snapshot-buffer';
 
 /** What the renderer draws for one frame: the interpolated world at `renderTick`. */
@@ -74,8 +77,11 @@ export class WorldStore {
   private balanceValue: BalanceConfig | null = null;
   private ownPlayerIdValue: PlayerId | null = null;
   private avatarAssignmentsValue: Readonly<Record<string, number>> = {};
+  private readonly predictor: OwnCellPredictor;
 
-  constructor(private readonly clock: Clock) {}
+  constructor(private readonly clock: Clock) {
+    this.predictor = new OwnCellPredictor(clock);
+  }
 
   /** Join, late join and reconnect: the full state replaces everything (docs/architecture/wire-contract.md §4). */
   applyGameState(state: GameStateApplied): void {
@@ -101,7 +107,22 @@ export class WorldStore {
     const fresh = outcome === SNAPSHOT_PUSH.replaced ? this.effectsNotSeen(snapshot.effects) : snapshot.effects;
     this.pendingEffects.push(...fresh);
     this.dropOvertakenEffects();
+    this.predictor.rebase(snapshot, this.ownPlayerIdValue, this.balanceValue);
     return true;
+  }
+
+  /** One input the controller sent: the own cell's prediction steps through it (docs/architecture/client.md §5). */
+  recordOwnInput(input: GameInput): void {
+    this.predictor.recordInput(input);
+  }
+
+  /** The own cell's predicted pose, before the reconciliation offset; `null` while it is not predicted. */
+  predictedOwnPose(): MovementPose | null {
+    return this.predictor.predictedPose();
+  }
+
+  predictionDebugState(): PredictionDebugState {
+    return this.predictor.debugState();
   }
 
   /**
@@ -178,10 +199,11 @@ export class WorldStore {
     const from = older ?? latest;
     const target = newer ?? latest;
     const weight = interpolationWeight(from.tick, target.tick, renderTick);
-    const cells =
+    const interpolated =
       newer === null
         ? extrapolateCells(from.cells, renderTick - from.tick)
         : interpolateCells(from.cells, target.cells, weight);
+    const cells = this.predictor.applyTo(interpolated);
     return {
       renderTick,
       timeSeconds: renderTick * TICK_INTERVAL_S,
@@ -217,6 +239,7 @@ export class WorldStore {
     this.snapshots.clear();
     this.estimator.reset();
     this.food.reset();
+    this.predictor.reset();
     this.pendingEffects = [];
     this.drainedEffects = [];
   }

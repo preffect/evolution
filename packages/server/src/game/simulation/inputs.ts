@@ -4,7 +4,14 @@
 // carried stage is refreshed here for every player, cell or not, so no writer of `ownedTraits` can leave it stale
 // past one tick.
 
-import { hasSteerTarget, massAfterSprint, secondsToTicks, type BalanceConfig, type GameInput } from '@evolution/shared';
+import {
+  hasSteerTarget,
+  massAfterSprint,
+  sprintCooldownTicksFor,
+  sprintDurationTicks,
+  type BalanceConfig,
+  type GameInput,
+} from '@evolution/shared';
 import { refreshPlayerStage } from '../progression/ladder.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { applyTraitChoice, showQueuedOfferIfNone } from '../progression/offers.js';
@@ -14,13 +21,9 @@ import type { StepContext, WorldState } from '../world/world-state.js';
 import { recordSprintSpent } from '../world/mass-flow-ledger.js';
 import { setCellMass } from './cell-mass.js';
 
-/** The cooldown a sprint starts with: `SPRINT_COOLDOWN_SECONDS + delta`, floored (docs/traits/model.md §2). */
+/** The cooldown a sprint starts with: the shared `sprintCooldownTicksFor` of this cell's delta (docs/traits/model.md §2). */
 export function sprintCooldownTicks(cell: CellRecord, balance: BalanceConfig): number {
-  const seconds = Math.max(
-    balance.controls.SPRINT_COOLDOWN_SECONDS + cell.modifiers.sprintCooldownSecondsDelta,
-    balance.traits.SPRINT_COOLDOWN_FLOOR_SECONDS,
-  );
-  return secondsToTicks(seconds);
+  return sprintCooldownTicksFor(cell.modifiers.sprintCooldownSecondsDelta, balance);
 }
 
 /**
@@ -31,7 +34,7 @@ export function tryStartSprint(cell: CellRecord, balance: BalanceConfig): boolea
   if (cell.sprintCooldownRemainingTicks > 0) {
     return false;
   }
-  cell.sprintRemainingTicks = secondsToTicks(balance.controls.SPRINT_DURATION_SECONDS);
+  cell.sprintRemainingTicks = sprintDurationTicks(balance);
   cell.sprintCooldownRemainingTicks = sprintCooldownTicks(cell, balance);
   setCellMass(cell, massAfterSprint(cell.mass, balance), balance);
   return true;

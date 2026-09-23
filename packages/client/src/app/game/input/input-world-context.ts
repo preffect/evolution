@@ -1,11 +1,22 @@
 // The one adapter between the client model and the input layer (docs/architecture/client.md §5): reads
-// `WorldStore` and answers what one client tick needs — the own cell, the open offer and the live
+// `WorldStore` and answers what one client tick needs — the own cell (predicted), the open offer and the live
 // steer tunables. `null` means "nothing to steer": before the first `game_state`, and through the
 // results phase, where the server ignores input anyway (docs/game-design/session.md §5.4).
 
-import { ROUND_PHASE } from '@evolution/shared';
+import { ROUND_PHASE, type GameSnapshot, type PlayerId } from '@evolution/shared';
 import type { WorldStore } from '../net/world-store';
-import type { InputWorldContext } from './game-input-builder';
+import type { InputWorldContext, OwnCellPose } from './game-input-builder';
+
+/**
+ * The own cell where it will be when the server applies the next input: the prediction (#265), or the snapshot's
+ * pose while it is not predicted; `null` while there is no own cell.
+ */
+function ownCellPoseOf(store: WorldStore, snapshot: GameSnapshot, ownPlayerId: PlayerId): OwnCellPose | null {
+  const ownCell = snapshot.cells.find((cell) => cell.playerId === ownPlayerId);
+  if (ownCell === undefined) return null;
+  const position = store.predictedOwnPose() ?? ownCell;
+  return { x: position.x, y: position.y, radiusWu: ownCell.radius };
+}
 
 /**
  * **Invariant the trait-pick retry depends on: the offer and the applied sequence come from one
@@ -22,9 +33,8 @@ export function inputWorldContextOf(store: WorldStore): InputWorldContext | null
   const ownPlayerId = store.ownPlayerId;
   if (snapshot === null || balance === null || ownPlayerId === null) return null;
   if (snapshot.roundPhase !== ROUND_PHASE.playing) return null;
-  const ownCell = snapshot.cells.find((cell) => cell.playerId === ownPlayerId) ?? null;
   return {
-    ownCell: ownCell === null ? null : { x: ownCell.x, y: ownCell.y, radiusWu: ownCell.radius },
+    ownCell: ownCellPoseOf(store, snapshot, ownPlayerId),
     offer: snapshot.ownProgress?.offer ?? null,
     controls: balance.controls,
     appliedInputSequence: snapshot.appliedInputSequenceByPlayer[ownPlayerId] ?? 0,
