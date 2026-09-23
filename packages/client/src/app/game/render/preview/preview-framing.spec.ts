@@ -37,26 +37,23 @@ import { SUBJECT_SPECS } from './preview-subject-specs';
 const MEASURED_FILL_FLOOR = 0.99;
 
 /**
- * How much looser than its drawing a **tailed** cell's lens is allowed to be.
+ * How much looser than its drawing a **tailed** cell's lens may be: the one surface term a framing bound cannot see.
  *
- * This is a real overstatement, not sampling noise, and it is a named constant rather than a quietly lowered
- * floor. `appendageReachRadii` roots the tail on the cell's **widest** membrane; `cell-layer.ts`'s
- * `flagellumSpec` roots the drawn tail on the membrane **at the rear**, which the speed stretch tapers. The bound
- * is therefore safe but loose, and a tailed cell is framed smaller than it needs to be — measured here at 1.07×
- * at rest and **1.19× at speed** (tier-III flagellum swimming, the worst row).
+ * `appendageReachRadii` roots the tail on the membrane **at the rear**, as `cell-layer.ts`'s `flagellumSpec` does
+ * (ticket #491 — rooting it on the widest membrane was 1.29× loose), and takes that membrane at the peak of every
+ * surface term. But the rear is **one angle**, and the noise strip and the wobble's mode are fixed in the cell's
+ * frame: whether the rear sits on a lobe's crest or in its trough depends on the heading. The lens must hold still
+ * while a swimming subject's heading turns through its orbit, so the bound cannot take the heading, and the
+ * measured tip lands a little inside it. Probed on the tier-II prokaryote at rest over 600 ticks: its rear peaks at
+ * 1.07 to 1.14 radii across headings, against a heading-free bound of 1.148.
  *
- * Tightening it is ticket #491. It moves every tailed row's framing by about a fifth, which would be a third
- * framing change landing on top of ticket #488's orbit, so the call was to land the honest number now and the
- * tightening measured on its own. **When #491 lands this goes to 1**, and this spec is what will tell you.
+ * Measured here: tier-II resting **0.9847**, the only row it matters for; both swimming rows fill 0.9996, since
+ * their orbit carries the rear past its crest. 1.02 puts the floor at 0.971, 1.4 % under the worst row.
  *
- * **If a tailed row fails on this floor, raise this number, never `MEASURED_FILL_FLOOR`.** The margin is thin by
- * design — 1.22 puts the floor at 0.811 against a worst measured row of 0.8387, about 3.4 % — because the slack
- * is a defect being tracked, not headroom being granted, and every point of it is framing a reader does not get.
- * The walk is deterministic, so this will not flake; a new row landing under it means that row's tail is rooted
- * even further inside its bound than the ones measured here, which is #491 getting worse rather than this
- * constant being wrong. Lowering `MEASURED_FILL_FLOOR` instead would quietly weaken every tail-less row too.
+ * **If a tailed row fails on this floor, find out why before raising this number, and never lower
+ * `MEASURED_FILL_FLOOR`** — that would weaken every tail-less row too, and each of them fills 1.0000.
  */
-const TAIL_BOUND_SLACK = 1.22;
+const TAIL_ROOT_HEADING_SLACK = 1.02;
 
 describe('the framing bands', () => {
   /**
@@ -109,9 +106,9 @@ describe('the framing bands', () => {
         body.fraction / PREVIEW_CELL_BODY_FILL_FRACTION,
         drawn.fraction / PREVIEW_CELL_DRAWN_FILL_FRACTION,
       );
-      // A tailed cell's lens comes from a bound that overstates its tail; every other row has to fill exactly.
+      // A tail roots at one angle of the membrane, which a heading-free bound takes at its peak; see the slack.
       const hasTail = spec.traits.some((owned) => owned.traitId === FLAGELLUM_TRAIT);
-      const floor = hasTail ? MEASURED_FILL_FLOOR / TAIL_BOUND_SLACK : MEASURED_FILL_FLOOR;
+      const floor = hasTail ? MEASURED_FILL_FLOOR / TAIL_ROOT_HEADING_SLACK : MEASURED_FILL_FLOOR;
       expect(
         fill,
         `${spec.scene} (${spec.motion}) is framed ${(1 / fill).toFixed(2)}× looser than its contents need: ` +
@@ -119,8 +116,8 @@ describe('the framing bands', () => {
           'every term the renderer samples, so the measured worst tick lands a little inside the fill fractions — ' +
           `but only a little: ${floor.toFixed(3)} is this row's floor. A number far under it means the framing ` +
           'stopped following the subject, not that the bound loosened — the single 4.4 constant this replaced ' +
-          'scores 0.33 to 0.94 here. A tailed row gets TAIL_BOUND_SLACK of extra room for the tail-root ' +
-          'overstatement ticket #491 tightens; a tail-less row has to fill exactly.',
+          'scores 0.33 to 0.94 here. A tailed row gets TAIL_ROOT_HEADING_SLACK for the rear membrane a ' +
+          'heading-free bound cannot sample; a tail-less row has to fill exactly.',
       ).toBeGreaterThanOrEqual(floor);
     }
   });

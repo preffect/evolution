@@ -806,8 +806,9 @@ its DOM SVG overlay above the canvas. This seam owns the canvas and the crop.
   **0.8 is a ceiling, not a target, and the two bands cannot both be filled** (#364). A flagellum is
   `FLAGELLUM_LENGTH_RADII` 2 plus its wave, so a body framed at 0.8 would put its tail past 2.2 of the rim: for a
   flagellate the rim band binds and the body lands well under half the lens. That is a property of the framing
-  rule, not a measurement — `cell-draw-extent.ts` bounds the tail conservatively, so the figure a walk reports for
-  such a row is the bound's, not the tail's. A scene fills **whichever band binds** and lets the other fall where
+  rule, not a measurement. `cell-draw-extent.ts` roots the tail's bound on the membrane **at the rear**, where the
+  renderer roots it (#491), at the peak of every surface term; a swimming flagellate fills its rim band to 0.9996,
+  and a resting one to 0.985, since the lobe under the rear depends on a heading the bound cannot take. A scene fills **whichever band binds** and lets the other fall where
   it must — a cell framed so its body reaches 0.8 is a cell whose appendages
   are outside the lens. Do not read the 0.8 as something a cell scene should be retuned toward.
 

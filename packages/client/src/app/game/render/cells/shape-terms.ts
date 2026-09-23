@@ -25,7 +25,14 @@ import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
 import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
-import { ZERO_BUMP, type RadialProfileTerms, type ShapeBump, type StretchTerm, type StripTerm } from './radial-profile';
+import {
+  ZERO_BUMP,
+  stretchAt,
+  type RadialProfileTerms,
+  type ShapeBump,
+  type StretchTerm,
+  type StripTerm,
+} from './radial-profile';
 
 /** The rest motion at full amplitude; `cytoskeleton` halves breathing and lobes, a rigid form zeroes all three. */
 const FULL = 1;
@@ -152,14 +159,34 @@ export function peakReachRadii(
   isSprinting: boolean,
   clip: ClipDeformationPeak,
 ): number {
+  const stretch = stretchReach(stretchTerm(speedRatio, isSprinting));
+  return clip.pulse * stretch * peakSurfaceReach(traits, clip) * haloOuterRadiiOf(traits);
+}
+
+/**
+ * The largest the membrane **at the rear** (`heading + π`) can be, in radii: where `cell-layer.ts`'s
+ * `flagellumSpec` roots the tail. The same peak as `peakReachRadii` with the stretch taken at the rear, where the
+ * speed stretch tapers it, and without the halo — the tail hangs off the membrane, not the glow around it.
+ */
+export function peakRearMembraneRadii(
+  traits: CellTraitSummary,
+  speedRatio: number,
+  isSprinting: boolean,
+  clip: ClipDeformationPeak,
+): number {
+  const rearStretch = stretchAt(stretchTerm(speedRatio, isSprinting), Math.PI).value;
+  return clip.pulse * rearStretch * peakSurfaceReach(traits, clip);
+}
+
+/** The surface's widest radius fraction over any frame: breathing at its peak, plus the clips' bumps. */
+function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak): number {
   const scales = restScales(traits);
-  const surfaceMax = surfaceReach(
+  return surfaceReach(
     scales.breathing * BREATH_AMPLITUDE,
     traits.wobble.amplitude,
     stripReach(JITTER_AMPLITUDE * scales.jitter, scales.lobes),
     clip.bumpRadii,
   );
-  return clip.pulse * stretchReach(stretchTerm(speedRatio, isSprinting)) * surfaceMax * haloOuterRadiiOf(traits);
 }
 
 function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {

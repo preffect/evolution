@@ -1,5 +1,6 @@
 // How far from its centre a cell is drawn (docs/rendering/cells.md §2, docs/architecture/encyclopedia.md §12.7):
-// the membrane at its widest, and the widest anything reaches — the halo, the cilia hairs, or a flagellum's tip.
+// the membrane at its widest, and the widest anything reaches — the halo, the cilia hairs, or a flagellum's tip
+// (rooted at the rear membrane, as the renderer roots it).
 //
 // Two readers, and they are deliberately not the same reader. The encyclopedia preview **frames its lens** by the
 // bound (`peakReachRadii`, a constant of the cell), so a scene's zoom is fixed for its whole loop; the framing
@@ -18,7 +19,13 @@ import {
 } from '../constants';
 import type { CellTraitSummary } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
-import { REST_CLIP_PEAK, haloOuterRadiiOf, peakReachRadii, type ClipDeformationPeak } from './shape-terms';
+import {
+  REST_CLIP_PEAK,
+  haloOuterRadiiOf,
+  peakReachRadii,
+  peakRearMembraneRadii,
+  type ClipDeformationPeak,
+} from './shape-terms';
 
 /** The hairs reach `CILIA_OUTER_RADII − 1` **past the membrane** (`cell-shader-tells.ts`'s `CILIA_REACH`). */
 const CILIA_REACH_RADII = CILIA_OUTER_RADII - 1;
@@ -27,12 +34,23 @@ const CILIA_REACH_RADII = CILIA_OUTER_RADII - 1;
 const NO_APPENDAGE_REACH = 0;
 const FULL_AMPLITUDE = 1;
 
+/** The membrane radii the appendages hang off, each over any frame. */
+export interface MembraneReachRadii {
+  /** The membrane at its widest: where the cilia's hairs are measured from. */
+  readonly widestRadii: number;
+  /** The membrane at the rear (`heading + π`), which the speed stretch tapers: where the tail is rooted. */
+  readonly rearRadii: number;
+}
+
 /**
- * The widest an appendage reaches **past the cell's centre**, in radii, given the membrane radius at its widest.
+ * The widest an appendage reaches **past the cell's centre**, in radii.
  *
- * The tail is the long one: rooted on the membrane at the rear, `FLAGELLUM_LENGTH_RADII` further out, with the
- * wave's peak added sideways (`flagellum-lines.ts`). Adding the wave to the length instead of taking the
- * hypotenuse of the two overstates the tip slightly, which is the safe direction for a framing bound.
+ * The tail is the long one: rooted on the membrane **at the rear** exactly as `cell-layer.ts`'s `flagellumSpec`
+ * roots it, `FLAGELLUM_LENGTH_RADII` further out, with the wave's peak added sideways (`flagellum-lines.ts`).
+ * Rooting it on the widest membrane instead overstated a swimming tier-III tip by 1.29× (ticket #491). The tip is
+ * the furthest point — every segment short of it is both nearer along the tail and less displaced across it — and
+ * it sits `rear + length` out along the tail and at most the wave's peak across, so its reach is the hypotenuse of
+ * the two: exact, given the root, rather than the looser sum.
  *
  * `pulse` scales the tail and not the cilia, because that is what the renderer does: `flagellumSpec.radius` is
  * `r × pulse`, so an eat's pulse lengthens the tail by the same fraction, while the shader measures the cilia's
@@ -40,15 +58,16 @@ const FULL_AMPLITUDE = 1;
  */
 export function appendageReachRadii(
   traits: CellTraitSummary,
-  membraneRadii: number,
+  membrane: MembraneReachRadii,
   isSprinting: boolean,
   pulse: number,
 ): number {
-  const ciliaReach = traits.ciliaCount > 0 ? membraneRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
+  const ciliaReach = traits.ciliaCount > 0 ? membrane.widestRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
   if (flagellumTier === 0) return ciliaReach;
-  const tailRadii = (FLAGELLUM_LENGTH_RADII + waveAmplitudeRadii(flagellumTier, isSprinting)) * pulse;
-  return Math.max(ciliaReach, membraneRadii + tailRadii);
+  const alongRadii = membrane.rearRadii + FLAGELLUM_LENGTH_RADII * pulse;
+  const acrossRadii = waveAmplitudeRadii(flagellumTier, isSprinting) * pulse;
+  return Math.max(ciliaReach, Math.hypot(alongRadii, acrossRadii));
 }
 
 /** The tail wave's peak in radii at this tier, doubled while sprinting (`flagellum-lines.ts`'s `amplitudeWu`). */
@@ -97,11 +116,15 @@ const NO_EFFECT_REACH = 0;
 export function cellDrawExtentRadii(traits: CellTraitSummary, state: CellDrawState): CellDrawExtentRadii {
   const drawnWithHalo = peakReachRadii(traits, state.speedRatio, state.isSprinting, state.clip);
   const bodyRadii = drawnWithHalo / haloOuterRadiiOf(traits);
+  const membrane: MembraneReachRadii = {
+    widestRadii: bodyRadii,
+    rearRadii: peakRearMembraneRadii(traits, state.speedRatio, state.isSprinting, state.clip),
+  };
   return {
     bodyRadii,
     drawnRadii: Math.max(
       drawnWithHalo,
-      appendageReachRadii(traits, bodyRadii, state.isSprinting, state.clip.pulse),
+      appendageReachRadii(traits, membrane, state.isSprinting, state.clip.pulse),
       state.effectRadii,
     ),
   };
