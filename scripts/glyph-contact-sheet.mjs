@@ -44,7 +44,10 @@ async function captureGlyphs(page, selector, idAttribute, dir) {
     const testId = (await holder.getAttribute(idAttribute)) ?? '';
     const entryId = testId.replace(/^encyclopedia-(row|tile)-/, '');
     const fileName = `${entryId.replace(/[:#]/g, '_')}.png`;
-    await holder.locator('app-encyclopedia-glyph').first().screenshot({ path: join(dir, fileName) });
+    await holder
+      .locator('app-encyclopedia-glyph')
+      .first()
+      .screenshot({ path: join(dir, fileName) });
     ids.push({ entryId, fileName });
   }
   return ids;
