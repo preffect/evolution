@@ -71,9 +71,11 @@ export const MINUS_SIGN = '−';
 /** The first figure the `compact` presentation shortens: five digits fit the leaderboard's score column, six do not. */
 export const COMPACT_FROM = 100_000;
 /** The `compact` steps, largest first: a figure at or above `from` is divided and suffixed, to `decimals` places. */
+const ONE_THOUSAND = 1_000;
+const ONE_MILLION = 1_000_000;
 export const COMPACT_STEPS = [
-  { from: 1_000_000, divisor: 1_000_000, suffix: 'M', decimals: 1 },
-  { from: COMPACT_FROM, divisor: 1_000, suffix: 'k', decimals: 0 },
+  { from: ONE_MILLION, divisor: ONE_MILLION, suffix: 'M', decimals: 1 },
+  { from: COMPACT_FROM, divisor: ONE_THOUSAND, suffix: 'k', decimals: 0 },
 ] as const;
 export const PLUS_SIGN = '+';
 /** A multiplier's sign: the `1.5×` suffix, and the `×1.5` a caption leads with (the round clock's bloom). */

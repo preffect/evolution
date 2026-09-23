@@ -159,11 +159,12 @@ describe('formatQuantity', () => {
   });
 });
 
+/** The leaderboard's score column holds five characters (docs/ui/hud.md §3.1.1). */
+const SCORE_COLUMN_CHARACTERS = 5;
+
 describe('formatQuantity, compact', () => {
   const compact = (value: number): string =>
     formatQuantity(value, QUANTITY_UNIT.points, { presentation: QUANTITY_PRESENTATION.compact });
-  /** The leaderboard's score column holds five characters (docs/ui/hud.md §3.1.1). */
-  const SCORE_COLUMN_CHARACTERS = 5;
 
   it(`keeps every figure below ${COMPACT_FROM} whole, and shortens from there, rounding the short form down`, () => {
     expect(compact(99_999)).toBe('99999');
