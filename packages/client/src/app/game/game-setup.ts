@@ -7,8 +7,8 @@ import type { Observable } from 'rxjs';
 import type { Clock, GameInput, ServerMessage, TraitId } from '@evolution/shared';
 import type { AudioHooksHandle } from './audio/audio-hooks';
 import { definedEntriesOf } from './defined-entries';
-import { installEvolutionDebug, type EvolutionDebugHost } from './debug/evolution-debug';
-import { attachInput, type AttachInputOptions } from './input/attach-input';
+import { installEvolutionDebug, type EvolutionDebugApi, type EvolutionDebugHost } from './debug/evolution-debug';
+import { attachInput, type AttachInputOptions, type InputSeam } from './input/attach-input';
 import type { InputController } from './input/input-controller';
 import { NO_RETICLE, type RenderInputs } from './render/game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from './render/pixi-app';
@@ -87,6 +87,15 @@ function hudInputsOf(dependencies: GameSetupDependencies, controller: InputContr
   };
 }
 
+/** The live room's debug hook: the loop's members plus the input layer and the own cell's prediction. */
+function liveDebugApi(session: RenderSession, input: InputSeam): EvolutionDebugApi {
+  return {
+    ...session.debugApi(),
+    input: () => input.controller.debugState(),
+    prediction: () => session.store.predictionDebugState(),
+  };
+}
+
 export function setupGame(options: GameSetupOptions, dependencies: GameSetupDependencies): GameTeardown {
   // The session reads the input seam and the input seam reads the session's camera and store, so
   // one of the two is late-bound. It is this one, held in a mutable that is assigned on the next
@@ -116,7 +125,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
   const subscription = options.messages$.subscribe((message) => session.onMessage(message));
   const uninstallDebug = installEvolutionDebug(
     dependencies.debugHost,
-    { ...session.debugApi(), input: () => input.controller.debugState() },
+    liveDebugApi(session, input),
     dependencies.isDevMode,
   );
   return () => {

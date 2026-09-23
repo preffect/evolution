@@ -5,16 +5,17 @@
 import {
   clampToDish,
   engulfPhaseOf,
-  gelSpeedFactor,
-  maxSpeedForMass,
+  gelZoneSpeedFactor,
+  movementStepFor,
   predatorEngulfSpeedFactor,
   preyHeldSpeedFactor,
-  steerBlendPerTick,
+  speedCapFor,
+  sprintSpeedFactorFor,
   steerCommand,
   stepMovementFrom,
-  TICK_INTERVAL_S,
   ZONE_ID,
   type BalanceConfig,
+  type MovementCellState,
   type MovementPose,
   type MovementStep,
   type SteerCommand,
@@ -28,18 +29,19 @@ import { engulfedPreyOf, engulfingPredatorOf, isCarried } from './engulf-state.j
 
 /** `SPRINT_SPEED_MULTIPLIER + sprintSpeedMultiplierBonus` while a sprint runs, 1 otherwise. */
 export function sprintSpeedFactor(cell: CellRecord, balance: BalanceConfig): number {
-  if (cell.sprintRemainingTicks <= 0) {
-    return 1;
-  }
-  return balance.controls.SPRINT_SPEED_MULTIPLIER + cell.modifiers.sprintSpeedMultiplierBonus;
+  return sprintSpeedFactorFor(cell.sprintRemainingTicks, cell.modifiers.sprintSpeedMultiplierBonus, balance.controls);
+}
+
+function isInGel(cell: CellRecord, world: WorldState, balance: BalanceConfig): boolean {
+  return zoneAt(cell, world.gelPatches, balance) === ZONE_ID.viscousGel;
 }
 
 /** The gel factor inside a gel patch (with the amoeba floor), 1 elsewhere. */
 export function zoneSpeedFactor(cell: CellRecord, world: WorldState, balance: BalanceConfig): number {
-  if (zoneAt(cell, world.gelPatches, balance) !== ZONE_ID.viscousGel) {
-    return 1;
-  }
-  return gelSpeedFactor(cell.mass, balance.growth, cell.modifiers.gelSpeedFactorFloor);
+  return gelZoneSpeedFactor(
+    { mass: cell.mass, modifiers: cell.modifiers, isInGel: isInGel(cell, world, balance) },
+    balance,
+  );
 }
 
 /** Neither engulfing nor engulfed: the cap is untouched by docs/ecology/absorption.md §6.1. */
@@ -69,15 +71,21 @@ export function engulfSpeedFactor(cell: CellRecord, world: WorldState, balance: 
   return factor;
 }
 
+/** The shared movement state of one cell (`movement-step.ts`), resolved against this world. */
+function movementStateOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): MovementCellState {
+  return {
+    mass: cell.mass,
+    radiusWu: cell.radius,
+    sprintRemainingTicks: cell.sprintRemainingTicks,
+    modifiers: cell.modifiers,
+    isInGel: isInGel(cell, world, balance),
+    engulfFactor: engulfSpeedFactor(cell, world, balance),
+  };
+}
+
 /** `maxSpeed(mass) × sprint × zone × trait × engulf` (wu/s). */
 export function speedCapOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): number {
-  return (
-    maxSpeedForMass(cell.mass, balance.growth) *
-    sprintSpeedFactor(cell, balance) *
-    zoneSpeedFactor(cell, world, balance) *
-    cell.modifiers.speedMultiplier *
-    engulfSpeedFactor(cell, world, balance)
-  );
+  return speedCapFor(movementStateOf(cell, world, balance), balance);
 }
 
 /**
@@ -101,18 +109,7 @@ function steerCommandOf(cell: CellRecord, balance: BalanceConfig): SteerCommand 
 
 /** The kernel's step for one cell, everything but the command (which the caller has already taken). */
 function movementStepOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): MovementStep {
-  const accelerationSeconds = balance.growth.CELL_ACCELERATION_SECONDS * cell.modifiers.accelerationSecondsMultiplier;
-  const target = steerTargetOf(cell);
-  return {
-    targetX: target.x,
-    targetY: target.y,
-    radiusWu: cell.radius,
-    speedCapWuPerSecond: speedCapOf(cell, world, balance),
-    blendPerTick: steerBlendPerTick(accelerationSeconds, TICK_INTERVAL_S),
-    tickIntervalS: TICK_INTERVAL_S,
-    dishRadiusWu: balance.world.DISH_RADIUS,
-    controls: balance.controls,
-  };
+  return movementStepFor(movementStateOf(cell, world, balance), steerTargetOf(cell), balance);
 }
 
 /** The one write-back of a pose onto a record, shared by the moved and the carried paths. */
