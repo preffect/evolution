@@ -153,19 +153,21 @@ describe('onboardingStepFor: the queue', () => {
     const queued = onboardingStepFor(pastOpening(), sample(10, { dnaCumulative: 1, isProkaryote: true }));
     const next = onboardingStepFor(
       queued,
-      sample(10 + HINT_TICKS, { dnaCumulative: 1, isProkaryote: true, hasOffer: true }),
+      sample(10 + HINT_TICKS, { dnaCumulative: 1, isProkaryote: true, roundElapsedSeconds: SPRINT_HINT_AT_SECONDS }),
     );
     expect(next.current).toBe(ONBOARDING_BEAT.endosymbiosis);
-    expect(next.waiting).toEqual([ONBOARDING_BEAT.offer]);
+    expect(next.waiting).toEqual([ONBOARDING_BEAT.sprint]);
   });
 
   it('drops a waiting beat whose condition lapsed, unseen, so it can fire again later', () => {
-    const queued = onboardingStepFor(pastOpening(), sample(10, { dnaCumulative: 1, hasOffer: true }));
-    expect(queued.waiting).toEqual([ONBOARDING_BEAT.offer]);
+    const queued = onboardingStepFor(pastOpening(), sample(10, { dnaCumulative: 1, isProkaryote: true }));
+    expect(queued.waiting).toEqual([ONBOARDING_BEAT.endosymbiosis]);
     const lapsed = onboardingStepFor(queued, sample(10 + HINT_TICKS, { dnaCumulative: 1 }));
     expect(lapsed.current).toBeNull();
-    expect(lapsed.seen.has(ONBOARDING_BEAT.offer)).toBe(false);
-    expect(onboardingStepFor(lapsed, sample(20 + HINT_TICKS, { hasOffer: true })).current).toBe(ONBOARDING_BEAT.offer);
+    expect(lapsed.seen.has(ONBOARDING_BEAT.endosymbiosis)).toBe(false);
+    expect(onboardingStepFor(lapsed, sample(20 + HINT_TICKS, { isProkaryote: true })).current).toBe(
+      ONBOARDING_BEAT.endosymbiosis,
+    );
   });
 
   it('lets threat replace the pill that is up at once; the replaced beat counts as seen', () => {
@@ -192,5 +194,66 @@ describe('onboardingStepFor: the queue', () => {
   it('ignores a snapshot it has already folded, so a recomputation never counts twice', () => {
     const memory = run(sample(1), sample(2, { x: STEER_HINT_DISTANCE_WU / 2 }));
     expect(onboardingStepFor(memory, sample(2, { x: STEER_HINT_DISTANCE_WU }))).toBe(memory);
+  });
+});
+
+describe('onboardingStepFor: while the picker is open', () => {
+  const offerClosedAt = 10 + HINT_TICKS * 3;
+
+  /** A session past the opening beats and its first offer, so a later offer carries no beat of its own. */
+  function pastFirstOffer(): OnboardingMemory {
+    return run(
+      sample(1),
+      sample(2, { x: STEER_HINT_DISTANCE_WU }),
+      sample(3, { hasOwnEat: true }),
+      sample(4, { hasOffer: true }),
+      sample(5),
+    );
+  }
+
+  it('shows sprint that fired behind an open picker after the pick, not behind the picker', () => {
+    const picking = onboardingStepFor(
+      pastFirstOffer(),
+      sample(10, { hasOffer: true, roundElapsedSeconds: SPRINT_HINT_AT_SECONDS }),
+    );
+    const stillPicking = onboardingStepFor(
+      picking,
+      sample(10 + HINT_TICKS * 2, { hasOffer: true, roundElapsedSeconds: SPRINT_HINT_AT_SECONDS }),
+    );
+    expect(stillPicking.current).toBeNull();
+    expect(stillPicking.seen.has(ONBOARDING_BEAT.sprint)).toBe(false);
+    const picked = onboardingStepFor(
+      stillPicking,
+      sample(offerClosedAt, { roundElapsedSeconds: SPRINT_HINT_AT_SECONDS }),
+    );
+    expect(picked.current).toBe(ONBOARDING_BEAT.sprint);
+  });
+
+  it('holds a threat behind the open picker and shows it after the pick while the threat is still there', () => {
+    const offerUp = onboardingStepFor(pastOpening(), sample(10, { hasOffer: true }));
+    const threatened = onboardingStepFor(offerUp, sample(11, { hasOffer: true, hasThreat: true }));
+    expect(threatened.current).toBe(ONBOARDING_BEAT.offer);
+    expect(threatened.waiting).toEqual([ONBOARDING_BEAT.threat]);
+    expect(onboardingStepFor(threatened, sample(offerClosedAt, { hasThreat: true })).current).toBe(
+      ONBOARDING_BEAT.threat,
+    );
+    expect(onboardingStepFor(threatened, sample(offerClosedAt)).current).toBeNull();
+  });
+
+  it('puts the first offer’s beat up over a dna pill, which resumes after the pick, unseen until then', () => {
+    const dna = onboardingStepFor(pastOpening(), sample(10, { dnaCumulative: 1 }));
+    const offer = onboardingStepFor(dna, sample(11, { dnaCumulative: 1, hasOffer: true }));
+    expect(offer.current).toBe(ONBOARDING_BEAT.offer);
+    expect(offer.waiting).toEqual([ONBOARDING_BEAT.dna]);
+    expect(offer.seen.has(ONBOARDING_BEAT.dna)).toBe(false);
+    const picked = onboardingStepFor(offer, sample(offerClosedAt, { dnaCumulative: 1 }));
+    expect(picked.current).toBe(ONBOARDING_BEAT.dna);
+  });
+
+  it('holds the timer of a beat the picker hides, so it still has its time on screen after the pick', () => {
+    const dna = onboardingStepFor(pastFirstOffer(), sample(10, { dnaCumulative: 1 }));
+    const hidden = onboardingStepFor(dna, sample(10 + HINT_TICKS * 2, { dnaCumulative: 1, hasOffer: true }));
+    const picked = onboardingStepFor(hidden, sample(10 + HINT_TICKS * 2 + 1, { dnaCumulative: 1 }));
+    expect(picked.current).toBe(ONBOARDING_BEAT.dna);
   });
 });

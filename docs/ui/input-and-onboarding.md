@@ -101,7 +101,8 @@ padding, fully rounded; it takes no pointer or focus and speaks through a polite
 the player is dead or spectating, outside the playing phase and while the picker is open (overlays.md §3.2), so the
 `offer` beat's words are the picker's instead: a second footer line under `At 0 s the dish picks for you`, left of
 the timer bar (`trait-offer-onboarding`), since a row under the cards would leave the reference viewport. The queue
-steps only on alive snapshots in play; the time a beat waited while the player was dead still counts toward its timer.
+steps only on alive snapshots in play; the time a beat waited while the player was dead still counts toward its timer. While the picker is open only the `offer` beat is up: other beats wait, danger beats
+included, a hidden beat's timer holds, and the beat the `offer` beat replaced resumes after the pick.
 
 **Two kinds of beat.** The first seven rows are the **opening beats**: they show in table order. The last five are
 **coach beats** (decision #324, option C): each teaches one cue of `hud.md` §3.1.5 the first time the mechanic it
