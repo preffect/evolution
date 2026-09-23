@@ -43,6 +43,11 @@ export function traitFacts(traitId: TraitId): readonly FactDefinition[] {
       source: { kind: FACT_SOURCE.link, link: { id: DERIVED_LINK.traitRequires, argument: { traitId } } },
     },
     {
+      key: 'unlockedBy',
+      label: 'Unlocked by eating',
+      source: { kind: FACT_SOURCE.link, link: { id: DERIVED_LINK.traitUnlockVariant, argument: { traitId } } },
+    },
+    {
       key: 'bacteriaToUnlock',
       label: 'Bacteria eaten to unlock',
       unit: QUANTITY_UNIT.count,

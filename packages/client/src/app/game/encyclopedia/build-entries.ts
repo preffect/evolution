@@ -1,11 +1,14 @@
 // The entry definitions, joined from content and the balance's structure (docs/architecture/encyclopedia.md §12.2):
 // catalog order inside each subject, subjects in `ENTRY_SUBJECT` order. Titles of traits are catalog names, tier
 // sections one per row of `TRAIT_TIERS` (structure, never patched), previews built from ids. It reads no number;
-// `registry.ts` calls it once with `DEFAULT_BALANCE`. #361 and #362 add their subjects here.
+// `registry.ts` calls it once with `DEFAULT_BALANCE`. #362 adds the abilities and actions here.
 
 import {
   CELL_KIND,
+  ENTITY_KIND,
   FIRST_TIER,
+  FOOD_KIND,
+  ZONE_ID,
   tierOfRowIndex,
   type BalanceConfig,
   type OwnedTrait,
@@ -13,11 +16,20 @@ import {
   type TraitTier,
 } from '@evolution/shared';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../render/preview/preview-spec';
+import { BACTERIUM_ENTRY_CONTENT } from './content/bacterium-entries';
+import { CELL_KIND_ENTRY_CONTENT } from './content/cell-kind-entries';
+import { CONCEPT_ENTRY_CONTENT } from './content/concept-entries';
 import { DNA_TAG_ENTRY_CONTENT, dnaTagFacts } from './content/dna-tag-entries';
+import { DNA_FRAGMENT_ENTRY_CONTENT, fragmentTagSection } from './content/entity-entries';
+import { FOOD_ENTRY_CONTENT } from './content/food-entries';
 import { STAGE_ENTRY_CONTENT, stageFacts } from './content/stage-entries';
 import { TRAIT_ENTRY_CONTENT, traitFacts } from './content/trait-entries';
-import type { EntryDefinition, SectionDefinition } from './model/entry';
-import { ENTRY_SUBJECT, entryIdOf } from './model/entry-id';
+import { WORLD_ENTRY_CONTENT } from './content/world-entries';
+import { ZONE_ENTRY_CONTENT } from './content/zone-entries';
+import { CONCEPT } from './model/concepts';
+import type { EntryDefinition, SectionDefinition, WrittenEntryContent } from './model/entry';
+import { ENTRY_SUBJECT, entryIdOf, type CodeIdBySubject, type EntrySubject } from './model/entry-id';
+import { WORLD_TOPIC } from './model/world-topics';
 
 export const TIER_SECTION_KEY_PREFIX = 'tier_';
 const NO_SECTIONS: readonly SectionDefinition[] = [];
@@ -102,6 +114,35 @@ function dnaTagEntries(balance: BalanceConfig): readonly EntryDefinition[] {
   }));
 }
 
+/** A subject whose content file writes each entry whole, walked in `codeIds` order. */
+function writtenEntries<Subject extends EntrySubject>(
+  subject: Subject,
+  codeIds: readonly CodeIdBySubject[Subject][],
+  content: Readonly<Record<CodeIdBySubject[Subject], WrittenEntryContent>>,
+): readonly EntryDefinition[] {
+  return codeIds.map((codeId) => ({ id: entryIdOf(subject, codeId), ...content[codeId] }));
+}
+
+/** The DNA fragment, with one section per tag in the balance's tag order. */
+function dnaFragmentEntry(balance: BalanceConfig): EntryDefinition {
+  return {
+    id: entryIdOf(ENTRY_SUBJECT.entity, ENTITY_KIND.dnaFragment),
+    ...DNA_FRAGMENT_ENTRY_CONTENT,
+    sections: balance.progression.DNA_TAGS.map(fragmentTagSection),
+  };
+}
+
 export function buildEntryDefinitions(balance: BalanceConfig): readonly EntryDefinition[] {
-  return [...stageEntries(balance), ...traitEntries(balance), ...dnaTagEntries(balance)];
+  return [
+    ...writtenEntries(ENTRY_SUBJECT.cellKind, Object.values(CELL_KIND), CELL_KIND_ENTRY_CONTENT),
+    ...writtenEntries(ENTRY_SUBJECT.food, Object.values(FOOD_KIND), FOOD_ENTRY_CONTENT),
+    ...writtenEntries(ENTRY_SUBJECT.bacterium, balance.ecology.BACTERIUM_VARIANTS, BACTERIUM_ENTRY_CONTENT),
+    dnaFragmentEntry(balance),
+    ...stageEntries(balance),
+    ...traitEntries(balance),
+    ...dnaTagEntries(balance),
+    ...writtenEntries(ENTRY_SUBJECT.zone, Object.values(ZONE_ID), ZONE_ENTRY_CONTENT),
+    ...writtenEntries(ENTRY_SUBJECT.world, Object.values(WORLD_TOPIC), WORLD_ENTRY_CONTENT),
+    ...writtenEntries(ENTRY_SUBJECT.concept, Object.values(CONCEPT), CONCEPT_ENTRY_CONTENT),
+  ];
 }

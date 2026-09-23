@@ -42,13 +42,21 @@ export function worldElapsedSeconds(tick: number, roundStartTick: number, roundD
   return ticksToSeconds(Math.min(tick - roundStartTick, secondsToTicks(roundDurationSeconds)));
 }
 
+/**
+ * The world's whole level: what its wild cells are, what `worldDna` and `worldStage` read and what a standing is
+ * compared with. The one home of the floor, so no reader rounds where the game floors.
+ */
+export function worldWholeLevel(reference: Pick<WorldReference, 'worldLevel'>): number {
+  return Math.floor(reference.worldLevel);
+}
+
 export function worldReference(elapsedSeconds: number, balance: WorldClockBalance): WorldReference {
   const { worldClock, growth } = balance;
   const worldLevel = Math.min(
     FIRST_WORLD_LEVEL + elapsedSeconds / worldClock.WORLD_LEVEL_SECONDS,
     balance.progression.MAX_LEVEL,
   );
-  const wholeLevel = Math.floor(worldLevel);
+  const wholeLevel = worldWholeLevel({ worldLevel });
   const worldPicks = balance.wildCells.WILD_CELL_BUILDS[0]!.slice(0, wholeLevel - FIRST_WORLD_LEVEL);
   return {
     worldLevel,
@@ -71,9 +79,9 @@ export function standingAgainstWorld(
   reference: WorldReference,
   balance: Pick<WorldClockBalance, 'worldClock'>,
 ): WorldStanding {
-  const worldWholeLevel = Math.floor(reference.worldLevel);
-  if (level > worldWholeLevel) return WORLD_STANDING.ahead;
-  if (level < worldWholeLevel) return WORLD_STANDING.behind;
+  const worldLevelReached = worldWholeLevel(reference);
+  if (level > worldLevelReached) return WORLD_STANDING.ahead;
+  if (level < worldLevelReached) return WORLD_STANDING.behind;
   const band = balance.worldClock.WORLD_STANDING_MASS_TOLERANCE * reference.worldMass;
   if (mass > reference.worldMass + band) return WORLD_STANDING.ahead;
   if (mass < reference.worldMass - band) return WORLD_STANDING.behind;

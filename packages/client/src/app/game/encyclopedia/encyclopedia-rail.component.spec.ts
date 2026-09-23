@@ -1,7 +1,7 @@
-// The rail against a stubbed state (docs/testing/tiers-and-builders.md §2.1). The stub is here for one reason: the
-// shipped registry lists a single category until #361 and #362 land, and a rail with one row cannot show that
-// activating pushes while roving replaces — the move that tells them apart would be a move to the row already
-// selected, which §11.5 says changes nothing at all. The counts stay the real registry's.
+// The rail against a stubbed state (docs/testing/tiers-and-builders.md §2.1). The stub fixes which categories are
+// listed, so the spec does not move as content lands: activating pushes while roving replaces, and the move that
+// tells them apart needs a row other than the one selected, since §11.5 says a move to the selected row changes
+// nothing at all. The counts stay the real registry's.
 
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { signal } from '@angular/core';

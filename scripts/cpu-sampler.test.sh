@@ -5,7 +5,8 @@
 # cgroup's count caps the reaped share, and a reused pid starts over; a vitest
 # worker in a worktree is "client tests" of that worktree, an esbuild under ng serve is "ng serve", a
 # command claude ran is "other" and claude itself "claude"; the report ranks kinds with shares of the
-# attributed total and prints the machine rows; the wrapper's start / status / stop drive a real sampler
+# attributed total, prints the machine rows and flags a headless Chromium session busy for 5 minutes; the
+# wrapper's start / status / stop drive a real sampler
 # that writes rows, and stop leaves nothing running.
 #
 #   scripts/cpu-sampler.test.sh        # exit 0 when every case passes
@@ -112,6 +113,16 @@ echo "$report"
 check "the report ranks client tests first with 60 of 70 core-seconds (85.7%)" "$(holds grep -Eq '^ +60 +3\.00 +85\.7%  client tests' <<<"$report")"
 check "the report leaves out samples older than the window" "$(holds bash -c '! grep -q typecheck' <<<"$report")"
 check "the report prints the machine rows" "$(holds grep -Eq '^  host-busy +45 core-s' <<<"$report")"
+# a Chromium session: 35 busy samples 10 s apart in feat/b is flagged (340 s); 3 in feat/c are not
+browser_fixture="$sandbox/browser.csv"
+{
+  echo "epoch,iso_time,interval_seconds,worktree,kind,core_seconds,processes,top_command"
+  for sample in $(seq 0 34); do echo "$((now - 600 + sample * 10)),t,10.00,feat/b,playwright/chromium,8.0,6,chrome"; done
+  for sample in 0 1 2; do echo "$((now - 600 + sample * 10)),t,10.00,feat/c,playwright/chromium,9.0,6,chrome"; done
+} >"$browser_fixture"
+browser_report="$(CPU_SAMPLER_LOG="$browser_fixture" "$repo_root/scripts/cpu-report.sh" 1)"
+check "a 5-minute busy Chromium session is flagged with its length and cost" "$(holds grep -Eq '^  [0-9]{2}:[0-9]{2}Z +5\.7 min +280 core-s  feat/b$' <<<"$browser_report")"
+check "a short Chromium burst is not" "$(holds bash -c '! grep -q "feat/c$"' <<<"$(sed -n '/^Headless Chromium busy/,$p' <<<"$browser_report")")"
 check "an empty window says so and fails" "$(holds bash -c "! CPU_SAMPLER_LOG='$sandbox/none.csv' '$repo_root/scripts/cpu-report.sh' 1 >/dev/null")"
 
 # --- the wrapper: start, status, stop ------------------------------------------------------------
