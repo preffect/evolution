@@ -49,7 +49,7 @@ export interface WildDecisionContext {
   readonly world: WorldState;
   readonly perception: WildPerception;
   readonly step: StepContext;
-  /** `worldStage ≥ WILD_CELL_HUNTS_FROM_STAGE` for this tick. */
+  /** `worldStage ≥ WILD_CELL_HUNTS_PLAYERS_FROM_STAGE` for this tick. */
   readonly isHuntingStage: boolean;
 }
 
@@ -111,7 +111,7 @@ export function decideWildTargets(world: WorldState, step: StepContext): void {
     world,
     perception: createWildPerception(step.balance),
     step,
-    isHuntingStage: hasReachedStage(reference.worldStage, step.balance.wildCells.WILD_CELL_HUNTS_FROM_STAGE),
+    isHuntingStage: hasReachedStage(reference.worldStage, step.balance.wildCells.WILD_CELL_HUNTS_PLAYERS_FROM_STAGE),
   };
   for (const seat of world.wildSeats) {
     const cell = cellOfSeat(world, seat);

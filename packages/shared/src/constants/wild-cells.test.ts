@@ -13,7 +13,7 @@ import { stageIndex, stageOf } from '../simulation/stage-of.js';
 import {
   WILD_CELL_BUILDS,
   WILD_CELL_COUNT,
-  WILD_CELL_HUNTS_FROM_STAGE,
+  WILD_CELL_HUNTS_PLAYERS_FROM_STAGE,
   WILD_CELL_MAX_WORLD_MASS_MULTIPLE,
   WILD_CELL_RECOVERY_SECONDS,
   WILD_CELL_SIZE_FACTOR_MAX,
@@ -78,7 +78,7 @@ describe('wild cell knobs', () => {
   });
 
   it('starts hunting at a stage of the ladder and turns with a proper probability', () => {
-    expect(STAGE_ORDER).toContain(WILD_CELL_HUNTS_FROM_STAGE);
+    expect(STAGE_ORDER).toContain(WILD_CELL_HUNTS_PLAYERS_FROM_STAGE);
     expect(WILD_CELL_TURN_CHANCE).toBeGreaterThan(0);
     expect(WILD_CELL_TURN_CHANCE).toBeLessThan(1);
   });

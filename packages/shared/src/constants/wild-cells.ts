@@ -47,8 +47,6 @@ export const WILD_CELL_DECISION_INTERVAL_SECONDS = 0.5;
 export const WILD_CELL_FLEE_RANGE_RADII = 8;
 /** Hunt a player this cell can engulf within this many own radii. */
 export const WILD_CELL_HUNT_RANGE_RADII = 10;
-/** Wild cells hunt from this world stage on; before it they only wander and flee. */
-export const WILD_CELL_HUNTS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;
 /** Per wander decision: the chance of drawing a new heading instead of keeping the old one. */
 export const WILD_CELL_TURN_CHANCE = 0.25;
 
