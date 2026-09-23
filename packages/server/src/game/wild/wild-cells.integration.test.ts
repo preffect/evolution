@@ -126,7 +126,7 @@ describe('the wild seats through the step', () => {
     }
   });
 
-  it('holds the settle invariants on a seeded run: full size under its ceiling, mass between the floor and the full size', () => {
+  it('holds the settle invariants on a seeded run: growth ≥ 0, full size within its bounds, mass at most the full size', () => {
     const world = seeded();
     for (let tick = 0; tick < INVARIANT_TICKS; tick += 1) {
       const effectsBefore = world.effects.length;
@@ -137,6 +137,8 @@ describe('the wild seats through the step', () => {
         const cell = wildCellsOf(world).find((candidate) => candidate.id === seat.cellId);
         if (cell === undefined) continue;
         const baseMass = worldMass * seat.sizeFactor;
+        expect(seat.grownMass).toBeGreaterThanOrEqual(0);
+        expect(seat.fullMass).toBeGreaterThanOrEqual(baseMass - INVARIANT_EPSILON);
         expect(seat.fullMass).toBeLessThanOrEqual(Math.max(baseMass, CEILING_MULTIPLE * worldMass) + INVARIANT_EPSILON);
         expect(cell.mass).toBeGreaterThanOrEqual(Math.min(growth.CELL_STARTING_MASS, baseMass) - INVARIANT_EPSILON);
         if (!fedThisTick.has(cell.id)) {

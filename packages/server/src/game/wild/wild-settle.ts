@@ -3,9 +3,10 @@
 // base size, `worldMass × sizeFactor`, which grows with the world and never decays, and the growth, everything it ate
 // on top, which only the player's own decay removes. What steps 3–6 did to the cell since the last settle is its
 // offset from last tick's full size: a net gain becomes permanent growth, a loss (a drain, a toxin) recovers with the
-// `WILD_CELL_RECOVERY_SECONDS` time constant. A sprint's cost is spent, not a wound: step 1 takes it off the growth
-// before the next settle (`wild-strategy.ts`), so the growth may be below zero until a meal pays it back. The ladder is the world's: level, the seat's build up
-// to that level, stage and modifiers are set from the world reference (`wild-build.ts`).
+// `WILD_CELL_RECOVERY_SECONDS` time constant. A sprint's cost is spent from the growth first: step 1 takes that part
+// off the growth before the next settle (`wild-strategy.ts`), and only the rest reaches the settle, as a wound. The
+// ladder is the world's: level, the seat's build up to that level, stage and modifiers are set from the world
+// reference (`wild-build.ts`).
 
 import { TICK_INTERVAL_S, worldWholeLevel, type BalanceConfig, type WorldReference } from '@evolution/shared';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
@@ -49,20 +50,12 @@ function fullMassOf(baseMass: number, grownMass: number, worldMass: number, bala
   return Math.min(baseMass + grownMass, Math.max(baseMass, growthCeiling));
 }
 
-/**
- * The player's decay taken from the growth alone, never below zero. A growth already below zero is a sprint's spent
- * mass (`startWildSprint`): decay has nothing to take from it, and only a meal pays it back.
- */
-function decayedGrowth(grownMass: number, decayPerSecond: number): number {
-  return grownMass > 0 ? Math.max(0, grownMass - decayPerSecond * TICK_INTERVAL_S) : grownMass;
-}
-
 /** The settle's pure core (docs/ecology/wild-cells.md §3.3.1). */
 export function settleWildMass(input: WildSettleInput, balance: BalanceConfig): WildSettleResult {
   const offset = input.mass - input.fullMass;
   const grownWithMeal = input.grownMass + Math.max(0, offset);
   const wound = Math.min(0, offset) * wildRecoveryFactorPerTick(balance);
-  const grownAfterDecay = decayedGrowth(grownWithMeal, input.decayPerSecond);
+  const grownAfterDecay = Math.max(0, grownWithMeal - input.decayPerSecond * TICK_INTERVAL_S);
   const fullMass = fullMassOf(input.baseMass, grownAfterDecay, input.worldMass, balance);
   const floor = Math.min(balance.growth.CELL_STARTING_MASS, input.baseMass);
   return { mass: Math.max(floor, fullMass + wound), grownMass: fullMass - input.baseMass, fullMass };

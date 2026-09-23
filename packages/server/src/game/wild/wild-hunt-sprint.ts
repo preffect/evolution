@@ -1,5 +1,5 @@
-// When a wild hunter's sprint pays off (docs/ecology/wild-cells.md §3.3.3, the #594 review): its cost is spent mass
-// (the lead ruling on ticket #551), so a hunt sprint is taken only when it can land. Two tests, both on the shared
+// When a wild hunter's sprint pays off (docs/ecology/wild-cells.md §3.3.3, the #594 review): its cost is spent from
+// the cell's growth for good (the rest is a wound), so a hunt sprint is taken only when it can land. Two tests, both on the shared
 // numbers, no tunable of their own: the hunter still engulfs the prey at its mass after paying for the sprint, and the
 // sprint reaches engulf contact within its duration. The second runs the shared movement kernel for the sprint's
 // ticks exactly as step 3 would move the hunter (its speed cap at the paid mass, sprinting, its current velocity, the
@@ -62,7 +62,7 @@ export function doesHuntSprintReachPrey(
   return false;
 }
 
-/** A hunt sprint is worth its spent mass: the ratio holds after paying for it, and it reaches the prey in time. */
+/** A hunt sprint is worth its cost: the ratio holds after paying for it, and it reaches the prey in time. */
 export function isHuntSprintWorthwhile(
   hunter: CellRecord,
   prey: CellRecord,
@@ -76,7 +76,7 @@ export function isHuntSprintWorthwhile(
   );
 }
 
-/** A flee sprint is worth its spent mass: the threat covers the cell already, or its own sprint would reach it. */
+/** A flee sprint is worth its cost: the threat covers the cell already, or its own sprint would reach it. */
 export function isFleeSprintWorthwhile(
   self: CellRecord,
   threat: CellRecord,

@@ -70,11 +70,6 @@ describe('settleWildMass (W11)', () => {
     expect(settle([100, 40, 0, 0.16, 110, 22])).toEqual({ mass: 110, grownMass: 0, fullMass: 110 });
   });
 
-  it("keeps a sprint's spent mass: decay takes nothing from it, recovery never refunds it, a meal pays it back", () => {
-    expect(settle([90, 90, -10, 1.4, 100, 100])).toEqual({ mass: 90, grownMass: -10, fullMass: 90 });
-    expect(settle([95, 90, -10, 1.4, 100, 100])).toEqual({ mass: 95, grownMass: -5, fullMass: 95 });
-  });
-
   it('never lifts a base below 20 to 20', () => {
     expect(settle([10, 10, 0, 0, 10.0083, 20.0167]).mass).toBeCloseTo(10.0083, 4);
   });

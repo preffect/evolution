@@ -181,14 +181,14 @@ function mealsThisTick(view: EvolutionView, cellId: string): number {
 }
 
 /**
- * W3: every seated cell's `fullMass` at most max(base, 3 × world) and its mass in [min(20, base), `fullMass` + this
+ * W3: every seated cell's `fullMass` in [base, max(base, 3 × world)] and its mass in [min(20, base), `fullMass` + this
  * tick's meals] (a mote or a payout at steps 4 and 6 lands after the settle, which books it on the next tick); a vacant
- * seat (its cell eaten, the respawn counting down) has no cell to bound. The full size has no lower bound at the base:
- * a sprint's cost is spent mass, taken off it until a meal pays it back.
+ * seat (its cell eaten, the respawn counting down) has no cell to bound.
  */
 export function areSeatsWithinBounds(worldMass: number, tolerance: number): (view: EvolutionView) => boolean {
   const ceiling = wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
   const isWithin = ({ baseMass, fullMass, mass, mealsThisTick: meals }: SeatSizes): boolean =>
+    fullMass >= baseMass - tolerance &&
     fullMass <= Math.max(baseMass, ceiling) + tolerance &&
     mass >= Math.min(growth.CELL_STARTING_MASS, baseMass) - tolerance &&
     mass <= fullMass + meals + tolerance;

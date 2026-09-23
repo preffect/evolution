@@ -1,6 +1,6 @@
 // docs/ecology/wild-cells.md §3.3.3 and docs/ecology/acceptance.md §8.1 W6, W7, W13, W14: the cadence, and each
 // decision branch with a seat that takes it and one that does not (escape, flee, hunt, graze), the wander fallback,
-// the sprint rules and their spent mass, and the `wildCells` stream as the only randomness.
+// the sprint rules and how their cost is paid, and the `wildCells` stream as the only randomness.
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
@@ -216,18 +216,33 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
 });
 
 describe('decideWildTargets: sprint (W14)', () => {
-  it('sprints from a threat within WILD_CELL_SPRINT_FLEE_RADII, and books the cost as spent mass on the seat', () => {
+  it('sprints from a threat within WILD_CELL_SPRINT_FLEE_RADII, spending growth first and wounding the rest', () => {
     const { world, context, wild } = arena({ wildMass: LUNCH_MASS * 2, playerMass: THREAT_MASS, playerAtRadii: 3 });
     const seat = world.wildSeats[0]!;
+    const growthBefore = 1;
     seat.fullMass = wild.mass;
-    seat.grownMass = 0;
+    seat.grownMass = growthBefore;
     const massBefore = wild.mass;
     decideWildTargets(world, context);
     const spent = massBefore * controls.SPRINT_MASS_COST_FRACTION;
     expect(wild.sprintRemainingTicks).toBe(secondsToTicks(controls.SPRINT_DURATION_SECONDS));
     expect(wild.mass).toBeCloseTo(massBefore - spent, 9);
+    // The growth pays what it can, for good; the rest is a wound below the full size, which the settle recovers.
+    expect(seat.grownMass).toBe(0);
+    expect(seat.fullMass).toBeCloseTo(massBefore - growthBefore, 9);
+    expect(seat.fullMass - wild.mass).toBeCloseTo(spent - growthBefore, 9);
+  });
+
+  it('pays a sprint wholly from its growth when the growth covers it: no wound', () => {
+    const { world, context, wild } = arena({ wildMass: LUNCH_MASS * 2, playerMass: THREAT_MASS, playerAtRadii: 3 });
+    const seat = world.wildSeats[0]!;
+    const growthBefore = 10;
+    seat.fullMass = wild.mass;
+    seat.grownMass = growthBefore;
+    decideWildTargets(world, context);
+    const spent = LUNCH_MASS * 2 * controls.SPRINT_MASS_COST_FRACTION;
+    expect(seat.grownMass).toBeCloseTo(growthBefore - spent, 9);
     expect(seat.fullMass).toBeCloseTo(wild.mass, 9);
-    expect(seat.grownMass).toBeCloseTo(-spent, 9);
   });
 
   it('does not sprint from the same threat just past the sprint range', () => {

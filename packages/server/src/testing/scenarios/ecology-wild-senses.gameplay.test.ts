@@ -1,7 +1,7 @@
 // docs/ecology/acceptance.md §8.1, the rows of what a wild cell notices and does about it (W7's wild variant, W12,
 // W13, W14), each run twice and hash-compared: wild hunts and flees wild from tick 0, wild eats wild and keeps the
 // meal, a mote in sight is grazed and one out of sight is not, and a flee sprint is the player's own, its cost spent
-// mass (the lead ruling on ticket #551). The "no player" rows keep the one player idle at the far side of the dish,
+// from the growth first and the rest a wound (the lead's ruling on the #594 review). The "no player" rows keep the one player idle at the far side of the dish,
 // out of every wild cell's sight; placing it vacates the seeded seats (docs/testing/scenario-runner.md §8.1).
 
 import { describe, it } from 'vitest';
@@ -10,6 +10,7 @@ import { cellOf, progressOf, wildCellOf, wildSeatOf } from '../gameplay/evolutio
 import type { EvolutionView } from '../gameplay/evolution-views.js';
 import { player, targetPoint, type PlayerScript } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
+import { wildRecoveryFactorPerTick } from '../../game/wild/wild-settle.js';
 import { PROGRESS_TOLERANCE, absorption, detritusInDish } from './engulf-setups.js';
 import { placedSolo } from './shared-setups.js';
 import { PLACED_SEAT, WILD_RESPAWN_TICKS, absorbedThisTick, worldMassAtTick } from './wild-setups.js';
@@ -48,6 +49,8 @@ const W14_IDLE_THREAT_EAST_WU = 200;
 const W14_DECISION_TICK = 30;
 const W14_MASS_AFTER_SPRINT = 194.75;
 const W14_SPENT = 10.25;
+/** q = 1 − 1/360: the share of a wound still missing one tick later. */
+const recoveryPerTick = wildRecoveryFactorPerTick(DEFAULT_BALANCE);
 const W14_READ_TICK = 90;
 const W14_LAST_TICK = 209;
 const MASS_TOLERANCE = 0.01;
@@ -182,7 +185,7 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .runDeterministic();
   });
 
-  it('W14: seat 0 flees a charging A and sprints on tick 30, and the sprint is spent mass: no wound, no refund, once in 3 s', async () => {
+  it('W14: seat 0 flees a charging A and sprints on tick 30; with no growth to spend, the cost is a wound that recovers', async () => {
     const seatMass = (view: EvolutionView) => seatCell(PLACED_SEAT)(view)?.mass;
     const deficit = (view: EvolutionView) => {
       const seat = wildSeatOf(view, PLACED_SEAT);
@@ -211,21 +214,15 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .expect('mass 205.00 − 5 % = 194.75', seatMass)
       .atTick(W14_DECISION_TICK)
       .toBeCloseTo(W14_MASS_AFTER_SPRINT, MASS_TOLERANCE)
-      .expect('no wound after tick 90: the sprint cost is spent, not recovered', deficit)
+      .expect('deficit 10.25 × q^60 = 8.67 after tick 90: the cost below the base recovers like a wound', deficit)
       .atTick(W14_READ_TICK)
-      .toBeCloseTo(0, MASS_TOLERANCE)
-      .expect(
-        'grownMass −10.25 after tick 90: the spent mass, which decay does not touch',
-        (view) => wildSeatOf(view, PLACED_SEAT)?.grownMass,
-      )
+      .toBeCloseTo(W14_SPENT * recoveryPerTick ** (W14_READ_TICK - W14_DECISION_TICK), MASS_TOLERANCE)
+      .expect('grownMass 0: it had no growth to spend', (view) => wildSeatOf(view, PLACED_SEAT)?.grownMass)
       .atTick(W14_READ_TICK)
-      .toBeCloseTo(-W14_SPENT, MASS_TOLERANCE)
-      .expect(
-        'still −10.25 after tick 209: it sprinted exactly once (the cooldown runs to tick 210)',
-        (view) => wildSeatOf(view, PLACED_SEAT)?.grownMass,
-      )
+      .toBe(0)
+      .expect('deficit 10.25 × q^179 after tick 209: it sprinted exactly once (the cooldown runs to tick 210)', deficit)
       .atTick(W14_LAST_TICK)
-      .toBeCloseTo(-W14_SPENT, MASS_TOLERANCE)
+      .toBeCloseTo(W14_SPENT * recoveryPerTick ** (W14_LAST_TICK - W14_DECISION_TICK), MASS_TOLERANCE)
       .expect('A still alive and idle', (view) => cellOf(view, 0) !== undefined)
       .atTick(W14_LAST_TICK)
       .toBe(true)

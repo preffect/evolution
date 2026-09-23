@@ -42,10 +42,15 @@ const ONE_TICK = 1;
 const W3_MASS_BEFORE_LEVEL = 199.983;
 const W3_MASS_AT_LEVEL = 200;
 const W3_TOLERANCE = 0.01;
-const W3_SPAWNED_LOW = 351;
-const W3_SPAWNED_HIGH = 355;
-/** W3 on the pinned seed: 266 algae and 85 bacteria, 0.758 (the 0.70 row; the window's σ is ≈ 0.07; #551's run). */
-const W3_ALGAE_SHARE_ON_SEED = 0.758;
+/**
+ * W3: a wild cell bumps into the idle player on tick 12 697 (#551's run: wild cells eat what they touch in any era),
+ * so the window's budget is 351.17 − 1 × 182 / 60 × 1 = 348.1: "between 348 and 352".
+ */
+const W3_DEATHS_IN_WINDOW = 1;
+const W3_SPAWNED_LOW = 348;
+const W3_SPAWNED_HIGH = 352;
+/** W3 on the pinned seed: 253 algae in 348 motes, 0.727 (the 0.70 row; the window's σ is ≈ 0.07; #551's run). */
+const W3_ALGAE_SHARE_ON_SEED = 0.727;
 /**
  * W9: the idle player is never eaten in the window (#551's run): 526.75 − 0 × 182 / 60 × 1.5 → "between 526 and
  * 530"; "algae share within 0.50 ± 0.06" (0.544 on the seed).
@@ -86,7 +91,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .atTick(levelTick - ONE_TICK)
       .toBe(true)
       .expect(
-        'fullMass ≤ max(base, 3 × 199.983), mass in [min(20, base), fullMass] after tick 10 799',
+        'fullMass in [base, max(base, 3 × 199.983)], mass in [min(20, base), fullMass + meals] after tick 10 799',
         areSeatsWithinBounds(W3_MASS_BEFORE_LEVEL, W3_TOLERANCE),
       )
       .atTick(levelTick - ONE_TICK)
@@ -118,8 +123,8 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
     // The pure table: the protocell and prokaryote rows the fill and the window read.
     expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.protocell).toEqual({ algae: 0.75, bacterium: 0.25 });
     expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.prokaryote).toEqual({ algae: 0.7, bacterium: 0.3 });
-    // The seed's own draw of the 0.70 row (docs/ecology/acceptance.md §8.1 W3): no death in the window.
-    expect(counts.deaths).toBe(0);
+    // The seed's own draw of the 0.70 row (docs/ecology/acceptance.md §8.1 W3), with its one death in the window.
+    expect(counts.deaths).toBe(RUNS_PER_ROW * W3_DEATHS_IN_WINDOW);
     expect(Math.abs(algaeShareOf(counts) - W3_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
   });
 

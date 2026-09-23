@@ -30,9 +30,10 @@ size factor, drawn once when it is born; it grows with the world and never decay
 everything the cell has eaten on top of that. It is permanent and burns off only through the player's
 own mass decay, which is faster the bigger the cell is. Together they make the cell's **full size**.
 A cell lighter than its full size (bitten by a toxin or drained by a spiky prey) **recovers** toward it: it gets back 81 % of the loss in 10 s and 95 % in 18 s. When a
-wounded cell eats, the meal heals the wound first and only the rest becomes growth. A sprint is different: its
-cost is spent mass, as a player's is (the lead ruling on ticket #551), so it comes off the growth for good, and
-the growth may go below zero until a meal pays it back.
+wounded cell eats, the meal heals the wound first and only the rest becomes growth. A sprint's cost is paid from
+the growth first, spent for good as a player's is; whatever part of it the growth cannot cover takes the cell below
+its full size and recovers like any wound (the lead's ruling on the #594 review). So a fat cell pays for sprinting for real, and no cell wastes
+away below its base size.
 
 ```
 sizeFactor        = WILD_CELL_SIZE_FACTOR_MIN × (WILD_CELL_SIZE_FACTOR_MAX / WILD_CELL_SIZE_FACTOR_MIN) ^ u
@@ -50,9 +51,10 @@ on the new full size:
 
 ```
 offset          = cell.mass − seat.fullMass              (seat.fullMass = last tick's full size; everything steps 3–6 did to the
-                                                         cell since then, meals and drains alike, is in it; a sprint's
-                                                         cost was already taken off seat.fullMass and seat.grownMass
-                                                         when it started, so it is not)
+                                                         cell since then, meals, drains and the part of a sprint's
+                                                         cost its growth could not cover alike, is in it; the part the
+                                                         growth covered was taken off seat.fullMass and seat.grownMass
+                                                         when the sprint started)
 if offset > 0:    seat.grownMass += offset; offset = 0   (a net gain is kept whole: permanent growth)
 if offset < 0:    offset = offset × (1 − TICK_INTERVAL_S / WILD_CELL_RECOVERY_SECONDS)   (a loss: × (1 − 1/360))
 seat.grownMass  = max(0, seat.grownMass − decayPerSecond(cell.mass) × TICK_INTERVAL_S)
@@ -79,9 +81,9 @@ cell.mass       = max(min(CELL_STARTING_MASS, baseMass(t)), seat.fullMass + offs
   settle takes it from the growth. It applies every drain as it does to a player: toxin contact and
   aura, the swallowed dose, and spikes, whether the wild cell is free or engulfing. Photosynthesis
   counts as a gain. All of these are losses or gains to the settle. A sprint's `SPRINT_MASS_COST_FRACTION` is
-  taken as it is from a player, and the decision that starts it also takes it off `seat.fullMass` and
-  `seat.grownMass` (which may then be below zero): spent, never recovered, and decay takes nothing from a growth
-  at or below zero. Step 5's floor for a wild cell is
+  taken as it is from a player; the decision that starts it takes as much of it as `seat.grownMass` holds off
+  `seat.grownMass` and `seat.fullMass` (spent for good), and the rest is a wound the settle recovers
+  (the lead's ruling on the #594 review). Step 5's floor for a wild cell is
   `min(CELL_STARTING_MASS, its mass at the start of the step)`, so a drain never lifts a small wild cell
   to 20.
 - **Placement and respawn set** `seat.grownMass` to 0, `seat.fullMass` to the new cell's base size, and
@@ -195,8 +197,8 @@ to 20), with `SPRINT_COOLDOWN_SECONDS` 3 counted from the sprint's start. The st
 sets the command's sprint flag, and the cell's own sprint counters apply it exactly as for a player's
 input. A decision is the only moment a wild cell can start a sprint, so it reacts to an engulf within
 0.5 s, as a player would. It never sprints while it is engulfing (the prey is already in hand) or once it is
-sealed and carried (a sprint could not move it). Because a sprint's cost is spent for good, a hunt sprint is taken
-only when it can land (`wild/wild-hunt-sprint.ts`, the #594 review): the hunter must still engulf the prey at its
+sealed and carried (a sprint could not move it). Because a sprint's cost is spent from the growth for good, a hunt
+sprint is taken only when it can land (`wild/wild-hunt-sprint.ts`, the #594 review): the hunter must still engulf the prey at its
 mass after paying for the sprint (`canEngulf` at the paid mass), and the sprint must reach engulf contact within
 its duration. The second test runs the shared movement kernel for the sprint's ticks as step 3 would move the
 hunter (its sprinting speed cap at the paid mass, its current velocity, the latched target at the prey's centre and
@@ -268,8 +270,8 @@ and a rematch recreates them at protocell scale.
 With the size factor log-uniform on [0.5, 2.0], a third of newborn wild cells (0.339) are lunch for a
 player at exactly the world's mass (base size ≤ 0.8 ×), and a third are threats (≥ 1.25 ×). At 2.5 ×
 `worldMass`, every newborn is lunch; at 0.4 ×, every one is a threat. Growth moves individual cells
-up from there, never past 3 × `worldMass`, wounds move them down for a few seconds at a time, and sprints move them
-down for good until a meal pays the cost back.
+up from there, never past 3 × `worldMass`, and wounds, a sprint's cost past the growth included, move them down for
+a few seconds at a time.
 
 **Randomness.** The `wildCells` stream (label `wild_cells`) owns size factors, wander headings and turn
 rolls. It is forked from the round seed like every other stream, so a wild turn never shifts a mote,

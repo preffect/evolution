@@ -122,8 +122,8 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
 - **Wild cells (#517):** `settleWildMass` and `wildSizeFactor` against ecology W11; the wild perception's sight
   filter against a brute-force distance check on a seeded population (boundary: a centre exactly at the range is
   seen); the wild floor (a 10-mass wild cell that sprints or is drained stays at 10, a player cell floors at 20);
-  one seeded long-run invariant test: after every settle, `fullMass ≤ max(baseMass, 3 × worldMass)` and
-  `cell.mass ≤ fullMass` (`grownMass` goes below 0 only by a sprint's spent mass, ticket #551), and the state hash covers `sizeFactor`, `grownMass` and `fullMass` (a
+  one seeded long-run invariant test: after every settle, `grownMass ≥ 0`, `fullMass` in `[baseMass, max(baseMass,
+3 × worldMass)]` and `cell.mass ≤ fullMass` (plus the tick's own meals), and the state hash covers `sizeFactor`, `grownMass` and `fullMass` (a
   one-field change moves it).
 - **Integration:** input → step → snapshot through a real `GameRoom` under a `ManualClock`; late
   join gets a full `game_state` then deltas; reconnect resync; replay reproduces the hash; the

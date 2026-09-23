@@ -10,8 +10,9 @@
 // engulfed before the seal flees its predator and sprints, the player's engulf-escape tool.
 //
 // A sprint is the player's own (`tryStartSprint`: cooldown, duration and a cost floored at `massFloorOf`), started
-// only on a decision and never while engulfing or carried. Its cost is spent mass, not a wound (the lead ruling on
-// ticket #551): it comes off the seat's full size and growth, so the settle never refunds it. The seat's
+// only on a decision and never while engulfing or carried. Its cost comes off the growth first, spent for good like a
+// player's; whatever it takes below the base size is a wound the settle recovers (the lead's ruling on the #594
+// review), so a fat cell pays for sprinting and no cell wastes away below its base. The seat's
 // `wildCells` stream is the only randomness (the wander's turn roll and headings); the other rules draw nothing.
 //
 // Cadence: seat n decides on ticks ≡ n (mod the interval in ticks). `decideInTicks` is set at placement to the
@@ -160,7 +161,8 @@ export function decideWildCommand(seat: WildSeatRecord, cell: CellRecord, decisi
 
 /**
  * Starts the player's sprint unless the cell is engulfing or carried (a sprint could do nothing there), and books its
- * cost as spent mass: off the full size and the growth, which may go below zero, so the settle reads no wound.
+ * cost: the part the growth covers comes off the growth and the full size for good; the rest leaves the cell below
+ * its full size, a wound the next settles recover.
  */
 export function startWildSprint(seat: WildSeatRecord, cell: CellRecord, balance: BalanceConfig): boolean {
   if (isEngulfing(cell) || isCarried(cell)) {
@@ -170,9 +172,9 @@ export function startWildSprint(seat: WildSeatRecord, cell: CellRecord, balance:
   if (!tryStartSprint(cell, balance)) {
     return false;
   }
-  const spent = massBefore - cell.mass;
-  seat.fullMass -= spent;
-  seat.grownMass -= spent;
+  const spentFromGrowth = Math.min(massBefore - cell.mass, Math.max(0, seat.grownMass));
+  seat.fullMass -= spentFromGrowth;
+  seat.grownMass -= spentFromGrowth;
   return true;
 }
 
