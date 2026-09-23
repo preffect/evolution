@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, FOOD_KIND, StateHashError, createTestGameInput } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
+import { createWildSeatRecord } from '../wild/wild-seats.js';
 import { recordMetabolism, recordSprintSpent, sealSprintWindow } from './mass-flow-ledger.js';
 import type { WorldState } from './world-state.js';
 import {
@@ -14,6 +15,7 @@ import {
   GEL_PATCH_HASHED_FIELDS,
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
+  WILD_SEAT_HASHED_FIELDS,
   WORLD_SCALAR_HASHED_FIELDS,
   computeStateHash,
 } from './state-hash.js';
@@ -135,6 +137,10 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
     expect(keysOf(DNA_FRAGMENT_HASHED_FIELDS)).toEqual(Object.keys(world.dnaFragments[0]!).sort());
     expect(keysOf(GEL_PATCH_HASHED_FIELDS)).toEqual(Object.keys(world.gelPatches[0]!).sort());
     expect(keysOf(SPAWNER_HASHED_FIELDS)).toEqual(Object.keys(world.spawners.food).sort());
+  });
+
+  it('wild seats: every field, the die-off flag included, so a seat field added later is hashed or fails here', () => {
+    expect(keysOf(WILD_SEAT_HASHED_FIELDS)).toEqual(Object.keys(createWildSeatRecord(0)).sort());
   });
 });
 
