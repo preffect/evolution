@@ -55,11 +55,11 @@ export const HUD_ENTRY_CONTENT: Readonly<Record<HudTopicId, WrittenEntryContent>
   [HUD_TOPIC.ladderOrbit]: {
     title: 'Ladder orbit',
     summary:
-      'The arc outside your cell shows your next step up the ladder of {stageCount} stages: a dashed outline of the organelle that takes you there. From the [[stage:prokaryote]] stage on, it also shows a row of {pipsPerRow} pips for each bacterium that unlocks an organelle, [[bacterium:aerobic]] and [[bacterium:photosynthetic]]. A pip lights for each one you eat; fill a row and its outline rings gold until you pick that trait.',
+      'The arc outside your cell shows your next step up the ladder of {stageCount} stages: a dashed outline of the organelle that takes you there. From the [[stage:prokaryote]] stage on, it also shows a counter for each bacterium that unlocks an organelle, [[bacterium:aerobic]] and [[bacterium:photosynthetic]]: {bacteriaToUnlock} pips, laid out in short rows. A pip lights for each one you eat; once every pip is lit, the outline rings gold until you pick that trait.',
     facts: [
       {
-        key: 'pipsPerRow',
-        label: 'Pips per row',
+        key: 'bacteriaToUnlock',
+        label: 'Pips to fill',
         unit: QUANTITY_UNIT.count,
         presentation: QUANTITY_PRESENTATION.plain,
         source: {
@@ -99,7 +99,7 @@ export const HUD_ENTRY_CONTENT: Readonly<Record<HudTopicId, WrittenEntryContent>
       'A red ring around another cell means it can engulf you: it weighs at least {engulfRatio} your mass. The nearest one on screen is named beside its ring. Swim away, or grow until the ring is gone.',
     facts: [
       balanceFact(
-        { key: 'engulfRatio', label: 'Mass that makes a threat', unit: QUANTITY_UNIT.multiplier },
+        { key: 'engulfRatio', label: 'Threat at', unit: QUANTITY_UNIT.multiplier },
         balancePath('absorption', 'ENGULF_MASS_RATIO'),
       ),
     ],
@@ -113,7 +113,7 @@ export const HUD_ENTRY_CONTENT: Readonly<Record<HudTopicId, WrittenEntryContent>
       'Top right: the leading players by [[concept:score|score]], each with a swatch that matches their cell, their level and their score. Your own row is always shown. Hold Tab for the full list, which adds mass and cells engulfed. Every player cell you engulf adds {engulfBonus}.',
     facts: [
       balanceFact(
-        { key: 'engulfBonus', label: 'Score per player engulfed', unit: QUANTITY_UNIT.points },
+        { key: 'engulfBonus', label: 'Per engulf', unit: QUANTITY_UNIT.points },
         balancePath('session', 'SCORE_ABSORPTION_BONUS'),
       ),
     ],

@@ -7,7 +7,6 @@ import * as shape from '../svg-glyph';
 import {
   DANGER,
   DNA,
-  LEVEL_GOLD,
   LEVEL_RING_TRACK,
   LIGHT_ACCENT,
   MITO_BASE,
@@ -71,7 +70,7 @@ const DNA_RING: shape.SubjectGlyph = {
   ],
 };
 
-/** The level numeral: a bold figure at the ring's centre, in the level's own gold. */
+/** The level numeral: a bold `WHITE` figure on its dark outline at the ring's centre, as the HUD draws it at rest. */
 const NUMERAL = shape.path('M42 41 C43 34 57 34 57 42 C57 48 44 52 42 60 L58 60');
 const LEVEL_NUMERAL: shape.SubjectGlyph = {
   entryId: 'hud:level_numeral',
@@ -81,7 +80,7 @@ const LEVEL_NUMERAL: shape.SubjectGlyph = {
     kit.paint(shape.GLYPH_ROLE.detail, kit.centreCircle(OWN.dnaRingRadius + SUBJECT_STROKE.heavy), {
       stroke: kit.stroke(LEVEL_RING_TRACK, SUBJECT_STROKE.fine, SUBJECT_ALPHA.scatter),
     }),
-    ...strokedMarkLayers(NUMERAL, LEVEL_GOLD, SUBJECT_STROKE.mark, kit.BEAT),
+    ...strokedMarkLayers(NUMERAL, WHITE, SUBJECT_STROKE.mark, kit.BEAT),
   ],
 };
 

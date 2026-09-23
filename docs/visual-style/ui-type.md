@@ -231,7 +231,7 @@ on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.
 | `concept:world_standing`   | a cell held above the world's own datum line, a ghost sitting on it                            | breathe             |
 | `concept:food`             | the three food kinds together: the overview, not one kind's page                               | breathe             |
 | `hud:dna_ring`             | the own cell with a `DNA` arc filling its dark `LEVEL_RING_TRACK` clockwise from the top       | breathe             |
-| `hud:level_numeral`        | a bold `LEVEL_GOLD` figure at the centre of the own cell                                       | breathe, beat       |
+| `hud:level_numeral`        | a bold `WHITE` figure on its dark outline at the centre of the own cell                        | breathe, beat       |
 | `hud:ladder_orbit`         | a backing arc over the own cell: the dashed ghost of the next rung and a row of lit pips       | breathe, beat       |
 | `hud:self_ring`            | the own cell inside its dashed `WHITE` ring, recharged most of the way round                   | breathe             |
 | `hud:threat_ring`          | a bigger steel cell in a `DANGER` ring, the own cell small beside it                           | breathe, beat       |
