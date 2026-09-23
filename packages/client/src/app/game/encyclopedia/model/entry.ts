@@ -21,6 +21,9 @@ export interface EntryDefinition {
   readonly preview: PreviewSpec | null;
 }
 
+/** An entry its content file writes whole: everything but the id, which the builder makes from the subject and code id. */
+export type WrittenEntryContent = Omit<EntryDefinition, 'id'>;
+
 /** A trait's `tier_<n>` section: its heading and facts are generated from the live tier table (§12.3). */
 export interface TierSectionSource {
   readonly traitId: TraitId;

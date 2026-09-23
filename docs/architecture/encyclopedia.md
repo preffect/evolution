@@ -270,6 +270,9 @@ export const FACT_FORMULA = {
   maxSpeedAtMass: 'max_speed_at_mass', // maxSpeedForMass(...)
   levelUpCostAt: 'level_up_cost_at', // levelUpCost(levelOf(argument), balance.progression)
   engulfPhaseSpan: 'engulf_phase_span', // engulfPhaseSpanSeconds(argument.phase, balance.absorption)
+  gelSpeedFactorAt: 'gel_speed_factor_at', // gelSpeedFactor(massOf(argument), balance.growth, the default gelSpeedFactorFloor)
+  worldLevelAt: 'world_level_at', // worldReference(secondsOf(argument), balance).worldLevel
+  worldMassAt: 'world_mass_at', // worldReference(secondsOf(argument), balance).worldMass
   // … one row per shared function a page needs; a new row is reviewed here, never in content
 } as const;
 export type FactFormulaId = ValueOf<typeof FACT_FORMULA>;
@@ -280,6 +283,9 @@ export interface FactFormulaArguments {
   max_speed_at_mass: { readonly mass: BalanceMassSelector };
   level_up_cost_at: { readonly level: LevelSelector }; // 'first' | 'last' (MAX_LEVEL from the balance)
   engulf_phase_span: { readonly phase: EngulfPhase };
+  gel_speed_factor_at: { readonly mass: BalanceMassSelector };
+  world_level_at: { readonly moment: RoundMoment }; // 'default_round_end' → balance.session.ROUND_DURATION_SECONDS
+  world_mass_at: { readonly moment: RoundMoment };
 }
 export type FactFormulaCall = {
   [Id in FactFormulaId]: { readonly id: Id; readonly argument: FactFormulaArguments[Id] };
@@ -348,6 +354,9 @@ balance.traits.DEFAULT_CELL_MODIFIERS)`), keyed by the modifier key, labelled `M
     foodZones: 'food_zones', // zones with a non-zero weight in balance.ecology.FOOD_ZONE_WEIGHTS_BY_KIND
     abilityTraits: 'ability_traits', // traits whose tiers set one of the ability's modifier keys
     tagTraits: 'tag_traits', // traits whose catalog row carries the tag
+    variantUnlocks: 'variant_unlocks', // the endosymbionts whose unlockedBy names a bacterium variant
+    zoneFragmentTags: 'zone_fragment_tags', // tags with a non-zero weight in DNA_FRAGMENT_TAG_TABLE_BY_ZONE[zone]
+    fragmentTagZones: 'fragment_tag_zones', // zones whose fragment tag row gives the tag a non-zero weight
   } as const;
   export interface DerivedLinkArguments {
     [DERIVED_LINK.traitStage]: { readonly traitId: TraitId };
@@ -900,6 +909,7 @@ packages/client/src/app/game/
   encyclopedia/facts/{balance-path,formula-table,catalog-quantities,resolve-fact,resolve-prose,derived-links}.ts   typed paths, the closed formula and catalog tables, value + unit → text, template → segments, computed links
   encyclopedia/content/{trait,stage,dna-tag}-entries.ts            evolutions (trait tier sections and headings generated from balance.traits.TRAIT_TIERS)
   encyclopedia/content/{concept,hud}-entries.ts                   basics (and `concept:food`, in entities)
+  encyclopedia/content/fact-builders.ts                            the balance, formula and link fact shapes the written entries repeat
   test-ids/hud-test-ids.ts                                          HUD_TEST_ID, moved out of hud/ (hud/, input/ and encyclopedia/ import it)
   encyclopedia/content/{cell-kind,food,bacterium,entity}-entries.ts   entities
   encyclopedia/content/{zone,world}-entries.ts                     world
