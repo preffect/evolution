@@ -206,7 +206,8 @@ export function createActiveRoomFixture(options: TestLobbyOptions = {}) {
   fixture.handlers.onCreateGame(alice, {
     type: CLIENT_MESSAGE_TYPE.createGame,
     gameName: 'A',
-    config: createTestSessionConfig({ maxPlayers: 2 }),
+    // Room for the humans the tool tests seat past alice (#365: a started room refuses a join at maxPlayers).
+    config: createTestSessionConfig({ maxPlayers: 4 }),
   });
   const gameId = fixture.lobby.listGames()[0]!.gameId;
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });
