@@ -33,7 +33,7 @@ import { ZONE_CUE } from '../render/constants';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
 import { HintComponent } from './hint.component';
 import { COACH_SHRINK_HOLD_SECONDS, STEER_HINT_DISTANCE_WU } from './hud-constants';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const OWN_CELL_ID = entityId('cell-me');
