@@ -21,7 +21,16 @@ import {
 import { DNA_STRAND, DNA_STRAND_LIGHT } from './colours';
 import { SUBJECT_ALPHA, SUBJECT_RAMP, SUBJECT_STROKE } from './subject-glyph-palette';
 import { arrowHeadPath, arrowShaftPath, rodPath, rungsPath, strandPath, type ArrowSpec } from './subject-glyph-shapes';
-import { glintLayer, haloLayer, outlineLayer, poolLayer, shadedBody, paint, stroke } from './trait-glyph-layers';
+import {
+  glintLayer,
+  haloLayer,
+  outlineLayer,
+  poolLayer,
+  shadedBody,
+  paint,
+  stroke,
+  type BodySpec,
+} from './trait-glyph-layers';
 
 /** The glint on a small body: an ellipse this share of the body's radius, up and left of its centre. */
 const GLINT = { radiusShareX: 0.42, radiusShareY: 0.22, offsetShare: 0.44, offsetTurns: -0.375 } as const;
@@ -98,27 +107,32 @@ export interface RoundBodySpec {
 export function roundBodyLayers(spec: RoundBodySpec, haloShare: number = HALO_REACH.body): readonly GlyphLayer[] {
   return [
     haloLayer(circle(spec.cx, spec.cy, spec.radius * haloShare), spec.ramp.base, SUBJECT_ALPHA.halo),
-    ...shadedBody(
-      {
-        shape: circle(spec.cx, spec.cy, spec.radius),
-        ramp: spec.ramp,
-        rim: spec.rim,
-        ...(spec.opacity === undefined ? {} : { opacity: spec.opacity }),
-        ...(spec.motion === undefined ? {} : { motion: spec.motion }),
-      },
-      spec.role,
+    ...materialBody(
+      { ...spec, shape: circle(spec.cx, spec.cy, spec.radius) },
+      circle(spec.cx, spec.cy, spec.radius * MATERIAL_LINE_SHARE),
     ),
-    membraneLine(circle(spec.cx, spec.cy, spec.radius * MATERIAL_LINE_SHARE), spec.ramp, spec.motion),
     bodyGlint(spec.cx, spec.cy, spec.radius, spec.motion),
   ];
 }
 
-/** A body's inner membrane line, faint in its ramp's light: the material detail of a round body or a rod. */
-function membraneLine(drawing: GlyphShape, ramp: GlyphRamp, bodyMotion?: GlyphMotion): GlyphLayer {
-  return paint(GLYPH_ROLE.detail, drawing, {
-    stroke: stroke(ramp.light, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
-    ...(bodyMotion === undefined ? {} : { motion: bodyMotion }),
-  });
+/** What `materialBody` shades: the kit's body, and the role it counts as. */
+interface MaterialBodySpec extends BodySpec {
+  readonly role?: GlyphRole;
+}
+
+/**
+ * A shaded body (pool, outline, ramped fill) and its inner membrane line, faint in its ramp's light: the material
+ * detail of a round body or a rod, drawn as a `detail` layer so the list LOD drops it.
+ */
+function materialBody(spec: MaterialBodySpec, membrane: GlyphShape): readonly GlyphLayer[] {
+  const withMotion = spec.motion === undefined ? {} : { motion: spec.motion };
+  return [
+    ...shadedBody(spec, spec.role),
+    paint(GLYPH_ROLE.detail, membrane, {
+      stroke: stroke(spec.ramp.light, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
+      ...withMotion,
+    }),
+  ];
 }
 
 export interface RodBodySpec {
@@ -140,16 +154,7 @@ export function rodLayers(spec: RodBodySpec): readonly GlyphLayer[] {
   const [sheenX, sheenY] = polar([spec.cx, spec.cy], sheenOffset, spec.turns + ABOVE_AXIS_TURNS);
   return [
     haloLayer(circle(spec.cx, spec.cy, spec.halfLength + spec.radius), spec.ramp.base, SUBJECT_ALPHA.halo),
-    ...shadedBody(
-      {
-        shape,
-        ramp: spec.ramp,
-        rim: spec.rim,
-        ...(spec.motion === undefined ? {} : { motion: spec.motion }),
-      },
-      spec.role,
-    ),
-    membraneLine(path(rodPath({ ...spec, radius: spec.radius * MATERIAL_LINE_SHARE })), spec.ramp, spec.motion),
+    ...materialBody({ ...spec, shape }, path(rodPath({ ...spec, radius: spec.radius * MATERIAL_LINE_SHARE }))),
     glintLayer(ellipse(sheenX, sheenY, spec.halfLength * GLINT.radiusShareX, spec.radius * GLINT.radiusShareY)),
   ];
 }

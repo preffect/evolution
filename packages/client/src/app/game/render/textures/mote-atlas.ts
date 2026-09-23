@@ -99,13 +99,13 @@ function bakeDetritus(factory: BakeCanvasFactory, pxPerWu: number): BakeCanvas {
   const { canvas, centre } = createBodyCanvas(factory, radiusX, DETRITUS_GLOW.wide);
   const { context } = canvas;
   const disc = { x: centre, y: centre, radius: radiusX };
-  const paint = MOTE_PAINT.detritus;
-  paintGlow(context, disc, paint.body, DETRITUS_GLOW);
+  const { body, centre: core, rim, glint } = MOTE_PAINT.detritus;
+  paintGlow(context, disc, body, DETRITUS_GLOW);
   const ellipse = { x: centre, y: centre, radiusX, radiusY, rotation: 0 };
-  fillEllipse(context, ellipse, { colour: paint.body, alpha: 1 });
-  fillDisc(context, { ...disc, radius: radiusX * MOTE_BAKE.lipidCentreShare }, { colour: paint.centre, alpha: 1 });
-  strokeEllipse(context, ellipse, { colour: paint.rim, alpha: 1, width: radiusX * MOTE_BAKE.rimWidthShare });
-  paintGlint(context, disc, { colour: paint.glint, alpha: MOTE_BAKE.glintAlpha });
+  fillEllipse(context, ellipse, { colour: body, alpha: 1 });
+  fillDisc(context, { ...disc, radius: radiusX * MOTE_BAKE.lipidCentreShare }, { colour: core, alpha: 1 });
+  strokeEllipse(context, ellipse, { colour: rim, alpha: 1, width: radiusX * MOTE_BAKE.rimWidthShare });
+  paintGlint(context, disc, { colour: glint, alpha: MOTE_BAKE.glintAlpha });
   return canvas;
 }
 
