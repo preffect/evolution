@@ -33,6 +33,8 @@ export interface FakePixiApp extends PixiAppHandle {
   readonly lifecycle: { isDestroyed: boolean };
   /** How often `unbindTextures` ran: a session must unbind before it destroys its bundle. */
   readonly unbindCalls: { count: number };
+  /** What the staged build's warm-up asked for (ticket #603): each uploaded source, and each off-screen render. */
+  readonly warmUpCalls: { readonly uploads: unknown[]; readonly offscreenRenders: Container[] };
   /** Runs every ticker callback once: one frame. */
   tick(): void;
 }
@@ -161,6 +163,7 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const baker = createFakeTextureBaker();
   const lifecycle = { isDestroyed: false };
   const unbindCalls = { count: 0 };
+  const warmUpCalls: FakePixiApp['warmUpCalls'] = { uploads: [], offscreenRenders: [] };
   const screenBox = { ...screen };
   const ticking = { isRunning: true };
   const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
@@ -177,6 +180,11 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     bakedCanvases: baker.bakedCanvases,
     lifecycle,
     unbindCalls,
+    warmUpCalls,
+    warmUp: {
+      uploadTextureSource: (source) => warmUpCalls.uploads.push(source),
+      renderOffscreen: (container) => warmUpCalls.offscreenRenders.push(container),
+    },
     ticking,
     // A stopped Pixi ticker runs no callback at all; a `tick()` while stopped must draw nothing here either,
     // or a spec that pauses a session would still see frames and pass without the pause working.

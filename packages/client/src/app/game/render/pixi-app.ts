@@ -2,10 +2,11 @@
 // pixel ratio, the dark field as the clear colour, sized to the host. The one file that creates
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 
-import { Application, Texture } from 'pixi.js';
+import { Application, RenderTexture, Texture } from 'pixi.js';
 import { BG_DEEP } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
+import type { RendererWarmUpSeam } from './renderer-warm-up';
 import { createDomBakeCanvasFactory } from './textures/texture-bake';
 import { uiFontsLoaded } from './ui-fonts';
 
@@ -37,8 +38,13 @@ export interface PixiAppHandle {
    * after a Pixi upgrade, re-check `?preview=…&opens=20` for the warning before trusting it.
    */
   unbindTextures(): void;
+  /** Uploads a texture source and renders a container off screen: a staged renderer's warm-up (ticket #603). */
+  readonly warmUp: RendererWarmUpSeam;
   destroy(): void;
 }
+
+/** The warm-up render's target: any size compiles the same shaders and uploads the same textures. */
+const WARM_UP_TARGET_PX = 64;
 
 export const GAME_CANVAS_TEST_ID = 'game-canvas';
 
@@ -69,6 +75,14 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     },
     unbindTextures: () => {
       app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;
+    },
+    warmUp: {
+      uploadTextureSource: (source) => app.renderer.texture.initSource(source),
+      renderOffscreen: (container) => {
+        const target = RenderTexture.create({ width: WARM_UP_TARGET_PX, height: WARM_UP_TARGET_PX });
+        app.renderer.render({ container, target });
+        target.destroy(true);
+      },
     },
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });

@@ -105,4 +105,16 @@ describe('RenderSession: the staged renderer build', () => {
       6,
     );
   });
+
+  it('warms the new renderer off the stage before the reveal: uploads, one muted draw, one off-screen render (#603)', async () => {
+    const { subject, pixi } = session();
+    subject.onMessage(gameState());
+    await settle(subject, pixi);
+    expect(pixi.warmUpCalls.uploads.length).toBeGreaterThan(0);
+    expect(pixi.warmUpCalls.offscreenRenders).toHaveLength(1);
+    expect(pixi.warmUpCalls.offscreenRenders[0]).not.toBe(pixi.stage);
+    // The warm-up draw neither submitted nor sampled: no render call, no frame in the report.
+    expect(pixi.renderCalls.count).toBe(0);
+    expect(subject.instrumentation.frameCount).toBe(0);
+  });
 });
