@@ -4,7 +4,8 @@
 //
 // `openOverlay` is the chrome's (#185) and the menu's (#371); `previewTraitId` and the card pick are the picker's
 // (#188). The encyclopedia's request (`encyclopediaReturnTo`, `encyclopediaEntryId`) is set here by the menu and read
-// by the encyclopedia shell (#372). The onboarding `reticleVisible` flag (#190) joins them when that slice lands.
+// by the encyclopedia shell (#372). The onboarding `reticleVisible` flag is
+// derived, not set, so it lives on `OnboardingService` (#530).
 
 import { Injectable, computed, signal } from '@angular/core';
 import type { TraitId, ValueOf } from '@evolution/shared';
