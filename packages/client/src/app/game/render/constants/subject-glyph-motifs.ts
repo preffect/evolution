@@ -6,11 +6,8 @@
 // why no two glyph tables repeat a shading stack. Layer roles matter: `detail` is the only role the list LOD drops.
 
 import {
-  GLYPH_MOTION,
   GLYPH_ROLE,
   circle,
-  dotRingPath,
-  dotsPath,
   ellipse,
   path,
   polar,
@@ -24,18 +21,7 @@ import {
 import { DNA_STRAND, DNA_STRAND_LIGHT } from './colours';
 import { SUBJECT_ALPHA, SUBJECT_RAMP, SUBJECT_STROKE } from './subject-glyph-palette';
 import { arrowHeadPath, arrowShaftPath, rodPath, rungsPath, strandPath, type ArrowSpec } from './subject-glyph-shapes';
-import {
-  GLYPH_CENTRE,
-  glintLayer,
-  motion,
-  haloLayer,
-  outlineLayer,
-  poolLayer,
-  shadedBody,
-  solid,
-  paint,
-  stroke,
-} from './trait-glyph-layers';
+import { glintLayer, haloLayer, outlineLayer, poolLayer, shadedBody, paint, stroke } from './trait-glyph-layers';
 
 /** The glint on a small body: an ellipse this share of the body's radius, up and left of its centre. */
 const GLINT = { radiusShareX: 0.42, radiusShareY: 0.22, offsetShare: 0.44, offsetTurns: -0.375 } as const;
@@ -47,6 +33,12 @@ const GLINT = { radiusShareX: 0.42, radiusShareY: 0.22, offsetShare: 0.44, offse
 const HALO_REACH = { body: 1.7, helix: 2.4, head: 1.1 } as const;
 /** A quarter turn anticlockwise: where a rod's lit top sits, the light coming from the top-left. */
 const ABOVE_AXIS_TURNS = -0.25;
+/**
+ * The material detail every motif carries (ASSET-GENERATION §6): the membrane's inner line, a rod's film, a helix's
+ * back rungs, an arrow shaft's sheen. Each is a `detail` layer, so the list LOD drops it and the 20 px mark keeps only
+ * its silhouette, signature and glint; at the card LOD it is the texture that makes the body read as a material.
+ */
+const MATERIAL_LINE_SHARE = 0.72;
 
 /** A specular glint sized to the body it sits on, at the top-left where the condenser is. */
 export function bodyGlint(centreX: number, centreY: number, radius: number, motion?: GlyphMotion): GlyphLayer {
@@ -116,8 +108,17 @@ export function roundBodyLayers(spec: RoundBodySpec, haloShare: number = HALO_RE
       },
       spec.role,
     ),
+    membraneLine(circle(spec.cx, spec.cy, spec.radius * MATERIAL_LINE_SHARE), spec.ramp, spec.motion),
     bodyGlint(spec.cx, spec.cy, spec.radius, spec.motion),
   ];
+}
+
+/** A body's inner membrane line, faint in its ramp's light: the material detail of a round body or a rod. */
+function membraneLine(drawing: GlyphShape, ramp: GlyphRamp, bodyMotion?: GlyphMotion): GlyphLayer {
+  return paint(GLYPH_ROLE.detail, drawing, {
+    stroke: stroke(ramp.light, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
+    ...(bodyMotion === undefined ? {} : { motion: bodyMotion }),
+  });
 }
 
 export interface RodBodySpec {
@@ -148,6 +149,7 @@ export function rodLayers(spec: RodBodySpec): readonly GlyphLayer[] {
       },
       spec.role,
     ),
+    membraneLine(path(rodPath({ ...spec, radius: spec.radius * MATERIAL_LINE_SHARE })), spec.ramp, spec.motion),
     glintLayer(ellipse(sheenX, sheenY, spec.halfLength * GLINT.radiusShareX, spec.radius * GLINT.radiusShareY)),
   ];
 }
@@ -193,6 +195,10 @@ export function helixLayers(spec: HelixSpec): readonly GlyphLayer[] {
       stroke: stroke(DNA_STRAND, SUBJECT_STROKE.fine),
       ...withMotion,
     }),
+    paint(GLYPH_ROLE.detail, path(rungsPath({ ...spec, phaseTurns: HELIX_PHASE.back, count: spec.rungCount })), {
+      stroke: stroke(spec.rungColour, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
+      ...withMotion,
+    }),
     paint(GLYPH_ROLE.signature, rungs, { stroke: stroke(spec.rungColour, SUBJECT_STROKE.mark), ...withMotion }),
     paint(GLYPH_ROLE.body, path(strand(HELIX_PHASE.front)), {
       stroke: stroke(DNA_STRAND_LIGHT, SUBJECT_STROKE.fine),
@@ -216,6 +222,10 @@ export function arrowLayers(spec: ArrowSpec, ramp: GlyphRamp, motion?: GlyphMoti
     haloLayer(circle(spec.toX, spec.toY, spec.headLength * HALO_REACH.head), ramp.base, SUBJECT_ALPHA.halo),
     outlineLayer(shaft, SUBJECT_STROKE.mark, motion),
     paint(GLYPH_ROLE.body, shaft, { stroke: stroke(ramp.base, SUBJECT_STROKE.mark), ...withMotion }),
+    paint(GLYPH_ROLE.detail, shaft, {
+      stroke: stroke(ramp.light, SUBJECT_STROKE.hair, SUBJECT_ALPHA.scatter),
+      ...withMotion,
+    }),
     poolLayer(head, motion),
     outlineLayer(head, SUBJECT_STROKE.hair, motion),
     paint(GLYPH_ROLE.signature, head, {
@@ -235,60 +245,7 @@ export function arrowLayers(spec: ArrowSpec, ramp: GlyphRamp, motion?: GlyphMoti
   ];
 }
 
-/**
- * The depth motes that drift through the broth (`dish/depth-particles.ts`): dots of one size at listed centres, all
- * rising together on one slow loop. The dish and the open broth both show them, so neither table draws its own.
- */
-export function driftingMotesLayer(
-  centres: readonly (readonly [number, number])[],
-  dotRadius: number,
-  colour: string,
-  role: GlyphRole = GLYPH_ROLE.signature,
-): GlyphLayer {
-  return paint(role, path(dotsPath(centres, dotRadius)), {
-    fill: solid(colour, SUBJECT_ALPHA.scatter),
-    motion: motion(GLYPH_MOTION.rise, GLYPH_CENTRE, GLYPH_CENTRE),
-  });
-}
-
-export interface StudRingSpec {
-  readonly count: number;
-  readonly ringRadius: number;
-  readonly dotRadius: number;
-  readonly phaseTurns: number;
-  readonly colour: string;
-  /** An outline round each dot, for studs that have to stand off the body they sit on. */
-  readonly rimColour?: string;
-  readonly motion?: GlyphMotion;
-}
-
-/** A ring of dots about the medallion's centre: a prokaryote's ribosome studs, a nuclear envelope's pores. */
-export function studRingLayer(spec: StudRingSpec, role: GlyphRole = GLYPH_ROLE.signature): GlyphLayer {
-  return paint(
-    role,
-    path(
-      dotRingPath({
-        cx: GLYPH_CENTRE,
-        cy: GLYPH_CENTRE,
-        count: spec.count,
-        ringRadius: spec.ringRadius,
-        dotRadius: spec.dotRadius,
-        phaseTurns: spec.phaseTurns,
-      }),
-    ),
-    {
-      fill: solid(spec.colour),
-      ...(spec.rimColour === undefined ? {} : { stroke: stroke(spec.rimColour, SUBJECT_STROKE.hair) }),
-      ...(spec.motion === undefined ? {} : { motion: spec.motion }),
-    },
-  );
-}
-
-/** A faint wash behind a drawing: the zone tint a subject sits in, the field a dish topic is seen against. */
-export function washLayer(radius: number, colour: string, centreX = GLYPH_CENTRE, centreY = GLYPH_CENTRE): GlyphLayer {
-  return paint(GLYPH_ROLE.halo, circle(centreX, centreY, radius), { fill: solid(colour, SUBJECT_ALPHA.faint) });
-}
-
+export { driftingMotesLayer, studRingLayer, washLayer, type StudRingSpec } from './subject-glyph-fields';
 export {
   GLYPH_MEDALLION_REACH,
   GLYPH_PLAYER_SEAT,

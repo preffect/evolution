@@ -22,7 +22,7 @@ import { arcPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The two cells a comparison needs, and the reach of the mark that compares them. */
-const CONCEPT = { bigRadius: 20, smallRadius: 10, washRadius: 36 } as const;
+const CONCEPT = { bigRadius: 20, smallRadius: 10, rivalRadius: 7, washRadius: 36 } as const;
 
 /** A caliper under two cells: mass is size, and size is measured. */
 const CALIPER = shape.path('M24 62 L24 72 M76 62 L76 72 M24 68 L76 68 M56 52 L56 68 M32 58 L32 68');
@@ -37,6 +37,7 @@ const MASS_AND_SIZE: shape.SubjectGlyph = {
 };
 
 /** A cell inside the dashed ghost of what it was, with what it lost falling away: decay is a shrinking. */
+const DECAY_FLOOR = shape.path('M30 76 L58 76 M30 72 L30 80 M58 72 L58 80');
 const MASS_DECAY: shape.SubjectGlyph = {
   entryId: 'concept:mass_decay',
   tiltDeg: kit.GLYPH_NO_TILT,
@@ -46,6 +47,8 @@ const MASS_DECAY: shape.SubjectGlyph = {
       motion: kit.SPIN,
     }),
     ...ownCellLayers(44, 44, 18, kit.BREATHE),
+    /** The floor decay stops at, the starting mass: the measuring mark (§7.2) the shrinking is read against. */
+    ...strokedMarkLayers(DECAY_FLOOR, LIGHT_ACCENT, SUBJECT_STROKE.mark),
     kit.paint(
       shape.GLYPH_ROLE.signature,
       shape.path(
@@ -110,22 +113,36 @@ const DNA_AND_LEVELS: shape.SubjectGlyph = {
   ],
 };
 
-/** A tally rising left to right, its top bar lit: a score is a number that only goes up. */
-const TALLY = shape.path('M26 72 h13 v-18 h-13 Z M43 72 h13 v-29 h-13 Z M60 72 h13 v-40 h-13 Z');
-const TOP_BAR = shape.path('M60 32 h13 v8 h-13 Z');
+/**
+ * Two cells on their scores against the datum they are counted from: the own cell on the taller gold bar, a rival on
+ * the shorter one. A score is a comparison, so the datum is the measuring mark (§7.2) and the bars are what it measures.
+ */
+const SCORE_DATUM = shape.path('M26 70 L74 70 M26 66 L26 74 M74 66 L74 74');
+const SCORE_BARS = shape.path('M30 70 V48 H44 V70 Z M56 70 V60 H70 V70 Z');
 const SCORE: shape.SubjectGlyph = {
   entryId: 'concept:score',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     kit.haloLayer(kit.centreCircle(32), LEVEL_GOLD, SUBJECT_ALPHA.halo),
-    kit.poolLayer(TALLY),
-    kit.outlineLayer(TALLY, SUBJECT_STROKE.hair),
-    kit.paint(shape.GLYPH_ROLE.body, TALLY, {
+    kit.poolLayer(SCORE_BARS),
+    kit.outlineLayer(SCORE_BARS, SUBJECT_STROKE.hair),
+    kit.paint(shape.GLYPH_ROLE.body, SCORE_BARS, {
       fill: { kind: 'ramp', ramp: SUBJECT_RAMP.gold, opacity: 1 },
       stroke: kit.stroke(LEVEL_GOLD, SUBJECT_STROKE.hair),
     }),
-    kit.paint(shape.GLYPH_ROLE.signature, TOP_BAR, { fill: kit.solid(WHITE, SUBJECT_ALPHA.scatter), motion: kit.BEAT }),
-    bodyGlint(32, 60, 10),
+    /** The material detail: the score lines the bars are read against, faint. */
+    kit.paint(shape.GLYPH_ROLE.detail, shape.path('M28 60 L72 60 M28 48 L72 48'), {
+      stroke: kit.stroke(TEXT_LABEL, SUBJECT_STROKE.hair, SUBJECT_ALPHA.faint),
+    }),
+    ...strokedMarkLayers(SCORE_DATUM, LIGHT_ACCENT, SUBJECT_STROKE.mark),
+    ...ownCellLayers(37, 38, 9, kit.BEAT),
+    ...roundBodyLayers({
+      cx: 63,
+      cy: 52,
+      radius: CONCEPT.rivalRadius,
+      ramp: SUBJECT_RAMP.wild,
+      rim: kit.stroke(SUBJECT_RAMP.wild.light, SUBJECT_STROKE.fine),
+    }),
   ],
 };
 
@@ -149,39 +166,38 @@ const WORLD_STANDING: shape.SubjectGlyph = {
   ],
 };
 
-/** The three food kinds side by side: the overview page, not one kind's page. */
+/**
+ * The own cell beside the food it eats, a caliper under both: a mote of any kind is eaten whatever the cell's size, so
+ * the relation is the gap the caliper measures. An algae mote and a bacterium rod stand for every kind.
+ */
+const FOOD_CALIPER = shape.path('M24 70 L50 70 M24 66 L24 74 M50 66 L50 74 M62 70 L76 70 M62 66 L62 74 M76 66 L76 74');
 const FOOD: shape.SubjectGlyph = {
   entryId: 'concept:food',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     kit.haloLayer(kit.centreCircle(32), SUBJECT_RAMP.algae.base, SUBJECT_ALPHA.wash),
+    ...ownCellLayers(34, 46, CONCEPT.bigRadius - 4, kit.BREATHE),
     ...roundBodyLayers({
-      cx: 34,
-      cy: 34,
-      radius: 14,
+      cx: 70,
+      cy: 38,
+      radius: 6,
       ramp: SUBJECT_RAMP.algae,
       rim: kit.stroke(SUBJECT_RAMP.algae.light, SUBJECT_STROKE.fine),
       motion: kit.BREATHE,
-    }),
-    ...roundBodyLayers({
-      cx: 68,
-      cy: 40,
-      radius: 12,
-      ramp: SUBJECT_RAMP.lipid,
-      rim: kit.stroke(SUBJECT_RAMP.lipid.light, SUBJECT_STROKE.fine),
       role: shape.GLYPH_ROLE.signature,
     }),
     ...rodLayers({
-      cx: 50,
-      cy: 70,
-      halfLength: 13,
-      radius: 8,
+      cx: 70,
+      cy: 56,
+      halfLength: 5,
+      radius: 4,
       turns: 0.02,
       ramp: SUBJECT_RAMP.rod,
       rim: kit.stroke(SUBJECT_RAMP.rod.light, SUBJECT_STROKE.fine),
       motion: kit.BREATHE,
       role: shape.GLYPH_ROLE.signature,
     }),
+    ...strokedMarkLayers(FOOD_CALIPER, LIGHT_ACCENT, SUBJECT_STROKE.mark),
   ],
 };
 
