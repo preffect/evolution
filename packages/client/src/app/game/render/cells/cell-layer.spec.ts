@@ -9,7 +9,7 @@ import {
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { Graphics } from 'pixi.js';
 import type { CameraExtent } from '../camera';
-import { CELL_QUAD_EXTENT_RADII, HALO_KIND } from '../constants';
+import { CELL_QUAD_EXTENT_RADII, ENGULF_WARNING_RING_MIN_PX, HALO_KIND, WARNING_RING_STROKE_PX } from '../constants';
 import { cullReachRadii } from './cell-cull';
 import { summariseCellTraits } from './cell-traits';
 import { NO_DEFORMATIONS, type CellDeformation } from './cell-deformation';
@@ -98,6 +98,26 @@ describe('CellLayer', () => {
     expect(subject.update(input({ frame: createTestRenderFrame({ cells: [nearEdge] }) })).visibleCells).toBe(1);
     const past = createTestCellView({ x: EXTENT.maxX + 100, y: 0, radius: 6 });
     expect(subject.update(input({ frame: createTestRenderFrame({ cells: [past] }) })).visibleCells).toBe(0);
+    subject.destroy();
+  });
+
+  it('draws a tiny predator whose warning ring still reaches on screen, past the old 6 r cull (#529)', () => {
+    const subject = new CellLayer(textures);
+    const own = createTestCellView({ id: entityId('own'), mass: 1, radius: 1, x: 0, y: 0 });
+    const radius = 3;
+    const ringReachPx = ENGULF_WARNING_RING_MIN_PX + WARNING_RING_STROKE_PX;
+    expect(ringReachPx).toBeGreaterThan(6 * radius);
+    const predator = (id: string, x: number) => createTestCellView({ id: entityId(id), mass: 50, radius, x });
+    const ringIn = input({
+      ownCell: own,
+      frame: createTestRenderFrame({ cells: [own, predator('ring-in', EXTENT.maxX + ringReachPx - 1)] }),
+    });
+    const ringOut = input({
+      ownCell: own,
+      frame: createTestRenderFrame({ cells: [own, predator('ring-out', EXTENT.maxX + ringReachPx + 1)] }),
+    });
+    expect(subject.update(ringIn).visibleCells).toBe(2);
+    expect(subject.update(ringOut).visibleCells).toBe(1);
     subject.destroy();
   });
 
