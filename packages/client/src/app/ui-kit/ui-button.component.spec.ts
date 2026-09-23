@@ -143,7 +143,9 @@ describe('UiButtonComponent', () => {
       expect(rule(["[data-variant='primary']"], 'background-color')).toContain('var(--ui-primary-fill-alpha)');
       expect(rule(["[data-variant='primary']"], 'border-color')).toContain('var(--ui-primary-rim-alpha)');
       expect(rule(["[data-variant='primary']"], 'font-weight')).toBe('bold');
-      expect(rule(["[data-variant='secondary']"], 'border-color')).toBe('var(--ui-panel-rim)');
+      expect(rule(["[data-variant='secondary']"], 'border-color')).toBe(
+        'color-mix(in srgb, var(--ui-text-label) calc(var(--ui-secondary-rim-alpha) * 100%), transparent)',
+      );
       expect(rule(["[data-variant='danger']"], 'border-color')).toContain('var(--ui-danger-rim-alpha)');
       expect(rule(["[data-variant='quiet']"], 'color')).toBe('var(--ui-text-label)');
       expect(rule(["[data-size='compact']", "[data-variant='icon']"], 'width')).toBe(

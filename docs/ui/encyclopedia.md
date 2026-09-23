@@ -284,7 +284,7 @@ not have yet. Under it today the lens plays, as the dish behind the panel does.
 scroll together. Once the title has scrolled under the column's top edge, a **sticky title bar**
 `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX` tall shows at that edge, on `PANEL_TOP` with a 1 px panel-rim rule under it: the
 breadcrumb (`label`, muted) over the title (`card_name`), no chips. The scroll area's `UI_SCROLL_FADE_PX` fade sits
-under the rule (the mockup omits the fade; the build draws it). At 1280 × 800 an entry whose title column ends near
+under the rule (the mockup omits the fade; the build draws it). The bar overlays the top of the scroll area rather than taking room from it, so its arrival never moves the content, and it is `aria-hidden`: the real breadcrumb and title are still in the page for a screen reader. It shows once the title's bottom edge reaches the column's top edge, which the page re-reads on the scroll area's `scrolled` output and after each new entry is drawn (#467). At 1280 × 800 an entry whose title column ends near
 the lens control and whose prose is two short paragraphs fits unscrolled (Mitochondrion, with room to spare); anything
 longer scrolls.
 
@@ -351,7 +351,7 @@ pattern of `HUD_TEST_ID`; `input/input-constants.ts` imports the panel id from i
 `encyclopedia-crumb-<category>` (a breadcrumb crumb that goes somewhere; the crumb naming the page already shown is
 text and carries none),
 `encyclopedia-entry` (with `data-entry-id`), `encyclopedia-preview` (with `data-preview-state`),
-`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-facts`,
+`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-sticky-title` (present only while a scrolled entry shows the bar), `encyclopedia-facts`,
 `encyclopedia-link-<entryId>` (every link to that entry; a test takes the first), and in the lobby
 `lobby-encyclopedia`.
 

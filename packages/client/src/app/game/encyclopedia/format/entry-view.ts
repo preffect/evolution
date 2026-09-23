@@ -271,3 +271,8 @@ export function replayLabelFor(spec: PreviewSpec | null): string | null {
 function isActionScene(scene: PreviewScene): scene is PreviewActionScene {
   return Object.hasOwn(ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL, scene);
 }
+
+/** Whether a title whose bottom edge is at `titleBottomPx` has gone under a scroll column whose top is `edgeTopPx`. */
+export function isScrolledPast(titleBottomPx: number, edgeTopPx: number): boolean {
+  return titleBottomPx <= edgeTopPx;
+}
