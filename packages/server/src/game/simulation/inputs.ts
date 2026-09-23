@@ -19,7 +19,7 @@ import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { recordSprintSpent } from '../world/mass-flow-ledger.js';
-import { setCellMass } from './cell-mass.js';
+import { massFloorOf, setCellMass } from './cell-mass.js';
 
 /** The cooldown a sprint starts with: the shared `sprintCooldownTicksFor` of this cell's delta (docs/traits/model.md §2). */
 export function sprintCooldownTicks(cell: CellRecord, balance: BalanceConfig): number {
@@ -28,7 +28,8 @@ export function sprintCooldownTicks(cell: CellRecord, balance: BalanceConfig): n
 
 /**
  * Starts a sprint when the cooldown allows (docs/game-design/controls-and-scope.md §6): the duration and cooldown
- * counters are set and the mass cost paid, floored at the starting mass. False when on cooldown.
+ * counters are set and the mass cost paid, floored at the cell's `massFloorOf` (the starting mass for a player, never
+ * a lift for a small wild cell). False when on cooldown.
  */
 export function tryStartSprint(cell: CellRecord, balance: BalanceConfig): boolean {
   if (cell.sprintCooldownRemainingTicks > 0) {
@@ -36,7 +37,7 @@ export function tryStartSprint(cell: CellRecord, balance: BalanceConfig): boolea
   }
   cell.sprintRemainingTicks = sprintDurationTicks(balance);
   cell.sprintCooldownRemainingTicks = sprintCooldownTicks(cell, balance);
-  setCellMass(cell, massAfterSprint(cell.mass, balance), balance);
+  setCellMass(cell, massAfterSprint(cell.mass, balance, massFloorOf(cell, cell.mass, balance)), balance);
   return true;
 }
 

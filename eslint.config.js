@@ -350,12 +350,6 @@ export default tseslint.config(
     },
   },
   {
-    // #587's guard, waived for the one file whose W3/W9 seed-share assertions ticket #550/#551 is rewriting in its
-    // own branch (SEED_SHARE_TOLERANCE as a digit count). Delete this block when that lands.
-    files: ['packages/server/src/testing/scenarios/ecology-wild-clock.gameplay.test.ts'],
-    rules: { 'no-restricted-syntax': 'off' },
-  },
-  {
     // ---- The one PRNG, the one clock, the one ticker ---------------------------------
     files: DETERMINISM_CALL_SITES,
     rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off' },

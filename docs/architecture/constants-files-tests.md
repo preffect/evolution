@@ -96,6 +96,7 @@ packages/client/src/app/game/
   state/legibility-constants.ts                                 the §3.1.6 rows marked state
   quantities/**  encyclopedia/**                               the one formatter and the encyclopedia registry (the one home of their file plan: architecture/encyclopedia.md §12.8)
   audio/audio-hooks.ts                                          AudioHooks.connect(options): the composition root's one audio call (AUDIO.md §5)
+  audio/audio-session.ts                                        AudioSession: the live handle kept through a resync, a new one per room or player (#275)
   audio/{audio.service,sound-event-bus,cue-scheduler,ambient-mixer,audio-buses,audio-asset-cache}.ts
   audio/{audio-backend,web-audio-backend,audio-tokens}.ts       the Web Audio seam, its production impl, the injection tokens (AUDIO.md §5)
   hud/*.component.ts   hud/format/*.ts   hud/{onboarding,toast,hud-state}.service.ts
@@ -122,8 +123,8 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
 - **Wild cells (#517):** `settleWildMass` and `wildSizeFactor` against ecology W11; the wild perception's sight
   filter against a brute-force distance check on a seeded population (boundary: a centre exactly at the range is
   seen); the wild floor (a 10-mass wild cell that sprints or is drained stays at 10, a player cell floors at 20);
-  one seeded long-run invariant test: after every settle, `grownMass ≥ 0`, `fullMass ≤ max(baseMass, 3 ×
-worldMass)` and `cell.mass ≤ fullMass`, and the state hash covers `sizeFactor`, `grownMass` and `fullMass` (a
+  one seeded long-run invariant test: after every settle, `grownMass ≥ 0`, `fullMass` in `[baseMass, max(baseMass,
+3 × worldMass)]` and `cell.mass ≤ fullMass` (plus the tick's own meals), and the state hash covers `sizeFactor`, `grownMass` and `fullMass` (a
   one-field change moves it).
 - **Integration:** input → step → snapshot through a real `GameRoom` under a `ManualClock`; late
   join gets a full `game_state` then deltas; reconnect resync; replay reproduces the hash; the

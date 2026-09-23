@@ -125,6 +125,16 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
     the last delta it was sent, frozen at that tick plus the extrapolation cap until a resume. The ack that shows it
     caught up now sends the `game_state` at once (`GameRoom.recordSnapshotAck`); a running room still sends it in place
     of its next delta. Steps of any size and pause → resume leave the client current.
+  - **One resync per recovery** (#275). The `game_state` reaches a slow client behind the older deltas still queued
+    ahead of it, so for a while its acks keep reading far behind; the room used to take that as a fresh fall and arm a
+    second and a third full state. The room now remembers the tick of the resync in flight and sends that client
+    nothing, and owes it nothing, until it acknowledges that tick (`SnapshotBacklog.isAwaitingResyncAck`); the next
+    broadcast after the ack covers the gap. A **paused** room makes no next broadcast, so a `debug_step_room` taken
+    during the hold still sends its delta, queued behind the resync, and steps of any size leave the client current
+    (#300). A client that has never acknowledged is not held. Modelled at #274's measured rates (room 60.6 msg/s,
+    client 34.8/s) over 3 000 broadcasts, a running room: 100 resyncs, 88 of them on top of an unacknowledged one,
+    before; 24 and 0 after, with more deltas delivered (1 641 → 1 704). Advanced by debug steps: 106 / 94 before, 16 / 0
+    after (1 636 → 1 799 deltas). A `game_state` is about 3 times a delta (29.9 KB against a 10.3 KB median at start).
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
   is the one drain of the effects; each viewer's camera steps on the first `serialize` of a tick and its food delta
@@ -159,6 +169,11 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   reconnect does, and never runs the late join again. An active room cancels any grace timer, reattaches the socket and
   resends `game_state`; the roster, the `GameModule` and the other players are untouched (no `player_joined`, no
   `lobby_update`). A pending game held keeps the seat as it is and sends nothing, even when it is full.
+- **`join_game` for a full room** (#365, the #337 ruling, game-design/session.md §5): a room whose humans (connected plus
+  in disconnect grace; synthetic players never count) already fill `maxPlayers` refuses the join with `error`
+  `Game is full`, started or pending alike (`isRoomJoinable`). The held-seat re-entry above runs first, so a player who
+  holds a seat always gets back in; a reconnect is not a join and is never refused. `lobby_update` lists the same
+  humans for a started room, so the row's count and the refusal agree.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,

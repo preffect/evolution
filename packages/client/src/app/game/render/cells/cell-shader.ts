@@ -8,7 +8,10 @@ import { CELL_SHADER_MEMBRANE } from './cell-shader-membrane';
 import { CELL_SHADER_PATTERNS } from './cell-shader-patterns';
 import { CELL_SHADER_TELLS } from './cell-shader-tells';
 import { HALF } from '../geometry';
-import { CELL_PASS, glslFloat, instanceRead } from './cell-shader-source';
+import { CELL_PASS, glslFloat, instanceRead, instanceTexelLocals } from './cell-shader-source';
+
+/** The instance fields the vertex stage places the quad with: one texel, fetched once. */
+const VERTEX_FIELDS = ['x', 'y', 'radius', 'quadExtentRadii'] as const;
 
 /** `uPass` is a float; the pass boundary sits between the two ids. */
 const PASS_BOUNDARY = (CELL_PASS.body + CELL_PASS.membrane) * HALF;
@@ -27,6 +30,7 @@ out vec2 vLocal;
 
 void main() {
   vInstance = int(aInstanceIndex + HALF);
+  ${instanceTexelLocals(VERTEX_FIELDS)}
   vec2 centre = vec2(${instanceRead('x')}, ${instanceRead('y')});
   float extentWu = ${instanceRead('radius')} * ${instanceRead('quadExtentRadii')};
   vLocal = aPosition * extentWu;
