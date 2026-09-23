@@ -83,4 +83,13 @@ describe('TraitCardComponent', () => {
     expect(mount(FRESH_CARD).classList.contains('highlighted')).toBe(false);
     expect(mount(FRESH_CARD, true).classList.contains('highlighted')).toBe(true);
   });
+
+  /** #453: Cell Wall's armour helps and its weight costs, so its lines wear the two tones, never its signs. */
+  it('tones each effect line by what it does for the cell', () => {
+    const button = mount(FRESH_CARD);
+    const tones = [...button.querySelectorAll<HTMLElement>('.effect')].map((line) => line.dataset['effect']);
+    expect(tones).toEqual(FRESH_CARD?.effectTones);
+    expect(tones).toContain('benefit');
+    expect(tones).toContain('drawback');
+  });
 });

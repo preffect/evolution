@@ -10,7 +10,7 @@ import {
   type TraitTierModifiers,
 } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
-import { MODIFIER_LABELS, nonIdentityModifiers } from '../../quantities/modifier-labels';
+import { MODIFIER_LABELS, modifierEffect, nonIdentityModifiers } from '../../quantities/modifier-labels';
 import type { EntryLink, ResolvedFact } from '../model/entry';
 import type { EntryId } from '../model/entry-id';
 import { FACT_SOURCE, isLinkFact, type FactContext, type FactDefinition, type ValueFactSource } from '../model/fact';
@@ -62,14 +62,19 @@ function tierRowFor(balance: BalanceConfig, traitId: TraitId, tier: number): Tra
   return tierRow;
 }
 
-function modifierFact(key: keyof CellModifiers, value: number): ResolvedFact {
-  return { key, label: MODIFIER_LABELS[key].noun, text: MODIFIER_LABELS[key].formatValue(value), link: null };
+function modifierFact(key: keyof CellModifiers, value: number, identity: CellModifiers): ResolvedFact {
+  return {
+    key,
+    label: MODIFIER_LABELS[key].noun,
+    text: MODIFIER_LABELS[key].formatValue(value),
+    link: null,
+    effect: modifierEffect(key, value, identity[key]),
+  };
 }
 
 /** Tier `tier` (1-based) of `traitId`: one fact per modifier it sets away from identity, in the row's order. */
 export function resolveTierFacts(balance: BalanceConfig, traitId: TraitId, tier: number): readonly ResolvedFact[] {
   const tierRow = tierRowFor(balance, traitId, tier);
-  return nonIdentityModifiers(tierRow, balance.traits.DEFAULT_CELL_MODIFIERS).map(([key, value]) =>
-    modifierFact(key, value),
-  );
+  const identity = balance.traits.DEFAULT_CELL_MODIFIERS;
+  return nonIdentityModifiers(tierRow, identity).map(([key, value]) => modifierFact(key, value, identity));
 }

@@ -41,7 +41,7 @@ import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
         }}</span>
       </span>
       @for (line of card().effects; track $index) {
-        <span class="effect">{{ line }}</span>
+        <span class="effect" [attr.data-effect]="card().effectTones[$index]">{{ line }}</span>
       }
       <span class="rarity">{{ card().rarity }}</span>
       <span class="key-chip" aria-hidden="true">{{ card().keyLabel }}</span>

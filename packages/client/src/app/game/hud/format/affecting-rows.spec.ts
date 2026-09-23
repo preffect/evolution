@@ -9,6 +9,7 @@
 // The applied rates themselves are inputs, not expectations: the server measures them and sends them (#383), so
 // re-deriving the metabolism here would be a second copy of the server's rules in a client spec.
 
+import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
@@ -255,6 +256,9 @@ describe('affectingRowsFor at the worked example', () => {
       `Mitochondrion ${formatQuantity(FIRST_TIER, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral })}`,
     );
     expect(row?.values[0]).toBe(effect);
+    // Less mass decay reads with a minus and still helps: the value is toned a benefit, not by its sign (#453).
+    expect(effect).toMatch(/^−/);
+    expect(row?.valueEffect).toBe(MODIFIER_EFFECT.benefit);
     // Its marker is the trait's own glyph, which is what the panel draws in the slot.
     expect(row?.traitId).toBe(MITOCHONDRION);
   });

@@ -15,6 +15,7 @@ function rowsFor(count: number): MenuTraitRow[] {
     traitId: trait.id,
     name: `${trait.name} I`,
     effects: ['+5 % speed'],
+    effectTones: ['benefit'],
     entryId: traitEntryId(trait.id),
   }));
 }

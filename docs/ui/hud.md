@@ -333,15 +333,17 @@ The factor is **left out entirely unless it is a cut** (the wire's `decayTraitSh
 beside the glyph of the trait that cuts decay would credit that trait with the increase, so the tag and the row
 drop it the way overlays.md §3.7 drops a zero row.
 
-**Known inconsistency, not a decided rule (#453).** The panel's `TRAITS` row still reads
-`Mitochondrion I · −15 % mass decay`, from the trait-modifier label table (`quantities/modifier-labels.ts`) the
-trait cards and the encyclopedia share, where every effect is `<signed change> <noun>` (`+15 % speed`). Read alone
-the noun carries what the sign is about. It is not read alone here: that row is right-aligned in the **same value
-column** as `Speed · −47 %`, so scanning the column gives `−0.4/s`, `−0.2/s`, `−47 %`, `−15 % mass decay` — four
-negatives in one form, three costs and one benefit. That is this ticket's misread, one column over. #445 did not
-widen into it because the table is shared with two other surfaces and changing it changes every trait's copy on all
-three. The case is open on **#453**, and this paragraph is the record that it is open, not that it is settled: the
-boundary #445 drew is a scope boundary, never a finding that the `TRAITS` row reads correctly.
+**A modifier's tone is its effect, never its sign (#453, decided).** The panel's `TRAITS` row reads
+`Mitochondrion I · −15 % mass decay`, from the trait-modifier label table (`quantities/modifier-labels.ts`) the trait
+cards and the encyclopedia share, where every effect is `<signed change> <noun>` (`+15 % speed`). The copy stays: the
+sign is the number's true direction, and the noun says what it is the direction of. What changed is the **tone**. Each
+label-table row names the trait data's own direction (`betterWhen`: `higher` or `lower`), and `modifierEffect` calls a
+value a `benefit` or a `drawback` from it. Every surface that shows a modifier then paints the value in one of two roles:
+`--ui-gain` for a benefit, `--ui-danger` for a drawback. So `−15 % mass decay` reads green beside the red `Speed · −47 %`,
+and the column no longer asks the eye to tell a good minus from a bad one. The surfaces are the trait card's effect
+lines, the menu's `Your traits` lines, this panel's `TRAITS` value and the encyclopedia's Effects by tier cells. This is
+the consistent rule the human's #445 ruling asked for: one direction per modifier, one tone per effect, the same on all
+four surfaces.
 
 **One wording, both surfaces — measured, not assumed.** `saves 15 %` was the other candidate and it does **not**
 fit. All figures at 1024 × 640 with `--ui-scale` at the `UI_SCALE_MIN` floor of 0.8, measured in the live table;

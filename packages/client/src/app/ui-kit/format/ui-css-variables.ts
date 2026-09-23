@@ -10,6 +10,7 @@
 import {
   CALLOUT_BACKING,
   DANGER,
+  GAIN,
   DNA,
   LEVEL_GOLD,
   PANEL_BOTTOM,
@@ -80,6 +81,8 @@ function colourVariables(): StyleVariables {
     '--ui-callout-backing': CALLOUT_BACKING,
     '--ui-white': WHITE,
     '--ui-danger': DANGER,
+    /** A modifier that helps its owner (#453); `--ui-danger` is its drawback. */
+    '--ui-gain': GAIN,
     '--ui-level-gold': LEVEL_GOLD,
     '--ui-dna': DNA,
     '--ui-hover': colourAtAlpha(TEXT, kit.UI_ROW_HOVER_ALPHA),

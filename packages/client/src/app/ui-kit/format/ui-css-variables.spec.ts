@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CALLOUT_BACKING,
   DANGER,
+  GAIN,
   DNA,
   LEVEL_GOLD,
   PANEL_BOTTOM,
@@ -53,6 +54,7 @@ const EXPECTED_COLOURS: Readonly<Record<string, string>> = {
   '--ui-callout-backing': CALLOUT_BACKING,
   '--ui-white': WHITE,
   '--ui-danger': DANGER,
+  '--ui-gain': GAIN,
   '--ui-level-gold': LEVEL_GOLD,
   '--ui-dna': DNA,
   '--ui-hover': colourAtAlpha(TEXT, kit.UI_ROW_HOVER_ALPHA),

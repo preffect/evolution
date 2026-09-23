@@ -21,7 +21,8 @@ import {
 } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
-import { describeTierModifiers, type TraitModifierTables } from './trait-effects';
+import type { ModifierEffect } from '../../quantities/modifier-labels';
+import { describeTierModifierEffects, describeTierModifiers, type TraitModifierTables } from './trait-effects';
 
 const NO_TIME = 0;
 const FULL = 1;
@@ -40,6 +41,8 @@ export interface TraitCardView {
   readonly category: TraitCategory;
   readonly rarity: TraitRarity;
   readonly effects: readonly string[];
+  /** Each effect line's effect on its owner, in the same order: the line's tone (#453). */
+  readonly effectTones: readonly ModifierEffect[];
   /** The `1` `2` `3` chip under the card. */
   readonly keyLabel: string;
 }
@@ -108,6 +111,7 @@ function cardView(
     category,
     rarity: definition.rarity,
     effects: describeTierModifiers(traits, card.traitId, card.tier),
+    effectTones: describeTierModifierEffects(traits, card.traitId, card.tier),
     keyLabel: String(index + FIRST_KEY),
   };
 }

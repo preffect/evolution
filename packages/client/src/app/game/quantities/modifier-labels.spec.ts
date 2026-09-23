@@ -1,7 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type CellModifiers } from '@evolution/shared';
-import { MODIFIER_LABELS, modifierLine, modifierLines, nonIdentityModifiers } from './modifier-labels';
+import {
+  MODIFIER_EFFECT,
+  MODIFIER_LABELS,
+  modifierEffect,
+  modifierLine,
+  modifierLineEffects,
+  modifierLines,
+  nonIdentityModifiers,
+} from './modifier-labels';
 
 const IDENTITY = DEFAULT_BALANCE.traits.DEFAULT_CELL_MODIFIERS;
 const KEYS = Object.keys(MODIFIER_LABELS) as (keyof CellModifiers)[];
@@ -89,5 +97,48 @@ describe('nonIdentityModifiers', () => {
 
   it('reads an empty row as no modifiers', () => {
     expect(nonIdentityModifiers({}, IDENTITY)).toEqual([]);
+  });
+});
+
+/**
+ * A modifier's tone is the trait data's own direction, never the sign it is printed with (#453). Each case below is
+ * one way the sign can mislead: a benefit that lowers a number, a drawback that lowers one, a benefit that raises one
+ * and a drawback that raises one.
+ */
+describe('modifierEffect', () => {
+  const identity = DEFAULT_BALANCE.traits.DEFAULT_CELL_MODIFIERS;
+
+  it('calls a benefit that lowers a number a benefit: less mass decay, a shorter sprint cooldown', () => {
+    expect(modifierEffect('decayMultiplier', 0.85, identity.decayMultiplier)).toBe(MODIFIER_EFFECT.benefit);
+    expect(modifierEffect('sprintCooldownSecondsDelta', -0.5, identity.sprintCooldownSecondsDelta)).toBe(
+      MODIFIER_EFFECT.benefit,
+    );
+  });
+
+  it('calls a drawback that raises a number a drawback: more mass decay, a slower wrap', () => {
+    expect(modifierEffect('decayMultiplier', 1.1, identity.decayMultiplier)).toBe(MODIFIER_EFFECT.drawback);
+    expect(modifierEffect('wrapDurationMultiplierAsPredator', 1.2, identity.wrapDurationMultiplierAsPredator)).toBe(
+      MODIFIER_EFFECT.drawback,
+    );
+  });
+
+  it('calls a drawback that lowers a number and a benefit that raises one by their direction too', () => {
+    expect(modifierEffect('speedMultiplier', 0.95, identity.speedMultiplier)).toBe(MODIFIER_EFFECT.drawback);
+    expect(modifierEffect('absorbDurationMultiplierAsPrey', 1.2, identity.absorbDurationMultiplierAsPrey)).toBe(
+      MODIFIER_EFFECT.benefit,
+    );
+  });
+
+  it('tones the live catalog as it plays: Cell Wall’s armour helps and its weight costs, Mitochondrion’s decay helps', () => {
+    const tiers = DEFAULT_BALANCE.traits.TRAIT_TIERS;
+    const cellWall = nonIdentityModifiers(tiers.cell_wall[0] ?? {}, identity);
+    expect(modifierLines(cellWall)).toHaveLength(modifierLineEffects(cellWall, identity).length);
+    const toneOf = (key: keyof CellModifiers): string | undefined =>
+      modifierLineEffects(cellWall, identity)[cellWall.findIndex(([modifier]) => modifier === key)];
+    expect(toneOf('membraneRatioBonus')).toBe(MODIFIER_EFFECT.benefit);
+    expect(toneOf('speedMultiplier')).toBe(MODIFIER_EFFECT.drawback);
+    const mitochondrion = nonIdentityModifiers(tiers.mitochondrion[0] ?? {}, identity);
+    const decay = mitochondrion.findIndex(([key]) => key === 'decayMultiplier');
+    expect(modifierLineEffects(mitochondrion, identity)[decay]).toBe(MODIFIER_EFFECT.benefit);
   });
 });
