@@ -56,12 +56,17 @@ function palette(): ReadonlySet<string> {
 }
 const PALETTE = palette();
 
-/** ASSET-GENERATION §6: halo, shadow pool, ramped body, signature feature, outline and glint on every glyph. */
+/**
+ * ASSET-GENERATION §6's boxes, material detail included (#457). The detail is what the list LOD drops, so requiring it
+ * is what gives the list-LOD test below its teeth: without it, a glyph with no detail layer passed that test
+ * vacuously, and 42 of 55 did.
+ */
 const REQUIRED_ROLES = [
   GLYPH_ROLE.halo,
   GLYPH_ROLE.pool,
   GLYPH_ROLE.outline,
   GLYPH_ROLE.body,
+  GLYPH_ROLE.detail,
   GLYPH_ROLE.signature,
   GLYPH_ROLE.glint,
 ];
@@ -115,11 +120,16 @@ describe('SUBJECT_GLYPHS', () => {
     expect(spunLight).toEqual([]);
   });
 
-  it.each(SUBJECT_ENTRY_IDS)('%s keeps its silhouette, signature and glint at the list LOD', (entryId) => {
-    const roles = new Set(layersAtLod(glyphOf(entryId), GLYPH_LOD.list).map((layer) => layer.role));
-    expect(roles.has(GLYPH_ROLE.detail)).toBe(false);
-    expect([GLYPH_ROLE.body, GLYPH_ROLE.signature, GLYPH_ROLE.glint].every((role) => roles.has(role))).toBe(true);
-  });
+  it.each(SUBJECT_ENTRY_IDS)(
+    '%s drops its detail at the list LOD and keeps silhouette, signature and glint',
+    (entryId) => {
+      const listLayers = layersAtLod(glyphOf(entryId), GLYPH_LOD.list);
+      const roles = new Set(listLayers.map((layer) => layer.role));
+      expect(listLayers.length).toBeLessThan(glyphOf(entryId).layers.length);
+      expect(roles.has(GLYPH_ROLE.detail)).toBe(false);
+      expect([GLYPH_ROLE.body, GLYPH_ROLE.signature, GLYPH_ROLE.glint].every((role) => roles.has(role))).toBe(true);
+    },
+  );
 
   it.each(SUBJECT_ENTRY_IDS)('%s draws inside the medallion, so the list LOD crops nothing it drew', (entryId) => {
     // A halo is exempt: it fades to nothing at its edge and the view builder clips it to the disc, so it cannot show

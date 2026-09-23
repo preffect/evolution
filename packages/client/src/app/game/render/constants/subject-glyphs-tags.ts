@@ -7,7 +7,7 @@ import { DNA_TAG } from '@evolution/shared';
 import * as shape from '../svg-glyph';
 import { DNA_DEEP, DNA_STRAND, DNA_STRAND_LIGHT, DNA_TAG_COLOR } from './colours';
 import { SUBJECT_ALPHA, SUBJECT_STROKE, bodyGlint } from './subject-glyph-motifs';
-import { crescentPath, strandPath } from './subject-glyph-shapes';
+import { crescentPath, rungsPath, strandPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The lens the two strands make, and the box a motif is drawn inside it. */
@@ -20,9 +20,12 @@ const CARTOUCHE = {
   waves: 0.5,
   haloRadius: 34,
 } as const;
+/** The rungs the cartouche's strand pair holds, its material detail. */
+const CARTOUCHE_RUNG_COUNT = 5;
 
 const LENS_TOP = shape.path(strandPath({ ...CARTOUCHE, phaseTurns: 0 }));
 const LENS_BOTTOM = shape.path(strandPath({ ...CARTOUCHE, phaseTurns: 0.5 }));
+const CARTOUCHE_RUNGS = shape.path(rungsPath({ ...CARTOUCHE, phaseTurns: 0, count: CARTOUCHE_RUNG_COUNT }));
 
 /** How solid the lens reads behind its motif: lit enough to have volume, quiet enough to stay a frame. */
 const LENS_OPACITY = 0.38;
@@ -42,6 +45,10 @@ function cartoucheLayers(colour: string): readonly shape.GlyphLayer[] {
     kit.outlineLayer(LENS_BOTTOM, SUBJECT_STROKE.fine),
     kit.paint(shape.GLYPH_ROLE.body, LENS_BOTTOM, { stroke: kit.stroke(DNA_STRAND, SUBJECT_STROKE.rim) }),
     kit.paint(shape.GLYPH_ROLE.body, LENS_TOP, { stroke: kit.stroke(DNA_STRAND_LIGHT, SUBJECT_STROKE.rim) }),
+    // The material detail: the rungs the strand pair holds, faint behind the motif, dropped at the list LOD.
+    kit.paint(shape.GLYPH_ROLE.detail, CARTOUCHE_RUNGS, {
+      stroke: kit.stroke(DNA_STRAND_LIGHT, SUBJECT_STROKE.hair, SUBJECT_ALPHA.faint),
+    }),
     bodyGlint(36, 40, 11),
   ];
 }

@@ -31,6 +31,7 @@ import { UiKitStatesComponent } from './ui-kit/kit-states/kit-states.component';
 /** The lobby's words for why it came back on its own (docs/ui/overlays.md §3.6). */
 export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
   [LOBBY_NOTICE.disconnectedFromGame]: 'You were disconnected from the game.',
+  [LOBBY_NOTICE.openedElsewhere]: 'The game is open in another tab. Connect to play here.',
 };
 
 /**

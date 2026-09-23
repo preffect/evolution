@@ -18,7 +18,14 @@ import { crescentPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The bead an ability acts on, and the reach of the mark around it. */
-const ABILITY = { beadRadius: 15, bigBeadRadius: 20, preyRadius: 8, reach: 34, washRadius: 36 } as const;
+const ABILITY = {
+  beadRadius: 15,
+  bigBeadRadius: 20,
+  preyRadius: 8,
+  gripBodyRadius: 21,
+  reach: 34,
+  washRadius: 36,
+} as const;
 
 /**
  * Movement is speed *held*, where a sprint is speed spent — so the cell trails the wake it has already made. Drawn
@@ -99,6 +106,15 @@ const ENGULF_GRIP: shape.SubjectGlyph = {
   entryId: 'ability:engulf_grip',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
+    /** The predator whose grip it is: its body, filmy so the prey reads inside it (§7.2, an effect on a cell). */
+    ...roundBodyLayers({
+      cx: 44,
+      cy: 50,
+      radius: ABILITY.gripBodyRadius,
+      ramp: kit.GLYPH_RAMP.vacuole,
+      rim: kit.stroke(kit.GLYPH_RAMP.vacuole.light, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash),
+      opacity: 0.45,
+    }),
     ...roundBodyLayers({
       cx: 52,
       cy: 50,

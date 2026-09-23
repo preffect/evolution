@@ -1,21 +1,30 @@
 // The abilities a cell reaches past itself with (docs/visual-style/ui-type.md §7.2): the light it catches, the spines
 // and the toxin that keep others off, the food it pulls in, the genome it keeps and the gel it shrugs off. The family
 // rules are `subject-glyphs-abilities-contest.ts`'s: an organ or an effect on a cell, in its own organelle colours,
-// and never an arrowhead. These six separate on silhouette: rays, spikes, wisps, a horseshoe, a ring, parted strands.
+// and never an arrowhead. These six separate on silhouette: rays, spikes, wisps, lines of pull, a ring, parted strands.
 
 import * as shape from '../svg-glyph';
-import { CHLORO_LIGHT, CYTOSKELETON, DNA_STRAND_LIGHT, SILICA_LIGHT, TOXIN_GLOW, TOXIN_RIM, ZONE_GEL } from './colours';
+import {
+  CHLORO_LIGHT,
+  CYTOSKELETON,
+  DNA_STRAND_LIGHT,
+  EYESPOT,
+  EYESPOT_RIM,
+  SILICA_LIGHT,
+  TOXIN_GLOW,
+  TOXIN_RIM,
+  ZONE_GEL,
+} from './colours';
 import {
   SUBJECT_ALPHA,
   SUBJECT_RAMP,
   SUBJECT_STROKE,
   bodyGlint,
-  rampedMarkLayers,
   roundBodyLayers,
   strokedMarkLayers,
   washLayer,
 } from './subject-glyph-motifs';
-import { crescentPath, lobedPath, strandPath } from './subject-glyph-shapes';
+import { lobedPath, strandPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The bead an ability acts on, and the reach of the mark around it — the contest table's sizes, shared. */
@@ -112,31 +121,50 @@ const TOXIN: shape.SubjectGlyph = {
   ],
 };
 
-/** A steel horseshoe with two motes drawn into its gap: food that comes to the cell. */
-const HORSESHOE = shape.path(
-  crescentPath({ cx: 50, cy: 50, radius: 28, thickness: 10, fromTurns: 0.62, toTurns: 1.38 }),
-);
+/**
+ * A cell with its eyespot, the motes near it drifting in along the dashed lines of its pull: food that comes to the
+ * cell. An effect on a cell, never an arrowhead (§7.2): the lines of the pull have no heads, so it cannot read as an
+ * action's gesture.
+ */
+const PULL_LINES = shape.path('M66 30 Q56 32 50 40 M70 66 Q58 66 52 58');
 const FOOD_ATTRACTION: shape.SubjectGlyph = {
   entryId: 'ability:food_attraction',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     kit.haloLayer(kit.centreCircle(ABILITY.reach), SUBJECT_RAMP.algae.base, SUBJECT_ALPHA.wash),
-    ...rampedMarkLayers(HORSESHOE, SUBJECT_RAMP.steel, kit.BREATHE),
-    ...roundBodyLayers({
-      cx: 62,
-      cy: 34,
-      radius: 7,
-      ramp: SUBJECT_RAMP.algae,
-      rim: kit.stroke(SUBJECT_RAMP.algae.light, SUBJECT_STROKE.hair),
-      motion: kit.motion(shape.GLYPH_MOTION.rise, 62, 34),
+    kit.paint(shape.GLYPH_ROLE.signature, PULL_LINES, {
+      stroke: kit.stroke(SUBJECT_RAMP.algae.light, SUBJECT_STROKE.rim, SUBJECT_ALPHA.scatter, '3 3'),
+      motion: kit.BREATHE,
     }),
     ...roundBodyLayers({
-      cx: 64,
-      cy: 68,
+      cx: 38,
+      cy: 50,
+      radius: ABILITY.beadRadius,
+      ramp: SUBJECT_RAMP.accent,
+      rim: kit.stroke(SUBJECT_RAMP.accent.light, SUBJECT_STROKE.rim),
+      motion: kit.BREATHE,
+    }),
+    /** The eyespot on the cell's rim, facing the food: the organ that pulls. */
+    kit.paint(shape.GLYPH_ROLE.signature, shape.circle(48, 46, 4), {
+      fill: kit.solid(EYESPOT),
+      stroke: kit.stroke(EYESPOT_RIM, SUBJECT_STROKE.hair),
+      motion: kit.BEAT,
+    }),
+    ...roundBodyLayers({
+      cx: 70,
+      cy: 30,
       radius: 6,
       ramp: SUBJECT_RAMP.algae,
       rim: kit.stroke(SUBJECT_RAMP.algae.light, SUBJECT_STROKE.hair),
-      motion: kit.motion(shape.GLYPH_MOTION.rise, 64, 68),
+      motion: kit.motion(shape.GLYPH_MOTION.rise, 70, 30),
+    }),
+    ...roundBodyLayers({
+      cx: 73,
+      cy: 66,
+      radius: 5,
+      ramp: SUBJECT_RAMP.algae,
+      rim: kit.stroke(SUBJECT_RAMP.algae.light, SUBJECT_STROKE.hair),
+      motion: kit.motion(shape.GLYPH_MOTION.rise, 73, 66),
     }),
   ],
 };
@@ -168,6 +196,11 @@ const GENOME: shape.SubjectGlyph = {
     /** The plasmid itself: a closed loop, which is what tells a genome from the loose fragment of `entity:`. */
     kit.paint(shape.GLYPH_ROLE.signature, kit.centreCircle(17), {
       stroke: kit.stroke(DNA_STRAND_LIGHT, SUBJECT_STROKE.mark),
+      motion: kit.SPIN,
+    }),
+    /** The material detail: the nucleoid's own coiled thread, faint inside the plasmid. */
+    kit.paint(shape.GLYPH_ROLE.detail, kit.centreCircle(9), {
+      stroke: kit.stroke(DNA_STRAND_LIGHT, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash, '2 2'),
       motion: kit.SPIN,
     }),
     bodyGlint(50, 50, 24),
