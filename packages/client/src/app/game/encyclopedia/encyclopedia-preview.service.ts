@@ -88,7 +88,7 @@ export class EncyclopediaPreviewService {
   show(spec: PreviewSpec): void {
     // The same spec again is the page re-rendering, not the reader moving: a `ResolvedEntry` is rebuilt whenever the
     // round's progress changes, and restarting the settle timer on each of those would leave the lens never settling.
-    // A replay (§11.4's action scenes) is the one caller that means "again" and will need its own path.
+    // A replay (§11.4's action scenes) is the one caller that means "again": it is `replay`, below.
     if (spec === this.currentSpec) return;
     this.currentSpec = spec;
     this.clearSettleTimer();
@@ -96,6 +96,18 @@ export class EncyclopediaPreviewService {
       this.cancelSettle = null;
       this.applyCurrentSpec();
     });
+  }
+
+  /**
+   * `Replay` under an action scene (§11.4): the scene the lens is showing starts again from its first frame. Only a
+   * scene that is on the canvas can replay: before the open resolves, or while a new selection settles, there is
+   * nothing to restart, and the settle will start the next scene from its beginning anyway.
+   */
+  replay(): void {
+    const spec = this.shownSpec;
+    if (this.handle === null || this.isOpening || spec === null || spec !== this.currentSpec) return;
+    this.handle.show(spec);
+    this.resume();
   }
 
   /** The `--ui-scale` the panel is drawn at: the canvas follows it, and nothing is rebaked (§12.7). */

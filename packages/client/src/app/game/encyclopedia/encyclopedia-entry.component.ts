@@ -28,6 +28,7 @@ import {
   entryChips,
   factRowsFor,
   ownedTierOf,
+  replayLabelFor,
   tierSwitchFor,
   tierTableFor,
   type EncyclopediaTierSwitch,
@@ -71,6 +72,8 @@ const NO_OWNED_TRAITS: readonly OwnedTrait[] = [];
                     [selectedTier]="selectedTier()"
                     (tierSelected)="selectTier($event)"
                   />
+                } @else if (replayLabel(); as label) {
+                  <app-encyclopedia-lens-control [replayLabel]="label" (replayed)="replay()" />
                 }
               </div>
             }
@@ -173,6 +176,9 @@ export class EncyclopediaEntryComponent {
     return segment?.preview ?? this.entry().preview;
   });
 
+  /** `Replay` under an action scene (§11.4); `null` for a lens showing a subject. */
+  protected readonly replayLabel = computed(() => replayLabelFor(this.previewSpec()));
+
   /** §11.4 names the header of a trait's second table; every other entry has one table, and it is simply its facts. */
   protected readonly factsLabel = computed(() =>
     this.entry().subject.kind === ENTRY_SUBJECT.trait
@@ -192,6 +198,11 @@ export class EncyclopediaEntryComponent {
   /** A See also chip is an activation, so it pushes and Back returns to this page (§11.5). */
   protected open(entryId: EntryId): void {
     this.state.openEntry(entryId);
+  }
+
+  /** `Replay`: the scene on the lens starts again from its first frame. */
+  protected replay(): void {
+    this.preview.replay();
   }
 
   /** The tier switch under the lens: the effect above carries the choice to the preview. */
