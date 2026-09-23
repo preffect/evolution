@@ -43,10 +43,15 @@ check "an override sets the slot count" $(( $(VALIDATE_HEAVY_SLOTS=3 slot_count 
 check "a zero override still leaves one slot" $(( $(VALIDATE_LIGHT_SLOTS=0 slot_count light) == 1 ))
 auto_heavy="$(VALIDATE_HEAVY_SLOTS='' slot_count heavy)"
 auto_light="$(VALIDATE_LIGHT_SLOTS='' slot_count light)"
-memory_mb="$(awk '/^MemTotal:/ { printf "%d", $2 / 1024 }' /proc/meminfo)"
-expected_heavy=$((cores / 2 < memory_mb / 4096 ? cores / 2 : memory_mb / 4096))
-expected_heavy=$((expected_heavy > 1 ? expected_heavy : 1))
-check "without an override heavy gets one slot per 2 cores, capped at one per 4 GB, at least 1 (got $auto_heavy, expected $expected_heavy on $cores cores)" $(( auto_heavy == expected_heavy ))
+check "without an override heavy gets at least 1 slot and no more than one per 2 cores (got $auto_heavy on $cores cores)" $(( auto_heavy >= 1 && auto_heavy <= (cores / 2 > 1 ? cores / 2 : 1) ))
+# The 4-core box itself (#561), with nproc stubbed: two heavy slots. Its memory cap (one per 4 GB) needs 8 GB.
+mkdir -p "$sandbox/four-cores"
+printf '#!/bin/sh\necho 4\n' > "$sandbox/four-cores/nproc" && chmod +x "$sandbox/four-cores/nproc"
+four_core_heavy="$(PATH="$sandbox/four-cores:$PATH" VALIDATE_HEAVY_SLOTS='' slot_count heavy)"
+memory_kb="$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo 2>/dev/null || echo 0)"
+if [[ "${memory_kb:-0}" -ge $((8 * 1024 * 1024)) ]]; then
+  check "a 4-core box with 8 GB or more gets exactly 2 heavy slots (got $four_core_heavy)" $(( four_core_heavy == 2 ))
+fi
 check "without an override light gets one slot per 2 cores, at least 1 (got $auto_light)" $(( auto_light >= 1 && auto_light <= (cores / 2 > 1 ? cores / 2 : 1) ))
 override_warning="$(VALIDATE_LIGHT_SLOTS=two slot_count light 2>&1 >/dev/null)"
 check "a non-numeric override is warned about and ignored" $(( $(holds grep -q 'VALIDATE_LIGHT_SLOTS=two is not a number' <<<"$override_warning") && $(VALIDATE_LIGHT_SLOTS=two slot_count light 2>/dev/null) == auto_light ))

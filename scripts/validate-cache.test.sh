@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # validate-cache.test.sh — exercises validate.sh's result cache (docs/engineering/validation-gate.md §1) against a
 # throwaway git repo with a fake `pnpm` on PATH, so it runs without node_modules:
-#   second run is cached; an untracked file change invalidates; `all --affected` answers test and typecheck
-#   from every affected package's own stamp on the tree, never lint, duplication or the shell suites (#563); --fresh re-runs; red is never
+#   second run is cached; an untracked file change invalidates; a plain lint passes eslint's and prettier's
+#   caches, `all` prettier's alone, --fresh neither, and a plain lint's stamp never answers `all` (#559);
+#   `all --affected` answers test and typecheck from every affected package's own stamp on the tree, never
+#   lint, duplication or the shell suites (#563); --fresh re-runs; red is never
 #   cached; `all` stamps its phases and itself (an `all` hit prints ALL PASSED and filters see every
 #   phase's stored log); a worktree at the same content shares the stamp; a Node-major mismatch, a
 #   missing stored log and a run that changes the tree are misses; VALIDATE_CACHE_DIR overrides the
@@ -123,6 +125,10 @@ run_validate() { # <dir> <args...>  -> stdout in $out, exit code in $rc
 is_cached() { grep -q '^cached green from .* at tree [0-9a-f]\{40\}$' <<<"$out"; }
 ran_pnpm() { grep -q '^fake pnpm' <<<"$out"; }
 ran() { grep -q -- "$1" <<<"$out"; } # <pattern>: whether the last run's output matches
+
+# The lint caches validate.sh passes (#559): eslint's on a plain lint only, prettier's on every run but --fresh.
+ESLINT_CACHED='--cache --cache-strategy content --cache-location node_modules/.cache/eslint/'
+PRETTIER_CACHED='--cache --cache-strategy content --cache-location node_modules/.cache/prettier/.prettier-cache'
 
 # --- cases --------------------------------------------------------------------------------------
 run_validate "$fixture" test
@@ -297,7 +303,21 @@ run_validate "$fixture" integration --scope client -- nothing-matches
 check "a client filter that matches no spec fails without running the runner" $(( rc != 0 && $(ran 'no client integration spec under packages/client/src has a path containing: nothing-matches'; echo $?) == 0 && $(ran 'test:integration'; echo $?) != 0 ))
 : > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" lint --scope packages/server/src/game
-check "a path scope lints and formats only that path" $(( $(grep -q '^fake pnpm eslint packages/server/src/game$' <<<"$out"; echo $?) == 0 && $(grep -q '^fake pnpm prettier --check packages/server/src/game$' <<<"$out"; echo $?) == 0 ))
+check "a path scope lints and formats only that path" $(( $(grep -q "^fake pnpm eslint $ESLINT_CACHED packages/server/src/game$" <<<"$out"; echo $?) == 0 && $(grep -q "^fake pnpm prettier --check $PRETTIER_CACHED packages/server/src/game$" <<<"$out"; echo $?) == 0 ))
+check "a plain lint passes both lint caches" $(( $(grep -q "^fake pnpm eslint $ESLINT_CACHED " <<<"$out"; echo $?) == 0 && $(grep -q "^fake pnpm prettier --check $PRETTIER_CACHED " <<<"$out"; echo $?) == 0 ))
+: > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" lint --scope packages/server/src/game --fresh
+check "--fresh passes neither lint cache" $(( $(grep -q '^fake pnpm eslint packages/server/src/game$' <<<"$out"; echo $?) == 0 && $(grep -q '^fake pnpm prettier --check packages/server/src/game$' <<<"$out"; echo $?) == 0 ))
+# #559 review: a plain lint's stamp (eslint ran with its cache) is keyed apart, so `all` never reads it.
+echo lint-key > "$fixture/untracked-lint-key.txt"
+run_validate "$fixture" lint
+run_validate "$fixture" lint
+check "a plain lint's repeat hits its own stamp" $(( rc == 0 && $(is_cached; echo $?) == 0 ))
+run_validate "$fixture" all
+check "an unscoped all never reads a plain lint's stamp: it runs eslint itself, without the cache" $(( rc == 0 && $(ran '^fake pnpm eslint \.$'; echo $?) == 0 ))
+run_validate "$fixture" lint --fresh
+run_validate "$fixture" all --fresh
+rm -f "$fixture/untracked-lint-key.txt"
 run_validate "$fixture" duplication --scope client
 check "a package scope scans only that package's source" $(( $(grep -q '^fake pnpm jscpd packages/client/src$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" typecheck --scope packages/server/src/game
@@ -511,10 +531,10 @@ affected_branch() { # <branch> <path>: a branch off origin/main whose one commit
 affected_branch affected-client packages/client/src/app/hud.spec.ts
 run_validate "$fixture" all --affected
 check "a client-only branch selects client, and says why" $(( rc == 0 && $(ran '^affected client: changed (1 files, e.g. packages/client/src/app/hud.spec.ts)$'; echo $?) == 0 ))
-check "a client-only branch typechecks, lints and tests client alone" $(( $(ran '^fake pnpm --filter @evolution/client typecheck$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/client test$'; echo $?) == 0 && $(ran '^fake pnpm eslint packages/client$'; echo $?) == 0 && $(ran '@evolution/server\|-r test\|-r typecheck\|^affected server\|^affected shared'; echo $?) != 0 ))
+check "a client-only branch typechecks, lints (eslint without its cache, since all is the merge gate) and tests client alone" $(( $(ran '^fake pnpm --filter @evolution/client typecheck$'; echo $?) == 0 && $(ran '^fake pnpm --filter @evolution/client test$'; echo $?) == 0 && $(ran '^fake pnpm eslint packages/client$'; echo $?) == 0 && $(ran '^fake pnpm eslint --cache'; echo $?) != 0 && $(ran '@evolution/server\|-r test\|-r typecheck\|^affected server\|^affected shared'; echo $?) != 0 ))
 check "a client-only branch runs client's integration tier after its unit tests (#344)" $(( $(ran '^fake pnpm --filter @evolution/client --if-present test:integration$'; echo $?) == 0 && $(ran '^affected integration: client (1 files) with integration or gameplay tests$'; echo $?) == 0 ))
 run_validate "$fixture" lint --scope client
-check "a scoped lint on a branch that changed no doc prettier-checks its scope alone" $(( rc == 0 && $(ran '^fake pnpm prettier --check packages/client$'; echo $?) == 0 && $(ran '^lint also prettier-checks'; echo $?) != 0 ))
+check "a scoped lint on a branch that changed no doc prettier-checks its scope alone" $(( rc == 0 && $(ran "^fake pnpm prettier --check $PRETTIER_CACHED packages/client$"; echo $?) == 0 && $(ran '^lint also prettier-checks'; echo $?) != 0 ))
 run_validate "$fixture" all --affected
 check "all --affected is stamped per affected set" $(( rc == 0 && $(is_cached; echo $?) == 0 && $(ran '^scope: affected-client$'; echo $?) == 0 ))
 run_validate "$fixture" all
@@ -577,9 +597,9 @@ check "the everything gate (-r, which also reaches unregistered packages) never 
 
 affected_branch affected-docs docs/NOTE.md
 run_validate "$fixture" all --affected
-check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran '^fake pnpm prettier --check docs/NOTE.md$'; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$\|test:integration'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 4 ))
+check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran "^fake pnpm prettier --check $PRETTIER_CACHED docs/NOTE.md$"; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$\|test:integration'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 4 ))
 run_validate "$fixture" lint --scope client
-check "a scoped lint also prettier-checks the docs the branch changed, and says so (#329)" $(( rc == 0 && $(ran '^fake pnpm prettier --check packages/client docs/NOTE.md$'; echo $?) == 0 && $(ran '^lint also prettier-checks the 1 docs changed on the branch: docs/NOTE.md$'; echo $?) == 0 ))
+check "a scoped lint also prettier-checks the docs the branch changed, and says so (#329)" $(( rc == 0 && $(ran "^fake pnpm prettier --check $PRETTIER_CACHED packages/client docs/NOTE.md$"; echo $?) == 0 && $(ran '^lint also prettier-checks the 1 docs changed on the branch: docs/NOTE.md$'; echo $?) == 0 ))
 
 affected_branch affected-scripts scripts/tool.sh
 run_validate "$fixture" all --affected
