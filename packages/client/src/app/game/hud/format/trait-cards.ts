@@ -124,7 +124,9 @@ function cardView(
 
 /** `line` with its numbers bound to their units and its unit slashes bound to both sides, so a wrap never splits one. */
 export function bindQuantities(line: string): string {
-  return line.replace(SPACE_AFTER_NUMBER, `$1${NO_BREAK_SPACE}`).replace(SPACED_SLASH, `${NO_BREAK_SPACE}/${NO_BREAK_SPACE}`);
+  return line
+    .replace(SPACE_AFTER_NUMBER, `$1${NO_BREAK_SPACE}`)
+    .replace(SPACED_SLASH, `${NO_BREAK_SPACE}/${NO_BREAK_SPACE}`);
 }
 
 export function traitOfferViewFor(input: TraitOfferInput): TraitOfferViewModel {

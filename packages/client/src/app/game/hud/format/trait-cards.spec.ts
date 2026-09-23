@@ -18,6 +18,9 @@ import { bindQuantities, traitOfferViewFor } from './trait-cards';
 
 const WINDOW_SECONDS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS;
 const EXPIRES_AT = 10_000;
+/** A breakable space after a digit or beside a slash: where a wrap would split a reading (#446). */
+const BREAKABLE_READING = /\d | \/|\/ /;
+const TIERS: readonly TraitTier[] = [1, 2, 3];
 
 const offer = createTestTraitOfferView({
   offerId: 7,
@@ -125,8 +128,6 @@ describe('traitOfferViewFor', () => {
 
   // A card's column is narrow, so a line wraps; where it may wrap is pinned, not left to the text (#446).
   it('never lets a card line wrap between a number and its unit, around a unit’s slash, or inside an upgrade', () => {
-    const BREAKABLE_READING = /\d | \/|\/ /;
-    const TIERS: readonly TraitTier[] = [1, 2, 3];
     for (const trait of TRAIT_CATALOG) {
       for (const tier of TIERS) {
         const owned = tier > 1 ? [{ traitId: trait.id, tier: (tier - 1) as TraitTier }] : [];
