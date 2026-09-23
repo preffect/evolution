@@ -55,44 +55,68 @@ function tickingRoom() {
 }
 
 /**
- * Runs a client that applies `CLIENT_DRAIN_PER_BROADCAST` messages per broadcast, acknowledging as the browser does
- * (every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas, a `game_state` at once), and counts the resyncs and those stacked
- * on an earlier one the client had not acknowledged yet.
+ * A client that applies `CLIENT_DRAIN_PER_BROADCAST` messages per broadcast, acknowledging as the browser does (every
+ * `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas, a `game_state` at once), and counts the resyncs stacked on an earlier one it
+ * had not acknowledged yet.
  */
+class SlowClient {
+  private read = 0;
+  private seen = 0;
+  private budget = 0;
+  private appliedDeltas = 0;
+  private unacknowledgedResyncs = 0;
+  stackedResyncs = 0;
+
+  constructor(
+    private readonly room: GameRoom,
+    private readonly sent: () => SentMessage[],
+  ) {}
+
+  /** The resyncs the room sent since the last look, each stacked when an earlier one is still unacknowledged. */
+  countArrivals(): void {
+    for (const message of this.sent().slice(this.seen)) {
+      if (message.type !== SERVER_MESSAGE_TYPE.gameState) continue;
+      if (this.unacknowledgedResyncs > 0) this.stackedResyncs += 1;
+      this.unacknowledgedResyncs += 1;
+    }
+    this.seen = this.sent().length;
+  }
+
+  /** One broadcast's worth of draining; an idle client carries no budget over. */
+  drain(): void {
+    this.budget += CLIENT_DRAIN_PER_BROADCAST;
+    while (this.budget >= 1 && this.read < this.sent().length) {
+      this.budget -= 1;
+      this.apply(this.sent()[this.read]!);
+      this.read += 1;
+    }
+    if (this.read === this.sent().length) this.budget = 0;
+  }
+
+  private apply(message: SentMessage): void {
+    if (message.type === SERVER_MESSAGE_TYPE.gameState) {
+      this.unacknowledgedResyncs -= 1;
+      this.room.recordSnapshotAck('p1', message.snapshot.tick);
+      return;
+    }
+    this.appliedDeltas += 1;
+    if (this.appliedDeltas % SNAPSHOT_ACK_EVERY_SNAPSHOTS === 0)
+      this.room.recordSnapshotAck('p1', message.snapshot.tick);
+  }
+}
+
 function runSlowClient(isRoomRunning: boolean): { resyncs: number; stackedResyncs: number; deltas: number } {
   const { room, sent } = tickingRoom();
-  let read = 0;
-  let budget = 0;
-  let appliedDeltas = 0;
-  let unacknowledgedResyncs = 0;
-  let stackedResyncs = 0;
-  let seen = 0;
+  const client = new SlowClient(room, sent);
   for (let broadcast = 0; broadcast < BROADCASTS; broadcast += 1) {
     room.step(SNAPSHOT_EVERY_TICKS);
     // `step` pauses; a running room settles resyncs on broadcasts, a paused one on acks (#300).
     if (isRoomRunning) room.resume();
-    for (const message of sent().slice(seen)) {
-      if (message.type !== SERVER_MESSAGE_TYPE.gameState) continue;
-      if (unacknowledgedResyncs > 0) stackedResyncs += 1;
-      unacknowledgedResyncs += 1;
-    }
-    seen = sent().length;
-    budget += CLIENT_DRAIN_PER_BROADCAST;
-    while (budget >= 1 && read < sent().length) {
-      budget -= 1;
-      const message = sent()[read]!;
-      read += 1;
-      if (message.type === SERVER_MESSAGE_TYPE.gameState) {
-        unacknowledgedResyncs -= 1;
-        room.recordSnapshotAck('p1', message.snapshot.tick);
-      } else if ((appliedDeltas += 1) % SNAPSHOT_ACK_EVERY_SNAPSHOTS === 0) {
-        room.recordSnapshotAck('p1', message.snapshot.tick);
-      }
-    }
-    if (read === sent().length) budget = 0;
+    client.countArrivals();
+    client.drain();
   }
   const resyncs = sent().filter((message) => message.type === SERVER_MESSAGE_TYPE.gameState).length;
-  return { resyncs, stackedResyncs, deltas: sent().length - resyncs };
+  return { resyncs, stackedResyncs: client.stackedResyncs, deltas: sent().length - resyncs };
 }
 
 describe('game-room: one resync per recovery (#275)', () => {
