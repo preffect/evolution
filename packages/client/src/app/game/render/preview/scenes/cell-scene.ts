@@ -30,6 +30,7 @@ import {
   PREVIEW_CELL_MASS,
   PREVIEW_STILL_PERIOD_SECONDS,
   PREVIEW_SWIM_RADIUS_RADII,
+  PREVIEW_SWIM_SPEED_FRACTION,
   PREVIEW_ZONE_CENTRE_WU,
 } from '../../constants';
 import { previewCellView } from '../preview-frame';
@@ -52,7 +53,7 @@ const NO_MOTES = [] as const;
 const NO_FRAGMENTS = [] as const;
 
 /** Swimming is the cell's own top speed, so its stretch, tail and cilia read exactly as they do in play. */
-const SWIMMING_SPEED_RATIO = 1;
+const SWIMMING_SPEED_RATIO = PREVIEW_SWIM_SPEED_FRACTION;
 const RESTING_SPEED_RATIO = 0;
 
 function subjectRadiusWu(balance: BalanceConfig): number {
@@ -63,9 +64,14 @@ function loopRadiusWu(balance: BalanceConfig): number {
   return subjectRadiusWu(balance) * PREVIEW_SWIM_RADIUS_RADII;
 }
 
-/** One trip around the loop at the cell's own top speed: `2πR / maxSpeed`. */
+/** The speed the subject circles at: `PREVIEW_SWIM_SPEED_FRACTION` of its own top speed. */
+function swimSpeed(balance: BalanceConfig): number {
+  return maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth) * PREVIEW_SWIM_SPEED_FRACTION;
+}
+
+/** One trip around the loop at the swim speed: `2πR / swimSpeed`. */
 function swimPeriodSeconds(balance: BalanceConfig): number {
-  return (RADIANS_PER_FULL_TURN * loopRadiusWu(balance)) / maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth);
+  return (RADIANS_PER_FULL_TURN * loopRadiusWu(balance)) / swimSpeed(balance);
 }
 
 export function cellPreviewScene(spec: CellPreviewSpec): PreviewScene {
@@ -151,7 +157,7 @@ const REST_POSE: SubjectPose = { offsetX: 0, offsetY: 0, velocityX: 0, velocityY
 function swimPose(loopSeconds: number, balance: BalanceConfig): SubjectPose {
   const angle = (RADIANS_PER_FULL_TURN * loopSeconds) / swimPeriodSeconds(balance);
   const radiusWu = loopRadiusWu(balance);
-  const speed = maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth);
+  const speed = swimSpeed(balance);
   return {
     offsetX: Math.cos(angle) * radiusWu,
     offsetY: Math.sin(angle) * radiusWu,

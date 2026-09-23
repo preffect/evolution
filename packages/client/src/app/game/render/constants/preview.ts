@@ -99,6 +99,13 @@ export const PREVIEW_CELL_DRAWN_FILL_FRACTION = PREVIEW_LENS_RIM_RADIUS_FRACTION
  */
 export const PREVIEW_SWIM_RADIUS_RADII = 1.2;
 
+/**
+ * The share of its own top speed a swimming subject circles at. The human asked for a lap four times slower
+ * (2026-09-23): 0.25 makes the 2.05 s lap about 8.2 s without widening the orbit (which would shrink the cell),
+ * and the stretch, tail wave and cilia beat read that cruising speed rather than a sped-up full-speed swim.
+ */
+export const PREVIEW_SWIM_SPEED_FRACTION = 0.25;
+
 // ===== The action family (#364) =====
 
 /** Mid-ladder: every trait the action subject owns sits at tier II. */
