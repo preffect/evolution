@@ -47,6 +47,8 @@ export class SnapshotBacklog {
   private readonly owedResync = new Set<string>();
   private readonly lastSentTick = new Map<string, number>();
   private readonly acknowledgedTick = new Map<string, number>();
+  /** The tick of the `game_state` each client was resynced with, until it acknowledges that tick (#275). */
+  private readonly resyncInFlightTick = new Map<string, number>();
   private readonly limitTicks: number;
   private readonly limitBytes: number;
   private resyncTotal = 0;
@@ -67,8 +69,9 @@ export class SnapshotBacklog {
    * What this connection gets on this broadcast. A connection that has not caught up is skipped and
    * remembered; a remembered one that has caught up is resynced once and forgotten.
    */
-  nextFor(connection: Connection, broadcastTick: number): SnapshotDelivery {
+  nextFor(connection: Connection, broadcastTick: number, isRoomPaused = false): SnapshotDelivery {
     const { playerId } = connection;
+    if (this.isAwaitingResyncAck(playerId)) return this.deliveryWhileHeld(playerId, broadcastTick, isRoomPaused);
     if (this.isBehind(playerId) || this.isHoldingBytes(connection)) {
       this.owedResync.add(playerId);
       return SNAPSHOT_DELIVERY.skipped;
@@ -77,8 +80,21 @@ export class SnapshotBacklog {
     if (!this.owedResync.delete(playerId)) {
       return SNAPSHOT_DELIVERY.delta;
     }
-    this.resyncTotal += 1;
+    this.markResyncSent(playerId, broadcastTick);
     return SNAPSHOT_DELIVERY.resync;
+  }
+
+  /**
+   * A broadcast while the client's resync is still unacknowledged (#275). A running room skips it and owes nothing: the
+   * resync is queued behind older deltas, anything more only deepens that queue, and the acks it waits behind would
+   * read as "behind" and arm a second full state; the next broadcast after the ack covers the gap. A paused room makes
+   * no next broadcast, so a `debug_step_room` taken during the hold is sent as its delta, queued after the resync:
+   * steps of any size still leave the client current (#300), and nothing is re-armed.
+   */
+  private deliveryWhileHeld(playerId: string, broadcastTick: number, isRoomPaused: boolean): SnapshotDelivery {
+    if (!isRoomPaused) return SNAPSHOT_DELIVERY.skipped;
+    this.lastSentTick.set(playerId, broadcastTick);
+    return SNAPSHOT_DELIVERY.delta;
   }
 
   /**
@@ -94,7 +110,22 @@ export class SnapshotBacklog {
   recordResyncSent(playerId: string, tick: number): void {
     this.owedResync.delete(playerId);
     this.lastSentTick.set(playerId, tick);
+    this.markResyncSent(playerId, tick);
+  }
+
+  /** Counted, and remembered until acknowledged. */
+  private markResyncSent(playerId: string, tick: number): void {
     this.resyncTotal += 1;
+    this.resyncInFlightTick.set(playerId, tick);
+  }
+
+  /** A resync is in flight and the client has not acknowledged its tick yet; one that never acks is never held. */
+  private isAwaitingResyncAck(playerId: string): boolean {
+    const resyncTick = this.resyncInFlightTick.get(playerId);
+    if (resyncTick === undefined) return false;
+    if ((this.acknowledgedTick.get(playerId) ?? resyncTick) < resyncTick) return true;
+    this.resyncInFlightTick.delete(playerId);
+    return false;
   }
 
   /**
@@ -105,6 +136,7 @@ export class SnapshotBacklog {
     this.owedResync.delete(playerId);
     this.lastSentTick.delete(playerId);
     this.acknowledgedTick.delete(playerId);
+    this.resyncInFlightTick.delete(playerId);
   }
 
   /** Players currently owed a `game_state`. Telemetry: it never decides anything. */

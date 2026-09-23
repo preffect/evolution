@@ -84,8 +84,9 @@
   padding: 0 calc(var(--hud-leaderboard-padding) * var(--ui-scale));
 }
 
-.leaderboard.full .column-labels,
-.leaderboard.full .row {
+/* The full columns wait for the full width (#615): `full-layout` lands once the widening ends. */
+.leaderboard.full-layout .column-labels,
+.leaderboard.full-layout .row {
   grid-template-columns:
     calc(var(--hud-leaderboard-rank-column) * var(--ui-scale))
     calc(var(--hud-leaderboard-swatch-column) * var(--ui-scale))

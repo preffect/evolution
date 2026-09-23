@@ -137,4 +137,52 @@ describe('RendererSlot', () => {
     expect(pixi.textures.uninstalledFonts.length).toBeGreaterThan(0);
     expect(keptIndicators.labelPill.texture.destroyed).toBe(true);
   });
+
+  it('stages a build one bake per advance, swapping in only on the last, while the old renderer stays current (#479)', () => {
+    const pixi = createFakePixiApp();
+    const slot = new RendererSlot();
+    const options = buildOptions(pixi.textures, 3);
+    const build = slot.beginBuild(pixi.stage, pixi.screen, options, UNTIMED_STAGES);
+    let advances = 1;
+    let built = build.advance();
+    // The first advance ran exactly one bake: the light pool, and not yet a radial one.
+    expect(pixi.textures.bakedSpecs).toHaveLength(0);
+    while (built === null) {
+      expect(slot.current).toBeNull();
+      built = build.advance();
+      advances += 1;
+    }
+    expect(advances).toBeGreaterThan(5);
+    expect(slot.current).toBe(built);
+
+    const radialBakes = pixi.textures.bakedSpecs.length;
+    const rebuild = slot.beginBuild(pixi.stage, pixi.screen, { ...options, seed: 4 }, UNTIMED_STAGES);
+    expect(rebuild.advance()).toBeNull();
+    expect(slot.current, 'the old renderer must keep drawing while the rematch bakes').toBe(built);
+    const rebuilt = rebuild.finish();
+    expect(rebuilt.seed).toBe(4);
+    expect(slot.current).toBe(rebuilt);
+    expect(pixi.textures.bakedSpecs, 'the kept half was baked again').toHaveLength(radialBakes);
+    slot.dispose();
+  });
+
+  it('bakes the same textures staged as whole: one bake of each, the same canvases in the same order', () => {
+    const whole = createFakePixiApp();
+    const staged = createFakePixiApp();
+    const wholeSlot = new RendererSlot();
+    const stagedSlot = new RendererSlot();
+    wholeSlot.build(whole.stage, whole.screen, buildOptions(whole.textures, 7), UNTIMED_STAGES);
+    const build = stagedSlot.beginBuild(staged.stage, staged.screen, buildOptions(staged.textures, 7), UNTIMED_STAGES);
+    while (build.advance() === null);
+    expect(staged.textures.bakedSpecs).toEqual(whole.textures.bakedSpecs);
+    expect(staged.textures.bakedCanvases.map((canvas) => [canvas.width, canvas.height])).toEqual(
+      whole.textures.bakedCanvases.map((canvas) => [canvas.width, canvas.height]),
+    );
+    // Font names are unique per bundle (the BitmapFont cache is process-wide); what is installed is the same.
+    const fontsOf = (installs: typeof whole.textures.installedFonts) =>
+      installs.map((install) => [install.style, install.chars, install.resolution]);
+    expect(fontsOf(staged.textures.installedFonts)).toEqual(fontsOf(whole.textures.installedFonts));
+    wholeSlot.dispose();
+    stagedSlot.dispose();
+  });
 });
