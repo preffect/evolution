@@ -247,13 +247,20 @@ of its own, both constants of `render/constants/preview.ts`:
 | Budget                    | Value | What it covers                                                                                                                                                   |
 | ------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PREVIEW_OPEN_BUDGET_MS`  | 300   | `openedToFirstFrameMs` p95 over 20 opens in one page (`RENDER_P95_MIN_SAMPLE_FRAMES`), the cold first open reported apart, split into init / bake / first submit |
-| `PREVIEW_FRAME_BUDGET_MS` | 1.0   | the preview frame's own CPU p95, through the same `FrameInstrumentation` as a room's, warm-up frames excluded                                                    |
+| `PREVIEW_FRAME_BUDGET_MS` | 1.0   | the preview frame's own CPU work outside its submit, p95, through the same `FrameInstrumentation` as a room's, warm-up frames excluded                           |
+
+**Why the frame budget excludes the submit** (ticket #502). The frame bracket ends after `app.render()`, and on a real
+GPU the driver blocks inside it once its queue is full, so the whole frame tracks the refresh interval: #470's run
+read `frame p95 7.15 ms` at 183 fps. A 1 ms budget on that judges the display, never the lens. The route judges each
+frame's bracket minus its submit (`FrameInstrumentation.workOutsideSubmitP95Ms`) and prints the whole frame beside
+it, unjudged. The same clock rule as §7 applies: on a page whose clock steps coarser than a tenth of the budget
+(Firefox's 1 ms), the work is printed and left unjudged.
 
 **The route.** `/?preview=<EntryAnchor|PREVIEW_SCENE>&t=<seconds>&opens=<n>` (dev builds only, behind the same
 production gate as the bench route) mounts `opens` sessions on a `ManualClock`, walks each to `t` in
 `TICK_INTERVAL_S` steps with a **no-op submit** and submits only the parked frame, then publishes its report to
-both sinks (§7): the **browser console** — the open p95 against `PREVIEW_OPEN_BUDGET_MS`, the parked frame's p95
-against `PREVIEW_FRAME_BUDGET_MS`, and the cold open split into init / bake / first submit with the bake's share of
+both sinks (§7): the **browser console** — the open p95 against `PREVIEW_OPEN_BUDGET_MS`, the parked lens's work outside its submit
+against `PREVIEW_FRAME_BUDGET_MS` (the whole frame beside it, never judged), and the cold open split into init / bake / first submit with the bake's share of
 it, then the object — and `data-testid="encyclopedia-preview-report"`: the cold open, every warm open, the open
 p95, the parked session's frame report, both budgets and the verdict. One open leaves no warm open to take a p95
 over, so that row prints what to pass (`&opens=20`) rather than a verdict. It is the one place the preview installs `window.__evolutionDebug` and
@@ -270,7 +277,7 @@ finite — and never an absolute time.
 | open p95 over 20 opens                                   | **unmeasured**            | `openP95Ms` in the DOM report, `opens=20`                                                                                                                                                                                   |
 | cold open, apart                                         | **unmeasured**            | `coldOpen` in the DOM report                                                                                                                                                                                                |
 | the three-way split (init / bake / first submit)         | **unmeasured**            | every `PreviewOpenTimings` in the report                                                                                                                                                                                    |
-| preview frame p95                                        | **unmeasured**            | `frame.frameTimeP95Ms`, with the per-stage split beside it                                                                                                                                                                  |
+| preview frame work p95 (outside the submit)              | **unmeasured**            | `frameWork.workOutsideSubmitP95Ms`, the whole frame and the per-stage split in `frame`                                                                                                                                      |
 | page rAF interval p95 and dropped frames, open vs closed | **unmeasured**            | a **live room** with the encyclopedia over it, through the room's debug hook — not this route, which has no room                                                                                                            |
 | room startup through the same instrument                 | **unmeasured**            | the baseline §12.7 says is missing; `RenderSession`'s own first frame                                                                                                                                                       |
 | lens canvas GPU memory at the cap (900² device px)       | **unmeasured**, ≈ 10 MiB  | colour backbuffer + the depth-stencil Pixi requests (`stencil: true`, ≈ 3.2 MiB) + the presented front buffer; ≈ 13 MiB on the evidence route with `preserveDrawingBuffer`; ≈ 50 MiB with the bundle while the lens is open |

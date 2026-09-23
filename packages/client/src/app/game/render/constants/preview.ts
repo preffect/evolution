@@ -54,7 +54,7 @@ export const PREVIEW_LENS_FILL_MARGIN = 0.05;
 
 /** `openedToFirstFrameMs` p95 over 20 opens, the cold first open reported apart (§12.7's cost table). */
 export const PREVIEW_OPEN_BUDGET_MS = 300;
-/** The preview frame's own CPU p95, warm-up frames excluded (§12.7's cost table). */
+/** The preview frame's own CPU work outside its submit, p95, warm-up frames excluded (§12.7's cost table, #502). */
 export const PREVIEW_FRAME_BUDGET_MS = 1;
 
 /**

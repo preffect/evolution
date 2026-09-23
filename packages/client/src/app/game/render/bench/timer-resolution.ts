@@ -4,7 +4,11 @@
 // ten ticks.
 
 import type { Clock } from '@evolution/shared';
-import { RENDER_TIMER_PROBE_MAX_READINGS, RENDER_TIMER_PROBE_STEPS } from '../constants';
+import {
+  RENDER_TIMER_PROBE_MAX_READINGS,
+  RENDER_TIMER_PROBE_STEPS,
+  RENDER_TIMER_RESOLUTION_BUDGET_FRACTION,
+} from '../constants';
 
 /**
  * The smallest positive step between consecutive readings, over `RENDER_TIMER_PROBE_STEPS` steps; `null` when the
@@ -23,4 +27,12 @@ export function probeTimerResolutionMs(clock: Clock): number | null {
     previousMs = nowMs;
   }
   return steps === 0 ? null : smallestStepMs;
+}
+
+/**
+ * Whether a clock with this step can judge a p95 against `budgetMs`: its step is at most a tenth of the budget
+ * (`RENDER_TIMER_RESOLUTION_BUDGET_FRACTION`). An unmeasured step (`null`, a test clock) is taken as fine.
+ */
+export function isClockFineEnoughFor(budgetMs: number, timerResolutionMs: number | null): boolean {
+  return timerResolutionMs === null || timerResolutionMs <= budgetMs * RENDER_TIMER_RESOLUTION_BUDGET_FRACTION;
 }

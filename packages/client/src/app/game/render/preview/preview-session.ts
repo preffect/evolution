@@ -29,7 +29,7 @@ import { PreviewLocalClock } from './preview-clock';
 import { previewRenderFrame } from './preview-frame';
 import { previewSceneFor, type PreviewScene } from './preview-scene';
 import type { PreviewSpec } from './preview-spec';
-import type { PreviewOpenTimings } from './preview-timings';
+import type { PreviewFrameWork, PreviewOpenTimings } from './preview-timings';
 
 export interface PreviewSessionDependencies {
   readonly host: HTMLElement;
@@ -194,6 +194,14 @@ export class PreviewSession extends FrameLoopSession {
   /** The frame report the evidence route writes into the DOM; `null` before the first frame. */
   performanceReport(): ClientPerformanceReport | null {
     return this.lastOutputs === null ? null : this.instrumentation.report(this.lastOutputs, null);
+  }
+
+  /** What the frame budget judges: the lens's work outside its submit, and the clock it was read on (ticket #502). */
+  frameWork(): PreviewFrameWork {
+    return {
+      workOutsideSubmitP95Ms: this.instrumentation.workOutsideSubmitP95Ms(),
+      timerResolutionMs: this.instrumentation.evidence().timerResolutionMs,
+    };
   }
 
   /** The hook the evidence route alone installs (§12.7); the encyclopedia never calls it. */

@@ -29,9 +29,9 @@ import {
   RENDER_MAX_DRAW_CALLS,
   RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
-  RENDER_TIMER_RESOLUTION_BUDGET_FRACTION,
 } from '../constants';
 import type { FrameResidual, FrameTimingReport } from './render-stage-timer';
+import { isClockFineEnoughFor } from './timer-resolution';
 
 /**
  * What the verdict needs beyond the wire report: how long the window is and what it left unbracketed. Why
@@ -122,10 +122,9 @@ function quantileRows(): BudgetRowName[] {
 
 /** CPU-clock rows whose budget is under ten of the clock's steps; none when the step is unknown. */
 function rowsTooFineForClock(timerResolutionMs: number | null): BudgetRowName[] {
-  if (timerResolutionMs === null) return [];
-  return CPU_CLOCK_ROW_BUDGET_MS.filter(
-    ([, budgetMs]) => timerResolutionMs > budgetMs * RENDER_TIMER_RESOLUTION_BUDGET_FRACTION,
-  ).map(([name]) => name);
+  return CPU_CLOCK_ROW_BUDGET_MS.filter(([, budgetMs]) => !isClockFineEnoughFor(budgetMs, timerResolutionMs)).map(
+    ([name]) => name,
+  );
 }
 
 function unjudgedRows(
