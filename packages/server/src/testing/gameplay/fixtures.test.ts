@@ -69,19 +69,19 @@ describe('placed fixtures', () => {
     expect(placeCell({ playerIndex: 0, mass: 20 }, undefined).traits).toBeNull();
   });
 
-  it('places a wild seat east of the first cell or at an anchor, refusing a bad seat or spread (W4, W8)', () => {
-    expect(placeWildCell({ seat: 0, spreadFactor: 1, eastOfFirstCellWu: 10 }, first)).toEqual({
+  it('places a wild seat east of the first cell or at an anchor, refusing a bad seat or size factor (W4, W8)', () => {
+    expect(placeWildCell({ seat: 0, sizeFactor: 1, eastOfFirstCellWu: 10 }, first)).toEqual({
       kind: PLACED_KIND.wildCell,
       seat: 0,
-      spreadFactor: 1,
+      sizeFactor: 1,
       at: eastOfCellOf(0, 10),
     });
-    expect(placeWildCell({ seat: 3, spreadFactor: 5 }, undefined).at).toBe(ZONE.broth);
-    expect(placeWildCell({ seat: 3, spreadFactor: 5, at: VENT_POINT }, first).at).toEqual(atPoint(0, 0));
-    expect(() => placeWildCell({ seat: 1.5, spreadFactor: 1 }, undefined)).toThrow(ScenarioSetupError);
-    expect(() => placeWildCell({ seat: -1, spreadFactor: 1 }, undefined)).toThrow(/whole number from 0/);
-    expect(() => placeWildCell({ seat: 0, spreadFactor: 0 }, undefined)).toThrow(/spread factor is positive/);
-    expect(() => placeWildCell({ seat: 0, spreadFactor: 1 }, first)).toThrow(/needs a placement/);
+    expect(placeWildCell({ seat: 3, sizeFactor: 5 }, undefined).at).toBe(ZONE.broth);
+    expect(placeWildCell({ seat: 3, sizeFactor: 5, at: VENT_POINT }, first).at).toEqual(atPoint(0, 0));
+    expect(() => placeWildCell({ seat: 1.5, sizeFactor: 1 }, undefined)).toThrow(ScenarioSetupError);
+    expect(() => placeWildCell({ seat: -1, sizeFactor: 1 }, undefined)).toThrow(/whole number from 0/);
+    expect(() => placeWildCell({ seat: 0, sizeFactor: 0 }, undefined)).toThrow(/size factor is positive/);
+    expect(() => placeWildCell({ seat: 0, sizeFactor: 1 }, first)).toThrow(/needs a placement/);
   });
 
   it('puts a second cell east of the first cell, resolved by the adapter against that cell', () => {

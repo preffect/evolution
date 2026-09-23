@@ -42,14 +42,30 @@ function coldOpenValue(coldOpen: PreviewOpenTimings): string {
   return `${formatMeasuredMilliseconds(coldOpen.openedToFirstFrameMs)} — ${split.join(', ')}`;
 }
 
+/**
+ * The lens's work outside its submit against the frame budget (ticket #502), or its number marked unjudged where the
+ * verdict could not judge it: the page's clock too coarse for a 1 ms budget (ticket #504).
+ */
+function frameWorkValue(report: PreviewRouteReport): string {
+  const { workOutsideSubmitP95Ms, timerResolutionMs } = report.frameWork;
+  if (report.verdict.isFrameWithinBudget !== null || !Number.isFinite(workOutsideSubmitP95Ms)) {
+    return formatAgainstBudget(workOutsideSubmitP95Ms, report.budgets.frameMs, 'no frame sample');
+  }
+  const clock = `the page's clock steps ${formatMeasuredMilliseconds(timerResolutionMs)}`;
+  return `${formatMeasuredMilliseconds(workOutsideSubmitP95Ms)} — unjudged (${clock})`;
+}
+
+/** The whole frame, submit included: reported, never judged — on hardware the submit waits on the GPU's queue. */
+function wholeFrameValue(report: PreviewRouteReport): string {
+  return `${formatMeasuredMilliseconds(report.frame.frameTimeP95Ms)} with the submit — not judged (it waits on the GPU)`;
+}
+
 /** The verdict and the numbers that decide it, budgets first; the object below carries everything else. */
 export function previewReportHeadlines(report: PreviewRouteReport): readonly string[] {
   return [
     measurementRow('open p95', formatAgainstBudget(report.openP95Ms, report.budgets.openMs, warmOpenReason(report))),
-    measurementRow(
-      'frame p95',
-      formatAgainstBudget(report.frame.frameTimeP95Ms, report.budgets.frameMs, 'no frame sample'),
-    ),
+    measurementRow('frame work', frameWorkValue(report)),
+    measurementRow('frame p95', wholeFrameValue(report)),
     measurementRow('cold open', coldOpenValue(report.coldOpen)),
   ];
 }

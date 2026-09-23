@@ -151,12 +151,14 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
 
   private writeReport(query: PreviewQuery, spec: PreviewSpec, opens: readonly PreviewOpenTimings[]): void {
     const [coldOpen, ...warmOpens] = opens;
-    const frame = this.parkedSession?.performanceReport() ?? null;
+    const parked = this.parkedSession;
+    const frame = parked?.performanceReport() ?? null;
     // Never leave the element empty: the smoke waits on it, and a silent failure is a half-hour timeout with no
     // diagnosis on a route whose whole job is to make a hardware run one URL.
     if (coldOpen === undefined) return this.writeFailure(PREVIEW_ROUTE_FAILURE.noOpenCompleted);
-    if (frame === null) return this.writeFailure(PREVIEW_ROUTE_FAILURE.noFrameDrawn);
+    if (parked === null || frame === null) return this.writeFailure(PREVIEW_ROUTE_FAILURE.noFrameDrawn);
     const openP95Ms = previewOpenP95Ms(warmOpens);
+    const frameWork = parked.frameWork();
     const report: PreviewRouteReport = {
       anchor: query.anchor,
       scene: spec.scene,
@@ -167,8 +169,9 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
       warmOpens,
       openP95Ms,
       frame,
+      frameWork,
       budgets: PREVIEW_BUDGETS,
-      verdict: previewBudgetVerdict(openP95Ms, frame.frameTimeP95Ms),
+      verdict: previewBudgetVerdict(openP95Ms, frameWork),
     };
     publishPreviewReport(this.report().nativeElement, report);
   }
