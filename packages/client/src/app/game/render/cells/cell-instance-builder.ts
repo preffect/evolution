@@ -73,7 +73,12 @@ export function warningRingPxFor(
   if (!lod.hasTells || own === null || own.id === cell.id || !canEngulf(cell, own, balance.absorption)) {
     return NO_WARNING_RING;
   }
-  return Math.max(ENGULF_WARNING_RING_RADII * lod.screenRadiusPx, ENGULF_WARNING_RING_MIN_PX);
+  return warningRingRadiusPx(lod.screenRadiusPx);
+}
+
+/** The warning ring's radius on a cell of `screenRadiusPx`: `ENGULF_WARNING_RING_RADII × r_px`, floored in px. */
+export function warningRingRadiusPx(screenRadiusPx: number): number {
+  return Math.max(ENGULF_WARNING_RING_RADII * screenRadiusPx, ENGULF_WARNING_RING_MIN_PX);
 }
 
 /** The relation ring a cell packs: its line radius and line count (docs/rendering/own-cell-indicators.md §10). */

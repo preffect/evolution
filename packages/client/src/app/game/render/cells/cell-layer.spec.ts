@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, entityId } from '@evolution/shared';
+import { CELL_STAGE, entityId, type CellView } from '@evolution/shared';
 import {
   TEST_OTHER_CELL_ID,
   createTestCellAbsorbedEffect,
@@ -9,7 +9,9 @@ import {
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { Graphics } from 'pixi.js';
 import type { CameraExtent } from '../camera';
-import { HALO_KIND } from '../constants';
+import { CELL_QUAD_EXTENT_RADII, HALO_KIND } from '../constants';
+import { cullReachRadii } from './cell-cull';
+import { summariseCellTraits } from './cell-traits';
 import { NO_DEFORMATIONS, type CellDeformation } from './cell-deformation';
 import { CONTACT_DENT_AMPLITUDE } from '../constants';
 import {
@@ -96,6 +98,20 @@ describe('CellLayer', () => {
     expect(subject.update(input({ frame: createTestRenderFrame({ cells: [nearEdge] }) })).visibleCells).toBe(1);
     const past = createTestCellView({ x: EXTENT.maxX + 100, y: 0, radius: 6 });
     expect(subject.update(input({ frame: createTestRenderFrame({ cells: [past] }) })).visibleCells).toBe(0);
+    subject.destroy();
+  });
+
+  it('draws a tier-III flagellate whose tail tip can reach on screen, and not one whose whole drawing is off (#529)', () => {
+    const subject = new CellLayer(textures);
+    const traits: CellView['traits'] = [{ traitId: 'simple_flagellum', tier: 3 }];
+    const radius = 10;
+    const reachPx = cullReachRadii(summariseCellTraits(createTestCellView({ radius, traits }), null)) * radius;
+    // The tail reaches past the old constant quad extent, which is what let its tip pop in at the edge.
+    expect(reachPx).toBeGreaterThan(CELL_QUAD_EXTENT_RADII * radius);
+    const reaching = createTestCellView({ id: entityId('tail-in'), x: EXTENT.maxX + reachPx - 1, radius, traits });
+    const beyond = createTestCellView({ id: entityId('all-out'), x: EXTENT.maxX + reachPx + 1, radius, traits });
+    expect(subject.update(input({ frame: createTestRenderFrame({ cells: [reaching] }) })).visibleCells).toBe(1);
+    expect(subject.update(input({ frame: createTestRenderFrame({ cells: [beyond] }) })).visibleCells).toBe(0);
     subject.destroy();
   });
 
