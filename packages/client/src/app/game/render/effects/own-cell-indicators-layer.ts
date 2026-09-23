@@ -25,14 +25,25 @@ import { ArcMesh } from './arc-mesh';
 import { IndicatorFillTween } from './indicator-fill-tween';
 import { createBitmapIndicatorText, type IndicatorText, type IndicatorTextFactory } from './indicator-text';
 import { MotionClipPlayer } from './motion-clip-player';
+import { ladderOrbitRadiusPx } from './own-cell-geometry';
 import { OwnCellLayer, type OwnCellLayerSubject } from './own-cell-layer';
 import {
+  escapeArcs,
   ownCellIndicatorPlacements,
   type IndicatorLabelPlacement,
   type OwnCellIndicatorPlacements,
   type ThreatAnchor,
 } from './own-cell-indicators';
 import { NO_RELATION_LABEL_SCENE, relationLabelPlacements, type RelationLabelScene } from './relation-label-placements';
+
+/**
+ * How much of the own-cell chrome a frame draws. `hud` is the game: every indicator, label and cue. `lens` is the
+ * encyclopedia preview (docs/architecture/encyclopedia.md §12.7, ticket #505): a lens shows the creature and its
+ * action, never HUD chrome, so it draws only the escape arc — the escape window is the `escape` scene's action —
+ * and no DNA ring, numeral, ladder, label or cue. The self ring and the warning ring are cell tells, drawn either way.
+ */
+export const OWN_CELL_CHROME = { hud: 'hud', lens: 'lens' } as const;
+export type OwnCellChrome = (typeof OWN_CELL_CHROME)[keyof typeof OWN_CELL_CHROME];
 
 export interface OwnCellIndicatorsLayerFrame {
   readonly indicators: OwnCellIndicators | null;
@@ -46,6 +57,8 @@ export interface OwnCellIndicatorsLayerFrame {
   readonly relationScene?: RelationLabelScene;
   /** Where the cue column rests (`CueLayer.restingColumn`, last frame's), px in the own cell's frame; labels keep off it. */
   readonly cueColumn?: UprightBox | null;
+  /** `OWN_CELL_CHROME.hud` when absent. */
+  readonly chrome?: OwnCellChrome;
 }
 
 export interface OwnCellIndicatorsLayerOutputs {
@@ -86,6 +99,7 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
     frame: OwnCellIndicatorsLayerFrame,
   ): OwnCellIndicatorsLayerOutputs {
     const { indicators, ownCell, text } = subject;
+    if (frame.chrome === OWN_CELL_CHROME.lens) return this.drawLens(indicators, ownCell, text, frame.zoom);
     const clocks = this.advanceClocks(ownCell.id, indicators, frame);
     const placements = ownCellIndicatorPlacements({
       indicators,
@@ -112,6 +126,25 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
     const labels = placements.label === null ? relationLabels : [placements.label, ...relationLabels];
     this.labelBoxesPx = labels.map((label) => labelBoxOf(label, ownCell, frame.zoom));
     return outputsOf(placements, labels.length, this.arcMesh.count);
+  }
+
+  /** The lens's one piece of chrome: the escape arc while `being_engulfed`, on the orbit's radius; nothing else. */
+  private drawLens(
+    indicators: OwnCellIndicators,
+    ownCell: CellView,
+    text: IndicatorText,
+    zoom: number,
+  ): OwnCellIndicatorsLayerOutputs {
+    const { escape } = indicators;
+    const centre = { x: ownCell.x, y: ownCell.y };
+    const arcs = escape === null ? [] : escapeArcs(escape, centre, ladderOrbitRadiusPx(ownCell.radius * zoom));
+    this.arcMesh.draw(arcs, zoom);
+    this.pool.hideFrom(0);
+    text.hideNumeral();
+    text.hideLabel();
+    text.hideRelationLabels();
+    this.labelBoxesPx = [];
+    return { sprites: 0, arcs: this.arcMesh.count, texts: 0 };
   }
 
   /** The arc rows the next render draws, `ARC_INSTANCE_FLOATS` each: a test reads them. */

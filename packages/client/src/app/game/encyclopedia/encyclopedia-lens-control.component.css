@@ -1,7 +1,9 @@
 /* The lens control (docs/ui/encyclopedia.md §11.4): centred under the lens, `UI_SPACE_M_PX` below it. */
 
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-top: calc(var(--ui-space-m) * var(--ui-scale));
 }
 

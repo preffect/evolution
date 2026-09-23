@@ -72,7 +72,7 @@ describe('HintComponent', () => {
   it('caps the width at the full host less its margins, and lets the pill fill that cap', () => {
     show();
     expect(styleRuleValue(document, ['.live'], 'max-width')).toBe(
-      'calc(100% - 2 * var(--hud-margin) * var(--hud-scale))',
+      'calc(100% - 2 * var(--hud-margin) * var(--ui-scale))',
     );
     expect(styleRuleValue(document, ['.pill'], 'max-width')).toBe('100%');
     expect(styleRuleValue(document, ['.pill'], 'white-space')).toBeNull();

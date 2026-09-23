@@ -6,7 +6,7 @@
 
    Every length reads a `--ui-…` or `--hud-…` the shell publishes from the constants
    (`ui-kit/format/ui-css-variables.ts`, `hud/format/hud-css-variables.ts`), so no number has a second
-   home here. `--ui-scale` and `--hud-scale` are the same number — the shell computes both from one
+   home here. `--ui-scale` and `--ui-scale` are the same number — the shell computes both from one
    `uiScaleFor` on one box — and the kit's scale is used throughout, since the panel is a kit surface. */
 
 :host {
@@ -65,7 +65,7 @@ app-trait-glyph {
 }
 
 .mass[data-trend='down'] .trend {
-  color: var(--hud-danger);
+  color: var(--ui-danger);
   transform: rotate(0.5turn);
 }
 

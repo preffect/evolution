@@ -14,10 +14,11 @@ import { FACT_LIST_SEPARATOR } from '../facts/resolve-prose';
 import {
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR,
+  ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL,
   ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
   ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
 } from '../encyclopedia-constants';
-import type { PreviewSpec } from '../../render/preview/preview-spec';
+import type { PreviewActionScene, PreviewScene, PreviewSpec } from '../../render/preview/preview-spec';
 import type { EntryLink, ProseSegment, ResolvedFact, ResolvedSection, ResolvedSubject } from '../model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, entryIdOf, type EntryId } from '../model/entry-id';
 import { PROSE_TOKEN } from '../model/prose';
@@ -260,4 +261,13 @@ export function proseParagraphs(segments: readonly ProseSegment[]): readonly (re
     });
   }
   return paragraphs.filter((paragraph) => paragraph.length > 0);
+}
+
+/** The `Replay` label under a lens showing an action scene (§11.4), or `null` for a scene that shows a subject. */
+export function replayLabelFor(spec: PreviewSpec | null): string | null {
+  return spec !== null && isActionScene(spec.scene) ? ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL[spec.scene] : null;
+}
+
+function isActionScene(scene: PreviewScene): scene is PreviewActionScene {
+  return Object.hasOwn(ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL, scene);
 }

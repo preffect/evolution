@@ -200,7 +200,7 @@ describe('engulfProgressDelta', () => {
       progress += engulfProgressDelta({ ...idleCoverInput, phase: engulfPhaseOf(progress, absorption) }, absorption);
     }
     expect(progress).toBeGreaterThanOrEqual(1 - absorption.ENGULF_PROGRESS_EPSILON);
-    expect(progress).toBeCloseTo(1, PROGRESS_TOLERANCE);
+    expect(Math.abs(progress - 1)).toBeLessThanOrEqual(PROGRESS_TOLERANCE);
   });
 });
 

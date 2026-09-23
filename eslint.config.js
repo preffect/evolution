@@ -108,6 +108,24 @@ const LIVE_BALANCE_SYNTAX_RESTRICTIONS = [
     message: 'Tier numbers are read from balance.traits.TRAIT_TIERS only (constants-files-tests.md §9).',
   },
 ];
+/**
+ * Vitest's `toBeCloseTo(expected, numDigits)` and `expect.closeTo` take a DIGIT COUNT: |Δ| < 10^−numDigits / 2. A
+ * tolerance there (0.01, 1e-12) makes the bound about ±0.5 and the assertion can hardly fail (#587). Pass a whole
+ * number of digits, or write `expect(Math.abs(actual - expected)).toBeLessThanOrEqual(TOLERANCE)`. The scenario DSL's
+ * own `.atTick(t).toBeCloseTo(value, tolerance)` IS tolerance-based and is not matched: its receiver is not `expect(…)`.
+ */
+const CLOSE_TO_MESSAGE =
+  'toBeCloseTo / expect.closeTo take a whole digit count, not a tolerance: use an integer, or assert Math.abs(Δ) <= TOLERANCE (#587).';
+const VITEST_CLOSE_TO = [
+  "CallExpression[callee.property.name='toBeCloseTo'][callee.object.callee.name='expect']",
+  "CallExpression[callee.property.name='toBeCloseTo'][callee.object.object.callee.name='expect']",
+  "CallExpression[callee.property.name='closeTo'][callee.object.name='expect']",
+];
+const CLOSE_TO_SYNTAX_RESTRICTIONS = VITEST_CLOSE_TO.flatMap((call) => [
+  { selector: `${call} > Literal:nth-child(2)[raw=/[.eE]/]`, message: CLOSE_TO_MESSAGE },
+  { selector: `${call} > UnaryExpression:nth-child(2)`, message: CLOSE_TO_MESSAGE },
+  { selector: `${call} > Identifier:nth-child(2)[name=/TOLERANCE|Tolerance/]`, message: CLOSE_TO_MESSAGE },
+]);
 /** Encyclopedia content holds no number and computes none, even through a named constant (§12.6). */
 const ENCYCLOPEDIA_CONTENT_FILES = ['packages/client/src/app/game/encyclopedia/content/**/*.ts'];
 const CONTENT_NUMBER_MESSAGE = 'Encyclopedia content names a fact source, never a number or arithmetic (§12.3, §12.6).';
@@ -132,7 +150,8 @@ function liveBalanceOnlyRules(allowedNames) {
         ],
       },
     ],
-    'no-restricted-syntax': ['error', ...LIVE_BALANCE_SYNTAX_RESTRICTIONS],
+    // A later `no-restricted-syntax` replaces an earlier one: these blocks reach specs, so they carry #587's guard too.
+    'no-restricted-syntax': ['error', ...LIVE_BALANCE_SYNTAX_RESTRICTIONS, ...CLOSE_TO_SYNTAX_RESTRICTIONS],
   };
 }
 /** The definition sites of constants: a literal here IS the named constant (§1). */
@@ -327,7 +346,14 @@ export default tseslint.config(
       'max-lines-per-function': 'off',
       'max-nested-callbacks': 'off',
       'no-restricted-globals': 'off',
+      'no-restricted-syntax': ['error', ...CLOSE_TO_SYNTAX_RESTRICTIONS],
     },
+  },
+  {
+    // #587's guard, waived for the one file whose W3/W9 seed-share assertions ticket #550/#551 is rewriting in its
+    // own branch (SEED_SHARE_TOLERANCE as a digit count). Delete this block when that lands.
+    files: ['packages/server/src/testing/scenarios/ecology-wild-clock.gameplay.test.ts'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
   {
     // ---- The one PRNG, the one clock, the one ticker ---------------------------------
@@ -349,7 +375,12 @@ export default tseslint.config(
     // A later `no-restricted-syntax` replaces an earlier one, so the content block repeats the live-balance selectors.
     files: ENCYCLOPEDIA_CONTENT_FILES,
     rules: {
-      'no-restricted-syntax': ['error', ...LIVE_BALANCE_SYNTAX_RESTRICTIONS, ...CONTENT_SYNTAX_RESTRICTIONS],
+      'no-restricted-syntax': [
+        'error',
+        ...LIVE_BALANCE_SYNTAX_RESTRICTIONS,
+        ...CONTENT_SYNTAX_RESTRICTIONS,
+        ...CLOSE_TO_SYNTAX_RESTRICTIONS,
+      ],
     },
   },
   ...TEMPLATE_FILE_EXEMPTIONS,

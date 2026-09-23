@@ -203,11 +203,6 @@ export const COACH_PREY_REACH_RADII = 4;
  */
 export const HINT_MIN_SECONDS = 1.5;
 
-// ---- controls (docs/ui/input-and-onboarding.md §4) ----
-
-/** Every interactive element's visible focus ring, in the text colour; never scaled. */
-export const HUD_FOCUS_RING_PX = 2;
-
 // ---- the hold-Tab "affecting you" panel (docs/ui/overlays.md §3.7, decision #324) ----
 
 /**

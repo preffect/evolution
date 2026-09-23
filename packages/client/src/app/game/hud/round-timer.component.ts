@@ -24,8 +24,8 @@ import { roundClockStateFor } from './format/round-clock';
     `
       :host {
         position: absolute;
-        right: calc(var(--hud-margin) * var(--hud-scale));
-        bottom: calc(var(--hud-margin) * var(--hud-scale));
+        right: calc(var(--hud-margin) * var(--ui-scale));
+        bottom: calc(var(--hud-margin) * var(--ui-scale));
         pointer-events: none;
       }
 
@@ -38,29 +38,29 @@ import { roundClockStateFor } from './format/round-clock';
       }
 
       .digits {
-        font-family: var(--hud-font-mono);
-        font-size: calc(var(--hud-type-clock) * var(--hud-scale));
+        font-family: var(--ui-font-mono);
+        font-size: calc(var(--ui-type-clock) * var(--ui-scale));
         font-variant-numeric: tabular-nums;
-        color: var(--hud-text);
+        color: var(--ui-text);
       }
 
       .caption {
-        font-family: var(--hud-font-sans);
-        font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+        font-family: var(--ui-font-sans);
+        font-size: calc(var(--ui-type-caption) * var(--ui-scale));
         text-transform: uppercase;
-        letter-spacing: var(--hud-label-tracking);
-        color: var(--hud-text-label);
+        letter-spacing: var(--ui-label-tracking);
+        color: var(--ui-text-label);
       }
 
       /* The bloom (docs/ecology/food-and-spawn.md §3.1): the one saturated colour the clock ever takes. */
       .round-timer.bloom .digits,
       .round-timer.bloom .caption {
-        color: var(--hud-level-gold);
+        color: var(--ui-level-gold);
       }
 
       /* In bloom the caption names the effect, a fact, so it steps up from caption to label (docs/ui/hud.md §3.1.1). */
       .round-timer.bloom .caption {
-        font-size: calc(var(--hud-type-label) * var(--hud-scale));
+        font-size: calc(var(--ui-type-label) * var(--ui-scale));
         white-space: nowrap;
       }
 

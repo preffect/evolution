@@ -50,7 +50,13 @@ import {
 } from '../../constants';
 import { previewCellView, type PreviewCellSpec } from '../preview-frame';
 import type { PreviewFraming } from '../preview-scene';
-import { ACTION_SUBJECT_CENTRE, actionSubjectCellView, pointFromSubject, velocityAlong } from './action-subject';
+import {
+  ACTION_SUBJECT_CENTRE,
+  AT_REST_POSE,
+  actionSubjectCellView,
+  pointFromSubject,
+  velocityAlong,
+} from './action-subject';
 
 /** Which side of the engulf the subject — the cell the camera follows — plays. */
 export const ENGULF_ROLE = { predator: 'predator', prey: 'prey' } as const;
@@ -205,8 +211,6 @@ export interface EngulfPairDrawStates {
   readonly partnerEngaged: CellDrawState;
 }
 
-const AT_REST = { velocityX: 0, velocityY: 0 };
-
 /**
  * The tightest lens that holds both bodies in the safe band and everything drawn inside the rim, over the whole
  * loop — the `cell` family's rule over two cells. The partner is bounded twice, because its two widest moments
@@ -220,9 +224,12 @@ export function engulfPairFraming(
   balance: BalanceConfig,
 ): PreviewFraming {
   const geometry = engulfPairGeometry(subjectRole, balance);
-  const subjectTraits = summariseCellTraits(actionSubjectCellView(AT_REST, balance));
+  const subjectTraits = summariseCellTraits(actionSubjectCellView(AT_REST_POSE, balance));
   const partnerTraits = summariseCellTraits(
-    engulfPartnerCellView({ mass: geometry.partnerMass, ...ACTION_SUBJECT_CENTRE, ...AT_REST, ...FREE_LINKS }, balance),
+    engulfPartnerCellView(
+      { mass: geometry.partnerMass, ...ACTION_SUBJECT_CENTRE, ...AT_REST_POSE, ...FREE_LINKS },
+      balance,
+    ),
   );
   const subject = cellDrawExtentRadii(subjectTraits, states.subject);
   const free = cellDrawExtentRadii(partnerTraits, states.partnerFree);
@@ -250,7 +257,8 @@ export function engulfPairFraming(
 /** The prey steers straight away from its predator: the struggle formula's full effort. */
 const FULL_AWAY_EFFORT = 1;
 /** The pair wears no grip or resistance traits: the wrap's speed cap is the balance's plain factor. */
-const NO_GRIP_BONUS = 0;
+/** Neither cell of the pair owns a grip trait: no bonus on either side of the held-speed rule. */
+export const NO_GRIP_BONUS = 0;
 
 /** The escape decay, as the server applies it to a wrap that has lost contact, at this pair's masses. */
 export function escapeDecayPerTick(geometry: EngulfPairGeometry, balance: BalanceConfig): number {

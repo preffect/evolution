@@ -3,7 +3,7 @@
 // renderer applies them). `render/constants-ledger.spec.ts` parses that table and pins every row
 // here by name and value. `DNA_RING_KEEP_OUT_FRACTION` is §9's too, but its page is `organelles.ts`
 // beside the slot rules that read it. Every px value is a screen px floor (ui/hud.md §3.1.3): nothing
-// here scales with the camera or with `--hud-scale`.
+// here scales with the camera or with `--ui-scale`.
 
 // ---- the DNA ring and the level numeral ----
 export const DNA_RING_RADIUS_FRACTION = 0.44;
