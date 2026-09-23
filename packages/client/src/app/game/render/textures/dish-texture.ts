@@ -17,6 +17,7 @@ import {
   RADIANS_PER_FULL_TURN,
   SHALLOWS_WIDTH,
   VENT_RADIUS,
+  ZONE_ID,
   type GelPatchView,
   type RandomSource,
 } from '@evolution/shared';
@@ -67,8 +68,26 @@ interface ZoneTint {
   readonly midAlpha: number;
 }
 
-const VENT_TINT: ZoneTint = { colour: ZONE_VENT, alpha: ZONE_TINT_ALPHA.vent, midAlpha: ZONE_TINT_MID_ALPHA.vent };
-const GEL_TINT: ZoneTint = { colour: ZONE_GEL, alpha: ZONE_TINT_ALPHA.gel, midAlpha: ZONE_TINT_MID_ALPHA.gel };
+/**
+ * The colour each tinted zone is painted in: what the dish draws, and what a subject glyph of that zone is held to
+ * (`subject-glyphs.spec.ts`). The broth has no tint.
+ */
+export const ZONE_TINT_COLOUR = {
+  [ZONE_ID.warmVent]: ZONE_VENT,
+  [ZONE_ID.viscousGel]: ZONE_GEL,
+  [ZONE_ID.sunlitShallows]: ZONE_SHALLOWS,
+} as const;
+
+const VENT_TINT: ZoneTint = {
+  colour: ZONE_TINT_COLOUR[ZONE_ID.warmVent],
+  alpha: ZONE_TINT_ALPHA.vent,
+  midAlpha: ZONE_TINT_MID_ALPHA.vent,
+};
+const GEL_TINT: ZoneTint = {
+  colour: ZONE_TINT_COLOUR[ZONE_ID.viscousGel],
+  alpha: ZONE_TINT_ALPHA.gel,
+  midAlpha: ZONE_TINT_MID_ALPHA.gel,
+};
 
 function dishDisc(frame: FieldFrame): DiscSpec {
   return { x: frame.centre, y: frame.centre, radius: DISH_RADIUS * frame.pxPerWu };
@@ -87,11 +106,12 @@ function paintZoneTint(context: BakeContext2D, disc: DiscSpec, tint: ZoneTint): 
 function paintShallows(frame: FieldFrame): void {
   const inner = (DISH_RADIUS - SHALLOWS_WIDTH) / DISH_RADIUS;
   const feather = (1 - inner) * SHALLOWS_FEATHER_SHARE;
+  const tint = ZONE_TINT_COLOUR[ZONE_ID.sunlitShallows];
   fillRadial(frame.context, dishDisc(frame), [
-    { offset: inner - feather, colour: ZONE_SHALLOWS, alpha: 0 },
-    { offset: inner, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_MID_ALPHA.shallows },
-    { offset: inner + feather, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_ALPHA.shallows },
-    { offset: 1, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_ALPHA.shallows },
+    { offset: inner - feather, colour: tint, alpha: 0 },
+    { offset: inner, colour: tint, alpha: ZONE_TINT_MID_ALPHA.shallows },
+    { offset: inner + feather, colour: tint, alpha: ZONE_TINT_ALPHA.shallows },
+    { offset: 1, colour: tint, alpha: ZONE_TINT_ALPHA.shallows },
   ]);
 }
 

@@ -5,7 +5,6 @@ import {
   DEFAULT_CELL_MODIFIERS,
   NO_STEER_COMMAND,
   STARTING_STAGE,
-  WORLD_ORGANISM_ID,
   entityId,
   playerId,
 } from '@evolution/shared';
@@ -49,13 +48,13 @@ describe('bornCellRecord', () => {
     expect(isPlayerCell(cell)).toBe(true);
   });
 
-  it('makes a wild cell with no player and the world organism', () => {
+  it('makes a wild cell with no player, its own organism', () => {
     const cell = bornCellRecord(
       {
         id: entityId('c-2'),
         kind: CELL_KIND.wild,
         playerId: null,
-        organismId: WORLD_ORGANISM_ID,
+        organismId: entityId('c-2'),
         avatarIndex: 0,
         level: 1,
       },
@@ -64,7 +63,7 @@ describe('bornCellRecord', () => {
     );
     expect(cell.kind).toBe(CELL_KIND.wild);
     expect(cell.playerId).toBeNull();
-    expect(cell.organismId).toBe(WORLD_ORGANISM_ID);
+    expect(cell.organismId).toBe(cell.id);
     expect(isPlayerCell(cell)).toBe(false);
   });
 });

@@ -99,7 +99,7 @@ export interface CellView {
   kind: CellKind;
   /** Null for a wild cell (docs/ecology/wild-cells.md §3.3). */
   playerId: PlayerId | null;
-  /** Equals `id` for a player cell in build 1 (the reserved colony grouping key, docs/game-design/controls-and-scope.md §11); `WORLD_ORGANISM_ID` for every wild cell. */
+  /** Equals `id` for a player cell in build 1 (the reserved colony grouping key, docs/game-design/controls-and-scope.md §11); and for a wild cell too, so wild engulfs wild (docs/ecology/wild-cells.md §3.3.2). */
   organismId: EntityId;
   avatarIndex: number;
   x: number;

@@ -8,6 +8,7 @@ import {
   CELL_STAGE,
   DEFAULT_BALANCE,
   EFFECT_KIND,
+  FOOD_KIND,
   RANDOM_STREAM,
   PLAYER_LIFE_STATE,
   ROUND_PHASE,
@@ -15,9 +16,11 @@ import {
   TICK_INTERVAL_MS,
   createSeededRandom,
   cumulativeDnaForLevel,
+  distanceBetween,
   entryMass,
   ticksToSeconds,
   worldReference,
+  type CellView,
 } from '@evolution/shared';
 import { drawSpawnCandidate } from '../../game/simulation/spawn-placement.js';
 import {
@@ -28,7 +31,6 @@ import {
 } from '../gameplay/evolution-adapter.js';
 import {
   cellOf,
-  detritusMass,
   distanceBetweenCells,
   effectsOfKind,
   massOf,
@@ -49,7 +51,17 @@ const RESPAWN_TICKS = session.RESPAWN_SPECTATE_SECONDS * TICK_HZ;
 const G10_LEAVE_TICK = 2400;
 const G14_JOIN_TICK = 18_000;
 
-const detritusMassInDish = (view: EvolutionView): number => detritusMass(view, ecology.DETRITUS_MOTE_MASS);
+/**
+ * G10: the detritus mass lying within the scatter reach of the removed cell (`DETRITUS_SCATTER_RADIUS_FACTOR` of its
+ * radius), so the scraps of a wild cell eaten elsewhere earlier (wild eats wild, #551) are not counted as its own.
+ */
+function detritusMassAround(view: EvolutionView, removed: CellView): number {
+  const reach = removed.radius * ecology.DETRITUS_SCATTER_RADIUS_FACTOR;
+  const scraps = view.snapshot.food.spawned.filter(
+    (mote) => mote.kind === FOOD_KIND.detritus && distanceBetween(mote, removed) <= reach,
+  );
+  return scraps.length * ecology.DETRITUS_MOTE_MASS;
+}
 
 function worldLevelUpAt(tick: number, level: number, stage: (typeof CELL_STAGE)[keyof typeof CELL_STAGE]) {
   return [{ kind: EFFECT_KIND.worldLevelUp, tick, level, stage }];
@@ -156,12 +168,16 @@ describe('game-design/constants-and-acceptance.md §13: the session', () => {
       .advance(G10_LEAVE_TICK + 1)
       .capture('mass at removal', (view) => massOf(view, 0))
       .atTick(G10_LEAVE_TICK - 1)
+      .capture('cell at removal', (view) => cellOf(view, 0))
+      .atTick(G10_LEAVE_TICK - 1)
       .expect('no cell', (view) => cellOf(view, 0))
       .atEnd()
       .toSatisfy((cell) => cell === undefined, 'no cell')
       .expect(
         'detritus mass equals the rounded share of the mass at removal',
-        (view) => detritusMassInDish(view) === expectedDetritusMass(view.captured('mass at removal') as number),
+        (view) =>
+          detritusMassAround(view, view.captured('cell at removal') as CellView) ===
+          expectedDetritusMass(view.captured('mass at removal') as number),
       )
       .atEnd()
       .toBe(true)

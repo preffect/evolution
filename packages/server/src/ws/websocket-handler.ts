@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { nanoid } from 'nanoid';
-import { CLIENT_ID_QUERY_PARAMETER } from '@evolution/shared';
+import { CLIENT_ID_QUERY_PARAMETER, SOCKET_CLOSE_CODE_REPLACED, SOCKET_CLOSE_REASON_REPLACED } from '@evolution/shared';
 import type { Connection } from './connection.js';
 import { createMessageRouter, type MessageHandlers } from './message-router.js';
 
@@ -24,12 +24,15 @@ export function resolvePlayerId(requestUrl: string): string {
   return requestedId && requestedId.length > 0 ? requestedId : nanoid();
 }
 
-/** Takeover: a previous connection with the same id is replaced, not removed. */
+/**
+ * Takeover: a previous connection with the same id is replaced, not removed. It is closed with
+ * `SOCKET_CLOSE_CODE_REPLACED`, which tells its client not to reconnect and take the seat back (#273).
+ */
 export function replaceExistingConnection(existing: Connection | undefined): void {
   if (!existing) return;
   existing.isReplaced = true;
   try {
-    existing.socket.close();
+    existing.socket.close(SOCKET_CLOSE_CODE_REPLACED, SOCKET_CLOSE_REASON_REPLACED);
   } catch {
     // socket may already be closed
   }

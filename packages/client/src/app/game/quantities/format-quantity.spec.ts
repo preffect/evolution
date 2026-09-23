@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatQuantity } from './format-quantity';
 import {
+  COMPACT_FROM,
   QUANTITY_PRESENTATION,
   QUANTITY_ROUNDING,
   QUANTITY_UNIT,
@@ -154,6 +155,31 @@ describe('formatQuantity', () => {
           expect(text, `${unit} ${presentation} ${rounding}`).not.toMatch(/undefined|NaN/);
         }
       }
+    }
+  });
+});
+
+/** The leaderboard's score column holds five characters (docs/ui/hud.md §3.1.1). */
+const SCORE_COLUMN_CHARACTERS = 5;
+
+describe('formatQuantity, compact', () => {
+  const compact = (value: number): string =>
+    formatQuantity(value, QUANTITY_UNIT.points, { presentation: QUANTITY_PRESENTATION.compact });
+
+  it(`keeps every figure below ${COMPACT_FROM} whole, and shortens from there, rounding the short form down`, () => {
+    expect(compact(99_999)).toBe('99999');
+    expect(compact(123.6)).toBe('124');
+    expect(compact(COMPACT_FROM)).toBe('100k');
+    expect(compact(123_456)).toBe('123k');
+    expect(compact(999_999)).toBe('999k');
+    expect(compact(1_000_000)).toBe('1M');
+    expect(compact(1_299_999)).toBe('1.2M');
+    expect(compact(12_345_678)).toBe('12.3M');
+  });
+
+  it('never writes wider than the score column below 100 million, far past any reachable score', () => {
+    for (const score of [99_999, 100_000, 999_999, 1_000_000, 9_999_999, 99_999_999]) {
+      expect(compact(score).length).toBeLessThanOrEqual(SCORE_COLUMN_CHARACTERS);
     }
   });
 });

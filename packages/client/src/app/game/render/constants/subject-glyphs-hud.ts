@@ -169,6 +169,10 @@ const LEADERBOARD: shape.SubjectGlyph = {
     }),
     kit.paint(shape.GLYPH_ROLE.signature, BOARD_ROWS, { stroke: kit.stroke(TEXT_LABEL, SUBJECT_STROKE.mark) }),
     kit.paint(shape.GLYPH_ROLE.signature, OWN_ROW, { stroke: kit.stroke(WHITE, SUBJECT_STROKE.mark) }),
+    /** The material detail: the hairline rules between the rows, dropped at the list LOD. */
+    kit.paint(shape.GLYPH_ROLE.detail, shape.path('M29 44 L71 44 M29 56 L71 56'), {
+      stroke: kit.stroke(PANEL_RIM, SUBJECT_STROKE.hair),
+    }),
     kit.paint(
       shape.GLYPH_ROLE.signature,
       shape.path(
@@ -206,7 +210,8 @@ const ROUND_CLOCK: shape.SubjectGlyph = {
     ...panelLayers(CLOCK_PLATE),
     ...strokedMarkLayers(CLOCK_DIGITS, WHITE, SUBJECT_STROKE.rim),
     kit.paint(shape.GLYPH_ROLE.signature, CLOCK_COLON, { fill: kit.solid(WHITE), motion: kit.BEAT }),
-    kit.paint(shape.GLYPH_ROLE.signature, shape.path('M38 71 L62 71'), {
+    /** The material detail: the `ROUND` caption under the plate, which a 20 px mark has no room to show. */
+    kit.paint(shape.GLYPH_ROLE.detail, shape.path('M38 71 L62 71'), {
       stroke: kit.stroke(TEXT_LABEL, SUBJECT_STROKE.fine),
     }),
     bodyGlint(34, 42, 8),

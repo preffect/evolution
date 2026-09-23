@@ -19,7 +19,6 @@ import {
   WILD_CELL_SIZE_FACTOR_MAX,
   WILD_CELL_SIZE_FACTOR_MIN,
   WILD_CELL_TURN_CHANCE,
-  WORLD_ORGANISM_ID,
 } from './wild-cells.js';
 
 const BUILD_COUNT = 3;
@@ -81,9 +80,5 @@ describe('wild cell knobs', () => {
     expect(STAGE_ORDER).toContain(WILD_CELL_HUNTS_PLAYERS_FROM_STAGE);
     expect(WILD_CELL_TURN_CHANCE).toBeGreaterThan(0);
     expect(WILD_CELL_TURN_CHANCE).toBeLessThan(1);
-  });
-
-  it('names one organism for every wild cell', () => {
-    expect(WORLD_ORGANISM_ID.length).toBeGreaterThan(0);
   });
 });

@@ -99,7 +99,8 @@ its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 2
   `min(CELL_STARTING_MASS, baseMass)`, is inside `settleWildMass`.
 - **Order inside step 1:** players' inputs, then the settle for every seated cell in seat order, then the due
   seats' decisions. A sprint a decision starts is paid on that tick through `tryStartSprint`, the player's own
-  function, and the next settle reads the cost as a loss to recover.
+  function, and `startWildSprint` takes as much of it as `seat.grownMass` holds off `seat.grownMass` and
+  `seat.fullMass` (spent for good); the rest reaches the next settle as a wound and recovers (the lead's ruling on the #594 review).
 - **Perception is filtered by sight, linearly.** `createWildPerception` is built per decision around the
   deciding cell: `cellsOf` and `motesOf` return only entities whose centre lies within
   `wildSightRange(radius, balance) = WILD_CELL_SIGHT_VIEW_MULTIPLE × viewHalfHeightFor(radius)` (the shared

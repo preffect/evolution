@@ -146,6 +146,10 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   and the socket can `join_game` any room at once. A `leave_game` for a room the player is not seated in
   (the lobby, an unknown or another room) is a no-op. The client still drops the frames that room had
   already sent (`services/left-room-filter.ts`).
+- **A second socket with the same `clientId` takes over** (#273): the server replaces the old connection and closes
+  its socket with `SOCKET_CLOSE_CODE_REPLACED` (4001, `constants/identity.ts`). A client that sees that code does not
+  reconnect: the browser client returns to the lobby with a notice and waits for the user (ui/overlays.md §3.6), since
+  its 500 ms reconnect would take the seat back and the two tabs would trade it forever.
 - **`join_game` / `create_game` while seated in another room** (#334): two tabs share one `clientId`, so a socket
   can take a seat elsewhere without a `leave_game`. Once the server accepts the frame (a `join_game` for a pending game
   with a free seat, or for any active room; a `create_game` always), it first leaves the old seat exactly as `leave_game` does,

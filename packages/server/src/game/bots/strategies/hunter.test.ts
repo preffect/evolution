@@ -79,6 +79,14 @@ describe('hunter strategy', () => {
     expect(command).toEqual({ targetX: close.x, targetY: 0, isSprinting: true });
   });
 
+  it('skips the sprint when isSprintWorthwhile says so, keeping the chase', () => {
+    const close = { ...smallPrey, x: self.radius * HUNTER_SPRINT_WITHIN_RADII, y: 0 };
+    const command = createHunterStrategy(perception, { isSprintWorthwhile: () => false })().decide(
+      contextWith([self, close]),
+    );
+    expect(command).toEqual({ targetX: close.x, targetY: 0 });
+  });
+
   it('hunts only the named player when one is given', () => {
     const strategy = createHunterStrategy(perception, { preyPlayerId: smallPrey.playerId })();
     expect(strategy.decide(contextWith([self, smallPrey, biggerPrey]))).toEqual({ targetX: smallPrey.x, targetY: 0 });

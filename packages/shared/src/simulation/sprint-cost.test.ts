@@ -17,6 +17,8 @@ describe('sprintMassCost', () => {
     const mass = growth.CELL_STARTING_MASS + surplus;
     expect(sprintMassCost(mass, DEFAULT_BALANCE)).toBeCloseTo(surplus, 9);
     expect(massAfterSprint(mass, DEFAULT_BALANCE)).toBe(growth.CELL_STARTING_MASS);
+    // A wild cell under 20 passes its own mass as the floor: it sprints for free and is never lifted to 20.
+    expect(massAfterSprint(10, DEFAULT_BALANCE, 10)).toBe(10);
   });
 
   it('costs nothing at the floor', () => {
