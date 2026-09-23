@@ -12,10 +12,18 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
   player: {
     title: 'Player cell',
     summary:
-      'A cell steered by a player, yours among them. Every one starts as a [[stage:protocell]] of {startingMass} and grows by eating, engulfing and picking traits. An engulfed player watches its killer for {respawnDelay}, then returns with its level and traits, lifted to the [[world:world_clock|world’s]] level if it had fallen behind.',
+      'A cell steered by a player, yours among them. Players who start the round start as a [[stage:protocell]] of {startingMass}, and grow by eating, engulfing and picking traits. Anyone who joins late, or returns after being engulfed, enters at {entryShare} of the [[world:world_clock|world’s]] average mass, at most {entryMaxMass}, and at least at the world’s level. An engulfed player watches its killer for {respawnDelay} first, and keeps its level and traits.',
     facts: [
       STARTING_MASS_FACT,
       STARTING_SPEED_FACT,
+      balanceFact(
+        { key: 'entryShare', label: 'Late entry mass, of the world’s', unit: QUANTITY_UNIT.share },
+        balancePath('progression', 'ENTRY_MASS_FRACTION'),
+      ),
+      balanceFact(
+        { key: 'entryMaxMass', label: 'Late entry mass, at most', unit: QUANTITY_UNIT.mass },
+        balancePath('progression', 'ENTRY_MAX_MASS'),
+      ),
       balanceFact(
         { key: 'respawnDelay', label: 'Wait before returning', unit: QUANTITY_UNIT.seconds },
         balancePath('session', 'RESPAWN_SPECTATE_SECONDS'),
@@ -28,7 +36,7 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
   wild: {
     title: 'Wild cell',
     summary:
-      'The world’s average cell made flesh. {wildCount} of them share the dish all round. They grow with the [[world:world_clock|world clock]], not by eating, each within {massSpread} of the world’s average mass, and they never decay. They wander, flee what can eat them and, later in the round, hunt what they can eat. Engulfing one earns its DNA but scores no bonus; an engulfed wild cell returns after {wildRespawn}.',
+      'The world’s average cell made flesh. {wildCount} of them share the dish all round. They grow with the [[world:world_clock|world clock]], not by eating, each within {massSpread} of the world’s average mass, and they never decay. They wander, flee what can eat them and, later in the round, hunt what they can eat. Engulfing one pays {wildDnaShare} of the DNA a cell at the world’s level has earned, but no score bonus. An engulfed wild cell returns after {wildRespawn}.',
     facts: [
       balanceFact(
         { key: 'wildCount', label: 'Wild cells in the dish', unit: QUANTITY_UNIT.count },
@@ -37,6 +45,10 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
       balanceFact(
         { key: 'massSpread', label: 'Mass spread around the world’s', unit: QUANTITY_UNIT.share },
         balancePath('wildCells', 'WILD_CELL_MASS_SPREAD'),
+      ),
+      balanceFact(
+        { key: 'wildDnaShare', label: 'DNA paid when engulfed, of the world’s', unit: QUANTITY_UNIT.share },
+        balancePath('absorption', 'ENGULF_DNA_SHARE'),
       ),
       balanceFact(
         { key: 'wildRespawn', label: 'Returns after', unit: QUANTITY_UNIT.seconds },

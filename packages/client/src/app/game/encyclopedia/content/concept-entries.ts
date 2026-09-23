@@ -93,7 +93,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
   [CONCEPT.dnaAndLevels]: {
     title: 'DNA and levels',
     summary:
-      'DNA is your experience. You earn it from bacteria, [[entity:dna_fragment|DNA fragments]] and the cells you engulf. Each level costs more than the one before, from {firstLevelUp} up to {lastLevelUp}, until {maxLevel}. Every level-up offers you {cardsPerOffer} traits to pick from. When you die you keep your level, but the DNA toward the next one is lost unless a trait keeps some of it.',
+      'DNA is your experience. You earn it from bacteria, [[entity:dna_fragment|DNA fragments]], the cells you engulf and mass you gain at your largest. Each level costs more than the one before, from {firstLevelUp} up to {lastLevelUp}, until {maxLevel}. Every level-up offers you {cardsPerOffer} traits to pick from. When you die you keep your level, but the DNA toward the next one is lost unless a trait keeps some of it.',
     facts: [
       formulaFact(
         { key: 'firstLevelUp', label: 'First level-up', unit: QUANTITY_UNIT.dna },
@@ -119,7 +119,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
   [CONCEPT.score]: {
     title: 'Score',
     summary:
-      'Your score is all the DNA you earned this round, plus {engulfBonus} for every player cell you engulf. It is kept when you die, and the highest score wins the [[world:round|round]]. DNA handed to a late joiner to catch up never counts, and a [[cell_kind:wild|wild cell]] gives its DNA but no bonus.',
+      'Your score is all the DNA you earned this round, plus {engulfBonus} for every player cell you engulf. It is kept when you die, and the highest score wins the [[world:round|round]]. DNA handed to a late joiner to catch up never counts, and a [[cell_kind:wild|wild cell]] gives DNA but no bonus.',
     facts: [
       balanceFact(
         { key: 'engulfBonus', label: 'Bonus per player engulfed', unit: QUANTITY_UNIT.points },
@@ -139,7 +139,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
       standingSection(
         'ahead',
         'Ahead',
-        'Your level is above the world’s, or you are at its level and heavier than its average cell by more than {standingBand}. Many [[cell_kind:wild|wild cells]] are prey to you.',
+        'Your level is above the world’s, or you are at its level and heavier than its average cell by more than {standingBand}. [[cell_kind:wild|Wild cells]] light enough for you to engulf are your prey.',
       ),
       standingSection(
         'with',
@@ -149,7 +149,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
       standingSection(
         'behind',
         'Behind',
-        'Your level is below the world’s, or your mass is short of its average cell by more than {standingBand}. Many wild cells can engulf you: eat and level up to catch up.',
+        'Your level is below the world’s, or your mass is short of its average cell by more than {standingBand}. Wild cells heavy enough to engulf you are a threat: eat and level up to catch up.',
       ),
     ],
     seeAlso: ['world:world_clock', 'cell_kind:wild'],

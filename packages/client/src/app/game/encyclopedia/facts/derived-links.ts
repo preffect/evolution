@@ -121,12 +121,12 @@ export const DERIVED_LINKS: {
         (row) => row.id,
       ),
     ),
-  [DERIVED_LINK.variantUnlocks]: (balance, argument) =>
-    traitEntryIds(
-      (balance.traits.TRAIT_CATALOG as readonly TraitDefinition[])
-        .filter((row) => row.unlockedBy?.bacteriumVariant === argument.variant)
-        .map((row) => row.id),
-    ),
+  [DERIVED_LINK.variantUnlocks]: (balance, argument) => {
+    const catalog: readonly TraitDefinition[] = balance.traits.TRAIT_CATALOG;
+    return traitEntryIds(
+      catalog.filter((row) => row.unlockedBy?.bacteriumVariant === argument.variant).map((row) => row.id),
+    );
+  },
   [DERIVED_LINK.zoneFragmentTags]: (balance, argument) =>
     balance.progression.DNA_TAGS.filter((tag) => isFragmentTagOf(balance, argument.zone, tag)).map((tag) =>
       entryIdOf(ENTRY_SUBJECT.dnaTag, tag),
