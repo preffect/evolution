@@ -9,7 +9,7 @@ import { BACTERIUM_VARIANT, DNA_TAG, ZONE_ID, type BacteriumVariant } from '@evo
 import { CONCEPT } from '../encyclopedia/model/concepts';
 import { ABILITY } from '../encyclopedia/model/abilities';
 import { DNA_STRAND, DNA_TAG_COLOR, PLAYER_PALETTE_TABLE } from '../render/constants/colours';
-import { GLYPH_ROLE, type GlyphLayer, type SubjectEntryId } from '../render/svg-glyph';
+import { GLYPH_ROLE, type GlyphLayer, type GlyphRamp, type SubjectEntryId } from '../render/svg-glyph';
 import { ROD_STYLES } from '../render/textures/bacterium-bake';
 import { ZONE_TINT_COLOUR } from '../render/textures/dish-texture';
 import { MOTE_PAINT } from '../render/textures/mote-atlas';
@@ -22,12 +22,18 @@ function layersOf(entryId: SubjectEntryId): readonly GlyphLayer[] {
   return SUBJECT_GLYPHS[entryId].layers;
 }
 
-/** The colours a glyph fills its ramped or solid bodies with (a ramp counts by its base), glints and halos aside. */
-function bodyColours(entryId: SubjectEntryId): readonly string[] {
-  return layersOf(entryId).flatMap((layer) => {
-    if (layer.role === GLYPH_ROLE.glint || layer.role === GLYPH_ROLE.halo || layer.fill === undefined) return [];
-    return layer.fill.kind === 'ramp' ? [layer.fill.ramp.base, layer.fill.ramp.dark] : [layer.fill.colour];
-  });
+/** The ramps a glyph lights its bodies with (glints and halos aside): each stop is checked against what it paints. */
+function bodyRamps(entryId: SubjectEntryId): readonly GlyphRamp[] {
+  return layersOf(entryId).flatMap((layer) =>
+    layer.role !== GLYPH_ROLE.glint && layer.role !== GLYPH_ROLE.halo && layer.fill?.kind === 'ramp'
+      ? [layer.fill.ramp]
+      : [],
+  );
+}
+
+/** Whether a body is lit with `base` as its main colour and, where given, `dark` as its shade — never either for either. */
+function hasBody(entryId: SubjectEntryId, base: string | undefined, dark?: string): boolean {
+  return bodyRamps(entryId).some((ramp) => ramp.base === base && (dark === undefined || ramp.dark === dark));
 }
 
 function strokeColours(entryId: SubjectEntryId): readonly string[] {
@@ -71,19 +77,17 @@ describe('the ability family mark (§7.2): an organ or an effect on a cell', () 
 describe('a subject the dish draws wears the renderer’s own colours', () => {
   it('the player cell is the first seat of the renderer’s palette table', () => {
     const [seat] = PLAYER_PALETTE_TABLE;
-    expect(bodyColours('cell_kind:player')).toContain(seat?.base);
+    expect(hasBody('cell_kind:player', seat?.base)).toBe(true);
     expect(strokeColours('cell_kind:player')).toContain(seat?.rim);
   });
 
   it('algae is the mote atlas’s algae: body, darker edge and rim', () => {
-    expect(bodyColours('food:algae')).toContain(MOTE_PAINT.algae.body);
-    expect([...bodyColours('food:algae'), ...strokeColours('food:algae')]).toContain(MOTE_PAINT.algae.edge);
+    expect(hasBody('food:algae', MOTE_PAINT.algae.body, MOTE_PAINT.algae.edge)).toBe(true);
     expect(strokeColours('food:algae')).toContain(MOTE_PAINT.algae.rim);
   });
 
   it('detritus is the mote atlas’s lipid: body, darker centre, rim and its warm glint', () => {
-    expect(bodyColours('food:detritus')).toContain(MOTE_PAINT.detritus.body);
-    expect(bodyColours('food:detritus')).toContain(MOTE_PAINT.detritus.centre);
+    expect(hasBody('food:detritus', MOTE_PAINT.detritus.body, MOTE_PAINT.detritus.centre)).toBe(true);
     expect(strokeColours('food:detritus')).toContain(MOTE_PAINT.detritus.rim);
     expect(glintColours('food:detritus')).toEqual([MOTE_PAINT.detritus.glint]);
   });
@@ -93,7 +97,7 @@ describe('a subject the dish draws wears the renderer’s own colours', () => {
     (variant) => {
       const entryId = `bacterium:${variant}` as SubjectEntryId;
       const style = ROD_STYLES[variant as BacteriumVariant];
-      expect(bodyColours(entryId)).toContain(style.body);
+      expect(hasBody(entryId, style.body)).toBe(true);
       expect(strokeColours(entryId)).toContain(style.rim);
       if (style.bands !== null) expect(strokeColours(entryId)).toContain(style.bands);
     },

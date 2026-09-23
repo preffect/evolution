@@ -22,7 +22,7 @@ import { arcPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
 
 /** The two cells a comparison needs, and the reach of the mark that compares them. */
-const CONCEPT = { bigRadius: 20, smallRadius: 10, rivalRadius: 7, washRadius: 36 } as const;
+const CONCEPT = { bigRadius: 20, smallRadius: 10, washRadius: 36 } as const;
 
 /** A caliper under two cells: mass is size, and size is measured. */
 const CALIPER = shape.path('M24 62 L24 72 M76 62 L76 72 M24 68 L76 68 M56 52 L56 68 M32 58 L32 68');
@@ -114,35 +114,30 @@ const DNA_AND_LEVELS: shape.SubjectGlyph = {
 };
 
 /**
- * Two cells on their scores against the datum they are counted from: the own cell on the taller gold bar, a rival on
- * the shorter one. A score is a comparison, so the datum is the measuring mark (§7.2) and the bars are what it measures.
+ * A tally rising left to right on the datum it is counted from, its top bar lit: a score is a number that only goes
+ * up, and the datum under the bars is the measuring mark (§7.2) that makes it a count rather than three blocks.
  */
-const SCORE_DATUM = shape.path('M26 70 L74 70 M26 66 L26 74 M74 66 L74 74');
-const SCORE_BARS = shape.path('M30 70 V48 H44 V70 Z M56 70 V60 H70 V70 Z');
+const TALLY = shape.path('M26 68 h13 v-18 h-13 Z M43 68 h13 v-29 h-13 Z M60 68 h13 v-40 h-13 Z');
+const TOP_BAR = shape.path('M60 28 h13 v8 h-13 Z');
+const SCORE_DATUM = shape.path('M24 72 L76 72 M24 69 L24 75 M76 69 L76 75');
 const SCORE: shape.SubjectGlyph = {
   entryId: 'concept:score',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     kit.haloLayer(kit.centreCircle(32), LEVEL_GOLD, SUBJECT_ALPHA.halo),
-    kit.poolLayer(SCORE_BARS),
-    kit.outlineLayer(SCORE_BARS, SUBJECT_STROKE.hair),
-    kit.paint(shape.GLYPH_ROLE.body, SCORE_BARS, {
+    kit.poolLayer(TALLY),
+    kit.outlineLayer(TALLY, SUBJECT_STROKE.hair),
+    kit.paint(shape.GLYPH_ROLE.body, TALLY, {
       fill: { kind: 'ramp', ramp: SUBJECT_RAMP.gold, opacity: 1 },
       stroke: kit.stroke(LEVEL_GOLD, SUBJECT_STROKE.hair),
     }),
     /** The material detail: the score lines the bars are read against, faint. */
-    kit.paint(shape.GLYPH_ROLE.detail, shape.path('M28 60 L72 60 M28 48 L72 48'), {
+    kit.paint(shape.GLYPH_ROLE.detail, shape.path('M24 50 L76 50 M24 38 L76 38'), {
       stroke: kit.stroke(TEXT_LABEL, SUBJECT_STROKE.hair, SUBJECT_ALPHA.faint),
     }),
     ...strokedMarkLayers(SCORE_DATUM, LIGHT_ACCENT, SUBJECT_STROKE.mark),
-    ...ownCellLayers(37, 38, 9, kit.BEAT),
-    ...roundBodyLayers({
-      cx: 63,
-      cy: 52,
-      radius: CONCEPT.rivalRadius,
-      ramp: SUBJECT_RAMP.wild,
-      rim: kit.stroke(SUBJECT_RAMP.wild.light, SUBJECT_STROKE.fine),
-    }),
+    kit.paint(shape.GLYPH_ROLE.signature, TOP_BAR, { fill: kit.solid(WHITE, SUBJECT_ALPHA.scatter), motion: kit.BEAT }),
+    bodyGlint(32, 56, 10),
   ],
 };
 
@@ -167,30 +162,36 @@ const WORLD_STANDING: shape.SubjectGlyph = {
 };
 
 /**
- * The own cell beside the food it eats, a caliper under both: a mote of any kind is eaten whatever the cell's size, so
- * the relation is the gap the caliper measures. An algae mote and a bacterium rod stand for every kind.
+ * The three food kinds together, the overview page rather than one kind's, and a caliper under the rod: food comes in
+ * sizes, and the caliper is the measuring mark (§7.2) the kinds are set against.
  */
-const FOOD_CALIPER = shape.path('M24 70 L50 70 M24 66 L24 74 M50 66 L50 74 M62 70 L76 70 M62 66 L62 74 M76 66 L76 74');
+const FOOD_CALIPER = shape.path('M30 74 L70 74 M30 70 L30 78 M70 70 L70 78');
 const FOOD: shape.SubjectGlyph = {
   entryId: 'concept:food',
   tiltDeg: kit.GLYPH_NO_TILT,
   layers: [
     kit.haloLayer(kit.centreCircle(32), SUBJECT_RAMP.algae.base, SUBJECT_ALPHA.wash),
-    ...ownCellLayers(34, 46, CONCEPT.bigRadius - 4, kit.BREATHE),
     ...roundBodyLayers({
-      cx: 70,
-      cy: 38,
-      radius: 6,
+      cx: 34,
+      cy: 34,
+      radius: 13,
       ramp: SUBJECT_RAMP.algae,
       rim: kit.stroke(SUBJECT_RAMP.algae.light, SUBJECT_STROKE.fine),
       motion: kit.BREATHE,
+    }),
+    ...roundBodyLayers({
+      cx: 66,
+      cy: 37,
+      radius: 11,
+      ramp: SUBJECT_RAMP.lipid,
+      rim: kit.stroke(SUBJECT_RAMP.lipid.light, SUBJECT_STROKE.fine),
       role: shape.GLYPH_ROLE.signature,
     }),
     ...rodLayers({
-      cx: 70,
-      cy: 56,
-      halfLength: 5,
-      radius: 4,
+      cx: 50,
+      cy: 59,
+      halfLength: 12,
+      radius: 7,
       turns: 0.02,
       ramp: SUBJECT_RAMP.rod,
       rim: kit.stroke(SUBJECT_RAMP.rod.light, SUBJECT_STROKE.fine),

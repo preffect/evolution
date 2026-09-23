@@ -106,11 +106,12 @@ function paintZoneTint(context: BakeContext2D, disc: DiscSpec, tint: ZoneTint): 
 function paintShallows(frame: FieldFrame): void {
   const inner = (DISH_RADIUS - SHALLOWS_WIDTH) / DISH_RADIUS;
   const feather = (1 - inner) * SHALLOWS_FEATHER_SHARE;
+  const tint = ZONE_TINT_COLOUR[ZONE_ID.sunlitShallows];
   fillRadial(frame.context, dishDisc(frame), [
-    { offset: inner - feather, colour: ZONE_SHALLOWS, alpha: 0 },
-    { offset: inner, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_MID_ALPHA.shallows },
-    { offset: inner + feather, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_ALPHA.shallows },
-    { offset: 1, colour: ZONE_SHALLOWS, alpha: ZONE_TINT_ALPHA.shallows },
+    { offset: inner - feather, colour: tint, alpha: 0 },
+    { offset: inner, colour: tint, alpha: ZONE_TINT_MID_ALPHA.shallows },
+    { offset: inner + feather, colour: tint, alpha: ZONE_TINT_ALPHA.shallows },
+    { offset: 1, colour: tint, alpha: ZONE_TINT_ALPHA.shallows },
   ]);
 }
 
