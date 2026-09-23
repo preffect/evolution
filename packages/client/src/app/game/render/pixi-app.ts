@@ -7,6 +7,7 @@ import { BG_DEEP } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
 import { createDomBakeCanvasFactory } from './textures/texture-bake';
+import { uiFontsLoaded } from './ui-fonts';
 
 export interface PixiAppOptions {
   readonly host: HTMLElement;
@@ -42,6 +43,8 @@ export interface PixiAppHandle {
 export const GAME_CANVAS_TEST_ID = 'game-canvas';
 
 export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHandle> {
+  // Before anything can bake text: a bitmap font drawn while a web font is still loading keeps the fallback glyphs.
+  await uiFontsLoaded(options.host.ownerDocument.fonts);
   const app = new Application();
   await app.init({
     background: BG_DEEP,
