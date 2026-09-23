@@ -77,7 +77,6 @@
   animation: ui-panel-enter var(--ui-panel-enter) ease-out both;
 }
 
-
 /* The light catching the upper rim, held inside the corner radii. */
 :host([data-variant='modal'])::before {
   content: '';
