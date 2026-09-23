@@ -1,3 +1,5 @@
+import { UiButtonComponent } from './ui-kit/ui-button.component';
+import { UiSurfaceDirective } from './ui-kit/ui-surface.directive';
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -47,6 +49,8 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
   standalone: true,
   imports: [
     EncyclopediaComponent,
+    UiButtonComponent,
+    UiSurfaceDirective,
     EncyclopediaPreviewRouteComponent,
     FormsModule,
     GameHostComponent,
