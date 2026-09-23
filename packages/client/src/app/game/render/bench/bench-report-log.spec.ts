@@ -37,6 +37,8 @@ const VERDICT: BudgetVerdict = {
   isFullyJudged: true,
   overruns: [],
   unjudged: [],
+  informational: [],
+  timerResolutionMs: 0.005,
   stagesTotalMs: 2.1,
   residualP95Ms: 0.6,
   derivedResidualMs: 0.3,
@@ -76,7 +78,7 @@ describe('benchReportHeading', () => {
 
 describe('benchReportHeadlines', () => {
   it('leads with a verdict that says every row was judged and none broke', () => {
-    expect(rowStartingWith(reportWith(), 'verdict')).toBe(`verdict    ${WITHIN_BUDGET} on every row`);
+    expect(rowStartingWith(reportWith(), 'verdict')).toBe(`verdict    ${WITHIN_BUDGET} on every judged row`);
   });
 
   it('names what broke, with the measurement and the budget it broke', () => {
@@ -134,6 +136,23 @@ describe('benchReportHeadlines', () => {
     expect(rowStartingWith(report, 'window')).toBe(
       'window     120 frames, 100 cells, 1400 motes, heap 2048 bytes/frame (a range over runs, never one)',
     );
+  });
+
+  it('prints a row the clock is too coarse for with its number, marked unjudged with the clock step (#504)', () => {
+    const verdict: BudgetVerdict = { ...VERDICT, isFullyJudged: false, unjudged: ['net', 'hud'], timerResolutionMs: 1 };
+    const report = reportWith({ verdict });
+    expect(rowStartingWith(report, 'verdict')).toBe(
+      `verdict    ${WITHIN_BUDGET} where judged — unjudged: net, hud (the page's clock steps 1.00 ms)`,
+    );
+    expect(rowStartingWith(report, 'hud p95')).toBe("hud p95    0.60 ms — unjudged (the page's clock steps 1.00 ms)");
+    expect(rowStartingWith(report, 'frame p95')).toContain(WITHIN_BUDGET);
+  });
+
+  it('marks the informational stages in the stages row (#470)', () => {
+    const verdict: BudgetVerdict = { ...VERDICT, informational: ['camera'] };
+    const stagesRow = rowStartingWith(reportWith({ verdict }), 'stages p95');
+    expect(stagesRow).toContain('camera 0.10 (informational)');
+    expect(stagesRow).not.toContain('net 0.00 (informational)');
   });
 
   it('refuses to print a heap growth it never measured', () => {

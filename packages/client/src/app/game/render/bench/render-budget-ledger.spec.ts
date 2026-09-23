@@ -14,9 +14,11 @@ import {
   RENDER_GPU_BUDGET_MS,
   RENDER_GPU_SAMPLE_MAX_FRAME_RATIO,
   RENDER_HUD_BUDGET_MS,
+  RENDER_JUDGED_STAGE_BUDGET_MIN_MS,
   RENDER_MAX_DRAW_CALLS,
   RENDER_P95_MIN_SAMPLE_FRAMES,
   RENDER_STAGE_BUDGET_MS,
+  RENDER_TIMER_RESOLUTION_BUDGET_FRACTION,
 } from '../constants';
 import { markdownSection, readRepoDocument, tableCells } from '../../../../testing/repo-document';
 
@@ -50,6 +52,20 @@ describe('docs/rendering/budget.md §7 budgets', () => {
       RENDER_GPU_SAMPLE_MAX_FRAME_RATIO,
     );
   });
+
+  it('states the informational threshold and the clock rule the verdict applies (#470, #504)', () => {
+    expect(numberIn(budgetSection, /a stage budget under \*\*([\d.]+)\*\* ms/)).toBe(RENDER_JUDGED_STAGE_BUDGET_MIN_MS);
+    expect(budgetSection).toContain('at most **a tenth** of its budget');
+    expect(RENDER_TIMER_RESOLUTION_BUDGET_FRACTION).toBe(0.1);
+  });
+
+  it.each(RENDER_STAGE_NAMES)(
+    'marks the `%s` row informational exactly when its budget is under the threshold',
+    (stage) => {
+      const isMarkedInformational = new RegExp(`\\| \`${stage}\`[^|]*\\(i\\)\\s*\\|`).test(budgetSection);
+      expect(isMarkedInformational).toBe(RENDER_STAGE_BUDGET_MS[stage] < RENDER_JUDGED_STAGE_BUDGET_MIN_MS);
+    },
+  );
 
   it.each(RENDER_STAGE_NAMES)('budgets the `%s` stage as its table row does', (stage) => {
     expect(numberIn(budgetSection, new RegExp(`\\| \`${stage}\`[^|]*\\|\\s*([\\d.]+)`))).toBe(
