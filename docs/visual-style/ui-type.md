@@ -132,10 +132,12 @@ the three bacterium rods, the DNA fragment, the four zones — read off `render/
 not invented. Topics have no dish form, so they are designed here: the stages, DNA tags, abilities, actions, world
 topics and concepts below.
 
-**Family marks.** Four sets would otherwise blur into each other, so each carries one rule. The **negative** half of
-each rule is enforced and holds everywhere; the **positive** half has four known gaps (three concepts carry no
-relation, `ability:food_attraction` no cell), tracked on **#457** — read the table as the rule the set is held to,
-not as a claim that all 55 already meet it.
+**Family marks.** Four sets would otherwise blur into each other, so each carries one rule, and every glyph meets its
+set's rule (#457 closed the four gaps: `concept:score`, `concept:food` and `concept:mass_decay` now stand on a measuring mark,
+and `ability:food_attraction` draws its cell). `subject-glyph-families.spec.ts` holds the two positive halves a spec
+can see: every concept carries a **measuring mark** (an undashed, unfilled stroked signature: a caliper, a beam, a
+datum, a ring), and every ability draws **its cell** (a ramped round body at least 12 units in radius, larger than any
+mote).
 
 An honest caveat about what does the work at 20 px: an arrowhead there is about two pixels and effectively
 invisible. `ability:sprint` and `action:sprint` separate because of **where the mass sits** — chevrons ahead of the
@@ -158,6 +160,21 @@ because picking a trait is not levelling. Likewise `DANGER` on `action:escape`, 
 `entity:dna_fragment`, `ability:genome`, `concept:dna_and_levels` and the tag cartouches, and the first seat's
 palette (`GLYPH_PLAYER_SEAT`) on `cell_kind:player`, whose subject _is_ the player's own cell, and the HUD indicators drawn on that cell. A colour borrowed for
 emphasis rather than for meaning is the thing this forbids.
+
+**Material detail and the list LOD.** Every glyph carries ASSET-GENERATION §6's material detail as a `detail` layer
+— a body's inner membrane line, a rod's film, a helix's back rungs, an arrow shaft's sheen, the cartouche's rungs,
+each drawn by the motif — and the list LOD drops it, so the 20 px mark keeps only its silhouette, signature and glint.
+The spec requires the detail on every glyph and that the list LOD draws fewer layers than the card, which is what gives
+the list-LOD rule its teeth (#457: before, 42 of 55 glyphs had no detail and passed it vacuously).
+
+**Drawn in the dish's own colours.** A subject the dish draws — the player cell, the motes, the three rods, the DNA
+fragment, the tinted zones — is held by `subject-glyph-families.spec.ts` to the renderer's own tables
+(`PLAYER_PALETTE_TABLE`, `MOTE_PAINT`, `ROD_STYLES`, `DNA_TAG_COLOR`, `ZONE_TINT_COLOUR`), not merely to the palette's
+key list, so a named-but-wrong colour fails (#457).
+
+**Contact sheets.** `scripts/glyph-contact-sheet.mjs` re-renders them from the running client: every list row's and
+landing tile's medallion, captured as the page draws it (the list medallion is `UI_ROW_MEDALLION_PX`), laid out as a
+list sheet, a greyscale silhouette sheet and a card sheet.
 
 **Inside the medallion.** Every drawn layer stays within `GLYPH_MEDALLION_REACH` 39 of the centre: the frame's radius
 47 divided by `GLYPH_LIST_ZOOM` 1.2, so a drawing that fits at the card LOD still fits once the list LOD enlarges it.
@@ -202,12 +219,12 @@ on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.
 | `ability:movement`         | a cell at the end of the dotted track it has already swum: speed held                          | breathe             |
 | `ability:sprint`           | a cell behind two hard chevrons: speed spent                                                   | beat                |
 | `ability:engulf_defence`   | two shells, one inside the other, on the cell's lit side                                       | breathe             |
-| `ability:engulf_grip`      | a mouth already closed most of the way round its prey                                          | beat                |
+| `ability:engulf_grip`      | a mouth closed most of the way round its prey, inside the predator's filmy body                | beat                |
 | `ability:digestion`        | a vacuole with a mote breaking up inside it, its rim dashed                                    | breathe, beat       |
 | `ability:photosynthesis`   | a `CHLORO_*` lens under three rays from the top-left                                           | breathe             |
 | `ability:spines`           | a bead with eight `SILICA_LIGHT` spikes                                                        | spin (the spikes)   |
 | `ability:toxin`            | a bladder leaking three wisps into a wide `TOXIN_GLOW` haze                                    | beat, sway          |
-| `ability:food_attraction`  | a steel horseshoe with two motes drawn into its gap                                            | breathe, rise       |
+| `ability:food_attraction`  | a cell with its red eyespot, two motes drifting in along dashed lines of pull                  | breathe, beat, rise |
 | `ability:genome`           | a closed plasmid ring standing off a lit nucleoid: a loop, where the fragment is loose         | spin (the ring)     |
 | `ability:gel_resistance`   | a cell holding its line through four parting `ZONE_GEL` strands                                | breathe, sway       |
 | `action:steer`             | a curved arrow from a cell to a ticked reticle                                                 | beat                |
@@ -227,12 +244,12 @@ on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.
 | `world:bloom`              | a bright core throwing motes out along eight rays                                              | beat                |
 | `world:round`              | an hourglass running down                                                                      | breathe, beat       |
 | `concept:mass_and_size`    | two cells over a caliper: mass is size, and size is measured                                   | breathe             |
-| `concept:mass_decay`       | a cell inside the dashed ghost of what it was, with what it lost falling away                  | breathe, spin, rise |
+| `concept:mass_decay`       | a cell inside the dashed ghost of what it was, what it lost falling away, over its floor line  | breathe, spin, rise |
 | `concept:engulf_ratio`     | a beam that has already tipped: a threshold, not a contest                                     | breathe             |
 | `concept:dna_and_levels`   | a helix climbing into a `LEVEL_GOLD` ring                                                      | breathe, beat       |
-| `concept:score`            | a gold tally rising left to right, its top bar lit                                             | beat                |
+| `concept:score`            | a gold tally rising left to right on the datum it counts from, its top bar lit                 | beat                |
 | `concept:world_standing`   | a cell held above the world's own datum line, a ghost sitting on it                            | breathe             |
-| `concept:food`             | the three food kinds together: the overview, not one kind's page                               | breathe             |
+| `concept:food`             | the three food kinds together, large, over one caliper: the overview, not one kind's page      | breathe             |
 | `hud:dna_ring`             | the own cell with a `DNA` arc filling its dark `LEVEL_RING_TRACK` clockwise from the top       | breathe             |
 | `hud:level_numeral`        | a bold `WHITE` figure on its dark outline at the centre of the own cell                        | breathe, beat       |
 | `hud:ladder_orbit`         | a backing arc over the own cell: the dashed ghost of the next rung and a row of lit pips       | breathe, beat       |

@@ -84,7 +84,7 @@ function creditEndosymbionts(eater: PlayerRecord, prey: CellRecord, balance: Bal
 }
 
 /**
- * The predator's half of the table, for a player predator (a wild one keeps nothing). Mass first,
+ * The predator's half of the table, for a player predator (a wild one keeps the mass alone). Mass first,
  * so the part above `CELL_MAX_MASS` becomes DNA in the same gain (docs/ecology/mass-and-movement.md §5.4); the prey
  * is still in the world, so its mass and traits are read here before `absorbCell` removes it.
  */
@@ -110,7 +110,12 @@ function payPredator(
   return gain;
 }
 
-/** A wild predator keeps `prey.mass × yield`, clamped to the cap: no DNA, tags or counters (it has no player). */
+/**
+ * A wild predator keeps `prey.mass × yield`, clamped to the cap: no DNA, tags or counters (it has no player). The
+ * growth ceiling (3 × the world's mass) is not applied here: the next tick's settle clamps the growth before anything
+ * reads the mass for an engulf, so the one tick above it can only nudge this tick's spawn and respawn clearances
+ * (docs/ecology/wild-cells.md §3.3.1).
+ */
 function payWildPredator(predator: CellRecord, prey: CellRecord, balance: BalanceConfig): MeasuredGain {
   const massBefore = predator.mass;
   gainMass(predator, undefined, prey.mass * engulfMassYieldOf(predator.modifiers, balance), balance);

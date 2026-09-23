@@ -5,7 +5,7 @@ import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import { LeftRoomFilter } from './left-room-filter';
 import { RoomState } from './room-state';
 import { SEAT_RECOVERY_OUTCOME, SeatRecovery } from './seat-recovery';
-import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
+import { SOCKET_CLOSE_CAUSE, SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
 
 /**
  * Generic, GAME-AGNOSTIC multiplayer networking + state service.
@@ -26,6 +26,8 @@ export type Phase = 'lobby' | 'in-game';
 export const LOBBY_NOTICE = {
   /** The socket dropped mid-round and the server no longer held the seat when it reopened. */
   disconnectedFromGame: 'disconnected_from_game',
+  /** Another tab with this clientId took the seat and the socket (#273); this one stays closed until the user connects. */
+  openedElsewhere: 'opened_elsewhere',
 } as const;
 
 export type LobbyNotice = ValueOf<typeof LOBBY_NOTICE>;
@@ -167,7 +169,8 @@ export class MultiplayerService {
    */
   private onSocketLifecycle(event: SocketLifecycleEvent): void {
     if (event.kind === SOCKET_LIFECYCLE.closed) {
-      if (event.isUserInitiated) this.returnToLobby(null);
+      if (event.cause === SOCKET_CLOSE_CAUSE.user) this.returnToLobby(null);
+      else if (event.cause === SOCKET_CLOSE_CAUSE.replaced) this.returnToLobby(LOBBY_NOTICE.openedElsewhere);
       else this.seatRecovery.socketDropped(this.inGame());
       return;
     }

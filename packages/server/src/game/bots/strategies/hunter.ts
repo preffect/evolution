@@ -21,6 +21,8 @@ export interface HunterOptions {
   /** Hunt only this player's cells; every other player is ignored even when engulfable. */
   readonly preyPlayerId?: PlayerId;
   readonly sprintWithinRadii?: number;
+  /** Whether it sprints at `prey` once within `sprintWithinRadii`; always by default (the wild hunt skips a prey it already covers). */
+  readonly isSprintWorthwhile?: (self: BotCellView, prey: BotCellView) => boolean;
   /** Only prey whose centre is within this many own radii; any distance by default. */
   readonly withinRadii?: number;
   /** Which candidate to take when none is committed: the largest (the default) or the nearest. */
@@ -32,6 +34,8 @@ interface PreyRules {
   isCandidate(self: BotCellView, other: BotCellView): boolean;
   preferredOf(self: BotCellView, candidates: readonly BotCellView[]): BotCellView | undefined;
 }
+
+const ALWAYS_WORTHWHILE = (): boolean => true;
 
 function largestOf(cells: readonly BotCellView[]): BotCellView | undefined {
   let largest: BotCellView | undefined;
@@ -63,7 +67,7 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
   perception: BotPerception<Snapshot, ActorId>,
   options: HunterOptions = {},
 ): BotStrategyFactory<Snapshot, ActorId> {
-  const { sprintWithinRadii = HUNTER_SPRINT_WITHIN_RADII } = options;
+  const { sprintWithinRadii = HUNTER_SPRINT_WITHIN_RADII, isSprintWorthwhile = ALWAYS_WORTHWHILE } = options;
   const rules = preyRulesOf(perception, options);
 
   return (): BotStrategy<Snapshot, ActorId> => {
@@ -86,7 +90,8 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
         if (prey === undefined) {
           return null;
         }
-        const isSprinting = distanceBetween(self, prey) <= self.radius * sprintWithinRadii;
+        const isSprinting =
+          distanceBetween(self, prey) <= self.radius * sprintWithinRadii && isSprintWorthwhile(self, prey);
         return { targetX: prey.x, targetY: prey.y, ...(isSprinting ? { isSprinting } : {}) };
       },
     };

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { SOCKET_CLOSE_CODE_REPLACED, SOCKET_CLOSE_REASON_REPLACED } from '@evolution/shared';
 import { replaceExistingConnection, resolvePlayerId } from './websocket-handler.js';
 import { createTestConnection } from '../testing/builders.js';
 
@@ -21,7 +22,8 @@ describe('replaceExistingConnection', () => {
     const close = vi.spyOn(existing.socket, 'close');
     replaceExistingConnection(existing);
     expect(existing.isReplaced).toBe(true);
-    expect(close).toHaveBeenCalled();
+    // The code is what keeps the replaced tab from reconnecting and taking the seat back (#273).
+    expect(close).toHaveBeenCalledWith(SOCKET_CLOSE_CODE_REPLACED, SOCKET_CLOSE_REASON_REPLACED);
   });
 
   it('tolerates a socket that throws on close and no existing connection at all', () => {

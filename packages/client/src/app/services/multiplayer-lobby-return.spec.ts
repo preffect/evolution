@@ -18,7 +18,7 @@ import {
 } from '@evolution/shared';
 import { createTransportStub } from '../../testing/transport-stub';
 import { LOBBY_NOTICE, MultiplayerService } from './multiplayer.service';
-import { SOCKET_LIFECYCLE, WebSocketService } from './websocket.service';
+import { SOCKET_CLOSE_CAUSE, SOCKET_LIFECYCLE, WebSocketService } from './websocket.service';
 
 const ROOM = gameId('g1');
 const ALICE = playerId('alice');
@@ -94,13 +94,24 @@ describe('MultiplayerService returning to the lobby', () => {
 
   it('returns to the lobby when the transport reports a user-initiated close', () => {
     const { transport, service } = serviceInRoom();
-    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: true });
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.user });
     expectRoomCleared(service);
+  });
+
+  it('#273: returns to the lobby with its own notice when another tab takes the seat, and waits for the user', () => {
+    const { transport, service } = serviceInRoom();
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.replaced });
+    expectRoomCleared(service);
+    expect(service.lobbyNotice()).toBe(LOBBY_NOTICE.openedElsewhere);
+    // No seat recovery is waiting on a reopen: a later connect of the user's is a fresh lobby.
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
+    transport.messages.next(lobbyUpdateMessage);
+    expect(service.lobbyNotice()).toBe(LOBBY_NOTICE.openedElsewhere);
   });
 
   it('keeps the round through a dropped socket, and plays on when the reopen resends the room', () => {
     const { transport, service } = serviceInRoom();
-    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.dropped });
     expect(service.inGame()).toBe(true);
 
     transport.send.mockClear();
@@ -116,7 +127,7 @@ describe('MultiplayerService returning to the lobby', () => {
 
   it('returns to the lobby with a notice when the reopen answers without the room, until the next room', () => {
     const { transport, service } = serviceInRoom();
-    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.dropped });
     transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
     transport.messages.next(lobbyUpdateMessage);
     expectRoomCleared(service);
@@ -128,7 +139,7 @@ describe('MultiplayerService returning to the lobby', () => {
 
   it('returns to the lobby at once when a dropped round reopens with no name to re-announce', () => {
     const { transport, service } = serviceInRoom({ isAnnounced: false });
-    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.dropped });
     transport.send.mockClear();
     transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
     expect(transport.send).not.toHaveBeenCalled();
@@ -139,7 +150,7 @@ describe('MultiplayerService returning to the lobby', () => {
   it('re-announces the name and avatar after a drop in the lobby, so the new connection carries them', () => {
     const { transport, service } = serviceInRoom();
     service.leave();
-    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+    transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.dropped });
     transport.send.mockClear();
     transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
     expect(transport.send).toHaveBeenCalledWith(reannouncement);
@@ -167,7 +178,7 @@ describe('MultiplayerService returning to the lobby', () => {
 
     it('ignores the connect-time game_state after leaving mid-recovery (probe C)', () => {
       const { transport, service } = serviceInRoom();
-      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+      transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.dropped });
       transport.lifecycle.next({ kind: SOCKET_LIFECYCLE.opened });
       service.leave();
       transport.messages.next(gameStateMessage(8));
