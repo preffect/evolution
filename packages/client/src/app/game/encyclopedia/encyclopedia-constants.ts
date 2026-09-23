@@ -116,6 +116,12 @@ export const ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL: Readonly<Record<PreviewActionSce
 /** The `unavailable` state's line, inside the circle: the preview app could not start, and there is no retry. */
 export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';
 
+/** The mark between two breadcrumb crumbs (§11.3), in the trail and in the sticky title bar alike. */
+export const ENCYCLOPEDIA_CRUMB_SEPARATOR = '›';
+
+/** The sticky title bar of a scrolled entry: the breadcrumb over the title (§11.4, *Long entries scroll*). */
+export const ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX = 48;
+
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 

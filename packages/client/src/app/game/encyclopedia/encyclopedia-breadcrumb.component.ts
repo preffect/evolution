@@ -5,13 +5,11 @@
 // crumb naming the page already shown is plain text, since going there would change nothing.
 
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ENCYCLOPEDIA_CRUMB_SEPARATOR } from './encyclopedia-constants';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import type { EncyclopediaCrumb } from './format/landing-view';
 import type { EncyclopediaCategory } from './model/categories';
 import { encyclopediaCrumbTestId } from './test-ids';
-
-/** The mark between two crumbs; decorative, so a screen reader reads the crumbs as a list and not as punctuation. */
-const CRUMB_SEPARATOR = '›';
 
 @Component({
   selector: 'app-encyclopedia-breadcrumb',
@@ -40,7 +38,8 @@ export class EncyclopediaBreadcrumbComponent {
 
   readonly crumbs = input.required<readonly EncyclopediaCrumb[]>();
 
-  protected readonly separator = CRUMB_SEPARATOR;
+  /** Decorative, so a screen reader reads the crumbs as a list and not as punctuation. */
+  protected readonly separator = ENCYCLOPEDIA_CRUMB_SEPARATOR;
   protected readonly crumbTestId = encyclopediaCrumbTestId;
 
   protected goTo(category: EncyclopediaCategory): void {

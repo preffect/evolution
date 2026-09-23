@@ -39,6 +39,8 @@ const MITOCHONDRION = 'trait:mitochondrion' as EntryId;
 const PROTOCELL = 'stage:protocell' as EntryId;
 const ENGULF = 'action:engulf' as EntryId;
 const SECOND_TIER = 2 as TraitTier;
+/** Where the spec puts the scroll column's top edge, in viewport px. */
+const STICKY_EDGE_TOP = 120;
 
 /** Only what this page reads of the game state: the balance the registry resolves over, and the round's own traits. */
 const gameStateStub = {
@@ -237,6 +239,35 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
     vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
     expect(previewHost.handles[0]?.shownSpecs.at(-1)).toBe(sectionPreviewOf(SECOND_TIER));
     expect(expectTestId(root(), encyclopediaTierTestId(SECOND_TIER)).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  /**
+   * §11.4's sticky title bar, both ways round: absent while any of the title shows under the column's top edge,
+   * present once it has scrolled past, and gone again on the way back. jsdom lays nothing out, so the spec places
+   * the title and the column the way a browser would and scrolls the viewport.
+   */
+  it('shows the sticky title bar only once the title has scrolled under the column’s top edge', () => {
+    const title = root().querySelector<HTMLElement>('h3.title')!;
+    const column = root().querySelector<HTMLElement>('ui-scroll-area')!;
+    const viewport = column.querySelector<HTMLElement>('.viewport')!;
+    const place = (titleBottom: number): void => {
+      title.getBoundingClientRect = () => ({ bottom: titleBottom }) as DOMRect;
+      column.getBoundingClientRect = () => ({ top: STICKY_EDGE_TOP }) as DOMRect;
+      viewport.dispatchEvent(new Event('scroll'));
+      fixture.detectChanges();
+    };
+
+    place(STICKY_EDGE_TOP + 1);
+    expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.stickyTitle)).toBeNull();
+
+    place(STICKY_EDGE_TOP - 1);
+    const bar = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.stickyTitle);
+    expect(bar.querySelector('.sticky-name')?.textContent?.trim()).toBe(entry.title);
+    expect(bar.textContent).toContain(ENCYCLOPEDIA_CATEGORY_LABEL[entry.category]);
+    expect(bar.getAttribute('aria-hidden')).toBe('true');
+
+    place(STICKY_EDGE_TOP + 1);
+    expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.stickyTitle)).toBeNull();
   });
 
   it('draws both facts tables under the one facts id, the first of which a test takes (§11.6)', () => {

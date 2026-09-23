@@ -23,6 +23,7 @@ import {
   entryChips,
   factNameFromNoun,
   factRowsFor,
+  isScrolledPast,
   ownedTierOf,
   proseParagraphs,
   replayLabelFor,
@@ -225,5 +226,13 @@ describe('replayLabelFor (docs/ui/encyclopedia.md §11.4)', () => {
     }
     expect(replayLabelFor({ scene: PREVIEW_SCENE.zone, zone: ZONE_ID.warmVent })).toBeNull();
     expect(replayLabelFor(null)).toBeNull();
+  });
+});
+
+describe('isScrolledPast (docs/ui/encyclopedia.md §11.4, the sticky title)', () => {
+  it('is past once the title’s bottom reaches the column’s top edge, and not while any of it shows below', () => {
+    expect(isScrolledPast(100, 120)).toBe(true);
+    expect(isScrolledPast(120, 120)).toBe(true);
+    expect(isScrolledPast(121, 120)).toBe(false);
   });
 });
