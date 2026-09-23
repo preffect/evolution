@@ -13,6 +13,8 @@ const TRUNCATED_NAME_CHARS = LEADERBOARD_NAME_MAX_CHARS - ELLIPSIS.length;
 const FIRST_AVATAR_INDEX = 0;
 /** A leaderboard cell is the bare figure: the column header names the unit. */
 const BARE_FIGURE = { presentation: QUANTITY_PRESENTATION.numeral };
+/** The score column holds five digits; a six-digit score shortens to `123k` rather than spill into the mass (#427). */
+const COMPACT_FIGURE = { presentation: QUANTITY_PRESENTATION.compact };
 
 /** One rendered row: everything the panel needs, already formatted. */
 export interface LeaderboardEntry {
@@ -59,7 +61,7 @@ function entryFor(row: LeaderboardRow, input: LeaderboardInput): LeaderboardEntr
     rank: row.rank,
     name: truncatePlayerName(input.players[row.playerId]?.playerName ?? row.playerId),
     level: row.level,
-    scoreText: formatQuantity(row.score, QUANTITY_UNIT.points, BARE_FIGURE),
+    scoreText: formatQuantity(row.score, QUANTITY_UNIT.points, COMPACT_FIGURE),
     massText: formatQuantity(row.mass, QUANTITY_UNIT.mass, BARE_FIGURE),
     absorptions: row.absorptions,
     avatarIndex: input.avatarAssignments[row.playerId] ?? FIRST_AVATAR_INDEX,

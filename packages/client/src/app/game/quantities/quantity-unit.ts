@@ -39,6 +39,11 @@ export const QUANTITY_PRESENTATION = {
   numeral: 'numeral',
   /** A running timer: always `COUNTDOWN_DECIMALS` decimals, so the digits do not jump as it drains: `6.0 s`. */
   countdown: 'countdown',
+  /**
+   * A bare figure in a fixed-width column (the leaderboard's score): whole below `COMPACT_FROM`, then thousands as
+   * `123k` and millions as `1.2M`, those rounded down so they never claim more than there is (#427).
+   */
+  compact: 'compact',
 } as const;
 export type QuantityPresentation = ValueOf<typeof QUANTITY_PRESENTATION>;
 
@@ -63,6 +68,13 @@ export const UNCHANGED = 1;
 /** The one shown magnitude that takes a unit's singular suffix (`1 radius`). */
 export const SINGULAR_MAGNITUDE = 1;
 export const MINUS_SIGN = '−';
+/** The first figure the `compact` presentation shortens: five digits fit the leaderboard's score column, six do not. */
+export const COMPACT_FROM = 100_000;
+/** The `compact` steps, largest first: a figure at or above `from` is divided and suffixed, to `decimals` places. */
+export const COMPACT_STEPS = [
+  { from: 1_000_000, divisor: 1_000_000, suffix: 'M', decimals: 1 },
+  { from: COMPACT_FROM, divisor: 1_000, suffix: 'k', decimals: 0 },
+] as const;
 export const PLUS_SIGN = '+';
 /** A multiplier's sign: the `1.5×` suffix, and the `×1.5` a caption leads with (the round clock's bloom). */
 export const MULTIPLIER_SIGN = '×';

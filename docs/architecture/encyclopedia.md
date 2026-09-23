@@ -517,6 +517,7 @@ export const QUANTITY_PRESENTATION = {
   rateFromDuration: 'rate_from_duration', // a duration multiplier as the rate it gives: 0.61 → `+64 %`
   numeral: 'numeral', // the bare figure in the unit's numeral form, no sign, prefix or suffix: `II`, `124`
   countdown: 'countdown', // a running timer, always one decimal so the digits do not jump: `6.0 s`
+  compact: 'compact', // a bare figure in a fixed column: whole below COMPACT_FROM, then `123k`, `1.2M`, rounded down
 } as const;
 export type QuantityPresentation = ValueOf<typeof QUANTITY_PRESENTATION>;
 
