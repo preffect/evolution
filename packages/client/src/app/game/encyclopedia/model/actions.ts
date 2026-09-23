@@ -1,4 +1,4 @@
-// What a player does, one page per action (docs/architecture/encyclopedia.md §12.4; #362 writes the pages). Anchored
+// What a player does, one page per action (docs/architecture/encyclopedia.md §12.4; #362 wrote the pages). Anchored
 // to the wire: every player intent of `GameInput` has an action, so a new input field without a page fails
 // `typecheck`. The effects' anchor (`ENTRY_BY_EFFECT`) names entry ids, so it sits in `entry-anchors.ts`.
 

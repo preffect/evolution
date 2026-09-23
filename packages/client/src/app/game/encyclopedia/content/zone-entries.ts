@@ -12,7 +12,7 @@ import { BALANCE_MASS, FACT_FORMULA } from '../facts/formula-table';
 import type { WrittenEntryContent } from '../model/entry';
 import type { EntryId } from '../model/entry-id';
 import type { FactDefinition } from '../model/fact';
-import { balanceFact, formulaFact, linkFact } from './fact-builders';
+import { GEL_SPEED_AT_MAX_FACT, balanceFact, formulaFact, linkFact } from './fact-builders';
 
 /** Every zone page links back to the dish it sits in. */
 const DISH_ENTRY: EntryId = 'world:dish';
@@ -90,15 +90,7 @@ export const ZONE_ENTRY_CONTENT: Readonly<Record<ZoneId, WrittenEntryContent>> =
     summary:
       'Thick patches dotted through the broth that drag on whatever swims in them. A small cell barely notices ({gelSpeedAtStart} speed); a heavy one crawls ({gelSpeedAtMax} speed). Food spawns in the gel as it does in the broth, and its fragments carry {fragmentTags} tags.',
     facts: [
-      formulaFact(
-        {
-          key: 'gelSpeedAtMax',
-          label: 'Speed, largest cell',
-          unit: QUANTITY_UNIT.multiplier,
-          presentation: QUANTITY_PRESENTATION.changeFromOne,
-        },
-        { id: FACT_FORMULA.gelSpeedFactorAt, argument: { mass: BALANCE_MASS.max } },
-      ),
+      GEL_SPEED_AT_MAX_FACT,
       formulaFact(
         {
           key: 'gelSpeedAtStart',

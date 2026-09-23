@@ -87,14 +87,14 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'simple_flagellum',
     summary:
-      'A whip of protein that drives the cell forward. You swim a little faster, and your sprint is faster and ready again sooner.',
+      'A whip of protein that drives the cell forward. You swim a little faster, and your [[action:sprint|sprint]] is faster and ready again sooner.',
     tierBodies: ['A short whip.', 'A longer whip.', 'The full whip.'],
     seeAlso: ['trait:cilia'],
   },
   {
     traitId: 'cell_wall',
     summary:
-      'A rigid second rim inside the membrane. A predator must be bigger to engulf you and takes longer to absorb you, but the wall slows you down.',
+      'A rigid second rim inside the membrane. A predator must be bigger to [[action:engulf|engulf]] you and takes longer to absorb you, but the wall slows you down.',
     tierBodies: ['A second rim.', 'A thicker wall.', 'The thickest wall.'],
     seeAlso: ['trait:diatom_shell'],
   },
@@ -107,7 +107,7 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'mitochondrion',
     summary:
-      'An aerobic bacterium you swallowed and kept. It burns fuel for you, so you lose mass more slowly and sprint harder. Owning it starts [[stage:endosymbiosis]].',
+      'An aerobic bacterium you swallowed and kept. It burns fuel for you, so you lose mass more slowly and [[action:sprint|sprint]] harder. Owning it starts [[stage:endosymbiosis]].',
     tierBodies: ['One bean.', 'A second bean.', 'A third bean.'],
     seeAlso: ['trait:chloroplast'],
   },
@@ -128,7 +128,7 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'cytoskeleton',
     summary:
-      'A lattice of fibres under the membrane. You turn and reach speed faster, and you struggle harder when something tries to engulf you.',
+      'A lattice of fibres under the membrane. You turn and reach speed faster, and you [[action:escape|struggle]] harder when something tries to engulf you.',
     tierBodies: ['A faint lattice.', 'A tighter lattice.', 'A taut lattice.'],
     seeAlso: ['trait:amoeba_pseudopods'],
   },
@@ -140,14 +140,15 @@ export const TRAIT_ENTRY_ROWS = [
   },
   {
     traitId: 'food_vacuole',
-    summary: 'Digestive bubbles for prey. You absorb what you engulf faster and keep more of its mass.',
+    summary:
+      'Digestive bubbles for prey. You absorb what you [[action:engulf|engulf]] faster and keep more of its mass.',
     tierBodies: ['A few digestive bubbles.', 'More bubbles.', 'Prey dissolves visibly faster.'],
     seeAlso: ['trait:ribosomes'],
   },
   {
     traitId: 'toxin_vacuole',
     summary:
-      'A violet vacuole of poison. Cells touching you lose mass every second. A cell that swallows you takes a dose {swallowedDose} as strong, set by your mass, and may have to let you go. The poison never kills.',
+      'A violet vacuole of poison. Cells touching you lose mass every second. A cell that [[action:engulf|swallows]] you takes a dose {swallowedDose} as strong, set by your mass, and may have to let you go. The poison never kills.',
     tierBodies: ['A faint brew.', 'A stronger brew.', 'The strongest brew.'],
     seeAlso: ['trait:stentor_trumpet'],
     extraFacts: [
@@ -183,7 +184,7 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'diatom_shell',
     summary:
-      'A glass shell bristling with spines. Once swallowed you take longer to absorb, the spines cut the predator, and it may spit you out. One form per cell.',
+      'A glass shell bristling with spines. Once swallowed you take longer to absorb, the spines cut the predator, and it may [[action:escape|spit you out]]. One form per cell.',
     tierBodies: ['A glass shell with spines.', 'More spines.', 'The full star.'],
     seeAlso: ['trait:cell_wall'],
   },

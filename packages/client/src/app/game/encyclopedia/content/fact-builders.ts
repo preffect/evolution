@@ -79,3 +79,20 @@ export const ENGULF_BONUS_FACT = balanceFact(
   { key: 'engulfBonus', label: 'Per engulf', unit: QUANTITY_UNIT.points },
   balancePath('session', 'SCORE_ABSORPTION_BONUS'),
 );
+
+/** What the last level-up costs. */
+export const LAST_LEVEL_UP_FACT = formulaFact(
+  { key: 'lastLevelUp', label: 'Last level-up', unit: QUANTITY_UNIT.dna },
+  { id: FACT_FORMULA.levelUpCostAt, argument: { level: LEVEL_SELECTOR.last } },
+);
+
+/** The gel's drag on the largest cell: the gel page and gel resistance quote it. */
+export const GEL_SPEED_AT_MAX_FACT = formulaFact(
+  {
+    key: 'gelSpeedAtMax',
+    label: 'Gel speed, largest cell',
+    unit: QUANTITY_UNIT.multiplier,
+    presentation: QUANTITY_PRESENTATION.changeFromOne,
+  },
+  { id: FACT_FORMULA.gelSpeedFactorAt, argument: { mass: BALANCE_MASS.max } },
+);

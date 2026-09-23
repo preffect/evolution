@@ -6,12 +6,13 @@ import { CELL_KIND, FOOD_KIND } from '@evolution/shared';
 import { PREVIEW_MOTION, PREVIEW_SCENE } from '../../render/preview/preview-spec';
 import { QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { balancePath } from '../facts/balance-path';
-import { BALANCE_MASS, FACT_FORMULA, LEVEL_SELECTOR } from '../facts/formula-table';
+import { BALANCE_MASS, FACT_FORMULA } from '../facts/formula-table';
 import { CONCEPT, type ConceptId } from '../model/concepts';
 import type { WrittenEntryContent } from '../model/entry';
 import {
   ENGULF_BONUS_FACT,
   FIRST_LEVEL_UP_FACT,
+  LAST_LEVEL_UP_FACT,
   STARTING_MASS_FACT,
   STARTING_SPEED_FACT,
   balanceFact,
@@ -106,10 +107,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
       'DNA is your experience. You earn it from bacteria, [[entity:dna_fragment|DNA fragments]], the cells you engulf and mass you gain at your largest. Each level costs more than the one before, from {firstLevelUp} up to {lastLevelUp}, until {maxLevel}. Every level-up offers you {cardsPerOffer} traits to pick from. When you die you keep your level, but the DNA toward the next one is lost unless a trait keeps some of it.',
     facts: [
       FIRST_LEVEL_UP_FACT,
-      formulaFact(
-        { key: 'lastLevelUp', label: 'Last level-up', unit: QUANTITY_UNIT.dna },
-        { id: FACT_FORMULA.levelUpCostAt, argument: { level: LEVEL_SELECTOR.last } },
-      ),
+      LAST_LEVEL_UP_FACT,
       balanceFact(
         { key: 'maxLevel', label: 'Highest level', unit: QUANTITY_UNIT.level },
         balancePath('progression', 'MAX_LEVEL'),

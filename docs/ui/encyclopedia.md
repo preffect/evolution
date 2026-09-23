@@ -222,8 +222,8 @@ was a bare outline of a circle, which is what a failed image looks like rather t
 `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it.
 
 **What #466 built and what it left.** The lens, its four states, the one session behind it and the tier switch are
-in. Two pieces of this section wait on the entries that would show them: **`Replay`**, which no page can draw until
-the actions category (#362) points an entry at an action scene (#364), and the **reduced-motion** pause with its play
+in. Two pieces of this section wait on the entries that would show them: **`Replay`**, which the action pages (#362) can
+now show and ticket #577 builds, and the **reduced-motion** pause with its play
 and pause toggle, which needs a `prefers-reduced-motion` seam the client does not have yet — under it today the lens
 plays, as the dish behind the panel does.
 
