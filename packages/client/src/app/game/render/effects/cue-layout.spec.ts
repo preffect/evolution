@@ -26,7 +26,7 @@ import { HALF, boxesIntersect, type UprightBox } from '../geometry';
 import { cueLayout, floaterColumnSpan, floaterLeftPx, rateTagColumnTopPx, type CueLayout } from './cue-layout';
 import { orientedBoxGapPx, type OrientedBox } from './oriented-box';
 import { ghostBoxOf, orbitLayout, pipBlockBoxOf } from './orbit-layout';
-import { ladderOrbitExtentPx, selfRingRadiusPx } from './own-cell-geometry';
+import { escapeLabelAbovePx, ladderOrbitExtentPx, selfRingRadiusPx } from './own-cell-geometry';
 import { threatLabelPlacement } from './threat-label-placement';
 
 /** §3.1.3's own-cell sizes under Z1. */
@@ -34,6 +34,8 @@ const GEOMETRY_SIZES_PX = [24, 32, 47.4, 64, 94.8, 128] as const;
 const CHIP_WIDTH_PX = 96;
 const TAG_WIDTH_PX = 150;
 const ZONE_PILL_WIDTH_PX = 240;
+/** `SPRINT TO ESCAPE`'s label pill (#512). */
+const ESCAPE_LABEL_WIDTH_PX = 140;
 /** The caveat scene (#324): a `EDIBLE · TOXIC` pill, and a bigger cell whose `… CAN ENGULF YOU` pill is wider. */
 const CAVEAT_PREY_LABEL_WIDTH_PX = 120;
 const CAVEAT_THREAT_LABEL_WIDTH_PX = 200;
@@ -130,6 +132,31 @@ describe.each(GEOMETRY_SIZES_PX)('cueLayout at r_px %s', (rPx) => {
       }
     },
   );
+});
+
+describe.each(GEOMETRY_SIZES_PX)('cueLayout: the chip yields to a label at r_px %s (#512)', (rPx) => {
+  const escapeLabel: UprightBox = {
+    x: 0,
+    y: -escapeLabelAbovePx(rPx),
+    halfWidth: ESCAPE_LABEL_WIDTH_PX * HALF,
+    halfHeight: LABEL_PILL_HEIGHT_PX * HALF,
+  };
+  const unmoved = layoutAt(rPx);
+
+  it('raises the chip CUE_GAP_PX above the escape label it would meet, the tags stacked on it', () => {
+    expect(boxesIntersect(escapeLabel, unmoved.chip)).toBe(true);
+    const layout = layoutAt(rPx, [escapeLabel]);
+    expect(layout.chip.y + layout.chip.halfHeight).toBeCloseTo(escapeLabel.y - escapeLabel.halfHeight - CUE_GAP_PX);
+    for (const cue of cueBoxes(layout)) expect(boxesIntersect(escapeLabel, cue)).toBe(false);
+    expect(layout.chip.y - layout.chip.halfHeight - (layout.tags[0]!.y + layout.tags[0]!.halfHeight)).toBeCloseTo(
+      CUE_ROW_GAP_PX,
+    );
+  });
+
+  it('keeps the chip on the self ring when the label box does not meet it', () => {
+    const aside: UprightBox = { ...escapeLabel, x: unmoved.chip.halfWidth + escapeLabel.halfWidth + CUE_GAP_PX };
+    expect(layoutAt(rPx, [aside]).chip).toEqual(unmoved.chip);
+  });
 });
 
 describe('cueLayout: labels come first', () => {
