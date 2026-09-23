@@ -45,6 +45,7 @@ function reportWith(overrides: Partial<PreviewRouteReport> = {}): PreviewRouteRe
     ],
     openP95Ms: 129.5,
     frame: FRAME,
+    frameWork: { workOutsideSubmitP95Ms: 0.4, timerResolutionMs: 0.005 },
     budgets: { openMs: 300, frameMs: 1 },
     verdict: { isOpenWithinBudget: true, isFrameWithinBudget: true },
     ...overrides,
@@ -90,16 +91,37 @@ describe('previewReportHeadlines', () => {
     expect(openRow).not.toContain(WITHIN_BUDGET);
   });
 
-  it('judges the parked frame against the frame budget', () => {
+  it('judges the lens’s work outside its submit against the frame budget (#502)', () => {
     const rows = previewReportHeadlines(reportWith());
-    expect(rows[1]).toBe(`frame p95  0.85 ms / budget 1 ms — ${WITHIN_BUDGET}`);
-    const overBudget = previewReportHeadlines(reportWith({ frame: { ...FRAME, frameTimeP95Ms: 1.4 } }));
+    expect(rows[1]).toBe(`frame work 0.40 ms / budget 1 ms — ${WITHIN_BUDGET}`);
+    const overBudget = previewReportHeadlines(
+      reportWith({
+        frameWork: { workOutsideSubmitP95Ms: 1.4, timerResolutionMs: 0.005 },
+        verdict: { isOpenWithinBudget: true, isFrameWithinBudget: false },
+      }),
+    );
     expect(overBudget[1]).toContain(OVER_BUDGET);
+  });
+
+  it('prints the work marked unjudged, with the clock’s step, where the clock is too coarse (#504)', () => {
+    const rows = previewReportHeadlines(
+      reportWith({
+        frameWork: { workOutsideSubmitP95Ms: 2, timerResolutionMs: 1 },
+        verdict: { isOpenWithinBudget: true, isFrameWithinBudget: null },
+      }),
+    );
+    expect(rows[1]).toBe("frame work 2.00 ms — unjudged (the page's clock steps 1.00 ms)");
+  });
+
+  it('reports the whole frame with its submit, and never judges it: on hardware the submit waits on the GPU', () => {
+    const rows = previewReportHeadlines(reportWith({ frame: { ...FRAME, frameTimeP95Ms: 7.15 } }));
+    expect(rows[2]).toBe('frame p95  7.15 ms with the submit — not judged (it waits on the GPU)');
+    expect(rows[2]).not.toContain(OVER_BUDGET);
   });
 
   it('splits the cold open and gives the bake its share of it', () => {
     const rows = previewReportHeadlines(reportWith());
-    expect(rows[2]).toBe('cold open  210.50 ms — init 40.10 ms, bake 150.20 ms (71% of it), first submit 12.00 ms');
+    expect(rows[3]).toBe('cold open  210.50 ms — init 40.10 ms, bake 150.20 ms (71% of it), first submit 12.00 ms');
   });
 });
 

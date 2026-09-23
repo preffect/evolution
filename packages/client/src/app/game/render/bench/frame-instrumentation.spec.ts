@@ -101,4 +101,26 @@ describe('FrameInstrumentation', () => {
     expect(evidence.timerResolutionMs, 'a ManualClock never steps, so its resolution is unknown').toBeNull();
     expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).renderStagesMs.net).toBe(0);
   });
+
+  it('keeps each frame’s work outside its submit apart, for a budget on the work and not the display (#502)', () => {
+    const clock = new ManualClock(0);
+    const instrumentation = new FrameInstrumentation(clock);
+    const frameWith = (sceneMs: number, submitMs: number): void => {
+      instrumentation.runFrame(
+        () => {
+          clock.advanceMilliseconds(sceneMs);
+          return {} as never;
+        },
+        (_frame, submit) => {
+          submit();
+          return { visibleCells: 0, visibleMotes: 0 } as never;
+        },
+        () => clock.advanceMilliseconds(submitMs),
+      );
+    };
+    expect(instrumentation.workOutsideSubmitP95Ms(), 'no frame yet').toBe(0);
+    for (let frame = 0; frame < 20; frame += 1) frameWith(0.4, 6);
+    expect(instrumentation.workOutsideSubmitP95Ms()).toBeCloseTo(0.4, 9);
+    expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).frameTimeP95Ms).toBeCloseTo(6.4, 9);
+  });
 });

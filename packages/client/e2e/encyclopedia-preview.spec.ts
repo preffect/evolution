@@ -159,6 +159,10 @@ test.describe('the encyclopedia preview evidence route', () => {
       expect(Number.isFinite(value), `${stage} reported and finite`).toBe(true);
     }
     expect(Number.isFinite(report.frame.frameTimeP95Ms)).toBe(true);
+    // What the frame budget judges (#502): the lens's work outside its submit, never more than the whole frame.
+    expect(Number.isFinite(report.frameWork.workOutsideSubmitP95Ms)).toBe(true);
+    expect(report.frameWork.workOutsideSubmitP95Ms).toBeLessThanOrEqual(report.frame.frameTimePeakMs);
+    expect(Number.isFinite(report.frameWork.timerResolutionMs ?? Number.NaN), 'the page clock was probed').toBe(true);
     expect(report.frame.drawCalls).toBeGreaterThan(0);
     expect(report.budgets.openMs).toBeGreaterThan(0);
     expect(report.budgets.frameMs).toBeGreaterThan(0);
