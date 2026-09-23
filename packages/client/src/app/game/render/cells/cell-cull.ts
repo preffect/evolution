@@ -9,7 +9,7 @@ import { MOTION_CLIPS, type MotionClipId } from '@evolution/shared';
 import { FAR_DOT_HALO_RADII, FLAGELLUM_OUTER_PX, RELATION_RING_STROKE_PX, WARNING_RING_STROKE_PX } from '../constants';
 import { HALF } from '../geometry';
 import { EATING_CLIP_CONTEXT, UNAIMED_CLIP_CONTEXT, clipDeformationPeak, engulfDeformationPeak } from './cell-clips';
-import { cellDrawExtentRadii, type CellDrawState } from './cell-draw-extent';
+import { NO_EFFECT_REACH, cellDrawExtentRadii, type CellDrawState } from './cell-draw-extent';
 import { relationRingOuterLinePx, relationRingPackingFor, warningRingRadiusPx } from './cell-instance-builder';
 import type { CellTraitSummary } from './cell-traits';
 import { REST_CLIP_PEAK, type ClipDeformationPeak } from './shape-terms';
@@ -37,7 +37,7 @@ export const CULL_DRAW_STATE: CellDrawState = {
   speedRatio: 1,
   isSprinting: true,
   clip: widestClipPeak(),
-  effectRadii: 0,
+  effectRadii: NO_EFFECT_REACH,
 };
 
 /** The widest a cell of these traits is drawn over any frame, in radii (the far dot's halo included). */

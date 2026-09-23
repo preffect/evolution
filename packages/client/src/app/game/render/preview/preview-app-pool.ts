@@ -10,9 +10,15 @@ import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 
 type CreatePixiApp = (options: PixiAppOptions) => Promise<PixiAppHandle>;
 
-/** The app's two creation-time inputs: an app is only reused for an open that would have created the same one. */
+const SIZING = { fixed: 'fixed', host: 'host' } as const;
+
+/**
+ * The app's creation-time inputs — the pixel ratio, the drawing-buffer mode and the sizing mode (a `fixedSize` app
+ * or one sized by `resizeTo` its host): an app is only reused for an open that would have created the same one.
+ */
 function poolKey(options: PixiAppOptions): string {
-  return `${options.devicePixelRatio}|${options.shouldPreserveDrawingBuffer}`;
+  const sizing = options.fixedSize === undefined ? SIZING.host : SIZING.fixed;
+  return `${options.devicePixelRatio}|${options.shouldPreserveDrawingBuffer}|${sizing}`;
 }
 
 interface IdleApp {

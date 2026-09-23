@@ -15,6 +15,7 @@ import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../../debug/evolut
 import type { RenderFrame } from '../../net/world-store';
 import { PREVIEW_GEL_PATCHES, PREVIEW_SEED } from '../constants';
 import { FrameLoopSession } from '../frame-loop-session';
+import { OWN_CELL_CHROME } from '../effects/own-cell-indicators-layer';
 import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
 import { HALF } from '../geometry';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
@@ -240,12 +241,17 @@ export class PreviewSession extends FrameLoopSession {
       renderer.setFixedZoom((previewLensSidePx(this.pixi.app.screen) * HALF) / framing.viewRadiusWu);
       renderer.parkOn(framing.target);
     }
-    // The scene's own-cell record rides the same crossing the HUD's does; `NO_HUD_INPUTS` otherwise, so a scene
-    // that supplies none draws no indicators and its ring rests.
+    // The scene's own-cell record rides the same crossing the HUD's does, drawn as a lens (#505): the self ring, the
+    // warning ring and the escape arc, never the HUD chrome. `NO_HUD_INPUTS` otherwise, so a scene that supplies no
+    // record draws no indicators and its ring rests.
     const inputs: RenderInputs =
       scene === null
         ? NO_HUD_INPUTS
-        : { ...NO_HUD_INPUTS, ownCellIndicators: scene.ownCellIndicators(frame, frame.balance) };
+        : {
+            ...NO_HUD_INPUTS,
+            ownCellIndicators: scene.ownCellIndicators(frame, frame.balance),
+            ownCellChrome: OWN_CELL_CHROME.lens,
+          };
     return renderer.render(frame, scene?.subjectPlayerId ?? null, inputs, submit);
   }
 

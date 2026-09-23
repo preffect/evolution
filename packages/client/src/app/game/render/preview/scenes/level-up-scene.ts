@@ -33,11 +33,9 @@ import {
   NO_MOTES,
   actionSubjectCellView,
   actionSubjectFraming,
+  NO_SPEED,
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
-
-/** The subject holds still: the burst is the motion, and a swimming cell would compete with it. */
-const AT_REST = 0;
 
 const LEVEL_UP_CLIP_PEAK = clipDeformationPeak(MOTION_CLIP.levelUp, UNAIMED_CLIP_CONTEXT);
 
@@ -56,7 +54,7 @@ export function levelUpPreviewScene(): PreviewScene {
     subjectPlayerId: PREVIEW_SUBJECT_PLAYER_ID,
     framing: (balance) =>
       actionSubjectFraming(balance, {
-        speedRatio: AT_REST,
+        speedRatio: NO_SPEED,
         isSprinting: false,
         clip: LEVEL_UP_CLIP_PEAK,
         effectRadii: effectSpriteReachRadii(MOTION_CLIP.levelUp),

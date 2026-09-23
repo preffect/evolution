@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
+  ENGULF_PHASE,
   MOTION_CLIPS,
   RADIANS_PER_FULL_TURN,
   createTestPlayerProgressView,
@@ -18,7 +19,7 @@ import { ARC_INSTANCE_FIELD, INDICATOR_FILL_TWEEN_MS, LEVEL_GOLD, WHITE } from '
 import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-cell-indicators';
 import { endosymbiontTallies } from '../textures/pip-block-bake';
 import { ARC_INSTANCE_FLOATS } from './arc-instance';
-import { OwnCellIndicatorsLayer, type OwnCellIndicatorsLayerFrame } from './own-cell-indicators-layer';
+import { OWN_CELL_CHROME, OwnCellIndicatorsLayer, type OwnCellIndicatorsLayerFrame } from './own-cell-indicators-layer';
 
 const textures = createTestRenderTextures().indicators;
 const FLASH_PEAK = peakKeyframe(MOTION_CLIPS.level_up.tracks['ringFlash']);
@@ -115,6 +116,23 @@ describe('OwnCellIndicatorsLayer', () => {
     expect(subject.labelBoxes).toEqual([]);
     subject.update(frameAt(32, null, null));
     expect(subject.labelBoxes).toEqual([]);
+    subject.destroy();
+  });
+
+  it('draws only the escape arc as a lens: no DNA ring, numeral, ladder or label, and nothing at all out of an engulf', () => {
+    const { subject, text } = layer();
+    const cell = createTestCellView({ stage: CELL_STAGE.prokaryote, radius: 45 });
+    const lens = { chrome: OWN_CELL_CHROME.lens };
+    const free = recordFor(cell, { nearestThreat: { cellId: entityId('t'), label: 'Amoeboid can engulf you' } });
+    expect(subject.update({ ...frameAt(0, cell, free), ...lens })).toEqual({ sprites: 0, arcs: 0, texts: 0 });
+    expect(text.shown).toEqual({ numeral: null, label: null, relationLabels: [] });
+
+    const escape = { progress: 0.2, phase: ENGULF_PHASE.cover, fill: 0.6, predatorCellId: entityId('p') };
+    const held = recordFor(cell, { escape });
+    expect(subject.update({ ...frameAt(16, cell, held), ...lens })).toEqual({ sprites: 0, arcs: 2, texts: 0 });
+    expect(text.shown.label).toBeNull();
+    // The same record as the HUD draws it: the DNA ring, the escape arc, the numeral and the escape label.
+    expect(subject.update(frameAt(32, cell, held)).texts).toBe(2);
     subject.destroy();
   });
 

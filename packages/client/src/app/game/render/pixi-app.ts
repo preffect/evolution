@@ -32,7 +32,8 @@ export interface PixiAppHandle {
    * Points the shaders Pixi keeps for the app's lifetime back at a built-in texture. The particle pipe's one shader
    * still holds the last `ParticleContainer`'s texture after the container is gone, so destroying that texture
    * first logs `[BindGroup] a 'textureSource' was destroyed while still bound` (ticket #503). Runs before a bundle
-   * is destroyed.
+   * is destroyed. **It writes a Pixi internal** (`renderPipes.particle.defaultShader`), checked against Pixi 8.20:
+   * after a Pixi upgrade, re-check `?preview=…&opens=20` for the warning before trusting it.
    */
   unbindTextures(): void;
   destroy(): void;
