@@ -8,6 +8,7 @@ import type { EntryId } from '../model/entry-id';
 import {
   canGoBack,
   categoryLanding,
+  isLandingOf,
   defaultLocation,
   entryLocation,
   goBack,
@@ -184,5 +185,13 @@ describe('defaultLocation', () => {
     const listed: readonly EncyclopediaCategory[] = [ENCYCLOPEDIA_CATEGORY.entities, DEFAULT_ENCYCLOPEDIA_CATEGORY];
 
     expect(defaultLocation(listed)).toEqual(categoryLanding(DEFAULT_ENCYCLOPEDIA_CATEGORY));
+  });
+});
+
+describe('isLandingOf', () => {
+  it('is the category’s landing itself, and neither another category’s nor an entry in it', () => {
+    expect(isLandingOf(BASICS_LANDING, ENCYCLOPEDIA_CATEGORY.basics)).toBe(true);
+    expect(isLandingOf(BASICS_LANDING, ENCYCLOPEDIA_CATEGORY.world)).toBe(false);
+    expect(isLandingOf({ ...BASICS_LANDING, entryId: 'x' as never }, ENCYCLOPEDIA_CATEGORY.basics)).toBe(false);
   });
 });

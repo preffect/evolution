@@ -28,6 +28,11 @@ export function categoryLanding(category: EncyclopediaCategory): EncyclopediaLoc
   return { category, entryId: null, sectionKey: null };
 }
 
+/** Whether `location` is `category`'s landing itself, not an entry in it. */
+export function isLandingOf(location: EncyclopediaLocation, category: EncyclopediaCategory): boolean {
+  return location.category === category && location.entryId === null;
+}
+
 /** An entry's page. The category comes from the entry, so a link switches the rail to where its target lives. */
 export function entryLocation(entryId: EntryId, sectionKey: string | null = null): EncyclopediaLocation {
   return { category: categoryOf(entryId), entryId, sectionKey };
