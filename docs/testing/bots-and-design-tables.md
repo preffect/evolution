@@ -75,7 +75,12 @@ itself from a `createInProcessBotRoster(binding)` (`game/bots/in-process-bots.ts
 seats it as a synthetic player (`sim_bot_<seed>_<index>`, a namespace no wire bot shares; an id
 already in play is refused before the module holds the bot), so the lobby and the other clients
 see a normal `Bot <index>`. The 4-cell dish a QA screenshot needs is one room and three
-`debug_spawn_bot` calls; `debug_pause_room` + `debug_step_room` then freeze the frame.
+`debug_spawn_bot` calls; `debug_pause_room` + `debug_step_room` then freeze the frame. The Evolution roster reads the **live
+`WorldState`** each tick (`createEvolutionWorldBotBinding`, #181), never a snapshot built for it, so 8 bots cost
+the tick 0.047 ms of CPU instead of 0.116–0.122 ms (median, the p95 from 0.24–0.29 ms to 0.07 ms;
+`pnpm --filter @evolution/server bench:bots`, a filled dish with its wild seats, main and the change alternated).
+They decide exactly as they would on a full snapshot of the world at exact precision
+(`evolution-world-binding.test.ts` pins it for every strategy). Only the wire's quantisation of positions is gone.
 
 **Test doubles:** `testing/bot-builders.ts` (strategy contexts and world views, a fake transport,
 a fake socket, captured manual timings) and `testing/socket-builders.ts` (a listening server on
