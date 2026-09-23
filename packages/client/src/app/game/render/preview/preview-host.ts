@@ -8,7 +8,8 @@
 import { InjectionToken, inject } from '@angular/core';
 import type { BalanceConfig, Clock } from '@evolution/shared';
 import { CLOCK } from '../../clock-provider';
-import { createPixiApp } from '../pixi-app';
+import { createPixiApp, type PixiAppHandle, type PixiAppOptions } from '../pixi-app';
+import { PreviewAppPool } from './preview-app-pool';
 import type { PreviewSizePx } from './preview-canvas';
 import { PreviewSession } from './preview-session';
 import type { PreviewOpenTimings } from './preview-timings';
@@ -46,9 +47,11 @@ export interface PreviewHandleDependencies {
   readonly clock: Clock;
   /** The display's raw ratio; the session caps it at `PREVIEW_MAX_DEVICE_PIXEL_RATIO`. */
   readonly devicePixelRatio: number;
+  /** Where the session's Pixi app comes from: the page's `PreviewAppPool`, so opens share one context (#503). */
+  readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
 }
 
-/** The real seam: one `PreviewSession` on the app's `createPixiApp` and the injected clock. */
+/** The real seam: one `PreviewSession` on the pooled app and the injected clock. */
 export function createPreviewHandle(
   options: PreviewHostOptions,
   dependencies: PreviewHandleDependencies,
@@ -58,7 +61,7 @@ export function createPreviewHandle(
     clock: dependencies.clock,
     devicePixelRatio: dependencies.devicePixelRatio,
     sizePx: options.sizePx,
-    createPixiApp,
+    createPixiApp: dependencies.createPixiApp,
     balance: options.balance,
     shouldPreserveDrawingBuffer: options.shouldPreserveDrawingBuffer ?? false,
   });
@@ -78,9 +81,13 @@ export const ENCYCLOPEDIA_PREVIEW = new InjectionToken<PreviewHostFactory>('Ency
   providedIn: 'root',
   factory: () => {
     const clock = inject(CLOCK);
+    // One pool for the page: the encyclopedia's every open reuses the one preview context. It lives as long as the
+    // page, so a closed encyclopedia holds that context and its canvas buffers, never the bundle.
+    const pool = new PreviewAppPool(createPixiApp);
     return (options) =>
       createPreviewHandle(options, {
         clock,
+        createPixiApp: pool.acquire,
         devicePixelRatio: options.host.ownerDocument.defaultView?.devicePixelRatio ?? DEFAULT_DEVICE_PIXEL_RATIO,
       });
   },
