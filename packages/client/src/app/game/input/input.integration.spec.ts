@@ -63,6 +63,11 @@ function gameState(): ServerMessage {
   };
 }
 
+/** A broadcast of the parked world at `tick`, answering none of the inputs sent. */
+function snapshotAt(tick: number): ServerMessage {
+  return { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick, cells: [OWN_CELL] }) };
+}
+
 interface Harness {
   readonly host: HTMLElement;
   readonly sent: GameInput[];
@@ -122,6 +127,9 @@ async function startGame(): Promise<Harness> {
       for (let frame = 0; frame < BUILD_FRAMES_MAX; frame += 1) {
         if (debugHost[EVOLUTION_DEBUG_KEY]?.renderTick() !== null) return;
         clock.advanceMilliseconds(TICK_INTERVAL_MS);
+        // A live room keeps broadcasting while the world bakes; without arrivals the prediction's stall bound
+        // (`PREDICTION_STALL_TICKS`) would freeze it however long the build ran. They answer no input.
+        messages$.next(snapshotAt(frame + 1));
         pixi.tick();
       }
       throw new Error(`The renderer drew nothing in ${BUILD_FRAMES_MAX} frames.`);
