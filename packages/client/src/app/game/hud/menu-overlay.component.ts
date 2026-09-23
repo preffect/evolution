@@ -20,7 +20,7 @@ import { HudStateService } from './hud-state.service';
 import { MenuExitComponent } from './menu-exit.component';
 import { MenuTraitsComponent } from './menu-traits.component';
 import { OverlayAlertComponent } from './overlay-alert.component';
-import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-test-ids';
 
 @Component({
   selector: 'app-menu-overlay',

@@ -6,7 +6,7 @@ import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { TICK_HZ } from '../constants/network.js';
 import { ROUND_DURATION_SECONDS } from '../constants/session.js';
 import { CELL_STAGE, WORLD_STANDING, type CellStage } from '../types/game.js';
-import { standingAgainstWorld, worldElapsedSeconds, worldReference } from './world-clock.js';
+import { standingAgainstWorld, worldElapsedSeconds, worldReference, worldWholeLevel } from './world-clock.js';
 
 const balance = DEFAULT_BALANCE;
 
@@ -72,6 +72,14 @@ describe('worldReference', () => {
     custom.worldClock.WORLD_MASS_GAIN_PER_SECOND = 2;
     expect(worldReference(60, custom).worldLevel).toBe(2);
     expect(worldReference(60, custom).worldMass).toBe(140);
+  });
+});
+
+describe('worldWholeLevel', () => {
+  it('floors the continuous level, so a world halfway to the next level is still at the last one', () => {
+    expect(worldWholeLevel({ worldLevel: 3.5 })).toBe(3);
+    expect(worldWholeLevel({ worldLevel: 3.99 })).toBe(3);
+    expect(worldWholeLevel({ worldLevel: 4 })).toBe(4);
   });
 });
 

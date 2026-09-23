@@ -180,7 +180,7 @@ describe('defaultLocation', () => {
   it('prefers the default category over the first listed one, wherever in the order it sits', () => {
     // `DEFAULT_ENCYCLOPEDIA_CATEGORY` is also ENCYCLOPEDIA_CATEGORY_ORDER[0] today, so every other case here reads the
     // same under "prefers the default" and under "takes the first listed". This is the one that tells them apart, and
-    // it is the case that arrives the day #361 fills `basics` while an earlier-ordered category is still empty.
+    // it is the case of a default category that is not the first listed one.
     const listed: readonly EncyclopediaCategory[] = [ENCYCLOPEDIA_CATEGORY.entities, DEFAULT_ENCYCLOPEDIA_CATEGORY];
 
     expect(defaultLocation(listed)).toEqual(categoryLanding(DEFAULT_ENCYCLOPEDIA_CATEGORY));

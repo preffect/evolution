@@ -43,7 +43,10 @@ export interface InputSeam {
 export function attachInput(options: AttachInputOptions): InputSeam {
   const controller = new InputController({
     clock: options.clock,
-    send: options.send,
+    send: (input) => {
+      options.store.recordOwnInput(input);
+      options.send(input);
+    },
     projectPointer: options.projectPointer,
     world: () => inputWorldContextOf(options.store),
     ...definedEntriesOf({

@@ -7,8 +7,9 @@
 // It also owns the one gate the chrome shares: the round phase (docs/ui/hud.md §3.1).
 //
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
-// mirror (§3.1.4), which carries no pixels of its own, and the trait picker (docs/ui/overlays.md §3.2, #188); the death
-// and results overlays (#189) and the notices (#190) slot in here as they land.
+// mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
+// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530); the death and results overlays (#189) and the toasts
+// (#190) slot in here as they land.
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
@@ -16,13 +17,14 @@ import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
 import { CONNECTION_STATE, noticeRowCountFor } from './format/connection-banner';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
+import { HintComponent } from './hint.component';
 import { HudStateService } from './hud-state.service';
 import { MenuOverlayComponent } from './menu-overlay.component';
 import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
@@ -39,6 +41,7 @@ import { HUD_OVERLAY } from './hud-state.service';
     AffectingPanelComponent,
     ConnectionBannerComponent,
     EncyclopediaOverlayComponent,
+    HintComponent,
     LeaderboardPanelComponent,
     MenuOverlayComponent,
     OwnCellStatusComponent,
@@ -62,6 +65,9 @@ import { HUD_OVERLAY } from './hud-state.service';
     @if (!isEncyclopediaOpen()) {
       <app-round-timer />
     }
+    <!-- One onboarding beat at a time, bottom-centre (docs/ui/input-and-onboarding.md §5); it stands down on its own
+         outside play, while dead and while the picker is open, and it is mounted throughout so the queue keeps stepping. -->
+    <app-hint />
     <!-- Not phase-gated: the mirror stands down on its own when there is no own cell to mirror,
          so the results phase does not need to gate it. It does unmount on death, which announces
          nothing; speaking the death is #189's, with the death overlay. -->

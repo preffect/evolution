@@ -21,7 +21,7 @@ import { UiScrollAreaComponent } from '../../ui-kit/ui-scroll-area.component';
 import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
 import { visibleRowsHeightPx, type MenuTraitRow } from './format/menu-traits';
 import { MENU_TRAITS_VISIBLE_ROWS } from './hud-constants';
-import { HUD_TEST_ID, menuTraitTestId } from './test-ids';
+import { HUD_TEST_ID, menuTraitTestId } from '../test-ids/hud-test-ids';
 
 @Component({
   selector: 'app-menu-traits',

@@ -4,8 +4,8 @@
 # setup never takes them: it has its own per-checkout lock (scripts/lib/workspace-ready.sh).
 #
 # A run takes one slot of its phase's class, so a cheap phase never queues behind a heavy one:
-#   heavy  test, integration, typecheck: multi-core runners (vitest and the Angular builder spawn about one
-#          worker per core); VALIDATE_HEAVY_SLOTS, else one per GATE_HEAVY_RUN_CORES cores, capped by memory
+#   heavy  test, integration, typecheck: multi-core runners (vitest and the Angular builder run cores - 2
+#          workers, #475); VALIDATE_HEAVY_SLOTS, else one per GATE_HEAVY_RUN_CORES cores, capped by memory
 #   light  lint, duplication: one core each (eslint, prettier, jscpd); VALIDATE_LIGHT_SLOTS, else one per
 #          GATE_LIGHT_RUN_CORES cores (they run beside a heavy run that already fills every core), capped by memory
 #   none   no lock (a lint that runs no eslint: prettier on docs and the audits)
@@ -33,7 +33,7 @@
 GATE_CLASS_HEAVY="heavy"
 GATE_CLASS_LIGHT="light"
 GATE_CLASS_NONE="none"
-GATE_HEAVY_RUN_CORES=4        # a heavy run's runner uses about every core of a 4-core box (#380)
+GATE_HEAVY_RUN_CORES=2        # a heavy runner uses cores - 2 workers (#475): two runs share a 4-core box (#561)
 GATE_LIGHT_RUN_CORES=2        # a light run uses one core, beside a heavy run that already fills them (#380)
 GATE_HEAVY_RUN_MEMORY_MB=4096 # a heavy runner's processes were sampled near 1.1 GB; headroom for coverage (#380)
 GATE_LIGHT_RUN_MEMORY_MB=1024 # eslint over the client peaks near 1 GB (#380)

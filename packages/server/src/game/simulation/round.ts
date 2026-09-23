@@ -4,7 +4,7 @@
 // (docs/determinism/random-streams.md §3). The phase flips on the tick the timer reaches zero; the results
 // screen ends on the tick its elapsed count reaches its length.
 
-import { EFFECT_KIND, ROUND_PHASE } from '@evolution/shared';
+import { EFFECT_KIND, ROUND_PHASE, worldWholeLevel } from '@evolution/shared';
 import { createWorld } from '../world/create-world.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import {
@@ -40,13 +40,13 @@ export function resetWorldForRematch(world: WorldState, context: StepContext): v
  * 600 s round). The cap freezes the clock through `results`, so no level-up fires there.
  */
 export function emitWorldLevelUp(world: WorldState, context: StepContext): void {
-  const previous = Math.floor(worldReferenceAt(world, world.tick - 1).worldLevel);
+  const previous = worldWholeLevel(worldReferenceAt(world, world.tick - 1));
   const current = worldReferenceAt(world, world.tick);
-  if (Math.floor(current.worldLevel) > previous) {
+  if (worldWholeLevel(current) > previous) {
     context.effects.push({
       kind: EFFECT_KIND.worldLevelUp,
       tick: world.tick,
-      level: Math.floor(current.worldLevel),
+      level: worldWholeLevel(current),
       stage: current.worldStage,
     });
   }

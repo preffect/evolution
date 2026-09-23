@@ -15,7 +15,7 @@ import {
   signal,
 } from '@angular/core';
 import { UiButtonComponent } from '../../ui-kit/ui-button.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 @Component({
   selector: 'app-menu-exit',

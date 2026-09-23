@@ -21,7 +21,7 @@ import { UiPanelComponent } from '../../ui-kit/ui-panel.component';
 import { UiPanelSectionComponent } from '../../ui-kit/ui-panel-section.component';
 import { AFFECTING_SPARKLINE_HEIGHT_PX, AFFECTING_SPARKLINE_WIDTH_PX } from './hud-constants';
 import { HudStateService } from './hud-state.service';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { affectingRowsFor, type AffectingRow } from './format/affecting-rows';
 import { roundClockStateFor } from './format/round-clock';
 import { sparklinePointsFor } from './format/sparkline';

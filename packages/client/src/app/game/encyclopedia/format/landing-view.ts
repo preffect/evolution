@@ -39,17 +39,16 @@ export function entryBreadcrumb(
   return [categoryCrumb, { text: groupLabel, target: null }];
 }
 
-/** Between a link fact's name and the entry it names: `Opens: Nucleoid Coil`. */
+/** Between a fact's name and its value: `Opens: Nucleoid Coil`, `Never below: 20 mass`. */
 const TILE_FACT_NAME_SEPARATOR = ': ';
 
 /**
- * The tile's one line. A value fact reads alone — `+3 mass`, `Starts at 20 mass` — and is drawn as it is. A **link**
- * fact's text is nothing but another entry's title, so a stage tile would read `Protocell` over `Nucleoid Coil`, two
- * titles with no way to tell which is the tile's; it takes its fact's name instead.
+ * The tile's one line: the fact's name, then its value. A value alone says nothing of what it measures (`Mass decay`
+ * over `20 mass`), and a **link** fact's text is nothing but another entry's title, so a stage tile would read
+ * `Protocell` over `Nucleoid Coil`, two titles with no way to tell which is the tile's.
  */
 function tileLineFor(headline: ResolvedFact | null): string | null {
   if (headline === null) return null;
-  if (headline.link === null) return headline.text;
   return `${headline.label}${TILE_FACT_NAME_SEPARATOR}${headline.text}`;
 }
 

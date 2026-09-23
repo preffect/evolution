@@ -2,7 +2,7 @@
 // against the dev servers, like `render-smoke.spec.ts`. Run with `pnpm --filter @evolution/client smoke`; not part
 // of `./validate.sh all`. U8–U11 need the encyclopedia shell (#372) and join this file with it.
 import { expect, test, type Page } from '@playwright/test';
-import { HUD_TEST_ID } from '../src/app/game/hud/test-ids';
+import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
 
 const MENU_SEED = 42;
 const GAME_NAME_PREFIX = 'menu';

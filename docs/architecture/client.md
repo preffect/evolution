@@ -21,9 +21,8 @@
   pumped once per animation frame, so game code owns no timer (`CODE-STANDARDS.md §8`). The counter
   never starts below `appliedInputSequenceByPlayer[me]`: a reconnect gives the page a fresh
   controller against the server's existing player record, and a counter restarted at 1 would have
-  every input dropped as stale (`isStaleInput`, section 3.2). The
-  prediction and reconciliation below are **#265**: today the own cell is interpolated like any
-  other. On a
+  every input dropped as stale (`isStaleInput`, section 3.2). The own cell is predicted (#265,
+  `net/own-cell-predictor.ts`; every other cell is interpolated). On a
   snapshot at tick `T` carrying `appliedInputSequenceByPlayer[me] = S`, the own cell's
   authoritative pose is "tick `T` after input `S`". The client then re-runs the shared movement
   kernel for its unacknowledged inputs `S + 1 … latest`, assuming input `S + i` was applied at
@@ -31,9 +30,30 @@
   the two counters advance together). When jitter makes the server coalesce two inputs into one
   tick the assumption is off by one tick for one snapshot, and reconciliation absorbs it. Mass,
   radius, stage, traits, engulf state and death are never predicted.
-- **Reconciliation.** Differences under `RECONCILE_SNAP_DISTANCE_WU` blend out over
-  `RECONCILE_BLEND_SECONDS`; larger ones snap. `WorldStore` is the single client model; the
-  Angular `GameStateService` is its signal facade for the HUD, not a second model.
+  - **What the replay runs** (`net/own-cell-prediction.ts`): per tick, the server's step 1 for the own cell (latch a
+    steering target, start a sprint when the reported cooldown allows) and step 3 through the shared
+    `movementStepFor` (`shared/simulation/movement-step.ts`, the one fold of the speed cap and the blend the server's
+    `movement.ts` also calls) and `stepMovementKernel`; the gel is read at the replayed pose, the traits' modifiers
+    are folded from the reported traits, a predator's engulf factor comes from its prey's reported progress.
+    Separation and a debug pin are not replayed: reconciliation absorbs them. A cell **being engulfed** is not
+    predicted at all (its predator moves it) and is drawn interpolated; a prey the own cell carries is drawn shifted
+    with it.
+  - **Bounds.** At most `MAX_PREDICTION_TICKS` (30) inputs are replayed, and at most `PREDICTION_STALL_TICKS` (15,
+    250 ms: one late snapshot on a routed link must not freeze the cell) past the newest input sent when the newest
+    snapshot **arrived** (an appended one; a debug republish of the same tick re-bases the pose but is not an
+    arrival): a paused or stalled room holds the own cell there, as the render tick holds at the extrapolation cap,
+    so a `debug_pause_room` evidence frame stays still. Inputs further
+    than the horizon past the acknowledged one are not kept, so nothing grows while a room is paused.
+  - **Drawn between ticks.** The frame draws the last two replayed poses eased over one tick from the moment the
+    newest input was sent, so a frame that lands zero or two ticks never jolts the cell.
+  - The steer target hangs off the **predicted** pose (`input-world-context.ts`): it is where the cell will be when
+    the server applies the input, so the pointer's offset from the view centre lands where it was aimed.
+- **Reconciliation** (`net/pose-correction.ts`). On every applied snapshot the prediction is re-based; the gap
+  between where the cell was drawn and the new prediction, under `RECONCILE_SNAP_DISTANCE_WU`, blends out linearly
+  over `RECONCILE_BLEND_SECONDS`; a larger one, or a new own cell (a respawn), snaps. Only the drawn position carries
+  the offset, never the steer target. `WorldStore` is the single client model; the Angular `GameStateService` is its
+  signal facade for the HUD, not a second model. The debug hook's `prediction()` reports the last frame's own cell
+  both drawn and as interpolation alone would have drawn it.
 - **Clock.** `serverTickEstimate` comes from snapshot arrival times (EMA) through the client's
   injected `Clock`; a republished snapshot at the latest tick (a debug mutation, §8) replaces the
   frame and is not observed, since it is a new world, not a new arrival; nothing in `game/` reads
