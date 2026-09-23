@@ -156,14 +156,39 @@ function createStageHandle(parts: FakeStageParts): Application {
   return app as unknown as Application;
 }
 
+/** A warm-up seam that records what it was asked for (ticket #603). */
+function recordingWarmUp(): Pick<FakePixiApp, 'warmUp' | 'warmUpCalls'> {
+  const warmUpCalls: FakePixiApp['warmUpCalls'] = { uploads: [], offscreenRenders: [] };
+  return {
+    warmUpCalls,
+    warmUp: {
+      uploadTextureSource: (source) => warmUpCalls.uploads.push(source),
+      renderOffscreen: (container) => warmUpCalls.offscreenRenders.push(container),
+    },
+  };
+}
+
+/** The handle's teardown, recorded: how often it unbound its textures, and whether it was destroyed. */
+function recordingLifecycle(): Pick<FakePixiApp, 'lifecycle' | 'unbindCalls' | 'unbindTextures' | 'destroy'> {
+  const lifecycle = { isDestroyed: false };
+  const unbindCalls = { count: 0 };
+  return {
+    lifecycle,
+    unbindCalls,
+    unbindTextures: () => {
+      unbindCalls.count += 1;
+    },
+    destroy: () => {
+      lifecycle.isDestroyed = true;
+    },
+  };
+}
+
 export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const stage = new Container();
   const tickerCallbacks: TickerCallback[] = [];
   const renderCalls = { count: 0 };
   const baker = createFakeTextureBaker();
-  const lifecycle = { isDestroyed: false };
-  const unbindCalls = { count: 0 };
-  const warmUpCalls: FakePixiApp['warmUpCalls'] = { uploads: [], offscreenRenders: [] };
   const screenBox = { ...screen };
   const ticking = { isRunning: true };
   const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
@@ -178,13 +203,8 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     renderCalls,
     bakedSpecs: baker.bakedSpecs,
     bakedCanvases: baker.bakedCanvases,
-    lifecycle,
-    unbindCalls,
-    warmUpCalls,
-    warmUp: {
-      uploadTextureSource: (source) => warmUpCalls.uploads.push(source),
-      renderOffscreen: (container) => warmUpCalls.offscreenRenders.push(container),
-    },
+    ...recordingLifecycle(),
+    ...recordingWarmUp(),
     ticking,
     // A stopped Pixi ticker runs no callback at all; a `tick()` while stopped must draw nothing here either,
     // or a spec that pauses a session would still see frames and pass without the pause working.
@@ -195,12 +215,6 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     resize: (sizePx) => {
       screenBox.width = sizePx.width;
       screenBox.height = sizePx.height;
-    },
-    unbindTextures: () => {
-      unbindCalls.count += 1;
-    },
-    destroy: () => {
-      lifecycle.isDestroyed = true;
     },
   };
 }

@@ -107,15 +107,26 @@ export class RendererSlot {
       commit: () => {
         for (const bake of bakes) bake.runAll();
         const built = staged ?? stageRenderer();
-        this.disposeSeeded();
-        if (shared !== null) this.replaceShared(shared.result(), baker, devicePixelRatio);
-        this.seeded = seeded.result();
-        stage.addChild(...built.container.removeChildren());
-        built.container.destroy();
-        this.renderer = built.renderer;
-        return built.renderer;
+        const newShared = shared === null ? null : { textures: shared.result(), baker, devicePixelRatio };
+        return this.putOnStage(stage, built, newShared, seeded.result());
       },
     };
+  }
+
+  /** The commit: the old renderer and its seeded half go, the new one's layers move from staging onto the stage. */
+  private putOnStage(
+    stage: Container,
+    built: StagedRenderer,
+    newShared: SharedBundle | null,
+    seeded: SeededRenderTextures,
+  ): GameRenderer {
+    this.disposeSeeded();
+    if (newShared !== null) this.replaceShared(newShared.textures, newShared.baker, newShared.devicePixelRatio);
+    this.seeded = seeded;
+    stage.addChild(...built.container.removeChildren());
+    built.container.destroy();
+    this.renderer = built.renderer;
+    return built.renderer;
   }
 
   dispose(): void {
