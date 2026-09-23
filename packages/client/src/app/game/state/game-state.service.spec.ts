@@ -12,7 +12,7 @@ import {
   playerId,
   type TraitId,
 } from '@evolution/shared';
-import { createTestCellView } from '../../../testing/builders';
+import { createTestCellAbsorbedEffect, createTestCellView } from '../../../testing/builders';
 import { HudStateService } from '../hud/hud-state.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { GameStateService } from './game-state.service';
@@ -163,6 +163,34 @@ describe('GameStateService', () => {
 
     gameState.setCameraExtent({ minX: -499, minY: -500, maxX: 500, maxY: 500 });
     expect(gameState.ownCellIndicators()).not.toBe(first);
+  });
+
+  it('drops the plain EDIBLE label once the own cell engulfs, and keeps it dropped; another cell’s engulf does not count', () => {
+    const own = createTestCellView({ id: entityId('own'), playerId: OWN_PLAYER_ID, mass: 100, radius: 10 });
+    const prey = createTestCellView({ id: entityId('prey'), mass: 20, radius: 4, x: 40 });
+    const snapshotWith = (effects: ReturnType<typeof createTestCellAbsorbedEffect>[], tick: number) =>
+      createTestSnapshot({
+        tick,
+        cells: [own, prey],
+        effects,
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }),
+      });
+    multiplayer.playerId.set(OWN_PLAYER_ID);
+    multiplayer.balance.set(DEFAULT_BALANCE);
+    gameState.setCameraExtent({ minX: -500, minY: -500, maxX: 500, maxY: 500 });
+    multiplayer.snapshot.set(snapshotWith([], 1));
+    expect(gameState.ownCellIndicators()?.relationLabels.edible?.cellId).toBe(prey.id);
+
+    const othersMeal = createTestCellAbsorbedEffect({ cellId: entityId('x'), predatorCellId: entityId('rival') });
+    multiplayer.snapshot.set(snapshotWith([othersMeal], 2));
+    expect(gameState.ownCellIndicators()?.relationLabels.edible?.cellId).toBe(prey.id);
+
+    const ownMeal = createTestCellAbsorbedEffect({ cellId: entityId('x'), predatorCellId: own.id });
+    multiplayer.snapshot.set(snapshotWith([ownMeal], 3));
+    expect(gameState.ownCellIndicators()?.relationLabels.edible).toBeNull();
+    multiplayer.snapshot.set(snapshotWith([], 4));
+    expect(gameState.ownCellIndicators()?.relationLabels.edible).toBeNull();
+    expect(gameState.ownCellIndicators()?.relationRings.get(prey.id)).toBeDefined();
   });
 
   it('mirrors the room’s seats, config and live balance', () => {

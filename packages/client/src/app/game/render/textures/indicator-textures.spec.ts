@@ -24,6 +24,10 @@ describe('createIndicatorTextures', () => {
     }
     expect(textures.labelPill.texture.source).not.toBe(textures.source);
     expect(textures.labelPill.capWidthPx).toBeGreaterThan(0);
+    // The edible relation label's pill: its own texture, the same caps, so one nine-slice serves both (#539).
+    expect(textures.gainLabelPill.texture).not.toBe(textures.labelPill.texture);
+    expect(textures.gainLabelPill.capWidthPx).toBe(textures.labelPill.capWidthPx);
+    expect(textures.gainLabelPill.widthPx).toBe(textures.labelPill.widthPx);
     expect(textures.bakeScale).toBe(1);
   });
 
@@ -42,6 +46,7 @@ describe('createIndicatorTextures', () => {
     destroyIndicatorTextures(textures);
     expect(baker.uninstalledFonts).toEqual(names);
     expect(textures.labelPill.texture.destroyed).toBe(true);
+    expect(textures.gainLabelPill.texture.destroyed).toBe(true);
     expect(textures.ghosts[LADDER_SILHOUETTE.envelope]!.texture.destroyed).toBe(true);
   });
 

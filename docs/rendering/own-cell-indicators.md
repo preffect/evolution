@@ -96,7 +96,13 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   `OwnCellIndicators.relations` and its by-id map `relationRings`, which the renderer hands the cell layer as
   `CellLayerFrame.relationRings`; the builder only turns it into px (`relationRingPackingFor`).
   A cell with a warning ring packs no relation ring. The labels are threat-label pills placed by
-  `threat-label-placement.ts`'s rule.
+  `threat-label-placement.ts`'s rule with the ring's outermost line in the warning ring's place
+  (`effects/relation-label-placements.ts`: `relationLabelAnchorsFor` reads the record's `relationLabels` and the ring
+  the cell layer packs, so no label is drawn on a ring the LOD dropped). The edible label's pill is the label pill
+  baked with a `GAIN` rim (`gainLabelPill`, the same size and caps, so one nine-slice swaps textures); the text view
+  keeps one slot per kind. Every label box, the threat's included, goes to the cue layout (`labelBoxes`), so the zone
+  pill yields to a relation label as it does to the threat's. `relationsFor` is split so the per-cell work
+  (`relationCandidatesFor`) runs once per snapshot and only the camera test (`relationsOnScreen`) per camera move.
 - **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),
   `oriented-box.spec.ts`, `own-cell-indicators.spec.ts` (#187: the worst case at 5 sprites, 6 arc rows and 2 texts,
   the DNA fill and its gold, the orbit in world units, the escape window and its two labels, the threat label

@@ -23,7 +23,8 @@ import {
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { CONNECTION_STATE, type ConnectionState } from '../hud/format/connection-banner';
-import { relationsFor, type Relation } from '../hud/format/relations-for';
+import { hasEngulfedIn } from '../hud/format/relation-labels';
+import { relationCandidatesFor, relationsOnScreen, type RelationCandidate } from '../hud/format/relations-for';
 import { threatsFor, type Threat } from '../hud/format/threats-for';
 import { zoneEntryFor, type ZoneEntryMemory } from '../hud/format/zone-pill';
 import { HudStateService } from '../hud/hud-state.service';
@@ -37,7 +38,7 @@ const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerRosterView>> = {};
 const NO_CELLS: readonly CellView[] = [];
 const NO_THREATS: readonly Threat[] = [];
-const NO_RELATIONS: readonly Relation[] = [];
+const NO_RELATIONS: readonly RelationCandidate[] = [];
 const NO_MASSES: readonly number[] = [];
 const NO_FOOD_GAIN = 0;
 
@@ -243,12 +244,22 @@ export class GameStateService {
     });
   });
 
-  /** On-screen cells the own cell could eat or should not touch, nearest first (docs/ui/hud.md §3.1.5). */
-  readonly relations = computed<readonly Relation[]>(() => {
+  /** Every cell that would carry a relation ring, nearest first: the per-cell work, once per snapshot. */
+  private readonly relationCandidates = computed<readonly RelationCandidate[]>(() => {
     const ownCell = this.ownCell();
     const balance = this.balance();
     if (ownCell === null || balance === null) return NO_RELATIONS;
-    return relationsFor({ cells: this.cells(), ownCell, cameraExtent: this.cameraExtent(), balance });
+    return relationCandidatesFor({ cells: this.cells(), ownCell, balance });
+  });
+
+  /** On-screen cells the own cell could eat or should not touch, nearest first (docs/ui/hud.md §3.1.5). */
+  readonly relations = computed(() => relationsOnScreen(this.relationCandidates(), this.cameraExtent()));
+
+  /** An engulf this session (§3.1.5's `EDIBLE` rule): latched on the own cell's first `cell_absorbed`, kept on respawn. */
+  private readonly hasEngulfed = linkedSignal<OwnSnapshot | null, boolean>({
+    source: () => this.ownSnapshot(),
+    computation: (current, previous) =>
+      (previous?.value ?? false) || (current !== null && hasEngulfedIn(current.snapshot.effects, current.ownCell.id)),
   });
 
   /**
@@ -274,6 +285,7 @@ export class GameStateService {
       balance,
       threats: this.threats(),
       relations: this.relations(),
+      hasEngulfed: this.hasEngulfed(),
       previewTraitId: this.hudState.previewTraitId(),
       tick: own.snapshot.tick,
       massTrend: this.massTrend(),

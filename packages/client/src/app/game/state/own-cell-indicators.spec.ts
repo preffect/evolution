@@ -78,6 +78,7 @@ describe('ownCellIndicatorsFor', () => {
       ring: RELATION_RING.edible,
       isEdible: true,
       isToxic: false,
+      isSpiny: false,
       distanceSquared: 1,
     };
     const indicators = ownCellIndicatorsFor({
@@ -90,7 +91,9 @@ describe('ownCellIndicatorsFor', () => {
     });
     expect(indicators.relations).toEqual([edible]);
     expect(indicators.relationRings.get(entityId('prey'))).toBe(RELATION_RING.edible);
+    expect(indicators.relationLabels.edible).toEqual({ cellId: entityId('prey'), text: 'Edible', rim: 'gain' });
     expect(indicatorsOf(ownCell).relationRings.size).toBe(0);
+    expect(indicatorsOf(ownCell).relationLabels).toEqual({ edible: null, toxic: null });
   });
 
   it('opens the escape window while being engulfed and drains it toward the seal', () => {
