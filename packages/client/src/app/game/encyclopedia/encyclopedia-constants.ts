@@ -113,6 +113,16 @@ export const ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL: Readonly<Record<PreviewActionSce
   [PREVIEW_SCENE.levelUp]: 'Replay',
 };
 
+/** What the reduced-motion toggle under the lens does when pressed (§11.4): play a held lens, or hold a playing one. */
+export const ENCYCLOPEDIA_LENS_MOTION = { play: 'play', pause: 'pause' } as const;
+export type EncyclopediaLensMotion = (typeof ENCYCLOPEDIA_LENS_MOTION)[keyof typeof ENCYCLOPEDIA_LENS_MOTION];
+
+/** The toggle's accessible name: an icon alone says nothing to a screen reader. */
+export const ENCYCLOPEDIA_LENS_MOTION_LABEL: Readonly<Record<EncyclopediaLensMotion, string>> = {
+  [ENCYCLOPEDIA_LENS_MOTION.play]: 'Play preview',
+  [ENCYCLOPEDIA_LENS_MOTION.pause]: 'Pause preview',
+};
+
 /** The `unavailable` state's line, inside the circle: the preview app could not start, and there is no retry. */
 export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';
 
