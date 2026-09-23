@@ -35,7 +35,7 @@ import { effectSpriteReachRadii } from '../../effects/effect-reach';
 import { PREVIEW_ACTION_REST_SECONDS } from '../../constants';
 import { previewScene } from '../preview-scene';
 import type { PreviewScene, PreviewSceneContent, ScheduledPreviewEffect } from '../preview-scene';
-import { ACTION_SUBJECT_CELL_ID, NO_FRAGMENTS, NO_MOTES, actionSubjectCellView } from './action-subject';
+import { ACTION_SUBJECT_CELL_ID, NO_FRAGMENTS, NO_MOTES, NO_SPEED, actionSubjectCellView } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 import {
   COMPLETE_PROGRESS,
@@ -129,8 +129,6 @@ export function engulfPreviewScene(): PreviewScene {
 
 /** The predator's own clips draw no sprite; the prey's respawn halo is the partner's. */
 const NO_EFFECT_SPRITES = 0;
-/** A passive prey does not move on its own. */
-const AT_REST = 0;
 
 /** The prey's progress at `loopTick`, or `null` while it is free — before contact, and once absorbed. */
 function progressAt(loopTick: number, timeline: EngulfTimeline, balance: BalanceConfig): number | null {
@@ -194,8 +192,8 @@ function preyView(
       mass: geometry.preyMass,
       ...alongApproach(offsetWu),
       // A sealed prey rides with its predator; before that it is passive, and it is still once respawned.
-      velocityX: isCarried ? predator.velocityX : AT_REST,
-      velocityY: isCarried ? predator.velocityY : AT_REST,
+      velocityX: isCarried ? predator.velocityX : NO_SPEED,
+      velocityY: isCarried ? predator.velocityY : NO_SPEED,
       ...preyLinks(progress === null ? NO_PREDATOR : ACTION_SUBJECT_CELL_ID, progress ?? FREE_PROGRESS),
     },
     balance,

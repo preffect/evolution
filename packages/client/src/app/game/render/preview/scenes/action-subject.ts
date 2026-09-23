@@ -140,10 +140,12 @@ export function actionSubjectFraming(balance: BalanceConfig, state: CellDrawStat
 
 /** The subject's trait summary; the stage its traits land on is the live balance's, so this is read per frame. */
 function actionSubjectTraits(balance: BalanceConfig) {
-  return summariseCellTraits(actionSubjectCellView(AT_REST, balance));
+  return summariseCellTraits(actionSubjectCellView(AT_REST_POSE, balance));
 }
 
-const AT_REST: ActionSubjectPose = { velocityX: 0, velocityY: 0 };
+/** The one "not moving" of every action scene: a speed or speed ratio of nothing, and the pose built from it. */
+export const NO_SPEED = 0;
+export const AT_REST_POSE: ActionSubjectPose = { velocityX: NO_SPEED, velocityY: NO_SPEED };
 
 /** The HUD's threat list, as `threatsFor` builds it: who on the lens can engulf the subject, nearest first. */
 export type SubjectThreats = OwnCellIndicatorsInput['threats'];
