@@ -7,6 +7,7 @@
 
 import { MILLISECONDS_PER_SECOND, P95_QUANTILE, TICK_INTERVAL_S } from '@evolution/shared';
 import { quantileOf } from '../bench/render-stage-timer';
+import { isClockFineEnoughFor } from '../bench/timer-resolution';
 import { PREVIEW_FRAME_BUDGET_MS, PREVIEW_OPEN_BUDGET_MS } from '../constants';
 
 /** `openedToFirstFrameMs` split, so a miss over `PREVIEW_OPEN_BUDGET_MS` points at its lever (§12.7's cost table). */
@@ -38,10 +39,21 @@ export function previewWalkFrameCount(parkAtSeconds: number): number {
 /** The two budgets §12.7's cost table owns, as the evidence report carries them. */
 export const PREVIEW_BUDGETS = { openMs: PREVIEW_OPEN_BUDGET_MS, frameMs: PREVIEW_FRAME_BUDGET_MS } as const;
 
+/**
+ * What `PREVIEW_FRAME_BUDGET_MS` judges (ticket #502): the parked lens's own work per frame, its frame bracket minus
+ * its submit, at p95. The whole frame is not the measure: on a real GPU the submit waits on the queue and tracks the
+ * refresh interval (#470's run: 7.15 ms p95 at 183 fps), so a 1 ms budget on it could never pass.
+ */
+export interface PreviewFrameWork {
+  readonly workOutsideSubmitP95Ms: number;
+  /** The page clock's step (bench/timer-resolution.ts); `null` when it was not measured. */
+  readonly timerResolutionMs: number | null;
+}
+
 export interface PreviewBudgetVerdict {
   /** `null` when the page ran only its cold open, which is never judged against the p95 budget. */
   readonly isOpenWithinBudget: boolean | null;
-  /** `null` when no frame sample could support a p95. */
+  /** `null` when no frame sample could support a p95, or the page's clock is too coarse for a 1 ms budget. */
   readonly isFrameWithinBudget: boolean | null;
 }
 
@@ -54,10 +66,20 @@ export function previewOpenP95Ms(warmOpens: readonly PreviewOpenTimings[]): numb
   );
 }
 
+/** Whether the frame row can be judged: a finite p95 read off a clock fine enough for the budget. */
+export function isPreviewFrameJudgeable(frameWork: PreviewFrameWork): boolean {
+  return (
+    Number.isFinite(frameWork.workOutsideSubmitP95Ms) &&
+    isClockFineEnoughFor(PREVIEW_FRAME_BUDGET_MS, frameWork.timerResolutionMs)
+  );
+}
+
 /** Each row `null` where the evidence cannot support one. Never judged in the container: SwiftShader is not the GPU. */
-export function previewBudgetVerdict(openP95Ms: number | null, frameP95Ms: number): PreviewBudgetVerdict {
+export function previewBudgetVerdict(openP95Ms: number | null, frameWork: PreviewFrameWork): PreviewBudgetVerdict {
   return {
     isOpenWithinBudget: openP95Ms === null ? null : openP95Ms <= PREVIEW_OPEN_BUDGET_MS,
-    isFrameWithinBudget: Number.isFinite(frameP95Ms) ? frameP95Ms <= PREVIEW_FRAME_BUDGET_MS : null,
+    isFrameWithinBudget: isPreviewFrameJudgeable(frameWork)
+      ? frameWork.workOutsideSubmitP95Ms <= PREVIEW_FRAME_BUDGET_MS
+      : null,
   };
 }
