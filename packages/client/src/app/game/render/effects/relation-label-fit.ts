@@ -27,8 +27,8 @@ export interface RelationLabelFitInput {
   readonly placed: readonly UprightBox[];
 }
 
-const UP: ScreenPoint = { x: 0, y: -1 };
-const AXIS_SIDES: readonly ScreenPoint[] = [{ x: -1, y: 0 }, { x: 1, y: 0 }, UP, { x: 0, y: 1 }];
+const UPWARD: ScreenPoint = { x: 0, y: -1 };
+const AXIS_SIDES: readonly ScreenPoint[] = [{ x: -1, y: 0 }, { x: 1, y: 0 }, UPWARD, { x: 0, y: 1 }];
 /**
  * How far a pill keeps from any other ring: twice its gap to its own, so the ring it sits nearest is always its own
  * and the word is never read as a neighbour's.
@@ -37,7 +37,7 @@ export const NEIGHBOUR_CLEARANCE_PX = THREAT_LABEL_GAP_PX * DIAMETER_PER_RADIUS;
 
 function unitToward(from: ScreenPoint, target: ScreenPoint): ScreenPoint {
   const length = Math.hypot(target.x - from.x, target.y - from.y);
-  return length === 0 ? UP : { x: (target.x - from.x) / length, y: (target.y - from.y) / length };
+  return length === 0 ? UPWARD : { x: (target.x - from.x) / length, y: (target.y - from.y) / length };
 }
 
 /** The four axis sides, the one most facing the own cell first (ties keep left, right, above, below). */
