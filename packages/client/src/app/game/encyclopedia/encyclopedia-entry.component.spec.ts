@@ -13,11 +13,12 @@ import { DEFAULT_BALANCE, type BalanceConfig, type OwnedTrait, type TraitTier } 
 import { recordingPreviewHost, type RecordingPreviewHost } from '../../../testing/fake-preview-handle';
 import { expectTestId, queryAllByTestId, queryByTestId } from '../../../testing/test-id-query';
 import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
-import type { PreviewSpec } from '../render/preview/preview-spec';
+import { PREVIEW_SCENE, type PreviewSpec } from '../render/preview/preview-spec';
 import { GameStateService } from '../state/game-state.service';
 import { EncyclopediaEntryComponent } from './encyclopedia-entry.component';
 import { EncyclopediaPreviewService } from './encyclopedia-preview.service';
 import {
+  ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL,
   ENCYCLOPEDIA_EFFECTS_TABLE_LABEL,
   ENCYCLOPEDIA_FACTS_TABLE_LABEL,
   ENCYCLOPEDIA_LADDER_TABLE_LABEL,
@@ -36,6 +37,7 @@ import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId, encyclopediaTierTestId } 
 
 const MITOCHONDRION = 'trait:mitochondrion' as EntryId;
 const PROTOCELL = 'stage:protocell' as EntryId;
+const ENGULF = 'action:engulf' as EntryId;
 const SECOND_TIER = 2 as TraitTier;
 
 /** Only what this page reads of the game state: the balance the registry resolves over, and the round's own traits. */
@@ -208,6 +210,21 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
     fixture.detectChanges();
     vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
     expect(previewHost.handles[0]?.shownSpecs.at(-1)).toBe(sectionPreviewOf(SECOND_TIER));
+  });
+
+  /** §11.4's other control: an action scene gets `Replay`, which restarts the scene the lens is showing. */
+  it('puts Replay under an action scene and not under a trait, and a press shows that scene again', async () => {
+    expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.previewReplay)).toBeNull();
+    await openLens();
+
+    show(resolve(ENGULF));
+    vi.advanceTimersByTime(ENCYCLOPEDIA_PREVIEW_SETTLE_MS);
+    const replay = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewReplay);
+    expect(replay.textContent?.trim()).toBe(ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL[PREVIEW_SCENE.engulf]);
+    expect(queryByTestId(root(), encyclopediaTierTestId(SECOND_TIER))).toBeNull();
+
+    replay.click();
+    expect(previewHost.handles[0]?.shownSpecs.slice(-2)).toEqual([entry.preview, entry.preview]);
   });
 
   it('starts the switch on the tier the round owns', async () => {

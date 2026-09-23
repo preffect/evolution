@@ -5,6 +5,7 @@
 // The core's (#447) constants, the panel's (#448) layout row, the keyboard's (#449) key codes, the entry page's
 // (#465) and the lens's (#466) are declared.
 
+import { PREVIEW_SCENE, type PreviewActionScene } from '../render/preview/preview-spec';
 import { ENCYCLOPEDIA_CATEGORY, type EncyclopediaCategory } from './model/categories';
 
 /** Back-stack depth (docs/ui/encyclopedia.md §11.7); the oldest location drops first. */
@@ -99,6 +100,18 @@ export const ENCYCLOPEDIA_LENS_LOADING_PULSE_MIN_ALPHA = 0.2;
  * a scene per row, which reads as a flicker rather than as previews.
  */
 export const ENCYCLOPEDIA_PREVIEW_SETTLE_MS = 150;
+
+/**
+ * The replay button's label under an action scene (§11.4), keyed by the scenes that play an action through: a record,
+ * so a new action scene without a label fails `typecheck`. One value in build 1.
+ */
+export const ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL: Readonly<Record<PreviewActionScene, string>> = {
+  [PREVIEW_SCENE.eat]: 'Replay',
+  [PREVIEW_SCENE.engulf]: 'Replay',
+  [PREVIEW_SCENE.escape]: 'Replay',
+  [PREVIEW_SCENE.sprint]: 'Replay',
+  [PREVIEW_SCENE.levelUp]: 'Replay',
+};
 
 /** The `unavailable` state's line, inside the circle: the preview app could not start, and there is no retry. */
 export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';

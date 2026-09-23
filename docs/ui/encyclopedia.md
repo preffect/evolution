@@ -221,11 +221,12 @@ measurement the reserved box left behind still holds and is why the inner ring i
 was a bare outline of a circle, which is what a failed image looks like rather than what an instrument does, since
 `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it.
 
-**What #466 built and what it left.** The lens, its four states, the one session behind it and the tier switch are
-in. Two pieces of this section wait on the entries that would show them: **`Replay`**, which the action pages (#362) can
-now show and ticket #577 builds, and the **reduced-motion** pause with its play
-and pause toggle, which needs a `prefers-reduced-motion` seam the client does not have yet — under it today the lens
-plays, as the dish behind the panel does.
+**What is built and what is left.** The lens, its four states, the one session behind it and the tier switch are
+#466's; **`Replay`** is #577's. `EncyclopediaPreviewService.replay()` shows the scene on the canvas again, which
+restarts its loop from the first frame, and plays a paused lens. It does nothing before the open resolves or while a
+new selection settles, since there is then no scene on the canvas to restart. One piece still waits: the
+**reduced-motion** pause with its play and pause toggle, which needs a `prefers-reduced-motion` seam the client does
+not have yet. Under it today the lens plays, as the dish behind the panel does.
 
 **The title column**, top to bottom:
 
@@ -425,7 +426,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `DEFAULT_ENCYCLOPEDIA_CATEGORY`                                      | `basics`                                                             | —    | Where an open with no entry asked for and no last location starts (§11.1); while that category is empty, the first one the rail lists.                                                                                                                                                                                                                                      |
 | `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`                                     | 150                                                                  | ms   | Arrowing through the list calls `show` only once the selection rests this long.                                                                                                                                                                                                                                                                                             |
 | `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`                              | `Preview unavailable`                                                | —    | The `unavailable` state's line.                                                                                                                                                                                                                                                                                                                                             |
-| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                             | —    | The replay button's label, a record keyed by the action scenes (one value in build 1). Declared with the control, which waits on an entry that has an action scene to show (§11.4).                                                                                                                                                                                         |
+| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                             | —    | The replay button's label, a record keyed by the action scenes (`PreviewActionScene`), so a new action scene without a label fails `typecheck`. One value in build 1.                                                                                                                                                                                                       |
 | `ENCYCLOPEDIA_SEARCH_KEY_CODE`                                       | `Slash`                                                              | —    | Focuses the search field.                                                                                                                                                                                                                                                                                                                                                   |
 | `ENCYCLOPEDIA_BACK_KEYS`                                             | `{ code: 'ArrowLeft', isAltKeyHeld: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier, and a modifier a chord does not name must be up. A chord with **no** modifier is one a text field is using, so it acts only outside one — which is §11.5's "Backspace outside a text field", derived rather than named. (`isAltKeyHeld`, not `KeyboardEvent`'s own `altKey`: CODE-STANDARDS.md's boolean-naming rule, #449.) |
 

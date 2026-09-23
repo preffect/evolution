@@ -21,6 +21,7 @@ const CELL_SPEC: PreviewSpec = {
   motion: PREVIEW_MOTION.swimming,
 };
 const FRAGMENT_SPEC: PreviewSpec = { scene: PREVIEW_SCENE.dnaFragment, tag: DNA_TAG.motile };
+const ENGULF_SPEC: PreviewSpec = { scene: PREVIEW_SCENE.engulf };
 
 /** The service is the panel's, so it is provided by a component and dies with it. */
 @Component({ standalone: true, template: '', providers: [EncyclopediaPreviewService] })
@@ -158,6 +159,26 @@ describe('EncyclopediaPreviewService (docs/ui/encyclopedia.md §11.4)', () => {
     settleSelection();
     expect(host.handles).toHaveLength(1);
     expect(preview.state()).toBe(ENCYCLOPEDIA_PREVIEW_STATE.unavailable);
+  });
+
+  /** §11.4's `Replay`: the scene on the canvas starts again, and a paused lens plays so the reader sees it. */
+  it('replays the scene on the canvas, and only once there is one', async () => {
+    attachLens();
+    preview.show(ENGULF_SPEC);
+    preview.replay();
+    settleSelection();
+    preview.replay();
+    expect(host.handles[0]?.shownSpecs).toEqual([ENGULF_SPEC]);
+
+    await host.handles[0]?.completeOpen();
+    preview.pause();
+    preview.replay();
+    expect(host.handles[0]?.shownSpecs).toEqual([ENGULF_SPEC, ENGULF_SPEC]);
+    expect(preview.state()).toBe(ENCYCLOPEDIA_PREVIEW_STATE.live);
+
+    preview.show(CELL_SPEC);
+    preview.replay();
+    expect(host.handles[0]?.shownSpecs).toEqual([ENGULF_SPEC, ENGULF_SPEC]);
   });
 
   it('pauses when the lens goes and plays again when the next one arrives', async () => {
