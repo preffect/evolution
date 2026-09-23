@@ -147,9 +147,11 @@ const CELL_WALL_GLYPH: shape.TraitGlyph = {
   ],
 };
 
-// Studs stand proud of a smaller membrane, so the outline is a bumpy ring at 20 px.
+// Studs stand proud of a smaller membrane, so the outline is a bumpy ring at 20 px. Eight large studs rather than
+// fourteen small ones (#412): at the list size fourteen merged into a fuzzy halo that read like Cilia Fringe's hairs,
+// where eight stay separate beads with clear gaps between them.
 const RIBOSOME_STUDS = shape.path(
-  shape.dotRingPath({ ...kit.GLYPH_CENTRE_POINT, count: 14, ringRadius: 31, dotRadius: 3.8, phaseTurns: 0 }),
+  shape.dotRingPath({ ...kit.GLYPH_CENTRE_POINT, count: 8, ringRadius: 31, dotRadius: 5.6, phaseTurns: 0.0625 }),
 );
 const RIBOSOMES: shape.TraitGlyph = {
   traitId: 'ribosomes',
