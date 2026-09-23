@@ -53,7 +53,7 @@ it('E9: A absorbs B on tick 30', async () => {
   (`ZONE.broth`, `ZONE.vent`, `ZONE.shallows`), `insideCellOf(i)` (E12, E15, P2),
   `eastOfCellOf(i, wu)` (E4 against a seeded cell) or `gelPatchCentre(n)` (E8). A cell takes
   `isPinned`, `traits` (`'cilia'` is tier I, `{ traitId: 'nucleoid', tier: 2 }` names the tier,
-  traits/model.md §2; `[]` strips every trait, G13's "A at level 1"; left out, the cell keeps its own),
+  traits/model.md §2; `[]` strips every trait — a placed cell at level 1 with none; left out, the cell keeps its own),
   `dnaCumulative` (P7, P10: "level 12 with fixture DNA 1760") and `dnaCatchUpGift`,
   the entry-rule gift inside that DNA (E9c: "140 with 100 gift"). A setup placement
   applies before tick 1; **`.atTick(T).placeMote(...)`** schedules the same record to apply
