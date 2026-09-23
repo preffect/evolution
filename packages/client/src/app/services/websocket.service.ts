@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subject, type Observable } from 'rxjs';
-import type { ClientMessage, ServerMessage } from '@evolution/shared';
-import { CLIENT_ID_QUERY_PARAMETER } from '@evolution/shared';
+import type { ClientMessage, ServerMessage, ValueOf } from '@evolution/shared';
+import { CLIENT_ID_QUERY_PARAMETER, SOCKET_CLOSE_CODE_REPLACED } from '@evolution/shared';
 import { IdentityService } from './identity.service';
 
 /**
@@ -26,10 +26,24 @@ export const SOCKET_LIFECYCLE = {
   closed: 'closed',
 } as const;
 
+/** Why a socket closed, which decides whether a reconnect follows. */
+export const SOCKET_CLOSE_CAUSE = {
+  /** `disconnect()` closed it: no reconnect. */
+  user: 'user',
+  /** It dropped on its own: a reconnect follows after `RECONNECT_DELAY_MS`. */
+  dropped: 'dropped',
+  /**
+   * The server closed it with `SOCKET_CLOSE_CODE_REPLACED`: another tab with this clientId took the seat. No reconnect,
+   * or the two tabs would take it from each other forever (#273); connecting again is the user's call.
+   */
+  replaced: 'replaced',
+} as const;
+
+export type SocketCloseCause = ValueOf<typeof SOCKET_CLOSE_CAUSE>;
+
 export type SocketLifecycleEvent =
   | { readonly kind: typeof SOCKET_LIFECYCLE.opened }
-  /** `isUserInitiated`: `disconnect()` closed it, so no reconnect follows. */
-  | { readonly kind: typeof SOCKET_LIFECYCLE.closed; readonly isUserInitiated: boolean };
+  | { readonly kind: typeof SOCKET_LIFECYCLE.closed; readonly cause: SocketCloseCause };
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
@@ -72,13 +86,15 @@ export class WebSocketService {
       if (this.socket !== socket) return;
       this.handleFrame(typeof event.data === 'string' ? event.data : '');
     };
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       if (this.socket !== socket) return;
       this.connected.set(false);
       this.socket = null;
-      this.scheduleReconnect();
-      // `disconnect()` detaches its socket before closing it, so a close that reaches here is always a drop.
-      this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false });
+      // `disconnect()` detaches its socket before closing it, so a close that reaches here is a drop or a takeover.
+      const cause =
+        event.code === SOCKET_CLOSE_CODE_REPLACED ? SOCKET_CLOSE_CAUSE.replaced : SOCKET_CLOSE_CAUSE.dropped;
+      if (cause === SOCKET_CLOSE_CAUSE.dropped) this.scheduleReconnect();
+      this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause });
     };
     socket.onerror = () => {
       if (this.socket !== socket) return;
@@ -114,7 +130,7 @@ export class WebSocketService {
     this.socket = null;
     socket?.close();
     this.connected.set(false);
-    if (socket !== null) this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, isUserInitiated: true });
+    if (socket !== null) this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.user });
   }
 
   /** Send a typed client message (queued if currently disconnected). */

@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE, SOCKET_CLOSE_CODE_REPLACED } from '@evolution/shared';
 import type { ServerMessage } from '@evolution/shared';
 import { IdentityService } from './identity.service';
-import { SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
+import { SOCKET_CLOSE_CAUSE, SOCKET_LIFECYCLE, WebSocketService, type SocketLifecycleEvent } from './websocket.service';
 import { FakeWebSocket } from '../../testing/fake-websocket';
 
 const JOIN = { type: CLIENT_MESSAGE_TYPE.joinLobby, playerName: 'A', avatarIndex: 0 } as const;
@@ -88,9 +88,9 @@ describe('WebSocketService', () => {
     service.disconnect();
     expect(events).toEqual([
       { kind: SOCKET_LIFECYCLE.opened },
-      { kind: SOCKET_LIFECYCLE.closed, isUserInitiated: false },
+      { kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.dropped },
       { kind: SOCKET_LIFECYCLE.opened },
-      { kind: SOCKET_LIFECYCLE.closed, isUserInitiated: true },
+      { kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.user },
     ]);
   });
 
@@ -121,7 +121,7 @@ describe('WebSocketService', () => {
     service.messages$.subscribe((message) => received.push(message));
 
     // A real close event is asynchronous: the old socket's arrives after the new socket opened.
-    first.onclose?.();
+    first.onclose?.({ code: FakeWebSocket.NORMAL_CLOSURE_CODE });
     first.onerror?.();
     first.receive(JSON.stringify({ type: SERVER_MESSAGE_TYPE.error, message: 'stale' }));
     vi.runAllTimers();
@@ -132,6 +132,22 @@ describe('WebSocketService', () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
     service.send(JOIN);
     expect(second.sent).toEqual([JSON.stringify(JOIN)]);
+  });
+
+  it('#273: stays closed when the server replaced it with another tab, and reports why', () => {
+    vi.useFakeTimers();
+    const events: SocketLifecycleEvent[] = [];
+    service.lifecycle$.subscribe((event) => events.push(event));
+    service.connect();
+    FakeWebSocket.latest().open();
+    FakeWebSocket.latest().close(SOCKET_CLOSE_CODE_REPLACED);
+    vi.runAllTimers();
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(service.connected()).toBe(false);
+    expect(events.at(-1)).toEqual({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.replaced });
+    // Connecting again is the user's call, and it works.
+    service.connect();
+    expect(FakeWebSocket.instances).toHaveLength(2);
   });
 
   it('disconnect cancels a pending reconnect', () => {
