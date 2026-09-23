@@ -96,7 +96,13 @@ Diegetic and text hints, no modal tutorial. Hints show in the hint pill (bottom-
 bottom edge, `body` on the callout backing, `hint`, `data-hint-id`); `OnboardingService` keeps seen-flags in memory
 for the session (a reload replays them; a rematch does not). One hint at a time; each is dismissed by its trigger
 or after `HINT_DURATION_SECONDS` once its dismissal condition is met. Every beat points at something on the cell or
-in the dish, never at a corner.
+in the dish, never at a corner. The pill is the notice row's height (`NOTICE_ROW_HEIGHT_PX`) and inline
+padding, fully rounded; it takes no pointer or focus and speaks through a polite live region. It stands down while
+the player is dead or spectating, outside the playing phase and while the picker is open (overlays.md §3.2), so the
+`offer` beat's words are the picker's instead: a second footer line under `At 0 s the dish picks for you`, left of
+the timer bar (`trait-offer-onboarding`), since a row under the cards would leave the reference viewport. The queue
+steps only on alive snapshots in play; the time a beat waited while the player was dead still counts toward its timer. While the picker is open only the `offer` beat is up: other beats wait, danger beats
+included, a hidden beat's timer holds, and the beat the `offer` beat replaced resumes after the pick.
 
 **Two kinds of beat.** The first seven rows are the **opening beats**: they show in table order. The last five are
 **coach beats** (decision #324, option C): each teaches one cue of `hud.md` §3.1.5 the first time the mechanic it

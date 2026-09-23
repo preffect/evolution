@@ -94,3 +94,18 @@
   font-size: calc(var(--hud-type-caption) * var(--hud-scale));
   color: var(--hud-text-muted);
 }
+
+/*
+ * The `offer` onboarding beat's extra footer line (docs/ui/input-and-onboarding.md §5), the session's first offer only.
+ * It stacks inside the footer, still left of the bar and centred on it, because a row under the cards would leave the
+ * reference viewport; two caption lines stay clear of the title above and the cards below.
+ */
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.onboarding-line {
+  color: var(--hud-text);
+}

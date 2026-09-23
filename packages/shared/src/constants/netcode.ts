@@ -126,3 +126,26 @@ export const SERVER_TICK_ESTIMATE_SMOOTHING = 0.1;
  * cadences and `netcode.test.ts` gates the floor rather than describing it.
  */
 export const EFFECT_DRAW_WINDOW_TICKS = derived.effectDrawWindowTicks;
+
+// ---- own-cell prediction and reconciliation (docs/architecture/client.md §5, #265) ----
+/**
+ * A prediction error at or above this is snapped rather than blended (wu): a respawn, a `debug_set_player` teleport, a
+ * shove from a much larger cell. About three starting radii (`CELL_RADIUS_SCALE × √CELL_STARTING_MASS` ≈ 18 wu); an
+ * ordinary miss — the server coalescing two inputs into one tick, a separation push — is a few wu.
+ */
+export const RECONCILE_SNAP_DISTANCE_WU = 60;
+/** A smaller error is blended out linearly over this long, so a correction never reads as a jump. */
+export const RECONCILE_BLEND_SECONDS = 0.15;
+/**
+ * The most unacknowledged inputs the prediction replays: half a second of ticks. A link slower than that is not
+ * predicted further ahead; the own cell then holds its lead and the reconciliation absorbs the rest.
+ */
+export const MAX_PREDICTION_TICKS = TICK_HZ / 2;
+/**
+ * Inputs sent since the newest snapshot arrived that the prediction still steps through (#265): past this the room
+ * has stopped answering — a `debug_pause_room`, a stall — and the own cell holds, as the render tick holds at the
+ * extrapolation cap. A quarter second (15 ticks, five snapshot intervals): one late snapshot on a routed link, not
+ * localhost, must not freeze the own cell, while a paused room still holds it at most this far past the last real
+ * arrival (a debug republish does not count as one).
+ */
+export const PREDICTION_STALL_TICKS = TICK_HZ / 4;
