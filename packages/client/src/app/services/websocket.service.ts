@@ -52,6 +52,11 @@ export class WebSocketService {
 
   private socket: WebSocket | null = null;
   private readonly outbound: string[] = [];
+  /**
+   * Set by a takeover close (#273): what this tab queues now is for a seat it no longer holds, so it is dropped rather
+   * than replayed at the socket the user's next `connect()` opens. That connect clears it.
+   */
+  private isReplaced = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly messages = new Subject<ServerMessage>();
@@ -68,6 +73,7 @@ export class WebSocketService {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
+    this.isReplaced = false;
     const socket = new WebSocket(this.socketUrl());
     this.socket = socket;
 
@@ -94,6 +100,7 @@ export class WebSocketService {
       const cause =
         event.code === SOCKET_CLOSE_CODE_REPLACED ? SOCKET_CLOSE_CAUSE.replaced : SOCKET_CLOSE_CAUSE.dropped;
       if (cause === SOCKET_CLOSE_CAUSE.dropped) this.scheduleReconnect();
+      else this.dropOutboundUntilConnect();
       this.lifecycle.next({ kind: SOCKET_LIFECYCLE.closed, cause });
     };
     socket.onerror = () => {
@@ -138,9 +145,14 @@ export class WebSocketService {
     const raw = JSON.stringify(message);
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(raw);
-    } else {
+    } else if (!this.isReplaced) {
       this.outbound.push(raw);
     }
+  }
+
+  private dropOutboundUntilConnect(): void {
+    this.isReplaced = true;
+    this.outbound.length = 0;
   }
 
   private scheduleReconnect(): void {

@@ -145,9 +145,19 @@ describe('WebSocketService', () => {
     expect(FakeWebSocket.instances).toHaveLength(1);
     expect(service.connected()).toBe(false);
     expect(events.at(-1)).toEqual({ kind: SOCKET_LIFECYCLE.closed, cause: SOCKET_CLOSE_CAUSE.replaced });
+    // What is sent after the takeover is dropped, not replayed when the user connects again.
+    service.send(JOIN);
     // Connecting again is the user's call, and it works.
     service.connect();
     expect(FakeWebSocket.instances).toHaveLength(2);
+    FakeWebSocket.latest().open();
+    expect(FakeWebSocket.latest().sent).toEqual([]);
+    // After that connect, sends queue and flush as ever.
+    service.disconnect();
+    service.send(JOIN);
+    service.connect();
+    FakeWebSocket.latest().open();
+    expect(FakeWebSocket.latest().sent).toEqual([JSON.stringify(JOIN)]);
   });
 
   it('disconnect cancels a pending reconnect', () => {
