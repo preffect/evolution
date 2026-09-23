@@ -206,12 +206,13 @@ export const SPAWNER_HASHED_FIELDS: readonly HashedField<SpawnerState>[] = ['acc
 export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
   'seatNumber',
   'cellId',
-  'massSpreadFactor',
+  'sizeFactor',
+  'grownMass',
+  'fullMass',
   'respawnInTicks',
   'headingX',
   'headingY',
   'decideInTicks',
-  'drainedMass',
 ];
 
 function hashRecords<Record>(

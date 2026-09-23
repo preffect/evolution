@@ -101,4 +101,24 @@ describe('SnapshotBacklog', () => {
     expect(backlog.backlogTicksOf(playerId)).toBeNull();
     expect(backlog.resyncCount()).toBe(0);
   });
+
+  it('#300: a resync is due only once owed and caught up, and recording it settles it like a broadcast would', () => {
+    const { backlog, connection, playerId } = oneConnection();
+    expect(backlog.isResyncDue(connection)).toBe(false);
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    const behindTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
+    backlog.nextFor(connection, behindTick);
+    backlog.nextFor(connection, behindTick + 1);
+    expect(backlog.isResyncDue(connection)).toBe(false);
+    backlog.recordAcknowledgedTick(playerId, behindTick);
+    expect(backlog.isResyncDue(connection)).toBe(true);
+    setBufferedAmount(connection, SATURATED_BYTES);
+    expect(backlog.isResyncDue(connection)).toBe(false);
+    setBufferedAmount(connection, DRAINED);
+    backlog.recordResyncSent(playerId, behindTick + 2);
+    expect([backlog.isResyncDue(connection), backlog.owedCount(), backlog.resyncCount()]).toEqual([false, 0, 1]);
+    expect(backlog.backlogTicksOf(playerId)).toBe(2);
+    expect(backlog.nextFor(connection, behindTick + 3)).toBe(SNAPSHOT_DELIVERY.delta);
+  });
 });

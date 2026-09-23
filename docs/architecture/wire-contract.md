@@ -120,6 +120,11 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
     projected worst case.
   - A client that acknowledges nothing is never skipped (the headless bot client): silence is not
     evidence of a backlog.
+  - **A paused room settles the resync on the acknowledgement** (#300). It makes no broadcast, so a `debug_step_room`
+    burst deeper than the limit (no ack can arrive inside it: the step is synchronous) used to leave the client on
+    the last delta it was sent, frozen at that tick plus the extrapolation cap until a resume. The ack that shows it
+    caught up now sends the `game_state` at once (`GameRoom.recordSnapshotAck`); a running room still sends it in place
+    of its next delta. Steps of any size and pause → resume leave the client current.
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
   is the one drain of the effects; each viewer's camera steps on the first `serialize` of a tick and its food delta

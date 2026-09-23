@@ -1,15 +1,15 @@
 // The placed wild cell (docs/ecology/acceptance.md §8.1, docs/testing/scenario-runner.md §8.1 `.placeWildCell`): wild
-// seat `seat`'s `massSpreadFactor` set to `spreadFactor`, its cell placed (or replaced) at the resolved anchor and
+// seat `seat`'s `sizeFactor` set to the fixture's, its cell placed (or replaced) at the resolved anchor and
 // the seat cleared of target and velocity as a respawn does, so it has no target until its next decision tick
 // (docs/ecology/wild-cells.md §3.3). A placed row has no seeded seats (placing anything vacates them), so the seat
 // record is created on demand; a cell the seat already had (a second placement of the same seat) is withdrawn
 // without detritus (a fixture leaves no meal behind: W4 counts the prey's two detritus motes and no others). The
-// cell is seated through the simulation's own `seatWildCell`, so it is the world's average from its first tick.
+// cell is seated through the simulation's own `seatWildCell`, so it is born at its base size with no growth.
 
 import type { Vec2 } from '@evolution/shared';
 import { worldReferenceAt } from '../../game/simulation/round-clock.js';
 import { withdrawCell } from '../../game/session/death.js';
-import { cellOfSeat } from '../../game/wild/wild-pin.js';
+import { cellOfSeat } from '../../game/wild/wild-settle.js';
 import { createWildSeatRecord, seatWildCell } from '../../game/wild/wild-seats.js';
 import type { CellRecord, WildSeatRecord } from '../../game/world/entities.js';
 import type { WorldState } from '../../game/world/world-state.js';
@@ -39,6 +39,6 @@ export function applyPlacedWildCell(world: WorldState, fixture: PlacedWildCell, 
   if (previous !== undefined) {
     withdrawCell(world, previous);
   }
-  const seating = { centre, spreadFactor: fixture.spreadFactor };
+  const seating = { centre, sizeFactor: fixture.sizeFactor };
   return seatWildCell(world, seat, seating, worldReferenceAt(world, world.tick));
 }

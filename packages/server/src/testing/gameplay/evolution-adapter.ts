@@ -17,7 +17,7 @@ import { createEvolutionModule, type EvolutionModule } from '../../game/evolutio
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
 import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
-import { cellOfSeat } from '../../game/wild/wild-pin.js';
+import { cellOfSeat } from '../../game/wild/wild-settle.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
 import type { WildSeatRecord } from '../../game/world/entities.js';
 import { computeStateHash } from '../../game/world/state-hash.js';

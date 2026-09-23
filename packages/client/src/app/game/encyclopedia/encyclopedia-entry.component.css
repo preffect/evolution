@@ -4,6 +4,7 @@
    the column when a wider panel arrives. */
 
 :host {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -86,4 +87,53 @@
   letter-spacing: var(--ui-label-tracking);
   line-height: 1;
   text-transform: uppercase;
+}
+
+/* The sticky title bar (§11.4, *Long entries scroll*): once the title has scrolled under the column's top edge, the
+   breadcrumb over the title shows at that edge on the panel's top colour, with a rim rule under it and the scroll
+   area's fade drawn under the rule. It overlays the scroll area rather than taking room from it, so its arrival never
+   moves the content under the reader. */
+.sticky-title {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--ui-space-xs) * var(--ui-scale));
+  height: calc(var(--encyclopedia-sticky-title-height) * var(--ui-scale));
+  padding: 0 calc(var(--ui-panel-padding) * var(--ui-scale));
+  border-bottom: 1px solid var(--ui-panel-rim);
+  background-color: var(--ui-panel-top);
+  font-family: var(--ui-font-sans);
+  pointer-events: none;
+}
+
+.sticky-title::after {
+  content: '';
+  position: absolute;
+  inset: 100% 0 auto;
+  height: calc(var(--ui-scroll-fade) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), transparent);
+}
+
+.sticky-trail {
+  display: flex;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  color: var(--ui-text-muted);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  line-height: 1;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}
+
+.sticky-name {
+  overflow: hidden;
+  color: var(--ui-text);
+  font-size: calc(var(--ui-type-card-name) * var(--ui-scale));
+  font-weight: bold;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

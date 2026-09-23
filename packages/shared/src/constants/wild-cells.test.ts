@@ -13,8 +13,11 @@ import { stageIndex, stageOf } from '../simulation/stage-of.js';
 import {
   WILD_CELL_BUILDS,
   WILD_CELL_COUNT,
-  WILD_CELL_HUNTS_FROM_STAGE,
-  WILD_CELL_MASS_SPREAD,
+  WILD_CELL_HUNTS_PLAYERS_FROM_STAGE,
+  WILD_CELL_MAX_WORLD_MASS_MULTIPLE,
+  WILD_CELL_RECOVERY_SECONDS,
+  WILD_CELL_SIZE_FACTOR_MAX,
+  WILD_CELL_SIZE_FACTOR_MIN,
   WILD_CELL_TURN_CHANCE,
   WORLD_ORGANISM_ID,
 } from './wild-cells.js';
@@ -63,14 +66,19 @@ describe('WILD_CELL_BUILDS', () => {
 });
 
 describe('wild cell knobs', () => {
-  it('spreads the seats so a player at exactly the world mass has both lunch and threats among them (§3.3)', () => {
+  it('sizes the seats so a player at exactly the world mass has both lunch and threats among them (§3.3.5)', () => {
     expect(WILD_CELL_COUNT).toBeGreaterThan(0);
-    expect(1 - WILD_CELL_MASS_SPREAD).toBeLessThanOrEqual(1 / ENGULF_MASS_RATIO);
-    expect(1 + WILD_CELL_MASS_SPREAD).toBeGreaterThanOrEqual(ENGULF_MASS_RATIO);
+    expect(WILD_CELL_SIZE_FACTOR_MIN).toBeLessThanOrEqual(1 / ENGULF_MASS_RATIO);
+    expect(WILD_CELL_SIZE_FACTOR_MAX).toBeGreaterThanOrEqual(ENGULF_MASS_RATIO);
+  });
+
+  it('caps growth above the biggest newborn and recovers a wound with a positive time constant (§3.3.1)', () => {
+    expect(WILD_CELL_MAX_WORLD_MASS_MULTIPLE).toBeGreaterThan(WILD_CELL_SIZE_FACTOR_MAX);
+    expect(WILD_CELL_RECOVERY_SECONDS).toBeGreaterThan(0);
   });
 
   it('starts hunting at a stage of the ladder and turns with a proper probability', () => {
-    expect(STAGE_ORDER).toContain(WILD_CELL_HUNTS_FROM_STAGE);
+    expect(STAGE_ORDER).toContain(WILD_CELL_HUNTS_PLAYERS_FROM_STAGE);
     expect(WILD_CELL_TURN_CHANCE).toBeGreaterThan(0);
     expect(WILD_CELL_TURN_CHANCE).toBeLessThan(1);
   });

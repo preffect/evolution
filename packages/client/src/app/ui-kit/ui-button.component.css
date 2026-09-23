@@ -59,7 +59,8 @@
 
 :host([data-variant='secondary']),
 :host([data-variant='icon']) {
-  border-color: var(--ui-panel-rim);
+  /* The label colour at an alpha, not the panel rim: the rim alone was 1.27:1 on the panel ground (#596). */
+  border-color: color-mix(in srgb, var(--ui-text-label) calc(var(--ui-secondary-rim-alpha) * 100%), transparent);
   background-color: color-mix(in srgb, var(--ui-text) calc(var(--ui-secondary-fill-alpha) * 100%), transparent);
 }
 

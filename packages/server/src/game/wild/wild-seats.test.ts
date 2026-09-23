@@ -1,5 +1,5 @@
 // docs/ecology/acceptance.md §8.1 W2 and docs/ecology/wild-cells.md §3.3 "Placement and respawn": the seats at
-// world creation, the spread draw, the tightened placement rule and what a placed cell looks like.
+// world creation, the size factor draw, the tightened placement rule and what a placed cell looks like.
 import { describe, expect, it } from 'vitest';
 import {
   CELL_KIND,
@@ -19,17 +19,12 @@ import { worldReferenceAt } from '../simulation/round-clock.js';
 import { createWorld } from '../world/create-world.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import { decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
-import {
-  createWildSeatRecord,
-  drawMassSpreadFactor,
-  placeWildCell,
-  seatWildCell,
-  wildSpawnClearance,
-} from './wild-seats.js';
+import { createWildSeatRecord, placeWildCell, seatWildCell, wildSpawnClearance } from './wild-seats.js';
+import { wildSizeFactor } from './wild-settle.js';
 
 const SEED = 42;
 const { wildCells, world: worldBalance, growth, ecology } = DEFAULT_BALANCE;
-/** The spread factor and the first heading. */
+/** The size factor and the first heading. */
 const WILD_DRAWS_PER_PLACEMENT = 2;
 
 /** W2: seed 42, one player, the seeded world at tick 0. */
@@ -67,18 +62,19 @@ describe('createWildSeats (W2)', () => {
     }
   });
 
-  it('pins each mass to 20 × a spread within [1 − spread, 1 + spread], the radius following', () => {
+  it('seats each cell at its base size 20 × a size within [0.5, 2.0], no growth, the radius following', () => {
     for (const [index, cell] of wild.entries()) {
       const seat = world.wildSeats[index]!;
-      expect(seat.massSpreadFactor).toBeGreaterThanOrEqual(1 - wildCells.WILD_CELL_MASS_SPREAD);
-      expect(seat.massSpreadFactor).toBeLessThanOrEqual(1 + wildCells.WILD_CELL_MASS_SPREAD);
-      expect(cell.mass).toBeCloseTo(growth.CELL_STARTING_MASS * seat.massSpreadFactor, 10);
-      expect(cell.mass).toBeGreaterThanOrEqual(14);
-      expect(cell.mass).toBeLessThanOrEqual(26);
+      expect(seat.sizeFactor).toBeGreaterThanOrEqual(wildCells.WILD_CELL_SIZE_FACTOR_MIN);
+      expect(seat.sizeFactor).toBeLessThanOrEqual(wildCells.WILD_CELL_SIZE_FACTOR_MAX);
+      expect(cell.mass).toBeCloseTo(growth.CELL_STARTING_MASS * seat.sizeFactor, 10);
+      expect(cell.mass).toBeGreaterThanOrEqual(10);
+      expect(cell.mass).toBeLessThanOrEqual(40);
+      expect([seat.grownMass, seat.fullMass]).toEqual([0, cell.mass]);
       expect(cell.radius).toBeGreaterThan(0);
     }
-    const spreads = new Set(world.wildSeats.map((seat) => seat.massSpreadFactor));
-    expect(spreads.size).toBe(wildCells.WILD_CELL_COUNT);
+    const sizes = new Set(world.wildSeats.map((seat) => seat.sizeFactor));
+    expect(sizes.size).toBe(wildCells.WILD_CELL_COUNT);
   });
 
   it('keeps every cell centre, wild or player, at least WILD_CELL_MIN_SPACING_WU apart and inside the spawn disc', () => {
@@ -103,20 +99,12 @@ describe('createWildSeats (W2)', () => {
     }
   });
 
-  it('draws one spread and one heading per seat from the wildCells stream and the points from spawnPlacement, both stored', () => {
+  it('draws one size factor and one heading per seat from the wildCells stream and the points from spawnPlacement, both stored', () => {
     expect(world.random[RANDOM_STREAM.wildCells].position).toBe(WILD_DRAWS_PER_PLACEMENT * wildCells.WILD_CELL_COUNT);
     // Two draws per candidate, one candidate at least per player and per seat.
     expect(world.random[RANDOM_STREAM.spawnPlacement].position).toBeGreaterThanOrEqual(
       2 * (world.players.length + wildCells.WILD_CELL_COUNT),
     );
-  });
-});
-
-describe('drawMassSpreadFactor', () => {
-  it('maps the unit draw onto [1 − WILD_CELL_MASS_SPREAD, 1 + WILD_CELL_MASS_SPREAD]', () => {
-    expect(drawMassSpreadFactor(0, DEFAULT_BALANCE)).toBeCloseTo(1 - wildCells.WILD_CELL_MASS_SPREAD, 10);
-    expect(drawMassSpreadFactor(0.5, DEFAULT_BALANCE)).toBeCloseTo(1, 10);
-    expect(drawMassSpreadFactor(1, DEFAULT_BALANCE)).toBeCloseTo(1 + wildCells.WILD_CELL_MASS_SPREAD, 10);
   });
 });
 
@@ -142,7 +130,7 @@ describe('wildSpawnClearance', () => {
 });
 
 describe('seatWildCell', () => {
-  it('seats a cell at the given centre and spread, drawing nothing, with the countdown to the next decision tick', () => {
+  it('seats a cell at the given centre and size, drawing nothing, with the countdown to the next decision tick', () => {
     const world = createTestWorld();
     world.tick = 21_599;
     const seat = createWildSeatRecord(0);
@@ -150,19 +138,20 @@ describe('seatWildCell', () => {
     world.wildSeats.push(seat);
     const context = createTestStepContext(world);
     const wildBefore = context.streams[RANDOM_STREAM.wildCells].getState().position;
-    const seating = { centre: { x: 1500, y: 0 }, spreadFactor: 5 };
+    const seating = { centre: { x: 1500, y: 0 }, sizeFactor: 5 };
     const cell = seatWildCell(world, seat, seating, worldReferenceAt(world, world.tick));
     expect(context.streams[RANDOM_STREAM.wildCells].getState().position).toBe(wildBefore);
     expect(seat).toMatchObject({
       cellId: cell.id,
-      massSpreadFactor: 5,
+      sizeFactor: 5,
       headingX: 1,
       respawnInTicks: 0,
-      drainedMass: 0,
+      grownMass: 0,
+      fullMass: cell.mass,
     });
     expect(seat.decideInTicks).toBe(ticksUntilDecision(world.tick, 0, decisionIntervalTicks(DEFAULT_BALANCE)));
     expect([cell.x, cell.y, cell.targetX, cell.velocityX]).toEqual([1500, 0, null, 0]);
-    // 21 599 ticks: the world's mass is 20 + 359.983, times the spread.
+    // 21 599 ticks: the world's mass is 20 + 359.983, times the size.
     expect(cell.mass).toBeCloseTo(worldReferenceAt(world, world.tick).worldMass * 5, 10);
     expect(cell.level).toBe(2);
     expect(world.cells.at(-1)).toBe(cell);
@@ -170,31 +159,32 @@ describe('seatWildCell', () => {
 });
 
 describe('placeWildCell', () => {
-  it('replaces a vacant seat with a fresh spread and a pinned cell, drainedMass and the countdown cleared', () => {
+  it('replaces a vacant seat with a fresh size and a cell at its base size, growth and the countdown cleared', () => {
     const world = createTestWorld();
     world.tick = 600;
     const seat = createWildSeatRecord(7);
     seat.respawnInTicks = 3;
-    seat.drainedMass = 5;
+    seat.grownMass = 5;
+    seat.fullMass = 50;
     world.wildSeats.push(seat);
     const context = createTestStepContext(world);
     const cell = placeWildCell(world, seat, context, worldReferenceAt(world, world.tick));
     expect(seat.cellId).toBe(cell.id);
     expect(seat.respawnInTicks).toBe(0);
-    expect(seat.drainedMass).toBe(0);
+    expect([seat.grownMass, seat.fullMass]).toEqual([0, cell.mass]);
     expect(world.cells.at(-1)).toBe(cell);
     expect(cell.kind).toBe(CELL_KIND.wild);
     expect(isPlayerCell(cell)).toBe(false);
-    // 600 ticks = 10 s: the world's mass is 30, spread by the seat.
-    expect(cell.mass).toBeCloseTo(30 * seat.massSpreadFactor, 10);
+    // 600 ticks = 10 s: the world's mass is 30, times the seat's size.
+    expect(cell.mass).toBeCloseTo(30 * seat.sizeFactor, 10);
     expect(distanceBetween(cell, world.cells[0]!)).toBeGreaterThanOrEqual(wildCells.WILD_CELL_MIN_SPACING_WU);
   });
 
-  it('draws the spread, then the heading, from the wildCells stream and the point from spawnPlacement', () => {
+  it('draws the size factor, then the heading, from the wildCells stream and the point from spawnPlacement', () => {
     const world = createTestWorld();
     const seat = createWildSeatRecord(0);
     world.wildSeats.push(seat);
-    const expectedSpread = drawMassSpreadFactor(
+    const expectedSize = wildSizeFactor(
       createSeededRandomFromState(world.random[RANDOM_STREAM.wildCells]).nextFloat(),
       DEFAULT_BALANCE,
     );
@@ -207,6 +197,6 @@ describe('placeWildCell', () => {
     expect(context.streams[RANDOM_STREAM.spawnPlacement].getState().position).toBeGreaterThanOrEqual(
       placementBefore + 2,
     );
-    expect(seat.massSpreadFactor).toBeCloseTo(expectedSpread, 10);
+    expect(seat.sizeFactor).toBeCloseTo(expectedSize, 10);
   });
 });

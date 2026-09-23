@@ -113,8 +113,24 @@ export const ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL: Readonly<Record<PreviewActionSce
   [PREVIEW_SCENE.levelUp]: 'Replay',
 };
 
+/** What the reduced-motion toggle under the lens does when pressed (§11.4): play a held lens, or hold a playing one. */
+export const ENCYCLOPEDIA_LENS_MOTION = { play: 'play', pause: 'pause' } as const;
+export type EncyclopediaLensMotion = (typeof ENCYCLOPEDIA_LENS_MOTION)[keyof typeof ENCYCLOPEDIA_LENS_MOTION];
+
+/** The toggle's accessible name: an icon alone says nothing to a screen reader. */
+export const ENCYCLOPEDIA_LENS_MOTION_LABEL: Readonly<Record<EncyclopediaLensMotion, string>> = {
+  [ENCYCLOPEDIA_LENS_MOTION.play]: 'Play preview',
+  [ENCYCLOPEDIA_LENS_MOTION.pause]: 'Pause preview',
+};
+
 /** The `unavailable` state's line, inside the circle: the preview app could not start, and there is no retry. */
 export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';
+
+/** The mark between two breadcrumb crumbs (§11.3), in the trail and in the sticky title bar alike. */
+export const ENCYCLOPEDIA_CRUMB_SEPARATOR = '›';
+
+/** The sticky title bar of a scrolled entry: the breadcrumb over the title (§11.4, *Long entries scroll*). */
+export const ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX = 48;
 
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
