@@ -125,6 +125,13 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
     the last delta it was sent, frozen at that tick plus the extrapolation cap until a resume. The ack that shows it
     caught up now sends the `game_state` at once (`GameRoom.recordSnapshotAck`); a running room still sends it in place
     of its next delta. Steps of any size and pause → resume leave the client current.
+  - **One resync per recovery** (#275). The `game_state` reaches a slow client behind the older deltas still queued
+    ahead of it, so for a while its acks keep reading far behind; the room used to take that as a fresh fall and arm a
+    second and a third full state. The room now remembers the tick of the resync in flight and sends that client
+    nothing, and owes it nothing, until it acknowledges that tick (`SnapshotBacklog.isAwaitingResyncAck`); a client that
+    has never acknowledged is not held. Modelled at #274's measured rates (room 60.6 msg/s, client 34.8/s) over 3 000
+    broadcasts: 100 resyncs, 88 of them on top of an unacknowledged one, before; 24 and 0 after, with more deltas
+    delivered (1 641 → 1 704). A `game_state` is about 3 times a delta (29.9 KB against a 10.3 KB median at start).
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
   is the one drain of the effects; each viewer's camera steps on the first `serialize` of a tick and its food delta

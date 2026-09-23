@@ -47,6 +47,8 @@ export class SnapshotBacklog {
   private readonly owedResync = new Set<string>();
   private readonly lastSentTick = new Map<string, number>();
   private readonly acknowledgedTick = new Map<string, number>();
+  /** The tick of the `game_state` each client was resynced with, until it acknowledges that tick (#275). */
+  private readonly resyncInFlightTick = new Map<string, number>();
   private readonly limitTicks: number;
   private readonly limitBytes: number;
   private resyncTotal = 0;
@@ -69,6 +71,9 @@ export class SnapshotBacklog {
    */
   nextFor(connection: Connection, broadcastTick: number): SnapshotDelivery {
     const { playerId } = connection;
+    // The resync is still queued behind older deltas: anything sent now only deepens that queue, and the acks it is
+    // waiting behind would read as "behind" and arm a second full state (#275). Skipped, but owed nothing.
+    if (this.isAwaitingResyncAck(playerId)) return SNAPSHOT_DELIVERY.skipped;
     if (this.isBehind(playerId) || this.isHoldingBytes(connection)) {
       this.owedResync.add(playerId);
       return SNAPSHOT_DELIVERY.skipped;
@@ -77,7 +82,7 @@ export class SnapshotBacklog {
     if (!this.owedResync.delete(playerId)) {
       return SNAPSHOT_DELIVERY.delta;
     }
-    this.resyncTotal += 1;
+    this.markResyncSent(playerId, broadcastTick);
     return SNAPSHOT_DELIVERY.resync;
   }
 
@@ -94,7 +99,22 @@ export class SnapshotBacklog {
   recordResyncSent(playerId: string, tick: number): void {
     this.owedResync.delete(playerId);
     this.lastSentTick.set(playerId, tick);
+    this.markResyncSent(playerId, tick);
+  }
+
+  /** Counted, and remembered until acknowledged. */
+  private markResyncSent(playerId: string, tick: number): void {
     this.resyncTotal += 1;
+    this.resyncInFlightTick.set(playerId, tick);
+  }
+
+  /** A resync is in flight and the client has not acknowledged its tick yet; one that never acks is never held. */
+  private isAwaitingResyncAck(playerId: string): boolean {
+    const resyncTick = this.resyncInFlightTick.get(playerId);
+    if (resyncTick === undefined) return false;
+    if ((this.acknowledgedTick.get(playerId) ?? resyncTick) < resyncTick) return true;
+    this.resyncInFlightTick.delete(playerId);
+    return false;
   }
 
   /**
@@ -105,6 +125,7 @@ export class SnapshotBacklog {
     this.owedResync.delete(playerId);
     this.lastSentTick.delete(playerId);
     this.acknowledgedTick.delete(playerId);
+    this.resyncInFlightTick.delete(playerId);
   }
 
   /** Players currently owed a `game_state`. Telemetry: it never decides anything. */
