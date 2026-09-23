@@ -3,7 +3,8 @@
 // interpolated `CellView` into the instance record the shader reads and the mapped organelle
 // placements the sprite layer draws. Pure over its inputs and the frame's time; nothing here
 // touches Pixi. The frame's deformation map (#207's clips) is merged here with the cell's contact
-// dent and the seal it owes a ghost, and the engulf-warning ring is decided from the own cell.
+// dent and the seal it owes a ghost, and the engulf-warning ring is decided from the own cell; the relation ring's
+// role arrives decided by the HUD's `relationsFor`.
 
 import {
   COSMETIC_SUB_STREAM,
@@ -37,6 +38,7 @@ import { NUCLEUS_KINDS } from './organelle-kinds';
 import { layoutOrganelles, type OrganelleSlot } from './organelle-layout';
 import { laggedSlot, mapSlot, type MappedPoint } from './organelle-mapper';
 import { isWarningRingHidden, type OwnCellRing } from './self-ring';
+import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
 import { buildShapeTerms, headingOf, type ShapeTerms } from './shape-terms';
 
 /** What the frame hands every cell: time, zoom, the live balance, the own cell, the strip, the dents and the seals. */
@@ -53,6 +55,8 @@ export interface CellFrameContext {
   readonly absorbedSeals: ReadonlyMap<EntityId, PredatorSeal>;
   /** The own cell's sprint ring and the predator whose warning ring hides during an escape (self-ring.ts). */
   readonly ownCellRing: OwnCellRing;
+  /** The relation rings by cell id (`relationRingsOf`, docs/ui/hud.md §3.1.5); absent rings no cell. */
+  readonly relationRings?: ReadonlyMap<EntityId, RelationRing>;
 }
 
 export const NO_ABSORBED_SEALS: ReadonlyMap<EntityId, PredatorSeal> = new Map();
@@ -232,6 +236,7 @@ export class CellRenderState {
       ciliaPhase: this.stepCiliaPhase(speedRatio, context.timeSeconds),
       rimDash: 0,
       ownCellRing: context.ownCellRing,
+      relationRing: context.relationRings?.get(view.id) ?? RELATION_RING.none,
     });
     return { instance, terms, lod, organelles, traits };
   }

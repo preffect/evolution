@@ -66,6 +66,10 @@ export interface CellInstance {
   readonly selfRingFill: number;
   /** The recharged arc's alpha: `SELF_RING_ALPHA` at rest, the `sprint_ready` clip's `selfRingBrightness` while it plays. */
   readonly selfRingBrightness: number;
+  /** The relation ring's (inner) line radius in px; 0 for none (docs/rendering/own-cell-indicators.md §10). */
+  readonly relationRingPx: number;
+  /** `RELATION_RING`: 1 the edible single line in `GAIN`, 2 the toxic double line in `DANGER`; the count is the role. */
+  readonly relationRingLines: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -83,8 +87,8 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['ciliaCount', 'wallScale', 'speckleDensity', 'filamentCount'],
   ['tintMix', 'warningRingPx', 'formId', 'passBAlpha'],
   ['rimDash', 'ciliaPhase', 'nucleusDiscRadii', 'speckleSeed'],
-  // #295: the ten texels above were full, so the sprint ring grew the row to seventeen; two channels are free.
-  ['selfRingFill', 'selfRingBrightness'],
+  // #295: the ten texels above were full, so the sprint ring grew the row to seventeen; #538's relation ring fills it.
+  ['selfRingFill', 'selfRingBrightness', 'relationRingPx', 'relationRingLines'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */
