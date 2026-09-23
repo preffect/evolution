@@ -22,24 +22,23 @@ export interface FactLabel {
   readonly presentation?: QuantityPresentation;
 }
 
-export function balanceFact(label: FactLabel, path: BalancePath): ValueFactDefinition {
+/** A value fact named by `label`, its value read from `source` at resolve time. */
+function valueFact(label: FactLabel, source: ValueFactDefinition['source']): ValueFactDefinition {
   return {
     key: label.key,
     label: label.label,
     unit: label.unit,
     presentation: label.presentation ?? QUANTITY_PRESENTATION.plain,
-    source: { kind: FACT_SOURCE.balance, path },
+    source,
   };
 }
 
+export function balanceFact(label: FactLabel, path: BalancePath): ValueFactDefinition {
+  return valueFact(label, { kind: FACT_SOURCE.balance, path });
+}
+
 export function formulaFact(label: FactLabel, formula: FactFormulaCall): ValueFactDefinition {
-  return {
-    key: label.key,
-    label: label.label,
-    unit: label.unit,
-    presentation: label.presentation ?? QUANTITY_PRESENTATION.plain,
-    source: { kind: FACT_SOURCE.formula, formula },
-  };
+  return valueFact(label, { kind: FACT_SOURCE.formula, formula });
 }
 
 export function linkFact(key: string, label: string, link: DerivedLinkCall): LinkFactDefinition {
