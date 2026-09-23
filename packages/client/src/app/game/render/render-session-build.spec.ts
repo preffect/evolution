@@ -82,4 +82,27 @@ describe('RenderSession: the staged renderer build', () => {
     expect(pixi.renderCalls.count, 'the next build did not proceed after the failure').toBe(1);
     consoleError.mockRestore();
   });
+
+  it('projects the pointer through the camera the new renderer will open on, while it still bakes (#479)', async () => {
+    const { subject, pixi } = session();
+    expect(subject.projectPointer({ x: 0, y: 0 }), 'no snapshot yet, nothing to project through').toBeNull();
+    subject.onMessage(gameState());
+    await flush();
+    expect(subject.isBuildingRenderer).toBe(true);
+    const centre = subject.projectPointer({ x: pixi.screen.width / 2, y: pixi.screen.height / 2 })!;
+    const [own] = subject.store.latestSnapshot()!.cells;
+    expect(centre.offsetFromViewCentre.x).toBeCloseTo(0, 6);
+    expect(centre.offsetFromViewCentre.y).toBeCloseTo(0, 6);
+    expect(centre.worldPoint.x).toBeCloseTo(own!.x, 6);
+    const right = subject.projectPointer({ x: pixi.screen.width, y: pixi.screen.height / 2 })!;
+    expect(right.offsetFromViewCentre.x).toBeGreaterThan(0);
+
+    await settle(subject, pixi);
+    pixi.tick();
+    const drawn = subject.projectPointer({ x: pixi.screen.width / 2, y: pixi.screen.height / 2 })!;
+    expect(drawn.worldPoint.x, 'the live camera opened somewhere else than the one steered through').toBeCloseTo(
+      centre.worldPoint.x,
+      6,
+    );
+  });
 });
