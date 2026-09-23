@@ -87,6 +87,21 @@ describe('PreviewSession.start', () => {
   });
 });
 
+describe('PreviewSession.destroy', () => {
+  /** Ticket #503: a texture destroyed while a kept shader still binds it logs a Pixi `[BindGroup]` warning. */
+  it('unbinds the app’s textures before it destroys the bundle', async () => {
+    const { subject, apps } = harness();
+    await subject.start(VENT_SPEC);
+    const app = apps[0]!;
+    const destroyedAtUnbind: number[] = [];
+    const destroyedCount = (): number => app.textures.madeTextures.filter((texture) => texture.destroyed).length;
+    app.unbindTextures = () => destroyedAtUnbind.push(destroyedCount());
+    subject.destroy();
+    expect(destroyedAtUnbind).toEqual([0]);
+    expect(destroyedCount()).toBeGreaterThan(0);
+  });
+});
+
 describe('PreviewSession.show', () => {
   it('swaps the scene without a second bake', async () => {
     const { subject, apps } = harness();

@@ -22,6 +22,11 @@ export abstract class FrameLoopSession {
   private lastRenderedTickValue: number | null = null;
   /** Runs every animation frame whether or not a frame is drawn; `null` until one is set. */
   private animationFrameListener: (() => void) | null = null;
+  /** The callback `adoptPixiApp` put on the app's ticker, taken off again on dispose: a kept app outlives us. */
+  private readonly tickerListener = (): void => {
+    this.animationFrameListener?.();
+    this.frame();
+  };
 
   protected constructor(clock: Clock, sampleCapacityFrames?: number) {
     this.instrumentation = new FrameInstrumentation(clock, sampleCapacityFrames);
@@ -40,10 +45,7 @@ export abstract class FrameLoopSession {
     this.pixi = pixi;
     this.instrumentation.attach(pixi.app);
     pixi.app.ticker.remove(pixi.app.render, pixi.app);
-    pixi.app.ticker.add(() => {
-      this.animationFrameListener?.();
-      this.frame();
-    });
+    pixi.app.ticker.add(this.tickerListener);
   }
 
   /**
@@ -97,9 +99,11 @@ export abstract class FrameLoopSession {
 
   /** Drops the renderer, the instrumentation and the app. */
   protected disposeLoop(): void {
+    this.pixi?.unbindTextures();
     this.slot.dispose();
     this.lastRenderedTickValue = null;
     this.instrumentation.destroy();
+    this.pixi?.app.ticker.remove(this.tickerListener);
     this.pixi?.destroy();
     this.pixi = null;
   }
