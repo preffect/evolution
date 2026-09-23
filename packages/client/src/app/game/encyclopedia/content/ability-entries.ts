@@ -58,7 +58,7 @@ export const ABILITY_ENTRY_CONTENT: Readonly<Record<AbilityId, WrittenEntryConte
   [ABILITY.engulfDefence]: {
     title: 'Engulf defence',
     summary:
-      'What keeps you from being eaten. A predator needs {engulfRatio} your mass to start; once wrapped you swim at {heldSpeed} speed, and swimming away slows the swallow by {struggle}. These traits raise the ratio, loosen the grip, strengthen the struggle or slow your absorption.',
+      'What keeps you from being eaten. A predator needs {engulfRatio} your mass to start; once wrapped you swim at {heldSpeed} speed, and swimming away slows the swallow by up to {struggle}. These traits raise the ratio, loosen the grip, strengthen the struggle or slow your absorption.',
     facts: [grantedByFact(ABILITY.engulfDefence), ENGULF_RATIO_FACT, HELD_SPEED_FACT, STRUGGLE_FACT],
     sections: [],
     seeAlso: ['action:escape', 'concept:engulf_ratio'],
@@ -109,7 +109,7 @@ export const ABILITY_ENTRY_CONTENT: Readonly<Record<AbilityId, WrittenEntryConte
   [ABILITY.toxin]: {
     title: 'Toxin',
     summary:
-      'Poison that drains the cells around you. Anything touching you loses a share of its mass every second, and a predator that swallows you takes a dose {swallowedDose} as strong. It never kills: it stops at the starting mass.',
+      'Poison that drains the cells around you. Anything touching or near you loses a share of its mass every second. A predator that swallows you takes a dose {swallowedDose} as strong, set by your mass rather than its own, and may have to let you go. It never kills: it stops at the starting mass.',
     facts: [
       grantedByFact(ABILITY.toxin),
       balanceFact(

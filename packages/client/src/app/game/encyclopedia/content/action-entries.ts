@@ -21,7 +21,13 @@ import {
   STRUGGLE_FACT,
   phaseSpanFact,
 } from './action-facts';
-import { ENGULF_BONUS_FACT, FIRST_LEVEL_UP_FACT, LAST_LEVEL_UP_FACT, balanceFact } from './fact-builders';
+import {
+  ENGULF_BONUS_FACT,
+  FIRST_LEVEL_UP_FACT,
+  LAST_LEVEL_UP_FACT,
+  STARTING_MASS_FACT,
+  balanceFact,
+} from './fact-builders';
 
 export const ACTION_ENTRY_CONTENT: Readonly<Record<ActionId, WrittenEntryContent>> = {
   [ACTION.steer]: {
@@ -86,7 +92,7 @@ export const ACTION_ENTRY_CONTENT: Readonly<Record<ActionId, WrittenEntryContent
   [ACTION.escape]: {
     title: 'Escape',
     summary:
-      'Caught before the seal, you can still get out. In the cover ({coverTime}) just swim clear. In the wrap ({wrapTime}) break contact and the hold slips away; swimming away also slows the swallow by {struggle}. After the seal only spines or poison free you, by making the predator let go or drop under {releaseRatio} your mass.',
+      'Caught before the seal, you can still get out. In the cover ({coverTime}) just swim clear. In the wrap ({wrapTime}) break contact and the hold slips away; swimming away also slows the swallow by up to {struggle}. After the seal only spines or poison free you, by making the predator let go or drop under {releaseRatio} your mass.',
     facts: [phaseSpanFact(ENGULF_PHASE.cover), phaseSpanFact(ENGULF_PHASE.wrap), STRUGGLE_FACT, RELEASE_RATIO_FACT],
     sections: [],
     seeAlso: ['action:sprint', 'ability:engulf_defence', 'ability:spines'],
@@ -122,7 +128,7 @@ export const ACTION_ENTRY_CONTENT: Readonly<Record<ActionId, WrittenEntryContent
   [ACTION.respawn]: {
     title: 'Respawn',
     summary:
-      'Engulfed, you watch your killer for {respawnDelay}, then return with your level and traits. You come back at {entryShare} of the world’s average mass, at most {entryMaxMass}, lifted to the world’s level if you had fallen behind. The DNA toward your next level is lost unless a trait keeps some.',
+      'Engulfed, you watch your killer for {respawnDelay}, then return with your level and traits. You come back at {entryShare} of the world’s average mass, at least {startingMass} and at most {entryMaxMass}, lifted to the world’s level if you had fallen behind. The DNA toward your next level is lost unless a trait keeps some.',
     facts: [
       balanceFact(
         { key: 'respawnDelay', label: 'Back after', unit: QUANTITY_UNIT.seconds },
@@ -132,6 +138,7 @@ export const ACTION_ENTRY_CONTENT: Readonly<Record<ActionId, WrittenEntryContent
         { key: 'entryShare', label: 'Mass, of the world’s', unit: QUANTITY_UNIT.share },
         balancePath('progression', 'ENTRY_MASS_FRACTION'),
       ),
+      STARTING_MASS_FACT,
       balanceFact(
         { key: 'entryMaxMass', label: 'Mass, at most', unit: QUANTITY_UNIT.mass },
         balancePath('progression', 'ENTRY_MAX_MASS'),
