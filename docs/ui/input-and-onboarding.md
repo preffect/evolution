@@ -112,7 +112,8 @@ explains touches the player, so they fire on a game event, not in order. The que
 - A waiting beat whose condition no longer holds when its turn comes (the player left the zone, the prey is gone)
   is dropped the same way, unseen.
 - **Danger beats pre-empt:** `threat` and `toxin` replace the pill that is up at once. The replaced beat counts as
-  seen, because its cue stays on the cell and its lesson is the lesser one.
+  seen, because its cue stays on the cell and its lesson is the lesser one. A danger beat that fires while the other is up
+  waits, and goes next when the pill comes down, ahead of beats that waited longer.
 - The pill of a coach beat carries a `HINT_RIM_PX` rim in the role colour of the cue it explains (`ZONE_CUE`,
   `GAIN` or `DANGER`, visual-style/principles-and-palette.md §2); an opening beat has none. Text stays `body` in the
   text colour.

@@ -3,9 +3,13 @@
 // unseen and may fire again later; a danger beat replaces the pill that is up, which then counts as seen. Seen-flags
 // live for the session: a rematch keeps them, a reload (a fresh service) replays them.
 //
+// At most `COACH_QUEUE_MAX` coach beats wait: a newer one past that drops the oldest waiting coach beat, unseen.
+//
 // Pure: `onboardingStepFor` folds one snapshot's sample into the last memory, and the caller carries it.
 
-import type { EntityId } from '@evolution/shared';
+import type { EntityId, ZoneId } from '@evolution/shared';
+import { COACH_QUEUE_MAX } from '../hud-constants';
+import { COACH_BEATS } from './onboarding-coach-beats';
 import {
   OPENING_BEATS,
   type OnboardingBeat,
@@ -40,7 +44,12 @@ export interface OnboardingMemory {
   readonly history: OnboardingHistory;
   /** Where the own cell was last snapshot, to measure the steer beat's travel; `null` with no own cell. */
   readonly lastPosition: OnboardingPosition | null;
+  /** The zone the own cell was in last alive snapshot; `null` after a death, so a respawn inside a zone enters it. */
+  readonly lastZone: ZoneId | null;
 }
+
+/** Every beat §5 lists: the opening rows in table order, then the coach rows. */
+export const ONBOARDING_BEATS: readonly OnboardingBeat[] = [...OPENING_BEATS, ...COACH_BEATS];
 
 const NO_BEATS: readonly OnboardingBeatId[] = [];
 
@@ -49,8 +58,16 @@ export const INITIAL_ONBOARDING_MEMORY: OnboardingMemory = {
   seen: new Set(),
   current: null,
   waiting: NO_BEATS,
-  history: { travelSinceShownWu: 0, hasEaten: false, hasSprinted: false, shownAtTick: 0 },
+  history: {
+    travelSinceShownWu: 0,
+    hasEaten: false,
+    hasSprinted: false,
+    shownAtTick: 0,
+    shrinkSinceTick: null,
+    enteredZone: null,
+  },
   lastPosition: null,
+  lastZone: null,
 };
 
 function travelledWu(memory: OnboardingMemory, sample: OnboardingSample): number {
@@ -61,6 +78,20 @@ function travelledWu(memory: OnboardingMemory, sample: OnboardingSample): number
   return Math.hypot(own.x - last.x, own.y - last.y);
 }
 
+/** Since when decay alone has been shrinking this own cell; a new own cell (a respawn) starts the hold over. */
+function shrinkSinceTickAfter(memory: OnboardingMemory, sample: OnboardingSample): number | null {
+  if (sample.observation?.isShrinkingFromDecay !== true) return null;
+  const isSameCell = memory.lastPosition !== null && memory.lastPosition.id === sample.ownCell?.id;
+  return (isSameCell ? memory.history.shrinkSinceTick : null) ?? sample.tick;
+}
+
+/** The zone entered this snapshot: a change of zone, or the first alive snapshot of a (re)spawn inside one. */
+function enteredZoneOf(memory: OnboardingMemory, sample: OnboardingSample): ZoneId | null {
+  const zone = sample.observation?.zone ?? null;
+  const isSameCell = memory.lastPosition !== null && memory.lastPosition.id === sample.ownCell?.id;
+  return zone !== null && (zone !== memory.lastZone || !isSameCell) ? zone : null;
+}
+
 /** The history and position folded forward by one snapshot, before any beat is decided. */
 function historyAfter(memory: OnboardingMemory, sample: OnboardingSample): OnboardingMemory {
   const history = memory.history;
@@ -68,11 +99,14 @@ function historyAfter(memory: OnboardingMemory, sample: OnboardingSample): Onboa
     ...memory,
     lastTick: sample.tick,
     lastPosition: sample.ownCell,
+    lastZone: sample.observation?.zone ?? null,
     history: {
       ...history,
       travelSinceShownWu: history.travelSinceShownWu + travelledWu(memory, sample),
       hasEaten: history.hasEaten || sample.hasOwnEat,
       hasSprinted: history.hasSprinted || sample.isSprinting,
+      shrinkSinceTick: shrinkSinceTickAfter(memory, sample),
+      enteredZone: enteredZoneOf(memory, sample),
     },
   };
 }
@@ -100,16 +134,24 @@ function newlyTriggered(
   );
 }
 
-/** The first waiting beat that still applies goes up; the lapsed ones before it are dropped unseen. */
+/**
+ * The next beat to go up: a waiting danger beat first (one that fired while another danger beat was up), else the
+ * first waiting beat; either way the first that still applies. The lapsed ones passed over are dropped unseen.
+ */
 function nextFromQueue(
   memory: OnboardingMemory,
   observation: OnboardingObservation,
   beatsById: ReadonlyMap<OnboardingBeatId, OnboardingBeat>,
 ): OnboardingMemory {
-  for (const [index, id] of memory.waiting.entries()) {
+  const isDanger = (id: OnboardingBeatId): boolean => beatsById.get(id)?.isDanger === true;
+  const inTurn = [...memory.waiting.filter(isDanger), ...memory.waiting.filter((id) => !isDanger(id))];
+  const lapsed = new Set<OnboardingBeatId>();
+  for (const id of inTurn) {
     if (beatsById.get(id)?.isStillWanted(observation, memory.history)) {
-      return show({ ...memory, waiting: memory.waiting.slice(index + 1) }, id, observation.tick);
+      const waiting = memory.waiting.filter((other) => other !== id && !lapsed.has(other));
+      return show({ ...memory, waiting }, id, observation.tick);
     }
+    lapsed.add(id);
   }
   return { ...memory, waiting: NO_BEATS };
 }
@@ -124,6 +166,19 @@ function afterDismissal(
   return current?.isDismissed(observation, memory.history) ? { ...memory, current: null } : memory;
 }
 
+/** The waiting list with `beat` at its end; past `COACH_QUEUE_MAX` waiting coach beats the oldest one goes, unseen. */
+function waitingWith(
+  waiting: readonly OnboardingBeatId[],
+  beat: OnboardingBeat,
+  beatsById: ReadonlyMap<OnboardingBeatId, OnboardingBeat>,
+): readonly OnboardingBeatId[] {
+  const isCoach = (id: OnboardingBeatId): boolean => beatsById.get(id)?.isCoach === true;
+  const coachWaiting = waiting.filter(isCoach);
+  if (!beat.isCoach || coachWaiting.length < COACH_QUEUE_MAX) return [...waiting, beat.id];
+  const oldestCoach = coachWaiting[0];
+  return [...waiting.filter((id) => id !== oldestCoach), beat.id];
+}
+
 /** A danger beat jumps the queue and the pill (unless a danger beat is up); every other beat queues behind the rest. */
 function enqueue(
   memory: OnboardingMemory,
@@ -133,14 +188,14 @@ function enqueue(
 ): OnboardingMemory {
   const isCurrentDanger = memory.current !== null && beatsById.get(memory.current)?.isDanger === true;
   if (beat.isDanger && !isCurrentDanger) return show(memory, beat.id, tick);
-  return { ...memory, waiting: [...memory.waiting, beat.id] };
+  return { ...memory, waiting: waitingWith(memory.waiting, beat, beatsById) };
 }
 
 /** Folds one snapshot into the queue; a tick already seen changes nothing, so a recomputation never counts twice. */
 export function onboardingStepFor(
   previous: OnboardingMemory,
   sample: OnboardingSample,
-  beats: readonly OnboardingBeat[] = OPENING_BEATS,
+  beats: readonly OnboardingBeat[] = ONBOARDING_BEATS,
 ): OnboardingMemory {
   if (sample.tick <= previous.lastTick) return previous;
   const observation = sample.observation;

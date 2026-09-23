@@ -189,6 +189,12 @@ export const HINT_DURATION_SECONDS = 4;
 export const STEER_HINT_DISTANCE_WU = 200;
 /** Round time at which the sprint hint shows if the player has never sprinted. */
 export const SPRINT_HINT_AT_SECONDS = 30;
+/** A coach beat's role-colour rim on the hint pill; an opening beat has none. */
+export const HINT_RIM_PX = 2;
+/** Coach beats waiting behind the pill that is up; a newer one past this drops the oldest, unseen. */
+export const COACH_QUEUE_MAX = 2;
+/** The mass trend reads `down` from decay this long before the `shrink` beat fires: a sprint alone does not. */
+export const COACH_SHRINK_HOLD_SECONDS = 3;
 
 // ---- controls (docs/ui/input-and-onboarding.md §4) ----
 

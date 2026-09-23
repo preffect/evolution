@@ -1,5 +1,6 @@
 // The hint pill (docs/ui/input-and-onboarding.md §5): bottom-centre, `HUD_MARGIN_PX` from the bottom edge, `body` on
-// the callout backing, one onboarding beat at a time with its id on `data-hint-id`. It decides nothing:
+// the callout backing, one onboarding beat at a time with its id on `data-hint-id`; a coach beat's pill wears a
+// `HINT_RIM_PX` rim in its cue's role colour. It decides nothing:
 // `OnboardingService` says which beat is up and `onboardingTextFor` what it says. It stands down while the picker is
 // open (docs/ui/overlays.md §3.2), whose own footer carries the `offer` beat, and whenever the player is not alive in
 // play. It is read, never pressed: it takes no pointer and no focus, and speaks through a polite live region.
@@ -7,6 +8,7 @@
 import { ChangeDetectionStrategy, Component, DOCUMENT, computed, inject } from '@angular/core';
 import { PLAYER_LIFE_STATE, ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
+import { ONBOARDING_BEATS } from './format/onboarding-queue';
 import { onboardingTextFor } from './format/onboarding-text';
 import { OnboardingService } from './onboarding.service';
 import { HUD_TEST_ID } from './test-ids';
@@ -21,7 +23,15 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
   template: `
     <div class="live" role="status" aria-live="polite">
       @if (hint(); as shown) {
-        <p class="pill" [attr.data-testid]="testId.hint" [attr.data-hint-id]="shown.id">{{ shown.text }}</p>
+        <p
+          class="pill"
+          [class.rimmed]="shown.rimColour !== null"
+          [style.--hint-rim-colour]="shown.rimColour"
+          [attr.data-testid]="testId.hint"
+          [attr.data-hint-id]="shown.id"
+        >
+          {{ shown.text }}
+        </p>
       }
     </div>
   `,
@@ -53,6 +63,11 @@ const TOUCH_POINTER_QUERY = '(pointer: coarse)';
         color: var(--hud-text);
         white-space: nowrap;
       }
+
+      /* A coach beat's rim in the role colour of the cue it explains; the text stays in the text colour (§5). */
+      .pill.rimmed {
+        border: calc(var(--hud-hint-rim) * var(--hud-scale)) solid var(--hint-rim-colour);
+      }
     `,
   ],
 })
@@ -72,10 +87,18 @@ export class HintComponent {
     );
   });
 
-  /** The beat on screen and its words, or `null` when the pill is down. */
+  /** The beat on screen, its words and its rim colour, or `null` when the pill is down. */
   protected readonly hint = computed(() => {
     const id = this.onboarding.current();
-    if (id === null || !this.isShowable()) return null;
-    return { id, text: onboardingTextFor(id, this.isTouch) };
+    const balance = this.gameState.balance();
+    const ownCell = this.gameState.ownCell();
+    if (id === null || !this.isShowable() || balance === null || ownCell === null) return null;
+    const text = onboardingTextFor(id, {
+      isTouch: this.isTouch,
+      balance,
+      ownMass: ownCell.mass,
+      ownTraits: ownCell.traits,
+    });
+    return { id, text, rimColour: ONBOARDING_BEATS.find((beat) => beat.id === id)?.rimColour ?? null };
   });
 }

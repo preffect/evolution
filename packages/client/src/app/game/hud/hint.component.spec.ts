@@ -14,7 +14,6 @@ import {
 import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
-import { onboardingTextFor } from './format/onboarding-text';
 import { HintComponent } from './hint.component';
 import { HUD_TEST_ID, testIdSelector } from './test-ids';
 
@@ -55,7 +54,8 @@ describe('HintComponent', () => {
   it('shows the steer beat on the first alive snapshot, with its id and words, inside a polite live region', () => {
     show();
     expect(pill()?.getAttribute('data-hint-id')).toBe(ONBOARDING_BEAT.steer);
-    expect(pill()?.textContent).toBe(onboardingTextFor(ONBOARDING_BEAT.steer, false));
+    expect(pill()?.textContent?.trim()).toBe('Move the pointer · your cell follows');
+    expect(pill()?.classList.contains('rimmed')).toBe(false);
     expect(pill()?.parentElement?.getAttribute('aria-live')).toBe('polite');
   });
 

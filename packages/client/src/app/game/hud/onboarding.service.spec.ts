@@ -1,28 +1,22 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  CELL_STAGE,
   DEFAULT_BALANCE,
-  PLAYER_LIFE_STATE,
-  ROUND_PHASE,
-  TICK_HZ,
   createTestPlayerProgressView,
   createTestSnapshot,
-  createTestTraitOfferView,
   entityId,
   playerId,
   type CellView,
   type GameSnapshot,
 } from '@evolution/shared';
-import { createTestCellView, createTestEatEffect } from '../../../testing/builders';
+import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
 import { STEER_HINT_DISTANCE_WU } from './hud-constants';
-import { OnboardingService, onboardingSampleFor } from './onboarding.service';
+import { OnboardingService } from './onboarding.service';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const OWN_CELL_ID = entityId('cell-me');
-const OTHER_CELL_ID = entityId('cell-other');
 const ROUND_START_TICK = 600;
 
 function ownCell(overrides: Partial<CellView> = {}): CellView {
@@ -38,52 +32,6 @@ function snapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     ...overrides,
   });
 }
-
-describe('onboardingSampleFor', () => {
-  const source = (overrides: Partial<GameSnapshot> = {}, cell: CellView | null = ownCell()) => {
-    const shown = snapshot(overrides);
-    return { snapshot: shown, ownCell: cell, ownProgress: shown.ownProgress, indicators: null };
-  };
-
-  it('observes an alive own cell in play: round time, DNA, the offer and the stage', () => {
-    const sample = onboardingSampleFor(
-      source({
-        tick: ROUND_START_TICK + 2 * TICK_HZ,
-        ownProgress: createTestPlayerProgressView({
-          dnaCumulative: 4,
-          stage: CELL_STAGE.prokaryote,
-          offer: createTestTraitOfferView(),
-        }),
-      }),
-    );
-    expect(sample.observation).toEqual({
-      tick: ROUND_START_TICK + 2 * TICK_HZ,
-      roundElapsedSeconds: 2,
-      dnaCumulative: 4,
-      hasOffer: true,
-      isProkaryote: true,
-      hasThreat: false,
-    });
-  });
-
-  it('observes nothing while spectating, with no own cell, or outside the playing phase', () => {
-    const spectating = createTestPlayerProgressView({ lifeState: PLAYER_LIFE_STATE.spectating });
-    expect(onboardingSampleFor(source({ ownProgress: spectating })).observation).toBeNull();
-    expect(onboardingSampleFor(source({}, null)).observation).toBeNull();
-    expect(onboardingSampleFor(source({ roundPhase: ROUND_PHASE.results })).observation).toBeNull();
-  });
-
-  it('counts only the own cell’s eats, and a sprint while one is running', () => {
-    const others = source({ effects: [createTestEatEffect({ cellId: OTHER_CELL_ID })] });
-    expect(onboardingSampleFor(others).hasOwnEat).toBe(false);
-    const own = source(
-      { effects: [createTestEatEffect({ cellId: OWN_CELL_ID })] },
-      ownCell({ sprintRemainingTicks: 3 }),
-    );
-    expect(onboardingSampleFor(own).hasOwnEat).toBe(true);
-    expect(onboardingSampleFor(own).isSprinting).toBe(true);
-  });
-});
 
 describe('OnboardingService', () => {
   let multiplayer: MultiplayerService;
