@@ -39,7 +39,7 @@ armour stacked on it can still tip a meal negative, `traits/catalog-forms.md §3
 
 The photosynthesis term is a mass gain like eating: it goes through the cap of §5.4, and the part
 above `CELL_MAX_MASS` becomes DNA at `MASS_OVERFLOW_DNA_PER_MASS` (#179). A cell with no player (a
-wild cell, whose surplus digests back to its natural size, wild-cells.md §3.3.1) is clamped to the cap and gains no DNA. At the
+wild cell: the gain becomes growth, wild-cells.md §3.3.1) is clamped to the cap and gains no DNA. At the
 default balance light alone never reaches the cap: photosynthesis equals decay at
 `CELL_STARTING_MASS + photosynthesisMassPerSecond / (MASS_DECAY_RATE_PER_SECOND × decayMultiplier)`,
 186.67 / 395 / 662.86 mass for Chloroplast I / II / III (T5); a cell above that loses mass in the light.

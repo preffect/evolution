@@ -111,8 +111,9 @@ they can." The mechanics have one home, [`ecology/food-and-spawn.md §3.1–§3.
 - **What it drives:** the mote mix (more bacteria as the world ages), the broth's share of
   organelle-carrying bacteria (zone character), and the wild cells
   ([`ecology/wild-cells.md §3.3`](../ecology/wild-cells.md#33-wild-cells)): 24 non-player cells of half to twice the world's average
-  size whose ladder is the world's; they graze, hunt each other and flee from the start, keep their meals and
-  wounds (settling back to their natural size), and hunt players from the endosymbiosis era.
+  size whose ladder is the world's; they see about a screen, graze, hunt and flee each other and sprint from the
+  start, keep their meals (burnt off by the player's decay) and recover from wounds in 10–18 s, and hunt players
+  from the endosymbiosis era.
 - **Entering the dish** (late join and respawn) floors the player at the world's level
   ([`PROGRESSION.md §5`](../PROGRESSION.md#5-entering-the-dish-late-join-and-respawn)).
 - **Standing.** `standingAgainstWorld` reads `'ahead' | 'with' | 'behind'` (level first, then mass

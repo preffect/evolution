@@ -72,7 +72,7 @@ it('E9: A absorbs B on tick 30', async () => {
   first cell") and clears the seat's target and velocity as a respawn does, so the seat has no target
   until its next decision tick; the seat keeps its heading, a cell it already had is withdrawn without
   detritus (`withdrawCell`, its engulfs aborted), and the new one is seated through the simulation's own
-  `seatWildCell`, at its natural size and settled from its first tick (ecology/wild-cells.md §3.3.1). It schedules with `.atTick(T)` like any placement
+  `seatWildCell`, at its base size with no growth and settled from its first tick (ecology/wild-cells.md §3.3.1). It schedules with `.atTick(T)` like any placement
   (W6: placed after tick 21 599, seat 0 decides on 21 600). An adapter may add fixtures of its own beside the placed
   records (`.place(fixture)` / `.atTick(T).place(fixture)`): the Evolution adapter's
   `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures.
