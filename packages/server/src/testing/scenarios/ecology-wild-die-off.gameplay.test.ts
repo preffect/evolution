@@ -24,9 +24,13 @@ const W15_BURST_TICK = 2628;
 const W15_RESPAWN_TICK = W15_BURST_TICK + WILD_RESPAWN_TICKS + ONE_TICK;
 /** "Detritus floor(0.2 × 31.85 / 2) = 3 motes = 6 mass". */
 const W15_DETRITUS_MASS = 6;
-/** W16: seat 0 at size 20 and seat 1 at 18 (760 > 720); the variant's seat 1 at 15 (700 < 720). */
+/**
+ * W16: seat 0 at size 20 and seat 1 at 19.9 (798 > 720): seat 0 starves and falls below seat 1 within 4 ticks, while
+ * the total stays over the budget until tick 131, so a second starver would be chosen without the one-at-a-time rule.
+ * The variant's seat 1 at 15 (700 < 720).
+ */
 const W16_HEAVY_SIZE = 20;
-const W16_OVER_SIZE = 18;
+const W16_OVER_SIZE = 19.9;
 const W16_UNDER_SIZE = 15;
 const W16_SECOND_SEAT = 1;
 const W16_READ_TICK = 60;
