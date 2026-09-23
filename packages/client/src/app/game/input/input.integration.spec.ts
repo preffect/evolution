@@ -23,6 +23,8 @@ import { SPRINT_KEY_CODE } from './input-constants';
 
 const OWN_CELL = createTestCellView({ playerId: TEST_OWN_PLAYER_ID, x: 0, y: 0, radius: 4 });
 const HOST_BOX = { left: 0, top: 0, width: 1280, height: 720 };
+/** More frames than a staged build has steps (#479): a build still going after these is stuck. */
+const BUILD_FRAMES_MAX = 100;
 
 function flush(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -61,6 +63,11 @@ function gameState(): ServerMessage {
   };
 }
 
+/** A broadcast of the parked world at `tick`, answering none of the inputs sent. */
+function snapshotAt(tick: number): ServerMessage {
+  return { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: createTestSnapshot({ tick, cells: [OWN_CELL] }) };
+}
+
 interface Harness {
   readonly host: HTMLElement;
   readonly sent: GameInput[];
@@ -69,6 +76,8 @@ interface Harness {
   readonly debugHost: EvolutionDebugHost;
   readonly pixi: ReturnType<typeof createFakePixiApp>;
   frame(): void;
+  /** Frames until the staged renderer build (#479) has drawn one. */
+  untilDrawn(): void;
   teardown: GameTeardown;
 }
 
@@ -114,6 +123,17 @@ async function startGame(): Promise<Harness> {
       clock.advanceMilliseconds(TICK_INTERVAL_MS);
       pixi.tick();
     },
+    untilDrawn: () => {
+      for (let frame = 0; frame < BUILD_FRAMES_MAX; frame += 1) {
+        if (debugHost[EVOLUTION_DEBUG_KEY]?.renderTick() !== null) return;
+        clock.advanceMilliseconds(TICK_INTERVAL_MS);
+        // A live room keeps broadcasting while the world bakes; without arrivals the prediction's stall bound
+        // (`PREDICTION_STALL_TICKS`) would freeze it however long the build ran. They answer no input.
+        messages$.next(snapshotAt(frame + 1));
+        pixi.tick();
+      }
+      throw new Error(`The renderer drew nothing in ${BUILD_FRAMES_MAX} frames.`);
+    },
     teardown,
   };
 }
@@ -124,11 +144,13 @@ afterEach(() => {
 });
 
 describe('the wired input path', () => {
-  it('turns a pointer over the canvas into a steer target offset from the own cell', async () => {
+  it('turns a pointer over the canvas into a steer target offset from the own cell, while the world still bakes (#479)', async () => {
     const harness = await startGame();
     // Half a screen right of centre, on a cell parked at the origin.
     harness.host.dispatchEvent(pointerEvent('pointermove', HOST_BOX.width * 0.75, HOST_BOX.height / 2));
     harness.frame();
+    // Nothing is drawn yet: the renderer bakes one step per frame (#479), and the pointer steers all the same.
+    expect(harness.debugHost[EVOLUTION_DEBUG_KEY]?.renderTick()).toBeNull();
     const input = harness.sent.at(-1);
     expect(input?.targetX).toBeGreaterThan(OWN_CELL.x);
     expect(input?.targetY).toBeCloseTo(OWN_CELL.y);
@@ -137,6 +159,9 @@ describe('the wired input path', () => {
 
   it('moves the drawn own cell on the frames its inputs are sent, before any snapshot answers them (#265)', async () => {
     const harness = await startGame();
+    // "Drawn" needs a renderer: the prediction steps through every input from the first, but it is shown (and its
+    // debug pair recorded) only on frames a renderer draws, so wait out the staged build (#479) first.
+    harness.untilDrawn();
     harness.host.dispatchEvent(pointerEvent('pointermove', HOST_BOX.width, HOST_BOX.height / 2));
     for (let frame = 0; frame < 4; frame += 1) harness.frame();
     const prediction = harness.debugHost[EVOLUTION_DEBUG_KEY]?.prediction?.();
