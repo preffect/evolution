@@ -7,13 +7,19 @@ import { focusableElementsIn } from './focus-trap-stack';
 import { UiFocusTrapDirective } from './ui-focus-trap.directive';
 import { UiPanelSectionComponent } from './ui-panel-section.component';
 import { UiScrollAreaComponent } from './ui-scroll-area.component';
-import { UI_PANEL_VARIANT, UiPanelComponent, type UiPanelVariant } from './ui-panel.component';
+import {
+  UI_PANEL_BODY,
+  UI_PANEL_VARIANT,
+  UiPanelComponent,
+  type UiPanelBody,
+  type UiPanelVariant,
+} from './ui-panel.component';
 
 @Component({
   standalone: true,
   imports: [UiPanelComponent, UiPanelSectionComponent],
   template: `
-    <ui-panel testId="panel" [variant]="variant()" [title]="title()">
+    <ui-panel testId="panel" [variant]="variant()" [title]="title()" [body]="body()">
       <button uiPanelHeader data-testid="header-control">Close</button>
       <p data-testid="body">Body</p>
       <button uiPanelFooter data-testid="footer-control">Done</button>
@@ -27,6 +33,7 @@ import { UI_PANEL_VARIANT, UiPanelComponent, type UiPanelVariant } from './ui-pa
 class PanelHostComponent {
   readonly variant = signal<UiPanelVariant>(UI_PANEL_VARIANT.modal);
   readonly title = signal<string | null>('Menu');
+  readonly body = signal<UiPanelBody>(UI_PANEL_BODY.scroll);
 }
 
 /** jsdom lays nothing out: gives the body scroll area inside `panel` the box of an overflowing body. */
@@ -159,6 +166,17 @@ describe('UiPanelComponent', () => {
     expect(viewport.getAttribute('aria-label')).toBe('Menu');
   });
 
+  it('a bleed body is the feature’s: no kit scroll area, a plain body the feature fills, and still a labelled dialog', () => {
+    set((host) => host.body.set(UI_PANEL_BODY.bleed));
+    const panel = byTestId('panel');
+    expect(panel.getAttribute('data-body')).toBe(UI_PANEL_BODY.bleed);
+    expect(byTestId('body').closest('ui-scroll-area')).toBeNull();
+    expect(byTestId('body').parentElement?.classList.contains('bleed')).toBe(true);
+    expect(byTestId('header-control').closest('.header')).not.toBeNull();
+    expect(panel.getAttribute('role')).toBe('dialog');
+    expect(panel.getAttribute('aria-modal')).toBe('true');
+  });
+
   it('a side panel lets the pointer through, but its overflowing body takes the wheel', () => {
     expect(styleRuleValue(document, [hostSelector(byTestId('side')), "[data-variant='side']"], 'pointer-events')).toBe(
       'none',
@@ -183,6 +201,12 @@ describe('UiPanelComponent', () => {
       expect(rule(["[data-variant='modal']"], 'padding')).toBe('calc(var(--ui-panel-padding) * var(--ui-scale))');
       expect(rule([], 'border-radius')).toBe('calc(var(--ui-radius-panel) * var(--ui-scale))');
       expect(rule(["[data-variant='modal']", '::before'], 'background-color')).toContain('var(--ui-panel-edge-alpha)');
+    });
+
+    it('modal with a bleed body: no padding and no gap, set by the kit rather than out-specified by a feature', () => {
+      expect(rule(["[data-variant='modal']", "[data-body='bleed']"], 'padding')).toBe('0px');
+      expect(rule(["[data-variant='modal']", "[data-body='bleed']"], 'gap')).toBe('0px');
+      expect(styleRuleValue(document, ['.bleed'], 'overflow')).toBe('hidden');
     });
 
     it('modal: enters over the panel-enter time, and appears without rising under reduced motion', () => {

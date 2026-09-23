@@ -44,6 +44,11 @@ export interface LeaderboardLabels {
 }
 
 export interface LeaderboardLabelsInput {
+  /**
+   * The full columns and footer are drawn (#615): false while the panel is still widening to the full list, so its
+   * header already says how it is held open while the rows keep the compact columns. `isFull` when absent.
+   */
+  readonly isFullLayout?: boolean;
   readonly isFull: boolean;
   /** The header opened the full list rather than a held Tab. */
   readonly isPinned: boolean;
@@ -68,9 +73,10 @@ function leaderboardHintFor(isFull: boolean, isPinned: boolean): string {
 
 export function leaderboardLabelsFor(input: LeaderboardLabelsInput): LeaderboardLabels {
   const { isFull, isPinned, scoreAbsorptionBonus } = input;
+  const isFullLayout = input.isFullLayout ?? isFull;
   return {
     hint: leaderboardHintFor(isFull, isPinned),
-    columns: isFull ? LEADERBOARD_FULL_LABELS : LEADERBOARD_COMPACT_LABELS,
-    footer: isFull && scoreAbsorptionBonus !== null ? leaderboardFooterText(scoreAbsorptionBonus) : null,
+    columns: isFullLayout ? LEADERBOARD_FULL_LABELS : LEADERBOARD_COMPACT_LABELS,
+    footer: isFullLayout && scoreAbsorptionBonus !== null ? leaderboardFooterText(scoreAbsorptionBonus) : null,
   };
 }

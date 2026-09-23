@@ -7,7 +7,6 @@ import {
   DEFAULT_BALANCE,
   FIRST_LEVEL,
   RANDOM_STREAM,
-  WORLD_ORGANISM_ID,
   createSeededRandomFromState,
   createTestSessionConfig,
   playerId,
@@ -45,7 +44,7 @@ describe('createWildSeats (W2)', () => {
   const world = seededWorld();
   const wild = wildCellsOf(world.cells);
 
-  it('seats exactly WILD_CELL_COUNT wild protocells of the world organism after the player', () => {
+  it('seats exactly WILD_CELL_COUNT wild protocells, each its own organism, after the player', () => {
     expect(world.wildSeats).toHaveLength(wildCells.WILD_CELL_COUNT);
     expect(wild).toHaveLength(wildCells.WILD_CELL_COUNT);
     expect(world.wildSeats.map((seat) => seat.seatNumber)).toEqual(wild.map((_unused, index) => index));
@@ -53,7 +52,7 @@ describe('createWildSeats (W2)', () => {
     expect(world.cells.findIndex((cell) => cell.kind === CELL_KIND.wild)).toBe(1);
     for (const cell of wild) {
       expect(cell.playerId).toBeNull();
-      expect(cell.organismId).toBe(WORLD_ORGANISM_ID);
+      expect(cell.organismId).toBe(cell.id);
       expect(cell.level).toBe(FIRST_LEVEL);
       expect(cell.traits).toEqual([]);
       expect(cell.stage).toBe(CELL_STAGE.protocell);
