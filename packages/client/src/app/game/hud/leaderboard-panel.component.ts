@@ -5,7 +5,18 @@
 // does. The stylesheet is the sibling `.css`; every length and colour in it is a `--hud-…` the
 // shell publishes from the constants.
 
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { GameStateService } from '../state/game-state.service';
 import {
   LEADERBOARD_COMPACT_ROWS,
@@ -21,9 +32,9 @@ import { LEADERBOARD_TEXT, leaderboardLabelsFor } from './format/leaderboard-lab
 import { leaderboardEntriesFor, type LeaderboardEntry } from './format/leaderboard-rows';
 import { leaderboardSwatchFor, leaderboardSwatchGeometry, type LeaderboardSwatch } from './format/leaderboard-swatch';
 
-/** The property whose transition the full layout waits for, and the element that carries it. */
+/** The property whose transition the full layout waits for, and the play state of one that has run to its end. */
 const WIDTH_PROPERTY = 'width';
-const PANEL_SELECTOR = '.leaderboard';
+const FINISHED_STATE = 'finished';
 
 /** One user unit is one CSS px here, pinned by `leaderboard-swatch.spec.ts`. */
 const SWATCH = leaderboardSwatchGeometry();
@@ -47,10 +58,12 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
+      #panel
       class="leaderboard"
       [class.full]="isFull()"
       [class.full-layout]="isFullLayout()"
-      (transitionend)="onTransitionEnd($event)"
+      (transitionend)="onTransitionEvent()"
+      (transitioncancel)="onTransitionEvent()"
       [style.--hud-leaderboard-height.px]="heightPx()"
       [attr.data-testid]="testId.leaderboard"
     >
@@ -124,11 +137,13 @@ export class LeaderboardPanelComponent {
   /**
    * The full list's columns and footer wait for the panel to finish widening (#615): drawn while the box still grows
    * from the compact width, they were squeezed and clipped for the whole `LEADERBOARD_EXPAND_MS`. Widening, the rows
-   * keep the compact columns and the footer stays away; closing, both go at once, before the box narrows.
+   * keep the compact columns and the footer stays away; closing, both go at once, before the box narrows. Settled
+   * from the running transition itself (`settle`), so a cancelled one can never leave the board wide and compact.
    */
   private readonly isWidthSettledFull = signal(false);
   protected readonly isFullLayout = computed(() => this.isFull() && this.isWidthSettledFull());
-  private readonly host: HTMLElement = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+  private readonly injector = inject(Injector);
 
   protected readonly labels = computed(() =>
     leaderboardLabelsFor({
@@ -160,26 +175,51 @@ export class LeaderboardPanelComponent {
   protected readonly heightPx = computed(() => panelHeightPx(this.entries().length, this.isFull()));
 
   constructor() {
+    // Every change of the held state re-reads the transition once the new width is applied, whatever events follow.
     effect(() => {
-      if (!this.isFull()) this.isWidthSettledFull.set(false);
-      // No width transition to wait for (reduced motion, or no layout at all): the full layout is there at once.
-      else if (!this.hasWidthTransition()) this.isWidthSettledFull.set(true);
+      this.isFull();
+      afterNextRender(() => this.settle(), { injector: this.injector });
     });
   }
 
-  /** The panel's own width transition has ended: the full layout may be drawn if the list is still open. */
-  protected onTransitionEnd(event: TransitionEvent): void {
-    if (event.target !== event.currentTarget || event.propertyName !== WIDTH_PROPERTY) return;
-    this.isWidthSettledFull.set(this.isFull());
+  /** The width transition ended or was cancelled: read what is running now rather than trusting the event (#615). */
+  protected onTransitionEvent(): void {
+    this.settle();
   }
 
-  private hasWidthTransition(): boolean {
-    const panel = this.host.querySelector<HTMLElement>(PANEL_SELECTOR);
-    if (panel === null) return false;
-    const durations = getComputedStyle(panel)
-      .transitionDuration.split(',')
-      .map((duration) => Number.parseFloat(duration));
-    return durations.some((seconds) => seconds > 0);
+  /**
+   * Settles the layout from the transition's actual state, never from one event: a width transition cancelled by a
+   * fast release and re-press, or by the panel being hidden, fires no `transitionend` at all. Closed: compact at once.
+   * Open with no width transition running: full now. Open with one running: full when it finishes, or re-checked when
+   * it is cancelled.
+   */
+  private settle(): void {
+    if (!this.isFull()) {
+      this.isWidthSettledFull.set(false);
+      return;
+    }
+    const transition = this.runningWidthTransition();
+    if (transition === null) {
+      this.isWidthSettledFull.set(true);
+      return;
+    }
+    this.isWidthSettledFull.set(false);
+    transition.finished.then(
+      () => this.settle(),
+      () => this.settle(),
+    );
+  }
+
+  /** The panel's own width transition while it runs; `null` once finished, cancelled, or where nothing animates. */
+  private runningWidthTransition(): Animation | null {
+    const panel = this.panel()?.nativeElement;
+    const animations = panel?.getAnimations?.() ?? [];
+    return (
+      animations.find(
+        (animation) =>
+          (animation as CSSTransition).transitionProperty === WIDTH_PROPERTY && animation.playState !== FINISHED_STATE,
+      ) ?? null
+    );
   }
 
   protected toggleFull(): void {
