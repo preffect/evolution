@@ -258,30 +258,88 @@ up from there, never past 3 × `worldMass`, and wounds move them down for a few 
 **Randomness.** The `wildCells` stream (label `wild_cells`) owns size factors, wander headings and turn
 rolls. It is forked from the round seed like every other stream, so a wild turn never shifts a mote,
 and its state is hashed ([`determinism/random-streams.md §3`](../determinism/random-streams.md#3-seeded-random-streams-packagessharedsrcrandom-73), [`determinism/ordering-and-state-hash.md §5`](../determinism/ordering-and-state-hash.md#5-state-hash-packagessharedsrcsimulationstate-hashts-packagesserversrcgameworldstate-hashts)).
-The settle, sight and sprint choices are arithmetic on hashed state (`sizeFactor`, `grownMass`,
-`fullMass`, the cell's mass and sprint counters), so they need no stream of their own.
+The settle, sight, sprint and die-off choices are arithmetic on hashed state (`sizeFactor`,
+`grownMass`, `fullMass`, `isStarving`, the cell's mass and sprint counters), so they need no stream of
+their own.
 
-#### 3.3.6 Constants (`packages/shared/src/constants/wild-cells.ts`, balance domain `wildCells`)
+#### 3.3.6 Die-off: the dish can only feed so much (#555)
 
-| Constant                              | Value                     | Unit                        | Change (#517, #544)                                                   |
-| ------------------------------------- | ------------------------- | --------------------------- | --------------------------------------------------------------------- |
-| `WILD_CELL_COUNT`                     | 24                        | seats                       | unchanged                                                             |
-| `WILD_CELL_SIZE_FACTOR_MIN`           | 0.5                       | × `worldMass`               | new (replaces `WILD_CELL_MASS_SPREAD` 0.3)                            |
-| `WILD_CELL_SIZE_FACTOR_MAX`           | 2.0                       | × `worldMass`               | new                                                                   |
-| `WILD_CELL_RECOVERY_SECONDS`          | 6                         | s (time constant of a loss) | new                                                                   |
-| `WILD_CELL_MAX_WORLD_MASS_MULTIPLE`   | 3                         | × `worldMass`               | new: the growth ceiling                                               |
-| `WILD_CELL_SIGHT_VIEW_MULTIPLE`       | 1.0                       | × `viewHalfHeightFor`       | new                                                                   |
-| `WILD_CELL_SPRINT_FLEE_RADII`         | 4                         | own radii                   | new                                                                   |
-| `WILD_CELL_SPRINT_HUNT_RADII`         | 3                         | own radii                   | new                                                                   |
-| `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`  | `endosymbiosis`           | stage                       | renamed from `WILD_CELL_HUNTS_FROM_STAGE`; now gates player prey only |
-| `WILD_CELL_BUILDS`                    | the three lists of §3.3.2 | trait ids                   | unchanged                                                             |
-| `WORLD_ORGANISM_ID`                   | —                         | —                           | removed: a wild cell's `organismId` is its own id                     |
-| `WILD_CELL_HUNT_RANGE_RADII`          | —                         | —                           | removed: hunting reaches as far as sight                              |
-| `WILD_CELL_RESPAWN_SECONDS`           | 10                        | s                           | unchanged                                                             |
-| `WILD_CELL_MIN_SPACING_WU`            | 200                       | wu                          | unchanged                                                             |
-| `WILD_CELL_DECISION_INTERVAL_SECONDS` | 0.5                       | s                           | unchanged                                                             |
-| `WILD_CELL_FLEE_RANGE_RADII`          | 8                         | own radii                   | unchanged; now also flees wild predators, and only those in sight     |
-| `WILD_CELL_TURN_CHANCE`               | 0.25                      | per wander decision         | unchanged                                                             |
+The dish can feed only so much wild life: about half as much again as a freshly seeded dish holds.
+While the wild cells together weigh more than that, the heaviest one starts to starve. It shrinks
+steadily, first losing everything it ever ate and then its own body, until it is smaller than the
+smallest newborn. Then it bursts into a cloud of scraps, and a fresh cell is born somewhere else ten
+seconds later. Only one wild cell starves at a time, and once it has started it does not stop. So in a
+crowded dish, now and then a giant withers and pops, leaving scraps for whoever is nearby, and a dish with room to spare sees no starving at all. There is no randomness: the same dish
+always starves the same cell.
+
+```
+wildCarryingCapacity(t) = WILD_CELL_CARRYING_CAPACITY_MULTIPLE × WILD_CELL_COUNT × worldMass(t)
+totalWildMass           = Σ mass of every seated wild cell, read at the start of step 1 (before any settle)
+```
+
+- **Choosing the starver.** At step 1, before the settles, the dish picks a starver if no seat is
+  starving and `totalWildMass > wildCarryingCapacity`. The starver is the heaviest seated wild cell,
+  with ties going to the lower seat number, and its seat's `isStarving` becomes true. Nothing else
+  happens under the budget, and a respawning seat counts as 0 mass.
+- **Starving** (inside that seat's settle, §3.3.1, right after `seat.fullMass` is computed and before
+  the cell's mass is laid on it):
+  `starvedMass = seat.fullMass × WILD_CELL_STARVATION_FRACTION_PER_SECOND × TICK_INTERVAL_S`. This is
+  taken from `seat.grownMass` first. What is left is taken from the base size itself, by
+  `seat.sizeFactor −= remainder / worldMass(t)`, then `seat.fullMass −= starvedMass`. The settle then
+  runs as usual, so a wound on a starving cell still recovers, but only toward the shrinking full size.
+  The starved mass is simply gone. Nothing drops until the cell bursts.
+- **Bursting.** A starving cell whose `seat.fullMass` falls below `WILD_CELL_SIZE_FACTOR_MIN` ×
+  `worldMass(t)`, the smallest newborn's size, dies at the end of its settle. It goes through
+  `dissolveCell`, the way any cell leaves the world: every engulf it is part of is aborted, and
+  detritus drops by the §1 rule (`DETRITUS_MASS_FRACTION` of its mass). The seat's `isStarving` resets,
+  and the seat respawns after `WILD_CELL_RESPAWN_SECONDS` like an eaten one. A starving cell that is
+  eaten first simply dies of that; its seat's `isStarving` resets at the payout. On the next tick,
+  another starver may be chosen if the dish is still over its budget.
+- **Committed until death.** A starver keeps starving even after the total drops back under the
+  budget. The reason is that a cell which shrinks a little and then recovers is invisible to the
+  player. A whole life ending is the event the human asked for ("feels alive"), and it overshoots the
+  budget only by one cell's mass.
+
+**Why these numbers.**
+
+- **Capacity 1.5.** A fresh dish holds 24 newborns averaging 1.08 × `worldMass` (the mean of the
+  log-uniform 0.5–2.0), so 26 × `worldMass`. The budget of 36 × `worldMass` leaves the wild about 40 %
+  of room to grow before anything starves, and that room grows with the world. At 0:00 it is 720 mass;
+  at 9:00 it is 20 160.
+- **Starvation 10 % a second.** At that rate a starving cell halves in about 7 s. A cell at the world's
+  average size bursts about 7 s after it starts starving, and a giant at the 3 × ceiling bursts about
+  18 s after (ln 6 / 0.1). That is long enough to see it wither, and short enough that a crowded dish
+  loses a whole cell within 20 s.
+- **The burst floor reuses `WILD_CELL_SIZE_FACTOR_MIN`,** so a cell never dies bigger than a newborn
+  could be born, and there is no third knob. The two knobs are `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`
+  (how crowded the dish gets) and `WILD_CELL_STARVATION_FRACTION_PER_SECOND` (how long a death takes).
+- **Feed-back:** a burst drops 20 % of a cell that has already shrunk to half the world's mass, so
+  about 0.1 × `worldMass` in scraps. That is a small meal. The starved mass itself is not returned,
+  which is the point: the die-off takes mass out of the dish's food loop.
+
+#### 3.3.7 Constants (`packages/shared/src/constants/wild-cells.ts`, balance domain `wildCells`)
+
+| Constant                                   | Value                     | Unit                              | Change (#517, #544, #555)                                             |
+| ------------------------------------------ | ------------------------- | --------------------------------- | --------------------------------------------------------------------- |
+| `WILD_CELL_COUNT`                          | 24                        | seats                             | unchanged                                                             |
+| `WILD_CELL_SIZE_FACTOR_MIN`                | 0.5                       | × `worldMass`                     | new (replaces `WILD_CELL_MASS_SPREAD` 0.3)                            |
+| `WILD_CELL_SIZE_FACTOR_MAX`                | 2.0                       | × `worldMass`                     | new                                                                   |
+| `WILD_CELL_RECOVERY_SECONDS`               | 6                         | s (time constant of a loss)       | new                                                                   |
+| `WILD_CELL_MAX_WORLD_MASS_MULTIPLE`        | 3                         | × `worldMass`                     | new: the growth ceiling                                               |
+| `WILD_CELL_SIGHT_VIEW_MULTIPLE`            | 1.0                       | × `viewHalfHeightFor`             | new                                                                   |
+| `WILD_CELL_SPRINT_FLEE_RADII`              | 4                         | own radii                         | new                                                                   |
+| `WILD_CELL_SPRINT_HUNT_RADII`              | 3                         | own radii                         | new                                                                   |
+| `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`     | 1.5                       | × `WILD_CELL_COUNT` × `worldMass` | new (#555): the die-off budget                                        |
+| `WILD_CELL_STARVATION_FRACTION_PER_SECOND` | 0.1                       | of full size per second           | new (#555)                                                            |
+| `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`       | `endosymbiosis`           | stage                             | renamed from `WILD_CELL_HUNTS_FROM_STAGE`; now gates player prey only |
+| `WILD_CELL_BUILDS`                         | the three lists of §3.3.2 | trait ids                         | unchanged                                                             |
+| `WORLD_ORGANISM_ID`                        | —                         | —                                 | removed: a wild cell's `organismId` is its own id                     |
+| `WILD_CELL_HUNT_RANGE_RADII`               | —                         | —                                 | removed: hunting reaches as far as sight                              |
+| `WILD_CELL_RESPAWN_SECONDS`                | 10                        | s                                 | unchanged                                                             |
+| `WILD_CELL_MIN_SPACING_WU`                 | 200                       | wu                                | unchanged                                                             |
+| `WILD_CELL_DECISION_INTERVAL_SECONDS`      | 0.5                       | s                                 | unchanged                                                             |
+| `WILD_CELL_FLEE_RANGE_RADII`               | 8                         | own radii                         | unchanged; now also flees wild predators, and only those in sight     |
+| `WILD_CELL_TURN_CHANCE`                    | 0.25                      | per wander decision               | unchanged                                                             |
 
 Sprint reuses `controls.ts` unchanged. The sprint radii follow from the speeds: fleeing at 4 radii,
 a 0.5 s sprint at 1.8 × carries a protocell about 200 wu (11 radii), clear of a hunter's own sprint
@@ -297,7 +355,9 @@ the second.
 §2, `architecture/server-simulation.md` §3 and `architecture/constants-files-tests.md` §10).**
 
 - `WildSeatRecord` becomes (`seatNumber`, `cellId | null`, `sizeFactor`, `grownMass`, `fullMass`,
-  `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`). `massSpreadFactor` is renamed
+  `isStarving`, `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`) (#555 adds `isStarving`,
+  hashed like the rest). `CellView` gains `starving: boolean` (true only for a starving wild cell) so the
+  renderer can show it withering; the look is the graphics designer's (a follow-up ticket). `massSpreadFactor` is renamed
   `sizeFactor`; `drainedMass` is replaced by `grownMass` and `fullMass`.
 - Wild cells stay ordinary `CellRecord`s in `world.cells` with `playerId: null`, now with `organismId`
   equal to their own id. They carry the player's sprint counters, which the strategy drives through the
