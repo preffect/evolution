@@ -29,6 +29,7 @@ import { FakeWebSocket } from '../../../testing/fake-websocket';
 import { IdentityService } from '../../services/identity.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { WebSocketService } from '../../services/websocket.service';
+import { GameStateService } from '../state/game-state.service';
 import { ZONE_CUE } from '../render/constants';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
 import { HintComponent } from './hint.component';
@@ -39,6 +40,11 @@ const OWN_PLAYER_ID = playerId('player-me');
 const OWN_CELL_ID = entityId('cell-me');
 const RESPAWNED_CELL_ID = entityId('cell-me-respawned');
 const TOXIC_CELL_ID = entityId('cell-toxic');
+const PREY_CELL_ID = entityId('cell-prey');
+/** Mass a plain wild cell needs to be the own cell's prey at `OWN_MASS`. */
+const PREY_MASS = 10;
+/** A camera over the whole test dish, so every ring is on screen. */
+const WHOLE_DISH = { minX: -10_000, maxX: 10_000, minY: -10_000, maxY: 10_000 };
 /** The own cell's mass: above the starting mass, so decay and the vent take something. */
 const OWN_MASS = 60;
 /** Snapshots go out every third tick (the 20 Hz wire). */
@@ -65,6 +71,12 @@ function ownCellAt(overrides: Partial<CellView> = {}): CellView {
 function toxicBot(gapWu: number, ownCell: CellView = ownCellAt()): CellView {
   const bot = createTestCellView({ id: TOXIC_CELL_ID, kind: CELL_KIND.wild, playerId: null, traits: TOXIN_VACUOLE_II });
   return { ...bot, x: ownCell.x + ownCell.radius + bot.radius + gapWu, y: ownCell.y };
+}
+
+/** A small plain wild cell touching the own cell's rim: green-ringed and in reach. */
+function smallPrey(ownCell: CellView): CellView {
+  const prey = createTestCellView({ id: PREY_CELL_ID, kind: CELL_KIND.wild, playerId: null, mass: PREY_MASS });
+  return { ...prey, x: ownCell.x + ownCell.radius + prey.radius, y: ownCell.y };
 }
 
 describe('the coach beats, end to end', () => {
@@ -209,5 +221,16 @@ describe('the coach beats, end to end', () => {
     expect(pill()?.getAttribute('data-hint-id')).toBe(ONBOARDING_BEAT.zoneWarmVent);
     expect(pill()?.classList.contains('rimmed')).toBe(true);
     expect(pill()?.style.getPropertyValue('--hint-rim-colour')).toBe(ZONE_CUE[ZONE_ID.warmVent]);
+  });
+
+  it('shows prey for a green-ringed cell in reach, and not while the own cell is already engulfing', () => {
+    TestBed.inject(GameStateService).setCameraExtent(WHOLE_DISH);
+    openIn(ZONE_ID.openBroth);
+    const placed = ownCellAt({ x: STEER_HINT_DISTANCE_WU });
+    const engulfing = { x: STEER_HINT_DISTANCE_WU, engulfingCellId: PREY_CELL_ID as EntityId };
+    hold(1, { ownCell: engulfing, others: [smallPrey(placed)] });
+    expect(seen).not.toContain(ONBOARDING_BEAT.prey);
+    receive({ ownCell: { x: STEER_HINT_DISTANCE_WU }, others: [smallPrey(placed)] });
+    expect(seen.at(-1)).toBe(ONBOARDING_BEAT.prey);
   });
 });

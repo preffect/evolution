@@ -39,6 +39,7 @@ const TEXT_BY_BEAT: Readonly<Record<OnboardingBeatId, TextFor>> = {
   [ONBOARDING_BEAT.zoneViscousGel]: ({ balance, ownMass, ownTraits }) =>
     `Gel slows you to ${multiplierText(ownGelSpeedFactor({ mass: ownMass, traits: ownTraits, balance }))} · smaller cells slip through`,
   [ONBOARDING_BEAT.bloom]: () => 'Bloom · more food and DNA until the end',
+  [ONBOARDING_BEAT.prey]: () => 'Green ring: you can engulf it · swim over it',
   [ONBOARDING_BEAT.toxin]: () => 'Toxic cells drain you when you are close · back off',
 };
 

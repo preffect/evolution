@@ -18,7 +18,9 @@ import {
 } from '@evolution/shared';
 import { createTestCellView, createTestEatEffect } from '../../../../testing/builders';
 import { MASS_TREND } from '../../state/mass-trend';
-import { isShrinkingFromDecay, isToxinReaching, onboardingSampleFor } from './onboarding-sample';
+import { COACH_PREY_REACH_RADII } from '../hud-constants';
+import { hasPreyInReach, isShrinkingFromDecay, isToxinReaching, onboardingSampleFor } from './onboarding-sample';
+import { RELATION_RING, type Relation } from './relations-for';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const OWN_CELL_ID = entityId('cell-me');
@@ -49,6 +51,7 @@ function source(overrides: Partial<GameSnapshot> = {}, cell: CellView | null = o
     ownCell: cell,
     ownProgress: snapshot.ownProgress,
     indicators: null,
+    relations: [],
     balance: DEFAULT_BALANCE,
     roundDurationSeconds: ROUND_SECONDS,
   };
@@ -140,5 +143,32 @@ describe('isToxinReaching', () => {
     expect(isToxinReaching(engulfing, touching, [engulfing, prey, near], DEFAULT_BALANCE)).toBe(true);
     const far = { ...near, x: -10_000 };
     expect(isToxinReaching(engulfing, touching, [engulfing, prey, far], DEFAULT_BALANCE)).toBe(false);
+  });
+});
+
+describe('hasPreyInReach', () => {
+  const own = ownCell({ radius: 20 });
+  const prey = createTestCellView({ id: PREY_CELL_ID, playerId: null, radius: 10 });
+
+  /** The ring `relationsFor` gives `prey` at `gapWu` past the own rim. */
+  function ringAt(gapWu: number, ring: Relation['ring'] = RELATION_RING.edible): Relation {
+    const distance = own.radius + prey.radius + gapWu;
+    return {
+      cellId: PREY_CELL_ID,
+      ring,
+      isEdible: true,
+      isToxic: ring === RELATION_RING.toxic,
+      distanceSquared: distance * distance,
+    };
+  }
+
+  it(`holds for a green-ringed cell within ${COACH_PREY_REACH_RADII} own radii, edge to edge, and not past it`, () => {
+    expect(hasPreyInReach(own, [ringAt(own.radius * COACH_PREY_REACH_RADII)], [own, prey])).toBe(true);
+    expect(hasPreyInReach(own, [ringAt(own.radius * COACH_PREY_REACH_RADII + 1)], [own, prey])).toBe(false);
+  });
+
+  it('does not hold for an edible cell whose ring is the toxic one, nor with no ring at all', () => {
+    expect(hasPreyInReach(own, [ringAt(0, RELATION_RING.toxic)], [own, prey])).toBe(false);
+    expect(hasPreyInReach(own, [], [own, prey])).toBe(false);
   });
 });

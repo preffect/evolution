@@ -195,6 +195,8 @@ export const HINT_RIM_PX = 2;
 export const COACH_QUEUE_MAX = 2;
 /** The mass trend reads `down` from decay this long before the `shrink` beat fires: a sprint alone does not. */
 export const COACH_SHRINK_HOLD_SECONDS = 3;
+/** Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat. */
+export const COACH_PREY_REACH_RADII = 1;
 
 // ---- controls (docs/ui/input-and-onboarding.md §4) ----
 
