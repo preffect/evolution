@@ -300,12 +300,15 @@ Those two rows are where a copy change costs the most, so a longer name in one o
 that viewport, not an estimate. A fitting row's right edge is always flush with the viewport's, because the name
 column takes the row's slack; a flush edge is not a tightness signal and must not be measured as one.
 
-That margin is thin because this panel does **not** truncate a name, and **#454 owns that**.
-`PLAYER_NAME_MAX_LENGTH` is 20 (`packages/shared/src/constants/lobby.ts`); the leaderboard cuts the same value to
-`LEADERBOARD_NAME_MAX_CHARS` 12 through `truncatePlayerName` (`leaderboard-rows.ts`), `affecting-causes.ts` does
-not cut at all, and `cellDisplayName`'s `?? cell.playerId` fallback is unbounded — so the worst case is not the
-20-character cap at all. The condition is pre-existing and was not #445's to fix; until #454 lands, read the 0.6 px
-as the standing state of a row that can already be pushed over, never as slack a copy change may spend.
+**A name in a cause row is cut like the leaderboard's (#454).** `PLAYER_NAME_MAX_LENGTH` is 20
+(`packages/shared/src/constants/lobby.ts`); every name the screen shows goes through `cellDisplayName`
+(`hud/format/threats-for.ts`), which cuts it to `LEADERBOARD_NAME_MAX_CHARS` (12, the ellipsis included) through
+`truncatePlayerName` (`hud/format/player-name.ts`), the player-id fallback included, so the leaderboard, the threat
+labels and these rows share one cut and no name can run longer. The rule is a cut rather than a wider name column
+because the panel's width is fixed by the side-panel layout and the value column must stay flush. Before #454 a
+20-character name of wide letters pushed the toxin row's value out of the panel at 1024 × 640; now the widest
+possible name is 12 characters, pinned by `e2e/affecting-panel-names.spec.ts` (a `WWWW…` neighbour at the scale
+floor: the name cell fits and stays inside the panel) and by `threats-for.spec.ts`.
 
 Constants (`hud/hud-constants.ts`, §1):
 `AFFECTING_FOOD_WINDOW_SECONDS` 5 (long enough that grazing reads as a steady rate) and
