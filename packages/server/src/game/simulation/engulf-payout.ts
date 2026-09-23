@@ -5,9 +5,10 @@
 // which drops the detritus, emits `cell_absorbed` and starts the respawn countdown.
 //
 // A wild cell on either side is not a special case here beyond its own row: a wild predator keeps
-// nothing (its mass is the world clock, re-pinned next tick) and a wild prey pays no DNA base, no
-// tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3). Its death emits `cell_absorbed` like a
-// player's, with `playerId: null` (#270), so the predator's viewer sees the dissolve either way.
+// the meal's mass and nothing else (the next settle turns it into growth, docs/ecology/wild-cells.md §3.3.4) and a
+// wild prey pays no DNA base, no tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3). Its death
+// emits `cell_absorbed` like a player's, with `playerId: null` (#270), so the predator's viewer sees the dissolve
+// either way.
 //
 // Traits never move (docs/ecology/absorption.md §6.1, the "Traits" row; the steal was retired by #269), so the
 // payout draws nothing: the spit-out stays the `engulf` stream's only consumer
@@ -19,7 +20,7 @@ import { absorbCell } from '../session/death.js';
 import { isPlayerCell, type CellRecord, type PlayerCellRecord, type PlayerRecord } from '../world/entities.js';
 import { requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { NO_GAIN, gainMass, measureGain, type MeasuredGain } from './cell-mass.js';
+import { gainMass, measureGain, type MeasuredGain } from './cell-mass.js';
 import { clearEngulfRecords, type EngulfPairing } from './engulf-state.js';
 import { worldReferenceAt } from './round-clock.js';
 
@@ -109,6 +110,13 @@ function payPredator(
   return gain;
 }
 
+/** A wild predator keeps `prey.mass × yield`, clamped to the cap: no DNA, tags or counters (it has no player). */
+function payWildPredator(predator: CellRecord, prey: CellRecord, balance: BalanceConfig): MeasuredGain {
+  const massBefore = predator.mass;
+  gainMass(predator, undefined, prey.mass * engulfMassYieldOf(predator.modifiers, balance), balance);
+  return { massGained: predator.mass - massBefore, dnaGained: 0 };
+}
+
 /**
  * A completed engulf. The records are cleared first so the prey's own death does not read the pair
  * as a running engulf and abort it (docs/ecology/absorption.md §6.3, the chain row: only the prey's engulf of
@@ -118,6 +126,8 @@ function payPredator(
 export function payOutEngulf(world: WorldState, context: StepContext, pairing: EngulfPairing): void {
   const { predator, prey } = pairing;
   clearEngulfRecords(pairing);
-  const predatorGain = isPlayerCell(predator) ? payPredator(world, context, predator, prey) : NO_GAIN;
+  const predatorGain = isPlayerCell(predator)
+    ? payPredator(world, context, predator, prey)
+    : payWildPredator(predator, prey, context.balance);
   absorbCell(world, context, { prey, predator, predatorGain });
 }

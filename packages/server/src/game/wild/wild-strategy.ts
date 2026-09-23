@@ -1,5 +1,5 @@
 // Step 1 for the wild seats' minds (docs/ecology/wild-cells.md §3.3 "Behaviour", docs/architecture/server-simulation.md
-// §3): after the pin, every seat whose countdown ran out decides flee, then hunt, then wander, and latches the
+// §3): after the settle, every seat whose countdown ran out decides flee, then hunt, then wander, and latches the
 // target on its cell exactly as a player's input is latched, so step 3 moves it through the shared kernel. The
 // decisions are the #15 strategies over the wild perception (`wild-perception.ts`): `flee` and a range-bound,
 // nearest-first `hunter`, each a fresh instance per decision because a wild cell keeps no state outside its seat
@@ -27,7 +27,7 @@ import { HUNT_PREFERENCE } from '../bots/strategy-constants.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { cellOfSeat } from './wild-pin.js';
+import { cellOfSeat } from './wild-settle.js';
 import { createWildPerception, type WildPerception } from './wild-perception.js';
 import { wanderTargetOf } from './wild-wander.js';
 
@@ -49,7 +49,7 @@ export interface WildDecisionContext {
   readonly world: WorldState;
   readonly perception: WildPerception;
   readonly step: StepContext;
-  /** `worldStage ≥ WILD_CELL_HUNTS_FROM_STAGE` for this tick. */
+  /** `worldStage ≥ WILD_CELL_HUNTS_PLAYERS_FROM_STAGE` for this tick. */
   readonly isHuntingStage: boolean;
 }
 
@@ -104,14 +104,14 @@ function advanceSeat(seat: WildSeatRecord, cell: CellRecord, decision: WildDecis
   cell.targetY = target.y;
 }
 
-/** Step 1 for the wild seats, after the pin: every seated cell counted down, the due ones decided, in seat order. */
+/** Step 1 for the wild seats, after the settle: every seated cell counted down, the due ones decided, in seat order. */
 export function decideWildTargets(world: WorldState, step: StepContext): void {
   const reference = worldReferenceAt(world, world.tick);
   const decision: WildDecisionContext = {
     world,
     perception: createWildPerception(step.balance),
     step,
-    isHuntingStage: hasReachedStage(reference.worldStage, step.balance.wildCells.WILD_CELL_HUNTS_FROM_STAGE),
+    isHuntingStage: hasReachedStage(reference.worldStage, step.balance.wildCells.WILD_CELL_HUNTS_PLAYERS_FROM_STAGE),
   };
   for (const seat of world.wildSeats) {
     const cell = cellOfSeat(world, seat);

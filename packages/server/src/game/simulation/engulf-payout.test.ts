@@ -47,7 +47,7 @@ interface PaidOut extends EngulfFixture {
 interface PayOutOptions {
   /** Which side of the pair is a wild cell (docs/ecology/wild-cells.md ยง3.3), seated in the player cell's place. */
   readonly wildSide?: 'predator' | 'prey';
-  /** The tick of the payout; the wild cell is pinned to the world clock of this tick. */
+  /** The tick of the payout; the wild cell is seated on the world clock of this tick. */
   readonly tick?: number;
 }
 
@@ -246,7 +246,7 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md ย
 
   it('credits the endosymbiont of a wild prey too, as a player prey does (docs/ecology/wild-cells.md ยง3.3)', () => {
     // The one rule the wild prey does NOT substitute: eating the world is the third way onto that rung. Seat 0's
-    // build owns the mitochondrion from the third world level, where the pin gives it to the seated cell.
+    // build owns the mitochondrion from the third world level, where the settle gives it to the seated cell.
     const { predatorPlayer, prey } = payOut(() => {}, wildPrey(WORLD_LEVEL_3_TICK));
     expect(prey.traits.map((trait) => trait.traitId)).toContain('mitochondrion');
     expect(predatorPlayer.bacteriaEatenByVariant.aerobic).toBe(ENDOSYMBIOSIS_BACTERIA_REQUIRED);
@@ -272,10 +272,13 @@ describe('payOutEngulf: a wild cell on either side (docs/ecology/wild-cells.md ย
     ]);
   });
 
-  it('gives a wild predator nothing but still kills the player prey', () => {
-    const { world, predator, prey, preyPlayer, predatorMassBefore } = payOut(() => {}, { wildSide: 'predator' });
+  it('lets a wild predator keep the mass yield and nothing else, reported on cell_absorbed, and kills the prey', () => {
+    const paid = payOut(() => {}, { wildSide: 'predator' });
+    const { world, context, predator, prey, preyPlayer, predatorMassBefore } = paid;
     expect(predator.playerId).toBeNull();
-    expect(predator.mass).toBe(predatorMassBefore);
+    expect(predator.mass).toBeCloseTo(predatorMassBefore + PREY_MASS * absorption.ENGULF_MASS_YIELD, 6);
+    const gained = { predatorMassGained: predator.mass - predatorMassBefore, predatorDnaGained: 0 };
+    expect(context.effects).toEqual([expect.objectContaining({ kind: EFFECT_KIND.cellAbsorbed, ...gained })]);
     expect(world.cells).not.toContain(prey);
     expect(preyPlayer.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(preyPlayer.spectatingCellId).toBe(predator.id);
