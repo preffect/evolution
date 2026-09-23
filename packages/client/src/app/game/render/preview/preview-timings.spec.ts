@@ -11,10 +11,18 @@ import {
   previewBudgetVerdict,
   previewOpenP95Ms,
   previewWalkFrameCount,
+  type PreviewFrameWork,
   type PreviewOpenTimings,
 } from './preview-timings';
 
 const millisecondsPerSecond = 1000;
+
+/** A cross-origin-isolated page's clock step, fine enough for the 1 ms frame budget. */
+const FINE_CLOCK_MS = 0.005;
+
+function work(workOutsideSubmitP95Ms: number, timerResolutionMs: number | null = FINE_CLOCK_MS): PreviewFrameWork {
+  return { workOutsideSubmitP95Ms, timerResolutionMs };
+}
 
 function timings(openedToFirstFrameMs: number): PreviewOpenTimings {
   return { initMs: 1, bakeMs: 1, firstSubmitMs: 1, openedToFirstFrameMs };
@@ -42,8 +50,8 @@ describe('the budget verdict', () => {
 
   it('judges no open without a warm one, and no frame without a finite p95', () => {
     expect(previewOpenP95Ms([])).toBeNull();
-    expect(previewBudgetVerdict(null, 0.5)).toEqual({ isOpenWithinBudget: null, isFrameWithinBudget: true });
-    expect(previewBudgetVerdict(null, Number.NaN)).toEqual({
+    expect(previewBudgetVerdict(null, work(0.5))).toEqual({ isOpenWithinBudget: null, isFrameWithinBudget: true });
+    expect(previewBudgetVerdict(null, work(Number.NaN))).toEqual({
       isOpenWithinBudget: null,
       isFrameWithinBudget: null,
     });
@@ -58,8 +66,13 @@ describe('the budget verdict', () => {
   });
 
   it('fails a row that is over its budget', () => {
-    expect(previewBudgetVerdict(PREVIEW_OPEN_BUDGET_MS - 1, 0.5).isOpenWithinBudget).toBe(true);
-    expect(previewBudgetVerdict(PREVIEW_OPEN_BUDGET_MS + 1, 0.5).isOpenWithinBudget).toBe(false);
-    expect(previewBudgetVerdict(1, PREVIEW_FRAME_BUDGET_MS + 1).isFrameWithinBudget).toBe(false);
+    expect(previewBudgetVerdict(PREVIEW_OPEN_BUDGET_MS - 1, work(0.5)).isOpenWithinBudget).toBe(true);
+    expect(previewBudgetVerdict(PREVIEW_OPEN_BUDGET_MS + 1, work(0.5)).isOpenWithinBudget).toBe(false);
+    expect(previewBudgetVerdict(1, work(PREVIEW_FRAME_BUDGET_MS + 1)).isFrameWithinBudget).toBe(false);
+  });
+
+  it('leaves the frame unjudged when the page clock cannot resolve a 1 ms budget (#504), judged when unmeasured', () => {
+    expect(previewBudgetVerdict(null, work(3, 1)).isFrameWithinBudget, "Firefox's 1 ms clock").toBeNull();
+    expect(previewBudgetVerdict(null, work(0.5, null)).isFrameWithinBudget, 'a test clock').toBe(true);
   });
 });
