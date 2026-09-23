@@ -29,7 +29,7 @@ const E9_MID_WRAP_TICK = 12;
 const E9_ESCAPE_TICKS_FROM_MID_WRAP = 4;
 /** Far beyond any contact bound and still inside the dish. */
 const OUT_OF_CONTACT_WU = 1000;
-const PROGRESS_TOLERANCE = 10;
+const PROGRESS_DIGITS = 10;
 /** E10's under-ratio predator: 24 against 20 never starts. */
 const E10_UNDER_RATIO_MASS = 24;
 /** E16: 30 starts the engulf, 23 holds it, 21.5 drops under the release ratio. */
@@ -50,7 +50,7 @@ describe('starting an engulf (docs/ecology/absorption.md §6.1 step 1)', () => {
     expect(fixture.prey.engulfedByCellId).toBe(fixture.predator.id);
     expect(fixture.predator.states).toEqual([CELL_STATE.engulfing]);
     expect(fixture.prey.states).toEqual([CELL_STATE.beingEngulfed]);
-    expect(fixture.prey.engulfProgress).toBeCloseTo(1 / E9_PAYOUT_TICK, PROGRESS_TOLERANCE);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(1 / E9_PAYOUT_TICK, PROGRESS_DIGITS);
   });
 
   it('refuses a pair that is out of contact although the mass allows it', () => {
@@ -79,11 +79,11 @@ describe('phases and the seal (docs/ecology/absorption.md §6.1)', () => {
   it('E9: cover for six ticks, seal on tick 18, payout on tick 36', () => {
     const fixture = twoCells();
     stepEngulf(fixture, E9_COVER_TICKS);
-    expect(fixture.prey.engulfProgress).toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_DIGITS);
     expect(fixture.prey.carriedOffsetX).toBeNull();
     stepEngulf(fixture, E9_SEAL_TICK - E9_COVER_TICKS);
-    expect(fixture.prey.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE);
-    expect(fixture.prey.carriedOffsetX).toBeCloseTo(ENGULF_CENTRE_DISTANCE_WU, PROGRESS_TOLERANCE);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
+    expect(fixture.prey.carriedOffsetX).toBeCloseTo(ENGULF_CENTRE_DISTANCE_WU, PROGRESS_DIGITS);
     expect(fixture.prey.velocityX).toBe(0);
     stepEngulf(fixture, E9_PAYOUT_TICK - E9_SEAL_TICK);
     expect(fixture.predator.engulfingCellId).toBeNull();
@@ -102,7 +102,7 @@ describe('phases and the seal (docs/ecology/absorption.md §6.1)', () => {
     stepEngulf(fixture, E9_SEAL_TICK - 1);
     expect(fixture.prey.carriedOffsetY).toBeNull();
     stepEngulf(fixture);
-    expect(fixture.prey.carriedOffsetY).toBeCloseTo(0, PROGRESS_TOLERANCE);
+    expect(fixture.prey.carriedOffsetY).toBeCloseTo(0, PROGRESS_DIGITS);
   });
 });
 
@@ -125,7 +125,7 @@ describe('escape (docs/ecology/absorption.md §6.1, §6.3 "prey moves away befor
     stepEngulf(fixture);
     expect(fixture.prey.engulfProgress).toBeCloseTo(
       wrapped - absorption.ENGULF_ESCAPE_DECAY_MULTIPLIER / E9_PAYOUT_TICK,
-      PROGRESS_TOLERANCE,
+      PROGRESS_DIGITS,
     );
     expect(releaseReasons(fixture)).toEqual([]);
     stepEngulf(fixture, E9_ESCAPE_TICKS_FROM_MID_WRAP - 1);
@@ -147,7 +147,7 @@ describe('the struggle (docs/ecology/absorption.md §6.1)', () => {
     const fixture = twoCells();
     expect(awayEffortOf(fixture.predator, fixture.prey)).toBe(0);
     fixture.prey.steerCommand = { directionX: 1, directionY: 0, throttle: 1 };
-    expect(awayEffortOf(fixture.predator, fixture.prey)).toBeCloseTo(1, PROGRESS_TOLERANCE);
+    expect(awayEffortOf(fixture.predator, fixture.prey)).toBeCloseTo(1, PROGRESS_DIGITS);
   });
 
   it('is zero for a prey steering back into the predator', () => {
@@ -165,7 +165,7 @@ describe('the struggle (docs/ecology/absorption.md §6.1)', () => {
     fixture.prey.steerCommand = { directionX: 1, directionY: 0, throttle: 1 };
     const beforeStruggle = fixture.prey.engulfProgress;
     stepEngulf(fixture);
-    expect(fixture.prey.engulfProgress - beforeStruggle).toBeCloseTo(idleGain / 2, PROGRESS_TOLERANCE);
+    expect(fixture.prey.engulfProgress - beforeStruggle).toBeCloseTo(idleGain / 2, PROGRESS_DIGITS);
   });
 });
 
@@ -235,8 +235,8 @@ describe('the branches the E9 pair never reaches', () => {
     stepEngulf(fixture, E9_SEAL_TICK);
     expect(fixture.prey.engulfingCellId).toBe(fixture.predator.id);
     expect(fixture.predator.engulfedByCellId).toBe(fixture.prey.id);
-    expect(fixture.predator.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE);
-    expect(fixture.predator.carriedOffsetX).toBeCloseTo(-ENGULF_CENTRE_DISTANCE_WU, PROGRESS_TOLERANCE);
+    expect(fixture.predator.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
+    expect(fixture.predator.carriedOffsetX).toBeCloseTo(-ENGULF_CENTRE_DISTANCE_WU, PROGRESS_DIGITS);
     stepEngulf(fixture, E9_PAYOUT_TICK - E9_SEAL_TICK);
     expect(fixture.prey.states).toEqual([]);
     expect(fixture.predator.states).toEqual([]);
@@ -249,7 +249,7 @@ describe('the branches the E9 pair never reaches', () => {
     fixture.prey.steerCommand = { directionX: 1, directionY: 0, throttle: 1 };
     expect(awayEffortOf(fixture.predator, fixture.prey)).toBe(0);
     stepEngulf(fixture);
-    expect(fixture.prey.engulfProgress).toBeCloseTo(1 / E9_PAYOUT_TICK, PROGRESS_TOLERANCE);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(1 / E9_PAYOUT_TICK, PROGRESS_DIGITS);
   });
 
   it('skips a pair whose cell has left the world, so #259 cannot strand a predator on a ghost', () => {
@@ -269,6 +269,6 @@ describe('the struggle reads the command the movement step used', () => {
     // A target on its own centre would re-derive throttle 0; the stored command is what counts.
     fixture.prey.targetX = fixture.prey.x;
     fixture.prey.targetY = fixture.prey.y;
-    expect(awayEffortOf(fixture.predator, fixture.prey)).toBeCloseTo(halfThrottle.throttle, PROGRESS_TOLERANCE);
+    expect(awayEffortOf(fixture.predator, fixture.prey)).toBeCloseTo(halfThrottle.throttle, PROGRESS_DIGITS);
   });
 });
