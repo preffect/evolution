@@ -81,7 +81,7 @@ describe('view projections', () => {
         'engulfedByCellId',
         'sprintRemainingTicks',
         'sprintCooldownRemainingTicks',
-        'starving',
+        'isStarving',
       ].sort(),
     );
   });

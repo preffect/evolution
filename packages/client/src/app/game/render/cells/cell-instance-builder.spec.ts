@@ -180,7 +180,7 @@ describe('buildCellInstance', () => {
 
   it('fades a starving wild cell: its alpha and rim are dulled (ticket #557 default)', () => {
     const base = input({ alpha: 0.8 });
-    const starving = { ...base, view: { ...base.view, starving: true } };
+    const starving = { ...base, view: { ...base.view, isStarving: true } };
     const instance = buildCellInstance(starving);
     expect(instance.alpha).toBeCloseTo(0.8 * STARVING_ALPHA_FACTOR, 9);
     expect(instance.rimBrightness).toBe(STARVING_RIM_BRIGHTNESS);

@@ -123,5 +123,5 @@ its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 2
 - **Determinism.** The `wildCells` stream is the only randomness (size factors, headings, turn rolls); sight,
   settle, sprint and die-off choices are arithmetic on hashed state. `WILD_SEAT_HASHED_FIELDS` becomes `seatNumber`,
   `cellId`, `sizeFactor`, `grownMass`, `fullMass`, `isStarving`, `respawnInTicks`, `headingX`, `headingY`,
-  `decideInTicks` (the cell's `starving` mirrors `isStarving` and is left out of the cell walk as derived);
+  `decideInTicks` (the cell's `isStarving` mirrors the seat's and is left out of the cell walk as derived);
   every pinned state hash and golden replay moves with the build and is re-pinned there.

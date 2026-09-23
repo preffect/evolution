@@ -376,7 +376,7 @@ the second.
 
 - `WildSeatRecord` becomes (`seatNumber`, `cellId | null`, `sizeFactor`, `grownMass`, `fullMass`,
   `isStarving`, `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`) (#555 adds `isStarving`,
-  hashed like the rest). `CellView` gains `starving: boolean` (true only for a starving wild cell) so the
+  hashed like the rest). `CellView` gains `isStarving: boolean` (the lint rule prefixes booleans; #558) (true only for a starving wild cell) so the
   renderer can show it withering; the look is the graphics designer's (a follow-up ticket). `massSpreadFactor` is renamed
   `sizeFactor`; `drainedMass` is replaced by `grownMass` and `fullMass`.
 - Wild cells stay ordinary `CellRecord`s in `world.cells` with `playerId: null`, now with `organismId`

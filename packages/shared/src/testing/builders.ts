@@ -70,7 +70,7 @@ export function createTestCellView(overrides: Partial<CellView> = {}): CellView 
     engulfedByCellId: null,
     sprintRemainingTicks: 0,
     sprintCooldownRemainingTicks: 0,
-    starving: false,
+    isStarving: false,
     ...overrides,
   };
 }

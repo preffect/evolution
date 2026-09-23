@@ -196,7 +196,7 @@ function selfRingFields(input: CellInstanceInput): Pick<CellInstance, 'selfRingF
 
 /** The rim and the alpha: a sprint brightens the rim, a starving wild cell dulls both (it fades as it dies). */
 function fadeFields(input: CellInstanceInput): Pick<CellInstance, 'rimBrightness' | 'alpha'> {
-  if (input.view.starving) {
+  if (input.view.isStarving) {
     return { rimBrightness: STARVING_RIM_BRIGHTNESS, alpha: input.alpha * STARVING_ALPHA_FACTOR };
   }
   return { rimBrightness: input.terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS, alpha: input.alpha };

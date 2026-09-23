@@ -40,7 +40,7 @@ import type { WorldState } from './world-state.js';
 /** The record fields the walk leaves out, by record, for the pin test. */
 export const DERIVED_FIELDS = {
   world: ['config', 'balance', 'leaderboard', 'effects', 'massFlow'],
-  cell: ['modifiers', 'starving'],
+  cell: ['modifiers', 'isStarving'],
   player: ['score', 'stage', 'offer'],
 } as const;
 

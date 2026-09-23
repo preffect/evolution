@@ -15,8 +15,8 @@ import type { WildSettleResult } from './wild-settle.js';
 
 /** How much wild life the dish feeds at `worldMass`. */
 export function wildCarryingCapacity(worldMass: number, balance: BalanceConfig): number {
-  const { WILD_CELL_CARRYING_CAPACITY_MULTIPLE, WILD_CELL_COUNT } = balance.wildCells;
-  return WILD_CELL_CARRYING_CAPACITY_MULTIPLE * WILD_CELL_COUNT * worldMass;
+  const { wildCells } = balance;
+  return wildCells.WILD_CELL_CARRYING_CAPACITY_MULTIPLE * wildCells.WILD_CELL_COUNT * worldMass;
 }
 
 /** The seated seats with their cells, in seat order; a respawning seat is not among them (it weighs 0). */
@@ -52,7 +52,7 @@ export function chooseWildStarver(world: WorldState, worldMass: number, balance:
   }
   if (heaviest !== undefined) {
     heaviest.seat.isStarving = true;
-    heaviest.cell.starving = true;
+    heaviest.cell.isStarving = true;
   }
 }
 

@@ -124,7 +124,7 @@ export interface CellView {
   /** 0 = sprint ready; the HUD meter reads it (docs/ui/hud.md §3.1), never estimates it. */
   sprintCooldownRemainingTicks: number;
   /** A wild cell the die-off is starving (docs/ecology/wild-cells.md §3.3.6); always false for a player cell. */
-  starving: boolean;
+  isStarving: boolean;
 }
 
 export interface MotePositionView {

@@ -43,7 +43,7 @@ describe('chooseWildStarver (W16)', () => {
     const world = dishOf([400, 360]);
     chooseWildStarver(world, WORLD_MASS, DEFAULT_BALANCE);
     expect(world.wildSeats.map((seat) => seat.isStarving)).toEqual([true, false]);
-    expect(world.cells.map((cell) => cell.starving)).toEqual([true, false]);
+    expect(world.cells.map((cell) => cell.isStarving)).toEqual([true, false]);
   });
 
   it('starves no one under the budget, and only one at a time over it', () => {
@@ -99,7 +99,7 @@ describe('isStarvedOut and the burst (W15)', () => {
     expect(world.cells).toEqual([]);
     expect(seat.isStarving).toBe(false);
     expect(world.food.every((mote) => mote.kind === FOOD_KIND.detritus)).toBe(true);
-    const { DETRITUS_MASS_FRACTION, DETRITUS_MOTE_MASS } = DEFAULT_BALANCE.ecology;
-    expect(world.food.length).toBe(Math.floor((DETRITUS_MASS_FRACTION * 100) / DETRITUS_MOTE_MASS));
+    const { ecology } = DEFAULT_BALANCE;
+    expect(world.food.length).toBe(Math.floor((ecology.DETRITUS_MASS_FRACTION * 100) / ecology.DETRITUS_MOTE_MASS));
   });
 });

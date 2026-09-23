@@ -35,7 +35,7 @@ const W16_SECOND_AT: Vec2 = { x: -BROTH_POINT.x, y: BROTH_POINT.x };
 
 const starvingOf = (seat: number) => (view: EvolutionView) => [
   wildSeatOf(view, seat)?.isStarving,
-  wildCellOf(view, seat)?.starving,
+  wildCellOf(view, seat)?.isStarving,
 ];
 const massOfSeat = (seat: number) => (view: EvolutionView) => wildCellOf(view, seat)?.mass;
 
