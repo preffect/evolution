@@ -40,15 +40,13 @@ describe('branded id factories', () => {
 });
 
 describe('isRoomJoinable', () => {
-  it('is joinable when not started and below capacity', () => {
-    expect(isRoomJoinable({ isStarted: false, playerCount: 1, maxPlayers: 4 })).toBe(true);
+  it('is joinable below capacity, started or not (#337)', () => {
+    expect(isRoomJoinable({ playerCount: 1, maxPlayers: 4 })).toBe(true);
+    expect(isRoomJoinable({ playerCount: 3, maxPlayers: 4 })).toBe(true);
   });
 
-  it('is not joinable once started', () => {
-    expect(isRoomJoinable({ isStarted: true, playerCount: 1, maxPlayers: 4 })).toBe(false);
-  });
-
-  it('is not joinable when at capacity', () => {
-    expect(isRoomJoinable({ isStarted: false, playerCount: 4, maxPlayers: 4 })).toBe(false);
+  it('is not joinable at capacity', () => {
+    expect(isRoomJoinable({ playerCount: 4, maxPlayers: 4 })).toBe(false);
+    expect(isRoomJoinable({ playerCount: 5, maxPlayers: 4 })).toBe(false);
   });
 });

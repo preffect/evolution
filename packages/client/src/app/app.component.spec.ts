@@ -1,7 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { Component, signal, type OnDestroy } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_PLAYERS_PER_GAME, SEED_MAX, createTestSessionConfig } from '@evolution/shared';
+import {
+  DEFAULT_PLAYERS_PER_GAME,
+  SEED_MAX,
+  createTestSessionConfig,
+  gameId,
+  playerId,
+  type LobbyGameInfo,
+} from '@evolution/shared';
 import { AppComponent } from './app.component';
 import { GameHostComponent } from './game/game-host.component';
 import { HUD_TEST_ID } from './game/test-ids/hud-test-ids';
@@ -32,7 +39,7 @@ function createMultiplayerStub() {
     lastError: signal<string | null>(null),
     lobbyNotice: signal<LobbyNotice | null>(null),
     inGame: signal(false),
-    games: signal([]),
+    games: signal<LobbyGameInfo[]>([]),
     snapshot: signal<unknown>(null),
     balance: signal(null),
     avatarAssignments: signal({}),
@@ -166,5 +173,29 @@ describe('AppComponent', () => {
       seeds.add(seed);
     }
     expect(seeds.size).toBeGreaterThan(1);
+  });
+
+  it('greys out Join on a full room, started or not, and keeps it on a room with a free seat (#365)', () => {
+    const humans = (count: number) =>
+      Array.from({ length: count }, (_unused, index) => ({
+        playerId: playerId(`p${index}`),
+        playerName: `P${index}`,
+        avatarIndex: index,
+      }));
+    const row = (id: string, count: number, isStarted: boolean): LobbyGameInfo => ({
+      gameId: gameId(id),
+      gameName: id,
+      players: humans(count),
+      maxPlayers: 2,
+      isStarted,
+      creatorId: playerId('p0'),
+    });
+    multiplayer.games.set([row('full-started', 2, true), row('full-pending', 2, false), row('open-started', 1, true)]);
+    const element = render();
+    const join = (id: string) => element.querySelector(`[data-testid="game-join-${id}"]`);
+    expect(join('full-started')?.getAttribute('aria-disabled')).toBe('true');
+    expect(join('full-pending')?.getAttribute('aria-disabled')).toBe('true');
+    expect(join('open-started')?.getAttribute('aria-disabled')).not.toBe('true');
+    expect(element.querySelector('[data-testid="game-row-full-started"]')?.textContent).toContain('2/2');
   });
 });

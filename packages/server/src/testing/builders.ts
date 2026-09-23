@@ -171,8 +171,8 @@ export function createPendingGameLobby(maxPlayers = 4) {
 }
 
 /** A lobby where alice created and started a game. */
-export function createActiveGameLobby() {
-  const fixture = createPendingGameLobby();
+export function createActiveGameLobby(maxPlayers?: number) {
+  const fixture = createPendingGameLobby(maxPlayers);
   fixture.handlers.onStartGame(fixture.alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId: fixture.gameId });
   return fixture;
 }
