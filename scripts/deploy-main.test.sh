@@ -9,7 +9,8 @@
 # the upstream, and a diverged branch; a failed build or restart not recorded and retried; an unreachable
 # origin; a held lock skips; a server the restart leaves running does not keep the lock; --watch deploys
 # with --no-deploy-watch, re-executes itself, logs a repeated refusal or fetch failure once and stops
-# when the checkout leaves main. run.sh's side is scripts/run.test.sh.
+# when the checkout leaves main; its git status never takes the optional index.lock (#574). run.sh's side is
+# scripts/run.test.sh.
 #
 #   scripts/deploy-main.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -102,11 +103,23 @@ start_watcher() { # <target dir> -> $watch_pid
 }
 
 # --- deploy once --------------------------------------------------------------------------------
+# A git shim on PATH records GIT_OPTIONAL_LOCKS for every `git status` the deploy runs (ticket #574).
+git_shim_dir="$sandbox/git-shim"
+status_locks_file="$sandbox/status-optional-locks"
+mkdir -p "$git_shim_dir"
+printf '#!/usr/bin/env bash\n[[ " $* " != *" status "* ]] || echo "${GIT_OPTIONAL_LOCKS:-unset}" >> %q\nexec %q "$@"\n' \
+  "$status_locks_file" "$(command -v git)" > "$git_shim_dir/git"
+chmod +x "$git_shim_dir/git"
 run_deploy
 check "same SHA is a no-op (rc $rc)" $(( rc == 0 && $(holds has "$out" 'already deployed') && $(holds no_calls) ))
 
 merge_to_main game.txt v2
-run_deploy
+: > "$status_locks_file"
+PATH="$git_shim_dir:$PATH" run_deploy
+status_calls="$(grep -c . "$status_locks_file" || true)"
+locking_status_calls="$(grep -cvx 0 "$status_locks_file" || true)"
+check "the deploy's git status never takes the optional index.lock a concurrent checkout trips on (#574; $status_calls calls)" \
+  $(( status_calls > 0 && locking_status_calls == 0 ))
 check "a new commit fast-forwards the target (rc $rc)" $(( rc == 0 && $(holds test "$(target_head)" = "$(origin_head)") ))
 check "it runs the setup step, then restarts" $(( $(holds called setup) && $(holds restarted_with '') && $(holds test "$(head -n 1 "$calls")" = setup) ))
 check "the restart clears the prebundle between stop and start and waits for the stack" $(( $(holds restarted_with ' --clear-prebundle --wait-ready$') ))

@@ -28,6 +28,9 @@
 #                                  replace the setup step's command or run.sh (the tests stub them)
 # ---------------------------------------------------------------------------
 set -euo pipefail
+# The watcher polls a checkout that people and agents work in: its `git status` must never take the optional
+# index.lock a concurrent checkout or commit then fails on (ticket #574). The fast-forward still locks the index.
+export GIT_OPTIONAL_LOCKS=0
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 
