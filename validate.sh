@@ -6,7 +6,7 @@
 #   test         Run unit tests with coverage thresholds (pnpm -r test)
 #   integration  Run the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (pnpm -r test:integration)
 #   typecheck    Run type checking (pnpm -r typecheck)
-#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit)
+#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit); caches per file (#559)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
 #   all          Run lint, duplication, typecheck, test in sequence, stopping at the first failing phase
 #                (FAILED: <phase>), then one line of per-phase wall times; `all --affected` adds integration last
@@ -15,7 +15,7 @@
 #   -tN        Tail N lines of output (e.g. -t20)
 #   -hN        Head N lines of output (e.g. -h50)
 #   -G PATTERN Grep output for PATTERN
-#   --fresh    Ignore the result cache and re-run (a green result is still stamped)
+#   --fresh    Ignore the result cache and the lint caches, and re-run (a green result is still stamped)
 #   --scope S  Narrow every phase to a package (shared | server | client) or to a file or directory
 #              under packages/<package>/src. A package scope keeps the coverage floors unless extra args filter it; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
@@ -186,6 +186,12 @@ CLIENT_SPEC_SUFFIX=".spec.ts"
 CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
 CLIENT_NO_COVERAGE_ARGUMENT="--no-coverage"
 VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
+# Lint result caches (#559), per worktree under node_modules/.cache, keyed by file content. prettier's
+# is exact (a file's result depends on the file and the config alone), so every run but --fresh uses it.
+# eslint's is not: its type-aware rules (no-floating-promises) read other files, which its cache does not
+# key on, so only a plain `lint` uses it and `all` (the merge gate, the timed main gate) never does.
+ESLINT_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/eslint/)
+PRETTIER_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/prettier/.prettier-cache)
 # The options that narrow a test run to some tests (vitest's test-name filter, the Angular builder's).
 NARROWING_OPTION_PATTERN='^(-t|--testNamePattern|--filter)(=.*)?$'
 
@@ -989,11 +995,16 @@ run_one() {
 
       # An empty path list (`all --affected` over docs or scripts alone) skips that tool: eslint with
       # no path lints the whole repo, and grep with no path reads stdin.
+      local eslint_cache=() prettier_cache=()
+      if [[ $FRESH -eq 0 ]]; then
+        prettier_cache=("${PRETTIER_CACHE_ARGUMENTS[@]}")
+        [[ "$COMMAND" != lint ]] || eslint_cache=("${ESLINT_CACHE_ARGUMENTS[@]}")
+      fi
       if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
-        lint_out="$(pnpm eslint "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
+        lint_out="$(pnpm eslint "${eslint_cache[@]}" "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
       fi
       if [[ ${#LINT_PATHS[@]} -gt 0 ]]; then
-        prettier_out="$(pnpm prettier --check "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
+        prettier_out="$(pnpm prettier --check "${prettier_cache[@]}" "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
       fi
       if [[ ${#SOURCE_PATHS[@]} -gt 0 ]]; then
         directive_out="$(audit_disable_directives)" || audit_rc=1
