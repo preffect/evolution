@@ -133,7 +133,7 @@ not invented. Topics have no dish form, so they are designed here: the stages, D
 topics and concepts below.
 
 **Family marks.** Four sets would otherwise blur into each other, so each carries one rule, and every glyph meets its
-set's rule (#457 closed the four gaps: `concept:score`, `concept:food` and `concept:mass_decay` now measure a relation,
+set's rule (#457 closed the four gaps: `concept:score`, `concept:food` and `concept:mass_decay` now stand on a measuring mark,
 and `ability:food_attraction` draws its cell). `subject-glyph-families.spec.ts` holds the two positive halves a spec
 can see: every concept carries a **measuring mark** (an undashed, unfilled stroked signature: a caliper, a beam, a
 datum, a ring), and every ability draws **its cell** (a ramped round body at least 12 units in radius, larger than any
@@ -247,9 +247,9 @@ on the shapes of `subject-glyph-shapes.ts`, the motifs of `subject-glyph-motifs.
 | `concept:mass_decay`       | a cell inside the dashed ghost of what it was, what it lost falling away, over its floor line  | breathe, spin, rise |
 | `concept:engulf_ratio`     | a beam that has already tipped: a threshold, not a contest                                     | breathe             |
 | `concept:dna_and_levels`   | a helix climbing into a `LEVEL_GOLD` ring                                                      | breathe, beat       |
-| `concept:score`            | the own cell and a rival on gold bars of their scores, over the datum they count from          | beat                |
+| `concept:score`            | a gold tally rising left to right on the datum it counts from, its top bar lit                 | beat                |
 | `concept:world_standing`   | a cell held above the world's own datum line, a ghost sitting on it                            | breathe             |
-| `concept:food`             | the own cell beside an algae mote and a rod, a caliper under both: any size eats any mote      | breathe             |
+| `concept:food`             | the three food kinds together, large, over one caliper: the overview, not one kind's page      | breathe             |
 | `hud:dna_ring`             | the own cell with a `DNA` arc filling its dark `LEVEL_RING_TRACK` clockwise from the top       | breathe             |
 | `hud:level_numeral`        | a bold `WHITE` figure on its dark outline at the centre of the own cell                        | breathe, beat       |
 | `hud:ladder_orbit`         | a backing arc over the own cell: the dashed ghost of the next rung and a row of lit pips       | breathe, beat       |
