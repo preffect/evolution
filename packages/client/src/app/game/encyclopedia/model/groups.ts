@@ -9,6 +9,7 @@ import { ENTRY_SUBJECT, splitEntryId, type EntryId, type EntrySubject } from './
 
 export const ENTRY_GROUP = {
   rules: 'rules',
+  readingTheScreen: 'reading_the_screen',
   cells: 'cells',
   food: 'food',
   stages: 'stages',
@@ -21,6 +22,7 @@ export type EntryGroupId = ValueOf<typeof ENTRY_GROUP>;
 
 export const ENTRY_GROUP_LABEL: Readonly<Record<EntryGroupId, string>> = {
   [ENTRY_GROUP.rules]: 'Rules',
+  [ENTRY_GROUP.readingTheScreen]: 'Reading the screen',
   [ENTRY_GROUP.cells]: 'Cells',
   [ENTRY_GROUP.food]: 'Food',
   [ENTRY_GROUP.stages]: 'Stages',
@@ -40,7 +42,7 @@ export const ENTRY_GROUP_LABEL: Readonly<Record<EntryGroupId, string>> = {
 
 /** Each category's groups in list order; an ungrouped category has none. */
 export const CATEGORY_GROUPS: Readonly<Record<EncyclopediaCategory, readonly EntryGroupId[]>> = {
-  [ENCYCLOPEDIA_CATEGORY.basics]: [ENTRY_GROUP.rules],
+  [ENCYCLOPEDIA_CATEGORY.basics]: [ENTRY_GROUP.rules, ENTRY_GROUP.readingTheScreen],
   [ENCYCLOPEDIA_CATEGORY.entities]: [ENTRY_GROUP.cells, ENTRY_GROUP.food],
   [ENCYCLOPEDIA_CATEGORY.evolutions]: [ENTRY_GROUP.stages, ...Object.values(TRAIT_CATEGORY), ENTRY_GROUP.dnaTags],
   [ENCYCLOPEDIA_CATEGORY.abilities]: [],
@@ -63,6 +65,7 @@ export const GROUP_BY_SUBJECT: Readonly<
   [ENTRY_SUBJECT.action]: null,
   [ENTRY_SUBJECT.zone]: ENTRY_GROUP.dishAndZones,
   [ENTRY_SUBJECT.world]: ENTRY_GROUP.time,
+  [ENTRY_SUBJECT.hud]: ENTRY_GROUP.readingTheScreen,
 };
 
 /** The entries whose group is not their subject's. */
