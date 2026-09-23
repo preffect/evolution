@@ -130,8 +130,12 @@ describe('cellDrawExtentRadii', () => {
     }
   });
 
-  /** A sprint doubles the tail's wave and adds the axial stretch, so it can only widen a cell, never narrow it. */
-  it('grows with a sprint and with speed', () => {
+  /**
+   * Speed stretches the body out along the heading; a sprint doubles the tail's wave and adds the axial stretch on
+   * top. The drawn extent is **not** claimed to grow with plain speed: the stretch tapers the rear the tail roots
+   * on, so a swimming flagellate's tip sits nearer its centre than a resting one's (ticket #491).
+   */
+  it('grows its body with speed and its drawn extent with a sprint', () => {
     const traits = BENCH_STAGE_TRAITS[CELL_STAGE.prokaryote];
     const traitsOf = (speedRatio: number, isSprinting: boolean) =>
       summariseCellTraits(viewOf(traits, speedRatio, isSprinting));
@@ -141,7 +145,7 @@ describe('cellDrawExtentRadii', () => {
       ...restingDrawState(SWIMMING),
       isSprinting: true,
     });
-    expect(swimming.drawnRadii).toBeGreaterThan(resting.drawnRadii);
+    expect(swimming.bodyRadii).toBeGreaterThan(resting.bodyRadii);
     expect(sprinting.drawnRadii).toBeGreaterThan(swimming.drawnRadii);
   });
 });
@@ -165,7 +169,8 @@ describe('the form profiles maxReachRadii does not bound', () => {
           `"${traitId}" tier ${tier} now has a form profile of its own. maxReachRadii (shape-terms.ts) multiplies ` +
             'no form term into its bound, so if that profile peaks above 1 the membrane reaches further than ' +
             'maxRadii reports: the cell quad clips it in play, and the encyclopedia lens — which frames from ' +
-            'peakReachRadii — clips it in the preview. Teach both the profile’s peak before landing the silhouette.',
+            'peakReachRadii and roots the tail at peakRearMembraneRadii — clips it in the preview. Teach all three the ' +
+            'profile’s peak before landing the silhouette.',
         ).toBeNull();
       }
     }
@@ -173,32 +178,50 @@ describe('the form profiles maxReachRadii does not bound', () => {
 });
 
 describe('appendageReachRadii', () => {
-  const membraneRadii = 1.2;
+  /** A swimming cell's shape: the rear tapered well inside the widest membrane, so the two roots are told apart. */
+  const membrane = { widestRadii: 1.2, rearRadii: 0.9 };
 
   /** A cell with neither trait has nothing hanging off it, so the membrane is the whole extent. */
   it('reaches nothing past a cell with no cilia and no tail', () => {
     const bare = summariseCellTraits(viewOf([], RESTING, false));
-    expect(appendageReachRadii(bare, membraneRadii, false, REST_PULSE)).toBe(0);
+    expect(appendageReachRadii(bare, membrane, false, REST_PULSE)).toBe(0);
   });
 
   /** The two cases the tail's tier separates: a longer wave at tier III, and double that again on a sprint. */
   it('lengthens the tail with its tier and doubles its wave on a sprint', () => {
     const tierOne = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_I }], RESTING, false));
     const tierThree = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }], RESTING, false));
-    const shortTail = appendageReachRadii(tierOne, membraneRadii, false, REST_PULSE);
-    const longTail = appendageReachRadii(tierThree, membraneRadii, false, REST_PULSE);
-    const sprintingTail = appendageReachRadii(tierThree, membraneRadii, true, REST_PULSE);
-    expect(shortTail).toBeGreaterThan(membraneRadii);
+    const shortTail = appendageReachRadii(tierOne, membrane, false, REST_PULSE);
+    const longTail = appendageReachRadii(tierThree, membrane, false, REST_PULSE);
+    const sprintingTail = appendageReachRadii(tierThree, membrane, true, REST_PULSE);
+    expect(shortTail).toBeGreaterThan(membrane.widestRadii);
     expect(longTail).toBeGreaterThan(shortTail);
     expect(sprintingTail).toBeGreaterThan(longTail);
+  });
+
+  /**
+   * The renderer roots the tail on the membrane **at the rear** and the cilia all round it, so the tail moves with
+   * the rear radius and the cilia with the widest — two cases, so a bound that rooted both on either one fails here.
+   */
+  it('roots the tail on the rear membrane and the cilia on the widest', () => {
+    const tailed = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }], RESTING, false));
+    const ciliated = summariseCellTraits(viewOf([{ traitId: CILIA_TRAIT, tier: TIER_I }], RESTING, false));
+    const wider = { ...membrane, widestRadii: membrane.widestRadii + 1 };
+    const longerRear = { ...membrane, rearRadii: membrane.rearRadii + 1 };
+    const tailReach = appendageReachRadii(tailed, membrane, false, REST_PULSE);
+    const ciliaReach = appendageReachRadii(ciliated, membrane, false, REST_PULSE);
+    expect(appendageReachRadii(tailed, wider, false, REST_PULSE)).toBe(tailReach);
+    expect(appendageReachRadii(tailed, longerRear, false, REST_PULSE)).toBeGreaterThan(tailReach);
+    expect(appendageReachRadii(ciliated, longerRear, false, REST_PULSE)).toBe(ciliaReach);
+    expect(appendageReachRadii(ciliated, wider, false, REST_PULSE)).toBeCloseTo(ciliaReach + 1);
   });
 
   /** Cilia are hairs on the membrane, not a tail: they reach a fraction of a radius, not two of them. */
   it('reaches only just past the membrane for cilia', () => {
     const ciliated = summariseCellTraits(viewOf([{ traitId: CILIA_TRAIT, tier: TIER_I }], RESTING, false));
-    const reach = appendageReachRadii(ciliated, membraneRadii, false, REST_PULSE);
-    expect(reach).toBeGreaterThan(membraneRadii);
-    expect(reach).toBeLessThan(membraneRadii + 1);
+    const reach = appendageReachRadii(ciliated, membrane, false, REST_PULSE);
+    expect(reach).toBeGreaterThan(membrane.widestRadii);
+    expect(reach).toBeLessThan(membrane.widestRadii + 1);
   });
 
   /**
@@ -209,11 +232,11 @@ describe('appendageReachRadii', () => {
   it('lengthens the tail with the pulse and leaves the cilia alone', () => {
     const tailed = summariseCellTraits(viewOf([{ traitId: FLAGELLUM_TRAIT, tier: TIER_III }], RESTING, false));
     const ciliated = summariseCellTraits(viewOf([{ traitId: CILIA_TRAIT, tier: TIER_I }], RESTING, false));
-    const restingTail = appendageReachRadii(tailed, membraneRadii, false, REST_PULSE);
-    const pulsedTail = appendageReachRadii(tailed, membraneRadii, false, EATING_PULSE);
-    expect(pulsedTail - membraneRadii).toBeCloseTo((restingTail - membraneRadii) * EATING_PULSE);
-    expect(appendageReachRadii(ciliated, membraneRadii, false, EATING_PULSE)).toBe(
-      appendageReachRadii(ciliated, membraneRadii, false, REST_PULSE),
+    const restingTail = appendageReachRadii(tailed, membrane, false, REST_PULSE);
+    const pulsedTail = appendageReachRadii(tailed, membrane, false, EATING_PULSE);
+    expect(pulsedTail).toBeGreaterThan(restingTail);
+    expect(appendageReachRadii(ciliated, membrane, false, EATING_PULSE)).toBe(
+      appendageReachRadii(ciliated, membrane, false, REST_PULSE),
     );
   });
 });

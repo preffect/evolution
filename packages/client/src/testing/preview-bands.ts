@@ -160,8 +160,9 @@ function ciliaReachWu(traits: CellTraitSummary, bodyRadii: number, cell: CellVie
 
 /**
  * The furthest point of the cell's actual tails, in wu — `flagellumPolyline` over the frame's own terms, rooted as
- * `cell-layer.ts`'s `flagellumSpec` roots it: on the membrane **at the rear**, which the speed stretch tapers and
- * the bound (rooted at the *widest* membrane) does not — the whole point of measuring rather than bounding.
+ * `cell-layer.ts`'s `flagellumSpec` roots it: on the membrane **at the rear**, sampled this frame. The bound roots it
+ * at the rear too, but at every surface term's peak; measuring the frame's own membrane rather than asking the
+ * bound is what keeps this tool independent of it.
  */
 export function tailTipWu(cell: CellView, terms: ShapeTerms, timeSeconds: number, phase: number): number {
   const tier = summariseCellTraits(cell).tierOf(FLAGELLUM_TRAIT);
