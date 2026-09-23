@@ -59,7 +59,9 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/arch
     room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
     room.start();
     const typesSent = () => (sent['p1'] as { type: string }[]).map((message) => message.type);
-    return { room, typesSent };
+    /** The tick of the newest message sent, as the client would acknowledge it. */
+    const lastSentTick = () => (sent['p1']!.at(-1) as { snapshot: { tick: number } }).snapshot.tick;
+    return { room, typesSent, lastSentTick };
   }
 
   it('keeps sending deltas to a client that acknowledges what it is sent', () => {
@@ -74,7 +76,7 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/arch
   });
 
   it('stops sending once more than SNAPSHOT_BACKLOG_LIMIT_TICKS is in flight, and resyncs when the client catches up', () => {
-    const { room, typesSent } = tickingRoom();
+    const { room, typesSent, lastSentTick } = tickingRoom();
     const acknowledged = 1;
     room.step(SNAPSHOT_EVERY_TICKS);
     room.recordSnapshotAck('p1', acknowledged);
@@ -92,11 +94,36 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/arch
     room.recordSnapshotAck('p1', lastTickSent);
     expect(typesSent().slice(sentWhileBehind)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
+    // Nothing more until the client acknowledges that game_state (#275), then ordinary deltas again.
+    room.recordSnapshotAck('p1', lastSentTick());
     room.step(SNAPSHOT_EVERY_TICKS);
     expect(typesSent().slice(sentWhileBehind)).toEqual([
       SERVER_MESSAGE_TYPE.gameState,
       SERVER_MESSAGE_TYPE.gameSnapshot,
     ]);
+  });
+
+  it('#275: a step taken while a paused resync waits for its ack still reaches the client, as a delta behind it', () => {
+    const { room, typesSent, lastSentTick } = tickingRoom();
+    room.step(SNAPSHOT_EVERY_TICKS);
+    room.recordSnapshotAck('p1', 1);
+    room.step(SNAPSHOT_EVERY_TICKS * (SNAPSHOT_BACKLOG_LIMIT_TICKS + 2));
+    const sentBeforeResync = typesSent().length;
+    room.recordSnapshotAck('p1', sentBeforeResync);
+    expect(typesSent().slice(sentBeforeResync)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+    const heldResyncTick = lastSentTick();
+    // A debug step lands before the client acknowledges that game_state. The paused room will make no next broadcast,
+    // so the step's delta goes out, queued behind the resync: the client reaches the stepped tick.
+    room.step(SNAPSHOT_EVERY_TICKS);
+    expect(typesSent().slice(sentBeforeResync)).toEqual([
+      SERVER_MESSAGE_TYPE.gameState,
+      SERVER_MESSAGE_TYPE.gameSnapshot,
+    ]);
+    expect(lastSentTick()).toBeGreaterThan(heldResyncTick);
+    // Nothing further is owed, and no second full state is armed: the acks settle nothing more.
+    room.recordSnapshotAck('p1', heldResyncTick);
+    room.recordSnapshotAck('p1', lastSentTick());
+    expect(typesSent()).toHaveLength(sentBeforeResync + 2);
   });
 
   it('#300: a paused room stepped past the limit in one burst resyncs the client as soon as its ack catches up', () => {

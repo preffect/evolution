@@ -157,7 +157,8 @@ from this manifest, never a second copy.
   (loads the manifest, preloads every file it names). `game-setup.ts` (#99) feeds the handle every
   rendered snapshot (`observe`), the live balance (`updateOptions` on `balance_updated`), the first
   pointer event (`unlock`: browsers keep audio suspended until a gesture) and the room's teardown
-  (`disconnect`: stops every sound, leaves the bus, makes the handle inert). The `options` are the
+  (`disconnect`: stops every sound, leaves the bus, makes the handle inert). A resync `game_state` does not reconnect it:
+  `AudioSession` keeps the handle for the same room and player (#275, architecture/client.md §7). The `options` are the
   own `PlayerId`, the balance and the session's `roundDurationSeconds` (`TransitionOptions`).
 - **Tests.** `FakeAudioBackend` (records buses, decodes, voices; can throw on demand), `FakeAudioContext`
   (the slice of Web Audio the production backend touches) and `createTestAudioManifest` live in
