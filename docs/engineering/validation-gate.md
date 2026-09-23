@@ -108,7 +108,14 @@
      ran on. Nothing
      prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
      rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
-     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **Machine-wide
+     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **Lint caches per
+     file** (#559): a stamp miss still skips unchanged files. prettier runs with `--cache` on every run
+     but `--fresh`, and eslint with `--cache` on a plain `lint` only. Both caches live under the worktree's
+     `node_modules/.cache` and are keyed by file content. eslint's type-aware rules (`no-floating-promises`)
+     read other files, which its cache does not track, so `all` (the merge gate and the timed main gate)
+     never uses the eslint cache. A lint that used it stamps as `lint-eslint-cached`, which `all` never
+     reads. A plain lint still takes the stricter `lint` stamp of `all` or `lint --fresh`. A repeat client lint with one file changed measured
+     57.6 core-s without the caches and 17.2 with them warm. **Machine-wide
      gate slots by phase class** (#234, #380; `scripts/lib/gate-lock.sh`): every non-cached phase holds
      one slot of its class under `$HOME/.cache/<slug>-validate` (independent of `VALIDATE_CACHE_DIR`, so a
      scratch cache still queues; `VALIDATE_GATE_LOCK_DIR` moves it for a sandboxed test), so parallel
