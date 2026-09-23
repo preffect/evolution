@@ -152,7 +152,7 @@ null, reference, balance)` and `entryDnaFloor(current, medianDna | null, referen
   level gets only the entry mass. Dying is never a way past the world: the floor is exactly the average,
   and the gift never scores.
 - **Wild cells** ([`ecology/wild-cells.md §3.3`](./ecology/wild-cells.md#33-wild-cells)) do not use this rule: their ladder
-  and mass are pinned to the world every tick, so they are always exactly the floor.
+  is the world's every tick and each is born at its natural size for that moment (§3.3.5), so they need no floor.
 - Auto-rematch resets everyone and the world.
 
 ## 6. Constants table — `packages/shared/src/constants/progression.ts`

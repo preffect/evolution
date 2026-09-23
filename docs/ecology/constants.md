@@ -56,19 +56,24 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 
 ### `wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`game-design/constants-and-acceptance.md §12`](../game-design/constants-and-acceptance.md#12-constants-table))
 
-| Constant                              | Value                   | Unit                 |
-| ------------------------------------- | ----------------------- | -------------------- |
-| `WILD_CELL_COUNT`                     | 24                      | seats                |
-| `WILD_CELL_MASS_SPREAD`               | 0.3                     | ratio of `worldMass` |
-| `WILD_CELL_BUILDS`                    | the three lists of §3.3 | trait ids            |
-| `WORLD_ORGANISM_ID`                   | `'world'`               | id                   |
-| `WILD_CELL_RESPAWN_SECONDS`           | 10                      | s                    |
-| `WILD_CELL_MIN_SPACING_WU`            | 200                     | wu                   |
-| `WILD_CELL_DECISION_INTERVAL_SECONDS` | 0.5                     | s                    |
-| `WILD_CELL_FLEE_RANGE_RADII`          | 8                       | own radii            |
-| `WILD_CELL_HUNT_RANGE_RADII`          | 10                      | own radii            |
-| `WILD_CELL_HUNTS_FROM_STAGE`          | `endosymbiosis`         | `CellStage`          |
-| `WILD_CELL_TURN_CHANCE`               | 0.25                    | per decision         |
+| Constant                              | Value                   | Unit              |
+| ------------------------------------- | ----------------------- | ----------------- |
+| `WILD_CELL_COUNT`                     | 24                      | seats             |
+| `WILD_CELL_SIZE_FACTOR_MIN`           | 0.5                     | × `worldMass`     |
+| `WILD_CELL_SIZE_FACTOR_MAX`           | 2.0                     | × `worldMass`     |
+| `WILD_CELL_RECOVERY_SECONDS`          | 6                       | s (time constant) |
+| `WILD_CELL_DIGESTION_SECONDS`         | 60                      | s (time constant) |
+| `WILD_CELL_MAX_GROWTH_MULTIPLE`       | 1.5                     | × natural size    |
+| `WILD_CELL_SATED_MULTIPLE`            | 1.2                     | × natural size    |
+| `WILD_CELL_GRAZE_RANGE_RADII`         | 6                       | own radii         |
+| `WILD_CELL_BUILDS`                    | the three lists of §3.3 | trait ids         |
+| `WILD_CELL_RESPAWN_SECONDS`           | 10                      | s                 |
+| `WILD_CELL_MIN_SPACING_WU`            | 200                     | wu                |
+| `WILD_CELL_DECISION_INTERVAL_SECONDS` | 0.5                     | s                 |
+| `WILD_CELL_FLEE_RANGE_RADII`          | 8                       | own radii         |
+| `WILD_CELL_HUNT_RANGE_RADII`          | 10                      | own radii         |
+| `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`  | `endosymbiosis`         | `CellStage`       |
+| `WILD_CELL_TURN_CHANCE`               | 0.25                    | per decision      |
 
 ### `absorption.ts`
 
@@ -77,7 +82,9 @@ the 1.2 s sum of the three phase seconds (sheet 03's timing; E9 pays out on tick
 eleven names from `ENGULF_COVER_SECONDS` to `ENGULF_SPIT_OUT_REFRACTORY_SECONDS` are new (#167 pinned
 the ledger for this section at 81 names). The evolving world (#161) adds `BROTH_VARIANT_SHARE_BY_WORLD_STAGE`
 and the eleven `wild-cells.ts` rows; the simulation core (#152) adds `ALGAE_TAG`, `FOOD_TAG_POINTS` and
-`DETRITUS_SCATTER_RADIUS_FACTOR` (§1's numbers that had no constant), so the pin is 96 names.
+`DETRITUS_SCATTER_RADIUS_FACTOR` (§1's numbers that had no constant), so the pin was 96 names; the wild cells
+that live their own lives (#517) replace `WILD_CELL_MASS_SPREAD` and `WORLD_ORGANISM_ID` with the seven new
+`wild-cells.ts` rows above and rename `WILD_CELL_HUNTS_FROM_STAGE`, so the pin is 101 names.
 
 | Constant                                                               | Value     | Unit                                                                                 |
 | ---------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
