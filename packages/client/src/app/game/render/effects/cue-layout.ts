@@ -1,8 +1,9 @@
 // Where the legibility cues sit (docs/ui/hud.md §3.1.5, docs/rendering/own-cell-indicators.md §10): the mass chip,
 // the rate-tag column, the zone pill and a new floater's column, in screen px in the own cell's undeformed frame
 // (origin the cell centre, x right, y down). Pure. Overlaps resolve by §3.1.5's fixed order: labels (the threat's,
-// placed by `threatLabelPlacement`) are placed first and never move for a cue; the zone pill, the least urgent fact,
-// hides while any label box meets it; a floater starts its column past every box it would cross.
+// placed by `threatLabelPlacement`, and the escape label) are placed first and never move for a cue; the mass chip
+// rises past any label box it meets, the rate tags with it; the zone pill, the least urgent fact, hides while any
+// label box meets it; a floater starts its column past every box it would cross.
 
 import {
   CUE_GAP_PX,
@@ -29,6 +30,7 @@ export interface CueLayoutInput {
 }
 
 export interface CueLayout {
+  /** Above the self ring, or above the label boxes it would meet there. */
   readonly chip: UprightBox;
   /** Nearest the chip first, stacked upward. */
   readonly tags: readonly UprightBox[];
@@ -45,6 +47,18 @@ function chipBox(rPx: number, widthPx: number): UprightBox {
   return { x: 0, y: bottom - CUE_HALF_HEIGHT, halfWidth: widthPx * HALF, halfHeight: CUE_HALF_HEIGHT };
 }
 
+/** The chip raised past every label box it meets, lowest first, until its bottom edge is `CUE_GAP_PX` above each. */
+function chipClearOfLabels(chip: UprightBox, labelBoxes: readonly UprightBox[]): UprightBox {
+  const lowestFirst = [...labelBoxes].sort((first, second) => second.y - first.y);
+  return lowestFirst.reduce(
+    (placed, label) =>
+      boxesIntersect(label, placed)
+        ? { ...placed, y: label.y - label.halfHeight - CUE_GAP_PX - placed.halfHeight }
+        : placed,
+    chip,
+  );
+}
+
 /** The zone pill's top edge sits `CUE_GAP_PX` below the orbit extent; it is a label pill (§6), not a cue pill. */
 function zonePillBox(rPx: number, widthPx: number): UprightBox {
   const halfHeight = LABEL_PILL_HEIGHT_PX * HALF;
@@ -52,7 +66,7 @@ function zonePillBox(rPx: number, widthPx: number): UprightBox {
 }
 
 export function cueLayout(input: CueLayoutInput): CueLayout {
-  const chip = chipBox(input.rPx, input.chipWidthPx);
+  const chip = chipClearOfLabels(chipBox(input.rPx, input.chipWidthPx), input.labelBoxes);
   const tags = input.tagWidthsPx.map((widthPx, row) => ({
     x: 0,
     y: chip.y - CUE_ROW_PITCH_PX * (row + 1),

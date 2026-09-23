@@ -31,6 +31,8 @@ export interface FakePixiApp extends PixiAppHandle {
   /** Every Canvas-2D bake the app asked for, in order. */
   readonly bakedCanvases: FakeBakeCanvas[];
   readonly lifecycle: { isDestroyed: boolean };
+  /** How often `unbindTextures` ran: a session must unbind before it destroys its bundle. */
+  readonly unbindCalls: { count: number };
   /** Runs every ticker callback once: one frame. */
   tick(): void;
 }
@@ -158,6 +160,7 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const renderCalls = { count: 0 };
   const baker = createFakeTextureBaker();
   const lifecycle = { isDestroyed: false };
+  const unbindCalls = { count: 0 };
   const screenBox = { ...screen };
   const ticking = { isRunning: true };
   const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
@@ -173,6 +176,7 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     bakedSpecs: baker.bakedSpecs,
     bakedCanvases: baker.bakedCanvases,
     lifecycle,
+    unbindCalls,
     ticking,
     // A stopped Pixi ticker runs no callback at all; a `tick()` while stopped must draw nothing here either,
     // or a spec that pauses a session would still see frames and pass without the pause working.
@@ -183,6 +187,9 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     resize: (sizePx) => {
       screenBox.width = sizePx.width;
       screenBox.height = sizePx.height;
+    },
+    unbindTextures: () => {
+      unbindCalls.count += 1;
     },
     destroy: () => {
       lifecycle.isDestroyed = true;

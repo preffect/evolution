@@ -15,6 +15,7 @@ import { DebugHookHolder } from '../debug/debug-hook-holder';
 import { EncyclopediaContextService } from './encyclopedia-context';
 import { RENDER_P95_MIN_SAMPLE_FRAMES } from '../render/constants';
 import { createPixiApp } from '../render/pixi-app';
+import { PreviewAppPool } from '../render/preview/preview-app-pool';
 import { PreviewSession } from '../render/preview/preview-session';
 import type { PreviewSpec } from '../render/preview/preview-spec';
 import {
@@ -85,6 +86,8 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
   /** The session left on screen at the end of the run, parked on `?t=`: what a screenshot and the report read. */
   private parkedSession: PreviewSession | null = null;
   private readonly debugHook = new DebugHookHolder();
+  /** Every open in the page takes the same app back, as the encyclopedia's do: the leak loop counts no lost context. */
+  private readonly appPool = new PreviewAppPool(createPixiApp);
 
   ngOnInit(): void {
     const view = this.document.defaultView;
@@ -127,7 +130,7 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
       sceneClock,
       devicePixelRatio,
       sizePx: { width: PREVIEW_ROUTE_LENS_PX, height: PREVIEW_ROUTE_LENS_PX },
-      createPixiApp,
+      createPixiApp: this.appPool.acquire,
       balance: () => this.encyclopedia.context().balance,
       // The one place the preview asks for it: `canvas.toDataURL` in the smoke needs the backbuffer kept.
       shouldPreserveDrawingBuffer: true,
@@ -179,5 +182,6 @@ export class EncyclopediaPreviewRouteComponent implements OnInit, OnDestroy {
     this.debugHook.remove();
     this.parkedSession?.destroy();
     this.parkedSession = null;
+    this.appPool.dispose();
   }
 }

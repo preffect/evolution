@@ -200,5 +200,7 @@ Graphics PRs attach before/after screenshots; gameplay PRs list the balance valu
 | `scripts/wait-for.sh`            | cont      | `wait-for.sh <output-file>` — block in the foreground until a background Bash task ends (exit 3: still running, call again); agents never go idle on their own running command (ticket #519). |
 | `scripts/hooks/teammate-idle.py` | cont      | `TeammateIdle` hook: refuses an agent's idle while a background command it started is running or finished unread; logs to `.game-logs/teammate-idle.log` (ticket #519).                       |
 | `scripts/deploy-main.sh`         | cont      | Redeploy the running stack from `origin/main` (once, or `--watch` as `./run.sh` starts it); refuses dirty checkouts, logs to `.game-logs/deploy.log`.                                         |
+| `scripts/cpu-sampler.sh`         | cont      | `cpu-sampler.sh start\|stop\|status` — record every 10 s which worktree and kind (tests, typecheck, lint, ng serve, Chromium, claude…) uses the cores, to `.game-logs/cpu.csv` (ticket #521). |
+| `scripts/cpu-report.sh`          | cont      | `cpu-report.sh [hours]` — the top CPU consumers over the last hours from `cpu.csv`: core-seconds, average cores and share by kind, by worktree and by both (ticket #521).                     |
 
 `gh` needs the `repo` and `project` scopes (`gh auth refresh -h github.com -s project,read:project`).

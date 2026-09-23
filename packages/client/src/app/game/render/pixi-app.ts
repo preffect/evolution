@@ -2,7 +2,7 @@
 // pixel ratio, the dark field as the clear colour, sized to the host. The one file that creates
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 
-import { Application } from 'pixi.js';
+import { Application, Texture } from 'pixi.js';
 import { BG_DEEP } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
@@ -28,6 +28,13 @@ export interface PixiAppHandle {
    * next frame. An app sized by `resizeTo` never needs it.
    */
   resize(sizePx: { readonly width: number; readonly height: number }): void;
+  /**
+   * Points the shaders Pixi keeps for the app's lifetime back at a built-in texture. The particle pipe's one shader
+   * still holds the last `ParticleContainer`'s texture after the container is gone, so destroying that texture
+   * first logs `[BindGroup] a 'textureSource' was destroyed while still bound` (ticket #503). Runs before a bundle
+   * is destroyed.
+   */
+  unbindTextures(): void;
   destroy(): void;
 }
 
@@ -55,6 +62,9 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     textures: createPixiTextureBaker(createDomBakeCanvasFactory(options.host.ownerDocument)),
     resize: (sizePx) => {
       app.renderer.resize(sizePx.width, sizePx.height);
+    },
+    unbindTextures: () => {
+      app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;
     },
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });

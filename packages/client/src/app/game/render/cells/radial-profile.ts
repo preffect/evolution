@@ -77,7 +77,7 @@ interface Term {
 }
 
 /** `1 + k[(S − 1) max(cos Δ, 0)² − (1 − T) max(−cos Δ, 0)² − (S − 1) A sin² Δ]` times the axial scale, with d/dΔ. */
-function stretchAt(term: StretchTerm, delta: number): Term {
+export function stretchAt(term: StretchTerm, delta: number): Term {
   const cos = Math.cos(delta);
   const sin = Math.sin(delta);
   const forward = Math.max(cos, 0);

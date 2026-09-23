@@ -18,7 +18,7 @@ OUTPUT_FILE=${1:?usage: wait-for.sh <output-file> [tail-lines]}
 TAIL_LINES=${2:-40}
 MAX_SECONDS=${WAIT_FOR_MAX_SECONDS:-540}
 POLL_SECONDS=5
-EXIT_MARKER='^\[exited with code [0-9]+\]$'
+EXIT_MARKER='^\[(exited with code [0-9]+|killed)\]$'
 STILL_RUNNING=3
 
 [[ -f "$OUTPUT_FILE" ]] || { echo "wait-for.sh: no such output file: $OUTPUT_FILE" >&2; exit 1; }

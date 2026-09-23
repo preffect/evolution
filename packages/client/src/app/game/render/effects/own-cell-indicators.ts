@@ -16,13 +16,11 @@ import {
   DNA_RING_TRACK_PAD_PX,
   ESCAPE_ARC_STROKE_PX,
   ESCAPE_ARC_TRACK_ALPHA,
-  LABEL_PILL_HEIGHT_PX,
   LADDER_UNLOCK_RING_STROKE_PX,
   LEVEL_GOLD,
-  THREAT_LABEL_GAP_PX,
   WHITE,
 } from '../constants';
-import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
+import { DIAMETER_PER_RADIUS } from '../geometry';
 import { paletteFor } from '../palette';
 import type { SpritePaint } from '../sprite-pool';
 import type { LastViewOf } from '../cells/cell-effects';
@@ -36,7 +34,13 @@ import { pipBlockKey } from '../textures/pip-block-bake';
 import { ARC_CAP, type ArcInstance } from './arc-instance';
 import { orbitBackingArcs } from './orbit-backing-arcs';
 import { orbitLayout, type OrbitLayout } from './orbit-layout';
-import { dnaRingRadiusPx, ladderOrbitRadiusPx, unlockRingRadiusPx, type OrbitPoint } from './own-cell-geometry';
+import {
+  dnaRingRadiusPx,
+  escapeLabelAbovePx,
+  ladderOrbitRadiusPx,
+  unlockRingRadiusPx,
+  type OrbitPoint,
+} from './own-cell-geometry';
 import { threatLabelPlacement } from './threat-label-placement';
 
 const FULL_RING = 1;
@@ -234,10 +238,9 @@ function labelOf(text: string, position: Centre, frame: OwnCellIndicatorsFrame):
 }
 
 /** `THREAT_LABEL_GAP_PX` above the escape arc: `SPRINT TO ESCAPE`, then `SEALED` from the seal on. */
-function escapeLabel(escape: OwnCellEscape, centre: Centre, radiusPx: number, frame: OwnCellIndicatorsFrame) {
+function escapeLabel(escape: OwnCellEscape, centre: Centre, cellRadiusPx: number, frame: OwnCellIndicatorsFrame) {
   const text = escapeLabelFor(escape);
-  const abovePx = radiusPx + ESCAPE_ARC_STROKE_PX * HALF + THREAT_LABEL_GAP_PX + LABEL_PILL_HEIGHT_PX * HALF;
-  return labelOf(text, { x: centre.x, y: centre.y - abovePx / frame.zoom }, frame);
+  return labelOf(text, { x: centre.x, y: centre.y - escapeLabelAbovePx(cellRadiusPx) / frame.zoom }, frame);
 }
 
 /** The nearest threat's label on its warning ring, near side or far side (`threatLabelPlacement`, in px). */
@@ -268,7 +271,7 @@ export function ownCellIndicatorPlacements(frame: OwnCellIndicatorsFrame): OwnCe
       arcs: [...dnaRing, ...escapeArcs(indicators.escape, centre, radiusPx)],
       sprites: [],
       numeral,
-      label: escapeLabel(indicators.escape, centre, radiusPx, frame),
+      label: escapeLabel(indicators.escape, centre, cellRadiusPx, frame),
     };
   }
   const layout = orbitLayout(indicators.ladder, cellRadiusPx);
