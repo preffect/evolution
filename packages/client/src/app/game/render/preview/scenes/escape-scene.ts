@@ -46,10 +46,10 @@ import {
   ACTION_SUBJECT_CELL_ID,
   NO_FRAGMENTS,
   NO_MOTES,
+  NO_SPEED,
   actionSubjectCellView,
   actionSubjectOwnCellIndicators,
   type SubjectThreats,
-  NO_SPEED,
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 import { previewScene } from '../preview-scene';
