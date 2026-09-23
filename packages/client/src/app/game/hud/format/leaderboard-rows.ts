@@ -5,11 +5,8 @@
 import type { LeaderboardRow, PlayerId, PlayerRosterView } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
-import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
+import { truncatePlayerName } from './player-name';
 
-const ELLIPSIS = '…';
-/** A name is cut to the ellipsis plus this many of its own characters. */
-const TRUNCATED_NAME_CHARS = LEADERBOARD_NAME_MAX_CHARS - ELLIPSIS.length;
 const FIRST_AVATAR_INDEX = 0;
 /** A leaderboard cell is the bare figure: the column header names the unit. */
 const BARE_FIGURE = { presentation: QUANTITY_PRESENTATION.numeral };
@@ -42,17 +39,6 @@ export interface LeaderboardInput {
   readonly ownPlayerId: PlayerId | null;
   /** How many rows fit: compact or full (docs/ui/hud.md §3.1.1). */
   readonly maxRows: number;
-}
-
-/**
- * A name at most `LEADERBOARD_NAME_MAX_CHARS` long, ellipsised rather than clipped mid-glyph.
- * Counted and cut in code points, not UTF-16 units: a `String.slice` at the cut can land inside a
- * surrogate pair and leave a lone half, which renders as a replacement box.
- */
-export function truncatePlayerName(name: string): string {
-  const codePoints = [...name];
-  if (codePoints.length <= LEADERBOARD_NAME_MAX_CHARS) return name;
-  return `${codePoints.slice(0, TRUNCATED_NAME_CHARS).join('')}${ELLIPSIS}`;
 }
 
 function entryFor(row: LeaderboardRow, input: LeaderboardInput): LeaderboardEntry {

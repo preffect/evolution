@@ -4,13 +4,15 @@ import {
   canEngulf,
   createTestPlayerProgressView,
   entityId,
+  PLAYER_NAME_MAX_LENGTH,
   playerId,
   type CellView,
   type PlayerProgressView,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import type { CameraExtent } from '../../render/camera';
-import { WILD_CELL_THREAT_NAME, threatsFor } from './threats-for';
+import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
+import { WILD_CELL_THREAT_NAME, cellDisplayName, threatsFor } from './threats-for';
 
 const ON_SCREEN: CameraExtent = { minX: -1000, minY: -1000, maxX: 1000, maxY: 1000 };
 const OWN = createTestCellView({ id: entityId('own'), mass: 20, radius: 4, x: 0, y: 0 });
@@ -104,5 +106,28 @@ describe('threatsFor', () => {
     const wild = predatorAt('wild', 20, 0, { playerId: null });
     const threats = threatsFor(inputWith([player, wild]));
     expect(threats.map((threat) => threat.name)).toEqual([`Name ${player.id}`, WILD_CELL_THREAT_NAME]);
+  });
+});
+
+describe('cellDisplayName', () => {
+  const namedCell = (id: string) => createTestCellView({ playerId: playerId(id) });
+
+  it(`cuts a name at the lobby's ${PLAYER_NAME_MAX_LENGTH}-character cap to the leaderboard's ${LEADERBOARD_NAME_MAX_CHARS}`, () => {
+    const longName = 'W'.repeat(PLAYER_NAME_MAX_LENGTH);
+    const shown = cellDisplayName(namedCell('p-long'), {
+      'p-long': { playerId: playerId('p-long'), playerName: longName },
+    });
+    expect([...shown]).toHaveLength(LEADERBOARD_NAME_MAX_CHARS);
+    expect(shown.endsWith('…')).toBe(true);
+  });
+
+  it('bounds the player-id fallback too, which has no length cap of its own', () => {
+    const rawId = 'player-'.repeat(10);
+    expect([...cellDisplayName(namedCell(rawId), {})].length).toBeLessThanOrEqual(LEADERBOARD_NAME_MAX_CHARS);
+  });
+
+  it('leaves a short name and the wild stand-in alone', () => {
+    expect(cellDisplayName(namedCell('p-1'), { 'p-1': { playerId: playerId('p-1'), playerName: 'Nib' } })).toBe('Nib');
+    expect(cellDisplayName(createTestCellView({ playerId: null }), {})).toBe(WILD_CELL_THREAT_NAME);
   });
 });
