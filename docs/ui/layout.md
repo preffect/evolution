@@ -93,7 +93,12 @@ beside `SNAPSHOT_BUFFER_SIZE`, and `net/` computes the `connectionState` signal 
 ## 2. Screens (lobby)
 
 The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and
-stable test ids added. One `<section>` per panel; every control is a native `<input>`, `<select>` or `<button>`.
+stable test ids added. The lobby is one full-viewport kit surface (`.lobby[uiSurface]`, components-and-constants.md
+§10.1) on the game's dark panel ground (decision #595, option A; #464). One `<section>` per panel, each drawn as a
+kit panel. Every button is the kit's `uiButton`, ranked by variant: `primary` for the panel's main action (Connect,
+Create, a row's Join), `secondary` for the rest (Disconnect, New seed, Start), `danger` for Delete, and `quiet` for
+the header's `Encyclopedia`. The text and number fields are native `<input>`s dressed as the kit's search field
+(the well, the panel rim, the unscaled focus ring), since the kit has no plain field yet.
 
 | Element                                                                           | Source / target                                                                                                                                                                                                                                                                                                                                                            | `data-testid`                                                                                                  |
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
