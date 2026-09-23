@@ -12,6 +12,7 @@ import { createDrawCallCounter, type DrawCallCounter, type DrawCallSource } from
 import { createGpuTimer, GPU_TIMER_STATUS, type GpuTimer, type GpuTimerSource, type GpuTimerStatus } from './gpu-timer';
 import { buildPerformanceReport, type FrameEvidence } from './render-benchmark';
 import { RenderStageTimer, SampleRing } from './render-stage-timer';
+import { probeTimerResolutionMs } from './timer-resolution';
 
 export interface FrameCounts {
   readonly visibleCells: number;
@@ -33,6 +34,8 @@ export class FrameInstrumentation {
   private drawCalls: DrawCallCounter | null = null;
   private gpu: GpuTimer | null = null;
   private frames = 0;
+  /** The clock's step, probed once, on the first report: the clock does not change under a session. */
+  private timerResolutionMs: number | null | undefined;
 
   constructor(
     private readonly clock: Clock,
@@ -104,7 +107,12 @@ export class FrameInstrumentation {
 
   /** What the window says beyond the wire report (the verdict's evidence). */
   evidence(): FrameEvidence {
-    return { sampleCount: this.timer.frameCount, residual: this.timer.residual() };
+    if (this.timerResolutionMs === undefined) this.timerResolutionMs = probeTimerResolutionMs(this.clock);
+    return {
+      sampleCount: this.timer.frameCount,
+      residual: this.timer.residual(),
+      timerResolutionMs: this.timerResolutionMs,
+    };
   }
 
   report(counts: FrameCounts, heapBytes: number | null): ClientPerformanceReport {

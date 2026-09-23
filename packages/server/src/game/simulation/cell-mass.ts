@@ -4,7 +4,7 @@
 
 import { radiusForMass, type BalanceConfig } from '@evolution/shared';
 import { gainDna } from '../progression/dna.js';
-import type { CellRecord, PlayerRecord } from '../world/entities.js';
+import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
 
 /** Sets the mass and refreshes the radius; never applies the cap (callers that gain mass use `gainMass`). */
 export function setCellMass(cell: CellRecord, mass: number, balance: BalanceConfig): void {
@@ -36,7 +36,7 @@ export interface MeasuredGain {
   readonly dnaGained: number;
 }
 
-/** A wild predator's payout keeps nothing. */
+/** A payout that added nothing. */
 export const NO_GAIN: MeasuredGain = { massGained: 0, dnaGained: 0 };
 
 /** Runs `applyGains` and returns how far it moved the cell's mass and the player's lifetime DNA. */
@@ -47,7 +47,17 @@ export function measureGain(cell: CellRecord, player: PlayerRecord, applyGains: 
   return { massGained: cell.mass - massBefore, dnaGained: player.dnaCumulative - dnaBefore };
 }
 
-/** Drops mass to `mass` but never below the starting mass (the metabolism step's decay and drains floor there). */
+/**
+ * The lowest mass a loss may leave: the starting mass for a player cell, and for a wild cell
+ * `min(CELL_STARTING_MASS, massBefore)`, so a loss never lifts a wild cell born below 20 to 20 (which the settle
+ * would then book as growth; docs/architecture/server-simulation.md §3.4).
+ */
+export function massFloorOf(cell: CellRecord, massBefore: number, balance: BalanceConfig): number {
+  const startingMass = balance.growth.CELL_STARTING_MASS;
+  return isPlayerCell(cell) ? startingMass : Math.min(startingMass, massBefore);
+}
+
+/** Drops mass to `mass` but never below the cell's floor (the metabolism step's decay and drains floor there). */
 export function loseMassToFloor(cell: CellRecord, mass: number, balance: BalanceConfig): void {
-  setCellMass(cell, Math.max(balance.growth.CELL_STARTING_MASS, mass), balance);
+  setCellMass(cell, Math.max(massFloorOf(cell, cell.mass, balance), mass), balance);
 }

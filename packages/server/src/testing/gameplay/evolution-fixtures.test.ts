@@ -207,12 +207,12 @@ describe('placed motes and fragments', () => {
     applyPlacedFixture(world, placeCell({ playerIndex: 0, mass: 30 }, undefined), context);
     applyPlacedFixture(world, placeMote({ moteKind: FOOD_KIND.algae, at: ZONE.vent }, undefined), context);
     applyPlacedFixture(world, placeFragment({ tag: 'motile', at: ZONE.vent }, undefined), context);
-    applyPlacedFixture(world, placeWildCell({ seat: 0, spreadFactor: 2, at: ZONE.shallows }, undefined), context);
+    applyPlacedFixture(world, placeWildCell({ seat: 0, sizeFactor: 2, at: ZONE.shallows }, undefined), context);
     expect(world.cells[0]!.mass).toBe(30);
     expect(world.food).toHaveLength(1);
     expect(world.dnaFragments).toHaveLength(1);
     const wild = world.cells.find((cell) => cell.id === world.wildSeats[0]!.cellId)!;
     expect(wild.x).toBe(shallowsPoint(world.balance.world.DISH_RADIUS, world.balance.ecology.SHALLOWS_WIDTH).x);
-    expect(world.wildSeats[0]!.massSpreadFactor).toBe(2);
+    expect(world.wildSeats[0]!.sizeFactor).toBe(2);
   });
 });

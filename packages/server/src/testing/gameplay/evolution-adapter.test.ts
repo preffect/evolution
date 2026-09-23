@@ -86,7 +86,7 @@ describe('evolutionAdapter', () => {
     expect(snapshot.wildSeats).toHaveLength(module.world.wildSeats.length);
     expect(snapshot.wildSeats[0]).toEqual({ ...seated, targetX: null, targetY: null });
     expect(snapshot.wildSeats[0]).not.toBe(seat);
-    const fixture = placeWildCell({ seat: 0, spreadFactor: 5, at: ZONE.broth }, undefined);
+    const fixture = placeWildCell({ seat: 0, sizeFactor: 5, at: ZONE.broth }, undefined);
     evolutionAdapter.applyFixture(module, fixture, context);
     // The first placement vacated the seeded seats and seated seat 0 afresh; the pinned snapshot reads the old ones.
     expect(snapshot.wildSeats).toHaveLength(seated.seatNumber + module.world.balance.wildCells.WILD_CELL_COUNT);
@@ -95,7 +95,7 @@ describe('evolutionAdapter', () => {
     expect(module.world.wildSeats).toEqual([reseated]);
     const next = evolutionAdapter.readSnapshot(module);
     expect(next.wildSeats).toEqual([{ ...reseated, targetX: null, targetY: null }]);
-    expect(next.wildSeats[0]).toMatchObject({ seatNumber: 0, massSpreadFactor: 5 });
+    expect(next.wildSeats[0]).toMatchObject({ seatNumber: 0, sizeFactor: 5 });
     expect(next.wildSeats[0]?.cellId).not.toBe(seated.cellId);
     expect(next.cells.find((cell) => cell.id === reseated.cellId)?.mass).toBe(
       5 * worldReferenceAt(module.world, module.world.tick).worldMass,
