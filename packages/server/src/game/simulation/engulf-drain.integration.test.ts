@@ -264,7 +264,7 @@ describe('a swallowed toxin prey against its predator, through stepWorld (#260, 
       expect(expected.kind, 'the model pays the trio out inside the row').toBe(HELD_PAIR_OUTCOME.payout);
       // The design row is the third opinion: it moves only when the rules really change.
       expect(expected.tick, 'the T22 row states this payout tick').toBe(stated.payoutTick);
-      expect(expected.predatorMass).toBeCloseTo(stated.massAfterYield, TABLE_MASS_TOLERANCE);
+      expect(Math.abs(expected.predatorMass - stated.massAfterYield)).toBeLessThanOrEqual(TABLE_MASS_TOLERANCE);
       const run = runPair({ ...trioPrey, predatorTraits });
       expect(effectsOfKind(run, EFFECT_KIND.cellAbsorbed).map((effect) => effect.tick)).toEqual([expected.tick]);
       expect(run.predatorMassByTick[expected.tick - 1]).toBeCloseTo(expected.predatorMass, MASS_DIGITS);

@@ -28,6 +28,12 @@ export type PreviewScene = ValueOf<typeof PREVIEW_SCENE>;
 export const PREVIEW_MOTION = { resting: 'resting', swimming: 'swimming' } as const;
 export type PreviewMotion = ValueOf<typeof PREVIEW_MOTION>;
 
+/** The scenes that play one action through (eat, engulf, escape, sprint, level up): they take no subject. */
+export type PreviewActionScene = Exclude<
+  PreviewScene,
+  typeof PREVIEW_SCENE.cell | typeof PREVIEW_SCENE.food | typeof PREVIEW_SCENE.dnaFragment | typeof PREVIEW_SCENE.zone
+>;
+
 export type PreviewSpec =
   | {
       readonly scene: typeof PREVIEW_SCENE.cell;
@@ -42,12 +48,4 @@ export type PreviewSpec =
     }
   | { readonly scene: typeof PREVIEW_SCENE.dnaFragment; readonly tag: DnaTag }
   | { readonly scene: typeof PREVIEW_SCENE.zone; readonly zone: ZoneId }
-  | {
-      readonly scene: Exclude<
-        PreviewScene,
-        | typeof PREVIEW_SCENE.cell
-        | typeof PREVIEW_SCENE.food
-        | typeof PREVIEW_SCENE.dnaFragment
-        | typeof PREVIEW_SCENE.zone
-      >;
-    };
+  | { readonly scene: PreviewActionScene };

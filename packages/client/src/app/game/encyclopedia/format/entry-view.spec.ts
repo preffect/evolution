@@ -3,13 +3,15 @@
 // one the page happens to show, `proseParagraphs` is run both with a break and without one, and the row-id guard
 // covers the repeated key as well as the consecutive run it was written for.
 
-import { DEFAULT_BALANCE, TRAIT_RARITY, type TraitRarity, type TraitTier } from '@evolution/shared';
+import { DEFAULT_BALANCE, TRAIT_RARITY, ZONE_ID, type TraitRarity, type TraitTier } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { UI_CHIP_TONE } from '../../../ui-kit/ui-chip.component';
 import { DNA_TAG_COLOR } from '../../render/constants/colours';
+import { PREVIEW_SCENE, type PreviewActionScene } from '../../render/preview/preview-spec';
 import {
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR,
+  ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL,
   ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
   ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
 } from '../encyclopedia-constants';
@@ -23,6 +25,7 @@ import {
   factRowsFor,
   ownedTierOf,
   proseParagraphs,
+  replayLabelFor,
   tierNumeral,
   tierTableFor,
 } from './entry-view';
@@ -212,5 +215,15 @@ describe('proseParagraphs (docs/ui/encyclopedia.md §11.4)', () => {
     expect(proseParagraphs([{ kind: PROSE_TOKEN.text, text: '\n\nOnly.\n\n' }])).toEqual([
       [{ kind: PROSE_TOKEN.text, text: 'Only.' }],
     ]);
+  });
+});
+
+describe('replayLabelFor (docs/ui/encyclopedia.md §11.4)', () => {
+  it('labels every action scene and nothing that shows a subject', () => {
+    for (const scene of Object.keys(ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL) as PreviewActionScene[]) {
+      expect(replayLabelFor({ scene }), scene).toBe(ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL[scene]);
+    }
+    expect(replayLabelFor({ scene: PREVIEW_SCENE.zone, zone: ZONE_ID.warmVent })).toBeNull();
+    expect(replayLabelFor(null)).toBeNull();
   });
 });

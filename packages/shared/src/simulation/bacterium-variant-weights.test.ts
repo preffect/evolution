@@ -8,7 +8,7 @@ import { CELL_STAGE, ZONE_ID } from '../types/game.js';
 import { bacteriumVariantWeightsForZone, brothVariantWeights } from './bacterium-variant-weights.js';
 
 const balance = DEFAULT_BALANCE.ecology;
-const WEIGHT_TOLERANCE_DIGITS = 10;
+const WEIGHT_DIGITS = 10;
 const ENDOSYMBIOSIS_BROTH_ROW = { plain: 0.6, aerobic: 0.2, photosynthetic: 0.2 };
 const EUKARYOTE_BROTH_ROW = { plain: 0.4, aerobic: 0.3, photosynthetic: 0.3 };
 
@@ -47,7 +47,7 @@ describe('bacteriumVariantWeightsForZone', () => {
 
   it.each(STAGE_ORDER)('keeps the derived row a distribution in the %s era', (stage) => {
     const row = bacteriumVariantWeightsForZone(ZONE_ID.openBroth, stage, balance);
-    expect(row.plain + row.aerobic + row.photosynthetic).toBeCloseTo(1, WEIGHT_TOLERANCE_DIGITS);
+    expect(row.plain + row.aerobic + row.photosynthetic).toBeCloseTo(1, WEIGHT_DIGITS);
   });
 });
 
