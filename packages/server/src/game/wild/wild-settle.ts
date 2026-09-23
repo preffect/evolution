@@ -2,9 +2,11 @@
 // after the players' inputs, each seated cell's mass is laid on its full size. A wild cell's size has two parts: the
 // base size, `worldMass × sizeFactor`, which grows with the world and never decays, and the growth, everything it ate
 // on top, which only the player's own decay removes. What steps 3–6 did to the cell since the last settle is its
-// offset from last tick's full size: a net gain becomes permanent growth, a loss (a drain, a toxin, a sprint's cost)
-// recovers with the `WILD_CELL_RECOVERY_SECONDS` time constant. The ladder is the world's: level, the seat's build up
-// to that level, stage and modifiers are set from the world reference (`wild-build.ts`).
+// offset from last tick's full size: a net gain becomes permanent growth, a loss (a drain, a toxin) recovers with the
+// `WILD_CELL_RECOVERY_SECONDS` time constant. A sprint's cost is spent from the growth first: step 1 takes that part
+// off the growth before the next settle (`wild-strategy.ts`), and only the rest reaches the settle, as a wound. The
+// ladder is the world's: level, the seat's build up to that level, stage and modifiers are set from the world
+// reference (`wild-build.ts`).
 
 import { TICK_INTERVAL_S, worldWholeLevel, type BalanceConfig, type WorldReference } from '@evolution/shared';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';

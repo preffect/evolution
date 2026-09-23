@@ -72,7 +72,7 @@ export function engulfSpeedFactor(cell: CellRecord, world: WorldState, balance: 
 }
 
 /** The shared movement state of one cell (`movement-step.ts`), resolved against this world. */
-function movementStateOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): MovementCellState {
+export function movementStateOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): MovementCellState {
   return {
     mass: cell.mass,
     radiusWu: cell.radius,

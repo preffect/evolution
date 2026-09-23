@@ -17,8 +17,8 @@ const { growth, progression } = DEFAULT_BALANCE;
 /** "Run to tick 23 365; ... pays out on tick 23 400 (6:30); A alive on tick 23 581 (23 400 + 180 + 1)." */
 const G13_FIXTURE_TICK = 23_365;
 const G13_RESPAWN_TICK = 23_581;
-/** "Seat 0 at size 5.0 (mass ≈ 2047 vs 20: massFactor 0.5, 1/36 per tick)". */
-const G13_SEAT_SIZE = 5;
+/** "Wild seat 0 at size 2.0 (mass ≈ 818.8 vs 20: massFactor 0.5, 1/36 per tick)". */
+const G13_SEAT_SIZE = 2;
 /** "World level 3.18 → A dnaCumulative = 140 = dnaCatchUpGift, level 3"; "mass = min(0.5 × 413.017, ENTRY_MAX_MASS) = 200". */
 const G13_LIFTED_LEVEL = 3;
 const G13_LIFTED_DNA = cumulativeDnaForLevel(G13_LIFTED_LEVEL, progression);
