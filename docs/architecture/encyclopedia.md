@@ -846,7 +846,12 @@ pair sits at exactly `ENGULF_MASS_RATIO` so each phase lasts exactly `engulfPhas
 server's `ENGULF_COVERAGE_FRACTION` rule, the approach closes at the predator's own top speed, and every effect
 fires where the server fires it (`cell_absorbed` and `cell_released` at the prey, `respawn` where the prey comes
 back). The escape scene supplies the HUD's own-cell record with the predator as its one threat, so the escape arc
-and its labels draw as in play. `previewSceneFor` is total over `PREVIEW_SCENE` with no stand-in left. The evidence
+drains as in play. **A lens shows the creature and its action, never HUD chrome (#505):** the session renders every
+scene with `ownCellChrome: OWN_CELL_CHROME.lens`, so the own-cell record drives only the cell tells (the self ring,
+the warning ring) and the escape arc; the DNA ring, numeral, ladder, mass chip, rate tags, floaters, the threat
+label and `SPRINT TO ESCAPE` are not drawn, which also ends the rim clipping a px-sized pill that the world-extent
+framing does not bound. The `sprint` scene opens on a `PREVIEW_ACTION_REST_SECONDS` rest beat with its ring full,
+as `level_up` does. `previewSceneFor` is total over `PREVIEW_SCENE` with no stand-in left. The evidence
 route also answers a bare `PREVIEW_SCENE` name (`?preview=engulf`) as well as an entry anchor, so a family the
 registry has no entry for yet (the actions, until #362) is still reachable for a screenshot.
 

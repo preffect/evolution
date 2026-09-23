@@ -14,7 +14,12 @@ import {
 } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { FULL_SELF_RING } from '../../cells/self-ring';
-import { PREVIEW_EAT_APPROACH_TURNS, PREVIEW_LEVEL_UP_LEVEL, PREVIEW_UNUSED_LEVEL } from '../../constants';
+import {
+  PREVIEW_ACTION_REST_SECONDS,
+  PREVIEW_EAT_APPROACH_TURNS,
+  PREVIEW_LEVEL_UP_LEVEL,
+  PREVIEW_UNUSED_LEVEL,
+} from '../../constants';
 import { OwnCellRingTracker, ownCellRingSourceOf } from '../../effects/own-cell-ring';
 import { previewSceneFor, type PreviewScene } from '../preview-scene';
 import { PREVIEW_SCENE, type PreviewSpec } from '../preview-spec';
@@ -166,14 +171,15 @@ describe('the sprint scene', () => {
    * span through `debug_set_balance` must retime the loop as it plays, so these two patch them and watch the
    * period and the ring follow.
    */
-  it('takes its whole period from SPRINT_DURATION_SECONDS and SPRINT_COOLDOWN_SECONDS', () => {
+  it('takes its period from the rest beat, SPRINT_DURATION_SECONDS and SPRINT_COOLDOWN_SECONDS', () => {
     const scene = previewSceneFor(SPRINT);
     const sprintSeconds = BALANCE.controls.SPRINT_DURATION_SECONDS;
     const cooldownSeconds = BALANCE.controls.SPRINT_COOLDOWN_SECONDS;
-    expect(scene.periodTicks(BALANCE) * TICK_INTERVAL_S).toBeCloseTo(sprintSeconds + cooldownSeconds, 9);
+    const rest = PREVIEW_ACTION_REST_SECONDS;
+    expect(scene.periodTicks(BALANCE) * TICK_INTERVAL_S).toBeCloseTo(rest + sprintSeconds + cooldownSeconds, 9);
 
     const patched = withControl('SPRINT_COOLDOWN_SECONDS', cooldownSeconds * 2);
-    expect(scene.periodTicks(patched) * TICK_INTERVAL_S).toBeCloseTo(sprintSeconds + cooldownSeconds * 2, 9);
+    expect(scene.periodTicks(patched) * TICK_INTERVAL_S).toBeCloseTo(rest + sprintSeconds + cooldownSeconds * 2, 9);
   });
 
   /**
@@ -188,20 +194,25 @@ describe('the sprint scene', () => {
       const [cell] = scene.frameAt(seconds / TICK_INTERVAL_S, 0, balance).cells;
       return (cell?.sprintRemainingTicks ?? 0) > 0;
     };
-    const justPastTheDefaultSprint = BALANCE.controls.SPRINT_DURATION_SECONDS * 1.5;
+    const rest = PREVIEW_ACTION_REST_SECONDS;
+    const justPastTheDefaultSprint = rest + BALANCE.controls.SPRINT_DURATION_SECONDS * 1.5;
 
-    expect(sprintingAt(0, BALANCE), 'the loop does not start on the sprint').toBe(true);
+    expect(sprintingAt(0, BALANCE), 'the loop does not open on its rest beat').toBe(false);
+    expect(sprintingAt(rest + TICK_INTERVAL_S, BALANCE), 'the sprint does not start after the rest beat').toBe(true);
     expect(sprintingAt(justPastTheDefaultSprint, BALANCE), 'the sprint outlasts its own duration').toBe(false);
     expect(sprintingAt(justPastTheDefaultSprint, patched), 'a doubled duration did not extend the sprint').toBe(true);
   });
 
-  /** The ring shows a recharge only once the sprint is over; during the sprint it reads as full. */
-  it('holds the cooldown at zero while the sprint is still running', () => {
+  /** The ring shows a recharge only once the sprint is over; in the rest beat and during the sprint it reads as full. */
+  it('holds the cooldown at zero through the rest beat and while the sprint is still running', () => {
     const scene = previewSceneFor(SPRINT);
-    const [duringSprint] = scene.frameAt(0, 0, BALANCE).cells;
+    const rest = PREVIEW_ACTION_REST_SECONDS;
+    const [resting] = scene.frameAt(0, 0, BALANCE).cells;
+    expect(resting?.sprintCooldownRemainingTicks).toBe(0);
+    const [duringSprint] = scene.frameAt((rest + TICK_INTERVAL_S) / TICK_INTERVAL_S, 0, BALANCE).cells;
     expect(duringSprint?.sprintCooldownRemainingTicks).toBe(0);
 
-    const justAfter = (BALANCE.controls.SPRINT_DURATION_SECONDS + TICK_INTERVAL_S) / TICK_INTERVAL_S;
+    const justAfter = (rest + BALANCE.controls.SPRINT_DURATION_SECONDS + TICK_INTERVAL_S) / TICK_INTERVAL_S;
     const [recharging] = scene.frameAt(justAfter, 0, BALANCE).cells;
     expect(recharging?.sprintRemainingTicks).toBe(0);
     expect(recharging?.sprintCooldownRemainingTicks ?? 0).toBeGreaterThan(0);
@@ -230,10 +241,12 @@ describe('the sprint scene', () => {
       expect(record, `${seconds} s: the sprint scene supplied no own-cell record`).not.toBeNull();
       return tracker.update(cell?.id ?? null, ownCellRingSourceOf(record), seconds * MILLISECONDS_PER_SECOND).fill;
     };
-    const sprintSeconds = BALANCE.controls.SPRINT_DURATION_SECONDS;
+    const rest = PREVIEW_ACTION_REST_SECONDS;
+    const sprintSeconds = rest + BALANCE.controls.SPRINT_DURATION_SECONDS;
     const period = scene.periodTicks(BALANCE) * TICK_INTERVAL_S;
 
-    expect(ringAt(sprintSeconds / 2), 'the ring is not full mid-sprint').toBe(FULL_SELF_RING);
+    expect(ringAt(rest / 2), 'the ring is not full in the rest beat').toBe(FULL_SELF_RING);
+    expect(ringAt(rest + (sprintSeconds - rest) / 2), 'the ring is not full mid-sprint').toBe(FULL_SELF_RING);
     const justAfter = ringAt(sprintSeconds + TICK_INTERVAL_S);
     expect(justAfter, 'the ring did not empty when the sprint ended').toBeLessThan(0.1);
     const midway = ringAt(sprintSeconds + (period - sprintSeconds) / 2);

@@ -29,6 +29,7 @@ import {
 } from './cells/cell-instance';
 import { SELF_RING_ALPHA } from './constants';
 import { SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE } from './effects/own-cell-ring';
+import { OWN_CELL_CHROME } from './effects/own-cell-indicators-layer';
 import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
 
 const VIEWPORT = { width: 800, height: 600 };
@@ -138,6 +139,40 @@ describe('the sprint ring and the escape through the renderer', () => {
     expect(cueText.drawn.texts.map((text) => text.text)).toEqual(['312']);
     subject.render(createTestRenderFrame({ cells: [own] }), TEST_OWN_PLAYER_ID, NO_HUD_INPUTS, NO_SUBMIT);
     expect(cueText.drawn.texts).toEqual([]);
+    subject.destroy();
+  });
+
+  it('draws the escape arc and the self ring as a lens, and none of the HUD chrome (#505)', () => {
+    const pixi = createFakePixiApp(VIEWPORT);
+    const subject = new GameRenderer(
+      pixi.stage,
+      createTestRenderTextures({ seed: 13, baker: pixi.textures }),
+      VIEWPORT,
+    );
+    const indicatorText = createFakeIndicatorText();
+    const cueText = createFakeCueText();
+    subject.useIndicatorText(indicatorText.factory);
+    subject.useCueText(cueText.factory);
+    const predator = createTestCellView({ id: entityId('predator'), playerId: null, x: 30, mass: 200, radius: 40 });
+    const held = createTestCellView({
+      radius: 10,
+      mass: 20,
+      sprintCooldownRemainingTicks: COOLDOWN_TICKS / 2,
+      states: [CELL_STATE.beingEngulfed],
+      engulfedByCellId: predator.id,
+      engulfProgress: 0.2,
+    });
+    const frame = createTestRenderFrame({ cells: [held, predator] });
+    const hud = subject.render(frame, TEST_OWN_PLAYER_ID, inputsFor(held), NO_SUBMIT);
+    expect(hud.effectSprites).toBeGreaterThan(0);
+    expect(indicatorText.shown.label?.text).toBe('SPRINT TO ESCAPE');
+
+    const lensInputs = { ...inputsFor(held), ownCellChrome: OWN_CELL_CHROME.lens };
+    const lens = subject.render(frame, TEST_OWN_PLAYER_ID, lensInputs, NO_SUBMIT);
+    expect(lens.effectSprites, 'a pill, an orbit sprite or a cue was drawn in the lens').toBe(0);
+    expect(indicatorText.shown).toEqual({ numeral: null, label: null, relationLabels: [] });
+    expect(cueText.drawn.texts).toEqual([]);
+    expect(packed(subject, 0, 'selfRingFill')).toBeCloseTo(0.5, 6);
     subject.destroy();
   });
 });
