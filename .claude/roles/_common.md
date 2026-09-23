@@ -40,6 +40,12 @@ changes it.
    `scripts/issue-status.sh <Status> <N> [N...]` (all tickets in two calls), one review request
    carrying all its comments — and never call `gh` inside a loop, never poll, never retry more
    than three times. If a call fails with a rate-limit error, stop and report it.
+8. **Never end your turn while a command you started is still running.** An idle agent is often never
+   woken when its background command ends, and the work stalls for hours. Run checks in the
+   foreground (Bash `timeout: 600000`). If a command needs longer, start it with
+   `run_in_background: true`, then immediately call `scripts/wait-for.sh <output-file>` in the
+   foreground (the file the harness printed) and repeat while it exits 3. No `nohup`, no `&`, no
+   `until … sleep` loops. "I'll pick this up when it finishes" is never a valid end of turn.
 
 ## Decision tickets (the human dial)
 
