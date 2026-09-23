@@ -85,6 +85,60 @@ export function stageSharedRenderTextures(
   }));
 }
 
+/** The strip's `texelFetch` table: unfiltered, unrepeated, one texel per value. */
+function stripTextureOf(strip: NoiseStrip): TextureSource {
+  return byteDataTexture(strip.bytes, {
+    width: NOISE_STRIP_WIDTH,
+    height: NOISE_STRIP_ROWS,
+    isFiltered: false,
+    isRepeating: false,
+    hasMipmaps: false,
+  });
+}
+
+/** The cytoplasm mottle, sampled trilinear with repeat and mipmapped (rendering/cells.md). */
+function tileTextureOf(cosmetic: RandomSource, noiseTileSizePx: number | undefined): TextureSource {
+  const tile = buildNoiseTile(cosmetic, noiseTileSizePx);
+  return byteDataTexture(tile.bytes, {
+    width: tile.size,
+    height: tile.size,
+    isFiltered: true,
+    isRepeating: true,
+    hasMipmaps: true,
+  });
+}
+
+/** What the seeded steps make, filled in step by step and read once by the assembly. */
+interface SeededParts {
+  dishField?: DishField;
+  vent?: VentSprite;
+  strip?: NoiseStrip;
+  stripTexture?: TextureSource;
+  tileTexture?: TextureSource;
+  organelles?: SeededRenderTextures['organelles'];
+}
+
+function assembleSeeded(
+  options: RenderTextureOptions,
+  cosmetic: RandomSource,
+  parts: SeededParts,
+): SeededRenderTextures {
+  const field = baked(parts.dishField, 'dishField');
+  const vent = baked(parts.vent, 'vent');
+  return {
+    seed: options.seed,
+    cosmetic,
+    strip: baked(parts.strip, 'strip'),
+    stripTexture: baked(parts.stripTexture, 'stripTexture'),
+    tileTexture: baked(parts.tileTexture, 'tileTexture'),
+    organelles: baked(parts.organelles, 'organelles'),
+    dishField: field,
+    dishTexture: options.baker.textureFromBake(field.canvas),
+    vent,
+    ventTexture: options.baker.textureFromBake(vent.canvas),
+  };
+}
+
 /**
  * The seeded half. Every bake below takes a **named sub-stream** off `cosmetic` rather than drawing from it
  * (`COSMETIC_SUB_STREAM`, docs/DETERMINISM.md), so none of them can move another's numbers and neither the split
@@ -95,51 +149,16 @@ export function stageSharedRenderTextures(
 export function stageSeededRenderTextures(options: RenderTextureOptions): StagedBake<SeededRenderTextures> {
   const { baker } = options;
   const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
-  let dishField: DishField | undefined;
-  let vent: VentSprite | undefined;
-  let strip: NoiseStrip | undefined;
-  let stripTexture: TextureSource | undefined;
-  let tileTexture: TextureSource | undefined;
-  let organelles: SeededRenderTextures['organelles'] | undefined;
+  const parts: SeededParts = {};
   const steps = [
-    () => (dishField = bakeDishField(baker, options.gelPatches, cosmetic)),
-    () => (vent = bakeVentSprite(baker, cosmetic)),
+    () => (parts.dishField = bakeDishField(baker, options.gelPatches, cosmetic)),
+    () => (parts.vent = bakeVentSprite(baker, cosmetic)),
     () => {
-      strip = buildNoiseStrip(cosmetic);
-      stripTexture = byteDataTexture(strip.bytes, {
-        width: NOISE_STRIP_WIDTH,
-        height: NOISE_STRIP_ROWS,
-        isFiltered: false,
-        isRepeating: false,
-        hasMipmaps: false,
-      });
+      parts.strip = buildNoiseStrip(cosmetic);
+      parts.stripTexture = stripTextureOf(parts.strip);
     },
-    () => {
-      const tile = buildNoiseTile(cosmetic, options.noiseTileSizePx);
-      tileTexture = byteDataTexture(tile.bytes, {
-        width: tile.size,
-        height: tile.size,
-        isFiltered: true,
-        isRepeating: true,
-        hasMipmaps: true,
-      });
-    },
-    () => (organelles = organelleTextures(baker, options.devicePixelRatio, cosmetic)),
+    () => (parts.tileTexture = tileTextureOf(cosmetic, options.noiseTileSizePx)),
+    () => (parts.organelles = organelleTextures(baker, options.devicePixelRatio, cosmetic)),
   ];
-  return new StagedBake(steps, () => {
-    const field = baked(dishField, 'dishField');
-    const ventSprite = baked(vent, 'vent');
-    return {
-      seed: options.seed,
-      cosmetic,
-      strip: baked(strip, 'strip'),
-      stripTexture: baked(stripTexture, 'stripTexture'),
-      tileTexture: baked(tileTexture, 'tileTexture'),
-      organelles: baked(organelles, 'organelles'),
-      dishField: field,
-      dishTexture: baker.textureFromBake(field.canvas),
-      vent: ventSprite,
-      ventTexture: baker.textureFromBake(ventSprite.canvas),
-    };
-  });
+  return new StagedBake(steps, () => assembleSeeded(options, cosmetic, parts));
 }

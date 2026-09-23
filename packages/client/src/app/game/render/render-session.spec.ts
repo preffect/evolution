@@ -1,91 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_BALANCE,
-  ManualClock,
   RENDER_STAGE_NAMES,
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   TICK_INTERVAL_MS,
-  createTestSessionConfig,
-  createTestSnapshot,
-  gameId,
   entityId,
-  type FoodMoteView,
-  type ServerMessage,
 } from '@evolution/shared';
-import { TEST_OWN_PLAYER_ID, createTestCellView, createTestFoodMoteView } from '../../../testing/builders';
-import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
+import { createTestFoodMoteView } from '../../../testing/builders';
+import { createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
+import {
+  flush,
+  gameState,
+  renderSessionUnderTest as session,
+  settle,
+  snapshotMessage,
+} from '../../../testing/render-session-harness';
 import { FIELD_TEXTURE_PX, RENDER_REPORT_EVERY_FRAMES } from './constants';
-import { NO_HUD_INPUTS } from './game-renderer';
-import { RenderSession, type RenderSessionDependencies } from './render-session';
-
-function gameState(seed = 1): ServerMessage {
-  return {
-    type: SERVER_MESSAGE_TYPE.gameState,
-    gameId: gameId('g'),
-    playerId: TEST_OWN_PLAYER_ID,
-    snapshot: createTestSnapshot({ seed, cells: [createTestCellView()] }),
-    balance: DEFAULT_BALANCE,
-    config: createTestSessionConfig(),
-    playerIds: [TEST_OWN_PLAYER_ID],
-    avatarAssignments: {},
-  };
-}
-
-function session(overrides: Partial<RenderSessionDependencies> = {}) {
-  const clock = new ManualClock(0);
-  const pixi: FakePixiApp = createFakePixiApp();
-  const audio = {
-    ready: Promise.resolve(),
-    observe: vi.fn(),
-    updateOptions: vi.fn(),
-    unlock: vi.fn(),
-    disconnect: vi.fn(),
-  };
-  const acknowledgeSnapshot = vi.fn();
-  const dependencies: RenderSessionDependencies = {
-    host: document.createElement('div'),
-    acknowledgeSnapshot,
-    clock,
-    devicePixelRatio: 1,
-    createPixiApp: vi.fn(() => Promise.resolve(pixi)),
-    connectAudio: vi.fn(() => audio),
-    hudInputs: () => NO_HUD_INPUTS,
-    shouldPreserveDrawingBuffer: false,
-    noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
-    ...overrides,
-  };
-  const subject = new RenderSession(dependencies);
-  return { subject, clock, pixi, audio, dependencies, acknowledgeSnapshot };
-}
-
-function snapshotMessage(tick: number, spawned: FoodMoteView[] = [], seed = 1): ServerMessage {
-  return {
-    type: SERVER_MESSAGE_TYPE.gameSnapshot,
-    snapshot: createTestSnapshot({
-      tick,
-      seed,
-      cells: [createTestCellView()],
-      food: { spawned, removedIds: [], moved: [] },
-    }),
-  };
-}
-
-async function flush(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-}
-
-/** The ticker's frames run a staged build one bake at a time (ticket #479): tick until every queued build is in. */
-async function settle(subject: RenderSession, pixi: FakePixiApp): Promise<void> {
-  for (let frame = 0; frame < SETTLE_FRAMES_MAX; frame += 1) {
-    await flush();
-    if (!subject.isBuildingRenderer) return;
-    pixi.tick();
-  }
-  throw new Error(`The renderer build did not settle in ${SETTLE_FRAMES_MAX} frames.`);
-}
-
-const SETTLE_FRAMES_MAX = 100;
 
 describe('RenderSession', () => {
   it('creates the Pixi app once, on the first game_state, and takes over its ticker', async () => {
@@ -248,79 +179,6 @@ describe('RenderSession', () => {
     expect(Object.keys(report.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
     expect(report).toMatchObject({ drawCalls: 0, gpuMs: null, heapMb: null, visibleCells: 1, visibleMotes: 0 });
     expect(subject.instrumentation.frameCount).toBe(RENDER_REPORT_EVERY_FRAMES);
-  });
-
-  it('bakes a room one step per frame, drawing nothing until the renderer swaps in (#479)', async () => {
-    const { subject, pixi } = session();
-    subject.onMessage(gameState());
-    await flush();
-    // The game_state baked nothing on arrival: every bake waits for a frame.
-    expect(subject.isBuildingRenderer).toBe(true);
-    expect(pixi.textures.texturedBakes).toHaveLength(0);
-    pixi.tick();
-    expect(pixi.textures.texturedBakes, 'the first frame ran more than the one bake').toHaveLength(1);
-    expect(pixi.textures.bakedSpecs).toHaveLength(0);
-    await settle(subject, pixi);
-    expect(pixi.renderCalls.count, 'a frame drew before the renderer was built').toBe(0);
-    pixi.tick();
-    expect(pixi.renderCalls.count).toBe(1);
-  });
-
-  it('keeps drawing the old round while a rematch bakes, one bake per frame (#479)', async () => {
-    const { subject, pixi } = session();
-    subject.onMessage(gameState(1));
-    await settle(subject, pixi);
-    subject.onMessage(snapshotMessage(3, [], 2));
-    await flush();
-    expect(subject.isBuildingRenderer).toBe(true);
-    pixi.tick();
-    pixi.tick();
-    expect(pixi.renderCalls.count, 'the old renderer stopped drawing during the rebake').toBe(2);
-    await settle(subject, pixi);
-    expect(pixi.stage.children).toHaveLength(2);
-  });
-
-  it('frees what a build had baked when the room is torn down mid-bake: every font it installed goes (#479)', async () => {
-    const { subject, pixi } = session();
-    subject.onMessage(gameState());
-    await flush();
-    while (pixi.textures.installedFonts.length === 0) pixi.tick();
-    expect(subject.isBuildingRenderer).toBe(true);
-    const bakedBeforeTeardown = [...pixi.textures.madeTextures];
-    subject.destroy();
-    expect(pixi.textures.uninstalledFonts).toEqual(pixi.textures.installedFonts.map((install) => install.name));
-    expect(bakedBeforeTeardown.length).toBeGreaterThan(0);
-    expect(
-      bakedBeforeTeardown.every((texture) => texture.destroyed),
-      'a texture baked before the teardown leaked',
-    ).toBe(true);
-    expect(pixi.lifecycle.isDestroyed).toBe(true);
-  });
-
-  it('records a bake that throws partway as the start-up error; the ticker runs on and the next build proceeds (#479 review)', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const { subject, pixi } = session();
-    const failure = new Error('context lost mid-bake');
-    const bakeRadial = pixi.textures.bakeRadial.bind(pixi.textures);
-    const failing = vi.spyOn(pixi.textures, 'bakeRadial').mockImplementationOnce(() => {
-      throw failure;
-    });
-    subject.onMessage(gameState(1));
-    await flush();
-    for (let frame = 0; frame < SETTLE_FRAMES_MAX && subject.startupError === null; frame += 1) {
-      expect(() => pixi.tick(), 'a failing bake escaped into the ticker').not.toThrow();
-      await flush();
-    }
-    expect(subject.startupError).toBe(failure);
-    expect(subject.isBuildingRenderer).toBe(false);
-    expect(pixi.tickerCallbacks).toHaveLength(1);
-
-    failing.mockImplementation(bakeRadial);
-    subject.onMessage(snapshotMessage(3, [], 2));
-    await settle(subject, pixi);
-    pixi.tick();
-    expect(pixi.renderCalls.count, 'the next build did not proceed after the failure').toBe(1);
-    consoleError.mockRestore();
   });
 
   it('applies balance updates to the store and the audio handle', async () => {
