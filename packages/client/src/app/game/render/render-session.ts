@@ -142,7 +142,8 @@ export class RenderSession extends FrameLoopSession {
   private async buildRendererFor(snapshot: GameSnapshot): Promise<void> {
     if (this.renderer?.seed === snapshot.seed) return;
     if ((await this.ensurePixiApp()) === null) return;
-    this.buildRenderer({
+    // Staged across frames (ticket #479): baked one step per animation frame rather than in one long task.
+    await this.buildRendererAcrossFrames({
       seed: snapshot.seed,
       gelPatches: snapshot.gelPatches,
       devicePixelRatio: this.dependencies.devicePixelRatio,

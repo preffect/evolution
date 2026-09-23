@@ -314,10 +314,27 @@ software rasteriser on a loaded 4-core box and are not hardware numbers** — th
 | `buildNoiseTile` (256², pure CPU, Node, median of 5) | 134 ms                | **64 ms**             | −52 %: per-row terms hoisted, no closure per knot read                                                                                                                         |
 | `bakeRadialBytes` (vignette 512², same)              | 49 ms                 | **37 ms**             | −25 %: no `stops.slice(1)` per pixel                                                                                                                                           |
 
-**Room entry is only partly addressed.** The shared half is most of a first build and it still runs inside the
-frame loop, so the ~1.2 s at room entry falls by roughly the CPU savings above and no further: keeping the half
-across rebuilds does nothing for the build that creates it. Ticket #442's option 2 — build the renderer during the
-room transition instead of inside `_tick` — is what remains, and is filed separately.
+**The live room stages its builds across frames (#479).** Each half is a list of bakes (`render-texture-stages.ts`:
+one step per radial bake, atlas, font install, dish field, vent, noise tile and organelle atlas), and a live
+`RenderSession` builds through `RendererSlot.beginBuild`: the ticker runs **one bake per animation frame**
+(`FrameLoopSession.buildRendererAcrossFrames`), so the page keeps painting and taking input while a room's
+textures are baked. Nothing swaps until the last bake — at a rematch the old round keeps drawing — and the frame
+that carries the last bake and the renderer's construction draws nothing. A room torn down mid-build finishes the
+build before disposing it, so no baked texture or installed font leaks. `build` runs the same steps back to back
+for the bench and the preview, which measure a whole build; `renderer-slot.spec.ts` pins that the staged and the
+whole build make the same bakes in the same order.
+
+Measured on the container's SwiftShader (load 8–9, 1280 × 800, three fresh rooms each, the longest main-thread
+task from `Start` to the first frame; not hardware numbers):
+
+| Figure                | Before                        | After                                       |
+| --------------------- | ----------------------------- | ------------------------------------------- |
+| the texture bake      | one task of 0.39–0.76 s       | one step per frame, the longest 0.10–0.22 s |
+| the first drawn frame | 1.7–2.4 s (a task of its own) | 1.0–2.2 s, unchanged in kind                |
+
+**The first draw is the freeze that is left, and it is not a bake:** the renderer's first-time CPU work
+(0.4–0.9 s, against ~20 ms from the second frame on) and Pixi's first `render` (0.4–0.8 s: texture uploads and
+shader compiles). Warming both during the staged build is its own follow-up.
 
 **The bytes did not move.** `noise-tile.spec.ts` and `radial-bake.spec.ts` pin FNV-1a digests of the production
 bakes, taken from the implementations these replaced, so the mottle and the vignette are byte for byte what every

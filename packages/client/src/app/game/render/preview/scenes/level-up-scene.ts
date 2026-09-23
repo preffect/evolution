@@ -31,9 +31,9 @@ import {
   ACTION_SUBJECT_CENTRE,
   NO_FRAGMENTS,
   NO_MOTES,
+  NO_SPEED,
   actionSubjectCellView,
   actionSubjectFraming,
-  NO_SPEED,
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 
