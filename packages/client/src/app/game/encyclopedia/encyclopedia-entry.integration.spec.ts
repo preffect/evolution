@@ -21,6 +21,7 @@ import { recordingPreviewProvider } from '../../../testing/fake-preview-handle';
 import { EncyclopediaComponent } from './encyclopedia.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { categoryLanding, type EncyclopediaLocation } from './format/navigation';
+import { ENCYCLOPEDIA_CATEGORY } from './model/categories';
 import type { EntryId } from './model/entry-id';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId, encyclopediaRowTestId } from './test-ids';
 
@@ -95,6 +96,10 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md Â
     TestBed.configureTestingModule({ imports: [EncyclopediaComponent], providers: [recordingPreviewProvider()] });
     state = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(EncyclopediaComponent);
+    fixture.detectChanges();
+    // The panel opens on Basics; the trait rows are Evolution's. Focusing the rail there replaces rather than pushes,
+    // so the landing Back returns to is Evolution's and nothing is in the history before the first row.
+    state.focusCategory(ENCYCLOPEDIA_CATEGORY.evolutions);
     fixture.detectChanges();
     activateRow(MITOCHONDRION);
   });

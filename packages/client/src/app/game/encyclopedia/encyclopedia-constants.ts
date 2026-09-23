@@ -161,7 +161,7 @@ export const ENCYCLOPEDIA_NO_MATCH_SUFFIX = '"';
 
 /**
  * Where an open with nothing else asked for starts (docs/ui/encyclopedia.md §11.1): the rules every other page leans
- * on. While that category has no entry yet (#361), §11.5's empty-category rule sends the open to the first category
+ * on. Should that category ever have no entry, §11.5's empty-category rule sends the open to the first category
  * that does.
  */
 export const DEFAULT_ENCYCLOPEDIA_CATEGORY: EncyclopediaCategory = ENCYCLOPEDIA_CATEGORY.basics;

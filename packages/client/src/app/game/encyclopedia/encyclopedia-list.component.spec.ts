@@ -13,7 +13,7 @@ import { EncyclopediaListComponent } from './encyclopedia-list.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { ENCYCLOPEDIA_RESULTS_LABEL } from './encyclopedia-constants';
 import { entryCountIn, noMatchTextFor } from './format/list-view';
-import { ENCYCLOPEDIA_CATEGORY_LABEL } from './model/categories';
+import { ENCYCLOPEDIA_CATEGORY, ENCYCLOPEDIA_CATEGORY_LABEL } from './model/categories';
 import type { EntryId } from './model/entry-id';
 import { entriesIn } from './registry';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaRowTestId } from './test-ids';
@@ -116,8 +116,10 @@ describe('EncyclopediaListComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
     expect(queryByTestId(root(), encyclopediaRowTestId(listed[0]!.entryId))).not.toBeNull();
   });
 
-  it('heads each group, since the category the panel opens on has more than one', () => {
-    const groups = entriesIn(state.location().category);
+  it('heads each group of a category that has more than one', () => {
+    state.selectCategory(ENCYCLOPEDIA_CATEGORY.evolutions);
+    fixture.detectChanges();
+    const groups = entriesIn(ENCYCLOPEDIA_CATEGORY.evolutions);
     expect(groups.length).toBeGreaterThan(1);
     expect(headings()).toHaveLength(groups.length);
   });
