@@ -8,14 +8,15 @@ the idle (exit 2, reason on stderr) when one of them is still running or finishe
 action. Every call is logged to .game-logs/teammate-idle.log, since the event's fields are undocumented.
 A per-transcript budget stops it from blocking forever.
 """
-import json, os, re, sys, time
+import glob, json, os, re, sys, time
 
 LOG = os.path.join(os.environ.get("CLAUDE_PROJECT_DIR", "/workspace"), ".game-logs", "teammate-idle.log")
 STATE_DIR = "/tmp/claude-teammate-idle"
 MAX_BLOCKS_PER_HOUR = 6
 BLOCK = 2
 OUTPUT_FILE = re.compile(r"Output is being written to: (\S+\.output)")
-EXIT_MARKER = re.compile(r"^\[exited with code \d+\]$", re.M)
+# The harness ends a task's output with "[exited with code N]" or "[killed]".
+EXIT_MARKER = re.compile(r"^\[(exited with code \d+|killed)\]$", re.M)
 
 
 def log(message):
@@ -84,6 +85,17 @@ def within_budget(transcript_path):
     return True
 
 
+def teammate_transcript(event):
+    """The idling teammate's OWN transcript. The event's transcript_path is the lead session's, whose
+    background commands are not the teammate's; teammates live at <session>/subagents/agent-a<name>-*.jsonl."""
+    name = event.get("teammate_name")
+    session = (event.get("transcript_path") or "").removesuffix(".jsonl")
+    if not name or not session:
+        return ""
+    matches = glob.glob(os.path.join(session, "subagents", f"agent-a{name}-*.jsonl"))
+    return max(matches, key=os.path.getmtime) if matches else ""
+
+
 def main():
     raw = sys.stdin.read()
     try:
@@ -91,8 +103,10 @@ def main():
     except ValueError:
         log(f"unparseable input: {raw[:300]!r}")
         return 0
-    transcript_path = event.get("agent_transcript_path") or event.get("transcript_path") or ""
-    log(f"event keys={sorted(event)} transcript={transcript_path}")
+    transcript_path = teammate_transcript(event)
+    log(f"teammate={event.get('teammate_name')} transcript={transcript_path or 'NOT FOUND (allowing idle)'}")
+    if not transcript_path:
+        return 0
     reasons = outstanding(background_files(transcript_entries(transcript_path)), transcript_path)
     if not reasons:
         return 0
