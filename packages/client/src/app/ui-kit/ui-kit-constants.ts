@@ -96,6 +96,11 @@ export const UI_PRIMARY_FILL_ALPHA = 0.16;
 export const UI_PRIMARY_RIM_ALPHA = 0.7;
 /** The secondary and icon buttons' fill, in the text colour. */
 export const UI_SECONDARY_FILL_ALPHA = 0.04;
+/**
+ * The secondary and icon buttons' rim, in the label colour: 3.39:1 against `PANEL_TOP` (3.56:1 on `PANEL_BOTTOM`),
+ * over the 3:1 bar for a control's boundary and well under the primary rim's 6.34:1, so the rank still reads (#596).
+ */
+export const UI_SECONDARY_RIM_ALPHA = 0.55;
 /** The danger button's rim: 3.17:1 against `PANEL_TOP`, over the 3:1 bar for a control's boundary. */
 export const UI_DANGER_RIM_ALPHA = 0.7;
 /** A modal panel's top edge, in `WHITE`: the light catching the panel's upper rim. */
