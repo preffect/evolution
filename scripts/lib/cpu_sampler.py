@@ -9,7 +9,8 @@ one CSV row per (worktree, kind) that used CPU in the interval:
 
 core_seconds is user + system time over the interval (1.0 = one core busy for one second). A process's
 own time is counted while it lives; the time of a child that started and exited between two samples
-reaches its parent's cutime/cstime when reaped, and is attributed to the parent's worktree and kind.
+reaches its parent's cutime/cstime when reaped, and is attributed to the parent's worktree and kind
+(never more than this container's cgroup measured, see interval_usage).
 Three machine-wide rows per sample check the attribution: `(machine),host-busy` (/proc/stat, every
 container on the host), `(machine),container` (this container's cgroup) and `(machine),attributed`
 (the sum of the per-process rows). container − attributed is what the sampler missed; host-busy −
@@ -20,9 +21,10 @@ scripts/lib/cpu_report.py reads the log.
 
 import csv
 import os
-import re
 import time
 from collections import defaultdict
+
+from cpu_attribution import ANCESTOR_DEPTH_MAX, Attributor
 
 PROC_ROOT = os.environ.get("CPU_SAMPLER_PROC", "/proc")
 CGROUP_CPU_STAT = os.environ.get("CPU_SAMPLER_CGROUP_CPU_STAT", "/sys/fs/cgroup/cpu.stat")
@@ -30,57 +32,16 @@ CLOCK_TICKS_PER_SECOND = os.sysconf("SC_CLK_TCK")
 MICROSECONDS_PER_SECOND = 1_000_000
 ROTATE_BYTES = 64 * 1024 * 1024
 TOP_COMMAND_CHARACTERS = 80
-ANCESTOR_DEPTH_MAX = 12
 MIN_REPORTED_CORE_SECONDS = 0.005
 
 CSV_HEADER = ["epoch", "iso_time", "interval_seconds", "worktree", "kind", "core_seconds", "processes", "top_command"]
 MACHINE_WORKTREE = "(machine)"
-OUTSIDE_REPO = "(outside repo)"
-MAIN_CHECKOUT = "(main checkout)"
-UNREADABLE = "(unreadable)"
 
-TYPECHECK_PATTERN = re.compile(r"(^|[/ ])(tsc|ngc|vue-tsc)( |$)| typecheck( |$)")
-KIND_OTHER = "other"
-KIND_CLAUDE = "claude"
 # stat fields after the ")" that closes comm: index 0 is field 3 (state) of proc(5).
 STAT_PPID, STAT_UTIME, STAT_STIME, STAT_CUTIME, STAT_CSTIME, STAT_STARTTIME = 1, 11, 12, 13, 14, 19
 # /proc/stat cpu line: user nice system idle iowait irq softirq steal
 PROC_STAT_IDLE_COLUMNS = (3, 4)
 PROC_STAT_COUNTED_COLUMNS = 8
-
-
-def classify_test_run(command, cwd, ancestor_commands):
-    """The kind of a vitest / Angular test process, from its package and whether it runs the opt-in tier."""
-    tier = "integration" if any("integration" in each for each in [command, *ancestor_commands]) else "tests"
-    if "/packages/client" in cwd or "@evolution/client" in " ".join(ancestor_commands):
-        return f"client {tier}"
-    return f"server/shared {tier}"
-
-
-def classify_own(command):
-    """A kind from the process's own command line, or None when it names nothing known."""
-    program = os.path.basename(command.split(" ", 1)[0])
-    rules = [
-        (program == "claude", KIND_CLAUDE),
-        ("ng serve" in command, "ng serve"),
-        ("tsx" in command and "src/index.ts" in command, "game server"),
-        (any(each in command for each in ("chrom", "playwright", "headless_shell")), "playwright/chromium"),
-        ("jscpd" in command, "jscpd"),
-        ("eslint" in command or "prettier" in command, "lint/prettier"),
-        (TYPECHECK_PATTERN.search(command) is not None, "typecheck"),
-        (".test.sh" in command, "shell suites"),
-        ("validate.sh" in command, "validate.sh (orchestration)"),
-        ("main-gate.sh" in command, "main gate (orchestration)"),
-        ("cpu_sampler" in command, "cpu sampler"),
-    ]
-    for matched, kind in rules:
-        if matched:
-            return kind
-    return None
-
-
-def is_test_runner(command):
-    return "vitest" in command or "ng test" in command or "tinypool" in command or " test:integration" in command
 
 
 class ProcessTable:
@@ -123,57 +84,6 @@ class ProcessTable:
             return ""
 
 
-class Attributor:
-    """Maps a process to (worktree, kind); caches worktree roots by directory."""
-
-    def __init__(self, repo_root):
-        self.repo_root = repo_root.rstrip("/")
-        self.worktrees_dir = f"{self.repo_root}/.worktrees/"
-        self.command_cache = {}  # (pid, starttime) -> command line
-        self.worktree_cache = {}
-
-    def worktree(self, cwd):
-        if not cwd:
-            return UNREADABLE
-        if cwd not in self.worktree_cache:
-            self.worktree_cache[cwd] = self._worktree_of(cwd)
-        return self.worktree_cache[cwd]
-
-    def _worktree_of(self, cwd):
-        if cwd.startswith(self.worktrees_dir):
-            directory = cwd
-            while directory.startswith(self.worktrees_dir):
-                if os.path.exists(f"{directory}/.git"):
-                    return directory[len(self.worktrees_dir) :]
-                directory = os.path.dirname(directory)
-            return cwd[len(self.worktrees_dir) :]
-        if cwd == self.repo_root or cwd.startswith(self.repo_root + "/"):
-            return MAIN_CHECKOUT
-        return OUTSIDE_REPO
-
-    def attribute(self, table, pid):
-        command = table.command(pid, self.command_cache)
-        cwd = table.cwd(pid)
-        ancestors = []
-        ancestor = table.entries[pid]["ppid"]
-        while ancestor in table.entries and len(ancestors) < ANCESTOR_DEPTH_MAX:
-            ancestors.append(ancestor)
-            ancestor = table.entries[ancestor]["ppid"]
-        ancestor_commands = [table.command(each, self.command_cache) for each in ancestors]
-        return self.worktree(cwd), self._kind(command, cwd, ancestor_commands), command
-
-    def _kind(self, command, cwd, ancestor_commands):
-        for index, candidate in enumerate([command, *ancestor_commands]):
-            if is_test_runner(candidate):
-                return classify_test_run(command, cwd, ancestor_commands)
-            kind = classify_own(candidate)
-            if kind == KIND_CLAUDE and index > 0:
-                return KIND_OTHER  # a tool command claude ran, not claude itself
-            if kind is not None:
-                return kind
-        return KIND_OTHER
-
-
 def read_host_busy_ticks():
     with open(f"{PROC_ROOT}/stat") as stat_file:
         columns = [int(each) for each in stat_file.readline().split()[1 : 1 + PROC_STAT_COUNTED_COLUMNS]]
@@ -192,26 +102,57 @@ def read_container_microseconds():
     return None
 
 
-def interval_usage(previous, current):
-    """Ticks each live pid used since the previous scan, including children reaped in between."""
-    usage = {}
-    vanished_by_parent = defaultdict(int)
+def is_same_process(scan, pid, entry):
+    return pid in scan and scan[pid]["key"] == entry["key"]
+
+
+def nearest_live_ancestor(previous, current, entry):
+    """The closest ancestor (by the previous scan's parent links) still alive in the current scan, or None."""
+    ancestor = entry["ppid"]
+    for _ in range(ANCESTOR_DEPTH_MAX):
+        if ancestor not in previous:
+            return None
+        if is_same_process(current, ancestor, previous[ancestor]):
+            return ancestor
+        ancestor = previous[ancestor]["ppid"]
+    return None
+
+
+def interval_usage(previous, current, measured_total_ticks=None):
+    """Ticks each live pid used since the previous scan, including children reaped in between.
+
+    A process that vanished was already charged its own + reaped ticks up to the previous scan; that much
+    of its reaper's cutime growth is subtracted at its nearest live ancestor, a whole dead subtree
+    included. An orphan reparented before it died is reaped by init, not by that ancestor, so the reaped
+    ticks are then scaled down to what measured_total_ticks (the cgroup's own count) leaves after the
+    processes' own ticks.
+    """
+    already_charged = defaultdict(int)
     for pid, entry in previous.items():
-        if pid not in current or current[pid]["key"] != entry["key"]:
-            vanished_by_parent[entry["ppid"]] += entry["own"] + entry["children"]
+        if not is_same_process(current, pid, entry):
+            ancestor = nearest_live_ancestor(previous, current, entry)
+            if ancestor is not None:
+                already_charged[ancestor] += entry["own"] + entry["children"]
+    own_ticks, reaped_ticks = {}, {}
     for pid, entry in current.items():
         before = previous.get(pid)
         if before is None or before["key"] != entry["key"]:
-            own, reaped = entry["own"], entry["children"]
+            own_ticks[pid], reaped = entry["own"], entry["children"]
         else:
-            own = entry["own"] - before["own"]
-            reaped = entry["children"] - before["children"] - vanished_by_parent.get(pid, 0)
-        usage[pid] = own + max(reaped, 0)
-    return usage
+            own_ticks[pid] = entry["own"] - before["own"]
+            reaped = entry["children"] - before["children"] - already_charged.get(pid, 0)
+        reaped_ticks[pid] = max(reaped, 0)
+    total_reaped = sum(reaped_ticks.values())
+    scale = 1.0
+    if measured_total_ticks is not None and total_reaped > 0:
+        reaped_budget_ticks = max(measured_total_ticks - sum(own_ticks.values()), 0)
+        scale = min(1.0, reaped_budget_ticks / total_reaped)
+    return {pid: own_ticks[pid] + reaped_ticks[pid] * scale for pid in current}
 
 
-def sample_rows(attributor, previous_table, table, interval_seconds):
-    usage = interval_usage(previous_table.entries, table.entries)
+def sample_rows(attributor, previous_table, table, container_seconds):
+    measured_ticks = None if container_seconds is None else container_seconds * CLOCK_TICKS_PER_SECOND
+    usage = interval_usage(previous_table.entries, table.entries, measured_ticks)
     groups = defaultdict(lambda: {"ticks": 0, "processes": 0, "top_ticks": -1, "top": ""})
     for pid, ticks in usage.items():
         if ticks <= 0:
@@ -254,10 +195,12 @@ def run_sampler(repo_root, log_path, interval_seconds, sample_count):
         table, now = ProcessTable(), time.monotonic()
         host, container = read_host_busy_ticks(), read_container_microseconds()
         elapsed = now - previous_time
-        rows = sample_rows(attributor, previous_table, table, elapsed)
-        rows.append([MACHINE_WORKTREE, "host-busy", (host - previous_host) / CLOCK_TICKS_PER_SECOND, 0, ""])
+        container_seconds = None
         if container is not None and previous_container is not None:
             container_seconds = (container - previous_container) / MICROSECONDS_PER_SECOND
+        rows = sample_rows(attributor, previous_table, table, container_seconds)
+        rows.append([MACHINE_WORKTREE, "host-busy", (host - previous_host) / CLOCK_TICKS_PER_SECOND, 0, ""])
+        if container_seconds is not None:
             rows.append([MACHINE_WORKTREE, "container", container_seconds, 0, ""])
         epoch = int(time.time())
         iso_time = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(epoch))
