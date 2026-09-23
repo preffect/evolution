@@ -10,7 +10,6 @@ import {
   CELL_STATE,
   DEFAULT_BALANCE,
   TICK_INTERVAL_S,
-  WORLD_ORGANISM_ID,
   entityId,
   playerId,
   radiusForMass,
@@ -77,7 +76,7 @@ describe('previewCellView', () => {
 
   it('gives a wild cell the world organism id and a player cell its own', () => {
     const wild = previewCellView(cellSpec({ kind: CELL_KIND.wild, playerId: null }), BALANCE);
-    expect(wild.organismId).toBe(WORLD_ORGANISM_ID);
+    expect(wild.organismId).toBe(wild.id);
     expect(wild.playerId).toBeNull();
     const own = previewCellView(cellSpec(), BALANCE);
     expect(own.organismId).toBe(entityId('preview-cell'));

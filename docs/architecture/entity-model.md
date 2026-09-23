@@ -228,7 +228,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
     seatNumber: number;
     cellId: EntityId | null; // null while vacant (respawn countdown)
     sizeFactor: number; // log-uniform on [WILD_CELL_SIZE_FACTOR_MIN, _MAX], drawn at each (re)spawn; base size = worldMass × sizeFactor
-    grownMass: number; // permanent growth above the base size; only the player's decay removes it (ecology/wild-cells.md §3.3.1)
+    grownMass: number; // permanent growth above the base size; only the player's decay removes it, a sprint's spent mass takes it below 0 (ecology/wild-cells.md §3.3.1)
     fullMass: number; // last settle's full size: min(base + grownMass, max(base, growth ceiling)); cell.mass − fullMass is the wound
     respawnInTicks: number;
     headingX: number;

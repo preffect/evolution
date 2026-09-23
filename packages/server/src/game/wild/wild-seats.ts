@@ -9,7 +9,6 @@ import {
   CELL_KIND,
   ENTITY_KIND,
   RANDOM_STREAM,
-  WORLD_ORGANISM_ID,
   worldWholeLevel,
   type BalanceConfig,
   type Vec2,
@@ -93,7 +92,7 @@ export function seatWildCell(
     id,
     kind: CELL_KIND.wild,
     playerId: null,
-    organismId: WORLD_ORGANISM_ID,
+    organismId: id,
     avatarIndex: WILD_CELL_AVATAR_INDEX,
     level: worldWholeLevel(reference),
   };

@@ -12,6 +12,9 @@ import { compareEntityIds } from '../world/entity-ids.js';
 import type { WorldState } from '../world/world-state.js';
 import { hasSpitOutRefractory } from './engulf-spit-out.js';
 
+/** Where a cell is and how big: all engulf contact reads. */
+export type CellFootprint = Pick<CellRecord, 'x' | 'y' | 'radius'>;
+
 export interface CellPair {
   readonly lower: CellRecord;
   readonly higher: CellRecord;
@@ -34,7 +37,7 @@ export function cellPairs(cells: readonly CellRecord[]): CellPair[] {
  * `|centres| ≤ predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`. Directional: covering is
  * not being covered.
  */
-export function isEngulfContact(predator: CellRecord, prey: CellRecord, balance: BalanceConfig): boolean {
+export function isEngulfContact(predator: CellFootprint, prey: CellFootprint, balance: BalanceConfig): boolean {
   const reach = predator.radius - prey.radius * balance.absorption.ENGULF_COVERAGE_FRACTION;
   return distanceBetween(predator, prey) <= reach;
 }

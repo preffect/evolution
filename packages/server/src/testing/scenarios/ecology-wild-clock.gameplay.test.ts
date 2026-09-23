@@ -32,6 +32,7 @@ import {
   everyWildCellAtLevel,
   headingErrorOfSeat,
   heldWindow,
+  placedSeatCell,
   targetOfSeat,
 } from './wild-setups.js';
 
@@ -43,14 +44,17 @@ const W3_MASS_AT_LEVEL = 200;
 const W3_TOLERANCE = 0.01;
 const W3_SPAWNED_LOW = 351;
 const W3_SPAWNED_HIGH = 355;
-/** W3 on the pinned seed: 266 algae in 351 motes, 0.758 since #550 (the 0.70 row; the window's σ is ≈ 0.07). */
-const W3_ALGAE_SHARE_ON_SEED = 0.758;
-/** W9: the idle player dies three times in the window; "between 513 and 517", "algae share within 0.50 ± 0.06" (0.553). */
-const W9_DEATHS_IN_WINDOW = 3;
-const W9_SPAWNED_LOW = 513;
-const W9_SPAWNED_HIGH = 517;
+/** W3 on the pinned seed: 241 algae and 110 bacteria, 0.687 (the 0.70 row; the window's σ is ≈ 0.07; #551's run). */
+const W3_ALGAE_SHARE_ON_SEED = 0.687;
+/**
+ * W9: the idle player dies once in the window (tick 32 712, #551's run): 526.75 − 1 × 182 / 60 × 1.5 = 522.2 →
+ * "between 522 and 526"; "algae share within 0.50 ± 0.06" (0.448 on the seed).
+ */
+const W9_DEATHS_IN_WINDOW = 1;
+const W9_SPAWNED_LOW = 522;
+const W9_SPAWNED_HIGH = 526;
 const W9_ALGAE_SHARE = 0.5;
-const W9_ALGAE_SHARE_ON_SEED = 0.553;
+const W9_ALGAE_SHARE_ON_SEED = 0.448;
 const ALGAE_SHARE_TOLERANCE = 0.06;
 /** A seed's share is one number: the tolerance only absorbs the rounding of the literal the row states (± 0.001). */
 const SEED_SHARE_TOLERANCE = 0.001;
@@ -61,6 +65,9 @@ const W6_SETTLE_TICKS = 60;
 /** 21 570: one decision interval (30 ticks) before the hunting era. */
 const W6_EARLY_TICK = HUNTING_TICK - wildCells.WILD_CELL_DECISION_INTERVAL_SECONDS * TICK_HZ;
 const W6_PREY_CENTRE = { x: BROTH_POINT.x + W6_PREY_EAST_WU, y: BROTH_POINT.y };
+/** The same A 700 wu east: past seat 0's sight of 626.3 wu. */
+const W6_FAR_PREY_EAST_WU = 700;
+const W6_FAR_PREY_CENTRE = { x: BROTH_POINT.x + W6_FAR_PREY_EAST_WU, y: BROTH_POINT.y };
 /** W6: A at the broth point from tick 0 (spawns off), seat 0 and A re-placed by the fixture at `tick`. */
 function eraRow(name: string) {
   return placedSolo(name).placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS });
@@ -79,7 +86,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .atTick(levelTick - ONE_TICK)
       .toBe(true)
       .expect(
-        'fullMass in [base, max(base, 3 × 199.983)], mass in [min(20, base), fullMass] after tick 10 799',
+        'fullMass ≤ max(base, 3 × 199.983), mass in [min(20, base), fullMass] after tick 10 799',
         areSeatsWithinBounds(W3_MASS_BEFORE_LEVEL, W3_TOLERANCE),
       )
       .atTick(levelTick - ONE_TICK)
@@ -116,7 +123,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
     expect(Math.abs(algaeShareOf(counts) - W3_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
   });
 
-  it('W9: the eukaryote bloom spawns 513–517 motes in the window (three deaths) at 50 % algae; the variant table', async () => {
+  it('W9: the eukaryote bloom spawns 522–526 motes in the window (one death) at 50 % algae; the variant table', async () => {
     const run = seededSolo('W9').advance(EUKARYOTE_TICK + WILD_WINDOW_TICKS + ONE_TICK);
     const { counts, windowEnd } = heldWindow(run, EUKARYOTE_TICK + ONE_TICK);
     await run
@@ -124,7 +131,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .atTick(windowEnd)
       .toBeBetween(W9_SPAWNED_LOW, W9_SPAWNED_HIGH)
       .runDeterministic();
-    // The hunting era's seats eat the idle player three times; each spectate takes the per-player rate off the budget.
+    // The hunting era's seats eat the idle player once; each spectate takes the per-player rate off the budget.
     expect(counts.deaths).toBe(RUNS_PER_ROW * W9_DEATHS_IN_WINDOW);
     expect(algaeShareOf(counts)).toBeGreaterThanOrEqual(W9_ALGAE_SHARE - ALGAE_SHARE_TOLERANCE);
     expect(algaeShareOf(counts)).toBeLessThanOrEqual(W9_ALGAE_SHARE + ALGAE_SHARE_TOLERANCE);
@@ -162,6 +169,9 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .expect('velocity points at A within 5° by tick 21 660', (view) => headingErrorOfSeat(view, cellOf(view, 0)))
       .atTick(HUNTING_TICK + W6_SETTLE_TICKS)
       .toBeAtMost(HEADING_TOLERANCE_DEGREES)
+      .expect('no sprint on tick 21 600 (390 > 3 × 77.97)', (view) => placedSeatCell(view)?.sprintRemainingTicks)
+      .atTick(HUNTING_TICK)
+      .toBe(0)
       .expect('the distance has shrunk', (view) => distanceFromSeat(view, 0))
       .atTick(HUNTING_TICK + W6_SETTLE_TICKS)
       .toBeLessThan(W6_PREY_EAST_WU)
@@ -176,6 +186,19 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .atTick(W6_EARLY_TICK)
       .toSatisfy(
         (target) => target !== undefined && (target.x !== W6_PREY_CENTRE.x || target.y !== W6_PREY_CENTRE.y),
+        "a target that is not A's centre",
+      )
+      .runDeterministic();
+    await eraRow('W6 out of sight')
+      .atTick(HUNTING_TICK)
+      .placeWildCell({ seat: PLACED_SEAT, sizeFactor: WORLD_SIZE, at: ZONE.broth })
+      .atTick(HUNTING_TICK)
+      .placeCell({ playerIndex: 0, mass: W6_PREY_MASS, isPinned: true, at: W6_FAR_PREY_CENTRE })
+      .advance(HUNTING_TICK)
+      .expect("A 700 wu east is out of sight (626.3): a wander target, not A's centre", targetOfSeat)
+      .atTick(HUNTING_TICK)
+      .toSatisfy(
+        (target) => target !== undefined && (target.x !== W6_FAR_PREY_CENTRE.x || target.y !== W6_FAR_PREY_CENTRE.y),
         "a target that is not A's centre",
       )
       .runDeterministic();

@@ -29,9 +29,10 @@ A wild cell's size has two parts. The **base size** is the world's average mass 
 size factor, drawn once when it is born; it grows with the world and never decays. The **growth** is
 everything the cell has eaten on top of that. It is permanent and burns off only through the player's
 own mass decay, which is faster the bigger the cell is. Together they make the cell's **full size**.
-A cell lighter than its full size (bitten by a toxin, drained by a spiky prey, or after paying for a
-sprint) **recovers** toward it: it gets back 81 % of the loss in 10 s and 95 % in 18 s. When a
-wounded cell eats, the meal heals the wound first and only the rest becomes growth.
+A cell lighter than its full size (bitten by a toxin or drained by a spiky prey) **recovers** toward it: it gets back 81 % of the loss in 10 s and 95 % in 18 s. When a
+wounded cell eats, the meal heals the wound first and only the rest becomes growth. A sprint is different: its
+cost is spent mass, as a player's is (the lead ruling on ticket #551), so it comes off the growth for good, and
+the growth may go below zero until a meal pays it back.
 
 ```
 sizeFactor        = WILD_CELL_SIZE_FACTOR_MIN × (WILD_CELL_SIZE_FACTOR_MAX / WILD_CELL_SIZE_FACTOR_MIN) ^ u
@@ -49,7 +50,9 @@ on the new full size:
 
 ```
 offset          = cell.mass − seat.fullMass              (seat.fullMass = last tick's full size; everything steps 3–6 did to the
-                                                         cell since then, meals, sprint cost and drains alike, is in it)
+                                                         cell since then, meals and drains alike, is in it; a sprint's
+                                                         cost was already taken off seat.fullMass and seat.grownMass
+                                                         when it started, so it is not)
 if offset > 0:    seat.grownMass += offset; offset = 0   (a net gain is kept whole: permanent growth)
 if offset < 0:    offset = offset × (1 − TICK_INTERVAL_S / WILD_CELL_RECOVERY_SECONDS)   (a loss: × (1 − 1/360))
 seat.grownMass  = max(0, seat.grownMass − decayPerSecond(cell.mass) × TICK_INTERVAL_S)
@@ -75,8 +78,10 @@ cell.mass       = max(min(CELL_STARTING_MASS, baseMass(t)), seat.fullMass + offs
 - **Base decay, drains and sprint.** Step 5 does not apply base decay to a wild cell, because the
   settle takes it from the growth. It applies every drain as it does to a player: toxin contact and
   aura, the swallowed dose, and spikes, whether the wild cell is free or engulfing. Photosynthesis
-  counts as a gain. A sprint's `SPRINT_MASS_COST_FRACTION` is taken as it is from a player. All of
-  these are losses or gains to the settle. Step 5's floor for a wild cell is
+  counts as a gain. All of these are losses or gains to the settle. A sprint's `SPRINT_MASS_COST_FRACTION` is
+  taken as it is from a player, and the decision that starts it also takes it off `seat.fullMass` and
+  `seat.grownMass` (which may then be below zero): spent, never recovered, and decay takes nothing from a growth
+  at or below zero. Step 5's floor for a wild cell is
   `min(CELL_STARTING_MASS, its mass at the start of the step)`, so a drain never lifts a small wild cell
   to 20.
 - **Placement and respawn set** `seat.grownMass` to 0, `seat.fullMass` to the new cell's base size, and
@@ -189,8 +194,9 @@ sprint in every respect (game-design/controls-and-scope.md §6): × `SPRINT_SPEE
 to 20), with `SPRINT_COOLDOWN_SECONDS` 3 counted from the sprint's start. The strategy
 sets the command's sprint flag, and the cell's own sprint counters apply it exactly as for a player's
 input. A decision is the only moment a wild cell can start a sprint, so it reacts to an engulf within
-0.5 s, as a player would. It never sprints while it is engulfing (the prey is already in hand) or once it
-is sealed and carried (a sprint could not move it), so a sprint is never paid for nothing. Wild cells move through the shared kernel (§5.2, gel included), separate
+0.5 s, as a player would. It never sprints while it is engulfing (the prey is already in hand), at a prey it
+already covers (the engulf starts at step 6 of the same tick: there is no gap left to close), or once it is
+sealed and carried (a sprint could not move it), so a sprint is never paid for nothing. Wild cells move through the shared kernel (§5.2, gel included), separate
 (§5.3) and engulf (§6) exactly as players do. `canEngulf` reads mass only, so the danger chip and the
 warning ring work on them unchanged (the chip names them `WILD <STAGE>`).
 

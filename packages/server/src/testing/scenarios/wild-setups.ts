@@ -11,7 +11,6 @@ import {
   RADIANS_PER_FULL_TURN,
   RANDOM_STREAM,
   TICK_HZ,
-  WORLD_ORGANISM_ID,
   createSeededRandomFromState,
   distanceBetween,
   ticksToSeconds,
@@ -100,10 +99,10 @@ export function headingErrorOfSeatFromEast(view: EvolutionView): number | undefi
   return wild === undefined ? undefined : headingErrorOfSeat(view, { x: wild.x + EAST.x, y: wild.y + EAST.y });
 }
 
-/** W2: a level-1 traitless protocell of the world organism. */
+/** W2: a level-1 traitless protocell that is its own organism (wild eats wild). */
 export const isWorldProtocell = (cell: CellView): boolean =>
   cell.kind === CELL_KIND.wild &&
-  cell.organismId === WORLD_ORGANISM_ID &&
+  cell.organismId === cell.id &&
   cell.level === 1 &&
   cell.traits.length === 0 &&
   cell.stage === CELL_STAGE.protocell;
@@ -169,13 +168,13 @@ interface SeatSizes {
 }
 
 /**
- * W3: every seated cell's `fullMass` in [base, max(base, 3 × world)] and its mass in [min(20, base), `fullMass`]; a
- * vacant seat (its cell eaten, the respawn counting down) has no cell to bound.
+ * W3: every seated cell's `fullMass` at most max(base, 3 × world) and its mass in [min(20, base), `fullMass`]; a
+ * vacant seat (its cell eaten, the respawn counting down) has no cell to bound. The full size has no lower bound at
+ * the base: a sprint's cost is spent mass, taken off it until a meal pays it back.
  */
 export function areSeatsWithinBounds(worldMass: number, tolerance: number): (view: EvolutionView) => boolean {
   const ceiling = wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
   const isWithin = ({ baseMass, fullMass, mass }: SeatSizes): boolean =>
-    fullMass >= baseMass - tolerance &&
     fullMass <= Math.max(baseMass, ceiling) + tolerance &&
     mass >= Math.min(growth.CELL_STARTING_MASS, baseMass) - tolerance &&
     mass <= fullMass + tolerance;
