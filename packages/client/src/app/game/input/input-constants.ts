@@ -5,7 +5,7 @@
 
 import { TRAIT_DRAFT_SIZE, type Vec2 } from '@evolution/shared';
 import { ENCYCLOPEDIA_TEST_ID } from '../encyclopedia/test-ids';
-import { HUD_TEST_ID } from '../hud/test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 
 /** The four steer directions (docs/game-design/controls-and-scope.md §6), in a fixed order so a test can walk them. */
 export const STEER_DIRECTIONS = ['up', 'down', 'left', 'right'] as const;
@@ -47,9 +47,9 @@ export const TRAIT_CARD_KEY_CODES: readonly string[] = Array.from(
 /** Focus in one of these swallows every hotkey: a player typing is not steering (docs/ui/input-and-onboarding.md §4). */
 export const TEXT_ENTRY_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
 
-// The four overlay ids the hotkey rules query. Each is read from the one file that owns it — `hud/test-ids.ts`
-// (docs/ui/components-and-constants.md §7) and the leaf `encyclopedia/test-ids.ts` (docs/ui/encyclopedia.md §11.6) —
-// rather than spelled a second time here.
+// The four overlay ids the hotkey rules query. Each is read from the one file that owns it — the leaf
+// `test-ids/hud-test-ids.ts` (docs/ui/components-and-constants.md §7) and the leaf `encyclopedia/test-ids.ts`
+// (docs/ui/encyclopedia.md §11.6) — rather than spelled a second time here.
 /** The trait picker's container: Space with focus inside it picks and never sprints (docs/ui/overlays.md §3.2, docs/ui/input-and-onboarding.md §4). */
 export const TRAIT_OFFER_TEST_ID = HUD_TEST_ID.traitOffer;
 /** The Escape menu's panel (docs/ui/overlays.md §3.5): while it is open only the trait keys, Escape and `H` act. */

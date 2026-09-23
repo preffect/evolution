@@ -12,6 +12,7 @@ import { ACTION_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-action
 import { CELL_KIND_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-cells';
 import { CONCEPT_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-concepts';
 import { FOOD_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-food';
+import { HUD_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-hud';
 import { STAGE_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-stages';
 import { DNA_TAG_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-tags';
 import { WORLD_SUBJECT_GLYPHS } from '../render/constants/subject-glyphs-world';
@@ -30,6 +31,7 @@ export const SUBJECT_GLYPH_LIST: readonly SubjectGlyph[] = [
   ...ZONE_SUBJECT_GLYPHS,
   ...WORLD_SUBJECT_GLYPHS,
   ...CONCEPT_SUBJECT_GLYPHS,
+  ...HUD_SUBJECT_GLYPHS,
 ];
 
 export const SUBJECT_GLYPHS = Object.fromEntries(SUBJECT_GLYPH_LIST.map((glyph) => [glyph.entryId, glyph])) as Readonly<

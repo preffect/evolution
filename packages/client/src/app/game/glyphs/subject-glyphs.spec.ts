@@ -4,6 +4,7 @@ import { BACTERIUM_VARIANT, CELL_KIND, CELL_STAGE, DNA_TAG, ENTITY_KIND, FOOD_KI
 import { ABILITY } from '../encyclopedia/model/abilities';
 import { ACTION } from '../encyclopedia/model/actions';
 import { CONCEPT } from '../encyclopedia/model/concepts';
+import { HUD_TOPIC } from '../encyclopedia/model/hud-topics';
 import { ENTRY_SUBJECT, entryIdOf, type CodeIdBySubject, type EntrySubject } from '../encyclopedia/model/entry-id';
 import { WORLD_TOPIC } from '../encyclopedia/model/world-topics';
 import * as COLOURS from '../render/constants/colours';
@@ -21,7 +22,7 @@ import { SUBJECT_GLYPHS, SUBJECT_GLYPH_LIST } from './subject-glyphs';
  *
  * A **new subject** lands here first as a `typecheck` error — this record is mapped over `NonTraitSubject`, so the
  * missing key is named — and the fix is one row here plus its glyphs, never a row here alone: the row is what makes
- * the completeness test below ask for them. `HUD_TOPIC` (#450) is the outstanding case.
+ * the completeness test below ask for them.
  */
 type NonTraitSubject = Exclude<EntrySubject, typeof ENTRY_SUBJECT.trait>;
 const CODE_IDS_BY_SUBJECT: { readonly [Subject in NonTraitSubject]: readonly CodeIdBySubject[Subject][] } = {
@@ -36,6 +37,7 @@ const CODE_IDS_BY_SUBJECT: { readonly [Subject in NonTraitSubject]: readonly Cod
   [ENTRY_SUBJECT.zone]: Object.values(ZONE_ID),
   [ENTRY_SUBJECT.world]: Object.values(WORLD_TOPIC),
   [ENTRY_SUBJECT.concept]: Object.values(CONCEPT),
+  [ENTRY_SUBJECT.hud]: Object.values(HUD_TOPIC),
 };
 const SUBJECT_ENTRY_IDS: readonly SubjectEntryId[] = Object.entries(CODE_IDS_BY_SUBJECT).flatMap(([subject, codeIds]) =>
   codeIds.map((codeId) => entryIdOf(subject as NonTraitSubject, codeId) as SubjectEntryId),
@@ -80,8 +82,7 @@ describe('SUBJECT_GLYPHS', () => {
   it('draws every non-trait entry id exactly once: a subject that gains members owes glyphs', () => {
     // Failing here is not a broken glyph — it is a glyph that was never drawn. `undrawn` lists the entries the
     // encyclopedia will show with nothing beside their name until someone draws them (`ui-type.md` §7.2 says how);
-    // `orphaned` lists drawings whose subject has left the model and that should go with it. The known outstanding
-    // case is `HUD_TOPIC` (#450): the day `hud-topics.ts` and the `hud` subject land, its seven appear in `undrawn`.
+    // `orphaned` lists drawings whose subject has left the model and that should go with it.
     const drawn = SUBJECT_GLYPH_LIST.map((glyph) => glyph.entryId);
     const undrawn = SUBJECT_ENTRY_IDS.filter((entryId) => !drawn.includes(entryId));
     const orphaned = drawn.filter((entryId) => !SUBJECT_ENTRY_IDS.includes(entryId));

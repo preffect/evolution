@@ -60,6 +60,7 @@ export const CATEGORY_BY_SUBJECT: Readonly<Record<EntrySubject, EncyclopediaCate
   [ENTRY_SUBJECT.action]: ENCYCLOPEDIA_CATEGORY.actions,
   [ENTRY_SUBJECT.zone]: ENCYCLOPEDIA_CATEGORY.world,
   [ENTRY_SUBJECT.world]: ENCYCLOPEDIA_CATEGORY.world,
+  [ENTRY_SUBJECT.hud]: ENCYCLOPEDIA_CATEGORY.basics,
 };
 
 /** The entries whose category is not their subject's: the food overview is a concept read beside the foods. */

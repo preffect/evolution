@@ -18,7 +18,7 @@ import { ENCYCLOPEDIA_TEST_ID, encyclopediaCategoryTestId, encyclopediaRowTestId
 import { entriesIn } from '../encyclopedia/registry';
 import { HUD_OVERLAY, HudStateService } from './hud-state.service';
 import { HudComponent } from './hud.component';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 
 const SNAPSHOT = createTestSnapshot({
   cells: [createTestCellView({ playerId: TEST_OWN_PLAYER_ID, x: 0, y: 0, radius: 4 })],

@@ -4,7 +4,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CONNECTION_BANNER_TONE, connectionBannerFor } from './format/connection-banner';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { GameStateService } from '../state/game-state.service';
 
 @Component({

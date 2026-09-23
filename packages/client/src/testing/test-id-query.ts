@@ -2,10 +2,10 @@
 // (docs/testing/tiers-and-builders.md §2). Test-only, so it belongs here rather than beside any one feature: a spec
 // that reaches for an id in another feature's tree gets the query without its module graph.
 //
-// The selector itself stays `hud/test-ids.ts`'s `testIdSelector`, which quotes the attribute so the `:` and `#` in an
-// encyclopedia entry id are safe; nothing here restates it.
+// The selector itself stays `test-ids/hud-test-ids.ts`'s `testIdSelector`, which quotes the attribute so the `:` and
+// `#` in an encyclopedia entry id are safe; nothing here restates it.
 
-import { testIdSelector } from '../app/game/hud/test-ids';
+import { testIdSelector } from '../app/game/test-ids/hud-test-ids';
 
 /** The one element carrying `testId` under `root`, or `null`. */
 export function queryByTestId(root: ParentNode, testId: string): HTMLElement | null {

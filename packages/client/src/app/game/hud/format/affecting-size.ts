@@ -11,7 +11,7 @@ import { UI_FACT_MARKER_SHAPE, type UiFactRow } from '../../../ui-kit/ui-facts-t
 import { formatQuantity } from '../../quantities/format-quantity';
 import { AT_LEAST_SIGN, AT_MOST_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { DANGER, GAIN, TEXT_LABEL } from '../../render/constants';
-import { HUD_TEST_ID } from '../test-ids';
+import { HUD_TEST_ID } from '../../test-ids/hud-test-ids';
 
 /** What the size rows are built from; a structural subset of the panel's own input. */
 export interface AffectingSizeInput {

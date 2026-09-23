@@ -32,7 +32,7 @@ import { CONNECTION_BANNER_TEXT, CONNECTION_STATE } from './format/connection-ba
 import { bloomCaptionText } from './format/round-clock';
 import { HudComponent } from './hud.component';
 import { HudStateService } from './hud-state.service';
-import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, leaderboardRowTestId, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const RIVAL = playerId('player-rival');

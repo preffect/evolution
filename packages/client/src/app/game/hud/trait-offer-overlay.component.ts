@@ -33,7 +33,7 @@ import { HudStateService } from './hud-state.service';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
 import { OFFER_BEAT_LINE } from './format/onboarding-text';
 import { OnboardingService } from './onboarding.service';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { TraitCardComponent } from './trait-card.component';
 
 @Component({
