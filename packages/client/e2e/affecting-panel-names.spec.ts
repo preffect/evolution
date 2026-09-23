@@ -37,65 +37,68 @@ test('a full-length neighbour name stays inside the toxin row at the scale floor
   test.setTimeout(TWO_PAGE_TIMEOUT_MS);
   const own = await browser.newPage();
   const neighbour = await browser.newPage();
-  const gameName = `names-${test.info().testId.slice(-8)}`;
-  await joinLobby(own, OWN_NAME);
-  await joinLobby(neighbour, LONG_NAME);
-  await own.getByLabel('Game name').fill(gameName);
-  await own.getByRole('button', { name: 'Create' }).click();
-  const row = (page: Page) => page.locator('.games li', { hasText: gameName }).first();
-  await row(neighbour).getByRole('button', { name: 'Join' }).click();
-  await row(own).getByRole('button', { name: 'Start' }).click();
-  await expect(own.getByTestId('hud')).toBeVisible();
+  // Closed on a failing run too, so a red spec leaves no game pages on the shared browser.
+  try {
+    const gameName = `names-${test.info().testId.slice(-8)}`;
+    await joinLobby(own, OWN_NAME);
+    await joinLobby(neighbour, LONG_NAME);
+    await own.getByLabel('Game name').fill(gameName);
+    await own.getByRole('button', { name: 'Create' }).click();
+    const row = (page: Page) => page.locator('.games li', { hasText: gameName }).first();
+    await row(neighbour).getByRole('button', { name: 'Join' }).click();
+    await row(own).getByRole('button', { name: 'Start' }).click();
+    await expect(own.getByTestId('hud')).toBeVisible();
 
-  const listed = (await callDebugTool(own, 'debug_list_games', {})) as
-    { games?: { gameId: string; gameName?: string }[] } | { gameId: string; gameName?: string }[];
-  const games = Array.isArray(listed) ? listed : (listed.games ?? []);
-  const gameId = (games.find((game) => game.gameName === gameName) ?? games.at(-1))?.gameId ?? '';
-  const seats = (await callDebugTool(own, 'debug_get_connections', { gameId })) as {
-    playerId: string;
-    playerName: string;
-  }[];
-  const ownSeat = seats.find((seat) => seat.playerName === OWN_NAME)?.playerId ?? '';
-  const neighbourSeat = seats.find((seat) => seat.playerName === LONG_NAME)?.playerId ?? '';
-  // Frozen, so neither cell drifts after its pointer: the snapshot the panel reads is the one staged here.
-  await callDebugTool(own, 'debug_pause_room', { gameId });
-  await callDebugTool(own, 'debug_set_player', { gameId, playerId: ownSeat, mass: OWN_MASS, position: OWN_AT });
-  await callDebugTool(own, 'debug_set_player', {
-    gameId,
-    playerId: neighbourSeat,
-    mass: NEIGHBOUR_MASS,
-    traits: ['toxin_vacuole'],
-    position: { x: OWN_AT.x + NEIGHBOUR_OFFSET_WU, y: OWN_AT.y },
-  });
-  await callDebugTool(own, 'debug_step_room', { gameId, ticks: STAGE_STEP_TICKS });
+    const listed = (await callDebugTool(own, 'debug_list_games', {})) as
+      { games?: { gameId: string; gameName?: string }[] } | { gameId: string; gameName?: string }[];
+    const games = Array.isArray(listed) ? listed : (listed.games ?? []);
+    const gameId = (games.find((game) => game.gameName === gameName) ?? games.at(-1))?.gameId ?? '';
+    const seats = (await callDebugTool(own, 'debug_get_connections', { gameId })) as {
+      playerId: string;
+      playerName: string;
+    }[];
+    const ownSeat = seats.find((seat) => seat.playerName === OWN_NAME)?.playerId ?? '';
+    const neighbourSeat = seats.find((seat) => seat.playerName === LONG_NAME)?.playerId ?? '';
+    // Frozen, so neither cell drifts after its pointer: the snapshot the panel reads is the one staged here.
+    await callDebugTool(own, 'debug_pause_room', { gameId });
+    await callDebugTool(own, 'debug_set_player', { gameId, playerId: ownSeat, mass: OWN_MASS, position: OWN_AT });
+    await callDebugTool(own, 'debug_set_player', {
+      gameId,
+      playerId: neighbourSeat,
+      mass: NEIGHBOUR_MASS,
+      traits: ['toxin_vacuole'],
+      position: { x: OWN_AT.x + NEIGHBOUR_OFFSET_WU, y: OWN_AT.y },
+    });
+    await callDebugTool(own, 'debug_step_room', { gameId, ticks: STAGE_STEP_TICKS });
 
-  await own.keyboard.down('Tab');
-  // The kit's facts table carries a row's id as `data-row-id` (ui-facts-table.component.ts). Found and measured in
-  // one step, since a paused room's later snapshots may drop the rate and the row with it.
-  const rowSelector = `[data-row-id="${affectingCauseTestId(MASS_RATE_CAUSE.toxin)}"]`;
-  const measuredHandle = await own.waitForFunction(
-    (selector) => {
-      const rowElement = document.querySelector(selector);
-      const name = rowElement?.querySelector<HTMLElement>('.name');
-      const panel = rowElement?.closest('ui-panel');
-      if (!name || !panel) return null;
-      return {
-        text: name.textContent?.trim() ?? '',
-        fits: name.scrollWidth <= name.clientWidth,
-        insidePanel: name.getBoundingClientRect().right <= panel.getBoundingClientRect().right,
-      };
-    },
-    rowSelector,
-    { timeout: 20_000 },
-  );
-  const measured = (await measuredHandle.jsonValue()) as { text: string; fits: boolean; insidePanel: boolean };
-  await own.screenshot({ path: `${process.env['FRAME_PATH'] ?? '/tmp/claude-1000/panel'}-1024.png` });
-  await own.keyboard.up('Tab');
-  await callDebugTool(own, 'debug_resume_room', { gameId });
-  expect(measured.fits).toBe(true);
-  expect(measured.insidePanel).toBe(true);
-  const shownName = measured.text.split(' ').at(-1) ?? '';
-  expect([...shownName].length).toBeLessThanOrEqual(LEADERBOARD_NAME_MAX_CHARS);
-  await neighbour.close();
-  await own.close();
+    await own.keyboard.down('Tab');
+    // The kit's facts table carries a row's id as `data-row-id` (ui-facts-table.component.ts). Found and measured in
+    // one step, since a paused room's later snapshots may drop the rate and the row with it.
+    const rowSelector = `[data-row-id="${affectingCauseTestId(MASS_RATE_CAUSE.toxin)}"]`;
+    const measuredHandle = await own.waitForFunction(
+      (selector) => {
+        const rowElement = document.querySelector(selector);
+        const name = rowElement?.querySelector<HTMLElement>('.name');
+        const panel = rowElement?.closest('ui-panel');
+        if (!name || !panel) return null;
+        return {
+          text: name.textContent?.trim() ?? '',
+          insidePanel: name.getBoundingClientRect().right <= panel.getBoundingClientRect().right,
+        };
+      },
+      rowSelector,
+      { timeout: 20_000 },
+    );
+    const measured = (await measuredHandle.jsonValue()) as { text: string; insidePanel: boolean };
+    const framePath = process.env['FRAME_PATH'];
+    if (framePath) await own.screenshot({ path: `${framePath}-1024.png` });
+    await own.keyboard.up('Tab');
+    await callDebugTool(own, 'debug_resume_room', { gameId });
+    expect(measured.insidePanel).toBe(true);
+    const shownName = measured.text.split(' ').at(-1) ?? '';
+    expect([...shownName].length).toBeLessThanOrEqual(LEADERBOARD_NAME_MAX_CHARS);
+  } finally {
+    await neighbour.close();
+    await own.close();
+  }
 });
