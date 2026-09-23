@@ -1,8 +1,8 @@
 // @vitest-environment node
 import type { Clock } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
-import { RENDER_TIMER_PROBE_MAX_READINGS } from '../constants';
-import { probeTimerResolutionMs } from './timer-resolution';
+import { RENDER_TIMER_PROBE_MAX_READINGS, RENDER_TIMER_RESOLUTION_BUDGET_FRACTION } from '../constants';
+import { isClockFineEnoughFor, probeTimerResolutionMs } from './timer-resolution';
 
 /** A clock that repeats each value `readingsPerStep` times, then steps through `stepsMs` in turn. */
 function steppingClock(stepsMs: readonly number[], readingsPerStep: number): Clock & { readings: number } {
@@ -37,5 +37,14 @@ describe('probeTimerResolutionMs', () => {
     const frozen = steppingClock([1], Number.POSITIVE_INFINITY);
     expect(probeTimerResolutionMs(frozen)).toBeNull();
     expect(frozen.readings).toBeLessThanOrEqual(RENDER_TIMER_PROBE_MAX_READINGS + 1);
+  });
+});
+
+describe('isClockFineEnoughFor', () => {
+  it('passes a clock whose step is at most a tenth of the budget, fails a coarser one, and passes an unknown one', () => {
+    const budgetMs = 1;
+    expect(isClockFineEnoughFor(budgetMs, budgetMs * RENDER_TIMER_RESOLUTION_BUDGET_FRACTION)).toBe(true);
+    expect(isClockFineEnoughFor(budgetMs, budgetMs * RENDER_TIMER_RESOLUTION_BUDGET_FRACTION * 1.01)).toBe(false);
+    expect(isClockFineEnoughFor(budgetMs, null)).toBe(true);
   });
 });
