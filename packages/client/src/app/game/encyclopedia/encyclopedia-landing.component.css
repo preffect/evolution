@@ -110,28 +110,32 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  justify-content: center;
+  /* Top-aligned, so a one-line fact and a two-line fact start their titles on the same line across a row. */
+  justify-content: flex-start;
   gap: calc(var(--ui-space-xs) * var(--ui-scale));
   min-width: 0;
-  padding: 0 calc(var(--ui-space-m) * var(--ui-scale));
+  padding: calc(var(--ui-space-xs) * var(--ui-scale)) calc(var(--ui-space-m) * var(--ui-scale)) 0;
   /* The raised band the title and the fact sit on: the kit's secondary fill over the panel's own gradient. */
   background-color: color-mix(in srgb, var(--ui-text) calc(var(--ui-secondary-fill-alpha) * 100%), transparent);
 }
 
-/* Each on one line, ending in an ellipsis; the tile's accessible name carries the full title (§11.3). */
-.title,
-.fact {
+/* The title on one line, ending in an ellipsis; the tile's accessible name carries the full title (§11.3). */
+.title {
   overflow: hidden;
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.title {
-  font-size: calc(var(--ui-type-body) * var(--ui-scale));
-}
-
+/* The fact wraps at its spaces to `--encyclopedia-tile-fact-lines` lines, so `<name>: <value>` reads whole (#462). */
 .fact {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--encyclopedia-tile-fact-lines);
+  line-clamp: var(--encyclopedia-tile-fact-lines);
   color: var(--ui-text-label);
   font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  line-height: var(--encyclopedia-tile-fact-line-height);
 }
