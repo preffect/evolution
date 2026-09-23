@@ -272,5 +272,6 @@ function expectWoundKeptAfterRelease(trace: ReadonlyMap<number, SeatTraceRow>): 
   expect(checkedTicks).toBeGreaterThan(W10_RECOVERY_TICKS);
   const firstHeavyEnough = [...trace].find(([, row]) => row.seatMass >= absorption.ENGULF_MASS_RATIO * row.preyMass);
   expect(firstHeavyEnough?.[0]).toBeGreaterThanOrEqual(W10_RELEASE_TICK + W10_RECOVERY_TICKS);
-  expect([...trace.values()].every((row) => row.grownMass === 0)).toBe(true);
+  // No meal after the release: growth only goes below zero, by what a sprint spends (the lead ruling on ticket #551).
+  expect([...trace.values()].every((row) => row.grownMass <= 0)).toBe(true);
 }

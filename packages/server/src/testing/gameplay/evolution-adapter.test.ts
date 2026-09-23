@@ -10,6 +10,7 @@ import {
   clearFood,
   evolutionAdapter,
   resetSpawnerAccumulators,
+  withoutWildSeats,
   createLazyScenarioSnapshot,
   type EvolutionScenarioModule,
 } from './evolution-adapter.js';
@@ -120,6 +121,11 @@ describe('evolutionAdapter', () => {
     expect(world.spawners.food.isEnabled).toBe(true);
     applyEvolutionFixture(world, clearFood, context);
     expect(world.food).toEqual([]);
+    expect(world.wildSeats).not.toEqual([]);
+    applyEvolutionFixture(world, withoutWildSeats, context);
+    expect(world.wildSeats).toEqual([]);
+    expect(world.cells.every((cell) => cell.playerId !== null)).toBe(true);
+    expect(world.spawners.food.isEnabled).toBe(true);
     evolutionAdapter.applyFixture(module, placeMote({ moteKind: 'algae', at: ZONE.vent }, undefined), context);
     expect(world.spawners.food.isEnabled).toBe(false);
     expect(world.food).toHaveLength(1);

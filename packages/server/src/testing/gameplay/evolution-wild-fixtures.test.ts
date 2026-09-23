@@ -2,7 +2,7 @@
 // rest, the replacement of a seated cell without detritus, the abort of its engulf, and the decision countdown a
 // placed seat starts (docs/ecology/acceptance.md §8.1 W4, W6).
 import { describe, expect, it } from 'vitest';
-import { CELL_KIND, CELL_STATE, DEFAULT_BALANCE, WORLD_ORGANISM_ID, secondsToTicks } from '@evolution/shared';
+import { CELL_KIND, CELL_STATE, DEFAULT_BALANCE, secondsToTicks } from '@evolution/shared';
 import { setCellMass } from '../../game/simulation/cell-mass.js';
 import { beginEngulf } from '../../game/simulation/engulf-state.js';
 import { decisionIntervalTicks } from '../../game/wild/wild-strategy.js';
@@ -48,7 +48,7 @@ describe('applyPlacedWildCell', () => {
     ]);
     expect(cell.mass).toBe(growth.CELL_STARTING_MASS * SIZE_FACTOR);
     expect(cell.kind).toBe(CELL_KIND.wild);
-    expect(cell.organismId).toBe(WORLD_ORGANISM_ID);
+    expect(cell.organismId).toBe(cell.id);
     expect(world.cells.filter((candidate) => candidate.kind === CELL_KIND.wild)).toHaveLength(
       wildCells.WILD_CELL_COUNT,
     );

@@ -4,12 +4,21 @@
 // no scrim, no trap and no motion, because it shows while a key is held; its host anchors it to a viewport edge,
 // and it takes the pointer only on its controls. The kit never places either.
 
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { nextUiElementId } from './ui-element-id';
 import { UiScrollAreaComponent } from './ui-scroll-area.component';
 
 export const UI_PANEL_VARIANT = { modal: 'modal', side: 'side' } as const;
 export type UiPanelVariant = (typeof UI_PANEL_VARIANT)[keyof typeof UI_PANEL_VARIANT];
+
+/**
+ * What the body is (#461). `scroll`: the kit's, padded and wrapped in one kit scroll area, scrolling as one page.
+ * `bleed`: the feature's, with no padding, no gap and no scroll area: a plain flex column the feature fills edge to
+ * edge and scrolls where it chooses (the encyclopedia's three columns, docs/ui/encyclopedia.md §11.3).
+ */
+export const UI_PANEL_BODY = { scroll: 'scroll', bleed: 'bleed' } as const;
+export type UiPanelBody = (typeof UI_PANEL_BODY)[keyof typeof UI_PANEL_BODY];
 
 const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
   [UI_PANEL_VARIANT.modal]: 'dialog',
@@ -20,7 +29,7 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
   selector: 'ui-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiScrollAreaComponent],
+  imports: [NgTemplateOutlet, UiScrollAreaComponent],
   template: `
     <header class="header">
       @if (title(); as text) {
@@ -33,11 +42,18 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
       }
       <ng-content select="[uiPanelHeader]" />
     </header>
-    <ui-scroll-area class="body" [label]="title()"><ng-content /></ui-scroll-area>
+    <!-- One projection, placed by the body mode: content projects once, so both branches borrow the same template. -->
+    <ng-template #bodyContent><ng-content /></ng-template>
+    @if (isBleed()) {
+      <div class="body bleed"><ng-container [ngTemplateOutlet]="bodyContent" /></div>
+    } @else {
+      <ui-scroll-area class="body" [label]="title()"><ng-container [ngTemplateOutlet]="bodyContent" /></ui-scroll-area>
+    }
     <footer class="footer"><ng-content select="[uiPanelFooter]" /></footer>
   `,
   host: {
     '[attr.data-variant]': 'variant()',
+    '[attr.data-body]': 'body()',
     '[attr.role]': 'role()',
     '[attr.aria-modal]': 'ariaModal()',
     '[attr.aria-labelledby]': 'labelledBy()',
@@ -48,6 +64,7 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
 })
 export class UiPanelComponent {
   readonly variant = input<UiPanelVariant>(UI_PANEL_VARIANT.modal);
+  readonly body = input<UiPanelBody>(UI_PANEL_BODY.scroll);
   readonly title = input<string | null>(null);
   /** One muted `body` line under the title (the menu's `The dish keeps running.`); it describes the panel. */
   readonly subtitle = input<string | null>(null);
@@ -55,6 +72,7 @@ export class UiPanelComponent {
 
   protected readonly titleId = nextUiElementId('ui-panel-title');
   protected readonly subtitleId = nextUiElementId('ui-panel-subtitle');
+  protected readonly isBleed = computed(() => this.body() === UI_PANEL_BODY.bleed);
   protected readonly role = computed(() => PANEL_ROLE[this.variant()]);
   protected readonly ariaModal = computed(() => (this.variant() === UI_PANEL_VARIANT.modal ? 'true' : null));
   protected readonly labelledBy = computed(() => (this.title() ? this.titleId : null));

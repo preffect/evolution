@@ -29,7 +29,7 @@ import {
   type BakeContext2D,
 } from './texture-bake';
 
-interface RodStyle {
+export interface RodStyle {
   readonly body: string;
   readonly bodyAlpha: number;
   readonly rim: string;
@@ -39,7 +39,7 @@ interface RodStyle {
 }
 
 /** The plain rod scatters only a faint film halo; the organelle-coloured rods glow at the food-table alpha. */
-const ROD_STYLES: Readonly<Record<BacteriumVariant, RodStyle>> = {
+export const ROD_STYLES: Readonly<Record<BacteriumVariant, RodStyle>> = {
   [BACTERIUM_VARIANT.plain]: {
     body: BACTERIUM_PLAIN,
     bodyAlpha: BACTERIUM_BODY_ALPHA,

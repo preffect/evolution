@@ -1,14 +1,7 @@
 // @vitest-environment node
 // docs/rendering/files-and-tests.md §9: counts and seed-stability of the bench scene.
 import { describe, expect, it } from 'vitest';
-import {
-  CELL_STATE,
-  EFFECT_KIND,
-  FOOD_KIND,
-  PLAYER_PALETTE_COUNT,
-  STAGE_ORDER,
-  WORLD_ORGANISM_ID,
-} from '@evolution/shared';
+import { CELL_STATE, EFFECT_KIND, FOOD_KIND, PLAYER_PALETTE_COUNT, STAGE_ORDER } from '@evolution/shared';
 import {
   RENDER_BENCH_ABSORB_EVERY_TICKS,
   RENDER_BENCH_CELL_COUNT,
@@ -40,7 +33,7 @@ describe('bench scene', () => {
     expect(Object.keys(snapshot.players)).toHaveLength(PLAYER_PALETTE_COUNT + RENDER_BENCH_VICTIM_COUNT);
     expect(snapshot.players[BENCH_OWN_PLAYER_ID]?.playerName).toBe('Bench 0');
     const wild = snapshot.cells.find((cell) => cell.playerId === null)!;
-    expect(wild.organismId).toBe(WORLD_ORGANISM_ID);
+    expect(wild.organismId).toBe(wild.id);
     expect(new Set(snapshot.food.spawned.map((mote) => mote.kind))).toEqual(
       new Set([FOOD_KIND.algae, FOOD_KIND.bacterium, FOOD_KIND.detritus]),
     );

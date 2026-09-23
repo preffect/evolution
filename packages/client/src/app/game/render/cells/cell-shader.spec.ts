@@ -24,7 +24,7 @@ import {
   TOXIC_RING_ALPHA,
 } from '../constants';
 import { HALF } from '../geometry';
-import { instanceFieldLocation, instanceScalarFields } from './cell-instance';
+import { BUMP_TEXEL_START, instanceFieldLocation, instanceScalarFields } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
 import { CELL_UNIFORM, glslFloat, instanceRead } from './cell-shader-source';
 import { FULL_SELF_RING, TWELVE_O_CLOCK_TURNS } from './self-ring';
@@ -41,9 +41,30 @@ function functionBody(name: string): string {
 describe('cell shader source', () => {
   it('reads every instance field from the column the packing puts it in', () => {
     const [texel, channel] = instanceFieldLocation('beadCount');
-    expect(instanceRead('beadCount')).toBe(`texelFetch(uInstances, ivec2(${texel}, vInstance), 0).${'xyzw'[channel]}`);
+    expect(instanceRead('beadCount')).toBe(`instanceTexel${texel}.${'xyzw'[channel]}`);
+    expect(CELL_FRAGMENT_SOURCE).toContain(
+      `vec4 instanceTexel${texel} = texelFetch(uInstances, ivec2(${texel}, vInstance), 0);`,
+    );
     for (const field of instanceScalarFields()) expect(CELL_FRAGMENT_SOURCE).toContain(instanceRead(field));
     expect(CELL_VERTEX_SOURCE).toContain(instanceRead('quadExtentRadii'));
+  });
+
+  it('fetches each scalar instance texel once per fragment, and the vertex stage its one texel once (#302)', () => {
+    const fetchesOf = (source: string, texelIndex: number): number =>
+      source.split(`texelFetch(uInstances, ivec2(${texelIndex}, vInstance), 0)`).length - 1;
+    for (let texelIndex = 0; texelIndex < BUMP_TEXEL_START; texelIndex += 1) {
+      expect(fetchesOf(CELL_FRAGMENT_SOURCE, texelIndex), `texel ${texelIndex}`).toBe(1);
+    }
+    expect(CELL_VERTEX_SOURCE.split('texelFetch(uInstances').length - 1).toBe(1);
+    expect(CELL_FRAGMENT_SOURCE.split('readInstance()').length - 1, 'the definition and the one call in main').toBe(2);
+  });
+
+  it('declares every instance texel local a stage reads, before GL compile would say so', () => {
+    for (const source of [CELL_VERTEX_SOURCE, CELL_FRAGMENT_SOURCE]) {
+      const read = new Set([...source.matchAll(/instanceTexel(\d+)\./g)].map((match) => match[1]));
+      const declared = new Set([...source.matchAll(/vec4 instanceTexel(\d+) = /g)].map((match) => match[1]));
+      expect([...read].filter((texel) => !declared.has(texel))).toEqual([]);
+    }
   });
 
   it('declares every uniform the mesh sets, in one of the two stages', () => {

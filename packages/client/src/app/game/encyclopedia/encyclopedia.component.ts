@@ -109,6 +109,7 @@ type ElementChild = Signal<ElementRef<HTMLElement>>;
       <ui-panel
         class="panel"
         variant="modal"
+        body="bleed"
         uiFocusTrap
         [restoreTo]="restoreFocusTo()"
         [attr.aria-label]="panelTitle"

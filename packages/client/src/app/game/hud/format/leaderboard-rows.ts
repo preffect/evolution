@@ -5,14 +5,13 @@
 import type { LeaderboardRow, PlayerId, PlayerRosterView } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
-import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
+import { truncatePlayerName } from './player-name';
 
-const ELLIPSIS = '…';
-/** A name is cut to the ellipsis plus this many of its own characters. */
-const TRUNCATED_NAME_CHARS = LEADERBOARD_NAME_MAX_CHARS - ELLIPSIS.length;
 const FIRST_AVATAR_INDEX = 0;
 /** A leaderboard cell is the bare figure: the column header names the unit. */
 const BARE_FIGURE = { presentation: QUANTITY_PRESENTATION.numeral };
+/** The score column holds five digits; a six-digit score shortens to `123k` rather than spill into the mass (#427). */
+const COMPACT_FIGURE = { presentation: QUANTITY_PRESENTATION.compact };
 
 /** One rendered row: everything the panel needs, already formatted. */
 export interface LeaderboardEntry {
@@ -42,24 +41,13 @@ export interface LeaderboardInput {
   readonly maxRows: number;
 }
 
-/**
- * A name at most `LEADERBOARD_NAME_MAX_CHARS` long, ellipsised rather than clipped mid-glyph.
- * Counted and cut in code points, not UTF-16 units: a `String.slice` at the cut can land inside a
- * surrogate pair and leave a lone half, which renders as a replacement box.
- */
-export function truncatePlayerName(name: string): string {
-  const codePoints = [...name];
-  if (codePoints.length <= LEADERBOARD_NAME_MAX_CHARS) return name;
-  return `${codePoints.slice(0, TRUNCATED_NAME_CHARS).join('')}${ELLIPSIS}`;
-}
-
 function entryFor(row: LeaderboardRow, input: LeaderboardInput): LeaderboardEntry {
   return {
     playerId: row.playerId,
     rank: row.rank,
     name: truncatePlayerName(input.players[row.playerId]?.playerName ?? row.playerId),
     level: row.level,
-    scoreText: formatQuantity(row.score, QUANTITY_UNIT.points, BARE_FIGURE),
+    scoreText: formatQuantity(row.score, QUANTITY_UNIT.points, COMPACT_FIGURE),
     massText: formatQuantity(row.mass, QUANTITY_UNIT.mass, BARE_FIGURE),
     absorptions: row.absorptions,
     avatarIndex: input.avatarAssignments[row.playerId] ?? FIRST_AVATAR_INDEX,

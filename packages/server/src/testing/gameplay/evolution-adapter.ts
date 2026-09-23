@@ -17,6 +17,7 @@ import { createEvolutionModule, type EvolutionModule } from '../../game/evolutio
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
 import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
+import { removeWildSeats } from '../../game/wild/wild-seats.js';
 import { cellOfSeat } from '../../game/wild/wild-settle.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
 import type { WildSeatRecord } from '../../game/world/entities.js';
@@ -71,6 +72,8 @@ export const WORLD_FIXTURE_KIND = {
   resetSpawnerAccumulators: 'reset_spawner_accumulators',
   /** E14, W3, W9: every mote and fragment removed, so neither spawner is capped. */
   clearFood: 'clear_food',
+  /** E3: every wild seat and its cell removed, so the spawner row counts the spawner alone, not the wild grazing. */
+  removeWildSeats: 'remove_wild_seats',
 } as const;
 
 export interface WorldFixture {
@@ -81,6 +84,7 @@ export type EvolutionFixture = PlacedFixture | WorldFixture;
 
 export const resetSpawnerAccumulators: WorldFixture = { kind: WORLD_FIXTURE_KIND.resetSpawnerAccumulators };
 export const clearFood: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearFood };
+export const withoutWildSeats: WorldFixture = { kind: WORLD_FIXTURE_KIND.removeWildSeats };
 
 const PLACED_KINDS: readonly string[] = Object.values(PLACED_KIND);
 
@@ -92,6 +96,10 @@ function applyWorldFixture(world: WorldState, fixture: WorldFixture): void {
   if (fixture.kind === WORLD_FIXTURE_KIND.resetSpawnerAccumulators) {
     world.spawners.food.accumulator = 0;
     world.spawners.dnaFragments.accumulator = 0;
+    return;
+  }
+  if (fixture.kind === WORLD_FIXTURE_KIND.removeWildSeats) {
+    removeWildSeats(world);
     return;
   }
   world.food = [];

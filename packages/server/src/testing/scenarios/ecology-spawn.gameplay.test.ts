@@ -5,6 +5,7 @@
 import { describe, it } from 'vitest';
 import { DEFAULT_BALANCE, FOOD_KIND, TICK_HZ, distanceBetween } from '@evolution/shared';
 import { cellOf, foodCount, fragmentCount, type EvolutionView } from '../gameplay/evolution-views.js';
+import { withoutWildSeats } from '../gameplay/evolution-adapter.js';
 import { foodSpawnedSince, holdPopulationsAtZero, seededSolo } from './shared-setups.js';
 
 const { ecology, world: dish, session } = DEFAULT_BALANCE;
@@ -72,8 +73,11 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
       .runDeterministic();
   });
 
-  it('E3: both populations sit at the cap after 3000 ticks', async () => {
+  it('E3: both populations sit at the cap after 3000 ticks (the spawner alone: no wild seats)', async () => {
+    // The wild cells graze since #551 and hold the food at 446 of 700 on this seed; E3 is a spawner row, so it
+    // removes the seats at tick 0 (docs/ecology/acceptance.md §8 E3), and the grazing cost is the playtest's to judge.
     await seededSolo('E3')
+      .place(withoutWildSeats)
       .advance(3000)
       .expect('food count', foodCount)
       .atEnd()

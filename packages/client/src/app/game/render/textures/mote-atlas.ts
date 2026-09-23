@@ -65,20 +65,30 @@ export interface MoteAtlasBakes extends MoteVariants<Readonly<Record<MoteSpriteK
   readonly smallPxPerWu: number;
 }
 
+/**
+ * The colours each mote is baked in: the one table the bakes below paint from, and what a subject glyph that draws a
+ * mote is held to (`subject-glyphs.spec.ts`).
+ */
+export const MOTE_PAINT = {
+  algae: { body: FOOD_MOTE, edge: FOOD_MOTE_EDGE, rim: FOOD_MOTE_RIM, glint: WHITE },
+  detritus: { body: LIPID_BASE, centre: LIPID_CENTRE, rim: LIPID_RIM, glint: LIPID_LIGHT },
+} as const;
+
 /** The algal mote: glow, body with its darker edge, rim, glint. */
 function bakeAlgae(factory: BakeCanvasFactory, pxPerWu: number): BakeCanvas {
   const radius = ALGAE_RADIUS * pxPerWu;
   const { canvas, centre } = createBodyCanvas(factory, radius, ALGAE_GLOW.wide);
   const { context } = canvas;
   const disc = { x: centre, y: centre, radius };
-  paintGlow(context, disc, FOOD_MOTE, ALGAE_GLOW);
+  const paint = MOTE_PAINT.algae;
+  paintGlow(context, disc, paint.body, ALGAE_GLOW);
   fillRadial(context, disc, [
-    { offset: 0, colour: FOOD_MOTE, alpha: 1 },
-    { offset: 1 - MOTE_BAKE.edgeWidthShare, colour: FOOD_MOTE, alpha: 1 },
-    { offset: 1, colour: FOOD_MOTE_EDGE, alpha: 1 },
+    { offset: 0, colour: paint.body, alpha: 1 },
+    { offset: 1 - MOTE_BAKE.edgeWidthShare, colour: paint.body, alpha: 1 },
+    { offset: 1, colour: paint.edge, alpha: 1 },
   ]);
-  strokeDisc(context, disc, { colour: FOOD_MOTE_RIM, alpha: 1, width: radius * MOTE_BAKE.rimWidthShare });
-  paintGlint(context, disc, { colour: WHITE, alpha: MOTE_BAKE.glintAlpha });
+  strokeDisc(context, disc, { colour: paint.rim, alpha: 1, width: radius * MOTE_BAKE.rimWidthShare });
+  paintGlint(context, disc, { colour: paint.glint, alpha: MOTE_BAKE.glintAlpha });
   return canvas;
 }
 
@@ -89,12 +99,13 @@ function bakeDetritus(factory: BakeCanvasFactory, pxPerWu: number): BakeCanvas {
   const { canvas, centre } = createBodyCanvas(factory, radiusX, DETRITUS_GLOW.wide);
   const { context } = canvas;
   const disc = { x: centre, y: centre, radius: radiusX };
-  paintGlow(context, disc, LIPID_BASE, DETRITUS_GLOW);
+  const { body, centre: core, rim, glint } = MOTE_PAINT.detritus;
+  paintGlow(context, disc, body, DETRITUS_GLOW);
   const ellipse = { x: centre, y: centre, radiusX, radiusY, rotation: 0 };
-  fillEllipse(context, ellipse, { colour: LIPID_BASE, alpha: 1 });
-  fillDisc(context, { ...disc, radius: radiusX * MOTE_BAKE.lipidCentreShare }, { colour: LIPID_CENTRE, alpha: 1 });
-  strokeEllipse(context, ellipse, { colour: LIPID_RIM, alpha: 1, width: radiusX * MOTE_BAKE.rimWidthShare });
-  paintGlint(context, disc, { colour: LIPID_LIGHT, alpha: MOTE_BAKE.glintAlpha });
+  fillEllipse(context, ellipse, { colour: body, alpha: 1 });
+  fillDisc(context, { ...disc, radius: radiusX * MOTE_BAKE.lipidCentreShare }, { colour: core, alpha: 1 });
+  strokeEllipse(context, ellipse, { colour: rim, alpha: 1, width: radiusX * MOTE_BAKE.rimWidthShare });
+  paintGlint(context, disc, { colour: glint, alpha: MOTE_BAKE.glintAlpha });
   return canvas;
 }
 
