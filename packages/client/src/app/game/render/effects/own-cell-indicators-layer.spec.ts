@@ -87,6 +87,37 @@ describe('OwnCellIndicatorsLayer', () => {
     subject.destroy();
   });
 
+  it('shows the relation labels beside the threat label, counts them, and hands every pill box to the cues', () => {
+    const { subject, text } = layer();
+    const cell = createTestCellView({ radius: 20 });
+    const indicators = recordFor(cell, { nearestThreat: { cellId: entityId('t'), label: 'Amoeboid can engulf you' } });
+    const toxic = { cellId: entityId('toxic'), x: -200, y: 0, ringPx: 30 };
+    const prey = { cellId: entityId('prey'), x: 200, y: 0, ringPx: 26 };
+    const relationScene = {
+      rings: [toxic, prey],
+      anchors: [
+        { ...toxic, label: { cellId: toxic.cellId, text: 'Toxic', rim: 'danger' as const } },
+        { ...prey, label: { cellId: prey.cellId, text: 'Edible', rim: 'gain' as const } },
+      ],
+    };
+    const frame = { ...frameAt(0, cell, indicators), threat: { x: 0, y: 400, warningRingPx: 60 }, relationScene };
+    const outputs = subject.update(frame);
+    expect(text.shown.relationLabels.map((label) => [label.text, label.rim])).toEqual([
+      ['TOXIC', 'danger'],
+      ['EDIBLE', 'gain'],
+    ]);
+    expect(outputs.texts).toBe(4);
+    expect(subject.labelBoxes).toHaveLength(3);
+    expect(subject.labelBoxes[2]!.x).toBeGreaterThan(0);
+
+    subject.update(frameAt(16, cell, recordFor(cell)));
+    expect(text.shown.relationLabels).toEqual([]);
+    expect(subject.labelBoxes).toEqual([]);
+    subject.update(frameAt(32, null, null));
+    expect(subject.labelBoxes).toEqual([]);
+    subject.destroy();
+  });
+
   it('tweens the DNA fill toward a new share, snapping on the cell’s first frame', () => {
     const { subject } = layer();
     const cell = createTestCellView();
@@ -128,7 +159,7 @@ describe('OwnCellIndicatorsLayer', () => {
     subject.update(frameAt(0, cell, recordFor(cell)));
     expect(subject.update(frameAt(16, cell, null))).toEqual({ sprites: 0, arcs: 0, texts: 0 });
     expect(subject.sprites.every((sprite) => !sprite.visible)).toBe(true);
-    expect(text.shown).toEqual({ numeral: null, label: null });
+    expect(text.shown).toEqual({ numeral: null, label: null, relationLabels: [] });
     const respawned = createTestCellView({ id: entityId('respawned') });
     subject.update(frameAt(32, respawned, recordFor(respawned, { level: 9, dnaFraction: 0.9 })));
     expect(text.shown.numeral).toMatchObject({ text: '9', tint: WHITE });

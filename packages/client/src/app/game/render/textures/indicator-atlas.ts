@@ -11,7 +11,14 @@ import { INDICATOR_BAKE_MAX_DPR, INDICATOR_RIM_TINTED_RAMP } from '../constants'
 import { CUE_RIM_COLOUR, type CueRim } from '../../hud/format/mass-cues';
 import { LADDER_SILHOUETTE, type LadderSilhouette } from '../../state/own-cell-ladder';
 import { GHOST_SHAPE, bakeGhost, type GhostShape } from './ghost-bake';
-import { LABEL_PILL_SPEC, bakeLabelPill, bakePill, cuePillSpec, type LabelPillBake } from './label-pill-bake';
+import {
+  GAIN_LABEL_PILL_SPEC,
+  LABEL_PILL_SPEC,
+  bakeLabelPill,
+  bakePill,
+  cuePillSpec,
+  type LabelPillBake,
+} from './label-pill-bake';
 import { bakePipBlock, endosymbiontTallies, pipBlockKey } from './pip-block-bake';
 import { bakeScaleFor, type BakeCanvasFactory, type PxBakedSprite } from './texture-bake';
 import { bakeTrendGlyph, bakeZoneDot } from './trend-glyph-bake';
@@ -38,6 +45,8 @@ export interface IndicatorAtlasBakes {
   /** Keyed by `pipBlockKey(variant, eaten, required)`, `eaten` from 0 to `required`. */
   readonly pipBlocks: Readonly<Record<string, PxBakedSprite>>;
   readonly labelPill: LabelPillBake;
+  /** The label pill rimmed in `GAIN`: the edible relation label's (docs/ui/hud.md §3.1.5). */
+  readonly gainLabelPill: LabelPillBake;
   /** The mass chip's trend triangle and the zone pill's dot, both white for a tint. */
   readonly trendGlyph: PxBakedSprite;
   readonly zoneDot: PxBakedSprite;
@@ -83,6 +92,7 @@ export function bakeIndicatorAtlas(factory: BakeCanvasFactory, devicePixelRatio:
   return {
     ...bakeOrbitSprites(factory, scale),
     labelPill: bakeLabelPill(factory, scale),
+    gainLabelPill: bakePill(factory, scale, GAIN_LABEL_PILL_SPEC),
     trendGlyph: bakeTrendGlyph(factory, scale),
     zoneDot: bakeZoneDot(factory, scale),
     cuePills: bakeCuePills(factory, scale),

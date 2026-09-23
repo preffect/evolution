@@ -95,8 +95,22 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   centres are `RELATION_RING_LINE_PITCH_PX` (stroke + gap) apart. The role arrives decided: `relationsFor` fills
   `OwnCellIndicators.relations` and its by-id map `relationRings`, which the renderer hands the cell layer as
   `CellLayerFrame.relationRings`; the builder only turns it into px (`relationRingPackingFor`).
-  A cell with a warning ring packs no relation ring. The labels are threat-label pills placed by
-  `threat-label-placement.ts`'s rule.
+  A cell with a warning ring packs no relation ring. The labels are label pills that **reach out from their own ring**
+  (`effects/relation-label-fit.ts`, #539 review): the pill's near edge sits `THREAT_LABEL_GAP_PX` off the ring's
+  outermost line on one of the four axis sides (beside or over its cell, never on a diagonal, where it reads as a
+  neighbour's), tried most-facing the own cell first. The first side wins whose box keeps `NEIGHBOUR_CLEARANCE_PX`
+  (twice the gap) from every other drawn ring (the threat's warning ring included), meets no label already placed (the
+  threat's or escape's first, then the toxic label before the edible one) and stays off the own cell's orbit extent;
+  with no side clear the label is dropped for the frame, since a word on the wrong cell is worse than none.
+  `relationLabelSceneFor` (`effects/relation-label-placements.ts`) reads the record's `relationLabels` and every ring
+  the cell layer packs, so no label is drawn on, or judged against, a ring the LOD dropped. They also keep off where the
+  cue column rests (`CueLayer.restingColumn`, the chip and tags laid out with no label, last frame's: `cue-layout.ts`
+  `cueColumnBox`), so a relation label never pushes the chip up over a cell; the chip still rises past the threat label.
+  The edible label's pill is the label pill baked with a `GAIN` rim (`gainLabelPill`, the same size and caps, so one
+  nine-slice swaps textures); the text view keeps one slot per kind. Every label box, the threat's included, goes to the
+  cue layout (`labelBoxes`), so the zone pill yields to a relation label as it does to the threat's. `relationsFor` is
+  split so the per-cell work (`relationCandidatesFor`) runs once per snapshot and only the camera test
+  (`relationsOnScreen`) per camera move.
 - **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),
   `oriented-box.spec.ts`, `own-cell-indicators.spec.ts` (#187: the worst case at 5 sprites, 6 arc rows and 2 texts,
   the DNA fill and its gold, the orbit in world units, the escape window and its two labels, the threat label
