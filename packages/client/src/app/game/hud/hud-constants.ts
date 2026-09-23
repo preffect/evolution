@@ -181,6 +181,15 @@ export const NOTICE_GAP_PX = 16;
 /** The rim under a notice row, in its tone's colour. */
 export const NOTICE_RIM_PX = 2;
 
+// ---- onboarding (docs/ui/input-and-onboarding.md §5, docs/ui/layout.md §1) ----
+
+/** A timed hint's time on screen; the pill's size is the notice row's (`NOTICE_ROW_HEIGHT_PX`, its inline padding). */
+export const HINT_DURATION_SECONDS = 4;
+/** Distance the own cell travels, in world units, before the steer hint goes. */
+export const STEER_HINT_DISTANCE_WU = 200;
+/** Round time at which the sprint hint shows if the player has never sprinted. */
+export const SPRINT_HINT_AT_SECONDS = 30;
+
 // ---- controls (docs/ui/input-and-onboarding.md §4) ----
 
 /** Every interactive element's visible focus ring, in the text colour; never scaled. */

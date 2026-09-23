@@ -30,6 +30,9 @@ import {
 import { traitOfferViewFor, type TraitOfferViewModel } from './format/trait-cards';
 import { FocusReturn } from '../../ui-kit/focus-return';
 import { HudStateService } from './hud-state.service';
+import { ONBOARDING_BEAT } from './format/onboarding-beats';
+import { OFFER_BEAT_LINE } from './format/onboarding-text';
+import { OnboardingService } from './onboarding.service';
 import { HUD_TEST_ID } from './test-ids';
 import { TraitCardComponent } from './trait-card.component';
 
@@ -52,7 +55,12 @@ import { TraitCardComponent } from './trait-card.component';
       >
         <h2 class="title">{{ offer.title }}</h2>
         <div class="timer-row">
-          <p class="footer">At 0 s the dish picks for you</p>
+          <p class="footer">
+            <span>At 0 s the dish picks for you</span>
+            @if (isOfferBeatUp()) {
+              <span class="onboarding-line" [attr.data-testid]="testId.traitOfferOnboarding">{{ offerBeatLine }}</span>
+            }
+          </p>
           <div class="timer-track" aria-hidden="true">
             <div class="timer-fill" [style.width.%]="offer.timerFraction * percent"></div>
           </div>
@@ -77,6 +85,7 @@ import { TraitCardComponent } from './trait-card.component';
 export class TraitOfferOverlayComponent {
   private readonly hudState = inject(HudStateService);
   private readonly gameState = inject(GameStateService);
+  private readonly onboarding = inject(OnboardingService);
   private readonly injector = inject(Injector);
   private readonly ownerDocument: Document = inject(ElementRef<HTMLElement>).nativeElement.ownerDocument;
   private readonly highlight = signal(NO_CARD_HIGHLIGHT);
@@ -84,6 +93,10 @@ export class TraitOfferOverlayComponent {
   protected readonly percent = PERCENT;
   protected readonly testId = HUD_TEST_ID;
   protected readonly focusReturn = new FocusReturn();
+  protected readonly offerBeatLine = OFFER_BEAT_LINE;
+
+  /** The first offer of the session (docs/ui/input-and-onboarding.md §5): the band teaches its own keys. */
+  protected readonly isOfferBeatUp = computed(() => this.onboarding.current() === ONBOARDING_BEAT.offer);
 
   /** The open offer as the band reads it; `null` with no offer, no progress or no balance yet. */
   protected readonly view = computed<TraitOfferViewModel | null>(() => {
