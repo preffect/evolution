@@ -98,6 +98,7 @@ describe('FrameInstrumentation', () => {
     expect(render).not.toHaveBeenCalled();
     const evidence = instrumentation.evidence();
     expect(evidence.sampleCount).toBe(0);
+    expect(evidence.timerResolutionMs, 'a ManualClock never steps, so its resolution is unknown').toBeNull();
     expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).renderStagesMs.net).toBe(0);
   });
 });
