@@ -26,6 +26,9 @@ world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TI
 catalog row carries its tiers), so a patch has one path. The one number read from catalog structure is
 `TRAIT_CATALOG[n].unlockedBy.count` (above), which has no patch path at all. Nothing reads `data/balance.json` at
 runtime. The full rule set is `CODE-STANDARDS.md §2`.
+`constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
+`viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
+knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
 
 ## 10. File plan (target ≤ 250 lines per file; 300 is the lint cap)
 
@@ -43,7 +46,7 @@ packages/shared/src/
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
-  simulation/{movement-kernel,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1)
+  simulation/{movement-kernel,movement-step,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1); movement-step: the speed cap and blend the server and the prediction share (#265)
   camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
   simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,trait-tiers}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
                                                                 level-costs: FIRST_LEVEL, levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
@@ -57,8 +60,8 @@ packages/server/src/
   game/world/{world-state,entities,cell-record,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   cell-record: the literal every cell is born from (player or wild); state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
   game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
-  game/wild/{wild-seats,wild-build,wild-pin,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176): placement by the safe-spawn rule plus the wild spacing (with the first heading and the decision countdown), a seat's build up to a level, the step-1 pin with `drainedMass`, the step-9 respawn
-  game/wild/{wild-strategy,wild-perception,wild-wander}.ts     the wild minds (#176): the step-1 decisions (flee, hunt, wander) over the #15 strategies through an entity-id perception, the wander heading rule
+  game/wild/{wild-seats,wild-build,wild-settle,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176, #517): placement by the safe-spawn rule plus the wild spacing (with the size factor, the first heading and the decision countdown), a seat's build up to a level, the step-1 settle (`settleWildMass`, `wildSizeFactor`: growth, the growth ceiling, recovery; server-simulation.md §3.4), the step-9 respawn
+  game/wild/{wild-strategy,wild-perception,wild-wander}.ts     the wild minds (#176, #517): the step-1 decisions (flee, hunt, graze, wander, and the sprint flag) over the #15 strategies through an entity-id perception filtered to the seat's sight (`wildSightRange` over the shared `viewHalfHeightFor`), the wander heading rule
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,quantize,food-delta-tracker}.ts   quantize: the wire rounding and its exact twin (wire-contract.md §4)
@@ -79,7 +82,7 @@ packages/server/src/
 packages/client/src/app/game/
   game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
   debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
-  net/{snapshot-buffer,interpolation,food-store,world-store,snapshot-acknowledger}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; snapshot-acknowledger tells the room which tick this client has applied (§4, #266); prediction and reconciliation are still open (#265)
+  net/{snapshot-buffer,interpolation,food-store,world-store,snapshot-acknowledger,own-cell-prediction,own-cell-predictor,pose-correction}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; snapshot-acknowledger tells the room which tick this client has applied (§4, #266); own-cell-prediction replays, own-cell-predictor keeps the inputs and re-bases, pose-correction reconciles (#265)
   input/{input-constants,keyboard-action,input-state,trait-pick,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state, the trait-pick policy and the GameInput mapping — all pure (ui/input-and-onboarding.md §4)
   input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts
@@ -116,6 +119,12 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
   snapshot buffer / prediction / reconciliation; schemas (`message-schemas.test.ts` bounds);
   `balance.test.ts` (generated file equals `DEFAULT_BALANCE`), `constants-ledger.test.ts` (every design
   table constant exists).
+- **Wild cells (#517):** `settleWildMass` and `wildSizeFactor` against ecology W11; the wild perception's sight
+  filter against a brute-force distance check on a seeded population (boundary: a centre exactly at the range is
+  seen); the wild floor (a 10-mass wild cell that sprints or is drained stays at 10, a player cell floors at 20);
+  one seeded long-run invariant test: after every settle, `grownMass ≥ 0`, `fullMass ≤ max(baseMass, 3 ×
+worldMass)` and `cell.mass ≤ fullMass`, and the state hash covers `sizeFactor`, `grownMass` and `fullMass` (a
+  one-field change moves it).
 - **Integration:** input → step → snapshot through a real `GameRoom` under a `ManualClock`; late
   join gets a full `game_state` then deltas; reconnect resync; replay reproduces the hash; the
   rematch reseed (`seed + ROUND_SEED_INCREMENT`) produces a fresh world.

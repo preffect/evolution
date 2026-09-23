@@ -11,6 +11,7 @@ import {
   type CellView,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
+import { RELATION_RING, type Relation } from '../hud/format/relations-for';
 import type { Threat } from '../hud/format/threats-for';
 import { dnaFractionFor, ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
 
@@ -69,6 +70,27 @@ describe('ownCellIndicatorsFor', () => {
   it('reports the nearest threat by name, since the list arrives nearest first', () => {
     const indicators = indicatorsOf(ownCell, [threat('near', 'Amoeboid'), threat('far', 'Other')]);
     expect(indicators.nearestThreat).toEqual({ cellId: entityId('near'), label: 'Amoeboid can engulf you' });
+  });
+
+  it('carries the relations and the rings by cell id the cell layer packs, none when absent', () => {
+    const edible: Relation = {
+      cellId: entityId('prey'),
+      ring: RELATION_RING.edible,
+      isEdible: true,
+      isToxic: false,
+      distanceSquared: 1,
+    };
+    const indicators = ownCellIndicatorsFor({
+      ownCell,
+      ownProgress,
+      balance: DEFAULT_BALANCE,
+      threats: [],
+      relations: [edible],
+      previewTraitId: null,
+    });
+    expect(indicators.relations).toEqual([edible]);
+    expect(indicators.relationRings.get(entityId('prey'))).toBe(RELATION_RING.edible);
+    expect(indicatorsOf(ownCell).relationRings.size).toBe(0);
   });
 
   it('opens the escape window while being engulfed and drains it toward the seal', () => {

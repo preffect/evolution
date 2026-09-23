@@ -97,16 +97,31 @@
      0 in well under a second; the filters apply to the stored log. Red is never cached, `all`
      stamps each phase and itself, `--fresh` bypasses the stamp, and `-- extra-args` calls are
      never cached. The scope is part of the stamp: a scoped green never answers an unscoped call,
-     nor the reverse. The stamp names the tree the merge gate ran on. Nothing
+     nor the reverse, with one exception (#563): `all --affected` answers its `test` and `typecheck`
+     phases from green package stamps (`test --scope client`, …) when every affected package has one on
+     the same tree, so the merge gate does not repeat what the builder or reviewer ran on that exact code.
+     It prints `cached green from the package stamps of <packages> at tree <hash>` and stamps the phase.
+     Lint is never reused, because a plain lint uses eslint's cache (#559). Duplication is never reused,
+     because jscpd across packages finds what one package cannot. A test phase that also runs the shell
+     suites always runs. The stamps kept on this box showed 17 typecheck and 7 test phases repeated on
+     an identical tree (a client test run costs about 340 core-s). The stamp names the tree the merge gate
+     ran on. Nothing
      prunes the stamps: `rm -rf ~/.cache/<slug>-validate` clears them, and so does a container
      rebuild (`~/.cache` is not a mount). A CI run, where a game adds one, passes `--fresh` (or
-     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **Machine-wide
+     sets `VALIDATE_CACHE_DIR` to a scratch directory) so it never trusts a stamp. **Lint caches per
+     file** (#559): a stamp miss still skips unchanged files. prettier runs with `--cache` on every run
+     but `--fresh`, and eslint with `--cache` on a plain `lint` only. Both caches live under the worktree's
+     `node_modules/.cache` and are keyed by file content. eslint's type-aware rules (`no-floating-promises`)
+     read other files, which its cache does not track, so `all` (the merge gate and the timed main gate)
+     never uses the eslint cache. A lint that used it stamps as `lint-eslint-cached`, which `all` never
+     reads. A plain lint still takes the stricter `lint` stamp of `all` or `lint --fresh`. A repeat client lint with one file changed measured
+     57.6 core-s without the caches and 17.2 with them warm. **Machine-wide
      gate slots by phase class** (#234, #380; `scripts/lib/gate-lock.sh`): every non-cached phase holds
      one slot of its class under `$HOME/.cache/<slug>-validate` (independent of `VALIDATE_CACHE_DIR`, so a
      scratch cache still queues; `VALIDATE_GATE_LOCK_DIR` moves it for a sandboxed test), so parallel
      agents queue instead of starving the box, and a cheap phase never queues behind a heavy one.
-     **Heavy** (`test`, `integration`, `typecheck`: vitest and the Angular builder spawn about one worker
-     per core) gets one slot per 4 cores, capped at one per 4 GB of memory, so one on the 4-core box;
+     **Heavy** (`test`, `integration`, `typecheck`: vitest and the Angular builder run cores − 2 workers)
+     gets one slot per 2 cores, capped at one per 4 GB of memory, so two on the 4-core box (#561);
      **light** (`lint`, `duplication`: eslint, prettier and jscpd use one core each, eslint over the
      client peaks near 1 GB) gets one slot per 2 cores, since it runs beside a heavy run that already
      fills every core, capped at one per GB; a lint that runs no eslint (`all --affected` over docs alone)
@@ -119,8 +134,8 @@
      the old `gate.lock`, so a branch still carrying the single-lock `validate.sh` excludes a new heavy
      run. **Known transitional limit:** a class with more than one slot has its queue head poll the
      slots every 0.5 s, while an old `validate.sh` waits on `gate.lock` in the kernel, so a steady stream
-     of old-branch runs could starve such a head. With one heavy slot (this box) the head waits in the kernel
-     too. The limit ends once every branch carries this script. A cache hit never waits; the slot fd is
+     of old-branch runs could starve such a head. Since #561 this box has two heavy slots, so the limit
+     applies here too. It ends once every branch carries this script. A cache hit never waits; the slot fd is
      closed for the child so no orphaned worker keeps it.
      `VALIDATE_NO_GATE_LOCK=1` disables the slots for a sandboxed test; without `flock` it runs unlocked;
    - is pre-authorized in `.claude/settings.json`, so it never trips a permission prompt.

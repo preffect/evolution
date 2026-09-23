@@ -12,8 +12,9 @@
 | DNA fragment  | `DNA_FRAGMENT_` | 0    | 5    | one tag by zone (§2) | slow drift, `DNA_FRAGMENT_DRIFT_SPEED` | 9           | none                        |
 | Wild cell     | `WILD_CELL_`    | §3.3 | §3.3 | none                 | steered by the wild strategy (§3.3)    | §5.1        | respawns, §3.3              |
 
-- **Eating rule.** A mote is eaten the tick its centre lies within the cell's radius. Any cell can eat
-  any mote; no minimum size. Mass is added instantly (the renderer animates the gulp); DNA and tag
+- **Eating rule.** A mote is eaten the tick its centre lies within the cell's radius. Any player cell can
+  eat any mote; no minimum size. A wild cell eats algae and detritus only and passes over bacteria and
+  DNA fragments (§3.3.3). Mass is added instantly (the renderer animates the gulp); DNA and tag
   points go to the progression counters ([`PROGRESSION.md`](../PROGRESSION.md#1-dna-and-tags)).
 - **Detritus** is never spawned by the spawner: it drops when a cell dies or dissolves
   (`DETRITUS_MASS_FRACTION` of the cell's mass, split into motes of `DETRITUS_MOTE_MASS`, scattered
@@ -121,7 +122,7 @@ wire); constants in `constants/world-clock.ts` ([`game-design/constants-and-acce
 
 ```
 elapsedTicks   = min(tick − roundStartTick, roundDurationSeconds × TICK_HZ)          (integer; `tick` is the tick being stepped, so every step of tick 10 800 reads 10 800; frozen during `results`; 0 again after a rematch)
-elapsedSeconds = elapsedTicks / TICK_HZ                                               (10 800 / 60 = 180 exactly; never derived from `roundTimeLeftMs`, which step 2 updates after the pin at step 1 and lands on either side of 180.0)
+elapsedSeconds = elapsedTicks / TICK_HZ                                               (10 800 / 60 = 180 exactly; never derived from `roundTimeLeftMs`, which step 2 updates after the wild settle at step 1 and lands on either side of 180.0)
 worldLevel     = min(1 + elapsedSeconds / WORLD_LEVEL_SECONDS, MAX_LEVEL)            (continuous: 2.5 is halfway from level 2 to 3)
 worldStage     = stageOf(WILD_CELL_BUILDS[0].slice(0, floor(worldLevel) − 1))         (the stage of the world's own picks, §3.3: nucleoid at 2, endosymbiont at 3, envelope at 4, a form's prerequisite at 5, the form at 6)
 worldMass      = min(CELL_STARTING_MASS + WORLD_MASS_GAIN_PER_SECOND × elapsedSeconds, CELL_MAX_MASS)
@@ -155,7 +156,7 @@ worldDna       = cumulative DNA of level floor(worldLevel)                      
 - **World level-up.** On the tick `floor(worldLevel)` increments (the tick whose `elapsedTicks` =
   `n × WORLD_LEVEL_SECONDS × TICK_HZ`: 10 800, 21 600 and 32 400 in a 600 s round) the round step
   (step 2) emits a `world_level_up` effect carrying the new level and stage, every wild cell gains
-  its next pick the same tick (§3.3; the pin at step 1 already reads the new level, because
+  its next pick the same tick (§3.3; the settle at step 1 already reads the new level, because
   `elapsedTicks` counts the tick in progress), and the spawn tables switch rows (§3.2). The HUD toasts it
   ([`UI.md`](../UI.md), #146).
 - **Ahead of the world** (the player's goal). One pure function beside `worldReference`,

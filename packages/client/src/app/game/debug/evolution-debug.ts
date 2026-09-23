@@ -5,6 +5,7 @@
 
 import type { ClientPerformanceReport } from '@evolution/shared';
 import type { InputDebugState } from '../input/input-controller';
+import type { PredictionDebugState } from '../net/own-cell-predictor';
 
 export const EVOLUTION_DEBUG_MODE = { live: 'live', bench: 'bench', preview: 'preview' } as const;
 export type EvolutionDebugMode = (typeof EVOLUTION_DEBUG_MODE)[keyof typeof EVOLUTION_DEBUG_MODE];
@@ -30,6 +31,8 @@ export interface EvolutionDebugApi {
    * Playwright run can assert that a key or a click reached its handler without reading the wire.
    */
   input?(): InputDebugState;
+  /** Live rooms only: the own cell's prediction (#265), and where interpolation alone would have drawn it. */
+  prediction?(): PredictionDebugState;
 }
 
 export const EVOLUTION_DEBUG_KEY = '__evolutionDebug';

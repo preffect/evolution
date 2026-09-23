@@ -135,6 +135,19 @@ describe('the wired input path', () => {
     harness.teardown();
   });
 
+  it('moves the drawn own cell on the frames its inputs are sent, before any snapshot answers them (#265)', async () => {
+    const harness = await startGame();
+    harness.host.dispatchEvent(pointerEvent('pointermove', HOST_BOX.width, HOST_BOX.height / 2));
+    for (let frame = 0; frame < 4; frame += 1) harness.frame();
+    const prediction = harness.debugHost[EVOLUTION_DEBUG_KEY]?.prediction?.();
+    expect(prediction?.newestSequence).toBe(harness.sent.at(-1)?.sequence);
+    expect(prediction?.acknowledgedSequence).toBe(0);
+    // The server has answered nothing: interpolation alone still has the cell parked, the prediction has it swimming.
+    expect(prediction?.interpolated).toMatchObject({ x: OWN_CELL.x, y: OWN_CELL.y });
+    expect(prediction?.displayed?.x).toBeGreaterThan(OWN_CELL.x);
+    harness.teardown();
+  });
+
   it('turns a click on the canvas into one sprint', async () => {
     const harness = await startGame();
     harness.host.dispatchEvent(pointerEvent('pointerdown', HOST_BOX.width / 2, HOST_BOX.height / 2));

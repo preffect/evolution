@@ -1,7 +1,8 @@
 // From one frame's view, traits, terms, LOD and placements to the instance record the shader
 // reads (docs/rendering/cells.md §2.3). Pure: a table of assignments, kept out of the render state so
 // that class stays small. The engulf-warning ring (visual-style/motion-and-legibility.md §5) is decided here from the
-// shared `canEngulf`, the same call the server and the HUD chip make.
+// shared `canEngulf`, the same call the server and the HUD chip make; the relation ring's role arrives decided
+// (`relationsFor`, docs/ui/hud.md §3.1.5) and only its px radius and the quad it needs are settled here.
 
 import { SEAT_MARK_BEADS, canEngulf, type BalanceConfig, type CellView } from '@evolution/shared';
 import {
@@ -11,9 +12,14 @@ import {
   FAR_DOT_HALO_RADII,
   NUCLEUS_RADIUS,
   PREY_UNDER_FILM_ALPHA,
+  RELATION_RING_MIN_GAP_PX,
+  RELATION_RING_RADII,
+  RELATION_RING_STROKE_PX,
   SPRINT_RIM_BRIGHTNESS,
+  TOXIC_RING_LINE_GAP_PX,
   WARNING_RING_STROKE_PX,
 } from '../constants';
+import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
 import type { CellInstance } from './cell-instance';
 import type { CellLod } from './cell-lod';
 import type { CellTraitSummary } from './cell-traits';
@@ -41,6 +47,8 @@ export interface CellInstanceInput {
   readonly rimDash: number;
   /** The sprint ring (self-ring.ts); read only when `isOwn`, every other cell packs the rest ring. */
   readonly ownCellRing: OwnCellRing;
+  /** The cell's relation to the own cell (`relationsFor`); `RELATION_RING.none` for no ring. */
+  readonly relationRing: RelationRing;
 }
 
 const REST_RIM_BRIGHTNESS = 1;
@@ -68,9 +76,51 @@ export function warningRingPxFor(
   return Math.max(ENGULF_WARNING_RING_RADII * lod.screenRadiusPx, ENGULF_WARNING_RING_MIN_PX);
 }
 
-/** The quad reaches the profile's maximum, the far-dot halo or the warning ring, never less than the §2 floor. */
-export function quadExtentRadii(terms: ShapeTerms, lod: CellLod, warningRingPx = 0, screenRadiusPx = 1): number {
-  const ringRadii = warningRingPx > 0 ? (warningRingPx + WARNING_RING_STROKE_PX) / screenRadiusPx : 0;
+/** Centre to centre, the toxic ring's two lines: one stroke plus the clear gap, so the pair reads as two lines. */
+export const RELATION_RING_LINE_PITCH_PX = RELATION_RING_STROKE_PX + TOXIC_RING_LINE_GAP_PX;
+
+/** The relation ring a cell packs: its line radius and line count (docs/rendering/own-cell-indicators.md §10). */
+export interface RelationRingPacking {
+  readonly relationRingPx: number;
+  readonly relationRingLines: number;
+}
+
+const NO_RELATION_RING: RelationRingPacking = { relationRingPx: 0, relationRingLines: RELATION_RING.none };
+
+/**
+ * `max(RELATION_RING_RADII × r_px, r_px + RELATION_RING_MIN_GAP_PX)` for a ringed cell while the LOD draws the tells;
+ * none otherwise, and none on a cell with a warning ring (the threat ring is the only ring a threat carries).
+ */
+export function relationRingPackingFor(
+  ring: RelationRing,
+  lod: Pick<CellLod, 'hasTells' | 'screenRadiusPx'>,
+  warningRingPx: number,
+): RelationRingPacking {
+  if (ring === RELATION_RING.none || !lod.hasTells || warningRingPx > 0) return NO_RELATION_RING;
+  const { screenRadiusPx } = lod;
+  const relationRingPx = Math.max(RELATION_RING_RADII * screenRadiusPx, screenRadiusPx + RELATION_RING_MIN_GAP_PX);
+  return { relationRingPx, relationRingLines: ring };
+}
+
+/** Every ring a cell packs, in px: the warning ring and the relation ring. */
+export interface CellRings extends RelationRingPacking {
+  readonly warningRingPx: number;
+}
+
+const NO_RINGS: CellRings = { warningRingPx: 0, ...NO_RELATION_RING };
+
+/** The outer edge of the outermost line a ring draws, px; 0 for no ring. */
+function ringReachPx(rings: CellRings): number {
+  const warningReach = rings.warningRingPx > 0 ? rings.warningRingPx + WARNING_RING_STROKE_PX : 0;
+  if (rings.relationRingPx <= 0) return warningReach;
+  const outerLinePx = rings.relationRingPx + (rings.relationRingLines - 1) * RELATION_RING_LINE_PITCH_PX;
+  return Math.max(warningReach, outerLinePx + RELATION_RING_STROKE_PX);
+}
+
+/** The quad reaches the profile's maximum, the far-dot halo or the outermost ring, never less than the §2 floor. */
+export function quadExtentRadii(terms: ShapeTerms, lod: CellLod, rings: CellRings = NO_RINGS): number {
+  const ringReach = ringReachPx(rings);
+  const ringRadii = ringReach > 0 ? ringReach / lod.screenRadiusPx : 0;
   return Math.max(CELL_QUAD_EXTENT_RADII, terms.maxRadii, lod.isFarDot ? FAR_DOT_HALO_RADII : 0, ringRadii);
 }
 
@@ -138,15 +188,17 @@ function selfRingFields(input: CellInstanceInput): Pick<CellInstance, 'selfRingF
 
 export function buildCellInstance(input: CellInstanceInput): CellInstance {
   const { view, traits, lod, terms } = input;
+  const relation = relationRingPackingFor(input.relationRing, lod, input.warningRingPx);
   return {
     ...surfaceFields(terms, input.speedRatio),
     ...tellFields(traits, lod),
     ...filmFields(input),
     ...selfRingFields(input),
+    ...relation,
     x: view.x,
     y: view.y,
     radius: view.radius,
-    quadExtentRadii: quadExtentRadii(terms, lod, input.warningRingPx, lod.screenRadiusPx),
+    quadExtentRadii: quadExtentRadii(terms, lod, { warningRingPx: input.warningRingPx, ...relation }),
     paletteIndex: view.avatarIndex,
     lodBlend: lod.interiorBlend,
     rimBrightness: terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS,

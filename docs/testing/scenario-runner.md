@@ -66,13 +66,13 @@ it('E9: A absorbs B on tick 30', async () => {
   it places, so `.placeWildCell` seats its record on demand), and fails the scenario when a seeded gel
   patch lies within `GEL_PATCH_CLEARANCE_WU` of the broth point (`isClearOfGelPatches`; pick another
   seed, never tolerate it).
-  **`.placeWildCell({ seat, spreadFactor, at | eastOfFirstCellWu })`** (ecology/acceptance.md §8.1: the W rows
-  and G13; #498) sets wild seat `seat`'s spread factor, places or replaces its cell (the broth point when
+  **`.placeWildCell({ seat, sizeFactor, at | eastOfFirstCellWu })`** (ecology/acceptance.md §8.1: the W rows
+  and G13; #498, renamed by #517) sets wild seat `seat`'s size factor, places or replaces its cell (the broth point when
   no player cell was placed, else `at` or east of the first placed player cell; a wild cell is never "the
   first cell") and clears the seat's target and velocity as a respawn does, so the seat has no target
   until its next decision tick; the seat keeps its heading, a cell it already had is withdrawn without
   detritus (`withdrawCell`, its engulfs aborted), and the new one is seated through the simulation's own
-  `seatWildCell`, pinned to the world from its first tick. It schedules with `.atTick(T)` like any placement
+  `seatWildCell`, at its base size with no growth and settled from its first tick (ecology/wild-cells.md §3.3.1). It schedules with `.atTick(T)` like any placement
   (W6: placed after tick 21 599, seat 0 decides on 21 600). An adapter may add fixtures of its own beside the placed
   records (`.place(fixture)` / `.atTick(T).place(fixture)`): the Evolution adapter's
   `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures.

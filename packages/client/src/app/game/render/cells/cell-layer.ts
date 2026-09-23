@@ -99,6 +99,7 @@ export class CellLayer {
       contactDents: computeContactDents(visible),
       absorbedSeals: GhostRegistry.sealByPredator(ghosts),
       ownCellRing: input.ownCellRing,
+      relationRings: input.relationRings,
     };
   }
 

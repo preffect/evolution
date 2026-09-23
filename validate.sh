@@ -6,7 +6,7 @@
 #   test         Run unit tests with coverage thresholds (pnpm -r test)
 #   integration  Run the *.integration.test.ts / *.integration.spec.ts tier plus the *.gameplay.test.ts scenarios (pnpm -r test:integration)
 #   typecheck    Run type checking (pnpm -r typecheck)
-#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit)
+#   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit); caches per file (#559)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
 #   all          Run lint, duplication, typecheck, test in sequence, stopping at the first failing phase
 #                (FAILED: <phase>), then one line of per-phase wall times; `all --affected` adds integration last
@@ -15,7 +15,7 @@
 #   -tN        Tail N lines of output (e.g. -t20)
 #   -hN        Head N lines of output (e.g. -h50)
 #   -G PATTERN Grep output for PATTERN
-#   --fresh    Ignore the result cache and re-run (a green result is still stamped)
+#   --fresh    Ignore the result cache and the lint caches, and re-run (a green result is still stamped)
 #   --scope S  Narrow every phase to a package (shared | server | client) or to a file or directory
 #              under packages/<package>/src. A package scope keeps the coverage floors unless extra args filter it; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
@@ -57,7 +57,9 @@
 # plus the Node major version and the scope. A repeat call on the same tree and scope prints
 # `cached green from <time> at tree <hash>` and the stored log path, applies -t/-h/-G to the stored
 # log, and exits 0. Red is never cached; a scoped stamp never answers an unscoped call, nor the
-# reverse. `all` stamps each phase and itself. Shared across worktrees at the same content. A real
+# reverse, except that `all --affected` answers its test and typecheck phases from green package stamps
+# (`test --scope client`, …) of every affected package on the same tree (#563). `all` stamps each phase
+# and itself. Shared across worktrees at the same content. A real
 # phase holds one machine-wide slot of its class (scripts/lib/gate-lock.sh, #380): heavy for test,
 # integration and typecheck, light for lint and duplication, none for a lint without eslint; a wait
 # names the holders (pid, worktree, command). Hits never wait.
@@ -186,6 +188,13 @@ CLIENT_SPEC_SUFFIX=".spec.ts"
 CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
 CLIENT_NO_COVERAGE_ARGUMENT="--no-coverage"
 VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
+# Lint result caches (#559), per worktree under node_modules/.cache, keyed by file content. prettier's
+# is exact (a file's result depends on the file and the config alone), so every run but --fresh uses it.
+# eslint's is not: its type-aware rules (no-floating-promises) read other files, which its cache does not
+# key on, so only a plain `lint` uses it and `all` (the merge gate, the timed main gate) never does.
+ESLINT_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/eslint/)
+PRETTIER_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/prettier/.prettier-cache)
+ESLINT_CACHED_LINT_KEY=lint-eslint-cached # the stamp name of a lint that used eslint's cache
 # The options that narrow a test run to some tests (vitest's test-name filter, the Angular builder's).
 NARROWING_OPTION_PATTERN='^(-t|--testNamePattern|--filter)(=.*)?$'
 
@@ -612,6 +621,7 @@ NODE_MAJOR=""
 TEMP_INDEX=""   # the temporary index while cache_tree_hash runs
 PHASE_OUTPUT="" # set by run_cached: the phase's raw output, or its stored log on a hit
 PHASE_WAS_CACHED=0
+COMPOSED_LOGS=()
 CACHE_HIT_TIME=""
 CACHE_HIT_LOG=""
 
@@ -652,7 +662,14 @@ cache_init() {
 }
 
 # <cmd> unscoped; <cmd>.scope-<package or path, slashes as underscores> scoped.
-cache_key() { echo "$1${SCOPE_NAME:+.scope-${SCOPE_NAME//\//_}}"; }
+# A plain lint runs eslint with its cache (#559), which can miss what the type-aware rules would find in an
+# unchanged file; its stamp is keyed apart (lint-eslint-cached), so `all` never reads it as a lint stamp.
+uses_eslint_cache() { [[ $FRESH -eq 0 && "$COMMAND" == lint ]]; }
+cache_command_key() { # <cmd>
+  if [[ "$1" == lint ]] && uses_eslint_cache; then echo "$ESLINT_CACHED_LINT_KEY"; else echo "$1"; fi
+}
+scope_suffix() { echo "${SCOPE_NAME:+.scope-${SCOPE_NAME//\//_}}"; }
+cache_key() { echo "$(cache_command_key "$1")$(scope_suffix)"; }
 cache_stamp_path() { echo "$CACHE_DIR/$TREE_HASH.$(cache_key "$1")"; }
 cache_log_path() { echo "$CACHE_DIR/logs/$TREE_HASH.$(cache_key "$1").log"; }
 stamp_field() { sed -n "s/^$2=//p" "$1" | head -n 1; }
@@ -662,9 +679,23 @@ have_filters() { [[ -n "$GREP_PAT" || -n "$HEAD_N" || -n "$TAIL_N" ]]; }
 # this tree, command, scope and Node major; returns 1 otherwise (a stamp whose log is gone is a
 # miss). The scope field is compared as well as the name, so no two scopes can share a stamp.
 cache_hit() {
-  local cmd="$1" stamp
+  local cmd="$1" key
   [[ -n "$CACHE_DIR" && $FRESH -eq 0 ]] || return 1
-  stamp="$(cache_stamp_path "$cmd")"
+  for key in $(cache_lookup_keys "$cmd"); do
+    cache_hit_stamp "$CACHE_DIR/$TREE_HASH.$key" && return 0
+  done
+  return 1
+}
+
+# A plain lint also takes a stamp of a lint that ran eslint without its cache (`all`, `lint --fresh`):
+# that check was the stricter one. Never the reverse.
+cache_lookup_keys() { # <cmd>
+  cache_key "$1"
+  [[ "$1" != lint ]] || ! uses_eslint_cache || echo "lint$(scope_suffix)"
+}
+
+cache_hit_stamp() { # <stamp path>
+  local stamp="$1"
   [[ -f "$stamp" ]] || return 1
   [[ "$(stamp_field "$stamp" exit)" == "0" && "$(stamp_field "$stamp" node)" == "$NODE_MAJOR" ]] || return 1
   [[ "$(stamp_field "$stamp" scope)" == "$SCOPE_NAME" ]] || return 1
@@ -724,6 +755,31 @@ gate_class() { # <cmd>
   esac
 }
 
+# The phases an affected gate may answer from package-scoped stamps (#563): each is the same runner per
+# package. Not lint (a plain lint uses eslint's cache, which the gate must not trust, #559), not duplication
+# (jscpd across packages finds what one package alone cannot), not integration (its own package set).
+COMPOSABLE_PHASES=(test typecheck)
+
+# Whether an affected gate's <cmd> phase can be answered by a green stamp of the same phase for each of its
+# packages, one by one (`test --scope client`, …) on this tree. Sets COMPOSED_LOGS to their logs. A test
+# phase that also runs the shell suites cannot: no package stamp covers them.
+composed_package_hit() { # <cmd>
+  local cmd="$1" package stamp
+  COMPOSED_LOGS=()
+  [[ -n "$CACHE_DIR" && $FRESH -eq 0 && "$SCOPE_NAME" == "$AFFECTED_SCOPE_PREFIX"* ]] || return 1
+  [[ " ${COMPOSABLE_PHASES[*]} " == *" $cmd "* && ${#AFFECTED_PACKAGES[@]} -gt 0 ]] || return 1
+  [[ "$cmd" != test || $SHELL_SUITES_SELECTED -eq 0 ]] || return 1
+  # Only an explicit --filter selection: `affected-everything` runs -r, over every packages/* directory,
+  # including one not registered in PACKAGES, which no package stamp covers.
+  [[ "${PNPM_SELECTION[0]:-}" == --filter ]] || return 1
+  for package in "${AFFECTED_PACKAGES[@]}"; do
+    stamp="$CACHE_DIR/$TREE_HASH.$cmd.scope-$package"
+    [[ -f "$stamp" && "$(stamp_field "$stamp" exit)" == "0" && "$(stamp_field "$stamp" node)" == "$NODE_MAJOR" ]] || return 1
+    [[ "$(stamp_field "$stamp" scope)" == "$package" && -f "$(stamp_field "$stamp" log)" ]] || return 1
+    COMPOSED_LOGS+=("$(stamp_field "$stamp" log)")
+  done
+}
+
 # Runs <cmd> through the cache: a hit prints the stamp; a green run is stamped; red never is.
 # PHASE_OUTPUT and PHASE_WAS_CACHED tell `all` what goes in its own log.
 run_cached() {
@@ -733,6 +789,15 @@ run_cached() {
     print_cache_hit
     PHASE_OUTPUT="$(cat "$CACHE_HIT_LOG")"
     PHASE_WAS_CACHED=1
+    return 0
+  fi
+  if composed_package_hit "$cmd"; then
+    echo "cached green from the package stamps of ${AFFECTED_PACKAGES[*]} at tree $TREE_HASH"
+    printf 'log: %s\n' "${COMPOSED_LOGS[@]}"
+    PHASE_OUTPUT="$(cat "${COMPOSED_LOGS[@]}")"
+    PHASE_WAS_CACHED=1
+    have_filters && printf '%s\n' "$PHASE_OUTPUT" | apply_filters
+    cache_store "$cmd" "$PHASE_OUTPUT"
     return 0
   fi
   local rc=0
@@ -989,11 +1054,14 @@ run_one() {
 
       # An empty path list (`all --affected` over docs or scripts alone) skips that tool: eslint with
       # no path lints the whole repo, and grep with no path reads stdin.
+      local eslint_cache=() prettier_cache=()
+      [[ $FRESH -ne 0 ]] || prettier_cache=("${PRETTIER_CACHE_ARGUMENTS[@]}")
+      ! uses_eslint_cache || eslint_cache=("${ESLINT_CACHE_ARGUMENTS[@]}")
       if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
-        lint_out="$(pnpm eslint "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
+        lint_out="$(pnpm eslint "${eslint_cache[@]}" "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
       fi
       if [[ ${#LINT_PATHS[@]} -gt 0 ]]; then
-        prettier_out="$(pnpm prettier --check "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
+        prettier_out="$(pnpm prettier --check "${prettier_cache[@]}" "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
       fi
       if [[ ${#SOURCE_PATHS[@]} -gt 0 ]]; then
         directive_out="$(audit_disable_directives)" || audit_rc=1

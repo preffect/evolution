@@ -1,7 +1,8 @@
 // The trait tells of pass B (docs/rendering/cells.md §2.2, docs/visual-style/cells-and-organelles.md §4): the rigid cell
 // wall outside the membrane, the leaning cilia hairs (a flat band at mid LOD), the engulf-warning
-// ring in the undeformed frame (visual-style/motion-and-legibility.md §5) and the absorbed ghost's dashed outline. Every
-// membrane band is a band of `d`; the ring tracks the instance's centre and snaps with the LOD.
+// ring in the undeformed frame (visual-style/motion-and-legibility.md §5), the relation ring (docs/ui/hud.md §3.1.5) and
+// the absorbed ghost's dashed outline. Every membrane band is a band of `d`; the rings track the instance's centre and
+// snap with the LOD.
 
 import {
   CELL_WALL_ALPHA,
@@ -17,14 +18,19 @@ import {
   CILIA_WAVE_AMPLITUDE_DEG,
   CILIA_WAVE_COUNT,
   CILIA_WIDTH_PX,
+  EDIBLE_RING_ALPHA,
   GHOST_RIM_DASH_PX,
   OUTLINE_ALPHA,
+  RELATION_RING_STROKE_PX,
+  TOXIC_RING_ALPHA,
   WARNING_RING_DASH_PX,
   WARNING_RING_ROTATION_DEG_PER_SECOND,
   WARNING_RING_STROKE_PX,
 } from '../constants';
 import { degreesToRadians } from '../geometry';
 import { glslFloat } from './cell-shader-source';
+import { RELATION_RING } from '../../hud/format/relations-for';
+import { RELATION_RING_LINE_PITCH_PX } from './cell-instance-builder';
 
 /** Membrane bands in `d / r` around the membrane at 1.00. */
 const WALL_INNER = CELL_WALL_INNER_RADII - 1;
@@ -77,5 +83,22 @@ vec4 warningRing(Instance inst, Frame frame, vec4 acc) {
   float ring = band(frame.len, radiusWu, ${glslFloat(WARNING_RING_STROKE_PX)} * HALF / uZoom, frame.aa * HALF);
   float arcPx = (frame.theta - ${glslFloat(WARNING_RING_ROTATION_RAD_PER_SECOND)} * uTimeSeconds) * radiusWu * uZoom;
   return over(acc, uDanger, ring * dash(arcPx, ${glslFloat(WARNING_RING_DASH_PX[0])}, ${glslFloat(WARNING_RING_DASH_PX[1])}));
+}
+
+/**
+ * The relation ring at 'relationRingPx' in the undeformed frame: solid and still, so it never reads as the dashed,
+ * rotating threat ring. One 'GAIN' line on an edible cell; on a toxic one a 'DANGER' double line, the second line one
+ * pitch (stroke plus 'TOXIC_RING_LINE_GAP_PX') outside the first. Shape first, colour second (principles-and-palette.md §2).
+ */
+vec4 relationRing(Instance inst, Frame frame, vec4 acc) {
+  if (inst.relationRingPx <= 0.0) return acc;
+  float halfStroke = ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom;
+  float feather = frame.aa * HALF;
+  float radiusWu = inst.relationRingPx / uZoom;
+  float lines = band(frame.len, radiusWu, halfStroke, feather);
+  if (inst.relationRingLines < ${glslFloat(RELATION_RING.toxic)} - HALF) return over(acc, uGain, lines * ${glslFloat(EDIBLE_RING_ALPHA)});
+  float outerWu = radiusWu + ${glslFloat(RELATION_RING_LINE_PITCH_PX)} / uZoom;
+  lines = max(lines, band(frame.len, outerWu, halfStroke, feather));
+  return over(acc, uDanger, lines * ${glslFloat(TOXIC_RING_ALPHA)});
 }
 `;
