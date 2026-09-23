@@ -110,7 +110,9 @@ export class LobbyManager {
     const active = this.activeRooms.get(gameId);
     if (active) {
       // Humans hold the seats, connected or in grace; the synthetic players a debug tool adds do not (#337).
-      if (!isRoomJoinable({ playerCount: active.playerConnections.size, maxPlayers: active.sessionConfig.maxPlayers })) {
+      if (
+        !isRoomJoinable({ playerCount: active.playerConnections.size, maxPlayers: active.sessionConfig.maxPlayers })
+      ) {
         this.refuseFullGame(connection);
         return;
       }
@@ -218,11 +220,13 @@ export class LobbyManager {
       gameId: gameId as GameId,
       gameName: room.gameName,
       // Humans only, connected or in grace: the count the join refusal reads, so `8/8` and "Game is full" agree (#337).
-      players: room.allPlayerIds.filter((playerId) => room.playerConnections.has(playerId)).map((playerId) => ({
-        playerId: playerId as PlayerId,
-        playerName: room.playerNames[playerId] ?? '',
-        avatarIndex: room.avatarAssignments[playerId] ?? 0,
-      })),
+      players: room.allPlayerIds
+        .filter((playerId) => room.playerConnections.has(playerId))
+        .map((playerId) => ({
+          playerId: playerId as PlayerId,
+          playerName: room.playerNames[playerId] ?? '',
+          avatarIndex: room.avatarAssignments[playerId] ?? 0,
+        })),
       maxPlayers: room.sessionConfig.maxPlayers,
       isStarted: true,
       creatorId: room.creatorId,
