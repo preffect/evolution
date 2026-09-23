@@ -65,7 +65,10 @@ describe('the cell scene', () => {
     for (const tick of loopTicks(scene)) {
       const [cell] = scene.frameAt(tick, tick, BALANCE).cells;
       const speed = Math.hypot(cell!.velocityX, cell!.velocityY);
-      expect(speed / maxSpeedForMass(cell!.mass, BALANCE.growth), `tick ${tick}`).toBeCloseTo(PREVIEW_SWIM_SPEED_FRACTION, 9);
+      expect(speed / maxSpeedForMass(cell!.mass, BALANCE.growth), `tick ${tick}`).toBeCloseTo(
+        PREVIEW_SWIM_SPEED_FRACTION,
+        9,
+      );
     }
     const [still] = previewSceneFor(resting).frameAt(12, 11, BALANCE).cells;
     expect(Math.hypot(still!.velocityX, still!.velocityY)).toBe(0);
