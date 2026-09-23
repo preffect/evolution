@@ -9,16 +9,27 @@ import {
   HALO_KIND,
   NUCLEUS_RADIUS,
   PREY_UNDER_FILM_ALPHA,
+  RELATION_RING_MIN_GAP_PX,
+  RELATION_RING_RADII,
+  RELATION_RING_STROKE_PX,
   SELF_RING_ALPHA,
   SPRINT_RIM_BRIGHTNESS,
+  TOXIC_RING_LINE_GAP_PX,
   WARNING_RING_STROKE_PX,
 } from '../constants';
 import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
-import { buildCellInstance, quadExtentRadii, warningRingPxFor, type CellInstanceInput } from './cell-instance-builder';
+import {
+  buildCellInstance,
+  quadExtentRadii,
+  relationRingPackingFor,
+  warningRingPxFor,
+  type CellInstanceInput,
+} from './cell-instance-builder';
 import { summariseCellTraits } from './cell-traits';
 import { REST_OWN_CELL_RING } from './self-ring';
 import { buildShapeTerms } from './shape-terms';
+import { RELATION_RING } from '../../hud/format/relations-for';
 
 function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
   const view = createTestCellView({ x: 5, y: 6, radius: 40, avatarIndex: 2, stage: CELL_STAGE.prokaryote });
@@ -48,6 +59,7 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     ciliaPhase: 0.3,
     rimDash: 0,
     ownCellRing: REST_OWN_CELL_RING,
+    relationRing: RELATION_RING.none,
     ...overrides,
   };
 }
@@ -88,6 +100,8 @@ describe('buildCellInstance', () => {
       speckleSeed: 0.6,
       selfRingFill: 1,
       selfRingBrightness: SELF_RING_ALPHA,
+      relationRingPx: 0,
+      relationRingLines: RELATION_RING.none,
     });
     expect(instance.beadCount).toBe(SEAT_MARK_BEADS[2]);
     expect(instance.bumps).toHaveLength(8);
@@ -203,5 +217,44 @@ describe('warningRingPxFor', () => {
     expect(warningRingPxFor(giant, own, DEFAULT_BALANCE, far)).toBe(0);
     const base = input({ lod: far, warningRingPx: warningRingPxFor(giant, own, DEFAULT_BALANCE, far) });
     expect(buildCellInstance(base).quadExtentRadii).toBe(quadExtentRadii(base.terms, far));
+  });
+});
+
+describe('relationRingPackingFor', () => {
+  it('packs the edible single line at RELATION_RING_RADII × r_px, and nothing for a cell with no relation', () => {
+    expect(relationRingPackingFor(RELATION_RING.edible, cellLodFor(40), 0)).toEqual({
+      relationRingPx: RELATION_RING_RADII * 40,
+      relationRingLines: 1,
+    });
+    expect(relationRingPackingFor(RELATION_RING.none, cellLodFor(40), 0)).toEqual({
+      relationRingPx: 0,
+      relationRingLines: 0,
+    });
+  });
+
+  it('packs the toxic double line, and floors the radius RELATION_RING_MIN_GAP_PX past a small membrane', () => {
+    const small = cellLodFor(12);
+    expect(RELATION_RING_RADII * 12).toBeLessThan(12 + RELATION_RING_MIN_GAP_PX);
+    expect(relationRingPackingFor(RELATION_RING.toxic, small, 0)).toEqual({
+      relationRingPx: 12 + RELATION_RING_MIN_GAP_PX,
+      relationRingLines: 2,
+    });
+  });
+
+  it('packs no relation ring on a threat or below the far LOD threshold', () => {
+    expect(relationRingPackingFor(RELATION_RING.toxic, cellLodFor(40), 52).relationRingPx).toBe(0);
+    expect(relationRingPackingFor(RELATION_RING.edible, cellLodFor(4), 0).relationRingPx).toBe(0);
+  });
+
+  it('grows the quad to the toxic ring’s outer line, one stroke plus the gap past the inner', () => {
+    const { terms, lod } = input();
+    const ringPx = 10;
+    const tiny = { ...lod, screenRadiusPx: 1 };
+    const edible = quadExtentRadii(terms, tiny, { warningRingPx: 0, relationRingPx: ringPx, relationRingLines: 1 });
+    const toxic = quadExtentRadii(terms, tiny, { warningRingPx: 0, relationRingPx: ringPx, relationRingLines: 2 });
+    expect(edible).toBe(ringPx + RELATION_RING_STROKE_PX);
+    expect(toxic).toBe(ringPx + RELATION_RING_STROKE_PX + TOXIC_RING_LINE_GAP_PX + RELATION_RING_STROKE_PX);
+    const built = buildCellInstance(input({ relationRing: RELATION_RING.toxic }));
+    expect(built.quadExtentRadii).toBe(CELL_QUAD_EXTENT_RADII);
   });
 });

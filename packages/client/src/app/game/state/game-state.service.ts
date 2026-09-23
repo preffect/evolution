@@ -23,6 +23,7 @@ import {
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { CONNECTION_STATE, type ConnectionState } from '../hud/format/connection-banner';
+import { relationsFor, type Relation } from '../hud/format/relations-for';
 import { threatsFor, type Threat } from '../hud/format/threats-for';
 import { zoneEntryFor, type ZoneEntryMemory } from '../hud/format/zone-pill';
 import { HudStateService } from '../hud/hud-state.service';
@@ -36,6 +37,7 @@ const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerRosterView>> = {};
 const NO_CELLS: readonly CellView[] = [];
 const NO_THREATS: readonly Threat[] = [];
+const NO_RELATIONS: readonly Relation[] = [];
 const NO_MASSES: readonly number[] = [];
 const NO_FOOD_GAIN = 0;
 
@@ -241,6 +243,14 @@ export class GameStateService {
     });
   });
 
+  /** On-screen cells the own cell could eat or should not touch, nearest first (docs/ui/hud.md §3.1.5). */
+  readonly relations = computed<readonly Relation[]>(() => {
+    const ownCell = this.ownCell();
+    const balance = this.balance();
+    if (ownCell === null || balance === null) return NO_RELATIONS;
+    return relationsFor({ cells: this.cells(), ownCell, cameraExtent: this.cameraExtent(), balance });
+  });
+
   /**
    * The one truth two consumers read (docs/ui/hud.md §3.1.4): the renderer draws it and the status
    * mirror speaks it. `null` while spectating or before the first snapshot, which is exactly when
@@ -263,6 +273,7 @@ export class GameStateService {
       ownProgress: own.ownProgress,
       balance,
       threats: this.threats(),
+      relations: this.relations(),
       previewTraitId: this.hudState.previewTraitId(),
       tick: own.snapshot.tick,
       massTrend: this.massTrend(),

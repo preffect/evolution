@@ -89,8 +89,12 @@ required)`; the pip blocks are one entry per (variant, eaten) from each endosymb
   instance, a ring radius (the inner line's), a **line count** (1 for the edible ring, 2 for the toxic double line,
   whose second line is drawn `TOXIC_RING_LINE_GAP_PX` outside the first), a role colour (`GAIN` or `DANGER`) and that
   role's alpha (`EDIBLE_RING_ALPHA` or `TOXIC_RING_ALPHA`). The lines are solid, still and `RELATION_RING_STROKE_PX`
-  wide. All of it is packed like `warningRingPx` (the line count and role share one scalar), so rings on many cells
-  cost no draw calls; `RELATIONS_MAX_RINGED` caps the cells that carry one.
+  wide. All of it is packed like `warningRingPx` (the line count and role share one scalar, `relationRingLines`, from
+  `RELATION_RING` in `hud/format/relations-for.ts`), so rings on many cells cost no draw calls; `RELATIONS_MAX_RINGED`
+  caps the cells that carry one. `TOXIC_RING_LINE_GAP_PX` is the **clear** gap between the two strokes, so their
+  centres are `RELATION_RING_LINE_PITCH_PX` (stroke + gap) apart. The role arrives decided: `relationsFor` fills
+  `OwnCellIndicators.relations` and its by-id map `relationRings`, which the renderer hands the cell layer as
+  `CellLayerFrame.relationRings`; the builder only turns it into px (`relationRingPackingFor`).
   A cell with a warning ring packs no relation ring. The labels are threat-label pills placed by
   `threat-label-placement.ts`'s rule.
 - **Tests.** `own-cell-geometry.spec.ts` (the angle turn, the geometry table, the three inequalities),

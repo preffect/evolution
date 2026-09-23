@@ -12,6 +12,7 @@ import {
   CILIA,
   CYTOSKELETON,
   DANGER,
+  GAIN,
   OUTLINE,
   RIBOSOME,
   TOXIN_GLOW,
@@ -51,6 +52,7 @@ const COLOUR_UNIFORMS: Readonly<Record<string, string>> = {
   [CELL_UNIFORM.cellWallLight]: CELL_WALL_LIGHT,
   [CELL_UNIFORM.cilia]: CILIA,
   [CELL_UNIFORM.danger]: DANGER,
+  [CELL_UNIFORM.gain]: GAIN,
 };
 
 function createUniforms(pass: number): UniformGroup {

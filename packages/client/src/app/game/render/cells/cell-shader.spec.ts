@@ -9,16 +9,20 @@ import {
   CELL_WALL_OUTER_RADII,
   CELL_WALL_SCALE_BY_TIER,
   CILIA_WIDTH_PX,
+  EDIBLE_RING_ALPHA,
   FILAMENT_MASK_PX,
   NUCLEUS_RAMP_ALPHA,
   NUCLEUS_RAMP_FOCUS_RADII,
   NUCLEUS_RAMP_MID_STOP,
   NUCLEUS_RAMP_REACH_RADII,
   PALETTE_SHADE,
+  RELATION_RING_STROKE_PX,
   SELF_RING_ALPHA,
   SELF_RING_TRACK_ALPHA,
   SPECKLE_HASH_SALT,
+  TOXIC_RING_ALPHA,
 } from '../constants';
+import { RELATION_RING_LINE_PITCH_PX } from './cell-instance-builder';
 import { HALF } from '../geometry';
 import { instanceFieldLocation, instanceScalarFields } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
@@ -96,6 +100,21 @@ describe('cell shader source', () => {
     expect(ring).not.toContain(glslFloat(SELF_RING_ALPHA));
     expect(CELL_FRAGMENT_SOURCE.indexOf('float selfRingAlpha(')).toBeLessThan(
       CELL_FRAGMENT_SOURCE.indexOf('vec4 selfRing('),
+    );
+  });
+
+  it('draws the relation ring solid and still: one GAIN line, or a DANGER double line one pitch apart (#538)', () => {
+    const ring = functionBody('relationRing');
+    expect(ring).toContain('if (inst.relationRingPx <= 0.0) return acc;');
+    expect(ring).toContain(`float halfStroke = ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom;`);
+    expect(ring).toContain(`return over(acc, uGain, lines * ${glslFloat(EDIBLE_RING_ALPHA)});`);
+    expect(ring).toContain(`float outerWu = radiusWu + ${glslFloat(RELATION_RING_LINE_PITCH_PX)} / uZoom;`);
+    expect(ring).toContain(`return over(acc, uDanger, lines * ${glslFloat(TOXIC_RING_ALPHA)});`);
+    expect(ring).not.toContain('dash(');
+    expect(ring).not.toContain('uTimeSeconds');
+    const membrane = functionBody('membranePass');
+    expect(membrane.indexOf('warningRing(inst, frame, acc)')).toBeLessThan(
+      membrane.indexOf('relationRing(inst, frame, acc)'),
     );
   });
 

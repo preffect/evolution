@@ -2,7 +2,8 @@
 // the layer and what it reads back. Types only, so the orchestrator and the layer share one
 // contract without either importing the other's implementation.
 
-import type { CellView, TraitId } from '@evolution/shared';
+import type { CellView, EntityId, TraitId } from '@evolution/shared';
+import type { RelationRing } from '../../hud/format/relations-for';
 import type { RenderFrame } from '../../net/world-store';
 import type { CameraExtent } from '../camera';
 import type { CellDeformations } from './cell-deformation';
@@ -22,6 +23,8 @@ export interface CellLayerFrame {
   readonly deformations: CellDeformations;
   /** The own cell's sprint ring and the escape's predator (self-ring.ts); `REST_OWN_CELL_RING` without an own cell. */
   readonly ownCellRing: OwnCellRing;
+  /** The relation rings by cell id (`relationRingsOf`); absent rings no cell. */
+  readonly relationRings?: ReadonlyMap<EntityId, RelationRing>;
 }
 
 export interface CellLayerOutputs {

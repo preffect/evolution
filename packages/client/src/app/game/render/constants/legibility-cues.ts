@@ -28,7 +28,7 @@ export const ZONE_PILL_SECONDS = 4;
 export const ZONE_PILL_COOLDOWN_SECONDS = 20;
 export const ZONE_PILL_DOT_PX = 8;
 
-// ---- the relation rings (drawn by #385's relation-ring slice) ----
+// ---- the relation rings (drawn in pass B by `cells/cell-shader-tells.ts` relationRing, #538) ----
 export const RELATION_RING_RADII = 1.3;
 export const RELATION_RING_MIN_GAP_PX = 6;
 export const RELATION_RING_STROKE_PX = 1.5;

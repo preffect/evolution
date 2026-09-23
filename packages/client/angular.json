@@ -54,6 +54,8 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "tsConfig": "tsconfig.spec.json",
+            "runnerConfig": "vitest-base.config.ts",
+            "setupFiles": ["src/testing/shared-worker-reset.ts"],
             "exclude": ["**/*.integration.spec.ts"],
             "coverage": true,
             "coverageExclude": ["**/*.spec.ts", "**/testing/**", "src/main.ts", "src/app/app.config.ts"],
