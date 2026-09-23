@@ -144,7 +144,8 @@ export const MAX_PREDICTION_TICKS = TICK_HZ / 2;
 /**
  * Inputs sent since the newest snapshot arrived that the prediction still steps through (#265): past this the room
  * has stopped answering — a `debug_pause_room`, a stall — and the own cell holds, as the render tick holds at the
- * extrapolation cap. The interpolation delay, so the own cell never runs further ahead of a silent room than the
- * rest of the world waits behind a live one.
+ * extrapolation cap. A quarter second (15 ticks, five snapshot intervals): one late snapshot on a routed link, not
+ * localhost, must not freeze the own cell, while a paused room still holds it at most this far past the last real
+ * arrival (a debug republish does not count as one).
  */
-export const PREDICTION_STALL_TICKS = derived.interpolationDelayTicks;
+export const PREDICTION_STALL_TICKS = TICK_HZ / 4;

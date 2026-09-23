@@ -65,7 +65,9 @@ describe('predictOwnPoses', () => {
     expect(poses.previous).toEqual(poses.current);
   });
 
-  it('replays one kernel tick per unacknowledged input, exactly as the server steps', () => {
+  // Parity with the server is the shared `movementStepFor` + `stepMovementKernel`, which the server's `movement.ts` calls
+  // (pinned by its own tests there); this pins the replay's order: one step per input, in sequence.
+  it('replays one shared movement step per unacknowledged input, in sequence order', () => {
     const inputs = [steer(11, EAST), steer(12, EAST), steer(13, NORTH)];
     const poses = predictOwnPoses(baseWith(), inputs, ACKNOWLEDGED, 3);
     expect(poses.current).toEqual(handStepped(AT_REST, [EAST, EAST, NORTH]));

@@ -38,9 +38,11 @@
     Separation and a debug pin are not replayed: reconciliation absorbs them. A cell **being engulfed** is not
     predicted at all (its predator moves it) and is drawn interpolated; a prey the own cell carries is drawn shifted
     with it.
-  - **Bounds.** At most `MAX_PREDICTION_TICKS` inputs are replayed, and at most `PREDICTION_STALL_TICKS` past the
-    newest input sent when the newest snapshot arrived: a paused or stalled room holds the own cell there, as the
-    render tick holds at the extrapolation cap, so a `debug_pause_room` evidence frame stays still. Inputs further
+  - **Bounds.** At most `MAX_PREDICTION_TICKS` (30) inputs are replayed, and at most `PREDICTION_STALL_TICKS` (15,
+    250 ms: one late snapshot on a routed link must not freeze the cell) past the newest input sent when the newest
+    snapshot **arrived** (an appended one; a debug republish of the same tick re-bases the pose but is not an
+    arrival): a paused or stalled room holds the own cell there, as the render tick holds at the extrapolation cap,
+    so a `debug_pause_room` evidence frame stays still. Inputs further
     than the horizon past the acknowledged one are not kept, so nothing grows while a room is paused.
   - **Drawn between ticks.** The frame draws the last two replayed poses eased over one tick from the moment the
     newest input was sent, so a frame that lands zero or two ticks never jolts the cell.
