@@ -17,6 +17,8 @@ import {
   RELATION_RING_RADII,
   RELATION_RING_STROKE_PX,
   SPRINT_RIM_BRIGHTNESS,
+  STARVING_ALPHA_FACTOR,
+  STARVING_RIM_BRIGHTNESS,
   WARNING_RING_STROKE_PX,
 } from '../constants';
 import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
@@ -192,6 +194,14 @@ function selfRingFields(input: CellInstanceInput): Pick<CellInstance, 'selfRingF
   return { selfRingFill: ring.fill, selfRingBrightness: ring.brightness };
 }
 
+/** The rim and the alpha: a sprint brightens the rim, a starving wild cell dulls both (it fades as it dies). */
+function fadeFields(input: CellInstanceInput): Pick<CellInstance, 'rimBrightness' | 'alpha'> {
+  if (input.view.starving) {
+    return { rimBrightness: STARVING_RIM_BRIGHTNESS, alpha: input.alpha * STARVING_ALPHA_FACTOR };
+  }
+  return { rimBrightness: input.terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS, alpha: input.alpha };
+}
+
 export function buildCellInstance(input: CellInstanceInput): CellInstance {
   const { view, traits, lod, terms } = input;
   const relation = relationRingPackingFor(input.relationRing, lod, input.warningRingPx);
@@ -200,6 +210,7 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     ...tellFields(traits, lod),
     ...filmFields(input),
     ...selfRingFields(input),
+    ...fadeFields(input),
     ...relation,
     x: view.x,
     y: view.y,
@@ -207,7 +218,6 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     quadExtentRadii: quadExtentRadii(terms, lod, { warningRingPx: input.warningRingPx, ...relation }),
     paletteIndex: view.avatarIndex,
     lodBlend: lod.interiorBlend,
-    rimBrightness: terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS,
     nucleusOffsetX: input.nucleusOffset.x,
     nucleusOffsetY: input.nucleusOffset.y,
     nucleusDiscRadii: traits.hasNucleus ? NUCLEUS_RADIUS : NO_NUCLEUS_DISC,
@@ -216,7 +226,6 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     isOwn: input.isOwn && lod.hasTells,
     isFarDot: lod.isFarDot,
     isProtocell: traits.isProtocell,
-    alpha: input.alpha,
     stripRow: input.cosmetic.stripRow,
     stripPhase: input.cosmetic.phase,
     speckleSeed: input.cosmetic.speckleSeed,

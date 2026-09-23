@@ -75,6 +75,7 @@ export interface CellView {
   engulfedByCellId: EntityId | null;
   sprintRemainingTicks: number;
   sprintCooldownRemainingTicks: number; // 0 = sprint ready; the HUD meter reads it (ui/hud.md §3.1), never estimates it
+  starving: boolean; // a wild cell the die-off is starving (ecology/wild-cells.md §3.3.6); the renderer fades it; always false for a player cell
 }
 export interface MotePositionView {
   id: EntityId;
@@ -230,6 +231,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
     sizeFactor: number; // log-uniform on [WILD_CELL_SIZE_FACTOR_MIN, _MAX], drawn at each (re)spawn; base size = worldMass × sizeFactor
     grownMass: number; // permanent growth above the base size; only the player's decay and a sprint's cost remove it (ecology/wild-cells.md §3.3.1)
     fullMass: number; // last settle's full size: min(base + grownMass, max(base, growth ceiling)); cell.mass − fullMass is the wound
+    isStarving: boolean; // the die-off's starver, committed until its cell dies (ecology/wild-cells.md §3.3.6); the cell's `starving` mirrors it
     respawnInTicks: number;
     headingX: number;
     headingY: number;

@@ -97,6 +97,11 @@ its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 2
   `loseMassToFloor` and `tryStartSprint` both call (a player cell's floor stays `CELL_STARTING_MASS`); a sub-20
   wild cell's sprint therefore costs nothing, as a player's does at the floor. The settle's own floor,
   `min(CELL_STARTING_MASS, baseMass)`, is inside `settleWildMass`.
+- **The die-off** (`wild/wild-die-off.ts`, ecology/wild-cells.md §3.3.6) runs inside `settleWildCells`: before the
+  settles it picks the heaviest seated cell as the starver when none is starving and the seated total is over
+  `wildCarryingCapacity`; the starver's settle then takes one tick of starvation from its growth and then its size
+  factor (`starveSettled`), and a starver whose full size falls under `WILD_CELL_SIZE_FACTOR_MIN × worldMass` bursts
+  through `dissolveCell` at the end of its settle, on the `spawner` stream like any detritus. Step 9 vacates the seat.
 - **Order inside step 1:** players' inputs, then the settle for every seated cell in seat order, then the due
   seats' decisions. A sprint a decision starts is paid on that tick through `tryStartSprint`, the player's own
   function, and `startWildSprint` takes as much of it as `seat.grownMass` holds off `seat.grownMass` and
@@ -116,6 +121,7 @@ its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 2
 - **Payout.** A wild predator keeps its meal: the engulf payout calls `gainMass(cell, undefined, …)` (clamped to
   `CELL_MAX_MASS`, no DNA) and reports the measured mass gain; the settle turns it into growth.
 - **Determinism.** The `wildCells` stream is the only randomness (size factors, headings, turn rolls); sight,
-  settle and sprint choices are arithmetic on hashed state. `WILD_SEAT_HASHED_FIELDS` becomes `seatNumber`,
-  `cellId`, `sizeFactor`, `grownMass`, `fullMass`, `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`;
+  settle, sprint and die-off choices are arithmetic on hashed state. `WILD_SEAT_HASHED_FIELDS` becomes `seatNumber`,
+  `cellId`, `sizeFactor`, `grownMass`, `fullMass`, `isStarving`, `respawnInTicks`, `headingX`, `headingY`,
+  `decideInTicks` (the cell's `starving` mirrors `isStarving` and is left out of the cell walk as derived);
   every pinned state hash and golden replay moves with the build and is re-pinned there.

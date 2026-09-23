@@ -210,6 +210,13 @@ export const GLINT_ROTATION_DEG = -40;
 export const GLINT_EDGE_PX = 1.5;
 export const GLINT_ALPHA = 0.5;
 export const PREY_UNDER_FILM_ALPHA = 0.62;
+/**
+ * A starving wild cell fades (docs/ecology/wild-cells.md §3.3.6, ticket #557's default "it fades and shrivels"): its
+ * alpha and rim are dulled while the existing membrane wobble shows it shrinking. A placeholder the graphics follow-up
+ * refines.
+ */
+export const STARVING_ALPHA_FACTOR = 0.6;
+export const STARVING_RIM_BRIGHTNESS = 0.7;
 /** The absorbed ghost's dashed rim (visual-style/motion-and-legibility.md §5 "rim dashes"; no sheet number, graphics-designer to accept). */
 export const GHOST_RIM_DASH_PX = [5, 4] as const;
 /** The nucleus highlight's centre, in cell radii toward the light: inside the `NUCLEUS_RADIUS` 0.30 body. */

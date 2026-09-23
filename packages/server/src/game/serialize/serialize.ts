@@ -55,6 +55,7 @@ export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE
     engulfedByCellId: cell.engulfedByCellId,
     sprintRemainingTicks: cell.sprintRemainingTicks,
     sprintCooldownRemainingTicks: cell.sprintCooldownRemainingTicks,
+    starving: cell.starving,
   };
 }
 

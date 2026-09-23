@@ -305,7 +305,9 @@ totalWildMass           = Σ mass of every seated wild cell, read at the start o
   taken from `seat.grownMass` first. What is left is taken from the base size itself, by
   `seat.sizeFactor −= remainder / worldMass(t)`, then `seat.fullMass −= starvedMass`. The settle then
   runs as usual, so a wound on a starving cell still recovers, but only toward the shrinking full size.
-  The starved mass is simply gone. Nothing drops until the cell bursts.
+  The starved mass is simply gone. Nothing drops until the cell bursts. This is the order a sprint's cost is
+  paid in too (§3.3.1): growth first; but what a sprint takes past the growth is a wound that recovers, while
+  what starvation takes past the growth comes off the base size for good.
 - **Bursting.** A starving cell whose `seat.fullMass` falls below `WILD_CELL_SIZE_FACTOR_MIN` ×
   `worldMass(t)`, the smallest newborn's size, dies at the end of its settle. It goes through
   `dissolveCell`, the way any cell leaves the world: every engulf it is part of is aborted, and

@@ -90,6 +90,7 @@ export function previewCellView(spec: PreviewCellSpec, balance: BalanceConfig): 
     engulfedByCellId: optionalEntityId(spec.engulfedByCellId),
     sprintRemainingTicks: spec.sprintRemainingTicks ?? NO_SPRINT_TICKS,
     sprintCooldownRemainingTicks: spec.sprintCooldownRemainingTicks ?? NO_SPRINT_TICKS,
+    starving: false,
   };
 }
 
