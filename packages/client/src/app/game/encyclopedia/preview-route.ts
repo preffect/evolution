@@ -15,7 +15,7 @@ import { InjectionToken, inject, isDevMode } from '@angular/core';
 import { BACTERIUM_VARIANT, CELL_KIND, DNA_TAG, FOOD_KIND, ZONE_ID } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
 import type { PreviewOpenTimings } from '../render/preview/preview-timings';
-import { PREVIEW_BUDGETS, type PreviewBudgetVerdict } from '../render/preview/preview-timings';
+import { PREVIEW_BUDGETS, type PreviewBudgetVerdict, type PreviewFrameWork } from '../render/preview/preview-timings';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewScene, type PreviewSpec } from '../render/preview/preview-spec';
 import { positiveParameter } from '../route-query';
 import { entryById } from './registry';
@@ -136,8 +136,10 @@ export interface PreviewRouteReport {
   readonly warmOpens: readonly PreviewOpenTimings[];
   /** The p95 of `openedToFirstFrameMs` over `warmOpens`; `null` when there are none. */
   readonly openP95Ms: number | null;
-  /** The parked session's own frame report. */
+  /** The parked session's own frame report; its frame time includes the submit, which the budget does not judge. */
   readonly frame: ClientPerformanceReport;
+  /** What the frame budget judges: the parked lens's work outside its submit, and the clock it was read on. */
+  readonly frameWork: PreviewFrameWork;
   readonly budgets: typeof PREVIEW_BUDGETS;
   /**
    * Whether each measured number is inside its budget, or `null` where nothing could be judged. **Never judged in

@@ -1,6 +1,6 @@
 // docs/ecology/wild-cells.md §3.3.3 and docs/ecology/acceptance.md §8.1 W6, W7, W13, W14: the cadence, and each
 // decision branch with a seat that takes it and one that does not (escape, flee, hunt, graze), the wander fallback,
-// the sprint rules and how their cost is paid, and the `wildCells` stream as the only randomness.
+// and the `wildCells` stream as the only randomness. The sprint rules are wild-strategy-sprint.test.ts.
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
@@ -8,78 +8,32 @@ import {
   FOOD_KIND,
   SERVER_RANDOM_STREAM_LABELS,
   RANDOM_STREAM,
-  playerId,
   radiusForMass,
   secondsToTicks,
-  type BalanceConfig,
 } from '@evolution/shared';
+import {
+  HUNTING_TICK,
+  JUST_PAST_RADII,
+  JUST_PAST_WU,
+  LUNCH_MASS,
+  PROTOCELL_TICK,
+  SECOND_PLAYER,
+  THREAT_MASS,
+  arena,
+  targetOf,
+} from '../../testing/wild-arena.js';
 import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { TEST_PLAYER, createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
-import type { PlayerIdentity } from '../session/players.js';
 import { setCellMass } from '../simulation/cell-mass.js';
-import { beginEngulf, sealEngulf } from '../simulation/engulf-state.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
-import type { CellRecord } from '../world/entities.js';
 import { findCell } from '../world/lookups.js';
-import type { StepContext, WorldState } from '../world/world-state.js';
+import type { StepContext } from '../world/world-state.js';
 import { wildSightRange } from './wild-perception.js';
 import { decideWildTargets, decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
 import { pointAlongHeading } from './wild-wander.js';
 
 const { wildCells, controls, growth } = DEFAULT_BALANCE;
 const INTERVAL_TICKS = secondsToTicks(wildCells.WILD_CELL_DECISION_INTERVAL_SECONDS);
-/** Elapsed ticks at which the world stage is `endosymbiosis`, the hunting stage (W6). */
-const HUNTING_TICK = 21_600;
-const PROTOCELL_TICK = 1;
-const THREAT_MASS = 100;
-const LUNCH_MASS = 20;
-/** How far past a boundary (sight, a sprint range) the "just outside" cases sit, in own radii or in wu. */
-const JUST_PAST_RADII = 0.01;
-const JUST_PAST_WU = 1;
-const SECOND_PLAYER: PlayerIdentity = { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 };
-/** Keeps every heading: the wander target is then exactly `pointAlongHeading`. */
-const NEVER_TURNS: BalanceConfig = structuredClone(DEFAULT_BALANCE);
-NEVER_TURNS.wildCells.WILD_CELL_TURN_CHANCE = 0;
-
-interface Arena {
-  readonly world: WorldState;
-  readonly context: StepContext;
-  readonly wild: CellRecord;
-  readonly player: CellRecord;
-}
-
-interface ArenaOptions {
-  readonly wildMass: number;
-  readonly playerMass: number;
-  /** The player's centre this many wild radii east of the wild cell (at the origin). */
-  readonly playerAtRadii: number;
-  readonly tick?: number;
-  readonly players?: readonly PlayerIdentity[];
-}
-
-/** Seat 0 alone at the origin with the player(s) placed east of it, due to decide on the next call. */
-function arena(options: ArenaOptions): Arena {
-  const world = createTestWorld({ hasWildSeats: true, players: options.players });
-  const seat = world.wildSeats[0]!;
-  const wild = findCell(world, seat.cellId!)!;
-  const player = world.cells[0]!;
-  world.wildSeats = [seat];
-  world.cells = [...world.cells.filter((cell) => cell.playerId !== null), wild];
-  world.tick = options.tick ?? PROTOCELL_TICK;
-  setCellMass(wild, options.wildMass, world.balance);
-  wild.x = 0;
-  wild.y = 0;
-  setCellMass(player, options.playerMass, world.balance);
-  player.x = wild.radius * options.playerAtRadii;
-  player.y = 0;
-  seat.decideInTicks = 1;
-  return { world, context: createTestStepContext(world, { balance: NEVER_TURNS }), wild, player };
-}
-
-function targetOf(cell: CellRecord) {
-  return { x: cell.targetX, y: cell.targetY };
-}
-
 describe('ticksUntilDecision', () => {
   it('counts to the next tick ≡ seat (mod interval) strictly after the given one', () => {
     expect(ticksUntilDecision(0, 0, INTERVAL_TICKS)).toBe(INTERVAL_TICKS); // seat 0 of a fresh world: tick 30
@@ -212,77 +166,6 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
     spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 0, y: sight + JUST_PAST_WU } });
     decideWildTargets(world, context);
     expect(targetOf(wild)).toEqual(pointAlongHeading(world.wildSeats[0]!, wild, world.balance));
-  });
-});
-
-describe('decideWildTargets: sprint (W14)', () => {
-  it('sprints from a threat within WILD_CELL_SPRINT_FLEE_RADII, spending growth first and wounding the rest', () => {
-    const { world, context, wild } = arena({ wildMass: LUNCH_MASS * 2, playerMass: THREAT_MASS, playerAtRadii: 3 });
-    const seat = world.wildSeats[0]!;
-    const growthBefore = 1;
-    seat.fullMass = wild.mass;
-    seat.grownMass = growthBefore;
-    const massBefore = wild.mass;
-    decideWildTargets(world, context);
-    const spent = massBefore * controls.SPRINT_MASS_COST_FRACTION;
-    expect(wild.sprintRemainingTicks).toBe(secondsToTicks(controls.SPRINT_DURATION_SECONDS));
-    expect(wild.mass).toBeCloseTo(massBefore - spent, 9);
-    // The growth pays what it can, for good; the rest is a wound below the full size, which the settle recovers.
-    expect(seat.grownMass).toBe(0);
-    expect(seat.fullMass).toBeCloseTo(massBefore - growthBefore, 9);
-    expect(seat.fullMass - wild.mass).toBeCloseTo(spent - growthBefore, 9);
-  });
-
-  it('pays a sprint wholly from its growth when the growth covers it: no wound', () => {
-    const { world, context, wild } = arena({ wildMass: LUNCH_MASS * 2, playerMass: THREAT_MASS, playerAtRadii: 3 });
-    const seat = world.wildSeats[0]!;
-    const growthBefore = 10;
-    seat.fullMass = wild.mass;
-    seat.grownMass = growthBefore;
-    decideWildTargets(world, context);
-    const spent = LUNCH_MASS * 2 * controls.SPRINT_MASS_COST_FRACTION;
-    expect(seat.grownMass).toBeCloseTo(growthBefore - spent, 9);
-    expect(seat.fullMass).toBeCloseTo(wild.mass, 9);
-  });
-
-  it('does not sprint from the same threat just past the sprint range', () => {
-    const atRadii = wildCells.WILD_CELL_SPRINT_FLEE_RADII + JUST_PAST_RADII;
-    const { world, context, wild } = arena({ wildMass: LUNCH_MASS, playerMass: THREAT_MASS, playerAtRadii: atRadii });
-    decideWildTargets(world, context);
-    expect(wild.targetX).not.toBeNull();
-    expect(wild.sprintRemainingTicks).toBe(0);
-  });
-
-  it('sprints on a hunt within WILD_CELL_SPRINT_HUNT_RADII, but never while it is engulfing', () => {
-    const hunting = { wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: 2, tick: HUNTING_TICK };
-    const free = arena(hunting);
-    decideWildTargets(free.world, free.context);
-    expect(free.wild.sprintRemainingTicks).toBeGreaterThan(0);
-    const engulfing = arena(hunting);
-    beginEngulf({ predator: engulfing.wild, prey: engulfing.player });
-    decideWildTargets(engulfing.world, engulfing.context);
-    expect(targetOf(engulfing.wild)).toEqual({ x: engulfing.player.x, y: engulfing.player.y });
-    expect(engulfing.wild.sprintRemainingTicks).toBe(0);
-  });
-
-  it('does not sprint at a prey it already covers: the engulf starts this tick, there is no gap to close', () => {
-    const covering = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: 0.25, tick: HUNTING_TICK });
-    decideWildTargets(covering.world, covering.context);
-    expect(targetOf(covering.wild)).toEqual({ x: covering.player.x, y: covering.player.y });
-    expect(covering.wild.sprintRemainingTicks).toBe(0);
-  });
-
-  it('runs from its engulfer and sprints before the seal, and never sprints once carried', () => {
-    const escaping = arena({ wildMass: LUNCH_MASS, playerMass: THREAT_MASS, playerAtRadii: 0.5 });
-    beginEngulf({ predator: escaping.player, prey: escaping.wild });
-    decideWildTargets(escaping.world, escaping.context);
-    expect(targetOf(escaping.wild)).toEqual({ x: -controls.STEER_FULL_THROTTLE_RADII * escaping.wild.radius, y: 0 });
-    expect(escaping.wild.sprintRemainingTicks).toBeGreaterThan(0);
-    const carried = arena({ wildMass: LUNCH_MASS, playerMass: THREAT_MASS, playerAtRadii: 0.5 });
-    beginEngulf({ predator: carried.player, prey: carried.wild });
-    sealEngulf({ predator: carried.player, prey: carried.wild });
-    decideWildTargets(carried.world, carried.context);
-    expect(carried.wild.sprintRemainingTicks).toBe(0);
   });
 });
 

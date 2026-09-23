@@ -1,7 +1,7 @@
 // Integration (docs/testing/tiers-and-builders.md §2): the /ws route over a real socket pair, through the router
 // into the lobby and back out as a broadcast. Run with `./validate.sh integration`.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE, SOCKET_CLOSE_CODE_REPLACED } from '@evolution/shared';
 import {
   nextServerMessage,
   openTestSocket,
@@ -34,9 +34,10 @@ describe('/ws route', () => {
   it('a second socket with the same clientId takes over and the first close does not unregister it', async () => {
     const first = await openTestSocket(`${started.url}?clientId=alice`);
     const firstConnection = started.connections.get('alice');
-    const firstClosed = whenClosed(first);
+    const firstClosed = new Promise<number>((resolve) => first.once('close', (code: number) => resolve(code)));
     const second = await openTestSocket(`${started.url}?clientId=alice`);
-    await firstClosed;
+    // Over the wire, with the code the client reads as "do not reconnect" (#273).
+    expect(await firstClosed).toBe(SOCKET_CLOSE_CODE_REPLACED);
     expect(firstConnection?.isReplaced).toBe(true);
     expect(started.connections.get('alice')).toBeDefined();
     expect(started.connections.get('alice')).not.toBe(firstConnection);
