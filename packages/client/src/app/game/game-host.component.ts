@@ -9,6 +9,7 @@ import { AudioHooks } from './audio/audio-hooks';
 import { CLOCK } from './clock-provider';
 import { GameStateService } from './state/game-state.service';
 import { HudStateService } from './hud/hud-state.service';
+import { OnboardingService } from './hud/onboarding.service';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
 import { CREATE_PIXI_APP } from './render/pixi-app-provider';
@@ -45,6 +46,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
   private readonly clock = inject(CLOCK);
   private readonly hudState = inject(HudStateService);
   private readonly gameState = inject(GameStateService);
+  private readonly onboarding = inject(OnboardingService);
   /** Injected rather than imported, so a spec can mount this component without a WebGL context (#449's review). */
   private readonly createPixiApp = inject(CREATE_PIXI_APP);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
@@ -67,7 +69,8 @@ export class GameHostComponent implements OnInit, OnDestroy {
         isDevMode: isDevMode(),
         // The picker's highlighted card (docs/ui/overlays.md §3.2): the renderer previews its trait on the own cell.
         previewTraitId: () => this.hudState.previewTraitId(),
-        isReticleVisible: () => false,
+        // The steer beat (docs/ui/input-and-onboarding.md §5) shows the pointer reticle and the line to it.
+        isReticleVisible: () => this.onboarding.reticleVisible(),
         // The fourth crossing (docs/ui/hud.md §3.1.4): the record the status mirror speaks is the one the renderer draws.
         ownCellIndicators: () => this.gameState.ownCellIndicators(),
         // Tab (docs/ui/input-and-onboarding.md §4) reaches the HUD through the input layer's one keyboard listener.

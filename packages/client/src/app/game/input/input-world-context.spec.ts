@@ -40,6 +40,14 @@ describe('inputWorldContextOf', () => {
     });
   });
 
+  it('carries the predicted pose once inputs are in flight, so the steer target hangs off where the cell will be', () => {
+    const store = storeWith({ cells: [createTestCellView({ playerId: TEST_OWN_PLAYER_ID, radius: 18 })] });
+    store.recordOwnInput({ sequence: 1, targetX: 400, targetY: 0, shouldSprint: false, traitChoice: null });
+    const predicted = store.predictedOwnPose()!;
+    expect(predicted.x).toBeGreaterThan(0);
+    expect(inputWorldContextOf(store)?.ownCell).toEqual({ x: predicted.x, y: predicted.y, radiusWu: 18 });
+  });
+
   it('has no own cell while the player is dead', () => {
     const store = storeWith({ cells: [createTestCellView({ playerId: playerId('someone-else') })] });
     expect(inputWorldContextOf(store)?.ownCell).toBeNull();

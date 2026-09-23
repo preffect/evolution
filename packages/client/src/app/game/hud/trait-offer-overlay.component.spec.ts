@@ -9,11 +9,15 @@ import {
   createTestSnapshot,
   createTestTraitOfferView,
   playerId,
+  type CellView,
+  type GameEffect,
   type PlayerProgressView,
   type TraitId,
   type TraitOfferView,
 } from '@evolution/shared';
-import { createTestCellView } from '../../../testing/builders';
+import { createTestCellView, createTestEatEffect } from '../../../testing/builders';
+import { OFFER_BEAT_LINE } from './format/onboarding-text';
+import { STEER_HINT_DISTANCE_WU } from './hud-constants';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, testIdSelector, traitCardPickTestId, traitCardTestId } from '../test-ids/hud-test-ids';
@@ -190,5 +194,37 @@ describe('TraitOfferOverlayComponent', () => {
     showOffer(null);
     expect(document.activeElement).toBe(canvasHost);
     canvasHost.remove();
+  });
+
+  it('adds the onboarding line under the cards on the session’s first offer, and not on a later one', () => {
+    const ownCell = createTestCellView({ playerId: OWN_PLAYER_ID });
+    const moved: Partial<CellView> = { x: STEER_HINT_DISTANCE_WU };
+    let tick = SNAPSHOT_TICK;
+    const step = (open: TraitOfferView | null, cell: Partial<CellView> = moved, effects: GameEffect[] = []): void => {
+      tick += 1;
+      multiplayer.snapshot.set(
+        createTestSnapshot({
+          tick,
+          // A fresh round, so the sprint beat's round time has not come yet.
+          roundStartTick: SNAPSHOT_TICK,
+          cells: [{ ...ownCell, ...cell }],
+          ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, level: 3, offer: open }),
+          effects,
+        }),
+      );
+      fixture.detectChanges();
+      settle();
+    };
+    multiplayer.playerId.set(OWN_PLAYER_ID);
+    multiplayer.balance.set(DEFAULT_BALANCE);
+    // The steer beat goes up, then the cell moves and eats: the opening beats before the offer are past.
+    step(null, {});
+    step(null, moved, [createTestEatEffect({ cellId: ownCell.id })]);
+    step(offer);
+    expect(query(HUD_TEST_ID.traitOfferOnboarding)?.textContent).toBe(OFFER_BEAT_LINE);
+    step(null);
+    step(nextOffer);
+    expect(query(HUD_TEST_ID.traitOffer)).not.toBeNull();
+    expect(query(HUD_TEST_ID.traitOfferOnboarding)).toBeNull();
   });
 });

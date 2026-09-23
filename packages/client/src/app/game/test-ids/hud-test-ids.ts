@@ -59,6 +59,10 @@ export const HUD_TEST_ID = {
   serverError: 'hud-server-error',
   /** The control that dismisses it. */
   serverErrorDismiss: 'hud-server-error-dismiss',
+  /** The onboarding hint pill, with `data-hint-id` (docs/ui/input-and-onboarding.md §5, #530). */
+  hint: 'hint',
+  /** The picker's extra footer line while the `offer` onboarding beat is up. */
+  traitOfferOnboarding: 'trait-offer-onboarding',
   /** The hold-Tab "affecting you" panel, beside the full board (docs/ui/overlays.md §3.7, #387). */
   affectingPanel: 'affecting-panel',
   /** Its mass element: the mass, its trend glyph, the net rate and the sparkline. */

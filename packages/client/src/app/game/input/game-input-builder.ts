@@ -57,13 +57,13 @@ export function keyboardSteerTarget(ownCell: OwnCellPose, direction: Vec2, contr
  * spectating would still be in flight when the server places the respawned cell, which would swim
  * toward it until this client saw the cell (#346). A `null` target leaves the server's latch alone.
  *
- * The pointer is sent as **its offset from the middle of the view, applied to the newest
- * snapshot's own cell** — not as the absolute world point the camera projects it to. The camera
- * centres on the *interpolated* cell and then smooths, so it trails the authoritative one by
- * `INTERPOLATION_DELAY_TICKS` plus `CAMERA_FOLLOW_SECONDS`, and an absolute target would have
- * that lag distance subtracted from the offset the player aimed for. At `CELL_STARTING_MASS`
- * that is most of the throttle ramp of `ecology/mass-and-movement.md §5.2`, so a new cell would be full speed or
- * stopped with nothing in between. Full prediction of the own cell stays #265.
+ * The pointer is sent as **its offset from the middle of the view, applied to the own cell's
+ * predicted pose** (#265) — not as the absolute world point the camera projects it to. The camera
+ * follows the drawn cell and then smooths, so it trails by `CAMERA_FOLLOW_SECONDS`, and an absolute
+ * target would have that lag distance subtracted from the offset the player aimed for. At
+ * `CELL_STARTING_MASS` that is most of the throttle ramp of `ecology/mass-and-movement.md §5.2`, so a new
+ * cell would be full speed or stopped with nothing in between. The predicted pose is where the cell
+ * will be when the server applies this input, so the offset lands where the player aimed.
  */
 export function steerTargetFor(options: GameInputBuildOptions): Vec2 | null {
   const { ownCell, controls } = options.world;
