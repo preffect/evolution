@@ -44,17 +44,17 @@ const W3_MASS_AT_LEVEL = 200;
 const W3_TOLERANCE = 0.01;
 const W3_SPAWNED_LOW = 351;
 const W3_SPAWNED_HIGH = 355;
-/** W3 on the pinned seed: 241 algae and 110 bacteria, 0.687 (the 0.70 row; the window's σ is ≈ 0.07; #551's run). */
-const W3_ALGAE_SHARE_ON_SEED = 0.687;
+/** W3 on the pinned seed: 261 algae and 90 bacteria, 0.744 (the 0.70 row; the window's σ is ≈ 0.07; #551's run). */
+const W3_ALGAE_SHARE_ON_SEED = 0.744;
 /**
- * W9: the idle player dies once in the window (tick 32 712, #551's run): 526.75 − 1 × 182 / 60 × 1.5 = 522.2 →
- * "between 522 and 526"; "algae share within 0.50 ± 0.06" (0.448 on the seed).
+ * W9: the idle player dies once in the window (tick 34 623, #551's run): 526.75 − 1 × 182 / 60 × 1.5 = 522.2 →
+ * "between 522 and 526"; "algae share within 0.50 ± 0.06" (0.540 on the seed).
  */
 const W9_DEATHS_IN_WINDOW = 1;
 const W9_SPAWNED_LOW = 522;
 const W9_SPAWNED_HIGH = 526;
 const W9_ALGAE_SHARE = 0.5;
-const W9_ALGAE_SHARE_ON_SEED = 0.448;
+const W9_ALGAE_SHARE_ON_SEED = 0.54;
 const ALGAE_SHARE_TOLERANCE = 0.06;
 /** A seed's share is one number: the tolerance only absorbs the rounding of the literal the row states (± 0.001). */
 const SEED_SHARE_TOLERANCE = 0.001;

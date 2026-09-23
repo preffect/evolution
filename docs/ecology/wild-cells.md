@@ -194,9 +194,15 @@ sprint in every respect (game-design/controls-and-scope.md §6): × `SPRINT_SPEE
 to 20), with `SPRINT_COOLDOWN_SECONDS` 3 counted from the sprint's start. The strategy
 sets the command's sprint flag, and the cell's own sprint counters apply it exactly as for a player's
 input. A decision is the only moment a wild cell can start a sprint, so it reacts to an engulf within
-0.5 s, as a player would. It never sprints while it is engulfing (the prey is already in hand), at a prey it
-already covers (the engulf starts at step 6 of the same tick: there is no gap left to close), or once it is
-sealed and carried (a sprint could not move it), so a sprint is never paid for nothing. Wild cells move through the shared kernel (§5.2, gel included), separate
+0.5 s, as a player would. It never sprints while it is engulfing (the prey is already in hand) or once it is
+sealed and carried (a sprint could not move it). Because a sprint's cost is spent for good, a hunt sprint is taken
+only when it can land (`wild/wild-hunt-sprint.ts`, the #594 review): the hunter must still engulf the prey at its
+mass after paying for the sprint (`canEngulf` at the paid mass), and the sprint must reach engulf contact within
+its duration. The second test runs the shared movement kernel for the sprint's ticks as step 3 would move the
+hunter (its sprinting speed cap at the paid mass, its current velocity, the latched target at the prey's centre and
+the throttle easing off near it) against the prey carried on at its current velocity. A hunter that already covers
+the prey has no gap to close (the engulf starts at step 6 of the same tick) and does not sprint either. No tunable
+of its own: the hunt sprint radius (3) still bounds where it is considered. Flee sprints are unchanged. Wild cells move through the shared kernel (§5.2, gel included), separate
 (§5.3) and engulf (§6) exactly as players do. `canEngulf` reads mass only, so the danger chip and the
 warning ring work on them unchanged (the chip names them `WILD <STAGE>`).
 
@@ -259,7 +265,8 @@ and a rematch recreates them at protocell scale.
 With the size factor log-uniform on [0.5, 2.0], a third of newborn wild cells (0.339) are lunch for a
 player at exactly the world's mass (base size ≤ 0.8 ×), and a third are threats (≥ 1.25 ×). At 2.5 ×
 `worldMass`, every newborn is lunch; at 0.4 ×, every one is a threat. Growth moves individual cells
-up from there, never past 3 × `worldMass`, and wounds move them down for a few seconds at a time.
+up from there, never past 3 × `worldMass`, wounds move them down for a few seconds at a time, and sprints move them
+down for good until a meal pays the cost back.
 
 **Randomness.** The `wildCells` stream (label `wild_cells`) owns size factors, wander headings and turn
 rolls. It is forked from the round seed like every other stream, so a wild turn never shifts a mote,

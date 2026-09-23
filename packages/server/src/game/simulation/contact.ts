@@ -38,8 +38,13 @@ export function cellPairs(cells: readonly CellRecord[]): CellPair[] {
  * not being covered.
  */
 export function isEngulfContact(predator: CellFootprint, prey: CellFootprint, balance: BalanceConfig): boolean {
+  return engulfContactGap(predator, prey, balance) <= 0;
+}
+
+/** How far the predator still is from engulf contact with the prey (wu); zero or less once it covers the prey. */
+export function engulfContactGap(predator: CellFootprint, prey: CellFootprint, balance: BalanceConfig): number {
   const reach = predator.radius - prey.radius * balance.absorption.ENGULF_COVERAGE_FRACTION;
-  return distanceBetween(predator, prey) <= reach;
+  return distanceBetween(predator, prey) - reach;
 }
 
 /** Mass alone, plus the refractory: a predator that just spat this prey out cannot engulf it yet. */

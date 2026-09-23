@@ -4,8 +4,8 @@
 // step 3 moves it through the shared kernel, and may start a sprint. The rules are the #15 strategies, each a fresh
 // instance per decision because a wild cell keeps no state outside its seat record: `flee` (from any cell, player or
 // wild, that can engulf it, sprinting within `WILD_CELL_SPRINT_FLEE_RADII`), a nearest-first `hunter` (wild prey from
-// tick 0, players from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, sprinting within `WILD_CELL_SPRINT_HUNT_RADII` unless it
-// already covers the prey: the engulf starts at step 6 of this tick, so there is no gap left to close) and the
+// tick 0, players from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, sprinting within `WILD_CELL_SPRINT_HUNT_RADII` only when
+// the sprint can land, `wild-hunt-sprint.ts`) and the
 // `grazer` over algae and detritus; the wander rule keeps its heading in the seat (`wild-wander.ts`). A cell being
 // engulfed before the seal flees its predator and sprints, the player's engulf-escape tool.
 //
@@ -33,13 +33,13 @@ import { createGrazerStrategy } from '../bots/strategies/grazer.js';
 import { createHunterStrategy } from '../bots/strategies/hunter.js';
 import type { BotCellView } from '../bots/perception.js';
 import { HUNT_PREFERENCE } from '../bots/strategy-constants.js';
-import { isEngulfContact } from '../simulation/contact.js';
 import { engulfingPredatorOf, isCarried, isEngulfing } from '../simulation/engulf-state.js';
 import { tryStartSprint } from '../simulation/inputs.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { createWildPerception, wildSightOf, type WildPerception } from './wild-perception.js';
+import { isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
+import { createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
 import { cellOfSeat } from './wild-settle.js';
 import { wanderTargetOf } from './wild-wander.js';
 
@@ -101,13 +101,29 @@ function escapeCommand(cell: CellRecord, decision: WildDecisionContext): WildCom
   return { target, isSprinting: true };
 }
 
-/** Flee, then hunt, then graze, over the two views of the cell's sight; `null` when none applies. */
+/** The hunt rule's sprint test over the sight's own records: `isHuntSprintWorthwhile` (`wild-hunt-sprint.ts`). */
+function huntSprintTest(sight: WildSight, decision: WildDecisionContext) {
+  const recordOf = new Map<string, CellRecord>(sight.cells.map((cell) => [cell.id, cell]));
+  return (self: BotCellView, prey: BotCellView): boolean => {
+    const hunter = recordOf.get(self.id);
+    const target = recordOf.get(prey.id);
+    return (
+      hunter !== undefined &&
+      target !== undefined &&
+      isHuntSprintWorthwhile(hunter, target, decision.world, decision.step.balance)
+    );
+  };
+}
+
+/** Flee, then hunt, then graze, over what the cell sees; `null` when none applies. */
 function sightedCommand(
   context: ScriptContext<WorldState, EntityId>,
-  views: { readonly all: WildPerception; readonly prey: WildPerception },
-  balance: BalanceConfig,
+  sight: WildSight,
+  decision: WildDecisionContext,
 ): WildCommand | null {
+  const { balance } = decision.step;
   const { wildCells, controls } = balance;
+  const everything = createWildPerception(sight, balance);
   const fleeOptions = {
     withinRadii: wildCells.WILD_CELL_FLEE_RANGE_RADII,
     stepRadii: controls.STEER_FULL_THROTTLE_RADII,
@@ -116,31 +132,26 @@ function sightedCommand(
   const huntOptions = {
     preference: HUNT_PREFERENCE.nearest,
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_HUNT_RADII,
-    isSprintWorthwhile: (self: BotCellView, prey: BotCellView) => !isEngulfContact(self, prey, balance),
+    isSprintWorthwhile: huntSprintTest(sight, decision),
   };
+  const prey = createWildPerception(sight, balance, decision.isHuntingStage);
   return (
-    wildCommandOf(createFleeStrategy(views.all, fleeOptions)().decide(context)) ??
-    wildCommandOf(createHunterStrategy(views.prey, huntOptions)().decide(context)) ??
-    wildCommandOf(createGrazerStrategy(views.all)().decide(context))
+    wildCommandOf(createFleeStrategy(everything, fleeOptions)().decide(context)) ??
+    wildCommandOf(createHunterStrategy(prey, huntOptions)().decide(context)) ??
+    wildCommandOf(createGrazerStrategy(everything)().decide(context))
   );
 }
 
 /** One decision: escape, flee, hunt, graze, else wander (docs/ecology/wild-cells.md §3.3.3); always a target. */
 export function decideWildCommand(seat: WildSeatRecord, cell: CellRecord, decision: WildDecisionContext): WildCommand {
-  const { world, step, isHuntingStage } = decision;
+  const escape = escapeCommand(cell, decision);
+  if (escape !== null) {
+    return escape;
+  }
+  const { world, step } = decision;
   const context = scriptContextFor(seat, cell, decision);
-  const sight = wildSightOf(world, cell, step.balance);
-  const views = {
-    all: createWildPerception(sight, step.balance),
-    prey: createWildPerception(sight, step.balance, isHuntingStage),
-  };
-  return (
-    escapeCommand(cell, decision) ??
-    sightedCommand(context, views, step.balance) ?? {
-      target: wanderTargetOf(seat, cell, context.random, step.balance),
-      isSprinting: false,
-    }
-  );
+  const sighted = sightedCommand(context, wildSightOf(world, cell, step.balance), decision);
+  return sighted ?? { target: wanderTargetOf(seat, cell, context.random, step.balance), isSprinting: false };
 }
 
 /**

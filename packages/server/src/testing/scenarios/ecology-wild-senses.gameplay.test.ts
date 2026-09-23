@@ -169,7 +169,7 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .expect('a wander target, never the mote', seatTarget(PLACED_SEAT))
       .atTick(W13_DECISION_TICK)
       .toSatisfy(
-        (target) => target?.x !== null && target?.x !== BROTH_POINT.x + W13_OUT_OF_SIGHT_WU,
+        (target) => target !== undefined && target.x !== null && target.x !== BROTH_POINT.x + W13_OUT_OF_SIGHT_WU,
         'a target that is not the mote',
       )
       .runDeterministic();
