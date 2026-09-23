@@ -34,6 +34,8 @@ const FOOD = {
   /** The dish draws detritus wider than tall (`DETRITUS_ASPECT` 0.85). */
   detritusRadiusY: 22,
   detritusCoreShare: 0.45,
+  /** The inner meniscus line, between the core and the rim. */
+  detritusMeniscusShare: 0.72,
   edgeRingShare: 0.86,
 } as const;
 
@@ -87,6 +89,17 @@ const DETRITUS: shape.SubjectGlyph = {
         FOOD.detritusRadiusY * FOOD.detritusCoreShare,
       ),
       { fill: kit.solid(SUBJECT_RAMP.lipid.dark, SUBJECT_ALPHA.scatter), motion: kit.BREATHE },
+    ),
+    /** The material detail: the lipid's inner meniscus, faint in its light, dropped at the list LOD. */
+    kit.paint(
+      shape.GLYPH_ROLE.detail,
+      shape.ellipse(
+        50,
+        50,
+        FOOD.detritusRadiusX * FOOD.detritusMeniscusShare,
+        FOOD.detritusRadiusY * FOOD.detritusMeniscusShare,
+      ),
+      { stroke: kit.stroke(SUBJECT_RAMP.lipid.light, SUBJECT_STROKE.hair, SUBJECT_ALPHA.wash), motion: kit.BREATHE },
     ),
     /** The lipid glint is the dish's warm `LIPID_LIGHT`, not the white every other mote glints with. */
     {
