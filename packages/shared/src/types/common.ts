@@ -43,9 +43,10 @@ export const clamp = (value: number, min: number, max: number): number =>
   value < min ? min : value > max ? max : value;
 
 /**
- * True when a room can accept another player: it has not started and is not
- * yet at capacity. Pure helper shared by the lobby (server) and room browser
- * (client) so "joinable" is defined in exactly one place.
+ * True when a room can take another human: below `maxPlayers`, started or not (#337, game-design/session.md §5); a
+ * started room takes them as late joins. `playerCount` is humans only (connected plus in disconnect grace), never the
+ * synthetic players a debug tool adds. Pure helper shared by the lobby (server) and the room browser (client) so
+ * "joinable" is defined in exactly one place.
  */
-export const isRoomJoinable = (room: { isStarted: boolean; playerCount: number; maxPlayers: number }): boolean =>
-  !room.isStarted && room.playerCount < room.maxPlayers;
+export const isRoomJoinable = (room: { playerCount: number; maxPlayers: number }): boolean =>
+  room.playerCount < room.maxPlayers;

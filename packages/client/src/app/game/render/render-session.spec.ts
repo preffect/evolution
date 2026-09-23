@@ -6,6 +6,8 @@ import {
   SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   TICK_INTERVAL_MS,
   entityId,
+  playerId,
+  type ServerMessage,
 } from '@evolution/shared';
 import { createTestFoodMoteView } from '../../../testing/builders';
 import { createFakePixiApp, type FakePixiApp } from '../../../testing/fake-pixi-app';
@@ -179,6 +181,18 @@ describe('RenderSession', () => {
     expect(Object.keys(report.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
     expect(report).toMatchObject({ drawCalls: 0, gpuMs: null, heapMb: null, visibleCells: 1, visibleMotes: 0 });
     expect(subject.instrumentation.frameCount).toBe(RENDER_REPORT_EVERY_FRAMES);
+  });
+
+  it('#275: keeps the audio session through a resync game_state; another player starts a new one', () => {
+    const { subject, audio, dependencies } = session();
+    subject.onMessage(gameState());
+    subject.onMessage(gameState());
+    expect(dependencies.connectAudio).toHaveBeenCalledTimes(1);
+    expect(audio.disconnect).not.toHaveBeenCalled();
+    expect(audio.updateOptions).toHaveBeenCalledWith({ balance: DEFAULT_BALANCE });
+    subject.onMessage({ ...gameState(), playerId: playerId('someone-else') } as ServerMessage);
+    expect(dependencies.connectAudio).toHaveBeenCalledTimes(2);
+    expect(audio.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it('applies balance updates to the store and the audio handle', async () => {

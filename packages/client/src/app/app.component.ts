@@ -12,8 +12,9 @@ import {
   ROUND_DURATION_SECONDS,
   ROUND_END_CONDITION,
   SEED_MAX,
+  isRoomJoinable,
 } from '@evolution/shared';
-import type { GameSessionConfig } from '@evolution/shared';
+import type { GameSessionConfig, LobbyGameInfo } from '@evolution/shared';
 import { EncyclopediaComponent } from './game/encyclopedia/encyclopedia.component';
 import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
 import { IS_PREVIEW_ROUTE } from './game/encyclopedia/preview-route';
@@ -143,6 +144,11 @@ export class AppComponent {
 
   createGame(): void {
     this.multiplayer.createGame(this.newGameName(), this.sessionConfig());
+  }
+
+  /** Join is greyed out on a full room, started or not; the count is humans only (#337, game-design/session.md §5). */
+  isJoinable(game: LobbyGameInfo): boolean {
+    return isRoomJoinable({ playerCount: game.players.length, maxPlayers: game.maxPlayers });
   }
 
   joinGame(id: string): void {

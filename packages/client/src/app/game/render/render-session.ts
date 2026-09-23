@@ -21,6 +21,7 @@ import {
 } from '@evolution/shared';
 import type { TransitionOptions } from '../state/snapshot-transitions';
 import type { AudioHooksHandle } from '../audio/audio-hooks';
+import { AudioSession } from '../audio/audio-session';
 import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution-debug';
 import { SnapshotAcknowledger } from '../net/snapshot-acknowledger';
 import { WorldStore, type RenderFrame } from '../net/world-store';
@@ -67,7 +68,7 @@ export class RenderSession extends FrameLoopSession {
   readonly store: WorldStore;
   private readonly acknowledger: SnapshotAcknowledger;
   private lastReport: ClientPerformanceReport | null = null;
-  private audio: AudioHooksHandle | null = null;
+  private readonly audio: AudioSession;
   /** The one in-flight or resolved Pixi app, so two early `game_state`s never create two canvases. */
   private pixiReady: Promise<PixiAppHandle | null> | null = null;
   /** Renderer builds queue behind each other: the newest seed wins and no two share the stage. */
@@ -82,6 +83,7 @@ export class RenderSession extends FrameLoopSession {
     super(dependencies.clock);
     this.store = new WorldStore(dependencies.clock);
     this.acknowledger = new SnapshotAcknowledger(dependencies.acknowledgeSnapshot);
+    this.audio = new AudioSession(dependencies.connectAudio);
   }
 
   get startupError(): unknown {
@@ -128,8 +130,8 @@ export class RenderSession extends FrameLoopSession {
       timer.accrue(RENDER_STAGE.net, () => this.store.applyGameState(message));
       // A full state puts the two in step: the room is waiting to hear it before it resumes deltas.
       this.acknowledger.acknowledgeNow(message.snapshot.tick);
-      this.audio?.disconnect();
-      this.audio = this.dependencies.connectAudio({
+      // A resync keeps the session it is already in (#275): only another room or player starts one over.
+      this.audio.begin(message.gameId, {
         ownPlayerId: message.playerId,
         balance: message.balance,
         roundDurationSeconds: message.config.roundDurationSeconds,
@@ -137,7 +139,7 @@ export class RenderSession extends FrameLoopSession {
       this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
       if (timer.accrue(RENDER_STAGE.net, () => this.store.applySnapshot(message.snapshot))) {
-        this.audio?.observe(message.snapshot);
+        this.audio.observe(message.snapshot);
         this.acknowledger.recordApplied(message.snapshot.tick);
       }
       // A rematch is in-room: no game_state, the new round seed rides the snapshot (docs/architecture/wire-contract.md §4).
@@ -146,7 +148,7 @@ export class RenderSession extends FrameLoopSession {
       }
     } else if (message.type === SERVER_MESSAGE_TYPE.balanceUpdated) {
       this.store.applyBalance(message.balance);
-      this.audio?.updateOptions({ balance: message.balance });
+      this.audio.updateOptions({ balance: message.balance });
     }
   }
 
@@ -195,7 +197,7 @@ export class RenderSession extends FrameLoopSession {
       return null;
     }
     this.adoptPixiApp(pixi);
-    pixi.canvas.addEventListener('pointerdown', () => this.audio?.unlock(), { once: true });
+    pixi.canvas.addEventListener('pointerdown', () => this.audio.unlock(), { once: true });
     return pixi;
   }
 
@@ -235,7 +237,7 @@ export class RenderSession extends FrameLoopSession {
 
   destroy(): void {
     this.isDestroyed = true;
-    this.audio?.disconnect();
+    this.audio.disconnect();
     this.disposeLoop();
   }
 }
