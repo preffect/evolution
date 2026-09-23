@@ -95,15 +95,15 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
-  /**
-   * A join for the room already held re-enters it and is never a second late join (#335). A seat held in another room
-   * is left only once the join is accepted (#334), so a refused join keeps it.
-   */
   /** A refused join leaves the player where they were, seat included (#334). */
   private refuseFullGame(connection: Connection): void {
     sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: GAME_FULL });
   }
 
+  /**
+   * A join for the room already held re-enters it and is never a second late join (#335). A seat held in another room
+   * is left only once the join is accepted (#334), so a refused join keeps it.
+   */
   private onJoinGame(connection: Connection, gameId: string): void {
     if (this.seats.reenterHeldSeat(connection, gameId)) return;
     // Joining an in-progress game = late join.
