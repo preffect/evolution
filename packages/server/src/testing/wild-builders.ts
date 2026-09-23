@@ -4,19 +4,18 @@
 
 import type { Vec2 } from '@evolution/shared';
 import { worldReferenceAt } from '../game/simulation/round-clock.js';
-import { setCellMass } from '../game/simulation/cell-mass.js';
 import { createWildSeatRecord, seatWildCell } from '../game/wild/wild-seats.js';
 import type { CellRecord, WildSeatRecord } from '../game/world/entities.js';
 import type { WorldState } from '../game/world/world-state.js';
 
 const FIRST_SEAT = 0;
-/** The world's own mass: the pin is not run by these tests, `mass` overrides it when a row needs a number. */
-const WORLD_SPREAD = 1;
+/** The world's own mass, unless `mass` asks for another base size. */
+const WORLD_SIZE = 1;
 
 export interface TestWildCellOptions {
   readonly seatNumber?: number;
   readonly at: Vec2;
-  /** Set after seating, as the pin would set it on the next tick; left out, the cell is the world's mass. */
+  /** The cell's base size (its size factor is chosen to match), with no growth; left out, the world's mass. */
   readonly mass?: number;
 }
 
@@ -33,10 +32,8 @@ export function seatTestWildCell(world: WorldState, options: TestWildCellOptions
     seat = createWildSeatRecord(seatNumber);
     world.wildSeats.push(seat);
   }
-  const seating = { centre: options.at, spreadFactor: WORLD_SPREAD };
-  const cell = seatWildCell(world, seat, seating, worldReferenceAt(world, world.tick));
-  if (options.mass !== undefined) {
-    setCellMass(cell, options.mass, world.balance);
-  }
+  const reference = worldReferenceAt(world, world.tick);
+  const sizeFactor = options.mass === undefined ? WORLD_SIZE : options.mass / reference.worldMass;
+  const cell = seatWildCell(world, seat, { centre: options.at, sizeFactor }, reference);
   return { seat, cell };
 }

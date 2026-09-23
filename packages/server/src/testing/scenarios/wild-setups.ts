@@ -9,8 +9,10 @@ import {
   EFFECT_KIND,
   FOOD_KIND,
   RADIANS_PER_FULL_TURN,
+  RANDOM_STREAM,
   TICK_HZ,
   WORLD_ORGANISM_ID,
+  createSeededRandomFromState,
   distanceBetween,
   ticksToSeconds,
   worldReference,
@@ -18,6 +20,9 @@ import {
   type CellView,
   type Vec2,
 } from '@evolution/shared';
+import { drawWildHeading } from '../../game/wild/wild-wander.js';
+import { wildSizeFactor } from '../../game/wild/wild-settle.js';
+import { forkServerStreams } from '../../game/world/streams.js';
 import type { EvolutionScenarioSnapshot } from '../gameplay/evolution-adapter.js';
 import {
   cellOf,
@@ -32,19 +37,19 @@ import { holdPopulationsAtZero, type EvolutionScenarioBuilder } from './shared-s
 
 const { wildCells, growth, worldClock } = DEFAULT_BALANCE;
 
-/** "Seat 0": the seat every placed W row pins. */
+/** "Seat 0": the seat every placed W row places. */
 export const PLACED_SEAT = 0;
-/** "Seat 0 pinned at spread 1.0". */
-export const WORLD_SPREAD = 1;
+/** "Seat 0 at size 1.0". */
+export const WORLD_SIZE = 1;
 /** The ticks of the world's level-ups: 10 800 (`prokaryote`), 21 600 (`endosymbiosis`), 32 400 (`eukaryote`). */
 export const WORLD_LEVEL_TICKS = worldClock.WORLD_LEVEL_SECONDS * TICK_HZ;
 export const HUNTING_TICK = 2 * WORLD_LEVEL_TICKS;
 export const EUKARYOTE_TICK = 3 * WORLD_LEVEL_TICKS;
 /** A seat vacated on tick t seats a new cell on t + 600 + 1 (W4: 637). */
 export const WILD_RESPAWN_TICKS = wildCells.WILD_CELL_RESPAWN_SECONDS * TICK_HZ;
-/** "Within [14, 26] (20 × spread)": the lightest and heaviest protocell seat. */
-export const LIGHTEST_SEAT_MASS = growth.CELL_STARTING_MASS * (1 - wildCells.WILD_CELL_MASS_SPREAD);
-export const HEAVIEST_SEAT_MASS = growth.CELL_STARTING_MASS * (1 + wildCells.WILD_CELL_MASS_SPREAD);
+/** "Within [10, 40]" (20 × a size in [0.5, 2.0]): the lightest and heaviest newborn protocell seat. */
+export const LIGHTEST_SEAT_MASS = growth.CELL_STARTING_MASS * wildCells.WILD_CELL_SIZE_FACTOR_MIN;
+export const HEAVIEST_SEAT_MASS = growth.CELL_STARTING_MASS * wildCells.WILD_CELL_SIZE_FACTOR_MAX;
 /** "Points at A within 5°" (W6, W7). */
 export const HEADING_TOLERANCE_DEGREES = 5;
 const DEGREES_PER_FULL_TURN = 360;
@@ -136,17 +141,90 @@ export const everyWildCellAtLevel =
         cell.traits.every((trait) => trait.tier === 1),
     );
 
-/** W3: the largest miss, over every seated wild cell, of `mass = expectedWorldMass × spread`. */
-export function worstSpreadMiss(expectedWorldMass: number): (view: EvolutionView) => number {
+/** W2: the size factors the wild placement draws on `seed`, in seat order (each placement: the size, then the heading). */
+export function sizeFactorsDrawnOn(seed: number): number[] {
+  const stream = createSeededRandomFromState(forkServerStreams(seed)[RANDOM_STREAM.wildCells]);
+  return Array.from({ length: wildCells.WILD_CELL_COUNT }, () => {
+    const sizeFactor = wildSizeFactor(stream.nextFloat(), DEFAULT_BALANCE);
+    drawWildHeading(stream);
+    return sizeFactor;
+  });
+}
+
+/** W2: every seat at its newborn state: no growth, and mass = `fullMass` = its base size `worldMass × sizeFactor`. */
+export function areSeatsNewborn(worldMass: number): (view: EvolutionView) => boolean {
   return (view) =>
-    Math.max(
-      ...view.snapshot.wildSeats.map((seat) => {
-        const cell = view.snapshot.cells.find((candidate) => candidate.id === seat.cellId);
-        return cell === undefined
-          ? Number.POSITIVE_INFINITY
-          : Math.abs(cell.mass - expectedWorldMass * seat.massSpreadFactor);
-      }),
-    );
+    view.snapshot.wildSeats.every((seat) => {
+      const cell = view.snapshot.cells.find((candidate) => candidate.id === seat.cellId);
+      const baseMass = worldMass * seat.sizeFactor;
+      return seat.grownMass === 0 && seat.fullMass === baseMass && cell?.mass === baseMass;
+    });
+}
+
+/** A seat's state against the world's mass: its base size, full size and mass (docs/ecology/wild-cells.md §3.3.1). */
+interface SeatSizes {
+  readonly baseMass: number;
+  readonly fullMass: number;
+  readonly mass: number;
+}
+
+/**
+ * W3: every seated cell's `fullMass` in [base, max(base, 3 × world)] and its mass in [min(20, base), `fullMass`]; a
+ * vacant seat (its cell eaten, the respawn counting down) has no cell to bound.
+ */
+export function areSeatsWithinBounds(worldMass: number, tolerance: number): (view: EvolutionView) => boolean {
+  const ceiling = wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
+  const isWithin = ({ baseMass, fullMass, mass }: SeatSizes): boolean =>
+    fullMass >= baseMass - tolerance &&
+    fullMass <= Math.max(baseMass, ceiling) + tolerance &&
+    mass >= Math.min(growth.CELL_STARTING_MASS, baseMass) - tolerance &&
+    mass <= fullMass + tolerance;
+  return (view) =>
+    view.snapshot.wildSeats.every((seat) => {
+      const cell = view.snapshot.cells.find((candidate) => candidate.id === seat.cellId);
+      return (
+        seat.cellId === null ||
+        (cell !== undefined &&
+          isWithin({ baseMass: worldMass * seat.sizeFactor, fullMass: seat.fullMass, mass: cell.mass }))
+      );
+    });
+}
+
+/** W10: what the row reads of seat 0 and the player's cell P on one tick. */
+export interface SeatTraceRow {
+  readonly seatMass: number;
+  readonly fullMass: number;
+  readonly grownMass: number;
+  readonly preyMass: number;
+  /** The centre distance less both radii: positive once the pair no longer touches (P's toxin reach is contact). */
+  readonly gap: number;
+  readonly isSeatSprinting: boolean;
+  readonly isPreyEngulfed: boolean;
+}
+
+/**
+ * Records `SeatTraceRow`s by tick from the snapshot a script sees (the tick before the one it runs on). Both runs of
+ * `runDeterministic` write the same keys, so the trace holds one run.
+ */
+export function recordSeatTrace(trace: Map<number, SeatTraceRow>): PlayerScript<EvolutionScenarioSnapshot> {
+  return (context) => {
+    const { snapshot } = context;
+    const seat = snapshot.wildSeats.find((candidate) => candidate.seatNumber === PLACED_SEAT);
+    const wild = snapshot.cells.find((cell) => cell.id === seat?.cellId);
+    const prey = snapshot.cells.find((cell) => cell.playerId !== null);
+    if (seat !== undefined && wild !== undefined && prey !== undefined) {
+      trace.set(snapshot.tick, {
+        seatMass: wild.mass,
+        fullMass: seat.fullMass,
+        grownMass: seat.grownMass,
+        preyMass: prey.mass,
+        gap: distanceBetween(wild, prey) - wild.radius - prey.radius,
+        isSeatSprinting: wild.sprintRemainingTicks > 0,
+        isPreyEngulfed: prey.engulfedByCellId !== null,
+      });
+    }
+    return null;
+  };
 }
 
 /** The `cell_absorbed` effects of this tick as `[cellId, playerId]` pairs. */

@@ -7,8 +7,11 @@
 Panels, text, chips and bars use sheet 03's palette table and the HUD / trait-picker layouts. **Ownership
 (architect decision on #125): this doc owns every colour (§2) and the type scale and fonts below; `UI.md`
 (#30, `feat/30-ui-design`) cites colour and type roles by name and owns placement, per-element sizes
-other than type, and `HUD_PLAYER_EXCLUSION_PX`.** Type is a system stack, no web fonts and no font files:
-`UI_FONT_SANS` = `Inter, "Segoe UI", system-ui, sans-serif` for labels and body, `UI_FONT_MONO` =
+other than type, and `HUD_PLAYER_EXCLUSION_PX`.** Type is two faces shipped with the client (#436): Inter and JetBrains Mono, variable woff2, latin subset,
+self-hosted in `packages/client/src/assets/fonts/` under the SIL Open Font License and declared in `styles.css`, so
+every player measures the same glyphs as the evidence frames (before #436 the container and most players fell back
+to a system face). The renderer waits for both before it bakes text (`render/ui-fonts.ts`). The stacks keep system
+fallbacks for a character outside the subset: `UI_FONT_SANS` = `Inter, "Segoe UI", system-ui, sans-serif` for labels and body, `UI_FONT_MONO` =
 `"JetBrains Mono", ui-monospace, monospace` for numbers that change (mass, timer, DNA %), so digits do
 not jitter. The type scale (`UI_TYPE_*`, px at HUD scale 1):
 

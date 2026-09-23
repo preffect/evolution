@@ -61,13 +61,13 @@ export interface PlacedCell {
 }
 
 /**
- * Wild seat `seat`'s cell placed (or replaced) at `at` with its spread factor set (docs/ecology/acceptance.md §8.1,
+ * Wild seat `seat`'s cell placed (or replaced) at `at` with its size factor set (docs/ecology/acceptance.md §8.1,
  * docs/testing/scenario-runner.md §8.1): the seat is cleared of target and velocity as a respawn does.
  */
 export interface PlacedWildCell {
   readonly kind: typeof PLACED_KIND.wildCell;
   readonly seat: number;
-  readonly spreadFactor: number;
+  readonly sizeFactor: number;
   readonly at: PlacementAnchor;
 }
 
@@ -104,10 +104,10 @@ export interface PlaceCellOptions extends Placement {
   readonly dnaCatchUpGift?: number;
 }
 
-/** "Seat 0 pinned at spread 1.0, placed 10 wu east of A" (W4): `placeWildCell({ seat: 0, spreadFactor: 1, eastOfFirstCellWu: 10 })`. */
+/** "Seat 0 at size 1.0, placed 10 wu east of A" (W4): `placeWildCell({ seat: 0, sizeFactor: 1, eastOfFirstCellWu: 10 })`. */
 export interface PlaceWildCellOptions extends Placement {
   readonly seat: number;
-  readonly spreadFactor: number;
+  readonly sizeFactor: number;
 }
 
 export interface PlaceMoteOptions extends Placement {
@@ -173,13 +173,13 @@ export function placeWildCell(options: PlaceWildCellOptions, firstCell: PlacedCe
   if (!Number.isInteger(options.seat) || options.seat < 0) {
     throw new ScenarioSetupError(`a wild seat is a whole number from 0, got ${options.seat}`);
   }
-  if (!(options.spreadFactor > 0)) {
-    throw new ScenarioSetupError(`a wild seat's spread factor is positive, got ${options.spreadFactor}`);
+  if (!(options.sizeFactor > 0)) {
+    throw new ScenarioSetupError(`a wild seat's size factor is positive, got ${options.sizeFactor}`);
   }
   return {
     kind: PLACED_KIND.wildCell,
     seat: options.seat,
-    spreadFactor: options.spreadFactor,
+    sizeFactor: options.sizeFactor,
     at: resolvePlacement(options, firstCell, `wild seat ${options.seat}'s cell`),
   };
 }
