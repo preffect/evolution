@@ -28,7 +28,7 @@ import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-
 import { LEVEL_GOLD, TEXT, TEXT_LABEL, ZONE_CUE } from '../../render/constants';
 import { MASS_TREND, type MassTrend } from '../../state/mass-trend';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
-import { HUD_TEST_ID, affectingTraitTestId } from '../test-ids';
+import { HUD_TEST_ID, affectingTraitTestId } from '../../test-ids/hud-test-ids';
 import { causeRowsFor } from './affecting-causes';
 import { sizeRowsFor } from './affecting-size';
 import { joinFacts } from './fact-line';

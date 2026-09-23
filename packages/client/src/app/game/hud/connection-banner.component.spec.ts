@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { WebSocketService } from '../../services/websocket.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
 import { CONNECTION_BANNER_TEXT, CONNECTION_STATE } from './format/connection-banner';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 describe('ConnectionBannerComponent', () => {
   let fixture: ComponentFixture<ConnectionBannerComponent>;

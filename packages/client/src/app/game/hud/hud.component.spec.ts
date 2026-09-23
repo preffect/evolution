@@ -8,7 +8,7 @@ import {
   UI_SCALE_MIN,
 } from '../../ui-kit/ui-kit-constants';
 import { HudComponent } from './hud.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { HUD_NOTICE_ROWS_VARIABLE, HUD_SCALE_VARIABLE } from './format/hud-css-variables';
 
 /** jsdom lays nothing out, so the host's box is the one fact the shell needs stubbed. */

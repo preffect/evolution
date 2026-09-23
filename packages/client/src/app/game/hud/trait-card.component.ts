@@ -6,7 +6,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { CARD_POINTER, type CardPointer, type CardPointerEvent } from './format/card-highlight';
 import type { TraitCardView } from './format/trait-cards';
-import { HUD_TEST_ID, traitCardPickTestId, traitCardTestId } from './test-ids';
+import { HUD_TEST_ID, traitCardPickTestId, traitCardTestId } from '../test-ids/hud-test-ids';
 import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
 
 @Component({

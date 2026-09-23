@@ -30,9 +30,6 @@ import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
 
 /** Leaves the simulation does not read (#367 removes the list). */
 const UNREAD_LEAVES = ['ENGULF_COVER_SECONDS', 'ENGULF_WRAP_SECONDS', 'ENGULF_ABSORB_SECONDS'];
-/** Domains no content reads yet: their facts land with #362 (controls). */
-const DOMAINS_AWAITING_CONTENT: readonly (keyof BalanceConfig)[] = ['controls'];
-
 type Path = readonly string[];
 
 /** A proxy over `target` that records the path of every number it hands out, `length` included. */
@@ -260,7 +257,7 @@ describe('the fact sources', () => {
     expect(derivedLinkTargets(balance, call)).not.toEqual(before);
   });
 
-  it('reads every balance domain from some fact, but the domains whose content has not landed', () => {
+  it('reads every balance domain from some fact', () => {
     const domains = new Set<string>();
     for (const fact of registryFacts()) {
       const { reads } = readsOf((balance) => {
@@ -278,7 +275,7 @@ describe('the fact sources', () => {
       for (const [domain] of reads) if (domain !== undefined) domains.add(domain);
     }
     for (const domain of Object.keys(DEFAULT_BALANCE)) {
-      expect(domains.has(domain), domain).toBe(!DOMAINS_AWAITING_CONTENT.includes(domain as keyof BalanceConfig));
+      expect(domains.has(domain), domain).toBe(true);
     }
   });
 });

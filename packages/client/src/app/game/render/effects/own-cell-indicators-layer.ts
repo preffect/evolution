@@ -5,7 +5,8 @@
 // clip whose `ringFlash` track flashes the ring and the numeral gold from the frame the own cell's `level_up` effect
 // arrives — the server's moment, never a diff of the record (docs/architecture/client.md §6). Placements are
 // `own-cell-indicators.ts`'s data; this class only applies them. Nothing is drawn without a record or an own cell.
-// The label it placed is kept as a box, so the legibility cues drawn after it can yield to it (docs/ui/hud.md §3.1.5).
+// It also draws the relation labels on their rings (`relation-label-placements.ts`). Every label it placed is kept as a
+// box, so the legibility cues drawn after it can yield to them (docs/ui/hud.md §3.1.5).
 
 import {
   EFFECT_KIND,
@@ -25,7 +26,13 @@ import { IndicatorFillTween } from './indicator-fill-tween';
 import { createBitmapIndicatorText, type IndicatorText, type IndicatorTextFactory } from './indicator-text';
 import { MotionClipPlayer } from './motion-clip-player';
 import { OwnCellLayer, type OwnCellLayerSubject } from './own-cell-layer';
-import { ownCellIndicatorPlacements, type OwnCellIndicatorPlacements, type ThreatAnchor } from './own-cell-indicators';
+import {
+  ownCellIndicatorPlacements,
+  type IndicatorLabelPlacement,
+  type OwnCellIndicatorPlacements,
+  type ThreatAnchor,
+} from './own-cell-indicators';
+import { NO_RELATION_LABEL_SCENE, relationLabelPlacements, type RelationLabelScene } from './relation-label-placements';
 
 export interface OwnCellIndicatorsLayerFrame {
   readonly indicators: OwnCellIndicators | null;
@@ -35,6 +42,10 @@ export interface OwnCellIndicatorsLayerFrame {
   readonly threat: ThreatAnchor | null;
   /** The effects this frame's render tick reached; the own cell's `level_up` among them starts the flash. */
   readonly effects: readonly GameEffect[];
+  /** The drawn relation rings and the labels for them (`relationLabelSceneFor`); absent draws no label. */
+  readonly relationScene?: RelationLabelScene;
+  /** Where the cue column rests (`CueLayer.restingColumn`, last frame's), px in the own cell's frame; labels keep off it. */
+  readonly cueColumn?: UprightBox | null;
 }
 
 export interface OwnCellIndicatorsLayerOutputs {
@@ -42,16 +53,14 @@ export interface OwnCellIndicatorsLayerOutputs {
   readonly sprites: number;
   /** Arc rows in the one arc draw. */
   readonly arcs: number;
-  /** The numeral and, when shown, the label. */
+  /** The numeral and every label shown. */
   readonly texts: number;
 }
 
 /** The `level_up` track the ring and the numeral flash with (docs/rendering/contents-and-motion.md §4). */
 const RING_FLASH_TRACK = 'ringFlash';
 const NO_FLASH = 0;
-const NUMERAL_ONLY = 1;
-const NUMERAL_AND_LABEL = 2;
-const LABEL_PILL_SPRITES = 1;
+const NUMERAL_TEXTS = 1;
 const HIDDEN_ZOOM = 1;
 const OPAQUE = 1;
 const NOTHING_DRAWN: OwnCellIndicatorsLayerOutputs = { sprites: 0, arcs: 0, texts: 0 };
@@ -65,7 +74,7 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
   private readonly arcMesh = new ArcMesh();
   private readonly flash = new MotionClipPlayer();
   private readonly fill = new IndicatorFillTween();
-  private labelBoxPx: UprightBox | null = null;
+  private labelBoxesPx: readonly UprightBox[] = [];
 
   constructor(textures: IndicatorTextures, createText: IndicatorTextFactory = createBitmapIndicatorText) {
     super(textures, NOTHING_DRAWN, createText);
@@ -89,9 +98,20 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
     });
     this.arcMesh.draw(placements.arcs, frame.zoom);
     placeSpriteBatch(this.pool, placements.sprites, OPAQUE);
+    const relationLabels = relationLabelPlacements({
+      scene: frame.relationScene ?? NO_RELATION_LABEL_SCENE,
+      ownCell,
+      zoom: frame.zoom,
+      threat: frame.threat,
+      placedLabel: placements.label,
+      cueColumn: frame.cueColumn ?? null,
+      measureLabelPx: (label) => text.measureLabelPx(label),
+    });
     showTexts(text, placements, frame.zoom);
-    this.labelBoxPx = labelBoxOf(placements, ownCell, frame.zoom);
-    return outputsOf(placements, this.arcMesh.count);
+    text.showRelationLabels(relationLabels, frame.zoom);
+    const labels = placements.label === null ? relationLabels : [placements.label, ...relationLabels];
+    this.labelBoxesPx = labels.map((label) => labelBoxOf(label, ownCell, frame.zoom));
+    return outputsOf(placements, labels.length, this.arcMesh.count);
   }
 
   /** The arc rows the next render draws, `ARC_INSTANCE_FLOATS` each: a test reads them. */
@@ -99,9 +119,9 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
     return this.arcMesh.instances;
   }
 
-  /** The threat or escape label's pill as last placed, px in the own cell's frame; `null` when none shows. */
-  get labelBox(): UprightBox | null {
-    return this.labelBoxPx;
+  /** The threat or escape label's pill and the relation labels' as last placed, px in the own cell's frame. */
+  get labelBoxes(): readonly UprightBox[] {
+    return this.labelBoxesPx;
   }
 
   /** The fill's tween and the level-up flash: a new cell starts both fresh, its own `level_up` flashes and jumps the fill. */
@@ -128,8 +148,9 @@ export class OwnCellIndicatorsLayer extends OwnCellLayer<
     this.pool.hideFrom(0);
     this.text?.hideNumeral();
     this.text?.hideLabel();
+    this.text?.hideRelationLabels();
     this.cellId = null;
-    this.labelBoxPx = null;
+    this.labelBoxesPx = [];
     this.fill.reset();
     this.flash.clear();
   }
@@ -147,10 +168,8 @@ function showTexts(text: IndicatorText, placements: OwnCellIndicatorPlacements, 
   else text.showLabel(placements.label, zoom);
 }
 
-/** The placed label's pill in px from the own cell's centre: what the cue layout keeps clear of. */
-function labelBoxOf(placements: OwnCellIndicatorPlacements, ownCell: CellView, zoom: number): UprightBox | null {
-  const { label } = placements;
-  if (label === null) return null;
+/** A placed label's pill in px from the own cell's centre: what the cue layout keeps clear of. */
+function labelBoxOf(label: IndicatorLabelPlacement, ownCell: CellView, zoom: number): UprightBox {
   return {
     x: (label.x - ownCell.x) * zoom,
     y: (label.y - ownCell.y) * zoom,
@@ -159,11 +178,11 @@ function labelBoxOf(placements: OwnCellIndicatorPlacements, ownCell: CellView, z
   };
 }
 
-function outputsOf(placements: OwnCellIndicatorPlacements, arcs: number): OwnCellIndicatorsLayerOutputs {
-  const hasLabel = placements.label !== null;
-  return {
-    sprites: placements.sprites.length + (hasLabel ? LABEL_PILL_SPRITES : 0),
-    arcs,
-    texts: hasLabel ? NUMERAL_AND_LABEL : NUMERAL_ONLY,
-  };
+/** Each label is one pill sprite and one text. */
+function outputsOf(
+  placements: OwnCellIndicatorPlacements,
+  labels: number,
+  arcs: number,
+): OwnCellIndicatorsLayerOutputs {
+  return { sprites: placements.sprites.length + labels, arcs, texts: NUMERAL_TEXTS + labels };
 }

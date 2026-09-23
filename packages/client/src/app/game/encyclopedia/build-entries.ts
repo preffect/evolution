@@ -22,11 +22,13 @@ import { CONCEPT_ENTRY_CONTENT } from './content/concept-entries';
 import { DNA_TAG_ENTRY_CONTENT, dnaTagFacts } from './content/dna-tag-entries';
 import { DNA_FRAGMENT_ENTRY_CONTENT, fragmentTagSection } from './content/entity-entries';
 import { FOOD_ENTRY_CONTENT } from './content/food-entries';
+import { HUD_ENTRY_CONTENT } from './content/hud-entries';
 import { STAGE_ENTRY_CONTENT, stageFacts } from './content/stage-entries';
 import { TRAIT_ENTRY_CONTENT, traitFacts } from './content/trait-entries';
 import { WORLD_ENTRY_CONTENT } from './content/world-entries';
 import { ZONE_ENTRY_CONTENT } from './content/zone-entries';
 import { CONCEPT } from './model/concepts';
+import { HUD_TOPIC } from './model/hud-topics';
 import type { EntryDefinition, SectionDefinition, WrittenEntryContent } from './model/entry';
 import { ENTRY_SUBJECT, entryIdOf, type CodeIdBySubject, type EntrySubject } from './model/entry-id';
 import { WORLD_TOPIC } from './model/world-topics';
@@ -144,5 +146,6 @@ export function buildEntryDefinitions(balance: BalanceConfig): readonly EntryDef
     ...writtenEntries(ENTRY_SUBJECT.zone, Object.values(ZONE_ID), ZONE_ENTRY_CONTENT),
     ...writtenEntries(ENTRY_SUBJECT.world, Object.values(WORLD_TOPIC), WORLD_ENTRY_CONTENT),
     ...writtenEntries(ENTRY_SUBJECT.concept, Object.values(CONCEPT), CONCEPT_ENTRY_CONTENT),
+    ...writtenEntries(ENTRY_SUBJECT.hud, Object.values(HUD_TOPIC), HUD_ENTRY_CONTENT),
   ];
 }

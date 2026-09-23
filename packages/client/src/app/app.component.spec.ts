@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PLAYERS_PER_GAME, SEED_MAX, createTestSessionConfig } from '@evolution/shared';
 import { AppComponent } from './app.component';
 import { GameHostComponent } from './game/game-host.component';
-import { HUD_TEST_ID } from './game/hud/test-ids';
+import { HUD_TEST_ID } from './game/test-ids/hud-test-ids';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { MultiplayerService, type LobbyNotice } from './services/multiplayer.service';

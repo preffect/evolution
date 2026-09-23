@@ -8,7 +8,7 @@ import {
 } from '@evolution/shared';
 import { CARD_POINTER, type CardPointerEvent } from './format/card-highlight';
 import { traitOfferViewFor, type TraitCardView } from './format/trait-cards';
-import { HUD_TEST_ID, testIdSelector, traitCardPickTestId } from './test-ids';
+import { HUD_TEST_ID, testIdSelector, traitCardPickTestId } from '../test-ids/hud-test-ids';
 import { TraitCardComponent } from './trait-card.component';
 
 const [FRESH_CARD, UPGRADE_CARD] = traitOfferViewFor({

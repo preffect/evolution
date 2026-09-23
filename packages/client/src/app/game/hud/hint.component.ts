@@ -11,7 +11,7 @@ import { GameStateService } from '../state/game-state.service';
 import { ONBOARDING_BEATS } from './format/onboarding-queue';
 import { onboardingTextFor } from './format/onboarding-text';
 import { OnboardingService } from './onboarding.service';
-import { HUD_TEST_ID } from './test-ids';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 
 /** A touch screen has no Space bar: the primary pointer is coarse. */
 const TOUCH_POINTER_QUERY = '(pointer: coarse)';

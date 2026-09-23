@@ -12,11 +12,11 @@ import {
   FAR_DOT_HALO_RADII,
   NUCLEUS_RADIUS,
   PREY_UNDER_FILM_ALPHA,
+  RELATION_RING_LINE_PITCH_PX,
   RELATION_RING_MIN_GAP_PX,
   RELATION_RING_RADII,
   RELATION_RING_STROKE_PX,
   SPRINT_RIM_BRIGHTNESS,
-  TOXIC_RING_LINE_GAP_PX,
   WARNING_RING_STROKE_PX,
 } from '../constants';
 import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
@@ -76,9 +76,6 @@ export function warningRingPxFor(
   return Math.max(ENGULF_WARNING_RING_RADII * lod.screenRadiusPx, ENGULF_WARNING_RING_MIN_PX);
 }
 
-/** Centre to centre, the toxic ring's two lines: one stroke plus the clear gap, so the pair reads as two lines. */
-export const RELATION_RING_LINE_PITCH_PX = RELATION_RING_STROKE_PX + TOXIC_RING_LINE_GAP_PX;
-
 /** The relation ring a cell packs: its line radius and line count (docs/rendering/own-cell-indicators.md §10). */
 export interface RelationRingPacking {
   readonly relationRingPx: number;
@@ -109,12 +106,16 @@ export interface CellRings extends RelationRingPacking {
 
 const NO_RINGS: CellRings = { warningRingPx: 0, ...NO_RELATION_RING };
 
+/** The centre of a relation ring's outermost line, px: the toxic ring's outer line, or the edible ring's only one. */
+export function relationRingOuterLinePx(packing: RelationRingPacking): number {
+  return packing.relationRingPx + (packing.relationRingLines - 1) * RELATION_RING_LINE_PITCH_PX;
+}
+
 /** The outer edge of the outermost line a ring draws, px; 0 for no ring. */
 function ringReachPx(rings: CellRings): number {
   const warningReach = rings.warningRingPx > 0 ? rings.warningRingPx + WARNING_RING_STROKE_PX : 0;
   if (rings.relationRingPx <= 0) return warningReach;
-  const outerLinePx = rings.relationRingPx + (rings.relationRingLines - 1) * RELATION_RING_LINE_PITCH_PX;
-  return Math.max(warningReach, outerLinePx + RELATION_RING_STROKE_PX);
+  return Math.max(warningReach, relationRingOuterLinePx(rings) + RELATION_RING_STROKE_PX);
 }
 
 /** The quad reaches the profile's maximum, the far-dot halo or the outermost ring, never less than the §2 floor. */

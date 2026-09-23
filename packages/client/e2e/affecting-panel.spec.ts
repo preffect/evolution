@@ -5,7 +5,7 @@
 
 import { expect, test } from '@playwright/test';
 import { HUD_PLAYER_EXCLUSION_PX } from '../src/app/game/hud/hud-constants';
-import { HUD_TEST_ID } from '../src/app/game/hud/test-ids';
+import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
 import { openLiveRoom } from './live-room';
 
 const AFFECTING_SEED = 42;

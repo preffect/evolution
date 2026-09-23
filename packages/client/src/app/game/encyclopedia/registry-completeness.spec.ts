@@ -15,14 +15,19 @@ import {
   GAME_MODE,
   WORLD_STANDING,
   ZONE_ID,
+  createTestPlayerProgressView,
   type CellModifiers,
 } from '@evolution/shared';
+import { createTestCellView } from '../../../testing/builders';
+import { ownCellIndicatorsFor } from '../state/own-cell-indicators';
+import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
 import { tierSectionKey } from './build-entries';
 import { TRAIT_ENTRY_ROWS, contentByTrait } from './content/trait-entries';
 import { ABILITY, ABILITY_BY_MODIFIER } from './model/abilities';
 import { ACTION, ACTION_BY_INTENT } from './model/actions';
 import { CONCEPT } from './model/concepts';
+import { HUD_ELEMENT_BY_TOPIC, HUD_ELEMENT_KIND, HUD_TOPIC } from './model/hud-topics';
 import {
   CATEGORY_BY_SUBJECT,
   ENCYCLOPEDIA_CATEGORY,
@@ -88,6 +93,23 @@ describe('the encyclopedia registry', () => {
     expect(idsOf(ENTRY_SUBJECT.zone)).toEqual(Object.values(ZONE_ID));
     expect(idsOf(ENTRY_SUBJECT.world)).toEqual(Object.values(WORLD_TOPIC));
     expect(idsOf(ENTRY_SUBJECT.concept)).toEqual(Object.values(CONCEPT));
+  });
+
+  it('holds one HUD entry per topic, each anchored to its own element that exists', () => {
+    expect(idsOf(ENTRY_SUBJECT.hud)).toEqual(Object.values(HUD_TOPIC));
+    const anchors = Object.values(HUD_ELEMENT_BY_TOPIC);
+    expect(new Set(anchors.map((anchor) => JSON.stringify(anchor))).size).toBe(anchors.length);
+    const indicators = ownCellIndicatorsFor({
+      ownCell: createTestCellView(),
+      ownProgress: createTestPlayerProgressView(),
+      balance: DEFAULT_BALANCE,
+      threats: [],
+      previewTraitId: null,
+    });
+    for (const anchor of anchors) {
+      if (anchor.kind === HUD_ELEMENT_KIND.dom) expect(Object.keys(HUD_TEST_ID)).toContain(anchor.testId);
+      else expect(Object.keys(indicators)).toContain(anchor.field);
+    }
   });
 
   it('holds the DNA fragment as the one entity entry, with one section per DNA tag in walk order', () => {
@@ -186,13 +208,11 @@ describe('the category and group labels', () => {
     }
   });
 
-  it('name each group the doc names, but the HUD group that lands with #450', () => {
+  it('name each group the doc names', () => {
     const named = rows.flatMap((cells) => [...(cells[3] ?? '').matchAll(/([A-Z][A-Za-z ]*?) \(`(\w+)`\)/g)]);
-    const awaiting = ['reading_the_screen'];
+    expect(named.map(([, , groupId]) => groupId)).toContain(ENTRY_GROUP.readingTheScreen);
     for (const [, label, groupId] of named) {
-      if (awaiting.includes(groupId ?? '')) continue;
       expect(ENTRY_GROUP_LABEL[groupId as keyof typeof ENTRY_GROUP_LABEL], groupId).toBe(label);
     }
-    expect(Object.values(ENTRY_GROUP)).not.toContain('reading_the_screen');
   });
 });

@@ -20,7 +20,7 @@ import { OFFER_BEAT_LINE } from './format/onboarding-text';
 import { STEER_HINT_DISTANCE_WU } from './hud-constants';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { HudStateService } from './hud-state.service';
-import { HUD_TEST_ID, testIdSelector, traitCardPickTestId, traitCardTestId } from './test-ids';
+import { HUD_TEST_ID, testIdSelector, traitCardPickTestId, traitCardTestId } from '../test-ids/hud-test-ids';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 
 const OWN_PLAYER_ID = playerId('player-me');

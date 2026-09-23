@@ -25,6 +25,7 @@ import {
   type TraitId,
 } from '@evolution/shared';
 import { sprintFillFor } from '../hud/format/sprint-fill';
+import { relationLabelsFor, type RelationLabels } from '../hud/format/relation-labels';
 import { relationRingsOf, type Relation, type RelationRing } from '../hud/format/relations-for';
 import type { Threat } from '../hud/format/threats-for';
 import type { ZoneEntryMemory } from '../hud/format/zone-pill';
@@ -79,6 +80,8 @@ export interface OwnCellIndicators extends LegibilityCues {
   readonly relations: readonly Relation[];
   /** The same rings by cell id: what the cell layer packs, built once per record rather than per frame. */
   readonly relationRings: ReadonlyMap<EntityId, RelationRing>;
+  /** The `EDIBLE` and `TOXIC` labels on the nearest ring of each kind (§3.1.5, `relationLabelsFor`). */
+  readonly relationLabels: RelationLabels;
   /** The exact mass, for the status mirror; the cell's size is the indicator (§3.1.2). */
   readonly mass: number;
   readonly traits: readonly OwnedTrait[];
@@ -128,6 +131,8 @@ export interface OwnCellIndicatorsInput {
   readonly threats: readonly Threat[];
   /** `relationsFor(...)`'s output, nearest first; absent reads no relation rings. */
   readonly relations?: readonly Relation[];
+  /** The player has engulfed a cell this session (`hasEngulfedIn`); absent reads not yet. */
+  readonly hasEngulfed?: boolean;
   /** The picker's previewed card (#188), which hides the ghost of the rung it shows. */
   readonly previewTraitId: TraitId | null;
   /** The newest snapshot's tick (the zone pill's clock); 0 when absent. */
@@ -169,6 +174,7 @@ export function ownCellIndicatorsFor(input: OwnCellIndicatorsInput): OwnCellIndi
     nearestThreat: escape === null ? nearestThreatOf(threats) : null,
     relations,
     relationRings: relationRingsOf(relations),
+    relationLabels: relationLabelsFor({ relations, ownCell, hasEngulfed: input.hasEngulfed ?? false }),
     mass: ownCell.mass,
     traits: ownCell.traits,
     bacteriaEatenByVariant: ownProgress.bacteriaEatenByVariant,

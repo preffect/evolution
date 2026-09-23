@@ -3,7 +3,7 @@
 // lobby's markup is one edit rather than a hunt.
 
 import { expect, test, type Page } from '@playwright/test';
-import { HUD_TEST_ID } from '../src/app/game/hud/test-ids';
+import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
 
 /** The debug hook the client exposes in a development build: the room's clock, for deterministic frames. */
 export interface DebugWindow {

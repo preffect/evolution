@@ -78,6 +78,24 @@ export function cueLayout(input: CueLayoutInput): CueLayout {
   return { chip, tags, zonePill: isZoneCovered ? null : zone };
 }
 
+/**
+ * The chip and its rate tags as one box: where the cue column rests when no label moves it. The relation labels keep
+ * off it (docs/rendering/own-cell-indicators.md §10), so a relation label never pushes the chip up over a cell.
+ */
+export function cueColumnBox(layout: Pick<CueLayout, 'chip' | 'tags'>): UprightBox {
+  const boxes = [layout.chip, ...layout.tags];
+  const left = Math.min(...boxes.map((box) => box.x - box.halfWidth));
+  const right = Math.max(...boxes.map((box) => box.x + box.halfWidth));
+  const top = Math.min(...boxes.map((box) => box.y - box.halfHeight));
+  const bottom = Math.max(...boxes.map((box) => box.y + box.halfHeight));
+  return {
+    x: (left + right) * HALF,
+    y: (top + bottom) * HALF,
+    halfWidth: (right - left) * HALF,
+    halfHeight: (bottom - top) * HALF,
+  };
+}
+
 /** The top of the full rate-tag column (`rows` tags over the chip), px above the centre: §3.1.5's notice inequality. */
 export function rateTagColumnTopPx(rPx: number, rows: number): number {
   return selfRingRadiusPx(rPx) + CUE_GAP_PX + CUE_PILL_HEIGHT_PX + rows * CUE_ROW_PITCH_PX;

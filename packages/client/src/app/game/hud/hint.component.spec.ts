@@ -16,7 +16,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { ONBOARDING_BEAT } from './format/onboarding-beats';
 import { styleRuleValue } from '../../../testing/style-rules';
 import { HintComponent } from './hint.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 const OWN_PLAYER_ID = playerId('player-me');
 

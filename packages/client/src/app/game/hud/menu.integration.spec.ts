@@ -27,7 +27,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { setupGame, type GameTeardown } from '../game-setup';
 import { HUD_OVERLAY, HudStateService } from './hud-state.service';
 import { HudComponent } from './hud.component';
-import { HUD_TEST_ID, testIdSelector } from './test-ids';
+import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 const SNAPSHOT_TICK = 5000;
 const OFFER = createTestTraitOfferView({ offerId: 7, expiresAtTick: SNAPSHOT_TICK + 6 * TICK_HZ });
