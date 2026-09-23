@@ -192,6 +192,7 @@ VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
 # key on, so only a plain `lint` uses it and `all` (the merge gate, the timed main gate) never does.
 ESLINT_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/eslint/)
 PRETTIER_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/prettier/.prettier-cache)
+ESLINT_CACHED_LINT_KEY=lint-eslint-cached # the stamp name of a lint that used eslint's cache
 # The options that narrow a test run to some tests (vitest's test-name filter, the Angular builder's).
 NARROWING_OPTION_PATTERN='^(-t|--testNamePattern|--filter)(=.*)?$'
 
@@ -658,7 +659,14 @@ cache_init() {
 }
 
 # <cmd> unscoped; <cmd>.scope-<package or path, slashes as underscores> scoped.
-cache_key() { echo "$1${SCOPE_NAME:+.scope-${SCOPE_NAME//\//_}}"; }
+# A plain lint runs eslint with its cache (#559), which can miss what the type-aware rules would find in an
+# unchanged file; its stamp is keyed apart (lint-eslint-cached), so `all` never reads it as a lint stamp.
+uses_eslint_cache() { [[ $FRESH -eq 0 && "$COMMAND" == lint ]]; }
+cache_command_key() { # <cmd>
+  if [[ "$1" == lint ]] && uses_eslint_cache; then echo "$ESLINT_CACHED_LINT_KEY"; else echo "$1"; fi
+}
+scope_suffix() { echo "${SCOPE_NAME:+.scope-${SCOPE_NAME//\//_}}"; }
+cache_key() { echo "$(cache_command_key "$1")$(scope_suffix)"; }
 cache_stamp_path() { echo "$CACHE_DIR/$TREE_HASH.$(cache_key "$1")"; }
 cache_log_path() { echo "$CACHE_DIR/logs/$TREE_HASH.$(cache_key "$1").log"; }
 stamp_field() { sed -n "s/^$2=//p" "$1" | head -n 1; }
@@ -668,9 +676,23 @@ have_filters() { [[ -n "$GREP_PAT" || -n "$HEAD_N" || -n "$TAIL_N" ]]; }
 # this tree, command, scope and Node major; returns 1 otherwise (a stamp whose log is gone is a
 # miss). The scope field is compared as well as the name, so no two scopes can share a stamp.
 cache_hit() {
-  local cmd="$1" stamp
+  local cmd="$1" key
   [[ -n "$CACHE_DIR" && $FRESH -eq 0 ]] || return 1
-  stamp="$(cache_stamp_path "$cmd")"
+  for key in $(cache_lookup_keys "$cmd"); do
+    cache_hit_stamp "$CACHE_DIR/$TREE_HASH.$key" && return 0
+  done
+  return 1
+}
+
+# A plain lint also takes a stamp of a lint that ran eslint without its cache (`all`, `lint --fresh`):
+# that check was the stricter one. Never the reverse.
+cache_lookup_keys() { # <cmd>
+  cache_key "$1"
+  [[ "$1" != lint ]] || ! uses_eslint_cache || echo "lint$(scope_suffix)"
+}
+
+cache_hit_stamp() { # <stamp path>
+  local stamp="$1"
   [[ -f "$stamp" ]] || return 1
   [[ "$(stamp_field "$stamp" exit)" == "0" && "$(stamp_field "$stamp" node)" == "$NODE_MAJOR" ]] || return 1
   [[ "$(stamp_field "$stamp" scope)" == "$SCOPE_NAME" ]] || return 1
@@ -996,10 +1018,8 @@ run_one() {
       # An empty path list (`all --affected` over docs or scripts alone) skips that tool: eslint with
       # no path lints the whole repo, and grep with no path reads stdin.
       local eslint_cache=() prettier_cache=()
-      if [[ $FRESH -eq 0 ]]; then
-        prettier_cache=("${PRETTIER_CACHE_ARGUMENTS[@]}")
-        [[ "$COMMAND" != lint ]] || eslint_cache=("${ESLINT_CACHE_ARGUMENTS[@]}")
-      fi
+      [[ $FRESH -ne 0 ]] || prettier_cache=("${PRETTIER_CACHE_ARGUMENTS[@]}")
+      ! uses_eslint_cache || eslint_cache=("${ESLINT_CACHE_ARGUMENTS[@]}")
       if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
         lint_out="$(pnpm eslint "${eslint_cache[@]}" "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
       fi

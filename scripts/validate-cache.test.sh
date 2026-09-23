@@ -306,6 +306,16 @@ check "a plain lint passes both lint caches" $(( $(grep -q "^fake pnpm eslint $E
 : > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" lint --scope packages/server/src/game --fresh
 check "--fresh passes neither lint cache" $(( $(grep -q '^fake pnpm eslint packages/server/src/game$' <<<"$out"; echo $?) == 0 && $(grep -q '^fake pnpm prettier --check packages/server/src/game$' <<<"$out"; echo $?) == 0 ))
+# #559 review: a plain lint's stamp (eslint ran with its cache) is keyed apart, so `all` never reads it.
+echo lint-key > "$fixture/untracked-lint-key.txt"
+run_validate "$fixture" lint
+run_validate "$fixture" lint
+check "a plain lint's repeat hits its own stamp" $(( rc == 0 && $(is_cached; echo $?) == 0 ))
+run_validate "$fixture" all
+check "an unscoped all never reads a plain lint's stamp: it runs eslint itself, without the cache" $(( rc == 0 && $(ran '^fake pnpm eslint \.$'; echo $?) == 0 ))
+run_validate "$fixture" lint --fresh
+run_validate "$fixture" all --fresh
+rm -f "$fixture/untracked-lint-key.txt"
 run_validate "$fixture" duplication --scope client
 check "a package scope scans only that package's source" $(( $(grep -q '^fake pnpm jscpd packages/client/src$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" typecheck --scope packages/server/src/game
