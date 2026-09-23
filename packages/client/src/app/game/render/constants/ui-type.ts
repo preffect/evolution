@@ -1,7 +1,7 @@
 // The HUD's type scale and its two font stacks (docs/visual-style/ui-type.md §7, which owns the values).
 // It sits beside `colours.ts` because that doc owns both, and because the HUD and any world-space
 // label the renderer grows must read the same table. Sizes are px at HUD scale 1; every stylesheet
-// multiplies by `var(--hud-scale)` (docs/ui/layout.md §1).
+// multiplies by `var(--ui-scale)` (docs/ui/layout.md §1).
 
 /** Labels and body: a system stack, no web fonts and no font files (docs/visual-style/ui-type.md §7). */
 export const UI_FONT_SANS = 'Inter, "Segoe UI", system-ui, sans-serif';

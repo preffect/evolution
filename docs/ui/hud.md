@@ -59,7 +59,7 @@ to 95 px at `CELL_MAX_MASS` on the reference viewport, and from 32 to 128 px at 
 growth and decay). **Rule: every indicator has a size in screen px that never
 goes below its floor, whatever `r_px` is**, the same idiom as the self ring's `SELF_RING_MIN_PX` and the warning
 ring's `ENGULF_WARNING_RING_MIN_PX`. Sizes tied to the cell use `max(fraction × r_px, floor)`; the rest are fixed
-px. Nothing here scales with `--hud-scale`, and nothing here falls back to chrome at any size. The constants are
+px. Nothing here scales with `--ui-scale`, and nothing here falls back to chrome at any size. The constants are
 §9's (home `render/constants.ts`, CODE-STANDARDS §2); rendering/own-cell-indicators.md §10 applies them.
 
 Geometry at the sizes that matter (what `own-cell-geometry.spec.ts` pins, rendering/own-cell-indicators.md §10; px,
@@ -80,7 +80,7 @@ Three inequalities, at the six sizes and as a derivation:
 - **Picker band.** The orbit's extent at the cap grows with the viewport's height (126.2 on the reference viewport,
   163.4 at 1080p, 211.2 at 2560 × 1440), so no fixed band offset clears it. It is resolved by **moving the band, not
   by capping Z1's growth**: capping would give back the size lock above a mass, which is what decision #324 removed,
-  and no single on-screen cap fits every viewport (the band scales with `--hud-scale`, the cell with the viewport's
+  and no single on-screen cap fits every viewport (the band scales with `--ui-scale`, the cell with the viewport's
   height). The band anchors at `pickerBandOffsetPx` (overlays.md §3.2) = `max((HUD_PLAYER_EXCLUSION_PX +
 PICKER_BAND_GAP_PX) × s, capOrbitExtentPx + PICKER_BAND_ORBIT_CLEARANCE_PX)`, so the inequality holds by
   construction on every viewport; it moves nothing on the reference viewport (126.2 + 4 < 136) or at 1080p
@@ -211,7 +211,7 @@ gel, photosynthesis, toxin and spine drain, who can eat whom. The reference look
 the toxic ring), this section wins.
 
 **Rules shared by every cue.** Renderer-drawn in the own cell's undeformed frame, world-anchored and riding the
-predicted position like §3.1.2's indicators; never DOM, never scaled by `--hud-scale`, inside the exclusion box by
+predicted position like §3.1.2's indicators; never DOM, never scaled by `--ui-scale`, inside the exclusion box by
 design (layout.md §1). **While a trait offer is open (§3.2) the mass chip and the rate tags stay drawn, under the
 picker's dim, and only the zone pill hides**: the dim is the picker's spotlight over the dish, and what the cell is
 doing to its mass is exactly what the pick is weighed against. A number is `value`, its cause `label`, both `WHITE`; the colour is on the pill's
@@ -344,7 +344,7 @@ three. The case is open on **#453**, and this paragraph is the record that it is
 boundary #445 drew is a scope boundary, never a finding that the `TRAITS` row reads correctly.
 
 **One wording, both surfaces — measured, not assumed.** `saves 15 %` was the other candidate and it does **not**
-fit. All figures at 1024 × 640 with `--hud-scale` at the `UI_SCALE_MIN` floor of 0.8, measured in the live table;
+fit. All figures at 1024 × 640 with `--ui-scale` at the `UI_SCALE_MIN` floor of 0.8, measured in the live table;
 the panel's scroll viewport holds 260 px of row.
 
 The decay row's name column overflows somewhere between **189.23 px** (the widest text still fitting) and

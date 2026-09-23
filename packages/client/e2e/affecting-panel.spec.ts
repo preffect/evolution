@@ -57,7 +57,7 @@ test.describe('the hold-Tab affecting panel', () => {
     const scale = await page.evaluate(
       (hudTestId) =>
         Number(
-          getComputedStyle(document.querySelector(`[data-testid="${hudTestId}"]`)!).getPropertyValue('--hud-scale'),
+          getComputedStyle(document.querySelector(`[data-testid="${hudTestId}"]`)!).getPropertyValue('--ui-scale'),
         ),
       HUD_TEST_ID.hud,
     );

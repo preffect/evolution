@@ -13,24 +13,24 @@
 :host {
   position: absolute;
   /* Drops under the notice rows while any are up (docs/ui/overlays.md §3.6), so the banner never covers the header. */
-  top: calc((var(--hud-margin) + var(--hud-notice-row-height) * var(--hud-notice-rows, 0)) * var(--hud-scale));
-  right: calc(var(--hud-margin) * var(--hud-scale));
+  top: calc((var(--hud-margin) + var(--hud-notice-row-height) * var(--hud-notice-rows, 0)) * var(--ui-scale));
+  right: calc(var(--hud-margin) * var(--ui-scale));
 }
 
 .leaderboard {
   position: relative;
   box-sizing: border-box;
-  width: calc(var(--hud-leaderboard-width) * var(--hud-scale));
-  height: calc(var(--hud-leaderboard-height) * var(--hud-scale));
-  border: var(--hud-leaderboard-rim) solid var(--hud-panel-rim);
-  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--hud-scale));
-  background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
+  width: calc(var(--hud-leaderboard-width) * var(--ui-scale));
+  height: calc(var(--hud-leaderboard-height) * var(--ui-scale));
+  border: var(--hud-leaderboard-rim) solid var(--ui-panel-rim);
+  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
   overflow: hidden;
   transition: width var(--hud-leaderboard-expand-duration) ease-out;
 }
 
 .leaderboard.full {
-  width: calc(var(--hud-leaderboard-full-width) * var(--hud-scale));
+  width: calc(var(--hud-leaderboard-full-width) * var(--ui-scale));
 }
 
 /* The header is the one part of the chrome a pointer can reach (docs/ui/input-and-onboarding.md §4). */
@@ -40,31 +40,31 @@
   justify-content: space-between;
   box-sizing: border-box;
   width: 100%;
-  height: calc(var(--hud-leaderboard-header-height) * var(--hud-scale));
-  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-header-height) * var(--ui-scale));
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--ui-scale));
   border: 0;
-  border-bottom: var(--hud-leaderboard-rim) solid var(--hud-panel-rim);
+  border-bottom: var(--hud-leaderboard-rim) solid var(--ui-panel-rim);
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
-  font-family: var(--hud-font-sans);
+  font-family: var(--ui-font-sans);
   text-transform: uppercase;
-  letter-spacing: var(--hud-label-tracking);
+  letter-spacing: var(--ui-label-tracking);
 }
 
 .header:focus-visible {
-  outline: var(--hud-focus-ring) solid var(--hud-text);
-  outline-offset: calc(var(--hud-focus-ring) * -1);
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: calc(var(--ui-focus-ring) * -1);
 }
 
 .header-title {
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
-  color: var(--hud-text-label);
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
+  color: var(--ui-text-label);
 }
 
 .header-hint {
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
-  color: var(--hud-text-muted);
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
+  color: var(--ui-text-muted);
 }
 
 /* The one column geometry. Both grids below are laid out from it, so they cannot drift apart. */
@@ -72,39 +72,39 @@
 .row {
   display: grid;
   grid-template-columns:
-    calc(var(--hud-leaderboard-rank-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-rank-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--ui-scale))
     1fr
-    calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-score-column) * var(--hud-scale));
+    calc(var(--hud-leaderboard-level-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-score-column) * var(--ui-scale));
   align-items: center;
-  gap: calc(var(--hud-leaderboard-column-gap) * var(--hud-scale));
+  gap: calc(var(--hud-leaderboard-column-gap) * var(--ui-scale));
   box-sizing: border-box;
   width: 100%;
-  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--ui-scale));
 }
 
 .leaderboard.full .column-labels,
 .leaderboard.full .row {
   grid-template-columns:
-    calc(var(--hud-leaderboard-rank-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-swatch-column) * var(--hud-scale))
+    calc(var(--hud-leaderboard-rank-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--ui-scale))
     1fr
-    calc(var(--hud-leaderboard-level-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-score-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-mass-column) * var(--hud-scale))
-    calc(var(--hud-leaderboard-engulfs-column) * var(--hud-scale));
+    calc(var(--hud-leaderboard-level-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-score-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-mass-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-engulfs-column) * var(--ui-scale));
 }
 
 /* The numeric columns carry no unit, so both panels name them (docs/ui/hud.md §3.1.1). Each label
    is placed in its own track rather than auto-flowed, so none can slide onto its neighbour. */
 .column-labels {
-  height: calc(var(--hud-leaderboard-label-row-height) * var(--hud-scale));
-  font-family: var(--hud-font-sans);
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-label-row-height) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
   text-transform: uppercase;
-  letter-spacing: var(--hud-label-tracking);
-  color: var(--hud-text-muted);
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--ui-text-muted);
   text-align: right;
   white-space: nowrap;
 }
@@ -137,11 +137,11 @@
   position: absolute;
   top: 0;
   left: 0;
-  transform: translateY(calc(var(--hud-leaderboard-row-height) * var(--hud-scale) * var(--hud-row-slot)));
-  height: calc(var(--hud-leaderboard-row-height) * var(--hud-scale));
-  font-family: var(--hud-font-sans);
-  font-size: calc(var(--hud-type-body) * var(--hud-scale));
-  color: var(--hud-text);
+  transform: translateY(calc(var(--hud-leaderboard-row-height) * var(--ui-scale) * var(--hud-row-slot)));
+  height: calc(var(--hud-leaderboard-row-height) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  color: var(--ui-text);
   transition: transform var(--hud-row-slide-duration) ease-out;
 }
 
@@ -149,7 +149,7 @@
    size in the mono face (docs/visual-style/ui-type.md §7), so the digits are tabular and do not jitter. */
 .row .rank,
 .row .level {
-  color: var(--hud-text-label);
+  color: var(--ui-text-label);
 }
 
 .row .name {
@@ -165,15 +165,15 @@
 .row .score,
 .row .mass,
 .row .absorptions {
-  font-family: var(--hud-font-figure);
-  font-size: calc(var(--hud-type-figure) * var(--hud-scale));
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-figure) * var(--ui-scale));
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .row .mass,
 .row .absorptions {
-  color: var(--hud-text-label);
+  color: var(--ui-text-label);
 }
 
 /* The full list's score rule (docs/ui/hud.md §3.1.1): a fact, so `label`, pinned under the last row slot. */
@@ -185,29 +185,29 @@
   display: flex;
   align-items: center;
   width: 100%;
-  height: calc(var(--hud-leaderboard-footer-row-height) * var(--hud-scale));
+  height: calc(var(--hud-leaderboard-footer-row-height) * var(--ui-scale));
   margin: 0;
-  padding: 0 calc(var(--hud-leaderboard-padding) * var(--hud-scale));
-  border-top: var(--hud-leaderboard-rim) solid var(--hud-panel-rim);
-  font-family: var(--hud-font-sans);
-  font-size: calc(var(--hud-type-label) * var(--hud-scale));
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--ui-scale));
+  border-top: var(--hud-leaderboard-rim) solid var(--ui-panel-rim);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
   /* Mixed case at `label` size keeps the tracking (docs/visual-style/ui-type.md §7) and fits the
      content box with room to spare in a wider fallback face; uppercase did not. */
-  letter-spacing: var(--hud-label-tracking);
+  letter-spacing: var(--ui-label-tracking);
   white-space: nowrap;
-  color: var(--hud-text-label);
+  color: var(--ui-text-label);
 }
 
 .swatch {
-  width: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
-  height: calc(var(--hud-leaderboard-swatch-size) * var(--hud-scale));
+  width: calc(var(--hud-leaderboard-swatch-size) * var(--ui-scale));
+  height: calc(var(--hud-leaderboard-swatch-size) * var(--ui-scale));
   /* The beads sit on the disc's outline and are wider than it, so they paint outside the viewBox. */
   overflow: visible;
 }
 
 /* The seat-mark bead core is the one white (docs/visual-style/principles-and-palette.md §2). */
 .bead {
-  fill: var(--hud-white);
+  fill: var(--ui-white);
 }
 
 @media (prefers-reduced-motion: reduce) {

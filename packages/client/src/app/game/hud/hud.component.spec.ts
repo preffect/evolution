@@ -9,7 +9,8 @@ import {
 } from '../../ui-kit/ui-kit-constants';
 import { HudComponent } from './hud.component';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
-import { HUD_NOTICE_ROWS_VARIABLE, HUD_SCALE_VARIABLE } from './format/hud-css-variables';
+import { HUD_NOTICE_ROWS_VARIABLE } from './format/hud-css-variables';
+import { UI_SCALE_VARIABLE } from '../../ui-kit/format/ui-css-variables';
 
 /** jsdom lays nothing out, so the host's box is the one fact the shell needs stubbed. */
 function stubHostBox(host: HTMLElement, widthPx: number, heightPx: number): void {
@@ -69,18 +70,18 @@ describe('HudComponent', () => {
     expect(host().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
   });
 
-  it('publishes --hud-scale and the rest of the custom properties from its own box', () => {
+  it('publishes --ui-scale and the rest of the custom properties from its own box', () => {
     stubHostBox(host(), UI_REFERENCE_VIEWPORT_WIDTH_PX, UI_REFERENCE_VIEWPORT_HEIGHT_PX);
     fixture.detectChanges();
-    expect(host().style.getPropertyValue(HUD_SCALE_VARIABLE)).toBe('1');
+    expect(host().style.getPropertyValue(UI_SCALE_VARIABLE)).toBe('1');
     expect(host().style.getPropertyValue('--hud-margin')).not.toBe('');
-    expect(host().style.getPropertyValue('--hud-type-clock')).not.toBe('');
+    expect(host().style.getPropertyValue('--ui-type-clock')).not.toBe('');
   });
 
   it('clamps the scale on a small viewport', () => {
     stubHostBox(host(), 400, 300);
     fixture.detectChanges();
-    expect(host().style.getPropertyValue(HUD_SCALE_VARIABLE)).toBe(String(UI_SCALE_MIN));
+    expect(host().style.getPropertyValue(UI_SCALE_VARIABLE)).toBe(String(UI_SCALE_MIN));
   });
 
   it('publishes how many notice rows are up, so the top-anchored chrome drops under them (#219)', () => {

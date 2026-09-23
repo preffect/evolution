@@ -46,7 +46,7 @@ export const SERVER_ERROR_DISMISS_LABEL = 'Dismiss error';
         display: flex;
         align-items: center;
         justify-content: center;
-        inline-size: calc(var(--hud-notice-row-height) * var(--hud-scale));
+        inline-size: calc(var(--hud-notice-row-height) * var(--ui-scale));
         pointer-events: auto;
         cursor: pointer;
         padding: 0;
@@ -58,8 +58,8 @@ export const SERVER_ERROR_DISMISS_LABEL = 'Dismiss error';
 
       /* Inset, so the ring stays inside the row's clip (as on the leaderboard header). */
       .dismiss:focus-visible {
-        outline: var(--hud-focus-ring) solid var(--hud-text);
-        outline-offset: calc(var(--hud-focus-ring) * -1);
+        outline: var(--ui-focus-ring) solid var(--ui-text);
+        outline-offset: calc(var(--ui-focus-ring) * -1);
       }
     `,
   ],

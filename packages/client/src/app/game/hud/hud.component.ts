@@ -1,7 +1,7 @@
 // The HUD shell (docs/ui/layout.md §1, docs/ui/components-and-constants.md §7): the overlay layer over the canvas. It owns two things —
-// `--hud-scale`, read from its own box through the kit's pure `uiScaleFor`, and the rest of the
-// `--hud-…` custom properties every child stylesheet reads (`hud-css-variables.ts`) — and hosts
-// the chrome. The layer itself never takes the pointer: only the controls inside it opt back in,
+// the UI kit's tokens with `--ui-scale`, read from its own box through the kit's pure `uiScaleFor` (the type, colour
+// and scale home every HUD stylesheet reads since #381), and the HUD's own `--hud-…` sizes (`hud-css-variables.ts`) —
+// and hosts the chrome. The layer itself never takes the pointer: only the controls inside it opt back in,
 // so a click always reaches the dish.
 //
 // It also owns the one gate the chrome shares: the round phase (docs/ui/hud.md §3.1).
@@ -119,7 +119,7 @@ import { HUD_OVERLAY } from './hud-state.service';
         top: 0;
         left: 0;
         right: 0;
-        max-height: calc(var(--hud-notice-stack-max-y) * var(--hud-scale));
+        max-height: calc(var(--hud-notice-stack-max-y) * var(--ui-scale));
         overflow: hidden;
       }
     `,
@@ -140,8 +140,8 @@ export class HudComponent implements OnInit {
    * its own `[uiSurface]` on `div.layer`, republishing the identical token set, so the nearer surface wins and the
    * shell's are invisible to it. The shell is therefore a token-publishing ancestor of a second surface, which
    * `ui-kit/ui-surface.directive.ts` ("one per layer") warns against, and two `ElementSizeTracker`s now measure for
-   * the same scale. Inert today because both publish the same values; #381 owns collapsing them as it migrates the
-   * rest of the HUD onto the kit.
+   * the same scale. Inert because both publish the same values; #381 moved the rest of the HUD onto these tokens and
+   * left the menu's own surface in place, since removing it changes nothing on screen.
    */
   private readonly kitTokens = uiStyleVariables();
 
@@ -168,7 +168,7 @@ export class HudComponent implements OnInit {
     () => this.gameState.connectionState() === CONNECTION_STATE.disconnected,
   );
 
-  /** `--hud-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
+  /** `--ui-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
   protected readonly scale = computed(() =>
     uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx),
   );
@@ -177,7 +177,7 @@ export class HudComponent implements OnInit {
   protected readonly styleVariables = computed(() => ({
     ...this.kitTokens,
     ...uiScaleVariable(this.scale()),
-    ...hudStyleVariables(this.scale()),
+    ...hudStyleVariables(),
     ...pickerBandVariables({ width: this.sizeTracker.size().widthPx, height: this.sizeTracker.size().heightPx }),
     ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),
   }));

@@ -24,7 +24,7 @@ without copy fails the gate instead of rendering `undefined`.
 
 - **Placement.** The band hangs from the exclusion box, so it is placed relative to the viewport centre
   (`centreX`, `centreY` = half the host size, the own cell's screen position), never at an absolute y. With `s` =
-  `--hud-scale`: title row top at `centreY + pickerBandOffsetPx(viewport)` (`hud/format/picker-band.ts`, pure) =
+  `--ui-scale`: title row top at `centreY + pickerBandOffsetPx(viewport)` (`hud/format/picker-band.ts`, pure) =
   `max((HUD_PLAYER_EXCLUSION_PX + PICKER_BAND_GAP_PX) × s, capOrbitExtentPx + PICKER_BAND_ORBIT_CLEARANCE_PX)`,
   where `capOrbitExtentPx` is hud.md §3.1.3's orbit extent for the own cell at `CELL_MAX_MASS` under the Z1 camera on
   this viewport (`ladderOrbitExtentPx(radiusForMass(CELL_MAX_MASS) × (height / 2) / viewHalfHeightFor(that radius))`).
@@ -289,7 +289,7 @@ decay` lands in the same right-aligned value column as `Speed · −47 %` and th
 column gives four negatives of which one is a benefit. #445 changed the cause rows only (hud.md §3.1.5) because the
 label table is shared with the trait cards and the encyclopedia; this row is recorded as open, not as correct.
 
-**The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--hud-scale` at the
+**The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--ui-scale` at the
 `UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, and a row's name column overflows between
 **189.23 px** (widest still fitting) and **192.52 px** (narrowest that does not), bisected a character at a time —
 read the capacity as **~189 px**, never as the width of whatever string happens to ship. The tightest rows are
