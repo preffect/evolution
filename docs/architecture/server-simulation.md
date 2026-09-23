@@ -11,18 +11,18 @@ against it):
 
 ```text
  stepWorld(world, context): void          context = { balance, streams, effects }
-   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild pin and the due wild seats' decisions (ecology/wild-cells.md §3.3)
-                   (`wild/wild-pin.ts`: every seated wild cell's mass, level, traits and stage from `worldReferenceAt`, ecology/wild-cells.md §3.3)
+   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild settle and the due wild seats' decisions (§3.4)
+                   (`wild/wild-settle.ts`: every seated wild cell's growth, recovery, level, traits and stage; `wild/wild-strategy.ts`: target + sprint)
    2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation
-   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; wild cells skipped
-   5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1); a free wild
-                   cell is skipped (it neither eats nor decays: the pin re-sets it), an engulfing one bleeds into its seat's `drainedMass`
+   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; a wild cell eats algae and detritus only
+   5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1); a wild cell,
+                   free or engulfing, takes every drain and gain but no base decay (the settle takes decay from its growth)
    6 engulf        canStart / canContinue, progress, release, payout, chains; absorbed cells removed
    7 progression   level-ups, offer queue, timeouts, rung card
    8 spawners      food and fragment accumulators, bacteria random walk, fragment drift, detritus expiry
    9 respawn       spectate timers, safe placement from the spawnPlacement stream; then the wild seats (`wild/wild-respawn.ts`:
-                   a vacated seat counts `WILD_CELL_RESPAWN_SECONDS` down and is placed again with a fresh spread)
+                   a vacated seat counts `WILD_CELL_RESPAWN_SECONDS` down and is placed again with a fresh size factor, no growth)
   10 leaderboard   score and ranking
 ```
 
@@ -78,3 +78,43 @@ prediction reuses them unchanged.
   `cell_absorbed`; a sealed prey is carried (`CellRecord.carriedOffsetX/Y`) after its predator has moved.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
+
+### 3.4 Wild cells in the step (ecology/wild-cells.md §3.3, #517)
+
+A wild cell is a `CellRecord` driven by a seat (architecture/entity-model.md §2); what differs from a player cell
+is confined to `game/wild/` and to three branches on `cell.kind` in steps 4 and 5.
+
+- **The settle** (`wild/wild-settle.ts`) replaces the per-tick pin. The pure core is
+  `settleWildMass({ mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass }, balance) → { mass, grownMass,
+fullMass }` (ecology W11) plus `wildSizeFactor(u, balance)`. Its caller supplies `decayPerSecond` from
+  `simulation/metabolism.ts` (`decayPerSecond(metabolismInputOf(cell, world, balance), balance)`), so the settle never
+  carries a second decay formula, and supplies `baseMass` and `worldMass` from `worldReferenceAt`. Level, traits
+  and stage are set as the pin set them (`wild-build.ts`, unchanged).
+- **A loss never lifts a wild cell.** Step 5 and a sprint start floor a wild cell at `min(CELL_STARTING_MASS,
+its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 20 would otherwise be raised to
+  20 by a drain or a sprint, and the settle would book the rise as permanent growth. The floor has one home,
+  `massFloorOf(cell, massBefore, balance)` in `simulation/cell-mass.ts` beside `loseMassToFloor`, which
+  `loseMassToFloor` and `tryStartSprint` both call (a player cell's floor stays `CELL_STARTING_MASS`); a sub-20
+  wild cell's sprint therefore costs nothing, as a player's does at the floor. The settle's own floor,
+  `min(CELL_STARTING_MASS, baseMass)`, is inside `settleWildMass`.
+- **Order inside step 1:** players' inputs, then the settle for every seated cell in seat order, then the due
+  seats' decisions. A sprint a decision starts is paid on that tick through `tryStartSprint`, the player's own
+  function, and the next settle reads the cost as a loss to recover.
+- **Perception is filtered by sight, linearly.** `createWildPerception` is built per decision around the
+  deciding cell: `cellsOf` and `motesOf` return only entities whose centre lies within
+  `wildSightRange(radius, balance) = WILD_CELL_SIGHT_VIEW_MULTIPLE × viewHalfHeightFor(radius)` (the shared
+  `camera/camera-follow.ts` function), `motesOf` only algae and detritus. The hunt rule gets the same view
+  minus player cells while `worldStage` is below `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`; the flee rule sees every
+  cell in sight. Cost: seats decide staggered on distinct ticks (24 seats, a 30-tick interval), so a tick runs
+  at most one decision, one pass over the cells and motes (≤ ~1 550 at the §3.3 budget's 1 400 motes): no
+  spatial-hash query is needed and nothing is O(n²). A balance patch that shortens the interval below the seat
+  count only multiplies that by the seats per tick.
+- **Camera coupling.** Sight reads the camera's zoom curve (`constants/camera.ts`), which is not a balance
+  domain: a change to the zoom curve is a simulation change and moves the W6, W13 and G13 numbers and the state
+  hash. The knob a balance patch turns is `WILD_CELL_SIGHT_VIEW_MULTIPLE`.
+- **Payout.** A wild predator keeps its meal: the engulf payout calls `gainMass(cell, undefined, …)` (clamped to
+  `CELL_MAX_MASS`, no DNA) and reports the measured mass gain; the settle turns it into growth.
+- **Determinism.** The `wildCells` stream is the only randomness (size factors, headings, turn rolls); sight,
+  settle and sprint choices are arithmetic on hashed state. `WILD_SEAT_HASHED_FIELDS` becomes `seatNumber`,
+  `cellId`, `sizeFactor`, `grownMass`, `fullMass`, `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`;
+  every pinned state hash and golden replay moves with the build and is re-pinned there.
