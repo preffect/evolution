@@ -5,7 +5,8 @@ import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp } from '../../../testing/fak
 import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
 import { createRenderTextures, destroyRenderTextures } from './render-textures';
 import { RendererSlot } from './renderer-slot';
-import { MutableStageMeasurer, UPLOADS_PER_FRAME, WarmedRendererBuild, textureSourcesOf } from './renderer-warm-up';
+import { RENDER_WARM_UP_UPLOADS_PER_FRAME } from './constants';
+import { MutableStageMeasurer, WarmedRendererBuild, textureSourcesOf } from './renderer-warm-up';
 
 function options(pixi: ReturnType<typeof createFakePixiApp>) {
   return {
@@ -60,7 +61,9 @@ describe('WarmedRendererBuild', () => {
     expect(steps.slice(0, firstUpload).every((step) => step === 'bake')).toBe(true);
     expect(steps.slice(-2)).toEqual(['draw', 'render']);
     const sources = pixi.warmUpCalls.uploads.length;
-    expect(steps.filter((step) => step === 'upload')).toHaveLength(Math.ceil(sources / UPLOADS_PER_FRAME));
+    expect(steps.filter((step) => step === 'upload')).toHaveLength(
+      Math.ceil(sources / RENDER_WARM_UP_UPLOADS_PER_FRAME),
+    );
     expect(drawOnce).toHaveBeenCalledWith(renderer);
     expect(pixi.warmUpCalls.offscreenRenders[0]).not.toBe(pixi.stage);
     expect(slot.current).toBe(renderer);
@@ -81,6 +84,22 @@ describe('WarmedRendererBuild', () => {
     expect(slot.current).toBe(renderer);
     expect(pixi.warmUpCalls.uploads).toHaveLength(0);
     slot.dispose();
+  });
+
+  it('finishes mid-warm-up, after the renderer is staged, and the teardown frees the staged renderer', () => {
+    const pixi = createFakePixiApp();
+    const slot = new RendererSlot();
+    const rendererBuild = slot.beginBuild(pixi.stage, pixi.screen, options(pixi), UNTIMED_STAGES);
+    const build = new WarmedRendererBuild(rendererBuild, pixi.warmUp, vi.fn());
+    while (rendererBuild.staged === null) build.advance();
+    const staged = rendererBuild.staged;
+    build.advance();
+    expect(pixi.warmUpCalls.uploads.length, 'the step after staging uploaded no batch').toBeGreaterThan(0);
+    build.finish();
+    slot.dispose();
+    expect(staged.container.destroyed).toBe(true);
+    expect(pixi.stage.children).toHaveLength(0);
+    expect(staged.textures.tileTexture.destroyed).toBe(true);
   });
 });
 

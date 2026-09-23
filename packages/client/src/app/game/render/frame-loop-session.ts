@@ -102,7 +102,9 @@ export abstract class FrameLoopSession {
   /**
    * The warm-up draw of a staged renderer, off the stage: the current frame through the subclass's own
    * `renderFrame`, with the stage brackets muted and nothing submitted, so its first-time CPU work is spent before
-   * the reveal and reported nowhere. No frame yet (the store has nothing) draws nothing.
+   * the reveal and reported nowhere. No frame yet (the store has nothing) draws nothing. `nextFrame` drains the
+   * effects due, so this frame's bursts fire on the staged renderer rather than the old one: harmless in play (the
+   * old renderer is about to go), and a peeking read would need its own seam through every session's `nextFrame`.
    */
   private warmUpDraw(renderer: GameRenderer): void {
     const frame = this.pixi === null ? null : this.nextFrame();

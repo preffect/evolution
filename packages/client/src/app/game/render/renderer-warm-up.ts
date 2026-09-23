@@ -2,7 +2,7 @@
 // staged the bake, but the first frame a new renderer drew was still the longest task of a room's entry: the
 // renderer's first-time CPU work (every pool, mesh and text made on first use) and Pixi's first `render` (every
 // texture uploaded, every shader compiled). So after the last bake the build goes on, one step per frame, with the
-// new renderer still **off the stage**: its bundle's texture sources uploaded `UPLOADS_PER_FRAME` at a time, one
+// new renderer still **off the stage**: its bundle's texture sources uploaded `RENDER_WARM_UP_UPLOADS_PER_FRAME` at a time, one
 // warm-up draw of the current frame (its CPU half, muted in the frame instrumentation), and one render of it to an
 // off-screen target (the shader compiles). Only then is it committed to the stage, where its first visible frame
 // finds everything made, resident and compiled.
@@ -10,6 +10,7 @@
 import type { RenderStageName } from '@evolution/shared';
 import { Texture, TextureSource, type Container } from 'pixi.js';
 import type { StageMeasurer } from './bench/render-stage-timer';
+import { RENDER_WARM_UP_UPLOADS_PER_FRAME } from './constants';
 import type { GameRenderer } from './game-renderer';
 import type { RendererBuild } from './renderer-slot';
 import type { RenderTextures } from './render-textures';
@@ -19,9 +20,6 @@ export interface RendererWarmUpSeam {
   uploadTextureSource(source: TextureSource): void;
   renderOffscreen(container: Container): void;
 }
-
-/** Pixi's own `PrepareBase.uploadsPerFrame`: small enough that a frame of uploads is not itself a freeze. */
-export const UPLOADS_PER_FRAME = 4;
 
 /** Stage brackets that can be muted, so the warm-up draw adds no sample to the frame report (`bench/`). */
 export class MutableStageMeasurer implements StageMeasurer {
@@ -83,7 +81,8 @@ export class WarmedRendererBuild {
     }
     if (this.step === WARM_UP_STEP.uploads) {
       this.uploads ??= textureSourcesOf(staged.textures);
-      for (const source of this.uploads.splice(0, UPLOADS_PER_FRAME)) this.seam.uploadTextureSource(source);
+      for (const source of this.uploads.splice(0, RENDER_WARM_UP_UPLOADS_PER_FRAME))
+        this.seam.uploadTextureSource(source);
       if (this.uploads.length === 0) this.step = WARM_UP_STEP.draw;
       return null;
     }

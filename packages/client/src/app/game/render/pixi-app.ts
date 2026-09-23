@@ -3,7 +3,7 @@
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 
 import { Application, RenderTexture, Texture } from 'pixi.js';
-import { BG_DEEP } from './constants';
+import { BG_DEEP, RENDER_WARM_UP_TARGET_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
 import type { RendererWarmUpSeam } from './renderer-warm-up';
@@ -43,10 +43,22 @@ export interface PixiAppHandle {
   destroy(): void;
 }
 
-/** The warm-up render's target: any size compiles the same shaders and uploads the same textures. */
-const WARM_UP_TARGET_PX = 64;
-
 export const GAME_CANVAS_TEST_ID = 'game-canvas';
+
+/** The staged renderer's warm-up on the real app: the target is freed even when the render throws. */
+function createWarmUpSeam(app: Application): RendererWarmUpSeam {
+  return {
+    uploadTextureSource: (source) => app.renderer.texture.initSource(source),
+    renderOffscreen: (container) => {
+      const target = RenderTexture.create({ width: RENDER_WARM_UP_TARGET_PX, height: RENDER_WARM_UP_TARGET_PX });
+      try {
+        app.renderer.render({ container, target });
+      } finally {
+        target.destroy(true);
+      }
+    },
+  };
+}
 
 export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHandle> {
   // Before anything can bake text: a bitmap font drawn while a web font is still loading keeps the fallback glyphs.
@@ -76,14 +88,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     unbindTextures: () => {
       app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;
     },
-    warmUp: {
-      uploadTextureSource: (source) => app.renderer.texture.initSource(source),
-      renderOffscreen: (container) => {
-        const target = RenderTexture.create({ width: WARM_UP_TARGET_PX, height: WARM_UP_TARGET_PX });
-        app.renderer.render({ container, target });
-        target.destroy(true);
-      },
-    },
+    warmUp: createWarmUpSeam(app),
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

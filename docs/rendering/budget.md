@@ -353,10 +353,10 @@ task from `Start` to the first frame; not hardware numbers):
 **The staged build warms the first draw before the reveal (#603).** After the last bake the new renderer is built
 on a staging container **off the stage** (`RendererSlot.beginBuild`'s `staged`, put on the stage only by `commit`),
 and `renderer-warm-up.ts`'s `WarmedRendererBuild` goes on one step per frame: the bundle's texture sources uploaded
-`UPLOADS_PER_FRAME` (4, Pixi's own prepare default) at a time (`textureSourcesOf`, `PixiAppHandle.warmUp`), one
+`RENDER_WARM_UP_UPLOADS_PER_FRAME` (4, Pixi's own prepare default) at a time (`textureSourcesOf`, `PixiAppHandle.warmUp`), one
 warm-up draw of the current frame on the staged renderer (its first-time CPU work: the pools, meshes and texts made
 on first use; the stage brackets muted through `MutableStageMeasurer`, nothing submitted), and one render of the
-staging container to a 64 px off-screen target (the shader compiles). Only then does it commit. A teardown
+staging container to a `RENDER_WARM_UP_TARGET_PX` (64 px) off-screen target (the shader compiles). Only then does it commit. A teardown
 mid-build commits at once, skipping the warm-up, so what was made is still freed.
 
 Measured the same way (SwiftShader, load 9–13, three fresh rooms; not hardware numbers):
