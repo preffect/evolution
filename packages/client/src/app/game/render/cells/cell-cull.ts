@@ -6,7 +6,8 @@
 // constant number of radii, is what keeps a tail tip or a ring from popping in at the screen edge.
 
 import { MOTION_CLIPS, type MotionClipId } from '@evolution/shared';
-import { FAR_DOT_HALO_RADII, RELATION_RING_STROKE_PX, WARNING_RING_STROKE_PX } from '../constants';
+import { FAR_DOT_HALO_RADII, FLAGELLUM_OUTER_PX, RELATION_RING_STROKE_PX, WARNING_RING_STROKE_PX } from '../constants';
+import { HALF } from '../geometry';
 import { EATING_CLIP_CONTEXT, UNAIMED_CLIP_CONTEXT, clipDeformationPeak, engulfDeformationPeak } from './cell-clips';
 import { cellDrawExtentRadii, type CellDrawState } from './cell-draw-extent';
 import { relationRingOuterLinePx, relationRingPackingFor, warningRingRadiusPx } from './cell-instance-builder';
@@ -47,10 +48,13 @@ export function cullReachRadii(traits: CellTraitSummary): number {
 /**
  * The cull reach in px for a cell of `screenRadiusPx` whose drawing reaches `reachRadii`: the drawing, or the outer
  * edge of the widest ring it could carry (the warning ring's px floor, the toxic ring's outer line), whichever is wider.
+ * `reachRadii` measures the tail's centreline, and its round-capped outer stroke reaches half its width further, in px
+ * whatever the zoom, so that half is added on top.
  */
 export function cullReachPx(reachRadii: number, screenRadiusPx: number): number {
   const warningPx = warningRingRadiusPx(screenRadiusPx) + WARNING_RING_STROKE_PX;
   const relation = relationRingPackingFor(RELATION_RING.toxic, { hasTells: true, screenRadiusPx }, 0);
   const relationPx = relationRingOuterLinePx(relation) + RELATION_RING_STROKE_PX;
-  return Math.max(reachRadii * screenRadiusPx, warningPx, relationPx);
+  const drawingPx = reachRadii * screenRadiusPx + FLAGELLUM_OUTER_PX * HALF;
+  return Math.max(drawingPx, warningPx, relationPx);
 }

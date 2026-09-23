@@ -4,9 +4,11 @@ import { createTestCellView } from '../../../../testing/builders';
 import {
   ENGULF_WARNING_RING_MIN_PX,
   FAR_DOT_HALO_RADII,
+  FLAGELLUM_OUTER_PX,
   RELATION_RING_RADII,
   WARNING_RING_STROKE_PX,
 } from '../constants';
+import { HALF } from '../geometry';
 import { EATING_CLIP_CONTEXT, clipDeformationPeak, engulfDeformationPeak } from './cell-clips';
 import { CULL_DRAW_STATE, cullReachPx, cullReachRadii } from './cell-cull';
 import { cellDrawExtentRadii } from './cell-draw-extent';
@@ -41,7 +43,7 @@ describe('cullReachRadii', () => {
 
 describe('cullReachPx', () => {
   it('is the drawing on a big cell and the warning ring’s px floor on a tiny one', () => {
-    expect(cullReachPx(3.2, 100)).toBeCloseTo(320, 6);
+    expect(cullReachPx(3.2, 100)).toBeCloseTo(320 + FLAGELLUM_OUTER_PX * HALF, 6);
     expect(cullReachPx(3.2, 3)).toBe(ENGULF_WARNING_RING_MIN_PX + WARNING_RING_STROKE_PX);
   });
 

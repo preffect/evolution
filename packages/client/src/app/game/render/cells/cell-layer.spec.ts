@@ -9,7 +9,14 @@ import {
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { Graphics } from 'pixi.js';
 import type { CameraExtent } from '../camera';
-import { CELL_QUAD_EXTENT_RADII, ENGULF_WARNING_RING_MIN_PX, HALO_KIND, WARNING_RING_STROKE_PX } from '../constants';
+import {
+  CELL_QUAD_EXTENT_RADII,
+  ENGULF_WARNING_RING_MIN_PX,
+  FLAGELLUM_OUTER_PX,
+  HALO_KIND,
+  WARNING_RING_STROKE_PX,
+} from '../constants';
+import { HALF } from '../geometry';
 import { cullReachRadii } from './cell-cull';
 import { summariseCellTraits } from './cell-traits';
 import { NO_DEFORMATIONS, type CellDeformation } from './cell-deformation';
@@ -125,11 +132,13 @@ describe('CellLayer', () => {
     const subject = new CellLayer(textures);
     const traits: CellView['traits'] = [{ traitId: 'simple_flagellum', tier: 3 }];
     const radius = 10;
-    const reachPx = cullReachRadii(summariseCellTraits(createTestCellView({ radius, traits }), null)) * radius;
-    // The tail reaches past the old constant quad extent, which is what let its tip pop in at the edge.
-    expect(reachPx).toBeGreaterThan(CELL_QUAD_EXTENT_RADII * radius);
-    const reaching = createTestCellView({ id: entityId('tail-in'), x: EXTENT.maxX + reachPx - 1, radius, traits });
-    const beyond = createTestCellView({ id: entityId('all-out'), x: EXTENT.maxX + reachPx + 1, radius, traits });
+    const centrelinePx = cullReachRadii(summariseCellTraits(createTestCellView({ radius, traits }), null)) * radius;
+    // The tail reaches past the quad's 3 r, so a cull by the quad alone would cut it.
+    expect(centrelinePx).toBeGreaterThan(CELL_QUAD_EXTENT_RADII * radius);
+    // Its outer stroke reaches half its width past the centreline: a tip whose centreline is just off still draws.
+    const strokeEdgePx = centrelinePx + FLAGELLUM_OUTER_PX * HALF;
+    const reaching = createTestCellView({ id: entityId('tail-in'), x: EXTENT.maxX + strokeEdgePx - 1, radius, traits });
+    const beyond = createTestCellView({ id: entityId('all-out'), x: EXTENT.maxX + strokeEdgePx + 1, radius, traits });
     expect(subject.update(input({ frame: createTestRenderFrame({ cells: [reaching] }) })).visibleCells).toBe(1);
     expect(subject.update(input({ frame: createTestRenderFrame({ cells: [beyond] }) })).visibleCells).toBe(0);
     subject.destroy();
