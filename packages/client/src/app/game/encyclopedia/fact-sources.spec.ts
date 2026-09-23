@@ -5,7 +5,7 @@
 // (× 2, or + 1 at 0; an array's `length` counts as a leaf, so a count over structure is pinned too).
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, type BalanceConfig } from '@evolution/shared';
+import { DEFAULT_BALANCE, ENGULF_PHASE, type BalanceConfig } from '@evolution/shared';
 import { readBalancePath } from './facts/balance-path';
 import {
   CATALOG_QUANTITY,
@@ -88,6 +88,9 @@ const FORMULA_CALLS: { readonly [Id in FactFormulaId]: readonly FactFormulaCall[
     callOf(FACT_FORMULA.worldLevelAt, { moment }),
   ),
   [FACT_FORMULA.worldMassAt]: Object.values(ROUND_MOMENT).map((moment) => callOf(FACT_FORMULA.worldMassAt, { moment })),
+  [FACT_FORMULA.engulfPhaseSpan]: Object.values(ENGULF_PHASE).map((phase) =>
+    callOf(FACT_FORMULA.engulfPhaseSpan, { phase }),
+  ),
 };
 
 const CATALOG_CALLS: { readonly [Id in CatalogQuantityId]: readonly CatalogQuantityCall[] } = {

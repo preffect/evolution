@@ -11,6 +11,7 @@ import { resolveProse } from './facts/resolve-prose';
 import { ABILITY } from './model/abilities';
 import { ENCYCLOPEDIA_CATEGORY } from './model/categories';
 import type { ResolvedEntry } from './model/entry';
+import type { EntryId } from './model/entry-id';
 import { ENTRY_GROUP } from './model/groups';
 import { ENTRY_BY_ID, entriesIn, entryTitle, isEntryReference, resolveEntry } from './registry';
 import { resolveEntryDefinition } from './resolve-entry';
@@ -45,6 +46,23 @@ describe('resolveEntry over a patched balance', () => {
       factContextFor(patchedBalance((balance) => (balance.absorption['ENGULF_SWALLOWED_TOXIN_MULTIPLIER'] = 4))),
     );
     expect(dosed.summary.some((segment) => segment.kind === 'value' && segment.text === '4×')).toBe(true);
+  });
+
+  it('reads the engulf phase times from the span the engulf runs on: they follow the seal and sum to the whole', () => {
+    const phaseTimes = (entry: ResolvedEntry): number[] =>
+      ['coverTime', 'wrapTime', 'absorbTime'].map((key) => Number.parseFloat(factText(entry, key)[0] ?? ''));
+    const shippedTimes = phaseTimes(resolveEntry('action:engulf', shipped));
+    const whole = DEFAULT_BALANCE.absorption.ENGULF_BASE_DURATION_SECONDS;
+    expect(shippedTimes.reduce((sum, seconds) => sum + seconds, 0)).toBeCloseTo(whole);
+    const laterSeal = factContextFor(patchedBalance((balance) => (balance.absorption['ENGULF_SEAL_PROGRESS'] = 0.75)));
+    const sealedLater = phaseTimes(resolveEntry('action:engulf', laterSeal));
+    expect(sealedLater[1]).toBeGreaterThan(shippedTimes[1] ?? 0);
+    expect(sealedLater[2]).toBeLessThan(shippedTimes[2] ?? 0);
+    expect(sealedLater.reduce((sum, seconds) => sum + seconds, 0)).toBeCloseTo(whole);
+    const slower = factContextFor(
+      patchedBalance((balance) => (balance.absorption['ENGULF_BASE_DURATION_SECONDS'] = whole * 2)),
+    );
+    expect(phaseTimes(resolveEntry('action:engulf', slower))[2]).toBeCloseTo((shippedTimes[2] ?? 0) * 2);
   });
 
   it('floors the world level at the round’s end as the game does, never rounding it up', () => {
@@ -157,8 +175,11 @@ describe('the derived links', () => {
   });
 });
 
+/** A well-formed id the registry does not hold: every real subject value now has an entry. */
+const MISSING_ENTRY = 'trait:no_such_trait' as EntryId;
+
 describe('the registry lookups', () => {
-  it('group evolutions by stage, trait category in declaration order, then DNA tag, and leave empty categories empty', () => {
+  it('group evolutions by stage, trait category in declaration order, then DNA tag, and leave abilities ungrouped', () => {
     expect(entriesIn(ENCYCLOPEDIA_CATEGORY.evolutions).map((group) => group.group)).toEqual([
       ENTRY_GROUP.stages,
       ENTRY_GROUP.genome,
@@ -169,22 +190,23 @@ describe('the registry lookups', () => {
       ENTRY_GROUP.form,
       ENTRY_GROUP.dnaTags,
     ]);
-    expect(entriesIn(ENCYCLOPEDIA_CATEGORY.abilities)).toEqual([]);
+    expect(entriesIn(ENCYCLOPEDIA_CATEGORY.abilities).map((group) => group.group)).toEqual([null]);
     expect(resolveEntry('trait:diatom_shell', shipped)).toMatchObject({ category: 'evolutions', group: 'form' });
   });
 
   it('accept an anchor to an existing section only', () => {
     expect(isEntryReference('trait:cilia#tier_2')).toBe(true);
     expect(isEntryReference('trait:cilia#tier_9')).toBe(false);
-    expect(isEntryReference('ability:toxin')).toBe(false);
+    expect(isEntryReference('ability:toxin#no_section')).toBe(false);
+    expect(isEntryReference(MISSING_ENTRY)).toBe(false);
     expect(ENTRY_BY_ID.has('stage:eukaryote')).toBe(true);
-    expect(() => resolveEntry('ability:toxin', shipped)).toThrow(/no entry/);
+    expect(() => resolveEntry(MISSING_ENTRY, shipped)).toThrow(/no entry/);
   });
 
   it('refuse a prose token with no fact and a link to nothing', () => {
     const scope = { facts: [], titleOf: entryTitle, isReference: isEntryReference };
     expect(() => resolveProse('Gives {massGain}', scope)).toThrow(/names no fact/);
-    expect(() => resolveProse('See [[ability:toxin]]', scope)).toThrow(/names no entry/);
+    expect(() => resolveProse(`See [[${MISSING_ENTRY}]]`, scope)).toThrow(/names no entry/);
     expect(resolveProse('See [[trait:cilia#tier_2|its second tier]]', scope)).toEqual([
       { kind: 'text', text: 'See ' },
       { kind: 'link', entryId: 'trait:cilia', sectionKey: 'tier_2', text: 'its second tier' },

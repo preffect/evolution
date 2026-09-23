@@ -24,7 +24,9 @@ the vent shimmer is the one filter, over the vent sprite only. Draw calls at the
 Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). The rows add up to 16
 with debug off, which leaves **1** call of headroom; the arc mesh is one instanced call at any arc count (§10), so
 the effects row never grows with the indicators. Culling: cells whose
-quad misses `cameraExtent` are not uploaded; motes and fragments are all uploaded (the bench load's quads are
+drawing cannot reach `cameraExtent` are not uploaded — the reach is the widest any frame of the cell draws
+(`cells/cell-cull.ts`: `cellDrawExtentRadii` sprinting at top speed with the widest clip, or its widest ring's px
+floor), tested with no further margin (#529); motes and fragments are all uploaded (the bench load's quads are
 free) and only bacteria positions change per snapshot.
 
 ### 6.1 The condenser light pool (#222)

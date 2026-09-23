@@ -240,4 +240,3 @@ export const EAT_HALO_FADE_START = 0.55;
 
 // ---- camera (render side of game-design/controls-and-scope.md §7) ----
 export const CAMERA_REFERENCE_VIEWPORT_HEIGHT_PX = 1080;
-export const CAMERA_CULL_MARGIN_RADII = 1;
