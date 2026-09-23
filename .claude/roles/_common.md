@@ -46,6 +46,11 @@ changes it.
    `run_in_background: true`, then immediately call `scripts/wait-for.sh <output-file>` in the
    foreground (the file the harness printed) and repeat while it exits 3. No `nohup`, no `&`, no
    `until … sleep` loops. "I'll pick this up when it finishes" is never a valid end of turn.
+9. **A game tab costs a whole CPU core while it's open, even unwatched** (headless Chrome renders the game in
+   software; measured on ticket #521). After each screenshot, navigate the tab to `about:blank` or close it; in
+   the shared Playwright browser, close your own tab when you're done. Stage evidence with the debug MCP
+   (`debug_set_player`, `debug_spawn`, `debug_pause_room` / `debug_step_room`) rather than letting a live room play
+   out in real time until something happens, and keep a game page open only while you capture.
 
 ## Decision tickets (the human dial)
 
