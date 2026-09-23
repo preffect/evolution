@@ -2,9 +2,15 @@
 // §4.1): a mote's position and a spawned mote's view are held by its `MoteEntry` with their JSON, written once, and a
 // fragment's view is built once per broadcast; a viewer's arrays are joined from those strings. The text is exactly
 // what `JSON.stringify` writes for the same value (the spec pins it), so the wire does not change.
+//
+// **Invariant:** a food delta's JSON is joined from its entries' *current* strings, not from the delta object, so a
+// viewer's members must be written before the next world read (`MoteMotion.position`, which a later broadcast or a
+// `serializeFull` makes). The room does that: it closes each viewer's frame right after that viewer's `serialize`.
+// Batching the serialisation, or reading the world between `serialize` and `closeSnapshotFrame`, would break it.
 
 import type { FoodDelta } from '@evolution/shared';
 import type { FoodDeltaParts } from './food-delta-tracker.js';
+import type { ViewerSnapshotKey } from './viewer-snapshot-keys.js';
 
 /** `{"spawned":[…],"removedIds":[…],"moved":[…]}`: `FoodDelta`'s members in the order the tracker builds them. */
 function foodDeltaJson(parts: FoodDeltaParts): string {
@@ -26,7 +32,7 @@ export class ViewerMemberJson {
   }
 
   /** `JSON.stringify(value)` for the member `key`, reusing the shared items' strings. */
-  memberJson(key: string, value: unknown): string {
+  memberJson(key: ViewerSnapshotKey, value: unknown): string {
     const parts = key === 'food' ? this.foodParts.get(value as FoodDelta) : undefined;
     if (parts !== undefined) return foodDeltaJson(parts);
     if (key === 'dnaFragments' && Array.isArray(value)) return this.arrayJson(value as readonly object[]);

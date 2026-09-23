@@ -40,6 +40,12 @@ describe('FoodDeltaTracker', () => {
     expect(diffOf(tracker, world.food)).toEqual({ spawned: [], removedIds: [], moved: [] });
   });
 
+  it('refuses a mote id reused by another record, which its viewers would be sent as spawned and removed', () => {
+    const world = worldWithMotes(1);
+    motion.position(world.food);
+    expect(() => motion.position([{ ...world.food[0]! }])).toThrow(/reused/);
+  });
+
   it('reports removed ids in the previous order and new motes as spawned', () => {
     const world = worldWithMotes(3);
     const tracker = new FoodDeltaTracker(nextSlot());

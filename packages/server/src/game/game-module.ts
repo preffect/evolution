@@ -92,7 +92,7 @@ export interface ViewerState<Snapshot, ViewerKey extends keyof Snapshot & string
    * Optional: one member's JSON, written exactly as `JSON.stringify(value)` would, so a module can reuse the strings of
    * items its viewers share (#406). Without it the room stringifies each member itself.
    */
-  memberJson?(key: string, value: unknown): string;
+  memberJson?(key: ViewerKey, value: unknown): string;
 }
 
 /**
@@ -104,7 +104,7 @@ export interface ViewerStateSerializer<Snapshot, Keys extends keyof Snapshot & s
   readonly keys: readonly Keys[];
   serialize(viewerPlayerId: PlayerId, broadcast: ViewerlessSnapshot<Snapshot, Keys>): Pick<Snapshot, Keys>;
   serializeFull(viewerPlayerId: PlayerId, snapshot: Snapshot): Pick<Snapshot, Keys>;
-  memberJson?(key: string, value: unknown): string;
+  memberJson?(key: Keys, value: unknown): string;
 }
 
 /** The `game_state` payload: a full snapshot and the live balance the client must predict with. */

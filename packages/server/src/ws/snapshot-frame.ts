@@ -22,13 +22,13 @@ const SNAPSHOT_AND_MESSAGE_CLOSE = `${CLOSING_BRACE}${CLOSING_BRACE}`;
 export type ViewerMembers = Readonly<Partial<Record<string, unknown>>>;
 
 /** The shared part of every viewer's `game_snapshot`: see the file header. */
-export interface OpenSnapshotFrame {
+export interface OpenSnapshotFrame<Key extends string = string> {
   /** The message up to the snapshot's last shared member. */
   readonly sharedJson: string;
   /** Whether a shared member precedes the viewer members, so a separator goes between them. */
   readonly hasSharedMembers: boolean;
   /** The viewer members each frame is closed with, in order. */
-  readonly viewerKeys: readonly string[];
+  readonly viewerKeys: readonly Key[];
 }
 
 /** A declared member's value; one the module left out is a bug in the module, never sent as a guess. */
@@ -42,7 +42,10 @@ export function requireViewerMember(viewerMembers: ViewerMembers, key: string): 
  * Stringifies `snapshot` once without `viewerKeys`: the shared part of every viewer's `game_snapshot`. A broadcast
  * typed without them carries none, but a member present anyway is still left out rather than written twice.
  */
-export function openSnapshotFrame(snapshot: object, viewerKeys: readonly string[]): OpenSnapshotFrame {
+export function openSnapshotFrame<Key extends string>(
+  snapshot: object,
+  viewerKeys: readonly Key[],
+): OpenSnapshotFrame<Key> {
   const viewerMembersLeftOut = Object.fromEntries(viewerKeys.map((key) => [key, undefined]));
   const snapshotJson = JSON.stringify({ ...snapshot, ...viewerMembersLeftOut });
   return {
@@ -53,7 +56,7 @@ export function openSnapshotFrame(snapshot: object, viewerKeys: readonly string[
 }
 
 /** Writes one member's value as JSON; it must write exactly what `JSON.stringify` would. */
-export type MemberJsonWriter = (key: string, value: unknown) => string;
+export type MemberJsonWriter<Key extends string = string> = (key: Key, value: unknown) => string;
 
 const STRINGIFY_MEMBER: MemberJsonWriter = (_key, value) => JSON.stringify(value);
 
@@ -61,10 +64,10 @@ const STRINGIFY_MEMBER: MemberJsonWriter = (_key, value) => JSON.stringify(value
  * One viewer's whole `game_snapshot` message: `frame` closed with that viewer's members, in declared order, each
  * written by `memberJson` (a module's writer can reuse strings its viewers share, #406).
  */
-export function closeSnapshotFrame(
-  frame: OpenSnapshotFrame,
+export function closeSnapshotFrame<Key extends string>(
+  frame: OpenSnapshotFrame<Key>,
   viewerMembers: ViewerMembers,
-  memberJson: MemberJsonWriter = STRINGIFY_MEMBER,
+  memberJson: MemberJsonWriter<Key> = STRINGIFY_MEMBER,
 ): string {
   const members = frame.viewerKeys.map(
     (key) => `${JSON.stringify(key)}${KEY_VALUE_SEPARATOR}${memberJson(key, requireViewerMember(viewerMembers, key))}`,

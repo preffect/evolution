@@ -16,7 +16,7 @@ import { toFoodMoteView, toMotePositionView } from './serialize.js';
 
 /** One mote as every viewer reads it; the same object from broadcast to broadcast while the mote lives. */
 export class MoteEntry {
-  mote: FoodMoteRecord;
+  readonly mote: FoodMoteRecord;
   /** Its quantised position: the same object until it moves, so its JSON is written once per move. */
   position: MotePositionView;
   /** The `MoteMotion` sequence of the broadcast the quantised position last changed at (or the mote appeared). */
@@ -84,7 +84,10 @@ export class MoteMotion {
     const motes = food.map((mote) => {
       const position = toMotePositionView(mote);
       let entry = this.entries.get(mote.id);
-      if (entry === undefined || entry.mote !== mote) {
+      // Keyed by id alone: an id is never reused (`mintEntityId`'s counter continues across a rematch). A reused one
+      // would reach its viewers as both spawned and removed, and the client applies the removal last, so it throws.
+      if (entry !== undefined && entry.mote !== mote) throw new Error(`MoteMotion: mote id ${mote.id} was reused`);
+      if (entry === undefined) {
         entry = new MoteEntry(mote, position, this.sequence);
       } else if (entry.position.x !== position.x || entry.position.y !== position.y) {
         entry.moveTo(position, this.sequence);

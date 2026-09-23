@@ -80,7 +80,7 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
   }
 
   /** `JSON.stringify(value)` for one member, the items every viewer shares stringified once per broadcast (#406). */
-  memberJson(key: string, value: unknown): string {
+  memberJson(key: ViewerSnapshotKey, value: unknown): string {
     return this.json.memberJson(key, value);
   }
 
