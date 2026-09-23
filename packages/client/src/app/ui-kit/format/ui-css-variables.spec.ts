@@ -109,6 +109,7 @@ const EXPECTED_CONSTANTS: Readonly<Record<string, string>> = {
   '--ui-primary-fill-alpha': String(kit.UI_PRIMARY_FILL_ALPHA),
   '--ui-primary-rim-alpha': String(kit.UI_PRIMARY_RIM_ALPHA),
   '--ui-secondary-fill-alpha': String(kit.UI_SECONDARY_FILL_ALPHA),
+  '--ui-secondary-rim-alpha': String(kit.UI_SECONDARY_RIM_ALPHA),
   '--ui-danger-rim-alpha': String(kit.UI_DANGER_RIM_ALPHA),
   '--ui-panel-edge-alpha': String(kit.UI_PANEL_EDGE_ALPHA),
   '--ui-scroll-thumb-alpha': String(kit.UI_SCROLL_THUMB_ALPHA),
