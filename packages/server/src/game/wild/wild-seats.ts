@@ -10,6 +10,7 @@ import {
   ENTITY_KIND,
   RANDOM_STREAM,
   WORLD_ORGANISM_ID,
+  worldWholeLevel,
   type BalanceConfig,
   type Vec2,
   type WorldReference,
@@ -99,7 +100,7 @@ export function seatWildCell(
     playerId: null,
     organismId: WORLD_ORGANISM_ID,
     avatarIndex: WILD_CELL_AVATAR_INDEX,
-    level: Math.floor(reference.worldLevel),
+    level: worldWholeLevel(reference),
   };
   const cell = bornCellRecord(identity, seating.centre, balance.growth.CELL_STARTING_MASS);
   seat.cellId = id;

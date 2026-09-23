@@ -5,7 +5,7 @@
 // player predator and its `canContinueEngulf` fails on the same tick. A free cell is re-pinned in full: its
 // `drainedMass` is cleared here, the first pin after a payout or a release (W10 reads the full pin on the next tick).
 
-import type { BalanceConfig, WorldReference } from '@evolution/shared';
+import { worldWholeLevel, type BalanceConfig, type WorldReference } from '@evolution/shared';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { isEngulfing } from '../simulation/engulf-state.js';
@@ -32,7 +32,7 @@ export function pinWildCell(
     seat.drainedMass = 0;
   }
   setCellMass(cell, pinnedWildMass(seat, reference, balance), balance);
-  cell.level = Math.floor(reference.worldLevel);
+  cell.level = worldWholeLevel(reference);
   refreshCellDerivedStateFromTraits(cell, wildOwnedTraits(seat.seatNumber, cell.level, balance), balance);
 }
 

@@ -1,5 +1,5 @@
 // Every `ENTITY_KIND` has a page (docs/architecture/encyclopedia.md §12.4): a new entity kind without one fails
-// `typecheck`, and the completeness spec pins that each target exists once #361 lands the entities.
+// `typecheck`, and the completeness spec pins that each target exists.
 
 import { ENTITY_KIND, type EntityKind } from '@evolution/shared';
 import type { EntryId } from './entry-id';

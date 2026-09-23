@@ -47,6 +47,13 @@ describe('resolveEntry over a patched balance', () => {
     expect(dosed.summary.some((segment) => segment.kind === 'value' && segment.text === '4×')).toBe(true);
   });
 
+  it('floors the world level at the round’s end as the game does, never rounding it up', () => {
+    expect(factText(resolveEntry('world:world_clock', shipped), 'worldLevelAtEnd')).toEqual(['Level 4']);
+    // 600 s / 240 s per level: the world is at level 3.5, which plays as level 3.
+    const halfway = factContextFor(patchedBalance((balance) => (balance.worldClock['WORLD_LEVEL_SECONDS'] = 240)));
+    expect(factText(resolveEntry('world:world_clock', halfway), 'worldLevelAtEnd')).toEqual(['Level 3']);
+  });
+
   it('changes a trait’s tier lines', () => {
     const patched = patchedBalance((balance) => {
       const tiers = balance.traits['TRAIT_TIERS'] as Record<string, Record<string, number>[]>;

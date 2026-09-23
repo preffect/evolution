@@ -36,7 +36,7 @@ import { entriesIn, resolveEntry } from './registry';
 
 /**
  * The categories the rail lists (§11.5): the registry is assembled once at module load, so which categories are empty
- * is settled once too. Only the evolutions subjects have entries until #361 and #362 land.
+ * is settled once too. The abilities and actions have no entries until #362 lands.
  */
 export const LISTED_ENCYCLOPEDIA_CATEGORIES: readonly EncyclopediaCategory[] = listedCategories(
   (category) => entriesIn(category).length > 0,
