@@ -11,6 +11,7 @@ import type { EntityId, ZoneId } from '@evolution/shared';
 import { COACH_QUEUE_MAX } from '../hud-constants';
 import { COACH_BEATS } from './onboarding-coach-beats';
 import {
+  ONBOARDING_BEAT,
   OPENING_BEATS,
   type OnboardingBeat,
   type OnboardingBeatId,
@@ -191,6 +192,43 @@ function enqueue(
   return { ...memory, waiting: waitingWith(memory.waiting, beat, beatsById) };
 }
 
+/**
+ * The first offer's line goes up at once; the beat it displaces goes back to the front of the queue, unseen, since
+ * the picker hid it before it was read.
+ */
+function showOfferBeat(memory: OnboardingMemory, tick: number): OnboardingMemory {
+  const displaced = memory.current;
+  const seen = new Set(memory.seen);
+  if (displaced !== null) seen.delete(displaced);
+  const others = memory.waiting.filter((id) => id !== ONBOARDING_BEAT.offer);
+  return show(
+    { ...memory, seen, waiting: displaced === null ? others : [displaced, ...others] },
+    ONBOARDING_BEAT.offer,
+    tick,
+  );
+}
+
+/**
+ * While the picker is open it owns the words (docs/ui/input-and-onboarding.md §5): only the `offer` beat goes up.
+ * Every other beat that fires waits, danger beats included, and a hidden beat's timer holds until the pick.
+ */
+function stepWhilePicking(
+  previous: OnboardingMemory,
+  memory: OnboardingMemory,
+  observation: OnboardingObservation,
+  beats: readonly OnboardingBeat[],
+): OnboardingMemory {
+  let next = memory;
+  if (!next.seen.has(ONBOARDING_BEAT.offer)) next = showOfferBeat(next, observation.tick);
+  else if (next.current !== ONBOARDING_BEAT.offer && Number.isFinite(previous.lastTick)) {
+    const heldTicks = observation.tick - previous.lastTick;
+    next = { ...next, history: { ...next.history, shownAtTick: next.history.shownAtTick + heldTicks } };
+  }
+  const waiting = [...next.waiting];
+  for (const beat of newlyTriggered(next, observation, beats)) waiting.push(beat.id);
+  return { ...next, waiting };
+}
+
 /** Folds one snapshot into the queue; a tick already seen changes nothing, so a recomputation never counts twice. */
 export function onboardingStepFor(
   previous: OnboardingMemory,
@@ -201,6 +239,7 @@ export function onboardingStepFor(
   const observation = sample.observation;
   // Dead, spectating or between rounds: nothing fires and nothing is dismissed; the pill waits with the player.
   if (observation === null) return historyAfter(previous, sample);
+  if (observation.hasOffer) return stepWhilePicking(previous, historyAfter(previous, sample), observation, beats);
   const beatsById = new Map(beats.map((beat) => [beat.id, beat]));
   let memory = afterDismissal(historyAfter(previous, sample), observation, beatsById);
   for (const beat of newlyTriggered(memory, observation, beats)) {
