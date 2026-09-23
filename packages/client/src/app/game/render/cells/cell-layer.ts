@@ -11,12 +11,13 @@
 import { RENDER_STAGE, type CellView, type EntityId } from '@evolution/shared';
 import { Container } from 'pixi.js';
 import { UNTIMED_STAGES, type StageMeasurer } from '../bench/render-stage-timer';
-import { isDiscInExtent, type CameraExtent } from '../camera';
-import { CELL_INSTANCE_CAPACITY, CELL_QUAD_EXTENT_RADII } from '../constants';
+import { isDiscVisibleInExtent, type CameraExtent } from '../camera';
+import { CELL_INSTANCE_CAPACITY } from '../constants';
 import { paletteFor } from '../palette';
 import type { RenderTextures } from '../render-textures';
 import { ViewRegistry } from '../view-registry';
 import { deformationOf } from './cell-deformation';
+import { cullReachPx } from './cell-cull';
 import { startAbsorbedGhosts } from './cell-effects';
 import { packCellInstance } from './cell-instance';
 import type { CellLayerFrame, CellLayerOutputs } from './cell-layer-frame';
@@ -76,12 +77,22 @@ export class CellLayer {
     return this.mesh.instances;
   }
 
-  /** The cells whose quad reaches the extent, smallest first (docs/architecture/client.md §6), cut to `budget` rows from the small end. */
-  private visibleCells(cells: readonly CellView[], extent: CameraExtent, budget: number): CellView[] {
+  /**
+   * The cells whose drawing can reach the extent (`cell-cull.ts`: the widest any frame draws, rings included, no
+   * further margin), smallest first (docs/architecture/client.md §6), cut to `budget` rows from the small end.
+   */
+  private visibleCells(cells: readonly CellView[], extent: CameraExtent, zoom: number, budget: number): CellView[] {
     const visible = cells
-      .filter((cell) => isDiscInExtent(extent, cell.x, cell.y, cell.radius * CELL_QUAD_EXTENT_RADII))
+      .filter((cell) => this.reaches(cell, extent, zoom))
       .sort((first, second) => first.radius - second.radius);
     return visible.length > budget ? visible.slice(visible.length - budget) : visible;
+  }
+
+  private reaches(cell: CellView, extent: CameraExtent, zoom: number): boolean {
+    const reachRadii = this.registry.get(cell.id)?.cullReachRadiiOf(cell);
+    if (reachRadii === undefined) return false;
+    const reachWu = cullReachPx(reachRadii, cell.radius * zoom) / zoom;
+    return isDiscVisibleInExtent(extent, cell.x, cell.y, reachWu);
   }
 
   private frameContext(
@@ -129,7 +140,7 @@ export class CellLayer {
     startAbsorbedGhosts(frame.effects, (id) => this.ghostSourceOf(id), this.ghosts, input.nowMs);
     this.registry.sync(frame.cells);
     const ghosts = this.ghosts.active(input.nowMs).slice(0, this.mesh.capacity);
-    const visible = this.visibleCells(frame.cells, input.extent, this.mesh.capacity - ghosts.length);
+    const visible = this.visibleCells(frame.cells, input.extent, input.zoom, this.mesh.capacity - ghosts.length);
     const context = this.frameContext(input, visible, ghosts);
     const ghostsByPredator = groupByPredator(ghosts);
     const draws: OrganelleDraw[] = [];

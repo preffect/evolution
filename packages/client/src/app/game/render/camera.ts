@@ -5,7 +5,6 @@
 // injected clock's delta.
 
 import type { CameraState } from '@evolution/shared';
-import { CAMERA_CULL_MARGIN_RADII } from './constants';
 import { HALF } from './geometry';
 
 export interface ViewportPx {
@@ -70,11 +69,10 @@ export function screenToWorld(state: CameraState, viewport: ViewportPx, x: numbe
 }
 
 /**
- * Whether any part of a disc is inside the extent — no margin, so this answers "can the player see
- * it" rather than "should we draw it". The HUD's threat label anchors to a predator's warning ring
- * (docs/ui/hud.md §3.1.2, "so it is never off-screen"), and a ring that is not on screen is nothing to
- * anchor to. `isDiscInExtent` below is the draw-cull and is deliberately generous; do not reach for
- * it when the question is what the player can actually look at.
+ * Whether any part of a disc is inside the extent, with no margin. The HUD asks it of what the player can see (the
+ * threat label anchors to a predator's warning ring, docs/ui/hud.md §3.1.2, and an off-screen ring is nothing to
+ * anchor to); the cell layer's cull asks it of the widest a cell can draw (`cells/cell-cull.ts`, ticket #529), which
+ * is already the whole drawing, so neither needs a margin.
  */
 export function isDiscVisibleInExtent(extent: CameraExtent, x: number, y: number, radiusWu: number): boolean {
   return (
@@ -82,13 +80,5 @@ export function isDiscVisibleInExtent(extent: CameraExtent, x: number, y: number
     x - radiusWu <= extent.maxX &&
     y + radiusWu >= extent.minY &&
     y - radiusWu <= extent.maxY
-  );
-}
-
-/** Whether a disc of `reachWu` around a centre touches the extent, with the cull margin (rendering/budget.md §6). */
-export function isDiscInExtent(extent: CameraExtent, x: number, y: number, reachWu: number): boolean {
-  const margin = reachWu * (1 + CAMERA_CULL_MARGIN_RADII);
-  return (
-    x + margin >= extent.minX && x - margin <= extent.maxX && y + margin >= extent.minY && y - margin <= extent.maxY
   );
 }

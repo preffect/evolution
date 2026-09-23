@@ -107,7 +107,8 @@ export function restingDrawState(speedRatio: number): CellDrawState {
   return { speedRatio, isSprinting: false, clip: REST_CLIP_PEAK, effectRadii: NO_EFFECT_REACH };
 }
 
-const NO_EFFECT_REACH = 0;
+/** No clip effect sprites reach past the cell. */
+export const NO_EFFECT_REACH = 0;
 
 /**
  * The bound: how far a cell of these traits can be drawn in this state, over **any** frame. Time-independent and

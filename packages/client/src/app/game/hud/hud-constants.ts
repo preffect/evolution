@@ -195,11 +195,13 @@ export const HINT_RIM_PX = 2;
 export const COACH_QUEUE_MAX = 2;
 /** The mass trend reads `down` from decay this long before the `shrink` beat fires: a sprint alone does not. */
 export const COACH_SHRINK_HOLD_SECONDS = 3;
-
-// ---- controls (docs/ui/input-and-onboarding.md §4) ----
-
-/** Every interactive element's visible focus ring, in the text colour; never scaled. */
-export const HUD_FOCUS_RING_PX = 2;
+/** Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat. */
+export const COACH_PREY_REACH_RADII = 4;
+/**
+ * The least time a hint the player's own action can dismiss stays up first: the prey beat fires moments before the
+ * engulf that would end it, and a pill that flashes for a frame teaches nothing.
+ */
+export const HINT_MIN_SECONDS = 1.5;
 
 // ---- the hold-Tab "affecting you" panel (docs/ui/overlays.md §3.7, decision #324) ----
 

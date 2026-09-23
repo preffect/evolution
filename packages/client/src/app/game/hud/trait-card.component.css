@@ -7,17 +7,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--hud-picker-card-content-gap) * var(--hud-scale));
-  width: calc(var(--hud-picker-card-width) * var(--hud-scale));
-  height: calc(var(--hud-picker-card-height) * var(--hud-scale));
-  padding: calc(var(--hud-picker-card-padding-block) * var(--hud-scale))
-    calc(var(--hud-picker-card-padding-inline) * var(--hud-scale));
+  gap: calc(var(--hud-picker-card-content-gap) * var(--ui-scale));
+  width: calc(var(--hud-picker-card-width) * var(--ui-scale));
+  height: calc(var(--hud-picker-card-height) * var(--ui-scale));
+  padding: calc(var(--hud-picker-card-padding-block) * var(--ui-scale))
+    calc(var(--hud-picker-card-padding-inline) * var(--ui-scale));
   box-sizing: border-box;
-  border: 1px solid var(--hud-panel-rim);
-  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--hud-scale));
-  background: linear-gradient(var(--hud-panel-top), var(--hud-panel-bottom));
-  color: var(--hud-text);
-  font-family: var(--hud-font-sans);
+  border: 1px solid var(--ui-panel-rim);
+  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
   cursor: pointer;
   pointer-events: auto;
   transition:
@@ -32,8 +32,8 @@
 
 /* Highlight = preview: exactly one card, the one the overlay names (docs/ui/overlays.md §3.2). */
 .card.highlighted {
-  transform: translateY(calc(var(--hud-picker-card-lift) * -1 * var(--hud-scale)));
-  box-shadow: 0 0 calc(var(--hud-picker-card-glow) * var(--hud-scale)) var(--hud-level-gold);
+  transform: translateY(calc(var(--hud-picker-card-lift) * -1 * var(--ui-scale)));
+  box-shadow: 0 0 calc(var(--hud-picker-card-glow) * var(--ui-scale)) var(--ui-level-gold);
 }
 
 /*
@@ -41,54 +41,54 @@
  * the card, as the leaderboard header's is: the cards end at the reference viewport's bottom edge.
  */
 .card:focus-visible {
-  outline: var(--hud-focus-ring) solid var(--hud-text);
-  outline-offset: calc(var(--hud-focus-ring) * -1);
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: calc(var(--ui-focus-ring) * -1);
 }
 
 .ribbon {
   position: absolute;
   top: 0;
   right: 0;
-  padding: 0 calc(var(--hud-picker-ribbon-padding-inline) * var(--hud-scale));
-  background: var(--hud-level-gold);
-  color: var(--hud-panel-bottom);
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  padding: 0 calc(var(--hud-picker-ribbon-padding-inline) * var(--ui-scale));
+  background: var(--ui-level-gold);
+  color: var(--ui-panel-bottom);
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
   text-transform: uppercase;
-  letter-spacing: var(--hud-label-tracking);
+  letter-spacing: var(--ui-label-tracking);
 }
 
 /* The trait's glyph draws its own disc and rim (docs/visual-style/ui-type.md §7.1). */
 .medallion {
-  width: calc(var(--hud-picker-medallion) * var(--hud-scale));
-  height: calc(var(--hud-picker-medallion) * var(--hud-scale));
+  width: calc(var(--hud-picker-medallion) * var(--ui-scale));
+  height: calc(var(--hud-picker-medallion) * var(--ui-scale));
 }
 
 .category,
 .rarity {
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
   text-transform: uppercase;
-  letter-spacing: var(--hud-label-tracking);
-  color: var(--hud-text-label);
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--ui-text-label);
 }
 
 .name {
-  font-size: calc(var(--hud-type-card-name) * var(--hud-scale));
+  font-size: calc(var(--ui-type-card-name) * var(--ui-scale));
   font-weight: 700;
   text-align: center;
 }
 
 .effect {
-  font-size: calc(var(--hud-type-label) * var(--hud-scale));
-  color: var(--hud-text);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  color: var(--ui-text);
   text-align: center;
 }
 
 /* Inside the card's bottom-right corner, so nothing hangs under the cards. */
 .key-chip {
   position: absolute;
-  right: calc(var(--hud-picker-card-padding-inline) * var(--hud-scale));
-  bottom: calc(var(--hud-picker-card-padding-block) * var(--hud-scale));
+  right: calc(var(--hud-picker-card-padding-inline) * var(--ui-scale));
+  bottom: calc(var(--hud-picker-card-padding-block) * var(--ui-scale));
   line-height: 1;
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
-  color: var(--hud-text-muted);
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
+  color: var(--ui-text-muted);
 }

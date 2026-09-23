@@ -23,7 +23,7 @@ const SNAKE_CASE_ID = /^[a-z]+(_[a-z]+)*$/;
 /** The longest gap #140 asks for is the zone layer's 2 s; anything longer would be a typo in seconds. */
 const LONGEST_COOLDOWN_MS = 2000;
 const EVENT_COUNT = 30;
-const GAIN_TOLERANCE_DIGITS = 3;
+const GAIN_DIGITS = 3;
 
 describe('the sound-event catalogue', () => {
   it('lists every id once, in snake_case', () => {
@@ -107,7 +107,7 @@ describe('ambient layering', () => {
 describe('decibelsToGain', () => {
   it('maps 0 dB to unity and −20 dB to a tenth', () => {
     expect(decibelsToGain(0)).toBe(1);
-    expect(decibelsToGain(-20)).toBeCloseTo(0.1, GAIN_TOLERANCE_DIGITS);
+    expect(decibelsToGain(-20)).toBeCloseTo(0.1, GAIN_DIGITS);
   });
 });
 

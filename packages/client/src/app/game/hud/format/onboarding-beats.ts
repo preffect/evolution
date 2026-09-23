@@ -20,6 +20,7 @@ export const ONBOARDING_BEAT = {
   zoneSunlitShallows: 'zone-sunlit_shallows',
   zoneViscousGel: 'zone-viscous_gel',
   bloom: 'bloom',
+  prey: 'prey',
   toxin: 'toxin',
 } as const;
 export type OnboardingBeatId = ValueOf<typeof ONBOARDING_BEAT>;
@@ -42,6 +43,10 @@ export interface OnboardingObservation {
   readonly isBloom: boolean;
   /** A `toxin` rate is present that the own engulf's prey alone does not explain. */
   readonly isToxinReaching: boolean;
+  /** A green-ringed cell (edible, not toxic) is within `COACH_PREY_REACH_RADII` own radii, edge to edge. */
+  readonly hasPreyInReach: boolean;
+  /** The own cell is engulfing (`engulfingCellId` is set). */
+  readonly isEngulfing: boolean;
 }
 
 /** What the queue remembers across snapshots that a beat's rule reads. */

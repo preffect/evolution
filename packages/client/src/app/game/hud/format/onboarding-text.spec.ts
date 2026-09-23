@@ -41,6 +41,7 @@ describe('onboardingTextFor', () => {
       'Sunlight feeds a Chloroplast · green rods live here',
     );
     expect(onboardingTextFor(ONBOARDING_BEAT.bloom, KEYBOARD)).toBe('Bloom · more food and DNA until the end');
+    expect(onboardingTextFor(ONBOARDING_BEAT.prey, KEYBOARD)).toBe('Green ring: you can engulf it · swim over it');
     expect(onboardingTextFor(ONBOARDING_BEAT.toxin, KEYBOARD)).toBe(
       'Toxic cells drain you when you are close · back off',
     );

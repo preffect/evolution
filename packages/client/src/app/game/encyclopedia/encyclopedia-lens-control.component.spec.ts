@@ -1,17 +1,19 @@
 // The lens control (docs/ui/encyclopedia.md §11.4): the tier switch under a trait's lens. What the switch *does* to
 // the preview is `encyclopedia-entry.component.spec.ts`'s, where the page that owns the selection is; this spec is
-// the control itself — its segments, its ids, and that each one is a real button a keyboard can reach.
+// the control itself — its segments, its `Replay`, its ids, and that each one is a real button a keyboard can reach.
 
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { TraitTier } from '@evolution/shared';
 import { expectTestId } from '../../../testing/test-id-query';
+import { ENCYCLOPEDIA_LENS_MOTION, ENCYCLOPEDIA_LENS_MOTION_LABEL } from './encyclopedia-constants';
 import { EncyclopediaLensControlComponent } from './encyclopedia-lens-control.component';
 import type { EncyclopediaTierSegment } from './format/entry-view';
-import { encyclopediaTierTestId } from './test-ids';
+import { ENCYCLOPEDIA_TEST_ID, encyclopediaTierTestId } from './test-ids';
 
 const FIRST = 1 as TraitTier;
 const SECOND = 2 as TraitTier;
+const REPLAY = 'Replay';
 
 const SEGMENTS: readonly EncyclopediaTierSegment[] = [
   { tier: FIRST, numeral: 'I', preview: null },
@@ -64,5 +66,50 @@ describe('EncyclopediaLensControlComponent (docs/ui/encyclopedia.md §11.4)', ()
     const group = root().querySelector('[role="group"]');
     expect(group?.getAttribute('aria-label')).not.toBeNull();
     expect([...root().querySelectorAll('button')].every((segment) => segment.type === 'button')).toBe(true);
+  });
+
+  it('draws no Replay under a trait, and only Replay under an action scene', () => {
+    expect(root().querySelector(`[data-testid="${ENCYCLOPEDIA_TEST_ID.previewReplay}"]`)).toBeNull();
+
+    fixture.componentRef.setInput('segments', []);
+    fixture.componentRef.setInput('replayLabel', REPLAY);
+    fixture.detectChanges();
+    const buttons = [...root().querySelectorAll('button')];
+    expect(buttons.map((button) => button.dataset['testid'])).toEqual([ENCYCLOPEDIA_TEST_ID.previewReplay]);
+    expect(buttons[0]?.textContent?.trim()).toBe(REPLAY);
+    expect(buttons[0]?.type).toBe('button');
+  });
+
+  it('emits a replay when Replay is pressed', () => {
+    fixture.componentRef.setInput('segments', []);
+    fixture.componentRef.setInput('replayLabel', REPLAY);
+    fixture.detectChanges();
+    let replays = 0;
+    fixture.componentInstance.replayed.subscribe(() => (replays += 1));
+    expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewReplay).click();
+    expect(replays).toBe(1);
+  });
+
+  it('draws the reduced-motion toggle beside the tier switch, named for what a press does', () => {
+    fixture.componentRef.setInput('motion', ENCYCLOPEDIA_LENS_MOTION.play);
+    fixture.detectChanges();
+    const toggle = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewMotion);
+    expect(toggle.getAttribute('aria-label')).toBe(ENCYCLOPEDIA_LENS_MOTION_LABEL.play);
+    expect(toggle.dataset['motion']).toBe(ENCYCLOPEDIA_LENS_MOTION.play);
+    expect(root().querySelector('.row')?.contains(toggle)).toBe(true);
+    expect(
+      root()
+        .querySelector('.row')
+        ?.contains(expectTestId(root(), encyclopediaTierTestId(FIRST))),
+    ).toBe(true);
+  });
+
+  it('emits what the toggle does when pressed', () => {
+    fixture.componentRef.setInput('motion', ENCYCLOPEDIA_LENS_MOTION.pause);
+    fixture.detectChanges();
+    const pressed: string[] = [];
+    fixture.componentInstance.motionToggled.subscribe((motion) => pressed.push(motion));
+    expectTestId(root(), ENCYCLOPEDIA_TEST_ID.previewMotion).click();
+    expect(pressed).toEqual([ENCYCLOPEDIA_LENS_MOTION.pause]);
   });
 });

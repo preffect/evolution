@@ -39,7 +39,7 @@ import type { CueTextFactory } from './effects/cue-text';
 import { EffectsLayer } from './effects/effects-layer';
 import type { IndicatorTextFactory } from './effects/indicator-text';
 import { threatAnchorFor } from './effects/own-cell-indicators';
-import { OwnCellIndicatorsLayer } from './effects/own-cell-indicators-layer';
+import { OWN_CELL_CHROME, OwnCellIndicatorsLayer, type OwnCellChrome } from './effects/own-cell-indicators-layer';
 import { relationLabelSceneFor } from './effects/relation-label-placements';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
@@ -55,6 +55,8 @@ export interface RenderInputs {
   readonly reticle: { readonly isVisible: boolean; readonly x: number; readonly y: number };
   /** The HUD's own-cell record (docs/ui/hud.md §3.1.4): the indicators draw it and the sprint ring reads it; `null` draws none. */
   readonly ownCellIndicators: OwnCellIndicators | null;
+  /** How much own-cell chrome to draw; the game's full HUD when absent, the preview lens's `lens` (#505). */
+  readonly ownCellChrome?: OwnCellChrome;
 }
 
 export interface RenderOutputs {
@@ -268,9 +270,10 @@ export class GameRenderer {
       effects: frame.effects,
       relationScene,
       cueColumn: this.cues.restingColumn,
+      chrome: inputs.ownCellChrome,
     });
     const cues = this.cues.update({
-      indicators: ownCellIndicators,
+      indicators: inputs.ownCellChrome === OWN_CELL_CHROME.lens ? null : ownCellIndicators,
       ownCell,
       zoom,
       nowMs,

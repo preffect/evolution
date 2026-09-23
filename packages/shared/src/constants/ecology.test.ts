@@ -22,7 +22,7 @@ import {
 
 const FULL_ROOM_FOOD_CAP = 1400;
 const FULL_ROOM_FRAGMENT_CAP = 110;
-const WEIGHT_TOLERANCE_DIGITS = 10;
+const WEIGHT_DIGITS = 10;
 
 function sumOf(row: Record<string, number | undefined>): number {
   return Object.values(row).reduce<number>((total, weight) => total + (weight ?? 0), 0);
@@ -41,15 +41,13 @@ describe('ecology tables', () => {
   });
 
   it('makes every weight row a distribution', () => {
-    for (const row of Object.values(FOOD_KIND_WEIGHTS_BY_WORLD_STAGE))
-      expect(sumOf(row)).toBeCloseTo(1, WEIGHT_TOLERANCE_DIGITS);
-    for (const row of Object.values(FOOD_ZONE_WEIGHTS_BY_KIND))
-      expect(sumOf(row)).toBeCloseTo(1, WEIGHT_TOLERANCE_DIGITS);
+    for (const row of Object.values(FOOD_KIND_WEIGHTS_BY_WORLD_STAGE)) expect(sumOf(row)).toBeCloseTo(1, WEIGHT_DIGITS);
+    for (const row of Object.values(FOOD_ZONE_WEIGHTS_BY_KIND)) expect(sumOf(row)).toBeCloseTo(1, WEIGHT_DIGITS);
     for (const row of Object.values(BACTERIUM_VARIANT_WEIGHTS_BY_ZONE)) {
-      expect(sumOf(row)).toBeCloseTo(1, WEIGHT_TOLERANCE_DIGITS);
+      expect(sumOf(row)).toBeCloseTo(1, WEIGHT_DIGITS);
     }
     for (const row of Object.values(DNA_FRAGMENT_TAG_TABLE_BY_ZONE)) {
-      expect(sumOf(row)).toBeCloseTo(1, WEIGHT_TOLERANCE_DIGITS);
+      expect(sumOf(row)).toBeCloseTo(1, WEIGHT_DIGITS);
     }
   });
 

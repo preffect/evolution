@@ -6,11 +6,11 @@
 
 Reference viewport **`UI_REFERENCE_VIEWPORT_WIDTH_PX` × `UI_REFERENCE_VIEWPORT_HEIGHT_PX`** (1280 × 800 CSS
 px), HUD scale 1. Every chrome size below is at scale 1. The scale is a unitless number, not a CSS expression:
-`hud.component.ts` observes its host with a `ResizeObserver` and sets the custom property `--hud-scale` from the
-UI kit's pure function `uiScaleFor(width, height)` (`ui-kit/format/ui-scale.ts`, unit-tested; a `[uiSurface]` sets
-`--ui-scale` from the same function, components-and-constants.md §10.1, and #381 retires `--hud-scale` for it) =
+`hud.component.ts` observes its host with a `ResizeObserver` and sets the kit's custom property `--ui-scale` from the
+UI kit's pure function `uiScaleFor(width, height)` (`ui-kit/format/ui-scale.ts`, unit-tested; a `[uiSurface]` sets it
+from the same function, components-and-constants.md §10.1; the HUD's own `--hud-scale` went in #381) =
 `clamp(UI_SCALE_MIN, min(width / UI_REFERENCE_VIEWPORT_WIDTH_PX, height / UI_REFERENCE_VIEWPORT_HEIGHT_PX), UI_SCALE_MAX)`.
-Every length in the HUD stylesheets is `calc(<px> * var(--hud-scale))`; there is no `transform: scale`, so
+Every length in the HUD stylesheets is `calc(<px> * var(--ui-scale))`; there is no `transform: scale`, so
 hit-testing, focus rings and the exclusion check below all happen in real pixels. Elements anchor to their corner
 with `HUD_MARGIN_PX` × scale; centre-relative elements (the picker band, §3.2) are placed as offsets from the
 viewport centre, never at absolute y. The canvas fills the viewport; the player's cell is at the screen centre
@@ -21,7 +21,7 @@ may enter it while the player is alive and the round is `playing`. The rule hold
 120 px half-side, and the widened leaderboard overlaps it at around 794 px of width. That is under the smallest
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the
 dish are the own cell's indicators and legibility cues (hud.md §3.1.2, §3.1.5), drawn by the renderer in world
-space**; they are not subject to the box and do not scale with `--hud-scale` (they follow the cell's on-screen size
+space**; they are not subject to the box and do not scale with `--ui-scale` (they follow the cell's on-screen size
 with the px floors of §3.1.3). The cues (the mass chip, rate tags, floaters, zone pill and the relation labels) were
 let in by decision #324: the box keeps DOM out, it never kept the renderer out, and a cue about the cell has to sit
 on the cell. They may reach past the box (the rate-tag column at the cap), but never into the notice stack above
@@ -71,7 +71,8 @@ Client-only layout constants are declared by #100 in `packages/client/src/app/ga
 | `HINT_RIM_PX`                      | 2                       | px    | A coach beat's role-colour rim on the hint pill (input-and-onboarding.md §5).                                           |
 | `COACH_QUEUE_MAX`                  | 2                       | beats | Coach beats waiting behind the pill that is up (input-and-onboarding.md §5).                                            |
 | `COACH_SHRINK_HOLD_SECONDS`        | 3                       | s     | The mass trend reads `down` this long before the `shrink` beat fires: a sprint alone does not.                          |
-| `COACH_PREY_REACH_RADII`           | 1                       | × r   | Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat.                                     |
+| `COACH_PREY_REACH_RADII`           | 4                       | × r   | Edge-to-edge distance, in own radii, at which an edible cell fires the `prey` beat: before contact, so it can be read.  |
+| `HINT_MIN_SECONDS`                 | 1.5                     | s     | The least time the `prey` pill stays up before the player's engulf can dismiss it.                                      |
 
 The chrome's own sizes are §3.1.1's (panel widths, the header and row heights, the row counts, the name cut, the
 200 ms re-sort slide, the swatch, the 12 % own-row tint and the last-ten-seconds pulse); they live in the same file,
@@ -92,7 +93,12 @@ beside `SNAPSHOT_BUFFER_SIZE`, and `net/` computes the `connectionState` signal 
 ## 2. Screens (lobby)
 
 The join flow is the template's (#100: "lobby tagline and join flow unchanged"), with the game's config fields and
-stable test ids added. One `<section>` per panel; every control is a native `<input>`, `<select>` or `<button>`.
+stable test ids added. The lobby is one full-viewport kit surface (`.lobby[uiSurface]`, components-and-constants.md
+§10.1) on the game's dark panel ground (decision #595, option A; #464). One `<section>` per panel, each drawn as a
+kit panel. Every button is the kit's `uiButton`, ranked by variant: `primary` for the panel's main action (Connect,
+Create, a row's Join), `secondary` for the rest (Disconnect, New seed, Start), `danger` for Delete, and `quiet` for
+the header's `Encyclopedia`. The text and number fields are native `<input>`s dressed as the kit's search field
+(the well, the panel rim, the unscaled focus ring), since the kit has no plain field yet.
 
 | Element                                                                           | Source / target                                                                                                                                                                                                                                                                                                                                                            | `data-testid`                                                                                                  |
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |

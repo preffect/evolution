@@ -95,6 +95,13 @@ describe('EncyclopediaLandingComponent (docs/ui/encyclopedia.md §11.3)', () => 
     expect(styleRuleValue(document, ['.tile', '::after'], 'position')).toBe('absolute');
   });
 
+  /** #462: the fact wraps to its line budget rather than cutting its value mid-word; the title stays on one line. */
+  it('wraps the fact to the tile’s line budget and keeps the title on one line', () => {
+    expect(styleRuleValue(document, ['.fact'], 'line-height')).toBe('var(--encyclopedia-tile-fact-line-height)');
+    expect(styleRuleValue(document, ['.fact'], 'white-space')).toBeNull();
+    expect(styleRuleValue(document, ['.title'], 'white-space')).toBe('nowrap');
+  });
+
   it('is keyboard-reachable: every tile is a real button in the Tab order', () => {
     expect(tiles().every((tile) => tile.tagName === 'BUTTON' && tile.getAttribute('tabindex') === null)).toBe(true);
   });

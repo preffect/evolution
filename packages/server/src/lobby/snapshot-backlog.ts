@@ -82,6 +82,22 @@ export class SnapshotBacklog {
   }
 
   /**
+   * Owed a `game_state` and caught up: what a room that makes no broadcast to settle it on checks on each ack — a
+   * paused room after a `debug_step_room` burst deeper than the limit (#300).
+   */
+  isResyncDue(connection: Connection): boolean {
+    const { playerId } = connection;
+    return this.owedResync.has(playerId) && !this.isBehind(playerId) && !this.isHoldingBytes(connection);
+  }
+
+  /** The `game_state` a due resync was settled with has been sent at `tick`, as the broadcast would record it. */
+  recordResyncSent(playerId: string, tick: number): void {
+    this.owedResync.delete(playerId);
+    this.lastSentTick.set(playerId, tick);
+    this.resyncTotal += 1;
+  }
+
+  /**
    * A player who left, or who was just sent a `game_state` by another path (join, reconnect): the
    * room and that client agree again, and nothing about the old stream is worth remembering.
    */

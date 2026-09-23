@@ -10,8 +10,11 @@ import {
   COACH_QUEUE_MAX,
   COACH_SHRINK_HOLD_SECONDS,
   HINT_DURATION_SECONDS,
+  HINT_MIN_SECONDS,
   SPRINT_HINT_AT_SECONDS,
 } from '../hud-constants';
+import { GAIN } from '../../render/constants';
+import { COACH_BEATS } from './onboarding-coach-beats';
 import { ONBOARDING_BEAT } from './onboarding-beats';
 import { onboardingStepFor, type OnboardingMemory, type OnboardingSample } from './onboarding-queue';
 
@@ -137,5 +140,30 @@ describe('onboardingStepFor: the coach beats', () => {
     );
     expect(next.current).toBe(ONBOARDING_BEAT.toxin);
     expect(next.waiting).toEqual([ONBOARDING_BEAT.zoneWarmVent]);
+  });
+
+  it('shows prey for a green-ringed cell in reach, with the GAIN rim', () => {
+    expect(after(sample(10, { hasPreyInReach: true })).current).toBe(ONBOARDING_BEAT.prey);
+    expect(COACH_BEATS.find((beat) => beat.id === ONBOARDING_BEAT.prey)?.rimColour).toBe(GAIN);
+  });
+
+  it(`keeps prey up through an engulf until it has been up ${HINT_MIN_SECONDS} s, then lets the engulf dismiss it`, () => {
+    const shown = after(sample(10, { hasPreyInReach: true }));
+    const early = onboardingStepFor(shown, sample(10 + secondsToTicks(0.5), { isEngulfing: true }));
+    expect(early.current).toBe(ONBOARDING_BEAT.prey);
+    const floorTick = 10 + secondsToTicks(HINT_MIN_SECONDS);
+    expect(onboardingStepFor(early, sample(floorTick - 1, { isEngulfing: true })).current).toBe(ONBOARDING_BEAT.prey);
+    expect(onboardingStepFor(early, sample(floorTick, { isEngulfing: true })).current).toBeNull();
+    expect(onboardingStepFor(early, sample(floorTick, { isEngulfing: true })).seen.has(ONBOARDING_BEAT.prey)).toBe(
+      true,
+    );
+  });
+
+  it('drops a waiting prey beat, unseen, once the player is already engulfing when its turn comes', () => {
+    const queued = after(sample(10, { isBloom: true }), sample(11, { isBloom: true, hasPreyInReach: true }));
+    expect(queued.waiting).toEqual([ONBOARDING_BEAT.prey]);
+    const engulfing = onboardingStepFor(queued, sample(10 + HINT_TICKS, { hasPreyInReach: true, isEngulfing: true }));
+    expect(engulfing.current).toBeNull();
+    expect(engulfing.seen.has(ONBOARDING_BEAT.prey)).toBe(false);
   });
 });

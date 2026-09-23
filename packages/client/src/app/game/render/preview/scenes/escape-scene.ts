@@ -1,5 +1,5 @@
 // The `escape` preview scene (docs/architecture/encyclopedia.md §12.7, docs/ecology/absorption.md §6.1): the
-// subject as prey. A heavier cell closes on it — the `DANGER` ring and the threat label go up — covers it, and the
+// subject as prey. A heavier cell closes on it — the `DANGER` ring goes up — covers it, and the
 // arms begin to close while the escape arc over the subject drains. Halfway through the wrap the subject sprints:
 // contact breaks, progress decays at `ENGULF_ESCAPE_DECAY_MULTIPLIER` times the base rate (the arms playing
 // backwards, being functions of progress), and the tick it falls back into the cover band the server releases it —
@@ -12,9 +12,10 @@
 // and one simplification: the sprint's first push clears the reach, so contact breaks on the tick the sprint
 // starts — in play the held offset is a fraction of a radius.
 //
-// **The record matters here more than anywhere.** The escape arc, its `SPRINT TO ESCAPE` label and the threat
-// label before it draw only from `RenderInputs.ownCellIndicators`, so this scene supplies the HUD's own record with
-// the predator as the one threat: what the lens shows is what the HUD says.
+// **The record matters here more than anywhere.** The escape arc draws only from `RenderInputs.ownCellIndicators`,
+// so this scene supplies the HUD's own record with the predator as the one threat: what the lens shows is what the
+// HUD says. The lens draws the arc and no pill (#505): the threat label and `SPRINT TO ESCAPE` are HUD chrome, and
+// the lens rim clipped the threat label, which the framing bounds by world extents and not by px-sized pills.
 
 import {
   EFFECT_KIND,
@@ -48,6 +49,7 @@ import {
   actionSubjectCellView,
   actionSubjectOwnCellIndicators,
   type SubjectThreats,
+  NO_SPEED,
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
 import { previewScene } from '../preview-scene';
@@ -76,13 +78,10 @@ import {
   recedeSpeedOf,
   wholeTicksOf,
   type EngulfPairGeometry,
+  NO_GRIP_BONUS,
 } from './engulf-pair';
 
 const NO_TICKS_LEFT = 0;
-/** The prey holds still until it sprints. */
-const AT_REST = 0;
-/** The pair wears no grip or resistance traits: the wrap's speed cap is the balance's plain factor. */
-const NO_GRIP_BONUS = 0;
 /** A `cell_released` starts no clip and draws no sprite; the predator's warning ring is bounded in the framing. */
 const NO_EFFECT_SPRITES = 0;
 /** The predator's arms at their widest, the frame the subject is framed to share the lens with. */
@@ -198,7 +197,7 @@ function preyView(
     maxSpeedForMass(timeline.geometry.preyMass, growth) * (isSprinting ? controls.SPRINT_SPEED_MULTIPLIER : 1);
   return actionSubjectCellView(
     {
-      ...alongApproachVelocity(isFleeing ? -speed * heldFactor : AT_REST),
+      ...alongApproachVelocity(isFleeing ? -speed * heldFactor : NO_SPEED),
       sprintRemainingTicks: isSprinting ? sprintTicks - sprintedFor : NO_TICKS_LEFT,
       sprintCooldownRemainingTicks:
         isFleeing && !isSprinting ? Math.max(NO_TICKS_LEFT, sprintTicks + cooldownTicks - sprintedFor) : NO_TICKS_LEFT,

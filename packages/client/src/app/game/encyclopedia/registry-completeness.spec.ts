@@ -1,7 +1,6 @@
 // @vitest-environment node
-// docs/architecture/encyclopedia.md §12.6: the assembled registry against the code's closed sets at runtime. Until
-// #362 lands the abilities and actions, those two subjects are listed in `SUBJECTS_AWAITING_CONTENT`, and the spec
-// fails as soon as one of them gains entries, so the list shrinks with them.
+// docs/architecture/encyclopedia.md §12.6: the assembled registry against the code's closed sets at runtime: one entry
+// per value of every subject, every anchor target present, every category filled.
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -29,7 +28,6 @@ import { ACTION, ACTION_BY_INTENT } from './model/actions';
 import { CONCEPT } from './model/concepts';
 import { HUD_ELEMENT_BY_TOPIC, HUD_ELEMENT_KIND, HUD_TOPIC } from './model/hud-topics';
 import {
-  CATEGORY_BY_SUBJECT,
   ENCYCLOPEDIA_CATEGORY,
   ENCYCLOPEDIA_CATEGORY_LABEL,
   ENCYCLOPEDIA_CATEGORY_ORDER,
@@ -37,15 +35,12 @@ import {
 } from './model/categories';
 import { ENTRY_BY_ENTITY_KIND } from './model/entity-kinds';
 import { ENTRY_BY_EFFECT, ENTRY_BY_WORLD_STANDING } from './model/entry-anchors';
-import { ENTRY_SUBJECT, splitEntryId, splitEntryReference, type EntryId, type EntrySubject } from './model/entry-id';
+import { ENTRY_SUBJECT, splitEntryId, type EntrySubject } from './model/entry-id';
 import { CATEGORY_GROUPS, ENTRY_GROUP, ENTRY_GROUP_LABEL } from './model/groups';
 import { RESERVED_EXCLUSION_GROUP, RESERVED_FROM_ENCYCLOPEDIA } from './model/reserved';
 import { WORLD_TOPIC } from './model/world-topics';
 import { ENCYCLOPEDIA_ENTRIES, entriesIn, isEntryReference } from './registry';
 import type { TraitTier } from '@evolution/shared';
-
-/** The subjects whose content lands later: abilities and actions with #362. */
-const SUBJECTS_AWAITING_CONTENT: readonly EntrySubject[] = [ENTRY_SUBJECT.ability, ENTRY_SUBJECT.action];
 
 const traits = DEFAULT_BALANCE.traits;
 
@@ -55,10 +50,7 @@ function idsOf(subject: EntrySubject): string[] {
     .map((split) => split.codeId);
 }
 
-/** A reference exists, or its subject is still awaiting content. */
 function expectReachable(reference: string): void {
-  const subject = splitEntryId(splitEntryReference(reference).entryId as EntryId).subject;
-  if (SUBJECTS_AWAITING_CONTENT.includes(subject)) return;
   expect(isEntryReference(reference), reference).toBe(true);
 }
 
@@ -124,8 +116,9 @@ describe('the encyclopedia registry', () => {
     }
   });
 
-  it('has no entry yet for a subject awaiting content, so the awaiting list shrinks as content lands', () => {
-    for (const subject of SUBJECTS_AWAITING_CONTENT) expect(idsOf(subject), subject).toEqual([]);
+  it('holds one entry per ability and per action, in their walk orders', () => {
+    expect(idsOf(ENTRY_SUBJECT.ability)).toEqual(Object.values(ABILITY));
+    expect(idsOf(ENTRY_SUBJECT.action)).toEqual(Object.values(ACTION));
   });
 
   it('has unique ids, each in a category of the navigation order', () => {
@@ -134,14 +127,8 @@ describe('the encyclopedia registry', () => {
     for (const id of ids) expect(ENCYCLOPEDIA_CATEGORY_ORDER).toContain(categoryOf(id));
   });
 
-  it('leaves no category empty but those whose subjects all await content', () => {
-    for (const category of ENCYCLOPEDIA_CATEGORY_ORDER) {
-      const subjects = (Object.keys(CATEGORY_BY_SUBJECT) as EntrySubject[]).filter(
-        (subject) => CATEGORY_BY_SUBJECT[subject] === category,
-      );
-      const isAwaiting = subjects.every((subject) => SUBJECTS_AWAITING_CONTENT.includes(subject));
-      expect(entriesIn(category).length === 0, category).toBe(isAwaiting);
-    }
+  it('leaves no category empty', () => {
+    for (const category of ENCYCLOPEDIA_CATEGORY_ORDER) expect(entriesIn(category).length, category).toBeGreaterThan(0);
   });
 
   it('gives every entry of a grouped category a group, and lists the groups in the category’s walk', () => {
@@ -158,12 +145,13 @@ describe('the encyclopedia registry', () => {
     }
   });
 
-  it('reaches every anchor target, or leaves it to the content that has not landed', () => {
+  it('reaches every anchor target: every effect, entity kind, world standing, intent and modifier', () => {
     const targets = [
       ...Object.values(ENTRY_BY_EFFECT),
       ...Object.values(ENTRY_BY_ENTITY_KIND),
       ...Object.values(ENTRY_BY_WORLD_STANDING),
       ...Object.values(ACTION_BY_INTENT).map((action) => `action:${action}`),
+      ...Object.values(ABILITY_BY_MODIFIER).map((ability) => `ability:${ability}`),
     ];
     for (const target of targets) expectReachable(target);
   });

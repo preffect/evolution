@@ -26,6 +26,9 @@ import {
   ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX,
   ENCYCLOPEDIA_RAIL_ICON_PX,
   ENCYCLOPEDIA_RAIL_WIDTH_PX,
+  ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX,
+  ENCYCLOPEDIA_TILE_FACT_LINES,
+  ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT,
   ENCYCLOPEDIA_TILE_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_WIDTH_PX,
@@ -44,6 +47,8 @@ export function encyclopediaStyleVariables(): StyleVariables {
     '--encyclopedia-tile-width': pixels(ENCYCLOPEDIA_TILE_WIDTH_PX),
     '--encyclopedia-tile-height': pixels(ENCYCLOPEDIA_TILE_HEIGHT_PX),
     '--encyclopedia-tile-well-height': pixels(ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX),
+    '--encyclopedia-tile-fact-lines': String(ENCYCLOPEDIA_TILE_FACT_LINES),
+    '--encyclopedia-tile-fact-line-height': String(ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT),
     // The entry page (docs/ui/encyclopedia.md §11.4): the two lengths the page is laid out with.
     '--encyclopedia-content-max-width': pixels(ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX),
     '--encyclopedia-lens-diameter': pixels(ENCYCLOPEDIA_LENS_DIAMETER_PX),
@@ -56,6 +61,7 @@ export function encyclopediaStyleVariables(): StyleVariables {
     '--encyclopedia-lens-loading-pulse': milliseconds(ENCYCLOPEDIA_LENS_LOADING_PULSE_MS),
     '--encyclopedia-lens-loading-min-alpha': String(ENCYCLOPEDIA_LENS_LOADING_PULSE_MIN_ALPHA),
     '--encyclopedia-prose-max-width': pixels(ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX),
+    '--encyclopedia-sticky-title-height': pixels(ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX),
     // The glyph sizes the rows and tiles draw at (docs/ui/encyclopedia.md §11.3). A row's glyph **is** its medallion
     // — both kinds draw their own disc and rim (components-and-constants.md §10.2) — so it is the kit's
     // `UI_ROW_MEDALLION_PX`, which is what the reference frame measures; `TRAIT_GLYPH_LIST_PX` is the smaller size

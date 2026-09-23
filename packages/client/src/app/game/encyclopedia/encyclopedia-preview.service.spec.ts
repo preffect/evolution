@@ -11,8 +11,12 @@ import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../render/previ
 import { ENCYCLOPEDIA_PREVIEW } from '../render/preview/preview-host';
 import { recordingPreviewHost, type RecordingPreviewHost } from '../../../testing/fake-preview-handle';
 import { GameStateService } from '../state/game-state.service';
-import { ENCYCLOPEDIA_LENS_DIAMETER_PX, ENCYCLOPEDIA_PREVIEW_SETTLE_MS } from './encyclopedia-constants';
-import { ENCYCLOPEDIA_PREVIEW_STATE, EncyclopediaPreviewService } from './encyclopedia-preview.service';
+import {
+  ENCYCLOPEDIA_LENS_DIAMETER_PX,
+  ENCYCLOPEDIA_LENS_MOTION,
+  ENCYCLOPEDIA_PREVIEW_SETTLE_MS,
+} from './encyclopedia-constants';
+import { ENCYCLOPEDIA_PREVIEW_STATE, EncyclopediaPreviewService, lensMotionFor } from './encyclopedia-preview.service';
 
 const CELL_SPEC: PreviewSpec = {
   scene: PREVIEW_SCENE.cell,
@@ -21,6 +25,7 @@ const CELL_SPEC: PreviewSpec = {
   motion: PREVIEW_MOTION.swimming,
 };
 const FRAGMENT_SPEC: PreviewSpec = { scene: PREVIEW_SCENE.dnaFragment, tag: DNA_TAG.motile };
+const ENGULF_SPEC: PreviewSpec = { scene: PREVIEW_SCENE.engulf };
 
 /** The service is the panel's, so it is provided by a component and dies with it. */
 @Component({ standalone: true, template: '', providers: [EncyclopediaPreviewService] })
@@ -160,6 +165,26 @@ describe('EncyclopediaPreviewService (docs/ui/encyclopedia.md §11.4)', () => {
     expect(preview.state()).toBe(ENCYCLOPEDIA_PREVIEW_STATE.unavailable);
   });
 
+  /** §11.4's `Replay`: the scene on the canvas starts again, and a paused lens plays so the reader sees it. */
+  it('replays the scene on the canvas, and only once there is one', async () => {
+    attachLens();
+    preview.show(ENGULF_SPEC);
+    preview.replay();
+    settleSelection();
+    preview.replay();
+    expect(host.handles[0]?.shownSpecs).toEqual([ENGULF_SPEC]);
+
+    await host.handles[0]?.completeOpen();
+    preview.pause();
+    preview.replay();
+    expect(host.handles[0]?.shownSpecs).toEqual([ENGULF_SPEC, ENGULF_SPEC]);
+    expect(preview.state()).toBe(ENCYCLOPEDIA_PREVIEW_STATE.live);
+
+    preview.show(CELL_SPEC);
+    preview.replay();
+    expect(host.handles[0]?.shownSpecs).toEqual([ENGULF_SPEC, ENGULF_SPEC]);
+  });
+
   it('pauses when the lens goes and plays again when the next one arrives', async () => {
     attachLens();
     preview.show(CELL_SPEC);
@@ -226,5 +251,15 @@ describe('EncyclopediaPreviewService (docs/ui/encyclopedia.md §11.4)', () => {
 
     fixture.destroy();
     expect(host.handles[0]?.destroyCount).toBe(1);
+  });
+});
+
+describe('lensMotionFor (docs/ui/encyclopedia.md §11.4)', () => {
+  it('offers play on a held lens and pause on a playing one, only under the preference and with a frame to hold', () => {
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.paused)).toBe(ENCYCLOPEDIA_LENS_MOTION.play);
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.live)).toBe(ENCYCLOPEDIA_LENS_MOTION.pause);
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.loading)).toBeNull();
+    expect(lensMotionFor(true, ENCYCLOPEDIA_PREVIEW_STATE.unavailable)).toBeNull();
+    expect(lensMotionFor(false, ENCYCLOPEDIA_PREVIEW_STATE.live)).toBeNull();
   });
 });

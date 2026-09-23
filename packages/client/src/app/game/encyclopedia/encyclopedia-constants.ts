@@ -5,6 +5,7 @@
 // The core's (#447) constants, the panel's (#448) layout row, the keyboard's (#449) key codes, the entry page's
 // (#465) and the lens's (#466) are declared.
 
+import { PREVIEW_SCENE, type PreviewActionScene } from '../render/preview/preview-spec';
 import { ENCYCLOPEDIA_CATEGORY, type EncyclopediaCategory } from './model/categories';
 
 /** Back-stack depth (docs/ui/encyclopedia.md §11.7); the oldest location drops first. */
@@ -100,16 +101,51 @@ export const ENCYCLOPEDIA_LENS_LOADING_PULSE_MIN_ALPHA = 0.2;
  */
 export const ENCYCLOPEDIA_PREVIEW_SETTLE_MS = 150;
 
+/**
+ * The replay button's label under an action scene (§11.4), keyed by the scenes that play an action through: a record,
+ * so a new action scene without a label fails `typecheck`. One value in build 1.
+ */
+export const ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL: Readonly<Record<PreviewActionScene, string>> = {
+  [PREVIEW_SCENE.eat]: 'Replay',
+  [PREVIEW_SCENE.engulf]: 'Replay',
+  [PREVIEW_SCENE.escape]: 'Replay',
+  [PREVIEW_SCENE.sprint]: 'Replay',
+  [PREVIEW_SCENE.levelUp]: 'Replay',
+};
+
+/** What the reduced-motion toggle under the lens does when pressed (§11.4): play a held lens, or hold a playing one. */
+export const ENCYCLOPEDIA_LENS_MOTION = { play: 'play', pause: 'pause' } as const;
+export type EncyclopediaLensMotion = (typeof ENCYCLOPEDIA_LENS_MOTION)[keyof typeof ENCYCLOPEDIA_LENS_MOTION];
+
+/** The toggle's accessible name: an icon alone says nothing to a screen reader. */
+export const ENCYCLOPEDIA_LENS_MOTION_LABEL: Readonly<Record<EncyclopediaLensMotion, string>> = {
+  [ENCYCLOPEDIA_LENS_MOTION.play]: 'Play preview',
+  [ENCYCLOPEDIA_LENS_MOTION.pause]: 'Pause preview',
+};
+
 /** The `unavailable` state's line, inside the circle: the preview app could not start, and there is no retry. */
 export const ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT = 'Preview unavailable';
+
+/** The mark between two breadcrumb crumbs (§11.3), in the trail and in the sticky title bar alike. */
+export const ENCYCLOPEDIA_CRUMB_SEPARATOR = '›';
+
+/** The sticky title bar of a scrolled entry: the breadcrumb over the title (§11.4, *Long entries scroll*). */
+export const ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX = 48;
 
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 
-/** A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). */
+/**
+ * A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). The height holds the well, the one-line
+ * title and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines: a fact reads `<name>: <value>`, and at one line
+ * the name spent the characters the value needed, cutting 30 of 78 tiles mid-value (#462).
+ */
 export const ENCYCLOPEDIA_TILE_WIDTH_PX = 168;
-export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 132;
+export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 152;
 export const ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX = 96;
+/** The lines a tile's fact may wrap to before it ends in an ellipsis, and the line height it wraps at. */
+export const ENCYCLOPEDIA_TILE_FACT_LINES = 2;
+export const ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT = 1.2;
 
 /** The callout-backing scrim behind the panel in a round: the dish keeps running, faintly, under it. */
 export const ENCYCLOPEDIA_SCRIM_ALPHA = 0.8;

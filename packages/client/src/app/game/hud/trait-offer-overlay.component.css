@@ -30,7 +30,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--hud-picker-row-gap) * var(--hud-scale));
+  gap: calc(var(--hud-picker-row-gap) * var(--ui-scale));
   margin: 0;
 }
 
@@ -38,10 +38,10 @@
 .title {
   margin: 0;
   line-height: 1;
-  font-family: var(--hud-font-sans);
-  font-size: calc(var(--hud-type-title) * var(--hud-scale));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-title) * var(--ui-scale));
   font-weight: 600;
-  color: var(--hud-level-gold);
+  color: var(--ui-level-gold);
 }
 
 /*
@@ -63,36 +63,36 @@
 }
 
 .timer-track {
-  width: calc(var(--hud-picker-timer-width) * var(--hud-scale));
-  height: calc(var(--hud-picker-timer-height) * var(--hud-scale));
-  background: var(--hud-panel-bottom);
+  width: calc(var(--hud-picker-timer-width) * var(--ui-scale));
+  height: calc(var(--hud-picker-timer-height) * var(--ui-scale));
+  background: var(--ui-panel-bottom);
 }
 
 .timer-fill {
   height: 100%;
-  background: var(--hud-level-gold);
+  background: var(--ui-level-gold);
 }
 
 .timer-text {
   left: 100%;
-  padding-left: calc(var(--hud-picker-row-gap) * var(--hud-scale));
-  font-family: var(--hud-font-mono);
-  font-size: calc(var(--hud-type-value) * var(--hud-scale));
+  padding-left: calc(var(--hud-picker-row-gap) * var(--ui-scale));
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-value) * var(--ui-scale));
   font-variant-numeric: tabular-nums;
-  color: var(--hud-text);
+  color: var(--ui-text);
 }
 
 .cards {
   display: flex;
-  gap: calc(var(--hud-picker-card-gap) * var(--hud-scale));
+  gap: calc(var(--hud-picker-card-gap) * var(--ui-scale));
 }
 
 .footer {
   right: 100%;
-  padding-right: calc(var(--hud-picker-row-gap) * var(--hud-scale));
-  font-family: var(--hud-font-sans);
-  font-size: calc(var(--hud-type-caption) * var(--hud-scale));
-  color: var(--hud-text-muted);
+  padding-right: calc(var(--hud-picker-row-gap) * var(--ui-scale));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
+  color: var(--ui-text-muted);
 }
 
 /*
@@ -107,5 +107,5 @@
 }
 
 .onboarding-line {
-  color: var(--hud-text);
+  color: var(--ui-text);
 }

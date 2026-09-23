@@ -8,9 +8,8 @@ import {
 } from '../../../../testing/builders';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { Graphics } from 'pixi.js';
-import type { CameraExtent } from '../camera';
 import { HALO_KIND } from '../constants';
-import { NO_DEFORMATIONS, type CellDeformation } from './cell-deformation';
+import type { CellDeformation } from './cell-deformation';
 import { CONTACT_DENT_AMPLITUDE } from '../constants';
 import {
   BUMP_TEXEL_START,
@@ -20,32 +19,16 @@ import {
   type CellInstanceScalar,
 } from './cell-instance';
 import { CellLayer } from './cell-layer';
-import type { CellLayerFrame } from './cell-layer-frame';
+import { testLayerFrame as input } from './cell-layer-test-frame';
 import type { CellPassMesh } from './cell-mesh';
 import { CELL_UNIFORM, CELL_UNIFORM_GROUP } from './cell-shader-source';
-import { REST_OWN_CELL_RING } from './self-ring';
 
-const EXTENT: CameraExtent = { minX: -100, minY: -100, maxX: 100, maxY: 100 };
 /** The level carried alongside the traits: the stage is the server's `stageOf` of the traits, not of the level. */
 const LEVEL_SET_WITH_TRAITS = 5;
 /** One bundle for the file: the bakes are the slow part (#226). */
 const textures = createTestRenderTextures({ seed: 3 });
 /** The layer's child stack, in the order the first spec pins. */
 const LAYER_CHILD = { flagella: 0, body: 1, organelleSprites: 2, membrane: 3 } as const;
-
-function input(overrides: Partial<CellLayerFrame> = {}): CellLayerFrame {
-  return {
-    frame: createTestRenderFrame(),
-    extent: EXTENT,
-    zoom: 1,
-    nowMs: 0,
-    ownCell: null,
-    previewTraitId: null,
-    deformations: NO_DEFORMATIONS,
-    ownCellRing: REST_OWN_CELL_RING,
-    ...overrides,
-  };
-}
 
 /** The float at `field` of instance `row` in the layer's packed rows. */
 function packed(subject: CellLayer, row: number, field: CellInstanceScalar): number {
@@ -87,15 +70,6 @@ describe('CellLayer', () => {
     expect(subject.stateCount).toBe(2);
     subject.update(input({ frame: createTestRenderFrame({ cells: [cells[0]!] }) }));
     expect(subject.stateCount).toBe(1);
-    subject.destroy();
-  });
-
-  it('culls at the quad reach, not the radius, so a halo at the edge still draws', () => {
-    const subject = new CellLayer(textures);
-    const nearEdge = createTestCellView({ x: EXTENT.maxX + 10, y: 0, radius: 6 });
-    expect(subject.update(input({ frame: createTestRenderFrame({ cells: [nearEdge] }) })).visibleCells).toBe(1);
-    const past = createTestCellView({ x: EXTENT.maxX + 100, y: 0, radius: 6 });
-    expect(subject.update(input({ frame: createTestRenderFrame({ cells: [past] }) })).visibleCells).toBe(0);
     subject.destroy();
   });
 

@@ -1,7 +1,7 @@
 // The legibility cues' constants (docs/ui/hud.md §3.1.6, decision #324): the table there owns every value and its
 // rationale; the home is `render/constants.ts` because the renderer applies them. The rows marked **state** in that
 // table live in `state/legibility-constants.ts`. `render/legibility-cues-ledger.spec.ts` parses the table and pins
-// every row by name and value. Every px value is a screen px size: nothing here scales with `--hud-scale`.
+// every row by name and value. Every px value is a screen px size: nothing here scales with `--ui-scale`.
 
 // ---- the cue pill ----
 export const CUE_PILL_HEIGHT_PX = 28;

@@ -1,7 +1,8 @@
 // The kit's scroll area (docs/ui/components-and-constants.md §10.2): `overflow: auto` with a thin themed scrollbar and
 // an edge fade on each side that has content beyond it, so a column shows it continues without a hard cut. It is a
 // Tab stop only while it overflows and holds nothing focusable of its own: then the keyboard can still scroll it,
-// and otherwise the controls inside already can. The page itself never scrolls.
+// and otherwise the controls inside already can. The page itself never scrolls. `scrolled` reports the viewport's
+// `scrollTop` on every scroll, for a feature that reacts to where the reader is (the encyclopedia's sticky title).
 
 import {
   ChangeDetectionStrategy,
@@ -10,6 +11,7 @@ import {
   computed,
   inject,
   input,
+  output,
   signal,
   viewChild,
   type AfterViewInit,
@@ -50,7 +52,7 @@ export function scrollEdgesFor(scrollTop: number, scrollHeight: number, clientHe
       [attr.role]="isFocusable() ? 'region' : null"
       [attr.aria-label]="isFocusable() ? label() : null"
       [attr.data-testid]="testId()"
-      (scroll)="measure()"
+      (scroll)="onScroll()"
     >
       <div #content class="content"><ng-content /></div>
     </div>
@@ -66,6 +68,8 @@ export class UiScrollAreaComponent implements AfterViewInit {
   /** The region's name while it is a Tab stop, so a screen reader says what scrolls. */
   readonly label = input<string | null>(null);
   readonly testId = input<string | null>(null);
+  /** The viewport's `scrollTop`, on every scroll. */
+  readonly scrolled = output<number>();
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly viewport = viewChild.required<ElementRef<HTMLElement>>('viewport');
@@ -80,6 +84,11 @@ export class UiScrollAreaComponent implements AfterViewInit {
       observeElementSize(element.nativeElement, () => this.measure()),
     );
     this.destroyRef.onDestroy(() => stops.forEach((stop) => stop()));
+  }
+
+  protected onScroll(): void {
+    this.measure();
+    this.scrolled.emit(this.viewport().nativeElement.scrollTop);
   }
 
   /** Re-reads the edges and whether the content holds a control; a feature calls it after changing the content. */

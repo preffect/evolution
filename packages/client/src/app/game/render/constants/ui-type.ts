@@ -1,11 +1,11 @@
 // The HUD's type scale and its two font stacks (docs/visual-style/ui-type.md §7, which owns the values).
 // It sits beside `colours.ts` because that doc owns both, and because the HUD and any world-space
 // label the renderer grows must read the same table. Sizes are px at HUD scale 1; every stylesheet
-// multiplies by `var(--hud-scale)` (docs/ui/layout.md §1).
+// multiplies by `var(--ui-scale)` (docs/ui/layout.md §1).
 
-/** Labels and body: a system stack, no web fonts and no font files (docs/visual-style/ui-type.md §7). */
+/** Labels and body: Inter, shipped with the client in `assets/fonts/` (docs/visual-style/ui-type.md §7, #436). */
 export const UI_FONT_SANS = 'Inter, "Segoe UI", system-ui, sans-serif';
-/** Numbers that change (mass, timer, DNA %): tabular digits do not jitter as they count. */
+/** Numbers that change (mass, timer, DNA %): JetBrains Mono, shipped the same way; tabular digits do not jitter. */
 export const UI_FONT_MONO = '"JetBrains Mono", ui-monospace, monospace';
 
 /** Tracking on the `label` role: uppercase, 0.08 em (docs/visual-style/ui-type.md §7). */

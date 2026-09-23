@@ -10,7 +10,14 @@ import {
 import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
 // The follow and the zoom are shared and tested with them (`shared/src/camera/camera-follow.test.ts`); Z1's view
 // half-height is shared too, and pinned here against §7's table.
-import { cameraExtent, isDiscInExtent, screenOffsetToWorld, screenToWorld, worldToScreen, zoomFor } from './camera';
+import {
+  cameraExtent,
+  isDiscVisibleInExtent,
+  screenOffsetToWorld,
+  screenToWorld,
+  worldToScreen,
+  zoomFor,
+} from './camera';
 import { HALF } from './geometry';
 
 const VIEWPORT = { width: 1920, height: 1080 };
@@ -107,10 +114,10 @@ describe('zoom, extent and projections', () => {
     expect(screenOffsetToWorld(moved, VIEWPORT, 960 + 10, 540 - 10)).toEqual({ x: 10, y: -10 });
   });
 
-  it('culls a disc outside the extent and keeps one that reaches in', () => {
+  it('keeps a disc that reaches into the extent by any amount, and no disc that stops short of it', () => {
     const extent = cameraExtent(state, VIEWPORT);
-    expect(isDiscInExtent(extent, 1075, 50, 10)).toBe(true);
-    expect(isDiscInExtent(extent, 1085, 50, 10)).toBe(false);
-    expect(isDiscInExtent(extent, 1200, 50, 100)).toBe(true);
+    expect(isDiscVisibleInExtent(extent, extent.maxX + 10, 50, 10)).toBe(true);
+    expect(isDiscVisibleInExtent(extent, extent.maxX + 10.5, 50, 10)).toBe(false);
+    expect(isDiscVisibleInExtent(extent, 50, extent.minY - 99, 100)).toBe(true);
   });
 });

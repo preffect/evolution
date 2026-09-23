@@ -1,7 +1,6 @@
 // `--ui-scale` (docs/ui/layout.md §1, docs/ui/components-and-constants.md §10.1): the unitless number every kit and
-// HUD length is multiplied by. Pure, so the rule is tested without a viewport; a `[uiSurface]` (and, until
-// the HUD moves onto the kit, `hud.component.ts` for `--hud-scale`) observes its host and sets the custom
-// property from it. There is no `transform: scale`, so hit-testing and focus rings stay in real px.
+// HUD length is multiplied by. Pure, so the rule is tested without a viewport; a `[uiSurface]` and the HUD shell
+// (`hud.component.ts`) observe their hosts and set the custom property from it. There is no `transform: scale`, so hit-testing and focus rings stay in real px.
 
 import {
   UI_REFERENCE_VIEWPORT_HEIGHT_PX,

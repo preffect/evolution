@@ -18,7 +18,12 @@ import { SCHEDULER } from '../clock-provider';
 import { ENCYCLOPEDIA_PREVIEW, type PreviewHandle } from '../render/preview/preview-host';
 import type { PreviewSpec } from '../render/preview/preview-spec';
 import { EncyclopediaContextService } from './encyclopedia-context';
-import { ENCYCLOPEDIA_LENS_DIAMETER_PX, ENCYCLOPEDIA_PREVIEW_SETTLE_MS } from './encyclopedia-constants';
+import {
+  ENCYCLOPEDIA_LENS_DIAMETER_PX,
+  ENCYCLOPEDIA_LENS_MOTION,
+  ENCYCLOPEDIA_PREVIEW_SETTLE_MS,
+  type EncyclopediaLensMotion,
+} from './encyclopedia-constants';
 
 /** What the lens draws, on `encyclopedia-preview[data-preview-state]` (docs/ui/encyclopedia.md §11.4). */
 export const ENCYCLOPEDIA_PREVIEW_STATE = {
@@ -31,6 +36,20 @@ export const ENCYCLOPEDIA_PREVIEW_STATE = {
   unavailable: 'unavailable',
 } as const;
 export type EncyclopediaPreviewState = ValueOf<typeof ENCYCLOPEDIA_PREVIEW_STATE>;
+
+/**
+ * The reduced-motion toggle under the lens (§11.4): what a press does — play a held lens, hold a playing one — or
+ * `null` for no toggle, without the preference or before the lens has a frame to hold.
+ */
+export function lensMotionFor(
+  isReducedMotionPreferred: boolean,
+  state: EncyclopediaPreviewState,
+): EncyclopediaLensMotion | null {
+  if (!isReducedMotionPreferred) return null;
+  if (state === ENCYCLOPEDIA_PREVIEW_STATE.live) return ENCYCLOPEDIA_LENS_MOTION.pause;
+  if (state === ENCYCLOPEDIA_PREVIEW_STATE.paused) return ENCYCLOPEDIA_LENS_MOTION.play;
+  return null;
+}
 
 /**
  * The canvas's wrapper is styled from here rather than from a stylesheet because it is created outside any
@@ -88,7 +107,7 @@ export class EncyclopediaPreviewService {
   show(spec: PreviewSpec): void {
     // The same spec again is the page re-rendering, not the reader moving: a `ResolvedEntry` is rebuilt whenever the
     // round's progress changes, and restarting the settle timer on each of those would leave the lens never settling.
-    // A replay (§11.4's action scenes) is the one caller that means "again" and will need its own path.
+    // A replay (§11.4's action scenes) is the one caller that means "again": it is `replay`, below.
     if (spec === this.currentSpec) return;
     this.currentSpec = spec;
     this.clearSettleTimer();
@@ -96,6 +115,18 @@ export class EncyclopediaPreviewService {
       this.cancelSettle = null;
       this.applyCurrentSpec();
     });
+  }
+
+  /**
+   * `Replay` under an action scene (§11.4): the scene the lens is showing starts again from its first frame. Only a
+   * scene that is on the canvas can replay: before the open resolves, or while a new selection settles, there is
+   * nothing to restart, and the settle will start the next scene from its beginning anyway.
+   */
+  replay(): void {
+    const spec = this.shownSpec;
+    if (this.handle === null || this.isOpening || spec === null || spec !== this.currentSpec) return;
+    this.handle.show(spec);
+    this.resume();
   }
 
   /** The `--ui-scale` the panel is drawn at: the canvas follows it, and nothing is rebaked (§12.7). */
@@ -119,7 +150,8 @@ export class EncyclopediaPreviewService {
     }
   }
 
-  private resume(): void {
+  /** The ticker plays again, and the state follows it: the reduced-motion toggle's play (§11.4). */
+  resume(): void {
     if (this.handle === null || !this.isTickerPaused) return;
     this.handle.resume();
     this.isTickerPaused = false;

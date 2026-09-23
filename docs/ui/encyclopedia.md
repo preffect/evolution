@@ -139,11 +139,14 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
   the label (`headline`), the category's one-line summary (`body`, label colour) and a grid of entry tiles
   (`ENCYCLOPEDIA_TILE_WIDTH_PX` × `ENCYCLOPEDIA_TILE_HEIGHT_PX`, `UI_SPACE_M_PX` gaps): a
   `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX` well on the dish field with the glyph medallion at the picker's
-  `PICKER_CARD_MEDALLION_PX`, the title in `body` and the entry's `facts[0]` in `label` size, mixed case, each on
-  one line ending in an ellipsis (the full title is the tile's accessible name). The fact is drawn as `<name>: <text>`:
-  a value alone says nothing of what it measures (`Mass decay` over `20 mass`), and a link's text alone is another
-  entry's title, so the tile would read as two titles. First-fact names are kept short so the line fits the tile. A
-  tile is a link to its entry.
+  `PICKER_CARD_MEDALLION_PX`, the title in `body` on one line ending in an ellipsis (the full title is the tile's
+  accessible name), and under it the entry's `facts[0]` in `label` size, mixed case, wrapping at its spaces to at most
+  `ENCYCLOPEDIA_TILE_FACT_LINES` lines at `ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT`. The caption is top-aligned, so titles
+  line up across a row whether their fact takes one line or two. The fact is drawn as `<name>: <text>`: a value alone
+  says nothing of what it measures (`Mass decay` over `20 mass`), and a link's text alone is another entry's title, so
+  the tile would read as two titles. At one line the name spent the characters the value needed, and 30 of 78 tiles
+  were cut mid-value. At two lines every tile reads in full at 1280 × 800, 1920 × 1080, 1024 × 640 and 800 × 600
+  (#462). A tile is a link to its entry.
 
 The landing's blocks stack from the panel body's own box, each on its own line height: the breadcrumb and the
 heading on their cap height, the summary on the body's. The reference frame is drawn baseline by baseline
@@ -221,11 +224,17 @@ measurement the reserved box left behind still holds and is why the inner ring i
 was a bare outline of a circle, which is what a failed image looks like rather than what an instrument does, since
 `CALLOUT_BACKING` at `UI_WELL_ALPHA` over the panel's own gradient measures one unit per channel above it.
 
-**What #466 built and what it left.** The lens, its four states, the one session behind it and the tier switch are
-in. Two pieces of this section wait on the entries that would show them: **`Replay`**, which no page can draw until
-the actions category (#362) points an entry at an action scene (#364), and the **reduced-motion** pause with its play
-and pause toggle, which needs a `prefers-reduced-motion` seam the client does not have yet — under it today the lens
-plays, as the dish behind the panel does.
+**What is built and what is left.** The lens, its four states, the one session behind it and the tier switch are
+#466's; **`Replay`** is #577's. `EncyclopediaPreviewService.replay()` shows the scene on the canvas again, which
+restarts its loop from the first frame, and plays a paused lens. It does nothing before the open resolves or while a
+new selection settles, since there is then no scene on the canvas to restart. The **reduced-motion** pause and its toggle are #483's. `game/reduced-motion.ts` is the client's one
+`prefers-reduced-motion` seam in code, shaped like `clock-provider.ts`: the root `REDUCED_MOTION` token, a signal
+over `matchMedia('(prefers-reduced-motion: reduce)')` that follows the setting and answers `false` on a host with no
+`matchMedia`. Under it the page pauses the lens the moment a preview goes `live`, and each new preview starts held
+again. The toggle (`encyclopedia-preview-motion`, `data-motion="play"|"pause"`, the panel's own play and pause icons
+in `currentColor`) is named for what a press does: `lensMotionFor` offers play on a `paused` lens and pause on a
+`live` one, and nothing while loading or unavailable. Pressing play keeps that preview playing until the reader
+pauses it or moves on. The dish behind the panel still moves under the preference; that is the HUD's to answer.
 
 **The title column**, top to bottom:
 
@@ -280,7 +289,7 @@ plays, as the dish behind the panel does.
 scroll together. Once the title has scrolled under the column's top edge, a **sticky title bar**
 `ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX` tall shows at that edge, on `PANEL_TOP` with a 1 px panel-rim rule under it: the
 breadcrumb (`label`, muted) over the title (`card_name`), no chips. The scroll area's `UI_SCROLL_FADE_PX` fade sits
-under the rule (the mockup omits the fade; the build draws it). At 1280 × 800 an entry whose title column ends near
+under the rule (the mockup omits the fade; the build draws it). The bar overlays the top of the scroll area rather than taking room from it, so its arrival never moves the content, and it is `aria-hidden`: the real breadcrumb and title are still in the page for a screen reader. It shows once the title's bottom edge reaches the column's top edge, which the page re-reads on the scroll area's `scrolled` output and after each new entry is drawn (#467). At 1280 × 800 an entry whose title column ends near
 the lens control and whose prose is two short paragraphs fits unscrolled (Mitochondrion, with room to spare); anything
 longer scrolls.
 
@@ -347,7 +356,7 @@ pattern of `HUD_TEST_ID`; `input/input-constants.ts` imports the panel id from i
 `encyclopedia-crumb-<category>` (a breadcrumb crumb that goes somewhere; the crumb naming the page already shown is
 text and carries none),
 `encyclopedia-entry` (with `data-entry-id`), `encyclopedia-preview` (with `data-preview-state`),
-`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-facts`,
+`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-preview-motion` (the reduced-motion toggle, with `data-motion`), `encyclopedia-sticky-title` (present only while a scrolled entry shows the bar), `encyclopedia-facts`,
 `encyclopedia-link-<entryId>` (every link to that entry; a test takes the first), and in the lobby
 `lobby-encyclopedia`.
 
@@ -412,8 +421,10 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_OWNED_CHIP_LABEL`, `ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR` | `OWNED`, `·`                                                         | —    | The level-gold chip a round adds, around the tier's numeral: `OWNED · II`.                                                                                                                                                                                                                                                                                                  |
 | `ENCYCLOPEDIA_TIER_IDENTITY_TEXT`                                    | `—`                                                                  | —    | What a tier column shows where that tier leaves the row's modifier at identity.                                                                                                                                                                                                                                                                                             |
 | `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                                  | px   | A landing tile; three to a row at 1280 × 800 and four at 1920 × 1080. The grid wraps to whatever the column fits.                                                                                                                                                                                                                                                           |
-| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 132                                                                  | px   | A landing tile.                                                                                                                                                                                                                                                                                                                                                             |
+| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 152                                                                  | px   | A landing tile: the well, the one-line title and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines (#462).                                                                                                                                                                                                                                                               |
 | `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                                   | px   | The tile's well.                                                                                                                                                                                                                                                                                                                                                            |
+| `ENCYCLOPEDIA_TILE_FACT_LINES`                                       | 2                                                                    | —    | The lines a tile's fact wraps to before it ends in an ellipsis.                                                                                                                                                                                                                                                                                                             |
+| `ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT`                                 | 1.2                                                                  | —    | The line height the fact wraps at.                                                                                                                                                                                                                                                                                                                                          |
 | `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                                  | ×    | The callout-backing scrim behind the panel in a round.                                                                                                                                                                                                                                                                                                                      |
 | `ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA`                                     | 1                                                                    | ×    | The same scrim outside a round, where no dish runs behind the panel: it covers completely, so the lobby's own header never ghosts through. Which one applies is the host's answer (`isOverDish`), never the panel's.                                                                                                                                                        |
 | `ENCYCLOPEDIA_HISTORY_MAX`                                           | 50                                                                   | —    | Back-stack depth; the oldest location drops first.                                                                                                                                                                                                                                                                                                                          |
@@ -425,7 +436,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `DEFAULT_ENCYCLOPEDIA_CATEGORY`                                      | `basics`                                                             | —    | Where an open with no entry asked for and no last location starts (§11.1); while that category is empty, the first one the rail lists.                                                                                                                                                                                                                                      |
 | `ENCYCLOPEDIA_PREVIEW_SETTLE_MS`                                     | 150                                                                  | ms   | Arrowing through the list calls `show` only once the selection rests this long.                                                                                                                                                                                                                                                                                             |
 | `ENCYCLOPEDIA_PREVIEW_UNAVAILABLE_TEXT`                              | `Preview unavailable`                                                | —    | The `unavailable` state's line.                                                                                                                                                                                                                                                                                                                                             |
-| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                             | —    | The replay button's label, a record keyed by the action scenes (one value in build 1). Declared with the control, which waits on an entry that has an action scene to show (§11.4).                                                                                                                                                                                         |
+| `ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL`                                  | `Replay`                                                             | —    | The replay button's label, a record keyed by the action scenes (`PreviewActionScene`), so a new action scene without a label fails `typecheck`. One value in build 1.                                                                                                                                                                                                       |
 | `ENCYCLOPEDIA_SEARCH_KEY_CODE`                                       | `Slash`                                                              | —    | Focuses the search field.                                                                                                                                                                                                                                                                                                                                                   |
 | `ENCYCLOPEDIA_BACK_KEYS`                                             | `{ code: 'ArrowLeft', isAltKeyHeld: true }`, `{ code: 'Backspace' }` | —    | Back, as `KeyboardEvent` `code` plus modifier, and a modifier a chord does not name must be up. A chord with **no** modifier is one a text field is using, so it acts only outside one — which is §11.5's "Backspace outside a text field", derived rather than named. (`isAltKeyHeld`, not `KeyboardEvent`'s own `altKey`: CODE-STANDARDS.md's boolean-naming rule, #449.) |
 
