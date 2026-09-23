@@ -22,6 +22,7 @@ import {
 } from '../../../testing/builders';
 import { predictOwnPoses } from './own-cell-prediction';
 import { OwnCellPredictor } from './own-cell-predictor';
+import { SNAPSHOT_PUSH } from './snapshot-buffer';
 
 const STARTING_RADIUS = 18;
 const EAST = { x: 400, y: 0 };
@@ -43,7 +44,7 @@ function predictorAt(acknowledged: number, own: Partial<CellView> = {}) {
   const clock = new ManualClock(0);
   const predictor = new OwnCellPredictor(clock);
   const snapshot = snapshotAt(acknowledged, own);
-  predictor.rebase(snapshot, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
+  predictor.rebase(snapshot, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.appended);
   return { clock, predictor, snapshot };
 }
 
@@ -100,13 +101,25 @@ describe('OwnCellPredictor', () => {
     expect(predictor.displayedPosition()!.x).toBe(held.x);
   });
 
+  it('keeps holding on a paused room when a debug tool republishes the same tick', () => {
+    const { clock, predictor, snapshot } = predictorAt(10);
+    const sent = sendEast(predictor, clock, 10, MAX_PREDICTION_TICKS * 2);
+    const held = expectedAfter(snapshot, sent, 10, PREDICTION_STALL_TICKS).current;
+    predictor.rebase(snapshotAt(10), TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.replaced);
+    expect(predictor.predictedPose()).toEqual(held);
+    // A teleported republish still re-bases the pose, at the same held horizon.
+    const teleported = snapshotAt(10, { x: 500 });
+    predictor.rebase(teleported, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.replaced);
+    expect(predictor.predictedPose()).toEqual(expectedAfter(teleported, sent, 10, PREDICTION_STALL_TICKS).current);
+  });
+
   it('never replays more than the horizon, however far behind the acknowledgement is', () => {
     const { clock, predictor } = predictorAt(10);
     const sent = sendEast(predictor, clock, 10, MAX_PREDICTION_TICKS + 20);
-    // The room answers, still acknowledging 10: every input was sent before this arrival.
-    const snapshot = snapshotAt(10);
-    predictor.rebase(snapshot, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
-    expect(predictor.predictedPose()).toEqual(expectedAfter(snapshot, sent, 10, MAX_PREDICTION_TICKS).current);
+    // The room answers one input further on: every input was sent before this arrival.
+    const snapshot = snapshotAt(11);
+    predictor.rebase(snapshot, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.appended);
+    expect(predictor.predictedPose()).toEqual(expectedAfter(snapshot, sent, 11, MAX_PREDICTION_TICKS).current);
   });
 
   it('blends a small correction out from where the cell was drawn', () => {
@@ -115,7 +128,7 @@ describe('OwnCellPredictor', () => {
     clock.advanceMilliseconds(TICK_INTERVAL_MS);
     const shown = predictor.displayedPosition()!;
     const pushedSouth = snapshotAt(11, { y: 5 });
-    predictor.rebase(pushedSouth, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
+    predictor.rebase(pushedSouth, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.appended);
     expect(predictor.displayedPosition()!.y).toBeCloseTo(shown.y, 9);
     clock.advanceMilliseconds(BLEND_MS);
     expect(predictor.displayedPosition()!.y).toBeCloseTo(predictor.predictedPose()!.y, 9);
@@ -124,20 +137,30 @@ describe('OwnCellPredictor', () => {
 
   it('snaps a large correction, and a new cell of its own', () => {
     const { predictor } = predictorAt(10);
-    predictor.rebase(snapshotAt(10, { x: RECONCILE_SNAP_DISTANCE_WU }), TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
+    predictor.rebase(
+      snapshotAt(10, { x: RECONCILE_SNAP_DISTANCE_WU }),
+      TEST_OWN_PLAYER_ID,
+      DEFAULT_BALANCE,
+      SNAPSHOT_PUSH.appended,
+    );
     expect(predictor.displayedPosition()!.x).toBe(RECONCILE_SNAP_DISTANCE_WU);
     const respawned = snapshotAt(10, { id: entityId('c-respawned'), x: RECONCILE_SNAP_DISTANCE_WU + 1 });
-    predictor.rebase(respawned, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
+    predictor.rebase(respawned, TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.appended);
     expect(predictor.displayedPosition()!.x).toBe(RECONCILE_SNAP_DISTANCE_WU + 1);
   });
 
   it('stops predicting while the own cell is engulfed, dead, or before the balance', () => {
     const { predictor } = predictorAt(10);
-    predictor.rebase(snapshotAt(10, { engulfedByCellId: TEST_OTHER_CELL_ID }), TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
+    predictor.rebase(
+      snapshotAt(10, { engulfedByCellId: TEST_OTHER_CELL_ID }),
+      TEST_OWN_PLAYER_ID,
+      DEFAULT_BALANCE,
+      SNAPSHOT_PUSH.appended,
+    );
     expect(predictor.predictedPose()).toBeNull();
-    predictor.rebase(createTestSnapshot({ tick: 200 }), TEST_OWN_PLAYER_ID, DEFAULT_BALANCE);
+    predictor.rebase(createTestSnapshot({ tick: 200 }), TEST_OWN_PLAYER_ID, DEFAULT_BALANCE, SNAPSHOT_PUSH.appended);
     expect(predictor.predictedPose()).toBeNull();
-    predictor.rebase(snapshotAt(10), TEST_OWN_PLAYER_ID, null);
+    predictor.rebase(snapshotAt(10), TEST_OWN_PLAYER_ID, null, SNAPSHOT_PUSH.appended);
     expect(predictor.predictedPose()).toBeNull();
   });
 

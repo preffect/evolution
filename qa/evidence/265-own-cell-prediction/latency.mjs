@@ -2,15 +2,17 @@ import pw from '/usr/lib/node_modules/@playwright/mcp/node_modules/playwright-co
 const { chromium } = pw;
 const URL = 'http://127.0.0.1:4502/';
 const FLIPS = Number(process.env.FLIPS ?? 6);
-const W = Number(process.env.W ?? 320), H = Number(process.env.H ?? 200);
+const W = Number(process.env.W ?? 320),
+  H = Number(process.env.H ?? 200);
 
 const browser = await chromium.launch({ args: ['--use-gl=swiftshader'] });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
-const click = (t) => page.evaluate((text) => {
-  const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === text);
-  if (b) b.click();
-  return Boolean(b);
-}, t);
+const click = (t) =>
+  page.evaluate((text) => {
+    const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === text);
+    if (b) b.click();
+    return Boolean(b);
+  }, t);
 await page.goto(URL);
 await page.waitForTimeout(1500);
 await click('Connect & Join Lobby');
@@ -22,7 +24,8 @@ await page.waitForTimeout(4000);
 const canvas = await page.$('canvas');
 const box = await canvas.boundingBox();
 const cy = box.y + box.height / 2;
-const right = box.x + box.width * 0.9, left = box.x + box.width * 0.1;
+const right = box.x + box.width * 0.9,
+  left = box.x + box.width * 0.1;
 await page.mouse.move(right, cy);
 await page.waitForTimeout(2500);
 await page.evaluate(() => {
@@ -31,7 +34,14 @@ await page.evaluate(() => {
     const api = window.__evolutionDebug;
     const p = api?.prediction?.();
     const input = api?.input?.()?.lastSentInput;
-    window.__samples.push({ t: performance.now(), d: p?.displayed?.x ?? null, i: p?.interpolated?.x ?? null, seq: input?.sequence, tx: input?.targetX, own: p?.displayed?.x });
+    window.__samples.push({
+      t: performance.now(),
+      d: p?.displayed?.x ?? null,
+      i: p?.interpolated?.x ?? null,
+      seq: input?.sequence,
+      tx: input?.targetX,
+      own: p?.displayed?.x,
+    });
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -50,7 +60,11 @@ const samples = await page.evaluate(() => window.__samples);
 await browser.close();
 
 // Per flip: the time from the pointer move until each series' velocity reverses sign.
-const velocity = (key) => samples.slice(1).map((s, k) => ({ t: s.t, v: s[key] === null || samples[k][key] === null ? null : (s[key] - samples[k][key]) / (s.t - samples[k].t) }));
+const velocity = (key) =>
+  samples.slice(1).map((s, k) => ({
+    t: s.t,
+    v: s[key] === null || samples[k][key] === null ? null : (s[key] - samples[k][key]) / (s.t - samples[k].t),
+  }));
 const frameMs = (samples.at(-1).t - samples[0].t) / samples.length;
 const result = { framesMs: frameMs.toFixed(1), flips: [] };
 for (const { t0, sign } of flips) {
@@ -66,7 +80,10 @@ for (const { t0, sign } of flips) {
   }
   result.flips.push(row);
 }
-const median = (xs) => { const s = xs.filter((x) => x !== null).sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+const median = (xs) => {
+  const s = xs.filter((x) => x !== null).sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+};
 result.medianPredictedMs = median(result.flips.map((f) => f.predictedMs));
 result.medianInterpolatedMs = median(result.flips.map((f) => f.interpolatedMs));
 result.medianPredictedOnsetMs = median(result.flips.map((f) => f.predictedOnsetMs));

@@ -19,6 +19,7 @@ import {
 } from '@evolution/shared';
 import { isPredictable, predictOwnPoses, type PredictedPoses, type PredictionBase } from './own-cell-prediction';
 import { PoseCorrection } from './pose-correction';
+import { SNAPSHOT_PUSH, type SnapshotPushOutcome } from './snapshot-buffer';
 
 /** What the dev-only debug hook reports (docs/architecture/client.md §5): the last frame's own cell both ways. */
 export interface PredictionDebugState {
@@ -55,8 +56,17 @@ export class OwnCellPredictor {
     if (input.sequence <= this.acknowledgedSequence + MAX_PREDICTION_TICKS) this.inputs.push(input);
   }
 
-  /** The snapshot just applied is the newest: re-base on its own cell, or stop predicting when there is none. */
-  rebase(snapshot: GameSnapshot, ownPlayerId: PlayerId | null, balance: BalanceConfig | null): void {
+  /**
+   * The snapshot just applied is the newest: re-base on its own cell, or stop predicting when there is none. Only an
+   * `appended` snapshot is an arrival: a `replaced` one (a debug tool republishing a paused room's tick) re-bases the
+   * pose but leaves the stall bound where the last real arrival put it, so the paused cell keeps holding.
+   */
+  rebase(
+    snapshot: GameSnapshot,
+    ownPlayerId: PlayerId | null,
+    balance: BalanceConfig | null,
+    arrival: SnapshotPushOutcome,
+  ): void {
     const shown = this.displayedPosition();
     const previousCellId = this.base?.ownCell.id ?? null;
     const ownCell = snapshot.cells.find((cell) => cell.playerId === ownPlayerId);
@@ -67,13 +77,19 @@ export class OwnCellPredictor {
     }
     this.base = { snapshot, ownCell, balance };
     this.acknowledgedSequence = snapshot.appliedInputSequenceByPlayer[ownPlayerId] ?? 0;
-    // Never below the acknowledged one: a fresh store (a `game_state`) has sent nothing yet but still predicts.
-    this.newestSequenceAtArrival = Math.max(this.newestSequence, this.acknowledgedSequence);
+    this.markArrival(arrival);
     // The acknowledged input stays: it is the target the server holds latched.
     this.inputs = this.inputs.filter((input) => input.sequence >= this.acknowledgedSequence);
     const next = this.easedPosition();
     if (next !== null)
       this.correction.rebase(previousCellId === ownCell.id ? shown : null, next, this.clock.nowMilliseconds());
+  }
+
+  /** Moves the stall bound's origin on a real arrival only; never below the acknowledged sequence. */
+  private markArrival(arrival: SnapshotPushOutcome): void {
+    const arrivedAt = arrival === SNAPSHOT_PUSH.appended ? this.newestSequence : this.newestSequenceAtArrival;
+    // Never below the acknowledged one: a fresh store (a `game_state`) has sent nothing yet but still predicts.
+    this.newestSequenceAtArrival = Math.max(arrivedAt, this.acknowledgedSequence);
   }
 
   /** Ticks to replay past the acknowledged input: every unacknowledged one, within the stall and horizon bounds. */

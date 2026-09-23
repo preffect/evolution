@@ -107,7 +107,7 @@ export class WorldStore {
     const fresh = outcome === SNAPSHOT_PUSH.replaced ? this.effectsNotSeen(snapshot.effects) : snapshot.effects;
     this.pendingEffects.push(...fresh);
     this.dropOvertakenEffects();
-    this.predictor.rebase(snapshot, this.ownPlayerIdValue, this.balanceValue);
+    this.predictor.rebase(snapshot, this.ownPlayerIdValue, this.balanceValue, outcome);
     return true;
   }
 
