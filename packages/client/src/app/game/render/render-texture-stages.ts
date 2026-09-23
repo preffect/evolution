@@ -1,7 +1,7 @@
 // The texture bundle's two halves as staged bakes (ticket #479, docs/rendering/budget.md §7.2): each half is a list
 // of steps, one bake or one small group of them each, so the live room's frame loop can run one per animation frame
 // instead of freezing the first frame for the whole bundle. `render-textures.ts`'s `create*` run the same steps back
-// to back, so a staged bundle and a whole one are the same bakes in the same order, byte for byte.
+// to back, so a staged bundle and a whole one make the same bakes in the same order as each other, byte for byte.
 //
 // The steps are cut where the bakes are: the indicator atlas and its fonts, the mote atlas, the glow atlas, each
 // radial bake, the dish field, the vent, the noise tile and the organelle atlas are each one step.

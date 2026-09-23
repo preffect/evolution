@@ -17,6 +17,8 @@ import { RendererSlot, type RendererBuild } from './renderer-slot';
 interface PendingBuild {
   readonly build: RendererBuild;
   readonly resolve: (renderer: GameRenderer | null) => void;
+  /** A bake that threw: the build fails as a promise, never out of the ticker (Pixi v8 stops a ticker that throws). */
+  readonly reject: (error: unknown) => void;
 }
 
 export abstract class FrameLoopSession {
@@ -77,7 +79,8 @@ export abstract class FrameLoopSession {
    * The same build staged across frames (ticket #479): the ticker runs one bake per animation frame, so the page
    * keeps painting and taking input while a room's textures are baked, and the current renderer (a rematch's)
    * keeps drawing until the new one swaps in on the last bake. Resolves with the new renderer, or `null` when no
-   * app is adopted or the session is torn down first. One at a time: the caller queues the next behind this one.
+   * app is adopted or the session is torn down first; rejects when a bake throws, and the ticker runs on. One at a
+   * time: the caller queues the next behind this one.
    */
   protected buildRendererAcrossFrames(options: Omit<RenderTextureOptions, 'baker'>): Promise<GameRenderer | null> {
     if (this.pixi === null) return Promise.resolve(null);
@@ -88,8 +91,8 @@ export abstract class FrameLoopSession {
       { ...options, baker: textures },
       this.instrumentation.timer,
     );
-    return new Promise((resolve) => {
-      this.pendingBuild = { build, resolve };
+    return new Promise((resolve, reject) => {
+      this.pendingBuild = { build, resolve, reject };
     });
   }
 
@@ -105,7 +108,16 @@ export abstract class FrameLoopSession {
   private advancePendingBuild(): boolean {
     const pending = this.pendingBuild;
     if (pending === null) return false;
-    const renderer = pending.build.advance();
+    let renderer: GameRenderer | null;
+    try {
+      renderer = pending.build.advance();
+    } catch (error: unknown) {
+      // Caught here, not in the ticker: a listener that throws stops Pixi's ticker for good (input and frames with
+      // it). The build fails as its promise instead — the session records a start-up error, the next build proceeds.
+      this.pendingBuild = null;
+      pending.reject(error);
+      return false;
+    }
     if (renderer === null) return false;
     this.pendingBuild = null;
     this.lastRenderedTickValue = null;
@@ -148,11 +160,29 @@ export abstract class FrameLoopSession {
 
   /** Drops the renderer, the instrumentation and the app. */
   protected disposeLoop(): void {
-    // A build torn down mid-bake has half its textures made and its fonts installed: it is finished and swapped in,
-    // so the slot's dispose below frees every one of them rather than leaking what was already baked.
-    this.pendingBuild?.build.finish();
-    this.pendingBuild?.resolve(null);
+    try {
+      this.finishPendingBuild();
+    } finally {
+      this.releaseLoop();
+    }
+  }
+
+  /**
+   * A build torn down mid-bake has half its textures made and its fonts installed: it is finished and swapped in,
+   * so the slot's dispose frees every one of them rather than leaking what was already baked. Its waiter always
+   * hears `null`, even when the finishing bake throws, so no queued build waits on it forever.
+   */
+  private finishPendingBuild(): void {
+    const pending = this.pendingBuild;
     this.pendingBuild = null;
+    try {
+      pending?.build.finish();
+    } finally {
+      pending?.resolve(null);
+    }
+  }
+
+  private releaseLoop(): void {
     this.pixi?.unbindTextures();
     this.slot.dispose();
     this.lastRenderedTickValue = null;

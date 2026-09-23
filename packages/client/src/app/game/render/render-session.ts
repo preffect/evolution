@@ -140,7 +140,8 @@ export class RenderSession extends FrameLoopSession {
   }
 
   private async buildRendererFor(snapshot: GameSnapshot): Promise<void> {
-    if (this.renderer?.seed === snapshot.seed) return;
+    // A seed superseded while it waited in the queue is never baked: the newest one is already queued behind it.
+    if (snapshot.seed !== this.requestedSeed || this.renderer?.seed === snapshot.seed) return;
     if ((await this.ensurePixiApp()) === null) return;
     // Staged across frames (ticket #479): baked one step per animation frame rather than in one long task.
     await this.buildRendererAcrossFrames({

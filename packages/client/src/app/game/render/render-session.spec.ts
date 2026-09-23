@@ -181,9 +181,10 @@ describe('RenderSession', () => {
     await settle(subject, pixi);
     await flush();
     expect(createPixiApp).toHaveBeenCalledTimes(1);
-    // Two builds queued behind the one app: one seed-independent half, two seeded ones (ticket #442).
+    // Two builds queued behind the one app, the first superseded before it began: it bakes nothing (#479 review),
+    // and the second bakes the seed-independent half and its own seeded one.
     expect(pixi.bakedSpecs).toHaveLength(2);
-    expect(pixi.bakedCanvases.filter((canvas) => canvas.width === FIELD_TEXTURE_PX)).toHaveLength(2);
+    expect(pixi.bakedCanvases.filter((canvas) => canvas.width === FIELD_TEXTURE_PX)).toHaveLength(1);
     expect(pixi.stage.children).toHaveLength(2);
     expect(subject.startupError).toBeNull();
   });
@@ -285,9 +286,41 @@ describe('RenderSession', () => {
     await flush();
     while (pixi.textures.installedFonts.length === 0) pixi.tick();
     expect(subject.isBuildingRenderer).toBe(true);
+    const bakedBeforeTeardown = [...pixi.textures.madeTextures];
     subject.destroy();
     expect(pixi.textures.uninstalledFonts).toEqual(pixi.textures.installedFonts.map((install) => install.name));
+    expect(bakedBeforeTeardown.length).toBeGreaterThan(0);
+    expect(
+      bakedBeforeTeardown.every((texture) => texture.destroyed),
+      'a texture baked before the teardown leaked',
+    ).toBe(true);
     expect(pixi.lifecycle.isDestroyed).toBe(true);
+  });
+
+  it('records a bake that throws partway as the start-up error; the ticker runs on and the next build proceeds (#479 review)', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { subject, pixi } = session();
+    const failure = new Error('context lost mid-bake');
+    const bakeRadial = pixi.textures.bakeRadial.bind(pixi.textures);
+    const failing = vi.spyOn(pixi.textures, 'bakeRadial').mockImplementationOnce(() => {
+      throw failure;
+    });
+    subject.onMessage(gameState(1));
+    await flush();
+    for (let frame = 0; frame < SETTLE_FRAMES_MAX && subject.startupError === null; frame += 1) {
+      expect(() => pixi.tick(), 'a failing bake escaped into the ticker').not.toThrow();
+      await flush();
+    }
+    expect(subject.startupError).toBe(failure);
+    expect(subject.isBuildingRenderer).toBe(false);
+    expect(pixi.tickerCallbacks).toHaveLength(1);
+
+    failing.mockImplementation(bakeRadial);
+    subject.onMessage(snapshotMessage(3, [], 2));
+    await settle(subject, pixi);
+    pixi.tick();
+    expect(pixi.renderCalls.count, 'the next build did not proceed after the failure').toBe(1);
+    consoleError.mockRestore();
   });
 
   it('applies balance updates to the store and the audio handle', async () => {
