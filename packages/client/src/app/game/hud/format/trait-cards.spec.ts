@@ -11,9 +11,10 @@ import {
   type TraitId,
   type TraitOfferView,
   type TraitTier,
+  TRAIT_CATALOG,
 } from '@evolution/shared';
 import { describeTierModifiers } from './trait-effects';
-import { traitOfferViewFor } from './trait-cards';
+import { bindQuantities, traitOfferViewFor } from './trait-cards';
 
 const WINDOW_SECONDS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS;
 const EXPIRES_AT = 10_000;
@@ -61,7 +62,9 @@ describe('traitOfferViewFor', () => {
       category: 'genome',
       rarity: 'common',
     });
-    expect(view.cards[0]!.effects).toEqual(describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1));
+    expect(view.cards[0]!.effects).toEqual(
+      describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1).map(bindQuantities),
+    );
   });
 
   it('reads the effect lines from the live balance, so a debug_set_balance patch reaches the card', () => {
@@ -71,7 +74,7 @@ describe('traitOfferViewFor', () => {
     traits.TRAIT_TIERS.cell_wall = [{ membraneRatioBonus: 0.5 }, tierTwo, tierThree];
     const patched: BalanceConfig = { ...DEFAULT_BALANCE, traits };
     const wall = viewAt(6.5, protocell, offer, patched).cards[2]!;
-    expect(wall.effects).toEqual(['+50 % harder to engulf']);
+    expect(wall.effects).toEqual(['+50\u00a0% harder to engulf']);
     expect(viewAt(6.5).cards[2]!.effects).not.toEqual(wall.effects);
   });
 
@@ -84,7 +87,7 @@ describe('traitOfferViewFor', () => {
   it('ribbons the card that is the next stage’s gate, and marks an owned trait’s card as its upgrade', () => {
     const [nucleoid, flagellum, wall] = viewAt(6.5).cards;
     expect(nucleoid!.isRung).toBe(true);
-    expect(flagellum).toMatchObject({ isRung: false, isUpgrade: true, tierLabel: 'I → II' });
+    expect(flagellum).toMatchObject({ isRung: false, isUpgrade: true, tierLabel: 'I\u00a0→\u00a0II' });
     expect(wall).toMatchObject({ isRung: false, isUpgrade: false, tierLabel: 'I' });
   });
 
@@ -118,5 +121,26 @@ describe('traitOfferViewFor', () => {
       secondsText: `${WINDOW_SECONDS.toFixed(1)} s`,
       timerFraction: 1,
     });
+  });
+
+  // A card's column is narrow, so a line wraps; where it may wrap is pinned, not left to the text (#446).
+  it('never lets a card line wrap between a number and its unit, around a unit’s slash, or inside an upgrade', () => {
+    const BREAKABLE_READING = /\d | \/|\/ /;
+    const TIERS: readonly TraitTier[] = [1, 2, 3];
+    for (const trait of TRAIT_CATALOG) {
+      for (const tier of TIERS) {
+        const owned = tier > 1 ? [{ traitId: trait.id, tier: (tier - 1) as TraitTier }] : [];
+        const open = { ...offer, cards: [{ traitId: trait.id, tier }] };
+        const [card] = viewAt(6.5, { ...protocell, ownedTraits: owned }, open).cards;
+        for (const line of card!.effects) expect(line, `${trait.id} ${tier}`).not.toMatch(BREAKABLE_READING);
+        expect(card!.tierLabel, `${trait.id} ${tier}`).not.toContain(' ');
+      }
+    }
+  });
+
+  it('binds a number to its unit and a unit’s slash to both sides, and leaves the words free to wrap', () => {
+    expect(bindQuantities('Spines drain 70 % / s, spit out 4 % / s')).toBe(
+      'Spines drain 70\u00a0%\u00a0/\u00a0s, spit out 4\u00a0%\u00a0/\u00a0s',
+    );
   });
 });
