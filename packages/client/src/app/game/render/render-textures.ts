@@ -9,35 +9,20 @@
 // The noise strip, the noise tile and the palette are bytes, uploaded as data textures for the
 // cell shader (cells/cell-mesh.ts).
 
-import {
-  PLAYER_PALETTE_COUNT,
-  RANDOM_STREAM,
-  createSeededRandom,
-  type DnaTag,
-  type GelPatchView,
-  type RandomSource,
-} from '@evolution/shared';
+import type { DnaTag, GelPatchView, RandomSource } from '@evolution/shared';
 import type { Texture, TextureSource } from 'pixi.js';
-import { NOISE_STRIP_ROWS, NOISE_STRIP_WIDTH, PALETTE_SHADE_COUNT, type OrganelleKind } from './constants';
-import { buildNoiseStrip, type NoiseStrip } from './noise/noise-strip';
-import { buildNoiseTile } from './noise/noise-tile';
-import { bakePaletteTextureBytes } from './palette';
-import { bakeDishField, type DishField } from './textures/dish-texture';
-import { bakeGlowAtlas, type GlowSpriteKey } from './textures/glow-atlas';
-import { SOFT_DISC_BAKE, VIGNETTE_BAKE, type RadialBakeSpec } from './textures/radial-bake';
-import { bakeLightPool } from './textures/light-pool-bake';
+import type { OrganelleKind } from './constants';
+import type { NoiseStrip } from './noise/noise-strip';
+import { stageSeededRenderTextures, stageSharedRenderTextures } from './render-texture-stages';
+import type { DishField } from './textures/dish-texture';
+import type { GlowSpriteKey } from './textures/glow-atlas';
+import type { RadialBakeSpec } from './textures/radial-bake';
 import type { BitmapFontInstaller } from './textures/bitmap-fonts';
-import {
-  createIndicatorTextures,
-  destroyIndicatorTextures,
-  type IndicatorTextures,
-} from './textures/indicator-textures';
+import { destroyIndicatorTextures, type IndicatorTextures } from './textures/indicator-textures';
 import type { MoteSpriteKey, MoteVariants } from './textures/mote-atlas';
-import { moteTextures } from './textures/mote-textures';
-import { bakeOrganelleAtlas } from './textures/organelle-atlas';
-import { byteDataTexture, texturesFromBakes, type SpriteAtlas } from './textures/pixi-textures';
+import type { SpriteAtlas } from './textures/pixi-textures';
 import type { BakeCanvas, BakeCanvasFactory } from './textures/texture-bake';
-import { bakeVentSprite, type VentSprite } from './textures/vent-bake';
+import type { VentSprite } from './textures/vent-bake';
 
 /** What turns a bake into a texture and installs the BitmapFonts: `pixi-texture-baker.ts` in the app, a stub in tests. */
 export interface TextureBaker extends BakeCanvasFactory, BitmapFontInstaller {
@@ -123,87 +108,14 @@ export interface RenderTextureOptions {
   readonly noiseTileSizePx?: number;
 }
 
-function organelleTextures(
-  baker: TextureBaker,
-  devicePixelRatio: number,
-  cosmetic: RandomSource,
-): RenderTextures['organelles'] {
-  const bakes = bakeOrganelleAtlas(baker, devicePixelRatio, cosmetic);
-  const textures = {} as Record<OrganelleKind, OrganelleSpriteTexture>;
-  for (const kind of Object.keys(bakes) as OrganelleKind[]) {
-    textures[kind] = { texture: baker.textureFromBake(bakes[kind].canvas), widthRadii: bakes[kind].widthRadii };
-  }
-  return textures;
-}
-
-/** The cell shader's seeded data textures: the strip as a `texelFetch` table, the tile sampled trilinear. */
-function cellDataTextures(
-  cosmetic: RandomSource,
-  noiseTileSizePx: number | undefined,
-): Pick<SeededRenderTextures, 'strip' | 'stripTexture' | 'tileTexture'> {
-  const strip = buildNoiseStrip(cosmetic);
-  const tile = buildNoiseTile(cosmetic, noiseTileSizePx);
-  return {
-    strip,
-    stripTexture: byteDataTexture(strip.bytes, {
-      width: NOISE_STRIP_WIDTH,
-      height: NOISE_STRIP_ROWS,
-      isFiltered: false,
-      isRepeating: false,
-      hasMipmaps: false,
-    }),
-    tileTexture: byteDataTexture(tile.bytes, {
-      width: tile.size,
-      height: tile.size,
-      isFiltered: true,
-      isRepeating: true,
-      hasMipmaps: true,
-    }),
-  };
-}
-
 /** The seed-independent half, baked once per Pixi app (`renderer-slot.ts` keeps it across rebuilds). */
 export function createSharedRenderTextures(baker: TextureBaker, devicePixelRatio: number): SharedRenderTextures {
-  const lightPool = bakeLightPool(baker);
-  return {
-    glowTexture: baker.bakeRadial(SOFT_DISC_BAKE),
-    vignetteTexture: baker.bakeRadial(VIGNETTE_BAKE),
-    paletteTexture: byteDataTexture(bakePaletteTextureBytes(), {
-      width: PALETTE_SHADE_COUNT,
-      height: PLAYER_PALETTE_COUNT,
-      isFiltered: false,
-      isRepeating: false,
-      hasMipmaps: false,
-    }),
-    glow: texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake)),
-    motes: moteTextures(baker),
-    lightPoolTexture: baker.textureFromBake(lightPool),
-    indicators: createIndicatorTextures(baker, devicePixelRatio),
-  };
+  return stageSharedRenderTextures(baker, devicePixelRatio).runAll();
 }
 
-/**
- * The seeded half. Every bake below takes a **named sub-stream** off `cosmetic` rather than drawing from
- * it (`COSMETIC_SUB_STREAM`, docs/DETERMINISM.md), so none of them can move another's numbers and the split
- * could not change a byte. What that rests on is that nothing in `SharedRenderTextures` touches `cosmetic`
- * at all — a shared bake that drew from it directly would shift every seeded bake after it, which is what
- * `render-textures.spec.ts` compares the dish field's recorded strokes to catch.
- */
+/** The seeded half (`render-texture-stages.ts` for how each bake takes its own sub-stream). */
 export function createSeededRenderTextures(options: RenderTextureOptions): SeededRenderTextures {
-  const { baker } = options;
-  const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
-  const dishField = bakeDishField(baker, options.gelPatches, cosmetic);
-  const vent = bakeVentSprite(baker, cosmetic);
-  return {
-    seed: options.seed,
-    cosmetic,
-    ...cellDataTextures(cosmetic, options.noiseTileSizePx),
-    organelles: organelleTextures(baker, options.devicePixelRatio, cosmetic),
-    dishField,
-    dishTexture: baker.textureFromBake(dishField.canvas),
-    vent,
-    ventTexture: baker.textureFromBake(vent.canvas),
-  };
+  return stageSeededRenderTextures(options).runAll();
 }
 
 /** Both halves at once: what a first build (and every test) asks for. */
