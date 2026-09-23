@@ -56,23 +56,25 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 
 ### `wild-cells.ts` (§3.3; the world clock itself is `world-clock.ts`, [`game-design/constants-and-acceptance.md §12`](../game-design/constants-and-acceptance.md#12-constants-table))
 
-| Constant                              | Value                   | Unit                  |
-| ------------------------------------- | ----------------------- | --------------------- |
-| `WILD_CELL_COUNT`                     | 24                      | seats                 |
-| `WILD_CELL_SIZE_FACTOR_MIN`           | 0.5                     | × `worldMass`         |
-| `WILD_CELL_SIZE_FACTOR_MAX`           | 2.0                     | × `worldMass`         |
-| `WILD_CELL_RECOVERY_SECONDS`          | 6                       | s (time constant)     |
-| `WILD_CELL_MAX_WORLD_MASS_MULTIPLE`   | 3                       | × `worldMass`         |
-| `WILD_CELL_SIGHT_VIEW_MULTIPLE`       | 1.0                     | × `viewHalfHeightFor` |
-| `WILD_CELL_SPRINT_FLEE_RADII`         | 4                       | own radii             |
-| `WILD_CELL_SPRINT_HUNT_RADII`         | 3                       | own radii             |
-| `WILD_CELL_BUILDS`                    | the three lists of §3.3 | trait ids             |
-| `WILD_CELL_RESPAWN_SECONDS`           | 10                      | s                     |
-| `WILD_CELL_MIN_SPACING_WU`            | 200                     | wu                    |
-| `WILD_CELL_DECISION_INTERVAL_SECONDS` | 0.5                     | s                     |
-| `WILD_CELL_FLEE_RANGE_RADII`          | 8                       | own radii             |
-| `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`  | `endosymbiosis`         | `CellStage`           |
-| `WILD_CELL_TURN_CHANCE`               | 0.25                    | per decision          |
+| Constant                                   | Value                   | Unit                              |
+| ------------------------------------------ | ----------------------- | --------------------------------- |
+| `WILD_CELL_COUNT`                          | 24                      | seats                             |
+| `WILD_CELL_SIZE_FACTOR_MIN`                | 0.5                     | × `worldMass`                     |
+| `WILD_CELL_SIZE_FACTOR_MAX`                | 2.0                     | × `worldMass`                     |
+| `WILD_CELL_RECOVERY_SECONDS`               | 6                       | s (time constant)                 |
+| `WILD_CELL_MAX_WORLD_MASS_MULTIPLE`        | 3                       | × `worldMass`                     |
+| `WILD_CELL_SIGHT_VIEW_MULTIPLE`            | 1.0                     | × `viewHalfHeightFor`             |
+| `WILD_CELL_SPRINT_FLEE_RADII`              | 4                       | own radii                         |
+| `WILD_CELL_SPRINT_HUNT_RADII`              | 3                       | own radii                         |
+| `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`     | 1.5                     | × `WILD_CELL_COUNT` × `worldMass` |
+| `WILD_CELL_STARVATION_FRACTION_PER_SECOND` | 0.1                     | of full size per second           |
+| `WILD_CELL_BUILDS`                         | the three lists of §3.3 | trait ids                         |
+| `WILD_CELL_RESPAWN_SECONDS`                | 10                      | s                                 |
+| `WILD_CELL_MIN_SPACING_WU`                 | 200                     | wu                                |
+| `WILD_CELL_DECISION_INTERVAL_SECONDS`      | 0.5                     | s                                 |
+| `WILD_CELL_FLEE_RANGE_RADII`               | 8                       | own radii                         |
+| `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`       | `endosymbiosis`         | `CellStage`                       |
+| `WILD_CELL_TURN_CHANCE`                    | 0.25                    | per decision                      |
 
 ### `absorption.ts`
 
@@ -84,7 +86,7 @@ and the eleven `wild-cells.ts` rows; the simulation core (#152) adds `ALGAE_TAG`
 `DETRITUS_SCATTER_RADIUS_FACTOR` (§1's numbers that had no constant), so the pin was 96 names; the wild cells
 that live their own lives (#517, #544) replace `WILD_CELL_MASS_SPREAD`, `WORLD_ORGANISM_ID` and
 `WILD_CELL_HUNT_RANGE_RADII` with the seven new `wild-cells.ts` rows above and rename
-`WILD_CELL_HUNTS_FROM_STAGE`, so the pin is 100 names.
+`WILD_CELL_HUNTS_FROM_STAGE`, so the pin was 100 names; the die-off (#555) adds two, so it is 102.
 
 | Constant                                                               | Value     | Unit                                                                                 |
 | ---------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
