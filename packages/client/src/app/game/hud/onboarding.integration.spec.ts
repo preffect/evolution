@@ -73,10 +73,10 @@ function toxicBot(gapWu: number, ownCell: CellView = ownCellAt()): CellView {
   return { ...bot, x: ownCell.x + ownCell.radius + bot.radius + gapWu, y: ownCell.y };
 }
 
-/** A small plain wild cell touching the own cell's rim: green-ringed and in reach. */
+/** A small plain wild cell three own radii past the own rim: green-ringed, in reach, not yet touching. */
 function smallPrey(ownCell: CellView): CellView {
   const prey = createTestCellView({ id: PREY_CELL_ID, kind: CELL_KIND.wild, playerId: null, mass: PREY_MASS });
-  return { ...prey, x: ownCell.x + ownCell.radius + prey.radius, y: ownCell.y };
+  return { ...prey, x: ownCell.x + ownCell.radius * 4 + prey.radius, y: ownCell.y };
 }
 
 describe('the coach beats, end to end', () => {

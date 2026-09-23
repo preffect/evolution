@@ -4,7 +4,7 @@
 
 import { ZONE_ID, ticksToSeconds, type ZoneId } from '@evolution/shared';
 import { DANGER, GAIN, ZONE_CUE } from '../../render/constants';
-import { COACH_SHRINK_HOLD_SECONDS } from '../hud-constants';
+import { COACH_SHRINK_HOLD_SECONDS, HINT_MIN_SECONDS } from '../hud-constants';
 import {
   ONBOARDING_BEAT,
   isHintTimeUp,
@@ -57,7 +57,10 @@ const toxin: OnboardingBeat = {
   isDismissed: (observation, history) => !observation.isToxinReaching || isHintTimeUp(observation, history),
 };
 
-/** A green-ringed cell in reach; goes when the player starts an engulf, or on the timer. */
+/**
+ * A green-ringed cell in reach; goes when the player starts an engulf, but not before `HINT_MIN_SECONDS` on screen,
+ * or on the timer.
+ */
 const prey: OnboardingBeat = {
   id: ONBOARDING_BEAT.prey,
   isDanger: false,
@@ -65,7 +68,9 @@ const prey: OnboardingBeat = {
   rimColour: GAIN,
   isTriggered: (observation) => observation.hasPreyInReach,
   isStillWanted: (observation) => observation.hasPreyInReach && !observation.isEngulfing,
-  isDismissed: (observation, history) => observation.isEngulfing || isHintTimeUp(observation, history),
+  isDismissed: (observation, history) =>
+    isHintTimeUp(observation, history) ||
+    (observation.isEngulfing && ticksToSeconds(observation.tick - history.shownAtTick) >= HINT_MIN_SECONDS),
 };
 
 /** §5's coach rows. */

@@ -22,7 +22,7 @@ import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import { COACH_PREY_REACH_RADII } from '../hud-constants';
 import type { OnboardingObservation } from './onboarding-beats';
 import type { OnboardingSample } from './onboarding-queue';
-import { RELATION_RING, type Relation } from './relations-for';
+import { RELATION_RING, type RelationCandidate } from './relations-for';
 import { isRoundInBloom } from './round-clock';
 
 /** One snapshot with the records the HUD derived from it. */
@@ -32,7 +32,7 @@ export interface OnboardingSource {
   readonly ownProgress: OwnProgressView | null;
   readonly indicators: OwnCellIndicators | null;
   /** The on-screen relation rings (`GameStateService.relations`, `relationsFor`): the rule the rings are drawn by. */
-  readonly relations: readonly Relation[];
+  readonly relations: readonly RelationCandidate[];
   readonly balance: BalanceConfig | null;
   /** `sessionConfig.roundDurationSeconds`; `null` before the room's config has arrived. */
   readonly roundDurationSeconds: number | null;
@@ -93,14 +93,13 @@ function isBloomFor({ snapshot, balance, roundDurationSeconds }: OnboardingSourc
  * The `prey` beat's condition (§5): a cell carrying the green ring — the rings' own `edible` rule, and not toxic,
  * whose ring is the red double line — is within `COACH_PREY_REACH_RADII` own radii of the own cell, edge to edge.
  */
-export function hasPreyInReach(ownCell: CellView, relations: readonly Relation[], cells: readonly CellView[]): boolean {
+export function hasPreyInReach(ownCell: CellView, relations: readonly RelationCandidate[]): boolean {
   const reachWu = COACH_PREY_REACH_RADII * ownCell.radius;
-  return relations.some((relation) => {
-    if (relation.ring !== RELATION_RING.edible) return false;
-    const prey = cells.find((cell) => cell.id === relation.cellId);
-    if (prey === undefined) return false;
-    return Math.sqrt(relation.distanceSquared) - ownCell.radius - prey.radius <= reachWu;
-  });
+  return relations.some(
+    (relation) =>
+      relation.ring === RELATION_RING.edible &&
+      Math.sqrt(relation.distanceSquared) - ownCell.radius - relation.radius <= reachWu,
+  );
 }
 
 function observationFor(
@@ -121,7 +120,7 @@ function observationFor(
     isShrinkingFromDecay: indicators !== null && isShrinkingFromDecay(indicators.massChip.trend, massFlow),
     isBloom: isBloomFor(source),
     isToxinReaching: balance !== null && isToxinReaching(ownCell, massFlow, snapshot.cells, balance),
-    hasPreyInReach: hasPreyInReach(ownCell, source.relations, snapshot.cells),
+    hasPreyInReach: hasPreyInReach(ownCell, source.relations),
     isEngulfing: ownCell.engulfingCellId !== null,
   };
 }
