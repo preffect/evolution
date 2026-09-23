@@ -8,10 +8,12 @@
 // baker or device pixel ratio — the two inputs it was baked from.
 //
 // A build can also be **staged** (ticket #479): `beginBuild` hands back a `RendererBuild` whose bakes the caller
-// runs one per frame, while the previous renderer (a rematch's) keeps drawing; the swap happens on the last step.
-// `build` is the same steps run back to back, for the bench and the preview, which measure a whole build.
+// runs one per frame, while the previous renderer (a rematch's) keeps drawing. The new renderer is built on a
+// staging container **off the stage**, so a caller can warm its first draw before the reveal (ticket #603), and
+// only `commit` puts it on the stage and disposes the old one. `build` is the same steps run back to back, for the
+// bench and the preview, which measure a whole build.
 
-import type { Container } from 'pixi.js';
+import { Container } from 'pixi.js';
 import type { StageMeasurer } from './bench/render-stage-timer';
 import type { ViewportPx } from './camera';
 import { GameRenderer } from './game-renderer';
@@ -20,6 +22,7 @@ import {
   destroySeededRenderTextures,
   destroySharedRenderTextures,
   type RenderTextureOptions,
+  type RenderTextures,
   type SeededRenderTextures,
   type SharedRenderTextures,
   type TextureBaker,
@@ -33,12 +36,21 @@ interface SharedBundle {
   readonly devicePixelRatio: number;
 }
 
-/** A renderer being built a step at a time; the slot swaps it in on the last step. */
+/** The new renderer before its reveal: built over its bundle on a container that is not on the stage. */
+export interface StagedRenderer {
+  readonly renderer: GameRenderer;
+  readonly container: Container;
+  readonly textures: RenderTextures;
+}
+
+/** A renderer being built a step at a time; nothing changes on the stage until `commit`. */
 export interface RendererBuild {
-  /** Runs the next bake; on the last one the new renderer replaces the old and this answers it. */
-  advance(): GameRenderer | null;
-  /** Runs every bake left and swaps the renderer in: for a caller that cannot wait (a teardown mid-build). */
-  finish(): GameRenderer;
+  /** Runs the next bake; `true` once every bake has run and the renderer is built, off the stage. */
+  advance(): boolean;
+  /** The built renderer, off the stage, once `advance` has answered `true`; `null` before. */
+  readonly staged: StagedRenderer | null;
+  /** Puts the new renderer on the stage and disposes the old one, running any bake left first. */
+  commit(): GameRenderer;
 }
 
 export class RendererSlot {
@@ -52,7 +64,7 @@ export class RendererSlot {
 
   /** Builds a renderer on `stage` over textures baked from `options`, disposing the previous one: all at once. */
   build(stage: Container, viewport: ViewportPx, options: RenderTextureOptions, stages: StageMeasurer): GameRenderer {
-    return this.beginBuild(stage, viewport, options, stages).finish();
+    return this.beginBuild(stage, viewport, options, stages).commit();
   }
 
   /**
@@ -72,23 +84,49 @@ export class RendererSlot {
     const shared = isKept ? null : stageSharedRenderTextures(baker, devicePixelRatio);
     const seeded = stageSeededRenderTextures(options);
     const bakes: StagedBake<unknown>[] = shared === null ? [seeded] : [shared, seeded];
-    const swapIn = (): GameRenderer => {
-      this.disposeSeeded();
-      if (shared !== null) this.replaceShared(shared.result(), baker, devicePixelRatio);
-      this.seeded = seeded.result();
-      this.renderer = new GameRenderer(stage, { ...this.sharedTextures(), ...this.seeded }, viewport, stages);
-      return this.renderer;
+    let staged: StagedRenderer | null = null;
+    const stageRenderer = (): StagedRenderer => {
+      const sharedTextures = shared === null ? this.sharedTextures() : shared.result();
+      const textures = { ...sharedTextures, ...seeded.result() };
+      const container = new Container();
+      staged = { renderer: new GameRenderer(container, textures, viewport, stages), container, textures };
+      return staged;
+    };
+    const advance = (): boolean => {
+      if (staged !== null) return true;
+      bakes.find((bake) => !bake.isDone)?.runNext();
+      if (bakes.some((bake) => !bake.isDone)) return false;
+      stageRenderer();
+      return true;
     };
     return {
-      advance: () => {
-        bakes.find((bake) => !bake.isDone)?.runNext();
-        return bakes.every((bake) => bake.isDone) ? swapIn() : null;
+      advance,
+      get staged() {
+        return staged;
       },
-      finish: () => {
+      commit: () => {
         for (const bake of bakes) bake.runAll();
-        return swapIn();
+        const built = staged ?? stageRenderer();
+        const newShared = shared === null ? null : { textures: shared.result(), baker, devicePixelRatio };
+        return this.putOnStage(stage, built, newShared, seeded.result());
       },
     };
+  }
+
+  /** The commit: the old renderer and its seeded half go, the new one's layers move from staging onto the stage. */
+  private putOnStage(
+    stage: Container,
+    built: StagedRenderer,
+    newShared: SharedBundle | null,
+    seeded: SeededRenderTextures,
+  ): GameRenderer {
+    this.disposeSeeded();
+    if (newShared !== null) this.replaceShared(newShared.textures, newShared.baker, newShared.devicePixelRatio);
+    this.seeded = seeded;
+    stage.addChild(...built.container.removeChildren());
+    built.container.destroy();
+    this.renderer = built.renderer;
+    return built.renderer;
   }
 
   dispose(): void {

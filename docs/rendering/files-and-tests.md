@@ -56,6 +56,7 @@ bench/indicator-sheet.ts                            `sheet=indicators`: the own-
 game-renderer.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), one room's session, the texture bundle, whom the camera follows
 frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation all three sessions share (§7, #208); the one renderer a session holds, built over its seeded textures and disposed with them, keeping the bundle's seed-independent half across a rebuild (§7.2, #442); `beginBuild` stages it one bake per frame for the live room (§7.2, #479)
 render-texture-stages.ts  staged-bake.ts                       the bundle's two halves as lists of bakes, and the step runner a staged build and a whole one share (§7.2, #479)
+renderer-warm-up.ts                                     after the last bake, the staged renderer's uploads, warm-up draw and off-screen render before its commit (§7.2, #603)
 ../route-query.ts  ../debug/debug-hook-holder.ts        what the two dev routes (bench, preview) share: reading a number off the query, and holding the `window.__evolutionDebug` install so each removes only its own (#363)
 pixi-texture-baker.ts                                  the `TextureBaker` (the per-pixel radial bakes of `textures/radial-bake.ts` for the soft disc and the vignette, the Canvas-2D factory and `textureFromBake` for the atlases and the field)
 ```

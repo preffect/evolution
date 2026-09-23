@@ -172,3 +172,9 @@ export const RENDER_BENCH_CUES = {
   engulfMassGained: 60,
   sprintSpent: 16,
 } as const;
+
+// ---- the staged renderer's warm-up (ticket #603, docs/rendering/budget.md §7.2) ----
+/** Texture sources uploaded per frame: Pixi's own `PrepareBase.uploadsPerFrame`, small enough not to be a freeze. */
+export const RENDER_WARM_UP_UPLOADS_PER_FRAME = 4;
+/** The warm-up render's off-screen target: any size compiles the same shaders and uploads the same textures. */
+export const RENDER_WARM_UP_TARGET_PX = 64;

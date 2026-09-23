@@ -169,6 +169,11 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   reconnect does, and never runs the late join again. An active room cancels any grace timer, reattaches the socket and
   resends `game_state`; the roster, the `GameModule` and the other players are untouched (no `player_joined`, no
   `lobby_update`). A pending game held keeps the seat as it is and sends nothing, even when it is full.
+- **`join_game` for a full room** (#365, the #337 ruling, game-design/session.md §5): a room whose humans (connected plus
+  in disconnect grace; synthetic players never count) already fill `maxPlayers` refuses the join with `error`
+  `Game is full`, started or pending alike (`isRoomJoinable`). The held-seat re-entry above runs first, so a player who
+  holds a seat always gets back in; a reconnect is not a join and is never refused. `lobby_update` lists the same
+  humans for a started room, so the row's count and the refusal agree.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,

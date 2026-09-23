@@ -138,30 +138,34 @@ describe('RendererSlot', () => {
     expect(keptIndicators.labelPill.texture.destroyed).toBe(true);
   });
 
-  it('stages a build one bake per advance, swapping in only on the last, while the old renderer stays current (#479)', () => {
+  it('stages a build one bake per advance, off the stage, and swaps in only on commit (#479, #603)', () => {
     const pixi = createFakePixiApp();
     const slot = new RendererSlot();
     const options = buildOptions(pixi.textures, 3);
     const build = slot.beginBuild(pixi.stage, pixi.screen, options, UNTIMED_STAGES);
     let advances = 1;
-    let built = build.advance();
+    build.advance();
     // The first advance ran exactly one bake: the light pool, and not yet a radial one.
     expect(pixi.textures.bakedSpecs).toHaveLength(0);
-    while (built === null) {
-      expect(slot.current).toBeNull();
-      built = build.advance();
-      advances += 1;
-    }
+    while (!build.advance()) advances += 1;
     expect(advances).toBeGreaterThan(5);
+    const staged = build.staged!;
+    expect(slot.current, 'a built renderer went current before its commit').toBeNull();
+    expect(pixi.stage.children, 'a built renderer is on the stage before its commit').toHaveLength(0);
+    expect(staged.container.children).toHaveLength(2);
+    const built = build.commit();
+    expect(built).toBe(staged.renderer);
     expect(slot.current).toBe(built);
+    expect(pixi.stage.children).toHaveLength(2);
 
     const radialBakes = pixi.textures.bakedSpecs.length;
     const rebuild = slot.beginBuild(pixi.stage, pixi.screen, { ...options, seed: 4 }, UNTIMED_STAGES);
-    expect(rebuild.advance()).toBeNull();
+    rebuild.advance();
     expect(slot.current, 'the old renderer must keep drawing while the rematch bakes').toBe(built);
-    const rebuilt = rebuild.finish();
+    const rebuilt = rebuild.commit();
     expect(rebuilt.seed).toBe(4);
     expect(slot.current).toBe(rebuilt);
+    expect(pixi.stage.children, 'the old renderer’s layers were left on the stage').toHaveLength(2);
     expect(pixi.textures.bakedSpecs, 'the kept half was baked again').toHaveLength(radialBakes);
     slot.dispose();
   });
@@ -173,7 +177,8 @@ describe('RendererSlot', () => {
     const stagedSlot = new RendererSlot();
     wholeSlot.build(whole.stage, whole.screen, buildOptions(whole.textures, 7), UNTIMED_STAGES);
     const build = stagedSlot.beginBuild(staged.stage, staged.screen, buildOptions(staged.textures, 7), UNTIMED_STAGES);
-    while (build.advance() === null);
+    while (!build.advance());
+    build.commit();
     expect(staged.textures.bakedSpecs).toEqual(whole.textures.bakedSpecs);
     expect(staged.textures.bakedCanvases.map((canvas) => [canvas.width, canvas.height])).toEqual(
       whole.textures.bakedCanvases.map((canvas) => [canvas.width, canvas.height]),
