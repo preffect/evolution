@@ -57,7 +57,9 @@
 # plus the Node major version and the scope. A repeat call on the same tree and scope prints
 # `cached green from <time> at tree <hash>` and the stored log path, applies -t/-h/-G to the stored
 # log, and exits 0. Red is never cached; a scoped stamp never answers an unscoped call, nor the
-# reverse. `all` stamps each phase and itself. Shared across worktrees at the same content. A real
+# reverse, except that `all --affected` answers its test and typecheck phases from green package stamps
+# (`test --scope client`, …) of every affected package on the same tree (#563). `all` stamps each phase
+# and itself. Shared across worktrees at the same content. A real
 # phase holds one machine-wide slot of its class (scripts/lib/gate-lock.sh, #380): heavy for test,
 # integration and typecheck, light for lint and duplication, none for a lint without eslint; a wait
 # names the holders (pid, worktree, command). Hits never wait.
@@ -619,6 +621,7 @@ NODE_MAJOR=""
 TEMP_INDEX=""   # the temporary index while cache_tree_hash runs
 PHASE_OUTPUT="" # set by run_cached: the phase's raw output, or its stored log on a hit
 PHASE_WAS_CACHED=0
+COMPOSED_LOGS=()
 CACHE_HIT_TIME=""
 CACHE_HIT_LOG=""
 
@@ -752,6 +755,31 @@ gate_class() { # <cmd>
   esac
 }
 
+# The phases an affected gate may answer from package-scoped stamps (#563): each is the same runner per
+# package. Not lint (a plain lint uses eslint's cache, which the gate must not trust, #559), not duplication
+# (jscpd across packages finds what one package alone cannot), not integration (its own package set).
+COMPOSABLE_PHASES=(test typecheck)
+
+# Whether an affected gate's <cmd> phase can be answered by a green stamp of the same phase for each of its
+# packages, one by one (`test --scope client`, …) on this tree. Sets COMPOSED_LOGS to their logs. A test
+# phase that also runs the shell suites cannot: no package stamp covers them.
+composed_package_hit() { # <cmd>
+  local cmd="$1" package stamp
+  COMPOSED_LOGS=()
+  [[ -n "$CACHE_DIR" && $FRESH -eq 0 && "$SCOPE_NAME" == "$AFFECTED_SCOPE_PREFIX"* ]] || return 1
+  [[ " ${COMPOSABLE_PHASES[*]} " == *" $cmd "* && ${#AFFECTED_PACKAGES[@]} -gt 0 ]] || return 1
+  [[ "$cmd" != test || $SHELL_SUITES_SELECTED -eq 0 ]] || return 1
+  # Only an explicit --filter selection: `affected-everything` runs -r, over every packages/* directory,
+  # including one not registered in PACKAGES, which no package stamp covers.
+  [[ "${PNPM_SELECTION[0]:-}" == --filter ]] || return 1
+  for package in "${AFFECTED_PACKAGES[@]}"; do
+    stamp="$CACHE_DIR/$TREE_HASH.$cmd.scope-$package"
+    [[ -f "$stamp" && "$(stamp_field "$stamp" exit)" == "0" && "$(stamp_field "$stamp" node)" == "$NODE_MAJOR" ]] || return 1
+    [[ "$(stamp_field "$stamp" scope)" == "$package" && -f "$(stamp_field "$stamp" log)" ]] || return 1
+    COMPOSED_LOGS+=("$(stamp_field "$stamp" log)")
+  done
+}
+
 # Runs <cmd> through the cache: a hit prints the stamp; a green run is stamped; red never is.
 # PHASE_OUTPUT and PHASE_WAS_CACHED tell `all` what goes in its own log.
 run_cached() {
@@ -761,6 +789,15 @@ run_cached() {
     print_cache_hit
     PHASE_OUTPUT="$(cat "$CACHE_HIT_LOG")"
     PHASE_WAS_CACHED=1
+    return 0
+  fi
+  if composed_package_hit "$cmd"; then
+    echo "cached green from the package stamps of ${AFFECTED_PACKAGES[*]} at tree $TREE_HASH"
+    printf 'log: %s\n' "${COMPOSED_LOGS[@]}"
+    PHASE_OUTPUT="$(cat "${COMPOSED_LOGS[@]}")"
+    PHASE_WAS_CACHED=1
+    have_filters && printf '%s\n' "$PHASE_OUTPUT" | apply_filters
+    cache_store "$cmd" "$PHASE_OUTPUT"
     return 0
   fi
   local rc=0
