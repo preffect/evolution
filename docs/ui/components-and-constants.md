@@ -133,7 +133,8 @@ endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, `ENGULF_SEAL_PROGRE
 
 The look every panel, menu and screen copies, set once. The ESC menu ([`overlays.md §3.5`](./overlays.md#35-menu-escape))
 and the encyclopedia ([`encyclopedia.md §11`](./encyclopedia.md#11-encyclopedia)) are its first users and #356's
-hold-Tab panel is the next; the respawn, results and lobby screens move onto it by their own tickets. Home
+hold-Tab panel is the next, and the lobby moved onto it in #464 (decision #595, option A: the game's dark panel
+ground); the respawn and results screens move onto it by their own tickets. Home
 `packages/client/src/app/ui-kit/`. The HUD elements built before it (the leaderboard, the picker cards, the notice
 rows) keep their stylesheets until a ticket moves them, but no new screen grows its own panel, button or row. The
 encyclopedia's layout is option B, the eyepiece (decision #368, encyclopedia.md §11.4); nothing in this section depended on it.
@@ -147,7 +148,7 @@ encyclopedia's layout is option B, the eyepiece (decision #368, encyclopedia.md 
   visual-style/principles-and-palette.md §2 including the kit's (`--ui-text`, `--ui-panel-top`, `--ui-accent`, …) and
   every constant of the table below. Names follow one rule, so none is looked up: a constant drops `UI_` and `_PX`/`_MS` and is kebab-cased (`UI_RADIUS_PANEL_PX` → `--ui-radius-panel`), a colour role is kebab-cased (`PANEL_RIM` → `--ui-panel-rim`, `CALLOUT_BACKING` → `--ui-callout-backing`), and a type role is `--ui-type-<role>` beside `--ui-font-sans`, `--ui-font-mono` and `--ui-label-tracking`.
 - **Surfaces.** `UiSurfaceDirective` (`[uiSurface]`) goes on **one element per full-viewport layer** (the HUD shell,
-  the lobby's encyclopedia host), never on a panel or a kit component: it observes that host's size through the kit's
+  the lobby layer `.lobby`, the lobby's encyclopedia host), never on a panel or a kit component: it observes that host's size through the kit's
   one `ElementSizeTracker` (`element-size.ts`, which the HUD shell uses too, so the observer wiring exists once), sets `--ui-scale`
   from `uiScaleFor(width, height)` and spreads `uiStyleVariables()`, and a spec pins the scale for a viewport-sized
   host. `uiScaleFor` (`ui-kit/format/ui-scale.ts`, beside the `element-size.ts` observer) is layout.md §1's scale

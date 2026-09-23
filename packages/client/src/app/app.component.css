@@ -1,11 +1,11 @@
-/* Minimal styling for the generic lobby/connection stub. Replace freely. */
+/*
+ * The lobby (docs/ui/layout.md §2): one full-viewport kit surface (`.lobby[uiSurface]`, docs/ui/components-and-constants.md
+ * §10.1) on the game's own dark panel ground, decision #595 option A. Every value is a kit token: the type roles, the
+ * colour roles and the spacing, each length scaled by `--ui-scale`. The buttons are the kit's; the text and number
+ * fields are native inputs dressed as the kit's search field (the well, the panel rim, the unscaled focus ring).
+ */
 :host {
   display: block;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 1rem;
-  font-family: system-ui, sans-serif;
-  color: #1a1a1a;
 }
 
 /*
@@ -16,88 +16,98 @@
 :host.in-game {
   position: fixed;
   inset: 0;
-  max-width: none;
-  margin: 0;
-  padding: 0;
   overflow: hidden;
+}
+
+/* The layer is the viewport, so the page's own margin and white never show round it; it scrolls on its own. */
+.lobby {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  color: var(--ui-text);
+}
+
+.column {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(var(--ui-space-l) * var(--ui-scale));
 }
 
 .app-header {
   display: flex;
   align-items: baseline;
-  gap: 0.75rem;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
   flex-wrap: wrap;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 0.5rem;
+  border-bottom: var(--ui-rim) solid var(--ui-panel-rim);
+  padding-bottom: calc(var(--ui-space-s) * var(--ui-scale));
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: calc(var(--ui-type-headline) * var(--ui-scale));
 }
 
 .tagline {
   margin: 0;
-  color: #666;
-  font-size: 0.85rem;
+  color: var(--ui-text-label);
 }
 
 .conn {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #b00020;
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--ui-danger);
 }
 
 .conn.on {
-  color: #137333;
+  color: var(--ui-accent);
 }
 
 .panel {
-  border: 1px solid #e2e2e2;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin-top: 1rem;
+  margin-top: calc(var(--ui-space-l) * var(--ui-scale));
+  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  border: var(--ui-rim) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
 }
 
 .panel h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
+  margin: 0 0 calc(var(--ui-space-s) * var(--ui-scale));
+  font-size: calc(var(--ui-type-card-name) * var(--ui-scale));
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
+  margin-bottom: calc(var(--ui-space-s) * var(--ui-scale));
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  color: var(--ui-text-label);
 }
 
 input {
   display: block;
-  margin-top: 0.2rem;
-  padding: 0.3rem 0.4rem;
+  margin-top: calc(var(--ui-space-xs) * var(--ui-scale));
+  margin-bottom: calc(var(--ui-space-xs) * var(--ui-scale));
+  padding: 0 calc(var(--ui-space-s) * var(--ui-scale));
   width: 100%;
   max-width: 280px;
+  height: calc(var(--ui-search-height) * var(--ui-scale));
   box-sizing: border-box;
+  border: var(--ui-rim) solid var(--ui-panel-rim);
+  border-radius: calc(var(--ui-radius-control) * var(--ui-scale));
+  background: var(--ui-well);
+  font: inherit;
+  color: var(--ui-text);
+  /* The number fields' spinners draw in the dark scheme, so they do not flash white on the panel. */
+  color-scheme: dark;
 }
 
-button {
-  cursor: pointer;
-  padding: 0.35rem 0.7rem;
-  margin-right: 0.4rem;
-  border: 1px solid #888;
-  border-radius: 6px;
-  background: #f5f5f5;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-button.danger {
-  border-color: #b00020;
-  color: #b00020;
+input:focus-visible {
+  outline: var(--ui-focus-ring) solid var(--ui-text);
+  outline-offset: var(--ui-focus-ring-offset);
 }
 
 .games,
@@ -110,9 +120,9 @@ button.danger {
 .games li {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0;
-  border-top: 1px solid #f0f0f0;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  padding: calc(var(--ui-space-xs) * var(--ui-scale)) 0;
+  border-top: var(--ui-rim) solid var(--ui-panel-rim);
 }
 
 .game-name {
@@ -120,34 +130,23 @@ button.danger {
 }
 
 .badge {
-  font-size: 0.7rem;
-  background: #137333;
-  color: #fff;
-  border-radius: 4px;
-  padding: 0.1rem 0.3rem;
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
+  text-transform: uppercase;
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--ui-text);
+  background: var(--ui-selected);
+  border-radius: calc(var(--ui-radius-control) * var(--ui-scale));
+  padding: 0 calc(var(--ui-space-xs) * var(--ui-scale));
 }
 
 .muted {
-  color: #888;
-  font-size: 0.85rem;
+  color: var(--ui-text-muted);
 }
 
 .error {
-  color: #b00020;
-  font-size: 0.85rem;
+  color: var(--ui-danger);
 }
 
 .notice {
-  color: #8a5a00;
-  font-size: 0.85rem;
-}
-
-.snapshot {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 0.75rem;
-  border-radius: 6px;
-  overflow: auto;
-  max-height: 320px;
-  font-size: 0.8rem;
+  color: var(--ui-level-gold);
 }

@@ -19,105 +19,123 @@
   <app-game-host />
   <app-hud />
 } @else {
-  <!-- ===== Lobby ===== -->
-  <header class="app-header">
-    <h1>{{ title }}</h1>
-    <p class="tagline">Multiplayer lobby</p>
-    <span class="conn" [class.on]="multiplayer.connected()">
-      {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
-    </span>
-    <!-- Reading the rules before joining is the calm moment to do it (docs/ui/encyclopedia.md §11.1, layout.md §2). -->
-    <button type="button" [attr.data-testid]="encyclopediaTestId.lobbyButton" (click)="openEncyclopedia()">
-      Encyclopedia
-    </button>
-  </header>
+  <!-- ===== Lobby: one full-viewport kit surface, the game's dark panel ground (#464, decision #595 option A) ===== -->
+  <div class="lobby" uiSurface>
+    <div class="column">
+      <header class="app-header">
+        <h1>{{ title }}</h1>
+        <p class="tagline">Multiplayer lobby</p>
+        <span class="conn" [class.on]="multiplayer.connected()">
+          {{ multiplayer.connected() ? 'connected' : 'disconnected' }}
+        </span>
+        <!-- Reading the rules before joining is the calm moment to do it (docs/ui/encyclopedia.md §11.1, layout.md §2). -->
+        <button
+          type="button"
+          uiButton
+          variant="quiet"
+          [testId]="encyclopediaTestId.lobbyButton"
+          (click)="openEncyclopedia()"
+        >
+          Encyclopedia
+        </button>
+      </header>
 
-  @if (multiplayer.lobbyNotice(); as notice) {
-    <p class="notice" role="status" data-testid="lobby-notice">{{ lobbyNoticeText[notice] }}</p>
-  }
-
-  @if (multiplayer.lastError(); as errorMessage) {
-    <p class="error">{{ serverErrorCaption }} {{ errorMessage }}</p>
-  }
-
-  <section class="panel">
-    <h2>Connection</h2>
-    <label>
-      Name
-      <input type="text" [ngModel]="playerName()" (ngModelChange)="playerName.set($event)" />
-    </label>
-    @if (!multiplayer.connected()) {
-      <button (click)="connect()">Connect & Join Lobby</button>
-    } @else {
-      <button (click)="disconnect()">Disconnect</button>
-    }
-  </section>
-
-  <section class="panel">
-    <h2>Create Game</h2>
-    <label>
-      Game name
-      <input type="text" [ngModel]="newGameName()" (ngModelChange)="newGameName.set($event)" />
-    </label>
-    <label>
-      Max players
-      <input
-        type="number"
-        [min]="bounds.minPlayers"
-        [max]="bounds.maxPlayers"
-        step="1"
-        [ngModel]="maxPlayers()"
-        (ngModelChange)="maxPlayers.set(+$event)"
-      />
-    </label>
-    <label>
-      Round length (s)
-      <input
-        type="number"
-        [min]="bounds.roundMinSeconds"
-        [max]="bounds.roundMaxSeconds"
-        step="1"
-        [ngModel]="roundDurationSeconds()"
-        (ngModelChange)="roundDurationSeconds.set(+$event)"
-        data-testid="create-round-seconds"
-      />
-    </label>
-    <label>
-      Seed
-      <input
-        type="number"
-        min="0"
-        [max]="bounds.seedMax"
-        step="1"
-        [ngModel]="seed()"
-        (ngModelChange)="seed.set(+$event)"
-        data-testid="create-seed"
-      />
-      <button type="button" (click)="newSeed()" data-testid="create-seed-new">New seed</button>
-    </label>
-    <button [disabled]="!multiplayer.connected()" (click)="createGame()">Create</button>
-  </section>
-
-  <section class="panel">
-    <h2>Open Games</h2>
-    @if (multiplayer.games().length === 0) {
-      <p class="muted">No games yet.</p>
-    }
-    <ul class="games">
-      @for (game of multiplayer.games(); track game.gameId) {
-        <li>
-          <span class="game-name">{{ game.gameName }}</span>
-          <span class="muted">{{ game.players.length }}/{{ game.maxPlayers }}</span>
-          @if (game.isStarted) {
-            <span class="badge">started</span>
-          }
-          <button (click)="joinGame(game.gameId)">Join</button>
-          <button (click)="startGame(game.gameId)">Start</button>
-          <button class="danger" (click)="deleteGame(game.gameId)">Delete</button>
-        </li>
+      @if (multiplayer.lobbyNotice(); as notice) {
+        <p class="notice" role="status" data-testid="lobby-notice">{{ lobbyNoticeText[notice] }}</p>
       }
-    </ul>
-  </section>
+
+      @if (multiplayer.lastError(); as errorMessage) {
+        <p class="error">{{ serverErrorCaption }} {{ errorMessage }}</p>
+      }
+
+      <section class="panel">
+        <h2>Connection</h2>
+        <label>
+          Name
+          <input type="text" [ngModel]="playerName()" (ngModelChange)="playerName.set($event)" />
+        </label>
+        @if (!multiplayer.connected()) {
+          <button type="button" uiButton variant="primary" (click)="connect()">Connect & Join Lobby</button>
+        } @else {
+          <button type="button" uiButton (click)="disconnect()">Disconnect</button>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>Create Game</h2>
+        <label>
+          Game name
+          <input type="text" [ngModel]="newGameName()" (ngModelChange)="newGameName.set($event)" />
+        </label>
+        <label>
+          Max players
+          <input
+            type="number"
+            [min]="bounds.minPlayers"
+            [max]="bounds.maxPlayers"
+            step="1"
+            [ngModel]="maxPlayers()"
+            (ngModelChange)="maxPlayers.set(+$event)"
+          />
+        </label>
+        <label>
+          Round length (s)
+          <input
+            type="number"
+            [min]="bounds.roundMinSeconds"
+            [max]="bounds.roundMaxSeconds"
+            step="1"
+            [ngModel]="roundDurationSeconds()"
+            (ngModelChange)="roundDurationSeconds.set(+$event)"
+            data-testid="create-round-seconds"
+          />
+        </label>
+        <label>
+          Seed
+          <input
+            type="number"
+            min="0"
+            [max]="bounds.seedMax"
+            step="1"
+            [ngModel]="seed()"
+            (ngModelChange)="seed.set(+$event)"
+            data-testid="create-seed"
+          />
+          <button type="button" uiButton size="compact" [testId]="'create-seed-new'" (click)="newSeed()">
+            New seed
+          </button>
+        </label>
+        <button type="button" uiButton variant="primary" [isDisabled]="!multiplayer.connected()" (click)="createGame()">
+          Create
+        </button>
+      </section>
+
+      <section class="panel">
+        <h2>Open Games</h2>
+        @if (multiplayer.games().length === 0) {
+          <p class="muted">No games yet.</p>
+        }
+        <ul class="games">
+          @for (game of multiplayer.games(); track game.gameId) {
+            <li>
+              <span class="game-name">{{ game.gameName }}</span>
+              <span class="muted">{{ game.players.length }}/{{ game.maxPlayers }}</span>
+              @if (game.isStarted) {
+                <span class="badge">started</span>
+              }
+              <button type="button" uiButton variant="primary" size="compact" (click)="joinGame(game.gameId)">
+                Join
+              </button>
+              <button type="button" uiButton size="compact" (click)="startGame(game.gameId)">Start</button>
+              <button type="button" uiButton variant="danger" size="compact" (click)="deleteGame(game.gameId)">
+                Delete
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  </div>
 
   <!--
     The encyclopedia over the lobby (docs/ui/encyclopedia.md §11.1): no room, so no alert strip is projected and the
