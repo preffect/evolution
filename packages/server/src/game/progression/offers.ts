@@ -73,11 +73,23 @@ function showOffer(offer: TraitOffer, draft: Draft, player: PlayerRecord, showin
 }
 
 /**
- * Shows the head of the queue when nothing is shown. Zero candidates: the offer is dropped and the
- * cell gains `LEVEL_UP_NO_DRAFT_MASS_BONUS` instead, reported as applied in the mass flow (#416); without a cell the
- * offer waits.
+ * Whether a dropped offer's bonus is reported in the mass window (#416). Entry (step 9, after metabolism) does not:
+ * there the bonus is part of the new cell's first mass, and the cell has no mass flow to carry it on that tick.
  */
-export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, context: StepContext): void {
+export const NO_DRAFT_BONUS_REPORT = { windowed: 'windowed', inFirstMass: 'in_first_mass' } as const;
+export type NoDraftBonusReport = (typeof NO_DRAFT_BONUS_REPORT)[keyof typeof NO_DRAFT_BONUS_REPORT];
+
+/**
+ * Shows the head of the queue when nothing is shown. Zero candidates: the offer is dropped and the
+ * cell gains `LEVEL_UP_NO_DRAFT_MASS_BONUS` instead, reported as applied in the mass flow unless `report` says it is
+ * part of an entering cell's first mass (#416); without a cell the offer waits.
+ */
+export function showQueuedOfferIfNone(
+  world: WorldState,
+  player: PlayerRecord,
+  context: StepContext,
+  report: NoDraftBonusReport = NO_DRAFT_BONUS_REPORT.windowed,
+): void {
   const head = player.offerQueue[0];
   if (head === undefined || head.shownAtTick !== null) {
     return;
@@ -92,7 +104,9 @@ export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, c
     player.offerQueue.shift();
     const bonus = context.balance.progression.LEVEL_UP_NO_DRAFT_MASS_BONUS;
     const { massGained } = measureGain(cell, player, () => gainMass(cell, player, bonus, context.balance));
-    recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.noDraftBonusGained, massGained);
+    if (report === NO_DRAFT_BONUS_REPORT.windowed) {
+      recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.noDraftBonusGained, massGained);
+    }
   }
 }
 

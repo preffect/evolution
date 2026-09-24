@@ -1,8 +1,8 @@
 // Why each player cell's mass moved (docs/ui/hud.md §3.1.5, docs/architecture/wire-contract.md §4, #383): a
 // transient record beside `world.effects`, filled from the server's own deltas by the metabolism step, the sprint
-// start and a dropped no-draft offer. Never a record field, never hashed or replayed (`state-hash.ts` names it derived), so the state hash
-// is unchanged. Keyed by player: a cell's entry is rebuilt by every metabolism step, so a dead cell's is gone by the
-// next tick.
+// start and a dropped no-draft offer. Never a record field, never hashed or replayed (`state-hash.ts` names it
+// derived), so the state hash is unchanged. Keyed by player: a cell's entry is rebuilt by every metabolism step, so a
+// dead cell's is gone by the next tick.
 
 import type { MassRateCause, MassWindowAmount, PlayerId, ZoneId } from '@evolution/shared';
 

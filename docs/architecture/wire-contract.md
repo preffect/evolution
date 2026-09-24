@@ -80,8 +80,10 @@ The one-off amounts (`MASS_WINDOW_AMOUNT`) add to a pending per-player window th
 sees one twice: a sprint start's cost as `sprintSpent`, and the mass an offer dropped for want of cards added
 (`LEVEL_UP_NO_DRAFT_MASS_BONUS`, PROGRESSION.md §4) as `noDraftBonusGained` (#416). The bonus rides the window, not the
 `level_up` effect, because the drop is not always on the level-up's tick: an offer queued behind a shown one is dropped
-at step 1 after the pick, and one queued while spectating at the respawn. A `game_state` carries neither, as it
-carries no effects. The `eat` and `cell_absorbed` amounts and the no-draft bonus are measured around the gains
+at step 1 after the pick. **A drop at entry (a join or respawn, step 9) is not reported**: entry runs after the
+metabolism step, so the new cell has no `massFlow` on that tick, and the bonus is simply part of the cell's first mass
+(`NO_DRAFT_BONUS_REPORT.inFirstMass`, `progression/offers.ts`). The identity below starts from a cell's second tick. A
+`game_state` carries neither amount, as it carries no effects. The `eat` and `cell_absorbed` amounts and the no-draft bonus are measured around the gains
 (`measureGain`, `simulation/cell-mass.ts`), so a bonus clipped at `CELL_MAX_MASS` reports only the mass it added. On
 every tick
 `Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained − sprintSpent + noDraftBonusGained`
