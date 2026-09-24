@@ -1,7 +1,9 @@
 // Who a bot is in the lobby: a stable player id, a name and an avatar, all derived from the
 // seed and the bot's index so a rerun with the same seed takes over the same seats (the
 // `?clientId=` takeover rule, `ws/websocket-handler.ts`) and two swarms with different seeds
-// never collide. Each host mints under its own prefix, so an in-process bot can never take a
+// never collide. The avatar is only a default: the in-process roster overrides it with the free
+// seat colour `debug_spawn_bot` puts on the request, and the room gives a wire bot a free one
+// when its request is taken (#645). Each host mints under its own prefix, so an in-process bot can never take a
 // wire bot's seat even when both start from `DEFAULT_BOT_SEED`.
 
 import { AVATAR_INDEX_MAX, AVATAR_INDEX_MIN, playerId, type PlayerId } from '@evolution/shared';

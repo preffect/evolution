@@ -15,6 +15,7 @@ import {
 import { createEvolutionModule, type EvolutionModule } from './evolution-module.js';
 import type { Replay } from './replay/replay-format.js';
 import { isPlayerCell } from './world/entities.js';
+import { createTestBotSpawnRequest } from '../testing/bot-builders.js';
 
 const ALICE = playerId('alice');
 const BOB = playerId('bob');
@@ -121,7 +122,9 @@ describe('createEvolutionModule', () => {
 
   it('drives a spawned bot from the snapshot of the tick before, stamped with the step tick', () => {
     const module = createModule();
-    const bot = module.getDebugHandle().spawnBot({ behavior: 'grazer', seed: BOT_SEED }, () => {});
+    const bot = module
+      .getDebugHandle()
+      .spawnBot(createTestBotSpawnRequest({ behavior: 'grazer', seed: BOT_SEED }), () => {});
     expect(module.world.players.map((player) => player.playerId)).toEqual([ALICE, bot.playerId]);
     for (let tick = 0; tick < TICKS_WITH_BOT; tick += 1) {
       module.reduceGameState();

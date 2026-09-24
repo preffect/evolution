@@ -71,8 +71,9 @@ only the wire client lives in `testing/bot-client/`. `behavior` is validated onc
 `z.enum(BOT_STRATEGY_NAMES)` schema, so the handle and the roster only ever see a `BotStrategyName`.
 `spawnBot(request, seat)` builds a `BotPilot` on that strategy from `createInProcessBotRoster(binding)`
 (`game/bots/in-process-bots.ts`), mints its `SpawnedBot` identity (`sim_bot_<seed>_<index>`,
-`Bot <index>`, an avatar: a prefix of its own, so it can never take a wire bot's `bot_<seed>_<index>`
-seat even from the same seed), then calls `seat(bot)` BEFORE adding the player to the module. The
+`Bot <index>`, and the avatar the request carries: the tool asks for the lowest seat colour no player in
+the room holds (`lobby/seat-colours.ts`, #645), so a bot never wears a human's or another bot's colour; the
+id has a prefix of its own, so it can never take a wire bot's `bot_<seed>_<index>` seat even from the same seed), then calls `seat(bot)` BEFORE adding the player to the module. The
 tool passes `GameRoom.addSyntheticPlayer` as `seat`: it refuses an id already in the roster or on a
 socket with `DebugRequestError` (the module then holds nothing), else enrols the bot and broadcasts
 `player_joined` like a late join, with no connection; `config.maxPlayers` is deliberately not
