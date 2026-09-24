@@ -67,9 +67,12 @@ describe('seat colours are unique per room (#645)', () => {
     const { allPlayerIds, avatarAssignments } = fixture.room;
     const holdersOf = (colour: number | undefined) =>
       allPlayerIds.filter((playerId) => avatarAssignments[playerId] === colour).length;
-    // Every colour is held once, so bob takes the lowest (alice's); carol then takes the next, not a third 0.
+    // Every colour is held once and both ask for alice's 0: bob shares a bot's colour, carol then another one.
+    expect(avatarAssignments['bob']).not.toBe(avatarAssignments['alice']);
+    expect(avatarAssignments['carol']).not.toBe(avatarAssignments['alice']);
     expect(avatarAssignments['carol']).not.toBe(avatarAssignments['bob']);
     expect(Math.max(...allPlayerIds.map((playerId) => holdersOf(avatarAssignments[playerId])))).toBe(2);
+    expect(fixture.worldColourOf('bob')).toBe(avatarAssignments['bob']);
     expect(fixture.worldColourOf('carol')).toBe(avatarAssignments['carol']);
     fixture.stop();
   });

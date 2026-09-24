@@ -17,8 +17,16 @@ describe('freeAvatarIndex', () => {
     expect(freeAvatarIndex(0, [...EVERY_COLOUR, 0, 1])).toBe(2);
   });
 
-  it('takes the lowest least-held colour on a tie once every colour is held', () => {
+  it('avoids the requested colour among the least-held ones once every colour is held', () => {
+    expect(freeAvatarIndex(AVATAR_INDEX_MIN, EVERY_COLOUR)).toBe(AVATAR_INDEX_MIN + 1);
+  });
+
+  it('takes the lowest least-held colour on a tie that does not include the request', () => {
     expect(freeAvatarIndex(AVATAR_INDEX_MAX, EVERY_COLOUR)).toBe(AVATAR_INDEX_MIN);
+  });
+
+  it('keeps the request once every colour is held when it alone is least-held', () => {
+    expect(freeAvatarIndex(AVATAR_INDEX_MIN, [...EVERY_COLOUR, ...EVERY_COLOUR.slice(1)])).toBe(AVATAR_INDEX_MIN);
   });
 });
 
