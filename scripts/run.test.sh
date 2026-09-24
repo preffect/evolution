@@ -26,7 +26,8 @@
 # left running; both failures still start the watcher, so the fix merge deploys; every start waits for
 # its listeners, --wait-ready or not. #666: --stop waits for a watcher slow to exit; a refusal names a kill -9 only
 # when one was sent; an exiting listener before the cleanup gets the grace, then refuses the start before this
-# checkout's stack is stopped. SERVER_PORT is an alias of PORT (#474): alone it sets the server port,
+# checkout's stack is stopped; a failed one-shot deploy's run.sh hands the watcher it starts the failed commit to
+# skip, a plain start none. SERVER_PORT is an alias of PORT (#474): alone it sets the server port,
 # equal to PORT it starts, different from PORT it refuses the start (not --help or --status); run.env records both, and the usage names both.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
@@ -191,6 +192,11 @@ watcher_pid() { cat "$stack/.game-logs/deploy-watch.pid"; }
 # The watcher runs the script, not the nohup it was started through: --stop only stops the former
 watcher_running() { runs_script "$(watcher_pid)" --watch; }
 watcher_polled() { sed -n "/(pid $1)\$/,\$p" "$stack/.game-logs/deploy.log" | grep -e 'skipping$' -e 'nothing to do$' > /dev/null; } # <pid>
+watcher_environment() { tr '\0' '\n' < "/proc/$(watcher_pid)/environ"; }
+watcher_skips() { watcher_environment | grep -x "DEPLOY_WATCH_SKIP_SHA=$1" > /dev/null; } # <sha>
+# Empty or absent: a watcher that deployed has re-executed itself without it
+watcher_skips_nothing() { ! watcher_environment | grep '^DEPLOY_WATCH_SKIP_SHA=.' > /dev/null; }
+stack_deployed_at_origin() { [[ "$(cat "$stack/.game-logs/deployed-sha")" == "$(origin_head)" ]]; }
 stack_watchers() { pgrep -fc " $stack/scripts/deploy-main.sh --watch" || true; }
 runs_script() { tr '\0' '\n' < "/proc/$1/cmdline" | grep -xF -- "$2" > /dev/null; } # <pid> <whole argument>
 line_of() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; } # <fixed text> -> its line number in $out
@@ -313,7 +319,7 @@ run_stack --server-only --no-deploy-watch
 own_server="$(ss_pids "$STACK_SERVER_PORT")"
 echo "$STACK_CLIENT_PORT $NO_SUCH_PID" > "$ss_stub_file"
 run_stack --no-deploy-watch
-check "an exiting listener that outlives the grace refuses the start before the cleanup (rc $rc)" $(( rc != 0 && $(holds grep -qF "port $STACK_CLIENT_PORT is held by PID $NO_SUCH_PID (cwd unknown), exiting but still listening after the ${STOP_GRACE_SECONDS}s grace" <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$own_server") ))
+check "an exiting listener that outlives the grace refuses the start before the cleanup (rc $rc)" $(( rc != 0 && $(holds grep -qF "port $STACK_CLIENT_PORT is held by PID $NO_SUCH_PID (cwd unknown), exiting but still listening after the ${STOP_GRACE_SECONDS}s grace; this checkout's stack was not stopped; not starting" <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$own_server") ))
 start_probe "$sandbox" bash -c 'sleep "$1"; : > "$2"' _ "$TERM_LINGER_SECONDS" "$ss_stub_file"
 RUN_STOP_GRACE_SECONDS="$LINGER_GRACE_SECONDS" run_stack --no-deploy-watch
 check "an exiting listener that goes within the grace is waited for, and the start proceeds (rc $rc)" $(( rc == 0 && $(holds grep -q 'Ready: this checkout listens' <<<"$out") ))
@@ -384,6 +390,21 @@ merge_to_main game.txt v3
 rc=0
 out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
 check "a one-shot deploy with a watcher running does not start a second (rc $rc)" $(( rc == 0 && $(holds test "$(watcher_pid)" = "$deployed_watcher") && $(stack_watchers) == 1 ))
+
+# A failed one-shot deploy's run.sh hands the watcher it starts the failed commit to skip, as its stack may still be
+# coming up; a plain ./run.sh hands it none, so that watcher deploys the commit (#666)
+run_stack --stop
+run_stack --no-deploy-watch
+merge_to_main game.txt v3b
+touch "$server_dies_file"
+rc=0
+out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
+rm "$server_dies_file"
+failed_at="$(origin_head)"
+check "a failed one-shot deploy's run.sh starts the watcher with the failed commit to skip (rc $rc)" $(( rc != 0 && $(holds wait_for watcher_running) && $(holds watcher_skips "$failed_at") ))
+run_stack --stop
+run_stack
+check "a plain ./run.sh starts the watcher with nothing to skip, and it deploys that commit (rc $rc)" $(( rc == 0 && $(holds watcher_skips_nothing) && $(holds wait_for stack_deployed_at_origin) && $(holds wait_for watcher_polled "$(watcher_pid)") ))
 
 # --- a fresh worktree (#329): install and shared build before the start, nothing once ready -------
 mkdir -p "$stack/packages/shared/src"

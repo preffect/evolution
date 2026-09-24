@@ -258,7 +258,8 @@ start_deploy_watch() {
     return 0
   fi
   echo "==> Starting deploy watcher (redeploys from origin/main, log: .game-logs/deploy.log)..."
-  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup "$DEPLOY_WATCH_SCRIPT" "$DEPLOY_WATCH_FLAG" > /dev/null 2>> "$LOG_DIR/deploy.log" &
+  # DEPLOY_WATCH_SKIP_SHA: the commit a failed one-shot deploy is restarting on, set only by that deploy (#666)
+  DEPLOY_TARGET_DIR="$SCRIPT_DIR" DEPLOY_WATCH_SKIP_SHA="${DEPLOY_WATCH_SKIP_SHA:-}" nohup "$DEPLOY_WATCH_SCRIPT" "$DEPLOY_WATCH_FLAG" > /dev/null 2>> "$LOG_DIR/deploy.log" &
   echo $! > "$DEPLOY_WATCH_PID_FILE"
 }
 
@@ -332,7 +333,7 @@ find_exiting_port_holder() {
 # not this run's stopped stack yet, and the cleanup would not stop it: it gets the grace to go (#666).
 refuse_foreign_port_holders() {
   held_through_grace find_exiting_port_holder || return 0
-  refuse_port "$HELD_PORT" "$HELD_PID" "exiting but still listening after the ${STOP_GRACE_SECONDS}s grace; this checkout's stack was left running"
+  refuse_port "$HELD_PORT" "$HELD_PID" "exiting but still listening after the ${STOP_GRACE_SECONDS}s grace; this checkout's stack was not stopped"
 }
 
 # Sets HELD_PORT and HELD_PID to a remaining listener of this checkout; refuses on another checkout's
