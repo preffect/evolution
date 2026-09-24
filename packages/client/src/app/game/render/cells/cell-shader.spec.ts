@@ -8,7 +8,11 @@ import {
   CELL_WALL_INNER_RADII,
   CELL_WALL_OUTER_RADII,
   CELL_WALL_SCALE_BY_TIER,
+  AMOEBA_CORE_SCALE,
   CILIA_WIDTH_PX,
+  ECTOPLASM_ALPHA,
+  ECTOPLASM_DEPTH_RADII,
+  FORM_ID,
   EDIBLE_RING_ALPHA,
   FILAMENT_MASK_PX,
   NUCLEUS_RAMP_ALPHA,
@@ -27,6 +31,7 @@ import { HALF } from '../geometry';
 import { BUMP_TEXEL_START, instanceFieldLocation, instanceScalarFields } from './cell-instance';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
 import { CELL_UNIFORM, glslFloat, instanceRead } from './cell-shader-source';
+import { AMOEBA_CORE_PROFILE } from './forms/amoeba-pseudopods';
 import { FULL_SELF_RING, TWELVE_O_CLOCK_TURNS } from './self-ring';
 
 /** The body of one GLSL function in the fragment source, from its signature to its closing brace. */
@@ -103,6 +108,34 @@ describe('cell shader source', () => {
     expect(bodyPass.trim().endsWith('return nucleusRamp(inst, frame, acc);')).toBe(true);
     expect(bodyPass.indexOf('cytoskeletonFilaments')).toBeLessThan(bodyPass.indexOf('nucleusRamp'));
     expect(bodyPass.indexOf('return farDot')).toBeLessThan(bodyPass.indexOf('nucleusRamp'));
+  });
+
+  /**
+   * B2 on PR #640: the TypeScript profile the bounds and the organelle mapping read and the GLSL the GPU draws must be
+   * the same amoeba, so the shader's core is pinned to the profile's value and its use in `profileAt`.
+   */
+  it('shrinks the amoeba’s core in formAt to the TypeScript profile’s value, and nothing else (#192)', () => {
+    const start = CELL_FRAGMENT_SOURCE.indexOf('vec2 formAt(Instance inst, float delta) {');
+    const body = CELL_FRAGMENT_SOURCE.slice(start, CELL_FRAGMENT_SOURCE.indexOf('\n}', start));
+    expect(start).toBeGreaterThan(-1);
+    expect(AMOEBA_CORE_PROFILE.evaluate(1).value).toBe(AMOEBA_CORE_SCALE);
+    expect(body).toContain(
+      `if (abs(inst.formId - ${glslFloat(FORM_ID.amoeba)}) < HALF) return vec2(${glslFloat(AMOEBA_CORE_PROFILE.peak)}, 0.0);`,
+    );
+    expect(body.trim().endsWith('return vec2(1.0, 0.0);')).toBe(true);
+    expect(CELL_FRAGMENT_SOURCE).toContain('vec2 form = formAt(inst, delta);');
+  });
+
+  it('lines the amoeba’s membrane with the VAC_RIM ectoplasm in pass B, under the soft rim (#192)', () => {
+    const band = functionBody('ectoplasm');
+    expect(band).toContain(`if (abs(inst.formId - ${glslFloat(FORM_ID.amoeba)}) > HALF) return acc;`);
+    expect(band).toContain(`float depth = ${glslFloat(ECTOPLASM_DEPTH_RADII)};`);
+    expect(band).toContain(`return over(acc, uEctoplasm, inside * fade * ${glslFloat(ECTOPLASM_ALPHA)});`);
+    const pass = functionBody('membranePass');
+    expect(pass).toContain('acc = ectoplasm(inst, frame, acc);');
+    expect(pass.indexOf('innerEdge(')).toBeLessThan(pass.indexOf('ectoplasm('));
+    expect(pass.indexOf('ectoplasm(')).toBeLessThan(pass.indexOf('softRim('));
+    expect(CELL_UNIFORM.ectoplasm).toBe('uEctoplasm');
   });
 
   it('draws the self ring as the sprint ring: recharged clockwise from 12 o’clock, the rest a track (#295)', () => {

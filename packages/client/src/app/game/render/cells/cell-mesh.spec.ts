@@ -3,6 +3,8 @@
 // before the textures they bind. Compilation is the Playwright smoke's job.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
+import { hexToRgb } from '../colour';
+import { VAC_RIM } from '../constants';
 import { CELL_INSTANCE_FLOATS } from './cell-instance';
 import { CellMesh } from './cell-mesh';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
@@ -45,6 +47,14 @@ describe('CellMesh', () => {
       const group = pass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
       for (const name of declared) expect(group.uniforms[name!], name).toBeDefined();
     }
+    subject.destroy();
+  });
+
+  /** The amoeba's ectoplasm is `VAC_RIM` (visual-style/cells-and-organelles.md §4, #192). */
+  it('paints the ectoplasm in VAC_RIM', () => {
+    const subject = mesh(1);
+    const group = subject.membranePass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
+    expect(group.uniforms[CELL_UNIFORM.ectoplasm]).toEqual(hexToRgb(VAC_RIM));
     subject.destroy();
   });
 

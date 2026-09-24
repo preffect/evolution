@@ -2,81 +2,35 @@
 // renderer's own `buildShapeTerms` over a swept time and checks the bound is never beaten, rather than restating
 // the arithmetic the module already performs.
 
-import {
-  CELL_STAGE,
-  DEFAULT_BALANCE,
-  RANDOM_STREAM,
-  TICK_INTERVAL_S,
-  createSeededRandom,
-  stageOf,
-  type CellView,
-  type OwnedTrait,
-  type TraitId,
-  type TraitTier,
-} from '@evolution/shared';
+import { CELL_STAGE, TICK_INTERVAL_S, type CellView, type TraitId, type TraitTier } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
-import { createTestCellView } from '../../../../testing/builders';
+import {
+  PROFILE_WALK_TICKS,
+  PROFILE_WALK_TICK_STRIDE,
+  PROFILE_WALK_TIMEOUT_MS,
+  drawnMembraneAt,
+  profileWalkTerms,
+  profileWalkView,
+} from '../../../../testing/profile-walk';
 import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
-import { NOISE_STRIP_ROWS, PREVIEW_SEED } from '../constants';
-import { buildNoiseStrip } from '../noise/noise-strip';
-import { REST_DEFORMATION } from './cell-deformation';
+import { NOISE_STRIP_ROWS } from '../constants';
 import { appendageReachRadii, cellDrawExtentRadii, restingDrawState } from './cell-draw-extent';
 import { summariseCellTraits } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
-import { FORM_PROFILES } from './forms/form-profiles';
-import { sampleProfileRing } from './radial-profile';
-import { buildShapeTerms } from './shape-terms';
-
-const BALANCE = DEFAULT_BALANCE;
-const STRIP = buildNoiseStrip(createSeededRandom(PREVIEW_SEED).fork(RANDOM_STREAM.cosmetic));
+import { haloOuterRadiiOf } from './shape-terms';
 
 const CILIA_TRAIT: TraitId = 'cilia';
 const TIER_I: TraitTier = 1;
-const TIER_II: TraitTier = 2;
 const TIER_III: TraitTier = 3;
+const viewOf = profileWalkView;
 
-/** A unit radius, so every reach this file compares is already in radii. */
-const UNIT_RADIUS = 1;
-/** Any speed at all: `buildShapeTerms` takes the ratio separately, and only the heading comes from the velocity. */
-const MOVING_VELOCITY = 100;
-const SPRINTING_TICKS = 1;
-const NOT_SPRINTING_TICKS = 0;
-
-function viewOf(traits: readonly OwnedTrait[], speedRatio: number, isSprinting: boolean): CellView {
-  return createTestCellView({
-    radius: UNIT_RADIUS,
-    velocityX: speedRatio * MOVING_VELOCITY,
-    velocityY: 0,
-    sprintRemainingTicks: isSprinting ? SPRINTING_TICKS : NOT_SPRINTING_TICKS,
-    traits: traits.map((owned) => ({ ...owned })),
-    stage: stageOf(
-      traits.map((owned) => owned.traitId),
-      BALANCE.ladder,
-    ),
-  });
+/** The drawn membrane with its halo, in radii, checked on the way against the quad's per-instance reach. */
+function drawnReachRadii(view: CellView, timeSeconds: number, speedRatio: number): number {
+  const { widest, quadMembrane } = drawnMembraneAt(view, timeSeconds, speedRatio);
+  expect(widest, 'the per-instance reach covers the drawn membrane').toBeLessThanOrEqual(quadMembrane);
+  return widest * haloOuterRadiiOf(summariseCellTraits(view));
 }
 
-/** The reach the renderer actually built at `timeSeconds`, in radii: `radius` is 1, so `maxRadii` already is. */
-function measuredReachRadii(view: CellView, timeSeconds: number, speedRatio: number, stripRow: number): number {
-  const terms = buildShapeTerms({
-    view,
-    traits: summariseCellTraits(view),
-    timeSeconds,
-    speedRatio,
-    heading: 0,
-    phase: 0,
-    stripRow,
-    strip: STRIP,
-    deformation: REST_DEFORMATION,
-  });
-  return terms.maxRadii;
-}
-
-/** One breathing period is under a second, so a few seconds at tick resolution sweeps every phase of every term. */
-const SWEPT_SECONDS = 4;
-const SWEPT_TICKS = Math.ceil(SWEPT_SECONDS / TICK_INTERVAL_S);
-/** Any row: the test below pins that the reach does not depend on which one a cell rolled. */
-const FIXED_STRIP_ROW = 0;
 const RESTING = 0;
 const SWIMMING = 1;
 const REST_PULSE = 1;
@@ -86,37 +40,43 @@ const AT_ZERO_SECONDS = 0;
 
 describe('cellDrawExtentRadii', () => {
   /**
-   * The bound's whole job. `peakReachRadii` takes the breathing sine at its peak and every other term straight
-   * from `maxReachRadii`, so a term added to one and not the other shows up here — as a tick whose measured reach
-   * went past the bound — rather than as a subject clipped by the lens's crop.
+   * The bound's whole job. `peakReachRadii` takes the breathing sine at its peak and every other term at its own,
+   * so a term the renderer draws and the bound leaves out shows up here — as a tick whose drawn membrane, halo and
+   * all, went past the bound — rather than as a subject clipped by the lens's crop. It measures the profile itself:
+   * the amoeba's bound is tighter than the quad's `maxRadii` (#192), which the helper checks separately.
    *
-   * Swept over four seconds of ticks, which is several periods of both the breathing and the wobble, so the sine
+   * Swept over four seconds at every fifth tick, which is several periods of both the breathing and the wobble, so the sine
    * each contributes is sampled at every phase. The strip row is held at one value **because `maxReachRadii`
    * bounds the strip rather than sampling it** — the test below pins that, so this loop is not silently trading
-   * coverage for speed. Its cost is the reason: this is 241 ticks × 5 stages × 2 speeds of real shape terms.
+   * coverage for speed. Its cost is the reason: this is 49 ticks × 180 angles × 5 stages × 2 speeds of real profiles.
    */
-  it('is never beaten by a frame the renderer actually builds', () => {
-    for (const stage of Object.values(CELL_STAGE)) {
-      for (const speedRatio of [RESTING, SWIMMING]) {
-        const view = viewOf(BENCH_STAGE_TRAITS[stage], speedRatio, false);
-        const bound = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
-        for (let tick = 0; tick <= SWEPT_TICKS; tick += 1) {
-          const measured = measuredReachRadii(view, tick * TICK_INTERVAL_S, speedRatio, FIXED_STRIP_ROW);
-          expect(
-            measured,
-            `${stage} at speed ${speedRatio}, tick ${tick}: the renderer reached ${measured.toFixed(4)} radii, ` +
-              `past the ${bound.drawnRadii.toFixed(4)} bound the lens is framed from`,
-          ).toBeLessThanOrEqual(bound.drawnRadii);
+  it(
+    'is never beaten by a frame the renderer actually builds',
+    () => {
+      for (const stage of Object.values(CELL_STAGE)) {
+        for (const speedRatio of [RESTING, SWIMMING]) {
+          const view = viewOf(BENCH_STAGE_TRAITS[stage], speedRatio, false);
+          const bound = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
+          for (let tick = 0; tick <= PROFILE_WALK_TICKS; tick += PROFILE_WALK_TICK_STRIDE) {
+            const measured = drawnReachRadii(view, tick * TICK_INTERVAL_S, speedRatio);
+            expect(
+              measured,
+              `${stage} at speed ${speedRatio}, tick ${tick}: the renderer reached ${measured.toFixed(4)} radii, ` +
+                `past the ${bound.drawnRadii.toFixed(4)} bound the lens is framed from`,
+            ).toBeLessThanOrEqual(bound.drawnRadii);
+          }
         }
       }
-    }
-  });
+    },
+    PROFILE_WALK_TIMEOUT_MS,
+  );
 
   /** What the fixed row above rests on: the strip moves `r(θ)`, but its **reach** is bounded, not sampled. */
   it('reaches the same maximum whichever strip row a cell drew', () => {
     const view = viewOf(BENCH_STAGE_TRAITS[CELL_STAGE.eukaryote], SWIMMING, false);
-    const rows = Array.from({ length: NOISE_STRIP_ROWS }, (_unused, row) =>
-      measuredReachRadii(view, AT_ZERO_SECONDS, SWIMMING, row),
+    const rows = Array.from(
+      { length: NOISE_STRIP_ROWS },
+      (_unused, row) => profileWalkTerms(view, AT_ZERO_SECONDS, SWIMMING, row).maxRadii,
     );
     expect(new Set(rows).size).toBe(1);
   });
@@ -148,74 +108,6 @@ describe('cellDrawExtentRadii', () => {
     });
     expect(swimming.bodyRadii).toBeGreaterThan(resting.bodyRadii);
     expect(sprinting.drawnRadii).toBeGreaterThan(swimming.drawnRadii);
-  });
-});
-
-/**
- * The form terms the bounds must see (ticket #192 turned the old tripwire into this). `evaluateProfile` is
- * `radius × pulse × B(Δ) × stretch × surface`, and a form adds to it twice: its `B` (whose peak `maxReachRadii`,
- * `peakReachRadii` and `peakRearMembraneRadii` multiply in) and, for the amoeba, the pseudopod bumps in the reserved
- * slots. Measured here on the **drawn membrane** — the profile itself, walked round the ring over swept time — so a
- * form whose `B` peaks above its `peak`, or whose lobes the bounds leave out, shows up as a cell the quad and the
- * lens would clip.
- */
-/** Every half degree would be exact to a hair; this is fine enough to catch a lobe the bounds leave out. */
-const RING_SAMPLES = 180;
-/** Every fifth tick: several periods of every term over the swept four seconds, at a fifth of the cost. */
-const TICK_STRIDE = 5;
-
-describe('the form profiles the bounds must see', () => {
-  function drawnMembraneRadii(view: CellView, timeSeconds: number, speedRatio: number): number {
-    const terms = buildShapeTerms({
-      view,
-      traits: summariseCellTraits(view),
-      timeSeconds,
-      speedRatio,
-      heading: 0,
-      phase: 0,
-      stripRow: FIXED_STRIP_ROW,
-      strip: STRIP,
-      deformation: REST_DEFORMATION,
-    });
-    const ring = sampleProfileRing(terms, RING_SAMPLES);
-    const widest = Math.max(...ring);
-    expect(widest, 'the per-instance reach covers the drawn membrane').toBeLessThanOrEqual(
-      terms.maxRadii / terms.haloOuterRadii,
-    );
-    return widest;
-  }
-
-  /** The widest membrane drawn over the swept ticks. */
-  function widestDrawnRadii(view: CellView, speedRatio: number): number {
-    let widest = 0;
-    for (let tick = 0; tick <= SWEPT_TICKS; tick += TICK_STRIDE) {
-      widest = Math.max(widest, drawnMembraneRadii(view, tick * TICK_INTERVAL_S, speedRatio));
-    }
-    return widest;
-  }
-
-  it('never draws a membrane past the body bound, for any form at any tier', () => {
-    const cases = [...FORM_PROFILES.keys()].flatMap((traitId) =>
-      [TIER_I, TIER_II, TIER_III].flatMap((tier) =>
-        [RESTING, SWIMMING].map((speedRatio) => ({ traitId, tier, speedRatio })),
-      ),
-    );
-    for (const { traitId, tier, speedRatio } of cases) {
-      const view = viewOf([{ traitId, tier }], speedRatio, false);
-      const { bodyRadii } = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
-      expect(widestDrawnRadii(view, speedRatio), `${traitId} ${tier} at speed ${speedRatio}`).toBeLessThanOrEqual(
-        bodyRadii,
-      );
-    }
-  });
-
-  /** The amoeba's lobes are the widest thing a form draws: its body bound sits well past the blob's. */
-  it('widens the amoeba’s body bound by its lobes', () => {
-    const amoeba = viewOf([{ traitId: 'amoeba_pseudopods', tier: TIER_I }], RESTING, false);
-    const blob = viewOf([], RESTING, false);
-    const amoebaBody = cellDrawExtentRadii(summariseCellTraits(amoeba), restingDrawState(RESTING)).bodyRadii;
-    const blobBody = cellDrawExtentRadii(summariseCellTraits(blob), restingDrawState(RESTING)).bodyRadii;
-    expect(amoebaBody).toBeGreaterThan(blobBody * 1.3);
   });
 });
 

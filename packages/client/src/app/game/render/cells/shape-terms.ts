@@ -12,6 +12,7 @@ import {
   HALO_OUTER_RADII,
   JITTER_AMPLITUDE,
   MAX_SHAPE_BUMPS,
+  PSEUDOPOD_ENGULF_LEAN,
   PROTOCELL_HALO_OUTER_RADII,
   REST_LOBE_AMPLITUDE_MAX,
   SPRINT_STRETCH_SCALE,
@@ -25,7 +26,7 @@ import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
 import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
-import { pseudopodBumps, pseudopodPeakRadii } from './forms/amoeba-pseudopods';
+import { amoebaBodyReach, pseudopodBumps, type BodyReach } from './forms/amoeba-pseudopods';
 import { pseudopodCount } from './forms/form-profiles';
 import {
   ZERO_BUMP,
@@ -148,6 +149,14 @@ export interface ClipDeformationPeak {
 /** A cell playing no clip and bumped into by nothing. */
 export const REST_CLIP_PEAK: ClipDeformationPeak = { pulse: 1, bumpRadii: 0 };
 
+/** What the peak reaches are asked about: the cell's traits, its speed ratio, whether it sprints, its clips' peak. */
+export type PeakReachQuery = [
+  traits: CellTraitSummary,
+  speedRatio: number,
+  isSprinting: boolean,
+  clip: ClipDeformationPeak,
+];
+
 /**
  * The largest reach any frame of a cell with these traits can produce, in radii — the same
  * `maxReachRadii`, with the one term it **samples** rather than bounds (the breathing sine) at its own peak, and
@@ -161,16 +170,9 @@ export const REST_CLIP_PEAK: ClipDeformationPeak = { pulse: 1, bumpRadii: 0 };
  * would have been right for every caller that existed — and then silently wrong for the first action scene, whose
  * eat clip pulses the membrane to 1.09 and wraps it 0.14 further. A caller that plays no clip says so.
  */
-export function peakReachRadii(
-  traits: CellTraitSummary,
-  speedRatio: number,
-  isSprinting: boolean,
-  clip: ClipDeformationPeak,
-): number {
-  const stretch = stretchReach(stretchTerm(speedRatio, isSprinting));
-  return (
-    clip.pulse * peakFormReach(traits) * stretch * peakSurfaceReach(traits, clip, speedRatio) * haloOuterRadiiOf(traits)
-  );
+export function peakReachRadii(...query: PeakReachQuery): number {
+  const [traits, , , clip] = query;
+  return clip.pulse * peakBodyReach(...query).widest * haloOuterRadiiOf(traits);
 }
 
 /**
@@ -178,32 +180,32 @@ export function peakReachRadii(
  * `flagellumSpec` roots the tail. The same peak as `peakReachRadii` with the stretch taken at the rear, where the
  * speed stretch tapers it, and without the halo — the tail hangs off the membrane, not the glow around it.
  */
-export function peakRearMembraneRadii(
-  traits: CellTraitSummary,
-  speedRatio: number,
-  isSprinting: boolean,
-  clip: ClipDeformationPeak,
-): number {
-  const rearStretch = stretchAt(stretchTerm(speedRatio, isSprinting), Math.PI).value;
-  return clip.pulse * peakFormReach(traits) * rearStretch * peakSurfaceReach(traits, clip, speedRatio);
-}
-
-function peakFormReach(traits: CellTraitSummary): number {
-  return formReach(traits.form.profileAt(traits.formTier));
+export function peakRearMembraneRadii(...query: PeakReachQuery): number {
+  const [, , , clip] = query;
+  return clip.pulse * peakBodyReach(...query).rear;
 }
 
 /**
- * The surface's widest radius fraction over any frame: breathing at its peak, plus the clips' bumps and the
- * amoeba's lobes at their widest for this speed (the two added, since the lobes reach for the prey the arms wrap).
+ * The body's widest and rear radii over any frame, before the pulse and the halo: the form's peak times the stretch
+ * times the surface, or for the amoeba the same product taken angle by angle with its lobes (`amoebaBodyReach`).
  */
-function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak, speedRatio: number): number {
+function peakBodyReach(...[traits, speedRatio, isSprinting, clip]: PeakReachQuery): BodyReach {
+  const stretch = stretchTerm(speedRatio, isSprinting);
+  const surface = peakSurfaceReach(traits, clip);
+  const count = pseudopodCount(traits.form, traits.formTier);
+  if (count > 0) return amoebaBodyReach(count, speedRatio, stretch, surface);
+  const form = formReach(traits.form.profileAt(traits.formTier));
+  return { widest: form * stretchReach(stretch) * surface, rear: form * stretchAt(stretch, Math.PI).value * surface };
+}
+
+/** The surface's widest radius fraction over any frame: breathing at its peak, plus the clips' bumps. */
+function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak): number {
   const scales = restScales(traits);
-  const lobes = pseudopodPeakRadii(pseudopodCount(traits.form, traits.formTier), speedRatio);
   return surfaceReach(
     scales.breathing * BREATH_AMPLITUDE,
     traits.wobble.amplitude,
     stripReach(JITTER_AMPLITUDE * scales.jitter, scales.lobes),
-    clip.bumpRadii + lobes,
+    clip.bumpRadii,
   );
 }
 
@@ -249,7 +251,8 @@ function formBumps(input: ShapeTermsInput): readonly ShapeBump[] {
     timeSeconds: input.timeSeconds,
     phase: input.phase,
     aim: input.deformation.preyAngle ?? input.heading,
-    lean: input.speedRatio,
+    lean:
+      input.deformation.preyAngle === undefined ? input.speedRatio : Math.max(input.speedRatio, PSEUDOPOD_ENGULF_LEAN),
   });
   return [...input.deformation.bumps.slice(0, MAX_SHAPE_BUMPS - count), ...lobes];
 }
