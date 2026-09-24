@@ -15,7 +15,8 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type 
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
-import { CONNECTION_STATE, noticeRowCountFor } from './format/connection-banner';
+import { CONNECTION_STATE } from '../net/connection-state';
+import { noticeRowCountFor } from './format/connection-banner';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
 import { HintComponent } from './hint.component';
 import { HudStateService } from './hud-state.service';
@@ -93,14 +94,14 @@ import { HUD_OVERLAY } from './hud-state.service';
     @if (isEncyclopediaOpen()) {
       <app-encyclopedia-overlay />
     }
+    <!-- One toast at a time, top-centre under the notice rows (docs/ui/overlays.md §3.6); mounted throughout so its
+         memory keeps stepping, and it draws nothing while no toast is up. It is part of the dimmed HUD, not a notice. -->
+    <app-toast />
     <!-- Last, so they paint over the chrome (docs/ui/overlays.md §3.6): the dish stays, dimmed, under
          the banner while the socket is down or the server is quiet, and the notices stack from the top edge. -->
     @if (isConnectionLost()) {
       <div class="connection-lost-dim"></div>
     }
-    <!-- One toast at a time, top-centre under the notice rows (docs/ui/overlays.md §3.6); mounted throughout so its
-         memory keeps stepping, and it draws nothing while no toast is up. -->
-    <app-toast />
     <div class="notices">
       <app-connection-banner />
       <app-server-error-notice />

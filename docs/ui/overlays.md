@@ -199,30 +199,35 @@ Home `hud/hud-constants.ts`, published as `--hud-menu-…` like §3.2's. Test id
 ### 3.6 Notices: toasts and connection states
 
 One toast at a time, top-centre at y 16 (under the notice rows while any are up, as the leaderboard drops), `body` on
-the callout backing, `TOAST_DURATION_SECONDS` counted in room ticks, newest replaces oldest, `aria-live="polite"`. Test id
-`toast` with `data-toast-kind`:
+the callout backing, `TOAST_DURATION_SECONDS` counted in room ticks, newest replaces oldest, `aria-live="polite"`. It
+is part of the HUD, not a notice: it dims with the rest under a `disconnected` or `stale` banner. Test id `toast` with
+`data-toast-kind`. A toast is written as a coach pill line is (input-and-onboarding.md §5): facts joined by `·`, no
+full stop.
 
-| Kind                    | Trigger                                                                                               | Text                                                                           |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `late_join`             | first `game_state` with `ownProgress.dnaCatchUpGift > 0`                                              | `Joined late: you start at level 2 with 60 DNA of catch-up. Pick your traits.` |
-| `endosymbiont_unlocked` | a `bacteriaEatenByVariant` counter reaches `ENDOSYMBIOSIS_BACTERIA_REQUIRED` for an unowned organelle | `Mitochondrion unlocked: offered at your next level-up.`                       |
-| `bloom`                 | the clock enters bloom                                                                                | `Bloom: food and DNA multiply.`                                                |
-| `stage`                 | `ownProgress.stage` changes                                                                           | per rung, below                                                                |
+| Kind                    | Trigger                                                                                               | Text                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `late_join`             | first `game_state` with `ownProgress.dnaCatchUpGift > 0`                                              | `Joined late · level 2 · 60 DNA catch-up · pick your traits` |
+| `endosymbiont_unlocked` | a `bacteriaEatenByVariant` counter reaches `ENDOSYMBIOSIS_BACTERIA_REQUIRED` for an unowned organelle | `Mitochondrion unlocked · offered at your next level-up`     |
+| `stage`                 | `ownProgress.stage` climbs a rung (`STAGE_ORDER`)                                                     | per rung, below                                              |
 
-The `stage` line per rung reached: `You are a prokaryote.`, `Endosymbiosis: an organelle lives inside you.`,
-`You are a eukaryote.`, `You are a specialised cell.` (a protocell is where every cell starts). The level, the DNA and
-the organelle's name are the facts of the moment, never typed. Every trigger is a change between two snapshots of the
-same seat (room and player), so the first snapshot of a room only remembers — a late joiner gets no `bloom` for a bloom
-already under way — and a reconnect inside the grace keeps the seat, so it neither replays `late_join` nor misses a
-change. The step is pure (`hud/format/toasts.ts`); `hud/toast.service.ts` carries it and `hud/toast.component.ts`
-binds it.
+The `stage` line per rung climbed to: `You are a prokaryote`, `Endosymbiosis · an organelle lives inside you`,
+`You are a eukaryote`, `You are a specialised cell`. A rematch returns every cell to a protocell (game-design/session.md
+§5.4), which is no climb and fires nothing. The level, the DNA and the organelle's name are the facts of the moment,
+never typed. The bloom has no toast: its coach beat (input-and-onboarding.md §5) and the clock's `BLOOM · FOOD ×1.5 ·
+DNA DROPS ×2` caption (hud.md §3.1.1) already announce it, and a third line would say the same thing at the same moment.
+
+Every trigger is a change between two snapshots of the same seat (room and player), so the first snapshot of a room
+only remembers: a late joiner gets no `stage` for the rung it arrived at. A reconnect inside the grace keeps the seat
+and the snapshot, so it neither replays `late_join` nor misses a change; leaving for the lobby clears the snapshot and
+the memory with it, so a rejoin, even to the same seat, is greeted again. The step is pure (`hud/format/toasts.ts`);
+`hud/toast.service.ts` carries it and `hud/toast.component.ts` binds it.
 
 Connection banner, full width, 32 px tall, `body`, top of the viewport above everything (`connection-banner`,
 `data-connection-state`): `disconnected` (danger) `Connection lost · reconnecting…` while the socket is down (the
 cell coasts for `DISCONNECT_GRACE_MS`, game-design/session.md §5.2); `stale` (level gold) `Waiting for server…` when no
 snapshot has arrived for `SNAPSHOT_STALE_MS` (§1, `constants/netcode.ts`) while connected (also what a `debug_pause_room` looks like);
 every snapshot, and the socket reopening, restarts that wait (`net/snapshot-staleness.ts`), and in the lobby there is
-none. Input keeps being sent in both states; the HUD shows the last snapshot, dimmed 20 %. When the server removes the player the
+none. `net/connection-state.ts` combines the socket and that wait into the banner's state. Input keeps being sent in both states; the HUD shows the last snapshot, dimmed 20 %. When the server removes the player the
 lobby screen returns with `lobby-notice` = `You were disconnected from the game.`
 
 A dropped socket is not the end of the round (#219): the phase stays in play under the banner while the transport

@@ -83,6 +83,7 @@ packages/client/src/app/game/
   game-setup.ts  game-host.component.ts                         the composition root and the element that mounts it
   debug/evolution-debug.ts                                      `window.__evolutionDebug` (dev only): pause / step / resume / setSeed, TESTING.md's screenshot hook
   net/{snapshot-buffer,interpolation,food-store,world-store,snapshot-acknowledger,own-cell-prediction,own-cell-predictor,pose-correction}.ts          interpolation owns renderTick (section 5); food-store applies the mote deltas; snapshot-acknowledger tells the room which tick this client has applied (§4, #266); own-cell-prediction replays, own-cell-predictor keeps the inputs and re-bases, pose-correction reconciles (#265)
+  net/{connection-state,snapshot-staleness,connection-state.service}.ts   the banner's `connected` / `disconnected` / `stale` (ui/overlays.md §3.6): the pure rule, the `SNAPSHOT_STALE_MS` wait on the injected Scheduler, and the service that restarts it per snapshot (#190)
   input/{input-constants,keyboard-action,input-state,trait-pick,game-input-builder}.ts   the key tables, the Space-precedence and hotkey rules, the state, the trait-pick policy and the GameInput mapping — all pure (ui/input-and-onboarding.md §4)
   input/{dom-input-context,keyboard-input,pointer-input,input-world-context,input-controller,attach-input}.ts   the DOM adapters, the WorldStore adapter, the client-tick controller and the composition
   render/{pixi-app,layers,camera,view-registry,constants,palette,easing}.ts

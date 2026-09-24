@@ -20,7 +20,7 @@ import {
   type RoundPhase,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
-import type { ConnectionState } from '../hud/format/connection-banner';
+import type { ConnectionState } from '../net/connection-state';
 import { hasEngulfedIn } from '../hud/format/relation-labels';
 import { resultsStartedAtTickFor } from '../hud/format/results-lines';
 import { relationCandidatesFor, relationsOnScreen, type RelationCandidate } from '../hud/format/relations-for';

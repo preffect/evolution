@@ -3,11 +3,13 @@
 // `TOAST_DURATION_SECONDS` of room ticks. `ToastService` carries the memory; `toast.component.ts` binds the toast.
 //
 // Every trigger is a change between two snapshots of the same seat, so the first snapshot of a room only remembers:
-// a late joiner hears no toast for a bloom already under way or a stage it arrived at. The one toast the first
-// snapshot can fire is `late_join`, which is about that snapshot.
+// a late joiner hears no toast for a stage it arrived at. The one toast the first snapshot can fire is `late_join`,
+// which is about that snapshot. The bloom has no toast: its coach pill and the clock's caption already announce it.
+// The lines are written as the coach pill's are: facts joined by ` · `, no full stop.
 
 import {
   TRAIT_CATALOG,
+  stageIndex,
   secondsToTicks,
   type BacteriumVariant,
   type CellStage,
@@ -20,7 +22,6 @@ import { TOAST_DURATION_SECONDS } from '../hud-constants';
 export const TOAST_KIND = {
   lateJoin: 'late_join',
   endosymbiontUnlocked: 'endosymbiont_unlocked',
-  bloom: 'bloom',
   stage: 'stage',
 } as const;
 
@@ -33,26 +34,29 @@ export interface Toast {
   readonly shownAtTick: number;
 }
 
-/** docs/ui/overlays.md §3.6's fixed lines; the late-join and unlock lines are built from the facts they name. */
-export const TOAST_TEXT = {
-  bloom: 'Bloom: food and DNA multiply.',
-} as const;
+/** The coach pill's separator (docs/ui/input-and-onboarding.md §5): a toast reads as one of its lines. */
+const TOAST_FACT_SEPARATOR = ' · ';
 
-/** The `stage` toast per rung reached; a protocell is where every cell starts, so it never fires. */
+/**
+ * The `stage` toast per rung climbed to. A protocell is where every cell starts and a rematch returns to, and the
+ * toast fires only on a climb, so its line is never shown.
+ */
 export const STAGE_TOAST_TEXT: Readonly<Record<CellStage, string>> = {
-  protocell: 'You are a protocell.',
-  prokaryote: 'You are a prokaryote.',
-  endosymbiosis: 'Endosymbiosis: an organelle lives inside you.',
-  eukaryote: 'You are a eukaryote.',
-  specialised: 'You are a specialised cell.',
+  protocell: 'You are a protocell',
+  prokaryote: 'You are a prokaryote',
+  endosymbiosis: ['Endosymbiosis', 'an organelle lives inside you'].join(TOAST_FACT_SEPARATOR),
+  eukaryote: 'You are a eukaryote',
+  specialised: 'You are a specialised cell',
 };
 
 export function lateJoinToastText(level: number, catchUpDna: number): string {
-  return `Joined late: you start at level ${level} with ${Math.round(catchUpDna)} DNA of catch-up. Pick your traits.`;
+  return ['Joined late', `level ${level}`, `${Math.round(catchUpDna)} DNA catch-up`, 'pick your traits'].join(
+    TOAST_FACT_SEPARATOR,
+  );
 }
 
 export function endosymbiontUnlockedToastText(traitName: string): string {
-  return `${traitName} unlocked: offered at your next level-up.`;
+  return [`${traitName} unlocked`, 'offered at your next level-up'].join(TOAST_FACT_SEPARATOR);
 }
 
 /** One snapshot as the toasts read it. */
@@ -62,8 +66,6 @@ export interface ToastSample {
   readonly tick: number;
   /** `null` before the room names us: nothing is remembered until it does. */
   readonly ownProgress: OwnProgressView | null;
-  /** `isSnapshotInBloom` for this snapshot. */
-  readonly isBloom: boolean;
 }
 
 /** What the last sample of this seat said, and the toast that is up. */
@@ -71,7 +73,6 @@ export interface ToastMemory {
   readonly seatKey: string | null;
   readonly stage: CellStage | null;
   readonly bacteriaEatenByVariant: Readonly<Record<BacteriumVariant, number>> | null;
-  readonly isBloom: boolean;
   readonly toast: Toast | null;
 }
 
@@ -79,7 +80,6 @@ export const INITIAL_TOAST_MEMORY: ToastMemory = {
   seatKey: null,
   stage: null,
   bacteriaEatenByVariant: null,
-  isBloom: false,
   toast: null,
 };
 
@@ -115,14 +115,14 @@ function firedToasts(previous: ToastMemory, sample: ToastSample, ownProgress: Ow
       : [];
   }
   const fired: Toast[] = [];
-  if (ownProgress.stage !== previous.stage) {
+  // A climb only: a rematch puts every cell back to a protocell (game-design/session.md §5.4), which is no news.
+  if (previous.stage !== null && stageIndex(ownProgress.stage) > stageIndex(previous.stage)) {
     fired.push(toastAt(TOAST_KIND.stage, STAGE_TOAST_TEXT[ownProgress.stage]));
   }
   const unlocked = unlockedEndosymbiont(previous.bacteriaEatenByVariant, ownProgress);
   if (unlocked !== null) {
     fired.push(toastAt(TOAST_KIND.endosymbiontUnlocked, endosymbiontUnlockedToastText(unlocked.name)));
   }
-  if (sample.isBloom && !previous.isBloom) fired.push(toastAt(TOAST_KIND.bloom, TOAST_TEXT.bloom));
   return fired;
 }
 
@@ -144,7 +144,6 @@ export function toastStepFor(previous: ToastMemory, sample: ToastSample): ToastM
     seatKey: sample.seatKey,
     stage: ownProgress.stage,
     bacteriaEatenByVariant: ownProgress.bacteriaEatenByVariant,
-    isBloom: sample.isBloom,
     toast: newest ?? toastStillUp(carried.toast, sample.tick),
   };
 }

@@ -4,7 +4,7 @@ import { ManualScheduler, SNAPSHOT_STALE_MS, createTestSnapshot } from '@evoluti
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { SCHEDULER } from '../clock-provider';
-import { CONNECTION_STATE } from '../hud/format/connection-banner';
+import { CONNECTION_STATE } from './connection-state';
 import { ConnectionStateService } from './connection-state.service';
 
 describe('ConnectionStateService (docs/ui/overlays.md §3.6)', () => {
@@ -53,6 +53,16 @@ describe('ConnectionStateService (docs/ui/overlays.md §3.6)', () => {
       receiveSnapshot();
     }
     expect(connection.state()).toBe(CONNECTION_STATE.connected);
+    // The wait was armed all along: once the snapshots stop, it runs out.
+    scheduler.advanceMilliseconds(SNAPSHOT_STALE_MS);
+    expect(connection.state()).toBe(CONNECTION_STATE.stale);
+  });
+
+  it('cancels a pending wait when the injector is destroyed', () => {
+    receiveSnapshot();
+    expect(scheduler.pendingCallCount).toBe(1);
+    TestBed.resetTestingModule();
+    expect(scheduler.pendingCallCount).toBe(0);
   });
 
   it('says disconnected, not stale, while the socket is down, and waits afresh once it reopens', () => {

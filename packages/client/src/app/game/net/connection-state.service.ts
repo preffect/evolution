@@ -3,10 +3,10 @@
 // `SNAPSHOT_STALE_MS` wait; with the socket down, or no room to hear from (the lobby), there is nothing to wait for.
 // `GameStateService.connectionState` hands this to the HUD.
 
-import { Injectable, computed, effect, inject, untracked } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, untracked } from '@angular/core';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { SCHEDULER } from '../clock-provider';
-import { connectionStateFor, type ConnectionState } from '../hud/format/connection-banner';
+import { connectionStateFor, type ConnectionState } from './connection-state';
 import { SnapshotStalenessWatch } from './snapshot-staleness';
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +19,8 @@ export class ConnectionStateService {
   );
 
   constructor() {
+    // A wait still pending when the injector goes (a test, an app teardown) must not fire into a dead service.
+    inject(DestroyRef).onDestroy(() => this.staleness.stop());
     effect(() => {
       const isWaitingOnRoom = this.multiplayer.connected() && this.multiplayer.snapshot() !== null;
       untracked(() => (isWaitingOnRoom ? this.staleness.restart() : this.staleness.stop()));

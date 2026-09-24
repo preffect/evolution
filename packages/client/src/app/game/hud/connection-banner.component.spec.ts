@@ -5,7 +5,8 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { SCHEDULER } from '../clock-provider';
 import { ConnectionBannerComponent } from './connection-banner.component';
-import { CONNECTION_BANNER_TEXT, CONNECTION_STATE } from './format/connection-banner';
+import { CONNECTION_STATE } from '../net/connection-state';
+import { CONNECTION_BANNER_TEXT } from './format/connection-banner';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 
 describe('ConnectionBannerComponent', () => {

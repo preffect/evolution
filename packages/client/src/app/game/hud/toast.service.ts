@@ -1,10 +1,10 @@
 // The toasts' one owner (docs/ui/overlays.md §3.6): it folds every snapshot into the pure step (`format/toasts.ts`)
 // and answers which toast is up. `toast.component.ts` binds it. The memory is kept per seat (room and player), so a
-// reconnect inside the grace neither replays `late_join` nor misses a change, and another room starts over.
+// reconnect inside the grace, which keeps the snapshot, neither replays `late_join` nor misses a change. Leaving the
+// room clears the snapshot and with it the memory: a rejoin, even to the same seat, starts over.
 
 import { Injectable, computed, effect, inject, linkedSignal } from '@angular/core';
 import type { GameSnapshot } from '@evolution/shared';
-import { isSnapshotInBloom } from './format/round-clock';
 import { INITIAL_TOAST_MEMORY, toastStepFor, type Toast, type ToastMemory } from './format/toasts';
 import { GameStateService } from '../state/game-state.service';
 
@@ -17,16 +17,11 @@ export class ToastService {
     source: () => this.gameState.snapshot(),
     computation: (snapshot, previous) => {
       const last = previous?.value ?? INITIAL_TOAST_MEMORY;
-      if (snapshot === null) return last;
+      if (snapshot === null) return INITIAL_TOAST_MEMORY;
       return toastStepFor(last, {
         seatKey: `${this.gameState.gameId() ?? ''}/${this.gameState.ownPlayerId() ?? ''}`,
         tick: snapshot.tick,
         ownProgress: this.gameState.ownProgress(),
-        isBloom: isSnapshotInBloom(
-          snapshot,
-          this.gameState.balance(),
-          this.gameState.sessionConfig()?.roundDurationSeconds ?? null,
-        ),
       });
     },
   });

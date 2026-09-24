@@ -2,13 +2,7 @@
 // whether the bloom has started, what the caption says, whether the last-ten-seconds pulse runs and
 // whether the clock is shown at all. `round-timer.component.ts` only binds the record this answers.
 
-import {
-  MILLISECONDS_PER_SECOND,
-  ROUND_PHASE,
-  type BalanceConfig,
-  type GameSnapshot,
-  type RoundPhase,
-} from '@evolution/shared';
+import { MILLISECONDS_PER_SECOND, ROUND_PHASE, type RoundPhase } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { MULTIPLIER_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { ROUND_CLOCK_PULSE_LAST_SECONDS } from '../hud-constants';
@@ -98,26 +92,6 @@ export function isRoundInBloom(input: RoundClockInput): boolean {
   if (roundDurationSeconds === null || bloomStartFraction === null || roundDurationSeconds <= 0) return false;
   const elapsedFraction = 1 - roundSecondsLeft(input.timeLeftMs) / roundDurationSeconds;
   return elapsedFraction >= bloomStartFraction;
-}
-
-/**
- * `isRoundInBloom` for one snapshot against the live numbers: what the onboarding beats and the bloom toast read.
- * "Not yet" before the room's config or the balance has arrived.
- */
-export function isSnapshotInBloom(
-  snapshot: Pick<GameSnapshot, 'roundTimeLeftMs' | 'roundPhase'>,
-  balance: BalanceConfig | null,
-  roundDurationSeconds: number | null,
-): boolean {
-  if (balance === null) return false;
-  return isRoundInBloom({
-    timeLeftMs: snapshot.roundTimeLeftMs,
-    roundPhase: snapshot.roundPhase,
-    roundDurationSeconds,
-    bloomStartFraction: balance.session.ROUND_BLOOM_START_FRACTION,
-    foodBloomMultiplier: balance.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER,
-    dnaFragmentBloomMultiplier: balance.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER,
-  });
 }
 
 export function roundClockStateFor(input: RoundClockInput): RoundClockState {

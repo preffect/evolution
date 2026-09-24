@@ -2,16 +2,7 @@
 // which colour role carries it. The component binds this and decides nothing.
 
 import type { ValueOf } from '@evolution/shared';
-
-export const CONNECTION_STATE = {
-  connected: 'connected',
-  /** The socket is down; it reconnects on its own while the seat's grace runs. */
-  disconnected: 'disconnected',
-  /** The socket is up but no snapshot has come for `SNAPSHOT_STALE_MS`: the server is quiet (or paused). */
-  stale: 'stale',
-} as const;
-
-export type ConnectionState = ValueOf<typeof CONNECTION_STATE>;
+import { CONNECTION_STATE, type ConnectionState } from '../../net/connection-state';
 
 /** The colour role the banner's rim and text take; never the only carrier, the text says it too. */
 export const CONNECTION_BANNER_TONE = {
@@ -49,15 +40,6 @@ const BANNER_BY_STATE: Readonly<Record<ConnectionState, ConnectionBanner>> = {
 
 export function connectionBannerFor(state: ConnectionState): ConnectionBanner {
   return BANNER_BY_STATE[state];
-}
-
-/**
- * The state the connection facts add up to: the socket's own flag first, since a closed socket brings no snapshots
- * either, then whether the snapshots have stopped coming (docs/ui/overlays.md §3.6).
- */
-export function connectionStateFor(isSocketConnected: boolean, isSnapshotStale: boolean): ConnectionState {
-  if (!isSocketConnected) return CONNECTION_STATE.disconnected;
-  return isSnapshotStale ? CONNECTION_STATE.stale : CONNECTION_STATE.connected;
 }
 
 /**

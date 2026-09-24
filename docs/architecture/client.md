@@ -116,6 +116,12 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   corrected one at cadence 1 and is one interval too long at every other. `MAX_EXTRAPOLATION_TICKS` is
   derived from the cadence with it, so lever 2 carries the cap by construction rather than by review.
 
+- **Snapshots that stop are shown, not guessed at** (#190, ui/overlays.md §3.6). `ConnectionStateService`
+  (`connection-state.service.ts`) restarts one `SNAPSHOT_STALE_MS` wait (`snapshot-staleness.ts`, on the injected
+  `Scheduler`) on every snapshot and whenever the socket reopens, and cancels it on destroy; the wait running out is
+  `stale`. `connectionStateFor` (`connection-state.ts`) puts a closed socket first. The HUD reads the result through
+  `GameStateService.connectionState`, and `hud/format/connection-banner.ts` only words it.
+
 - **Every applied snapshot is acknowledged** (#266, §4). `RenderSession` tells the room the tick it
   has just applied — at once for a `game_state`, every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` for a delta —
   and a `game_state` that arrives mid-stream is the room's resync: `applyGameState` already replaces

@@ -1,4 +1,4 @@
-// Ticket #190 evidence: the stage and bloom toasts and the connection banner's `stale` state, each at 1280 x 800, one
+// Ticket #190 evidence: the stage toast and the connection banner's `stale` state, each at 1280 x 800, one
 // player in front (a background tab stops acknowledging snapshots, and the server then stops sending them).
 // Private stack 4500/4502, own Chromium, one process: `node qa/evidence/pr-658/capture.mjs`.
 import pw from '/usr/lib/node_modules/@playwright/mcp/node_modules/playwright-core/index.js';
@@ -73,16 +73,8 @@ await wait(host, 800);
 console.log('stage toast:', await toastOf(host));
 await host.screenshot({ path: `${OUT}toast-stage-1280x800.png` });
 
-// Bloom, once the stage toast has run its course: move the bloom's start to now, so the clock enters it.
-await wait(host, 7000);
-console.log('after the duration:', await toastOf(host));
-await mcp('debug_set_balance', { gameId, patch: { session: { ROUND_BLOOM_START_FRACTION: 0.01 } } });
-await wait(host, 1500);
-console.log('bloom toast:', await toastOf(host));
-await host.screenshot({ path: `${OUT}toast-bloom-1280x800.png` });
-
-// Stale: the room stops broadcasting; after SNAPSHOT_STALE_MS the banner says so, the dish dims, and the toast (whose
-// time is counted in room ticks) holds under the banner's row.
+// Stale: the room stops broadcasting; after SNAPSHOT_STALE_MS the banner says so, and the dish dims with the toast (whose
+// time is counted in room ticks) held, dimmed, under the banner's row.
 console.log(await mcp('debug_pause_room', { gameId }));
 await wait(host, 3000);
 console.log(

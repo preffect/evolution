@@ -3,11 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   CONNECTION_BANNER_TEXT,
   CONNECTION_BANNER_TONE,
-  CONNECTION_STATE,
   connectionBannerFor,
-  connectionStateFor,
   noticeRowCountFor,
 } from './connection-banner';
+import { CONNECTION_STATE } from '../../net/connection-state';
 
 describe('noticeRowCountFor', () => {
   it('counts the banner and the error line, each one row', () => {
@@ -40,17 +39,5 @@ describe('connectionBannerFor', () => {
       tone: CONNECTION_BANNER_TONE.levelGold,
     });
     expect(CONNECTION_BANNER_TEXT.stale).toBe('Waiting for server…');
-  });
-});
-
-describe('connectionStateFor', () => {
-  it('puts a closed socket first, since it brings no snapshots either', () => {
-    expect(connectionStateFor(false, false)).toBe(CONNECTION_STATE.disconnected);
-    expect(connectionStateFor(false, true)).toBe(CONNECTION_STATE.disconnected);
-  });
-
-  it('is stale only with the socket up and the snapshots stopped', () => {
-    expect(connectionStateFor(true, true)).toBe(CONNECTION_STATE.stale);
-    expect(connectionStateFor(true, false)).toBe(CONNECTION_STATE.connected);
   });
 });

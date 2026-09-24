@@ -14,7 +14,6 @@ import {
   INITIAL_TOAST_MEMORY,
   STAGE_TOAST_TEXT,
   TOAST_KIND,
-  TOAST_TEXT,
   endosymbiontUnlockedToastText,
   lateJoinToastText,
   toastStepFor,
@@ -34,7 +33,7 @@ function progress(overrides: Partial<OwnProgressView> = {}): OwnProgressView {
 }
 
 function sample(tick: number, overrides: Partial<ToastSample> = {}): ToastSample {
-  return { seatKey: SEAT, tick, ownProgress: progress(), isBloom: false, ...overrides };
+  return { seatKey: SEAT, tick, ownProgress: progress(), ...overrides };
 }
 
 /** A seat already seen once, with nothing up: every later trigger is a change against it. */
@@ -56,11 +55,11 @@ describe('toastStepFor: the first snapshot of a seat (docs/ui/overlays.md §3.6)
       text: lateJoinToastText(LATE_JOIN_LEVEL, LATE_JOIN_DNA),
       shownAtTick: START_TICK,
     });
-    expect(memory.toast?.text).toBe('Joined late: you start at level 2 with 60 DNA of catch-up. Pick your traits.');
+    expect(memory.toast?.text).toBe('Joined late · level 2 · 60 DNA catch-up · pick your traits');
   });
 
-  it('fires nothing for a player who joined at the start, or for a bloom or stage already reached', () => {
-    const memory = seenOnce({ isBloom: true, ownProgress: progress({ stage: CELL_STAGE.eukaryote }) });
+  it('fires nothing for a player who joined at the start, or for a stage already reached', () => {
+    const memory = seenOnce({ ownProgress: progress({ stage: CELL_STAGE.eukaryote }) });
     expect(memory.toast).toBeNull();
   });
 
@@ -74,7 +73,10 @@ describe('toastStepFor: the first snapshot of a seat (docs/ui/overlays.md §3.6)
 
   it('starts over in another room: its first snapshot only remembers', () => {
     const memory = seenOnce();
-    const next = toastStepFor(memory, sample(START_TICK + 1, { seatKey: OTHER_SEAT, isBloom: true }));
+    const next = toastStepFor(
+      memory,
+      sample(START_TICK + 1, { seatKey: OTHER_SEAT, ownProgress: progress({ stage: CELL_STAGE.eukaryote }) }),
+    );
     expect(next.toast).toBeNull();
     expect(next.seatKey).toBe(OTHER_SEAT);
   });
@@ -86,20 +88,20 @@ describe('toastStepFor: the first snapshot of a seat (docs/ui/overlays.md §3.6)
 });
 
 describe('toastStepFor: the changes', () => {
-  it('fires bloom the snapshot the clock enters it', () => {
-    const memory = toastStepFor(seenOnce(), sample(START_TICK + 1, { isBloom: true }));
-    expect(memory.toast).toEqual({ kind: TOAST_KIND.bloom, text: TOAST_TEXT.bloom, shownAtTick: START_TICK + 1 });
-    expect(TOAST_TEXT.bloom).toBe('Bloom: food and DNA multiply.');
+  it('fires no stage toast when a rematch puts the cell back to a protocell', () => {
+    const eukaryote = seenOnce({ ownProgress: progress({ stage: CELL_STAGE.eukaryote }) });
+    const rematch = sample(START_TICK + 1, { ownProgress: progress({ stage: CELL_STAGE.protocell }) });
+    expect(toastStepFor(eukaryote, rematch).toast).toBeNull();
   });
 
-  it('fires stage when the own stage moves, in its rung’s words', () => {
+  it('fires stage when the own stage climbs, in its rung’s words', () => {
     const memory = toastStepFor(
       seenOnce(),
       sample(START_TICK + 1, { ownProgress: progress({ stage: CELL_STAGE.eukaryote }) }),
     );
     expect(memory.toast?.kind).toBe(TOAST_KIND.stage);
     expect(memory.toast?.text).toBe(STAGE_TOAST_TEXT.eukaryote);
-    expect(STAGE_TOAST_TEXT.eukaryote).toBe('You are a eukaryote.');
+    expect(STAGE_TOAST_TEXT.eukaryote).toBe('You are a eukaryote');
   });
 
   it('fires endosymbiont_unlocked the snapshot a tally reaches its count, naming the organelle', () => {
@@ -114,7 +116,7 @@ describe('toastStepFor: the changes', () => {
     );
     expect(memory.toast?.kind).toBe(TOAST_KIND.endosymbiontUnlocked);
     expect(memory.toast?.text).toBe(endosymbiontUnlockedToastText('Mitochondrion'));
-    expect(memory.toast?.text).toBe('Mitochondrion unlocked: offered at your next level-up.');
+    expect(memory.toast?.text).toBe('Mitochondrion unlocked · offered at your next level-up');
   });
 
   it('fires no unlock past the count, or for an organelle already owned', () => {
@@ -143,28 +145,30 @@ describe('toastStepFor: the changes', () => {
   });
 
   it('lets the newest replace the one up', () => {
-    const bloom = toastStepFor(seenOnce(), sample(START_TICK + 1, { isBloom: true }));
+    const joined = seenOnce({ ownProgress: progress({ dnaCatchUpGift: LATE_JOIN_DNA }) });
     const stage = toastStepFor(
-      bloom,
-      sample(START_TICK + 2, { isBloom: true, ownProgress: progress({ stage: CELL_STAGE.eukaryote }) }),
+      joined,
+      sample(START_TICK + 1, { ownProgress: progress({ stage: CELL_STAGE.eukaryote, dnaCatchUpGift: LATE_JOIN_DNA }) }),
     );
     expect(stage.toast?.kind).toBe(TOAST_KIND.stage);
   });
 });
 
 describe('toastStepFor: the duration', () => {
-  const bloomAt = START_TICK + 1;
-  const bloom = toastStepFor(seenOnce(), sample(bloomAt, { isBloom: true }));
+  const stageAt = START_TICK + 1;
+  const stage = toastStepFor(seenOnce(), sample(stageAt, { ownProgress: progress({ stage: CELL_STAGE.eukaryote }) }));
+  const later = (tick: number, ownProgress: OwnProgressView | null = progress({ stage: CELL_STAGE.eukaryote })) =>
+    toastStepFor(stage, sample(tick, { ownProgress })).toast;
 
   it('stays up for TOAST_DURATION_SECONDS of ticks, then goes', () => {
-    const lastTickUp = bloomAt + TOAST_DURATION_TICKS - 1;
-    expect(toastStepFor(bloom, sample(lastTickUp, { isBloom: true })).toast?.kind).toBe(TOAST_KIND.bloom);
-    expect(toastStepFor(bloom, sample(lastTickUp + 1, { isBloom: true })).toast).toBeNull();
+    const lastTickUp = stageAt + TOAST_DURATION_TICKS - 1;
+    expect(later(lastTickUp)?.kind).toBe(TOAST_KIND.stage);
+    expect(later(lastTickUp + 1)).toBeNull();
   });
 
   it('keeps counting while the own progress is missing', () => {
-    const lastTickUp = bloomAt + TOAST_DURATION_TICKS - 1;
-    expect(toastStepFor(bloom, sample(lastTickUp, { ownProgress: null })).toast?.kind).toBe(TOAST_KIND.bloom);
-    expect(toastStepFor(bloom, sample(lastTickUp + 1, { ownProgress: null })).toast).toBeNull();
+    const lastTickUp = stageAt + TOAST_DURATION_TICKS - 1;
+    expect(later(lastTickUp, null)?.kind).toBe(TOAST_KIND.stage);
+    expect(later(lastTickUp + 1, null)).toBeNull();
   });
 });
