@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, onTestFinished } from 'vitest';
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import { SERVER_MESSAGE_TYPE, type ServerMessage } from '@evolution/shared';
 import { untilReceived, untilRoomDecides, type RecordingSocket } from './wait-for.js';
 
@@ -58,6 +58,16 @@ describe('untilReceived', () => {
     const waiting = untilReceived(recording, () => false, 'a lobby update');
     emitter.emit('close');
     await expect(waiting).rejects.toThrow('a lobby update never became true: the socket closed');
+  });
+
+  it('rejects at once naming the condition when the socket is already closed, and never listens', async () => {
+    const { recording, emitter } = fakeRecording();
+    Object.assign(emitter, { readyState: WebSocket.CLOSED });
+    await expect(untilReceived(recording, () => false, 'a lobby update')).rejects.toThrow(
+      'a lobby update never became true: the socket closed',
+    );
+    expect(emitter.listenerCount('message')).toBe(0);
+    expect(emitter.listenerCount('close')).toBe(0);
   });
 
   it('rejects with the error a condition throws, and stops listening', async () => {

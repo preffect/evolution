@@ -25,8 +25,8 @@ import {
   startLobbySocketHarness,
   startTestRoom,
   type LobbySocketHarness,
-  type TestClient,
 } from '../testing/socket-builders.js';
+import type { TestClient } from '../testing/socket-messages.js';
 import { untilReceived, untilRoomDecides } from '../testing/wait-for.js';
 import type { GameRoom } from './game-room.js';
 
