@@ -4,7 +4,8 @@
 
 import { TRAIT_CATALOG, type OwnedTrait, type TraitDefinition, type TraitId } from '@evolution/shared';
 import { tierNumeral } from './trait-cards';
-import { describeTierModifiers, type TraitModifierTables } from './trait-effects';
+import type { ModifierEffect } from '../../quantities/modifier-labels';
+import { describeTierModifierEffects, describeTierModifiers, type TraitModifierTables } from './trait-effects';
 
 export interface MenuTraitRow {
   readonly traitId: TraitId;
@@ -12,6 +13,8 @@ export interface MenuTraitRow {
   readonly name: string;
   /** One line per non-identity modifier, never cut; empty before the room's balance arrives. */
   readonly effects: readonly string[];
+  /** Each effect line's effect on its owner, in the same order: the line's tone (#453). */
+  readonly effectTones: readonly ModifierEffect[];
   /** The encyclopedia entry the row opens (architecture/encyclopedia.md §12). */
   readonly entryId: string;
 }
@@ -53,6 +56,7 @@ export function menuTraitRowsFor(
         traitId: definition.id,
         name: `${definition.name} ${tierNumeral(owned.tier)}`,
         effects: traits === null ? [] : describeTierModifiers(traits, definition.id, owned.tier),
+        effectTones: traits === null ? [] : describeTierModifierEffects(traits, definition.id, owned.tier),
         entryId: traitEntryId(definition.id),
       },
     ];

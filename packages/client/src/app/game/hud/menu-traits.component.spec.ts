@@ -4,6 +4,7 @@ import { TRAIT_CATALOG } from '@evolution/shared';
 import { traitEntryId, type MenuTraitRow } from './format/menu-traits';
 import { MENU_TRAITS_VISIBLE_ROWS, MENU_TRAIT_LINE_HEIGHT_PX, MENU_TRAIT_ROW_HEIGHT_PX } from './hud-constants';
 import { MenuTraitsComponent } from './menu-traits.component';
+import { MODIFIER_EFFECT } from '../quantities/modifier-labels';
 
 /** A row as drawn with one effect line, and one whose effects wrap onto a second line. */
 const ONE_LINE_PX = MENU_TRAIT_ROW_HEIGHT_PX;
@@ -15,6 +16,7 @@ function rowsFor(count: number): MenuTraitRow[] {
     traitId: trait.id,
     name: `${trait.name} I`,
     effects: ['+5 % speed'],
+    effectTones: [MODIFIER_EFFECT.benefit],
     entryId: traitEntryId(trait.id),
   }));
 }
@@ -67,6 +69,24 @@ describe('MenuTraitsComponent, the list cap (docs/ui/overlays.md §3.5)', () => 
     expect(scrollAreaMaxHeight()).toBe(`${expectedPx}px`);
     // The fixed rows × row-height cap this replaces would have been shorter, and cut the fifth row through its text.
     expect(expectedPx).toBeGreaterThan(MENU_TRAITS_VISIBLE_ROWS * MENU_TRAIT_ROW_HEIGHT_PX);
+  });
+
+  /** #453: a slower speed and a shorter cooldown both read with a minus; only the mark's shape tells them apart. */
+  it('marks each effect line by what it does for the cell, and leaves its words as they are', () => {
+    const [row] = rowsFor(1);
+    show([
+      {
+        ...row!,
+        effects: ['−5 % speed', '−0.5 s sprint cooldown'],
+        effectTones: [MODIFIER_EFFECT.drawback, MODIFIER_EFFECT.benefit],
+      },
+    ]);
+    const lines = [...root().querySelectorAll<HTMLElement>('.effect')];
+    expect(lines.map((line) => line.querySelector<HTMLElement>('ui-effect-mark')?.dataset['effect'])).toEqual([
+      MODIFIER_EFFECT.drawback,
+      MODIFIER_EFFECT.benefit,
+    ]);
+    expect(lines.map((line) => line.textContent?.trim())).toEqual(['−5 % speed', '−0.5 s sprint cooldown']);
   });
 
   it('has nothing to cap before the first pick', () => {

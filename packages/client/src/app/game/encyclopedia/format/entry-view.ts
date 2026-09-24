@@ -6,6 +6,7 @@
 import type { OwnedTrait, TraitRarity, TraitTier } from '@evolution/shared';
 import { UI_CHIP_TONE, type UiChipTone } from '../../../ui-kit/ui-chip.component';
 import type { UiFactRow } from '../../../ui-kit/ui-facts-table.component';
+import type { ModifierEffect } from '../../quantities/modifier-labels';
 import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { DNA_TAG_COLOR } from '../../render/constants/colours';
@@ -106,6 +107,8 @@ export function entryChips(
 export interface EncyclopediaFactRow extends UiFactRow {
   /** Empty on a plain value row; one entry per target on a link fact (§11.4). */
   readonly links: readonly EntryLink[];
+  /** A tier row's effect per column, which tones each cell (#453); `null` where a column has no effect to tone. */
+  readonly effects?: readonly (ModifierEffect | null)[];
 }
 
 /** Shared by every plain value row, so a row's identity does not change with each rebuild. */
@@ -228,6 +231,7 @@ export function tierTableFor(
       (column) =>
         column.section.facts.find((tierFact) => tierFact.key === fact.key)?.text ?? ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
     ),
+    effects: tiers.map((column) => column.section.facts.find((tierFact) => tierFact.key === fact.key)?.effect ?? null),
     links: NO_FACT_LINKS,
   }));
   if (rows.length === 0) return null;

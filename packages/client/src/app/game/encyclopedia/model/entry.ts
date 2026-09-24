@@ -2,6 +2,7 @@
 // A resolved entry holds every value already formatted and every link already titled, so a component only lays out.
 
 import type { CellStage, DnaTag, TraitCategory, TraitId, TraitRarity, TraitTier } from '@evolution/shared';
+import type { ModifierEffect } from '../../quantities/modifier-labels';
 import type { PreviewSpec } from '../../render/preview/preview-spec';
 import type { EncyclopediaCategory } from './categories';
 import type { ENTRY_SUBJECT, EntryId, EntrySubject } from './entry-id';
@@ -82,6 +83,8 @@ export interface ResolvedFact {
   readonly text: string;
   /** Set for a link-valued fact, `null` otherwise. A link with several targets is one fact per target. */
   readonly link: EntryLink | null;
+  /** A tier fact's effect on its owner, which tones it (#453); absent on every other fact. */
+  readonly effect?: ModifierEffect;
 }
 
 export interface ResolvedSection {

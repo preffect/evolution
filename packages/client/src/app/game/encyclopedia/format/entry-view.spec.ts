@@ -6,6 +6,7 @@
 import { DEFAULT_BALANCE, TRAIT_RARITY, ZONE_ID, type TraitRarity, type TraitTier } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { UI_CHIP_TONE } from '../../../ui-kit/ui-chip.component';
+import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { DNA_TAG_COLOR } from '../../render/constants/colours';
 import { PREVIEW_SCENE, type PreviewActionScene } from '../../render/preview/preview-spec';
 import {
@@ -115,6 +116,14 @@ describe('tierTableFor (docs/ui/encyclopedia.md §11.4)', () => {
     const firstTier = entry.sections[0]!.facts;
     expect(table?.rows.map((row) => row.name)).toEqual(firstTier.map((fact) => factNameFromNoun(fact.label)));
     expect(table?.rows[0]?.values[0]).toBe(firstTier[0]!.text);
+  });
+
+  /** #453: Mitochondrion's less decay prints with a minus in every tier and helps in every one. */
+  it('tones each tier cell by its effect on the owner, not by its sign', () => {
+    const table = tierTableFor(resolve(MITOCHONDRION).sections, null);
+    const decay = table?.rows.find((row) => row.rowId === 'decayMultiplier');
+    expect(decay?.values.every((value) => value.startsWith('−'))).toBe(true);
+    expect(decay?.effects?.every((effect) => effect === MODIFIER_EFFECT.benefit)).toBe(true);
   });
 
   /**

@@ -16,7 +16,14 @@ import type { TraitId } from '@evolution/shared';
 import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
 import { GLYPH_LOD } from '../glyphs/glyph-view';
 import { GameStateService } from '../state/game-state.service';
-import { UiFactMarkerDirective, UiFactsTableComponent, type UiFactRow } from '../../ui-kit/ui-facts-table.component';
+import {
+  UiFactMarkerDirective,
+  UiFactValueDirective,
+  UiFactsTableComponent,
+  type UiFactRow,
+} from '../../ui-kit/ui-facts-table.component';
+import type { ModifierEffect } from '../quantities/modifier-labels';
+import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
 import { UiPanelComponent } from '../../ui-kit/ui-panel.component';
 import { UiPanelSectionComponent } from '../../ui-kit/ui-panel-section.component';
 import { AFFECTING_SPARKLINE_HEIGHT_PX, AFFECTING_SPARKLINE_WIDTH_PX } from './hud-constants';
@@ -35,7 +42,9 @@ const PANEL_LABEL = 'Affecting you';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TraitGlyphComponent,
+    UiEffectMarkComponent,
     UiFactMarkerDirective,
+    UiFactValueDirective,
     UiFactsTableComponent,
     UiPanelComponent,
     UiPanelSectionComponent,
@@ -69,6 +78,9 @@ const PANEL_LABEL = 'Affecting you';
                   @if (traitIdOf(row); as traitId) {
                     <app-trait-glyph [traitId]="traitId" [lod]="listLod" still />
                   }
+                </ng-template>
+                <ng-template uiFactValue let-row let-value="value">
+                  <span class="trait-effect"><ui-effect-mark [effect]="effectOf(row)" />{{ value }}</span>
                 </ng-template>
               </ui-facts-table>
             }
@@ -144,5 +156,10 @@ export class AffectingPanelComponent {
    */
   protected traitIdOf(row: UiFactRow): TraitId | null {
     return 'traitId' in row ? (row as AffectingRow).traitId : null;
+  }
+
+  /** What a trait row's value does for the cell: its tone (#453), by the same check as `traitIdOf`. */
+  protected effectOf(row: UiFactRow): ModifierEffect | null {
+    return 'valueEffect' in row ? (row as AffectingRow).valueEffect : null;
   }
 }
