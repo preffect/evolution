@@ -44,6 +44,8 @@ export interface DnaGrant {
 export interface BotSpawnRequest {
   readonly behavior: BotStrategyName;
   readonly seed: number;
+  /** The seat colour the room keeps free for the bot, so it never shares a human's or another bot's (#645). */
+  readonly avatarIndex: number;
   /** `hunter` only: hunt this player alone. */
   readonly preyPlayerId?: PlayerId;
 }

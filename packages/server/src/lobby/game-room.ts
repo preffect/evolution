@@ -15,6 +15,7 @@ import type { RoomTiming } from './room-timing.js';
 import type { FullGameState, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
 import { DebugRequestError } from '../game/debug/debug-request-error.js';
+import { freeAvatarIndex, seatedColours } from './seat-colours.js';
 
 /**
  * A running game session. Owns the connections, the late-join/disconnect
@@ -168,9 +169,10 @@ export class GameRoom {
   /** Player who was never part of the session joins an in-progress game. */
   addLatePlayer(connection: Connection): void {
     const playerId = connection.playerId as PlayerId;
+    const avatarIndex = freeAvatarIndex(connection.avatarIndex, seatedColours(this));
     this.playerConnections.set(playerId, connection);
-    this.game.addPlayer(playerId, connection.avatarIndex, connection.playerName);
-    this.enrol({ playerId, playerName: connection.playerName, avatarIndex: connection.avatarIndex });
+    this.game.addPlayer(playerId, avatarIndex, connection.playerName);
+    this.enrol({ playerId, playerName: connection.playerName, avatarIndex });
     sendMessage(connection, this.gameStateMessageFor(playerId));
   }
 

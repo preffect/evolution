@@ -82,7 +82,8 @@ describe('seat-lifecycle: join_game for the room already held (#335)', () => {
     const fixture = createHeldRoomLobby();
     const carol = fixture.join('carol');
     fixture.handlers.onJoinGame(carol, fixture.rejoin);
-    expect(fixture.module.addPlayer).toHaveBeenCalledWith('carol', 0, 'carol');
+    // alice and bob hold colours 0 and 1 (#645).
+    expect(fixture.module.addPlayer).toHaveBeenCalledWith('carol', 2, 'carol');
     expect(fixture.room.allPlayerIds).toEqual(['alice', 'bob', 'carol']);
     fixture.room.stop();
   });
