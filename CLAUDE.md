@@ -229,5 +229,9 @@ change ports inside the container; they are already baked into the integration f
   with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
   every module); populate a room with `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
   `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter` | `flee`, `docs/testing/bots-and-design-tables.md` §8.3)
+  **These MCP tools always reach the main checkout's server on 4400: the human's live game.** A worktree stack
+  (`PORT=4570 CLIENT_PORT=4572 ./run.sh`) is driven by curling its own endpoint, one `tools/call` per request (as
+  `packages/client/e2e/debug-mcp.ts` does):
+  `curl -s localhost:4570/debug-mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"debug_list_games","arguments":{}}}'`
 - **angular** — Angular's built-in MCP server for component introspection and development assistance
 - **playwright** — headless Chromium (`@playwright/mcp`, installed in the image) for QA / graphics roles to drive and screenshot the running game; screenshots land in `.qa/screenshots/`
