@@ -3,7 +3,7 @@
 // doubled on sprint, two tails at tier III. `flagellumPolyline` is pure; `FlagellumLines` draws
 // every tail of the frame into one Graphics, under the body so the root is buried in the membrane.
 
-import { RADIANS_PER_FULL_TURN, type TraitId, type TraitTier } from '@evolution/shared';
+import { RADIANS_PER_FULL_TURN, tierEntryOf, type TraitId, type TraitTier } from '@evolution/shared';
 import { Graphics } from 'pixi.js';
 import { hexToNumber } from '../colour';
 import {
@@ -54,12 +54,12 @@ const QUARTER_TURN = Math.PI * HALF;
 
 /** How many tails a tier grows. */
 export function flagellumTailCount(tier: TraitTier): number {
-  return FLAGELLUM_TAILS_BY_TIER[tier - 1] ?? ONE_TAIL;
+  return tierEntryOf(FLAGELLUM_TAILS_BY_TIER, tier) ?? ONE_TAIL;
 }
 
 /** The wave's peak in wu: `FLAGELLUM_AMPLITUDE_RADII × r`, × 1 / 1.5 / 2 per tier, × 2 on sprint. */
 function amplitudeWu(spec: FlagellumSpec): number {
-  const tierScale = FLAGELLUM_AMPLITUDE_BY_TIER[spec.tier - 1] ?? FULL_AMPLITUDE;
+  const tierScale = tierEntryOf(FLAGELLUM_AMPLITUDE_BY_TIER, spec.tier) ?? FULL_AMPLITUDE;
   const sprintScale = spec.isSprinting ? FLAGELLUM_SPRINT_AMPLITUDE_SCALE : FULL_AMPLITUDE;
   return FLAGELLUM_AMPLITUDE_RADII * tierScale * sprintScale * spec.radius;
 }

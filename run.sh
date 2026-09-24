@@ -258,7 +258,8 @@ start_deploy_watch() {
     return 0
   fi
   echo "==> Starting deploy watcher (redeploys from origin/main, log: .game-logs/deploy.log)..."
-  DEPLOY_TARGET_DIR="$SCRIPT_DIR" nohup "$DEPLOY_WATCH_SCRIPT" "$DEPLOY_WATCH_FLAG" > /dev/null 2>> "$LOG_DIR/deploy.log" &
+  # DEPLOY_WATCH_SKIP_SHA: the commit a failed one-shot deploy is restarting on, set only by that deploy (#666)
+  DEPLOY_TARGET_DIR="$SCRIPT_DIR" DEPLOY_WATCH_SKIP_SHA="${DEPLOY_WATCH_SKIP_SHA:-}" nohup "$DEPLOY_WATCH_SCRIPT" "$DEPLOY_WATCH_FLAG" > /dev/null 2>> "$LOG_DIR/deploy.log" &
   echo $! > "$DEPLOY_WATCH_PID_FILE"
 }
 
@@ -302,14 +303,37 @@ foreign_listener() { # <pid>
   readlink "/proc/$1/cwd" > /dev/null 2>&1 && ! owned_by_this_checkout "$1"
 }
 
-# Before the cleanup, so a refused start leaves this checkout's running stack alone too
-refuse_foreign_port_holders() {
+# True while <finder> (which sets HELD_PORT and HELD_PID) still finds a holder once the stop grace is over
+held_through_grace() { # <finder>
+  local waited=0
+  "$1" || return 1
+  while (( waited < STOP_GRACE_SECONDS )); do
+    sleep "$READY_POLL_SECONDS"
+    waited=$((waited + READY_POLL_SECONDS))
+    "$1" || return 1
+  done
+}
+
+# Sets HELD_PORT and HELD_PID to an exiting listener (cwd unreadable); refuses on another checkout's
+find_exiting_port_holder() {
   local port pid
   for port in $(needed_ports); do
     for pid in $(listener_pids "$port"); do
       ! foreign_listener "$pid" || refuse_port "$port" "$pid" "not by this checkout"
+      owned_by_this_checkout "$pid" && continue
+      HELD_PORT="$port"
+      HELD_PID="$pid"
+      return 0
     done
   done
+  return 1
+}
+
+# Before the cleanup, so a refused start leaves this checkout's running stack alone too. An exiting listener is
+# not this run's stopped stack yet, and the cleanup would not stop it: it gets the grace to go (#666).
+refuse_foreign_port_holders() {
+  held_through_grace find_exiting_port_holder || return 0
+  refuse_port "$HELD_PORT" "$HELD_PID" "exiting but still listening after the ${STOP_GRACE_SECONDS}s grace; this checkout's stack was not stopped"
 }
 
 # Sets HELD_PORT and HELD_PID to a remaining listener of this checkout; refuses on another checkout's
@@ -330,22 +354,21 @@ find_held_port() {
 # that ignored TERM are then killed outright (owned_by_this_checkout: never another checkout's), and a
 # listener that survives even that refuses the start.
 refuse_held_ports_after_stop() {
-  local waited=0 port pid
-  find_held_port || return 0
-  while (( waited < STOP_GRACE_SECONDS )); do
-    sleep "$READY_POLL_SECONDS"
-    waited=$((waited + READY_POLL_SECONDS))
-    find_held_port || return 0
-  done
+  local port pid killed=" " survived="the stop and the ${STOP_GRACE_SECONDS}s grace"
+  held_through_grace find_held_port || return 0
   for port in $(needed_ports); do
     for pid in $(listener_pids "$port"); do
       owned_by_this_checkout "$pid" || continue
-      kill -9 "$pid" 2>/dev/null && echo "    Killed process $pid on port $port: it outlived the stop by ${STOP_GRACE_SECONDS}s"
+      kill -9 "$pid" 2>/dev/null || continue
+      echo "    Killed process $pid on port $port: it outlived the stop by ${STOP_GRACE_SECONDS}s"
+      killed+="$pid "
     done
   done
   sleep "$READY_POLL_SECONDS"
   find_held_port || return 0
-  refuse_port "$HELD_PORT" "$HELD_PID" "still listening after the stop, the ${STOP_GRACE_SECONDS}s grace and a kill -9"
+  # Only a holder that was sent one survived a kill -9 (#666): an exiting one's cwd is unreadable, so it is never sent one
+  [[ "$killed" != *" $HELD_PID "* ]] || survived+=" and a kill -9"
+  refuse_port "$HELD_PORT" "$HELD_PID" "still listening after $survived"
 }
 
 record_listeners_before_start() {

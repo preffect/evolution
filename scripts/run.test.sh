@@ -24,7 +24,10 @@
 # checkout that releases the port within the grace is waited for, one that ignores TERM is killed after it;
 # a server that exits on start fails fast and stops the client it started; a stack not ready in time is
 # left running; both failures still start the watcher, so the fix merge deploys; every start waits for
-# its listeners, --wait-ready or not. SERVER_PORT is an alias of PORT (#474): alone it sets the server port,
+# its listeners, --wait-ready or not. #666: --stop waits for a watcher slow to exit; a refusal names a kill -9 only
+# when one was sent; an exiting listener before the cleanup gets the grace, then refuses the start before this
+# checkout's stack is stopped; a failed one-shot deploy's run.sh hands the watcher it starts the failed commit to
+# skip, a plain start none. SERVER_PORT is an alias of PORT (#474): alone it sets the server port,
 # equal to PORT it starts, different from PORT it refuses the start (not --help or --status); run.env records both, and the usage names both.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
@@ -44,6 +47,7 @@ SETUP_LOCK_TIMEOUT_SECONDS=1
 STOP_GRACE_SECONDS=1
 TERM_LINGER_SECONDS=2  # a listener that takes this long to exit after TERM...
 LINGER_GRACE_SECONDS=6 # ...within this grace
+NO_SUCH_PID=2147483646 # above any pid_max: a listener ss names whose cwd cannot be read, as an exiting process's
 REAL_SS="$(command -v ss)"
 REAL_LSOF="$(command -v lsof)"
 
@@ -154,6 +158,25 @@ signal.signal(signal.SIGTERM, signal.SIG_IGN if sys.argv[2] == "ignore" else lin
 time.sleep(float(sys.argv[3]))
 ' "$2" "$3" "$PROBE_LIFETIME_SECONDS"
 }
+# A process whose command line is this checkout's watcher and that takes <seconds> to exit after TERM. Orphaned,
+# like the watcher run.sh leaves behind, so it is reaped when it exits rather than lingering as a zombie.
+start_lingering_watcher() { # <seconds> -> $probe_pid
+  local ready="$sandbox/lingering-watcher.ready"
+  rm -f "$ready"
+  (cd "$stack" && exec python3 -c '
+import pathlib, signal, sys, time
+def linger(*_):
+    time.sleep(float(sys.argv[3]))
+    sys.exit(0)
+signal.signal(signal.SIGTERM, linger)
+pathlib.Path(sys.argv[4]).touch()
+time.sleep(float(sys.argv[5]))
+' "$stack/scripts/deploy-main.sh" --watch "$1" "$ready" "$PROBE_LIFETIME_SECONDS" > /dev/null 2>&1 &
+    echo $! > "$sandbox/lingering-watcher.pid")
+  probe_pid="$(cat "$sandbox/lingering-watcher.pid")"
+  probe_pids+=("$probe_pid")
+  wait_for test -e "$ready"
+}
 alive() { kill -0 "$1" 2>/dev/null; }
 all_recorded_alive() { # every PID in .game.pid is running
   local pid
@@ -169,6 +192,11 @@ watcher_pid() { cat "$stack/.game-logs/deploy-watch.pid"; }
 # The watcher runs the script, not the nohup it was started through: --stop only stops the former
 watcher_running() { runs_script "$(watcher_pid)" --watch; }
 watcher_polled() { sed -n "/(pid $1)\$/,\$p" "$stack/.game-logs/deploy.log" | grep -e 'skipping$' -e 'nothing to do$' > /dev/null; } # <pid>
+watcher_environment() { tr '\0' '\n' < "/proc/$(watcher_pid)/environ"; }
+watcher_skips() { watcher_environment | grep -x "DEPLOY_WATCH_SKIP_SHA=$1" > /dev/null; } # <sha>
+# Empty or absent: a watcher that deployed has re-executed itself without it
+watcher_skips_nothing() { ! watcher_environment | grep '^DEPLOY_WATCH_SKIP_SHA=.' > /dev/null; }
+stack_deployed_at_origin() { [[ "$(cat "$stack/.game-logs/deployed-sha")" == "$(origin_head)" ]]; }
 stack_watchers() { pgrep -fc " $stack/scripts/deploy-main.sh --watch" || true; }
 runs_script() { tr '\0' '\n' < "/proc/$1/cmdline" | grep -xF -- "$2" > /dev/null; } # <pid> <whole argument>
 line_of() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; } # <fixed text> -> its line number in $out
@@ -222,6 +250,12 @@ check "--stop spares another checkout's listener on the port and says so" $(( $(
 check "--stop spares another checkout's watcher behind a stale PID file" $(holds alive "$foreign_watcher")
 kill "$foreign_listener" "$foreign_watcher"
 
+start_lingering_watcher "$TERM_LINGER_SECONDS"
+lingering_watcher="$probe_pid"
+echo "$lingering_watcher" > "$stack/.game-logs/deploy-watch.pid"
+RUN_STOP_GRACE_SECONDS="$LINGER_GRACE_SECONDS" run_stack --stop
+check "--stop returns only once a watcher slow to exit after TERM is gone (#666)" $(( $(holds grep -q "Stopped deploy watcher PID $lingering_watcher" <<<"$out") && ! $(holds alive "$lingering_watcher") ))
+
 # --- the listener source: ss first, lsof only without ss -----------------------------------------
 start_probe "$stack/packages/client" sleep "$PROBE_LIFETIME_SECONDS"
 invisible_listener="$probe_pid"
@@ -268,6 +302,28 @@ wait_for listening "$STACK_CLIENT_PORT"
   [[ $deaf_listener_killed -eq 0 ]] || wait "$deaf_listener" || true
 } 2>/dev/null
 check "a listener of this checkout that ignores TERM is killed after the grace and the start proceeds (rc $rc)" $(( rc == 0 && deaf_listener_killed && ! $(holds alive "$deaf_listener") ))
+run_stack --stop
+
+# A listener of this checkout that the stop leaves exiting (cwd unreadable) is never sent a kill -9 (#666)
+start_probe "$stack/packages/server" sleep "$PROBE_LIFETIME_SECONDS"
+exiting_listener="$probe_pid"
+echo "$STACK_SERVER_PORT $exiting_listener" > "$ss_stub_file"
+run_stack --server-only --no-deploy-watch
+: > "$ss_stub_file"
+check "a holder that outlives the grace without a kill -9 refuses without claiming one (rc $rc)" $(( rc != 0 && $(holds grep -qF "port $STACK_SERVER_PORT is held by PID $exiting_listener (cwd unknown), still listening after the stop and the ${STOP_GRACE_SECONDS}s grace; not starting" <<<"$out") && ! $(holds grep -q 'kill -9' <<<"$out") ))
+run_stack --stop
+
+# An exiting listener before the cleanup: the cleanup would not stop it, so it is waited for, and refused before
+# this checkout's running stack is stopped when it stays (#666)
+run_stack --server-only --no-deploy-watch
+own_server="$(ss_pids "$STACK_SERVER_PORT")"
+echo "$STACK_CLIENT_PORT $NO_SUCH_PID" > "$ss_stub_file"
+run_stack --no-deploy-watch
+check "an exiting listener that outlives the grace refuses the start before the cleanup (rc $rc)" $(( rc != 0 && $(holds grep -qF "port $STACK_CLIENT_PORT is held by PID $NO_SUCH_PID (cwd unknown), exiting but still listening after the ${STOP_GRACE_SECONDS}s grace; this checkout's stack was not stopped; not starting" <<<"$out") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") && $(holds alive "$own_server") ))
+start_probe "$sandbox" bash -c 'sleep "$1"; : > "$2"' _ "$TERM_LINGER_SECONDS" "$ss_stub_file"
+RUN_STOP_GRACE_SECONDS="$LINGER_GRACE_SECONDS" run_stack --no-deploy-watch
+check "an exiting listener that goes within the grace is waited for, and the start proceeds (rc $rc)" $(( rc == 0 && $(holds grep -q 'Ready: this checkout listens' <<<"$out") ))
+: > "$ss_stub_file"
 run_stack --stop
 
 # --- refused and failed starts (#444) -----------------------------------------------------------
@@ -334,6 +390,21 @@ merge_to_main game.txt v3
 rc=0
 out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
 check "a one-shot deploy with a watcher running does not start a second (rc $rc)" $(( rc == 0 && $(holds test "$(watcher_pid)" = "$deployed_watcher") && $(stack_watchers) == 1 ))
+
+# A failed one-shot deploy's run.sh hands the watcher it starts the failed commit to skip, as its stack may still be
+# coming up; a plain ./run.sh hands it none, so that watcher deploys the commit (#666)
+run_stack --stop
+run_stack --no-deploy-watch
+merge_to_main game.txt v3b
+touch "$server_dies_file"
+rc=0
+out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
+rm "$server_dies_file"
+failed_at="$(origin_head)"
+check "a failed one-shot deploy's run.sh starts the watcher with the failed commit to skip (rc $rc)" $(( rc != 0 && $(holds wait_for watcher_running) && $(holds watcher_skips "$failed_at") ))
+run_stack --stop
+run_stack
+check "a plain ./run.sh starts the watcher with nothing to skip, and it deploys that commit (rc $rc)" $(( rc == 0 && $(holds watcher_skips_nothing) && $(holds wait_for stack_deployed_at_origin) && $(holds wait_for watcher_polled "$(watcher_pid)") ))
 
 # --- a fresh worktree (#329): install and shared build before the start, nothing once ready -------
 mkdir -p "$stack/packages/shared/src"

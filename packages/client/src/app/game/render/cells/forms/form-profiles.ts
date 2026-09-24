@@ -5,7 +5,7 @@
 // silhouettes register their `profile` with #192–#196. The amoeba (#192) is a shrunk core whose pseudopod bumps
 // make up the area (`amoeba-pseudopods.ts`), so its unit area is measured with its lobes (`normalisedArea`'s bumps).
 
-import { RADIANS_PER_FULL_TURN, type TraitId, type TraitTier } from '@evolution/shared';
+import { RADIANS_PER_FULL_TURN, tierEntryOf, type TraitId, type TraitTier } from '@evolution/shared';
 import { gaussianBump, wrapAngle } from '../../geometry';
 import {
   DIATOM_ASPECT,
@@ -33,6 +33,8 @@ export interface FormDefinition {
 
 const BLOB_PROFILE = (): FormProfile | null => null;
 const CIRCLE = (): number => DIATOM_ASPECT;
+/** The slipper past its table falls back to its tier-I aspect. */
+const [SLIPPER_TIER_I_ASPECT] = SLIPPER_ASPECT_BY_TIER;
 
 /** The generic blob: `B ≡ 1`, so the profile term is absent and the shader skips it. */
 export const BLOB_FORM: FormDefinition = {
@@ -48,7 +50,7 @@ export const FORM_PROFILES: ReadonlyMap<TraitId, FormDefinition> = new Map<Trait
     'paramecium_cilia',
     {
       id: FORM_ID.slipper,
-      aspectAt: (tier) => SLIPPER_ASPECT_BY_TIER[tier - 1] ?? SLIPPER_ASPECT_BY_TIER[0],
+      aspectAt: (tier) => tierEntryOf(SLIPPER_ASPECT_BY_TIER, tier) ?? SLIPPER_TIER_I_ASPECT,
       profileAt: BLOB_PROFILE,
       isRigid: false,
     },
@@ -73,7 +75,7 @@ export function formFor(formTraitId: TraitId | null): FormDefinition {
 
 /** Pseudopod lobes at `tier` (sheet 04 amoeba); 0 for every other form. */
 export function pseudopodCount(form: FormDefinition, tier: TraitTier): number {
-  return form.id === FORM_ID.amoeba ? (PSEUDOPOD_COUNT_BY_TIER[tier - 1] ?? 0) : 0;
+  return form.id === FORM_ID.amoeba ? (tierEntryOf(PSEUDOPOD_COUNT_BY_TIER, tier) ?? 0) : 0;
 }
 
 /**
