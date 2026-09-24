@@ -102,8 +102,9 @@ resolves a scenario index, so an adapter never hard-codes the DSL's id scheme).
 The design tables run on the Evolution adapter: `ecology-spawn.gameplay.test.ts` (E1–E3, E14),
 `ecology-cells.gameplay.test.ts` (E4–E8, E12, E15), `game-design-session.gameplay.test.ts` (G1–G3,
 G9–G11, G14; G2 and G11 share one whole-round run), `game-design-controls.gameplay.test.ts` (G4–G7), `respawn-input.gameplay.test.ts` (G8b)
-and `progression.gameplay.test.ts` (P1–P3, P6–P8, P10). Two files carry the rules end to end beside
-the tables (#198): `progression-trait-effects.gameplay.test.ts` (DNA eaten → level-up → a card picked
+and `progression.gameplay.test.ts` (P1–P3, P6–P8, P10). Three files carry the rules end to end beside
+the tables (#197, #198): `ecology-eat-grow-ratio.gameplay.test.ts` (two meals chained into the speed cap, and the engulf
+ratio 0.01 mass either side of `canStart` and `canContinue`, the start edge also against a 400-mass prey), `progression-trait-effects.gameplay.test.ts` (DNA eaten → level-up → a card picked
 through the input → the tier I modifier changes DNA gain, the speed cap or the decay on the pick tick)
 and `leaderboard.gameplay.test.ts` (score order, the mass then join-order tie-breaks of
 `determinism/ordering-and-state-hash.md` §4, and a late-join gift that buys no rank). `traits.gameplay.test.ts` holds the trait
