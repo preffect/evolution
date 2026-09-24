@@ -36,10 +36,9 @@ describe('the encyclopedia panel’s keys (docs/ui/encyclopedia.md §11.5)', () 
   }
 
   /**
-   * A row pressed as a browser presses one — `pointerdown`, `pointerup`, `click`, in that order. The `pointerdown`
-   * is load-bearing rather than decorative: it is what tells the list that the kit's report beside the press is that
-   * press's and not a rove, and a helper that omits it would quietly turn every push here into a replace
-   * (`encyclopedia-activation-press.directive.ts`).
+   * A row pressed as a browser presses one — `pointerdown`, `pointerup`, `click`, in that order. Since ticket #622 the
+   * kit reports the activation itself and nothing reads the first two; they stay so the press is driven as a browser
+   * drives it (docs/ui/encyclopedia.md §11.5).
    */
   function openFirstEntry(): void {
     const first = entriesIn(state.location().category)[0]!.entries[0]!;

@@ -21,8 +21,9 @@ class StateStub {
   readonly categories = LISTED;
   readonly location = signal(categoryLanding(ENCYCLOPEDIA_CATEGORY.evolutions));
   readonly query = signal('');
-  readonly selectCategory = vi.fn<(category: EncyclopediaCategory) => void>();
-  readonly focusCategory = vi.fn<(category: EncyclopediaCategory) => void>();
+  /** Both move the location, as the service's push and replace do: the rail reads it back to tell a rove from a push. */
+  readonly selectCategory = vi.fn((category: EncyclopediaCategory) => this.location.set(categoryLanding(category)));
+  readonly focusCategory = vi.fn((category: EncyclopediaCategory) => this.location.set(categoryLanding(category)));
   readonly clearQuery = vi.fn<() => void>();
 }
 
@@ -39,10 +40,9 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
   }
 
   /**
-   * A press as a browser sends it — **all three events, in order**: `pointerdown`, `pointerup`, then the `click` the
-   * kit selects on. The `pointerup` matters: it is dispatched before the click, so a handler that ends the press on
-   * it has already run by the time the kit reports. A helper that skipped it made every ordering question in this
-   * file unanswerable, and hid #460's R6 (docs/ui/encyclopedia.md §11.5).
+   * A press as a browser sends it — `pointerdown`, `pointerup`, then the `click` the kit selects on. Since ticket #622
+   * nothing reads the first two (the kit reports the activation itself), and sending them keeps it that way: a feature
+   * that started tracking presses again would be exercised exactly as a browser drives it.
    */
   function clickRow(category: EncyclopediaCategory): void {
     const element = row(category);
@@ -146,8 +146,8 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
     expect(state.selectCategory).not.toHaveBeenCalled();
   });
 
-  // The kit emits nothing when a press sets the id it already holds (`UiRovingGroup.select` writes a signal), so
-  // these four are the cases a rail driven only by `(selectedIdChange)` gets wrong — #460's review found them.
+  // `selectedIdChange` is silent when a press sets the id it already holds (`UiRovingGroup.select` writes a signal), so
+  // these four are the cases a rail driven only by it gets wrong — #460's review found them; `activated` covers them.
 
   it('returns to the landing when the category being read is pressed, not only when the selection moves', () => {
     state.location.set(entryLocation('trait:mitochondrion' as EntryId));
@@ -210,8 +210,7 @@ describe('EncyclopediaRailComponent (docs/ui/encyclopedia.md §11.3, §11.5)', (
   });
 
   // Enter and Space (#449's keyboard model). On a rail whose selection follows focus the kit's own `select` sets the
-  // id the rove already set, so it emits nothing at all — which is why an activation by key is handled on the item's
-  // own `keydown`, below the group, rather than waited for as a report.
+  // id the rove already set, so `selectedIdChange` is silent; the kit's `activated` is what reports it (ticket #622).
 
   it.each([['Enter'], [' ']])('pushes on %j, which is an activation and not the rove that put focus there', (key) => {
     pressKeyOn(ENCYCLOPEDIA_CATEGORY.evolutions, key);
