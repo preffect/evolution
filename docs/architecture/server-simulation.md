@@ -82,7 +82,9 @@ prediction reuses them unchanged.
 ### 3.4 Wild cells in the step (ecology/wild-cells.md §3.3, #517)
 
 A wild cell is a `CellRecord` driven by a seat (architecture/entity-model.md §2); what differs from a player cell
-is confined to `game/wild/` and to three branches on `cell.kind` in steps 4 and 5.
+is confined to `game/wild/` and to three branches on `cell.kind` in steps 4 and 5. The dependency runs one
+way: `wild/` imports from `simulation/`, and `simulation/step.ts`, the composer, is the only `simulation/` source that
+imports from `wild/` (lint-enforced, `eslint.config.js`; #509).
 
 - **The settle** (`wild/wild-settle.ts`) replaces the per-tick pin. The pure core is
   `settleWildMass({ mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass }, balance) → { mass, grownMass,

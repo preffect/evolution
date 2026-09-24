@@ -6,7 +6,7 @@
 import { secondsToTicks } from '@evolution/shared';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { WildSeatRecord } from '../world/entities.js';
-import { findCell } from '../world/lookups.js';
+import { indexCellsById } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { placeWildCell } from './wild-seats.js';
 
@@ -26,9 +26,11 @@ function advanceVacantSeat(world: WorldState, seat: WildSeatRecord, context: Ste
 }
 
 export function runWildRespawns(world: WorldState, context: StepContext): void {
+  // A placement appends a cell for its own seat only, so the index stays true for the seats after it.
+  const cellsById = indexCellsById(world);
   for (const seat of world.wildSeats) {
     if (seat.cellId !== null) {
-      if (findCell(world, seat.cellId) === undefined) {
+      if (!cellsById.has(seat.cellId)) {
         vacateSeat(seat, context);
       }
       continue;

@@ -8,10 +8,10 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import { setCellMass } from '../simulation/cell-mass.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
+import { cellOfSeat } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import { createWildSeatRecord, placeWildCell } from './wild-seats.js';
 import {
-  cellOfSeat,
   settleWildCells,
   settleWildMass,
   wildRecoveryFactorPerTick,

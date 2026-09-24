@@ -9,7 +9,7 @@
 import type { Vec2 } from '@evolution/shared';
 import { worldReferenceAt } from '../../game/simulation/round-clock.js';
 import { withdrawCell } from '../../game/session/death.js';
-import { cellOfSeat } from '../../game/wild/wild-settle.js';
+import { cellOfSeat } from '../../game/world/lookups.js';
 import { createWildSeatRecord, seatWildCell } from '../../game/wild/wild-seats.js';
 import type { CellRecord, WildSeatRecord } from '../../game/world/entities.js';
 import type { WorldState } from '../../game/world/world-state.js';

@@ -38,10 +38,10 @@ import { engulfingPredatorOf, isCarried, isEngulfing } from '../simulation/engul
 import { tryStartSprint } from '../simulation/inputs.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
+import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { isFleeSprintWorthwhile, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
 import { createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
-import { cellOfSeat } from './wild-settle.js';
 import { wanderTargetOf } from './wild-wander.js';
 
 export function decisionIntervalTicks(balance: BalanceConfig): number {
@@ -201,10 +201,7 @@ export function decideWildTargets(world: WorldState, step: StepContext): void {
     step,
     isHuntingStage: hasReachedStage(reference.worldStage, step.balance.wildCells.WILD_CELL_HUNTS_PLAYERS_FROM_STAGE),
   };
-  for (const seat of world.wildSeats) {
-    const cell = cellOfSeat(world, seat);
-    if (cell !== undefined) {
-      advanceSeat(seat, cell, decision);
-    }
+  for (const { seat, cell } of seatedWildCells(world)) {
+    advanceSeat(seat, cell, decision);
   }
 }
