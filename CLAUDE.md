@@ -28,6 +28,7 @@
 ./validate.sh typecheck               # type check all packages
 ./validate.sh lint                    # eslint + prettier --check + eslint-disable / TODO audit
 ./validate.sh duplication             # jscpd duplicate-code gate (.jscpd.json)
+./validate.sh format --scope server   # fix formatting: eslint --fix + prettier --write on lint's files (+ changed docs); lists what changed; never prettier --write by hand
 ./validate.sh all                     # lint, duplication, typecheck, test in sequence; stops at the first red phase
 scripts/main-gate.sh [--watch]        # the timed gate on main (docs/WORKFLOW.md §5.1): lanes 1–2 merge on scoped checks, this gates origin/main hourly
 ./validate.sh all --affected          # the lane-3 merge gate (once, by whoever merges): only what the branch changed vs origin/main, then its integration tier; refuses a branch behind origin/main (merge it first)
