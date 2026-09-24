@@ -1,5 +1,5 @@
 // docs/ecology/acceptance.md §8.1, the die-off rows (W15, W16), each run twice and hash-compared: over the dish's
-// budget the heaviest wild cell starves, one at a time and committed until it bursts into ordinary scraps, and its
+// budget the heaviest wild cell starves, one at a time and committed until it bursts into a feast, and its
 // seat respawns like an eaten one (docs/ecology/wild-cells.md §3.3.6). The "no player" rows keep the one player idle
 // at the far side of the dish; placing it vacates the seeded seats and switches the spawns off.
 
@@ -22,8 +22,8 @@ const W15_SIZE = 40;
 const W15_READ_TICK = 600;
 const W15_BURST_TICK = 2628;
 const W15_RESPAWN_TICK = W15_BURST_TICK + WILD_RESPAWN_TICKS + ONE_TICK;
-/** "Detritus floor(0.2 × 31.85 / 2) = 3 motes = 6 mass". */
-const W15_DETRITUS_MASS = 6;
+/** The feast: "detritus floor(0.8 × 31.85 / 2) = 12 motes = 24 mass" (the §1 scraps would be 6). */
+const W15_FEAST_MASS = 24;
 /**
  * W16: seat 0 at size 20 and seat 1 at 19.9 (798 > 720): seat 0 starves and falls below seat 1 within 4 ticks, while
  * the total stays over the budget until tick 131, so a second starver would be chosen without the one-at-a-time rule.
@@ -48,7 +48,7 @@ function wildOnly(name: string) {
 }
 
 describe('ecology/acceptance.md §8.1: the die-off', () => {
-  it('W15: a lone giant over the budget starves, committed, bursts on tick 2 628 into scraps and respawns', async () => {
+  it('W15: a lone giant over the budget starves, committed, bursts on tick 2 628 into a feast and respawns', async () => {
     await wildOnly('W15')
       .placeWildCell({ seat: PLACED_SEAT, sizeFactor: W15_SIZE, at: BROTH_POINT })
       .advance(W15_RESPAWN_TICK)
@@ -80,9 +80,9 @@ describe('ecology/acceptance.md §8.1: the die-off', () => {
       ])
       .atTick(W15_BURST_TICK)
       .toEqual([null, false, WILD_RESPAWN_TICKS])
-      .expect('3 detritus motes = 6 mass', detritusInDish)
+      .expect('a feast of 12 detritus motes = 24 mass, not 3 motes of scraps', detritusInDish)
       .atTick(W15_BURST_TICK)
-      .toBe(W15_DETRITUS_MASS)
+      .toBe(W15_FEAST_MASS)
       .expect('no DNA, tag points, score or wildAbsorptions to anyone', (view) => {
         const progress = progressOf(view, 0);
         const tags = DNA_TAGS.reduce((sum, tag) => sum + (progress?.dnaTagPoints[tag] ?? 0), 0);

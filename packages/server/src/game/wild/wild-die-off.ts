@@ -3,8 +3,9 @@
 // (ties to the lower seat), one at a time and committed until it dies: each settle takes
 // `WILD_CELL_STARVATION_FRACTION_PER_SECOND` of its full size, from its growth first and then from its base size
 // (its size factor), the same order a sprint's cost is paid in (§3.3.1). Once its full size is under the smallest
-// newborn's, `WILD_CELL_SIZE_FACTOR_MIN` × `worldMass`, it bursts through `dissolveCell` (detritus by the §1 rule, its
-// engulfs aborted) and its seat respawns like an eaten one. No randomness: the same dish starves the same cell.
+// newborn's, `WILD_CELL_SIZE_FACTOR_MIN` × `worldMass`, it bursts through `dissolveCell` into a feast
+// (`WILD_CELL_FEAST_MASS_FRACTION` of its mass as detritus, not the §1 scraps; its engulfs aborted) and its seat
+// respawns like an eaten one. No randomness: the same dish starves the same cell.
 
 import { TICK_INTERVAL_S, type BalanceConfig, type RandomSource } from '@evolution/shared';
 import { dissolveCell } from '../session/death.js';
@@ -90,13 +91,16 @@ export function isStarvedOut(fullMass: number, worldMass: number, balance: Balan
   return fullMass < balance.wildCells.WILD_CELL_SIZE_FACTOR_MIN * worldMass;
 }
 
-/** The burst: the cell leaves the world with its scraps, and the seat stops starving (step 9 starts its respawn). */
+/**
+ * The burst: the cell leaves the world as a feast, `WILD_CELL_FEAST_MASS_FRACTION` of its mass in detritus motes (#557
+ * question 1), and the seat stops starving (step 9 starts its respawn).
+ */
 export function burstStarvedCell(
   world: WorldState,
   seat: WildSeatRecord,
   cell: CellRecord,
   spawner: RandomSource,
 ): void {
-  dissolveCell(world, cell, spawner);
+  dissolveCell(world, cell, spawner, world.balance.wildCells.WILD_CELL_FEAST_MASS_FRACTION);
   seat.isStarving = false;
 }

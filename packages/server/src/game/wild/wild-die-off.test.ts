@@ -1,5 +1,5 @@
 // docs/ecology/wild-cells.md §3.3.6 (the die-off): the budget, the one heaviest starver, starvation from the growth
-// first and then the base size, the burst floor, and the burst itself (scraps, the seat freed to respawn).
+// first and then the base size, the burst floor, and the burst itself (a feast, the seat freed to respawn).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, FOOD_KIND, TICK_INTERVAL_S } from '@evolution/shared';
 import { seatTestWildCell } from '../../testing/wild-builders.js';
@@ -89,7 +89,7 @@ describe('isStarvedOut and the burst (W15)', () => {
     expect(isStarvedOut(10, WORLD_MASS, DEFAULT_BALANCE)).toBe(false);
   });
 
-  it('bursts into ordinary scraps and frees the seat, which stops starving', () => {
+  it('bursts into a feast, 0.8 of its mass as detritus, and frees the seat, which stops starving', () => {
     const world = dishOf([100]);
     const seat = world.wildSeats[0]!;
     const cell = world.cells[0]!;
@@ -99,7 +99,7 @@ describe('isStarvedOut and the burst (W15)', () => {
     expect(world.cells).toEqual([]);
     expect(seat.isStarving).toBe(false);
     expect(world.food.every((mote) => mote.kind === FOOD_KIND.detritus)).toBe(true);
-    const { ecology } = DEFAULT_BALANCE;
-    expect(world.food.length).toBe(Math.floor((ecology.DETRITUS_MASS_FRACTION * 100) / ecology.DETRITUS_MOTE_MASS));
+    const feastMotes = (wildCells.WILD_CELL_FEAST_MASS_FRACTION * 100) / DEFAULT_BALANCE.ecology.DETRITUS_MOTE_MASS;
+    expect(world.food.length).toBe(Math.floor(feastMotes));
   });
 });
