@@ -17,16 +17,13 @@ import {
   closeLobbySocketHarness,
   connectTestClient,
   createTestRoom,
-  messageOfType,
-  nextMatchingMessage,
   removeTestClient,
-  sendAndAwait,
   startLobbySocketHarness,
   startTestRoom,
   whenClosed,
   type LobbySocketHarness,
-  type TestClient,
 } from '../testing/socket-builders.js';
+import { messageOfType, nextMatchingMessage, sendAndAwait, type TestClient } from '../testing/socket-messages.js';
 
 /** How many times `playerId` appears among the snapshot's cells and leaderboard rows. */
 function entriesOf(snapshot: GameSnapshot, playerId: string) {
@@ -79,7 +76,7 @@ describe('join_game for the room already held, over the wire (#335)', () => {
     expect(held.room.allPlayerIds).toEqual(['alice', 'bob']);
     expect(harness.started.lobby.listGames()[0]?.players.map((player) => player.playerId)).toEqual(['alice', 'bob']);
 
-    const bobSnapshot = nextMatchingMessage(bob.socket, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
+    const bobSnapshot = nextMatchingMessage(bob, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
     advanceRoomTicks(held.timing, SNAPSHOT_EVERY_TICKS);
     expect(entriesOf(snapshotOf(await bobSnapshot), 'alice')).toEqual({ cells: 1, leaderboardRows: 1 });
     expect(bob.received.some((message) => message.type === SERVER_MESSAGE_TYPE.playerJoined)).toBe(false);
@@ -89,7 +86,7 @@ describe('join_game for the room already held, over the wire (#335)', () => {
     const alice = await connectTestClient(harness, 'alice');
     const bob = await connectTestClient(harness, 'bob');
     const held = await startTestRoom(harness, alice, 'held', [bob]);
-    const heardDrop = nextMatchingMessage(bob.socket, messageOfType(SERVER_MESSAGE_TYPE.playerDisconnected));
+    const heardDrop = nextMatchingMessage(bob, messageOfType(SERVER_MESSAGE_TYPE.playerDisconnected));
     alice.socket.close();
     await whenClosed(alice.socket);
     await heardDrop;

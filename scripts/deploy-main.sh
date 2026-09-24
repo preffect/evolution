@@ -38,7 +38,7 @@ UPSTREAM_REMOTE=origin
 UPSTREAM_BRANCH=main
 UPSTREAM="$UPSTREAM_REMOTE/$UPSTREAM_BRANCH"
 DEFAULT_WATCH_INTERVAL_SECONDS=60
-RUN_ENV_PATH=.game-logs/run.env # written by run.sh: PORT, CLIENT_PORT, RUN_MODE
+RUN_ENV_PATH=.game-logs/run.env # written by run.sh: PORT, SERVER_PORT, CLIENT_PORT, RUN_MODE
 SHORT_SHA_LENGTH=12
 EXIT_USAGE=1
 EXIT_REFUSED=2
@@ -95,10 +95,12 @@ run_step() { # <name> <command> — in the target, output into the log; fd 9 (th
   return "$rc"
 }
 
-restart_command() { # run.sh again, in the stack's recorded mode and ports
+# run.sh again, in the stack's recorded mode and ports. The recorded port wins over an inherited SERVER_PORT
+# (its alias, #474): a run.env from before #474 records only PORT, and run.sh refuses the two when they differ.
+restart_command() {
   local watch_flag=""
   $watching && watch_flag=" --no-deploy-watch" # this watcher is running the deploy; a one-shot deploy lets run.sh start one
-  echo "set -a; [ ! -f $RUN_ENV_PATH ] || . $RUN_ENV_PATH; set +a; $RUN_SCRIPT \${RUN_MODE:-} --clear-prebundle --wait-ready$watch_flag"
+  echo "set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT; . $RUN_ENV_PATH; }; set +a; $RUN_SCRIPT \${RUN_MODE:-} --clear-prebundle --wait-ready$watch_flag"
 }
 
 deploy_steps() { # <from-sha> <to-sha>

@@ -24,7 +24,8 @@
 # checkout that releases the port within the grace is waited for, one that ignores TERM is killed after it;
 # a server that exits on start fails fast and stops the client it started; a stack not ready in time is
 # left running; both failures still start the watcher, so the fix merge deploys; every start waits for
-# its listeners, --wait-ready or not.
+# its listeners, --wait-ready or not. SERVER_PORT is an alias of PORT (#474): alone it sets the server port,
+# equal to PORT it starts, different from PORT it refuses the start (not --help or --status); run.env records both, and the usage names both.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -298,6 +299,24 @@ run_stack
 rm "$server_dies_file"
 check "a server that exits on start fails the start before the ready timeout, without the banner (rc $rc)" $(( rc != 0 && $(holds grep -q "start failed: the server exited before listening on port $STACK_SERVER_PORT" <<<"$out") && $(holds grep -q 'server crashed on start' <<<"$out") && SECONDS - start_seconds < READY_TIMEOUT_SECONDS && ! $(holds grep -q 'Evolution is running' <<<"$out") ))
 check "the failed start stops the client it started and still starts the deploy watcher" $(( $(holds wait_for eval '! listening "$STACK_CLIENT_PORT"') && ! $(holds test -e "$stack/.game.pid") && $(holds wait_for watcher_running) ))
+run_stack --stop
+
+# --- SERVER_PORT, PORTS.env's name for the server port, is an alias of PORT (#474) ---------------
+SERVER_PORT="$STACK_CLIENT_PORT" run_stack --status
+check "--status is not refused over PORT and SERVER_PORT disagreeing (rc $rc)" $(( rc == 0 && ! $(holds grep -q disagree <<<"$out") ))
+SERVER_PORT="$STACK_CLIENT_PORT" run_stack --help
+check "the usage text names PORT, SERVER_PORT and CLIENT_PORT, whatever they are set to (rc $rc)" $(( rc == 0 && $(holds grep -q '^  PORT or SERVER_PORT ' <<<"$out") && $(holds grep -q '^  CLIENT_PORT ' <<<"$out") ))
+unset PORT
+: > "$pnpm_args"
+SERVER_PORT="$STACK_SERVER_PORT" run_stack --server-only --no-deploy-watch
+check "SERVER_PORT without PORT starts the server on SERVER_PORT (rc $rc)" $(( rc == 0 && $(holds listening "$STACK_SERVER_PORT") && $(holds grep -qx "SERVER_PORT=$STACK_SERVER_PORT" "$stack/.game-logs/run.env") && $(holds grep -qx "PORT=$STACK_SERVER_PORT" "$stack/.game-logs/run.env") ))
+run_stack --stop
+export PORT="$STACK_SERVER_PORT"
+: > "$pnpm_args"
+SERVER_PORT="$STACK_CLIENT_PORT" run_stack --server-only --no-deploy-watch
+check "PORT and SERVER_PORT set to different ports refuse the start, naming both (rc $rc)" $(( rc != 0 && $(holds grep -qF "PORT=$STACK_SERVER_PORT and SERVER_PORT=$STACK_CLIENT_PORT disagree" <<<"$out") && ! $(holds grep -q 'dev:' "$pnpm_args") && ! $(holds listening "$STACK_SERVER_PORT") ))
+SERVER_PORT="$STACK_SERVER_PORT" run_stack --server-only --no-deploy-watch
+check "PORT and SERVER_PORT set to the same port start the server there (rc $rc)" $(( rc == 0 && $(holds listening "$STACK_SERVER_PORT") ))
 run_stack --stop
 
 # --- a one-shot deploy of a stack without a watcher ---------------------------------------------
