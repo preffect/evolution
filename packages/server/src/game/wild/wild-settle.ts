@@ -21,7 +21,7 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { decayPerSecond, metabolismInputOf } from '../simulation/metabolism.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
-import { findCell } from '../world/lookups.js';
+import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { wildOwnedTraits } from './wild-build.js';
 import { burstStarvedCell, chooseWildStarver, isStarvedOut, starveSettled } from './wild-die-off.js';
@@ -141,11 +141,6 @@ function settleWildCell(
   }
 }
 
-/** The seat's cell, or `undefined` while the seat is vacant. */
-export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord | undefined {
-  return seat.cellId === null ? undefined : findCell(world, seat.cellId);
-}
-
 /**
  * Step 1 for the wild seats: the die-off picks a starver if the dish is over its budget (§3.3.6), then every seated
  * cell is settled at this tick's world reference, in seat order.
@@ -153,11 +148,10 @@ export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord 
 export function settleWildCells(world: WorldState, context: StepContext): void {
   const reference = worldReferenceAt(world, world.tick);
   const settleContext = { reference, balance: context.balance, spawner: context.streams[RANDOM_STREAM.spawner] };
-  chooseWildStarver(world, reference.worldMass, context.balance);
-  for (const seat of world.wildSeats) {
-    const cell = cellOfSeat(world, seat);
-    if (cell !== undefined) {
-      settleWildCell(world, seat, cell, settleContext);
-    }
+  // A burst removes only the settling seat's own cell, so the list stays true for the seats after it.
+  const seated = seatedWildCells(world);
+  chooseWildStarver(seated, reference.worldMass, context.balance);
+  for (const { seat, cell } of seated) {
+    settleWildCell(world, seat, cell, settleContext);
   }
 }

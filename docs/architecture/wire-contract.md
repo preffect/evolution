@@ -59,8 +59,9 @@ precision.
 - `MassFlowView.ratesPerSecond`: `SNAPSHOT_MASS_RATE_DECIMALS` (0.01 mass/s), a cause that rounds to 0 left out; at 0.1
   the broth decay would read 0 below mass 45 and the causes would stop adding up to the net rate (#383)
 - `MassFlowView.decayTraitShare`: `SNAPSHOT_SHARE_DECIMALS` (0.001), left out at 0
-- `MassFlowView.sprintSpent`, `EatEffect.massGained` / `dnaGained` and `CellAbsorbedEffect.predatorMassGained` /
-  `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` that rounds to 0 is left out
+- `MassFlowView.sprintSpent` / `noDraftBonusGained`, `EatEffect.massGained` / `dnaGained` and
+  `CellAbsorbedEffect.predatorMassGained` / `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` or
+  `noDraftBonusGained` that rounds to 0 is left out
 - Written exact: `GelPatchView` `x` / `y` / `radius` (static, sent whole each snapshot), effect `x` / `y`,
   `engulfProgress`, `membraneRatioBonus` and every other number of a view (counters, ticks, the progress DNA such as
   `dnaCumulative`; the meal amounts `dnaGained` / `predatorDnaGained` are rounded, above).
@@ -74,11 +75,18 @@ The server writes it into `world.massFlow` (`game/world/mass-flow-ledger.ts`), a
 `world.effects` that is never hashed or replayed, so the state hash is unchanged. The metabolism step replaces the
 rates every tick from its own deltas (post-floor, post-cap, split pro rata at the floor:
 `simulation/metabolism-flow.ts`); `massFlow` is `null` while spectating and until a new cell's first metabolism step.
-A sprint start adds what it took to a pending total that the broadcast's drain (`serializeBroadcastSnapshot`, the same
-call that drains the effects) seals as the window's `sprintSpent`, so a republish or a skipped client never sees one
-twice. A `game_state` carries no `sprintSpent`, as it carries no effects. The `eat` and `cell_absorbed` amounts are
-measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every tick
-`Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained − sprintSpent`
+The one-off amounts (`MASS_WINDOW_AMOUNT`) add to a pending per-player window that the broadcast's drain
+(`serializeBroadcastSnapshot`, the same call that drains the effects) seals, so a republish or a skipped client never
+sees one twice: a sprint start's cost as `sprintSpent`, and the mass an offer dropped for want of cards added
+(`LEVEL_UP_NO_DRAFT_MASS_BONUS`, PROGRESSION.md §4) as `noDraftBonusGained` (#416). The bonus rides the window, not the
+`level_up` effect, because the drop is not always on the level-up's tick: an offer queued behind a shown one is dropped
+at step 1 after the pick. **A drop at entry (a join or respawn, step 9) is not reported**: entry runs after the
+metabolism step, so the new cell has no `massFlow` on that tick, and the bonus is simply part of the cell's first mass
+(`NO_DRAFT_BONUS_REPORT.inFirstMass`, `progression/offers.ts`). The identity below starts from a cell's second tick. A
+`game_state` carries neither amount, as it carries no effects. The `eat` and `cell_absorbed` amounts and the no-draft bonus are measured around the gains
+(`measureGain`, `simulation/cell-mass.ts`), so a bonus clipped at `CELL_MAX_MASS` reports only the mass it added. On
+every tick
+`Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained − sprintSpent + noDraftBonusGained`
 (`ecology-mass-flow.gameplay.test.ts`).
 
 - The dish radius is the constant `DISH_RADIUS` (game-design/controls-and-scope.md §8), not a session field.

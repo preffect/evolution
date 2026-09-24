@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { entityId, playerId } from '@evolution/shared';
+import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestWorld, TEST_PLAYER } from '../../testing/world-builders.js';
 import {
+  cellOfSeat,
   findCell,
   findCellOfPlayer,
   findPlayer,
+  indexCellsById,
   removeFromArray,
   requireCellOfPlayer,
   requirePlayer,
+  seatedWildCells,
 } from './lookups.js';
 import { SimulationInvariantError } from './simulation-invariant-error.js';
 
@@ -46,5 +50,33 @@ describe('lookups', () => {
     expect(items).toEqual(['a', 'c']);
     removeFromArray(items, 'zzz');
     expect(items).toEqual(['a', 'c']);
+  });
+
+  it('indexCellsById holds every cell under its id', () => {
+    const world = createTestWorld();
+    const wild = seatTestWildCell(world, { seatNumber: 0, at: { x: 500, y: 0 } });
+    const cellsById = indexCellsById(world);
+    expect(cellsById.size).toBe(world.cells.length);
+    expect(cellsById.get(wild.cell.id)).toBe(wild.cell);
+    expect(cellsById.get(world.cells[0]!.id)).toBe(world.cells[0]);
+  });
+
+  it('seatedWildCells pairs each seat with its cell in seat order, leaving out a vacant seat and a vanished cell', () => {
+    const world = createTestWorld();
+    const [first, vacant, vanished, last] = [0, 1, 2, 3].map((seatNumber) =>
+      seatTestWildCell(world, { seatNumber, at: { x: 500 * (seatNumber + 1), y: 0 } }),
+    );
+    vacant!.seat.cellId = null;
+    removeFromArray(world.cells, vanished!.cell);
+    world.cells.reverse();
+    expect(seatedWildCells(world)).toEqual([first, last]);
+  });
+
+  it('cellOfSeat answers the seated cell, and undefined for a vacant seat', () => {
+    const world = createTestWorld();
+    const { seat, cell } = seatTestWildCell(world, { seatNumber: 0, at: { x: 500, y: 0 } });
+    expect(cellOfSeat(world, seat)).toBe(cell);
+    seat.cellId = null;
+    expect(cellOfSeat(world, seat)).toBeUndefined();
   });
 });

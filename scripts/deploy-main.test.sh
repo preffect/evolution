@@ -3,7 +3,8 @@
 # local bare "origin", with install / build / run.sh stubbed to append to a calls file so no server
 # starts: a no-op on the same SHA; a fast-forward that runs the setup step and restarts through run.sh with
 # --clear-prebundle --wait-ready (no --no-deploy-watch when one-shot), in the recorded mode and ports,
-# logging every step with an ISO timestamp; with the real workspace setup (#329, a fake pnpm), a lockfile
+# logging every step with an ISO timestamp; the recorded port wins over an inherited SERVER_PORT (#474);
+# with the real workspace setup (#329, a fake pnpm), a lockfile
 # change installs, a shared package.json-only change builds and leaves the restart's setup nothing to do,
 # and a failed build fails the deploy before the restart; untracked files allowed; refusal on tracked changes, a feature branch tracking origin/main, detached HEAD, main without
 # the upstream, and a diverged branch; a failed build or restart not recorded and retried; an unreachable
@@ -58,7 +59,7 @@ echo 0 > "$restart_rc_file"
 mkdir -p "$sandbox/bin"
 cat > "$sandbox/bin/run-stub" <<STUB
 #!/usr/bin/env bash
-echo "restart PORT=\${PORT:-} CLIENT_PORT=\${CLIENT_PORT:-} \$*" >> "$calls"
+echo "restart SERVER_PORT=\${SERVER_PORT:-} PORT=\${PORT:-} CLIENT_PORT=\${CLIENT_PORT:-} \$*" >> "$calls"
 spawn_pid_file="\$(cat "$restart_spawn_file")"
 [[ -z "\$spawn_pid_file" ]] || { sleep 30 & echo \$! > "\$spawn_pid_file"; }
 exit "\$(cat "$restart_rc_file")"
@@ -135,6 +136,16 @@ printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=--server-only\n' "$RECORDED_SERVER_POR
 merge_to_main game.txt v3
 PORT=1 CLIENT_PORT=2 run_deploy
 check "the restart repeats the recorded mode and ports, not the caller's" $(( rc == 0 && $(holds restarted_with "PORT=$RECORDED_SERVER_PORT CLIENT_PORT=$RECORDED_CLIENT_PORT --server-only --clear-prebundle") ))
+
+# SERVER_PORT is run.sh's alias of PORT (#474), which refuses the two when they differ: an inherited one never reaches the restart
+printf 'PORT=%s\nCLIENT_PORT=%s\n' "$RECORDED_SERVER_PORT" "$RECORDED_CLIENT_PORT" > "$target/.game-logs/run.env"
+merge_to_main game.txt v3b
+SERVER_PORT=1 run_deploy
+check "a run.env with PORT only drops the caller's SERVER_PORT, so the restart is not refused (rc $rc)" $(( rc == 0 && $(holds restarted_with "SERVER_PORT= PORT=$RECORDED_SERVER_PORT CLIENT_PORT=$RECORDED_CLIENT_PORT ") ))
+printf 'PORT=%s\nSERVER_PORT=%s\nCLIENT_PORT=%s\n' "$RECORDED_SERVER_PORT" "$RECORDED_SERVER_PORT" "$RECORDED_CLIENT_PORT" > "$target/.game-logs/run.env"
+merge_to_main game.txt v3c
+PORT=1 SERVER_PORT=2 run_deploy
+check "a run.env with both names restarts on the recorded port under both, not the caller's (rc $rc)" $(( rc == 0 && $(holds restarted_with "SERVER_PORT=$RECORDED_SERVER_PORT PORT=$RECORDED_SERVER_PORT CLIENT_PORT=$RECORDED_CLIENT_PORT ") ))
 rm "$target/.game-logs/run.env"
 
 echo scratch > "$target/untracked.txt"

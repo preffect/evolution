@@ -18,7 +18,7 @@ import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
 import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
 import { removeWildSeats } from '../../game/wild/wild-seats.js';
-import { cellOfSeat } from '../../game/wild/wild-settle.js';
+import { cellOfSeat } from '../../game/world/lookups.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
 import type { WildSeatRecord } from '../../game/world/entities.js';
 import { computeStateHash } from '../../game/world/state-hash.js';

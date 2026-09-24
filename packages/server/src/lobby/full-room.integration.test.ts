@@ -7,12 +7,11 @@ import { evolutionModuleFactory } from '../game/evolution-module.js';
 import {
   closeLobbySocketHarness,
   connectTestClient,
-  messageOfType,
-  sendAndAwait,
   startLobbySocketHarness,
   startTestRoom,
   type LobbySocketHarness,
 } from '../testing/socket-builders.js';
+import { messageOfType, sendAndAwait } from '../testing/socket-messages.js';
 
 describe('a full started room over the wire (#365)', () => {
   let harness: LobbySocketHarness;

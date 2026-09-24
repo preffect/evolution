@@ -188,6 +188,17 @@ const UI_KIT_RESTRICTED_IMPORTS = [
     message: 'The UI kit imports nothing from @evolution/shared (docs/ui/components-and-constants.md §10.1).',
   },
 ];
+/**
+ * architecture/server-simulation.md §3.4: `wild/` builds on `simulation/`, never the reverse; the step composer is the
+ * one `simulation/` file that knows both (#509).
+ */
+const SIMULATION_FILES = 'packages/server/src/game/simulation';
+const SIMULATION_RESTRICTED_IMPORTS = [
+  {
+    regex: '(^|/)wild/',
+    message: 'Only simulation/step.ts imports game/wild/ (docs/architecture/server-simulation.md §3.4).',
+  },
+];
 /** The only game-path modules allowed to touch the wall clock, the PRNG or timers (§8). */
 const DETERMINISM_CALL_SITES = [
   'packages/shared/src/random/**',
@@ -426,6 +437,11 @@ export default tseslint.config(
         ],
       ],
     },
+  },
+  {
+    files: [`${SIMULATION_FILES}/**/*.ts`],
+    ignores: [`${SIMULATION_FILES}/step.ts`, ...TEST_FILES],
+    rules: { 'no-restricted-imports': ['error', { patterns: SIMULATION_RESTRICTED_IMPORTS }] },
   },
   {
     // ---- The dev routes' measurement reports: output, not a warning (MEASUREMENT_LOG_FILES above) -----------

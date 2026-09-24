@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, FOOD_KIND, TICK_INTERVAL_S } from '@evolution/shared';
 import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
+import { seatedWildCells } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import {
   burstStarvedCell,
@@ -41,25 +42,25 @@ describe('wildCarryingCapacity', () => {
 describe('chooseWildStarver (W16)', () => {
   it('starves the heaviest seated cell once the total is over the budget, and marks its cell', () => {
     const world = dishOf([400, 360]);
-    chooseWildStarver(world, WORLD_MASS, DEFAULT_BALANCE);
+    chooseWildStarver(seatedWildCells(world), WORLD_MASS, DEFAULT_BALANCE);
     expect(world.wildSeats.map((seat) => seat.isStarving)).toEqual([true, false]);
     expect(world.cells.map((cell) => cell.isStarving)).toEqual([true, false]);
   });
 
   it('starves no one under the budget, and only one at a time over it', () => {
     const under = dishOf([400, 300]);
-    chooseWildStarver(under, WORLD_MASS, DEFAULT_BALANCE);
+    chooseWildStarver(seatedWildCells(under), WORLD_MASS, DEFAULT_BALANCE);
     expect(under.wildSeats.some((seat) => seat.isStarving)).toBe(false);
     const over = dishOf([400, 360]);
     over.wildSeats[1]!.isStarving = true;
-    chooseWildStarver(over, WORLD_MASS, DEFAULT_BALANCE);
+    chooseWildStarver(seatedWildCells(over), WORLD_MASS, DEFAULT_BALANCE);
     expect(over.wildSeats.map((seat) => seat.isStarving)).toEqual([false, true]);
   });
 
   it('breaks a tie to the lower seat and counts a vacant seat as nothing', () => {
     const world = dishOf([380, 380, 380]);
     world.wildSeats[0]!.cellId = null;
-    chooseWildStarver(world, WORLD_MASS, DEFAULT_BALANCE);
+    chooseWildStarver(seatedWildCells(world), WORLD_MASS, DEFAULT_BALANCE);
     expect(world.wildSeats.map((seat) => seat.isStarving)).toEqual([false, true, false]);
   });
 });

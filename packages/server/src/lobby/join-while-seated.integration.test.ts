@@ -10,15 +10,11 @@ import {
   closeLobbySocketHarness,
   connectTestClient,
   createTestRoom,
-  isSeated,
-  lobbyShows,
-  messageOfType,
-  nextMatchingMessage,
-  sendAndAwait,
   startLobbySocketHarness,
   startTestRoom,
   type LobbySocketHarness,
 } from '../testing/socket-builders.js';
+import { isSeated, lobbyShows, messageOfType, nextMatchingMessage, sendAndAwait } from '../testing/socket-messages.js';
 
 /** Each listed game's name with the ids seated in it, from a `lobby_update`. */
 function seatsListedIn(message: ServerMessage) {
@@ -47,7 +43,7 @@ describe('join_game while seated in another room, over the wire (#334)', () => {
     const old = await startTestRoom(harness, alice, 'old', [carol]);
     const next = await startTestRoom(harness, bob, 'next');
 
-    const heardLeaving = nextMatchingMessage(carol.socket, messageOfType(SERVER_MESSAGE_TYPE.playerDisconnected));
+    const heardLeaving = nextMatchingMessage(carol, messageOfType(SERVER_MESSAGE_TYPE.playerDisconnected));
     const hasMoved = lobbyShows(
       (games) => !isSeated(games, old.gameId, alice.clientId) && isSeated(games, next.gameId, alice.clientId),
     );
@@ -61,7 +57,7 @@ describe('join_game while seated in another room, over the wire (#334)', () => {
     expect(old.room.playerConnections.has('alice')).toBe(false);
     expect(next.room.playerConnections.get('alice')).toBe(harness.started.connections.get('alice'));
 
-    const carolSnapshot = nextMatchingMessage(carol.socket, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
+    const carolSnapshot = nextMatchingMessage(carol, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
     advanceRoomTicks(old.timing, SNAPSHOT_EVERY_TICKS);
     await carolSnapshot;
     expect(harness.started.lobby.getActiveRoom(old.gameId)).toBe(old.room);

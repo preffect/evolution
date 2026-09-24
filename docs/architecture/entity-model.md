@@ -140,6 +140,7 @@ export interface MassFlowView {
   decayTraitShare?: number; // the folded decayMultiplier − 1; left out at 0
   zone: ZoneId; // the zone the metabolism step used
   sprintSpent?: number; // the mass a sprint start took in this broadcast window, as applied
+  noDraftBonusGained?: number; // the mass an offer dropped for want of cards added in this window, as applied (#416)
 }
 export interface OwnProgressView extends PlayerProgressView {
   // GameSnapshot.ownProgress; the records extend PlayerProgressView, never this: the flow is the transient world.massFlow, never hashed
