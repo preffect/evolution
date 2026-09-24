@@ -64,14 +64,16 @@ const instance: CellInstance = {
   selfRingBrightness: 0.95,
   relationRingPx: 58,
   relationRingLines: 2,
+  wither: 0.6,
+  wrinkleAmplitude: 0.027,
   bumps: [{ amplitude: 0.62, centre: 0.52, sigma: 0.28 }],
 };
 
 /**
- * The §2.3 row: eleven scalar texels plus the six bump texels. It grew from sixteen for the sprint ring (#295), whose
- * texel the relation ring (#538) has since filled: the next new field takes a texel.
+ * The §2.3 row: twelve scalar texels plus the six bump texels. It grew from sixteen for the sprint ring (#295), whose
+ * texel the relation ring (#538) filled, and to eighteen for a starving cell's wither and wrinkle (#635).
  */
-const INSTANCE_ROW_TEXELS = 17;
+const INSTANCE_ROW_TEXELS = 18;
 const INSTANCE_ROW_BYTES_PER_CELL = INSTANCE_ROW_TEXELS * TEXEL_FLOATS * Float32Array.BYTES_PER_ELEMENT;
 
 function channelOf(row: Float32Array, field: CellInstanceScalar): number {
@@ -101,6 +103,8 @@ describe('packCellInstance', () => {
     expect(channelOf(row, 'selfRingBrightness')).toBeCloseTo(0.95, 6);
     expect(channelOf(row, 'relationRingPx')).toBe(58);
     expect(channelOf(row, 'relationRingLines')).toBe(2);
+    expect(channelOf(row, 'wither')).toBeCloseTo(0.6, 6);
+    expect(channelOf(row, 'wrinkleAmplitude')).toBeCloseTo(0.027, 6);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect([...row.subarray(bumpBase, bumpBase + 3)].map((value) => Math.round(value * 100) / 100)).toEqual([
       0.62, 0.52, 0.28,
@@ -118,16 +122,18 @@ describe('packCellInstance', () => {
     expect(BUMP_TEXEL_START + Math.ceil((MAX_SHAPE_BUMPS * 3) / TEXEL_FLOATS)).toBe(CELL_INSTANCE_TEXELS);
   });
 
-  it('grows the row to seventeen texels, 272 bytes a cell, the last scalar texel shared by the sprint ring (#295) and the relation ring (#538)', () => {
+  it('grows the row to eighteen texels, 288 bytes a cell, the last scalar texel holding the wither and the wrinkle (#635)', () => {
     expect(CELL_INSTANCE_TEXELS).toBe(INSTANCE_ROW_TEXELS);
     expect(CELL_INSTANCE_FLOATS * Float32Array.BYTES_PER_ELEMENT).toBe(INSTANCE_ROW_BYTES_PER_CELL);
-    expect(INSTANCE_ROW_BYTES_PER_CELL).toBe(272);
-    expect(instanceFieldLocation('nucleusDiscRadii')[0]).toBe(BUMP_TEXEL_START - 2);
-    expect(instanceFieldLocation('speckleSeed')[0]).toBe(BUMP_TEXEL_START - 2);
-    expect(instanceFieldLocation('selfRingFill')).toEqual([BUMP_TEXEL_START - 1, 0]);
-    expect(instanceFieldLocation('selfRingBrightness')).toEqual([BUMP_TEXEL_START - 1, 1]);
-    expect(instanceFieldLocation('relationRingPx')).toEqual([BUMP_TEXEL_START - 1, 2]);
-    expect(instanceFieldLocation('relationRingLines')).toEqual([BUMP_TEXEL_START - 1, 3]);
+    expect(INSTANCE_ROW_BYTES_PER_CELL).toBe(288);
+    expect(instanceFieldLocation('nucleusDiscRadii')[0]).toBe(BUMP_TEXEL_START - 3);
+    expect(instanceFieldLocation('speckleSeed')[0]).toBe(BUMP_TEXEL_START - 3);
+    expect(instanceFieldLocation('selfRingFill')).toEqual([BUMP_TEXEL_START - 2, 0]);
+    expect(instanceFieldLocation('selfRingBrightness')).toEqual([BUMP_TEXEL_START - 2, 1]);
+    expect(instanceFieldLocation('relationRingPx')).toEqual([BUMP_TEXEL_START - 2, 2]);
+    expect(instanceFieldLocation('relationRingLines')).toEqual([BUMP_TEXEL_START - 2, 3]);
+    expect(instanceFieldLocation('wither')).toEqual([BUMP_TEXEL_START - 1, 0]);
+    expect(instanceFieldLocation('wrinkleAmplitude')).toEqual([BUMP_TEXEL_START - 1, 1]);
   });
 
   it('locates every scalar field in a distinct channel and rejects an unknown one', () => {

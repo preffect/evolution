@@ -16,6 +16,7 @@ import {
   VAC_RIM,
   OUTLINE,
   RIBOSOME,
+  STARVING_SALLOW,
   TOXIN_GLOW,
   WHITE,
 } from '../constants';
@@ -55,6 +56,7 @@ const COLOUR_UNIFORMS: Readonly<Record<string, string>> = {
   [CELL_UNIFORM.ectoplasm]: VAC_RIM,
   [CELL_UNIFORM.danger]: DANGER,
   [CELL_UNIFORM.gain]: GAIN,
+  [CELL_UNIFORM.sallow]: STARVING_SALLOW,
 };
 
 function createUniforms(pass: number): UniformGroup {

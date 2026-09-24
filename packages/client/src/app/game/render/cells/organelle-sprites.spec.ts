@@ -11,6 +11,7 @@ import { cellLodFor } from './cell-lod';
 import { CellRenderState, NO_CELL_CONTACTS, type CellFrameContext } from './cell-render-state';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
 import { REST_OWN_CELL_RING } from './self-ring';
+import { witheredTint } from './starving-wither';
 
 const TEST_SEED = 7;
 const textures = createTestRenderTextures({ seed: TEST_SEED });
@@ -25,6 +26,7 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     previewTraitId: null,
     ...NO_CELL_CONTACTS,
     ownCellRing: REST_OWN_CELL_RING,
+    starvedOutMass: 10,
     ...overrides,
   };
 }
@@ -72,6 +74,20 @@ describe('OrganelleSprites', () => {
       (_child, index) => cell.organelles[index]?.kind === ORGANELLE_KIND.mitochondrion,
     ) as { tint: number };
     expect(mitochondrion.tint).toBe(hexToNumber(WHITE));
+    sprites.destroy();
+  });
+
+  it('sallows a starving cell’s sprites by its wither, the nucleus from the rim and the rest from white (#635)', () => {
+    const sprites = new OrganelleSprites(textures.organelles);
+    const cell = draw();
+    const withered = { ...cell, instance: { ...cell.instance, wither: 1 } };
+    sprites.update([withered], 0);
+    const tintOf = (kind: string) =>
+      (sprites.container.children.find((_child, index) => cell.organelles[index]?.kind === kind) as { tint: number })
+        .tint;
+    expect(tintOf(ORGANELLE_KIND.nucleus)).toBe(hexToNumber(witheredTint(paletteFor(1).rim, 1)));
+    expect(tintOf(ORGANELLE_KIND.mitochondrion)).toBe(hexToNumber(witheredTint(WHITE, 1)));
+    expect(tintOf(ORGANELLE_KIND.mitochondrion)).not.toBe(hexToNumber(WHITE));
     sprites.destroy();
   });
 

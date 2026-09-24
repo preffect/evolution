@@ -15,6 +15,7 @@ import {
   PSEUDOPOD_ENGULF_LEAN,
   PROTOCELL_HALO_OUTER_RADII,
   REST_LOBE_AMPLITUDE_MAX,
+  STARVING_WRINKLE_AMPLITUDE,
   SPRINT_STRETCH_SCALE,
   STRETCH_ACROSS_PER_ALONG,
   STRETCH_ALONG,
@@ -37,6 +38,7 @@ import {
   type StretchTerm,
   type StripTerm,
 } from './radial-profile';
+import { NOT_WITHERED } from './starving-wither';
 
 /** The rest motion at full amplitude; `cytoskeleton` halves breathing and lobes, a rigid form zeroes all three. */
 const FULL = 1;
@@ -61,6 +63,11 @@ export interface ShapeTermsInput {
   readonly strip: NoiseStrip | null;
   /** This cell's bumps and pulse this frame (cell-deformation.ts). */
   readonly deformation: CellDeformation;
+  /**
+   * How far a starving cell has withered (`starving-wither.ts`): it crinkles the outline. Absent for a cell that is not
+   * starving, as in the preview scenes and the reach walks, which never draw one.
+   */
+  readonly wither?: number;
 }
 
 export interface ShapeTerms extends RadialProfileTerms {
@@ -113,9 +120,9 @@ function stretchReach(stretch: StretchTerm): number {
   return Math.max(1, 1 + stretch.k * (stretch.along - 1)) * Math.max(1, stretch.axialAlong, stretch.axialAcross);
 }
 
-/** The most the noise strip can push the surface out, in radii: its jitter plus its deepest rest lobe. */
-function stripReach(jitterAmplitude: number, lobesScale: number): number {
-  return jitterAmplitude + lobesScale * REST_LOBE_AMPLITUDE_MAX;
+/** The most the noise strip can push the surface out, in radii: its jitter, a starving cell's wrinkle, its deepest rest lobe. */
+function stripReach(jitterAmplitude: number, lobesScale: number, wrinkleAmplitude = 0): number {
+  return jitterAmplitude + wrinkleAmplitude + lobesScale * REST_LOBE_AMPLITUDE_MAX;
 }
 
 /** The surface's widest radius fraction: the unit membrane plus everything that pushes it outward. */
@@ -130,7 +137,9 @@ function formReach(form: FormProfile | null): number {
 
 /** The per-instance maximum reach in radii: pulse × form × stretch × surface × halo (§2). */
 export function maxReachRadii(terms: RadialProfileTerms, haloOuterRadii: number): number {
-  const stripMax = terms.strip ? stripReach(terms.strip.jitterAmplitude, terms.strip.lobesScale) : 0;
+  const stripMax = terms.strip
+    ? stripReach(terms.strip.jitterAmplitude, terms.strip.lobesScale, terms.strip.wrinkleAmplitude)
+    : 0;
   const surfaceMax = surfaceReach(Math.abs(terms.breathing), terms.wobble.amplitude, stripMax, bumpPeak(terms.bumps));
   return terms.pulse * formReach(terms.form) * stretchReach(terms.stretch) * surfaceMax * haloOuterRadii;
 }
@@ -220,7 +229,10 @@ function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
   };
 }
 
-/** Breathing and lobes halve when taut (visual-style/motion-and-legibility.md §5); a rigid valve does not breathe, jitter or lobe (§2.4). */
+/**
+ * Breathing and lobes halve when taut (visual-style/motion-and-legibility.md §5); a rigid valve does not breathe, jitter
+ * or lobe (§2.4), nor wrinkle when it starves: the jitter scale carries the wrinkle too.
+ */
 function restScales(traits: CellTraitSummary): RestScales {
   if (traits.form.isRigid) return { breathing: STILL, lobes: STILL, jitter: STILL };
   const taut = traits.isTaut ? WOBBLE_TAUT_SCALE : FULL;
@@ -235,6 +247,7 @@ function stripTerm(input: ShapeTermsInput, scales: RestScales): StripTerm | null
     phase: input.phase,
     jitterAmplitude: JITTER_AMPLITUDE * scales.jitter,
     lobesScale: scales.lobes,
+    wrinkleAmplitude: STARVING_WRINKLE_AMPLITUDE * (input.wither ?? NOT_WITHERED) * scales.jitter,
   };
 }
 

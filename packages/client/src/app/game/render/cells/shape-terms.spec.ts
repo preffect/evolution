@@ -14,6 +14,7 @@ import {
   PROTOCELL_HALO_OUTER_RADII,
   PROTOCELL_WOBBLE_MODE,
   SPRINT_STRETCH_SCALE,
+  STARVING_WRINKLE_AMPLITUDE,
   STRETCH_ALONG,
   TRAIT_HALO_OUTER_RADII,
   WOBBLE_TAUT_SCALE,
@@ -39,6 +40,7 @@ function input(overrides: Partial<ShapeTermsInput> = {}): ShapeTermsInput {
     stripRow: 0,
     strip: null,
     deformation: REST_DEFORMATION,
+    wither: 0,
     ...overrides,
   };
 }
@@ -125,6 +127,21 @@ describe('buildShapeTerms', () => {
     expect(terms.haloOuterRadii).toBe(PROTOCELL_HALO_OUTER_RADII);
     expect(buildShapeTerms(input()).wobble.amplitude).toBe(0);
     expect(buildShapeTerms(input()).haloOuterRadii).toBe(HALO_OUTER_RADII);
+  });
+
+  it('crinkles a withered cell by its wither, widens its reach by the wrinkle, and never a rigid valve (#635)', () => {
+    const healthy = buildShapeTerms(withTraits([]));
+    expect(healthy.strip?.wrinkleAmplitude).toBe(0);
+    const half = buildShapeTerms({ ...withTraits([]), wither: 0.5 });
+    expect(half.strip?.wrinkleAmplitude).toBeCloseTo(STARVING_WRINKLE_AMPLITUDE * 0.5, 12);
+    const full = buildShapeTerms({ ...withTraits([]), wither: 1 });
+    expect(full.strip?.wrinkleAmplitude).toBe(STARVING_WRINKLE_AMPLITUDE);
+    expect(full.maxRadii - healthy.maxRadii).toBeCloseTo(STARVING_WRINKLE_AMPLITUDE * healthy.haloOuterRadii, 9);
+    const diatom = buildShapeTerms({
+      ...withTraits([{ traitId: 'diatom_shell', tier: 1 }], CELL_STAGE.specialised),
+      wither: 1,
+    });
+    expect(diatom.strip?.wrinkleAmplitude).toBe(0);
   });
 
   it('reads the strip row and phase into the strip term at full lobes', () => {

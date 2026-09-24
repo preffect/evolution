@@ -13,7 +13,7 @@ import {
   type FoodMoteView,
   type ServerMessage,
 } from '@evolution/shared';
-import { NO_HUD_INPUTS } from '../app/game/render/game-renderer';
+import { NO_HUD_INPUTS } from '../app/game/render/render-io';
 import { RenderSession, type RenderSessionDependencies } from '../app/game/render/render-session';
 import { TEST_OWN_PLAYER_ID, createTestCellView } from './builders';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from './fake-pixi-app';

@@ -3,7 +3,8 @@ import { ManualClock } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestRenderFrame } from '../../../testing/builders';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp } from '../../../testing/fake-pixi-app';
 import { FrameLoopSession } from './frame-loop-session';
-import { NO_HUD_INPUTS, type GameRenderer, type RenderOutputs } from './game-renderer';
+import type { GameRenderer } from './game-renderer';
+import { NO_HUD_INPUTS, type RenderOutputs } from './render-io';
 import type { RenderFrame } from '../net/world-store';
 
 /** The smallest loop: one fixed frame, counting what came after each render. */

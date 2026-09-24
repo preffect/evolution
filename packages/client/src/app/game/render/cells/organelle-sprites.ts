@@ -14,6 +14,7 @@ import type { CellLod } from './cell-lod';
 import type { OrganellePlacement } from './cell-render-state';
 import { NUCLEUS_KINDS } from './organelle-kinds';
 import { ORGANELLE_MOTION_AT_REST, organelleMotion } from './organelle-motion';
+import { NOT_WITHERED, witheredTint } from './starving-wither';
 
 export interface OrganelleDraw {
   readonly instance: CellInstance;
@@ -35,9 +36,14 @@ export class OrganelleSprites {
 
   constructor(private readonly textures: OrganelleTextures) {}
 
-  /** The nucleus and nucleoid bakes are white and take the palette's rim here (the nucleus disc itself is the shader's ramp, #231); the rest are baked in colour. */
-  private tintFor(kind: OrganelleKind, palette: PlayerPalette): number {
-    return NUCLEUS_KINDS.has(kind) ? hexToNumber(palette.rim) : UNTINTED;
+  /**
+   * The nucleus and nucleoid bakes are white and take the palette's rim here (the nucleus disc itself is the shader's
+   * ramp, #231); the rest are baked in colour. A starving cell's sprites sallow with its body (`witheredTint`, #635).
+   */
+  private tintFor(kind: OrganelleKind, palette: PlayerPalette, wither: number): number {
+    const isNucleus = NUCLEUS_KINDS.has(kind);
+    if (wither > NOT_WITHERED) return hexToNumber(witheredTint(isNucleus ? palette.rim : WHITE, wither));
+    return isNucleus ? hexToNumber(palette.rim) : UNTINTED;
   }
 
   private place(sprite: Sprite, draw: OrganelleDraw, placement: OrganellePlacement, timeSeconds: number): void {
@@ -53,7 +59,7 @@ export class OrganelleSprites {
     sprite.height = width;
     const lodBlend = NUCLEUS_KINDS.has(placement.kind) ? draw.lod.nucleusBlend : draw.lod.interiorBlend;
     sprite.alpha = lodBlend * instance.alpha * motion.alpha;
-    sprite.tint = this.tintFor(placement.kind, draw.palette);
+    sprite.tint = this.tintFor(placement.kind, draw.palette, instance.wither);
     sprite.visible = true;
   }
 

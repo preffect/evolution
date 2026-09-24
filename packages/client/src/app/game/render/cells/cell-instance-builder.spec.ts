@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, DEFAULT_BALANCE, SEAT_MARK_BEADS, entityId } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, SEAT_MARK_BEADS, createSeededRandom, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import {
   CELL_QUAD_EXTENT_RADII,
@@ -16,11 +16,13 @@ import {
   SPRINT_RIM_BRIGHTNESS,
   TOXIC_RING_LINE_GAP_PX,
   WARNING_RING_STROKE_PX,
-  STARVING_ALPHA_FACTOR,
-  STARVING_RIM_BRIGHTNESS,
+  STARVING_FADE,
+  STARVING_RIM_DIM,
+  STARVING_WRINKLE_AMPLITUDE,
 } from '../constants';
 import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
+import { buildNoiseStrip } from '../noise/noise-strip';
 import {
   buildCellInstance,
   quadExtentRadii,
@@ -46,6 +48,7 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     stripRow: 2,
     strip: null,
     deformation: REST_DEFORMATION,
+    wither: 0,
   });
   return {
     view,
@@ -62,6 +65,7 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     rimDash: 0,
     ownCellRing: REST_OWN_CELL_RING,
     relationRing: RELATION_RING.none,
+    wither: 0,
     ...overrides,
   };
 }
@@ -178,13 +182,31 @@ describe('buildCellInstance', () => {
     expect(farInstance.beadCount).toBe(0);
   });
 
-  it('fades a starving wild cell: its alpha and rim are dulled (ticket #557 default)', () => {
+  it('fades a withered cell by its wither: the alpha and the rim dim, the shader gets the wither (#635)', () => {
     const base = input({ alpha: 0.8 });
-    const starving = { ...base, view: { ...base.view, isStarving: true } };
-    const instance = buildCellInstance(starving);
-    expect(instance.alpha).toBeCloseTo(0.8 * STARVING_ALPHA_FACTOR, 9);
-    expect(instance.rimBrightness).toBe(STARVING_RIM_BRIGHTNESS);
-    expect(buildCellInstance(base).alpha).toBe(0.8);
+    const healthy = buildCellInstance(base);
+    expect(healthy).toMatchObject({ alpha: 0.8, rimBrightness: 1, wither: 0 });
+    const half = buildCellInstance({ ...base, wither: 0.5 });
+    expect(half.alpha).toBeCloseTo(0.8 * (1 - 0.5 * STARVING_FADE), 9);
+    expect(half.rimBrightness).toBeCloseTo(1 - 0.5 * STARVING_RIM_DIM, 9);
+    expect(half.wither).toBe(0.5);
+    const full = buildCellInstance({ ...base, wither: 1 });
+    expect(full.alpha).toBeLessThan(half.alpha);
+    expect(full.rimBrightness).toBeCloseTo(1 - STARVING_RIM_DIM, 9);
+  });
+
+  it('packs the strip’s wrinkle, which a starving cell’s shape terms carry and every other cell leaves at 0 (#635)', () => {
+    const base = input();
+    expect(buildCellInstance(base).wrinkleAmplitude).toBe(0);
+    const strip = {
+      strip: buildNoiseStrip(createSeededRandom(3)),
+      row: 0,
+      phase: 0,
+      jitterAmplitude: 0.008,
+      lobesScale: 1,
+    };
+    const wrinkled = { ...base.terms, strip: { ...strip, wrinkleAmplitude: STARVING_WRINKLE_AMPLITUDE } };
+    expect(buildCellInstance({ ...base, terms: wrinkled }).wrinkleAmplitude).toBe(STARVING_WRINKLE_AMPLITUDE);
   });
 
   it('packs the sprint ring on the own cell only; every other cell carries the full rest ring (#295)', () => {
