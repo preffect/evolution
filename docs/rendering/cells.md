@@ -37,7 +37,7 @@ from the membrane. No vertex ring, no per-object hairs, no per-frame `Graphics` 
 ### 2.1 The profile
 
 ```text
-r(θ)   = r · pulse · B(θ − h) · stretch(θ − h) · (1 + breathing + wobble(θ) + jitter(θ) + lobes(θ) + Σ bumps(θ))
+r(θ)   = r · pulse · B(θ − h) · stretch(θ − h) · (1 + breathing + wobble(θ) + jitter(θ) + wrinkle(θ) + lobes(θ) + Σ bumps(θ))
 bump(θ) = amplitude · exp(−(θ − centre)² / (2 σ²))                       (sheet 02, membranes paragraph)
 d(p)    = (|p| − r(θ)) / sqrt(1 + (r′(θ) / r(θ))²)                       world units, > 0 outside the membrane
 ```
@@ -61,6 +61,7 @@ reference pins it (§9). In §2.2 a membrane band written `0.975 → 1.025` mean
 | `breathing` | `A · sin(2π f t + φ)`                                                                                                                                                                                                       | `BREATH_AMPLITUDE` 0.02, `BREATH_HZ` 0.5 (sheet 01 motion table); `WOBBLE_TAUT_SCALE` 0.5 with `cytoskeleton` (visual-style/motion-and-legibility.md §5)                                                                                         | `t`, φ from the cosmetic fork                 |
 | `wobble`    | `A · sin(m θ + 2π f t + φ)`                                                                                                                                                                                                 | protocell m 2, ±0.08, 0.7 Hz (sheet 04); forms m 3, ±0.05 (visual-style/motion-and-legibility.md §5)                                                                                                                                             | `stage`                                       |
 | `jitter`    | `J · strip.R(θ / 2π + φ)`, `strip` = the 256 × 1 seeded RGBA noise strip (R jitter, G lobes, B and A their `d/dθ`)                                                                                                          | `JITTER_AMPLITUDE` 0.008 (sheet 02: ±0.8 %)                                                                                                                                                                                                      | cosmetic fork                                 |
+| `wrinkle`   | `W · strip.R(3θ / 2π + φ)`: the jitter again at `STARVING_WRINKLE_OCTAVE` 3 × the frequency (a crinkle every 5 °), its `d/dθ` × 3; only on a starving wild cell (#635, visual-style/motion-and-legibility.md §5 "Starving") | `W` = `STARVING_WRINKLE_AMPLITUDE` 0.045 × `wither` (`cells/starving-wither.ts`); 0 for `diatom_shell`; the quad reach and the cull's `CULL_DRAW_STATE` carry it                                                                                 | cosmetic fork, `isStarving`, `mass`           |
 | `lobes`     | `strip.G(θ / 2π + φ)`: `REST_LOBE_COUNT` 5–7 fixed Gaussians of `REST_LOBE_AMPLITUDE` ±0.025–0.04, `REST_LOBE_SIGMA_RAD` 0.25–0.4, baked into the strip per cell phase (one texture read, no instance slots)                | sheet 02 membranes paragraph, sheet 01 panels A (hero radius 126–131 px = ±2 %), B, D, E, F; × `WOBBLE_TAUT_SCALE` with `cytoskeleton`; 0 for `diatom_shell`                                                                                     | cosmetic fork, `stage`                        |
 | `stretch`   | `1 + k[(S_ALONG − 1) · max(cos Δ, 0)² − (1 − TAPER) · max(−cos Δ, 0)² − (S_ALONG − 1) · ACROSS · sin²Δ]`; C¹ at the sides                                                                                                   | `S_ALONG` 1.22, `TAPER` 0.72 (sheet 01 motion); `STRETCH_ACROSS_PER_ALONG` 0.6 (sheet 02's 1.10 × 0.94); sprint × 1.06 (visual-style/motion-and-legibility.md §5). k = 1: 1.22 / 0.868 / 0.72 at Δ 0° / 90° / 180°; k = 0.45: 1.10 / 0.94 / 0.87 | `k = speedRatio`, sprint                      |
 | contact     | bump −0.12 × depth, σ 22° toward the neighbour; σ 14° with `cytoskeleton`; depth = overlap / (`CONTACT_DENT_FULL_OVERLAP_RADII` 0.25 × r_min) clamped, so the dimple grows with the press and eases out with the separation | visual-style/motion-and-legibility.md §5                                                                                                                                                                                                         | `cells/contact-dents.ts` (visible-cell scan)  |
@@ -134,7 +135,7 @@ read by `bumpAt`). **WebGL2 is required**: the
 program is `#version 300 es`, the instance texture is RGBA32F read with `texelFetch` (nearest; linear on a float
 texture would need `OES_texture_float_linear`), and there is no WebGL1 path, so a context that falls back to
 WebGL1 fails at program compile and `RenderSession` rejects. The table holds `CELL_INSTANCE_CAPACITY` (512)
-rows and is re-uploaded whole once per frame (`capacity × CELL_INSTANCE_TEXELS × 16 B` ≈ 139 KB at 17 texels, 272 B a row; the sprint ring's texel added 16 B a row, ≈ 8 KB at capacity, #295); past the
+rows and is re-uploaded whole once per frame (`capacity × CELL_INSTANCE_TEXELS × 16 B` ≈ 147 KB at 18 texels, 288 B a row; the sprint ring's texel added 16 B a row, ≈ 8 KB at capacity, #295, and the starving cell's another 16 B, #635); past the
 capacity the layer drops the **smallest** cells (the sort is radius ascending and it packs from the large end),
 a rule the bounds today (8 players + 24 wild cells + ghosts; the bench's 100) never reach. Scalars, in texel
 order: centre, `r`, `quadExtentRadii` (§2, read by the vertex stage only), `h`, `k`, palette index, `lodBlend`,
@@ -157,7 +158,10 @@ self ring, clockwise from 12 o'clock; 1 on every other cell) and `selfRingBright
 `SELF_RING_ALPHA`, or the `sprint_ready` clip's track while it plays; the rest value elsewhere). Its last two
 channels hold the relation ring (#538, §10): `relationRingPx` (the edible line's and the toxic inner line's radius,
 0 for none) and `relationRingLines` (`RELATION_RING`: 1 the edible line, 2 the toxic double line; the count is the
-role). The texel is full, so the next field takes a twelfth. The per-cell deformation sources feed one record,
+role). A starving wild cell's two fields take a **twelfth scalar texel** (#635), so the row is **18 texels** (288 B,
+≈ 147 KB at capacity): `wither` (0 → 1 at the burst, `cells/starving-wither.ts`: every palette shade the shader reads
+through `shade()` is desaturated, sallowed toward `STARVING_SALLOW` and dimmed by it) and `wrinkleAmplitude` (§2.1's
+`wrinkle`); two channels are free. The per-cell deformation sources feed one record,
 `cells/cell-deformation.ts` `CellDeformation { bumps, pulse, alpha }`, resolved by cell id from the frame's map
 (`REST_DEFORMATION` for every cell without an entry); the render state then appends the cell's contact dent
 (`cells/contact-dents.ts`, dropped while the cell is engulfing, σ 14° when taut) and the seal it owes a ghost.

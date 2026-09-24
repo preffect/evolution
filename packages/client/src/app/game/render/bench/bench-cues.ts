@@ -24,7 +24,7 @@ import { zonePillText } from '../../hud/format/zone-pill';
 import { MASS_TREND } from '../../state/mass-trend';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-cell-indicators';
 import { RENDER_BENCH_CUES } from '../constants';
-import { NO_HUD_INPUTS, type RenderInputs } from '../game-renderer';
+import { NO_HUD_INPUTS, type RenderInputs } from '../render-io';
 
 /** The one-off change a cue frame lands. */
 export const BENCH_CUE_STEP = { eat: 'eat', engulf: 'engulf', sprint: 'sprint' } as const;

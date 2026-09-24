@@ -200,6 +200,8 @@ export const NOTICE_PADDING_INLINE_PX = 16;
 export const NOTICE_GAP_PX = 16;
 /** The rim under a notice row, in its tone's colour. */
 export const NOTICE_RIM_PX = 2;
+/** A toast's time on screen, counted in room ticks; a newer toast replaces it sooner. */
+export const TOAST_DURATION_SECONDS = 6;
 
 // ---- onboarding (docs/ui/input-and-onboarding.md §5, docs/ui/layout.md §1) ----
 

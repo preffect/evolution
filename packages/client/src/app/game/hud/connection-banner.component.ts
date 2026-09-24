@@ -1,5 +1,5 @@
 // The connection banner (docs/ui/overlays.md §3.6, docs/ui/components-and-constants.md §7): full width
-// along the top edge while the socket is down, so a dropped connection never looks like a frozen dish.
+// along the top edge while the socket is down or the server has gone quiet, so neither looks like a frozen dish.
 // `connectionBannerFor` decides; this binds its record.
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
@@ -18,6 +18,7 @@ import { GameStateService } from '../state/game-state.service';
         role="status"
         aria-live="polite"
         [class.danger]="banner().tone === tone.danger"
+        [class.level-gold]="banner().tone === tone.levelGold"
         [attr.data-testid]="testId.connectionBanner"
         [attr.data-connection-state]="state()"
       >

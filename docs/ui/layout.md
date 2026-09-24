@@ -87,8 +87,8 @@ visual-style/ui-type.md §7's and live beside the colours it owns, in `render/co
 The on-cell reading-floor constants are §3.1.3's table; their home is `render/constants.ts` because the renderer
 applies them, and this doc owns their values. `SNAPSHOT_STALE_MS` (2000 ms: no snapshot for this long while
 connected → `stale`, §3.6) is a networking fact, not a HUD one: it lives in `packages/shared/src/constants/netcode.ts`
-beside `SNAPSHOT_BUFFER_SIZE`, and `net/` computes the `connectionState` signal from it through the injected `Clock`
-(architecture/client.md §5: nothing in `game/` reads `Date.now`).
+beside `SNAPSHOT_BUFFER_SIZE`, and `net/snapshot-staleness.ts` waits it out through the injected `Scheduler` for the
+`connectionState` signal (architecture/client.md §5: nothing in `game/` reads `Date.now` or `setTimeout`).
 
 ## 2. Screens (lobby)
 

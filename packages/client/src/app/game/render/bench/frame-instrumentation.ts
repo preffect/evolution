@@ -7,7 +7,7 @@ import { RENDER_STAGE, type ClientPerformanceReport, type Clock } from '@evoluti
 import type { Application } from 'pixi.js';
 import type { RenderFrame } from '../../net/world-store';
 import { RENDER_SAMPLE_CAPACITY_FRAMES } from '../constants';
-import type { RenderOutputs } from '../game-renderer';
+import type { RenderOutputs } from '../render-io';
 import { createDrawCallCounter, type DrawCallCounter, type DrawCallSource } from './draw-call-counter';
 import { createGpuTimer, GPU_TIMER_STATUS, type GpuTimer, type GpuTimerSource, type GpuTimerStatus } from './gpu-timer';
 import { buildPerformanceReport, type FrameEvidence } from './render-benchmark';

@@ -16,13 +16,13 @@ import {
   type CameraState,
   type CameraTarget,
   type CellView,
-  type TraitId,
 } from '@evolution/shared';
 import { Sprite, type Container } from 'pixi.js';
 import type { RenderFrame } from '../net/world-store';
 import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
 import {
   cameraExtent,
+  hasViewportHeight,
   screenOffsetToWorld,
   screenToWorld,
   zoomFor,
@@ -39,41 +39,16 @@ import type { CueTextFactory } from './effects/cue-text';
 import { EffectsLayer } from './effects/effects-layer';
 import type { IndicatorTextFactory } from './effects/indicator-text';
 import { threatAnchorFor } from './effects/own-cell-indicators';
-import { OWN_CELL_CHROME, OwnCellIndicatorsLayer, type OwnCellChrome } from './effects/own-cell-indicators-layer';
+import { OWN_CELL_CHROME, OwnCellIndicatorsLayer } from './effects/own-cell-indicators-layer';
 import { relationLabelSceneFor } from './effects/relation-label-placements';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
 import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
+import { outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from './render-io';
 import { followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 import type { IndicatorTextures } from './textures/indicator-textures';
-import type { OwnCellIndicators } from '../state/own-cell-indicators';
-
-export interface RenderInputs {
-  readonly previewTraitId: TraitId | null;
-  readonly reticle: { readonly isVisible: boolean; readonly x: number; readonly y: number };
-  /** The HUD's own-cell record (docs/ui/hud.md §3.1.4): the indicators draw it and the sprint ring reads it; `null` draws none. */
-  readonly ownCellIndicators: OwnCellIndicators | null;
-  /** How much own-cell chrome to draw; the game's full HUD when absent, the preview lens's `lens` (#505). */
-  readonly ownCellChrome?: OwnCellChrome;
-}
-
-export interface RenderOutputs {
-  readonly cameraExtent: CameraExtent;
-  readonly zoom: number;
-  readonly visibleCells: number;
-  readonly visibleMotes: number;
-  readonly fragments: number;
-  /** Effect, reticle, own-cell indicator and legibility cue sprites placed this frame (docs/rendering/budget.md §6). */
-  readonly effectSprites: number;
-}
-
-/** No reticle this frame: the pointer has not been over the canvas, or the HUD hides it (docs/ui/input-and-onboarding.md §5). */
-export const NO_RETICLE: RenderInputs['reticle'] = { isVisible: false, x: 0, y: 0 };
-
-/** The crossings with nothing to say: no preview, no reticle, no own-cell record (the bench, a test). */
-export const NO_HUD_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_RETICLE, ownCellIndicators: null };
 
 export class GameRenderer {
   private readonly layers: SceneLayers;
@@ -90,6 +65,8 @@ export class GameRenderer {
   private lastTimeSeconds: number | null = null;
   /** A fixed px-per-wu the bench route (slice D) asks for; `null` follows the mass-driven zoom. */
   private fixedZoom: number | null = null;
+  /** The last frame's outputs, answered again for a frame skipped because the viewport has no height. */
+  private lastOutputs: RenderOutputs | null = null;
 
   constructor(
     stage: Container,
@@ -209,8 +186,24 @@ export class GameRenderer {
     return { ownCell: ownCellOf(frame, ownPlayerId), views, viewOf: this.viewLookup(views) };
   }
 
-  /** One frame: the stages in order, then the outputs the HUD reads. */
+  /**
+   * One frame: the stages in order, then the outputs the HUD reads. A viewport with no height (a hidden tab, a 0 × 0
+   * canvas mid-resize) has zoom 0, so its frame is skipped whole and the last outputs answer again (ticket #245).
+   */
   render(frame: RenderFrame, ownPlayerId: string | null, inputs: RenderInputs, submit: () => void): RenderOutputs {
+    if (!hasViewportHeight(this.viewport)) {
+      return this.lastOutputs ?? outputsBeforeAnyFrame(cameraExtent(this.cameraOrParked(), this.viewport));
+    }
+    this.lastOutputs = this.renderStages(frame, ownPlayerId, inputs, submit);
+    return this.lastOutputs;
+  }
+
+  private renderStages(
+    frame: RenderFrame,
+    ownPlayerId: string | null,
+    inputs: RenderInputs,
+    submit: () => void,
+  ): RenderOutputs {
     const { stages } = this;
     const { camera, zoom, extent } = stages.measure(RENDER_STAGE.camera, () => this.cameraStage(frame, ownPlayerId));
     // The depth-particle walk and the light-pool placement are neither the camera nor a stage of their own

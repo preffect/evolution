@@ -8,14 +8,15 @@
 //
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
-// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530), the death overlay (docs/ui/overlays.md §3.3, #189)
-// and the round results (§3.4, #637); the toasts (#190) slot in here as they land.
+// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530), the death overlay (docs/ui/overlays.md §3.3, #189),
+// the round results (§3.4, #637) and the toasts (§3.6, #190).
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
 import { GameStateService } from '../state/game-state.service';
 import { ConnectionBannerComponent } from './connection-banner.component';
-import { CONNECTION_STATE, noticeRowCountFor } from './format/connection-banner';
+import { CONNECTION_STATE } from '../net/connection-state';
+import { noticeRowCountFor } from './format/connection-banner';
 import { LeaderboardPanelComponent } from './leaderboard-panel.component';
 import { HintComponent } from './hint.component';
 import { HudStateService } from './hud-state.service';
@@ -25,6 +26,7 @@ import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RespawnOverlayComponent } from './respawn-overlay.component';
 import { ResultsOverlayComponent } from './results-overlay.component';
 import { RoundTimerComponent } from './round-timer.component';
+import { ToastComponent } from './toast.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
@@ -51,6 +53,7 @@ import { HUD_OVERLAY } from './hud-state.service';
     ResultsOverlayComponent,
     RoundTimerComponent,
     ServerErrorNoticeComponent,
+    ToastComponent,
     TraitOfferOverlayComponent,
   ],
   template: `
@@ -91,8 +94,11 @@ import { HUD_OVERLAY } from './hud-state.service';
     @if (isEncyclopediaOpen()) {
       <app-encyclopedia-overlay />
     }
+    <!-- One toast at a time, top-centre under the notice rows (docs/ui/overlays.md §3.6); mounted throughout so its
+         memory keeps stepping, and it draws nothing while no toast is up. It is part of the dimmed HUD, not a notice. -->
+    <app-toast />
     <!-- Last, so they paint over the chrome (docs/ui/overlays.md §3.6): the dish stays, dimmed, under
-         the banner while the socket is down, and the notices stack from the top edge. -->
+         the banner while the socket is down or the server is quiet, and the notices stack from the top edge. -->
     @if (isConnectionLost()) {
       <div class="connection-lost-dim"></div>
     }
@@ -172,10 +178,11 @@ export class HudComponent implements OnInit {
   /** The encyclopedia (docs/ui/encyclopedia.md §11.1): a modal reading screen, likewise not phase-gated. */
   protected readonly isEncyclopediaOpen = computed(() => this.hudState.openOverlay() === HUD_OVERLAY.encyclopedia);
 
-  /** The socket is down: the last snapshot stays on screen, dimmed, under the banner (docs/ui/overlays.md §3.6). */
-  protected readonly isConnectionLost = computed(
-    () => this.gameState.connectionState() === CONNECTION_STATE.disconnected,
-  );
+  /**
+   * The socket is down or the server has gone quiet: the last snapshot stays on screen, dimmed, under the banner
+   * (docs/ui/overlays.md §3.6).
+   */
+  protected readonly isConnectionLost = computed(() => this.gameState.connectionState() !== CONNECTION_STATE.connected);
 
   /** `--ui-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
   protected readonly scale = computed(() =>

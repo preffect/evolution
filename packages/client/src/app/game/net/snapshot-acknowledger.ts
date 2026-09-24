@@ -17,7 +17,11 @@ export class SnapshotAcknowledger {
     private readonly everySnapshots: number = SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   ) {}
 
-  /** A delta was applied: acknowledged on the first one and every `everySnapshots` after it. */
+  /**
+   * A delta was applied: acknowledged on the `everySnapshots`-th since the last acknowledgement (the N-th, 2N-th, …), a
+   * `game_state` restarting the count. The server skips a client only while it owes one of these (#655), so the two
+   * cadences must agree.
+   */
   recordApplied(tick: number): void {
     this.appliedSinceAcknowledgement += 1;
     if (this.appliedSinceAcknowledgement < this.everySnapshots) return;

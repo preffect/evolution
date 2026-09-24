@@ -17,8 +17,8 @@ import {
   RELATION_RING_RADII,
   RELATION_RING_STROKE_PX,
   SPRINT_RIM_BRIGHTNESS,
-  STARVING_ALPHA_FACTOR,
-  STARVING_RIM_BRIGHTNESS,
+  STARVING_FADE,
+  STARVING_RIM_DIM,
   WARNING_RING_STROKE_PX,
 } from '../constants';
 import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
@@ -51,6 +51,8 @@ export interface CellInstanceInput {
   readonly ownCellRing: OwnCellRing;
   /** The cell's relation to the own cell (`relationsFor`); `RELATION_RING.none` for no ring. */
   readonly relationRing: RelationRing;
+  /** How far a starving wild cell has withered (`witherOf`); 0 for every other cell. */
+  readonly wither: number;
 }
 
 const REST_RIM_BRIGHTNESS = 1;
@@ -194,12 +196,29 @@ function selfRingFields(input: CellInstanceInput): Pick<CellInstance, 'selfRingF
   return { selfRingFill: ring.fill, selfRingBrightness: ring.brightness };
 }
 
-/** The rim and the alpha: a sprint brightens the rim, a starving wild cell dulls both (it fades as it dies). */
-function fadeFields(input: CellInstanceInput): Pick<CellInstance, 'rimBrightness' | 'alpha'> {
-  if (input.view.isStarving) {
-    return { rimBrightness: STARVING_RIM_BRIGHTNESS, alpha: input.alpha * STARVING_ALPHA_FACTOR };
-  }
-  return { rimBrightness: input.terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS, alpha: input.alpha };
+/**
+ * The rim, the alpha and the wither: a sprint brightens the rim; a starving wild cell dims it and fades by its wither
+ * (visual-style/motion-and-legibility.md §5 "Starving"), and the shader dulls its palette by the same wither.
+ */
+function fadeFields(input: CellInstanceInput): Pick<CellInstance, 'rimBrightness' | 'alpha' | 'wither'> {
+  const { wither } = input;
+  const rim = input.terms.isSprinting ? SPRINT_RIM_BRIGHTNESS : REST_RIM_BRIGHTNESS;
+  return {
+    rimBrightness: rim * (1 - wither * STARVING_RIM_DIM),
+    alpha: input.alpha * (1 - wither * STARVING_FADE),
+    wither,
+  };
+}
+
+/** The strip's lobes, jitter and wrinkle; all 0 when the strip is off (a ghost). */
+function stripFields(terms: ShapeTerms): Pick<CellInstance, 'lobesScale' | 'jitterAmplitude' | 'wrinkleAmplitude'> {
+  const { strip } = terms;
+  if (strip === null) return { lobesScale: 0, jitterAmplitude: 0, wrinkleAmplitude: 0 };
+  return {
+    lobesScale: strip.lobesScale,
+    jitterAmplitude: strip.jitterAmplitude,
+    wrinkleAmplitude: strip.wrinkleAmplitude,
+  };
 }
 
 export function buildCellInstance(input: CellInstanceInput): CellInstance {
@@ -229,8 +248,7 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     stripRow: input.cosmetic.stripRow,
     stripPhase: input.cosmetic.phase,
     speckleSeed: input.cosmetic.speckleSeed,
-    lobesScale: terms.strip?.lobesScale ?? 0,
-    jitterAmplitude: terms.strip?.jitterAmplitude ?? 0,
+    ...stripFields(terms),
     ciliaPhase: input.ciliaPhase,
   };
 }

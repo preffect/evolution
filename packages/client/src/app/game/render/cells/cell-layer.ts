@@ -29,6 +29,7 @@ import { GhostRegistry, type Ghost, type GhostSource } from './ghost-cells';
 import { ghostFrame } from './ghost-instance';
 import { OrganelleSprites, type OrganelleDraw } from './organelle-sprites';
 import { evaluateProfile } from './radial-profile';
+import { starvedOutMassAt } from './starving-wither';
 
 export type CellLayerTextures = Pick<
   RenderTextures,
@@ -111,6 +112,7 @@ export class CellLayer {
       absorbedSeals: GhostRegistry.sealByPredator(ghosts),
       ownCellRing: input.ownCellRing,
       relationRings: input.relationRings,
+      starvedOutMass: starvedOutMassAt(input.frame.renderTick, input.frame.latest.roundStartTick, input.frame.balance),
     };
   }
 
@@ -125,9 +127,14 @@ export class CellLayer {
   }
 
   /** Packs `ghosts` from `firstRow` on and queues their sprites; returns the rows used. Every ghost has a reserved row (the budget), so none is cut. */
-  private packGhosts(ghosts: readonly Ghost[], firstRow: number, zoom: number, draws: OrganelleDraw[]): number {
+  private packGhosts(
+    ghosts: readonly Ghost[],
+    firstRow: number,
+    context: CellFrameContext,
+    draws: OrganelleDraw[],
+  ): number {
     ghosts.forEach((ghost, index) => {
-      const output = ghostFrame(ghost, zoom);
+      const output = ghostFrame(ghost, context.zoom, context.starvedOutMass);
       packCellInstance(this.mesh.instances, firstRow + index, output.instance);
       draws.push(organelleDraw(ghost.view, output, IS_AT_REST));
     });
@@ -150,7 +157,7 @@ export class CellLayer {
     for (const view of visible) {
       const state = this.registry.get(view.id);
       if (state === undefined) continue;
-      row += this.packGhosts(ghostsByPredator.get(view.id) ?? [], row, input.zoom, draws);
+      row += this.packGhosts(ghostsByPredator.get(view.id) ?? [], row, context, draws);
       ghostsByPredator.delete(view.id);
       const output = state.update(view, context, deformationOf(input.deformations, view.id));
       packCellInstance(this.mesh.instances, row, output.instance);
@@ -161,7 +168,7 @@ export class CellLayer {
       if (tail !== null) tails.push(tail);
     }
     const orphans = [...ghostsByPredator.values()].flat();
-    const packedGhosts = ghosts.length - orphans.length + this.packGhosts(orphans, row, input.zoom, draws);
+    const packedGhosts = ghosts.length - orphans.length + this.packGhosts(orphans, row, context, draws);
     this.mesh.setCount(packedCells + packedGhosts);
     this.mesh.upload();
     this.mesh.setFrame(frame.timeSeconds, input.zoom);

@@ -4,6 +4,7 @@
 // Every term is data: a new deformation is a row in the terms, never a branch here.
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { STARVING_WRINKLE_OCTAVE } from '../constants';
 import { SQUARE_DERIVATIVE_FACTOR, gaussianBump, wrapAngle } from '../geometry';
 import { sampleNoiseStrip, type NoiseStrip } from '../noise/noise-strip';
 
@@ -44,6 +45,8 @@ export interface StripTerm {
   readonly phase: number;
   readonly jitterAmplitude: number;
   readonly lobesScale: number;
+  /** A starving cell's crinkle: the jitter again, `STARVING_WRINKLE_OCTAVE` times as fine, at this amplitude; 0 otherwise. */
+  readonly wrinkleAmplitude: number;
 }
 
 /** `B(Δ)` per form (§2.4): the value and `dB/dΔ` at `delta` from the heading; unit area, so mass ∝ area holds. */
@@ -98,16 +101,29 @@ export function stretchAt(term: StretchTerm, delta: number): Term {
   return { value: speed * axial, derivative: speedDerivative * axial + speed * axialDerivative };
 }
 
-function stripAt(term: StripTerm | null, theta: number): Term {
-  if (term === null) return { value: 0, derivative: 0 };
-  const sample = sampleNoiseStrip(term.strip, term.row, theta / RADIANS_PER_FULL_TURN + term.phase);
+/** The wrinkle octave: the strip's jitter at `STARVING_WRINKLE_OCTAVE × θ`, so its slope in θ gains the octave too. */
+function wrinkleAt(term: StripTerm, theta: number): Term {
+  if (term.wrinkleAmplitude === 0) return { value: 0, derivative: 0 };
+  const turns = (STARVING_WRINKLE_OCTAVE * theta) / RADIANS_PER_FULL_TURN + term.phase;
+  const sample = sampleNoiseStrip(term.strip, term.row, turns);
   return {
-    value: term.jitterAmplitude * sample.jitter + term.lobesScale * sample.lobes,
-    derivative: term.jitterAmplitude * sample.jitterDerivative + term.lobesScale * sample.lobesDerivative,
+    value: term.wrinkleAmplitude * sample.jitter,
+    derivative: term.wrinkleAmplitude * STARVING_WRINKLE_OCTAVE * sample.jitterDerivative,
   };
 }
 
-/** `1 + breathing + wobble + jitter + lobes + Σ bumps` and its derivative in θ. */
+function stripAt(term: StripTerm | null, theta: number): Term {
+  if (term === null) return { value: 0, derivative: 0 };
+  const sample = sampleNoiseStrip(term.strip, term.row, theta / RADIANS_PER_FULL_TURN + term.phase);
+  const wrinkle = wrinkleAt(term, theta);
+  return {
+    value: term.jitterAmplitude * sample.jitter + term.lobesScale * sample.lobes + wrinkle.value,
+    derivative:
+      term.jitterAmplitude * sample.jitterDerivative + term.lobesScale * sample.lobesDerivative + wrinkle.derivative,
+  };
+}
+
+/** `1 + breathing + wobble + jitter + wrinkle + lobes + Σ bumps` and its derivative in θ. */
 export function surfaceTerms(terms: RadialProfileTerms, theta: number): Term {
   const wobbleArgument = terms.wobble.mode * theta + terms.wobble.phase;
   let value = 1 + terms.breathing + terms.wobble.amplitude * Math.sin(wobbleArgument);

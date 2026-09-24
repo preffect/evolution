@@ -8,7 +8,7 @@
 
 import { DISH_RADIUS, type CameraState, type RandomSource } from '@evolution/shared';
 import { Container, Graphics, Particle, ParticleContainer, Sprite, type Texture } from 'pixi.js';
-import { screenToWorld, zoomFor, type ViewportPx } from '../camera';
+import { hasViewportHeight, screenToWorld, zoomFor, type ViewportPx } from '../camera';
 import { hexToNumber } from '../colour';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import {
@@ -88,9 +88,11 @@ export function createLightPoolSprite(textures: Pick<RenderTextures, 'lightPoolT
 /**
  * Keeps the pool fixed to the view (rendering/budget.md §6.1): its centre is the world point under
  * `LIGHT_POOL_VIEW_CENTRE` of the viewport and its extent is `LIGHT_POOL_VIEW_RADII` of the
- * viewport in wu at the current zoom, so the sprite reads the same on screen at every zoom.
+ * viewport in wu at the current zoom, so the sprite reads the same on screen at every zoom. A viewport with no
+ * height has no zoom, so the sprite keeps its last placement until the canvas has a size again.
  */
 export function placeLightPoolSprite(sprite: Sprite, camera: CameraState, viewport: ViewportPx): void {
+  if (!hasViewportHeight(viewport)) return;
   const zoom = zoomFor(camera, viewport);
   const centre = screenToWorld(
     camera,

@@ -58,12 +58,15 @@ const CLIENT_WIRE_BUDGET_BYTES_PER_SECOND = 500 * BYTES_PER_KIBIBYTE;
  * Ticks of snapshots that may be in flight to one client before the room stops adding to them
  * (#266, docs/architecture/wire-contract.md §4): the client acknowledges the newest tick it has applied, and the
  * difference from the newest tick the room sent it is the depth of the queue between them —
- * wherever that queue actually sits (the room's socket, a dev proxy, the kernel, the browser).
+ * wherever that queue actually sits (the room's socket, a dev proxy, the kernel, the browser). The depth counts from
+ * the ack, or from where the stream restarted after a resync hold that sent nothing, whichever is newer (#655).
  * A healthy client's depth is the ack cadence plus the round trip, never more than
  * `SNAPSHOT_ACK_INTERVAL_TICKS` of it at any cadence (`derive-netcode.test.ts`); a second of it
- * means the client is not keeping up and more snapshots would only make it staler. The check runs on
- * broadcast ticks, so the depth overshoots this by up to one `SNAPSHOT_EVERY_TICKS` before the room
- * acts (63 against 60 today, pinned in `game-room-cadence.test.ts`).
+ * means the client is not keeping up and more snapshots would only make it staler. The room stops only once the
+ * depth is past this and the client holds `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas past its ack (with fewer it owes no
+ * ack). The check runs on broadcast ticks, so what is in flight when it stops is at most the larger of this plus one
+ * `SNAPSHOT_EVERY_TICKS` (63 against 60 today on a regular stream, pinned in `game-room-cadence.test.ts`) and
+ * `SNAPSHOT_ACK_EVERY_SNAPSHOTS` − 1 deltas past the ack, whatever ticks they span.
  */
 export const SNAPSHOT_BACKLOG_LIMIT_TICKS = derived.snapshotBacklogLimitTicks;
 
@@ -149,3 +152,10 @@ export const MAX_PREDICTION_TICKS = TICK_HZ / 2;
  * arrival (a debug republish does not count as one).
  */
 export const PREDICTION_STALL_TICKS = TICK_HZ / 4;
+
+/**
+ * No snapshot for this long while the socket is up reads as `stale` on the connection banner (docs/ui/overlays.md
+ * §3.6): the server is quiet, not gone. Two seconds is 40 missed snapshot intervals, far past any jitter, and it is
+ * also what a `debug_pause_room` looks like to a player.
+ */
+export const SNAPSHOT_STALE_MS = 2000;
