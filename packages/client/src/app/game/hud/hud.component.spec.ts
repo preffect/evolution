@@ -1,12 +1,13 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ROUND_PHASE, createTestSnapshot } from '@evolution/shared';
+import { ManualScheduler, ROUND_PHASE, SNAPSHOT_STALE_MS, createTestSnapshot } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import {
   UI_REFERENCE_VIEWPORT_HEIGHT_PX,
   UI_REFERENCE_VIEWPORT_WIDTH_PX,
   UI_SCALE_MIN,
 } from '../../ui-kit/ui-kit-constants';
+import { SCHEDULER } from '../clock-provider';
 import { HudComponent } from './hud.component';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { HUD_NOTICE_ROWS_VARIABLE } from './format/hud-css-variables';
@@ -109,5 +110,27 @@ describe('HudComponent', () => {
     fixture.destroy();
     expect(disconnect).toHaveBeenCalledOnce();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('HudComponent while the server is quiet (docs/ui/overlays.md §3.6)', () => {
+  it('dims the last snapshot under the stale banner, one notice row, as it does for a lost connection', () => {
+    const scheduler = new ManualScheduler();
+    TestBed.configureTestingModule({
+      imports: [HudComponent],
+      providers: [{ provide: SCHEDULER, useValue: scheduler }],
+    });
+    const multiplayer = TestBed.inject(MultiplayerService);
+    const fixture = TestBed.createComponent(HudComponent);
+    const host = fixture.nativeElement as HTMLElement;
+    multiplayer.connected.set(true);
+    multiplayer.snapshot.set(createTestSnapshot());
+    fixture.detectChanges();
+    expect(host.querySelector('.connection-lost-dim')).toBeNull();
+
+    scheduler.advanceMilliseconds(SNAPSHOT_STALE_MS);
+    fixture.detectChanges();
+    expect(host.querySelector('.connection-lost-dim')).not.toBeNull();
+    expect(host.style.getPropertyValue(HUD_NOTICE_ROWS_VARIABLE)).toBe('1');
   });
 });

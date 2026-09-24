@@ -77,6 +77,8 @@ export const HUD_TEST_ID = {
   serverErrorDismiss: 'hud-server-error-dismiss',
   /** The onboarding hint pill, with `data-hint-id` (docs/ui/input-and-onboarding.md §5, #530). */
   hint: 'hint',
+  /** The toast, top-centre, with `data-toast-kind` (docs/ui/overlays.md §3.6, #190). */
+  toast: 'toast',
   /** The picker's extra footer line while the `offer` onboarding beat is up. */
   traitOfferOnboarding: 'trait-offer-onboarding',
   /** The hold-Tab "affecting you" panel, beside the full board (docs/ui/overlays.md §3.7, #387). */

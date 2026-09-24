@@ -23,7 +23,7 @@ import { COACH_PREY_REACH_RADII } from '../hud-constants';
 import type { OnboardingObservation } from './onboarding-beats';
 import type { OnboardingSample } from './onboarding-queue';
 import { RELATION_RING, type RelationCandidate } from './relations-for';
-import { isRoundInBloom } from './round-clock';
+import { isSnapshotInBloom } from './round-clock';
 
 /** One snapshot with the records the HUD derived from it. */
 export interface OnboardingSource {
@@ -76,19 +76,6 @@ export function isToxinReaching(
   });
 }
 
-/** The round clock is in bloom; "not yet" before the room's config or the balance has arrived. */
-function isBloomFor({ snapshot, balance, roundDurationSeconds }: OnboardingSource): boolean {
-  if (balance === null) return false;
-  return isRoundInBloom({
-    timeLeftMs: snapshot.roundTimeLeftMs,
-    roundPhase: snapshot.roundPhase,
-    roundDurationSeconds,
-    bloomStartFraction: balance.session.ROUND_BLOOM_START_FRACTION,
-    foodBloomMultiplier: balance.ecology.FOOD_BLOOM_SPAWN_MULTIPLIER,
-    dnaFragmentBloomMultiplier: balance.ecology.DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER,
-  });
-}
-
 /**
  * The `prey` beat's condition (§5): a cell carrying the green ring — the rings' own `edible` rule, and not toxic,
  * whose ring is the red double line — is within `COACH_PREY_REACH_RADII` own radii of the own cell, edge to edge.
@@ -118,7 +105,7 @@ function observationFor(
     hasThreat: indicators !== null && indicators.nearestThreat !== null,
     zone: massFlow === null ? null : massFlow.zone,
     isShrinkingFromDecay: indicators !== null && isShrinkingFromDecay(indicators.massChip.trend, massFlow),
-    isBloom: isBloomFor(source),
+    isBloom: isSnapshotInBloom(snapshot, balance, source.roundDurationSeconds),
     isToxinReaching: balance !== null && isToxinReaching(ownCell, massFlow, snapshot.cells, balance),
     hasPreyInReach: hasPreyInReach(ownCell, source.relations),
     isEngulfing: ownCell.engulfingCellId !== null,
