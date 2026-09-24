@@ -21,6 +21,8 @@ import { IS_PREVIEW_ROUTE } from './game/encyclopedia/preview-route';
 import { EncyclopediaPreviewRouteComponent } from './game/encyclopedia/preview-route.component';
 import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
 import { GameHostComponent } from './game/game-host.component';
+import { IS_CARD_SHEET_ROUTE } from './game/hud/card-sheet/card-sheet-route';
+import { TraitCardSheetComponent } from './game/hud/card-sheet/card-sheet.component';
 import { HudComponent } from './game/hud/hud.component';
 import { SERVER_ERROR_CAPTION } from './game/hud/server-error-notice.component';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
@@ -44,7 +46,8 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
  * (`game/hud/hud.component.ts`) over it (#217, #185, docs/ui/layout.md §1). A dev build
  * opened with `?bench` renders the fixed-seed bench route instead (docs/rendering/budget.md §7), one opened
  * with `?preview` the encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7), and one opened
- * with `?kit` the UI kit states page (docs/ui/components-and-constants.md §10.2).
+ * with `?kit` the UI kit states page (docs/ui/components-and-constants.md §10.2), and one opened with `?cards` the
+ * sheet of every catalog trait card (#428).
  */
 @Component({
   selector: 'app-root',
@@ -58,12 +61,16 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
     GameHostComponent,
     HudComponent,
     RenderBenchComponent,
+    TraitCardSheetComponent,
     UiKitStatesComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/ui/layout.md §1).
-  host: { '[class.in-game]': 'multiplayer.inGame() || isBenchRoute || isPreviewRoute || isUiKitStatesRoute' },
+  host: {
+    '[class.in-game]':
+      'multiplayer.inGame() || isBenchRoute || isPreviewRoute || isUiKitStatesRoute || isCardSheetRoute',
+  },
 })
 export class AppComponent {
   readonly title = 'Evolution';
@@ -87,6 +94,8 @@ export class AppComponent {
   readonly isPreviewRoute = inject(IS_PREVIEW_ROUTE);
   /** The dev-only UI kit states page, likewise for the page's lifetime. */
   readonly isUiKitStatesRoute = inject(IS_UI_KIT_STATES_ROUTE);
+  /** The dev-only sheet of every catalog trait card (#428), likewise. */
+  readonly isCardSheetRoute = inject(IS_CARD_SHEET_ROUTE);
 
   /**
    * The encyclopedia over the lobby (docs/ui/encyclopedia.md §11.1). The room's copy is the HUD's, over
