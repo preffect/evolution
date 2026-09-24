@@ -11,7 +11,8 @@ PACKAGES_DIR="$SCRIPT_DIR/packages"
 DEPLOY_WATCH_PID_FILE="$LOG_DIR/deploy-watch.pid"
 DEPLOY_WATCH_SCRIPT="$SCRIPT_DIR/scripts/deploy-main.sh" # one word: the checkout path may contain a space
 DEPLOY_WATCH_FLAG=--watch
-# What this run started (ports and mode), for scripts/deploy-main.sh to restart the same stack
+# What this run started (ports and mode), for scripts/deploy-main.sh to restart the same stack. Both port
+# names: the watcher may have inherited either from the run that started it, and sourcing both overrides it.
 RUN_ENV_FILE="$LOG_DIR/run.env"
 CLIENT_PROXY_TEMPLATE="$PACKAGES_DIR/client/proxy.conf.json"
 CLIENT_PROXY_FILE="$LOG_DIR/proxy.conf.json"
@@ -29,7 +30,12 @@ STOP_GRACE_SECONDS="${RUN_STOP_GRACE_SECONDS:-$DEFAULT_STOP_GRACE_SECONDS}"
 STOP_POLLS_PER_SECOND=10
 STOP_POLL_SECONDS=0.1
 
-SERVER_PORT="${PORT:-4400}"
+# The server port is PORT, or SERVER_PORT as PORTS.env and the docs name it (#474); set both, they must agree
+if [[ -n "${PORT:-}" && -n "${SERVER_PORT:-}" && "$PORT" != "$SERVER_PORT" ]]; then
+  echo "ERROR: PORT=$PORT and SERVER_PORT=$SERVER_PORT disagree; both name the game server port. Set only one."
+  exit 1
+fi
+SERVER_PORT="${PORT:-${SERVER_PORT:-4400}}"
 CLIENT_PORT="${CLIENT_PORT:-4402}"
 
 # PIDs already listening on this run's ports once the old stack is stopped: never the new stack
@@ -119,7 +125,8 @@ Options:
   --logs             Tail the server, client and deploy logs
 
 Environment variables:
-  PORT                       Game server port    (default: 4400)
+  PORT or SERVER_PORT        Game server port    (default: 4400; SERVER_PORT as PORTS.env names it,
+                             and when both are set they must be equal)
   CLIENT_PORT                Angular client port (default: 4402)
   RUN_READY_TIMEOUT_SECONDS  ready timeout (default: ${DEFAULT_READY_TIMEOUT_SECONDS})
   RUN_STOP_GRACE_SECONDS     how long the stopped stack may keep the ports (default: ${DEFAULT_STOP_GRACE_SECONDS})
@@ -510,7 +517,7 @@ fi
 
 mkdir -p "$LOG_DIR"
 > "$PID_FILE"
-printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=%s\n' "$SERVER_PORT" "$CLIENT_PORT" "$RUN_MODE" > "$RUN_ENV_FILE"
+printf 'PORT=%s\nSERVER_PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=%s\n' "$SERVER_PORT" "$SERVER_PORT" "$CLIENT_PORT" "$RUN_MODE" > "$RUN_ENV_FILE"
 record_listeners_before_start
 
 if $RUN_SERVER; then
