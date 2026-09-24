@@ -25,7 +25,9 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 
 - `ReplayRecorder` sits inside the module: joins, leaves, applied inputs and debug patches are
   stamped with the tick at which they were **applied**, so the log is exactly what the
-  simulation saw (not what arrived).
+  simulation saw (not what arrived). The input log is in tick order, so recording a tick drops and replaces only
+  its tail (the entries an export between ticks already stamped for the coming tick); walking the whole log each
+  tick cost in proportion to the room's age (#181).
 - **One replay = one round.** The auto-rematch and `debug_set_seed` end the current recording
   and start a new one from the new seed, marked by `startedBy`; a replay never spans a reseed. The
   rematch round closes at the rematch tick with the rebuilt world's hash (the reset happens inside

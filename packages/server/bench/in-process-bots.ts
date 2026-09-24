@@ -1,75 +1,83 @@
-// The in-process bot bench (ticket #181, docs/testing/bots-and-design-tables.md §8.3): how much CPU the bots a module
-// drives itself (`debug_spawn_bot`) cost a tick at 60 Hz, next to the step itself. In process, no socket.
+// The in-process bot bench (ticket #181, docs/PERFORMANCE.md): in process, no socket and no browser, the Evolution
+// module's 60 Hz step (`reduceGameState`: the bots decide, then the recorded step runs) timed in a room of eight
+// `debug_spawn_bot` bots, against the floor: the same room with eight silent human seats in their place (the same food
+// cap, nobody deciding).
 //
 //   pnpm --filter @evolution/server bench:bots
 //
-// A filled dish with its wild seats and `BENCH_BOTS` grazers, each given one of the seeded player cells. The world
-// steps every tick; the bots decide every tick. Medians and p95 of **CPU time** (`process.cpuUsage`) over
-// `BENCH_TICKS` ticks after `BENCH_WARMUP_TICKS`: on a shared box other agents stretch the wall clock, not this.
+// The room: the module as the lobby builds it, one human seat that sends nothing, and eight bots cycling through the
+// deciding strategies. The room plays `BENCH_MINUTES` minutes of ticks; the first minute after `BENCH_WARMUP_TICKS`
+// (the dish filling) and the last minute are timed, because a cost that grows with the room's age shows only in the
+// second. Figures are the
+// process's CPU time (user + system) per tick, not wall time: other agents' runs on the shared box stretch the wall
+// clock. The mean is reported beside the median and p95 because garbage collection lands in few ticks.
 
-import { P95_QUANTILE, playerId } from '@evolution/shared';
-import { BOT_STRATEGY_NAME } from '../src/game/bots/strategy-constants.js';
-import { createEvolutionBotRoster, driveBots } from '../src/game/bots/evolution-bots.js';
-import { createInputRejectionCounters } from '../src/game/world/world-state.js';
-import { runStep } from '../src/game/simulation/step.js';
-import { serializeFullSnapshot } from '../src/game/serialize/serialize.js';
-import { createTestWorld } from '../src/testing/world-builders.js';
+import { P95_QUANTILE, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
+import { createEvolutionModule } from '../src/game/evolution-module.js';
+import { BOT_STRATEGY_NAME, type BotStrategyName } from '../src/game/bots/strategy-constants.js';
 
-const BENCH_BOTS = 8;
-const BENCH_WARMUP_TICKS = 120;
-const BENCH_TICKS = 1200;
+const BOTS = 8;
+const BENCH_WARMUP_TICKS = 600;
+const TICKS_PER_MINUTE = 3600;
+const BENCH_MINUTES = 10;
+const BENCH_TOTAL_TICKS = BENCH_MINUTES * TICKS_PER_MINUTE;
 const BENCH_SEED = 181;
 const HALF = 0.5;
 const MICROSECONDS_PER_MILLISECOND = 1000;
+const BOT_BEHAVIORS: readonly BotStrategyName[] = [
+  BOT_STRATEGY_NAME.grazer,
+  BOT_STRATEGY_NAME.hunter,
+  BOT_STRATEGY_NAME.flee,
+  BOT_STRATEGY_NAME.wander,
+];
+const HOST = playerId('bench-host');
 
 function quantile(samples: readonly number[], fraction: number): number {
   const sorted = [...samples].sort((left, right) => left - right);
   return sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))] ?? 0;
 }
 
-function cpuMillisecondsOf(work: () => void): number {
-  const started = process.cpuUsage();
-  work();
-  const spent = process.cpuUsage(started);
-  return (spent.user + spent.system) / MICROSECONDS_PER_MILLISECOND;
+function run(botCount: number): void {
+  const silentSeats = Array.from({ length: BOTS - botCount }, (_unused, index) => playerId(`bench-seat-${index}`));
+  const module = createEvolutionModule({
+    gameId: gameId('bench'),
+    creatorId: HOST,
+    playerIds: [HOST, ...silentSeats],
+    gameName: 'bench',
+    config: createTestSessionConfig({ seed: BENCH_SEED }),
+    avatarAssignments: { [HOST]: 0 },
+    playerNames: { [HOST]: 'Host' },
+  });
+  for (let index = 0; index < botCount; index += 1) {
+    const behavior = BOT_BEHAVIORS[index % BOT_BEHAVIORS.length]!;
+    module.getDebugHandle().spawnBot?.({ behavior, seed: BENCH_SEED + index }, () => {});
+  }
+  const firstMinuteMs: number[] = [];
+  const lastMinuteMs: number[] = [];
+  for (let tick = 0; tick < BENCH_TOTAL_TICKS; tick += 1) {
+    const started = process.cpuUsage();
+    module.reduceGameState();
+    const spent = process.cpuUsage(started);
+    const spentMs = (spent.user + spent.system) / MICROSECONDS_PER_MILLISECOND;
+    if (tick >= BENCH_WARMUP_TICKS && tick < BENCH_WARMUP_TICKS + TICKS_PER_MINUTE) firstMinuteMs.push(spentMs);
+    if (tick >= BENCH_TOTAL_TICKS - TICKS_PER_MINUTE) lastMinuteMs.push(spentMs);
+  }
+  const { world } = module;
+  const label = `${botCount} bots, ${silentSeats.length} silent seats`;
+  console.log(`${label}, first minute: ${summary(firstMinuteMs)}`);
+  console.log(
+    `${label}, minute ${BENCH_MINUTES}: ${summary(lastMinuteMs)}` +
+      ` (${world.cells.length} cells, ${world.food.length} motes, ${world.dnaFragments.length} fragments at the end)`,
+  );
 }
 
-const players = Array.from({ length: BENCH_BOTS }, (_unused, index) => ({
-  playerId: playerId(`bench-${index}`),
-  playerName: `Bench ${index}`,
-  avatarIndex: index,
-}));
-const world = createTestWorld({ players, isFilled: true, hasWildSeats: true, seed: BENCH_SEED });
-const roster = createEvolutionBotRoster(world);
-for (let index = 0; index < BENCH_BOTS; index += 1) {
-  const bot = roster.spawn({ behavior: BOT_STRATEGY_NAME.grazer, seed: BENCH_SEED + index });
-  const player = world.players[index]!;
-  const cell = world.cells.find((candidate) => candidate.playerId === player.playerId)!;
-  player.playerId = bot.playerId;
-  cell.playerId = bot.playerId;
+function summary(samplesMs: readonly number[]): string {
+  const mean = samplesMs.reduce((sum, sample) => sum + sample, 0) / samplesMs.length;
+  return (
+    `mean ${mean.toFixed(3)} ms, median ${quantile(samplesMs, HALF).toFixed(3)} ms,` +
+    ` p95 ${quantile(samplesMs, P95_QUANTILE).toFixed(3)} ms CPU per step`
+  );
 }
-const rejections = createInputRejectionCounters();
-let submitted = 0;
-const submit = (): void => {
-  submitted += 1;
-};
-const botSamples: number[] = [];
-const stepSamples: number[] = [];
-/** What the bots paid before #181 whatever they decided: a full snapshot, for scale. */
-const fullSnapshotSamples: number[] = [];
-for (let tick = 0; tick < BENCH_WARMUP_TICKS + BENCH_TICKS; tick += 1) {
-  const botMs = cpuMillisecondsOf(() => driveBots(roster, world, submit));
-  const fullSnapshotMs = cpuMillisecondsOf(() => serializeFullSnapshot(world));
-  const stepMs = cpuMillisecondsOf(() => runStep(world, world.balance, rejections));
-  if (tick >= BENCH_WARMUP_TICKS) {
-    botSamples.push(botMs);
-    stepSamples.push(stepMs);
-    fullSnapshotSamples.push(fullSnapshotMs);
-  }
-}
-const row = (label: string, samples: readonly number[]): string =>
-  `${label}: median ${quantile(samples, HALF).toFixed(3)} ms CPU, p95 ${quantile(samples, P95_QUANTILE).toFixed(3)} ms`;
-console.log(`${BENCH_BOTS} bots, ${world.food.length} motes, ${world.cells.length} cells, ${submitted} inputs`);
-console.log(row('bots per tick', botSamples));
-console.log(row('step per tick', stepSamples));
-console.log(row('a full snapshot, for scale', fullSnapshotSamples));
+
+run(BOTS);
+run(0);
