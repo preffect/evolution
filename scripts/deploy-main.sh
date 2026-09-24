@@ -19,11 +19,14 @@
 # Every step is logged with an ISO timestamp to <target>/.game-logs/deploy.log; deploy.lock beside it
 # keeps two deploys from overlapping; deployed-sha records the last COMPLETE deploy, so one that failed
 # half way is retried by the next manual run rather than looking done (--watch waits for the next
-# commit instead of retrying the same one every poll).
+# commit instead of retrying the same one every poll). A failed one-shot deploy's restart passes the commit
+# to run.sh as DEPLOY_WATCH_SKIP_SHA, and the watcher run.sh starts then skips it too, in memory only: its
+# stack may still be coming up (#666). A watcher started any other way retries it.
 #
 # Environment:
 #   DEPLOY_TARGET_DIR              checkout to deploy (default: the main checkout of this repository)
 #   DEPLOY_WATCH_INTERVAL_SECONDS  --watch poll interval (default 60)
+#   DEPLOY_WATCH_SKIP_SHA          --watch: a commit not to deploy (set by a failed one-shot deploy, forwarded by run.sh)
 #   DEPLOY_SETUP_COMMAND, DEPLOY_RUN_SCRIPT
 #                                  replace the setup step's command or run.sh (the tests stub them)
 # ---------------------------------------------------------------------------
@@ -97,16 +100,18 @@ run_step() { # <name> <command> — in the target, output into the log; fd 9 (th
 
 # run.sh again, in the stack's recorded mode and ports. The recorded port wins over an inherited SERVER_PORT
 # (its alias, #474): a run.env from before #474 records only PORT, and run.sh refuses the two when they differ.
-restart_command() {
-  local watch_flag=""
-  $watching && watch_flag=" --no-deploy-watch" # this watcher is running the deploy; a one-shot deploy lets run.sh start one
-  echo "set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT; . $RUN_ENV_PATH; }; set +a; $RUN_SCRIPT \${RUN_MODE:-} --clear-prebundle --wait-ready$watch_flag"
+restart_command() { # <to-sha>
+  local watch_flag="" skip_env=""
+  # This watcher is running the deploy; a one-shot deploy lets run.sh start one, which skips this commit
+  # should the restart fail (a harmless no-op when it succeeds: the commit is then the deployed one)
+  if $watching; then watch_flag=" --no-deploy-watch"; else skip_env="DEPLOY_WATCH_SKIP_SHA=$1 "; fi
+  echo "set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT; . $RUN_ENV_PATH; }; set +a; $skip_env$RUN_SCRIPT \${RUN_MODE:-} --clear-prebundle --wait-ready$watch_flag"
 }
 
 deploy_steps() { # <from-sha> <to-sha>
   run_step fast-forward "git merge --ff-only --quiet $2" || return
   run_step setup "$SETUP_COMMAND" || return
-  if ! run_step restart "$(restart_command)"; then
+  if ! run_step restart "$(restart_command "$2")"; then
     log "restart failed: the stack is not serving again (run.sh's output and the log tails are above)"
     return 1
   fi
@@ -190,6 +195,8 @@ deploy_once() {
 
 watch_upstream() {
   watching=true
+  failed_target_sha="${DEPLOY_WATCH_SKIP_SHA:-}"
+  unset DEPLOY_WATCH_SKIP_SHA # never passed on: not to this watcher's restarts, nor to its re-exec
   mkdir -p "$LOG_DIR"
   log "watching $UPSTREAM every ${WATCH_INTERVAL_SECONDS}s for $TARGET_DIR (pid $$)"
   while true; do

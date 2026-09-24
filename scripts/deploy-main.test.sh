@@ -10,7 +10,8 @@
 # the upstream, and a diverged branch; a failed build or restart not recorded and retried; an unreachable
 # origin; a held lock skips; a server the restart leaves running does not keep the lock; --watch deploys
 # with --no-deploy-watch, re-executes itself, logs a repeated refusal or fetch failure once and stops
-# when the checkout leaves main; its git status never takes the optional index.lock (#574). run.sh's side is
+# when the checkout leaves main; its git status never takes the optional index.lock (#574); a watcher started
+# run.sh starts after a failed one-shot deploy skips the failed commit, one started plainly retries it (#666). run.sh's side is
 # scripts/run.test.sh.
 #
 #   scripts/deploy-main.test.sh        # exit 0 when every case passes
@@ -59,7 +60,7 @@ echo 0 > "$restart_rc_file"
 mkdir -p "$sandbox/bin"
 cat > "$sandbox/bin/run-stub" <<STUB
 #!/usr/bin/env bash
-echo "restart SERVER_PORT=\${SERVER_PORT:-} PORT=\${PORT:-} CLIENT_PORT=\${CLIENT_PORT:-} \$*" >> "$calls"
+echo "restart DEPLOY_WATCH_SKIP_SHA=\${DEPLOY_WATCH_SKIP_SHA:-} SERVER_PORT=\${SERVER_PORT:-} PORT=\${PORT:-} CLIENT_PORT=\${CLIENT_PORT:-} \$*" >> "$calls"
 spawn_pid_file="\$(cat "$restart_spawn_file")"
 [[ -z "\$spawn_pid_file" ]] || { sleep 30 & echo \$! > "\$spawn_pid_file"; }
 exit "\$(cat "$restart_rc_file")"
@@ -260,6 +261,25 @@ git -C "$target" checkout -q feature
 watcher_gone() { ! kill -0 "$watch_pid"; }
 check "--watch stops when the checkout leaves main" $(( $(holds wait_for watcher_gone) && $(holds grep -q 'stopping the watcher' "$deploy_log") ))
 git -C "$target" checkout -q main
+
+# A failed one-shot deploy's run.sh starts a watcher; it must not restart a stack that may still be coming up (#666)
+echo "$STUB_FAILURE_EXIT" > "$restart_rc_file"
+merge_to_main game.txt v9
+run_deploy
+echo 0 > "$restart_rc_file"
+failed_at="$(origin_head)"
+check "a failed one-shot deploy passes the commit it restarts on to run.sh, for the watcher run.sh starts (rc $rc)" $(( rc == EXIT_FAILED && $(holds restarted_with "DEPLOY_WATCH_SKIP_SHA=$failed_at ") ))
+check "and records nothing on disk that outlives that watcher" $(( ! $(holds test -e "$target/.game-logs/failed-sha") && $(holds test "$(deployed_sha)" != "$failed_at") ))
+: > "$calls"
+DEPLOY_WATCH_SKIP_SHA="$failed_at" start_watcher "$target"
+skipping_watcher="$watch_pid"
+sleep $((WATCH_INTERVAL_SECONDS * WATCH_POLLS_TO_OBSERVE))
+check "the watcher run.sh starts with that commit to skip does not retry it" $(( $(holds no_calls) && ! $(holds deployed_at_origin) && $(holds kill -0 "$skipping_watcher") ))
+kill "$skipping_watcher"
+start_watcher "$target"
+check "a watcher a plain ./run.sh starts (nothing to skip) retries it" $(holds wait_for deployed_at_origin)
+check "and the restart it runs passes no commit to skip on" $(( $(holds restarted_with "DEPLOY_WATCH_SKIP_SHA= .*--no-deploy-watch$") ))
+kill "$watch_pid"
 
 start_watcher "$unreachable"
 sleep $((WATCH_INTERVAL_SECONDS * WATCH_POLLS_TO_OBSERVE))
