@@ -18,6 +18,9 @@ import {
   RESPAWN_DIM_ALPHA,
   RESPAWN_TEXT_TOP_PX,
   RESPAWN_TEXT_WIDTH_PX,
+  RESULTS_FADE_MS,
+  RESULTS_PANEL_WIDTH_PX,
+  RESULTS_WINNER_SWATCH_PX,
   LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_CORNER_RADIUS_PX,
   LEADERBOARD_ENGULFS_COLUMN_PX,
@@ -157,6 +160,10 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-respawn-dim-alpha', String(RESPAWN_DIM_ALPHA)],
   ['--hud-respawn-top', `${RESPAWN_TEXT_TOP_PX}px`],
   ['--hud-respawn-width', `${RESPAWN_TEXT_WIDTH_PX}px`],
+
+  ['--hud-results-width', `${RESULTS_PANEL_WIDTH_PX}px`],
+  ['--hud-results-winner-swatch', `${RESULTS_WINNER_SWATCH_PX}px`],
+  ['--hud-results-fade', `${RESULTS_FADE_MS}ms`],
 
   ['--hud-outline', OUTLINE],
   ['--hud-gain', GAIN],

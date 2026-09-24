@@ -109,10 +109,15 @@ so there are no own-cell indicators (`ownCellIndicators` is `null` and the mirro
 Cells freeze and input is ignored (game-design/session.md §5.4), so the exclusion rule is suspended. A 70 % dim and a centred
 panel 560 wide: `ROUND OVER` in `label`, `Amoeboid wins` in `headline` with the winner's swatch (`leaderboard[0]`;
 `You win` when it is `me`), the full table in `body` (rank, swatch, name, level, mass, absorptions, score; own row
-tinted), then `Next round in 17 s` (`body`; counted client-side from the first snapshot whose phase is `results`,
-`balance.session.RESULTS_SCREEN_SECONDS` long; `Next round soon` when that snapshot is a late join) and one button
-`Leave to lobby` (`mp.disconnect()`, then the lobby screen). Rematch is automatic; there is no button for it. When
-the phase returns to `playing` the panel fades out over 300 ms and the HUD resets. Test ids: `results-overlay`,
+tinted), then `Next round in 17 s` (`body`; `ceil` of the ticks left to `resultsStartedAtTick + RESULTS_SCREEN_SECONDS`,
+never below 1; `resultsStartedAtTick` is the round's start plus its length, the tick the server's round clock flips on, so a
+client that joins mid-results counts as exactly as one that watched the round end; `Next round soon` before the room's
+config or the live balance has arrived) and one button `Leave to lobby` (`multiplayer.leave()`, then the lobby screen).
+Nothing takes focus when the panel appears: the round can end while Space is held to sprint, and a focused button would
+take that key; Tab reaches the button (input-and-onboarding.md §4). The swatches are the leaderboard's
+(`player-swatch.component.ts`), the winner's drawn at `RESULTS_WINNER_SWATCH_PX`; the table borrows the full
+leaderboard's column tracks, row height and labels (`LV MASS ENGULFS SCORE`). Rematch is automatic; there is no button
+for it. When the phase returns to `playing` the panel fades out over 300 ms and the HUD resets. Test ids: `results-overlay`,
 `results-winner`, `results-row-<rank>`, `results-countdown`, `results-leave`.
 
 ### 3.5 Menu (Escape)

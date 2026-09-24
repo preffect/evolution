@@ -59,8 +59,14 @@ export const HUD_TEST_ID = {
   respawnCountdown: 'respawn-countdown',
   /** `Level 4 and 3 traits kept · 40 DNA lost`. */
   respawnKept: 'respawn-kept',
-  /** The results panel (docs/ui/overlays.md §3.4, #189). */
+  /** The results panel (docs/ui/overlays.md §3.4, #637). */
   resultsOverlay: 'results-overlay',
+  /** `Amoeboid wins`, or `You win`. */
+  resultsWinner: 'results-winner',
+  /** `Next round in 17 s`. */
+  resultsCountdown: 'results-countdown',
+  /** `Leave to lobby`. */
+  resultsLeave: 'results-leave',
   /** The connection banner, with `data-connection-state` (docs/ui/overlays.md §3.6, #219). */
   connectionBanner: 'connection-banner',
   /** The server's newest `error` message in play, under the banner (#219). */
@@ -104,6 +110,11 @@ export function affectingTraitTestId(traitId: TraitId): string {
 /** One leaderboard row, by the player it names (docs/ui/hud.md §3.1.1). */
 export function leaderboardRowTestId(id: PlayerId): string {
   return `leaderboard-row-${id}`;
+}
+
+/** One row of the results table, by its rank (docs/ui/overlays.md §3.4). */
+export function resultsRowTestId(rank: number): string {
+  return `results-row-${rank}`;
 }
 
 /** One trait card, by its index in the offer (docs/ui/overlays.md §3.2). */

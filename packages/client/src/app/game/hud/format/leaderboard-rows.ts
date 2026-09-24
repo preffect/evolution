@@ -31,12 +31,16 @@ export interface LeaderboardEntry {
   readonly isOwn: boolean;
 }
 
-export interface LeaderboardInput {
+/** The room's facts a ranked table is built from. */
+export interface LeaderboardSource {
   readonly rows: readonly LeaderboardRow[];
   readonly players: Readonly<Record<string, PlayerRosterView>>;
   readonly avatarAssignments: Readonly<Record<string, number>>;
   /** `MultiplayerService.playerId()`; `null` before the room names us. */
   readonly ownPlayerId: PlayerId | null;
+}
+
+export interface LeaderboardInput extends LeaderboardSource {
   /** How many rows fit: compact or full (docs/ui/hud.md §3.1.1). */
   readonly maxRows: number;
 }

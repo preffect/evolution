@@ -1,7 +1,7 @@
 // The leaderboard (docs/ui/hud.md §3.1.1): top-right, compact by default, the full list with mass and
 // absorptions while Tab is held or after the header is clicked. Rows are absolutely placed by their
 // slot so a re-sort slides rather than jumps. It decides nothing about who is shown or what a row
-// reads — `leaderboardEntriesFor` does — and nothing about the swatch — `leaderboard-swatch.ts`
+// reads — `leaderboardEntriesFor` does — and nothing about the swatch — `PlayerSwatchComponent`
 // does. The stylesheet is the sibling `.css`; every length and colour in it is a `--hud-…` the
 // shell publishes from the constants.
 
@@ -30,19 +30,19 @@ import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, leaderboardRowTestId } from '../test-ids/hud-test-ids';
 import { LEADERBOARD_TEXT, leaderboardLabelsFor } from './format/leaderboard-labels';
 import { leaderboardEntriesFor, type LeaderboardEntry } from './format/leaderboard-rows';
-import { leaderboardSwatchFor, leaderboardSwatchGeometry, type LeaderboardSwatch } from './format/leaderboard-swatch';
+import { PlayerSwatchComponent } from './player-swatch.component';
+import { rankingSourceFrom } from './ranking-source';
+import { ownRowTintFor } from './format/leaderboard-swatch';
 
 /** The property whose transition the full layout waits for, and the play state of one that has run to its end. */
 const WIDTH_PROPERTY = 'width';
 const FINISHED_STATE = 'finished';
 
-/** One user unit is one CSS px here, pinned by `leaderboard-swatch.spec.ts`. */
-const SWATCH = leaderboardSwatchGeometry();
-
-/** One rendered row: the ranking fact plus the seat colours it is drawn in. */
+/** One rendered row: the ranking fact plus the own row's tint in its seat colour. */
 interface LeaderboardViewRow {
   readonly entry: LeaderboardEntry;
-  readonly swatch: LeaderboardSwatch;
+  /** `null` on every row but the own. */
+  readonly tint: string | null;
   readonly testId: string;
 }
 
@@ -56,6 +56,7 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
   selector: 'app-leaderboard-panel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [PlayerSwatchComponent],
   template: `
     <div
       #panel
@@ -89,21 +90,11 @@ function panelHeightPx(rowCount: number, isFull: boolean): number {
             class="row"
             [class.own]="row.entry.isOwn"
             [style.--hud-row-slot]="slot"
-            [style.background]="row.entry.isOwn ? row.swatch.ownRowTint : null"
+            [style.background]="row.tint"
             [attr.data-testid]="row.testId"
           >
             <span class="rank">{{ row.entry.rank }}</span>
-            <svg class="swatch" [attr.viewBox]="swatchViewBox" aria-hidden="true" focusable="false">
-              <circle
-                [attr.r]="swatchBodyRadius"
-                [attr.fill]="row.swatch.base"
-                [attr.stroke]="row.swatch.rim"
-                [attr.stroke-width]="swatchRingWidth"
-              />
-              @for (bead of row.swatch.beads; track $index) {
-                <circle class="bead" [attr.cx]="bead.x" [attr.cy]="bead.y" [attr.r]="swatchBeadRadius" />
-              }
-            </svg>
+            <app-player-swatch [avatarIndex]="row.entry.avatarIndex" />
             <span class="name">{{ row.entry.name }}</span>
             <span class="level">L{{ row.entry.level }}</span>
             <span class="score">{{ row.entry.scoreText }}</span>
@@ -127,10 +118,6 @@ export class LeaderboardPanelComponent {
 
   protected readonly testId = HUD_TEST_ID;
   protected readonly text = LEADERBOARD_TEXT;
-  protected readonly swatchViewBox = SWATCH.viewBox;
-  protected readonly swatchBodyRadius = SWATCH.bodyRadius;
-  protected readonly swatchBeadRadius = SWATCH.beadRadius;
-  protected readonly swatchRingWidth = SWATCH.ringWidth;
 
   protected readonly isFull = this.hudState.isFullLeaderboardOpen;
 
@@ -156,10 +143,7 @@ export class LeaderboardPanelComponent {
 
   private readonly entries = computed(() =>
     leaderboardEntriesFor({
-      rows: this.gameState.leaderboard(),
-      players: this.gameState.players(),
-      avatarAssignments: this.gameState.avatarAssignments(),
-      ownPlayerId: this.gameState.ownPlayerId(),
+      ...rankingSourceFrom(this.gameState),
       maxRows: this.isFull() ? LEADERBOARD_FULL_ROWS : LEADERBOARD_COMPACT_ROWS,
     }),
   );
@@ -167,7 +151,7 @@ export class LeaderboardPanelComponent {
   protected readonly rows = computed<readonly LeaderboardViewRow[]>(() =>
     this.entries().map((entry) => ({
       entry,
-      swatch: leaderboardSwatchFor(entry.avatarIndex, SWATCH.bodyRadius),
+      tint: entry.isOwn ? ownRowTintFor(entry.avatarIndex) : null,
       testId: leaderboardRowTestId(entry.playerId),
     })),
   );

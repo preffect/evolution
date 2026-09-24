@@ -76,8 +76,8 @@
 - The trait picker (#188), the menu (#371) and the encyclopedia (#449) are live, so the Space-precedence branch, the
   modal gate, `H` and Escape's one owner act in play; `hud/menu.integration.spec.ts` pins the gate and the confirm
   row's Escape end to end, and `hud/encyclopedia-keyboard.integration.spec.ts` the encyclopedia's half of both. The
-  Tab-vs-overlay rule for the results panel is **dormant until that overlay exists** (#189): nothing renders
-  `results-overlay` yet. The rule is unit-tested, and is to be re-tested by hand when #189 lands.
+  results panel (#637) renders `results-overlay`, so Tab stays native over it and reaches `Leave to lobby`; it takes
+  no focus on its own, so a held Space never lands on that button.
 - **Space precedence.** Space is both sprint and "pick the focused card". The handler checks `document.activeElement`:
   inside `trait-offer` it picks (the card's own key handler runs, the sprint path does not); anywhere else it sprints.
   Opening the picker never moves focus by itself, so a player who keeps swimming keeps sprinting with Space until

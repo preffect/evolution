@@ -1,0 +1,178 @@
+/* The round results screen (docs/ui/overlays.md §3.4): the kit's modal panel centred over its scrim, never taller
+   than the viewport less the HUD margin. Kit tokens (`--ui-…`) from the layer's own surface; the panel's sizes
+   (`--hud-results-…`) and the table's columns and rows (`--hud-leaderboard-…`, docs/ui/hud.md §3.1.1) from the HUD
+   shell, so the ranking reads the same here as on the full leaderboard. */
+
+:host {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--hud-margin) * var(--ui-scale));
+  pointer-events: auto;
+}
+
+/* The next round has started: the panel and its dim fade together while the HUD returns underneath. */
+.layer.leaving {
+  pointer-events: none;
+  animation: results-leave var(--hud-results-fade) ease-in both;
+}
+
+@keyframes results-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+.results {
+  width: calc(var(--hud-results-width) * var(--ui-scale));
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--ui-space-xs) * var(--ui-scale));
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--ui-text-label);
+}
+
+/* One line always: the name is already cut, so this only guards a glyph wider than measured. */
+.winner {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ui-space-s) * var(--ui-scale));
+  margin: 0;
+  font-size: calc(var(--ui-type-headline) * var(--ui-scale));
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.winner-swatch {
+  --hud-swatch-size: var(--hud-results-winner-swatch);
+  flex: none;
+}
+
+.winner-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The one column geometry: the labels and every row are laid out from it, so they cannot drift apart. */
+.column-labels,
+.row {
+  display: grid;
+  grid-template-columns:
+    calc(var(--hud-leaderboard-rank-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-swatch-column) * var(--ui-scale))
+    1fr
+    calc(var(--hud-leaderboard-level-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-mass-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-engulfs-column) * var(--ui-scale))
+    calc(var(--hud-leaderboard-score-column) * var(--ui-scale));
+  align-items: center;
+  gap: calc(var(--hud-leaderboard-column-gap) * var(--ui-scale));
+  box-sizing: border-box;
+  padding: 0 calc(var(--hud-leaderboard-padding) * var(--ui-scale));
+}
+
+.column-labels {
+  height: calc(var(--hud-leaderboard-label-row-height) * var(--ui-scale));
+  font-size: calc(var(--ui-type-caption) * var(--ui-scale));
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--ui-text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.column-labels .label-level {
+  grid-column: 4;
+}
+
+.column-labels .label-mass {
+  grid-column: 5;
+}
+
+.column-labels .label-absorptions {
+  grid-column: 6;
+}
+
+.column-labels .label-score {
+  grid-column: 7;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  height: calc(var(--hud-leaderboard-row-height) * var(--ui-scale));
+  border-radius: calc(var(--hud-leaderboard-corner-radius) * var(--ui-scale));
+}
+
+.rank,
+.level,
+.mass,
+.absorptions {
+  color: var(--ui-text-label);
+}
+
+.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.level {
+  text-align: right;
+}
+
+/* The numbers take `figure`, `body`'s size in the mono face (docs/visual-style/ui-type.md §7): tabular digits. */
+.mass,
+.absorptions,
+.score {
+  font-family: var(--ui-font-mono);
+  font-size: calc(var(--ui-type-figure) * var(--ui-scale));
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.footer {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--ui-space-m) * var(--ui-scale));
+  /* The kit's focus ring draws outside the button; the footer keeps room for it. */
+  padding: calc(var(--ui-focus-ring) + var(--ui-focus-ring-offset));
+}
+
+.countdown {
+  color: var(--ui-text-muted);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer.leaving {
+    animation: none;
+  }
+}

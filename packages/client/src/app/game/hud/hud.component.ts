@@ -8,8 +8,8 @@
 //
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
-// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530) and the death overlay (docs/ui/overlays.md §3.3, #189);
-// the results overlay (§3.4) and the toasts (#190) slot in here as they land.
+// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530), the death overlay (docs/ui/overlays.md §3.3, #189)
+// and the round results (§3.4, #637); the toasts (#190) slot in here as they land.
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
@@ -23,6 +23,7 @@ import { MenuOverlayComponent } from './menu-overlay.component';
 import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { RespawnOverlayComponent } from './respawn-overlay.component';
+import { ResultsOverlayComponent } from './results-overlay.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
@@ -47,6 +48,7 @@ import { HUD_OVERLAY } from './hud-state.service';
     MenuOverlayComponent,
     OwnCellStatusComponent,
     RespawnOverlayComponent,
+    ResultsOverlayComponent,
     RoundTimerComponent,
     ServerErrorNoticeComponent,
     TraitOfferOverlayComponent,
@@ -76,6 +78,9 @@ import { HUD_OVERLAY } from './hud-state.service';
          so the results phase does not need to gate it. It does unmount on death, which announces
          nothing; the death overlay's countdown is what speaks then. -->
     <app-own-cell-status />
+    <!-- The round results (docs/ui/overlays.md §3.4): draws nothing in play, and is mounted throughout so it can fade
+         out over the returning chrome when the next round starts. Under the menu, which Escape opens over it. -->
+    <app-results-overlay />
     <!-- Over the picker and the chrome, under the notices (docs/ui/overlays.md §3.5); not phase-gated, since Escape
          opens it between rounds too. -->
     @if (isMenuOpen()) {
@@ -152,7 +157,7 @@ export class HudComponent implements OnInit {
   protected readonly testId = HUD_TEST_ID;
 
   /**
-   * The in-round chrome stands down for the results phase (docs/ui/hud.md §3.1, §3.1.1), where #189's
+   * The in-round chrome stands down for the results phase (docs/ui/hud.md §3.1, §3.1.1), where the results
    * overlay claims the screen and would otherwise share the top-right with the board. It does
    * **not** gate on `lifeState`: the board is §3.1.1's stated exception, because a dead player
    * watching their killer is exactly who wants to see the ranking. The clock's own `isVisible`

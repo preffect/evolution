@@ -31,6 +31,9 @@ import {
   RESPAWN_DIM_ALPHA,
   RESPAWN_TEXT_TOP_PX,
   RESPAWN_TEXT_WIDTH_PX,
+  RESULTS_FADE_MS,
+  RESULTS_PANEL_WIDTH_PX,
+  RESULTS_WINNER_SWATCH_PX,
   LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_CORNER_RADIUS_PX,
   LEADERBOARD_ENGULFS_COLUMN_PX,
@@ -181,6 +184,15 @@ function respawnVariables(): StyleVariables {
   };
 }
 
+/** The round results panel (docs/ui/overlays.md §3.4); its table borrows the leaderboard's columns and rows. */
+function resultsVariables(): StyleVariables {
+  return {
+    '--hud-results-width': `${RESULTS_PANEL_WIDTH_PX}px`,
+    '--hud-results-winner-swatch': `${RESULTS_WINNER_SWATCH_PX}px`,
+    '--hud-results-fade': `${RESULTS_FADE_MS}ms`,
+  };
+}
+
 /**
  * The two colour roles the kit does not carry (docs/visual-style/principles-and-palette.md §2): the text outline the
  * clock and the cues sit on, and the gain role the mass trend rises in (§3.7). Every other colour is the kit's.
@@ -226,6 +238,7 @@ export function hudStyleVariables(): StyleVariables {
     ...menuVariables(),
     ...noticeVariables(),
     ...respawnVariables(),
+    ...resultsVariables(),
     ...hudColourVariables(),
   };
 }
