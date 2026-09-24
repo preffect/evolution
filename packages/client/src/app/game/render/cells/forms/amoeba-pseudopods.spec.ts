@@ -24,17 +24,21 @@ import { normalisedArea } from './form-profiles';
 const REST: PseudopodInput = { count: 4, timeSeconds: 0, phase: 0, aim: 0, lean: 0 };
 const CYCLE_SECONDS = 1 / PSEUDOPOD_CYCLE_HZ;
 
-/** The angle between the fan's outermost lobes. */
-function fanWidth(bumps: readonly ShapeBump[]): number {
-  const centres = bumps.map((bump) => bump.centre);
-  return Math.max(...centres) - Math.min(...centres);
+/** Each lobe's offset from `from`, wrapped: a fan of four at rest spans the whole ring, so a vector mean would vanish. */
+function offsets(bumps: readonly ShapeBump[], from: number): number[] {
+  return bumps.map((bump) => wrapAngle(bump.centre - from));
 }
 
-/** The fan's middle, as the mean direction of its lobes. */
-function fanDirection(bumps: readonly ShapeBump[]): number {
-  const x = bumps.reduce((sum, bump) => sum + Math.cos(bump.centre), 0);
-  const y = bumps.reduce((sum, bump) => sum + Math.sin(bump.centre), 0);
-  return Math.atan2(y, x);
+/** The angle between the fan's outermost lobes. */
+function fanWidth(bumps: readonly ShapeBump[], aim = 0): number {
+  const around = offsets(bumps, aim);
+  return Math.max(...around) - Math.min(...around);
+}
+
+/** The fan's middle: the aim plus the mean offset of its lobes from it. */
+function fanDirection(bumps: readonly ShapeBump[], aim = 0): number {
+  const around = offsets(bumps, aim);
+  return wrapAngle(aim + around.reduce((sum, offset) => sum + offset, 0) / around.length);
 }
 
 function surfaceAt(bumps: readonly ShapeBump[], theta: number): number {
@@ -69,8 +73,9 @@ describe('pseudopodBumps', () => {
   /** The two aims the shape terms hand it: the heading, and the prey while engulfing. Both must be followed. */
   it('points the fan wherever it is aimed', () => {
     for (const aim of [1, -2.5]) {
-      expect(fanDirection(pseudopodBumps({ ...REST, aim, lean: 1 }))).toBeCloseTo(aim, 6);
-      expect(fanDirection(pseudopodBumps({ ...REST, aim }))).toBeCloseTo(aim, 6);
+      expect(fanDirection(pseudopodBumps({ ...REST, aim, lean: 1 }), aim)).toBeCloseTo(aim, 6);
+      expect(fanDirection(pseudopodBumps({ ...REST, aim }), aim)).toBeCloseTo(aim, 6);
+      expect(fanDirection(pseudopodBumps({ ...REST, aim: 0, lean: 1 }), aim)).not.toBeCloseTo(aim, 2);
     }
   });
 

@@ -88,7 +88,7 @@ export const AMOEBA_CORE_SCALE = 0.84;
 /** One pseudopod's Gaussian width: a blunt lobe (sheet 04's 0.28–0.36 rad). */
 export const PSEUDOPOD_SIGMA_DEG = 18;
 /** The angle between neighbouring lobes at rest: a wide, irregular fan about the held heading. */
-export const PSEUDOPOD_REST_STEP_DEG = 75;
+export const PSEUDOPOD_REST_STEP_DEG = 90;
 /** The angle between neighbouring lobes at full speed: the fan gathers toward the velocity (or the engulfed prey). */
 export const PSEUDOPOD_LEAN_STEP_DEG = 40;
 /** A lobe extends and retracts on a sine between this share of its reach and all of it, neighbours 1/n turn apart. */
