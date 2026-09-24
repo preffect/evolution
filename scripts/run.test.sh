@@ -25,7 +25,7 @@
 # a server that exits on start fails fast and stops the client it started; a stack not ready in time is
 # left running; both failures still start the watcher, so the fix merge deploys; every start waits for
 # its listeners, --wait-ready or not. SERVER_PORT is an alias of PORT (#474): alone it sets the server port,
-# equal to PORT it starts, different from PORT it refuses the start; run.env records both, and the usage names both.
+# equal to PORT it starts, different from PORT it refuses the start (not --help or --status); run.env records both, and the usage names both.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -302,8 +302,10 @@ check "the failed start stops the client it started and still starts the deploy 
 run_stack --stop
 
 # --- SERVER_PORT, PORTS.env's name for the server port, is an alias of PORT (#474) ---------------
-run_stack --help
-check "the usage text names PORT, SERVER_PORT and CLIENT_PORT (rc $rc)" $(( rc == 0 && $(holds grep -q '^  PORT or SERVER_PORT ' <<<"$out") && $(holds grep -q '^  CLIENT_PORT ' <<<"$out") ))
+SERVER_PORT="$STACK_CLIENT_PORT" run_stack --status
+check "--status is not refused over PORT and SERVER_PORT disagreeing (rc $rc)" $(( rc == 0 && ! $(holds grep -q disagree <<<"$out") ))
+SERVER_PORT="$STACK_CLIENT_PORT" run_stack --help
+check "the usage text names PORT, SERVER_PORT and CLIENT_PORT, whatever they are set to (rc $rc)" $(( rc == 0 && $(holds grep -q '^  PORT or SERVER_PORT ' <<<"$out") && $(holds grep -q '^  CLIENT_PORT ' <<<"$out") ))
 unset PORT
 : > "$pnpm_args"
 SERVER_PORT="$STACK_SERVER_PORT" run_stack --server-only --no-deploy-watch

@@ -30,11 +30,9 @@ STOP_GRACE_SECONDS="${RUN_STOP_GRACE_SECONDS:-$DEFAULT_STOP_GRACE_SECONDS}"
 STOP_POLLS_PER_SECOND=10
 STOP_POLL_SECONDS=0.1
 
-# The server port is PORT, or SERVER_PORT as PORTS.env and the docs name it (#474); set both, they must agree
-if [[ -n "${PORT:-}" && -n "${SERVER_PORT:-}" && "$PORT" != "$SERVER_PORT" ]]; then
-  echo "ERROR: PORT=$PORT and SERVER_PORT=$SERVER_PORT disagree; both name the game server port. Set only one."
-  exit 1
-fi
+# The server port is PORT, or SERVER_PORT as PORTS.env and the docs name it (#474); a start refuses the two
+# when they differ (refuse_conflicting_server_ports)
+REQUESTED_SERVER_PORT="${SERVER_PORT:-}"
 SERVER_PORT="${PORT:-${SERVER_PORT:-4400}}"
 CLIENT_PORT="${CLIENT_PORT:-4402}"
 
@@ -285,6 +283,13 @@ needed_ports() {
   if $RUN_CLIENT; then echo "$CLIENT_PORT"; fi
 }
 
+refuse_conflicting_server_ports() { # exits when PORT and its alias SERVER_PORT name different ports (#474)
+  if [[ -n "${PORT:-}" && -n "$REQUESTED_SERVER_PORT" && "$PORT" != "$REQUESTED_SERVER_PORT" ]]; then
+    echo "ERROR: PORT=$PORT and SERVER_PORT=$REQUESTED_SERVER_PORT disagree; both name the game server port. Set only one."
+    exit 1
+  fi
+}
+
 refuse_port() { # <port> <pid> <why> — exits: nothing was started
   echo "ERROR: port $1 is held by $(describe_holder "$2"), $3; not starting."
   echo "  Choose free ports: PORT=<server port> CLIENT_PORT=<client port> ./run.sh"
@@ -485,6 +490,8 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+refuse_conflicting_server_ports
 
 # Verify required tools are available before starting
 check_deps
