@@ -49,6 +49,8 @@ export interface StripTerm {
 /** `B(Δ)` per form (§2.4): the value and `dB/dΔ` at `delta` from the heading; unit area, so mass ∝ area holds. */
 export interface FormProfile {
   evaluate(delta: number): { readonly value: number; readonly derivative: number };
+  /** The largest `B` at any angle: what the reach bounds multiply in (`shape-terms.ts`), so a lobe past 1 is never clipped. */
+  readonly peak: number;
 }
 
 export interface RadialProfileTerms {

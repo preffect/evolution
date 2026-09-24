@@ -13,6 +13,7 @@ import {
   CYTOSKELETON,
   DANGER,
   GAIN,
+  VAC_RIM,
   OUTLINE,
   RIBOSOME,
   TOXIN_GLOW,
@@ -51,6 +52,7 @@ const COLOUR_UNIFORMS: Readonly<Record<string, string>> = {
   [CELL_UNIFORM.cellWall]: CELL_WALL,
   [CELL_UNIFORM.cellWallLight]: CELL_WALL_LIGHT,
   [CELL_UNIFORM.cilia]: CILIA,
+  [CELL_UNIFORM.ectoplasm]: VAC_RIM,
   [CELL_UNIFORM.danger]: DANGER,
   [CELL_UNIFORM.gain]: GAIN,
 };

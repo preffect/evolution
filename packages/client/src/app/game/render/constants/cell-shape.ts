@@ -79,6 +79,39 @@ export const DIATOM_ASPECT = 1;
 export const FORM_ID = { blob: 0, slipper: 1, spindle: 2, trumpet: 3, diatom: 4, amoeba: 5 } as const;
 /** Pseudopod lobes per tier (sheet 04 amoeba). */
 export const PSEUDOPOD_COUNT_BY_TIER = [2, 3, 4] as const;
+/**
+ * The amoeba's core (#192): its `B ≡` this, and its lobes make up the area the core gives away
+ * (`forms/amoeba-pseudopods.ts`). Sheet 04 drew the lobes out to 1.6 r; that crossed the 1.3 r engulf-warning and
+ * relation rings and drew reach the cell does not have, so the lobes are short and fat instead: the body stays
+ * inside `ENGULF_WARNING_RING_RADII` at every speed short of a sprint (visual-style/motion-and-legibility.md §5).
+ */
+export const AMOEBA_CORE_SCALE = 0.9;
+/** A lobe at full extension, in core radii: the tip at ≈ 1.15 r at rest. Each lobe's width is solved for unit area. */
+export const PSEUDOPOD_REACH = 0.28;
+/** The angle between neighbouring lobes at rest, and the whole fan turned off the heading by the skew: no two lobes mirror each other, so the resting silhouette is irregular (100 does not divide 360). */
+export const PSEUDOPOD_REST_STEP_DEG = 100;
+export const PSEUDOPOD_REST_SKEW_DEG = 25;
+/**
+ * With speed the lobes move out of the stretched front to the flanks, `PSEUDOPOD_FLANK_DEG` off the heading plus
+ * `PSEUDOPOD_FLANK_SPREAD` of their rest offset, reaching them at `1 / PSEUDOPOD_LEAN_GAIN` of top speed; while
+ * engulfing they flank the prey the same way at `PSEUDOPOD_ENGULF_LEAN` at least, so the arms reach round it.
+ */
+export const PSEUDOPOD_FLANK_DEG = 65;
+export const PSEUDOPOD_FLANK_SPREAD = 0.5;
+export const PSEUDOPOD_LEAN_GAIN = 3;
+export const PSEUDOPOD_ENGULF_LEAN = 1;
+/** A lobe extends and retracts on a sine between this share of its reach and all of it, neighbours 1/n turn apart. */
+export const PSEUDOPOD_RETRACTED_SHARE = 0.45;
+export const PSEUDOPOD_CYCLE_HZ = 0.35;
+/** At rest the fan sways about the held heading by ± this; the sway fades out as the lobes move to the flanks. */
+export const PSEUDOPOD_SWAY_DEG = 15;
+export const PSEUDOPOD_SWAY_HZ = 0.12;
+/** Time samples over one extension cycle, and ring angle samples, for the lobes' reach table (a bound, §2). */
+export const PSEUDOPOD_PEAK_TIME_SAMPLES = 96;
+export const PSEUDOPOD_PEAK_ANGLE_SAMPLES = 720;
+/** The amoeba's clear ectoplasm (visual-style/cells-and-organelles.md §4): a `VAC_RIM` band this deep inside the membrane, in `d / r`. */
+export const ECTOPLASM_DEPTH_RADII = 0.15;
+export const ECTOPLASM_ALPHA = 0.14;
 /** `∫ B² dΔ / 2π` samples for the unit-area check (§9). */
 export const FORM_AREA_SAMPLES = 720;
 

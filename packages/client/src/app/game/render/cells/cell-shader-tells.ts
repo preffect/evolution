@@ -1,5 +1,5 @@
-// The trait tells of pass B (docs/rendering/cells.md §2.2, docs/visual-style/cells-and-organelles.md §4): the rigid cell
-// wall outside the membrane, the leaning cilia hairs (a flat band at mid LOD), the engulf-warning
+// The trait tells of pass B (docs/rendering/cells.md §2.2, docs/visual-style/cells-and-organelles.md §4): the amoeba's
+// clear ectoplasm just inside the membrane (#192), the rigid cell wall outside it, the leaning cilia hairs (a flat band at mid LOD), the engulf-warning
 // ring in the undeformed frame (visual-style/motion-and-legibility.md §5), the relation ring (docs/ui/hud.md §3.1.5) and
 // the absorbed ghost's dashed outline. Every membrane band is a band of `d`; the rings track the instance's centre and
 // snap with the LOD.
@@ -18,6 +18,9 @@ import {
   CILIA_WAVE_AMPLITUDE_DEG,
   CILIA_WAVE_COUNT,
   CILIA_WIDTH_PX,
+  ECTOPLASM_ALPHA,
+  ECTOPLASM_DEPTH_RADII,
+  FORM_ID,
   EDIBLE_RING_ALPHA,
   GHOST_RIM_DASH_PX,
   OUTLINE_ALPHA,
@@ -42,6 +45,16 @@ const CILIA_WAVE = degreesToRadians(CILIA_WAVE_AMPLITUDE_DEG);
 const WARNING_RING_ROTATION_RAD_PER_SECOND = degreesToRadians(WARNING_RING_ROTATION_DEG_PER_SECOND);
 
 export const CELL_SHADER_TELLS = /* glsl */ `
+/** The amoeba's clear ectoplasm: a 'VAC_RIM' band from the membrane inward, fading toward the granular core. */
+vec4 ectoplasm(Instance inst, Frame frame, vec4 acc) {
+  if (abs(inst.formId - ${glslFloat(FORM_ID.amoeba)}) > HALF) return acc;
+  float depth = ${glslFloat(ECTOPLASM_DEPTH_RADII)};
+  float feather = frame.aa / inst.r;
+  float inside = 1.0 - smoothstep(-feather, feather, frame.dr);
+  float fade = smoothstep(-depth, 0.0, frame.dr);
+  return over(acc, uEctoplasm, inside * fade * ${glslFloat(ECTOPLASM_ALPHA)});
+}
+
 /** The rigid wall band outside the membrane, its hairline and its dark outer line, thickened per tier. */
 vec4 cellWall(Instance inst, Frame frame, vec4 acc) {
   if (inst.wallScale <= 0.0) return acc;

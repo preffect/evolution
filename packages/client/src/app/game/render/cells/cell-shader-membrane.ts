@@ -166,6 +166,7 @@ vec4 membranePass(Instance inst, Frame frame) {
     acc = doubleFilm(inst, frame, acc);
   } else {
     acc = innerEdge(inst, frame, inside, acc);
+    acc = ectoplasm(inst, frame, acc);
     acc = softRim(inst, frame, acc);
     acc = rimLight(inst, frame, acc);
   }
