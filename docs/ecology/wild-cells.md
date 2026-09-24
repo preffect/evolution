@@ -285,9 +285,9 @@ their own.
 The dish can feed only so much wild life: about half as much again as a freshly seeded dish holds.
 While the wild cells together weigh more than that, the heaviest one starts to starve. It shrinks
 steadily, first losing everything it ever ate and then its own body, until it is smaller than the
-smallest newborn. Then it bursts into a cloud of scraps, and a fresh cell is born somewhere else ten
-seconds later. Only one wild cell starves at a time, and once it has started it does not stop. So in a
-crowded dish, now and then a giant withers and pops, leaving scraps for whoever is nearby, and a dish with room to spare sees no starving at all. There is no randomness: the same dish
+smallest newborn. Then it bursts into a feast: most of what is left of it spills out as a big pile of
+food that draws players and wild cells in, and a fresh cell is born somewhere else ten seconds later. Only one wild cell starves at a time, and once it has started it does not stop. So in a
+crowded dish, now and then a giant withers and pops, leaving a feast for whoever gets there first, and a dish with room to spare sees no starving at all. There is no randomness: the same dish
 always starves the same cell.
 
 ```
@@ -305,11 +305,16 @@ totalWildMass           = Σ mass of every seated wild cell, read at the start o
   taken from `seat.grownMass` first. What is left is taken from the base size itself, by
   `seat.sizeFactor −= remainder / worldMass(t)`, then `seat.fullMass −= starvedMass`. The settle then
   runs as usual, so a wound on a starving cell still recovers, but only toward the shrinking full size.
-  The starved mass is simply gone. Nothing drops until the cell bursts.
+  The starved mass is simply gone. Nothing drops until the cell bursts. This is the order a sprint's cost is
+  paid in too (§3.3.1): growth first; but what a sprint takes past the growth is a wound that recovers, while
+  what starvation takes past the growth comes off the base size for good.
 - **Bursting.** A starving cell whose `seat.fullMass` falls below `WILD_CELL_SIZE_FACTOR_MIN` ×
   `worldMass(t)`, the smallest newborn's size, dies at the end of its settle. It goes through
-  `dissolveCell`, the way any cell leaves the world: every engulf it is part of is aborted, and
-  detritus drops by the §1 rule (`DETRITUS_MASS_FRACTION` of its mass). The seat's `isStarving` resets,
+  `dissolveCell`, the way any cell leaves the world: every engulf it is part of is aborted, and it
+  drops a feast instead of the §1 scraps (#557, question 1 = B): `WILD_CELL_FEAST_MASS_FRACTION` of its
+  mass as detritus, `floor(WILD_CELL_FEAST_MASS_FRACTION × mass / DETRITUS_MOTE_MASS)` motes scattered
+  like any detritus (uniform within `DETRITUS_SCATTER_RADIUS_FACTOR` of its radius, `spawner` stream).
+  The feast comes out of the cell's own mass, never more, so no mass is made. The seat's `isStarving` resets,
   and the seat respawns after `WILD_CELL_RESPAWN_SECONDS` like an eaten one. A starving cell that is
   eaten first simply dies of that; its seat's `isStarving` resets at the payout. On the next tick,
   another starver may be chosen if the dish is still over its budget.
@@ -331,9 +336,13 @@ totalWildMass           = Σ mass of every seated wild cell, read at the start o
 - **The burst floor reuses `WILD_CELL_SIZE_FACTOR_MIN`,** so a cell never dies bigger than a newborn
   could be born, and there is no third knob. The two knobs are `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`
   (how crowded the dish gets) and `WILD_CELL_STARVATION_FRACTION_PER_SECOND` (how long a death takes).
-- **Feed-back:** a burst drops 20 % of a cell that has already shrunk to half the world's mass, so
-  about 0.1 × `worldMass` in scraps. That is a small meal. The starved mass itself is not returned,
-  which is the point: the die-off takes mass out of the dish's food loop.
+- **Feast 80 %.** The human asked for a feast (#557, question 1 = B): a burst should be a little event
+  in the dish that draws players and wild cells in, not the ordinary scraps. A burst cell has already
+  shrunk to about half the world's mass, so 80 % of it is about 0.4 × `worldMass` in food: four times
+  the scraps an ordinary death would leave (0.2), about twelve motes at 0:00 and a large pile later,
+  since it grows with the world. The rest (20 %) is lost like any detritus remainder. Only the burst
+  is a feast; the starved mass itself is not returned, which is the point: the die-off still takes
+  mass out of the dish's food loop, and the feast is at most what the cell still weighs.
 
 #### 3.3.7 Constants (`packages/shared/src/constants/wild-cells.ts`, balance domain `wildCells`)
 
@@ -349,6 +358,7 @@ totalWildMass           = Σ mass of every seated wild cell, read at the start o
 | `WILD_CELL_SPRINT_HUNT_RADII`              | 3                         | own radii                         | new                                                                   |
 | `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`     | 1.5                       | × `WILD_CELL_COUNT` × `worldMass` | new (#555): the die-off budget                                        |
 | `WILD_CELL_STARVATION_FRACTION_PER_SECOND` | 0.1                       | of full size per second           | new (#555)                                                            |
+| `WILD_CELL_FEAST_MASS_FRACTION`            | 0.8                       | of the burst cell's mass          | new (#557): a starved burst drops a feast, not the §1 scraps          |
 | `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`       | `endosymbiosis`           | stage                             | renamed from `WILD_CELL_HUNTS_FROM_STAGE`; now gates player prey only |
 | `WILD_CELL_BUILDS`                         | the three lists of §3.3.2 | trait ids                         | unchanged                                                             |
 | `WORLD_ORGANISM_ID`                        | —                         | —                                 | removed: a wild cell's `organismId` is its own id                     |
@@ -374,7 +384,7 @@ the second.
 
 - `WildSeatRecord` becomes (`seatNumber`, `cellId | null`, `sizeFactor`, `grownMass`, `fullMass`,
   `isStarving`, `respawnInTicks`, `headingX`, `headingY`, `decideInTicks`) (#555 adds `isStarving`,
-  hashed like the rest). `CellView` gains `starving: boolean` (true only for a starving wild cell) so the
+  hashed like the rest). `CellView` gains `isStarving: boolean` (the lint rule prefixes booleans; #558) (true only for a starving wild cell) so the
   renderer can show it withering; the look is the graphics designer's (a follow-up ticket). `massSpreadFactor` is renamed
   `sizeFactor`; `drainedMass` is replaced by `grownMass` and `fullMass`.
 - Wild cells stay ordinary `CellRecord`s in `world.cells` with `playerId: null`, now with `organismId`

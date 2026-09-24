@@ -16,6 +16,8 @@ import {
   SPRINT_RIM_BRIGHTNESS,
   TOXIC_RING_LINE_GAP_PX,
   WARNING_RING_STROKE_PX,
+  STARVING_ALPHA_FACTOR,
+  STARVING_RIM_BRIGHTNESS,
 } from '../constants';
 import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
@@ -174,6 +176,15 @@ describe('buildCellInstance', () => {
     expect(farInstance.isOwn).toBe(false);
     expect(farInstance.isFarDot).toBe(true);
     expect(farInstance.beadCount).toBe(0);
+  });
+
+  it('fades a starving wild cell: its alpha and rim are dulled (ticket #557 default)', () => {
+    const base = input({ alpha: 0.8 });
+    const starving = { ...base, view: { ...base.view, isStarving: true } };
+    const instance = buildCellInstance(starving);
+    expect(instance.alpha).toBeCloseTo(0.8 * STARVING_ALPHA_FACTOR, 9);
+    expect(instance.rimBrightness).toBe(STARVING_RIM_BRIGHTNESS);
+    expect(buildCellInstance(base).alpha).toBe(0.8);
   });
 
   it('packs the sprint ring on the own cell only; every other cell carries the full rest ring (#295)', () => {
