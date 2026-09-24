@@ -1,6 +1,7 @@
 // Real-socket test support (docs/testing/tiers-and-builders.md §4): a Fastify server with the `/ws` route on an
 // ephemeral port, the promises a raw `ws` client needs, and the lobby harness the lobby integration tests drive
-// rooms through. Used by the integration tier only; the unit tier fakes the socket (`bot-builders.ts`).
+// rooms through (its message waits are in `socket-messages.ts`). Used by the integration tier only; the unit tier
+// fakes the socket (`bot-builders.ts`).
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
 import { WebSocket } from 'ws';
@@ -9,8 +10,6 @@ import {
   SERVER_MESSAGE_TYPE,
   TICK_INTERVAL_MS,
   createTestSessionConfig,
-  type ClientMessage,
-  type LobbyGameInfo,
   type ServerMessage,
 } from '@evolution/shared';
 import type { GameModuleFactory } from '../game/game-module.js';
@@ -20,6 +19,7 @@ import type { RoomTimingFactory } from '../lobby/room-timing.js';
 import type { Connection } from '../ws/connection.js';
 import { registerWebSocketHandler } from '../ws/websocket-handler.js';
 import { createManualRoomTiming, spyGameModuleFactory, type ManualRoomTiming } from './builders.js';
+import { isSeated, lobbyShows, messageOfType, sendAndAwait, type TestClient } from './socket-messages.js';
 
 const EPHEMERAL_PORT = 0;
 const LOOPBACK_HOST = '127.0.0.1';
@@ -95,51 +95,6 @@ export function whenClosed(socket: WebSocket): Promise<void> {
 }
 
 // ---- the lobby harness ---------------------------------------------------------------------
-
-export type MessagePredicate = (message: ServerMessage) => boolean;
-
-/** A recording socket with the identity it connected as. */
-export interface TestClient {
-  readonly clientId: string;
-  readonly socket: WebSocket;
-  readonly received: ServerMessage[];
-}
-
-/** Resolves with the next message the socket receives after this call that `isAwaited` accepts. */
-export function nextMatchingMessage(socket: WebSocket, isAwaited: MessagePredicate): Promise<ServerMessage> {
-  return new Promise((resolve) => {
-    const listener = (data: Buffer): void => {
-      const message = JSON.parse(data.toString()) as ServerMessage;
-      if (!isAwaited(message)) return;
-      socket.off('message', listener);
-      resolve(message);
-    };
-    socket.on('message', listener);
-  });
-}
-
-export function messageOfType(type: string): MessagePredicate {
-  return (message) => message.type === type;
-}
-
-/**
- * A `lobby_update` whose list passes `isShown`. Every lobby change is broadcast to every socket, so a bare
- * `lobby_update` may be another client's earlier change still in flight; waiting for the list the frame produces
- * is what shows the server has handled it.
- */
-export function lobbyShows(isShown: (games: readonly LobbyGameInfo[]) => boolean): MessagePredicate {
-  return (message) => message.type === SERVER_MESSAGE_TYPE.lobbyUpdate && isShown(message.games);
-}
-
-export function isSeated(games: readonly LobbyGameInfo[], gameId: string, clientId: string): boolean {
-  return games.some((game) => game.gameId === gameId && game.players.some((player) => player.playerId === clientId));
-}
-
-export async function sendAndAwait(client: TestClient, frame: ClientMessage, isAwaited: MessagePredicate) {
-  const awaited = nextMatchingMessage(client.socket, isAwaited);
-  client.socket.send(JSON.stringify(frame));
-  return awaited;
-}
 
 /** A test server whose rooms run on manual timing, with every client it connected. */
 export interface LobbySocketHarness {
