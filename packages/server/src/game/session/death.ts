@@ -47,8 +47,8 @@ export function dropDetritus(
       spawner.nextFloat(),
       spawner.nextFloat(),
     );
-    const at = clampedToFoodBoundary(point, world.balance);
-    spawnFoodMote(world, { kind: FOOD_KIND.detritus, variant: null, at });
+    const insideFoodBoundary = clampedToFoodBoundary(point, world.balance);
+    spawnFoodMote(world, { kind: FOOD_KIND.detritus, variant: null, at: insideFoodBoundary });
   }
 }
 
