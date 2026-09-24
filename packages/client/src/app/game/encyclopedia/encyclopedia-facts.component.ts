@@ -20,10 +20,12 @@
 
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { UiFactValueDirective, UiFactsTableComponent, type UiFactRow } from '../../ui-kit/ui-facts-table.component';
+import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { FACT_LIST_SEPARATOR } from './facts/resolve-prose';
 import type { EncyclopediaFactRow } from './format/entry-view';
 import type { EntryId } from './model/entry-id';
+import type { ModifierEffect } from '../quantities/modifier-labels';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId } from './test-ids';
 
 const NO_LINKS: EncyclopediaFactRow['links'] = [];
@@ -32,7 +34,7 @@ const NO_LINKS: EncyclopediaFactRow['links'] = [];
   selector: 'app-encyclopedia-facts',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiFactValueDirective, UiFactsTableComponent],
+  imports: [UiEffectMarkComponent, UiFactValueDirective, UiFactsTableComponent],
   styleUrl: './encyclopedia-facts.component.css',
   template: `
     <h4 class="heading">{{ heading() }}</h4>
@@ -44,10 +46,10 @@ const NO_LINKS: EncyclopediaFactRow['links'] = [];
       [shouldWrapValues]="true"
       [testId]="testId.facts"
     >
-      <ng-template uiFactValue let-row let-value="value">
+      <ng-template uiFactValue let-row let-value="value" let-column="columnIndex">
         @if (linksOf(row); as links) {
           @if (links.length === 0) {
-            {{ value }}
+            <span class="value"><ui-effect-mark [effect]="effectOf(row, column)" />{{ value }}</span>
           } @else {
             @for (link of links; track link.entryId; let isLast = $last) {
               <!-- prettier-ignore -->
@@ -84,6 +86,11 @@ export class EncyclopediaFactsComponent {
   /** The feature's links for the row the kit is drawing; empty for a plain value, which the kit's text renders. */
   protected linksOf(row: UiFactRow): EncyclopediaFactRow['links'] {
     return this.rows().find((candidate) => candidate.rowId === row.rowId)?.links ?? NO_LINKS;
+  }
+
+  /** A tier cell's effect on its owner (#453), which tones it; `null` on every other value. */
+  protected effectOf(row: UiFactRow, column: number): ModifierEffect | null {
+    return this.rows().find((candidate) => candidate.rowId === row.rowId)?.effects?.[column] ?? null;
   }
 
   /** A fact's link is an activation, so it pushes the location it left and Back returns here (§11.5). */

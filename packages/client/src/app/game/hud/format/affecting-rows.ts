@@ -33,7 +33,8 @@ import { causeRowsFor } from './affecting-causes';
 import { sizeRowsFor } from './affecting-size';
 import { joinFacts } from './fact-line';
 import { leadingMultiplier, type RoundClockState } from './round-clock';
-import { describeTierModifiers } from './trait-effects';
+import type { ModifierEffect } from '../../quantities/modifier-labels';
+import { describeTierModifierEffects, describeTierModifiers } from './trait-effects';
 import { zonePillText } from './zone-pill';
 
 /** The panel's four sections, in the order they are drawn. */
@@ -52,6 +53,8 @@ export const AFFECTING_SECTION_HEADING: Readonly<Record<AffectingSectionId, stri
 export interface AffectingRow extends UiFactRow {
   /** Set on an owned-trait row: the glyph its marker slot draws at `TRAIT_GLYPH_LIST_PX`; `null` on every other. */
   readonly traitId: TraitId | null;
+  /** Set on an owned-trait row with an effect: what its value does for the cell, which tones it (#453). */
+  readonly valueEffect: ModifierEffect | null;
 }
 
 /**
@@ -124,7 +127,7 @@ export const WORLD_STANDING_WORD: Readonly<Record<WorldStanding, string>> = {
 
 /** A row the kit marks with a dot or ring rather than a glyph. */
 function plainRow(row: UiFactRow): AffectingRow {
-  return { ...row, traitId: null };
+  return { ...row, traitId: null, valueEffect: null };
 }
 
 /**
@@ -188,6 +191,7 @@ function traitRows(input: AffectingRowsInput): readonly AffectingRow[] {
     if (owned === undefined) return [];
     const tier = formatQuantity(owned.tier, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral });
     const [effect] = describeTierModifiers(input.balance.traits, definition.id, owned.tier);
+    const [effectTone] = describeTierModifierEffects(input.balance.traits, definition.id, owned.tier);
     return [
       {
         rowId: affectingTraitTestId(definition.id),
@@ -195,6 +199,7 @@ function traitRows(input: AffectingRowsInput): readonly AffectingRow[] {
         values: effect === undefined ? [] : [effect],
         marker: null,
         traitId: definition.id,
+        valueEffect: effectTone ?? null,
       },
     ];
   });

@@ -8,12 +8,13 @@ import { CARD_POINTER, type CardPointer, type CardPointerEvent } from './format/
 import type { TraitCardView } from './format/trait-cards';
 import { HUD_TEST_ID, traitCardPickTestId, traitCardTestId } from '../test-ids/hud-test-ids';
 import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
+import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
 
 @Component({
   selector: 'app-trait-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TraitGlyphComponent],
+  imports: [TraitGlyphComponent, UiEffectMarkComponent],
   host: { '[attr.data-testid]': 'hostTestId()' },
   styleUrl: './trait-card.component.css',
   template: `
@@ -41,7 +42,7 @@ import { TraitGlyphComponent } from '../glyphs/trait-glyph.component';
         }}</span>
       </span>
       @for (line of card().effects; track $index) {
-        <span class="effect">{{ line }}</span>
+        <span class="effect"><ui-effect-mark [effect]="card().effectTones[$index] ?? null" />{{ line }}</span>
       }
       <span class="rarity">{{ card().rarity }}</span>
       <span class="key-chip" aria-hidden="true">{{ card().keyLabel }}</span>
