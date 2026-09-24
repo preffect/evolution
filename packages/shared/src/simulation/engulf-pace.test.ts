@@ -18,6 +18,7 @@ import {
   type EngulfPredatorPaceModifiers,
   type EngulfPreyPaceModifiers,
 } from './engulf-pace.js';
+import { maxSpeedForMass } from './mass-curves.js';
 
 const absorption = DEFAULT_BALANCE.absorption;
 /** The folded record of a cell with no traits: every pace term at its identity (docs/traits/model.md §2). */
@@ -176,18 +177,16 @@ describe('engulfProgressDelta', () => {
     expect(engulfProgressDelta(struggling, absorption)).toBeCloseTo(1 / 72, 12);
   });
 
-  it('decays at the escape multiplier when a wrap loses contact', () => {
-    const escaping = { ...idleCoverInput, phase: ENGULF_PHASE.wrap, isInContact: false, awayEffort: 1 };
-    expect(engulfProgressDelta(escaping, absorption)).toBeCloseTo(
-      -absorption.ENGULF_ESCAPE_DECAY_MULTIPLIER / E9_TICKS,
-      12,
-    );
-  });
-
-  it('is zero for a cover that lost contact: the caller releases instead of decaying', () => {
-    const lost = { ...idleCoverInput, isInContact: false };
-    expect(engulfProgressDelta(lost, absorption)).toBe(0);
-  });
+  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])(
+    'decays at the escape multiplier when a %s loses contact: a slip drains, it does not cancel (#634)',
+    (phase) => {
+      const escaping = { ...idleCoverInput, phase, isInContact: false, awayEffort: 1 };
+      expect(engulfProgressDelta(escaping, absorption)).toBeCloseTo(
+        -absorption.ENGULF_ESCAPE_DECAY_MULTIPLIER / E9_TICKS,
+        12,
+      );
+    },
+  );
 
   it('ignores the struggle once sealed: the prey is carried', () => {
     const sealed = { ...idleCoverInput, phase: ENGULF_PHASE.absorb, awayEffort: 1 };
@@ -205,26 +204,52 @@ describe('engulfProgressDelta', () => {
 });
 
 describe('preyHeldSpeedFactor', () => {
-  it('is free in cover, held in wrap and zero once sealed', () => {
-    expect(preyHeldSpeedFactor(ENGULF_PHASE.cover, 0, 0, absorption)).toBe(1);
+  it('grabs mildly in cover, holds in wrap and is zero once sealed', () => {
+    expect(preyHeldSpeedFactor(ENGULF_PHASE.cover, 0, 0, absorption)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_COVER);
     expect(preyHeldSpeedFactor(ENGULF_PHASE.wrap, 0, 0, absorption)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
     expect(preyHeldSpeedFactor(ENGULF_PHASE.absorb, 0, 0, absorption)).toBe(0);
   });
 
-  it('clamps a strong grip to the floor and a strong resistance to 1', () => {
-    expect(preyHeldSpeedFactor(ENGULF_PHASE.wrap, 1, 0, absorption)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_FLOOR);
-    expect(preyHeldSpeedFactor(ENGULF_PHASE.wrap, 0, 1, absorption)).toBe(1);
+  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])('moves the %s factor by the grip and the resistance', (phase) => {
+    const unmoved = preyHeldSpeedFactor(phase, 0, 0, absorption);
+    const grip = 0.1;
+    const resistance = 0.05;
+    expect(preyHeldSpeedFactor(phase, grip, 0, absorption)).toBeCloseTo(unmoved - grip, 12);
+    expect(preyHeldSpeedFactor(phase, 0, resistance, absorption)).toBeCloseTo(unmoved + resistance, 12);
   });
+
+  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])(
+    'clamps a strong grip to the floor and a strong resistance to 1 in %s',
+    (phase) => {
+      expect(preyHeldSpeedFactor(phase, 1, 0, absorption)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_FLOOR);
+      expect(preyHeldSpeedFactor(phase, 0, 1, absorption)).toBe(1);
+    },
+  );
 });
 
 describe('predatorEngulfSpeedFactor', () => {
-  it('slows the predator before the seal and frees it after (E9b)', () => {
+  it('reads the grab factor before the seal and the sealed factor after (E9b)', () => {
     expect(predatorEngulfSpeedFactor(ENGULF_PHASE.cover, absorption)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
     expect(predatorEngulfSpeedFactor(ENGULF_PHASE.wrap, absorption)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
     expect(predatorEngulfSpeedFactor(ENGULF_PHASE.absorb, absorption)).toBe(
       absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED,
     );
   });
+
+  // docs/ecology/absorption.md §6.1 "The grab": a predator at the start ratio is never slower than the prey it holds,
+  // so a close chase does not open the gap the grab just closed (#634).
+  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])(
+    'keeps a start-ratio predator at least as fast as its %s prey',
+    (phase) => {
+      const preyMass = E9_PREY_MASS;
+      const predatorMass = preyMass * absorption.ENGULF_MASS_RATIO;
+      const predatorSpeed =
+        maxSpeedForMass(predatorMass, DEFAULT_BALANCE.growth) * predatorEngulfSpeedFactor(phase, absorption);
+      const preySpeed =
+        maxSpeedForMass(preyMass, DEFAULT_BALANCE.growth) * preyHeldSpeedFactor(phase, 0, 0, absorption);
+      expect(predatorSpeed).toBeGreaterThanOrEqual(preySpeed);
+    },
+  );
 });
 
 describe('spitOutChancePerTick', () => {

@@ -62,16 +62,19 @@ export const E10_DECAY_GAP_WU = [E10_UNDER_RATIO_MASS, PREY_MASS].reduce(
     radiusForMass(decayed(mass, E10_SEPARATION_TICKS), DEFAULT_BALANCE.growth),
   0,
 );
-/** E9b: A steers 5 radii away from B from tick 1 and drags it along; the numbers the row states. */
-export const E9B_SEAL_DISTANCE_WU = 22.53;
-export const E9B_SEAL_WESTING_WU = 12.5;
+/**
+ * E9b: A steers 5 radii away from B from tick 1 and drags it along; the numbers the row states. Grabbing costs A no
+ * speed since #634, so the seal no longer changes its cap: ticks 18 and 19 differ only by one tick's blend.
+ */
+export const E9B_SEAL_DISTANCE_WU = 29.72;
+export const E9B_SEAL_WESTING_WU = 19.72;
 export const E9B_SPEED_TICK_1 = 9.8;
-export const E9B_SPEED_TICK_18 = 64.0;
-export const E9B_SPEED_TICK_19 = 69.5;
-export const E9B_SPEED_TICK_35 = 121.4;
+export const E9B_SPEED_TICK_18 = 104.6;
+export const E9B_SPEED_TICK_19 = 107.5;
+export const E9B_SPEED_TICK_35 = 134.0;
 /** "± 0.01 wu" (docs/ecology/acceptance.md §8) for a centre distance the row states to two decimals. */
 export const DISTANCE_TOLERANCE_WU = 0.01;
-/** E9b states the predator's westing as "≈ 12.5 wu"; the step gives 12.532, inside its own rounding. */
+/** E9b states the predator's westing as "≈ 19.72 wu"; the step gives 19.725, inside its own rounding. */
 export const APPROXIMATE_DISTANCE_TOLERANCE_WU = 0.05;
 /** E13 runs on the shortest legal round so the results tick is reachable in a test. */
 export const SHORT_ROUND_SECONDS = 60;
@@ -83,13 +86,13 @@ export const FAR_APART_WU = 700;
 export const SHORT_ROUND_TICKS = SHORT_ROUND_SECONDS * TICK_HZ;
 /** E11's reaction window: sprinting at 13 still escapes, at 14 the seal closes first. */
 export const E11_SPRINT_TICK = 10;
-export const E11_RELEASE_TICK = 25;
+export const E11_RELEASE_TICK = 28;
 export const E11_LATE_SPRINT_TICK = 13;
-export const E11_LATE_RELEASE_TICK = 29;
+export const E11_LATE_RELEASE_TICK = 32;
 export const E11_TOO_LATE_SPRINT_TICK = 14;
 export const E11_TOO_LATE_SEAL_TICK = 23;
 export const E11_TOO_LATE_END_TICK = 41;
-export const E11_NO_SPRINT_RELEASE_TICK = 31;
+export const E11_NO_SPRINT_RELEASE_TICK = 34;
 
 /**
  * "A at mass 100, B at 20, centres 10 wu apart": the setup every engulf row shares.

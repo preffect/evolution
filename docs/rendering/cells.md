@@ -23,8 +23,8 @@ The renderer reads **only** what `net/` gives it and never feeds anything back
 Every cell is **one instanced quad** whose half-size is the per-instance `quadExtentRadii × r` (§2.3):
 `max(CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII at far LOD, (warningRingPx + WARNING_RING_STROKE_PX) / r_px)`.
 `CELL_QUAD_EXTENT_RADII` 3.0 (new) is the floor: the engulf arm at 1.62 r times the trait halo at 1.39 r, times the
-moving-wrap worst case (stretch 1.13 at `ENGULF_PREDATOR_SPEED_FACTOR` 0.6 with an eat pulse 1.09 mid-engulf) is
-2.77, 2.99 at k = 1, so 3.0 keeps the halo unclipped at an arm tip or the seal bulge; §9 pins the moving-wrap
+moving-wrap worst case (full-speed stretch 1.22 at k = 1, since `ENGULF_PREDATOR_SPEED_FACTOR` is 1 from #634, with an
+eat pulse 1.09 mid-engulf) is 2.99, so 3.0 keeps the halo unclipped at an arm tip or the seal bulge; §9 pins the moving-wrap
 case (`shape-terms` reports the per-instance maximum, and the extent uses it when it exceeds the floor). The two pass-B bands that reach past it stay in
 this shader and raise the extent instead of moving to effect sprites: the far-dot halo (`FAR_DOT_HALO_RADII` 3.0,
 §5) and the warning ring (`ENGULF_WARNING_RING_MIN_PX` exceeds 3.0 r_px below 8.7 px, most of the mid band), both

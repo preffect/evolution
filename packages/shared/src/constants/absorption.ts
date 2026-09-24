@@ -24,12 +24,22 @@ export const ENGULF_SEAL_PROGRESS =
   (ENGULF_BASE_DURATION_SECONDS - ENGULF_ABSORB_SECONDS) / ENGULF_BASE_DURATION_SECONDS;
 /** Duration floor as a factor of the base, reached by heavy predators. */
 export const ENGULF_MIN_DURATION_FACTOR = 0.5;
-/** Progress decays this many times faster than it grows while contact is broken. */
+/**
+ * Progress decays this many times faster than it grows while contact is broken, in cover and wrap alike; the prey is
+ * released when it drains to 0 (#634: a slip drains, it no longer cancels).
+ */
 export const ENGULF_ESCAPE_DECAY_MULTIPLIER = 2;
-/** Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). */
-export const ENGULF_PREDATOR_SPEED_FACTOR = 0.6;
+/**
+ * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
+ * speed (#634): the mass curve already makes it the slower cell, so any factor under 1 lets the held prey outrun it.
+ */
+export const ENGULF_PREDATOR_SPEED_FACTOR = 1.0;
 export const ENGULF_PREDATOR_SPEED_FACTOR_SEALED = 1.0;
-/** Prey speed cap factor during wrap (cover is 1, absorb is 0) and its floor after grip/resistance bonuses. */
+/**
+ * Prey speed cap factors, before grip/resistance bonuses: the mild grab of cover (#634), the grip of wrap (absorb is
+ * 0), and the floor both are clamped to.
+ */
+export const ENGULF_PREY_SPEED_FACTOR_COVER = 0.85;
 export const ENGULF_PREY_SPEED_FACTOR = 0.8;
 export const ENGULF_PREY_SPEED_FACTOR_FLOOR = 0.3;
 /** Struggle: steering away scales the phase rate by 1 − slowdown; the cap bounds trait bonuses. */

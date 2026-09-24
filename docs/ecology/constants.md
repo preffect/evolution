@@ -89,24 +89,24 @@ that live their own lives (#517, #544) replace `WILD_CELL_MASS_SPREAD`, `WORLD_O
 `WILD_CELL_HUNT_RANGE_RADII` with the seven new `wild-cells.ts` rows above and rename
 `WILD_CELL_HUNTS_FROM_STAGE`, so the pin was 100 names; the die-off (#555) adds two, so it is 102.
 
-| Constant                                                               | Value     | Unit                                                                                 |
-| ---------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
-| `ENGULF_MASS_RATIO`                                                    | 1.25      | ×                                                                                    |
-| `ENGULF_RELEASE_RATIO`                                                 | 1.10      | ×                                                                                    |
-| `ENGULF_PROGRESS_EPSILON`                                              | 1e-6      | progress                                                                             |
-| `ENGULF_COVERAGE_FRACTION`                                             | 0.5       | prey radii                                                                           |
-| `ENGULF_COVER_SECONDS`                                                 | 0.2       | s                                                                                    |
-| `ENGULF_WRAP_SECONDS`                                                  | 0.4       | s                                                                                    |
-| `ENGULF_ABSORB_SECONDS`                                                | 0.6       | s                                                                                    |
-| `ENGULF_BASE_DURATION_SECONDS`                                         | 1.2       | s (derived: the three phase seconds summed; sheet 03's 1.2 s)                        |
-| `ENGULF_WRAP_START_PROGRESS` / `ENGULF_SEAL_PROGRESS`                  | 1/6 / 0.5 | progress (derived from the phase seconds, never a fourth literal)                    |
-| `ENGULF_MIN_DURATION_FACTOR`                                           | 0.5       | ×                                                                                    |
-| `ENGULF_ESCAPE_DECAY_MULTIPLIER`                                       | 2         | ×                                                                                    |
-| `ENGULF_STRUGGLE_SLOWDOWN` / `ENGULF_STRUGGLE_SLOWDOWN_CAP`            | 0.5 / 0.9 | ratio of the phase rate                                                              |
-| `ENGULF_PREDATOR_SPEED_FACTOR` / `ENGULF_PREDATOR_SPEED_FACTOR_SEALED` | 0.6 / 1.0 | × (cover and wrap / absorb)                                                          |
-| `ENGULF_PREY_SPEED_FACTOR` / `ENGULF_PREY_SPEED_FACTOR_FLOOR`          | 0.8 / 0.3 | × (wrap; cover is 1, absorb is 0)                                                    |
-| `ENGULF_SWALLOWED_TOXIN_MULTIPLIER`                                    | 8         | × on the prey's toxin fraction, read against the prey's mass (#154), wrap and absorb |
-| `ENGULF_SPIT_OUT_REFRACTORY_SECONDS`                                   | 1.0       | s (per spat-out prey: the predator keeps one entry per prey)                         |
-| `ENGULF_MASS_YIELD`                                                    | 0.8       | ratio                                                                                |
-| `ENGULF_DNA_BASE` / `ENGULF_DNA_SHARE`                                 | 30 / 0.2  | DNA / ratio                                                                          |
-| `ENGULF_TAG_SHARE` / `ENGULF_PREDATORY_TAG_POINTS`                     | 0.5 / 10  | ratio / points                                                                       |
+| Constant                                                                                         | Value            | Unit                                                                                 |
+| ------------------------------------------------------------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------ |
+| `ENGULF_MASS_RATIO`                                                                              | 1.25             | ×                                                                                    |
+| `ENGULF_RELEASE_RATIO`                                                                           | 1.10             | ×                                                                                    |
+| `ENGULF_PROGRESS_EPSILON`                                                                        | 1e-6             | progress                                                                             |
+| `ENGULF_COVERAGE_FRACTION`                                                                       | 0.5              | prey radii                                                                           |
+| `ENGULF_COVER_SECONDS`                                                                           | 0.2              | s                                                                                    |
+| `ENGULF_WRAP_SECONDS`                                                                            | 0.4              | s                                                                                    |
+| `ENGULF_ABSORB_SECONDS`                                                                          | 0.6              | s                                                                                    |
+| `ENGULF_BASE_DURATION_SECONDS`                                                                   | 1.2              | s (derived: the three phase seconds summed; sheet 03's 1.2 s)                        |
+| `ENGULF_WRAP_START_PROGRESS` / `ENGULF_SEAL_PROGRESS`                                            | 1/6 / 0.5        | progress (derived from the phase seconds, never a fourth literal)                    |
+| `ENGULF_MIN_DURATION_FACTOR`                                                                     | 0.5              | ×                                                                                    |
+| `ENGULF_ESCAPE_DECAY_MULTIPLIER`                                                                 | 2                | × (cover and wrap out of contact; released at 0, #634)                               |
+| `ENGULF_STRUGGLE_SLOWDOWN` / `ENGULF_STRUGGLE_SLOWDOWN_CAP`                                      | 0.5 / 0.9        | ratio of the phase rate                                                              |
+| `ENGULF_PREDATOR_SPEED_FACTOR` / `ENGULF_PREDATOR_SPEED_FACTOR_SEALED`                           | 1.0 / 1.0        | × (cover and wrap / absorb; holding costs no speed, #634)                            |
+| `ENGULF_PREY_SPEED_FACTOR_COVER` / `ENGULF_PREY_SPEED_FACTOR` / `ENGULF_PREY_SPEED_FACTOR_FLOOR` | 0.85 / 0.8 / 0.3 | × (the grab in cover, #634 / wrap / the floor of both; absorb is 0)                  |
+| `ENGULF_SWALLOWED_TOXIN_MULTIPLIER`                                                              | 8                | × on the prey's toxin fraction, read against the prey's mass (#154), wrap and absorb |
+| `ENGULF_SPIT_OUT_REFRACTORY_SECONDS`                                                             | 1.0              | s (per spat-out prey: the predator keeps one entry per prey)                         |
+| `ENGULF_MASS_YIELD`                                                                              | 0.8              | ratio                                                                                |
+| `ENGULF_DNA_BASE` / `ENGULF_DNA_SHARE`                                                           | 30 / 0.2         | DNA / ratio                                                                          |
+| `ENGULF_TAG_SHARE` / `ENGULF_PREDATORY_TAG_POINTS`                                               | 0.5 / 10         | ratio / points                                                                       |

@@ -35,32 +35,32 @@ max**; defaults are the identity. The simulation reads only the folded record, n
 The fold runs at step 1 of the tick, right after trait choices are applied, so a pick affects the
 same tick's movement, metabolism and engulf checks.
 
-| Modifier                             | Default | Applied where                                                                                    |
-| ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------ |
-| `speedMultiplier`                    | 1       | `traitSpeedFactor` in the movement step (ecology/mass-and-movement.md §5.2)                      |
-| `accelerationSecondsMultiplier`      | 1       | `CELL_ACCELERATION_SECONDS`                                                                      |
-| `sprintSpeedMultiplierBonus`         | 0       | added to `SPRINT_SPEED_MULTIPLIER`                                                               |
-| `sprintCooldownSecondsDelta`         | 0       | added to `SPRINT_COOLDOWN_SECONDS` (floor `SPRINT_COOLDOWN_FLOOR_SECONDS`)                       |
-| `membraneRatioBonus`                 | 0       | `requiredRatio` and `releaseRatio` when this cell is prey (ecology/absorption.md §6.1)           |
-| `absorbDurationMultiplierAsPrey`     | 1       | the absorb phase's pace when this cell is prey (armour: ecology/absorption.md §6.1)              |
-| `wrapDurationMultiplierAsPredator`   | 1       | the wrap phase's pace when this cell is predator                                                 |
-| `absorbDurationMultiplierAsPredator` | 1       | the absorb phase's pace when this cell is predator                                               |
-| `gripStrengthBonus`                  | 0       | subtracted from the prey's held speed factor during wrap, when this cell is predator             |
-| `gripResistanceBonus`                | 0       | added to this cell's held speed factor during wrap, when it is prey                              |
-| `struggleSlowdownBonus`              | 0       | added to `ENGULF_STRUGGLE_SLOWDOWN` when this cell steers away as prey (cover and wrap)          |
-| `spitOutChancePerSecond`             | 0       | per-tick spit-out roll from the `engulf` stream while this cell is wrapped or sealed as prey     |
-| `engulfMassYieldBonus`               | 0       | added to `ENGULF_MASS_YIELD` (cap 1)                                                             |
-| `digestionFactorBonus`               | 0       | food mass × (1 + bonus)                                                                          |
-| `decayMultiplier`                    | 1       | mass decay (ecology/mass-and-movement.md §4)                                                     |
-| `photosynthesisMassPerSecond`        | 0       | gained per second while inside `sunlit_shallows`                                                 |
-| `spikeDrainFractionPerSecond`        | 0       | predator engulfing this cell loses this × this cell's mass per second                            |
-| `toxinDrainFractionPerSecond`        | 0       | other cells overlapping this cell lose this × their mass per second (floor `CELL_STARTING_MASS`) |
-| `toxinAuraRangeInRadii`              | 0       | scalar: toxin also reaches cells up to this × radius beyond this cell's rim, without contact     |
-| `attractRangeInRadii`                | 0       | scalar: motes whose centre is within this × radius drift toward the cell                         |
-| `attractSpeed`                       | 0       | wu/s of that drift                                                                               |
-| `dnaGainMultiplier`                  | 1       | every DNA gain (food, fragments, absorption, overflow); never the late-join gift                 |
-| `dnaKeptOnDeathFraction`             | 0       | share of `dnaTowardNextLevel` kept on death (adds, cap 1; game-design/session.md §5.2)           |
-| `gelSpeedFactorFloor`                | 0       | floor (max) on `gelSpeedFactor(mass)` (ecology/mass-and-movement.md §5.2)                        |
+| Modifier                             | Default | Applied where                                                                                         |
+| ------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------- |
+| `speedMultiplier`                    | 1       | `traitSpeedFactor` in the movement step (ecology/mass-and-movement.md §5.2)                           |
+| `accelerationSecondsMultiplier`      | 1       | `CELL_ACCELERATION_SECONDS`                                                                           |
+| `sprintSpeedMultiplierBonus`         | 0       | added to `SPRINT_SPEED_MULTIPLIER`                                                                    |
+| `sprintCooldownSecondsDelta`         | 0       | added to `SPRINT_COOLDOWN_SECONDS` (floor `SPRINT_COOLDOWN_FLOOR_SECONDS`)                            |
+| `membraneRatioBonus`                 | 0       | `requiredRatio` and `releaseRatio` when this cell is prey (ecology/absorption.md §6.1)                |
+| `absorbDurationMultiplierAsPrey`     | 1       | the absorb phase's pace when this cell is prey (armour: ecology/absorption.md §6.1)                   |
+| `wrapDurationMultiplierAsPredator`   | 1       | the wrap phase's pace when this cell is predator                                                      |
+| `absorbDurationMultiplierAsPredator` | 1       | the absorb phase's pace when this cell is predator                                                    |
+| `gripStrengthBonus`                  | 0       | subtracted from the prey's held speed factor during cover and wrap (#634), when this cell is predator |
+| `gripResistanceBonus`                | 0       | added to this cell's held speed factor during cover and wrap (#634), when it is prey                  |
+| `struggleSlowdownBonus`              | 0       | added to `ENGULF_STRUGGLE_SLOWDOWN` when this cell steers away as prey (cover and wrap)               |
+| `spitOutChancePerSecond`             | 0       | per-tick spit-out roll from the `engulf` stream while this cell is wrapped or sealed as prey          |
+| `engulfMassYieldBonus`               | 0       | added to `ENGULF_MASS_YIELD` (cap 1)                                                                  |
+| `digestionFactorBonus`               | 0       | food mass × (1 + bonus)                                                                               |
+| `decayMultiplier`                    | 1       | mass decay (ecology/mass-and-movement.md §4)                                                          |
+| `photosynthesisMassPerSecond`        | 0       | gained per second while inside `sunlit_shallows`                                                      |
+| `spikeDrainFractionPerSecond`        | 0       | predator engulfing this cell loses this × this cell's mass per second                                 |
+| `toxinDrainFractionPerSecond`        | 0       | other cells overlapping this cell lose this × their mass per second (floor `CELL_STARTING_MASS`)      |
+| `toxinAuraRangeInRadii`              | 0       | scalar: toxin also reaches cells up to this × radius beyond this cell's rim, without contact          |
+| `attractRangeInRadii`                | 0       | scalar: motes whose centre is within this × radius drift toward the cell                              |
+| `attractSpeed`                       | 0       | wu/s of that drift                                                                                    |
+| `dnaGainMultiplier`                  | 1       | every DNA gain (food, fragments, absorption, overflow); never the late-join gift                      |
+| `dnaKeptOnDeathFraction`             | 0       | share of `dnaTowardNextLevel` kept on death (adds, cap 1; game-design/session.md §5.2)                |
+| `gelSpeedFactorFloor`                | 0       | floor (max) on `gelSpeedFactor(mass)` (ecology/mass-and-movement.md §5.2)                             |
 
 Drained mass is lost to the dish (it is not transferred). Toxin and spikes never kill: they stop at
 `CELL_STARTING_MASS`; their job is to push the predator below `releaseRatio` (ecology/absorption.md §6.1). Once the
