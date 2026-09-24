@@ -22,12 +22,12 @@ import { evolutionModuleFactory } from '../game/evolution-module.js';
 import { createManualRoomTiming, type ManualRoomTiming } from '../testing/builders.js';
 import { broadcastTickAtOrBefore } from '../testing/cadence-builders.js';
 import {
-  lobbyShows,
   openRecordingTestSocket,
   startTestWebSocketServer,
   whenClosed,
   type TestWebSocketServer,
 } from '../testing/socket-builders.js';
+import { lobbyShows } from '../testing/socket-messages.js';
 import { untilReceived, untilRoomDecides, type RecordingSocket } from '../testing/wait-for.js';
 
 const CLIENT_ID = 'reloader';

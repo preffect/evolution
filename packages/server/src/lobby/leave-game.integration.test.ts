@@ -8,17 +8,19 @@ import {
   advanceRoomTicks,
   closeLobbySocketHarness,
   connectTestClient,
+  startLobbySocketHarness,
+  startTestRoom,
+  type LobbySocketHarness,
+} from '../testing/socket-builders.js';
+import {
   isSeated,
   lobbyShows,
   messageOfType,
   nextMatchingMessage,
   sendAndAwait,
-  startLobbySocketHarness,
-  startTestRoom,
-  type LobbySocketHarness,
   type MessagePredicate,
   type TestClient,
-} from '../testing/socket-builders.js';
+} from '../testing/socket-messages.js';
 
 function countOfType(client: TestClient, type: string): number {
   return client.received.filter((message) => message.type === type).length;
@@ -39,11 +41,11 @@ describe('leave_game over the wire (#319)', () => {
     const alice = await connectTestClient(harness, 'alice');
     const carol = await connectTestClient(harness, 'carol');
     const { gameId, timing, room } = await startTestRoom(harness, alice, 'left', [carol]);
-    const firstSnapshot = nextMatchingMessage(alice.socket, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
+    const firstSnapshot = nextMatchingMessage(alice, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
     advanceRoomTicks(timing, SNAPSHOT_EVERY_TICKS);
     await firstSnapshot;
 
-    const heardLeaving = nextMatchingMessage(carol.socket, messageOfType(SERVER_MESSAGE_TYPE.playerDisconnected));
+    const heardLeaving = nextMatchingMessage(carol, messageOfType(SERVER_MESSAGE_TYPE.playerDisconnected));
     const isGone = lobbyShows((games) => !isSeated(games, gameId, alice.clientId));
     await sendAndAwait(alice, { type: CLIENT_MESSAGE_TYPE.leaveGame, gameId }, isGone);
     expect(await heardLeaving).toEqual({ type: SERVER_MESSAGE_TYPE.playerDisconnected, playerId: 'alice' });
@@ -51,7 +53,7 @@ describe('leave_game over the wire (#319)', () => {
     expect(room.allPlayerIds).toEqual(['carol']);
 
     const snapshotsBeforeLeaving = countOfType(alice, SERVER_MESSAGE_TYPE.gameSnapshot);
-    const carolSnapshot = nextMatchingMessage(carol.socket, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
+    const carolSnapshot = nextMatchingMessage(carol, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
     advanceRoomTicks(timing, SNAPSHOT_EVERY_TICKS);
     await carolSnapshot;
     // A round trip on alice's own socket: a snapshot the room had sent her would arrive before this answer.
@@ -80,7 +82,7 @@ describe('leave_game over the wire (#319)', () => {
     expect(joined).toMatchObject({ playerId: 'alice' });
     expect(other.room.allPlayerIds).toEqual(['bob', 'alice']);
 
-    const snapshot = nextMatchingMessage(alice.socket, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
+    const snapshot = nextMatchingMessage(alice, messageOfType(SERVER_MESSAGE_TYPE.gameSnapshot));
     advanceRoomTicks(other.timing, SNAPSHOT_EVERY_TICKS);
     await snapshot;
     expect(other.room.playerConnections.get('alice')).toBe(harness.started.connections.get('alice'));

@@ -16,13 +16,12 @@ import {
 import { evolutionModuleFactory } from '../game/evolution-module.js';
 import { createManualRoomTiming, type ManualRoomTiming } from '../testing/builders.js';
 import {
-  isSeated,
-  lobbyShows,
   openRecordingTestSocket,
   startTestWebSocketServer,
   whenClosed,
   type TestWebSocketServer,
 } from '../testing/socket-builders.js';
+import { isSeated, lobbyShows } from '../testing/socket-messages.js';
 import { untilReceived } from '../testing/wait-for.js';
 
 const ALICE = 'alice';
