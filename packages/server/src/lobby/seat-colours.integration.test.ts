@@ -2,7 +2,7 @@
 // module agree on each player's seat colour, and no two players in a room share one
 // (docs/visual-style/principles-and-palette.md §2, ticket #645). Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, PLAYER_PALETTE_COUNT } from '@evolution/shared';
 import { evolutionModuleFactory, type EvolutionModule } from '../game/evolution-module.js';
 import { registerBotTools } from '../mcp/handlers/bots.js';
 import { createActiveRoomFixture, createTwoPlayerGameLobby, parseToolJson } from '../testing/builders.js';
@@ -55,6 +55,22 @@ describe('seat colours are unique per room (#645)', () => {
     const first = await fixture.spawnBot();
     const second = await fixture.spawnBot();
     expectDistinct([fixture.room.avatarAssignments['alice'], first.avatarIndex, second.avatarIndex]);
+    fixture.stop();
+  });
+
+  it('spreads the repeats once 1 human + 7 bots hold every colour: later humans never pile onto one', async () => {
+    const fixture = evolutionRoom();
+    for (let bot = 1; bot < PLAYER_PALETTE_COUNT; bot += 1) await fixture.spawnBot();
+    for (const human of ['bob', 'carol']) {
+      fixture.handlers.onJoinGame(fixture.join(human), { type: CLIENT_MESSAGE_TYPE.joinGame, gameId: fixture.gameId });
+    }
+    const { allPlayerIds, avatarAssignments } = fixture.room;
+    const holdersOf = (colour: number | undefined) =>
+      allPlayerIds.filter((playerId) => avatarAssignments[playerId] === colour).length;
+    // Every colour is held once, so bob takes the lowest (alice's); carol then takes the next, not a third 0.
+    expect(avatarAssignments['carol']).not.toBe(avatarAssignments['bob']);
+    expect(Math.max(...allPlayerIds.map((playerId) => holdersOf(avatarAssignments[playerId])))).toBe(2);
+    expect(fixture.worldColourOf('carol')).toBe(avatarAssignments['carol']);
     fixture.stop();
   });
 

@@ -13,8 +13,12 @@ describe('freeAvatarIndex', () => {
     expect(freeAvatarIndex(0, [0, 1, 3])).toBe(2);
   });
 
-  it('keeps the request once every colour is held, since a repeat is then unavoidable', () => {
-    expect(freeAvatarIndex(AVATAR_INDEX_MAX, EVERY_COLOUR)).toBe(AVATAR_INDEX_MAX);
+  it('takes the least-held colour once every colour is held, so repeats spread', () => {
+    expect(freeAvatarIndex(0, [...EVERY_COLOUR, 0, 1])).toBe(2);
+  });
+
+  it('takes the lowest least-held colour on a tie once every colour is held', () => {
+    expect(freeAvatarIndex(AVATAR_INDEX_MAX, EVERY_COLOUR)).toBe(AVATAR_INDEX_MIN);
   });
 });
 

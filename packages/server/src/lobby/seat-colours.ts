@@ -1,17 +1,24 @@
 // Seat colours (docs/visual-style/principles-and-palette.md §2): a player's avatar index is its palette, and no two
-// players in a room share one (#645). A newcomer keeps the colour it asked for when that is free, else takes the
-// lowest free one, so palette index follows seat order. Once every palette is taken (a debug spawn past the seat
-// cap) a repeat is unavoidable and the request stands.
+// players in a room share one while a colour is free (#645). A newcomer keeps the colour it asked for when that is
+// free, else takes the lowest free one, so palette index follows seat order. Bots do not count toward the human seat
+// cap, so a room can hold more players than colours (a human joining 1 human + 7 bots, or bots past the cap); then a
+// repeat is unavoidable and the newcomer takes the least-held colour, so repeats spread instead of piling on one.
 
 import { AVATAR_INDEX_MAX, AVATAR_INDEX_MIN } from '@evolution/shared';
 
+/**
+ * The colour a newcomer asking for `requested` gets beside the players holding `taken`: `requested` when no one
+ * holds it, else the least-held colour (lowest index on a tie), which is the lowest free one while any is free.
+ */
 export function freeAvatarIndex(requested: number, taken: Iterable<number>): number {
-  const takenIndices = new Set(taken);
-  if (!takenIndices.has(requested)) return requested;
+  const holders = new Map<number, number>();
+  for (const index of taken) holders.set(index, (holders.get(index) ?? 0) + 1);
+  if (!holders.has(requested)) return requested;
+  let leastHeld = AVATAR_INDEX_MIN;
   for (let index = AVATAR_INDEX_MIN; index <= AVATAR_INDEX_MAX; index += 1) {
-    if (!takenIndices.has(index)) return index;
+    if ((holders.get(index) ?? 0) < (holders.get(leastHeld) ?? 0)) leastHeld = index;
   }
-  return requested;
+  return leastHeld;
 }
 
 /** The colours the players in a room's roster hold; a player who left keeps its entry but no longer holds it. */

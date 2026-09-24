@@ -124,9 +124,11 @@ shades (edge, cytoplasm light / dark, nucleus dark) follow sheet 01's HSL rule a
 `render/palette.ts`, never listed. A new palette's rim and nucleus follow the six drawn ones: rim = the
 base hue at S 100 % / L 85 %, nuc = the base hue at S 85 % / L 70 % (HSL). Palette index is seat order,
 arranged so the first _k_ seats are mutually far apart on the hue wheel (a 2-player game sees 0 and 1). No two
-players in a room share a palette: the server keeps a player's requested index when it is free and otherwise gives
-the lowest free one, at the start in seat order and for every late joiner and debug bot
-(`packages/server/src/lobby/seat-colours.ts`, #645):
+players in a room share a palette while one is free: the server keeps a player's requested index when it is free and
+otherwise gives the lowest free one, at the start in seat order and for every late joiner and debug bot
+(`packages/server/src/lobby/seat-colours.ts`, #645). Bots do not count toward the human seat cap, so a room can hold
+more players than palettes (a human joining 1 human + 7 bots); then the newcomer takes the least-held palette,
+lowest index on a tie, so repeats spread instead of piling on palette 0:
 
 | Index | Name    | base      | rim       | nuc       | Source   |
 | ----- | ------- | --------- | --------- | --------- | -------- |
