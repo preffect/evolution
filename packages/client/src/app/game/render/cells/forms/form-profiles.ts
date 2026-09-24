@@ -33,6 +33,8 @@ export interface FormDefinition {
 
 const BLOB_PROFILE = (): FormProfile | null => null;
 const CIRCLE = (): number => DIATOM_ASPECT;
+/** The slipper past its table falls back to its tier-I aspect. */
+const [SLIPPER_TIER_I_ASPECT] = SLIPPER_ASPECT_BY_TIER;
 
 /** The generic blob: `B ≡ 1`, so the profile term is absent and the shader skips it. */
 export const BLOB_FORM: FormDefinition = {
@@ -48,7 +50,7 @@ export const FORM_PROFILES: ReadonlyMap<TraitId, FormDefinition> = new Map<Trait
     'paramecium_cilia',
     {
       id: FORM_ID.slipper,
-      aspectAt: (tier) => tierEntryOf(SLIPPER_ASPECT_BY_TIER, tier) ?? SLIPPER_ASPECT_BY_TIER[0],
+      aspectAt: (tier) => tierEntryOf(SLIPPER_ASPECT_BY_TIER, tier) ?? SLIPPER_TIER_I_ASPECT,
       profileAt: BLOB_PROFILE,
       isRigid: false,
     },
