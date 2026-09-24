@@ -93,6 +93,18 @@ describe('sendSnapshotToViewers', () => {
     expect(bytes).toBe(Math.round(expectedTotal / targets.length));
   });
 
+  it('writes each member through the module’s own JSON writer where it has one (#406)', () => {
+    const writer: Pick<ViewerStateSerializer<GameSnapshot, ViewerKey>, 'memberJson'> = {
+      memberJson: (key, value) => (key === 'ownProgress' ? '"written by the module"' : JSON.stringify(value)),
+    };
+    const module = { ...createSpyGameModule(), viewerState: { ...VIEWER_STATE, ...writer } };
+    const sent: SentLog = {};
+    sendSnapshotToViewers(module, [createTestConnection({ playerId: ALICE, sent })], createTestSnapshot({ tick: 9 }));
+    const [message] = sent[ALICE] as { snapshot: GameSnapshot }[];
+    expect(message!.snapshot.ownProgress).toBe('written by the module');
+    expect(message!.snapshot.appliedInputSequenceByPlayer).toEqual({ [ALICE]: 9 });
+  });
+
   it('counts no bytes for a closed socket, and none at all with no one to send to', () => {
     const sent: SentLog = {};
     const open = createTestConnection({ playerId: ALICE, sent });

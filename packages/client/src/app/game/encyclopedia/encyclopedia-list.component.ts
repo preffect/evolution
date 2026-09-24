@@ -8,15 +8,13 @@
 // nothing here re-derives that order.
 //
 // **Selection follows focus here** (§11.5): arrowing down the column pages through entries, so the detail column
-// shows whatever the roving focus rests on. That is what makes an activation indistinguishable from a rove in the
-// kit's one report, and `EncyclopediaActivationPressDirective` — the seam the rail wears too — is what tells them
-// apart. Its file holds the whole trap; this one only has to route the two.
+// shows whatever the roving focus rests on. The kit reports an activation on its own (`activated`, ticket #622),
+// before the selection change beside it, so a click or Enter pushes and a rove replaces with nothing to track here.
 
-import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { UiListComponent } from '../../ui-kit/ui-list.component';
 import { UiListSectionComponent } from '../../ui-kit/ui-list-section.component';
 import { UiScrollAreaComponent } from '../../ui-kit/ui-scroll-area.component';
-import { EncyclopediaActivationPressDirective } from './encyclopedia-activation-press.directive';
 import { EncyclopediaListRowsComponent } from './encyclopedia-list-rows.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import {
@@ -27,20 +25,13 @@ import {
   searchListHeader,
   searchListSections,
 } from './format/list-view';
-import type { EntryId } from './model/entry-id';
 import { ENCYCLOPEDIA_TEST_ID } from './test-ids';
 
 @Component({
   selector: 'app-encyclopedia-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    EncyclopediaActivationPressDirective,
-    EncyclopediaListRowsComponent,
-    UiListComponent,
-    UiListSectionComponent,
-    UiScrollAreaComponent,
-  ],
+  imports: [EncyclopediaListRowsComponent, UiListComponent, UiListSectionComponent, UiScrollAreaComponent],
   styleUrl: './encyclopedia-list.component.css',
   template: `
     <header class="column-header">
@@ -53,20 +44,20 @@ import { ENCYCLOPEDIA_TEST_ID } from './test-ids';
       }
       <ui-list
         class="list"
-        encyclopediaActivationPress
         [attr.aria-label]="header().label"
         [testId]="testId.list"
         [selectedId]="selectedId()"
         [shouldSelectionFollowFocus]="true"
+        (activated)="activate($event)"
         (selectedIdChange)="roveTo($event)"
       >
         @for (section of sections(); track section.key) {
           @if (section.heading; as heading) {
             <ui-list-section [heading]="heading">
-              <app-encyclopedia-list-rows [entries]="section.entries" (activated)="activate($event)" />
+              <app-encyclopedia-list-rows [entries]="section.entries" />
             </ui-list-section>
           } @else {
-            <app-encyclopedia-list-rows [entries]="section.entries" (activated)="activate($event)" />
+            <app-encyclopedia-list-rows [entries]="section.entries" />
           }
         }
       </ui-list>
@@ -98,26 +89,23 @@ export class EncyclopediaListComponent {
   /** The entry being read, so its row stays marked while the detail column shows it; none on a landing. */
   protected readonly selectedId = computed(() => this.state.location().entryId);
 
-  private readonly activationPress = viewChild.required(EncyclopediaActivationPressDirective);
-
   /**
-   * A row the reader activated — clicked, or pressed Enter or Space on: its page, **pushed**, so Back returns to
-   * wherever they came from. The flag is set here as well as by the list's `(pointerdown)`, because Enter and Space
-   * reach this with no pointer press at all.
+   * A row the reader activated — clicked, or pressed Enter or Space on, the row being read included: its page,
+   * **pushed**, so Back returns to wherever they came from.
    */
-  protected activate(entryId: EntryId): void {
-    this.activationPress().begin();
-    this.state.openEntry(entryId);
+  protected activate(itemId: string): void {
+    const entryId = entryIdFromItemId(itemId, this.sections());
+    if (entryId !== null) this.state.openEntry(entryId);
   }
 
   /**
    * The roving focus, which the kit reports as a selection because selection follows focus here: the entry is shown
-   * without being pushed, so arrowing down eighty rows spends no back stack. An activation's own report is suppressed,
-   * since the push above it is already the move.
+   * without being pushed, so arrowing down eighty rows spends no back stack. The selection change that follows an
+   * activation lands on the entry that activation has just pushed, and is left alone — replacing it would drop the
+   * section an anchor named.
    */
   protected roveTo(itemId: string | null): void {
-    if (this.activationPress().isInFlight) return;
     const entryId = entryIdFromItemId(itemId, this.sections());
-    if (entryId !== null) this.state.focusEntry(entryId);
+    if (entryId !== null && entryId !== this.state.location().entryId) this.state.focusEntry(entryId);
   }
 }

@@ -53,9 +53,11 @@ export function sendSnapshotToViewers(
     return broadcastMessage(targets, { type: SERVER_MESSAGE_TYPE.gameSnapshot, snapshot: snapshot as GameSnapshot });
   }
   const frame = openSnapshotFrame(snapshot, viewerState.keys);
+  const memberJson = viewerState.memberJson?.bind(viewerState);
   let totalBytes = 0;
   for (const connection of targets) {
-    const message = closeSnapshotFrame(frame, viewerState.serialize(connection.playerId as PlayerId, snapshot));
+    const members = viewerState.serialize(connection.playerId as PlayerId, snapshot);
+    const message = closeSnapshotFrame(frame, members, memberJson);
     if (sendRaw(connection, message)) totalBytes += message.length;
   }
   return Math.round(totalBytes / targets.length);

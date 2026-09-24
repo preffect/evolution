@@ -50,9 +50,9 @@ describe('the entry page on the push-and-replace seam (docs/ui/encyclopedia.md �
   }
 
   /**
-   * A row pressed as a browser presses one. The `pointerdown` is load-bearing: it is what tells the list that the
-   * kit's report beside the press is that press's and not a rove, and a helper that omitted it would quietly turn
-   * every push here into a replace (`encyclopedia-activation-press.directive.ts`).
+   * A row pressed as a browser presses one — `pointerdown`, `pointerup`, `click`, in that order. Since ticket #622 the
+   * kit reports the activation itself and nothing reads the first two; they stay so the press is driven as a browser
+   * drives it (docs/ui/encyclopedia.md §11.5).
    */
   function activateRow(entryId: EntryId): void {
     const element = expectTestId(root(), encyclopediaRowTestId(entryId));

@@ -28,6 +28,16 @@ const NO_TIME = 0;
 const FULL = 1;
 const FIRST_KEY = 1;
 const UPGRADE_ARROW = '→';
+/**
+ * A card's narrow column wraps its lines, so the places a wrap would split a reading are bound (#446): a number to
+ * the unit after it (`70 %`), a unit's slash to both sides (`% / s`), and an upgrade's tiers to the arrow between
+ * them (`I → II`). A no-break space is the same width as a space, so binding costs the card nothing.
+ */
+const NO_BREAK_SPACE = '\u00a0';
+/** A space after a digit: the number meets its unit there. */
+const SPACE_AFTER_NUMBER = /(\d) /g;
+/** A unit's slash with a space either side: `% / s`, `mass / s`. */
+const SPACED_SLASH = / \/ /g;
 
 export interface TraitCardView {
   readonly index: number;
@@ -104,16 +114,23 @@ function cardView(
     traitId: card.traitId,
     name: definition.name,
     tierLabel: isUpgrade
-      ? `${tierNumeral(owned.tier)} ${UPGRADE_ARROW} ${tierNumeral(card.tier)}`
+      ? `${tierNumeral(owned.tier)}${NO_BREAK_SPACE}${UPGRADE_ARROW}${NO_BREAK_SPACE}${tierNumeral(card.tier)}`
       : tierNumeral(card.tier),
     isUpgrade,
     isRung: isRungFor(card.traitId, progress.stage),
     category,
     rarity: definition.rarity,
-    effects: describeTierModifiers(traits, card.traitId, card.tier),
+    effects: describeTierModifiers(traits, card.traitId, card.tier).map(bindQuantities),
     effectTones: describeTierModifierEffects(traits, card.traitId, card.tier),
     keyLabel: String(index + FIRST_KEY),
   };
+}
+
+/** `line` with its numbers bound to their units and its unit slashes bound to both sides, so a wrap never splits one. */
+export function bindQuantities(line: string): string {
+  return line
+    .replace(SPACE_AFTER_NUMBER, `$1${NO_BREAK_SPACE}`)
+    .replace(SPACED_SLASH, `${NO_BREAK_SPACE}/${NO_BREAK_SPACE}`);
 }
 
 export function traitOfferViewFor(input: TraitOfferInput): TraitOfferViewModel {

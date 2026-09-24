@@ -11,7 +11,12 @@ import { UiRailComponent } from './ui-rail.component';
   standalone: true,
   imports: [UiRailComponent, UiRailItemComponent],
   template: `
-    <ui-rail testId="rail" [orientation]="orientation()" [(selectedId)]="selectedId">
+    <ui-rail
+      testId="rail"
+      [orientation]="orientation()"
+      [(selectedId)]="selectedId"
+      (activated)="activations.push($event + '@' + selectedId())"
+    >
       <ui-rail-item itemId="basics" testId="basics" [count]="13"><i uiLeading class="icon"></i>Basics</ui-rail-item>
       <ui-rail-item itemId="cells" testId="cells" [isDisabled]="isCellsDisabled()">Cells &amp; food</ui-rail-item>
       <ui-rail-item itemId="evolution" testId="evolution" [count]="28">Evolution</ui-rail-item>
@@ -23,6 +28,8 @@ class RailHostComponent {
   readonly orientation = signal<UiOrientation>(UI_ORIENTATION.vertical);
   readonly selectedId = signal<string | null>('evolution');
   readonly isCellsDisabled = signal(false);
+  /** Every `activated`, with the selection it saw: `basics@evolution` was reported before the selection moved. */
+  readonly activations: string[] = [];
 }
 
 describe('UiRailComponent', () => {
@@ -132,6 +139,28 @@ describe('UiRailComponent', () => {
     focusOn('basics');
     expect(press(' ')).toBe(true);
     expect(fixture.componentInstance.selectedId()).toBe('basics');
+  });
+
+  it('reports every activation, the item already selected included, before the selection moves (#622)', () => {
+    byTestId('evolution').click();
+    fixture.detectChanges();
+    byTestId('basics').click();
+    fixture.detectChanges();
+    focusOn('basics');
+    press('Enter');
+    expect(fixture.componentInstance.activations).toEqual(['evolution@evolution', 'basics@evolution', 'basics@basics']);
+    expect(fixture.componentInstance.selectedId()).toBe('basics');
+  });
+
+  it('never reports a rove, or a click on a disabled item, as an activation (#622)', () => {
+    focusOn('evolution');
+    press('ArrowDown');
+    press('Home');
+    expect(fixture.componentInstance.selectedId()).toBe('basics');
+    set((host) => host.isCellsDisabled.set(true));
+    byTestId('cells').click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.activations).toEqual([]);
   });
 
   it('a click selects the item', () => {

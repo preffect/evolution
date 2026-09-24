@@ -43,14 +43,14 @@ describe('TraitCardComponent', () => {
 
   it('marks an upgrade with I → II under the upgrade test id, and a fresh trait without one', () => {
     const upgrade = mount(UPGRADE_CARD).querySelector(testIdSelector(HUD_TEST_ID.traitCardUpgrade));
-    expect(upgrade?.textContent?.trim()).toBe('I → II');
+    expect(upgrade?.textContent?.trim()).toBe('I\u00a0→\u00a0II');
     expect(mount(FRESH_CARD).querySelector(testIdSelector(HUD_TEST_ID.traitCardUpgrade))).toBeNull();
   });
 
   it('names its key, trait, tier and effects to assistive technology', () => {
     const button = mount(UPGRADE_CARD);
     expect(button.getAttribute('aria-label')).toBe(
-      `2: ${UPGRADE_CARD!.name} I → II, ${UPGRADE_CARD!.effects.join(', ')}`,
+      `2: ${UPGRADE_CARD!.name} I\u00a0→\u00a0II, ${UPGRADE_CARD!.effects.join(', ')}`,
     );
   });
 
