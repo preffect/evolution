@@ -18,6 +18,13 @@
 # one is neither (#329); that setup runs before the cleanup, so a failed install leaves the running stack
 # serving; a deploy whose setup has work completes while another checkout holds the machine-wide gate lock;
 # a setup waiting on this checkout's own setup lock past its timeout fails loudly and leaves the stack up.
+# Refused and failed starts (#444): a port held by another checkout refuses the start (non-zero, naming the
+# port and the holder, no banner, nothing started, this checkout's running stack left alone), and so does a
+# client-only start beside another checkout's server, and neither starts a watcher; a listener of this
+# checkout that releases the port within the grace is waited for, one that ignores TERM is killed after it;
+# a server that exits on start fails fast and stops the client it started; a stack not ready in time is
+# left running; both failures still start the watcher, so the fix merge deploys; every start waits for
+# its listeners, --wait-ready or not.
 #
 #   scripts/run.test.sh        # exit 0 when every case passes
 set -euo pipefail
@@ -33,6 +40,9 @@ FAILED_READY_TIMEOUT_SECONDS=2
 LONG_WATCH_INTERVAL_SECONDS=3600
 PROBE_LIFETIME_SECONDS=120
 SETUP_LOCK_TIMEOUT_SECONDS=1
+STOP_GRACE_SECONDS=1
+TERM_LINGER_SECONDS=2  # a listener that takes this long to exit after TERM...
+LINGER_GRACE_SECONDS=6 # ...within this grace
 REAL_SS="$(command -v ss)"
 REAL_LSOF="$(command -v lsof)"
 
@@ -56,6 +66,7 @@ cp "$repo_root/packages/client/proxy.conf.json" "$stack/packages/client/proxy.co
 pnpm_args="$sandbox/pnpm-args"
 no_listen_file="$sandbox/fake-pnpm-no-listen" # when present: the fake dev servers never listen
 install_fail_file="$sandbox/fake-pnpm-install-fails" # when present: the fake pnpm install fails
+server_dies_file="$sandbox/fake-pnpm-server-dies" # when present: the fake dev server exits on start
 ss_stub_file="$sandbox/ss-stub"               # "<port> <pid>" lines the fake ss reports as listeners
 ss_fail_file="$sandbox/ss-fail"               # when present: the fake ss fails, as if missing
 lsof_sees_file="$sandbox/lsof-sees"           # when present: the fake lsof sees listeners (the fallback case)
@@ -69,7 +80,7 @@ case "\$1" in
   --filter) mkdir -p packages/shared/dist && touch packages/shared/dist/index.d.ts packages/shared/tsconfig.build.tsbuildinfo; exit 0 ;;
 esac
 case "\$1" in
-  dev:server) cd "$stack/packages/server"; port="\$PORT" ;;
+  dev:server) [[ ! -e "$server_dies_file" ]] || { echo 'server crashed on start'; exit 1; }; cd "$stack/packages/server"; port="\$PORT" ;;
   dev:client) cd "$stack/packages/client"; port="\$3" ;;
 esac
 [[ ! -e "$no_listen_file" ]] || exec sleep $PROBE_LIFETIME_SECONDS
@@ -97,6 +108,7 @@ chmod +x "$sandbox/bin/pnpm" "$sandbox/bin/ss" "$sandbox/bin/lsof" "$other/scrip
 mkdir -p "$sandbox/home" # the gate lock lives under $HOME/.cache
 export PATH="$sandbox/bin:$PATH" PORT="$STACK_SERVER_PORT" CLIENT_PORT="$STACK_CLIENT_PORT" HOME="$sandbox/home"
 export RUN_READY_TIMEOUT_SECONDS="$READY_TIMEOUT_SECONDS" DEPLOY_WATCH_INTERVAL_SECONDS="$LONG_WATCH_INTERVAL_SECONDS"
+export RUN_STOP_GRACE_SECONDS="$STOP_GRACE_SECONDS"
 unset DEPLOY_TARGET_DIR DEPLOY_RUN_SCRIPT DEPLOY_SETUP_COMMAND WORKSPACE_SETUP_LOCK_TIMEOUT_SECONDS # the real setup, on the fake pnpm
 
 probe_pids=()
@@ -127,13 +139,35 @@ start_fake_tsx() { # <cwd> -> $probe_pid, a process whose command line looks lik
   probe_pid=$!
   probe_pids+=("$probe_pid")
 }
+start_term_listener() { # <cwd> <port> <seconds to linger after TERM | ignore> -> $probe_pid
+  start_probe "$1" python3 -c '
+import signal, socket, sys, time
+server = socket.socket()
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(("127.0.0.1", int(sys.argv[1])))
+server.listen()
+def linger(*_):
+    time.sleep(float(sys.argv[2]))
+    sys.exit(0)
+signal.signal(signal.SIGTERM, signal.SIG_IGN if sys.argv[2] == "ignore" else linger)
+time.sleep(float(sys.argv[3]))
+' "$2" "$3" "$PROBE_LIFETIME_SECONDS"
+}
 alive() { kill -0 "$1" 2>/dev/null; }
+all_recorded_alive() { # every PID in .game.pid is running
+  local pid
+  [[ -s "$stack/.game.pid" ]] || return 1
+  while read -r pid; do alive "$pid" || return 1; done < "$stack/.game.pid"
+}
 listening() { [[ -n "$(ss_pids "$1")" ]]; }
 connected() { "$REAL_LSOF" -a -p "$1" -i TCP -sTCP:ESTABLISHED >/dev/null 2>&1; }
 # grep without -q in a pipe: under pipefail, -q exits at the first match and the SIGPIPE'd writer fails the pipe
 real_lsof_sees() { "$REAL_LSOF" -ti :"$1" -sTCP:LISTEN 2>/dev/null | grep -x "$2" > /dev/null; } # <port> <pid>
 fake_lsof_sees_a_listener() { [[ -n "$(lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null)" ]]; } # <port>
 watcher_pid() { cat "$stack/.game-logs/deploy-watch.pid"; }
+# The watcher runs the script, not the nohup it was started through: --stop only stops the former
+watcher_running() { runs_script "$(watcher_pid)" --watch; }
+watcher_polled() { sed -n "/(pid $1)\$/,\$p" "$stack/.game-logs/deploy.log" | grep -e 'skipping$' -e 'nothing to do$' > /dev/null; } # <pid>
 stack_watchers() { pgrep -fc " $stack/scripts/deploy-main.sh --watch" || true; }
 runs_script() { tr '\0' '\n' < "/proc/$1/cmdline" | grep -xF -- "$2" > /dev/null; } # <pid> <whole argument>
 line_of() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; } # <fixed text> -> its line number in $out
@@ -150,7 +184,7 @@ mkdir -p "$stack/packages/client/.angular/cache/deps"
 check "the fake lsof is blind to a real listener that ss sees" $(( ! $(holds fake_lsof_sees_a_listener "$STACK_SERVER_PORT") && $(holds listening "$STACK_SERVER_PORT") ))
 
 run_stack --clear-prebundle --wait-ready
-check "./run.sh --wait-ready starts the stack and finds both new listeners through ss alone (rc $rc)" $(( rc == 0 && $(holds grep -q 'Ready: this checkout listens' <<<"$out") ))
+check "./run.sh --wait-ready starts the stack and finds both new listeners through ss alone (rc $rc)" $(( rc == 0 && $(holds grep -q 'Ready: this checkout listens' <<<"$out") && $(holds grep -q 'Evolution is running!' <<<"$out") ))
 check "the orphan sweep reaps this checkout's tsx server" $(( ! $(holds alive "$own_orphan") ))
 check "the orphan sweep spares another checkout's tsx server" $(holds alive "$foreign_orphan")
 check "the port kill stops this checkout's stale listener that lsof cannot see" $(( ! $(holds alive "$stale_listener") ))
@@ -209,19 +243,61 @@ check "without ss, lsof is the fallback that still finds this checkout's listene
 
 # --- wait-ready failures ------------------------------------------------------------------------
 touch "$no_listen_file"
-RUN_READY_TIMEOUT_SECONDS="$FAILED_READY_TIMEOUT_SECONDS" run_stack --no-deploy-watch --wait-ready
-check "--wait-ready fails with the log tails when the stack does not listen (rc $rc)" $(( rc != 0 && $(holds grep -q 'restart failed: no new listener from this checkout' <<<"$out") && $(holds grep -q 'lines of .*server.log' <<<"$out") ))
+RUN_READY_TIMEOUT_SECONDS="$FAILED_READY_TIMEOUT_SECONDS" run_stack --wait-ready
+check "--wait-ready fails with the log tails when the stack does not listen (rc $rc)" $(( rc != 0 && $(holds grep -q "start failed: not ready after ${FAILED_READY_TIMEOUT_SECONDS}s, no new listener from this checkout.*left running" <<<"$out") && $(holds grep -q 'lines of .*server.log' <<<"$out") ))
+check "a stack that is not ready in time is left running, without the banner" $(( $(holds all_recorded_alive) && ! $(holds grep -q 'Evolution is running' <<<"$out") ))
+check "a stack that is not ready in time still starts the deploy watcher" $(holds wait_for watcher_running)
+rm "$no_listen_file"
 run_stack --stop
 
-start_probe "$stack/packages/client" bash -c "trap '' TERM; exec sleep $PROBE_LIFETIME_SECONDS"
-old_listener="$probe_pid"
-echo "$STACK_CLIENT_PORT $old_listener" > "$ss_stub_file"
-RUN_READY_TIMEOUT_SECONDS="$FAILED_READY_TIMEOUT_SECONDS" run_stack --client-only --no-deploy-watch --wait-ready
-check "--wait-ready is not satisfied by this checkout's listener from before the start (rc $rc)" $(( rc != 0 && $(holds alive "$old_listener") && $(holds grep -q "restart failed: no new listener from this checkout on port $STACK_CLIENT_PORT" <<<"$out") ))
-: > "$ss_stub_file"
-kill -9 "$old_listener"
-wait "$old_listener" 2>/dev/null || true # reap it here, so bash prints no job-control "Killed" line
-rm "$no_listen_file"
+# --- the stopped stack's grace: a slow release is waited for, an ignored TERM is killed -----------
+start_term_listener "$stack/packages/server" "$STACK_SERVER_PORT" "$TERM_LINGER_SECONDS"
+slow_listener="$probe_pid"
+wait_for listening "$STACK_SERVER_PORT"
+RUN_STOP_GRACE_SECONDS="$LINGER_GRACE_SECONDS" run_stack --server-only --no-deploy-watch
+check "a listener of this checkout that releases the port within the grace is waited for (rc $rc)" $(( rc == 0 && ! $(holds alive "$slow_listener") && ! $(holds grep -q 'Killed process' <<<"$out") && $(holds grep -q 'Ready: this checkout listens' <<<"$out") ))
+run_stack --stop
+
+start_term_listener "$stack/packages/client" "$STACK_CLIENT_PORT" ignore
+deaf_listener="$probe_pid"
+wait_for listening "$STACK_CLIENT_PORT"
+{ # run.sh kill -9s it: stderr off here, so bash prints no job-control "Killed" line when it reaps it
+  run_stack --client-only --no-deploy-watch
+  deaf_listener_killed="$(holds grep -q "Killed process $deaf_listener on port $STACK_CLIENT_PORT: it outlived the stop by ${STOP_GRACE_SECONDS}s" <<<"$out")"
+  [[ $deaf_listener_killed -eq 0 ]] || wait "$deaf_listener" || true
+} 2>/dev/null
+check "a listener of this checkout that ignores TERM is killed after the grace and the start proceeds (rc $rc)" $(( rc == 0 && deaf_listener_killed && ! $(holds alive "$deaf_listener") ))
+run_stack --stop
+
+# --- refused and failed starts (#444) -----------------------------------------------------------
+start_probe "$other" python3 -m http.server "$STACK_SERVER_PORT" --bind 127.0.0.1
+foreign_server="$probe_pid"
+wait_for listening "$STACK_SERVER_PORT"
+: > "$pnpm_args"
+run_stack
+check "a start beside another checkout's server fails, naming the port and the holder (rc $rc)" $(( rc != 0 && $(holds grep -qF "port $STACK_SERVER_PORT is held by PID $foreign_server ($other), not by this checkout; not starting" <<<"$out") && ! $(holds grep -q 'Evolution is running' <<<"$out") ))
+check "the refused start started nothing, no watcher either, and left the other checkout's server up" $(( ! $(holds grep -q 'dev:' "$pnpm_args") && ! $(holds listening "$STACK_CLIENT_PORT") && ! $(holds test -e "$stack/.game-logs/deploy-watch.pid") && $(holds alive "$foreign_server") ))
+run_stack --client-only --no-deploy-watch
+check "a client-only start refuses to proxy to another checkout's server (rc $rc)" $(( rc != 0 && $(holds grep -q "port $STACK_SERVER_PORT is held by PID $foreign_server" <<<"$out") && ! $(holds grep -q 'dev:' "$pnpm_args") ))
+kill "$foreign_server"
+wait_for eval '! listening "$STACK_SERVER_PORT"'
+
+run_stack --server-only --no-deploy-watch
+own_server="$(ss_pids "$STACK_SERVER_PORT")"
+start_probe "$other" python3 -m http.server "$STACK_CLIENT_PORT" --bind 127.0.0.1
+foreign_client="$probe_pid"
+wait_for listening "$STACK_CLIENT_PORT"
+run_stack --no-deploy-watch
+check "a start refused over the client port leaves this checkout's running server alone (rc $rc)" $(( rc != 0 && $(holds grep -q "port $STACK_CLIENT_PORT is held by PID $foreign_client" <<<"$out") && $(holds alive "$own_server") && ! $(holds grep -q 'Cleaning up old processes' <<<"$out") ))
+kill "$foreign_client"
+run_stack --stop
+
+touch "$server_dies_file"
+start_seconds=$SECONDS
+run_stack
+rm "$server_dies_file"
+check "a server that exits on start fails the start before the ready timeout, without the banner (rc $rc)" $(( rc != 0 && $(holds grep -q "start failed: the server exited before listening on port $STACK_SERVER_PORT" <<<"$out") && $(holds grep -q 'server crashed on start' <<<"$out") && SECONDS - start_seconds < READY_TIMEOUT_SECONDS && ! $(holds grep -q 'Evolution is running' <<<"$out") ))
+check "the failed start stops the client it started and still starts the deploy watcher" $(( $(holds wait_for eval '! listening "$STACK_CLIENT_PORT"') && ! $(holds test -e "$stack/.game.pid") && $(holds wait_for watcher_running) ))
 run_stack --stop
 
 # --- a one-shot deploy of a stack without a watcher ---------------------------------------------
@@ -230,7 +306,10 @@ merge_to_main game.txt v2
 rc=0
 out="$(DEPLOY_TARGET_DIR="$stack" "$stack/scripts/deploy-main.sh" 2>&1)" || rc=$?
 check "a one-shot deploy restarts the stack and records the deploy (rc $rc)" $(( rc == 0 && $(holds test "$(cat "$stack/.game-logs/deployed-sha")" = "$(origin_head)") ))
-check "a one-shot deploy leaves exactly one watcher running" $(( $(holds wait_for alive "$(watcher_pid)") && $(stack_watchers) == 1 ))
+# run.sh starts the watcher once the stack serves, just before the deploy ends. Its first poll must be over
+# before the count (its command substitutions are forked copies that pgrep counts too) and before the next
+# merge (or it deploys that merge itself, beside the one-shot deploy below).
+check "a one-shot deploy leaves exactly one watcher running" $(( $(holds wait_for watcher_polled "$(watcher_pid)") && $(stack_watchers) == 1 ))
 deployed_watcher="$(watcher_pid)"
 merge_to_main game.txt v3
 rc=0
