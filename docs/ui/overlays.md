@@ -293,6 +293,16 @@ table's `betterWhen` (`modifierEffect`); the value's text keeps the text colour.
 `Your traits` and the encyclopedia's tier table use the same mark, so `Mitochondrion I · ▲ −15 % mass decay` reads as
 the benefit it is beside `Speed · −47 %` (hud.md §3.1.5).
 
+**The `TRAITS` values wrap (#630).** A trait's first effect line is prose after its quantity (`+15 % harder to
+engulf`), and beside a long name such as `Simple Flagellum I` it does not fit one line of the 360 px panel: at the
+`UI_SCALE_MIN` floor the four-trait cell of Cell Wall, Mitochondrion, Simple Flagellum and Food Vacuole cut its values
+at the panel edge (`+5 % spee`). So the trait table alone opts into the kit's `shouldWrapValues` (§10.2): the names
+keep one line and the value wraps under itself, right-aligned, growing its row downwards. A wrap never splits a
+number from its unit (the value is bound like a trait card's, `bindQuantities`, #446), and the effect mark and the
+value's first word are held on one line, so the mark is never left at the end of the line above. The other sections'
+figures stay one line, as above. `e2e/affecting-panel-traits.spec.ts` stages that cell at 1024 × 640 and 1280 × 800
+and fails when any trait value or mark crosses the panel's edge.
+
 **The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--ui-scale` at the
 `UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, and a row's name column overflows between
 **189.23 px** (widest still fitting) and **192.52 px** (narrowest that does not), bisected a character at a time —
