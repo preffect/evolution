@@ -11,6 +11,7 @@ import {
   SNAPSHOT_BACKLOG_LIMIT_TICKS,
   SNAPSHOT_BUFFER_SIZE,
   SNAPSHOT_EVERY_TICKS,
+  SNAPSHOT_STALE_MS,
 } from './netcode.js';
 
 /**
@@ -43,6 +44,10 @@ const LANDED_EFFECT_DRAW_WINDOW_TICKS = 4;
  * player stops seeing feedback for things happening to them. 60 ms is roughly a 16 fps obligation.
  */
 const MIN_EFFECT_DRAW_WINDOW_MS = 60;
+/** docs/ui/layout.md §1's value for the connection banner's `stale` state. */
+const LANDED_SNAPSHOT_STALE_MS = 2000;
+/** Missed snapshot intervals the banner waits out before it says `stale`: a late frame or two is jitter, not a stall. */
+const MIN_STALE_INTERVALS = 10;
 
 describe('netcode constants', () => {
   it('broadcasts at the landed 20 Hz (#214)', () => {
@@ -86,5 +91,11 @@ describe('netcode constants', () => {
     // 60 Hz is a 30 fps obligation. This gate is the landed cadence's, so a cadence bump that pushed
     // the floor past what a browser holds fails here rather than in a player's missing effects.
     expect(EFFECT_DRAW_WINDOW_TICKS * TICK_INTERVAL_MS).toBeGreaterThanOrEqual(MIN_EFFECT_DRAW_WINDOW_MS);
+  });
+
+  it('calls the server stale only after many missed snapshots (docs/ui/overlays.md §3.6)', () => {
+    expect(SNAPSHOT_STALE_MS).toBe(LANDED_SNAPSHOT_STALE_MS);
+    const snapshotIntervalMs = SNAPSHOT_EVERY_TICKS * TICK_INTERVAL_MS;
+    expect(SNAPSHOT_STALE_MS).toBeGreaterThanOrEqual(MIN_STALE_INTERVALS * snapshotIntervalMs);
   });
 });

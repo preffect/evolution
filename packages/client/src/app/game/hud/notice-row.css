@@ -39,3 +39,9 @@
   border-bottom-color: var(--ui-danger);
   color: var(--ui-danger);
 }
+
+/* The server has gone quiet (`stale`): a wait, not a failure, so the level role rather than danger. */
+.notice-row.level-gold {
+  border-bottom-color: var(--ui-level-gold);
+  color: var(--ui-level-gold);
+}

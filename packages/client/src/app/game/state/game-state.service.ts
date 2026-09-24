@@ -20,7 +20,7 @@ import {
   type RoundPhase,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
-import { CONNECTION_STATE, type ConnectionState } from '../hud/format/connection-banner';
+import type { ConnectionState } from '../net/connection-state';
 import { hasEngulfedIn } from '../hud/format/relation-labels';
 import { resultsStartedAtTickFor } from '../hud/format/results-lines';
 import { relationCandidatesFor, relationsOnScreen, type RelationCandidate } from '../hud/format/relations-for';
@@ -32,6 +32,7 @@ import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicat
 import { ownMassHistoryFor, ownMassesFor, type OwnMassHistory } from './own-mass-history';
 import { foodGainPerSecondFor, recentEatsFor, type RecentEatsMemory } from './recent-eats';
 import { isSameCameraExtent, type CameraExtent } from '../render/camera';
+import { ConnectionStateService } from '../net/connection-state.service';
 
 const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerRosterView>> = {};
@@ -53,6 +54,9 @@ export class GameStateService {
   private readonly multiplayer = inject(MultiplayerService);
   private readonly hudState = inject(HudStateService);
 
+  /** The room we sit in, `null` in the lobby: with `ownPlayerId`, the seat a memory belongs to. */
+  readonly gameId = this.multiplayer.gameId.asReadonly();
+
   /** `MultiplayerService.playerId()`: who we are (docs/ui/layout.md §1's `me`), `null` before the room names us. */
   readonly ownPlayerId = computed<PlayerId | null>(() => this.multiplayer.playerId());
 
@@ -60,12 +64,10 @@ export class GameStateService {
   readonly roundPhase = computed<RoundPhase>(() => this.multiplayer.snapshot()?.roundPhase ?? ROUND_PHASE.playing);
 
   /**
-   * The connection banner's state (docs/ui/overlays.md §3.6). `stale` (connected, no snapshot for
-   * `SNAPSHOT_STALE_MS`) is #190's, with the clock-driven notices.
+   * The connection banner's state (docs/ui/overlays.md §3.6): `disconnected`, `stale` or `connected`, as
+   * `ConnectionStateService` works it out from the socket and the snapshots' arrival.
    */
-  readonly connectionState = computed<ConnectionState>(() =>
-    this.multiplayer.connected() ? CONNECTION_STATE.connected : CONNECTION_STATE.disconnected,
-  );
+  readonly connectionState: Signal<ConnectionState> = inject(ConnectionStateService).state;
 
   /** The server's newest `error` message, until dismissed; `null` when there is none. */
   readonly serverError = this.multiplayer.lastError.asReadonly();

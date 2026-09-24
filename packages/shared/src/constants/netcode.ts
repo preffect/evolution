@@ -152,3 +152,10 @@ export const MAX_PREDICTION_TICKS = TICK_HZ / 2;
  * arrival (a debug republish does not count as one).
  */
 export const PREDICTION_STALL_TICKS = TICK_HZ / 4;
+
+/**
+ * No snapshot for this long while the socket is up reads as `stale` on the connection banner (docs/ui/overlays.md
+ * §3.6): the server is quiet, not gone. Two seconds is 40 missed snapshot intervals, far past any jitter, and it is
+ * also what a `debug_pause_room` looks like to a player.
+ */
+export const SNAPSHOT_STALE_MS = 2000;

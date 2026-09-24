@@ -2,18 +2,12 @@
 // which colour role carries it. The component binds this and decides nothing.
 
 import type { ValueOf } from '@evolution/shared';
-
-export const CONNECTION_STATE = {
-  connected: 'connected',
-  /** The socket is down; it reconnects on its own while the seat's grace runs. */
-  disconnected: 'disconnected',
-} as const;
-
-export type ConnectionState = ValueOf<typeof CONNECTION_STATE>;
+import { CONNECTION_STATE, type ConnectionState } from '../../net/connection-state';
 
 /** The colour role the banner's rim and text take; never the only carrier, the text says it too. */
 export const CONNECTION_BANNER_TONE = {
   danger: 'danger',
+  levelGold: 'level-gold',
 } as const;
 
 export type ConnectionBannerTone = ValueOf<typeof CONNECTION_BANNER_TONE>;
@@ -21,6 +15,7 @@ export type ConnectionBannerTone = ValueOf<typeof CONNECTION_BANNER_TONE>;
 /** docs/ui/overlays.md §3.6's banner text. */
 export const CONNECTION_BANNER_TEXT = {
   disconnected: 'Connection lost · reconnecting…',
+  stale: 'Waiting for server…',
 } as const;
 
 export interface ConnectionBanner {
@@ -29,11 +24,22 @@ export interface ConnectionBanner {
   readonly tone: ConnectionBannerTone | null;
 }
 
-const NO_BANNER: ConnectionBanner = { isVisible: false, text: '', tone: null };
+const BANNER_BY_STATE: Readonly<Record<ConnectionState, ConnectionBanner>> = {
+  [CONNECTION_STATE.connected]: { isVisible: false, text: '', tone: null },
+  [CONNECTION_STATE.disconnected]: {
+    isVisible: true,
+    text: CONNECTION_BANNER_TEXT.disconnected,
+    tone: CONNECTION_BANNER_TONE.danger,
+  },
+  [CONNECTION_STATE.stale]: {
+    isVisible: true,
+    text: CONNECTION_BANNER_TEXT.stale,
+    tone: CONNECTION_BANNER_TONE.levelGold,
+  },
+};
 
 export function connectionBannerFor(state: ConnectionState): ConnectionBanner {
-  if (state === CONNECTION_STATE.connected) return NO_BANNER;
-  return { isVisible: true, text: CONNECTION_BANNER_TEXT.disconnected, tone: CONNECTION_BANNER_TONE.danger };
+  return BANNER_BY_STATE[state];
 }
 
 /**

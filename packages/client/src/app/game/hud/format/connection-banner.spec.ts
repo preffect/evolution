@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   CONNECTION_BANNER_TEXT,
   CONNECTION_BANNER_TONE,
-  CONNECTION_STATE,
   connectionBannerFor,
   noticeRowCountFor,
 } from './connection-banner';
+import { CONNECTION_STATE } from '../../net/connection-state';
 
 describe('noticeRowCountFor', () => {
   it('counts the banner and the error line, each one row', () => {
@@ -14,6 +14,7 @@ describe('noticeRowCountFor', () => {
     expect(noticeRowCountFor(CONNECTION_STATE.disconnected, null)).toBe(1);
     expect(noticeRowCountFor(CONNECTION_STATE.connected, 'nope')).toBe(1);
     expect(noticeRowCountFor(CONNECTION_STATE.disconnected, 'nope')).toBe(2);
+    expect(noticeRowCountFor(CONNECTION_STATE.stale, null)).toBe(1);
   });
 });
 
@@ -29,5 +30,14 @@ describe('connectionBannerFor', () => {
       tone: CONNECTION_BANNER_TONE.danger,
     });
     expect(CONNECTION_BANNER_TEXT.disconnected).toBe('Connection lost · reconnecting…');
+  });
+
+  it('says the server is quiet, in the level role, while the snapshots have stopped', () => {
+    expect(connectionBannerFor(CONNECTION_STATE.stale)).toEqual({
+      isVisible: true,
+      text: CONNECTION_BANNER_TEXT.stale,
+      tone: CONNECTION_BANNER_TONE.levelGold,
+    });
+    expect(CONNECTION_BANNER_TEXT.stale).toBe('Waiting for server…');
   });
 });
