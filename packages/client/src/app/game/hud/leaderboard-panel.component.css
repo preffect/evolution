@@ -199,18 +199,6 @@
   color: var(--ui-text-label);
 }
 
-.swatch {
-  width: calc(var(--hud-leaderboard-swatch-size) * var(--ui-scale));
-  height: calc(var(--hud-leaderboard-swatch-size) * var(--ui-scale));
-  /* The beads sit on the disc's outline and are wider than it, so they paint outside the viewBox. */
-  overflow: visible;
-}
-
-/* The seat-mark bead core is the one white (docs/visual-style/principles-and-palette.md §2). */
-.bead {
-  fill: var(--ui-white);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .leaderboard,
   .row {

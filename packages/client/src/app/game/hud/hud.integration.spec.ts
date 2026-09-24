@@ -11,6 +11,7 @@ import {
   CELL_STAGE,
   ROUND_PHASE,
   SERVER_MESSAGE_TYPE,
+  TICK_HZ,
   createTestPlayerProgressView,
   createTestSessionConfig,
   createTestSnapshot,
@@ -170,7 +171,34 @@ describe('the HUD chrome, end to end', () => {
     );
   });
 
-  it('stands the board down for the results phase, where #189’s overlay claims the same corner', () => {
+  it('shows the round results off the wire, counting down from the room’s round length, and goes on the rematch', () => {
+    const secondsIntoResults = 5;
+    const resultsTick = (ROUND_SECONDS + secondsIntoResults) * TICK_HZ;
+    receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
+    receive({
+      type: SERVER_MESSAGE_TYPE.gameSnapshot,
+      snapshot: {
+        ...snapshotWith([row(1, RIVAL, 30, 1), row(2, OWN_PLAYER_ID, 10, 0)], 0),
+        roundPhase: ROUND_PHASE.results,
+        roundStartTick: 0,
+        tick: resultsTick,
+      },
+    });
+
+    const text = (testId: string): string | undefined =>
+      element().querySelector(testIdSelector(testId))?.textContent?.trim();
+    expect(text(HUD_TEST_ID.resultsWinner)).toBe('Rival wins');
+    const secondsLeft = DEFAULT_BALANCE.session.RESULTS_SCREEN_SECONDS - secondsIntoResults;
+    expect(text(HUD_TEST_ID.resultsCountdown)).toBe(`Next round in ${secondsLeft} s`);
+
+    receive({
+      type: SERVER_MESSAGE_TYPE.gameSnapshot,
+      snapshot: snapshotWith([row(1, OWN_PLAYER_ID, 0, 0)], ROUND_SECONDS),
+    });
+    expect(element().querySelector(testIdSelector(HUD_TEST_ID.resultsOverlay))).toBeNull();
+  });
+
+  it('stands the board down for the results phase, where the results overlay claims the same corner', () => {
     receive(gameStateMessage([row(1, OWN_PLAYER_ID, 10, 0)], ROUND_SECONDS));
     expect(element().querySelector(testIdSelector(HUD_TEST_ID.leaderboard))).not.toBeNull();
 

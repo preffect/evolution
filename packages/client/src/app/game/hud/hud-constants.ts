@@ -166,6 +166,17 @@ export const MENU_TRAITS_VISIBLE_ROWS = 5;
 /** The callout-backing scrim behind the menu: lighter than the encyclopedia's, so the dish reads through it. */
 export const MENU_SCRIM_ALPHA = 0.5;
 
+// ---- round results (docs/ui/overlays.md §3.4) ----
+
+/** The dim over the frozen dish: darker than the menu's, since nothing on the dish matters any more. */
+export const RESULTS_SCRIM_ALPHA = 0.7;
+/** The results panel's width at scale 1: the full ranking's seven columns with a 12-character name. */
+export const RESULTS_PANEL_WIDTH_PX = 560;
+/** The winner's swatch beside the `headline` line: the leaderboard's drawn twice as large. */
+export const RESULTS_WINNER_SWATCH_PX = 20;
+/** The panel fades out over this when the next round starts. */
+export const RESULTS_FADE_MS = 300;
+
 // ---- notices (docs/ui/overlays.md §3.6, docs/ui/input-and-onboarding.md §6) ----
 
 /** The connection banner and the server-error line under it: full width, this tall at scale 1. */
