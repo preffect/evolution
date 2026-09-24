@@ -10,7 +10,7 @@
 import { TICK_INTERVAL_S, type BalanceConfig, type RandomSource } from '@evolution/shared';
 import { dissolveCell } from '../session/death.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
-import { findCell } from '../world/lookups.js';
+import type { SeatedWildCell } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import type { WildSettleResult } from './wild-settle.js';
 
@@ -20,24 +20,11 @@ export function wildCarryingCapacity(worldMass: number, balance: BalanceConfig):
   return wildCells.WILD_CELL_CARRYING_CAPACITY_MULTIPLE * wildCells.WILD_CELL_COUNT * worldMass;
 }
 
-/** The seated seats with their cells, in seat order; a respawning seat is not among them (it weighs 0). */
-function seatedCells(world: WorldState): { seat: WildSeatRecord; cell: CellRecord }[] {
-  const seated: { seat: WildSeatRecord; cell: CellRecord }[] = [];
-  for (const seat of world.wildSeats) {
-    const cell = seat.cellId === null ? undefined : findCell(world, seat.cellId);
-    if (cell !== undefined) {
-      seated.push({ seat, cell });
-    }
-  }
-  return seated;
-}
-
 /**
  * Step 1, before the settles: with no seat starving and the seated wild cells over the budget, the heaviest starts to
- * starve (the first in seat order on a tie).
+ * starve (the first in seat order on a tie). A respawning seat is not among `seated` (it weighs 0).
  */
-export function chooseWildStarver(world: WorldState, worldMass: number, balance: BalanceConfig): void {
-  const seated = seatedCells(world);
+export function chooseWildStarver(seated: readonly SeatedWildCell[], worldMass: number, balance: BalanceConfig): void {
   if (seated.some(({ seat }) => seat.isStarving)) {
     return;
   }

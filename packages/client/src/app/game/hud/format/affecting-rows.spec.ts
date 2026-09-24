@@ -12,6 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  FIRST_TIER,
   MASS_RATE_CAUSE,
   ZONE_ID,
   createTestPlayerProgressView,
@@ -55,7 +56,6 @@ const FOOD_GAIN_PER_SECOND = 1.1;
 const MASS_RUN = [300, 306, 312];
 const MITOCHONDRION = 'mitochondrion';
 const TOXIN_VACUOLE = 'toxin_vacuole';
-const FIRST_TIER = 1;
 const TIER_INDEX = 0;
 const IDENTITY = 1;
 const MILLISECONDS_PER_SECOND_LOCAL = 1000;

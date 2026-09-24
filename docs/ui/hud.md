@@ -248,6 +248,9 @@ export interface MassFlowView {
   zone: ZoneId;
   /** Mass a sprint start took in this broadcast window, as applied (clipped at CELL_STARTING_MASS); omitted when none. */
   sprintSpent?: number;
+  /** Mass an offer dropped for want of cards added in this broadcast window, as applied (#416); omitted when none.
+   *  No cue reads it yet (ticket #672). */
+  noDraftBonusGained?: number;
 }
 // OwnProgress gains `massFlow: MassFlowView | null` (null while spectating), written from a transient per-player
 // record beside world.effects: never a CellRecord field, never hashed or replayed, so the state hash is unchanged.
@@ -260,7 +263,7 @@ export interface MassFlowView {
 massAfterFloor` is split across the requested losses (toxin, swallowed, decay, vent) in proportion to their formula
 values, and `light = massAfterGain − massAfterFloor` is measured after the cap. So the causes always add up to the
 mass actually lost or gained: `Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained −
-sprintSpent` on every tick (#383's conservation scenario). A mass-20.3 cell touching Toxin Vacuole I shows the 0.3 it
+sprintSpent + noDraftBonusGained` on every tick (#383's conservation scenario). A mass-20.3 cell touching Toxin Vacuole I shows the 0.3 it
 lost, not the 0.6 the formula asks for. Light that overflows the cap becomes DNA (#179) and shows only in the DNA
 ring; at the default balance it cannot happen (light plateaus at 186.67 / 395 / 662.86 mass, far under the cap).
 

@@ -2,6 +2,7 @@
 // order their slots are laid out, and the per-trait tier tables that decide the counts. The
 // eyespot and the form parts join with #216.
 
+import { tierEntryOf } from '@evolution/shared';
 import {
   CHLOROPLASTS_BY_TIER,
   FOOD_VACUOLES_BY_TIER,
@@ -30,7 +31,7 @@ export const ORGANELLE_KIND_ORDER: readonly OrganelleKind[] = [
 ];
 
 function byTier(table: readonly number[], tier: number): number {
-  return tier === 0 ? 0 : (table[tier - 1] ?? 0);
+  return tierEntryOf(table, tier) ?? 0;
 }
 
 /** How many of each kind the cell shows: granules for a protocell, the nucleoid until the envelope, then the nucleus. */

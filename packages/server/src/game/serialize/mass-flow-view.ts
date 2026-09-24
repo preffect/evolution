@@ -1,10 +1,12 @@
 // The mass-flow facts on the wire (docs/architecture/wire-contract.md §4 "Wire precision", docs/ui/hud.md §3.1.5,
-// #383): the ledger's applied rates and sprint spend, and the amounts on the `eat` and `cell_absorbed` effects, at
-// their wire precision. A cause that rounds to zero is left out, so the client never reads a `−0` tag.
+// #383, #416): the ledger's applied rates and window amounts (sprint spend, no-draft bonus), and the amounts on the
+// `eat` and `cell_absorbed` effects, at their wire precision. A cause or amount that rounds to zero is left out, so the
+// client never reads a `−0` tag.
 
 import {
   EFFECT_KIND,
   MASS_RATE_CAUSES,
+  MASS_WINDOW_AMOUNTS,
   SNAPSHOT_MASS_DECIMALS,
   SNAPSHOT_MASS_RATE_DECIMALS,
   SNAPSHOT_SHARE_DECIMALS,
@@ -12,7 +14,7 @@ import {
   type MassFlowView,
   type MassRateCause,
 } from '@evolution/shared';
-import type { MassFlowRecord } from '../world/mass-flow-ledger.js';
+import type { MassFlowRecord, MassWindowRecord } from '../world/mass-flow-ledger.js';
 import { snapshotValue, type SnapshotPrecision } from './quantize.js';
 
 function ratesView(record: MassFlowRecord, precision: SnapshotPrecision): Partial<Record<MassRateCause, number>> {
@@ -26,10 +28,10 @@ function ratesView(record: MassFlowRecord, precision: SnapshotPrecision): Partia
   return rates;
 }
 
-/** One player's flow; `sprintSpent` is the sealed window's, `undefined` when the view carries none. */
+/** One player's flow; `sealedWindow` is the sealed window's amounts, `undefined` when the view carries none. */
 export function toMassFlowView(
   record: MassFlowRecord,
-  sprintSpent: number | undefined,
+  sealedWindow: MassWindowRecord | undefined,
   precision: SnapshotPrecision,
 ): MassFlowView {
   const view: MassFlowView = { ratesPerSecond: ratesView(record, precision), zone: record.zone };
@@ -37,9 +39,11 @@ export function toMassFlowView(
   if (decayTraitShare !== 0) {
     view.decayTraitShare = decayTraitShare;
   }
-  const spent = sprintSpent === undefined ? 0 : snapshotValue(sprintSpent, SNAPSHOT_MASS_DECIMALS, precision);
-  if (spent !== 0) {
-    view.sprintSpent = spent;
+  for (const amount of MASS_WINDOW_AMOUNTS) {
+    const mass = snapshotValue(sealedWindow?.[amount] ?? 0, SNAPSHOT_MASS_DECIMALS, precision);
+    if (mass !== 0) {
+      view[amount] = mass;
+    }
   }
   return view;
 }

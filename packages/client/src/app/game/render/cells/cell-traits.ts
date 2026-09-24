@@ -5,7 +5,7 @@
 // filaments, the chloroplast tint and the form. Read once per cell per frame and shared by the
 // shape terms, the instance builder and the organelle layout.
 
-import { CELL_STAGE, type CellView, type TraitId, type TraitTier } from '@evolution/shared';
+import { CELL_STAGE, tierEntryOf, type CellView, type TraitId, type TraitTier } from '@evolution/shared';
 import {
   CELL_WALL_SCALE_BY_TIER,
   CHLOROPLAST,
@@ -70,9 +70,9 @@ const FORM_WOBBLE: WobbleSpec = { mode: FORM_WOBBLE_MODE, amplitude: FORM_WOBBLE
 
 type TierOf = (traitId: TraitId) => TraitTier | 0;
 
-/** `table[tier − 1]`, 0 when the trait is not owned. */
+/** The table's entry for `tier`, 0 when the trait is not owned (tier 0 is below the table). */
 function tierTable(table: readonly number[], tier: TraitTier | 0): number {
-  return tier === 0 ? 0 : (table[tier - 1] ?? 0);
+  return tierEntryOf(table, tier) ?? 0;
 }
 
 /** One glow per body (visual-style/principles-and-palette.md §1, sheet 01): the chloroplast halo wins over the toxin one. */

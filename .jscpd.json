@@ -4,7 +4,7 @@
   "minTokens": 50,
   "threshold": 0,
   "mode": "strict",
-  "ignorePattern": ["^\\s*import .*", "^\\s*export \\* from .*"],
+  "ignorePattern": ["import [^;]*from '[^']*';", "^\\s*export \\* from .*"],
   "format": ["typescript", "javascript"],
   "reporters": ["consoleFull"],
   "absolute": false,

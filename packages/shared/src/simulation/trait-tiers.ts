@@ -7,9 +7,14 @@ import type { TraitTierModifiers, TraitTiers } from '../types/traits.js';
 /** The tier a trait is first owned at. */
 export const FIRST_TIER: TraitTier = 1;
 
+/** The entry of any per-tier table (tier I first) for `tier`; `undefined` below tier I or past the table. */
+export function tierEntryOf<Entry>(table: readonly Entry[], tier: number): Entry | undefined {
+  return table[tier - FIRST_TIER];
+}
+
 /** The row of `tiers` for `tier` (1-based); `undefined` past the table. */
 export function tierRowOf(tiers: TraitTiers, tier: number): TraitTierModifiers | undefined {
-  return tiers[tier - FIRST_TIER];
+  return tierEntryOf(tiers, tier);
 }
 
 /** The tier a row index (0-based) of a tier table stands for. */

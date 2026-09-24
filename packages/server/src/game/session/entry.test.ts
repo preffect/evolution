@@ -1,11 +1,21 @@
 // docs/PROGRESSION.md §5: the entry rule over the world reference and the living players' medians.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, PLAYER_LIFE_STATE, playerId, secondsToTicks, worldReference } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  PLAYER_LIFE_STATE,
+  TRAIT_TIER_COUNT,
+  cumulativeDnaForLevel,
+  playerId,
+  secondsToTicks,
+  worldReference,
+  type TraitTier,
+} from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { applyEntryState, entryState, lateJoinMedians, livingMedians, medianOf } from './entry.js';
 
-const { progression } = DEFAULT_BALANCE;
+const { progression, traits } = DEFAULT_BALANCE;
+const TOP_TIER = TRAIT_TIER_COUNT as TraitTier;
 const THREE_MINUTES_SECONDS = 180;
 const SIX_AND_A_HALF_MINUTES_SECONDS = 393.017;
 
@@ -96,5 +106,19 @@ describe('applyEntryState', () => {
     applyEntryState(world, player, { dnaGift: 0, mass: 20 }, createTestStepContext(world));
     expect(player).toMatchObject({ dnaCumulative: 0, dnaCatchUpGift: 0, level: 1 });
     expect(player.offerQueue).toEqual([]);
+  });
+
+  it('drops a candidate-less draft into the entering cell’s first mass, unreported in the mass window (#416)', () => {
+    const world = createTestWorld();
+    const player = world.players[0]!;
+    const cell = world.cells[0]!;
+    player.ownedTraits = traits.TRAIT_CATALOG.map((trait) => ({ traitId: trait.id, tier: TOP_TIER }));
+    const massBefore = cell.mass;
+    const dnaGift = cumulativeDnaForLevel(2, progression);
+    applyEntryState(world, player, { dnaGift, mass: massBefore }, createTestStepContext(world));
+    expect(player.level).toBe(2);
+    expect(player.offerQueue).toEqual([]);
+    expect(cell.mass).toBe(massBefore + progression.LEVEL_UP_NO_DRAFT_MASS_BONUS);
+    expect(world.massFlow.pendingWindowByPlayer[player.playerId]).toBeUndefined();
   });
 });

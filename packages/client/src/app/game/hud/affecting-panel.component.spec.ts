@@ -2,6 +2,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  FIRST_TIER,
   PLAYER_LIFE_STATE,
   ZONE_ID,
   createTestPlayerProgressView,
@@ -25,7 +26,6 @@ const OWN_PLAYER_ID = playerId('player-me');
 const OWN_CELL_ID = entityId('c-own');
 const OWN_MASS = 312;
 const MITOCHONDRION = 'mitochondrion';
-const FIRST_TIER = 1;
 
 const massFlow: MassFlowView = {
   ratesPerSecond: { decay: -0.5 },
