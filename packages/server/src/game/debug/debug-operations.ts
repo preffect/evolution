@@ -26,6 +26,7 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
+import { isPastTopTraitTier, topWildTier } from '../wild/wild-build.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { forkServerStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
@@ -153,9 +154,20 @@ export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: 
   return toPlayerProgressView(player, EXACT_SNAPSHOT_VALUES);
 }
 
-/** Number leaves only, validated as a whole (balance-patch.ts); the world carries the new copy. */
+/**
+ * Number leaves only, validated as a whole (balance-patch.ts); the world carries the new copy. A copy whose `MAX_LEVEL`
+ * wraps a wild build past `TRAIT_TIER_COUNT` is refused here rather than thrown inside the room's step (#671).
+ */
 export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unknown {
-  world.balance = applyBalancePatch(world.balance, patch).balance;
+  const patched = applyBalancePatch(world.balance, patch).balance;
+  const topTier = topWildTier(patched);
+  if (isPastTopTraitTier(topTier, patched)) {
+    throw new DebugRequestError(
+      `MAX_LEVEL ${patched.progression.MAX_LEVEL} wraps a wild build to tier ${topTier}, past TRAIT_TIER_COUNT ` +
+        `${patched.traits.TRAIT_TIER_COUNT}`,
+    );
+  }
+  world.balance = patched;
   return world.balance;
 }
 
