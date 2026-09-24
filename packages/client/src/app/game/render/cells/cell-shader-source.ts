@@ -60,6 +60,7 @@ export const CELL_UNIFORM = {
   ectoplasm: 'uEctoplasm',
   danger: 'uDanger',
   gain: 'uGain',
+  sallow: 'uSallow',
 } as const;
 
 /** The uniform group the mesh's frame values and colours live in. */

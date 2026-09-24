@@ -16,7 +16,12 @@ import {
   NOISE_STRIP_VALUE_LEVELS,
   NOISE_STRIP_WIDTH,
   PALETTE_SHADE,
+  LUMA_WEIGHTS,
   RIM_TINT_SHARE,
+  STARVING_DESATURATION,
+  STARVING_DULL_VALUE,
+  STARVING_SALLOW_SHARE,
+  STARVING_WRINKLE_OCTAVE,
   STRETCH_ACROSS_PER_ALONG,
   STRETCH_ALONG,
   STRETCH_TAPER,
@@ -72,6 +77,7 @@ uniform vec3 uCilia;
 uniform vec3 uEctoplasm;
 uniform vec3 uDanger;
 uniform vec3 uGain;
+uniform vec3 uSallow;
 
 flat in int vInstance;
 in vec2 vLocal;
@@ -88,6 +94,7 @@ struct Instance {
   float tintMix; float warningRingPx; float formId; float passBAlpha;
   float rimDash; float ciliaPhase; float nucleusDiscRadii; float speckleSeed;
   float selfRingFill; float selfRingBrightness; float relationRingPx; float relationRingLines;
+  float wither; float wrinkleAmplitude;
 };
 
 Instance readInstance() {
@@ -115,6 +122,7 @@ Instance readInstance() {
   inst.nucleusDiscRadii = ${instanceRead('nucleusDiscRadii')}; inst.speckleSeed = ${instanceRead('speckleSeed')};
   inst.selfRingFill = ${instanceRead('selfRingFill')}; inst.selfRingBrightness = ${instanceRead('selfRingBrightness')};
   inst.relationRingPx = ${instanceRead('relationRingPx')}; inst.relationRingLines = ${instanceRead('relationRingLines')};
+  inst.wither = ${instanceRead('wither')}; inst.wrinkleAmplitude = ${instanceRead('wrinkleAmplitude')};
   return inst;
 }
 
@@ -129,8 +137,15 @@ vec3 bumpAt(int slot) {
   return vec3(values[channel], values[channel + 1], values[channel + 2]);
 }
 
+/** A starving cell's shade (motion-and-legibility.md §5 "Starving"): toward its own grey, sallowed and dimmed, by the wither. */
+vec3 withered(vec3 colour, float wither) {
+  float luma = dot(colour, vec3(${LUMA_WEIGHTS.map(glslFloat).join(', ')}));
+  vec3 dull = mix(vec3(luma), uSallow, ${glslFloat(STARVING_SALLOW_SHARE)}) * ${glslFloat(STARVING_DULL_VALUE)};
+  return mix(colour, dull, wither * ${glslFloat(STARVING_DESATURATION)});
+}
+
 vec3 shade(Instance inst, int column) {
-  return texelFetch(uPalette, ivec2(column, int(inst.palette + HALF)), 0).rgb;
+  return withered(texelFetch(uPalette, ivec2(column, int(inst.palette + HALF)), 0).rgb, inst.wither);
 }
 /** The membrane's base and rim, tinted toward the chloroplast base with the trait (visual-style/cells-and-organelles.md §4). */
 vec3 baseColour(Instance inst) { return mix(shade(inst, SHADE_BASE), shade(inst, SHADE_CHLORO_BASE), inst.tintMix); }
@@ -192,7 +207,7 @@ vec2 stretchAt(Instance inst, float delta) {
   return vec2(speed * axial, speedD * axial + speed * axialD);
 }
 
-/** '1 + breathing + wobble + jitter + lobes + Σ bumps' at 'theta', with d/dθ (radial-profile.ts surfaceTerms). */
+/** '1 + breathing + wobble + jitter + wrinkle + lobes + Σ bumps' at 'theta', with d/dθ (radial-profile.ts surfaceTerms). */
 vec2 surfaceAt(Instance inst, float theta) {
   float wobbleArgument = inst.wobbleMode * theta + inst.wobblePhase;
   float surface = 1.0 + inst.breathing + inst.wobbleAmplitude * sin(wobbleArgument);
@@ -200,6 +215,12 @@ vec2 surfaceAt(Instance inst, float theta) {
   vec4 strip = stripSample(inst, theta / TAU + inst.stripPhase);
   surface += inst.jitterAmplitude * strip.x + inst.lobesScale * strip.y;
   surfaceD += inst.jitterAmplitude * strip.z + inst.lobesScale * strip.w;
+  if (inst.wrinkleAmplitude > 0.0) {
+    float octave = ${glslFloat(STARVING_WRINKLE_OCTAVE)};
+    vec4 wrinkle = stripSample(inst, octave * theta / TAU + inst.stripPhase);
+    surface += inst.wrinkleAmplitude * wrinkle.x;
+    surfaceD += inst.wrinkleAmplitude * octave * wrinkle.z;
+  }
   for (int slot = 0; slot < ${MAX_SHAPE_BUMPS}; slot++) {
     vec3 bump = bumpAt(slot);
     float away = wrapAngle(theta - bump.y);
