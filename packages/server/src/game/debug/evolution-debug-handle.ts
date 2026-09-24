@@ -8,7 +8,6 @@ import {
   type BalanceConfig,
   type EntityKind,
   type GameInput,
-  type GameSnapshot,
   type PlayerId,
   type StateHash,
 } from '@evolution/shared';
@@ -45,7 +44,7 @@ export interface EvolutionDebugHandleDependencies {
   readonly world: WorldState;
   readonly recorder: ReplayRecorder;
   readonly rejections: InputRejectionCounters;
-  readonly bots: InProcessBotRoster<GameInput, GameSnapshot>;
+  readonly bots: InProcessBotRoster<GameInput, WorldState>;
   readonly membership: ModuleMembership;
 }
 

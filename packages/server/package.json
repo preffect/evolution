@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:integration": "RUN_INTEGRATION=1 vitest run",
     "bot-client": "tsx src/testing/bot-client/cli.ts",
+    "bench:bots": "tsx bench/in-process-bots.ts",
     "bench:broadcast": "tsx bench/viewer-broadcast.ts",
     "clean": "rm -rf dist"
   },
