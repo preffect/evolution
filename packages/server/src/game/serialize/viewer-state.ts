@@ -17,7 +17,7 @@ import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import { FoodDeltaTracker, MoteMotion, type MoteEntry, type PositionedFood } from './food-delta-tracker.js';
 import { isInInterestArea, type InterestArea } from './interest-area.js';
-import { SPRINT_WINDOW, ownProgressOf, toDnaFragmentView } from './serialize.js';
+import { MASS_WINDOW, ownProgressOf, toDnaFragmentView } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
 import { ViewerMemberJson } from './viewer-member-json.js';
 import {
@@ -76,7 +76,7 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
    */
   serializeFull(viewerPlayerId: PlayerId): ViewerSnapshotMembers {
     const members = this.membersFor(viewerPlayerId, this.restartFoodDelta(viewerPlayerId), this.readWorld());
-    return { ...members, ownProgress: ownProgressOf(this.world, viewerPlayerId, SPRINT_WINDOW.omitted) };
+    return { ...members, ownProgress: ownProgressOf(this.world, viewerPlayerId, MASS_WINDOW.omitted) };
   }
 
   /** `JSON.stringify(value)` for one member, the items every viewer shares stringified once per broadcast (#406). */

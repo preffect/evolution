@@ -1,17 +1,22 @@
 // docs/PROGRESSION.md §4: the offer lifecycle.
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, DEFAULT_BALANCE, TICK_HZ } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, TICK_HZ, TRAIT_TIER_COUNT, type TraitTier } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
+import { setCellMass } from '../simulation/cell-mass.js';
 import {
   applyCard,
   applyExpiredOffer,
   applyTraitChoice,
+  cardAt,
   queueOffer,
   showQueuedOfferIfNone,
   shownOffer,
 } from './offers.js';
 
-const TIMEOUT_TICKS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS * TICK_HZ;
+const { growth, progression, traits } = DEFAULT_BALANCE;
+const TIMEOUT_TICKS = progression.TRAIT_CHOICE_TIMEOUT_SECONDS * TICK_HZ;
+const NO_DRAFT_BONUS = progression.LEVEL_UP_NO_DRAFT_MASS_BONUS;
+const TOP_TIER = TRAIT_TIER_COUNT as TraitTier;
 
 function worldWithQueuedOffer(tick = 4) {
   const world = createTestWorld();
@@ -19,6 +24,13 @@ function worldWithQueuedOffer(tick = 4) {
   const player = world.players[0]!;
   queueOffer(player);
   return { world, player, context: createTestStepContext(world) };
+}
+
+/** A queued offer for a player who owns every trait at its top tier: the draft has no candidates. */
+function exhaustedDraft() {
+  const fixture = worldWithQueuedOffer();
+  fixture.player.ownedTraits = traits.TRAIT_CATALOG.map((trait) => cardAt(trait.id, TOP_TIER));
+  return fixture;
 }
 
 describe('queueOffer / showQueuedOfferIfNone', () => {
@@ -70,18 +82,34 @@ describe('queueOffer / showQueuedOfferIfNone', () => {
   });
 
   it('drops a candidate-less offer for the mass bonus, or keeps it queued without a cell', () => {
-    const { world, player, context } = worldWithQueuedOffer();
-    player.ownedTraits = DEFAULT_BALANCE.traits.TRAIT_CATALOG.map((trait) => ({ traitId: trait.id, tier: 3 as const }));
+    const { world, player, context } = exhaustedDraft();
     const cell = world.cells[0]!;
     const massBefore = cell.mass;
     showQueuedOfferIfNone(world, player, context);
     expect(player.offerQueue).toHaveLength(0);
-    expect(cell.mass).toBe(massBefore + DEFAULT_BALANCE.progression.LEVEL_UP_NO_DRAFT_MASS_BONUS);
+    expect(cell.mass).toBe(massBefore + NO_DRAFT_BONUS);
     queueOffer(player);
     world.cells = [];
     showQueuedOfferIfNone(world, player, context);
     expect(player.offerQueue).toHaveLength(1);
     expect(shownOffer(player)).toBeUndefined();
+  });
+
+  it('records the bonus as applied in the mass window (#416), the part past the cap left to DNA', () => {
+    const { world, player, context } = exhaustedDraft();
+    const cell = world.cells[0]!;
+    const headroom = NO_DRAFT_BONUS / 4;
+    setCellMass(cell, growth.CELL_MAX_MASS - headroom, DEFAULT_BALANCE);
+    showQueuedOfferIfNone(world, player, context);
+    expect(cell.mass).toBe(growth.CELL_MAX_MASS);
+    expect(world.massFlow.pendingWindowByPlayer[player.playerId]?.noDraftBonusGained).toBeCloseTo(headroom, 12);
+  });
+
+  it('records nothing while the offer waits for a cell', () => {
+    const { world, player, context } = exhaustedDraft();
+    world.cells = [];
+    showQueuedOfferIfNone(world, player, context);
+    expect(world.massFlow.pendingWindowByPlayer[player.playerId]).toBeUndefined();
   });
 });
 
