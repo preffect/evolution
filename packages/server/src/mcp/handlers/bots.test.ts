@@ -22,7 +22,8 @@ describe('debug_spawn_bot', () => {
     expect(parseToolJson(result)).toEqual({
       playerId: 'sim_bot_42_0',
       playerName: 'Bot 0',
-      avatarIndex: 0,
+      // alice holds colour 0 and bob 1, so the bot takes the next free one (#645).
+      avatarIndex: 2,
       behavior: 'wander',
     });
     expect(fixture.room.allPlayerIds).toContain('sim_bot_42_0');
@@ -30,7 +31,7 @@ describe('debug_spawn_bot', () => {
     expect(fixture.messagesTo('bob', SERVER_MESSAGE_TYPE.playerJoined)).toContainEqual({
       type: SERVER_MESSAGE_TYPE.playerJoined,
       playerId: 'sim_bot_42_0',
-      avatarIndex: 0,
+      avatarIndex: 2,
     });
     fixture.room.step(1);
     const botId = (parseToolJson(result) as { playerId: string }).playerId;

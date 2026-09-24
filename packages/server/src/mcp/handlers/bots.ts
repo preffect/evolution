@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { DEFAULT_BOT_SEED, playerId } from '@evolution/shared';
+import { AVATAR_INDEX_MIN, DEFAULT_BOT_SEED, playerId } from '@evolution/shared';
+import { freeAvatarIndex, seatedColours } from '../../lobby/seat-colours.js';
 import { BOT_STRATEGY_NAMES } from '../../game/bots/strategy-constants.js';
 import type { DebugContext } from '../debug-context.js';
 import { GAME_ID_ARGUMENT, PLAYER_ID_ARGUMENT, registerCapabilityTool } from './capability-tool.js';
@@ -9,8 +10,9 @@ import { GAME_ID_ARGUMENT, PLAYER_ID_ARGUMENT, registerCapabilityTool } from './
  * `debug_spawn_bot` / `debug_remove_bot` (docs/architecture/debug-mcp.md §8, docs/testing/bots-and-design-tables.md §8.3): the
  * module builds and drives the bot (`spawnBot` / `removeBot`); the room enrols the synthetic
  * player so the lobby and the other clients see a normal player, and claims the seat before the
- * module holds the bot (`seat`), so a refused id leaves nothing behind. The strategy name is
- * validated once, here, by the schema: the handle and the roster only ever see a `BotStrategyName`.
+ * module holds the bot (`seat`), so a refused id leaves nothing behind. The bot takes the lowest seat colour no
+ * player in the room holds (#645). The strategy name is validated once, here, by the schema: the handle and the
+ * roster only ever see a `BotStrategyName`.
  */
 export function registerBotTools(mcp: McpServer, context: DebugContext): void {
   registerCapabilityTool(mcp, context, {
@@ -26,7 +28,8 @@ export function registerBotTools(mcp: McpServer, context: DebugContext): void {
     },
     run: (handle, input, room) => {
       const preyPlayerId = input.preyPlayerId === undefined ? undefined : playerId(input.preyPlayerId);
-      const request = { behavior: input.behavior, seed: input.seed, preyPlayerId };
+      const avatarIndex = freeAvatarIndex(AVATAR_INDEX_MIN, seatedColours(room));
+      const request = { behavior: input.behavior, seed: input.seed, avatarIndex, preyPlayerId };
       return handle.spawnBot(request, (bot) => room.addSyntheticPlayer(bot));
     },
   });

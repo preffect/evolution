@@ -33,6 +33,7 @@ import { beginEngulf, releaseEngulf, sealEngulf } from '../simulation/engulf-sta
 import { recordSpitOutRefractory } from '../simulation/engulf-spit-out.js';
 import { requireCellOfPlayer } from '../world/lookups.js';
 import type { CellRecord } from '../world/entities.js';
+import { createTestBotSpawnRequest } from '../../testing/bot-builders.js';
 
 const ALICE = playerId('p1');
 /** A second player so the prey's own debug state can be read: the release is recorded on the prey. */
@@ -167,13 +168,13 @@ describe('EvolutionDebugHandle', () => {
   it('seats a bot before the module holds it, and keeps nothing when the seat is refused', () => {
     const { world, handle } = createHandle();
     const seated: string[] = [];
-    const bot = handle.spawnBot({ behavior: 'idle', seed: 1 }, (candidate) => {
+    const bot = handle.spawnBot(createTestBotSpawnRequest({ behavior: 'idle', seed: 1 }), (candidate) => {
       seated.push(candidate.playerId);
     });
     expect(seated).toEqual([bot.playerId]);
     expect(world.players.map((player) => player.playerId)).toEqual([ALICE, bot.playerId]);
     expect(() =>
-      handle.spawnBot({ behavior: 'idle', seed: 1 }, () => {
+      handle.spawnBot(createTestBotSpawnRequest({ behavior: 'idle', seed: 1 }), () => {
         throw new DebugRequestError('seat taken');
       }),
     ).toThrow('seat taken');
