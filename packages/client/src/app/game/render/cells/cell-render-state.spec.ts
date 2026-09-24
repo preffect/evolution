@@ -12,6 +12,7 @@ import {
   NUCLEUS_OFFSET_TOWARD_LIGHT,
   NUCLEUS_RADIUS,
   ORGANELLE_KIND,
+  STARVING_WRINKLE_AMPLITUDE,
 } from '../constants';
 import { degreesToRadians } from '../geometry';
 import { buildNoiseStrip } from '../noise/noise-strip';
@@ -19,6 +20,7 @@ import { REST_DEFORMATION } from './cell-deformation';
 import { CellRenderState, NO_CELL_CONTACTS, type CellFrameContext } from './cell-render-state';
 import { LOD_LEVEL } from './cell-lod';
 import { REST_OWN_CELL_RING } from './self-ring';
+import { witherOf } from './starving-wither';
 
 const TEST_SEED = 42;
 const strip = buildNoiseStrip(createSeededRandom(TEST_SEED));
@@ -33,6 +35,7 @@ function context(overrides: Partial<CellFrameContext> = {}): CellFrameContext {
     previewTraitId: null,
     ...NO_CELL_CONTACTS,
     ownCellRing: REST_OWN_CELL_RING,
+    starvedOutMass: 10,
     ...overrides,
   };
 }
@@ -60,6 +63,17 @@ describe('CellRenderState', () => {
     expect(output.instance.quadExtentRadii).toBe(CELL_QUAD_EXTENT_RADII);
     expect(output.instance.jitterAmplitude).toBeGreaterThan(0);
     expect(output.lod.level).toBe(LOD_LEVEL.full);
+  });
+
+  it('withers a starving view against the frame’s burst mass, the outline and the instance alike (#635)', () => {
+    const healthy = state().update(eukaryote(), context(), REST_DEFORMATION);
+    expect(healthy.instance.wither).toBe(0);
+    expect(healthy.terms.strip?.wrinkleAmplitude).toBe(0);
+    const starving = { ...eukaryote(), isStarving: true };
+    const output = state().update(starving, context({ starvedOutMass: 25 }), REST_DEFORMATION);
+    expect(output.instance.wither).toBeCloseTo(witherOf(starving, 25), 12);
+    expect(output.terms.strip?.wrinkleAmplitude).toBeCloseTo(STARVING_WRINKLE_AMPLITUDE * output.instance.wither, 12);
+    expect(output.instance.wrinkleAmplitude).toBe(output.terms.strip?.wrinkleAmplitude);
   });
 
   it('places the organelles through the profile and points the nucleus offset at the nucleus sprite', () => {

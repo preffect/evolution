@@ -6,6 +6,7 @@ import {
   FAR_DOT_HALO_RADII,
   FLAGELLUM_OUTER_PX,
   RELATION_RING_RADII,
+  STARVING_WRINKLE_AMPLITUDE,
   WARNING_RING_STROKE_PX,
 } from '../constants';
 import { HALF } from '../geometry';
@@ -27,6 +28,11 @@ describe('CULL_DRAW_STATE', () => {
     const engulf = engulfDeformationPeak();
     expect(CULL_DRAW_STATE.clip.pulse).toBeGreaterThanOrEqual(Math.max(eat.pulse, engulf.pulse));
     expect(CULL_DRAW_STATE.clip.bumpRadii).toBeGreaterThanOrEqual(Math.max(eat.bumpRadii, engulf.bumpRadii));
+  });
+
+  it('carries a starving cell’s full wrinkle on top of the widest clip, so a crinkled rim never pops in (#635)', () => {
+    const engulf = engulfDeformationPeak();
+    expect(CULL_DRAW_STATE.clip.bumpRadii).toBeGreaterThanOrEqual(engulf.bumpRadii + STARVING_WRINKLE_AMPLITUDE);
   });
 });
 

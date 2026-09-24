@@ -5,7 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '@evolution/shared';
 import { degreesToRadians } from '../geometry';
-import { buildNoiseStrip } from '../noise/noise-strip';
+import { STARVING_WRINKLE_AMPLITUDE, STARVING_WRINKLE_OCTAVE } from '../constants';
+import { buildNoiseStrip, sampleNoiseStrip } from '../noise/noise-strip';
 import {
   evaluateProfile,
   perpendicularDistance,
@@ -40,9 +41,9 @@ function bump(amplitude: number, centreDeg: number, sigmaDeg: number): ShapeBump
 /** Sheet 03's engulf wrap frame: two arms at ±30° and the notch between them (#207 plays it). */
 const ENGULF_WRAP: ShapeBump[] = [bump(0.62, 30, 16), bump(0.62, -30, 16), bump(-0.1, 0, 12)];
 
-function stripTerms(row: number, phase = 0): RadialProfileTerms {
+function stripTerms(row: number, phase = 0, wrinkleAmplitude = 0): RadialProfileTerms {
   const strip = buildNoiseStrip(createSeededRandom(TEST_SEED));
-  return restTerms({ strip: { strip, row, phase, jitterAmplitude: 0.008, lobesScale: 1 } });
+  return restTerms({ strip: { strip, row, phase, jitterAmplitude: 0.008, lobesScale: 1, wrinkleAmplitude } });
 }
 
 function ringAt(terms: RadialProfileTerms, degrees: number): number {
@@ -105,6 +106,7 @@ describe('radial profile r(θ)', () => {
       restTerms({ bumps: ENGULF_WRAP, stretch: { ...restTerms().stretch, k: 1 } }),
       restTerms({ wobble: { amplitude: 0.08, mode: 2, phase: 0.3 }, breathing: 0.02 }),
       stripTerms(3, 0.1),
+      stripTerms(3, 0.1, STARVING_WRINKLE_AMPLITUDE),
     ];
     // The strip is piecewise linear between texel centres, so the rays sit a hair off them.
     const step = 1e-6;
@@ -115,6 +117,23 @@ describe('radial profile r(θ)', () => {
         expect(Math.abs(evaluateProfile(terms, theta).derivative - numeric)).toBeLessThan(1e-4 * RADIUS);
       }
     }
+  });
+
+  it('crinkles the outline by the strip jitter at the wrinkle octave: its crest, its trough, nothing when 0 (#635)', () => {
+    const smooth = stripTerms(4, 0.2);
+    const wrinkled = stripTerms(4, 0.2, STARVING_WRINKLE_AMPLITUDE);
+    const strip = smooth.strip!;
+    for (let ray = 0; ray < RAYS; ray += 1) {
+      const theta = (ray / RAYS) * 2 * Math.PI;
+      const turns = (STARVING_WRINKLE_OCTAVE * theta) / (2 * Math.PI) + 0.2;
+      const jitter = sampleNoiseStrip(strip.strip, 4, turns).jitter;
+      const added = (evaluateProfile(wrinkled, theta).r - evaluateProfile(smooth, theta).r) / RADIUS;
+      expect(added).toBeCloseTo(STARVING_WRINKLE_AMPLITUDE * jitter, 9);
+    }
+    const smoothRing = sampleProfileRing(smooth, RAYS);
+    const addedRing = sampleProfileRing(wrinkled, RAYS).map((radii, ray) => radii - smoothRing[ray]!);
+    expect(Math.max(...addedRing)).toBeGreaterThan(0);
+    expect(Math.min(...addedRing)).toBeLessThan(0);
   });
 
   it('reads a perpendicular distance shorter than the radial probe offset on a bump flank', () => {
@@ -152,7 +171,9 @@ describe('radial profile r(θ)', () => {
     expect(build()).toEqual(build());
     const other = buildNoiseStrip(createSeededRandom(TEST_SEED + 1));
     const otherRing = sampleProfileRing(
-      restTerms({ strip: { strip: other, row: 5, phase: 0.25, jitterAmplitude: 0.008, lobesScale: 1 } }),
+      restTerms({
+        strip: { strip: other, row: 5, phase: 0.25, jitterAmplitude: 0.008, lobesScale: 1, wrinkleAmplitude: 0 },
+      }),
       RAYS,
     );
     expect(otherRing).not.toEqual(build());

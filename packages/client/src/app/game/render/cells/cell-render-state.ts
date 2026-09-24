@@ -41,6 +41,7 @@ import { laggedSlot, mapSlot, type MappedPoint } from './organelle-mapper';
 import { isWarningRingHidden, type OwnCellRing } from './self-ring';
 import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
 import { buildShapeTerms, headingOf, type ShapeTerms } from './shape-terms';
+import { witherOf } from './starving-wither';
 
 /** What the frame hands every cell: time, zoom, the live balance, the own cell, the strip, the dents and the seals. */
 export interface CellFrameContext {
@@ -58,6 +59,8 @@ export interface CellFrameContext {
   readonly ownCellRing: OwnCellRing;
   /** The relation rings by cell id (`relationRingsOf`, docs/ui/hud.md §3.1.5); absent rings no cell. */
   readonly relationRings?: ReadonlyMap<EntityId, RelationRing>;
+  /** The mass a starving wild cell bursts at this frame (`starvedOutMassAt`): what its wither climbs toward. */
+  readonly starvedOutMass: number;
 }
 
 export const NO_ABSORBED_SEALS: ReadonlyMap<EntityId, PredatorSeal> = new Map();
@@ -219,6 +222,7 @@ export class CellRenderState {
     const speedRatio = this.speedRatioOf(view, context);
     this.heldHeading = headingOf(view, speedRatio, this.heldHeading);
     const deformation = this.deformationFor(view, traits, context, baseDeformation);
+    const wither = witherOf(view, context.starvedOutMass);
     const terms = buildShapeTerms({
       view,
       traits,
@@ -229,6 +233,7 @@ export class CellRenderState {
       stripRow: this.stripRow,
       strip: context.strip,
       deformation,
+      wither,
     });
     const lod = cellLodFor(view.radius * context.zoom);
     const organelles = lod.isFarDot ? [] : this.placeOrganelles(terms, speedRatio, context.timeSeconds);
@@ -247,6 +252,7 @@ export class CellRenderState {
       rimDash: 0,
       ownCellRing: context.ownCellRing,
       relationRing: context.relationRings?.get(view.id) ?? RELATION_RING.none,
+      wither,
     });
     return { instance, terms, lod, organelles, traits };
   }

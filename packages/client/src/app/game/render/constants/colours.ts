@@ -41,6 +41,8 @@ export const LIPID_LIGHT = '#fff8d0';
 export const LIPID_BASE = '#f2c94c';
 export const LIPID_CENTRE = '#c88a2a';
 export const LIPID_RIM = '#ffe7a3';
+/** A starving wild cell sallows toward the lipid of the feast it is about to become (cell-shape.ts `STARVING_*`, #635). */
+export const STARVING_SALLOW = LIPID_CENTRE;
 export const DNA_STRAND_LIGHT = '#f0b8ff';
 export const DNA_STRAND = '#d36bff';
 export const BACTERIUM_PLAIN = '#cfefff';

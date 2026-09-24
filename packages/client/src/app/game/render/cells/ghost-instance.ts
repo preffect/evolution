@@ -15,6 +15,7 @@ import type { Ghost } from './ghost-cells';
 import { mapSlot } from './organelle-mapper';
 import { REST_OWN_CELL_RING } from './self-ring';
 import { buildShapeTerms, type ShapeTerms } from './shape-terms';
+import { witherOf } from './starving-wither';
 import { RELATION_RING } from '../../hud/format/relations-for';
 
 const AT_REST = 0;
@@ -27,9 +28,11 @@ function restPlacements(ghost: Ghost, terms: ShapeTerms, isFarDot: boolean): Org
   return ghost.slots.map((slot) => ({ kind: slot.kind, slot, point: mapSlot(slot.x, slot.y, terms) }));
 }
 
-export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
+/** `starvedOutMass` keeps a starving prey as withered as it was drawn alive (`starving-wither.ts`). */
+export function ghostFrame(ghost: Ghost, zoom: number, starvedOutMass: number): CellFrameOutput {
   const { view } = ghost;
   const traits = summariseCellTraits(view);
+  const wither = witherOf(view, starvedOutMass);
   const terms = buildShapeTerms({
     view: { ...view, sprintRemainingTicks: 0 },
     traits,
@@ -40,6 +43,7 @@ export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
     stripRow: NO_STRIP.stripRow,
     strip: null,
     deformation: REST_DEFORMATION,
+    wither,
   });
   const lod = cellLodFor(view.radius * zoom);
   const organelles = restPlacements(ghost, terms, lod.isFarDot);
@@ -58,6 +62,7 @@ export function ghostFrame(ghost: Ghost, zoom: number): CellFrameOutput {
     rimDash: ghost.tracks['rimDash'] ?? 0,
     ownCellRing: REST_OWN_CELL_RING,
     relationRing: RELATION_RING.none,
+    wither,
   });
   return { instance, terms, lod, organelles, traits };
 }

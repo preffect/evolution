@@ -41,6 +41,7 @@ import {
   SOFT_RIM_BLUR_RADII,
   SOFT_RIM_INNER_RADII,
   SOFT_RIM_OUTER_RADII,
+  STARVING_GLINT_DIM,
 } from '../constants';
 import { LIGHT_DIRECTION_RADIANS } from '../light-direction';
 import { degreesToRadians } from '../geometry';
@@ -108,7 +109,7 @@ vec4 doubleFilm(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uOutline, band(frame.d, 0.0, outlineHalfWidth(inst), halfPx) * ${glslFloat(PROTOCELL_OUTLINE_ALPHA)});
 }
 
-/** The specular glint just inside the membrane toward the light, undeformed frame like the pools. */
+/** The specular glint just inside the membrane toward the light, undeformed frame like the pools; a starving cell's dims with its wither. */
 vec4 glint(Instance inst, Frame frame, vec4 acc) {
   vec2 centre = vec2(cos(${glslFloat(GLINT_ANGLE)}), sin(${glslFloat(GLINT_ANGLE)})) * ${glslFloat(GLINT_OFFSET_RADII)};
   vec2 q = frame.p / (inst.r * inst.pulse) - centre;
@@ -116,7 +117,8 @@ vec4 glint(Instance inst, Frame frame, vec4 acc) {
   vec2 local = vec2(cos(rotation) * q.x + sin(rotation) * q.y, -sin(rotation) * q.x + cos(rotation) * q.y);
   float e = length(local / vec2(${glslFloat(GLINT_RADII_X)}, ${glslFloat(GLINT_RADII_Y)}));
   float edge = ${glslFloat(GLINT_EDGE_PX)} / (frame.rPx * ${glslFloat(GLINT_RADII_Y)});
-  return over(acc, uWhite, (1.0 - smoothstep(1.0 - edge, 1.0 + edge, e)) * ${glslFloat(GLINT_ALPHA)});
+  float lit = ${glslFloat(GLINT_ALPHA)} * (1.0 - inst.wither * ${glslFloat(STARVING_GLINT_DIM)});
+  return over(acc, uWhite, (1.0 - smoothstep(1.0 - edge, 1.0 + edge, e)) * lit);
 }
 
 /** 'beadCount' beads on the deformed outline from the light anchor, a white core in a rim halo. */

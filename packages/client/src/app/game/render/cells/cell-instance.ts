@@ -70,6 +70,10 @@ export interface CellInstance {
   readonly relationRingPx: number;
   /** `RELATION_RING`: 1 the edible single line in `GAIN`, 2 the toxic double line in `DANGER`; the count is the role. */
   readonly relationRingLines: number;
+  /** How far a starving wild cell has withered, 0 → 1 at its burst (`starving-wither.ts`): the palette dulls with it. */
+  readonly wither: number;
+  /** The starving cell's outline crinkle (radial-profile.ts `StripTerm.wrinkleAmplitude`); 0 otherwise. */
+  readonly wrinkleAmplitude: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -89,6 +93,8 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['rimDash', 'ciliaPhase', 'nucleusDiscRadii', 'speckleSeed'],
   // #295: the ten texels above were full, so the sprint ring grew the row to seventeen; #538's relation ring fills it.
   ['selfRingFill', 'selfRingBrightness', 'relationRingPx', 'relationRingLines'],
+  // #635: the eleventh was full, so a starving cell's wither and wrinkle take a twelfth (two channels spare).
+  ['wither', 'wrinkleAmplitude'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */
