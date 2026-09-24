@@ -227,7 +227,9 @@ describe('the escape scene', () => {
     expect(effect.kind === EFFECT_KIND.cellReleased && effect.reason).toBe(ENGULF_RELEASE_REASON.escaped);
     const preyBefore = cellIn(scene.frameAt(tick - 1, tick - 2, BALANCE), ACTION_SUBJECT_CELL_ID)!;
     expect(preyBefore.states).toContain(CELL_STATE.beingEngulfed);
-    expect(engulfPhaseOf(preyBefore.engulfProgress, BALANCE.absorption)).toBe(ENGULF_PHASE.wrap);
+    // The drain runs back through the cover band and releases at 0 (#634), so the last held frame is a sliver of cover.
+    expect(engulfPhaseOf(preyBefore.engulfProgress, BALANCE.absorption)).toBe(ENGULF_PHASE.cover);
+    expect(preyBefore.engulfProgress).toBeGreaterThan(0);
     const preyAfter = cellIn(scene.frameAt(tick, tick - 1, BALANCE), ACTION_SUBJECT_CELL_ID)!;
     expect(preyAfter.states).toEqual([CELL_STATE.free]);
     expect(distanceFromEffect(effect, preyAfter)).toBeLessThan(PLACEMENT_TOLERANCE);

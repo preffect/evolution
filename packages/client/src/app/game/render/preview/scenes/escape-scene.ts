@@ -2,11 +2,11 @@
 // subject as prey. A heavier cell closes on it — the `DANGER` ring goes up — covers it, and the
 // arms begin to close while the escape arc over the subject drains. Halfway through the wrap the subject sprints:
 // contact breaks, progress decays at `ENGULF_ESCAPE_DECAY_MULTIPLIER` times the base rate (the arms playing
-// backwards, being functions of progress), and the tick it falls back into the cover band the server releases it —
-// `cell_released`, reason `escaped`, at the prey (`engulf-state.ts`). The predator falls behind and the loop rests.
+// backwards, being functions of progress), and the tick it has drained to 0 the server releases it —
+// `cell_released`, reason `escaped`, at the prey (`engulf-state.ts`, #634). The predator falls behind and the loop rests.
 //
 // **Every rate is the simulation's**: the decay is `engulfProgressDelta` for a wrap out of contact at this pair's
-// masses, the release tick the first at which `engulfPhaseOf` reads the decayed progress as cover, and the pair
+// masses, the release tick the first at which the decayed progress is 0 (within `ENGULF_PROGRESS_EPSILON`), and the pair
 // parts at the prey's held sprint speed less the predator's held chase (`preyHeldSpeedFactor`,
 // `predatorEngulfSpeedFactor`). The preview adds **when** the prey reacts (`PREVIEW_ESCAPE_SPRINT_AT_WRAP_SHARE`)
 // and one simplification: the sprint's first push clears the reach, so contact breaks on the tick the sprint
@@ -95,7 +95,7 @@ interface EscapeTimeline {
   readonly sprintTick: number;
   readonly sprintProgress: number;
   readonly decayPerTick: number;
-  /** `cell_released`: the first tick the decayed progress reads as cover. */
+  /** `cell_released`: the first tick the decayed progress has drained to 0. */
   readonly releaseTick: number;
   /** How fast the pair parts (wu/s), until the predator is back at the start distance and a still beat closes the loop. */
   readonly recedeSpeed: number;
@@ -113,9 +113,8 @@ function escapeTimeline(balance: BalanceConfig): EscapeTimeline {
   const sprintTick = contactTick + wholeTicksOf(sprintAfterContactSeconds);
   const sprintProgress = engulfProgressAfter(sprintTick - contactTick, balance);
   const decayPerTick = escapeDecayPerTick(geometry, balance);
-  // Released the first tick the decayed progress reads as cover (`engulfPhaseOf`).
-  const coverBandTop = absorption.ENGULF_WRAP_START_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON;
-  const releaseTick = sprintTick + Math.floor((sprintProgress - coverBandTop) / decayPerTick) + 1;
+  // Released the first tick the decayed progress has drained to 0 (`engulf.ts`, #634).
+  const releaseTick = sprintTick + Math.ceil((sprintProgress - absorption.ENGULF_PROGRESS_EPSILON) / decayPerTick);
   const recedeSpeed = recedeSpeedOf(geometry, balance);
   const recedeWu = geometry.startDistanceWu - heldOffsetWu(sprintProgress, geometry, balance);
   const recedeEndTick = sprintTick + wholeTicksOf(recedeWu / recedeSpeed);

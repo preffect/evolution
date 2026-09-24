@@ -202,9 +202,9 @@ describe('the engulf speed factor (docs/ecology/mass-and-movement.md §5.2, docs
     expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED);
   });
 
-  it('leaves the prey free in cover, holds it in wrap and stops it once sealed (E11, E11b)', () => {
+  it('grabs the prey mildly in cover, holds it in wrap and stops it once sealed (E11, E11b, #634)', () => {
     const { world, prey } = engulfingPair();
-    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(1);
+    expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_COVER);
     prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
     expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
     prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;

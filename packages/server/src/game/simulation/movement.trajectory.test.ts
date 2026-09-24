@@ -14,8 +14,11 @@ import { setCellMass } from './cell-mass.js';
 import { beginEngulf, sealEngulf } from './engulf-state.js';
 import { moveCells } from './movement.js';
 
-/** The digests of the two scripted runs below, recorded on main after #265 (`movement-step.ts`). */
-const RECORDED_TRAJECTORY_HASHES = { solo: '7aa523684682f564', engulf: '3110abcf0a25c2db' };
+/**
+ * The digests of the two scripted runs below, recorded on main after #265 (`movement-step.ts`); the engulf run
+ * re-recorded by #634, which changed the engulf factors (the prey grabbed in cover, the predator unslowed).
+ */
+const RECORDED_TRAJECTORY_HASHES = { solo: '7aa523684682f564', engulf: 'c89732cfaa8bfc4b' };
 
 const SOLO_TICKS = 240;
 /** A mass whose four cap factors round differently when multiplied in another order (at 300 they happen not to). */

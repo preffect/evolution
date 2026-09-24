@@ -91,28 +91,28 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
       sealTick: 19,
       payoutTick: 37,
     }).runDeterministic();
-    await expectEscape('T13 (c) sprint at 7', amoeba, sprintsAwayFrom(7), 27);
+    await expectEscape('T13 (c) sprint at 7', amoeba, sprintsAwayFrom(7), 30);
     await expectEscape(
       'T13 (d) Amoeba I, sprint at 10',
       { predator: { traits: ['amoeba_pseudopods'] } },
       sprintsAwayFrom(10),
-      27,
+      30,
     );
   });
 
   it('T14: a Cytoskeleton Lattice III prey steering away from tick 16 slows the wrap enough to break free', async () => {
     const lattice = { prey: topTier('cytoskeleton') };
-    await expectEscape('T14 steering from 16', lattice, steersAwayFrom(16), 34);
+    await expectEscape('T14 steering from 16', lattice, steersAwayFrom(16), 37);
     await expectAbsorbed(
       'T14 plain prey steering from 16',
       {},
       { input: steersAwayFrom(16), sealTick: 21, payoutTick: 39 },
     ).runDeterministic();
-    await expectEscape('T14 steering from 10', lattice, steersAwayFrom(10), 25);
+    await expectEscape('T14 steering from 10', lattice, steersAwayFrom(10), 28);
   });
 
   it('T15: a Cilia Fringe III prey slips the grip and escapes from tick 12', async () => {
-    await expectEscape('T15 steering from 12', { prey: topTier('cilia') }, steersAwayFrom(12), 29);
+    await expectEscape('T15 steering from 12', { prey: topTier('cilia') }, steersAwayFrom(12), 32);
     await expectAbsorbed(
       'T15 plain prey steering from 12',
       {},
@@ -122,7 +122,7 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
 
   it('T16: Paramecium Cilia III with Cilia Fringe I escapes from tick 15, where a plain prey is absorbed', async () => {
     const paramecium = { prey: { traits: [{ traitId: 'paramecium_cilia', tier: TOP_TIER }, 'cilia'] } };
-    await expectEscape('T16 steering from 15', paramecium, steersAwayFrom(15), 31);
+    await expectEscape('T16 steering from 15', paramecium, steersAwayFrom(15), 34);
     await steersAwayFrom(15)(engulfPairOf('T16 plain prey steering from 15'))
       .advance(ROW_TICKS)
       .expect('a plain prey is absorbed: its window closed at tick 10', absorptionsOfPredator)
@@ -136,17 +136,17 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
       'T17 Flagellum III sprint at 14',
       { prey: topTier('simple_flagellum') },
       sprintsAwayFrom(14),
-      28,
+      31,
     );
     await expectEscape(
       'T17 Flagellum I sprint at 13',
       { prey: { traits: ['simple_flagellum'] } },
       sprintsAwayFrom(13),
-      28,
+      31,
     );
   });
 
   it('T19: a Mitochondrion III prey sprinting at 13 gets out a tick before a plain one, by the sprint alone', async () => {
-    await expectEscape('T19 sprint at 13', { prey: topTier('mitochondrion') }, sprintsAwayFrom(13), 28);
+    await expectEscape('T19 sprint at 13', { prey: topTier('mitochondrion') }, sprintsAwayFrom(13), 31);
   });
 });

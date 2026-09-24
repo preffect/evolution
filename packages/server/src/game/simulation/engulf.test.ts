@@ -25,8 +25,11 @@ import { abortAllEngulfs, abortEngulfsOf } from './engulf-state.js';
 const absorption = DEFAULT_BALANCE.absorption;
 /** Half-way through the wrap band: high enough that one decay tick does not fall out of it. */
 const E9_MID_WRAP_TICK = 12;
-/** From 12/36, decaying 2/36 a tick, progress reaches 6/36 on the third tick and falls under it on the fourth. */
-const E9_ESCAPE_TICKS_FROM_MID_WRAP = 4;
+/** From 12/36, decaying 2/36 a tick, progress drains through the cover band and reaches 0 on the sixth tick. */
+const E9_ESCAPE_TICKS_FROM_MID_WRAP = 6;
+/** Late in the cover band: 4/36, which one decay tick of 2/36 leaves at 2/36 and the second drains to 0. */
+const E9_LATE_COVER_TICK = 4;
+const E9_ESCAPE_TICKS_FROM_LATE_COVER = 2;
 /** Far beyond any contact bound and still inside the dish. */
 const OUT_OF_CONTACT_WU = 1000;
 const PROGRESS_DIGITS = 10;
@@ -107,17 +110,38 @@ describe('phases and the seal (docs/ecology/absorption.md §6.1)', () => {
 });
 
 describe('escape (docs/ecology/absorption.md §6.1, §6.3 "prey moves away before the seal")', () => {
-  it('releases a cover the tick contact breaks, with progress 0', () => {
+  it('drains a cover out of contact instead of cancelling it, and releases it at 0 (#634)', () => {
     const fixture = twoCells();
-    stepEngulf(fixture);
+    stepEngulf(fixture, E9_LATE_COVER_TICK);
+    const covered = fixture.prey.engulfProgress;
     fixture.prey.x = BROTH_POINT.x + OUT_OF_CONTACT_WU;
     stepEngulf(fixture);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(
+      covered - absorption.ENGULF_ESCAPE_DECAY_MULTIPLIER / E9_PAYOUT_TICK,
+      PROGRESS_DIGITS,
+    );
+    expect(releaseReasons(fixture)).toEqual([]);
+    expect(fixture.prey.engulfedByCellId).toBe(fixture.predator.id);
+    stepEngulf(fixture, E9_ESCAPE_TICKS_FROM_LATE_COVER - 1);
     expect(releaseReasons(fixture)).toEqual([ENGULF_RELEASE_REASON.escaped]);
     expect(fixture.prey.engulfProgress).toBe(0);
     expect(fixture.prey.states).toEqual([]);
   });
 
-  it('decays a wrap out of contact at the escape multiplier and releases it below the wrap band', () => {
+  it('resumes a draining cover when contact comes back within the grace (#634)', () => {
+    const fixture = twoCells();
+    stepEngulf(fixture, E9_LATE_COVER_TICK);
+    const placedX = fixture.prey.x;
+    fixture.prey.x = BROTH_POINT.x + OUT_OF_CONTACT_WU;
+    stepEngulf(fixture);
+    const drained = fixture.prey.engulfProgress;
+    fixture.prey.x = placedX;
+    stepEngulf(fixture);
+    expect(releaseReasons(fixture)).toEqual([]);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(drained + 1 / E9_PAYOUT_TICK, PROGRESS_DIGITS);
+  });
+
+  it('decays a wrap out of contact through the cover band and releases it at 0', () => {
     const fixture = twoCells();
     stepEngulf(fixture, E9_MID_WRAP_TICK);
     const wrapped = fixture.prey.engulfProgress;
