@@ -30,8 +30,8 @@
 #   during the build is rebuilt by the next run; a setup waiting on the checkout's setup lock past its
 #   timeout fails loudly; a word after an option written with a space is its value, never a filter.
 #   format (#641): eslint --fix then prettier --write over lint's paths for the scope (a scoped one also the
-#   changed docs), the changed files listed, never cached; unfixable eslint problems leave it green, a tool
-#   that fails to run fails it, and extra args are refused.
+#   changed docs), the files it changed within those paths listed, never cached; unfixable eslint problems
+#   leave it green, a tool that fails to run fails it, and extra args are refused.
 #   The merge gate's integration tier (#344): `all --affected` runs integration last, only in the selected
 #   packages that have integration or gameplay tests (a shared change runs its dependents', docs and
 #   scripts skip it); a red integration fails the gate and is never stamped; a red unit phase never
@@ -334,6 +334,11 @@ run_validate "$fixture" format --scope server
 : > "$FAKE_PNPM_TOUCH_FILE"
 git -C "$fixture" checkout -q -- packages/server/src/game/world.ts
 check "a format lists the files it changed and exits 0" $(( rc == 0 && $(ran '^format changed 1 files:$'; echo $?) == 0 && $(ran '^packages/server/src/game/world\.ts$'; echo $?) == 0 ))
+echo "$fixture/packages/client/src/app/hud.ts" > "$FAKE_PNPM_TOUCH_FILE"
+run_validate "$fixture" format --scope server
+: > "$FAKE_PNPM_TOUCH_FILE"
+git -C "$fixture" checkout -q -- packages/client/src/app/hud.ts
+check "a write outside format's paths during the run is not listed as its change" $(( rc == 0 && $(ran '^format changed no files$'; echo $?) == 0 && $(ran 'hud\.ts'; echo $?) != 0 ))
 run_validate "$fixture" format --fresh
 check "an unscoped format --fresh covers the repo without either lint cache" $(( rc == 0 && $(ran '^fake pnpm eslint --fix --output-file /dev/null \.$'; echo $?) == 0 && $(ran '^fake pnpm prettier --write --log-level warn \.$'; echo $?) == 0 ))
 echo '^eslint' > "$FAKE_PNPM_FAIL_PATTERN_FILE"

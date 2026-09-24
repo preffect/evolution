@@ -153,6 +153,13 @@ if [[ $AFFECTED -eq 1 && ( "$COMMAND" != all || $SCOPE_GIVEN -eq 1 ) ]]; then
   exit 1
 fi
 
+# format writes files: extra args would reach both tools, and its output is a list of changes, not a check.
+if [[ "$COMMAND" == format && ${#EXTRA_ARGS[@]} -gt 0 ]]; then
+  echo "validate.sh: format takes no extra args" >&2
+  echo "$USAGE" >&2
+  exit 1
+fi
+
 apply_filters() {
   local input
   input="$(cat)"
@@ -190,13 +197,6 @@ TEST_FILE_PATTERN='\.(test|spec)\.ts$'
 CLIENT_SPEC_SUFFIX=".spec.ts"
 CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
 CLIENT_NO_COVERAGE_ARGUMENT="--no-coverage"
-# format writes files: extra args would reach both tools, and its output is a list of changes, not a check.
-if [[ "$COMMAND" == format && ${#EXTRA_ARGS[@]} -gt 0 ]]; then
-  echo "validate.sh: format takes no extra args" >&2
-  echo "$USAGE" >&2
-  exit 1
-fi
-
 VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
 # Lint result caches (#559), per worktree under node_modules/.cache, keyed by file content. prettier's
 # is exact (a file's result depends on the file and the config alone), so every run but --fresh uses it.
@@ -1109,8 +1109,8 @@ ${extra}"
 # ---------------------------------------------------------------------------
 # `format` (#641): fixes in place what lint's tools can fix, over lint's own paths for the scope, so nobody
 # runs prettier --write by hand. Never cached: it changes the tree it would stamp, and a green format says
-# nothing about lint (eslint problems without a fix remain). The files it changed are the difference between
-# the working tree's hash (cache_tree_hash) before and after, whichever tool changed them.
+# nothing about lint (eslint problems without a fix remain). The files it changed are the difference, within
+# its paths, between the working tree's hash (cache_tree_hash) before and after, whichever tool changed them.
 # ---------------------------------------------------------------------------
 ESLINT_UNFIXABLE_EXIT_CODE=1 # eslint's exit when problems remain after --fix; 2 and above: it failed to run
 
@@ -1131,7 +1131,9 @@ format_files() {
   fi
   after="$(cache_tree_hash)"
   if [[ -n "$before" && -n "$after" ]]; then
-    changed="$(git -C "$SCRIPT_DIR" diff-tree -r --name-only "$before" "$after")"
+    # Only format's own paths (ESLINT_PATHS is within LINT_PATHS in every scope): another write to the
+    # worktree during the run is not format's change.
+    changed="$(git -C "$SCRIPT_DIR" diff-tree -r --name-only "$before" "$after" -- "${LINT_PATHS[@]}")"
     if [[ -n "$changed" ]]; then
       echo "format changed $(wc -l <<<"$changed") files:"
       echo "$changed"
