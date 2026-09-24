@@ -170,11 +170,9 @@ describe('applyInputs: the sprint spend (#383)', () => {
     setCellMass(cell, mass, DEFAULT_BALANCE);
     player.pendingInput = createTestGameInput({ sequence: 1, shouldSprint: true });
     applyInputs(world, context);
-    expect(world.massFlow.sprintSpentPendingByPlayer[player.playerId]).toBeCloseTo(mass - cell.mass, 12);
-    expect(world.massFlow.sprintSpentPendingByPlayer[player.playerId]).toBeCloseTo(
-      mass * controls.SPRINT_MASS_COST_FRACTION,
-      9,
-    );
+    const pending = world.massFlow.pendingWindowByPlayer[player.playerId];
+    expect(pending?.sprintSpent).toBeCloseTo(mass - cell.mass, 12);
+    expect(pending?.sprintSpent).toBeCloseTo(mass * controls.SPRINT_MASS_COST_FRACTION, 9);
   });
 
   it('records nothing for a sprint refused on cooldown', () => {
@@ -182,6 +180,6 @@ describe('applyInputs: the sprint spend (#383)', () => {
     cell.sprintCooldownRemainingTicks = 1;
     player.pendingInput = createTestGameInput({ sequence: 1, shouldSprint: true });
     applyInputs(world, context);
-    expect(world.massFlow.sprintSpentPendingByPlayer[player.playerId]).toBeUndefined();
+    expect(world.massFlow.pendingWindowByPlayer[player.playerId]).toBeUndefined();
   });
 });

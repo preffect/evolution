@@ -14,7 +14,7 @@ import {
 } from '@evolution/shared';
 import { grantCatchUpGift } from '../progression/dna.js';
 import { applyLevelUps } from '../progression/levels.js';
-import { showQueuedOfferIfNone } from '../progression/offers.js';
+import { NO_DRAFT_BONUS_REPORT, showQueuedOfferIfNone } from '../progression/offers.js';
 import type { PlayerRecord } from '../world/entities.js';
 import { requireCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
@@ -99,6 +99,6 @@ export function applyEntryState(
     grantCatchUpGift(player, state.dnaGift);
   }
   if (applyLevelUps(world, player, context) > 0) {
-    showQueuedOfferIfNone(world, player, context);
+    showQueuedOfferIfNone(world, player, context, NO_DRAFT_BONUS_REPORT.inFirstMass);
   }
 }

@@ -147,9 +147,12 @@ export function toPlayerRosterView(player: PlayerRecord): PlayerRosterView {
   return { playerId: player.playerId, playerName: player.playerName };
 }
 
-/** Whether an own view carries the sealed sprint window: a `game_state` carries no window, as it carries no effects. */
-export const SPRINT_WINDOW = { included: 'included', omitted: 'omitted' } as const;
-export type SprintWindow = (typeof SPRINT_WINDOW)[keyof typeof SPRINT_WINDOW];
+/**
+ * Whether an own view carries the sealed mass window (the sprint spend, the no-draft bonus): a `game_state` carries no
+ * window, as it carries no effects.
+ */
+export const MASS_WINDOW = { included: 'included', omitted: 'omitted' } as const;
+export type MassWindow = (typeof MASS_WINDOW)[keyof typeof MASS_WINDOW];
 
 /**
  * The player's progress and why its cell's mass moves (#383): `massFlow` is `null` while spectating and until the
@@ -159,14 +162,14 @@ export function toOwnProgressView(
   world: WorldState,
   player: PlayerRecord,
   precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES,
-  sprintWindow: SprintWindow = SPRINT_WINDOW.included,
+  massWindow: MassWindow = MASS_WINDOW.included,
 ): OwnProgressView {
   const ledger = world.massFlow;
   const record = player.lifeState === PLAYER_LIFE_STATE.alive ? ledger.metabolismByPlayer[player.playerId] : undefined;
-  const sprintSpent = sprintWindow === SPRINT_WINDOW.included ? ledger.sprintSpentByPlayer[player.playerId] : undefined;
+  const sealedWindow = massWindow === MASS_WINDOW.included ? ledger.sealedWindowByPlayer[player.playerId] : undefined;
   return {
     ...toPlayerProgressView(player, precision),
-    massFlow: record === undefined ? null : toMassFlowView(record, sprintSpent, precision),
+    massFlow: record === undefined ? null : toMassFlowView(record, sealedWindow, precision),
   };
 }
 
@@ -177,10 +180,10 @@ export function toOwnProgressView(
 export function ownProgressOf(
   world: WorldState,
   viewerPlayerId: PlayerId,
-  sprintWindow: SprintWindow = SPRINT_WINDOW.included,
+  massWindow: MassWindow = MASS_WINDOW.included,
 ): OwnProgressView | null {
   const viewer = findPlayer(world, viewerPlayerId);
-  return viewer === undefined ? null : toOwnProgressView(world, viewer, WIRE_SNAPSHOT_VALUES, sprintWindow);
+  return viewer === undefined ? null : toOwnProgressView(world, viewer, WIRE_SNAPSHOT_VALUES, massWindow);
 }
 
 /**

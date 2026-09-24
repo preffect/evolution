@@ -1,8 +1,6 @@
 // docs/ecology/acceptance.md §8, E17 (#383, docs/ui/hud.md §3.1.5): the mass flow the snapshot reports explains
-// every tick's mass change of the own cell, at the floor, at the cap and through an engulf. Each tick is checked
-// against the mass captured the tick before, at full precision:
-//
-//   Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own eat massGained + predatorMassGained − sprintSpent
+// every tick's mass change of the own cell, at the floor, at the cap, through an engulf and through a level-up with no
+// cards left (#416). Each tick is checked against the mass captured the tick before (`mass-flow-setups.ts`).
 //
 // Every row runs twice and is hash-compared, so the flow is shown not to move the state hash either. Masses and
 // distances come from the balance (#212).
@@ -10,20 +8,29 @@
 import { describe, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  DNA_TAG,
   EFFECT_KIND,
   FOOD_KIND,
   TICK_INTERVAL_S,
   TRAIT_TIERS,
+  cumulativeDnaForLevel,
   radiusForMass,
+  type TraitTier,
 } from '@evolution/shared';
 import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
-import { cellOf, effectsOfKind, massFlowOf, massOf, type EvolutionView } from '../gameplay/evolution-views.js';
+import {
+  cellOf,
+  effectsOfKind,
+  massFlowOf,
+  massOf,
+  progressOf,
+  type EvolutionView,
+} from '../gameplay/evolution-views.js';
 import { ZONE, insideCellOf, player, sprint } from '../gameplay/index.js';
+import { CONSERVATION_TOLERANCE, conservedEveryTick } from './mass-flow-setups.js';
 import { placedSolo } from './shared-setups.js';
 
-const { growth, absorption } = DEFAULT_BALANCE;
-/** The causes must explain the change to float precision, far inside the tables' ± 0.01. */
-const CONSERVATION_TOLERANCE = 1e-6;
+const { growth, absorption, progression, traits } = DEFAULT_BALANCE;
 const ROW_TICKS = 60;
 const WORKED_MASS = 312;
 const SPRINT_TICK = 20;
@@ -34,52 +41,18 @@ const FLOOR_TOXIC_MASS = 24;
 /** E17's aura row: a heavy toxic cell whose top-tier aura reaches a light one it does not touch. */
 const AURA_TOXIC_MASS = 1000;
 const AURA_VICTIM_MASS = 40;
-const TOP_TIER = 3;
+const TOP_TIER: TraitTier = 3;
 /** T21 (#154): a 500 predator completes a meal of a 100 Toxin Vacuole III prey on tick 36. */
 const T21 = { predatorMass: 500, preyMass: 100, payoutTick: 36, pastCoverTick: 12, ticks: 40 };
 /** F1 on #420: the T21 masses with a Diatom Shell I prey, whose spikes cost the predator from the first progress. */
 const SPINY = { ticks: 40, inCoverTick: 3 };
 
-type RowBuilder = ReturnType<typeof placedSolo>;
-
-const massLabel = (tick: number, playerIndex: number) => `player ${playerIndex} mass after tick ${tick}`;
-const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
-
-/** Δmass minus everything the snapshot says moved it; `undefined` before a mass was captured or without a cell. */
-function unexplainedMass(view: EvolutionView, playerIndex: number): number | undefined {
-  const cell = cellOf(view, playerIndex);
-  const massBefore = view.captured(massLabel(view.tick - 1, playerIndex));
-  if (cell === undefined || typeof massBefore !== 'number') {
-    return undefined;
-  }
-  const flow = massFlowOf(view, playerIndex);
-  const applied = sum(Object.values(flow?.ratesPerSecond ?? {})) * TICK_INTERVAL_S;
-  const eaten = sum(
-    effectsOfKind(view, EFFECT_KIND.eat)
-      .filter((effect) => effect.cellId === cell.id)
-      .map((effect) => effect.massGained),
-  );
-  const engulfed = sum(
-    effectsOfKind(view, EFFECT_KIND.cellAbsorbed)
-      .filter((effect) => effect.predatorCellId === cell.id)
-      .map((effect) => effect.predatorMassGained),
-  );
-  return cell.mass - massBefore - (applied + eaten + engulfed - (flow?.sprintSpent ?? 0));
-}
-
-/** Runs `ticks` and checks every one of them against the mass captured the tick before. */
-function conservedEveryTick(builder: RowBuilder, ticks: number, playerIndex = 0): RowBuilder {
-  let row = builder.advance(ticks);
-  for (let tick = 1; tick <= ticks; tick += 1) {
-    row = row
-      .capture(massLabel(tick - 1, playerIndex), (view) => massOf(view, playerIndex))
-      .atTick(tick - 1)
-      .expect(`Δmass on tick ${tick} is the reported flow`, (view) => unexplainedMass(view, playerIndex))
-      .atTick(tick)
-      .toBeCloseTo(0, CONSERVATION_TOLERANCE);
-  }
-  return row;
-}
+/**
+ * E17's no-draft row (#416): every trait at its top tier, so a level-up has no cards and its offer is dropped for
+ * `LEVEL_UP_NO_DRAFT_MASS_BONUS`; one DNA short of level 2, so the fragment eaten on tick 1 levels the cell up.
+ */
+const NO_DRAFT = { ticks: 10, levelUpTick: 1, dnaShort: 1 };
+const EVERY_TRAIT_AT_TOP = traits.TRAIT_CATALOG.map((trait) => ({ traitId: trait.id, tier: TOP_TIER }));
 
 const rateOf =
   (playerIndex: number, cause: 'toxin' | 'swallowed' | 'decay' | 'vent' | 'light') => (view: EvolutionView) =>
@@ -256,6 +229,30 @@ describe('docs/ecology/acceptance.md §8 E17: the mass flow explains every tick 
       })
       .atTick(SPINY.inCoverTick)
       .toBe(true)
+      .runDeterministic();
+  });
+
+  it('a level-up with no cards left: the dropped offer’s mass bonus (#416)', async () => {
+    await conservedEveryTick(
+      placedSolo('E17 no draft')
+        .placeCell({
+          playerIndex: 0,
+          mass: WORKED_MASS,
+          traits: EVERY_TRAIT_AT_TOP,
+          dnaCumulative: cumulativeDnaForLevel(2, progression) - NO_DRAFT.dnaShort,
+        })
+        .placeFragment({ tag: DNA_TAG.sensory, at: insideCellOf(0) }),
+      NO_DRAFT.ticks,
+    )
+      .expect('the fragment levels the cell up', (view) => progressOf(view, 0)?.level)
+      .atTick(NO_DRAFT.levelUpTick)
+      .toBe(2)
+      .expect('no offer is shown', (view) => progressOf(view, 0)?.offer)
+      .atTick(NO_DRAFT.levelUpTick)
+      .toBeNull()
+      .expect('the bonus is reported as applied', (view) => massFlowOf(view, 0)?.noDraftBonusGained)
+      .atTick(NO_DRAFT.levelUpTick)
+      .toBe(progression.LEVEL_UP_NO_DRAFT_MASS_BONUS)
       .runDeterministic();
   });
 });

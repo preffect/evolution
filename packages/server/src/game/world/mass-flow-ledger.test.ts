@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { MASS_RATE_CAUSES, ZONE_ID, playerId, zeroRecord } from '@evolution/shared';
+import { MASS_RATE_CAUSES, MASS_WINDOW_AMOUNT, ZONE_ID, playerId, zeroRecord } from '@evolution/shared';
 import {
   beginMetabolismRecords,
   createMassFlowLedger,
   recordMetabolism,
-  recordSprintSpent,
-  sealSprintWindow,
+  recordWindowAmount,
+  sealMassWindow,
   type MassFlowRecord,
 } from './mass-flow-ledger.js';
 
@@ -25,16 +25,18 @@ describe('the mass-flow ledger', () => {
     expect(ledger.metabolismByPlayer[ALICE]).toBeUndefined();
   });
 
-  it('adds the window’s sprint starts and reports them only once sealed', () => {
+  it('adds the window’s amounts per kind and reports them only once sealed', () => {
     const ledger = createMassFlowLedger();
     const first = 2;
     const second = 3;
-    recordSprintSpent(ledger, ALICE, first);
-    recordSprintSpent(ledger, ALICE, second);
-    expect(ledger.sprintSpentByPlayer[ALICE]).toBeUndefined();
-    sealSprintWindow(ledger);
-    expect(ledger.sprintSpentByPlayer[ALICE]).toBe(first + second);
-    sealSprintWindow(ledger);
-    expect(ledger.sprintSpentByPlayer[ALICE]).toBeUndefined();
+    const bonus = 10;
+    recordWindowAmount(ledger, ALICE, MASS_WINDOW_AMOUNT.sprintSpent, first);
+    recordWindowAmount(ledger, ALICE, MASS_WINDOW_AMOUNT.sprintSpent, second);
+    recordWindowAmount(ledger, ALICE, MASS_WINDOW_AMOUNT.noDraftBonusGained, bonus);
+    expect(ledger.sealedWindowByPlayer[ALICE]).toBeUndefined();
+    sealMassWindow(ledger);
+    expect(ledger.sealedWindowByPlayer[ALICE]).toEqual({ sprintSpent: first + second, noDraftBonusGained: bonus });
+    sealMassWindow(ledger);
+    expect(ledger.sealedWindowByPlayer[ALICE]).toBeUndefined();
   });
 });
