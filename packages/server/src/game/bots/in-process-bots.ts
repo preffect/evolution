@@ -38,7 +38,7 @@ export function createInProcessBotRoster<Input, Snapshot>(
       const identity = createBotIdentity('inProcess', request.seed, playerIndex);
       const pilot = createNamedBotPilot({ ...request, playerIndex, playerId: identity.playerId, binding });
       spawnedCount += 1;
-      const bot: SpawnedBot = { ...identity, behavior: request.behavior };
+      const bot: SpawnedBot = { ...identity, avatarIndex: request.avatarIndex, behavior: request.behavior };
       entries.set(bot.playerId, { bot, pilot });
       return bot;
     },

@@ -26,7 +26,8 @@ import {
   type CellInstanceScalar,
 } from './cells/cell-instance';
 import { LAYER_Z, LEVEL_UP_RAYS, LEVEL_UP_RIPPLES } from './constants';
-import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
+import { GameRenderer } from './game-renderer';
+import { NO_HUD_INPUTS, type RenderInputs } from './render-io';
 import type { RenderFrame } from '../net/world-store';
 
 const INPUTS: RenderInputs = NO_HUD_INPUTS;

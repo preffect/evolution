@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { BOT_STRATEGY_NAME } from './strategy-constants.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { createEvolutionBotRoster, driveBots } from './evolution-bots.js';
+import { createTestBotSpawnRequest } from '../../testing/bot-builders.js';
 
 const BOT_SEED = 3;
 
@@ -18,7 +19,7 @@ describe('driveBots', () => {
   it('submits every deciding bot an input for the coming tick, from the world as it stands', () => {
     const world = createTestWorld({ isFilled: true });
     const roster = createEvolutionBotRoster(world);
-    const bot = roster.spawn({ behavior: BOT_STRATEGY_NAME.grazer, seed: BOT_SEED });
+    const bot = roster.spawn(createTestBotSpawnRequest({ behavior: BOT_STRATEGY_NAME.grazer, seed: BOT_SEED }));
     // The grazer needs a cell: the roster only builds the pilot, the module adds the player. Give it the seeded cell.
     world.players[0]!.playerId = bot.playerId;
     world.cells[0]!.playerId = bot.playerId;

@@ -6,7 +6,13 @@
 // constant number of radii, is what keeps a tail tip or a ring from popping in at the screen edge.
 
 import { MOTION_CLIPS, type MotionClipId } from '@evolution/shared';
-import { FAR_DOT_HALO_RADII, FLAGELLUM_OUTER_PX, RELATION_RING_STROKE_PX, WARNING_RING_STROKE_PX } from '../constants';
+import {
+  FAR_DOT_HALO_RADII,
+  FLAGELLUM_OUTER_PX,
+  RELATION_RING_STROKE_PX,
+  STARVING_WRINKLE_AMPLITUDE,
+  WARNING_RING_STROKE_PX,
+} from '../constants';
 import { HALF } from '../geometry';
 import { EATING_CLIP_CONTEXT, UNAIMED_CLIP_CONTEXT, clipDeformationPeak, engulfDeformationPeak } from './cell-clips';
 import { NO_EFFECT_REACH, cellDrawExtentRadii, type CellDrawState } from './cell-draw-extent';
@@ -32,11 +38,17 @@ function widestClipPeak(): ClipDeformationPeak {
   };
 }
 
-/** Top speed, sprinting, the widest clip: the state no frame of the cell can outgrow. */
+/** The widest clip with a starving cell's full wrinkle on top: the one surface term the clips do not carry (#635). */
+function widestSurfacePeak(): ClipDeformationPeak {
+  const clip = widestClipPeak();
+  return { pulse: clip.pulse, bumpRadii: clip.bumpRadii + STARVING_WRINKLE_AMPLITUDE };
+}
+
+/** Top speed, sprinting, the widest clip, fully withered: the state no frame of the cell can outgrow. */
 export const CULL_DRAW_STATE: CellDrawState = {
   speedRatio: 1,
   isSprinting: true,
-  clip: widestClipPeak(),
+  clip: widestSurfacePeak(),
   effectRadii: NO_EFFECT_REACH,
 };
 

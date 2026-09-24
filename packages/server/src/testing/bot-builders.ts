@@ -2,9 +2,10 @@
 // the strategy tests decide over, a fake transport the session tests speak through and a fake
 // socket the `ws` transport test frames over. Builder defaults are the only tolerated inline
 // test numbers.
-import { createSeededRandom, playerId as brandPlayerId } from '@evolution/shared';
+import { AVATAR_INDEX_MIN, createSeededRandom, playerId as brandPlayerId } from '@evolution/shared';
 import type { ClientMessage, PlayerId, ServerMessage } from '@evolution/shared';
 import type { BotIdentity } from '../game/bots/bot-identity.js';
+import type { BotSpawnRequest } from '../game/debug/simulation-debug-handle.js';
 import type { ScriptContext } from '../game/bots/bot-strategy.js';
 import type { BotCellView, BotMoteView, BotPerception, PlayerBotCellView } from '../game/bots/perception.js';
 import { createManualRoomTiming, type ManualRoomTiming } from './builders.js';
@@ -71,6 +72,13 @@ export function createTestPerception(engulfMassRatio = 1.25): BotPerception<Test
 
 export function createTestBotIdentity(overrides: Partial<BotIdentity> = {}): BotIdentity {
   return { playerId: brandPlayerId('bot_42_0'), playerName: 'Bot 0', avatarIndex: 0, ...overrides };
+}
+
+/** A `debug_spawn_bot` request as the tool builds it; the seat colour defaults to the first one. */
+export function createTestBotSpawnRequest(
+  request: Pick<BotSpawnRequest, 'behavior' | 'seed'> & Partial<BotSpawnRequest>,
+): BotSpawnRequest {
+  return { avatarIndex: AVATAR_INDEX_MIN, ...request };
 }
 
 /** A transport with no wire: records what the bot sent, lets the test play the server. */

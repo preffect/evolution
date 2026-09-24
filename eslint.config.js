@@ -113,6 +113,7 @@ const LIVE_BALANCE_SYNTAX_RESTRICTIONS = [
  * tolerance there (0.01, 1e-12) makes the bound about ±0.5 and the assertion can hardly fail (#587). Pass a whole
  * number of digits, or write `expect(Math.abs(actual - expected)).toBeLessThanOrEqual(TOLERANCE)`. The scenario DSL's
  * own `.atTick(t).toBeCloseTo(value, tolerance)` IS tolerance-based and is not matched: its receiver is not `expect(…)`.
+ * A digit count named for the tolerance it encodes ends in `_DIGITS` / `Digits` and passes (`MASS_TOLERANCE_DIGITS`, #600).
  */
 const CLOSE_TO_MESSAGE =
   'toBeCloseTo / expect.closeTo take a whole digit count, not a tolerance: use an integer, or assert Math.abs(Δ) <= TOLERANCE (#587).';
@@ -124,7 +125,10 @@ const VITEST_CLOSE_TO = [
 const CLOSE_TO_SYNTAX_RESTRICTIONS = VITEST_CLOSE_TO.flatMap((call) => [
   { selector: `${call} > Literal:nth-child(2)[raw=/[.eE]/]`, message: CLOSE_TO_MESSAGE },
   { selector: `${call} > UnaryExpression:nth-child(2)`, message: CLOSE_TO_MESSAGE },
-  { selector: `${call} > Identifier:nth-child(2)[name=/TOLERANCE|Tolerance/]`, message: CLOSE_TO_MESSAGE },
+  {
+    selector: `${call} > Identifier:nth-child(2)[name=/^(?!.*(_DIGITS|Digits)$).*(TOLERANCE|Tolerance)/]`,
+    message: CLOSE_TO_MESSAGE,
+  },
 ]);
 /** Encyclopedia content holds no number and computes none, even through a named constant (§12.6). */
 const ENCYCLOPEDIA_CONTENT_FILES = ['packages/client/src/app/game/encyclopedia/content/**/*.ts'];

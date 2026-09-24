@@ -168,7 +168,9 @@ describe('game-room: membership and delegation', () => {
     const room = new GameRoom(gameModule, roomOptions(['p1']), createManualRoomTiming());
     const late = createTestConnection({ playerId: 'p3' });
     room.addLatePlayer(late);
-    expect(gameModule.addPlayer).toHaveBeenCalledWith('p3', 0, 'p3');
+    // p1 holds colour 0, so the newcomer asking for 0 takes the next free one (#645).
+    expect(gameModule.addPlayer).toHaveBeenCalledWith('p3', 1, 'p3');
+    expect(room.avatarAssignments['p3']).toBe(1);
     expect(room.allPlayerIds).toContain('p3');
     expect(room.playerConnections.has('p3')).toBe(true);
   });

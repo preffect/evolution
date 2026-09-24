@@ -3,6 +3,7 @@ import { createTestGameInput, createTestSessionConfig, gameId } from '@evolution
 import type { PlayerId } from '@evolution/shared';
 import { DebugRequestError } from './debug/debug-request-error.js';
 import { defaultGameModuleFactory } from './game-module.js';
+import { createTestBotSpawnRequest } from '../testing/bot-builders.js';
 
 /** A room that seats every bot. */
 const seatFreely = () => {};
@@ -55,7 +56,10 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
 
   it('spawnBot adds a player whose input the module produces itself, one per tick from tick 1', () => {
     const game = defaultGameModuleFactory(options);
-    const bot = game.getDebugHandle!().spawnBot!({ behavior: 'wander', seed: 42 }, seatFreely);
+    const bot = game.getDebugHandle!().spawnBot!(
+      createTestBotSpawnRequest({ behavior: 'wander', seed: 42 }),
+      seatFreely,
+    );
     expect(bot).toMatchObject({ playerId: 'sim_bot_42_0', playerName: 'Bot 0', behavior: 'wander' });
     expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null, [bot.playerId]: null } });
     game.reduceGameState();
@@ -68,7 +72,7 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
   it('two modules with the same seed drive their bots identically', () => {
     const inputAfterTicks = () => {
       const game = defaultGameModuleFactory(options);
-      game.getDebugHandle!().spawnBot!({ behavior: 'wander', seed: 7 }, seatFreely);
+      game.getDebugHandle!().spawnBot!(createTestBotSpawnRequest({ behavior: 'wander', seed: 7 }), seatFreely);
       for (let tick = 0; tick < 5; tick += 1) game.reduceGameState();
       return (game.serializeRoomState() as unknown as { players: Record<string, unknown> }).players['sim_bot_7_0'];
     };
@@ -78,7 +82,7 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
   it('removeBot forgets the bot and its input and refuses a human', () => {
     const game = defaultGameModuleFactory(options);
     const handle = game.getDebugHandle!();
-    const bot = handle.spawnBot!({ behavior: 'wander', seed: 42 }, seatFreely);
+    const bot = handle.spawnBot!(createTestBotSpawnRequest({ behavior: 'wander', seed: 42 }), seatFreely);
     game.reduceGameState();
     expect(handle.removeBot!(bot.playerId)).toEqual(bot);
     expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
@@ -93,7 +97,9 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
       seated.push(bot.playerId);
       throw new DebugRequestError(`"${bot.playerId}" is already a player in this game`);
     };
-    expect(() => handle.spawnBot!({ behavior: 'wander', seed: 42 }, refuse)).toThrow(DebugRequestError);
+    expect(() => handle.spawnBot!(createTestBotSpawnRequest({ behavior: 'wander', seed: 42 }), refuse)).toThrow(
+      DebugRequestError,
+    );
     expect(seated).toEqual(['sim_bot_42_0']);
     expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
     game.reduceGameState();

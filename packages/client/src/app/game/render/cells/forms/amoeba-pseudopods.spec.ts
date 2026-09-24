@@ -22,6 +22,7 @@ import {
   pseudopodTableAngle,
   type PseudopodInput,
 } from './amoeba-pseudopods';
+import { PROFILE_WALK_TIMEOUT_MS } from '../../../../../testing/profile-walk';
 import { normalisedArea } from './form-profiles';
 
 const REST: PseudopodInput = { count: 4, timeSeconds: 0, phase: 0, aim: 0, lean: 0 };
@@ -140,37 +141,45 @@ describe('the amoeba silhouette', () => {
 
 describe('pseudopodReachTable', () => {
   /** The table the reach bounds weigh against the stretch: swept over time, phase and lean, never beaten. */
-  it('is never beaten by a frame of lobes, at any angle', () => {
-    const beaten = (count: number, lean: number): string[] => {
-      const table = pseudopodReachTable(count, lean);
-      const misses: string[] = [];
-      for (let step = 0; step < 16; step += 1) {
-        const bumps = pseudopodBumps({ ...REST, count, lean, timeSeconds: step * 0.37, phase: step * 0.13 });
-        for (let index = 0; index < PSEUDOPOD_PEAK_ANGLE_SAMPLES; index += 5) {
-          if (surfaceAt(bumps, pseudopodTableAngle(index)) > (table[index] ?? 0))
-            misses.push(`${count}@${lean}#${index}`);
+  it(
+    'is never beaten by a frame of lobes, at any angle',
+    () => {
+      const beaten = (count: number, lean: number): string[] => {
+        const table = pseudopodReachTable(count, lean);
+        const misses: string[] = [];
+        for (let step = 0; step < 16; step += 1) {
+          const bumps = pseudopodBumps({ ...REST, count, lean, timeSeconds: step * 0.37, phase: step * 0.13 });
+          for (let index = 0; index < PSEUDOPOD_PEAK_ANGLE_SAMPLES; index += 5) {
+            if (surfaceAt(bumps, pseudopodTableAngle(index)) > (table[index] ?? 0))
+              misses.push(`${count}@${lean}#${index}`);
+          }
         }
+        return misses;
+      };
+      for (const count of PSEUDOPOD_COUNT_BY_TIER) {
+        for (const lean of [0, 0.2, 1]) expect(beaten(count, lean)).toEqual([]);
       }
-      return misses;
-    };
-    for (const count of PSEUDOPOD_COUNT_BY_TIER) {
-      for (const lean of [0, 0.2, 1]) expect(beaten(count, lean)).toEqual([]);
-    }
-  });
+    },
+    PROFILE_WALK_TIMEOUT_MS,
+  );
 
   /** It is also no looser than a frame gets: the preview frames its lens from it with a 1 % margin. */
-  it('is reached by some frame at its widest angle, within 0.5 %', () => {
-    const table = pseudopodReachTable(3, 1);
-    const widest = Math.max(...table);
-    let reached = 0;
-    for (let step = 0; step < 400; step += 1) {
-      const bumps = pseudopodBumps({ ...REST, count: 3, lean: 1, timeSeconds: (step / 400) * CYCLE_SECONDS });
-      for (let index = 0; index < PSEUDOPOD_PEAK_ANGLE_SAMPLES; index += 1) {
-        reached = Math.max(reached, surfaceAt(bumps, pseudopodTableAngle(index)));
+  it(
+    'is reached by some frame at its widest angle, within 0.5 %',
+    () => {
+      const table = pseudopodReachTable(3, 1);
+      const widest = Math.max(...table);
+      let reached = 0;
+      for (let step = 0; step < 400; step += 1) {
+        const bumps = pseudopodBumps({ ...REST, count: 3, lean: 1, timeSeconds: (step / 400) * CYCLE_SECONDS });
+        for (let index = 0; index < PSEUDOPOD_PEAK_ANGLE_SAMPLES; index += 1) {
+          reached = Math.max(reached, surfaceAt(bumps, pseudopodTableAngle(index)));
+        }
       }
-    }
-    expect(reached / widest).toBeGreaterThan(0.995);
-  });
+      expect(reached / widest).toBeGreaterThan(0.995);
+    },
+    PROFILE_WALK_TIMEOUT_MS,
+  );
 
   it('is empty without lobes', () => {
     expect(Math.max(...pseudopodReachTable(0, 1))).toBe(0);
