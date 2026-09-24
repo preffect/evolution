@@ -5,6 +5,7 @@
 // past one tick.
 
 import {
+  MASS_WINDOW_AMOUNT,
   hasSteerTarget,
   massAfterSprint,
   sprintCooldownTicksFor,
@@ -18,7 +19,7 @@ import { applyTraitChoice, showQueuedOfferIfNone } from '../progression/offers.j
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { recordSprintSpent } from '../world/mass-flow-ledger.js';
+import { recordWindowAmount } from '../world/mass-flow-ledger.js';
 import { massFloorOf, setCellMass } from './cell-mass.js';
 
 /** The cooldown a sprint starts with: the shared `sprintCooldownTicksFor` of this cell's delta (docs/traits/model.md §2). */
@@ -82,7 +83,7 @@ function applyPlayerInput(world: WorldState, player: PlayerRecord, context: Step
   if (cell !== undefined) {
     const sprintSpent = applyCellInput(cell, input, context);
     if (sprintSpent > 0) {
-      recordSprintSpent(world.massFlow, player.playerId, sprintSpent);
+      recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.sprintSpent, sprintSpent);
     }
   }
   if (input.traitChoice !== null) {

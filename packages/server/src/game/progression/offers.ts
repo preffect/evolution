@@ -4,6 +4,7 @@
 // the next one on the next tick's step 1, so back-to-back offers see the previous pick (P6).
 
 import {
+  MASS_WINDOW_AMOUNT,
   RANDOM_STREAM,
   secondsToTicks,
   type BalanceConfig,
@@ -11,11 +12,12 @@ import {
   type TraitChoiceInput,
   type TraitTier,
 } from '@evolution/shared';
-import { gainMass } from '../simulation/cell-mass.js';
+import { gainMass, measureGain } from '../simulation/cell-mass.js';
 import { refreshPlayerStage } from './ladder.js';
 import { refreshCellDerivedState } from './modifiers.js';
 import type { PlayerRecord, TraitOffer } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
+import { recordWindowAmount } from '../world/mass-flow-ledger.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { buildDraft, timeoutCardIndex, type Draft } from './draft.js';
@@ -72,7 +74,8 @@ function showOffer(offer: TraitOffer, draft: Draft, player: PlayerRecord, showin
 
 /**
  * Shows the head of the queue when nothing is shown. Zero candidates: the offer is dropped and the
- * cell gains `LEVEL_UP_NO_DRAFT_MASS_BONUS` instead; without a cell the offer waits.
+ * cell gains `LEVEL_UP_NO_DRAFT_MASS_BONUS` instead, reported as applied in the mass flow (#416); without a cell the
+ * offer waits.
  */
 export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, context: StepContext): void {
   const head = player.offerQueue[0];
@@ -87,7 +90,9 @@ export function showQueuedOfferIfNone(world: WorldState, player: PlayerRecord, c
   const cell = findCellOfPlayer(world, player.playerId);
   if (cell !== undefined) {
     player.offerQueue.shift();
-    gainMass(cell, player, context.balance.progression.LEVEL_UP_NO_DRAFT_MASS_BONUS, context.balance);
+    const bonus = context.balance.progression.LEVEL_UP_NO_DRAFT_MASS_BONUS;
+    const { massGained } = measureGain(cell, player, () => gainMass(cell, player, bonus, context.balance));
+    recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.noDraftBonusGained, massGained);
   }
 }
 

@@ -23,6 +23,8 @@ const TOXIN_RATE = -9.3612;
 const TINY_DECAY_RATE = -0.0049;
 const TRAIT_SHARE = 0.85 * 0.9 - 1;
 const SPRINT_SPENT = 15.6049;
+/** A bonus the cap clipped: 9.96 of the 10 fitted under it. */
+const NO_DRAFT_BONUS = 9.9649;
 
 const RECORD: MassFlowRecord = {
   ratesPerSecond: { ...zeroRecord(MASS_RATE_CAUSES), toxin: TOXIN_RATE, decay: TINY_DECAY_RATE },
@@ -32,11 +34,14 @@ const RECORD: MassFlowRecord = {
 
 describe('toMassFlowView', () => {
   it('rounds each number to its wire precision and leaves out the causes that round to zero', () => {
-    expect(toMassFlowView(RECORD, SPRINT_SPENT, WIRE_SNAPSHOT_VALUES)).toEqual({
+    expect(
+      toMassFlowView(RECORD, { sprintSpent: SPRINT_SPENT, noDraftBonusGained: NO_DRAFT_BONUS }, WIRE_SNAPSHOT_VALUES),
+    ).toEqual({
       ratesPerSecond: { toxin: quantizeToDecimals(TOXIN_RATE, SNAPSHOT_MASS_RATE_DECIMALS) },
       decayTraitShare: quantizeToDecimals(TRAIT_SHARE, SNAPSHOT_SHARE_DECIMALS),
       zone: ZONE_ID.warmVent,
       sprintSpent: quantizeToDecimals(SPRINT_SPENT, SNAPSHOT_MASS_DECIMALS),
+      noDraftBonusGained: quantizeToDecimals(NO_DRAFT_BONUS, SNAPSHOT_MASS_DECIMALS),
     });
   });
 
@@ -48,10 +53,12 @@ describe('toMassFlowView', () => {
     });
     expect(view.decayTraitShare).toBe(TRAIT_SHARE);
     expect('sprintSpent' in view).toBe(false);
+    expect('noDraftBonusGained' in view).toBe(false);
   });
 
-  it('omits the trait share and a sprint when both are zero', () => {
-    const view = toMassFlowView({ ...RECORD, decayTraitShare: 0 }, 0, WIRE_SNAPSHOT_VALUES);
+  it('omits the trait share and the window amounts when they are zero', () => {
+    const amounts = { sprintSpent: 0, noDraftBonusGained: 0.04 };
+    const view = toMassFlowView({ ...RECORD, decayTraitShare: 0 }, amounts, WIRE_SNAPSHOT_VALUES);
     expect(Object.keys(view).sort()).toEqual(['ratesPerSecond', 'zone']);
   });
 });

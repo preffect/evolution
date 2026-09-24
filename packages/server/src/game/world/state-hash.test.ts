@@ -1,11 +1,11 @@
 // docs/determinism/ordering-and-state-hash.md §5, docs/determinism/replay-tests-and-traps.md §7: equal worlds hash equal, any hashed field change moves the hash, NaN
 // throws, and every non-derived record field is listed.
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, FOOD_KIND, StateHashError, createTestGameInput } from '@evolution/shared';
+import { CELL_STAGE, FOOD_KIND, MASS_WINDOW_AMOUNT, StateHashError, createTestGameInput } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { createWildSeatRecord } from '../wild/wild-seats.js';
-import { recordMetabolism, recordSprintSpent, sealSprintWindow } from './mass-flow-ledger.js';
+import { recordMetabolism, recordWindowAmount, sealMassWindow } from './mass-flow-ledger.js';
 import type { WorldState } from './world-state.js';
 import {
   CELL_HASHED_FIELDS,
@@ -149,13 +149,14 @@ describe('the mass-flow ledger (#383)', () => {
     const world = populatedWorld();
     const hash = computeStateHash(world);
     const player = world.players[0]!;
-    recordSprintSpent(world.massFlow, player.playerId, 1);
+    recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.sprintSpent, 1);
+    recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.noDraftBonusGained, 1);
     recordMetabolism(world.massFlow, player.playerId, {
       ratesPerSecond: { toxin: -1, swallowed: 0, decay: -0.5, vent: 0, light: 0 },
       decayTraitShare: 0,
       zone: 'open_broth',
     });
-    sealSprintWindow(world.massFlow);
+    sealMassWindow(world.massFlow);
     expect(computeStateHash(world)).toBe(hash);
   });
 });
