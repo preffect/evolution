@@ -11,7 +11,12 @@ import { UiListComponent } from './ui-list.component';
   standalone: true,
   imports: [UiListComponent, UiListRowComponent, UiListSectionComponent],
   template: `
-    <ui-list testId="list" [shouldSelectionFollowFocus]="isFollowing()" [(selectedId)]="selectedId">
+    <ui-list
+      testId="list"
+      [shouldSelectionFollowFocus]="isFollowing()"
+      [(selectedId)]="selectedId"
+      (activated)="activations.push($event + '@' + selectedId())"
+    >
       <ui-list-section heading="Genome" testId="genome">
         <ui-list-row itemId="nucleoid" testId="nucleoid"><i uiLeading class="medallion"></i>Nucleoid Coil</ui-list-row>
         <ui-list-row itemId="envelope" testId="envelope" [isDisabled]="isEnvelopeDisabled()">
@@ -37,6 +42,8 @@ class ListHostComponent {
   readonly selectedId = signal<string | null>('mitochondrion');
   readonly actionListSelectedId = signal<string | null>(null);
   readonly isEnvelopeDisabled = signal(false);
+  /** Every `activated`, with the selection it saw (#622). */
+  readonly activations: string[] = [];
 }
 
 describe('UiListComponent', () => {
@@ -102,6 +109,23 @@ describe('UiListComponent', () => {
     press('ArrowUp');
     expect(press(' ')).toBe(true);
     expect(fixture.componentInstance.selectedId()).toBe('nucleoid');
+  });
+
+  it('reports a click or Enter as an activation before the selection moves, and a rove that selects never (#622)', () => {
+    set((host) => host.isFollowing.set(true));
+    byTestId('mitochondrion').click();
+    fixture.detectChanges();
+    focusOn('mitochondrion');
+    press('ArrowDown');
+    expect(fixture.componentInstance.selectedId()).toBe('chloroplast');
+    press('Enter');
+    byTestId('nucleoid').click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.activations).toEqual([
+      'mitochondrion@mitochondrion',
+      'chloroplast@chloroplast',
+      'nucleoid@chloroplast',
+    ]);
   });
 
   it('with shouldSelectionFollowFocus selects as focus moves', () => {

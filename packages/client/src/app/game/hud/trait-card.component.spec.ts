@@ -10,6 +10,7 @@ import { CARD_POINTER, type CardPointerEvent } from './format/card-highlight';
 import { traitOfferViewFor, type TraitCardView } from './format/trait-cards';
 import { HUD_TEST_ID, testIdSelector, traitCardPickTestId } from '../test-ids/hud-test-ids';
 import { TraitCardComponent } from './trait-card.component';
+import { MODIFIER_EFFECT } from '../quantities/modifier-labels';
 
 const [FRESH_CARD, UPGRADE_CARD] = traitOfferViewFor({
   offer: createTestTraitOfferView({
@@ -42,14 +43,14 @@ describe('TraitCardComponent', () => {
 
   it('marks an upgrade with I → II under the upgrade test id, and a fresh trait without one', () => {
     const upgrade = mount(UPGRADE_CARD).querySelector(testIdSelector(HUD_TEST_ID.traitCardUpgrade));
-    expect(upgrade?.textContent?.trim()).toBe('I → II');
+    expect(upgrade?.textContent?.trim()).toBe('I\u00a0→\u00a0II');
     expect(mount(FRESH_CARD).querySelector(testIdSelector(HUD_TEST_ID.traitCardUpgrade))).toBeNull();
   });
 
   it('names its key, trait, tier and effects to assistive technology', () => {
     const button = mount(UPGRADE_CARD);
     expect(button.getAttribute('aria-label')).toBe(
-      `2: ${UPGRADE_CARD!.name} I → II, ${UPGRADE_CARD!.effects.join(', ')}`,
+      `2: ${UPGRADE_CARD!.name} I\u00a0→\u00a0II, ${UPGRADE_CARD!.effects.join(', ')}`,
     );
   });
 
@@ -82,5 +83,16 @@ describe('TraitCardComponent', () => {
   it('lifts only while the overlay names it the highlight', () => {
     expect(mount(FRESH_CARD).classList.contains('highlighted')).toBe(false);
     expect(mount(FRESH_CARD, true).classList.contains('highlighted')).toBe(true);
+  });
+
+  /** #453: Cell Wall's armour helps and its weight costs, so its lines wear the two marks, never tones by sign. */
+  it('marks each effect line by what it does for the cell', () => {
+    const button = mount(FRESH_CARD);
+    const lines = [...button.querySelectorAll<HTMLElement>('.effect')];
+    const marks = lines.map((line) => line.querySelector<HTMLElement>('ui-effect-mark')?.dataset['effect']);
+    expect(marks).toEqual(FRESH_CARD?.effectTones);
+    expect(marks).toContain(MODIFIER_EFFECT.benefit);
+    expect(marks).toContain(MODIFIER_EFFECT.drawback);
+    expect(lines.map((line) => line.textContent?.trim())).toEqual(FRESH_CARD?.effects);
   });
 });

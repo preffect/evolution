@@ -255,7 +255,8 @@ pauses it or moves on. The dish behind the panel still moves under the preferenc
    trait, `ENCYCLOPEDIA_FACTS_TABLE_LABEL`.
    - A trait's first table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
      modifier keys their `facts` carry (`label` is the noun, `Mass decay`; `text` the value, `−15 %`, in `figure`),
-     `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity; the owned tier's column is tinted
+     `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity, each value led by the effect mark
+     (up for a benefit, down for a drawback) by its effect on the owner (docs/ui/hud.md §3.1.5, #453); the owned tier's column is tinted
      accent under `You own II` (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier
      column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
    - **When the columns do not fit, the values wrap; the table never widens** (#465). The sizing rule above assumes
@@ -312,6 +313,9 @@ to the first listed category while `basics` is still empty (#361).
   activates pushes the location it left (`goTo`), while the roving focus of the rail and the list, where selection
   follows focus, only replaces it (`goToReplacing`). Arrowing down a list is one act of looking, not one move per row;
   pushing each would spend `ENCYCLOPEDIA_HISTORY_MAX` on arrow steps and drop the location Back is there to return to.
+  The kit reports the two apart (ticket #622): the rail and the list push on the group's `activated`, which fires for
+  every click, Enter or Space — the row already selected included — and before the selection moves, and replace on
+  `selectedIdChange`; a selection change that lands on the location an activation has just pushed does nothing.
   A `sectionKey` naming a section the entry does not have is treated as the top of the page.
 - **Search** is warranted: about 75 entries across six categories, and a player usually arrives knowing a name they
   saw on a card or a label. `/` (`ENCYCLOPEDIA_SEARCH_KEY_CODE`) focuses the field from anywhere in the encyclopedia
@@ -381,7 +385,6 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `encyclopedia-preview.service.ts`                                                                                                                                                                                                               | The one `PreviewHandle` an open panel has: the panel provides it, the entry page says what to show, the lens borrows its canvas (architecture §12.7)                 |
 | `encyclopedia-facts.component.ts`, `encyclopedia-prose.component.ts`                                                                                                                                                                            | The facts tables and the prose segments with their links                                                                                                             |
 | `encyclopedia-state.service.ts`                                                                                                                                                                                                                 | §11.5's state                                                                                                                                                        |
-| `encyclopedia-activation-press.directive.ts`                                                                                                                                                                                                    | The one seam that tells an activation from a rove on a roving group whose selection follows focus: the rail's and the list's (§11.5)                                 |
 | `format/navigation.ts`, `format/search.ts`, `format/panel-keys.ts`, `format/rail-view.ts`, `format/list-view.ts`, `format/landing-view.ts`, `format/panel-view.ts`, `format/glyph-subject.ts`, `format/entry-view.ts`, `format/lens-overlay.ts` | Pure: the transitions, the match and its order, the panel's key rules, the page's view model (tier columns, chips, crumbs, the tier switch), the eyepiece's geometry |
 | `encyclopedia-constants.ts`, `test-ids.ts`                                                                                                                                                                                                      | The table below and the key codes; §11.6. §11.2's category labels and order are the registry's, in `model/categories.ts`                                             |
 | `format/encyclopedia-css-variables.ts`                                                                                                                                                                                                          | The `--encyclopedia-…` tokens the panel's stylesheets read, pinned entry by entry (docs/CODE-STANDARDS.md §2)                                                        |

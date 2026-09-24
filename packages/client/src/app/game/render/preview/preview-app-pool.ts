@@ -70,6 +70,7 @@ export class PreviewAppPool {
       textures: handle.textures,
       resize: (sizePx) => handle.resize(sizePx),
       unbindTextures: () => handle.unbindTextures(),
+      warmUp: handle.warmUp,
       destroy: () => {
         if (isReleased) return;
         isReleased = true;

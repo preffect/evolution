@@ -1,8 +1,11 @@
-// The Evolution bot binding (docs/testing/bots-and-design-tables.md §8.3): how a bot reads a wire `GameSnapshot` and
-// speaks to the Evolution module. Cells and motes are the snapshot's own views; `canEngulf` is the
-// shared predicate (docs/ecology/absorption.md §6.1) closed over the balance the caller supplies, read at
-// every call so a `debug_set_balance` reaches the bots too. The in-process roster feeds it full
-// snapshots; over the wire a client feeds it what it received.
+// The Evolution bot bindings (docs/testing/bots-and-design-tables.md §8.3): how a bot reads the world and speaks to the
+// Evolution module. Over the wire a client reads the `GameSnapshot` it received (the snapshot's own views). In
+// process, the roster the module drives reads the live `WorldState` itself (ticket #181): a `CellRecord`, a
+// `FoodMoteRecord` and a `DnaFragmentRecord` already carry every field a strategy reads, so no snapshot is built
+// each tick for the bots. Both see the same things in the same order (the full snapshot is built from the same
+// arrays), except that the world's positions are exact where the wire's are quantised. `canEngulf` is the shared
+// predicate (docs/ecology/absorption.md §6.1) closed over the balance the caller supplies, read at every call so a
+// `debug_set_balance` reaches the bots too.
 
 import {
   canEngulf,
@@ -13,6 +16,8 @@ import {
   type GameSnapshot,
   type PlayerId,
 } from '@evolution/shared';
+import type { CellRecord } from '../world/entities.js';
+import type { WorldState } from '../world/world-state.js';
 import { locateCellThrough, toWireInput, type BotWorldBinding } from './bot-binding.js';
 import type { BotMoteView, BotPerception, PlayerBotCellView } from './perception.js';
 
@@ -42,6 +47,39 @@ export function createEvolutionBotPerception(getBalance: () => BalanceConfig): B
 
 export function createEvolutionBotBinding(getBalance: () => BalanceConfig): BotWorldBinding<GameInput, GameSnapshot> {
   const perception = createEvolutionBotPerception(getBalance);
+  return {
+    name: EVOLUTION_BINDING_NAME,
+    perception,
+    locateCell: locateCellThrough(perception),
+    toInput: toWireInput,
+  };
+}
+
+/** The player's own cell in the live world, or `undefined` while it has none (spectating). */
+export function ownCellInWorld(world: WorldState, playerId: PlayerId): PlayerBotCellView | undefined {
+  return world.cells.find((cell): cell is CellRecord & PlayerBotCellView => cell.playerId === playerId);
+}
+
+/** The same greedy graze as `motesOfSnapshot`, over the world's own records. */
+export function motesOfWorld(world: WorldState): readonly BotMoteView[] {
+  return world.dnaFragments.length > 0 ? world.dnaFragments : world.food;
+}
+
+/** What the in-process roster sees: the live world, read where it stands, no snapshot built. */
+export function createEvolutionWorldBotPerception(getBalance: () => BalanceConfig): BotPerception<WorldState> {
+  return {
+    ownCellOf: ownCellInWorld,
+    cellsOf: (world) => world.cells,
+    motesOf: motesOfWorld,
+    canEngulf: (predator, prey) => canEngulf(predator, prey, getBalance().absorption),
+  };
+}
+
+/** The binding of the bots the module drives itself (`debug_spawn_bot`). */
+export function createEvolutionWorldBotBinding(
+  getBalance: () => BalanceConfig,
+): BotWorldBinding<GameInput, WorldState> {
+  const perception = createEvolutionWorldBotPerception(getBalance);
   return {
     name: EVOLUTION_BINDING_NAME,
     perception,

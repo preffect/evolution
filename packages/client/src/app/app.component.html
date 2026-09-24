@@ -115,15 +115,23 @@
         @if (multiplayer.games().length === 0) {
           <p class="muted">No games yet.</p>
         }
-        <ul class="games">
+        <ul class="games" data-testid="games-list">
           @for (game of multiplayer.games(); track game.gameId) {
-            <li>
+            <li [attr.data-testid]="'game-row-' + game.gameId">
               <span class="game-name">{{ game.gameName }}</span>
               <span class="muted">{{ game.players.length }}/{{ game.maxPlayers }}</span>
               @if (game.isStarted) {
                 <span class="badge">started</span>
               }
-              <button type="button" uiButton variant="primary" size="compact" (click)="joinGame(game.gameId)">
+              <button
+                type="button"
+                uiButton
+                variant="primary"
+                size="compact"
+                [isDisabled]="!isJoinable(game)"
+                [testId]="'game-join-' + game.gameId"
+                (click)="joinGame(game.gameId)"
+              >
                 Join
               </button>
               <button type="button" uiButton size="compact" (click)="startGame(game.gameId)">Start</button>

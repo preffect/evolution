@@ -2,10 +2,11 @@
 // pixel ratio, the dark field as the clear colour, sized to the host. The one file that creates
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 
-import { Application, Texture } from 'pixi.js';
-import { BG_DEEP } from './constants';
+import { Application, RenderTexture, Texture } from 'pixi.js';
+import { BG_DEEP, RENDER_WARM_UP_TARGET_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
+import type { RendererWarmUpSeam } from './renderer-warm-up';
 import { createDomBakeCanvasFactory } from './textures/texture-bake';
 import { uiFontsLoaded } from './ui-fonts';
 
@@ -37,10 +38,27 @@ export interface PixiAppHandle {
    * after a Pixi upgrade, re-check `?preview=…&opens=20` for the warning before trusting it.
    */
   unbindTextures(): void;
+  /** Uploads a texture source and renders a container off screen: a staged renderer's warm-up (ticket #603). */
+  readonly warmUp: RendererWarmUpSeam;
   destroy(): void;
 }
 
 export const GAME_CANVAS_TEST_ID = 'game-canvas';
+
+/** The staged renderer's warm-up on the real app: the target is freed even when the render throws. */
+function createWarmUpSeam(app: Application): RendererWarmUpSeam {
+  return {
+    uploadTextureSource: (source) => app.renderer.texture.initSource(source),
+    renderOffscreen: (container) => {
+      const target = RenderTexture.create({ width: RENDER_WARM_UP_TARGET_PX, height: RENDER_WARM_UP_TARGET_PX });
+      try {
+        app.renderer.render({ container, target });
+      } finally {
+        target.destroy(true);
+      }
+    },
+  };
+}
 
 export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHandle> {
   // Before anything can bake text: a bitmap font drawn while a web font is still loading keeps the fallback glyphs.
@@ -70,6 +88,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     unbindTextures: () => {
       app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;
     },
+    warmUp: createWarmUpSeam(app),
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

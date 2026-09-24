@@ -128,7 +128,7 @@ describe('TraitOfferOverlayComponent', () => {
     });
     expect(query(traitCardTestId(0))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardRung))).not.toBeNull();
     const upgrade = query(traitCardTestId(1))!.querySelector(testIdSelector(HUD_TEST_ID.traitCardUpgrade));
-    expect(upgrade!.textContent!.trim()).toBe('I → II');
+    expect(upgrade!.textContent!.trim()).toBe('I\u00a0→\u00a0II');
   });
 
   it('highlights and previews no card until one is hovered or focused', () => {

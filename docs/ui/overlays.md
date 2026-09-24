@@ -61,7 +61,7 @@ without copy fails the gate instead of rendering `undefined`.
   element (corrected on #34). The dish keeps simulating and the cell keeps steering: pointer input is not captured
   by the overlay (`pointer-events: none` on everything but the cards).
 - **Card.** Glyph medallion 56 px (the trait's glyph, visual-style/ui-type.md §7.1), category in `caption`, name in `card_name` bold with tier numeral
-  (`Cilia Fringe II`), up to four effect lines in `label` (mixed case), rarity chip in `caption` (`COMMON` / `UNCOMMON` /
+  (`Cilia Fringe II`), up to four effect lines in `label` (mixed case), each led by the effect mark, up for what helps the cell and down for what costs it (hud.md §3.1.5, #453), rarity chip in `caption` (`COMMON` / `UNCOMMON` /
   `RARE`, text as well as colour). A card whose trait is in `STAGE_GATE_TRAITS[nextStage(ownProgress.stage)]`
   carries a `RUNG` ribbon (the rung card of PROGRESSION §3, which reserves the first card for it; the ribbon text
   and the test id share the one word); its silhouette is the one the ladder orbit has been showing as a ghost
@@ -287,11 +287,11 @@ rows) are prose and belong wholly in `body`**, where the name column takes the r
 cut at the panel edge mid-word, which is how `decay ×1.5 · orange` and `8:02 · food ×1.5 · DNA dro` shipped in
 #387's first frames. The widest line the panel draws is the bloom row's.
 
-**The `TRAITS` rows' sign convention is an open question (#453).** They come from the trait-modifier label table
-(`quantities/modifier-labels.ts`), where an effect is `<signed change> <noun>` — so `Mitochondrion I · −15 % mass
-decay` lands in the same right-aligned value column as `Speed · −47 %` and the `MASS` rates, and scanning that
-column gives four negatives of which one is a benefit. #445 changed the cause rows only (hud.md §3.1.5) because the
-label table is shared with the trait cards and the encyclopedia; this row is recorded as open, not as correct.
+**The `TRAITS` rows are marked by effect, not sign (#453).** Each row's value, the first line of its tier's effects, is
+led by the effect mark: a triangle up in `GAIN` when it helps the cell, down in `DANGER` when it costs, from the label
+table's `betterWhen` (`modifierEffect`); the value's text keeps the text colour. The trait cards (§3.2), the menu's
+`Your traits` and the encyclopedia's tier table use the same mark, so `Mitochondrion I · ▲ −15 % mass decay` reads as
+the benefit it is beside `Speed · −47 %` (hud.md §3.1.5).
 
 **The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--ui-scale` at the
 `UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, and a row's name column overflows between

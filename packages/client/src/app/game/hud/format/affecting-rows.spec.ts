@@ -24,6 +24,7 @@ import {
   type MassFlowView,
   type PlayerRosterView,
 } from '@evolution/shared';
+import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { createTestCellView } from '../../../../testing/builders';
 import { AT_LEAST_SIGN, AT_MOST_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { formatQuantity } from '../../quantities/format-quantity';
@@ -255,6 +256,9 @@ describe('affectingRowsFor at the worked example', () => {
       `Mitochondrion ${formatQuantity(FIRST_TIER, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral })}`,
     );
     expect(row?.values[0]).toBe(effect);
+    // Less mass decay reads with a minus and still helps: the value is toned a benefit, not by its sign (#453).
+    expect(effect).toMatch(/^−/);
+    expect(row?.valueEffect).toBe(MODIFIER_EFFECT.benefit);
     // Its marker is the trait's own glyph, which is what the panel draws in the slot.
     expect(row?.traitId).toBe(MITOCHONDRION);
   });

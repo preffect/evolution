@@ -137,4 +137,57 @@ describe('RendererSlot', () => {
     expect(pixi.textures.uninstalledFonts.length).toBeGreaterThan(0);
     expect(keptIndicators.labelPill.texture.destroyed).toBe(true);
   });
+
+  it('stages a build one bake per advance, off the stage, and swaps in only on commit (#479, #603)', () => {
+    const pixi = createFakePixiApp();
+    const slot = new RendererSlot();
+    const options = buildOptions(pixi.textures, 3);
+    const build = slot.beginBuild(pixi.stage, pixi.screen, options, UNTIMED_STAGES);
+    let advances = 1;
+    build.advance();
+    // The first advance ran exactly one bake: the light pool, and not yet a radial one.
+    expect(pixi.textures.bakedSpecs).toHaveLength(0);
+    while (!build.advance()) advances += 1;
+    expect(advances).toBeGreaterThan(5);
+    const staged = build.staged!;
+    expect(slot.current, 'a built renderer went current before its commit').toBeNull();
+    expect(pixi.stage.children, 'a built renderer is on the stage before its commit').toHaveLength(0);
+    expect(staged.container.children).toHaveLength(2);
+    const built = build.commit();
+    expect(built).toBe(staged.renderer);
+    expect(slot.current).toBe(built);
+    expect(pixi.stage.children).toHaveLength(2);
+
+    const radialBakes = pixi.textures.bakedSpecs.length;
+    const rebuild = slot.beginBuild(pixi.stage, pixi.screen, { ...options, seed: 4 }, UNTIMED_STAGES);
+    rebuild.advance();
+    expect(slot.current, 'the old renderer must keep drawing while the rematch bakes').toBe(built);
+    const rebuilt = rebuild.commit();
+    expect(rebuilt.seed).toBe(4);
+    expect(slot.current).toBe(rebuilt);
+    expect(pixi.stage.children, 'the old renderer’s layers were left on the stage').toHaveLength(2);
+    expect(pixi.textures.bakedSpecs, 'the kept half was baked again').toHaveLength(radialBakes);
+    slot.dispose();
+  });
+
+  it('bakes the same textures staged as whole: one bake of each, the same canvases in the same order', () => {
+    const whole = createFakePixiApp();
+    const staged = createFakePixiApp();
+    const wholeSlot = new RendererSlot();
+    const stagedSlot = new RendererSlot();
+    wholeSlot.build(whole.stage, whole.screen, buildOptions(whole.textures, 7), UNTIMED_STAGES);
+    const build = stagedSlot.beginBuild(staged.stage, staged.screen, buildOptions(staged.textures, 7), UNTIMED_STAGES);
+    while (!build.advance());
+    build.commit();
+    expect(staged.textures.bakedSpecs).toEqual(whole.textures.bakedSpecs);
+    expect(staged.textures.bakedCanvases.map((canvas) => [canvas.width, canvas.height])).toEqual(
+      whole.textures.bakedCanvases.map((canvas) => [canvas.width, canvas.height]),
+    );
+    // Font names are unique per bundle (the BitmapFont cache is process-wide); what is installed is the same.
+    const fontsOf = (installs: typeof whole.textures.installedFonts) =>
+      installs.map((install) => [install.style, install.chars, install.resolution]);
+    expect(fontsOf(staged.textures.installedFonts)).toEqual(fontsOf(whole.textures.installedFonts));
+    wholeSlot.dispose();
+    stagedSlot.dispose();
+  });
 });

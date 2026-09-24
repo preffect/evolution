@@ -125,6 +125,16 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
     the last delta it was sent, frozen at that tick plus the extrapolation cap until a resume. The ack that shows it
     caught up now sends the `game_state` at once (`GameRoom.recordSnapshotAck`); a running room still sends it in place
     of its next delta. Steps of any size and pause → resume leave the client current.
+  - **One resync per recovery** (#275). The `game_state` reaches a slow client behind the older deltas still queued
+    ahead of it, so for a while its acks keep reading far behind; the room used to take that as a fresh fall and arm a
+    second and a third full state. The room now remembers the tick of the resync in flight and sends that client
+    nothing, and owes it nothing, until it acknowledges that tick (`SnapshotBacklog.isAwaitingResyncAck`); the next
+    broadcast after the ack covers the gap. A **paused** room makes no next broadcast, so a `debug_step_room` taken
+    during the hold still sends its delta, queued behind the resync, and steps of any size leave the client current
+    (#300). A client that has never acknowledged is not held. Modelled at #274's measured rates (room 60.6 msg/s,
+    client 34.8/s) over 3 000 broadcasts, a running room: 100 resyncs, 88 of them on top of an unacknowledged one,
+    before; 24 and 0 after, with more deltas delivered (1 641 → 1 704). Advanced by debug steps: 106 / 94 before, 16 / 0
+    after (1 636 → 1 799 deltas). A `game_state` is about 3 times a delta (29.9 KB against a 10.3 KB median at start).
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
   is the one drain of the effects; each viewer's camera steps on the first `serialize` of a tick and its food delta
@@ -159,6 +169,11 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   reconnect does, and never runs the late join again. An active room cancels any grace timer, reattaches the socket and
   resends `game_state`; the roster, the `GameModule` and the other players are untouched (no `player_joined`, no
   `lobby_update`). A pending game held keeps the seat as it is and sends nothing, even when it is full.
+- **`join_game` for a full room** (#365, the #337 ruling, game-design/session.md §5): a room whose humans (connected plus
+  in disconnect grace; synthetic players never count) already fill `maxPlayers` refuses the join with `error`
+  `Game is full`, started or pending alike (`isRoomJoinable`). The held-seat re-entry above runs first, so a player who
+  holds a seat always gets back in; a reconnect is not a join and is never refused. `lobby_update` lists the same
+  humans for a started room, so the row's count and the refusal agree.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
@@ -253,6 +268,30 @@ reports now:
 The broadcast adds 60–75 % to the step-only tick p95, and at 32 seats a broadcasting tick spends 7.9 ms of the
 16.67 ms step on the broadcast alone. An earlier run of the same bench read 1.96 ms and 10.0 ms for `broadcastP95Ms`,
 so the figures are sizes, not pins. The splice (§4) is what keeps that cost flat in the client count.
+
+**Measured (#406)**: the per-viewer part of a broadcast (the food delta, the fragments, each viewer's members
+written into the spliced frame) in process, no socket, with `pnpm --filter @evolution/server bench:broadcast`
+(`packages/server/bench/viewer-broadcast.ts`). The dish holds 1 400 motes (half bacteria, moving each broadcast) and 110
+fragments, packed around 8 viewers so a widest-zoom view holds several hundred motes. Figures are medians of the
+process's **CPU time** per broadcast over 300 broadcasts. That is not wall time, because other agents' runs on the
+shared box stretch the wall clock. Main (A) and the change (B) ran alternately, three rounds each, at load average
+14–20 on 4 cores.
+
+| 8 viewers, 1 400 motes                 | Before (median / p95) | After (median / p95) | Change (median) |
+| -------------------------------------- | --------------------- | -------------------- | --------------- |
+| spawn zoom (532 moving motes in view)  | 3.96–4.08 / 5.5–6.4   | 2.32–2.38 / 7.7–8.2  | −42 %           |
+| widest zoom (686 moving motes in view) | 4.77–4.80 / 6.1–6.4   | 2.53–2.79 / 5.7–6.8  | −45 %           |
+
+The bytes each viewer is sent are unchanged (28 310 B and 35 356 B): the member JSON is written to match
+`JSON.stringify` exactly. What moved into the shared once-per-broadcast part is: every mote's quantised position, its
+"moved at broadcast N" stamp and its JSON (`MoteMotion` keeps one `MoteEntry` per mote across broadcasts, so an unmoved
+mote keeps its position object and its string). Per viewer there is no `Map`, no id hashing and no per-mote stringify.
+The tracker owns a slot, each entry records in it the broadcast that viewer was last sent the mote at, and the
+viewer's arrays are joined from the entries' strings. The p95 rises at spawn zoom (garbage collection lands in some
+samples). What remains per viewer is proportional to the motes in its view (the area filter and the membership walk);
+a spatial grid of shared chunks is the next lever if it ever matters. One behaviour differs from comparing positions:
+a mote that moves away and back to the same quantised position between two of a viewer's snapshots is sent in `moved`
+again. That is harmless, because a patch is idempotent.
 
 **Measured (#341)** with the #331 method on a private server (seed 34101), in two rooms: idle bots with food and
 fragments at cap, and grazer bots, whose cells move and grow — which is what gives velocity and mass their float

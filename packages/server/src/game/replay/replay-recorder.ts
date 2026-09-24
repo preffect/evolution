@@ -74,12 +74,17 @@ export class ReplayRecorder {
    * Called right before the step, and by `export`: every pending input is what step 1 applies at
    * `tick + 1`. The entries already stamped for that tick are replaced, so an export between ticks
    * and the step that follows it record the same fact once (an input coalesced after the export
-   * replaces the earlier entry, as it replaced the pending slot).
+   * replaces the earlier entry, as it replaced the pending slot). The log is in tick order, so those entries are its
+   * tail: only the tail is dropped, never the whole log copied, which cost every tick in proportion to the room's age
+   * (#181, measured in docs/architecture/debug-mcp.md §8).
    */
   recordPendingInputs(world: WorldState): void {
     const nextTick = world.tick + 1;
-    this.current.inputs = this.current.inputs.filter((entry) => entry.tick !== nextTick);
-    this.current.inputs.push(...pendingInputsOf(world));
+    const { inputs } = this.current;
+    while (inputs.at(-1)?.tick === nextTick) {
+      inputs.pop();
+    }
+    inputs.push(...pendingInputsOf(world));
   }
 
   recordJoin(world: WorldState, identity: PlayerIdentity): void {

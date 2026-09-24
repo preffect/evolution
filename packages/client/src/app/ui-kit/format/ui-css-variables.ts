@@ -10,6 +10,7 @@
 import {
   CALLOUT_BACKING,
   DANGER,
+  GAIN,
   DNA,
   LEVEL_GOLD,
   PANEL_BOTTOM,
@@ -80,6 +81,8 @@ function colourVariables(): StyleVariables {
     '--ui-callout-backing': CALLOUT_BACKING,
     '--ui-white': WHITE,
     '--ui-danger': DANGER,
+    /** The effect mark of a modifier that helps its owner (#453); `--ui-danger` marks a drawback. */
+    '--ui-gain': GAIN,
     '--ui-level-gold': LEVEL_GOLD,
     '--ui-dna': DNA,
     '--ui-hover': colourAtAlpha(TEXT, kit.UI_ROW_HOVER_ALPHA),
@@ -132,6 +135,7 @@ function controlVariables(): StyleVariables {
     '--ui-chip-height': pixels(kit.UI_CHIP_HEIGHT_PX),
     '--ui-chip-padding-inline': pixels(kit.UI_CHIP_PADDING_INLINE_PX),
     '--ui-chip-dot': pixels(kit.UI_CHIP_DOT_PX),
+    '--ui-effect-mark': pixels(kit.UI_EFFECT_MARK_PX),
     '--ui-alert-height': pixels(kit.UI_ALERT_HEIGHT_PX),
     '--ui-key-hint-height': pixels(kit.UI_KEY_HINT_HEIGHT_PX),
     '--ui-search-width': pixels(kit.UI_SEARCH_WIDTH_PX),

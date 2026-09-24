@@ -177,4 +177,6 @@ the only file that knows `AudioContext`), with `CueScheduler` (cooldown, overlap
 `AmbientMixer` (stem per stage, zone overlay, duck) and `AudioBuses` (`master` → `music`, `sfx`; the
 persisted mute). **Silent when the manifest or an asset is missing, never throwing.** Nothing but the
 sound bus plays through `AudioService`; the HUD's mute toggle is its only other caller. Time is the
-injected `CLOCK` (`clock-provider.ts`) and the audio clock, never a JS timer.
+injected `CLOCK` (`clock-provider.ts`) and the audio clock, never a JS timer. `RenderSession` holds the handle through `AudioSession` (`audio/audio-session.ts`, #275): a
+`game_state` for the same room and player (a resync) keeps the live session and only takes the balance, so
+a client that is resynced keeps its loops and its transition memory; another room or player starts over.

@@ -15,6 +15,7 @@ import {
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
 import { MASS_TREND } from '../state/mass-trend';
+import { MODIFIER_EFFECT } from '../quantities/modifier-labels';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { AffectingPanelComponent } from './affecting-panel.component';
 import { HudStateService } from './hud-state.service';
@@ -162,6 +163,18 @@ describe('AffectingPanelComponent', () => {
     // nothing at all. jsdom lays nothing out and cannot resolve `calc(var(…))`, so this pins the rule that sizes
     // it — the thing whose absence was the defect — rather than a measured box.
     expect(sizesTheTraitGlyph()).toBe(true);
+  });
+
+  /** #453: Mitochondrion's `−15 % mass decay` sits in the column beside costs that also read with a minus. */
+  it('marks an owned trait row’s value with its effect on the cell, so its minus is not read as a cost', () => {
+    show();
+    holdTab();
+    const row = (fixture.nativeElement as HTMLElement).querySelector(
+      `[data-row-id="${affectingTraitTestId(MITOCHONDRION)}"]`,
+    );
+    const mark = row?.querySelector<HTMLElement>('.trait-effect ui-effect-mark');
+    expect(mark?.dataset['effect']).toBe(MODIFIER_EFFECT.benefit);
+    expect(row?.querySelector('.trait-effect')?.textContent?.trim()).toMatch(/^−/);
   });
 
   it('stands down while spectating: there is no cell to describe', () => {

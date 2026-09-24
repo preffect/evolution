@@ -8,7 +8,12 @@
 // guard counts lines, not the rows a long line wraps onto; #428 adds the rendered-height one. Pure.
 
 import type { BalanceConfig, TraitId, TraitTierModifiers } from '@evolution/shared';
-import { modifierLines, nonIdentityModifiers } from '../../quantities/modifier-labels';
+import {
+  modifierLineEffects,
+  modifierLines,
+  nonIdentityModifiers,
+  type ModifierEffect,
+} from '../../quantities/modifier-labels';
 
 /** What a card reads from the live balance: the tier tables and the identity record, never the module constants. */
 export type TraitModifierTables = Pick<BalanceConfig['traits'], 'TRAIT_TIERS' | 'DEFAULT_CELL_MODIFIERS'>;
@@ -23,4 +28,16 @@ function tierModifierRow(traits: TraitModifierTables, traitId: TraitId, tier: nu
 /** The card's effect lines for `traitId` at `tier` (1..3): one per modifier that differs from identity, none cut. */
 export function describeTierModifiers(traits: TraitModifierTables, traitId: TraitId, tier: number): string[] {
   return modifierLines(nonIdentityModifiers(tierModifierRow(traits, traitId, tier), traits.DEFAULT_CELL_MODIFIERS));
+}
+
+/** Each of `describeTierModifiers`' lines' effect on its owner, in the same order, so a surface tones it (#453). */
+export function describeTierModifierEffects(
+  traits: TraitModifierTables,
+  traitId: TraitId,
+  tier: number,
+): ModifierEffect[] {
+  return modifierLineEffects(
+    nonIdentityModifiers(tierModifierRow(traits, traitId, tier), traits.DEFAULT_CELL_MODIFIERS),
+    traits.DEFAULT_CELL_MODIFIERS,
+  );
 }

@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import type { PlayerId, GameId, LobbyGameInfo, GameSessionConfig } from '@evolution/shared';
-import { GAME_ID_LENGTH, SERVER_MESSAGE_TYPE } from '@evolution/shared';
+import { GAME_ID_LENGTH, SERVER_MESSAGE_TYPE, isRoomJoinable } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
 import type { MessageHandlers } from '../ws/message-router.js';
@@ -11,6 +11,8 @@ import { lobbyPresenceOf, roomInitOptionsOf, type PendingGame } from './pending-
 import { SeatLifecycle } from './seat-lifecycle.js';
 
 const GAME_NOT_FOUND = 'Game not found';
+/** A join to a room whose humans already fill `maxPlayers`, pending or started (#337, game-design/session.md §5). */
+const GAME_FULL = 'Game is full';
 const ONLY_CREATOR_MAY_DELETE = 'Only the creator can delete the game';
 
 /**
@@ -93,6 +95,11 @@ export class LobbyManager {
     this.broadcastLobbyUpdate();
   }
 
+  /** A refused join leaves the player where they were, seat included (#334). */
+  private refuseFullGame(connection: Connection): void {
+    sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: GAME_FULL });
+  }
+
   /**
    * A join for the room already held re-enters it and is never a second late join (#335). A seat held in another room
    * is left only once the join is accepted (#334), so a refused join keeps it.
@@ -102,6 +109,13 @@ export class LobbyManager {
     // Joining an in-progress game = late join.
     const active = this.activeRooms.get(gameId);
     if (active) {
+      // Humans hold the seats, connected or in grace; the synthetic players a debug tool adds do not (#337).
+      if (
+        !isRoomJoinable({ playerCount: active.playerConnections.size, maxPlayers: active.sessionConfig.maxPlayers })
+      ) {
+        this.refuseFullGame(connection);
+        return;
+      }
       this.seats.leaveOtherSeat(connection.playerId, gameId);
       this.playerToGame.set(connection.playerId, gameId);
       active.addLatePlayer(connection);
@@ -111,8 +125,8 @@ export class LobbyManager {
 
     const pending = this.pendingGameOrReject(connection, gameId);
     if (!pending) return;
-    if (pending.players.size >= pending.config.maxPlayers) {
-      sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: 'Game is full' });
+    if (!isRoomJoinable({ playerCount: pending.players.size, maxPlayers: pending.config.maxPlayers })) {
+      this.refuseFullGame(connection);
       return;
     }
     this.seats.leaveOtherSeat(connection.playerId, gameId);
@@ -205,11 +219,14 @@ export class LobbyManager {
     const activeInfos = Array.from(this.activeRooms, ([gameId, room]) => ({
       gameId: gameId as GameId,
       gameName: room.gameName,
-      players: room.allPlayerIds.map((playerId) => ({
-        playerId: playerId as PlayerId,
-        playerName: room.playerNames[playerId] ?? '',
-        avatarIndex: room.avatarAssignments[playerId] ?? 0,
-      })),
+      // Humans only, connected or in grace: the count the join refusal reads, so `8/8` and "Game is full" agree (#337).
+      players: room.allPlayerIds
+        .filter((playerId) => room.playerConnections.has(playerId))
+        .map((playerId) => ({
+          playerId: playerId as PlayerId,
+          playerName: room.playerNames[playerId] ?? '',
+          avatarIndex: room.avatarAssignments[playerId] ?? 0,
+        })),
       maxPlayers: room.sessionConfig.maxPlayers,
       isStarted: true,
       creatorId: room.creatorId,

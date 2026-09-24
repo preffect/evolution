@@ -332,10 +332,45 @@ software rasteriser on a loaded 4-core box and are not hardware numbers** — th
 | `buildNoiseTile` (256², pure CPU, Node, median of 5) | 134 ms                | **64 ms**             | −52 %: per-row terms hoisted, no closure per knot read                                                                                                                         |
 | `bakeRadialBytes` (vignette 512², same)              | 49 ms                 | **37 ms**             | −25 %: no `stops.slice(1)` per pixel                                                                                                                                           |
 
-**Room entry is only partly addressed.** The shared half is most of a first build and it still runs inside the
-frame loop, so the ~1.2 s at room entry falls by roughly the CPU savings above and no further: keeping the half
-across rebuilds does nothing for the build that creates it. Ticket #442's option 2 — build the renderer during the
-room transition instead of inside `_tick` — is what remains, and is filed separately.
+**The live room stages its builds across frames (#479).** Each half is a list of bakes (`render-texture-stages.ts`:
+one step per radial bake, atlas, font install, dish field, vent, noise tile and organelle atlas), and a live
+`RenderSession` builds through `RendererSlot.beginBuild`: the ticker runs **one bake per animation frame**
+(`FrameLoopSession.buildRendererAcrossFrames`), so the page keeps painting and taking input while a room's
+textures are baked. Nothing swaps until the last bake — at a rematch the old round keeps drawing — and the frame
+that carries the last bake and the renderer's construction draws nothing. A room torn down mid-build finishes the
+build before disposing it, so no baked texture or installed font leaks. `build` runs the same steps back to back
+for the bench and the preview, which measure a whole build; `renderer-slot.spec.ts` pins that the staged and the
+whole build make the same bakes in the same order.
+
+Measured on the container's SwiftShader (load 8–9, 1280 × 800, three fresh rooms each, the longest main-thread
+task from `Start` to the first frame; not hardware numbers):
+
+| Figure                | Before                        | After                                       |
+| --------------------- | ----------------------------- | ------------------------------------------- |
+| the texture bake      | one task of 0.39–0.76 s       | one step per frame, the longest 0.10–0.22 s |
+| the first drawn frame | 1.7–2.4 s (a task of its own) | 1.0–2.2 s, unchanged in kind                |
+
+**The staged build warms the first draw before the reveal (#603).** After the last bake the new renderer is built
+on a staging container **off the stage** (`RendererSlot.beginBuild`'s `staged`, put on the stage only by `commit`),
+and `renderer-warm-up.ts`'s `WarmedRendererBuild` goes on one step per frame: the bundle's texture sources uploaded
+`RENDER_WARM_UP_UPLOADS_PER_FRAME` (4, Pixi's own prepare default) at a time (`textureSourcesOf`, `PixiAppHandle.warmUp`), one
+warm-up draw of the current frame on the staged renderer (its first-time CPU work: the pools, meshes and texts made
+on first use; the stage brackets muted through `MutableStageMeasurer`, nothing submitted), and one render of the
+staging container to a `RENDER_WARM_UP_TARGET_PX` (64 px) off-screen target (the shader compiles). Only then does it commit. A teardown
+mid-build commits at once, skipping the warm-up, so what was made is still freed.
+
+Measured the same way (SwiftShader, load 9–13, three fresh rooms; not hardware numbers):
+
+| Figure                                           | #479 alone  | With the warm-up                                                |
+| ------------------------------------------------ | ----------- | --------------------------------------------------------------- |
+| the first visible frame's `renderer.render`      | 0.39–0.88 s | 7–23 ms (the warm-up draw, before the reveal: 23–31 ms)         |
+| the first visible frame's `app.render`           | 0.37–0.82 s | 1–10 ms (the off-screen render, before the reveal: 0.32–0.74 s) |
+| the longest task from `Start` to the first frame | 1.0–2.2 s   | 1.1–1.35 s                                                      |
+
+**What is left is the first on-screen present, outside the frame's JavaScript:** the ticker callback that draws the
+first visible frame runs in about 45 ms, yet its task lasts 1.1–2 s — the main thread waits on SwiftShader
+rasterising the first full-screen frame (steady frames are 0.3–0.6 s tasks here). A real GPU does that in a frame;
+ticket #470's hardware run is what says whether anything of it is left to chase.
 
 **The bytes did not move.** `noise-tile.spec.ts` and `radial-bake.spec.ts` pin FNV-1a digests of the production
 bakes, taken from the implementations these replaced, so the mottle and the vignette are byte for byte what every

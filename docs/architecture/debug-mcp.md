@@ -79,10 +79,27 @@ socket with `DebugRequestError` (the module then holds nothing), else enrols the
 applied to a debug spawn. `removeBot` mirrors it: the module forgets the player,
 `GameRoom.removeSyntheticPlayer` (which refuses a player with a live socket) drops it from the
 roster and broadcasts `player_disconnected`. The module drives its roster at the top of
-`reduceGameState` (`bots.driveTick(snapshot, tick, submitInput)`, before step 1 applies pending
-input), so a bot's input for tick `t` is decided from the snapshot of `t − 1` and stamped
+`reduceGameState` (`bots.driveTick(view, tick, submitInput)`, before step 1 applies pending
+input), so a bot's input for tick `t` is decided from the world as `t − 1` left it and stamped
 `sequence = t`, exactly as a wire client's would be. The echo module wires the roster over the
-echo binding; the Evolution module (#152/#98) wires it over the Evolution binding and never spawns a
-bot any other way. Wild cells (#156) are not synthetic players and never go through the roster:
+echo binding; the Evolution module (#152/#98) wires it over the world binding
+(`createEvolutionWorldBotBinding` in `game/bots/evolution-binding.ts`: the wire binding's rules read straight off the live `WorldState`, the records
+themselves, unquantised, nothing serialised per tick, #181) and never spawns a bot any other way.
+
+**Measured (#181)** with `packages/server/bench/in-process-bots.ts`: the module's step in a room of eight bots
+(grazer, hunter, flee, wander), timed as process CPU time per step, main and the change alternately, three rounds
+each on the shared box. Two costs rode on the bots. Serialising a full snapshot for them every tick was the smaller
+one. The larger was the replay recorder copying its whole input log every tick: eight bots send an input every tick,
+so the step grew with the room's age. Now the bots read the world, and the recorder touches only the log's tail.
+
+Median CPU per step, the range over the three rounds (p95 in brackets; ms):
+
+| Room                                |                  main |                  #181 |
+| ----------------------------------- | --------------------: | --------------------: |
+| 8 bots, first minute                | 1.05–1.21 (2.49–2.59) | 0.53–0.56 (1.60–1.65) |
+| 8 bots, minute 10                   | 6.67–6.86 (12.1–12.5) | 0.82–0.90 (0.99–1.21) |
+| no bots (8 silent seats), minute 10 |             0.75–0.76 |             0.74–0.80 |
+
+Wild cells (#156) are not synthetic players and never go through the roster:
 they are world entities the simulation drives with the same strategies through an entity-id
 `ownCellOf`.

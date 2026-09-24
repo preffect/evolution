@@ -8,6 +8,20 @@ import { ReplayRecorder } from './replay-recorder.js';
 
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
+const RECORDED_TICKS = 5;
+
+/** Records one input a tick for `ticks` ticks, as the module does right before each step. */
+function recordTicks(ticks: number) {
+  const world = createTestWorld();
+  const recorder = new ReplayRecorder(world);
+  for (let tick = 0; tick < ticks; tick += 1) {
+    world.players[0]!.pendingInput = createTestGameInput({ sequence: tick + 1 });
+    recorder.recordPendingInputs(world);
+    world.players[0]!.pendingInput = null; // the step applied it
+    world.tick += 1;
+  }
+  return { world, recorder };
+}
 
 describe('ReplayRecorder', () => {
   it('starts from the world as it is: seed, start tick, roster, a balance copy', () => {
@@ -88,5 +102,58 @@ describe('ReplayRecorder', () => {
     const earlier = recorder.export(world);
     recorder.recordJoin(world, { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 });
     expect(earlier.membership).toEqual([]);
+  });
+
+  it('records a fact once when an export between ticks is followed by the step, the later input replacing it', () => {
+    const { world, recorder } = recordTicks(RECORDED_TICKS);
+    const player = world.players[0]!;
+    player.pendingInput = createTestGameInput({ sequence: 10 });
+    recorder.export(world);
+    player.pendingInput = createTestGameInput({ sequence: 11 });
+    recorder.recordPendingInputs(world);
+    const inputs = recorder.export(world).inputs;
+    expect(inputs.map((entry) => entry.tick)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(inputs.at(-1)?.input.sequence).toBe(11);
+  });
+
+  it('replaces every entry an export stamped for the coming tick, and never changes a replay already exported', () => {
+    const world = createTestWorld({
+      players: [
+        { playerId: playerId('p1'), playerName: 'Ada', avatarIndex: 0 },
+        { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 },
+      ],
+    });
+    const recorder = new ReplayRecorder(world);
+    for (const player of world.players) {
+      player.pendingInput = createTestGameInput({ sequence: 1 });
+    }
+    const exported = recorder.export(world);
+    const exportedCopy = structuredClone(exported);
+    for (const player of world.players) {
+      player.pendingInput = createTestGameInput({ sequence: 2 });
+    }
+    recorder.recordPendingInputs(world);
+    const inputs = recorder.export(world).inputs;
+    expect(inputs.map((entry) => entry.input.sequence)).toEqual([2, 2]);
+    expect(exported).toEqual(exportedCopy);
+  });
+
+  it('never walks the whole log to record a tick: only its tail is read (#181, a cost growing with the room age)', () => {
+    const { world, recorder } = recordTicks(RECORDED_TICKS);
+    const earlierEntries = recorder.export(world).inputs;
+    let earlierTickReads = 0;
+    for (const entry of earlierEntries.slice(0, -1)) {
+      const { tick } = entry;
+      Object.defineProperty(entry, 'tick', {
+        get: () => {
+          earlierTickReads += 1;
+          return tick;
+        },
+      });
+    }
+    world.players[0]!.pendingInput = createTestGameInput({ sequence: RECORDED_TICKS + 1 });
+    recorder.recordPendingInputs(world);
+    expect(earlierTickReads).toBe(0);
+    expect(recorder.export(world).inputs).toHaveLength(RECORDED_TICKS + 1);
   });
 });
