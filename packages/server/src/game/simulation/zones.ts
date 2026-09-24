@@ -44,6 +44,16 @@ export function foodBoundaryRadius(balance: BalanceConfig): number {
   return balance.world.DISH_RADIUS - balance.world.FOOD_EDGE_MARGIN;
 }
 
+/** The point itself when it is inside the food boundary, else its projection onto that circle. */
+export function clampedToFoodBoundary(point: Vec2, balance: BalanceConfig): Vec2 {
+  const reach = foodBoundaryRadius(balance);
+  const distance = Math.hypot(point.x, point.y);
+  if (distance <= reach) {
+    return point;
+  }
+  return { x: (point.x / distance) * reach, y: (point.y / distance) * reach };
+}
+
 /** A point uniform by area in the zone's band, from two draws. */
 export function pointInZone(zone: SpawnZoneId, balance: BalanceConfig, unitRadial: number, unitAngle: number): Vec2 {
   const band = zoneBand(zone, balance);

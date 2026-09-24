@@ -14,7 +14,7 @@ import {
 } from '@evolution/shared';
 import type { CellRecord, DnaFragmentRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { foodBoundaryRadius } from './zones.js';
+import { clampedToFoodBoundary } from './zones.js';
 
 interface Mobile extends Vec2 {
   x: number;
@@ -23,13 +23,12 @@ interface Mobile extends Vec2 {
 
 /** Pulls a point back onto the food boundary circle when it has drifted past it. */
 function clampToFoodBoundary(mote: Mobile, balance: BalanceConfig): boolean {
-  const reach = foodBoundaryRadius(balance);
-  const distance = Math.hypot(mote.x, mote.y);
-  if (distance <= reach) {
+  const clamped = clampedToFoodBoundary(mote, balance);
+  if (clamped === mote) {
     return false;
   }
-  mote.x = (mote.x / distance) * reach;
-  mote.y = (mote.y / distance) * reach;
+  mote.x = clamped.x;
+  mote.y = clamped.y;
   return true;
 }
 

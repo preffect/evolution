@@ -19,6 +19,8 @@ import { NO_GAIN } from '../simulation/cell-mass.js';
 import { absorbCell, detritusMoteCount, dissolveCell, dropDetritus, withdrawCell } from './death.js';
 
 const SEED = 42;
+/** The projection onto the food boundary lands on it up to float rounding; a stray mote overshoots by tens of wu. */
+const PROJECTION_ROUNDING_WU = 1e-9;
 const { ecology, session } = DEFAULT_BALANCE;
 
 function predatorAndPrey() {
@@ -57,6 +59,20 @@ describe('dropDetritus', () => {
       expect(mote.mass).toBe(ecology.DETRITUS_MOTE_MASS);
       expect(Math.hypot(mote.x - cell.x, mote.y - cell.y)).toBeLessThanOrEqual(2 * cell.radius);
       expect(mote.expiresAtTick).toBe(world.tick + secondsToTicks(ecology.DETRITUS_LIFETIME_SECONDS));
+    }
+  });
+
+  it('keeps every mote of a cell dying at the wall inside the food edge margin (#638)', () => {
+    const world = createTestWorld();
+    const cell = world.cells[0]!;
+    setCellMass(cell, 400, DEFAULT_BALANCE);
+    cell.x = DEFAULT_BALANCE.world.DISH_RADIUS - cell.radius;
+    cell.y = 0;
+    dropDetritus(world, cell, createSeededRandom(SEED));
+    expect(world.food.length).toBeGreaterThan(0);
+    const foodReach = DEFAULT_BALANCE.world.DISH_RADIUS - DEFAULT_BALANCE.world.FOOD_EDGE_MARGIN;
+    for (const mote of world.food) {
+      expect(Math.hypot(mote.x, mote.y)).toBeLessThanOrEqual(foodReach + PROJECTION_ROUNDING_WU);
     }
   });
 });

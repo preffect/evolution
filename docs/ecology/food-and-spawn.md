@@ -18,7 +18,8 @@
   points go to the progression counters ([`PROGRESSION.md`](../PROGRESSION.md#1-dna-and-tags)).
 - **Detritus** is never spawned by the spawner: it drops when a cell dies or dissolves
   (`DETRITUS_MASS_FRACTION` of the cell's mass, split into motes of `DETRITUS_MOTE_MASS`, scattered
-  uniformly within 2 × the dead cell's radius). Rounding: motes = floor(fraction × mass /
+  uniformly within 2 × the dead cell's radius; a mote drawn past the food boundary, `FOOD_EDGE_MARGIN` inside
+  the wall, is pulled onto it, so a death at the wall drops nothing outside the dish). Rounding: motes = floor(fraction × mass /
   `DETRITUS_MOTE_MASS`), the remainder is dropped (a 23-mass cell drops 4.6 → two motes, 4 mass).
 - **DNA fragments** are the only mass-free food. Their tag is drawn at spawn from the zone's tag
   table (§2) so where you feed shapes your drafts.
