@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, FIRST_LEVEL, stageOf, worldReference } from '@evolution/shared';
 import { stageOfOwned } from '../progression/ladder.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { wildOwnedTraits } from './wild-build.js';
 
 const { wildCells, worldClock, progression } = DEFAULT_BALANCE;
@@ -52,5 +53,15 @@ describe('wildOwnedTraits', () => {
         ).toBe(worldStage);
       }
     }
+  });
+
+  it('refuses a wrap past the top tier instead of casting it to a tier the catalog has no row for', () => {
+    const nucleoid = wildCells.WILD_CELL_BUILDS[0]![0]!;
+    const oneTraitBuild = structuredClone(DEFAULT_BALANCE);
+    oneTraitBuild.wildCells.WILD_CELL_BUILDS = [[nucleoid]];
+    const topTier = DEFAULT_BALANCE.traits.TRAIT_TIER_COUNT;
+    const topTierLevel = FIRST_LEVEL + topTier;
+    expect(wildOwnedTraits(0, topTierLevel, oneTraitBuild)).toEqual([{ traitId: nucleoid, tier: topTier }]);
+    expect(() => wildOwnedTraits(0, topTierLevel + 1, oneTraitBuild)).toThrow(SimulationInvariantError);
   });
 });

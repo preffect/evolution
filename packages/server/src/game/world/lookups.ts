@@ -1,8 +1,9 @@
-// Record lookups by id over the world's arrays. Linear scans: the arrays are small (≤ 8 players
-// and cells) and insertion-ordered by contract, so no index to keep in sync.
+// Record lookups by id over the world's arrays. Single lookups are linear scans: the arrays are small and
+// insertion-ordered by contract, so no index to keep in sync. A pass that looks up a cell per wild seat builds a
+// throwaway id index once instead (#509), so the world keeps no index either.
 
 import type { EntityId, PlayerId } from '@evolution/shared';
-import type { CellRecord, PlayerRecord } from './entities.js';
+import type { CellRecord, PlayerRecord, WildSeatRecord } from './entities.js';
 import { SimulationInvariantError } from './simulation-invariant-error.js';
 import type { WorldState } from './world-state.js';
 
@@ -34,6 +35,30 @@ export function requireCellOfPlayer(world: WorldState, playerId: PlayerId): Cell
 
 export function findCell(world: WorldState, cellId: EntityId): CellRecord | undefined {
   return world.cells.find((cell) => cell.id === cellId);
+}
+
+/** The world's cells by id, for one pass that looks up many; stale once a cell is added or removed. */
+export function indexCellsById(world: WorldState): ReadonlyMap<EntityId, CellRecord> {
+  return new Map(world.cells.map((cell) => [cell.id, cell]));
+}
+
+/** A seated wild seat and its cell. */
+export interface SeatedWildCell {
+  readonly seat: WildSeatRecord;
+  readonly cell: CellRecord;
+}
+
+/** The seated wild seats with their cells, in seat order; a vacant seat, or one whose cell is gone, is left out. */
+export function seatedWildCells(world: WorldState): SeatedWildCell[] {
+  const cellsById = indexCellsById(world);
+  const seated: SeatedWildCell[] = [];
+  for (const seat of world.wildSeats) {
+    const cell = seat.cellId === null ? undefined : cellsById.get(seat.cellId);
+    if (cell !== undefined) {
+      seated.push({ seat, cell });
+    }
+  }
+  return seated;
 }
 
 /** Removes by identity, preserving order (docs/determinism/ordering-and-state-hash.md §4: never swap-remove). */

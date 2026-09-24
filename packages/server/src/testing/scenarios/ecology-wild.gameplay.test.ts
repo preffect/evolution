@@ -52,6 +52,9 @@ import {
 } from './wild-setups.js';
 
 const { wildCells, growth, world: dish, controls } = DEFAULT_BALANCE;
+/** W2: "exactly 24 wild cells", "no two cell centres (wild or player) within 200 wu": the row's literals, not the constants. */
+const W2_WILD_CELL_COUNT = 24;
+const W2_MIN_CENTRE_SPACING_WU = 200;
 /** W2: E1's counts on the seeded world, unchanged by the seats. */
 const E1_FOOD_COUNT = 420;
 const E1_FRAGMENT_COUNT = 24;
@@ -72,7 +75,7 @@ describe('ecology/acceptance.md §8.1: the wild cells', () => {
     await seededSolo('W2')
       .expect('wild cell count', (view) => wildCellsOf(view).length)
       .atTick(0)
-      .toBe(wildCells.WILD_CELL_COUNT)
+      .toBe(W2_WILD_CELL_COUNT)
       .expect('every wild cell a level-1 traitless protocell, its own organism', (view) =>
         wildCellsOf(view).every(isWorldProtocell),
       )
@@ -97,7 +100,7 @@ describe('ecology/acceptance.md §8.1: the wild cells', () => {
       .toBeAtMost(HEAVIEST_SEAT_MASS)
       .expect('closest pair of cell centres, wild or player', closestCentrePair)
       .atTick(0)
-      .toBeAtLeast(wildCells.WILD_CELL_MIN_SPACING_WU)
+      .toBeAtLeast(W2_MIN_CENTRE_SPACING_WU)
       .expect('farthest wild centre from the origin', farthestWildFromOrigin)
       .atTick(0)
       .toBeAtMost(dish.DISH_RADIUS - dish.SPAWN_EDGE_MARGIN)
