@@ -66,16 +66,31 @@ for (const g of games) {
     ownId = room.connected[0];
   }
 }
-const cellOf = async (playerId) => (await json('debug_get_entities', { gameId, kind: 'cell' })).find((c) => c.playerId === playerId);
+const cellOf = async (playerId) =>
+  (await json('debug_get_entities', { gameId, kind: 'cell' })).find((c) => c.playerId === playerId);
 const ownCell = await cellOf(ownId);
 const cx = ownCell.x;
 const cy = ownCell.y;
 console.log('game', gameId, 'own', ownId, 'at', cx, cy);
 
-await json('debug_set_player', { gameId, playerId: ownId, mass: 40, level: 6, traits: AMOEBA, position: { x: cx, y: cy } });
+await json('debug_set_player', {
+  gameId,
+  playerId: ownId,
+  mass: 40,
+  level: 6,
+  traits: AMOEBA,
+  position: { x: cx, y: cy },
+});
 const plainBot = await json('debug_spawn_bot', { gameId, behavior: 'idle', seed: 3 });
 const plainId = plainBot.playerId ?? plainBot.id;
-await json('debug_set_player', { gameId, playerId: plainId, mass: 40, level: 6, traits: PLAIN, position: { x: cx - 95, y: cy } });
+await json('debug_set_player', {
+  gameId,
+  playerId: plainId,
+  mass: 40,
+  level: 6,
+  traits: PLAIN,
+  position: { x: cx - 95, y: cy },
+});
 console.log('bots', plainId);
 
 async function catchUp(label) {
@@ -118,7 +133,14 @@ const me = await cellOf(ownId);
 const preyBot = await json('debug_spawn_bot', { gameId, behavior: 'idle', seed: 5 });
 const preyId = preyBot.playerId ?? preyBot.id;
 await json('debug_set_player', { gameId, playerId: ownId, mass: 80, position: { x: me.x, y: me.y } });
-await json('debug_set_player', { gameId, playerId: preyId, mass: 30, level: 2, traits: ['nucleoid'], position: { x: me.x + 70, y: me.y + 10 } });
+await json('debug_set_player', {
+  gameId,
+  playerId: preyId,
+  mass: 30,
+  level: 2,
+  traits: ['nucleoid'],
+  position: { x: me.x + 70, y: me.y + 10 },
+});
 await page.keyboard.down('KeyD');
 let engulfShots = 0;
 for (let i = 0; i < 40 && engulfShots < 2; i += 1) {
