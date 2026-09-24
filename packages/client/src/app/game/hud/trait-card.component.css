@@ -83,16 +83,6 @@
   text-align: center;
 }
 
-/* A modifier's tone is what it does for its owner, from the trait data's direction, never its sign (#453): a shorter
-   cooldown or less decay reads with a minus and still helps. The same two roles tone every surface that shows it. */
-.effect[data-effect='benefit'] {
-  color: var(--ui-gain);
-}
-
-.effect[data-effect='drawback'] {
-  color: var(--ui-danger);
-}
-
 /* Inside the card's bottom-right corner, so nothing hangs under the cards. */
 .key-chip {
   position: absolute;

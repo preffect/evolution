@@ -63,6 +63,8 @@ export const UI_CHIP_HEIGHT_PX = 20;
 export const UI_CHIP_PADDING_INLINE_PX = 8;
 /** The tone dot of a chip or an alert pill. */
 export const UI_CHIP_DOT_PX = 7;
+/** The effect mark before a trait modifier's value: a triangle up for a benefit, down for a drawback (#453). */
+export const UI_EFFECT_MARK_PX = 7;
 /** The alert strip's pill. */
 export const UI_ALERT_HEIGHT_PX = 28;
 /** A keycap. */

@@ -15,6 +15,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { observeElementSize } from '../../ui-kit/element-size';
+import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
 import { UiListRowComponent } from '../../ui-kit/ui-list-row.component';
 import { UiListComponent } from '../../ui-kit/ui-list.component';
 import { UiScrollAreaComponent } from '../../ui-kit/ui-scroll-area.component';
@@ -27,7 +28,7 @@ import { HUD_TEST_ID, menuTraitTestId } from '../test-ids/hud-test-ids';
   selector: 'app-menu-traits',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TraitGlyphComponent, UiListComponent, UiListRowComponent, UiScrollAreaComponent],
+  imports: [TraitGlyphComponent, UiEffectMarkComponent, UiListComponent, UiListRowComponent, UiScrollAreaComponent],
   styleUrl: './menu-traits.component.css',
   template: `
     <h3 class="heading">
@@ -48,7 +49,9 @@ import { HUD_TEST_ID, menuTraitTestId } from '../test-ids/hud-test-ids';
                   <span class="effects">
                     <span class="effect-list">
                       @for (effect of row.effects; track $index) {
-                        <span class="effect" [attr.data-effect]="row.effectTones[$index]">{{ effect }}</span>
+                        <span class="effect"
+                          ><ui-effect-mark [effect]="row.effectTones[$index] ?? null" />{{ effect }}</span
+                        >
                       }
                     </span>
                   </span>

@@ -99,6 +99,7 @@ const EXPECTED_CONSTANTS: Readonly<Record<string, string>> = {
   '--ui-chip-height': `${kit.UI_CHIP_HEIGHT_PX}px`,
   '--ui-chip-padding-inline': `${kit.UI_CHIP_PADDING_INLINE_PX}px`,
   '--ui-chip-dot': `${kit.UI_CHIP_DOT_PX}px`,
+  '--ui-effect-mark': `${kit.UI_EFFECT_MARK_PX}px`,
   '--ui-alert-height': `${kit.UI_ALERT_HEIGHT_PX}px`,
   '--ui-key-hint-height': `${kit.UI_KEY_HINT_HEIGHT_PX}px`,
   '--ui-search-width': `${kit.UI_SEARCH_WIDTH_PX}px`,

@@ -10,6 +10,7 @@
 import type { CellModifiers, TraitTierModifiers, ValueOf } from '@evolution/shared';
 import { formatQuantity } from './format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from './quantity-unit';
+import { UI_EFFECT, type UiEffect } from '../../ui-kit/ui-effect-mark.component';
 
 type ModifierKey = keyof CellModifiers;
 
@@ -17,9 +18,12 @@ type ModifierKey = keyof CellModifiers;
 export const MODIFIER_BETTER_WHEN = { higher: 'higher', lower: 'lower' } as const;
 export type ModifierBetterWhen = ValueOf<typeof MODIFIER_BETTER_WHEN>;
 
-/** What a tier's value does for its owner (#453): every surface tones a modifier's line by this, never by its sign. */
-export const MODIFIER_EFFECT = { benefit: 'benefit', drawback: 'drawback' } as const;
-export type ModifierEffect = ValueOf<typeof MODIFIER_EFFECT>;
+/**
+ * What a tier's value does for its owner (#453): every surface marks a modifier's line by this, never by its sign.
+ * It is the kit's effect mark's own input, so a surface passes it straight through.
+ */
+export const MODIFIER_EFFECT = UI_EFFECT;
+export type ModifierEffect = UiEffect;
 
 export interface ModifierLabel {
   /** The effect's name alone: `speed`, `sprint cooldown`, `grip on prey`. */

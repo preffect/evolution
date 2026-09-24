@@ -9,6 +9,7 @@ import { EncyclopediaStateService } from './encyclopedia-state.service';
 import { FACT_LIST_SEPARATOR } from './facts/resolve-prose';
 import type { EncyclopediaFactRow } from './format/entry-view';
 import type { EntryId } from './model/entry-id';
+import { MODIFIER_EFFECT } from '../quantities/modifier-labels';
 import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId } from './test-ids';
 
 const CILIA = 'trait:cilia' as EntryId;
@@ -87,6 +88,28 @@ describe('EncyclopediaFactsComponent (docs/ui/encyclopedia.md §11.4)', () => {
     expect([...root().querySelectorAll('thead .value')].map((cell) => cell.textContent?.trim())).toEqual(['I', 'II']);
     const tinted = [...root().querySelectorAll('td.value[data-highlighted]')].map((cell) => cell.textContent?.trim());
     expect(tinted).toEqual(['+20 %']);
+  });
+
+  /** #453: each tier cell carries its own effect's mark; a column the trait leaves at identity carries none. */
+  it('marks each tier cell by its effect on the owner, and a cell without one not at all', () => {
+    fixture.componentRef.setInput('rows', [
+      {
+        rowId: 'sprintCooldownSecondsDelta',
+        name: 'sprint cooldown',
+        values: ['—', '−0.5 s', '+0.5 s'],
+        effects: [null, MODIFIER_EFFECT.benefit, MODIFIER_EFFECT.drawback],
+        links: [],
+      },
+    ]);
+    fixture.componentRef.setInput('columns', ['I', 'II', 'III']);
+    fixture.detectChanges();
+    const cells = [...root().querySelectorAll('tbody td.value')];
+    expect(cells.map((cell) => cell.querySelector<HTMLElement>('ui-effect-mark')?.dataset['effect'] ?? null)).toEqual([
+      null,
+      MODIFIER_EFFECT.benefit,
+      MODIFIER_EFFECT.drawback,
+    ]);
+    expect(cells.map((cell) => cell.textContent?.trim())).toEqual(['—', '−0.5 s', '+0.5 s']);
   });
 
   it('draws no header row at all when a table has no columns, which is every table but the tier one', () => {

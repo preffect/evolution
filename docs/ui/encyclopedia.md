@@ -255,8 +255,8 @@ pauses it or moves on. The dish behind the panel still moves under the preferenc
    trait, `ENCYCLOPEDIA_FACTS_TABLE_LABEL`.
    - A trait's first table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
      modifier keys their `facts` carry (`label` is the noun, `Mass decay`; `text` the value, `−15 %`, in `figure`),
-     `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity, each value toned `--ui-gain` or
-     `--ui-danger` by its effect on the owner (docs/ui/hud.md §3.1.5, #453); the owned tier's column is tinted
+     `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity, each value led by the effect mark
+     (up for a benefit, down for a drawback) by its effect on the owner (docs/ui/hud.md §3.1.5, #453); the owned tier's column is tinted
      accent under `You own II` (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier
      column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
    - **When the columns do not fit, the values wrap; the table never widens** (#465). The sizing rule above assumes

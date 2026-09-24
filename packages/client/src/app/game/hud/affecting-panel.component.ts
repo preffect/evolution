@@ -23,6 +23,7 @@ import {
   type UiFactRow,
 } from '../../ui-kit/ui-facts-table.component';
 import type { ModifierEffect } from '../quantities/modifier-labels';
+import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
 import { UiPanelComponent } from '../../ui-kit/ui-panel.component';
 import { UiPanelSectionComponent } from '../../ui-kit/ui-panel-section.component';
 import { AFFECTING_SPARKLINE_HEIGHT_PX, AFFECTING_SPARKLINE_WIDTH_PX } from './hud-constants';
@@ -41,6 +42,7 @@ const PANEL_LABEL = 'Affecting you';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TraitGlyphComponent,
+    UiEffectMarkComponent,
     UiFactMarkerDirective,
     UiFactValueDirective,
     UiFactsTableComponent,
@@ -78,7 +80,7 @@ const PANEL_LABEL = 'Affecting you';
                   }
                 </ng-template>
                 <ng-template uiFactValue let-row let-value="value">
-                  <span class="trait-effect" [attr.data-effect]="effectOf(row)">{{ value }}</span>
+                  <span class="trait-effect"><ui-effect-mark [effect]="effectOf(row)" />{{ value }}</span>
                 </ng-template>
               </ui-facts-table>
             }

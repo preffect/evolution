@@ -10,6 +10,7 @@ import { CARD_POINTER, type CardPointerEvent } from './format/card-highlight';
 import { traitOfferViewFor, type TraitCardView } from './format/trait-cards';
 import { HUD_TEST_ID, testIdSelector, traitCardPickTestId } from '../test-ids/hud-test-ids';
 import { TraitCardComponent } from './trait-card.component';
+import { MODIFIER_EFFECT } from '../quantities/modifier-labels';
 
 const [FRESH_CARD, UPGRADE_CARD] = traitOfferViewFor({
   offer: createTestTraitOfferView({
@@ -84,12 +85,14 @@ describe('TraitCardComponent', () => {
     expect(mount(FRESH_CARD, true).classList.contains('highlighted')).toBe(true);
   });
 
-  /** #453: Cell Wall's armour helps and its weight costs, so its lines wear the two tones, never its signs. */
-  it('tones each effect line by what it does for the cell', () => {
+  /** #453: Cell Wall's armour helps and its weight costs, so its lines wear the two marks, never tones by sign. */
+  it('marks each effect line by what it does for the cell', () => {
     const button = mount(FRESH_CARD);
-    const tones = [...button.querySelectorAll<HTMLElement>('.effect')].map((line) => line.dataset['effect']);
-    expect(tones).toEqual(FRESH_CARD?.effectTones);
-    expect(tones).toContain('benefit');
-    expect(tones).toContain('drawback');
+    const lines = [...button.querySelectorAll<HTMLElement>('.effect')];
+    const marks = lines.map((line) => line.querySelector<HTMLElement>('ui-effect-mark')?.dataset['effect']);
+    expect(marks).toEqual(FRESH_CARD?.effectTones);
+    expect(marks).toContain(MODIFIER_EFFECT.benefit);
+    expect(marks).toContain(MODIFIER_EFFECT.drawback);
+    expect(lines.map((line) => line.textContent?.trim())).toEqual(FRESH_CARD?.effects);
   });
 });

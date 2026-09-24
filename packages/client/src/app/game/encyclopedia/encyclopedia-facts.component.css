@@ -40,13 +40,3 @@
 .separator {
   color: var(--ui-text-muted);
 }
-
-/* A tier's value, toned by what it does for its owner rather than by its sign (#453): the trait cards and the hold-Tab
-   panel wear the same two roles. */
-.value[data-effect='benefit'] {
-  color: var(--ui-gain);
-}
-
-.value[data-effect='drawback'] {
-  color: var(--ui-danger);
-}

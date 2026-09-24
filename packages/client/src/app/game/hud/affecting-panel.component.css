@@ -82,13 +82,3 @@ app-trait-glyph {
   stroke-linejoin: round;
   overflow: visible;
 }
-
-/* An owned trait's value, toned by what it does for the cell rather than by its sign (#453), in the same two roles
-   the trait cards and the encyclopedia's tier table use. */
-.trait-effect[data-effect='benefit'] {
-  color: var(--ui-gain);
-}
-
-.trait-effect[data-effect='drawback'] {
-  color: var(--ui-danger);
-}

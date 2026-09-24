@@ -9,7 +9,6 @@
 // The applied rates themselves are inputs, not expectations: the server measures them and sends them (#383), so
 // re-deriving the metabolism here would be a second copy of the server's rules in a client spec.
 
-import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
@@ -25,6 +24,7 @@ import {
   type MassFlowView,
   type PlayerRosterView,
 } from '@evolution/shared';
+import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { createTestCellView } from '../../../../testing/builders';
 import { AT_LEAST_SIGN, AT_MOST_SIGN, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { formatQuantity } from '../../quantities/format-quantity';

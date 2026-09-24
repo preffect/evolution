@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type CellModifiers } from '@evolution/shared';
 import {
+  MODIFIER_BETTER_WHEN,
   MODIFIER_EFFECT,
   MODIFIER_LABELS,
   modifierEffect,
@@ -9,6 +10,7 @@ import {
   modifierLineEffects,
   modifierLines,
   nonIdentityModifiers,
+  type ModifierBetterWhen,
 } from './modifier-labels';
 
 const IDENTITY = DEFAULT_BALANCE.traits.DEFAULT_CELL_MODIFIERS;
@@ -140,5 +142,49 @@ describe('modifierEffect', () => {
     const mitochondrion = nonIdentityModifiers(tiers.mitochondrion[0] ?? {}, identity);
     const decay = mitochondrion.findIndex(([key]) => key === 'decayMultiplier');
     expect(modifierLineEffects(mitochondrion, identity)[decay]).toBe(MODIFIER_EFFECT.benefit);
+  });
+});
+
+const { higher: HIGHER, lower: LOWER } = MODIFIER_BETTER_WHEN;
+
+/**
+ * Every modifier's direction restated by hand from docs/traits/model.md §2 and the simulation that reads it (#453), so
+ * a wrong `betterWhen` on the label table goes red here rather than marking a cost as a benefit on four surfaces.
+ * Lower is better for the durations the owner waits through and for decay; the drains hurt other cells, so more helps.
+ */
+const EXPECTED_BETTER_WHEN: Readonly<Record<keyof CellModifiers, ModifierBetterWhen>> = {
+  speedMultiplier: HIGHER,
+  accelerationSecondsMultiplier: LOWER,
+  sprintSpeedMultiplierBonus: HIGHER,
+  sprintCooldownSecondsDelta: LOWER,
+  membraneRatioBonus: HIGHER,
+  absorbDurationMultiplierAsPrey: HIGHER,
+  wrapDurationMultiplierAsPredator: LOWER,
+  absorbDurationMultiplierAsPredator: LOWER,
+  gripStrengthBonus: HIGHER,
+  gripResistanceBonus: HIGHER,
+  struggleSlowdownBonus: HIGHER,
+  spitOutChancePerSecond: HIGHER,
+  engulfMassYieldBonus: HIGHER,
+  digestionFactorBonus: HIGHER,
+  decayMultiplier: LOWER,
+  photosynthesisMassPerSecond: HIGHER,
+  spikeDrainFractionPerSecond: HIGHER,
+  toxinDrainFractionPerSecond: HIGHER,
+  toxinAuraRangeInRadii: HIGHER,
+  attractRangeInRadii: HIGHER,
+  attractSpeed: HIGHER,
+  dnaGainMultiplier: HIGHER,
+  dnaKeptOnDeathFraction: HIGHER,
+  gelSpeedFactorFloor: HIGHER,
+};
+
+describe('MODIFIER_LABELS betterWhen, the direction table', () => {
+  it.each(Object.entries(EXPECTED_BETTER_WHEN))('%s is better %s', (key, direction) => {
+    expect(MODIFIER_LABELS[key as keyof CellModifiers].betterWhen).toBe(direction);
+  });
+
+  it('covers every modifier the label table has', () => {
+    expect(Object.keys(EXPECTED_BETTER_WHEN).sort()).toEqual([...KEYS].sort());
   });
 });

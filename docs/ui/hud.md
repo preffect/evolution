@@ -338,9 +338,12 @@ drop it the way overlays.md §3.7 drops a zero row.
 cards and the encyclopedia share, where every effect is `<signed change> <noun>` (`+15 % speed`). The copy stays: the
 sign is the number's true direction, and the noun says what it is the direction of. What changed is the **tone**. Each
 label-table row names the trait data's own direction (`betterWhen`: `higher` or `lower`), and `modifierEffect` calls a
-value a `benefit` or a `drawback` from it. Every surface that shows a modifier then paints the value in one of two roles:
-`--ui-gain` for a benefit, `--ui-danger` for a drawback. So `−15 % mass decay` reads green beside the red `Speed · −47 %`,
-and the column no longer asks the eye to tell a good minus from a bad one. The surfaces are the trait card's effect
+value a `benefit` or a `drawback` from it. Every surface that shows a modifier then puts the kit's **effect mark**
+(`ui-effect-mark`, components-and-constants.md §10.2) before the value: a `UI_EFFECT_MARK_PX` triangle pointing **up** in
+`GAIN` for a benefit, **down** in `DANGER` for a drawback. The value's text stays in the text colour, since a cue role
+colours glyphs and never text (visual-style/principles-and-palette.md §2), and the triangle's direction carries the effect
+on its own: under deuteranopia the two roles are two similar yellows. So `▲ −15 % mass decay` reads as the benefit it is
+beside `Speed · −47 %`, and the column no longer asks the eye to tell a good minus from a bad one. The surfaces are the trait card's effect
 lines, the menu's `Your traits` lines, this panel's `TRAITS` value and the encyclopedia's Effects by tier cells. This is
 the consistent rule the human's #445 ruling asked for: one direction per modifier, one tone per effect, the same on all
 four surfaces.

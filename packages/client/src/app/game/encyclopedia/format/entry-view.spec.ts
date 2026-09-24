@@ -3,10 +3,10 @@
 // one the page happens to show, `proseParagraphs` is run both with a break and without one, and the row-id guard
 // covers the repeated key as well as the consecutive run it was written for.
 
-import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { DEFAULT_BALANCE, TRAIT_RARITY, ZONE_ID, type TraitRarity, type TraitTier } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { UI_CHIP_TONE } from '../../../ui-kit/ui-chip.component';
+import { MODIFIER_EFFECT } from '../../quantities/modifier-labels';
 import { DNA_TAG_COLOR } from '../../render/constants/colours';
 import { PREVIEW_SCENE, type PreviewActionScene } from '../../render/preview/preview-spec';
 import {
