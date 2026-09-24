@@ -8,7 +8,14 @@
 // ladder is the world's: level, the seat's build up to that level, stage and modifiers are set from the world
 // reference (`wild-build.ts`).
 
-import { TICK_INTERVAL_S, worldWholeLevel, type BalanceConfig, type WorldReference } from '@evolution/shared';
+import {
+  RANDOM_STREAM,
+  TICK_INTERVAL_S,
+  worldWholeLevel,
+  type BalanceConfig,
+  type RandomSource,
+  type WorldReference,
+} from '@evolution/shared';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { decayPerSecond, metabolismInputOf } from '../simulation/metabolism.js';
@@ -17,6 +24,7 @@ import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import { findCell } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { wildOwnedTraits } from './wild-build.js';
+import { burstStarvedCell, chooseWildStarver, isStarvedOut, starveSettled } from './wild-die-off.js';
 
 /** What one settle reads (docs/ecology/acceptance.md §8.1 W11). */
 export interface WildSettleInput {
@@ -83,13 +91,15 @@ export function applyWorldLadder(
   refreshCellDerivedStateFromTraits(cell, wildOwnedTraits(seat.seatNumber, cell.level, balance), balance);
 }
 
-/** Settles one cell against `reference`: the mass on the new full size, then the world's ladder. */
-function settleWildCell(
-  world: WorldState,
-  seat: WildSeatRecord,
-  cell: CellRecord,
-  { reference, balance }: { readonly reference: WorldReference; readonly balance: BalanceConfig },
-): void {
+/** What every settle of one tick reads: the world reference and the live balance. */
+interface SettleContext {
+  readonly reference: WorldReference;
+  readonly balance: BalanceConfig;
+}
+
+/** The settle, then one tick of starvation when the seat is starving (§3.3.6), written back to the seat. */
+function settledMassOf(world: WorldState, seat: WildSeatRecord, cell: CellRecord, context: SettleContext): number {
+  const { reference, balance } = context;
   const settled = settleWildMass(
     {
       mass: cell.mass,
@@ -101,10 +111,34 @@ function settleWildCell(
     },
     balance,
   );
-  seat.grownMass = settled.grownMass;
-  seat.fullMass = settled.fullMass;
-  setCellMass(cell, settled.mass, balance);
+  if (!seat.isStarving) {
+    return recordSettle(seat, settled);
+  }
+  const starved = starveSettled(settled, seat.sizeFactor, reference.worldMass, balance);
+  seat.sizeFactor = starved.sizeFactor;
+  return recordSettle(seat, starved);
+}
+
+/** Writes a settle's growth and full size to the seat and answers the cell's new mass. */
+function recordSettle(seat: WildSeatRecord, outcome: WildSettleResult): number {
+  seat.grownMass = outcome.grownMass;
+  seat.fullMass = outcome.fullMass;
+  return outcome.mass;
+}
+
+/** Settles one cell against `reference`: the mass on the new full size, the world's ladder, and a starved-out burst. */
+function settleWildCell(
+  world: WorldState,
+  seat: WildSeatRecord,
+  cell: CellRecord,
+  context: SettleContext & { readonly spawner: RandomSource },
+): void {
+  const { reference, balance } = context;
+  setCellMass(cell, settledMassOf(world, seat, cell, context), balance);
   applyWorldLadder(cell, seat, reference, balance);
+  if (seat.isStarving && isStarvedOut(seat.fullMass, reference.worldMass, balance)) {
+    burstStarvedCell(world, seat, cell, context.spawner);
+  }
 }
 
 /** The seat's cell, or `undefined` while the seat is vacant. */
@@ -112,9 +146,14 @@ export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord 
   return seat.cellId === null ? undefined : findCell(world, seat.cellId);
 }
 
-/** Step 1 for the wild seats: every seated cell settled at this tick's world reference, in seat order. */
+/**
+ * Step 1 for the wild seats: the die-off picks a starver if the dish is over its budget (§3.3.6), then every seated
+ * cell is settled at this tick's world reference, in seat order.
+ */
 export function settleWildCells(world: WorldState, context: StepContext): void {
-  const settleContext = { reference: worldReferenceAt(world, world.tick), balance: context.balance };
+  const reference = worldReferenceAt(world, world.tick);
+  const settleContext = { reference, balance: context.balance, spawner: context.streams[RANDOM_STREAM.spawner] };
+  chooseWildStarver(world, reference.worldMass, context.balance);
   for (const seat of world.wildSeats) {
     const cell = cellOfSeat(world, seat);
     if (cell !== undefined) {

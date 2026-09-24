@@ -210,6 +210,7 @@ export function benchCellView(world: BenchWorld, spec: BenchCellSpec, tick: numb
     ...links,
     sprintRemainingTicks: 0,
     sprintCooldownRemainingTicks: 0,
+    isStarving: false,
   };
 }
 

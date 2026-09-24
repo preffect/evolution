@@ -57,6 +57,7 @@ export function createWildSeatRecord(seatNumber: number): WildSeatRecord {
     sizeFactor: 1,
     grownMass: 0,
     fullMass: 0,
+    isStarving: false,
     respawnInTicks: 0,
     headingX: AT_REST,
     headingY: AT_REST,
@@ -102,6 +103,7 @@ export function seatWildCell(
   seat.respawnInTicks = 0;
   seat.grownMass = 0;
   seat.fullMass = baseMass;
+  seat.isStarving = false;
   setCellMass(cell, baseMass, balance);
   applyWorldLadder(cell, seat, reference, balance);
   world.cells.push(cell);

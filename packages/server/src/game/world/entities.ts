@@ -90,6 +90,8 @@ export interface WildSeatRecord {
   sizeFactor: number;
   grownMass: number;
   fullMass: number;
+  /** The die-off's starver (docs/ecology/wild-cells.md §3.3.6): committed until its cell dies. */
+  isStarving: boolean;
   respawnInTicks: number;
   headingX: number;
   headingY: number;

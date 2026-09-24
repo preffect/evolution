@@ -186,7 +186,7 @@ describe('the wild seats through the step', () => {
 });
 
 describe('determinism with wild seats', () => {
-  it('two runs from one seed hash equal every tick, and a changed size, growth or full size changes the hash', () => {
+  it('two runs from one seed hash equal every tick, and a changed size, growth, full size or starving flag changes the hash', () => {
     const first = seeded();
     const second = seeded();
     expect(computeStateHash(first)).toBe(computeStateHash(second));
@@ -203,6 +203,9 @@ describe('determinism with wild seats', () => {
       expect(computeStateHash(second)).not.toBe(hashBefore);
       seat[field] = value;
     }
+    seat.isStarving = !seat.isStarving;
+    expect(computeStateHash(second)).not.toBe(hashBefore);
+    seat.isStarving = !seat.isStarving;
     expect(computeStateHash(second)).toBe(hashBefore);
   });
 

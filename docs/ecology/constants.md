@@ -68,6 +68,7 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `WILD_CELL_SPRINT_HUNT_RADII`              | 3                       | own radii                         |
 | `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`     | 1.5                     | × `WILD_CELL_COUNT` × `worldMass` |
 | `WILD_CELL_STARVATION_FRACTION_PER_SECOND` | 0.1                     | of full size per second           |
+| `WILD_CELL_FEAST_MASS_FRACTION`            | 0.8                     | of the burst cell's mass          |
 | `WILD_CELL_BUILDS`                         | the three lists of §3.3 | trait ids                         |
 | `WILD_CELL_RESPAWN_SECONDS`                | 10                      | s                                 |
 | `WILD_CELL_MIN_SPACING_WU`                 | 200                     | wu                                |
