@@ -3,7 +3,7 @@
 // against the catalog and turned into `OwnedTrait`s, so the scenario fixtures and the debug tools can
 // never diverge. Callers wrap `UnknownTraitError` in their own refusal type.
 
-import type { OwnedTrait, TraitDefinition, TraitId, TraitTier } from '@evolution/shared';
+import { FIRST_TIER, type OwnedTrait, type TraitDefinition, type TraitId, type TraitTier } from '@evolution/shared';
 
 export class UnknownTraitError extends Error {
   constructor(message: string) {
@@ -17,8 +17,6 @@ export interface TraitGrant {
   readonly traitId: string;
   readonly tier?: number;
 }
-
-const FIRST_TIER: TraitTier = 1;
 
 function toOwnedTrait(catalog: readonly TraitDefinition[], grant: TraitGrant): OwnedTrait {
   const trait = catalog.find((candidate) => candidate.id === grant.traitId);

@@ -8,6 +8,7 @@ import {
   MASS_RATE_CAUSE,
   TRAIT_CATALOG,
   ZONE_ID,
+  tierRowOf,
   type BalanceConfig,
   type MassFlowView,
   type MassRateCause,
@@ -52,7 +53,6 @@ const WHOLE_FIGURE_FROM = 10;
 const ONE_DECIMAL = 1;
 const WHOLE = 0;
 const RATE_SUFFIX = '/s';
-const TIER_INDEX_OFFSET = 1;
 /** A `decayMultiplier` of one is no cut at all: the tier that scales decay least, and the value a tier without one has. */
 const UNSCALED_DECAY = 1;
 /** A multiplier's identity, the one the wire's `decayMultiplier − 1` share is added back to. */
@@ -128,7 +128,7 @@ function largestDecayTrait(traits: readonly OwnedTrait[], balance: Pick<BalanceC
   let best: { traitId: TraitId; multiplier: number } | null = null;
   for (const trait of TRAIT_CATALOG) {
     const owned = traits.find((candidate) => candidate.traitId === trait.id);
-    const tier = owned === undefined ? undefined : balance.traits.TRAIT_TIERS[trait.id][owned.tier - TIER_INDEX_OFFSET];
+    const tier = owned === undefined ? undefined : tierRowOf(balance.traits.TRAIT_TIERS[trait.id], owned.tier);
     const multiplier = tier?.decayMultiplier ?? UNSCALED_DECAY;
     if (multiplier < (best?.multiplier ?? UNSCALED_DECAY)) best = { traitId: trait.id, multiplier };
   }

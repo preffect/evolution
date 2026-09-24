@@ -2,7 +2,7 @@
 // the first L − 1 picks; the list wraps as tier upgrades (entry 8 is entry 1 at tier II). Pure: the settle calls it every
 // tick and the catalog test pattern pins that each build is a valid ladder.
 
-import { FIRST_TIER, type BalanceConfig, type OwnedTrait, type TraitTier } from '@evolution/shared';
+import { tierOfRowIndex, type BalanceConfig, type OwnedTrait, type TraitTier } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 
 /** A wild cell at level L owns L − 1 picks. */
@@ -13,14 +13,14 @@ const PICKS_BELOW_LEVEL = 1;
  * with a high `MAX_LEVEL`: an invariant break, never a tier the catalog has no row for.
  */
 function tierOfPick(pick: number, buildLength: number, balance: BalanceConfig): TraitTier {
-  const tier = FIRST_TIER + Math.floor(pick / buildLength);
+  const tier = tierOfRowIndex(Math.floor(pick / buildLength));
   if (tier > balance.traits.TRAIT_TIER_COUNT) {
     throw new SimulationInvariantError(
       `wild pick ${pick} of a ${buildLength}-trait build wraps to tier ${tier}, past TRAIT_TIER_COUNT ` +
         `${balance.traits.TRAIT_TIER_COUNT}: MAX_LEVEL ${balance.progression.MAX_LEVEL} needs a longer build`,
     );
   }
-  return tier as TraitTier;
+  return tier;
 }
 
 /** The build's picks up to `level`, in build order, each trait at the highest tier the wrap reached. */

@@ -1,7 +1,7 @@
 // The one player-facing number formatter (docs/architecture/encyclopedia.md §12.5): a value, its unit and how it is
 // presented become the text a card, a HUD line or an encyclopedia fact shows. No locale formatting in build 1. Pure.
 
-import { SECONDS_PER_MINUTE } from '@evolution/shared';
+import { SECONDS_PER_MINUTE, tierEntryOf } from '@evolution/shared';
 import {
   CLOCK_PAD_CHARACTER,
   CLOCK_SECONDS_DIGITS,
@@ -32,7 +32,6 @@ export interface FormatOptions {
 }
 
 const DECIMAL_BASE = 10;
-const FIRST_TIER = 1;
 const NO_SIGN = '';
 
 /** `magnitude` (never negative) rounded to `decimals`, down or to the nearest. */
@@ -51,7 +50,7 @@ function clockText(wholeSeconds: number): string {
 
 /** `II` from 2; a tier past the numerals is a broken contract, refused loudly. */
 function tierNumeral(tier: number): string {
-  const numeral = TIER_NUMERALS[tier - FIRST_TIER];
+  const numeral = tierEntryOf(TIER_NUMERALS, tier);
   if (numeral === undefined) throw new Error(`A tier ${tier} has no numeral`);
   return numeral;
 }
