@@ -2,9 +2,11 @@
 // aspects each silhouette is drawn to, and the unit-area rule every profile obeys
 // (`∫ B² dΔ = 2π`, so the drawn area equals the blob's `π r²` and mass ∝ area holds for forms as
 // for the blob). #216 ships the registry with the blob (`B ≡ 1`) and the aspects; the five
-// silhouettes register their `profile` with #192–#196.
+// silhouettes register their `profile` with #192–#196. The amoeba (#192) is a shrunk core whose pseudopod bumps
+// make up the area (`amoeba-pseudopods.ts`), so its unit area is measured with its lobes (`normalisedArea`'s bumps).
 
 import { RADIANS_PER_FULL_TURN, type TraitId, type TraitTier } from '@evolution/shared';
+import { gaussianBump, wrapAngle } from '../../geometry';
 import {
   DIATOM_ASPECT,
   FORM_AREA_SAMPLES,
@@ -14,7 +16,8 @@ import {
   SPINDLE_ASPECT,
   TRUMPET_MOUTH_TO_HEIGHT,
 } from '../../constants';
-import type { FormProfile } from '../radial-profile';
+import type { FormProfile, ShapeBump } from '../radial-profile';
+import { AMOEBA_CORE_PROFILE } from './amoeba-pseudopods';
 
 export type FormId = (typeof FORM_ID)[keyof typeof FORM_ID];
 
@@ -56,7 +59,7 @@ export const FORM_PROFILES: ReadonlyMap<TraitId, FormDefinition> = new Map<Trait
     { id: FORM_ID.trumpet, aspectAt: () => TRUMPET_MOUTH_TO_HEIGHT, profileAt: BLOB_PROFILE, isRigid: false },
   ],
   ['diatom_shell', { id: FORM_ID.diatom, aspectAt: CIRCLE, profileAt: BLOB_PROFILE, isRigid: true }],
-  ['amoeba_pseudopods', { id: FORM_ID.amoeba, aspectAt: CIRCLE, profileAt: BLOB_PROFILE, isRigid: false }],
+  ['amoeba_pseudopods', { id: FORM_ID.amoeba, aspectAt: CIRCLE, profileAt: () => AMOEBA_CORE_PROFILE, isRigid: false }],
 ]);
 
 /** The form trait a cell owns, if any: the first registered trait in its list. */
@@ -73,12 +76,17 @@ export function pseudopodCount(form: FormDefinition, tier: TraitTier): number {
   return form.id === FORM_ID.amoeba ? (PSEUDOPOD_COUNT_BY_TIER[tier - 1] ?? 0) : 0;
 }
 
-/** `∫ B² dΔ / 2π`: exactly 1 for a unit-area form. */
-export function normalisedArea(profile: FormProfile | null): number {
-  if (profile === null) return 1;
+/**
+ * `∫ (B · (1 + Σ bumps))² dΔ / 2π`: exactly 1 for a unit-area form. `bumps` (heading 0) are the surface bumps a form
+ * carries as part of its silhouette — the amoeba's pseudopods; every other form measures `B` alone.
+ */
+export function normalisedArea(profile: FormProfile | null, bumps: readonly ShapeBump[] = []): number {
   let sum = 0;
   for (let index = 0; index < FORM_AREA_SAMPLES; index += 1) {
-    const value = profile.evaluate((index / FORM_AREA_SAMPLES) * RADIANS_PER_FULL_TURN - Math.PI).value;
+    const delta = (index / FORM_AREA_SAMPLES) * RADIANS_PER_FULL_TURN - Math.PI;
+    let surface = 1;
+    for (const bump of bumps) surface += gaussianBump(bump.amplitude, wrapAngle(delta - bump.centre), bump.sigma).value;
+    const value = (profile === null ? 1 : profile.evaluate(delta).value) * surface;
     sum += value * value;
   }
   return sum / FORM_AREA_SAMPLES;

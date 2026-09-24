@@ -79,6 +79,30 @@ export const DIATOM_ASPECT = 1;
 export const FORM_ID = { blob: 0, slipper: 1, spindle: 2, trumpet: 3, diatom: 4, amoeba: 5 } as const;
 /** Pseudopod lobes per tier (sheet 04 amoeba). */
 export const PSEUDOPOD_COUNT_BY_TIER = [2, 3, 4] as const;
+/**
+ * The amoeba's core (#192): its `B ≡` this, so the lobes carry the silhouette — sheet 04's "core 26 wu → 1.6 r lobes".
+ * Each lobe's reach is solved from it so the body keeps unit area (`forms/amoeba-pseudopods.ts`): 1.61 / 1.39 /
+ * 1.26 r at full extension for tier I / II / III, fewer and longer arms first, more and blunter ones later.
+ */
+export const AMOEBA_CORE_SCALE = 0.84;
+/** One pseudopod's Gaussian width: a blunt lobe (sheet 04's 0.28–0.36 rad). */
+export const PSEUDOPOD_SIGMA_DEG = 18;
+/** The angle between neighbouring lobes at rest: a wide, irregular fan about the held heading. */
+export const PSEUDOPOD_REST_STEP_DEG = 75;
+/** The angle between neighbouring lobes at full speed: the fan gathers toward the velocity (or the engulfed prey). */
+export const PSEUDOPOD_LEAN_STEP_DEG = 40;
+/** A lobe extends and retracts on a sine between this share of its reach and all of it, neighbours 1/n turn apart. */
+export const PSEUDOPOD_RETRACTED_SHARE = 0.45;
+export const PSEUDOPOD_CYCLE_HZ = 0.35;
+/** At rest the fan sways about the held heading by ± this; the sway fades out with speed. */
+export const PSEUDOPOD_SWAY_DEG = 15;
+export const PSEUDOPOD_SWAY_HZ = 0.12;
+/** Time samples over one extension cycle, and angle samples per sigma, for the lobes' peak reach (a bound, §2). */
+export const PSEUDOPOD_PEAK_TIME_SAMPLES = 96;
+export const PSEUDOPOD_PEAK_ANGLE_SAMPLES_PER_SIGMA = 12;
+/** The amoeba's clear ectoplasm (visual-style/cells-and-organelles.md §4): a `VAC_RIM` band this deep inside the membrane, in `d / r`. */
+export const ECTOPLASM_DEPTH_RADII = 0.15;
+export const ECTOPLASM_ALPHA = 0.14;
 /** `∫ B² dΔ / 2π` samples for the unit-area check (§9). */
 export const FORM_AREA_SAMPLES = 720;
 

@@ -24,6 +24,7 @@ import { appendageReachRadii, cellDrawExtentRadii, restingDrawState } from './ce
 import { summariseCellTraits } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
 import { FORM_PROFILES } from './forms/form-profiles';
+import { sampleProfileRing } from './radial-profile';
 import { buildShapeTerms } from './shape-terms';
 
 const BALANCE = DEFAULT_BALANCE;
@@ -151,29 +152,70 @@ describe('cellDrawExtentRadii', () => {
 });
 
 /**
- * A tripwire, not a feature test. `evaluateProfile` is `radius × pulse × form.evaluate(Δ) × stretch × surface`,
- * but `maxReachRadii` has **no form term** — it bounds the stretch and the surface and nothing else. That is
- * exact only while every form draws the blob (`B ≡ 1`), which is where the registry still stands: every
- * `profileAt` is `BLOB_PROFILE` and returns `null`, with the five silhouettes owed by #192–#196.
- *
- * The day one of them registers a real `B(Δ)`, a profile with a peak above 1 reaches further than `maxRadii`
- * claims — which is the encyclopedia lens clipping a stentor's trumpet, and the in-game quad extent clipping it
- * too. This fires then, on the commit that causes it, instead of being found in a screenshot.
+ * The form terms the bounds must see (ticket #192 turned the old tripwire into this). `evaluateProfile` is
+ * `radius × pulse × B(Δ) × stretch × surface`, and a form adds to it twice: its `B` (whose peak `maxReachRadii`,
+ * `peakReachRadii` and `peakRearMembraneRadii` multiply in) and, for the amoeba, the pseudopod bumps in the reserved
+ * slots. Measured here on the **drawn membrane** — the profile itself, walked round the ring over swept time — so a
+ * form whose `B` peaks above its `peak`, or whose lobes the bounds leave out, shows up as a cell the quad and the
+ * lens would clip.
  */
-describe('the form profiles maxReachRadii does not bound', () => {
-  it('all still draw the blob, so the reach is exact', () => {
-    for (const [traitId, form] of FORM_PROFILES) {
-      for (const tier of [TIER_I, TIER_II, TIER_III]) {
-        expect(
-          form.profileAt(tier),
-          `"${traitId}" tier ${tier} now has a form profile of its own. maxReachRadii (shape-terms.ts) multiplies ` +
-            'no form term into its bound, so if that profile peaks above 1 the membrane reaches further than ' +
-            'maxRadii reports: the cell quad clips it in play, and the encyclopedia lens — which frames from ' +
-            'peakReachRadii and roots the tail at peakRearMembraneRadii — clips it in the preview. Teach all three the ' +
-            'profile’s peak before landing the silhouette.',
-        ).toBeNull();
-      }
+/** Every half degree would be exact to a hair; this is fine enough to catch a lobe the bounds leave out. */
+const RING_SAMPLES = 180;
+/** Every fifth tick: several periods of every term over the swept four seconds, at a fifth of the cost. */
+const TICK_STRIDE = 5;
+
+describe('the form profiles the bounds must see', () => {
+  function drawnMembraneRadii(view: CellView, timeSeconds: number, speedRatio: number): number {
+    const terms = buildShapeTerms({
+      view,
+      traits: summariseCellTraits(view),
+      timeSeconds,
+      speedRatio,
+      heading: 0,
+      phase: 0,
+      stripRow: FIXED_STRIP_ROW,
+      strip: STRIP,
+      deformation: REST_DEFORMATION,
+    });
+    const ring = sampleProfileRing(terms, RING_SAMPLES);
+    const widest = Math.max(...ring);
+    expect(widest, 'the per-instance reach covers the drawn membrane').toBeLessThanOrEqual(
+      terms.maxRadii / terms.haloOuterRadii,
+    );
+    return widest;
+  }
+
+  /** The widest membrane drawn over the swept ticks. */
+  function widestDrawnRadii(view: CellView, speedRatio: number): number {
+    let widest = 0;
+    for (let tick = 0; tick <= SWEPT_TICKS; tick += TICK_STRIDE) {
+      widest = Math.max(widest, drawnMembraneRadii(view, tick * TICK_INTERVAL_S, speedRatio));
     }
+    return widest;
+  }
+
+  it('never draws a membrane past the body bound, for any form at any tier', () => {
+    const cases = [...FORM_PROFILES.keys()].flatMap((traitId) =>
+      [TIER_I, TIER_II, TIER_III].flatMap((tier) =>
+        [RESTING, SWIMMING].map((speedRatio) => ({ traitId, tier, speedRatio })),
+      ),
+    );
+    for (const { traitId, tier, speedRatio } of cases) {
+      const view = viewOf([{ traitId, tier }], speedRatio, false);
+      const { bodyRadii } = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
+      expect(widestDrawnRadii(view, speedRatio), `${traitId} ${tier} at speed ${speedRatio}`).toBeLessThanOrEqual(
+        bodyRadii,
+      );
+    }
+  });
+
+  /** The amoeba's lobes are the widest thing a form draws: its body bound sits well past the blob's. */
+  it('widens the amoeba’s body bound by its lobes', () => {
+    const amoeba = viewOf([{ traitId: 'amoeba_pseudopods', tier: TIER_I }], RESTING, false);
+    const blob = viewOf([], RESTING, false);
+    const amoebaBody = cellDrawExtentRadii(summariseCellTraits(amoeba), restingDrawState(RESTING)).bodyRadii;
+    const blobBody = cellDrawExtentRadii(summariseCellTraits(blob), restingDrawState(RESTING)).bodyRadii;
+    expect(amoebaBody).toBeGreaterThan(blobBody * 1.3);
   });
 });
 

@@ -31,11 +31,16 @@ describe('form profiles', () => {
   it('holds every registered form (and the blob) to unit area within 0.5 %', () => {
     expect(normalisedArea(null)).toBe(1);
     for (const definition of FORM_PROFILES.values()) {
+      // The amoeba's lobes are part of its silhouette, so its area is measured with them (amoeba-pseudopods.spec.ts).
+      if (definition.id === FORM_ID.amoeba) continue;
       for (const tier of [1, 2, 3] as const) {
         expect(Math.abs(normalisedArea(definition.profileAt(tier)) - 1)).toBeLessThan(0.005);
       }
     }
-    const ellipse = { evaluate: (delta: number) => ({ value: Math.SQRT2 * Math.abs(Math.cos(delta)), derivative: 0 }) };
+    const ellipse = {
+      evaluate: (delta: number) => ({ value: Math.SQRT2 * Math.abs(Math.cos(delta)), derivative: 0 }),
+      peak: Math.SQRT2,
+    };
     expect(normalisedArea(ellipse)).toBeCloseTo(1, 6);
   });
 });

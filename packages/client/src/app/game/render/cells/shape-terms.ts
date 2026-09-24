@@ -1,8 +1,8 @@
 // View + t → the profile terms of docs/rendering/cells.md §2.1 and the eight bump slots: the resolved
 // heading, the form, the speed stretch, the sprint's axial stretch, breathing, the stage wobble,
 // the strip's jitter and lobes (halved by `cytoskeleton`, zero on a rigid form), and the cell's
-// deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its pulse). Also the per-instance
-// maximum reach the quad extent needs (§2).
+// deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its pulse) with the amoeba's pseudopods in the
+// reserved slots (§2.4, #192). Also the per-instance maximum reach the quad extent needs (§2).
 
 import { RADIANS_PER_FULL_TURN, type CellView } from '@evolution/shared';
 import {
@@ -25,10 +25,13 @@ import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
 import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
+import { pseudopodBumps, pseudopodPeakRadii } from './forms/amoeba-pseudopods';
+import { pseudopodCount } from './forms/form-profiles';
 import {
   ZERO_BUMP,
   stretchAt,
   type RadialProfileTerms,
+  type FormProfile,
   type ShapeBump,
   type StretchTerm,
   type StripTerm,
@@ -119,11 +122,16 @@ function surfaceReach(breathing: number, wobbleAmplitude: number, strip: number,
   return 1 + breathing + wobbleAmplitude + strip + bumps;
 }
 
-/** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2). */
+/** The form's widest `B`: 1 for the blob. */
+function formReach(form: FormProfile | null): number {
+  return form === null ? 1 : form.peak;
+}
+
+/** The per-instance maximum reach in radii: pulse × form × stretch × surface × halo (§2). */
 export function maxReachRadii(terms: RadialProfileTerms, haloOuterRadii: number): number {
   const stripMax = terms.strip ? stripReach(terms.strip.jitterAmplitude, terms.strip.lobesScale) : 0;
   const surfaceMax = surfaceReach(Math.abs(terms.breathing), terms.wobble.amplitude, stripMax, bumpPeak(terms.bumps));
-  return terms.pulse * stretchReach(terms.stretch) * surfaceMax * haloOuterRadii;
+  return terms.pulse * formReach(terms.form) * stretchReach(terms.stretch) * surfaceMax * haloOuterRadii;
 }
 
 /**
@@ -160,7 +168,9 @@ export function peakReachRadii(
   clip: ClipDeformationPeak,
 ): number {
   const stretch = stretchReach(stretchTerm(speedRatio, isSprinting));
-  return clip.pulse * stretch * peakSurfaceReach(traits, clip) * haloOuterRadiiOf(traits);
+  return (
+    clip.pulse * peakFormReach(traits) * stretch * peakSurfaceReach(traits, clip, speedRatio) * haloOuterRadiiOf(traits)
+  );
 }
 
 /**
@@ -175,17 +185,25 @@ export function peakRearMembraneRadii(
   clip: ClipDeformationPeak,
 ): number {
   const rearStretch = stretchAt(stretchTerm(speedRatio, isSprinting), Math.PI).value;
-  return clip.pulse * rearStretch * peakSurfaceReach(traits, clip);
+  return clip.pulse * peakFormReach(traits) * rearStretch * peakSurfaceReach(traits, clip, speedRatio);
 }
 
-/** The surface's widest radius fraction over any frame: breathing at its peak, plus the clips' bumps. */
-function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak): number {
+function peakFormReach(traits: CellTraitSummary): number {
+  return formReach(traits.form.profileAt(traits.formTier));
+}
+
+/**
+ * The surface's widest radius fraction over any frame: breathing at its peak, plus the clips' bumps and the
+ * amoeba's lobes at their widest for this speed (the two added, since the lobes reach for the prey the arms wrap).
+ */
+function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak, speedRatio: number): number {
   const scales = restScales(traits);
+  const lobes = pseudopodPeakRadii(pseudopodCount(traits.form, traits.formTier), speedRatio);
   return surfaceReach(
     scales.breathing * BREATH_AMPLITUDE,
     traits.wobble.amplitude,
     stripReach(JITTER_AMPLITUDE * scales.jitter, scales.lobes),
-    clip.bumpRadii,
+    clip.bumpRadii + lobes,
   );
 }
 
@@ -218,6 +236,24 @@ function stripTerm(input: ShapeTermsInput, scales: RestScales): StripTerm | null
   };
 }
 
+/**
+ * The deformation's bumps with the amoeba's pseudopods appended (§2.1's reserved slots): the deformation keeps its
+ * first `MAX_SHAPE_BUMPS − count`, which an engulf's four fit, so the lobes are never cut. Every other form passes
+ * the deformation's bumps through.
+ */
+function formBumps(input: ShapeTermsInput): readonly ShapeBump[] {
+  const count = pseudopodCount(input.traits.form, input.traits.formTier);
+  if (count === 0) return input.deformation.bumps;
+  const lobes = pseudopodBumps({
+    count,
+    timeSeconds: input.timeSeconds,
+    phase: input.phase,
+    aim: input.deformation.preyAngle ?? input.heading,
+    lean: input.speedRatio,
+  });
+  return [...input.deformation.bumps.slice(0, MAX_SHAPE_BUMPS - count), ...lobes];
+}
+
 /** Builds the frame's profile terms for one cell. */
 export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
   const { traits, timeSeconds } = input;
@@ -238,7 +274,7 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
     },
     strip: stripTerm(input, scales),
     stretch: stretchTerm(input.speedRatio, isSprinting),
-    bumps: assignBumpSlots(input.deformation.bumps),
+    bumps: assignBumpSlots(formBumps(input)),
   };
   return { ...terms, haloOuterRadii, maxRadii: maxReachRadii(terms, haloOuterRadii), isSprinting };
 }

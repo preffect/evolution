@@ -94,11 +94,14 @@ function absorbedSealBump(input: CellClipInput): ShapeBump[] {
 export function clipDeformation(input: CellClipInput): CellDeformation {
   const isEngulfing = input.preyAngle !== null;
   const bumps = isEngulfing ? [...engulfBumps(input), ...absorbedSealBump(input)] : eatBumps(input);
-  return {
+  const deformation: CellDeformation = {
     bumps,
     pulse: input.tracks['pulse'] ?? REST_PULSE,
     alpha: input.tracks['alpha'] ?? FULL_ALPHA,
   };
+  return input.preyAngle === null || input.engulfProgress === null
+    ? deformation
+    : { ...deformation, preyAngle: input.preyAngle };
 }
 
 /**

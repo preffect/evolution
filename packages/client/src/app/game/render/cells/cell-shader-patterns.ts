@@ -6,6 +6,8 @@
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { CHANNEL_MAX } from '../colour';
 import {
+  AMOEBA_CORE_SCALE,
+  FORM_ID,
   HASH_SCALE,
   HASH_SHIFT,
   MAX_SHAPE_BUMPS,
@@ -67,6 +69,7 @@ uniform vec3 uCytoskeleton;
 uniform vec3 uCellWall;
 uniform vec3 uCellWallLight;
 uniform vec3 uCilia;
+uniform vec3 uEctoplasm;
 uniform vec3 uDanger;
 uniform vec3 uGain;
 
@@ -167,8 +170,9 @@ vec4 stripSample(Instance inst, float unit) {
               (jitterB - jitterA) * perRadian, (lobesB - lobesA) * perRadian);
 }
 
-/** 'B(Δ)' per form with dB/dΔ (radial-profile.ts FormProfile): the blob for every id until the silhouettes join (#192–#196). */
+/** 'B(Δ)' per form with dB/dΔ (radial-profile.ts FormProfile): the amoeba's core (#192); the blob for the rest until #193–#196. */
 vec2 formAt(Instance inst, float delta) {
+  if (abs(inst.formId - ${glslFloat(FORM_ID.amoeba)}) < HALF) return vec2(${glslFloat(AMOEBA_CORE_SCALE)}, 0.0);
   return vec2(1.0, 0.0);
 }
 

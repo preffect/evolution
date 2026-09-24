@@ -23,6 +23,7 @@ import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
 import { summariseCellTraits } from './cell-traits';
 import { ZERO_BUMP } from './radial-profile';
+import { pseudopodBumps } from './forms/amoeba-pseudopods';
 import { assignBumpSlots, buildShapeTerms, headingOf, type ShapeTermsInput } from './shape-terms';
 
 const TEST_SEED = 42;
@@ -163,5 +164,66 @@ describe('buildShapeTerms', () => {
     const terms = buildShapeTerms(input({ deformation: { ...REST_DEFORMATION, pulse: 1.09 } }));
     expect(terms.pulse).toBe(1.09);
     expect(terms.maxRadii).toBeCloseTo(1.09 * buildShapeTerms(input()).maxRadii, 9);
+  });
+});
+
+describe('the amoeba’s pseudopods (#192)', () => {
+  const amoeba = (tier: 1 | 2 | 3) => withTraits([{ traitId: 'amoeba_pseudopods', tier }], CELL_STAGE.specialised);
+  const bump = (centre: number) => ({ amplitude: 0.3, centre, sigma: 0.3 });
+
+  it('fills 2 / 3 / 4 slots with the frame’s lobes and shrinks the core', () => {
+    for (const [tier, count] of [
+      [1, 2],
+      [2, 3],
+      [3, 4],
+    ] as const) {
+      const base = { ...amoeba(tier), timeSeconds: 1.3, phase: 0.2, speedRatio: 0.5, heading: 0.7 };
+      const terms = buildShapeTerms(base);
+      const lobes = pseudopodBumps({ count, timeSeconds: 1.3, phase: 0.2, aim: 0.7, lean: 0.5 });
+      expect(terms.bumps.slice(0, count)).toEqual(lobes);
+      expect(activeSlots(terms.bumps)).toBe(count);
+      expect(terms.form?.peak).toBeLessThan(1);
+    }
+  });
+
+  it('keeps the deformation’s bumps in the first slots and cuts only what the lobes reserve', () => {
+    const engulf = [bump(0.1), bump(0.2), bump(0.3), bump(0.4), bump(0.5)];
+    const terms = buildShapeTerms({ ...amoeba(3), deformation: { ...REST_DEFORMATION, bumps: engulf } });
+    expect(terms.bumps.slice(0, 4)).toEqual(engulf.slice(0, 4));
+    expect(terms.bumps).not.toContain(engulf[4]);
+    expect(activeSlots(terms.bumps)).toBe(MAX_SHAPE_BUMPS);
+    const blob = buildShapeTerms({ ...withTraits([]), deformation: { ...REST_DEFORMATION, bumps: engulf } });
+    expect(blob.bumps.slice(0, 5)).toEqual(engulf);
+  });
+
+  /** Two aims, two cases: the heading when nothing is caught, the prey while engulfing. */
+  it('reaches the lobes for the engulfed prey and otherwise along the heading', () => {
+    const count = 4;
+    const lobesOf = (terms: { bumps: readonly { centre: number }[] }) => terms.bumps.slice(0, count);
+    const heading = buildShapeTerms({ ...amoeba(3), heading: 1, speedRatio: 1 });
+    const engulfing = buildShapeTerms({
+      ...amoeba(3),
+      heading: 1,
+      speedRatio: 1,
+      deformation: { ...REST_DEFORMATION, preyAngle: -2 },
+    });
+    const meanCentre = (lobes: readonly { centre: number }[]) =>
+      Math.atan2(
+        lobes.reduce((sum, lobe) => sum + Math.sin(lobe.centre), 0),
+        lobes.reduce((sum, lobe) => sum + Math.cos(lobe.centre), 0),
+      );
+    expect(meanCentre(lobesOf(heading))).toBeCloseTo(1, 6);
+    expect(meanCentre(lobesOf(engulfing))).toBeCloseTo(-2, 6);
+  });
+
+  it('draws no lobes on any other form', () => {
+    const slipper = buildShapeTerms(withTraits([{ traitId: 'paramecium_cilia', tier: 3 }], CELL_STAGE.specialised));
+    expect(activeSlots(slipper.bumps)).toBe(0);
+  });
+
+  it('reaches past the blob by its lobes, under the quad floor', () => {
+    const terms = buildShapeTerms({ ...amoeba(1), speedRatio: 1 });
+    expect(terms.maxRadii).toBeGreaterThan(buildShapeTerms(withTraits([])).maxRadii);
+    expect(terms.maxRadii).toBeLessThan(CELL_QUAD_EXTENT_RADII);
   });
 });

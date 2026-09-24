@@ -57,6 +57,7 @@ export const CELL_UNIFORM = {
   cellWall: 'uCellWall',
   cellWallLight: 'uCellWallLight',
   cilia: 'uCilia',
+  ectoplasm: 'uEctoplasm',
   danger: 'uDanger',
   gain: 'uGain',
 } as const;
