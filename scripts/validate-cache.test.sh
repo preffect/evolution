@@ -29,6 +29,9 @@
 #   a client filter matches repo-relative paths and stays on a file scope's spec; a shared source saved
 #   during the build is rebuilt by the next run; a setup waiting on the checkout's setup lock past its
 #   timeout fails loudly; a word after an option written with a space is its value, never a filter.
+#   format (#641): eslint --fix then prettier --write over lint's paths for the scope (a scoped one also the
+#   changed docs), the changed files listed, never cached; unfixable eslint problems leave it green, a tool
+#   that fails to run fails it, and extra args are refused.
 #   The merge gate's integration tier (#344): `all --affected` runs integration last, only in the selected
 #   packages that have integration or gameplay tests (a shared change runs its dependents', docs and
 #   scripts skip it); a red integration fails the gate and is never stamped; a red unit phase never
@@ -318,6 +321,39 @@ check "an unscoped all never reads a plain lint's stamp: it runs eslint itself, 
 run_validate "$fixture" lint --fresh
 run_validate "$fixture" all --fresh
 rm -f "$fixture/untracked-lint-key.txt"
+# format (#641): lint's fixers over lint's paths, the files they changed listed, never cached.
+ESLINT_FIX_ARGUMENTS='--fix --cache --cache-strategy content --cache-location node_modules/.cache/eslint/ --output-file /dev/null'
+PRETTIER_WRITE_ARGUMENTS="--write --log-level warn $PRETTIER_CACHED"
+run_validate "$fixture" format --scope server
+check "a scoped format runs eslint --fix, then prettier --write, over lint's paths for that scope" $(( rc == 0 && $(ran "^fake pnpm eslint $ESLINT_FIX_ARGUMENTS packages/server$"; echo $?) == 0 && $(ran "^fake pnpm prettier $PRETTIER_WRITE_ARGUMENTS packages/server$"; echo $?) == 0 && $(grep -n '^fake pnpm' <<<"$out" | grep -v install | head -n 1 | grep -q eslint; echo $?) == 0 ))
+check "a format that changed nothing says so" $(( $(ran '^format changed no files$'; echo $?) == 0 ))
+run_validate "$fixture" format --scope server
+check "a format is never cached: the repeat on the same tree runs the tools again" $(( rc == 0 && $(is_cached; echo $?) != 0 && $(ran "^fake pnpm eslint --fix"; echo $?) == 0 && $(compgen -G "$sandbox/home/.cache/*-validate/*.format*" >/dev/null; echo $?) != 0 ))
+echo "$fixture/packages/server/src/game/world.ts" > "$FAKE_PNPM_TOUCH_FILE"
+run_validate "$fixture" format --scope server
+: > "$FAKE_PNPM_TOUCH_FILE"
+git -C "$fixture" checkout -q -- packages/server/src/game/world.ts
+check "a format lists the files it changed and exits 0" $(( rc == 0 && $(ran '^format changed 1 files:$'; echo $?) == 0 && $(ran '^packages/server/src/game/world\.ts$'; echo $?) == 0 ))
+run_validate "$fixture" format --fresh
+check "an unscoped format --fresh covers the repo without either lint cache" $(( rc == 0 && $(ran '^fake pnpm eslint --fix --output-file /dev/null \.$'; echo $?) == 0 && $(ran '^fake pnpm prettier --write --log-level warn \.$'; echo $?) == 0 ))
+echo '^eslint' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" format --scope server
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "problems eslint cannot fix leave a format green, pointing at lint" $(( rc == 0 && $(ran '^eslint --fix left problems it cannot fix'; echo $?) == 0 && $(ran '^fake pnpm prettier --write'; echo $?) == 0 ))
+echo '^prettier' > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+run_validate "$fixture" format --scope server
+: > "$FAKE_PNPM_FAIL_PATTERN_FILE"
+check "a prettier that fails (a syntax error) fails the format" $(( rc != 0 && $(ran '^FAILED: format (eslint exit 0, prettier exit 1)$'; echo $?) == 0 ))
+cat > "$sandbox/bin/pnpm" <<'PNPM'
+#!/usr/bin/env bash
+echo "fake pnpm $*"
+[[ "$1" != eslint ]] || exit 2
+PNPM
+run_validate "$fixture" format --scope server
+write_standard_fake_pnpm
+check "an eslint that fails to run (exit 2) fails the format" $(( rc != 0 && $(ran '^FAILED: format (eslint exit 2, prettier exit 0)$'; echo $?) == 0 ))
+run_validate "$fixture" format --scope server -- --debug
+check "a format with extra args is refused before any tool runs" $(( rc != 0 && $(ran 'format takes no extra args'; echo $?) == 0 && $(ran_pnpm; echo $?) != 0 ))
 run_validate "$fixture" duplication --scope client
 check "a package scope scans only that package's source" $(( $(grep -q '^fake pnpm jscpd packages/client/src$' <<<"$out"; echo $?) == 0 ))
 run_validate "$fixture" typecheck --scope packages/server/src/game
@@ -600,6 +636,8 @@ run_validate "$fixture" all --affected
 check "a docs-only branch runs lint alone: prettier on the doc, no eslint, the other phases skipped" $(( rc == 0 && $(ran "^fake pnpm prettier --check $PRETTIER_CACHED docs/NOTE.md$"; echo $?) == 0 && $(ran '^fake pnpm eslint\|typecheck$\|test$\|test:integration'; echo $?) != 0 && $(grep -c '^skipped: no package' <<<"$out") == 4 ))
 run_validate "$fixture" lint --scope client
 check "a scoped lint also prettier-checks the docs the branch changed, and says so (#329)" $(( rc == 0 && $(ran "^fake pnpm prettier --check $PRETTIER_CACHED packages/client docs/NOTE.md$"; echo $?) == 0 && $(ran '^lint also prettier-checks the 1 docs changed on the branch: docs/NOTE.md$'; echo $?) == 0 ))
+run_validate "$fixture" format --scope client
+check "a scoped format also prettier-writes the docs the branch changed, and says so (#641)" $(( rc == 0 && $(ran "^fake pnpm prettier $PRETTIER_WRITE_ARGUMENTS packages/client docs/NOTE.md$"; echo $?) == 0 && $(ran '^format also prettier-writes the 1 docs changed on the branch: docs/NOTE.md$'; echo $?) == 0 ))
 
 affected_branch affected-scripts scripts/tool.sh
 run_validate "$fixture" all --affected

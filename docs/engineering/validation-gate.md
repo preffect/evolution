@@ -6,7 +6,8 @@
 
 1. **Always use `./validate.sh`. Never run the underlying tools directly.** Do not reach for
    `pnpm -r test`, `pnpm test`, `pnpm typecheck`, `npx tsc`, `pnpm eslint`, `pnpm prettier`,
-   or `pnpm --filter ... exec vitest` as a shortcut. The wrapper:
+   or `pnpm --filter ... exec vitest` as a shortcut, and never `prettier --write` or `eslint --fix` to
+   fix what lint reports: `./validate.sh format` does that. The wrapper:
    - makes the checkout runnable before every real run (never a cache hit; `scripts/lib/workspace-ready.sh`,
      #329, which `./run.sh` also runs before it stops the running stack, and the deploy before its
      restart): under a per-checkout setup lock, never the machine-wide gate lock, waiting at most
@@ -22,6 +23,13 @@
      formatting failures — then audits the source for `eslint-disable` directives without a
      `-- reason` and for `TODO`s without a ticket (`docs/CODE-STANDARDS.md` §7), printing the
      directive count;
+   - fixes what lint's tools can fix with **`format`** (#641): `eslint --fix`, then `prettier --write`,
+     over the paths `lint` reads for the same `--scope` (a scoped format also writes the docs the branch
+     changed against `origin/main`), with the lint caches unless `--fresh`; it prints the files it changed
+     (the working tree's hash before and after) and exits 0 unless a tool fails to run (a prettier syntax
+     error, an eslint crash). Problems eslint cannot fix leave it green and point at `lint`, so run `lint`
+     after it. It takes no extra args and is **never cached**: it changes the tree, and it proves nothing
+     about lint;
    - runs **`jscpd`** (`duplication`) against `.jscpd.json`: ≥ 5 duplicated lines / 50 tokens
      anywhere in `packages/*/src` outside tests and `testing/` fails (`docs/CODE-STANDARDS.md`
      §3); import blocks are ignored; the offending file pairs are printed with line ranges;
@@ -122,7 +130,7 @@
      agents queue instead of starving the box, and a cheap phase never queues behind a heavy one.
      **Heavy** (`test`, `integration`, `typecheck`: vitest and the Angular builder run cores − 2 workers)
      gets one slot per 2 cores, capped at one per 4 GB of memory, so two on the 4-core box (#561);
-     **light** (`lint`, `duplication`: eslint, prettier and jscpd use one core each, eslint over the
+     **light** (`lint`, `duplication`, `format`: eslint, prettier and jscpd use one core each, eslint over the
      client peaks near 1 GB) gets one slot per 2 cores, since it runs beside a heavy run that already
      fills every core, capped at one per GB; a lint that runs no eslint (`all --affected` over docs alone)
      takes **no** slot. `VALIDATE_HEAVY_SLOTS` / `VALIDATE_LIGHT_SLOTS` override the counts (a value that
@@ -177,6 +185,7 @@
 ./validate.sh typecheck    # type check all packages (builds shared first when stale)
 ./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit
 ./validate.sh duplication  # jscpd (.jscpd.json)
+./validate.sh format --scope server  # eslint --fix + prettier --write on what lint --scope server reads; lists the changed files
 ./validate.sh all          # lint -> duplication -> typecheck -> test, stopping at the first red phase; prints wall times and ALL PASSED / FAILED: <phase>
 ./validate.sh all --affected  # the merge gate: only what the branch changed against origin/main, then its integration tier; refuses a branch behind origin/main
 ./validate.sh all --fresh  # same, ignoring the result cache (a green run is still stamped)

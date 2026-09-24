@@ -8,6 +8,9 @@
 #   typecheck    Run type checking (pnpm -r typecheck)
 #   lint         Run linting (eslint + prettier --check + disable-directive / TODO audit); caches per file (#559)
 #   duplication  Run jscpd against .jscpd.json (docs/CODE-STANDARDS.md §3)
+#   format       Fix what lint's tools can fix (#641): eslint --fix, then prettier --write, over the files lint
+#                reads for the same scope (a scoped format also writes the docs changed against origin/main);
+#                prints the files it changed and exits 0 unless a tool fails. Never cached, takes no extra args.
 #   all          Run lint, duplication, typecheck, test in sequence, stopping at the first failing phase
 #                (FAILED: <phase>), then one line of per-phase wall times; `all --affected` adds integration last
 #
@@ -31,7 +34,7 @@
 #              is stamped per affected set.
 #   VALIDATE_NO_GATE_LOCK=1   Skip the machine-wide gate slots (sandboxed tests only)
 #   VALIDATE_HEAVY_SLOTS=N    Heavy runs (test, integration, typecheck) at once; default from cores and memory
-#   VALIDATE_LIGHT_SLOTS=N    Light runs (lint, duplication) at once; default one per 2 cores, capped by memory
+#   VALIDATE_LIGHT_SLOTS=N    Light runs (lint, duplication, format) at once; default one per 2 cores, capped by memory
 #   VALIDATE_GATE_LOCK_DIR=D  Where the slot lock files live (default $HOME/.cache/<slug>-validate)
 #   VITEST_MAX_FORKS=N        Test workers per runner; default cores - 2, leaving the runner's own main
 #   VITEST_MAX_THREADS=N      process a core (#475). An inherited value wins, for a one-off experiment.
@@ -61,7 +64,7 @@
 # (`test --scope client`, …) of every affected package on the same tree (#563). `all` stamps each phase
 # and itself. Shared across worktrees at the same content. A real
 # phase holds one machine-wide slot of its class (scripts/lib/gate-lock.sh, #380): heavy for test,
-# integration and typecheck, light for lint and duplication, none for a lint without eslint; a wait
+# integration and typecheck, light for lint, duplication and format, none for a lint without eslint; a wait
 # names the holders (pid, worktree, command). Hits never wait.
 #
 # Examples:
@@ -82,13 +85,13 @@ FRESH=0
 SCOPE_ARG=""
 SCOPE_GIVEN=0
 AFFECTED=0
-USAGE="Usage: ./validate.sh <test|integration|typecheck|lint|duplication|all> [-tN] [-hN] [-G pattern] [--fresh] [--scope <shared|server|client|path> | --affected] [-- extra-args...]"
+USAGE="Usage: ./validate.sh <test|integration|typecheck|lint|duplication|format|all> [-tN] [-hN] [-G pattern] [--fresh] [--scope <shared|server|client|path> | --affected] [-- extra-args...]"
 INVOCATION="./validate.sh $*" # what a gate slot's holder file names
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    test|integration|typecheck|lint|duplication|all)
+    test|integration|typecheck|lint|duplication|format|all)
       COMMAND="$1"
       shift
       ;;
@@ -187,6 +190,13 @@ TEST_FILE_PATTERN='\.(test|spec)\.ts$'
 CLIENT_SPEC_SUFFIX=".spec.ts"
 CLIENT_INTEGRATION_SPEC_SUFFIX=".integration.spec.ts"
 CLIENT_NO_COVERAGE_ARGUMENT="--no-coverage"
+# format writes files: extra args would reach both tools, and its output is a list of changes, not a check.
+if [[ "$COMMAND" == format && ${#EXTRA_ARGS[@]} -gt 0 ]]; then
+  echo "validate.sh: format takes no extra args" >&2
+  echo "$USAGE" >&2
+  exit 1
+fi
+
 VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
 # Lint result caches (#559), per worktree under node_modules/.cache, keyed by file content. prettier's
 # is exact (a file's result depends on the file and the config alone), so every run but --fresh uses it.
@@ -296,6 +306,7 @@ is_prettier_doc() { # <repo-relative path>
 
 # A scoped lint also prettier-checks the docs the branch changed (#329): a package or path scope reads
 # no docs/, so an author's scoped lint was green over unformatted docs that only the merge gate caught.
+# A scoped format writes the same docs (#641), so it fixes what that lint would report.
 # Without a merge base with origin/main there is nothing to compare, and the scope stays as it is.
 add_changed_docs_to_scoped_lint() {
   [[ $SCOPE_GIVEN -eq 1 ]] || return 0
@@ -306,7 +317,11 @@ add_changed_docs_to_scoped_lint() {
   done <<< "$paths"
   [[ ${#docs[@]} -gt 0 ]] || return 0
   LINT_PATHS+=("${docs[@]}")
-  [[ ! "$COMMAND" =~ ^(lint|all)$ ]] || echo "lint also prettier-checks the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+  if [[ "$COMMAND" =~ ^(lint|all)$ ]]; then
+    echo "lint also prettier-checks the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+  elif [[ "$COMMAND" == format ]]; then
+    echo "format also prettier-writes the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+  fi
 }
 
 # Sorts each changed path into a package, the docs, the scripts, or "everything" (a root file).
@@ -750,7 +765,7 @@ cache_store() {
 gate_class() { # <cmd>
   case "$1" in
     lint) if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then echo "$GATE_CLASS_LIGHT"; else echo "$GATE_CLASS_NONE"; fi ;;
-    duplication) echo "$GATE_CLASS_LIGHT" ;;
+    duplication|format) echo "$GATE_CLASS_LIGHT" ;;
     *) echo "$GATE_CLASS_HEAVY" ;;
   esac
 }
@@ -1081,9 +1096,63 @@ ${extra}"
         rc=1
       fi
       ;;
+    format)
+      format_files || rc=$?
+      return $rc
+      ;;
   esac
 
   printf '%s\n' "$output"
+  return $rc
+}
+
+# ---------------------------------------------------------------------------
+# `format` (#641): fixes in place what lint's tools can fix, over lint's own paths for the scope, so nobody
+# runs prettier --write by hand. Never cached: it changes the tree it would stamp, and a green format says
+# nothing about lint (eslint problems without a fix remain). The files it changed are the difference between
+# the working tree's hash (cache_tree_hash) before and after, whichever tool changed them.
+# ---------------------------------------------------------------------------
+ESLINT_UNFIXABLE_EXIT_CODE=1 # eslint's exit when problems remain after --fix; 2 and above: it failed to run
+
+# Prints each tool's own output and the files the run changed; fails when a tool fails to run.
+format_files() {
+  local before after changed eslint_rc=0 prettier_rc=0 eslint_cache=() prettier_cache=()
+  [[ $FRESH -ne 0 ]] || { eslint_cache=("${ESLINT_CACHE_ARGUMENTS[@]}"); prettier_cache=("${PRETTIER_CACHE_ARGUMENTS[@]}"); }
+  before="$(cache_tree_hash)"
+  # eslint first: prettier formats whatever eslint's fixes leave behind. Its report goes nowhere (lint
+  # prints it); a crash still reaches stderr.
+  if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
+    pnpm eslint --fix "${eslint_cache[@]}" --output-file /dev/null "${ESLINT_PATHS[@]}" 2>&1 || eslint_rc=$?
+    [[ $eslint_rc -ne $ESLINT_UNFIXABLE_EXIT_CODE ]] \
+      || echo "eslint --fix left problems it cannot fix: ./validate.sh lint lists them"
+  fi
+  if [[ ${#LINT_PATHS[@]} -gt 0 ]]; then
+    pnpm prettier --write --log-level warn "${prettier_cache[@]}" "${LINT_PATHS[@]}" 2>&1 || prettier_rc=$?
+  fi
+  after="$(cache_tree_hash)"
+  if [[ -n "$before" && -n "$after" ]]; then
+    changed="$(git -C "$SCRIPT_DIR" diff-tree -r --name-only "$before" "$after")"
+    if [[ -n "$changed" ]]; then
+      echo "format changed $(wc -l <<<"$changed") files:"
+      echo "$changed"
+    else
+      echo "format changed no files"
+    fi
+  fi
+  if [[ $eslint_rc -gt $ESLINT_UNFIXABLE_EXIT_CODE || $prettier_rc -ne 0 ]]; then
+    echo "FAILED: format (eslint exit $eslint_rc, prettier exit $prettier_rc)"
+    return 1
+  fi
+}
+
+# Runs <cmd> once, outside the result cache: the workspace setup, its gate slot, the filters.
+run_uncached() { # <cmd>
+  local cmd="$1" rc=0 output
+  workspace_ensure_ready "$SCRIPT_DIR" "validate.sh:" continue || return 1
+  gate_lock_acquire "$SCRIPT_DIR" "$(gate_class "$cmd")" "$cmd" "$INVOCATION"
+  output="$(run_one "$cmd" 9>&-)" || rc=$?
+  gate_lock_release
+  printf '%s\n' "$output" | apply_filters
   return $rc
 }
 
@@ -1174,6 +1243,10 @@ resolve_affected
 add_changed_docs_to_scoped_lint
 refuse_mixed_runner_args
 cd "$SCRIPT_DIR" || exit 1
+if [[ "$COMMAND" == format ]]; then
+  run_uncached format
+  exit $?
+fi
 cache_init
 
 if [[ "$COMMAND" == "all" ]]; then
