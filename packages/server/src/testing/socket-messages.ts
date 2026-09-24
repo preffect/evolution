@@ -42,8 +42,11 @@ export async function nextMatchingMessage(
   return firstAwaitedFrom(recording.received, isAwaited, firstIndex)!;
 }
 
-/** Sends `frame`, then resolves with the first message `isAwaited` accepts among those recorded since the send. */
-export function sendAndAwait(client: TestClient, frame: ClientMessage, isAwaited: MessagePredicate) {
+/**
+ * Sends `frame`, then resolves with the first message `isAwaited` accepts among those recorded since the send; a send
+ * that throws (a socket not yet open) rejects instead.
+ */
+export async function sendAndAwait(client: TestClient, frame: ClientMessage, isAwaited: MessagePredicate) {
   const firstIndex = client.received.length;
   client.socket.send(JSON.stringify(frame));
   return nextMatchingMessage(client, isAwaited, firstIndex);

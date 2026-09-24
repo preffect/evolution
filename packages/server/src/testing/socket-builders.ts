@@ -20,6 +20,7 @@ import type { Connection } from '../ws/connection.js';
 import { registerWebSocketHandler } from '../ws/websocket-handler.js';
 import { createManualRoomTiming, spyGameModuleFactory, type ManualRoomTiming } from './builders.js';
 import { isSeated, lobbyShows, messageOfType, sendAndAwait, type TestClient } from './socket-messages.js';
+import { untilReceived } from './wait-for.js';
 
 const EPHEMERAL_PORT = 0;
 const LOOPBACK_HOST = '127.0.0.1';
@@ -86,8 +87,19 @@ export function openRecordingTestSocket(url: string): Promise<{ socket: WebSocke
   });
 }
 
-export function nextServerMessage(socket: WebSocket): Promise<ServerMessage> {
-  return new Promise((resolve) => socket.once('message', (data) => resolve(JSON.parse(data.toString()))));
+/** Resolves with the next message the socket receives after this call; rejects when it closes first. */
+export async function nextServerMessage(socket: WebSocket): Promise<ServerMessage> {
+  const received: ServerMessage[] = [];
+  const record = (data: Buffer): void => {
+    received.push(JSON.parse(data.toString()) as ServerMessage);
+  };
+  socket.on('message', record);
+  try {
+    await untilReceived({ socket, received }, (messages) => messages.length > 0, 'the next server message');
+  } finally {
+    socket.off('message', record);
+  }
+  return received[0]!;
 }
 
 export function whenClosed(socket: WebSocket): Promise<void> {

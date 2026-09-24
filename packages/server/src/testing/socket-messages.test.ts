@@ -22,8 +22,11 @@ class FakeClient extends EventEmitter implements TestClient {
   readonly socket = this as unknown as WebSocket;
   /** The reply the next `send` is answered with before it returns, as a server that answers at once would. */
   answerWith: ServerMessage | undefined;
+  /** What the next `send` throws, as `ws` does on a socket that is not open yet. */
+  sendFailure: Error | undefined;
 
   send(frame: string): void {
+    if (this.sendFailure) throw this.sendFailure;
     this.sent.push(frame);
     if (this.answerWith) this.receive(this.answerWith);
   }
@@ -84,5 +87,13 @@ describe('sendAndAwait', () => {
     await expect(awaited).rejects.toThrow(
       `a ${SERVER_MESSAGE_TYPE.lobbyUpdate} whose list passes isAnyGameListed from message 0 never became true`,
     );
+  });
+
+  it('turns a send that throws into a rejection', async () => {
+    const client = new FakeClient();
+    const notOpen = new Error('WebSocket is not open: readyState 0 (CONNECTING)');
+    client.sendFailure = notOpen;
+    const awaited = sendAndAwait(client, JOIN_LOBBY, messageOfType(SERVER_MESSAGE_TYPE.lobbyUpdate));
+    await expect(awaited).rejects.toBe(notOpen);
   });
 });
