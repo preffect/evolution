@@ -28,7 +28,8 @@ import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
 import { screenOffsetToWorld, screenToWorld, type CameraExtent, type WorldPoint } from './camera';
-import type { GameRenderer, RenderInputs, RenderOutputs } from './game-renderer';
+import type { GameRenderer } from './game-renderer';
+import type { RenderInputs, RenderOutputs } from './render-io';
 import type { PixiAppHandle, PixiAppOptions } from './pixi-app';
 
 /** A canvas point resolved through the live camera, both ways the input layer needs it. */

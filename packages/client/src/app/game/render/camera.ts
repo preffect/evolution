@@ -41,6 +41,14 @@ export interface WorldPoint {
   readonly y: number;
 }
 
+/**
+ * Whether the viewport has a height to project through. One without (a hidden tab, a 0 × 0 canvas mid-resize) has
+ * zoom 0, so anything that divides by the zoom or the height asks this first instead of going NaN or infinite.
+ */
+export function hasViewportHeight(viewport: ViewportPx): boolean {
+  return viewport.height > 0;
+}
+
 /** CSS px per wu. */
 export function zoomFor(state: CameraState, viewport: ViewportPx): number {
   return (viewport.height * HALF) / state.viewHalfHeightWu;
@@ -48,7 +56,7 @@ export function zoomFor(state: CameraState, viewport: ViewportPx): number {
 
 export function cameraExtent(state: CameraState, viewport: ViewportPx): CameraExtent {
   const halfHeight = state.viewHalfHeightWu;
-  const halfWidth = viewport.height > 0 ? (halfHeight * viewport.width) / viewport.height : halfHeight;
+  const halfWidth = hasViewportHeight(viewport) ? (halfHeight * viewport.width) / viewport.height : halfHeight;
   return {
     minX: state.x - halfWidth,
     maxX: state.x + halfWidth,
@@ -66,8 +74,10 @@ export function worldToScreen(state: CameraState, viewport: ViewportPx, x: numbe
  * A screen point as a world-space offset from the middle of the view: what a caller anchors to
  * something other than the camera's own centre. The steer target hangs the pointer off the newest
  * snapshot's own cell this way, because the smoothed, interpolated camera trails it (docs/ui/input-and-onboarding.md §4).
+ * A viewport with no height answers the middle of the view (offset 0), so `screenToWorld` answers the camera's centre.
  */
 export function screenOffsetToWorld(state: CameraState, viewport: ViewportPx, x: number, y: number): WorldPoint {
+  if (!hasViewportHeight(viewport)) return { x: 0, y: 0 };
   const zoom = zoomFor(state, viewport);
   return { x: (x - viewport.width * HALF) / zoom, y: (y - viewport.height * HALF) / zoom };
 }

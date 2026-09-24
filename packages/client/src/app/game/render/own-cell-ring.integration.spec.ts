@@ -30,7 +30,8 @@ import {
 import { SELF_RING_ALPHA } from './constants';
 import { SHOULD_HIDE_PREDATOR_RING_DURING_ESCAPE } from './effects/own-cell-ring';
 import { OWN_CELL_CHROME } from './effects/own-cell-indicators-layer';
-import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
+import { GameRenderer } from './game-renderer';
+import { NO_HUD_INPUTS, type RenderInputs } from './render-io';
 
 const VIEWPORT = { width: 800, height: 600 };
 const NO_SUBMIT = (): undefined => undefined;

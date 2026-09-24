@@ -16,7 +16,8 @@ import type { RenderFrame } from '../../net/world-store';
 import { PREVIEW_GEL_PATCHES, PREVIEW_SEED } from '../constants';
 import { FrameLoopSession } from '../frame-loop-session';
 import { OWN_CELL_CHROME } from '../effects/own-cell-indicators-layer';
-import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
+import type { GameRenderer } from '../game-renderer';
+import { NO_HUD_INPUTS, type RenderInputs, type RenderOutputs } from '../render-io';
 import { HALF } from '../geometry';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import {
