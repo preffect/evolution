@@ -27,6 +27,7 @@ import {
   type TestClient,
 } from '../testing/socket-builders.js';
 import { untilReceived, untilRoomDecides } from '../testing/wait-for.js';
+import type { GameRoom } from './game-room.js';
 
 const CLIENT_ID = 'slow';
 /** How long the client lags, each time: two limits of ticks, so the room is past the limit whatever the phase. */
@@ -87,7 +88,11 @@ describe('a client whose acks lag behind a running room (#655)', () => {
     await closeLobbySocketHarness(harness);
   });
 
-  it('keeps receiving deltas after a resync it applied only once the room had run past the limit again', async () => {
+  /**
+   * A started room whose client acks like the browser but lags: it stalls past the limit, is skipped, drains, and is
+   * sent its resync, which has arrived but is not applied yet.
+   */
+  async function resyncSentToALaggingClient() {
     const client = await connectTestClient(harness, CLIENT_ID);
     const { timing, room } = await startTestRoom(harness, client, 'lagging');
     const browser = new BrowserLikeClient(client);
@@ -125,6 +130,23 @@ describe('a client whose acks lag behind a running room (#655)', () => {
     );
     const resyncTick = newestTickOfType(client, SERVER_MESSAGE_TYPE.gameState)!;
 
+    return { client, timing, room, browser, resyncTick };
+  }
+
+  /** Waits for the delta of the room's newest tick, then applies everything that arrived, as the page would. */
+  async function receiveNewestDelta(client: TestClient, room: GameRoom, browser: BrowserLikeClient): Promise<void> {
+    const broadcastTick = room.getTickCount();
+    await untilReceived(
+      client,
+      () => newestTickOfType(client, SERVER_MESSAGE_TYPE.gameSnapshot) === broadcastTick,
+      `the delta for tick ${broadcastTick} arrived`,
+    );
+    browser.applyArrived();
+  }
+
+  it('keeps receiving deltas after a resync it applied only once the room had run past the limit again', async () => {
+    const { client, timing, room, browser, resyncTick } = await resyncSentToALaggingClient();
+
     // The resync waits in the slow page's queue while the room runs another two limits, sending it nothing.
     advanceRoomTicks(timing, LAG_TICKS);
     browser.applyArrived();
@@ -138,15 +160,40 @@ describe('a client whose acks lag behind a running room (#655)', () => {
       advanceRoomTicks(timing, SNAPSHOT_EVERY_TICKS);
       // The room decides synchronously: a client it skipped is owed a resync, and would be sent nothing more.
       expect(room.snapshotBacklog.owedCount()).toBe(0);
-      const broadcastTick = room.getTickCount();
-      await untilReceived(
-        client,
-        () => newestTickOfType(client, SERVER_MESSAGE_TYPE.gameSnapshot) === broadcastTick,
-        `the delta for tick ${broadcastTick} arrived`,
-      );
-      browser.applyArrived();
+      await receiveNewestDelta(client, room, browser);
     }
     expect(room.snapshotBacklog.owedCount()).toBe(0);
+    expect(room.snapshotBacklog.resyncCount()).toBe(1);
+  });
+
+  it('keeps receiving debug steps after a paused hold sent it one delta that spans the limit on its own', async () => {
+    const { client, timing, room, browser, resyncTick } = await resyncSentToALaggingClient();
+    // The running room holds the resync past the limit, then a debug tool pauses it and steps one broadcast: a paused
+    // hold sends the step, and that one delta spans every held tick.
+    advanceRoomTicks(timing, LAG_TICKS);
+    room.pause();
+    room.step(SNAPSHOT_EVERY_TICKS);
+    await receiveNewestDelta(client, room, browser);
+    const spanningTick = room.getTickCount();
+    expect(spanningTick - resyncTick).toBeGreaterThan(SNAPSHOT_BACKLOG_LIMIT_TICKS);
+    await untilRoomDecides(
+      () => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) === spanningTick - resyncTick,
+      `the room read the ack of the resync at tick ${resyncTick}`,
+    );
+
+    // The page holds one delta past its ack and owes no ack for it: each further step must still reach it. The held
+    // step is not forgotten (it may be unacknowledged), so a debug tool steps again only once the page's ack is read,
+    // as a step over the MCP does.
+    for (let step = 0; step < RECOVERED_BROADCASTS; step += 1) {
+      room.step(SNAPSHOT_EVERY_TICKS);
+      expect(room.snapshotBacklog.owedCount()).toBe(0);
+      await receiveNewestDelta(client, room, browser);
+      const acknowledged = browser.newestAcknowledgedTick!;
+      await untilRoomDecides(
+        () => room.snapshotBacklog.backlogTicksOf(CLIENT_ID) === room.getTickCount() - acknowledged,
+        `the room read the ack of tick ${acknowledged}`,
+      );
+    }
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
   });
 });

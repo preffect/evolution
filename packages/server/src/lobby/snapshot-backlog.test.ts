@@ -167,6 +167,34 @@ describe('SnapshotBacklog', () => {
     expect(backlog.nextFor(connection, resyncTick + SNAPSHOT_BACKLOG_LIMIT_TICKS * 3)).toBe(SNAPSHOT_DELIVERY.delta);
   });
 
+  it('#655: a client that acks every delta (an injected cadence of one) owes an ack for a single spanning delta', () => {
+    const backlog = new SnapshotBacklog({ ackEverySnapshots: 1 });
+    const connection = createTestConnection({ playerId: 'p1', bufferedAmount: DRAINED });
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick('p1', FIRST_TICK);
+    const spanningTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS * 2;
+    backlog.nextFor(connection, spanningTick);
+    expect(backlog.nextFor(connection, spanningTick + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
+  });
+
+  it('#655: a paused hold that sent step deltas keeps counting them from the ack when it ends', () => {
+    const { backlog, connection, playerId } = oneConnection();
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    const resyncTick = FIRST_TICK + 1;
+    backlog.recordResyncSent(playerId, resyncTick);
+    // Steps taken during the hold are sent in a paused room, queued behind the resync.
+    const heldSteps = SNAPSHOT_ACK_EVERY_SNAPSHOTS;
+    for (let step = 1; step <= heldSteps; step += 1) {
+      expect(backlog.nextFor(connection, resyncTick + step, true)).toBe(SNAPSHOT_DELIVERY.delta);
+    }
+    backlog.recordAcknowledgedTick(playerId, resyncTick);
+    const releaseTick = resyncTick + heldSteps + 1;
+    expect(backlog.nextFor(connection, releaseTick, true)).toBe(SNAPSHOT_DELIVERY.delta);
+    // The held steps are still unacknowledged: the depth reaches back to the resync's ack, not to this broadcast.
+    expect(backlog.backlogTicksOf(playerId)).toBe(releaseTick - resyncTick);
+  });
+
   it('#655: the stream a resync hold ends restarts its depth there, not at the resync the hold ran past', () => {
     const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
     backlog.nextFor(connection, FIRST_TICK);

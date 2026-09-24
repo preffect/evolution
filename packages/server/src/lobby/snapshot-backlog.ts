@@ -43,6 +43,8 @@ export interface SnapshotBacklogLimits {
   readonly ticks?: number;
   /** Unsent bytes the room may hold for one connection. */
   readonly bytes?: number;
+  /** Deltas the client applies per ack (its `SnapshotAcknowledger` cadence): fewer past its ack owe none (#655). */
+  readonly ackEverySnapshots?: number;
 }
 
 /**
@@ -56,19 +58,21 @@ export class SnapshotBacklog {
   /** The tick of the `game_state` each client was resynced with, until it acknowledges that tick (#275). */
   private readonly resyncInFlightTick = new Map<string, number>();
   /**
-   * The broadcast each client's stream restarted on when its resync hold ended (#655). The ticks of the hold were never
-   * sent, so they are in no queue: the depth is measured from here, not from the resync's ack.
+   * The broadcast each client's stream restarted on when a resync hold that sent it nothing ended (#655). The ticks of
+   * that hold were never sent, so they are in no queue: the depth is measured from here, not from the resync's ack.
    */
   private readonly streamRestartTick = new Map<string, number>();
   /** The ticks of the newest deltas sent to each client since its last `game_state`, at most one ack cadence (#655). */
   private readonly recentDeltaTicks = new Map<string, number[]>();
   private readonly limitTicks: number;
   private readonly limitBytes: number;
+  private readonly ackEverySnapshots: number;
   private resyncTotal = 0;
 
   constructor(limits: SnapshotBacklogLimits = {}) {
     this.limitTicks = limits.ticks ?? SNAPSHOT_BACKLOG_LIMIT_TICKS;
     this.limitBytes = limits.bytes ?? SNAPSHOT_BACKLOG_LIMIT_BYTES;
+    this.ackEverySnapshots = limits.ackEverySnapshots ?? SNAPSHOT_ACK_EVERY_SNAPSHOTS;
   }
 
   /** The newest tick a client says it has applied; an older or repeated ack changes nothing. */
@@ -141,32 +145,34 @@ export class SnapshotBacklog {
   private recordDeltaSent(playerId: string, tick: number): void {
     const ticks = this.recentDeltaTicks.get(playerId) ?? [];
     ticks.push(tick);
-    if (ticks.length > SNAPSHOT_ACK_EVERY_SNAPSHOTS) ticks.shift();
+    if (ticks.length > this.ackEverySnapshots) ticks.shift();
     this.recentDeltaTicks.set(playerId, ticks);
   }
 
   /**
-   * The client holds at least one ack cadence of deltas past its newest ack, so an ack is on its way (#655). With fewer
-   * it owes none, and skipping it would wait for good on an ack that never comes: a delta that spans more than the limit
-   * on its own (the one that ended a resync hold did, before the depth counted from the restart) froze the client.
+   * The client's ack is below the N-th newest delta sent since its last `game_state` (N the ack cadence): it holds a
+   * whole cadence past its ack, so an ack is on its way (#655). With fewer it owes none, and skipping it would wait for
+   * good on an ack that never comes: a delta that spans more than the limit on its own (the one that ended a resync
+   * hold did, before the depth counted from the restart) froze the client.
    */
   private isAcknowledgementOwed(playerId: string): boolean {
-    const acknowledged = this.acknowledgedTick.get(playerId);
     const ticks = this.recentDeltaTicks.get(playerId) ?? [];
-    const unacknowledged = ticks.filter((tick) => acknowledged === undefined || tick > acknowledged).length;
-    return unacknowledged >= SNAPSHOT_ACK_EVERY_SNAPSHOTS;
+    const oldestOfCadence = ticks[0];
+    if (ticks.length < this.ackEverySnapshots || oldestOfCadence === undefined) return false;
+    return (this.acknowledgedTick.get(playerId) ?? oldestOfCadence - 1) < oldestOfCadence;
   }
 
   /**
    * A resync is in flight and the client has not acknowledged its tick yet; one that never acks is never held. A hold
-   * that ends restarts the stream on this broadcast.
+   * that sent nothing (a running room's) restarts the stream on this broadcast. A paused room's sent its step deltas,
+   * which may still be unacknowledged, so the depth keeps counting them from the ack.
    */
   private isAwaitingResyncAck(playerId: string, broadcastTick: number): boolean {
     const resyncTick = this.resyncInFlightTick.get(playerId);
     if (resyncTick === undefined) return false;
     if ((this.acknowledgedTick.get(playerId) ?? resyncTick) < resyncTick) return true;
     this.resyncInFlightTick.delete(playerId);
-    this.streamRestartTick.set(playerId, broadcastTick);
+    if (this.lastSentTick.get(playerId) === resyncTick) this.streamRestartTick.set(playerId, broadcastTick);
     return false;
   }
 
