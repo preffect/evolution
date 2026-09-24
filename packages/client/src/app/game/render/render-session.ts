@@ -14,6 +14,7 @@ import {
   parkCamera,
   type CameraState,
   SERVER_MESSAGE_TYPE,
+  SnapshotAcknowledger,
   type ClientPerformanceReport,
   type Clock,
   type GameSnapshot,
@@ -23,7 +24,6 @@ import type { TransitionOptions } from '../state/snapshot-transitions';
 import type { AudioHooksHandle } from '../audio/audio-hooks';
 import { AudioSession } from '../audio/audio-session';
 import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution-debug';
-import { SnapshotAcknowledger } from '../net/snapshot-acknowledger';
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
