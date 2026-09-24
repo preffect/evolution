@@ -1,6 +1,6 @@
 // Integration (docs/testing/tiers-and-builders.md §2): a slow client against the snapshot flow control of
 // docs/architecture/wire-contract.md §4, over real sockets, the lobby and the real game module. The client acknowledges
-// exactly as the browser does (`net/snapshot-acknowledger.ts`: a `game_state` at once, a delta every
+// through the browser's own shared `SnapshotAcknowledger` (a `game_state` at once, a delta every
 // `SNAPSHOT_ACK_EVERY_SNAPSHOTS`), and its acks lag: it falls a limit behind, is resynced, and applies that `game_state`
 // only after the room has run past the limit again. #655 measured the freeze that followed on a throttled page: the one
 // delta that ended the resync hold read as a limit-deep queue, the client owed no ack for a single delta, and the room
@@ -13,6 +13,7 @@ import {
   SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   SNAPSHOT_BACKLOG_LIMIT_TICKS,
   SNAPSHOT_EVERY_TICKS,
+  SnapshotAcknowledger,
   type GameSnapshot,
   type ServerMessage,
 } from '@evolution/shared';
@@ -45,12 +46,12 @@ function tickOf(message: ServerMessage): number {
  */
 class BrowserLikeClient {
   private appliedCount = 0;
-  private deltasSinceAcknowledgement = 0;
+  private readonly acknowledger = new SnapshotAcknowledger((tick) => this.acknowledge(tick));
   newestAcknowledgedTick: number | null = null;
 
   constructor(private readonly client: TestClient) {}
 
-  /** Applies every message received so far, acknowledging as `SnapshotAcknowledger` does. */
+  /** Applies every message received so far, acknowledging through the browser's `SnapshotAcknowledger`. */
   applyArrived(): void {
     for (const message of this.client.received.slice(this.appliedCount)) this.apply(message);
     this.appliedCount = this.client.received.length;
@@ -58,15 +59,13 @@ class BrowserLikeClient {
 
   private apply(message: ServerMessage): void {
     if (message.type === SERVER_MESSAGE_TYPE.gameState) {
-      this.acknowledge(tickOf(message));
+      this.acknowledger.acknowledgeNow(tickOf(message));
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
-      this.deltasSinceAcknowledgement += 1;
-      if (this.deltasSinceAcknowledgement >= SNAPSHOT_ACK_EVERY_SNAPSHOTS) this.acknowledge(tickOf(message));
+      this.acknowledger.recordApplied(tickOf(message));
     }
   }
 
   private acknowledge(tick: number): void {
-    this.deltasSinceAcknowledgement = 0;
     this.newestAcknowledgedTick = tick;
     this.client.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick }));
   }

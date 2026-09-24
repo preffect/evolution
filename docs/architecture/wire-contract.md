@@ -96,7 +96,8 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
   client skip ahead, so its view then falls behind **for good**: it is not a hitch, it is a
   divergence that grows for as long as the room runs. So:
   - the client sends **`snapshot_ack { tick }`** — the newest tick it has applied — on every
-    `game_state` and every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas (`net/snapshot-acknowledger.ts`).
+    `game_state` and every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas (the shared `net/snapshot-acknowledger.ts`, which the
+    server's socket tests acknowledge through too, #664).
     That count is derived from a tick budget, `SNAPSHOT_ACK_INTERVAL_TICKS` = `TICK_HZ / 10` = 6,
     and not fixed (#277 item 3, landed with #214): the room measures the queue in ticks, so a fixed
     count of snapshots moves the floor of that measurement every time `SNAPSHOT_EVERY_TICKS` moves,
