@@ -35,6 +35,8 @@ import { sparklinePointsFor } from './format/sparkline';
 
 /** The region's name, the one piece of text the panel itself owns (§3.7). */
 const PANEL_LABEL = 'Affecting you';
+/** Where a trait value may wrap: an ordinary space, since its quantities are bound with no-break ones (#446). */
+const WORD_SPACE = ' ';
 
 @Component({
   selector: 'app-affecting-panel',
@@ -73,14 +75,17 @@ const PANEL_LABEL = 'Affecting you';
             <!-- The trait rows come first and wear their #312 glyph; the plain rows follow (§3.7's row order).
                  Both lists come split from affectingRowsFor, so nothing is partitioned per change detection. -->
             @if (section.traitRows.length) {
-              <ui-facts-table [rows]="section.traitRows">
+              <ui-facts-table [rows]="section.traitRows" [shouldWrapValues]="true">
                 <ng-template uiFactMarker let-row>
                   @if (traitIdOf(row); as traitId) {
                     <app-trait-glyph [traitId]="traitId" [lod]="listLod" still />
                   }
                 </ng-template>
                 <ng-template uiFactValue let-row let-value="value">
-                  <span class="trait-effect"><ui-effect-mark [effect]="effectOf(row)" />{{ value }}</span>
+                  <!-- The mark and the value's first word never part when the value wraps (#630). -->
+                  @let parts = leadAndRest(value);
+                  <span class="trait-effect"><ui-effect-mark [effect]="effectOf(row)" />{{ parts.lead }}</span
+                  >{{ parts.rest }}
                 </ng-template>
               </ui-facts-table>
             }
@@ -156,6 +161,16 @@ export class AffectingPanelComponent {
    */
   protected traitIdOf(row: UiFactRow): TraitId | null {
     return 'traitId' in row ? (row as AffectingRow).traitId : null;
+  }
+
+  /**
+   * A trait value split after its first word, so the template can hold the effect mark and that word on one line
+   * while the rest wraps (#630). The value's numbers are already bound to their units, so the first word is the
+   * whole quantity (`+15 %`).
+   */
+  protected leadAndRest(value: string): { readonly lead: string; readonly rest: string } {
+    const breakAt = value.indexOf(WORD_SPACE);
+    return breakAt < 0 ? { lead: value, rest: '' } : { lead: value.slice(0, breakAt), rest: value.slice(breakAt) };
   }
 
   /** What a trait row's value does for the cell: its tone (#453), by the same check as `traitIdOf`. */

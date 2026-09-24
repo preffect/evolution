@@ -174,6 +174,15 @@ export const NOTICE_ROW_HEIGHT_PX = 32;
 export const NOTICE_STACK_MAX_Y_PX = 96;
 /** While the socket is down the last snapshot stays on screen, dimmed by this much. */
 export const CONNECTION_LOST_DIM_ALPHA = 0.2;
+/** The death overlay's dim (docs/ui/overlays.md §3.3): light, since the player is watching their killer through it. */
+export const RESPAWN_DIM_ALPHA = 0.3;
+/** Its text block starts where the notice stack must end, so a banner never sits on the killer's name. */
+export const RESPAWN_TEXT_TOP_PX = NOTICE_STACK_MAX_Y_PX;
+/**
+ * The text block's width at scale 1, centred: the widest title, `ENGULFED BY ` and a 12-character name in wide capitals,
+ * fits on one line.
+ */
+export const RESPAWN_TEXT_WIDTH_PX = 480;
 /** The notices' text inset from the viewport's left and right edges. */
 export const NOTICE_PADDING_INLINE_PX = 16;
 /** Gap between a notice's message and its dismiss control. */

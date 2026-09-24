@@ -5,8 +5,6 @@
 // The facts the chrome needs are the newest snapshot's and the room's, both of which
 // `MultiplayerService` already mirrors as signals — `WorldStore` (`net/world-store.ts`) owns the
 // *interpolated* world the renderer draws per frame, and nothing on the chrome is interpolated.
-// The own-cell signals of docs/ui/components-and-constants.md §7 (`ownCell`, `ownProgress`, `ownCellIndicators`, `threats`,
-// `cameraExtent`) arrive with #186/#187 and read the store through the render seam.
 
 import { Injectable, computed, inject, linkedSignal, signal, type Signal } from '@angular/core';
 import {
@@ -138,6 +136,16 @@ export class GameStateService {
     const ownCell = this.ownCell();
     const ownProgress = this.ownProgress();
     return snapshot === null || ownCell === null || ownProgress === null ? null : { snapshot, ownCell, ownProgress };
+  });
+
+  /**
+   * Our progress in the last snapshot we were alive in, for the death overlay's DNA lost (docs/ui/overlays.md §3.3);
+   * `null` until seen alive. It steps only when read, so that overlay reads it on every snapshot.
+   */
+  readonly lastAliveOwnProgress = linkedSignal<OwnSnapshot | null, OwnProgressView | null>({
+    source: () => this.ownSnapshot(),
+    computation: (own, previous) =>
+      own?.ownProgress.lifeState === PLAYER_LIFE_STATE.alive ? own.ownProgress : (previous?.value ?? null),
   });
 
   /**
@@ -274,10 +282,7 @@ export class GameStateService {
     const own = this.ownSnapshot();
     const balance = this.balance();
     if (own === null || balance === null) return null;
-    // Death lands here: `lifeState` has only `alive` and `spectating`, so dying leaves `alive` and
-    // the record goes `null`. The mirror then unmounts, which is silent — an `aria-live` region
-    // that is removed announces nothing. Saying the death itself is #189's, which owns the death
-    // overlay; this slice does not claim to, and `hud.component.ts` no longer says it does.
+    // Death lands here: the mirror unmounts silently, and the death overlay's countdown speaks instead.
     if (own.ownProgress.lifeState !== PLAYER_LIFE_STATE.alive) return null;
     return ownCellIndicatorsFor({
       ownCell: own.ownCell,
