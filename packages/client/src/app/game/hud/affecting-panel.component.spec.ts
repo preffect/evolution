@@ -177,6 +177,10 @@ describe('AffectingPanelComponent', () => {
     expect(row?.querySelector('.trait-effect')?.textContent?.trim()).toMatch(/^−/);
   });
 
+  function textOf(element: Element | null | undefined): string {
+    return element?.textContent?.trim() ?? '';
+  }
+
   /** #630: the value wraps in the panel's narrow column, and the mark must not be left behind on the line above. */
   it('holds the effect mark and the value’s whole quantity together, and lets only the words after it wrap', () => {
     show();
@@ -184,13 +188,14 @@ describe('AffectingPanelComponent', () => {
     const row = (fixture.nativeElement as HTMLElement).querySelector(
       `[data-row-id="${affectingTraitTestId(MITOCHONDRION)}"]`,
     );
-    const value = row?.querySelector('.value')?.textContent?.trim() ?? '';
+    const value = textOf(row?.querySelector('.value'));
     const held = row?.querySelector('.trait-effect');
+    const heldText = textOf(held);
     // `−15 % mass decay`: the unbreakable lead is the bound quantity, and the words follow it outside the held span.
     expect(held?.querySelector('ui-effect-mark')).not.toBeNull();
-    expect(held?.textContent?.trim()).toBe(value.split(' ')[0]);
-    expect(held?.textContent?.trim()).toMatch(/^−\d+\u00a0%$/);
-    expect(value.length).toBeGreaterThan(held?.textContent?.trim().length ?? 0);
+    expect(heldText).toBe(value.split(' ')[0]);
+    expect(heldText).toMatch(/^−\d+\u00a0%$/);
+    expect(value.length).toBeGreaterThan(heldText.length);
     expect(row?.closest('table')?.hasAttribute('data-wrap-values')).toBe(true);
   });
 
