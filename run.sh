@@ -20,12 +20,26 @@ DEFAULT_READY_TIMEOUT_SECONDS=300
 READY_TIMEOUT_SECONDS="${RUN_READY_TIMEOUT_SECONDS:-$DEFAULT_READY_TIMEOUT_SECONDS}"
 READY_POLL_SECONDS=1
 READY_LOG_TAIL_LINES=20
+# wait_ready's outcomes besides ready (0)
+READY_FAILED_EXITED=1
+READY_FAILED_TIMEOUT=2
+# How long the ports may stay held by this checkout's own stopped stack before the start refuses (#444)
+DEFAULT_STOP_GRACE_SECONDS=10
+STOP_GRACE_SECONDS="${RUN_STOP_GRACE_SECONDS:-$DEFAULT_STOP_GRACE_SECONDS}"
+STOP_POLLS_PER_SECOND=10
+STOP_POLL_SECONDS=0.1
 
 SERVER_PORT="${PORT:-4400}"
 CLIENT_PORT="${CLIENT_PORT:-4402}"
 
 # PIDs already listening on this run's ports once the old stack is stopped: never the new stack
 LISTENERS_BEFORE_START=" "
+# What this run started, stopped again when the start fails (#444)
+SERVER_PID=""
+CLIENT_PID=""
+# A listener of this checkout still on a needed port after the stop (find_held_port)
+HELD_PORT=""
+HELD_PID=""
 
 # ================================================
 # Dependency checks
@@ -94,8 +108,12 @@ Options:
   --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
                      which redeploys this checkout whenever origin/main moves)
   --clear-prebundle  Delete the Angular prebundle cache after stopping and before starting
-  --wait-ready       Exit non-zero unless NEW listeners from this checkout appear on the started
-                     ports within the ready timeout
+  --wait-ready       Accepted for older callers: every start now waits until NEW listeners from this
+                     checkout appear on the started ports. A server or client that exits first is a
+                     failed start: what it started is stopped. A stack still not listening after the
+                     ready timeout is left running (a slow client may still come up). Both exit
+                     non-zero without the "running" banner, and both still start the deploy watcher,
+                     so the next merge (the fix) is deployed; only a port refusal starts none
   --stop             Stop running processes and the deploy watcher
   --status           Check if services are running
   --logs             Tail the server, client and deploy logs
@@ -103,7 +121,11 @@ Options:
 Environment variables:
   PORT                       Game server port    (default: 4400)
   CLIENT_PORT                Angular client port (default: 4402)
-  RUN_READY_TIMEOUT_SECONDS  --wait-ready timeout (default: ${DEFAULT_READY_TIMEOUT_SECONDS})
+  RUN_READY_TIMEOUT_SECONDS  ready timeout (default: ${DEFAULT_READY_TIMEOUT_SECONDS})
+  RUN_STOP_GRACE_SECONDS     how long the stopped stack may keep the ports (default: ${DEFAULT_STOP_GRACE_SECONDS})
+
+A port held by another checkout (or by anything but this checkout's stack) is never taken over: the
+start refuses with exit code 1 and names the holder. Pick free ports with PORT and CLIENT_PORT.
 
 EOF
   exit 0
@@ -141,6 +163,14 @@ listener_pids() { # <port>
   else
     lsof -ti :"$1" -sTCP:LISTEN 2>/dev/null || true
   fi
+}
+
+wait_until_gone() { # <pid> — at most the stop grace, so a stop returns with the process gone
+  local step
+  for ((step = 0; step < STOP_GRACE_SECONDS * STOP_POLLS_PER_SECOND; step++)); do
+    kill -0 "$1" 2>/dev/null || return 0
+    sleep "$STOP_POLL_SECONDS"
+  done
 }
 
 stop_recorded_processes() { # kill recorded PIDs and their entire process trees
@@ -232,7 +262,78 @@ stop_deploy_watch() {
   pid="$(running_deploy_watch_pid)" || { rm -f "$DEPLOY_WATCH_PID_FILE"; return 1; }
   kill_tree "$pid"
   rm -f "$DEPLOY_WATCH_PID_FILE"
+  wait_until_gone "$pid"
   echo "    Stopped deploy watcher PID $pid"
+}
+
+describe_holder() { # <pid>
+  echo "PID $1 ($(readlink "/proc/$1/cwd" 2>/dev/null || echo 'cwd unknown'))"
+}
+
+# The ports this run needs free of anything but its own stack: the server's, which the client also
+# proxies to (so a client-only run next to another checkout's server would drive that stack), and the
+# client's when it starts one.
+needed_ports() {
+  echo "$SERVER_PORT"
+  if $RUN_CLIENT; then echo "$CLIENT_PORT"; fi
+}
+
+refuse_port() { # <port> <pid> <why> — exits: nothing was started
+  echo "ERROR: port $1 is held by $(describe_holder "$2"), $3; not starting."
+  echo "  Choose free ports: PORT=<server port> CLIENT_PORT=<client port> ./run.sh"
+  exit 1
+}
+
+# True for a listener in another checkout (or anywhere else). Not for one whose cwd cannot be read: that
+# process is exiting (a stopped server of this checkout, most likely), and the grace waits for it.
+foreign_listener() { # <pid>
+  readlink "/proc/$1/cwd" > /dev/null 2>&1 && ! owned_by_this_checkout "$1"
+}
+
+# Before the cleanup, so a refused start leaves this checkout's running stack alone too
+refuse_foreign_port_holders() {
+  local port pid
+  for port in $(needed_ports); do
+    for pid in $(listener_pids "$port"); do
+      ! foreign_listener "$pid" || refuse_port "$port" "$pid" "not by this checkout"
+    done
+  done
+}
+
+# Sets HELD_PORT and HELD_PID to a remaining listener of this checkout; refuses on another checkout's
+find_held_port() {
+  local port pid
+  for port in $(needed_ports); do
+    for pid in $(listener_pids "$port"); do
+      ! foreign_listener "$pid" || refuse_port "$port" "$pid" "not by this checkout"
+      HELD_PORT="$port"
+      HELD_PID="$pid"
+      return 0
+    done
+  done
+  return 1
+}
+
+# After the cleanup: the stopped stack gets a grace period to release the ports. This checkout's listeners
+# that ignored TERM are then killed outright (owned_by_this_checkout: never another checkout's), and a
+# listener that survives even that refuses the start.
+refuse_held_ports_after_stop() {
+  local waited=0 port pid
+  find_held_port || return 0
+  while (( waited < STOP_GRACE_SECONDS )); do
+    sleep "$READY_POLL_SECONDS"
+    waited=$((waited + READY_POLL_SECONDS))
+    find_held_port || return 0
+  done
+  for port in $(needed_ports); do
+    for pid in $(listener_pids "$port"); do
+      owned_by_this_checkout "$pid" || continue
+      kill -9 "$pid" 2>/dev/null && echo "    Killed process $pid on port $port: it outlived the stop by ${STOP_GRACE_SECONDS}s"
+    done
+  done
+  sleep "$READY_POLL_SECONDS"
+  find_held_port || return 0
+  refuse_port "$HELD_PORT" "$HELD_PID" "still listening after the stop, the ${STOP_GRACE_SECONDS}s grace and a kill -9"
 }
 
 record_listeners_before_start() {
@@ -252,8 +353,23 @@ new_listener_here() { # <port> — a listener from this checkout that was not al
   return 1
 }
 
+exited_process() { # prints the first started process that is gone, as "<name> <port>"
+  if [[ -n "$SERVER_PID" ]] && ! kill -0 "$SERVER_PID" 2>/dev/null; then echo "server $SERVER_PORT"; return 0; fi
+  if [[ -n "$CLIENT_PID" ]] && ! kill -0 "$CLIENT_PID" 2>/dev/null; then echo "client $CLIENT_PORT"; return 0; fi
+  return 1
+}
+
+print_log_tails() {
+  local log
+  for log in "$LOG_DIR/server.log" "$LOG_DIR/client.log"; do
+    [[ -f "$log" ]] || continue
+    echo "--- last $READY_LOG_TAIL_LINES lines of $log"
+    tail -n "$READY_LOG_TAIL_LINES" "$log"
+  done
+}
+
 wait_ready() {
-  local ports=() pending=() port log waited=0
+  local ports=() pending=() port waited=0 exited name
   if $RUN_SERVER; then ports+=("$SERVER_PORT"); fi
   if $RUN_CLIENT; then ports+=("$CLIENT_PORT"); fi
   while true; do
@@ -263,20 +379,27 @@ wait_ready() {
       echo "==> Ready: this checkout listens on ${ports[*]}"
       return 0
     fi
+    if exited="$(exited_process)"; then
+      read -r name port <<<"$exited"
+      echo "start failed: the $name exited before listening on port $port"
+      print_log_tails
+      return "$READY_FAILED_EXITED"
+    fi
     (( waited < READY_TIMEOUT_SECONDS )) || break
     sleep "$READY_POLL_SECONDS"
     waited=$((waited + READY_POLL_SECONDS))
   done
-  echo "restart failed: no new listener from this checkout on port ${pending[*]} after ${READY_TIMEOUT_SECONDS}s"
+  echo "start failed: not ready after ${READY_TIMEOUT_SECONDS}s, no new listener from this checkout on port ${pending[*]}; left running (./run.sh --stop stops it)"
   for port in "${pending[@]}"; do
     echo "    port $port listeners now: $(listener_pids "$port" | tr '\n' ' ')(already there before the start:${LISTENERS_BEFORE_START})"
   done
-  for log in "$LOG_DIR/server.log" "$LOG_DIR/client.log"; do
-    [[ -f "$log" ]] || continue
-    echo "--- last $READY_LOG_TAIL_LINES lines of $log"
-    tail -n "$READY_LOG_TAIL_LINES" "$log"
-  done
-  return 1
+  print_log_tails
+  return "$READY_FAILED_TIMEOUT"
+}
+
+stop_started_processes() { # a failed start leaves nothing of its own running
+  echo "==> Stopping what this start launched..."
+  stop_recorded_processes || true
 }
 
 do_stop() {
@@ -335,7 +458,6 @@ RUN_CLIENT=true
 RUN_MODE=""
 DEPLOY_WATCH=true
 CLEAR_PREBUNDLE=false
-WAIT_READY=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -348,7 +470,7 @@ for arg in "$@"; do
     --client-only)     RUN_SERVER=false; RUN_MODE="$arg" ;;
     --no-deploy-watch) DEPLOY_WATCH=false ;;
     --clear-prebundle) CLEAR_PREBUNDLE=true ;;
-    --wait-ready)      WAIT_READY=true ;;
+    --wait-ready)      ;; # the default since #444
     *)
       echo "Unknown option: $arg"
       echo "Run ./run.sh --help for usage."
@@ -370,11 +492,15 @@ fi
 # wait on this checkout's setup lock) leaves it up. Never waits on another worktree's gate.
 workspace_ensure_ready "$SCRIPT_DIR" "==>" continue || exit 1
 
+# Never start beside another checkout's listener: this run would drive (or proxy to) its stack (#444)
+refuse_foreign_port_holders
+
 # Always clean up any existing server processes before starting (never the deploy watcher)
 echo "==> Cleaning up old processes..."
 if stop_processes; then
   echo "    Cleaned up old processes."
 fi
+refuse_held_ports_after_stop
 
 if $CLEAR_PREBUNDLE; then
   # After the old stack is down, so no old dev server writes into the fresh cache
@@ -390,7 +516,8 @@ record_listeners_before_start
 if $RUN_SERVER; then
   echo "==> Starting game server on port ${SERVER_PORT}..."
   PORT="$SERVER_PORT" pnpm dev:server > "$LOG_DIR/server.log" 2>&1 &
-  echo $! >> "$PID_FILE"
+  SERVER_PID=$!
+  echo "$SERVER_PID" >> "$PID_FILE"
 fi
 
 if $RUN_CLIENT; then
@@ -398,16 +525,23 @@ if $RUN_CLIENT; then
   # The proxy targets this run's server port rather than the one baked into proxy.conf.json
   sed -E "s#localhost:[0-9]+#localhost:${SERVER_PORT}#g" "$CLIENT_PROXY_TEMPLATE" > "$CLIENT_PROXY_FILE"
   pnpm dev:client --port "$CLIENT_PORT" --proxy-config "$CLIENT_PROXY_FILE" > "$LOG_DIR/client.log" 2>&1 &
-  echo $! >> "$PID_FILE"
+  CLIENT_PID=$!
+  echo "$CLIENT_PID" >> "$PID_FILE"
 fi
 
+ready_outcome=0
+wait_ready || ready_outcome=$?
+# A timed-out stack is left running: a slow client on a loaded box may still come up
+if [[ $ready_outcome -eq $READY_FAILED_EXITED ]]; then
+  stop_started_processes
+fi
+
+# Even after a failed start, so the next merge (the fix) is deployed; only a port refusal starts none
 if $DEPLOY_WATCH; then
   start_deploy_watch
 fi
 
-if $WAIT_READY; then
-  wait_ready || exit 1
-fi
+[[ $ready_outcome -eq 0 ]] || exit 1
 
 echo ""
 echo "============================================"

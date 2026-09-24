@@ -5,9 +5,10 @@
 // one immediately for a `game_state`: a full state is the moment the two are in step again, and
 // the server is waiting to hear it.
 //
-// Framework-free; `RenderSession` owns one and feeds it every snapshot it applies.
+// Framework-free and shared (#664): the client's `RenderSession` owns one and feeds it every snapshot it applies, and
+// the server's socket tests acknowledge through the same class, so they cannot drift from the browser's cadence.
 
-import { SNAPSHOT_ACK_EVERY_SNAPSHOTS } from '@evolution/shared';
+import { SNAPSHOT_ACK_EVERY_SNAPSHOTS } from '../constants/netcode.js';
 
 export class SnapshotAcknowledger {
   private appliedSinceAcknowledgement = 0;
