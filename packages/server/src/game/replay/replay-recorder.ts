@@ -76,7 +76,7 @@ export class ReplayRecorder {
    * and the step that follows it record the same fact once (an input coalesced after the export
    * replaces the earlier entry, as it replaced the pending slot). The log is in tick order, so those entries are its
    * tail: only the tail is dropped, never the whole log copied, which cost every tick in proportion to the room's age
-   * (#181: 8 bots, ten minutes in, 6 ms of a 16.7 ms step).
+   * (#181, measured in docs/architecture/debug-mcp.md §8).
    */
   recordPendingInputs(world: WorldState): void {
     const nextTick = world.tick + 1;

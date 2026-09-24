@@ -1,4 +1,4 @@
-// The in-process bot bench (ticket #181, docs/PERFORMANCE.md): in process, no socket and no browser, the Evolution
+// The in-process bot bench (ticket #181, docs/architecture/debug-mcp.md §8): in process, no socket and no browser, the Evolution
 // module's 60 Hz step (`reduceGameState`: the bots decide, then the recorded step runs) timed in a room of eight
 // `debug_spawn_bot` bots, against the floor: the same room with eight silent human seats in their place (the same food
 // cap, nobody deciding).

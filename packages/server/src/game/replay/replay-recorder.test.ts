@@ -116,6 +116,28 @@ describe('ReplayRecorder', () => {
     expect(inputs.at(-1)?.input.sequence).toBe(11);
   });
 
+  it('replaces every entry an export stamped for the coming tick, and never changes a replay already exported', () => {
+    const world = createTestWorld({
+      players: [
+        { playerId: playerId('p1'), playerName: 'Ada', avatarIndex: 0 },
+        { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 },
+      ],
+    });
+    const recorder = new ReplayRecorder(world);
+    for (const player of world.players) {
+      player.pendingInput = createTestGameInput({ sequence: 1 });
+    }
+    const exported = recorder.export(world);
+    const exportedCopy = structuredClone(exported);
+    for (const player of world.players) {
+      player.pendingInput = createTestGameInput({ sequence: 2 });
+    }
+    recorder.recordPendingInputs(world);
+    const inputs = recorder.export(world).inputs;
+    expect(inputs.map((entry) => entry.input.sequence)).toEqual([2, 2]);
+    expect(exported).toEqual(exportedCopy);
+  });
+
   it('never walks the whole log to record a tick: only its tail is read (#181, a cost growing with the room age)', () => {
     const { world, recorder } = recordTicks(RECORDED_TICKS);
     const earlierEntries = recorder.export(world).inputs;
