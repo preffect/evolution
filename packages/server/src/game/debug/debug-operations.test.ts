@@ -27,6 +27,8 @@ const ALICE = playerId('p1');
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
 const CELL_MAX_MASS_LEAF = 'CELL_MAX_MASS';
 const UNKNOWN_LEAF = 'NOPE';
+const MAX_LEVEL_LEAF = 'MAX_LEVEL';
+const TRAIT_TIER_COUNT_LEAF = 'TRAIT_TIER_COUNT';
 const NOBODY = playerId('nobody');
 
 describe('spawnForDebug', () => {
@@ -151,6 +153,43 @@ describe('setBalanceForDebug', () => {
     expect(world.balance).toBe(patched);
     expect(before.world.DISH_RADIUS).toBe(3000);
     expect(() => setBalanceForDebug(world, { world: { [UNKNOWN_LEAF]: 1 } })).toThrow(DebugRequestError);
+  });
+});
+
+describe('setBalanceForDebug, the wild builds against the trait tiers (#671)', () => {
+  const tierCount = DEFAULT_BALANCE.traits.TRAIT_TIER_COUNT;
+  const shortestBuild = Math.min(...DEFAULT_BALANCE.wildCells.WILD_CELL_BUILDS.map((build) => build.length));
+  /** A level-L wild cell owns L − 1 picks, so the last pick of the top tier is owned at `tiers × build + 1`. */
+  const topLevelTheTiersCover = (tiers: number) => tiers * shortestBuild + 1;
+  const fewestTiersCoveringMaxLevel = Math.ceil((MAX_LEVEL - 1) / shortestBuild);
+
+  it('accepts a MAX_LEVEL whose top pick lands on the last tier', () => {
+    const world = createTestWorld();
+    const level = topLevelTheTiersCover(tierCount);
+    const patched = setBalanceForDebug(world, { progression: { [MAX_LEVEL_LEAF]: level } }) as BalanceConfig;
+    expect(patched.progression.MAX_LEVEL).toBe(level);
+    expect(world.balance).toBe(patched);
+  });
+
+  it('refuses a MAX_LEVEL one past what the tiers cover, naming both values, and keeps the old balance', () => {
+    const world = createTestWorld();
+    const before = world.balance;
+    const level = topLevelTheTiersCover(tierCount) + 1;
+    expect(() => setBalanceForDebug(world, { progression: { [MAX_LEVEL_LEAF]: level } })).toThrow(
+      new RegExp(`MAX_LEVEL ${level} .*TRAIT_TIER_COUNT ${tierCount}`),
+    );
+    expect(world.balance).toBe(before);
+  });
+
+  it('refuses a TRAIT_TIER_COUNT one below what MAX_LEVEL needs, naming both values', () => {
+    const world = createTestWorld();
+    const tiers = fewestTiersCoveringMaxLevel - 1;
+    expect(() => setBalanceForDebug(world, { traits: { [TRAIT_TIER_COUNT_LEAF]: tiers } })).toThrow(
+      new RegExp(`MAX_LEVEL ${MAX_LEVEL} .*TRAIT_TIER_COUNT ${tiers}`),
+    );
+    expect(() =>
+      setBalanceForDebug(world, { traits: { [TRAIT_TIER_COUNT_LEAF]: fewestTiersCoveringMaxLevel } }),
+    ).not.toThrow();
   });
 });
 

@@ -79,7 +79,9 @@ Rules that keep this honest:
   (`architecture/server-simulation.md §3.3`); the client receives the live values in `game_state.balance` for
   prediction and never keeps its own copy of a balance number.
 - `debug_set_balance` patches number leaves only; tables and id arrays are structure, not
-  tunables. Nothing reads `data/balance.json` at runtime.
+  tunables. A patch whose `progression.MAX_LEVEL` would wrap a wild build past `traits.TRAIT_TIER_COUNT` is refused
+  when it is applied, by the same check the step's invariant uses (`wild/wild-build.ts`, #671). Nothing reads
+  `data/balance.json` at runtime.
 - `constants-ledger.test.ts` pins every constant a design table names: the rows are parsed
   from the docs' constants tables (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
   `traits/constants-and-acceptance.md §5`), one assertion per name and the per-doc name count pinned, so a rename or a

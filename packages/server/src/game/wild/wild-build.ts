@@ -8,13 +8,30 @@ import { SimulationInvariantError } from '../world/simulation-invariant-error.js
 /** A wild cell at level L owns L − 1 picks. */
 const PICKS_BELOW_LEVEL = 1;
 
+/** The tier a `buildLength`-trait build's wrap has reached at `pick` (entry 8 of a 7-trait build is tier II). */
+function wrapTierOf(pick: number, buildLength: number): TraitTier {
+  return tierOfRowIndex(Math.floor(pick / buildLength));
+}
+
 /**
- * The tier the build's wrap has reached at `pick`. A wrap past `TRAIT_TIER_COUNT` is a balance that pairs a short build
- * with a high `MAX_LEVEL`: an invariant break, never a tier the catalog has no row for.
+ * Whether a wrap tier is past `TRAIT_TIER_COUNT`: a balance that pairs a short build with a high `MAX_LEVEL`. The one
+ * condition the step's invariant and the `debug_set_balance` refusal share (#671).
  */
+export function isPastTopTraitTier(tier: number, balance: BalanceConfig): boolean {
+  return tier > balance.traits.TRAIT_TIER_COUNT;
+}
+
+/** The highest tier any build's wrap reaches at `MAX_LEVEL`: the shortest build's tier at the top level's last pick. */
+export function topWildTier(balance: BalanceConfig): number {
+  const lastPick = balance.progression.MAX_LEVEL - PICKS_BELOW_LEVEL - 1;
+  const shortestBuild = Math.min(...balance.wildCells.WILD_CELL_BUILDS.map((build) => build.length));
+  return wrapTierOf(lastPick, shortestBuild);
+}
+
+/** The tier the build's wrap has reached at `pick`; a wrap past the top tier is an invariant break, never a tier. */
 function tierOfPick(pick: number, buildLength: number, balance: BalanceConfig): TraitTier {
-  const tier = tierOfRowIndex(Math.floor(pick / buildLength));
-  if (tier > balance.traits.TRAIT_TIER_COUNT) {
+  const tier = wrapTierOf(pick, buildLength);
+  if (isPastTopTraitTier(tier, balance)) {
     throw new SimulationInvariantError(
       `wild pick ${pick} of a ${buildLength}-trait build wraps to tier ${tier}, past TRAIT_TIER_COUNT ` +
         `${balance.traits.TRAIT_TIER_COUNT}: MAX_LEVEL ${balance.progression.MAX_LEVEL} needs a longer build`,

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, FIRST_LEVEL, stageOf, worldReference } from '@evolution/shared';
 import { stageOfOwned } from '../progression/ladder.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
-import { wildOwnedTraits } from './wild-build.js';
+import { isPastTopTraitTier, topWildTier, wildOwnedTraits } from './wild-build.js';
 
 const { wildCells, worldClock, progression } = DEFAULT_BALANCE;
 const BUILD_LENGTH = wildCells.WILD_CELL_BUILDS[0]!.length;
@@ -63,5 +63,28 @@ describe('wildOwnedTraits', () => {
     const topTierLevel = FIRST_LEVEL + topTier;
     expect(wildOwnedTraits(0, topTierLevel, oneTraitBuild)).toEqual([{ traitId: nucleoid, tier: topTier }]);
     expect(() => wildOwnedTraits(0, topTierLevel + 1, oneTraitBuild)).toThrow(SimulationInvariantError);
+  });
+});
+
+describe('topWildTier and isPastTopTraitTier (#671)', () => {
+  it('is the highest tier a build owns at MAX_LEVEL, and within the tiers on the shipped balance', () => {
+    const ownedAtTop = wildOwnedTraits(0, progression.MAX_LEVEL, DEFAULT_BALANCE);
+    expect(topWildTier(DEFAULT_BALANCE)).toBe(Math.max(...ownedAtTop.map((trait) => trait.tier)));
+    expect(isPastTopTraitTier(topWildTier(DEFAULT_BALANCE), DEFAULT_BALANCE)).toBe(false);
+  });
+
+  it('follows the shortest build and marks only a tier above TRAIT_TIER_COUNT as past it', () => {
+    const shortBuild = structuredClone(DEFAULT_BALANCE);
+    shortBuild.wildCells.WILD_CELL_BUILDS = [
+      ...shortBuild.wildCells.WILD_CELL_BUILDS,
+      [wildCells.WILD_CELL_BUILDS[0]![0]!],
+    ];
+    const topTier = DEFAULT_BALANCE.traits.TRAIT_TIER_COUNT;
+    shortBuild.progression.MAX_LEVEL = FIRST_LEVEL + topTier;
+    expect(topWildTier(shortBuild)).toBe(topTier);
+    expect(isPastTopTraitTier(topTier, shortBuild)).toBe(false);
+    shortBuild.progression.MAX_LEVEL += 1;
+    expect(topWildTier(shortBuild)).toBe(topTier + 1);
+    expect(isPastTopTraitTier(topTier + 1, shortBuild)).toBe(true);
   });
 });
