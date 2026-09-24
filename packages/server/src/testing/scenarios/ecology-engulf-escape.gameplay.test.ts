@@ -91,7 +91,7 @@ describe('ecology/acceptance.md §8: getting away from an engulf, and being carr
   it('E11 reaction window: sprinting at tick 13 still escapes, at tick 14 the seal closes first', async () => {
     await sprintsAwayFrom(E11_LATE_SPRINT_TICK)(engulfPair('E11 sprint at 13'))
       .advance(E11_TOO_LATE_END_TICK)
-      .expect('released on tick 29', releaseReasons)
+      .expect('released on tick 32', releaseReasons)
       .atTick(E11_LATE_RELEASE_TICK)
       .toEqual([ENGULF_RELEASE_REASON.escaped])
       .runDeterministic();
@@ -121,7 +121,7 @@ describe('ecology/acceptance.md §8: getting away from an engulf, and being carr
     await engulfPair('E11 steering away from 10 without sprint')
       .from(E11_SPRINT_TICK, player(1).does(awayFromPredator))
       .advance(E11_TOO_LATE_END_TICK)
-      .expect('released on tick 31', releaseReasons)
+      .expect('released on tick 34', releaseReasons)
       .atTick(E11_NO_SPRINT_RELEASE_TICK)
       .toEqual([ENGULF_RELEASE_REASON.escaped])
       .runDeterministic();

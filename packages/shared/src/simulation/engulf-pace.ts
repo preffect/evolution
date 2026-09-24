@@ -27,6 +27,7 @@ export type EngulfPaceBalance = Pick<
   | 'ENGULF_STRUGGLE_SLOWDOWN_CAP'
   | 'ENGULF_PREDATOR_SPEED_FACTOR'
   | 'ENGULF_PREDATOR_SPEED_FACTOR_SEALED'
+  | 'ENGULF_PREY_SPEED_FACTOR_COVER'
   | 'ENGULF_PREY_SPEED_FACTOR'
   | 'ENGULF_PREY_SPEED_FACTOR_FLOOR'
 >;
@@ -113,8 +114,7 @@ const NO_SLOWDOWN = 1;
 const FULL_DURATION_FACTOR = 1;
 /** Cover has no trait multiplier of its own: nothing in docs/traits/model.md §2 touches it. */
 const COVER_PHASE_MULTIPLIER = 1;
-/** The prey is not held yet during cover, and is carried (speed cap 0) once sealed. */
-const PREY_UNHELD_SPEED_FACTOR = 1;
+/** The prey is carried (speed cap 0) once sealed. */
 const PREY_CARRIED_SPEED_FACTOR = 0;
 /** The highest a grip may be resisted to: a held prey never outruns its own cap. */
 const PREY_HELD_SPEED_FACTOR_CEILING = 1;
@@ -153,13 +153,13 @@ export function engulfStruggleSlowdown(
 
 /**
  * This tick's signed progress change (docs/ecology/absorption.md §6.1, step 5): the phase rate slowed by the
- * struggle while in contact, the escape decay while a wrap has lost contact, and zero for a cover
- * that has lost contact (the caller releases it instead of decaying anything).
+ * struggle while in contact, and the escape decay while a cover or a wrap has lost contact (the caller releases the
+ * prey once it has drained to 0).
  */
 export function engulfProgressDelta(input: EngulfProgressInput, balance: EngulfPaceBalance): number {
   const baseRatePerTick = engulfBaseRatePerTick(input.predatorMass, input.preyMass, balance);
   if (!input.isInContact && input.phase !== ENGULF_PHASE.absorb) {
-    return input.phase === ENGULF_PHASE.wrap ? -balance.ENGULF_ESCAPE_DECAY_MULTIPLIER * baseRatePerTick : 0;
+    return -balance.ENGULF_ESCAPE_DECAY_MULTIPLIER * baseRatePerTick;
   }
   const phaseRatePerTick = baseRatePerTick / engulfPhaseMultiplier(input.phase, input.predator, input.prey);
   if (input.phase === ENGULF_PHASE.absorb) {
@@ -171,25 +171,26 @@ export function engulfProgressDelta(input: EngulfProgressInput, balance: EngulfP
   );
 }
 
-/** The prey's speed cap factor: 1 in cover, the grip in wrap, 0 once sealed (it is carried). */
+/**
+ * The prey's speed cap factor: the mild grab in cover, the grip in wrap — each moved by the predator's grip and the
+ * prey's resistance (Amoeba grips, Cilia slip) — and 0 once sealed (it is carried).
+ */
 export function preyHeldSpeedFactor(
   phase: EngulfPhase,
   predatorGripStrengthBonus: number,
   preyGripResistanceBonus: number,
   balance: EngulfPaceBalance,
 ): number {
-  switch (phase) {
-    case ENGULF_PHASE.cover:
-      return PREY_UNHELD_SPEED_FACTOR;
-    case ENGULF_PHASE.wrap:
-      return clamp(
-        balance.ENGULF_PREY_SPEED_FACTOR - predatorGripStrengthBonus + preyGripResistanceBonus,
-        balance.ENGULF_PREY_SPEED_FACTOR_FLOOR,
-        PREY_HELD_SPEED_FACTOR_CEILING,
-      );
-    case ENGULF_PHASE.absorb:
-      return PREY_CARRIED_SPEED_FACTOR;
+  if (phase === ENGULF_PHASE.absorb) {
+    return PREY_CARRIED_SPEED_FACTOR;
   }
+  const heldFactor =
+    phase === ENGULF_PHASE.cover ? balance.ENGULF_PREY_SPEED_FACTOR_COVER : balance.ENGULF_PREY_SPEED_FACTOR;
+  return clamp(
+    heldFactor - predatorGripStrengthBonus + preyGripResistanceBonus,
+    balance.ENGULF_PREY_SPEED_FACTOR_FLOOR,
+    PREY_HELD_SPEED_FACTOR_CEILING,
+  );
 }
 
 /** The predator's speed cap factor: slowed while it is still wrapping, unhindered once sealed. */

@@ -32,6 +32,8 @@ import { beginEngulf, releaseEngulf, sealEngulf, wasAbortedThisTick, type Engulf
 
 /** Progress pays out at `1 − ENGULF_PROGRESS_EPSILON`, so thirty-six additions of 1/36 finish on tick 36. */
 const COMPLETE_PROGRESS = 1;
+/** Where an engulf starts, and where a prey that keeps clear drains back to before it is released. */
+const START_PROGRESS = 0;
 /** The prey's steering projected away from the predator never counts as help. */
 const NO_AWAY_EFFORT = 0;
 /**
@@ -124,10 +126,6 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
   const { predator, prey } = pairing;
   const isSealed = phase === ENGULF_PHASE.absorb;
   const isInContact = isSealed || isEngulfContact(predator, prey, context.balance);
-  if (phase === ENGULF_PHASE.cover && !isInContact) {
-    releaseEngulf(world, pairing, ENGULF_RELEASE_REASON.escaped);
-    return;
-  }
   prey.engulfProgress += engulfProgressDelta(
     {
       phase,
@@ -141,8 +139,8 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
     absorption,
   );
   if (!isInContact) {
-    // The grip is gone the moment the decayed progress falls back into the cover band.
-    if (engulfPhaseOf(prey.engulfProgress, absorption) === ENGULF_PHASE.cover) {
+    // A slip drains, it does not cancel (#634): the prey is out only once the progress has drained to 0.
+    if (prey.engulfProgress <= START_PROGRESS + absorption.ENGULF_PROGRESS_EPSILON) {
       releaseEngulf(world, pairing, ENGULF_RELEASE_REASON.escaped);
     }
     return;

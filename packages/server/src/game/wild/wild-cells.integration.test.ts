@@ -159,7 +159,9 @@ describe('the wild seats through the step', () => {
     expect(seat.cellId).toBeNull();
     step(world);
     expect(seat.cellId).not.toBeNull();
-    expect(wildCellsOf(world)).toHaveLength(wildCells.WILD_CELL_COUNT);
+    // The seat's own cell, not a head count: the other seats hunt through these ten seconds, and a meal among them
+    // vacates a seat of its own (#634 made the grab hold often enough to land one on this seed).
+    expect(wildCellsOf(world).map((cell) => cell.id)).toContain(seat.cellId);
     expect(world.wildSeats).toHaveLength(wildCells.WILD_CELL_COUNT);
   });
 
