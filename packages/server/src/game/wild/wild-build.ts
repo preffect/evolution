@@ -2,11 +2,10 @@
 // the first L − 1 picks; the list wraps as tier upgrades (entry 8 is entry 1 at tier II). Pure: the settle calls it every
 // tick and the catalog test pattern pins that each build is a valid ladder.
 
-import type { BalanceConfig, OwnedTrait, TraitTier } from '@evolution/shared';
+import { tierOfRowIndex, type BalanceConfig, type OwnedTrait } from '@evolution/shared';
 
 /** A wild cell at level L owns L − 1 picks. */
 const PICKS_BELOW_LEVEL = 1;
-const FIRST_TIER: TraitTier = 1;
 
 /** The build's picks up to `level`, in build order, each trait at the highest tier the wrap reached. */
 export function wildOwnedTraits(seatNumber: number, level: number, balance: BalanceConfig): OwnedTrait[] {
@@ -15,7 +14,7 @@ export function wildOwnedTraits(seatNumber: number, level: number, balance: Bala
   const owned: OwnedTrait[] = [];
   for (let pick = 0; pick < level - PICKS_BELOW_LEVEL; pick += 1) {
     const traitId = build[pick % build.length]!;
-    const tier = (FIRST_TIER + Math.floor(pick / build.length)) as TraitTier;
+    const tier = tierOfRowIndex(Math.floor(pick / build.length));
     const already = owned.find((trait) => trait.traitId === traitId);
     if (already === undefined) {
       owned.push({ traitId, tier });

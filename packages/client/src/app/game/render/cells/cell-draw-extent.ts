@@ -9,7 +9,7 @@
 // measurement stays independent of the bound the framing was picked from, and neither owns a private copy of how
 // long a tail is.
 
-import type { TraitTier } from '@evolution/shared';
+import { tierEntryOf, type TraitTier } from '@evolution/shared';
 import {
   CILIA_OUTER_RADII,
   FLAGELLUM_AMPLITUDE_BY_TIER,
@@ -72,7 +72,7 @@ export function appendageReachRadii(
 
 /** The tail wave's peak in radii at this tier, doubled while sprinting (`flagellum-lines.ts`'s `amplitudeWu`). */
 function waveAmplitudeRadii(tier: TraitTier, isSprinting: boolean): number {
-  const tierScale = FLAGELLUM_AMPLITUDE_BY_TIER[tier - 1] ?? FULL_AMPLITUDE;
+  const tierScale = tierEntryOf(FLAGELLUM_AMPLITUDE_BY_TIER, tier) ?? FULL_AMPLITUDE;
   const sprintScale = isSprinting ? FLAGELLUM_SPRINT_AMPLITUDE_SCALE : FULL_AMPLITUDE;
   return FLAGELLUM_AMPLITUDE_RADII * tierScale * sprintScale;
 }
