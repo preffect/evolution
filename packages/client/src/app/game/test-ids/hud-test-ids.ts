@@ -33,6 +33,8 @@ export const HUD_TEST_ID = {
   traitCardRung: 'trait-card-rung',
   /** The `I → II` mark on a card that upgrades an owned trait. */
   traitCardUpgrade: 'trait-card-upgrade',
+  /** The dev-only sheet of every catalog trait card (`?cards`, #428); each card's box carries `data-card-id`. */
+  traitCardSheet: 'trait-card-sheet',
   /** The canvas host: focus goes back to it when a modal overlay closes (docs/ui/input-and-onboarding.md §4). */
   gameHost: 'game-host',
   /** The Escape menu's panel (docs/ui/overlays.md §3.5). */

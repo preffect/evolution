@@ -17,8 +17,13 @@ sets two modifiers that read as a single effect the table pairs them onto one li
 Shell's spine drain and spit-out chance, #260), so a pair costs the card one line rather than two. The catalog's
 longest row has three and the card has room for four (`PICKER_CARD_EFFECT_LINES_MAX`, decision #425): four is the
 ceiling, so a fifth line buys a bigger card or shorter words rather than raising the cap. A unit test fails the gate
-when a row outgrows it; that test counts lines, not the rows they wrap onto, and #428 adds the rendered-height
-guard. The table is
+when a row outgrows it; that test counts lines, not the rows they wrap onto, so the rendered height has its own
+guard (#428): the dev-only `?cards` sheet (`hud/card-sheet/`) draws every catalog card, each trait at each tier fresh
+and as the `I → II` upgrade, through the real `TraitCardComponent` under the HUD's variables, and
+`e2e/trait-card-heights.spec.ts` fails when any card's rows run past its padding or its rarity row meets the key chip.
+It measures at 1280 × 800 and at the `UI_SCALE_MIN` floor's 1024 × 640, in the shipped Inter and again in each
+fallback face a player may read before or instead of it: DejaVu Sans always, Segoe UI and Liberation Sans (Arial's
+metrics) when the machine has them, named in the run's annotations when it does not. The table is
 pinned: a unit test asserts every key of `DEFAULT_CELL_MODIFIERS` (traits/model.md §2) has a label, so a new modifier
 without copy fails the gate instead of rendering `undefined`.
 

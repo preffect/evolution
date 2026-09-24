@@ -99,7 +99,8 @@ function isRungFor(traitId: TraitId, stage: CellStage): boolean {
   return rung !== null && STAGE_GATE_TRAITS[rung].includes(traitId);
 }
 
-function cardView(
+/** One card's view: `card` offered to a player holding `progress`, drawn from the tier tables `traits`. */
+export function traitCardViewFor(
   card: OwnedTrait,
   index: number,
   progress: TraitOfferInput['progress'],
@@ -140,7 +141,7 @@ export function traitOfferViewFor(input: TraitOfferInput): TraitOfferViewModel {
   return {
     offerId: offer.offerId,
     title: `LEVEL ${offer.level} · CHOOSE A TRAIT`,
-    cards: offer.cards.map((card, index) => cardView(card, index, input.progress, input.balance.traits)),
+    cards: offer.cards.map((card, index) => traitCardViewFor(card, index, input.progress, input.balance.traits)),
     secondsLeft,
     secondsText: formatQuantity(secondsLeft, QUANTITY_UNIT.seconds, { presentation: QUANTITY_PRESENTATION.countdown }),
     timerFraction: windowSeconds > NO_TIME ? clamp(secondsLeft / windowSeconds, NO_TIME, FULL) : NO_TIME,
