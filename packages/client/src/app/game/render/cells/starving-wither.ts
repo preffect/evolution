@@ -24,8 +24,9 @@ export function starvedOutMassAt(renderTick: number, roundStartTick: number, bal
 }
 
 /**
- * 0 for a cell that is not starving; `STARVING_WITHER_ONSET` → 1 for one that is, climbing with
- * `starvedOutMass / mass` so it is fully withered on the tick it bursts. The server bursts on the full mass, the view
+ * 0 for a cell that is not starving; lerp(`STARVING_WITHER_ONSET`, 1, `starvedOutMass / mass`) for one that is, so it
+ * is fully withered on the tick it bursts. The onset is only the floor: a starver starts at most
+ * `1 / WILD_CELL_SIZE_FACTOR_MIN` times its burst mass, so a typical one starts at about 0.5. The server bursts on the full mass, the view
  * carries the mass, which a wound can hold under it; that only withers a wounded starver a little early.
  */
 export function witherOf(view: Pick<CellView, 'isStarving' | 'mass'>, starvedOutMass: number): number {
