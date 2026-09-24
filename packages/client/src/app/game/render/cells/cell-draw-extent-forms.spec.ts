@@ -67,15 +67,19 @@ describe('the form profiles the bounds must see', () => {
   });
 
   /** PR #640 B1: a lobe across the 1.3 r rings reads as reach the cell does not have (motion-and-legibility.md §5). */
-  it('keeps the amoeba inside the warning and relation rings at every speed short of a sprint', () => {
-    const ring = Math.min(ENGULF_WARNING_RING_RADII, RELATION_RING_RADII);
-    const bodies = [TIER_I, TIER_II, TIER_III].flatMap((tier) =>
-      [0, 0.125, 0.25, 0.3, 1 / 3, 0.375, 0.5, 0.75, 1].map((speedRatio) => {
-        const view = viewOf([{ traitId: 'amoeba_pseudopods', tier }], speedRatio, false);
-        const { bodyRadii } = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
-        return `tier ${tier} at speed ${speedRatio}: ${bodyRadii.toFixed(4)}`;
-      }),
-    );
-    expect(bodies.filter((line) => Number(line.split(': ')[1]) > ring)).toEqual([]);
-  });
+  it(
+    'keeps the amoeba inside the warning and relation rings at every speed short of a sprint',
+    () => {
+      const ring = Math.min(ENGULF_WARNING_RING_RADII, RELATION_RING_RADII);
+      const bodies = [TIER_I, TIER_II, TIER_III].flatMap((tier) =>
+        [0, 0.125, 0.25, 0.3, 1 / 3, 0.375, 0.5, 0.75, 1].map((speedRatio) => {
+          const view = viewOf([{ traitId: 'amoeba_pseudopods', tier }], speedRatio, false);
+          const { bodyRadii } = cellDrawExtentRadii(summariseCellTraits(view), restingDrawState(speedRatio));
+          return `tier ${tier} at speed ${speedRatio}: ${bodyRadii.toFixed(4)}`;
+        }),
+      );
+      expect(bodies.filter((line) => Number(line.split(': ')[1]) > ring)).toEqual([]);
+    },
+    PROFILE_WALK_TIMEOUT_MS,
+  );
 });
