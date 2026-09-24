@@ -97,8 +97,9 @@ block at top-centre from y 96, 360 wide: `ENGULFED BY AMOEBOID` (`title` role, d
 (`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
 role, `ceil(respawnInTicks / TICK_HZ)`, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
 muted). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
-spectating player has no cell, so DNA lost comes from the `lastAliveOwnCell` signal (§7: the own cell of the last
-snapshot in which the player was alive): the drop in `dnaTowardNextLevel` between that snapshot and this one. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
+spectating player has no cell, so DNA lost comes from the `lastAliveOwnProgress` signal (§7: the own progress of the
+last snapshot in which the player was alive): the drop in `dnaTowardNextLevel` between that snapshot and this one,
+left out when this client never saw the player alive. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
 so there are no own-cell indicators (`ownCellIndicators` is `null` and the mirror reads `data-level` with
 `data-spectating="true"`); leaderboard and timer stay. On respawn the indicators return with the `respawn` clip
 (visual-style/motion-and-legibility.md §5). Test ids: `respawn-overlay`, `respawn-killer`, `respawn-countdown`, `respawn-kept`.

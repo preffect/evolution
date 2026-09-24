@@ -15,6 +15,9 @@ import {
   HINT_RIM_PX,
   NOTICE_ROW_HEIGHT_PX,
   NOTICE_STACK_MAX_Y_PX,
+  RESPAWN_DIM_ALPHA,
+  RESPAWN_TEXT_TOP_PX,
+  RESPAWN_TEXT_WIDTH_PX,
   LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_CORNER_RADIUS_PX,
   LEADERBOARD_ENGULFS_COLUMN_PX,
@@ -150,6 +153,10 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-notice-rim', `${NOTICE_RIM_PX}px`],
   ['--hud-hint-rim', `${HINT_RIM_PX}px`],
   ['--hud-connection-lost-dim-alpha', String(CONNECTION_LOST_DIM_ALPHA)],
+
+  ['--hud-respawn-dim-alpha', String(RESPAWN_DIM_ALPHA)],
+  ['--hud-respawn-top', `${RESPAWN_TEXT_TOP_PX}px`],
+  ['--hud-respawn-width', `${RESPAWN_TEXT_WIDTH_PX}px`],
 
   ['--hud-outline', OUTLINE],
   ['--hud-gain', GAIN],

@@ -28,6 +28,9 @@ import {
   NOTICE_RIM_PX,
   NOTICE_ROW_HEIGHT_PX,
   NOTICE_STACK_MAX_Y_PX,
+  RESPAWN_DIM_ALPHA,
+  RESPAWN_TEXT_TOP_PX,
+  RESPAWN_TEXT_WIDTH_PX,
   LEADERBOARD_COLUMN_GAP_PX,
   LEADERBOARD_CORNER_RADIUS_PX,
   LEADERBOARD_ENGULFS_COLUMN_PX,
@@ -169,6 +172,15 @@ function noticeVariables(): StyleVariables {
   };
 }
 
+/** The death overlay's dim and its text block (docs/ui/overlays.md §3.3). */
+function respawnVariables(): StyleVariables {
+  return {
+    '--hud-respawn-dim-alpha': String(RESPAWN_DIM_ALPHA),
+    '--hud-respawn-top': `${RESPAWN_TEXT_TOP_PX}px`,
+    '--hud-respawn-width': `${RESPAWN_TEXT_WIDTH_PX}px`,
+  };
+}
+
 /**
  * The two colour roles the kit does not carry (docs/visual-style/principles-and-palette.md §2): the text outline the
  * clock and the cues sit on, and the gain role the mass trend rises in (§3.7). Every other colour is the kit's.
@@ -213,6 +225,7 @@ export function hudStyleVariables(): StyleVariables {
     ...affectingPanelVariables(),
     ...menuVariables(),
     ...noticeVariables(),
+    ...respawnVariables(),
     ...hudColourVariables(),
   };
 }
