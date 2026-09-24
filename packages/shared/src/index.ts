@@ -20,6 +20,7 @@ export * from './time/fixed-step-accumulator.js';
 export * from './time/units.js';
 export * from './camera/camera-follow.js';
 export * from './camera/interest-margin.js';
+export * from './net/snapshot-acknowledger.js';
 export * from './simulation/bacterium-variant-weights.js';
 export * from './simulation/cell-modifiers.js';
 export * from './simulation/engulf-eligibility.js';
