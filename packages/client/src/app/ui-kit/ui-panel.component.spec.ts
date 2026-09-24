@@ -209,6 +209,12 @@ describe('UiPanelComponent', () => {
       expect(styleRuleValue(document, ['.bleed'], 'overflow')).toBe('hidden');
     });
 
+    it('side with a bleed body: no padding and no gap either, as §10.2 says of any bleed body (#628)', () => {
+      const side = hostSelector(byTestId('side'));
+      expect(styleRuleValue(document, [side, "[data-variant='side']", "[data-body='bleed']"], 'padding')).toBe('0px');
+      expect(styleRuleValue(document, [side, "[data-variant='side']", "[data-body='bleed']"], 'gap')).toBe('0px');
+    });
+
     it('modal: enters over the panel-enter time, and appears without rising under reduced motion', () => {
       expect(rule(["[data-variant='modal']"], 'animation')).toContain('var(--ui-panel-enter)');
       expect(rule(["[data-variant='modal']"], 'animation', 'prefers-reduced-motion')).toBe('none');

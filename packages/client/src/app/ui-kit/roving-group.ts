@@ -1,8 +1,10 @@
 // The roving focus the rail and the list share (docs/ui/components-and-constants.md §10.2): the group is one Tab stop,
 // the arrows (↑ ↓, or ← → when horizontal) move focus between its items and Home End jump, a disabled item is
 // skipped, and movement stops at either end. Enter or Space selects the focused item; a group whose selection follows
-// focus selects as it moves. The group listens on its own host, so `input/keyboard-input.ts` stays the one document
-// keyboard handler, and keys it does not use pass through (the encyclopedia's ← → between rail and list).
+// focus selects as it moves. An activation (a click, Enter or Space) is also reported on its own as `activated`,
+// whether or not it moves the selection, so a feature never has to tell one from a rove (ticket #622). The group
+// listens on its own host, so `input/keyboard-input.ts` stays the one document keyboard handler, and keys it does not
+// use pass through (the encyclopedia's ← → between rail and list).
 
 import {
   Directive,
@@ -14,6 +16,7 @@ import {
   input,
   linkedSignal,
   model,
+  output,
   signal,
   type OnDestroy,
   type OnInit,
@@ -29,11 +32,7 @@ export type RovingMove = (typeof ROVING_MOVE)[keyof typeof ROVING_MOVE];
 
 const SELECT_KEYS: ReadonlySet<string> = new Set(['Enter', ' ']);
 
-/**
- * Whether `key` is the one a group selects its focused item on. Exported because a feature whose selection follows
- * focus has to tell that activation from the rove beside it, and both must mean the same keys (the encyclopedia's
- * rail and list, docs/ui/encyclopedia.md §11.5).
- */
+/** Whether `key` is the one a group selects (activates) its focused item on: Enter or Space. */
 export function isRovingSelectKey(key: string): boolean {
   return SELECT_KEYS.has(key);
 }
@@ -87,6 +86,14 @@ function inDocumentOrder(items: readonly RovingItem[]): RovingItem[] {
 })
 export abstract class UiRovingGroup {
   readonly selectedId = model<string | null>(null);
+  /**
+   * An item was **activated** — clicked, or Enter or Space on it — as opposed to reached by a rove: emitted on every
+   * activation, the item already selected included, where `selectedIdChange` is silent (it reports a change of value
+   * only). It fires **before** the selection moves, so a feature that pushes on an activation and replaces on a
+   * selection change pushes first, and the replace beside it lands on the location it has just shown (ticket #622,
+   * docs/ui/encyclopedia.md §11.5). A rove never emits it.
+   */
+  readonly activated = output<string>();
   readonly testId = input<string | null>(null);
 
   private readonly items = signal<readonly RovingItem[]>([]);
@@ -114,6 +121,7 @@ export abstract class UiRovingGroup {
 
   select(item: RovingItem): void {
     if (item.isDisabled()) return;
+    this.activated.emit(item.itemId());
     this.activeId.set(item.itemId());
     this.selectedId.set(item.itemId());
   }

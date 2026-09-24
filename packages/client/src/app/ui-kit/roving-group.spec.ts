@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROVING_MOVE, UI_ORIENTATION, isRovingSelectKey, rovingMoveFor, rovingTargetIndex } from './roving-group';
 
-/**
- * A feature whose selection follows focus has to tell the activation from the rove beside it, and both must mean the
- * same two keys — which is why this is one exported predicate rather than a set copied into each caller
- * (docs/ui/encyclopedia.md §11.5).
- */
 describe('isRovingSelectKey', () => {
   it('is Enter and Space, and nothing that moves the focus instead', () => {
     expect(isRovingSelectKey('Enter')).toBe(true);

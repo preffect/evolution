@@ -283,7 +283,7 @@ export class GameRoom {
     const snapshot = this.game.serializeRoomState();
     const deltaTargets: Connection[] = [];
     for (const connection of this.playerConnections.values()) {
-      const delivery = this.snapshotBacklog.nextFor(connection, snapshot.tick);
+      const delivery = this.snapshotBacklog.nextFor(connection, snapshot.tick, this.isLoopPaused);
       if (delivery === SNAPSHOT_DELIVERY.delta) {
         deltaTargets.push(connection);
       } else if (delivery === SNAPSHOT_DELIVERY.resync) {

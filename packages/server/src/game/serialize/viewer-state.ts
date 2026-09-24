@@ -15,10 +15,11 @@ import {
 import type { ViewerStateSerializer } from '../game-module.js';
 import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
-import { FoodDeltaTracker, positionMotes, type PositionedMote } from './food-delta-tracker.js';
+import { FoodDeltaTracker, MoteMotion, type MoteEntry, type PositionedFood } from './food-delta-tracker.js';
 import { isInInterestArea, type InterestArea } from './interest-area.js';
 import { SPRINT_WINDOW, ownProgressOf, toDnaFragmentView } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
+import { ViewerMemberJson } from './viewer-member-json.js';
 import {
   VIEWER_SNAPSHOT_KEYS,
   type BroadcastSnapshot,
@@ -28,7 +29,7 @@ import {
 
 /** What every viewer of one snapshot reads of the world: its food and fragments quantised once, and the live margin. */
 interface WorldReading {
-  readonly food: readonly PositionedMote[];
+  readonly food: PositionedFood;
   readonly fragments: readonly DnaFragmentView[];
   readonly marginWu: number;
 }
@@ -38,7 +39,7 @@ interface ObservedBroadcast extends WorldReading {
   readonly broadcast: BroadcastSnapshot;
 }
 
-function foodInArea(food: readonly PositionedMote[], area: InterestArea): PositionedMote[] {
+function foodInArea(food: readonly MoteEntry[], area: InterestArea): MoteEntry[] {
   return food.filter(({ position }) => isInInterestArea(area, position.x, position.y));
 }
 
@@ -52,6 +53,12 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
   readonly keys = VIEWER_SNAPSHOT_KEYS;
   private readonly cameras = new ViewerCameras();
   private readonly foodDeltas = new Map<PlayerId, FoodDeltaTracker>();
+  /** Each viewer's slot in the mote entries (`FoodDeltaTracker`): kept across a restart, freed when it leaves. */
+  private readonly slots = new Map<PlayerId, number>();
+  private readonly freeSlots: number[] = [];
+  private nextSlot = 0;
+  private readonly motion = new MoteMotion();
+  private readonly json = new ViewerMemberJson();
   private observed: ObservedBroadcast | null = null;
 
   constructor(private readonly world: WorldState) {}
@@ -72,10 +79,18 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
     return { ...members, ownProgress: ownProgressOf(this.world, viewerPlayerId, SPRINT_WINDOW.omitted) };
   }
 
+  /** `JSON.stringify(value)` for one member, the items every viewer shares stringified once per broadcast (#406). */
+  memberJson(key: ViewerSnapshotKey, value: unknown): string {
+    return this.json.memberJson(key, value);
+  }
+
   /** A player left the room: its camera and its delta go with it. */
   forget(viewerPlayerId: PlayerId): void {
     this.cameras.forget(viewerPlayerId);
     this.foodDeltas.delete(viewerPlayerId);
+    const slot = this.slots.get(viewerPlayerId);
+    if (slot !== undefined) this.freeSlots.push(slot);
+    this.slots.delete(viewerPlayerId);
   }
 
   /**
@@ -92,16 +107,25 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
 
   private readWorld(): WorldReading {
     return {
-      food: positionMotes(this.world.food),
+      food: this.motion.position(this.world.food),
       fragments: this.world.dnaFragments.map((fragment) => toDnaFragmentView(fragment)),
       marginWu: interestMarginFor(this.world.balance),
     };
   }
 
   private restartFoodDelta(viewerPlayerId: PlayerId): FoodDeltaTracker {
-    const tracker = new FoodDeltaTracker();
+    const tracker = new FoodDeltaTracker(this.slotOf(viewerPlayerId));
     this.foodDeltas.set(viewerPlayerId, tracker);
     return tracker;
+  }
+
+  private slotOf(viewerPlayerId: PlayerId): number {
+    let slot = this.slots.get(viewerPlayerId);
+    if (slot === undefined) {
+      slot = this.freeSlots.pop() ?? this.nextSlot++;
+      this.slots.set(viewerPlayerId, slot);
+    }
+    return slot;
   }
 
   private membersFor(
@@ -110,7 +134,7 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
     reading: WorldReading,
   ): ViewerSnapshotMembers {
     const area = this.cameras.areaOf(this.world, viewerPlayerId, reading.marginWu);
-    const food: FoodDelta = tracker.diffPositioned(foodInArea(reading.food, area));
+    const food: FoodDelta = this.json.noteFood(tracker.diff(reading.food, foodInArea(reading.food.motes, area)));
     return {
       food,
       dnaFragments: reading.fragments.filter((fragment) => isInInterestArea(area, fragment.x, fragment.y)),
