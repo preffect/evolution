@@ -135,6 +135,13 @@ measured around the gains (`measureGain`, `simulation/cell-mass.ts`). On every t
     client 34.8/s) over 3 000 broadcasts, a running room: 100 resyncs, 88 of them on top of an unacknowledged one,
     before; 24 and 0 after, with more deltas delivered (1 641 → 1 704). Advanced by debug steps: 106 / 94 before, 16 / 0
     after (1 636 → 1 799 deltas). A `game_state` is about 3 times a delta (29.9 KB against a 10.3 KB median at start).
+  - **A held stream restarts its depth** (#655). The delta that ends a hold in a running room covers every tick of it,
+    so measured from the resync's ack it read as a queue deeper than the limit; the client, holding one delta, owed no
+    ack until the second, and the room never sent one: a slow page (a throttled CPU, software GL on a loaded box) froze
+    for good. The ticks of a hold were never sent, so they are in no queue: the depth now counts from the broadcast the
+    stream restarted on (`SnapshotBacklog.backlogTicksOf`). And as a backstop for any other delta that spans the limit on
+    its own, a client is skipped only once it holds `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas past its newest ack: with fewer
+    it owes no ack, and its silence is not a backlog either.
 
   `serializeRoomState()` still runs on every broadcast tick whatever the connections are doing — it
   is the one drain of the effects; each viewer's camera steps on the first `serialize` of a tick and its food delta

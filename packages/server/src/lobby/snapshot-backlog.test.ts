@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { SNAPSHOT_BACKLOG_LIMIT_BYTES, SNAPSHOT_BACKLOG_LIMIT_TICKS } from '@evolution/shared';
+import {
+  SNAPSHOT_ACK_EVERY_SNAPSHOTS,
+  SNAPSHOT_BACKLOG_LIMIT_BYTES,
+  SNAPSHOT_BACKLOG_LIMIT_TICKS,
+} from '@evolution/shared';
 import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
 import { createTestConnection, setBufferedAmount } from '../testing/builders.js';
 
@@ -18,7 +22,18 @@ function oneConnection(playerId = 'p1') {
       backlog.recordAcknowledgedTick(playerId, tick);
     }
   };
-  return { backlog, connection, playerId, streamAcknowledged };
+  /**
+   * Sends one ack cadence of deltas from `from`, one tick apart, none acknowledged: however deep the queue reads, a
+   * client owes no ack before it holds that many (#655). Returns the newest tick sent.
+   */
+  const sendOneAckCadence = (from: number): number => {
+    const last = from + SNAPSHOT_ACK_EVERY_SNAPSHOTS - 1;
+    for (let tick = from; tick <= last; tick += 1) {
+      expect(backlog.nextFor(connection, tick)).toBe(SNAPSHOT_DELIVERY.delta);
+    }
+    return last;
+  };
+  return { backlog, connection, playerId, streamAcknowledged, sendOneAckCadence };
 }
 
 describe('SnapshotBacklog', () => {
@@ -38,25 +53,35 @@ describe('SnapshotBacklog', () => {
     expect(backlog.backlogTicksOf('p1')).toBeNull();
   });
 
-  it('sends nothing once more than the limit of ticks is in flight, however long that lasts', () => {
+  it('sends nothing once more than the limit of ticks is in flight and an ack is owed, however long that lasts', () => {
+    const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    // The client acknowledged nothing since, so once it holds a cadence of deltas the next broadcast is past the limit.
+    const lastSent = sendOneAckCadence(FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
+    expect(backlog.nextFor(connection, lastSent + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
+    expect(backlog.nextFor(connection, lastSent + 2)).toBe(SNAPSHOT_DELIVERY.skipped);
+    expect(backlog.owedCount()).toBe(1);
+    expect(backlog.backlogTicksOf(playerId)).toBe(lastSent - FIRST_TICK);
+  });
+
+  it('#655: keeps sending past the limit to a client that owes no ack yet, since it may never send one', () => {
     const { backlog, connection, playerId } = oneConnection();
     backlog.nextFor(connection, FIRST_TICK);
     backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
-    const behindTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
-    expect(backlog.nextFor(connection, behindTick)).toBe(SNAPSHOT_DELIVERY.delta);
-    // The client acknowledged nothing since, so the next broadcast is past the limit.
-    expect(backlog.nextFor(connection, behindTick + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
-    expect(backlog.nextFor(connection, behindTick + 2)).toBe(SNAPSHOT_DELIVERY.skipped);
-    expect(backlog.owedCount()).toBe(1);
-    expect(backlog.backlogTicksOf(playerId)).toBe(SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
+    // One delta that spans more than the limit on its own: the browser acks only every SNAPSHOT_ACK_EVERY_SNAPSHOTS.
+    const spanningTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS * 2;
+    backlog.nextFor(connection, spanningTick);
+    expect(backlog.backlogTicksOf(playerId)).toBeGreaterThan(SNAPSHOT_BACKLOG_LIMIT_TICKS);
+    expect(backlog.nextFor(connection, spanningTick + 1)).toBe(SNAPSHOT_DELIVERY.delta);
+    expect(backlog.owedCount()).toBe(0);
   });
 
   it('sends exactly one game_state when the skipped client catches up, then deltas again', () => {
-    const { backlog, connection, playerId } = oneConnection();
+    const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
     backlog.nextFor(connection, FIRST_TICK);
     backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
-    const behindTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 2;
-    backlog.nextFor(connection, behindTick);
+    const behindTick = sendOneAckCadence(FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 2);
     expect(backlog.nextFor(connection, behindTick + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
 
     backlog.recordAcknowledgedTick(playerId, behindTick);
@@ -103,12 +128,11 @@ describe('SnapshotBacklog', () => {
   });
 
   it('#300: a resync is due only once owed and caught up, and recording it settles it like a broadcast would', () => {
-    const { backlog, connection, playerId } = oneConnection();
+    const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
     expect(backlog.isResyncDue(connection)).toBe(false);
     backlog.nextFor(connection, FIRST_TICK);
     backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
-    const behindTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
-    backlog.nextFor(connection, behindTick);
+    const behindTick = sendOneAckCadence(FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
     backlog.nextFor(connection, behindTick + 1);
     expect(backlog.isResyncDue(connection)).toBe(false);
     backlog.recordAcknowledgedTick(playerId, behindTick);
@@ -126,11 +150,10 @@ describe('SnapshotBacklog', () => {
   });
 
   it('#275: after a resync, sends nothing and owes nothing until the client acknowledges that tick', () => {
-    const { backlog, connection, playerId } = oneConnection();
+    const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
     backlog.nextFor(connection, FIRST_TICK);
     backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
-    const behindTick = FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
-    backlog.nextFor(connection, behindTick);
+    const behindTick = sendOneAckCadence(FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
     expect(backlog.nextFor(connection, behindTick + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
     backlog.recordAcknowledgedTick(playerId, behindTick);
     const resyncTick = behindTick + 2;
@@ -142,6 +165,27 @@ describe('SnapshotBacklog', () => {
     expect([backlog.owedCount(), backlog.resyncCount()]).toEqual([0, 1]);
     backlog.recordAcknowledgedTick(playerId, resyncTick);
     expect(backlog.nextFor(connection, resyncTick + SNAPSHOT_BACKLOG_LIMIT_TICKS * 3)).toBe(SNAPSHOT_DELIVERY.delta);
+  });
+
+  it('#655: the stream a resync hold ends restarts its depth there, not at the resync the hold ran past', () => {
+    const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    const behindTick = sendOneAckCadence(FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
+    backlog.nextFor(connection, behindTick + 1);
+    backlog.recordAcknowledgedTick(playerId, behindTick);
+    const resyncTick = behindTick + 2;
+    expect(backlog.nextFor(connection, resyncTick)).toBe(SNAPSHOT_DELIVERY.resync);
+    // A slow page applies the resync only after the running room has held it past the limit twice over.
+    const restartTick = resyncTick + SNAPSHOT_BACKLOG_LIMIT_TICKS * 2;
+    for (let tick = resyncTick + 1; tick < restartTick; tick += 1) backlog.nextFor(connection, tick);
+    backlog.recordAcknowledgedTick(playerId, resyncTick);
+    expect(backlog.nextFor(connection, restartTick)).toBe(SNAPSHOT_DELIVERY.delta);
+    expect(backlog.backlogTicksOf(playerId)).toBe(0);
+    // Its acks have not arrived yet: the room keeps sending, since the held ticks were never in any queue.
+    sendOneAckCadence(restartTick + 1);
+    sendOneAckCadence(restartTick + 1 + SNAPSHOT_ACK_EVERY_SNAPSHOTS);
+    expect([backlog.owedCount(), backlog.resyncCount()]).toEqual([0, 1]);
   });
 
   it('#275: a client that has never acknowledged is not held after a resync (silence is not a backlog)', () => {
