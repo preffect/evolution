@@ -10,7 +10,7 @@ import { definedEntriesOf } from './defined-entries';
 import { installEvolutionDebug, type EvolutionDebugApi, type EvolutionDebugHost } from './debug/evolution-debug';
 import { attachInput, type AttachInputOptions, type InputSeam } from './input/attach-input';
 import type { InputController } from './input/input-controller';
-import { NO_RETICLE, type RenderInputs } from './render/game-renderer';
+import { NO_RETICLE, type RenderInputs } from './render/render-io';
 import type { PixiAppHandle, PixiAppOptions } from './render/pixi-app';
 import type { CameraExtent } from './render/camera';
 import { RenderSession } from './render/render-session';

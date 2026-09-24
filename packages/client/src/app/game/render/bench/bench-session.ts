@@ -18,7 +18,8 @@ import {
 } from '../constants';
 import { numberParameter, positiveParameter } from '../../route-query';
 import { FrameLoopSession } from '../frame-loop-session';
-import { NO_HUD_INPUTS, type GameRenderer, type RenderInputs, type RenderOutputs } from '../game-renderer';
+import type { GameRenderer } from '../game-renderer';
+import { NO_HUD_INPUTS, type RenderInputs, type RenderOutputs } from '../render-io';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { benchCueFrame } from './bench-cues';
 import { BenchDriver } from './bench-driver';

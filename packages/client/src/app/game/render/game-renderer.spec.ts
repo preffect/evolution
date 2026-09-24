@@ -9,7 +9,8 @@ import {
 } from '../../../testing/builders';
 import { createFakePixiApp, createTestRenderTextures } from '../../../testing/fake-pixi-app';
 import type { StageMeasurer } from './bench/render-stage-timer';
-import { GameRenderer, NO_HUD_INPUTS, type RenderInputs } from './game-renderer';
+import { GameRenderer } from './game-renderer';
+import { NO_HUD_INPUTS, type RenderInputs } from './render-io';
 
 const INPUTS: RenderInputs = NO_HUD_INPUTS;
 const VIEWPORT = { width: 800, height: 600 };
@@ -103,6 +104,28 @@ describe('GameRenderer', () => {
     subject.setFixedZoom(null);
     subject.parkOn({ x: 0, y: 0, radius: 4 });
     expect(subject.render(frame, TEST_OWN_PLAYER_ID, INPUTS, () => undefined).zoom).not.toBeCloseTo(2);
+  });
+
+  it('skips a frame whole while the viewport has no height: no submit, no NaN, the last outputs again', () => {
+    const { renderer: subject, stage } = renderer();
+    const frame = createTestRenderFrame({ cells: [createTestCellView({ x: 40, y: 30 })] });
+    const submits = { count: 0 };
+    const submit = (): void => {
+      submits.count += 1;
+    };
+    subject.setFixedZoom(2);
+    subject.resize({ width: 0, height: 0 });
+    const beforeAnyFrame = subject.render(frame, TEST_OWN_PLAYER_ID, INPUTS, submit);
+    expect(submits.count).toBe(0);
+    expect(beforeAnyFrame.visibleCells).toBe(0);
+    expect(Object.values(beforeAnyFrame.cameraExtent).every(Number.isFinite)).toBe(true);
+    subject.resize(VIEWPORT);
+    const drawn = subject.render(frame, TEST_OWN_PLAYER_ID, INPUTS, submit);
+    subject.resize({ width: 0, height: 0 });
+    expect(subject.render(frame, TEST_OWN_PLAYER_ID, INPUTS, submit)).toBe(drawn);
+    expect(submits.count).toBe(1);
+    const world = stage.children[0]!;
+    expect(Number.isFinite(world.scale.x) && Number.isFinite(world.position.x)).toBe(true);
   });
 
   it('resizes the vignette to the viewport and destroys the roots', () => {

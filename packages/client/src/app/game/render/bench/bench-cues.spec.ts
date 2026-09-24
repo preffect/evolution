@@ -18,7 +18,7 @@ import {
   RENDER_BENCH_FRAMES_PER_SECOND,
 } from '../constants';
 import { FLOATER_CAUSE, FloaterStack, floaterSpawnsOf } from '../effects/floater-stack';
-import { NO_HUD_INPUTS } from '../game-renderer';
+import { NO_HUD_INPUTS } from '../render-io';
 import { BENCH_CUE_STEP, benchCueFrame, benchCueStepAt } from './bench-cues';
 
 const OWN_PLAYER = playerId('bench-player-0');
