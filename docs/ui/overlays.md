@@ -92,11 +92,11 @@ without copy fails the gate instead of rendering `undefined`.
 ### 3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)
 
 The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text
-block at top-centre from y 96, 360 wide: `ENGULFED BY AMOEBOID` (`title` role, danger; name from
-`players[cells[spectatingCellId].playerId].playerName`, `ENGULFED BY A WILD <STAGE>` for a wild killer
-(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
-role, `ceil(respawnInTicks / TICK_HZ)`, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
-muted). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
+block at top-centre from y 96, 480 wide: `ENGULFED BY AMOEBOID` (`title` role, danger, one line; name from
+`players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters, `ENGULFED BY A WILD CELL` for a wild killer
+(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
+role, `ceil(respawnInTicks / TICK_HZ)`, never below 1, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
+muted; `Level 1 kept` without traits). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
 spectating player has no cell, so DNA lost comes from the `lastAliveOwnProgress` signal (§7: the own progress of the
 last snapshot in which the player was alive): the drop in `dnaTowardNextLevel` between that snapshot and this one,
 left out when this client never saw the player alive. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,

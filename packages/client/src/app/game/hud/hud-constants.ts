@@ -178,8 +178,11 @@ export const CONNECTION_LOST_DIM_ALPHA = 0.2;
 export const RESPAWN_DIM_ALPHA = 0.3;
 /** Its text block starts where the notice stack must end, so a banner never sits on the killer's name. */
 export const RESPAWN_TEXT_TOP_PX = NOTICE_STACK_MAX_Y_PX;
-/** The text block's width at scale 1, centred. */
-export const RESPAWN_TEXT_WIDTH_PX = 360;
+/**
+ * The text block's width at scale 1, centred: the widest title, `ENGULFED BY ` and a 12-character name in wide capitals,
+ * fits on one line.
+ */
+export const RESPAWN_TEXT_WIDTH_PX = 480;
 /** The notices' text inset from the viewport's left and right edges. */
 export const NOTICE_PADDING_INLINE_PX = 16;
 /** Gap between a notice's message and its dismiss control. */

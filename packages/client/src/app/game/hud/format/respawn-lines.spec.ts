@@ -46,14 +46,16 @@ describe('respawnLinesFor', () => {
     expect(respawnLinesFor(input()).killer).toBe('ENGULFED BY AMOEBOID');
   });
 
-  it('names a wild killer by its stage', () => {
-    const wild = createTestCellView({
-      id: KILLER_CELL_ID,
-      kind: CELL_KIND.wild,
-      playerId: null,
-      stage: CELL_STAGE.prokaryote,
-    });
-    expect(respawnLinesFor(input({ cells: [wild] })).killer).toBe('ENGULFED BY A WILD PROKARYOTE');
+  it('names a wild killer as a wild cell, whatever its stage', () => {
+    for (const stage of [CELL_STAGE.protocell, CELL_STAGE.endosymbiosis, CELL_STAGE.specialised]) {
+      const wild = createTestCellView({ id: KILLER_CELL_ID, kind: CELL_KIND.wild, playerId: null, stage });
+      expect(respawnLinesFor(input({ cells: [wild] })).killer).toBe('ENGULFED BY A WILD CELL');
+    }
+  });
+
+  it('cuts a long killer name the way the leaderboard does, so the title stays on one line', () => {
+    const players = { [KILLER_PLAYER_ID]: { playerId: KILLER_PLAYER_ID, playerName: 'Amoeboid Supreme Ruler' } };
+    expect(respawnLinesFor(input({ players })).killer).toBe('ENGULFED BY AMOEBOID SU…');
   });
 
   it('says ENGULFED alone once the killer has gone', () => {
@@ -72,6 +74,12 @@ describe('respawnLinesFor', () => {
     );
   });
 
+  it('never reads 0 on the last spectating tick', () => {
+    expect(respawnLinesFor(input({ ownProgress: spectating({ respawnInTicks: 0 }) })).countdown).toBe(
+      'Respawning in 1',
+    );
+  });
+
   it('says the level and traits kept and the DNA lost since the last alive snapshot', () => {
     expect(respawnLinesFor(input()).kept).toBe('Level 4 and 3 traits kept · 40 DNA lost');
   });
@@ -79,6 +87,11 @@ describe('respawnLinesFor', () => {
   it('counts one trait in the singular', () => {
     const ownProgress = spectating({ ownedTraits: [{ traitId: 'nucleoid', tier: 1 }] });
     expect(respawnLinesFor(input({ ownProgress })).kept).toBe('Level 4 and 1 trait kept · 40 DNA lost');
+  });
+
+  it('says only the level when there are no traits to keep', () => {
+    const ownProgress = spectating({ ownedTraits: [] });
+    expect(respawnLinesFor(input({ ownProgress })).kept).toBe('Level 4 kept · 40 DNA lost');
   });
 
   it('leaves the loss out when this client never saw the player alive', () => {

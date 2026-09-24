@@ -57,7 +57,12 @@ import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
         text-shadow: 0 1px 3px var(--hud-outline);
       }
 
+      /* One line always: the name is already cut, so this only guards a glyph wider than measured. */
       .killer {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: var(--ui-danger);
         font-family: var(--ui-font-sans);
         font-size: calc(var(--ui-type-title) * var(--ui-scale));
