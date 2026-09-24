@@ -23,17 +23,28 @@ export interface LeaderboardColumnLabel {
   readonly className: string;
 }
 
-/** The compact panel's two named columns: level and score. */
-export const LEADERBOARD_COMPACT_LABELS: readonly LeaderboardColumnLabel[] = [
-  { text: 'LV', className: 'label-level' },
-  { text: 'SCORE', className: 'label-score' },
-];
+const LEVEL_LABEL: LeaderboardColumnLabel = { text: 'LV', className: 'label-level' };
+const SCORE_LABEL: LeaderboardColumnLabel = { text: 'SCORE', className: 'label-score' };
+const MASS_LABEL: LeaderboardColumnLabel = { text: 'MASS', className: 'label-mass' };
+/** The engulf count (the #321 audit: `EATEN` read as food). */
+const ABSORPTIONS_LABEL: LeaderboardColumnLabel = { text: 'ENGULFS', className: 'label-absorptions' };
 
-/** The full list adds mass and the engulf count (the #321 audit: `EATEN` read as food). */
+/** The compact panel's two named columns: level and score. */
+export const LEADERBOARD_COMPACT_LABELS: readonly LeaderboardColumnLabel[] = [LEVEL_LABEL, SCORE_LABEL];
+
+/** The full list adds mass and the engulf count. */
 export const LEADERBOARD_FULL_LABELS: readonly LeaderboardColumnLabel[] = [
   ...LEADERBOARD_COMPACT_LABELS,
-  { text: 'MASS', className: 'label-mass' },
-  { text: 'ENGULFS', className: 'label-absorptions' },
+  MASS_LABEL,
+  ABSORPTIONS_LABEL,
+];
+
+/** The round results table (docs/ui/overlays.md §3.4): the same columns, score last, since the ranking is by it. */
+export const RESULTS_COLUMN_LABELS: readonly LeaderboardColumnLabel[] = [
+  LEVEL_LABEL,
+  MASS_LABEL,
+  ABSORPTIONS_LABEL,
+  SCORE_LABEL,
 ];
 
 export interface LeaderboardLabels {

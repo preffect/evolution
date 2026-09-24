@@ -20,6 +20,15 @@ export interface CameraExtent {
   readonly maxY: number;
 }
 
+/** Two extents that describe the same rectangle; a fresh object per frame is not a new view. */
+export function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | null): boolean {
+  if (first === second) return true;
+  if (first === null || second === null) return false;
+  return (
+    first.minX === second.minX && first.maxX === second.maxX && first.minY === second.minY && first.maxY === second.maxY
+  );
+}
+
 /** A point in screen px. */
 export interface ScreenPoint {
   readonly x: number;

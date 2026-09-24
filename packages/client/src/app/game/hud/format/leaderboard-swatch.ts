@@ -65,12 +65,17 @@ export interface LeaderboardSwatch {
   readonly ownRowTint: string;
 }
 
+/** The own row's background in any ranked table: the seat's rim colour at 12 % (docs/visual-style/ui-type.md §7). */
+export function ownRowTintFor(avatarIndex: number): string {
+  return hexWithAlpha(paletteFor(avatarIndex).rim, LEADERBOARD_OWN_ROW_TINT_ALPHA);
+}
+
 export function leaderboardSwatchFor(avatarIndex: number, bodyRadius: number): LeaderboardSwatch {
   const palette = paletteFor(avatarIndex);
   return {
     base: palette.base,
     rim: palette.rim,
     beads: seatMarkBeadPositions(seatMarkBeadCount(avatarIndex), bodyRadius),
-    ownRowTint: hexWithAlpha(palette.rim, LEADERBOARD_OWN_ROW_TINT_ALPHA),
+    ownRowTint: ownRowTintFor(avatarIndex),
   };
 }

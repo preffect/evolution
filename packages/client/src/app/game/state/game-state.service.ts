@@ -22,6 +22,7 @@ import {
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { CONNECTION_STATE, type ConnectionState } from '../hud/format/connection-banner';
 import { hasEngulfedIn } from '../hud/format/relation-labels';
+import { resultsStartedAtTickFor } from '../hud/format/results-lines';
 import { relationCandidatesFor, relationsOnScreen, type RelationCandidate } from '../hud/format/relations-for';
 import { threatsFor, type Threat } from '../hud/format/threats-for';
 import { zoneEntryFor, type ZoneEntryMemory } from '../hud/format/zone-pill';
@@ -30,7 +31,7 @@ import { massTrendFor, type MassTrendMemory } from './mass-trend';
 import { ownCellIndicatorsFor, type OwnCellIndicators } from './own-cell-indicators';
 import { ownMassHistoryFor, ownMassesFor, type OwnMassHistory } from './own-mass-history';
 import { foodGainPerSecondFor, recentEatsFor, type RecentEatsMemory } from './recent-eats';
-import type { CameraExtent } from '../render/camera';
+import { isSameCameraExtent, type CameraExtent } from '../render/camera';
 
 const NO_LEADERBOARD: readonly LeaderboardRow[] = [];
 const NO_PLAYERS: Readonly<Record<string, PlayerRosterView>> = {};
@@ -39,15 +40,6 @@ const NO_THREATS: readonly Threat[] = [];
 const NO_RELATIONS: readonly RelationCandidate[] = [];
 const NO_MASSES: readonly number[] = [];
 const NO_FOOD_GAIN = 0;
-
-/** Two extents that describe the same rectangle; a fresh object per frame is not a new view. */
-function isSameCameraExtent(first: CameraExtent | null, second: CameraExtent | null): boolean {
-  if (first === second) return true;
-  if (first === null || second === null) return false;
-  return (
-    first.minX === second.minX && first.maxX === second.maxX && first.minY === second.minY && first.maxY === second.maxY
-  );
-}
 
 /** The newest snapshot with the own cell and progress it names: what the cue memories step on. */
 interface OwnSnapshot {
@@ -102,6 +94,11 @@ export class GameStateService {
 
   /** The room's config: the round length the clock's bloom threshold is a fraction of. */
   readonly sessionConfig = this.multiplayer.sessionConfig.asReadonly();
+
+  /** The tick the results phase began (docs/ui/overlays.md §3.4); `null` in play or before the room's config. */
+  readonly resultsStartedAtTick = computed<number | null>(() =>
+    resultsStartedAtTickFor(this.multiplayer.snapshot(), this.multiplayer.sessionConfig()),
+  );
 
   /** The live balance of `game_state` / `balance_updated`; `null` before the room's arrives. */
   readonly balance = computed<BalanceConfig | null>(() => this.multiplayer.balance());

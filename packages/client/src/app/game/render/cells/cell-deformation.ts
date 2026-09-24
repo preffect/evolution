@@ -14,6 +14,8 @@ export interface CellDeformation {
   readonly pulse: number;
   /** The whole instance's alpha (a respawning cell fades in); 1 for a living cell. */
   readonly alpha: number;
+  /** Where the prey this cell is engulfing is (cell frame, radians): the amoeba's lobes reach for it. Absent otherwise. */
+  readonly preyAngle?: number;
 }
 
 export type CellDeformations = ReadonlyMap<EntityId, CellDeformation>;

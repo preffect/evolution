@@ -68,7 +68,7 @@ reference pins it (§9). In §2.2 a membrane band written `0.975 → 1.025` mean
 | engulf      | arms `arm` at prey angle ± 30° σ 16°, notch `notch` at the prey angle σ `ENGULF_NOTCH_SIGMA_DEG` 12°, seal `seal` at the prey angle σ 42°; amplitudes per keyframe in the §4 engulf table (peak 0.62 / −0.10 / 0.60)        | sheet 03, clips `engulf` (domain = progress, visual-style/motion-and-legibility.md §5) and `absorbed` (the seal relax)                                                                                                                           | `states`, `engulfProgress`, `engulfingCellId` |
 | level-up    | `pulse` 0.90 (anticipate) → 1.14 (burst) → 1.0                                                                                                                                                                              | sheet 03, clip `level_up`                                                                                                                                                                                                                        | `level_up` effect                             |
 | respawn     | `pulse` 0.6 → 1.0 `ease_out_back`, alpha 0 → 1                                                                                                                                                                              | visual-style/motion-and-legibility.md §5, clip `respawn`                                                                                                                                                                                         | `respawn` effect                              |
-| pseudopods  | 2 / 3 / 4 bumps toward velocity and toward engulfed prey                                                                                                                                                                    | sheet 04 amoeba (#121)                                                                                                                                                                                                                           | tier, `engulfingCellId`                       |
+| pseudopods  | 2 / 3 / 4 bumps in an irregular fan about the heading that move to the flanks with `k` and flank the engulfed prey while engulfing; each extends and retracts on its own staggered sine (`forms/amoeba-pseudopods.ts`)      | sheet 04 amoeba; visual-style/motion-and-legibility.md §5 (#192)                                                                                                                                                                                 | tier, `engulfingCellId`                       |
 
 Bumps occupy `MAX_SHAPE_BUMPS` (8) instance slots, sized for an amoeba III mid-engulf: two arms, notch, seal and
 four pseudopods. Outside an engulf the eat dimple, wrap and one contact dent share the four non-pseudopod slots;
@@ -186,10 +186,16 @@ mouth : height 0.51, diatom valve r 26 wu → a circle. Forms: slipper (ellipse,
 ends), trumpet (profile from a centre near the mouth; the stalk seen from there is ±3° wide at the far end, where
 §2.1's perpendicular distance stops being optional), diatom (rigid: wobble, jitter, lobes **and breathing** zero,
 a silica valve does not breathe; 36 striae in pass A, 8 / 12 / 16 spine rays with bright tips in pass B), amoeba
-(blob plus pseudopod bumps, §2.1). Values: sheet 04 and visual-style/cells-and-organelles.md §4. Forms rotate with `h`; the blob and its
+(#192: `B ≡ AMOEBA_CORE_SCALE` 0.9 plus the pseudopod bumps of §2.1, whose width is solved so `B · (1 + Σ lobes)` keeps
+unit area over a cycle at rest, within 1 % swimming, where the lobes crowd the flanks; a `VAC_RIM` ectoplasm band 0.15 r deep at
+14 % in pass B). Every `FormProfile` carries its `peak`, which `maxReachRadii` multiplies in. For the amoeba,
+`peakReachRadii` and `peakRearMembraneRadii` weigh the lobes' reach table (`pseudopodReachTable`) against the stretch
+angle by angle (`amoebaBodyReach`), so the bound stays tight while the lobes sit on the flanks and the stretch
+pushes the front. Neither the quad nor the preview lens clips a form, and the amoeba's body bound stays inside the
+1.3 r rings short of a sprint (visual-style/motion-and-legibility.md §5). Values: sheet 04 and visual-style/cells-and-organelles.md §4. Forms rotate with `h`; the blob and its
 organelles do not (seat marks are frame-fixed, visual-style/principles-and-palette.md §2). `cells/forms/form-profiles.ts` is the registry
 (`FORM_PROFILES` keyed by the form trait, `FORM_ID` per silhouette, the aspects `SLIPPER_ASPECT_BY_TIER`,
 `SPINDLE_ASPECT`, `TRUMPET_MOUTH_TO_HEIGHT`, `DIATOM_ASPECT`, `PSEUDOPOD_COUNT_BY_TIER`, the rigid flag that stills
 the diatom's rest terms, and `normalisedArea` for the §9 pin); `radial-profile.ts` carries `B` as the `form` term
 and the GLSL's `formAt` mirrors it. #216 ships the registry with every profile at the blob (`B ≡ 1`); #192–#196
-register the silhouettes.
+register the silhouettes (the amoeba with #192).

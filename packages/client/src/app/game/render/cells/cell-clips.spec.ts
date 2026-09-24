@@ -62,6 +62,14 @@ describe('clipDeformation', () => {
     expect(deformation.pulse).toBeCloseTo(1.09, 9);
   });
 
+  /** The amoeba's lobes reach for the prey (#192): the angle rides only while an engulf is in progress. */
+  it('carries the prey angle while engulfing and nowhere else', () => {
+    const engulfing = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 1.2, engulfProgress: 0.3 });
+    expect(engulfing.preyAngle).toBe(1.2);
+    expect(clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0.5, absorbedSeal: 0.42 }).preyAngle).toBeUndefined();
+    expect(clipDeformation({ ...REST_CLIP_INPUT, moteAngle: 1 }).preyAngle).toBeUndefined();
+  });
+
   it('relaxes the predator seal from the ghost clip after payout', () => {
     const deformation = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0.5, absorbedSeal: 0.42 });
     expect(deformation.bumps).toEqual([{ amplitude: 0.42, centre: 0.5, sigma: degreesToRadians(42) }]);

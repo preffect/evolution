@@ -5,6 +5,7 @@ import {
   DEFAULT_BALANCE,
   PLAYER_LIFE_STATE,
   ROUND_PHASE,
+  TICK_HZ,
   createTestPlayerProgressView,
   createTestSessionConfig,
   createTestSnapshot,
@@ -238,6 +239,21 @@ describe('GameStateService', () => {
     );
     expect(gameState.ownCellIndicators()?.relationRings.get(prey.id)).toBeDefined();
     expect(gameState.ownCellIndicators()?.relationLabels.edible).toBeNull();
+  });
+
+  it('places the results start on the tick the round clock flips, and has none in play or before the config', () => {
+    const roundDurationSeconds = 120;
+    const roundStartTick = 5_000;
+    multiplayer.snapshot.set(
+      createTestSnapshot({ roundPhase: ROUND_PHASE.results, roundStartTick, tick: roundStartTick + 99_999 }),
+    );
+    expect(gameState.resultsStartedAtTick()).toBeNull();
+
+    multiplayer.sessionConfig.set(createTestSessionConfig({ roundDurationSeconds }));
+    expect(gameState.resultsStartedAtTick()).toBe(roundStartTick + roundDurationSeconds * TICK_HZ);
+
+    multiplayer.snapshot.set(createTestSnapshot({ roundPhase: ROUND_PHASE.playing, roundStartTick }));
+    expect(gameState.resultsStartedAtTick()).toBeNull();
   });
 
   it('mirrors the room’s seats, config and live balance', () => {
