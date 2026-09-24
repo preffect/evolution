@@ -4,7 +4,7 @@
 // timeout is the only bound, and a wait still open when its test ends fails that test with the condition it was
 // waiting for.
 import { onTestFinished } from 'vitest';
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import type { ServerMessage } from '@evolution/shared';
 import { yieldToEventLoop } from './event-loop.js';
 
@@ -13,6 +13,8 @@ export interface RecordingSocket {
   readonly socket: WebSocket;
   readonly received: readonly ServerMessage[];
 }
+
+const SOCKET_CLOSED = 'the socket closed';
 
 function neverBecameTrue(condition: string, reason: string): Error {
   return new Error(`${condition} never became true: ${reason}`);
@@ -35,6 +37,7 @@ function failTestIfStillOpen(condition: string, isOpen: () => boolean, abandon: 
 /**
  * Resolves once `holds(received)` is true, re-checked on every message the socket receives. The recording listener
  * was attached when the socket opened, before this one, so `received` already holds the message being announced.
+ * A socket already closed when the wait starts can receive nothing more, so the wait rejects at once.
  */
 export function untilReceived(
   recording: RecordingSocket,
@@ -43,6 +46,7 @@ export function untilReceived(
 ): Promise<void> {
   if (holds(recording.received)) return Promise.resolve();
   const { socket } = recording;
+  if (socket.readyState === WebSocket.CLOSED) return Promise.reject(neverBecameTrue(condition, SOCKET_CLOSED));
   return new Promise((resolve, reject) => {
     let isSettled = false;
     const settle = (error?: unknown): void => {
@@ -60,7 +64,7 @@ export function untilReceived(
         settle(error);
       }
     };
-    const onClose = (): void => settle(neverBecameTrue(condition, 'the socket closed'));
+    const onClose = (): void => settle(neverBecameTrue(condition, SOCKET_CLOSED));
     socket.on('message', onMessage);
     socket.on('close', onClose);
     failTestIfStillOpen(condition, () => !isSettled, settle);
