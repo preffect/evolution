@@ -18,8 +18,10 @@
 # for good when the checkout is not on main (so a feature worktree never keeps a poller).
 # Every step is logged with an ISO timestamp to <target>/.game-logs/deploy.log; deploy.lock beside it
 # keeps two deploys from overlapping; deployed-sha records the last COMPLETE deploy, so one that failed
-# half way is retried by the next manual run rather than looking done (--watch waits for the next
-# commit instead of retrying the same one every poll).
+# half way is retried by the next manual run rather than looking done. failed-sha records the commit the
+# last deploy failed on: --watch waits for the next commit instead of retrying that one, also in the new
+# watcher a failed one-shot deploy's run.sh starts, whose stack may still be coming up (#666). A complete
+# deploy removes it.
 #
 # Environment:
 #   DEPLOY_TARGET_DIR              checkout to deploy (default: the main checkout of this repository)
@@ -65,9 +67,9 @@ LOG_DIR="$TARGET_DIR/.game-logs"
 LOG_FILE="$LOG_DIR/deploy.log"
 LOCK_FILE="$LOG_DIR/deploy.lock"
 DEPLOYED_SHA_FILE="$LOG_DIR/deployed-sha"
+FAILED_SHA_FILE="$LOG_DIR/failed-sha"
 
-last_notice=""       # --watch repeats a refusal on every poll; it is logged once until it changes
-failed_target_sha="" # --watch does not retry a commit whose deploy failed
+last_notice="" # --watch repeats a refusal on every poll; it is logged once until it changes
 deployed_now=false
 watching=false
 branch_refused=false
@@ -137,11 +139,12 @@ deploy_range() { # <from-sha> <to-sha>
   last_notice=""
   log "deploying $(short "$1") -> $(short "$2") in $TARGET_DIR"
   if ! deploy_steps "$1" "$2"; then
-    failed_target_sha="$2"
+    echo "$2" > "$FAILED_SHA_FILE" # under the lock, so the watcher a failed restart started cannot poll before it
     log "deploy of $(short "$2") FAILED; the stack may be stale or down (run scripts/deploy-main.sh to retry)"
     return "$EXIT_FAILED"
   fi
   echo "$2" > "$DEPLOYED_SHA_FILE"
+  rm -f "$FAILED_SHA_FILE"
   deployed_now=true
   log "deployed $(short "$2"); hard-refresh the browser"
 }
@@ -165,7 +168,10 @@ deploy_locked() {
     notice "already deployed at $(short "$target_sha"); nothing to do"
     return 0
   fi
-  [[ "$target_sha" != "$failed_target_sha" ]] || return "$EXIT_FAILED"
+  if $watching && [[ "$target_sha" == "$(cat "$FAILED_SHA_FILE" 2>/dev/null)" ]]; then
+    notice "the deploy of $(short "$target_sha") failed; waiting for the next commit (scripts/deploy-main.sh retries it)"
+    return "$EXIT_FAILED"
+  fi
   reason="$(tree_refusal "$head" "$target_sha")"
   if [[ -n "$reason" ]]; then
     notice "refused: $reason"

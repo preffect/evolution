@@ -10,7 +10,8 @@
 # the upstream, and a diverged branch; a failed build or restart not recorded and retried; an unreachable
 # origin; a held lock skips; a server the restart leaves running does not keep the lock; --watch deploys
 # with --no-deploy-watch, re-executes itself, logs a repeated refusal or fetch failure once and stops
-# when the checkout leaves main; its git status never takes the optional index.lock (#574). run.sh's side is
+# when the checkout leaves main; its git status never takes the optional index.lock (#574); a watcher started
+# after a failed one-shot deploy waits for the next commit instead of retrying the failed one (#666). run.sh's side is
 # scripts/run.test.sh.
 #
 #   scripts/deploy-main.test.sh        # exit 0 when every case passes
@@ -260,6 +261,22 @@ git -C "$target" checkout -q feature
 watcher_gone() { ! kill -0 "$watch_pid"; }
 check "--watch stops when the checkout leaves main" $(( $(holds wait_for watcher_gone) && $(holds grep -q 'stopping the watcher' "$deploy_log") ))
 git -C "$target" checkout -q main
+
+# A failed one-shot deploy's run.sh starts a watcher; it must not restart a stack that may still be coming up (#666)
+failed_sha_file="$target/.game-logs/failed-sha"
+echo "$STUB_FAILURE_EXIT" > "$restart_rc_file"
+merge_to_main game.txt v9
+run_deploy
+echo 0 > "$restart_rc_file"
+failed_at="$(origin_head)"
+check "a failed deploy records the commit it failed on (rc $rc)" $(( rc == EXIT_FAILED && $(holds test "$(cat "$failed_sha_file")" = "$failed_at") ))
+: > "$calls"
+start_watcher "$target"
+sleep $((WATCH_INTERVAL_SECONDS * WATCH_POLLS_TO_OBSERVE))
+check "a watcher started after a failed one-shot deploy does not retry that commit" $(( $(holds no_calls) && ! $(holds deployed_at_origin) && $(holds kill -0 "$watch_pid") ))
+merge_to_main game.txt v10
+check "it deploys the next commit and clears the failure record" $(( $(holds wait_for deployed_at_origin) && ! $(holds test -e "$failed_sha_file") ))
+kill "$watch_pid"
 
 start_watcher "$unreachable"
 sleep $((WATCH_INTERVAL_SECONDS * WATCH_POLLS_TO_OBSERVE))
