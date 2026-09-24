@@ -11,6 +11,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import { CARD_SHEET_QUERY_KEY } from '../src/app/game/hud/card-sheet/card-sheet-query';
+import { UI_FONT_SANS } from '../src/app/game/render/constants/ui-type';
 import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
 
 /** The reference viewport (scale 1) and the `UI_SCALE_MIN` floor's (scale 0.8), where rounding differs. */
@@ -21,6 +22,8 @@ const VIEWPORTS = [
 /** `null` is the shipped stack as it resolves (Inter); a name forces that face on every card. */
 const REQUIRED_FACES = [null, 'DejaVu Sans'] as const;
 const OPTIONAL_FACES = ['Segoe UI', 'Liberation Sans'] as const;
+/** The face the client ships (`styles.css`): the stack's first family, so a rename of either is followed here. */
+const SHIPPED_FACE = (UI_FONT_SANS.split(',')[0] ?? '').trim().replace(/^"|"$/g, '');
 /** Sub-pixel rounding between two boxes' edges is not an overflow. */
 const EDGE_TOLERANCE_PX = 0.5;
 
@@ -36,6 +39,18 @@ async function openSheet(page: Page, viewport: { width: number; height: number }
   await page.goto(`/?${CARD_SHEET_QUERY_KEY}`);
   await expect(page.getByTestId(HUD_TEST_ID.traitCardSheet)).toBeVisible();
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
+}
+
+/**
+ * Whether the shipped face actually loaded. `fonts.ready` resolves when loading ends, failed or not, and a failed
+ * face leaves the cards in a fallback, so without this the "shipped stack" pass could quietly measure DejaVu Sans.
+ */
+async function isShippedFaceLoaded(page: Page): Promise<boolean> {
+  return page.evaluate(
+    (family) =>
+      [...document.fonts].some((face) => face.family.replace(/^"|"$/g, '') === family && face.status === 'loaded'),
+    SHIPPED_FACE,
+  );
 }
 
 /** Whether `face` is installed: text set in it measures differently from the same text in the generic fallback. */
@@ -82,13 +97,19 @@ async function measureCards(page: Page): Promise<CardMeasure[]> {
   });
 }
 
+/** Soft, so a red run reports every face at every viewport rather than stopping at the first. */
 function expectEveryCardFits(measures: readonly CardMeasure[], label: string): void {
-  expect(measures.length, `${label}: the sheet drew no cards`).toBeGreaterThan(0);
-  const overflowing = measures.filter((card) => card.overflowPx > EDGE_TOLERANCE_PX || card.isRarityOnKeyChip);
-  expect(
-    overflowing.map((card) => `${card.cardId} +${card.overflowPx.toFixed(1)} px`),
-    `${label}: cards whose rows run past the card`,
-  ).toEqual([]);
+  expect.soft(measures.length, `${label}: the sheet drew no cards`).toBeGreaterThan(0);
+  const failing = measures.filter((card) => card.overflowPx > EDGE_TOLERANCE_PX || card.isRarityOnKeyChip);
+  expect
+    .soft(
+      failing.map(
+        (card) =>
+          `${card.cardId} +${card.overflowPx.toFixed(1)} px${card.isRarityOnKeyChip ? ' (rarity on key chip)' : ''}`,
+      ),
+      `${label}: cards whose rows run past the card or whose rarity meets the key chip`,
+    )
+    .toEqual([]);
 }
 
 for (const viewport of VIEWPORTS) {
@@ -98,7 +119,9 @@ for (const viewport of VIEWPORTS) {
     const measuredFaces: string[] = [];
     for (const face of [...REQUIRED_FACES, ...OPTIONAL_FACES]) {
       await openSheet(page, viewport);
-      if (face !== null) {
+      if (face === null) {
+        expect(await isShippedFaceLoaded(page), `${SHIPPED_FACE} loaded, so the shipped pass measures it`).toBe(true);
+      } else {
         const isRequired = (REQUIRED_FACES as readonly (string | null)[]).includes(face);
         const isInstalled = await isFaceInstalled(page, face);
         if (isRequired) expect(isInstalled, `${face} is installed`).toBe(true);
@@ -108,7 +131,7 @@ for (const viewport of VIEWPORTS) {
         }
         await forceFace(page, face);
       }
-      const label = face ?? 'the shipped stack';
+      const label = face ?? `the shipped ${SHIPPED_FACE}`;
       expectEveryCardFits(await measureCards(page), label);
       measuredFaces.push(label);
     }
