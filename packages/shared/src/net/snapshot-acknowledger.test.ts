@@ -1,7 +1,7 @@
-// @vitest-environment node
+// The acknowledgement cadence both the browser and the server's socket tests run (docs/architecture/wire-contract.md §4).
 import { describe, expect, it, vi } from 'vitest';
-import { SNAPSHOT_ACK_EVERY_SNAPSHOTS } from '@evolution/shared';
-import { SnapshotAcknowledger } from './snapshot-acknowledger';
+import { SNAPSHOT_ACK_EVERY_SNAPSHOTS } from '../constants/netcode.js';
+import { SnapshotAcknowledger } from './snapshot-acknowledger.js';
 
 const FIRST_TICK = 100;
 
