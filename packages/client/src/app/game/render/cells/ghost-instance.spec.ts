@@ -11,11 +11,14 @@ import { ghostFrame } from './ghost-instance';
 import { NUCLEUS_KINDS } from './organelle-kinds';
 import { layoutOrganelles } from './organelle-layout';
 import { mapSlot } from './organelle-mapper';
+import { witherOf } from './starving-wither';
 
 const TEST_SEED = 7;
 const TEST_RADIUS = 30;
 const TEST_SPECKLE_SEED = 0.41;
 const predator = { id: entityId('p'), x: 40, y: 0 };
+/** The burst mass the frame hands the ghost: 5, a tenth of the test prey's, so a starving one is part withered. */
+const STARVED_OUT_MASS = 5;
 
 const eukaryote = () =>
   createTestCellView({
@@ -44,7 +47,7 @@ describe('ghostFrame', () => {
       avatarIndex: 2,
       traits: [{ traitId: 'cilia', tier: 1 }],
     });
-    const { instance, organelles } = ghostFrame(midwayGhost(prey), 1);
+    const { instance, organelles } = ghostFrame(midwayGhost(prey), 1, STARVED_OUT_MASS);
     expect(instance).toMatchObject({
       radius: 30,
       paletteIndex: 2,
@@ -67,7 +70,7 @@ describe('ghostFrame', () => {
 
   it('keeps a eukaryote’s organelle sprites and nucleus disc at their rest slots, fading with the cytoplasm (#243)', () => {
     const ghost = midwayGhost();
-    const { instance, organelles, lod, terms } = ghostFrame(ghost, 1);
+    const { instance, organelles, lod, terms } = ghostFrame(ghost, 1, STARVED_OUT_MASS);
     expect(instance.nucleusDiscRadii).toBe(NUCLEUS_RADIUS);
     expect(instance.alpha).toBeCloseTo(0.5, 6);
     expect(lod.nucleusBlend).toBe(1);
@@ -85,8 +88,17 @@ describe('ghostFrame', () => {
     expect(instance.nucleusOffsetY).toBeCloseTo(nucleus.point.y / TEST_RADIUS, 12);
   });
 
+  it('keeps a starving prey as withered as it was drawn alive, and a healthy one unwithered (#635)', () => {
+    const view = { ...eukaryote(), mass: 50 };
+    expect(ghostFrame(midwayGhost(view), 1, STARVED_OUT_MASS).instance.wither).toBe(0);
+    const starving = { ...view, isStarving: true };
+    const { instance } = ghostFrame(midwayGhost(starving), 1, STARVED_OUT_MASS);
+    expect(instance.wither).toBeCloseTo(witherOf(starving, STARVED_OUT_MASS), 12);
+    expect(instance.wither).toBeGreaterThan(0);
+  });
+
   it('places no sprites for a ghost below the far threshold, and no disc for the shader to anchor', () => {
-    const { organelles, instance } = ghostFrame(midwayGhost(), 0.1);
+    const { organelles, instance } = ghostFrame(midwayGhost(), 0.1, STARVED_OUT_MASS);
     expect(organelles).toEqual([]);
     expect(instance.isFarDot).toBe(true);
     expect(instance.nucleusOffsetX).toBe(0);

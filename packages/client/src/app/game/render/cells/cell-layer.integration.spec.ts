@@ -31,6 +31,7 @@ import {
 import { CellLayer } from './cell-layer';
 import type { CellLayerFrame } from './cell-layer-frame';
 import { REST_OWN_CELL_RING } from './self-ring';
+import { starvedOutMassAt, witherOf } from './starving-wither';
 
 const textures = createTestRenderTextures({ seed: 5 });
 const EXTENT = { minX: -500, minY: -500, maxX: 500, maxY: 500 };
@@ -55,6 +56,24 @@ function packed(subject: CellLayer, row: number, field: CellInstanceScalar): num
 }
 
 describe('cell tells through the layer', () => {
+  it('withers the starving wild cell by the world clock at the render tick, and no other cell (#635)', () => {
+    const subject = new CellLayer(textures);
+    const healthy = createTestCellView({ mass: 60, radius: 20 });
+    const starving = createTestCellView({ id: TEST_OTHER_CELL_ID, x: 100, mass: 60, radius: 30, isStarving: true });
+    const early = createTestRenderFrame({ cells: [healthy, starving] });
+    subject.update(input({ frame: early }));
+    const starvedOutEarly = starvedOutMassAt(early.renderTick, early.latest.roundStartTick, early.balance);
+    expect(packed(subject, 0, 'wither')).toBe(0);
+    expect(packed(subject, 0, 'wrinkleAmplitude')).toBe(0);
+    expect(packed(subject, 1, 'wither')).toBeCloseTo(witherOf(starving, starvedOutEarly), 6);
+    expect(packed(subject, 1, 'wrinkleAmplitude')).toBeGreaterThan(0);
+    // Later in the round the world's newborns are bigger, so the same cell is nearer its burst.
+    const late = createTestRenderFrame({ cells: [healthy, starving], renderTick: 60 * 60 });
+    subject.update(input({ frame: late }));
+    expect(packed(subject, 1, 'wither')).toBeGreaterThan(witherOf(starving, starvedOutEarly) + 1e-3);
+    subject.destroy();
+  });
+
   it('rings every cell that canEngulf the own cell on the live balance, and only those', () => {
     const subject = new CellLayer(textures);
     const own = createTestCellView({ mass: 20, radius: 10 });

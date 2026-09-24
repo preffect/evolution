@@ -28,6 +28,7 @@ const withTraits = (traits: { traitId: TraitId; tier: 1 | 2 | 3 }[], stage = CEL
     stripRow: 0,
     strip: buildNoiseStrip(createSeededRandom(TEST_SEED)),
     deformation: REST_DEFORMATION,
+    wither: 0,
   };
 };
 
