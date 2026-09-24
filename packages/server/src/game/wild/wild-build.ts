@@ -16,7 +16,8 @@ function tierOfPick(pick: number, buildLength: number, balance: BalanceConfig): 
   const tier = FIRST_TIER + Math.floor(pick / buildLength);
   if (tier > balance.traits.TRAIT_TIER_COUNT) {
     throw new SimulationInvariantError(
-      `wild pick ${pick} of a ${buildLength}-trait build wraps to tier ${tier}, past TRAIT_TIER_COUNT ${balance.traits.TRAIT_TIER_COUNT}`,
+      `wild pick ${pick} of a ${buildLength}-trait build wraps to tier ${tier}, past TRAIT_TIER_COUNT ` +
+        `${balance.traits.TRAIT_TIER_COUNT}: MAX_LEVEL ${balance.progression.MAX_LEVEL} needs a longer build`,
     );
   }
   return tier as TraitTier;

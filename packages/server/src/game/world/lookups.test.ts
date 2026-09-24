@@ -3,6 +3,7 @@ import { entityId, playerId } from '@evolution/shared';
 import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestWorld, TEST_PLAYER } from '../../testing/world-builders.js';
 import {
+  cellOfSeat,
   findCell,
   findCellOfPlayer,
   findPlayer,
@@ -69,5 +70,13 @@ describe('lookups', () => {
     removeFromArray(world.cells, vanished!.cell);
     world.cells.reverse();
     expect(seatedWildCells(world)).toEqual([first, last]);
+  });
+
+  it('cellOfSeat answers the seated cell, and undefined for a vacant seat', () => {
+    const world = createTestWorld();
+    const { seat, cell } = seatTestWildCell(world, { seatNumber: 0, at: { x: 500, y: 0 } });
+    expect(cellOfSeat(world, seat)).toBe(cell);
+    seat.cellId = null;
+    expect(cellOfSeat(world, seat)).toBeUndefined();
   });
 });

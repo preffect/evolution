@@ -37,6 +37,11 @@ export function findCell(world: WorldState, cellId: EntityId): CellRecord | unde
   return world.cells.find((cell) => cell.id === cellId);
 }
 
+/** The seat's cell, or `undefined` while the seat is vacant. */
+export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord | undefined {
+  return seat.cellId === null ? undefined : findCell(world, seat.cellId);
+}
+
 /** The world's cells by id, for one pass that looks up many; stale once a cell is added or removed. */
 export function indexCellsById(world: WorldState): ReadonlyMap<EntityId, CellRecord> {
   return new Map(world.cells.map((cell) => [cell.id, cell]));

@@ -21,7 +21,7 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { decayPerSecond, metabolismInputOf } from '../simulation/metabolism.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
-import { findCell, seatedWildCells } from '../world/lookups.js';
+import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { wildOwnedTraits } from './wild-build.js';
 import { burstStarvedCell, chooseWildStarver, isStarvedOut, starveSettled } from './wild-die-off.js';
@@ -139,11 +139,6 @@ function settleWildCell(
   if (seat.isStarving && isStarvedOut(seat.fullMass, reference.worldMass, balance)) {
     burstStarvedCell(world, seat, cell, context.spawner);
   }
-}
-
-/** The seat's cell, or `undefined` while the seat is vacant. */
-export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord | undefined {
-  return seat.cellId === null ? undefined : findCell(world, seat.cellId);
 }
 
 /**
