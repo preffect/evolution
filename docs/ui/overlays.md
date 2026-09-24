@@ -17,8 +17,13 @@ sets two modifiers that read as a single effect the table pairs them onto one li
 Shell's spine drain and spit-out chance, #260), so a pair costs the card one line rather than two. The catalog's
 longest row has three and the card has room for four (`PICKER_CARD_EFFECT_LINES_MAX`, decision #425): four is the
 ceiling, so a fifth line buys a bigger card or shorter words rather than raising the cap. A unit test fails the gate
-when a row outgrows it; that test counts lines, not the rows they wrap onto, and #428 adds the rendered-height
-guard. The table is
+when a row outgrows it; that test counts lines, not the rows they wrap onto, so the rendered height has its own
+guard (#428): the dev-only `?cards` sheet (`hud/card-sheet/`) draws every catalog card, each trait at each tier fresh
+and as the `I → II` upgrade, through the real `TraitCardComponent` under the HUD's variables, and
+`e2e/trait-card-heights.spec.ts` fails when any card's rows run past its padding or its rarity row meets the key chip.
+It measures at 1280 × 800 and at the `UI_SCALE_MIN` floor's 1024 × 640, in the shipped Inter and again in each
+fallback face a player may read before or instead of it: DejaVu Sans always, Segoe UI and Liberation Sans (Arial's
+metrics) when the machine has them, named in the run's annotations when it does not. The table is
 pinned: a unit test asserts every key of `DEFAULT_CELL_MODIFIERS` (traits/model.md §2) has a label, so a new modifier
 without copy fails the gate instead of rendering `undefined`.
 
@@ -92,13 +97,14 @@ without copy fails the gate instead of rendering `undefined`.
 ### 3.3 Death and spectate (`ownProgress.lifeState === 'spectating'`)
 
 The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text
-block at top-centre from y 96, 360 wide: `ENGULFED BY AMOEBOID` (`title` role, danger; name from
-`players[cells[spectatingCellId].playerId].playerName`, `ENGULFED BY A WILD <STAGE>` for a wild killer
-(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
-role, `ceil(respawnInTicks / TICK_HZ)`, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
-muted). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
-spectating player has no cell, so DNA lost comes from the `lastAliveOwnCell` signal (§7: the own cell of the last
-snapshot in which the player was alive): the drop in `dnaTowardNextLevel` between that snapshot and this one. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
+block at top-centre from y 96, 480 wide: `ENGULFED BY AMOEBOID` (`title` role, danger, one line; name from
+`players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters, `ENGULFED BY A WILD CELL` for a wild killer
+(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
+role, `ceil(respawnInTicks / TICK_HZ)`, never below 1, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
+muted; `Level 1 kept` without traits). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
+spectating player has no cell, so DNA lost comes from the `lastAliveOwnProgress` signal (§7: the own progress of the
+last snapshot in which the player was alive): the drop in `dnaTowardNextLevel` between that snapshot and this one,
+left out when this client never saw the player alive. An open trait offer stays visible and pickable (PROGRESSION §4, P11). There is no own cell,
 so there are no own-cell indicators (`ownCellIndicators` is `null` and the mirror reads `data-level` with
 `data-spectating="true"`); leaderboard and timer stay. On respawn the indicators return with the `respawn` clip
 (visual-style/motion-and-legibility.md §5). Test ids: `respawn-overlay`, `respawn-killer`, `respawn-countdown`, `respawn-kept`.
@@ -292,6 +298,16 @@ led by the effect mark: a triangle up in `GAIN` when it helps the cell, down in 
 table's `betterWhen` (`modifierEffect`); the value's text keeps the text colour. The trait cards (§3.2), the menu's
 `Your traits` and the encyclopedia's tier table use the same mark, so `Mitochondrion I · ▲ −15 % mass decay` reads as
 the benefit it is beside `Speed · −47 %` (hud.md §3.1.5).
+
+**The `TRAITS` values wrap (#630).** A trait's first effect line is prose after its quantity (`+15 % harder to
+engulf`), and beside a long name such as `Simple Flagellum I` it does not fit one line of the 360 px panel: at the
+`UI_SCALE_MIN` floor the four-trait cell of Cell Wall, Mitochondrion, Simple Flagellum and Food Vacuole cut its values
+at the panel edge (`+5 % spee`). So the trait table alone opts into the kit's `shouldWrapValues` (§10.2): the names
+keep one line and the value wraps under itself, right-aligned, growing its row downwards. A wrap never splits a
+number from its unit (the value is bound like a trait card's, `bindQuantities`, #446), and the effect mark and the
+value's first word are held on one line, so the mark is never left at the end of the line above. The other sections'
+figures stay one line, as above. `e2e/affecting-panel-traits.spec.ts` stages that cell at 1024 × 640 and 1280 × 800
+and fails when any trait value or mark crosses the panel's edge.
 
 **The `name + value` rows and their measured budget (#445, #451).** At 1024 × 640 with `--ui-scale` at the
 `UI_SCALE_MIN` floor of 0.8 the scroll viewport holds 260 px of row, and a row's name column overflows between

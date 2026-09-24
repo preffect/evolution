@@ -119,6 +119,33 @@ describe('GameStateService', () => {
     expect(gameState.ownCellIndicators()).toBeNull();
   });
 
+  it('keeps the progress of the last alive snapshot through death, and takes the next alive one on respawn', () => {
+    const alive = (dnaTowardNextLevel: number) =>
+      createTestSnapshot({
+        cells: [createTestCellView({ playerId: OWN_PLAYER_ID })],
+        ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, dnaTowardNextLevel }),
+      });
+    multiplayer.playerId.set(OWN_PLAYER_ID);
+    expect(gameState.lastAliveOwnProgress()).toBeNull();
+
+    multiplayer.snapshot.set(alive(60));
+    expect(gameState.lastAliveOwnProgress()?.dnaTowardNextLevel).toBe(60);
+
+    multiplayer.snapshot.set(
+      createTestSnapshot({
+        ownProgress: createTestPlayerProgressView({
+          playerId: OWN_PLAYER_ID,
+          lifeState: PLAYER_LIFE_STATE.spectating,
+          dnaTowardNextLevel: 20,
+        }),
+      }),
+    );
+    expect(gameState.lastAliveOwnProgress()?.dnaTowardNextLevel).toBe(60);
+
+    multiplayer.snapshot.set(alive(20));
+    expect(gameState.lastAliveOwnProgress()?.dnaTowardNextLevel).toBe(20);
+  });
+
   it('answers no threats until the render loop has written a camera extent', () => {
     const predator = createTestCellView({
       id: entityId('predator'),

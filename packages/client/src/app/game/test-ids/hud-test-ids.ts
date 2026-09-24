@@ -33,6 +33,8 @@ export const HUD_TEST_ID = {
   traitCardRung: 'trait-card-rung',
   /** The `I → II` mark on a card that upgrades an owned trait. */
   traitCardUpgrade: 'trait-card-upgrade',
+  /** The dev-only sheet of every catalog trait card (`?cards`, #428); each card's box carries `data-card-id`. */
+  traitCardSheet: 'trait-card-sheet',
   /** The canvas host: focus goes back to it when a modal overlay closes (docs/ui/input-and-onboarding.md §4). */
   gameHost: 'game-host',
   /** The Escape menu's panel (docs/ui/overlays.md §3.5). */
@@ -51,6 +53,14 @@ export const HUD_TEST_ID = {
   menuAlert: 'menu-alert',
   /** The `Your traits` list. */
   menuTraits: 'menu-traits',
+  /** The death overlay (docs/ui/overlays.md §3.3, #189). */
+  respawnOverlay: 'respawn-overlay',
+  /** `ENGULFED BY AMOEBOID`. */
+  respawnKiller: 'respawn-killer',
+  /** `Respawning in 3`. */
+  respawnCountdown: 'respawn-countdown',
+  /** `Level 4 and 3 traits kept · 40 DNA lost`. */
+  respawnKept: 'respawn-kept',
   /** The results panel (docs/ui/overlays.md §3.4, #189). */
   resultsOverlay: 'results-overlay',
   /** The connection banner, with `data-connection-state` (docs/ui/overlays.md §3.6, #219). */
