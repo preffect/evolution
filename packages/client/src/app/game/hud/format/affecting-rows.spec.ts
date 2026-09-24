@@ -36,6 +36,7 @@ import { joinFacts } from './fact-line';
 import { RATE_CAUSE_LABEL, formatMassRate } from './mass-cues';
 import { leadingMultiplier, roundClockStateFor } from './round-clock';
 import { describeTierModifiers } from './trait-effects';
+import { bindQuantities } from './trait-cards';
 import { zonePillText } from './zone-pill';
 
 const balance = DEFAULT_BALANCE;
@@ -255,7 +256,9 @@ describe('affectingRowsFor at the worked example', () => {
     expect(row?.name).toBe(
       `Mitochondrion ${formatQuantity(FIRST_TIER, QUANTITY_UNIT.tier, { presentation: QUANTITY_PRESENTATION.numeral })}`,
     );
-    expect(row?.values[0]).toBe(effect);
+    // The value wraps in the panel's narrow column (#630), so its number is bound to its unit like a card's (#446).
+    expect(row?.values[0]).toBe(bindQuantities(effect ?? ''));
+    expect(row?.values[0]).not.toMatch(/\d /);
     // Less mass decay reads with a minus and still helps: the value is toned a benefit, not by its sign (#453).
     expect(effect).toMatch(/^−/);
     expect(row?.valueEffect).toBe(MODIFIER_EFFECT.benefit);

@@ -82,3 +82,10 @@ app-trait-glyph {
   stroke-linejoin: round;
   overflow: visible;
 }
+
+/* A trait row's value, led by its effect mark (#453). The trait table wraps its values (§3.7, #630), so the mark and
+   the value's first word are held on one line: the rest may wrap under them, but the mark is never left alone at the
+   end of the line above. */
+.trait-effect {
+  white-space: nowrap;
+}
