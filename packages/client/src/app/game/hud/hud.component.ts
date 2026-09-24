@@ -8,8 +8,8 @@
 //
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
-// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530); the death and results overlays (#189) and the toasts
-// (#190) slot in here as they land.
+// onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530) and the death overlay (docs/ui/overlays.md §3.3, #189);
+// the results overlay (§3.4) and the toasts (#190) slot in here as they land.
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
@@ -22,6 +22,7 @@ import { HudStateService } from './hud-state.service';
 import { MenuOverlayComponent } from './menu-overlay.component';
 import { ServerErrorNoticeComponent } from './server-error-notice.component';
 import { OwnCellStatusComponent } from './own-cell-status.component';
+import { RespawnOverlayComponent } from './respawn-overlay.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
@@ -45,12 +46,15 @@ import { HUD_OVERLAY } from './hud-state.service';
     LeaderboardPanelComponent,
     MenuOverlayComponent,
     OwnCellStatusComponent,
+    RespawnOverlayComponent,
     RoundTimerComponent,
     ServerErrorNoticeComponent,
     TraitOfferOverlayComponent,
   ],
   template: `
     @if (isRoundPlaying()) {
+      <!-- The death overlay's dim draws nothing while alive; it comes first, so the picker paints over it. -->
+      <app-respawn-overlay />
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
       <app-trait-offer-overlay />
       <!-- The board and the clock stand down under the encyclopedia (docs/ui/encyclopedia.md §11.1): the panel would
@@ -70,7 +74,7 @@ import { HUD_OVERLAY } from './hud-state.service';
     <app-hint />
     <!-- Not phase-gated: the mirror stands down on its own when there is no own cell to mirror,
          so the results phase does not need to gate it. It does unmount on death, which announces
-         nothing; speaking the death is #189's, with the death overlay. -->
+         nothing; the death overlay's countdown is what speaks then. -->
     <app-own-cell-status />
     <!-- Over the picker and the chrome, under the notices (docs/ui/overlays.md §3.5); not phase-gated, since Escape
          opens it between rounds too. -->

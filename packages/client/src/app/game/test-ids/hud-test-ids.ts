@@ -51,6 +51,14 @@ export const HUD_TEST_ID = {
   menuAlert: 'menu-alert',
   /** The `Your traits` list. */
   menuTraits: 'menu-traits',
+  /** The death overlay (docs/ui/overlays.md §3.3, #189). */
+  respawnOverlay: 'respawn-overlay',
+  /** `ENGULFED BY AMOEBOID`. */
+  respawnKiller: 'respawn-killer',
+  /** `Respawning in 3`. */
+  respawnCountdown: 'respawn-countdown',
+  /** `Level 4 and 3 traits kept · 40 DNA lost`. */
+  respawnKept: 'respawn-kept',
   /** The results panel (docs/ui/overlays.md §3.4, #189). */
   resultsOverlay: 'results-overlay',
   /** The connection banner, with `data-connection-state` (docs/ui/overlays.md §3.6, #219). */
