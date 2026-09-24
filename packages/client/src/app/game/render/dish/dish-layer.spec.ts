@@ -122,6 +122,16 @@ describe('placeLightPoolSprite (rendering/budget.md §6.1)', () => {
     },
   );
 
+  it('keeps its last placement, never NaN, while the viewport has no height', () => {
+    const sprite = createLightPoolSprite(textures);
+    const camera = cameraAt(CAMERA_POSITIONS[1], 1, VIEWPORT_1080P);
+    placeLightPoolSprite(sprite, camera, VIEWPORT_1080P);
+    const placed = { x: sprite.x, y: sprite.y, width: sprite.width, height: sprite.height };
+    placeLightPoolSprite(sprite, camera, { width: 0, height: 0 });
+    expect({ x: sprite.x, y: sprite.y, width: sprite.width, height: sprite.height }).toEqual(placed);
+    expect(Number.isFinite(sprite.width)).toBe(true);
+  });
+
   it('sits in the top-left of the view: its centre is left of and above the viewport centre', () => {
     const sprite = createLightPoolSprite(textures);
     const camera = cameraAt(CAMERA_POSITIONS[1], 1, VIEWPORT_1080P);

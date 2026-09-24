@@ -12,6 +12,7 @@ import { markdownSection, readRepoDocument, tableCells } from '../../../testing/
 // half-height is shared too, and pinned here against §7's table.
 import {
   cameraExtent,
+  hasViewportHeight,
   isDiscVisibleInExtent,
   screenOffsetToWorld,
   screenToWorld,
@@ -112,6 +113,16 @@ describe('zoom, extent and projections', () => {
     expect(screenOffsetToWorld(state, VIEWPORT, 960 + 10, 540 - 10)).toEqual({ x: 10, y: -10 });
     const moved = { ...state, x: 5000, y: -5000 };
     expect(screenOffsetToWorld(moved, VIEWPORT, 960 + 10, 540 - 10)).toEqual({ x: 10, y: -10 });
+  });
+
+  it('answers the view centre, never NaN, for a viewport with no height (a hidden tab, a 0 × 0 canvas mid-resize)', () => {
+    const empty = { width: 0, height: 0 };
+    expect(hasViewportHeight(empty)).toBe(false);
+    expect(hasViewportHeight({ width: 0, height: 1 })).toBe(true);
+    expect(screenOffsetToWorld(state, empty, 0, 0)).toEqual({ x: 0, y: 0 });
+    expect(screenToWorld(state, empty, 0, 0)).toEqual({ x: 100, y: 50 });
+    expect(screenToWorld(state, { width: 100, height: 0 }, 70, 0)).toEqual({ x: 100, y: 50 });
+    expect(cameraExtent(state, empty)).toEqual({ minX: -440, maxX: 640, minY: -490, maxY: 590 });
   });
 
   it('keeps a disc that reaches into the extent by any amount, and no disc that stops short of it', () => {

@@ -57,7 +57,9 @@ with the vignette: it must sit under the motes, fragments, cells and the vent, a
 - **Placement** each frame (`DishLayerFrame` carries the camera state and the `ViewportPx`, never a separate
   zoom; `camera.ts` `screenToWorld` and `zoomFor` are the helpers): centre = `screenToWorld(LIGHT_POOL_VIEW_CENTRE
 × viewport)`, width = 2 × `LIGHT_POOL_VIEW_RADII.x` × viewport width / zoom wu, height = 2 ×
-  `LIGHT_POOL_VIEW_RADII.y` × viewport height / zoom wu, anchor 0.5. The constants are cosmetic and live in
+  `LIGHT_POOL_VIEW_RADII.y` × viewport height / zoom wu, anchor 0.5. A viewport with no height (a hidden tab, a
+  0 × 0 canvas mid-resize) has zoom 0: `camera.ts` `hasViewportHeight` is the one guard `cameraExtent`,
+  `screenOffsetToWorld` / `screenToWorld` and this placement share, and the sprite keeps its last placement (#245). The constants are cosmetic and live in
   `render/constants/world-render.ts`, never in `shared`: `LIGHT_POOL_VIEW_CENTRE = { x: 0.2, y: 0.185 }` and
   `LIGHT_POOL_VIEW_RADII = { x: 0.51, y: 0.7 }` (fractions of the viewport's width and height, so every aspect
   keeps sheet 02's look), `LIGHT_POOL_TEXTURE_PX = 1024`, `LIGHT_POOL_SHEET_RADII_WU = { x: 980, y: 760 }`.
