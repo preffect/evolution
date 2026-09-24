@@ -8,7 +8,7 @@ import {
   type BalanceConfig,
 } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
-import { placeGelPatches, pointInZone, zoneBand } from './zones.js';
+import { clampedToFoodBoundary, placeGelPatches, pointInZone, zoneBand } from './zones.js';
 
 const balance = DEFAULT_BALANCE;
 const { ecology, world } = balance;
@@ -26,6 +26,21 @@ describe('zoneBand', () => {
       innerRadius: ecology.VENT_RADIUS,
       outerRadius: world.DISH_RADIUS - ecology.SHALLOWS_WIDTH,
     });
+  });
+});
+
+describe('clampedToFoodBoundary', () => {
+  const reach = world.DISH_RADIUS - world.FOOD_EDGE_MARGIN;
+
+  it('returns a point inside the boundary unchanged', () => {
+    const inside = { x: reach - 1, y: 0 };
+    expect(clampedToFoodBoundary(inside, balance)).toBe(inside);
+  });
+
+  it('projects a point past the boundary onto it along its bearing', () => {
+    const clamped = clampedToFoodBoundary({ x: 0, y: -(world.DISH_RADIUS + 10) }, balance);
+    expect(clamped.x).toBeCloseTo(0);
+    expect(clamped.y).toBeCloseTo(-reach);
   });
 });
 

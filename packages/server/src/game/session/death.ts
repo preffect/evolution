@@ -1,7 +1,8 @@
 // The death seam (docs/game-design/session.md §5.2, docs/ecology/food-and-spawn.md §1, docs/ecology/absorption.md §6.1 payout "Prey" row). The
 // engulf slice calls `absorbCell` at payout; `removePlayer` calls `dissolveCell`. Both drop
 // detritus: `DETRITUS_MASS_FRACTION` of the mass in motes of `DETRITUS_MOTE_MASS` (floor), scattered
-// uniformly within `DETRITUS_SCATTER_RADIUS_FACTOR` radii of the centre from the `spawner` stream.
+// uniformly within `DETRITUS_SCATTER_RADIUS_FACTOR` radii of the centre from the `spawner` stream; a mote drawn past
+// the food boundary (`DISH_RADIUS − FOOD_EDGE_MARGIN`) is pulled onto it, like drifting food (#638).
 
 import {
   EFFECT_KIND,
@@ -15,6 +16,7 @@ import {
 import type { MeasuredGain } from '../simulation/cell-mass.js';
 import { abortEngulfsOf } from '../simulation/engulf-state.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
+import { clampedToFoodBoundary } from '../simulation/zones.js';
 import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
 import { removeFromArray, requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
@@ -45,7 +47,8 @@ export function dropDetritus(
       spawner.nextFloat(),
       spawner.nextFloat(),
     );
-    spawnFoodMote(world, { kind: FOOD_KIND.detritus, variant: null, at: point });
+    const at = clampedToFoodBoundary(point, world.balance);
+    spawnFoodMote(world, { kind: FOOD_KIND.detritus, variant: null, at });
   }
 }
 
