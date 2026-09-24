@@ -19,14 +19,25 @@ import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entit
 import { removeFromArray, requirePlayer } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 
-/** `floor(fraction × mass / moteMass)` motes; the remainder is dropped (docs/ecology/food-and-spawn.md §1). */
-export function detritusMoteCount(mass: number, world: WorldState): number {
-  const ecology = world.balance.ecology;
-  return Math.floor((ecology.DETRITUS_MASS_FRACTION * mass) / ecology.DETRITUS_MOTE_MASS);
+/**
+ * `floor(fraction × mass / moteMass)` motes; the remainder is dropped (docs/ecology/food-and-spawn.md §1). The
+ * fraction is `DETRITUS_MASS_FRACTION` unless the death says otherwise (a starved wild cell's feast, §3.3.6).
+ */
+export function detritusMoteCount(
+  mass: number,
+  world: WorldState,
+  massFraction = world.balance.ecology.DETRITUS_MASS_FRACTION,
+): number {
+  return Math.floor((massFraction * mass) / world.balance.ecology.DETRITUS_MOTE_MASS);
 }
 
-export function dropDetritus(world: WorldState, cell: CellRecord, spawner: RandomSource): void {
-  const count = detritusMoteCount(cell.mass, world);
+export function dropDetritus(
+  world: WorldState,
+  cell: CellRecord,
+  spawner: RandomSource,
+  massFraction = world.balance.ecology.DETRITUS_MASS_FRACTION,
+): void {
+  const count = detritusMoteCount(cell.mass, world, massFraction);
   for (let index = 0; index < count; index += 1) {
     const point = uniformPointInDiscAround(
       cell,
@@ -60,11 +71,16 @@ export function withdrawCell(world: WorldState, cell: CellRecord): void {
 }
 
 /**
- * Removes the cell from the world with its detritus; the player keeps level, traits and stage (they live on the
- * record).
+ * Removes the cell from the world with its detritus (`massFraction` of its mass, the §1 rule by default); the player
+ * keeps level, traits and stage (they live on the record).
  */
-export function dissolveCell(world: WorldState, cell: CellRecord, spawner: RandomSource): void {
-  dropDetritus(world, cell, spawner);
+export function dissolveCell(
+  world: WorldState,
+  cell: CellRecord,
+  spawner: RandomSource,
+  massFraction = world.balance.ecology.DETRITUS_MASS_FRACTION,
+): void {
+  dropDetritus(world, cell, spawner, massFraction);
   withdrawCell(world, cell);
 }
 

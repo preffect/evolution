@@ -13,6 +13,7 @@ import { placeWildCell } from './wild-seats.js';
 /** The seat's cell is gone from the world: the countdown starts. */
 function vacateSeat(seat: WildSeatRecord, context: StepContext): void {
   seat.cellId = null;
+  seat.isStarving = false; // a starver eaten before it burst dies of that (docs/ecology/wild-cells.md §3.3.6)
   seat.respawnInTicks = secondsToTicks(context.balance.wildCells.WILD_CELL_RESPAWN_SECONDS);
 }
 

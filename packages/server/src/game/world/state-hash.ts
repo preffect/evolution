@@ -40,7 +40,7 @@ import type { WorldState } from './world-state.js';
 /** The record fields the walk leaves out, by record, for the pin test. */
 export const DERIVED_FIELDS = {
   world: ['config', 'balance', 'leaderboard', 'effects', 'massFlow'],
-  cell: ['modifiers'],
+  cell: ['modifiers', 'isStarving'],
   player: ['score', 'stage', 'offer'],
 } as const;
 
@@ -209,6 +209,7 @@ export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
   'sizeFactor',
   'grownMass',
   'fullMass',
+  'isStarving',
   'respawnInTicks',
   'headingX',
   'headingY',

@@ -59,5 +59,7 @@ export const WILD_CELL_SPRINT_HUNT_RADII = 3;
 export const WILD_CELL_CARRYING_CAPACITY_MULTIPLE = 1.5;
 /** A starving wild cell loses this share of its full size per second. */
 export const WILD_CELL_STARVATION_FRACTION_PER_SECOND = 0.1;
+/** A starved wild cell bursts into a feast: this share of its mass as detritus (a normal death drops 0.2). */
+export const WILD_CELL_FEAST_MASS_FRACTION = 0.8;
 /** Wild cells hunt players from this stage on (they hunt each other from tick 0). */
 export const WILD_CELL_HUNTS_PLAYERS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;
