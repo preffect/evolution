@@ -1,0 +1,25 @@
+diff --git a/dist/chunks/rpc.-pEldfrD.js b/dist/chunks/rpc.-pEldfrD.js
+index a48eb0174a4fbc508a36c46ff78b0f9bf7ba6295..2eba072fb33c8ce5731aa13ae7fef4b242909e65 100644
+--- a/dist/chunks/rpc.-pEldfrD.js
++++ b/dist/chunks/rpc.-pEldfrD.js
+@@ -34,6 +34,12 @@ async function rpcDone() {
+ 	const awaitable = Array.from(promises);
+ 	return Promise.all(awaitable);
+ }
++// Patched for ticket #437: the worker's RPC watchdog is birpc's hard-coded 60 s DEFAULT_TIMEOUT, with no
++// option behind it; a positive VITEST_WORKER_RPC_TIMEOUT_MS replaces it, and anything else keeps the default.
++function workerRpcTimeout() {
++	const configured = Number(globalThis.process?.env?.VITEST_WORKER_RPC_TIMEOUT_MS);
++	return Number.isFinite(configured) && configured > 0 ? configured : undefined;
++}
+ function createRuntimeRpc(options) {
+ 	let setCancel = (_reason) => {};
+ 	const onCancel = new Promise((resolve) => {
+@@ -45,6 +51,7 @@ function createRuntimeRpc(options) {
+ 			"onCollected",
+ 			"onCancel"
+ 		],
++		timeout: workerRpcTimeout(),
+ 		onTimeoutError(functionName, args) {
+ 			let message = `[vitest-worker]: Timeout calling "${functionName}"`;
+ 			if (functionName === "fetch" || functionName === "transform" || functionName === "resolveId") message += ` with "${JSON.stringify(args)}"`;
