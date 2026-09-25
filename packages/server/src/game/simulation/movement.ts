@@ -1,5 +1,5 @@
 // Step 3 (docs/ecology/mass-and-movement.md §5.2): the shared kernel per cell with the speed cap folded from the
-// mass curve, the sprint, the zone and the traits; the sprint counters tick down; then
+// base speed, the sprint, the zone and the traits; the sprint counters tick down; then
 // separation (contact.ts) and the fixture pins are restored.
 
 import {

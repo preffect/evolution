@@ -40,8 +40,10 @@ const RIM_LEAN = 0.3;
 const ROW_TICKS = 150;
 /**
  * How far ahead of B along the rim A's pointer sits, in A's own radii. Every cell has the same top speed since #677,
- * so a pointer at full-throttle range (5 radii, the row's pre-#677 lead) ran A past the prey it held; at 1.5 radii A
- * eases off as it draws level, so it follows B through the curve the way a player's pointer just ahead of it does.
+ * so at full throttle A (220 wu/s) overruns the prey it holds (0.85 × 220 = 187) and loses contact: leads of 2.5 radii
+ * and up, the row's pre-#677 5 included, let B escape (gameplay-qa on PR #678). At 1.5 radii, inside the 1.25–2 band
+ * that completes, A eases off as it draws level and follows B through the curve. The overrun is current behaviour, not
+ * this row's subject; the mechanic is a follow-up decision.
  */
 const PREDATOR_LEAD_RADII = 1.5;
 /** E18: the plain prey is absorbed on this tick, never released before it. */

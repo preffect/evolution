@@ -102,11 +102,13 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
 
   it('E14: the bloom multiplies the rates over a 610-tick window with the populations held at 0', async () => {
     const bloomStart = session.ROUND_BLOOM_START_FRACTION * session.ROUND_DURATION_SECONDS * TICK_HZ;
-    const run = seededSolo('E14').advance(bloomStart + COUNT_WINDOW_TICKS);
+    const windowEnd = bloomStart + COUNT_WINDOW_TICKS;
+    // One tick past the window, as `heldWindow` runs: the counting script sees the previous tick's effects.
+    const run = seededSolo('E14').advance(windowEnd + 1);
     const counts = createWindowCounts();
-    holdPopulationsAtZero(run, bloomStart + 1, bloomStart + COUNT_WINDOW_TICKS).between(
+    holdPopulationsAtZero(run, bloomStart + 1, windowEnd).between(
       bloomStart + 2,
-      bloomStart + COUNT_WINDOW_TICKS,
+      windowEnd + 1,
       player(0).does(countWindow(counts)),
     );
     await run
@@ -115,10 +117,10 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
       .capture('fragments at window start', (view) => view.snapshot.spawnedCounts.dnaFragments)
       .atTick(bloomStart)
       .expect('food spawned in the window', foodSpawnedSince('food at window start'))
-      .atEnd()
+      .atTick(windowEnd)
       .toBeBetween(E14_SPAWNED_LOW, E14_SPAWNED_HIGH)
       .expect('fragments spawned in the window', fragmentsSpawnedSince('fragments at window start'))
-      .atEnd()
+      .atTick(windowEnd)
       .toBe(E14_FRAGMENTS_SPAWNED)
       .runDeterministic();
     expect(counts.deaths).toBe(RUNS_PER_ROW * E14_DEATHS_IN_WINDOW);

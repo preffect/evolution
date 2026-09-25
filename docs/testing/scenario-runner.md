@@ -127,7 +127,7 @@ it('E9: A absorbs B on tick 30', async () => {
   rejects with one `ScenarioAssertionError` listing every miss.
 - **Captures.** `.capture(label, selector).atTick(T)` stores the selected value before that
   tick's expectations run; a later selector reads it as `view.captured(label)` (G10: detritus
-  mass from the cell's mass at tick 2399; G7: the speed cap from the mass at that tick). Reading
+  mass from the cell's mass at tick 2399; G7 captures nothing, its speed cap being the flat `CELL_BASE_SPEED` since #677). Reading
   a label not captured yet yields `undefined` and fails the expectation.
 - **Run.** `.run()` executes once and resolves to the replay, the final snapshot and hash and the
   checkpoints. `.runDeterministic()` runs twice and rejects with `ScenarioDivergenceError` at the

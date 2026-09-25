@@ -45,7 +45,7 @@ const W3_TOLERANCE = 0.01;
 /**
  * W3: since #677 (every cell at the top speed) a wild cell eats the idle player once in the window, on tick 12 365:
  * the budget is 351.17 − 182 / 60 = 348.13, so "between 348 and 352". Across seeds 1–11, 3 of 11 windows hold one
- * death (348) and the rest none (351–354). Before #677 the pinned seed's death fell just before the window (tick
+ * death (348–352) and the rest none (351–354). Before #677 the pinned seed's death fell just before the window (tick
  * 10 667, 48 spectate ticks inside: 350–354); #638's run had none near it (351–355).
  */
 const W3_DEATHS_IN_WINDOW = 1;

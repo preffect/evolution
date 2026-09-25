@@ -71,11 +71,6 @@ export function actionSubjectRadiusWu(balance: BalanceConfig): number {
   return radiusForMass(PREVIEW_CELL_MASS, balance.growth);
 }
 
-/** The subject's own top speed: what a swimming pose is built at, so the stretch reads as it does in play. */
-export function actionSubjectMaxSpeed(balance: BalanceConfig): number {
-  return balance.growth.CELL_BASE_SPEED;
-}
-
 /**
  * What the subject is doing this frame; everything not named here is at rest and free. The engulf fields are the
  * two-cell scenes' (`engulf-pair.ts`): a predator names the prey it holds, a prey names its predator and carries

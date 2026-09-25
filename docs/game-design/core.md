@@ -7,7 +7,7 @@
 | Document                                | Covers                                                                                                    | Tickets       |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------- |
 | this file                               | Core fantasy, the evolution ladder, loop, session model, controls, camera, dish, win/lose, constants      | #22, #29      |
-| [`ECOLOGY.md`](../ECOLOGY.md)           | Food kinds and bacterium variants, zones, spawn model, decay, mass/speed curves, mitosis, absorption      | #23, #26, #27 |
+| [`ECOLOGY.md`](../ECOLOGY.md)           | Food kinds and bacterium variants, zones, spawn model, decay, mass and speed, mitosis, absorption         | #23, #26, #27 |
 | [`PROGRESSION.md`](../PROGRESSION.md)   | DNA, tags, level thresholds, draft rules filtered by the ladder, entering the dish (late join, respawn)   | #24           |
 | [`TRAITS.md`](../TRAITS.md)             | Modifier model, the sixteen build-1 traits (organelles and forms) mapped onto the ladder, later traits    | #25           |
 | [`VISUAL-STYLE.md`](../VISUAL-STYLE.md) | Palette, cell layer stack, organelle vocabulary, motion language, legibility at play scale, render intent | #34           |

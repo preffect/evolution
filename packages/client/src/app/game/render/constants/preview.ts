@@ -92,8 +92,8 @@ export const PREVIEW_CELL_DRAWN_FILL_FRACTION = PREVIEW_LENS_RIM_RADIUS_FRACTION
  * **1.2 is the human's decision on ticket #488, option B**, taken over 0.4 knowing its cost. At 0.4 the lap took
  * 0.683 s — about 1.5 orbits a second — which was an invisible jiggle while the lens was 4.4 radii wide and
  * became a fast circuit once ticket #364's framing fix nearly doubled the subject. At 1.2 the lap took 2.05 s at
- * mass 100's old curve speed (1.37 s at the flat `CELL_BASE_SPEED` since ticket #677), and the lens grows to hold the wider circle, so a protocell's body fills about 0.37 of the lens rather than
- * 0.75. Tempo bought with size, deliberately: do not "recover" the size by narrowing this again.
+ * mass 100's old top speed, and the lens grows to hold the wider circle, so a protocell's body fills about 0.37 of
+ * the lens rather than 0.75. Tempo bought with size, deliberately: do not "recover" the size by narrowing this again.
  */
 export const PREVIEW_SWIM_RADIUS_RADII = 1.2;
 

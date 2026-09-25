@@ -28,7 +28,6 @@ import {
   NO_MOTES,
   actionSubjectCellView,
   actionSubjectFraming,
-  actionSubjectMaxSpeed,
   actionSubjectOwnCellIndicators,
 } from './action-subject';
 import { PREVIEW_SUBJECT_PLAYER_ID } from './cell-scene';
@@ -102,7 +101,7 @@ function sprintContent(loopSeconds: number, balance: BalanceConfig): PreviewScen
     cells: [
       actionSubjectCellView(
         {
-          velocityX: actionSubjectMaxSpeed(balance),
+          velocityX: balance.growth.CELL_BASE_SPEED,
           velocityY: 0,
           sprintRemainingTicks: sprintRemainingTicks(loopSeconds, balance),
           sprintCooldownRemainingTicks: sprintCooldownRemainingTicks(loopSeconds, balance),

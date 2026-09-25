@@ -139,8 +139,10 @@ export const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof eng
     .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
     .from(tick + 1, player(1).does(awayFromPredator));
 /**
- * E9b's throttle: two thirds of the top speed. Every cell has the same top speed since #677, so at full throttle the
- * 100-mass predator outran its own 31.05 wu reach before the seal; at 2/3 it drags its cover along as the row means.
+ * E9b's throttle: two thirds of the top speed. Every cell has the same top speed since #677, so a predator swimming
+ * away faster drops an idle prey before the seal (gameplay-qa on PR #678: at 0.8 throttle progress falls back to 0.33
+ * by tick 18, 33.6 wu apart; at full throttle to 0.17, 39.5 wu, both past the 31.05 wu reach; before #677 it held at
+ * full throttle, 29.72 wu). At 2/3 it drags its cover along as the row means.
  */
 export const E9B_THROTTLE = 2 / 3;
 /** The steer distance that throttle takes: `STEER_DEAD_ZONE_RADII + throttle × (full − dead)` own radii. */
