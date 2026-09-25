@@ -23,7 +23,9 @@ the vent shimmer is the one filter, over the vent sprite only. Draw calls at the
 
 Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the bench build). The rows add up to 16
 with debug off, which leaves **1** call of headroom; the arc mesh is one instanced call at any arc count (§10), so
-the effects row never grows with the indicators. Culling: cells whose
+the effects row never grows with the indicators. A canvas wider than `INTEREST_VIEW_ASPECT_RATIO` (2.4:1) adds 2: the
+stencil rectangle that clips every layer above the field to the drawn band (`layers.ts` `applyDrawnBand`, #408), pushed
+and popped once a frame; a narrower canvas has no mask and pays nothing. Culling: cells whose
 drawing cannot reach `cameraExtent` are not uploaded — the reach is the widest any frame of the cell draws
 (`cells/cell-cull.ts`: `cellDrawExtentRadii` sprinting at top speed with the widest clip, or its widest ring's px
 floor), tested with no further margin (#529); motes and fragments are all uploaded (the bench load's quads are
