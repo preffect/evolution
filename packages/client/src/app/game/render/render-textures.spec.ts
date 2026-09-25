@@ -17,7 +17,7 @@ import {
 } from './constants';
 import { GLOW_SPRITE } from './textures/glow-atlas';
 import { MOTE_SPRITE } from './textures/mote-atlas';
-import { SOFT_DISC_BAKE, VIGNETTE_BAKE } from './textures/radial-bake';
+import { BAND_EDGE_FADE_BAKE, SOFT_DISC_BAKE, VIGNETTE_BAKE } from './textures/radial-bake';
 import {
   createSeededRenderTextures,
   createSharedRenderTextures,
@@ -27,10 +27,10 @@ import {
 } from './render-textures';
 
 describe('createRenderTextures', () => {
-  it('bakes the soft disc then the vignette through the radial path', () => {
+  it('bakes the soft disc, the vignette and the band edge ramp through the radial path', () => {
     const baker = createFakeTextureBaker();
     const textures = createTestRenderTextures({ seed: 7, baker });
-    expect(baker.bakedSpecs).toEqual([SOFT_DISC_BAKE, VIGNETTE_BAKE]);
+    expect(baker.bakedSpecs).toEqual([SOFT_DISC_BAKE, VIGNETTE_BAKE, BAND_EDGE_FADE_BAKE]);
     expect(textures.seed).toBe(7);
     expect(textures.glowTexture).not.toBe(textures.vignetteTexture);
   });
@@ -147,7 +147,7 @@ describe('the two halves of the bundle (#442)', () => {
     createSharedRenderTextures(sharedBaker, seededOptions.devicePixelRatio);
     const seededBaker = createFakeTextureBaker();
     createSeededRenderTextures({ ...seededOptions, baker: seededBaker });
-    expect(sharedBaker.bakedSpecs).toEqual([SOFT_DISC_BAKE, VIGNETTE_BAKE]);
+    expect(sharedBaker.bakedSpecs).toEqual([SOFT_DISC_BAKE, VIGNETTE_BAKE, BAND_EDGE_FADE_BAKE]);
     expect(sharedBaker.installedFonts.length).toBeGreaterThan(0);
     expect(seededBaker.bakedSpecs).toEqual([]);
     expect(seededBaker.installedFonts).toEqual([]);

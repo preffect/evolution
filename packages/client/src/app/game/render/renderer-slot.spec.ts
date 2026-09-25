@@ -153,10 +153,13 @@ describe('RendererSlot', () => {
     expect(slot.current, 'a built renderer went current before its commit').toBeNull();
     expect(pixi.stage.children, 'a built renderer is on the stage before its commit').toHaveLength(0);
     expect(staged.container.children).toHaveLength(2);
+    const stagedOrder = [...staged.container.children];
     const built = build.commit();
     expect(built).toBe(staged.renderer);
     expect(slot.current).toBe(built);
-    expect(pixi.stage.children).toHaveLength(2);
+    // In the order they were staged: the world root under the screen root, or the opaque field hides the vignette and
+    // the band's edge fades (#684; Pixi's `removeChildren` answers last first).
+    expect(pixi.stage.children).toEqual(stagedOrder);
 
     const radialBakes = pixi.textures.bakedSpecs.length;
     const rebuild = slot.beginBuild(pixi.stage, pixi.screen, { ...options, seed: 4 }, UNTIMED_STAGES);

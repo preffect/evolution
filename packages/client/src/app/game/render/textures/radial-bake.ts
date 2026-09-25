@@ -3,12 +3,18 @@
 // bytes. The one radial sampler in the app: a canvas radial gradient cannot be read back in tests,
 // and Pixi's `FillGradient` floods its gradient with the last stop before painting, which turned a
 // clear-centred bake (the vignette) into the edge alpha everywhere (#229).
-// The spec shape and the app's two specs live here, beside the sampler that reads them, so nothing
+// A horizontal ramp shares the sampler: its alpha runs along x alone (the drawn band's edge fades, #684).
+// The spec shape and the app's three specs live here, beside the sampler that reads them, so nothing
 // imports them back out of the bundle (`render-textures.ts` is the importer, never the source).
 
 import { lerp } from '@evolution/shared';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS, hexToRgb, type Rgb } from '../colour';
 import {
+  BAND_EDGE_FADE,
+  BAND_EDGE_FADE_ALPHA,
+  BAND_EDGE_FADE_EDGE_STOP,
+  BAND_EDGE_FADE_MID,
+  BAND_EDGE_FADE_TEXTURE_PX,
   GLOW_TEXTURE_PX,
   VIGNETTE,
   VIGNETTE_ALPHA,
@@ -25,7 +31,8 @@ export interface RadialBakeStop {
   readonly alpha: number;
 }
 
-export const RADIAL_BAKE_SHAPE = { disc: 'disc', square: 'square' } as const;
+/** `ramp` shades along x only: offset 0 at the left edge, 1 at the right, every row the same. */
+export const RADIAL_BAKE_SHAPE = { disc: 'disc', square: 'square', ramp: 'ramp' } as const;
 export type RadialBakeShape = (typeof RADIAL_BAKE_SHAPE)[keyof typeof RADIAL_BAKE_SHAPE];
 
 /** One radial-gradient bake: a `sizePx` square (or the disc inscribed in it) shaded from its centre. */
@@ -65,6 +72,23 @@ export const VIGNETTE_BAKE: RadialBakeSpec = {
 };
 
 /**
+ * The drawn band's edge fade (#684): clear on the band's side, the field colour at the band edge (`EDGE_STOP`), eased
+ * in through a low middle stop so a cell keeps its body until the last few px, then feathered back to clear over the
+ * field outside. `band-edge-fade.ts` mirrors it for the left edge.
+ */
+export const BAND_EDGE_FADE_BAKE: RadialBakeSpec = {
+  sizePx: BAND_EDGE_FADE_TEXTURE_PX,
+  shape: RADIAL_BAKE_SHAPE.ramp,
+  colour: BAND_EDGE_FADE,
+  stops: [
+    { offset: 0, alpha: CLEAR },
+    { offset: BAND_EDGE_FADE_MID.stop, alpha: BAND_EDGE_FADE_MID.alpha },
+    { offset: BAND_EDGE_FADE_EDGE_STOP, alpha: BAND_EDGE_FADE_ALPHA },
+    { offset: 1, alpha: CLEAR },
+  ],
+};
+
+/**
  * The stops' alpha at `offset` (0 at the centre, 1 at the half-diagonal): linear between stops, held flat past the
  * ends. Indexed rather than `for … of stops.slice(1)`: this runs once per pixel — 262 144 times for the vignette —
  * and the slice was one array allocated per pixel (ticket #442).
@@ -98,21 +122,28 @@ export function radialPixelOffset(sizePx: number, x: number, y: number): number 
   return (y * sizePx + x) * RGBA_CHANNELS;
 }
 
+/** Where pixel (`x`, `y`) of a `sizePx` bake sits on its stops' scale: along x for a ramp, else out from the centre. */
+function bakeOffset(spec: RadialBakeSpec, x: number, y: number): number {
+  const { sizePx } = spec;
+  if (spec.shape === RADIAL_BAKE_SHAPE.ramp) return (x + HALF) / sizePx;
+  const centre = sizePx * HALF;
+  return Math.hypot(x + HALF - centre, y + HALF - centre) / (centre * Math.SQRT2);
+}
+
 /**
  * The `sizePx × sizePx` premultiplied RGBA8 bytes of a radial bake: `spec.colour` at the stops' alpha by
- * each pixel centre's distance from the middle over the half-diagonal; a disc is clear outside its rim.
+ * each pixel centre's distance from the middle over the half-diagonal (along x for a ramp); a disc is clear outside
+ * its rim.
  */
 export function bakeRadialBytes(spec: RadialBakeSpec): Uint8Array {
   const { sizePx } = spec;
   const rgb = hexToRgb(spec.colour);
-  const centre = sizePx * HALF;
-  const halfDiagonal = centre * Math.SQRT2;
   const bytes = new Uint8Array(sizePx * sizePx * RGBA_CHANNELS);
   for (let y = 0; y < sizePx; y += 1) {
     for (let x = 0; x < sizePx; x += 1) {
-      const distance = Math.hypot(x + HALF - centre, y + HALF - centre);
-      const isOutsideDisc = spec.shape === RADIAL_BAKE_SHAPE.disc && distance > centre;
-      const alpha = isOutsideDisc ? CLEAR : sampleRadialAlpha(spec.stops, distance / halfDiagonal);
+      const offset = bakeOffset(spec, x, y);
+      const isOutsideDisc = spec.shape === RADIAL_BAKE_SHAPE.disc && offset > DISC_RIM_OFFSET;
+      const alpha = isOutsideDisc ? CLEAR : sampleRadialAlpha(spec.stops, offset);
       writePremultipliedPixel(bytes, radialPixelOffset(sizePx, x, y), rgb, alpha);
     }
   }

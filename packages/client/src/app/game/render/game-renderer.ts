@@ -19,6 +19,7 @@ import {
 } from '@evolution/shared';
 import { Sprite, type Container } from 'pixi.js';
 import type { RenderFrame } from '../net/world-store';
+import { applyBandEdgeFades, createBandEdgeFades, type BandEdgeFades } from './band-edge-fade';
 import { UNTIMED_STAGES, type StageMeasurer } from './bench/render-stage-timer';
 import {
   cameraExtent,
@@ -61,6 +62,7 @@ export class GameRenderer {
   private readonly clips = new CellClipTracker();
   private readonly ownCellRing = new OwnCellRingTracker();
   private readonly vignette: Sprite;
+  private readonly bandEdgeFades: BandEdgeFades;
   private camera: CameraState | null = null;
   private lastTimeSeconds: number | null = null;
   /** A fixed px-per-wu the bench route (slice D) asks for; `null` follows the mass-driven zoom. */
@@ -82,6 +84,7 @@ export class GameRenderer {
     this.indicators = new OwnCellIndicatorsLayer(textures.indicators);
     this.cues = new CueLayer(textures.indicators);
     this.vignette = new Sprite(textures.vignetteTexture);
+    this.bandEdgeFades = createBandEdgeFades(textures.bandEdgeFadeTexture);
     this.layers.dish.addChild(this.dish.container);
     this.layers.food.addChild(this.food.container);
     this.layers.fragments.addChild(this.food.fragmentContainer);
@@ -89,7 +92,8 @@ export class GameRenderer {
     this.layers.depthNear.addChild(this.dish.nearContainer);
     // The indicators and the cues under the effects, so an eat halo or a level-up burst reads over the ring it starts on.
     this.layers.effects.addChild(this.indicators.container, this.cues.container, this.effects.container);
-    this.layers.screen.addChild(this.vignette);
+    // The band's edge fades under the vignette, which darkens their corners like the rest of the frame (#684).
+    this.layers.screen.addChild(this.bandEdgeFades.left, this.bandEdgeFades.right, this.vignette);
     this.resize(viewport);
   }
 
@@ -122,6 +126,7 @@ export class GameRenderer {
     this.vignette.width = viewport.width;
     this.vignette.height = viewport.height;
     applyDrawnBand(this.layers, viewport);
+    applyBandEdgeFades(this.bandEdgeFades, viewport);
   }
 
   /** Parks the camera on a target (a fixture or a spawn) without smoothing. */
