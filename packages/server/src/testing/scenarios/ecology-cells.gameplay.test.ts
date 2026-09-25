@@ -12,7 +12,6 @@ import {
   ZONE_ID,
   distanceBetween,
   gelSpeedFactor,
-  maxSpeedForMass,
   radiusForMass,
 } from '@evolution/shared';
 import { cellOf, foodCount, massOf, progressOf, speedOf } from '../gameplay/evolution-views.js';
@@ -86,8 +85,9 @@ describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cel
       .runDeterministic();
   });
 
-  it.each([320, 5000])('E6: a %d-mass cell at full throttle converges on its decayed speed cap', async (mass) => {
-    const speedCapWuPerSecond = maxSpeedForMass(decayed(mass, CAP_MASS_DECAY_TICKS), growth);
+  // #677: top speed does not depend on mass, so both converge on the base speed a starting cell has.
+  it.each([320, 5000])('E6: a %d-mass cell at full throttle converges on the base speed', async (mass) => {
+    const speedCapWuPerSecond = growth.CELL_BASE_SPEED;
     await placedSolo(`E6 ${mass}`)
       .placeCell({ playerIndex: 0, mass })
       .from(1, player(0).does(targetRadiiEast(FULL_THROTTLE_RADII)))
@@ -114,7 +114,7 @@ describe('ecology/acceptance.md §8: eating, decay, size and speed on placed cel
     // The cap is held at the last move's mass: the 2 mass of decay over the run moves the travel by under 0.3 wu.
     const decayedMass = decayed(placedMass, CAP_MASS_DECAY_TICKS);
     const gelFactor = gelSpeedFactor(decayedMass, growth, DEFAULT_CELL_MODIFIERS.gelSpeedFactorFloor);
-    const speedCapWuPerSecond = maxSpeedForMass(decayedMass, growth) * gelFactor;
+    const speedCapWuPerSecond = growth.CELL_BASE_SPEED * gelFactor;
     const travelToleranceWu = 2;
     await placedSolo('E8')
       .placeCell({ playerIndex: 0, mass: placedMass, at: gelPatchCentre(0) })

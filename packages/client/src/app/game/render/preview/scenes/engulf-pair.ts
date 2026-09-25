@@ -26,7 +26,6 @@ import {
   TICK_INTERVAL_S,
   engulfPhaseSpanSeconds,
   engulfProgressDelta,
-  maxSpeedForMass,
   playerId,
   predatorEngulfSpeedFactor,
   preyHeldSpeedFactor,
@@ -130,7 +129,7 @@ export function engulfPairGeometry(subjectRole: EngulfRole, balance: BalanceConf
     partnerRadiusWu: isSubjectPredator ? preyRadiusWu : predatorRadiusWu,
     contactReachWu,
     startDistanceWu,
-    contactTick: wholeTicksOf((startDistanceWu - contactReachWu) / maxSpeedForMass(predatorMass, balance.growth)),
+    contactTick: wholeTicksOf((startDistanceWu - contactReachWu) / balance.growth.CELL_BASE_SPEED),
   };
 }
 
@@ -276,13 +275,12 @@ export function escapeDecayPerTick(geometry: EngulfPairGeometry, balance: Balanc
 }
 
 /** The prey's held sprint speed less the predator's held chase: how fast the pair parts once the sprint starts. */
-export function recedeSpeedOf(geometry: EngulfPairGeometry, balance: BalanceConfig): number {
+export function recedeSpeedOf(balance: BalanceConfig): number {
   const { absorption, growth, controls } = balance;
   const preySprint =
-    maxSpeedForMass(geometry.preyMass, growth) *
+    growth.CELL_BASE_SPEED *
     controls.SPRINT_SPEED_MULTIPLIER *
     preyHeldSpeedFactor(ENGULF_PHASE.wrap, NO_GRIP_BONUS, NO_GRIP_BONUS, absorption);
-  const predatorChase =
-    maxSpeedForMass(geometry.predatorMass, growth) * predatorEngulfSpeedFactor(ENGULF_PHASE.wrap, absorption);
+  const predatorChase = growth.CELL_BASE_SPEED * predatorEngulfSpeedFactor(ENGULF_PHASE.wrap, absorption);
   return preySprint - predatorChase;
 }

@@ -1,7 +1,7 @@
-// docs/ecology/mass-and-movement.md §5.1: the curve table, pinned row by row.
+// docs/ecology/mass-and-movement.md §5.1: the radius table, pinned row by row, and the gel curve of §5.2.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
-import { gelSpeedFactor, maxSpeedForMass, radiusForMass } from './mass-curves.js';
+import { gelSpeedFactor, radiusForMass } from './mass-curves.js';
 
 const growth = DEFAULT_BALANCE.growth;
 
@@ -14,24 +14,6 @@ describe('radiusForMass', () => {
     [5000, 282.8],
   ])('mass %d → radius %f wu', (mass, radius) => {
     expect(radiusForMass(mass, growth)).toBeCloseTo(radius, 1);
-  });
-});
-
-describe('maxSpeedForMass', () => {
-  it.each([
-    [20, 220],
-    [80, 155.6],
-    [320, 110],
-    [1000, 82.7],
-    [2000, 69.6],
-    [5000, 55.3],
-  ])('mass %d → %f wu/s', (mass, speed) => {
-    expect(maxSpeedForMass(mass, growth)).toBeCloseTo(speed, 1);
-  });
-
-  it('never exceeds the base speed nor drops under the minimum', () => {
-    expect(maxSpeedForMass(1, growth)).toBe(growth.CELL_BASE_SPEED);
-    expect(maxSpeedForMass(1e9, growth)).toBe(growth.CELL_MIN_SPEED);
   });
 });
 

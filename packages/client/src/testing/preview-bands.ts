@@ -17,7 +17,6 @@ import {
   RANDOM_STREAM,
   TICK_INTERVAL_S,
   createSeededRandom,
-  maxSpeedForMass,
   type CellView,
   type MotionClipId,
   type RandomSource,
@@ -111,7 +110,7 @@ export function cellExtents(
 ): CellExtentsWu {
   const nowMs = timeSeconds * MILLISECONDS_PER_SECOND;
   const speed = Math.hypot(cell.velocityX, cell.velocityY);
-  const speedRatio = Math.min(1, speed / maxSpeedForMass(cell.mass, BALANCE.growth));
+  const speedRatio = Math.min(1, speed / BALANCE.growth.CELL_BASE_SPEED);
   const { phase, stripRow } = cellDrawOf(cell);
   const traits = summariseCellTraits(cell);
   const tracks = player.sample(nowMs);

@@ -51,10 +51,10 @@ export const STARTING_MASS_FACT = balanceFact(
   balancePath('growth', 'CELL_STARTING_MASS'),
 );
 
-/** A fresh cell's top speed. */
-export const STARTING_SPEED_FACT = formulaFact(
-  { key: 'startingSpeed', label: 'Top speed at the start', unit: QUANTITY_UNIT.worldUnitsPerSecond },
-  { id: FACT_FORMULA.maxSpeedAtMass, argument: { mass: BALANCE_MASS.starting } },
+/** Every cell's top speed, whatever its mass (#677). */
+export const TOP_SPEED_FACT = balanceFact(
+  { key: 'topSpeed', label: 'Top speed', unit: QUANTITY_UNIT.worldUnitsPerSecond },
+  balancePath('growth', 'CELL_BASE_SPEED'),
 );
 
 /** The DNA a bacterium gives, whatever its variant. */

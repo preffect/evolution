@@ -1,5 +1,5 @@
 // Step 3 (docs/ecology/mass-and-movement.md §5.2): the shared kernel per cell with the speed cap folded from the
-// mass curve, the sprint, the zone and the traits; the sprint counters tick down; then
+// base speed, the sprint, the zone and the traits; the sprint counters tick down; then
 // separation (contact.ts) and the fixture pins are restored.
 
 import {
@@ -83,7 +83,7 @@ export function movementStateOf(cell: CellRecord, world: WorldState, balance: Ba
   };
 }
 
-/** `maxSpeed(mass) × sprint × zone × trait × engulf` (wu/s). */
+/** `CELL_BASE_SPEED × sprint × zone × trait × engulf` (wu/s). */
 export function speedCapOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): number {
   return speedCapFor(movementStateOf(cell, world, balance), balance);
 }

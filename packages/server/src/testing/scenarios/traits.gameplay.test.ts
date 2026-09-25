@@ -10,7 +10,6 @@ import {
   FOOD_KIND,
   TICK_INTERVAL_S,
   distanceBetween,
-  maxSpeedForMass,
   radiusForMass,
   secondsToTicks,
 } from '@evolution/shared';
@@ -77,7 +76,7 @@ function metabolisedMass(mass: number, ticks: number, terms: MetabolismTerms): n
 
 describe('traits/constants-and-acceptance.md §6: the trait rows without an engulf', () => {
   it('T2: Cilia Fringe I converges on the starting cap × its speedMultiplier and stays inside the vent', async () => {
-    const plainCap = maxSpeedForMass(STARTING_MASS, growth);
+    const plainCap = growth.CELL_BASE_SPEED;
     const ciliaCap = plainCap * tierOneModifier('cilia', 'speedMultiplier');
     const expectedSpeed = blendedSpeed(ciliaCap, FULL_THROTTLE_TICKS);
     const expectedTravelWu = blendedTravelWu(ciliaCap, FULL_THROTTLE_TICKS);
@@ -176,14 +175,14 @@ describe('traits/constants-and-acceptance.md §6: the trait rows without an engu
 
   it('T9: Simple Flagellum I sprints at its bonus multiplier and sprints again after its shortened cooldown', async () => {
     const sprintCap =
-      maxSpeedForMass(STARTING_MASS, growth) *
+      growth.CELL_BASE_SPEED *
       tierOneModifier('simple_flagellum', 'speedMultiplier') *
       (controls.SPRINT_SPEED_MULTIPLIER + tierOneModifier('simple_flagellum', 'sprintSpeedMultiplierBonus'));
     const cooldownTicks = secondsToTicks(
       controls.SPRINT_COOLDOWN_SECONDS + tierOneModifier('simple_flagellum', 'sprintCooldownSecondsDelta'),
     );
     const secondSprintTick = FIRST_SPRINT_TICK + cooldownTicks;
-    const plainSprintCap = maxSpeedForMass(STARTING_MASS, growth) * controls.SPRINT_SPEED_MULTIPLIER;
+    const plainSprintCap = growth.CELL_BASE_SPEED * controls.SPRINT_SPEED_MULTIPLIER;
     expect(blendedSpeed(sprintCap - plainSprintCap, SPRINT_SPEED_TICK)).toBeGreaterThan(SPEED_TOLERANCE_WU_PER_SECOND);
     expect(cooldownTicks).toBeLessThan(secondsToTicks(controls.SPRINT_COOLDOWN_SECONDS));
     const sprintTicks = secondsToTicks(controls.SPRINT_DURATION_SECONDS);

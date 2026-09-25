@@ -6,16 +6,15 @@
 // widest body and widest drawn extent, so a bare protocell and a tier-III flagellate each fill the lens instead of
 // sharing one number sized for the longer tail (ticket #364, `render/constants/preview.ts`).
 //
-// The swim is the cell's **own** top speed, not a framing number: the loop's radius is framing (how far from the
-// lens centre it circles), and its period is whatever carrying the cell around that circle at
-// `maxSpeedForMass(mass, balance.growth)` takes. A speed patch therefore retimes the swim as it plays, and the
-// stretch, the flagellum wave and the cilia beat all read the speed ratio the simulation would have given it.
+// The swim is a lap time, not a speed: the loop's radius is framing (how far from the lens centre it circles), and
+// the cell walks it in `PREVIEW_SWIM_LAP_SECONDS`, the tempo the human chose. The stretch, the flagellum wave and the
+// cilia beat read that speed against `balance.growth.CELL_BASE_SPEED` (every mass's top speed, #677), the ratio the
+// simulation would have given it, so a speed patch changes how the swim looks and not how long it takes.
 
 import {
   CELL_KIND,
   RADIANS_PER_FULL_TURN,
   ZONE_ID,
-  maxSpeedForMass,
   playerId,
   radiusForMass,
   type BalanceConfig,
@@ -30,7 +29,7 @@ import {
   PREVIEW_CELL_MASS,
   PREVIEW_STILL_PERIOD_SECONDS,
   PREVIEW_SWIM_RADIUS_RADII,
-  PREVIEW_SWIM_SPEED_FRACTION,
+  PREVIEW_SWIM_LAP_SECONDS,
   PREVIEW_ZONE_CENTRE_WU,
 } from '../../constants';
 import { previewCellView } from '../preview-frame';
@@ -52,8 +51,6 @@ type CellPreviewSpec = Extract<PreviewSpec, { scene: typeof PREVIEW_SCENE.cell }
 const NO_MOTES = [] as const;
 const NO_FRAGMENTS = [] as const;
 
-/** Swimming is the cell's own top speed, so its stretch, tail and cilia read exactly as they do in play. */
-const SWIMMING_SPEED_RATIO = PREVIEW_SWIM_SPEED_FRACTION;
 const RESTING_SPEED_RATIO = 0;
 
 function subjectRadiusWu(balance: BalanceConfig): number {
@@ -64,14 +61,14 @@ function loopRadiusWu(balance: BalanceConfig): number {
   return subjectRadiusWu(balance) * PREVIEW_SWIM_RADIUS_RADII;
 }
 
-/** The speed the subject circles at: `PREVIEW_SWIM_SPEED_FRACTION` of its own top speed. */
+/** The speed that walks the loop in `PREVIEW_SWIM_LAP_SECONDS`: `2πR / lap`. */
 function swimSpeed(balance: BalanceConfig): number {
-  return maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth) * PREVIEW_SWIM_SPEED_FRACTION;
+  return (RADIANS_PER_FULL_TURN * loopRadiusWu(balance)) / PREVIEW_SWIM_LAP_SECONDS;
 }
 
-/** One trip around the loop at the swim speed: `2πR / swimSpeed`. */
-function swimPeriodSeconds(balance: BalanceConfig): number {
-  return (RADIANS_PER_FULL_TURN * loopRadiusWu(balance)) / swimSpeed(balance);
+/** The swim speed's share of the top speed, so the stretch, tail and cilia read as they would in play. */
+export function previewSwimSpeedRatio(balance: BalanceConfig): number {
+  return swimSpeed(balance) / balance.growth.CELL_BASE_SPEED;
 }
 
 export function cellPreviewScene(spec: CellPreviewSpec): PreviewScene {
@@ -82,7 +79,7 @@ export function cellPreviewScene(spec: CellPreviewSpec): PreviewScene {
       target: { ...SUBJECT_CENTRE, radius: subjectRadiusWu(balance) },
       viewRadiusWu: subjectViewRadiusWu(spec, balance, isSwimming),
     }),
-    periodSecondsFor: (balance) => (isSwimming ? swimPeriodSeconds(balance) : PREVIEW_STILL_PERIOD_SECONDS),
+    periodSecondsFor: () => (isSwimming ? PREVIEW_SWIM_LAP_SECONDS : PREVIEW_STILL_PERIOD_SECONDS),
     contentAt: (loopSeconds, balance) => subjectContent(spec, loopSeconds, balance, isSwimming),
   });
 }
@@ -104,7 +101,7 @@ export function cellPreviewScene(spec: CellPreviewSpec): PreviewScene {
 function subjectViewRadiusWu(spec: CellPreviewSpec, balance: BalanceConfig, isSwimming: boolean): number {
   const extent = cellDrawExtentRadii(
     summariseCellTraits(subjectCellView(spec, REST_POSE, balance)),
-    restingDrawState(isSwimming ? SWIMMING_SPEED_RATIO : RESTING_SPEED_RATIO),
+    restingDrawState(isSwimming ? previewSwimSpeedRatio(balance) : RESTING_SPEED_RATIO),
   );
   const offsetRadii = isSwimming ? PREVIEW_SWIM_RADIUS_RADII : 0;
   return (
@@ -155,7 +152,7 @@ interface SubjectPose {
 const REST_POSE: SubjectPose = { offsetX: 0, offsetY: 0, velocityX: 0, velocityY: 0 };
 
 function swimPose(loopSeconds: number, balance: BalanceConfig): SubjectPose {
-  const angle = (RADIANS_PER_FULL_TURN * loopSeconds) / swimPeriodSeconds(balance);
+  const angle = (RADIANS_PER_FULL_TURN * loopSeconds) / PREVIEW_SWIM_LAP_SECONDS;
   const radiusWu = loopRadiusWu(balance);
   const speed = swimSpeed(balance);
   return {

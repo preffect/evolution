@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { TICK_INTERVAL_S } from '../constants/network.js';
 import { DEFAULT_CELL_MODIFIERS } from '../constants/traits.js';
-import { gelSpeedFactor, maxSpeedForMass } from './mass-curves.js';
+import { gelSpeedFactor } from './mass-curves.js';
 import {
   gelZoneSpeedFactor,
   movementStepFor,
@@ -44,15 +44,19 @@ describe('gelZoneSpeedFactor', () => {
 });
 
 describe('speedCapFor', () => {
-  it('is the mass curve alone for a plain cell', () => {
-    expect(speedCapFor(cellState({ mass: GROWN_MASS }), DEFAULT_BALANCE)).toBe(maxSpeedForMass(GROWN_MASS, growth));
-  });
+  // #677: top speed does not depend on mass, so the smallest and the largest plain cell share one cap.
+  it.each([growth.CELL_STARTING_MASS, GROWN_MASS, growth.CELL_MAX_MASS])(
+    'is the base speed alone for a plain cell of mass %d',
+    (mass) => {
+      expect(speedCapFor(cellState({ mass }), DEFAULT_BALANCE)).toBe(growth.CELL_BASE_SPEED);
+    },
+  );
 
   it('multiplies every factor in, each of which alone moves the cap', () => {
     const modifiers = { ...DEFAULT_CELL_MODIFIERS, speedMultiplier: 1.1, sprintSpeedMultiplierBonus: 0.2 };
     const state = cellState({ mass: GROWN_MASS, sprintRemainingTicks: 3, modifiers, isInGel: true, engulfFactor: 0.5 });
     const expected =
-      maxSpeedForMass(GROWN_MASS, growth) *
+      growth.CELL_BASE_SPEED *
       (controls.SPRINT_SPEED_MULTIPLIER + 0.2) *
       gelSpeedFactor(GROWN_MASS, growth, 0) *
       1.1 *

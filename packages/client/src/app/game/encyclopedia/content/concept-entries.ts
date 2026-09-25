@@ -14,7 +14,7 @@ import {
   FIRST_LEVEL_UP_FACT,
   LAST_LEVEL_UP_FACT,
   STARTING_MASS_FACT,
-  STARTING_SPEED_FACT,
+  TOP_SPEED_FACT,
   balanceFact,
   formulaFact,
 } from './fact-builders';
@@ -36,18 +36,14 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
   [CONCEPT.massAndSize]: {
     title: 'Mass and size',
     summary:
-      'Mass is how much of you there is, and your size shows it: a heavier cell is wider and slower. You start at {startingMass} and grow to at most {maxMass}. Past that, any mass you gain turns into DNA instead.',
+      'Mass is how much of you there is, and your size shows it: a heavier cell is wider, but just as fast. You start at {startingMass} and grow to at most {maxMass}. Past that, any mass you gain turns into DNA instead.',
     facts: [
       STARTING_MASS_FACT,
       balanceFact(
         { key: 'maxMass', label: 'Largest mass', unit: QUANTITY_UNIT.mass },
         balancePath('growth', 'CELL_MAX_MASS'),
       ),
-      STARTING_SPEED_FACT,
-      formulaFact(
-        { key: 'largestSpeed', label: 'Top speed at the largest mass', unit: QUANTITY_UNIT.worldUnitsPerSecond },
-        { id: FACT_FORMULA.maxSpeedAtMass, argument: { mass: BALANCE_MASS.max } },
-      ),
+      TOP_SPEED_FACT,
       formulaFact(
         { key: 'startingRadius', label: 'Radius at the start', unit: QUANTITY_UNIT.worldUnits },
         { id: FACT_FORMULA.radiusAtMass, argument: { mass: BALANCE_MASS.starting } },

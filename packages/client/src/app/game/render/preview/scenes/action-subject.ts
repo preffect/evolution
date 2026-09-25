@@ -13,7 +13,6 @@ import {
   DNA_TAGS,
   PLAYER_LIFE_STATE,
   ZONE_ID,
-  maxSpeedForMass,
   radiusForMass,
   zeroRecord,
   type BalanceConfig,
@@ -70,11 +69,6 @@ export function velocityAlong(
 /** The subject's radius at the preview mass, from the live balance. */
 export function actionSubjectRadiusWu(balance: BalanceConfig): number {
   return radiusForMass(PREVIEW_CELL_MASS, balance.growth);
-}
-
-/** The subject's own top speed: what a swimming pose is built at, so the stretch reads as it does in play. */
-export function actionSubjectMaxSpeed(balance: BalanceConfig): number {
-  return maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth);
 }
 
 /**

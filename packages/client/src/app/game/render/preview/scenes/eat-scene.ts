@@ -43,7 +43,6 @@ import {
   NO_MOTES,
   actionSubjectCellView,
   actionSubjectFraming,
-  actionSubjectMaxSpeed,
   actionSubjectRadiusWu,
   pointFromSubject,
   velocityAlong,
@@ -105,7 +104,7 @@ export function eatPreviewScene(): PreviewScene {
 const SWIMMING = 1;
 
 function eatContent(loopSeconds: number, balance: BalanceConfig): PreviewSceneContent {
-  const speed = actionSubjectMaxSpeed(balance);
+  const speed = balance.growth.CELL_BASE_SPEED;
   const mote = motePosition(loopSeconds, balance);
   return {
     cells: [actionSubjectCellView(velocityAlong(APPROACH_ANGLE, speed), balance)],

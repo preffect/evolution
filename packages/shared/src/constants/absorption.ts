@@ -31,7 +31,7 @@ export const ENGULF_MIN_DURATION_FACTOR = 0.5;
 export const ENGULF_ESCAPE_DECAY_MULTIPLIER = 2;
 /**
  * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
- * speed (#634): the mass curve already makes it the slower cell, so any factor under 1 lets the held prey outrun it.
+ * speed (#634): every cell has the same top speed (#677), so any factor under the prey's lets the held prey outrun it.
  */
 export const ENGULF_PREDATOR_SPEED_FACTOR = 1.0;
 export const ENGULF_PREDATOR_SPEED_FACTOR_SEALED = 1.0;

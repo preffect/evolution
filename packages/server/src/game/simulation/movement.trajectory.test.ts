@@ -1,5 +1,5 @@
 // A recorded trajectory of the movement step (#554): `moveCells` run for a fixed script of targets over every factor
-// the shared `movement-step.ts` folds (mass curve, sprint, gel, trait speed and acceleration, the engulf factors, the
+// the shared `movement-step.ts` folds (base speed, sprint, gel, trait speed and acceleration, the engulf factors, the
 // carried prey, the dish wall), with every cell's pose hashed on every tick. The server and the client prediction
 // (docs/architecture/client.md §5, #265) share that step, so any change to its arithmetic or its order moves this
 // hash. A deliberate change re-records it: run the test, read the new digest from the failure, and say why in the PR.
@@ -16,9 +16,10 @@ import { moveCells } from './movement.js';
 
 /**
  * The digests of the two scripted runs below, recorded on main after #265 (`movement-step.ts`); the engulf run
- * re-recorded by #634, which changed the engulf factors (the prey grabbed in cover, the predator unslowed).
+ * re-recorded by #634, which changed the engulf factors (the prey grabbed in cover, the predator unslowed); both
+ * re-recorded by #677, which dropped the mass curve from the cap (every cell at `CELL_BASE_SPEED`).
  */
-const RECORDED_TRAJECTORY_HASHES = { solo: '7aa523684682f564', engulf: 'c89732cfaa8bfc4b' };
+const RECORDED_TRAJECTORY_HASHES = { solo: '9a09fa530aef23b7', engulf: '190716b58d82c3e9' };
 
 const SOLO_TICKS = 240;
 /** A mass whose four cap factors round differently when multiplied in another order (at 300 they happen not to). */
@@ -26,7 +27,7 @@ const SOLO_MASS = 250;
 const STEER_RADIUS_WU = 400;
 /** Ticks per radian of the circling target: a full turn in about 125 ticks. */
 const TICKS_PER_RADIAN = 20;
-/** Early, while the cell is still inside the gel: sprint, gel, trait and mass factors all multiply at once. */
+/** Early, while the cell is still inside the gel: the base speed and the sprint, gel and trait factors multiply at once. */
 const SPRINT_START_TICK = 5;
 const SPRINT_TICKS = 30;
 const WALL_START = { x: 2850, y: 400 };

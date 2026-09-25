@@ -7,7 +7,7 @@
 | Document                                | Covers                                                                                                    | Tickets       |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------- |
 | this file                               | Core fantasy, the evolution ladder, loop, session model, controls, camera, dish, win/lose, constants      | #22, #29      |
-| [`ECOLOGY.md`](../ECOLOGY.md)           | Food kinds and bacterium variants, zones, spawn model, decay, mass/speed curves, mitosis, absorption      | #23, #26, #27 |
+| [`ECOLOGY.md`](../ECOLOGY.md)           | Food kinds and bacterium variants, zones, spawn model, decay, mass and speed, mitosis, absorption         | #23, #26, #27 |
 | [`PROGRESSION.md`](../PROGRESSION.md)   | DNA, tags, level thresholds, draft rules filtered by the ladder, entering the dish (late join, respawn)   | #24           |
 | [`TRAITS.md`](../TRAITS.md)             | Modifier model, the sixteen build-1 traits (organelles and forms) mapped onto the ladder, later traits    | #25           |
 | [`VISUAL-STYLE.md`](../VISUAL-STYLE.md) | Palette, cell layer stack, organelle vocabulary, motion language, legibility at play scale, render intent | #34           |
@@ -26,7 +26,7 @@ number belongs to another doc, this doc names the constant and links.
 
 _A single cell that becomes something more._ You begin as a bare **protocell**: a lipid membrane, a
 few granules, no nucleus, drifting in a dark-field petri dish. You steer toward the pointer, swallow
-motes of food, grow heavy and slow, and absorb the DNA of what you eat. DNA buys organelles, and
+motes of food, grow heavy, and absorb the DNA of what you eat. DNA buys organelles, and
 organelles climb biology's own ladder: a nucleoid, a flagellum, a wall; a mitochondrion or a
 chloroplast stolen by engulfing the bacterium that carries it; a nuclear envelope, a cytoskeleton,
 vacuoles, cilia; and finally one of the great single-cell forms (amoeba, paramecium, euglena,
@@ -95,7 +95,7 @@ Rules (home of the pure functions: `packages/server/src/game/progression/ladder.
   = 5; they cluster around the warm vent) and the mitochondrion becomes a candidate; eat
   `ENDOSYMBIOSIS_BACTERIA_REQUIRED` = 10 photosynthetic bacteria (the same constant; they cluster in the
   sunlit shallows) and the chloroplast does. Absorbing a player cell that owns an endosymbiont credits that unlock in full.
-- **The protocell is the baseline.** The mass, radius and speed curves in
+- **The protocell is the baseline.** The mass and radius curves and the one top speed in
   [`ecology/mass-and-movement.md §5`](../ecology/mass-and-movement.md#5-size-mass-and-speed) and the identity `DEFAULT_CELL_MODIFIERS`
   ([`traits/model.md §2`](../traits/model.md#2-modifier-model)) describe the protocell. There is no separate
   protocell speed multiplier: a flagellate is faster than a protocell because the flagellum is a trait
@@ -123,7 +123,7 @@ Rules (home of the pure functions: `packages/server/src/game/progression/ladder.
 ## 4. Moment-to-moment loop
 
 ```
- steer -> eat motes -> grow (mass up, radius up, speed down)
+ steer -> eat motes -> grow (mass up, radius up, same top speed)
     ^                           |
     |        absorb DNA <-------+---> hunt smaller / avoid bigger
     |             |                          |

@@ -26,7 +26,6 @@ import {
   engulfPhaseOf,
   engulfPhaseSpanSeconds,
   entityId,
-  maxSpeedForMass,
   predatorEngulfSpeedFactor,
   preyHeldSpeedFactor,
   type BalanceConfig,
@@ -115,7 +114,7 @@ function escapeTimeline(balance: BalanceConfig): EscapeTimeline {
   const decayPerTick = escapeDecayPerTick(geometry, balance);
   // Released the first tick the decayed progress has drained to 0 (`engulf.ts`, #634).
   const releaseTick = sprintTick + Math.ceil((sprintProgress - absorption.ENGULF_PROGRESS_EPSILON) / decayPerTick);
-  const recedeSpeed = recedeSpeedOf(geometry, balance);
+  const recedeSpeed = recedeSpeedOf(balance);
   const recedeWu = geometry.startDistanceWu - heldOffsetWu(sprintProgress, geometry, balance);
   const recedeEndTick = sprintTick + wholeTicksOf(recedeWu / recedeSpeed);
   return {
@@ -192,8 +191,7 @@ function preyView(
     progress === null
       ? FREE_SPEED_FACTOR
       : preyHeldSpeedFactor(engulfPhaseOf(progress, absorption), NO_GRIP_BONUS, NO_GRIP_BONUS, absorption);
-  const speed =
-    maxSpeedForMass(timeline.geometry.preyMass, growth) * (isSprinting ? controls.SPRINT_SPEED_MULTIPLIER : 1);
+  const speed = growth.CELL_BASE_SPEED * (isSprinting ? controls.SPRINT_SPEED_MULTIPLIER : 1);
   return actionSubjectCellView(
     {
       ...alongApproachVelocity(isFleeing ? -speed * heldFactor : NO_SPEED),
@@ -234,7 +232,7 @@ function predatorView(
       mass: geometry.predatorMass,
       ...alongApproach(offsetWu),
       // Always chasing: toward the subject, which is back along the approach.
-      ...alongApproachVelocity(-maxSpeedForMass(geometry.predatorMass, balance.growth) * speedFactor),
+      ...alongApproachVelocity(-balance.growth.CELL_BASE_SPEED * speedFactor),
       ...predatorLinks(progress === null ? NO_PREY : ACTION_SUBJECT_CELL_ID),
     },
     balance,

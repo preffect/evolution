@@ -1,5 +1,5 @@
-// The core loop end to end (#197): eating grows the cell and the growth slows it (docs/ecology/mass-and-movement.md
-// §5.1, §5.4), and the engulf ratio at its edges (docs/ecology/absorption.md §6.1: `canStart` and `canContinue`).
+// The core loop end to end (#197): eating grows the cell, and since #677 the growth leaves its top speed alone
+// (docs/ecology/mass-and-movement.md §5.1, §5.4), and the engulf ratio at its edges (docs/ecology/absorption.md §6.1: `canStart` and `canContinue`).
 // The single-meal, single-mass and wide-margin rows are the tables' own (E4–E8 in `ecology-cells`, E10 and E16 in
 // `ecology-engulf`); these runs chain a meal into the speed cap and sit 0.01 mass either side of each threshold.
 // Expected numbers derive from the shared constants and formulas, as the table rows do (#212).
@@ -11,7 +11,6 @@ import {
   ENGULF_RELEASE_REASON,
   FOOD_KIND,
   TICK_INTERVAL_S,
-  maxSpeedForMass,
   radiusForMass,
 } from '@evolution/shared';
 import { cellOf, foodCount, massOf, speedOf } from '../gameplay/evolution-views.js';
@@ -41,7 +40,7 @@ const { ecology, growth } = DEFAULT_BALANCE;
 
 /** The first meal: 60 algae take a starting cell to 80 mass, "a minute of grazing" (mass-and-movement.md §5.1). */
 const FIRST_MEAL_MOTES = 60;
-/** The second: 240 more take it to 320, "half speed at 16× mass". */
+/** The second: 240 more take it to 320, 16× the starting mass. */
 const SECOND_MEAL_MOTES = 240;
 /** Each leg of full throttle runs E6's 120 ticks, so the blend has closed 99.97 % of the gap. */
 const LEG_TICKS = 120;
@@ -55,11 +54,8 @@ const FAR_TURN_OFFSET_WU = 100_000;
 const WEST_TURN_POINT = { x: BROTH_POINT.x + FAR_TURN_OFFSET_WU, y: BROTH_POINT.y };
 
 const FIRST_MEAL_MASS = growth.CELL_STARTING_MASS + FIRST_MEAL_MOTES * ecology.ALGAE_MASS;
-/** Movement (step 3) reads the mass the previous tick's metabolism left: the first leg's last move sees 119 decays. */
-const FIRST_LEG_CAP_MASS = decayed(FIRST_MEAL_MASS, LEG_TICKS - 1);
 /** Eating (step 4) precedes decay (step 5): the second meal lands on the mass 120 decays left, then decays once. */
 const SECOND_MEAL_MASS = decayed(decayed(FIRST_MEAL_MASS, LEG_TICKS) + SECOND_MEAL_MOTES * ecology.ALGAE_MASS, 1);
-const SECOND_LEG_CAP_MASS = decayed(SECOND_MEAL_MASS, SECOND_LEG_END_TICK - SECOND_MEAL_TICK - 1);
 /**
  * Decay takes a share of the mass above `CELL_STARTING_MASS`, so eating before the decay (the fixed step order) costs
  * the meal one tick of decay that decaying first would not: meal × rate × tick = 0.008 mass. That is under
@@ -112,10 +108,13 @@ function feedAlgae<Run extends ReturnType<typeof placedSolo>>(run: Run, tick: nu
   return run;
 }
 
-describe('docs/ecology/mass-and-movement.md §5: eating grows the cell and the growth slows it', () => {
+describe('docs/ecology/mass-and-movement.md §5: eating grows the cell and its top speed stays the same', () => {
   const grownMass = FIRST_MEAL_MASS + SECOND_MEAL_MOTES * ecology.ALGAE_MASS;
-  it(`a starting cell eats to ${FIRST_MEAL_MASS} mass, then to ${grownMass}, and its top speed falls with each meal`, async () => {
-    const run = placedSolo('eat → grow → slower').placeCell({ playerIndex: 0, mass: growth.CELL_STARTING_MASS });
+  it(`a starting cell eats to ${FIRST_MEAL_MASS} mass, then to ${grownMass}, and its top speed stays the same with each meal`, async () => {
+    const run = placedSolo('eat → grow → same top speed').placeCell({
+      playerIndex: 0,
+      mass: growth.CELL_STARTING_MASS,
+    });
     feedAlgae(run, 1, FIRST_MEAL_MOTES);
     feedAlgae(run, SECOND_MEAL_TICK, SECOND_MEAL_MOTES);
     await run
@@ -131,15 +130,15 @@ describe('docs/ecology/mass-and-movement.md §5: eating grows the cell and the g
       .expect('the radius grows with the square root of the mass', (view) => cellOf(view, 0)?.radius)
       .atTick(1)
       .toBeCloseTo(radiusForMass(decayed(FIRST_MEAL_MASS, 1), growth), MASS_TOLERANCE)
-      .expect('the first-meal cell tops out at its own cap, under the starting cell’s', (view) => speedOf(view, 0))
+      .expect('the first-meal cell tops out at the starting cell’s speed', (view) => speedOf(view, 0))
       .atTick(LEG_TICKS)
-      .toBeCloseTo(blendedSpeed(maxSpeedForMass(FIRST_LEG_CAP_MASS, growth), LEG_TICKS), SPEED_TOLERANCE_WU_PER_SECOND)
+      .toBeCloseTo(blendedSpeed(growth.CELL_BASE_SPEED, LEG_TICKS), SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('the second meal is eaten on the tick it lands, before that tick decays', (view) => massOf(view, 0))
       .atTick(SECOND_MEAL_TICK)
       .toBeCloseTo(SECOND_MEAL_MASS, STEP_ORDER_TOLERANCE_MASS)
-      .expect('the second-meal cell tops out lower again', (view) => speedOf(view, 0))
+      .expect('the second-meal cell, 16× the starting mass, still tops out at that speed', (view) => speedOf(view, 0))
       .atTick(SECOND_LEG_END_TICK)
-      .toBeCloseTo(maxSpeedForMass(SECOND_LEG_CAP_MASS, growth), SPEED_TOLERANCE_WU_PER_SECOND)
+      .toBeCloseTo(growth.CELL_BASE_SPEED, SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('the radius follows the second meal', (view) => cellOf(view, 0)?.radius)
       .atTick(SECOND_MEAL_TICK)
       .toBeCloseTo(radiusForMass(SECOND_MEAL_MASS, growth), MASS_TOLERANCE)

@@ -46,8 +46,7 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `CELL_STARTING_MASS`                                               | 20               | mass         |
 | `CELL_MAX_MASS`                                                    | 5000             | mass         |
 | `CELL_RADIUS_SCALE`                                                | 4                | wu/√mass     |
-| `CELL_BASE_SPEED` / `CELL_MIN_SPEED`                               | 220 / 50         | wu/s         |
-| `CELL_SPEED_MASS_EXPONENT`                                         | 0.25             | —            |
+| `CELL_BASE_SPEED`                                                  | 220              | wu/s         |
 | `CELL_ACCELERATION_SECONDS`                                        | 0.25             | s            |
 | `CELL_SEPARATION_FRACTION_PER_TICK`                                | 0.2              | ratio        |
 | `GEL_MASS_SCALE` / `GEL_MIN_SPEED_FACTOR` / `GEL_MAX_SPEED_FACTOR` | 1000 / 0.4 / 0.9 | mass / × / × |

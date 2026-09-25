@@ -6,11 +6,12 @@
 // The framing bands are `preview-framing.spec.ts` and the loop is `preview-loop.spec.ts`; both walk the same
 // `SUBJECT_SPECS` this file does, so a family added here is covered there too.
 
-import { CELL_KIND, CELL_STAGE, DEFAULT_BALANCE, maxSpeedForMass, zoneAt, type ZoneId } from '@evolution/shared';
+import { CELL_KIND, CELL_STAGE, DEFAULT_BALANCE, TICK_INTERVAL_S, zoneAt, type ZoneId } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
-import { PREVIEW_GEL_PATCHES, PREVIEW_SWIM_SPEED_FRACTION } from '../constants';
+import { PREVIEW_GEL_PATCHES, PREVIEW_SWIM_LAP_SECONDS } from '../constants';
 import { previewSceneFor, type PreviewScene } from './preview-scene';
+import { previewSwimSpeedRatio } from './scenes/cell-scene';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from './preview-spec';
 import { EVERY_FAMILY_SPECS, SUBJECT_SPECS, ZONE_IDS } from './preview-subject-specs';
 
@@ -59,16 +60,14 @@ describe('the cell scene', () => {
   };
   const resting: PreviewSpec = { ...swimming, motion: PREVIEW_MOTION.resting };
 
-  /** The swim is the cell's own top speed, so the stretch, the tail and the cilia beat read as they do in play. */
-  it('swims at PREVIEW_SWIM_SPEED_FRACTION of top speed at every tick, and holds still at rest', () => {
+  /** The lap is the human's tempo (#532); the stretch, the tail and the cilia beat read its speed against top speed. */
+  it('laps in PREVIEW_SWIM_LAP_SECONDS at one speed every tick, and holds still at rest', () => {
     const scene = previewSceneFor(swimming);
+    expect(scene.periodTicks(BALANCE)).toBeCloseTo(PREVIEW_SWIM_LAP_SECONDS / TICK_INTERVAL_S, 9);
     for (const tick of loopTicks(scene)) {
       const [cell] = scene.frameAt(tick, tick, BALANCE).cells;
       const speed = Math.hypot(cell!.velocityX, cell!.velocityY);
-      expect(speed / maxSpeedForMass(cell!.mass, BALANCE.growth), `tick ${tick}`).toBeCloseTo(
-        PREVIEW_SWIM_SPEED_FRACTION,
-        9,
-      );
+      expect(speed / BALANCE.growth.CELL_BASE_SPEED, `tick ${tick}`).toBeCloseTo(previewSwimSpeedRatio(BALANCE), 9);
     }
     const [still] = previewSceneFor(resting).frameAt(12, 11, BALANCE).cells;
     expect(Math.hypot(still!.velocityX, still!.velocityY)).toBe(0);
