@@ -398,12 +398,41 @@ check "extra args on a selection that mixes the client with vitest packages are 
 
 # --- unhandled runner errors (#475): every test passed and the run is still red --------------------
 echo unhandled-errors > "$fixture/untracked.txt" # a tree of its own: no earlier scoped stamp answers these
-printf '%s\n' ' Test Files  246 passed (246)''      Tests  2449 passed (2449)' \
+printf '%s\n' ' Test Files  246 passed (246)' '      Tests  2449 passed (2449)' \
   'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' '     Errors  1 error' > "$FAKE_PNPM_OUTPUT_FILE"
 echo 1 > "$FAKE_PNPM_RC_FILE"
 run_validate "$fixture" test --scope client
-check "a run whose every test passed still fails on an unhandled error, and says so" $(( rc != 0 && $(ran 'reported 1 unhandled error outside its tests'; echo $?) == 0 && $(ran 'this run is RED'; echo $?) == 0 ))
-check "an RPC timeout is named as the runner's watchdog, not as this branch" $(( $(ran 'worker RPC watchdog'; echo $?) == 0 && $(ran 'infrastructure, not this branch'; echo $?) == 0 ))
+check "a run whose every test passed still fails on an unhandled error, and says so" $(( rc != 0 && $(ran '^selected client: 246 test files, 2449 tests run$'; echo $?) == 0 && $(ran 'reported 1 unhandled error outside its tests'; echo $?) == 0 && $(ran 'this run is RED'; echo $?) == 0 ))
+check "an RPC timeout is named as the runner's watchdog, at the watchdog it was given, not as this branch" $(( $(ran '1 of them is a "Timeout calling" error: the runner.s 180s worker RPC watchdog'; echo $?) == 0 && $(ran 'infrastructure, not this branch'; echo $?) == 0 ))
+printf '%s\n' ' Test Files  246 passed (246)' '      Tests  2449 passed (2449)' 'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' \
+  '  Timeout calling "onTaskUpdate" (repeated in a cause)' '     Errors  1 error' > "$FAKE_PNPM_OUTPUT_FILE"
+run_validate "$fixture" test --scope client
+check "one timeout printed on two lines is counted as one error, not two" $(( rc != 0 && $(ran '1 of them is a "Timeout calling" error'; echo $?) == 0 && $(ran '2 of them'; echo $?) != 0 ))
+printf '%s\n' ' Test Files  246 passed (246)' '      Tests  2449 passed (2449)' \
+  'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' 'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' \
+  '     Errors  2 errors' > "$FAKE_PNPM_OUTPUT_FILE"
+export VITEST_WORKER_RPC_TIMEOUT_MS=90000
+run_validate "$fixture" test --scope client
+unset VITEST_WORKER_RPC_TIMEOUT_MS
+check "two timeouts read as plural, at an inherited watchdog" $(( rc != 0 && $(ran '2 of them are "Timeout calling" errors: the runner.s 90s worker RPC watchdog'; echo $?) == 0 ))
+export VITEST_WORKER_RPC_TIMEOUT_MS=1
+run_validate "$fixture" test --scope client
+unset VITEST_WORKER_RPC_TIMEOUT_MS
+check "a sub-second watchdog reads in milliseconds, not as 0s" $(( rc != 0 && $(ran 'the runner.s 1ms worker RPC watchdog'; echo $?) == 0 ))
+for refused in 1e6 1.5 0x10 ' 90000' 0 2147483648 99999999999999999999; do # the patch keeps vitest's 60 s for these
+  export VITEST_WORKER_RPC_TIMEOUT_MS="$refused"
+  run_validate "$fixture" test --scope client
+  check "a watchdog of '$refused', which the patch refuses, is reported as vitest's 60s" $(( rc != 0 && $(ran 'the runner.s 60s worker RPC watchdog'; echo $?) == 0 ))
+done
+export VITEST_WORKER_RPC_TIMEOUT_MS=2147483647
+run_validate "$fixture" test --scope client
+check "the largest delay setTimeout honours is reported as given" $(( rc != 0 && $(ran 'the runner.s 2147483647ms worker RPC watchdog'; echo $?) == 0 ))
+export VITEST_WORKER_RPC_TIMEOUT_MS=0090000
+run_validate "$fixture" test --scope client
+unset VITEST_WORKER_RPC_TIMEOUT_MS
+check "leading zeros read as decimal, as the patch reads them" $(( rc != 0 && $(ran 'the runner.s 90s worker RPC watchdog'; echo $?) == 0 ))
+printf '%s\n' ' Test Files  246 passed (246)' '      Tests  2449 passed (2449)' \
+  'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' '     Errors  1 error' > "$FAKE_PNPM_OUTPUT_FILE"
 echo 0 > "$FAKE_PNPM_RC_FILE"
 run_validate "$fixture" test --scope client
 check "an unhandled error fails the phase even when the runner itself exits 0" $(( rc != 0 ))
@@ -419,6 +448,7 @@ cat > "$sandbox/bin/pnpm" <<'PNPM'
 #!/usr/bin/env bash
 echo "fake pnpm $*"
 echo "workers: VITEST_MAX_FORKS=${VITEST_MAX_FORKS:-unset} VITEST_MAX_THREADS=${VITEST_MAX_THREADS:-unset}"
+echo "watchdog: VITEST_WORKER_RPC_TIMEOUT_MS=${VITEST_WORKER_RPC_TIMEOUT_MS:-unset}"
 echo ' Test Files  1 passed (1)'
 echo '      Tests  2 passed (2)'
 PNPM
@@ -432,6 +462,14 @@ export VITEST_MAX_FORKS=7
 run_validate "$fixture" test --scope server
 unset VITEST_MAX_FORKS
 check "an inherited worker cap wins, for a one-off experiment" $(( $(ran 'VITEST_MAX_FORKS=7'; echo $?) == 0 ))
+echo worker-rpc-watchdog > "$fixture/untracked.txt"
+run_validate "$fixture" integration --scope server
+check "the runner's worker RPC watchdog is raised to three minutes (#437)" $(( rc == 0 && $(ran '^watchdog: VITEST_WORKER_RPC_TIMEOUT_MS=180000$'; echo $?) == 0 ))
+echo worker-rpc-watchdog-inherited > "$fixture/untracked.txt"
+export VITEST_WORKER_RPC_TIMEOUT_MS=90000
+run_validate "$fixture" integration --scope server
+unset VITEST_WORKER_RPC_TIMEOUT_MS
+check "an inherited worker RPC watchdog wins" $(( $(ran '^watchdog: VITEST_WORKER_RPC_TIMEOUT_MS=90000$'; echo $?) == 0 ))
 write_standard_fake_pnpm
 
 echo unhandled-errors-clean > "$fixture/untracked.txt"

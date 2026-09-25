@@ -38,6 +38,9 @@
 #   VALIDATE_GATE_LOCK_DIR=D  Where the slot lock files live (default $HOME/.cache/<slug>-validate)
 #   VITEST_MAX_FORKS=N        Test workers per runner; default cores - 2, leaving the runner's own main
 #   VITEST_MAX_THREADS=N      process a core (#475). An inherited value wins, for a one-off experiment.
+#   VITEST_WORKER_RPC_TIMEOUT_MS=N  The test workers' RPC watchdog (patches/vitest@*.patch); default 180000,
+#                             three times vitest's 60 s (#437). Whole milliseconds, 1 to 2147483647; anything
+#                             else keeps vitest's 60 s. An inherited value wins.
 #
 # Extra args after -- are passed to the underlying command (and disable the result cache). For test and
 # integration they reach one package's runner, so a selection that mixes the client (the Angular builder)
@@ -874,11 +877,17 @@ SELECTED_LINE_PATTERN='^selected [^:]+: [0-9]+ test files, ([0-9]+) tests run'
 # Left to those counts the output of such a run is indistinguishable from a green one, so it is named.
 UNHANDLED_ERRORS_SUMMARY_PATTERN='^[[:space:]]*Errors[[:space:]]+([0-9]+)[[:space:]]+errors?[[:space:]]*$'
 # The commonest one by far, and the only one no diff can fix: vitest's worker RPC watchdog
-# (`[vitest-worker]: Timeout calling "onTaskUpdate"`). It is birpc's DEFAULT_TIMEOUT, hard-coded in
-# vitest 3.2.7 with no option or environment variable behind it, and it fires when neither side of the
-# worker channel makes progress for that long — starvation, not a slow test, which `testTimeout` fails first.
+# (`[vitest-worker]: Timeout calling "onTaskUpdate"`). Unpatched it is birpc's hard-coded 60 s
+# DEFAULT_TIMEOUT, which a starved runner outran with every test green (#437); patches/vitest@*.patch
+# reads VITEST_WORKER_RPC_TIMEOUT_MS instead. Three times the default absorbs gate contention. The same
+# timer also bounds the worker's module fetches during collection, which no test or hook timeout covers,
+# so a genuine hang there (a stuck vite plugin, a deadlocked runner) now takes up to 180 s to report,
+# still inside an agent's 600 s command limit.
 RUNNER_RPC_TIMEOUT_MARKER='Timeout calling'
-RUNNER_RPC_TIMEOUT_SECONDS=60
+RUNNER_RPC_TIMEOUT_MS=180000
+RUNNER_RPC_UNPATCHED_TIMEOUT_MS=60000 # what the patch falls back to for a value it does not accept
+RUNNER_RPC_MAX_TIMEOUT_MS=2147483647  # setTimeout's largest delay: the patch refuses a larger one, which would fire at once
+MILLISECONDS_PER_SECOND=1000
 
 # Worker cap (#475). Vitest's forks pool defaults to `availableParallelism() - 1` workers, and forgets
 # its own main process, which alone serves the vite transforms, the coverage collection and the
@@ -967,8 +976,22 @@ unhandled_error_report() { # <runner output>
   echo "validate.sh: the runner reported $errors unhandled $noun outside its tests, and exited non-zero:"
   echo "validate.sh: this run is RED, whatever the passed counts above it say. An unhandled error fails the run."
   [[ $timeouts -gt 0 ]] || return 0
-  echo "validate.sh: $timeouts of them is a \"$RUNNER_RPC_TIMEOUT_MARKER\" error: the runner's ${RUNNER_RPC_TIMEOUT_SECONDS}s worker RPC watchdog."
-  echo "validate.sh: that is infrastructure, not this branch — the runner made no progress for ${RUNNER_RPC_TIMEOUT_SECONDS}s, which no diff causes and none fixes."
+  # A marker line is not an error: one error can print it on more than one line.
+  [[ $timeouts -le $errors ]] || timeouts=$errors
+  local timeout_errors="are \"$RUNNER_RPC_TIMEOUT_MARKER\" errors"
+  [[ $timeouts -ne 1 ]] || timeout_errors="is a \"$RUNNER_RPC_TIMEOUT_MARKER\" error"
+  local timeout_ms=$RUNNER_RPC_UNPATCHED_TIMEOUT_MS
+  local configured="${VITEST_WORKER_RPC_TIMEOUT_MS:-}"
+  configured="${configured#"${configured%%[!0]*}"}" # the patch reads leading zeros as decimal, and so must bash
+  # The patch's own rule: whole milliseconds, 1 to setTimeout's largest delay (length first: no bash overflow).
+  if [[ "$configured" =~ ^[1-9][0-9]*$ && ${#configured} -le ${#RUNNER_RPC_MAX_TIMEOUT_MS} ]] &&
+    ((configured <= RUNNER_RPC_MAX_TIMEOUT_MS)); then
+    timeout_ms=$configured
+  fi
+  local watchdog="${timeout_ms}ms" # a sub-second experiment would read as 0s
+  [[ $((timeout_ms % MILLISECONDS_PER_SECOND)) -ne 0 ]] || watchdog="$((timeout_ms / MILLISECONDS_PER_SECOND))s"
+  echo "validate.sh: $timeouts of them $timeout_errors: the runner's $watchdog worker RPC watchdog."
+  echo "validate.sh: that is infrastructure, not this branch — the runner made no progress for $watchdog, which no diff causes and none fixes."
   echo "validate.sh: re-run it, on a quieter box (docs/engineering/validation-gate.md §1)."
 }
 
@@ -997,6 +1020,7 @@ run_package_tests() { # <test | integration> <extra args...>
   local workers
   workers="$(runner_worker_limit)"
   export VITEST_MAX_FORKS="${VITEST_MAX_FORKS:-$workers}" VITEST_MAX_THREADS="${VITEST_MAX_THREADS:-$workers}"
+  export VITEST_WORKER_RPC_TIMEOUT_MS="${VITEST_WORKER_RPC_TIMEOUT_MS:-$RUNNER_RPC_TIMEOUT_MS}"
   if [[ "$cmd" == test ]]; then
     output="$(pnpm "${PNPM_SELECTION[@]}" test "${RUNNER_ARGS[@]}" 2>&1)" || rc=$?
   else

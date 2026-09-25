@@ -49,15 +49,23 @@
      read `Tests 2449 passed (2449)` — output indistinguishable from a green run, which only the exit
      code contradicts. `test` and `integration` fail on that count, in their last lines, whatever the
      runner's own exit code was, and such a run is never stamped green. The commonest one is vitest's
-     **worker RPC watchdog** (`[vitest-worker]: Timeout calling "onTaskUpdate"`), which fires when
-     neither side of the worker channel makes progress for **60 s** — birpc's `DEFAULT_TIMEOUT`,
-     hard-coded in vitest 3.2.7 with no option or environment variable behind it. In the unit tier that
-     is starvation and not a slow test, because `testTimeout` is 5 s there: a test slow enough to matter
-     fails on its own long before 60 s, so a unit run where every test passed and the watchdog still
-     fired is infrastructure, not the branch — re-run it on a quieter box rather than looking for the
-     cause in the diff. In the opt-in tier the watchdog is the tighter of the two (`OPT_IN_TEST_TIMEOUT_MS`
-     is 300 s), so there a scenario that holds its worker for a minute without yielding can trip it on
-     its own, and that one is the branch's;
+     **worker RPC watchdog** (`[vitest-worker]: Timeout calling "onTaskUpdate"`): a timer in each test
+     worker that fails the run when the runner has not acknowledged an update the worker sent. Unpatched
+     it is birpc's `DEFAULT_TIMEOUT`, **60 s** hard-coded in vitest 3.2.7 with no option behind it (`teardownTimeout` is the pool's
+     shutdown budget, not this; the only seam is a custom pool that copies vitest's own), and a
+     starved runner outran it with every test green (#437). `patches/vitest@3.2.7.patch` (pnpm's
+     `patchedDependencies`) makes it read `VITEST_WORKER_RPC_TIMEOUT_MS` (whole milliseconds, 1 to
+     2147483647, `setTimeout`'s largest delay; anything else keeps the 60 s), which `test` and `integration`
+     set to **180 s**, three times vitest's own, and an inherited value wins. The same timer also bounds the
+     worker's module fetches during collection, which no `testTimeout` or `hookTimeout` covers, so a genuine
+     hang there (a stuck vite plugin, a deadlocked runner) now takes up to 180 s to report instead of 60 s,
+     still well inside an agent's 600 s command limit. A test that fails or hangs still fails on its own
+     assertion or `testTimeout` (5 s in the unit tier); an opt-in scenario (`OPT_IN_TEST_TIMEOUT_MS`, 300 s)
+     that blocks its worker for longer than the watchdog can trip it on its own, and that one is the
+     branch's. So a unit run where every test passed and the watchdog still fired is infrastructure, a
+     runner that made no progress for three minutes, not the branch: re-run it on a quieter box rather than
+     looking for the cause in the diff. A vitest upgrade fails `pnpm install` on the unused patch until it
+     is ported to the new version's `dist` (`pnpm patch vitest@<version>`) or dropped;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
      package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
      filtered or path-scoped `test` has no coverage floor; typecheck builds shared first when stale);
