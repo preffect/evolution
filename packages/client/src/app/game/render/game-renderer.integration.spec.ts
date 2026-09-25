@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { MILLISECONDS_PER_SECOND, MOTION_CLIPS, entityId, type DnaFragmentView } from '@evolution/shared';
-import { ParticleContainer } from 'pixi.js';
+import { ParticleContainer, type Container } from 'pixi.js';
 import {
   TEST_OWN_PLAYER_ID,
   createTestCellAbsorbedEffect,
@@ -49,6 +49,14 @@ function packed(subject: GameRenderer, row: number, field: CellInstanceScalar): 
   return subject.cellInstances[row * CELL_INSTANCE_FLOATS + texel * TEXEL_FLOATS + channel] ?? Number.NaN;
 }
 
+/** The layer drawn at `zIndex`: on the world root, or in the drawn band that sits last on it (`layers.ts`, #408). */
+function layerAt(stage: Container, zIndex: number): Container {
+  const world = stage.children[0]!;
+  const band = world.children.at(-1)!;
+  const layers = [...world.children.filter((child) => child !== band), ...band.children];
+  return layers.find((layer) => layer.zIndex === zIndex)!;
+}
+
 describe('food and effects through the renderer', () => {
   it('uploads every mote as a particle of one container and every fragment as a sprite, and counts them', () => {
     const { subject, pixi } = renderer();
@@ -59,14 +67,13 @@ describe('food and effects through the renderer', () => {
     const fragments: DnaFragmentView[] = [{ id: entityId('f'), x: 0, y: 30, tag: 'photic' }];
     const outputs = subject.render(atMs(0, { motes, fragments }), TEST_OWN_PLAYER_ID, INPUTS, NO_SUBMIT);
     expect(outputs).toMatchObject({ visibleMotes: 2, fragments: 1, effectSprites: 0 });
-    const world = pixi.stage.children[0]!;
-    const foodLayer = world.children.find((layer) => layer.zIndex === LAYER_Z.food)!;
+    const foodLayer = layerAt(pixi.stage, LAYER_Z.food);
     const particles = foodLayer.children[0]!.children[0] as ParticleContainer;
     expect(particles).toBeInstanceOf(ParticleContainer);
     // Two motes plus the rod's unrotated glint particle.
     expect(particles.particleChildren).toHaveLength(3);
     expect(new Set(particles.particleChildren.map((particle) => particle.texture.source)).size).toBe(1);
-    const fragmentLayer = world.children.find((layer) => layer.zIndex === LAYER_Z.fragments)!;
+    const fragmentLayer = layerAt(pixi.stage, LAYER_Z.fragments);
     expect(fragmentLayer.children[0]!.children).toHaveLength(1);
     subject.destroy();
   });

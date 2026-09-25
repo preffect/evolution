@@ -4,6 +4,7 @@ import {
   CAMERA_MIN_VIEW_HALF_HEIGHT_WU,
   CAMERA_VIEW_RADIUS_EXPONENT,
   DEFAULT_BALANCE,
+  INTEREST_VIEW_ASPECT_RATIO,
   radiusForMass,
   viewHalfHeightFor,
 } from '@evolution/shared';
@@ -12,6 +13,7 @@ import { markdownSection, readRepoDocument, tableCells } from '../../../testing/
 // half-height is shared too, and pinned here against §7's table.
 import {
   cameraExtent,
+  drawnWidthPx,
   hasViewportHeight,
   isDiscVisibleInExtent,
   screenOffsetToWorld,
@@ -101,6 +103,17 @@ describe('zoom, extent and projections', () => {
   it('spans the viewport aspect around the centre', () => {
     expect(cameraExtent(state, VIEWPORT)).toEqual({ minX: -860, maxX: 1060, minY: -490, maxY: 590 });
     expect(cameraExtent(state, { width: 100, height: 0 }).maxX).toBe(640);
+  });
+
+  it('caps the drawn world width at the interest aspect, so a 3:1 canvas sees 2.4 × its visible height (#408)', () => {
+    const ultrawide = { width: 3000, height: 1000 };
+    const extent = cameraExtent(state, ultrawide);
+    expect(extent.maxX - extent.minX).toBeCloseTo(INTEREST_VIEW_ASPECT_RATIO * (extent.maxY - extent.minY), 9);
+    expect((extent.minX + extent.maxX) * HALF).toBeCloseTo(state.x, 9);
+    expect(drawnWidthPx(ultrawide)).toBeCloseTo(INTEREST_VIEW_ASPECT_RATIO * ultrawide.height, 9);
+    expect(zoomFor(state, ultrawide)).toBe((ultrawide.height * HALF) / state.viewHalfHeightWu);
+    expect(drawnWidthPx(VIEWPORT)).toBe(VIEWPORT.width);
+    expect(drawnWidthPx({ width: 3440, height: 1440 })).toBe(3440);
   });
 
   it('maps world to screen and back', () => {
