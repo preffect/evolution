@@ -28,8 +28,7 @@ stencil rectangle that clips every layer above the field to the drawn band (`lay
 and popped once a frame; a narrower canvas has no mask and pays nothing. Its two edges fade into the field colour
 rather than cutting a cell with a straight line (#684): two sprites of the `BAND_EDGE_FADE_BAKE` ramp in the screen
 root, over the band's edges, under the vignette and batched into its draw call (`band-edge-fade.ts`; hidden, and free,
-on a narrower canvas). The screen root must stay above the world root: a staged build moves both onto the stage in
-their staged order (`renderer-slot.ts`), since the field is opaque. Culling: cells whose
+on a narrower canvas). Culling: cells whose
 drawing cannot reach `cameraExtent` are not uploaded — the reach is the widest any frame of the cell draws
 (`cells/cell-cull.ts`: `cellDrawExtentRadii` sprinting at top speed with the widest clip, or its widest ring's px
 floor), tested with no further margin (#529); motes and fragments are all uploaded (the bench load's quads are
