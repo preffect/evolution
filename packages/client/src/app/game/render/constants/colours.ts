@@ -7,6 +7,8 @@ import { DNA_TAG, ZONE_ID, type DnaTag, type TraitId, type ZoneId } from '@evolu
 // ---- field and dish (sheet 01 / sheet 02) ----
 export const BG_DEEP = '#04070d';
 export const BG_FIELD = '#0b1626';
+/** The drawn band's edges fade into the field (#684). */
+export const BAND_EDGE_FADE = BG_FIELD;
 /** The condenser colour; doubles as the UI accent. */
 export const LIGHT_ACCENT = '#7fe7f5';
 export const OUTSIDE_DISH = '#02040a';

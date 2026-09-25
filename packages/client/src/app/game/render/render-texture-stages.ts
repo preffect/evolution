@@ -27,7 +27,7 @@ import { bakeLightPool } from './textures/light-pool-bake';
 import { moteTextures } from './textures/mote-textures';
 import { bakeOrganelleAtlas } from './textures/organelle-atlas';
 import { byteDataTexture, texturesFromBakes } from './textures/pixi-textures';
-import { SOFT_DISC_BAKE, VIGNETTE_BAKE } from './textures/radial-bake';
+import { BAND_EDGE_FADE_BAKE, SOFT_DISC_BAKE, VIGNETTE_BAKE } from './textures/radial-bake';
 import { bakeVentSprite, type VentSprite } from './textures/vent-bake';
 
 function organelleTextures(
@@ -61,6 +61,7 @@ export function stageSharedRenderTextures(
   let lightPoolTexture: Texture | undefined;
   let glowTexture: Texture | undefined;
   let vignetteTexture: Texture | undefined;
+  let bandEdgeFadeTexture: Texture | undefined;
   let palette: TextureSource | undefined;
   let glow: Readonly<Record<GlowSpriteKey, Texture>> | undefined;
   let motes: SharedRenderTextures['motes'] | undefined;
@@ -69,6 +70,7 @@ export function stageSharedRenderTextures(
     () => (lightPoolTexture = baker.textureFromBake(bakeLightPool(baker))),
     () => (glowTexture = baker.bakeRadial(SOFT_DISC_BAKE)),
     () => (vignetteTexture = baker.bakeRadial(VIGNETTE_BAKE)),
+    () => (bandEdgeFadeTexture = baker.bakeRadial(BAND_EDGE_FADE_BAKE)),
     () => (palette = paletteTexture()),
     () => (glow = texturesFromBakes(bakeGlowAtlas(baker), (bake) => baker.textureFromBake(bake))),
     () => (motes = moteTextures(baker)),
@@ -77,6 +79,7 @@ export function stageSharedRenderTextures(
   return new StagedBake(steps, () => ({
     glowTexture: baked(glowTexture, 'glowTexture'),
     vignetteTexture: baked(vignetteTexture, 'vignetteTexture'),
+    bandEdgeFadeTexture: baked(bandEdgeFadeTexture, 'bandEdgeFadeTexture'),
     paletteTexture: baked(palette, 'paletteTexture'),
     glow: baked(glow, 'glow'),
     motes: baked(motes, 'motes'),

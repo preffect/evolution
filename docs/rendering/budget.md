@@ -25,7 +25,10 @@ Total **≤ 17 draw calls** (counted by wrapping the GL draw functions in the be
 with debug off, which leaves **1** call of headroom; the arc mesh is one instanced call at any arc count (§10), so
 the effects row never grows with the indicators. A canvas wider than `INTEREST_VIEW_ASPECT_RATIO` (2.4:1) adds 2: the
 stencil rectangle that clips every layer above the field to the drawn band (`layers.ts` `applyDrawnBand`, #408), pushed
-and popped once a frame; a narrower canvas has no mask and pays nothing. Culling: cells whose
+and popped once a frame; a narrower canvas has no mask and pays nothing. Its two edges fade into the field colour
+rather than cutting a cell with a straight line (#684): two sprites of the `BAND_EDGE_FADE_BAKE` ramp in the screen
+root, over the band's edges, under the vignette and batched into its draw call (`band-edge-fade.ts`; hidden, and free,
+on a narrower canvas). Culling: cells whose
 drawing cannot reach `cameraExtent` are not uploaded — the reach is the widest any frame of the cell draws
 (`cells/cell-cull.ts`: `cellDrawExtentRadii` sprinting at top speed with the widest clip, or its widest ring's px
 floor), tested with no further margin (#529); motes and fragments are all uploaded (the bench load's quads are

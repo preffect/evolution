@@ -1,9 +1,21 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { bytesChecksum } from '../../../../testing/bytes';
-import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED } from '../colour';
-import { GLOW_TEXTURE_PX, VIGNETTE_ALPHA, VIGNETTE_RADIUS_FRACTION, VIGNETTE_TEXTURE_PX, WHITE } from '../constants';
+import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, hexToRgb } from '../colour';
 import {
+  BAND_EDGE_FADE,
+  BAND_EDGE_FADE_ALPHA,
+  BAND_EDGE_FADE_EDGE_STOP,
+  BAND_EDGE_FADE_MID,
+  BAND_EDGE_FADE_TEXTURE_PX,
+  GLOW_TEXTURE_PX,
+  VIGNETTE_ALPHA,
+  VIGNETTE_RADIUS_FRACTION,
+  VIGNETTE_TEXTURE_PX,
+  WHITE,
+} from '../constants';
+import {
+  BAND_EDGE_FADE_BAKE,
   RADIAL_BAKE_SHAPE,
   SOFT_DISC_BAKE,
   VIGNETTE_BAKE,
@@ -114,6 +126,40 @@ describe('bakeRadialBytes of the soft disc', () => {
     expect(alphaAt(square, size, 0, 0)).toBeGreaterThanOrEqual(nearOpaque);
     expect(alphaAt(disc, size, 0, 0)).toBe(0);
     expect(alphaAt(square, size, size - 1, middle)).toBe(alphaAt(disc, size, size - 1, middle));
+  });
+});
+
+describe('bakeRadialBytes of the band edge ramp (#684)', () => {
+  const size = BAND_EDGE_FADE_TEXTURE_PX;
+  /** A pixel centre sits half a texel past its column's offset: at the ramp's steepest, about this many alpha bytes. */
+  const halfTexelBytes = 12;
+  const bytes = bakeRadialBytes(BAND_EDGE_FADE_BAKE);
+  const columnAlphas = (y: number): number[] =>
+    Array.from({ length: size }, (_unused, x) => alphaAt(bytes, size, x, y));
+
+  it('rises from near clear at its left column to BAND_EDGE_FADE_ALPHA at the edge stop, then feathers back out', () => {
+    const alphas = columnAlphas(0);
+    const edgeColumn = Math.round(BAND_EDGE_FADE_EDGE_STOP * size);
+    expect(alphas[0]).toBeLessThanOrEqual(halfTexelBytes);
+    expect(Math.abs(alphas[edgeColumn]! - BAND_EDGE_FADE_ALPHA * CHANNEL_MAX)).toBeLessThanOrEqual(halfTexelBytes);
+    for (let x = 1; x < edgeColumn; x += 1) expect(alphas[x]).toBeGreaterThanOrEqual(alphas[x - 1]!);
+    for (let x = edgeColumn + 1; x < size; x += 1) expect(alphas[x]).toBeLessThanOrEqual(alphas[x - 1]!);
+    expect(alphas.at(-1)).toBeLessThanOrEqual(halfTexelBytes);
+  });
+
+  it('eases in: at the middle stop column it is at that stop alpha, well under half the edge alpha', () => {
+    const middleAlpha = alphaAt(bytes, size, Math.round(BAND_EDGE_FADE_MID.stop * size), 0);
+    expect(Math.abs(middleAlpha - BAND_EDGE_FADE_MID.alpha * CHANNEL_MAX)).toBeLessThanOrEqual(halfTexelBytes);
+    expect(BAND_EDGE_FADE_MID.alpha).toBeLessThan(BAND_EDGE_FADE_ALPHA / 2);
+  });
+
+  it('shades every row alike, in the field colour premultiplied', () => {
+    expect(columnAlphas(size - 1)).toEqual(columnAlphas(0));
+    const edge = radialPixelOffset(size, Math.round(BAND_EDGE_FADE_EDGE_STOP * size), size / 2);
+    const alpha = bytes[edge + ALPHA]! / CHANNEL_MAX;
+    const field = hexToRgb(BAND_EDGE_FADE);
+    expect(bytes[edge + RED]).toBe(Math.round(field[RED] * alpha * CHANNEL_MAX));
+    expect(bytes[edge + BLUE]).toBe(Math.round(field[BLUE] * alpha * CHANNEL_MAX));
   });
 });
 

@@ -3,7 +3,7 @@
 // It comes in two halves (ticket #442): `SharedRenderTextures`, which no seed reaches and which
 // `renderer-slot.ts` bakes once per Pixi app and keeps, and `SeededRenderTextures`, which a rematch re-bakes.
 // Two bake paths, one `TextureBaker` seam (`pixi-texture-baker.ts` in the app, a fake in tests,
-// since jsdom has no canvas): the radial bakes sampled into bytes (the soft disc, the vignette;
+// since jsdom has no canvas): the radial bakes sampled into bytes (the soft disc, the vignette, the band edge ramp;
 // textures/radial-bake.ts) and the Canvas-2D bakes (the glow, mote and organelle atlases, the dish
 // field, the vent sprite, the view-anchored light pool).
 // The noise strip, the noise tile and the palette are bytes, uploaded as data textures for the
@@ -62,6 +62,8 @@ export interface SharedRenderTextures {
   readonly glowTexture: Texture;
   /** The screen-space vignette: clear inside `VIGNETTE_RADIUS_FRACTION`, the vignette colour at the corners. */
   readonly vignetteTexture: Texture;
+  /** The drawn band's edge ramp (#684): clear on its left, the field colour on its right; mirrored for the left edge. */
+  readonly bandEdgeFadeTexture: Texture;
   /** The 8 × 8 palette shades (palette.ts), one row per palette, read with `texelFetch`. */
   readonly paletteTexture: TextureSource;
   readonly glow: Readonly<Record<GlowSpriteKey, Texture>>;
@@ -130,6 +132,7 @@ export function destroySharedRenderTextures(textures: SharedRenderTextures): voi
   const sprites: Texture[] = [
     textures.glowTexture,
     textures.vignetteTexture,
+    textures.bandEdgeFadeTexture,
     textures.lightPoolTexture,
     ...Object.values(textures.glow),
   ];

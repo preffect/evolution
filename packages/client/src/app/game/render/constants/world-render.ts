@@ -59,6 +59,18 @@ export const OUTSIDE_DISH_ALPHA = 0.92;
 export const VIGNETTE_ALPHA = 0.55;
 export const VIGNETTE_RADIUS_FRACTION = 0.72;
 export const VIGNETTE_TEXTURE_PX = 512;
+/**
+ * The drawn band's edge fades (#684): on a canvas wider than the interest aspect, a ramp over each band edge washes
+ * the clipped layers into the field colour so a cell straddling the edge fades out rather than meeting a straight cut.
+ * Its width is a fraction of the view height (72 px on a 1200 px tall canvas). The ramp eases in through `MID`, is at
+ * `ALPHA` where it meets the band edge (`EDGE_STOP` of its width), and feathers back to clear over the field outside,
+ * so the flat wash never ends in a crisp line against the lit field.
+ */
+export const BAND_EDGE_FADE_WIDTH_VIEW_FRACTION = 0.06;
+export const BAND_EDGE_FADE_ALPHA = 1;
+export const BAND_EDGE_FADE_EDGE_STOP = 0.8;
+export const BAND_EDGE_FADE_MID = { stop: 0.4, alpha: 0.3 } as const;
+export const BAND_EDGE_FADE_TEXTURE_PX = 64;
 export const VENT_SHIMMER_SCALE_PX = 6;
 export const VENT_SHIMMER_SPEED_WU_PER_SECOND = 40;
 export const VENT_GLINT_HZ_MIN = 6;

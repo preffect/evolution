@@ -132,10 +132,14 @@ describe('GameRenderer', () => {
     const { renderer: subject, stage } = renderer();
     // The band sits last under the world root, above the field layers (`layers.ts`).
     const band = stage.children[0]!.children.at(-1);
+    const edgeFades = () => stage.children[1]!.children.filter((child) => child instanceof Sprite).slice(0, -1);
     subject.resize({ width: 3000, height: 1000 });
     expect(band?.mask).toBeTruthy();
+    // The band's edge fades show only while it clips, under the vignette (#684).
+    expect(edgeFades().map((fade) => fade.visible)).toEqual([true, true]);
     subject.resize({ width: 1920, height: 1080 });
     expect(band?.mask).toBeFalsy();
+    expect(edgeFades().map((fade) => fade.visible)).toEqual([false, false]);
     subject.destroy();
   });
 
@@ -143,7 +147,8 @@ describe('GameRenderer', () => {
     const { renderer: subject, stage } = renderer();
     subject.resize({ width: 300, height: 200 });
     const screen = stage.children[1]!;
-    const vignette = screen.children.find((child) => child instanceof Sprite);
+    // The vignette is the last sprite of the screen root, over the band's edge fades.
+    const vignette = screen.children.filter((child) => child instanceof Sprite).at(-1);
     expect(vignette?.width).toBe(300);
     expect(vignette?.height).toBe(200);
     subject.destroy();

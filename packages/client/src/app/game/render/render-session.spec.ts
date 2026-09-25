@@ -20,6 +20,9 @@ import {
 } from '../../../testing/render-session-harness';
 import { FIELD_TEXTURE_PX, RENDER_REPORT_EVERY_FRAMES } from './constants';
 
+/** The soft disc, the vignette and the band edge ramp (#684): baked once per Pixi app. */
+const RADIAL_BAKES_PER_APP = 3;
+
 describe('RenderSession', () => {
   it('creates the Pixi app once, on the first game_state, and takes over its ticker', async () => {
     const { subject, pixi, dependencies } = session();
@@ -28,11 +31,11 @@ describe('RenderSession', () => {
     await settle(subject, pixi);
     expect(dependencies.createPixiApp).toHaveBeenCalledTimes(1);
     expect(pixi.tickerCallbacks).toHaveLength(1);
-    expect(pixi.bakedSpecs).toHaveLength(2);
+    expect(pixi.bakedSpecs).toHaveLength(RADIAL_BAKES_PER_APP);
     subject.onMessage(gameState());
     await settle(subject, pixi);
     expect(dependencies.createPixiApp).toHaveBeenCalledTimes(1);
-    expect(pixi.bakedSpecs).toHaveLength(2);
+    expect(pixi.bakedSpecs).toHaveLength(RADIAL_BAKES_PER_APP);
   });
 
   it('rebuilds the renderer once when a snapshot carries a new round seed (a rematch sends no game_state)', async () => {
@@ -53,7 +56,7 @@ describe('RenderSession', () => {
     await settle(subject, pixi);
     expect(pixi.bakedCanvases).toHaveLength(afterFirstBuild + oneRebuild * 2);
     // The seed-independent half was baked on the first build and kept across both rematches (ticket #442).
-    expect(pixi.bakedSpecs).toHaveLength(2);
+    expect(pixi.bakedSpecs).toHaveLength(RADIAL_BAKES_PER_APP);
     expect(pixi.stage.children).toHaveLength(2);
     expect(subject.store.latestSnapshot()?.tick).toBe(6);
   });
@@ -116,7 +119,7 @@ describe('RenderSession', () => {
     expect(createPixiApp).toHaveBeenCalledTimes(1);
     // Two builds queued behind the one app, the first superseded before it began: it bakes nothing (#479 review),
     // and the second bakes the seed-independent half and its own seeded one.
-    expect(pixi.bakedSpecs).toHaveLength(2);
+    expect(pixi.bakedSpecs).toHaveLength(RADIAL_BAKES_PER_APP);
     expect(pixi.bakedCanvases.filter((canvas) => canvas.width === FIELD_TEXTURE_PX)).toHaveLength(1);
     expect(pixi.stage.children).toHaveLength(2);
     expect(subject.startupError).toBeNull();

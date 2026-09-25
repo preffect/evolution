@@ -57,7 +57,11 @@ of the values already drawn; this section names the roles and adds what the shee
 
 **Field and dish.** `BG_DEEP` / `BG_FIELD`, the condenser pool, caustics, wall band, rim scatter,
 hairline, vignette: sheet 02, field and dish-wall tables. `LIGHT_ACCENT` `#7fe7f5` is the condenser
-colour and doubles as the UI accent (§7).
+colour and doubles as the UI accent (§7). On a canvas wider than the 2.4:1 interest aspect, the drawn band's two
+edges fade into `BAND_EDGE_FADE` (= `BG_FIELD`) over a ramp `BAND_EDGE_FADE_WIDTH_VIEW_FRACTION` (6 %) of the view
+height wide: eased in (30 % at `BAND_EDGE_FADE_MID`), `BAND_EDGE_FADE_ALPHA` 100 % on the edge
+(`BAND_EDGE_FADE_EDGE_STOP`, 80 % across), then feathered back to clear over the field beyond it, so a cell the band
+clips dissolves into the water and the wash never ends in a crisp line (#684).
 
 **Zones** ([`ecology/food-and-spawn.md §2`](../ecology/food-and-spawn.md#2-zones) owns geometry; sheet 02's zone table owns tint,
 alpha, cloud and mote density; the roles map as follows):
