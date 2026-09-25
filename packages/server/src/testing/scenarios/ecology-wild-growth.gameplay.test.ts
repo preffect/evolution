@@ -83,8 +83,14 @@ const W10_SEAT_MASS_AFTER_START_TICK = 493.59;
 /** "Seat 0 ≈ 493.20 (± 0.01)" after 21 601: the settle's 494.022 + (−0.412 × q), less 0.411 of contact toxin. */
 const W10_SEAT_MASS_AFTER_SECOND_TICK = 493.2;
 const W10_TOLERANCE = 0.01;
-/** The wound recovers with the 6 s time constant: no new engulf of P within 360 ticks of the release. */
+/** The wound recovers with the 6 s time constant: the trace checks at least that many ticks of it. */
 const W10_RECOVERY_TICKS = wildCells.WILD_CELL_RECOVERY_SECONDS * TICK_HZ;
+/**
+ * The first tick seat 0 weighs 1.25 × P again, 349 ticks after the release; no new engulf of P before it. Since #677
+ * the 494-mass seat swims at the full top speed and leaves P's toxin within a few ticks, so less drain slows its
+ * recovery than when it swam at its mass curve's 96 wu/s (≥ 360 ticks before #677).
+ */
+const W10_FIRST_HEAVY_ENOUGH_TICK = 21_991;
 /** How long after the release the trace runs: past the tick seat 0 is heavy enough to start on P again. */
 const W10_TRACE_TICKS = 600;
 /** "Ratio 1.3 → massFactor 1.25 / 1.3": the cover rate (1/69.2 a tick), and the progress after the start tick. */
@@ -252,7 +258,7 @@ describe('ecology/acceptance.md §8.1: what happens to a wild cell sticks', () =
 
 /**
  * W10 after the release: on every tick seat 0 is clear of P's toxin (contact) and not sprinting, its deficit is the
- * previous tick's × q; it starts no new engulf of P within 360 ticks, and only once it weighs 1.25 × P.
+ * previous tick's × q; it weighs 1.25 × P again only on the pinned tick, and starts no new engulf of P before it.
  */
 function expectWoundKeptAfterRelease(trace: ReadonlyMap<number, SeatTraceRow>): void {
   const recoveryPerTick = wildRecoveryFactorPerTick(DEFAULT_BALANCE);
@@ -265,13 +271,13 @@ function expectWoundKeptAfterRelease(trace: ReadonlyMap<number, SeatTraceRow>): 
       checkedTicks += 1;
     }
     if (row.isPreyEngulfed && previous !== undefined && !previous.isPreyEngulfed) {
-      expect(tick).toBeGreaterThanOrEqual(W10_RELEASE_TICK + W10_RECOVERY_TICKS);
+      expect(tick).toBeGreaterThanOrEqual(W10_FIRST_HEAVY_ENOUGH_TICK);
       expect(previous.seatMass).toBeGreaterThanOrEqual(absorption.ENGULF_MASS_RATIO * previous.preyMass);
     }
   }
   expect(checkedTicks).toBeGreaterThan(W10_RECOVERY_TICKS);
   const firstHeavyEnough = [...trace].find(([, row]) => row.seatMass >= absorption.ENGULF_MASS_RATIO * row.preyMass);
-  expect(firstHeavyEnough?.[0]).toBeGreaterThanOrEqual(W10_RELEASE_TICK + W10_RECOVERY_TICKS);
+  expect(firstHeavyEnough?.[0]).toBe(W10_FIRST_HEAVY_ENOUGH_TICK);
   // No meal after the release: growth only goes below zero, by what a sprint spends (the lead ruling on ticket #551).
   expect([...trace.values()].every((row) => row.grownMass <= 0)).toBe(true);
 }

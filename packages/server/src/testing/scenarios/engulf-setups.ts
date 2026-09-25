@@ -21,6 +21,7 @@ import { BROTH_POINT } from '../gameplay/placement.js';
 import { FULL_THROTTLE_RADII, decayed } from './shared-setups.js';
 
 export const absorption = DEFAULT_BALANCE.absorption;
+const controls = DEFAULT_BALANCE.controls;
 export const PREDATOR_MASS = 100;
 export const PREY_MASS = 20;
 export const CENTRE_DISTANCE_WU = 10;
@@ -63,18 +64,18 @@ export const E10_DECAY_GAP_WU = [E10_UNDER_RATIO_MASS, PREY_MASS].reduce(
   0,
 );
 /**
- * E9b: A steers 5 radii away from B from tick 1 and drags it along; the numbers the row states. Grabbing costs A no
+ * E9b: A steers away from B at `E9B_THROTTLE` from tick 1 and drags it along; the numbers the row states. Grabbing costs A no
  * speed since #634, so the seal no longer changes its cap: ticks 18 and 19 differ only by one tick's blend.
  */
-export const E9B_SEAL_DISTANCE_WU = 29.72;
-export const E9B_SEAL_WESTING_WU = 19.72;
+export const E9B_SEAL_DISTANCE_WU = 29.66;
+export const E9B_SEAL_WESTING_WU = 19.66;
 export const E9B_SPEED_TICK_1 = 9.8;
-export const E9B_SPEED_TICK_18 = 104.6;
-export const E9B_SPEED_TICK_19 = 107.5;
-export const E9B_SPEED_TICK_35 = 134.0;
+export const E9B_SPEED_TICK_18 = 104.3;
+export const E9B_SPEED_TICK_19 = 107.1;
+export const E9B_SPEED_TICK_35 = 133.6;
 /** "± 0.01 wu" (docs/ecology/acceptance.md §8) for a centre distance the row states to two decimals. */
 export const DISTANCE_TOLERANCE_WU = 0.01;
-/** E9b states the predator's westing as "≈ 19.72 wu"; the step gives 19.725, inside its own rounding. */
+/** E9b states the predator's westing as "≈ 19.66 wu"; the step gives 19.663, inside its own rounding. */
 export const APPROXIMATE_DISTANCE_TOLERANCE_WU = 0.05;
 /** E13 runs on the shortest legal round so the results tick is reachable in a test. */
 export const SHORT_ROUND_SECONDS = 60;
@@ -137,8 +138,16 @@ export const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof eng
   builder
     .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
     .from(tick + 1, player(1).does(awayFromPredator));
-/** The mirror for E9b, where it is the predator that steers away: the prey's placed centre. */
-export const awayFromPrey = targetRadiiAwayFrom(FULL_THROTTLE_RADII, {
+/**
+ * E9b's throttle: two thirds of the top speed. Every cell has the same top speed since #677, so at full throttle the
+ * 100-mass predator outran its own 31.05 wu reach before the seal; at 2/3 it drags its cover along as the row means.
+ */
+export const E9B_THROTTLE = 2 / 3;
+/** The steer distance that throttle takes: `STEER_DEAD_ZONE_RADII + throttle × (full − dead)` own radii. */
+const E9B_STEER_RADII =
+  controls.STEER_DEAD_ZONE_RADII + E9B_THROTTLE * (controls.STEER_FULL_THROTTLE_RADII - controls.STEER_DEAD_ZONE_RADII);
+/** The mirror for E9b, where it is the predator that steers away (at `E9B_THROTTLE`): the prey's placed centre. */
+export const awayFromPrey = targetRadiiAwayFrom(E9B_STEER_RADII, {
   x: BROTH_POINT.x + CENTRE_DISTANCE_WU,
   y: BROTH_POINT.y,
 });

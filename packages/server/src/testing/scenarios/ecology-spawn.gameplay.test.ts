@@ -2,11 +2,13 @@
 // hash-compared (`runDeterministic`). The placed rows are ecology-cells.gameplay.test.ts, the engulf rows
 // ecology-engulf*.gameplay.test.ts and the evolving-world rows (§8.1, W2–W10) ecology-wild*.gameplay.test.ts.
 
-import { describe, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, FOOD_KIND, TICK_HZ, distanceBetween } from '@evolution/shared';
 import { cellOf, foodCount, fragmentCount, type EvolutionView } from '../gameplay/evolution-views.js';
 import { withoutWildSeats } from '../gameplay/evolution-adapter.js';
+import { player } from '../gameplay/index.js';
 import { foodSpawnedSince, holdPopulationsAtZero, seededSolo } from './shared-setups.js';
+import { RUNS_PER_ROW, countWindow, createWindowCounts } from './wild-setups.js';
 
 const { ecology, world: dish, session } = DEFAULT_BALANCE;
 const ALGAE_SHARE_TOLERANCE = 0.06;
@@ -14,6 +16,16 @@ const SOLO_FOOD_CAP = ecology.FOOD_CAP_BASE + ecology.FOOD_CAP_PER_PLAYER;
 const SOLO_FRAGMENT_CAP = ecology.DNA_FRAGMENT_CAP_BASE + ecology.DNA_FRAGMENT_CAP_PER_PLAYER;
 /** E2 and E14 count over 610 ticks so that no count lands on the final tick. */
 const COUNT_WINDOW_TICKS = 610;
+/**
+ * E14 on the pinned seed: since #677 (every cell at the top speed) a wild cell eats the idle player once in the window
+ * (tick 29 023), and its 182-tick spectate takes the per-player rates off the budget:
+ * food 106.75 − 182 / 60 × 1 × 1.5 = 102.2 → "between 102 and 106" (106–110 with no death, before #677); fragments
+ * 8.13 − 182 / 60 × 0.1 × 2 = 7.53 → 7 (8 before).
+ */
+const E14_DEATHS_IN_WINDOW = 1;
+const E14_SPAWNED_LOW = 102;
+const E14_SPAWNED_HIGH = 106;
+const E14_FRAGMENTS_SPAWNED = 7;
 
 function algaeShare(view: EvolutionView): number {
   const motes = view.snapshot.food.spawned;
@@ -91,7 +103,12 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
   it('E14: the bloom multiplies the rates over a 610-tick window with the populations held at 0', async () => {
     const bloomStart = session.ROUND_BLOOM_START_FRACTION * session.ROUND_DURATION_SECONDS * TICK_HZ;
     const run = seededSolo('E14').advance(bloomStart + COUNT_WINDOW_TICKS);
-    holdPopulationsAtZero(run, bloomStart + 1, bloomStart + COUNT_WINDOW_TICKS);
+    const counts = createWindowCounts();
+    holdPopulationsAtZero(run, bloomStart + 1, bloomStart + COUNT_WINDOW_TICKS).between(
+      bloomStart + 2,
+      bloomStart + COUNT_WINDOW_TICKS,
+      player(0).does(countWindow(counts)),
+    );
     await run
       .capture('food at window start', (view) => view.snapshot.spawnedCounts.food)
       .atTick(bloomStart)
@@ -99,10 +116,11 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
       .atTick(bloomStart)
       .expect('food spawned in the window', foodSpawnedSince('food at window start'))
       .atEnd()
-      .toBeBetween(106, 110)
+      .toBeBetween(E14_SPAWNED_LOW, E14_SPAWNED_HIGH)
       .expect('fragments spawned in the window', fragmentsSpawnedSince('fragments at window start'))
       .atEnd()
-      .toBe(8)
+      .toBe(E14_FRAGMENTS_SPAWNED)
       .runDeterministic();
+    expect(counts.deaths).toBe(RUNS_PER_ROW * E14_DEATHS_IN_WINDOW);
   });
 });
