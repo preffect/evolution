@@ -95,7 +95,22 @@ A new worktree needs no setup: `./validate.sh` and `./run.sh` install dependenci
 The PR body follows `.github/PULL_REQUEST_TEMPLATE.md` (list the scoped checks you ran; the full gate runs at merge).
 Graphics PRs attach screenshots (`.qa/screenshots/` → commit copies under `qa/evidence/<pr>/`).
 
+## Talking to the lead
+
+Every message wakes its reader for a full turn, so each report reaches the lead exactly once.
+
+- **Your report is your final output.** When you stop, your last message is delivered to the lead
+  automatically. Never also send it with SendMessage: that delivers it twice.
+- **SendMessage the lead only mid-task**, for a question you cannot proceed without or something
+  urgent (you touched the human's live stack, a destructive mistake). Then stop and wait.
+- **No acknowledgements.** Never send "received", "noted" or "stopping now" as a message of its own.
+- **Waiting on something outside your task** (another PR to merge, a decision): say so in your final
+  report and stop. The lead sends "go" when it is ready. Never poll GitHub for it.
+- **Woken by a message you had already handled** (it crossed with your report): answer in one line,
+  "already done at <sha>", and stop. Do not repeat the report.
+
 ## When you are done
 
-End your run with a short report (this is captured in the log): what you changed, the PR URL,
-tickets touched, anything left open, and any new ticket you filed.
+End your run with a short report (this is captured in the log, and it is how the lead hears from you):
+what you changed, the PR URL, the checks you ran with their exit codes, tickets touched, anything left
+open, and any new ticket you filed.
