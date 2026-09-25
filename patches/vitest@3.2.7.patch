@@ -1,21 +1,25 @@
 diff --git a/dist/chunks/rpc.-pEldfrD.js b/dist/chunks/rpc.-pEldfrD.js
-index a48eb0174a4fbc508a36c46ff78b0f9bf7ba6295..2eba072fb33c8ce5731aa13ae7fef4b242909e65 100644
+index a48eb0174a4fbc508a36c46ff78b0f9bf7ba6295..3053a4322c7a2e7dbad85ac9314319f1c7b391aa 100644
 --- a/dist/chunks/rpc.-pEldfrD.js
 +++ b/dist/chunks/rpc.-pEldfrD.js
-@@ -34,6 +34,12 @@ async function rpcDone() {
+@@ -34,6 +34,16 @@ async function rpcDone() {
  	const awaitable = Array.from(promises);
  	return Promise.all(awaitable);
  }
 +// Patched for ticket #437: the worker's RPC watchdog is birpc's hard-coded 60 s DEFAULT_TIMEOUT, with no
-+// option behind it; a positive VITEST_WORKER_RPC_TIMEOUT_MS replaces it, and anything else keeps the default.
++// option behind it. VITEST_WORKER_RPC_TIMEOUT_MS replaces it when it is a whole number of milliseconds from 1 to
++// the largest delay setTimeout honours (a larger one fires at once); anything else keeps the default.
++const MAX_TIMER_DELAY_MS = 2147483647;
 +function workerRpcTimeout() {
-+	const configured = Number(globalThis.process?.env?.VITEST_WORKER_RPC_TIMEOUT_MS);
-+	return Number.isFinite(configured) && configured > 0 ? configured : undefined;
++	const configured = globalThis.process?.env?.VITEST_WORKER_RPC_TIMEOUT_MS ?? "";
++	if (!/^\d+$/.test(configured)) return undefined;
++	const milliseconds = Number(configured);
++	return milliseconds >= 1 && milliseconds <= MAX_TIMER_DELAY_MS ? milliseconds : undefined;
 +}
  function createRuntimeRpc(options) {
  	let setCancel = (_reason) => {};
  	const onCancel = new Promise((resolve) => {
-@@ -45,6 +51,7 @@ function createRuntimeRpc(options) {
+@@ -45,6 +55,7 @@ function createRuntimeRpc(options) {
  			"onCollected",
  			"onCancel"
  		],
