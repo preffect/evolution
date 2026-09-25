@@ -86,10 +86,8 @@ export const PREVIEW_CELL_BODY_FILL_FRACTION = PREVIEW_LENS_SAFE_RADIUS_FRACTION
 export const PREVIEW_CELL_DRAWN_FILL_FRACTION = PREVIEW_LENS_RIM_RADIUS_FRACTION - PREVIEW_LENS_FILL_MARGIN;
 
 /**
- * How far from the lens centre a swimming subject circles, in its own radii — and therefore, since the cell walks
- * that circle at its **own top speed**, how long a lap takes: `2πR / CELL_BASE_SPEED`. Widening the orbit is the
- * only way to slow it that keeps the stretch, the flagellum wave and the cilia beat reading the speed ratio the
- * simulation would have given it.
+ * How far from the lens centre a swimming subject circles, in its own radii — and, with the lap time fixed by
+ * `PREVIEW_SWIM_LAP_SECONDS`, how fast the cell walks that circle: `2πR / lap`.
  *
  * **1.2 is the human's decision on ticket #488, option B**, taken over 0.4 knowing its cost. At 0.4 the lap took
  * 0.683 s — about 1.5 orbits a second — which was an invisible jiggle while the lens was 4.4 radii wide and
@@ -100,12 +98,13 @@ export const PREVIEW_CELL_DRAWN_FILL_FRACTION = PREVIEW_LENS_RIM_RADIUS_FRACTION
 export const PREVIEW_SWIM_RADIUS_RADII = 1.2;
 
 /**
- * The share of its own top speed a swimming subject circles at. The human asked for a lap four times slower
- * (2026-09-23): 0.25 made the 2.05 s lap about 8.2 s (5.5 s since ticket #677 lifted mass 100 to the flat top
- * speed) without widening the orbit (which would shrink the cell),
- * and the stretch, tail wave and cilia beat read that cruising speed rather than a sped-up full-speed swim.
+ * How long a swimming subject takes to circle once (s). The human asked for a lap four times slower (2026-09-23):
+ * 8.2 s, a quarter of the old curve's top speed at mass 100, without widening the orbit (which would shrink the
+ * cell). Ticket #677 made every mass swim at `CELL_BASE_SPEED`, so the lap is now the fixed number and the swim speed
+ * is derived from it (`2πR / this`, about 0.167 of the top speed): the tempo the human chose stays, and the stretch,
+ * tail wave and cilia beat read that cruising speed rather than a sped-up full-speed swim.
  */
-export const PREVIEW_SWIM_SPEED_FRACTION = 0.25;
+export const PREVIEW_SWIM_LAP_SECONDS = 8.2;
 
 // ===== The action family (#364) =====
 
