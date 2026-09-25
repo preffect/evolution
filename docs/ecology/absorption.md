@@ -112,13 +112,12 @@ the rim impossible to finish: a slip drains instead of cancelling, and a grab, "
   than the wrap's 0.8, so the hold tightens as the arms close and a prey that reacts at once still has most of its
   speed. Grip traits move it exactly as they move the wrap: Amoeba Pseudopods III holds a plain prey at 0.55 from the
   first touch, and Cilia Fringe III (+0.15) cancels the grab outright (1.0, E18c).
-- `ENGULF_PREDATOR_SPEED_FACTOR` **1** (was 0.6): holding costs the predator nothing. The mass curve already makes it
-  the slower cell — at the start ratio 1.25 it swims at 1.25^−0.25 = 0.946 of the prey's free speed — so any factor
-  below 1 let the prey it held outrun it (at 0.6: 0.57 against the prey's 1.0, the playtest's "you slow down when you
-  grab"). At 1 a predator outpaces a plain held prey up to a ratio of 0.85^−4 ≈ 1.92 in cover and 0.8^−4 ≈ 2.44 in
-  wrap (pinned at the start ratio by `engulf-pace.test.ts`); a heavier one is slower on the mass curve alone, but its
-  reach (`predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`) is wider and its engulf shorter, and it is never
-  slowed further by the hold. `ENGULF_PREDATOR_SPEED_FACTOR_SEALED` stays 1: once sealed the prey is carried.
+- `ENGULF_PREDATOR_SPEED_FACTOR` **1** (was 0.6): holding costs the predator nothing. Every cell shares one top
+  speed (#677; before it the mass curve made the predator the slower cell, 0.946 of the prey at the start ratio), so
+  any factor below the prey's held factor lets the prey it holds outrun it (at 0.6: 0.57 against the prey's 1.0, the playtest's "you slow down when you
+  grab"). At 1 a predator of any mass outpaces a plain held prey (1 against 0.85 in cover and 0.8 in wrap,
+  pinned by `engulf-pace.test.ts`), and a heavier one also has a wider reach
+  (`predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`) and a shorter engulf. `ENGULF_PREDATOR_SPEED_FACTOR_SEALED` stays 1: once sealed the prey is carried.
 - The drain reuses `ENGULF_ESCAPE_DECAY_MULTIPLIER` **2**: a slip of n ticks costs 2n ticks of progress, and a prey
   that stays clear drains out in 0.1 s × `massFactor` from the end of the cover, 0.3 s × `massFactor` from the seal
   line. Escape is unchanged in kind: a sprint, a speed trait or the cilia still break contact and stay clear (E18b,

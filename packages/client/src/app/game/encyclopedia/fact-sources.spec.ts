@@ -75,9 +75,6 @@ function callOf<Id extends string, Argument>(
 
 const FORMULA_CALLS: { readonly [Id in FactFormulaId]: readonly FactFormulaCall[] } = {
   [FACT_FORMULA.radiusAtMass]: Object.values(BALANCE_MASS).map((mass) => callOf(FACT_FORMULA.radiusAtMass, { mass })),
-  [FACT_FORMULA.maxSpeedAtMass]: Object.values(BALANCE_MASS).map((mass) =>
-    callOf(FACT_FORMULA.maxSpeedAtMass, { mass }),
-  ),
   [FACT_FORMULA.levelUpCostAt]: Object.values(LEVEL_SELECTOR).map((level) =>
     callOf(FACT_FORMULA.levelUpCostAt, { level }),
   ),

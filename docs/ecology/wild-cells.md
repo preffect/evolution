@@ -94,8 +94,8 @@ the player's own rules:
 
 1. **Decay that grows with size** (the player's rule, §4). The bigger a wild cell grows, the faster
    its growth burns: 1 mass/s at 520, 2 at 1 020, 4 at 2 020.
-2. **The prey is faster** (the player's rule, §5.1). `maxSpeed` ∝ mass^−0.25, so a sprinting hunter
-   gains on a cruising prey only for the half second of its sprint. The prey sprints back with the same
+2. **The prey is as fast** (the player's rule, §5.1). Every cell shares one top speed (#677), so a sprinting
+   hunter gains on a cruising prey only for the half second of its sprint. The prey sprints back with the same
    cooldown, so most chases in open water end with the prey getting away.
 3. **Sight** (§3.3.3). A wild cell hunts only what it can see, roughly one screen, never the whole
    dish.
@@ -216,8 +216,8 @@ centre lies within its radius, by the eating rule of §1. It passes over bacteri
 which stay where they are for a player. A mote's mass becomes growth at the next settle (§3.3.1) and
 never goes through the overflow-to-DNA rule.
 
-**The lunch is faster than the eater (#158).** A wild cell at 0.8 × the world's mass is 1.06 × faster
-than a player at the world's mass. It reacts within one decision (0.5 s), starts fleeing at 8 own radii
+**The lunch is as fast as the eater (#158, #677).** A wild cell swims at the same top speed as any player
+(until #677 a wild cell at 0.8 × the world's mass was 1.06 × faster than a player at the world's mass). It reacts within one decision (0.5 s), starts fleeing at 8 own radii
 and sprints at 4. In open water it is caught only when the hunter's sprint lands while its own is
 cooling down, when it is in a gel patch or against the wall, or when it wanders into trouble. A
 straight chase never catches it. The same holds between wild cells, so the population churns rather

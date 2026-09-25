@@ -111,7 +111,7 @@ and `leaderboard.gameplay.test.ts` (score order, the mass then join-order tie-br
 rows that need no engulf (T2, T5, T7–T9, #178), each trait fixture-granted at tier I. `shared-setups.ts` holds the seeds bound to
 the DSL, `decayed()`, the steer-blend helpers (`blendedSpeed`, `blendedTravelWu`), `tierOneModifier`, the tolerances and
 the P7 world G9 reuses. A row derives its expected numbers from the shared constants and formulas
-(`maxSpeedForMass`, `radiusForMass`, `gelSpeedFactor`, `cumulativeDnaForLevel`, `worldReference`) rather
+(`CELL_BASE_SPEED`, `radiusForMass`, `gelSpeedFactor`, `cumulativeDnaForLevel`, `worldReference`) rather
 than copying the table's literal, so a balance change fails a row only when the rule breaks (#212). The pure-function rows are
 pinned beside their functions (P4, P9, P12, P14 in `game/progression/draft.test.ts`, P13 in
 `ladder.test.ts`, G12 and W1 in `shared/src/simulation/world-clock.test.ts`). The rows that need

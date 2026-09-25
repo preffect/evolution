@@ -95,8 +95,6 @@ export const HUD_TEST_ID = {
   affectingPreyBelow: 'affecting-prey-below',
   /** The mass a cell needs to engulf the own cell. */
   affectingThreatAbove: 'affecting-threat-above',
-  /** The size's own speed cost, before traits. */
-  affectingSpeed: 'affecting-speed',
   /** The standing against the world clock. */
   affectingWorld: 'affecting-world',
 } as const;

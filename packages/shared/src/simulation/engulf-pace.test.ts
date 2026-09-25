@@ -18,7 +18,6 @@ import {
   type EngulfPredatorPaceModifiers,
   type EngulfPreyPaceModifiers,
 } from './engulf-pace.js';
-import { maxSpeedForMass } from './mass-curves.js';
 
 const absorption = DEFAULT_BALANCE.absorption;
 /** The folded record of a cell with no traits: every pace term at its identity (docs/traits/model.md §2). */
@@ -236,20 +235,14 @@ describe('predatorEngulfSpeedFactor', () => {
     );
   });
 
-  // docs/ecology/absorption.md §6.1 "The grab": a predator at the start ratio is never slower than the prey it holds,
-  // so a close chase does not open the gap the grab just closed (#634).
-  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])(
-    'keeps a start-ratio predator at least as fast as its %s prey',
-    (phase) => {
-      const preyMass = E9_PREY_MASS;
-      const predatorMass = preyMass * absorption.ENGULF_MASS_RATIO;
-      const predatorSpeed =
-        maxSpeedForMass(predatorMass, DEFAULT_BALANCE.growth) * predatorEngulfSpeedFactor(phase, absorption);
-      const preySpeed =
-        maxSpeedForMass(preyMass, DEFAULT_BALANCE.growth) * preyHeldSpeedFactor(phase, 0, 0, absorption);
-      expect(predatorSpeed).toBeGreaterThanOrEqual(preySpeed);
-    },
-  );
+  // docs/ecology/absorption.md §6.1 "The grab": a predator is never slower than the prey it holds, so a close chase
+  // does not open the gap the grab just closed (#634). Both share one top speed (#677), so the factors decide it.
+  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])('keeps a predator at least as fast as its %s prey', (phase) => {
+    const topSpeed = DEFAULT_BALANCE.growth.CELL_BASE_SPEED;
+    const predatorSpeed = topSpeed * predatorEngulfSpeedFactor(phase, absorption);
+    const preySpeed = topSpeed * preyHeldSpeedFactor(phase, 0, 0, absorption);
+    expect(predatorSpeed).toBeGreaterThanOrEqual(preySpeed);
+  });
 });
 
 describe('spitOutChancePerTick', () => {

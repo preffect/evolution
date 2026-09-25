@@ -267,7 +267,6 @@ fact with no target.
 // encyclopedia/facts/formula-table.ts — the one file where a formula fact's number is computed
 export const FACT_FORMULA = {
   radiusAtMass: 'radius_at_mass', // radiusForMass(massOf(argument), balance.growth)
-  maxSpeedAtMass: 'max_speed_at_mass', // maxSpeedForMass(...)
   levelUpCostAt: 'level_up_cost_at', // levelUpCost(levelOf(argument), balance.progression)
   engulfPhaseSpan: 'engulf_phase_span', // engulfPhaseSpanSeconds(argument.phase, balance.absorption)
   gelSpeedFactorAt: 'gel_speed_factor_at', // gelSpeedFactor(massOf(argument), balance.growth, the default gelSpeedFactorFloor)
@@ -280,7 +279,6 @@ export type FactFormulaId = ValueOf<typeof FACT_FORMULA>;
 /** Each formula's argument: ids and closed selectors only, never a number. */
 export interface FactFormulaArguments {
   radius_at_mass: { readonly mass: BalanceMassSelector }; // e.g. 'starting' → CELL_STARTING_MASS, 'max' → CELL_MAX_MASS
-  max_speed_at_mass: { readonly mass: BalanceMassSelector };
   level_up_cost_at: { readonly level: LevelSelector }; // 'first' | 'last' (MAX_LEVEL from the balance)
   engulf_phase_span: { readonly phase: EngulfPhase };
   gel_speed_factor_at: { readonly mass: BalanceMassSelector };

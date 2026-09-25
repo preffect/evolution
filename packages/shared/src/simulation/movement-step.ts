@@ -1,12 +1,12 @@
 // Everything the movement kernel's step is built from (docs/ecology/mass-and-movement.md §5.2): the speed cap
-// `maxSpeed(mass) × sprint × zone × trait × engulf` and the steer blend. One home for the server's movement system
+// `CELL_BASE_SPEED × sprint × zone × trait × engulf` and the steer blend. One home for the server's movement system
 // and the client's own-cell prediction (docs/architecture/client.md §5), so the two can never fold the cap apart.
 // The caller resolves what only it can see (is the cell in a gel patch, what does its engulf pair cost it).
 
 import type { BalanceConfig } from '../constants/balance.js';
 import { TICK_INTERVAL_S } from '../constants/network.js';
 import type { CellModifiers } from '../types/traits.js';
-import { gelSpeedFactor, maxSpeedForMass } from './mass-curves.js';
+import { gelSpeedFactor } from './mass-curves.js';
 import { steerBlendPerTick, type MovementStep } from './movement-kernel.js';
 
 /** The modifiers the speed cap and the blend read. */
@@ -44,10 +44,10 @@ export function gelZoneSpeedFactor(
   return state.isInGel ? gelSpeedFactor(state.mass, balance.growth, state.modifiers.gelSpeedFactorFloor) : 1;
 }
 
-/** `maxSpeed(mass) × sprint × zone × trait × engulf` (wu/s). */
+/** `CELL_BASE_SPEED × sprint × zone × trait × engulf` (wu/s). */
 export function speedCapFor(state: MovementCellState, balance: BalanceConfig): number {
   return (
-    maxSpeedForMass(state.mass, balance.growth) *
+    balance.growth.CELL_BASE_SPEED *
     sprintSpeedFactorFor(state.sprintRemainingTicks, state.modifiers.sprintSpeedMultiplierBonus, balance.controls) *
     gelZoneSpeedFactor(state, balance) *
     state.modifiers.speedMultiplier *

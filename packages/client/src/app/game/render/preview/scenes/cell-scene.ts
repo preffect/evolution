@@ -6,16 +6,15 @@
 // widest body and widest drawn extent, so a bare protocell and a tier-III flagellate each fill the lens instead of
 // sharing one number sized for the longer tail (ticket #364, `render/constants/preview.ts`).
 //
-// The swim is the cell's **own** top speed, not a framing number: the loop's radius is framing (how far from the
+// The swim is the cell's top speed, not a framing number: the loop's radius is framing (how far from the
 // lens centre it circles), and its period is whatever carrying the cell around that circle at
-// `maxSpeedForMass(mass, balance.growth)` takes. A speed patch therefore retimes the swim as it plays, and the
+// `balance.growth.CELL_BASE_SPEED` (every mass's top speed, #677) takes. A speed patch therefore retimes the swim as it plays, and the
 // stretch, the flagellum wave and the cilia beat all read the speed ratio the simulation would have given it.
 
 import {
   CELL_KIND,
   RADIANS_PER_FULL_TURN,
   ZONE_ID,
-  maxSpeedForMass,
   playerId,
   radiusForMass,
   type BalanceConfig,
@@ -66,7 +65,7 @@ function loopRadiusWu(balance: BalanceConfig): number {
 
 /** The speed the subject circles at: `PREVIEW_SWIM_SPEED_FRACTION` of its own top speed. */
 function swimSpeed(balance: BalanceConfig): number {
-  return maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth) * PREVIEW_SWIM_SPEED_FRACTION;
+  return balance.growth.CELL_BASE_SPEED * PREVIEW_SWIM_SPEED_FRACTION;
 }
 
 /** One trip around the loop at the swim speed: `2πR / swimSpeed`. */

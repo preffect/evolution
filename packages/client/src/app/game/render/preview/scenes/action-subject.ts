@@ -13,7 +13,6 @@ import {
   DNA_TAGS,
   PLAYER_LIFE_STATE,
   ZONE_ID,
-  maxSpeedForMass,
   radiusForMass,
   zeroRecord,
   type BalanceConfig,
@@ -74,7 +73,7 @@ export function actionSubjectRadiusWu(balance: BalanceConfig): number {
 
 /** The subject's own top speed: what a swimming pose is built at, so the stretch reads as it does in play. */
 export function actionSubjectMaxSpeed(balance: BalanceConfig): number {
-  return maxSpeedForMass(PREVIEW_CELL_MASS, balance.growth);
+  return balance.growth.CELL_BASE_SPEED;
 }
 
 /**

@@ -2,7 +2,7 @@
 // session and world-clock rows are game-design-session.gameplay.test.ts.
 
 import { describe, it } from 'vitest';
-import { DEFAULT_BALANCE, maxSpeedForMass, radiusForMass, secondsToTicks } from '@evolution/shared';
+import { DEFAULT_BALANCE, radiusForMass, secondsToTicks } from '@evolution/shared';
 import type { EvolutionScenarioSnapshot } from '../gameplay/evolution-adapter.js';
 import { cellOf, massOf, speedOf } from '../gameplay/evolution-views.js';
 import { combineScripts, player, sprint, targetPoint, targetRadiiEast, type PlayerScript } from '../gameplay/index.js';
@@ -73,13 +73,9 @@ describe('game-design/constants-and-acceptance.md §13: controls', () => {
 
   it('G7: the sprint costs 5 % once, lasts half a second and honours its cooldown', async () => {
     const sprintTicks = secondsToTicks(controls.SPRINT_DURATION_SECONDS);
-    /** The kernel blends toward the sprinting cap from rest; the cap follows the decayed mass (1 wu/s of drift over the sprint). */
+    /** The kernel blends toward the sprinting cap from rest; the cap is the base speed whatever the mass (#677). */
     const sprintedSpeedAfter = (ticks: number): number =>
-      blendedSpeed(
-        controls.SPRINT_SPEED_MULTIPLIER *
-          maxSpeedForMass(decayed(100 * (1 - controls.SPRINT_MASS_COST_FRACTION), ticks), growth),
-        ticks,
-      );
+      blendedSpeed(controls.SPRINT_SPEED_MULTIPLIER * growth.CELL_BASE_SPEED, ticks);
     const cooldownTicks = secondsToTicks(controls.SPRINT_COOLDOWN_SECONDS);
     const sprintEast = combineScripts([sprint(), targetRadiiEast(FULL_THROTTLE_RADII)]);
     await placedSolo('G7')

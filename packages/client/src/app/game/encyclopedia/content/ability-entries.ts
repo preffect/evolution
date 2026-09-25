@@ -18,7 +18,7 @@ import {
   grantedByFact,
   phaseSpanFact,
 } from './action-facts';
-import { GEL_SPEED_AT_MAX_FACT, STARTING_MASS_FACT, STARTING_SPEED_FACT, balanceFact } from './fact-builders';
+import { GEL_SPEED_AT_MAX_FACT, STARTING_MASS_FACT, TOP_SPEED_FACT, balanceFact } from './fact-builders';
 
 /** A cell showing the ability: the first tier of a trait that grants it, or a bare cell where none is drawn. */
 function cellShowing(traits: readonly OwnedTrait[]): PreviewSpec {
@@ -33,10 +33,10 @@ export const ABILITY_ENTRY_CONTENT: Readonly<Record<AbilityId, WrittenEntryConte
   [ABILITY.movement]: {
     title: 'Movement',
     summary:
-      'How fast you swim and how quickly you turn. Every cell slows as it grows, from {startingSpeed} at the start; these traits push back.',
+      'How fast you swim and how quickly you turn. Every cell tops out at {topSpeed} whatever its size; these traits push past it.',
     facts: [
       grantedByFact(ABILITY.movement),
-      STARTING_SPEED_FACT,
+      TOP_SPEED_FACT,
       balanceFact(
         { key: 'turnTime', label: 'Time to reach speed', unit: QUANTITY_UNIT.seconds },
         balancePath('growth', 'CELL_ACCELERATION_SECONDS'),

@@ -83,7 +83,7 @@ export function movementStateOf(cell: CellRecord, world: WorldState, balance: Ba
   };
 }
 
-/** `maxSpeed(mass) × sprint × zone × trait × engulf` (wu/s). */
+/** `CELL_BASE_SPEED × sprint × zone × trait × engulf` (wu/s). */
 export function speedCapOf(cell: CellRecord, world: WorldState, balance: BalanceConfig): number {
   return speedCapFor(movementStateOf(cell, world, balance), balance);
 }

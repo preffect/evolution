@@ -1,6 +1,6 @@
 // The movement step (docs/ecology/mass-and-movement.md §5.2, docs/game-design/controls-and-scope.md §6, §8), shared by the server's
 // movement system and the client's prediction (docs/architecture/client.md §5). Pure: one pose in, one
-// pose out, every number passed in. The caller computes the speed cap (mass curve, sprint, zone,
+// pose out, every number passed in. The caller computes the speed cap (base speed, sprint, zone,
 // trait and engulf factors) and the blend; the kernel only steers, integrates and clamps.
 
 import type { BalanceConfig } from '../constants/balance.js';
@@ -19,7 +19,7 @@ export interface MovementStep {
   targetX: number;
   targetY: number;
   radiusWu: number;
-  /** `maxSpeed(mass) × sprint × zone × trait × engulf` factors, computed by the caller (wu/s). */
+  /** `CELL_BASE_SPEED × sprint × zone × trait × engulf` factors, computed by the caller (wu/s). */
   speedCapWuPerSecond: number;
   /** `steerBlendPerTick(...)`: the share of the velocity gap closed this tick. */
   blendPerTick: number;

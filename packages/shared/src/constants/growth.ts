@@ -6,11 +6,8 @@ export const CELL_STARTING_MASS = 20;
 export const CELL_MAX_MASS = 5000;
 /** radius = CELL_RADIUS_SCALE × sqrt(mass) (wu per √mass). */
 export const CELL_RADIUS_SCALE = 4;
-/** Speed curve bounds (wu/s). */
+/** Top speed of every cell whatever its mass (wu/s, #677); sprint, zones, traits and engulf scale it. */
 export const CELL_BASE_SPEED = 220;
-export const CELL_MIN_SPEED = 50;
-/** maxSpeed = CELL_BASE_SPEED × (CELL_STARTING_MASS / mass) ^ this. */
-export const CELL_SPEED_MASS_EXPONENT = 0.25;
 /** Steer blend time constant (s); the per-tick blend is derived in the movement kernel. */
 export const CELL_ACCELERATION_SECONDS = 0.25;
 /** Overlapping cells that cannot engulf each other separate by this share of the overlap per tick. */

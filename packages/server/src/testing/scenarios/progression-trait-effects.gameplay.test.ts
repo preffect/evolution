@@ -11,7 +11,6 @@ import {
   ENDOSYMBIOSIS_BACTERIA_REQUIRED,
   FOOD_KIND,
   cumulativeDnaForLevel,
-  maxSpeedForMass,
   type TraitId,
 } from '@evolution/shared';
 import { type EvolutionScenarioSnapshot } from '../gameplay/evolution-adapter.js';
@@ -83,8 +82,7 @@ describe('PROGRESSION §2–§4: a picked trait changes the simulation', () => {
   it.each(['nucleoid', 'simple_flagellum', 'cell_wall'] as const)(
     'DNA → level 2 → %s: full throttle from the pick converges on the cap × its speedMultiplier',
     async (traitId) => {
-      const speedCapWuPerSecond =
-        maxSpeedForMass(growth.CELL_STARTING_MASS, growth) * tierOneModifier(traitId, 'speedMultiplier');
+      const speedCapWuPerSecond = growth.CELL_BASE_SPEED * tierOneModifier(traitId, 'speedMultiplier');
       const measureTick = DRAFT_TICK + FULL_THROTTLE_TICKS;
       await protocellDraft(`trait speed ${traitId}`)
         .atTick(PICK_TICK, player(0).does(pickOfferedTrait(traitId)))

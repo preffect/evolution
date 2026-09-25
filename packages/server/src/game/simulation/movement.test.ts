@@ -1,13 +1,6 @@
 // docs/ecology/mass-and-movement.md §5.2 (E6, E8), docs/game-design/controls-and-scope.md §6, §8 (G4–G6) and docs/traits/constants-and-acceptance.md §6 (T2).
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_BALANCE,
-  gelSpeedFactor,
-  maxSpeedForMass,
-  radiusForMass,
-  TICK_INTERVAL_S,
-  type Vec2,
-} from '@evolution/shared';
+import { DEFAULT_BALANCE, gelSpeedFactor, radiusForMass, TICK_INTERVAL_S, type Vec2 } from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
@@ -82,15 +75,11 @@ describe('moveCells', () => {
     expect(cell.velocityX).toBe(0);
   });
 
-  it.each([
-    [320, 110.1],
-    [5000, 55.4],
-  ])('E6: mass %d converges to the curve speed %f (no decay here)', (mass, expectedSpeed) => {
+  // #677: top speed does not depend on mass, so a starting cell and a maximum-mass cell converge on the same speed.
+  it.each([growth.CELL_STARTING_MASS, 320, growth.CELL_MAX_MASS])('E6: mass %d converges to the base speed', (mass) => {
     const { world, cell } = placedCell(mass);
     moveEastFor(world, cell, 120);
-    expect(Math.abs(speedOf(cell) - maxSpeedForMass(mass, growth))).toBeLessThan(0.5);
-    // The design's number includes 120 ticks of decay on the placed mass; within a wu/s of it.
-    expect(Math.abs(speedOf(cell) - expectedSpeed)).toBeLessThan(1);
+    expect(Math.abs(speedOf(cell) - growth.CELL_BASE_SPEED)).toBeLessThan(0.5);
   });
 
   it('E8: a 500-mass cell at a gel patch centre moves at the gel-slowed speed and stays inside', () => {
@@ -101,9 +90,9 @@ describe('moveCells', () => {
     cell.y = patch.y;
     setCellMass(cell, 500, DEFAULT_BALANCE);
     moveEastFor(world, cell, 120);
-    const expected = maxSpeedForMass(500, growth) * gelSpeedFactor(500, growth, 0);
+    const expected = growth.CELL_BASE_SPEED * gelSpeedFactor(500, growth, 0);
     expect(Math.abs(speedOf(cell) - expected)).toBeLessThan(0.5);
-    expect(Math.abs(speedOf(cell) - 49.4)).toBeLessThan(1);
+    expect(Math.abs(speedOf(cell) - 110.4)).toBeLessThan(1);
     expect(Math.hypot(cell.x - patch.x, cell.y - patch.y)).toBeLessThan(patch.radius);
     expect(cell.x - patch.x).toBeGreaterThan(80);
   });

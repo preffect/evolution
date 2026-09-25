@@ -6,7 +6,7 @@ import { PREVIEW_MOTION, PREVIEW_SCENE } from '../../render/preview/preview-spec
 import { QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { balancePath } from '../facts/balance-path';
 import type { WrittenEntryContent } from '../model/entry';
-import { STARTING_MASS_FACT, STARTING_SPEED_FACT, balanceFact } from './fact-builders';
+import { STARTING_MASS_FACT, TOP_SPEED_FACT, balanceFact } from './fact-builders';
 
 export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryContent>> = {
   player: {
@@ -15,7 +15,7 @@ export const CELL_KIND_ENTRY_CONTENT: Readonly<Record<CellKind, WrittenEntryCont
       'A cell steered by a player, yours among them. Players who start the round start as a [[stage:protocell]] of {startingMass}, and grow by eating, engulfing and picking traits. Anyone who joins late, or returns after being engulfed, enters at {entryShare} of the [[world:world_clock|world’s]] average mass, at most {entryMaxMass}, and at least at the world’s level. An engulfed player watches its killer for {respawnDelay} first, and keeps its level and traits.',
     facts: [
       STARTING_MASS_FACT,
-      STARTING_SPEED_FACT,
+      TOP_SPEED_FACT,
       balanceFact(
         { key: 'entryShare', label: 'Late entry mass, of the world’s', unit: QUANTITY_UNIT.share },
         balancePath('progression', 'ENTRY_MASS_FRACTION'),

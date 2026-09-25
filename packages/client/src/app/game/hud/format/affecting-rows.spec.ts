@@ -2,8 +2,8 @@
 // Mitochondrion I, touching a Toxin Vacuole I cell called Nib, in bloom.
 //
 // Every expectation is computed from `balance` (#212) and the shared formulas — never copied from the literals the
-// doc prints. The doc's `249.6`, `390` and `−50 %` are that example's values under the default balance, so a
-// retuned `ENGULF_MASS_RATIO` or speed curve has to move them here the moment it lands, and a spec that typed them
+// doc prints. The doc's `249.6` and `390` are that example's values under the default balance, so a
+// retuned `ENGULF_MASS_RATIO` has to move them here the moment it lands, and a spec that typed them
 // would keep passing while the panel lied.
 //
 // The applied rates themselves are inputs, not expectations: the server measures them and sends them (#383), so
@@ -17,7 +17,6 @@ import {
   ZONE_ID,
   createTestPlayerProgressView,
   entityId,
-  maxSpeedForMass,
   playerId,
   standingAgainstWorld,
   worldElapsedSeconds,
@@ -235,20 +234,17 @@ describe('affectingRowsFor at the worked example', () => {
     expect(valueOf(panel, HUD_TEST_ID.affectingThreatAbove)).toBe(`${AT_LEAST_SIGN} 125.1`);
   });
 
-  it('omits the speed row entirely at a size that costs no speed', () => {
-    // `maxSpeedForMass` clamps to `CELL_BASE_SPEED` at or under the starting mass, so the share is exactly zero
-    // there — not an epsilon — and a `−0 %` row would be noise.
-    const panel = panelAt(balance.growth.CELL_STARTING_MASS);
-    expect(rowById(panel, HUD_TEST_ID.affectingSpeed)).toBeUndefined();
-  });
-
-  it('reads the size speed cost off the shared mass curve, before any trait', () => {
-    const share = maxSpeedForMass(OWN_MASS, balance.growth) / balance.growth.CELL_BASE_SPEED - IDENTITY;
-    const expected = formatQuantity(share, QUANTITY_UNIT.share, {
-      presentation: QUANTITY_PRESENTATION.signedChange,
-    });
-    expect(valueOf(panelAt(), HUD_TEST_ID.affectingSpeed)).toBe(expected);
-  });
+  // #677: size costs no speed, so the size section is the two thresholds alone at every mass, the largest included.
+  it.each([balance.growth.CELL_STARTING_MASS, OWN_MASS, balance.growth.CELL_MAX_MASS])(
+    'shows only the two engulf thresholds under size at mass %d, never a speed row',
+    (mass) => {
+      const size = panelAt(mass).sections.find((section) => section.sectionId === AFFECTING_SECTION.size);
+      expect(size?.rows.map((row) => row.rowId)).toEqual([
+        HUD_TEST_ID.affectingPreyBelow,
+        HUD_TEST_ID.affectingThreatAbove,
+      ]);
+    },
+  );
 
   it('lists each owned trait with its tier and the first line of that tier effects', () => {
     const row = rowById(panelAt(), affectingTraitTestId(MITOCHONDRION));

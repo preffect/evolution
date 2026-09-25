@@ -6,7 +6,7 @@
 // The framing bands are `preview-framing.spec.ts` and the loop is `preview-loop.spec.ts`; both walk the same
 // `SUBJECT_SPECS` this file does, so a family added here is covered there too.
 
-import { CELL_KIND, CELL_STAGE, DEFAULT_BALANCE, maxSpeedForMass, zoneAt, type ZoneId } from '@evolution/shared';
+import { CELL_KIND, CELL_STAGE, DEFAULT_BALANCE, zoneAt, type ZoneId } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
 import { PREVIEW_GEL_PATCHES, PREVIEW_SWIM_SPEED_FRACTION } from '../constants';
@@ -65,10 +65,7 @@ describe('the cell scene', () => {
     for (const tick of loopTicks(scene)) {
       const [cell] = scene.frameAt(tick, tick, BALANCE).cells;
       const speed = Math.hypot(cell!.velocityX, cell!.velocityY);
-      expect(speed / maxSpeedForMass(cell!.mass, BALANCE.growth), `tick ${tick}`).toBeCloseTo(
-        PREVIEW_SWIM_SPEED_FRACTION,
-        9,
-      );
+      expect(speed / BALANCE.growth.CELL_BASE_SPEED, `tick ${tick}`).toBeCloseTo(PREVIEW_SWIM_SPEED_FRACTION, 9);
     }
     const [still] = previewSceneFor(resting).frameAt(12, 11, BALANCE).cells;
     expect(Math.hypot(still!.velocityX, still!.velocityY)).toBe(0);

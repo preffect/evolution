@@ -9,7 +9,6 @@
 import {
   COSMETIC_SUB_STREAM,
   RADIANS_PER_FULL_TURN,
-  maxSpeedForMass,
   type BalanceConfig,
   type CellView,
   type EntityId,
@@ -186,9 +185,9 @@ export class CellRenderState {
     return withContactDent(sealed, context.contactDents.get(view.id), { isTaut: traits.isTaut, isEngulfing });
   }
 
-  /** `‖velocity‖ / maxSpeed(mass)` clamped to 1, and 0 under the hold threshold so the heading holds. */
+  /** `‖velocity‖ / CELL_BASE_SPEED` (every mass's top speed, #677) clamped to 1, and 0 under the hold threshold so the heading holds. */
   private speedRatioOf(view: CellView, context: CellFrameContext): number {
-    const ratio = Math.hypot(view.velocityX, view.velocityY) / maxSpeedForMass(view.mass, context.balance.growth);
+    const ratio = Math.hypot(view.velocityX, view.velocityY) / context.balance.growth.CELL_BASE_SPEED;
     return ratio < HEADING_HOLD_SPEED_RATIO ? 0 : Math.min(1, ratio);
   }
 

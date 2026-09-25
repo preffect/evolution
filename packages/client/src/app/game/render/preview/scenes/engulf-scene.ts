@@ -23,7 +23,6 @@ import {
   TICK_INTERVAL_S,
   engulfPhaseOf,
   entityId,
-  maxSpeedForMass,
   predatorEngulfSpeedFactor,
   type BalanceConfig,
   type CellView,
@@ -141,7 +140,7 @@ function engulfContent(loopSeconds: number, balance: BalanceConfig): PreviewScen
   const loopTick = loopSeconds / TICK_INTERVAL_S;
   const progress = progressAt(loopTick, timeline, balance);
   const isPreyPresent = isAtOrBefore(loopTick, timeline.absorbedTick) || isAtOrAfter(loopTick, timeline.respawnTick);
-  const predator = predatorView(progress, isPreyPresent, timeline, balance);
+  const predator = predatorView(progress, isPreyPresent, balance);
   const cells = isPreyPresent ? [predator, preyView({ loopTick, progress }, predator, timeline, balance)] : [predator];
   return { cells, motes: NO_MOTES, fragments: NO_FRAGMENTS };
 }
@@ -153,19 +152,14 @@ interface EngulfMoment {
 }
 
 /** The subject: swimming toward its prey at its top speed, held to the engulf's factor while it holds one. */
-function predatorView(
-  progress: number | null,
-  isPreyPresent: boolean,
-  timeline: EngulfTimeline,
-  balance: BalanceConfig,
-): CellView {
+function predatorView(progress: number | null, isPreyPresent: boolean, balance: BalanceConfig): CellView {
   const speedFactor =
     progress === null
       ? FREE_SPEED_FACTOR
       : predatorEngulfSpeedFactor(engulfPhaseOf(progress, balance.absorption), balance.absorption);
   return actionSubjectCellView(
     {
-      ...alongApproachVelocity(maxSpeedForMass(timeline.geometry.predatorMass, balance.growth) * speedFactor),
+      ...alongApproachVelocity(balance.growth.CELL_BASE_SPEED * speedFactor),
       ...predatorLinks(progress === null || !isPreyPresent ? NO_PREY : ENGULF_PARTNER_CELL_ID),
     },
     balance,

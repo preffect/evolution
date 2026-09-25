@@ -54,21 +54,22 @@ starts an engulf on tick _t_ first pays the spike drain on tick _t_ + 1.
 
 ```
 radius(mass)   = CELL_RADIUS_SCALE × sqrt(mass)                       (area ∝ mass)
-maxSpeed(mass) = clamp(CELL_BASE_SPEED × (CELL_STARTING_MASS / mass) ^ CELL_SPEED_MASS_EXPONENT,
-                       CELL_MIN_SPEED, CELL_BASE_SPEED)
+maxSpeed       = CELL_BASE_SPEED                                      (the same for every mass, #677)
 ```
 
 | Mass | Radius (wu) | Max speed (wu/s) | Note                                         |
 | ---- | ----------- | ---------------- | -------------------------------------------- |
 | 20   | 17.9        | 220.0            | starting cell                                |
-| 80   | 35.8        | 155.6            | a minute of grazing                          |
-| 320  | 71.6        | 110.0            | half speed at 16× mass                       |
-| 1000 | 126.5       | 82.7             | apex of a typical round                      |
-| 2000 | 178.9       | 69.6             |                                              |
-| 5000 | 282.8       | 55.3             | `CELL_MAX_MASS`; ≈ 19 % of the dish diameter |
+| 80   | 35.8        | 220.0            | a minute of grazing                          |
+| 320  | 71.6        | 220.0            | 16× the starting mass                        |
+| 1000 | 126.5       | 220.0            | apex of a typical round                      |
+| 2000 | 178.9       | 220.0            |                                              |
+| 5000 | 282.8       | 220.0            | `CELL_MAX_MASS`; ≈ 19 % of the dish diameter |
 
-Reviewed for feel: a starting cell crosses its own diameter in 0.16 s, a 1000-mass cell in 3 s.
-Escape is always possible on paper (prey is faster); the predator's tools are ambush and zones.
+**Top speed does not depend on mass** (decided by the human, ticket #677): players, bots and wild cells all
+share `CELL_BASE_SPEED`, and only sprint, zones, traits and engulf scale it (§5.2). A bigger cell is wider, not
+slower. A small cell therefore cannot simply outrun a big one: escape relies on sprint, speed traits and terrain
+(the gel still slows a heavy cell far more than a light one, §5.2).
 
 ### 5.2 Movement step (server, per tick)
 
@@ -76,7 +77,7 @@ Escape is always possible on paper (prey is faster); the predator's tools are am
 direction = normalise(target − centre)
 throttle  = clamp((|target − centre| / radius − STEER_DEAD_ZONE_RADII)
                   / (STEER_FULL_THROTTLE_RADII − STEER_DEAD_ZONE_RADII), 0, 1)
-speedCap  = maxSpeed(mass) × sprintFactor × zoneSpeedFactor × traitSpeedFactor × engulfSpeedFactor
+speedCap  = CELL_BASE_SPEED × sprintFactor × zoneSpeedFactor × traitSpeedFactor × engulfSpeedFactor
 desired   = direction × throttle × speedCap
 velocity += (desired − velocity) × steerBlendPerTick               (derived in code: TICK_INTERVAL_S / (CELL_ACCELERATION_SECONDS × accelerationSecondsMultiplier))
 centre   += velocity × TICK_INTERVAL_S

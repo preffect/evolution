@@ -8,7 +8,6 @@ import {
   engulfPhaseSpanSeconds,
   gelSpeedFactor,
   levelUpCost,
-  maxSpeedForMass,
   radiusForMass,
   worldReference,
   worldWholeLevel,
@@ -32,8 +31,6 @@ export type RoundMoment = ValueOf<typeof ROUND_MOMENT>;
 export const FACT_FORMULA = {
   /** `radiusForMass(massOf(argument), balance.growth)`. */
   radiusAtMass: 'radius_at_mass',
-  /** `maxSpeedForMass(massOf(argument), balance.growth)`. */
-  maxSpeedAtMass: 'max_speed_at_mass',
   /** `levelUpCost(levelOf(argument), balance.progression)`. */
   levelUpCostAt: 'level_up_cost_at',
   /** `gelSpeedFactor(massOf(argument), balance.growth, the default gelSpeedFactorFloor)`. */
@@ -50,7 +47,6 @@ export type FactFormulaId = ValueOf<typeof FACT_FORMULA>;
 /** Each formula's argument: ids and closed selectors only, never a number. */
 export interface FactFormulaArguments {
   [FACT_FORMULA.radiusAtMass]: { readonly mass: BalanceMass };
-  [FACT_FORMULA.maxSpeedAtMass]: { readonly mass: BalanceMass };
   [FACT_FORMULA.levelUpCostAt]: { readonly level: LevelSelector };
   [FACT_FORMULA.gelSpeedFactorAt]: { readonly mass: BalanceMass };
   [FACT_FORMULA.worldLevelAt]: { readonly moment: RoundMoment };
@@ -87,7 +83,6 @@ export const FACT_FORMULAS: {
   readonly [Id in FactFormulaId]: (balance: BalanceConfig, argument: FactFormulaArguments[Id]) => number;
 } = {
   [FACT_FORMULA.radiusAtMass]: (balance, argument) => radiusForMass(massOf(balance, argument.mass), balance.growth),
-  [FACT_FORMULA.maxSpeedAtMass]: (balance, argument) => maxSpeedForMass(massOf(balance, argument.mass), balance.growth),
   [FACT_FORMULA.levelUpCostAt]: (balance, argument) =>
     levelUpCost(levelOf(balance, argument.level), balance.progression),
   [FACT_FORMULA.gelSpeedFactorAt]: (balance, argument) =>
