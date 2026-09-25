@@ -123,7 +123,9 @@ export class RendererSlot {
     this.disposeSeeded();
     if (newShared !== null) this.replaceShared(newShared.textures, newShared.baker, newShared.devicePixelRatio);
     this.seeded = seeded;
-    stage.addChild(...built.container.removeChildren());
+    // Moved in their staged order (the world root under the screen root): Pixi's `removeChildren` answers them last
+    // first, which put the screen root, and with it the vignette, under the opaque field (#687).
+    stage.addChild(...[...built.container.children]);
     built.container.destroy();
     this.renderer = built.renderer;
     return built.renderer;
