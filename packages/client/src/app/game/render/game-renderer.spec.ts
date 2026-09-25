@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RENDER_STAGE, entityId, type RenderStageName } from '@evolution/shared';
-import { Container } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import {
   TEST_OTHER_PLAYER_ID,
   TEST_OWN_PLAYER_ID,
@@ -128,12 +128,24 @@ describe('GameRenderer', () => {
     expect(Number.isFinite(world.scale.x) && Number.isFinite(world.position.x)).toBe(true);
   });
 
+  it('clips the band on a resize past the interest aspect and lifts the clip on one back under it (#408)', () => {
+    const { renderer: subject, stage } = renderer();
+    // The band sits last under the world root, above the field layers (`layers.ts`).
+    const band = stage.children[0]!.children.at(-1);
+    subject.resize({ width: 3000, height: 1000 });
+    expect(band?.mask).toBeTruthy();
+    subject.resize({ width: 1920, height: 1080 });
+    expect(band?.mask).toBeFalsy();
+    subject.destroy();
+  });
+
   it('resizes the vignette to the viewport and destroys the roots', () => {
     const { renderer: subject, stage } = renderer();
     subject.resize({ width: 300, height: 200 });
     const screen = stage.children[1]!;
-    expect(screen.children[0]?.width).toBe(300);
-    expect(screen.children[0]?.height).toBe(200);
+    const vignette = screen.children.find((child) => child instanceof Sprite);
+    expect(vignette?.width).toBe(300);
+    expect(vignette?.height).toBe(200);
     subject.destroy();
     expect(stage.children).toHaveLength(0);
   });

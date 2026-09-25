@@ -26,6 +26,11 @@ export const LAYER_NAMES: readonly LayerName[] = [
   'effects',
   'debug',
 ];
+/**
+ * The layers under the world root itself: the dish field and its far particles, which fill the whole canvas. Every
+ * other layer sits in the drawn band, which a canvas wider than the interest aspect clips to its middle (#408).
+ */
+export const FIELD_LAYER_NAMES: readonly LayerName[] = ['dish', 'depthFar'];
 
 // ---- field and dish (sheet 02) ----
 export const FIELD_TEXTURE_PX = 2048;

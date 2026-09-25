@@ -485,9 +485,9 @@ before #214 landed and what made a remote client run out of memory (#238).
      `DEFAULT_BALANCE`: every speed and sprint tier folded), a mote moving at the fastest food speed (80 wu/s) through
      the render delay, and its drawn reach (`INTEREST_ENTITY_REACH_RADII` × the largest food radius, pinned against
      the food glows by `render/interest-reach.spec.ts`).
-   - **Known limit: canvases wider than 2.4:1.** A 32:9 screen or a short, wide window sees food appear at its far
-     sides, because the server is not told the canvas. The fix is client-only, capping the drawn width at that ratio
-     (#408).
+   - **Canvases wider than 2.4:1.** The server is not told the canvas, so the client caps its drawn world width at
+     `INTEREST_VIEW_ASPECT_RATIO` × the view height, centred (`render/camera.ts` `drawnWidthPx`, #408): past that
+     band a 32:9 screen or a short, wide window shows only the dish field, never food popping in. No wire change.
    - **The members.** Culled members differ per viewer, so they are more declared viewer keys (§4). `dnaFragments`
      stays a full list, filtered. `food` becomes a delta per viewer (`serialize/viewer-state.ts`): a mote entering the
      area is `spawned` for that viewer, one leaving it is in `removedIds`, one inside it that moved is in `moved`, and

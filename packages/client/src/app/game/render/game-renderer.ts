@@ -44,7 +44,7 @@ import { relationLabelSceneFor } from './effects/relation-label-placements';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
-import { applyCameraTransform, createSceneLayers, type SceneLayers } from './layers';
+import { applyCameraTransform, applyDrawnBand, createSceneLayers, type SceneLayers } from './layers';
 import { outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from './render-io';
 import { followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
@@ -121,6 +121,7 @@ export class GameRenderer {
     this.viewport = viewport;
     this.vignette.width = viewport.width;
     this.vignette.height = viewport.height;
+    applyDrawnBand(this.layers, viewport);
   }
 
   /** Parks the camera on a target (a fixture or a spawn) without smoothing. */

@@ -1,10 +1,10 @@
 // The camera (docs/game-design/controls-and-scope.md §7): centred on the followed cell, zoomed out as it grows, both
 // smoothed and purely cosmetic. The follow, the zoom and Z1's view half-height are shared (`@evolution/shared`,
 // `camera/camera-follow.ts`), because the server runs the same camera per viewer to cull its snapshots; this file adds
-// what only a screen has: the viewport, the projections and the draw cull. The render loop owns the state and the
-// injected clock's delta.
+// what only a screen has: the viewport, the drawn band, the projections and the draw cull. The render loop owns the
+// state and the injected clock's delta.
 
-import type { CameraState } from '@evolution/shared';
+import { INTEREST_VIEW_ASPECT_RATIO, type CameraState } from '@evolution/shared';
 import { HALF } from './geometry';
 
 export interface ViewportPx {
@@ -49,14 +49,24 @@ export function hasViewportHeight(viewport: ViewportPx): boolean {
   return viewport.height > 0;
 }
 
+/**
+ * The width of the band the world is drawn in, in CSS px, centred on the viewport. The server sends each viewer the
+ * food inside `INTEREST_VIEW_ASPECT_RATIO` times its view height (architecture/wire-contract.md §4.2 lever 1), so a
+ * canvas wider than that draws the world only across that width, and the dish field alone fills the sides (#408).
+ */
+export function drawnWidthPx(viewport: ViewportPx): number {
+  return Math.min(viewport.width, viewport.height * INTEREST_VIEW_ASPECT_RATIO);
+}
+
 /** CSS px per wu. */
 export function zoomFor(state: CameraState, viewport: ViewportPx): number {
   return (viewport.height * HALF) / state.viewHalfHeightWu;
 }
 
+/** The world rectangle the frame draws: the view's height, and the drawn band's width (`drawnWidthPx`). */
 export function cameraExtent(state: CameraState, viewport: ViewportPx): CameraExtent {
   const halfHeight = state.viewHalfHeightWu;
-  const halfWidth = hasViewportHeight(viewport) ? (halfHeight * viewport.width) / viewport.height : halfHeight;
+  const halfWidth = hasViewportHeight(viewport) ? (halfHeight * drawnWidthPx(viewport)) / viewport.height : halfHeight;
   return {
     minX: state.x - halfWidth,
     maxX: state.x + halfWidth,
