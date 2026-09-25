@@ -9,13 +9,9 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-// Type-only, so it is erased before this file runs outside the app's module graph.
-//
-// **It enforces nothing yet — it documents the contract.** `e2e/` is in no tsconfig (the app config takes
-// `src/**/*.ts`, the spec config `src/**/*.spec.ts`, and the root has no `include`), so no typechecker reads this
-// import, and the drift it names would still go uncaught: this file asserted `verdict.open` while the report
-// carried `verdict.isOpenWithinBudget`. What protects the file today is that it is **run**, and what will make the
-// import load-bearing is ticket #473. Until then, treat a change here as unchecked and run the spec.
+// Type-only, so it is erased before this file runs outside the app's module graph. `tsconfig.e2e.json` typechecks
+// `e2e/` (ticket #473), so a key this file reads that the route no longer writes fails `./validate.sh typecheck`:
+// this file once asserted `verdict.open` while the report carried `verdict.isOpenWithinBudget`.
 import type { PreviewRouteReport } from '../src/app/game/encyclopedia/preview-route';
 
 const SCREENSHOT_DIR = '../../.qa/screenshots';
@@ -167,8 +163,9 @@ test.describe('the encyclopedia preview evidence route', () => {
     expect(report.budgets.openMs).toBeGreaterThan(0);
     expect(report.budgets.frameMs).toBeGreaterThan(0);
     // The verdict is reported but never judged here: SwiftShader is not the reference GPU (§7).
-    expect(report.verdict).toHaveProperty('isOpenWithinBudget');
-    expect(report.verdict).toHaveProperty('isFrameWithinBudget');
+    // Read as typed properties, not `toHaveProperty` strings, so a renamed key fails the typecheck too.
+    expect(report.verdict.isOpenWithinBudget).not.toBeUndefined();
+    expect(report.verdict.isFrameWithinBudget).not.toBeUndefined();
   });
 
   /** The leak loop: a browser caps live WebGL contexts at 16, and warns before it starts dropping the oldest. */

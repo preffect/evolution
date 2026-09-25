@@ -11,6 +11,11 @@
 | **Gameplay**    | a rule or a balance number, as a scenario on a fixed seed (section 8)            | `packages/server/src/testing/scenarios/<table>.gameplay.test.ts` | `./validate.sh integration` (opt-in)        | any change to rules, tunables or the step order                   |
 | **UI**          | a component renders and dispatches; a critical flow works end to end             | `*.spec.ts` (component); Playwright smoke                        | `./validate.sh test`; smoke by the QA roles | HUD, prompts, lobby and any critical flow                         |
 
+The Playwright specs (`packages/client/e2e/`) run only when a QA role runs the smoke, but `./validate.sh typecheck`
+checks them on every run through `packages/client/tsconfig.e2e.json` (#473), a program of its own because Playwright
+and vitest both declare `test` and `expect`. An e2e spec types what it reads from the page by importing the app's own
+type (`import type`), never a hand-written copy.
+
 A unit test that needs a server, a socket or a browser is an integration test with the wrong
 name: rename it rather than slowing the unit tier (`engineering/testing-and-typescript.md` §2.2). Gameplay scenarios
 build a world, step N ticks, assert values and the state hash on the framework of section 8; one
