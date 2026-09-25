@@ -39,11 +39,11 @@ const PREDATOR_AT = { x: PREY_AT.x + PREDATOR_OFFSET_WU.x, y: PREY_AT.y + PREDAT
 const RIM_LEAN = 0.3;
 const ROW_TICKS = 150;
 /**
- * How far ahead of B along the rim A's pointer sits, in A's own radii. Every cell has the same top speed since #677,
- * so at full throttle A (220 wu/s) overruns the prey it holds (0.85 × 220 = 187) and loses contact: leads of 2.5 radii
- * and up, the row's pre-#677 5 included, let B escape (gameplay-qa on PR #678). At 1.5 radii, inside the 1.25–2 band
- * that completes, A eases off as it draws level and follows B through the curve. The overrun is current behaviour, not
- * this row's subject; the mechanic is a follow-up decision.
+ * How far ahead of B along the rim A's pointer sits, in A's own radii. A predator that runs past its held prey loses
+ * it: it has to stay on its prey (the human's rule, decision ticket #679). Every cell has the same top speed since
+ * #677, so at full throttle A (220 wu/s) overruns the prey it holds (0.85 × 220 = 187) and B gets away: leads of 2.5
+ * radii and up, the row's pre-#677 5 included. At 1.5 radii, inside the 1.25–2 band that completes, A eases off as
+ * it draws level and stays on B through the curve.
  */
 const PREDATOR_LEAD_RADII = 1.5;
 /** E18: the plain prey is absorbed on this tick, never released before it. */
