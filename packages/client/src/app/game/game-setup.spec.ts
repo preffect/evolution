@@ -14,6 +14,7 @@ import { EVOLUTION_DEBUG_KEY, type EvolutionDebugHost } from './debug/evolution-
 import { setupGame, type GameSetupDependencies } from './game-setup';
 import { InputController } from './input/input-controller';
 import { INPUT_ACTION } from './input/keyboard-action';
+import { SILENT_TELEMETRY_SEAMS } from '../../testing/builders';
 import { createFakePixiApp } from '../../testing/fake-pixi-app';
 import type { TransitionOptions } from './state/snapshot-transitions';
 
@@ -44,7 +45,7 @@ describe('setupGame', () => {
     const messages$ = new Subject<ServerMessage>();
     const debugHost: EvolutionDebugHost = {};
     const teardown = setupGame(
-      { send: vi.fn(), messages$, acknowledgeSnapshot: vi.fn(), reportPerformance: vi.fn(), host: document.createElement('div') },
+      { send: vi.fn(), messages$, ...SILENT_TELEMETRY_SEAMS, host: document.createElement('div') },
       dependencies({ debugHost }),
     );
     expect(debugHost[EVOLUTION_DEBUG_KEY]?.mode).toBe('live');
@@ -61,8 +62,7 @@ describe('setupGame', () => {
       {
         send: vi.fn(),
         messages$: new Subject<ServerMessage>(),
-        acknowledgeSnapshot: vi.fn(),
-        reportPerformance: vi.fn(),
+        ...SILENT_TELEMETRY_SEAMS,
         host: document.createElement('div'),
       },
       dependencies({ onTraitCardPickReady }),
@@ -82,10 +82,7 @@ describe('setupGame', () => {
   it('connects the audio hooks once per game_state with the own player, the balance and the round length', () => {
     const messages$ = new Subject<ServerMessage>();
     const injected = dependencies();
-    setupGame(
-      { send: vi.fn(), messages$, acknowledgeSnapshot: vi.fn(), reportPerformance: vi.fn(), host: document.createElement('div') },
-      injected,
-    );
+    setupGame({ send: vi.fn(), messages$, ...SILENT_TELEMETRY_SEAMS, host: document.createElement('div') }, injected);
     const config = createTestSessionConfig({ roundDurationSeconds: 90 });
     messages$.next({
       type: SERVER_MESSAGE_TYPE.gameState,

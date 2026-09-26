@@ -48,7 +48,10 @@ describe('a client_performance report over the wire (#256)', () => {
     const quiet = await connectTestClient(harness, QUIET_ID);
     const { gameId, room } = await startTestRoom(harness, reporter, 'reports', [quiet]);
     const tools = createToolCapture();
-    registerPerformanceTools(tools.mcp, { lobbyManager: harness.started.lobby, connections: harness.started.connections });
+    registerPerformanceTools(tools.mcp, {
+      lobbyManager: harness.started.lobby,
+      connections: harness.started.connections,
+    });
     const readClientReports = async () => {
       const [stats] = parseToolJson(await tools.call('debug_get_room_performance', { gameId })) as {
         clientReports: Record<string, ClientPerformanceReport>;
@@ -81,7 +84,9 @@ describe('a client_performance report over the wire (#256)', () => {
   it('refuses a report missing a render stage key, the frame an older client would send, and stores nothing', async () => {
     const { reporter, readClientReports } = await roomWithTwoClients();
     const complete = createTestClientPerformanceReport();
-    const { [RENDER_STAGE.dish]: _omitted, ...stagesBeforeDish } = complete.renderStagesMs;
+    const stagesBeforeDish = Object.fromEntries(
+      Object.entries(complete.renderStagesMs).filter(([stage]) => stage !== RENDER_STAGE.dish),
+    );
     const firstIndex = reporter.received.length;
     sendReport(reporter, { ...complete, renderStagesMs: stagesBeforeDish });
     const refusal = await nextMatchingMessage(reporter, messageOfType(SERVER_MESSAGE_TYPE.error), firstIndex);

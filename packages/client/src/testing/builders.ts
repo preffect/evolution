@@ -186,3 +186,12 @@ export function testManifestFileNames(): Set<string> {
   }
   return names;
 }
+
+/**
+ * The two telemetry seams `setupGame` takes that a spec about input or the HUD does not read: the snapshot ack (#266)
+ * and the frame-budget report (#256), each a no-op. Spread into its `GameSetupOptions`.
+ */
+export const SILENT_TELEMETRY_SEAMS = {
+  acknowledgeSnapshot: (): void => undefined,
+  reportPerformance: (): void => undefined,
+} as const;
