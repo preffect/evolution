@@ -15,7 +15,7 @@ import {
 import { GameRoom } from '../../lobby/game-room.js';
 import { createManualRoomTiming, createTestRoomInitOptions } from '../../testing/builders.js';
 import { createEvolutionModule, type EvolutionModule } from '../evolution-module.js';
-import { REPLAY_ORIGIN, type Replay } from './replay-format.js';
+import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay, type ReplayEvent } from './replay-format.js';
 import { replay, ReplayOriginError } from './replay-runner.js';
 
 const SEED = 42;
@@ -29,6 +29,8 @@ const INPUT_EVERY_TICKS = 7;
 const ALICE = playerId('alice');
 const BOB = playerId('bob');
 const CID = playerId('cid');
+/** A real balance path, named through a constant because a patch is keyed by constant names. */
+const DISH_RADIUS_LEAF = 'DISH_RADIUS';
 
 function roomUnderTest() {
   const options = createTestRoomInitOptions([ALICE, BOB], { config: createTestSessionConfig({ seed: SEED }) });
@@ -50,6 +52,10 @@ function roomUnderTest() {
   return { module, room, handle, step, stop: () => room.stop() };
 }
 
+function eventsOf(recording: Replay, kind: ReplayEvent['kind']): ReplayEvent[] {
+  return recording.events.filter((event) => event.kind === kind);
+}
+
 /** A round short enough to rematch inside a test: 60 s of play, 20 s of results, then the new round. */
 const SHORT_ROUND_SECONDS = 60;
 const TICKS_INTO_THE_REMATCH = 10;
@@ -62,8 +68,21 @@ describe('replaying what a room recorded', () => {
     module.addPlayer(playerId('dee'), 3, 'Dee');
     const recording = handle.exportReplay() as Replay;
     stop();
-    expect(recording.inputs.at(-1)?.tick).toBe(TICKS_BEFORE_RESEED + 1);
-    expect(recording.membership.at(-1)?.tick).toBe(TICKS_BEFORE_RESEED + 1);
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.input).at(-1)?.tick).toBe(TICKS_BEFORE_RESEED + 1);
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.join).at(-1)?.tick).toBe(TICKS_BEFORE_RESEED + 1);
+    expect(replay(recording).hash).toBe(recording.finalHash);
+  });
+
+  it('reproduces a tick where a balance patch and a spawn arrived around a join (#180: in-tick order is recorded)', () => {
+    const { module, handle, step, stop } = roomUnderTest();
+    for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) step(tick);
+    handle.patchBalance({ world: { [DISH_RADIUS_LEAF]: DEFAULT_BALANCE.world.DISH_RADIUS / 2 } });
+    module.addPlayer(playerId('dee'), 3, 'Dee');
+    handle.spawn({ kind: ENTITY_KIND.foodMote, x: 0, y: 0, params: { kind: 'algae' } });
+    module.addPlayer(playerId('eve'), 4, 'Eve');
+    step(TICKS_BEFORE_RESEED + 1);
+    const recording = handle.exportReplay() as Replay;
+    stop();
     expect(replay(recording).hash).toBe(recording.finalHash);
   });
 
@@ -97,9 +116,12 @@ describe('replaying what a room recorded', () => {
     const recording = handle.exportReplay() as Replay;
     stop();
     expect(recording.finalTick).toBe(TICKS_BEFORE_RESEED);
-    expect(recording.membership.map((event) => [event.kind, event.tick])).toEqual([['join', JOIN_TICK]]);
-    expect(recording.debugPatches.map((patch) => patch.tick)).toEqual([SPAWN_TICK, GRANT_TICK]);
-    expect(recording.inputs.length).toBeGreaterThan(0);
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.join).map((event) => event.tick)).toEqual([JOIN_TICK]);
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.debugPatch).map((event) => event.tick)).toEqual([
+      SPAWN_TICK,
+      GRANT_TICK,
+    ]);
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.input).length).toBeGreaterThan(0);
     const replayed = replay(recording);
     expect(replayed.hash).toBe(recording.finalHash);
     expect(replayed.world.players.map((player) => player.playerId)).toEqual([ALICE, BOB, CID]);
@@ -117,7 +139,7 @@ describe('replaying what a room recorded', () => {
     expect(module.world.seed).toBe(RESEED);
     expect(current.seed).toBe(RESEED);
     expect(current.startTick).toBe(TICKS_BEFORE_RESEED);
-    expect(current.membership).toEqual([]);
+    expect(eventsOf(current, REPLAY_EVENT_KIND.join)).toEqual([]);
     expect(current.finalTick).toBe(TICKS_BEFORE_RESEED + TICKS_AFTER_RESEED);
     expect(current.finalHash).not.toBe(closed.finalHash);
     expect(current.startedBy).toBe(REPLAY_ORIGIN.reseed);

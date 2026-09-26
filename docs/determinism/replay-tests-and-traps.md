@@ -6,7 +6,7 @@
 
 ```ts
 export interface Replay {
-  version: number; // REPLAY_FORMAT_VERSION
+  version: number; // REPLAY_FORMAT_VERSION (2: the one ordered event log); replay() refuses any other
   startedBy: 'world_build' | 'rematch' | 'reseed'; // REPLAY_ORIGIN: what opened the recording
   seed: number; // the round seed the recording started from
   startTick: number; // the tick counter continues across a rematch
@@ -14,9 +14,10 @@ export interface Replay {
   config: GameSessionConfig;
   balance: BalanceConfig; // the numbers the run used, so a live-tuned room still replays
   roster: readonly PlayerIdentity[]; // who was present when the recording started, in join order
-  membership: readonly ReplayMembershipEvent[]; // { tick, kind: 'join' | 'leave', playerId, playerName, avatarIndex }
-  inputs: readonly ReplayInput[]; // { tick, playerId, input } — the coalesced input applied at that tick
-  debugPatches: readonly ReplayDebugPatch[]; // debug_spawn / debug_grant_dna / debug_set_balance, stamped by tick
+  events: readonly ReplayEvent[]; // every event in the order the simulation saw it, stamped by tick:
+  //   { tick, kind: 'join' | 'leave', playerId, playerName, avatarIndex }
+  //   { tick, kind: 'debug_patch', patch } — debug_spawn / debug_grant_dna / debug_set_player / debug_set_balance
+  //   { tick, kind: 'input', playerId, input } — the coalesced input step 1 applied at that tick
   finalTick: number;
   finalHash: StateHash;
 }
@@ -25,9 +26,12 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 
 - `ReplayRecorder` sits inside the module: joins, leaves, applied inputs and debug patches are
   stamped with the tick at which they were **applied**, so the log is exactly what the
-  simulation saw (not what arrived). The input log is in tick order, so recording a tick drops and replaces only
-  its tail (the entries an export between ticks already stamped for the coming tick); walking the whole log each
-  tick cost in proportion to the room's age (#181).
+  simulation saw (not what arrived). Joins, leaves and debug patches go into one log in the order the room
+  applied them, so a debug tool used in the same tick window as a join replays on the same side of it (#180).
+  A tick's inputs close its events: an input only fills its own player's pending slot, which nothing else
+  reads or writes before step 1, so the log records that slot as step 1 read it, right before the step. An
+  export appends the still-pending inputs to its copy and never writes the log, so an export between ticks
+  leaves nothing for the step to replace, and recording a tick costs the same however old the room is (#181).
 - **One replay = one round.** The auto-rematch and `debug_set_seed` end the current recording
   and start a new one from the new seed, marked by `startedBy`; a replay never spans a reseed. The
   rematch round closes at the rematch tick with the rebuilt world's hash (the reset happens inside
@@ -39,8 +43,9 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   the log tick by tick, then the events stamped for the tick after the last one (what was pending
   when the recording was exported: they are already in `finalHash`), and returns the final world
   and hash; callers assert `hash === recording.finalHash`.
-- Within one tick the log replays membership, then debug patches, then inputs, not arrival order:
-  a debug tool used in the same tick window as a join can change that join's entry (§8, #180).
+- Within one tick `replay()` feeds the events in log order. A recording of another `version` is refused
+  (`ReplayVersionError`): `debug_export_replay` output is for inspection and diffing, nothing stores a
+  recording to replay later, so an old shape is never guessed at.
 - Failing gameplay scenarios write their replay to `qa/replays/<scenario>.replay.json`;
   `debug_export_replay` exports a live room.
 - Two record shapes coexist on purpose: the module's `Replay` (rooms, `debug_export_replay`) and
@@ -62,7 +67,7 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
 | `determinism-guard.test.ts` (shared, package root)      | no `Math.random` / wall clock / timers in `packages/shared/src` outside `random/` and `time/` (code only, comments ignored)                                                                                |
 | `game/evolution-module.determinism.integration.test.ts` | two rooms, same seed, same scripted inputs under `ManualClock` ⇒ equal hash every 600 ticks and at 10 000 ticks (seed 42)                                                                                  |
 | `game/simulation/round.test.ts`                         | rematch rebuilds the world with `seed + ROUND_SEED_INCREMENT` and fresh streams (G2)                                                                                                                       |
-| `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`; a reseed starts a new recording                                                                                                                  |
+| `game/replay/replay-runner.integration.test.ts`         | recording a run then replaying it reproduces `finalHash`, also when debug patches and joins interleave in one tick; a reseed starts a new recording                                                        |
 | `testing/scenarios/echo.gameplay.test.ts` (#75)         | the scenario runner on the echo module: two runs of one seed and scripted inputs hash equal at every checkpoint and the replay reproduces them; an unseeded script is reported at the first differing tick |
 | `game/world/spatial-hash.test.ts`                       | query results equal brute force and are id-sorted, on seeded populations                                                                                                                                   |
 | `client … cosmetic` (`cells/radial-profile.spec.ts`)    | same seed + same tick ⇒ same membrane profile `r(θ)` (`rendering/files-and-tests.md §9`)                                                                                                                   |
@@ -91,7 +96,8 @@ never a flaky test: bisect by hashing every tick and diffing the first divergent
   kernel a frame delta or more than one input per tick breaks reconciliation.
 - Reading a tunable from `constants/` inside a system instead of `context.balance` makes
   `debug_set_balance` and a replayed `balance` silently disagree with the live run.
-- The module's replay log orders a tick's events by kind (membership, debug patches, inputs), not
-  by arrival: a `debug_set_balance` / `debug_grant_dna` / `debug_set_player` in the same tick
-  window as a late join replays before the join even when it arrived after it, and that join's
-  entry mass, medians and placement can differ. #180 stamps a sequence beside the tick.
+- A replay log that groups a tick's events by kind (membership, then debug patches, then inputs)
+  instead of keeping their order diverges: a `debug_spawn` or `debug_set_balance` in the same tick
+  window as a late join changes that join's entity ids, entry mass, medians and placement. Version 1
+  did this; version 2 keeps one ordered log (#180), pinned by `replay-runner.test.ts` and the
+  room-level case in `replay-runner.integration.test.ts`.
