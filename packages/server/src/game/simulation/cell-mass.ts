@@ -4,6 +4,7 @@
 
 import { radiusForMass, type BalanceConfig } from '@evolution/shared';
 import { gainDna } from '../progression/dna.js';
+import { keepInsideDish } from './dish-wall.js';
 import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
 
 /** Sets the mass and refreshes the radius; never applies the cap (callers that gain mass use `gainMass`). */
@@ -14,7 +15,8 @@ export function setCellMass(cell: CellRecord, mass: number, balance: BalanceConf
 
 /**
  * Adds `amount` to the cell; the part above the cap becomes DNA for `player`. A cell with no player (a wild
- * cell) is clamped to the cap and gains no DNA.
+ * cell) is clamped to the cap and gains no DNA. A cell that grows against the wall is pushed inward by its growth,
+ * so its rim stays inside the dish (docs/ecology/absorption.md §6.3, #710).
  */
 export function gainMass(
   cell: CellRecord,
@@ -28,6 +30,7 @@ export function gainMass(
     gainDna(player, (raised - maxMass) * balance.growth.MASS_OVERFLOW_DNA_PER_MASS, cell.modifiers.dnaGainMultiplier);
   }
   setCellMass(cell, Math.min(raised, maxMass), balance);
+  keepInsideDish(cell, balance.world.DISH_RADIUS);
 }
 
 /** What one meal added, measured around the gains (#383): the snapshot reports these, never a formula's value. */

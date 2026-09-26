@@ -1,4 +1,5 @@
-// docs/ecology/mass-and-movement.md §5.4 (E12) on the mass cap; the wild floor (docs/architecture/server-simulation.md §3.4).
+// docs/ecology/mass-and-movement.md §5.4 (E12) on the mass cap; the wild floor (docs/architecture/server-simulation.md §3.4);
+// growth at the wall (docs/ecology/absorption.md §6.3, #710).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
 import { seatTestWildCell } from '../../testing/wild-builders.js';
@@ -8,6 +9,8 @@ import { gainMass, loseMassToFloor, massFloorOf, setCellMass } from './cell-mass
 const { growth } = DEFAULT_BALANCE;
 /** A wild cell born below the starting mass (size 0.5 at tick 0). */
 const SMALL_WILD_MASS = 10;
+/** A payout's worth of mass: enough to grow the radius by several wu. */
+const WALL_MEAL_MASS = 60;
 
 function cellAndPlayer() {
   const world = createTestWorld();
@@ -46,6 +49,23 @@ describe('gainMass', () => {
     setCellMass(cell, growth.CELL_MAX_MASS - 1, DEFAULT_BALANCE);
     gainMass(cell, player, 3, DEFAULT_BALANCE);
     expect(player.dnaCumulative).toBeCloseTo(2 * growth.MASS_OVERFLOW_DNA_PER_MASS * 2, 12);
+  });
+
+  it('pushes a cell that grows against the wall inward, so its rim stays inside the dish (#710)', () => {
+    const { cell, player } = cellAndPlayer();
+    const dishRadius = DEFAULT_BALANCE.world.DISH_RADIUS;
+    cell.x = 0;
+    cell.y = -(dishRadius - cell.radius);
+    gainMass(cell, player, WALL_MEAL_MASS, DEFAULT_BALANCE);
+    expect(cell.x).toBe(0);
+    expect(cell.y).toBeCloseTo(-(dishRadius - cell.radius), 9);
+  });
+
+  it('leaves a cell that grows away from the wall where it is', () => {
+    const { cell, player } = cellAndPlayer();
+    const before = { x: cell.x, y: cell.y };
+    gainMass(cell, player, WALL_MEAL_MASS, DEFAULT_BALANCE);
+    expect({ x: cell.x, y: cell.y }).toEqual(before);
   });
 
   it('clamps a cell with no player (a wild cell) to the cap and grants no DNA', () => {
