@@ -42,9 +42,11 @@ export function renderSessionUnderTest(overrides: Partial<RenderSessionDependenc
     disconnect: vi.fn(),
   };
   const acknowledgeSnapshot = vi.fn();
+  const reportPerformance = vi.fn();
   const dependencies: RenderSessionDependencies = {
     host: document.createElement('div'),
     acknowledgeSnapshot,
+    reportPerformance,
     clock,
     devicePixelRatio: 1,
     createPixiApp: vi.fn(() => Promise.resolve(pixi)),
@@ -55,7 +57,7 @@ export function renderSessionUnderTest(overrides: Partial<RenderSessionDependenc
     ...overrides,
   };
   const subject = new RenderSession(dependencies);
-  return { subject, clock, pixi, audio, dependencies, acknowledgeSnapshot };
+  return { subject, clock, pixi, audio, dependencies, acknowledgeSnapshot, reportPerformance };
 }
 
 export function snapshotMessage(tick: number, spawned: FoodMoteView[] = [], seed = 1): ServerMessage {

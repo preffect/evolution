@@ -44,7 +44,7 @@ describe('setupGame', () => {
     const messages$ = new Subject<ServerMessage>();
     const debugHost: EvolutionDebugHost = {};
     const teardown = setupGame(
-      { send: vi.fn(), messages$, acknowledgeSnapshot: vi.fn(), host: document.createElement('div') },
+      { send: vi.fn(), messages$, acknowledgeSnapshot: vi.fn(), reportPerformance: vi.fn(), host: document.createElement('div') },
       dependencies({ debugHost }),
     );
     expect(debugHost[EVOLUTION_DEBUG_KEY]?.mode).toBe('live');
@@ -62,6 +62,7 @@ describe('setupGame', () => {
         send: vi.fn(),
         messages$: new Subject<ServerMessage>(),
         acknowledgeSnapshot: vi.fn(),
+        reportPerformance: vi.fn(),
         host: document.createElement('div'),
       },
       dependencies({ onTraitCardPickReady }),
@@ -82,7 +83,7 @@ describe('setupGame', () => {
     const messages$ = new Subject<ServerMessage>();
     const injected = dependencies();
     setupGame(
-      { send: vi.fn(), messages$, acknowledgeSnapshot: vi.fn(), host: document.createElement('div') },
+      { send: vi.fn(), messages$, acknowledgeSnapshot: vi.fn(), reportPerformance: vi.fn(), host: document.createElement('div') },
       injected,
     );
     const config = createTestSessionConfig({ roundDurationSeconds: 90 });

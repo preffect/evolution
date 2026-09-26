@@ -97,7 +97,7 @@ async function startGame(): Promise<Harness> {
     disconnect: vi.fn(),
   };
   const teardown = setupGame(
-    { send: (input) => sent.push(input), messages$, acknowledgeSnapshot: () => undefined, host },
+    { send: (input) => sent.push(input), messages$, acknowledgeSnapshot: () => undefined, reportPerformance: () => undefined, host },
     {
       clock,
       connectAudio: () => audio,

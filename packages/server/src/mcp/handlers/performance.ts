@@ -40,7 +40,7 @@ function selectRooms(context: DebugContext, gameId: string | undefined): (readon
 function registerRoomPerformanceTool(mcp: McpServer, context: DebugContext): void {
   mcp.tool(
     'debug_get_room_performance',
-    'Get per-room tick timings (step + snapshot broadcast; the broadcast also on its own: broadcastAvgMs over every tick, broadcastP95Ms over broadcast ticks), snapshot byte sizes, broadcast fan-out and bytes/sec (tick broadcasts, resync game_states, the off-tick debug step/republish frames and the start/late-join/reconnect game_states), and snapshotFlow: resyncs sent, players owed one, and backlogTicks per seated connection (null = no ack since its stream (re)started). Omit gameId for all active rooms.',
+    'Get per-room tick timings (step + snapshot broadcast; the broadcast also on its own: broadcastAvgMs over every tick, broadcastP95Ms over broadcast ticks), snapshot byte sizes, broadcast fan-out and bytes/sec (tick broadcasts, resync game_states, the off-tick debug step/republish frames and the start/late-join/reconnect game_states), snapshotFlow: resyncs sent, players owed one, and backlogTicks per seated connection (null = no ack since its stream (re)started), and clientReports: the newest client_performance frame-budget report per player (fps, frame p95, renderStagesMs, gpuMs, drawCalls, visible counts; a live client sends one every 5 s). Omit gameId for all active rooms.',
     { gameId: z.string().optional().describe('Optional game ID. If omitted, returns all active rooms.') },
     (input) => {
       const rooms = selectRooms(context, input.gameId);
@@ -52,6 +52,7 @@ function registerRoomPerformanceTool(mcp: McpServer, context: DebugContext): voi
         playerCount: room.playerConnections.size,
         ...room.performanceTracker.getStats(),
         snapshotFlow: room.snapshotBacklog.telemetryFor(room.playerConnections.keys()),
+        clientReports: room.performanceTracker.clientReportsSnapshot(),
       }));
       return jsonResult(stats);
     },

@@ -75,6 +75,12 @@ export const RENDER_DRAW_CALL_HEADROOM = 1;
 export const RENDER_SAMPLE_CAPACITY_FRAMES = 300;
 /** A live session rebuilds its report this often (one second at 60 fps). */
 export const RENDER_REPORT_EVERY_FRAMES = 60;
+/**
+ * A live room sends its report to the server this often (`client_performance`, ticket #256): one window's length at
+ * 60 fps, so consecutive reports cover mostly fresh frames. A duration, not a frame count, so a slow page reports
+ * as often as a fast one.
+ */
+export const CLIENT_PERFORMANCE_REPORT_INTERVAL_MS = 5 * MILLISECONDS_PER_SECOND;
 
 // ---- the bench scene (docs/rendering/budget.md §7) ----
 export const RENDER_BENCH_SEED = 42;

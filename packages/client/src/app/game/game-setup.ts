@@ -4,7 +4,7 @@
 // in the modules it composes.
 
 import type { Observable } from 'rxjs';
-import type { Clock, GameInput, ServerMessage, TraitId } from '@evolution/shared';
+import type { ClientPerformanceReport, Clock, GameInput, ServerMessage, TraitId } from '@evolution/shared';
 import type { AudioHooksHandle } from './audio/audio-hooks';
 import { definedEntriesOf } from './defined-entries';
 import { installEvolutionDebug, type EvolutionDebugApi, type EvolutionDebugHost } from './debug/evolution-debug';
@@ -24,6 +24,8 @@ export interface GameSetupOptions {
   messages$: Observable<ServerMessage>;
   /** Tells the server which snapshot tick this client has applied (#266, docs/architecture/wire-contract.md §4). */
   acknowledgeSnapshot: (tick: number) => void;
+  /** Sends the frame-budget report (`client_performance`, ticket #256, docs/rendering/budget.md §7); telemetry only. */
+  reportPerformance: (report: ClientPerformanceReport) => void;
   /** The element the canvas mounts in, and the element the pointer is read against. */
   host: HTMLElement;
 }
@@ -110,6 +112,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     hudInputs: () => hudInputsOf(dependencies, controller),
     ...definedEntriesOf({ onCameraExtent: dependencies.onCameraExtent }),
     acknowledgeSnapshot: options.acknowledgeSnapshot,
+    reportPerformance: options.reportPerformance,
     shouldPreserveDrawingBuffer: dependencies.isDevMode,
   });
   const input = attachInput({

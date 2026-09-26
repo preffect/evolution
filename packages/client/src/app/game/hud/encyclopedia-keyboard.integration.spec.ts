@@ -116,7 +116,7 @@ describe('the encyclopedia’s keyboard over the wired game', () => {
       disconnect: vi.fn(),
     };
     teardown = setupGame(
-      { send: (input) => sent.push(input), messages$, acknowledgeSnapshot: () => undefined, host: canvasHost },
+      { send: (input) => sent.push(input), messages$, acknowledgeSnapshot: () => undefined, reportPerformance: () => undefined, host: canvasHost },
       {
         clock,
         connectAudio: () => audio,
