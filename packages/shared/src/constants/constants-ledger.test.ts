@@ -5,7 +5,20 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as constants from './index.js';
-import { DERIVED_BALANCE_CONSTANTS } from './balance.js';
+import * as absorptionDerived from './absorption-derived.js';
+import * as absorption from './absorption.js';
+import { DEFAULT_BALANCE, DERIVED_BALANCE_CONSTANTS } from './balance.js';
+import * as camera from './camera.js';
+import * as controls from './controls.js';
+import * as ecology from './ecology.js';
+import * as growth from './growth.js';
+import * as ladder from './ladder.js';
+import * as progression from './progression.js';
+import * as session from './session.js';
+import * as traits from './traits.js';
+import * as wildCells from './wild-cells.js';
+import * as world from './world.js';
+import * as worldClock from './world-clock.js';
 import { markdownSection, tableRows } from '../testing/markdown-document.js';
 
 const DOCS_DIRECTORY = new URL('../../../../docs/', import.meta.url);
@@ -54,16 +67,39 @@ function pathWithinPackages(file: URL): string | undefined {
 }
 
 /**
- * The constants-table section of each design doc, by heading (`## N. Constants table ...`), and the
- * number of distinct names its rows carry. The count is pinned so that a row added to or removed
- * from a doc (or a table the parser silently stopped seeing) is a deliberate edit on both sides.
+ * The constants-table section of each design doc, by heading (`## N. Constants table ...`), the
+ * number of distinct names its rows carry, and the domain files it owns (CODE-STANDARDS.md §2). The count is
+ * pinned so that a row added to or removed from a doc (or a table the parser silently stopped seeing) is a
+ * deliberate edit on both sides; the domain files are what the reverse ledger reads (#150).
  */
 const CONSTANTS_TABLE_SOURCES = [
-  { documentName: 'game-design/constants-and-acceptance.md', section: 12, expectedNames: 38 },
-  { documentName: 'ecology/constants.md', section: 7, expectedNames: 101 },
-  { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16 },
-  { documentName: 'traits/constants-and-acceptance.md', section: 5, expectedNames: 7 },
+  {
+    documentName: 'game-design/constants-and-acceptance.md',
+    section: 12,
+    expectedNames: 38,
+    domainModules: { world, session, controls, ladder, camera, worldClock },
+  },
+  {
+    documentName: 'ecology/constants.md',
+    section: 7,
+    expectedNames: 101,
+    domainModules: { ecology, growth, absorption, wildCells, absorptionDerived },
+  },
+  { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16, domainModules: { progression } },
+  { documentName: 'traits/constants-and-acceptance.md', section: 5, expectedNames: 7, domainModules: { traits } },
 ] as const;
+
+/**
+ * Domain-file exports that are not a tunable row of their doc's table, one reason each. The reverse ledger
+ * skips them, and a test fails the day an entry gets a row or stops being exported, so the list cannot rot.
+ */
+const EXPORTS_WITHOUT_A_ROW = [
+  {
+    name: 'STARTING_STAGE',
+    reason: 'an alias of `STAGE_ORDER[0]`, which has the row; derived, never tuned (CODE-STANDARDS.md §2)',
+  },
+] as const;
+const NAMES_WITHOUT_A_ROW: readonly string[] = EXPORTS_WITHOUT_A_ROW.map(({ name }) => name);
 
 /** A constants row's first cell opens with its backticked name; the header's `Constant` does not. */
 const NAME_CELL_START = '`';
@@ -81,6 +117,11 @@ const GLOB_ROW_SOURCE = {
   realName: 'EJECT_MASS',
 };
 
+/** A backticked family glob such as `MITOSIS_*`: the row names every export that starts with its prefix. */
+const BACKTICKED_GLOB_PATTERN = /`([A-Z][A-Z0-9_]*_)\*`/g;
+/** An export name the reverse ledger reads: the same UPPER_SNAKE shape the table rows name. */
+const UPPER_SNAKE_NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+
 /** A row whose value is computed from other constants says so in a later cell: `s (derived: …)`, `(derived from …)`. */
 const DERIVED_ROW_PATTERN = /\(derived\b/;
 
@@ -89,19 +130,46 @@ const EVERY_ROW = (): boolean => true;
 const DERIVED_ROW = (otherCells: readonly string[]): boolean =>
   otherCells.some((cell) => DERIVED_ROW_PATTERN.test(cell));
 
+/** The cells of every table row in the doc's `## N. Constants table` section. */
+function constantsTableRows(documentName: string, section: number): string[][] {
+  const markdown = readFileSync(new URL(documentName, DOCS_DIRECTORY), 'utf8');
+  return tableRows(markdownSection(markdown, `## ${section}. Constants table`));
+}
+
 /** Every backticked UPPER_SNAKE name in the first cell of a table row of the section that `selectsRow` keeps. */
 function namesInConstantsTable(
   documentName: string,
   section: number,
   selectsRow: (otherCells: readonly string[]) => boolean = EVERY_ROW,
 ): string[] {
-  const markdown = readFileSync(new URL(documentName, DOCS_DIRECTORY), 'utf8');
   const names = new Set<string>();
-  for (const [firstCell, ...otherCells] of tableRows(markdownSection(markdown, `## ${section}. Constants table`))) {
+  for (const [firstCell, ...otherCells] of constantsTableRows(documentName, section)) {
     if (!firstCell?.startsWith(NAME_CELL_START) || !selectsRow(otherCells)) continue;
     for (const match of firstCell.matchAll(BACKTICKED_NAME_PATTERN)) names.add(match[1]!);
   }
   return [...names];
+}
+
+/** The prefix of every family glob (`MITOSIS_*` as `MITOSIS_`) in the first cell of a table row of the section. */
+function globPrefixesInConstantsTable(documentName: string, section: number): string[] {
+  return constantsTableRows(documentName, section).flatMap(([firstCell]) =>
+    [...(firstCell ?? '').matchAll(BACKTICKED_GLOB_PATTERN)].map((match) => match[1]!),
+  );
+}
+
+/** Every UPPER_SNAKE export of the domain files, re-exports included: the names a doc row must carry. */
+function upperSnakeExports(domainModules: Readonly<Record<string, object>>): string[] {
+  const names = Object.values(domainModules).flatMap((domainModule) => Object.keys(domainModule));
+  return [...new Set(names)].filter((name) => UPPER_SNAKE_NAME_PATTERN.test(name));
+}
+
+/** The exports of the domain files that neither a row of the doc's table nor one of its family globs names. */
+function exportsWithoutARow({ documentName, section, domainModules }: (typeof CONSTANTS_TABLE_SOURCES)[number]) {
+  const rowNames = new Set(namesInConstantsTable(documentName, section));
+  const globPrefixes = globPrefixesInConstantsTable(documentName, section);
+  return upperSnakeExports(domainModules).filter(
+    (name) => !rowNames.has(name) && !globPrefixes.some((prefix) => name.startsWith(prefix)),
+  );
 }
 
 describe('constants ledger: the table parser', () => {
@@ -124,6 +192,32 @@ describe('constants ledger: every design-table constant is exported', () => {
       expect(constants).toHaveProperty(name);
       expect((constants as Record<string, unknown>)[name]).not.toBeUndefined();
     });
+  });
+});
+
+describe('constants ledger: every domain-file export has a design-table row (#150)', () => {
+  describe.each(CONSTANTS_TABLE_SOURCES)('$documentName §$section', (source) => {
+    it('reads the exports of its domain files', () => {
+      // An empty module map, or a namespace that stopped carrying names, would pass the case below vacuously.
+      for (const domainModule of Object.values(source.domainModules)) {
+        expect(upperSnakeExports({ domainModule })).not.toEqual([]);
+      }
+    });
+
+    it('names every UPPER_SNAKE export in a row or a family glob, or allow-lists it with a reason', () => {
+      expect(exportsWithoutARow(source).filter((name) => !NAMES_WITHOUT_A_ROW.includes(name))).toEqual([]);
+    });
+  });
+
+  it('reads every domain the balance carries, so a new domain file cannot skip the reverse ledger', () => {
+    const readNames = new Set(CONSTANTS_TABLE_SOURCES.flatMap(({ domainModules }) => upperSnakeExports(domainModules)));
+    const balanceNames = Object.values(DEFAULT_BALANCE).flatMap((domain) => Object.keys(domain));
+    expect(balanceNames.filter((name) => !readNames.has(name))).toEqual([]);
+  });
+
+  it('keeps no allow-list entry that a row names or no domain file exports', () => {
+    const stillWithoutARow = CONSTANTS_TABLE_SOURCES.flatMap(exportsWithoutARow);
+    expect(NAMES_WITHOUT_A_ROW.filter((name) => !stillWithoutARow.includes(name))).toEqual([]);
   });
 });
 

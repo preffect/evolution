@@ -5,6 +5,9 @@ import { DebugRequestError } from './debug-request-error.js';
 
 /** A real balance path, named through a constant because the patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
+const CATALOG_LEAF = 'TRAIT_CATALOG';
+/** A tier number reached through the catalog: the path CODE-STANDARDS.md §2 calls structure (#150). */
+const CATALOG_TIER_PATCH = { traits: { [CATALOG_LEAF]: { 0: { tiers: { 0: { dnaGainMultiplier: 2 } } } } } };
 
 function liveBalance() {
   return {
@@ -46,6 +49,15 @@ describe('applyBalancePatch', () => {
     expect(() => applyBalancePatch(balance, { ecology: { foodKinds: 1 } })).toThrow(/not a number leaf/);
     expect(() => applyBalancePatch(balance, { ecology: { zones: 1 } })).toThrow(/not a number leaf/);
     expect(() => applyBalancePatch(balance, { ecology: { foodCapBase: { nested: 1 } } })).toThrow(DebugRequestError);
+  });
+
+  it('refuses a structure path by name and names the path its numbers are read from', () => {
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, CATALOG_TIER_PATCH)).toThrow(
+      new DebugRequestError(
+        '"traits.TRAIT_CATALOG" is structure, not a tunable: its numbers are read from "traits.TRAIT_TIERS"',
+      ),
+    );
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, { traits: { [CATALOG_LEAF]: 1 } })).toThrow(/traits\.TRAIT_TIERS/);
   });
 
   it('refuses a non-finite value', () => {
