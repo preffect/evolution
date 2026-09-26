@@ -228,7 +228,7 @@ change ports inside the container; they are already baked into the integration f
   `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
   with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
   every module); populate a room with `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
-  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter` | `flee`, `docs/testing/bots-and-design-tables.md` §8.3)
+  `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter` | `flee` | `forager`, `docs/testing/bots-and-design-tables.md` §8.3)
   **These MCP tools always reach the main checkout's server on 4400: the human's live game.** A worktree stack
   (`PORT=4570 CLIENT_PORT=4572 ./run.sh`) is driven by curling its own endpoint, one `tools/call` per request (as
   `packages/client/e2e/debug-mcp.ts` does):
