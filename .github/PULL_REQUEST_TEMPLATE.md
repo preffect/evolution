@@ -25,4 +25,4 @@ scoped checks   →  list the ones you ran (e.g. ./validate.sh test --scope serv
 - [ ] Graphics PRs: before/after screenshots attached (motion capture if animation changed)
 - [ ] Gameplay PRs: balance values touched are listed
 
-<!-- Reviewers: findings as line-anchored review comments; author replies on every thread; reviewer resolves. -->
+<!-- Reviewers: findings as line-anchored review comments, each tagged with severity and evidence ("**major, observed**", docs/TEAM.md "Reporting a finding"); author replies on every thread; reviewer resolves. -->
