@@ -1,6 +1,6 @@
-// Records what the simulation saw (docs/determinism/replay-tests-and-traps.md §6): joins, leaves, the coalesced inputs
-// step 1 applies and the debug patches, each stamped with the tick they apply at. One replay is
-// one round: the rematch and `debug_set_seed` close the recording and start a new one from the
+// Records what the simulation saw (docs/determinism/replay-tests-and-traps.md §6): joins, leaves, debug patches and
+// the coalesced inputs step 1 applies, in one log in the order they were applied, each stamped with
+// the tick they apply at. One replay is one round: the rematch and `debug_set_seed` close the recording and start a new one from the
 // new seed.
 
 import { REPLAY_FORMAT_VERSION, type StateHash } from '@evolution/shared';
@@ -8,12 +8,12 @@ import type { PlayerIdentity } from '../session/players.js';
 import { computeStateHash } from '../world/state-hash.js';
 import type { WorldState } from '../world/world-state.js';
 import {
-  REPLAY_MEMBERSHIP_KIND,
+  REPLAY_EVENT_KIND,
   REPLAY_ORIGIN,
   type DebugPatch,
   type Replay,
-  type ReplayDebugPatch,
-  type ReplayInput,
+  type ReplayEvent,
+  type ReplayInputEvent,
   type ReplayMembershipEvent,
   type ReplayOrigin,
 } from './replay-format.js';
@@ -27,9 +27,7 @@ interface OpenRecording {
   config: Replay['config'];
   balance: Replay['balance'];
   roster: PlayerIdentity[];
-  membership: ReplayMembershipEvent[];
-  inputs: ReplayInput[];
-  debugPatches: ReplayDebugPatch[];
+  events: ReplayEvent[];
 }
 
 function identityOf(player: PlayerIdentity): PlayerIdentity {
@@ -37,11 +35,12 @@ function identityOf(player: PlayerIdentity): PlayerIdentity {
 }
 
 /** The inputs step 1 will apply at `tick + 1`, stamped so. */
-function pendingInputsOf(world: WorldState): ReplayInput[] {
-  const inputs: ReplayInput[] = [];
+function pendingInputsOf(world: WorldState): ReplayInputEvent[] {
+  const inputs: ReplayInputEvent[] = [];
   for (const player of world.players) {
     if (player.pendingInput !== null) {
-      inputs.push({ tick: world.tick + 1, playerId: player.playerId, input: player.pendingInput });
+      const { playerId } = player;
+      inputs.push({ tick: world.tick + 1, kind: REPLAY_EVENT_KIND.input, playerId, input: player.pendingInput });
     }
   }
   return inputs;
@@ -56,9 +55,7 @@ function openRecording(world: WorldState, startedBy: ReplayOrigin): OpenRecordin
     config: world.config,
     balance: structuredClone(world.balance),
     roster: world.players.map(identityOf),
-    membership: [],
-    inputs: [],
-    debugPatches: [],
+    events: [],
   };
 }
 
@@ -71,33 +68,25 @@ export class ReplayRecorder {
   }
 
   /**
-   * Called right before the step, and by `export`: every pending input is what step 1 applies at
-   * `tick + 1`. The entries already stamped for that tick are replaced, so an export between ticks
-   * and the step that follows it record the same fact once (an input coalesced after the export
-   * replaces the earlier entry, as it replaced the pending slot). The log is in tick order, so those entries are its
-   * tail: only the tail is dropped, never the whole log copied, which cost every tick in proportion to the room's age
-   * (#181, measured in docs/architecture/debug-mcp.md §8).
+   * Called right before the step: every pending input is what step 1 applies at `tick + 1`, so the
+   * tick's inputs close its events. Only the step appends them; an export reads them without
+   * writing, so an export between ticks never leaves an entry the step would have to replace.
    */
   recordPendingInputs(world: WorldState): void {
-    const nextTick = world.tick + 1;
-    const { inputs } = this.current;
-    while (inputs.at(-1)?.tick === nextTick) {
-      inputs.pop();
-    }
-    inputs.push(...pendingInputsOf(world));
+    this.current.events.push(...pendingInputsOf(world));
   }
 
   recordJoin(world: WorldState, identity: PlayerIdentity): void {
-    this.current.membership.push({ ...identityOf(identity), tick: world.tick + 1, kind: REPLAY_MEMBERSHIP_KIND.join });
+    this.recordMembership(world, identity, REPLAY_EVENT_KIND.join);
   }
 
   /** The caller looks the identity up before removing the player: a leave is never invented. */
   recordLeave(world: WorldState, identity: PlayerIdentity): void {
-    this.current.membership.push({ ...identityOf(identity), tick: world.tick + 1, kind: REPLAY_MEMBERSHIP_KIND.leave });
+    this.recordMembership(world, identity, REPLAY_EVENT_KIND.leave);
   }
 
   recordDebugPatch(world: WorldState, patch: DebugPatch): void {
-    this.current.debugPatches.push({ tick: world.tick + 1, patch });
+    this.current.events.push({ tick: world.tick + 1, kind: REPLAY_EVENT_KIND.debugPatch, patch });
   }
 
   /**
@@ -114,10 +103,9 @@ export class ReplayRecorder {
   /**
    * The current round so far, ending at the world's tick and hash. An input still pending when
    * the export happens is already in that hash (`pendingInput` is hashed), so it rides along
-   * stamped for the next tick, exactly as `recordPendingInputs` would stamp it.
+   * after the log, stamped for the next tick exactly as `recordPendingInputs` will stamp it.
    */
   export(world: WorldState, finalHash: StateHash = computeStateHash(world)): Replay {
-    this.recordPendingInputs(world);
     const recording = this.current;
     return {
       version: REPLAY_FORMAT_VERSION,
@@ -128,11 +116,13 @@ export class ReplayRecorder {
       config: recording.config,
       balance: recording.balance,
       roster: [...recording.roster],
-      membership: [...recording.membership],
-      inputs: [...recording.inputs],
-      debugPatches: [...recording.debugPatches],
+      events: [...recording.events, ...pendingInputsOf(world)],
       finalTick: world.tick,
       finalHash,
     };
+  }
+
+  private recordMembership(world: WorldState, identity: PlayerIdentity, kind: ReplayMembershipEvent['kind']): void {
+    this.current.events.push({ ...identityOf(identity), tick: world.tick + 1, kind });
   }
 }
