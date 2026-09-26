@@ -16,7 +16,7 @@ Procedure:
 2. Check with scoped runs only; never run the full gate and never ask for a stamp (the gate runs
    once at merge, `docs/engineering/validation-gate.md` §1). Run the new
    tests scoped (`./validate.sh test --scope <path>`, and `lint --scope` on the changed files); try to
-   break the change with an extra test case.
+   break the change with an extra test case, and mutate every new pin red (`docs/testing/tiers-and-builders.md` §7.1).
 3. Check: magic values, duplicated logic, unit size, naming, error handling, test coverage of
    every branch, integration test for new wiring, docs updated, no leftover debug code.
 4. Post ONE review via `gh api repos/{owner}/{repo}/pulls/<N>/reviews` (`event: COMMENT`) with
