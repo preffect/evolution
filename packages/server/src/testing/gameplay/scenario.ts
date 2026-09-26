@@ -10,7 +10,7 @@
 // binding for the template's echo game, #98 adds the Evolution one.
 
 import { MAX_PLAYERS_PER_GAME, createTestSessionConfig, type GameSessionConfig } from '@evolution/shared';
-import type { ScenarioAdapter } from './adapter.js';
+import type { ScenarioAdapter, TickedSnapshot } from './adapter.js';
 import { strategyScript, type BotStrategyFactory } from './bots.js';
 import { ScenarioSetupError } from './errors.js';
 import { CaptureBuilder, ExpectationBuilder } from './expectation-builder.js';
@@ -47,7 +47,7 @@ export const DEFAULT_HASH_EVERY_TICKS = 600;
 const SETUP_TICK = 0;
 const MIN_PLAYERS = 1;
 
-export class ScenarioBuilder<Input, Snapshot, Fixture> {
+export class ScenarioBuilder<Input, Snapshot extends TickedSnapshot, Fixture> {
   private seedValue: number | null = null;
   private configValue: GameSessionConfig = createTestSessionConfig({ maxPlayers: MAX_PLAYERS_PER_GAME });
   private readonly playerList: ScenarioPlayer[] = [];
@@ -272,10 +272,12 @@ export class ScenarioBuilder<Input, Snapshot, Fixture> {
   }
 }
 
-export type ScenarioDsl<Input, Snapshot, Fixture> = (name: string) => ScenarioBuilder<Input, Snapshot, Fixture>;
+export type ScenarioDsl<Input, Snapshot extends TickedSnapshot, Fixture> = (
+  name: string,
+) => ScenarioBuilder<Input, Snapshot, Fixture>;
 
 /** Binds the DSL to an adapter: `const scenario = createScenarioDsl(evolutionAdapter)`. */
-export function createScenarioDsl<Input, Snapshot, Fixture>(
+export function createScenarioDsl<Input, Snapshot extends TickedSnapshot, Fixture>(
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
   runOptions: RunOptions = {},
 ): ScenarioDsl<Input, Snapshot, Fixture> {

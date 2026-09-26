@@ -12,7 +12,7 @@ import {
   type StateHash,
 } from '@evolution/shared';
 import type { GameModule } from '../../game/game-module.js';
-import type { FixtureContext, PlayerCommand, ScenarioAdapter } from './adapter.js';
+import type { FixtureContext, PlayerCommand, ScenarioAdapter, TickedSnapshot } from './adapter.js';
 import { ScenarioSetupError } from './errors.js';
 import type { ScenarioView } from './expectations.js';
 import {
@@ -57,7 +57,7 @@ function toReplayPlayer({ playerId, playerName, avatarIndex }: ReplayPlayer): Re
   return { playerId, playerName, avatarIndex };
 }
 
-export class ScenarioSession<Input, Snapshot, Fixture> {
+export class ScenarioSession<Input, Snapshot extends TickedSnapshot, Fixture> {
   readonly module: GameModule<Input, Snapshot>;
   tick = INITIAL_TICK;
   private snapshot: Snapshot;

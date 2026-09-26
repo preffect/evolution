@@ -4,7 +4,7 @@
 // checkpoint that differs is the divergence, reported with the seed and the tick.
 
 import type { PlayerId, StateHash } from '@evolution/shared';
-import type { ScenarioAdapter } from './adapter.js';
+import type { ScenarioAdapter, TickedSnapshot } from './adapter.js';
 import { findFirstDifference } from '../structural-diff.js';
 import {
   ScenarioDivergenceError,
@@ -103,7 +103,7 @@ function indexLog<Fixture>(replay: ScenarioReplay<Fixture>): IndexedLog<Fixture>
 }
 
 /** Feeds the joins, leaves, patches and inputs the recording stamped `stepTick`, in log order. */
-function applyRecordedEvents<Input, Snapshot, Fixture>(
+function applyRecordedEvents<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   log: IndexedLog<Fixture>,
   stepTick: number,
@@ -124,7 +124,7 @@ function applyRecordedEvents<Input, Snapshot, Fixture>(
 }
 
 /** Runs the recording back through a fresh module and compares every recorded checkpoint. */
-export async function replayScenario<Input, Snapshot, Fixture>(
+export async function replayScenario<Input, Snapshot extends TickedSnapshot, Fixture>(
   replay: ScenarioReplay<Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
 ): Promise<ReplayVerdict> {
@@ -163,7 +163,7 @@ function throwIfDiverged(identity: ScenarioIdentity, divergence: HashDivergence 
 }
 
 /** `replayScenario`, throwing `ScenarioDivergenceError` when the recording is not reproduced. */
-export async function verifyReplay<Input, Snapshot, Fixture>(
+export async function verifyReplay<Input, Snapshot extends TickedSnapshot, Fixture>(
   replay: ScenarioReplay<Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
 ): Promise<ReplayVerdict> {
@@ -176,7 +176,7 @@ export async function verifyReplay<Input, Snapshot, Fixture>(
  * Re-runs both sides from scratch up to `tick`, the way the diverging pair ran, and compares them.
  * Expectations are dropped (the pair already passed them) and nothing goes to the replay sink.
  */
-export async function snapshotBothSidesAt<Input, Snapshot, Fixture>(
+export async function snapshotBothSidesAt<Input, Snapshot extends TickedSnapshot, Fixture>(
   definition: ScenarioDefinition<Snapshot, Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
   tick: number,
