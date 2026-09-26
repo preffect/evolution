@@ -21,7 +21,7 @@ import { registerSpawnTools } from '../../mcp/handlers/spawn.js';
 import { createActiveRoomFixture, parseToolJson } from '../../testing/builders.js';
 import { evolutionModuleFactory } from '../evolution-module.js';
 import { ReplayRecorder } from '../replay/replay-recorder.js';
-import type { Replay } from '../replay/replay-format.js';
+import { REPLAY_EVENT_KIND, type Replay } from '../replay/replay-format.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { createInputRejectionCounters } from '../world/world-state.js';
@@ -151,18 +151,14 @@ describe('EvolutionDebugHandle', () => {
     const balance = handle.patchBalance({ world: { [DISH_RADIUS_LEAF]: 2000 } }) as BalanceConfig;
     expect(balance.world.DISH_RADIUS).toBe(2000);
     expect(handle.getBalance()).toBe(world.balance);
-    expect(recorder.export(world).debugPatches.map((entry) => entry.patch.kind)).toEqual([
-      'grant_dna',
-      'spawn',
-      'set_player',
-      'set_balance',
-    ]);
+    const patches = recorder.export(world).events.filter((event) => event.kind === REPLAY_EVENT_KIND.debugPatch);
+    expect(patches.map((event) => event.patch.kind)).toEqual(['grant_dna', 'spawn', 'set_player', 'set_balance']);
   });
 
   it('does not record a refused patch', () => {
     const { world, handle, recorder } = createHandle();
     expect(() => handle.spawn({ kind: 'npc', x: 0, y: 0, params: {} })).toThrow(DebugRequestError);
-    expect(recorder.export(world).debugPatches).toEqual([]);
+    expect(recorder.export(world).events).toEqual([]);
   });
 
   it('seats a bot before the module holds it, and keeps nothing when the seat is refused', () => {

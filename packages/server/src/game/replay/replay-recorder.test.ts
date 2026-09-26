@@ -3,12 +3,16 @@ import { REPLAY_FORMAT_VERSION, createTestGameInput, playerId } from '@evolution
 import { DEBUG_PATCH_KIND } from '../debug/debug-operations.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { computeStateHash } from '../world/state-hash.js';
-import { REPLAY_MEMBERSHIP_KIND, REPLAY_ORIGIN } from './replay-format.js';
+import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay, type ReplayInputEvent } from './replay-format.js';
 import { ReplayRecorder } from './replay-recorder.js';
 
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
 const RECORDED_TICKS = 5;
+
+function inputsOf(replay: Replay): ReplayInputEvent[] {
+  return replay.events.filter((event) => event.kind === REPLAY_EVENT_KIND.input);
+}
 
 /** Records one input a tick for `ticks` ticks, as the module does right before each step. */
 function recordTicks(ticks: number) {
@@ -39,31 +43,41 @@ describe('ReplayRecorder', () => {
     expect(replay.finalHash).toBe(computeStateHash(world));
   });
 
-  it('stamps pending inputs, joins, leaves and debug patches with the next tick', () => {
+  it('logs joins, leaves and debug patches in the order they were applied, stamped with the next tick', () => {
+    const world = createTestWorld();
+    const recorder = new ReplayRecorder(world);
+    world.tick = 3;
+    const patch = { kind: DEBUG_PATCH_KIND.setBalance, patch: { world: { [DISH_RADIUS_LEAF]: 100 } } } as const;
+    recorder.recordLeave(world, world.players[0]!);
+    recorder.recordDebugPatch(world, patch);
+    recorder.recordJoin(world, { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 });
+    expect(recorder.export(world).events).toEqual([
+      { tick: 4, kind: REPLAY_EVENT_KIND.leave, playerId: 'p1', playerName: 'Alice', avatarIndex: 0 },
+      { tick: 4, kind: REPLAY_EVENT_KIND.debugPatch, patch },
+      { tick: 4, kind: REPLAY_EVENT_KIND.join, playerId: 'p2', playerName: 'Bob', avatarIndex: 1 },
+    ]);
+  });
+
+  it('closes a tick with its pending inputs, after the events that arrived before the step', () => {
     const world = createTestWorld();
     const recorder = new ReplayRecorder(world);
     world.tick = 3;
     const input = createTestGameInput({ sequence: 2 });
     world.players[0]!.pendingInput = input;
-    recorder.recordPendingInputs(world);
     recorder.recordJoin(world, { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 });
-    recorder.recordLeave(world, world.players[0]!);
-    const patch = { kind: DEBUG_PATCH_KIND.setBalance, patch: { world: { [DISH_RADIUS_LEAF]: 100 } } } as const;
-    recorder.recordDebugPatch(world, patch);
-    const replay = recorder.export(world);
-    expect(replay.inputs).toEqual([{ tick: 4, playerId: 'p1', input }]);
-    expect(replay.membership).toEqual([
-      { tick: 4, kind: REPLAY_MEMBERSHIP_KIND.join, playerId: 'p2', playerName: 'Bob', avatarIndex: 1 },
-      { tick: 4, kind: REPLAY_MEMBERSHIP_KIND.leave, playerId: 'p1', playerName: 'Alice', avatarIndex: 0 },
+    recorder.recordPendingInputs(world);
+    world.players[0]!.pendingInput = null; // the step applied it
+    expect(recorder.export(world).events.slice(1)).toEqual([
+      { tick: 4, kind: REPLAY_EVENT_KIND.input, playerId: 'p1', input },
     ]);
-    expect(replay.debugPatches).toEqual([{ tick: 4, patch }]);
+    expect(recorder.export(world).events[0]?.kind).toBe(REPLAY_EVENT_KIND.join);
   });
 
   it('does not record a player with no pending input', () => {
     const world = createTestWorld();
     const recorder = new ReplayRecorder(world);
     recorder.recordPendingInputs(world);
-    expect(recorder.export(world).inputs).toEqual([]);
+    expect(recorder.export(world).events).toEqual([]);
   });
 
   it('closes the recording on a new round and starts a fresh one from the world', () => {
@@ -79,13 +93,13 @@ describe('ReplayRecorder', () => {
     expect(recorder.completedRounds).toHaveLength(1);
     expect(recorder.completedRounds[0]!.finalTick).toBe(10);
     expect(recorder.completedRounds[0]!.finalHash).toBe(hashAtClose);
-    expect(recorder.completedRounds[0]!.inputs).toHaveLength(1);
+    expect(inputsOf(recorder.completedRounds[0]!)).toHaveLength(1);
     const next = recorder.export(world);
     expect(next.seed).toBe(43);
     expect(next.startTick).toBe(10);
     expect(next.startedBy).toBe(REPLAY_ORIGIN.reseed);
     expect(next.nextEntityNumber).toBe(world.roundFirstEntityNumber);
-    expect(next.inputs).toEqual([]);
+    expect(next.events).toEqual([]);
     expect(recorder.completedRounds[0]!.startedBy).toBe(REPLAY_ORIGIN.worldBuild);
   });
 
@@ -101,7 +115,7 @@ describe('ReplayRecorder', () => {
     const recorder = new ReplayRecorder(world);
     const earlier = recorder.export(world);
     recorder.recordJoin(world, { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 });
-    expect(earlier.membership).toEqual([]);
+    expect(earlier.events).toEqual([]);
   });
 
   it('records a fact once when an export between ticks is followed by the step, the later input replacing it', () => {
@@ -111,12 +125,13 @@ describe('ReplayRecorder', () => {
     recorder.export(world);
     player.pendingInput = createTestGameInput({ sequence: 11 });
     recorder.recordPendingInputs(world);
-    const inputs = recorder.export(world).inputs;
+    player.pendingInput = null; // the step applied it
+    const inputs = inputsOf(recorder.export(world));
     expect(inputs.map((entry) => entry.tick)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(inputs.at(-1)?.input.sequence).toBe(11);
   });
 
-  it('replaces every entry an export stamped for the coming tick, and never changes a replay already exported', () => {
+  it('records only what the step saw when an export came between ticks, and never changes a replay already exported', () => {
     const world = createTestWorld({
       players: [
         { playerId: playerId('p1'), playerName: 'Ada', avatarIndex: 0 },
@@ -133,27 +148,22 @@ describe('ReplayRecorder', () => {
       player.pendingInput = createTestGameInput({ sequence: 2 });
     }
     recorder.recordPendingInputs(world);
-    const inputs = recorder.export(world).inputs;
+    for (const player of world.players) {
+      player.pendingInput = null; // the step applied it
+    }
+    const inputs = inputsOf(recorder.export(world));
     expect(inputs.map((entry) => entry.input.sequence)).toEqual([2, 2]);
     expect(exported).toEqual(exportedCopy);
   });
 
-  it('never walks the whole log to record a tick: only its tail is read (#181, a cost growing with the room age)', () => {
+  it('an export between ticks leaves nothing in the log: a join after it sits before the tick inputs', () => {
     const { world, recorder } = recordTicks(RECORDED_TICKS);
-    const earlierEntries = recorder.export(world).inputs;
-    let earlierTickReads = 0;
-    for (const entry of earlierEntries.slice(0, -1)) {
-      const { tick } = entry;
-      Object.defineProperty(entry, 'tick', {
-        get: () => {
-          earlierTickReads += 1;
-          return tick;
-        },
-      });
-    }
     world.players[0]!.pendingInput = createTestGameInput({ sequence: RECORDED_TICKS + 1 });
+    recorder.export(world);
+    recorder.recordJoin(world, { playerId: playerId('p2'), playerName: 'Bob', avatarIndex: 1 });
     recorder.recordPendingInputs(world);
-    expect(earlierTickReads).toBe(0);
-    expect(recorder.export(world).inputs).toHaveLength(RECORDED_TICKS + 1);
+    world.players[0]!.pendingInput = null; // the step applied it
+    const coming = recorder.export(world).events.filter((event) => event.tick === RECORDED_TICKS + 1);
+    expect(coming.map((event) => event.kind)).toEqual([REPLAY_EVENT_KIND.join, REPLAY_EVENT_KIND.input]);
   });
 });
