@@ -4,7 +4,9 @@
 // `WILD_CELL_SIGHT_VIEW_MULTIPLE × viewHalfHeightFor(radius)` (what a player of its size sees from the middle of the
 // screen to the top edge): every cell, player or wild, whose centre is in range, and the algae and detritus motes in
 // range (bacteria and fragments are the players'). One linear pass over the cells and the motes, no spatial query.
-// The hunt rule's view drops player cells before `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`; the flee rule sees them all.
+// The hunt rule's view drops player cells before `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, and every prey that another
+// cell in sight could also swallow from strictly closer (ticket #737: two near-equal hunters no longer shove each other
+// over one prey); the flee rule sees them all.
 // `canEngulf` is the shared predicate over the live balance, as for every bot. A `CellRecord` mirrors
 // `membraneRatioBonus` at step 1, so it satisfies the strategies' `BotCellView` as is.
 
@@ -41,7 +43,44 @@ export function wildSightOf(world: WorldState, viewer: CellRecord, balance: Bala
 
 /** The perception over `sight`; `isPlayerPrey` false leaves the player cells out (the hunt before its era). */
 export function createWildPerception(sight: WildSight, balance: BalanceConfig, isPlayerPrey = true): WildPerception {
-  const cells = isPlayerPrey ? sight.cells : sight.cells.filter((cell) => !isPlayerCell(cell));
+  return perceptionOver(sight, cellsInEra(sight, isPlayerPrey), balance);
+}
+
+function cellsInEra(sight: WildSight, isPlayerPrey: boolean): readonly CellRecord[] {
+  return isPlayerPrey ? sight.cells : sight.cells.filter((cell) => !isPlayerCell(cell));
+}
+
+/**
+ * Whether a cell in `sight` other than `prey` can also swallow `prey` and lies strictly closer to it:
+ * the hunter leaves that prey to it. An equal distance does not block, so the hunter never blocks itself.
+ */
+export function hasCloserRival(
+  sight: WildSight,
+  hunter: CellRecord,
+  prey: CellRecord,
+  balance: BalanceConfig,
+): boolean {
+  const hunterDistance = distanceBetween(hunter, prey);
+  return sight.cells.some(
+    (rival) =>
+      rival.id !== prey.id &&
+      distanceBetween(rival, prey) < hunterDistance &&
+      canEngulf(rival, prey, balance.absorption),
+  );
+}
+
+/** The hunt's view for `hunter`: `createWildPerception`'s prey without those a closer rival could swallow. */
+export function createWildHuntPerception(
+  sight: WildSight,
+  balance: BalanceConfig,
+  hunter: CellRecord,
+  isPlayerPrey: boolean,
+): WildPerception {
+  const cells = cellsInEra(sight, isPlayerPrey).filter((cell) => !hasCloserRival(sight, hunter, cell, balance));
+  return perceptionOver(sight, cells, balance);
+}
+
+function perceptionOver(sight: WildSight, cells: readonly CellRecord[], balance: BalanceConfig): WildPerception {
   return {
     ownCellOf: (world, cellId) => findCell(world, cellId),
     cellsOf: () => cells,

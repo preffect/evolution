@@ -4,7 +4,8 @@
 // step 3 moves it through the shared kernel, and may start a sprint. The rules are the #15 strategies, each a fresh
 // instance per decision because a wild cell keeps no state outside its seat record: `flee` (from any cell, player or
 // wild, that can engulf it, sprinting within `WILD_CELL_SPRINT_FLEE_RADII`), a nearest-first `hunter` (wild prey from
-// tick 0, players from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, sprinting within `WILD_CELL_SPRINT_HUNT_RADII` only when
+// tick 0, players from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, leaving a prey to any cell in sight that could swallow it
+// from strictly closer, sprinting within `WILD_CELL_SPRINT_HUNT_RADII` only when
 // the sprint can land, `wild-hunt-sprint.ts`) and the
 // `grazer` over algae and detritus; the wander rule keeps its heading in the seat (`wild-wander.ts`). A cell being
 // engulfed before the seal flees its predator and sprints, the player's engulf-escape tool.
@@ -41,7 +42,7 @@ import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { isFleeSprintWorthwhile, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
-import { createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
+import { createWildHuntPerception, createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
 import { wanderTargetOf } from './wild-wander.js';
 
 export function decisionIntervalTicks(balance: BalanceConfig): number {
@@ -119,9 +120,10 @@ function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: S
   };
 }
 
-/** Flee, then hunt, then graze, over what the cell sees; `null` when none applies. */
+/** Flee, then hunt, then graze, over what `cell` sees; `null` when none applies. */
 function sightedCommand(
   context: ScriptContext<WorldState, EntityId>,
+  cell: CellRecord,
   sight: WildSight,
   decision: WildDecisionContext,
 ): WildCommand | null {
@@ -139,7 +141,7 @@ function sightedCommand(
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_HUNT_RADII,
     isSprintWorthwhile: sprintTestOver(sight, decision, isHuntSprintWorthwhile),
   };
-  const prey = createWildPerception(sight, balance, decision.isHuntingStage);
+  const prey = createWildHuntPerception(sight, balance, cell, decision.isHuntingStage);
   return (
     wildCommandOf(createFleeStrategy(everything, fleeOptions)().decide(context)) ??
     wildCommandOf(createHunterStrategy(prey, huntOptions)().decide(context)) ??
@@ -155,7 +157,7 @@ export function decideWildCommand(seat: WildSeatRecord, cell: CellRecord, decisi
   }
   const { world, step } = decision;
   const context = scriptContextFor(seat, cell, decision);
-  const sighted = sightedCommand(context, wildSightOf(world, cell, step.balance), decision);
+  const sighted = sightedCommand(context, cell, wildSightOf(world, cell, step.balance), decision);
   return sighted ?? { target: wanderTargetOf(seat, cell, context.random, step.balance), isSprinting: false };
 }
 
