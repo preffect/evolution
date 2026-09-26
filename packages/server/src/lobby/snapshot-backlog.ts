@@ -38,13 +38,21 @@ export const SNAPSHOT_DELIVERY = {
 
 export type SnapshotDelivery = (typeof SNAPSHOT_DELIVERY)[keyof typeof SNAPSHOT_DELIVERY];
 
-export interface SnapshotBacklogLimits {
-  /** Ticks of snapshots that may be in flight to one client. */
-  readonly ticks?: number;
-  /** Unsent bytes the room may hold for one connection. */
-  readonly bytes?: number;
-  /** Deltas the client applies per ack (its `SnapshotAcknowledger` cadence): fewer past its ack owe none (#655). */
-  readonly ackEverySnapshots?: number;
+/** One connected player's flow control as `debug_get_room_performance` reports it (#276). */
+export interface PlayerSnapshotFlow {
+  /** `backlogTicksOf`: `null` until the client acknowledges a snapshot since its stream (re)started; never skipped then. */
+  readonly backlogTicks: number | null;
+  /** Skipped, and to be sent a `game_state` once it catches up. */
+  readonly isOwedResync: boolean;
+}
+
+/** A room's flow control as `debug_get_room_performance` reports it (#276). */
+export interface SnapshotFlowTelemetry {
+  /** `resyncCount`: every resync the room has sent. */
+  readonly resyncCount: number;
+  /** `owedCount`: players skipped now. */
+  readonly owedResyncCount: number;
+  readonly players: Readonly<Record<string, PlayerSnapshotFlow>>;
 }
 
 /**
@@ -64,16 +72,13 @@ export class SnapshotBacklog {
   private readonly streamRestartTick = new Map<string, number>();
   /** The ticks of the newest deltas sent to each client since its last `game_state`, at most one ack cadence (#655). */
   private readonly recentDeltaTicks = new Map<string, number[]>();
-  private readonly limitTicks: number;
-  private readonly limitBytes: number;
-  private readonly ackEverySnapshots: number;
   private resyncTotal = 0;
 
-  constructor(limits: SnapshotBacklogLimits = {}) {
-    this.limitTicks = limits.ticks ?? SNAPSHOT_BACKLOG_LIMIT_TICKS;
-    this.limitBytes = limits.bytes ?? SNAPSHOT_BACKLOG_LIMIT_BYTES;
-    this.ackEverySnapshots = limits.ackEverySnapshots ?? SNAPSHOT_ACK_EVERY_SNAPSHOTS;
-  }
+  /**
+   * `ackEverySnapshots` is the client's `SnapshotAcknowledger` cadence: fewer deltas past its ack owe none (#655). A
+   * spec injects 1, the floor `deriveNetcode` clamps to at a broadcast rate of 6 Hz or slower.
+   */
+  constructor(private readonly ackEverySnapshots: number = SNAPSHOT_ACK_EVERY_SNAPSHOTS) {}
 
   /** The newest tick a client says it has applied; an older or repeated ack changes nothing. */
   recordAcknowledgedTick(playerId: string, tick: number): void {
@@ -199,6 +204,19 @@ export class SnapshotBacklog {
     return this.resyncTotal;
   }
 
+  /** What `debug_get_room_performance` reports for these players: a client falling behind, or never acknowledging. */
+  telemetryFor(playerIds: Iterable<string>): SnapshotFlowTelemetry {
+    const players = Array.from(playerIds, (playerId) => {
+      const flow = { backlogTicks: this.backlogTicksOf(playerId), isOwedResync: this.owedResync.has(playerId) };
+      return [playerId, flow] as const;
+    });
+    return {
+      resyncCount: this.resyncCount(),
+      owedResyncCount: this.owedCount(),
+      players: Object.fromEntries(players),
+    };
+  }
+
   /**
    * Ticks of snapshots in flight to a client, or `null` before it has been sent one or has
    * acknowledged one. What the debug tools read to see a client falling behind. Counted from its ack, or from where its
@@ -217,10 +235,10 @@ export class SnapshotBacklog {
    */
   private isBehind(playerId: string): boolean {
     const backlogTicks = this.backlogTicksOf(playerId);
-    return backlogTicks !== null && backlogTicks > this.limitTicks && this.isAcknowledgementOwed(playerId);
+    return backlogTicks !== null && backlogTicks > SNAPSHOT_BACKLOG_LIMIT_TICKS && this.isAcknowledgementOwed(playerId);
   }
 
   private isHoldingBytes(connection: Connection): boolean {
-    return connection.socket.bufferedAmount > this.limitBytes;
+    return connection.socket.bufferedAmount > SNAPSHOT_BACKLOG_LIMIT_BYTES;
   }
 }

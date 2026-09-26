@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TICK_HZ, createTestClientPerformanceReport } from '@evolution/shared';
 import type { PlayerId } from '@evolution/shared';
-import { PerformanceTracker, roundToHundredths, tickRecordOf, type TickRecord } from './performance-tracker.js';
+import { PerformanceTracker, roundToHundredths, tickRecordOf, type MeasuredTick } from './performance-tracker.js';
 
 /** More ticks than the tracker's 300-sample window holds, so the oldest have left it. */
 const MORE_THAN_THE_WINDOW = 400;
@@ -10,11 +10,11 @@ const SILENT_TICKS_PER_BROADCAST = 2;
 /** Broadcast ticks in the percentile test, costing 1 … 10 ms. */
 const BROADCAST_TICK_COUNT = 10;
 
-function tickOf(tickMs: number, snapshotBytes = 100, broadcastClients = 2): TickRecord {
+function tickOf(tickMs: number, snapshotBytes = 100, broadcastClients = 2): MeasuredTick {
   return { tickMs, broadcastMs: 0, isBroadcastTick: false, snapshotBytes, broadcastClients };
 }
 
-function broadcastTickOf(tickMs: number, broadcastMs: number, snapshotBytes = 100): TickRecord {
+function broadcastTickOf(tickMs: number, broadcastMs: number, snapshotBytes = 100): MeasuredTick {
   return { ...tickOf(tickMs, snapshotBytes), broadcastMs, isBroadcastTick: true };
 }
 
@@ -72,7 +72,8 @@ describe('PerformanceTracker', () => {
     expect(stats).toMatchObject({ sampleCount: 2, tickAvgMs: 2, tickPeakMs: 3, worstTick: tickOf(3) });
     expect(stats.broadcastBytesPerSec).toBe(100 * 2 * TICK_HZ);
     expect(tracker.stats).toEqual(stats);
-    expect(tracker.worstTick()).toEqual(tickOf(3));
+    // The tracker stamps each tick with the resync bytes it was told of since the previous one: none here.
+    expect(tracker.worstTick()).toEqual({ ...tickOf(3), resyncBytes: 0 });
   });
 
   it('averages the broadcast over every tick, the silent ones included', () => {
@@ -112,6 +113,19 @@ describe('PerformanceTracker', () => {
       broadcastP95Ms: 0,
       broadcastPeakMs: 4,
     });
+  });
+
+  it('#276: counts the resyncs sent since the previous tick in that tick bandwidth, once', () => {
+    const tracker = new PerformanceTracker();
+    const [firstResyncBytes, secondResyncBytes] = [500, 250];
+    tracker.recordResyncBytes(firstResyncBytes);
+    tracker.recordResyncBytes(secondResyncBytes);
+    tracker.recordTick(tickOf(1, 100, 2));
+    tracker.recordTick(tickOf(1, 100, 2));
+    const deltaBytes = 100 * 2 * 2;
+    const bytesPerTick = (deltaBytes + firstResyncBytes + secondResyncBytes) / 2;
+    expect(tracker.getStats().broadcastBytesPerSec).toBe(roundToHundredths(bytesPerTick * TICK_HZ));
+    expect(tracker.getStats().worstTick?.resyncBytes).toBe(firstResyncBytes + secondResyncBytes);
   });
 
   it('keeps a bounded window but never forgets the worst tick', () => {

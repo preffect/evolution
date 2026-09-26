@@ -10,6 +10,8 @@ import { createTestConnection, setBufferedAmount } from '../testing/builders.js'
 const DRAINED = 0;
 const SATURATED_BYTES = SNAPSHOT_BACKLOG_LIMIT_BYTES + 1;
 const FIRST_TICK = 1;
+/** An ack cadence of one delta: what `deriveNetcode` clamps to at a broadcast rate of 6 Hz or slower. */
+const ACK_EVERY_DELTA = 1;
 
 /** A backlog and one connection on it, with the ticks a healthy client would acknowledge. */
 function oneConnection(playerId = 'p1') {
@@ -63,6 +65,31 @@ describe('SnapshotBacklog', () => {
     expect(backlog.nextFor(connection, lastSent + 2)).toBe(SNAPSHOT_DELIVERY.skipped);
     expect(backlog.owedCount()).toBe(1);
     expect(backlog.backlogTicksOf(playerId)).toBe(lastSent - FIRST_TICK);
+  });
+
+  it('#276: reports a skipped client with its depth and owed resync, and a silent one as never acknowledging', () => {
+    const { backlog, connection, playerId, sendOneAckCadence } = oneConnection();
+    const silentPlayerId = 'p2';
+    backlog.nextFor(createTestConnection({ playerId: silentPlayerId }), FIRST_TICK);
+    backlog.nextFor(connection, FIRST_TICK);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    const lastSent = sendOneAckCadence(FIRST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1);
+    expect(backlog.nextFor(connection, lastSent + 1)).toBe(SNAPSHOT_DELIVERY.skipped);
+    expect(backlog.telemetryFor([playerId, silentPlayerId])).toEqual({
+      resyncCount: 0,
+      owedResyncCount: 1,
+      players: {
+        [playerId]: { backlogTicks: lastSent - FIRST_TICK, isOwedResync: true },
+        [silentPlayerId]: { backlogTicks: null, isOwedResync: false },
+      },
+    });
+    backlog.recordAcknowledgedTick(playerId, lastSent);
+    expect(backlog.nextFor(connection, lastSent + 2)).toBe(SNAPSHOT_DELIVERY.resync);
+    expect(backlog.telemetryFor([playerId])).toEqual({
+      resyncCount: 1,
+      owedResyncCount: 0,
+      players: { [playerId]: { backlogTicks: 2, isOwedResync: false } },
+    });
   });
 
   it('#655: keeps sending past the limit to a client that owes no ack yet, since it may never send one', () => {
@@ -168,7 +195,7 @@ describe('SnapshotBacklog', () => {
   });
 
   it('#655: a client that acks every delta (an injected cadence of one) owes an ack for a single spanning delta', () => {
-    const backlog = new SnapshotBacklog({ ackEverySnapshots: 1 });
+    const backlog = new SnapshotBacklog(ACK_EVERY_DELTA);
     const connection = createTestConnection({ playerId: 'p1', bufferedAmount: DRAINED });
     backlog.nextFor(connection, FIRST_TICK);
     backlog.recordAcknowledgedTick('p1', FIRST_TICK);

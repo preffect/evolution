@@ -1,6 +1,8 @@
 // Failures the scenario runner raises (docs/testing/scenario-runner.md §8). Every message names the scenario,
 // the seed and the tick, so a red gameplay test is reproducible from its output alone.
 
+import { renderValue, type StructuralDifference } from '../structural-diff.js';
+
 const INDENT = '  ';
 
 /** A mistake in the scenario itself (an input at tick 0, a fixture the adapter cannot place). */
@@ -33,17 +35,44 @@ export interface HashDivergence {
   readonly lastAgreedTick: number | null;
 }
 
+/**
+ * Both sides re-run to the divergent tick (`assertDeterministic`), so the report can name a field.
+ * A replay's recorded side keeps hashes only, so `verifyReplay` attaches none.
+ */
+export interface DivergenceSnapshots {
+  readonly expectedSnapshot: unknown;
+  readonly actualSnapshot: unknown;
+  /** Whether the re-runs also hashed differently at the tick; `false` means the divergence did not recur. */
+  readonly wasReproduced: boolean;
+  /** `null` when the snapshots agree: the difference lies in hashed state the snapshot does not show. */
+  readonly firstDifference: StructuralDifference | null;
+}
+
 export function formatExpectationFailure(failure: ExpectationFailure): string {
   return `${INDENT}at tick ${failure.tick}: ${failure.label}\n${INDENT}${INDENT}expected ${failure.expected}, got ${failure.actual}`;
 }
 
-export function formatDivergence(divergence: HashDivergence): string {
+function formatSnapshotDifference(tick: number, snapshots: DivergenceSnapshots): string {
+  if (!snapshots.wasReproduced) {
+    return `${INDENT}re-running both sides to tick ${tick} did not reproduce the divergence`;
+  }
+  const difference = snapshots.firstDifference;
+  if (difference === null) {
+    return `${INDENT}the snapshots at tick ${tick} agree: the hashed state differs outside the snapshot`;
+  }
+  return (
+    `${INDENT}first differing path at tick ${tick}: ${difference.path}\n` +
+    `${INDENT}${INDENT}expected ${renderValue(difference.expected)}, got ${renderValue(difference.actual)}`
+  );
+}
+
+export function formatDivergence(divergence: HashDivergence, snapshots: DivergenceSnapshots | null = null): string {
   const agreement =
     divergence.lastAgreedTick === null ? 'no checkpoint agreed' : `identical through tick ${divergence.lastAgreedTick}`;
-  return (
+  const headline =
     `first differing checkpoint at tick ${divergence.tick}: ` +
-    `expected ${divergence.expectedHash}, got ${divergence.actualHash} (${agreement})`
-  );
+    `expected ${divergence.expectedHash}, got ${divergence.actualHash} (${agreement})`;
+  return snapshots === null ? headline : `${headline}\n${formatSnapshotDifference(divergence.tick, snapshots)}`;
 }
 
 /** One or more `expect(...)` clauses failed; the replay (when a sink was given) is at `replayPath`. */
@@ -70,8 +99,12 @@ export class ScenarioDivergenceError extends Error {
   constructor(
     identity: ScenarioIdentity,
     readonly divergence: HashDivergence,
+    /** Both sides at `divergence.tick` and their first differing path; `null` after `verifyReplay`. */
+    readonly snapshots: DivergenceSnapshots | null = null,
   ) {
-    super(`Scenario "${identity.scenarioName}" diverged (seed ${identity.seed}): ${formatDivergence(divergence)}`);
+    super(
+      `Scenario "${identity.scenarioName}" diverged (seed ${identity.seed}): ${formatDivergence(divergence, snapshots)}`,
+    );
     this.name = 'ScenarioDivergenceError';
   }
 }
