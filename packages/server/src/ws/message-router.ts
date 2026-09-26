@@ -57,32 +57,63 @@ function dispatch<T extends ClientMessageType>(
   handler(connection, message);
 }
 
-type ParseResult = { message: ValidatedClientMessage; error?: never } | { message?: never; error: string };
+/**
+ * Verbs whose frames are dropped without a reply when they fail the schema (ticket #256, docs/architecture/wire-contract.md
+ * §4). They are telemetry: they carry no player intent, and a tab left open across a deploy may keep sending them in
+ * an old shape, which must never surface to the player as an `error`. The schema stays strict, so nothing is stored.
+ */
+export const SILENTLY_DROPPED_INVALID_VERBS: ReadonlySet<ClientMessageType> = new Set<ClientMessageType>([
+  CLIENT_MESSAGE_TYPE.clientPerformance,
+]);
 
-/** JSON-decode and schema-validate one inbound frame; the error text is what the client is told. */
+type ParseResult =
+  | { message: ValidatedClientMessage; error?: never; claimedType?: never }
+  | { message?: never; error: string; claimedType: string | null };
+
+/** The `type` a decoded frame claims, when it is an object with a string `type`; `null` otherwise. */
+function claimedTypeOf(parsed: unknown): string | null {
+  if (typeof parsed !== 'object' || parsed === null || !('type' in parsed)) return null;
+  const { type } = parsed as { type: unknown };
+  return typeof type === 'string' ? type : null;
+}
+
+/**
+ * JSON-decode and schema-validate one inbound frame; the error text is what the client is told, and a frame that
+ * fails the schema also carries the verb it claimed, so the router can tell a telemetry frame from the rest.
+ */
 export function parseClientMessage(raw: string): ParseResult {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { error: 'Invalid JSON' };
+    return { error: 'Invalid JSON', claimedType: null };
   }
   const result = clientMessageSchema.safeParse(parsed);
   if (!result.success) {
-    return { error: `Invalid message: ${result.error.issues[0]?.message ?? 'unknown'}` };
+    return {
+      error: `Invalid message: ${result.error.issues[0]?.message ?? 'unknown'}`,
+      claimedType: claimedTypeOf(parsed),
+    };
   }
   return { message: result.data };
 }
 
+/** Whether a frame that failed the schema is one of the verbs dropped without a reply. */
+function isSilentlyDropped(claimedType: string | null): boolean {
+  return claimedType !== null && SILENTLY_DROPPED_INVALID_VERBS.has(claimedType as ClientMessageType);
+}
+
 /**
  * Build a per-message dispatcher. Parses JSON, validates against the schema,
- * and routes to the matching handler. Invalid messages get an `error` reply.
+ * and routes to the matching handler. Invalid messages get an `error` reply,
+ * except a verb of `SILENTLY_DROPPED_INVALID_VERBS`, which is dropped without one.
  */
 export function createMessageRouter(handlers: MessageHandlers) {
   const table = buildDispatchTable(handlers);
   return (connection: Connection, raw: string): void => {
-    const { message, error } = parseClientMessage(raw);
+    const { message, error, claimedType } = parseClientMessage(raw);
     if (error !== undefined) {
+      if (isSilentlyDropped(claimedType)) return;
       sendMessage(connection, { type: SERVER_MESSAGE_TYPE.error, message: error });
       return;
     }

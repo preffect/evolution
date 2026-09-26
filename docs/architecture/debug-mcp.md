@@ -49,7 +49,10 @@ sent it (a skipped client counts none), plus every resync `game_state` (`TickRec
 resync on an ack lands on the next tick), plus everything sent off the tick record: a debug step's closing frame, a
 `republishSnapshot` after a debug mutation, and the `game_state` of a start, late join or reconnect
 (`TickRecord.offTickBytes`, #714). A paused room has no next tick until it
-steps or resumes, so its off-tick bytes and resyncs reach the rate then.
+steps or resumes, so its off-tick bytes and resyncs reach the rate then. Since ticket #256 it lists `clientReports`
+too: each player's newest `client_performance` report (rendering/budget.md §7), keyed by player id, which a live
+client sends every 5 s once its window can carry a p95; a player with none yet is absent, and a report goes when its
+player leaves the room.
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the

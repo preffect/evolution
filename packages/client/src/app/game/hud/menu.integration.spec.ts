@@ -21,7 +21,7 @@ import {
   type GameInput,
   type ServerMessage,
 } from '@evolution/shared';
-import { TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
+import { SILENT_TELEMETRY_SEAMS, TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
 import { createFakePixiApp } from '../../../testing/fake-pixi-app';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { setupGame, type GameTeardown } from '../game-setup';
@@ -97,7 +97,7 @@ describe('the Escape menu over the wired game', () => {
       disconnect: vi.fn(),
     };
     teardown = setupGame(
-      { send: (input) => sent.push(input), messages$, acknowledgeSnapshot: () => undefined, host: canvasHost },
+      { send: (input) => sent.push(input), messages$, ...SILENT_TELEMETRY_SEAMS, host: canvasHost },
       {
         clock,
         connectAudio: () => audio,

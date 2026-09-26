@@ -177,6 +177,14 @@ every tick
   verbs for the _game_: everything a player does rides `player_input`. The transport's own verbs are
   separate and generic — `client_performance` and `snapshot_ack` carry no gameplay. `snapshot_ack` is generic by
   contract: every `GameModule`'s snapshot is a `TickedSnapshot` (below), so the tick it echoes exists whatever the game.
+  `client_performance { report }` (ticket #256) is the render session's frame-budget report, sent every 5 s
+  (rendering/budget.md §7); the server stores the newest per player for `debug_get_room_performance` and nothing
+  reads it in the simulation. Its schema stays strict and requires every `RENDER_STAGE_NAMES` key, because a report
+  with a stage missing would read as that stage costing nothing. A report that fails the schema, such as one from a
+  tab left open across the deploy that added a stage (ticket #264's `dish`), is dropped without a reply and stores
+  nothing: telemetry never surfaces to a player. The router drops it (`SILENTLY_DROPPED_INVALID_VERBS` in
+  `ws/message-router.ts`, the verbs that carry no player intent: `client_performance` alone), and every other verb
+  that fails its schema is still answered `error`.
 - **`leave_game { gameId }`** (#319): the lobby verb behind the client's `leave()`. The server takes the player
   off an active room at once, on the path the end of the disconnect grace takes (the cell dissolves into
   detritus, game-design/session.md §5.2), then sends `player_disconnected` to the players left behind and

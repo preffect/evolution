@@ -129,8 +129,14 @@ and the draw calls carry the frame. A number nobody can measure outside a lab ra
 **Measurement.** `ClientPerformanceReport` (`shared/types/messages.ts`) carries the fields below and the server's
 `clientPerformance` schema accepts them, so the server stays game-agnostic. The key list lives beside the type, the
 way `CLIENT_MESSAGE_TYPE` does, because the server's schema and the client's timer must agree on it (`RENDER_STAGE_NAMES`
-is pinned complete against `RENDER_STAGE`). The client does not send the report yet and `debug_get_room_performance`
-does not list the stored reports: that wire path is a follow-up of #208; today the report is read through the debug
+is pinned complete against `RENDER_STAGE`). A live room sends it (ticket #256): `RenderSession` hands it to its
+`reportPerformance` seam, which `game-host.component.ts` wires to `MultiplayerService.sendPerformanceReport`, every
+`CLIENT_PERFORMANCE_REPORT_INTERVAL_MS` (5 s, one window at 60 fps) on the injected clock, counted from the first
+drawn frame, and only once the window holds `RENDER_P95_MIN_SAMPLE_FRAMES` frames — the rule below for a p95 anyone
+may quote (`performance-report-cadence.ts`). The frame it is sent on rebuilds the report, so the debug hook and the
+server hold the same one. The bench and the encyclopedia preview run their own sessions and never send. The server
+keeps each player's newest report until the player leaves, and `debug_get_room_performance` lists them as
+`clientReports` (architecture/debug-mcp.md §8). Outside a room the report is read through the debug
 hook (`window.__evolutionDebug.performanceReport()`), the routes' DOM and — since #492 — the **browser console**.
 Both measurement routes print their finished report there as well, headline block first and then the object, so a
 human runs the measurement by opening the URL with devtools open and reads the numbers off the console; the DOM
@@ -147,6 +153,7 @@ export const RENDER_STAGE = {
   food: 'food',
   effects: 'effects',
   camera: 'camera',
+  dish: 'dish',
   submit: 'submit',
 } as const;
 export type RenderStageName = (typeof RENDER_STAGE)[keyof typeof RENDER_STAGE];

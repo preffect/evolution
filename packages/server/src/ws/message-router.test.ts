@@ -69,6 +69,21 @@ describe('message-router', () => {
     expect(handlers.onJoinLobby).not.toHaveBeenCalled();
   });
 
+  it('#256: drops a client_performance that fails the schema without a reply, and dispatches nothing', () => {
+    const { handlers, route, connection, sent } = setUp();
+    const reportWithoutStages = { ...createTestClientPerformanceReport(), renderStagesMs: {} };
+    route(connection, JSON.stringify({ type: CLIENT_MESSAGE_TYPE.clientPerformance, report: reportWithoutStages }));
+    expect(sent).toEqual([]);
+    expect(handlers.onClientPerformance).not.toHaveBeenCalled();
+  });
+
+  it('#256: still answers every other verb that fails the schema with an error, player_input included', () => {
+    const { handlers, route, connection, sent } = setUp();
+    route(connection, JSON.stringify({ type: CLIENT_MESSAGE_TYPE.playerInput, payload: { sequence: 'one' } }));
+    expect(sent).toEqual([{ type: 'error', message: expect.stringMatching(/^Invalid message/) }]);
+    expect(handlers.onPlayerInput).not.toHaveBeenCalled();
+  });
+
   it('covers every verb the schema accepts', () => {
     const verbs = Object.values(FRAME_FOR_VERB).map((frame) => frame['type']);
     expect(verbs.sort()).toEqual(Object.values(CLIENT_MESSAGE_TYPE).sort());

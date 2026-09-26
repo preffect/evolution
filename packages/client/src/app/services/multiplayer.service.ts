@@ -1,6 +1,13 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { concat, defer, of, type Observable } from 'rxjs';
-import type { GameInput, GameSessionConfig, LobbyGameInfo, ServerMessage, ValueOf } from '@evolution/shared';
+import type {
+  ClientPerformanceReport,
+  GameInput,
+  GameSessionConfig,
+  LobbyGameInfo,
+  ServerMessage,
+  ValueOf,
+} from '@evolution/shared';
 import { CLIENT_MESSAGE_TYPE, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import { LeftRoomFilter } from './left-room-filter';
 import { RoomState } from './room-state';
@@ -147,6 +154,14 @@ export class MultiplayerService {
    */
   acknowledgeSnapshot(tick: number): void {
     this.transport.send({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick });
+  }
+
+  /**
+   * The render session's frame-budget report (ticket #256, docs/rendering/budget.md §7). Generic telemetry, not a game
+   * verb: the server stores the newest one per player for `debug_get_room_performance`.
+   */
+  sendPerformanceReport(report: ClientPerformanceReport): void {
+    this.transport.send({ type: CLIENT_MESSAGE_TYPE.clientPerformance, report });
   }
 
   /**

@@ -5,7 +5,8 @@
 // builds one and wires the seams. The frame instrumentation (docs/rendering/budget.md §7) brackets the
 // frame: a snapshot applied on arrival is accrued to the `net` stage, the frame's interpolation is
 // measured as `net`, the renderer brackets the rest, and every `RENDER_REPORT_EVERY_FRAMES` frames
-// the `ClientPerformanceReport` the debug hook answers is rebuilt.
+// the `ClientPerformanceReport` the debug hook answers is rebuilt; the `reportPerformance` seam sends it to the
+// server on the cadence `PerformanceReportCadence` keeps (ticket #256).
 
 import {
   DISH_CENTRE_TARGET,
@@ -27,6 +28,7 @@ import { EVOLUTION_DEBUG_MODE, type EvolutionDebugApi } from '../debug/evolution
 import { WorldStore, type RenderFrame } from '../net/world-store';
 import { RENDER_REPORT_EVERY_FRAMES } from './constants';
 import { FrameLoopSession } from './frame-loop-session';
+import { PerformanceReportCadence } from './performance-report-cadence';
 import { screenOffsetToWorld, screenToWorld, type CameraExtent, type WorldPoint } from './camera';
 import type { GameRenderer } from './game-renderer';
 import type { RenderInputs, RenderOutputs } from './render-io';
@@ -63,12 +65,19 @@ export interface RenderSessionDependencies {
    * queue between them is, and stops sending rather than letting this client fall behind for good.
    */
   readonly acknowledgeSnapshot: (tick: number) => void;
+  /**
+   * Sends the frame-budget report to the server (`client_performance`, ticket #256, docs/rendering/budget.md §7), where
+   * `debug_get_room_performance` lists it under this player. Telemetry, not gameplay. Only a live room has this seam:
+   * the bench and the encyclopedia preview run their own sessions and never send.
+   */
+  readonly reportPerformance: (report: ClientPerformanceReport) => void;
 }
 
 export class RenderSession extends FrameLoopSession {
   readonly store: WorldStore;
   private readonly acknowledger: SnapshotAcknowledger;
   private lastReport: ClientPerformanceReport | null = null;
+  private readonly reportCadence: PerformanceReportCadence;
   private readonly audio: AudioSession;
   /** The one in-flight or resolved Pixi app, so two early `game_state`s never create two canvases. */
   private pixiReady: Promise<PixiAppHandle | null> | null = null;
@@ -84,6 +93,7 @@ export class RenderSession extends FrameLoopSession {
     super(dependencies.clock);
     this.store = new WorldStore(dependencies.clock);
     this.acknowledger = new SnapshotAcknowledger(dependencies.acknowledgeSnapshot);
+    this.reportCadence = new PerformanceReportCadence(dependencies.clock);
     this.audio = new AudioSession(dependencies.connectAudio);
   }
 
@@ -217,12 +227,17 @@ export class RenderSession extends FrameLoopSession {
     return renderer.render(frame, this.store.ownPlayerId, this.dependencies.hudInputs(), submit);
   }
 
-  /** Every `RENDER_REPORT_EVERY_FRAMES` frames the report the debug hook answers is rebuilt. */
+  /**
+   * Every `RENDER_REPORT_EVERY_FRAMES` frames the report the debug hook answers is rebuilt; on a frame the cadence
+   * says is due it is rebuilt too and sent, so the server never holds an older report than the hook.
+   */
   protected afterFrame(outputs: RenderOutputs): void {
     this.dependencies.onCameraExtent?.(outputs.cameraExtent);
-    if (this.instrumentation.frameCount % RENDER_REPORT_EVERY_FRAMES === 0) {
-      this.lastReport = this.instrumentation.report(outputs, null);
-    }
+    const isReportDue = this.reportCadence.isReportDue(this.instrumentation.timer.frameCount);
+    if (!isReportDue && this.instrumentation.frameCount % RENDER_REPORT_EVERY_FRAMES !== 0) return;
+    const report = this.instrumentation.report(outputs, null);
+    this.lastReport = report;
+    if (isReportDue) this.dependencies.reportPerformance(report);
   }
 
   /** The `window.__evolutionDebug` mirror for a live room. */
