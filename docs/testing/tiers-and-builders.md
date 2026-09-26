@@ -14,7 +14,9 @@
 The Playwright specs (`packages/client/e2e/`) run only when a QA role runs the smoke, but `./validate.sh typecheck`
 checks them on every run through `packages/client/tsconfig.e2e.json` (#473), a program of its own because Playwright
 and vitest both declare `test` and `expect`. An e2e spec types what it reads from the page by importing the app's own
-type (`import type`), never a hand-written copy.
+type (`import type`), never a hand-written copy. The vitest specs (`*.spec.ts`, `*.test.ts` under
+`packages/client/src/`) are checked the same way through `packages/client/tsconfig.spec.json` (#695): vitest strips
+types without checking them, so without that program a spec with a type error still passes.
 
 A unit test that needs a server, a socket or a browser is an integration test with the wrong
 name: rename it rather than slowing the unit tier (`engineering/testing-and-typescript.md` §2.2). Gameplay scenarios
