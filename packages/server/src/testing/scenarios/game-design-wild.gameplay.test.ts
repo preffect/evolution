@@ -6,10 +6,16 @@
 // tick 23 365 at level 1, mass 20, no DNA, exactly as the row states it; seat 0 is seated on demand beside it.
 
 import { describe, it } from 'vitest';
-import { DEFAULT_BALANCE, DNA_TAGS, PLAYER_LIFE_STATE, cumulativeDnaForLevel } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  DNA_TAGS,
+  ENGULF_SEAL_PROGRESS,
+  PLAYER_LIFE_STATE,
+  cumulativeDnaForLevel,
+} from '@evolution/shared';
 import { cellOf, massOf, progressOf, type EvolutionView } from '../gameplay/evolution-views.js';
 import { ZONE } from '../gameplay/placement.js';
-import { CENTRE_DISTANCE_WU, E9_PAYOUT_TICK, E9_SEAL_TICK, PROGRESS_TOLERANCE, absorption } from './engulf-setups.js';
+import { CENTRE_DISTANCE_WU, E9_PAYOUT_TICK, E9_SEAL_TICK, PROGRESS_TOLERANCE } from './engulf-setups.js';
 import { placedSolo } from './shared-setups.js';
 import { PLACED_SEAT, absorbedThisTick } from './wild-setups.js';
 
@@ -58,7 +64,7 @@ describe('game-design/constants-and-acceptance.md §13: a wild killer (G13)', ()
       .toBeGreaterThan(0)
       .expect('sealed on 23 382', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(G13_FIXTURE_TICK + E9_SEAL_TICK - ONE_TICK)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
       .expect('A absorbed on 23 400', (view) => absorbedThisTick(view).map(([, playerId]) => playerId))
       .atTick(payoutTick)
       .toSatisfy((ids) => ids.length === 1 && ids[0] !== null, 'one cell_absorbed of a player')

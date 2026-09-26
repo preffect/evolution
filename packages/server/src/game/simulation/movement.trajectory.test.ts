@@ -5,7 +5,13 @@
 // hash. A deliberate change re-records it: run the test, read the new digest from the failure, and say why in the PR.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, StateHasher, type StateHash } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
+  StateHasher,
+  type StateHash,
+} from '@evolution/shared';
 import { createEngulfFixture } from '../../testing/engulf-builders.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
@@ -83,7 +89,7 @@ function engulfRun(hasher: StateHasher): void {
   predatorPlayer.ownedTraits.push({ traitId: 'cilia', tier: 3 });
   refreshCellDerivedState(predator, predatorPlayer, DEFAULT_BALANCE);
   beginEngulf(fixture);
-  prey.engulfProgress = DEFAULT_BALANCE.absorption.ENGULF_WRAP_START_PROGRESS;
+  prey.engulfProgress = ENGULF_WRAP_START_PROGRESS;
   predator.targetX = predator.x - STEER_RADIUS_WU;
   prey.targetX = prey.x + STEER_RADIUS_WU;
   const context = createTestStepContext(world);
@@ -91,7 +97,7 @@ function engulfRun(hasher: StateHasher): void {
     moveCells(world, context);
     hashPoses(hasher, world);
   }
-  prey.engulfProgress = DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS;
+  prey.engulfProgress = ENGULF_SEAL_PROGRESS;
   sealEngulf(fixture);
   for (let tick = 0; tick < ENGULF_TICKS_AFTER_SEAL; tick += 1) {
     moveCells(world, context);

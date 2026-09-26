@@ -82,7 +82,10 @@ so **`CellView` gains no field**: `engulfProgress` plus the shared thresholds sa
 
 **The process: cover → wrap → seal → absorb.** Progress runs 0..1; the phase is a band of it. The
 band widths are the phase durations' shares of the base duration, so the HUD bar moves evenly in
-time while nobody fights:
+time while nobody fights. The three phase seconds are the tunables; the three derived values are computed from the
+room's live balance every time they are read (`engulfBaseDurationSeconds`, `engulfWrapStartProgress`,
+`engulfSealProgress`, shared `simulation/engulf-pace.ts`) and are not balance leaves, so a `debug_set_balance` patch
+of a phase second moves the bands and the pace (#367):
 
 ```
 ENGULF_BASE_DURATION_SECONDS = ENGULF_COVER_SECONDS + ENGULF_WRAP_SECONDS + ENGULF_ABSORB_SECONDS   (0.2 + 0.4 + 0.6 = 1.2, derived)

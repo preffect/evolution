@@ -9,6 +9,9 @@ import {
   CELL_STATE,
   DEFAULT_BALANCE,
   DNA_TAG,
+  ENGULF_BASE_DURATION_SECONDS,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
   FOOD_KIND,
   PLAYER_LIFE_STATE,
   TICK_HZ,
@@ -95,7 +98,7 @@ const W10_FIRST_HEAVY_ENOUGH_TICK = 21_991;
 const W10_TRACE_TICKS = 600;
 /** "Ratio 1.3 → massFactor 1.25 / 1.3": the cover rate (1/69.2 a tick), and the progress after the start tick. */
 const W10_MASS_FACTOR = absorption.ENGULF_MASS_RATIO / W10_SEAT_SIZE;
-const W10_COVER_RATE_PER_TICK = TICK_INTERVAL_S / (absorption.ENGULF_BASE_DURATION_SECONDS * W10_MASS_FACTOR);
+const W10_COVER_RATE_PER_TICK = TICK_INTERVAL_S / (ENGULF_BASE_DURATION_SECONDS * W10_MASS_FACTOR);
 
 describe('ecology/acceptance.md §8.1: what happens to a wild cell sticks', () => {
   it('W5: seat 0 at size 2 eats B on tick 45 and keeps the meal as growth; B is back at the starting mass on tick 226', async () => {
@@ -105,10 +108,10 @@ describe('ecology/acceptance.md §8.1: what happens to a wild cell sticks', () =
       .advance(W5_RESPAWN_TICK)
       .expect('B sealed on tick 23', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(W5_SEAL_TICK)
-      .toBeAtLeast(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeAtLeast(ENGULF_SEAL_PROGRESS)
       .expect('not yet sealed the tick before', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(W5_SEAL_TICK - ONE_TICK)
-      .toBeLessThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeLessThan(ENGULF_SEAL_PROGRESS)
       .expect("B carried at its offset past seat 0's wander decision on tick 30", (view) => distanceFromSeat(view, 0))
       .atTick(W5_PAYOUT_TICK - ONE_TICK)
       .toBeCloseTo(CENTRE_DISTANCE_WU, OFFSET_TOLERANCE_WU)
@@ -219,16 +222,16 @@ describe('ecology/acceptance.md §8.1: what happens to a wild cell sticks', () =
       .toBeCloseTo(W10_SEAT_MASS_AFTER_SECOND_TICK, W10_TOLERANCE)
       .expect('cover ends on tick 21 611, into the wrap band', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(W10_COVER_END_TICK)
-      .toBeGreaterThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .toBeGreaterThan(ENGULF_WRAP_START_PROGRESS)
       .expect('still in cover the tick before', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(W10_COVER_END_TICK - ONE_TICK)
-      .toBeLessThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .toBeLessThan(ENGULF_WRAP_START_PROGRESS)
       .expect('sealed on tick 21 635', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(W10_SEAL_TICK)
-      .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
       .expect('not yet sealed the tick before', (view) => cellOf(view, 0)?.engulfProgress)
       .atTick(W10_SEAL_TICK - ONE_TICK)
-      .toBeLessThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeLessThan(ENGULF_SEAL_PROGRESS)
       .expect('still held the tick before the release', (view) => cellOf(view, 0)?.states)
       .atTick(W10_RELEASE_TICK - ONE_TICK)
       .toEqual([CELL_STATE.beingEngulfed])

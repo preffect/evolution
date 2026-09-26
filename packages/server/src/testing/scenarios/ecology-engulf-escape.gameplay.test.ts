@@ -3,7 +3,7 @@
 // are `ecology-engulf.gameplay.test.ts`; the shared setup is `engulf-setups.ts`.
 
 import { describe, it } from 'vitest';
-import { ENGULF_RELEASE_REASON, PLAYER_LIFE_STATE } from '@evolution/shared';
+import { ENGULF_RELEASE_REASON, ENGULF_SEAL_PROGRESS, PLAYER_LIFE_STATE } from '@evolution/shared';
 import { distanceBetweenCells, speedOf } from '../gameplay/evolution-views.js';
 import { player } from '../gameplay/index.js';
 import {
@@ -22,7 +22,6 @@ import {
   E11_TOO_LATE_SPRINT_TICK,
   PREY_MASS,
   PROGRESS_TOLERANCE,
-  absorption,
   absorptionsOfPredator,
   awayFromPredator,
   engulfPair,
@@ -100,10 +99,10 @@ describe('ecology/acceptance.md §8: getting away from an engulf, and being carr
       .advance(E11_TOO_LATE_END_TICK)
       .expect('sealed on tick 23', progressOfPrey)
       .atTick(E11_TOO_LATE_SEAL_TICK)
-      .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
       .expect('not sealed on tick 22', progressOfPrey)
       .atTick(E11_TOO_LATE_SEAL_TICK - 1)
-      .toBeLessThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeLessThan(ENGULF_SEAL_PROGRESS)
       .expect('never released', releaseReasons)
       .atTick(E11_TOO_LATE_END_TICK - 1)
       .toEqual([])

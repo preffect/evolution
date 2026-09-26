@@ -86,7 +86,10 @@ and the eleven `wild-cells.ts` rows; the simulation core (#152) adds `ALGAE_TAG`
 `DETRITUS_SCATTER_RADIUS_FACTOR` (§1's numbers that had no constant), so the pin was 96 names; the wild cells
 that live their own lives (#517, #544) replace `WILD_CELL_MASS_SPREAD`, `WORLD_ORGANISM_ID` and
 `WILD_CELL_HUNT_RANGE_RADII` with the seven new `wild-cells.ts` rows above and rename
-`WILD_CELL_HUNTS_FROM_STAGE`, so the pin was 100 names; the die-off (#555) adds two, so it is 102.
+`WILD_CELL_HUNTS_FROM_STAGE`, so the pin was 100 names; the die-off (#555) adds two, so it is 102. The three
+`derived` rows are computed from the phase seconds whenever they are read and are not balance leaves (their named
+defaults live in `absorption-derived.ts`): patch a phase second, not them (#367, architecture/constants-files-tests.md
+§9).
 
 | Constant                                                                                         | Value            | Unit                                                                                 |
 | ------------------------------------------------------------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------ |

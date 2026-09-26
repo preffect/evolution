@@ -40,6 +40,8 @@ import {
   E10_DECAY_GAP_WU,
   E10_OVERLAP_BOUND_WU,
   E10_SEPARATION_TICKS,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
   SHORT_ROUND_SECONDS,
   SHORT_ROUND_TICKS,
   absorbedCellIds,
@@ -76,10 +78,10 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .toBeCloseTo(1 / E9_PAYOUT_TICK, PROGRESS_TOLERANCE)
       .expect('cover ends at the wrap band', progressOfPrey)
       .atTick(E9_COVER_END_TICK)
-      .toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
       .expect('sealed on tick 18', progressOfPrey)
       .atTick(E9_SEAL_TICK)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
       .expect('carried 10 wu east from the seal on', (view) => distanceBetweenCells(view, 0, 1))
       .atTick(E9_SEAL_TICK + 1)
       .toBeCloseTo(CENTRE_DISTANCE_WU, OFFSET_TOLERANCE_WU)
@@ -142,16 +144,16 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .advance(E10_PAYOUT_TICK)
       .expect('cover ends on tick 12', progressOfPrey)
       .atTick(12)
-      .toBeGreaterThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .toBeGreaterThan(ENGULF_WRAP_START_PROGRESS)
       .expect('still under the wrap band on tick 11', progressOfPrey)
       .atTick(11)
-      .toBeLessThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .toBeLessThan(ENGULF_WRAP_START_PROGRESS)
       .expect('sealed on tick 35', progressOfPrey)
       .atTick(35)
-      .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
       .expect('not sealed on tick 34', progressOfPrey)
       .atTick(34)
-      .toBeLessThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeLessThan(ENGULF_SEAL_PROGRESS)
       .expect('still being engulfed on tick 69', statesOfPrey)
       .atTick(E10_PAYOUT_TICK - 1)
       .toEqual([CELL_STATE.beingEngulfed])
@@ -170,10 +172,10 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .advance(E9_PAYOUT_TICK)
       .expect('cover ends at the wrap band on tick 6', progressOfPrey)
       .atTick(E9_COVER_END_TICK)
-      .toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
       .expect('sealed on tick 18 although the centres have drifted', progressOfPrey)
       .atTick(E9_SEAL_TICK)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
       .expect('centres 29.66 wu apart at the seal, inside the predator reach', (view) =>
         distanceBetweenCells(view, 0, 1),
       )
@@ -227,7 +229,7 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .toEqual([CELL_STATE.beingEngulfed])
       .expect('at progress 0.5 the tick before the end', progressOfPrey)
       .atTick(SHORT_ROUND_TICKS - 1)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
       .expect('results', (view) => view.snapshot.roundPhase)
       .atEnd()
       .toBe(ROUND_PHASE.results)
@@ -277,7 +279,7 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .advance(41)
       .expect('sealed before the drop', progressOfPrey)
       .atTick(39)
-      .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
       .expect('released on tick 40 with reason ratio', releaseReasons)
       .atTick(40)
       .toEqual([ENGULF_RELEASE_REASON.ratio])

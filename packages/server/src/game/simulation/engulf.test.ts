@@ -13,6 +13,8 @@ import {
   ENGULF_CENTRE_DISTANCE_WU,
   ENGULF_PREDATOR_MASS,
   ENGULF_PREY_MASS,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
   createEngulfFixture,
   releaseReasonsOf,
   stepEngulf,
@@ -82,10 +84,10 @@ describe('phases and the seal (docs/ecology/absorption.md §6.1)', () => {
   it('E9: cover for six ticks, seal on tick 18, payout on tick 36', () => {
     const fixture = twoCells();
     stepEngulf(fixture, E9_COVER_TICKS);
-    expect(fixture.prey.engulfProgress).toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_DIGITS);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(ENGULF_WRAP_START_PROGRESS, PROGRESS_DIGITS);
     expect(fixture.prey.carriedOffsetX).toBeNull();
     stepEngulf(fixture, E9_SEAL_TICK - E9_COVER_TICKS);
-    expect(fixture.prey.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
+    expect(fixture.prey.engulfProgress).toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
     expect(fixture.prey.carriedOffsetX).toBeCloseTo(ENGULF_CENTRE_DISTANCE_WU, PROGRESS_DIGITS);
     expect(fixture.prey.velocityX).toBe(0);
     stepEngulf(fixture, E9_PAYOUT_TICK - E9_SEAL_TICK);
@@ -259,7 +261,7 @@ describe('the branches the E9 pair never reaches', () => {
     stepEngulf(fixture, E9_SEAL_TICK);
     expect(fixture.prey.engulfingCellId).toBe(fixture.predator.id);
     expect(fixture.predator.engulfedByCellId).toBe(fixture.prey.id);
-    expect(fixture.predator.engulfProgress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
+    expect(fixture.predator.engulfProgress).toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
     expect(fixture.predator.carriedOffsetX).toBeCloseTo(-ENGULF_CENTRE_DISTANCE_WU, PROGRESS_DIGITS);
     stepEngulf(fixture, E9_PAYOUT_TICK - E9_SEAL_TICK);
     expect(fixture.prey.states).toEqual([]);

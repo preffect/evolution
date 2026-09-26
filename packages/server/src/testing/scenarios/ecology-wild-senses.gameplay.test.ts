@@ -5,13 +5,21 @@
 // out of every wild cell's sight; placing it vacates the seeded seats (docs/testing/scenario-runner.md §8.1).
 
 import { describe, it } from 'vitest';
-import { DEFAULT_BALANCE, DNA_TAGS, FOOD_KIND, radiusForMass, secondsToTicks, type Vec2 } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  DNA_TAGS,
+  ENGULF_SEAL_PROGRESS,
+  FOOD_KIND,
+  radiusForMass,
+  secondsToTicks,
+  type Vec2,
+} from '@evolution/shared';
 import { cellOf, progressOf, wildCellOf, wildSeatOf } from '../gameplay/evolution-views.js';
 import type { EvolutionView } from '../gameplay/evolution-views.js';
 import { player, targetPoint, type PlayerScript } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import { wildRecoveryFactorPerTick } from '../../game/wild/wild-settle.js';
-import { PROGRESS_TOLERANCE, absorption, detritusInDish } from './engulf-setups.js';
+import { PROGRESS_TOLERANCE, detritusInDish } from './engulf-setups.js';
 import { placedSolo } from './shared-setups.js';
 import { PLACED_SEAT, WILD_RESPAWN_TICKS, absorbedThisTick, worldMassAtTick } from './wild-setups.js';
 
@@ -120,7 +128,7 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .toEqual([preyAt, 0])
       .expect('seat 0 sealed on tick 23', (view) => seatCell(PLACED_SEAT)(view)?.engulfProgress)
       .atTick(W12_SEAL_TICK)
-      .toBeAtLeast(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeAtLeast(ENGULF_SEAL_PROGRESS)
       .expect("seat 0's cell absorbed on tick 45 with no player", (view) => absorbedThisTick(view))
       .atTick(W12_PAYOUT_TICK)
       .toSatisfy(
