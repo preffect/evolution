@@ -67,11 +67,27 @@
   overflow: hidden;
 }
 
+/* The bleed slot (#439): under the body, outside its scroll area, which would clip anything drawn past its padding box.
+   It takes the panel's inline padding back, so what sits in it spans the panel edge to edge; `--panel-inset` is the
+   padding it took, for that content to re-inset its own children with. It shrinks with the body on a short viewport. */
+.bleed-slot {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin-inline: calc(-1 * var(--panel-inset));
+}
+
+.bleed-slot:empty {
+  display: none;
+}
+
 /* ---- modal ---- */
 
 :host([data-variant='modal']) {
+  --panel-inset: calc(var(--ui-panel-padding) * var(--ui-scale));
   gap: calc(var(--ui-space-l) * var(--ui-scale));
-  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  padding: var(--panel-inset);
   background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
   pointer-events: auto;
   animation: ui-panel-enter var(--ui-panel-enter) ease-out both;
@@ -99,9 +115,10 @@
 /* ---- side ---- */
 
 :host([data-variant='side']) {
+  --panel-inset: calc(var(--ui-space-l) * var(--ui-scale));
   width: calc(var(--ui-side-panel-width) * var(--ui-scale));
   gap: calc(var(--ui-space-m) * var(--ui-scale));
-  padding: calc(var(--ui-space-l) * var(--ui-scale));
+  padding: var(--panel-inset);
   background: linear-gradient(
     color-mix(in srgb, var(--ui-panel-top) calc(var(--ui-side-panel-alpha) * 100%), transparent),
     color-mix(in srgb, var(--ui-panel-bottom) calc(var(--ui-side-panel-alpha) * 100%), transparent)
@@ -120,6 +137,7 @@
    than the variants' own rules and declared after them, so it wins without a feature out-specifying the kit. */
 :host([data-variant='modal'][data-body='bleed']),
 :host([data-variant='side'][data-body='bleed']) {
+  --panel-inset: 0px;
   gap: 0;
   padding: 0;
   overflow: hidden;

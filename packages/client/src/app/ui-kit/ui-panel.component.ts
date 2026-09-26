@@ -2,7 +2,8 @@
 // top edge, a dialog labelled by its title, entering over `UI_PANEL_ENTER_MS`; its host places it, over a
 // `ui-scrim`, inside a `[uiFocusTrap]`. `side`: the translucent gradient over a blur of the dish, a region with
 // no scrim, no trap and no motion, because it shows while a key is held; its host anchors it to a viewport edge,
-// and it takes the pointer only on its controls. The kit never places either.
+// and it takes the pointer only on its controls. The kit never places either. Under the body, the `[uiPanelBleed]` slot
+// spans the panel's full width for a section whose rule runs edge to edge (#439).
 
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
@@ -49,6 +50,9 @@ const PANEL_ROLE: Readonly<Record<UiPanelVariant, string>> = {
     } @else {
       <ui-scroll-area class="body" [label]="title()"><ng-container [ngTemplateOutlet]="bodyContent" /></ui-scroll-area>
     }
+    <!-- Under the body but outside its scroll area, which clips at its padding box: the kit takes the panel padding
+         back here, so a section in this slot runs edge to edge and re-insets its own children by --panel-inset. -->
+    <div class="bleed-slot"><ng-content select="[uiPanelBleed]" /></div>
     <footer class="footer"><ng-content select="[uiPanelFooter]" /></footer>
   `,
   host: {

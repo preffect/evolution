@@ -26,8 +26,8 @@
 }
 
 /* The panel body is a scroll area, which would clip a focus ring drawn outside a full-width button: the content is
-   inset by exactly the ring and its offset above and below, and the strip and the buttons at the sides. The trait rows
-   draw their ring inside, so they keep the panel's full width. */
+   inset by exactly the ring and its offset above and below, and the strip and the buttons at the sides. `Your traits`
+   sits in the panel's bleed slot instead, outside the body, and draws its rows' ring inside. */
 .content {
   display: flex;
   flex-direction: column;

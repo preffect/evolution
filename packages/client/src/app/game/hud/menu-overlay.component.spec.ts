@@ -142,6 +142,14 @@ describe('MenuOverlayComponent', () => {
     expect(hudState.menuReturnFocusTestId()).toBe(menuTraitTestId(MITOCHONDRION));
   });
 
+  it('sets Your traits in the panel’s bleed slot, outside the body’s scroll area, so its rule runs edge to edge', () => {
+    mountMenu();
+    const section = document.querySelector<HTMLElement>('app-menu-traits')!;
+    expect(section.parentElement?.classList.contains('bleed-slot')).toBe(true);
+    expect(section.closest('ui-scroll-area.body')).toBeNull();
+    expect(query(HUD_TEST_ID.menuResume)?.closest('ui-scroll-area.body')).not.toBeNull();
+  });
+
   it('says No traits yet before the first pick', () => {
     const menu = mountMenu();
     expect(query(HUD_TEST_ID.menuTraits)).toBeNull();

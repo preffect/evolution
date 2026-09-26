@@ -78,8 +78,9 @@ import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-te
             </button>
             <app-menu-exit (exited)="exitGame()" />
           </div>
-          <app-menu-traits [rows]="traitRows()" (opened)="openTraitEntry($event)" />
         </div>
+        <!-- In the kit's bleed slot, outside the body's scroll area, so its rule spans the panel (overlays.md §3.5). -->
+        <app-menu-traits uiPanelBleed [rows]="traitRows()" (opened)="openTraitEntry($event)" />
       </ui-panel>
     </div>
   `,

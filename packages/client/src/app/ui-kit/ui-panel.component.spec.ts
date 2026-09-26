@@ -22,6 +22,7 @@ import {
     <ui-panel testId="panel" [variant]="variant()" [title]="title()" [body]="body()">
       <button uiPanelHeader data-testid="header-control">Close</button>
       <p data-testid="body">Body</p>
+      <section uiPanelBleed data-testid="bleed">Your traits</section>
       <button uiPanelFooter data-testid="footer-control">Done</button>
     </ui-panel>
     <ui-panel testId="side" variant="side">
@@ -141,6 +142,56 @@ describe('UiPanelComponent', () => {
     expect(byTestId('footer-control').closest('.footer')).not.toBeNull();
   });
 
+  describe('the bleed slot (#439)', () => {
+    /** Under the body but outside its scroll area, before the footer, in the kit's slot that takes the padding back. */
+    function expectBleedPlacedOutsideTheBody(): void {
+      const panel = byTestId('panel');
+      const bleed = byTestId('bleed');
+      const slot = bleed.parentElement!;
+      expect(slot.classList.contains('bleed-slot')).toBe(true);
+      expect(slot.parentElement).toBe(panel);
+      expect(bleed.closest('.body')).toBeNull();
+      expect(bleed.closest('ui-scroll-area')).toBeNull();
+      const body = panel.querySelector<HTMLElement>('.body')!;
+      expect(body.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(
+        slot.compareDocumentPosition(panel.querySelector('.footer')!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    it('sits under a scrolling body but outside its scroll area, which clips at its padding box', () => {
+      expect(byTestId('body').closest('ui-scroll-area')).not.toBeNull();
+      expectBleedPlacedOutsideTheBody();
+    });
+
+    it('sits outside a bleed body too, so the slot does not depend on the body mode', () => {
+      set((host) => host.body.set(UI_PANEL_BODY.bleed));
+      expectBleedPlacedOutsideTheBody();
+    });
+
+    it('takes back exactly the padding of its variant, and publishes it for the content to re-inset by', () => {
+      const panel = hostSelector(byTestId('panel'));
+      const side = hostSelector(byTestId('side'));
+      expect(styleRuleValue(document, ['.bleed-slot'], 'margin-inline')).toBe('calc(-1 * var(--panel-inset))');
+      expect(styleRuleValue(document, [panel, "[data-variant='modal']"], 'padding')).toBe('var(--panel-inset)');
+      expect(styleRuleValue(document, [panel, "[data-variant='modal']"], '--panel-inset')).toBe(
+        'calc(var(--ui-panel-padding) * var(--ui-scale))',
+      );
+      expect(styleRuleValue(document, [side, "[data-variant='side']"], 'padding')).toBe('var(--panel-inset)');
+      expect(styleRuleValue(document, [side, "[data-variant='side']"], '--panel-inset')).toBe(
+        'calc(var(--ui-space-l) * var(--ui-scale))',
+      );
+      expect(styleRuleValue(document, [panel, "[data-variant='modal']", "[data-body='bleed']"], '--panel-inset')).toBe(
+        '0px',
+      );
+    });
+
+    it('draws nothing, and takes no gap, when no content fills it', () => {
+      expect(styleRuleValue(document, ['.bleed-slot', ':empty'], 'display')).toBe('none');
+      expect(byTestId('side').querySelector('.bleed-slot')?.childElementCount).toBe(0);
+    });
+  });
+
   it('a side panel is a region, never modal', () => {
     expect(byTestId('side').getAttribute('role')).toBe('region');
     expect(byTestId('side').hasAttribute('aria-modal')).toBe(false);
@@ -198,7 +249,7 @@ describe('UiPanelComponent', () => {
       expect(rule(["[data-variant='modal']"], 'background')).toBe(
         'linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom))',
       );
-      expect(rule(["[data-variant='modal']"], 'padding')).toBe('calc(var(--ui-panel-padding) * var(--ui-scale))');
+      expect(rule(["[data-variant='modal']"], '--panel-inset')).toBe('calc(var(--ui-panel-padding) * var(--ui-scale))');
       expect(rule([], 'border-radius')).toBe('calc(var(--ui-radius-panel) * var(--ui-scale))');
       expect(rule(["[data-variant='modal']", '::before'], 'background-color')).toContain('var(--ui-panel-edge-alpha)');
     });
