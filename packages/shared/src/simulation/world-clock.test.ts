@@ -98,6 +98,12 @@ describe('worldElapsedSeconds', () => {
   it('freezes at the round length through the results screen', () => {
     expect(worldElapsedSeconds(RESULTS_END_TICK, 0, ROUND_DURATION_SECONDS)).toBe(ROUND_DURATION_SECONDS);
   });
+
+  it('reads a tick before the round start as the start, so the world is never below level 1 (#173)', () => {
+    expect(worldElapsedSeconds(0, RESULTS_END_TICK, ROUND_DURATION_SECONDS)).toBe(0);
+    const beforeStart = worldReference(worldElapsedSeconds(0, RESULTS_END_TICK, ROUND_DURATION_SECONDS), balance);
+    expect(beforeStart).toEqual(worldReference(0, balance));
+  });
 });
 
 describe('standingAgainstWorld (G12)', () => {

@@ -10,6 +10,8 @@ import { stageOf, type LadderBalance } from './stage-of.js';
 
 /** The first world level; a fresh round starts here. */
 const FIRST_WORLD_LEVEL = 1;
+/** Ticks elapsed at the round's start: the clock's floor. */
+const ROUND_START_TICKS = 0;
 
 /** What the clock reads: its own domain plus the mass bounds, the level bounds and costs, the ladder and build 0. */
 export interface WorldClockBalance {
@@ -36,10 +38,12 @@ export interface WorldReference {
 
 /**
  * Round seconds elapsed at the tick being stepped, frozen at the round length through `results`
- * (10 800 / 60 = 180 exactly; never derived from `roundTimeLeftMs`).
+ * (10 800 / 60 = 180 exactly; never derived from `roundTimeLeftMs`), and never below 0: a tick before
+ * `roundStartTick` reads the round's start (#173).
  */
 export function worldElapsedSeconds(tick: number, roundStartTick: number, roundDurationSeconds: number): number {
-  return ticksToSeconds(Math.min(tick - roundStartTick, secondsToTicks(roundDurationSeconds)));
+  const elapsedTicks = Math.max(ROUND_START_TICKS, tick - roundStartTick);
+  return ticksToSeconds(Math.min(elapsedTicks, secondsToTicks(roundDurationSeconds)));
 }
 
 /**

@@ -23,7 +23,10 @@ export interface BotCellView {
   readonly membraneRatioBonus: number;
 }
 
-/** A cell a player owns: what `ownCellOf` returns and what a fixture places for a bot. */
+/**
+ * A cell a player owns: what `ownCellOf` returns for a player actor and what a fixture places for a bot. A wild seat's
+ * `ownCellOf` returns its cell with `playerId: null`, so the seam itself stays `BotCellView` (#173).
+ */
 export type PlayerBotCellView = BotCellView & { readonly playerId: PlayerId };
 
 /** Where a player's cell is and how big; what "target N radii east" is measured from. */
