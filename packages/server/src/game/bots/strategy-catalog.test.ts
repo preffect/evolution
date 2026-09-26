@@ -20,9 +20,10 @@ describe('strategy catalog', () => {
   });
 
   it('tells a catalogue name from any other string, which is how the CLI and the tool schema gate the catalogue', () => {
-    expect(BOT_STRATEGY_NAMES).toEqual(['idle', 'wander', 'grazer', 'hunter', 'flee']);
+    expect(BOT_STRATEGY_NAMES).toEqual(['idle', 'wander', 'grazer', 'hunter', 'flee', 'forager']);
     expect(isBotStrategyName('grazer')).toBe(true);
     expect(isBotStrategyName('flee')).toBe(true);
+    expect(isBotStrategyName('forager')).toBe(true);
     expect(isBotStrategyName('sleep')).toBe(false);
   });
 
@@ -36,5 +37,17 @@ describe('strategy catalog', () => {
       cell: { x: 0, y: 0, radius: 10 },
     });
     expect(strategy.decide(context)).toEqual({ targetX: 50, targetY: 0 });
+  });
+
+  it('registers the hunter that grazes while it has no prey and the forager that grazes until a threat comes close', () => {
+    const self = createTestBotCell({ id: 'self', playerId: TEST_PLAYER_ID, mass: 20 });
+    const threat = createTestBotCell({ id: 'threat', playerId: playerId('player_1'), x: 30, y: 0, mass: 100 });
+    const mote = { id: 'mote', x: 0, y: 5 };
+    const context = createTestScriptContext({
+      snapshot: createTestWorldView({ cells: [self, threat], motes: [mote] }),
+      cell: { x: 0, y: 0, radius: 10 },
+    });
+    expect(createStrategyByName('hunter', perception)().decide(context)).toEqual({ targetX: 0, targetY: 5 });
+    expect(createStrategyByName('forager', perception)().decide(context)).toMatchObject({ targetX: -20, targetY: 0 });
   });
 });

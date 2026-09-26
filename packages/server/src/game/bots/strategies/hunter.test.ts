@@ -7,7 +7,7 @@ import {
   createTestScriptContext,
   createTestWorldView,
 } from '../../../testing/bot-builders.js';
-import { createHunterStrategy } from './hunter.js';
+import { createGrazingHunterStrategy, createHunterStrategy } from './hunter.js';
 import { BOT_STRATEGY_NAME, HUNT_PREFERENCE, HUNTER_SPRINT_WITHIN_RADII } from '../strategy-constants.js';
 
 const perception = createTestPerception();
@@ -16,9 +16,13 @@ const smallPrey = createTestBotCell({ id: 'small', playerId: playerId('player_1'
 const biggerPrey = createTestBotCell({ id: 'bigger', playerId: playerId('player_2'), x: 0, y: 300, mass: 70 });
 const tooBig = createTestBotCell({ id: 'big', playerId: playerId('player_3'), x: 20, y: 0, mass: 90 });
 
-function contextWith(cells: readonly ReturnType<typeof createTestBotCell>[]) {
+/** A mote 30 wu south of `self`, nearer than the 20-wu-east `far` one. */
+const nearMote = { id: 'near-mote', x: 0, y: 30 };
+const farMote = { id: 'far-mote', x: 40, y: 0 };
+
+function contextWith(cells: readonly ReturnType<typeof createTestBotCell>[], motes = [nearMote, farMote]) {
   return createTestScriptContext({
-    snapshot: createTestWorldView({ cells }),
+    snapshot: createTestWorldView({ cells, motes }),
     cell: { x: self.x, y: self.y, radius: self.radius },
   });
 }
@@ -112,5 +116,36 @@ describe('hunter strategy', () => {
       targetX: biggerPrey.x,
       targetY: biggerPrey.y,
     });
+  });
+});
+
+describe('grazing hunter (the catalogue hunter)', () => {
+  it('is named hunter', () => {
+    expect(createGrazingHunterStrategy(perception)().name).toBe(BOT_STRATEGY_NAME.hunter);
+  });
+
+  it('grazes the nearest mote while nothing is engulfable, where the bare hunter sends nothing', () => {
+    expect(createGrazingHunterStrategy(perception)().decide(contextWith([self, tooBig]))).toEqual({
+      targetX: nearMote.x,
+      targetY: nearMote.y,
+    });
+    expect(createHunterStrategy(perception)().decide(contextWith([self, tooBig]))).toBeNull();
+  });
+
+  it('hunts over grazing as soon as a prey is engulfable, keeping its commitment across a grazing gap', () => {
+    const strategy = createGrazingHunterStrategy(perception)();
+    expect(strategy.decide(contextWith([self, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: smallPrey.y });
+    expect(strategy.decide(contextWith([self]))).toEqual({ targetX: nearMote.x, targetY: nearMote.y });
+    expect(strategy.decide(contextWith([self, biggerPrey]))).toEqual({ targetX: biggerPrey.x, targetY: biggerPrey.y });
+  });
+
+  it('grazes while its named prey is out of reach and hunts it once it is engulfable', () => {
+    const strategy = createGrazingHunterStrategy(perception, { preyPlayerId: smallPrey.playerId })();
+    expect(strategy.decide(contextWith([self, biggerPrey]))).toEqual({ targetX: nearMote.x, targetY: nearMote.y });
+    expect(strategy.decide(contextWith([self, biggerPrey, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: 0 });
+  });
+
+  it('sends nothing with neither prey nor food', () => {
+    expect(createGrazingHunterStrategy(perception)().decide(contextWith([self, tooBig], []))).toBeNull();
   });
 });

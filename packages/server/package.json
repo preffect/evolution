@@ -14,6 +14,7 @@
     "bot-client": "tsx src/testing/bot-client/cli.ts",
     "bench:bots": "tsx bench/in-process-bots.ts",
     "bench:broadcast": "tsx bench/viewer-broadcast.ts",
+    "bench:predation": "tsx bench/predation.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
