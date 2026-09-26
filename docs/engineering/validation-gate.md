@@ -24,8 +24,8 @@
      `-- reason` and for `TODO`s without a ticket (`docs/CODE-STANDARDS.md` §7), printing the
      directive count;
    - fixes what lint's tools can fix with **`format`** (#641): `eslint --fix`, then `prettier --write`,
-     over the paths `lint` reads for the same `--scope` (a scoped format also writes the docs the branch
-     changed against `origin/main`), with the lint caches unless `--fresh`; it prints the files it changed
+     over the paths `lint` reads for the same `--scope` (a scoped format also fixes the files outside
+     `packages/` the branch changed against `origin/main`), with the lint caches unless `--fresh`; it prints the files it changed
      (the working tree's hash before and after) and exits 0 unless a tool fails to run (a prettier syntax
      error, an eslint crash). Problems eslint cannot fix leave it green and point at `lint`, so run `lint`
      after it. It takes no extra args and is **never cached**: it changes the tree, and it proves nothing
@@ -73,8 +73,11 @@
      `--scope <file or directory under packages/<package>/src>` runs only the tests that path
      selects (a directory: the tests under it; a source file: the tests named after it) **without**
      coverage floors, lints, formats and scans that path, and typechecks its package. Either scope's
-     `lint` also prettier-checks the docs (`*.md` outside `packages/`) the branch changed against
-     `origin/main` and names them (#329), so a scoped lint is never green over unformatted docs. No `--scope`
+     `lint` also runs eslint and prettier over every file outside `packages/` the branch changed against
+     `origin/main` (docs, `qa/`, `scripts/`, root files) and names them (#329, #733), so a scoped lint is
+     never green over a file the full lint would reject. Each tool skips a named file its own full run
+     skips (`eslint --no-warn-ignored`, `prettier --ignore-unknown`: their ignores and file patterns decide,
+     not a list in `validate.sh`). No `--scope`
      is the whole repo, exactly as before; an empty `--scope` is refused. `test` and `integration`
      print `selected <package>: N test files, M tests run[, K skipped]`, and a targeted run (a path
      scope or `-- extra-args`) that runs no test — nothing selected, or every selected test skipped
@@ -87,8 +90,10 @@
    - **`all --affected`** (#304, the merge gate) checks only what the branch changed against
      `origin/main` (committed, uncommitted and untracked): the changed packages plus their dependents
      (a `packages/shared` change selects all three); lint alone for a docs-only change (`*.md`,
-     `docs/`, `qa/`: prettier on the changed docs plus the docs index); the shell suites for a
-     `scripts/` or root `*.sh` change; the plain `all` for any other root file. It prints
+     `docs/`, `qa/`); the shell suites for a `scripts/` or root `*.sh` change; the plain `all` for any
+     other root file. Its lint reads every changed file outside `packages/` the way a scoped lint does
+     (eslint and prettier, each skipping what its full run skips), so a `qa/evidence/*/capture.js` or a
+     `scripts/*.mjs` is checked as the full lint checks it (#733: two landed unformatted through the gate). It prints
      `affected <what>: <why>` for each selection, skips the phases with nothing to check, and is
      stamped per affected set (`scope=affected-<set>`; a root-file change is `affected-everything`, so a
      plain `all` stamp never answers it). After the unit tests it runs the **integration tier**
