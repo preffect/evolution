@@ -153,14 +153,14 @@ export class BotSession {
         this.settleJoin();
         this.acceptSnapshot(message.snapshot);
         // A full state puts the two in step: the room is waiting to hear it before it resumes deltas.
-        if (hasTick(message.snapshot)) this.acknowledger.acknowledgeNow(message.snapshot.tick);
+        this.acknowledger.acknowledgeNow(message.snapshot.tick);
         break;
       case SERVER_MESSAGE_TYPE.gameStarted:
         this.settleJoin();
         break;
       case SERVER_MESSAGE_TYPE.gameSnapshot:
         this.acceptSnapshot(message.snapshot);
-        if (hasTick(message.snapshot)) this.acknowledger.recordApplied(message.snapshot.tick);
+        this.acknowledger.recordApplied(message.snapshot.tick);
         break;
       case SERVER_MESSAGE_TYPE.error:
         this.onServerError(message.message);
@@ -223,14 +223,6 @@ export class BotSession {
     }
     settleDueWaiters(this.tickWaiters, this.clientTick);
   }
-}
-
-/**
- * The template echo's snapshots carry no tick (docs/architecture/wire-contract.md §4.1): the room measures no backlog for
- * them, and would refuse an ack without one, so a bot on the echo acknowledges nothing.
- */
-function hasTick(snapshot: GameSnapshot): boolean {
-  return Number.isInteger(snapshot.tick);
 }
 
 /** Resolves and removes every waiter `value` is due for; the rest keep waiting. */

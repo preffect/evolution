@@ -192,14 +192,6 @@ describe('bot session: acknowledging snapshots (#721)', () => {
       deltaTicks.at(-1),
     ]);
   });
-
-  it('acknowledges nothing for a snapshot without a tick, which the server would refuse', () => {
-    const { transport } = sessionRunning();
-    const tickless = { players: {} } as unknown as GameSnapshot;
-    transport.receive(gameState(tickless));
-    for (let count = 0; count < SNAPSHOT_ACK_EVERY_SNAPSHOTS; count += 1) transport.receive(gameSnapshot(tickless));
-    expect(acksSent(transport)).toEqual([]);
-  });
 });
 
 describe('bot session: waiting', () => {
