@@ -169,11 +169,21 @@ Scenario "E9" failed (seed 42):
   replay written to /workspace/qa/replays/e9.replay.json
 
 Scenario "E9" diverged (seed 42): first differing checkpoint at tick 600: expected 1f3a…, got 9c0e… (identical through tick 0)
+  first differing path at tick 600: $.cells[3].mass
+    expected 115.92, got 115.93
 ```
 
 `toBeCloseTo` prints the expected value as computed and "off by" rounded to the tolerance's
 decimals. A divergence is bisected by lowering `.hashEvery(1)` on that scenario: the report then
-names the exact tick (`determinism/replay-tests-and-traps.md` §7). To run one scenario file on its own, scope the
+names the exact tick (`determinism/replay-tests-and-traps.md` §7). When `assertDeterministic`
+(`.runDeterministic()`) finds one, it runs both sides once more from scratch to that tick, with no
+expectations and no replay sink, and attaches `snapshots` to `ScenarioDivergenceError`:
+`expectedSnapshot`, `actualSnapshot`, `reproduced` (the re-runs hashed differently too) and
+`firstDifference`, the first differing path from `findFirstDifference` (`src/testing/structural-diff.ts`:
+objects in the expected side's key order, arrays by index, Maps by key; each value printed on one line,
+cut at `MAX_RENDERED_VALUE_LENGTH`). The report says so instead when the re-runs agree (the divergence
+did not recur) or when the snapshots agree while the hashes differ (the difference is in hashed state the
+adapter's snapshot does not show). `verifyReplay` attaches no snapshots: the recording keeps hashes only. To run one scenario file on its own, scope the
 integration tier to it (`engineering/validation-gate.md` §1):
 
 ```bash
