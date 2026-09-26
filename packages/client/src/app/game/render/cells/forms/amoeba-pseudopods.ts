@@ -14,6 +14,7 @@ import {
   PSEUDOPOD_FLANK_DEG,
   PSEUDOPOD_FLANK_SPREAD,
   PSEUDOPOD_LEAN_GAIN,
+  PSEUDOPOD_MAX_SIGMA_DEG,
   PSEUDOPOD_PEAK_ANGLE_SAMPLES,
   PSEUDOPOD_PEAK_TIME_SAMPLES,
   PSEUDOPOD_REACH,
@@ -44,10 +45,11 @@ const FLANK = degreesToRadians(PSEUDOPOD_FLANK_DEG);
 const SWAY = degreesToRadians(PSEUDOPOD_SWAY_DEG);
 const REACHING_SHARE = 1 - PSEUDOPOD_RETRACTED_SHARE;
 const FAN_SIGMA = degreesToRadians(PSEUDOPOD_FAN_SIGMA_DEG);
+const MAX_SIGMA = degreesToRadians(PSEUDOPOD_MAX_SIGMA_DEG);
 
-/** Each of `count` lobes' width, radians: `PSEUDOPOD_FAN_SIGMA_DEG / count`, so two lobes are fat and four slim. */
+/** Each of `count` lobes' width, radians: `PSEUDOPOD_FAN_SIGMA_DEG / count` up to the cap, so fewer lobes are fatter. */
 export function pseudopodSigma(count: number): number {
-  return FAN_SIGMA / count;
+  return Math.min(FAN_SIGMA / count, MAX_SIGMA);
 }
 
 /** `B ≡ AMOEBA_CORE_SCALE`: the core the lobes grow from, the same at every angle. */

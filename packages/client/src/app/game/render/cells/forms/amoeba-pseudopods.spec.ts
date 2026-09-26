@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AMOEBA_CORE_SCALE,
+  APPENDAGE_MIN_NECK_WIDTH_RADII,
   APPENDAGE_MIN_REACH_PAST_RING_RADII,
   APPENDAGE_MIN_RETRACTED_PAST_RING_RADII,
   BREATH_AMPLITUDE,
@@ -18,7 +19,7 @@ import {
   PSEUDOPOD_REACH,
   PSEUDOPOD_RETRACTED_SHARE,
 } from '../../constants';
-import { degreesToRadians, gaussianBump, wrapAngle } from '../../geometry';
+import { HALF, degreesToRadians, gaussianBump, wrapAngle } from '../../geometry';
 import type { ShapeBump } from '../radial-profile';
 import {
   pseudopodBumps,
@@ -130,6 +131,35 @@ describe('the amoeba silhouette', () => {
       expect(past(Math.min(...amplitudes)), `${count} lobes`).toBeGreaterThanOrEqual(
         APPENDAGE_MIN_RETRACTED_PAST_RING_RADII,
       );
+    }
+  });
+
+  /**
+   * §5.1 rule 2, never a hairline: each lobe's width at its neck, halfway out along it, walked on the whole surface
+   * (neighbours included) from the lobe's centre to where the surface drops below half the lobe's height.
+   */
+  it('keeps every arm at least the rule’s neck width, at rest and swimming, over a whole cycle', () => {
+    const angleStep = degreesToRadians(0.1);
+    const narrowest = (count: number, lean: number): number => {
+      let width = Infinity;
+      for (let step = 0; step < 48; step += 1) {
+        const bumps = pseudopodBumps({ ...REST, count, lean, timeSeconds: (step / 48) * CYCLE_SECONDS });
+        for (const lobe of bumps) {
+          const neck = lobe.amplitude * HALF;
+          let halfSpan = 0;
+          while (surfaceAt(bumps, lobe.centre + halfSpan + angleStep) >= neck) halfSpan += angleStep;
+          const neckRadius = AMOEBA_CORE_SCALE * (1 + neck);
+          width = Math.min(width, 2 * neckRadius * Math.sin(halfSpan));
+        }
+      }
+      return width;
+    };
+    for (const count of PSEUDOPOD_COUNT_BY_TIER) {
+      for (const lean of [0, 1]) {
+        expect(narrowest(count, lean), `${count} lobes at lean ${lean}`).toBeGreaterThanOrEqual(
+          APPENDAGE_MIN_NECK_WIDTH_RADII,
+        );
+      }
     }
   });
 });

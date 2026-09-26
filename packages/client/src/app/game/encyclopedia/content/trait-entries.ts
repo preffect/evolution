@@ -164,8 +164,8 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'amoeba_pseudopods',
     summary:
-      'Your membrane flows into blunt lobes. You push through gel, wrap prey faster and hold it tighter. One form per cell.',
-    tierBodies: ['Blunt lobes.', 'More lobes.', 'The full blob.'],
+      'Your membrane flows out into long arms. You push through gel, wrap prey faster and hold it tighter. One form per cell.',
+    tierBodies: ['Long arms reach out.', 'A third arm.', 'A fourth arm.'],
     seeAlso: ['trait:cytoskeleton'],
   },
   {

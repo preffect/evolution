@@ -77,9 +77,9 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   `shape-terms.spec.ts` (view → terms, bump slot assignment including the eight-slot amoeba III mid-engulf and
   contact / eat dropped while engulfing, sprint scaling, and the moving-wrap extent: k = 1 stretch with the wrap frame and an eat pulse reports a maximum of 2.99 r, below `CELL_QUAD_EXTENT_RADII` 3.0); `form-profiles.spec.ts` (every `B` has unit area within
   0.5 %, the sheet-04 aspects, diatom terms all zero); `amoeba-pseudopods.spec.ts` (the appendage rule of visual-style/motion-and-legibility.md
-  §5.1: every lobe's tip at least 0.6 r past the 1.3 r rings at full reach and 0.15 r past them at its shortest, an irregular resting fan, the lobes on the flanks at speed, the staggered cycle, a reach table no frame
+  §5.1: every lobe's tip at least 0.6 r past the 1.3 r rings at full reach and 0.15 r past them at its shortest, every neck at least 0.3 r wide, an irregular resting fan, the lobes on the flanks at speed, the staggered cycle, a reach table no frame
   beats and some frame reaches); `cell-draw-extent.spec.ts` walks every form's drawn membrane against the body bound and has the
-  amoeba's arms past the 1.3 r rings at every tier and speed; `cell-shader.spec.ts` pins the GLSL amoeba core to the TypeScript profile and the
+  amoeba's arm tips (measured at each lobe's centre) past the 1.3 r rings at every tier and speed; `cell-shader.spec.ts` pins the GLSL amoeba core to the TypeScript profile and the
   ectoplasm band in pass B; `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, every sprite body inside the membrane, the
   toxin bladder on the keep-out ring (#243), outside the nucleus disc, gap held, append-only across tiers, seeded); `ghost-instance.spec.ts` (the ghost's sprites at the rest slots mapped through its own profile, the shader's
   nucleus disc anchored on the mapped nucleus sprite, none below the far threshold; `cell-layer.spec.ts` queues them before the predator's at the ghost's alpha and `organelle-sprites.spec.ts` freezes their idle motion, #243); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile

@@ -16,8 +16,9 @@ The gel is no shelter from an amoeba, and its pseudopods wrap prey faster and ho
 at 0.85 / 0.75 / 0.65 of its base time and a wrapped prey's held speed factor is 0.7 / 0.6 / 0.5 instead
 of 0.8 (ecology/absorption.md §6.1). The absorb phase is untouched (lobes grab, they do not digest: that is the Food
 Vacuole). As prey: none, by design (lobes reach outward; a wrapped amoeba has only its cytoskeleton's
-wriggle, which it owns by prerequisite). Visual: the membrane extrudes 2 / 3 / 4 blunt lobes toward the
-velocity and toward any engulfed prey. Silhouette: irregular blob. Audio: wet stretch.
+wriggle, which it owns by prerequisite). Visual: 2 / 3 / 4 long arms reach out of the round body, well past the
+rings (visual-style/motion-and-legibility.md §5.1), fanned about the heading, to the flanks with speed and round any
+engulfed prey. Silhouette: a round body with arms. Audio: wet stretch.
 
 #### 3.13 Paramecium Cilia `paramecium_cilia` — form, uncommon, tags `motile`, requires `cilia`
 
