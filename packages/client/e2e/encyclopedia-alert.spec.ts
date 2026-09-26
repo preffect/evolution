@@ -10,7 +10,7 @@
 // places: a real cell that holds still, which is what the step means.
 
 import { expect, test, type Page } from '@playwright/test';
-import { CELL_RADIUS_SCALE, DEFAULT_BALANCE, FIRST_LEVEL, levelUpCost } from '@evolution/shared';
+import { DEFAULT_BALANCE, FIRST_LEVEL, levelUpCost, radiusForMass } from '@evolution/shared';
 import { ENCYCLOPEDIA_TEST_ID } from '../src/app/game/encyclopedia/test-ids';
 import { OVERLAY_ALERT_KIND } from '../src/app/game/hud/format/overlay-alert';
 import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
@@ -33,10 +33,6 @@ interface CellEntity {
   readonly x: number;
   readonly y: number;
   readonly mass: number;
-}
-
-function radiusOf(mass: number): number {
-  return CELL_RADIUS_SCALE * Math.sqrt(mass);
 }
 
 /** The player's cell once the world holds it: a bot's cell arrives on the tick after it joins. */
@@ -79,7 +75,11 @@ test('U10: the encyclopedia header shows the offer, then the threat, then the en
   const own = await cellOf(page, gameId, playerId);
   const bot = (await callDebugTool(page, 'debug_spawn_bot', { gameId, behavior: 'idle' })) as { playerId: string };
   await cellOf(page, gameId, bot.playerId);
-  const threatX = own.x + radiusOf(own.mass) + radiusOf(PREDATOR_MASS) + THREAT_GAP_WU;
+  const threatX =
+    own.x +
+    radiusForMass(own.mass, DEFAULT_BALANCE.growth) +
+    radiusForMass(PREDATOR_MASS, DEFAULT_BALANCE.growth) +
+    THREAT_GAP_WU;
   await callDebugTool(page, 'debug_set_player', {
     gameId,
     playerId: bot.playerId,
