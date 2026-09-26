@@ -129,6 +129,15 @@ export const STAGE_SCRATCHES = {
 } as const;
 /** The field texture reaches past the wall by this many glass widths so the stage shows around it. */
 export const FIELD_OUTSIDE_MARGIN_GLASS = 3;
+/**
+ * The zoom bands the field's line details (mire strands, stage scratches) are drawn for, as each band's lowest
+ * zoom in CSS px per wu, far → near (visual-style/performance-and-checklist.md §8, #223). The lines are world-scale
+ * geometry, sharp at any zoom; the band only sets how far a thin line is widened, and they are redrawn only when
+ * the camera crosses into another band. A zoom under the first band's is drawn as the first band.
+ */
+export const DISH_DETAIL_BAND_MIN_ZOOMS = [0.3, 0.6, 1.2] as const;
+/** At its band's lowest zoom no detail line is thinner than this many CSS px (a sub-pixel line breaks up unfiltered). */
+export const DISH_DETAIL_MIN_STROKE_PX = 1;
 
 // ---- depth particles (sheet 02, visual-style/motion-and-legibility.md §5) ----
 export const DEPTH_FAR = { count: 260, radiusMin: 0.5, radiusMax: 1.3, alphaMin: 0.08, alphaMax: 0.28 } as const;
