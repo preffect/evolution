@@ -29,7 +29,7 @@ describe('debug_get_game_state', () => {
     const fixture = activeRoomFixture(undefined, { gameFactory: defaultGameModuleFactory });
     const blob = parseToolJson(await fixture.call('debug_get_game_state', { gameId: fixture.gameId }));
     expect(blob).toEqual({
-      snapshot: { players: { alice: null } },
+      snapshot: { tick: 0, players: { alice: null } },
       balance: JSON.parse(JSON.stringify(DEFAULT_BALANCE)),
     });
     fixture.stop();

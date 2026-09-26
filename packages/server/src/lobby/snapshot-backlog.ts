@@ -17,7 +17,8 @@
 // client that holds fewer than `SNAPSHOT_ACK_EVERY_SNAPSHOTS` deltas past its newest ack: it owes no
 // ack yet, so skipping it would wait for one that never comes (#655).
 //
-// Game-agnostic: it reads a tick, a player id and `bufferedAmount`, and nothing else.
+// Game-agnostic: it reads a tick, a player id and `bufferedAmount`, and nothing else. The tick is every module's
+// (`TickedSnapshot`, #277), so the template echo is flow-controlled exactly as the Evolution module is.
 
 import {
   SNAPSHOT_ACK_EVERY_SNAPSHOTS,
@@ -229,10 +230,7 @@ export class SnapshotBacklog {
     return sent - Math.max(acknowledged, this.streamRestartTick.get(playerId) ?? acknowledged);
   }
 
-  /**
-   * Past the limit and owing an ack (#655). A module whose snapshots carry no tick (the template echo) leaves the depth
-   * `null`, so it never skips.
-   */
+  /** Past the limit and owing an ack (#655). */
   private isBehind(playerId: string): boolean {
     const backlogTicks = this.backlogTicksOf(playerId);
     return backlogTicks !== null && backlogTicks > SNAPSHOT_BACKLOG_LIMIT_TICKS && this.isAcknowledgementOwed(playerId);

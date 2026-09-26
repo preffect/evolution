@@ -47,10 +47,10 @@ export const SNAPSHOT_EVERY_TICKS = 3;
 const derived = deriveNetcode(TICK_HZ, SNAPSHOT_EVERY_TICKS);
 
 /**
- * What a room may push to one client (docs/architecture/wire-contract.md §4.1): the *budgeted* per-client wire,
- * which assumes §4.2 lever 1 (viewport culling, #171). The uncut contract is about 800 KB/s at the
- * 20 Hz cadence, so the byte limit below is nearer two thirds of a second of today's worst-case
- * traffic than the whole second it names; it becomes a true second once lever 1 lands.
+ * What a room may push to one client (docs/architecture/wire-contract.md §4.1): the *budgeted* per-client wire, not a
+ * measurement, so the byte limit below is a second of budgeted traffic rather than of whatever the room sends. With
+ * §4.2 lever 1 (viewport culling, #171) a client measured 205–435 KB/s before wild cells, which makes it a second or
+ * more; §4.1's projected worst case at the widest zoom (41–50 KB at 20 Hz) makes it nearer two thirds of one (#277).
  */
 const CLIENT_WIRE_BUDGET_BYTES_PER_SECOND = 500 * BYTES_PER_KIBIBYTE;
 

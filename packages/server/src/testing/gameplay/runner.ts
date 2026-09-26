@@ -5,7 +5,7 @@
 // failure and where its replay went.
 
 import type { GameSessionConfig, StateHash } from '@evolution/shared';
-import type { ScenarioAdapter } from './adapter.js';
+import type { ScenarioAdapter, TickedSnapshot } from './adapter.js';
 import { ScenarioAssertionError, type ExpectationFailure } from './errors.js';
 import { dueAt, evaluateExpectation, type Capture, type Expectation } from './expectations.js';
 import { indexByTick, type ReplayCheckpoint, type ScenarioReplay } from './replay-format.js';
@@ -50,7 +50,7 @@ export interface ScenarioRun<Snapshot, Fixture> {
 }
 
 /** The shape of `runScenario` and of every check built on it (`assertDeterministic`). */
-export type ScenarioRunner = <Input, Snapshot, Fixture>(
+export type ScenarioRunner = <Input, Snapshot extends TickedSnapshot, Fixture>(
   definition: ScenarioDefinition<Snapshot, Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
   options?: RunOptions,
@@ -67,7 +67,7 @@ export function isCheckpointDue(tick: number, hashEveryTicks: number, totalTicks
 }
 
 /** Joins and leaves stamped `stepTick` happen before that step, in player index order. */
-export function applyMembership<Input, Snapshot, Fixture>(
+export function applyMembership<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   players: readonly ScenarioPlayer[],
   stepTick: number,
@@ -83,7 +83,7 @@ export function applyMembership<Input, Snapshot, Fixture>(
 }
 
 /** Scripts of players not in the room at `stepTick` are neither run nor logged. */
-export function applyScripts<Input, Snapshot, Fixture>(
+export function applyScripts<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   scripts: readonly ActiveScript<Snapshot>[],
   stepTick: number,
@@ -96,7 +96,7 @@ export function applyScripts<Input, Snapshot, Fixture>(
 }
 
 /** Stores every capture due at the session's tick, before that tick's expectations run. */
-export function captureAt<Input, Snapshot, Fixture>(
+export function captureAt<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   definition: ScenarioDefinition<Snapshot, Fixture>,
 ): void {
@@ -107,7 +107,7 @@ export function captureAt<Input, Snapshot, Fixture>(
 }
 
 /** Every expectation due at the session's tick that does not hold. */
-export function collectFailuresAt<Input, Snapshot, Fixture>(
+export function collectFailuresAt<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   definition: ScenarioDefinition<Snapshot, Fixture>,
 ): ExpectationFailure[] {
@@ -118,7 +118,7 @@ export function collectFailuresAt<Input, Snapshot, Fixture>(
 }
 
 /** Feeds one step: joins and leaves, then the fixtures scheduled for it, then the scripts. */
-function feedStep<Input, Snapshot, Fixture>(
+function feedStep<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   definition: ScenarioDefinition<Snapshot, Fixture>,
   prepared: PreparedRun<Snapshot, Fixture>,
@@ -132,7 +132,7 @@ function feedStep<Input, Snapshot, Fixture>(
 }
 
 /** Observes one tick: the checkpoint if due, then the captures, then the expectations. */
-function observeTick<Input, Snapshot, Fixture>(
+function observeTick<Input, Snapshot extends TickedSnapshot, Fixture>(
   session: ScenarioSession<Input, Snapshot, Fixture>,
   definition: ScenarioDefinition<Snapshot, Fixture>,
   failures: ExpectationFailure[],
@@ -152,7 +152,7 @@ export function identityOf(definition: { name: string; config: { seed: number } 
   return { scenarioName: definition.name, seed: definition.config.seed };
 }
 
-export async function runScenario<Input, Snapshot, Fixture>(
+export async function runScenario<Input, Snapshot extends TickedSnapshot, Fixture>(
   definition: ScenarioDefinition<Snapshot, Fixture>,
   adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
   options: RunOptions = {},

@@ -175,7 +175,8 @@ every tick
 
 - **New server message:** `balance_updated { balance }` after `debug_set_balance`. No new client
   verbs for the _game_: everything a player does rides `player_input`. The transport's own verbs are
-  separate and generic — `client_performance` and `snapshot_ack` carry no gameplay.
+  separate and generic — `client_performance` and `snapshot_ack` carry no gameplay. `snapshot_ack` is generic by
+  contract: every `GameModule`'s snapshot is a `TickedSnapshot` (below), so the tick it echoes exists whatever the game.
 - **`leave_game { gameId }`** (#319): the lobby verb behind the client's `leave()`. The server takes the player
   off an active room at once, on the path the end of the disconnect grace takes (the cell dissolves into
   detritus, game-design/session.md §5.2), then sends `player_disconnected` to the players left behind and
@@ -185,6 +186,13 @@ every tick
   and the socket can `join_game` any room at once. A `leave_game` for a room the player is not seated in
   (the lobby, an unknown or another room) is a no-op. The client still drops the frames that room had
   already sent (`services/left-room-filter.ts`).
+- **A reconnect after the grace ran out is answered, not announced** (#272's re-test). The server keeps a dropped seat
+  for `DISCONNECT_GRACE_MS` and answers a reconnect inside it with a `game_state` from its connect handler, before it
+  reads a client frame. After the grace (or a server restart) there is no seat and the server sends nothing unasked:
+  every client infers the loss. It re-announces itself (`join_lobby`, answered to the sender alone) as soon as the
+  socket reopens, and the **first** frame after the reopen decides: `game_state` means the seat survived, anything else
+  means it is gone (the browser's `services/seat-recovery.ts`, #219). A headless or raw-socket client that wants its
+  seat back follows the same rule.
 - **A second socket with the same `clientId` takes over** (#273): the server replaces the old connection and closes
   its socket with `SOCKET_CLOSE_CODE_REPLACED` (4001, `constants/identity.ts`). A client that sees that code does not
   reconnect: the browser client returns to the lobby with a notice and waits for the user (ui/overlays.md §3.6), since
@@ -205,6 +213,12 @@ every tick
   humans for a started room, so the row's count and the refusal agree.
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
+  **Every snapshot carries its tick** (#277): `GameModule<Input, Snapshot extends TickedSnapshot>`, where
+  `TickedSnapshot` is `{ readonly tick: number }` (`game/game-module.ts`), because the room's flow control measures each
+  client's queue by the tick of what it was sent and acknowledged (`lobby/snapshot-backlog.ts`). The template echo
+  counts its own ticks and sends `{ tick, players }`, so it is flow-controlled exactly as the Evolution module is
+  (`lagging-ack-resync.integration.test.ts` runs on both); before, it carried no tick and was exempt only because an
+  `undefined` stored as the tick last sent read back as "never sent".
   `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
   optional, `ViewerState`): the snapshot members each connection is sent for itself alone, declared by the module in
   the order they are written, and one viewer's values for them. A module implements
@@ -465,6 +479,52 @@ The levers left, cheapest first:
    `state/snapshot-transitions.ts`);
 2. a compact `moved` encoding;
 3. the 15 Hz cadence (§4.2 lever 2).
+
+**The resync (#277).** The largest message the room sends is not a `game_snapshot` but the resync: a whole
+`game_state`, sent by design to the client that is already failing to keep up (§4, flow control). It carries every
+mote in the viewer's area whole where a delta carries only the moved ones, so it measured about 3 times a delta
+(29.9 KB against a 10.3 KB median at start, #275) and is 2–4 times the 24 KB per-snapshot cap in the worst case of the
+table above. The budget cannot absorb that per snapshot, so it holds by a bound on the **rate**:
+
+| Message                   | Size                                | Rate, per client                                                                                                   | What bounds the rate                                         |
+| ------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| resync `game_state`       | 29.9 KB measured; ≈ 50–100 KB worst | at most one per `SNAPSHOT_BACKLOG_LIMIT_TICKS` of room time or `SNAPSHOT_BACKLOG_LIMIT_BYTES` of deltas sent to it | a client must fall a whole limit behind again to be owed one |
+| `snapshot_ack` (upstream) | ≈ 35–40 B                           | about 10 a second (`SNAPSHOT_ACK_INTERVAL_TICKS`)                                                                  | the ack cadence; upstream, so outside this budget            |
+
+**The bound.** A client is owed a resync only once it is skipped, and it is skipped only when more than a limit is in
+flight to it: a queue deeper than `SNAPSHOT_BACKLOG_LIMIT_TICKS` measured from its ack, or a socket holding more than
+`SNAPSHOT_BACKLOG_LIMIT_BYTES`. After a resync the room sends that client nothing until it acknowledges the resync's
+tick (#275), so by then everything sent before the resync has drained, and the depth is measured from the resync or
+from the broadcast the stream restarted on (#655). To be owed the next one, the room must first send it more than a
+whole limit again: more than `SNAPSHOT_BACKLOG_LIMIT_TICKS` of ticks, or more than `SNAPSHOT_BACKLOG_LIMIT_BYTES` of
+deltas, whichever comes first. So an acknowledging client is resynced **at most once per `SNAPSHOT_BACKLOG_LIMIT_SECONDS`
+of room time**, or sooner only when its deltas run over the 500 KB/s budget, and then once per
+`SNAPSHOT_BACKLOG_LIMIT_BYTES` of them. `lobby/snapshot-backlog.resync-rate.test.ts` drives the worst client the room
+can meet (it acknowledges only what earns it the next resync soonest, and its resync up to five broadcasts late)
+against both halves of the limit and asserts the gap. Without the #275 hold that test fails.
+
+A resync is sent from two places: in place of the next delta on a running room's broadcast, and on the acknowledgement
+that shows a client caught up while the room is paused (#300, `SnapshotDispatch.acknowledge`). Both settle the same
+owed resync in `SnapshotBacklog`, so both are under the same bound, and the rate test runs both. In bandwidth, a
+resyncing client costs at most one `game_state` per limit **on top of** the deltas the budget already counts, and it
+is sent fewer deltas than a healthy client, since every skipped broadcast and the one the resync replaces are not
+sent. A client that **never** acknowledges (the headless bot client) has only the byte half: while its socket hovers at
+the limit it can be resynced as often as every other broadcast. It still never holds more than the limit plus one
+`game_state`, because a resync goes out only once the socket has drained under the limit, and nothing that depends on
+the rate (below) runs on such a client.
+
+**Two things depend on the rate, not only the bandwidth.** The bound is also a correctness dependency of the browser
+client: `WorldStore` bounds its pending effects by dropping those its buffer's oldest snapshot has passed, and only
+once the buffer is full (#284, `net/world-store.ts`), because before that its oldest snapshot is where the client
+started rather than a tick the world has moved past. A resync is `applyGameState`, which empties the buffer, so every
+resync switches that bound off for `SNAPSHOT_BUFFER_SIZE` − 1 = 3 broadcasts. That is harmless only because resyncs
+are at least a limit apart: 3 broadcasts off in every 20 or more when the tick half binds, and in every 13 or more
+when 40 KB deltas make the byte half bind first. A change that made
+a resync cheaper or more frequent could look safe against the bandwidth and still break the effect bound, so any change
+to the flow control must keep `snapshot-backlog.resync-rate.test.ts` green. The same buffer can also span **more**
+than its nominal `(SNAPSHOT_BUFFER_SIZE − 1) × SNAPSHOT_EVERY_TICKS` ticks, because a skipped connection misses
+broadcasts: the spacing of the snapshots a client receives is not uniform, which is a contract property of the flow
+control. The client reads its buffer's real `oldest()` rather than computing it from the cadence, which is correct.
 
 Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
