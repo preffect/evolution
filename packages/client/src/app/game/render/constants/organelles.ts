@@ -39,13 +39,17 @@ export const NUCLEUS_RAMP_FOCUS_RADII = 0.4;
 export const NUCLEUS_RAMP_REACH_RADII = 1.4;
 export const NUCLEUS_RAMP_MID_STOP = 0.5;
 export const NUCLEUS_RAMP_ALPHA = 0.92;
-/** The chromatin spots: seeded around the ring, in angle, distance and size, as shares of the nucleus radius. */
+/**
+ * The chromatin spots (#252, visual-style/cells-and-organelles.md §3): seeded around the ring, in angle, distance and
+ * size, as shares of the nucleus radius — sheet 01 panel A's five spots (radius 0.07–0.13, ring 0.54–0.71), the
+ * same shares at every tier. At these extremes two neighbours never overlap, so no spot pair doubles the wash.
+ */
 export const NUCLEUS_CHROMATIN = {
-  alpha: 0.25,
-  ringShareMin: 0.42,
-  ringShareMax: 0.64,
-  radiusShareMin: 0.1,
-  radiusShareMax: 0.17,
+  alpha: 0.3,
+  ringShareMin: 0.54,
+  ringShareMax: 0.71,
+  radiusShareMin: 0.07,
+  radiusShareMax: 0.13,
   angleJitterTurns: 0.12,
 } as const;
 export const NUCLEOLUS_HALO = { reach: 1.8, alpha: 0.5 } as const;

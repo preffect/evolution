@@ -4,6 +4,7 @@ import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/
 import {
   NUCLEOID_BAKE,
   NUCLEOID_RADIUS,
+  NUCLEUS_CHROMATIN,
   NUCLEUS_CHROMATIN_SPOTS,
   NUCLEUS_GLOW_RADIUS,
   NUCLEUS_HIGHLIGHT,
@@ -13,23 +14,40 @@ import {
 import { bakeNucleoidSprite, bakeNucleusSprite } from './nucleus-bake';
 
 const PX_PER_RADIUS = 100;
+/** Float slack for a spot drawn exactly at a band edge. */
+const ROUNDING = 1e-9;
 
 function random(seed = 1) {
   return createSeededRandom(seed).fork(RANDOM_STREAM.cosmetic);
 }
 
-/** The `arc` radii a bake draws, in order (the fake logs the op; this wraps it to keep the radius). */
-function arcRadii(bake: (factory: ReturnType<typeof createFakeBakeCanvasFactory>) => void): number[] {
+interface Arc {
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
+}
+
+/** The `arc`s a bake draws, in order (the fake logs the op; this wraps it to keep the centre and radius). */
+function arcs(bake: (factory: ReturnType<typeof createFakeBakeCanvasFactory>) => void): Arc[] {
   const factory = createFakeBakeCanvasFactory();
-  const radii: number[] = [];
+  const drawn: Arc[] = [];
   const originalCreate = factory.create.bind(factory);
   factory.create = (width, height) => {
     const canvas = originalCreate(width, height);
-    canvas.context.arc = (_centreX, _centreY, radius) => radii.push(radius);
+    canvas.context.arc = (x, y, radius) => drawn.push({ x, y, radius });
     return canvas;
   };
   bake(factory);
-  return radii;
+  return drawn;
+}
+
+/** The chromatin spots of one bake: the arcs after the glow and its disc cut. */
+function chromatinSpots(seed: number): Arc[] {
+  const glowAndCut = 2;
+  return arcs((factory) => bakeNucleusSprite(factory, PX_PER_RADIUS, random(seed))).slice(
+    glowAndCut,
+    glowAndCut + NUCLEUS_CHROMATIN_SPOTS,
+  );
 }
 
 describe('bakeNucleusSprite', () => {
@@ -72,14 +90,28 @@ describe('bakeNucleusSprite', () => {
   });
 
   it('scatters the chromatin from the stream: same seed, same spots; another seed, other spots', () => {
-    const spots = (seed: number) =>
-      arcRadii((factory) => bakeNucleusSprite(factory, PX_PER_RADIUS, random(seed))).slice(
-        2,
-        2 + NUCLEUS_CHROMATIN_SPOTS,
-      );
+    const spots = (seed: number) => chromatinSpots(seed).map((spot) => spot.radius);
     expect(spots(1)).toEqual(spots(1));
     expect(spots(1)).not.toEqual(spots(2));
     expect(new Set(spots(1)).size).toBeGreaterThan(1);
+  });
+
+  it("keeps sheet 01 panel A's spots (#252): inside the ring band, never overlapping, so no pair doubles the wash", () => {
+    const seeds = 64;
+    const nucleusPx = NUCLEUS_RADIUS * PX_PER_RADIUS;
+    const centre = sprite.canvas.width / 2;
+    for (let seed = 1; seed <= seeds; seed += 1) {
+      const spots = chromatinSpots(seed);
+      for (const [index, spot] of spots.entries()) {
+        const distance = Math.hypot(spot.x - centre, spot.y - centre) / nucleusPx;
+        expect(distance).toBeGreaterThanOrEqual(NUCLEUS_CHROMATIN.ringShareMin - ROUNDING);
+        expect(distance).toBeLessThanOrEqual(NUCLEUS_CHROMATIN.ringShareMax + ROUNDING);
+        expect(spot.radius / nucleusPx).toBeLessThanOrEqual(NUCLEUS_CHROMATIN.radiusShareMax + ROUNDING);
+        for (const other of spots.slice(index + 1)) {
+          expect(Math.hypot(spot.x - other.x, spot.y - other.y)).toBeGreaterThan(spot.radius + other.radius);
+        }
+      }
+    }
   });
 });
 
