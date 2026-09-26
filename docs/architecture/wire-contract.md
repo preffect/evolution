@@ -134,8 +134,8 @@ every tick
     500 KB/s, which assumes lever 1; with lever 1 (#171) a client measured 205–435 KB/s before wild
     cells, so it holds a second or more there, and nearer two thirds of one at the widest zoom in the
     projected worst case.
-  - A client that acknowledges nothing is never skipped (the headless bot client): silence is not
-    evidence of a backlog.
+  - A client that acknowledges nothing is never skipped: silence is not evidence of a backlog. The headless bot
+    client acknowledges through the browser's `SnapshotAcknowledger` (#721), so it is not such a client.
   - **It is observable** (#276): `debug_get_room_performance` reports each seated connection's depth
     (a disconnected player's too, through its grace; `null` until it has acknowledged a snapshot since its stream
     (re)started), who is owed a resync and how many were sent (`snapshotFlow`, architecture/debug-mcp.md §8), and its
