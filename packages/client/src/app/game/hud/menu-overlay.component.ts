@@ -49,6 +49,7 @@ import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-te
         uiFocusTrap
         [restoreTo]="canvasHost"
         [testId]="testId.menuOverlay"
+        [class.has-traits]="traitRows().length > 0"
       >
         <div class="content">
           <app-overlay-alert [testId]="testId.menuAlert" />

@@ -3,6 +3,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { hostSelector, styleRuleValue } from '../../testing/style-rules';
+import { UI_PANEL_BLEED_SHRINK } from './ui-kit-constants';
 import { focusableElementsIn } from './focus-trap-stack';
 import { UiFocusTrapDirective } from './ui-focus-trap.directive';
 import { UiPanelSectionComponent } from './ui-panel-section.component';
@@ -159,31 +160,33 @@ describe('UiPanelComponent', () => {
       ).toBeTruthy();
     }
 
-    it('sits under a scrolling body but outside its scroll area, which clips at its padding box', () => {
+    it('sits under the body but outside its scroll area, which clips at its padding box, in either body mode', () => {
       expect(byTestId('body').closest('ui-scroll-area')).not.toBeNull();
       expectBleedPlacedOutsideTheBody();
-    });
-
-    it('sits outside a bleed body too, so the slot does not depend on the body mode', () => {
       set((host) => host.body.set(UI_PANEL_BODY.bleed));
       expectBleedPlacedOutsideTheBody();
     });
 
     it('takes back exactly the padding of its variant, and publishes it for the content to re-inset by', () => {
-      const panel = hostSelector(byTestId('panel'));
-      const side = hostSelector(byTestId('side'));
       expect(styleRuleValue(document, ['.bleed-slot'], 'margin-inline')).toBe('calc(-1 * var(--panel-inset))');
-      expect(styleRuleValue(document, [panel, "[data-variant='modal']"], 'padding')).toBe('var(--panel-inset)');
-      expect(styleRuleValue(document, [panel, "[data-variant='modal']"], '--panel-inset')).toBe(
-        'calc(var(--ui-panel-padding) * var(--ui-scale))',
-      );
-      expect(styleRuleValue(document, [side, "[data-variant='side']"], 'padding')).toBe('var(--panel-inset)');
-      expect(styleRuleValue(document, [side, "[data-variant='side']"], '--panel-inset')).toBe(
-        'calc(var(--ui-space-l) * var(--ui-scale))',
-      );
-      expect(styleRuleValue(document, [panel, "[data-variant='modal']", "[data-body='bleed']"], '--panel-inset')).toBe(
-        '0px',
-      );
+      const insets = [
+        ['panel', UI_PANEL_VARIANT.modal, 'calc(var(--ui-panel-padding) * var(--ui-scale))'],
+        ['side', UI_PANEL_VARIANT.side, 'calc(var(--ui-space-l) * var(--ui-scale))'],
+      ] as const;
+      for (const [testId, variant, inset] of insets) {
+        const selector = [hostSelector(byTestId(testId)), `[data-variant='${variant}']`];
+        expect(styleRuleValue(document, selector, 'padding')).toBe('var(--panel-inset)');
+        expect(styleRuleValue(document, selector, '--panel-inset')).toBe(inset);
+      }
+    });
+
+    it('gives up its height before the body does, down to the floor its host sets, so the body keeps its controls', () => {
+      // jsdom lays nothing out, so the shrink order is pinned as the rules that make it; the menu's live layout at a
+      // phone's landscape height is pinned by `e2e/menu.spec.ts`.
+      expect(styleRuleValue(document, ['.bleed-slot'], 'flex')).toBe('0 var(--ui-panel-bleed-shrink) auto');
+      expect(styleRuleValue(document, ['.bleed-slot'], 'min-height')).toBe('var(--panel-bleed-floor, 0px)');
+      expect(styleRuleValue(document, ['.body'], 'flex')).toBe('1 1 auto');
+      expect(UI_PANEL_BLEED_SHRINK).toBeGreaterThan(1);
     });
 
     it('draws nothing, and takes no gap, when no content fills it', () => {
@@ -255,14 +258,20 @@ describe('UiPanelComponent', () => {
     });
 
     it('modal with a bleed body: no padding and no gap, set by the kit rather than out-specified by a feature', () => {
-      expect(rule(["[data-variant='modal']", "[data-body='bleed']"], 'padding')).toBe('0px');
+      // No padding is left to declare here: the variant's `padding: var(--panel-inset)` follows the zero inset, which
+      // is the one source the bleed slot's margin reads as well, so the two can never disagree.
+      expect(rule(["[data-variant='modal']", "[data-body='bleed']"], '--panel-inset')).toBe('0px');
+      expect(rule(["[data-variant='modal']", "[data-body='bleed']"], 'padding')).toBeNull();
       expect(rule(["[data-variant='modal']", "[data-body='bleed']"], 'gap')).toBe('0px');
       expect(styleRuleValue(document, ['.bleed'], 'overflow')).toBe('hidden');
     });
 
     it('side with a bleed body: no padding and no gap either, as §10.2 says of any bleed body (#628)', () => {
       const side = hostSelector(byTestId('side'));
-      expect(styleRuleValue(document, [side, "[data-variant='side']", "[data-body='bleed']"], 'padding')).toBe('0px');
+      expect(styleRuleValue(document, [side, "[data-variant='side']", "[data-body='bleed']"], '--panel-inset')).toBe(
+        '0px',
+      );
+      expect(styleRuleValue(document, [side, "[data-variant='side']", "[data-body='bleed']"], 'padding')).toBeNull();
       expect(styleRuleValue(document, [side, "[data-variant='side']", "[data-body='bleed']"], 'gap')).toBe('0px');
     });
 

@@ -141,7 +141,10 @@ describe('EncyclopediaComponent (docs/ui/encyclopedia.md §11.3)', () => {
    */
   it('lays its columns edge to edge on the kit’s bleed body, positioned against nothing of the kit’s', () => {
     expect(panel().getAttribute('data-body')).toBe('bleed');
-    expect(getComputedStyle(panel()).padding).toBe('0px');
+    // The panel's padding is its `--panel-inset`, which a bleed body zeroes; jsdom does not substitute a variable.
+    const panelStyle = getComputedStyle(panel());
+    expect(panelStyle.getPropertyValue('--panel-inset').trim()).toBe('0px');
+    expect(panelStyle.padding).toBe('var(--panel-inset)');
     const columns = root().querySelector<HTMLElement>('.columns');
     expect(columns?.closest('ui-scroll-area')).toBeNull();
     expect(styleRuleValue(document, ['.columns'], 'position')).toBeNull();

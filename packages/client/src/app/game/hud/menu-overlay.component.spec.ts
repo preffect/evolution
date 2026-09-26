@@ -11,6 +11,7 @@ import {
   type TraitId,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
+import { styleRuleValue } from '../../../testing/style-rules';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { OVERLAY_ALERT_KIND } from './format/overlay-alert';
 import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud-state.service';
@@ -148,6 +149,19 @@ describe('MenuOverlayComponent', () => {
     expect(section.parentElement?.classList.contains('bleed-slot')).toBe(true);
     expect(section.closest('ui-scroll-area.body')).toBeNull();
     expect(query(HUD_TEST_ID.menuResume)?.closest('ui-scroll-area.body')).not.toBeNull();
+  });
+
+  it('floors Your traits at its heading and one row once there is a list to scroll, and not before', () => {
+    const empty = mountMenu();
+    expect(query(HUD_TEST_ID.menuOverlay)!.classList.contains('has-traits')).toBe(false);
+    empty.destroy();
+    showProgress({ ownedTraits: [{ traitId: NUCLEOID, tier: 1 }] });
+    mountMenu();
+    const panel = query(HUD_TEST_ID.menuOverlay)!;
+    expect(panel.classList.contains('has-traits')).toBe(true);
+    const floor = styleRuleValue(document, ['.menu', '.has-traits'], '--panel-bleed-floor');
+    expect(floor).toContain('var(--hud-menu-trait-row-height)');
+    expect(floor).toContain('var(--ui-type-label) * var(--ui-body-line-height)');
   });
 
   it('says No traits yet before the first pick', () => {

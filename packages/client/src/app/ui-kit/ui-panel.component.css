@@ -69,13 +69,16 @@
 
 /* The bleed slot (#439): under the body, outside its scroll area, which would clip anything drawn past its padding box.
    It takes the panel's inline padding back, so what sits in it spans the panel edge to edge; `--panel-inset` is the
-   padding it took, for that content to re-inset its own children with. It shrinks with the body on a short viewport. */
+   padding it took, for that content to re-inset its own children with. On a short viewport it gives up its height
+   first (`--ui-panel-bleed-shrink` against the body's 1), down to the floor its host sets as `--panel-bleed-floor`,
+   and only then does the body shrink: the body's own controls stay in view. Spaced like the body. */
 .bleed-slot {
   display: flex;
-  flex: 0 1 auto;
+  flex: 0 var(--ui-panel-bleed-shrink) auto;
   flex-direction: column;
-  min-height: 0;
+  min-height: var(--panel-bleed-floor, 0px);
   margin-inline: calc(-1 * var(--panel-inset));
+  line-height: var(--ui-body-line-height);
 }
 
 .bleed-slot:empty {
@@ -139,6 +142,5 @@
 :host([data-variant='side'][data-body='bleed']) {
   --panel-inset: 0px;
   gap: 0;
-  padding: 0;
   overflow: hidden;
 }

@@ -160,7 +160,8 @@ Escape closes the topmost open overlay (the full leaderboard, then the encyclope
    section sits in the kit panel's `[uiPanelBleed]` slot (components-and-constants.md §10.2), outside the body's scroll
    area, so the rule above `YOUR TRAITS` runs **edge to edge** as the mockups draw it, while the heading and the rows'
    text keep the panel's inset and a row's tint reaches `UI_SPACE_S_PX` past it. On a viewport too short for the
-   whole panel the body and this list each shrink and scroll. This list is where the pre-#146 trait strip's tooltips
+   whole panel (a phone held landscape) the section gives up its height before the actions do, down to its rule,
+   `YOUR TRAITS` and one row, and the list scrolls under them: `Exit game` stays in view. This list is where the pre-#146 trait strip's tooltips
    went.
 
 **Focus and input.** The kit focus trap holds focus inside, and closing returns it to the canvas host. While the
