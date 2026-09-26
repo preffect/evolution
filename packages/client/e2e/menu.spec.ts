@@ -3,9 +3,19 @@
 // of `./validate.sh all`. U8–U11 need the encyclopedia shell (#372) and join this file with it.
 import { expect, test, type Page } from '@playwright/test';
 import { HUD_TEST_ID } from '../src/app/game/test-ids/hud-test-ids';
+import { callDebugTool, ownRoom } from './debug-mcp';
 
 const MENU_SEED = 42;
 const GAME_NAME_PREFIX = 'menu';
+/** A phone held landscape: the shortest viewport the menu is drawn for (docs/ui/overlays.md §3.5). */
+const PHONE_LANDSCAPE = { width: 844, height: 390 };
+/** A level that owns six traits, and the most common list and a list long enough to scroll. */
+const TRAIT_LEVEL = 6;
+const THREE_TRAITS = ['nucleoid', 'simple_flagellum', 'mitochondrion'];
+const SIX_TRAITS = [...THREE_TRAITS, 'ribosomes', 'cilia', 'toxin_vacuole'];
+/** How much a box may sit past its clip for rounding: a fraction of one CSS pixel. */
+const LAYOUT_EPSILON_PX = 0.5;
+
 /** Enough of the test id to tell rooms apart while staying under `GAME_NAME_MAX_LENGTH`. */
 const GAME_NAME_SUFFIX_LENGTH = 8;
 
@@ -50,4 +60,33 @@ test.describe('the Escape menu on a live room', () => {
     await page.getByTestId(HUD_TEST_ID.menuExitConfirm).click();
     await expect(page.getByRole('button', { name: 'Create' })).toBeVisible();
   });
+
+  for (const traits of [THREE_TRAITS, SIX_TRAITS]) {
+    test(`on a phone held landscape, Exit game stays in view over ${traits.length} traits, which scroll instead`, async ({
+      page,
+    }) => {
+      await openLiveRoom(page);
+      const { gameId, playerId } = await ownRoom(page);
+      await callDebugTool(page, 'debug_set_player', { gameId, playerId, level: TRAIT_LEVEL, traits });
+      await page.setViewportSize(PHONE_LANDSCAPE);
+      await page.getByTestId(HUD_TEST_ID.gameHost).focus();
+      await page.keyboard.press('Escape');
+      const rows = page.getByTestId(HUD_TEST_ID.menuTraits).locator('ui-list-row');
+      await expect(rows).toHaveCount(traits.length);
+
+      const body = page.getByTestId(HUD_TEST_ID.menuOverlay).locator('ui-scroll-area.body .viewport');
+      const bodyBox = (await body.boundingBox())!;
+      const exitBox = (await page.getByTestId(HUD_TEST_ID.menuExit).boundingBox())!;
+      expect(exitBox.y + exitBox.height).toBeLessThanOrEqual(bodyBox.y + bodyBox.height + LAYOUT_EPSILON_PX);
+      expect(await body.evaluate((viewport) => viewport.scrollHeight - viewport.clientHeight)).toBeLessThanOrEqual(0);
+      // The list gave up the height instead: at least its first row still shows, and a long list scrolls.
+      const list = page.getByTestId(HUD_TEST_ID.menuOverlay).locator('app-menu-traits ui-scroll-area .viewport');
+      const listBox = (await list.boundingBox())!;
+      const firstRow = (await rows.first().boundingBox())!;
+      expect(firstRow.y + firstRow.height).toBeLessThanOrEqual(listBox.y + listBox.height + LAYOUT_EPSILON_PX);
+      if (traits === SIX_TRAITS) {
+        expect(await list.evaluate((viewport) => viewport.scrollHeight - viewport.clientHeight)).toBeGreaterThan(0);
+      }
+    });
+  }
 });

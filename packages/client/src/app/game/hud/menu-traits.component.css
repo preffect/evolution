@@ -1,13 +1,14 @@
 /* The menu's `Your traits` section (docs/ui/overlays.md §3.5). Kit tokens for type, colour and spacing; the row sizes
    are the menu's own `--hud-menu-…`. */
 
-/* The rule above the heading is inset by the panel's padding, where the mockups run it edge to edge: the section sits
-   in the panel body, a kit scroll area that clips anything drawn past its padding box, so nothing drawn here can
-   reach the panel's edges. A deliberate deviation until the kit can bleed a section (docs/ui/overlays.md §3.5). */
+/* The section sits in the kit panel's `[uiPanelBleed]` slot, which spans the panel's full width, so the rule above the
+   heading runs edge to edge as the mockups draw it (docs/ui/overlays.md §3.5). The heading and the rows take the
+   panel's padding back as their own inset, `--panel-inset`. It shrinks on a short viewport, and the list scrolls. */
 :host {
   display: flex;
   flex-direction: column;
   gap: calc(var(--ui-space-m) * var(--ui-scale));
+  min-height: 0;
   padding-top: calc(var(--ui-space-l) * var(--ui-scale));
   border-top: calc(var(--ui-rim) * var(--ui-scale)) solid var(--ui-panel-rim);
 }
@@ -17,6 +18,7 @@
   align-items: baseline;
   justify-content: space-between;
   margin: 0;
+  padding-inline: var(--panel-inset);
   color: var(--ui-text-label);
   font-size: calc(var(--ui-type-label) * var(--ui-scale));
   font-weight: bold;
@@ -30,6 +32,7 @@
 
 .empty {
   margin: 0;
+  padding-inline: var(--panel-inset);
   color: var(--ui-text-muted);
 }
 
@@ -37,13 +40,16 @@
    is the first five rows measured as drawn (`visibleRowsHeightPx`) and set as an inline style. A fixed
    rows × row-height cap slices a row that carries two effect lines. */
 
-/* The kit row, grown to hold a name over wrapping effect lines instead of one ellipsised title, and as wide as the
-   panel body allows, so Mitochondrion I's two effects fit on one line (overlays.md §3.5's panel width). */
+/* The kit row, grown to hold a name over wrapping effect lines instead of one ellipsised title. Its text lines up with
+   the heading at the panel's inset and its tint reaches `--ui-space-s` past it, as the mockups draw it; as wide as
+   that allows, so Mitochondrion I's two effects fit on one line (overlays.md §3.5's panel width). */
 .row {
+  --row-inset: calc(var(--ui-space-s) * var(--ui-scale));
   height: auto;
   min-height: calc(var(--hud-menu-trait-row-height) * var(--ui-scale));
+  margin-inline: calc(var(--panel-inset) - var(--row-inset));
   padding-block: calc(var(--ui-space-xs) * var(--ui-scale));
-  padding-inline: calc(var(--ui-space-xs) * var(--ui-scale));
+  padding-inline: var(--row-inset);
   white-space: normal;
 }
 

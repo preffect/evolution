@@ -78,6 +78,7 @@ const EXPECTED_CONSTANTS: Readonly<Record<string, string>> = {
   '--ui-side-panel-width': `${kit.UI_SIDE_PANEL_WIDTH_PX}px`,
   '--ui-side-panel-alpha': String(kit.UI_SIDE_PANEL_ALPHA),
   '--ui-side-panel-blur': `${kit.UI_SIDE_PANEL_BLUR_PX}px`,
+  '--ui-panel-bleed-shrink': String(kit.UI_PANEL_BLEED_SHRINK),
   '--ui-scrollbar': `${kit.UI_SCROLLBAR_PX}px`,
   '--ui-scroll-fade': `${kit.UI_SCROLL_FADE_PX}px`,
   '--ui-focus-ring': `${kit.UI_FOCUS_RING_PX}px`,

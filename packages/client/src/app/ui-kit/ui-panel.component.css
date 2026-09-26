@@ -67,11 +67,30 @@
   overflow: hidden;
 }
 
+/* The bleed slot (#439): under the body, outside its scroll area, which would clip anything drawn past its padding box.
+   It takes the panel's inline padding back, so what sits in it spans the panel edge to edge; `--panel-inset` is the
+   padding it took, for that content to re-inset its own children with. On a short viewport it gives up its height
+   first (`--ui-panel-bleed-shrink` against the body's 1), down to the floor its host sets as `--panel-bleed-floor`,
+   and only then does the body shrink: the body's own controls stay in view. Spaced like the body. */
+.bleed-slot {
+  display: flex;
+  flex: 0 var(--ui-panel-bleed-shrink) auto;
+  flex-direction: column;
+  min-height: var(--panel-bleed-floor, 0px);
+  margin-inline: calc(-1 * var(--panel-inset));
+  line-height: var(--ui-body-line-height);
+}
+
+.bleed-slot:empty {
+  display: none;
+}
+
 /* ---- modal ---- */
 
 :host([data-variant='modal']) {
+  --panel-inset: calc(var(--ui-panel-padding) * var(--ui-scale));
   gap: calc(var(--ui-space-l) * var(--ui-scale));
-  padding: calc(var(--ui-panel-padding) * var(--ui-scale));
+  padding: var(--panel-inset);
   background: linear-gradient(var(--ui-panel-top), var(--ui-panel-bottom));
   pointer-events: auto;
   animation: ui-panel-enter var(--ui-panel-enter) ease-out both;
@@ -99,9 +118,10 @@
 /* ---- side ---- */
 
 :host([data-variant='side']) {
+  --panel-inset: calc(var(--ui-space-l) * var(--ui-scale));
   width: calc(var(--ui-side-panel-width) * var(--ui-scale));
   gap: calc(var(--ui-space-m) * var(--ui-scale));
-  padding: calc(var(--ui-space-l) * var(--ui-scale));
+  padding: var(--panel-inset);
   background: linear-gradient(
     color-mix(in srgb, var(--ui-panel-top) calc(var(--ui-side-panel-alpha) * 100%), transparent),
     color-mix(in srgb, var(--ui-panel-bottom) calc(var(--ui-side-panel-alpha) * 100%), transparent)
@@ -120,7 +140,7 @@
    than the variants' own rules and declared after them, so it wins without a feature out-specifying the kit. */
 :host([data-variant='modal'][data-body='bleed']),
 :host([data-variant='side'][data-body='bleed']) {
+  --panel-inset: 0px;
   gap: 0;
-  padding: 0;
   overflow: hidden;
 }

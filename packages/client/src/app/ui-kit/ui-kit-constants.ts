@@ -118,6 +118,11 @@ export const UI_SIDE_PANEL_WIDTH_PX = 360;
 export const UI_SIDE_PANEL_ALPHA = 0.86;
 /** The backdrop blur under a `side` panel. */
 export const UI_SIDE_PANEL_BLUR_PX = 8;
+/**
+ * How much faster a panel's `[uiPanelBleed]` slot gives up height than the body (whose shrink is 1) on a short
+ * viewport: far enough that the slot reaches its floor before the body's controls lose a pixel.
+ */
+export const UI_PANEL_BLEED_SHRINK = 1000;
 
 // ---- focus and motion ----
 
