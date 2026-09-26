@@ -168,6 +168,15 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
   110 fragments) at 1080p; the per-stage budget, the 100-cell bench scene that proves headroom above that
   baseline, and how a cell is drawn are [`rendering/budget.md`](../rendering/budget.md) §7.
+- **Dev-only pages** (#423): a dev build opened with `?bench`, `?preview`, `?kit` or `?cards` shows that page instead
+  of the lobby (rendering/budget.md §7, encyclopedia.md §12.7, ui/components-and-constants.md §10.2, ui/overlays.md).
+  Each page has a light gate module (`bench/bench-route.ts`, `encyclopedia/preview-route-gate.ts`,
+  `kit-states/kit-states-route.ts`, `card-sheet/card-sheet-route.ts`: the query key and an `IS_*_ROUTE` token) that the
+  shell reads through `ACTIVE_DEVELOPMENT_ROUTE` (`development-route/development-route.ts`, which picks one in that
+  order). The page itself is only ever a dynamic `import()` in `development-route/development-route-loader.ts`,
+  inside an `ngDevMode` branch the production build defines away, so production emits neither the pages nor a lazy
+  chunk for them. Nothing else imports a page component statically; `development-route-bundle.spec.ts` walks the
+  static imports from `main.ts` and fails if one is reached. A new dev page follows the same shape.
 
 ## 7. Audio hook seam (#101)
 

@@ -4,7 +4,7 @@ import { DOCUMENT } from '@angular/common';
 import { isDevMode } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-import { IS_BENCH_ROUTE, isBenchRouteEnabled } from './bench-route';
+import { IS_BENCH_ROUTE, isBenchRoute, isBenchRouteEnabled } from './bench-route';
 
 /** A document whose window reports `search`; `null` stands for a page rendered without one. */
 function documentWith(search: string | null): Document {
@@ -16,6 +16,15 @@ function tokenFor(search: string | null): boolean {
   TestBed.configureTestingModule({ providers: [{ provide: DOCUMENT, useValue: documentWith(search) }] });
   return TestBed.inject(IS_BENCH_ROUTE);
 }
+
+describe('isBenchRoute', () => {
+  it('selects the bench route only when the bench parameter is present', () => {
+    expect(isBenchRoute('?bench=42')).toBe(true);
+    expect(isBenchRoute('?bench')).toBe(true);
+    expect(isBenchRoute('?tick=3')).toBe(false);
+    expect(isBenchRoute('')).toBe(false);
+  });
+});
 
 describe('isBenchRouteEnabled', () => {
   it('needs both a dev build and a `bench` query', () => {

@@ -10,10 +10,11 @@ import {
   type LobbyGameInfo,
 } from '@evolution/shared';
 import { AppComponent } from './app.component';
+import { DEVELOPMENT_ROUTE, type DevelopmentRoute } from './development-route/development-route';
+import { DEVELOPMENT_ROUTE_COMPONENT_LOADER } from './development-route/development-route-loader';
 import { GameHostComponent } from './game/game-host.component';
 import { HUD_TEST_ID } from './game/test-ids/hud-test-ids';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
-import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
 
 /**
@@ -29,7 +30,7 @@ class GameHostStubComponent implements OnDestroy {
   }
 }
 
-/** Stands in for the bench route, which would create a WebGL Pixi app under jsdom. */
+/** Stands in for the bench route, which would create a WebGL Pixi app under jsdom; the stub loader hands it over. */
 @Component({ selector: 'app-render-bench', standalone: true, template: '<div data-testid="render-bench-stub"></div>' })
 class RenderBenchStubComponent {}
 
@@ -61,21 +62,30 @@ function createMultiplayerStub() {
 describe('AppComponent', () => {
   let multiplayer: ReturnType<typeof createMultiplayerStub>;
   const isBenchRoute = { value: false };
+  const loadedRoutes: DevelopmentRoute[] = [];
 
   beforeEach(async () => {
     multiplayer = createMultiplayerStub();
     isBenchRoute.value = false;
+    loadedRoutes.length = 0;
     GameHostStubComponent.destroyedCount = 0;
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
         { provide: MultiplayerService, useValue: multiplayer },
         { provide: IS_BENCH_ROUTE, useFactory: () => isBenchRoute.value },
+        {
+          provide: DEVELOPMENT_ROUTE_COMPONENT_LOADER,
+          useValue: (route: DevelopmentRoute) => {
+            loadedRoutes.push(route);
+            return Promise.resolve(RenderBenchStubComponent);
+          },
+        },
       ],
     })
       .overrideComponent(AppComponent, {
-        remove: { imports: [GameHostComponent, RenderBenchComponent] },
-        add: { imports: [GameHostStubComponent, RenderBenchStubComponent] },
+        remove: { imports: [GameHostComponent] },
+        add: { imports: [GameHostStubComponent] },
       })
       .compileComponents();
   });
@@ -124,10 +134,23 @@ describe('AppComponent', () => {
     expect(GameHostStubComponent.destroyedCount).toBe(1);
   });
 
-  it('renders the bench route alone, filling the viewport, in place of the lobby and the room (docs/rendering/budget.md §7)', () => {
+  it('loads nothing on demand for the lobby or the room', () => {
+    multiplayer.inGame.set(true);
+    render();
+    expect(loadedRoutes).toEqual([]);
+  });
+
+  it('renders the bench route alone, filling the viewport, in place of the lobby and the room (docs/rendering/budget.md §7)', async () => {
     isBenchRoute.value = true;
     multiplayer.inGame.set(true);
-    const element = render();
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.classList.contains('in-game'), 'the shell gives way before the chunk arrives').toBe(true);
+    expect(element.querySelector('.panel')).toBeNull();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(loadedRoutes).toEqual([DEVELOPMENT_ROUTE.bench]);
     expect(element.querySelector('[data-testid="render-bench-stub"]')).not.toBeNull();
     expect(element.querySelector('[data-testid="game-host-stub"]')).toBeNull();
     expect(element.querySelector(`[data-testid="${HUD_TEST_ID.hud}"]`)).toBeNull();
