@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { CellModifiers, TraitDefinition } from '../types/traits.js';
 import { TRAIT_CATALOG } from './traits.js';
+import { markdownSection, tableRows } from '../testing/markdown-document.js';
 
 const CATALOG_FORMS_DOCUMENT = new URL('../../../../docs/traits/catalog-forms.md', import.meta.url);
 const SECTION_HEADING = '### 3.18 Engulf effects at a glance';
@@ -43,9 +44,9 @@ const HOOKLESS_TRAIT_IDS = [
 const MODIFIER_NAME_PATTERN = /`([a-z][A-Za-z]*)`/g;
 /** One tier value: `0.85`, `+0.1` or `1.0`. */
 const TIER_VALUE = String.raw`\+?\d+(?:\.\d+)?`;
-const TABLE_ROW_PATTERN = /^\| ([^|]+?) +\| (.+?) +\| (.+?) +\| .+\|$/;
 const HEADER_CELL = 'Trait';
-const SEPARATOR_CELL_PATTERN = /^-+$/;
+/** Trait, as predator, as prey, and the notes after them. */
+const MINIMUM_ROW_CELLS = 4;
 const TIER_COUNT = 3;
 
 class EngulfEffectsDocumentError extends Error {}
@@ -57,18 +58,11 @@ interface EngulfEffectRow {
 }
 
 function engulfEffectRows(): EngulfEffectRow[] {
-  const lines = readFileSync(CATALOG_FORMS_DOCUMENT, 'utf8').split('\n');
-  const start = lines.indexOf(SECTION_HEADING);
-  if (start < 0) {
-    throw new EngulfEffectsDocumentError(`${SECTION_HEADING} is gone from catalog-forms.md`);
-  }
-  const rows: EngulfEffectRow[] = [];
-  for (const line of lines.slice(start + 1)) {
-    if (line.startsWith('#')) break;
-    const match = TABLE_ROW_PATTERN.exec(line);
-    if (match === null || match[1] === HEADER_CELL || SEPARATOR_CELL_PATTERN.test(match[1]!)) continue;
-    rows.push({ traitName: match[1]!, effects: `${match[2]} ${match[3]}` });
-  }
+  // A missing heading throws in the reader, naming it.
+  const section = markdownSection(readFileSync(CATALOG_FORMS_DOCUMENT, 'utf8'), SECTION_HEADING);
+  const rows = tableRows(section)
+    .filter((cells) => cells.length >= MINIMUM_ROW_CELLS && cells[0] !== HEADER_CELL)
+    .map(([traitName, predator, prey]) => ({ traitName: traitName!, effects: `${predator} ${prey}` }));
   if (rows.length === 0) {
     throw new EngulfEffectsDocumentError(`${SECTION_HEADING} parsed no rows: the table's format changed`);
   }

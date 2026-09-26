@@ -5,7 +5,8 @@
 // cannot drift.
 
 import { describe, expect, it } from 'vitest';
-import { readRepoDocument, tableCells } from '../../../testing/repo-document';
+import { markdownSection, tableRows } from '@evolution/shared';
+import { readRepoDocument } from '../../../testing/repo-document';
 import * as renderConstants from './constants/legibility-cues';
 import * as stateConstants from '../state/legibility-constants';
 
@@ -20,20 +21,15 @@ interface LedgerRow {
   readonly isState: boolean;
 }
 
-/** §3.1.6 runs from its heading to the end of the document. */
+/** §3.1.6's rows whose first cell names a constant. */
 function ledgerRows(): LedgerRow[] {
-  const section = HUD_DOCUMENT.slice(HUD_DOCUMENT.indexOf(TABLE_HEADING));
-  return section
-    .split('\n')
-    .filter((line) => line.startsWith('| `'))
-    .map((line) => {
-      const [nameCell = '', valueCell = ''] = tableCells(line);
-      return {
-        name: BACKTICKED_NAME.exec(nameCell)?.[1] ?? '',
-        value: Number(valueCell),
-        isState: nameCell.includes(STATE_MARK),
-      };
-    });
+  return tableRows(markdownSection(HUD_DOCUMENT, TABLE_HEADING))
+    .filter(([nameCell = '']) => nameCell.startsWith('`'))
+    .map(([nameCell = '', valueCell = '']) => ({
+      name: BACKTICKED_NAME.exec(nameCell)?.[1] ?? '',
+      value: Number(valueCell),
+      isState: nameCell.includes(STATE_MARK),
+    }));
 }
 
 const rows = ledgerRows();

@@ -15,12 +15,14 @@ import {
   WORLD_STANDING,
   ZONE_ID,
   createTestPlayerProgressView,
+  markdownSection,
+  tableRows,
   type CellModifiers,
 } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';
 import { ownCellIndicatorsFor } from '../state/own-cell-indicators';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
-import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
+import { readRepoDocument } from '../../../testing/repo-document';
 import { tierSectionKey } from './build-entries';
 import { TRAIT_ENTRY_ROWS, contentByTrait } from './content/trait-entries';
 import { ABILITY, ABILITY_BY_MODIFIER } from './model/abilities';
@@ -179,14 +181,11 @@ describe('the encyclopedia registry', () => {
 });
 
 describe('the category and group labels', () => {
-  const section = readRepoDocument('docs/ui/encyclopedia.md').split('### 11.2')[1]?.split('### 11.3')[0] ?? '';
-  const rows = section
-    .split('\n')
-    .filter((line) => /^\| \d/.test(line))
-    .map(tableCells);
+  const section = markdownSection(readRepoDocument('docs/ui/encyclopedia.md'), '### 11.2');
+  const rows = tableRows(section).filter(([positionCell = '']) => /^\d/.test(positionCell));
 
   it('follow docs/ui/encyclopedia.md §11.2: every category, its label and its position', () => {
-    expect(markdownSection(readRepoDocument('docs/ui/encyclopedia.md'), '11. Encyclopedia')).toContain('### 11.2');
+    expect(markdownSection(readRepoDocument('docs/ui/encyclopedia.md'), '## 11. Encyclopedia')).toContain('### 11.2');
     const categories = rows.map((cells) => cells[1]?.replaceAll('`', ''));
     expect(categories).toEqual([...ENCYCLOPEDIA_CATEGORY_ORDER]);
     expect([...ENCYCLOPEDIA_CATEGORY_ORDER].sort()).toEqual(Object.values(ENCYCLOPEDIA_CATEGORY).sort());

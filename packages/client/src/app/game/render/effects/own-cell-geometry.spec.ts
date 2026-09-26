@@ -7,7 +7,8 @@
 // are the layout's, so this spec deliberately calls `orbitLayout` for them: the table is one pin.
 
 import { describe, expect, it } from 'vitest';
-import { markdownSection, readRepoDocument, tableCells } from '../../../../testing/repo-document';
+import { markdownSection, tableRows } from '@evolution/shared';
+import { readRepoDocument } from '../../../../testing/repo-document';
 import { createTestAerobicCounter, createTestPhotosyntheticCounter } from '../../../../testing/ladder-builders';
 import {
   DNA_RING_KEEP_OUT_FRACTION,
@@ -88,12 +89,9 @@ function expectAsPrinted(actual: number, printed: PrintedNumber, label: string):
 
 /** §3.1.3's geometry table: one row of printed numbers per cell, per own-cell size. */
 function geometryTable(): PrintedRow[] {
-  const section = markdownSection(UI_DOCUMENT, '3. ');
-  const table = section.slice(section.indexOf('#### 3.1.3'), section.indexOf('#### 3.1.4'));
-  return table
-    .split('\n')
-    .filter((line) => /^\|\s*\d+(?:\.\d+)?\s*\|/.test(line))
-    .map((line) => tableCells(line).map(printedNumbersIn));
+  return tableRows(markdownSection(UI_DOCUMENT, '#### 3.1.3'))
+    .filter(([sizeCell = '']) => /^\d+(?:\.\d+)?$/.test(sizeCell))
+    .map((cells) => cells.map(printedNumbersIn));
 }
 
 function arcDegrees(arc: OrbitArc | undefined): number {

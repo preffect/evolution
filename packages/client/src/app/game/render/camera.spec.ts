@@ -5,10 +5,12 @@ import {
   CAMERA_VIEW_RADIUS_EXPONENT,
   DEFAULT_BALANCE,
   INTEREST_VIEW_ASPECT_RATIO,
+  markdownSection,
   radiusForMass,
+  tableRows,
   viewHalfHeightFor,
 } from '@evolution/shared';
-import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
+import { readRepoDocument } from '../../../testing/repo-document';
 // The follow and the zoom are shared and tested with them (`shared/src/camera/camera-follow.test.ts`); Z1's view
 // half-height is shared too, and pinned here against §7's table.
 import {
@@ -41,11 +43,8 @@ function expectAsPrinted(actual: number, cell: string | undefined, label: string
 
 /** §7's table rows: mass, radius, view half-height, radii ahead, own cell px at 800 and at 1080 px tall. */
 function cameraTable(): string[][] {
-  const section = markdownSection(readRepoDocument('docs/game-design/controls-and-scope.md'), '7. ');
-  return section
-    .split('\n')
-    .filter((line) => /^\|\s*\d/.test(line))
-    .map(tableCells);
+  const section = markdownSection(readRepoDocument('docs/game-design/controls-and-scope.md'), '## 7. ');
+  return tableRows(section).filter(([massCell = '']) => /^\d/.test(massCell));
 }
 
 function ownCellPx(radius: number, viewportHeightPx: number): number {
