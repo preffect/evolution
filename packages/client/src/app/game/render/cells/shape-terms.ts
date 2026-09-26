@@ -229,6 +229,10 @@ function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
   };
 }
 
+/** The widest the stretch scales a radius at this speed, sprinting or not (the traced ring's reach bound, #730). */
+export const peakStretchRadii = (speedRatio: number, isSprinting: boolean): number =>
+  stretchReach(stretchTerm(speedRatio, isSprinting));
+
 /**
  * Breathing and lobes halve when taut (visual-style/motion-and-legibility.md §5); a rigid valve does not breathe, jitter
  * or lobe (§2.4), nor wrinkle when it starves: the jitter scale carries the wrinkle too.

@@ -160,9 +160,10 @@ describe('cell shader source', () => {
   it('draws the relation ring solid and still: one GAIN line, or a DANGER double line one pitch apart (#538)', () => {
     const ring = functionBody('relationRing');
     expect(ring).toContain('if (inst.relationRingPx <= 0.0) return acc;');
-    expect(ring).toContain(`float halfStroke = ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom;`);
+    expect(functionBody('relationLine')).toContain(`${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom`);
     expect(ring).toContain(`return over(acc, uGain, lines * ${glslFloat(EDIBLE_RING_ALPHA)});`);
     expect(ring).toContain(`float outerWu = radiusWu + ${glslFloat(RELATION_RING_LINE_PITCH_PX)} / uZoom;`);
+    expect(ring).toContain('lines = max(lines, relationLine(inst, frame, outerWu));');
     expect(ring).toContain(`return over(acc, uDanger, lines * ${glslFloat(TOXIC_RING_ALPHA)});`);
     expect(ring).not.toContain('dash(');
     expect(ring).not.toContain('uTimeSeconds');

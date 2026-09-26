@@ -10,7 +10,7 @@ import { ladderOrbitExtentPx } from './own-cell-geometry';
 
 export interface ThreatLabelInput {
   readonly threatCentre: ScreenPoint;
-  /** The warning ring the renderer draws on that threat (`warningRingPxFor`). */
+  /** The warning ring the renderer draws on that threat, out past its arms (`threatAnchorFor`). */
   readonly warningRingPx: number;
   readonly ownCentre: ScreenPoint;
   /** The own cell's on-screen radius, `r_px`. */

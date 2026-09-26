@@ -25,6 +25,8 @@ import {
 } from './own-cell-indicators';
 import { dnaRingRadiusPx, ladderOrbitRadiusPx } from './own-cell-geometry';
 import { threatLabelPlacement } from './threat-label-placement';
+import { warningRingRadiusPx } from '../cells/cell-instance-builder';
+import { ringArmReachPx } from '../cells/traced-ring';
 
 const textures = createTestRenderTextures().indicators;
 const REQUIRED = endosymbiontTallies()[0]!.required;
@@ -200,6 +202,22 @@ describe('threatAnchorFor', () => {
     });
     expect(anchor).toMatchObject({ x: 90, y: -20 });
     expect(anchor!.warningRingPx).toBeGreaterThan(0);
+  });
+
+  it('reaches a threatening amoeba’s ring out past its arms, and a round threat’s not at all (#730)', () => {
+    const amoeba = { ...giant, traits: [{ traitId: 'amoeba_pseudopods' as const, tier: 2 as const }] };
+    const anchorOf = (view: typeof giant) =>
+      threatAnchorFor({
+        indicators: threatening('giant'),
+        viewOf: () => view,
+        ownCell: own,
+        balance: DEFAULT_BALANCE,
+        zoom: 1,
+      });
+    const circlePx = warningRingRadiusPx(giant.radius);
+    expect(anchorOf(giant)?.warningRingPx).toBe(circlePx);
+    expect(anchorOf(amoeba)?.warningRingPx).toBe(circlePx + ringArmReachPx(amoeba, amoeba.radius));
+    expect(ringArmReachPx(amoeba, amoeba.radius)).toBeGreaterThan(0);
   });
 
   it('has nothing to anchor to without a record, a threat, its view, an own cell, or a drawn ring', () => {

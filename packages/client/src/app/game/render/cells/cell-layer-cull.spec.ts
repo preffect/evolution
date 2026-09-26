@@ -28,13 +28,15 @@ describe('CellLayer cull', () => {
     subject.destroy();
   });
 
-  it('draws a tiny predator whose warning ring still reaches on screen, past the old 6 r cull (#529)', () => {
+  it('draws a tiny predator whose warning ring still reaches on screen, past the old 6 r cull (#529, #730)', () => {
     const subject = new CellLayer(textures);
     const own = createTestCellView({ id: entityId('own'), mass: 1, radius: 1, x: 0, y: 0 });
     const radius = 3;
-    const ringReachPx = ENGULF_WARNING_RING_MIN_PX + WARNING_RING_STROKE_PX;
-    expect(ringReachPx).toBeGreaterThan(6 * radius);
     const predator = (id: string, x: number) => createTestCellView({ id: entityId(id), mass: 50, radius, x });
+    // The ring's circle, then as far as an engulf's arms can trace it out (#730).
+    const lobesPx = cullReachRadii(summariseCellTraits(predator('traits', 0), null)).ringLobeRadii * radius;
+    const ringReachPx = ENGULF_WARNING_RING_MIN_PX + WARNING_RING_STROKE_PX + lobesPx;
+    expect(ringReachPx).toBeGreaterThan(6 * radius);
     const ringIn = input({
       ownCell: own,
       frame: createTestRenderFrame({ cells: [own, predator('ring-in', EXTENT.maxX + ringReachPx - 1)] }),
@@ -52,7 +54,8 @@ describe('CellLayer cull', () => {
     const subject = new CellLayer(textures);
     const traits: CellView['traits'] = [{ traitId: 'simple_flagellum', tier: 3 }];
     const radius = 10;
-    const centrelinePx = cullReachRadii(summariseCellTraits(createTestCellView({ radius, traits }), null)) * radius;
+    const centrelinePx =
+      cullReachRadii(summariseCellTraits(createTestCellView({ radius, traits }), null)).drawnRadii * radius;
     // The tail reaches past the quad's 3 r, so a cull by the quad alone would cut it.
     expect(centrelinePx).toBeGreaterThan(CELL_QUAD_EXTENT_RADII * radius);
     // Its outer stroke reaches half its width past the centreline: a tip whose centreline is just off still draws.

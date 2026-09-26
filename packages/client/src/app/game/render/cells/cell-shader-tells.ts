@@ -1,8 +1,8 @@
 // The trait tells of pass B (docs/rendering/cells.md §2.2, docs/visual-style/cells-and-organelles.md §4): the amoeba's
 // clear ectoplasm just inside the membrane (#192), the rigid cell wall outside it, the leaning cilia hairs (a flat band at mid LOD), the engulf-warning
-// ring in the undeformed frame (visual-style/motion-and-legibility.md §5), the relation ring (docs/ui/hud.md §3.1.5) and
-// the absorbed ghost's dashed outline. Every membrane band is a band of `d`; the rings track the instance's centre and
-// snap with the LOD.
+// ring (visual-style/motion-and-legibility.md §5), the relation ring (docs/ui/hud.md §3.1.5), both traced round the
+// outline's arms (`cell-shader-rings.ts`, #730), and the absorbed ghost's dashed outline. Every membrane band is a band
+// of `d`; the rings track the instance's centre and snap with the LOD.
 
 import {
   CELL_WALL_ALPHA,
@@ -89,29 +89,47 @@ float rimDashMask(Instance inst, Frame frame) {
   return mix(1.0, dashed, inst.rimDash);
 }
 
-/** The DANGER ring at 'warningRingPx' in the undeformed frame, dashed and rotating, 'canEngulf' decided it. */
+/**
+ * The DANGER ring at 'warningRingPx', dashed and rotating, 'canEngulf' decided it: traced round the outline's arms
+ * (cell-shader-rings.ts, #730), the dash measured along the traced curve. Nothing inside its circle: a lobe only adds.
+ */
 vec4 warningRing(Instance inst, Frame frame, vec4 acc) {
   if (inst.warningRingPx <= 0.0) return acc;
   float radiusWu = inst.warningRingPx / uZoom;
-  float ring = band(frame.len, radiusWu, ${glslFloat(WARNING_RING_STROKE_PX)} * HALF / uZoom, frame.aa * HALF);
-  float arcPx = (frame.theta - ${glslFloat(WARNING_RING_ROTATION_RAD_PER_SECOND)} * uTimeSeconds) * radiusWu * uZoom;
+  float halfStroke = ${glslFloat(WARNING_RING_STROKE_PX)} * HALF / uZoom;
+  if (frame.len < radiusWu - halfStroke - frame.aa) return acc;
+  vec4 lobes[RING_LOBE_SLOTS];
+  int count = tracedRingLobes(inst, radiusWu, lobes);
+  vec2 traced = tracedRingAt(lobes, count, radiusWu, frame.theta);
+  float ring = band(tracedRingDistance(frame, traced), 0.0, halfStroke, frame.aa * HALF);
+  if (ring <= 0.0) return acc;
+  float arcWu = (frame.theta - ${glslFloat(WARNING_RING_ROTATION_RAD_PER_SECOND)} * uTimeSeconds) * radiusWu;
+  float arcPx = (arcWu + tracedRingExtraArc(lobes, count, radiusWu, frame.theta)) * uZoom;
   return over(acc, uDanger, ring * dash(arcPx, ${glslFloat(WARNING_RING_DASH_PX[0])}, ${glslFloat(WARNING_RING_DASH_PX[1])}));
 }
 
+/** One relation line: the traced ring 'radiusWu' out, as a band of its first-order distance. */
+float relationLine(Instance inst, Frame frame, float radiusWu) {
+  vec4 lobes[RING_LOBE_SLOTS];
+  int count = tracedRingLobes(inst, radiusWu, lobes);
+  vec2 traced = tracedRingAt(lobes, count, radiusWu, frame.theta);
+  return band(tracedRingDistance(frame, traced), 0.0, ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom, frame.aa * HALF);
+}
+
 /**
- * The relation ring at 'relationRingPx' in the undeformed frame: solid and still, so it never reads as the dashed,
- * rotating threat ring. One 'GAIN' line on an edible cell; on a toxic one a 'DANGER' double line, the second line one
- * pitch (stroke plus 'TOXIC_RING_LINE_GAP_PX') outside the first. Shape first, colour second (principles-and-palette.md §2).
+ * The relation ring at 'relationRingPx', traced round the outline's arms like the warning ring: solid and still, so it
+ * never reads as the dashed, rotating threat ring. One 'GAIN' line on an edible cell; on a toxic one a 'DANGER' double
+ * line, the second traced one pitch (stroke plus 'TOXIC_RING_LINE_GAP_PX') outside the first. Shape first, colour
+ * second (principles-and-palette.md §2).
  */
 vec4 relationRing(Instance inst, Frame frame, vec4 acc) {
   if (inst.relationRingPx <= 0.0) return acc;
-  float halfStroke = ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom;
-  float feather = frame.aa * HALF;
   float radiusWu = inst.relationRingPx / uZoom;
-  float lines = band(frame.len, radiusWu, halfStroke, feather);
+  if (frame.len < radiusWu - ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom - frame.aa) return acc;
+  float lines = relationLine(inst, frame, radiusWu);
   if (inst.relationRingLines < ${glslFloat(RELATION_RING.toxic)} - HALF) return over(acc, uGain, lines * ${glslFloat(EDIBLE_RING_ALPHA)});
   float outerWu = radiusWu + ${glslFloat(RELATION_RING_LINE_PITCH_PX)} / uZoom;
-  lines = max(lines, band(frame.len, outerWu, halfStroke, feather));
+  lines = max(lines, relationLine(inst, frame, outerWu));
   return over(acc, uDanger, lines * ${glslFloat(TOXIC_RING_ALPHA)});
 }
 `;
