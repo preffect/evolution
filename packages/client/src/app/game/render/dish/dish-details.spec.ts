@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Graphics } from 'pixi.js';
 import {
+  DISH_DETAIL_BAND_HYSTERESIS,
   DISH_DETAIL_BAND_MIN_ZOOMS,
   DISH_DETAIL_MIN_STROKE_PX,
   MIRE_STRAND,
@@ -9,7 +10,8 @@ import {
   ZONE_GEL,
 } from '../constants';
 import type { DishDetailStroke } from '../textures/dish-field-details';
-import { dishDetailBandFor, dishDetailWidthWu, drawDishDetails } from './dish-details';
+import { HALF } from '../geometry';
+import { dishDetailAlpha, dishDetailBandFor, dishDetailWidthWu, drawDishDetails } from './dish-details';
 
 const FAR_BAND = 0;
 const NEAR_BAND = DISH_DETAIL_BAND_MIN_ZOOMS.length - 1;
@@ -46,6 +48,41 @@ describe('dishDetailBandFor', () => {
     expect(dishDetailBandFor(NEAR_ZOOM)).toBe(NEAR_BAND);
     expect(dishDetailBandFor(1)).not.toBe(FAR_BAND);
     expect(dishDetailBandFor(1)).not.toBe(NEAR_BAND);
+  });
+});
+
+describe('dishDetailBandFor with a current band (the edge dead zone)', () => {
+  const edge = DISH_DETAIL_BAND_MIN_ZOOMS[NEAR_BAND]!;
+  const deadZoneTop = edge * (1 + DISH_DETAIL_BAND_HYSTERESIS);
+
+  it('enters a nearer band only past the dead zone above its edge', () => {
+    expect(dishDetailBandFor(edge, NEAR_BAND - 1)).toBe(NEAR_BAND - 1);
+    expect(dishDetailBandFor((edge + deadZoneTop) * HALF, NEAR_BAND - 1)).toBe(NEAR_BAND - 1);
+    expect(dishDetailBandFor(deadZoneTop, NEAR_BAND - 1)).toBe(NEAR_BAND);
+  });
+
+  it('holds the current band down to its own edge and leaves it just under', () => {
+    expect(dishDetailBandFor(edge, NEAR_BAND)).toBe(NEAR_BAND);
+    expect(dishDetailBandFor(edge * 0.99, NEAR_BAND)).toBe(NEAR_BAND - 1);
+  });
+
+  it('draws with no current band from the edges themselves', () => {
+    expect(dishDetailBandFor(edge)).toBe(NEAR_BAND);
+    expect(dishDetailBandFor(edge, null)).toBe(NEAR_BAND);
+  });
+});
+
+describe('dishDetailAlpha', () => {
+  it('keeps a line ink per length (alpha × width) the same in every band', () => {
+    const inks = DISH_DETAIL_BAND_MIN_ZOOMS.map((_, band) => {
+      const widenedWu = dishDetailWidthWu(STRAND.widthWu, band);
+      return dishDetailAlpha(STRAND, widenedWu) * widenedWu;
+    });
+    for (const ink of inks) expect(ink).toBeCloseTo(STRAND.alpha * STRAND.widthWu, 12);
+  });
+
+  it('leaves a line drawn at its own width at its own alpha', () => {
+    expect(dishDetailAlpha(STRAND, STRAND.widthWu)).toBe(STRAND.alpha);
   });
 });
 
@@ -89,6 +126,18 @@ describe('drawDishDetails', () => {
     drawDishDetails(graphics, [SCRATCH], NEAR_BAND);
     drawDishDetails(graphics, [STRAND], FAR_BAND);
     expect(graphics.getLocalBounds().maxX).toBeLessThan(SCRATCH.start.x);
+  });
+
+  it('strokes a widened line at the alpha that keeps its ink, and a true-width line at its own alpha', () => {
+    const strokeAlpha = (band: number) => {
+      const graphics = new Graphics();
+      drawDishDetails(graphics, [STRAND], band);
+      const [instruction] = graphics.context.instructions;
+      return instruction?.action === 'stroke' ? instruction.data.style.alpha : Number.NaN;
+    };
+    expect(strokeAlpha(NEAR_BAND)).toBe(STRAND.alpha);
+    expect(strokeAlpha(FAR_BAND)).toBeCloseTo(dishDetailAlpha(STRAND, dishDetailWidthWu(STRAND.widthWu, FAR_BAND)), 12);
+    expect(strokeAlpha(FAR_BAND)).toBeLessThan(STRAND.alpha);
   });
 
   it('draws the far band wider than the near band', () => {

@@ -12,7 +12,10 @@ not blur. What has an edge is never baked into it (#223): the vent is its own sp
 world-scale `Graphics`, and the field's line details — the mire strands and the stage scratches, placed from the
 dish sub-stream by the field bake — are drawn in wu into the wall's `Graphics`, under its lines (`dish/dish-details.ts`),
 redrawn only when the camera crosses a `DISH_DETAIL_BAND_MIN_ZOOMS` band (far 0.3, mid 0.6, near 1.2 px/wu), each
-band widening a thin line to `DISH_DETAIL_MIN_STROKE_PX` (1 CSS px) at its lowest zoom and no further. That is
+band widening a thin line to `DISH_DETAIL_MIN_STROKE_PX` (1 CSS px) at its lowest zoom and no further, at an alpha
+scaled by the width it gained so its ink is the same in every band; a nearer band is entered only
+`DISH_DETAIL_BAND_HYSTERESIS` (5 %) past its edge, so a cell whose size hovers at an edge does not rebuild the lines
+on every flip. That is
 what visual-style/performance-and-checklist.md §8's "one texture per zoom band" was for — sharp strands and
 scratches at zoom 1 and 1.8 — at no texture memory: a field per near band would be 6204² px at 1 px/wu (147 MiB)
 or tiles of it, where the lines cost ≈ 60 strokes of geometry. They share the wall's `Graphics` because 60 strokes

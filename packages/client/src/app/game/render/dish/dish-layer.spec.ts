@@ -6,6 +6,7 @@ import { worldToScreen, type ViewportPx } from '../camera';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
 import {
   DEPTH_BOKEH,
+  DISH_DETAIL_BAND_MIN_ZOOMS,
   DEPTH_FAR,
   DEPTH_NEAR_PARTICLES,
   LIGHT_POOL_VIEW_CENTRE,
@@ -121,6 +122,37 @@ describe('DishLayer', () => {
     subject.update(frameAt(0.36, { width: 0, height: 0 }));
     expect(lines.context.instructions).toHaveLength(detailCount + wallInstructions);
   });
+
+  it.each([
+    ['from the band under it', 1],
+    ['from the band over it', 1.3],
+  ])(
+    'draws the lines once, then at most once more, for a zoom dithering ±1 %% around a band edge %s (#223)',
+    (_, startZoom) => {
+      const subject = new DishLayer(textures);
+      const lines = subject.container.children[LINES_INDEX] as Graphics;
+      const edge = DISH_DETAIL_BAND_MIN_ZOOMS.at(-1)!;
+      const frameAt = (zoom: number) => ({
+        timeSeconds: 0,
+        camera: cameraAt(CAMERA_POSITIONS[0], zoom, VIEWPORT_1080P),
+        viewport: VIEWPORT_1080P,
+      });
+      let draws = 0;
+      let lastFirstInstruction: unknown = null;
+      const countDraw = () => {
+        if (lines.context.instructions[0] !== lastFirstInstruction) draws += 1;
+        lastFirstInstruction = lines.context.instructions[0];
+      };
+      subject.update(frameAt(startZoom));
+      countDraw();
+      for (const dither of [0.99, 1.01, 0.995, 1.005, 0.99, 1.01, 0.99, 1.01]) {
+        subject.update(frameAt(edge * dither));
+        countDraw();
+      }
+      // The first draw, plus the one band change a start above the edge owes; never one per flip.
+      expect(draws).toBe(startZoom > edge ? 2 : 1);
+    },
+  );
 
   it('destroys both containers', () => {
     const subject = new DishLayer(textures);

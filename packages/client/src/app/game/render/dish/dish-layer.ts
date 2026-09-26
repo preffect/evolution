@@ -214,7 +214,7 @@ export class DishLayer {
    */
   private updateDetailBand(frame: DishLayerFrame): void {
     if (!hasViewportHeight(frame.viewport)) return;
-    const band = dishDetailBandFor(zoomFor(frame.camera, frame.viewport));
+    const band = dishDetailBandFor(zoomFor(frame.camera, frame.viewport), this.detailBand);
     if (band === this.detailBand) return;
     this.detailBand = band;
     drawDishDetails(this.lines, this.detailStrokes, band);
