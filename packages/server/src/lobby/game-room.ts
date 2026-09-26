@@ -8,9 +8,9 @@ import {
 } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
-import { NOTHING_BROADCAST, PerformanceTracker, tickRecordOf, type SnapshotBroadcast } from './performance-tracker.js';
-import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
-import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
+import { NOTHING_BROADCAST, PerformanceTracker, tickRecordOf } from './performance-tracker.js';
+import { SnapshotBacklog } from './snapshot-backlog.js';
+import { SnapshotDispatch } from './snapshot-dispatch.js';
 import type { RoomTiming } from './room-timing.js';
 import type { FullGameState, RoomGameModule, RoomInitOptions } from '../game/game-module.js';
 import type { SimulationDebugHandle } from '../game/debug/simulation-debug-handle.js';
@@ -21,6 +21,7 @@ import { freeAvatarIndex, seatedColours } from './seat-colours.js';
  * A running game session. Owns the connections, the late-join/disconnect
  * bookkeeping, the fixed-tick loop and perf telemetry. All game-specific guts
  * live behind the injected `GameModule` (the 3 tick hooks + add/removePlayer).
+ * It decides when a snapshot is sent; `SnapshotDispatch` sends it (docs/architecture/wire-contract.md §4).
  *
  * Time flows in through `RoomTiming` only (docs/determinism/contract-and-clock.md §2): the ticker wakes the loop,
  * the accumulator turns the clock into whole ticks, and the debug tools can pause the loop and
@@ -43,6 +44,7 @@ export class GameRoom {
   private readonly game: RoomGameModule;
   private readonly timing: RoomTiming;
   private readonly accumulator: FixedStepAccumulator;
+  private readonly snapshotDispatch: SnapshotDispatch;
   private isLoopPaused = false;
   private isLoopStarted = false;
   private tickCount = 0;
@@ -58,6 +60,7 @@ export class GameRoom {
     this.sessionConfig = options.config;
     this.avatarAssignments = { ...options.avatarAssignments };
     this.playerNames = { ...options.playerNames };
+    this.snapshotDispatch = new SnapshotDispatch(game, this);
   }
 
   /** Starts the loop. Time that passed since construction is discarded, so the first fire never bursts. */
@@ -97,7 +100,7 @@ export class GameRoom {
     this.isLoopPaused = true;
     for (let count = 0; count < ticks; count += 1) this.runTick();
     // A stepped room always ends on a fresh frame, whatever the cadence (docs/architecture/debug-mcp.md §8).
-    if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.broadcastSnapshot();
+    if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.snapshotDispatch.broadcastOffTick();
   }
 
   /**
@@ -105,7 +108,7 @@ export class GameRoom {
    * paused room shows the patched world instead of the frame from before it (docs/architecture/debug-mcp.md §8).
    */
   republishSnapshot(): void {
-    this.broadcastSnapshot();
+    this.snapshotDispatch.broadcastOffTick();
   }
 
   /** Unfreezes the loop. The wall time that passed while paused is discarded, never caught up. */
@@ -147,20 +150,9 @@ export class GameRoom {
     this.performanceTracker.recordClientReport(playerId as PlayerId, report);
   }
 
-  /**
-   * The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. A
-   * running room settles a resync this makes due on its next broadcast; a paused one makes none, so it is sent now
-   * (#300: a step deeper than the backlog limit otherwise left the client frozen until a resume).
-   */
+  /** The newest snapshot tick a client has applied (#266, docs/architecture/wire-contract.md §4): its flow control. */
   recordSnapshotAck(playerId: string, tick: number): void {
-    this.snapshotBacklog.recordAcknowledgedTick(playerId, tick);
-    const connection = this.playerConnections.get(playerId);
-    if (!this.isLoopPaused || connection === undefined || !this.snapshotBacklog.isResyncDue(connection)) return;
-    const state = this.getFullState();
-    this.snapshotBacklog.recordResyncSent(playerId, state.snapshot.tick);
-    this.performanceTracker.recordResyncBytes(
-      sendMessage(connection, this.gameStateMessageFor(playerId as PlayerId, state)),
-    );
+    this.snapshotDispatch.acknowledge(playerId, tick);
   }
 
   /** The `game_state` payload (docs/architecture/wire-contract.md §4): the module's full snapshot and live balance. */
@@ -178,22 +170,9 @@ export class GameRoom {
     sendMessage(connection, this.gameStateMessageFor(playerId));
   }
 
-  /**
-   * The `game_state` a player receives on start, late join, reconnect and resync
-   * (docs/architecture/wire-contract.md §4): the one message that rebuilds a client's whole view.
-   */
-  gameStateMessageFor(playerId: PlayerId, state: FullGameState = this.getFullState()): ServerMessage {
-    const { snapshot, balance } = state;
-    return {
-      type: SERVER_MESSAGE_TYPE.gameState,
-      gameId: this.gameId,
-      playerId,
-      snapshot: snapshotForViewer(this.game, snapshot, playerId),
-      balance,
-      config: this.sessionConfig,
-      playerIds: this.allPlayerIds as PlayerId[],
-      avatarAssignments: this.avatarAssignments,
-    };
+  /** The `game_state` that rebuilds `playerId`'s whole view (docs/architecture/wire-contract.md §4). */
+  gameStateMessageFor(playerId: PlayerId): ServerMessage {
+    return this.snapshotDispatch.gameStateMessageFor(playerId);
   }
 
   removePlayer(playerId: string): void {
@@ -269,32 +248,8 @@ export class GameRoom {
     this.tickCount += 1;
     const isBroadcastTick = this.tickCount % SNAPSHOT_EVERY_TICKS === 0;
     const broadcastStartMs = this.timing.clock.nowMilliseconds();
-    const sent = isBroadcastTick ? this.broadcastSnapshot() : NOTHING_BROADCAST;
+    const sent = isBroadcastTick ? this.snapshotDispatch.broadcastOnTick() : NOTHING_BROADCAST;
     const readings = { tickStartMs, broadcastStartMs, tickEndMs: this.timing.clock.nowMilliseconds() };
     this.performanceTracker.recordTick(tickRecordOf(readings, { isBroadcastTick, ...sent }));
-  }
-
-  /**
-   * The delta since the previous broadcast, every `SNAPSHOT_EVERY_TICKS` ticks
-   * (docs/architecture/entity-model.md §1). `serializeRoomState` runs on every broadcast tick whatever the
-   * connections are doing: it is the one drain of the effects. What each connection's members advance from it is the
-   * module's (a viewer skipped here has its per-viewer food delta left where it was). Who receives it is then per connection (#266, docs/architecture/wire-contract.md §4) — a client
-   * that has not caught up with what it was already sent is skipped rather than queued deeper, and
-   * is sent one `game_state` in place of the next delta once it has.
-   */
-  private broadcastSnapshot(): SnapshotBroadcast {
-    const snapshot = this.game.serializeRoomState();
-    const deltaTargets: Connection[] = [];
-    for (const connection of this.playerConnections.values()) {
-      const delivery = this.snapshotBacklog.nextFor(connection, snapshot.tick, this.isLoopPaused);
-      if (delivery === SNAPSHOT_DELIVERY.delta) {
-        deltaTargets.push(connection);
-      } else if (delivery === SNAPSHOT_DELIVERY.resync) {
-        const resync = this.gameStateMessageFor(connection.playerId as PlayerId);
-        this.performanceTracker.recordResyncBytes(sendMessage(connection, resync));
-      }
-    }
-    const snapshotBytes = sendSnapshotToViewers(this.game, deltaTargets, snapshot);
-    return { snapshotBytes, broadcastClients: deltaTargets.length };
   }
 }

@@ -46,8 +46,9 @@ past its ack; `null` until the client has acknowledged a snapshot since its stre
 ack and again after a reconnect, and a `null` client is never skipped: a browser whose ack path broke stays `null`
 here) and `isOwedResync`. Its `broadcastBytesPerSec` counts the loop's tick broadcasts, the delta times the clients
 sent it (a skipped client counts none), plus every resync `game_state` (`TickRecord.resyncBytes`; a paused room's
-resync on an ack lands on the next tick). It does not count the off-tick frames, a debug step's closing frame and a
-`republishSnapshot` after a debug mutation (ticket #714).
+resync on an ack lands on the next tick), plus the off-tick frames: a debug step's closing frame and a
+`republishSnapshot` after a debug mutation (`TickRecord.offTickBytes`, #714). A paused room has no next tick until it
+steps or resumes, so its off-tick bytes and resyncs reach the rate then.
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the

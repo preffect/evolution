@@ -72,8 +72,8 @@ describe('PerformanceTracker', () => {
     expect(stats).toMatchObject({ sampleCount: 2, tickAvgMs: 2, tickPeakMs: 3, worstTick: tickOf(3) });
     expect(stats.broadcastBytesPerSec).toBe(100 * 2 * TICK_HZ);
     expect(tracker.stats).toEqual(stats);
-    // The tracker stamps each tick with the resync bytes it was told of since the previous one: none here.
-    expect(tracker.worstTick()).toEqual({ ...tickOf(3), resyncBytes: 0 });
+    // The tracker stamps each tick with the resync and off-tick bytes it was told of since the previous one: none here.
+    expect(tracker.worstTick()).toEqual({ ...tickOf(3), resyncBytes: 0, offTickBytes: 0 });
   });
 
   it('averages the broadcast over every tick, the silent ones included', () => {
@@ -126,6 +126,17 @@ describe('PerformanceTracker', () => {
     const bytesPerTick = (deltaBytes + firstResyncBytes + secondResyncBytes) / 2;
     expect(tracker.getStats().broadcastBytesPerSec).toBe(roundToHundredths(bytesPerTick * TICK_HZ));
     expect(tracker.getStats().worstTick?.resyncBytes).toBe(firstResyncBytes + secondResyncBytes);
+  });
+
+  it('#714: counts an off-tick broadcast, its delta times the clients sent it, in the next tick bandwidth, once', () => {
+    const tracker = new PerformanceTracker();
+    const offTick = { snapshotBytes: 300, broadcastClients: 3 };
+    tracker.recordOffTickBroadcast(offTick);
+    tracker.recordTick(tickOf(1, 0, 0));
+    tracker.recordTick(tickOf(1, 0, 0));
+    const offTickBytes = offTick.snapshotBytes * offTick.broadcastClients;
+    expect(tracker.getStats().broadcastBytesPerSec).toBe(roundToHundredths((offTickBytes / 2) * TICK_HZ));
+    expect(tracker.worstTick()).toMatchObject({ resyncBytes: 0, offTickBytes });
   });
 
   it('keeps a bounded window but never forgets the worst tick', () => {
