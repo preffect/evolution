@@ -32,7 +32,7 @@ const BENCH_TEST_TIMEOUT_MS = 2_400_000;
 const HOLD_WAIT_MS = 300;
 /** `RENDER_MAX_DRAW_CALLS` (docs/rendering/budget.md §6); the spec runs outside the app's module graph, so the number is restated here. */
 const MAX_DRAW_CALLS = 17;
-const RENDER_STAGE_KEYS = ['camera', 'cells', 'effects', 'food', 'net', 'organelles', 'submit'];
+const RENDER_STAGE_KEYS = ['camera', 'cells', 'dish', 'effects', 'food', 'net', 'organelles', 'submit'];
 /** `canvas.toDataURL` needs the backbuffer kept, which the report runs without (docs/rendering/budget.md §7). */
 const PRESERVE_QUERY = '&preserve=1';
 

@@ -108,6 +108,58 @@ describe('createGpuTimer', () => {
     expect(timer.p95Ms(), 'a plausible sample after an impossible one does not restore trust').toBeNull();
   });
 
+  it('trusts the context again once the window reopens: the implausible count belongs to the window', () => {
+    const fake = fakeContext();
+    const clock = new ManualClock();
+    const timer = createGpuTimer(fake.context, { clock })!;
+    submitFrames(timer, clock, 2);
+    fake.resolve(0, 1);
+    fake.resolve(1, FRAME_PERIOD_MS * RENDER_GPU_SAMPLE_MAX_FRAME_RATIO + 1);
+    expect(timer.p95Ms()).toBeNull();
+    timer.openWindow();
+    expect(timer.implausibleCount).toBe(0);
+    expect(timer.status(), 'nothing resolved into the new window yet').toBe(GPU_TIMER_STATUS.pending);
+    submitFrames(timer, clock, 1);
+    fake.resolve(1, 3);
+    expect(timer.p95Ms(), 'the recycled query, read in the new window').toBe(3);
+    expect(timer.status()).toBe(GPU_TIMER_STATUS.ok);
+  });
+
+  it('drops the warm-up samples already read when the window opens', () => {
+    const fake = fakeContext();
+    const clock = new ManualClock();
+    const timer = createGpuTimer(fake.context, { clock })!;
+    submitFrames(timer, clock, 2);
+    fake.resolve(0, 1);
+    fake.resolve(1, 50);
+    expect(timer.p95Ms()).toBe(50);
+    timer.openWindow();
+    expect(timer.p95Ms(), 'the 50 ms warm-up sample is not in the window').toBeNull();
+    expect(timer.status()).toBe(GPU_TIMER_STATUS.pending);
+  });
+
+  it('never reads a query submitted before the window opened, even one that resolves after (a warm-up compile stall)', () => {
+    const fake = fakeContext();
+    const clock = new ManualClock();
+    const timer = createGpuTimer(fake.context, { clock })!;
+    submitFrames(timer, clock, 3);
+    timer.openWindow();
+    submitFrames(timer, clock, 2);
+    fake.resolve(0, 1);
+    fake.resolve(1, 2);
+    fake.resolve(2, FRAME_PERIOD_MS * RENDER_GPU_SAMPLE_MAX_FRAME_RATIO * 10);
+    fake.resolve(3, 5);
+    fake.resolve(4, 7);
+    expect(timer.status(), 'the warm-up stall does not mark the window implausible').not.toBe(
+      GPU_TIMER_STATUS.implausible,
+    );
+    expect(timer.p95Ms(), 'only the two window samples, 95 % of the way from 5 to 7').toBeCloseTo(6.9, 9);
+    expect(timer.implausibleCount).toBe(0);
+    expect(fake.context.createQuery, 'the warm-up queries are recycled, not leaked').toHaveBeenCalledTimes(5);
+    submitFrames(timer, clock, 5);
+    expect(fake.context.createQuery).toHaveBeenCalledTimes(5);
+  });
+
   it('keeps a sample exactly at the ratio the budget allows', () => {
     const fake = fakeContext();
     const clock = new ManualClock();

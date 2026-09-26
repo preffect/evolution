@@ -28,7 +28,8 @@ import { attachIndicatorSheet } from './indicator-sheet';
 import type { BenchCounts } from './bench-scene';
 import type { GpuTimerStatus } from './gpu-timer';
 import { NO_HEAP_PROBE, type HeapProbe } from './heap-probe';
-import { budgetVerdict, type BudgetVerdict } from './render-benchmark';
+import { benchGate, parseExpectedUnjudged, type BenchGate } from './bench-gate';
+import { budgetVerdict, type BudgetRowName, type BudgetVerdict } from './render-benchmark';
 
 export interface BenchQuery {
   readonly seed: number;
@@ -51,6 +52,8 @@ export interface BenchQuery {
   readonly shouldDrawCues: boolean;
   /** `sheet=indicators`: the own-cell indicator textures' contact sheet over the scene (`indicator-sheet.ts`). */
   readonly sheet: BenchSheet | null;
+  /** `expectUnjudged=gpu,…`: the rows this run expects the verdict to leave unjudged (`bench-gate.ts`, #264). */
+  readonly expectedUnjudged: readonly BudgetRowName[];
 }
 
 export const BENCH_SHEET = { indicators: 'indicators' } as const;
@@ -63,11 +66,12 @@ const WINDOW_PARAMETER = 'window';
 const ADVANCE_PARAMETER = 'advance';
 const PRESERVE_PARAMETER = 'preserve';
 const CUES_PARAMETER = 'cues';
+const EXPECT_UNJUDGED_PARAMETER = 'expectUnjudged';
 const FLAG_ON = '1';
 
 /**
- * `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>&advance=1&preserve=1&cues=1`, each with its default; `bench`
- * alone selects the route.
+ * `?bench=<seed>&tick=<n>&zoom=<z>&window=<frames>&advance=1&preserve=1&cues=1&expectUnjudged=<rows>`, each with its
+ * default; `bench` alone selects the route.
  */
 export function parseBenchQuery(search: string): BenchQuery {
   const parameters = new URLSearchParams(search);
@@ -80,6 +84,7 @@ export function parseBenchQuery(search: string): BenchQuery {
     shouldPreserveDrawingBuffer: parameters.get(PRESERVE_PARAMETER) === FLAG_ON,
     shouldDrawCues: parameters.get(CUES_PARAMETER) === FLAG_ON,
     sheet: parameters.get(SHEET_PARAMETER) === BENCH_SHEET.indicators ? BENCH_SHEET.indicators : null,
+    expectedUnjudged: parseExpectedUnjudged(parameters.get(EXPECT_UNJUDGED_PARAMETER)),
   };
 }
 
@@ -102,6 +107,8 @@ export interface RenderBenchReport extends ClientPerformanceReport {
   /** Why `gpuMs` is a number or `null` (docs/rendering/budget.md §7). */
   readonly gpuStatus: GpuTimerStatus;
   readonly verdict: BudgetVerdict;
+  /** Whether the run is evidence a PR may quote: the verdict, the expected unjudged rows and `advance=1` (#264). */
+  readonly gate: BenchGate;
 }
 
 export interface BenchSessionDependencies {
@@ -184,10 +191,11 @@ export class BenchSession extends FrameLoopSession {
     return renderer.render(cued.frame, ownPlayerId, cued.inputs, submit);
   }
 
-  /** Collects at the end of the warm-up and reports once the window has run. */
+  /** Opens the window at the end of the warm-up (the GPU timer, the heap) and reports once the window has run. */
   protected afterFrame(outputs: RenderOutputs): void {
     const frames = this.instrumentation.frameCount;
     if (frames === RENDER_BENCH_WARMUP_FRAMES) {
+      this.instrumentation.openWindow();
       this.heap.collectGarbage();
       this.heapAtWindowStart = this.heap.readHeapBytes();
     } else if (frames === RENDER_BENCH_WARMUP_FRAMES + this.query.windowFrames) {
@@ -201,6 +209,7 @@ export class BenchSession extends FrameLoopSession {
     const report = this.instrumentation.report(outputs, heapBytes);
     const grownBytes =
       heapBytes === null || this.heapAtWindowStart === null ? null : heapBytes - this.heapAtWindowStart;
+    const verdict = budgetVerdict(report, this.instrumentation.evidence());
     return {
       ...report,
       seed: this.driver.world.seed,
@@ -210,7 +219,8 @@ export class BenchSession extends FrameLoopSession {
       isTickAdvancing: this.query.shouldAdvanceTick,
       heapGrowthBytesPerFrame: grownBytes === null ? null : grownBytes / this.query.windowFrames,
       gpuStatus: this.instrumentation.gpuStatus,
-      verdict: budgetVerdict(report, this.instrumentation.evidence()),
+      verdict,
+      gate: benchGate(verdict, this.query.shouldAdvanceTick, this.query.expectedUnjudged),
     };
   }
 
