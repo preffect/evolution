@@ -152,6 +152,16 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
     expect(targetOf(wild)).toEqual({ x: lunch.x, y: lunch.y });
   });
 
+  it('leaves the nearest lunch to a closer rival that can swallow it and hunts the next one (ticket #737)', () => {
+    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
+    const near = seatTestWildCell(world, { seatNumber: 1, at: { x: wild.radius * 5, y: 0 }, mass: LUNCH_MASS }).cell;
+    seatTestWildCell(world, { seatNumber: 2, at: { x: wild.radius * 7, y: 0 }, mass: THREAT_MASS });
+    const next = seatTestWildCell(world, { seatNumber: 3, at: { x: 0, y: wild.radius * 6 }, mass: LUNCH_MASS }).cell;
+    decideWildTargets(world, context);
+    expect(targetOf(wild)).not.toEqual({ x: near.x, y: near.y });
+    expect(targetOf(wild)).toEqual({ x: next.x, y: next.y });
+  });
+
   it('grazes the nearest algae or detritus mote in sight and passes over bacteria', () => {
     const { world, context, wild } = arena({ wildMass: LUNCH_MASS, playerMass: LUNCH_MASS, playerAtRadii: 20 });
     spawnFoodMote(world, { kind: FOOD_KIND.bacterium, variant: BACTERIUM_VARIANT.plain, at: { x: 50, y: 0 } });
