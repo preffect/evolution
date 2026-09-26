@@ -6,13 +6,14 @@
 // only true of the values the doc shows.
 
 import { describe, expect, it } from 'vitest';
-import { markdownSection, readRepoDocument, tableCells } from '../../../testing/repo-document';
+import { markdownSection, tableRows } from '@evolution/shared';
+import { readRepoDocument } from '../../../testing/repo-document';
 import * as constants from './constants';
 import * as ownCellConstants from './constants/own-cell';
 
 const UI_DOCUMENT = readRepoDocument('docs/ui/components-and-constants.md');
 const HUD_DOCUMENT = readRepoDocument('docs/ui/hud.md');
-const CONSTANTS_SECTION = markdownSection(UI_DOCUMENT, '9. Constants table');
+const CONSTANTS_SECTION = markdownSection(UI_DOCUMENT, '## 9. Constants table');
 /** The distinct names §9's rows carry: a row added or removed is a deliberate edit on both sides. */
 const EXPECTED_NAMES = 36;
 
@@ -26,15 +27,12 @@ interface LedgerRow {
 
 /** Each row whose first cell names a constant: its names and the numbers of its value cell, in order. */
 function ledgerRows(): LedgerRow[] {
-  return CONSTANTS_SECTION.split('\n')
-    .filter((line) => line.startsWith('| `'))
-    .map((line) => {
-      const [nameCell = '', valueCell = ''] = tableCells(line);
-      return {
-        names: [...nameCell.matchAll(BACKTICKED_NAME)].map((match) => match[1] ?? ''),
-        values: [...valueCell.matchAll(DOC_NUMBER)].map((match) => Number(match[0])),
-      };
-    });
+  return tableRows(CONSTANTS_SECTION)
+    .filter(([nameCell = '']) => nameCell.startsWith('`'))
+    .map(([nameCell = '', valueCell = '']) => ({
+      names: [...nameCell.matchAll(BACKTICKED_NAME)].map((match) => match[1] ?? ''),
+      values: [...valueCell.matchAll(DOC_NUMBER)].map((match) => Number(match[0])),
+    }));
 }
 
 /** A constant's numbers in declaration order: a record of values (the orbit angle pair) flattens. */
@@ -69,7 +67,7 @@ describe('docs/ui/components-and-constants.md §9 constants ledger', () => {
 
   it('keys the angle pair by the variant §3.1.2 puts at each angle, not just in the right order', () => {
     // The ledger compares the pair by declaration order, which a swap of the two keys would pass.
-    const aerobic = /aerobic (\d+), photosynthetic (\d+)/.exec(markdownSection(HUD_DOCUMENT, '3. '));
+    const aerobic = /aerobic (\d+), photosynthetic (\d+)/.exec(markdownSection(HUD_DOCUMENT, '## 3. '));
     expect(constants.LADDER_ORBIT_ANGLES_PAIR_DEG).toEqual({
       aerobic: Number(aerobic?.[1]),
       photosynthetic: Number(aerobic?.[2]),

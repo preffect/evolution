@@ -42,3 +42,4 @@ export * from './simulation/zones.js';
 export * from './audio/sound-events.js';
 export * from './audio/audio-manifest.js';
 export * from './testing/builders.js';
+export * from './testing/markdown-document.js';
