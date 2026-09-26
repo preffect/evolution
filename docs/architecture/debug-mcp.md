@@ -41,10 +41,13 @@ The generic tools (`debug_get_performance`, `debug_get_room_performance`, `debug
 handle. `debug_get_room_performance` answers per room its `PerformanceTracker.getStats()` and, since #276,
 `snapshotFlow`, the snapshot flow control of architecture/wire-contract.md §4 (`SnapshotBacklog.telemetryFor`):
 `resyncCount` (resyncs the room has sent), `owedResyncCount` (players skipped now) and `players`, one entry per
-connected player with its `backlogTicks` (ticks in flight past its ack; `null` for a client that has never
-acknowledged, which is never skipped: a browser whose ack path broke shows here) and `isOwedResync`. Its
-`broadcastBytesPerSec` counts what was sent: the delta times the clients sent it (a skipped client counts none) plus
-every resync `game_state` (`TickRecord.resyncBytes`; a paused room's resync on an ack lands on the next tick).
+seated connection (a disconnected player stays until its reconnect grace ends) with its `backlogTicks` (ticks in flight
+past its ack; `null` until the client has acknowledged a snapshot since its stream (re)started, i.e. before its first
+ack and again after a reconnect, and a `null` client is never skipped: a browser whose ack path broke stays `null`
+here) and `isOwedResync`. Its `broadcastBytesPerSec` counts the loop's tick broadcasts, the delta times the clients
+sent it (a skipped client counts none), plus every resync `game_state` (`TickRecord.resyncBytes`; a paused room's
+resync on an ack lands on the next tick). It does not count the off-tick frames, a debug step's closing frame and a
+`republishSnapshot` after a debug mutation (ticket #714).
 
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the

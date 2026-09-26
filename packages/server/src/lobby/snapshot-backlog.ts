@@ -40,7 +40,7 @@ export type SnapshotDelivery = (typeof SNAPSHOT_DELIVERY)[keyof typeof SNAPSHOT_
 
 /** One connected player's flow control as `debug_get_room_performance` reports it (#276). */
 export interface PlayerSnapshotFlow {
-  /** `backlogTicksOf`: `null` for a client that has never acknowledged, which is never skipped. */
+  /** `backlogTicksOf`: `null` until the client acknowledges a snapshot since its stream (re)started; never skipped then. */
   readonly backlogTicks: number | null;
   /** Skipped, and to be sent a `game_state` once it catches up. */
   readonly isOwedResync: boolean;
