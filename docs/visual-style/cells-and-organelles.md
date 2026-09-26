@@ -38,6 +38,18 @@ disc fill (the bake has no disc constant any more), so the ramp shows through it
 **rim**, like the nucleoid, so the nucleolus and the highlight stay lighter than the ramp's lit half; the constants
 live in `render/constants/organelles.ts` beside `NUCLEUS_RADIUS`.
 
+**Chromatin spots (#252, sheet 01 panel A).** `NUCLEUS_CHROMATIN_SPOTS` 5 spots, one per fifth of a turn, each
+jittered by up to ±`angleJitterTurns`/2 (0.06 turn), placed `ringShareMin`–`ringShareMax` 0.54–0.71 r_n from the
+nucleus centre with radius `radiusShareMin`–`radiusShareMax` 0.07–0.13 r_n (panel A's five spots: radii 5.0 / 3.8 /
+3.5 / 3.1 / 2.7 px on its 38.4 px nucleus, 0.54–0.71 r_n out), `CHROMATIN_WASH` black @`alpha` 30 % over the ramp.
+The shares are the same at every tier (sheet 01's tier panels scale panel A's spots with the nucleus), so there is
+no per-tier bake. At these extremes two neighbours can never overlap (the closest pair, 0.08 turn apart on the
+inner edge, sits 0.27 r_n apart against 0.26 r_n of summed radii): the old 0.10–0.17 r_n spots on a 0.42–0.64 ring
+could, and an overlapping pair doubled the wash into the darkest blob on the disc. A black wash multiplies the ramp,
+so a spot keeps the ramp's hue; @30 % it drops luminance to 0.65–0.70 of the ramp around it at r ≈ 148 px, panel A's
+`#167787` @55 % measures 0.64–0.73 — the spots read darker in the old bake by their area (≈ 2× panel A's) and the
+overlaps, not by their alpha. Panel A's single chromatin thread is not baked.
+
 Why the tinted bake read flat: a white bake under one multiplicative tint can reach nothing paler than the
 tint and darkens toward grey (`#6fdcef` at 0.45 luminance is `#32636c`, saturation 0.37 against `#167787`'s
 0.72), so both ends of panel A's ramp were missing and the disc was one mid tone from 44 px up. Per-palette

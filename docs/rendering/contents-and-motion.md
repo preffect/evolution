@@ -11,7 +11,8 @@ nucleolus, nucleoid 1 / 2 / 3 loops, envelope with 16 / 20 / 24 pores, eyespot),
 at startup, so the own cell at its 1080p cap (128 px under Z1) never upsamples at DPR 1 or 2. **Every atlas sprite bakes its own soft halo**
 (`ASSET-GENERATION.md §1.5`'s core + soft + wide + glint, for organelles): the nucleus entry is sheet 01 layer 6
 minus its disc fill, a 0.40 r soft glow @35 % **cut out inside the 0.30 r disc** (`cutDisc`, `destination-out`,
-so it is an outer glow and never flattens the ramp under it), the 2.3 px rim @75 %, five chromatin spots,
+so it is an outer glow and never flattens the ramp under it), the 2.3 px rim @75 %, five chromatin spots
+(0.07–0.13 r_n on a 0.54–0.71 r_n ring @30 %, never overlapping: `visual-style/cells-and-organelles.md §3`),
 the white nucleolus with its own halo and the nucleus's own highlight (0.34 r / −136°, 0.075 × 0.03 r), so the
 sprite is ≈ 0.85 r wide; the disc itself is the shader's ramp below (#231). The nucleus and nucleoid bakes are
 white and the sprite layer tints both with the palette **rim** (`organelle-sprites.ts`; the nucleus colour would
