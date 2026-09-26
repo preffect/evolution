@@ -13,8 +13,10 @@
 The frame budget is `architecture/client.md §6` (60 fps, ≤ 12 ms p95 at 8 cells + 1 400 motes). To hold it:
 
 - **Built once, blitted per frame (render textures):** the dish field with its zone tints and noise
-  clouds, mire strands, the vent crust and the wall (one texture per zoom band, rebuilt only when the
-  camera crosses a band); the condenser light pool with its caustics as one view-anchored sprite over
+  clouds (one texture for every zoom band: it holds only soft gradients); its lines are never baked into
+  it: the vent crust is its own sprite, the wall and the mire strands and stage scratches are world-scale
+  geometry, the strands and scratches redrawn only when the camera crosses a zoom band (#223,
+  `rendering/budget.md §6`); the condenser light pool with its caustics as one view-anchored sprite over
   the field (§1, `rendering/budget.md §6.1`); the vignette; every glow halo as a radial-gradient
   sprite scaled to size; the cytoplasm noise as one seeded 256 × 256 tile, tinted per palette; every
   mote and bacterium as a pre-rendered sprite at 4 px/wu plus a small variant for zoom < 0.5, in a

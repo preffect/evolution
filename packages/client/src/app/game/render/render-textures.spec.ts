@@ -131,13 +131,14 @@ describe('the two halves of the bundle (#442)', () => {
    * `fork(label)` seeds a child from the parent's **seed**, never its position
    * (`determinism/random-streams.md` §3), so no bake can move another's numbers whatever order they run in.
    * What this does catch is the composition — a `createRenderTextures` that hands the two halves different
-   * inputs — which is why the strokes are compared with gel patches in play.
+   * inputs — which is why the strokes and the field's seeded line details are compared with gel patches in play.
    */
   it('builds the seeded half the same whether it is built alone or as part of the whole bundle', () => {
     const whole = createTestRenderTextures({ ...seededOptions, baker: createFakeTextureBaker() });
     const seededOnly = createSeededRenderTextures({ ...seededOptions, baker: createFakeTextureBaker() });
     expect(areBytesEqual(whole.strip.bytes, seededOnly.strip.bytes)).toBe(true);
     expect(fakeContextOf(seededOnly.dishField.canvas).calls).toEqual(fakeContextOf(whole.dishField.canvas).calls);
+    expect(seededOnly.dishField.details).toEqual(whole.dishField.details);
     expect(fakeContextOf(seededOnly.vent.canvas).calls).toEqual(fakeContextOf(whole.vent.canvas).calls);
     expect(seededOnly.tileTexture.width).toBe(whole.tileTexture.width);
   });

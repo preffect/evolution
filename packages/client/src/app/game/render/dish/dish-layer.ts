@@ -1,8 +1,9 @@
 // The dish layer (docs/rendering/budget.md §6, §6.1, docs/visual-style/principles-and-palette.md §1): the baked field as one
-// sprite scaled to the dish (textures/dish-texture.ts: zone tints, gel strands), the condenser light
+// sprite scaled to the dish (textures/dish-texture.ts: zone tints), the condenser light
 // pool over it as one sprite re-placed every frame with the inverse camera transform so it stays
 // fixed to the top-left of the view (textures/light-pool-bake.ts), the vent sprite at the vent zone
-// (textures/vent-bake.ts), the wall's crisp lines as world-scale Graphics (the one hard edge) and
+// (textures/vent-bake.ts), the wall's crisp lines as world-scale Graphics with the field's line details under
+// them, redrawn per zoom band (dish-details.ts: gel strands, stage scratches, #223), and
 // the three depth particle layers; the orchestrator keeps the screen-space vignette above
 // everything. The vent shimmer (rendering/budget.md §6, the one filter) is deferred.
 
@@ -31,6 +32,8 @@ import {
   WHITE,
 } from '../constants';
 import type { RenderTextures } from '../render-textures';
+import type { DishDetailStroke } from '../textures/dish-field-details';
+import { dishDetailBandFor, drawDishDetails, type DishDetailBand } from './dish-details';
 import {
   DEPTH_LAYER,
   depthParticlePosition,
@@ -105,9 +108,11 @@ export function placeLightPoolSprite(sprite: Sprite, camera: CameraState, viewpo
   sprite.height = (LIGHT_POOL_VIEW_RADII.y * DIAMETER_PER_RADIUS * viewport.height) / zoom;
 }
 
-/** The wall (sheet 02 dish-wall table): glass band with its inner and outer glass, rim scatter, rim glow, hairline. */
+/**
+ * Adds the wall (sheet 02 dish-wall table) to `graphics` over what it holds: glass band with its inner and outer
+ * glass, rim scatter, rim glow, hairline.
+ */
 export function drawDishWall(graphics: Graphics): void {
-  graphics.clear();
   const glassOuter = DISH_RADIUS + WALL_GLASS_WU;
   graphics
     .circle(0, 0, glassOuter)
@@ -138,9 +143,15 @@ export class DishLayer {
   /** World-space, above the cells: the near and bokeh particles. */
   readonly nearContainer = new Container();
   private readonly field: Sprite;
+  private detailBand: DishDetailBand | null = null;
+  private readonly detailStrokes: readonly DishDetailStroke[];
   private readonly lightPool: Sprite;
   private readonly vent: Sprite;
-  private readonly wall = new Graphics();
+  /**
+   * The field's line details under the wall's lines, in one Graphics: its geometry is too big for Pixi to batch,
+   * so a second Graphics would cost its own draw call and break the sprite batch around it (+2 calls, measured).
+   */
+  private readonly lines = new Graphics();
   private readonly depthFields: DepthField[] = [];
 
   constructor(
@@ -150,10 +161,11 @@ export class DishLayer {
     >,
   ) {
     this.field = createDishFieldSprite(textures);
+    this.detailStrokes = textures.dishField.details;
     this.lightPool = createLightPoolSprite(textures);
     this.vent = createVentSprite(textures);
-    drawDishWall(this.wall);
-    this.container.addChild(this.field, this.lightPool, this.vent, this.wall);
+    drawDishWall(this.lines);
+    this.container.addChild(this.field, this.lightPool, this.vent, this.lines);
     for (const layer of [DEPTH_LAYER.far, DEPTH_LAYER.near, DEPTH_LAYER.bokeh]) {
       const field = this.createDepthField(layer, textures.glowTexture, textures.cosmetic);
       (layer === DEPTH_LAYER.far ? this.container : this.nearContainer).addChild(field.container);
@@ -185,6 +197,7 @@ export class DishLayer {
 
   update(frame: DishLayerFrame): void {
     placeLightPoolSprite(this.lightPool, frame.camera, frame.viewport);
+    this.updateDetailBand(frame);
     for (const field of this.depthFields) {
       for (const { spec, particle } of field.entries) {
         const position = depthParticlePosition(spec, field.layer, frame.timeSeconds, frame.camera);
@@ -193,6 +206,19 @@ export class DishLayer {
       }
       field.container.update();
     }
+  }
+
+  /**
+   * Redraws the line details, and the wall over them, when the camera has crossed into another zoom band; a viewport
+   * with no height keeps them.
+   */
+  private updateDetailBand(frame: DishLayerFrame): void {
+    if (!hasViewportHeight(frame.viewport)) return;
+    const band = dishDetailBandFor(zoomFor(frame.camera, frame.viewport), this.detailBand);
+    if (band === this.detailBand) return;
+    this.detailBand = band;
+    drawDishDetails(this.lines, this.detailStrokes, band);
+    drawDishWall(this.lines);
   }
 
   destroy(): void {
