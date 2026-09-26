@@ -3,10 +3,12 @@
 // overlap, split by inverse mass (the lighter cell moves more). Pairs are walked id-sorted
 // (docs/determinism/ordering-and-state-hash.md §4). A predator and its current prey are left alone until payout or release
 // (E16), and a pair inside a spit-out refractory is separated as if neither could engulf the other,
-// so a spat-out prey is pushed clear (T4). Engulf contact lives here too: it is the one geometric
+// so a spat-out prey is pushed clear (T4). The push is at least enough to leave the centres
+// `CELL_MIN_CENTRE_DISTANCE_FRACTION` of the radii's sum apart, or no closer than they started the tick, and a pair
+// whose centres crossed this tick is pushed back along its start-of-tick centre line instead (#709). Engulf contact lives here too: it is the one geometric
 // test the engulf step shares with nothing else.
 
-import { canEngulf, distanceBetween, type BalanceConfig } from '@evolution/shared';
+import { canEngulf, distanceBetween, type BalanceConfig, type Vec2 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import { compareEntityIds } from '../world/entity-ids.js';
 import type { WorldState } from '../world/world-state.js';
@@ -62,30 +64,119 @@ export function isEngulfInProgress(pair: CellPair): boolean {
   return pair.lower.engulfingCellId === pair.higher.id || pair.higher.engulfingCellId === pair.lower.id;
 }
 
-function pushApart(pair: CellPair, overlap: number, balance: BalanceConfig): void {
+/** Where every cell's centre was at the start of the tick, before movement: the axis a crossed pair is pushed back along. */
+export type StartCentres = ReadonlyMap<CellRecord, Vec2>;
+
+const NO_START_CENTRES: StartCentres = new Map();
+
+/** A pair whose centres passed each other this tick: the start-of-tick centre line and where the pair now lies on it. */
+interface Crossing {
+  readonly unit: Vec2;
+  /** The higher cell's centre past the lower's along `unit` (wu): negative once the centres have crossed. */
+  readonly along: number;
+}
+
+/**
+ * Head-on crossing (docs/ecology/mass-and-movement.md §5.3, #709): the centres swapped sides of the start-of-tick
+ * centre line while the pair was in reach of each other across it. A glancing pass keeps `along` positive.
+ */
+function crossingOf(pair: CellPair, startCentres: StartCentres): Crossing | undefined {
+  const lowerStart = startCentres.get(pair.lower);
+  const higherStart = startCentres.get(pair.higher);
+  if (lowerStart === undefined || higherStart === undefined) {
+    return undefined;
+  }
+  const startDistance = distanceBetween(lowerStart, higherStart);
+  if (startDistance === 0) {
+    return undefined;
+  }
+  const unit = { x: (higherStart.x - lowerStart.x) / startDistance, y: (higherStart.y - lowerStart.y) / startDistance };
+  const offsetX = pair.higher.x - pair.lower.x;
+  const offsetY = pair.higher.y - pair.lower.y;
+  const along = offsetX * unit.x + offsetY * unit.y;
+  const across = Math.abs(offsetX * unit.y - offsetY * unit.x);
+  return along < 0 && across < pair.lower.radius + pair.higher.radius ? { unit, along } : undefined;
+}
+
+/** Moves the pair `shift` wu further apart along `unit` (lower → higher), split by inverse mass (the lighter moves more). */
+function shiftApart(pair: CellPair, unit: Vec2, shift: number): void {
+  const { lower, higher } = pair;
+  const totalMass = lower.mass + higher.mass;
+  const lowerShare = higher.mass / totalMass;
+  const higherShare = lower.mass / totalMass;
+  lower.x -= unit.x * shift * lowerShare;
+  lower.y -= unit.y * shift * lowerShare;
+  higher.x += unit.x * shift * higherShare;
+  higher.y += unit.y * shift * higherShare;
+}
+
+/**
+ * The closest a pair that cannot engulf each other may end this tick (wu, §5.3, #709): the minimum centre distance, a
+ * share of the radii's sum, or where the pair started the tick when that was already closer. The cap only stops a
+ * pair getting deeper; a pair that starts deep (a spat-out or released prey) eases out at the fraction's rate.
+ * Without start centres there is nothing to hold, so 0.
+ */
+function closestAllowedDistanceOf(pair: CellPair, startCentres: StartCentres, balance: BalanceConfig): number {
+  const lowerStart = startCentres.get(pair.lower);
+  const higherStart = startCentres.get(pair.higher);
+  if (lowerStart === undefined || higherStart === undefined) {
+    return 0;
+  }
+  const minimum = (pair.lower.radius + pair.higher.radius) * balance.growth.CELL_MIN_CENTRE_DISTANCE_FRACTION;
+  return Math.min(minimum, distanceBetween(lowerStart, higherStart));
+}
+
+/**
+ * `CELL_SEPARATION_FRACTION_PER_TICK` of the overlap, or more when that would still leave the centres closer than
+ * the closest allowed distance: the depth cap that stops an off-axis pair pivoting through itself (#709).
+ */
+function pushApart(pair: CellPair, overlap: number, closestAllowed: number, balance: BalanceConfig): void {
   const { lower, higher } = pair;
   const distance = distanceBetween(lower, higher);
   // Coincident centres have no line to push along; the next tick's movement separates them.
   if (distance === 0) {
     return;
   }
-  const shift = overlap * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
-  const unitX = (higher.x - lower.x) / distance;
-  const unitY = (higher.y - lower.y) / distance;
-  const totalMass = lower.mass + higher.mass;
-  const lowerShare = higher.mass / totalMass;
-  const higherShare = lower.mass / totalMass;
-  lower.x -= unitX * shift * lowerShare;
-  lower.y -= unitY * shift * lowerShare;
-  higher.x += unitX * shift * higherShare;
-  higher.y += unitY * shift * higherShare;
+  const unit = { x: (higher.x - lower.x) / distance, y: (higher.y - lower.y) / distance };
+  const fractionShift = overlap * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
+  shiftApart(pair, unit, Math.max(fractionShift, closestAllowed - distance));
 }
 
-export function separateOverlappingCells(world: WorldState, balance: BalanceConfig): void {
+/**
+ * A crossed pair is put back where its centres meet on the start-of-tick line, then separated from there as any pair
+ * is: `CELL_SEPARATION_FRACTION_PER_TICK` of the overlap coincident centres have (the sum of the radii), or the
+ * closest allowed distance when that is further.
+ */
+function pushBack(pair: CellPair, crossing: Crossing, closestAllowed: number, balance: BalanceConfig): void {
+  const radii = pair.lower.radius + pair.higher.radius;
+  const fractionShift = radii * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
+  shiftApart(pair, crossing.unit, Math.max(fractionShift, closestAllowed) - crossing.along);
+}
+
+function isSeparable(pair: CellPair, world: WorldState, balance: BalanceConfig): boolean {
+  return !isEngulfInProgress(pair) && !isEngulfPossible(pair, world, balance);
+}
+
+/**
+ * Separation (docs/ecology/mass-and-movement.md §5.3). Given the start-of-tick centres (movement passes them), a pair
+ * whose centres crossed this tick is pushed back along its start-of-tick line instead of out the far side (#709).
+ */
+export function separateOverlappingCells(
+  world: WorldState,
+  balance: BalanceConfig,
+  startCentres: StartCentres = NO_START_CENTRES,
+): void {
   for (const pair of cellPairs(world.cells)) {
+    const crossing = crossingOf(pair, startCentres);
     const overlap = pair.lower.radius + pair.higher.radius - distanceBetween(pair.lower, pair.higher);
-    if (overlap > 0 && !isEngulfInProgress(pair) && !isEngulfPossible(pair, world, balance)) {
-      pushApart(pair, overlap, balance);
+    if ((crossing === undefined && overlap <= 0) || !isSeparable(pair, world, balance)) {
+      continue;
+    }
+    const closestAllowed = closestAllowedDistanceOf(pair, startCentres, balance);
+    if (crossing === undefined) {
+      pushApart(pair, overlap, closestAllowed, balance);
+    } else {
+      pushBack(pair, crossing, closestAllowed, balance);
     }
   }
 }

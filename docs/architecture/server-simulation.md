@@ -14,7 +14,9 @@ against it):
    1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild settle and the due wild seats' decisions (§3.4)
                    (`wild/wild-settle.ts`: every seated wild cell's growth, recovery, level, traits and stage; `wild/wild-strategy.ts`: target + sprint)
    2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
-   3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation
+   3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation, held to a minimum centre
+                   distance, which reads the start-of-tick centres so a pair that crossed this tick is pushed back to its own sides
+                   (ecology/mass-and-movement.md §5.3)
    4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; a wild cell eats algae and detritus only
    5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1); a wild cell,
                    free or engulfing, takes every drain and gain but no base decay (the settle takes decay from its growth)

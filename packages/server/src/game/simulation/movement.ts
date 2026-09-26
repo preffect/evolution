@@ -24,7 +24,7 @@ import {
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { separateOverlappingCells } from './contact.js';
+import { separateOverlappingCells, type StartCentres } from './contact.js';
 import { engulfedPreyOf, engulfingPredatorOf, isCarried } from './engulf-state.js';
 
 /** `SPRINT_SPEED_MULTIPLIER + sprintSpeedMultiplierBonus` while a sprint runs, 1 otherwise. */
@@ -172,7 +172,13 @@ function placeCarriedCell(cell: CellRecord, world: WorldState, placed: Set<CellR
   applyPose(cell, clampToDish(carried, cell.radius, balance.world.DISH_RADIUS));
 }
 
+/** Every cell's centre before this tick's move: separation pushes a pair that crossed back along that line (§5.3). */
+function startCentresOf(world: WorldState): StartCentres {
+  return new Map(world.cells.map((cell) => [cell, { x: cell.x, y: cell.y }]));
+}
+
 export function moveCells(world: WorldState, context: StepContext): void {
+  const startCentres = startCentresOf(world);
   // The command is taken for every cell from its start-of-tick pose and kept on the record, so the
   // engulf struggle at step 6 reads the very command this step moved on (docs/ecology/mass-and-movement.md §5.2, docs/ecology/absorption.md §6.1).
   for (const cell of world.cells) {
@@ -193,6 +199,6 @@ export function moveCells(world: WorldState, context: StepContext): void {
   for (const cell of world.cells) {
     ageSprintClocks(cell);
   }
-  separateOverlappingCells(world, context.balance);
+  separateOverlappingCells(world, context.balance, startCentres);
   restorePins(world);
 }

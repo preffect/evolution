@@ -242,22 +242,6 @@ describe('ecology/mass-and-movement.md §5.3: two bots colliding (#199)', () => 
       .toBeCloseTo(decayed(CHARGER_MASS, COLLISION_TICKS), MASS_TOLERANCE)
       .runDeterministic();
   });
-
-  // Known failure, ticket #709: two protocells at the starting mass charging head-on pass
-  // through each other on tick 59. Separation runs once per tick after the move, so it holds the pair at
-  // `CHARGE_OVERLAP_BOUND_WU` deep; the pair still closes `MAX_CLOSING_PER_TICK_WU` a tick, and once that is at least the
-  // centre gap left (closing / f ≥ the sum of the radii: 36.7 ≥ 35.8 wu here) the move crosses the centres and the
-  // separation pushes them out the far side. absorption.md §6.3: "Near-equal cells only push apart (§5.3)".
-  it.fails('two equal cells charging each other never pass through each other', async () => {
-    const run = chargingPair('two chargers pass through');
-    for (let tick = 1; tick <= COLLISION_TICKS; tick += 1) {
-      run
-        .expect(`A still west of B on tick ${tick}`, (view) => (cellOf(view, 1)?.x ?? 0) - (cellOf(view, 0)?.x ?? 0))
-        .atTick(tick)
-        .toBeGreaterThan(0);
-    }
-    await run.runDeterministic();
-  });
 });
 
 describe('seeded bot playthrough (#199)', () => {

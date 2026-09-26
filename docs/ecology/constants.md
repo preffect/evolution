@@ -49,6 +49,7 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `CELL_BASE_SPEED`                                                  | 220              | wu/s         |
 | `CELL_ACCELERATION_SECONDS`                                        | 0.25             | s            |
 | `CELL_SEPARATION_FRACTION_PER_TICK`                                | 0.2              | ratio        |
+| `CELL_MIN_CENTRE_DISTANCE_FRACTION`                                | 0.5              | ratio        |
 | `GEL_MASS_SCALE` / `GEL_MIN_SPEED_FACTOR` / `GEL_MAX_SPEED_FACTOR` | 1000 / 0.4 / 0.9 | mass / × / × |
 | `MASS_OVERFLOW_DNA_PER_MASS`                                       | 0.1              | DNA/mass     |
 | `MITOSIS_*`, `EJECT_MASS`                                          | §5.4             | reserved     |
