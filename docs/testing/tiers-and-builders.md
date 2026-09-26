@@ -67,10 +67,12 @@ node environment, where its environment cost is ~0 ms. The 91 files that carry i
 - **When in doubt, leave it out.** A spec that needs the DOM and declares `node` fails loudly
   (`ReferenceError: document is not defined`) rather than silently, but it is still a red tier.
 - **The one case that fails silently: environment sniffing.** A module that branches on
-  `typeof window !== 'undefined'` (or `typeof document`, or a `globalThis` probe) does not throw
+  `typeof window !== 'undefined'` (or `typeof` any DOM global, `typeof process`, a
+  `globalThis.devicePixelRatio ?? 1` read, or a `'document' in globalThis` probe) does not throw
   under node — it takes the other branch, and the tier stays green while the spec exercises code
-  the browser never runs. No sniff exists in `packages/client/src` or `packages/shared/src` today,
-  and nothing enforces that; a spec whose graph grows one must lose the docblock.
+  the browser never runs. Client modules do sniff (`typeof ResizeObserver` in `ui-kit/element-size.ts`,
+  `typeof AudioContext` in `game/audio/web-audio-backend.ts`); no `node` spec's graph reaches one, and
+  the guard below keeps it so: a spec whose graph grows one must lose the docblock.
 - A spec that uses `TestBed`, renders a component, stubs `WebSocket` or `AudioContext` on
   `globalThis`, or drives Pixi keeps jsdom. The builder's TestBed setup file runs in both
   environments and costs ~0.85 s a file either way; it needs a DOM only once a spec uses `TestBed`.
@@ -83,8 +85,8 @@ node environment, where its environment cost is ~0 ms. The 91 files that carry i
 - The same docblock works in the integration tier (`lint-guard.integration.spec.ts` carries it).
 - `packages/client/src/testing/spec-environment.spec.ts` enforces both directions (ticket #489): it walks every
   client spec's import graph (`src/testing/import-graph.ts`, into `@evolution/shared`'s sources) and fails when a
-  spec whose graph reaches no DOM lacks the docblock, or when a `node` spec's graph holds a `typeof window` /
-  `typeof document` / `… in globalThis` sniff. "Reaches the DOM" is the rule above read off the syntax tree, so a
+  spec whose graph reaches no DOM lacks the docblock, or when a `node` spec's graph holds a sniff: `typeof` or a
+  `globalThis.` read of any DOM global, `self` or `process`, or an `… in globalThis` probe. "Reaches the DOM" is the rule above read off the syntax tree, so a
   DOM word in a comment or a string does not count; when it landed it moved 49 more specs to `node`. A `node` spec
   whose graph imports `@angular/core` or `pixi.js` and passes is left alone: only a sniff fails it.
 

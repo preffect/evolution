@@ -4,8 +4,9 @@
 // This walks every client spec's transitive import graph (static and dynamic imports, into `@evolution/shared`'s
 // sources; `import type` loads nothing and is not followed) and pins both directions:
 // (a) a spec whose graph reaches no DOM carries the `node` docblock;
-// (b) a `node` spec's graph holds no environment sniff (`typeof window`, `'document' in globalThis`, …), which
-//     would take the other branch under node and stay green while testing code the browser never runs.
+// (b) a `node` spec's graph holds no environment sniff (`typeof` or a `globalThis.` read of a DOM global, `self` or
+//     `process`, or `'document' in globalThis`), which takes the other branch under node instead of throwing, and
+//     stays green while the spec tests code the browser never runs.
 // "Reaches the DOM" is the rule PR #487 converted 91 specs by (§2.1), conservative on purpose: a file in the graph
 // imports a package other than `vitest`, a `node:` builtin or `@evolution/shared` (`@angular/*`, `pixi.js`, and any
 // third-party package no one has checked under node), or names a DOM global in its code (`DOM_GLOBALS`). The names
@@ -18,6 +19,7 @@ import { join, relative } from 'node:path';
 import typescript from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { DOM_GLOBALS, SNIFFED_GLOBALS } from './dom-globals';
 import { DYNAMIC_IMPORT, STATIC_IMPORT, importGraph, type ImportGraph } from './import-graph';
 import { repoPath } from './repo-document';
 
@@ -32,67 +34,6 @@ const ENVIRONMENT_DOCBLOCK = /@(?:vitest|jest)-environment\s+([\w-]+)\b/;
 const NODE_BUILTIN_PREFIX = 'node:';
 const PACKAGES_SAFE_UNDER_NODE: readonly string[] = ['vitest'];
 
-/** Globals jsdom provides and node lacks or implements differently (WebSocket, Event targets). */
-const DOM_GLOBALS: readonly string[] = [
-  'window',
-  'document',
-  'navigator',
-  'localStorage',
-  'sessionStorage',
-  'indexedDB',
-  'matchMedia',
-  'getComputedStyle',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'requestIdleCallback',
-  'devicePixelRatio',
-  'innerWidth',
-  'innerHeight',
-  'HTMLElement',
-  'HTMLCanvasElement',
-  'HTMLInputElement',
-  'HTMLImageElement',
-  'HTMLAudioElement',
-  'HTMLDivElement',
-  'HTMLButtonElement',
-  'SVGElement',
-  'DocumentFragment',
-  'ShadowRoot',
-  'NodeList',
-  'canvas',
-  'CanvasRenderingContext2D',
-  'OffscreenCanvas',
-  'ImageData',
-  'ImageBitmap',
-  'createImageBitmap',
-  'WebGLRenderingContext',
-  'WebGL2RenderingContext',
-  'DOMParser',
-  'DOMRect',
-  'MutationObserver',
-  'ResizeObserver',
-  'IntersectionObserver',
-  'KeyboardEvent',
-  'MouseEvent',
-  'PointerEvent',
-  'WheelEvent',
-  'TouchEvent',
-  'FocusEvent',
-  'UIEvent',
-  'InputEvent',
-  'DragEvent',
-  'WebSocket',
-  'AudioContext',
-  'OfflineAudioContext',
-  'AudioBuffer',
-  'GainNode',
-  'XMLHttpRequest',
-  'FileReader',
-  'Worker',
-  'SharedWorker',
-];
-/** The globals whose presence a module can test to tell a browser from node. */
-const SNIFFED_GLOBALS: readonly string[] = ['window', 'document', 'navigator', 'self'];
 const GLOBAL_THIS = 'globalThis';
 
 interface Exemption {
@@ -140,21 +81,36 @@ function isDomGlobalRead(node: typescript.Node): boolean {
   return !(typescript.isPropertyAccessExpression(parent) && parent.name === node && !isGlobalThisMember(parent));
 }
 
-/** `typeof window` and its kin (also through `globalThis.`), and any `… in globalThis` probe. */
-function isEnvironmentSniff(node: typescript.Node): boolean {
-  if (typescript.isTypeOfExpression(node)) {
-    const operand =
-      typescript.isPropertyAccessExpression(node.expression) && isGlobalThisMember(node.expression)
-        ? node.expression.name
-        : node.expression;
-    return typescript.isIdentifier(operand) && SNIFFED_GLOBALS.includes(operand.text);
-  }
+/** `typeof ResizeObserver` and its kin, bare or through `globalThis.`. */
+function isTypeofSniff(node: typescript.Node): boolean {
+  if (!typescript.isTypeOfExpression(node)) return false;
+  const operand =
+    typescript.isPropertyAccessExpression(node.expression) && isGlobalThisMember(node.expression)
+      ? node.expression.name
+      : node.expression;
+  return typescript.isIdentifier(operand) && SNIFFED_GLOBALS.includes(operand.text);
+}
+
+/** `globalThis.devicePixelRatio ?? 1`: under node the read is `undefined`, not a throw, so the fallback runs. */
+function isGlobalThisSniff(node: typescript.Node): boolean {
+  return (
+    typescript.isPropertyAccessExpression(node) && isGlobalThisMember(node) && SNIFFED_GLOBALS.includes(node.name.text)
+  );
+}
+
+/** `'document' in globalThis`, whatever the name. */
+function isInGlobalThisSniff(node: typescript.Node): boolean {
   return (
     typescript.isBinaryExpression(node) &&
     node.operatorToken.kind === typescript.SyntaxKind.InKeyword &&
     typescript.isIdentifier(node.right) &&
     node.right.text === GLOBAL_THIS
   );
+}
+
+/** Code that asks whether it runs in a browser, and so takes another branch under node instead of throwing. */
+function isEnvironmentSniff(node: typescript.Node): boolean {
+  return isTypeofSniff(node) || isGlobalThisSniff(node) || isInGlobalThisSniff(node);
 }
 
 function factsOf(file: string, source: string): FileFacts {
@@ -202,6 +158,14 @@ function classifySpecs(): SpecFacts[] {
   });
 }
 
+/** Whether the spec still breaks the rule its exemption waives; an exemption that no longer does is stale. */
+function isExemptionStillNeeded(exemption: Exemption, facts: SpecFacts | undefined): boolean {
+  if (facts === undefined) return false;
+  return exemption.rule === 'dom-free-needs-node'
+    ? !facts.isDomReaching && facts.environment !== NODE_ENVIRONMENT
+    : facts.environment === NODE_ENVIRONMENT && facts.sniffingFiles.length > 0;
+}
+
 function exempt(rule: Exemption['rule']): Set<string> {
   return new Set(EXEMPTIONS.filter((exemption) => exemption.rule === rule).map((exemption) => exemption.spec));
 }
@@ -219,6 +183,11 @@ describe('the client spec environment (#477, #489)', () => {
     expect(facts("const isBrowser = typeof window !== 'undefined';").hasEnvironmentSniff).toBe(true);
     expect(facts("const hasPage = typeof globalThis.document === 'object';").hasEnvironmentSniff).toBe(true);
     expect(facts("const hasPage = 'document' in globalThis;").hasEnvironmentSniff).toBe(true);
+    expect(facts("const canObserve = typeof ResizeObserver !== 'undefined';").hasEnvironmentSniff).toBe(true);
+    expect(facts("const isNode = typeof process === 'object';").hasEnvironmentSniff).toBe(true);
+    expect(facts('const pixelRatio = globalThis.devicePixelRatio ?? 1;').hasEnvironmentSniff).toBe(true);
+    expect(facts('const pixelRatio = devicePixelRatio;').hasEnvironmentSniff).toBe(false);
+    expect(facts('const ratio = screen.devicePixelRatio ?? 1;').hasEnvironmentSniff).toBe(false);
     expect(facts("// typeof window !== 'undefined'\nconst kind = typeof value;").hasEnvironmentSniff).toBe(false);
   });
 
@@ -245,15 +214,26 @@ describe('the client spec environment (#477, #489)', () => {
     expect(sniffing, 'drop the node docblock, or the sniff').toEqual([]);
   });
 
-  it('names only existing specs as exemptions, each still needed', () => {
+  it('keeps an exemption only while its spec still breaks the rule it waives', () => {
+    const domFree: SpecFacts = {
+      spec: 'probe.spec.ts',
+      environment: undefined,
+      isDomReaching: false,
+      sniffingFiles: [],
+    };
+    const nodeSniffing: SpecFacts = { ...domFree, environment: NODE_ENVIRONMENT, sniffingFiles: ['probe.ts'] };
+    const waiveDocblock: Exemption = { spec: domFree.spec, rule: 'dom-free-needs-node', reason: 'probe' };
+    const waiveSniff: Exemption = { spec: domFree.spec, rule: 'node-graph-has-no-sniff', reason: 'probe' };
+    expect(isExemptionStillNeeded(waiveDocblock, domFree)).toBe(true);
+    expect(isExemptionStillNeeded(waiveDocblock, { ...domFree, environment: NODE_ENVIRONMENT })).toBe(false);
+    expect(isExemptionStillNeeded(waiveDocblock, { ...domFree, isDomReaching: true })).toBe(false);
+    expect(isExemptionStillNeeded(waiveSniff, nodeSniffing)).toBe(true);
+    expect(isExemptionStillNeeded(waiveSniff, { ...nodeSniffing, sniffingFiles: [] })).toBe(false);
+    expect(isExemptionStillNeeded(waiveSniff, undefined)).toBe(false);
     for (const exemption of EXEMPTIONS) {
-      const facts = bySpec.get(exemption.spec);
-      expect(facts, exemption.spec).toBeDefined();
-      const isStillNeeded =
-        exemption.rule === 'dom-free-needs-node'
-          ? facts?.isDomReaching === false && facts.environment !== NODE_ENVIRONMENT
-          : facts?.environment === NODE_ENVIRONMENT && facts.sniffingFiles.length > 0;
-      expect(isStillNeeded, `${exemption.spec} no longer needs its exemption`).toBe(true);
+      expect(isExemptionStillNeeded(exemption, bySpec.get(exemption.spec)), `${exemption.spec}: stale exemption`).toBe(
+        true,
+      );
     }
   });
 });
