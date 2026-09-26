@@ -3,6 +3,7 @@ import {
   CELL_STAGE,
   CELL_STATE,
   DEFAULT_BALANCE,
+  ENGULF_SEAL_PROGRESS,
   createTestPlayerProgressView,
   entityId,
   type CellView,
@@ -27,7 +28,7 @@ import { threatLabelPlacement } from './threat-label-placement';
 
 const textures = createTestRenderTextures().indicators;
 const REQUIRED = endosymbiontTallies()[0]!.required;
-const SEAL = DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS;
+const SEAL = ENGULF_SEAL_PROGRESS;
 const THREAT_LABEL = 'Amoeboid can engulf you';
 
 function recordFor(cell: CellView, eaten = 0, level = 4): OwnCellIndicators {

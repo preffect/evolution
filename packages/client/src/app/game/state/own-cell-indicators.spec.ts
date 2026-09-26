@@ -4,6 +4,7 @@ import {
   CELL_STATE,
   DEFAULT_BALANCE,
   ENGULF_PHASE,
+  ENGULF_SEAL_PROGRESS,
   createTestPlayerProgressView,
   entityId,
   levelUpCost,
@@ -97,7 +98,7 @@ describe('ownCellIndicatorsFor', () => {
   });
 
   it('opens the escape window while being engulfed and drains it toward the seal', () => {
-    const seal = DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS;
+    const seal = ENGULF_SEAL_PROGRESS;
     const held = createTestCellView({
       states: [CELL_STATE.beingEngulfed],
       engulfProgress: seal / 2,
@@ -123,7 +124,7 @@ describe('ownCellIndicatorsFor', () => {
   it('locks the window at zero from the seal on, where escape is no longer the player’s to win', () => {
     const sealed = createTestCellView({
       states: [CELL_STATE.beingEngulfed],
-      engulfProgress: DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS,
+      engulfProgress: ENGULF_SEAL_PROGRESS,
       engulfedByCellId: entityId('predator'),
     });
     const indicators = indicatorsOf(sealed);

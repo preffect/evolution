@@ -12,7 +12,7 @@ exactly as the design tables name it (`game-design/constants-and-acceptance.md �
 room only as the endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the number the draft gate and the
 ladder orbit read, so there is one copy on the wire, #286; being catalog structure inside an array, it is not
 `debug_set_balance`-patchable, so the count is a build-time constant and retuning the endosymbiosis trip is a code
-change) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
+change; and no domain carries a constant computed from other constants of its module, below) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
 patched copy holds other numbers). The record is deep-frozen: it aliases the module constants, so a room
 that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
@@ -26,6 +26,17 @@ world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TI
 catalog row carries its tiers), so a patch has one path. The one number read from catalog structure is
 `TRAIT_CATALOG[n].unlockedBy.count` (above), which has no patch path at all. Nothing reads `data/balance.json` at
 runtime. The full rule set is `CODE-STANDARDS.md §2`.
+**Derived constants are not balance leaves (#367).** A constant computed from balance leaves (today
+`ENGULF_BASE_DURATION_SECONDS`, `ENGULF_WRAP_START_PROGRESS` and `ENGULF_SEAL_PROGRESS`, from the three engulf phase
+seconds) is listed in `DERIVED_BALANCE_CONSTANTS`, exported beside `DEFAULT_BALANCE` in `balance.ts`, and declared
+outside the domain module the balance spreads (`constants/absorption-derived.ts`, beside `absorption.ts`). Everything
+that needs its value derives it at read time from the room's leaves through the shared function that owns the formula
+(`engulfBaseDurationSeconds`, `engulfWrapStartProgress`, `engulfSealProgress` in `simulation/engulf-pace.ts`), so a
+patched source leaf is felt and there is no second copy to disagree with it; the named export is the defaults' value,
+for the docs and the ledger, computed by the same function over the domain module.
+`balance.test.ts` pins that no domain carries a listed name, and `constants-ledger.test.ts` that the `derived` rows
+of the design tables (a row whose later cell reads `(derived …`) are exactly the list, so a new derived constant cannot
+reach the balance untagged.
 `constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
 `viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
 knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
@@ -36,7 +47,8 @@ knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
 packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
   constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,absorption,progression,traits}.ts
-  constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig
+  constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig, DERIVED_BALANCE_CONSTANTS
+  constants/absorption-derived.ts                               the engulf base duration and progress bands at the defaults, derived from absorption.ts; not in balance (§9)
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
   constants/interest.ts                                         viewport culling: the covered aspect, the camera history and the margin, derived (wire-contract.md §4.2 lever 1)

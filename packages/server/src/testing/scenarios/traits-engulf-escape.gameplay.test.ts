@@ -6,7 +6,7 @@
 // repeated. The setup and the input scripts are `engulf-setups.ts`.
 
 import { describe, it } from 'vitest';
-import { ENGULF_RELEASE_REASON, PLAYER_LIFE_STATE } from '@evolution/shared';
+import { ENGULF_RELEASE_REASON, ENGULF_SEAL_PROGRESS, PLAYER_LIFE_STATE } from '@evolution/shared';
 import {
   PREDATOR_MASS,
   PREY_MASS,
@@ -63,10 +63,10 @@ function expectAbsorbed(
     .advance(payoutTick)
     .expect(`not sealed on tick ${sealTick - 1}`, progressOfPrey)
     .atTick(sealTick - 1)
-    .toBeLessThan(absorption.ENGULF_SEAL_PROGRESS)
+    .toBeLessThan(ENGULF_SEAL_PROGRESS)
     .expect(`sealed on tick ${sealTick}`, progressOfPrey)
     .atTick(sealTick)
-    .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON)
+    .toBeGreaterThan(ENGULF_SEAL_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON)
     .expect('never released', releaseReasons)
     .atTick(payoutTick - 1)
     .toEqual([])

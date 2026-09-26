@@ -6,7 +6,15 @@
 // seated on demand beside the placed cell, the only wild cell in the dish.
 
 import { describe, it } from 'vitest';
-import { CELL_STATE, DEFAULT_BALANCE, DNA_TAG, TICK_HZ, radiusForMass } from '@evolution/shared';
+import {
+  CELL_STATE,
+  DEFAULT_BALANCE,
+  DNA_TAG,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
+  TICK_HZ,
+  radiusForMass,
+} from '@evolution/shared';
 import { foodCount, fragmentCount, massOf, progressOf, wildCellsOf } from '../gameplay/evolution-views.js';
 import { TABLE_SEED } from '../gameplay/evolution-adapter.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
@@ -132,10 +140,10 @@ describe('ecology/acceptance.md §8.1: the wild cells', () => {
       .toSatisfy((target) => target === undefined, 'no target')
       .expect('cover ends on tick 6', progressOfSeat)
       .atTick(E9_COVER_END_TICK)
-      .toBeCloseTo(absorption.ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_WRAP_START_PROGRESS, PROGRESS_TOLERANCE)
       .expect('sealed on tick 18', progressOfSeat)
       .atTick(E9_SEAL_TICK)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
       .expect('carried at its 10 wu offset past its decision on tick 30', (view) => distanceFromSeat(view, 0))
       .atTick(FIRST_DECISION_TICK + ONE_TICK)
       .toBeCloseTo(CENTRE_DISTANCE_WU, OFFSET_TOLERANCE_WU)

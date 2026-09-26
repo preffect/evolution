@@ -4,6 +4,7 @@ import {
   CELL_STATE,
   DEFAULT_BALANCE,
   ENDOSYMBIOSIS_BACTERIA_REQUIRED,
+  ENGULF_SEAL_PROGRESS,
   createTestPlayerProgressView,
   entityId,
   levelUpCost,
@@ -132,7 +133,7 @@ describe('formatOwnCellStatus attributes', () => {
     const wrapping = statusAt(0.35);
     expect(wrapping.attributes['data-engulfed']).toBe('35');
     expect(wrapping.attributes['data-engulf-phase']).toBe('wrap');
-    expect(statusAt(DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS).attributes['data-engulf-phase']).toBe('absorb');
+    expect(statusAt(ENGULF_SEAL_PROGRESS).attributes['data-engulf-phase']).toBe('absorb');
   });
 
   it('reports the nearest threat by cell id', () => {
@@ -163,7 +164,7 @@ describe('formatOwnCellStatus text', () => {
 
     const sealed = createTestCellView({
       states: [CELL_STATE.beingEngulfed],
-      engulfProgress: DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS,
+      engulfProgress: ENGULF_SEAL_PROGRESS,
       engulfedByCellId: entityId('predator'),
     });
     expect(formatOwnCellStatus(indicatorsWith(sealed)).text).toContain('Sealed');

@@ -5,6 +5,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as constants from './index.js';
+import { DERIVED_BALANCE_CONSTANTS } from './balance.js';
 import { markdownSection, tableRows } from '../testing/markdown-document.js';
 
 const DOCS_DIRECTORY = new URL('../../../../docs/', import.meta.url);
@@ -80,12 +81,24 @@ const GLOB_ROW_SOURCE = {
   realName: 'EJECT_MASS',
 };
 
-/** Every backticked UPPER_SNAKE name in the first cell of a table row of the section. */
-function namesInConstantsTable(documentName: string, section: number): string[] {
+/** A row whose value is computed from other constants says so in a later cell: `s (derived: …)`, `(derived from …)`. */
+const DERIVED_ROW_PATTERN = /\(derived\b/;
+
+/** Every row, or only the rows whose other cells pass `selectsRow`. */
+const EVERY_ROW = (): boolean => true;
+const DERIVED_ROW = (otherCells: readonly string[]): boolean =>
+  otherCells.some((cell) => DERIVED_ROW_PATTERN.test(cell));
+
+/** Every backticked UPPER_SNAKE name in the first cell of a table row of the section that `selectsRow` keeps. */
+function namesInConstantsTable(
+  documentName: string,
+  section: number,
+  selectsRow: (otherCells: readonly string[]) => boolean = EVERY_ROW,
+): string[] {
   const markdown = readFileSync(new URL(documentName, DOCS_DIRECTORY), 'utf8');
   const names = new Set<string>();
-  for (const [firstCell] of tableRows(markdownSection(markdown, `## ${section}. Constants table`))) {
-    if (!firstCell?.startsWith(NAME_CELL_START)) continue;
+  for (const [firstCell, ...otherCells] of tableRows(markdownSection(markdown, `## ${section}. Constants table`))) {
+    if (!firstCell?.startsWith(NAME_CELL_START) || !selectsRow(otherCells)) continue;
     for (const match of firstCell.matchAll(BACKTICKED_NAME_PATTERN)) names.add(match[1]!);
   }
   return [...names];
@@ -111,6 +124,17 @@ describe('constants ledger: every design-table constant is exported', () => {
       expect(constants).toHaveProperty(name);
       expect((constants as Record<string, unknown>)[name]).not.toBeUndefined();
     });
+  });
+});
+
+describe('constants ledger: derived constants stay out of the balance (#367)', () => {
+  it('lists exactly the derived rows of the design tables in DERIVED_BALANCE_CONSTANTS', () => {
+    // Both ways: a new derived row cannot reach the balance untagged, and a listed name the docs no longer mark
+    // derived (or a parser that stopped seeing the rows, which would pass the first direction vacuously) fails too.
+    const derivedRows = CONSTANTS_TABLE_SOURCES.flatMap(({ documentName, section }) =>
+      namesInConstantsTable(documentName, section, DERIVED_ROW),
+    );
+    expect(derivedRows.sort()).toEqual([...DERIVED_BALANCE_CONSTANTS].sort());
   });
 });
 

@@ -13,6 +13,7 @@ import {
   ENGULF_PHASE,
   clamp,
   engulfPhaseOf,
+  engulfSealProgress,
   levelUpCost,
   type BacteriumVariant,
   type BalanceConfig,
@@ -106,7 +107,7 @@ export function dnaFractionFor(progress: PlayerProgressView, balance: BalanceCon
  */
 function escapeFor(ownCell: CellView, balance: BalanceConfig): OwnCellEscape | null {
   if (!ownCell.states.includes(CELL_STATE.beingEngulfed) || ownCell.engulfedByCellId === null) return null;
-  const seal = balance.absorption.ENGULF_SEAL_PROGRESS;
+  const seal = engulfSealProgress(balance.absorption);
   return {
     progress: ownCell.engulfProgress,
     phase: engulfPhaseOf(ownCell.engulfProgress, balance.absorption),

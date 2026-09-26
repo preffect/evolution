@@ -75,7 +75,7 @@ function contactTickOf(scene: PreviewScene, preyId: string, balance: BalanceConf
 }
 
 /** One absorption row retuned as `debug_set_balance` hands it over; assigned, since the naming lint reads `ENGULF_*` literal keys as misnamed. */
-function withAbsorption(key: 'ENGULF_BASE_DURATION_SECONDS' | 'ENGULF_SEAL_PROGRESS', value: number): BalanceConfig {
+function withAbsorption(key: 'ENGULF_COVER_SECONDS' | 'ENGULF_WRAP_SECONDS', value: number): BalanceConfig {
   const absorption = { ...BALANCE.absorption };
   absorption[key] = value;
   return { ...BALANCE, absorption };
@@ -117,22 +117,27 @@ describe('both two-cell scenes', () => {
   });
 
   /**
-   * The ticket's acceptance: contact to the seal takes exactly the cover and wrap spans, and a patched base duration
-   * or seal moves that boundary — which separates "follows the balance" from "a constant happens to agree".
+   * The ticket's acceptance: contact to the seal takes exactly the cover and wrap spans, and a patched phase second
+   * moves those boundaries (#367: a longer wrap seals later, a longer cover wraps later) — which separates "follows the
+   * balance" from "a constant happens to agree".
    */
-  it('reaches the seal exactly the cover and wrap spans after contact, and follows a patched base and seal', () => {
-    const balances = [
-      BALANCE,
-      withAbsorption('ENGULF_BASE_DURATION_SECONDS', BALANCE.absorption.ENGULF_BASE_DURATION_SECONDS * 1.5),
-      withAbsorption('ENGULF_SEAL_PROGRESS', 0.75),
-    ];
+  it('reaches the seal exactly the cover and wrap spans after contact, and follows a patched cover and wrap', () => {
+    const longerWrap = withAbsorption('ENGULF_WRAP_SECONDS', BALANCE.absorption.ENGULF_WRAP_SECONDS * 2);
+    const longerCover = withAbsorption('ENGULF_COVER_SECONDS', BALANCE.absorption.ENGULF_COVER_SECONDS * 1.5);
+    const sealSecondsOf = (balance: BalanceConfig): number =>
+      engulfPhaseSpanSeconds(ENGULF_PHASE.cover, balance.absorption) +
+      engulfPhaseSpanSeconds(ENGULF_PHASE.wrap, balance.absorption);
+    // The patches must move the boundaries they are checked against, or the walk below proves nothing (#367).
+    expect(sealSecondsOf(longerWrap)).toBeGreaterThan(sealSecondsOf(BALANCE) + TICK_INTERVAL_S);
+    expect(engulfPhaseSpanSeconds(ENGULF_PHASE.cover, longerCover.absorption)).toBeGreaterThan(
+      engulfPhaseSpanSeconds(ENGULF_PHASE.cover, BALANCE.absorption) + TICK_INTERVAL_S,
+    );
+    const balances = [BALANCE, longerWrap, longerCover];
     for (const { name, spec, preyId } of scenes) {
       for (const balance of balances) {
         const scene = previewSceneFor(spec);
         const contactTick = contactTickOf(scene, preyId, balance);
-        const sealSeconds =
-          engulfPhaseSpanSeconds(ENGULF_PHASE.cover, balance.absorption) +
-          engulfPhaseSpanSeconds(ENGULF_PHASE.wrap, balance.absorption);
+        const sealSeconds = sealSecondsOf(balance);
         const phaseAt = (secondsAfterContact: number) => {
           const frame = scene.frameAt(contactTick + secondsAfterContact / TICK_INTERVAL_S, 0, balance);
           const prey = cellIn(frame, preyId);

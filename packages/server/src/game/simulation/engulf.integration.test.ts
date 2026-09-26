@@ -11,6 +11,7 @@ import {
   DEFAULT_BALANCE,
   EFFECT_KIND,
   ENGULF_RELEASE_REASON,
+  ENGULF_SEAL_PROGRESS,
   PLAYER_LIFE_STATE,
   SNAPSHOT_MASS_DECIMALS,
   TICK_INTERVAL_MS,
@@ -133,7 +134,7 @@ describe('an engulf through the room loop and onto the snapshot', () => {
     const atTick = (tick: number) => seen[tick - 1]!;
     expect(atTick(1).states).toEqual([CELL_STATE.beingEngulfed]);
     expect(atTick(1).progress).toBeCloseTo(1 / END_TICK, PROGRESS_DIGITS);
-    expect(atTick(SEAL_TICK).progress).toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
+    expect(atTick(SEAL_TICK).progress).toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_DIGITS);
     expect(atTick(END_TICK).states).toEqual([]);
     expect(atTick(END_TICK).progress).toBe(0);
   });

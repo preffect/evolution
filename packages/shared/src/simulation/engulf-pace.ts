@@ -13,14 +13,16 @@ import type { CellModifiers } from '../types/traits.js';
 export const ENGULF_PHASE = { cover: 'cover', wrap: 'wrap', absorb: 'absorb' } as const;
 export type EngulfPhase = ValueOf<typeof ENGULF_PHASE>;
 
+/** The three phase seconds (docs/ecology/constants.md §7): the engulf's tunables, everything else is derived. */
+type EngulfPhaseSecondsKey = 'ENGULF_COVER_SECONDS' | 'ENGULF_WRAP_SECONDS' | 'ENGULF_ABSORB_SECONDS';
+export type EngulfPhaseSeconds = Readonly<Record<EngulfPhaseSecondsKey, number>>;
+
 /** The `balance.absorption` rows the pace reads; the room's live copy, so `debug_set_balance` is felt. */
 export type EngulfPaceBalance = Pick<
   BalanceConfig['absorption'],
   | 'ENGULF_MASS_RATIO'
   | 'ENGULF_PROGRESS_EPSILON'
-  | 'ENGULF_BASE_DURATION_SECONDS'
-  | 'ENGULF_WRAP_START_PROGRESS'
-  | 'ENGULF_SEAL_PROGRESS'
+  | EngulfPhaseSecondsKey
   | 'ENGULF_MIN_DURATION_FACTOR'
   | 'ENGULF_ESCAPE_DECAY_MULTIPLIER'
   | 'ENGULF_STRUGGLE_SLOWDOWN'
@@ -56,12 +58,32 @@ export interface EngulfProgressInput {
   readonly prey: EngulfPreyPaceModifiers;
 }
 
+/**
+ * Duration at exactly the required ratio (s): the three phase seconds summed at read time, so a patched phase second
+ * is felt (#367). Summed absorb-first so the default is exactly the documented 1.2 (cover-first gives
+ * 1.2000000000000002).
+ */
+export function engulfBaseDurationSeconds(balance: EngulfPhaseSeconds): number {
+  return balance.ENGULF_ABSORB_SECONDS + balance.ENGULF_WRAP_SECONDS + balance.ENGULF_COVER_SECONDS;
+}
+
+/** The progress at which wrap starts: the cover's share of the base duration (1/6 by default). */
+export function engulfWrapStartProgress(balance: EngulfPhaseSeconds): number {
+  return balance.ENGULF_COVER_SECONDS / engulfBaseDurationSeconds(balance);
+}
+
+/** The progress at which the seal closes: cover and wrap's share of the base duration (exactly 0.5 by default). */
+export function engulfSealProgress(balance: EngulfPhaseSeconds): number {
+  const baseDurationSeconds = engulfBaseDurationSeconds(balance);
+  return (baseDurationSeconds - balance.ENGULF_ABSORB_SECONDS) / baseDurationSeconds;
+}
+
 /** The phase band `progress` falls in; `ENGULF_PROGRESS_EPSILON` keeps a boundary tick on the far side. */
 export function engulfPhaseOf(progress: number, balance: EngulfPaceBalance): EngulfPhase {
-  if (progress >= balance.ENGULF_SEAL_PROGRESS - balance.ENGULF_PROGRESS_EPSILON) {
+  if (progress >= engulfSealProgress(balance) - balance.ENGULF_PROGRESS_EPSILON) {
     return ENGULF_PHASE.absorb;
   }
-  if (progress >= balance.ENGULF_WRAP_START_PROGRESS - balance.ENGULF_PROGRESS_EPSILON) {
+  if (progress >= engulfWrapStartProgress(balance) - balance.ENGULF_PROGRESS_EPSILON) {
     return ENGULF_PHASE.wrap;
   }
   return ENGULF_PHASE.cover;
@@ -72,27 +94,24 @@ const START_PROGRESS = 0;
 const COMPLETE_PROGRESS = 1;
 
 /**
- * How long a phase lasts at exactly the required ratio, with nobody fighting: `ENGULF_BASE_DURATION_SECONDS` × the
- * width of the phase's progress band — cover `[0, WRAP_START)`, wrap `[WRAP_START, SEAL)`, absorb `[SEAL, 1]`
- * (docs/architecture/encyclopedia.md §12.3, ticket #362). The three spans sum to the base duration.
- *
- * It reads only the leaves the simulation reads (the base duration and the two band edges), never
- * `ENGULF_COVER_SECONDS` and its siblings: those are folded into the three at module load and a `debug_set_balance`
- * patch of one of them changes nothing the game plays. The encyclopedia's facts and preview scenes read this, so a
- * patched `ENGULF_SEAL_PROGRESS` moves the shown spans exactly as it moves the engulf.
+ * How long a phase lasts at exactly the required ratio, with nobody fighting: the base duration × the width of the
+ * phase's progress band — cover `[0, wrapStart)`, wrap `[wrapStart, seal)`, absorb `[seal, 1]`
+ * (docs/architecture/encyclopedia.md §12.3, ticket #362). The three spans sum to the base duration, and each is its
+ * phase second up to float rounding. The encyclopedia's facts and preview scenes read this, so a patched
+ * `ENGULF_WRAP_SECONDS` moves the shown spans exactly as it moves the engulf (#367).
  */
 export function engulfPhaseSpanSeconds(phase: EngulfPhase, balance: EngulfPaceBalance): number {
-  return balance.ENGULF_BASE_DURATION_SECONDS * engulfPhaseBandWidth(phase, balance);
+  return engulfBaseDurationSeconds(balance) * engulfPhaseBandWidth(phase, balance);
 }
 
 function engulfPhaseBandWidth(phase: EngulfPhase, balance: EngulfPaceBalance): number {
   switch (phase) {
     case ENGULF_PHASE.cover:
-      return balance.ENGULF_WRAP_START_PROGRESS - START_PROGRESS;
+      return engulfWrapStartProgress(balance) - START_PROGRESS;
     case ENGULF_PHASE.wrap:
-      return balance.ENGULF_SEAL_PROGRESS - balance.ENGULF_WRAP_START_PROGRESS;
+      return engulfSealProgress(balance) - engulfWrapStartProgress(balance);
     case ENGULF_PHASE.absorb:
-      return COMPLETE_PROGRESS - balance.ENGULF_SEAL_PROGRESS;
+      return COMPLETE_PROGRESS - engulfSealProgress(balance);
   }
 }
 
@@ -105,7 +124,7 @@ export function engulfMassFactor(predatorMass: number, preyMass: number, balance
 /** Progress per tick before the phase multiplier and the struggle: `TICK_INTERVAL_S / (base × massFactor)`. */
 export function engulfBaseRatePerTick(predatorMass: number, preyMass: number, balance: EngulfPaceBalance): number {
   const massFactor = engulfMassFactor(predatorMass, preyMass, balance);
-  return TICK_INTERVAL_S / (balance.ENGULF_BASE_DURATION_SECONDS * massFactor);
+  return TICK_INTERVAL_S / (engulfBaseDurationSeconds(balance) * massFactor);
 }
 
 /** A prey that is not steering away loses none of the phase rate. */
