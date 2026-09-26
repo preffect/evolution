@@ -128,7 +128,7 @@ describe('DishLayer', () => {
     ['from the band over it', 1.3],
   ])(
     'draws the lines once, then at most once more, for a zoom dithering ±1 %% around a band edge %s (#223)',
-    (_, startZoom) => {
+    (_startLabel, startZoom) => {
       const subject = new DishLayer(textures);
       const lines = subject.container.children[LINES_INDEX] as Graphics;
       const edge = DISH_DETAIL_BAND_MIN_ZOOMS.at(-1)!;

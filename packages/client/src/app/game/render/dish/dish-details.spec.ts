@@ -74,7 +74,7 @@ describe('dishDetailBandFor with a current band (the edge dead zone)', () => {
 
 describe('dishDetailAlpha', () => {
   it('keeps a line ink per length (alpha × width) the same in every band', () => {
-    const inks = DISH_DETAIL_BAND_MIN_ZOOMS.map((_, band) => {
+    const inks = DISH_DETAIL_BAND_MIN_ZOOMS.map((_minZoom, band) => {
       const widenedWu = dishDetailWidthWu(STRAND.widthWu, band);
       return dishDetailAlpha(STRAND, widenedWu) * widenedWu;
     });
