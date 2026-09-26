@@ -48,6 +48,19 @@ describe('injectDevelopmentRouteComponent', () => {
     expect(component()).toBe(DevelopmentPageStubComponent);
   });
 
+  it('logs which page failed and stays null when its chunk does not load', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const chunkError = new Error('Failed to fetch dynamically imported module');
+    const { component } = componentFor(
+      DEVELOPMENT_ROUTE.bench,
+      vi.fn(() => Promise.reject<typeof DevelopmentPageStubComponent>(chunkError)),
+    );
+    await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining(`"${DEVELOPMENT_ROUTE.bench}"`), chunkError);
+    expect(component()).toBeNull();
+    consoleError.mockRestore();
+  });
+
   it('loads nothing and stays null when there is no page', () => {
     const { loader, component } = componentFor(null);
     expect(loader).not.toHaveBeenCalled();

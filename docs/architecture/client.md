@@ -175,8 +175,7 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   shell reads through `ACTIVE_DEVELOPMENT_ROUTE` (`development-route/development-route.ts`, which picks one in that
   order). The page itself is only ever a dynamic `import()` in `development-route/development-route-loader.ts`,
   inside an `ngDevMode` branch the production build defines away, so production emits neither the pages nor a lazy
-  chunk for them. Nothing else imports a page component statically; `development-route-bundle.spec.ts` walks the
-  static imports from `main.ts` and fails if one is reached. A new dev page follows the same shape.
+  chunk for them. Nothing else imports a page component statically; `development-route-bundle.spec.ts` walks the static imports from `main.ts` and fails if it reaches any file of a page's territory (its directory, or the preview route's files) other than the ones named as shared with production: each page's gate, and the frame instrumentation in `bench/` the game loop also runs. It also fails if a page's `import()` leaves the `ngDevMode` block. A new dev page follows the same shape.
 
 ## 7. Audio hook seam (#101)
 

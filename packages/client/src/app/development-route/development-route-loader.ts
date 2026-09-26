@@ -36,10 +36,15 @@ export const DEVELOPMENT_ROUTE_COMPONENT_LOADER = new InjectionToken<Development
   },
 );
 
-/** The component for `route` once it has loaded; `null` before then, and for good when there is no route. */
+/**
+ * The component for `route` once it has loaded; `null` before then, and for good when there is no route or its chunk
+ * fails to load (logged, naming the page: a dev server restarted mid-load, a stale prebundle).
+ */
 export function injectDevelopmentRouteComponent(route: DevelopmentRoute | null): Signal<Type<unknown> | null> {
   const component = signal<Type<unknown> | null>(null);
   const loading = route === null ? null : inject(DEVELOPMENT_ROUTE_COMPONENT_LOADER)(route);
-  void loading?.then((loaded) => component.set(loaded));
+  void loading
+    ?.then((loaded) => component.set(loaded))
+    .catch((error: unknown) => console.error(`The dev page "${route}" could not load; the page stays blank.`, error));
   return component.asReadonly();
 }
