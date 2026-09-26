@@ -1,14 +1,15 @@
 // The dish field (docs/visual-style/principles-and-palette.md §1–§2, sheet 02 field, zone and dish-wall tables): one render
 // of the whole dish at a fixed resolution, blitted as a sprite under everything: the field colour,
-// the zone tints (shallows annulus, vent disc, the gel patches with their strands), the wall's inner
-// shadow and the stage outside the wall with its scratches. The wall's crisp lines are Graphics at
-// world scale and the vent fissure is its own sprite over this one (dish-layer.ts); everything here
-// is soft. The condenser light pool is not here: it is anchored to the view, not the world, so it
-// is its own sprite the dish layer keeps fixed on screen (light-pool-bake.ts, rendering/budget.md §6.1).
+// the zone tints (shallows annulus, vent disc, the gel patches), the wall's inner shadow and the stage
+// outside the wall. The wall's crisp lines are Graphics at world scale and the vent fissure is its own
+// sprite over this one (dish-layer.ts); everything here is soft. The condenser light pool is not here: it
+// is anchored to the view, not the world, so it is its own sprite the dish layer keeps fixed on screen
+// (light-pool-bake.ts, rendering/budget.md §6.1).
 //
-// Resolution: `FIELD_TEXTURE_PX` over the dish is 0.33 px/wu, right for the tints.
-// Anything with an edge (the vent, and later the strands) belongs in its own sprite at ≥ 1 px/wu
-// (vent-bake.ts; the per-zoom-band textures of visual-style/performance-and-checklist.md §8 are #223's), never in a bigger field.
+// Resolution: `FIELD_TEXTURE_PX` over the dish is 0.33 px/wu, right for the tints at every zoom band.
+// Anything with an edge is never baked into it (#223): the vent is its own sprite (vent-bake.ts), and the
+// mire strands and stage scratches are placed here from the dish sub-stream but drawn by the dish layer
+// as world-scale lines per zoom band (dish/dish-details.ts, rendering/budget.md §6).
 // The zone noise clouds are deferred (see the PR).
 
 import {
@@ -42,13 +43,15 @@ import {
   ZONE_VENT,
 } from '../constants';
 import { DIAMETER_PER_RADIUS, HALF } from '../geometry';
-import { paintMireStrands, paintStageScratches } from './dish-field-details';
+import { placeMireStrands, placeStageScratches, type DishDetailStroke } from './dish-field-details';
 import { fillRadial, type BakeCanvas, type BakeCanvasFactory, type BakeContext2D, type DiscSpec } from './texture-bake';
 
 export interface DishField {
   readonly canvas: BakeCanvas;
   /** The world extent the texture covers: a square of this half-size, centred on the origin. */
   readonly halfExtentWu: number;
+  /** The mire strands, then the stage scratches, placed from the dish sub-stream; drawn by the dish layer. */
+  readonly details: readonly DishDetailStroke[];
 }
 
 interface FieldFrame {
@@ -57,7 +60,6 @@ interface FieldFrame {
   readonly centre: number;
   readonly pxPerWu: number;
   readonly sizePx: number;
-  readonly halfExtentWu: number;
 }
 
 const IS_ANTICLOCKWISE = true;
@@ -115,8 +117,8 @@ function paintShallows(frame: FieldFrame): void {
   ]);
 }
 
-/** Each gel patch: the mire tint disc with its strands, placed from the dish sub-stream. */
-function paintGelPatches(frame: FieldFrame, patches: readonly GelPatchView[], random: RandomSource): void {
+/** Each gel patch: the mire tint disc (its strands are details, `placeMireStrands`). */
+function paintGelPatches(frame: FieldFrame, patches: readonly GelPatchView[]): void {
   const { context, pxPerWu } = frame;
   for (const patch of patches) {
     const disc = {
@@ -125,7 +127,6 @@ function paintGelPatches(frame: FieldFrame, patches: readonly GelPatchView[], ra
       radius: patch.radius * pxPerWu,
     };
     paintZoneTint(context, disc, GEL_TINT);
-    paintMireStrands(context, disc, { colour: ZONE_GEL, random, scale: frame });
   }
 }
 
@@ -140,8 +141,8 @@ function paintWallInnerShadow(frame: FieldFrame): void {
   ]);
 }
 
-/** Outside the wall: the stage, darkened (the square minus the dish disc, wall included), then its scratches. */
-function paintOutside(frame: FieldFrame, random: RandomSource): void {
+/** Outside the wall: the stage, darkened (the square minus the dish disc, wall included); its scratches are details. */
+function paintOutside(frame: FieldFrame): void {
   const { context } = frame;
   context.beginPath();
   context.rect(0, 0, frame.sizePx, frame.sizePx);
@@ -155,10 +156,12 @@ function paintOutside(frame: FieldFrame, random: RandomSource): void {
   );
   context.fillStyle = hexWithAlpha(OUTSIDE_DISH, OUTSIDE_DISH_ALPHA);
   context.fill();
-  paintStageScratches(context, frame, { random, scale: frame });
 }
 
-/** The field at `FIELD_TEXTURE_PX`, in sheet 02's draw order; strands and scratches are placed from the cosmetic stream. */
+/**
+ * The field at `FIELD_TEXTURE_PX`, in sheet 02's draw order, and its line details: the strands of every patch,
+ * then the scratches, placed from the cosmetic stream's dish sub-stream in that order.
+ */
 export function bakeDishField(
   factory: BakeCanvasFactory,
   patches: readonly GelPatchView[],
@@ -168,14 +171,18 @@ export function bakeDishField(
   const sizePx = FIELD_TEXTURE_PX;
   const pxPerWu = sizePx / (halfExtentWu * DIAMETER_PER_RADIUS);
   const canvas = factory.create(sizePx, sizePx);
-  const frame: FieldFrame = { context: canvas.context, centre: sizePx * HALF, pxPerWu, sizePx, halfExtentWu };
-  const random = cosmetic.fork(COSMETIC_SUB_STREAM.dish);
+  const frame: FieldFrame = { context: canvas.context, centre: sizePx * HALF, pxPerWu, sizePx };
   frame.context.fillStyle = BG_FIELD;
   frame.context.fillRect(0, 0, sizePx, sizePx);
   paintShallows(frame);
   paintZoneTint(frame.context, { x: frame.centre, y: frame.centre, radius: VENT_RADIUS * pxPerWu }, VENT_TINT);
-  paintGelPatches(frame, patches, random);
+  paintGelPatches(frame, patches);
   paintWallInnerShadow(frame);
-  paintOutside(frame, random);
-  return { canvas, halfExtentWu };
+  paintOutside(frame);
+  const random = cosmetic.fork(COSMETIC_SUB_STREAM.dish);
+  const details = [
+    ...patches.flatMap((patch) => placeMireStrands(patch, ZONE_GEL, random)),
+    ...placeStageScratches(halfExtentWu, random),
+  ];
+  return { canvas, halfExtentWu, details };
 }

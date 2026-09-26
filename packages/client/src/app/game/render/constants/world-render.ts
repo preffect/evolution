@@ -129,6 +129,27 @@ export const STAGE_SCRATCHES = {
 } as const;
 /** The field texture reaches past the wall by this many glass widths so the stage shows around it. */
 export const FIELD_OUTSIDE_MARGIN_GLASS = 3;
+/**
+ * The zoom bands the field's line details (mire strands, stage scratches) are drawn for, as each band's lowest
+ * zoom in CSS px per wu, far → near (visual-style/performance-and-checklist.md §8, #223). The lines are world-scale
+ * geometry, sharp at any zoom; the band only sets how far a thin line is widened, and they are redrawn only when
+ * the camera crosses into another band. A zoom under the first band's is drawn as the first band: the far band's
+ * 0.3 is the camera's lowest zoom (`CAMERA_MAX_VIEW_HALF_HEIGHT_WU` 1500) on a 900 CSS px tall canvas, so a shorter
+ * canvas draws its thinnest far lines a little under the 1 px floor (0.89 px at 800 px tall; the field bake's old
+ * one-texel floor gave 0.81 px there).
+ */
+export const DISH_DETAIL_BAND_MIN_ZOOMS = [0.3, 0.6, 1.2] as const;
+/**
+ * The dead zone at a band edge, as a share of the edge's zoom: the camera enters a nearer band only at
+ * `minZoom × (1 + this)` and leaves it at `minZoom`, so a cell whose size hovers at an edge does not rebuild the lines
+ * on every flip.
+ */
+export const DISH_DETAIL_BAND_HYSTERESIS = 0.05;
+/**
+ * At its band's lowest zoom no detail line is thinner than this many CSS px (a sub-pixel line breaks up unfiltered);
+ * a line widened to it keeps its ink per length by losing alpha in proportion (`dish/dish-details.ts`).
+ */
+export const DISH_DETAIL_MIN_STROKE_PX = 1;
 
 // ---- depth particles (sheet 02, visual-style/motion-and-legibility.md §5) ----
 export const DEPTH_FAR = { count: 260, radiusMin: 0.5, radiusMax: 1.3, alphaMin: 0.08, alphaMax: 0.28 } as const;

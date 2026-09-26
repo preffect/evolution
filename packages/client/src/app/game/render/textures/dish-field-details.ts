@@ -1,10 +1,10 @@
-// The line details of the field and the light pool (sheet 02): the three caustic sweeps across the
-// pool (light-pool-bake.ts), the mire strands scattered over each gel patch and the stage scratches
-// outside the wall. All are drawn into a coarse bake (the 0.33 px/wu field, the pool at 0.52 × 0.67
-// texel/wu), so a stroke thinner than `FIELD_MIN_STROKE_TEXELS` is widened to that and read by its
-// alpha alone; the per-band detail sprites of visual-style/performance-and-checklist.md §8 are #223's.
+// The line details of the field and the light pool (sheet 02). The three caustic sweeps are painted into the
+// pool bake (light-pool-bake.ts, 0.52 × 0.67 texel/wu), so a stroke thinner than `FIELD_MIN_STROKE_TEXELS` is
+// widened to that and read by its alpha alone. The mire strands over each gel patch and the stage scratches
+// outside the wall are only placed here, as world-space strokes from the dish sub-stream: the dish layer draws
+// them at world scale per zoom band (dish/dish-details.ts, #223), because in the 0.33 px/wu field they blurred.
 
-import { DISH_RADIUS, RADIANS_PER_FULL_TURN, lerp, type RandomSource } from '@evolution/shared';
+import { DISH_RADIUS, RADIANS_PER_FULL_TURN, lerp, type GelPatchView, type RandomSource } from '@evolution/shared';
 import { hexWithAlpha } from '../colour';
 import {
   CAUSTIC_ALPHA,
@@ -20,7 +20,7 @@ import {
   WALL_GLASS_WU,
 } from '../constants';
 import { HALF } from '../geometry';
-import type { BakeContext2D, DiscSpec } from './texture-bake';
+import type { BakeContext2D } from './texture-bake';
 
 /** A point in the field texture, in px. */
 export interface FieldPoint {
@@ -61,64 +61,61 @@ export function paintCaustics(context: BakeContext2D, pool: FieldPoint, scale: F
   }
 }
 
-export interface StrandPlacement {
+/** A point in the world, in wu. */
+export interface DetailPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * One seeded line detail of the field, in wu from the dish centre: a mire strand (a quadratic curve through
+ * `control`) or a stage scratch (straight, `control` null). The dish layer strokes these at world scale
+ * (`dish/dish-details.ts`), so they stay sharp at every zoom instead of riding the 0.33 px/wu field bake.
+ */
+export interface DishDetailStroke {
+  readonly start: DetailPoint;
+  readonly control: DetailPoint | null;
+  readonly end: DetailPoint;
+  readonly widthWu: number;
   readonly colour: string;
-  readonly random: RandomSource;
-  readonly scale: FieldScale;
+  readonly alpha: number;
 }
 
 /** One strand: a short gentle curve from a seeded root anywhere in the patch, bent sideways, at a seeded alpha. */
-function paintStrand(context: BakeContext2D, disc: DiscSpec, placement: StrandPlacement): void {
-  const { random, scale } = placement;
+function placeStrand(patch: GelPatchView, colour: string, random: RandomSource): DishDetailStroke {
   const rootAngle = random.nextFloat() * RADIANS_PER_FULL_TURN;
-  const rootDistance = Math.sqrt(random.nextFloat()) * MIRE_STRAND.rootShareMax * disc.radius;
-  const root = { x: disc.x + Math.cos(rootAngle) * rootDistance, y: disc.y + Math.sin(rootAngle) * rootDistance };
+  const rootDistance = Math.sqrt(random.nextFloat()) * MIRE_STRAND.rootShareMax * patch.radius;
+  const start = { x: patch.x + Math.cos(rootAngle) * rootDistance, y: patch.y + Math.sin(rootAngle) * rootDistance };
   const heading = random.nextFloat() * RADIANS_PER_FULL_TURN;
-  const length = lerp(MIRE_STRAND.lengthShareMin, MIRE_STRAND.lengthShareMax, random.nextFloat()) * disc.radius;
+  const length = lerp(MIRE_STRAND.lengthShareMin, MIRE_STRAND.lengthShareMax, random.nextFloat()) * patch.radius;
   const bend = (random.nextFloat() - HALF) * MIRE_STRAND.bendShare * length;
-  const end = { x: root.x + Math.cos(heading) * length, y: root.y + Math.sin(heading) * length };
+  const end = { x: start.x + Math.cos(heading) * length, y: start.y + Math.sin(heading) * length };
   const control = {
-    x: (root.x + end.x) * HALF - Math.sin(heading) * bend,
-    y: (root.y + end.y) * HALF + Math.cos(heading) * bend,
+    x: (start.x + end.x) * HALF - Math.sin(heading) * bend,
+    y: (start.y + end.y) * HALF + Math.cos(heading) * bend,
   };
-  context.strokeStyle = hexWithAlpha(
-    placement.colour,
-    lerp(MIRE_STRAND_ALPHA_MIN, MIRE_STRAND_ALPHA_MAX, random.nextFloat()),
-  );
-  context.lineWidth = fieldStrokePx(lerp(MIRE_STRAND.widthWuMin, MIRE_STRAND.widthWuMax, random.nextFloat()), scale);
-  context.beginPath();
-  context.moveTo(root.x, root.y);
-  context.quadraticCurveTo(control.x, control.y, end.x, end.y);
-  context.stroke();
+  const alpha = lerp(MIRE_STRAND_ALPHA_MIN, MIRE_STRAND_ALPHA_MAX, random.nextFloat());
+  const widthWu = lerp(MIRE_STRAND.widthWuMin, MIRE_STRAND.widthWuMax, random.nextFloat());
+  return { start, control, end, widthWu, colour, alpha };
 }
 
-/** `MIRE_STRANDS_PER_PATCH` strands over a patch disc, placed from the placement's stream. */
-export function paintMireStrands(context: BakeContext2D, disc: DiscSpec, placement: StrandPlacement): void {
-  context.lineCap = 'round';
-  for (let strand = 0; strand < MIRE_STRANDS_PER_PATCH; strand += 1) paintStrand(context, disc, placement);
+/** `MIRE_STRANDS_PER_PATCH` strands over a gel patch, placed from `random`. */
+export function placeMireStrands(patch: GelPatchView, colour: string, random: RandomSource): DishDetailStroke[] {
+  return Array.from({ length: MIRE_STRANDS_PER_PATCH }, () => placeStrand(patch, colour, random));
 }
 
-/** `STAGE_SCRATCHES.count` faint short lines on the stage between the wall and the texture's edge. */
-export function paintStageScratches(
-  context: BakeContext2D,
-  frame: { centre: number; halfExtentWu: number },
-  placement: { random: RandomSource; scale: FieldScale },
-): void {
-  const { random, scale } = placement;
+/** `STAGE_SCRATCHES.count` faint short lines on the stage between the wall and `halfExtentWu` from the centre. */
+export function placeStageScratches(halfExtentWu: number, random: RandomSource): DishDetailStroke[] {
   const scratches = STAGE_SCRATCHES;
   const innerWu = DISH_RADIUS + WALL_GLASS_WU * scratches.innerMarginGlass;
-  context.lineCap = 'round';
-  context.lineWidth = fieldStrokePx(scratches.widthWu, scale);
-  for (let scratch = 0; scratch < scratches.count; scratch += 1) {
+  return Array.from({ length: scratches.count }, () => {
     const angle = random.nextFloat() * RADIANS_PER_FULL_TURN;
-    const distance = lerp(innerWu, frame.halfExtentWu, random.nextFloat()) * scale.pxPerWu;
+    const distance = lerp(innerWu, halfExtentWu, random.nextFloat());
     const heading = random.nextFloat() * RADIANS_PER_FULL_TURN;
-    const length = lerp(scratches.lengthWuMin, scratches.lengthWuMax, random.nextFloat()) * scale.pxPerWu;
-    const from = { x: frame.centre + Math.cos(angle) * distance, y: frame.centre + Math.sin(angle) * distance };
-    context.strokeStyle = hexWithAlpha(STAGE_SCRATCH, lerp(scratches.alphaMin, scratches.alphaMax, random.nextFloat()));
-    context.beginPath();
-    context.moveTo(from.x, from.y);
-    context.lineTo(from.x + Math.cos(heading) * length, from.y + Math.sin(heading) * length);
-    context.stroke();
-  }
+    const length = lerp(scratches.lengthWuMin, scratches.lengthWuMax, random.nextFloat());
+    const start = { x: Math.cos(angle) * distance, y: Math.sin(angle) * distance };
+    const end = { x: start.x + Math.cos(heading) * length, y: start.y + Math.sin(heading) * length };
+    const alpha = lerp(scratches.alphaMin, scratches.alphaMax, random.nextFloat());
+    return { start, control: null, end, widthWu: scratches.widthWu, colour: STAGE_SCRATCH, alpha };
+  });
 }

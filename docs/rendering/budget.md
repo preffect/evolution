@@ -6,13 +6,27 @@
 
 Everything not a cell is a **baked texture**: `textures/glow-atlas.ts` bakes one radial-gradient glow per colour
 (core + soft + wide + glint, `ASSET-GENERATION.md §1.5`) for motes, fragments, halos and effect rings; the dish
-(field, zone tints and clouds, mire strands, vent crust, wall) is one render texture per zoom band
-(visual-style/performance-and-checklist.md §8); the condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
+field (zone tints and clouds, the wall's inner shadow, the stage outside it) is **one** 2048² render texture at
+0.33 px/wu for every zoom band, because everything left in it is a soft gradient that bilinear magnification does
+not blur. What has an edge is never baked into it (#223): the vent is its own sprite at ≥ 1 px/wu, the wall is
+world-scale `Graphics`, and the field's line details — the mire strands and the stage scratches, placed from the
+dish sub-stream by the field bake — are drawn in wu into the wall's `Graphics`, under its lines (`dish/dish-details.ts`),
+redrawn only when the camera crosses a `DISH_DETAIL_BAND_MIN_ZOOMS` band (far 0.3, mid 0.6, near 1.2 px/wu), each
+band widening a thin line to `DISH_DETAIL_MIN_STROKE_PX` (1 CSS px) at its lowest zoom and no further, at an alpha
+scaled by the width it gained so its ink is the same in every band; a nearer band is entered only
+`DISH_DETAIL_BAND_HYSTERESIS` (5 %) past its edge, so a cell whose size hovers at an edge does not rebuild the lines
+on every flip. That is
+what visual-style/performance-and-checklist.md §8's "one texture per zoom band" was for — sharp strands and
+scratches at zoom 1 and 1.8 — at no texture memory: a field per near band would be 6204² px at 1 px/wu (147 MiB)
+or tiles of it, where the lines cost ≈ 60 strokes of geometry. They share the wall's `Graphics` because 60 strokes
+are too many vertices for Pixi to batch: a `Graphics` of their own measured +2 draw calls (its own and the sprite
+batch it splits), the shared one 0. So they now draw over the light pool (9 % at most) and the vent sprite
+instead of under them. The condenser light pool and its caustics are one view-anchored sprite over the field (§6.1);
 the vent shimmer is the one filter, over the vent sprite only. Draw calls at the bench load (§7):
 
 | Layer (`architecture/client.md §6`) | Container                                                                                                                                                                    | Calls |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| dish                                | field render texture; light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)                                                                         | 4     |
+| dish                                | field render texture; wall and field detail lines (one world-scale `Graphics`, #223); light pool (view-anchored sprite, §6.1); vent shimmer; vignette (screen-space)         | 4     |
 | depth particles                     | far / near / bokeh `ParticleContainer`s (position + phase only)                                                                                                              | 3     |
 | food                                | one `ParticleContainer`, mote atlas (algae, detritus, three rods, small variants, the fragment helices: one packed texture source, `textures/atlas-layout.ts`)               | 1     |
 | DNA fragments                       | sprite batch: one helix frame per tag from the same packed mote source (strands, tag-tinted rungs and halos baked in, `textures/fragment-bake.ts`), 20 °/s                   | 1     |

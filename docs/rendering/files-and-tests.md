@@ -12,7 +12,7 @@ textures/{texture-bake,soft-paint,pixi-textures}.ts   the Canvas-2D bake seam (`
 textures/radial-bake.ts                              the per-pixel radial sampler behind the soft disc and the vignette: premultiplied bytes a spec can read back (#229)
 textures/{glow-atlas,organelle-atlas,mote-atlas,dish-texture}.ts   the atlases and the field, each a pure bake over the seam (#206)
 textures/atlas-layout.ts                             shelf packing of the mote and fragment bakes into the one canvas the food `ParticleContainer` draws from (`TextureBaker.atlasFromBakes`, #207)
-textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206)
+textures/{nucleus-bake,bacterium-bake,fragment-bake,dish-field-details}.ts  the multi-layer bakes the atlases and the field compose (#206); dish-field-details also places the field's line details in wu (#223)
 textures/{vent-bake,vent-risers-bake}.ts          the vent sprite at ≥ 1 px/wu, drawn by the dish layer over the field (§6); the field stays 0.33 px/wu for the tints (#206)
 textures/light-pool-bake.ts                       the condenser pool and its caustics, one bake the dish layer keeps fixed to the view over the field (§6.1, #242)
 textures/{ghost-bake,pip-block-bake,label-pill-bake}.ts   the own-cell indicators' px bakes (§10): the five ladder ghosts, the pip blocks per (variant, eaten), the nine-slice label pill (#294)
@@ -29,6 +29,7 @@ cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   the registry and 
 cells/forms/amoeba-pseudopods.ts                   the amoeba's core, its lobes' width, fan and cycle, their reach table and the body bound (#192)
 food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts   one `ParticleContainer` over the mote atlas and the fragment sprites above it, one render state per mote (cosmetic draws, held heading) in a `ViewRegistry`; the pure appearance rules (#207)
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
+dish/dish-details.ts                              the field's mire strands and stage scratches as world-scale lines, redrawn per zoom band (§6, #223)
 effects/{effects-layer,motion-clip-player,effect-sprites,effect-reach,reticle}.ts   the glow-atlas sprites of the four effects and the reticle, the millisecond clip player, the placements as data (#207)
 effects/cell-clip-tracker.ts                       one clip player per cell, started from the effects, sampled with the engulf terms of the views into the frame's `CellDeformations` (#207)
 effects/{own-cell-geometry,oriented-box,orbit-layout,threat-label-placement}.ts   the own cell's indicator geometry (§10), pure and one-way: the radii and the angle turn (the leaf), the gap between drawn boxes, the ladder orbit's layout, the threat label
