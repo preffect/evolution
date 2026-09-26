@@ -966,9 +966,7 @@ total_tests_run() { # <summary lines>
 # possibly the branch's, since a scenario may hold its worker longer than the watchdog. Either way
 # nobody reads the passed counts above it as a green run.
 unhandled_error_report() { # <test | integration> <runner output>
-  local cmd="$1"
-  shift
-  local line rest errors=0 timeouts=0 noun=errors
+  local cmd="$1" line rest errors=0 timeouts=0 noun=errors
   while IFS= read -r line; do
     rest="$line"
     [[ ! "$line" =~ $PNPM_LINE_PREFIX_PATTERN ]] || rest="${BASH_REMATCH[2]}"
@@ -977,7 +975,7 @@ unhandled_error_report() { # <test | integration> <runner output>
     elif [[ "$rest" == *"$RUNNER_RPC_TIMEOUT_MARKER"* ]]; then
       timeouts=$((timeouts + 1))
     fi
-  done <<< "$1"
+  done <<< "$2"
   [[ $errors -gt 0 ]] || return 0
   [[ $errors -ne 1 ]] || noun=error
   echo "validate.sh: the runner reported $errors unhandled $noun outside its tests, and exited non-zero:"
